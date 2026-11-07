@@ -53,8 +53,13 @@ use of them.
 5. The router becomes a manager. Pairs are mediated by code inside the manager, with typed messages. The manager's model decides only on signals.
 6. swarmD hosts the artifact. One query is shown on the web, in Slack and in Pi.
 7. The chat manager is redesigned on the ledger. It keeps the behaviour of `slack-router` and its 8 scenarios, not its code.
-8. The ledger replaces Linear for this work. [Confirm with Aaron.]
+8. The ledger replaces Linear for this work (confirmed by Aaron, 7 November 2026).
 9. The git host is a private GitHub repository, `AaronAbuUsama/capxul-next`.
+
+## Accepted later
+
+All 21 decisions on the decision board, accepted by Aaron on 7 November 2026: see
+[docs/decisions/README.md](../decisions/README.md).
 
 ## Open
 

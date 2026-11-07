@@ -13,9 +13,10 @@ worlds. That is an L3 eval: `sys:loc/harness`.
 
 ```
 EvalId   = kind ":" subject [ "/" qualifier ]
-kind     = acc | ret | ref | evt | spn | bud | doc | des        (L1)
+kind     = acc | ret | ref | evt | spn | bud | doc | des        (L1, an operation)
+         | rpc | flw | prc | tbl | trn | wfl | int             (L1, the records below an operation)
          | jrn | fun                                           (L2)
-         | sys                                                 (L3)
+         | sys | inv | env                                     (L3)
          | live                                                (L4)
          | rev | ok                                            (judged: agent / person)
 subject  = an operation id ("payment.send"), a journey key ("get_paid"),
@@ -87,32 +88,33 @@ HogQL, through the scout worker's sandbox.
 - **Agent and person evals count toward `done`,** but the scoreboard shows
   them in their own column.
 
-## The operation definition: the eval-bearing fields
+## Where evals come from in the design book
 
-This is the full format, in thread C1. Only the fields that produce evals are
-shown here.
+The design book (`50-design-book.md`, code in `packages/book`) derives every eval from records;
+nobody writes an eval list by hand. The operation is the frozen unit and keeps its book text; its
+implementation is one rpc or one Core SDK flow, and the server and data records below it carry the
+rest:
 
 ```ts
-export default defineOperation({
-  id: "payment.send",
-  command: "payment send",                       // frozen: from the old book
-  // … input, output, who, about, notes, mistakes (frozen text from the book) …
-  acceptance: [                                   // frozen claims from the book, numbered from 1
-    /* 1 */ "Sends to a Party's saved destination and returns the Payment in `settling`.",
-    /* 3 */ "A send above the Seat's Budget is refused and nothing is reserved.",
+export const operation_payment_send = defineOperation({
+  ...frozenText("payment.send"),               // the old book's text, generated, never retyped
+  priority: "critical",
+  implementedBy: flow_client_payments_send,    // the Core SDK flow the CLI's one SDK call runs
+  acceptance: [                                 // policy P1: claim, what a black-box run observes, the old citation
+    { claim: "Sends to a Party's saved destination and returns the Payment in settling.",
+      observes: "exit 0; --json payment.status is settling; payment_transitioned to settling on the trace",
+      was: ["backend send.test.ts"] },
   ],
-  refusals: [
-    { code: "INSUFFICIENT_FUNDS", exit: 4, given: "org-safe-empty", when: "The Safe holds less than the amount." },
-    { code: "ROLE_PERMISSION_DENIED", exit: 3, given: "org-member-no-budget", when: "…" },
-  ],
-  events: [{ name: "payment_transitioned", when: "on every state change", props: { to: "settling" } }],
-  spans: {
-    children: ["authorize", "db.tx", "chain.read", "bundler.send"],
-    attributes: ["organization_id", "payment_id"],
-  },
-  budget: { class: "chain-submit", p50Ms: 900, p95Ms: 2500, excludes: ["wait.*", "chain.confirm"] },
+  returns: PaymentSchema,
+  refusals: [{ error: error_INSUFFICIENT_BALANCE, given: "org-safe-empty", when: "The Safe holds less than the amount." }],
+  errors: [error_CLI_USAGE],                    // produced by the CLI command itself
+  budget: budget("chain-submit"),               // the class default (policy P5); an override needs why
 });
 ```
+
+Events come from the state machine the implementation drives (one `<machine>_transitioned`
+event per machine, policy P7). Spans come from the runtime at each boundary (policy P6); records
+list only extra spans. The eval kinds each record yields are in `50-design-book.md`, "Evals".
 
 An `acc` eval body lives next to the operation, as `payment.send.evals.ts`:
 
