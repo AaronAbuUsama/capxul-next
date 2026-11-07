@@ -1,0 +1,128 @@
+# The design book
+
+The book holds the whole design, not only operations. Every part of the system is a record:
+typed, checked, linked to the records it depends on, and carrying the evals that say when it
+is done. The code is in [`packages/book`](../../packages/book), about 900 lines; its tests pass.
+
+This page is the schema's reading guide. The schema itself is
+`packages/book/src/records/*.ts`, written in Effect Schema, and where they differ the code wins.
+
+## Records are TypeScript, links are imports
+
+```ts
+export const invitations = defineTable({ id: "invitations", concept: organizations, tenancy: "organization", fields: Schema.Struct({ … }), … });
+export const lifecycle = defineMachine({ id: "invitation", table: invitations, initial: "pending", states: [ … ], transitions: { accept: { from: ["pending"], to: "accepted", emits: [invitationAccepted] } } });
+export const accept = defineOperation({ id: "invite.accept", concept: organizations, writes: [invitations], drives: [lifecycle.t.accept], … });
+```
+
+- **Checks at two points.** Each `define*` validates its fields against the record's Effect
+  Schema when the record is created, so a bad id or an over-long line throws at once. The
+  compiler checks the kind of every link: `writes` takes tables, `drives` takes transitions.
+- **No string references.** A link holds the record itself, so a rename is a refactor the
+  compiler follows.
+- **Schemas are values.** An operation's input and output, a table's fields and an event's
+  properties are Effect Schemas held in the record. Code is generated from those same values.
+
+## Layers: links only point down
+
+```
+System → Component → Concept → Table → State machine (transitions) → Event, Error
+Integration (calls) under Component        Contract (functions, chain events)
+Operation, Workflow → Concept, Table, Transition, Call, Function, Event, Error
+Journey → Operation        Invariant → Table, Machine, Workflow        Environment → Component
+Decision → any record
+```
+
+Because links only point down, the book has no cycles. A record never lists who uses it.
+"Which operations drive this transition" is a reverse link that the build computes.
+
+## Record kinds
+
+| Kind | Defined by | What it pins down |
+|---|---|---|
+| `system` | `defineSystem` | actors (person, agent, system) and surfaces |
+| `component` | `defineComponent` | a running piece: runtime, what it exposes, `dependsOn`, budgets |
+| `concept` | `defineConcept` | a domain module: its component, the concepts it may depend on, its line budget |
+| `error` | `defineError` | code, class (ADR-0039), who acts, message, whether it can be retried, CLI exit code |
+| `event` | `defineEvent` | name and its property schema |
+| `table` | `defineTable` | owner concept, tenancy (organization, person or global), fields, key, indexes (each with the query it serves), retention |
+| `machine` | `defineMachine` | the table and its state column, the states, and transitions (from, to, guard, events); each transition can be linked as `machine.t.<name>` |
+| `integration` | `defineIntegration` | the outside system behind an Effect service: calls with timeout, retries, p95 and failures mapped to errors; the devnet fake; secret names. Each call can be linked as `integration.c.<name>` |
+| `contract` | `defineContract` | addresses, functions (`contract.f.<name>`) and chain events (`contract.e.<name>`) |
+| `operation` | `defineOperation` | the frozen text from the book, acceptance lines numbered (a retired line stays `null`), input and output, errors, refusals with their `given` world, what it touches (reads, writes, drives, calls, chain, emits), child spans, budget |
+| `workflow` | `defineWorkflow` | its trigger (after an operation, a transition, a chain event or a cron), steps, what it touches, idempotency key, timeout, retries, compensation, budget |
+| `journey` | `defineJourney` | ordered steps: operation, actor, proving event |
+| `invariant` | `defineInvariant` | a statement over tables and machines; checked by property test, fuzz, reconciliation (`by` a workflow) or static check |
+| `environment` | `defineEnvironment` | which components run where, config and secret names, deploy, boot budget |
+| `decision` | `defineDecision` | question, options, choice, why, source, the records it affects |
+
+## Rules: a broken one is a problem, and the book does not build
+
+| Rule | When |
+|---|---|
+| `duplicate` | two records share a kind and an id |
+| `dangling` | a link points at a record the book does not list |
+| `undefined-link` | a link is `undefined` (an import cycle or a missing export) |
+| `machine-initial`, `machine-state` | a state machine names a state it does not have |
+| `write-boundary` | an operation or workflow writes a table another concept owns |
+| `read-boundary` | it reads a table from a concept its own concept does not depend on |
+| `drives-without-write` | it drives a transition on a table it does not write |
+| `refusal-not-declared` | a refusal's error is not in the operation's `errors` |
+| `cycle` | concepts or components depend on each other in a loop |
+| `unknown-actor` | a journey step is taken by someone the system does not list |
+
+## Gaps: derived, never written
+
+| Gap | When |
+|---|---|
+| `unwritten-table` | no operation or workflow writes it |
+| `undriven-transition` | nothing drives it |
+| `unreachable-state` | no transition reaches it |
+| `unsent-event` | no transition, operation or workflow sends it |
+| `unproduced-error` | no operation or integration produces it |
+| `unused-call`, `uncalled-function`, `unconsumed-chain-event` | an integration call, a contract function or a chain event that nothing uses |
+| `empty-concept` | it owns no tables, operations or workflows |
+| `unhosted-component` | no environment runs it |
+| `no-acceptance` | an operation has no acceptance lines |
+| `unproven-step` | a journey step has no proving event |
+| `unchecked-invariant` | a reconcile check names no workflow |
+
+## Evals: derived from records
+
+The kinds in [30](30-capxul-evals.md) are derived from operations and journeys. The design
+book adds evals for the other record kinds:
+
+| Id | From | Claim |
+|---|---|---|
+| `tbl:<table>/schema` | table | the migration creates exactly these fields, key and indexes |
+| `tbl:<table>/writers` | table | only the listed writers change it |
+| `trn:<machine>.<transition>` | transition | an eval run observes it, with its events |
+| `wfl:<workflow>/idempotent`, `/resume` | workflow | a second run is a no-op; a killed run resumes |
+| `bud:<workflow>/p95` | workflow | from trigger to done, within budget |
+| `int:<integration>/conformance` | integration | the fake and the real service pass the same suite |
+| `int:<integration>.<call>/<CODE>` | integration | each failure surfaces as its error |
+| `sys:imports/<concept>`, `sys:loc/<concept>` | concept | its imports and its line budget |
+| `inv:<invariant>` | invariant | its statement |
+| `env:<env>/boot`, `/smoke` | environment | it boots within budget; a smoke journey passes |
+
+## Views: generated, never drawn
+
+`node --experimental-strip-types packages/book/src/main.ts <book module> <out>` writes:
+
+- `README.md`: counts, the component diagram, the concept diagram, problems, gaps by rule
+- `concepts/<id>.md`: per concept, its tables, its state diagrams, operations, workflows and gaps
+- `evals.json` and `findings.json`
+
+It exits with 1 if the book has problems.
+
+## Deliberately not in the schema yet: the step-2 slice decides
+
+- **SDK and React surface records.** Today they are fields on the operation (`sdk`). If the
+  rebuilt React SDK needs hooks that are not one-to-one with operations, it gets its own
+  record.
+- **Index-to-query linking.** An index names its query in words. If operations name the
+  queries they use, an index nobody uses becomes a gap.
+- **Ponder.** The indexer is a component and an integration. Its indexed tables may need a
+  `source: "indexer"` tenancy, so that reads from them pass the boundary rules.
+- **Generated code.** Step 2 proves the records can drive code: one table migration and one
+  RPC group, generated from the payments or books slice.

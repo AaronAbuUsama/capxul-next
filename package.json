@@ -1,0 +1,10 @@
+{
+  "name": "capxul-next",
+  "private": true,
+  "type": "module",
+  "workspaces": ["packages/*"],
+  "scripts": {
+    "check": "tsc -b packages/book",
+    "test": "npm test -w @capxul/book"
+  }
+}

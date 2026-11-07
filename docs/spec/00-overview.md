@@ -37,6 +37,7 @@ use of them.
 | [20-swarmd-managers-and-pairs.md](20-swarmd-managers-and-pairs.md) | `ManagerDO`, templates (chat, build, lead), the artifact, the pair protocol, signals, tools | threads **S2** and **S3** (swarmd) |
 | [30-capxul-evals.md](30-capxul-evals.md) | every eval kind and its id grammar, generated evals, the runner contract, worlds and observation | thread **C2** (capxul-next) |
 | [40-capxul-team.md](40-capxul-team.md) | the managers, workers, tools, connectors, secrets and prompt skeletons | thread **C1** and Mission Control |
+| [50-design-book.md](50-design-book.md) | the record schema for the whole design (code: `packages/book`) | this thread, then step 2 |
 
 ## Decisions taken in this thread (7 November 2026)
 
