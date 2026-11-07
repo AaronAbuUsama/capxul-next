@@ -104,6 +104,24 @@ export const buildBook = (input: { name: string; stage: "as-is" | "target"; reco
   return { ...book, gaps, evals: deriveEvals(book) };
 };
 
+/** Every error an rpc, flow or procedure can produce: its own, its procedures', its steps' and its calls' failures. */
+export const errorsOf = (b: Draft, key: string, seen = new Set<string>()): Set<string> => {
+  const out = new Set<string>();
+  if (seen.has(key)) return out;
+  seen.add(key);
+  const r = get(b, key);
+  if (!r) return out;
+  for (const e of ids(r.errors)) out.add(e);
+  for (const pr of ids(r.invokes)) errorsOf(b, pr, seen).forEach((e) => out.add(e));
+  for (const s of (r.steps ?? []) as { rpc?: AnyRecord }[]) if (s.rpc) errorsOf(b, keyOf(s.rpc), seen).forEach((e) => out.add(e));
+  for (const c of (r.calls ?? []) as { integration?: string; name?: string }[]) {
+    const i = c.integration ? get(b, `integration:${c.integration}`) : undefined;
+    for (const f of ((i?.calls as Record<string, { failures: { error: AnyRecord }[] }> | undefined)?.[c.name ?? ""]?.failures ?? []))
+      out.add(keyOf(f.error));
+  }
+  return out;
+};
+
 // ── rules: the book is wrong if one fails ───────────────────────────────────────────────────
 
 type Draft = Pick<Book, "records" | "links" | "linkedBy">;
@@ -123,29 +141,48 @@ const checkRules = (b: Draft, problems: Finding[]) => {
     }
   }
 
-  for (const r of [...all(b, "operation"), ...all(b, "workflow")]) {
-    const concept = get(b, ids([r.concept])[0] ?? "");
-    const allowed = new Set([keyOf(r.concept as AnyRecord), ...ids(concept?.dependsOn)]);
+  // server-side behaviour: the concept boundary
+  for (const r of [...all(b, "rpc"), ...all(b, "workflow"), ...all(b, "procedure")]) {
+    const own = keyOf(r.concept as AnyRecord);
+    const allowed = new Set([own, ...ids(get(b, own)?.dependsOn)]);
     const writes = new Set(ids(r.writes));
     for (const key of writes) {
       const t = get(b, key);
-      if (t && keyOf(t.concept as AnyRecord) !== keyOf(r.concept as AnyRecord))
-        p(r, "write-boundary", `writes ${key}, which belongs to ${keyOf(t.concept as AnyRecord)}; a concept writes only its own tables`);
+      if (t && keyOf(t.concept as AnyRecord) !== own)
+        p(r, "write-boundary", `writes ${key}, which belongs to ${keyOf(t.concept as AnyRecord)}; invoke one of its procedures instead`);
     }
     for (const key of ids(r.reads)) {
       const t = get(b, key);
       if (t && !allowed.has(keyOf(t.concept as AnyRecord)))
         p(r, "read-boundary", `reads ${key} from ${keyOf(t.concept as AnyRecord)}, which its concept does not depend on`);
     }
+    for (const key of ids(r.invokes)) {
+      const pr = get(b, key);
+      if (pr && !allowed.has(keyOf(pr.concept as AnyRecord)))
+        p(r, "invoke-boundary", `invokes ${key} from ${keyOf(pr.concept as AnyRecord)}, which its concept does not depend on`);
+    }
     for (const tr of (r.drives ?? []) as { machine: string }[]) {
       const m = get(b, `machine:${tr.machine}`);
       if (m && !writes.has(keyOf(m.table as AnyRecord))) p(r, "drives-without-write", `drives ${keyOf(tr as never)} but does not write ${keyOf(m.table as AnyRecord)}`);
     }
-    if (r._kind === "operation") {
-      const errors = new Set(ids(r.errors));
-      for (const f of r.refusals as { error: AnyRecord }[])
-        if (!errors.has(keyOf(f.error))) p(r, "refusal-not-declared", `refusal ${f.error.id} is not in errors`);
+    // every way an outside call fails must surface as an error the caller can see
+    if (r._kind !== "procedure") {
+      const declared = new Set(ids(r.errors ?? []));
+      for (const c of (r.calls ?? []) as { integration: string; name: string }[]) {
+        const i = get(b, `integration:${c.integration}`);
+        const failures = ((i?.calls as Record<string, { failures: { error: AnyRecord }[] }> | undefined)?.[c.name]?.failures ?? []);
+        if (r._kind === "rpc")
+          for (const f of failures)
+            if (!declared.has(keyOf(f.error))) p(r, "call-error-not-declared", `calls ${c.integration}.${c.name}, which fails with ${f.error.id}, not in errors`);
+      }
     }
+  }
+
+  // an operation's refusals must be errors its implementation can produce
+  for (const o of all(b, "operation")) {
+    const produced = errorsOf(b, keyOf(o.implementedBy as AnyRecord));
+    for (const f of o.refusals as { error: AnyRecord }[])
+      if (!produced.has(keyOf(f.error))) p(o, "refusal-not-produced", `refusal ${f.error.id} is not an error its implementation produces`);
   }
 
   for (const kind of ["concept", "component"] as const) {
@@ -180,11 +217,14 @@ const deriveGaps = (b: Draft): Finding[] => {
     for (const s of m.states as { id: string }[]) if (!reached.has(s.id)) g(m, "unreachable-state", `no transition reaches ${s.id}`);
   }
   for (const e of all(b, "event")) if (by(e).length === 0) g(e, "unsent-event", "no transition, operation or workflow sends it");
-  for (const e of all(b, "error")) if (by(e).length === 0) g(e, "unproduced-error", "no operation or integration produces it");
+  for (const e of all(b, "error")) if (by(e).length === 0) g(e, "unproduced-error", "nothing produces it");
   for (const c of all(b, "call")) if (by(c, "calls").length === 0) g(c, "unused-call", "nothing calls it");
   for (const f of all(b, "function")) if (by(f, "chain").length === 0) g(f, "uncalled-function", "nothing calls it");
   for (const e of all(b, "chainEvent")) if (by(e).length === 0) g(e, "unconsumed-chain-event", "no workflow is triggered by it");
-  for (const c of all(b, "concept")) if (by(c, "concept").length === 0) g(c, "empty-concept", "it owns no tables, operations or workflows");
+  for (const c of all(b, "concept")) if (by(c, "concept").length === 0) g(c, "empty-concept", "it owns no tables, rpcs, procedures or workflows");
+  for (const r of all(b, "rpc")) if (by(r, "implementedBy").length + by(r, "steps").length === 0) g(r, "unused-rpc", "no operation or flow uses it");
+  for (const f of all(b, "flow")) if (by(f, "implementedBy").length === 0) g(f, "unused-flow", "no operation is implemented by it");
+  for (const pr of all(b, "procedure")) if (by(pr, "invokes").length === 0) g(pr, "uninvoked-procedure", "nothing invokes it");
   for (const c of all(b, "component")) if (by(c, "runs").length === 0) g(c, "unhosted-component", "no environment runs it");
   for (const o of all(b, "operation"))
     if (!(o.acceptance as (string | null)[]).some((a) => a !== null)) g(o, "no-acceptance", "it has no acceptance lines");

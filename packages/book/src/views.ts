@@ -48,7 +48,8 @@ export const conceptPage = (b: Book, ref: { readonly id: string }): string => {
   const tableKeys = new Set(tables.map((t) => `table:${t.id}`));
   const machines = ofKind(b, "machine").filter((m) => tableKeys.has(`table:${(m.table as AnyRecord).id}`));
   const touched = new Set([key, ...tables.map((t) => `table:${t.id}`), ...machines.map((m) => `machine:${m.id}`)]);
-  const gaps = b.gaps.filter((g) => touched.has(g.record) || owned("operation").some((o) => g.record === `operation:${o.id}`));
+  for (const k of ["rpc", "procedure", "workflow"]) for (const r of owned(k)) touched.add(`${k}:${r.id}`);
+  const gaps = b.gaps.filter((g) => touched.has(g.record));
   const row = (r: AnyRecord) => `| \`${r.id}\` | ${String(r.title ?? "")} |`;
   return [
     `# ${concept.title as string}`,
@@ -64,11 +65,17 @@ export const conceptPage = (b: Book, ref: { readonly id: string }): string => {
     `## State machines (${machines.length})`,
     ...machines.flatMap((m) => ["", `### ${m.title as string}`, "", "```mermaid", machineDiagram(m), "```"]),
     "",
-    `## Operations (${owned("operation").length})`,
+    `## Rpcs (${owned("rpc").length})`,
     "",
     "| Id | Title |",
     "|---|---|",
-    ...owned("operation").map(row),
+    ...owned("rpc").map(row),
+    "",
+    `## Procedures (${owned("procedure").length})`,
+    "",
+    "| Id | Title |",
+    "|---|---|",
+    ...owned("procedure").map(row),
     "",
     `## Workflows (${owned("workflow").length})`,
     "",

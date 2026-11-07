@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { Schema } from "effect";
-import { buildBook, defineConcept, defineOperation, defineTable } from "../src/index.ts";
+import { buildBook, defineConcept, defineRpc, defineTable } from "../src/index.ts";
 import { summaryPage, conceptPage } from "../src/views.ts";
 import * as f from "./fixtures/invitations.ts";
 
@@ -13,11 +13,11 @@ test("the slice builds with no problems", () => {
   assert.deepEqual(b.problems, []);
 });
 
-test("gaps are derived: the access concept is empty", () => {
+test("gaps are derived: the list rpc has no operation", () => {
   const b = book(f.records);
   assert.deepEqual(
     b.gaps.map((g) => `${g.record} ${g.rule}`),
-    ["concept:access empty-concept"],
+    ["rpc:organizations.invitations.list unused-rpc"],
   );
 });
 
@@ -26,7 +26,7 @@ test("transitions, calls and links are registered and reversed", () => {
   assert.ok(b.records.has("transition:invitation.accept"));
   assert.ok(b.records.has("call:mail.send"));
   const writers = (b.linkedBy.get("table:invitations") ?? []).filter((l) => l.field === "writes").map((l) => l.from).sort();
-  assert.deepEqual(writers, ["operation:invite.accept", "operation:org.member.invite", "workflow:organizations.invitations.expire"]);
+  assert.deepEqual(writers, ["rpc:organizations.invitations.accept", "rpc:organizations.invitations.invite", "workflow:organizations.invitations.expire"]);
 });
 
 test("evals are derived from records, and a retired acceptance line keeps its number", () => {
@@ -36,6 +36,10 @@ test("evals are derived from records, and a retired acceptance line keeps its nu
     "acc:org.member.invite/3",
     "ref:org.member.invite/ROLE_PERMISSION_DENIED",
     "evt:org.member.invite/invitation_sent",
+    "evt:invite.accept/invitation_accepted",
+    "rpc:organizations.invitations.accept/budget",
+    "flw:organizations.accept-invitation/spans",
+    "prc:access.grant-seat/atomic",
     "bud:org.member.invite/p95",
     "trn:invitation.expire",
     "wfl:organizations.invitations.expire/idempotent",
@@ -54,16 +58,25 @@ test("a missing record is a dangling link", () => {
   assert.ok(rules(b.problems).includes("dangling"));
 });
 
-test("a concept writing another concept's table breaks the boundary", () => {
-  const books = defineConcept({ id: "books", title: "Books", about: "x", component: f.backend, dependsOn: [] });
-  const bad = defineOperation({ ...f.accept, id: "books.bad", concept: books, drives: [] });
-  const b = book([...f.records, books, bad]);
-  assert.deepEqual(rules(b.problems), ["write-boundary"]);
+test("writing another concept's table breaks the boundary; invoking its procedure does not", () => {
+  const bad = defineRpc({ ...f.acceptRpc, id: "organizations.bad", writes: [f.invitations, f.grants], invokes: [] });
+  assert.deepEqual(rules(book([...f.records, bad]).problems), ["write-boundary"]);
 });
 
-test("driving a transition without writing its table is a problem; so is an undeclared refusal", () => {
-  const bad = defineOperation({ ...f.invite, id: "org.member.bad", writes: [], errors: [f.NOT_AUTHENTICATED] });
-  assert.deepEqual(rules(book([...f.records, bad]).problems), ["drives-without-write", "refusal-not-declared"]);
+test("invoking a procedure of a concept it does not depend on is a problem", () => {
+  const books = defineConcept({ id: "books", title: "Books", about: "x", component: f.backend, dependsOn: [] });
+  const bad = defineRpc({ ...f.listRpc, id: "books.bad", concept: books, reads: [], invokes: [f.grantSeat] });
+  assert.deepEqual(rules(book([...f.records, books, bad]).problems), ["invoke-boundary"]);
+});
+
+test("driving a transition without writing its table is a problem; so is an unmapped call failure", () => {
+  const bad = defineRpc({ ...f.inviteRpc, id: "organizations.bad", writes: [], errors: [f.NOT_AUTHENTICATED] });
+  assert.deepEqual(rules(book([...f.records, bad]).problems), ["call-error-not-declared", "drives-without-write"]);
+});
+
+test("a refusal its implementation cannot produce is a problem", () => {
+  const bad = { ...f.accept, id: "invite.bad", refusals: [{ error: f.ROLE_PERMISSION_DENIED, given: "x", when: "never" }] };
+  assert.deepEqual(rules(book([...f.records, bad]).problems), ["refusal-not-produced"]);
 });
 
 test("a dependency cycle between concepts is a problem", () => {
