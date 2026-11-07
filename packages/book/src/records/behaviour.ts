@@ -117,6 +117,8 @@ export const OperationSpec = Schema.Struct({
   acceptance: Schema.Array(Schema.NullOr(Line)),
   /** What it prints with `--json`. */
   returns: AnySchema,
+  /** Errors the CLI command produces itself, before or after its implementation: usage, confirmation. */
+  errors: Schema.optionalKey(Schema.Array(Ref("error"))),
   refusals: Schema.Array(
     Schema.Struct({
       error: Ref("error"),

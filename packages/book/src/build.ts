@@ -181,6 +181,7 @@ const checkRules = (b: Draft, problems: Finding[]) => {
   // an operation's refusals must be errors its implementation can produce
   for (const o of all(b, "operation")) {
     const produced = errorsOf(b, keyOf(o.implementedBy as AnyRecord));
+    for (const e of ids(o.errors)) produced.add(e);
     for (const f of o.refusals as { error: AnyRecord }[])
       if (!produced.has(keyOf(f.error))) p(o, "refusal-not-produced", `refusal ${f.error.id} is not an error its implementation produces`);
   }

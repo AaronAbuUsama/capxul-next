@@ -28,7 +28,10 @@ export const accept = defineOperation({ id: "invite.accept", concept: organizati
 ```
 System → Component → Concept → Table → State machine (transitions) → Event, Error
 Integration (calls) under Component        Contract (functions, chain events)
-Operation, Workflow → Concept, Table, Transition, Call, Function, Event, Error
+Procedure → Concept, Table, Transition, Procedure, Event, Error          (in-transaction; no outside calls)
+Rpc, Workflow → Concept, Table, Transition, Procedure, Call, Function, Event, Error
+Flow → Component (the Core SDK), Rpc, Call, Error
+Operation → Rpc or Flow (implementedBy), Error (refusals)                 (frozen: the CLI command)
 Journey → Operation        Invariant → Table, Machine, Workflow        Environment → Component
 Decision → any record
 ```
@@ -49,8 +52,11 @@ Because links only point down, the book has no cycles. A record never lists who 
 | `machine` | `defineMachine` | the table and its state column, the states, and transitions (from, to, guard, events); each transition can be linked as `machine.t.<name>` |
 | `integration` | `defineIntegration` | the outside system behind an Effect service: calls with timeout, retries, p95 and failures mapped to errors; the devnet fake; secret names. Each call can be linked as `integration.c.<name>` |
 | `contract` | `defineContract` | addresses, functions (`contract.f.<name>`) and chain events (`contract.e.<name>`) |
-| `operation` | `defineOperation` | the frozen text from the book, acceptance lines numbered (a retired line stays `null`), input and output, errors, refusals with their `given` world, what it touches (reads, writes, drives, calls, chain, emits), child spans, budget |
-| `workflow` | `defineWorkflow` | its trigger (after an operation, a transition, a chain event or a cron), steps, what it touches, idempotency key, timeout, retries, compensation, budget |
+| `procedure` | `defineProcedure` | a concept's in-transaction entry point, listed on its door: input, output, errors, what it touches. Another concept writes this concept's tables only by invoking one |
+| `rpc` | `defineRpc` | one server endpoint (query, live, mutation, action): who, input, output, errors, what it touches (reads, writes, drives, invokes, calls, chain, emits), server spans, server budget. The generated `RpcGroup` comes from these |
+| `flow` | `defineFlow` | a Core SDK composition: its SDK method, steps (an rpc, or a local step: sign, build, encrypt, wait, poll, prompt, cache), its own errors, client-side calls, spans, client budget |
+| `operation` | `defineOperation` | **the frozen unit**: the CLI command and the old book's text, acceptance lines numbered (a retired line stays `null`), what `--json` returns, refusals with their `given` world, the end-to-end budget, and `implementedBy` one rpc or one flow. Everything below it may change; it may not |
+| `workflow` | `defineWorkflow` | its trigger (after an rpc, a transition, a chain event, an indexer event or a cron), steps, what it touches, idempotency key, timeout, retries, compensation, budget |
 | `journey` | `defineJourney` | ordered steps: operation, actor, proving event |
 | `invariant` | `defineInvariant` | a statement over tables and machines; checked by property test, fuzz, reconciliation (`by` a workflow) or static check |
 | `environment` | `defineEnvironment` | which components run where, config and secret names, deploy, boot budget |
@@ -64,10 +70,12 @@ Because links only point down, the book has no cycles. A record never lists who 
 | `dangling` | a link points at a record the book does not list |
 | `undefined-link` | a link is `undefined` (an import cycle or a missing export) |
 | `machine-initial`, `machine-state` | a state machine names a state it does not have |
-| `write-boundary` | an operation or workflow writes a table another concept owns |
+| `write-boundary` | an rpc, workflow or procedure writes a table another concept owns (invoke that concept's procedure instead) |
 | `read-boundary` | it reads a table from a concept its own concept does not depend on |
+| `invoke-boundary` | it invokes a procedure of a concept its own concept does not depend on |
 | `drives-without-write` | it drives a transition on a table it does not write |
-| `refusal-not-declared` | a refusal's error is not in the operation's `errors` |
+| `call-error-not-declared` | an rpc calls an integration whose failure maps to an error the rpc does not declare |
+| `refusal-not-produced` | an operation's refusal is an error its rpc or flow cannot produce (its own, its procedures', its steps', its calls' failures) |
 | `cycle` | concepts or components depend on each other in a loop |
 | `unknown-actor` | a journey step is taken by someone the system does not list |
 
@@ -84,6 +92,9 @@ Because links only point down, the book has no cycles. A record never lists who 
 | `empty-concept` | it owns no tables, operations or workflows |
 | `unhosted-component` | no environment runs it |
 | `no-acceptance` | an operation has no acceptance lines |
+| `unused-rpc`, `unused-flow`, `uninvoked-procedure` | nothing uses it: the old system's orphan rows show up here |
+| `no-budget` | an operation, rpc, flow or workflow says nothing about how fast it must be |
+| `refusal-without-world` | a refusal's `given` is `?`: no devnet world reaches it yet |
 | `unproven-step` | a journey step has no proving event |
 | `unchecked-invariant` | a reconcile check names no workflow |
 
@@ -94,6 +105,9 @@ book adds evals for the other record kinds:
 
 | Id | From | Claim |
 |---|---|---|
+| `rpc:<rpc>/budget`, `/spans`, `/errors` | rpc | server p95; its span tree; it fails only with its declared errors |
+| `flw:<flow>/budget`, `/spans` | flow | client p95 excluding waits; one span per step |
+| `prc:<procedure>/atomic` | procedure | its writes commit with its invoker's transaction or not at all |
 | `tbl:<table>/schema` | table | the migration creates exactly these fields, key and indexes |
 | `tbl:<table>/writers` | table | only the listed writers change it |
 | `trn:<machine>.<transition>` | transition | an eval run observes it, with its events |
@@ -117,9 +131,8 @@ It exits with 1 if the book has problems.
 
 ## Deliberately not in the schema yet: the step-2 slice decides
 
-- **SDK and React surface records.** Today they are fields on the operation (`sdk`). If the
-  rebuilt React SDK needs hooks that are not one-to-one with operations, it gets its own
-  record.
+- **React hook records.** The Core SDK is covered by flows and the generated RPC client. React
+  hooks come later; if they are not one-to-one with live rpcs, they get their own record.
 - **Index-to-query linking.** An index names its query in words. If operations name the
   queries they use, an index nobody uses becomes a gap.
 - **Ponder.** The indexer is a component and an integration. Its indexed tables may need a
