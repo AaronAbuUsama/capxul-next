@@ -53,9 +53,10 @@ use of them.
 6. swarmD hosts the artifact. One query is shown on the web, in Slack and in Pi.
 7. The chat manager is redesigned on the ledger. It keeps the behaviour of `slack-router` and its 8 scenarios, not its code.
 8. The ledger replaces Linear for this work. [Confirm with Aaron.]
+9. The git host is a private GitHub repository, `AaronAbuUsama/capxul-next`.
 
 ## Open
 
-- **Git host for `capxul-next`** once the swarm builds it. The recommendation is a private GitHub repository. The alternative is swarmD-hosted git.
+- **Connectors as gateways** (being redesigned in another thread): read and write tools out, events in, the secret kept in swarmD. PostHog is reached through its MCP server. This needs MCP-backed tools in swarmD, which is not built.
 - **The stack** (C1).
 - **Whether the Capxul devnet fits in a swarmD sandbox.** It needs anvil, the backend, the indexer and the bundler. This is a risk on the critical path; it is sized in 40.
