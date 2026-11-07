@@ -232,6 +232,11 @@ const deriveGaps = (b: Draft): Finding[] => {
     (j.steps as { operation: AnyRecord; proves?: unknown }[]).forEach((s, i) => {
       if (!s.proves) g(j, "unproven-step", `step ${i + 1} (${s.operation.id}) has no proving event`);
     });
+  for (const r of [...all(b, "operation"), ...all(b, "rpc"), ...all(b, "flow"), ...all(b, "workflow")])
+    if (!r.budget) g(r, "no-budget", "nothing says how fast it must be");
+  for (const o of all(b, "operation"))
+    for (const f of o.refusals as { error: AnyRecord; given: string }[])
+      if (f.given === "?") g(o, "refusal-without-world", `no world reaches ${f.error.id}`);
   for (const i of all(b, "invariant")) if (i.check === "reconcile" && !i.by) g(i, "unchecked-invariant", "a reconcile check names no workflow");
   return gaps;
 };

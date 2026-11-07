@@ -48,21 +48,21 @@ export const deriveEvals = (b: Pick<Book, "records">): EvalDef[] => {
     const impl = o.implementedBy as AnyRecord;
     for (const ev of eventsOf(`${impl._kind}:${impl.id}`)) e(`evt:${o.id}/${ev}`, "L1", o, `it sends ${ev}, valid against its schema, carrying trace_id`);
     e(`spn:${o.id}`, "L1", o, "one trace from the CLI command through the SDK to the server, with every declared span");
-    const budget = o.budget as { p50Ms: number; p95Ms: number };
-    e(`bud:${o.id}/p95`, "L1", o, `end to end, p95 ≤ ${budget.p95Ms} ms and p50 ≤ ${budget.p50Ms} ms over N warm runs`);
+    const budget = o.budget as { p50Ms: number; p95Ms: number } | undefined;
+    if (budget) e(`bud:${o.id}/p95`, "L1", o, `end to end, p95 ≤ ${budget.p95Ms} ms and p50 ≤ ${budget.p50Ms} ms over N warm runs`);
     e(`doc:${o.id}`, "L1", o, "its CLI help, reference page and record agree");
     e(`des:${o.id}`, "L1", o, "its record is complete and consistent with the old book and the old behaviour", "agent");
   }
 
   for (const r of ofKind(b, "rpc")) {
-    const budget = r.budget as { p95Ms: number };
-    e(`rpc:${r.id}/budget`, "L1", r, `server time p95 ≤ ${budget.p95Ms} ms`);
+    const budget = r.budget as { p95Ms: number } | undefined;
+    if (budget) e(`rpc:${r.id}/budget`, "L1", r, `server time p95 ≤ ${budget.p95Ms} ms`);
     e(`rpc:${r.id}/spans`, "L1", r, "its server span has the declared child spans and attributes");
     e(`rpc:${r.id}/errors`, "L1", r, "it fails only with its declared errors; anything else is a defect");
   }
   for (const f of ofKind(b, "flow")) {
-    const budget = f.budget as { p95Ms: number };
-    e(`flw:${f.id}/budget`, "L1", f, `client time p95 ≤ ${budget.p95Ms} ms, excluding wait steps`);
+    const budget = f.budget as { p95Ms: number } | undefined;
+    if (budget) e(`flw:${f.id}/budget`, "L1", f, `client time p95 ≤ ${budget.p95Ms} ms, excluding wait steps`);
     e(`flw:${f.id}/spans`, "L1", f, "each step is a span, and wait steps are marked as waits");
   }
   for (const pr of ofKind(b, "procedure"))
@@ -77,8 +77,8 @@ export const deriveEvals = (b: Pick<Book, "records">): EvalDef[] => {
   for (const w of ofKind(b, "workflow")) {
     e(`wfl:${w.id}/idempotent`, "L1", w, `a second run with the same key (${String(w.idempotency)}) changes nothing`);
     e(`wfl:${w.id}/resume`, "L1", w, "killed mid-run, it resumes and finishes with the same result");
-    const budget = w.budget as { p95Ms: number };
-    e(`bud:${w.id}/p95`, "L1", w, `p95 ≤ ${budget.p95Ms} ms from trigger to done, excluding chain confirmation`);
+    const budget = w.budget as { p95Ms: number } | undefined;
+    if (budget) e(`bud:${w.id}/p95`, "L1", w, `p95 ≤ ${budget.p95Ms} ms from trigger to done, excluding chain confirmation`);
   }
 
   for (const i of ofKind(b, "integration")) {

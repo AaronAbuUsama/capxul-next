@@ -59,8 +59,8 @@ export const RpcSpec = Schema.Struct({
   ...Calls,
   /** Server child spans beyond the rpc span. */
   spans: Schema.Array(Schema.String),
-  /** Server time. */
-  budget: Budget,
+  /** Server time. Absent in an as-is book when nothing measured it: a gap. */
+  budget: Schema.optionalKey(Budget),
 });
 export const defineRpc = make("rpc")(RpcSpec);
 export type Rpc = ReturnType<typeof defineRpc>;
@@ -92,7 +92,7 @@ export const FlowSpec = Schema.Struct({
   calls: Schema.Array(Ref("call")),
   spans: Schema.Array(Schema.String),
   /** Client time, excluding `wait` steps. */
-  budget: Budget,
+  budget: Schema.optionalKey(Budget),
 });
 export const defineFlow = make("flow")(FlowSpec);
 export type Flow = ReturnType<typeof defineFlow>;
@@ -120,14 +120,14 @@ export const OperationSpec = Schema.Struct({
   refusals: Schema.Array(
     Schema.Struct({
       error: Ref("error"),
-      /** The world (a named devnet snapshot) the refusal is reached from. */
+      /** The world (a named devnet snapshot) the refusal is reached from; `?` when none exists yet (a gap). */
       given: Schema.String,
       when: Line,
     }),
   ),
 
   /** End to end: the CLI command, excluding a person's wait and chain confirmation. */
-  budget: Budget,
+  budget: Schema.optionalKey(Budget),
 });
 export const defineOperation = make("operation")(OperationSpec);
 export type Operation = ReturnType<typeof defineOperation>;
@@ -155,7 +155,7 @@ export const WorkflowSpec = Schema.Struct({
   timeoutMs: Ms,
   retries: Retry,
   compensation: Schema.optionalKey(Prose),
-  budget: Budget,
+  budget: Schema.optionalKey(Budget),
 });
 export const defineWorkflow = make("workflow")(WorkflowSpec);
 export type Workflow = ReturnType<typeof defineWorkflow>;

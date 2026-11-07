@@ -9,7 +9,7 @@ const CallSpec = Schema.Struct({
   about: Line,
   timeoutMs: Ms,
   retries: Retry,
-  p95Ms: Ms,
+  p95Ms: Schema.optionalKey(Ms),
   /** Every way it fails, each mapped to the error a caller sees. */
   failures: Schema.Array(Schema.Struct({ when: Line, error: Ref("error") })),
 });
