@@ -39,8 +39,8 @@ export const deriveEvals = (b: Pick<Book, "records">): EvalDef[] => {
   };
 
   for (const o of ofKind(b, "operation")) {
-    list<string | null>(o.acceptance).forEach((line, i) => {
-      if (line !== null) e(`acc:${o.id}/${i + 1}`, "L1", o, line);
+    list<string | null | { claim: string }>(o.acceptance).forEach((line, i) => {
+      if (line !== null) e(`acc:${o.id}/${i + 1}`, "L1", o, typeof line === "string" ? line : line.claim);
     });
     e(`ret:${o.id}`, "L1", o, "a success prints exactly the returns schema with --json");
     for (const r of list<{ error: AnyRecord; given: string }>(o.refusals))

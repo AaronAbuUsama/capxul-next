@@ -95,6 +95,8 @@ export const Budget = Schema.Struct({
   p50Ms: Ms,
   p95Ms: Ms,
   excludes: Schema.optionalKey(Schema.Array(Schema.String)),
+  /** Required in a target book when the numbers differ from the class default (policy P5). */
+  why: Schema.optionalKey(Line),
 });
 
 /** Validate a record's fields, then return the record with its kind stamped on. */

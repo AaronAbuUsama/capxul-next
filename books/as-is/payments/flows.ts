@@ -7,8 +7,8 @@
 
 import { Schema } from "effect";
 import { defineFlow, type FlowSpec } from "../../../packages/book/src/index.ts";
-import { component_core_sdk } from "./foundation.ts";
-import { integration_openfort } from "./external.ts";
+import { component_core_sdk } from "../shared/foundation.ts";
+import { integration_openfort } from "../shared/external.ts";
 import {
   error_CANCELLED,
   error_INVALID_INPUT,
@@ -21,7 +21,7 @@ import {
   error_SMART_ACCOUNT_MISSING,
   error_UNKNOWN,
   error_WRONG_STATE,
-} from "./vocabulary.ts";
+} from "../shared/vocabulary.ts";
 import {
   rpc_payments_commands_prepare,
   rpc_payments_commands_prepare_organization,

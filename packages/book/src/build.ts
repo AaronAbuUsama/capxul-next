@@ -4,6 +4,7 @@
 import { Schema } from "effect";
 import { KINDS, type Kind } from "./records/base.ts";
 import { deriveEvals, type EvalDef } from "./evals.ts";
+import { BUDGET_DEFAULTS } from "./budgets.ts";
 
 export interface AnyRecord {
   readonly _kind: Kind;
@@ -100,6 +101,7 @@ export const buildBook = (input: { name: string; stage: "as-is" | "target"; reco
 
   const book = { name: input.name, stage: input.stage, records, links, linkedBy, problems, gaps: [] as Finding[], evals: [] as EvalDef[] };
   checkRules(book, problems);
+  if (input.stage === "target") checkTargetRules(book, problems);
   const gaps = deriveGaps(book);
   return { ...book, gaps, evals: deriveEvals(book) };
 };
@@ -204,6 +206,51 @@ const checkRules = (b: Draft, problems: Finding[]) => {
     for (const s of j.steps as { as: string }[]) if (!actors.has(s.as)) p(j, "unknown-actor", `step taken as ${s.as}, who is not a system actor`);
 };
 
+// ── target rules: what a rebuilt design must satisfy (the accepted policies) ────────────────
+
+const checkTargetRules = (b: Draft, problems: Finding[]) => {
+  const p = (record: AnyRecord, rule: string, detail: string) => problems.push({ record: keyOf(record), rule, detail });
+  const by = (r: AnyRecord, field?: string) => (b.linkedBy.get(keyOf(r)) ?? []).filter((l) => !field || l.field === field);
+
+  // P7: product events come only from transitions, one per state machine.
+  for (const r of [...all(b, "rpc"), ...all(b, "workflow"), ...all(b, "procedure")])
+    if (((r.emits ?? []) as unknown[]).length) p(r, "event-not-on-transition", "a target event is sent by a transition, not by an rpc, workflow or procedure");
+  for (const m of all(b, "machine")) {
+    const expected = `${m.id.replace(/-/g, "_")}_transitioned`;
+    const sent = new Set(Object.values(m.transitions as Record<string, { emits: AnyRecord[] }>).flatMap((t) => t.emits.map((e) => e.id)));
+    for (const e of sent) if (e !== expected) p(m, "one-event-per-machine", `sends ${e}; a target machine sends only ${expected}`);
+  }
+
+  // P2: nothing unreached survives.
+  for (const r of all(b, "rpc")) if (by(r, "implementedBy").length + by(r, "steps").length + by(r, "signals").length + by(r, "trigger").length === 0)
+    p(r, "unreached-rpc", "no operation, flow or workflow reaches it");
+
+  // P5: every piece of behaviour has a budget; one that leaves its class default says why.
+  for (const r of [...all(b, "operation"), ...all(b, "rpc"), ...all(b, "flow"), ...all(b, "workflow")]) {
+    const bud = r.budget as { class: keyof typeof BUDGET_DEFAULTS; p50Ms: number; p95Ms: number; why?: string } | undefined;
+    if (!bud) { p(r, "no-budget", "a target record says how fast it must be"); continue; }
+    const d = BUDGET_DEFAULTS[bud.class];
+    if (d && (bud.p50Ms !== d.p50Ms || bud.p95Ms !== d.p95Ms) && !bud.why)
+      p(r, "budget-override-why", `${bud.p50Ms}/${bud.p95Ms} ms differs from the ${bud.class} default ${d.p50Ms}/${d.p95Ms} ms with no why`);
+  }
+
+  // P8: a tenant table names its tenant column and leads every key and index with it.
+  for (const t of all(b, "table")) {
+    if (["global", "chain"].includes(t.tenancy as string)) continue;
+    const field = t.tenantField as string | undefined;
+    if (!field) { if (!t.scope) p(t, "tenant-key", "a tenant table names its tenantField, or its scope when tenancy is by join"); continue; }
+    if ((t.key as string[])[0] !== field) p(t, "tenant-key", `its key starts with ${(t.key as string[])[0]}, not the tenant column ${field}`);
+    for (const i of t.indexes as { name: string; fields: string[]; crossTenant?: boolean }[])
+      if (!i.crossTenant && i.fields[0] !== field) p(t, "tenant-key", `index ${i.name} does not start with ${field}`);
+  }
+
+  // P1: a target acceptance line is a claim with what it observes.
+  for (const o of all(b, "operation"))
+    (o.acceptance as unknown[]).forEach((a, i) => {
+      if (typeof a === "string") p(o, "acceptance-claim", `line ${i + 1} is plain text; a target line is {claim, observes, was}`);
+    });
+};
+
 // ── gaps: derived, never written ────────────────────────────────────────────────────────────
 
 const deriveGaps = (b: Draft): Finding[] => {
@@ -223,7 +270,7 @@ const deriveGaps = (b: Draft): Finding[] => {
   for (const f of all(b, "function")) if (by(f, "chain").length === 0) g(f, "uncalled-function", "nothing calls it");
   for (const e of all(b, "chainEvent")) if (by(e).length === 0) g(e, "unconsumed-chain-event", "no workflow is triggered by it");
   for (const c of all(b, "concept")) if (by(c, "concept").length === 0) g(c, "empty-concept", "it owns no tables, rpcs, procedures or workflows");
-  for (const r of all(b, "rpc")) if (by(r, "implementedBy").length + by(r, "steps").length === 0) g(r, "unused-rpc", "no operation or flow uses it");
+  for (const r of all(b, "rpc")) if (by(r, "implementedBy").length + by(r, "steps").length + by(r, "signals").length + by(r, "trigger").length === 0) g(r, "unused-rpc", "no operation or flow uses it");
   for (const f of all(b, "flow")) if (by(f, "implementedBy").length === 0) g(f, "unused-flow", "no operation is implemented by it");
   for (const pr of all(b, "procedure")) if (by(pr, "invokes").length === 0) g(pr, "uninvoked-procedure", "nothing invokes it");
   for (const c of all(b, "component")) if (by(c, "runs").length === 0) g(c, "unhosted-component", "no environment runs it");

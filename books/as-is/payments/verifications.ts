@@ -12,7 +12,7 @@
 import { Schema } from "effect";
 import { defineRpc, defineWorkflow } from "../../../packages/book/src/index.ts";
 
-import { concept_payments } from "./foundation.ts";
+import { concept_payments } from "../shared/foundation.ts";
 import {
   error_INVALID_INPUT,
   error_NOT_IMPLEMENTED,
@@ -20,7 +20,7 @@ import {
   event_payment_transitioned,
   event_payment_verification_retry,
   event_payment_writer_incident,
-} from "./vocabulary.ts";
+} from "../shared/vocabulary.ts";
 import {
   machine_commitment_evidence,
   machine_deposit_materialization,
@@ -63,7 +63,7 @@ import {
   integration_chain_evidence,
   integration_chain_rpc,
   integration_ponder,
-} from "./external.ts";
+} from "../shared/external.ts";
 
 // ── shared shapes ───────────────────────────────────────────────────────────────────────────
 

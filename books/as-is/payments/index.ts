@@ -1,11 +1,11 @@
 // The as-is book of the old payments concept: every record exported by the files beside it.
 // Build it: node --experimental-strip-types packages/book/src/main.ts books/as-is/payments/index.ts <out>
 
-import * as foundation from "./foundation.ts";
-import * as vocabulary from "./vocabulary.ts";
+import * as foundation from "../shared/foundation.ts";
+import * as vocabulary from "../shared/vocabulary.ts";
 import * as data from "./data.ts";
 import * as neighbors from "./neighbors.ts";
-import * as external from "./external.ts";
+import * as external from "../shared/external.ts";
 import * as procedures from "./procedures.ts";
 import * as commands from "./commands.ts";
 import * as executions from "./executions.ts";

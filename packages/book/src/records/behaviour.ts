@@ -113,8 +113,15 @@ export const OperationSpec = Schema.Struct({
   changes: Schema.optionalKey(Prose),
   notes: Schema.optionalKey(Schema.Array(Line)),
   mistakes: Schema.optionalKey(Schema.Array(Schema.Struct({ what: Line, fix: Line }))),
-  /** Numbered from 1. A retired line stays as `null`, so numbers never move. */
-  acceptance: Schema.Array(Schema.NullOr(Line)),
+  /** Numbered from 1. A retired line stays as `null`, so numbers never move. In a target book each
+   * line is a claim (policy P1): the frozen claim, what a black-box run observes to check it, and the
+   * old book's test citation moved into `was`. */
+  acceptance: Schema.Array(
+    Schema.Union([
+      Schema.NullOr(Line),
+      Schema.Struct({ claim: Line, observes: Line, was: Schema.optionalKey(Schema.Array(Schema.String)) }),
+    ]),
+  ),
   /** What it prints with `--json`. */
   returns: AnySchema,
   /** Errors the CLI command produces itself, before or after its implementation: usage, confirmation. */
@@ -149,6 +156,21 @@ export const WorkflowSpec = Schema.Struct({
   concept: Ref("concept"),
   priority: Priority,
   trigger: Trigger,
+  /** One process per row of a table (a Payment's lifecycle), or one for the system (a sweep). */
+  instance: Schema.optionalKey(Schema.Union([Schema.Literal("singleton"), Schema.Struct({ per: Ref("table") })])),
+  /** Rpcs that resume a waiting instance: the signature arrived, the person approved. */
+  signals: Schema.optionalKey(Schema.Array(Ref("rpc"))),
+  /** What an instance waits on. A wait is its own span and never counts as system time. */
+  waits: Schema.optionalKey(
+    Schema.Array(
+      Schema.Struct({
+        name: Schema.String,
+        for: Schema.Literals(["signal", "timer", "chain", "person", "indexer"]),
+        timeoutMs: Schema.optionalKey(Ms),
+        about: Line,
+      }),
+    ),
+  ),
   steps: Schema.Array(Schema.Struct({ name: Schema.String, about: Line })),
   ...Touches,
   ...Calls,

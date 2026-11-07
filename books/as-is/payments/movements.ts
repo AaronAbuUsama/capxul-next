@@ -8,7 +8,7 @@
 import { Schema } from "effect";
 import { defineRpc, defineWorkflow } from "../../../packages/book/src/index.ts";
 
-import { concept_payments } from "./foundation.ts";
+import { concept_payments } from "../shared/foundation.ts";
 import {
   error_ENV_MISSING,
   error_INVALID_INPUT,
@@ -17,7 +17,7 @@ import {
   error_UNKNOWN,
   event_payment_transitioned,
   event_payment_verification_retry,
-} from "./vocabulary.ts";
+} from "../shared/vocabulary.ts";
 import {
   machine_movement,
   machine_payment_schedule,
@@ -44,7 +44,7 @@ import {
   table_identities,
   table_orgs,
 } from "./neighbors.ts";
-import { integration_mail } from "./external.ts";
+import { integration_mail } from "../shared/external.ts";
 
 const BACKEND = "packages/backend";
 const SRC = `${BACKEND}/src/payments`;

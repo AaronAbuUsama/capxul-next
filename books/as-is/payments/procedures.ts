@@ -12,7 +12,7 @@
 import { Schema } from "effect";
 import { defineProcedure } from "../../../packages/book/src/index.ts";
 
-import { concept_payments } from "./foundation.ts";
+import { concept_payments } from "../shared/foundation.ts";
 import {
   error_INVALID_INPUT,
   error_NOT_IMPLEMENTED,
@@ -21,7 +21,7 @@ import {
   error_UNKNOWN,
   error_WRONG_STATE,
   event_payment_writer_incident,
-} from "./vocabulary.ts";
+} from "../shared/vocabulary.ts";
 import {
   machine_commitment_evidence,
   machine_deposit_materialization,

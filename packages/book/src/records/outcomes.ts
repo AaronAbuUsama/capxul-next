@@ -14,8 +14,9 @@ export const JourneySpec = Schema.Struct({
       operation: Ref("operation"),
       /** The system actor who takes the step. */
       as: Id,
-      /** The event that proves the step for the funnel. Absent: the step is a gap. */
-      proves: Schema.optionalKey(Ref("event")),
+      /** What proves the step for the funnel: an event, or the operation's own success (policy P7).
+       * Absent: the step is a gap. */
+      proves: Schema.optionalKey(Schema.Union([Ref("event"), Schema.Literal("success")])),
     }),
   ),
   /** Ways into the journey: properties of its step events, never journeys of their own. */

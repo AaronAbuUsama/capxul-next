@@ -8,8 +8,13 @@ import { AnySchema, Common, Id, Line, make, Ref } from "./base.ts";
 export const TableSpec = Schema.Struct({
   ...Common,
   concept: Ref("concept"),
-  /** Whose data each row is: one Organization's, one person's, or everyone's. */
-  tenancy: Schema.Literals(["organization", "person", "global"]),
+  /** Whose data each row is (policy P8): one Organization's, one person's, an owner that is either,
+   * everyone's, or the chain's (indexed facts, scoped by Safe). */
+  tenancy: Schema.Literals(["organization", "person", "owner", "global", "chain"]),
+  /** The column that names the tenant. In a target book it leads the key and every index. */
+  tenantField: Schema.optionalKey(Schema.String),
+  /** When the tenant is reached through a join rather than a column on the row: how. */
+  scope: Schema.optionalKey(Line),
   /** The row's columns, as an Effect Schema Struct. Migrations are generated from it. */
   fields: AnySchema,
   key: Schema.Array(Schema.String),
@@ -18,6 +23,8 @@ export const TableSpec = Schema.Struct({
       name: Id,
       fields: Schema.Array(Schema.String),
       unique: Schema.optionalKey(Schema.Boolean),
+      /** A deliberate lookup across tenants (by hash, by address); exempt from tenant-first. */
+      crossTenant: Schema.optionalKey(Schema.Boolean),
       /** The query it serves; an index with no query is a gap. */
       for: Line,
     }),

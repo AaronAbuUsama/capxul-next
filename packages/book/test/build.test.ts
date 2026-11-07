@@ -5,7 +5,7 @@ import { buildBook, defineConcept, defineRpc, defineTable } from "../src/index.t
 import { summaryPage, conceptPage } from "../src/views.ts";
 import * as f from "./fixtures/invitations.ts";
 
-const book = (records: readonly unknown[]) => buildBook({ name: "test", stage: "target", records });
+const book = (records: readonly unknown[]) => buildBook({ name: "test", stage: "as-is", records });
 const rules = (xs: readonly { rule: string }[]) => xs.map((x) => x.rule).sort();
 
 test("the slice builds with no problems", () => {
@@ -94,4 +94,20 @@ test("views render", () => {
   const b = book(f.records);
   assert.match(summaryPage(b), /stateDiagram|flowchart LR/);
   assert.match(conceptPage(b, f.organizations), /pending --> accepted: accept/);
+});
+
+test("a target book enforces the accepted policies", () => {
+  const b = buildBook({ name: "test", stage: "target", records: f.records });
+  const found = new Set(b.problems.map((p) => p.rule));
+  for (const rule of ["acceptance-claim", "tenant-key", "one-event-per-machine", "unreached-rpc", "budget-override-why"])
+    assert.ok(found.has(rule), rule);
+  // the same records as an as-is book break none of them
+  const asIs = new Set(book(f.records).problems.map((p) => p.rule));
+  assert.equal([...asIs].length, 0);
+});
+
+test("a target workflow can be one durable process per row, resumed by signals", () => {
+  const process = { ...f.expire, id: "organizations.invitations.lifecycle", trigger: { transition: f.lifecycle.t.send }, instance: { per: f.invitations }, signals: [f.listRpc], waits: [{ name: "answer", for: "person", timeoutMs: 1_209_600_000, about: "The invitee answers within 14 days." }] };
+  const b = buildBook({ name: "test", stage: "target", records: [...f.records, process] });
+  assert.ok(!b.problems.some((p) => p.record === "rpc:organizations.invitations.list" && p.rule === "unreached-rpc"));
 });

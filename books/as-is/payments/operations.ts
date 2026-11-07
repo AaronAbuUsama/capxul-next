@@ -29,7 +29,7 @@ import {
   error_ROLE_PERMISSION_DENIED,
   error_SUPERSEDED,
   error_WRONG_STATE,
-} from "./vocabulary.ts";
+} from "../shared/vocabulary.ts";
 import { flow_client_approvals_prepare, flow_client_payments_subscribe } from "./flows.ts";
 import { rpc_payments_records_get, rpc_payments_records_list } from "./movements.ts";
 

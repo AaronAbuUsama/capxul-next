@@ -25,7 +25,7 @@
 import { Schema } from "effect";
 import { defineRpc } from "../../../packages/book/src/index.ts";
 
-import { concept_payments } from "./foundation.ts";
+import { concept_payments } from "../shared/foundation.ts";
 import {
   error_ACCOUNT_NOT_FOUND,
   error_ENV_MISSING,
@@ -41,7 +41,7 @@ import {
   error_UNKNOWN,
   error_WRONG_STATE,
   event_payment_transitioned,
-} from "./vocabulary.ts";
+} from "../shared/vocabulary.ts";
 import {
   machine_money_execution,
   machine_payment,
@@ -110,7 +110,7 @@ import {
   contract_erc20,
   contract_roles,
   integration_chain_rpc,
-} from "./external.ts";
+} from "../shared/external.ts";
 import { procedure_payments_prepare_payment_command_in_tx } from "./procedures.ts";
 
 const BACKEND = "packages/backend";

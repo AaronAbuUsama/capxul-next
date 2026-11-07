@@ -13,7 +13,7 @@
 import { Schema } from "effect";
 import { defineRpc, defineWorkflow } from "../../../packages/book/src/index.ts";
 
-import { concept_payments } from "./foundation.ts";
+import { concept_payments } from "../shared/foundation.ts";
 import {
   error_ENV_MISSING,
   error_FEATURE_NOT_AVAILABLE,
@@ -27,7 +27,7 @@ import {
   error_UNKNOWN,
   error_WRONG_STATE,
   event_payment_transitioned,
-} from "./vocabulary.ts";
+} from "../shared/vocabulary.ts";
 import {
   machine_money_execution,
   machine_payment,
@@ -89,7 +89,7 @@ import {
   contract_erc20,
   contract_roles,
   integration_chain_rpc,
-} from "./external.ts";
+} from "../shared/external.ts";
 
 const BACKEND = "packages/backend";
 const CONVEX = `${BACKEND}/convex/payments`;

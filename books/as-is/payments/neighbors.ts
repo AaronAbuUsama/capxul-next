@@ -40,7 +40,7 @@ import {
   concept_permissions,
   concept_profiles,
   concept_requests,
-} from "./foundation.ts";
+} from "../shared/foundation.ts";
 import {
   error_ACCOUNT_NOT_FOUND,
   error_FEATURE_NOT_AVAILABLE,
@@ -54,7 +54,7 @@ import {
   event_invoice_request_transitioned,
   event_payout_transitioned,
   event_payroll_run_transitioned,
-} from "./vocabulary.ts";
+} from "../shared/vocabulary.ts";
 import { table_money_executions, table_movements, table_payment_commands, table_payments } from "./data.ts";
 
 const SRC = "packages/backend/src";
