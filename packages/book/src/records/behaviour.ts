@@ -111,15 +111,15 @@ export const OperationSpec = Schema.Struct({
   // the book's frozen text
   who: Prose,
   changes: Schema.optionalKey(Prose),
-  notes: Schema.optionalKey(Schema.Array(Line)),
+  notes: Schema.optionalKey(Schema.Array(Prose)),
   mistakes: Schema.optionalKey(Schema.Array(Schema.Struct({ what: Line, fix: Line }))),
   /** Numbered from 1. A retired line stays as `null`, so numbers never move. In a target book each
    * line is a claim (policy P1): the frozen claim, what a black-box run observes to check it, and the
    * old book's test citation moved into `was`. */
   acceptance: Schema.Array(
     Schema.Union([
-      Schema.NullOr(Line),
-      Schema.Struct({ claim: Line, observes: Line, was: Schema.optionalKey(Schema.Array(Schema.String)) }),
+      Schema.NullOr(Prose),
+      Schema.Struct({ claim: Prose, observes: Prose, was: Schema.optionalKey(Schema.Array(Schema.String)) }),
     ]),
   ),
   /** What it prints with `--json`. */
@@ -131,7 +131,7 @@ export const OperationSpec = Schema.Struct({
       error: Ref("error"),
       /** The world (a named devnet snapshot) the refusal is reached from; `?` when none exists yet (a gap). */
       given: Schema.String,
-      when: Line,
+      when: Prose,
     }),
   ),
 
