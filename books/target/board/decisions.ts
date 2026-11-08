@@ -672,7 +672,7 @@ export const decision_board_no_agent_directors = defineDecision({
   chosen: "every-agent",
   why:
     "A Director signs the company Safe and approves every Board proposal, the authority the rulings keep with people " +
-    "(aaron.fde-agent: the FDE works under the Organization's authority, never as it). The FDE is the sharpest case, " +
+    "(the FDE ruling: the FDE works under the Organization's authority, never as it). The FDE is the sharpest case, " +
     "because its owner is the Board, so a seated FDE would be the Board controlling one of its own signers; but a " +
     "person's agent seated as a Director would equally sign for the company with a key no person holds in the moment. " +
     "Refusing every agent is one rule a reader can hold, and costs nothing frozen: no frozen claim seats an agent, both " +

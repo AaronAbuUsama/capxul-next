@@ -1242,7 +1242,9 @@ export const decision_organizations_frappe_app_fields = defineDecision({
     "so a hook on saves alone would lose a conversion; reporting what the site already holds on the first call lets a " +
     "head connected late be adopted (contacts.head-mapping). Renaming a CRM Organization also rewrites the " +
     "`company_name` of its Contacts, a Data field `rename_doc` does not follow. Every Seat is a User whose Contact " +
-    "carries the member's `capxul_party`. Payroll's own field list is payroll's; this records only the shared names.",
+    "carries the member's `capxul_party`, and a won deal's Customer the head makes (`create_customer_on_status_change`) " +
+    "is the head's, given the deal's `capxul_party`. Payroll's own field list is payroll's; this records only the " +
+    "shared names.",
   source: asmBy("docs/design/frappe/crm.md (head and organizations); docs/design/frappe/accounting.md (capxul_party); books/target/payroll/decisions.ts"),
   affects: [component_frappe_app, integration_frappe_head, table_org_heads, concept_contacts, concept_payroll, concept_books, concept_projects],
 });

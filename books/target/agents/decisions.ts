@@ -734,7 +734,8 @@ export const decision_agents_fde_authority = defineDecision({
     "books and the CRM at once, but give an AI agent officer authority no person granted by choice; the founder can " +
     "grant them in one Board proposal (`org member grant`) when the FDE asks. The cost is concrete: the books' chart " +
     "comes only from `org books accounts import`, which needs the Books hat, so with no hat the FDE's first sitting " +
-    "either asks the founder to run the import or to grant it Books first.",
+    "either asks the founder to run the import or to grant it Books first. The People hat alone, which the CRM needs, is " +
+    "agents.fde-people-hat.",
   source: FDE_RULING,
   affects: [table_agents, table_org_members, concept_organizations, concept_projects],
 });
@@ -746,7 +747,7 @@ const asmBy = (evidence: string) => `${ASSEMBLY}; evidence: ${evidence}`;
 
 export const decision_agents_fde_people_hat = defineDecision({
   id: "agents.fde-people-hat",
-  title: "The setup grants the FDE no People hat; the founder grants it when the CRM needs it",
+  title: "The setup grants the FDE no People hat; the founder grants it when needed",
   question:
     "Only a People hat wearer edits an Organization's contact book and CRM (aaron.contacts-permissions), so the FDE " +
     "cannot work the CRM, or import a business's contacts at start-up, without it. Does the setup grant it, or does the " +

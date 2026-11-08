@@ -984,7 +984,7 @@ const asmBy = (evidence: string) => `${ASSEMBLY}; evidence: ${evidence}`;
 
 export const decision_contacts_startup = defineDecision({
   id: "contacts.startup",
-  title: "The CRM starts empty at the setup's begin; a business's contacts come in by command",
+  title: "The CRM starts empty at begin; a business's contacts come in by command",
   question:
     "Every fundamental app starts itself from organizations' `org-setup.begin` (organizations.startup). What does the " +
     "CRM create when an Organization begins, and how does a business's existing list of people and companies get in?",
