@@ -89,14 +89,17 @@ export const rpc_books_accounts_import = defineRpc({
   about:
     "Makes the Organization's chart once, in one transaction, as ERPNext's Account tree (books.chart-tree): the five " +
     "roots and the two Expenses groups that make Capxul's six types, every `us-services` account under its type's group " +
-    "with its Frappe account type, Capxul's 4999, 6999 and 3990, and one Safe account per asset (type Bank, in the " +
+    "with its Frappe account type, Capxul's 4999, 6999 and 3990, the role accounts payroll defaults to (2200 Payroll " +
+    "Payable, 5000 salaries: books.payroll-defaults), and one Safe account per asset (type Bank, in the " +
     "token's currency, frozen to all but Capxul): 1010 for the first settlement asset and the next free code for each " +
     "other asset the Organization's money facts already moved, so the money recorded before the chart posts at once " +
     "(books.facts-without-chart). It makes the cost-centre root and Main, the Company's default, and copies the " +
     "Organization's currency, time zone and fiscal year start into the books, fixed from then on " +
     "(books.company-settings); a currency Capxul cannot value (no USD price pair) is INVALID_INPUT " +
-    "`currency_not_priced`. The books are born `open` if they had not begun, then `import`ed. Each account and cost " +
-    "centre is a fact with its feed number. Nothing is scheduled: there is no backfill.",
+    "`currency_not_priced`. Fiscal years, the first included, are derived from that start, never stored. The books are " +
+    "born `open` if they had not begun, then `import`ed. Each account and cost centre is a fact with its feed number. " +
+    "Nothing is scheduled: there is no backfill. It is the start-up's chart step, which the Organization's FDE or a " +
+    "Books-hat wearer runs in the first sitting; nothing makes a chart at the setup's begin (books.startup).",
   was: [`${OPS}/import.ts:13`, `${OLD}/accounts/writes/chart.ts:32`, `${OLD}/facts/writes/backfill.ts:86`, `${ROWS}/operations.ts:82`],
   concept: concept_books,
   kind: "mutation",
@@ -264,7 +267,8 @@ export const rpc_books_accounts_review = defineRpc({
   about:
     "The rows waiting in 4999 or 6999, oldest first, with their suggestion: every row whose annotation waits, and every " +
     "money row of the Organization nobody annotated (an outside deposit), at its direction's not-decided account found by " +
-    "role. Read from books' own facts and annotations.",
+    "role. A row that pays payroll (a slip's net, a person's collection) posts on Payroll Payable and does not wait " +
+    "(books.payroll-postings). Read from books' own facts, annotations and payroll accruals.",
   was: [`${OPS}/review.ts:11`, `${OLD}/accounts/reads.ts:40`, `${ROWS}/operations.ts:110`],
   concept: concept_books,
   kind: "query",
@@ -272,7 +276,7 @@ export const rpc_books_accounts_review = defineRpc({
   input: Schema.Struct({ orgId: S }),
   output: Schema.Struct({ rows: Schema.Array(ReviewRow) }),
   errors: [...GUARD_ERRORS, error_WRONG_STATE],
-  reads: [...SEAT_READS, table_book_companies, table_book_accounts, table_book_annotations, table_book_facts],
+  reads: [...SEAT_READS, table_book_companies, table_book_accounts, table_book_annotations, table_book_facts, table_book_document_vouchers],
   writes: [],
   drives: [],
   invokes: [],
@@ -346,7 +350,7 @@ export const rpc_books_accounts_reclassify = defineRpc({
     ),
   }),
   errors: [...GUARD_ERRORS, error_INVALID_INPUT, error_WRONG_STATE],
-  reads: [...KEEPER_READS, table_book_companies, table_book_accounts, table_book_annotations, table_book_facts],
+  reads: [...KEEPER_READS, table_book_companies, table_book_accounts, table_book_annotations, table_book_facts, table_book_document_vouchers],
   writes: [table_book_companies, table_book_annotations, table_book_facts],
   drives: [machine_book_annotation.t.reclassify, machine_book_annotation.t.assign],
   invokes: [],

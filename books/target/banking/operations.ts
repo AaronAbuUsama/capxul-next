@@ -366,6 +366,7 @@ export const operation_bank_pay = defineOperation({
     kept("bank.pay", 5, "cli: as Gus, above what Globex's `office-costs` has left, exit PAYROLL_BUDGET_EXCEEDED; world: no change."),
   ],
   returns: PayoutView,
+  errors: [error_CLI_USAGE],
   refusals: [
     { error: error_INVALID_INPUT, given: "person-with-gbp-account", when: when("bank.pay", "INVALID_INPUT") },
     { error: error_WRONG_STATE, given: "person-with-gbp-account", when: when("bank.pay", "WRONG_STATE") },

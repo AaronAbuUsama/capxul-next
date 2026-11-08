@@ -152,14 +152,15 @@ export const operation_payment_send = defineOperation({
       error: error_INVALID_RECIPIENT,
       given: W.funded,
       when:
-        "The address is mistyped, or the recipient is nothing at all. The refusal names it. Also, for a mailbox with no " +
-        "account yet, one whose Safe could never be claimed (not ASCII), a spend from a budget or a dated payment, neither " +
-        "of which can hold a claim escrow (payments.claim-escrow-routes).",
+        "The address is mistyped, or the recipient is nothing at all. The refusal names it. Also a mailbox with no " +
+        "account yet whose Safe could never be claimed (not ASCII), so no claim escrow can wait for it " +
+        "(payments.claim-escrow-routes).",
     },
     {
       error: error_INVALID_INPUT,
       given: W.funded,
-      when: "The signature does not recover the account's signer, or the execution is unknown; or `--on` or `--at` is not in the future.",
+      when:
+        "The signature does not recover the account's signer, or the execution is unknown; or `--on` or `--at` is not in the future, or `--account` names no open ledger account of the Organization's chart.",
     },
     { error: error_INSUFFICIENT_BALANCE, given: W.empty, when: "Your Safe, or the company Safe, holds less than the amount." },
     {
@@ -245,7 +246,8 @@ export const operation_payment_cancel = defineOperation({
     {
       error: error_ROLE_PERMISSION_DENIED,
       given: W.dated,
-      when: "You wear no hat on the payment's budget or above it, you are not the escrow's owner, or for an Organization-funded payment you are not a Director.",
+      when:
+        "You wear no hat on the payment's budget or above it (for a budget's claim escrow too), you are not the owner of a personal claim escrow, or for an Organization-funded payment you are not a Director.",
     },
     { error: error_NOT_AUTHENTICATED, given: W.signedOut, when: "You are not signed in." },
   ],

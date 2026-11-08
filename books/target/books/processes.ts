@@ -18,6 +18,7 @@ import {
   table_org_members,
 } from "../organizations/data.ts";
 import { table_hat_wearers } from "../indexing/data.ts";
+import { table_projects } from "../projects/data.ts";
 import {
   machine_book_account,
   machine_book_annotation,
@@ -164,14 +165,15 @@ export const workflow_books_head_sync = defineWorkflow({
     {
       name: "push",
       about:
-        "Once charted: page book-facts after pushed_seq; upsertDocs each fact's documents in seq order; record the head's " +
-        "names; advance pushed_seq in the same transaction as the answers it records.",
+        "Once charted: page book-facts after pushed_seq; upsertDocs each fact's documents in seq order (a line's project " +
+        "as its Project's head name); record the head's names; advance pushed_seq in the same transaction as the answers.",
     },
     {
       name: "pull",
       about:
         "listChanges after pulled_change; apply chart changes, classifications and head vouchers through books' checks, " +
-        "one transaction each, each fact taking its feed number; push back a conflict or a refusal; advance pulled_change.",
+        "one transaction each, each fact taking its feed number; a head line whose party carries no Party is kept with a " +
+        "null party_id; push back a conflict or a refusal; advance pulled_change.",
     },
     { name: "await", about: "Wait for a fact here, a ring, the daily catch-up or the connection's next transition." },
   ],
@@ -189,6 +191,7 @@ export const workflow_books_head_sync = defineWorkflow({
     table_book_annotations,
     table_book_facts,
     table_book_document_vouchers,
+    table_projects,
   ],
   writes: [
     table_book_head_syncs,

@@ -190,8 +190,10 @@ export const table_payments = defineTable({
     escrow_address: Null(S),
     /** A budget claim escrow's funding: the payment id of the company Safe's PaymentSent to the escrow. Null otherwise. */
     funding_payment_id: Null(S),
-    /** What the books post it against, as the command carried it at birth; null when nothing was said. */
+    /** What the payer's books post it against, as the command carried it at birth; null when nothing was said. */
     against: Null(Against),
+    /** What the payee's books post it against, when the payee said so first (a request's income account and invoice). */
+    payee_against: Null(Against),
     /** A payroll slip or remittance this Payment pays; null for every other Payment. */
     source: Null(PaymentSource),
     /** The part of the amount a rail keeps (a bank payout's quoted fee), in the token's units; null when none. */

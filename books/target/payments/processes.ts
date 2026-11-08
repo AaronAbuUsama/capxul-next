@@ -52,8 +52,8 @@ export const workflow_payments_lifecycle_payment = defineWorkflow({
     "and for a budget's this process asks Budgets to pay it (`Budgets.execute` with the executor key, sent once and looked " +
     "up by hash, again an hour later while the chain refuses: only the chain ends a dated budget payment). It settles " +
     "only from the indexed PaymentSent with its payment id, every term compared (K7): all equal settles it, consuming the " +
-    "log (unique, K9) and writing the book fact of each Organization side in the same transaction (K10, settle once, " +
-    "K8); a differing term is `mismatch`, booked nothing. After settling it waits until the block is twice the finality " +
+    "log (unique, K9), `settled_at` the block's time, and writing each Organization side's book fact in the same " +
+    "transaction (K10, K8; payments.money-sides); a differing term is `mismatch`, booked nothing. After settling it waits until the block is twice the finality " +
     "depth deep and reads the facts again: gone, it reopens (`unsettle`) and reverses the book fact in one transaction " +
     "(K12). A Payment born from a chain fact meets its PaymentSent at once. A `needs_retry` Payment rests until `payment " +
     "retry` resumes it; the instance ends once its Payment is cancelled, mismatched for good, or settled and confirmed.",
@@ -123,9 +123,9 @@ export const workflow_payments_lifecycle_payment = defineWorkflow({
     {
       name: "settle",
       about:
-        "On its PaymentSent: every term compared (a claim escrow's sender is its escrow); equal → `settle` with the book " +
-        "fact in one transaction; different → `mismatch`. A claim escrow's settlement fills its payee tenant from the Party " +
-        "at its payee Safe.",
+        "On its PaymentSent, every term compared (a claim escrow's sender is its escrow): equal → `settle` with each side's " +
+        "book fact (its Safe, log index, block time, the other Safe's Party, `fee_raw`, its `against`); else `mismatch`. A " +
+        "claim escrow's payee tenant comes from its payee Safe's Party.",
     },
     { name: "release", about: "On ScheduleCancelled or EscrowRefunded for it, `cancel`." },
     { name: "confirm", about: "Twice the finality depth later, reads the facts again; gone → `unsettle` with the book fact reversed." },
@@ -184,7 +184,12 @@ export const workflow_payments_settlement_observe = defineWorkflow({
   trigger: { chainEvent: contract_payments.e.PaymentSent },
   steps: [
     { name: "facts", about: "Reads every fact of the PaymentSent's transaction at the finality depth." },
-    { name: "match", about: "A Payment holding the payment id ends the run: its own process settles it." },
+    {
+      name: "match",
+      about:
+        "A Payment holding the payment id ends the run (its process settles it), as does one holding it as its budget " +
+        "claim escrow's `funding_payment_id`: that PaymentSent only funds the escrow and settles nothing.",
+    },
     { name: "birth", about: "A Capxul Safe on either side births the Payment through `open` with the fact's terms." },
   ],
   reads: [table_payments, partiesData.table_parties],
@@ -208,7 +213,8 @@ export const workflow_payments_movements_record = defineWorkflow({
     "Triggered by each indexed ERC-20 Transfer that touches a Capxul Safe. It reads every fact of the transaction and " +
     "sets aside a Transfer that a Payment explains for that side: the one beside a PaymentSent moving the same token and " +
     "amount between the same addresses (a direct send, a budget's payout through Roles, an escrow's payout), or a claim " +
-    "escrow's funding or refund of one of that side's Payments (K17). For each remaining side whose Safe a Capxul tenant " +
+    "escrow's funding or refund of one of that side's Payments, a budget's returned to the company Safe through Budgets " +
+    "in the refund's transaction (K17). For each remaining side whose Safe a Capxul tenant " +
     "owns, it records a Movement (`record`), that side's book fact (`books.record-money-fact`, key `transfer:<chain " +
     "id>:<tx hash>:<log index>`) and the Transfer's Memo (`documents.store`: basis movement, reference the same key, " +
     "issued at the block time, the Capxul sides as participants, so a replayed Transfer stores nothing new) in one " +

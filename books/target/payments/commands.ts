@@ -32,6 +32,7 @@ import {
   error_WRONG_STATE,
 } from "../shared/vocabulary.ts";
 import * as approvals from "../approvals/procedures.ts";
+import * as booksData from "../books/data.ts";
 import * as budgetsData from "../budgets/data.ts";
 import * as orgsData from "../organizations/data.ts";
 import * as parties from "../parties/procedures.ts";
@@ -62,6 +63,10 @@ export const SendInput = Schema.Struct({
   note: Null(S),
   /** `--document <file>`: the receipt's bytes as the SDK read them (at most 128 KB), stored byte for byte by documents. */
   document: Null(ReceiptContent),
+  /** `--account`: the code of the Organization's chart it is booked to, like 6100; kept on each Payment as its `against`. */
+  account: Null(S),
+  /** `--suggest`: a name for a new account, beside 4999 or 6999, for someone with Manage books to decide. */
+  suggest: Null(S),
   request_key: S,
 });
 
@@ -99,23 +104,23 @@ export const rpc_payments_commands_prepare = defineRpc({
   title: "Prepare a payment from the payer's own Safe",
   about:
     "Births a payment that the payer's own Safe signs. Before its transaction it reads what the chain must allow: the " +
-    "paying Safe's balance (personal, claim escrow), or for `--org` the budget's `leftOf` and `authorised` for the caller's " +
-    "Safe (the one spending allowance or department they hold, `--from` among several, a `dep_` department's top " +
-    "budget). A shortfall, a missing authority, a closed budget or a department whose budget id is not bound yet refuses " +
-    "here, and nothing is written (K3). Then, in one transaction: the request key's command (a repeat with the same " +
-    "request answers the first command as it stands; another request under the key is refused, K1), the payee resolved " +
-    "to its Party and Safe (`parties.resolve-recipient`), the " +
-    "document of the note, or the bytes of `--document` (`documents.store`: its hash goes on chain), one Payment per item born through " +
-    "`open` with its payment id, and the approval from the caller's Safe that carries the calls (`approvals.open`): " +
-    "`approve` and `Payments.send` (kind 0) for a personal payment (`sendBatch` for several items of `--input`, all or none), " +
+    "paying Safe's balance, or for `--org` the budget's `leftOf` and `authorised` for the caller's Safe (the one " +
+    "allowance or department they hold, `--from` among several, a `dep_` department's top budget). A shortfall, a " +
+    "missing authority, a closed budget or an unbound department refuses here, and nothing is written (K3). Then, in one transaction: the request key's command (a repeat answers the first command as it " +
+    "stands; another request under the key is refused, K1), the payee's Party and Safe (`parties.resolve-recipient`), " +
+    "the note's document or the bytes of `--document` (`documents.store`: its hash goes on chain), one Payment per item " +
+    "born through `open` with its payment id, and the approval from the caller's Safe carrying the calls " +
+    "(`approvals.open`): `approve` and `Payments.send` (kind 0, `sendBatch` for several items of `--input`), or " +
     "`Budgets.spend` or, dated, `Budgets.schedule` from a budget. A mailbox with no live Safe is a claim escrow (route " +
-    "`claim_escrow`, its mailbox kept): the payer's Safe owns it, the email's derived Safe is its payee, its other terms " +
-    "are the token, the raw amount, the Payment's job nonce, kind 0, the document's hash and condition payee-claimed, its " +
-    "salt is the job nonce (a retry rebuilds the same address and payment id), its predicted address is kept in " +
-    "`escrow_address`, and one operation sends the amount there and `EscrowFactory.deploy`; a non-ASCII mailbox, whose Safe can never be " +
-    "claimed, and a budget spend or a dated payment to a mailbox with no live Safe are INVALID_RECIPIENT " +
-    "(payments.claim-escrow-routes). A personal dated payment is the same operation signed now and sent on its day. It answers the hand-over with the preview the CLI shows; " +
-    "signing and following are the flow's.",
+    "`claim_escrow`, its mailbox kept), now or dated: payee the email's derived Safe, terms the token, raw amount, job " +
+    "nonce, kind 0, document hash and condition payee-claimed, salt the job nonce (a retry rebuilds the same address), " +
+    "kept in `escrow_address`. The payer's own Safe owns its own: one operation sends the amount there and " +
+    "`EscrowFactory.deploy`. A budget funds a budget's (`Budgets.spendToClaim`, dated `Budgets.scheduleToClaim`), which " +
+    "its holder or the Board may take back to it; the funding's payment id is kept. A non-ASCII mailbox is " +
+    "INVALID_RECIPIENT (payments.claim-escrow-routes). `--account` (a code of the Organization's chart from books' " +
+    "accounts: one it lacks, archived or a group, is INVALID_INPUT naming it) and `--suggest` become each Payment's " +
+    "`against`, kept from birth (payments.money-sides). A dated personal payment is signed now, sent on its day. It " +
+    "answers the hand-over with the CLI's preview.",
   concept: concept_payments,
   kind: "action",
   who:
@@ -140,6 +145,7 @@ export const rpc_payments_commands_prepare = defineRpc({
     orgsData.table_organizations,
     orgsData.table_org_members,
     budgetsData.table_budgets,
+    booksData.table_book_accounts,
   ],
   writes: [table_payment_commands, table_payments],
   drives: [machine_payment.t.open],
@@ -185,10 +191,11 @@ export const rpc_payments_commands_propose = defineRpc({
     "inside a Safe transaction. The calls are checked against what was asked (amount, recipient, contract) before the " +
     "proposal opens; nothing moves until enough Directors approve. An immediate payment to a mailbox with no live Safe is " +
     "a claim escrow the company Safe owns (route `claim_escrow`, its mailbox kept, its terms and salt as `prepare` gives " +
-    "them): the batch sends the amount to the predicted address and `EscrowFactory.deploy`, " +
-    "and only a Board proposal refunds it; a dated one, or a non-ASCII mailbox, is INVALID_RECIPIENT " +
-    "(payments.claim-escrow-routes). A Board payment takes no request key from the caller: its key is the proposal's own " +
-    "subject.",
+    "them): the batch sends the amount to the predicted address and `EscrowFactory.deploy`, and only a Board proposal " +
+    "refunds it. A dated one is the top budget's claim escrow (`Budgets.scheduleToClaim` in place of " +
+    "`Budgets.schedule`), which the Board or that budget's holder may take back to it; a non-ASCII mailbox is " +
+    "INVALID_RECIPIENT (payments.claim-escrow-routes). It takes no `--account` or `--suggest`. A Board payment takes no " +
+    "request key from the caller: its key is the proposal's own subject.",
   concept: concept_payments,
   kind: "action",
   who: "A Director of the Organization (wears the Director hat): the proposer, whose own approval of the proposal counts first.",

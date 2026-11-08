@@ -43,8 +43,10 @@ export const PreparedItem = Schema.Struct({
   document_id: Schema.NullOr(Schema.String),
   /** The stored document's hash, or `0x` and 64 zeros for an item with none. */
   document_hash: Schema.String,
-  /** What the books post it against: an account, a party, documents (books' own shape), kept on the Payment from birth. */
+  /** What the payer's books post it against: an account, a party, documents (books' own shape), kept from birth. */
   against: Schema.optionalKey(Against),
+  /** What the payee's books post it against, when the invoker knows: a paid request's income account, Customer and invoice. */
+  payee_against: Schema.optionalKey(Against),
   /** The payroll slip or remittance it pays, kept on the Payment and passed with its book fact. */
   source: Schema.optionalKey(PaymentSource),
   /** A rail's fee inside `amount_raw` (a bank payout's quoted `fee_amount`), in the token's units. */
@@ -72,7 +74,7 @@ export const procedure_payments_prepare_command = defineProcedure({
     "(past `not_after`: WRONG_STATE). An item with `payee_mailbox` whose payee Party is still provisional (parties' directory) is a claim " +
     "escrow (route `claim_escrow`): a personal Safe owns its own; a budget funds a budget's, and its holder or the Board " +
     "may take it back to the budget (payments.claim-escrow-routes). A mailbox that is not ASCII is INVALID_RECIPIENT. Each " +
-    "item's `against`, `source` and `fee_raw` are kept on its Payment for its book fact. The documents come stored. It " +
+    "item's `against`, `payee_against`, `source` and `fee_raw` are kept on its Payment for its book facts. The documents come stored. It " +
     "answers the approval's deadline as opened. It makes no outside call; the invoker follows `payment_transitioned`.",
   concept: concept_payments,
   input: Schema.Struct({

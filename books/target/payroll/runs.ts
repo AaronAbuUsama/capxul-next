@@ -7,8 +7,9 @@
 //
 // Paying a submitted run is one payment command with one approval for every slip's net
 // (payroll.run-one-approval), born through payments' door, and the settled facts come back from
-// payments' settlement to mark each slip paid. That half needs payroll to depend on payments, so its
-// records are written in staged.ts and registered once it does (payroll.pays-through-payments).
+// payments' settlement to mark each slip paid. That half is in staged.ts, registered now that payroll
+// depends on payments (payroll.pays-through-payments). Submit and cancel post and cancel the run's
+// accrual through books' door (payroll.accrual).
 
 import { Schema } from "effect";
 import { budget, defineRpc } from "../../../packages/book/src/index.ts";
@@ -17,6 +18,8 @@ import { error_INVALID_INPUT, error_NOT_AUTHENTICATED, error_ROLE_PERMISSION_DEN
 import { table_budgets } from "../budgets/data.ts";
 import { table_organizations } from "../organizations/data.ts";
 import { procedure_documents_store } from "../documents/procedures.ts";
+import { procedure_books_record_payroll_accrual } from "../books/procedures.ts";
+import { table_book_accounts } from "../books/data.ts";
 import {
   machine_payroll_entry,
   machine_salary_slip,
@@ -58,8 +61,9 @@ export const rpc_payroll_runs_create = defineRpc({
     "Organization's head. " +
     COMPUTE +
     " A net below zero is INVALID_INPUT naming the Employee, as Frappe refuses one on submit. Then, in one transaction, " +
-    "the run is born `draft` (payroll-entry.create), with the company Safe, and each slip `draft` (salary-slip.compute). " +
-    "Nothing is owed yet.",
+    "the run is born `draft` (payroll-entry.create), with the company Safe, its Payroll Payable and treasury books' role " +
+    "accounts (null before the chart: payroll.books-accounts), and each slip `draft` (salary-slip.compute). Nothing is " +
+    "owed yet.",
   was: [`${FRAPPE}/payroll_entry/payroll_entry.py:309`, `${FRAPPE}/salary_slip/salary_slip.py:985`, `${FRAPPE}/salary_slip/salary_slip.py:1471`],
   concept: concept_payroll,
   kind: "mutation",
@@ -77,6 +81,7 @@ export const rpc_payroll_runs_create = defineRpc({
     table_salary_structure_assignments,
     table_payroll_entries,
     table_salary_slips,
+    table_book_accounts,
   ],
   writes: [table_payroll_entries, table_salary_slips, ...LOGGED],
   drives: [e.create, s.compute],
@@ -124,9 +129,10 @@ export const rpc_payroll_runs_submit = defineRpc({
     STORE_PAYSLIPS +
     " The accrual (expense up, Payroll Payable and each deduction's liability up) is books' to post, and only books': " +
     "Capxul computed this run, so its accrual is Capxul's voucher, which a head receives and never posts again. Books " +
-    "cannot read payroll, so this rpc invokes books' door `books.record-payroll-accrual` (action submit, the run's " +
-    "lines) in the same transaction, once payroll depends on books; until that edge exists nothing here posts it " +
-    "(payroll.accrual).",
+    "cannot read payroll, so this rpc invokes books' door `books.record-payroll-accrual` in the same transaction " +
+    "(action submit, the run's lines in the Company's currency: each earning's and employer cost's account, each " +
+    "deduction's liability, each net on the run's Payroll Payable with party the Employee; a null account is the line's " +
+    "role's: payroll.accrual, books.payroll-defaults).",
   was: [`${FRAPPE}/payroll_entry/payroll_entry.py:372`, `${FRAPPE}/payroll_entry/payroll_entry.py:619`],
   concept: concept_payroll,
   kind: "mutation",
@@ -146,7 +152,7 @@ export const rpc_payroll_runs_submit = defineRpc({
   ],
   writes: [table_payroll_entries, table_salary_slips, ...LOGGED],
   drives: [e.submit, s.submit],
-  invokes: [procedure_documents_store],
+  invokes: [procedure_documents_store, procedure_books_record_payroll_accrual],
   emits: [],
   calls: [],
   chain: [],
@@ -192,9 +198,9 @@ export const rpc_payroll_runs_cancel = defineRpc({
     "retryable (WRONG_STATE naming it). A run its head computed is cancelled on its head, where its accrual is, and " +
     "payroll's head sync applies that cancellation; a call here for one is WRONG_STATE naming the head " +
     "(payroll.one-computer-per-run). Then, in one transaction, the run and each of its slips are `cancelled` " +
-    "(payroll-entry.cancel, salary-slip.cancel). The payslips stay stored, as every document does; a submitted " +
-    "Capxul-computed run's accrual is cancelled through `books.record-payroll-accrual` (action cancel), once payroll " +
-    "depends on books (payroll.accrual).",
+    "(payroll-entry.cancel, salary-slip.cancel). The payslips stay stored, as every document does; a submitted run's " +
+    "accrual is cancelled in the same transaction through `books.record-payroll-accrual` (action cancel), which writes " +
+    "nothing for a draft (payroll.accrual).",
   was: [`${FRAPPE}/payroll_entry/payroll_entry.py:175`],
   concept: concept_payroll,
   kind: "mutation",
@@ -205,7 +211,7 @@ export const rpc_payroll_runs_cancel = defineRpc({
   reads: [...HR_READS, table_payroll_entries, table_salary_slips],
   writes: [table_payroll_entries, table_salary_slips, ...LOGGED],
   drives: [e.cancel, s.cancel],
-  invokes: [],
+  invokes: [procedure_books_record_payroll_accrual],
   emits: [],
   calls: [],
   chain: [],

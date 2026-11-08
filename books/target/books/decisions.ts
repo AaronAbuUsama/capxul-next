@@ -450,13 +450,33 @@ export const decision_books_capxul_assets = defineDecision({
   title: "Capxul's own assets are configuration, not rows",
   question: "Where do Capxul's settlement and held assets (USDC, EURC, WBTC...) live for the books?",
   options: [
-    { label: "config", text: "The deployment's admitted-asset list (with each asset's tier and Chainlink pair) is configuration every concept reads; only added tokens are rows." },
+    {
+      label: "config",
+      text:
+        "The deployment's admitted-asset list (with each asset's tier and Chainlink pair) is configuration every concept " +
+        "reads; only added tokens are rows. Beside the assets it lists the Chainlink USD pair of each Company currency it " +
+        "accepts (EUR/USD, GBP/USD), which the price sync reads and the import checks (books.company-settings).",
+    },
     { label: "rows", text: "Seed a books table with Capxul's assets per deployment." },
   ],
   chosen: "config",
-  why: "As in the old code: they change only with a deployment, and payments needs the same list. Only they are priced, so an added token named USDC never takes USDC's price.",
-  source: by(`${B}/assets/rules.ts:9; ${B}/README.md:73; packages/protocol/src/evm/test-assets.ts:21`),
-  affects: [rpc_books_assets_list, rpc_books_assets_add, rpc_books_reports_reconcile, procedure_books_record_money_fact, table_book_assets],
+  why:
+    "As in the old code: they change only with a deployment, and payments needs the same list. Only they are priced, so " +
+    "an added token named USDC never takes USDC's price. A Company currency's pair is the same kind of configuration: " +
+    "a voucher in that currency divides each fact's USD value by its rate at the block, so a currency the deployment " +
+    "lists no pair for cannot be valued, and the import refuses it (INVALID_INPUT `currency_not_priced`); organizations " +
+    "starts a country whose currency has none in USD (organizations.company-shape).",
+  source: by(`${B}/assets/rules.ts:9; ${B}/README.md:73; packages/protocol/src/evm/test-assets.ts:21; books.company-settings`),
+  affects: [
+    rpc_books_assets_list,
+    rpc_books_assets_add,
+    rpc_books_reports_reconcile,
+    procedure_books_record_money_fact,
+    table_book_assets,
+    table_book_prices,
+    workflow_books_prices_sync,
+    rpc_books_accounts_import,
+  ],
 });
 
 export const decision_books_added_token_scan = defineDecision({
@@ -899,8 +919,9 @@ export const decision_books_fact_read = defineDecision({
   why:
     "A ledger must post from the feed alone (the head sync pushes the same documents), and books cannot read payments or banking to fill the gaps " +
     "later (dependencies.books-below-money). A Party id makes the voucher's party resolvable in any head (a Customer, " +
-    "Supplier or Employee carries `capxul_party`), while the chain's name stays as evidence. The log index makes " +
-    "two transfers in one transaction distinct proofs. These are columns the invoker already knows when it records.",
+    "Supplier or Employee carries `capxul_party`), while the chain's name stays as evidence in `counterparty`; this " +
+    "answers the CRM lane's check C6 (a fact's counterparty pinned to a Party id). The log index makes two transfers " +
+    "in one transaction distinct proofs. These are columns the invoker already knows when it records.",
   source: byFrappe("vision check C6 in docs/vision/erp.md; books/target/payments/processes.ts (settle, record); books/target/banking/processes.ts"),
   affects: [table_book_facts, procedure_books_record_money_fact, rpc_books_facts_list, rpc_books_sync_feed, ops.operation_org_books_facts_list],
 });
@@ -1232,7 +1253,8 @@ export const decision_books_payroll_accrual = defineDecision({
     "liability the books never recorded. Books cannot follow payroll's events, since payroll will sit above payments " +
     "and payments above books, so a door is the only way down. The procedure never refuses: an unfit account falls " +
     "back to its role's, and without a chart the voucher waits, as money facts do. The books' basis reads `accrual` " +
-    "once one exists. Payroll must add books to its dependencies and invoke the door only for runs Capxul computed.",
+    "once one exists. Payroll now depends on books and invokes the door from `runs.submit` and `runs.cancel`, only for " +
+    "runs Capxul computed, and for a landed collection's paid slip (books.payroll-postings).",
   source: byFrappe("payroll.accrual (books/target/payroll/decisions.ts); hrms payroll_entry.py:619, :1093; rules.procedures"),
   affects: [
     procedure_books_record_payroll_accrual,
@@ -1244,4 +1266,215 @@ export const decision_books_payroll_accrual = defineDecision({
     rpc_books_exports_quickbooks,
     invariant_books_one_author_per_voucher,
   ],
+});
+
+// ── the assembly after the Frappe lanes (8 November 2026) ───────────────────────────────────
+
+const ASSEMBLY = "Claude, assembly of the Frappe lanes (ledger: books and payroll), 8 November 2026";
+const byAssembly = (evidence: string) => `${ASSEMBLY}; evidence: ${evidence}`;
+
+export const decision_books_startup = defineDecision({
+  id: "books.startup",
+  title: "No books step at the setup's begin: the chart is the import, in the first sitting",
+  question:
+    "organizations.startup has each fundamental app start itself from the setup's `begin`. The projects lane asked books " +
+    "for a start-up there: the account tree from a template, the first Fiscal Year and the main Cost Center, reading " +
+    "`abbr`, `default_currency`, `time_zone` and `fiscal_year_start` from the Organization. What does books do at begin?",
+  options: [
+    {
+      label: "import-in-first-sitting",
+      text:
+        "Nothing at begin. The books begin recording at the Organization's first fact, whose writer births the Company " +
+        "row. The chart is `org books accounts import`, which the Organization's FDE or a Books-hat wearer runs in the " +
+        "first sitting as the start-up's chart step: ERPNext's tree from the template, the root and Main cost centres, " +
+        "and the Organization's currency, time zone and fiscal year start, read from it then and kept fixed " +
+        "(books.company-settings). Fiscal years, the first included, are derived from the start. Account and cost centre " +
+        "names stay Frappe's bare `account_name`; a head names each document with its Company's `abbr` suffix, as ERPNext " +
+        "does, from organizations' value.",
+    },
+    {
+      label: "chart-at-begin",
+      text: "A books process triggered by `machine_org_setup.t.begin` makes the chart, the first Fiscal Year and Main for every new Organization.",
+    },
+    {
+      label: "company-at-begin",
+      text: "A books process triggered by `begin` births only the Company row (`recording`), so the feed's lock row exists before any money.",
+    },
+  ],
+  chosen: "import-in-first-sitting",
+  why:
+    "The frozen books operations keep 'no chart until one is made': `org books accounts import` makes the chart, a " +
+    "second import is WRONG_STATE, and the chart's reads refuse `no_chart` before it. A chart made at begin would make " +
+    "every Organization's import a refusal and leave those claims no world to run in, so it is a behaviour change no " +
+    "ruling asks for. organizations.startup already reads it this way: books makes nothing at begin and a Books-hat " +
+    "wearer runs the import in the first sitting. The books are still complete before the chart, because facts are " +
+    "kept from the first money and the import posts them at once (books.facts-without-chart). Birthing only the " +
+    "Company row buys nothing: money can reach the company Safe's predicted address in the same second as the begin, " +
+    "so every fact writer must birth the row if it is missing anyway. The Organization's values are read, not " +
+    "duplicated, until the import; the copy the import takes is the Company's fixed accounting settings, which ERPNext " +
+    "also fixes once there are entries. ERPNext adds the abbreviation to a document's name, never to `account_name`, " +
+    "so Capxul keeps none.",
+  source: byAssembly("organizations.startup; books/frozen (org.books.accounts.import, list, review); erpnext/accounts/doctype/account/account.py (autoname)"),
+  affects: [
+    concept_books,
+    rpc_books_accounts_import,
+    table_book_companies,
+    machine_book_company,
+    ops.operation_org_books_accounts_import,
+  ],
+});
+
+export const decision_books_payroll_defaults = defineDecision({
+  id: "books.payroll-defaults",
+  title: "Payroll's default accounts are books' role accounts: 2200, 5000 and each Safe",
+  question:
+    "Payroll stores books' account ids on its records (a component's expense and liability, a run's and an assignment's " +
+    "Payroll Payable, a run's treasury account), and asks books for the defaults. Which accounts are they, and where " +
+    "does a payroll line go when its account is missing or unfit?",
+  options: [
+    {
+      label: "roles",
+      text:
+        "Books' role accounts, found by role, never by code: Payroll Payable is `payroll_payable` (2200, the Company's " +
+        "`default_payroll_payable_account`); the treasury is the `safe` account of the company Safe and the run's token; " +
+        "the salary expense is a new role, `salaries`, on the template's 5000 (US salaries and wages). Payroll fills a " +
+        "run's and an assignment's payable and treasury from them when the books are charted, null before. In the " +
+        "accrual door an earning or employer cost with no fit account posts to `salaries`, and a deduction's liability " +
+        "or a net to Payroll Payable.",
+    },
+    { label: "review", text: "No salary default: an expense line with no account posts to 6999, the not-decided expense account." },
+    { label: "by-code", text: "Payroll picks 5000 and 2200 by their codes." },
+  ],
+  chosen: "roles",
+  why:
+    "Frappe HR refuses to accrue a component with no account; Capxul's door never refuses (books.payroll-accrual), so " +
+    "it needs a fallback. 6999 is the review queue of money rows, but an accrual line is not a row: no annotation, " +
+    "accept or reclassify can move it, so salaries posted there would stay unclassified for good, and a component " +
+    "made before the chart (its accounts null) would accrue there every run. A role is how books already finds every " +
+    "account it posts to by itself (books.chart-tree), and codes can be renumbered. The role protects 5000 as roles do: " +
+    "it cannot be archived or take sub-accounts, so a fallback is never a group; a business that wants its salaries " +
+    "split adds siblings (the template already has 5100 and 5200). Payroll Payable is one account per Company, as " +
+    "ERPNext's Payroll Entry defaults it, so a run's accrual and its slips' Bank Entries always meet on it.",
+  source: byAssembly("docs/design/frappe/payroll.md (For other lanes: Books); hrms payroll_entry.py:800 (accounts required); packages/protocol/src/books/model.ts:113 (5000)"),
+  affects: [
+    table_book_accounts,
+    rpc_books_accounts_import,
+    procedure_books_record_payroll_accrual,
+    rpc_books_accounts_add,
+    rpc_books_accounts_archive,
+  ],
+});
+
+export const decision_books_payroll_postings = defineDecision({
+  id: "books.payroll-postings",
+  title: "How payroll's money posts: a slip's Bank Entry, a collection's accrual",
+  question:
+    "Payroll asks for one Bank Entry per settled payroll Payment, a collection posted as expense with party Employee (a " +
+    "Supplier Payment Entry for an Organization payee), and remittances on their liabilities. Accounting saw that a " +
+    "collection reaches books unclassified, since payments does not know agreements. Books can read neither payroll " +
+    "nor payments. How does each of payroll's money facts post?",
+  options: [
+    {
+      label: "against-and-door",
+      text:
+        "A run slip's net: payroll gives each item of a run's command its `against` (party Employee and the Employee's " +
+        "Party, a reference to the Payroll Entry, and Payroll Payable when the books are charted), which payments keeps " +
+        "from birth and passes at settlement (payments.payroll-door). Its voucher is the Bank Entry Frappe HR's " +
+        "`make_bank_entry` makes, one per slip: Dr Payroll Payable, party Employee, reference the Payroll Entry; Cr the " +
+        "company Safe's account for the token; cheque number the transaction, dated at the block. A Payroll Entry named " +
+        "with no account (paid before the chart) posts on Payroll Payable too. A collection to a person: payroll's " +
+        "agreement process, recording the paid slip, invokes `books.record-payroll-accrual` (action collection): Dr the " +
+        "agreement component's expense, Cr Payroll Payable, party the Employee, naming the collection's Payment, whose " +
+        "voucher then posts Dr Payroll Payable, party the Employee, Cr Safe, whichever commits first. A collection to an " +
+        "Organization payee waits in review, or a head's Purchase Invoice and classification make it a Supplier Payment " +
+        "Entry. A remittance posts on the liability account its payer names. An annotation, when given, wins.",
+    },
+    {
+      label: "pays-on-fact",
+      text: "Payments passes the Payment's payroll `source` as a new field of the book fact, and books posts by it.",
+    },
+    { label: "review", text: "Every payroll Payment waits in review for a Books-hat wearer, as any unclassified money does." },
+  ],
+  chosen: "against-and-door",
+  why:
+    "The meaning of money reaches books in one of two ways the design already has: what the payer said when the money " +
+    "was commanded (`against`, kept from birth), and a money fact's own door. A run's Payments are commanded by " +
+    "payroll, so `against` carries them, and payments chose that rather than a second field (payments.payroll-door). " +
+    "Run before the chart, payroll has no account id to give, so the Payroll Entry reference itself decides the " +
+    "account: in ERPNext only Payroll Payable lines reference one. A collection is born from a chain fact, so nobody " +
+    "commands it, and only payroll knows its Employee and its component's account; the door, already a money fact, " +
+    "posts the slip's accrual and names the Payment, so the pay and its liability meet on Payroll Payable as a " +
+    "Frappe slip's do. An Organization payee has no slip (payroll.collection-slips): its meaning is a Purchase " +
+    "Invoice, which only a head makes. Review alone would leave every salary unclassified. Such a row is not waiting, " +
+    "so review and reclassify read the accruals too.",
+  source: byAssembly("docs/design/frappe/assembly-items.md (accounting, payroll); payments.payroll-door; hrms payroll_entry.py:1093, :1196"),
+  affects: [
+    procedure_books_record_money_fact,
+    procedure_books_record_payroll_accrual,
+    table_book_document_vouchers,
+    table_book_annotations,
+    rpc_books_accounts_review,
+    rpc_books_accounts_reclassify,
+    rpc_books_sync_feed,
+    invariant_books_postings_balance,
+  ],
+});
+
+export const decision_books_escrow_held = defineDecision({
+  id: "books.escrow-held",
+  title: "Money waiting in a claim escrow posts nothing until the claim; no clearing account",
+  question:
+    "Payroll asked for escrow clearing entries: into a Capxul Escrow account when a new hire's net is funded into a " +
+    "claim escrow, to Payroll Payable on the claim, back to the treasury on a refund. Books' rule is that money waiting " +
+    "in a claim escrow posts nothing until the escrow pays. Which holds?",
+  options: [
+    {
+      label: "held-until-claim",
+      text:
+        "Nothing posts while the money waits: the Payment settles at the claim, and its voucher (a slip's Bank Entry) " +
+        "posts then; a refund cancels the Payment and posts nothing, so the net stays owed on Payroll Payable. The " +
+        "reconcile shows the waiting money as `held` (books.reconcile-held).",
+    },
+    {
+      label: "clearing-account",
+      text:
+        "A protected Capxul Escrow asset account: the funding posts Dr Escrow, Cr Safe; the claim Dr Payroll Payable, Cr " +
+        "Escrow; a refund Dr Safe, Cr Escrow.",
+    },
+  ],
+  chosen: "held-until-claim",
+  why:
+    "Both keep total assets right, since a refundable escrow is still the Organization's money; they differ only in " +
+    "which asset account shows it. A clearing account needs money facts for the funding and the refund, which payments " +
+    "sets aside on purpose because a Payment, not a Transfer, explains them (K17), and would add two vouchers to every " +
+    "claim escrow, not only payroll's. The frozen reconcile claim already explains the difference with `held` while an " +
+    "escrow is open. Both the payroll and the accounting designs (docs/design/frappe) read it this way; only the " +
+    "assembly list asked for the account.",
+  source: byAssembly("books.reconcile-held; org.books.reports.reconcile line 1; payments.movements.record (K17); docs/design/frappe/payroll.md"),
+  affects: [procedure_books_record_money_fact, rpc_books_reports_reconcile, ops.operation_org_books_reports_reconcile],
+});
+
+export const decision_books_annotation_project = defineDecision({
+  id: "books.annotation-project",
+  title: "An annotation's project is one of the Organization's projects",
+  question:
+    "A voucher's other side carries a project, as a GL Entry does. It was opaque text while books could not read " +
+    "projects; books now depends on projects (dependencies.of-books). What does books check?",
+  options: [
+    {
+      label: "checked-id",
+      text:
+        "The project is a projects id of the same Organization: `activity annotate` and a head's classification refuse " +
+        "another (INVALID_INPUT), a payer's `against` drops it and the row waits in review, and the push writes the " +
+        "project's head name, as ERPNext links a Project by name.",
+    },
+    { label: "text", text: "Keep the project as free text, unchecked." },
+  ],
+  chosen: "checked-id",
+  why:
+    "ERPNext's GL Entry links a Project, and a head refuses a name it does not have, which would stall the sync; a " +
+    "checked id also survives a rename. Projects sits below books, so the read makes no cycle. The refusal is a new " +
+    "case under a code `activity annotate` already produces, never a dropped behaviour.",
+  source: byAssembly("erpnext/accounts/doctype/gl_entry/gl_entry.json (project: Link to Project); projects.dependencies; dependencies.of-books"),
+  affects: [rpc_books_annotations_save, procedure_books_record_money_fact, workflow_books_head_sync, table_book_annotations],
 });

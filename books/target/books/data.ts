@@ -76,6 +76,7 @@ export const AccountRole = Schema.Literals([
   "receivable",
   "payable",
   "payroll_payable",
+  "salaries",
   "bank_charges",
   "exchange_gain_loss",
 ]);
@@ -239,8 +240,9 @@ export const table_book_accounts = defineTable({
     "Frappe's (Bank for a Safe account, Receivable, Payable); `account_currency` is the Company's, or the asset's symbol for a " +
     "Safe account. `role` marks the accounts Capxul protects and finds by role, never by code, and fills the Company's " +
     "defaults: `safe` (one per company Safe and asset), `uncategorized_income` (4999) and `uncategorized_expense` (6999), " +
-    "the review queue, `opening` (3990), `receivable`, `payable`, `payroll_payable`, `bank_charges`, " +
-    "`exchange_gain_loss`. An archive keeps the row and frees the code.",
+    "the review queue, `opening` (3990), `receivable`, `payable`, `payroll_payable` (2200), `salaries` (5000, where a " +
+    "payroll expense with no account of its own posts: books.payroll-defaults), `bank_charges`, `exchange_gain_loss`. " +
+    "An archive keeps the row and frees the code.",
   was: [`${T}:35`, `${BK}/writes.ts:91`, `${BK}/accounts/writes/chart.ts:99`, `${MODEL}:49`],
   concept: concept_books,
   tenancy: "organization",
@@ -391,10 +393,13 @@ export const table_book_annotations = defineTable({
     "Organization it is the meaning ERPNext gives a payment: the account its voucher posts against (an `acct_` id of a " +
     "ledger account, or `personal_<code>` from the fixed personal chart for a person), the party (`party_type` and the " +
     "directory's `party_id`, required for a receivable or payable account), the cost centre and project of its " +
-    "profit-and-loss line, and the documents it pays (`references`: a head's invoice, expense claim or payroll entry, " +
-    "with the amount allocated), beside a suggested account name and a memo. A save replaces it whole, last write wins. " +
+    "profit-and-loss line (`project`: one of the Organization's projects, by projects' id: books.annotation-project), " +
+    "and the documents it pays (`references`: a head's invoice, expense claim or payroll entry, with the amount " +
+    "allocated), beside a suggested account name and a memo. A save replaces it whole, last write wins. " +
     "`status` says whether the row waits in the review queue. A row nobody annotated has no row here and posts to its " +
-    "direction's not-decided account at Main. Money never comes from here: a voucher reads it (books.account-at-posting).",
+    "direction's not-decided account at Main, unless a payroll collection's accrual names it; one naming a Payroll Entry " +
+    "and no account (given before the chart) posts on Payroll Payable (books.payroll-postings). Money never comes from " +
+    "here: a voucher reads it (books.account-at-posting).",
   was: [`${OLD}/activity/tables.ts:8`, `${T}:56`, `${BK}/writes.ts:155`],
   concept: concept_books,
   tenancy: "owner",
@@ -515,8 +520,8 @@ export const table_book_facts = defineTable({
     "cancels. `seq` numbers an Organization's facts from 1 with no gap, in the order they commit (books.feed), so a " +
     "ledger that follows the numbers reads every fact once. A money fact is keyed by the chain occurrence that moved the " +
     "money (`money_key`) and a generation (books.money-key). It records amount, asset, direction, the Safe it moved in or " +
-    "out of, the counterparty (its directory `party_id` when known), the part a rail kept as a fee (`fee_raw`), source, " +
-    "chain, block, transaction and log, and the USD value at the rate in force at its block, once, never revalued; it " +
+    "out of, the counterparty (the chain's name for it, and its directory `party_id` when known: the voucher's party), the " +
+    "part a rail kept as a fee (`fee_raw`), source, chain, block, transaction and log, and the USD value at the rate in force at its block, once, never revalued; it " +
     "names no account (books.account-at-posting). `posting_date` is set only when the block's day was already closed " +
     "when the fact was recorded: the voucher posts on the first open day instead (books.closed-periods). Each standing " +
     "priced money fact posts one voucher whose id is the fact's (books.vouchers). Chart facts carry the code and name " +
@@ -623,8 +628,10 @@ export const table_book_document_vouchers = defineTable({
     "connected head submitted (a Sales or Purchase Invoice, a Journal Entry for an accrual or depreciation, a head-run " +
     "Payroll Entry's accrual, a Period Closing Voucher), pulled by the head sync and keyed by the head's `voucher_type` " +
     "and `voucher_no`, a newer `head_modified` replacing its lines; and `payroll`, the accrual Journal Entry of a run " +
-    "Capxul computed, recorded by `books.record-payroll-accrual` in payroll's own transaction, keyed by its " +
-    "`accrual_posted` fact's id and pushed to a head like Capxul's money vouchers (books.payroll-accrual). A " +
+    "Capxul computed, or of an agreement collection's paid slip (naming the collection's Payment, `payment_id`, whose " +
+    "voucher then posts on the payable this one credits: books.payroll-postings), recorded by " +
+    "`books.record-payroll-accrual` in payroll's own transaction, keyed by its `accrual_posted` fact's id and pushed to " +
+    "a head like Capxul's money vouchers (books.payroll-accrual). A " +
     "cancellation appends the reversing lines, dated the day it was cancelled (the immutable ledger's way). No line is " +
     "ever on a Safe account: money in a Safe is posted only from its fact. A head voucher never posts on or before " +
     "`closed_through` unless it is the closing itself; a submitted Period Closing Voucher's `period_end_date` sets the " +
@@ -643,8 +650,11 @@ export const table_book_document_vouchers = defineTable({
     party_id: NullOr(S),
     remarks: NullOr(S),
     period_end_date: NullOr(S),
-    /** For a payroll accrual, the run it accrues (its `Payroll Entry` id); null for a head's voucher. */
+    /** For a payroll accrual, the run it accrues (its `Payroll Entry` id); null for a head's voucher and a collection's. */
     run_id: NullOr(S),
+    /** For a collection's accrual, the paid slip it accrues and the Payment that paid it (`payment_<id>`); null otherwise. */
+    salary_slip_id: NullOr(S),
+    payment_id: NullOr(S),
     lines: Schema.Array(GlLine),
     head_modified: NullOr(N),
     received_at: N,
@@ -661,6 +671,11 @@ export const table_book_document_vouchers = defineTable({
       name: "by_org_run",
       fields: ["org_id", "run_id"],
       for: "A payroll run's accrual: a second submit of the same run is a no-op, and a cancel finds what it reverses.",
+    },
+    {
+      name: "by_org_payment",
+      fields: ["org_id", "payment_id"],
+      for: "A collection's accrual by the Payment that paid it: that Payment's voucher posts on its payable, and a second record of the same slip is a no-op.",
     },
   ],
   retention: KEPT,

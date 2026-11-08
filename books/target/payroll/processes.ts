@@ -24,6 +24,7 @@ import {
   table_payroll_changes,
   table_payroll_entries,
   table_payroll_head_syncs,
+  table_payroll_settings,
   table_salary_components,
   table_salary_slips,
   table_salary_structure_assignments,
@@ -32,8 +33,17 @@ import {
 import { table_parties } from "../parties/data.ts";
 import { procedure_parties_resolve_recipient } from "../parties/procedures.ts";
 import { procedure_documents_store } from "../documents/procedures.ts";
+import { procedure_books_record_payroll_accrual } from "../books/procedures.ts";
 import { table_budgets } from "../budgets/data.ts";
-import { event_org_head_transitioned, machine_org_head, table_org_deployments, table_org_heads, table_org_members, table_organizations } from "../organizations/data.ts";
+import {
+  event_org_head_transitioned,
+  machine_org_head,
+  machine_org_setup,
+  table_org_deployments,
+  table_org_heads,
+  table_org_members,
+  table_organizations,
+} from "../organizations/data.ts";
 import { table_hat_wearers } from "../indexing/data.ts";
 import { LOGGED } from "./employees.ts";
 import {
@@ -163,8 +173,9 @@ export const workflow_payroll_agreements_lifecycle = defineWorkflow({
     {
       name: "record-collection",
       about:
-        "A landed collection to a person records one paid salary slip (salary-slip.record_collection): its window, the " +
-        "collected amount as its one earning, its payment id, transaction and block time, and the terms document.",
+        "A landed collection to a person records one paid salary slip (salary-slip.record_collection: its window, the " +
+        "amount as its one earning, its payment id, tx, block time and terms document) and, in that transaction, its " +
+        "accrual (books.record-payroll-accrual, action collection).",
     },
     {
       name: "let-go",
@@ -216,7 +227,7 @@ export const workflow_payroll_agreements_lifecycle = defineWorkflow({
     machine_salary_structure_assignment.t.submit,
     machine_salary_slip.t.record_collection,
   ],
-  invokes: [procedure_approvals_withdraw],
+  invokes: [procedure_approvals_withdraw, procedure_books_record_payroll_accrual],
   emits: [],
   calls: [
     integration_indexer.c.awaitBlock,
@@ -235,6 +246,38 @@ export const workflow_payroll_agreements_lifecycle = defineWorkflow({
     "None: it writes only payroll's own rows, from chain facts read at the finality depth, which Capxul never undoes. A step " +
     "that fails after its retries leaves the agreement where the last committed step put it, and the step runs again on resume.",
   budget: budget("chain-settle"),
+});
+
+// ── the start-up ────────────────────────────────────────────────────────────────────────────
+
+export const workflow_payroll_startup_open = defineWorkflow({
+  id: "payroll.startup.open",
+  title: "Start the Organization's payroll: its Payroll Settings",
+  about:
+    "Started by an Organization setup's `begin`, through the outbox: payroll is a fundamental app, in Frappe HR's shape " +
+    "from the first day whether or not a head is ever connected (aaron.frappe-shape, payroll.startup). In one " +
+    "transaction it writes the Organization's Payroll Settings, as Frappe HR's install sets that single's defaults " +
+    "(`set_single_defaults`), with the values Capxul computes by and a head must match (leave-based, holidays counted " +
+    "as working days, no rounded total, no Frappe email) and the change counter at zero, so every payroll write finds " +
+    "its lock row. It makes no salary component: Frappe HR installs none, and a business's pay is its own to define; " +
+    "the agreement component is made at the first acceptance. It cannot be a step of `begin`, which is organizations' " +
+    "and may not write another concept's tables.",
+  concept: concept_payroll,
+  priority: "normal",
+  trigger: { transition: machine_org_setup.t.begin },
+  steps: [{ name: "settings", about: "Write the Payroll Settings with last_seq zero, unless the Organization already has them." }],
+  reads: [table_payroll_settings],
+  writes: [table_payroll_settings],
+  drives: [],
+  invokes: [],
+  emits: [],
+  calls: [],
+  chain: [],
+  idempotency: "One run per Organization (`payroll-startup:<orgId>`): a second finds the settings row and writes nothing.",
+  timeoutMs: 60_000,
+  retries: { max: 5, backoff: "exponential" },
+  budget: budget("background"),
+  was: ["/tmp/hrms/hrms/setup.py:606", "/tmp/hrms/hrms/payroll/doctype/payroll_settings/payroll_settings.json"],
 });
 
 // ── the head sync ───────────────────────────────────────────────────────────────────────────
@@ -300,7 +343,12 @@ export const workflow_payroll_head_sync = defineWorkflow({
   ],
   steps: [
     { name: "push", about: "Page payroll-changes after pushed_seq; upsertDocs in seq order, drafts left out; record the head's names; advance pushed_seq." },
-    { name: "pull", about: "listChanges after pulled_change; apply each through payroll's checks, or push back a conflict or a refusal; advance pulled_change." },
+    {
+      name: "pull",
+      about:
+        "listChanges after pulled_change; apply each through payroll's checks (a head-born Employee's Party from its " +
+        "`personal_email`, never `company_email`), or push back a conflict or a refusal; advance pulled_change.",
+    },
     { name: "import", about: "A Payroll Entry the head submitted: take it in with its slips and payslips by payroll.import-run, once by its head name." },
     { name: "await", about: "Wait for a change here, a ring, the daily catch-up or the connection's next transition." },
   ],

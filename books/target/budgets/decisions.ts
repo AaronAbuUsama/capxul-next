@@ -6,7 +6,7 @@
 
 import { defineDecision } from "../../../packages/book/src/index.ts";
 import { concept_budgets, concept_notices, concept_organizations, concept_payments, concept_board } from "../shared/foundation.ts";
-import { contract_hats, integration_indexer } from "../shared/external.ts";
+import { contract_budgets, contract_escrow, contract_hats, integration_indexer } from "../shared/external.ts";
 import {
   error_FEATURE_NOT_AVAILABLE,
   error_ROLE_CONFLICT,
@@ -756,4 +756,50 @@ export const decision_budgets_dropped_functions = defineDecision({
     "each target rpc and in the change's process.",
   source: by("docs/as-is/archive/payroll/departments.ts:656-903; packages/backend/src/permissions/allowances/operations; P2; P3"),
   affects: [concept_budgets, workflow_budgets_changes_follow, rpc_budgets_changes_get],
+});
+
+// ── a budget's claim escrow (8 November 2026) ───────────────────────────────────────────────
+
+export const decision_budgets_claim_escrows = defineDecision({
+  id: "budgets.claim-escrows",
+  title: "A budget's claim escrow: its holders or the Board take it back, room returns",
+  question:
+    "A budget may now pay someone with no account through a claim escrow it funds (payments.claim-escrow-routes). Who " +
+    "may take one back, and what does the budget show while the money waits and after a refund?",
+  options: [
+    {
+      label: "authorised-and-room",
+      text:
+        "Whoever `Budgets.authorised` admits on the funding budget takes it back: a wearer of its office hat or of any hat " +
+        "above it, or the company Safe, so the Board. While it waits, the amount counts as spent this period, as any " +
+        "spend does. A refund (`Budgets.refundClaim`) returns the money to the company Safe and, when it lands in the " +
+        "period that spent it, takes the amount off the budget's and its ancestors' spent, so `leftOf` rises by it; " +
+        "after the period turned it changes no room. Budgets stores nothing of it: its reads show the chain.",
+    },
+    { label: "board-only", text: "Only the Board takes it back (v4 as deployed), and the room stays spent for that period." },
+    { label: "credit-now", text: "A refund always gives room to the budget's current period, even after the period turned." },
+  ],
+  chosen: "authorised-and-room",
+  why:
+    "The ruling names the budget's holder or the Board, and `authorised` is exactly that rule (a hat's wearers and " +
+    "everyone above, and the company Safe for its own budgets), checked by the chain at the call, so a holder whose hat " +
+    "is removed loses it at once. Room returns only in the period that spent it: a later period's room was renewed " +
+    "whole by the calendar, and crediting it would let the budget spend a past period's amount twice. The money itself " +
+    "always returns to the company Safe, the treasury every budget pays from. The token's payout ceiling in Roles is not " +
+    "given back: it counts what left the Safe and refills on its own period. Nothing is stored here " +
+    "(budgets.chain-is-the-record): `budgetOf` and `leftOf` show the change on the next read, and payments holds the " +
+    "Payment and its escrow. Budgets keeps no door (budgets.no-door): payments sends the refund and follows it. It " +
+    "needs the Budgets contract change that payments.claim-escrow-routes names; with that record's fallback, only the " +
+    "Board takes it back and nothing returns to the period.",
+  source: by("aaron.budget-pay-unclaimed; packages/contracts/v4/src/money/Budgets.sol:373 (authorised), :453 (_left); payments.claim-escrow-routes"),
+  affects: [
+    concept_budgets,
+    concept_payments,
+    contract_budgets,
+    contract_escrow,
+    rpc_budgets_tree_show,
+    rpc_budgets_allowances_get,
+    rpc_budgets_allowances_list,
+    rpc_budgets_offices_remove_holder,
+  ],
 });

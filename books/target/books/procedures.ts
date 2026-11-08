@@ -4,7 +4,8 @@
 // bank deposit arrives or a payout comes back. Payroll invokes the third when a run Capxul computed
 // is submitted or cancelled (books.payroll-accrual). Nothing else crosses into books: reads of
 // books' tables by the concepts above it are plain reads, and books' own rpcs and workflows write
-// its tables directly.
+// its tables directly. Payroll also invokes the third when its agreement process records a landed
+// collection's paid slip (books.payroll-postings).
 //
 // Neither procedure ever refuses: a settlement must never fail because of the books. A side whose
 // voucher choice no longer fits the chart is booked and left waiting in review. Each fact takes the
@@ -34,6 +35,7 @@ import {
   table_book_facts,
   table_book_prices,
 } from "./data.ts";
+import { table_projects } from "../projects/data.ts";
 
 const OLD = "packages/backend/src";
 const BK = `${OLD}/books`;
@@ -55,6 +57,7 @@ export const Against = Schema.Struct({
   same_as: opt(Reference),
   party: opt(Schema.Struct({ type: PartyType, id: S })),
   cost_center_id: opt(S),
+  /** One of the Organization's projects, by projects' id (books.annotation-project). */
   project: opt(S),
   references: opt(Schema.Array(DocumentRef)),
 });
@@ -104,8 +107,10 @@ export const procedure_books_record_money_fact = defineProcedure({
     "never replaces one of theirs (books.money-key). With a chart, the asset's Safe account is made if missing " +
     "(`account_created`). The `against` choice becomes the row's annotation only if nobody annotated the row yet, and " +
     "only the parts that fit the chart: an archived or group account, a receivable or payable account with no party " +
-    "given and no counterparty Party on the side, a document its party type cannot reference, or an unknown cost centre " +
-    "is dropped and the row waits in review. It never refuses and makes no outside call.",
+    "given and no counterparty Party on the side, a document its party type cannot reference, an unknown cost centre " +
+    "or a project the Organization does not have is dropped and the row waits in review. Before the chart, the party " +
+    "and documents are kept without an account; a Payroll Entry named with no account posts on Payroll Payable, as a " +
+    "slip's net does (books.payroll-postings). It never refuses and makes no outside call.",
   was: [
     `${BK}/facts/writes/money.ts:98`,
     `${BK}/facts/writes/money.ts:130`,
@@ -128,6 +133,7 @@ export const procedure_books_record_money_fact = defineProcedure({
     table_book_accounts,
     table_book_annotations,
     table_book_cost_centers,
+    table_projects,
   ],
   writes: [table_book_companies, table_book_facts, table_book_accounts, table_book_annotations],
   drives: [
@@ -175,11 +181,14 @@ export const procedure_books_reverse_money_fact = defineProcedure({
   emits: [],
 });
 
-/** One line of a payroll run's accrual, in the Company's currency, as Frappe HR's `make_accrual_jv_entry` makes it. */
+/** One line of a payroll accrual, in the Company's currency, as Frappe HR's `make_accrual_jv_entry` makes it. */
 const AccrualLine = Schema.Struct({
   /** The component's expense or liability account, or the run's payable, by books' account id; null for its role's. */
   account_id: NullOr(S),
-  /** What the line is, so a missing or unfit account falls back: an earning or employer cost to 6999, a deduction or the net to Payroll Payable. */
+  /**
+   * What the line is, so a missing or unfit account falls back (books.payroll-defaults): an earning or employer cost to
+   * `salaries` (5000), a deduction's liability or the net to Payroll Payable.
+   */
   role: Schema.Literals(["expense", "liability", "payable"]),
   party_type: NullOr(PartyType),
   party_id: NullOr(S),
@@ -191,7 +200,7 @@ const AccrualLine = Schema.Struct({
 
 export const procedure_books_record_payroll_accrual = defineProcedure({
   id: "books.record-payroll-accrual",
-  title: "Record or cancel a payroll run's accrual",
+  title: "Record or cancel a payroll accrual: a run's, or a collection slip's",
   about:
     "Money fact: a submitted payroll run owes each employee's net pay and each withheld deduction until its Payments " +
     "settle them; the books credit that liability in the run's own transaction, so no slip's Payment is ever booked " +
@@ -200,16 +209,22 @@ export const procedure_books_record_payroll_accrual = defineProcedure({
     "Journal Entry as a `payroll` document voucher whose id is that fact's, dated `posting_date`: each earning's and " +
     "employer cost's expense debited, each deduction's liability and each employee's net on Payroll Payable credited " +
     "(party the Employee), every line naming the Payroll Entry, the lines payroll computed in the Company's currency. " +
-    "A line whose account is missing, archived, a group or of the wrong root posts to its role's account (6999, or " +
-    "Payroll Payable), and without a chart the voucher is kept and posts once the chart exists, as money facts do. A run " +
-    "with a standing accrual writes nothing. `cancel` records `accrual_cancelled` naming it and cancels the voucher on " +
-    "that day, its reversing lines appended; a run with no standing accrual writes nothing. A head-computed run never " +
-    "reaches this door: its accrual is the head's own voucher. It never refuses and makes no outside call.",
+    "`collection` does the same for one landed agreement collection's paid slip (source the agreement), naming the " +
+    "Payment that paid it, so that Payment's voucher posts on the payable this one credits and the slip's expense is " +
+    "its component's (books.payroll-postings). A line whose account is missing, archived, a group or of the wrong root " +
+    "posts to its role's account (books.payroll-defaults), and without a chart the voucher is kept and posts once the " +
+    "chart exists, as money facts do. A run or slip with a standing accrual writes nothing. `cancel` records " +
+    "`accrual_cancelled` naming the run's and cancels the voucher on that day, its reversing lines appended; a run with " +
+    "no standing accrual writes nothing. A head-computed run never reaches this door: its accrual is the head's own " +
+    "voucher. It never refuses and makes no outside call.",
   concept: concept_books,
   input: Schema.Struct({
     org_id: S,
-    run_id: S,
-    action: Schema.Literals(["submit", "cancel"]),
+    action: Schema.Literals(["submit", "cancel", "collection"]),
+    /** `submit` and `cancel`: the run (its Payroll Entry id); null for `collection`. */
+    run_id: NullOr(S),
+    /** `collection` only: the paid slip, its agreement, and the Payment (`payment_<id>`) the collection is. */
+    collection: NullOr(Schema.Struct({ salary_slip_id: S, agreement_id: S, payment_id: S })),
     posting_date: S,
     lines: Schema.Array(AccrualLine),
     at: N,

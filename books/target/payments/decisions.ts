@@ -9,6 +9,7 @@
 import { defineDecision } from "../../../packages/book/src/index.ts";
 import { concept_payments } from "../shared/foundation.ts";
 import {
+  contract_budgets,
   contract_companies_house_claimer,
   contract_escrow,
   contract_escrow_factory,
@@ -51,6 +52,7 @@ import { event_approval_transitioned, machine_approval } from "../approvals/data
 import { procedure_approvals_withdraw } from "../approvals/procedures.ts";
 import { event_proposal_transitioned, machine_proposal } from "../board/data.ts";
 import { procedure_documents_store } from "../documents/procedures.ts";
+import { procedure_books_record_money_fact } from "../books/procedures.ts";
 import {
   workflow_payments_lifecycle_payment,
   workflow_payments_movements_record,
@@ -869,38 +871,88 @@ export const decision_payments_claim_escrow_fit = defineDecision({
 
 export const decision_payments_claim_escrow_routes = defineDecision({
   id: "payments.claim-escrow-routes",
-  title: "A claim escrow is an undated payment from the payer's own Safe or the Board",
-  question: "Which payments to a mailbox with no live Safe go into a claim escrow, and which are refused?",
+  title: "A budget pays someone with no account through a claim escrow it funds",
+  question:
+    "Aaron ruled (aaron.budget-pay-unclaimed) that a budget spend and a dated payment may go to someone with no account " +
+    "through a claim escrow funded by the budget, that a refund goes back to the budget it came from, and that the " +
+    "budget's holder or the Board may take it back. Which payments to a mailbox with no live Safe become claim escrows, " +
+    "who owns each escrow, and can v4's contracts do it?",
   options: [
+    {
+      label: "budget-owned",
+      text:
+        "Every payment to a mailbox with no live Safe is a claim escrow, now or dated. The payer's own Safe owns a personal " +
+        "one; the company Safe owns an immediate Board one, which a Board proposal refunds. A budget funds a budget's, " +
+        "through calls v4's Budgets gains: `spendToClaim(id, payeeSafe, amount, kind, documentHash, jobNonce) returns " +
+        "(address escrow, bytes32 paymentId)` counts it against the budget as `spend` does, deploys the claim escrow through " +
+        "EscrowFactory with Budgets as its owner, and pays it from the company Safe through the payout role; " +
+        "`scheduleToClaim` (the same terms and `payAt`) reserves it as `schedule` does and does the same on `execute`. " +
+        "`refundClaim(id, escrow)`, open to whoever `authorised(id, sender)` admits (the hat's wearers, those above, and " +
+        "the company Safe, so the Board), calls `Escrow.refund()` as the owner, sends the balance on to the company Safe, " +
+        "and in the period it was spent gives the budget back its room; events ClaimFunded and ClaimRefunded. Escrow, " +
+        "EscrowFactory and the payout role are unchanged. The Payment goes `escrowed`, `settled` on the collection, " +
+        "`cancelled` with outcome refunded on a refund.",
+    },
+    {
+      label: "company-owned",
+      text:
+        "v4 as deployed: the holder's approval sends `Budgets.spend` to the escrow's predicted address and " +
+        "`EscrowFactory.deploy`, with the company Safe as the escrow's owner. Only a Board proposal can send its " +
+        "`Escrow.refund()`: the money returns to the company Safe, Budgets keeps it counted as spent for the period, and " +
+        "no holder can take it back.",
+    },
+    {
+      label: "holder-owned",
+      text:
+        "The spender's own Safe owns the escrow, and its refund operation sends the money on to the company Safe. The " +
+        "Board cannot take it back, a holder who lost the hat still could, and nothing gives the budget its room back.",
+    },
     {
       label: "own-safe-or-board",
       text:
-        "A personal payment (the payer's Safe owns the escrow and refunds it) and an immediate `--as-directors` payment " +
-        "(the company Safe owns it; a Board proposal refunds it) are claim escrows: one operation sends the amount to " +
-        "the predicted address and `EscrowFactory.deploy`. A budget spend, a dated payment and a non-ASCII mailbox are " +
-        "INVALID_RECIPIENT, naming why and what to do instead.",
-    },
-    {
-      label: "every-route",
-      text: "Every route pays into a claim escrow: a budget spend pays the escrow's address through Budgets, a dated payment deploys it on its day.",
+        "The earlier choice: only a personal and an immediate `--as-directors` payment are claim escrows; a budget spend, " +
+        "a dated payment and a non-ASCII mailbox are INVALID_RECIPIENT.",
     },
   ],
-  chosen: "own-safe-or-board",
+  chosen: "budget-owned",
   why:
-    "The ruling has the sender refund, and an escrow refunds only its owner Safe. From a budget the owner would be the " +
-    "company Safe (a Board refund the spender cannot make) or the spender's own Safe (company money refunded to a " +
-    "person), and the money would cross Payments twice (Budgets' PaymentSent to the escrow, then the escrow's to the " +
-    "payee): two book facts for one Payment. A dated claim escrow would open on its day, perhaps after the payee's setup " +
-    "collected what waited (gap 5 of payments.claim-escrow-fit). The terms are fixed at prepare, so nothing is " +
-    "left to choose later: kind 0, the Payment's job nonce, condition payee-claimed, and the job nonce as the salt, so " +
-    "a retry under the same payment id rebuilds the same address. No " +
-    "frozen acceptance line pays a mailbox with no account from a budget or on a date; the frozen designed text says " +
-    "only that such a mailbox is paid into a claim escrow, which both kept routes do. The refusal keeps INVALID_RECIPIENT, " +
-    "its message widened. Funding is a plain ERC-20 `transfer` to the predicted address, which shared/external.ts's " +
-    "erc20 record does not list yet (asked of its owner). For Aaron: must a budget holder be able to pay someone who " +
-    "has no account yet?",
-  source: by(`${V4}/money/Escrow.sol:187 (refund to ownerSafe only); books/frozen/operations.ts (payment.send and payment.cancel, designed call and who)`),
-  affects: [rpc_payments_commands_prepare, rpc_payments_commands_propose, operation_payment_send, error_INVALID_RECIPIENT, P.escrow],
+    "This record had chosen own-safe-or-board; it now follows Aaron's ruling aaron.budget-pay-unclaimed (payroll to new " +
+    "hires needs it). The v4 check: as deployed, v4 cannot do what the ruling asks. `Escrow.refund()` reverts unless its " +
+    "owner sends it and pays only the owner. A budget's money is the company Safe's, which only the Board (its owners, " +
+    "through the Gate) or Budgets (the Roles payout role, scoped to `approve` and `send` on Payments, Budgets its only " +
+    "member) can make act, so no holder can send that refund; and no Budgets call lowers a period's spend, so the " +
+    "budget would not get its room back. The exact change is the three Budgets calls above. With Budgets the owner, " +
+    "the refund comes from Budgets and goes on to the company Safe in the same call. `refundClaim` gives back at most " +
+    "the claim's amount, only for an escrow Budgets recorded, and only in the period that spent it: after the period " +
+    "turned its room is gone, and the money just returns to the company Safe. The funding goes through Payments, so it " +
+    "has a PaymentSent of its own (`funding_payment_id`), which settles and books nothing: the one book fact is the " +
+    "collection's, as books posts nothing while money waits in an escrow. A dated claim escrow opens on its day; a " +
+    "payee who set up before then was not offered it at setup (gap 5 of payments.claim-escrow-fit, asked again of " +
+    "accounts), and the payer, holder or Board can still take it back. The terms stay fixed at prepare (kind 0, the " +
+    "job nonce, condition payee-claimed, the job nonce as salt), so a retry rebuilds the same escrow. No frozen claim " +
+    "changes; the refusal of a mailbox nobody can claim keeps INVALID_RECIPIENT, now only for a non-ASCII mailbox. For " +
+    "Aaron: the ruling needs this change to the v4 Budgets contract and its redeploy; shared/external.ts must list the " +
+    "calls before the records can link them. If it is declined, company-owned is the fallback: the Board alone takes " +
+    "it back, and the budget's room stays spent for that period.",
+  source: by(
+    `${V4}/money/Escrow.sol:176 (refund: owner only); ${V4}/money/Budgets.sol:206 (spend), :497 (_pay); ${V4DOCS}/spec/installer.md steps 3-5 (payout role); aaron.budget-pay-unclaimed`,
+  ),
+  affects: [
+    rpc_payments_commands_prepare,
+    rpc_payments_commands_propose,
+    rpc_payments_changes_cancel,
+    procedure_payments_prepare_command,
+    operation_payment_send,
+    operation_payment_cancel,
+    error_INVALID_RECIPIENT,
+    table_payments,
+    P.escrow,
+    P.cancel,
+    contract_budgets,
+    contract_escrow,
+    workflow_payments_lifecycle_payment,
+    workflow_payments_settlement_observe,
+  ],
 });
 
 export const decision_payments_claim_escrow_mailbox = defineDecision({
@@ -934,8 +986,9 @@ export const decision_payments_escrow_after_send = defineDecision({
     {
       label: "from-submitted",
       text:
-        "`escrow` runs from `prepared` or `submitted`: whichever answer the process sees first, EscrowCreated takes the " +
-        "Payment to `escrowed`, and a carrier's answer after that moves nothing.",
+        "`escrow` runs from `prepared` or `submitted`, and for a dated claim escrow from `scheduled` or `due`: whichever " +
+        "answer the process sees first, EscrowCreated takes the Payment to `escrowed`, and a carrier's answer after that " +
+        "moves nothing.",
     },
     { label: "hold-submit", text: "A claim escrow's carrier never drives `submit`; it stays `prepared` until EscrowCreated." },
   ],
@@ -945,8 +998,94 @@ export const decision_payments_escrow_after_send = defineDecision({
     "follows `escrow`, would never be sent, and a refund could not `cancel` it (cancel does not run from `submitted`), " +
     "though a collection would still settle it. Keeping `submit` means a claim escrow reads like every other sent " +
     "payment until the chain says where the money is, and a reverted operation still lapses from `submitted`. Holding " +
-    "`submit` would give one route its own carrier rules. The refusal of a dated claim escrow does not rest on this " +
-    "(payments.claim-escrow-routes).",
+    "`submit` would give one route its own carrier rules. A dated claim escrow, which payments.claim-escrow-routes now " +
+    "allows, opens on its day from `scheduled` or `due` when EscrowCreated is indexed before " +
+    "its carrier's answer, for the same reason.",
   source: by("books/target/approvals/data.ts (state sent: the bundler accepted it); books/target/board/data.ts (executed); books/target/payments/processes.ts (follow-carrier); books/target/notices/payments.ts (money-waiting follows escrow)"),
   affects: [P.escrow, P.submit, P.cancel, workflow_payments_lifecycle_payment, machine_approval, machine_proposal],
+});
+
+// ── assembly after the Frappe redesign (8 November 2026): what accounting and payroll asked ──────
+
+export const decision_payments_money_sides = defineDecision({
+  id: "payments.money-sides",
+  title: "Each money side gives books its Safe, log, Party, fee and what it is for",
+  question:
+    "Books' Frappe-shaped vouchers need, for each settled side, its Safe, the log index, the counterparty's directory " +
+    "Party, a rail's fee and what the payer said the money is for (`payment send --account` and `--suggest`, a " +
+    "request's meaning, a payout's payee, a head's references). Nothing carried `--account` to books. Where does " +
+    "payments keep each, and when does it pass them?",
+  options: [
+    {
+      label: "kept-on-payment",
+      text:
+        "The Payment keeps `against`, `source` and `fee_raw` from its birth: prepare turns `--account` (a code, resolved " +
+        "to its account in the Organization's chart) and `--suggest` into `against`, and the door's items bring theirs " +
+        "from requests, banking and payroll, with `payee_against` for the payee's side when the invoker knows it (a paid " +
+        "request's income account, Customer and invoice). The settlement passes each side its own, with the side's " +
+        "Safe, the settled log index, the block's time and the other Safe's Party from parties' directory, in the " +
+        "transaction that settles it.",
+    },
+    { label: "classify-at-send", text: "Annotate books' row at send time through a books procedure, as the old `bookSentPayments` did." },
+    { label: "books-reads", text: "Books reads the command at settlement." },
+  ],
+  chosen: "kept-on-payment",
+  why:
+    "A procedure is for one money fact (rules.procedures), and an annotation before any money moved is not one; books " +
+    "cannot read payments, which sits above it. Kept on the Payment from birth, the choice is the same for a retry, a " +
+    "resume and a reorg's second settlement, and a replay changes nothing. Books applies only the parts that fit the " +
+    "chart and leaves the rest in review (its door never refuses), so payments refuses only what it can check at the " +
+    "birth: an `--account` code the Organization's chart lacks, archived or a group is INVALID_INPUT naming it, as the " +
+    "old classifier refused before saving. `--as-directors` takes neither flag (the frozen note says so), and a " +
+    "person's own payment keeps the choice but has no books to post it. The counterparty's Party is read at " +
+    "settlement, not snapshotted: a Party id never changes, and a chain-born Payment has none at birth. `fee_raw` comes " +
+    "from the rail that knows it (a bank payout's quote): payments never computes a fee. A deposit's and a payout " +
+    "return's sides are banking's own facts and carry the same fields from banking.",
+  source: by(
+    "docs/design/frappe/accounting.md (For other lanes: payments); books/target/books/procedures.ts (MoneySide, Against); packages/backend/src/payments/commands/writes/books.ts:24",
+  ),
+  affects: [
+    table_payments,
+    table_payment_commands,
+    rpc_payments_commands_prepare,
+    procedure_payments_prepare_command,
+    workflow_payments_lifecycle_payment,
+    procedure_books_record_money_fact,
+    operation_payment_send,
+  ],
+});
+
+export const decision_payments_payroll_door = defineDecision({
+  id: "payments.payroll-door",
+  title: "Payroll pays a run through the door; settled_at is the block's time",
+  question:
+    "Payroll asked the door for purpose payroll, an optional source on each item (the slip, its run, its Employee) kept " +
+    "on the Payment and its book fact, and a mailbox for a payee with no account; and for `settled_at` to be the " +
+    "settling block's time, with the settled transaction and block readable by the payer's tenant (C6). Which does " +
+    "payments take?",
+  options: [
+    {
+      label: "widen",
+      text:
+        "All of them: purpose `payroll`; per item an optional `source` (kind salary-slip or payroll-remittance, its id, " +
+        "the Payroll Entry and the Employee) and `payee_mailbox`; `settled_at` defined as the settling block's time; the " +
+        "settled facts stay on the row the payer holds.",
+    },
+    { label: "payroll-reads-chain", text: "Payroll reads the PaymentSent itself for the settled facts, and pays new hires only once they have an account." },
+  ],
+  chosen: "widen",
+  why:
+    "A run's pay and its Payments are one money fact, which the door already records for requests and banking; payroll " +
+    "now depends on payments (dependencies.payments-payroll), and payments still knows nothing of payroll beyond an " +
+    "opaque source: it never reads payroll's tables, and payroll routes `payment_transitioned` by the command and " +
+    "payment ids it already holds. Books' door names a settlement's source as the Payment, so the slip reaches books in " +
+    "the side's `against` (party the Employee, reference the Payroll Entry, the Payroll Payable account), which payroll " +
+    "sets per item; the Payment's own `source` keeps the slip for reads and a head. The mailbox is per item because a " +
+    "run mixes Employees with and without accounts; such an item is a budget claim escrow (payments.claim-escrow-routes). " +
+    "`settled_at` is the block's time because books dates the fact at it and the slip copies it; when Capxul saw it is " +
+    "`updated_at`. The payer owns the row, so its tenant already reads `settled_tx_hash` and `settled_block_number`, " +
+    "and a concept above payments reads them as a plain read: nothing new is admitted. A resume still reopens a " +
+    "command whose Payments all lapsed, which is how payroll retries a run's approval.",
+  source: by("docs/design/frappe/payroll.md (For other lanes: Payments); books/target/payroll/staged.ts (payroll.runs.pay)"),
+  affects: [procedure_payments_prepare_command, table_payments, table_payment_commands, workflow_payments_lifecycle_payment],
 });

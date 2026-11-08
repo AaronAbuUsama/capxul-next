@@ -827,3 +827,86 @@ export const decision_banking_invite_accept_declined = defineDecision({
   source: BUILDER("books/target/shared/decisions.ts (vocabulary.declined-preview-cancelled); frozen invite.accept notes"),
   affects: [flow_client_org_invitations_accept, o.operation_invite_accept, error_CANCELLED],
 });
+
+// ── assembly after the Frappe redesign (8 November 2026): what accounting and the CRM asked ─────
+
+const FRAPPE = (evidence: string) => `Claude, assembly after the Frappe redesign (money), 8 November 2026; evidence: ${evidence}`;
+
+export const decision_banking_payout_books = defineDecision({
+  id: "banking.payout-books",
+  title: "Banking's money sides carry their fee, log, Safe and Party; a payout its payee",
+  question:
+    "Books' vouchers need a rail's fee, the log index, the Safe and the counterparty's Party on every side, and a bank " +
+    "payout's voucher needs the real payee, not Bridge's deposit address that the chain shows. Which does banking pass, " +
+    "and how does a payout's reach books, since payments writes its fact?",
+  options: [
+    {
+      label: "through-the-door",
+      text:
+        "The payout's item to `payments.prepare-command` carries `fee_raw` (the quote's `fee_amount`, in the token's " +
+        "units) and, for a contact's account, `against` with the contact's Party as Supplier; payments keeps both on the " +
+        "Payment from its birth and passes them at settlement. Banking's own facts (a deposit's credit, a payout's return) " +
+        "carry the Safe, the Transfer's log index and the sender's Party when the directory has one; a deposit's " +
+        "`fee_raw` is the gross less the net in the token's units when the token is the currency's own.",
+    },
+    { label: "annotate-later", text: "Leave the payout's fact unclassified and let a person or a head annotate it." },
+  ],
+  chosen: "through-the-door",
+  why:
+    "The payout and its Payment are one money fact (dependencies.payments-banking), so what the books post it against " +
+    "is known at the quote and belongs on the Payment from its birth (payments.money-sides); a later annotation would " +
+    "leave every payout in review. The fee is Bridge's number on the quote: neither payments nor books computes one. A " +
+    "contact's account names its Party (`bank-accounts.party_id`), which Frappe makes a Supplier; a payout to your own " +
+    "account (`self`) or to a payee known only by name has no party, and `bank pay --account` names a saved bank " +
+    "account, not a ledger account, so no account is chosen: books posts the payout to its not-decided account with " +
+    "the fee on bank charges until someone annotates it. A deposit's fee is only meaningful where the bank currency and " +
+    "the token are one (USD and USDC, EUR and EURC); across a conversion the rate is Bridge's and the fee is left out. " +
+    "The return references the payout's Payment (banking.payout-return-reference), so it nets against the same party " +
+    "and account.",
+  source: FRAPPE("docs/design/frappe/accounting.md (For other lanes: banking); books/target/books/procedures.ts (MoneySide)"),
+  affects: [
+    rpc_banking_payouts_quote,
+    workflow_banking_payouts_follow,
+    workflow_banking_deposits_credit,
+    procedure_payments_prepare_command,
+    d.table_bank_payouts,
+    d.table_bank_deposits,
+  ],
+});
+
+export const decision_banking_private_entries = defineDecision({
+  id: "banking.private-entries",
+  title: "A private contact has no bank accounts: contact get shows none, bank pay refuses",
+  question:
+    "The CRM's book now holds private entries (a company not on Capxul, a person with no mailbox) whose `ref` is null, " +
+    "and `contacts.book.get` takes `{ book, contactId }`. Bank accounts are saved on a contact's Party. What do " +
+    "`contact get`, `contact bank add` and `bank pay` do with such an entry?",
+  options: [
+    {
+      label: "party-only",
+      text:
+        "`contact get` takes the entry's id (a PartyId or `contact_` id), shows the entry with its doctype and details, " +
+        "and for a private entry reads and shows no accounts; `contact bank add` and `bank pay` refuse a private entry " +
+        "with CLI_USAGE before any write or quote, naming how to give it a Party (add their email or handle).",
+    },
+    { label: "key-by-entry", text: "Save bank accounts on the entry's id, so a private entry can be paid by bank." },
+  ],
+  chosen: "party-only",
+  why:
+    "A Party is what Capxul can pay and name in the books; a private entry is the CRM's note of someone not yet in the " +
+    "directory, and accounts keyed by an entry would orphan when the entry gains its Party or be paid with no payee " +
+    "in the books. The value of `contactId` equals the old `partyId` for every Party-backed entry, so the frozen " +
+    "`contact get` claims hold as they stand: one `contacts.book.get` and one `banking.accounts.list-for-contact` for an " +
+    "entry with a Party. The refusal is the CLI's own, as the frozen 'not in your book' already is for `contact bank " +
+    "add`. A payee known only by name may later name a private company entry; that waits for a need.",
+  source: FRAPPE("docs/design/frappe/crm.md (banking); books/target/contacts/book.ts (Entry.ref, OneEntry); contact.bank.add.yaml (CLI_USAGE)"),
+  affects: [
+    flow_client_account_address_book_get,
+    flow_client_account_bank_accounts_add,
+    flow_client_banking_payouts_pay,
+    o.operation_contact_get,
+    o.operation_bank_pay,
+    o.operation_contact_bank_add,
+    rpc_contacts_book_get,
+  ],
+});

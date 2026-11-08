@@ -1,12 +1,8 @@
-// STAGED, NOT REGISTERED: paying a submitted run, and the settled facts coming back.
-//
-// These records are the design of the run's paying half (payroll.pays-through-payments,
-// payroll.run-one-approval, payroll.new-hire-escrow). They typecheck, but payroll/index.ts does not list
-// this module yet, because they invoke payments' door, read payments' table and wait on payments' event,
-// and payroll does not depend on payments until shared/foundation.ts adds it (asked of the shared
-// records' owner, with dependencies.of-payroll and dependencies.payments-payroll). Until then the
-// transitions below drive nothing, and the build lists each as an `undriven-transition` gap: the gap is
-// this file. Once the edge exists: add `staged` to payroll/index.ts and rebuild to 0 problems.
+// Paying a submitted run, and the settled facts coming back: the run's paying half
+// (payroll.pays-through-payments, payroll.run-one-approval, payroll.new-hire-escrow). It invokes
+// payments' door, reads payments' table and waits on payments' event, so it was staged until payroll
+// depended on payments. That edge exists now (dependencies.payments-payroll), and payroll/index.ts lists
+// this module; the file keeps its name so its history reads.
 
 import { Schema } from "effect";
 import { budget, defineFlow, defineRpc, defineWorkflow } from "../../../packages/book/src/index.ts";
@@ -64,14 +60,15 @@ export const rpc_payroll_runs_pay = defineRpc({
     "twice; slips with no Payment wait for the next call. Otherwise the slips hold no " +
     "Payment (never sent, released from withholding, or refunded from escrow) and go out as a new command under the " +
     "next attempt's key `payroll:<entry>:<attempt>`. Each item is one slip: its `net_pay_raw` to the Employee's " +
-    "`payee_safe`, kind one-off, its payslip's document id and hash, and its source (the slip, its run, its Employee); " +
+    "`payee_safe`, kind one-off, its payslip's document id and hash, its source (the slip, its run, its Employee) and " +
+    "its `against` for books (party the Employee, the Payroll Entry, Payroll Payable once charted: payroll.books-accounts); " +
     "an Employee with no account yet goes as their mailbox, which payments pays into a claim escrow from the budget " +
     "(aaron.budget-pay-unclaimed). The command carries nets only: a deduction's payee is paid outside the run " +
     "(payroll.deduction-remittance). Funding is read first: `leftOf` must cover the total (PAYROLL_BUDGET_EXCEEDED) and " +
     "the company Safe hold it (PAYER_BALANCE_TOO_LOW). Then, in one transaction, the command is born or resumed, purpose " +
     "payroll, route budget, with one approval from the caller's own Safe for every item (K1: asking twice pays once); a " +
     "submitted run moves to `paying` (payroll-entry.pay), a paid one reopens (payroll-entry.reopen), a paying one stays, " +
-    "and each slip moves to `paying` (salary-slip.pay) with its payment id, command and attempt. The run's process follows it.",
+    "and each slip moves to `paying` (salary-slip.pay) with its payment id, command and attempt.",
   was: [`${FRAPPE}:1093`, `${FRAPPE}:1196`],
   concept: concept_payroll,
   kind: "action",

@@ -17,6 +17,7 @@ import {
 } from "../shared/vocabulary.ts";
 import { table_org_deployments, table_org_members } from "../organizations/data.ts";
 import { table_hat_wearers } from "../indexing/data.ts";
+import { table_projects } from "../projects/data.ts";
 import {
   DocumentRef,
   machine_book_account,
@@ -60,7 +61,8 @@ export const rpc_books_annotations_save = defineRpc({
     "code or `acct_` id (no chart, an unknown code or a group: INVALID_INPUT), or a new account made inline under a " +
     "parent (`account_created`), and optionally a party, a directory Party with its Frappe party type (required for a " +
     "receivable or payable account: given none, it takes the counterparty Party the row's money fact proves, and with " +
-    "neither it is INVALID_INPUT `party_required`), a cost centre of its tree, a project and the documents it pays, each of a type its " +
+    "neither it is INVALID_INPUT `party_required`), a cost centre of its tree, one of the Organization's projects by " +
+    "projects' id (else INVALID_INPUT: books.annotation-project) and the documents it pays, each of a type its " +
     "party may reference in ERPNext (else INVALID_INPUT), whose allocations add up to at most the row's value in the " +
     "Company's currency, or its token amount at par when that currency is the token's peg (else INVALID_INPUT; " +
     "books.vouchers). The first " +
@@ -109,6 +111,7 @@ export const rpc_books_annotations_save = defineRpc({
     table_book_cost_centers,
     table_book_annotations,
     table_book_facts,
+    table_projects,
   ],
   writes: [table_book_companies, table_book_annotations, table_book_accounts, table_book_facts],
   drives: [

@@ -623,7 +623,8 @@ export const table_salary_components = defineTable({
     "(`amount`, or `formula` and `condition` with `amount_based_on_formula`), with Frappe's flags " +
     "(`depends_on_payment_days`, `statistical_component`, `do_not_include_in_total`, `is_tax_applicable`, " +
     "`remove_if_zero_valued`, `disabled`). `accounts` are Frappe's Salary Component Account: the expense `account` " +
-    "and, for a deduction or employer contribution, its `liability_account`, as books' account ids. `payee_party_id` is " +
+    "and, for a deduction or employer contribution, its `liability_account`, as books' account ids (null: the line's " +
+    "role's account, books.payroll-defaults). `payee_party_id` is " +
     "Capxul's own field (a Custom Field on a head): the Party a deduction's or employer contribution's liability is owed " +
     "to (a tax office, a pension fund), paid when due by an ordinary budget payment, never in a run's command; null when " +
     "none is named (payroll.deduction-remittance). `portable` says the formula and condition are in the subset Capxul " +
@@ -727,7 +728,7 @@ export const table_salary_structure_assignments = defineTable({
     "One Salary Structure Assignment, written submitted: an Employee is paid by a structure from `from_date`, with " +
     "`base` and `variable` (the values formulas read) in its token; the latest submitted assignment on or before a " +
     "period's end is the one that period uses, as in Frappe. `payroll_payable_account` is books' account the net is owed " +
-    "on until paid. `budget_ref` and `budget_id` are Capxul's (Custom Fields on a head): the department budget the pay " +
+    "on until paid: its `payroll_payable` role account, null before the chart (payroll.books-accounts). `budget_ref` and `budget_id` are Capxul's (Custom Fields on a head): the department budget the pay " +
     "comes from, which decides who may pay it. `agreement_id` is set when the assignment mirrors an accepted agreement: " +
     "its `base` is the agreement's rate in its period, and no run ever pays it, because the agreement pays itself on " +
     "chain (payroll.agreements-in-frappe-shape). `docstatus` moves only through machine `salary-structure-assignment`.",
@@ -777,7 +778,8 @@ export const table_payroll_entries = defineTable({
   about:
     "One Payroll Entry: the run of a department's (`department`, a budget) pay for `start_date` to `end_date` at " +
     "`payroll_frequency`, posted on `posting_date`, in one token, owed on `payroll_payable_account` and paid from the " +
-    "company Safe (`payment_account` is books' treasury account of that Safe and token). `employees` is Frappe's Payroll " +
+    "company Safe (`payment_account` is books' treasury account of that Safe and token); both are books' role accounts, " +
+    "null before the chart (payroll.books-accounts). `employees` is Frappe's Payroll " +
     "Employee Detail rows: who the run covers, and whether each is withheld. `computed_by` says which side worked its " +
     "slips out: Capxul, or a connected head (payroll.one-computer-per-run). Once paying, `request_key` (`payroll:`, the " +
     "entry's id and the attempt) is the payment command its slips' nets go out under, with one approval " +
@@ -972,7 +974,8 @@ export const table_payroll_settings = defineTable({
   id: "payroll-settings",
   title: "Payroll Settings: an Organization's payroll settings and its change counter",
   about:
-    "Frappe HR's Payroll Settings, one row per Organization, born with the Organization's first payroll write. Its " +
+    "Frappe HR's Payroll Settings, one row per Organization, born by payroll's start-up at the setup's begin " +
+    "(payroll.startup.open); a payroll write that finds none (the start-up not yet run) births it. Its " +
     "values are the same for every Organization, because they are what Capxul computes by and what a head must match: " +
     "`payroll_based_on` leave, `include_holidays_in_total_working_days` on, `disable_rounded_total` on and " +
     "`email_salary_slip_to_employee` off (notices sends mail). `last_seq` is the counter of `payroll-changes`: a payroll " +

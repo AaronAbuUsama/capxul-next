@@ -17,7 +17,7 @@ import {
   rpc_banking_accounts_requirements,
 } from "./accounts.ts";
 import { PayoutView, rpc_banking_payouts_get, rpc_banking_payouts_quote } from "./payouts.ts";
-import { Book, Entry, rpc_contacts_book_get, rpc_contacts_book_list } from "../contacts/book.ts";
+import { Book, Details, Entry, rpc_contacts_book_get, rpc_contacts_book_list } from "../contacts/book.ts";
 import { rpc_media_files_upload } from "../media/files.ts";
 import { InvitationView, rpc_organizations_invitations_accept } from "../organizations/invitations.ts";
 
@@ -106,7 +106,8 @@ export const flow_client_account_bank_accounts_add = defineFlow({
   about:
     "The one SDK method of `bank accounts add` (your own account) and `contact bank add` (an account on a contact already " +
     "in your book). For a contact it first finds the entry in the book by label, PartyId, email or handle; one that is not " +
-    "there stops the command before anything is saved. It reads the currency's fields, asks for each at a terminal with " +
+    "there, or a private entry with no Party to save it on (`ref` null), stops the command with CLI_USAGE before anything " +
+    "is saved (banking.private-entries). It reads the currency's fields, asks for each at a terminal with " +
     "bank numbers typed hidden (a script passes `{ details, requestKey? }` with `--input` and is never prompted), keeps " +
     "the request key it prints (`--input` and `--request-key` must agree), and saves once. The answer is masked: the " +
     "numbers never appear, not even in the suggested command for next time, which reads them from a file.",
@@ -122,7 +123,7 @@ export const flow_client_account_bank_accounts_add = defineFlow({
   }),
   output: BankAccountView,
   steps: [
-    { name: "contact", rpc: rpc_contacts_book_list, about: "`contact bank add` only: the book's entries, to find the named contact's PartyId." },
+    { name: "contact", rpc: rpc_contacts_book_list, about: "`contact bank add` only: the book's entries, to find the named contact's PartyId; a private entry has none." },
     { name: "fields", rpc: rpc_banking_accounts_requirements, about: "The currency's fields and their choices." },
     { name: "ask", local: "prompt", about: "At a terminal only: each field, bank numbers typed hidden." },
     { name: "key", local: "build", about: "The request key: the one given, or a new one the CLI prints for a retry." },
@@ -141,6 +142,9 @@ export const ContactWithAccounts = Schema.Struct({
   ref: Entry.fields.ref,
   label: Entry.fields.label,
   hidden: Entry.fields.hidden,
+  doctype: Entry.fields.doctype,
+  details: Details,
+  /** Empty for a private entry (`ref` null): accounts are saved on a contact's Party. */
   bankAccounts: Schema.Array(BankAccountView),
 });
 
@@ -158,25 +162,26 @@ export const flow_client_account_address_book_get = defineFlow({
   title: "Show one contact with the bank accounts saved on it",
   about:
     "`contact get`, banking's flow because only banking can add the contact's bank accounts (shared " +
-    "operations.contact-get-in-banking). Given a PartyId it never lists or prompts: one read of the entry from " +
-    "contacts' book, hidden or not; null (the Party is not in this book) ends it with null and reads no accounts. Then " +
-    "the accounts saved on that contact here, masked, and whether the contact is on Capxul. At a terminal with no " +
-    "PartyId the person first picks from the book, hidden contacts included; quitting the picker is CANCELLED. The CLI " +
-    "refuses a malformed PartyId, or a script without one, with CLI_USAGE before calling it, and prints the `bank pay` " +
-    "command for the contact.",
+    "operations.contact-get-in-banking). Given a contact id (a PartyId, or a private entry's `contact_` id) it never " +
+    "lists or prompts: one read of the entry and its details from contacts' book (`{ book, contactId }`), hidden or not; " +
+    "null (it is not in this book) ends it with null and reads no accounts. Then, for an entry with a Party, the accounts " +
+    "saved on that contact here, masked, and whether the contact is on Capxul; a private entry (`ref` null) shows none " +
+    "and reads none (banking.private-entries). At a terminal with no id the person first picks from the book, hidden " +
+    "contacts included; quitting the picker is CANCELLED. The CLI refuses a malformed id, or a script without one, with " +
+    "CLI_USAGE before calling it, and prints the `bank pay` command for a contact with a Party.",
   component: component_core_sdk,
   sdk: "client.account.addressBook.get",
   input: Schema.Struct({
     book: Book,
-    /** Absent only at a terminal, where the person picks. */
-    partyId: Schema.optionalKey(S),
+    /** The entry's id: its PartyId, or a private entry's `contact_` id. Absent only at a terminal, where the person picks. */
+    contactId: Schema.optionalKey(S),
   }),
   output: Schema.NullOr(ContactWithAccounts),
   steps: [
-    { name: "choices", rpc: rpc_contacts_book_list, about: "Only with no PartyId at a terminal: the book page by page for the picker, hidden entries included." },
-    { name: "pick", local: "prompt", about: "Only with no PartyId at a terminal: the person picks one entry; quitting is CANCELLED." },
-    { name: "entry", rpc: rpc_contacts_book_get, about: "The entry for the PartyId, hidden or not; null ends the flow with null." },
-    { name: "accounts", rpc: rpc_banking_accounts_list_for_contact, about: "The accounts saved on that contact, masked, with whether it is on Capxul." },
+    { name: "choices", rpc: rpc_contacts_book_list, about: "Only with no id at a terminal: the book page by page for the picker, hidden entries included." },
+    { name: "pick", local: "prompt", about: "Only with no id at a terminal: the person picks one entry; quitting is CANCELLED." },
+    { name: "entry", rpc: rpc_contacts_book_get, about: "The entry and its details for `{ book, contactId }`, hidden or not; null ends the flow with null." },
+    { name: "accounts", rpc: rpc_banking_accounts_list_for_contact, about: "An entry with a Party only: the accounts saved on it, masked, with whether it is on Capxul; a private entry has none." },
   ],
   errors: [error_CANCELLED],
   calls: [],
@@ -189,7 +194,9 @@ export const flow_client_banking_payouts_pay = defineFlow({
   id: "client.banking.payouts.pay",
   title: "Pay a bank account and follow the payout",
   about:
-    "`bank pay`. For a contact it finds their PartyId in the book; for a new payee in `--input` it first saves their bank " +
+    "`bank pay`. For a contact it finds their PartyId in the book; a private entry, which has no Party (`ref` null), is " +
+    "refused with CLI_USAGE before any quote, naming how to give it one (banking.private-entries). For a new payee in " +
+    "`--input` it first saves their bank " +
     "account, so the numbers never enter a command line. It quotes once (the request key makes a retry reach the same " +
     "payout), and at a terminal shows the locked bank amount, what leaves the Safe with its slippage buffer, and the " +
     "deadline. With `--json` it returns once the approval waits, stage `quoted`, with the approval's id and link. " +
@@ -218,7 +225,7 @@ export const flow_client_banking_payouts_pay = defineFlow({
   }),
   output: PayoutView,
   steps: [
-    { name: "contact", rpc: rpc_contacts_book_list, about: "`bank pay <contact>` only: the book's entries, to find the contact's PartyId." },
+    { name: "contact", rpc: rpc_contacts_book_list, about: "`bank pay <contact>` only: the book's entries, to find the contact's PartyId; a private entry is refused." },
     { name: "payee", rpc: rpc_banking_accounts_add, about: "A new payee in `--input` only: saves their account with its holder's name first." },
     { name: "quote", rpc: rpc_banking_payouts_quote, about: "The quote, the payout and its Payment, once per request key; `from` names the budget by key." },
     { name: "show", local: "prompt", about: "At a terminal: the locked bank amount, the funding with its slippage buffer, the budget's name, and the deadline." },

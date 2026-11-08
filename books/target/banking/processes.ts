@@ -23,6 +23,7 @@ import { rpc_banking_accounts_remove } from "./accounts.ts";
 import { rpc_banking_payouts_resolve } from "./payouts.ts";
 import { APPLY, rpc_banking_inbox_receive } from "./inbox.ts";
 import { table_payments } from "../payments/data.ts";
+import { table_parties } from "../parties/data.ts";
 import { procedure_books_record_money_fact } from "../books/procedures.ts";
 import { procedure_approvals_withdraw } from "../approvals/procedures.ts";
 import { table_approvals } from "../approvals/data.ts";
@@ -124,7 +125,8 @@ export const workflow_banking_payouts_follow = defineWorkflow({
     "finality the indexer shows its Transfer into the source Safe, and `refund` writes it with the refund's book fact " +
     "for an Organization (`books.record-money-fact`, kind payout_returned, keyed by the Transfer, so payments' Movement " +
     "of it is the same fact, and referencing the payout's Payment, `{kind: payment, id}`, so books reads the payout and " +
-    "its return as one row); fourteen days with none is refund_missing. Bridge moving the transfer without the funding " +
+    "its return as one row; the side carries the source Safe, the Transfer's log index and the sender's Party when the " +
+    "directory has one, banking.payout-books); fourteen days with none is refund_missing. Bridge moving the transfer without the funding " +
     "is bridge_moved_unfunded. Needs attention: one reason, then Bridge's later events or an operator's resolution. " +
     "Replaces old banking's dispatcher, tick, watchdog and notify workflows, the payout door and its timers.",
   concept: concept_banking,
@@ -187,11 +189,11 @@ export const workflow_banking_payouts_follow = defineWorkflow({
     },
     { name: "deliver", about: "Bridge's delivered event with the quote's bank amount is `deliver`; any other amount `flag`s delivered_amount_wrong." },
     { name: "return", about: "Bridge's returned, refunded, cancelled or undeliverable event after funding is `mark_returning`, with its reason." },
-    { name: "refund", about: "factsOf the refund transaction at finality: its Transfer into the source Safe is `refund`, with its book fact." },
+    { name: "refund", about: "factsOf the refund transaction at finality: its Transfer into the source Safe is `refund`, with its book fact (Safe, log index, sender's Party)." },
     { name: "flag", about: "A limit passed, an amount wrong or Bridge moved it unfunded: `flag` with one reason." },
     { name: "resolve", about: "An operator's resolution moves it to delivered, refunded or expired and keeps who and why." },
   ],
-  reads: [table_bank_payouts, table_bank_accounts, table_payments, table_approvals],
+  reads: [table_bank_payouts, table_bank_accounts, table_payments, table_approvals, table_parties],
   writes: [table_bank_payouts],
   drives: [
     machine_bank_payout.t.fund,
@@ -233,7 +235,9 @@ export const workflow_banking_deposits_credit = defineWorkflow({
     "depth, which can take minutes, and must survive a crash. It reads the transaction's facts and credits the deposit " +
     "only for the exact Transfer of `net_amount` of the settlement token into the deposit's Safe; for an Organization " +
     "the credit writes the deposit's book fact in the same transaction (`books.record-money-fact`, kind " +
-    "deposit_received, keyed by the Transfer, so payments' Movement of it is the same fact and books keeps one). A " +
+    "deposit_received, keyed by the Transfer, so payments' Movement of it is the same fact and books keeps one), with " +
+    "the Safe, the Transfer's log index, the sender's Party when the directory has one, and `fee_raw`, the gross less " +
+    "the net in the token's units when the token is the currency's own (banking.payout-books). A " +
     "transaction with no such Transfer leaves the deposit arriving and ends the process with one alert. Replaces old " +
     "banking's credit job, its reconcile pass, its back-off and park, and the staging mint (decision " +
     "banking.sandbox-deposits).",
@@ -253,9 +257,9 @@ export const workflow_banking_deposits_credit = defineWorkflow({
   steps: [
     { name: "await", about: "awaitBlock of the transaction's block, retried while Ponder lags." },
     { name: "confirm", about: "factsOf the transaction: one Transfer of `net_amount` of the token into the Safe." },
-    { name: "credit", about: "`credit`, and for an Organization its book fact, in one transaction." },
+    { name: "credit", about: "`credit`, and for an Organization its book fact (Safe, log index, sender's Party, fee), in one transaction." },
   ],
-  reads: [table_bank_deposits],
+  reads: [table_bank_deposits, table_parties],
   writes: [table_bank_deposits],
   drives: [machine_bank_deposit.t.credit],
   invokes: [procedure_books_record_money_fact],

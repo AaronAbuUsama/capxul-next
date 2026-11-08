@@ -92,16 +92,20 @@ export const rpc_payments_changes_cancel = defineRpc({
     "can land and the void uses up the whole held operation (K14); a budget's dated payment is `Budgets.cancel` from the " +
     "caller's own Safe, which frees its reservation; a Board's dated payment (`--as-directors`) is one Board proposal of " +
     "`Budgets.cancel` per item; a claim escrow is `Escrow.refund()` from its owner, the payer's Safe or, for a company " +
-    "escrow, a Board proposal, at any time until the payee collects, even after they signed up (D12). A Payment that is " +
-    "no longer held (settled, collected, already cancelled) refuses before " +
+    "escrow, a Board proposal, and a budget's claim escrow is `Budgets.refundClaim` from the caller's own Safe when it " +
+    "wears the budget's hat or one above, or a Board proposal of it, which returns the money to the company Safe and, in " +
+    "the period it was spent, the room to the budget (payments.claim-escrow-routes); any of them at any time until the " +
+    "payee collects, even after they signed up (D12). A Payment that is no longer held (settled, collected, already " +
+    "cancelled) refuses before " +
     "anything is built, after a chain read of `Budgets.scheduledOf` or the escrow's `state` where it has one. It records " +
     "the carrier on the Payment and changes no status: the process cancels it when the chain says the void, the cancel " +
     "or the refund landed.",
   concept: concept_payments,
   kind: "action",
   who:
-    "The payer of a waiting payment. For a budget's dated payment, the wearer of the budget's hat or one above it. For a " +
-    "dated payment the Board scheduled or an escrow the company Safe owns, a Director (`--as-directors`).",
+    "The payer of a waiting payment. For a budget's dated payment or claim escrow, the wearer of the budget's hat or one " +
+    "above it, or the Board. For a dated payment the Board scheduled or an escrow the company Safe owns, a Director " +
+    "(`--as-directors`).",
   input: ChangeInput,
   output: Handover,
   errors: [error_NOT_AUTHENTICATED, error_INVALID_INPUT, error_WRONG_STATE, error_ROLE_PERMISSION_DENIED, ...READ_FAILURES],
