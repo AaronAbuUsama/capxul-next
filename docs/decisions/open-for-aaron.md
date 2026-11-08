@@ -32,8 +32,9 @@ stands, and the build follows it, until he answers. His answers go into `books/t
   Ponder, emails, WhatsApp, the Frappe head and the FDE. A shared world may run faster than real time ("every hour the
   clock moves forward four"), so the clock gains a rate beside frozen and running. Outside channels are the world's:
   a devnet's mail goes to its sink, WhatsApp to a stand-in, and a connected head follows the world clock as a follower.
-- **Everything is reachable through the SDK and its surfaces** (`aaron.sdk-reaches-everything`): the CLI, the MCP
-  server and the React SDK reach every capability, native or on a connected head. Native concepts have their own
+- **Everything is reachable through the Core SDK and the CLI** (`aaron.sdk-reaches-everything`; corrected: "draw the
+  line at the CLI and the SDK"): those two reach every capability, native or on a connected head. The React SDK does
+  not mirror everything; whoever needs a React screen builds it on the Core SDK (Frappe's own apps use Vue, not React). Native concepts have their own
   commands; what lives only on the head is reached through a generic document family over the SDK
   (`org doc list|get|create|change|submit|cancel <DocType>`), with the caller's authority, logged, on the world clock.
 - **The CRM tracks every conversation** (asked): email, WhatsApp, calls, notes and tasks on one timeline per contact,
