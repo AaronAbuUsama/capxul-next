@@ -110,4 +110,7 @@ test("a target workflow can be one durable process per row, resumed by signals",
   const process = { ...f.expire, id: "organizations.invitations.lifecycle", trigger: { transition: f.lifecycle.t.send }, instance: { per: f.invitations }, signals: [f.listRpc], waits: [{ name: "answer", for: "person", timeoutMs: 1_209_600_000, about: "The invitee answers within 14 days." }] };
   const b = buildBook({ name: "test", stage: "target", records: [...f.records, process] });
   assert.ok(!b.problems.some((p) => p.record === "rpc:organizations.invitations.list" && p.rule === "unreached-rpc"));
+  // its budget eval counts system time only: the person's wait is excluded
+  const bud = b.evals.find((e) => e.id === "bud:organizations.invitations.lifecycle/p95");
+  assert.match(bud?.claim ?? "", /excluding its waits \(wait\.answer, chain\.confirm\)/);
 });

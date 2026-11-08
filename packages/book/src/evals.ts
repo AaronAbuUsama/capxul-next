@@ -77,8 +77,13 @@ export const deriveEvals = (b: Pick<Book, "records">): EvalDef[] => {
   for (const w of ofKind(b, "workflow")) {
     e(`wfl:${w.id}/idempotent`, "L1", w, `a second run with the same key (${String(w.idempotency)}) changes nothing`);
     e(`wfl:${w.id}/resume`, "L1", w, "killed mid-run, it resumes and finishes with the same result");
-    const budget = w.budget as { p95Ms: number } | undefined;
-    if (budget) e(`bud:${w.id}/p95`, "L1", w, `p95 ≤ ${budget.p95Ms} ms from trigger to done, excluding chain confirmation`);
+    // A budget is system time (P5): a durable process's declared waits (a person, a timer, the chain, a
+    // signal, the indexer) are wait.* spans and never count toward it, however long they last.
+    const budget = w.budget as { p95Ms: number; excludes?: readonly string[] } | undefined;
+    const waits = list<{ name: string }>(w.waits).map((x) => `wait.${x.name}`);
+    const excluded = [...new Set([...waits, ...(budget?.excludes ?? []), "chain.confirm"])];
+    if (budget)
+      e(`bud:${w.id}/p95`, "L1", w, `system time p95 ≤ ${budget.p95Ms} ms from trigger to done, excluding its waits (${excluded.join(", ")})`);
   }
 
   for (const i of ofKind(b, "integration")) {
