@@ -59,19 +59,17 @@ export const procedure_payments_prepare_command = defineProcedure({
   about:
     "Money fact: a Payment command another concept births: the request it pays, the bank payout it funds or the payroll " +
     "run it pays, the Payments that carry it and the approval that moves them commit together, or none of them do. " +
-    "Requests invokes it when a payer pays from the inbox, banking when a bank payout is quoted, payroll when a run is " +
-    "paid (purpose payroll, route budget). It keeps every birth rule a `payment send` " +
-    "keeps: one owner and request key reach one command, and another request under a used key is refused (K1); the " +
-    "funding the invoker read from the chain before its transaction (the paying Safe's balance, or the budget's `leftOf`) " +
-    "must cover every item, or nothing is written (K3); each item's v4 payment id is fixed here from its job nonce, before " +
-    "anyone signs. It births each Payment through `open` and opens one approval from the payer's own Safe for all of them " +
+    "Requests invokes it from the inbox, banking for a bank payout, payroll for a run (purpose payroll, route budget). " +
+    "It keeps every birth rule of `payment send`: one owner and request key reach one command, another request under a " +
+    "used key is refused (K1); the funding the invoker read before its transaction (the Safe's balance, or the budget's " +
+    "`leftOf`) must cover every item, or nothing is written (K3); each item's v4 payment id is fixed here, before anyone " +
+    "signs. It births each Payment through `open` and opens one approval from the payer's own Safe for all of them " +
     "(`approvals.open`). A dated birth (`pay_at`, at least an hour ahead, else INVALID_INPUT) is a personal operation " +
     "signed now and sent on its day (`send_after`) or a budget's `Budgets.schedule`. `not_after` (a bank quote's expiry) " +
     "caps the approval's deadline and is kept on the command, so no later `payment retry` moves the money after it. A repeat under the same " +
-    "key answers the command as it stands (`replayed`); with `resume`, a repeat whose Payments all lapsed (`needs_retry`) " +
-    "opens one new approval for the same items and payment ids and moves them `retry`, after the same funding check, so " +
-    "a retry can never pay twice; live Payments answer as they stand, and a lapsed command past `not_after` is " +
-    "WRONG_STATE. An item with `payee_mailbox` whose payee Party is still provisional (parties' directory) is a claim " +
+    "key answers the command as it stands (`replayed`); with `resume`, one whose Payments all lapsed opens one new " +
+    "approval for the same payment ids and moves them `retry` after the same funding check, so a retry never pays twice " +
+    "(past `not_after`: WRONG_STATE). An item with `payee_mailbox` whose payee Party is still provisional (parties' directory) is a claim " +
     "escrow (route `claim_escrow`): a personal Safe owns its own; a budget funds a budget's, and its holder or the Board " +
     "may take it back to the budget (payments.claim-escrow-routes). A mailbox that is not ASCII is INVALID_RECIPIENT. Each " +
     "item's `against`, `source` and `fee_raw` are kept on its Payment for its book fact. The documents come stored. It " +
