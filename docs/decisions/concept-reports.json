@@ -1,1 +1,447 @@
-{}
+{
+  "access": {
+    "concept": "access",
+    "files": [
+      "/home/user/capxul-next/books/target/access/data.ts",
+      "/home/user/capxul-next/books/target/access/procedures.ts",
+      "/home/user/capxul-next/books/target/access/sign-in.ts",
+      "/home/user/capxul-next/books/target/access/sessions.ts",
+      "/home/user/capxul-next/books/target/access/assistants.ts",
+      "/home/user/capxul-next/books/target/access/processes.ts",
+      "/home/user/capxul-next/books/target/access/flows.ts",
+      "/home/user/capxul-next/books/target/access/operations.ts",
+      "/home/user/capxul-next/books/target/access/decisions.ts",
+      "/home/user/capxul-next/books/target/access/index.ts",
+      "/home/user/capxul-next/books/target/index.ts"
+    ],
+    "records": 67,
+    "operations": 10,
+    "oldFunctions": 51,
+    "newBehaviour": 27,
+    "decisions": 21,
+    "problemsLeft": [
+      "Shared foundation text is out of date: concept_access's about still says access owns 'the CLI's native client grants (device flow)'. Decision access.no-device-flow drops them under P2: no client starts a device request, and the CLI keeps v1 grant records only to delete them (apps/cli/src/auth/native-grant-cleanup.ts:5). The shared foundation needs this update; I did not edit it.",
+      "Two shared settings are no longer needed: the MCP_EXCHANGE_SECRET entry in the devnet and staging environment secrets, and the JWKS route named in component_backend's about. The runtime now resolves assistant access tokens and opaque session tokens directly (decisions access.assistants and access.sessions).",
+      "shared decision rules.durable-processes should add 'an assistant grant' to its list of long-lived objects. Access adds it under decision access.assistant-grant-process, with workflow access.assistants.grant.",
+      "Inbound expectation, not a link: accounts' auth.login and auth.verify flows should step through rpc_access_sign_in_send_code, rpc_access_sign_in_verify_code, rpc_access_sign_in_challenge and rpc_access_sign_in_with_key in books/target/access/sign-in.ts. Other concepts already import table_feature_flags and table_principals, and both resolve.",
+      "The worlds empty-devnet, person-signed-in and two-people-signed-in assume the eval harness snapshots the eval machine's CLI home together with the devnet world. The harness must also be able to make the state file unreadable or read-only after a restore (decision access.worlds).",
+      "Three expected gaps remain, all unused-flow: client.auth.browser.sign-in, client.auth.key-session and client.auth.assistants.consent. Each serves a non-CLI surface (web app and approval page, an agent's SDK host, the consent page), and its about names that surface.",
+      "The full target build currently has 7 problems, all from contacts: dangling reads of table:org-members, because organizations is not designed yet. None come from access."
+    ],
+    "pendingLinks": [],
+    "summary": "Access is designed, and its build has 0 problems. `npx tsc -p books` shows no errors in books/target/access. Building the shared records plus access gives 538 records, 0 problems and 3 gaps; the gaps are the expected unused-flow gaps for the three non-CLI flows. I added access to books/target/index.ts as the first concept. In the full book, the only problems are contacts' 7 dangling links to organizations.\n\nDesign, as 67 records:\n\n- **Tables (5):** principals, sign-in-codes, sessions, assistant-grants and feature-flags. principals holds both people and agents, keyed by person_id, with the Safe the principal acts with. sign-in-codes holds one code per email plus its cooldown, replacing two old stores. Every lookup that happens before a tenant is set is a crossTenant index, and each says why.\n- **Machines (2), each with its one event:** session (open, revoke, expire) and assistant-grant (consent, exchange, revoke, expire).\n- **RPCs (11):** sign-in by emailed code and by an agent's stateless signed challenge, proved on chain with AgentOwner.agentOf and Safe.getOwners. For sessions: current, revoke, and the Openfort Shield wallet recovery. For OAuth 2.1 with MCP clients: read-request, consent, token and revoke.\n- **Workflows (3):** one durable process per assistant grant, with the token and revocation rpcs as its signals; the feature-flag sync every minute; and the daily sweep, which now covers sessions, codes and ended grants.\n- **Core SDK flows (13):** ten implement the CLI operations. Three serve other surfaces: browser sign-in (web app and approval page), an agent's key session, and the consent page.\n- **Operations (10):** auth.list, auth.logout, auth.switch, config.telemetry on/off/status, schema, use.env, use.personal and whoami. All are built from frozenText. Every claim is kept word for word except auth.logout #1, which is rewritten under P1.\n- **Procedures:** none. Every outside call's failures are declared on the rpc that makes it.\n\nThe 21 decisions record the key judgments:\n\n- Sign-in runs on access' own tables rather than BetterAuth, which would break the one-transaction rule (A3), events sent in the transition's transaction (P7) and generated tables with row-level security (P8).\n- Session tokens are opaque hashes, so no JWT or JWKS is needed.\n- The device flow is dropped (P2).\n- Client registration is stateless, so there is no client table.\n- One flags table, with devnet's gates fed in through the PostHog fake.\n- auth.switch reads the person's setupState from the chain, because access depends on nothing.\n- client.me.signer becomes the signer field of client.whoami.\n- Local commands get tighter budgets, and three worlds are introduced for refusals.\n\nThis replaces 51 old rpcs and workflows from sessions, agents, clients and features with 27. The waitlist and referrals stay with accounts, as the concept map assigns them. Nothing was committed."
+  },
+  "accounts": {
+    "concept": "accounts",
+    "files": [
+      "/home/user/capxul-next/books/target/accounts/data.ts",
+      "/home/user/capxul-next/books/target/accounts/procedures.ts",
+      "/home/user/capxul-next/books/target/accounts/admission.ts",
+      "/home/user/capxul-next/books/target/accounts/referrals.ts",
+      "/home/user/capxul-next/books/target/accounts/setup.ts",
+      "/home/user/capxul-next/books/target/accounts/grants.ts",
+      "/home/user/capxul-next/books/target/accounts/processes.ts",
+      "/home/user/capxul-next/books/target/accounts/flows.ts",
+      "/home/user/capxul-next/books/target/accounts/operations.ts",
+      "/home/user/capxul-next/books/target/accounts/decisions.ts",
+      "/home/user/capxul-next/books/target/accounts/index.ts",
+      "/home/user/capxul-next/books/target/accounts/links.ts",
+      "/home/user/capxul-next/books/target/index.ts"
+    ],
+    "records": 56,
+    "operations": 11,
+    "oldFunctions": 42,
+    "newBehaviour": 18,
+    "decisions": 17,
+    "problemsLeft": [
+      "One build problem is mine and it is allowed: the setup process accounts.setup.personal-safe reads indexing's `escrows` table, and indexing is not designed yet, so the link is reported as dangling. It goes through books/target/accounts/links.ts and resolves on its own once books/target/indexing/data.ts exports `table_escrows` (other concepts use that name too).",
+      "Shared change needed in shared/external.ts: the test token's open `mint(address,uint256)` (old packages/contracts/src/TestMoneyToken.sol:22) is missing. Until it is added, the `chain` list of accounts.grants.fund and of the setup's welcome-grant step is empty (see decision accounts.faucet).",
+      "Gap: no devnet world can reach dev.fund's WRONG_ENVIRONMENT refusal (refused off a devnet), so its `given` is `?`. Only the staging live:* evals reach it.",
+      "Gaps by design: flow client.account.setup (the web app's setup page) and flow client.operator.waitlist.admit (the operator's tool) implement no frozen operation. P2 allows this because they are the surfaces that reach accounts.setup.start and accounts.admission.admit.",
+      "Gaps: waitlist.invites.grant and dev.fund have no frozen acceptance lines.",
+      "Tooling note: a birth is booked as a transition with `from: []` (join, admit_unlisted, attribute, start). The generated state diagrams leave these out, though the build rules accept them.",
+      "For Aaron: accounts.admit is the one procedure that is an authority fact, not a money fact. It is booked as the shared decision procedures.accounts-admit rules, and Aaron may rule against it under P4."
+    ],
+    "pendingLinks": [
+      "indexing: table_escrows (id `escrows`) from books/target/indexing/data.ts, read by workflow accounts.setup.personal-safe to find the open claim escrows that pay the person's Safe; it is taken by its export name in books/target/accounts/links.ts once indexing lands"
+    ],
+    "summary": "The accounts design is in books/target/accounts/ and listed in books/target/index.ts after approvals. Typecheck (`npx tsc -p books`) shows no errors in the accounts files. The target book build reports one accounts problem, the allowed dangling link to indexing's `escrows` table; the other 16 problems belong to organizations and contacts.\n\nWhat it covers: all 11 frozen operations accounts owns (account retry and show, auth login and verify, referral show, invite and list, waitlist invites grant, join and status, dev fund). Every acceptance claim is kept word for word; none named an internal mechanism, so none was rewritten.\n\n- **Tables:** 4, down from the old 8 stores: admissions (mailbox-keyed, which the organizations design already imports), referral-codes, referrals (owned by the referrer, one per referred mailbox) and personal-safes. Dropped: the old logical Account row, the welcome-grant rows, the service-key lane, the request form's per-IP window and the chain id column.\n- **Machines:** 3, each sending its one `<machine>_transitioned` event: waitlist-entry, referral and personal-safe (claiming → collecting → ready, or failed → retry).\n- **Durable work:** one workflow per personal Safe. It claims the Safe through Companies House's claim role via the service signer, waits for the chain and Ponder, mints welcome grants on staging, then opens one approval (`approvals.open`) to collect the claim escrows waiting for the person. The account counts as ready once the claim lands. A second workflow, triggered by CapxulSafeClaimed on chain, qualifies the referral and rewards the referrer.\n- **Door:** one procedure, `accounts.admit`, which organizations invokes in the invitation's transaction.\n- **Rpcs:** 11. Two separate setup reads: `account show` gets a lifecycle and answers PROFILE_NOT_FOUND or SMART_ACCOUNT_MISSING before setup; `account retry` gets a check and refuses with WRONG_STATE or INVALID_INPUT when the chain refused the claim. `dev fund` sends one faucet mint and returns at broadcast, without waiting for the receipt.\n- **Flows:** auth login (one flow for an emailed code or an agent's own key) and auth verify, both over access' sign-in rpcs. Two more flows serve the web app's setup page and the operator's waitlist tool.\n\nLinks to access, parties and approvals are plain static imports now that those concepts have landed. I changed two things after they landed: the setup no longer calls `parties.register` (parties owns the person's Party itself), and the setup start now needs the person's completed profile. Shared world names (signed-out, person-signed-in, person-on-waitlist, person-unclaimed, person-ready) match what other designers use. 17 decisions record every judgment. All 88 `was` pointers resolve in /home/user/factory.\n\nStill open: the test token's `mint(address,uint256)` needs adding to shared/external.ts, and dev fund's WRONG_ENVIRONMENT refusal has no devnet world (`?`). Nothing is committed."
+  },
+  "parties": {
+    "concept": "parties",
+    "files": [
+      "/home/user/capxul-next/books/target/parties/data.ts",
+      "/home/user/capxul-next/books/target/parties/procedures.ts",
+      "/home/user/capxul-next/books/target/parties/profiles.ts",
+      "/home/user/capxul-next/books/target/parties/processes.ts",
+      "/home/user/capxul-next/books/target/parties/flows.ts",
+      "/home/user/capxul-next/books/target/parties/operations.ts",
+      "/home/user/capxul-next/books/target/parties/decisions.ts",
+      "/home/user/capxul-next/books/target/parties/index.ts",
+      "/home/user/capxul-next/books/target/index.ts"
+    ],
+    "records": 4,
+    "operations": 0,
+    "oldFunctions": 12,
+    "newBehaviour": 8,
+    "decisions": 13,
+    "problemsLeft": [
+      "Photo check: rpc parties.profiles.save should read media's stored-file table to confirm the photo is an admitted image. The link is left out because books/target/media does not exist yet and importing it would crash the shared build.",
+      "organizations.invitations.invite invokes parties.register to name an invitee by email, but parties.register only takes Organization and agent births. It should invoke parties.resolve-recipient with a mailbox locator. This is in organizations' folder, so I did not edit it.",
+      "payments' prepare rpcs (payments/commands.ts) invoke procedures from three other concepts (parties.resolve-recipient, documents.store, approvals.open), over the sys:tx-width review limit of two. Decision parties.resolve-recipient suggests payments read the parties table instead.",
+      "The directory table parties is tenancy global, which does not fit the conventions' wording 'global: written only by the system'. The reasoning is in decision parties.directory-tenancy, flagged for Aaron's data-model review.",
+      "Expected gaps: procedures parties.register, parties.activate, parties.release and parties.resolve-recipient show as uninvoked until organizations, agents, contacts and payments are in the index. Flows client.me.profile.save and client.me.profile.get show as unused-flow because they serve the web app's setup page, not a frozen operation."
+    ],
+    "pendingLinks": [
+      "table_files from ../media/data.ts (media's stored files): add to rpc_parties_profiles_save.reads once media lands. organizations/setups.ts already imports this name."
+    ],
+    "summary": "Parties is designed. The target build (books/target/index.ts with parties added) reports 497 records, 0 problems and 273 gaps; tsc shows no errors in books/target/parties. Parties owns no frozen operation (OPERATION_OWNERS), so operations.ts and processes.ts are empty modules that say why, and no worlds are introduced.\n\nData: table parties is the directory, one row per person, agent, Organization or outside address, with its Safe, its handle (agents and Organizations only) and its owner. Indexing's chain views join it on the Safe address to scope reads (P8). It is tenancy global because every lookup crosses tenants and provisional or outside Parties have no owner yet; it stores a SHA-256 digest of a person's mailbox, never the mailbox. Table profiles (tenancy person, person_id first) holds the one private field, the country. Machine party has five states (provisional, outside, pending, active, released) and eight transitions, four of them births, and sends only party_transitioned.\n\nDoor: parties.register is the one the architecture named. I added three, each with a decision naming its money fact. parties.resolve-recipient names a new mailbox or address; it never refuses, returning resolved: false with a reason so the caller refuses in its own words (INVALID_RECIPIENT for a payment, INVALID_INPUT elsewhere); a caller that only needs to show a counterparty reads the table instead. parties.activate makes a handle start routing money once its Safe is live. parties.release frees the handle of a birth that failed for good (a removed agent's handle stays taken).\n\nRpcs and flows: parties.profiles.save and parties.profiles.get, each behind one Core SDK flow (client.me.profile.save, client.me.profile.get) for the web app's setup page. A person's Party is claimed on their first save, keeping the id other records already point at.\n\nDropped: from old parties, saved destinations (a Party's receiving destination is its Safe), contact and employment edges, engagement terms, the operator purge, the Solana cleanup and the public resolve and lookup queries; from old profiles, the KYC tier, withdrawal address, member kind and handle check. 13 decisions in decisions.ts. Not committed."
+  },
+  "organizations": {
+    "concept": "organizations",
+    "files": [
+      "/home/user/capxul-next/books/target/organizations/data.ts",
+      "/home/user/capxul-next/books/target/organizations/procedures.ts",
+      "/home/user/capxul-next/books/target/organizations/setups.ts",
+      "/home/user/capxul-next/books/target/organizations/workspaces.ts",
+      "/home/user/capxul-next/books/target/organizations/members.ts",
+      "/home/user/capxul-next/books/target/organizations/invitations.ts",
+      "/home/user/capxul-next/books/target/organizations/processes.ts",
+      "/home/user/capxul-next/books/target/organizations/flows.ts",
+      "/home/user/capxul-next/books/target/organizations/operations.ts",
+      "/home/user/capxul-next/books/target/organizations/decisions.ts",
+      "/home/user/capxul-next/books/target/organizations/links.ts",
+      "/home/user/capxul-next/books/target/organizations/index.ts",
+      "/home/user/capxul-next/books/target/index.ts"
+    ],
+    "records": 71,
+    "operations": 14,
+    "oldFunctions": 50,
+    "newBehaviour": 24,
+    "decisions": 22,
+    "problemsLeft": [
+      "16 dangling links, all from my records to 6 tables of concepts that are not designed yet (allowed by the conventions): indexing's hat-wearers, safe-owners, safe-approvals, safe-executions and chain-budgets, and media's files. They load through organizations/links.ts, so the shared build keeps running until those concepts land. The whole book now has 57 problems, none of them from my records except these 16.",
+      "Gap: nothing invokes procedure organizations.bind-invitation-grants yet. It is waiting for board: its `org member invite` flow is meant to invoke it in the same transaction that opens the proposal of an invitation's grants.",
+      "Gap: WRONG_STATE has no world for invite.list and org.invite.list (given `?`). It is a defect guard that no operation can reach.",
+      "Cross-concept expectation, accounts: personal_safe_transitioned's about says 'Organizations follows `claim` to advance the person's waiting Seats'. This design has no waiting Seats: an invitee takes the Seat when they accept, and the grants are minted before the offer opens. The accounts prose should drop that sentence. I left their file untouched.",
+      "Cross-concept expectation, board (not designed yet): when org_invite_transitioned has transition begin_cleanup, board should open a workflow that proposes removing the granted hats. The invitation process waits until indexing shows the grantee's Safe no longer wears any of them.",
+      "Cross-concept expectation, notices (not designed yet): send the invitation email from org_invite_transitioned on transitions send, open and resend, and keep its delivery record. Organizations reports delivery as `none` for an @handle offer and `not_confirmed` otherwise."
+    ],
+    "pendingLinks": [
+      "indexing: table_hat_wearers (id hat-wearers)",
+      "indexing: table_safe_owners (id safe-owners)",
+      "indexing: table_safe_approvals (id safe-approvals)",
+      "indexing: table_safe_executions (id safe-executions)",
+      "indexing: table_chain_budgets (id chain-budgets)",
+      "media: table_files (id files)",
+      "board (inbound): its org.member.invite flow should call rpc_organizations_invitations_invite, then invoke procedure_organizations_bind_invitation_grants inside board.propose's transaction",
+      "board (inbound): a workflow triggered by machine_org_invite.t.begin_cleanup that proposes taking the granted hats back",
+      "notices (inbound): workflows triggered by machine_org_invite.t.send, .send_with_grants→open and .resend"
+    ],
+    "summary": "I designed the target organizations concept in books/target/organizations/ and added it to books/target/index.ts. The typecheck reports no errors in my files. The target book builds and reports 57 problems; 16 are mine, and all 16 are dangling links to indexing's and media's tables, which are not designed yet.\n\nData: 5 tables, down from the old 19.\n- organizations, org-setups, org-deployments, org-members (one Seat per Party) and org-invitations.\n- The seat-permission tables and the roles tables are gone: on v4 an officer permission is a hat, and hats are board's.\n- The old setup row's scheduling plumbing is gone; the workflow engine holds that state now.\n\nMachines: three, each sending its one event.\n- org-setup: processing, awaiting_authorization, needs_attention, ready, failed.\n- org-member: active, removed.\n- org-invite: authorizing, pending, active, revoking, declined, cancelled, expired. Its event keeps the frozen name org_invite_transitioned. pending_grant and revoked are dropped, because on v4 the grants are minted before the offer opens.\n\nDurable processes: three workflows.\n- One per setup. It mints the company Safe and sends deployMoney, each once, through the service signer, and confirms each from indexed facts at finality. It then writes the deployment and opens the founder's install approval with approvals.open in the same transaction, and follows approval_transitioned. It activates the Organization's Party when the Safe is minted to the founder and releases it if not. Its one signal is `org retry`.\n- One per invitation. It opens the offer when the company Safe transaction carrying its grants executes, and cancels it when that nonce goes to another transaction. It has its own seven-day expiry timer, accept, decline and cancel are its signals, and it ends a revoking offer once indexing shows the grantee's Safe wears none of the granted hats.\n- One triggered by AgentOwner's AgentRemoved, which ends that agent's Seats.\n\nBehaviour: 13 rpcs and 7 Core SDK flows, implementing the 14 frozen operations this concept owns. The CLI never signs: the flows hand the founder the approval page.\n\nNew procedure: organizations.bind-invitation-grants. Board invokes it in the transaction that opens the proposal. Its money fact: an invitation's grants and the Safe transaction that carries them are one fact. It is needed because organizations cannot depend on board.\n\nI also serve two operations other concepts own: board's org.member.invite flow calls my invite rpc, and banking's invite.accept flow calls my accept rpc.\n\nThe 22 decisions cover the table and machine shapes, the processes, the procedure, the old behaviour dropped (50 old rpcs and workflows replaced), 21 acceptance lines rewritten as observable claims, 22 named worlds, the org.create budget override, and the refusal codes.\n\nNothing is committed."
+  },
+  "approvals": {
+    "concept": "approvals",
+    "files": [
+      "/home/user/capxul-next/books/target/approvals/data.ts",
+      "/home/user/capxul-next/books/target/approvals/procedures.ts",
+      "/home/user/capxul-next/books/target/approvals/signing.ts",
+      "/home/user/capxul-next/books/target/approvals/processes.ts",
+      "/home/user/capxul-next/books/target/approvals/flows.ts",
+      "/home/user/capxul-next/books/target/approvals/operations.ts",
+      "/home/user/capxul-next/books/target/approvals/decisions.ts",
+      "/home/user/capxul-next/books/target/approvals/index.ts",
+      "/home/user/capxul-next/books/target/index.ts"
+    ],
+    "records": 29,
+    "operations": 0,
+    "oldFunctions": 37,
+    "newBehaviour": 8,
+    "decisions": 18,
+    "problemsLeft": [
+      "Gap `unused-flow` on client.approvals.sign: the schema's FlowSpec has no `for: surface` field yet (P2's sketch), so the approval-page flow stays listed as unused. Decision approvals.no-operations says this is expected.",
+      "Gaps `uninvoked-procedure` on approvals.open and approvals.withdraw: they close as openers are registered in books/target/index.ts. payments and organizations already import procedure_approvals_open. No opener invokes approvals.withdraw yet; payments, board and organizations should, when an intent ends before anyone signs.",
+      "Question for the A2 workflow-engine spike: the process waits for Ponder's UserOperationEvent at its (chain, sender, nonce), found through index by-sender-nonce. It is also resumed by the `withdraw` transition's event, which a procedure writes in the opener's transaction. The engine needs a way to route both to the waiting instance.",
+      "Openers must map approval endings onto their frozen codes: expired becomes WRONG_STATE, declined becomes CANCELLED, refused takes its stored refusal code, and board answers WRONG_STATE `execution_reverts`. Operations that print the old five states (pending, approved, consumed, rejected, expired) must use the mapping in decision approvals.machine.",
+      "Chain-submit operations now include a workflow start and the paymaster's sponsorship before the SDK can sign. This needs measuring against the 2000/4000 ms chain-submit budget once built.",
+      "The real target book build reports 7 problems, all in contacts (pending link to organizations' org-members), none in approvals."
+    ],
+    "pendingLinks": [],
+    "summary": "Approvals is designed as typed target records, 29 in all: 1 table, 1 machine with 13 transitions, 1 event, 2 procedures, 4 rpcs, 1 durable workflow, 1 Core SDK flow and 18 decisions. The concept is registered in books/target/index.ts after parties. `npx tsc -p books` shows no errors in approvals. The real target book builds (652 records). It reports 7 problems, all in contacts, and none in approvals. Approvals' own gaps are the approval-page flow listed as unused and the two procedures not yet invoked.\n\nApprovals owns no frozen operation, so books/target/approvals/operations.ts is empty on purpose. Its rpcs are reached as steps of other concepts' flows and as the workflow's signals.\n\nWhat the design does:\n- **One table.** `approvals` replaces three old stores: accounts' approvals, payments' moneyExecutions and the provider send-attempt log. Tenancy is person: `person_id` is the principal who signs, a person or an agent. Two lookups cross tenants, and each index says why: by id, and by (chain, sender, nonce).\n- **The sender comes from access, the signer from the chain.** The sender Safe is read from access' principals. The signer is the Safe's one owner, read on chain when the approval is sponsored.\n- **The machine has 12 states.** Before the signature, an approval can be refused, declined, withdrawn or expire. After it, only the chain ends it: landed, reverted, displaced, or expired once the window plus 2 minutes' grace has passed and the nonce has not moved.\n- **Procedures.** `approvals.open`: asking twice for the same subject returns the same live approval. A replacement (the void of a dated payment) shares the nonce of the approval it replaces. `approvals.withdraw` is a new procedure, with its money fact recorded in a decision.\n- **Four signer rpcs.** `get` (a live read), `review`, `sign` and `decline`. An unknown id, or another person's approval, gets INVALID_INPUT: the shared vocabulary's \"names nothing you can see\", and `payment send`'s frozen refusal.\n- **One process per approval (`approvals.lifecycle.carry`).** It sponsors the operation, which is where the chain's refusals appear before anyone signs. It waits for the signer, then commits `sending` before it calls the bundler, so a crash never sends twice. A send whose answer was lost is looked up by hash and never sent again. If the bundler definitively refuses an operation and confirms it does not hold it, the approval goes back to `signed` and is sent again 30 seconds later, while the window is open. A dated operation is held until its day; its needs (token balances) and its gate are then checked hourly until they pass or the window closes. The process ends on the indexed UserOperationEvent at its nonce, or when its window timer expires it.\n- **Gates.** An approval can name a feature gate. It is checked when the signer signs and before a held send, read from access' feature-flags, which keeps `org proposal approve`'s frozen line \"a gate turned off later stops the send\".\n- **One flow.** `client.approvals.sign` serves the approval page in the browser.\n\nLeft out on purpose, each covered by a decision: the old internal steps, the claim sweep, the per-kind relays, the approval email (now notices', triggered by the openers), and the old service-key lanes (already moved to the service-signer integration by a shared decision).\n\nNo new worlds were needed, because approvals has no refusals of its own. Nothing was committed."
+  },
+  "budgets": {
+    "concept": "budgets",
+    "files": [
+      "/home/user/capxul-next/books/target/budgets/data.ts",
+      "/home/user/capxul-next/books/target/budgets/procedures.ts",
+      "/home/user/capxul-next/books/target/budgets/shapes.ts",
+      "/home/user/capxul-next/books/target/budgets/departments.ts",
+      "/home/user/capxul-next/books/target/budgets/tree.ts",
+      "/home/user/capxul-next/books/target/budgets/offices.ts",
+      "/home/user/capxul-next/books/target/budgets/ceilings.ts",
+      "/home/user/capxul-next/books/target/budgets/allowances.ts",
+      "/home/user/capxul-next/books/target/budgets/changes.ts",
+      "/home/user/capxul-next/books/target/budgets/processes.ts",
+      "/home/user/capxul-next/books/target/budgets/flows.ts",
+      "/home/user/capxul-next/books/target/budgets/operations.ts",
+      "/home/user/capxul-next/books/target/budgets/decisions.ts",
+      "/home/user/capxul-next/books/target/budgets/index.ts",
+      "/home/user/capxul-next/books/target/index.ts"
+    ],
+    "records": 78,
+    "operations": 18,
+    "oldFunctions": 35,
+    "newBehaviour": 30,
+    "decisions": 24,
+    "problemsLeft": [
+      "The real target build cannot load until books/target/indexing/data.ts and books/target/board/procedures.ts exist; organizations/workspaces.ts imports indexing too, so it was already blocked. With scratch stand-ins for exactly the pending links, the budgets slice builds with 0 problems and no gaps on budgets' own records.",
+      "Notices' dependsOn does not list budgets, so the frozen claim that the member is emailed once an allowance assign executes (org.allowance.assign #5) has no sender. Adding concept_budgets to notices' dependsOn in shared/foundation.ts, and a notices workflow on budget_change.apply, would give it one (decision budgets.notices-need-budgets).",
+      "contract_hats in shared/external.ts has no getNextId or viewHat. Hat ids are planned from indexing's hats with Ponder at the chain head, and a hat created outside Capxul under the same admin between proposal and execution can still shift the id. Booking Hats.getNextId (or a v4 guard) would remove that risk (decision budgets.hat-planning).",
+      "Organizations' invitation Offer has a 'new-allowance' variant with a pre-v4 'limit' (a per-payment cap) that board cannot honour without budgets; recommended: offer existing allowances only (decision budgets.invitation-allowance-offers).",
+      "Board's org member grant of the People hat should refuse a department office holder (ROLE_CONFLICT, the reverse of the check budgets now makes), reading office hats from indexing's Budgets view (decision budgets.role-conflict-people-hat).",
+      "Three rewritten acceptance lines need a run against the old system's v4 path to confirm they pass: org.department.budget.set #4, org.department.list #4, org.allowance.list #3."
+    ],
+    "pendingLinks": [
+      "../indexing/data.ts: table_chain_budgets (company Safe's budgets from BudgetCreated/AmountSet/Closed/Reopened, with parent and hat)",
+      "../indexing/data.ts: table_hat_wearers (who wears each hat now)",
+      "../indexing/data.ts: table_chain_hats (HatCreated under an admin hat, with max supply and supply)",
+      "../indexing/data.ts: table_chain_agreements (offers and running agreements per budget)",
+      "../board/procedures.ts: procedure_board_propose (board.propose, named by rules.procedures)"
+    ],
+    "summary": "Budgets, designed as 78 records in books/target/budgets/. Two tables, budgets and budget-changes, replace old permissions' and payroll's four allowance and department stores. They hold only what the chain cannot name; amounts, spends, wearers, open or closed, and ceilings are read from indexing and the live chain. Two state machines, budget and budget-change, each send one transitioned event. There are 15 rpcs, 14 Core SDK flows and one durable process per change. That process follows the change's Board proposal or office-holder approval and applies it only when the chain shows its effect. All 18 frozen operations are booked: department create, budget set, close, reopen, holder add and remove, list, show and the three ceiling commands, and allowance create, change, assign, revoke, list, get and replace. Writes are flows, reads are one rpc each, and replace refuses with FEATURE_NOT_AVAILABLE without an rpc. Departments and allowances share the amount, holder and close rpcs. The office above a budget signs its changes; the Board signs top budgets, ceilings and allowance hats. The door is empty: payments' spend check is a read of budgets and of the chain. 24 decisions record every judgment, including the acceptance rewrites, 5 retired lines and 7 named worlds. With stand-ins for indexing's four views and board.propose, the scratch build reports 0 problems and no gaps on budgets' records; tsc shows only those unresolved imports. Budgets is added to books/target/index.ts after organizations. Nothing is committed."
+  },
+  "contacts": {
+    "concept": "contacts",
+    "files": [
+      "/home/user/capxul-next/books/target/contacts/data.ts",
+      "/home/user/capxul-next/books/target/contacts/procedures.ts",
+      "/home/user/capxul-next/books/target/contacts/book.ts",
+      "/home/user/capxul-next/books/target/contacts/processes.ts",
+      "/home/user/capxul-next/books/target/contacts/flows.ts",
+      "/home/user/capxul-next/books/target/contacts/operations.ts",
+      "/home/user/capxul-next/books/target/contacts/decisions.ts",
+      "/home/user/capxul-next/books/target/contacts/index.ts",
+      "/home/user/capxul-next/books/target/index.ts"
+    ],
+    "records": 1,
+    "operations": 6,
+    "oldFunctions": 10,
+    "newBehaviour": 10,
+    "decisions": 17,
+    "problemsLeft": [
+      "contact.get's frozen returns include `bankAccounts`, which banking owns. Contacts sits below banking, so its flow cannot read them without depending on banking. Decision contacts.get-bank-accounts recommends moving contact.get to banking in OPERATION_OWNERS, as contact.bank.add already is: banking's flow would call contacts.book.get, then its own masked account list. Until the map changes, the operation keeps its frozen returns but its flow returns only the entry. This needs the concept-map owner (shared/foundation.ts), not a contacts edit.",
+      "The real target build shows 7 contacts problems, all one cause: `dangling: reads → table:org-members`. Organizations has no index.ts yet, so it is not in books/target/index.ts. A scratch build that includes books/target/organizations/data.ts gives 0 problems and 0 contacts gaps. These clear when organizations adds itself to the index.",
+      "Needs a ruling (product/authority): decision contacts.members-write lets any member (an active Seat) write an Organization's address book, as the frozen `who` says. The old code required manager authority (requireWriter/requireManager). I judged that an entry is neither money nor authority, so P10 rung 3 does not apply, and contacts cannot read hat wearers anyway because it does not depend on indexing.",
+      "Behaviour narrowed: relationship values are now only `manual` and `member`. The old paid, paidBy, invoiced, invoicedBy and employed values, and last activity taken from payments, are gone. Under the concept map contacts cannot read or follow payments, requests or payroll; following requests would also make a cycle through banking. No frozen acceptance line depends on the dropped values (decision contacts.relationships).",
+      "A declined terminal preview now ends with CANCELLED (exit 130) instead of the old CLI_USAGE (exit 2). This is decision contacts.decline-is-cancelled. Other concepts' terminal previews should follow it so the CLI stays consistent; it may belong in shared/decisions.ts.",
+      "The world `person-with-contacts` (decision contacts.worlds) still has to be built as a devnet snapshot."
+    ],
+    "pendingLinks": [
+      "table_org_members from ../organizations/data.ts: the file and export exist, but the organizations concept is not in books/target/index.ts yet, so the link dangles in the real build",
+      "procedure_parties_resolve_recipient from ../parties/procedures.ts: resolves (exists, in the book)",
+      "table_parties from ../parties/data.ts: resolves (exists, in the book)"
+    ],
+    "summary": "I designed contacts as one owner-tenanted table, 6 rpcs, 4 Core SDK flows and 6 operations. Typecheck is clean. With organizations' data included, the build has 0 problems and 0 contacts gaps. In the real target index the only contacts problems are 7 dangling links to organizations' `org-members`, because organizations is not listed in the index yet.\n\n**What I built**\n- **Data (data.ts):** one `contacts` table with tenancy `owner` (person or Organization), keyed (owner_id, owner_kind, party_id). It has one index for paging the book by last change. One machine, `contact` (listed or hidden, with transitions hide, unhide and add_again), sends the one event `contact_transitioned`.\n- **Members:** an Organization's members come from its active Seats in organizations' `org-members` at read time; nothing copies them.\n- **No door, no workflows:** procedures.ts and processes.ts are empty on purpose. An entry is not a money fact and is a short-lived row (decision contacts.no-door-no-process).\n- **Rpcs (book.ts):** list, get, add, label, hide, unhide. List pages on the server with a keyset cursor. Add invokes parties' existing `parties.resolve-recipient` procedure in its own transaction. Parties' design names a contact among its users, so `contact add` stays one rpc, and a refusal commits nothing, a newly named Party included.\n- **Flows (flows.ts):** get, label, hide and unhide are flows, because at a terminal they pick, preview and confirm around the one call (A4). From a script, given a PartyId and `--confirm`, each is exactly one rpc.\n- **Operations (operations.ts):** all 6 frozen contact operations, built from frozenText. 18 of 19 acceptance claims are kept word for word. Only contact.list #1 (\"no full table scan\") is rewritten, as an observable outcome. Every refusal is reached from one world, `person-with-contacts`.\n- **Decisions (decisions.ts):** 17 records. They cover dropping counterparty destinations: a contact's wallet is its Party's Safe (parties) and its bank accounts are banking's. They also cover the ref and label rules, the refusal code for a Party outside the book, budgets (class defaults, with a stated override for the guided commands), and the world.\n\n**Needs the concept-map owner:** contact.get's frozen returns include bank accounts, which are banking's, and contacts sits below banking. I recommend moving contact.get to banking in OPERATION_OWNERS; it is recorded and listed under problems left.\n\n**Needs a ruling:** I let any member write an Organization's book, as the frozen `who` says, where the old code required a manager. I also narrowed relationship values to manual and member.\n\nI added contacts to books/target/index.ts after parties and approvals. Nothing was committed."
+  },
+  "payroll": {
+    "concept": "payroll",
+    "files": [
+      "/home/user/capxul-next/books/target/payroll/data.ts",
+      "/home/user/capxul-next/books/target/payroll/procedures.ts",
+      "/home/user/capxul-next/books/target/payroll/shapes.ts",
+      "/home/user/capxul-next/books/target/payroll/holders.ts",
+      "/home/user/capxul-next/books/target/payroll/payees.ts",
+      "/home/user/capxul-next/books/target/payroll/writes.ts",
+      "/home/user/capxul-next/books/target/payroll/processes.ts",
+      "/home/user/capxul-next/books/target/payroll/flows.ts",
+      "/home/user/capxul-next/books/target/payroll/operations.ts",
+      "/home/user/capxul-next/books/target/payroll/decisions.ts",
+      "/home/user/capxul-next/books/target/payroll/links.ts",
+      "/home/user/capxul-next/books/target/payroll/index.ts",
+      "/home/user/capxul-next/books/target/index.ts"
+    ],
+    "records": 60,
+    "operations": 11,
+    "oldFunctions": 39,
+    "newBehaviour": 21,
+    "decisions": 22,
+    "problemsLeft": [
+      "The real target build cannot run at the moment, and the cause is not in payroll. books/target/budgets/departments.ts statically imports ../indexing/data.ts, which does not exist yet, so node stops with ERR_MODULE_NOT_FOUND. That is the budgets designer's file and I did not edit it. A scratch build of payroll together with its dependencies (stubs for only board.propose and documents.store) reports 0 payroll problems and 0 payroll gaps. Before budgets was added, the real build gave payroll only dangling-link problems.",
+      "The brief asked for payroll runs (one durable workflow per run), saved groups, departments and a settle-run procedure from payments. The concept map (concepts.payroll, dependencies.payments-payroll, landings) assigns only agreements, and the brief says 'as the concept map assigns', so I designed agreements only and recorded the reasons in decision payroll.scope. If Aaron wants runs back, they need a frozen operation that names them and a changed map.",
+      "Each payee and Organization-payee write follows a Board proposal. The process needs the executed proposal's transaction from board's proposal record. Board has not landed, so the table is described in the workflow's text and not linked.",
+      "notices has to provide the agreement emails: one email when a resume lands, none for a withdrawal, plus offered, changed and ending. It also owns P3's daily agreement-notices cron (pay ready, a fixed term's last week, ended, low balance), which reads payroll's agreements table and its two events (decision payroll.notices-elsewhere).",
+      "payments has two dependencies on payroll's design: (1) `capxul payment wait <approvalId>` must follow an approval payroll opened, because that is the `next` a holder write gives with --no-wait (frozen note); (2) payments must create a collection's Payment from its PaymentSent (kind 4) and let `payment get` find it by that PaymentSent id (decision payroll.collection-payment).",
+      "The book schema cannot state two things my tables need. The payee policy on agreements.payee_safe (the payee reads its agreements, and opens its own accept and collect, under the payer's org_id) is recorded only in `scope` and decision payroll.payee-reads. The partial unique index one_awaiting_per_signer (status = awaiting) is described only in its `for` text.",
+      "The seven worlds named in decision payroll.worlds still have to be built as devnet snapshots: org-with-department, org-with-agreements, org-with-agreements-off, org-with-closed-department, org-with-short-safe, org-with-frozen-ceiling, org-with-writes-awaiting."
+    ],
+    "pendingLinks": [
+      "procedure_board_propose (../board/procedures.ts, id board.propose): reached through payroll/links.ts. Until board lands it is a bare reference that the build reports as dangling. Used by payroll.payees.accept and payroll.payees.collect.",
+      "procedure_documents_store (../documents/procedures.ts, id documents.store): reached through payroll/links.ts. Until documents lands it is a bare reference that the build reports as dangling. Used by payroll.holders.offer.",
+      "table_budgets (../budgets/data.ts, id budgets): the import is static and the file exists. The link resolves now that budgets is listed in books/target/index.ts.",
+      "Board's proposal table (name not yet known): payroll.agreements.lifecycle needs it for an executed proposal's transaction. It is described in text, not linked."
+    ],
+    "summary": "I designed payroll as the concept map assigns it: pay agreements on v4 Agreements only. Runs, groups and terms are dropped, departments belong to budgets, and payroll has no procedures of its own. In a scratch build with board and documents stubbed, payroll has 0 problems and 0 gaps, and `tsc -p books` passes on payroll. The real target build cannot run at the moment because budgets/departments.ts imports indexing, which has not landed. That is not my file and I did not edit it.\n\nData (data.ts): two tables, both organization tenancy with org_id leading the key and every index.\n- `agreements`: what the chain cannot name (the department, the payee as offered, who offered it, the terms document, the payer's Roles modifier) plus the status.\n- `agreement-writes`: one row per holder or payee write, with the approval or Board proposal that carries it.\n- Payee reads are cross-tenant by payee_safe; matching an indexed event goes by terms_hash or by (company_safe, chain id).\n- Two machines, each with one event:\n  - `agreement` keeps the nine frozen `--status` names: prepared, offered, active, paused, ending, ended, lapsed, withdrawn, abandoned. It sends `agreement_transitioned`.\n  - `agreement-write` goes awaiting → landed, failed or abandoned and sends `agreement_write_transitioned`. Its `change` value is the name the frozen claims report (`rate_changed`, `accepted`), so the claims stay word for word (decision payroll.reports).\n\nRpcs (12, in three area files):\n- holders.ts: offer, withdraw, change (raise, lowering or cancel), pause, resume, end, list. Each write is one transaction: it checks Budgets' authority and remaining room on chain, then opens the write plus an approval from the holder's own Safe (approvals.open). The offer also stores the terms document (documents.store).\n- payees.ts: accept, collect, list, show. With `--org` the write goes through board.propose. Collect checks the payer Safe's balance and the payout ceiling before anything is signed.\n- writes.ts: one live rpc, `payroll.writes.watch`, that the flows use to follow a write to its end.\n\nDurable process (processes.ts): one workflow per agreement, `payroll.agreements.lifecycle`.\n- It starts when the offer is prepared. The seven write rpcs are its signals.\n- It waits on the agreement's indexed Agreements events, on the outcome of each write's approval or proposal (delivered through the outbox, then checked against the transaction's indexed facts), and on its own timers for offer expiry and end date.\n- It withdraws the unsigned approvals of writes whose offer has ended (approvals.withdraw).\n- It replaces the old read-time settling and the payroll half of the daily sweep, so payroll has no cron.\n\nFlows (8): one Core SDK flow per write command, composed of prepare, approvals' read until sponsored, sign, submit, wait, and follow. The three reads are one rpc each. All 11 frozen operations are built from frozenText:\n- 66 acceptance lines: 57 kept word for word, 8 lose their 'On v4' opening (P9), and agreement list line 4 is rewritten because it described the old read-time settling.\n- org agreement offer drops the pre-v4 TOKEN_REQUIRED refusal and adds the designed WRONG_STATE.\n- Every refusal names one of seven worlds.\n\nBudgets all use class defaults with no overrides. There are 22 decision records.\n\nI added payroll to books/target/index.ts. Links to board.propose and documents.store go through payroll/links.ts, so payroll loads before those concepts land and the build reports them as dangling until then."
+  },
+  "books": {
+    "concept": "books",
+    "files": [
+      "/home/user/capxul-next/books/target/books/data.ts",
+      "/home/user/capxul-next/books/target/books/procedures.ts",
+      "/home/user/capxul-next/books/target/books/accounts.ts",
+      "/home/user/capxul-next/books/target/books/annotations.ts",
+      "/home/user/capxul-next/books/target/books/assets.ts",
+      "/home/user/capxul-next/books/target/books/facts.ts",
+      "/home/user/capxul-next/books/target/books/reports.ts",
+      "/home/user/capxul-next/books/target/books/exports.ts",
+      "/home/user/capxul-next/books/target/books/processes.ts",
+      "/home/user/capxul-next/books/target/books/flows.ts",
+      "/home/user/capxul-next/books/target/books/operations.ts",
+      "/home/user/capxul-next/books/target/books/decisions.ts",
+      "/home/user/capxul-next/books/target/books/index.ts"
+    ],
+    "records": 78,
+    "operations": 17,
+    "oldFunctions": 46,
+    "newBehaviour": 23,
+    "decisions": 21,
+    "problemsLeft": [
+      "Books is NOT registered in books/target/index.ts yet. Its files import table_hat_wearers and table_escrows from ../indexing/data.ts, and nobody has written that file. Registering books now would crash the shared build for every designer. Add `...books.modules` after budgets once indexing/data.ts exists and organizations is registered. Verified instead in a scratch harness: the real shared files plus access, parties, approvals, contacts, organizations/data.ts, an indexing stub and books. Result: 777 records, 0 problems, written to /tmp/target-books.",
+      "Harness gaps for books, expected: books.record-money-fact and books.reverse-money-fact show as uninvoked only because payments and banking are not in the harness. Their processes.ts files already invoke both by these names. org.books.assets.list's INVALID_INPUT keeps given '?': an empty id is refused by the CLI's --org scope with CLI_USAGE before it reaches the rpc.",
+      "For Aaron's data-model review (W1), books.facts-without-chart: money facts are kept from an Organization's first money, chart or not, and there is no backfill. This contradicts two frozen sentences, which stay verbatim as frozen text: the import's `changes` ('schedules a backfill') and the import note 'An Organization without a chart keeps no money facts'. On the target, `facts list` shows money facts before the import. Every acceptance line still holds.",
+      "For review, books.annotate-known-rows: books sits below payments, so it cannot check that a person takes part in a Payment. A person's annotation is accepted on any row, but lives only in that person's own books and posts nothing. An Organization row must have a money fact in the books, so an unsettled Payment is refused INVALID_INPUT until it settles. Its account travels with `payment send --account` instead.",
+      "books.export-files-by-cli has the SDK return the two CSV texts and the CLI write them, because the shared vocabulary says the SDK never returns CLI_STORAGE. shared/landings.ts says 'books/exports: two files written by the SDK'. The architecture thread should align that note.",
+      "Reclassify acceptance line 3 (a commitment whose claims fall on both sides of the period) needs a row with money facts in two periods. On v4 each agreement collection is its own Payment, so the world org-with-chart can only hold such a row if payments references collections by the agreement.",
+      "Indexing must provide two Safe-scoped views: `escrows` (the Organization's open escrows, by owner Safe and held amount, for the reconcile's `held` column) and `hat-wearers` (who wears the Books hat).",
+      "The books feature gate (FEATURE_NOT_AVAILABLE) is in every books rpc's errors except annotate's, but in no operation's refusals, because the frozen pages list none. Import acceptance line 4 still checks it."
+    ],
+    "pendingLinks": [
+      "../indexing/data.ts: table_hat_wearers (not yet written). Read by books.accounts.import/add/rename/archive/accept/reclassify, books.annotations.save, books.assets.add/remove for the Books hat. The same name organizations already imports.",
+      "../indexing/data.ts: table_escrows (not yet written). Read by books.reports.reconcile.",
+      "../organizations/data.ts: table_organizations, table_org_deployments (books_hat), table_org_members. These exist, but organizations is not yet registered in books/target/index.ts.",
+      "../access/data.ts: table_feature_flags. Exists and is registered.",
+      "Inbound links: ../payments/processes.ts and ../banking/processes.ts import procedure_books_record_money_fact and procedure_books_reverse_money_fact from ../books/procedures.ts. The names match, and they use the money_key contract (`transfer:<chain>:<tx>:<log>`, payout_returned and deposit_received keyed by the Transfer)."
+    ],
+    "summary": "The books concept is written in /home/user/capxul-next/books/target/books/, but it is not yet registered in books/target/index.ts. It reads two views from indexing, which nobody has written yet, so registering it now would crash everyone's build. In a scratch copy with a stand-in for indexing, it builds with 0 problems (output in /tmp/target-books). Typecheck errors are left only for those missing indexing imports. Nothing was committed and no other designer's folder was edited.\n\n**What it holds**\n- Six tables, each led by its tenant: book-charts, book-accounts, book-annotations (owned by a person or an Organization), book-facts (append-only), book-assets, and book-prices (global).\n- Four state machines (book-chart, book-account, book-annotation, book-asset), each sending one `<machine>_transitioned` event. A row's birth is a transition with no source state. Three invariants cover the facts.\n- Two procedures, `books.record-money-fact` and `books.reverse-money-fact`. Neither ever refuses, and each money fact is keyed by the chain event that moved the money.\n- 18 rpcs, two cron workflows (the Chainlink price sync every 5 minutes, and the scan of added tokens every minute) and one Core SDK flow (`org books accounts review`: read the queue, then accept a row).\n- 17 operation records built from the frozen text. 15 claims were rewritten from old telemetry wording to 'is reported once' or 'reports nothing'. Every refusal names a world: org-without-chart, org-with-chart, org-with-chart-and-added-token, org-with-chart-and-node-down, or signed-out.\n- 21 decisions.\n\n**Main design choices**\n- Money facts are kept from an Organization's first money, chart or not. So there is no backfill and no Safe opening job; the chart import only makes the Safe accounts.\n- A money fact names no account. The reports read the row's annotation at that moment.\n- The old minute observer of Transfers goes away. Payments' Movements book outside money through the procedure, which also fixes the old bug where one observer hid another's outside money (M1). Books scans only the tokens an Organization adds, which the indexer has no source for.\n- An added token gets one opening-balance fact when it is added, so the reconcile can match.\n- The reconcile's 'held' column counts the Organization's open escrows.\n\n**Already wired**\nPayments and banking already call both procedures by these names, with the same keys.\n\n**Needs a decision or a check**\n- Keeping money facts before a chart contradicts two frozen sentences that stay as written: the import 'schedules a backfill', and 'An Organization without a chart keeps no money facts'. This is a data-model call for Aaron's review.\n- A person's annotation is accepted on any row, because books cannot see payments. An Organization's unsettled Payment is refused until it settles.\n- The shared landings note says the SDK writes the export files. I have the SDK return them and the CLI write them, because the shared vocabulary says the SDK never returns CLI_STORAGE."
+  },
+  "payments": {
+    "concept": "payments",
+    "files": [
+      "/home/user/capxul-next/books/target/payments/data.ts",
+      "/home/user/capxul-next/books/target/payments/procedures.ts",
+      "/home/user/capxul-next/books/target/payments/commands.ts",
+      "/home/user/capxul-next/books/target/payments/changes.ts",
+      "/home/user/capxul-next/books/target/payments/ledger.ts",
+      "/home/user/capxul-next/books/target/payments/processes.ts",
+      "/home/user/capxul-next/books/target/payments/flows.ts",
+      "/home/user/capxul-next/books/target/payments/operations.ts",
+      "/home/user/capxul-next/books/target/payments/decisions.ts",
+      "/home/user/capxul-next/books/target/payments/index.ts",
+      "/home/user/capxul-next/books/target/payments/links.ts",
+      "/home/user/capxul-next/books/target/index.ts"
+    ],
+    "records": 55,
+    "operations": 8,
+    "oldFunctions": 82,
+    "newBehaviour": 18,
+    "decisions": 22,
+    "problemsLeft": [
+      "The shared target build fails at module load for a reason outside payments: books/target/budgets/departments.ts imports ../indexing/data.ts, which does not exist yet. Payments builds with 0 problems except the four pending links when checked in a scratch copy of the current tree with budgets cut down to its data module.",
+      "approvals.signing.sign answers ROLE_PERMISSION_DENIED for an unknown approval id, but payment send's frozen refusal says INVALID_INPUT for 'the execution is unknown' (P10 rung 1: the frozen surface wins). The approvals designer should change it.",
+      "payments.commands.prepare and payments.commands.propose call procedures of three other concepts in one transaction (parties.resolve-recipient, documents.store, and approvals.open or board.propose); sys:tx-width allows two. Kept on purpose and recorded in decision payments.birth-width; needs a reviewer's sign-off.",
+      "The Payment process's carrier wait needs the runtime (Effect Workflow, behind the A2 spike) to deliver approval_transitioned and proposal_transitioned to the waiting process by opener and subject. That delivery is not booked anywhere.",
+      "Notices must trigger the dated-payment day-ahead warning on payment.come_due and the failed-payment notice on payment.lapse (outcome window_closed). Notices is not designed yet.",
+      "Seven new worlds have to be built as devnet snapshots: signed-out, person-with-funded-safe, person-with-empty-safe, person-without-account, person-with-payment-history, org-with-budgets, org-with-dated-payments.",
+      "payment send is marked critical as the payments pilot because the spine's pilots are not named anywhere (decision payments.priority); revisit when they are."
+    ],
+    "pendingLinks": [
+      "board: procedure_board_propose (board.propose), loaded through payments/links.ts; used by payments.commands.propose, payments.changes.retry and payments.changes.cancel. Board is not written yet.",
+      "documents: procedure_documents_store (documents.store), loaded through payments/links.ts; used by payments.commands.prepare and payments.commands.propose. Documents is not written yet.",
+      "books: procedure_books_record_money_fact and procedure_books_reverse_money_fact (books/procedures.ts exists, but books is not listed in books/target/index.ts yet); used by payments.lifecycle.payment and payments.movements.record.",
+      "budgets: table_budgets (budgets/data.ts); read by the prepare, propose and change rpcs. Budgets' module list cannot load until indexing lands.",
+      "board: the proposal_transitioned event (machine_proposal), which the Payment process follows in its carrier wait; described in words until board is designed."
+    ],
+    "summary": "Designed the target payments concept as 55 records. They type-check, and a build in a scratch copy of the current tree finds 0 problems apart from four links to doors not in the shared book yet. Payments is added to books/target/index.ts (nothing committed), but the shared build itself currently fails to load because budgets imports ../indexing/data.ts, which does not exist yet.\n\nEach Payment is one durable process (payments.lifecycle.payment), one instance per payments row. It starts at the Payment's birth and owns the state machine (prepared, scheduled, due, escrowed, submitted, needs_retry, settled, mismatched, cancelled) through every route: personal Payments.send, budget spend, Board batch, claim escrow, and dated payments. It moves on approvals' and the Board's outcome events. Its signals are approvals' sign and decline and payments' retry, cancel and reschedule rpcs. It waits on indexed chain events (PaymentSent, PaymentScheduled, EscrowCreated, ScheduleCancelled, EscrowRefunded) and on timers (the day-ahead check; for a budget's dated payment, Budgets.execute with the executor key on pay day, hourly while the chain refuses).\n\nThere is one settlement path: only this process settles a Payment, from the indexed PaymentSent read with every fact of its transaction. It compares every term, consumes the log once under a unique constraint, and writes the book fact in the same transaction. A PaymentSent Capxul did not prepare births a Payment (payments.settlement.observe) that the same step then settles. After settling, the process re-reads the facts at twice the finality depth; if a reorg removed them, the Payment reopens and its book fact is reversed. A third workflow records outside money as Movements, one row per side, so the old bug where one side's Deposit row hid the other side's outside money is gone.\n\nThree tables replace the old thirteen: payment-commands, payments and movements. Executions moved to approvals; Ponder copies, the scan checkpoint, the sweep cursor, schedules, consumed-evidence and conflict rows, and Deposit Payments were merged or dropped. Every keep-list money rule has one named home (decision payments.keep-list). The one door procedure, payments.prepare-command, is already invoked by requests and banking.\n\nThe 8 frozen operations are implemented by 6 Core SDK flows and 2 rpcs. All 41 acceptance lines are kept: 3 lost their 'On Protocol v4' opening and 8 were rewritten as outcomes, with the old text in was. The designed (v4) who and refusal codes are used, and 36 refusals are reached from 7 new worlds. Old against new: 82 functions (71 rpcs and 11 workflows) plus 65 door procedures, 8 flows, 13 tables, 8 machines and 3 crons become 8 rpcs, 3 workflows, 1 procedure, 6 flows, 3 tables, 2 machines and no cron. 22 decision records cover every judgment."
+  },
+  "requests": {
+    "concept": "requests",
+    "files": [
+      "/home/user/capxul-next/books/target/requests/data.ts",
+      "/home/user/capxul-next/books/target/requests/procedures.ts",
+      "/home/user/capxul-next/books/target/requests/shapes.ts",
+      "/home/user/capxul-next/books/target/requests/guards.ts",
+      "/home/user/capxul-next/books/target/requests/links.ts",
+      "/home/user/capxul-next/books/target/requests/issuing.ts",
+      "/home/user/capxul-next/books/target/requests/inbox.ts",
+      "/home/user/capxul-next/books/target/requests/services.ts",
+      "/home/user/capxul-next/books/target/requests/checkout.ts",
+      "/home/user/capxul-next/books/target/requests/deposits.ts",
+      "/home/user/capxul-next/books/target/requests/processes.ts",
+      "/home/user/capxul-next/books/target/requests/flows.ts",
+      "/home/user/capxul-next/books/target/requests/operations.ts",
+      "/home/user/capxul-next/books/target/requests/decisions.ts",
+      "/home/user/capxul-next/books/target/requests/index.ts",
+      "/home/user/capxul-next/books/target/index.ts"
+    ],
+    "records": 74,
+    "operations": 14,
+    "oldFunctions": 54,
+    "newBehaviour": 33,
+    "decisions": 20,
+    "problemsLeft": [
+      "inbox pay --from <budget>: the designed text takes the budget by its Capxul key (`--from operations`), but the key-to-chain-id mapping is in budgets' org-budgets, and requests does not depend on budgets. Until the concept map adds budgets to requests' dependsOn (no cycle: budgets sits below requests), or payments.prepare-command resolves the key itself, `--from` takes the budget's chain id. Decision requests.inbox-pay-funding.",
+      "inbox pay for an agent payer: A4 gives the flow every signature, but submitting an agent's immediate signature needs approvals' signature rpc, and requests does not depend on approvals. The flow only waits for the approval page. This needs a concept-map change or a payments rpc that takes the signature. Decision requests.inbox-pay-approval.",
+      "payments.prepare-command takes no date, so dated `inbox pay --on/--at` cannot pass `pay_at` through yet. The requests.inbox.pay rpc validates the date (at least an hour ahead) and carries `pay_at`; the payments designer needs to add a `pay_at` input.",
+      "payments.prepare-command returns no approval expiry, so `inbox pay`'s `expiresAt` is null until the approval is sponsored. The payments or approvals designer could add it to the answer.",
+      "inbox pay --resume on a lapsed Payment (needs_retry) assumes that payments.prepare-command, called with the same request key, opens a new approval for the same Payment (the retry). The payments designer needs to confirm this replay behaviour.",
+      "The real shared build shows 30 `dangling` problems on requests' records, and every one is a link to a sibling that is not in the book yet: payments (table payments, procedure prepare-command, transitions payment.settle, unsettle and cancel) and banking (table bank-deposits, procedure match-deposit, transition bank-deposit.credit) are designed but not yet listed in books/target/index.ts, and documents and indexing are not written yet. The scratch build with those modules included (stubs only for documents.store, hat-wearers and chain-budgets) gives 0 problems."
+    ],
+    "pendingLinks": [
+      "documents: procedure_documents_store (documents.store), from ../documents/procedures.ts, through requests/links.ts",
+      "indexing: table_hat_wearers (hat-wearers), from ../indexing/data.ts, through requests/links.ts",
+      "indexing: table_chain_budgets (chain-budgets), from ../indexing/data.ts, through requests/links.ts",
+      "payments (designed, not yet in books/target/index.ts): table_payments, machine_payment.t.settle, machine_payment.t.unsettle, machine_payment.t.cancel, procedure_payments_prepare_command",
+      "banking (designed, not yet in books/target/index.ts): table_bank_deposits, machine_bank_deposit.t.credit, procedure_banking_match_deposit"
+    ],
+    "summary": "The requests concept is now designed as target records in /home/user/capxul-next/books/target/requests/, and it is listed in books/target/index.ts after payroll. When the dependencies are included, its own records build with 0 problems. The only gap is `unused-flow` for the checkout page's flow, which is expected: checkout serves the web page, not a frozen operation. Nothing was committed.\n\n**Checks run**\n- `npx tsc -p books` is clean for books/target/requests/.\n- The shared build (`node ... main.ts books/target/index.ts`) runs. It reports 30 problems on requests' records, all `dangling`. Each one points at a sibling that is not in the book yet: payments and banking are designed but not yet listed in index.ts, and documents and indexing are not written yet.\n- A scratch build in the scratchpad includes the real sibling files (payments, banking, organizations, parties, approvals, access), with stubs only for documents.store, hat-wearers and chain-budgets. It reports 0 problems.\n- I checked every `was` path and line number against /home/user/factory.\n\n**Data (data.ts)**\n- Three tables, all owner tenancy with `owner_kind` and `owner_id` leading every key: `requests`, `services` and `service-revisions`.\n- `requests` replaces old paymentRequests, offerCheckouts and invoiceCheckoutPayments. A service bought at its link becomes a request of kind `purchase`.\n- Dropped: Money Invoices, the link token, the receipt, consumption and verification columns, and every pre-v4 column.\n- The payer reads a request across tenants through its Safe (`by_payer_created`, marked crossTenant).\n- Two machines, each with its one event:\n  - `request`: open, paying, paid, declined, cancelled, expired. Its 11 transitions include `issue`, a birth from no state.\n  - `service`: active, inactive, with `create`, a `revise` that stays active, and `deactivate`.\n\n**Behaviour**\n- 17 rpcs in five areas: issuing, inbox, services, checkout and deposits.\n- 11 Core SDK flows: one per operation that needs a preview, a prompt, a poll or a reply-loss recovery, plus `client.checkouts.pay` for the checkout page.\n- The 14 frozen operations are in operations.ts. `request list`, `inbox list`, `service get` and `service list` are one rpc each.\n- 5 workflows:\n  - One durable process per request (`requests.lifecycle.request`). It handles the expiry timer and the invoice escrow: it wakes on indexed Transfers, reads the balance, moves the request to `fund`, then deploys and pays out once with the escrow relayer's key. A cancelled or expired request still pays out if its escrow already held the amount.\n  - Three outbox followers of payments' `settle`, `unsettle` and `cancel`. Escrow payouts settle through payments too, so there is one settlement path.\n  - A deposit auto-match by reference, triggered by banking's `credit`.\n\n**Cross-concept writes**\n- Requests has no procedures of its own; procedures.ts explains why.\n- It writes other concepts only through `payments.prepare-command` (inbox pay), `banking.match-deposit` (bank match) and `documents.store`.\n\n**Operations and decisions**\n- 11 acceptance lines are rewritten from mechanism to outcome; they are listed in decision requests.acceptance-rewrites.\n- 9 worlds are introduced, listed in requests.worlds.\n- Preview-then-write flows get a 2.5 s budget override, with the reason recorded.\n- There are 20 decision records in total.\n\n**Imports from siblings not yet written**\nlinks.ts (the same pattern organizations uses) loads documents and indexing by their conventional export names, so the shared build does not crash before they land."
+  },
+  "banking": {
+    "concept": "banking",
+    "files": [
+      "/home/user/capxul-next/books/target/banking/data.ts",
+      "/home/user/capxul-next/books/target/banking/procedures.ts",
+      "/home/user/capxul-next/books/target/banking/verification.ts",
+      "/home/user/capxul-next/books/target/banking/details.ts",
+      "/home/user/capxul-next/books/target/banking/accounts.ts",
+      "/home/user/capxul-next/books/target/banking/deposits.ts",
+      "/home/user/capxul-next/books/target/banking/payouts.ts",
+      "/home/user/capxul-next/books/target/banking/inbox.ts",
+      "/home/user/capxul-next/books/target/banking/processes.ts",
+      "/home/user/capxul-next/books/target/banking/flows.ts",
+      "/home/user/capxul-next/books/target/banking/operations.ts",
+      "/home/user/capxul-next/books/target/banking/decisions.ts",
+      "/home/user/capxul-next/books/target/banking/index.ts",
+      "/home/user/capxul-next/books/target/index.ts"
+    ],
+    "records": 81,
+    "operations": 11,
+    "oldFunctions": 75,
+    "newBehaviour": 23,
+    "decisions": 23,
+    "problemsLeft": [
+      "The real build of books/target/index.ts crashes for everyone right now: organizations, budgets, payments and requests already import modules that do not exist yet (indexing, board, documents, media). I added banking in foundation order (after payroll, before requests); its own missing links are listed under pendingLinks.",
+      "payments.prepare-command's PreparedItem requires a stored document_id and document_hash, but banking's dependsOn does not include documents. A bank payout's item therefore carries no document (the zero hash). Fix one of two ways: add documents to banking's dependsOn, or let prepare-command accept an item with no document.",
+      "prepare-command has no expiry. A payout's Payment must not be able to land after the quote's deadline: the approval's validity should be capped at quote.expires_at, and `payment retry` should be refused once a payout has expired. Banking also has no way to withdraw an unsigned payout Payment when its bank account changes before approval: approvals.withdraw exists, but banking does not depend on approvals. Until payments adds a withdraw procedure, a changed account ends the payout `expired`, and only if the person signs anyway does Bridge refund the send. In that case bank.pay's 'nothing is sent' for a changed account is not guaranteed.",
+      "shared/external.ts Bridge has no read of a single virtual account and no cancel for an unfunded transfer. bank.settle therefore no longer reads before it writes: acceptance lines #1-#4 are rewritten in decision banking.acceptance-rewrites. Unfunded transfers are left to lapse at Bridge (decision banking.processes). Add getBankDetails or cancelPayout calls to Bridge if reviewers want the old behaviour back. Bridge's removeBankAccount call stays unused, which shows as a gap.",
+      "The generated row-level security policy needs one cross-tenant clause: an invited person must be able to read and submit their own verification-people row, which belongs to the Organization, by invitation id plus their signed-in email.",
+      "The Bridge fake's description in shared/external.ts should say that the devnet stand-in, and the staging sandbox harness, send the test tokens for a sandbox deposit. Decision banking.sandbox-deposits drops the old staging mint, so without this no sandbox deposit can ever be credited.",
+      "Product judgment for Aaron's data-model review: 'current authority to manage' an Organization's banking is taken to mean a Director or the Books officer, and verifying the business takes a Director (decision banking.manage-authority). A second one: a new payee in `bank pay --input` is saved only as a bank account, not as a contact (decision banking.new-payee)."
+    ],
+    "pendingLinks": [
+      "../indexing/data.ts: table_hat_wearers (read by verification.start, details.show, details.settle, accounts.add, accounts.remove; organizations imports the same name)",
+      "../media/data.ts: table_files (read by banking.verification.start; organizations imports the same name)",
+      "../media/files.ts: rpc_media_files_upload (the upload step of flow client.verification.start; name guessed by convention)",
+      "../books/procedures.ts: procedure_books_record_money_fact (exists, but books is not in books/target/index.ts yet; invoked by banking.deposits.credit and banking.payouts.follow)"
+    ],
+    "summary": "Banking is designed in /home/user/capxul-next/books/target/banking/: 81 records, all 11 frozen operations it owns, and 23 decisions. The real target build can't confirm it yet: it crashes for every concept on modules that don't exist yet. On a scratch copy with those modules stubbed, banking's records show no problems except dangling links to concepts not designed yet. Its typecheck errors are only the unresolved imports of indexing and media.\n\n**The 11 operations:** verify start, verify status, invite accept (it routes `inv_kyb_` ids here), bank accounts, bank accounts add, contact bank add, bank accounts remove, bank deposits, bank details, bank settle and bank pay. Every acceptance claim is kept word for word except nine that named a mechanism (a scheduler, a queued event, the order of Bridge calls, one transaction); each of those is rewritten as an outcome and recorded in banking.acceptance-rewrites. Refusals use 6 new worlds plus 5 borrowed from organizations and contacts, listed in banking.worlds.\n\n**Tables:** 8 tables, all with owner tenancy except Bridge's inbox and cursor (global). One `bank-accounts` table replaces old parties' two duplicate stores. The retired quote rows, the payout log, and the lease, back-off and observation columns are dropped.\n\n**State machines:** 8 machines, each sending one `<machine>_transitioned` event. A deposit's machine stores the five public statuses directly, and its match to a request is a separate machine.\n\n**Rpcs and flows:** 13 rpcs and 5 Core SDK flows. One flow serves both add commands, and bank pay's flow is renamed `client.banking.payouts.pay`. Bridge's idempotency key is derived from each record, so every write calls Bridge first and then commits once; the old prepare/finalize pairs are gone.\n\n**Durable workflows:**\n- one per verification;\n- one per payout, which replaces the old dispatcher, timers, watchdog and notify workflow;\n- one per arriving deposit, which credits it from the indexer at finality and writes the Organization's book fact under the same key payments uses for that transfer;\n- the five-minute Bridge catch-up, the one sweep the policies keep.\n\n**Cross-concept writes:** `banking.match-deposit` is the one procedure other concepts call, and requests already calls it. The bank pay quote creates the payout, registers Bridge's deposit address through `parties.resolve-recipient`, and creates the Payment through `payments.prepare-command`, all in one transaction.\n\n**Still open (see problemsLeft):**\n- A payout's Payment carries no document, because banking does not depend on documents.\n- Payments has no expiry or withdraw, so a quoted payout's Payment can still be sent late, or after its bank account changes.\n- Shared Bridge records lack a cancel and a single-account read.\n- The row-level security policy needs a clause for invited people.\n- Two product calls for Aaron: who counts as having authority to manage an Organization's banking, and saving a new payee as a bank account only, not a contact."
+  }
+}
