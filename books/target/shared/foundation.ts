@@ -211,7 +211,7 @@ export const component_frappe_app = defineComponent({
     "Organization; and each app concept's own fields (payroll's on Salary Component, Salary Structure Assignment, " +
     "Payroll Entry and Salary Slip). It makes the fields Capxul owns read-only and refuses edits to them in a `validate` " +
     "hook, writes only the fields and child rows Capxul sends (never clearing one it does not hold), makes the link " +
-    "records a document names first, and copies a User's `capxul_party` onto the Contact Frappe makes for it. It appends " +
+    "records a document names first, and copies a User's `capxul_party` onto the Contact Frappe makes or finds for it. It appends " +
     "a row to its own change list, in the writing transaction, from each synced document's `on_change` event (a save, " +
     "submit, cancel or `db_set`), and before answering `listChanges` adds a row for each document whose `modified` is " +
     "later than its last row's, which catches `frappe.db.set_value`; a row names the document, read as it stands when " +

@@ -1182,7 +1182,7 @@ export const decision_organizations_buy_seats = defineDecision({
         "invokes `organizations.return-bought-seats`. `org seats` reads only organizations' rows and the price, so it is " +
         "organizations' own. The price is the deployment " +
         "setting SEAT_PRICE, the price of one seat in each stablecoin the deployment sells seats in, with Capxul's " +
-        "receiving Safe beside it; while it is unset for the token named, buying is FEATURE_NOT_AVAILABLE. A bought seat " +
+        "receiving Safe beside it; while it is unset for the budget's token, buying is FEATURE_NOT_AVAILABLE. A bought seat " +
         "is kept for good.",
     },
     {
@@ -1292,8 +1292,9 @@ export const decision_organizations_head_users = defineDecision({
         "Sales Manager, HR Manager and Projects Manager; the Books hat Accounts User and Accounts Manager; the Invoicing " +
         "hat Accounts User; every member Projects User. A role whose hat is gone is taken away at the next push; one a " +
         "head administrator gives by hand is the head's and authorizes nothing in Capxul. Frappe makes the User's " +
-        "Contact after the User commits (`create_contact`, enqueued), and the Capxul app copies the User's " +
-        "`capxul_party` onto it.",
+        "Contact after the User commits (`create_contact`, enqueued), or finds the one that already holds its email, " +
+        "and the Capxul app copies the User's `capxul_party` onto it: the same Party a person's entry by that " +
+        "mailbox already names.",
     },
     { label: "per-app", text: "Each app concept pushes the Users it needs, with the roles its own records need." },
     { label: "head-admin", text: "The head's administrator makes the Users and gives the roles; Capxul only matches mailboxes." },
