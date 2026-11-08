@@ -577,3 +577,28 @@ export const decision_board_people_hat_role_conflict = defineDecision({
   source: by("packages/backend/src/permissions/guards/conflicts.ts:13; books/target/budgets/decisions.ts (budgets.role-conflict-people-hat); budgets/departments.ts, allowances.ts (hat placement); P10"),
   affects: [rpc_board_officers_grant, op.operation_org_member_grant, error_ROLE_CONFLICT, table_chain_budgets, table_chain_hats],
 });
+
+export const decision_board_approval_endings = defineDecision({
+  id: "board.approval-endings",
+  title: "A Board change's unlanded approval ends with approvals' frozen-code mapping",
+  question:
+    "Approvals asks every opener to map an approval's endings onto the frozen codes (approvals.machine). Board's change " +
+    "process said only 'fails it with that code'. Which code does each ending give?",
+  options: [
+    {
+      label: "approvals-map",
+      text: "declined and withdrawn CANCELLED; expired and displaced WRONG_STATE; reverted TRANSACTION_FAILED; refused the code approvals stored.",
+    },
+    { label: "one-code", text: "TRANSACTION_FAILED for every unlanded ending." },
+  ],
+  chosen: "approvals-map",
+  why:
+    "The frozen pages of `org board` commands refuse only CANCELLED, WRONG_STATE and the sponsorship codes, and the " +
+    "change flows already declare CANCELLED, WRONG_STATE and TRANSACTION_FAILED. A person's no is CANCELLED (the " +
+    "vocabulary merged SIGNER_REJECTED into it), a lapse or a used nonce is a state that no longer allows the change, " +
+    "and a refusal at sponsorship already carries its own code (integrations.sponsor-refusals). Agents maps its " +
+    "carriers the same way (agents.failure-codes), so one CLI answers alike. A proposal's own end (`fail`, `reject`, " +
+    "`replace`) is board's and reads as `failed`, `rejected` or `replaced` (board.failed-proposal).",
+  source: by("books/target/approvals/decisions.ts (approvals.machine); books/target/board/flows.ts (CHANGE_ERRORS); books/target/agents/decisions.ts (agents.failure-codes)"),
+  affects: [workflow_board_changes_carry, table_board_changes, machine_board_change],
+});

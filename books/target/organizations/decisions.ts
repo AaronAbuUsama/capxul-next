@@ -604,3 +604,24 @@ export const decision_organizations_invite_grants_in_budgets = defineDecision({
     concept_budgets,
   ],
 });
+
+export const decision_organizations_approval_endings = defineDecision({
+  id: "organizations.approval-endings",
+  title: "A setup stalled by its install approval keeps approvals' code for the ending",
+  question:
+    "Approvals asks each opener to map an approval's endings onto the frozen codes (approvals.machine). The setup " +
+    "records a stall reason (approval_declined, approval_expired, approval_displaced, install_refused, install_reverted) " +
+    "and a code. Which code goes with each?",
+  options: [
+    { label: "approvals-map", text: "declined CANCELLED; expired and displaced WRONG_STATE; reverted TRANSACTION_FAILED; refused the code approvals stored." },
+    { label: "reason-only", text: "Keep the reason and leave the code to the reader." },
+  ],
+  chosen: "approvals-map",
+  why:
+    "`org show` and `org wait` print the setup's failure with a code, and agents and board answer their carriers' " +
+    "endings with the same mapping, so one CLI says the same thing for the same ending. The reason stays, because " +
+    "`org retry` resumes from the step it names. No frozen refusal of the setup operations changes: these are the " +
+    "setup's recorded failure, not a refusal.",
+  source: by("books/target/approvals/decisions.ts (approvals.machine); books/target/agents/decisions.ts (agents.failure-codes); org.show.yaml; org.retry.yaml"),
+  affects: [workflow_organizations_setups_set_up, table_org_setups, machine_org_setup],
+});

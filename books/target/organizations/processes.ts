@@ -54,7 +54,8 @@ export const workflow_organizations_setups_set_up = defineWorkflow({
     "for USDC, top amount 0, then `Hats.mintHat` of the three officer hats to the founder's Safe). It waits for the " +
     "founder's signature and the approval's outcome, both told by approval_transitioned: signed moves it to processing, " +
     "landed at finality completes it and seats the founder; refused (the paymaster's simulation of an install the " +
-    "Installer refuses), declined, expired, reverted or displaced stalls it with that reason. A " +
+    "Installer refuses), declined, expired, reverted or displaced stalls it with that reason and approvals' code " +
+    "(declined CANCELLED, expired or displaced WRONG_STATE, reverted TRANSACTION_FAILED, refused its stored code). A " +
     "provider outage that outlasts a step's retries stalls it too. `org retry` resumes it from its last finished step. " +
     "It replaces the old observe workflow, its every-minute recovery cron and ten internal rpcs.",
   was: [

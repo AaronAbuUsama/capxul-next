@@ -105,8 +105,9 @@ export const workflow_board_changes_carry = defineWorkflow({
   about:
     "Born by the change's birth (board-change.open, through the outbox) and the only writer of its status after it. It " +
     "waits for its approval's end, which approvals announces with `approval_transitioned` (opener board, the change as " +
-    "subject): declined, refused, withdrawn, expired, displaced or reverted fails it with that code (a lapsed seat, a " +
-    "refused simulation); landed reads the indexed facts of its transaction at finality and ends it as its action only " +
+    "subject): an approval that ended unlanded fails it with approvals' mapping (decision board.approval-endings): " +
+    "declined or withdrawn CANCELLED, expired or displaced WRONG_STATE, reverted TRANSACTION_FAILED, refused its stored " +
+    "code (a lapsed seat, a refused simulation); landed reads the indexed facts of its transaction at finality and ends it as its action only " +
     "when they hold its effect: for a seat or a claim, the Safe added as an owner of the company Safe (and the Director " +
     "hat minted to it); for a removal or a refresh, each named Safe removed as an owner; for a threshold, the Safe's " +
     "ChangedThreshold to the new one; for a handover, the Governor wearing the Shareholders' top hat. A landing without " +
