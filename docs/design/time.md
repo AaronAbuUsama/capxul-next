@@ -330,7 +330,7 @@ The clock runs or stands still [`devnet.clock-modes`]:
 | `POST /v1/time/settle` | Waits until everything due at now has run, without moving now | `devnet.time.settle` |
 | `POST /v1/time/freeze` | Holds now at the next whole second, never back | `devnet.time.freeze` |
 | `POST /v1/time/resume` | Lets now run on at the real rate | `devnet.time.resume` |
-| `GET /v1/time/events?after=<version>` | Server-sent events for each clock change (`warp`, `stop`, `step`, `tick`, `settle`, `freeze`, `resume`, `start-at`, `restore`, `up`), each with its version, now, mode and world | `devnet.time.watch` |
+| `GET /v1/time/events?after=<version>` | Server-sent events for each clock change (`warp`, `stop`, `step`, `tick`, `settle`, `freeze`, `resume`, `start-at`, `restore`, `up`), each with its version, now, `realAt`, mode and world | `devnet.time.watch` |
 | `POST /v1/followers {name, ackTimeoutMs}`, then `GET /v1/followers/<id>/events` and `POST /v1/followers/<id>/ack {version, idle, nextDue}` | Joins as a follower that the barrier waits for | `devnet.time.follow` |
 
 **Errors** use the target's codes in one shape, `{ error: { code, message, details } }`:
@@ -372,13 +372,16 @@ sequenceDiagram
   participant B as backend
   participant P as Ponder
   C->>A: POST /v1/time/warp {to: day 28}
-  loop each due instant t, in order, then T
+  loop next stop t = earliest next due (or T), one whole second at a time
     A->>B: clock event v (now = t, stop)
-    A->>X: mine at t (when anything is pending)
     B-->>A: ack v: busy (fired 2 timers, running)
-    X->>P: block at t
-    B-->>A: ack v: idle, next due day 14
-    P-->>A: indexed head
+    A->>X: mine pending at t, then empty blocks to depth and head at t
+    X->>P: blocks at t
+    loop settle rounds until one passes with nothing changed
+      A->>B: settle event v+n (now = t)
+      B-->>A: ack v+n: idle, next due day 14
+      P-->>A: indexed head
+    end
   end
   A-->>C: {from, to, stops, chain at T, backend now T, indexer caught up}
 ```
@@ -610,10 +613,10 @@ Invariants, each giving an L3 eval `inv:<id>`:
 
 | Invariant | Check | Statement |
 |---|---|---|
-| `time.one-now` | property | After a time call returns on a devnet, the backend's now, every follower's now and Ponder's indexed head time equal the authority's now. When the call mined, the chain head is at that second. |
-| `time.blocks-at-now` | property | Every devnet block has the authority's now, to the second, as its timestamp. No block is later than now. |
+| `time.one-now` | property | After a time call returns on a frozen devnet, the backend's now and every follower's acknowledged now equal the authority's now, the chain head's time is that second, and Ponder has indexed the head. |
+| `time.blocks-at-now` | property | Every devnet block has as its timestamp the authority's now, to the second, when it was mined. No block is later than now, except the blocks mined before a start-at. |
 | `time.monotonic` | fuzz | Within one world epoch, no component reads a now earlier than any now read before it. |
-| `time.due-fires-once` | property | When a warp or step to T returns, every durable timer due by T has fired once, its step reading its due instant. Every hourly-or-slower cron run due by T has run once, at its scheduled instant. |
+| `time.due-fires-once` | property | When a warp or step to T returns, every durable timer due by T has fired once, its step reading its due instant. Unless `jobs` was false, every hourly-or-slower cron run due by T has run once, at its scheduled instant. |
 | `time.replay-same-time` | fuzz | A workflow killed at any point and resumed reads the same instants and drives the same transitions. |
 | `time.no-direct-reads` | static | Only `packages/runtime/src/time/` reads a clock. |
 | `time.frozen-deterministic` | property | On a frozen devnet, the same calls from the same world, each followed by a settle, give the same block timestamps, row times and timer firings. |
@@ -631,7 +634,7 @@ Invariants, each giving an L3 eval `inv:<id>`:
 - Six protocol flows are added with surface `sdk`: `devnet.time.freeze`, `resume`, `step`,
   `settle`, `watch` and `follow`.
 - New shapes are added: `Clock`, `ClockMode`, `ChainHead`, `Follower` and `ClockEvent`. The
-  offsets are gone.
+  offsets are gone. `Clock` and `ClockEvent` carry `realAt`.
 - The snapshot flows save and restore the clock: its now and mode, under a new world epoch on
   restore.
 
@@ -639,18 +642,19 @@ Invariants, each giving an L3 eval `inv:<id>`:
 
 - `devnet.supervisor-owns-time-and-worlds` is **revised in place**: one time authority whose now
   is the chain's block time.
-- New decisions: `devnet.only-miner`, `devnet.clock-modes`, `devnet.warp-barrier`,
-  `devnet.time-protocol`, `devnet.followers`, `devnet.deterministic-worlds`, `devnet.start-at` and
-  `devnet.stand-ins-follow`.
+- New decisions: `devnet.only-miner`, `devnet.mine-to-depth`, `devnet.clock-modes`,
+  `devnet.warp-barrier`, `devnet.time-protocol`, `devnet.followers`, `devnet.deterministic-worlds`,
+  `devnet.sessions-across-warps`, `devnet.start-at` and `devnet.stand-ins-follow`.
 - Revised: `devnet.jobs` (a warp no longer calls it), `devnet.control-refusals` and
   `devnet.dropped` (the call names), `devnet.fault-switches` (a still clock is the frozen mode,
   not a switch), `devnet.budgets` and `devnet.supervisor-steps` (the new flows, and `poll` for
-  streams).
+  streams), and `devnet.scripted-prices` (a rate replaced at one frozen instant).
 
 **`jobs.ts`**
 
-- `devnet.jobs.run` runs every cron once, whether due or not. It fires the timers due at now that
-  the pump has not fired, and reports `timersFired`. A warp no longer calls it.
+- `devnet.jobs.run` runs every cron once, whether due or not, each under its own manual execution
+  id. It fires the timers due at now that the pump has not fired, and reports `timersFired`. A
+  warp no longer calls it.
 
 **`worlds.ts`**
 
@@ -659,6 +663,9 @@ Invariants, each giving an L3 eval `inv:<id>`:
 - `empty-devnet` boots with `up --start-at <eval epoch> --frozen`.
 - `people-with-keys` drops its clock hold and release, because a frozen step gives both keys one
   instant.
+- After a warp step that ends sessions, the builder signs the world's people in again. Its three
+  long warps say so: `org-with-agreements` (31 days), `org-with-option-active` and
+  `org-with-sale-offered` (400 days).
 
 **`data.ts` and `processes.ts`**
 
@@ -673,7 +680,9 @@ Invariants, each giving an L3 eval `inv:<id>`:
 - New failures:
   - the barrier's `WORK_DIED`;
   - step's `INVALID_INPUT`;
-  - a duplicate follower's `WRONG_STATE`.
+  - a duplicate follower's `WRONG_STATE`;
+  - a move while another move runs, `WRONG_STATE`, on warp, step, settle, start-at, freeze and
+    resume.
 - Each failure is an eval: `int:devnet-control.<call>/<code>`.
 - `chain-rpc.getBlock`'s text now names the drift watch. No new chain-rpc call is needed: the head
   read already exists.
@@ -709,8 +718,10 @@ clocks" are one clock. The operations' records are unchanged: 0 problems and 0 b
 4. Completing a timer's durable deferred twice is a no-op.
 5. A cron row runs once per stop with its scheduled instant, and runs once after a jump over many
    runs.
-6. Idle detection works: a counter of running steps, the outbox depth and the earliest unfired
-   timer.
+6. Idle detection works, and closes both gaps: a counter of executing runs and steps; the engine
+   message storage's count of deliverable, unprocessed messages (shown non-zero between a pump's
+   `deferredDone` and the run, and between an outbox start and the run); the outbox depth; the
+   earliest unfired timer; and the wake router's cursor against Ponder's indexed block.
 7. The engine-native alternative is measured: `DurableClock` with a now-reading `Clock` given to
    the `MessageStorage` layer, `inMemoryThreshold: 0`. It is recorded as rejected or kept, in a
    decision.
@@ -720,14 +731,22 @@ clocks" are one clock. The operations' records are unchanged: 0 problems and 0 b
    - mining latency with automine off;
    - that `eth_call` and `eth_estimateGas` at `pending` see the pinned time.
 
-**T0, the lint, enforces** the eight rules in §4 at zero from the first commit, including Postgres
+   Equal timestamps are a gate, not a detail. If Anvil refuses them, G3 and G4 hold only for stops
+   that mine once, and B3 records how mining is made deterministic before any eval relies on them.
+9. On the pinned Ponder, that a block dated before blocks already indexed (`dev time start-at`
+   after `up`) has every event indexed. Ponder orders checkpoints by block time first. If it does
+   not, start-at is only `up --start-at`, with a decision record.
+
+**T0, the lint, enforces** the nine rules in §4 at zero from the first commit, including Postgres
 `now()` in migrations and defaults.
 
 **B1, the generated clock layer, generates:**
 
 - `RequestTime` per rpc in the router;
 - `StepTime` per step and `Timers.until` per `timer` wait in the workflow skeletons, with each
-  wait's `timeoutMs` as a timer on now or a real timeout, by the wait's kind;
+  wait's `timeoutMs` as a timer on now or a real timeout, by the wait's kind, and each due instant
+  rounded up to the second;
+- a workflow's own `timeoutMs` as a real bound on one run's work between waits;
 - the cron table's rows from `trigger.cron`, marked calendar (hourly or slower) or sync;
 - `now` in every rpc answer envelope and `client.now()` in the SDK client;
 - migrations with no time default.
@@ -745,18 +764,23 @@ lines.
 - Each `inv:time.*` eval gets a runner.
 - A world step that waits on a timer warps past it. For example, approvals' 30-second bounce
   fires at `dev time warp 30s`.
+- After a warp that ends sessions, the builder and the harness sign the world's people in again
+  [`devnet.sessions-across-warps`].
 
 **B3, the devnet, builds:**
 
 - the time authority and the `capxul.devnet/1` server in `packages/devnet`;
 - the SDK devnet client generated from its schema;
 - the `capxul dev time` and `capxul-devnet time` thin clients;
-- Anvil with automine off, mined on pending at now, with the tick rule;
+- Anvil with automine off, mined on pending at now, every frozen move ending with the head at now,
+  the depth blocks of `devnet.mine-to-depth`, and the tick rule only as B0 leaves it;
 - the followers: the backend's `Now.devnet` with its pump and idle report, the Ponder adapter
   (with polling at 100 ms or WebSocket heads), and the bundler, paymaster and Bridge stand-ins;
 - the bundler stand-in decision (alto given the time, or a Capxul stand-in);
 - snapshots that carry the clock;
-- the warp barrier with its stops, settle and `WORK_DIED`.
+- the warp barrier: stops chosen one at a time, whole seconds, settle rounds, `jobs: false`
+  moving skipped crons past the target, one move at a time, a stop's limit and `WORK_DIED`;
+- the protocol's loopback-only `Host`, no cross-origin answers, and `realAt` in every clock.
 
 **B5 adds** the drift-watch live evals and alerts (chain lag and host skew) on staging.
 
@@ -774,3 +798,23 @@ lines.
 - **A stale name.** `docs/decisions/target-architecture.md` names `clockStartAt`. The call is now
   `timeStartAt`.
 - **The judgments report.** It is regenerated from the records, so it updates on its next run.
+- **Lifecycle-length workflow timeouts** (`time.real-elapsed`). These workflows size `timeoutMs` as
+  the object's life in the story, not as one run: access (91 days), approvals (370), payments (400,
+  and 1 for movements), requests (400), organizations (30 and 365), banking (90, 90 and 2) and
+  applications (31). Payroll's years-long agreement process has 2 minutes. Each owner turns a
+  lifecycle bound into a `timer` wait on now and gives the run a real bound for one run's work.
+- **The vote's end** (`time.chain-judged-deadlines`). Equity's `vote-end` timer waits for
+  "voteEnd, by the Governor's clock". The Governor answers Active through that second, so the
+  timer is due at `voteEnd + 1`.
+- **A dated send's first second.** Approvals' `day` timer waits "until its `send_after`, the first
+  moment its window lets it land". That moment is read off the pinned EntryPoint's `validAfter`
+  comparison: `validAfter` itself, or one second after it.
+- **Price rounds at one instant** (`time.read-once`). `book-prices` is keyed by pair and time, and
+  books keeps the first of two rounds at one time. On a frozen clock, a rate replaced at the
+  instant it was set must still win. Books keeps the later round (by round id) for an equal time.
+- **The devnet's finality depth.** `environment_devnet` should name it. Whatever it is,
+  `devnet.mine-to-depth` makes depth waits end inside a stop.
+- **The staging gateway's window check.** The old aa-gateway judged "validAfter must be in the
+  future" against the later of the latest block and the host clock. In the target, its now is the
+  host's clock, and the chain's head judges the window (`time.chain-judged-deadlines`). The
+  `bundler` integration's owner records which.
