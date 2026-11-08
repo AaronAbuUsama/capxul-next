@@ -6,7 +6,7 @@
 // Made by Claude on 7 November 2026, under Aaron's accepted decisions A1-A4 and P1-P10, with the old
 // system (/home/user/factory, integration/factory) and the as-is book as evidence.
 
-import { defineDecision } from "../../../packages/book/src/index.ts";
+import { defineDecision, type Concept } from "../../../packages/book/src/index.ts";
 import * as f from "./foundation.ts";
 import * as v from "./vocabulary.ts";
 import * as x from "./external.ts";
@@ -257,8 +257,9 @@ export const decision_concepts_access = defineDecision({
     "indexer read scope needed the person's and Organization's Safes (now row-level security), the waitlist's earned invites " +
     "needed live Safes (now accounts, from the chain), and consent needed applications (now applications'). An agent signs " +
     "in by key; that is proved on chain (`AgentOwner.agentOf` and the Safe's owners through chain-rpc), so access needs no " +
-    "agents table. Feature gates stay: 30 frozen refusals name FEATURE_NOT_AVAILABLE across every area, so they must sit " +
-    "below everything; a gate for an Organization keys on its id as a value.",
+    "agents table. Feature gates stay: 39 frozen refusals in 30 operations of six areas name FEATURE_NOT_AVAILABLE, so they sit " +
+    "below everything; a gate for an Organization keys on its id as a value. The commands that sign in and then report " +
+    "the account's setup are accounts' flows (operations.sign-in-in-accounts).",
   source: by("books/as-is/shared/foundation.ts (access imports 5 concepts); packages/backend/src/access/README.md:3"),
   affects: [f.concept_access, v.error_FEATURE_NOT_AVAILABLE],
 });
@@ -322,7 +323,7 @@ export const decision_concepts_indexing = defineDecision({
   title: "Indexing keeps its name and owns every chain view",
   question: "Who owns Ponder's tables in the book, and what is left of old indexing?",
   options: [
-    { label: "one-owner", text: "Indexing owns every chain-tenancy view and the added-token scan; drift reconcile goes." },
+    { label: "one-owner", text: "Indexing owns every chain-tenancy view and no workflow; drift reconcile goes; the added-token scan goes to books." },
     { label: "per-concept", text: "Each concept owns the views of its contract (payments the PaymentSent view, budgets the Budgets views...)." },
     { label: "rename-chain", text: "As one-owner, renamed `chain`." },
   ],
@@ -332,7 +333,8 @@ export const decision_concepts_indexing = defineDecision({
     "requests, applications and organizations; Transfers by payments and activity. Per-concept ownership would force the " +
     "dependency order to follow the contracts' call graph and still need Hats at the bottom. Old indexing's drift " +
     "reconcile existed because Convex copied chain rows; nothing copies them now (P3 lists drift only while it is " +
-    "needed). The name stays: `chain` is already the component, and the old name already meant chain facts.",
+    "needed). The added-token scan leaves too (concepts.books-token-scan). The name stays: `chain` is already the " +
+    "component, and the old name already meant chain facts.",
   source: by("packages/backend/src/indexing/README.md:3; P3 (scan added tokens stays; indexer drift while needed)"),
   affects: [f.concept_indexing],
 });
@@ -926,11 +928,13 @@ export const decision_rules_procedures = defineDecision({
     "account for? An approval opened without its intent would let a person sign a money movement with no Payment; a " +
     "proposal without its intent would execute a budget nobody recorded; a handle bound to the wrong Safe misroutes " +
     "payments. A notice, a projection or telemetry can lag and be rebuilt, so it never qualifies. Each procedure's `about` " +
-    "names its fact, and the build's `notice-in-transaction` rule, when it lands, refuses one that is only a notice.",
+    "names its fact, and the build's `notice-in-transaction` rule, when it lands, refuses one that is only a notice. One " +
+    "authority fact is admitted beside them, `accounts.admit` (procedures.accounts-admit), because neither a procedure " +
+    "for money nor the outbox can carry it.",
   source: by("P4 option D; ADR-0042 decision 1"),
   affects: [
     f.concept_approvals, f.concept_board, f.concept_parties, f.concept_documents, f.concept_books, f.concept_payments,
-    f.concept_banking,
+    f.concept_banking, f.concept_accounts,
   ],
 });
 
@@ -1384,7 +1388,9 @@ export const decision_contracts_functions = defineDecision({
     "The build reports a function nothing calls and an event nothing consumes as gaps, so recording only what the product " +
     "uses makes those gaps meaningful: each one left after the concept designs is either a missing design or a contract " +
     "function the product does not need. Admin and wiring functions (configure, setAgreements, setUp) belong to the " +
-    "install, which the Installer's batches build.",
+    "install, which the Installer's batches build. A call one contract makes to another inside a call the product makes " +
+    "(Budgets.commit inside Agreements.offer, Budgets.payReserved inside Agreements.collect, Captable.forcedTransfer " +
+    "inside Exits.buy, Captable.setConversionPrice inside Rounds.close) is the callee's business and is left out.",
   source: by("books/frozen/operations.ts (designed.call); old as-is gap `uncalled-function` (18)"),
   affects: [x.contract_budgets, x.contract_agreements, x.contract_installer, x.contract_hats, x.contract_safe],
 });
@@ -1453,14 +1459,459 @@ export const decision_operations_owners = defineDecision({
   ],
   chosen: "by-area-with-exceptions",
   why:
-    "Areas are how people find commands, not concepts (the operation record says so). 131 operations sit in their area's " +
-    "primary concept (AREA_CONCEPTS) and 84 move with their behaviour: agents, sign-in and local commands out of accounts; " +
+    "Areas are how people find commands, not concepts (the operation record says so). 134 operations sit in their area's " +
+    "primary concept (AREA_CONCEPTS) and 81 move with their behaviour: agents, session and local commands out of accounts; " +
     "`doctor` and keys to applications; verification and `contact bank add` to banking; invitations and members to " +
-    "organizations, allowances to budgets and votes to equity out of governance; requests, services, the inbox, contacts, " +
+    "organizations, `invite accept` to banking, allowances to budgets and votes to equity out of governance; requests, services, the inbox, contacts, " +
     "documents, `address` and `balance` out of payments; `activity annotate` to books; `bank match` to requests; `org " +
     "department pay` to payments; `dev fund` to accounts, `dev key` to applications, `dev mail notices` to notices. The " +
     "map is typed against every frozen id, so none can be missed, and every concept but media, parties, indexing and " +
-    "approvals owns at least one operation.",
+    "approvals owns at least one operation. The rule behind each exception: an operation's flow sits in a concept that " +
+    "depends on every concept whose rpcs it composes (operations.sign-in-in-accounts, operations.member-invite-in-board, " +
+    "operations.invite-accept-in-banking).",
   source: by("books/frozen/operations.ts (215 operations, 11 areas); OPERATION_OWNERS in books/target/shared/foundation.ts"),
   affects: [...f.CONCEPTS],
+});
+
+// ── review of the map against the frozen operations (8 November 2026) ─────────────────────────
+// A second pass read every frozen operation's `who` and designed `call` against its owner's
+// `dependsOn`. These records settle what that pass found.
+
+const REVIEW = "Claude, target architecture review, 8 November 2026";
+const reviewed = (evidence: string) => `${REVIEW}; evidence: ${evidence}`;
+
+export const decision_concepts_books_token_scan = defineDecision({
+  id: "concepts.books-token-scan",
+  title: "Books scans the tokens an Organization adds; indexing has no workflow",
+  question: "P3 keeps the scan of tokens added at run time. Which concept owns it, given that only books knows which tokens were added?",
+  options: [
+    { label: "books", text: "Books: one cron scans each added asset's Transfers to and from the company Safe from the block it was added, and writes book facts." },
+    { label: "indexing", text: "Indexing, triggered by books' asset transition." },
+    { label: "indexing-procedure", text: "Indexing owns a watched-token table that books writes through a procedure." },
+  ],
+  chosen: "books",
+  why:
+    "The frozen text says the books 'record its transfers' and 'Capxul starts scanning its transfers from the current " +
+    "block'; its facts carry the token's symbol and no USD. The scan's only reader is books, and its list of tokens is " +
+    "books' own `assets`. In indexing, the scan would have to follow books' transition, which needs indexing above books, " +
+    "a cycle; a watched-token procedure is not one money fact. In books it reads its own table and the chain (chain-rpc " +
+    "`getLogs`), and `org books assets remove` stops it. Indexing is then Ponder's views only.",
+  source: reviewed("org.books.assets.add.yaml, org.books.assets.remove.yaml; P3 (scan added tokens); platform/jobs.ts:125-139"),
+  affects: [f.concept_books, f.concept_indexing, x.integration_chain_rpc],
+});
+
+export const decision_procedures_accounts_admit = defineDecision({
+  id: "procedures.accounts-admit",
+  title: "One authority procedure: an invitation admits its invitee to the beta",
+  question:
+    "`org member invite` 'admits the invitee to the beta with no second welcome email'. Admission is accounts', the " +
+    "invitation organizations', and accounts sits below organizations. How is the admission written?",
+  options: [
+    { label: "procedure", text: "Organizations' invitation rpc invokes `accounts.admit` in its own transaction." },
+    { label: "outbox", text: "Accounts follows `invitation_transitioned` (it would have to depend on organizations: a cycle)." },
+    { label: "admission-in-access", text: "Move admission back to access, below both, and invoke `access.admit` from accounts and organizations." },
+    { label: "derived", text: "Compute admission at the gate from invitations (the gate would have to read organizations)." },
+  ],
+  chosen: "procedure",
+  why:
+    "P4 sends a lagging change to the outbox only when the consumer can depend on the producer; here it cannot, and a " +
+    "flow step cannot do it either, because accounts could not check that the caller really invited that email. An " +
+    "invitation and the admission it carries must never disagree at a commit: an invitee who got the invitation but is " +
+    "still waiting cannot take the Seat. So it is one fact, of authority rather than money, and the one procedure that " +
+    "is not a money fact; its `about` begins `Authority fact:`. Admission stays in accounts with referrals, because a " +
+    "spent invite and the friend it admits are one write there. The beta gate is checked only above accounts (setting " +
+    "up the Safe, the faucet, `org create`, `referral invite`); the old hold at profile onboarding (old profiles, now " +
+    "parties, below accounts) moves to the Safe's setup, which already refuses a waiting person. Aaron may rule this " +
+    "against P4's narrow reading.",
+  source: reviewed("org.member.invite.yaml (acceptance), org.create.yaml ('a founder on the beta waitlist is refused'); access/waitlist/guards.ts:49; P4"),
+  affects: [f.concept_accounts, f.concept_organizations, f.concept_parties, decision_rules_procedures],
+});
+
+export const decision_operations_sign_in = defineDecision({
+  id: "operations.sign-in-in-accounts",
+  title: "`auth login` and `auth verify` are accounts' flows over access' rpcs",
+  question: "Both commands end by reporting whether the account is set up, which is accounts'. Which concept owns their flows?",
+  options: [
+    { label: "accounts", text: "Accounts: the flow sends and checks the code through access' rpcs, then reads the Safe's setup state." },
+    { label: "access", text: "Access, with the setup state left out." },
+  ],
+  chosen: "accounts",
+  why:
+    "'Like auth login, it returns the setup link if your account is not ready yet' is frozen surface (P10 rung 1). A flow " +
+    "may compose only rpcs of concepts its own concept depends on, and access depends on nothing, so the flow sits in " +
+    "accounts, which is the person's way in. Sessions, codes, the send cooldown and an agent's key challenge stay access' rpcs.",
+  source: reviewed("auth.login.yaml, auth.verify.yaml (notes); A4"),
+  affects: [f.concept_accounts, f.concept_access],
+});
+
+export const decision_operations_member_invite = defineDecision({
+  id: "operations.member-invite-in-board",
+  title: "`org member invite` is board's flow",
+  question: "An invitation is organizations'; the grants it offers are one Board proposal. Which concept owns the operation's flow?",
+  options: [
+    { label: "board", text: "Board: the flow creates the invitation through organizations' rpc, then proposes its grants through board's own." },
+    { label: "organizations", text: "Organizations, calling board's rpc (organizations would depend on board, and board on organizations: a cycle)." },
+  ],
+  chosen: "board",
+  why:
+    "One operation is one flow, and a flow composes only concepts its concept depends on. Board already depends on " +
+    "organizations; the reverse would loop. The invitation without grants is still organizations' rpc alone, called as the " +
+    "flow's first step; the request key makes a repeat return the same invitation and the same proposal.",
+  source: reviewed("org.member.invite.yaml (designed call: the Board batch for a grant); concepts.board"),
+  affects: [f.concept_board, f.concept_organizations],
+});
+
+export const decision_operations_invite_accept = defineDecision({
+  id: "operations.invite-accept-in-banking",
+  title: "`invite accept` is banking's flow, because it routes business verification",
+  question: "`invite accept` accepts an Organization invitation, or for an `inv_kyb_` id starts the person's verification with `--input`. Which concept owns the flow?",
+  options: [
+    { label: "banking", text: "Banking: the flow sends an `inv_kyb_` id to its own verification rpc and every other id to organizations' accept rpc." },
+    { label: "organizations", text: "Organizations, which cannot reach banking's verification (banking depends on organizations)." },
+    { label: "kyb-in-organizations", text: "Make business verification invitations organizations', passing the person's KYC answers through it." },
+  ],
+  chosen: "banking",
+  why:
+    "The CLI calls one SDK method per command (A4), so the routing is one flow, in a concept that depends on both. " +
+    "Banking is the lowest such concept. Keeping a person's verification answers out of organizations matters more than " +
+    "where a two-branch flow sits; the Organization invitation's rpcs and state stay organizations'.",
+  source: reviewed("invite.accept.yaml (about: 'For a business invitation (an ID starting inv_kyb_), it starts your verification')"),
+  affects: [f.concept_banking, f.concept_organizations],
+});
+
+export const decision_dependencies_agent_seats = defineDecision({
+  id: "dependencies.agent-seats",
+  title: "A removed agent's Seats end from the chain event",
+  question: "`agent remove`: 'the backend ends its Seats'. Seats are organizations', agents sits above organizations. How?",
+  options: [
+    { label: "chain-event", text: "Organizations' workflow, triggered by AgentOwner's `AgentRemoved`, ends every Seat the agent's Safe holds." },
+    { label: "procedure", text: "Agents invokes an organizations procedure in the removal's transaction." },
+  ],
+  chosen: "chain-event",
+  why:
+    "The removal is final only when `AgentOwner.remove` lands, so the Seats must follow the chain, not the request: a " +
+    "procedure at prepare time would end Seats for a removal that never lands. A chain-event trigger needs only " +
+    "organizations' existing dependency on indexing.",
+  source: reviewed("agent.remove.yaml (designed call); AgentOwner.sol (AgentRemoved)"),
+  affects: [f.concept_organizations, f.concept_agents, x.contract_agent_owner],
+});
+
+// ── where every old area went ───────────────────────────────────────────────────────────────
+
+export const decision_responsibilities_landings = defineDecision({
+  id: "responsibilities.landings",
+  title: "Every old concept area lands in a target concept, or is dropped by a decision",
+  question: "How is it shown that every responsibility of the 17 old concepts lands somewhere?",
+  options: [
+    { label: "typed-map", text: "OLD_AREAS in shared/landings.ts: each of the old concepts' area folders, the target concepts it lands in, and the decision that put it there." },
+    { label: "prose", text: "Each target concept's `about` names what it absorbs." },
+  ],
+  chosen: "typed-map",
+  why:
+    "A concept's `about` says what it absorbs, but nothing checks that the old list is covered. The map lists all 91 " +
+    "area folders under packages/backend/src/<concept>/, plus the root files of documents and parties, and every entry names a " +
+    "decision record, so a dropped responsibility is a judgment a reviewer can find. The map is not a record: the build " +
+    "follows its decisions' `affects`.",
+  source: reviewed("ls packages/backend/src/<concept>/ at 0d2be303e"),
+  affects: [...f.CONCEPTS],
+});
+
+export const decision_responsibilities_summaries = defineDecision({
+  id: "responsibilities.summaries",
+  title: "Old accounts' summaries: deposit instructions to activity, the rest by surface",
+  question: "Old `accounts.summaries` served `home`, `me`, the 'needs you' list and deposit instructions. Where do they go?",
+  options: [
+    { label: "activity", text: "Deposit instructions become activity's `address`; `home`, `me` and 'needs you' come back only as flows for a named surface (P2)." },
+    { label: "accounts", text: "Keep a summaries area in accounts." },
+  ],
+  chosen: "activity",
+  why:
+    "`address` is the only frozen operation they back (`client.account.profile.depositInstructions`), and it reads for " +
+    "whoever you act as, which is activity's. `home` composed treasuries, payroll runs and activity items in one action; " +
+    "no frozen operation calls it, so P2 deletes it until the web app names it, and then it is a react-surface flow over " +
+    "activity's, approvals' and requests' reads.",
+  source: reviewed("address.yaml (sdk); books/as-is/accounts/summaries.ts:1-12; P2"),
+  affects: [f.concept_activity, f.concept_accounts],
+});
+
+export const decision_responsibilities_overlays = defineDecision({
+  id: "responsibilities.overlays",
+  title: "Old activity's overlays are dropped",
+  question: "Old activity added Convex overlays to indexed chain rows. Keep them?",
+  options: [
+    { label: "drop", text: "Drop: the feed reads Ponder's views and payments' rows in one Postgres, so there is nothing to overlay." },
+    { label: "keep", text: "Keep an overlay table in activity." },
+  ],
+  chosen: "drop",
+  why: "The overlay joined two stores (Convex rows on top of the indexer's answer). With one Postgres the join is a query.",
+  source: reviewed("packages/backend/src/activity/overlays/; components.ponder"),
+  affects: [f.concept_activity],
+});
+
+export const decision_responsibilities_repairs = defineDecision({
+  id: "responsibilities.repairs",
+  title: "Old applications' repairs are dropped",
+  question: "Old applications had operator-only repair mutations run by hand with `convex run`. Port them?",
+  options: [
+    { label: "drop", text: "Drop: no frozen operation reaches them (P2); a data repair is a migration, not an rpc." },
+    { label: "keep", text: "Port them as devnet-only rpcs." },
+  ],
+  chosen: "drop",
+  why: "They mended rows the old shapes let go wrong (disposable proofs). Nothing is migrated from old staging (P9), and the target's generated migrations and tenancy evals cover what they guarded.",
+  source: reviewed("books/as-is/applications/repairs.ts:1-6; P2; P9"),
+  affects: [f.concept_applications],
+});
+
+export const decision_responsibilities_operator_proof_tools = defineDecision({
+  id: "responsibilities.operator-proof-tools",
+  title: "Old operator's proof identities, fixtures and receipt hold are dropped",
+  question: "Old operator peeked at sign-in codes and Safes, seeded identities and fixtures, purged accounts and held receipts for acceptance runs. Port them?",
+  options: [
+    { label: "worlds", text: "Drop them: eval worlds are built by running operations as the devnet's fixed identities and saved as snapshots; codes are read from the mail sink; a held receipt is the bundler fake's fault switch." },
+    { label: "devnet-rpcs", text: "Port each as a devnet-only rpc." },
+  ],
+  chosen: "worlds",
+  why:
+    "They wrote other concepts' rows from outside (the as-is book's write-boundary findings), which no target rule " +
+    "allows. A world made by real operations is the black-box baseline spec 30 asks for, and the supervisor restores it " +
+    "in seconds. No frozen operation reaches them.",
+  source: reviewed("packages/backend/src/operator/README.md:3-20; books/as-is/operator/identities.ts, fixtures.ts, receipts.ts"),
+  affects: [f.concept_devnet, f.component_devnet],
+});
+
+export const decision_responsibilities_keepers = defineDecision({
+  id: "responsibilities.keepers",
+  title: "'Manage books' is the Books officer hat",
+  question: "Old books listed its keepers (who holds Manage books). What is that on v4?",
+  options: [
+    { label: "hat", text: "The wearers of the Books hat: board grants and revokes it, books reads its wearers from indexing." },
+    { label: "table", text: "Keep a keepers table in books." },
+  ],
+  chosen: "hat",
+  why: "On v4 every officer permission is a hat granted by a Board batch (CAP-1101), and Capxul reads it only from Hats; a table would copy the chain.",
+  source: reviewed("org.member.grant.yaml (designed: Books, Invoicing and People hats); packages/backend/src/books/keepers/"),
+  affects: [f.concept_books, f.concept_board],
+});
+
+export const decision_responsibilities_destinations = defineDecision({
+  id: "responsibilities.destinations",
+  title: "Receiving destinations stay in parties; the Solana cleanup is dropped",
+  question: "Old parties' destinations included internal report and remove operations for unused Solana wallets. Keep them?",
+  options: [
+    { label: "drop-cleanup", text: "Destinations stay with the Party; the Solana report and removal are dropped." },
+    { label: "keep", text: "Port all destination operations." },
+  ],
+  chosen: "drop-cleanup",
+  why: "The two internal operations clean up old rows on a network the target does not serve; nothing is migrated (P9) and no frozen operation calls them (P2).",
+  source: reviewed("packages/backend/src/parties/README.md:124-128"),
+  affects: [f.concept_parties],
+});
+
+export const decision_responsibilities_roles = defineDecision({
+  id: "responsibilities.roles",
+  title: "Old organizations' invitable roles list is dropped",
+  question: "Old organizations listed 'the roles a member can be invited into'. What is that on v4?",
+  options: [
+    { label: "drop", text: "Drop: on v4 an invitation offers the three officer hats and the Organization's allowances, which board's invite flow reads and `--preview` shows." },
+    { label: "keep", text: "Keep a roles read in organizations." },
+  ],
+  chosen: "drop",
+  why: "The roles were pre-v4 Zodiac Roles shapes (P9). No frozen operation calls the read.",
+  source: reviewed("packages/protocol/src/organizations/operations.ts:174-182; org.member.invite.yaml (designed)"),
+  affects: [f.concept_organizations, f.concept_board],
+});
+
+export const decision_responsibilities_service_lanes = defineDecision({
+  id: "responsibilities.service-lanes",
+  title: "Old accounts' service-key lanes become the service signer",
+  question: "Old accounts kept the Companies House key's sender lane (one send in flight). Where does that go?",
+  options: [
+    { label: "integration", text: "Into the service-signer integration: one send in flight per key, signed bytes recorded before broadcast." },
+    { label: "accounts", text: "Keep the lane table in accounts." },
+  ],
+  chosen: "integration",
+  why: "Every service key (claim, tier, Budgets executor, escrow relayer, faucet) needs the same rule, and only one of them is accounts'.",
+  source: reviewed("books/as-is/accounts/lanes.ts:1-7 (CAP-1097); integrations.set"),
+  affects: [x.integration_service_signer, f.concept_accounts],
+});
+
+// ── each concept's dependencies, one reason per edge ────────────────────────────────────────
+// The reasons are typed against each concept's `dependsOn`: an edge with no reason, or a reason
+// for an edge that does not exist, does not compile. The decisions above settle the contested
+// directions; these say why each remaining edge is needed at all.
+
+type DepIds<C extends { readonly dependsOn: readonly { readonly id: string }[] }> = C["dependsOn"][number]["id"];
+
+const dependencies = <const C extends Concept>(
+  concept: C,
+  reasons: { readonly [D in DepIds<C>]: string },
+) =>
+  defineDecision({
+    id: `dependencies.of-${concept.id}`,
+    title: `What ${concept.title.toLowerCase()} depends on, and why`,
+    question: `Which concepts must ${concept.id} read or invoke, and does each edge point the right way?`,
+    options: [
+      {
+        label: "as-booked",
+        text: concept.dependsOn.length ? `Depend on ${concept.dependsOn.map((d) => d.id).join(", ")}.` : "Depend on nothing.",
+      },
+      { label: "fewer", text: "Drop an edge and reach that concept's facts another way (an event, the chain, a value passed in)." },
+    ],
+    chosen: "as-booked",
+    why: concept.dependsOn.length
+      ? Object.entries(reasons as Record<string, string>).map(([d, why]) => `${d}: ${why}`).join(" ")
+      : "Every concept asks it who is calling, so it depends on nothing (concepts.access).",
+    source: reviewed("books/frozen/operations.ts (who and designed call of each owned operation); OPERATION_OWNERS"),
+    affects: [concept, ...concept.dependsOn],
+  });
+
+export const decision_dependencies_of_access = dependencies(f.concept_access, {});
+export const decision_dependencies_of_media = dependencies(f.concept_media, {
+  access: "who uploaded a file, and that only they or its owner may read it.",
+});
+export const decision_dependencies_of_parties = dependencies(f.concept_parties, {
+  access: "a person's Party and profile are their principal's, and only they edit them.",
+  media: "a profile photo points at a stored file.",
+});
+export const decision_dependencies_of_indexing = dependencies(f.concept_indexing, {
+  parties: "every chain view is scoped by joining parties' directory of Safes and their owners (P8).",
+});
+export const decision_dependencies_of_approvals = dependencies(f.concept_approvals, {
+  access: "an approval belongs to a principal, whose Safe is its sender.",
+  indexing: "an approval ends only on chain proof: the UserOperationEvent on its nonce.",
+});
+export const decision_dependencies_of_accounts = dependencies(f.concept_accounts, {
+  access: "admission, setup and sign-in are a principal's; the sign-in flows call access' code and session rpcs.",
+  parties: "the person's Party gets its Safe at setup; `dev fund --org` resolves an Organization's handle to its Safe.",
+  indexing: "Safe claims (CapxulSafeClaimed) earn referral invites, and the claim escrows waiting for a person are chain facts.",
+  approvals: "collecting the claim escrows at setup is an approval from the person's Safe.",
+});
+export const decision_dependencies_of_organizations = dependencies(f.concept_organizations, {
+  access: "the caller of every rpc.",
+  media: "an Organization's logo points at a stored file.",
+  parties: "the Organization's Party is registered at birth; an invitee is resolved by email, handle or Party.",
+  indexing: "hat wearers, the minter's and Installer's events, and AgentRemoved, which ends an agent's Seats.",
+  approvals: "the founder's install batch is an approval from the founder's Safe.",
+  accounts: "the founder must be admitted with a claimed Safe, and an invitation admits its invitee (procedures.accounts-admit).",
+});
+export const decision_dependencies_of_board = dependencies(f.concept_board, {
+  access: "the caller of every rpc.",
+  parties: "a Director or a grantee is named by handle or email and resolved to their Safe.",
+  indexing: "Director hat wearers, the company Safe's owners, threshold and approvals, and ExecutionSuccess.",
+  approvals: "each Director's approveHash, and the founder's batches, are approvals from their own Safes.",
+  organizations: "the company Safe, its members and hat ids, and the invitation whose grants it proposes.",
+});
+export const decision_dependencies_of_agents = dependencies(f.concept_agents, {
+  access: "the owner is a principal, and the agent signs in through access with its key.",
+  parties: "an agent registers its Party (handle and Safe) at birth.",
+  indexing: "AgentOwner's events say what became of each change.",
+  approvals: "a person-owned agent's change is an approval from the owner's Safe.",
+  accounts: "a person must have a claimed Safe to own an agent.",
+  organizations: "with `--org` the owner is the Organization's Safe, acted for by a Director.",
+  board: "every change to an Organization-owned agent is a Board proposal.",
+});
+export const decision_dependencies_of_budgets = dependencies(f.concept_budgets, {
+  access: "the caller of every rpc.",
+  indexing: "Budgets' tree, amounts and spends, and each budget hat's wearers, are chain views.",
+  approvals: "an office holder's change is an approval from their own Safe.",
+  organizations: "the company Safe, members and hat ids from the install.",
+  board: "top budgets, payout ceilings and allowance hats are Board batches.",
+});
+export const decision_dependencies_of_books = dependencies(f.concept_books, {
+  access: "the caller of every rpc.",
+  indexing: "the Transfers, PaymentSent facts and Safe balances it reconciles against, and the Books hat's wearers.",
+  organizations: "books are an Organization's, and the Books hat id is in its deployment.",
+});
+export const decision_dependencies_of_documents = dependencies(f.concept_documents, {
+  access: "the reader of a document.",
+  parties: "a document's participants are Parties, given when it is stored.",
+  organizations: "an Organization participant's members may read its documents.",
+});
+export const decision_dependencies_of_contacts = dependencies(f.concept_contacts, {
+  access: "the owner of a personal address book.",
+  parties: "a contact names a Party, or a handle, email or address that resolves to one.",
+  organizations: "an Organization's book is acted on by its members.",
+});
+export const decision_dependencies_of_payments = dependencies(f.concept_payments, {
+  access: "the payer.",
+  parties: "the recipient is resolved to a Party and its Safe.",
+  indexing: "PaymentSent, Transfers, escrow and Budgets events settle, reverse and birth Payments.",
+  approvals: "a personal or budget payment is an approval from the payer's Safe.",
+  accounts: "whether the sender and recipient have claimed Safes decides a direct send or a claim escrow.",
+  organizations: "an `--org` payment's Organization and its company Safe.",
+  board: "`--as-directors` payments and a company-owned claim escrow's refund are Board proposals.",
+  budgets: "which budget pays, what it has left and who may spend from it.",
+  books: "a settled Payment writes its book fact in its own transaction (books.record-money-fact).",
+  documents: "a Payment's document is stored at its birth (documents.store).",
+});
+export const decision_dependencies_of_payroll = dependencies(f.concept_payroll, {
+  access: "the caller of every rpc.",
+  parties: "the payee is resolved to a Party and its Safe.",
+  indexing: "Agreements' events drive each agreement's process.",
+  approvals: "offers, changes, acceptance and collection are approvals from the actor's Safe.",
+  organizations: "an agreement is an Organization's, read by its members.",
+  board: "an agreement on a top budget is offered or changed by Board proposal.",
+  budgets: "an agreement pays from a budget, whose office holder or anyone above may act on it.",
+  documents: "an agreement's terms document is stored at its offer.",
+});
+export const decision_dependencies_of_banking = dependencies(f.concept_banking, {
+  access: "the caller of every rpc.",
+  media: "verification documents are stored files.",
+  parties: "bank details are per Party and currency, and a deposit lands in a Party's Safe.",
+  indexing: "the token Transfer a bank deposit becomes, and Director hat wearers for a business's people.",
+  organizations: "who may manage an Organization's banking, and the routing of `invite accept`.",
+  books: "a bank deposit writes its book fact in its own transaction.",
+  contacts: "a saved bank account may belong to a contact.",
+  payments: "a bank payout's money leaves as a Payment born through payments.prepare-command.",
+});
+export const decision_dependencies_of_requests = dependencies(f.concept_requests, {
+  access: "the caller of every rpc.",
+  parties: "the issuer and the payer are Parties.",
+  indexing: "an invoice escrow's events pay a checkout request.",
+  organizations: "an Organization's requests need the Invoicing hat; its inbox is read by members.",
+  documents: "a request's invoice document is stored at issue.",
+  payments: "paying from the inbox births a command; a request's paid state follows payment_transitioned.",
+  banking: "a matched deposit is marked through banking.match-deposit.",
+});
+export const decision_dependencies_of_applications = dependencies(f.concept_applications, {
+  access: "consent is a person's grant, and a person owns their own keys.",
+  indexing: "the Invoicing hat's wearers may manage an Organization's keys.",
+  organizations: "an Organization's applications, and its Invoicing hat id.",
+});
+export const decision_dependencies_of_equity = dependencies(f.concept_equity, {
+  access: "the caller of every rpc.",
+  parties: "investors, grantees and shareholders are resolved to Parties and Safes.",
+  indexing: "the equity clones' events and positions.",
+  approvals: "an investor's, grantee's or shareholder's call is an approval from their own Safe.",
+  accounts: "an invited investor needs a claimed Safe to commit or pay.",
+  organizations: "the company, its members and its equity deployment.",
+  board: "every Board matter (issue, round, options, exit) is a Board proposal.",
+  documents: "round, SAFE and grant documents are stored with their offers.",
+});
+export const decision_dependencies_of_activity = dependencies(f.concept_activity, {
+  access: "the reader.",
+  parties: "the counterparties a row names.",
+  indexing: "Transfers and Safe balances.",
+  organizations: "whether the reader may read an Organization's activity.",
+  budgets: "what an Organization's budgets have left, for `available`.",
+  books: "a row's account and memo, and USD prices.",
+  documents: "the documents a row carries.",
+  payments: "Payments, pending payments and Movements.",
+});
+export const decision_dependencies_of_notices = dependencies(f.concept_notices, {
+  access: "the sender address and a recipient's principal.",
+  parties: "a recipient's mailbox.",
+  accounts: "referral invites and admissions.",
+  organizations: "invitations sent, resent and expiring.",
+  board: "a proposal waiting for a Director.",
+  payments: "a dated payment due or failed, and money received.",
+  payroll: "an agreement offered, changed or ending.",
+  banking: "a business verification invitation and a payout returned.",
+  requests: "a request issued, paid or declined.",
+  equity: "a round or SAFE invitation.",
+});
+export const decision_dependencies_of_devnet = dependencies(f.concept_devnet, {
+  access: "`dev approve` signs in as another person, and `dev gates set` writes gates.",
+  approvals: "`dev approve` signs an approval with the dev signer.",
+  organizations: "`dev gates set` for an Organization needs its membership.",
 });

@@ -44,8 +44,11 @@ The prompts in `tools/workflows/` use the absolute paths `/home/user/capxul-next
 | 3 | Target architecture: concept map (22 concepts, no cycles), components, kept errors, integrations, v4 contracts, decisions | see `books/target/shared/` and `docs/decisions/target-architecture.md` |
 | 4 | Target design of each concept | next, in the order below |
 | 5 | Target book built with the target rules, zero problems | after 4 |
-| 6 | Spike: Effect Workflow on Postgres survives kill and resume, a signal and a timer | after 5, needs Postgres |
-| 7 | Rewrite `docs/mission/initializer.md` around the finished book for the build phase | last |
+| 6 | The goal prompt: rewrite `docs/mission/initializer.md` as the prompt that starts the build from the finished book | last |
+
+This work **prepares** the rebuild; it does not run it. No product code is written here. The
+build, starting with the spike that proves Effect Workflow on Postgres (kill and resume, a signal,
+a timer), is the first task the goal prompt hands to the build session.
 
 ## How to continue milestone 4
 

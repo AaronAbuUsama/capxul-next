@@ -83,7 +83,7 @@ export const integration_chain_rpc = defineIntegration({
     },
     getLogs: {
       about:
-        "eth_getLogs over one block window, for the added-token scan only (indexing): at most 2,000 blocks per call, on the " +
+        "eth_getLogs over one block window, for books' added-token scan only: at most 2,000 blocks per call, on the " +
         "nodes that take wide log reads.",
       timeoutMs: 5_000,
       retries: { max: 2, backoff: "exponential" },

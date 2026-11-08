@@ -212,7 +212,8 @@ export const concept_access = defineConcept({
     "person, telemetry consent, `schema` and `whoami`. It depends on nothing: an agent's sign-in is proved on chain (its key " +
     "must be the one owner of a Safe that AgentOwner controls), not by reading agents' tables. It never grants authority " +
     "over money (hats and budgets do), never admits a person (accounts) and never records an application's consent " +
-    "(applications). Old access, less the waitlist and referrals, application consent and the indexer read scope.",
+    "(applications). `auth login` and `auth verify` are accounts' flows over its sign-in rpcs, because they report the " +
+    "account's setup. Old access, less the waitlist and referrals, application consent and the indexer read scope.",
   component: B,
   dependsOn: [],
   was: [`${OLD}/access/README.md:3`],
@@ -257,9 +258,10 @@ export const concept_indexing = defineConcept({
     "contracts' events and the read models built from them (PaymentSent, ERC-20 Transfers, UserOperationEvent, Budgets, " +
     "Agreements, escrows, Hats wearers, Safe owners and approvals, the Installer's deployments, Companies House claims and " +
     "mints, AgentOwner, the equity contracts) and the indexer's progress. Ponder alone writes them; every other concept reads " +
-    "them here and is triggered by their chain events. Its one workflow scans tokens added at run time, which Ponder has no " +
-    "source for (P3). The old drift reconcile goes: nothing copies chain rows any more, so nothing drifts. Old indexing, old " +
-    "payments' Movement scans and old permissions' receipt-verified chain record.",
+    "them here and is triggered by their chain events. It has no workflow: a token an Organization adds at run time, which " +
+    "Ponder has no source for, is scanned by books, the concept that knows it was added. The old drift reconcile goes: " +
+    "nothing copies chain rows any more, so nothing drifts. Old indexing, old payments' Movement scans and old permissions' " +
+    "receipt-verified chain record.",
   component: B,
   dependsOn: [concept_parties],
   was: [`${OLD}/indexing/README.md:3`],
@@ -287,7 +289,9 @@ export const concept_accounts = defineConcept({
   title: "Accounts",
   about:
     "A person's way into Capxul and their own Safe. Owns admission (the waitlist, an operator's admissions, referral invites " +
-    "and the invites a referrer earns, counted from the chain's Safe claims), the personal Safe's setup (its address a pure " +
+    "and the invites a referrer earns, counted from the chain's Safe claims, and the admission an Organization invitation " +
+    "gives, through `accounts.admit` in the invitation's transaction), the sign-in commands (`auth login` and `auth verify` " +
+    "are its flows over access' sign-in rpcs, because they answer with the account's setup), the personal Safe's setup (its address a pure " +
     "function of the email; Companies House's claim role installs the person's signer; the claim escrows waiting for them " +
     "are collected; one durable process per setup) and test-network grants (the faucet and welcome grants, refused on " +
     "production). Whether a Safe is claimed is also on chain (CapxulSafeClaimed), so a lower concept never needs accounts " +
@@ -305,8 +309,10 @@ export const concept_organizations = defineConcept({
     "A workspace. Owns an Organization's record and its setup (Companies House mints the company Safe; the Installer deploys " +
     "its hats, Roles and Signer Gate; the founder approves the install batch; one durable process per setup), its deployment " +
     "(the hat ids, Roles, Gate and Budgets wiring the install produced), its members (Seats, human or agent) and invitations " +
-    "(invite, accept, decline, resend, cancel, expire), and `use org`. It answers who is a member and which officer hat is " +
-    "which, so every concept above it can authorize an Organization tenant. It registers the Organization's Party at birth. " +
+    "(invite, accept, decline, resend, cancel, expire; an invitation admits its invitee to the beta through " +
+    "`accounts.admit`), and `use org`. It answers who is a member and which officer hat is which, so every concept above it " +
+    "can authorize an Organization tenant. A Seat held by an agent ends when the chain shows the agent removed " +
+    "(AgentRemoved). It registers the Organization's Party at birth. " +
     "Old organizations' identity, setups, lifecycles, members, roles and invitations; its Directors and proposals go to " +
     "board, its equity, rounds and votes to equity, its treasury reads to activity.",
   component: B,
@@ -322,7 +328,8 @@ export const concept_board = defineConcept({
     "Shareholders' top hat before equity, claimed when elected, handed over, refreshed), the threshold, Board proposals (one " +
     "company Safe transaction each, approved by each Director's own `approveHash` and executed with the last approval; one " +
     "durable process per proposal) and the officer hats (Books, Invoicing, People), granted and revoked by proposal, " +
-    "including the grants an invitation offers. A concept that needs the Board opens a proposal inside its own transaction " +
+    "including the grants an invitation offers (`org member invite` is its flow: organizations' invitation, then the " +
+    "proposal of its grants here). A concept that needs the Board opens a proposal inside its own transaction " +
     "(`board.propose`: the intent and the proposal that carries it are one fact) and follows `proposal_transitioned`. Old " +
     "organizations' directors and proposals, and old permissions' managePeople, now the People hat.",
   component: B,
@@ -366,10 +373,11 @@ export const concept_books = defineConcept({
   about:
     "An Organization's books (ADR-0042): the chart of accounts, the assets it tracks, USD prices (from Chainlink), the " +
     "annotations that give a Payment or Movement its account and memo (`activity annotate`), the facts that record every " +
-    "change, and the reports, the reconcile against what the chain holds and the QuickBooks export derived from them. " +
+    "change, the scan of each token an Organization adds at run time (Ponder has no source for it; P3 keeps the cron), and " +
+    "the reports, the reconcile against what the chain holds and the QuickBooks export derived from them. " +
     "Payments and banking write a money fact's book fact in their own transaction (`books.record-money-fact`, " +
-    "`books.reverse-money-fact`; one live fact per money fact). Old books, old activity's annotations and the Chainlink " +
-    "price sync.",
+    "`books.reverse-money-fact`; one live fact per money fact). Old books, old activity's annotations, the Chainlink " +
+    "price sync and the added-token Movement scan.",
   component: B,
   dependsOn: [concept_access, concept_indexing, concept_organizations],
   was: [`${OLD}/books/README.md:3`, `${OLD}/activity/README.md:3`],
@@ -447,7 +455,9 @@ export const concept_banking = defineConcept({
     "deposits and the book facts they write, saved bank accounts (yours or a contact's), and bank payouts (a quote, a " +
     "Payment through `payments.prepare-command`, then the payout followed through Bridge's events until it is delivered or " +
     "returned). Bridge's signed webhook events arrive in an encrypted inbox, with a catch-up for missed ones. Matching a " +
-    "deposit to the request it paid is requests' operation. Old banking and old parties' verification.",
+    "deposit to the request it paid is requests' operation. `invite accept` is its flow: it routes a business verification " +
+    "invitation (`inv_kyb_`) here and every other invitation to organizations. Old banking, old parties' verification and " +
+    "saved bank accounts.",
   component: B,
   dependsOn: [
     concept_access, concept_media, concept_parties, concept_indexing, concept_organizations, concept_books, concept_contacts,
@@ -538,11 +548,13 @@ export const concept_devnet = defineConcept({
   id: "devnet",
   title: "Devnet",
   about:
-    "Devnet-only tools, refused on staging and production: signing as another person (`dev approve`), funding an " +
-    "Organization from the faucet, feature gates, scripted prices, the mail sink and its fail switch, running due jobs now, " +
-    "and snapshots and time (through the devnet supervisor). Its tables are what the integrations' devnet fakes read and " +
-    "write, so no production concept depends on it. Replaces old operator: its faucet goes to accounts, its diagnostics to " +
-    "applications' health, its tenancy probes to the generated tenancy evals, its delivery records to notices.",
+    "Devnet-only tools, refused on staging and production: signing as another person (`dev approve`), feature gates, " +
+    "scripted prices, the mail sink and its fail switch, running due jobs now, and snapshots and time (through the devnet " +
+    "supervisor). Its tables are what the integrations' devnet fakes read and write, so no production concept depends on " +
+    "it. Replaces old operator: its faucet goes to accounts (`dev fund`, whose `--org` is refused off a devnet), its " +
+    "diagnostics to applications' health, its tenancy probes to the generated tenancy evals, its delivery records to " +
+    "notices; its proof identities, fixtures and receipt hold give way to worlds built by running operations and saved " +
+    "as snapshots, and to the integrations' fault switches.",
   component: B,
   dependsOn: [concept_access, concept_approvals, concept_organizations],
   was: [`${OLD}/operator/README.md:3`],
@@ -725,10 +737,10 @@ export const OPERATION_OWNERS: { readonly [Id in FrozenId]: Concept } = {
   "agent.sweep": o.agents,
   "agent.unfreeze": o.agents,
   "auth.list": o.access,
-  "auth.login": o.access,
+  "auth.login": o.accounts, // reports the account's setup
   "auth.logout": o.access,
   "auth.switch": o.access,
-  "auth.verify": o.access,
+  "auth.verify": o.accounts,
   "config.telemetry.off": o.access,
   "config.telemetry.on": o.access,
   "config.telemetry.status": o.access,
@@ -843,7 +855,7 @@ export const OPERATION_OWNERS: { readonly [Id in FrozenId]: Concept } = {
   "shares.exercise": o.equity,
   "shares.sell": o.equity,
   // area governance (43)
-  "invite.accept": o.organizations,
+  "invite.accept": o.banking, // exception: routes an inv_kyb_ id to banking, the rest to organizations
   "invite.decline": o.organizations,
   "invite.list": o.organizations,
   "org.allowance.assign": o.budgets, // allowances are budgets
@@ -870,7 +882,7 @@ export const OPERATION_OWNERS: { readonly [Id in FrozenId]: Concept } = {
   "org.invite.resend": o.organizations,
   "org.member.get": o.organizations,
   "org.member.grant": o.board, // an officer hat, by Board proposal
-  "org.member.invite": o.organizations,
+  "org.member.invite": o.board, // the invitation, then the proposal of its grants
   "org.member.list": o.organizations,
   "org.member.revoke": o.board,
   "org.proposal.approve": o.board,
