@@ -50,14 +50,15 @@ export const workflow_notices_payroll_collection_refused = noticeWorkflow({
   id: "notices.payroll.collection-refused",
   title: "Tell a payee their collection did not go through",
   about:
-    "Follows `fail` of a payee's `collected` write that reverted: the chain refused the collection (the payer's Safe " +
-    "short, or its payout ceiling reached), so nothing was paid. Sends `collection-refused` to the payee, who can try " +
+    "Follows `fail` of a payee's `collected` write that reverted, or whose payee Organization's Board proposal ran and " +
+    "failed (`execution_failed`, board's `fail`): the chain refused the collection (the payer's Safe short, or its payout " +
+    "ceiling reached), so nothing was paid. Sends `collection-refused` to the payee, who can try " +
     "again. A write another beat to the chain, and every holder write that failed, send nothing: the holder is following " +
     `their own write. The old payout-ceiling alert to the Directors is not kept (decision notices.agreements). ${DIRECTORS}`,
   trigger: { transition: machine_agreement_write.t.fail },
   reads: READS,
   steps: [
-    { name: "write", about: "Reads the failed write; anything but a payee's `collected` that `reverted` ends here." },
+    { name: "write", about: "Reads the failed write; anything but a payee's `collected` that `reverted` or `execution_failed` ends here." },
     PAYEE,
   ],
   chain: [contract_safe.f.getOwners],

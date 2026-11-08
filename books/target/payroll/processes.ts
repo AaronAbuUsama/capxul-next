@@ -9,6 +9,7 @@ import { concept_payroll } from "../shared/foundation.ts";
 import { contract_agreements, integration_chain_rpc, integration_indexer } from "../shared/external.ts";
 import { procedure_approvals_withdraw } from "../approvals/procedures.ts";
 import { table_approvals } from "../approvals/data.ts";
+import { table_board_proposals } from "../board/data.ts";
 import { machine_agreement, machine_agreement_write, table_agreement_writes, table_agreements } from "./data.ts";
 import {
   rpc_payroll_holders_change,
@@ -35,7 +36,7 @@ export const workflow_payroll_agreements_lifecycle = defineWorkflow({
     "write's approval or Board proposal, which approvals and board announce through the outbox: it reads the indexed " +
     "facts of that transaction (`factsOf`) and lands the write when they hold its own event for this agreement, in the " +
     "same transaction as the status move that event makes; it fails it when the operation reverted or the transaction ran " +
-    "without its event (another write beat it); it abandons it when the approval was refused, declined, displaced, " +
+    "without its event (another write beat it), or the proposal ended `failed`; it abandons it when the approval was refused, declined, displaced, " +
     "withdrawn or expired unsent, or the proposal was rejected or replaced. A prepared offer whose write did not land is " +
     "abandoned with it. (3) Its timers, by the chain's clock: the offer's expiry lapses an offer nobody accepted or withdrew, and the end (00:00 UTC after the " +
     "last day paid) ends an accepted agreement. It ends when the agreement is lapsed, withdrawn or abandoned and no write " +
@@ -77,7 +78,7 @@ export const workflow_payroll_agreements_lifecycle = defineWorkflow({
       for: "signal",
       about:
         "The end of an awaiting write's approval (approval_transitioned with opener payroll and the write as its subject) or " +
-        "Board proposal (proposal_transitioned), delivered by the outbox.",
+        "Board proposal (proposal_transitioned: execute, fail, reject or replace), delivered by the outbox.",
     },
     { name: "offer-expiry", for: "timer", about: "offer_expires_at, while the offer waits for its payee." },
     { name: "end", for: "timer", about: "ends_at, once an accepted agreement has an end: a fixed term's own or a holder's." },
@@ -94,8 +95,8 @@ export const workflow_payroll_agreements_lifecycle = defineWorkflow({
     {
       name: "decide-write",
       about:
-        "A landed approval's transaction (its row in approvals) or an executed proposal's: awaitBlock, then factsOf; the " +
-        "write's own event lands it (with a collection's PaymentSent id), its absence or a revert fails it, an unsent end abandons it.",
+        "A landed approval's transaction, or an executed proposal's (board-proposals' execution_tx_hash): awaitBlock, then " +
+        "factsOf. Its own event lands it (with a collection's PaymentSent id); none, a revert or a failed proposal fails it; an unsent end abandons it.",
     },
     { name: "end-timer", about: "Sets its timer to ends_at whenever an end is set or moved earlier; at it, agreement.finish." },
     {
@@ -106,7 +107,7 @@ export const workflow_payroll_agreements_lifecycle = defineWorkflow({
     },
     { name: "close", about: "Ends the instance once nothing more can happen; an ended agreement's last collection is read with availableOf." },
   ],
-  reads: [table_agreements, table_agreement_writes, table_approvals],
+  reads: [table_agreements, table_agreement_writes, table_approvals, table_board_proposals],
   writes: [table_agreements, table_agreement_writes],
   drives: [
     a.offer,

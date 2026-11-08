@@ -5,7 +5,14 @@
 // operations.invite-accept-in-banking).
 
 import { defineDecision } from "../../../packages/book/src/index.ts";
-import { concept_banking } from "../shared/foundation.ts";
+import { concept_banking, concept_approvals, concept_budgets } from "../shared/foundation.ts";
+import { error_CANCELLED, error_INVALID_INPUT, error_WRONG_STATE } from "../shared/vocabulary.ts";
+import { rpc_contacts_book_get, rpc_contacts_book_list } from "../contacts/book.ts";
+import { procedure_approvals_withdraw } from "../approvals/procedures.ts";
+import { rpc_approvals_signing_get, rpc_approvals_signing_sign } from "../approvals/signing.ts";
+import { table_budgets } from "../budgets/data.ts";
+import { procedure_payments_prepare_command } from "../payments/procedures.ts";
+import { table_files } from "../media/data.ts";
 import { integration_bridge } from "../shared/external.ts";
 import * as d from "./data.ts";
 import { procedure_banking_match_deposit } from "./procedures.ts";
@@ -14,6 +21,7 @@ import { rpc_banking_details_settle, rpc_banking_details_show } from "./details.
 import {
   rpc_banking_accounts_add,
   rpc_banking_accounts_list,
+  rpc_banking_accounts_list_for_contact,
   rpc_banking_accounts_remove,
   rpc_banking_accounts_requirements,
 } from "./accounts.ts";
@@ -27,6 +35,7 @@ import {
   workflow_banking_verification_follow,
 } from "./processes.ts";
 import {
+  flow_client_account_address_book_get,
   flow_client_account_bank_accounts_add,
   flow_client_banking_payouts_pay,
   flow_client_org_invitations_accept,
@@ -42,6 +51,7 @@ const OPERATIONS = [
   o.operation_bank_accounts,
   o.operation_bank_accounts_add,
   o.operation_contact_bank_add,
+  o.operation_contact_get,
   o.operation_bank_accounts_remove,
   o.operation_bank_deposits,
   o.operation_bank_details,
@@ -471,25 +481,25 @@ export const decision_banking_not_ported = defineDecision({
 
 export const decision_banking_flows = defineDecision({
   id: "banking.flows",
-  title: "Five flows; the one-call operations are their rpc",
+  title: "Six flows; the one-call operations are their rpc",
   question: "Which banking operations need a Core SDK flow (A4), and what are the flows called?",
   options: [
     {
-      label: "five",
+      label: "six",
       text:
-        "Flows for `verify start`, `verify status`, `invite accept`, `bank pay`, and one shared by `bank accounts add` and " +
-        "`contact bank add`; every other operation is one rpc.",
+        "Flows for `verify start`, `verify status`, `invite accept`, `bank pay`, `contact get`, and one shared by `bank " +
+        "accounts add` and `contact bank add`; every other operation is one rpc.",
     },
     { label: "all", text: "A flow for every operation." },
   ],
-  chosen: "five",
+  chosen: "six",
   why:
     "A flow is for an operation that composes rpcs with prompts, uploads, waits or polls. The two add commands share " +
     "the frozen SDK method `client.account.bankAccounts.add`, so one flow serves both. `bank settle`'s picker only " +
     "chooses `--to` from two tokens before the one call, so it stays an rpc. `bank pay`'s frozen method " +
     "`client.approvals.prepare` was shared by every payment command; its flow is named `client.banking.payouts.pay` " +
-    "so it has one meaning. Banking does not depend on approvals, so `bank pay` hands the person the approval page and " +
-    "follows the payout, with no agent-signing branch: an agent has no Bridge verification.",
+    "so it has one meaning. `contact get` composes contacts' entry with the accounts saved on it (banking.contact-get). " +
+    "`bank pay`'s signing follows banking.payers-sign: an agent paying from an Organization's budget signs at once.",
   source: "A4; bank.pay.yaml (sdk), bank.accounts.add.yaml and contact.bank.add.yaml (sdk); books/target/approvals/flows.ts",
   affects: [
     flow_client_verification_start,
@@ -497,6 +507,7 @@ export const decision_banking_flows = defineDecision({
     flow_client_org_invitations_accept,
     flow_client_banking_payouts_pay,
     flow_client_account_bank_accounts_add,
+    flow_client_account_address_book_get,
     rpc_banking_accounts_requirements,
     rpc_banking_accounts_list,
     rpc_banking_deposits_list,
@@ -522,25 +533,25 @@ export const decision_banking_new_payee = defineDecision({
 
 export const decision_banking_acceptance_rewrites = defineDecision({
   id: "banking.acceptance-rewrites",
-  title: "Nine acceptance lines that named a mechanism, rewritten as outcomes",
+  title: "Seven acceptance lines that named a mechanism, rewritten as outcomes",
   question: "Which frozen acceptance lines of banking's operations name a mechanism a black box cannot see (P1)?",
   options: [
     {
-      label: "nine",
+      label: "seven",
       text:
         "`invite accept` #1 (one transaction, a durable drive call), `bank accounts` #5 and `bank deposits` #5 " +
-        "('schedules nothing'), `bank accounts add` #2 and `contact bank add` #3 (a scheduled job), `bank settle` #1 " +
-        "(the order of Bridge calls), #2 and #3 (a queued event) and #4 (a write to Bridge after a read).",
+        "('schedules nothing'), `bank accounts add` #2 and `contact bank add` #3 (a scheduled job), and `bank settle` " +
+        "#2 and #3 (a queued event). `bank settle` #1 and #4 are kept: the trace observer sees Bridge's calls in order.",
     },
     { label: "verbatim", text: "Keep every line as written." },
   ],
-  chosen: "nine",
+  chosen: "seven",
   why:
     "A scheduler, a queue, a transaction and the order of internal calls are mechanisms. Each rewrite keeps the outcome " +
     "the old test proved and still passes against the old system: a read leaves the world unchanged; a save sends one " +
     "event and a replay none; settling a just-opened account succeeds; a token change is recorded once and the same " +
-    "token changes nothing; an unusable Bridge answer leaves the stored token. `bank settle` makes no read before its " +
-    "write, because the shared Bridge integration has no read of one virtual account; Bridge's own state decides.",
+    "token changes nothing. `bank settle` reads Bridge before it writes again, now that the shared Bridge integration " +
+    "has a read of one virtual account (banking.settle-reads-first).",
   source: "P1; books/frozen/operations.ts (invite.accept, bank.accounts, bank.deposits, bank.accounts.add, contact.bank.add, bank.settle)",
   affects: [
     o.operation_invite_accept,
@@ -555,7 +566,7 @@ export const decision_banking_acceptance_rewrites = defineDecision({
 export const decision_banking_worlds = defineDecision({
   id: "banking.worlds",
   title: "The devnet worlds banking's refusals start from",
-  question: "Which named devnet snapshots reach each refusal of banking's eleven operations?",
+  question: "Which named devnet snapshots reach each refusal of banking's twelve operations?",
   options: [
     {
       label: "worlds",
@@ -576,24 +587,25 @@ export const decision_banking_worlds = defineDecision({
     "Each world is built by running operations as the devnet's fixed identities against the Bridge stand-in, and saved " +
     "as a snapshot named for what it holds; reusing the other concepts' worlds keeps one snapshot per situation. A " +
     "quote expiring before approval is reached from person-with-gbp-account with `dev time warp`.",
-  source: "spec 30 (worlds); organizations.worlds; contacts.worlds; the eleven operations' refusals",
+  source: "spec 30 (worlds); organizations.worlds; contacts.worlds; the twelve operations' refusals",
   affects: OPERATIONS,
 });
 
 export const decision_banking_budgets = defineDecision({
   id: "banking.budgets",
-  title: "Class budgets, with two overrides and the person's wait excluded",
+  title: "Class budgets, with three overrides and the person's wait excluded",
   question: "Which banking records leave their class default (P5)?",
   options: [
     {
-      label: "two-overrides",
+      label: "three-overrides",
       text:
-        "`verify start` and its flow (p95 10 s: document uploads) and `bank pay` with its quote rpc (p95 5 s: two Bridge " +
-        "calls in sequence); every prompt and approval excluded as `wait.person`, and `bank pay`'s chain confirmation.",
+        "`verify start` and its flow (p95 10 s: document uploads), and `bank pay` with its quote rpc and `bank settle` " +
+        "with its rpc (p95 5 s: two Bridge calls in sequence); every prompt and approval excluded as `wait.person`, and " +
+        "`bank pay`'s chain confirmation.",
     },
     { label: "defaults", text: "Every record at its class default." },
   ],
-  chosen: "two-overrides",
+  chosen: "three-overrides",
   why:
     "A vendor call is 2 s p95 (integrations.timeouts), so two in sequence cannot meet the vendor class's 4 s, and " +
     "uploading up to 24 MB documents is network time no class anticipates. Everything else is one Bridge call (vendor), " +
@@ -602,7 +614,175 @@ export const decision_banking_budgets = defineDecision({
   affects: [
     o.operation_verify_start,
     o.operation_bank_pay,
+    o.operation_bank_settle,
     flow_client_verification_start,
     rpc_banking_payouts_quote,
+    rpc_banking_details_settle,
   ],
+});
+
+// ── assembly (8 November 2026) ──────────────────────────────────────────────────────────────
+
+const ASSEMBLY = (evidence: string) => `Claude, target assembly (rails-and-reads), 8 November 2026; evidence: ${evidence}`;
+
+export const decision_banking_contact_get = defineDecision({
+  id: "banking.contact-get",
+  title: "`contact get` is contacts' entry, then the accounts saved on it here",
+  question:
+    "The architecture review moved `contact get` to banking (shared operations.contact-get-in-banking) and contacts " +
+    "dropped its record (contacts.get-moved). How does banking book it, and where do a contact's accounts come from?",
+  options: [
+    {
+      label: "flow-and-rpc",
+      text:
+        "One flow, `client.account.address-book.get` (the frozen method): at a terminal with no PartyId the picker " +
+        "(`contacts.book.list`, hidden included), then `contacts.book.get`, and for an entry a new query " +
+        "`banking.accounts.list-for-contact` over the `bank-accounts-by-party` index. Null ends it with no second read.",
+    },
+    { label: "widen-list", text: "Give `banking.accounts.list` a contact filter, as the old SDK's list had a target." },
+    { label: "one-rpc", text: "One banking rpc that reads contacts' table and the accounts together." },
+  ],
+  chosen: "flow-and-rpc",
+  why:
+    "A4 gives the operation one SDK flow, and the old CLI made exactly these calls (the entry, then the contact's " +
+    "accounts). `banking.accounts.list` implements `bank accounts`, whose frozen page lists only your own; a filter " +
+    "would give one rpc two meanings. A banking rpc reading contacts' table would repeat contacts' book rule (manual or " +
+    "member). The acceptance observations and the guided-read budget (p95 1,600 ms) are the ones contacts handed over; " +
+    "the refusals start from contacts' world person-with-contacts and signed-out.",
+  source: ASSEMBLY("contact.get.yaml; books/target/contacts/decisions.ts (contacts.get-moved, contacts.budgets); apps/cli/src/commands/contact/subcommands/get/execute.ts:41"),
+  affects: [
+    o.operation_contact_get,
+    flow_client_account_address_book_get,
+    rpc_banking_accounts_list_for_contact,
+    rpc_contacts_book_get,
+    rpc_contacts_book_list,
+    d.table_bank_accounts,
+  ],
+});
+
+export const decision_banking_payers_sign = defineDecision({
+  id: "banking.payers-sign",
+  title: "`bank pay --from` takes a budget's key, and an agent payer signs at once",
+  question:
+    "Banking now depends on approvals and budgets (shared dependencies.payers-sign-and-name-budgets). The designed " +
+    "`bank pay --org acme --from office-costs` names the budget by key and prints its name; an Organization's payer may " +
+    "be an agent Seat wearing the budget's hat. What does banking use them for?",
+  options: [
+    {
+      label: "key-and-sign",
+      text:
+        "The quote resolves `from` through budgets' table (key to chain id and name; a chain id as it is) and answers the " +
+        "budget in the view; the flow follows the sponsored approval (`approvals.signing.get`), and an agent signs its " +
+        "digest with its own key and gives it to `approvals.signing.sign`; a person still approves on the page.",
+    },
+    { label: "page-only", text: "Keep chain ids and the approval page for every payer, as before the edge existed." },
+  ],
+  chosen: "key-and-sign",
+  why:
+    "The designed example takes the key and prints 'from Office costs' (P10 rung 1), and requests' `inbox pay` already " +
+    "resolves `--from` the same way, so one key means one budget everywhere. A person's bank pay needs their own Bridge " +
+    "verification, but an Organization's needs only the Organization's (KYB), so an agent wearing the budget's hat can " +
+    "pay and, under A4, signs in the flow with its own key, as payroll's and requests' flows do. A declined approval ends " +
+    "CANCELLED and an expired one WRONG_STATE (approvals.machine).",
+  source: ASSEMBLY("bank.pay.yaml (designed: synopsis, example, who); shared dependencies.payers-sign-and-name-budgets; books/target/requests/inbox.ts"),
+  affects: [
+    rpc_banking_payouts_quote,
+    rpc_banking_payouts_get,
+    flow_client_banking_payouts_pay,
+    o.operation_bank_pay,
+    table_budgets,
+    rpc_approvals_signing_get,
+    rpc_approvals_signing_sign,
+    concept_approvals,
+    concept_budgets,
+    error_CANCELLED,
+    error_WRONG_STATE,
+  ],
+});
+
+export const decision_banking_payout_deadline = defineDecision({
+  id: "banking.payout-deadline",
+  title: "A payout's Payment cannot move after its quote; a changed account withdraws it",
+  question:
+    "Banking reported two holes: nothing stopped a payout's Payment landing, or being retried, after the quote's " +
+    "deadline, and a changed bank account could not withdraw an unsigned approval. Payments now takes `not_after` and " +
+    "an item with no document (payments.door-inputs) and leaves the withdrawal to the opener (payments.withdraw-by-opener). " +
+    "What does banking do?",
+  options: [
+    {
+      label: "cap-and-withdraw",
+      text:
+        "The quote passes `not_after` = the quote's `expires_at` and an item with a null document and the zero hash, and " +
+        "keeps the approval's id on the payout; the payout's process, ending a quoted payout on its account's removal or " +
+        "deactivation, invokes `approvals.withdraw` in that transaction. Answered `signed`, it stays quoted and follows its Payment.",
+    },
+    { label: "lapse", text: "Leave the payout `expired` and let Bridge refund a send that lands anyway." },
+  ],
+  chosen: "cap-and-withdraw",
+  why:
+    "bank.pay's WRONG_STATE says 'Nothing is sent' for both an expired quote and a changed account. With the deadline on " +
+    "the command, the approval's window and any retry end at the quote's expiry; with the withdrawal, nobody can sign " +
+    "after the account changed. Only an approval already signed can still land, which only the chain can end (K6): the " +
+    "payout then follows its Payment, and Bridge delivers to the account it still holds. The withdrawal and the payout's " +
+    "end are one fact (the payout ended and its unsigned carrier with it), which is `approvals.withdraw`'s own money fact (P4).",
+  source: ASSEMBLY("bank.pay.yaml (refusal WRONG_STATE); books/target/payments/decisions.ts (payments.door-inputs, payments.withdraw-by-opener); approvals.withdraw"),
+  affects: [
+    rpc_banking_payouts_quote,
+    workflow_banking_payouts_follow,
+    d.table_bank_payouts,
+    d.machine_bank_payout.t.expire,
+    procedure_payments_prepare_command,
+    procedure_approvals_withdraw,
+    o.operation_bank_pay,
+  ],
+});
+
+export const decision_banking_verification_files = defineDecision({
+  id: "banking.verification-files",
+  title: "A verification admits only held identity documents of the right purpose",
+  question:
+    "Media admits each file for one purpose and leaves the check to its consumer (media.files: INVALID_INPUT, raised by " +
+    "the consumer). Which files may `banking.verification.start` send to Bridge?",
+  options: [
+    {
+      label: "purpose-and-held",
+      text:
+        "Each read at the caller's own key: `id_front` and `id_back` must be `id-image`; every other document field " +
+        "`id-image` or `document`; each still `held`. Anything else is INVALID_INPUT naming the field.",
+    },
+    { label: "any-file", text: "Send whatever file id the SDK gives; Bridge refuses what it cannot use." },
+  ],
+  chosen: "purpose-and-held",
+  why:
+    "Bridge's ID fields need a photo (JPG or PNG) and its other fields take a PDF too, which are exactly media's two " +
+    "document purposes. A `held` file is one whose bytes still exist (30 minutes after upload), so an expired one fails " +
+    "here with the field named rather than at Bridge with a reason the person may not see. The caller's own key means a " +
+    "file someone else uploaded names nothing.",
+  source: ASSEMBLY("books/target/media/data.ts (files: purposes, states); docs/decisions/assembly-items.md (media)"),
+  affects: [rpc_banking_verification_start, table_files, error_INVALID_INPUT],
+});
+
+export const decision_banking_settle_reads_first = defineDecision({
+  id: "banking.settle-reads-first",
+  title: "`bank settle` reads the virtual account at Bridge before it writes",
+  question:
+    "Banking had rewritten `bank settle` #1 to #4 because Bridge had no read of one virtual account. The shared Bridge " +
+    "record now has `readBankDetails`. Does settle use it, and which lines go back to their frozen words?",
+  options: [
+    {
+      label: "read-first",
+      text:
+        "Read, then change only a different token: #1 ('reads Bridge before it writes') and #4 ('writes nothing to Bridge " +
+        "when Bridge's answer is unusable') are kept word for word, observed by the trace; #2 and #3 stay rewritten.",
+    },
+    { label: "write-only", text: "Keep the single write and the four rewritten lines." },
+  ],
+  chosen: "read-first",
+  why:
+    "A frozen claim is rewritten only when a black box cannot see what it names (P1); the order of two outside calls is " +
+    "visible to the trace observer, so the rewrite had stood only for want of the call. Reading first is also the " +
+    "safer write: a token Bridge already has is no change, and an unusable read sends nothing. #2 and #3 still name a " +
+    "queued event, which P7 replaces. The second call needs a 5 s p95, as `bank pay`'s two calls do.",
+  source: ASSEMBLY("bank.settle.yaml acceptance #1-#4; books/target/shared/external.ts (bridge.readBankDetails); P1; banking.budgets"),
+  affects: [rpc_banking_details_settle, o.operation_bank_settle, integration_bridge],
 });

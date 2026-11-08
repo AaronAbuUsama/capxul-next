@@ -34,7 +34,7 @@ import { table_parties } from "../parties/data.ts";
 import { table_org_deployments, table_org_members, table_organizations } from "../organizations/data.ts";
 import { table_budgets } from "../budgets/data.ts";
 import { procedure_approvals_open } from "../approvals/procedures.ts";
-import { procedure_documents_store } from "./links.ts";
+import { procedure_documents_store } from "../documents/procedures.ts";
 import { machine_agreement, machine_agreement_write, table_agreement_writes, table_agreements } from "./data.ts";
 import { AgreementRef, AgreementRow, ChangeInput, Department, EndInput, OfferInput, OrgListInput, Prepared } from "./shapes.ts";
 import { Schema } from "effect";

@@ -35,6 +35,7 @@ import { procedure_parties_resolve_recipient } from "../parties/procedures.ts";
 import { table_org_members } from "../organizations/data.ts";
 import { table_payments } from "../payments/data.ts";
 import { procedure_payments_prepare_command } from "../payments/procedures.ts";
+import { table_budgets } from "../budgets/data.ts";
 
 const PO = "packages/backend/src/banking/payouts";
 const S = Schema.String;
@@ -54,6 +55,8 @@ export const PayoutView = Schema.Struct({
     expiresAt: Schema.Number,
   }),
   account: Schema.Struct({ partyAccountId: S, bankName: Schema.NullOr(S), last4: S, currency: Currency }),
+  /** For an Organization, the budget it pays from as `--from` named it, with its name ("from Office costs"). */
+  budget: Schema.NullOr(Schema.Struct({ budgetId: S, key: Schema.NullOr(S), name: Schema.NullOr(S) })),
   paymentIds: Schema.Array(S),
   approvalId: Schema.NullOr(S),
   approvalUrl: Schema.NullOr(S),
@@ -72,12 +75,14 @@ export const rpc_banking_payouts_quote = defineRpc({
     "VERIFICATION_REQUIRED. An account still `saved` is registered at Bridge first, under its own id. Bridge then " +
     "creates the transfer under the payout's id (derived from the owner and request key): an amount on its own fixes " +
     "what reaches the bank, a token fixes what leaves the Safe; the quote locks the bank amount and a slippage buffer " +
-    "inside the funding. It reads the funding live at one block: the Safe's `balanceOf` for a person; for an " +
-    "Organization the budget's `budgetOf` (closed: WRONG_STATE), `authorised` for the member's Safe " +
-    "(ROLE_PERMISSION_DENIED) and `leftOf`. Then one " +
-    "transaction writes the payout (`quote`), the account's `register`, Bridge's deposit address as an outside Party " +
-    "(`parties.resolve-recipient`) and the Payment command (`payments.prepare-command`, purpose `bank_payout`, one item " +
-    "of the quoted amount to the deposit address, kind 0, with no document: banking does not depend on documents): " +
+    "inside the funding. An Organization's `from` is the budget's Capxul key (`office-costs`, its chain id from budgets' " +
+    "table) or a chain id as it is; an unknown key is INVALID_INPUT. It reads the funding live at one block: the Safe's " +
+    "`balanceOf` for a person; for an Organization the budget's `budgetOf` (closed: WRONG_STATE), `authorised` for the " +
+    "member's Safe (ROLE_PERMISSION_DENIED) and `leftOf`. Then one " +
+    "transaction writes the payout (`quote`, with the approval's id), the account's `register`, Bridge's deposit address " +
+    "as an outside Party (`parties.resolve-recipient`) and the Payment command (`payments.prepare-command`, purpose " +
+    "`bank_payout`, one item of the quoted amount to the deposit address, kind 0, with no document and the zero hash, " +
+    "and `not_after` the quote's `expires_at`, so neither its approval nor a retry can move money after the deadline): " +
     "personal `approve` and `Payments.send`, or the budget's `Budgets.spend`. Funding short is INSUFFICIENT_BALANCE, a " +
     "budget short PAYROLL_BUDGET_EXCEEDED, both before anything is written. It answers the quote with the approval to sign.",
   concept: concept_banking,
@@ -87,7 +92,8 @@ export const rpc_banking_payouts_quote = defineRpc({
     "named budget's hat or a hat above it (Budgets checks it on chain; the rpc reads `authorised` first).",
   input: Schema.Struct({
     org_id: Schema.NullOr(S),
-    budget_id: Schema.NullOr(S),
+    /** `--from`: the budget an Organization pays from, by its Capxul key or its chain id; null for a person. */
+    from: Schema.NullOr(S),
     to: Schema.Union([
       Schema.Struct({ kind: Schema.Literal("self") }),
       Schema.Struct({ kind: Schema.Literal("contact"), party_id: S }),
@@ -112,7 +118,7 @@ export const rpc_banking_payouts_quote = defineRpc({
     error_RATE_LIMITED,
     error_PROVIDER_RESPONSE_INVALID,
   ],
-  reads: [table_bank_payouts, table_bank_accounts, table_verifications, table_parties, table_org_members],
+  reads: [table_bank_payouts, table_bank_accounts, table_verifications, table_parties, table_org_members, table_budgets],
   writes: [table_bank_payouts, table_bank_accounts],
   drives: [machine_bank_payout.t.quote, machine_bank_account.t.register],
   invokes: [procedure_parties_resolve_recipient, procedure_payments_prepare_command],
@@ -153,7 +159,7 @@ export const rpc_banking_payouts_get = defineRpc({
   input: Schema.Struct({ org_id: Schema.NullOr(S), payout_id: S }),
   output: PayoutView,
   errors: [error_NOT_AUTHENTICATED, error_INVALID_INPUT, error_ROLE_PERMISSION_DENIED],
-  reads: [table_bank_payouts, table_bank_accounts, table_payments, table_org_members],
+  reads: [table_bank_payouts, table_bank_accounts, table_payments, table_org_members, table_budgets],
   writes: [],
   drives: [],
   invokes: [],

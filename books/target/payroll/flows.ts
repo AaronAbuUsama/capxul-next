@@ -10,7 +10,7 @@
 
 import { budget, defineFlow, type Rpc } from "../../../packages/book/src/index.ts";
 import { component_core_sdk } from "../shared/foundation.ts";
-import { error_CANCELLED, error_TRANSACTION_FAILED } from "../shared/vocabulary.ts";
+import { error_CANCELLED, error_TRANSACTION_FAILED, error_WRONG_STATE } from "../shared/vocabulary.ts";
 import {
   rpc_payroll_holders_change,
   rpc_payroll_holders_end,
@@ -57,8 +57,12 @@ const FOLLOW = {
   about: "Subscribed until the agreement's process lands, fails or abandons the write; returns the agreement as it now stands.",
 } as const;
 
-/** A declined approval ends the flow CANCELLED; a write the chain refused or another write beat, TRANSACTION_FAILED. */
-const FLOW_ERRORS = [error_CANCELLED, error_TRANSACTION_FAILED];
+/**
+ * How the write's carrier ended, as the frozen codes (approvals.machine; payroll.carrier-endings): a declined approval
+ * ends the flow CANCELLED; one that expired unsent, WRONG_STATE; a write the chain refused, another write beat, or a
+ * Board proposal that ran and failed (board's `fail`), TRANSACTION_FAILED.
+ */
+const FLOW_ERRORS = [error_CANCELLED, error_WRONG_STATE, error_TRANSACTION_FAILED];
 
 const holderFlow = (
   verb: string,

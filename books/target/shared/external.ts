@@ -10,7 +10,7 @@
 //
 // Contracts. The 15 Capxul contracts of the v4 address book, plus the third-party contracts the v4
 // install wires and the product calls (Safe, Safe4337Module, MultiSendCallOnly, EntryPoint v0.7,
-// Zodiac Roles 2.1, Hats, the Hats Signer Gate v2, ERC-20 tokens). Functions and events are the ones
+// Zodiac Roles 2.1, Hats, the Hats Signer Gate v2, Hats Elections, ERC-20 tokens). Functions and events are the ones
 // the frozen book's designed calls name, or that a concept must read to follow them. Addresses are
 // the devnet deployment; staging gets a fresh deployment (P9), recorded when it exists.
 
@@ -54,10 +54,12 @@ export const integration_chain_rpc = defineIntegration({
   about:
     "Reads from the chain's JSON-RPC nodes, behind the Effect service `ChainRpc`: the configured node list in order, moving " +
     "to the next node on a transport failure, a throttle or an internal error; a JSON-RPC verdict on the request is final. " +
-    "It serves the reads Ponder cannot: live contract state before a write is built (a budget's `leftOf`, a Safe's owners, " +
-    "an allowance, a token's metadata), an agent's sign-in proof, and the window reads of the added-token scan. Chain facts " +
-    "that have happened are read from Ponder's tables (indexing), not from here. Every call carries `chain.<method>` as " +
-    "its span (P6).",
+    "It serves the reads Ponder cannot: contract state as of now, where Ponder holds it late or not at all, before a write " +
+    "is built (a budget's `leftOf`, a Safe's owners, an allowance, a token's metadata), for a show a person waits on (what " +
+    "an agreement has released, a vote's tally) and when a notice is sent (its figures, and a company's Directors from the " +
+    "Safe's owners); an agent's sign-in proof; and the window reads of the added-token scan. Chain facts that have " +
+    "happened are read from Ponder's tables (indexing), never from here (integrations.chain-rpc-live-reads). Every call " +
+    "carries `chain.<method>` as its span (P6).",
   component: component_backend,
   system: "evm-json-rpc",
   service: "ChainRpc",
@@ -250,6 +252,13 @@ export const integration_bridge = defineIntegration({
       ...BRIDGE_CALL,
       failures: [...bridgeFailures, { when: "The customer is not verified for that currency", error: error_VERIFICATION_REQUIRED }],
     },
+    readBankDetails: {
+      about:
+        "Reads one virtual account as Bridge holds it now: its status, the token its deposits become and its details, so " +
+        "a change is checked before it is written and read back after.",
+      ...BRIDGE_CALL,
+      failures: [...bridgeFailures],
+    },
     setDepositToken: {
       about: "Changes the token a virtual account's deposits become (USDC or EURC).",
       ...BRIDGE_CALL,
@@ -282,7 +291,9 @@ export const integration_bridge = defineIntegration({
   },
   fake:
     "Bridge's sandbox, or the devnet's local Bridge stand-in, which answers every call and posts signed events but cannot " +
-    "run liveness checks or a real verification decision.",
+    "run liveness checks or a real verification decision. For a sandbox deposit the fake itself (the devnet stand-in, or " +
+    "staging's sandbox harness) sends the test tokens to the receiving Safe and names that transaction in its event, so " +
+    "banking credits it on the one path it uses everywhere (banking.sandbox-deposits).",
   secrets: ["BRIDGE_API_KEY", "BRIDGE_WEBHOOK_PUBLIC_KEY"],
   was: ["packages/backend/src/banking/README.md:3", "packages/backend/convex/http.ts:113"],
 });
@@ -616,12 +627,24 @@ export const contract_installer = defineContract({
     buildSetCeiling: { signature: "buildSetCeiling(SetCeiling p) view returns (Call[] calls)", about: "The batch that sets, freezes or unfreezes a payout ceiling." },
     deployEquity: { signature: "deployEquity(EquityDeploy p) returns (EquityDeployment d)", about: "Deploys the equity clones (low priority)." },
     buildEquity: { signature: "buildEquity(EquityInstall p) view returns (Call[] safeCalls, Call[] founderCalls)", about: "The equity install batches." },
+    deployElections: {
+      signature: "deployElections(ElectionsDeploy p) returns (address elections)",
+      about: "Creates a seat group's Hats Elections clone at its predicted address, with its first term (anyone may send it).",
+    },
+    buildElections: {
+      signature: "buildElections(ElectionsInstall p) view returns (Call[] governorCalls)",
+      about: "The Governor's batch that attaches Elections to the Director hat: elect, eligibility, unseat the unelected, seats, mint, threshold.",
+    },
   },
   events: {
     MoneyDeployed: { signature: "MoneyDeployed(address indexed safe, address indexed founderSafe, MoneyDeployment deployment)", about: "An Organization's deployment: its hat ids, Roles and Gate." },
     EquityDeployed: { signature: "EquityDeployed(address indexed safe, EquityDeployment deployment)", about: "The equity clones of a company." },
+    ElectionsDeployed: {
+      signature: "ElectionsDeployed(address indexed safe, address elections, uint256 directorHat, uint128 firstTermEnd)",
+      about: "A seat group's Elections clone exists, with its first term.",
+    },
   },
-  was: [`${V4}/interfaces/IInstaller.sol:222`, `${ADDR}:57`],
+  was: [`${V4}/interfaces/IInstaller.sol:222`, `${V4}/interfaces/IInstaller.sol:288`, `${ADDR}:57`],
 });
 
 export const contract_payments = defineContract({
@@ -891,6 +914,11 @@ export const contract_vesting = defineContract({
   events: {
     GrantOffered: { signature: "GrantOffered(address indexed safe, uint256 indexed id, address indexed shareholder, Grant grant)", about: "Offered." },
     GrantAccepted: { signature: "GrantAccepted(address indexed safe, uint256 indexed id)", about: "Accepted." },
+    Granted: {
+      signature: "Granted(address indexed safe, uint256 indexed id, address indexed shareholder, Grant grant)",
+      about: "A live grant made with its shares issued in the same call (a founder's vesting at the install).",
+    },
+    Revoked: { signature: "Revoked(address indexed safe, uint256 indexed id, uint64 effectiveAt)", about: "A grant revoked, effective at a time." },
   },
   was: [`${V4}/interfaces/IVesting.sol:30`, `${ADDR}:50`],
 });
@@ -916,6 +944,7 @@ export const contract_options = defineContract({
   },
   events: {
     OptionsGranted: { signature: "OptionsGranted(uint256 indexed id, address indexed grantee, OptionGrant grant)", about: "Granted." },
+    OptionsAccepted: { signature: "OptionsAccepted(uint256 indexed id, address indexed grantee)", about: "The grantee accepted the grant's terms." },
     Exercised: { signature: "Exercised(uint256 indexed id, uint128 shares, uint256 paid, bytes32 paymentId)", about: "Exercised." },
     OptionsEnded: { signature: "OptionsEnded(uint256 indexed id, uint64 endedAt, uint128 returned)", about: "Ended." },
   },
@@ -953,13 +982,25 @@ export const contract_rounds = defineContract({
     consent: { signature: "consent(uint256 roundId)", about: "A class consents to a down round (its class Governor: `approve-round` vote)." },
   },
   events: {
+    SafeRoundCreated: {
+      signature: "SafeRoundCreated(uint256 indexed roundId, address token, uint128 valuationCap, uint16 discountBps, uint64 closesAt, bytes32 documentHash)",
+      about: "A SAFE round exists.",
+    },
+    SafeInvited: { signature: "SafeInvited(uint256 indexed roundId, address indexed investor, uint128 maxAmount)", about: "A SAFE investor invited." },
+    SafeSigned: {
+      signature: "SafeSigned(uint256 indexed roundId, uint256 indexed noteId, address indexed investor, uint128 amount, bytes32 documentHash, bytes32 paymentId)",
+      about: "An investor signed and paid a SAFE.",
+    },
     PricedRoundCreated: {
       signature: "PricedRoundCreated(uint256 indexed roundId, uint8 indexed classId, address token, uint128 price, uint128 maxShares, uint64 payBy, bytes32 documentHash)",
       about: "A priced round exists.",
     },
+    Invited: { signature: "Invited(uint256 indexed roundId, address indexed investor, uint128 maxAmount)", about: "An investor invited to a priced round." },
+    Allocated: { signature: "Allocated(uint256 indexed roundId, address indexed investor, uint128 shares)", about: "Shares allocated to an investor." },
     Committed: { signature: "Committed(uint256 indexed roundId, address indexed investor, uint128 amount, bytes32 documentHash)", about: "A commitment." },
     Paid: { signature: "Paid(uint256 indexed roundId, address indexed investor, uint128 shares, uint256 amount, bytes32 paymentId)", about: "An investor paid." },
     RoundClosed: { signature: "RoundClosed(uint256 indexed roundId, Adjustment[] adjustments)", about: "Closed." },
+    RoundCancelled: { signature: "RoundCancelled(uint256 indexed roundId)", about: "Cancelled." },
   },
   was: [`${V4}/interfaces/IRounds.sol:70`, `${ADDR}:54`],
 });
@@ -983,7 +1024,14 @@ export const contract_exits = defineContract({
     sale: { signature: "sale(uint256 saleId) view returns (Sale)", about: "An approved sale: its token, proceeds and whether it settled." },
   },
   events: {
+    SaleApproved: { signature: "SaleApproved(uint256 indexed saleId, address token, uint256 proceeds, bytes32 termsHash)", about: "The Board approved a sale." },
     Settled: { signature: "Settled(uint256 indexed saleId)", about: "A sale paid out." },
+    TransferOffered: {
+      signature:
+        "TransferOffered(uint256 indexed transferId, address indexed seller, address indexed buyer, uint8 classId, uint128 shares, uint128 price, address token, bytes32 documentHash)",
+      about: "A shareholder offered shares to a buyer.",
+    },
+    TransferApproved: { signature: "TransferApproved(uint256 indexed transferId)", about: "A secondary transfer approved." },
     Bought: { signature: "Bought(uint256 indexed transferId, uint256 amount, bytes32 paymentId)", about: "A secondary sale paid." },
   },
   was: [`${V4}/interfaces/IExits.sol:68`, `${ADDR}:55`],
@@ -1142,6 +1190,11 @@ export const contract_hats = defineContract({
     changeHatEligibility: { signature: "changeHatEligibility(uint256 hatId, address newEligibility)", about: "Hands a hat's eligibility over (`org board handover`)." },
     changeHatToggle: { signature: "changeHatToggle(uint256 hatId, address newToggle)", about: "Hands a hat's toggle over (`org board handover`)." },
     isWearerOfHat: { signature: "isWearerOfHat(address user, uint256 hatId) view returns (bool isWearer)", about: "Whether a Safe wears a hat now." },
+    viewHat: {
+      signature:
+        "viewHat(uint256 hatId) view returns (string details, uint32 maxSupply, uint32 supply, address eligibility, address toggle, string imageURI, uint16 lastHatId, bool mutable_, bool active)",
+      about: "A hat as the chain holds it now: its supply, modules, whether it is active, and `lastHatId`, from which the next child hat's id is planned.",
+    },
   },
   events: {
     HatCreated: {
@@ -1154,7 +1207,7 @@ export const contract_hats = defineContract({
     },
     WearerStandingChanged: { signature: "WearerStandingChanged(uint256 hatId, address wearer, bool wearerStanding)", about: "A wearer's standing changed." },
   },
-  was: ["packages/protocol/src/evm/company-hats.ts:11", `${V4}/interfaces/external/IHats.sol:35`],
+  was: ["packages/protocol/src/evm/company-hats.ts:11", `${V4}/interfaces/external/IHats.sol:35`, `${V4}/interfaces/external/IHats.sol:111`],
 });
 
 export const contract_hats_signer_gate = defineContract({
@@ -1172,6 +1225,27 @@ export const contract_hats_signer_gate = defineContract({
   },
   events: {},
   was: [`${V4}/interfaces/external/IHatsSignerGate.sol:56`, "packages/protocol/src/evm/company-gate.ts"],
+});
+
+export const contract_hats_elections = defineContract({
+  id: "hats-elections",
+  title: "Hats Elections: a seat group's elected Directors",
+  about:
+    "Hats Election Eligibility v0.2.0, one clone per seat group's Director hat (from HatsModuleFactory, at the address the " +
+    "equity install predicts), attached as that hat's eligibility by a shareholder vote (`org vote create board-settings`). " +
+    "The company Governor records each term's winners and recalls; a Director is ineligible from the term's end until " +
+    "the next term starts, with no event, so that hat is read live (indexing's hat-wearers). One clone each, so no " +
+    "address is listed.",
+  functions: {
+    elect: { signature: "elect(uint128 termEnd, address[] winners)", about: "Records a term's winners (`elect` vote); at most the hat's seats." },
+    recall: { signature: "recall(uint128 termEnd, address[] recallees)", about: "Removes winners from a term (`remove` vote)." },
+    setNextTerm: { signature: "setNextTerm(uint128 newTermEnd)", about: "Opens the election for the next term (`board-settings` vote)." },
+    startNextTerm: { signature: "startNextTerm()", about: "Makes the next term current once the current one has ended; anyone may send it." },
+    currentTermEnd: { signature: "currentTermEnd() view returns (uint128)", about: "The current term's end: every wearer is ineligible from it until the next term starts." },
+    nextTermEnd: { signature: "nextTermEnd() view returns (uint128)", about: "The next term's end, or 0 when none is open." },
+  },
+  events: {},
+  was: [`${V4}/interfaces/external/IHatsElectionEligibility.sol:9`, `${V4}/authority/InstallerElections.sol:22`],
 });
 
 export const contract_erc20 = defineContract({

@@ -843,9 +843,10 @@ export const table_bank_payouts = defineTable({
     "deposit address, the quote's terms written once (what reaches the bank, what leaves the Safe, the rate, the slippage " +
     "buffer and the deadline), and the Payment born for it through `payments.prepare-command`. `payout_id` is also " +
     "Bridge's client reference and the Idempotency-Key of the transfer, derived from the owner and the request key, so a " +
-    "replay finds the same payout and the same transfer. `budget_id` is the budget an Organization pays from. Bridge's " +
+    "replay finds the same payout and the same transfer. `budget_id` is the chain id of the budget an Organization pays from (`--from`, by key or id). Bridge's " +
     "delivery (`delivered_amount`) and a return's refund (`refund_tx_hash`, `refund_amount`, its book fact) are written by " +
-    "the payout's own process. Replaces old banking's `payouts` with its `quotes` and `railOperations`; the dispatcher's " +
+    "the payout's own process. `approval_id` is the payer's approval `payments.prepare-command` opened, which the process " +
+    "withdraws when the account changes before anyone signs. Replaces old banking's `payouts` with its `quotes` and `railOperations`; the dispatcher's " +
     "saved calls, leases, timers, the version and the `payoutTransitions` log are the workflow engine's now.",
   concept: concept_banking,
   tenancy: "owner",
@@ -876,6 +877,7 @@ export const table_bank_payouts = defineTable({
     bridge_transfer_id: S,
     deposit_address: S,
     payment_id: S,
+    approval_id: S,
     state: PayoutState,
     reason: NullOr(PayoutReason),
     delivered_amount: NullOr(S),

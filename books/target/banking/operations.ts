@@ -1,6 +1,6 @@
 // The operation records of the frozen operations banking owns (OPERATION_OWNERS): verification,
-// `invite accept` (it routes business verification here), bank details, saved bank accounts, bank
-// deposits and bank payouts. Each is built from frozenText, never retyped; acceptance claims are
+// `invite accept` (it routes business verification here), bank details, saved bank accounts with
+// `contact get` (a contact's entry and the accounts saved on it), bank deposits and bank payouts. Each is built from frozenText, never retyped; acceptance claims are
 // the frozen ones word for word except the lines that named a mechanism (a scheduler, a queued
 // event, the order of Bridge calls, one transaction), rewritten as outcomes in decision
 // banking.acceptance-rewrites. Worlds are listed in decision banking.worlds.
@@ -27,11 +27,14 @@ import { BankDetailsOverview, rpc_banking_details_settle, rpc_banking_details_sh
 import { BankDepositView, rpc_banking_deposits_list } from "./deposits.ts";
 import { PayoutView } from "./payouts.ts";
 import {
+  ContactWithAccounts,
+  flow_client_account_address_book_get,
   flow_client_account_bank_accounts_add,
   flow_client_banking_payouts_pay,
   flow_client_org_invitations_accept,
   flow_client_verification_start,
   flow_client_verification_status,
+  guidedRead,
 } from "./flows.ts";
 import { InvitationView } from "../organizations/invitations.ts";
 
@@ -210,6 +213,27 @@ export const operation_contact_bank_add = defineOperation({
   budget: { ...budget("vendor"), ...PERSON_WAIT },
 });
 
+// `contact get` is banking's (shared operations.contact-get-in-banking): the contact's entry from contacts' book, then
+// the bank accounts saved on it here (decision banking.contact-get). Its refusals start from contacts' world.
+export const operation_contact_get = defineOperation({
+  ...frozenText("contact.get"),
+  priority: "normal",
+  implementedBy: flow_client_account_address_book_get,
+  acceptance: [
+    kept("contact.get", 1, "cli: Ada's `contact get` of Zed, a claimed person in no book of hers, prints null and exits 0; trace: no `banking.accounts.list-for-contact` span."),
+    kept("contact.get", 2, "read: Ada's `contact get` of Bea returns Bea's entry, its label and its bankAccounts masked; cli: `--org acme` as Ada, who holds no Seat in Acme, exits ROLE_PERMISSION_DENIED."),
+    kept("contact.get", 3, "trace: a get given a PartyId is one `contacts.book.get` and one `banking.accounts.list-for-contact`, with no `contacts.book.list` and no `wait.person`; cli: at a terminal the picker offers Cy, who is hidden."),
+  ],
+  returns: Schema.NullOr(ContactWithAccounts),
+  errors: [error_CLI_USAGE],
+  refusals: [
+    { error: error_CLI_USAGE, given: "person-with-contacts", when: when("contact.get", "CLI_USAGE") },
+    { error: error_ROLE_PERMISSION_DENIED, given: "person-with-contacts", when: "`--org` names an Organization you are outside: `--org acme` as Ada, who holds no Seat in Acme." },
+    { error: error_NOT_AUTHENTICATED, given: "signed-out", when: when("contact.get", "NOT_AUTHENTICATED") },
+  ],
+  budget: guidedRead,
+});
+
 export const operation_bank_accounts_remove = defineOperation({
   ...frozenText("bank.accounts.remove"),
   priority: "normal",
@@ -286,11 +310,10 @@ export const operation_bank_settle = defineOperation({
   priority: "normal",
   implementedBy: rpc_banking_details_settle,
   acceptance: [
-    rewritten(
+    kept(
       "bank.settle",
       1,
-      "It succeeds on a just-opened personal account, whose state at Bridge may be ahead of Capxul's.",
-      "cli: `bank settle eur --to usdc` straight after `bank details --currency eur` opened EUR succeeds; read: `bank details` shows USDC for EUR.",
+      "trace: `call.bridge.readBankDetails` ends before `call.bridge.setDepositToken` starts; cli: `bank settle eur --to usdc` straight after `bank details --currency eur` opened EUR succeeds; read: `bank details` shows USDC for EUR.",
     ),
     rewritten(
       "bank.settle",
@@ -304,11 +327,10 @@ export const operation_bank_settle = defineOperation({
       "Keeping the token it already has succeeds and changes nothing.",
       "cli: success; world: no change, outbox included; trace: no `call.bridge.setDepositToken` span.",
     ),
-    rewritten(
+    kept(
       "bank.settle",
       4,
-      "When Bridge's answer is unusable, it fails and the bank details keep the token they had.",
-      "cli: with the Bridge stand-in answering an unusable body, exit PROVIDER_RESPONSE_INVALID; read: `bank details` shows the old token; world: no change.",
+      "trace: with the Bridge stand-in answering the read with an unusable body, no `call.bridge.setDepositToken` span; cli: exit PROVIDER_RESPONSE_INVALID; read: `bank details` shows the old token; world: no change.",
     ),
   ],
   returns: Schema.Struct({
@@ -323,7 +345,11 @@ export const operation_bank_settle = defineOperation({
     { error: error_NOT_AUTHENTICATED, given: "signed-out", when: when("bank.settle", "NOT_AUTHENTICATED") },
     { error: error_PROVIDER_ERROR, given: "bridge-unreachable", when: when("bank.settle", "PROVIDER_ERROR") },
   ],
-  budget: budget("vendor"),
+  budget: {
+    ...budget("vendor"),
+    p95Ms: 5_000,
+    why: "two Bridge calls in sequence for a change: the read of the virtual account, then the token change",
+  },
 });
 
 // ── payouts ─────────────────────────────────────────────────────────────────────────────────

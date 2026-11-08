@@ -70,6 +70,7 @@ export const WRITE_FAILURES = [
   "withdrawn",
   "rejected",
   "replaced",
+  "execution_failed",
 ] as const;
 
 const RETAINED =
@@ -398,7 +399,8 @@ export const machine_agreement_write = defineMachine({
   about:
     "A write is born `awaiting` with the approval or proposal that carries it. Only chain proof lands or fails it: it " +
     "lands when the transaction of its approval or proposal carries its own Agreements event for this agreement, and " +
-    "fails when that transaction reverted or ran without it (another write beat it to the chain). It is abandoned when " +
+    "fails when that transaction reverted or ran without it (another write beat it to the chain, or the company Safe " +
+    "reported its Board proposal's execution failed: board's `fail`). It is abandoned when " +
     "its approval ended unsent (declined or expired) or its proposal was rejected or replaced. A bundler refusal before " +
     "sending is the approval's own business: the write stays awaiting while its approval does.",
   was: [`${OLD}/agreements/writes/records.ts:100`, `${OLD}/agreements/writes/payees.ts:167`, `${OLD}/agreements/writes/organization-payees.ts:62`],
@@ -408,7 +410,7 @@ export const machine_agreement_write = defineMachine({
   states: [
     { id: "awaiting", about: "Its approval or Board proposal is open, or its operation is on its way; nothing is decided." },
     { id: "landed", about: "Its transaction carried its own Agreements event for this agreement.", terminal: true },
-    { id: "failed", about: "Its transaction reverted, or ran without its event because another write beat it.", terminal: true },
+    { id: "failed", about: "Its transaction reverted, ran without its event because another write beat it, or was a Board proposal that ran and failed.", terminal: true },
     { id: "abandoned", about: "Its approval was declined or expired unsent, or its proposal was rejected or replaced.", terminal: true },
   ],
   transitions: {
@@ -428,7 +430,7 @@ export const machine_agreement_write = defineMachine({
     fail: {
       from: ["awaiting"],
       to: "failed",
-      about: "Its operation reverted, or its transaction landed without its own event.",
+      about: "Its operation reverted, its transaction landed without its own event, or its Board proposal ended `failed` (execution_failed).",
       emits: [event_agreement_write_transitioned],
     },
     abandon: {

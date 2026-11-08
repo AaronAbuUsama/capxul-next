@@ -48,8 +48,8 @@ const c = f;
 
 export const OLD_AREAS: { readonly [A in OldArea]: Landing } = {
   // access
-  "access/agents": { to: [c.concept_access], by: d.decision_concepts_access, note: "OAuth for MCP clients and its OIDC routes." },
-  "access/clients": { to: [c.concept_access], by: d.decision_concepts_access, note: "The CLI's native client grants (device flow); the daily sweep cron stays (P3)." },
+  "access/agents": { to: [c.concept_access], by: d.decision_concepts_access, note: "OAuth 2.1 for MCP clients: assistant grants and their protocol routes." },
+  "access/clients": { to: [c.concept_access], by: d.decision_concepts_no_device_flow_or_consent, note: "The device flow's native client grants are not ported; the daily sweep (P3) stays, now over sessions, codes and assistant grants." },
   "access/features": { to: [c.concept_access], by: d.decision_concepts_access, note: "Feature gates and the PostHog flag sync; the devnet's gate writes are devnet's." },
   "access/referrals": { to: [c.concept_accounts], by: d.decision_concepts_accounts, note: "Referral codes, invites and earned invites, counted from CapxulSafeClaimed." },
   "access/sessions": { to: [c.concept_access, c.concept_accounts], by: d.decision_operations_sign_in, note: "Sessions, codes and the cooldown stay access'; the `auth login` and `auth verify` flows are accounts'." },
@@ -83,7 +83,7 @@ export const OLD_AREAS: { readonly [A in OldArea]: Landing } = {
   // books
   "books/accounts": { to: [c.concept_books], by: d.decision_concepts_books, note: "The chart of accounts." },
   "books/assets": { to: [c.concept_books], by: d.decision_concepts_books_token_scan, note: "Tracked assets, and the scan of added tokens." },
-  "books/exports": { to: [c.concept_books], by: d.decision_concepts_books, note: "The QuickBooks export: two files written by the SDK." },
+  "books/exports": { to: [c.concept_books], by: d.decision_concepts_books, note: "The QuickBooks export: the SDK returns the two files' text and the CLI writes them (books.export-files-by-cli)." },
   "books/facts": { to: [c.concept_books], by: d.decision_dependencies_books, note: "Book facts, written by payments and banking through books' procedures." },
   "books/keepers": { to: [c.concept_books], by: d.decision_responsibilities_keepers, note: "Manage books is the Books hat; books reads its wearers." },
   "books/postings": { to: [c.concept_books], by: d.decision_concepts_books, note: "The posting rules behind the reports." },

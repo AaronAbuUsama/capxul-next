@@ -358,46 +358,55 @@ export const decision_requests_invoicing_hat = defineDecision({
 
 export const decision_requests_inbox_pay_funding = defineDecision({
   id: "requests.inbox-pay-funding",
-  title: "Inbox pay reads funding before its transaction; the budget by its chain id",
+  title: "Inbox pay reads funding before its transaction; `--from` names the budget by key",
   question:
     "`payments.prepare-command` needs the funding the invoker read from the chain. How does `inbox pay` read it, and how " +
     "does it find the budget `--from` names?",
   options: [
     {
-      label: "chain-id",
+      label: "by-key",
       text:
-        "An action: it reads the person's Safe balance, or `Budgets.leftOf` of the budget, through chain-rpc, then births " +
-        "the Payment in one transaction. The budget is found in indexing's chain budgets by its chain id, with the office " +
-        "hat the member's Safe wears.",
+        "An action: `--from operations` is found by its Capxul key in budgets' table, which gives its chain id (a chain id " +
+        "is taken as it is); indexing's chain budgets give its office hat, which the member's Safe must wear; then the " +
+        "person's Safe balance or the budget's `Budgets.leftOf`, and the birth in one transaction.",
     },
-    { label: "by-key", text: "Resolve `--from operations` by its Capxul key in budgets' org-budgets." },
+    { label: "chain-id", text: "`--from` takes the budget's chain id only, the one fact requests could read before it depended on budgets." },
   ],
-  chosen: "chain-id",
+  chosen: "by-key",
   why:
-    "Requests does not depend on budgets, so it cannot read budgets' names: the designed `--from <budget>` by key needs " +
-    "either that dependency (no cycle: budgets sits below requests) or payments resolving the key. Until the map says " +
-    "which, `--from` takes the budget's chain id, the one fact requests can read. The read is chain-read class because it " +
-    "calls the chain; nothing is signed or sent here.",
-  source: by("books/target/payments/procedures.ts (funding input); inbox.pay.yaml (designed --from); foundation.ts (dependsOn)"),
+    "Revised at assembly. The designed examples name the budget by its key (`--from operations`) and print its name and " +
+    "what it has left. This record first chose the chain id because requests did not depend on budgets; the review added " +
+    "that edge (dependencies.payers-sign-and-name-budgets: no cycle, budgets sits below requests), so the key is read where " +
+    "budgets keeps it. A chain id still works, for a budget made outside Capxul that has no key. The read is chain-read " +
+    "class because it calls the chain; nothing is signed or sent here.",
+  source: by("inbox.pay.yaml (designed --from); dependencies.payers-sign-and-name-budgets; books/target/budgets/data.ts (budgets: key, budget_id)"),
   affects: [inb.rpc_requests_inbox_pay],
 });
 
 export const decision_requests_inbox_pay_approval = defineDecision({
   id: "requests.inbox-pay-approval",
-  title: "Inbox pay's flow waits for the approval page; it signs nothing itself",
+  title: "An agent payer signs inbox pay at once; a person on the approval page",
   question:
-    "A4 gives every signature to the flow. Requests births the approval through payments and does not depend on " +
-    "approvals. How does `inbox pay` get signed?",
+    "A4 gives every signature to the flow, and 'An AI with its own key signs at once'. Requests births the approval " +
+    "through payments. How does `inbox pay` get signed?",
   options: [
-    { label: "approval-page", text: "The flow waits for the payer on the approval page, where their own key signs, then follows the request." },
-    { label: "sign-in-flow", text: "The flow signs with an agent's key and submits through approvals' rpc, which needs requests to depend on approvals." },
+    {
+      label: "sign-in-flow",
+      text:
+        "The flow follows the approval until it is sponsored (`approvals.signing.get`), an agent signs its digest with its " +
+        "own key and gives it to approvals (`approvals.signing.sign`); a person signs on the approval page.",
+    },
+    { label: "approval-page", text: "The flow only waits for the payer on the approval page, for an agent too." },
   ],
-  chosen: "approval-page",
+  chosen: "sign-in-flow",
   why:
-    "Within the map, the flow may call only its dependencies' rpcs. A person's approval is signed on the approval page " +
-    "anyway; an agent payer's immediate signature ('An AI with its own key signs at once') needs approvals' signature rpc, " +
-    "which is a map change for the architecture to make, recorded as an open problem.",
-  source: by("inbox.pay.yaml (changes); concepts dependsOn (requests); decision dependencies.approvals-low"),
+    "Revised at assembly. This record first waited for the approval page, because requests did not depend on approvals; " +
+    "the review added that edge (dependencies.payers-sign-and-name-budgets), so the flow takes the same signing steps as " +
+    "`payment send`. Approvals still sends the operation once and refuses an unknown or another signer's approval " +
+    "INVALID_INPUT. The flow also passes `--on`/`--at` as the door's `pay_at`, `--resume` as its `resume` (one new " +
+    "approval for a lapsed Payment under the same payment id, decision payments.door-inputs), and prints the deadline the " +
+    "door answers as `expiresAt`.",
+  source: by("inbox.pay.yaml (changes); dependencies.payers-sign-and-name-budgets; books/target/payments/flows.ts (signing steps); payments.door-inputs"),
   affects: [fl.flow_client_account_inbox_pay, inb.rpc_requests_inbox_pay],
 });
 

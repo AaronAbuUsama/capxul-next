@@ -100,11 +100,12 @@ export const rpc_banking_details_settle = defineRpc({
   about:
     "Changes the token Bridge turns one currency's deposits into, USDC or EURC. Before Bridge: the currency must have " +
     "active bank details and may settle in that token (INVALID_INPUT otherwise, with Bridge not called), and the caller " +
-    "must be signed in. The token it already has succeeds at once and changes nothing. Otherwise it asks Bridge to change " +
-    "the virtual account's token, and only on Bridge's usable answer writes the change (`change_token`, one event). An " +
-    "unusable answer is PROVIDER_RESPONSE_INVALID and leaves the stored token as it was; Bridge's own state of a " +
-    "just-opened account decides whether the change is allowed, not a stored state that may lag it. Deposits already " +
-    "completed keep the token they settled in.",
+    "must be signed in. Then it reads the virtual account as Bridge holds it now (`readBankDetails`): Bridge's own state " +
+    "of a just-opened account decides whether the change is allowed, not a stored state that may lag it, and an unusable " +
+    "read is PROVIDER_RESPONSE_INVALID with nothing written to Bridge. The token Bridge already has succeeds and changes " +
+    "nothing. Otherwise it asks Bridge to change the token, and only on Bridge's usable answer writes the change " +
+    "(`change_token`, one event); an unusable answer is PROVIDER_RESPONSE_INVALID and leaves the stored token as it was. " +
+    "Deposits already completed keep the token they settled in.",
   concept: concept_banking,
   kind: "action",
   who: "A signed-in person, for their own bank details. " + MANAGE,
@@ -121,9 +122,13 @@ export const rpc_banking_details_settle = defineRpc({
   drives: [machine_bank_details.t.change_token],
   invokes: [],
   emits: [],
-  calls: [integration_bridge.c.setDepositToken],
+  calls: [integration_bridge.c.readBankDetails, integration_bridge.c.setDepositToken],
   chain: [],
   spans: [],
-  budget: budget("vendor"),
+  budget: {
+    ...budget("vendor"),
+    p95Ms: 5_000,
+    why: "two Bridge calls in sequence for a change: the read of the virtual account, then the token change",
+  },
   was: [`${B}/operations/settle.ts:1`, "books/as-is/banking/bank-details.ts:345"],
 });

@@ -19,7 +19,7 @@ import { integration_indexer } from "../shared/external.ts";
 import { machine_request, table_requests } from "./data.ts";
 import { Org, PageInput, RequestPage, RequestView } from "./shapes.ts";
 import { GUARD_WAS, READER, WRITER } from "./guards.ts";
-import { procedure_documents_store } from "./links.ts";
+import { procedure_documents_store } from "../documents/procedures.ts";
 import { table_payments } from "../payments/data.ts";
 
 const R = "packages/backend/src/requests";

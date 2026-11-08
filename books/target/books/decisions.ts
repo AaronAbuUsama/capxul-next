@@ -568,7 +568,7 @@ export const decision_books_worlds = defineDecision({
 
 export const decision_books_straddling_row = defineDecision({
   id: "books.straddling-row",
-  title: "On v4 a row straddles a period when a payout settles in one and returns in the next",
+  title: "A row straddles a period when a payout settles in one and returns in the next",
   question:
     "Reclassify #3 refuses 'a commitment whose claims fall on both sides of the period'. On v4 each agreement collection " +
     "is its own Payment with one money fact, so which row can have money facts in two periods, and does payments need to " +

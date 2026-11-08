@@ -697,7 +697,7 @@ export const decision_payments_door_inputs = defineDecision({
 
 export const decision_payments_withdraw_by_opener = defineDecision({
   id: "payments.withdraw-by-opener",
-  title: "An unsigned payout's approval is withdrawn by banking; the process cancels its Payment",
+  title: "Banking withdraws an unsigned payout's approval; the process cancels the Payment",
   question:
     "Banking ends a payout before anyone signs (its bank account changed). Approvals asked openers to withdraw such an " +
     "approval (`approvals.withdraw`). Does payments add a procedure for it, and who cancels the Payment?",
@@ -724,7 +724,7 @@ export const decision_payments_withdraw_by_opener = defineDecision({
 
 export const decision_payments_board_outcomes = defineDecision({
   id: "payments.board-outcomes",
-  title: "A Board payment's proposal that fails or loses its nonce lapses; a rejected one cancels",
+  title: "A failed or replaced Board proposal lapses its Payment; a rejection cancels it",
   question:
     "Board's proposal now ends executed, failed (ExecutionFailure: the nonce used, nothing happened), rejected or " +
     "replaced (another transaction took its nonce). How does each move a Board payment?",
@@ -758,7 +758,9 @@ export const decision_payments_chain_born_ids = defineDecision({
     "Accepting `0x…` would weaken `payment get`'s frozen refusal of an id that does not start with `payment_`, and the " +
     "map keeps payroll and payments apart (dependencies.payments-payroll: neither reads the other). The v4 payment id " +
     "is unique per chain (the by-chain-payment-id index) and known to both sides from the same fact, so the id needs no " +
-    "lookup. Prepared Payments keep their ULID ids: nothing outside payments needs to derive them.",
+    "lookup. Prepared Payments keep their ULID ids: nothing outside payments needs to derive them. Payroll's other ask " +
+    "is met as designed: `payment wait` follows any `approval_` id its signer holds (payroll's holder writes included), " +
+    "with no Payments when it moves no money.",
   source: by("payment.get.yaml (refusal CLI_USAGE); books/target/payroll/decisions.ts (payroll.collection-payment); dependencies.payments-payroll"),
   affects: [table_payments, workflow_payments_settlement_observe, rpc_payments_ledger_get],
 });

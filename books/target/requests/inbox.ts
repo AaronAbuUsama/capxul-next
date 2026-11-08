@@ -23,7 +23,8 @@ import { GUARD_WAS, READER, WRITER } from "./guards.ts";
 import { FRESHNESS } from "./issuing.ts";
 import { procedure_payments_prepare_command } from "../payments/procedures.ts";
 import { table_payments } from "../payments/data.ts";
-import { table_chain_budgets } from "./links.ts";
+import { table_chain_budgets } from "../indexing/data.ts";
+import { table_budgets } from "../budgets/data.ts";
 
 const R = "packages/backend/src/requests";
 const ASIS = "books/as-is/requests/inboxes.ts";
@@ -99,16 +100,18 @@ export const rpc_requests_inbox_pay = defineRpc({
     "The addressed payer pays exactly the amount and token the request fixed. Not in the reader's inbox: INVALID_INPUT, " +
     "which the CLI shows as CLI_USAGE. A request with an escrow is paid only into it (INVALID_INPUT, naming the escrow). " +
     "Not open: WRONG_STATE naming `inbox get`, unless it is paying under this payer's same `pay_key` or `resume`, which " +
-    "returns the live attempt (and for a lapsed Payment asks `payments.prepare-command`, under the same key, for its new " +
-    "approval). A fresh key never starts a second attempt while one is live, and the request's terms are its own frozen " +
-    "ones, never the caller's, so no lineage can be dropped. A date (`pay_at`) under an hour ahead is INVALID_INPUT before " +
-    "anything is born. Before its transaction it reads the funding from the chain: the person's Safe's token balance, or " +
-    "for an Organization the budget `from` names (indexing's chain budgets) whose office hat, or one above it, the " +
-    "member's Safe wears (else ROLE_PERMISSION_DENIED), and its `Budgets.leftOf`. Then, in one transaction: " +
-    "`payments.prepare-command` (purpose request, route personal or budget, one item to the issuer's Safe, kind 1, the " +
-    "request's document) births the Payment and its approval, refusing short funding (INSUFFICIENT_BALANCE, or " +
-    "PAYROLL_BUDGET_EXCEEDED for a budget), and the request moves through `pay` with the Payment and its v4 payment id. " +
-    "It answers `awaiting_approval` with the approval and the `payment wait` command; nothing is signed or sent here.",
+    "returns the live attempt (and for a lapsed Payment asks `payments.prepare-command`, under the same key with " +
+    "`resume`, for one new approval of the same payment id). A fresh key never starts a second attempt while one is " +
+    "live, and the request's terms are its own frozen ones, never the caller's, so no lineage can be dropped. A date " +
+    "(`pay_at`) under an hour ahead is INVALID_INPUT before anything is born. Before its transaction it reads the " +
+    "funding from the chain: the person's Safe's token balance, or for an Organization the budget `from` names by its " +
+    "key (`operations`; budgets' table gives its chain id, and a chain id is taken as it is), from indexing's chain " +
+    "budgets, whose office hat, or one above it, the member's Safe wears (else ROLE_PERMISSION_DENIED), and its " +
+    "`Budgets.leftOf`. Then, in one transaction: `payments.prepare-command` (purpose request, route personal or budget, " +
+    "one item to the issuer's Safe, kind 1, the request's document, `pay_at`) births the Payment and its approval, " +
+    "refusing short funding (INSUFFICIENT_BALANCE, or PAYROLL_BUDGET_EXCEEDED for a budget), and the request moves " +
+    "through `pay` with the Payment and its v4 payment id. It answers `awaiting_approval` with the approval, its deadline " +
+    "as the door answered it, and the `payment wait` command; nothing is signed or sent here.",
   was: [`${R}/inboxes/operations/approve.ts:10`, `${R}/writes/approvals.ts:57`, `${R}/writes/approvals.ts:129`, `${ASIS}:245`, ...GUARD_WAS],
   concept: concept_requests,
   kind: "action",
@@ -129,7 +132,7 @@ export const rpc_requests_inbox_pay = defineRpc({
     approvalId: S,
     approvalUrl: S,
     paymentIds: Schema.Array(S),
-    /** When the approval lapses, once it is sponsored; null until then. */
+    /** The approval's deadline as `payments.prepare-command` opened it; the paymaster may cut it when it sponsors. */
     expiresAt: Schema.NullOr(N),
     next: Schema.Struct({ argv: Schema.Array(S) }),
     request: RequestView,
@@ -144,7 +147,7 @@ export const rpc_requests_inbox_pay = defineRpc({
     error_PROVIDER_ERROR,
     error_PROVIDER_RESPONSE_INVALID,
   ],
-  reads: [table_requests, table_payments, table_chain_budgets, ...WRITER],
+  reads: [table_requests, table_payments, table_budgets, table_chain_budgets, ...WRITER],
   writes: [table_requests],
   drives: [machine_request.t.pay],
   invokes: [procedure_payments_prepare_command],

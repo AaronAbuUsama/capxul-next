@@ -6,12 +6,18 @@
 import { Schema } from "effect";
 import { budget, defineFlow } from "../../../packages/book/src/index.ts";
 import { component_core_sdk } from "../shared/foundation.ts";
-import { error_CLI_DEADLINE } from "../shared/vocabulary.ts";
+import { error_CANCELLED, error_CLI_DEADLINE, error_WRONG_STATE } from "../shared/vocabulary.ts";
+import { rpc_approvals_signing_get, rpc_approvals_signing_sign } from "../approvals/signing.ts";
 import { Currency, Token } from "./data.ts";
 import { rpc_banking_verification_start, rpc_banking_verification_status, VerificationView } from "./verification.ts";
-import { BankAccountView, rpc_banking_accounts_add, rpc_banking_accounts_requirements } from "./accounts.ts";
+import {
+  BankAccountView,
+  rpc_banking_accounts_add,
+  rpc_banking_accounts_list_for_contact,
+  rpc_banking_accounts_requirements,
+} from "./accounts.ts";
 import { PayoutView, rpc_banking_payouts_get, rpc_banking_payouts_quote } from "./payouts.ts";
-import { rpc_contacts_book_list } from "../contacts/book.ts";
+import { Book, Entry, rpc_contacts_book_get, rpc_contacts_book_list } from "../contacts/book.ts";
 import { rpc_media_files_upload } from "../media/files.ts";
 import { InvitationView, rpc_organizations_invitations_accept } from "../organizations/invitations.ts";
 
@@ -129,6 +135,56 @@ export const flow_client_account_bank_accounts_add = defineFlow({
   was: [`${SDK}/parties/accounts.ts:52`, `${CLI}/bank/subcommands/accounts/internal/input.ts:1`, `${CLI}/contact/subcommands/bank/subcommands/add/execute.ts:24`],
 });
 
+/** A contact as `contact get` returns it: the entry from contacts' book, with the accounts saved on it here. */
+export const ContactWithAccounts = Schema.Struct({
+  id: Entry.fields.id,
+  ref: Entry.fields.ref,
+  label: Entry.fields.label,
+  hidden: Entry.fields.hidden,
+  bankAccounts: Schema.Array(BankAccountView),
+});
+
+/** At a terminal with no PartyId, the picker's page comes before the two reads: three calls in sequence. */
+export const guidedRead = {
+  ...budget("read"),
+  p50Ms: 800,
+  p95Ms: 1_600,
+  excludes: ["wait.person"],
+  why: "the entry's read and its accounts' read run in sequence, after the picker's page at a terminal (contacts.budgets)",
+};
+
+export const flow_client_account_address_book_get = defineFlow({
+  id: "client.account.address-book.get",
+  title: "Show one contact with the bank accounts saved on it",
+  about:
+    "`contact get`, banking's flow because only banking can add the contact's bank accounts (shared " +
+    "operations.contact-get-in-banking). Given a PartyId it never lists or prompts: one read of the entry from " +
+    "contacts' book, hidden or not; null (the Party is not in this book) ends it with null and reads no accounts. Then " +
+    "the accounts saved on that contact here, masked, and whether the contact is on Capxul. At a terminal with no " +
+    "PartyId the person first picks from the book, hidden contacts included; quitting the picker is CANCELLED. The CLI " +
+    "refuses a malformed PartyId, or a script without one, with CLI_USAGE before calling it, and prints the `bank pay` " +
+    "command for the contact.",
+  component: component_core_sdk,
+  sdk: "client.account.addressBook.get",
+  input: Schema.Struct({
+    book: Book,
+    /** Absent only at a terminal, where the person picks. */
+    partyId: Schema.optionalKey(S),
+  }),
+  output: Schema.NullOr(ContactWithAccounts),
+  steps: [
+    { name: "choices", rpc: rpc_contacts_book_list, about: "Only with no PartyId at a terminal: the book page by page for the picker, hidden entries included." },
+    { name: "pick", local: "prompt", about: "Only with no PartyId at a terminal: the person picks one entry; quitting is CANCELLED." },
+    { name: "entry", rpc: rpc_contacts_book_get, about: "The entry for the PartyId, hidden or not; null ends the flow with null." },
+    { name: "accounts", rpc: rpc_banking_accounts_list_for_contact, about: "The accounts saved on that contact, masked, with whether it is on Capxul." },
+  ],
+  errors: [error_CANCELLED],
+  calls: [],
+  spans: [],
+  budget: guidedRead,
+  was: [`${CLI}/contact/subcommands/get/execute.ts:20`, `${CLI}/contact/subcommands/get/execute.ts:50`, `${SDK}/parties/contacts.ts:146`],
+});
+
 export const flow_client_banking_payouts_pay = defineFlow({
   id: "client.banking.payouts.pay",
   title: "Pay a bank account and follow the payout",
@@ -136,11 +192,13 @@ export const flow_client_banking_payouts_pay = defineFlow({
     "`bank pay`. For a contact it finds their PartyId in the book; for a new payee in `--input` it first saves their bank " +
     "account, so the numbers never enter a command line. It quotes once (the request key makes a retry reach the same " +
     "payout), and at a terminal shows the locked bank amount, what leaves the Safe with its slippage buffer, and the " +
-    "deadline. The person approves on the approval page the CLI opens (their wait is never system time); with `--json` " +
-    "it returns there, stage `quoted`, with the approval's id and link. Then it follows the payout until it is in transit " +
-    "or delivered, or fails with its reason and refund; at the approval deadline with the payout in transit it ends " +
-    "normally and names `capxul payment wait`. An expired quote or a changed account names `bank pay` again. Bank pay is " +
-    "a verified person's; an agent has no Bridge verification, so the flow has no agent-signing branch.",
+    "deadline. With `--json` it returns once the approval waits, stage `quoted`, with the approval's id and link. " +
+    "Otherwise the payer signs: an agent paying from an Organization's budget (a Seat wearing its hat; the verification " +
+    "is the Organization's) signs the sponsored approval's digest with its own key at once and gives it to approvals; a " +
+    "person approves on the approval page the CLI opens (their wait is never system time). Then it follows the payout " +
+    "until it is in transit or delivered, or fails with its reason and refund; at the approval deadline with the payout " +
+    "in transit it ends normally and names `capxul payment wait`. An expired quote (its approval expired: WRONG_STATE) or " +
+    "a changed account names `bank pay` again; a declined approval ends CANCELLED. Nothing is sent in any of them.",
   component: component_core_sdk,
   sdk: "client.banking.payouts.pay",
   input: Schema.Struct({
@@ -162,12 +220,15 @@ export const flow_client_banking_payouts_pay = defineFlow({
   steps: [
     { name: "contact", rpc: rpc_contacts_book_list, about: "`bank pay <contact>` only: the book's entries, to find the contact's PartyId." },
     { name: "payee", rpc: rpc_banking_accounts_add, about: "A new payee in `--input` only: saves their account with its holder's name first." },
-    { name: "quote", rpc: rpc_banking_payouts_quote, about: "The quote, the payout and its Payment, once per request key." },
-    { name: "show", local: "prompt", about: "At a terminal: the locked bank amount, the funding with its slippage buffer, and the deadline." },
-    { name: "approve", local: "wait", about: "The person approves on the approval page the CLI opens; `--json` returns before this step." },
+    { name: "quote", rpc: rpc_banking_payouts_quote, about: "The quote, the payout and its Payment, once per request key; `from` names the budget by key." },
+    { name: "show", local: "prompt", about: "At a terminal: the locked bank amount, the funding with its slippage buffer, the budget's name, and the deadline." },
+    { name: "sponsored", rpc: rpc_approvals_signing_get, about: "The payout's approval, live, until approvals has sponsored it (`pending`, with its digest) or it ends." },
+    { name: "sign", local: "sign", about: "An agent payer signs the digest with its own key at once; a person signs on the approval page instead." },
+    { name: "give-signature", rpc: rpc_approvals_signing_sign, about: "An agent's signature to approvals, which sends the operation once." },
+    { name: "approve", local: "wait", about: "A person approves on the approval page the CLI opens; `--json` returns before this step." },
     { name: "follow", rpc: rpc_banking_payouts_get, about: "Read until in transit, delivered or failed, or the approval deadline passes." },
   ],
-  errors: [],
+  errors: [error_WRONG_STATE, error_CANCELLED],
   calls: [],
   spans: [],
   budget: budget("vendor"),

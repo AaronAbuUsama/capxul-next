@@ -10,7 +10,7 @@ import { concept_requests } from "../shared/foundation.ts";
 import { error_INVALID_INPUT, error_RATE_LIMITED, error_WRONG_STATE } from "../shared/vocabulary.ts";
 import { machine_request, table_requests, table_service_revisions, table_services } from "./data.ts";
 import { Amount } from "./shapes.ts";
-import { procedure_documents_store } from "./links.ts";
+import { procedure_documents_store } from "../documents/procedures.ts";
 import { table_parties } from "../parties/data.ts";
 
 const R = "packages/backend/src/requests/checkouts";

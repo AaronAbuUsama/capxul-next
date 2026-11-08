@@ -158,6 +158,33 @@ export const rpc_banking_accounts_list = defineRpc({
   was: [`${A}/operations/list.ts:1`, `${A}/views.ts:1`],
 });
 
+export const rpc_banking_accounts_list_for_contact = defineRpc({
+  id: "banking.accounts.list-for-contact",
+  title: "List the bank accounts saved on one contact, masked",
+  about:
+    "The accounts the owner saved on one contact's Party (`scope` contact, by `bank-accounts-by-party`), newest first, " +
+    "removed ones left out, each masked as `bank accounts` shows its own: never the numbers. A Party with none, or one the " +
+    "owner never saved an account on, gets an empty list: whether the Party is in the book at all is contacts' answer, " +
+    "which `contact get` reads first (decision banking.contact-get). A PartyId that is not well formed is INVALID_INPUT. " +
+    "It reads only banking's own table and the Seats, and writes nothing.",
+  concept: concept_banking,
+  kind: "query",
+  who: "A signed-in person, for their own book's contacts, or any current member of the Organization they name with `--org`.",
+  input: Schema.Struct({ org_id: Schema.NullOr(S), party_id: S }),
+  output: Schema.Struct({ items: Schema.Array(BankAccountView) }),
+  errors: [error_NOT_AUTHENTICATED, error_ROLE_PERMISSION_DENIED, error_INVALID_INPUT],
+  reads: [table_bank_accounts, table_org_members],
+  writes: [],
+  drives: [],
+  invokes: [],
+  emits: [],
+  calls: [],
+  chain: [],
+  spans: [],
+  budget: budget("read"),
+  was: ["apps/cli/src/commands/contact/subcommands/get/execute.ts:50", `${A}/operations/list.ts:1`],
+});
+
 export const rpc_banking_accounts_remove = defineRpc({
   id: "banking.accounts.remove",
   title: "Remove a saved bank account",

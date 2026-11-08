@@ -248,7 +248,7 @@ export const decision_concepts_access = defineDecision({
   title: "Access keeps sign-in and sessions and moves to the bottom",
   question: "What does access own, and how does it get to depend on nothing?",
   options: [
-    { label: "bottom", text: "Principals, sessions, sign-in, client grants and gates; the waitlist, referrals, consent and the indexer scope leave it." },
+    { label: "bottom", text: "Principals, sessions, sign-in, assistant grants and gates; the waitlist, referrals, consent and the indexer scope leave it." },
     { label: "as-is", text: "Keep access as it was, importing accounts, applications, organizations, parties and profiles." },
   ],
   chosen: "bottom",
@@ -259,7 +259,8 @@ export const decision_concepts_access = defineDecision({
     "in by key; that is proved on chain (`AgentOwner.agentOf` and the Safe's owners through chain-rpc), so access needs no " +
     "agents table. Feature gates stay: 39 frozen refusals in 30 operations of six areas name FEATURE_NOT_AVAILABLE, so they sit " +
     "below everything; a gate for an Organization keys on its id as a value. The commands that sign in and then report " +
-    "the account's setup are accounts' flows (operations.sign-in-in-accounts).",
+    "the account's setup are accounts' flows (operations.sign-in-in-accounts). The device flow's native client grants are " +
+    "not ported (concepts.no-device-flow-or-consent).",
   source: by("books/as-is/shared/foundation.ts (access imports 5 concepts); packages/backend/src/access/README.md:3"),
   affects: [f.concept_access, v.error_FEATURE_NOT_AVAILABLE],
 });
@@ -613,18 +614,19 @@ export const decision_concepts_requests = defineDecision({
 
 export const decision_concepts_applications = defineDecision({
   id: "concepts.applications",
-  title: "Applications stays separate, above organizations, with consent and health",
+  title: "Applications stays separate, above organizations, with health",
   question: "Merge applications into access, and where do consent and the deployment health check go?",
   options: [
-    { label: "above-organizations", text: "Applications above organizations, owning apps, keys, origins, bootstrap, consent, quickstart keys and health." },
+    { label: "above-organizations", text: "Applications above organizations, owning apps, keys, origins, bootstrap, quickstart keys and health; no consent table." },
     { label: "merge-access", text: "Merge applications into access." },
   ],
   chosen: "above-organizations",
   why:
     "An Organization's publishable key needs the Invoicing hat ('For an Organization, a member who holds issue " +
     "invoices'), so applications must sit above organizations; access must sit below everything. Merging them would make " +
-    "a loop. Consent is a person's grant to an application, so it is the application's record. `doctor --online` checks " +
-    "the deployment and the app key, which is what bootstrap already describes, so health lives here.",
+    "a loop. A person's consent to an application would be the application's record, but nothing in the target writes " +
+    "one: its only writer was the device flow (concepts.no-device-flow-or-consent). `doctor --online` checks the " +
+    "deployment and the app key, which is what bootstrap already describes, so health lives here.",
   source: by("apps/docs/factory/operations/key.create.yaml, doctor.yaml; books/as-is/shared/foundation.ts (access-applications loop)"),
   affects: [f.concept_applications, f.concept_access],
 });
@@ -964,8 +966,11 @@ export const decision_rules_durable_processes = defineDecision({
     {
       label: "list",
       text:
-        "An approval, a payment command, a dated payment, a Board proposal, an Organization's setup, a personal Safe's setup, " +
-        "an agreement, a request, an invitation, a bank payout, a verification, an agent change, and a round (equity).",
+        "An approval, a Payment (one process for its command and its date: payments.one-process-per-payment), a Board " +
+        "proposal, an Organization's setup, a personal Safe's setup, an agreement, a request, an invitation, a bank payout, " +
+        "a verification, an agent change and a round (equity). Added by their designers: an assistant grant " +
+        "(access.assistant-grant-process), an identity document (media.document-process), a budget change " +
+        "(budgets.one-process-per-change), and an equity install, grant, sale and vote (equity.processes).",
     },
     { label: "workflows-only", text: "Only what P3's three-part test calls a workflow, with no instance per object." },
   ],
@@ -974,11 +979,14 @@ export const decision_rules_durable_processes = defineDecision({
     "Each waits on something outside a request (a signature, the chain, a date, a person, Bridge) and must survive a " +
     "crash: P3's test holds for each, and A3 says the process owns its machine. Short-lived rows (a contact, a book " +
     "account, an annotation) change only inside rpcs and have no process. The concept designer may add objects, never drop " +
-    "one of these without a decision.",
-  source: by("A3 (time); P3 (the three-part test)"),
+    "one of these without a decision. The list was brought up to date with the designs on 8 November 2026: payments " +
+    "folded the payment command's and the dated payment's processes into one per Payment, with its own decision, and " +
+    "four designers added objects that wait on a person, the chain or a date.",
+  source: by("A3 (time); P3 (the three-part test); assembly, 8 November 2026: access, media, budgets, equity and payments decisions"),
   affects: [
     f.concept_approvals, f.concept_payments, f.concept_board, f.concept_organizations, f.concept_accounts, f.concept_payroll,
-    f.concept_requests, f.concept_banking, f.concept_agents, f.concept_equity,
+    f.concept_requests, f.concept_banking, f.concept_agents, f.concept_equity, f.concept_access, f.concept_media,
+    f.concept_budgets,
   ],
 });
 
@@ -1339,7 +1347,7 @@ export const decision_contracts_set = defineDecision({
       text:
         "The 15 v4 address-book contracts (Escrow and its factory counted separately) and the third-party contracts the v4 " +
         "install wires and the product calls: Safe, Safe4337Module, MultiSendCallOnly, EntryPoint v0.7, Roles 2.1, Hats, " +
-        "the Hats Signer Gate v2 and ERC-20.",
+        "the Hats Signer Gate v2, Hats Elections and ERC-20.",
     },
     { label: "capxul-only", text: "Only Capxul's own v4 contracts." },
   ],
@@ -1348,14 +1356,16 @@ export const decision_contracts_set = defineDecision({
     "P9 drops V2, V3, CapxulEscrow, PayrollDepartments and the rest. The third-party contracts are not pre-v4: v4's " +
     "architecture lists Hats, the Signer Gate and Roles as its authority group, and every approval goes through the " +
     "EntryPoint and the Safe module. Without them the book could not name the calls the designed text makes (approveHash, " +
-    "mintHat, claimSignerFor). Hats Elections and the libraries are left out: no frozen operation calls them directly.",
+    "mintHat, claimSignerFor). The libraries are left out: no frozen operation calls them. Hats Elections was left out " +
+    "at first and is in since the assembly (contracts.hats-elections): the designed shareholder votes call it through the " +
+    "Governor.",
   source: by("P9; packages/protocol/src/evm/protocol-v4-addresses.ts:12-30; docs/planning/protocol-v4/architecture.md"),
   affects: [
     x.contract_companies_house_claimer, x.contract_company_safe_minter, x.contract_installer, x.contract_payments,
     x.contract_budgets, x.contract_agreements, x.contract_escrow_factory, x.contract_escrow, x.contract_agent_owner,
     x.contract_captable, x.contract_share_class, x.contract_vesting, x.contract_options, x.contract_rounds, x.contract_exits,
     x.contract_governor, x.contract_safe, x.contract_safe_4337_module, x.contract_multi_send_call_only, x.contract_entry_point,
-    x.contract_roles, x.contract_hats, x.contract_hats_signer_gate, x.contract_erc20,
+    x.contract_roles, x.contract_hats, x.contract_hats_signer_gate, x.contract_hats_elections, x.contract_erc20,
   ],
 });
 
@@ -1909,7 +1919,7 @@ export const decision_dependencies_of_requests = dependencies(f.concept_requests
   banking: "a matched deposit is marked through banking.match-deposit.",
 });
 export const decision_dependencies_of_applications = dependencies(f.concept_applications, {
-  access: "consent is a person's grant, and a person owns their own keys.",
+  access: "the caller of every rpc: a person owns their own applications and keys.",
   indexing: "the Invoicing hat's wearers may manage an Organization's keys.",
   organizations: "an Organization's applications, and its Invoicing hat id.",
 });
@@ -2154,4 +2164,294 @@ export const decision_vocabulary_doctor_exit = defineDecision({
     "code's exit would change every other command's. The applications designer books the override on the operation.",
   source: adversarial("doctor.yaml (notes, acceptance: 'it exits 124 and keeps the SDK's failure'); apps/cli/src/commands/doctor/execute.ts:34"),
   affects: [v.error_NETWORK_ERROR, f.concept_applications],
+});
+
+// ── assembly of the concept designs (8 November 2026) ───────────────────────────────────────
+// The concept designers reported what they needed from the shared records, or where the shared
+// records no longer said what their designs do (docs/decisions/assembly-items.md). Each record
+// settles one such item; rules.durable-processes, concepts.access, concepts.applications and
+// contracts.v4-set, above, were brought up to date in place by the same pass.
+
+const ASSEMBLY = "Claude, target assembly (shared records), 8 November 2026";
+const assembly = (evidence: string) => `${ASSEMBLY}; evidence: ${evidence}`;
+
+export const decision_concepts_no_device_flow_or_consent = defineDecision({
+  id: "concepts.no-device-flow-or-consent",
+  title: "Access keeps assistant grants only; applications keeps no consent",
+  question:
+    "Access dropped the device flow's native client grants (access.no-device-flow) and applications dropped the consent " +
+    "table (applications.no-consent). The shared records still named both, a JWKS route and the MCP exchange secret. What do they say now?",
+  options: [
+    {
+      label: "align",
+      text:
+        "Align them: access owns sessions, sign-in, assistant grants and gates; applications owns no consent; the backend " +
+        "serves no JWKS and admits a browser origin by the bootstrap's origin token; MCP_EXCHANGE_SECRET leaves both environments.",
+    },
+    { label: "keep", text: "Keep the shared wording and let the concept decisions override it." },
+  ],
+  chosen: "align",
+  why:
+    "The shared records are what every designer reads first, and a map that names records no concept builds misleads " +
+    "them. Both drops follow P2: no client starts a device request (the CLI keeps its v1 grant records only to delete " +
+    "them), and the consent table's one writer was the device flow's accept. Access finds an opaque session or assistant " +
+    "token by its hash in the request's own transaction (access.sessions, access.assistants), so nothing needs a JWKS, " +
+    "and the MCP server passes the person's token through the Core SDK with no exchange. The daily client-grant sweep P3 " +
+    "keeps is access' daily sweep of sessions, codes and ended assistant grants. The origin token is applications.origin-token's.",
+  source: assembly(
+    "books/target/access/decisions.ts (access.no-device-flow, access.sessions, access.assistants); applications.no-consent, applications.origin-token; apps/cli/src/auth/native-grant-cleanup.ts:5",
+  ),
+  affects: [
+    f.concept_access, f.concept_applications, f.component_backend, f.component_mcp_server, f.environment_devnet,
+    f.environment_staging,
+  ],
+});
+
+export const decision_rules_transaction_width = defineDecision({
+  id: "rules.transaction-width",
+  title: "sys:tx-width counts the procedures an rpc invokes itself",
+  question:
+    "P4's sys:tx-width allows at most 3 procedures from at most 2 other concepts in one transaction. Does a procedure a " +
+    "door invokes inside itself (board.propose opening approvals.open) count against the rpc that invoked the door?",
+  options: [
+    {
+      label: "direct",
+      text:
+        "Count the rpc's or workflow's own `invokes`. A procedure's own invocations count against that procedure, which is " +
+        "held to the same limit; a wider transaction needs the invoking concept's decision record.",
+    },
+    { label: "nested", text: "Count every procedure the transaction runs, nested ones included." },
+  ],
+  chosen: "direct",
+  why:
+    "The rule bounds what one concept couples into its transaction, and an invoker cannot change what a door does inside: " +
+    "board.propose always opens its first approval. Counting that against every proposer (budgets, payroll, payments, " +
+    "agents, equity) would push each to split one money fact over two transactions, which P4 exists to prevent. The door " +
+    "is bounded on its own (board.propose: one procedure of one concept), and `invokes` is what the eval reads. P4 allows " +
+    "a wider one with a decision record: payments.birth-width is that record for payments' prepare and propose (parties, " +
+    "documents, and approvals or board). agents.transaction-width and equity's Board-matter prepares are within the rule.",
+  source: assembly("docs/decisions/policy-pack.md (P4: sys:tx-width, 'a wider one needs a decision record'); agents.transaction-width; payments.birth-width; parties.resolve-recipient"),
+  affects: [f.concept_payments, f.concept_agents, f.concept_equity, f.concept_board, f.concept_approvals],
+});
+
+export const decision_rules_process_wakeups = defineDecision({
+  id: "rules.process-wakeups",
+  title: "The runtime wakes a waiting process by the key its event carries",
+  question:
+    "Approvals waits for Ponder's UserOperationEvent at (chain, sender, nonce) and for its opener's withdrawal; payments, " +
+    "budgets, payroll and equity wait on approval_transitioned and proposal_transitioned. What delivers an event to the " +
+    "one instance waiting for it?",
+  options: [
+    {
+      label: "runtime-key",
+      text:
+        "The runtime. A transition's outbox event wakes each instance whose wait names it and whose key its props carry " +
+        "(the opener and subject on approval_transitioned and proposal_transitioned); an indexed chain event wakes one by " +
+        "the key Ponder's row carries (chain, sender, nonce; a payment id). The book names the wait and, in its about, the key.",
+    },
+    { label: "reactor", text: "One reacting workflow per event finds the waiting instance by a table read and signals it." },
+    { label: "poll", text: "Each waiting instance polls the tables it waits on." },
+  ],
+  chosen: "runtime-key",
+  why:
+    "A3 makes each long-lived object one process that owns its machine, and a wait is its own span, never system time. " +
+    "A reactor per event would add a workflow for every wait, and a poll spends system time and lags by its interval. " +
+    "Effect Workflow resumes an instance through a durable deferred it can address, so the runtime keeps the map from an " +
+    "event's key to that address, fed by the outbox relay and by Ponder's progress (integration indexer). The A2 spike " +
+    "must prove both, including a transition a procedure writes in another concept's transaction (approvals.withdraw). " +
+    "The schema has no field for a wait's key yet, so its about names it.",
+  source: assembly("A2, A3; books/target/approvals/processes.ts (by-sender-nonce wait); payments.carrier-waits; budgets.one-process-per-change; approvals' and payments' assembly items"),
+  affects: [f.component_backend, x.integration_indexer, f.concept_approvals, f.concept_payments],
+});
+
+export const decision_rules_global_tenancy = defineDecision({
+  id: "rules.global-tenancy",
+  title: "A global table has no tenant and is written only through its own concept",
+  question:
+    "CONVENTIONS said a `global` table is written only by the system (prices, flags). Parties' directory is `global` but " +
+    "written through parties' procedures and rpcs at a person's or an Organization's request (parties.directory-tenancy). Which holds?",
+  options: [
+    {
+      label: "owning-concept",
+      text:
+        "`global`: no tenant column; every row may be read by every tenant and holds nothing private; written only by the " +
+        "owning concept's own procedures, rpcs and workflows, never directly by a tenant. Prices, flags and the directory of Parties.",
+    },
+    { label: "system-only", text: "Only the system writes a global table; the directory needs another tenancy." },
+  ],
+  chosen: "owning-concept",
+  why:
+    "Row-level security keeps a tenant's rows from other tenants; a global row belongs to none, so what matters is who " +
+    "writes it and that nothing private is in it. Every target write goes through its concept's records anyway (P4), so " +
+    "'only the system' and 'only the owning concept' differ only in whether a caller's request may cause the write. The " +
+    "directory's tenancy stays flagged for Aaron's data-model review (W1) in parties.directory-tenancy; this record only " +
+    "stops the conventions contradicting it.",
+  source: assembly("books/target/parties/decisions.ts (parties.directory-tenancy); P8; books/target/CONVENTIONS.md rule 3"),
+  affects: [f.concept_parties, f.component_postgres],
+});
+
+export const decision_vocabulary_declined_preview = defineDecision({
+  id: "vocabulary.declined-preview-cancelled",
+  title: "Declining a terminal preview ends CANCELLED in every command",
+  question:
+    "The frozen pages say a declined preview writes nothing, not what it exits with. The old CLI answered CLI_USAGE " +
+    "(exit 2); contacts answers CANCELLED (exit 130, contacts.decline-is-cancelled). One rule for every command?",
+  options: [
+    {
+      label: "cancelled",
+      text:
+        "A 'no' to a terminal preview ends CANCELLED (exit 130) and writes nothing, in every command; a script without " +
+        "`--confirm` stays CLI_USAGE, as the frozen mistakes say.",
+    },
+    { label: "per-concept", text: "Each concept chooses." },
+    { label: "usage", text: "CLI_USAGE, as the old `confirmWrite` did." },
+  ],
+  chosen: "cancelled",
+  why:
+    "The frozen book is silent (P10 rung 5: the code is evidence), and one CLI must answer one way. A 'no' is the " +
+    "person's choice, not a usage mistake, and CANCELLED already says the command stopped before it finished and nothing " +
+    "was sent, as a declined approval ends (vocabulary.drop-signer-rejected). Scripts pass `--confirm` and never see the " +
+    "question, so no script's exit changes. A command whose approval page is its confirmation refuses `--confirm` and has " +
+    "no terminal question to decline.",
+  source: assembly("books/target/contacts/decisions.ts (contacts.decline-is-cancelled); apps/cli/src/commands/org/internal/write.ts:57; frozen contact.add, request.issue, service.create acceptance"),
+  affects: [v.error_CANCELLED, v.error_CLI_USAGE, f.component_cli],
+});
+
+export const decision_integrations_chain_rpc_live_reads = defineDecision({
+  id: "integrations.chain-rpc-live-reads",
+  title: "chain-rpc serves every read of the chain as it is now",
+  question:
+    "chain-rpc's about limited it to reads before a write, an agent's sign-in and the token scan. Notices reads a company " +
+    "Safe's owners and live figures when it sends (notices.chain-reads); payroll, budgets and equity read live views for a show. Within it?",
+  options: [
+    {
+      label: "live",
+      text:
+        "Yes: any view whose answer is the chain's state now, which Ponder holds late or not at all, read when a concept " +
+        "needs it as of now: before a write, for a show a person waits on, or when a notice is sent.",
+    },
+    { label: "pre-write-only", text: "Keep chain-rpc to reads before a write; every other read through indexing's views." },
+  ],
+  chosen: "live",
+  why:
+    "A fact that happened is Ponder's, read through indexing's views; state as of now (a budget's left, what an agreement " +
+    "has released, a balance, a Safe's owners) is a view call, which is what chain-rpc answers within its node-read " +
+    "timeout and p95. Notices has no indexing edge and should not gain one for a recipient list (dependencies.notices-top). " +
+    "What stays: chain-rpc never replaces an indexed fact (a settlement, a claim) and scans history only for books' " +
+    "added-token window.",
+  source: assembly("books/target/notices/decisions.ts (notices.chain-reads, notices.recipients); payroll.live-reads; budgets.chain-is-the-record; the chain-rpc callers in books/target"),
+  affects: [x.integration_chain_rpc, f.concept_notices],
+});
+
+export const decision_integrations_bridge_bank_details_read = defineDecision({
+  id: "integrations.bridge-bank-details-read",
+  title: "Bridge gains a read of one virtual account; no payout cancel",
+  question:
+    "Bridge had no read of one virtual account, so banking rewrote `bank settle` #1-#4 and could not keep 'It writes " +
+    "nothing to Bridge when Bridge's answer is unusable'. It also has no cancel for an unfunded transfer. Add either?",
+  options: [
+    { label: "read", text: "Add `readBankDetails` (one virtual account: status, deposit token, details), as the old client's readVirtualAccount; no cancel." },
+    { label: "read-and-cancel", text: "Add the read and a `cancelPayout` for an unfunded transfer." },
+    { label: "none", text: "Add neither, and keep banking's rewrites." },
+  ],
+  chosen: "read",
+  why:
+    "A frozen claim is never weakened: `bank settle` #4 is an outcome a black box sees (the Bridge fake records no update " +
+    "when the first answer is unusable), and without a read the target can only promise less. The old settle read the " +
+    "account, checked it, wrote, then read it back (settle.ts:39-46); the read has the shape of getVerification and takes " +
+    "the same numbers and failures. A cancel is not needed: no frozen line asks for one, an unfunded transfer lapses at " +
+    "Bridge, and `bank pay`'s 'nothing is sent' for a changed account is kept by withdrawing the unsigned approval " +
+    "(banking now depends on approvals), not by a call to Bridge.",
+  source: assembly("packages/backend/src/banking/bank-details/external.ts:34, 154; bank-details/operations/settle.ts:39-46; frozen bank.settle and bank.pay; banking.acceptance-rewrites, banking.processes"),
+  affects: [x.integration_bridge, f.concept_banking],
+});
+
+export const decision_contracts_hats_view_hat = defineDecision({
+  id: "contracts.hats-view-hat",
+  title: "Hats' `viewHat` is recorded; `getNextId` is not",
+  question:
+    "Budgets plans a new hat's id from indexing's hats, which can lag the chain (budgets.hat-planning). Record " +
+    "`Hats.getNextId` or `viewHat` so the plan reads the chain now?",
+  options: [
+    { label: "view-hat", text: "Record `viewHat`, which v4's IHats declares: a hat's supply, modules, `lastHatId` and whether it is active." },
+    { label: "get-next-id", text: "Record `getNextId(admin)` from the deployed Hats contract." },
+    { label: "none", text: "Record neither; plan from indexing alone." },
+  ],
+  chosen: "view-hat",
+  why:
+    "The contract records hold what v4 calls (contracts.v4-set): v4's IHats lists viewHat and not getNextId, and the " +
+    "Installer itself reads viewHat. The next child's id is the admin's id with `lastHatId + 1` at the child's level, so " +
+    "viewHat at the chain head gives what getNextId would. Neither closes the race the budgets designer names (a hat made " +
+    "under the same admin between proposal and execution); v4 has no guard, and budgets applies a change only on its " +
+    "indexed effect with the planned hat (budgets.one-process-per-change), so a shifted id never reads as applied.",
+  source: assembly("packages/contracts/v4/src/interfaces/external/IHats.sol:111; authority/InstallerElections.sol:24; books/target/budgets/decisions.ts (budgets.hat-planning)"),
+  affects: [x.contract_hats, f.concept_budgets],
+});
+
+export const decision_contracts_hats_elections = defineDecision({
+  id: "contracts.hats-elections",
+  title: "Hats Elections and the Installer's election calls are recorded",
+  question:
+    "`org vote create` names `board-settings`, `elect` and `remove` (designed, W6), whose Governor calls go to a seat " +
+    "group's Hats Elections clone and the Installer's election batch. contracts.v4-set left Elections out. Record it?",
+  options: [
+    {
+      label: "record",
+      text:
+        "Record the Elections clone (elect, recall, setNextTerm, startNextTerm, currentTermEnd, nextTermEnd) and the " +
+        "Installer's deployElections, buildElections and ElectionsDeployed.",
+    },
+    { label: "wait", text: "Leave it out until board designs seat groups; the three matters answer NOT_IMPLEMENTED." },
+  ],
+  chosen: "record",
+  why:
+    "P10: a designed block is the specification, and the shared records should not be what keeps a designed matter " +
+    "unbuilt; equity.vote-matters names this record as one of its two blockers. The calls are v4's: IHatsElectionEligibility " +
+    "and InstallerElections are in packages/contracts/v4, and the Governor's allowed targets include the predicted " +
+    "Elections clone. The other blocker, board's seat groups and terms, is board's design; until it lands the three " +
+    "matters keep NOT_IMPLEMENTED, and equity builds them once it does.",
+  source: assembly("packages/contracts/v4/src/interfaces/external/IHatsElectionEligibility.sol:9; authority/InstallerElections.sol:22-80; interfaces/IInstaller.sol:113, 288; frozen org.vote.create designed flags"),
+  affects: [x.contract_hats_elections, x.contract_installer, f.concept_equity, f.concept_board],
+});
+
+export const decision_contracts_equity_events = defineDecision({
+  id: "contracts.equity-events",
+  title: "The equity events that equity's processes follow are recorded",
+  question: "Equity's processes and tables name 12 v4 events that the contract records lacked. Record them?",
+  options: [
+    {
+      label: "record",
+      text:
+        "Add Options' OptionsAccepted; Rounds' SafeRoundCreated, SafeInvited, SafeSigned, Invited, Allocated and " +
+        "RoundCancelled; Exits' SaleApproved, TransferOffered and TransferApproved; Vesting's Granted and Revoked.",
+    },
+    { label: "prose", text: "Leave them named only in the processes' prose." },
+  ],
+  chosen: "record",
+  why:
+    "contracts.functions records every event a concept must follow, and equity/processes.ts and equity/data.ts name " +
+    "these; Ponder indexes them for indexing's views either way. Recorded, equity can trigger on or name them by record, " +
+    "and the unconsumed-chain-event gap shows exactly which it still follows only in words. Escrow's " +
+    "InvoicePaymentCompleted is not added: nothing reads the surplus it reports (indexing's report).",
+  source: assembly("packages/contracts/v4/src/interfaces/IOptions.sol:38; IRounds.sol:70-104; IExits.sol:68-90; IVesting.sol:30-39; books/target/equity/processes.ts"),
+  affects: [x.contract_options, x.contract_rounds, x.contract_exits, x.contract_vesting, f.concept_equity],
+});
+
+export const decision_contracts_no_checkpoint_reads = defineDecision({
+  id: "contracts.no-checkpoint-reads",
+  title: "No checkpoint reads for `org cap-table --at` yet",
+  question: "Equity asks for the share classes' checkpoint reads so `org cap-table --at` can answer. Record them?",
+  options: [
+    { label: "wait", text: "Record none: the designed call says `--at` is not built yet, so it answers NOT_IMPLEMENTED." },
+    { label: "votes", text: "Record ShareClass getPastVotes, getPastTotalSupply and safeBalanceAt." },
+  ],
+  chosen: "wait",
+  why:
+    "The frozen designed `call` says '`--at` (checkpoints) is not built yet', so NOT_IMPLEMENTED is the frozen surface, " +
+    "not a weakening. ERC20Votes keeps checkpoints of votes, not balances: a holder who delegated shows no votes, so a past " +
+    "vote count is not a past holding, and only the company Safe's balance has its own checkpoint (safeBalanceAt). A past " +
+    "cap table reads better from indexing's history of the classes' Transfers; when `--at` is designed, equity and " +
+    "indexing choose.",
+  source: assembly("frozen org.cap-table (designed call); packages/contracts/v4/src/interfaces/IShareClass.sol:8-58; books/target/equity/holdings.ts:39"),
+  affects: [x.contract_share_class, f.concept_equity],
 });

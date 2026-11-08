@@ -1,7 +1,6 @@
 // Activity's modules, in the order the concept is read: its table, its (empty) door, its three
 // areas (the feed, the change feed, holdings), its change-log workflows, its one SDK flow, the six
-// frozen operations it designs, and its decisions. links.ts re-exports pending links to documents
-// and is not a module of records.
+// frozen operations it designs, and its decisions.
 
 import * as data from "./data.ts";
 import * as procedures from "./procedures.ts";

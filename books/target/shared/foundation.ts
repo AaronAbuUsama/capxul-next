@@ -119,10 +119,11 @@ export const component_backend = defineComponent({
   title: "Backend",
   about:
     "One Effect 4 service on Node (A1): the 22 concepts' rpcs as one generated RpcGroup over HTTP (live rpcs over a " +
-    "WebSocket), the few HTTP routes (bootstrap, OAuth, Bridge's webhook, JWKS), and the concepts' durable processes on " +
+    "WebSocket), the few HTTP routes (bootstrap, OAuth, Bridge's webhook), and the concepts' durable processes on " +
     "Effect Workflow and Cluster with Postgres storage (A2, behind a spike; DBOS is the fallback). Every rpc runs in one " +
-    "transaction (A3). The runtime writes each transition's event to the outbox in that transaction and one relay sends it " +
-    "on. It reads Ponder's tables in the same Postgres, and calls the chain, the bundler and paymaster, and the vendors " +
+    "transaction (A3). The runtime resolves a session or assistant token by its hash in that transaction (no JWKS), " +
+    "admits a browser origin by the bootstrap's origin token or TRUSTED_ORIGINS, writes each transition's event to the " +
+    "outbox in that transaction and has one relay send it on, and wakes a waiting process by its key (rules.process-wakeups). It reads Ponder's tables in the same Postgres, and calls the chain, the bundler and paymaster, and the vendors " +
     "through integrations.",
   runtime: "node",
   exposes: ["rpc", "http", "ws"],
@@ -206,9 +207,10 @@ export const concept_access = defineConcept({
   title: "Access",
   about:
     "Who is calling. Owns principals (a person, known by their email; an agent, known by its Safe), sessions and their " +
-    "revocation, sign-in by an emailed code (with the send cooldown) and by an agent's signed challenge, the CLI's native " +
-    "client grants (device flow), MCP clients' OAuth grants, and feature gates (flags synced from PostHog, per person or " +
-    "Organization). It also books the commands that touch only this machine's CLI state: the environment, the current " +
+    "revocation, sign-in by an emailed code (with the send cooldown) and by an agent's signed challenge, MCP clients' OAuth " +
+    "grants (one durable process per assistant grant), and feature gates (flags synced from PostHog, per person or " +
+    "Organization); the old device flow's native client grants are not ported, and the CLI only deletes its v1 grant " +
+    "records. It also books the commands that touch only this machine's CLI state: the environment, the current " +
     "person, telemetry consent, `schema` and `whoami`. It depends on nothing: an agent's sign-in is proved on chain (its key " +
     "must be the one owner of a Safe that AgentOwner controls), not by reading agents' tables. It never grants authority " +
     "over money (hats and budgets do), never admits a person (accounts) and never records an application's consent " +
@@ -496,9 +498,9 @@ export const concept_applications = defineConcept({
   title: "Applications",
   about:
     "How a client finds and uses a deployment: the bootstrap envelope, the deployment's health (`doctor --online`), " +
-    "registered applications (a person's or an Organization's), their publishable keys and web origins, a person's consent " +
-    "to an application, and quickstart test keys (`dev key`). An Organization's keys need the Invoicing hat, so it sits above " +
-    "organizations. Old applications and old access' application consent.",
+    "registered applications (a person's or an Organization's), their publishable keys and web origins (the bootstrap's " +
+    "origin token), and quickstart test keys (`dev key`). An Organization's keys need the Invoicing hat, so it sits above " +
+    "organizations. Old applications; old access' application consent is not ported (its one writer was the device flow).",
   component: B,
   dependsOn: [concept_access, concept_indexing, concept_organizations],
   was: [`${OLD}/applications/README.md:3`],
@@ -632,7 +634,6 @@ export const environment_devnet = defineEnvironment({
     "SHIELD_PUBLISHABLE_KEY",
     "SHIELD_SECRET_KEY",
     "SHIELD_ENCRYPTION_SHARE",
-    "MCP_EXCHANGE_SECRET",
   ],
   deploy:
     "`capxul-devnet up` boots everything in order (Postgres, Anvil, v4 through Companies House, Ponder, alto and the mock " +
@@ -698,7 +699,6 @@ export const environment_staging = defineEnvironment({
     "SHIELD_PUBLISHABLE_KEY",
     "SHIELD_SECRET_KEY",
     "SHIELD_ENCRYPTION_SHARE",
-    "MCP_EXCHANGE_SECRET",
   ],
   deploy:
     "Chosen at the spine (Y3): one pipeline builds the backend, Ponder and MCP images from a merged commit, runs the " +

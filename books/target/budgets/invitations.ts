@@ -183,15 +183,16 @@ export const rpc_budgets_invitations_propose = defineRpc({
   title: "Propose an authorizing invitation's grants as one Board batch",
   about:
     "The flow's step after organizations' invite rpc, for an invitation with grants. The invitation must be this " +
-    "Organization's and the inviter's (INVALID_INPUT) and still `authorizing` with no proposal that can still run: one " +
-    "already pending, active or ended is WRONG_STATE, and the CLI prints the invitation instead. It plans the offers the " +
-    "invitation holds again, from the chain as it is now. " + PLAN + " Then, in one transaction: a new allowance's " +
+    "Organization's and the inviter's (INVALID_INPUT) and still `authorizing`: one already pending, active or ended " +
+    "(its proposal rejected or replaced cancels it) is WRONG_STATE, and the CLI prints the invitation instead. It plans the offers the " +
+    "invitation holds again, by `budgets.invitations.plan`'s rules, from the chain as it is now (the hats, the grant's " +
+    "Director, a new allowance's parent, room and planned hat). Then, in one transaction: a new allowance's " +
     "budgets row is born proposed (budget.propose) with its create change (budget-change.propose, signer board, holders " +
     "none: the mint is the invitation's), so its chain id is bound when the batch executes; the Board proposal of every " +
     "grant, in offer order, at the Safe's next nonce (`board.propose`, opener budgets, subject " +
     "`invitation-grants:<invitationId>`, with the inviter's first approval); and the binding of that Safe transaction's " +
     "hash and nonce to the invitation (`organizations.bind-invitation-grants`), so the invitation opens only when the " +
-    "chain shows it executed. A repeat finds the same proposal (`opened: false`), and binding it again is a no-op. Two " +
+    "chain shows it executed. A repeat while that proposal waits finds it (`opened: false`), and binding it again is a no-op. Two " +
     "procedures of two other concepts; board.propose opens the approval inside it.",
   was: [
     `${OLD}/operations/invite.ts:14`,

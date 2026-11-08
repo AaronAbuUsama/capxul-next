@@ -6,7 +6,10 @@
 // decisions that expect a notice as evidence.
 
 import { defineDecision } from "../../../packages/book/src/index.ts";
-import { concept_budgets, concept_devnet, concept_notices } from "../shared/foundation.ts";
+import { concept_budgets, concept_devnet, concept_notices, concept_payments } from "../shared/foundation.ts";
+import { machine_payment } from "../payments/data.ts";
+import { machine_proposal } from "../board/data.ts";
+import { machine_agreement_write } from "../payroll/data.ts";
 import { integration_chain_rpc, integration_mail } from "../shared/external.ts";
 import {
   event_balance_alert_transitioned,
@@ -679,4 +682,47 @@ export const decision_notices_worlds = defineDecision({
     "budgets' and payroll's worlds), with `dev mail fail` arming a refusal and `dev mail notices` reading the record.",
   source: by("CONVENTIONS rule 4 (refusals and worlds); books/target/organizations/operations.ts (org.invite.resend)"),
   affects: [concept_notices, workflow_notices_delivery_retry],
+});
+
+// ── assembly (8 November 2026) ──────────────────────────────────────────────────────────────
+
+const ASSEMBLY = (evidence: string) => `Claude, target assembly (rails-and-reads), 8 November 2026; evidence: ${evidence}`;
+
+export const decision_notices_failed_proposals = defineDecision({
+  id: "notices.failed-proposals",
+  title: "A payee Organization's collection whose proposal failed is refused",
+  question:
+    "Board added a `failed` proposal (board.failed-proposal) and asked every follower to read it as 'ran without " +
+    "effect'; payroll now fails a write whose proposal failed (`execution_failed`, payroll.carrier-endings). Does the " +
+    "payee hear of it?",
+  options: [
+    { label: "as-refused", text: "`collection-refused` follows a payee's `collected` write that reverted or ended `execution_failed`." },
+    { label: "silent", text: "Only a reverted collection sends; a failed proposal sends nothing." },
+  ],
+  chosen: "as-refused",
+  why:
+    "Either way the chain ran the collection and nothing was paid, so the payee's Directors should learn it the same way " +
+    "and can collect again. A failed Payment follows payments' `lapse` (payments.board-outcomes), which " +
+    "`notices.payments.failed` already tells for a dated Payment, so no other notice changes.",
+  source: ASSEMBLY("books/target/board/decisions.ts (board.failed-proposal); books/target/payroll/decisions.ts (payroll.carrier-endings)"),
+  affects: [workflow_notices_payroll_collection_refused, machine_agreement_write.t.fail, machine_proposal.t.fail],
+});
+
+export const decision_notices_claim_escrow = defineDecision({
+  id: "notices.claim-escrow",
+  title: "Money waiting in a claim escrow sends no email, as before (for Aaron)",
+  question:
+    "When a payment to an email with no account goes into a claim escrow (`escrowed`), the payee may never learn the " +
+    "money is waiting. The old system sent nothing. Does notices tell them?",
+  options: [
+    { label: "none", text: "Send nothing, as the old system did; the payer tells the payee themselves." },
+    { label: "money-waiting", text: "A new `money-waiting` email on payments' `escrow`, to the mailbox, naming the amount, the payer and how to collect." },
+  ],
+  chosen: "none",
+  why:
+    "No frozen operation or acceptance line names such an email, and adding a first email to an address Capxul has no " +
+    "account for is a product choice (who may be emailed unasked, and how often), not one the design can make (W1). The " +
+    "workflow would be one more outbox follower of `escrow` if Aaron wants it; nothing in the map blocks it.",
+  source: ASSEMBLY("docs/decisions/assembly-items.md (notices: product question); payment.send.yaml (claim escrow); books/target/payments/data.ts (escrow)"),
+  affects: [concept_notices, concept_payments, machine_payment.t.escrow],
 });

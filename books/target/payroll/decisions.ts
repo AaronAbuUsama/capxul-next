@@ -6,9 +6,18 @@
 import { defineDecision } from "../../../packages/book/src/index.ts";
 import { concept_board, concept_budgets, concept_notices, concept_payments, concept_payroll } from "../shared/foundation.ts";
 import { contract_agreements, integration_indexer } from "../shared/external.ts";
-import { error_FEATURE_NOT_AVAILABLE, error_TOKEN_REQUIRED, error_WRONG_STATE } from "../shared/vocabulary.ts";
+import {
+  error_CANCELLED,
+  error_FEATURE_NOT_AVAILABLE,
+  error_TOKEN_REQUIRED,
+  error_TRANSACTION_FAILED,
+  error_WRONG_STATE,
+} from "../shared/vocabulary.ts";
 import { machine_approval, table_approvals } from "../approvals/data.ts";
 import { procedure_approvals_open, procedure_approvals_withdraw } from "../approvals/procedures.ts";
+import { procedure_board_propose } from "../board/procedures.ts";
+import { machine_proposal, table_board_proposals } from "../board/data.ts";
+import { procedure_documents_store } from "../documents/procedures.ts";
 import {
   event_agreement_transitioned,
   event_agreement_write_transitioned,
@@ -554,4 +563,58 @@ export const decision_payroll_dropped = defineDecision({
     "`--org`, so it needs no second set of rows.",
   source: by("books/as-is/payroll/agreements.ts (37 rpcs, 2 workflows); books/as-is/payroll/flows.ts:549-857; P2; P3"),
   affects: [...HOLDER_RPCS, rpc_payroll_payees_accept, rpc_payroll_payees_collect, rpc_payroll_payees_list, rpc_payroll_payees_show, rpc_payroll_writes_watch, workflow_payroll_agreements_lifecycle],
+});
+
+// ── assembly ────────────────────────────────────────────────────────────────────────────────
+
+const ASSEMBLY = (evidence: string) => `Claude, target assembly (rails-and-reads), 8 November 2026; evidence: ${evidence}`;
+
+export const decision_payroll_static_links = defineDecision({
+  id: "payroll.static-links",
+  title: "Board's and documents' doors are plain imports; the process reads proposals",
+  question:
+    "payroll/links.ts loaded `board.propose` and `documents.store` dynamically while both concepts were being designed, " +
+    "and the agreement's process described board's proposal table in words. Both concepts have landed. What changes?",
+  options: [
+    {
+      label: "static",
+      text:
+        "Delete links.ts: the payee rpcs import `procedure_board_propose` from ../board/procedures.ts and the offer imports " +
+        "`procedure_documents_store` from ../documents/procedures.ts; the lifecycle reads `board-proposals` for an " +
+        "executed or failed proposal's transaction.",
+    },
+    { label: "keep", text: "Keep the dynamic stand-ins: they resolve to the same records once loaded." },
+  ],
+  chosen: "static",
+  why:
+    "A stand-in was only for a sibling that did not exist yet; payroll depends on both board and documents, so plain " +
+    "imports are the conventional link and a renamed export now fails the typecheck instead of dangling. The process " +
+    "needs the proposal row's `execution_tx_hash` to read the write's facts, so the table belongs in its reads.",
+  source: ASSEMBLY("docs/decisions/assembly-items.md (payroll links); books/target/board/data.ts (board-proposals); books/target/documents/procedures.ts"),
+  affects: [procedure_board_propose, procedure_documents_store, table_board_proposals, rpc_payroll_payees_accept, rpc_payroll_payees_collect, rpc_payroll_holders_offer, workflow_payroll_agreements_lifecycle],
+});
+
+export const decision_payroll_carrier_endings = defineDecision({
+  id: "payroll.carrier-endings",
+  title: "A failed Board proposal fails its write; an expired approval answers WRONG_STATE",
+  question:
+    "Board added a `failed` proposal (the company Safe ran it and the inner call failed, board.failed-proposal), and " +
+    "approvals asks every opener to map an approval's end onto the frozen codes. What does an agreement write do with each?",
+  options: [
+    {
+      label: "fail-and-map",
+      text:
+        "A `failed` proposal fails the write (`execution_failed`): it ran without effect, as a reverted operation does. The " +
+        "flows answer a declined approval CANCELLED, one that expired unsent WRONG_STATE, and a refused, beaten or failed " +
+        "write TRANSACTION_FAILED.",
+    },
+    { label: "abandon", text: "Treat a failed proposal as abandoned, like a rejected or replaced one." },
+  ],
+  chosen: "fail-and-map",
+  why:
+    "A failed proposal used its nonce on chain; abandoned means nothing reached the chain, which would read wrongly in " +
+    "`agreement show`. Board asks openers to read `fail` as 'ran without effect', which is exactly a failed write. The " +
+    "codes are the mapping of decision approvals.machine: expired is WRONG_STATE, declined is CANCELLED (contacts.decline-is-cancelled).",
+  source: ASSEMBLY("books/target/board/decisions.ts (board.failed-proposal); books/target/approvals/decisions.ts (approvals.machine); assembly-items.md (approvals, board)"),
+  affects: [machine_agreement_write, table_agreement_writes, workflow_payroll_agreements_lifecycle, machine_proposal.t.fail, ...WRITE_FLOWS, error_CANCELLED, error_WRONG_STATE, error_TRANSACTION_FAILED],
 });

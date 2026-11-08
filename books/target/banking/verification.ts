@@ -117,8 +117,10 @@ export const rpc_banking_verification_start = defineRpc({
     "Bridge's next step. The customer's Idempotency-Key is derived from the owner, so the first start makes exactly one " +
     "customer and every later start continues it. Answers Bridge already accepted are never sent again (a later tax " +
     "question carries only itself). Documents are files the SDK uploaded to media, admitted there as identity documents " +
-    "(JPG or PNG up to 15 MB for an ID image, JPG, PNG or PDF up to 24 MB otherwise); this rpc reads them and sends them " +
-    "on, and keeps no copy. Refused before Bridge: an Organization and an invitation together (INVALID_INPUT), a caller " +
+    "(JPG or PNG up to 15 MB for an ID image, JPG, PNG or PDF up to 24 MB otherwise); this rpc reads each at the caller's " +
+    "own key and admits it only if `id_front` and `id_back` are `id-image` files and every other field an `id-image` or " +
+    "`document` file, each still `held` (one of another purpose, another person's, or expired is INVALID_INPUT naming the " +
+    "field), then sends them on and keeps no copy. Refused before Bridge: an Organization and an invitation together (INVALID_INPUT), a caller " +
     "who is not a Director of the Organization (ROLE_PERMISSION_DENIED), an invitation whose email is not the caller's " +
     "(ROLE_PERMISSION_DENIED). Bridge's own refusal of an answer (a date of birth under 18) is INVALID_INPUT with the " +
     "field, never Bridge's reason. Then one transaction births the verification (`begin`) on a first start, applies " +

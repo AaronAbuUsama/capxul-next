@@ -9,6 +9,8 @@ import { Schema } from "effect";
 import { budget, defineFlow } from "../../../packages/book/src/index.ts";
 import { component_core_sdk } from "../shared/foundation.ts";
 import { error_CANCELLED, error_PROVIDER_RESPONSE_INVALID, error_WRONG_STATE } from "../shared/vocabulary.ts";
+import { integration_openfort } from "../shared/external.ts";
+import { rpc_approvals_signing_get, rpc_approvals_signing_sign } from "../approvals/signing.ts";
 import { rpc_requests_checkout_get, rpc_requests_checkout_open } from "./checkout.ts";
 import { rpc_requests_deposits_candidates, rpc_requests_deposits_match } from "./deposits.ts";
 import { rpc_requests_inbox_decline, rpc_requests_inbox_get, rpc_requests_inbox_pay } from "./inbox.ts";
@@ -172,10 +174,11 @@ export const flow_client_account_inbox_pay = defineFlow({
   about:
     "Reads the request and its exact terms, prepares its Payment (`requests.inbox.pay`: the Payment and its approval are " +
     "born; or the live attempt is returned with `resume`), and with `json` returns `awaiting_approval` with the approval " +
-    "link and the `payment wait` command at once. Otherwise it waits for the payer to approve on the approval page, where " +
-    "their own key signs, and follows the request until it is paid: an approval that lapsed ends WRONG_STATE, one the " +
-    "payer rejected ends CANCELLED, and nothing was sent in either case. Without a timeout it follows until the approval " +
-    "lapses; stopping early sends nothing. It signs nothing itself.",
+    "link and the `payment wait` command at once. Otherwise the payer signs: an agent with its own key signs the " +
+    "sponsored approval's digest at once and gives it to approvals (`approvals.signing.sign`, which sends it once); a " +
+    "person signs on the approval page. It follows the request until it is paid: an approval that lapsed ends " +
+    "WRONG_STATE, one the payer rejected ends CANCELLED, and nothing was sent in either case. Without a timeout it " +
+    "follows until the approval lapses; stopping early sends nothing.",
   was: [`${SDK}/inboxes.ts:1`, "apps/cli/src/commands/request/subcommands/pay/execute.ts:1", ASIS],
   component: component_core_sdk,
   sdk: "client.account.inbox.pay",
@@ -202,12 +205,19 @@ export const flow_client_account_inbox_pay = defineFlow({
     { name: "key", local: "cache", about: "The payer's request key for this request, kept across an uncertain reply and `--resume`." },
     { name: "prepare", rpc: rpc_requests_inbox_pay, about: "Births the Payment and its approval, or returns the live attempt." },
     { name: "check", local: "build", about: "The prepared Payment pays the request's own token, raw amount, issuer Safe and document, else PROVIDER_RESPONSE_INVALID." },
-    { name: "approve", local: "wait", about: "The payer approves on the approval page in their browser; their own key signs there." },
+    {
+      name: "sponsored",
+      rpc: rpc_approvals_signing_get,
+      about: "Follows the approval until it is sponsored (`pending`, with its digest and window), or refused with the chain's code.",
+    },
+    { name: "sign", local: "sign", about: "An agent payer signs the digest with its own key at once; a person signs on the approval page instead." },
+    { name: "give-signature", rpc: rpc_approvals_signing_sign, about: "An agent's signature to approvals, which sends the operation once." },
+    { name: "approve", local: "wait", about: "A person approves on the approval page in their browser; their own key signs there." },
     { name: "follow", local: "poll", about: "Reads the request again until paid, or its Payment lapsed (WRONG_STATE) or was rejected (CANCELLED)." },
     { name: "read-again", rpc: rpc_requests_inbox_get, about: "The request as it ended, with its Payment." },
   ],
   errors: [error_WRONG_STATE, error_CANCELLED, error_PROVIDER_RESPONSE_INVALID],
-  calls: [],
+  calls: [integration_openfort.c.signDigest],
   spans: [],
   budget: budget("chain-settle"),
 });

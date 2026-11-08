@@ -24,6 +24,8 @@ import { rpc_banking_payouts_resolve } from "./payouts.ts";
 import { APPLY, rpc_banking_inbox_receive } from "./inbox.ts";
 import { table_payments } from "../payments/data.ts";
 import { procedure_books_record_money_fact } from "../books/procedures.ts";
+import { procedure_approvals_withdraw } from "../approvals/procedures.ts";
+import { table_approvals } from "../approvals/data.ts";
 
 const B = "packages/backend/src/banking";
 const DAY = 86_400_000;
@@ -92,8 +94,9 @@ export const workflow_banking_payouts_follow = defineWorkflow({
     "The durable process of a payout, started by its `quote`. Quoted: it waits for its Payment, which payments settles " +
     "from the indexed PaymentSent at Bridge's deposit address (payment_transitioned resumes it); a settled Payment of the " +
     "quote's token, amount and recipient funds it (`fund`), any other is `flag` funding_short. At the quote's deadline " +
-    "with no settled Payment, or when its account is removed or deactivated first, it ends `expired` and nothing was " +
-    "sent; a Payment cancelled or lapsed ends it the same way. In transit: Bridge's transfer events (signals from the " +
+    "with no settled Payment (the approval's deadline is capped at it, so nothing can land later), or when its account " +
+    "is removed or deactivated first, it ends `expired` and withdraws the unsigned approval in the same transaction " +
+    "(`approvals.withdraw`), so nothing is sent; a Payment cancelled or lapsed ends it the same way. In transit: Bridge's transfer events (signals from the " +
     "inbox) deliver it when Bridge names the quote's bank amount (`deliver`; another amount is delivered_amount_wrong), " +
     "or start its return (`mark_returning`); seven days with no delivery is delivery_stalled. Delivered: it stays for " +
     "the sixty days a bank can still return a payment (K13). Returning: Bridge names the refund's transaction; at " +
@@ -117,14 +120,19 @@ export const workflow_banking_payouts_follow = defineWorkflow({
   ],
   steps: [
     { name: "fund", about: "Read its Payment: settled with the quote's terms is `fund`; other terms `flag` funding_short; cancelled or lapsed `expire`." },
-    { name: "expire", about: "At the deadline, or on its account's removal or deactivation while quoted: `expire`." },
+    {
+      name: "expire",
+      about:
+        "At the deadline, or on its account's removal or deactivation while quoted: `expire`, with `approvals.withdraw` of " +
+        "its approval in the same transaction. Answered `signed`, it stays quoted and follows its Payment: the signed operation may still land.",
+    },
     { name: "deliver", about: "Bridge's delivered event with the quote's bank amount is `deliver`; any other amount `flag`s delivered_amount_wrong." },
     { name: "return", about: "Bridge's returned, refunded, cancelled or undeliverable event after funding is `mark_returning`, with its reason." },
     { name: "refund", about: "factsOf the refund transaction at finality: its Transfer into the source Safe is `refund`, with its book fact." },
     { name: "flag", about: "A limit passed, an amount wrong or Bridge moved it unfunded: `flag` with one reason." },
     { name: "resolve", about: "An operator's resolution moves it to delivered, refunded or expired and keeps who and why." },
   ],
-  reads: [table_bank_payouts, table_bank_accounts, table_payments],
+  reads: [table_bank_payouts, table_bank_accounts, table_payments, table_approvals],
   writes: [table_bank_payouts],
   drives: [
     machine_bank_payout.t.fund,
@@ -134,7 +142,7 @@ export const workflow_banking_payouts_follow = defineWorkflow({
     machine_bank_payout.t.expire,
     machine_bank_payout.t.flag,
   ],
-  invokes: [procedure_books_record_money_fact],
+  invokes: [procedure_books_record_money_fact, procedure_approvals_withdraw],
   emits: [],
   calls: [integration_indexer.c.factsOf],
   chain: [],

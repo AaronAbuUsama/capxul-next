@@ -11,7 +11,7 @@ import { machine_movement, machine_payment, table_movements, table_payments } fr
 import { table_book_annotations, table_book_prices } from "../books/data.ts";
 import { table_chain_budgets, table_indexer_progress, table_safe_balances, table_safe_owners } from "../indexing/data.ts";
 import { table_activity_changes } from "./data.ts";
-import { table_documents } from "./links.ts";
+import { table_documents } from "../documents/data.ts";
 import { rpc_activity_feed_get, rpc_activity_feed_list, rpc_activity_feed_summary } from "./feed.ts";
 import { rpc_activity_changes_read } from "./changes.ts";
 import { rpc_activity_holdings_address, rpc_activity_holdings_balances } from "./holdings.ts";
@@ -456,4 +456,25 @@ export const decision_activity_worlds = defineDecision({
     "devnet's fixed identities, then saved. Two refusals keep `?` (activity.unreachable-refusals).",
   source: by("books/target/payments/decisions.ts (payments.worlds); books/target/accounts/decisions.ts (accounts.worlds); spec 30"),
   affects: [...OPERATIONS],
+});
+
+// ── assembly ────────────────────────────────────────────────────────────────────────────────
+
+export const decision_activity_static_links = defineDecision({
+  id: "activity.static-links",
+  title: "Documents' table is a plain import, read as payments stores each Memo",
+  question:
+    "activity/links.ts loaded documents' `table_documents` dynamically while documents was being designed. Documents has " +
+    "landed, and payments' Movement record now stores each Movement's Memo (documents.movement-memos). What changes?",
+  options: [
+    { label: "static", text: "Delete links.ts and import `table_documents` from ../documents/data.ts in the feed and the decisions." },
+    { label: "keep", text: "Keep the dynamic stand-in: it resolves to the same record once documents loads." },
+  ],
+  chosen: "static",
+  why:
+    "Activity depends on documents, so a plain import is the conventional link, and a renamed export now fails the " +
+    "typecheck instead of dangling. `activity get` keeps finding a Movement's Memo by the by-subject index on " +
+    "`<chain id>:<tx hash>:<log index>`, which payments.movements.record now writes through `documents.store`.",
+  source: by("docs/decisions/assembly-items.md (activity, documents); books/target/payments/processes.ts (movements.record invokes documents.store)"),
+  affects: [table_documents, rpc_activity_feed_get],
 });

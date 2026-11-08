@@ -25,7 +25,7 @@ import { table_org_members } from "../organizations/data.ts";
 import { table_book_accounts, table_book_annotations } from "../books/data.ts";
 import { Annotation } from "../books/annotations.ts";
 import { table_chain_payments, table_indexer_progress, table_transfers } from "../indexing/data.ts";
-import { table_documents } from "./links.ts";
+import { table_documents } from "../documents/data.ts";
 import { RowKind } from "./data.ts";
 
 const OLD = "packages/backend/src/activity";
