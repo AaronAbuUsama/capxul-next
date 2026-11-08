@@ -225,135 +225,313 @@ export const flow_client_me_agreements_collect = defineFlow({
   budget: budget("chain-submit"),
 });
 
-// ── Frappe HR's doctypes ────────────────────────────────────────────────────────────────────
+// ── Frappe HR's doctypes: one SDK method per command (payroll.hr-surface, payroll.command-flows) ──
 //
-// One flow per HR rpc, each one call. They serve the Organization's own agent (its Forward Deployed
-// Engineer, aaron.fde-agent), any agent or person on the SDK, and the web app. A connected head never calls
-// them: payroll's own head sync pulls the head's changes and runs (payroll.head-sync). They implement no
-// frozen operation, so they name their surfaces; their CLI commands come with the payroll operations pass
-// (payroll.hr-surface).
+// Every HR command of payroll.hr-surface calls exactly one of these methods, and each method serves one command
+// (A4, the grammar's G7), on the CLI, the SDK (the FDE and any agent) and the web app. Each is one call of one
+// payroll rpc, except `org employee leave`, which previews before it writes. Where one rpc serves several verbs (an
+// Employee's status, a component's add, change, disable and enable, a slip's withhold and release), each verb is its
+// own method that fixes what the verb means. A connected head never calls them: payroll's own head sync pulls the
+// head's changes and runs (payroll.head-sync).
 
-const HR_SURFACES = ["sdk", "react"] as const;
+const HR_SURFACES = ["cli", "sdk", "react"] as const;
 
-const oneCall = (sdk: string, rpc: Rpc, title: string, about: string, write: boolean, surfaces: readonly ("sdk" | "react")[] = HR_SURFACES) =>
+type HrFlow = {
+  readonly sdk: string;
+  readonly rpc: Rpc;
+  readonly title: string;
+  readonly about: string;
+  readonly write: boolean;
+  readonly input?: Schema.Top;
+  readonly output?: Schema.Top;
+  /** What the one call sends, where the method fixes part of the rpc's input. */
+  readonly call?: string;
+};
+
+const hrFlow = (f: HrFlow) =>
   defineFlow({
-    id: sdk.replace("(orgId)", ""),
-    title,
-    about,
+    id: f.sdk.replace("(orgId)", ""),
+    title: f.title,
+    about: f.about,
     component: component_core_sdk,
-    sdk,
-    input: rpc.input as Schema.Top,
-    output: rpc.output as Schema.Top,
-    steps: [{ name: "call", rpc, about: `Runs ${rpc.id}.` }],
+    sdk: f.sdk,
+    input: f.input ?? (f.rpc.input as Schema.Top),
+    output: f.output ?? (f.rpc.output as Schema.Top),
+    steps: [{ name: "call", rpc: f.rpc, about: f.call ?? `Runs ${f.rpc.id}.` }],
     errors: [],
     calls: [],
     spans: [],
-    surfaces: [...surfaces],
-    budget: budget(write ? "write" : "read"),
+    surfaces: [...HR_SURFACES],
+    budget: budget(f.write ? "write" : "read"),
   });
 
-export const flow_client_org_payroll_employees_add = oneCall(
-  "client.org(orgId).payroll.employees.add",
-  rpc_payroll_employees_add,
-  "Add an Employee",
-  "Adds a person, by mailbox, handle or Party, as an Employee; a new hire needs no account. For the FDE agent, any agent and the web app.",
-  true,
+const EmployeeOut = rpc_payroll_employees_change.output as Schema.Top;
+
+// Employees
+
+export const flow_client_org_employees_add = hrFlow({
+  sdk: "client.org(orgId).employees.add",
+  rpc: rpc_payroll_employees_add,
+  title: "Add an Employee",
+  about:
+    "`org employee add`: adds a person, by mailbox, handle or Party, as an active Employee paid from a department; a " +
+    "new hire needs no account. Was `client.org(orgId).payroll.employees.add`.",
+  write: true,
+});
+export const flow_client_org_employees_change = hrFlow({
+  sdk: "client.org(orgId).employees.change",
+  rpc: rpc_payroll_employees_change,
+  title: "Change an Employee's fields",
+  about: "`org employee change`: changes an Employee's department, designation or type; never their status, Party or pay mailbox.",
+  write: true,
+  input: EmployeeEdit,
+  call: "Runs payroll.employees.change with the fields given and no status.",
+});
+export const flow_client_org_employees_get = hrFlow({
+  sdk: "client.org(orgId).employees.get",
+  rpc: rpc_payroll_employees_get,
+  title: "Read an Employee",
+  about: "`org employee get`: one Employee, with their status and the structure assignment that pays them today.",
+  write: false,
+});
+export const flow_client_org_employees_list = hrFlow({
+  sdk: "client.org(orgId).employees.list",
+  rpc: rpc_payroll_employees_list,
+  title: "List the Employees",
+  about: "`org employee list`: the Organization's Employees, with whether each has claimed their account. Was `client.org(orgId).payroll.employees.list`.",
+  write: false,
+});
+
+const statusFlow = (verb: "suspend" | "deactivate" | "reinstate", status: string, title: string, what: string) =>
+  hrFlow({
+    sdk: `client.org(orgId).employees.${verb}`,
+    rpc: rpc_payroll_employees_change,
+    title,
+    about: `\`org employee ${verb}\`: ${what}`,
+    write: true,
+    input: EmployeeRef,
+    output: EmployeeOut,
+    call: `Runs payroll.employees.change with status \`${status}\` and nothing else.`,
+  });
+
+export const flow_client_org_employees_suspend = statusFlow(
+  "suspend",
+  "suspended",
+  "Suspend an Employee",
+  "an active Employee becomes suspended (employee.suspend), and no new run takes them.",
 );
-export const flow_client_org_payroll_employees_change = oneCall(
-  "client.org(orgId).payroll.employees.change",
-  rpc_payroll_employees_change,
-  "Change an Employee",
-  "Changes an Employee's department, designation, type or status, including letting them go on a day.",
-  true,
+export const flow_client_org_employees_deactivate = statusFlow(
+  "deactivate",
+  "inactive",
+  "Deactivate an Employee",
+  "an active or suspended Employee becomes inactive (employee.deactivate): kept on the books, paid by no run.",
 );
-export const flow_client_org_payroll_employees_list = oneCall(
-  "client.org(orgId).payroll.employees.list",
-  rpc_payroll_employees_list,
-  "List the Employees",
-  "Lists the Organization's Employees, with whether each has claimed their account.",
-  false,
+export const flow_client_org_employees_reinstate = statusFlow(
+  "reinstate",
+  "active",
+  "Reinstate an Employee",
+  "an inactive or suspended Employee becomes active again (employee.reinstate), and runs take them.",
 );
-export const flow_client_org_payroll_structures_component = oneCall(
-  "client.org(orgId).payroll.structures.component",
-  rpc_payroll_structures_component,
-  "Add or change a salary component",
-  "Adds or changes an earning, deduction or employer contribution, with its amount or Frappe formula.",
-  true,
-);
-export const flow_client_org_payroll_structures_create = oneCall(
-  "client.org(orgId).payroll.structures.create",
-  rpc_payroll_structures_create,
-  "Create a salary structure",
-  "Creates a submitted salary structure from components, optionally replacing an earlier one.",
-  true,
-);
-export const flow_client_org_payroll_structures_assign = oneCall(
-  "client.org(orgId).payroll.structures.assign",
-  rpc_payroll_structures_assign,
-  "Assign a salary structure",
-  "Assigns a structure to an Employee from a day, on a base, paid from a department's budget.",
-  true,
-);
-export const flow_client_org_payroll_structures_cancel = oneCall(
-  "client.org(orgId).payroll.structures.cancel",
-  rpc_payroll_structures_cancel,
-  "Cancel a structure or assignment",
-  "Cancels a structure nothing is assigned to, or an assignment no live slip names.",
-  true,
-);
-export const flow_client_org_payroll_structures_list = oneCall(
-  "client.org(orgId).payroll.structures.list",
-  rpc_payroll_structures_list,
-  "List components, structures and assignments",
-  "Lists the Organization's salary components, structures and assignments.",
-  false,
-);
-export const flow_client_org_payroll_runs_create = oneCall(
-  "client.org(orgId).payroll.runs.create",
-  rpc_payroll_runs_create,
-  "Draft a payroll run",
-  "Drafts a department's run for a period with every slip worked out: gross, deductions and net.",
-  true,
-);
-export const flow_client_org_payroll_runs_submit = oneCall(
-  "client.org(orgId).payroll.runs.submit",
-  rpc_payroll_runs_submit,
-  "Submit a payroll run",
-  "Submits a drafted run: its slips are fixed, owed, and each payslip is stored.",
-  true,
-);
-export const flow_client_org_payroll_runs_withhold = oneCall(
-  "client.org(orgId).payroll.runs.withhold",
-  rpc_payroll_runs_withhold,
-  "Withhold or release a slip",
-  "Withholds one submitted slip from its run's payment, or releases it.",
-  true,
-);
-export const flow_client_org_payroll_runs_cancel = oneCall(
-  "client.org(orgId).payroll.runs.cancel",
-  rpc_payroll_runs_cancel,
-  "Cancel a payroll run",
-  "Cancels a run nothing of which was paid, with its slips.",
-  true,
-);
-export const flow_client_org_payroll_runs_show = oneCall(
-  "client.org(orgId).payroll.runs.show",
-  rpc_payroll_runs_show,
-  "Show a payroll run",
-  "Shows one run with its slips and, once paid, the settled facts on each.",
-  false,
-);
-export const flow_client_org_payroll_runs_list = oneCall(
-  "client.org(orgId).payroll.runs.list",
-  rpc_payroll_runs_list,
-  "List payroll runs",
-  "Lists the Organization's runs by department and period, with the next step for each.",
-  false,
-);
-export const flow_client_me_payslips = oneCall(
-  "client.me.payslips",
-  rpc_payroll_slips_mine,
-  "Your payslips",
-  "Lists the payslips that pay your Safe, from every Organization, run slips and agreement collections alike.",
-  false,
-);
+
+export const flow_client_org_employees_leave = defineFlow({
+  id: "client.org.employees.leave",
+  title: "Let an Employee go on a day, after a preview",
+  about:
+    "`org employee leave`: the Employee leaves on `relievingDate`, their last day worked, and this is final for the " +
+    "record (a person who comes back is a new Employee, payroll.one-live-employee). At a terminal it first shows who " +
+    "leaves, from when, the assignment that stops and any withheld slip that stays owed, and asks; a decline ends it " +
+    "CANCELLED with nothing written, and `confirm` (`--confirm`) answers yes in a script, which without it is the " +
+    "CLI's CLI_USAGE (vocabulary.declined-preview-cancelled).",
+  component: component_core_sdk,
+  sdk: "client.org(orgId).employees.leave",
+  input: EmployeeLeave,
+  output: EmployeeOut,
+  steps: [
+    { name: "read", rpc: rpc_payroll_employees_get, about: "Only at a terminal without `confirm`: the Employee and the assignment that pays them, for the preview." },
+    { name: "confirm", local: "prompt", about: "Only at a terminal without `confirm`: shows what leaving does and asks; a decline is CANCELLED and writes nothing." },
+    { name: "leave", rpc: rpc_payroll_employees_change, about: "Runs payroll.employees.change with status `left` and the relieving date." },
+  ],
+  errors: [error_CANCELLED],
+  calls: [],
+  spans: [],
+  surfaces: [...HR_SURFACES],
+  budget: budget("write"),
+});
+
+// Salary components
+
+const ComponentOut = rpc_payroll_structures_component.output as Schema.Top;
+
+export const flow_client_org_payroll_components_add = hrFlow({
+  sdk: "client.org(orgId).payroll.components.add",
+  rpc: rpc_payroll_structures_component,
+  title: "Add a salary component",
+  about: "`org payroll component add`: adds an earning, deduction or employer contribution, with its amount or Frappe formula.",
+  write: true,
+  input: ComponentAddInput,
+  output: ComponentOut,
+  call: "Runs payroll.structures.component with no `componentId`: an add.",
+});
+export const flow_client_org_payroll_components_change = hrFlow({
+  sdk: "client.org(orgId).payroll.components.change",
+  rpc: rpc_payroll_structures_component,
+  title: "Change a salary component",
+  about: "`org payroll component change`: changes the fields given; structures already made keep their own rows.",
+  write: true,
+  input: ComponentChangeInput,
+  output: ComponentOut,
+  call: "Runs payroll.structures.component with the component as `componentId` and only the fields given.",
+});
+export const flow_client_org_payroll_components_list = hrFlow({
+  sdk: "client.org(orgId).payroll.components.list",
+  rpc: rpc_payroll_structures_list,
+  title: "List the salary components",
+  about: "`org payroll component list`: the Organization's salary components, enabled first, then by type and name.",
+  write: false,
+  input: Schema.Struct({ orgId: Schema.String }),
+  output: Schema.Struct({ components: (rpc_payroll_structures_list.output as Schema.Struct<Schema.Struct.Fields>).fields.components }),
+  call: "Runs payroll.structures.list and keeps its components.",
+});
+export const flow_client_org_payroll_components_disable = hrFlow({
+  sdk: "client.org(orgId).payroll.components.disable",
+  rpc: rpc_payroll_structures_component,
+  title: "Disable a salary component",
+  about: "`org payroll component disable`: no new structure takes the component; structures that have it keep it.",
+  write: true,
+  input: ComponentRef,
+  output: ComponentOut,
+  call: "Runs payroll.structures.component with the component as `componentId` and `disabled` true.",
+});
+export const flow_client_org_payroll_components_enable = hrFlow({
+  sdk: "client.org(orgId).payroll.components.enable",
+  rpc: rpc_payroll_structures_component,
+  title: "Enable a salary component",
+  about: "`org payroll component enable`: new structures may take a disabled component again.",
+  write: true,
+  input: ComponentRef,
+  output: ComponentOut,
+  call: "Runs payroll.structures.component with the component as `componentId` and `disabled` false.",
+});
+
+// Salary structures and assignments
+
+export const flow_client_org_payroll_structures_create = hrFlow({
+  sdk: "client.org(orgId).payroll.structures.create",
+  rpc: rpc_payroll_structures_create,
+  title: "Create a salary structure",
+  about: "`org payroll structure create`: a submitted salary structure from components, optionally replacing one it amends.",
+  write: true,
+});
+export const flow_client_org_payroll_structures_cancel = hrFlow({
+  sdk: "client.org(orgId).payroll.structures.cancel",
+  rpc: rpc_payroll_structures_cancel,
+  title: "Cancel a salary structure",
+  about: "`org payroll structure cancel`: cancels a structure no submitted assignment names; an assignment is `unassign`'s.",
+  write: true,
+  input: StructureRef,
+  call: "Runs payroll.structures.cancel with `structureId` only.",
+});
+export const flow_client_org_payroll_structures_assign = hrFlow({
+  sdk: "client.org(orgId).payroll.structures.assign",
+  rpc: rpc_payroll_structures_assign,
+  title: "Assign a salary structure",
+  about: "`org payroll structure assign`: a structure pays an Employee from a day, on a base, from a department's budget.",
+  write: true,
+});
+export const flow_client_org_payroll_structures_unassign = hrFlow({
+  sdk: "client.org(orgId).payroll.structures.unassign",
+  rpc: rpc_payroll_structures_cancel,
+  title: "Cancel a structure assignment",
+  about: "`org payroll structure unassign`: cancels an assignment no live slip names and no agreement mirrors.",
+  write: true,
+  input: AssignmentRef,
+  call: "Runs payroll.structures.cancel with `assignmentId` only.",
+});
+export const flow_client_org_payroll_structures_list = hrFlow({
+  sdk: "client.org(orgId).payroll.structures.list",
+  rpc: rpc_payroll_structures_list,
+  title: "List structures and assignments",
+  about: "`org payroll structure list`: the submitted structures and their assignments, one Employee's with `--employee`.",
+  write: false,
+});
+
+// Payroll runs (paying one is staged.ts's flow, client.org.payroll.runs.pay)
+
+export const flow_client_org_payroll_runs_create = hrFlow({
+  sdk: "client.org(orgId).payroll.runs.create",
+  rpc: rpc_payroll_runs_create,
+  title: "Draft a payroll run",
+  about: "`org payroll run create`: a department's run for a period, every slip worked out: gross, deductions and net.",
+  write: true,
+});
+export const flow_client_org_payroll_runs_submit = hrFlow({
+  sdk: "client.org(orgId).payroll.runs.submit",
+  rpc: rpc_payroll_runs_submit,
+  title: "Submit a payroll run",
+  about: "`org payroll run submit`: a drafted run's slips are fixed and owed, each payslip stored, its accrual posted.",
+  write: true,
+});
+export const flow_client_org_payroll_runs_cancel = hrFlow({
+  sdk: "client.org(orgId).payroll.runs.cancel",
+  rpc: rpc_payroll_runs_cancel,
+  title: "Cancel a payroll run",
+  about: "`org payroll run cancel`: cancels a run nothing of which was paid, with its slips.",
+  write: true,
+});
+export const flow_client_org_payroll_runs_list = hrFlow({
+  sdk: "client.org(orgId).payroll.runs.list",
+  rpc: rpc_payroll_runs_list,
+  title: "List payroll runs",
+  about: "`org payroll run list`: the Organization's runs by department and period, with the next step for each.",
+  write: false,
+});
+export const flow_client_org_payroll_runs_get = hrFlow({
+  sdk: "client.org(orgId).payroll.runs.get",
+  rpc: rpc_payroll_runs_show,
+  title: "Read a payroll run",
+  about: "`org payroll run get`: one run with its slips and, once paid, the settled facts on each. Was `.runs.show`.",
+  write: false,
+});
+
+// Payslips: the Organization's hold on one, and the payee's own
+
+export const flow_client_org_payslips_withhold = hrFlow({
+  sdk: "client.org(orgId).payslips.withhold",
+  rpc: rpc_payroll_runs_withhold,
+  title: "Withhold a payslip from its run's payment",
+  about: "`org payslip withhold`: holds a submitted slip out of its run's payment, with a reason. Was `.payroll.runs.withhold`.",
+  write: true,
+  input: SlipWithhold,
+  call: "Runs payroll.runs.withhold with `withhold` true and the reason.",
+});
+export const flow_client_org_payslips_release = hrFlow({
+  sdk: "client.org(orgId).payslips.release",
+  rpc: rpc_payroll_runs_withhold,
+  title: "Release a withheld payslip",
+  about: "`org payslip release`: a withheld slip is owed again, paid with its run's next payment.",
+  write: true,
+  input: SlipRef,
+  call: "Runs payroll.runs.withhold with `withhold` false.",
+});
+
+export const flow_client_me_payslips_list = hrFlow({
+  sdk: "client.me.payslips.list",
+  rpc: rpc_payroll_slips_mine,
+  title: "List your payslips",
+  about:
+    "`payslip list`: the payslips that pay your Safe, from every Organization, run slips and agreement collections " +
+    "alike, a page at a time; `--employer` keeps one payer's. Was `client.me.payslips`.",
+  write: false,
+  input: MySlipsList,
+  call: "Runs payroll.slips.mine, the `--employer` handle as `orgId`.",
+});
+export const flow_client_me_payslips_get = hrFlow({
+  sdk: "client.me.payslips.get",
+  rpc: rpc_payroll_slips_mine,
+  title: "Read one of your payslips",
+  about: "`payslip get`: one payslip that pays your Safe, with its rows, totals, payer and, once paid, its payment.",
+  write: false,
+  input: MySlipRef,
+  output: MySlip,
+  call: "Runs payroll.slips.mine with `salarySlipId` and returns its one item.",
+});
