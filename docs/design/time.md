@@ -586,8 +586,10 @@ These are at zero from the first commit [`time.no-direct-reads`, `inv:time.no-di
    parameter.
 6. In Ponder handlers, only `event.block.timestamp`.
 7. In the Core SDK, the CLI, MCP and the React SDK, only `client.now()` for an instant.
-8. Allowed everywhere: measuring real elapsed time (`Effect.timed`, timeouts and `Schedule` inside
-   a step or a call) and formatting or parsing an instant (`new Date(ms)`, `Date.parse`).
+8. `RealTime` only in an integration layer's envelope code, and never into a row.
+9. Allowed everywhere: measuring real elapsed time (`Effect.timed`, timeouts and `Schedule` inside
+   a step or a call) and formatting or parsing an instant (`new Date(ms)`, `Date.parse`). The
+   drift watch's one `clock_timestamp()` read lives in `packages/runtime/src/time/`.
 
 ## 5. The records
 
