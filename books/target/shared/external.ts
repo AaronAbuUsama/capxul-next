@@ -648,6 +648,7 @@ export const contract_budgets = defineContract({
     execute: { signature: "execute(uint256 scheduledId) returns (bytes32 paymentId)", about: "Pays a due dated payment; sent by the executor key." },
     leftOf: { signature: "leftOf(uint256 id) view returns (uint128)", about: "What a budget has left this period, read before a spend is built." },
     budgetOf: { signature: "budgetOf(uint256 id) view returns (Budget)", about: "A budget's token, period, amount, hat and parent." },
+    childrenOf: { signature: "childrenOf(uint256 id) view returns (uint256[])", about: "A budget's children, for `org department show`." },
     authorised: { signature: "authorised(uint256 id, address who) view returns (bool)", about: "Whether a Safe may act on a budget." },
     scheduledOf: { signature: "scheduledOf(uint256 id) view returns (Scheduled)", about: "A dated payment's state and date." },
   },
@@ -805,6 +806,8 @@ export const contract_captable = defineContract({
     issue: { signature: "issue(uint8 classId, address to, uint128 amount, bytes32 reason)", about: "Issues shares." },
     convert: { signature: "convert(uint8 classId, uint128 amount)", about: "A shareholder converts shares." },
     consentToTransfer: { signature: "consentToTransfer(uint8 classId, address to, uint128 amount, bytes32 reason)", about: "Consents to a transfer." },
+    setIssuerAllowance: { signature: "setIssuerAllowance(address module, uint8 classId, uint128 amount)", about: "Lets Rounds or Options issue up to an amount of a class (Board)." },
+    getClass: { signature: "getClass(uint8 classId) view returns (Class)", about: "A class's token, weight and terms, for the cap table." },
   },
   events: {
     ClassCreated: { signature: "ClassCreated(uint8 indexed classId, address indexed token, ClassParams params)", about: "A class exists." },
@@ -846,6 +849,13 @@ export const contract_vesting = defineContract({
     },
     acceptGrant: { signature: "acceptGrant(uint256 id, bytes32 termsHash)", about: "Accepts it." },
     revoke: { signature: "revoke(uint256 id, uint64 effectiveAt)", about: "Revokes it." },
+    grantAndIssue: {
+      signature:
+        "grantAndIssue(address captable, uint8 classId, address shareholder, uint128 amount, uint64 start, uint64 cliff, uint64 end, bool accelerateOnExit, bytes32 documentHash) returns (uint256 id)",
+      about: "Issues a founder's shares under vesting at the equity install.",
+    },
+    settleRevocation: { signature: "settleRevocation(uint256 id)", about: "Returns the unvested shares of a revoked grant." },
+    lockedOf: { signature: "lockedOf(address captable, uint8 classId, address account, uint64 t) view returns (uint128)", about: "A holder's unvested shares at a time, for `shares`." },
   },
   events: {
     GrantOffered: { signature: "GrantOffered(address indexed safe, uint256 indexed id, address indexed shareholder, Grant grant)", about: "Offered." },
@@ -868,6 +878,9 @@ export const contract_options = defineContract({
     accept: { signature: "accept(uint256 id, bytes32 termsHash)", about: "The grantee accepts." },
     exercise: { signature: "exercise(uint256 id, uint128 shares)", about: "The grantee exercises." },
     end: { signature: "end(uint256 id, uint64 endedAt)", about: "Ends a grant." },
+    setPool: { signature: "setPool(uint128 amount)", about: "Sets the option pool (Board)." },
+    pool: { signature: "pool() view returns (uint128)", about: "The option pool, for the cap table." },
+    allocated: { signature: "allocated() view returns (uint128)", about: "The pool already granted." },
   },
   events: {
     OptionsGranted: { signature: "OptionsGranted(uint256 indexed id, address indexed grantee, OptionGrant grant)", about: "Granted." },
@@ -900,6 +913,9 @@ export const contract_rounds = defineContract({
     pay: { signature: "pay(uint256 roundId) returns (bytes32 paymentId)", about: "An investor pays." },
     close: { signature: "close(uint256 roundId, uint256 deemedOutstandingA)", about: "Closes a priced round." },
     cancel: { signature: "cancel(uint256 roundId)", about: "Cancels a round." },
+    convertSafes: { signature: "convertSafes(uint256[] noteIds, uint256 pricedRoundId, uint256 companyCapitalization)", about: "Converts SAFE notes into a priced round's shares (Board)." },
+    safeRound: { signature: "safeRound(uint256 roundId) view returns (SafeRound)", about: "A SAFE round's terms and state." },
+    safeNote: { signature: "safeNote(uint256 noteId) view returns (SafeNote)", about: "One investor's SAFE note." },
   },
   events: {
     PricedRoundCreated: {
@@ -922,6 +938,10 @@ export const contract_exits = defineContract({
     approveSale: { signature: "approveSale(uint256 saleId, address token, uint256 proceeds, bytes32 termsHash)", about: "The Board approves a sale." },
     preview: { signature: "preview(uint256 saleId, Holding[] holdings) view returns (Payout[])", about: "Who gets what." },
     settle: { signature: "settle(uint256 saleId, Holding[] holdings, uint256[] claimIndexes)", about: "Pays the sale out." },
+    offerTransfer: {
+      signature: "offerTransfer(uint8 classId, address buyer, uint128 shares, uint128 price, address token, bytes32 documentHash) returns (uint256 transferId)",
+      about: "A shareholder offers shares to a buyer, beside the Captable's consent.",
+    },
     approveTransfer: { signature: "approveTransfer(uint256 transferId)", about: "Approves a secondary transfer." },
     buy: { signature: "buy(uint256 transferId)", about: "A buyer pays for shares." },
   },
@@ -940,6 +960,10 @@ export const contract_governor = defineContract({
   functions: {
     propose: { signature: "propose(address[] targets, uint256[] values, bytes[] calldatas, string description) returns (uint256)", about: "Proposes a vote." },
     castVote: { signature: "castVote(uint256 proposalId, uint8 support) returns (uint256)", about: "Casts a vote." },
+    castVoteWithReason: { signature: "castVoteWithReason(uint256 proposalId, uint8 support, string reason) returns (uint256)", about: "Casts a vote with a reason (`vote cast`)." },
+    state: { signature: "state(uint256 proposalId) view returns (uint8)", about: "A vote's state: pending, active, defeated, succeeded, executed..." },
+    proposalVotes: { signature: "proposalVotes(uint256 proposalId) view returns (uint256 againstVotes, uint256 forVotes, uint256 abstainVotes)", about: "A vote's tally." },
+    quorum: { signature: "quorum(uint256 timepoint) view returns (uint256)", about: "The votes a proposal needs." },
     execute: {
       signature: "execute(address[] targets, uint256[] values, bytes[] calldatas, bytes32 descriptionHash) payable returns (uint256)",
       about: "Executes a passed vote.",
@@ -1046,6 +1070,10 @@ export const contract_roles = defineContract({
       signature: "allowances(bytes32 key) view returns (uint128 refill, uint128 maxRefill, uint64 period, uint128 balance, uint64 timestamp)",
       about: "A token's payout ceiling and what is left of it.",
     },
+    setAllowance: {
+      signature: "setAllowance(bytes32 key, uint128 balance, uint128 maxRefill, uint128 refill, uint64 period, uint64 timestamp)",
+      about: "The payout ceiling's one call in the Board batch `Installer.buildSetCeiling` returns.",
+    },
   },
   events: {},
   was: ["packages/protocol/src/evm/zodiac-abi.ts:99", `${V4}/interfaces/external/IRoles.sol:144`],
@@ -1070,6 +1098,8 @@ export const contract_hats = defineContract({
       about: "Rules a wearer out of a hat (revoke a permission, remove a Director).",
     },
     changeHatMaxSupply: { signature: "changeHatMaxSupply(uint256 hatId, uint32 newMaxSupply)", about: "Makes room on a full hat." },
+    changeHatEligibility: { signature: "changeHatEligibility(uint256 hatId, address newEligibility)", about: "Hands a hat's eligibility over (`org board handover`)." },
+    changeHatToggle: { signature: "changeHatToggle(uint256 hatId, address newToggle)", about: "Hands a hat's toggle over (`org board handover`)." },
     isWearerOfHat: { signature: "isWearerOfHat(address user, uint256 hatId) view returns (bool isWearer)", about: "Whether a Safe wears a hat now." },
   },
   events: {

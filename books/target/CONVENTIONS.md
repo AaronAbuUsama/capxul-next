@@ -14,8 +14,10 @@ Read first, in this order:
 3. `docs/decisions/policy-pack.md` (P1 to P10, accepted) and `docs/decisions/README.md` (A1 to A4).
 4. The schema, `packages/book/src/records/*.ts`, with its reading guide `docs/spec/50-design-book.md`.
 5. The evidence: `books/as-is/<old concept>/` and `docs/as-is/<concept>.md` for every old concept
-   your concept absorbs (the concept's `about` and `was` name them), and the old code, read only, at
-   `/home/user/factory` (branch `integration/factory`).
+   your concept absorbs, and the old code, read only, at `/home/user/factory` (branch
+   `integration/factory`). `OLD_AREAS` in `books/target/shared/landings.ts` lists every old area
+   folder, the target concepts it lands in and the decision that put it there: design every area
+   that lands in your concept, and nothing that does not.
 
 The as-is book records what is. The target records what will be. Never copy an as-is record:
 design the target one, and point its `was` at what it replaces.
@@ -27,7 +29,8 @@ design the target one, and point its `was` at what it replaces.
 | system, components, concepts, environments, `OPERATION_OWNERS` | `shared/foundation.ts` (exists) |
 | every error code | `shared/vocabulary.ts` (exists) |
 | integrations and the v4 contracts | `shared/external.ts` (exists) |
-| the architecture's decisions | `shared/decisions.ts` (exists) |
+| the architecture's decisions, including one `dependencies.of-<concept>` per concept | `shared/decisions.ts` (exists) |
+| where every old area lands (`OLD_AREAS`) | `shared/landings.ts` (exists) |
 | a concept's tables, state machines and each machine's event | `<concept>/data.ts` |
 | a concept's door: the procedures other concepts invoke | `<concept>/procedures.ts` |
 | a concept's rpcs and workflows, one file per area of the concept | `<concept>/<area>.ts` |
@@ -150,7 +153,7 @@ does until its rule lands (**review**, with the rule's name from the policy pack
   a request, an invitation, a bank payout, a verification, an agent change and a round.
 - A workflow's trigger is a transition (the outbox), a chain event (`contract_x.e.<Event>`, from
   Ponder), a timer of its own, or a cron. Only P3's crons survive: Bridge catch-up, Chainlink
-  prices, feature flags, the daily client-grant sweep, the daily agreement notices and the
+  prices, feature flags, the daily client-grant sweep, the daily agreement notices and books'
   added-token scan. Everything the old system swept for is a process's own timer or a chain event.
 - A workflow triggered `{ after: rpc }` says in its `about` why it cannot be a step: it must
   survive a crash, wait, or retry over seconds or more (review: `workflow-trigger`).
@@ -162,10 +165,12 @@ does until its rule lands (**review**, with the rule's name from the policy pack
   accepted reading is decision `rules.procedures`. The procedures the architecture already names:
   `approvals.open`, `board.propose`, `parties.register`, `documents.store`,
   `books.record-money-fact`, `books.reverse-money-fact`, `payments.prepare-command` and
-  `banking.match-deposit`. A concept designer may add one only with a decision record that names
-  its money fact.
+  `banking.match-deposit`, and one authority fact, `accounts.admit` (an Organization invitation
+  admits its invitee to the beta; decision `procedures.accounts-admit`). A concept designer may add
+  one only with a decision record that names its money fact.
 - A procedure's `about` begins with `Money fact:` and the fact, for example
-  `Money fact: a settled Payment always has its book fact.` It makes no outside call.
+  `Money fact: a settled Payment always has its book fact.` (`accounts.admit` begins
+  `Authority fact:`.) It makes no outside call.
 - Everything else that must follow another concept's change (a notice, a projection, a state
   that may lag) is a workflow in the reacting concept, triggered by the other concept's
   transition. The reacting concept depends on the one that changed, never the reverse.
@@ -188,7 +193,10 @@ does until its rule lands (**review**, with the rule's name from the policy pack
 - The CLI calls exactly that one SDK method and nothing else. The flow owns all signing: a
   `local: "sign"` step, then a `local: "wait"` for the person or the chain.
 - A flow's steps may call rpcs of other concepts only through those concepts' rpcs, and its
-  concept must depend on them.
+  concept must depend on them. That is why a few operations live outside their area's concept:
+  `auth login` and `auth verify` in accounts, `org member invite` in board, `invite accept` in
+  banking (decisions `operations.*`). If your operation's flow needs a concept yours does not
+  depend on, the flow belongs higher up: say so with a decision, never add the edge yourself.
 - `spans` lists only extra local spans, named `sdk.step.*`, `call.*`, `workflow.step.*` or `wait.*`;
   the runtime derives the rest of the tree (P6).
 

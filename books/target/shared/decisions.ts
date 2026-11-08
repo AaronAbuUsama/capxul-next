@@ -1390,8 +1390,9 @@ export const decision_contracts_functions = defineDecision({
     "function the product does not need. Admin and wiring functions (configure, setAgreements, setUp) belong to the " +
     "install, which the Installer's batches build. A call one contract makes to another inside a call the product makes " +
     "(Budgets.commit inside Agreements.offer, Budgets.payReserved inside Agreements.collect, Captable.forcedTransfer " +
-    "inside Exits.buy, Captable.setConversionPrice inside Rounds.close) is the callee's business and is left out.",
-  source: by("books/frozen/operations.ts (designed.call); old as-is gap `uncalled-function` (18)"),
+    "inside Exits.buy, Captable.setConversionPrice inside Rounds.close) is the callee's business and is left out. The " +
+    "designed text's `Budgets.setOffice` is v4's `setHat` (IBudgets.sol:203), recorded under that name.",
+  source: by("books/frozen/operations.ts (designed.call), scanned again on 8 November 2026; old as-is gap `uncalled-function` (18)"),
   affects: [x.contract_budgets, x.contract_agreements, x.contract_installer, x.contract_hats, x.contract_safe],
 });
 
@@ -1742,11 +1743,15 @@ export const decision_responsibilities_service_lanes = defineDecision({
 
 type DepIds<C extends { readonly dependsOn: readonly { readonly id: string }[] }> = C["dependsOn"][number]["id"];
 
+/** Each concept's edges and their reasons, as the records below state them (for the readable account). */
+export const DEPENDENCY_REASONS: Record<string, Readonly<Record<string, string>>> = {};
+
 const dependencies = <const C extends Concept>(
   concept: C,
   reasons: { readonly [D in DepIds<C>]: string },
-) =>
-  defineDecision({
+) => {
+  DEPENDENCY_REASONS[concept.id] = reasons;
+  return defineDecision({
     id: `dependencies.of-${concept.id}`,
     title: `What ${concept.title.toLowerCase()} depends on, and why`,
     question: `Which concepts must ${concept.id} read or invoke, and does each edge point the right way?`,
@@ -1764,6 +1769,7 @@ const dependencies = <const C extends Concept>(
     source: reviewed("books/frozen/operations.ts (who and designed call of each owned operation); OPERATION_OWNERS"),
     affects: [concept, ...concept.dependsOn],
   });
+};
 
 export const decision_dependencies_of_access = dependencies(f.concept_access, {});
 export const decision_dependencies_of_media = dependencies(f.concept_media, {
