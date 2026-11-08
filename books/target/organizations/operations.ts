@@ -1,7 +1,7 @@
 // The target operation records of the 14 frozen operations organizations owns (OPERATION_OWNERS):
 // `org create`, `org list`, `org me`, `org retry`, `org show`, `org wait`, `use org`,
 // `org member list`, `org member get`, `invite list`, `invite decline`, `org invite list`,
-// `org invite cancel` and `org invite resend`. `org member invite` is board's flow and
+// `org invite cancel` and `org invite resend`. `org member invite` is budgets' flow and
 // `invite accept` banking's; organizations serves both with its invite and accept rpcs.
 //
 // Every record spreads the frozen text (frozenText); acceptance lines keep the frozen claim word for

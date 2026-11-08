@@ -111,7 +111,8 @@ export const decision_parties_profile_shape = defineDecision({
     "money leaves a person's Safe only by an operation they sign, to the address they choose then, and no frozen " +
     "operation reads either field (P2). The member kind is gone: an agent is its own kind of Party. The onboarded flag is " +
     "the Party's own `claim` or `onboard` and the profile row's existence. The country stays: banking's verification " +
-    "prefills it. The photo's admission is read from media's stored file: that link waits for media's tables.",
+    "prefills it. The photo's admission is read from media's `files` at the person's own key (purpose `image`, state " +
+    "`kept`), as organizations reads a logo.",
   source: by("profiles/tables.ts:5-37; profiles/README.md:124 (transitional fields); P2"),
   affects: [table_parties, table_profiles, rpc_parties_profiles_save, decision_concepts_parties],
 });

@@ -16,14 +16,12 @@ import {
   rpc_contacts_book_unhide,
 } from "./book.ts";
 import {
-  flow_client_account_address_book_get,
   flow_client_account_address_book_hide,
   flow_client_account_address_book_label,
   flow_client_account_address_book_unhide,
 } from "./flows.ts";
 import {
   operation_contact_add,
-  operation_contact_get,
   operation_contact_hide,
   operation_contact_label,
   operation_contact_list,
@@ -35,14 +33,12 @@ const by = (evidence: string) => `${CLAUDE}; evidence: ${evidence}`;
 const P = "packages/backend/src/parties";
 
 const OPERATIONS = [
-  operation_contact_add, operation_contact_get, operation_contact_hide, operation_contact_label, operation_contact_list,
-  operation_contact_unhide,
+  operation_contact_add, operation_contact_hide, operation_contact_label, operation_contact_list, operation_contact_unhide,
 ];
 const WRITES = [rpc_contacts_book_add, rpc_contacts_book_label, rpc_contacts_book_hide, rpc_contacts_book_unhide];
 const READS = [rpc_contacts_book_list, rpc_contacts_book_get];
 const FLOWS = [
-  flow_client_account_address_book_get, flow_client_account_address_book_label, flow_client_account_address_book_hide,
-  flow_client_account_address_book_unhide,
+  flow_client_account_address_book_label, flow_client_account_address_book_hide, flow_client_account_address_book_unhide,
 ];
 
 // ── data ────────────────────────────────────────────────────────────────────────────────────
@@ -193,7 +189,7 @@ export const decision_contacts_ref_and_label = defineDecision({
     "on add is INVALID_INPUT, as the frozen refusal says ('the label is empty'); the old code read it as no label. That is " +
     "surface, so the book wins (P10 rung 1).",
   source: by(`${P}/contacts/rules.ts:26 and :36; ${P}/rules.ts:19; ${P}/contacts/tests/add.test.ts:25 and :147`),
-  affects: [table_contacts, rpc_contacts_book_add, rpc_contacts_book_label, operation_contact_add, operation_contact_get, operation_contact_list],
+  affects: [table_contacts, rpc_contacts_book_add, rpc_contacts_book_label, operation_contact_add, operation_contact_list],
 });
 
 // ── behaviour ───────────────────────────────────────────────────────────────────────────────
@@ -308,11 +304,11 @@ export const decision_contacts_get_bank_accounts = defineDecision({
   why:
     "Only a concept above both can compose the entry and the accounts, and banking is the one above contacts that owns " +
     "the accounts; the frozen command already lives beside `contact bank add` there in spirit (it prints `bank pay`). " +
-    "The other options break the concept map, the build or the frozen surface. Until the map moves it, this book keeps " +
-    "the record here with its frozen `returns`, and its flow returns the entry only: the `bankAccounts` step is the gap " +
-    "the move closes. The contacts flow and rpc stay as they are for banking's flow to call.",
+    "The other options break the concept map, the build or the frozen surface. The architecture review made the move " +
+    "(shared operations.contact-get-in-banking), so contacts no longer books the operation or its flow (contacts.get-moved); " +
+    "`contacts.book.list` and `contacts.book.get` stay for banking's flow to step through.",
   source: by("apps/cli/src/commands/contact/subcommands/get/execute.ts:50 (a second call, bankAccounts.list); OPERATION_OWNERS"),
-  affects: [operation_contact_get, flow_client_account_address_book_get, rpc_contacts_book_get],
+  affects: [rpc_contacts_book_get, rpc_contacts_book_list, concept_contacts],
 });
 
 export const decision_contacts_server_pages = defineDecision({
@@ -437,7 +433,7 @@ export const decision_contacts_decline_is_cancelled = defineDecision({
 export const decision_contacts_worlds = defineDecision({
   id: "contacts.worlds",
   title: "One world for every contacts refusal: person-with-contacts",
-  question: "Which devnet world reaches each refusal of the six contact commands?",
+  question: "Which devnet world reaches each refusal of the contact commands (contacts' five, and banking's `contact get`)?",
   options: [
     {
       label: "person-with-contacts",
@@ -480,5 +476,35 @@ export const decision_contacts_budgets = defineDecision({
     "default does not allow for. The person's picking and answering are `wait.person` spans and never system time. A " +
     "script's run of the same flow makes one call and stays well inside the override.",
   source: by("packages/book/src/budgets.ts; P5; P6 (wait.person for prompt steps)"),
-  affects: [...FLOWS, operation_contact_get, operation_contact_label, operation_contact_hide, operation_contact_unhide, ...READS, ...WRITES],
+  affects: [...FLOWS, operation_contact_label, operation_contact_hide, operation_contact_unhide, ...READS, ...WRITES],
+});
+
+// ── assembly ────────────────────────────────────────────────────────────────────────────────
+
+export const decision_contacts_get_moved = defineDecision({
+  id: "contacts.get-moved",
+  title: "`contact get` leaves contacts: banking books it over contacts' rpcs",
+  question:
+    "OPERATION_OWNERS now gives `contact.get` to banking (shared operations.contact-get-in-banking). Contacts still booked " +
+    "the operation and its flow `client.account.address-book.get`. What stays in contacts?",
+  options: [
+    {
+      label: "drop-both",
+      text:
+        "Remove the operation and its flow; keep `contacts.book.list` (the picker) and `contacts.book.get` (the entry, or " +
+        "null) as the rpcs banking's flow steps through before its own masked accounts.",
+    },
+    { label: "keep-flow", text: "Remove the operation, keep the flow for the SDK's address book." },
+    { label: "keep-both", text: "Keep both until banking books its own." },
+  ],
+  chosen: "drop-both",
+  why:
+    "A4 gives the operation one SDK flow, and banking's flow is that flow: it alone can add `bankAccounts`. A second " +
+    "contacts flow for the same SDK method would be a duplicate record or a second answer to one call, and keeping the " +
+    "operation would book it twice. Both rpcs stay reached: label, hide and unhide step through them for their " +
+    "picker and preview. The removed acceptance observations (null outside the book, exit 0; the owner reads their " +
+    "entry back and `--org` without a Seat is ROLE_PERMISSION_DENIED; a get given a PartyId is one `contacts.book.get` " +
+    "call with no list or `wait.person`) and the guided-get budget (p95 1,600 ms) pass to banking's record.",
+  source: by("books/target/shared/foundation.ts (OPERATION_OWNERS contact.get); shared operations.contact-get-in-banking; A4; contact.get.yaml"),
+  affects: [rpc_contacts_book_get, rpc_contacts_book_list, concept_contacts],
 });

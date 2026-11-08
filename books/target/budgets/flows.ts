@@ -13,6 +13,8 @@ import { rpc_budgets_allowances_create } from "./allowances.ts";
 import { rpc_budgets_ceilings_freeze, rpc_budgets_ceilings_set, rpc_budgets_ceilings_unfreeze } from "./ceilings.ts";
 import { rpc_budgets_changes_get } from "./changes.ts";
 import { rpc_budgets_departments_create } from "./departments.ts";
+import { InviteInput, InviteResult, rpc_budgets_invitations_plan, rpc_budgets_invitations_propose } from "./invitations.ts";
+import { rpc_organizations_invitations_invite } from "../organizations/invitations.ts";
 import { rpc_budgets_offices_add_holder, rpc_budgets_offices_remove_holder } from "./offices.ts";
 import { rpc_budgets_tree_close, rpc_budgets_tree_reopen, rpc_budgets_tree_set_amount } from "./tree.ts";
 import {
@@ -309,4 +311,47 @@ export const flow_client_org_allowances_replace = defineFlow({
   spans: [],
   budget: budget("read"),
   was: ["packages/backend/src/permissions/replacements/rules.ts:1", `${SDK_PERM}/allowance-dispatch.ts:1`],
+});
+
+// ── invitations ─────────────────────────────────────────────────────────────────────────────
+
+export const flow_client_org_invitations_invite = defineFlow({
+  id: "client.org.invitations.invite",
+  title: "Invite someone to a Seat, and sign the Board proposal of its grants",
+  about:
+    "`org member invite` (decision operations.member-invite-in-budgets). Keeps one request key, plans the offer (the " +
+    "People hat, the Director hat for any grant, every grant's calls) and, with `--preview`, prints it and stops. Then " +
+    "organizations writes the invitation and admits a person invitee to the beta; a Seat-only offer is pending at once " +
+    "and needs no approval. An offer with grants is `authorizing`: budgets opens one Board proposal of all of them, bound " +
+    "to the invitation, the flow checks the batch holds only the planned mints (and a new allowance's hat and child " +
+    "budget), and the inviter signs their approval on the approval page. A rerun with the same request key answers the " +
+    "same invitation and proposal; when the invitation was written but its proposal was not (a refusal after the " +
+    "invite), the rerun proposes it. `--confirm` is CLI_USAGE: the approval page is the confirmation.",
+  component: component_core_sdk,
+  sdk: "client.org(orgId).invitations.invite",
+  input: InviteInput,
+  output: InviteResult,
+  steps: [
+    {
+      name: "request-key",
+      local: "cache",
+      about: "Keeps one request key for this command (`--request-key`, or a new one at a terminal), printed before anything is written.",
+    },
+    { name: "plan", rpc: rpc_budgets_invitations_plan, about: "Refuses before anything is written, and plans each grant." },
+    { name: "preview", local: "prompt", about: "With `--preview`: prints the grantee, each offer and whether the Board signs, then stops." },
+    { name: "invite", rpc: rpc_organizations_invitations_invite, about: "Writes the invitation, or returns the one this request key made." },
+    { name: "propose", rpc: rpc_budgets_invitations_propose, about: "An offer with grants: the one Board proposal of all of them, bound to the invitation." },
+    { name: "check-calls", local: "build", about: "Decodes the batch and refuses to sign anything but the planned mints, hat and child budget." },
+    { name: "sign", local: "sign", about: "The inviter signs their approval of the proposal on the approval page (an agent with its own key)." },
+    { name: "wait", local: "wait", about: "Unless `--no-wait`, follows the inviter's approval until it lands; the other Directors approve with `org proposal approve`." },
+  ],
+  errors: [error_CANCELLED],
+  calls: [],
+  spans: [],
+  budget: WRITE_BUDGET,
+  was: [
+    "packages/sdk/src/organizations/invitations.ts:1",
+    "packages/sdk/src/organizations/invite-execution.ts:1",
+    "apps/cli/src/commands/org-invite/member/subcommands/invite/command.ts:43",
+  ],
 });

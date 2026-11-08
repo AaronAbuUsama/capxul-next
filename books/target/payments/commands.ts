@@ -36,7 +36,8 @@ import * as budgetsData from "../budgets/data.ts";
 import * as orgsData from "../organizations/data.ts";
 import * as parties from "../parties/procedures.ts";
 import * as partiesData from "../parties/data.ts";
-import * as links from "./links.ts";
+import { procedure_board_propose } from "../board/procedures.ts";
+import { procedure_documents_store } from "../documents/procedures.ts";
 import { Route, machine_payment, table_payment_commands, table_payments } from "./data.ts";
 
 const OLD = "packages/backend/src/payments";
@@ -137,7 +138,7 @@ export const rpc_payments_commands_prepare = defineRpc({
   ],
   writes: [table_payment_commands, table_payments],
   drives: [machine_payment.t.open],
-  invokes: [parties.procedure_parties_resolve_recipient, links.procedure_documents_store, approvals.procedure_approvals_open],
+  invokes: [parties.procedure_parties_resolve_recipient, procedure_documents_store, approvals.procedure_approvals_open],
   emits: [],
   calls: [integration_chain_rpc.c.readContract, integration_chain_rpc.c.getCode],
   chain: [
@@ -202,7 +203,7 @@ export const rpc_payments_commands_propose = defineRpc({
   ],
   writes: [table_payment_commands, table_payments],
   drives: [machine_payment.t.open],
-  invokes: [parties.procedure_parties_resolve_recipient, links.procedure_documents_store, links.procedure_board_propose],
+  invokes: [parties.procedure_parties_resolve_recipient, procedure_documents_store, procedure_board_propose],
   emits: [],
   calls: [integration_chain_rpc.c.readContract, integration_chain_rpc.c.getCode],
   chain: [

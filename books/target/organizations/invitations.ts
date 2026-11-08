@@ -3,10 +3,10 @@
 // invitation's one durable process (its grants' execution, its seven-day expiry, its chain
 // cleanup) is in processes.ts, and these rpcs are its signals.
 //
-// What is not here: the grants. Board's `org member invite` flow calls this area's invite rpc and
-// then proposes the grants it offers, binding the company Safe transaction that carries them
-// (procedures.ts); board also proposes taking granted hats back when an offer ends with them on
-// chain. `invite accept` is banking's flow, which sends every id but a business verification's to
+// What is not here: the grants. Budgets' `org member invite` flow (operations.member-invite-in-budgets)
+// calls this area's invite rpc and then proposes the grants it offers to the Board, binding the
+// company Safe transaction that carries them (procedures.ts); budgets also proposes taking granted
+// hats back when an offer ends with them on chain. `invite accept` is banking's flow, which sends every id but a business verification's to
 // this area's accept rpc. The email is notices', from org_invite_transitioned. The old area's
 // preview, get, retry, sweep, five emit rpcs and the daily expiry cron are gone: preview is the
 // flow's read before it writes, a retry has nothing to retry once grants are hats, and the expiry
@@ -90,7 +90,7 @@ export const rpc_organizations_invitations_invite = defineRpc({
   id: "organizations.invitations.invite",
   title: "Offer a Seat, with or without grants, or return the offer this request key made",
   about:
-    "The first step of board's `org member invite` flow, one transaction. The inviter's Seat must wear the People hat " +
+    "The first step of budgets' `org member invite` flow, one transaction. The inviter's Seat must wear the People hat " +
     "(else ROLE_PERMISSION_DENIED; whether they are a Director is the Board proposal's to check). A request key that " +
     "already made an offer here returns it unchanged; under another request it is INVALID_INPUT. The grantee is resolved " +
     "with `parties.resolve-recipient`: an email names a person's Party, named provisional at its email-derived Safe when " +
@@ -98,7 +98,8 @@ export const rpc_organizations_invitations_invite = defineRpc({
     "anything else, an Organization, or an outside address is INVALID_INPUT. At most 16 offers, none twice, and none the grantee already " +
     "has live here (else INVALID_INPUT). A person invitee is admitted to the beta in the same transaction (`accounts.admit`, " +
     "which sends nothing: the invitation's own email is the only one). A Seat-only offer is born pending with its " +
-    "seven-day expiry (`send`); one with grants is born authorizing (`send_with_grants`) and waits for board.",
+    "seven-day expiry (`send`); one with grants is born authorizing (`send_with_grants`) and waits for budgets to " +
+    "bind the Board proposal that carries them.",
   was: [`${AS_IS}:241`, `${I}/operations/invite.ts:14`, `${I}/writes/offers.ts:136`, `${I}/reads/grantees.ts:72`],
   concept: concept_organizations,
   kind: "mutation",
@@ -163,7 +164,7 @@ export const rpc_organizations_invitations_decline = defineRpc({
     "The invitation process's signal, one transaction. The caller's Party must be the grantee, else " +
     "ROLE_PERMISSION_DENIED with nothing written. Declined already: returned as it is, writing nothing. Accepted, ended " +
     "otherwise, or still authorizing: WRONG_STATE. A pending offer with nothing on chain is declined at once (`decline`); " +
-    "one whose hats were minted begins cleanup (`begin_cleanup`, reason declined): board proposes taking the hats back, " +
+    "one whose hats were minted begins cleanup (`begin_cleanup`, reason declined): budgets proposes taking the hats back, " +
     "and the process declines it when the chain shows them gone. Only a write reports org_invite_transitioned.",
   was: [`${AS_IS}:312`, `${I}/operations/decline.ts:14`, `${I}/writes/endings.ts:72`],
   concept: concept_organizations,

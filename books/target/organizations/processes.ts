@@ -128,11 +128,11 @@ export const workflow_organizations_invitations_follow = defineWorkflow({
   about:
     "The one durable process of an invitation, started after the invite rpc commits: it cannot be a step of it, because " +
     "it waits days for a person, for the Board's proposal on chain and for a seven-day timer, and must survive a crash. " +
-    "Authorizing: it waits for board to bind the company Safe transaction that carries the grants, then for that " +
+    "Authorizing: it waits for budgets to bind the company Safe transaction that carries the grants, then for that " +
     "transaction's ExecutionSuccess at finality, reads which hats it minted to the grantee's Safe, and opens the offer " +
     "with its expiry; if the Safe's nonce goes to another transaction (a rejection or a replacement), it cancels the " +
     "offer, which has nothing on chain. Pending: it waits for accept, decline or cancel (its signals), or for its timer at " +
-    "expires_at, which expires an offer with nothing on chain or begins the cleanup of one with hats. Revoking: board " +
+    "expires_at, which expires an offer with nothing on chain or begins the cleanup of one with hats. Revoking: budgets " +
     "proposes taking the hats back, and the process ends the offer with its recorded reason when the grantee's Safe " +
     "wears none of them. It replaces the old grant drive, retry and verify loops and the daily expiry cron.",
   was: ["books/as-is/organizations/invitations.ts:427", "books/as-is/organizations/invitations.ts:586", `${O}/invitations/writes/endings.ts:175`],

@@ -29,7 +29,7 @@ import * as approvalsData from "../approvals/data.ts";
 import * as budgetsData from "../budgets/data.ts";
 import * as orgsData from "../organizations/data.ts";
 import { Handover } from "./commands.ts";
-import * as links from "./links.ts";
+import { procedure_board_propose } from "../board/procedures.ts";
 import { machine_payment, table_payment_commands, table_payments } from "./data.ts";
 
 const OLD = "packages/backend/src/payments";
@@ -73,7 +73,7 @@ export const rpc_payments_changes_retry = defineRpc({
   reads: [...AUTHORITY_READS, approvalsData.table_approvals],
   writes: [table_payments],
   drives: [machine_payment.t.retry],
-  invokes: [approvals.procedure_approvals_open, links.procedure_board_propose],
+  invokes: [approvals.procedure_approvals_open, procedure_board_propose],
   emits: [],
   calls: [integration_chain_rpc.c.readContract],
   chain: [contract_erc20.f.balanceOf, contract_budgets.f.leftOf, contract_budgets.f.authorised, contract_payments.f.paid],
@@ -106,7 +106,7 @@ export const rpc_payments_changes_cancel = defineRpc({
   reads: [...AUTHORITY_READS, approvalsData.table_approvals],
   writes: [table_payments],
   drives: [],
-  invokes: [approvals.procedure_approvals_open, links.procedure_board_propose],
+  invokes: [approvals.procedure_approvals_open, procedure_board_propose],
   emits: [],
   calls: [integration_chain_rpc.c.readContract],
   chain: [

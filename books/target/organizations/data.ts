@@ -51,7 +51,7 @@ export const SetupIssue = Schema.Struct({
   at: N,
 });
 
-/** One grant an invitation offers, as data: board proposes it, the chain grants it. */
+/** One grant an invitation offers, as data: budgets proposes it to the Board, the chain grants it (operations.member-invite-in-budgets). */
 export const Offer = Schema.Union([
   Schema.Struct({ kind: Schema.Literal("officer"), hat: Schema.Literals(["books", "invoicing", "people"]) }),
   Schema.Struct({ kind: Schema.Literal("allowance"), budgetId: S }),
@@ -263,7 +263,7 @@ export const table_org_invitations = defineTable({
   about:
     "One offer of a Seat to one person or agent, with the grants it offers as data (officer hats, existing allowances, a " +
     "new allowance), and its one durable process (invitations.ts). A Seat-only offer is open at once; an offer with " +
-    "grants waits while the Board's proposal of them runs: board's `org member invite` flow proposes them and binds the " +
+    "grants waits while the Board's proposal of them runs: budgets' `org member invite` flow proposes them and binds the " +
     "company Safe transaction that carries them here (`organizations.bind-invitation-grants`), and the process opens the " +
     "offer when the chain shows that transaction executed. The digest the invitee accepts covers the Organization, the " +
     "grantee and the offers. `last_sent_at` anchors the resend cooldown; the email itself and its delivery record are " +
@@ -290,7 +290,7 @@ export const table_org_invitations = defineTable({
     offer_digest: S,
     phase: Schema.Literals(["authorizing", "pending", "active", "revoking", "declined", "cancelled", "expired"]),
     ending_reason: NullOr(Schema.Literals(["declined", "cancelled", "expired"])),
-    /** The company Safe transaction (hash and nonce) that carries the grants, bound by board. */
+    /** The company Safe transaction (hash and nonce) that carries the grants, bound by budgets. */
     grant_safe_tx_hash: NullOr(S),
     grant_safe_nonce: NullOr(S),
     /** The hats that transaction minted to `grantee_safe`, read from its indexed facts. */
@@ -484,8 +484,8 @@ export const event_org_invite_transitioned = defineEvent({
   id: "org_invite_transitioned",
   about:
     "An invitation changed phase: offered (with or without grants), opened, accepted, resent, declined, cancelled, " +
-    "expired, or its chain cleanup began or ended. Notices sends the invitation email from it; board proposes the " +
-    "removal of granted hats from it.",
+    "expired, or its chain cleanup began or ended. Notices sends the invitation email from it; budgets proposes the " +
+    "removal of granted hats from it (`begin_cleanup`).",
   props: Schema.Struct({
     from: From,
     to: S,
@@ -504,9 +504,9 @@ export const machine_org_invite = defineMachine({
   title: "Invitation phase",
   about:
     "org-invitations.phase, owned by the invitation's one durable process. A Seat-only offer is born pending; one with " +
-    "grants is born authorizing and opens when the chain shows the company Safe ran the transaction board bound to it. " +
+    "grants is born authorizing and opens when the chain shows the company Safe ran the transaction budgets bound to it. " +
     "Pending until the invitee accepts or declines, the Organization cancels, or seven days pass. Ending an offer whose " +
-    "grants are on chain goes through revoking: board proposes taking the hats back, and the process ends the offer when " +
+    "grants are on chain goes through revoking: budgets proposes taking the hats back, and the process ends the offer when " +
     "the grantee's Safe wears none of them. `pending_grant` and `revoked` are gone: on v4 the grants are minted before " +
     "the offer opens, so accepting has nothing left to grant.",
   was: [`${AS_IS}:1264`, `${MODEL}:65`],
@@ -532,7 +532,7 @@ export const machine_org_invite = defineMachine({
     send_with_grants: {
       from: [],
       to: "authorizing",
-      about: "Birth of an offer with grants: board's flow proposes them next.",
+      about: "Birth of an offer with grants: budgets' flow proposes them next.",
       emits: [event_org_invite_transitioned],
     },
     open: {
@@ -579,7 +579,7 @@ export const machine_org_invite = defineMachine({
     begin_cleanup: {
       from: ["pending"],
       to: "revoking",
-      about: "A decline, cancel or expiry of an offer whose hats are on chain: ending_reason is recorded, and board proposes their removal.",
+      about: "A decline, cancel or expiry of an offer whose hats are on chain: ending_reason is recorded, and budgets proposes their removal.",
       guard: "granted_hats is not empty.",
       emits: [event_org_invite_transitioned],
     },

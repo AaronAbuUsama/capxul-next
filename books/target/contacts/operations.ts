@@ -1,7 +1,9 @@
-// The six frozen operations contacts owns (OPERATION_OWNERS): `contact add`, `get`, `hide`,
-// `label`, `list` and `unhide`. `contact bank add` is banking's. Text comes from the frozen book
-// through frozenText, never retyped; acceptance claims are the frozen ones word for word except
-// `contact list` #1, rewritten as an outcome (decision contacts.acceptance-rewrites).
+// The five frozen operations contacts owns (OPERATION_OWNERS): `contact add`, `hide`, `label`,
+// `list` and `unhide`. `contact get` and `contact bank add` are banking's, because both carry the
+// contact's bank accounts (shared operations.contact-get-in-banking; decision contacts.get-moved).
+// Text comes from the frozen book through frozenText, never retyped; acceptance claims are the
+// frozen ones word for word except `contact list` #1, rewritten as an outcome (decision
+// contacts.acceptance-rewrites).
 //
 // Every refusal is reached from the world `person-with-contacts` (decision contacts.worlds):
 // NOT_AUTHENTICATED by calling there with no session.
@@ -22,7 +24,6 @@ import {
   rpc_contacts_book_list,
 } from "./book.ts";
 import {
-  flow_client_account_address_book_get,
   flow_client_account_address_book_hide,
   flow_client_account_address_book_label,
   flow_client_account_address_book_unhide,
@@ -66,16 +67,6 @@ const rewritten = (id: FrozenId, n: number, claim: string, observes: string) => 
 };
 
 const PartyRef = Entry.fields.ref;
-
-/** Banking's masked account, as `contact bank add` prints it: never a full number. */
-const MaskedBankAccount = Schema.Struct({
-  partyAccountId: Schema.String,
-  currency: Schema.Literals(["usd", "eur", "gbp"]),
-  holderName: Schema.String,
-  bankName: Schema.optionalKey(Schema.String),
-  last4: Schema.String,
-  state: Schema.Literals(["saved", "active", "inactive"]),
-});
 
 /** At a terminal, a guided command makes a second call before its one write or read. */
 const guidedWrite = {
@@ -133,52 +124,6 @@ export const operation_contact_add = defineOperation({
   errors: [error_CLI_USAGE, error_CANCELLED],
   refusals: refusals("contact.add"),
   budget: budget("write"),
-});
-
-// ── contact get ─────────────────────────────────────────────────────────────────────────────
-
-export const operation_contact_get = defineOperation({
-  ...frozenText("contact.get"),
-  was: [page("contact.get"), `${AS_IS}:875`, `${CLI}/subcommands/get/execute.ts:17`, `${CLI}/subcommands/get/execute.ts:50`],
-  priority: "normal",
-  implementedBy: flow_client_account_address_book_get,
-  acceptance: [
-    kept(
-      "contact.get",
-      1,
-      "cli: `contact get` of a PartyId outside the book prints `data: null` and exits 0, never an entry with empty fields.",
-    ),
-    kept(
-      "contact.get",
-      2,
-      "cli: the owner reads their entry back with its id, label and hidden flag; with `--org` naming an Organization the " +
-        "caller holds no Seat in, ROLE_PERMISSION_DENIED.",
-    ),
-    kept(
-      "contact.get",
-      3,
-      "trace: a get given a PartyId makes one `contacts.book.get` call, no list call and no `wait.person`; cli: a guided get " +
-        "at a terminal offers hidden entries in its picker.",
-    ),
-  ],
-  returns: Schema.NullOr(
-    Schema.Struct({
-      id: Entry.fields.id, // The contact's PartyId.
-      ref: PartyRef, // How you named them.
-      label: Entry.fields.label, // Its label.
-      hidden: Entry.fields.hidden, // Whether it is hidden.
-      bankAccounts: Schema.Array(MaskedBankAccount), // The bank accounts saved for them, masked: banking's (contacts.get-bank-accounts).
-    }),
-  ),
-  errors: [error_CLI_USAGE],
-  refusals: refusals("contact.get"),
-  budget: {
-    ...budget("read"),
-    p50Ms: 800,
-    p95Ms: 1_600,
-    excludes: ["wait.person"],
-    why: "a guided get lists the book for the picker before its one read",
-  },
 });
 
 // ── contact hide ────────────────────────────────────────────────────────────────────────────

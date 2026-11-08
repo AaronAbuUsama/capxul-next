@@ -1,6 +1,7 @@
-// The target operation records of the 18 frozen operations budgets owns (OPERATION_OWNERS): the
-// eleven `org department` commands of old payroll's departments area except `pay` (payments'), and
-// the seven `org allowance` commands. Each is built from its frozen text, keeps its command, and is
+// The target operation records of the 19 frozen operations budgets owns (OPERATION_OWNERS): the
+// eleven `org department` commands of old payroll's departments area except `pay` (payments'), the
+// seven `org allowance` commands, and `org member invite`, moved here by the architecture review
+// (operations.member-invite-in-budgets). Each is built from its frozen text, keeps its command, and is
 // implemented by one Core SDK flow (a write) or one rpc (a read) (A4).
 //
 // Acceptance (P1): each frozen claim is kept word for word, with its test citation in `was`, unless
@@ -41,7 +42,9 @@ import {
   flow_client_org_departments_holders_remove,
   flow_client_org_departments_reopen,
   flow_client_org_departments_set_amount,
+  flow_client_org_invitations_invite,
 } from "./flows.ts";
+import { InviteResult } from "./invitations.ts";
 import { rpc_budgets_allowances_get, rpc_budgets_allowances_list } from "./allowances.ts";
 import { rpc_budgets_departments_list } from "./departments.ts";
 import { rpc_budgets_tree_show } from "./tree.ts";
@@ -65,7 +68,8 @@ import {
 export const W_TREE = "org-with-budget-tree";
 /** org-with-budget-tree plus waiting Board proposals: a create, a USDC ceiling freeze, a close and an allowance change. */
 export const W_WAITING = "org-with-waiting-budget-changes";
-/** org-with-budget-tree with the USDC ceiling frozen by a Capxul freeze that left 10,000. */
+/** The USDC ceiling frozen by a Capxul freeze that left 10,000. Built once by devnet (devnet.world-collisions), on
+ * payroll's org-with-agreements, which sits on org-with-budget-tree; budgets' claims read only the tree and the freeze. */
 export const W_FROZEN = "org-with-frozen-ceiling";
 /** org-with-budget-tree with the USDC ceiling frozen by a Safe transaction Capxul did not propose. */
 export const W_FROZEN_OUTSIDE = "org-with-ceiling-frozen-outside-capxul";
@@ -710,4 +714,52 @@ export const operation_org_allowance_replace = defineOperation({
   errors: [error_CLI_USAGE],
   refusals: [{ error: error_FEATURE_NOT_AVAILABLE, given: W_TREE, when: "Always: allowances are budgets in v4, and there is no Roles module to replace." }],
   budget: budget("read"),
+});
+
+// ── invitations ─────────────────────────────────────────────────────────────────────────────
+
+/** org-ready plus Sam's Seat with no hat: he cannot manage people. */
+const W_MEMBER = "org-with-member";
+/** org-ready plus a Seat-only invitation to Lee, pending: its request key names an invitation already. */
+const W_PENDING_INVITE = "org-with-pending-invitation";
+/** org-ready plus an invitation to Lee whose Board proposal of the Books hat executed: its grants are set up. */
+const W_GRANTED_INVITE = "org-with-granted-invitation";
+
+const M_INVITE = "org.member.invite";
+export const operation_org_member_invite = defineOperation({
+  ...frozenText(M_INVITE),
+  priority: "normal",
+  implementedBy: flow_client_org_invitations_invite,
+  acceptance: [
+    rewrite(
+      M_INVITE,
+      1,
+      "An invitation with grants is written once, `authorizing`, with one Board proposal of all its grants, and admits the invitee to the beta with no second welcome email.",
+      "cli: phase authorizing and a commandId; read: `org proposal get <commandId>` shows one proposal holding every grant's calls, " +
+        "`waitlist status` as the invitee reads admitted, and `dev mail list` holds the invitation email and no welcome email; " +
+        "world: one invitation and one proposal",
+    ),
+    keep(M_INVITE, 2, "cli: an offer named twice, or one the grantee already has live here, is refused INVALID_INPUT; world: no invitation, proposal or approval"),
+    keep(M_INVITE, 3, "cli: a second run with the same `--request-key` prints the same id and commandId; world: one invitation and one proposal"),
+    keep(M_INVITE, 4, "cli: refused INVALID_INPUT; world: no invitation row and no admission"),
+    keep(M_INVITE, 5, "cli: `--confirm` exits with CLI_USAGE; trace: no rpc span under the command"),
+  ],
+  returns: InviteResult,
+  errors: [error_CLI_USAGE],
+  refusals: [
+    { error: error_ROLE_PERMISSION_DENIED, given: W_MEMBER, when: "You cannot manage people in the Organization." },
+    { error: error_ROLE_PERMISSION_DENIED, given: W_TREE, when: "You offered grants and are not a Director." },
+    {
+      error: error_INVALID_INPUT,
+      given: W_PENDING_INVITE,
+      when: "The request key already names a different invitation, the email or Account you gave does not name a person, or no agent has the `@handle` you gave.",
+    },
+    {
+      error: error_WRONG_STATE,
+      given: W_GRANTED_INVITE,
+      when: "The request key names an invitation whose grants are already set up, or that has ended, so there is nothing left to propose; the CLI prints that invitation instead.",
+    },
+    signedOut,
+  ],
+  budget: WRITE,
 });

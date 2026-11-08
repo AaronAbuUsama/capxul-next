@@ -2,12 +2,22 @@
 // long-lived object: its Board proposal may wait days for the Directors, an office holder's
 // approval for its signer and the chain. Budgets has no sweep and no cron: everything the old code
 // settled on read (each department action settled waiting changes in nonce order; allowance
-// commands were settled by `settle`) is this process, resumed by its carrier's end.
+// commands were settled by `settle`) is this process, resumed by its carrier's end. One outbox
+// follower takes an ended invitation's grants back (decision budgets.invitation-grants-return); the
+// invitation's own process (organizations) waits for the chain to show them gone.
 
 import { budget, defineWorkflow } from "../../../packages/book/src/index.ts";
 import { concept_budgets } from "../shared/foundation.ts";
-import { integration_indexer } from "../shared/external.ts";
-import { table_chain_budgets } from "../indexing/data.ts";
+import { contract_hats, integration_indexer } from "../shared/external.ts";
+import { table_principals } from "../access/data.ts";
+import { table_chain_budgets, table_hat_wearers } from "../indexing/data.ts";
+import {
+  machine_org_invite,
+  table_org_deployments,
+  table_org_invitations,
+  table_org_members,
+} from "../organizations/data.ts";
+import { procedure_board_propose } from "../board/procedures.ts";
 import { machine_budget, machine_budget_change, table_budget_changes, table_budgets } from "./data.ts";
 
 const PAY = "packages/backend/src/payroll/departments";
@@ -84,5 +94,48 @@ export const workflow_budgets_changes_follow = defineWorkflow({
   compensation:
     "None: nothing is written until the carrier has ended, and the settlement is one transaction. A step that fails " +
     "retries; Ponder still behind after its wait leaves the change proposed and the process waiting for the next attempt.",
+  budget: budget("background"),
+});
+
+export const workflow_budgets_invitations_return_grants = defineWorkflow({
+  id: "budgets.invitations.return-grants",
+  title: "Propose taking back the hats an ended invitation granted",
+  about:
+    "Triggered by an invitation's `begin_cleanup` (declined, cancelled or expired while the hats its Board batch minted " +
+    "are on chain), through the outbox. It cannot be a step of the rpc that ended the offer: that is organizations', and " +
+    "the expiry is the invitation's own timer. It reads the invitation's granted hats and the grantee's Safe, keeps the " +
+    "hats that Safe still wears (indexing's hat-wearers), and opens one Board proposal of " +
+    "`Hats.setHatWearerStatus(hat, granteeSafe, false, true)` for each (burned, the wearer kept in good standing, as " +
+    "`org allowance revoke` does), with `board.propose` (opener budgets, subject `invitation-return:<invitationId>`). The " +
+    "proposer is the invitation's inviter while their Seat wears the Director hat, else the Director with the oldest " +
+    "current Seat; their approval waits on the approval page like any proposal. A new allowance the batch created stays a " +
+    "budget with no wearer. Nothing is returned when the Safe wears none of them. If the Directors reject the proposal, " +
+    "`org member revoke` and `org allowance revoke` take the hats back one at a time; the invitation's process ends the " +
+    "offer when the chain shows none worn.",
+  was: [
+    "packages/backend/src/organizations/invitations/writes/endings.ts:175",
+    "packages/backend/src/organizations/invitations/writes/retirements.ts:28",
+    "books/as-is/organizations/invitations.ts:586",
+  ],
+  concept: concept_budgets,
+  priority: "normal",
+  trigger: { transition: machine_org_invite.t.begin_cleanup },
+  steps: [
+    { name: "read", about: "Reads the invitation's granted hats and grantee Safe, and the hats that Safe still wears." },
+    { name: "proposer", about: "The inviter while a Director, else the Director with the oldest current Seat." },
+    { name: "propose", about: "One transaction: the Board proposal of every hat's burn for the grantee's Safe (`board.propose`)." },
+  ],
+  reads: [table_org_invitations, table_org_members, table_org_deployments, table_principals, table_hat_wearers],
+  writes: [],
+  drives: [],
+  invokes: [procedure_board_propose],
+  emits: [],
+  calls: [],
+  chain: [contract_hats.f.setHatWearerStatus],
+  idempotency:
+    "board.propose answers the proposal already carrying subject `invitation-return:<invitationId>` (`opened: false`), so a " +
+    "replayed event opens nothing new.",
+  timeoutMs: 60_000,
+  retries: { max: 5, backoff: "exponential" },
   budget: budget("background"),
 });

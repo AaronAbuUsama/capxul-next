@@ -17,9 +17,9 @@ export const procedure_organizations_bind_invitation_grants = defineProcedure({
   title: "Bind an invitation's grants to the Board proposal that carries them",
   about:
     "Money fact: an invitation's offered grants (officer hats and allowances, which carry authority over the company's " +
-    "money) and the company Safe transaction that carries them on chain are one fact. Board invokes it in the " +
-    "transaction that opens the proposal of an authorizing invitation's grants (`board.propose`), as the second step of " +
-    "its `org member invite` flow. It records the Safe transaction's hash and nonce on the invitation, so the " +
+    "money) and the company Safe transaction that carries them on chain are one fact. Budgets invokes it in the " +
+    "transaction that opens the Board proposal of an authorizing invitation's grants (`board.propose`), as the second " +
+    "step of its `org member invite` flow. It records the Safe transaction's hash and nonce on the invitation, so the " +
     "invitation's process opens the offer only when the chain shows that transaction executed, and cancels it when " +
     "the nonce went to another transaction. If the two disagreed at a commit, an invitee could be offered authority no " +
     "proposal grants, or hold hats no invitation accounts for. Binding the same transaction again is a no-op; another " +

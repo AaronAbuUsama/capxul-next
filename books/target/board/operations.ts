@@ -20,6 +20,7 @@ import {
   error_INVALID_INPUT,
   error_NOT_AUTHENTICATED,
   error_RESERVED_MATTER,
+  error_ROLE_CONFLICT,
   error_ROLE_PERMISSION_DENIED,
   error_WRONG_STATE,
 } from "../shared/vocabulary.ts";
@@ -407,6 +408,10 @@ export const operation_org_director_threshold = defineOperation({
 // ── org member grant and revoke ─────────────────────────────────────────────────────────────
 
 const OFFICER_NOTHING = "world: the snapshot diff shows no officer change, proposal or approval row";
+/** Budgets' world: a v4 Organization with a budget tree whose departments have office holders (decision budgets.worlds). */
+const W_BUDGET_TREE = "org-with-budget-tree";
+const PEOPLE_CONFLICT_WHEN =
+  "Manage people for a member who holds a department's or team's office: one person cannot hold both (ADR-0040). Nothing is proposed.";
 const GATE_WHEN = "The `owner-safe-proposals` gate is off for the Organization, or for Manage books the `books` gate. Nothing is proposed.";
 
 const GRANT = "org.member.grant";
@@ -437,6 +442,7 @@ export const operation_org_member_grant = defineOperation({
     { error: error_WRONG_STATE, given: W_WAITING, when: when(GRANT, 3) },
     { error: error_WRONG_STATE, given: W_FOUNDER, when: when(GRANT, 4) },
     { error: error_FEATURE_NOT_AVAILABLE, given: W_GATE_OFF, when: GATE_WHEN },
+    { error: error_ROLE_CONFLICT, given: W_BUDGET_TREE, when: PEOPLE_CONFLICT_WHEN },
     signedOut,
   ],
   budget: BOARD_WRITE,

@@ -1,9 +1,10 @@
 // Contacts' Core SDK flows: the commands whose terminal mode composes several calls (A4). At a
-// terminal, `contact get`, `label`, `hide` and `unhide` let the person pick an entry from the book
+// terminal, `contact label`, `hide` and `unhide` let the person pick an entry from the book
 // and show it before the one write; the CLI calls only the flow, and the flow asks through the
 // host's prompter (a `wait.person` span, never system time). Given a PartyId and `--confirm`, as a
 // script must, each flow makes exactly one rpc call. `contact add` and `contact list` are one rpc
-// each, so they have no flow (decision contacts.guided-flows).
+// each, so they have no flow (decision contacts.guided-flows). `contact get` is banking's flow,
+// which steps through this concept's list and get rpcs (decision contacts.get-moved).
 //
 // The method takes the book as input (`book: { kind: "person" }`, or `{ kind: "organization",
 // orgId }` for `--org`), so one SDK method serves both books; the old `client.org(id).addressBook`
@@ -65,35 +66,6 @@ const GuidedInput = Schema.Struct({
   partyId: Schema.optionalKey(Schema.String),
   /** True from a script (`--confirm`): no preview, no question. */
   confirm: Schema.optionalKey(Schema.Boolean),
-});
-
-export const flow_client_account_address_book_get = defineFlow({
-  id: "client.account.address-book.get",
-  title: "Show one contact, picking it at a terminal",
-  about:
-    "Given a PartyId, one call: the entry, or null when the Party is not in this book (the CLI prints `data: null`, " +
-    "exit 0). With none at a terminal, the person picks from the whole book, hidden entries included. An explicit get " +
-    "never lists or prompts. The bank accounts saved for the contact are banking's: this flow cannot read them (decision " +
-    "contacts.get-bank-accounts).",
-  component: component_core_sdk,
-  sdk: "client.account.addressBook.get",
-  input: Schema.Struct({ book: Book, partyId: Schema.optionalKey(Schema.String) }),
-  output: Schema.NullOr(Entry),
-  steps: [
-    ...pick("hidden entries included"),
-    { name: "read", rpc: rpc_contacts_book_get, about: "The entry for the PartyId given or picked, or null." },
-  ],
-  errors: [error_CANCELLED],
-  calls: [],
-  spans: [],
-  budget: {
-    ...budget("read"),
-    p50Ms: 800,
-    p95Ms: 1_600,
-    excludes: ["wait.person"],
-    why: "a guided get lists the book for the picker before its one read",
-  },
-  was: [`${CLI}/subcommands/get/execute.ts:21`, `${CLI}/internal/selection.ts:19`, `${SDK}:146`],
 });
 
 export const flow_client_account_address_book_label = defineFlow({

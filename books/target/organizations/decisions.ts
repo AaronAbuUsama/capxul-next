@@ -3,7 +3,7 @@
 // old code (/home/user/factory, integration/factory) and the as-is book as evidence.
 
 import { defineDecision } from "../../../packages/book/src/index.ts";
-import { concept_activity, concept_board, concept_notices, concept_organizations, concept_parties } from "../shared/foundation.ts";
+import { concept_activity, concept_board, concept_budgets, concept_notices, concept_organizations, concept_parties } from "../shared/foundation.ts";
 import { error_FEATURE_NOT_AVAILABLE, error_WRONG_STATE } from "../shared/vocabulary.ts";
 import {
   event_org_invite_transitioned,
@@ -208,14 +208,15 @@ export const decision_organizations_invitation_machine = defineDecision({
 
 export const decision_organizations_bind_invitation_grants = defineDecision({
   id: "organizations.bind-invitation-grants",
-  title: "New procedure: board binds an invitation to the transaction of its grants",
+  title: "New procedure: the proposer binds an invitation to its grants' transaction",
   question:
-    "Board proposes an invitation's grants, and organizations cannot follow board's transitions (it does not depend on " +
-    "board). How does the invitation learn which proposal carries its grants, so it can open, or be cancelled, from the chain?",
+    "Budgets proposes an invitation's grants to the Board, and organizations cannot follow budgets' or board's " +
+    "transitions (it depends on neither). How does the invitation learn which proposal carries its grants, so it can " +
+    "open, or be cancelled, from the chain?",
   options: [
-    { label: "procedure", text: "Board invokes `organizations.bind-invitation-grants` in the transaction that opens the proposal; the invitation then follows that Safe transaction on chain." },
+    { label: "procedure", text: "Budgets invokes `organizations.bind-invitation-grants` in the transaction that opens the proposal; the invitation then follows that Safe transaction on chain." },
     { label: "hats", text: "The invitation waits until the invitee's Safe wears every offered hat (a new allowance's hat is unknown until it exists)." },
-    { label: "board-writes", text: "Board's proposal process moves the invitation's phase when it executes or ends." },
+    { label: "proposer-writes", text: "The proposer's process moves the invitation's phase when the proposal executes or ends." },
   ],
   chosen: "procedure",
   why:
@@ -223,11 +224,11 @@ export const decision_organizations_bind_invitation_grants = defineDecision({
     "one fact, the rules.procedures case 'a chain write and the proposal that carries it'. Bound in one transaction, the " +
     "invitation never waits on a proposal that does not carry it, and its process decides everything from chain proof: " +
     "ExecutionSuccess of the bound hash opens it, the nonce going to another transaction cancels it, and the cancel rpc " +
-    "can tell whether the proposal may still run. Waiting for hats cannot know a new allowance's hat, and letting board " +
-    "drive the phase would write organizations' machine from above, a second writer P4 forbids. The transaction stays " +
-    "within sys:tx-width (board.propose's approvals.open and this one).",
-  source: by("operations.member-invite-in-board; org.invite.cancel.yaml (a proposal that may still run); rules.procedures; P4"),
-  affects: [procedure_organizations_bind_invitation_grants, table_org_invitations, workflow_organizations_invitations_follow, concept_board],
+    "can tell whether the proposal may still run. Waiting for hats cannot know a new allowance's hat, and letting the " +
+    "proposer drive the phase would write organizations' machine from above, a second writer P4 forbids. The invoking " +
+    "transaction calls two concepts' procedures (board.propose and this one), within sys:tx-width.",
+  source: by("operations.member-invite-in-budgets; org.invite.cancel.yaml (a proposal that may still run); rules.procedures; P4"),
+  affects: [procedure_organizations_bind_invitation_grants, table_org_invitations, workflow_organizations_invitations_follow, concept_board, concept_budgets],
 });
 
 export const decision_organizations_provisional_party = defineDecision({
@@ -446,7 +447,7 @@ export const decision_organizations_dropped = defineDecision({
   why:
     "Setups: prepare and submit authorization, the proof receipt and list-mine go to approvals or into `org list`; the ten " +
     "load, record, accept, fence, claim, apply, recover and emit rpcs are steps of the setup process or the runtime's " +
-    "outbox. Invitations: preview is the board flow's read before it writes, get and retry have no frozen caller (a " +
+    "outbox. Invitations: preview is the budgets flow's read before it writes, get and retry have no frozen caller (a " +
     "retry has nothing to retry once grants are hats), sweep and expire are each invitation's timer, and the five emit " +
     "rpcs are transitions' events. Members: grant, revoke, permission-target and record-permission-change are board's " +
     "officer hats; advance and the legacy states are gone; the emit and notify rpcs are events and notices. Roles: the " +
@@ -562,4 +563,44 @@ export const decision_organizations_worlds = defineDecision({
     "whose Organization or grantee no longer matches, which no operation can produce; it is a defect guard.",
   source: by("responsibilities.operator-proof-tools; spec 30 (worlds); the 14 operations' refusals"),
   affects: ALL_OPERATIONS,
+});
+
+// ── assembly ────────────────────────────────────────────────────────────────────────────────
+
+export const decision_organizations_invite_grants_in_budgets = defineDecision({
+  id: "organizations.invite-grants-in-budgets",
+  title: "Budgets proposes an invitation's grants and their return; every Offer stays",
+  question:
+    "The architecture review moved `org member invite` from board to budgets (operations.member-invite-in-budgets). " +
+    "Organizations' records said board proposes the grants, binds their transaction and takes granted hats back, and " +
+    "budgets had asked to offer existing allowances only (budgets.invitation-allowance-offers). What does organizations change?",
+  options: [
+    {
+      label: "budgets-proposes",
+      text:
+        "Name budgets as the proposer and binder everywhere; keep the three Offer kinds (officer hat, existing " +
+        "allowance, new allowance with name, asset and limit) and the interface: invite rpc, bind procedure, begin_cleanup.",
+    },
+    { label: "drop-new", text: "Also drop the `new-allowance` Offer, as budgets had recommended while board owned the flow." },
+  ],
+  chosen: "budgets-proposes",
+  why:
+    "The designed synopsis keeps `--new-allowance-name --limit --asset` and its call is the allowance's createHat, " +
+    "createChildBudget and mintHat (P10 rung 1); budgets can now plan them, which is why the review moved the flow. " +
+    "What `limit` becomes on chain is budgets' to plan. The invitation holds offers as data and learns the minted hats " +
+    "from the bound transaction's indexed facts, so a new allowance's unknown hat id is no problem. Budgets' rpc invokes " +
+    "`board.propose` and `organizations.bind-invitation-grants` in one transaction (two concepts, sys:tx-width), and " +
+    "its own workflow on `org-invite.begin_cleanup` proposes the hats' return; organizations' process ends the offer " +
+    "once indexing shows them gone.",
+  source: by("shared operations.member-invite-in-budgets; org.member.invite.yaml (designed synopsis and call); budgets.invitation-allowance-offers"),
+  affects: [
+    table_org_invitations,
+    machine_org_invite,
+    event_org_invite_transitioned,
+    procedure_organizations_bind_invitation_grants,
+    rpc_organizations_invitations_invite,
+    rpc_organizations_invitations_decline,
+    workflow_organizations_invitations_follow,
+    concept_budgets,
+  ],
 });

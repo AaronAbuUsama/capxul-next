@@ -5,7 +5,8 @@
 // old code (/home/user/factory, integration/factory) and the as-is book as evidence.
 
 import { defineDecision } from "../../../packages/book/src/index.ts";
-import { error_FEATURE_NOT_AVAILABLE, error_RESERVED_MATTER, error_WRONG_STATE } from "../shared/vocabulary.ts";
+import { error_FEATURE_NOT_AVAILABLE, error_RESERVED_MATTER, error_ROLE_CONFLICT, error_WRONG_STATE } from "../shared/vocabulary.ts";
+import { table_chain_budgets, table_chain_hats } from "../indexing/data.ts";
 import { table_feature_flags } from "../access/data.ts";
 import { procedure_approvals_withdraw } from "../approvals/procedures.ts";
 import {
@@ -543,4 +544,36 @@ export const decision_board_dropped = defineDecision({
     "emit rpc has nothing to do. Old staging keeps running these until Aaron turns it off.",
   source: by("books/as-is/organizations/proposals.ts, directors.ts; books/as-is/permissions/grants.ts"),
   affects: [table_board_proposals, table_board_changes, workflow_board_proposals_carry, workflow_board_changes_carry, rpc_board_directors_get],
+});
+
+// ── assembly ────────────────────────────────────────────────────────────────────────────────
+
+export const decision_board_people_hat_role_conflict = defineDecision({
+  id: "board.people-hat-role-conflict",
+  title: "Granting the People hat to a department's office holder is ROLE_CONFLICT",
+  question:
+    "Budgets refuses a department's or team's office to a wearer of the People hat (budgets.role-conflict-people-hat) and " +
+    "asks board for the reverse. `org member grant`'s frozen page lists no ROLE_CONFLICT, and board sits below budgets, " +
+    "so it cannot read which budgets are departments. Does the grant refuse, and how does it know?",
+  options: [
+    {
+      label: "chain-offices",
+      text:
+        "Refuse `manage-people` with ROLE_CONFLICT when the member's Safe wears a department's or team's office hat, read " +
+        "from indexing: a budget's hat where the budget is a top budget, or its hat's admin is its parent budget's hat.",
+    },
+    { label: "any-budget-hat", text: "Refuse when the member's Safe wears any budget's hat, an allowance's included." },
+    { label: "none", text: "Keep the frozen refusal list: the grant never checks the office." },
+  ],
+  chosen: "chain-offices",
+  why:
+    "P10 rung 3: this is authority, so the stricter version wins until a matter rules. The old Manage people grant " +
+    "refused a department holder (permissions/guards/conflicts.ts, ADR-0040), and on v4 Manage people is this grant, so " +
+    "without the check one person could hold an office and Manage allowances by asking in the other order. ROLE_CONFLICT " +
+    "is already a frozen code with that meaning. Budgets' designed creates place the hats so the chain tells them apart: " +
+    "a top department's hat and an allowance's hat sit under the Board's top hat, a team's under its parent's office hat, " +
+    "and only an allowance is a child budget with its hat under the top hat. Refusing allowance wearers too would be a " +
+    "conflict the old system never had. The refusal is reached from budgets' world org-with-budget-tree.",
+  source: by("packages/backend/src/permissions/guards/conflicts.ts:13; books/target/budgets/decisions.ts (budgets.role-conflict-people-hat); budgets/departments.ts, allowances.ts (hat placement); P10"),
+  affects: [rpc_board_officers_grant, op.operation_org_member_grant, error_ROLE_CONFLICT, table_chain_budgets, table_chain_hats],
 });

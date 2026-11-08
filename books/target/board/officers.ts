@@ -17,13 +17,14 @@ import {
   error_NOT_AUTHENTICATED,
   error_PROVIDER_ERROR,
   error_PROVIDER_RESPONSE_INVALID,
+  error_ROLE_CONFLICT,
   error_ROLE_PERMISSION_DENIED,
   error_WRONG_STATE,
 } from "../shared/vocabulary.ts";
 import { table_feature_flags, table_principals } from "../access/data.ts";
 import { table_parties } from "../parties/data.ts";
 import { table_org_deployments, table_org_members, table_organizations } from "../organizations/data.ts";
-import { table_chain_hats, table_hat_wearers, table_safe_approvals, table_safe_owners } from "../indexing/data.ts";
+import { table_chain_budgets, table_chain_hats, table_hat_wearers, table_safe_approvals, table_safe_owners } from "../indexing/data.ts";
 import { procedure_board_propose } from "./procedures.ts";
 import { Permission, machine_officer_change, table_board_proposals, table_officer_changes } from "./data.ts";
 
@@ -101,7 +102,11 @@ export const rpc_board_officers_grant = defineRpc({
   id: "board.officers.grant",
   title: "Propose giving a member an officer hat",
   about:
-    RULES + " A member whose Safe already wears the hat, read live (`Hats.isWearerOfHat`), is WRONG_STATE. The batch: " +
+    RULES + " A member whose Safe already wears the hat, read live (`Hats.isWearerOfHat`), is WRONG_STATE. For " +
+    "`manage-people`, a member whose Safe wears a department's or team's office hat is ROLE_CONFLICT, naming them " +
+    "(decision board.people-hat-role-conflict): from indexing, a hat it wears that is a budget's hat where the budget " +
+    "is a top budget or its hat sits under its parent budget's hat; an allowance's hat (under the Board's top hat, " +
+    "with a parent budget) is no conflict. The batch: " +
     "`Hats.changeHatMaxSupply(hat, supply + waiting + 1)` first when every seat of the hat is worn or taken by grants " +
     "still waiting (indexing's chain-hats and this concept's waiting grants), then `Hats.mintHat(hat, memberSafe)`. " + BIRTH,
   was: [`${OLD}/operations/grant.ts:158`, `${OLD}/writes/permissions.ts:133`, "books/as-is/organizations/members.ts:1"],
@@ -110,8 +115,8 @@ export const rpc_board_officers_grant = defineRpc({
   who: "A Director of the Organization.",
   input: OfficerInput,
   output: OfficerChangeView,
-  errors: [...ERRORS],
-  reads: [...READS, table_chain_hats],
+  errors: [...ERRORS, error_ROLE_CONFLICT],
+  reads: [...READS, table_chain_hats, table_chain_budgets],
   writes: [table_officer_changes],
   drives: [machine_officer_change.t.propose],
   invokes: [procedure_board_propose],

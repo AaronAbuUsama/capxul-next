@@ -19,7 +19,8 @@ import { rpc_budgets_changes_get } from "./changes.ts";
 import { rpc_budgets_departments_create, rpc_budgets_departments_list } from "./departments.ts";
 import { rpc_budgets_offices_add_holder, rpc_budgets_offices_remove_holder } from "./offices.ts";
 import { rpc_budgets_tree_close, rpc_budgets_tree_reopen, rpc_budgets_tree_set_amount, rpc_budgets_tree_show } from "./tree.ts";
-import { workflow_budgets_changes_follow } from "./processes.ts";
+import { workflow_budgets_changes_follow, workflow_budgets_invitations_return_grants } from "./processes.ts";
+import { rpc_budgets_invitations_plan, rpc_budgets_invitations_propose } from "./invitations.ts";
 import {
   flow_client_org_allowances_assign,
   flow_client_org_allowances_change,
@@ -32,6 +33,7 @@ import {
   flow_client_org_departments_holders_add,
   flow_client_org_departments_holders_remove,
   flow_client_org_departments_set_amount,
+  flow_client_org_invitations_invite,
 } from "./flows.ts";
 import * as op from "./operations.ts";
 
@@ -57,6 +59,7 @@ const ALL_OPERATIONS = [
   op.operation_org_allowance_list,
   op.operation_org_allowance_get,
   op.operation_org_allowance_replace,
+  op.operation_org_member_invite,
 ];
 
 // ── data ────────────────────────────────────────────────────────────────────────────────────
@@ -543,7 +546,7 @@ export const decision_budgets_notices_need_budgets = defineDecision({
   title: "The allowance email needs notices to depend on budgets",
   question:
     "'Once a v4 assign executes, the member is emailed the allowance at its amount now.' Notices sends every email, but " +
-    "its dependsOn does not list budgets. Who sends it?",
+    "its dependsOn did not list budgets. Who sends it?",
   options: [
     { label: "notices-depends", text: "Add budgets to notices' dependsOn: a notice workflow triggered by budget-change.apply reads the change and the allowance, and the chain's amount." },
     { label: "board-proposal", text: "Notices reacts to board's proposal_transitioned and reads nothing of budgets." },
@@ -551,29 +554,140 @@ export const decision_budgets_notices_need_budgets = defineDecision({
   chosen: "notices-depends",
   why:
     "Only budgets knows a proposal carried an allowance assign, to whom and on which budget; board's proposal does not. " +
-    "Budgets sits below notices, so the edge makes no cycle (dependencies.notices-top). This is a change to shared " +
-    "foundation.ts for its writer, and the notices designer books the workflow; budgets books nothing that sends mail.",
-  source: by("org.allowance.assign.yaml #5; books/target/shared/foundation.ts (concept_notices.dependsOn)"),
+    "Budgets sits below notices, so the edge makes no cycle (dependencies.notices-top). Settled at assembly: the " +
+    "architecture review added the edge (dependencies.notices-budgets) and notices follows budget-change.apply " +
+    "(books/target/notices/budgets.ts). Budgets books nothing that sends mail.",
+  source: by("org.allowance.assign.yaml #5; dependencies.notices-budgets; books/target/notices/budgets.ts"),
   affects: [concept_notices, concept_budgets, machine_budget_change],
 });
 
 export const decision_budgets_invitation_offers = defineDecision({
   id: "budgets.invitation-allowance-offers",
-  title: "An invitation can offer an existing allowance, not a new one",
+  title: "An invitation offers officer hats, existing allowances or one new allowance",
   question:
-    "Organizations' invitation Offer has `allowance` (a budget id) and `new-allowance` (name, asset, limit). Which can " +
-    "board propose at acceptance?",
+    "Organizations' invitation Offer has `officer` (a hat), `allowance` (a budget id) and `new-allowance` (name, asset, " +
+    "limit). Which can the Board batch of an invitation's grants carry, and what does a new allowance's `limit` mean on v4?",
   options: [
-    { label: "existing-only", text: "Only an existing allowance: board proposes `Hats.mintHat` of its hat, read from indexing's Budgets view; a new allowance is `org allowance create --assign-to` once the invitee is a member." },
-    { label: "both", text: "Both, with board creating the budget and its hat." },
+    {
+      label: "all-three",
+      text:
+        "All three, planned by budgets: an officer hat's or existing allowance's `Hats.mintHat`, and a new allowance's " +
+        "`Hats.createHat`, `Budgets.createChildBudget(parent, limit, hat)` and `Hats.mintHat`, with its budgets row; " +
+        "`limit` is its amount per period, under the one open top budget in that asset and in that budget's period.",
+    },
+    { label: "existing-only", text: "Only officer hats and existing allowances; a new allowance is `org allowance create --assign-to` once the invitee is a member." },
+    { label: "period-flag", text: "All three, with a new `--period` flag for the new allowance." },
   ],
-  chosen: "existing-only",
+  chosen: "all-three",
   why:
-    "A new allowance needs a budgets row (key, name, planned hat, its change), which only budgets writes, and neither " +
-    "board nor organizations depends on budgets. `limit` is a per-payment cap, which has no v4 form. Recommended to the " +
-    "organizations and board designers; budgets books nothing for it.",
-  source: by("books/target/organizations/data.ts (Offer); dependencies.organizations-permissions; org.allowance.create.yaml (designed)"),
-  affects: [concept_organizations, concept_board, concept_budgets, rpc_budgets_allowances_create],
+    "Revised at assembly. This record first chose existing-only, because board owned the flow and could not plan an " +
+    "allowance; the review moved `org member invite` to budgets (operations.member-invite-in-budgets), and P10 rung 1 " +
+    "keeps the frozen offer of 'a new spending allowance'. The designed call names exactly `createHat`, " +
+    "`createChildBudget` and `mintHat`, and `createChildBudget` takes one number, so the designed `--limit <amount>` is " +
+    "the child budget's amount; v4 has no per-payment cap. The designed synopsis has no period, and a child takes its " +
+    "parent's period, so the parent is the one open top budget in `--asset` (none or several is INVALID_INPUT, as " +
+    "`org allowance create` refuses without `--parent`). Adding a flag would change the frozen surface. The pre-v4 " +
+    "`--unlimited`, `--recipient-account`, `--any-recipient` and `--actions` are not in the designed synopsis.",
+  source: by(
+    "org.member.invite.yaml (about; designed synopsis and call); apps/cli/src/commands/org-invite/member/subcommands/invite/command.ts:10; " +
+      "books/target/organizations/data.ts (Offer); operations.member-invite-in-budgets",
+  ),
+  affects: [rpc_budgets_invitations_plan, rpc_budgets_invitations_propose, op.operation_org_member_invite, rpc_budgets_allowances_create],
+});
+
+export const decision_budgets_member_invite_flow = defineDecision({
+  id: "budgets.member-invite-flow",
+  title: "`org member invite`: plan, invite, then one proposal bound to the invitation",
+  question:
+    "The invitation is organizations' row and the grants are one Board proposal. In what steps does budgets' flow write " +
+    "them, and how is a refusal kept from leaving a half-made invitation?",
+  options: [
+    {
+      label: "plan-invite-propose",
+      text:
+        "A read first (`budgets.invitations.plan`, also `--preview`) refuses what it can before anything is written; then " +
+        "organizations' invite rpc; then `budgets.invitations.propose`, one transaction that births a new allowance's row and " +
+        "create change, opens the proposal (`board.propose`) and binds it (`organizations.bind-invitation-grants`).",
+    },
+    {
+      label: "one-rpc",
+      text: "One budgets rpc that writes the invitation too, through a new organizations procedure that births an invitation.",
+    },
+  ],
+  chosen: "plan-invite-propose",
+  why:
+    "An invitation is not a money fact on its own, so a new organizations procedure to birth one would go past P4; the " +
+    "money fact is the grants and the Safe transaction carrying them, which is what the bind procedure already records. " +
+    "The plan checks the People and Director hats and every grant first, so the frozen 'needs you to be a Director' is " +
+    "refused with nothing written; if the propose step still fails (the Board's gate turned off, the parent's room " +
+    "spent), the invitation stays `authorizing` with no binding, a rerun with the same request key proposes it, and " +
+    "`org invite cancel` cancels it at once. The propose transaction invokes two procedures of two concepts (board, " +
+    "organizations), within sys:tx-width; board.propose opens the approval inside it. The returns add `grants` and " +
+    "`commandId` (the Board proposal, the old configure command) to organizations' invitation view, as the frozen " +
+    "returns list them. Its refusals are reached from org-with-member (Sam has no People hat), org-with-budget-tree (Pat " +
+    "wears it but is no Director), org-with-pending-invitation, org-with-granted-invitation and cli-signed-out.",
+  source: by(
+    "org.member.invite.yaml (who, changes, returns, refusals); books/target/organizations/invitations.ts (invite rpc); " +
+      "books/target/organizations/procedures.ts; rules.procedures; P4",
+  ),
+  affects: [
+    flow_client_org_invitations_invite,
+    rpc_budgets_invitations_plan,
+    rpc_budgets_invitations_propose,
+    op.operation_org_member_invite,
+    machine_budget,
+    machine_budget_change,
+  ],
+});
+
+export const decision_budgets_member_invite_acceptance = defineDecision({
+  id: "budgets.member-invite-acceptance",
+  title: "`org member invite` #1 is rewritten from rows to what a reader sees",
+  question: "Line 1 says it 'writes one authorizing invitation and one configure command'. A black box sees neither row. What does it check?",
+  options: [
+    { label: "outcome", text: "The invitation reads `authorizing` with one Board proposal of all its grants (its commandId), and the invitee is admitted with no welcome email." },
+    { label: "keep", text: "Keep the line, checked by reading Postgres." },
+  ],
+  chosen: "outcome",
+  why:
+    "P1: a claim that names a row is rewritten as an outcome an observer can check. The configure command is the v4 " +
+    "Board proposal, which `org proposal get` reads; admission is `waitlist status` as the invitee; the welcome email's " +
+    "absence is `dev mail list`. The old system passes it: one authorizing invitation with one configure command, the " +
+    "invitee admitted. Lines 2 to 5 are kept word for word.",
+  source: by("org.member.invite.yaml #1; P1"),
+  affects: [op.operation_org_member_invite],
+});
+
+export const decision_budgets_invitation_grants_return = defineDecision({
+  id: "budgets.invitation-grants-return",
+  title: "Budgets proposes taking an ended invitation's hats back, once",
+  question:
+    "An invitation declined, cancelled or expired after its Board batch minted hats waits in `revoking` until the hats " +
+    "are gone. Who proposes their return, and who proposes it when no person is acting?",
+  options: [
+    {
+      label: "follower-once",
+      text:
+        "A budgets workflow on organizations' `begin_cleanup` opens one Board proposal burning every hat the grantee's " +
+        "Safe still wears; the proposer is the inviter while a Director, else the Director with the oldest current Seat.",
+    },
+    { label: "manual", text: "Nothing automatic: the Directors run `org member revoke` and `org allowance revoke`." },
+    { label: "until-gone", text: "The workflow proposes again after every proposal that ends without effect." },
+  ],
+  chosen: "follower-once",
+  why:
+    "The review gave the return to budgets with the grants (operations.member-invite-in-budgets), and organizations' " +
+    "process waits for it. `board.propose` needs a proposing Director, and the end of an offer is often nobody's act (an " +
+    "expiry) or the invitee's (a decline); the inviter granted the hats, so their approval opens first, and the oldest " +
+    "Director is a deterministic fallback. The hats are burned with `setHatWearerStatus(…, false, true)`, as " +
+    "`org allowance revoke` does, so the Safe can be granted again later. Proposing again after a rejection would loop " +
+    "against the Directors' own answer; they keep the manual commands, and the invitation ends when the chain shows no " +
+    "hat worn.",
+  source: by(
+    "books/target/organizations/processes.ts (organizations.invitations.follow: revoking); books/target/board/officers.ts (board.officers.revoke); " +
+      "packages/backend/src/organizations/invitations/writes/endings.ts:175",
+  ),
+  affects: [workflow_budgets_invitations_return_grants, contract_hats],
 });
 
 export const decision_budgets_dropped_functions = defineDecision({

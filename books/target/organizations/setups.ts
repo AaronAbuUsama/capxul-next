@@ -66,8 +66,8 @@ export const rpc_organizations_setups_begin = defineRpc({
   about:
     "One transaction. The founder's mailbox must be admitted (accounts' admissions; else FEATURE_NOT_AVAILABLE) and their " +
     "personal Safe claimed (accounts' personal Safe past `claim`; else WRONG_STATE). Bio and size are trimmed " +
-    "and blank ones dropped; a bio over 280 characters, a country that is not two letters or a logo that media does not " +
-    "admit as an image is INVALID_INPUT, before any write. The intent (name, handle, country, bio, size, logo) is hashed: " +
+    "and blank ones dropped; a bio over 280 characters, a country that is not two letters or a logo that is not the " +
+    "founder's own media file of purpose `image` in state `kept` is INVALID_INPUT, before any write. The intent (name, handle, country, bio, size, logo) is hashed: " +
     "if the handle's Party already stands for an Organization this founder began with the same intent, that Organization " +
     "and its setup are returned unchanged; another intent is WRONG_STATE; another founder's handle is INVALID_INPUT. " +
     "Otherwise it computes the company Safe's address in-process with the minter's pure `companySafeAddressFor` (no node " +
