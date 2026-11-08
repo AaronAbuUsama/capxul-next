@@ -16,7 +16,7 @@ import {
   error_WRONG_STATE,
 } from "../shared/vocabulary.ts";
 import { table_org_deployments, table_org_members } from "../organizations/data.ts";
-import { table_hat_wearers } from "./links.ts";
+import { table_hat_wearers } from "../indexing/data.ts";
 import { KeyEnvironment, KeyState, machine_app_key, table_applications, table_publishable_keys } from "./data.ts";
 
 const OLD = "packages/backend/src/applications/keys";
@@ -101,7 +101,7 @@ export const rpc_applications_keys_list = defineRpc({
   chain: [],
   spans: [],
   budget: budget("read"),
-  was: [`${ASIS}:150`, `${OLD}/operations/list.ts:12`, `${OLD}/reads.ts:43`, `${PROTOCOL}:100`, ...GUARD_WAS],
+  was: [`${ASIS}:153`, `${OLD}/operations/list.ts:12`, `${OLD}/reads.ts:43`, `${PROTOCOL}:100`, ...GUARD_WAS],
 });
 
 // ── writes ──────────────────────────────────────────────────────────────────────────────────
@@ -137,7 +137,7 @@ export const rpc_applications_keys_create = defineRpc({
   chain: [],
   spans: [],
   budget: budget("write"),
-  was: [`${ASIS}:94`, `${OLD}/operations/create.ts:16`, `${OLD}/rules.ts:45`, `${OLD}/writes.ts:24`, `${PROTOCOL}:89`, ...GUARD_WAS],
+  was: [`${ASIS}:99`, `${OLD}/operations/create.ts:16`, `${OLD}/rules.ts:45`, `${OLD}/writes.ts:24`, `${PROTOCOL}:89`, ...GUARD_WAS],
 });
 
 export const rpc_applications_keys_rotate = defineRpc({
@@ -167,7 +167,7 @@ export const rpc_applications_keys_rotate = defineRpc({
   chain: [],
   spans: [],
   budget: budget("write"),
-  was: [`${ASIS}:178`, `${OLD}/operations/rotate.ts:14`, `${OLD}/rules.ts:54`, `${OLD}/rules.ts:60`, `${OLD}/writes.ts:77`, `${PROTOCOL}:110`, ...GUARD_WAS, ...OWNED_WAS],
+  was: [`${ASIS}:179`, `${OLD}/operations/rotate.ts:14`, `${OLD}/rules.ts:54`, `${OLD}/rules.ts:60`, `${OLD}/writes.ts:77`, `${PROTOCOL}:110`, ...GUARD_WAS, ...OWNED_WAS],
 });
 
 export const rpc_applications_keys_revoke = defineRpc({
@@ -195,5 +195,5 @@ export const rpc_applications_keys_revoke = defineRpc({
   chain: [],
   spans: [],
   budget: budget("write"),
-  was: [`${ASIS}:233`, `${OLD}/operations/revoke.ts:12`, `${OLD}/writes.ts:84`, `${PROTOCOL}:117`, ...GUARD_WAS, ...OWNED_WAS],
+  was: [`${ASIS}:226`, `${OLD}/operations/revoke.ts:12`, `${OLD}/writes.ts:84`, `${PROTOCOL}:117`, ...GUARD_WAS, ...OWNED_WAS],
 });

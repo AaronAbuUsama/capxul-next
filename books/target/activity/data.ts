@@ -40,8 +40,9 @@ export const table_activity_changes = defineTable({
   id: "activity-changes",
   title: "Activity changes: each feed's changes, in the order they committed",
   about:
-    "One row per change a reader of one feed (a person's or an Organization's) is told about: a Payment born (`new`) or " +
-    "moved to another status (`updated`), or a Movement of outside money recorded (`new`). The change-log workflows " +
+    "One row per change a reader of one feed (a person's or an Organization's) is told about: a Payment or a Movement " +
+    "the feed has not noted before (`new`), or a Payment it has, moved to another status (`updated`); the first row " +
+    "for a row is `new` whichever transition's workflow runs first. The change-log workflows " +
     "append it from payments' transitions through the outbox, once for each side whose feed holds the row: a Payment's " +
     "owner and, when the payee is another Capxul party, the payee; a Payment to oneself once. `seq` numbers one feed's " +
     "changes from 1 with no gap: the appender takes the feed's transaction lock and the next number, so a later `seq` " +
@@ -70,6 +71,11 @@ export const table_activity_changes = defineTable({
   }),
   key: ["owner_id", "owner_kind", "seq"],
   indexes: [
+    {
+      name: "by-owner-row",
+      fields: ["owner_id", "owner_kind", "row_kind", "row_id", "seq"],
+      for: "Whether a feed already noted a row, so its first change is `new` and every later one `updated`, in whatever order the appenders run.",
+    },
     {
       name: "by-owner-event",
       fields: ["owner_id", "owner_kind", "event_id"],

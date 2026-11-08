@@ -79,8 +79,8 @@ export const rpc_applications_bootstraps_resolve = defineRpc({
   spans: [],
   budget: budget("write"),
   was: [
-    `${ASIS}:58`,
-    `${ASIS}:156`,
+    `${ASIS}:57`,
+    `${ASIS}:150`,
     `${ASIS}:178`,
     `${OLD}/operations/resolve.ts:39`,
     `${OLD}/guards.ts:13`,

@@ -14,6 +14,7 @@ import { budget, defineWorkflow } from "../../../packages/book/src/index.ts";
 import { concept_agents } from "../shared/foundation.ts";
 import { integration_indexer } from "../shared/external.ts";
 import { table_approvals } from "../approvals/data.ts";
+import { table_board_proposals } from "../board/data.ts";
 import { procedure_parties_activate, procedure_parties_release } from "../parties/procedures.ts";
 import { machine_agent, machine_agent_change, table_agent_changes, table_agents } from "./data.ts";
 
@@ -25,23 +26,21 @@ export const workflow_agents_changes_carry = defineWorkflow({
   title: "One agent change, from its carrier to chain proof",
   about:
     "Started by the change's birth (`agent-change.open`, through the outbox), one instance per change. It waits for the " +
-    "end of the carrier the change names, which approvals and board announce through the outbox: the owner's approval " +
-    "(approval_transitioned: landed, reverted, displaced, expired, declined, refused or withdrawn) or the Board proposal " +
-    "(proposal_transitioned: executed, failed, rejected or displaced). A carrier that ended without landing fails the " +
-    "change with its outcome. A carrier that landed is read on chain: every indexed fact of its transaction at the " +
-    "deployment's finality depth (`indexer.factsOf`), and the change lands only when that transaction holds the " +
-    "AgentOwner event it asked for, for this agent's Safe: AgentCreated with the owner's Safe and the key, AgentFrozen, " +
-    "AgentUnfrozen, AgentSignerSwapped with the retired and the new key, AgentRemoved, and for a sweep or removal one " +
-    "AgentSwept at most per named token, each for this Safe and the change's recipient (a removal's is the owner's Safe); " +
-    "a named token with no AgentSwept was empty at execution and reports zero. Anything else (another Safe, key, token or " +
-    "recipient, a second AgentSwept for one token, no event at all) fails it as a mismatch, and the agent keeps what it " +
-    "had. Each settlement is one transaction: the change lands with its transaction, block and what each AgentSwept " +
-    "moved, and the agent moves with it (a create activates the agent and its Party, `parties.activate`; a freeze, " +
-    "unfreeze or removal drives its transition; a rotation sets the agent's key and where it is kept; a sweep moves no " +
-    "state); or the change fails with its outcome and code, and a failed create fails its agent and frees its handle " +
-    "(`parties.release`). Codes: declined, withdrawn and rejected are CANCELLED; expired and displaced WRONG_STATE; a " +
-    "refusal keeps the approval's code; reverted and mismatch are TRANSACTION_FAILED. It replaces the old follow and " +
-    "followChange actions, the settle and settleChange mutations and the settle-on-read of every agents action.",
+    "end of the change's carrier, which approvals and board announce through the outbox and it reads by id: the owner's " +
+    "approval (approval_transitioned: landed, reverted, displaced, expired, declined, refused or withdrawn) or the Board " +
+    "proposal (proposal_transitioned: executed, failed, rejected or replaced). A carrier that ended without landing fails " +
+    "the change with its outcome. One that landed is read on chain: every indexed fact of its transaction at the " +
+    "deployment's finality depth (`indexer.factsOf`). The change lands only when that transaction holds the AgentOwner " +
+    "event it asked for, for this agent's Safe: AgentCreated with the owner's Safe and the key, AgentFrozen, " +
+    "AgentUnfrozen, AgentSignerSwapped with both keys, AgentRemoved, and for a sweep or removal at most one AgentSwept per " +
+    "named token, each to the change's recipient (a removal's is the owner's Safe); a named token with no AgentSwept was " +
+    "empty and reports zero. Anything else (another Safe, key, token or recipient, a doubled AgentSwept, no event) fails " +
+    "it as a mismatch and the agent keeps what it had. Each settlement is one transaction: the change lands with its " +
+    "transaction, block and what each AgentSwept moved, and the agent moves with it (a create activates the agent and its " +
+    "Party, `parties.activate`; a freeze, unfreeze or removal drives its transition; a rotation sets the agent's key and " +
+    "its store; a sweep moves no state); or the change fails with its outcome and code, and a failed create fails its " +
+    "agent and frees its handle (`parties.release`). Codes: decision agents.failure-codes. It replaces the old follow " +
+    "and followChange actions, the settle mutations and the settle-on-read of every agents action.",
   was: [
     `${OLD}/operations/follow.ts:24`,
     `${OLD}/operations/follow-change.ts:23`,
@@ -85,7 +84,7 @@ export const workflow_agents_changes_carry = defineWorkflow({
     { name: "check", about: "Finds the AgentOwner event the change's kind asks for, for this Safe, key, tokens and recipient; anything else is a mismatch." },
     { name: "settle", about: "In one transaction: lands or fails the change, moves the agent with it, and activates or releases a create's Party." },
   ],
-  reads: [table_agent_changes, table_agents, table_approvals],
+  reads: [table_agent_changes, table_agents, table_approvals, table_board_proposals],
   writes: [table_agent_changes, table_agents],
   drives: [
     machine_agent_change.t.land,

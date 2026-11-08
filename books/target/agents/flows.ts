@@ -6,8 +6,10 @@
 //   machine, the flow signs the approval's digest at once (`approvals.signing.get` until it is
 //   sponsored, then `approvals.signing.sign`); a person signs on the approval page, whose link the
 //   flow hands over (the CLI opens it in a browser at a terminal).
-// - An Organization-owned change is a Board proposal: the Directors approve it in board's own
-//   commands, and the flow only follows the change.
+// - An Organization-owned change is a Board proposal. `board.propose` opens the proposing
+//   Director's own approval of it (their approveHash, or the execution when the Board needs one
+//   signature), which the flow signs or hands over like any approval; the other Directors approve
+//   in board's own commands.
 // - Without `noWait` the flow follows the change live (`agents.changes.get`) until it lands or
 //   fails; with it, it returns at the hand-over. Aborting the follow is CANCELLED and leaves the
 //   change waiting as it was.
@@ -50,7 +52,7 @@ const SIGN_AND_FOLLOW = [
   {
     name: "approval",
     rpc: rpc_approvals_signing_get,
-    about: "A person-owned change: its approval, live, until it is sponsored (`pending` with its digest) or ends.",
+    about: "The owner's approval, or the proposing Director's approval of the Board proposal, live, until sponsored (`pending` with its digest) or ended.",
   },
   {
     name: "own-key",
@@ -83,9 +85,10 @@ const SIGN_AND_FOLLOW = [
 const FOLLOW_ERRORS = [error_CANCELLED, error_WRONG_STATE, error_TRANSACTION_FAILED, error_ROLE_PERMISSION_DENIED];
 
 const FOLLOW =
-  "Then the signature: a person-owned change is the owner's approval, signed at once by a key on this machine when the " +
-  "session has one, else on the approval page, whose link the flow hands over; an Organization-owned change is a Board " +
-  "proposal the Directors approve. Without `noWait` it follows the change live until it lands, or fails with its code " +
+  "Then the signature: a person-owned change is the owner's approval; an Organization-owned change is a Board proposal, " +
+  "whose proposing Director's own approval comes with it and the other Directors approve in board's commands. The " +
+  "approval is signed at once by a key on this machine when the session has one, else on the approval page, whose " +
+  "link the flow hands over. Without `noWait` it follows the change live until it lands, or fails with its code " +
   "(a decline or rejection CANCELLED, a lapse WRONG_STATE, a revert or a landing without its event TRANSACTION_FAILED, " +
   "a refusal its own code); aborting the follow is CANCELLED and the change keeps waiting.";
 

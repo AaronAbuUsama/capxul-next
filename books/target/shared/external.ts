@@ -402,7 +402,9 @@ export const integration_chainlink = defineIntegration({
       ],
     },
   },
-  fake: "The devnet's scripted rates (`dev prices set`, devnet's tables); without a script, the forked feed at the pinned block.",
+  fake:
+    "The devnet's scripted rates (`dev prices set`, devnet's `scripted-prices`), dated when they took effect; without a " +
+    "script, the frozen default rates (USDC and USDT 1.00, EURC 1.08, WETH 3,000, WBTC 60,000).",
   secrets: [],
   was: ["packages/backend/src/platform/jobs.ts:57", "docs/decisions/policy-pack.md#p3"],
 });
@@ -510,18 +512,26 @@ export const integration_devnet_control = defineIntegration({
   service: "DevnetControl",
   calls: {
     snapshotSave: {
-      about: "Saves the whole world under a name.",
+      about: "Saves the whole world under a name, with the backend code it was saved with; `replace` replaces a world of that name.",
       timeoutMs: 60_000,
       ...CONTROL,
       p95Ms: 10_000,
-      failures: [...controlFailures],
+      failures: [
+        ...controlFailures,
+        { when: "A world has that name and `replace` was not asked", error: error_WRONG_STATE },
+        { when: "The name is not lowercase letters, digits and hyphens, up to 40 characters", error: error_INVALID_INPUT },
+      ],
     },
     snapshotRestore: {
       about: "Restores a named world.",
       timeoutMs: 60_000,
       ...CONTROL,
       p95Ms: 10_000,
-      failures: [...controlFailures, { when: "No world has that name", error: error_INVALID_INPUT }],
+      failures: [
+        ...controlFailures,
+        { when: "No world has that name; the refusal lists the worlds saved here", error: error_INVALID_INPUT },
+        { when: "The world was saved with other backend code, so its data may not match it", error: error_WRONG_STATE },
+      ],
     },
     snapshotList: { about: "The saved worlds, newest first.", timeoutMs: 2_000, ...CONTROL, p95Ms: 100, failures: [...controlFailures] },
     clockShow: { about: "The chain's and the backend's clocks.", timeoutMs: 2_000, ...CONTROL, p95Ms: 100, failures: [...controlFailures] },
@@ -530,14 +540,18 @@ export const integration_devnet_control = defineIntegration({
       timeoutMs: 30_000,
       ...CONTROL,
       p95Ms: 5_000,
-      failures: [...controlFailures, { when: "The target is in the past", error: error_INVALID_INPUT }],
+      failures: [...controlFailures, { when: "The target is not later than the chain's time", error: error_INVALID_INPUT }],
     },
     clockStartAt: {
       about: "Sets the date a fresh devnet starts at.",
       timeoutMs: 30_000,
       ...CONTROL,
       p95Ms: 5_000,
-      failures: [...controlFailures, { when: "The devnet has already moved past its start", error: error_INVALID_INPUT }],
+      failures: [
+        ...controlFailures,
+        { when: "The date is not earlier than the chain's time", error: error_INVALID_INPUT },
+        { when: "The clocks already moved: the world is not fresh", error: error_WRONG_STATE },
+      ],
     },
   },
   fake: "None: it exists only on a devnet machine.",
@@ -821,6 +835,10 @@ export const contract_captable = defineContract({
     consentToTransfer: { signature: "consentToTransfer(uint8 classId, address to, uint128 amount, bytes32 reason)", about: "Consents to a transfer." },
     setIssuerAllowance: { signature: "setIssuerAllowance(address module, uint8 classId, uint128 amount)", about: "Lets Rounds or Options issue up to an amount of a class (Board)." },
     getClass: { signature: "getClass(uint8 classId) view returns (Class)", about: "A class's token, weight and terms, for the cap table." },
+    setTransferRule: { signature: "setTransferRule(uint8 classId, TransferRule rule, address customRule)", about: "A class's transfer rule (the company Governor: `transfer-rule` vote)." },
+    freeze: { signature: "freeze(uint8 classId)", about: "Freezes a class's terms for good (the company Governor: `freeze-class` vote)." },
+    convertibleReserved: { signature: "convertibleReserved(uint8 classId) view returns (uint256)", about: "Shares of a class reserved for conversions, for an issue's headroom." },
+    closedForExit: { signature: "closedForExit() view returns (bool)", about: "Whether the company was sold and the Captable closed." },
   },
   events: {
     ClassCreated: { signature: "ClassCreated(uint8 indexed classId, address indexed token, ClassParams params)", about: "A class exists." },
@@ -894,6 +912,7 @@ export const contract_options = defineContract({
     setPool: { signature: "setPool(uint128 amount)", about: "Sets the option pool (Board)." },
     pool: { signature: "pool() view returns (uint128)", about: "The option pool, for the cap table." },
     allocated: { signature: "allocated() view returns (uint128)", about: "The pool already granted." },
+    vestedOf: { signature: "vestedOf(uint256 id, uint64 t) view returns (uint128)", about: "A grant's vested options at a time, for show, accept and exercise." },
   },
   events: {
     OptionsGranted: { signature: "OptionsGranted(uint256 indexed id, address indexed grantee, OptionGrant grant)", about: "Granted." },
@@ -929,6 +948,9 @@ export const contract_rounds = defineContract({
     convertSafes: { signature: "convertSafes(uint256[] noteIds, uint256 pricedRoundId, uint256 companyCapitalization)", about: "Converts SAFE notes into a priced round's shares (Board)." },
     safeRound: { signature: "safeRound(uint256 roundId) view returns (SafeRound)", about: "A SAFE round's terms and state." },
     safeNote: { signature: "safeNote(uint256 noteId) view returns (SafeNote)", about: "One investor's SAFE note." },
+    pricedRound: { signature: "pricedRound(uint256 roundId) view returns (PricedRound)", about: "A priced round's terms and state." },
+    position: { signature: "position(uint256 roundId, address investor) view returns (Position)", about: "One investor's invitation, commitment, allocation and payment." },
+    consent: { signature: "consent(uint256 roundId)", about: "A class consents to a down round (its class Governor: `approve-round` vote)." },
   },
   events: {
     PricedRoundCreated: {
@@ -957,6 +979,8 @@ export const contract_exits = defineContract({
     },
     approveTransfer: { signature: "approveTransfer(uint256 transferId)", about: "Approves a secondary transfer." },
     buy: { signature: "buy(uint256 transferId)", about: "A buyer pays for shares." },
+    transfer: { signature: "transfer(uint256 transferId) view returns (Transfer)", about: "A secondary sale offer as Exits holds it." },
+    sale: { signature: "sale(uint256 saleId) view returns (Sale)", about: "An approved sale: its token, proceeds and whether it settled." },
   },
   events: {
     Settled: { signature: "Settled(uint256 indexed saleId)", about: "A sale paid out." },
@@ -977,6 +1001,10 @@ export const contract_governor = defineContract({
     state: { signature: "state(uint256 proposalId) view returns (uint8)", about: "A vote's state: pending, active, defeated, succeeded, executed..." },
     proposalVotes: { signature: "proposalVotes(uint256 proposalId) view returns (uint256 againstVotes, uint256 forVotes, uint256 abstainVotes)", about: "A vote's tally." },
     quorum: { signature: "quorum(uint256 timepoint) view returns (uint256)", about: "The votes a proposal needs." },
+    getVotes: { signature: "getVotes(address account, uint256 timepoint) view returns (uint256)", about: "A shareholder's weighted votes at a time: the proposal threshold, a ballot's weight." },
+    proposalThreshold: { signature: "proposalThreshold() view returns (uint256)", about: "The votes a proposer needs." },
+    hasVoted: { signature: "hasVoted(uint256 proposalId, address account) view returns (bool)", about: "Whether a Safe already voted on a proposal." },
+    isAllowedTarget: { signature: "isAllowedTarget(address target) view returns (bool)", about: "Whether a matter's call may go to a target: the Board's matters may not." },
     execute: {
       signature: "execute(address[] targets, uint256[] values, bytes[] calldatas, bytes32 descriptionHash) payable returns (uint256)",
       about: "Executes a passed vote.",

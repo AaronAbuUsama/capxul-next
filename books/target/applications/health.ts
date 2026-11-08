@@ -36,5 +36,5 @@ export const rpc_applications_health_check = defineRpc({
   chain: [],
   spans: [],
   budget: budget("read"),
-  was: [`${ASIS}:24`, `${OLD}/operations/health.ts:13`, `${OLD}/reads.ts:13`],
+  was: [`${ASIS}:25`, `${OLD}/operations/health.ts:13`, `${OLD}/reads.ts:13`],
 });

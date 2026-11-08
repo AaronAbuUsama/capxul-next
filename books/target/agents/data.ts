@@ -86,9 +86,8 @@ export const table_agents = defineTable({
   tenancy: "owner",
   tenantField: "owner_id",
   scope:
-    "The owner is `owner_kind` with `owner_id`: a person's principal id, or an org_id. The generated row-level security " +
-    "policy matches each kind to the session's person, or to an Organization the session's principal is a member of; " +
-    "an agent signed in with its own key also sees its own row (its principal's Safe is `safe_address`).",
+    "`owner_kind` with `owner_id` (a principal id or an org_id): the policy matches the session's person, or an " +
+    "Organization its principal is a member of; an agent signed in with its own key sees its own row by `safe_address`.",
   fields: Schema.Struct({
     owner_id: S,
     owner_kind: OwnerKind,

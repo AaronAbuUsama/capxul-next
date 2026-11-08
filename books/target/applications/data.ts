@@ -47,7 +47,7 @@ export const table_applications = defineTable({
     "next bootstrap: a key copies nothing. An Organization's applications belong to it, not to the member who made them. " +
     "Replaces old `developerApplications`, which also held unowned rows, placeholder routing, vendor keys and an archive " +
     "stamp only the repairs wrote.",
-  was: [`${ASIS}:37`, `${OLD}/tables.ts:8`, `${OLD}/keys/writes.ts:24`, `${OLD}/registrations/writes.ts:24`],
+  was: [`${ASIS}:35`, `${OLD}/tables.ts:8`, `${OLD}/keys/writes.ts:24`, `${OLD}/registrations/writes.ts:24`],
   concept: concept_applications,
   tenancy: "owner",
   tenantField: "owner_id",
@@ -87,7 +87,7 @@ export const table_publishable_keys = defineTable({
     "`successor_key_id` names the key that replaced it. The bootstrap stamps `last_used_at` and `last_used_origin` at most " +
     "once a minute. The owner columns are the key's own, not reached through its application (P8). Replaces old " +
     "`publishableKeys`, which derived its state from timestamps and copied its application's metadata and origins.",
-  was: [`${ASIS}:93`, `${OLD}/tables.ts:28`, `${OLD}/keys/rules.ts:35`, `${OLD}/bootstraps/writes.ts:22`],
+  was: [`${ASIS}:90`, `${OLD}/tables.ts:28`, `${OLD}/keys/rules.ts:35`, `${OLD}/bootstraps/writes.ts:22`],
   concept: concept_applications,
   tenancy: "owner",
   tenantField: "owner_id",
@@ -146,7 +146,7 @@ export const table_quickstart_keys = defineTable({
     "`minted_by`, a keyed hash of the caller's network address (never the address), which the mint counts: 15 in the last " +
     "hour per address. Replaces the old unowned `Quickstart <origin>` applications, their keys and the per-IP window " +
     "table, which kept one row per address that ever minted.",
-  was: [`${ASIS}:189`, `${OLD}/quickstarts/writes.ts:44`, `${OLD}/quickstarts/rules.ts:11`, `${OLD}/tables.ts:64`],
+  was: [`${ASIS}:175`, `${OLD}/quickstarts/writes.ts:44`, `${OLD}/quickstarts/rules.ts:11`, `${OLD}/tables.ts:64`],
   concept: concept_applications,
   tenancy: "global",
   scope: "Written only by the system, for no person or Organization: the mint is unauthenticated.",
@@ -221,7 +221,7 @@ export const machine_app_key = defineMachine({
       from: [],
       to: "active",
       about: "The birth: `key create` (applications.keys.create), or the successor a rotation mints (applications.keys.rotate).",
-      guard: "the owner holds fewer than 20 keys that still resolve",
+      guard: "once its transaction commits, the owner holds at most 20 keys that still resolve (active or grace)",
       emits: [event_app_key_transitioned],
     },
     rotate: {
@@ -251,5 +251,5 @@ export const machine_app_key = defineMachine({
       emits: [event_app_key_transitioned],
     },
   },
-  was: [`${ASIS}:206`, `${OLD}/keys/rules.ts:35`, `${OLD}/keys/writes.ts:77`, `${OLD}/keys/writes.ts:84`],
+  was: [`${ASIS}:201`, `${OLD}/keys/rules.ts:35`, `${OLD}/keys/writes.ts:77`, `${OLD}/keys/writes.ts:84`],
 });

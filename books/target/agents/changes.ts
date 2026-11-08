@@ -19,6 +19,7 @@ import { budget, defineRpc } from "../../../packages/book/src/index.ts";
 import { concept_agents } from "../shared/foundation.ts";
 import { contract_agent_owner, contract_erc20, integration_chain_rpc } from "../shared/external.ts";
 import {
+  error_FEATURE_NOT_AVAILABLE,
   error_INVALID_INPUT,
   error_NOT_AUTHENTICATED,
   error_PROVIDER_ERROR,
@@ -53,21 +54,28 @@ const ACTS =
   "of the company Safe). Anyone else, and an agent that does not exist, get the same ROLE_PERMISSION_DENIED.";
 
 const FIND =
-  "The agent is named by its `agent_` id or its `@handle` (parties' handle, then the agent behind that Party, " +
-  "`by-party`); the caller must act for its owner: the owner themselves, or, for an Organization-owned agent, a Director " +
-  "whose own Safe (access' principal) is among the company Safe's owners in indexing's safe-owners. Anyone else, and " +
-  "a ref that names no agent, is ROLE_PERMISSION_DENIED.";
+  "The agent is named by its `agent_` id or `@handle` (its Party, then the agent behind it, `by-party`). The caller " +
+  "must act for its owner: the owner, or for an Organization's agent a Director, whose own Safe (access' principal) is " +
+  "among the company Safe's owners (indexing's safe-owners); anyone else, and a ref naming no agent, is " +
+  "ROLE_PERMISSION_DENIED.";
 
 const ONE_WAITING =
   "No other change of the agent may wait: a second one while one waits is WRONG_STATE `change_waiting` (the unique " +
   "`by-agent-waiting`).";
 
 const CARRIER =
-  "its carrier: the owner's approval from their own Safe (`approvals.open`, the change as its subject, the summary the " +
-  "approval page shows, a deadline an hour away that the paymaster's window may cut), or, for an Organization-owned " +
-  "agent, a Board proposal of the company Safe (`board.propose`), which the Directors approve.";
+  "its carrier: the owner's approval from their own Safe (`approvals.open`, the change as its subject, the page's " +
+  "summary, a deadline an hour away that the paymaster's window may cut) or, for an Organization's agent, a Board " +
+  "proposal of the company Safe (`board.propose`, opener agents), which opens the proposing Director's own approval and " +
+  "needs the Organization's `owner-safe-proposals` gate (else FEATURE_NOT_AVAILABLE).";
 
-const CHANGE_ERRORS = [error_NOT_AUTHENTICATED, error_ROLE_PERMISSION_DENIED, error_WRONG_STATE, error_INVALID_INPUT];
+const CHANGE_ERRORS = [
+  error_NOT_AUTHENTICATED,
+  error_ROLE_PERMISSION_DENIED,
+  error_WRONG_STATE,
+  error_INVALID_INPUT,
+  error_FEATURE_NOT_AVAILABLE,
+];
 
 /** The reads that find the agent and check the caller acts for its owner. */
 const FIND_READS = [table_agents, table_agent_changes, table_parties, table_principals, table_organizations, table_safe_owners];
@@ -106,7 +114,7 @@ export const rpc_agents_changes_create = defineRpc({
   who: "A signed-in person with a claimed personal Safe; with `org`, a Director of that Organization, which then owns the agent.",
   input: CreateInput,
   output: Prepared,
-  errors: [error_NOT_AUTHENTICATED, error_INVALID_INPUT, error_SMART_ACCOUNT_MISSING, error_ROLE_PERMISSION_DENIED, error_WRONG_STATE],
+  errors: [...CHANGE_ERRORS, error_SMART_ACCOUNT_MISSING],
   reads: [...FIND_READS, table_personal_safes],
   writes: [table_agents, table_agent_changes],
   drives: [machine_agent.t.create, machine_agent_change.t.open],
@@ -205,16 +213,14 @@ export const rpc_agents_changes_sweep = defineRpc({
   id: "agents.changes.sweep",
   title: "Open the sweep of an agent's Safe: its change and its carrier",
   about:
-    FIND + " It must be `active` or `frozen` (a frozen agent stays frozen; removed, creating or failed is WRONG_STATE). " +
-    ONE_WAITING + " `asset`, when given, must be one of the deployment's settlement assets by symbol (INVALID_INPUT " +
-    "`asset`); omitted, every settlement asset is selected. " + BALANCES + ". When the Safe holds none of the selected " +
-    "assets it is WRONG_STATE `empty` and nothing is opened. The recipient: `to` (an email, `@handle` or 0x address) " +
-    "through `parties.resolve-recipient`, which names it if it is new; malformed, unresolved, released, or the agent's " +
-    "own Safe is INVALID_INPUT `to`. Omitted, it is the owner's Safe (the person's own, or the company Safe). In one " +
-    "transaction: the recipient's Party, the sweep change `waiting` with the recipient and each held asset with its " +
-    "balance at preparation, and " + CARRIER + " The carrier holds one `AgentOwner.sweep(safe, to, token)` per held " +
-    "asset, all approved together; each sweeps the whole balance at execution as one `Payments.send` from the agent's " +
-    "Safe, so the page shows each balance at preparation, not an exact amount.",
+    FIND + " It must be `active` or `frozen` (a frozen agent stays frozen; else WRONG_STATE). " + ONE_WAITING + " `asset`, " +
+    "when given, must be a settlement asset of the deployment by symbol (INVALID_INPUT `asset`); omitted, all are " +
+    "selected. " + BALANCES + "; a Safe holding none of them is WRONG_STATE `empty`, and nothing is opened. The " +
+    "recipient: `to` (an email, `@handle` or 0x address) through `parties.resolve-recipient`, which names it if new; " +
+    "malformed, unresolved, released or the agent's own Safe is INVALID_INPUT `to`; omitted, the owner's Safe. In one " +
+    "transaction: the recipient's Party, the sweep change `waiting` with its recipient and each held asset's balance at " +
+    "preparation, and " + CARRIER + " The carrier holds one `AgentOwner.sweep(safe, to, token)` per held asset, approved " +
+    "together; each moves the whole balance at execution as one `Payments.send` from the agent's Safe.",
   was: [`${CONVEX}:26`, `${OLD}/operations/sweep.ts:19`, `${OLD}/writes/change-summary.ts:22`, `${ROWS}:112`, ...CHANGE_WAS],
   concept: concept_agents,
   kind: "action",

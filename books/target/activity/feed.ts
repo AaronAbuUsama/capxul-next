@@ -172,7 +172,11 @@ export const Detail = Schema.Union([
     movementId: S,
     movement: MovementItem,
     documents: Schema.Array(DocumentRef),
-    /** `ready`: every document it names is stored; `pending`: one is named but not stored yet; `unavailable`: the reader is no participant of one. */
+    /**
+     * `ready`: its Memo read back, as it does once payments has recorded the Movement (the Memo is stored in that
+     * transaction); `unavailable`: it did not read back for this reader or failed its integrity check. `pending` stays
+     * in the frozen shape and is never answered: no Movement is recorded before its Memo.
+     */
     documentState: Schema.Literals(["ready", "pending", "unavailable"]),
     annotation: Null(Annotation),
     evidence: MovementEvidence,
@@ -273,7 +277,7 @@ export const rpc_activity_feed_get = defineRpc({
     "consumed (indexing's `chain-payments` by its payment id) with the Transfer beside it (`transfers` by its " +
     "transaction), the Payments contract that emitted it, and what sent it through (the payer's Safe, Budgets, an " +
     "escrow or Agreements, from the fact's `budget_id`, `escrow_address` and `agreement_id`). A Movement comes with its " +
-    "Transfer's evidence and the documents documents holds for it, with whether all are stored. `final` compares the " +
+    "Transfer's evidence and its Memo, which documents finds by the Transfer (`by_subject`, both sides alike). `final` compares the " +
     "block with Ponder's progress at the deployment's finality depth. The reader's annotation (books' " +
     "`book-annotations`, its account named from `book-accounts` or the personal chart) is shown beside the row and " +
     "never changes its evidence. A malformed id is INVALID_INPUT.",
