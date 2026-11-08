@@ -74,23 +74,30 @@ There is **no verifier**: the engine runs the machine evals in the sandbox, so a
 and no trust (swarmD DOC-3). There is **no designer or design reviewer**: the book is the design. There is **no scout**
 until B5, when it reads PostHog for the live evals (`swarm.workers`).
 
-**Pacing** (`swarm.pacing`). At most **4 pairs in flight** and **6 worker assignments running at once**, plus the
-master. A pair runs its maker and its checkers in turn; a money pair's two checkers run together. **One task in flight
-per lane.** B3 starts at 2 pairs (its pilot closure is 33 tasks, 13 of them ready at once) and goes to 4 when two pairs
-in a row converge within budget. The numbers behind it:
+**Pacing** (`swarm.pacing`). At stage 1, at most **4 pairs in flight** and **6 worker assignments running at once**,
+plus the master. A pair runs its maker and its checkers in turn; a money pair's two checkers run together. **One task in
+flight per lane.** B3 starts at 2 pairs (its pilot closure is 33 tasks, 13 of them ready at once) and goes to 4 when two
+pairs in a row converge within budget. **At stage 0, at most 2 pairs** (3 agents). The numbers behind it:
 
-- Sixteen agents at once spent a five-hour usage window in about 36 minutes; the goal prompt says 4 to 6.
+- Sixteen agents at once spent a five-hour usage window in about 36 minutes. So the window holds about 576
+  agent-minutes: about 2 agents busy for the whole 5 hours. Six agents spend it in about 1.6 hours and then wait 3.4
+  hours with nothing running. That is no more work, and every agent still running when the window closes loses what it
+  has not written. The goal prompt's "four to six" is therefore a stage 1 number. At stage 0, Mission Control runs 2
+  pairs and starts no pair it expects to outlast the window. It moves to 3 only after two windows in a row have ended
+  with usage left.
 - The retro's healthy task (#53) took about 16 active minutes and $0.77; its long one (#46) about 11 minutes of builder
   work and 5 of review a round.
 - A simulation of the lane tasks (45 minutes an operation or process, 60 a door, 30 the rest, no failed rounds): 2 pairs
   finish in about 148 hours of wall-clock time, 4 pairs in about 88, 4 pairs with two per lane in about 76, 6 pairs in
-  about 68. One task per lane costs about 14% against two, and keeps two pairs off one concept's folder.
+  about 68. One task per lane costs about 14% against two, and keeps two pairs off one concept's folder. Once B3 is done
+  the frontier is 92 tasks over 22 lanes (`plan-tasks` prints `frontierAfterB3`), so 4 slots never starve.
 - swarmD caps concurrency per worker (built), not across a manager (needed, SD-1). Until SD-1, the per-worker caps
   above bound the worst case at 12, and the master's pacing rule keeps it at 6.
-- At stage 0 the limit is the Claude subscription's usage window, which is where the 4-to-6 rule comes from. At stage 1
-  the workers run on API keys, so the limits are money ($5 a task, the envelope) and the providers' rate limits: a 429
-  with a retry-after is retried, not an outage (retro brief 09). Six agents on two providers (`swarm.checker-family`)
-  spread that load.
+- At stage 1 the limits are money ($5 a task, the envelope) and the providers'. Anthropic's are rate limits: a 429
+  with a retry-after is retried, not an outage (retro brief 09). The `gateway` is a CLIProxy over a subscription (sitrep,
+  "Models"). It is priced like OpenAI's model of the same id, but it has its own usage window. When that window runs out,
+  the provider error pauses every maker on it (the `provider` signal). The dry run measures how many makers it carries.
+  Until then the 4 makers are an assumption to test (swarmD's Zen, rule 6).
 
 ### 1.2 Stage 0: Mission Control, before swarmD runs
 
@@ -100,7 +107,7 @@ Control**) runs the same loop by hand with the same schemas (`swarm.stages`):
 | Stage 1 piece | Its stand-in at stage 0 |
 |---|---|
 | The ledger's tasks | `docs/mission/tasks.json`, the same keys |
-| Assignments and pairs | Workflow agents: a maker, then a checker (and the adversary on money tasks), 4 to 6 at a time |
+| Assignments and pairs | Workflow agents: a maker, then a checker (and the adversary on money tasks), at most 2 pairs at a time |
 | Machine verdicts | The session runs the gates and the evals itself and records only what a run printed |
 | The work log | `docs/mission/progress.md`: one line per finished step or lane, with its evals and commit |
 | Matters | GitHub issues from the decision-pack form (`docs/design/swarm-templates.md`) |
