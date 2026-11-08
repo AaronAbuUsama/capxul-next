@@ -726,7 +726,7 @@ export const machine_bank_deposit = defineMachine({
   states: [
     { id: "processing", about: "Bridge has the bank money (scheduled, received or in review) and has not sent tokens yet." },
     { id: "arriving", about: "Bridge sent the tokens in a named transaction; Capxul waits for the indexer to show it at finality." },
-    { id: "credited", about: "The exact Transfer is in the Safe at finality and the book fact is written; a request can be matched to it." },
+    { id: "credited", about: "The exact Transfer is in the Safe at finality and the book fact is written; a request can be matched to it.", terminal: true },
     { id: "below_minimum", about: "Below Bridge's minimum deposit; Bridge keeps or returns it, Capxul credits nothing.", terminal: true },
     { id: "returned", about: "Bridge returned the money to the sender; nothing was credited.", terminal: true },
   ],
