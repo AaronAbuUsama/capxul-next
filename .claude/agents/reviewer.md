@@ -26,7 +26,7 @@ builder.
 Check, in this order:
 
 1. **Each eval.** Does the code make its claim true, and would the eval fail if it did not? A pass no run printed is
-   not a pass. Run evals or tests to settle a doubt (`npm run --silent eval -- run --json -- <ids>`) rather than guess.
+   not a pass. Run evals or tests to settle a doubt (`pnpm --silent eval run --json -- <ids>`) rather than guess.
 2. **Book first.** A record change has its decision record; a rewritten claim keeps the frozen claim first in its
    `was`; the book builds to 0 problems; `docs/mission/tasks.json` was regenerated when the plan moved.
 3. **The rules.** `system.layout` (one folder per concept, another concept only through its `door.ts`, generated files

@@ -235,7 +235,7 @@ the sandbox's summary) and, when the engine asks between rounds, `handover`.
   "submit": {
     "version": { "kind": "commit", "repo": "AaronAbuUsama/capxul-next", "commit": "e7f8a9b0c1d2e3f405162738495a6b7c8d9e0f12" },
     "addresses": ["F-12", "F-13"],
-    "note": "Changed: commands.prepare maps a balance shortfall to INSUFFICIENT_BALANCE before it builds the operation. Should move: ref:payment.send/INSUFFICIENT_BALANCE, acc:payment.send/3. Ran: 36 pass, 0 fail, 2 unverifiable, 0 error (npm run --silent eval -- run --json -- <task evals>). Disputes: none."
+    "note": "Changed: commands.prepare maps a balance shortfall to INSUFFICIENT_BALANCE before it builds the operation. Should move: ref:payment.send/INSUFFICIENT_BALANCE, acc:payment.send/3. Ran: 36 pass, 0 fail, 2 unverifiable, 0 error (pnpm --silent eval run --json -- <task evals>). Disputes: none."
   },
   "pr": 57,
   "handover": {
@@ -969,9 +969,9 @@ import { sandbox } from "@swarmd/agent";
 export default sandbox({
   cwd: "/workspace/repo",
   prepare: [
-    "npm ci",
+    "pnpm install --frozen-lockfile",
     "git clone -q --depth 1 --branch integration/factory https://github.com/Xelmar-tech/infrastructure /workspace/factory && chmod -R a-w /workspace/factory",
-    // from B3 (ms:B3/sandbox): "npm run --silent devnet -- snapshot base"
+    // from B3 (ms:B3/sandbox): "pnpm --silent devnet snapshot base"
   ],
   egress: {
     "registry.npmjs.org": {},
@@ -1366,7 +1366,7 @@ verdicts do.
   skip or retire an eval. Read the old system for behaviour; never port it. Regenerate src/generated/ and tasks.json
   with their generators after a record changes; those are the only files outside your paths you may change.
 - Push only your task's branch. Never push integration/build or main, change a pull request's base, or merge.
-- Run the gates (npm run --silent check) and your evals (run_evals) before you submit. Address every open finding, or
+- Run the gates (pnpm --silent check) and your evals (run_evals) before you submit. Address every open finding, or
   dispute it in your note with why.
 - At your first submit open the task's pull request (pulls.create, base integration/build) with the body of
   .github/pull_request_template.md; update it at every submit (pulls.update).
@@ -1435,7 +1435,7 @@ Repository knowledge, loaded when needed (`swarm.skills`; planned, pass-through 
 | Skill | Holds | Points at |
 |---|---|---|
 | `book` | how records, links, decisions and the build work; book first; the four book checks | `docs/design-book.md`, `books/target/CONVENTIONS.md`, `docs/decisions/README.md` |
-| `evals` | the eval kinds and ids, the worlds, how to run them (`npm run eval`), what each result means, never weakening one | `docs/spec/30-capxul-evals.md`, the B2 harness |
+| `evals` | the eval kinds and ids, the worlds, how to run them (`pnpm eval`), what each result means, never weakening one | `docs/spec/30-capxul-evals.md`, the B2 harness |
 | `lane` | the layout (`system.layout`), doors, generated files, branches, the pull request template, the gate's scope rule | `books/target/shared/decisions.ts` (`system.layout`), this page |
 | `money` | the money paths, K1 to K18, activities at least once, claim-before-call, the adversary's properties | `docs/as-is/payments.md`, `rules.activity-once`, section 4.3 |
 | `old-system` | where the old code lives, how to read a record's `was`, never porting it | `/workspace/factory` (stage 1), `/home/user/factory` (stage 0), `docs/mission/findings.md` |

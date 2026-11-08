@@ -198,7 +198,7 @@ The master keeps nothing durable in its conversation (`swarm.state`). It rereads
 | `github`: `pulls.create`, `pulls.get`, `pulls.update`, `issues.createComment` | builder | the GitHub connector | built | The task's pull request |
 | `github`: `pulls.get`, `pulls.listFiles` | reviewer, adversary | the GitHub connector | built | Read the pull request |
 | Sandbox `read`, `write`, `edit`, `bash` | builder; reviewer, adversary, diagnoser read | swarmD's sandbox | built (read-only planned) | The repository, the book's commands, the devnet |
-| The book's commands (`npm run book`, `tools/plan-tasks.ts`, `npm run generate`, `npm run eval`) | workers, in the sandbox | the repository | Capxul's, from T0 and B1 | Book-first changes; the evals |
+| The book's commands (`pnpm book`, `tools/plan-tasks.ts`, `pnpm generate`, `pnpm eval`) | workers, in the sandbox | the repository | Capxul's, from T0 and B1 | Book-first changes; the evals |
 | `posthog` (MCP: `query-*`, `insights-get`) | scout, from B5 | swarmD's MCP connector | planned | Live evals as verdicts |
 | The portal | nobody's tool | — | D0 | The master links to it; it reads the ledger itself (`portal.artifact-boundary`) |
 | Skills (`.swarmd/skills/book`, `evals`, `lane`, `money`, `old-system`) | workers | swarmD's `skills` field | planned; pass-through needed (SD-16) | Repository knowledge, loaded when needed (`swarm.skills`) |
@@ -486,10 +486,10 @@ export default defineProject({
   repo: "github:AaronAbuUsama/capxul-next",
   refs: { integration: "integration/build", main: "main" },
   runner: {
-    gate: "npm run --silent check && node --experimental-strip-types tools/check-scope.ts",   // T0's gates, then the task's paths (SD-4; ms:B3/scope)
-    list: "npm run --silent eval -- list --json",                         // the book's evals and the ms: evals (B2)
-    run: "npm run --silent eval -- run --json --out $EVIDENCE_DIR -- {ids}",
-    setup: "npm run --silent devnet -- up --snapshot base",               // from B3
+    gate: "pnpm --silent check && node --experimental-strip-types tools/check-scope.ts",   // T0's gates, then the task's paths (SD-4; ms:B3/scope)
+    list: "pnpm --silent eval list --json",                         // the book's evals and the ms: evals (B2)
+    run: "pnpm --silent eval run --json --out $EVIDENCE_DIR -- {ids}",
+    setup: "pnpm --silent devnet up --snapshot base",               // from B3
   },
   release: { merge: { into: "integration/build" }, deploy: { signoff: "@maintainers" } },   // promote: SD-18
   waive: ["aaron"],
@@ -985,7 +985,7 @@ interface PairView {
 
 ```bash
 node --experimental-strip-types tools/plan-tasks.ts           # writes docs/mission/tasks.json, prints counts
-node --experimental-strip-types tools/plan-tasks.ts --check   # exits 1 if tasks.json is stale (for CI and npm run book)
+node --experimental-strip-types tools/plan-tasks.ts --check   # exits 1 if tasks.json is stale (for CI and pnpm book)
 ```
 
 The script imports `books/target/index.ts`, builds the book (it refuses to run on a book with problems), finds each
@@ -1257,7 +1257,7 @@ stands until he answers: `swarm.checker-family`, `swarm.spend-envelope`, `swarm.
 ## 10. Open items for other owners
 
 - **packages/book (D0, before stage 1):** qualify the 28 duplicated eval ids (`ms:D0/unique`, `portal.eval-ids`).
-- **The tooling design:** add `node --experimental-strip-types tools/plan-tasks.ts --check` to `npm run book`, so a book
+- **The tooling design:** add `node --experimental-strip-types tools/plan-tasks.ts --check` to `pnpm book`, so a book
   change that moves the plan regenerates it in the same pull request.
 - **The portal design:** milestone acceptance is the steps' `ms:` evals, and `ok:capxul` is the only person eval
   (`swarm.milestone-evals`); the portal's per-milestone `ok:<milestone>` reads the exit evals instead. The portal reads

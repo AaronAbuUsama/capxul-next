@@ -166,7 +166,7 @@ const needs = (from: string, ...to: string[]) => {
 const OWN_PACKAGE: Record<string, string> = { indexing: "packages/indexer/", devnet: "packages/devnet/" };
 const lanePaths = (c: string) => [`books/target/${c}/`, `packages/backend/src/${c}/`, `packages/sdk/src/${c}/`, ...(OWN_PACKAGE[c] ? [OWN_PACKAGE[c]!] : [])];
 /** What every task may also change, but only to what the generators write at its version (swarm.scope): the gate admits a
- * change here when `npm run generate:check` and `plan-tasks --check` pass, so a book-first change carries its outputs. */
+ * change here when `pnpm generate:check` and `plan-tasks --check` pass, so a book-first change carries its outputs. */
 const REGENERATED = ["docs/mission/tasks.json", "packages/*/src/generated/"];
 const clip = (s: string, n: number) => (s.length <= n ? s : `${s.slice(0, n - 1)}…`);
 const RANK: Record<Priority, number> = { critical: 0, normal: 1, low: 2 };
@@ -250,7 +250,7 @@ const MILESTONES: Milestone[] = [
         exit: [["ms:B1/catalogues", "The generated telemetry and eval catalogues equal the book's machines, spans and evals."]] },
       { key: "B1.check", title: "B1 Regenerate with no diff", paths: ["packages/generate/"], needs: ["step:B1.client", "step:B1.workflows", "step:B1.catalogues"],
         goal: "Regenerating gives no diff and every package compiles.", book: ["system:capxul"],
-        exit: [["ms:B1/compile", "npx tsc -b compiles every package."]] },
+        exit: [["ms:B1/compile", "pnpm exec tsc -b compiles every package."]] },
     ],
   },
   {

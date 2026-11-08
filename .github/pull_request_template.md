@@ -60,7 +60,7 @@ A rewritten claim keeps the frozen claim first in its was and carries a decision
 - **Records:** <record keys, or No record changed>
 - **Decisions:** <decision ids added or edited, or none>
 - **Plan:** <docs/mission/tasks.json regenerated, or unchanged>
-- **Book checks:** `npx tsc -p books` <result> · book <n> problems · `check-frozen` <n> breaches
+- **Book checks:** `pnpm exec tsc -p books` <result> · book <n> problems · `check-frozen` <n> breaches
 
 ## Findings
 

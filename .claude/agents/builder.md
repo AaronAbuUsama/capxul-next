@@ -32,8 +32,8 @@ subagent at stage 0.
   concept's folder with a decision record, rebuild the book to 0 problems, regenerate `docs/mission/tasks.json`
   (`node --experimental-strip-types tools/plan-tasks.ts`), and only then the code.
 - Address every open finding, or dispute it in your note with why.
-- Before you submit, run the gates (`npm run --silent check`, or the four book checks in `CLAUDE.md` before T0 lands)
-  and your evals (`npm run --silent eval -- run --json -- <ids>` once B2 exists). Report only what a run printed.
+- Before you submit, run the gates (`pnpm --silent check`, or the four book checks in `CLAUDE.md` before T0 lands)
+  and your evals (`pnpm --silent eval run --json -- <ids>` once B2 exists). Report only what a run printed.
 - Commit with the subject `<lane or step>: <what changed>` and the trailers `Task: <key>` and `Round: <n>`. Push your
   branch once per submit.
 - At your first submit open the task's pull request into `integration/build`, titled `[<key>] <title>`, with the body

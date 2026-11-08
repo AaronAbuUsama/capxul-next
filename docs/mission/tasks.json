@@ -425,7 +425,7 @@
       "exit": [
         {
           "id": "ms:B1/compile",
-          "claim": "npx tsc -b compiles every package."
+          "claim": "pnpm exec tsc -b compiles every package."
         }
       ],
       "labels": [
