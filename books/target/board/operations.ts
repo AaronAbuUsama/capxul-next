@@ -294,9 +294,17 @@ export const operation_org_board_threshold = defineOperation({
 
 // ── org director: the pre-v4 owner changes, and the Safe read ───────────────────────────────
 
-const REFUSED_OBSERVES =
-  "cli: exit 2 with WRONG_STATE naming the v4 command; trace: no rpc span under the SDK method; " + NOTHING;
-const REFUSE_ALWAYS = "Always: the Organization is a v4 company, whose Signer Gate refuses an owner or threshold change its Safe makes (`CannotCallSafe`). Nothing is proposed.";
+/** How a refusal of an `org director` write is seen: who reaches WRONG_STATE, then one read and nothing written. */
+const refusedObserves = (who: string, also = "") =>
+  `cli: exit 2 with WRONG_STATE naming the v4 command for ${who} whose request the Board can take${also}; ` +
+  "trace: one `board.directors.authority` span under the SDK method and no write; " + NOTHING;
+const REFUSED_OBSERVES = refusedObserves("a Director");
+const TOP_HAT_OBSERVES = refusedObserves("the top hat's wearer");
+const REFUSE_OTHERWISE =
+  "Every other time: the Organization is a v4 company, whose Signer Gate refuses an owner or threshold change its Safe " +
+  "makes (`CannotCallSafe`). Nothing is proposed.";
+/** A refusal of an `org director` write that its frozen page names, before the v4 refusal. */
+const pageRefusal = (code: string, who: string) => `cli: ${who} exits with ${code} before anything is proposed; ${NOTHING}`;
 
 const D_ADD = "org.director.add";
 export const operation_org_director_add = defineOperation({
@@ -307,7 +315,7 @@ export const operation_org_director_add = defineOperation({
     rewrite(
       D_ADD,
       1,
-      "Adding a Director by proposal is refused `WRONG_STATE` before anything is proposed, naming `org board director add`: the Signer Gate refuses an owner change the company Safe makes.",
+      "A Director adding a member by proposal is refused `WRONG_STATE` before anything is proposed, naming `org board director add`: the Signer Gate refuses an owner change the company Safe makes.",
       REFUSED_OBSERVES,
     ),
     null,
@@ -318,8 +326,13 @@ export const operation_org_director_add = defineOperation({
   ],
   returns: OwnerChangeView,
   errors: [error_CLI_USAGE],
-  refusals: [{ error: error_WRONG_STATE, given: W_TWO, when: REFUSE_ALWAYS + " Use `capxul org board director add`." }],
-  budget: READ,
+  refusals: [
+    { error: error_ROLE_PERMISSION_DENIED, given: W_FOUNDER, when: when(D_ADD, 1) },
+    { error: error_INVALID_INPUT, given: W_FOUNDER, when: when(D_ADD, 2) },
+    { error: error_WRONG_STATE, given: W_TWO, when: REFUSE_OTHERWISE + " Use `capxul org board director add`." },
+    signedOut,
+  ],
+  budget: CHAIN_READ,
 });
 
 const D_LIST = "org.director.list";
@@ -350,17 +363,22 @@ export const operation_org_director_remove = defineOperation({
     rewrite(
       D_REMOVE,
       1,
-      "Removing a Director by proposal is refused `WRONG_STATE` before anything is proposed, naming `org board director remove`: the Signer Gate refuses an owner change the company Safe makes.",
+      "A Director removing a Director by proposal is refused `WRONG_STATE` before anything is proposed, naming `org board director remove`: the Signer Gate refuses an owner change the company Safe makes.",
       REFUSED_OBSERVES,
     ),
-    keep(D_REMOVE, 2, REFUSED_OBSERVES),
+    keep(D_REMOVE, 2, pageRefusal("INVALID_INPUT", "in org-with-founder-board the founder removing themselves, the last Director,")),
     keep(D_REMOVE, 3, REFUSED_OBSERVES),
     null,
   ],
   returns: OwnerChangeView,
   errors: [error_CLI_USAGE],
-  refusals: [{ error: error_WRONG_STATE, given: W_TWO, when: REFUSE_ALWAYS + " Use `capxul org board director remove`." }],
-  budget: READ,
+  refusals: [
+    { error: error_ROLE_PERMISSION_DENIED, given: W_FOUNDER, when: when(D_REMOVE, 1) },
+    { error: error_INVALID_INPUT, given: W_FOUNDER, when: when(D_REMOVE, 2) },
+    { error: error_WRONG_STATE, given: W_TWO, when: REFUSE_OTHERWISE + " Use `capxul org board director remove`." },
+    signedOut,
+  ],
+  budget: CHAIN_READ,
 });
 
 const D_REPLACE = "org.director.replace";
@@ -372,7 +390,7 @@ export const operation_org_director_replace = defineOperation({
     rewrite(
       D_REPLACE,
       1,
-      "Replacing a Director by proposal is refused `WRONG_STATE` before anything is proposed: the Signer Gate refuses an owner change the company Safe makes; the founder removes and adds with `org board director`.",
+      "A Director replacing a Director by proposal is refused `WRONG_STATE` before anything is proposed: the Signer Gate refuses an owner change the company Safe makes; the founder removes and adds with `org board director`.",
       REFUSED_OBSERVES,
     ),
     null,
@@ -380,8 +398,13 @@ export const operation_org_director_replace = defineOperation({
   ],
   returns: OwnerChangeView,
   errors: [error_CLI_USAGE],
-  refusals: [{ error: error_WRONG_STATE, given: W_TWO, when: REFUSE_ALWAYS + " Use `capxul org board director remove` and `add`." }],
-  budget: READ,
+  refusals: [
+    { error: error_ROLE_PERMISSION_DENIED, given: W_FOUNDER, when: when(D_REPLACE, 1) },
+    { error: error_INVALID_INPUT, given: W_FOUNDER, when: when(D_REPLACE, 2) },
+    { error: error_WRONG_STATE, given: W_TWO, when: REFUSE_OTHERWISE + " Use `capxul org board director remove` and `add`." },
+    signedOut,
+  ],
+  budget: CHAIN_READ,
 });
 
 const D_THRESHOLD = "org.director.threshold";
@@ -393,16 +416,25 @@ export const operation_org_director_threshold = defineOperation({
     rewrite(
       D_THRESHOLD,
       1,
-      "A threshold change by proposal is refused `WRONG_STATE` before anything is proposed, naming `org board threshold`: the Signer Gate refuses a threshold change the company Safe makes.",
-      REFUSED_OBSERVES,
+      "A threshold change by proposal is refused before anything is proposed: the wearer of the Shareholders' top hat asking for a number the Board can take gets `WRONG_STATE` naming `org board threshold`, and every other request the refusal `org board threshold` gives it.",
+      refusedObserves(
+        "the top hat's wearer",
+        ", RESERVED_MATTER in org-with-board-handed-over and ROLE_PERMISSION_DENIED for the second Director, as `org board threshold` answers",
+      ),
     ),
-    keep(D_THRESHOLD, 2, REFUSED_OBSERVES),
+    keep(D_THRESHOLD, 2, TOP_HAT_OBSERVES),
     null,
   ],
   returns: OwnerChangeView,
   errors: [error_CLI_USAGE],
-  refusals: [{ error: error_WRONG_STATE, given: W_TWO, when: REFUSE_ALWAYS + " Use `capxul org board threshold`." }],
-  budget: READ,
+  refusals: [
+    { error: error_RESERVED_MATTER, given: W_HANDED, when: designedWhen(D_THRESHOLD, "RESERVED_MATTER") },
+    { error: error_ROLE_PERMISSION_DENIED, given: W_TWO, when: designedWhen(D_THRESHOLD, "ROLE_PERMISSION_DENIED") },
+    { error: error_INVALID_INPUT, given: W_TWO, when: "The number is 0, more than there are Directors, or the threshold it already has." },
+    { error: error_WRONG_STATE, given: W_TWO, when: REFUSE_OTHERWISE + " Use `capxul org board threshold`." },
+    signedOut,
+  ],
+  budget: CHAIN_READ,
 });
 
 // ── org member grant and revoke ─────────────────────────────────────────────────────────────

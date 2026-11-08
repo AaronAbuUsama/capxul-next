@@ -4,7 +4,8 @@
 // 23 are kept word for word and 30 are rewritten (equity.acceptance-rewrites): the lines that named old
 // telemetry events (P7 sends one event per machine), storage or the old component doing a check (P1).
 // "Reports" in a kept claim is read as decision equity.reports says: one landed write with its change.
-// Refusals keep their frozen `when` text, from the given world (equity.worlds).
+// Refusals keep their frozen `when` text, from the given world (equity.worlds), or the designed (v4) one
+// (P10); round create's INVALID_INPUT and round close's WRONG_STATE say their target case (equity.round-refusals).
 //
 // Every write is one Core SDK flow (flows.ts); every read one rpc.
 
@@ -488,7 +489,11 @@ export const operation_org_round_create = defineOperation({
     refuse(RCREATE, error_AUTHORISED_EXCEEDED, W_EQUITY),
     refuse(RCREATE, error_FEATURE_NOT_AVAILABLE, W_EQUITY_OFF),
     refuse(RCREATE, error_WRONG_STATE, W_NO_EQUITY),
-    refuse(RCREATE, error_INVALID_INPUT, W_EQUITY),
+    // The designed text names a missing class RESERVED_MATTER (P10), so INVALID_INPUT keeps the rest (equity.round-refusals).
+    { error: error_INVALID_INPUT, given: W_EQUITY, when: "The pay-by day has passed, or the valuation or raise buys no whole share." },
+    { error: error_RESERVED_MATTER, given: W_EQUITY, when: designedWhen(RCREATE, "RESERVED_MATTER") },
+    // No world gives a class a class Governor yet, so no down round needs consent (equity.round-refusals).
+    { error: error_CONSENT_MISSING, given: "?", when: designedWhen(RCREATE, "CONSENT_MISSING") },
     refuse(RCREATE, error_ROLE_PERMISSION_DENIED, W_EQUITY),
     refuse(RCREATE, error_NOT_AUTHENTICATED, W_SIGNED_OUT),
   ],
@@ -527,7 +532,18 @@ export const operation_org_round_close = defineOperation({
   acceptance: [],
   returns: sh.CloseReturns,
   errors: ERRORS,
-  refusals: [refuse(RCLOSE, error_CONSENT_MISSING, W_ROUND_ALLOCATED), refuse(RCLOSE, error_ROLE_PERMISSION_DENIED, W_ROUND_ALLOCATED)],
+  refusals: [
+    // No world gives a class a class Governor yet; org-with-round-allocated gets WRONG_STATE first (equity.round-refusals).
+    { error: error_CONSENT_MISSING, given: "?", when: when(RCLOSE, "CONSENT_MISSING") },
+    {
+      error: error_WRONG_STATE,
+      given: W_ROUND_ALLOCATED,
+      when:
+        "The round cannot close: before its pay-by day an allocation is still unpaid (Jo's), or it already closed or was " +
+        "cancelled. The designed page's 'Cancel after a payment' is `org round cancel`'s (equity.round-refusals).",
+    },
+    refuse(RCLOSE, error_ROLE_PERMISSION_DENIED, W_ROUND_ALLOCATED),
+  ],
   budget: WRITE_BUDGET,
 });
 

@@ -545,6 +545,87 @@ export const decision_equity_dropped = defineDecision({
   affects: [concept_equity, rpc_equity_writes_watch, ...HOLDER_RPCS],
 });
 
+export const decision_equity_round_refusals = defineDecision({
+  id: "equity.round-refusals",
+  title: "Round create and close keep their designed refusals, each where it arises",
+  question:
+    "The designed v4 page of `org round create` adds RESERVED_MATTER (the class does not exist) and CONSENT_MISSING (a " +
+    "down round without the affected classes' consent); that of `org round close|cancel` adds WRONG_STATE (cancel after " +
+    "a payment). The target booked none of them. Where does each come from?",
+  options: [
+    {
+      label: "restore",
+      text:
+        "Restore all three. Create refuses a class the company does not have with RESERVED_MATTER, as preview does, and " +
+        "INVALID_INPUT keeps the pay-by day and the whole share; create refuses a down round with CONSENT_MISSING when an " +
+        "affected class with a class Governor is not in the `approve-round` vote `--approved-by` names; close refuses " +
+        "WRONG_STATE for a round closed or cancelled, or with an allocation still payable before its pay-by day.",
+    },
+    { label: "top-level", text: "Keep the top-level text: a missing class is INVALID_INPUT, and create and close add nothing." },
+  ],
+  chosen: "restore",
+  why:
+    "P10 rung 1: the designed v4 text wins on refusal codes, so a missing class is RESERVED_MATTER (exit 2, as before), the " +
+    "answer `org round preview` already gives. Rung 3: catching a down round before the Board signs is stricter, and " +
+    "Rounds still checks the consent itself at close (`ConsentMissing(classId)`). WRONG_STATE is what the close rpc " +
+    "raises for a round that is not open or allocated, and `Rounds.close` reverts `InvalidRound(\"allocations still " +
+    "payable\")` before the pay-by day while an allocation is unpaid, as org-with-round-allocated holds (Jo's). The designed " +
+    "row's own case, a cancel after a payment (`PaymentsStarted()`), is the cancel half of the `close|cancel` page: `org " +
+    "round cancel` is its own frozen operation and refuses it with WRONG_STATE. CONSENT_MISSING has no world: Rounds asks " +
+    "consent only of a class with a class Governor, and neither a catalogued world nor any target surface gives a class " +
+    "one yet (`Captable.setClassGovernor` is the company Governor's, and no vote matter builds it), so its `given` is `?` " +
+    "on create and on close (whose org-with-round-allocated has no such class and meets WRONG_STATE first), and the " +
+    "refusal-without-world gap shows the missing design.",
+  source: by(
+    "books/frozen/operations.ts (org.round.create, org.round.close, org.round.cancel); P10; packages/contracts/v4/src/equity/Rounds.sol:257-291",
+  ),
+  affects: [ops.operation_org_round_create, ops.operation_org_round_close, rounds.rpc_equity_rounds_create, rounds.rpc_equity_rounds_close],
+});
+
+export const decision_equity_safe_create_refusals = defineDecision({
+  id: "equity.safe-create-refusals",
+  title: "`org safe create` does not refuse ROUND_CLOSED: inviting is its sibling's",
+  question:
+    "The designed v4 page of `org safe create` covers `create · invite · show · close` and lists ROUND_CLOSED for " +
+    "inviting after the round closed (`RoundClosed()`). Must `org safe create` refuse it?",
+  options: [
+    {
+      label: "sibling",
+      text: "No: book it on the commands that meet a closed round, `org safe invite` and `org safe close`, where the target has it.",
+    },
+    { label: "every-command", text: "List it on `org safe create` too, with no world." },
+  ],
+  chosen: "sibling",
+  why:
+    "It cannot happen on create. `org safe create` names no existing round: it opens a new one, and " +
+    "`Rounds.createSafeRound` reverts only for a zero cap, a discount of 100% or more, a close date passed (the frozen " +
+    "close-date refusal) or an unsupported token, so there is no closed round to invite into. The page's `also` names " +
+    "the sibling commands, each a frozen operation of its own that keeps ROUND_CLOSED with its exit code: org.safe.invite " +
+    "and org.safe.close refuse it from org-with-safe-round, so the CLI's surface keeps it.",
+  source: by("books/frozen/operations.ts (org.safe.create designed: synopsis, also, refusals); packages/contracts/v4/src/equity/Rounds.sol:64-90"),
+  affects: [ops.operation_org_safe_create],
+});
+
+export const decision_equity_vote_list_refusals = defineDecision({
+  id: "equity.vote-list-refusals",
+  title: "`org vote list` does not refuse INVALID_INPUT: it names no vote",
+  question:
+    "The designed v4 page of `org vote list` covers `list · show <vote> · wait <vote>` and lists INVALID_INPUT for no such " +
+    "vote (`GovernorNonexistentProposal`). Must `org vote list` refuse it?",
+  options: [
+    { label: "sibling", text: "No: book it on `org vote show` and `org vote wait`, which take a vote, where the target has it." },
+    { label: "every-command", text: "List it on `org vote list` too, with no world." },
+  ],
+  chosen: "sibling",
+  why:
+    "It cannot happen on list. `org vote list` takes only the company, never a vote, so no vote id can be missing: the " +
+    "list reads the company's own votes and the Governor's state of each, and `GovernorNonexistentProposal` answers a " +
+    "read of one named proposal. The page's `also` names `org vote show` and `org vote wait`, each a frozen operation of " +
+    "its own that keeps INVALID_INPUT (no such vote) with its exit code from org-with-votes, so the CLI's surface keeps it.",
+  source: by("books/frozen/operations.ts (org.vote.list designed: synopsis, method, also, refusals); books/target/equity/votes.ts (equity.votes.list input)"),
+  affects: [ops.operation_org_vote_list],
+});
+
 // ── assembly (8 November 2026) ──────────────────────────────────────────────────────────────
 
 const ASSEMBLY = (evidence: string) => `Claude, target assembly (rails-and-reads), 8 November 2026; evidence: ${evidence}`;

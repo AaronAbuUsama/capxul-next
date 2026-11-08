@@ -24,9 +24,12 @@ The design book is Capxul's design, written as data.
 
 ## Why records and not documents
 
-The old system described itself in five places that nothing kept in step: a book of 215 operation
-pages in YAML, a docs site, the architecture decision records (ADRs), Linear tickets and the code.
-The design book makes the design something a machine can check:
+The old system described itself in five places: a book of 215 operation pages in YAML, a docs
+site, the architecture decision records (ADRs), Linear tickets and the code. Only part of that was
+kept in step. The docs site's operations reference was generated from the YAML book, and the old
+factory computed each operation's state from it. But nothing checked the ADRs, the tickets or the
+code against the book, and the YAML could not say how the operations fit together underneath. The
+design book makes the whole design something a machine can check:
 
 - **A link is an import.** A misspelt or deleted record is a compile error, not a broken sentence.
 - **A rule is code that runs on every build.** For example: no concept writes another concept's
@@ -44,7 +47,18 @@ The design book makes the design something a machine can check:
 
 **One schema serves all three books.** What differs is the **stage**:
 
-- A book built with stage `"target"` also enforces the accepted policies P1 to P10 as rules.
+- A book built with stage `"target"` also enforces the accepted policies that can be checked as
+  rules:
+  - P1: acceptance lines are claims;
+  - P2: an rpc must be reached;
+  - P5: budgets;
+  - P7: events only on transitions, one per machine;
+  - P8: tenant-first keys;
+  - A4: a flow that implements an operation serves the CLI.
+
+  P4's write boundary is a base rule, so it runs in every stage. P10, the frozen surface, is
+  checked by `tools/check-frozen.ts`. Nothing checks P3, P6 or P9 mechanically yet: reviewers hold
+  them, and the build session's generators will check P6's spans.
 - An as-is book is allowed to record the old system's faults.
 
 **A target operation record is two layers.** First comes the frozen text, spread in unchanged with
@@ -56,7 +70,8 @@ kept word for word, and the design is written next to it.
 
 ```
 packages/book/                 the record system; product-neutral except the target rules and budget classes
-  src/records/*.ts             one define* function per record kind, each an Effect Schema
+  src/records/*.ts             one define* function per top-level kind, each an Effect Schema; child kinds
+                               (transition, call, function, chain event) come from their parent
   src/build.ts                 buildBook: register, link, check the rules, reverse links, gaps
   src/evals.ts                 deriveEvals: the evals each kind of record implies
   src/budgets.ts               the default budget of each class (policy P5)
@@ -70,7 +85,8 @@ books/target/
                                and where each old area lands
   <concept>/                   data.ts        tables, state machines and their events
                                procedures.ts  the concept's door: what other concepts may invoke
-                               <area>.ts      the rpcs and workflows of one area
+                               <area>.ts      the rpcs of one area
+                               processes.ts   the durable processes (workflows)
                                flows.ts       the Core SDK flows
                                operations.ts  the frozen operations this concept owns
                                decisions.ts   every judgment behind the design
@@ -93,12 +109,15 @@ flowchart TD
   OP -->|implementedBy| RPC
   OP -->|refusals| ERR[error]
   FLOW -->|steps| RPC["rpc: one server endpoint"]
-  WF["workflow: a durable process"] -->|drives, invokes, calls| TRN
+  WF["workflow: a durable process"] -->|drives| TRN
+  WF -->|invokes| PROC
+  WF -->|calls| CALL
   RPC -->|invokes| PROC["procedure: another concept's door"]
   RPC -->|reads, writes| TABLE[table]
   RPC -->|drives| TRN[transition]
   RPC -->|calls| CALL["integration call: an outside service"]
-  PROC -->|writes, drives| TABLE
+  PROC -->|writes| TABLE
+  PROC -->|drives| TRN
   TRN -->|of| MACH["state machine"]
   MACH -->|on| TABLE
   TRN -->|emits| EVT[event]
@@ -135,7 +154,8 @@ export const operation_payment_send = defineOperation({
   implementedBy: flow_client_payments_pay,  // one Core SDK method; the CLI calls it and nothing else
   acceptance: [
     kept("payment.send", 1, "chain: one UserOperation and one PaymentSent carry the payment id; read: `payment list` shows exactly one Payment for it, settled"),
-    // … 8 more, each the frozen claim plus what an eval observes
+    // … 8 more: five kept word for word, two with their "On Protocol v4" opening stripped (P9) and one
+    // rewritten as an outcome (P1), the frozen claim kept in `was`; each says what an eval observes
   ],
   refusals: [{ error: error_INSUFFICIENT_BALANCE, given: W.empty, when: "Your Safe, or the company Safe, holds less than the amount." } /* … */],
   budget: budget("chain-submit"),           // p50 2,000 ms, p95 4,000 ms
@@ -180,18 +200,24 @@ What the build makes of these four records:
   - For the operation: `acc:payment.send/1` to `/9`, one per acceptance line.
   - `ref:payment.send/INSUFFICIENT_BALANCE` and the other refusals.
   - `ret:payment.send`, the shape of its `--json` output.
-  - `evt:payment.send/payment_transitioned`, `spn:payment.send` and `bud:payment.send/p95`.
+  - `evt:payment.send/<event>`, one for each event sent anywhere under the flow:
+    `payment_transitioned`, `party_transitioned`, `approval_transitioned` and
+    `proposal_transitioned`.
+  - `spn:payment.send` and `bud:payment.send/p95`.
+  - `doc:payment.send`, its reference page, and `des:payment.send`, the one an agent decides: the
+    operation's text and what it does agree.
   - For the records below it: `flw:client.payments.pay/budget` and `/spans`;
     `rpc:payments.commands.prepare/budget`, `/spans` and `/errors`; `trn:payment.open`;
-    `tbl:payments/schema` and `/writers`; and `prc:<procedure>/atomic` for each procedure it
-    invokes.
-- **Gaps.** A refusal whose world no devnet can build yet (`refusal-without-world`), a transition
-  nothing drives, or an rpc nothing reaches.
+    `tbl:payments/schema`, `/writers` and `/tenancy`; and `prc:<procedure>/atomic` for each
+    procedure it invokes.
+- **Gaps.** For example, a refusal whose world no devnet can build yet (`refusal-without-world`),
+  or a transition nothing drives. In a target book an rpc nothing reaches is not a gap but a
+  problem (`unreached-rpc`).
 
 ## What a build does, step by step
 
 ```bash
-npx tsc -p books                                                                       # 1–2
+npx tsc -p books                                                                       # 2
 node --experimental-strip-types packages/book/src/main.ts books/target/index.ts /tmp/target   # 1, 3–9
 ```
 
@@ -207,12 +233,16 @@ node --experimental-strip-types packages/book/src/main.ts books/target/index.ts 
    is `dangling`. A link that holds `undefined`, usually an import cycle, is `undefined-link`.
 5. **Rules.** The base rules always run: boundaries, machines, cycles and refusals. With stage
    `"target"`, the policy rules run too: events only on transitions, one event per machine, no rpc
-   nobody reaches, budgets, tenant-first keys, and acceptance lines as claims.
+   nobody reaches, budgets, tenant-first keys, acceptance lines as claims, and a flow that
+   implements an operation serving the CLI (`flow-surface`).
 6. **Reverse links.** The build records who points at each record.
 7. **Gaps.** The derived list of incomplete design (`docs/spec/50-design-book.md` has the table).
-8. **Evals.** Every eval the records imply, each with an id, a level (L1 for an operation and the
-   records under it, up to L4 for live), the record it is about, its claim, and whether a machine,
-   an agent or a person decides it.
+8. **Evals.** Every eval the records imply. Each has an id, a level, the record it is about, its
+   claim, and who decides it: a machine, an agent or a person. The levels are:
+   - L1: an operation and the records under it;
+   - L2: journeys;
+   - L3: the system;
+   - L4: live evals on staging. The book does not derive these; B5 adds them.
 9. **Views.** It writes these files, and exits 1 if there are problems:
    - `README.md`: the counts, the component and concept diagrams, the problems and the gaps.
    - `concepts/<id>.md`: one page per concept, with its state diagrams.
@@ -256,7 +286,9 @@ flowchart LR
    list fails `tbl:<table>/writers`.
 6. **Run the evals (B2).** The harness:
    1. reads `evals.json`;
-   2. builds each eval's world on a devnet (worlds are records in the devnet concept);
+   2. builds each eval's world on a devnet. The worlds are the named snapshots in
+      `books/target/devnet/worlds.ts`: plain exports, not records, which a refusal names in its
+      `given`;
    3. drives the real CLI;
    4. collects the spans over OTLP;
    5. records one result per eval.
@@ -284,7 +316,7 @@ source has many readers:
 | Markdown views | every record | the summary page and concept pages, with diagrams | built |
 | Judgments report | decisions | `docs/decisions/judgments.md`, with "For Aaron" | built |
 | Frozen check | the frozen book beside the target operations | breaches of the frozen surface | built |
-| The docs site | operations, flows, errors, concepts, machines | the reference: a page per CLI command and SDK method, the error catalogue, the state diagrams | to build; a prototype renderer exists |
+| The docs site | operations, flows, errors, concepts, machines | the reference: a page per CLI command and SDK method, the error catalogue, the state diagrams; the `doc:<operation>` evals check it | B4 |
 | Generators | tables, rpcs, flows, operations, machines, events | migrations, schemas, the `RpcGroup`, the SDK client, the CLI wiring, the telemetry catalogue | B1 |
 | The product runtime | the generated code (see below) | the error catalogue, the transition tables, integration timeouts and retries, span names | B1 and B3 |
 | The eval harness | `evals.json`, the worlds, each refusal's `given` | a pass or a fail per eval | B2 |
@@ -308,11 +340,14 @@ Prose that does not belong in a record is written in the site, next to the gener
 
 ### In the factory
 
-The old factory (`apps/factory`, about 12,000 lines) ran one agent per operation. It kept each
-operation's stand: specify, decide, build, observe, done.
+The old factory (`apps/factory`, about 12,000 lines) ran one agent per operation. It computed each
+operation's stand (specify, decide, build, observe, done) from the YAML records and CI's eval
+evidence.
 
-With the target book, each stand is computed from the records and the eval results. The factory
-keeps no state of its own about what is done:
+The target book keeps that idea and gives it better inputs. Each stand is computed from the typed
+records, their derived evals and the eval results. So it sees the whole design under an
+operation, not just the operation's own page, and the factory still keeps no state of its own
+about what is done:
 
 | Stand | Computed as |
 |---|---|
@@ -368,7 +403,7 @@ The `chain` tenancy for Ponder's indexed tables has since been added.
 
 ```bash
 npx tsc -p packages/book && npm test -w @capxul/book     # the record system and its 16 tests
-npx tsc -p books                                           # every book typechecks
+npx tsc -p books                                           # the target and frozen books (the paused as-is book: npx tsc -p books/as-is)
 node --experimental-strip-types packages/book/src/main.ts books/target/index.ts /tmp/target
 node --experimental-strip-types tools/check-frozen.ts       # the target keeps the frozen surface: 0 breaches
 node --experimental-strip-types tools/report-judgments.ts > docs/decisions/judgments.md

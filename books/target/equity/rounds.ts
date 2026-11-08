@@ -5,7 +5,7 @@
 
 import { budget, defineRpc } from "../../../packages/book/src/index.ts";
 import { concept_equity } from "../shared/foundation.ts";
-import { contract_captable, contract_options, contract_rounds } from "../shared/external.ts";
+import { contract_captable, contract_governor, contract_options, contract_rounds } from "../shared/external.ts";
 import { error_AUTHORISED_EXCEEDED, error_CONSENT_MISSING, error_RESERVED_MATTER, error_ROUND_CLOSED } from "../shared/vocabulary.ts";
 import { table_chain_logs, table_equity_instruments, table_equity_positions } from "../indexing/data.ts";
 import {
@@ -15,6 +15,7 @@ import {
   table_equity_writes,
   table_fundraise_investments,
   table_fundraise_rounds,
+  table_votes,
 } from "./data.ts";
 import {
   BOARD_ABOUT,
@@ -44,6 +45,8 @@ import {
 
 const ROUNDS = `${OLD}/rounds`;
 const DESIGNED = (id: string) => `books/frozen/operations.ts (${id}, designed)`;
+/** The v4 contracts the round checks mirror, in the old repository. */
+const V4 = "packages/contracts/v4/src";
 
 /** The pricing every priced round shares, in words. */
 const PRICING =
@@ -101,30 +104,36 @@ export const rpc_equity_rounds_create = defineRpc({
   title: "Propose a priced round to the Board",
   about:
     BOARD_ABOUT +
-    " The class must be one of the company's (INVALID_INPUT: shareholders create a class first), the pay-by day " +
-    "(`--closes`) in the future, and the valuation and raise must buy at least one whole share (INVALID_INPUT). " +
+    " The class must be the company's (RESERVED_MATTER: shareholders create it), `--closes` ahead and the raise " +
+    "a whole share or more (INVALID_INPUT). " +
     PRICING +
-    " The shares the raise buys must fit what the class may still issue (AUTHORISED_EXCEEDED, nothing proposed). A " +
-    "down round names the class-consent vote it relies on with `--approved-by`. The terms document is stored through " +
-    "`documents.store`. In one transaction the round is born `proposed` (fundraise-round.propose), which starts its " +
-    "process, with its write. " +
+    " The shares must fit what the class may still issue (AUTHORISED_EXCEEDED). Each class a down round affects with " +
+    "a class Governor must be in the `approve-round` vote `--approved-by` names, one not failed, lapsed, defeated, " +
+    "canceled or expired (equity's votes; `Governor.state`), else CONSENT_MISSING names it. " +
+    "The terms go through `documents.store`; in one transaction the round is born `proposed` " +
+    "(fundraise-round.propose), starting its process, with its write. " +
     PROPOSE_ABOUT +
-    " The one call is `Rounds.createPricedRound(classId, token, price, maxShares, payBy, termsHash)`. It answers the " +
-    "round as proposed.",
-  was: [`${ROUNDS}/operations/create.ts`, `${ROUNDS}/writes.ts`, DESIGNED("org.round.create"), ...GUARD_WAS],
+    " The one call is `Rounds.createPricedRound(classId, token, price, maxShares, payBy, termsHash)`.",
+  was: [`${ROUNDS}/operations/create.ts`, `${ROUNDS}/writes.ts`, DESIGNED("org.round.create"), ...GUARD_WAS, `${V4}/equity/Rounds.sol:272`],
   concept: concept_equity,
   kind: "action",
   who: "A Director of the company.",
   input: RoundCreateInput,
   output: Prepared,
-  errors: [...BOARD_ERRORS, error_AUTHORISED_EXCEEDED],
-  reads: [...DIRECTOR, ...PRICING_READS, table_fundraise_rounds, table_equity_writes],
+  errors: [...BOARD_ERRORS, error_AUTHORISED_EXCEEDED, error_RESERVED_MATTER, error_CONSENT_MISSING],
+  reads: [...DIRECTOR, ...PRICING_READS, table_fundraise_rounds, table_equity_writes, table_votes],
   writes: [table_fundraise_rounds, table_equity_writes],
   drives: [machine_fundraise_round.t.propose, machine_equity_write.t.open],
   invokes: [procedure_documents_store, procedure_board_propose],
   emits: [],
   calls: [...READS_CHAIN],
-  chain: [...PRICING_CHAIN, contract_captable.f.convertibleReserved, contract_captable.f.closedForExit, contract_rounds.f.createPricedRound],
+  chain: [
+    ...PRICING_CHAIN,
+    contract_captable.f.convertibleReserved,
+    contract_captable.f.closedForExit,
+    contract_governor.f.state,
+    contract_rounds.f.createPricedRound,
+  ],
   spans: [],
   budget: budget("chain-read"),
 });
@@ -192,13 +201,16 @@ export const rpc_equity_rounds_close = defineRpc({
   title: "Propose a priced round's close, with its anti-dilution",
   about:
     BOARD_ABOUT +
-    " The round must be open or allocated (WRONG_STATE). Every earlier class whose conversion price is above the " +
+    " The round must be open or allocated (WRONG_STATE: it closed or was cancelled, as `RoundIsClosed` or " +
+    "`RoundIsCancelled` would revert) and, before its pay-by day, every allocation paid (WRONG_STATE: an allocation is " +
+    "still payable, as `InvalidRound(\"allocations still payable\")` would revert; its investors and `Rounds.pricedRound`). " +
+    "Every earlier class whose conversion price is above the " +
     "round's price is adjusted by its broad-based weighted average at close; each such class must have consented " +
     "(its class Governor's `approve-round` vote, indexing's ConsentGiven), else CONSENT_MISSING names it. " +
     PROPOSE_ABOUT +
     " The one call is `Rounds.close(roundId, deemedOutstandingA)`. It answers each class's conversion price before " +
     "and after; unpaid allocations lapse once it lands.",
-  was: ["books/frozen/operations.ts (org.round.close)", DESIGNED("org.round.close")],
+  was: ["books/frozen/operations.ts (org.round.close)", DESIGNED("org.round.close"), `${V4}/equity/Rounds.sol:257`],
   concept: concept_equity,
   kind: "action",
   who: "A Director of the company.",

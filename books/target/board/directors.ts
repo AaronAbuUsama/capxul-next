@@ -210,6 +210,55 @@ export const rpc_board_directors_get = defineRpc({
   budget: budget("read"),
 });
 
+/** Where the caller and the members an old `org director` write names stand on the Board, read before it refuses. */
+export const BoardAuthority = Schema.Struct({
+  orgId: S,
+  /** The company Safe's owners, and its threshold. */
+  directors: Int,
+  threshold: Int,
+  /** The caller's own Safe is an owner of the company Safe. */
+  callerIsDirector: Schema.Boolean,
+  /** The caller's own Safe wears the Shareholders' top hat. */
+  callerWearsTopHat: Schema.Boolean,
+  /** The Governor wears the Shareholders' top hat: the Board was handed over. */
+  handedOver: Schema.Boolean,
+  /** Each email asked about: whether it names a current member, and whether that member's Safe is an owner. */
+  people: Schema.Array(Schema.Struct({ email: S, member: Schema.Boolean, director: Schema.Boolean })),
+});
+
+export const rpc_board_directors_authority = defineRpc({
+  id: "board.directors.authority",
+  title: "Who may change the Board now, and where the named members stand on it",
+  about:
+    MEMBER + " The company Safe's owners and threshold, read live (`Safe.getOwners`, `getThreshold`); whether the " +
+    "caller's own Safe is an owner; whether it wears the Shareholders' top hat and whether the Governor does " +
+    "(`Hats.isWearerOfHat`, with the hat ids and the Governor from indexing's chain-hats and chain-deployments: the Board " +
+    "was handed over); and, for each email asked about (at most two, each non-empty and at most 320 characters, " +
+    "INVALID_INPUT otherwise), whether it names a current member of the Organization and whether that member's Safe is " +
+    "an owner. Nothing is written. The old `org director` writes read it to give their frozen command's refusals before " +
+    "they name the v4 command that makes the change (decision board.director-commands).",
+  was: [
+    `${PROPOSALS}/operations/change-owners.ts:31`,
+    `${PROPOSALS}/rules/owner-changes.ts:117`,
+    "apps/cli/src/commands/org/subcommands/director/internal/change.ts:59",
+  ],
+  concept: concept_board,
+  kind: "action",
+  who: "Any current member of the Organization.",
+  input: Schema.Struct({ orgId: S, people: Schema.Array(S) }),
+  output: BoardAuthority,
+  errors: [...WRITE_ERRORS],
+  reads: [...BOARD_READS, table_chain_hats, table_chain_deployments],
+  writes: [],
+  drives: [],
+  invokes: [],
+  emits: [],
+  calls: READ_LIVE,
+  chain: [contract_safe.f.getOwners, contract_safe.f.getThreshold, contract_hats.f.isWearerOfHat],
+  spans: [],
+  budget: chainRead,
+});
+
 // ── writes from the Shareholders' top hat ───────────────────────────────────────────────────
 
 const WRITE_TOUCHES = {

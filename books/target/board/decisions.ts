@@ -23,6 +23,7 @@ import {
 } from "./data.ts";
 import { procedure_board_propose } from "./procedures.ts";
 import {
+  rpc_board_directors_authority,
   rpc_board_directors_claim,
   rpc_board_directors_get,
   rpc_board_directors_hand_over,
@@ -394,31 +395,46 @@ export const decision_board_withdraw_on_settle = defineDecision({
 
 export const decision_board_director_commands = defineDecision({
   id: "board.director-commands",
-  title: "The four `org director` writes refuse WRONG_STATE; pre-v4 lines retire",
+  title: "The four `org director` writes check the caller, then refuse; pre-v4 lines go",
   question:
     "`org director add`, `remove`, `replace` and `threshold` propose the company Safe's own owner calls, which the v4 " +
     "Signer Gate refuses (`CannotCallSafe`); every target Organization is v4 (P9). The designed text moves them to `org " +
-    "board`, with no alias. What do the four frozen operations become?",
+    "board`, with no alias. What do the four frozen operations become, and which of their frozen refusals remain?",
   options: [
     {
-      label: "refuse",
+      label: "check-then-refuse",
       text:
-        "Each SDK method fails WRONG_STATE before any rpc, naming its v4 command; lines that state a refusal stay, lines " +
-        "that describe the pre-v4 owner change retire as null, and line 1 becomes the refusal.",
+        "Each SDK method reads where the caller and the named members stand (`board.directors.authority`) and gives its " +
+        "frozen refusals: NOT_AUTHENTICATED without a sign-in, ROLE_PERMISSION_DENIED for a caller who is not a Director, " +
+        "INVALID_INPUT for a person who is not a member or a number the Board cannot take, and for `threshold` its " +
+        "designed answers, RESERVED_MATTER once the Governor wears the Shareholders' top hat and ROLE_PERMISSION_DENIED " +
+        "for a caller who does not; otherwise WRONG_STATE naming its v4 command. Lines that describe the pre-v4 owner " +
+        "change retire as null, and line 1 becomes the refusal.",
     },
+    { label: "refuse-at-once", text: "Each SDK method fails WRONG_STATE before any rpc, and each operation lists only WRONG_STATE." },
     { label: "alias", text: "Run the matching `org board` change." },
     { label: "board-proposal", text: "Propose the v4 calls as a Board batch." },
   ],
-  chosen: "refuse",
+  chosen: "check-then-refuse",
   why:
-    "This is what the old system already answers on a v4 company (`ownerChangeGated`, WRONG_STATE naming `org board`), so " +
-    "the rewritten line 1 passes against it (P1). An alias is ruled out by the designed text; a Board batch cannot work, " +
-    "because the Director hat's admin is the Shareholders' top hat, not the company Safe. The other frozen refusals " +
-    "(not a Director, not a member, not signed up) cannot happen once nothing is read, so each operation lists only " +
-    "WRONG_STATE; lines like 'removing the last Director is refused' still hold and are kept. `org director list` is a " +
-    "v4 read and is unchanged.",
-  source: by(`${OLD}/proposals/operations/change-owners.ts:35; ${OLD}/proposals/errors.ts:112; org.board.director.add and org.director.threshold designed text`),
+    "The frozen refusal codes and their exits are the public surface (P10, rung 1), and the old system reaches them on a " +
+    "v4 company: it signs the caller in (NOT_AUTHENTICATED) and checks their Seat (ROLE_PERMISSION_DENIED) before " +
+    "`ownerChangeGated`, and its input schema refuses INVALID_INPUT before both. Failing at once would answer a signed-out " +
+    "caller or an outsider WRONG_STATE, exit 2 instead of 3 or 4, which a script reads as a state to wait out, and a refusal is not dropped " +
+    "because the method could skip a read. So each method reads first, and the checks it " +
+    "can make are the frozen pages' own (not a Director, not a member, the last Director, a threshold the Directors " +
+    "cannot meet). For `threshold` the designed text wins (P10): only the top hat may change it, so it answers as `org " +
+    "board threshold` does and sends only the top hat's wearer to that command. `board.directors.safe` names neither " +
+    "the top hat nor the members, hence a read of its own, which writes nothing. An alias is ruled out by the designed " +
+    "text; a Board batch cannot work, because the Director hat's admin is the Shareholders' top hat, not the company " +
+    "Safe. Lines like 'removing the last Director is refused' still hold and are kept. `org director list` is a v4 read " +
+    "and is unchanged.",
+  source: by(
+    `${OLD}/proposals/operations/change-owners.ts:31; ${OLD}/proposals/rules/owner-changes.ts:117; ` +
+      "apps/cli/.../org/subcommands/director/internal/change.ts:59; org.director.threshold designed",
+  ),
   affects: [
+    rpc_board_directors_authority,
     flow_client_org_directors_add,
     flow_client_org_directors_remove,
     flow_client_org_directors_replace,
@@ -614,7 +630,12 @@ export const decision_board_director_refusals_ask_nothing = defineDecision({
     "The shared assembly listed `org director add`, `remove`, `replace` and `threshold` among commands whose terminal " +
     "preview should end CANCELLED. Do they ask?",
   options: [
-    { label: "no-question", text: "No: each method fails WRONG_STATE at once, before any rpc or question, naming the `org board` command to use; `--confirm` is accepted and changes nothing." },
+    {
+      label: "no-question",
+      text:
+        "No: each method reads the Board (`board.directors.authority`) and refuses before any question, with its frozen " +
+        "refusal or WRONG_STATE naming the `org board` command to use; `--confirm` is accepted and changes nothing.",
+    },
     { label: "ask-then-refuse", text: "Ask the frozen `--confirm` question first, then refuse, and list CANCELLED." },
   ],
   chosen: "no-question",

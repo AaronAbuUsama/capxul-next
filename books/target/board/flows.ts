@@ -5,7 +5,8 @@
 // approvals; a person on the approval page the CLI opens), follow the approval, and read the change
 // back. `--no-wait` returns once the approval is open; Capxul's process follows it to the chain either
 // way. The reads are one rpc each and have no flow. The four `org director` writes are pre-v4 owner
-// changes the Signer Gate refuses: their methods refuse at once (decision board.director-commands).
+// changes the Signer Gate refuses: their methods read who the caller and the named members are, give
+// the frozen command's refusals, and otherwise refuse WRONG_STATE (decision board.director-commands).
 
 import { Schema } from "effect";
 import { budget, defineFlow, type Rpc } from "../../../packages/book/src/index.ts";
@@ -13,6 +14,9 @@ import { component_core_sdk } from "../shared/foundation.ts";
 import {
   error_CANCELLED,
   error_CAPABILITY_UNAVAILABLE,
+  error_INVALID_INPUT,
+  error_RESERVED_MATTER,
+  error_ROLE_PERMISSION_DENIED,
   error_TRANSACTION_FAILED,
   error_WRONG_STATE,
 } from "../shared/vocabulary.ts";
@@ -23,6 +27,7 @@ import {
   OrgInput,
   SeatInput,
   ThresholdInput,
+  rpc_board_directors_authority,
   rpc_board_directors_claim,
   rpc_board_directors_get,
   rpc_board_directors_hand_over,
@@ -345,53 +350,83 @@ export const OwnerChangeView = Schema.Struct({
   }),
 });
 
-const refused = (id: string, sdk: string, title: string, instead: string, input: Schema.Top) =>
+/** What every refused `org director` write reads first: who the caller is, and the members it names. */
+const authority = {
+  name: "authority",
+  rpc: rpc_board_directors_authority,
+  about: "Reads the Board, whether the caller's Safe is a Director and wears the top hat, and the members named; nothing is written.",
+};
+
+const refused = (spec: { id: string; sdk: string; title: string; instead: string; input: Schema.Top; check: string; topHat?: boolean }) =>
   defineFlow({
-    id,
-    title,
+    id: spec.id,
+    title: spec.title,
     about:
       "Every Organization is a v4 company (P9), whose Signer Gate refuses an owner or threshold change its own Safe " +
-      `makes (\`CannotCallSafe\`). The method fails WRONG_STATE at once, before any rpc, naming \`${instead}\`; nothing is ` +
-      "read, proposed or signed.",
+      "makes (`CannotCallSafe`), so the method never proposes. It first reads where the caller and the members it names " +
+      "stand (`board.directors.authority`: NOT_AUTHENTICATED without a sign-in, ROLE_PERMISSION_DENIED for a caller " +
+      "with no Seat, WRONG_STATE with no deployment), then gives the frozen command's own refusals, and otherwise fails " +
+      `WRONG_STATE naming \`${spec.instead}\`. Nothing is proposed, asked or signed.`,
     component: component_core_sdk,
-    sdk,
-    input,
+    sdk: spec.sdk,
+    input: spec.input,
     output: OwnerChangeView,
-    steps: [],
-    errors: [error_WRONG_STATE],
+    steps: [authority, { name: "refuse", local: "build", about: spec.check }],
+    errors: [
+      ...(spec.topHat ? [error_RESERVED_MATTER] : []),
+      error_ROLE_PERMISSION_DENIED,
+      error_INVALID_INPUT,
+      error_WRONG_STATE,
+    ],
     calls: [],
     spans: [],
-    budget: budget("read"),
-    was: ["packages/backend/src/organizations/proposals/operations/change-owners.ts:35", "packages/backend/src/organizations/proposals/errors.ts:112"],
+    budget: budget("chain-read"),
+    was: [
+      "packages/backend/src/organizations/proposals/operations/change-owners.ts:31",
+      "packages/backend/src/organizations/proposals/errors.ts:112",
+      "apps/cli/src/commands/org/subcommands/director/internal/change.ts:59",
+    ],
   });
+
+/** The refusal of a caller who is not a Director, the frozen pages' first. */
+const NOT_A_DIRECTOR = "In order: ROLE_PERMISSION_DENIED when the caller's Safe is not a Director;";
 
 const DirectorInput = Schema.Struct({ orgId: S, person: S, threshold: NullOr(Schema.Int), confirm: Schema.Boolean, noWait: Schema.Boolean });
 
-export const flow_client_org_directors_add = refused(
-  "client.org.directors.add",
-  "client.org(orgId).directors.add",
-  "Refuse a Director added by proposal: the Gate refuses it",
-  "capxul org board director add",
-  DirectorInput,
-);
-export const flow_client_org_directors_remove = refused(
-  "client.org.directors.remove",
-  "client.org(orgId).directors.remove",
-  "Refuse a Director removed by proposal: the Gate refuses it",
-  "capxul org board director remove",
-  DirectorInput,
-);
-export const flow_client_org_directors_replace = refused(
-  "client.org.directors.replace",
-  "client.org(orgId).directors.replace",
-  "Refuse a Director replaced by proposal: the Gate refuses it",
-  "capxul org board director remove` and `add",
-  Schema.Struct({ orgId: S, person: S, replacement: S, confirm: Schema.Boolean, noWait: Schema.Boolean }),
-);
-export const flow_client_org_directors_set_threshold = refused(
-  "client.org.directors.set-threshold",
-  "client.org(orgId).directors.setThreshold",
-  "Refuse a threshold changed by proposal: the Gate refuses it",
-  "capxul org board threshold",
-  Schema.Struct({ orgId: S, threshold: Schema.Int, confirm: Schema.Boolean, noWait: Schema.Boolean }),
-);
+export const flow_client_org_directors_add = refused({
+  id: "client.org.directors.add",
+  sdk: "client.org(orgId).directors.add",
+  title: "Refuse a Director added by proposal: the Gate refuses it",
+  instead: "capxul org board director add",
+  input: DirectorInput,
+  check: `${NOT_A_DIRECTOR} INVALID_INPUT when the person is not a member; else WRONG_STATE naming \`org board director add\`.`,
+});
+export const flow_client_org_directors_remove = refused({
+  id: "client.org.directors.remove",
+  sdk: "client.org(orgId).directors.remove",
+  title: "Refuse a Director removed by proposal: the Gate refuses it",
+  instead: "capxul org board director remove",
+  input: DirectorInput,
+  check:
+    `${NOT_A_DIRECTOR} INVALID_INPUT when the person is not a member, is the last Director, or \`--threshold\` is ` +
+    "below 1 or above the Directors left; else WRONG_STATE naming `org board director remove`.",
+});
+export const flow_client_org_directors_replace = refused({
+  id: "client.org.directors.replace",
+  sdk: "client.org(orgId).directors.replace",
+  title: "Refuse a Director replaced by proposal: the Gate refuses it",
+  instead: "capxul org board director remove` and `add",
+  input: Schema.Struct({ orgId: S, person: S, replacement: S, confirm: Schema.Boolean, noWait: Schema.Boolean }),
+  check: `${NOT_A_DIRECTOR} INVALID_INPUT when either person is not a member; else WRONG_STATE naming \`org board director remove\` and \`add\`.`,
+});
+export const flow_client_org_directors_set_threshold = refused({
+  id: "client.org.directors.set-threshold",
+  sdk: "client.org(orgId).directors.setThreshold",
+  title: "Refuse a threshold changed by proposal: the Gate refuses it",
+  instead: "capxul org board threshold",
+  input: Schema.Struct({ orgId: S, threshold: Schema.Int, confirm: Schema.Boolean, noWait: Schema.Boolean }),
+  check:
+    "As `org board threshold` would, in order: RESERVED_MATTER when the Governor wears the top hat; ROLE_PERMISSION_DENIED " +
+    "when the caller's Safe does not; INVALID_INPUT when `<n>` is 0, above the Directors or the threshold it has; else WRONG_STATE naming `org board threshold`.",
+  topHat: true,
+});
