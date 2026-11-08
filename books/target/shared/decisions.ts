@@ -2534,3 +2534,64 @@ export const decision_system_size = defineDecision({
   source: `${HANDOFF}; evidence: git ls-files of /home/user/factory (integration/factory), .ts and .tsx without tests, fixtures, .d.ts or generated files`,
   affects: [f.system_capxul, f.component_backend, f.component_core_sdk, f.component_cli, f.component_react_sdk, f.component_mcp_server, f.component_devnet],
 });
+
+export const decision_system_layout = defineDecision({
+  id: "system.layout",
+  title: "Product code mirrors the book: one package per component, one folder per concept",
+  question:
+    "The book says what to build but not where the code goes. Where do the product packages, the generated files, the B0 spike " +
+    "and each concept's code live, how is generated code told apart from hand-written code, and which branch integrates the lanes?",
+  options: [
+    {
+      label: "mirror-the-book",
+      text:
+        "npm workspaces in this repository. One package per component: packages/runtime (the Effect services: auth, SQL, chain, " +
+        "integrations, the workflow engine, tracing), packages/backend, packages/sdk (the Core SDK), packages/cli, packages/sdk-react, " +
+        "packages/mcp, packages/indexer (Ponder), packages/devnet, plus packages/generate (the generators) and packages/evals (the " +
+        "harness). In the backend and the SDK, src/<concept>/ mirrors books/target/<concept>/, and another concept's code is " +
+        "imported only from its src/<concept>/door.ts (sys:imports). Generated files live in each package's src/generated/, each " +
+        "headed 'Generated from books/target by packages/generate. Do not edit.', and line counts leave that folder out. The B0 " +
+        "spike is spikes/durable-execution/, deleted once its decision is recorded. Lanes are branches lane/<concept> merged by pull " +
+        "request into integration/build; integration/build merges into main at each milestone's exit.",
+    },
+    { label: "by-layer", text: "Packages by technical layer (db, api, services), concepts spread across them." },
+    { label: "old-layout", text: "Keep the old repository's package names and folder habits." },
+  ],
+  chosen: "mirror-the-book",
+  why:
+    "A record and its code then share a name and a place, so an agent finds one from the other without a map, and the evals that " +
+    "need a layout have one: sys:imports reads src/<concept>/ imports, sys:loc counts each concept's folder, system.size counts " +
+    "everything outside src/generated/, and sys:generated regenerates src/generated/ and diffs it. By layer spreads a concept over " +
+    "four places, which is what made the old system hard to change; the old layout carries its pre-v4 packages (protocol, " +
+    "aa-gateway, scenarios) that P9 removes. One integration branch keeps main green while lanes land.",
+  source: `${HANDOFF}; evidence: the cold-start review of the handoff (no layout or integration branch named); old repository layout`,
+  affects: [f.system_capxul, f.component_backend, f.component_core_sdk, f.component_cli, f.component_react_sdk, f.component_mcp_server, f.component_devnet, f.component_ponder],
+});
+
+export const decision_system_build_order = defineDecision({
+  id: "system.build-order",
+  title: "Concepts are built in dependency layers; priority orders the work within each",
+  question:
+    "Board is low priority, yet budgets, payments, payroll, agents, equity and notices depend on it. In what order are the " +
+    "concepts built, so that no lane waits on a concept below it?",
+  options: [
+    {
+      label: "layers-then-priority",
+      text:
+        "By the concept map's layers, each concept's door (its tables, machines and procedures) before any concept that depends on " +
+        "it: access; media; parties; indexing; approvals; accounts; organizations; then board's proposals and door, books, " +
+        "documents, contacts and applications; budgets and agents; payments and payroll; banking and activity; requests; notices; " +
+        "devnet's own dev commands alongside the harness. Within a concept, critical operations first. Board's director and vote " +
+        "operations and all of equity are built last, and a lane may build against their events before they exist.",
+    },
+    { label: "product-priority", text: "By product priority alone, stubbing every dependency that is not built yet." },
+  ],
+  chosen: "layers-then-priority",
+  why:
+    "Built in layers, every procedure a lane invokes already exists and is proven, so no lane builds against a stub that can " +
+    "drift from the real door. Board shows why priority alone fails: its proposal machine and board.propose carry every Board " +
+    "payment, budget and grant, so they are on the critical path even though its director and voting commands are not. Equity " +
+    "stays last because only notices depends on it, and only for its events.",
+  source: `${HANDOFF}; evidence: the concept dependsOn graph of the built target book (14 layers, no cycle); the fact check of the goal prompt's earlier order`,
+  affects: [f.system_capxul, f.concept_board, f.concept_equity, f.concept_notices],
+});

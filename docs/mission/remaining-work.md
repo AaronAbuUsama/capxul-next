@@ -1,27 +1,15 @@
-# Remaining work, and how to run it
+# Remaining work on the as-is book
 
-Status on 8 November 2026. The weekly usage limit was nearly spent, so the work is paused at the
-end of milestone 2 (the as-is book) and milestone 3 (the target architecture). Everything written so
-far is committed on `claude/infrastructure-refactor-plan-v41iue`. The scripts are in
-`tools/workflows/`: pass a script's text as a Workflow `script` and the lanes below as `args`.
-
-## Milestones
-
-| # | Milestone | State |
-|---|---|---|
-| 1 | Groundwork: schema for the accepted decisions, frozen text of all 215 operations, conventions | done |
-| 2 | As-is book of the whole old system | 15 of 21 lanes written; 1 reviewed |
-| 3 | Target architecture: concept map, components, kept errors, integrations, v4 contracts, decisions | running when paused; check `books/target/` and `docs/decisions/target-architecture.md` |
-| 4 | As-is merge: retire `payments/neighbors.ts` stand-ins, build the whole system, system findings | not started |
-| 5 | Target design per concept | not started |
-| 6 | Target book built with the target rules, zero problems | not started |
-| 7 | Spike: Effect Workflow on Postgres survives kill and resume | not started (needs Postgres) |
-| 8 | Handoff: rewrite `initializer.md` around the finished book; final report of every judgment | not started |
+This file is about the **as-is book only**: the lanes of the old system that were not written when
+that book was paused on purpose. The rebuild's own state is in `HANDOFF.md`, and its next work is
+`docs/mission/initializer.md`. The as-is book is evidence; target designers read the old code where
+it has gaps, so these lanes are optional. The scripts are in `tools/workflows/`: pass a script's
+text as a Workflow `script` and the lanes below as `args`.
 
 ## Milestone 2: lanes still to write
 
 Run with `tools/workflows/book-as-is-writers.js` (writers only). Each writer first lists the names
-other files already expect from its lane (`npx tsc -p books | grep <folder>`) and defines them.
+other files already expect from its lane (`npx tsc -p books/as-is | grep <folder>`) and defines them.
 
 | Lane | Writes |
 |---|---|

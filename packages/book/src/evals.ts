@@ -71,6 +71,9 @@ export const deriveEvals = (b: Pick<Book, "records">): EvalDef[] => {
   for (const t of ofKind(b, "table")) {
     e(`tbl:${t.id}/schema`, "L1", t, "the migration creates exactly these fields, key and indexes");
     e(`tbl:${t.id}/writers`, "L1", t, "only the operations and workflows that list it in writes change it");
+    // P8: a tenant's row-level policy, proven by a second tenant who can neither read nor write the first's rows.
+    if (["organization", "person", "owner"].includes(String(t.tenancy)))
+      e(`tbl:${t.id}/tenancy`, "L1", t, `a second ${String(t.tenancy)} reads and writes none of the first's rows; only a cross-tenant index's named query reads across`);
   }
   for (const t of ofKind(b, "transition")) e(`trn:${t.id}`, "L1", t, "an eval run observes this transition, with its events");
 
@@ -101,6 +104,9 @@ export const deriveEvals = (b: Pick<Book, "records">): EvalDef[] => {
     e(`sys:imports/${c.id}`, "L3", c, "it imports only the concepts it depends on, through their doors");
     if (typeof c.lines === "number") e(`sys:loc/${c.id}`, "L3", c, `it is within ${c.lines} lines`);
   }
+  // Generated code is never edited: regenerating from the records into a clean tree changes nothing.
+  for (const s of ofKind(b, "system"))
+    e(`sys:generated`, "L3", s, "regenerating every generated file from the records gives no diff, and the generated packages compile");
   for (const i of ofKind(b, "invariant")) e(`inv:${i.id}`, "L3", i, String(i.statement));
   for (const v of ofKind(b, "environment")) {
     e(`env:${v.id}/boot`, "L3", v, typeof v.bootMs === "number" ? `it boots in ≤ ${v.bootMs} ms` : "it boots");

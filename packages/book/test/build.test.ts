@@ -48,6 +48,8 @@ test("evals are derived from records, and a retired acceptance line keeps its nu
     "inv:one-open-invitation",
     "sys:loc/organizations",
     "env:devnet/boot",
+    "tbl:invitations/tenancy",
+    "sys:generated",
   ])
     assert.ok(ids.includes(id), id);
   assert.ok(!ids.includes("acc:org.member.invite/2"));

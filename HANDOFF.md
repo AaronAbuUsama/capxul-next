@@ -34,6 +34,16 @@ npx tsc -p books                                      # the books typecheck
 node --experimental-strip-types packages/book/src/main.ts books/target/index.ts /tmp/target
 ```
 
+A throwaway Postgres for the B0 spike, before the devnet exists (initdb refuses root, so it runs
+as the `postgres` user; clients connect with host `/tmp/pg-spike` and port 55432):
+
+```bash
+mkdir -p /tmp/pg-spike && chown postgres /tmp/pg-spike
+su postgres -s /bin/sh -c '/usr/lib/postgresql/16/bin/initdb -D /tmp/pg-spike/data -A trust -U postgres'
+su postgres -s /bin/sh -c '/usr/lib/postgresql/16/bin/pg_ctl -D /tmp/pg-spike/data -o "-k /tmp/pg-spike -p 55432 -c listen_addresses=" -l /tmp/pg-spike/log -w start'
+psql -h /tmp/pg-spike -p 55432 -U postgres -c 'select 1'
+```
+
 The prompts in `tools/workflows/` use the absolute paths `/home/user/capxul-next` and
 `/home/user/factory`. Clone to those paths, or change them in the scripts.
 

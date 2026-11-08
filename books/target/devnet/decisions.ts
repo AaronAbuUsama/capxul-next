@@ -615,3 +615,27 @@ export const decision_devnet_straddling_payout_world = defineDecision({
   source: BUILDER("books/target/books/decisions.ts (books.straddling-row); org.books.accounts.reclassify.yaml #3; books/target/banking/processes.ts (banking.payouts.follow)"),
   affects: [concept_devnet, environment_devnet, integration_devnet_control],
 });
+
+export const decision_devnet_no_acceptance = defineDecision({
+  id: "devnet.no-acceptance",
+  title: "The dev commands without acceptance lines get none from the design",
+  question:
+    "Ten devnet commands (dev time, warp, start-at, snapshot save and list, prices set, gates set, approve, jobs run, mail list) " +
+    "had no acceptance lines in the old book, so each shows a no-acceptance gap. Should the design write lines for them?",
+  options: [
+    { label: "none-yet", text: "Write none. Their returns, refusals and spans are still evals, and the harness exercises every one of them when it builds the worlds; new lines need Aaron, as for equity." },
+    { label: "write-them", text: "Write acceptance lines for them now, from what the supervisor controls do." },
+  ],
+  chosen: "none-yet",
+  why:
+    "An acceptance line is frozen surface (P1), and the frozen book has none here, so a line the design wrote would be a new " +
+    "claim on the public surface, which is Aaron's to accept (equity.acceptance makes the same call). Nothing is unchecked " +
+    "meanwhile: every eval world is built through these commands (B2), so a broken one fails the harness before any operation's " +
+    "eval runs.",
+  source: `Claude, handoff to the build, 8 November 2026; evidence: the 35 no-acceptance gaps of the built target book; equity.acceptance`,
+  affects: [
+    concept_devnet, ops.operation_dev_time, ops.operation_dev_time_warp, ops.operation_dev_time_start_at, ops.operation_dev_snapshot_save,
+    ops.operation_dev_snapshot_list, ops.operation_dev_prices_set, ops.operation_dev_gates_set, ops.operation_dev_approve,
+    ops.operation_dev_jobs_run, ops.operation_dev_mail_list,
+  ],
+});

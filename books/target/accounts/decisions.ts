@@ -491,3 +491,21 @@ export const decision_accounts_worlds = defineDecision({
   source: by("docs/spec/30-capxul-evals.md; ICompaniesHouseClaimer.sol (SwapRefused, EmailNotNormalized); books/frozen/operations.ts"),
   affects: [...ALL_OPERATIONS],
 });
+
+export const decision_accounts_no_acceptance = defineDecision({
+  id: "accounts.no-acceptance",
+  title: "dev fund and the waitlist grant get no acceptance lines from the design",
+  question:
+    "`dev fund` and `waitlist invites grant` had no acceptance lines in the old book, so each shows a no-acceptance gap. Should " +
+    "the design write lines for them?",
+  options: [
+    { label: "none-yet", text: "Write none. Their returns, refusals, events and budgets are still evals; new lines need Aaron." },
+    { label: "write-them", text: "Write acceptance lines for them now." },
+  ],
+  chosen: "none-yet",
+  why:
+    "An acceptance line is frozen surface (P1), and a line the design wrote would be a new public claim, which is Aaron's to " +
+    "accept (equity.acceptance, devnet.no-acceptance). Both are operator and test tooling, and their refusals and returns are checked.",
+  source: `Claude, handoff to the build, 8 November 2026; evidence: the no-acceptance gaps of the built target book`,
+  affects: [concept_accounts, ops.operation_dev_fund, ops.operation_waitlist_invites_grant],
+});
