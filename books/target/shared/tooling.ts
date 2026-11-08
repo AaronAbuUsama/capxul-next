@@ -56,7 +56,7 @@ export const decision_tooling_layers = defineDecision({
   id: "tooling.layers",
   title: "Each policy is enforced at the cheapest layer that can enforce it fully",
   question:
-    "The old system enforced its architecture with 11 Oxlint rules (1,269 lines) and 8 cross-file checks (4,644 lines) " +
+    "The old system enforced its architecture with 12 Oxlint rules (about 1,500 lines with their helpers) and 8 cross-file checks (4,644 lines) " +
     "that rebuilt a TypeScript program to follow call graphs and catalogues. Where does the target enforce each policy?",
   options: [
     {
@@ -77,7 +77,7 @@ export const decision_tooling_layers = defineDecision({
     "Oxlint JS plugins see syntax, not types, so a plugin rule is for what a file's text shows: imports, file names, " +
     "comments, a throw, a literal span name, a time read in a workflow body. Porting keeps checks for problems the design " +
     "removed; review alone does not scale to parallel lanes.",
-  source: by("/home/user/factory/packages/tools/src/modules/lint (README, internal/: 4,644 lines) and oxlint-plugin (1,269 lines); oxlint 1.91 JS plugin API"),
+  source: by("/home/user/factory/packages/tools/src/modules/lint (README, internal/: 4,644 lines) and oxlint-plugin (12 rules, about 1,500 lines with helpers); oxlint 1.91 JS plugin API"),
   affects: SHIPPED,
 });
 
@@ -138,7 +138,10 @@ export const decision_tooling_pins = defineDecision({
     "@effect/tsgo 0.67.3 lists exactly Vite Plus 1.5.0's bundle. Without the vite alias and vitest pin, npm cannot resolve " +
     "Vitest's vite (reproduced). A release-age window stops a compromised release, which is usually pulled within a day or " +
     "two, from reaching agents that install unattended; 7 days would have forced effect below the 4.1.2 the book already " +
-    "pins. Every pin here was at least 3 days old on 8 November; npm run workspace checks the coherence.",
+    "pins. Every pin here was at least 3 days old on 8 November; npm run workspace checks the coherence. The window applies " +
+    "when a version enters the lockfile: measured with npm 12.2.2, npm ci under a 30-day window still installed the locked, " +
+    "4-day-old vite-plus. No direct vite devDependency: with the overrides alone vp test runs (measured), and knip reports a " +
+    "root vite entry as unused.",
   source: by("npm view <pkg> time (8 Nov 2026); vite-plus@1.5.0 dependencies; @effect/tsgo@0.67.3 README supported-components; reproduced ERR_MODULE_NOT_FOUND"),
   affects: [f.system_capxul],
 });
@@ -156,7 +159,8 @@ export const decision_tooling_node = defineDecision({
   why:
     "The old CI moved its tests to Node 24 because Node 22.23.4's type stripper crashed a CLI child with a WASM trap (#3748), " +
     "and 22.23.4 is exactly what the cloud image runs. Node 24 is LTS until April 2028, past B5, and was proven on the old " +
-    "system's CI and CLI minimum; Vite Plus accepts ^24.11.0 and npm 12 ^24.15.0. Node 26 became LTS eleven days ago and " +
+    "system's CI and CLI minimum. It is this design's choice, not a tool's floor: Vite Plus 1.5.0 accepts ^22.18.0 or ^24.11.0 " +
+    "and npm 12.2.2 ^22.22.2 or ^24.15.0, and devEngines pins ^24.15.0. Node 26 became LTS eleven days ago and " +
     "nothing of ours has run on it. engine-strict and devEngines make a session that skipped the setup fail at install.",
   source: by("/home/user/factory/.github/workflows/ci.yml (Node 24, #3748); nodejs.org/dist/index.json; vite-plus and npm engines"),
   affects: [f.system_capxul, f.component_backend, f.component_cli, f.component_mcp_server, f.component_devnet],
@@ -174,7 +178,8 @@ export const decision_tooling_typescript = defineDecision({
       text:
         "typescript 7.0.2 everywhere. Each package is an independent composite, noEmit project importing the others by " +
         "package name; the root tsconfig.json is a solution file, so tsc -b checks every package incrementally. " +
-        "tools/freeze-flags.ts keeps the compiler API through the alias typescript-5 (npm:typescript@5.9.3).",
+        "tools/freeze-flags.ts keeps the compiler API through the alias typescript-5 (npm:typescript@5.9.3). packages/book " +
+        "drops its own typescript 5.9.3 and @types/node 22.19.1, so the root's 7.0.2 and 24.19.2 serve it.",
     },
     { label: "two-compilers", text: "TypeScript 5.9 for the book, 7 for product code." },
     { label: "one-program", text: "One root tsconfig that includes every package." },
@@ -185,7 +190,10 @@ export const decision_tooling_typescript = defineDecision({
     "refuses noEmit in a referenced project (TS6310, reproduced), so packages do not reference each other; a solution of " +
     "independent noEmit projects passed and caught an error in one package. One program would mix browser and Node libs. " +
     "TypeScript 7 has no stable programmatic API, and freeze-flags is the provenance of books/frozen/flags.ts, so it keeps " +
-    "the old compiler under an alias. No paths aliases or baseUrl: tsgolint does not support baseUrl.",
+    "the old compiler under an alias. No paths aliases or baseUrl: tsgolint does not support baseUrl. Measured: a package " +
+    "importing another by name through exports to src builds under tsc -b with no reference, and an error in either fails " +
+    "it; the book also checks clean under the base's stricter flags. Left with @types/node 22.19.1, packages/book would put " +
+    "one package at two versions, which npm run workspace refuses.",
   source: by("tsc 7.0.2 and 5.9.3 runs on books/ and packages/book; a tsc -b prototype (TS6310); Vite Plus troubleshooting guide"),
   affects: [f.system_capxul],
 });
@@ -228,7 +236,8 @@ export const decision_tooling_lint_config = defineDecision({
       text:
         "The lint block of vite.config.ts, extending the typed strict preset imported from @effect/tsgo/oxlint-presets; no " +
         ".oxlintrc.json. A canary test lints packages/lint/fixtures/bad through the real config and requires every expected " +
-        "rule id, and fixtures/good to give nothing.",
+        "rule id, and fixtures/good to give nothing. The canary sets CAPXUL_LINT_CANARY=1, which drops the fixtures from " +
+        "ignorePatterns, and the override globs also match the fixtures' mirrored paths.",
     },
     { label: "oxlintrc", text: "A .oxlintrc.json, read into vite.config.ts by a helper, as the old lintConfig() did." },
   ],
@@ -238,7 +247,10 @@ export const decision_tooling_lint_config = defineDecision({
     "a plugin the unpatched binary does not have; the lint block was read and failed closed. The old repository met the " +
     "same silent pass and wrote a helper to bridge the two files. A JS config cannot extend a file path, and spreading the " +
     "JSON preset failed typeCheck (TS2322), so the typed preset object is extended. RuleTester proves each rule in " +
-    "isolation; only the canary proves the built-in, Effect and capxul layers are all active in the config the gates run.",
+    "isolation; only the canary proves the built-in, Effect and capxul layers are all active in the config the gates run. " +
+    "Measured: vp lint --no-ignore does not lift a config's ignorePatterns (it found no files and exited 0), and overrides " +
+    "written only as packages/<pkg>/src/** did not reach fixtures/bad/packages/backend/src/…, so no-throw and " +
+    "global-date-in-effect stayed silent there; with the environment variable and the mirrored globs every expected id fired.",
   source: by("a Vite Plus 1.5.0 prototype (.oxlintrc.json ignored; vite.config.ts lint block loaded); /home/user/factory/vite.config.ts lintConfig()"),
   affects: [f.system_capxul],
 });
@@ -255,8 +267,11 @@ export const decision_tooling_effect_rules = defineDecision({
       text:
         "Extend the strict preset (97 rules, all errors) through effect-tsgo patch --oxlint in prepare; add " +
         "any-unknown-in-error-context, unsafe-effect-type-assertion, strict-effect-provide and effect-try-without-catch; turn " +
-        "on the 20 Effect-native rules (time, randomness, timers, fetch, randomUUID, process.env, console, JSON, new Promise, " +
-        "async functions, native Error classes, Node built-ins) in product packages; unstable-api-usage off.",
+        "on 20 of the effect-native preset's 26 rules (time, randomness, timers, fetch, randomUUID, process.env, console, " +
+        "JSON, new Promise, async functions, native Error classes, Node built-ins) in product packages, leaving out " +
+        "abort-controller-in-effect (in strict already), schema-sync (strict's schema-sync-in-effect covers Effect code) and " +
+        "four suggestions with semantic caveats (instance-of-schema, prefer-effect-array, -record, -string); " +
+        "unstable-api-usage off.",
     },
     { label: "recommended", text: "The recommended preset as shipped: 84 of its 97 rules at warn." },
     { label: "hand-list", text: "List every rule by hand, as the old repository did with 85." },
@@ -264,9 +279,10 @@ export const decision_tooling_effect_rules = defineDecision({
   chosen: "strict-native",
   why:
     "The strict preset is the old hand-written list plus 15 rules added since, and extending it keeps step with each pinned " +
-    "version. The Effect-native rules replace the old ambient-time and presence-implies-mode checks and half of " +
-    "no-raw-provider-call with configuration only: time through Clock, environment through Config, HTTP through " +
-    "HttpClient. They stay off in the plugin and the generator, which are plain Node scripts, and in sdk-react. Effect " +
+    "version. With capxul/time and capxul/imports, the Effect-native rules replace the old ambient-time and " +
+    "presence-implies-mode checks and half of no-raw-provider-call: environment through the generated Config, HTTP " +
+    "through HttpClient. Alone they do not hold the one clock: measured, global-date flags Date.now() and new Date(ms) but " +
+    "not Clock.currentTimeMillis, DateTime.now or performance.now(). They stay off in the plugin and the generator, which are plain Node scripts, and in sdk-react. Effect " +
     "4.1.2 marks workflow, cluster, rpc, sql, http, cli and observability unstable (5,046 markers), so unstable-api-usage " +
     "would fire on the whole stack; the exact pin is the guard, and experimental-api-usage stays on. Unpatched, Oxlint " +
     "refuses the config (Unknown plugin effecttsgo), so a missed patch fails closed.",
@@ -283,7 +299,8 @@ export const decision_tooling_lint_standard = defineDecision({
       label: "one-standard",
       text:
         "correctness, suspicious and perf as errors; plugins eslint, typescript, unicorn, oxc and import (vitest in tests); " +
-        "20 type-aware typescript rules including no-explicit-any; ban-ts-comment allowing only a described ts-expect-error; " +
+        "the 19 type-aware typescript rules the old repository relied on, named so a category change cannot drop them, plus " +
+        "no-explicit-any; ban-ts-comment allowing only a described ts-expect-error; " +
         "complexity 25, 250 lines a file, depth 5, 4 nested callbacks; import/no-cycle; denyWarnings and unused disables " +
         "denied. Overrides only scope a rule or turn it off for tests, composition roots and generated lists.",
     },
@@ -296,7 +313,9 @@ export const decision_tooling_lint_standard = defineDecision({
     "(consistent-return off because noImplicitReturns understands absurd, no-map-spread off because it pushed code to " +
     "mutation). no-explicit-any is new: the generated types are how the book is enforced, and any switches them off. " +
     "import/no-cycle covers files inside a concept, where the acyclic concept map says nothing. Measured: plugins set " +
-    "beside extends keep the Effect plugin active.",
+    "beside extends keep the Effect plugin active, and the three categories with typeAware turn on 26 type-aware rules (the " +
+    "19 named and 7 more; consistent-return is turned off). Every correctness and suspicious Effect rule is in the strict " +
+    "preset or the four extras, so the categories enable no Effect rule the config does not list.",
   source: by("/home/user/factory/.oxlintrc.json (categories, limits, comments); oxlint 1.91 configuration_schema.json; prototype runs with import/no-cycle"),
   affects: SHIPPED,
 });
@@ -322,7 +341,7 @@ export const decision_tooling_lint_scope = defineDecision({
   why:
     "The book is design data checked by its own build, 21 tests, strict tsc and check-frozen; its Schema.Number fields " +
     "describe columns, and the generator, not the record, is where a runtime schema becomes Schema.Finite. Fixing 757 " +
-    "findings across 2,132 records changes no behaviour and risks the book. A second config means a second lint run and " +
+    "findings across more than 2,200 records changes no behaviour and risks the book. A second config means a second lint run and " +
     "a second standard. Oxlint overrides cannot set categories, so a lighter profile would be a hand-tuned rule list. " +
     "Spikes are throwaway; B0 lints its spike by hand once, as a first real test of capxul/workflow-body.",
   source: by("oxlint over a copy of this repository (757 findings strict, 37 correctness-only); oxlint override schema (no categories)"),
@@ -331,14 +350,15 @@ export const decision_tooling_lint_scope = defineDecision({
 
 export const decision_tooling_plugin = defineDecision({
   id: "tooling.plugin",
-  title: "packages/lint: nine capxul rules over facts generated from the book",
+  title: "packages/lint: ten capxul rules over facts generated from the book",
   question: "Where do Capxul's own lint rules live, which rules are there, and how do they learn the design?",
   options: [
     {
       label: "facts-plugin",
       text:
-        "A tooling package packages/lint (not a component, not in system.size): nine rules (imports, concept-shape, " +
-        "workflow-body, span-names, generated-intact, no-throw, catch-keeps-cause, comments, no-sentinel-tests), each with " +
+        "A tooling package packages/lint (not a component, not in system.size, added beside system.layout's generate and " +
+        "evals): ten rules (imports, concept-shape, workflow-body, span-names, generated-intact, no-throw, catch-keeps-cause, " +
+        "comments, no-sentinel-tests, time), each with " +
         "valid and invalid RuleTester cases, reading src/generated/facts.ts, which packages/generate writes from " +
         "books/target. Budgets: 900 non-test lines for the rules, 200 for the cross-file checks, 120 for the facts target.",
     },
@@ -348,10 +368,11 @@ export const decision_tooling_plugin = defineDecision({
   chosen: "facts-plugin",
   why:
     "Facts generated from the records cannot drift from the book, and generated-intact plus generate:check prove it. " +
-    "Importing 2,132 records into every lint run would load the design system into the linter and slow every editor " +
+    "Importing more than 2,200 records into every lint run would load the design system into the linter and slow every editor " +
     "keystroke; the facts file is the few hundred names the rules need. Hand lists are what drifted before. The plugin " +
-    "imports vite-plus/lint/plugins, so it always matches the bundled Oxlint. Nine rules replace the old eleven plus most " +
-    "of the eight cross-file checks; the prototype of six of them ran in 1.1 s with the Effect rules.",
+    "imports vite-plus/lint/plugins, so it always matches the bundled Oxlint. Ten rules replace the old twelve plus most " +
+    "of the eight cross-file checks; the prototype of six of them ran in 1.1 s with the Effect rules. The tenth, time, is " +
+    "the static half of time.no-direct-reads, which the one-clock design gives to T0.",
   source: by("a prototype plugin under Oxlint 1.91.0 (TypeScript plugin on Node 22.23.4); /home/user/factory/packages/tools/src/modules/oxlint-plugin"),
   affects: SHIPPED,
 });
@@ -367,7 +388,9 @@ export const decision_tooling_imports = defineDecision({
       label: "doors-allow-list",
       text:
         "capxul/imports: another concept only through src/<d>/door.ts, only if dependsOn allows it, only names its door " +
-        "lists; in a concept folder bare modules only effect, effect/* and (backend) @capxul/runtime; workspace imports " +
+        "lists; in a concept folder bare modules only effect, effect/* and (backend) @capxul/runtime, and in the SDK its " +
+        "own src/platform/; in hand-written product code no Config or ConfigProvider from effect (only the generated " +
+        "Config module) and no import of a test or fixture; workspace imports " +
         "per a fixed table (backend may import runtime; cli, mcp and sdk-react may import sdk; generate and evals may import " +
         "book; nothing else); no path into another package's src or src/generated. Relative imports with .ts inside a " +
         "package, package names across packages, no aliases.",
@@ -382,7 +405,9 @@ export const decision_tooling_imports = defineDecision({
     "no-restricted-imports overrides. An allow-list needs no list of vendor packages: a concept can reach an outside " +
     "service only through its Effect service in packages/runtime. The workspace table follows A4 (the CLI calls one SDK " +
     "method; the SDK calls only the backend through the generated client) and makes sys:imports a lint result. A single " +
-    "door.ts needs no re-export bookkeeping, and relative paths need no resolver config.",
+    "door.ts needs no re-export bookkeeping, and relative paths need no resolver config. Without the Config clause a " +
+    "hand-written Config.option(Config.string(\"X\")) would bring back the presence-as-mode branch the old " +
+    "presence-implies-mode check refused; without the platform clause an SDK flow could not reach its signer.",
   source: by("system.layout; A4; books/target/shared/foundation.ts (component and concept dependsOn); prototype rule"),
   affects: [...f.CONCEPTS, f.component_backend, f.component_core_sdk, f.component_cli, f.component_react_sdk, f.component_mcp_server],
 });
@@ -397,11 +422,12 @@ export const decision_tooling_workflow_body = defineDecision({
     {
       label: "rule",
       text:
-        "capxul/workflow-body, in src/<c>/processes.ts: outside an Activity's execute, no Date, Math.random, performance, " +
-        "crypto, fetch, process or timers, no Clock, DateTime, Random or Schedule, no Effect.sleep, delay, timeout, retry, " +
-        "repeat, race or promise, nothing from the runtime or another concept's door; every yield* is a generated step or " +
-        "wait, Activity, DurableClock, DurableDeferred, Workflow, a declared error or a pure Effect combinator over those; " +
-        "every step and wait the book declares is yielded.",
+        "capxul/workflow-body, in src/<c>/processes.ts: outside the implementation passed to a generated step " +
+        "(<Name>Steps.<step>(…)), no Date, Math.random, performance, crypto, fetch, process or timers, no Clock, DateTime, " +
+        "Random, Schedule, DurableClock or ClusterCron, no Effect.sleep, delay, timeout, retry, repeat, race or promise, " +
+        "nothing from the runtime (Now among it) or another concept's door; every yield* is a generated step or wait " +
+        "(<Name>Steps, <Name>Waits; a timer wait calls Timers.until), an Activity, DurableDeferred or Workflow member, a " +
+        "declared error or a pure Effect combinator over those; every step and wait the book declares is yielded.",
     },
     { label: "evals-only", text: "Rely on wfl:<id>/resume evals to catch a body that misbehaves on replay." },
   ],
@@ -412,9 +438,52 @@ export const decision_tooling_workflow_body = defineDecision({
     "Clock is correct in ordinary code and wrong in a body, so the Effect-native rules cannot make this distinction; only " +
     "a rule that knows what a body is can. Activities run at least once, which B0 proves with an idempotency key. The " +
     "book declares 81 workflows with 341 steps and 94 waits, so 'every declared step runs' ties the code to the design. " +
-    "Prototyped: the rule caught Clock and Effect.sleep in a body and passed Date inside an activity.",
-  source: by("effect 4.1.2 dist/workflow (Workflow.toLayer, Activity.make, DurableClock); rules.process-wakeups; A2; prototype rule"),
+    "time.durable-timers chose the wake router's timers table over DurableClock, and time.no-direct-reads forbids " +
+    "DurableClock.sleep, ClusterCron, Effect.sleep and Effect.timeout in a body and Now anywhere in it (StepTime inside a " +
+    "step), so DurableClock is not allowed here and a body waits on time only through its generated timer wait. T0 writes " +
+    "the rule before B1 writes the skeletons, so the skeleton's names are fixed here (docs/design/tooling.md section 7). " +
+    "Prototyped: the rule caught Clock and Effect.sleep in a body.",
+  source: by("effect 4.1.2 dist/workflow (Workflow.toLayer, Activity.make, DurableDeferred); rules.process-wakeups; A2; time.durable-timers; time.no-direct-reads; prototype rule"),
   affects: [f.component_backend],
+});
+
+export const decision_tooling_time = defineDecision({
+  id: "tooling.time",
+  title: "capxul/time enforces time.no-direct-reads in every package",
+  question:
+    "time.no-direct-reads gives T0's lint the one-clock rules, at zero from the first commit, in every package. Effect's " +
+    "global-date rules cover only part of them, and only in product packages. How does T0 enforce the rest?",
+  options: [
+    {
+      label: "capxul-time",
+      text:
+        "A tenth plugin rule, capxul/time, on every linted file: outside packages/runtime/src/time/, no Date.now(), argumentless " +
+        "new Date(), performance.now() or process.hrtime, and no Clock.currentTimeMillis, currentTimeNanos or clockWith or " +
+        "DateTime.now, nowAsDate or nowUnsafe (names resolved through the file's imports); Now only in packages/runtime and " +
+        "generated code (handlers and procedures read RequestTime, steps StepTime); RealTime only in " +
+        "packages/runtime/src/integrations/; no Postgres time function in an sql tagged template or sql.unsafe string. Real " +
+        "elapsed time (Clock.monotonicTimeNanos, Effect.timed, timeouts and Schedule in a step or a call) stays allowed. " +
+        "Workflow bodies are capxul/workflow-body's; generated migrations are refused a time default by the migration " +
+        "writer, so generate:check holds them; the clients and the indexer import no runtime, which leaves them client.now() " +
+        "and the block timestamp.",
+    },
+    { label: "effect-only", text: "Rely on Effect's global-date rules in product packages, as a first draft did." },
+    {
+      label: "restricted",
+      text: "no-restricted-syntax and no-restricted-imports entries per folder in vite.config.ts.",
+    },
+  ],
+  chosen: "capxul-time",
+  why:
+    "Measured on Oxlint 1.91 with @effect/tsgo 0.67.3: global-date and global-date-in-effect flag Date.now() and new " +
+    "Date(ms), but pass Clock.currentTimeMillis, DateTime.now and performance.now(), the reads the one clock forbids " +
+    "outside its module; and they are on only in product packages, while the decision says every package. A first draft " +
+    "also let workflow bodies use DurableClock, which time.durable-timers rejected. Restricted-syntax entries cannot " +
+    "follow an import's local name, and one rule keeps the time list in one file with its fixtures. The devnet's time " +
+    "authority must read the real clock to stamp realAt (docs/design/time.md section 2); until the time design names that " +
+    "module, its one read takes a reasoned, counted disable.",
+  source: by("time.no-direct-reads and docs/design/time.md section 4 (T0's lint rules); oxlint 1.91 runs of global-date on Clock, DateTime and performance reads"),
+  affects: [...SHIPPED, f.component_postgres],
 });
 
 export const decision_tooling_span_names = defineDecision({
@@ -476,7 +545,8 @@ export const decision_tooling_errors = defineDecision({
       label: "types-and-two-rules",
       text:
         "B1's handler types put exactly the declared errors in the error channel, so the compiler refuses an undeclared " +
-        "one; capxul/no-throw refuses throw in product code (absurd from effect/Function for exhaustiveness); " +
+        "one; capxul/no-throw refuses throw in product code and the React SDK (absurd from effect/Function for " +
+        "exhaustiveness; a React misuse guard takes a reasoned disable); " +
         "capxul/catch-keeps-cause requires a handler that fails again to read what it caught, and requires handlers to be " +
         "written inline; effect-try-without-catch maps every try to a declared error.",
     },
@@ -486,7 +556,9 @@ export const decision_tooling_errors = defineDecision({
   why:
     "The type does in zero lines what operation-errors did with a static call graph, and rpc:<id>/errors proves it at run " +
     "time. A throw escapes the error channel and becomes a defect, so it is refused everywhere in shipped code, not only " +
-    "in recipes as before. The old catch-keeps-cause followed named handlers across files in 549 lines; requiring inline " +
+    "in recipes as before. The React SDK is hand-written and outside the Effect-native rules, and the old sdk-public-surface " +
+    "check let it throw only owned misuse guards, so no-throw covers it too. The old catch-keeps-cause followed named " +
+    "handlers across files in 549 lines; requiring inline " +
     "handlers makes it a single-file rule of under 100. The generated error classes carry an optional cause, which Error " +
     "Tracking reads.",
   source: by("/home/user/factory oxlint-plugin rules catch-keeps-cause.ts and handler-source.ts; lint/internal/operation-errors; vocabulary.ts"),
@@ -525,7 +597,8 @@ export const decision_tooling_tests = defineDecision({
     {
       label: "vitest-new",
       text:
-        "New packages test with Vitest 5.1.0 through vp test (with @effect/vitest for Effect code); capxul/no-sentinel-tests " +
+        "New packages test with Vitest 5.1.0 through vp test, importing its API from vite-plus/test (with @effect/vitest for " +
+        "Effect code, whose package also lists vitest 5.1.0, its required peer); capxul/no-sentinel-tests " +
         "and vitest's no-focused, no-disabled and todo rules are errors in tests; packages/book keeps its 21 node:test " +
         "tests, run by npm run book.",
     },
@@ -535,7 +608,9 @@ export const decision_tooling_tests = defineDecision({
   why:
     "Vitest is bundled with Vite Plus and pinned by overrides, so it costs no extra dependency, and the RuleTester runs " +
     "under it. A test that cannot fail proves nothing, and agents write sentinel tests when hurried, so the plugin keeps " +
-    "the old rule. The book's suite works and is outside Oxlint; migrating it changes nothing that matters.",
+    "the old rule. The book's suite works and is outside Oxlint; migrating it changes nothing that matters. Measured with " +
+    "knip 6.44.1: a test importing from vitest leaves vitest unlisted, because vite-plus carries it; Vite Plus's test " +
+    "guide says to import from vite-plus/test.",
   source: by("/home/user/factory oxlint-plugin no-sentinel-tests.ts; packages/book/test; vite-plus 1.5.0 dependencies"),
   affects: [f.system_capxul],
 });
@@ -549,8 +624,10 @@ export const decision_tooling_cross_file = defineDecision({
       label: "four",
       text:
         "Cut sdk-public-surface, telemetry-spine, v8-boundary, error-contract and error-catalog; replace operation-errors " +
-        "(by handler types), presence-implies-mode (by process-env rules and generated Config), tech-debt (by " +
-        "capxul/comments) and ambient-time (by the Effect-native rules and workflow-body). Keep four: generate:check " +
+        "(by handler types), presence-implies-mode (by process-env rules, the generated Config and capxul/imports' Config " +
+        "clause), tech-debt (by capxul/comments) and ambient-time (by capxul/time, the Effect-native rules and " +
+        "workflow-body). The two parts of sdk-public-surface that still guard hand-written code move to rules: the React " +
+        "SDK's throws (capxul/no-throw) and the test boundary (capxul/imports). Keep four: generate:check " +
         "(sys:generated), loc (system.size, sys:loc), workspace (pins, overrides, references), and the lint canary.",
     },
     { label: "keep", text: "Keep the eight, adapted to the new layout." },
@@ -560,7 +637,9 @@ export const decision_tooling_cross_file = defineDecision({
     "Five of the old checks guarded hand-written surfaces or catalogues that are now generated, or a Convex runtime that is " +
     "gone; the error-count ratchet existed to pay down legacy, and new code starts at zero. What remains needs more than one " +
     "file: whether generated files match the records, how many lines each concept has, whether the manifests and the " +
-    "toolchain agree, and whether the config loads every rule. Each is under 200 lines; the old eight were 4,644.",
+    "toolchain agree, and whether the config loads every rule. Each is under 200 lines; the old eight were 4,644. A first " +
+    "draft said Effect's rules replaced ambient-time; measured, they pass Clock.currentTimeMillis, DateTime.now and " +
+    "performance.now(), so capxul/time does that part.",
   source: by("/home/user/factory/packages/tools/src/modules/lint/README.md and internal/ (line counts)"),
   affects: SHIPPED,
 });
@@ -601,7 +680,8 @@ export const decision_tooling_hooks = defineDecision({
       label: "two-scripts",
       text:
         "pre-commit: CI=1 vp staged (fmt and lint on staged files, gitleaks on the staged diff), at most 5 s for 30 files. " +
-        "pre-push: refuse a push to main or integration/build and a ref that is not HEAD, then vp fmt --check, vp lint, " +
+        "pre-push: refuse any update or deletion of main or integration/build and a ref that is not HEAD, then vp fmt " +
+        "--check, vp lint, " +
         "tsc -b, generate:check, npm run book and vp test run on the whole tree, at most 90 s until B3.",
     },
     { label: "staged-only", text: "Only the staged checks; leave everything else to CI." },
@@ -614,7 +694,11 @@ export const decision_tooling_hooks = defineDecision({
     "so tsc cannot run there; no --fix at commit, because the Effect fixes rewrite code; hooks call direct verbs, never the " +
     "task graph, after vp was SIGKILLed in a macOS worktree. Staged-only lets a red tree reach the remote and costs a CI " +
     "round trip per mistake. Scoping by changed files took a 100-line script; the whole tree fits 90 s now (book checks " +
-    "about 15 s, lint and types seconds), and scoping is the first remedy when it stops fitting.",
+    "about 15 s, lint and types seconds), and scoping is the first remedy when it stops fitting. The old pre-push ran no tsc " +
+    "and no tests because the SDK's declaration emit hit a memory cliff; every target project is noEmit. Measured through " +
+    "the dispatcher with a bare remote: pushes to main and integration/build, a deletion of main and a ref that is not " +
+    "HEAD were refused; a first draft that skipped deletions before checking the protected names let the deletion through, " +
+    "which the old merge gate refused.",
   source: by("/home/user/factory/lefthook.yml and .lefthook/pre-push/check.sh; /home/user/factory/vite.config.ts staged block; prototype hook timings"),
   affects: [f.system_capxul],
 });
@@ -705,8 +789,9 @@ export const decision_tooling_dead_code = defineDecision({
       label: "knip-jscpd",
       text:
         "knip 6.44.1 for unused dependencies, files and exports and unlisted dependencies, over hand-written code " +
-        "(src/generated and the book excluded), run with KNIP_DISABLE_RAW_TRANSFER=1; jscpd 5.4.2 at a 2% threshold over " +
-        "packages/*/src, run directly in CI, never under vp run.",
+        "(src/generated and the book excluded), run with KNIP_DISABLE_RAW_TRANSFER=1, with typescript-5 the one ignored " +
+        "dependency (tools/freeze-flags.ts, outside knip); jscpd 5.4.2 at a 2% threshold over packages/*/src, run directly " +
+        "in CI, never under vp run.",
     },
     { label: "deps-only", text: "knip --dependencies only, as the old gate ran it." },
   ],
@@ -716,7 +801,10 @@ export const decision_tooling_dead_code = defineDecision({
     "until the SDK or CLI is packed, so both axes are on; the old repository kept files and exports off only because its " +
     "published barrels had no in-repo callers, which generated code no longer has. Duplication is a measure of avoidable " +
     "lines; new code starts below the old 3.2%, and the threshold only moves down. The old lessons stay: knip's raw-transfer " +
-    "parser reserved a 6 GiB buffer some runtimes refuse, and jscpd's stdout broke under the task runner.",
+    "parser reserved a 6 GiB buffer some runtimes refuse, and jscpd's stdout broke under the task runner. Measured on a " +
+    "scratch workspace: knip's vite-plus plugin makes test files entries; it reported a root vite devDependency and " +
+    "typescript-5 as unused, so the root lists no vite and ignores typescript-5 with its reason. jscpd 5.4.2 with the " +
+    "config skipped src/generated and exited 1 over the threshold.",
   source: by("/home/user/factory/knip.jsonc, .jscpd.json and packages/tools/src/modules/lint/tasks.ts"),
   affects: [f.system_capxul],
 });
@@ -731,7 +819,8 @@ export const decision_tooling_lane_gate = defineDecision({
       text:
         "B1: generated code passes the standard under only the generated override, goes through the shared hashed writer, " +
         "is byte-identical across runs, emits the types that replace the old checks (handler error and service channels, " +
-        "typed workflow steps and waits, error classes with a cause, Spans, Config, transition tables), and maps " +
+        "workflow skeletons with <Name>Steps and <Name>Waits as section 7 fixes them, error classes with a cause, Spans, " +
+        "a required-only Config, transition tables, RequestTime and StepTime, migrations with no time default), and maps " +
         "Schema.Number to Schema.Finite. Every lane: hooks and CI green without bypass, zero findings, reasoned and counted " +
         "disables, generate:check clean, new dependencies exact, aged and reviewed, lines counted.",
     },

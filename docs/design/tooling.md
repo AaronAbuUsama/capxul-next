@@ -10,7 +10,7 @@ T0 runs before B0. The B0 spike is the first code the gates see.
 
 | # | Milestone | Exit |
 |---|---|---|
-| T0 | **Tooling** (`docs/design/tooling.md`). Pin the toolchain: Node 24.22.2, npm 12.2.2 workspaces, Vite Plus 1.5.0 (Oxlint 1.91.0, Oxfmt 0.76.0, Vitest 5.1.0), @effect/tsgo 0.67.3, TypeScript 7.0.2, gitleaks 8.30.1. Write `vite.config.ts` (lint, fmt, staged, test), the hooks, the knip, jscpd and gitleaks configs and the CI workflow, exactly as given here. Build `packages/lint` (nine `capxul/*` rules, each with good and bad fixtures) and the first target of `packages/generate` (the lint facts, from `books/target`). Format the tree once. | From a fresh clone every gate passes on the whole tree. The lint canary fires every rule on its bad fixtures and none on its good ones. The hooks refuse a bad commit and a push to `main`, within budget. CI is green on the T0 pull request. The book's counts are unchanged. The baselines are logged in `docs/mission/progress.md`. |
+| T0 | **Tooling** (`docs/design/tooling.md`). Pin the toolchain: Node 24.22.2, npm 12.2.2 workspaces, Vite Plus 1.5.0 (Oxlint 1.91.0, Oxfmt 0.76.0, Vitest 5.1.0), @effect/tsgo 0.67.3, TypeScript 7.0.2, gitleaks 8.30.1. Write `vite.config.ts` (lint, fmt, staged, test), the hooks, the knip, jscpd and gitleaks configs and the CI workflow, exactly as given here. Build `packages/lint` (ten `capxul/*` rules, each with good and bad fixtures) and the first target of `packages/generate` (the lint facts, from `books/target`). Format the tree once. | From a fresh clone every gate passes on the whole tree. The lint canary fires every rule on its bad fixtures and none on its good ones. The hooks refuse a bad commit and a push to `main`, within budget. CI is green on the T0 pull request. The book's counts are unchanged. The baselines are logged in `docs/mission/progress.md`. |
 
 ## Contents
 
@@ -26,8 +26,8 @@ T0 runs before B0. The B0 spike is the first code the gates see.
 
 ## 0. The principle
 
-The old system enforced its architecture with about 5,900 lines of hand-written checks: 11 Oxlint
-rules (1,269 lines) and 8 cross-file checks (4,644 lines) that rebuilt a TypeScript program to
+The old system enforced its architecture with about 6,100 lines of hand-written checks: 12 Oxlint
+rules (about 1,500 lines with their helpers) and 8 cross-file checks (4,644 lines) that rebuilt a TypeScript program to
 follow call graphs and catalogues. Most of those checks existed because the catalogues and
 surfaces were written by hand and could drift. In the target, the book generates those surfaces,
 so they cannot drift.
@@ -68,17 +68,17 @@ and TypeScript versions it supports. The bundle must fall inside that list.
 
 | Tool | Version | Released | Role | Why this one |
 |---|---|---|---|---|
-| Node.js | 24.22.2 (LTS "Krypton") | 27 Oct 2026 | Runtime for everything | The old CI moved its tests to Node 24 after Node 22.23.4's type stripper crashed a CLI child (#3748). This session runs exactly 22.23.4. Node 24 is LTS until April 2028, past B5. Vite Plus needs `^24.11.0`, and npm 12 needs `^24.15.0`. linux-x64 tarball sha256 `48cc0e21e048790e54c0cf5749c2725005313d652651c40b7a21feb9697aaf75`. |
+| Node.js | 24.22.2 (LTS "Krypton") | 27 Oct 2026 | Runtime for everything | The old CI moved its tests to Node 24 after Node 22.23.4's type stripper crashed a CLI child (#3748). This session runs exactly 22.23.4. Node 24 is LTS until April 2028, past B5. Node 24 is this design's choice, not a tool's requirement: Vite Plus 1.5.0 accepts `^22.18.0 \|\| ^24.11.0` and npm 12.2.2 `^22.22.2 \|\| ^24.15.0` (their `engines`), and `devEngines` pins `^24.15.0`. linux-x64 tarball sha256 `48cc0e21e048790e54c0cf5749c2725005313d652651c40b7a21feb9697aaf75`. |
 | npm | 12.2.2 | 4 Nov 2026 | Package manager, workspaces | See [package manager](#the-package-manager). |
 | vite-plus | 1.5.0 | 4 Nov 2026 | The one entry: `vp lint`, `vp fmt`, `vp check`, `vp test`, `vp staged`, `vp hooks` | It bundles the versions below, so they are not separate dependencies. |
 | ↳ oxlint | 1.91.0 (bundled) | 3 Nov 2026 | Linter | Inside @effect/tsgo 0.67.3's supported 1.88.0–1.91.0. |
 | ↳ oxlint-tsgolint | 7.0.2005 (bundled) | 22 Oct 2026 | Type-aware lint and `typeCheck` | Inside the supported 7.0.2004–7.0.2005. |
 | ↳ oxfmt | 0.76.0 (bundled) | 3 Nov 2026 | Formatter | |
-| ↳ vitest | 5.1.0 (bundled; pinned by `overrides`) | 2 Nov 2026 | Tests | Vite Plus's docs require the `vite` alias and the `vitest` pin under npm. Without them, a top-level `vitest` cannot find `vite` (reproduced: `ERR_MODULE_NOT_FOUND`). |
-| @effect/tsgo | 0.67.3 | 5 Nov 2026 | Effect's Oxlint rules (`effect-tsgo patch --oxlint`) | Supports TypeScript 7.0.2, Oxlint 1.91.0 and tsgolint 7.0.2005. 0.67.5 also exists but is under 3 days old. |
+| ↳ vitest | 5.1.0 (bundled; pinned by `overrides`) | 2 Nov 2026 | Tests | Vite Plus's local-CLI guide gives the `vite` alias and the `vitest` pin as npm `overrides`. Without them, a top-level `vitest` cannot find `vite` (reproduced: `ERR_MODULE_NOT_FOUND`). A direct `vite` devDependency is needed only where a manifest already lists `vite`, so the root has none: with the overrides alone `vp test run` passes (measured), and knip reports a root `vite` entry as unused. |
+| @effect/tsgo | 0.67.3 | 5 Nov 2026 | Effect's Oxlint rules (`effect-tsgo patch --oxlint`) | Its README's `supported-components` block lists TypeScript 7.0.2, Oxlint 1.88.0–1.91.0 and tsgolint 7.0.2004–7.0.2005. 0.67.4 (6 Nov) and 0.67.5 (7 Nov) also exist but are under 3 days old. |
 | typescript | 7.0.2 | 8 Jul 2026 | The only compiler (`tsc`, `tsc -b`) | Measured: `tsc -p books` passes clean in 4.8 s, against 10.2 s on 5.9.3, and `packages/book` passes in 0.4 s. @effect/tsgo needs a native TypeScript 7. |
 | typescript-5 | `npm:typescript@5.9.3` | | Only `tools/freeze-flags.ts`, which uses the compiler API | TypeScript 7 has no stable programmatic API. The alias keeps `books/frozen/flags.ts` reproducible. |
-| effect, @effect/platform-node, @effect/vitest | 4.1.2 | 2 Nov 2026 | Runtime and Effect tests | Already pinned by `packages/book`. |
+| effect, @effect/platform-node, @effect/vitest | 4.1.2 | 2 Nov 2026 | Runtime and Effect tests | `packages/book` already pins `effect` 4.1.2. The other two join with the first package that uses them (B0/B3), at the same version. `@effect/vitest` has a required `vitest` peer, so a package that uses it also lists `vitest` `5.1.0` (Vite Plus's rule for a required peer). |
 | @types/node | 24.19.2 | 9 Oct 2026 | Node 24 types | |
 | knip | 6.44.1 | 31 Oct 2026 | Unused dependencies, files, exports; unlisted dependencies | 6.44.2 is under 3 days old. |
 | jscpd | 5.4.2 | 20 Oct 2026 | Duplication (CI only) | 5.4.3 is from today. |
@@ -94,7 +94,9 @@ its tests import `vite-plus/lint/plugins-dev`.
 enters the set only when it is at least 3 days old: `.npmrc` sets `min-release-age=3`, so npm
 refuses anything younger. The new set must meet the coherence rule, which `npm run workspace`
 checks. If npm refuses a pin as too young, the window is working: wait, or take the pin's
-predecessor. Never lower the window.
+predecessor. Never lower the window. The window applies when a version enters the lockfile, not
+when a locked one is installed. Measured with npm 12.2.2: with a 30-day window, `npm ci` and an
+`npm install` against an up-to-date lockfile still installed the 4-day-old vite-plus 1.5.0.
 
 ### The package manager
 
@@ -170,7 +172,6 @@ Exactly these files, plus the plugin package (section 3) and the facts target of
     "knip": "6.44.1",
     "typescript": "7.0.2",
     "typescript-5": "npm:typescript@5.9.3",
-    "vite": "npm:@voidzero-dev/vite-plus-core@1.5.0",
     "vite-plus": "1.5.0"
   },
   "overrides": {
@@ -190,9 +191,16 @@ Exactly these files, plus the plugin package (section 3) and the facts target of
 
 `allowScripts` starts empty. T0 runs `npm approve-scripts --allow-scripts-pending` and records
 every entry it must add, each with a reason in its pull request. The expected answer is none: the
-toolchain's binaries are optional platform packages, not install scripts.
+toolchain's binaries are optional platform packages, not install scripts. Measured with npm
+12.2.2 on this manifest (with `devEngines.runtime` relaxed for this session's Node 22): it installs
+in 12 s, `prepare` patches the Oxlint binding, tsgolint and `tsc`, and `approve-scripts
+--allow-scripts-pending` prints "No packages with unreviewed install scripts". `node_modules/.bin/tsc`
+is TypeScript 7.0.2 on every install (the alias's `tsc` does not take the link).
 
-`packages/book` drops its own `typescript` 5.9.3 devDependency, so there is one compiler.
+`packages/book` drops its own `typescript` 5.9.3 and `@types/node` 22.19.1 devDependencies, so
+there is one compiler and one set of Node types: the root's 7.0.2 and 24.19.2 serve it, and
+`npm run workspace` would otherwise fail on `@types/node` at two versions. Measured: `tsc 7.0.2`
+checks `packages/book` and `books/` clean, also under `tsconfig.base.json`'s stricter flags.
 `tools/freeze-flags.ts` changes `import ts from "typescript"` to `"typescript-5"`.
 
 ### `.npmrc`, `.node-version`, `.gitignore`
@@ -269,8 +277,14 @@ Import form (decision `tooling.imports`):
   Plus troubleshooting guide), and one form keeps the import rule simple.
 
 `packages/sdk-react` adds `"lib": ["ES2023", "DOM"]`, `"types": []` and `"jsx": "react-jsx"`. A
-package joins the root `references` when it is created; `npm run workspace` fails a package that is
-missing from them.
+package joins the root `references` when it is created; `npm run workspace` fails a package other
+than `packages/book` that is missing from them.
+
+Measured with TypeScript 7.0.2: a package that imports another by name, through an `exports` that
+points at `src`, builds under `tsc -b` with no reference between them, and a type error in either
+package fails the build. The imported package's files are checked inside the importer's program,
+under the importer's options. So `packages/generate`, which imports `books/target`, also checks
+the book at each `tsc -b`.
 
 ### `vite.config.ts`: lint, fmt, staged, test
 
@@ -286,8 +300,12 @@ object: `@effect/tsgo/oxlint-presets` exports it typed. Spreading the JSON prese
 import { strict as effectStrict } from "@effect/tsgo/oxlint-presets";
 import { defineConfig } from "vite-plus";
 
+/** A package's sources, and the canary's fixture trees that mirror them (packages/lint/fixtures/{good,bad}/packages/…). */
+const sources = (packages: string) => [`packages/${packages}/src/**`, `packages/lint/fixtures/*/packages/${packages}/src/**`];
 /** Code that ships: the Effect-native rules and capxul/no-throw apply (tooling.effect-rules). */
-const PRODUCT = ["packages/{runtime,backend,sdk,cli,mcp,indexer,devnet}/src/**"];
+const PRODUCT = sources("{runtime,backend,sdk,cli,mcp,indexer,devnet}");
+/** The React SDK ships too, but is not Effect code: capxul/no-throw only (tooling.errors). */
+const REACT = sources("sdk-react");
 const TESTS = ["**/*.test.{ts,tsx}", "**/test/**"];
 const GENERATED = ["**/src/generated/**"];
 /** A process's entry point builds its layer and provides it once. */
@@ -307,8 +325,11 @@ export default defineConfig({
     ignorePatterns: [
       // Outside Oxlint (tooling.lint-scope): the design book and its tools are checked by `npm run book`.
       "books/**", "packages/book/**", "tools/**", "docs/**",
-      // Throwaway spikes, linted by hand; the canary's fixtures, linted only by the canary.
-      "spikes/**", "packages/lint/fixtures/**",
+      // Throwaway spikes, linted by hand.
+      "spikes/**",
+      // The canary's fixtures, linted only by the canary: `vp lint --no-ignore` does not lift a
+      // config's ignorePatterns (measured: "No files found to lint", exit 0), so the canary sets this.
+      ...(process.env.CAPXUL_LINT_CANARY === "1" ? [] : ["packages/lint/fixtures/**"]),
       "**/dist/**", "**/coverage/**",
     ],
     rules: {
@@ -342,7 +363,7 @@ export default defineConfig({
       // Capxul (section 3).
       ...all("error",
         "capxul/imports", "capxul/concept-shape", "capxul/workflow-body", "capxul/span-names",
-        "capxul/generated-intact", "capxul/catch-keeps-cause", "capxul/comments"),
+        "capxul/generated-intact", "capxul/catch-keeps-cause", "capxul/comments", "capxul/time"),
     },
     overrides: [
       {
@@ -360,6 +381,7 @@ export default defineConfig({
           "effecttsgo/extends-native-error", "effecttsgo/node-builtin-import",
           "capxul/no-throw"),
       },
+      { files: REACT, rules: all("error", "capxul/no-throw") },
       { files: ROOTS, rules: all("off", "effecttsgo/strict-effect-provide") },
       {
         files: TESTS,
@@ -419,8 +441,8 @@ export default defineConfig({
 | Effect strict preset | 97 `effecttsgo/*` rules, all error | The same set the old repository listed by hand (85 rules), plus 15 style rules the preset has since added. Extending the preset keeps it in step with each pinned version. |
 | Effect extras | `any-unknown-in-error-context`, `unsafe-effect-type-assertion`, `strict-effect-provide`, `effect-try-without-catch` | The first three were in the old set but are not in the strict preset. `effect-try-without-catch` makes every `Effect.try`/`tryPromise` map its failure to a declared error, instead of an `UnknownError`. |
 | `unstable-api-usage` | off | Effect 4.1.2 marks `effect/workflow`, `effect/cluster`, `effect/rpc`, `effect/sql`, `effect/http`, `effect/cli` and `effect/observability` as `@stability unstable`: 5,046 module-level markers (counted). The whole stack is built on them. The exact pin is the guard, because an API change fails the typecheck when the pin moves. `experimental-api-usage` stays an error. |
-| Effect-native (product only) | the 20 rules in the `PRODUCT` override | Time, randomness, timers, `fetch`, `crypto.randomUUID`, `process.env`, `console`, `JSON`, `new Promise`, `async` functions, native `Error` classes and Node built-ins only through Effect's services: `Clock`, `Random`, `HttpClient`, `Config`, `Logger`, `Schema`, `SecureRandom` and the platform layers. These replace the old `ambient-time`, `presence-implies-mode` and half of `no-raw-provider-call` (section 4). They are off for the tooling packages (the plugin and the generator are plain Node scripts) and for `sdk-react`. |
-| Type-aware TypeScript | the 20 named `typescript/*` rules | The old list, plus `no-explicit-any`: the generated types are how the book is enforced, and `any` turns them off. `ban-ts-comment` allows `@ts-expect-error` with a description, and nothing else. |
+| Effect-native (product only) | 20 of the 26 rules in @effect/tsgo's `effect-native` preset, in the `PRODUCT` override | Time, randomness, timers, `fetch`, `crypto.randomUUID`, `process.env`, `console`, `JSON`, `new Promise`, `async` functions, native `Error` classes and Node built-ins only through Effect's services: `Random`, `HttpClient`, `Config` (through the generated module, `capxul/imports`), `Logger`, `Schema`, `SecureRandom` and the platform layers. With `capxul/time` and `capxul/imports` they replace the old `ambient-time`, `presence-implies-mode` and half of `no-raw-provider-call` (section 4). Measured: `global-date` refuses `new Date(ms)` as well as `Date.now()`, so product code formats an instant with `DateTime`. Left out: `abort-controller-in-effect` (already in the strict preset), `schema-sync` (the strict preset's `schema-sync-in-effect` covers Effect code) and four suggestions (`instance-of-schema`, `prefer-effect-array`, `-record` and `-string`, whose own docs say "with semantic caveats"). They are off for the tooling packages (the plugin and the generator are plain Node scripts) and for `sdk-react`, which gets `capxul/no-throw` alone. |
+| Type-aware TypeScript | the 19 type-aware `typescript/*` rules named, plus `no-explicit-any` | Measured on Oxlint 1.91: `typeAware` with the three categories turns on 26 type-aware rules. The 19 the old repository relied on are named, so a category change cannot drop them; the other 7 come with the categories, and `consistent-return` is turned off. `no-explicit-any` (restriction, not type-aware) is new: the generated types are how the book is enforced, and `any` turns them off. `ban-ts-comment` allows `@ts-expect-error` with a description, and nothing else. |
 | `consistent-return` | off | `noImplicitReturns` catches the same thing and understands `absurd()`. The rule pushed code toward `return undefined;` boilerplate (old lesson). |
 | `oxc/no-map-spread` | off | It pushed code toward `Object.assign` and mutation, which is worse code (old lesson). |
 | Size and shape | complexity 25, 250 lines per file, depth 5, 4 nested callbacks | Small files are what an agent can read whole. These limits held on the old repository; changing them is a decision. |
@@ -431,10 +453,15 @@ export default defineConfig({
 #### Why the formatter is set this way (decision `tooling.fmt`)
 
 - **`printWidth: 120`.** The book's lines run to p90 = 124 characters (measured over `payments` and
-  `packages/book`). Oxfmt would reformat 226 of 293 files at width 100 and 201 at 120. Every width
-  needs one formatting commit, and 120 wraps fewer of the Effect pipe chains.
+  `packages/book`). Oxfmt would reformat 226 of 293 `.ts` files at width 100 and 201 at 120. With
+  the JSON files and sorted imports, it rewrites 296 of the 330 files it formats at 120 (measured
+  on the tree of 8 November). Every width needs one formatting commit, and 120 wraps fewer of the
+  Effect pipe chains.
 - **`sortImports: true`.** One deterministic import order. Lanes that add imports to the same file
-  then rarely conflict.
+  then rarely conflict. It reorders `books/target/index.ts`'s concept imports, but not the
+  `conceptModules` array that fixes record order. Measured on a copy formatted with these exact
+  settings: the build's output (`README.md`, `concepts/`, `evals.json`, `findings.json`) is
+  byte-identical, `tsc -p books` passes and `check-frozen` reports 0 breaches.
 - **Markdown is not formatted.** Oxfmt pads every table column to its widest cell. On
   `docs/design-book.md`, that turned 100-character rows into 400-character rows. Prose is reviewed
   by reading.
@@ -445,7 +472,8 @@ export default defineConfig({
 T0 formats the whole tree once, in a commit that contains nothing else. It then proves the book is
 unchanged:
 
-- the build reports the same 2,132 records, 4,752 evals, 0 problems and 74 gaps;
+- the build reports the same records, evals, problems (0) and gaps as on the commit before, and its
+  output files are byte-identical;
 - `check-frozen` reports 0 breaches.
 
 ### The hooks: `.vite-hooks/pre-commit` and `.vite-hooks/pre-push`
@@ -459,18 +487,18 @@ vp staged
 
 ```sh
 # .vite-hooks/pre-push — decision tooling.hooks. Git passes "<local ref> <local sha> <remote ref>
-# <remote sha>" lines on stdin. Refuse a direct push to a merge-only branch; refuse a ref that is
-# not HEAD, because the gates read the working tree; then run the gates over the whole tree.
+# <remote sha>" lines on stdin. Refuse any update or deletion of a merge-only branch; refuse a ref
+# that is not HEAD, because the gates read the working tree; then run the gates over the whole tree.
 export CI=1 VP_NO_UPDATE_CHECK=1
 head=$(git rev-parse HEAD)
 check=no
 while read -r local_ref local_sha remote_ref remote_sha; do
-  case "$local_sha" in *[!0]*) ;; *) continue ;; esac   # a deletion pushes nothing
   case "$remote_ref" in
     refs/heads/main | refs/heads/integration/build)
       echo "pre-push: $remote_ref takes pull-request merges only." >&2
       exit 1 ;;
   esac
+  case "$local_sha" in *[!0]*) ;; *) continue ;; esac   # another deletion pushes nothing to check
   if [ "$(git rev-parse "$local_sha^{commit}")" != "$head" ]; then
     echo "pre-push: $local_ref is not HEAD; check it out and push it from there." >&2
     exit 1
@@ -486,6 +514,15 @@ npm run --silent book
 vp test run
 ```
 
+The dispatcher runs each script as `sh -e <script>` with stdin passed through and
+`node_modules/.bin` first on `PATH`. Measured through it on a scratch repository with a bare
+remote: `git push origin HEAD:main` and `HEAD:integration/build` are refused, `git push origin
+--delete main` is refused (the old merge gate refused a deletion too; checking the deletion
+before the protected names, as a first draft did, let it through), a ref that is not HEAD is
+refused, and a push to any other branch runs the gates. `gitleaks` is not an npm package: a
+machine without it on `PATH` has every commit refused by `vp staged`, which fails closed. The
+environment's setup script installs it; a person's machine installs it once.
+
 GitHub branch protection on `main` and `integration/build` is the real guard: a hook can be
 skipped. It requires the `check` and `secrets` jobs to pass and allows no direct pushes, and only
 the repository's owner can turn it on (decision `tooling.branch-protection`).
@@ -500,7 +537,12 @@ the repository's owner can turn it on (decision `tooling.branch-protection`).
   "ignore": ["**/src/generated/**", "packages/lint/fixtures/**"],
   "ignoreWorkspaces": ["packages/book"],
   "workspaces": {
-    ".": { "entry": ["vite.config.ts"], "project": ["vite.config.ts"] },
+    ".": {
+      "entry": ["vite.config.ts"],
+      "project": ["vite.config.ts"],
+      // tools/freeze-flags.ts imports the old compiler API; tools/ is outside knip (tooling.lint-scope).
+      "ignoreDependencies": ["typescript-5"]
+    },
     "packages/*": { "entry": ["src/index.ts", "src/main.ts"], "project": ["src/**/*.{ts,tsx}"] },
     "packages/lint": { "entry": ["src/plugin.ts", "src/main.ts"], "project": ["src/**/*.ts"] }
   }
@@ -510,6 +552,14 @@ the repository's owner can turn it on (decision `tooling.branch-protection`).
 Run it as `KNIP_DISABLE_RAW_TRANSFER=1 knip --no-progress --no-config-hints`. Knip's raw-transfer
 parser reserves one 6 GiB `ArrayBuffer`, which some Node runtimes reject (old lesson). An entry in
 `ignoreDependencies` names the consuming code in a comment; without that, the dependency is removed.
+
+Measured with knip 6.44.1 on a scratch workspace laid out like T0: knip's `vite-plus` plugin
+enables its Vitest plugin, so test files are entries and are not reported unused. It reported a
+root `vite` devDependency as unused (so the root has none), `typescript-5` as unused (hence the
+entry above), and `vitest` as unlisted wherever a test imported from `"vitest"`. So tests import
+Vitest's API from `vite-plus/test` and the RuleTester from `vite-plus/lint/plugins-dev`, never from
+`vitest` (Vite Plus's test guide says the same). A package that uses `@effect/vitest` lists
+`vitest` `5.1.0` as well.
 
 ### `.jscpd.json`
 
@@ -529,7 +579,9 @@ parser reserves one 6 GiB `ArrayBuffer`, which some Node runtimes reject (old le
 
 The threshold is 2% of hand-written lines. The old repository ratcheted down to 3.2% on legacy
 code; new code starts lower, and the threshold only ever moves down. Run jscpd directly, never under
-`vp run`: under the task runner its stdout became non-blocking (old lesson CAP-732).
+`vp run`: under the task runner its stdout became non-blocking (old lesson CAP-732). Measured with
+jscpd 5.4.2 and this file on a scratch tree: it skipped `src/generated/`, found a 20-line clone
+between two concept files, and exited 1 over the threshold and 0 once the clone was gone.
 
 ### `.gitleaks.toml`
 
@@ -636,7 +688,9 @@ that skipped the setup fails at its first install, not at a confusing lint error
 
 `packages/lint` is a tooling package (decision `tooling.plugin`). It is not a component, it is not
 counted in `system.size`, and it has its own budget: at most 900 non-test lines for the rules, and
-200 for the two checks in `main.ts`. The old plugin and checks took about 5,900 lines.
+200 for the two checks in `main.ts`. The old plugin and checks took about 6,100 lines.
+`system.layout` lists the packages as one per component plus `generate` and `evals`; this decision
+adds `lint` beside those two, outside `system.size` like them.
 
 ```
 packages/lint/
@@ -696,8 +750,12 @@ The payments entry is the real one, with sorted lists. Every fact is derived fro
 | `concepts.<c>.backend` | rpc, procedure and workflow records of `<c>` | `<area>.ts` for each area (the middle segment of every rpc id: all 223 are `<concept>.<area>.<name>`), `door.ts` if it has procedures, `processes.ts` if it has workflows |
 | `concepts.<c>.sdk` | flow records in `<c>`'s modules | `flows.ts` if it has flows |
 | `concepts.<c>.lines` | the concept's `lines` | `sys:loc/<c>`'s budget, once B3 sets it |
-| `workflows` | workflow records | the PascalCase export name of the id, and each step's and wait's `name` |
-| `spans` | the P6 span tree over rpcs, flows, flow steps, integration calls and workflows, plus each rpc's and flow's `spans` | name, and the expression of its constant in the generated `Spans` |
+| `workflows` | workflow records (`id`, `concept`, `steps[].name`, `waits[].name`) | the PascalCase export name of the id, and each step's and wait's `name`. Steps and waits are separate lists: in 5 workflows a step and a wait share a name (`confirm` in `payments.lifecycle.payment`). |
+| `spans` | the P6 span tree (`docs/decisions/policy-pack.md`, P6: `cli.<command>`, `sdk.<flow>`, `sdk.step.<name>` for `sign`, `build` and `encrypt` steps, `wait.person`/`wait.chain`, `rpc.<id>`, `db.tx`, `call.<integration>.<call>`, `workflow.<id>`, `workflow.step.<name>`) over operations, flows and their steps, rpcs, integration calls and workflows, plus each rpc's and flow's `spans` | name, and the expression of its constant in the generated `Spans`. One function in `packages/generate` computes both, and B1's `Spans` target calls the same function, as the door names do. |
+
+Every fact above was derived from the book of 8 November by a scratch script: the payments entry
+shown, all 223 rpc ids in three parts with their concept first, the 14 procedures (two-part ids),
+81 workflows with 341 steps and 94 waits, and no concept with `lines` set yet.
 
 Two runs write the same bytes: keys are sorted by id, files end with a newline, and line endings
 are LF. `npm run generate:check` renders every target in memory and compares it with the file on
@@ -710,15 +768,16 @@ facts.
 
 | Rule | Forbids or requires | Policy or decision behind it | Data it reads | Fixtures (good / bad) | Autofix |
 |---|---|---|---|---|---|
-| `capxul/imports` | **Across packages:** imports only the workspace packages in the table below. Never a path into another package's `src`, and never another package's `src/generated/`. **From a concept folder** (`packages/{backend,sdk}/src/<c>/`): another concept only through `src/<d>/door.ts`, only if `<d>` is in `<c>`'s `dependsOn`, and only names the door lists. Bare modules only `effect` and `effect/*`, plus `@capxul/runtime` in the backend. Otherwise its own files and its own package's `src/generated/`. No vendor SDK, no `node:*` and no other concept's internals. | `system.layout` (doors, `sys:imports/<c>`); P4's write boundary and `invoke-boundary`; A4 (the CLI calls one SDK method; the SDK calls only the backend, through the generated client); integrations (an outside service only through its Effect service in `packages/runtime`); `tooling.imports`. Replaces the old `concept-import-door`, `no-foreign-internal-import`, `no-relative-parent-import-out-of-concept` and `no-raw-provider-call`. | `concepts.*.dependsOn`, `concepts.*.door`; the workspace table is the rule's own constant | good: `payments/commands.ts` imports `{ open }` from `../approvals/door.ts` (payments depends on approvals, whose door lists `open` and `withdraw`). bad: `../approvals/internal.ts`; a concept outside `dependsOn`; a name the door does not list; `import { Resend } from "resend"`; `node:fs` in a concept; `@capxul/backend` from the SDK; `../../sdk/src/x.ts` | none |
+| `capxul/imports` | **Across packages:** imports only the workspace packages in the table below. Never a path into another package's `src`, and never another package's `src/generated/`. **From a concept folder** (`packages/{backend,sdk}/src/<c>/`): another concept only through `src/<d>/door.ts`, only if `<d>` is in `<c>`'s `dependsOn`, and only names the door lists. Bare modules only `effect` and `effect/*`, plus `@capxul/runtime` in the backend. Otherwise its own files, its own package's `src/generated/` and, in the SDK, `src/platform/` (the signers and transport a flow's `sign` and `build` steps use). No vendor SDK, no `node:*` and no other concept's internals. **In any product file that is not a test and not generated:** no `Config` or `ConfigProvider` from `effect` (or `effect/Config`, `effect/ConfigProvider`): configuration is read only through the generated `Config` module, so a variable's presence cannot become a mode (replaces `presence-implies-mode`); and no import of a test file, a `test/` folder, a `fixtures/` folder or a `*.test.ts` (the old surface check's test boundary). | `system.layout` (doors, `sys:imports/<c>`); P4's write boundary and `invoke-boundary`; A4 (the CLI calls one SDK method; the SDK calls only the backend, through the generated client); integrations (an outside service only through its Effect service in `packages/runtime`); `tooling.imports`. Replaces the old `concept-import-door`, `no-foreign-internal-import`, `no-relative-parent-import-out-of-concept` and `no-raw-provider-call`. | `concepts.*.dependsOn`, `concepts.*.door`; the workspace table is the rule's own constant | good: `payments/commands.ts` imports `{ open }` from `../approvals/door.ts` (payments depends on approvals, whose door lists `open` and `withdraw`). bad: `../approvals/internal.ts`; a concept outside `dependsOn`; a name the door does not list; `import { Resend } from "resend"`; `node:fs` in a concept; `@capxul/backend` from the SDK; `../../sdk/src/x.ts`; `import { Config } from "effect"` in `packages/runtime/src/sql.ts`; `../../test/world.ts` from product code | none |
 | `capxul/concept-shape` | A file under `packages/backend/src/<c>/` is one of `concepts.<c>.backend`, a file inside a folder named after one of those stems (`commands/prepare.ts`), a test beside one, or `internal.ts`/`internal/` (private to `<c>`). The SDK is the same with `concepts.<c>.sdk`. `src/` holds only concept folders, `generated/`, `main.ts`/`index.ts` and, in the SDK, `platform/` (signers and transport). `door.ts` exports only the book's procedures, plus types. A new top-level folder is a tooling decision and a change to this rule. | `system.layout` (`src/<concept>/` mirrors the book, so a record and its code share a name and a place); procedures are the door (P4). Replaces the old `concept-file-shape`. | `concepts.*.backend`, `.sdk`, `.door` | good: `src/payments/commands.ts`, `src/payments/commands/prepare.ts`. bad: `src/payments/helpers.ts`, `src/paymnts/x.ts`, a `door.ts` exporting `secret` | none |
-| `capxul/workflow-body` | Inside a workflow body (the function passed to `<Workflow>.toLayer(…)` in `src/<c>/processes.ts` or `processes/*.ts`), outside the `execute` of an `Activity.make(…)`: **no** `Date`, `Math.random`, `performance`, `crypto`, `fetch`, `process`, `setTimeout`/`setInterval`/`setImmediate`; no `Clock`, `DateTime`, `Random` or `Schedule`; no `Effect.sleep`, `delay`, `timeout*`, `retry`, `repeat`, `schedule*`, `race*`, `promise`, `tryPromise`, `async` or `callback`; nothing imported from `@capxul/runtime` or another concept's door. **Every `yield*`** is a generated step or wait of that workflow, a member of `Activity`, `DurableClock`, `DurableDeferred` or `Workflow` (from `effect/workflow`), a declared error, or `Effect.all`, `forEach`, `succeed`, `fail`, `void`, `when`, `log*` or `annotateCurrentSpan` over the same. **Every step and wait the book declares** for the workflow is yielded somewhere in its body. | A2 (Effect Workflow); P3; `rules.process-wakeups`. Effect Workflow re-runs a body on resume and replays recorded activity results, so anything else in the body gives a different answer on replay. Activities run at least once, which B0 proves with an idempotency key. The time a body waits is `DurableClock`. | `workflows.*` (steps, waits) | good: a body that yields `steps.settle(…)`, `waits.accept(…)` and `DurableClock.sleep(…)`, with `Clock` used inside an activity's `execute`. bad: `yield* Clock.currentTimeMillis` in the body; `Effect.sleep("1 second")`; `Date.now()`; `yield* helper()` imported from elsewhere; a door procedure called in the body; a declared step never run | none |
+| `capxul/workflow-body` | Inside a workflow body (the function passed to `<Name>.toLayer(…)` in `src/<c>/processes.ts` or `processes/*.ts`, where `<Name>` is the workflow's generated export), outside the arguments of a generated step call (`<Name>Steps.<step>(…)`, whose argument is the step's implementation and runs as its activity): **no** `Date`, `Math.random`, `performance`, `crypto`, `fetch`, `process`, `setTimeout`/`setInterval`/`setImmediate`; no `Clock`, `DateTime`, `Random`, `Schedule`, `DurableClock` or `ClusterCron`; no `Effect.sleep`, `delay`, `timeout*`, `retry`, `repeat`, `schedule*`, `race*`, `promise`, `tryPromise` or `callback`; nothing imported from `@capxul/runtime` (`Now` among it) or another concept's door. **Every `yield*`** is a generated step or wait of that workflow (`<Name>Steps.<step>(…)`, `<Name>Waits.<wait>(…)`, section 7), a member of `Activity`, `DurableDeferred` or `Workflow` (from `effect/workflow`), a declared error, or `Effect.all`, `forEach`, `succeed`, `fail`, `void`, `when`, `log*` or `annotateCurrentSpan` over the same. A `timer` wait is its generated wait, which calls `Timers.until` (`time.durable-timers`): a body never sleeps. **Every step and wait the book declares** for the workflow is yielded somewhere in its body. | A2 (Effect Workflow); P3; `rules.process-wakeups`; `time.durable-timers` and `time.no-direct-reads` (no `DurableClock.sleep`, `ClusterCron`, `Effect.sleep` or `Effect.timeout` in a body; no `Now` in a body, and `StepTime` inside a step). Effect Workflow re-runs a body on resume and replays recorded activity results, so anything else in the body gives a different answer on replay. Activities run at least once, which B0 proves with an idempotency key. | `workflows.*` (name, steps, waits) | good: a body that yields `PaymentsLifecyclePaymentSteps.settle(…)`, the signal wait `PaymentsLifecyclePaymentWaits.carrier(…)` and the timer wait `PaymentsLifecyclePaymentWaits.payDay(at)`, with `StepTime` read inside a step's implementation. bad: `yield* Clock.currentTimeMillis` in the body; `Effect.sleep("1 second")`; `DurableClock.sleep(…)`; `Date.now()`; `yield* helper()` imported from elsewhere; a door procedure called in the body outside a step; a declared step never run | none |
 | `capxul/span-names` | The name argument of `Effect.fn`, `Effect.withSpan`, `Effect.makeSpan`, `Effect.makeSpanScoped`, `Effect.useSpan` and `Layer.span` is a member of the generated `Spans`, never a string or template literal. Helpers that should not trace use `Effect.fnUntraced`. | P6 (the required span tree: `cli.*`, `sdk.*`, `rpc.*`, `db.tx`, `call.*`, `workflow.*`, `wait.*`, all opened by generated wrappers); an rpc's and a flow's `spans` (the book declares exactly one child span today: `sdk.step.browser-install`); evals `rpc:<id>/spans`, `flw:<id>/spans`, `spn:<op>`. A span a handler needs is added to its record first. | `spans` | good: `Effect.fn(Spans.sdk.step.browserInstall)`, `Effect.fnUntraced(…)`. bad: `Effect.fn("rpc.payments.commands.prepare")`, `` Effect.withSpan(`rpc.${id}`) `` | yes, when the literal equals a catalogue name and `Spans` is imported: rewrites it to the constant (measured in the prototype) |
 | `capxul/generated-intact` | Every file under `**/src/generated/**` starts with the header, and its `sha256` matches the rest of the file. No file outside `src/generated/` carries the header. | `system.layout` (the do-not-edit header); `sys:generated`. A hand edit is caught in the editor and at pre-commit in milliseconds; `generate:check` stays the full proof. | none (the file itself) | good: a correctly hashed file. bad: one byte changed; header missing; the header copied into `src/payments/x.ts` | none (the fix is `npm run generate`) |
-| `capxul/no-throw` | No `throw` statement in product code (the `PRODUCT` override; generated code included). Fail with a declared error: `return yield* new X(…)`. Make a switch exhaustive with `absurd` from `effect/Function`. | The error vocabulary (`books/target/shared/vocabulary.ts`: code, class, exit code); `rpc:<id>/errors`; B1's handler type, whose error channel is the rpc's declared errors. A throw escapes both and becomes a defect. Replaces the old `no-throw-in-recipe`, widened to all product code. | none | good: `return yield* new NotAuthenticated({})`, `absurd(x)`. bad: `throw new Error("x")`, `throw e` in a `catch` | none |
+| `capxul/no-throw` | No `throw` statement in product code (the `PRODUCT` override and the React SDK's `REACT` override; generated code included). Fail with a declared error: `return yield* new X(…)`. Make a switch exhaustive with `absurd` from `effect/Function`. In the React SDK, a misuse guard (a hook used outside its provider) takes a reasoned disable, which is counted. | The error vocabulary (`books/target/shared/vocabulary.ts`: code, class, exit code); `rpc:<id>/errors`; B1's handler type, whose error channel is the rpc's declared errors. A throw escapes both and becomes a defect. Replaces the old `no-throw-in-recipe`, widened to all product code, and the React half of the old `sdk-public-surface` (React threw only owned misuse guards). | none | good: `return yield* new NotAuthenticated({})`, `absurd(x)`. bad: `throw new Error("x")`, `throw e` in a `catch` | none |
 | `capxul/catch-keeps-cause` | A handler that fails again reads what it caught, other than through `void`. This covers `Effect.catch`, `catchIf`, `catchTag`, each handler of `catchTags`, `mapError`, the `catch` option of `Effect.try` and `tryPromise`, and a `catch (e)` clause. The handler must be written inline: a handler passed by name is refused, so the rule never reads across files. A handler that recovers to a value needs no cause. | The generated error classes carry an optional `cause`; Error Tracking needs the chain (old ADR-0023 R11, ADR-0039 L1). The old rule followed named handlers across files in 549 lines; requiring inline handlers removes that. | none | good: `Effect.mapError((cause) => new ProviderUnavailable({ cause }))`; a recovery to a value. bad: `mapError(() => new X())`; `catch: () => new X()`; `catchTag("A", handler)`; `(e) => { void e; return new X() }` | none |
 | `capxul/comments` | A debt marker (`TODO`, `FIXME`, `HACK`, `XXX`) is written `TODO(#123): …`, naming a GitHub issue of capxul-next. When the swarmD ledger runs, its task id is accepted too, by changing one constant. A disable directive (`oxlint-disable*`, `eslint-disable*`) names its rules and gives a reason after ` -- `. | Work is tracked, never left in a comment (`CLAUDE.md`: tracking work); `reportUnusedDisableDirectives` removes stale disables, and this rule makes every remaining one say why. Replaces the old `tech-debt` cross-file walk with a per-file rule, so the editor shows it. | none | good: `// TODO(#12): …`, `// oxlint-disable-next-line capxul/no-throw -- the CLI's exit`. bad: `// TODO tidy`, `// FIXME(aaron)`, a bare `// oxlint-disable-next-line`, `// eslint-disable-next-line no-console` with no reason | none |
 | `capxul/no-sentinel-tests` | In tests: no `expect.fail`, no `it.fails`/`test.fails`, no constant expectation (`expect(true).toBe(false)`) and no empty test body. Oxlint's vitest rules add no focused, skipped or todo tests. | Prove by running: a test that cannot fail proves nothing. Kept from the old plugin. | none | good: a test that asserts on the code's output. bad: each of the four forms | none |
+| `capxul/time` | The syntactic half of `time.no-direct-reads`, at zero from the first commit, in every linted package. Outside `packages/runtime/src/time/`: no `Date.now()`, `new Date()` with no argument, `performance.now()` or `process.hrtime`; no `Clock.currentTimeMillis`, `currentTimeNanos` or `clockWith`, and no `DateTime.now`, `nowAsDate` or `nowUnsafe` (names resolved through the file's imports from `effect`). `Now` (from `@capxul/runtime`) only in `packages/runtime` and in generated code: an rpc handler or a procedure reads `RequestTime`, a step `StepTime`. `RealTime` only in `packages/runtime/src/integrations/**`, an integration layer's envelope code. In SQL a product file writes (an `sql` tagged template, or a string given to `sql.unsafe`): no `now()`, `current_timestamp`, `clock_timestamp()`, `transaction_timestamp()` or `localtimestamp`. Real elapsed time stays allowed: `Clock.monotonicTimeNanos`, `Effect.timed`, and timeouts and `Schedule` in a step or a call. The clients (SDK, CLI, MCP, React SDK) and the indexer import no runtime package, so this leaves them `client.now()` and the block timestamp. The devnet's time authority (`packages/devnet`, `docs/design/time.md` section 2) must read the real clock for `realAt`; until the time design names that module, its one read takes a reasoned disable, which is counted. | `time.no-direct-reads` (the static invariant `inv:time.no-direct-reads`), `time.read-once`, `time.clients-take-server-now`, `time.durable-timers`; `docs/design/time.md` section 4 gives these rules to T0. Replaces the old `ambient-time` check. Measured on Oxlint 1.91 with the Effect rules: `global-date` and `global-date-in-effect` flag `Date.now()` and `new Date(…)`, but not `Clock.currentTimeMillis`, `DateTime.now` or `performance.now()`, and they are on in product packages only. | none (paths and imports) | good: `yield* RequestTime` in `payments/commands.ts`; `Clock.monotonicTimeNanos` around a call; `new Date(ms)` in `packages/lint`. bad: each read above; `Now` imported in `payments/commands.ts`; `RealTime` in `packages/backend`; `` sql`… where due_at < now()` `` | none |
 
 **Events need no rule.** Hand-written code sends no product event. Each machine's one event is sent by the
 generated transition code (P7), through the outbox. The operation's wide event comes from the generated CLI
@@ -754,14 +813,14 @@ It is never weakened by an override that nobody recorded.
 
 | Old check (lines) | Target | Why |
 |---|---|---|
-| `sdk-public-surface` | **Cut.** The SDK client is generated from the flows' `sdk` names; `sys:generated` keeps it equal to the book. | It policed a hand-written barrel. There is none. |
+| `sdk-public-surface` | **Cut, with two parts replaced.** The SDK client is generated from the flows' `sdk` names; `sys:generated` keeps it equal to the book. The React SDK is still hand-written, so `capxul/no-throw` covers it (its old error contract let it throw only owned misuse guards), and `capxul/imports` keeps product code from importing tests and fixtures (the old test boundary). | It policed a hand-written barrel. There is none. |
 | `telemetry-spine` | **Cut.** The telemetry catalogue is generated from machines, events and spans (B1). Events are sent only by the generated transition code (P7). Span names come only from `Spans` (`capxul/span-names`). Coverage is proven by `evt:`, `spn:`, `rpc:/spans` and `flw:/spans`. | Planned against wired drift cannot happen when both sides are generated from one record. |
 | `operation-errors` (a call graph) | **Replaced** by B1's handler type: its error channel is exactly the rpc's or flow's declared errors, so the compiler refuses an undeclared one. `rpc:<id>/errors` proves it at run time. | The type system does in zero lines what the old check did with a static call graph. |
 | `v8-boundary` | **Cut.** | No Convex V8 runtime; the backend is Node. |
-| `presence-implies-mode` | **Replaced** by `effecttsgo/process-env` and `process-env-in-effect` (only `Config` reads the environment), plus B1's generated `Config` from each environment record's `config` and `secrets`. A mode is then a decoded value, never a variable's presence. | A generated, schema-decoded config cannot treat presence as a mode. |
+| `presence-implies-mode` | **Replaced** by `effecttsgo/process-env` and `process-env-in-effect` (only `Config` reads the environment), by `capxul/imports` (hand-written product code imports no `Config` or `ConfigProvider` from `effect`), and by B1's generated `Config` from each environment record's `config` and `secrets`, every one required. A mode is then a decoded value, never a variable's presence. | A generated, schema-decoded config cannot treat presence as a mode. Without the import rule, `Config.option(Config.string("X"))` written by hand would bring the old branch back. |
 | `tech-debt` (a repository walk) | **Replaced** by `capxul/comments`. | Per-file, so the editor shows it, at no cost to the gate. |
 | `error-contract` (per-folder counts that could only fall) | **Cut.** Errors come from the generated catalogue. The integration edge maps each provider failure to the error its record names (`int:<id>.<call>/<error>` evals). `capxul/catch-keeps-cause` keeps the chain. | A ratchet exists to pay down legacy code. New code starts at zero, and the types hold it there. |
-| `ambient-time` | **Replaced** by the Effect-native time, timer and randomness rules (product code) and `capxul/workflow-body` (bodies). | Effect's own rules do it with configuration only. |
+| `ambient-time` | **Replaced** by `capxul/time` (every package: `time.no-direct-reads`), the Effect-native time, timer and randomness rules (product code) and `capxul/workflow-body` (bodies). | Effect's rules alone do not: measured, they pass `Clock.currentTimeMillis`, `DateTime.now` and `performance.now()`, and the one-clock design (`docs/design/time.md`) forbids those outside `packages/runtime/src/time/`. |
 | `error-catalog` | **Replaced** by the generated error catalogue (B1). | Generated. |
 
 | Old plugin rule | Target |
@@ -780,9 +839,9 @@ It is never weakened by an override that nobody recorded.
 | Check | Command | What it fails on | Eval or decision it serves |
 |---|---|---|---|
 | Generated files | `npm run generate:check` | any `src/generated/` file (and, from B1, any migration) that differs from what the records generate | `sys:generated` |
-| Lines | `npm run loc` | Prints JSON of hand-written lines (not blank, not comment-only; not tests, fixtures or `src/generated/`) per package and per concept, summed over the backend and the SDK, with the count of disable directives and debt markers in the same files. It fails when the product total passes 100,000, or a concept passes its `lines`. | `system.size`, `sys:loc/<c>` |
-| Workspace | `npm run workspace` | a dependency spec that is not an exact version (`*` allowed only for `@capxul/*`); one package at two versions; `overrides.vite` or `overrides.vitest` out of step with `vite-plus`'s own dependencies (Vite Plus issue #2356: bots bump them apart); a bundled Oxlint or tsgolint outside @effect/tsgo's supported list (read from its README's `supported-components` block); a package missing from the root `tsconfig.json` references; `.node-version` outside `devEngines` | `tooling.pins`, `tooling.typescript` |
-| The lint canary | `vp test run packages/lint` | a rule that does not fire on its bad fixture, or fires on a good one, through the real `vite.config.ts` | `tooling.lint-config` |
+| Lines | `npm run loc` | Prints JSON of hand-written lines (not blank, not comment-only; not tests, fixtures or `src/generated/`) per package, and per concept summed over `packages/backend/src/<c>/` and `packages/sdk/src/<c>/`, with the count of disable directives and debt markers in the same files. The product total is `runtime`, `backend`, `sdk`, `cli`, `sdk-react`, `mcp`, `indexer` and `devnet` (`system.size`'s components; the runtime is the backend's spine it counts); `book`, `generate`, `evals` and `lint` are reported apart. It fails when the product total passes 100,000, or a concept passes its `lines`. | `system.size`, `sys:loc/<c>` |
+| Workspace | `npm run workspace` | a dependency spec that is not an exact version (`*` allowed only for `@capxul/*`); one package at two versions; `overrides.vite` or `overrides.vitest` out of step with `vite-plus`'s own dependencies (Vite Plus issue #2356: bots bump them apart); a bundled Oxlint or tsgolint outside @effect/tsgo's supported list (read from its README's `supported-components` block); a package other than `packages/book` missing from the root `tsconfig.json` references; `.node-version` outside `devEngines` | `tooling.pins`, `tooling.typescript` |
+| The lint canary | `vp test run packages/lint`, which runs `CAPXUL_LINT_CANARY=1 vp lint --format json` on each fixture tree | a rule that does not fire on its bad fixture, or fires on a good one, through the real `vite.config.ts` | `tooling.lint-config` |
 
 Third-party, configured only: knip (unused and unlisted dependencies, files and exports), jscpd
 (duplication), gitleaks (secrets).
@@ -791,7 +850,7 @@ Third-party, configured only: knip (unused and unlisted dependencies, files and 
 
 | Gate | Runs | Budget | Measured on 8 November 2026 |
 |---|---|---|---|
-| pre-commit | `vp staged`: fmt and lint (type-aware, Effect, capxul) on the staged files; gitleaks on the staged diff | ≤ 5 s for a commit of up to 30 files; ≤ 15 s worst case | 1.4 s for 8 files (prototype); gitleaks 0.04 s |
+| pre-commit | `vp staged`: fmt and lint (type-aware, Effect, capxul) on the staged files; gitleaks on the staged diff | ≤ 5 s for a commit of up to 30 files; ≤ 15 s worst case; until B3, then re-measured and recorded | 1.4 s for 8 files (prototype); gitleaks 0.07 s on a staged fake key (measured through `vp staged`: the commit was refused in 1.1 s). Type-aware lint builds the program of each staged file's package, and `tsc 7` takes 5–7 s over `books/` (87,000 lines), so a staged file in a backend near that size may not fit 5 s: re-measure at B3. |
 | pre-push | protected-branch and HEAD checks; `vp fmt --check`, `vp lint`, `tsc -b`, `generate:check`, `npm run book` and `vp test run`, over the whole tree | ≤ 90 s until B3, then re-measured and recorded | book checks about 15 s (`tsc -p books` 4.8 s on TypeScript 7); the lint of 6 product files 1.1 s; a full-history gitleaks scan 5.9 s (CI only) |
 | CI `check` | everything in the workflow above, from a clean install | ≤ 10 min wall, install included | T0 records the first green run's step times as the baseline |
 | CI `secrets` | gitleaks over the whole history | ≤ 2 min, install included | 5.9 s scan; 32 s `go install` |
@@ -809,15 +868,20 @@ task graph from a hook.
    "hang" of about 9 minutes. `VP_NO_UPDATE_CHECK=1` alone is not enough. Kept in both hooks and in
    CI's `env`.
 2. **Worktree safety.** On macOS, the native `vp` binary was SIGKILLed (137) in a worktree, and the
-   SDK's declaration build hit a memory cliff (#1044, #1046). So pre-push called direct verbs (`vp
-   fmt`, `vp lint`, `node …`) and never the `vp run` task graph or the full test corpus. Kept:
-   pre-push calls direct verbs only. Agents run in Linux containers, but a person may push from a
-   macOS worktree.
+   SDK's declaration build hit a memory cliff (#1044, #1046). So the old pre-push called direct
+   verbs (`vp fmt`, `vp lint`, `node …`), scoped to the pushed files, and never `tsc`, the `vp run`
+   task graph or the test corpus. Kept: pre-push calls direct verbs only, never the task graph.
+   Changed: it now runs `tsc -b` and `vp test run` on the whole tree, because the memory cliff was
+   the SDK's declaration emit and every target project is `noEmit`, and the whole tree fits 90 s at
+   T0. If either one fails a person's push on a worktree, or runs past the budget, the first remedy is
+   to scope it, recorded with the measurement. Agents run in Linux containers, but a person may push
+   from a macOS worktree.
 3. **lefthook skipped a pre-push command when `git diff HEAD @{push}` was empty**, which let `git
    push origin HEAD:other` through unchecked, so the old gates were scripts that read stdin. Moot:
    the Vite Plus dispatcher always runs the script, and the script reads stdin.
 4. **A pushed ref that is not HEAD is refused**, because the gates read the working tree. Kept.
-5. **A direct push to the protected branch is refused** (old CAP-155). Kept for `main` and
+5. **A direct push to, or a deletion of, the protected branch is refused** (old CAP-155; the old
+   merge gate refused "an update (or deletion) of a gated base"). Kept for `main` and
    `integration/build`, with branch protection as the real guard.
 6. **`vp exec` dropped every argument after a literal `--`**, so the hooks ran bare `oxfmt` and
    `oxlint`. Kept: no `vp exec`, and no `--` before flags.
@@ -841,23 +905,34 @@ T0 is done when all of these were run and observed, and their output is in the T
      the strict preset and every Effect-native rule is `"error"` where its section says, that no
      rule anywhere is `"warn"`, and that `unstable-api-usage` is the only Effect rule turned off
      globally;
-   - **the canary** lints `packages/lint/fixtures/bad` with the real config (`vp lint --no-ignore
-     --format json`) and finds every expected rule id at least once: one rule from each built-in
-     category, `effecttsgo/floating-effect`, `effecttsgo/global-date-in-effect`, `import/no-cycle`
-     and each of the nine `capxul/*` rules. `fixtures/good` gives zero findings. This is the only
-     proof that all three layers are loaded, which the old system's silent passes lacked.
+   - **the canary** lints `packages/lint/fixtures/bad` with the real config
+     (`CAPXUL_LINT_CANARY=1 vp lint --format json packages/lint/fixtures/bad`) and finds every
+     expected rule id at least once: one rule from each built-in category,
+     `effecttsgo/floating-effect`, `effecttsgo/global-date-in-effect`, `import/no-cycle` and each of
+     the ten `capxul/*` rules. `fixtures/good` gives zero findings. The fixtures mirror real paths
+     (`fixtures/bad/packages/backend/src/payments/…`, `…/packages/sdk-react/src/…`), and the
+     config's `sources()` globs cover the mirrors, so the `PRODUCT` and `REACT` overrides reach
+     them. This is the only proof that all three layers are loaded, which the old system's silent
+     passes lacked. Measured with this config on a scratch tree: the canary's run fired all ten
+     `capxul/*` ids, `floating-effect`, `global-date-in-effect`, `no-explicit-any` and
+     `no-focused-tests` on the bad fixtures, and the whole-tree `vp lint` reported nothing under
+     `fixtures/`. Without the environment variable the same command finds no files and exits 0,
+     and with the `PRODUCT` globs written only as `packages/…/src/**`, `no-throw` and
+     `global-date-in-effect` did not fire on the mirrors.
 3. **The whole tree.** After the one formatting commit, `vp fmt --check`, `vp lint` (0 findings, 0
-   warnings) and `tsc -b` pass. `npm run book` reports 2,132 records, 4,752 evals, 0 problems and 74
-   gaps, and `check-frozen` 0 breaches (the counts at hand-off; any change is explained by a commit
-   that is not T0's).
+   warnings) and `tsc -b` pass. `npm run book` reports the same records, evals, 0 problems and
+   gaps as on the commit before the formatting commit (2,213, 4,789 and 74 on 8 November, with the
+   design lanes' records), and `check-frozen` 0 breaches.
 4. **Generated.** `npm run generate:check` passes. Changing one byte of `facts.ts` makes `vp lint`
    fail with `capxul/generated-intact`, and `generate:check` name the file. Revert both.
 5. **The hooks, on a scratch branch.**
    - A commit that stages a file with `throw new Error()` in `packages/backend/src/payments/` is
      refused by pre-commit, naming `capxul/no-throw`.
    - A commit that stages a fake token is refused by gitleaks.
-   - `git push origin HEAD:main` is refused.
+   - `git push origin HEAD:main` is refused, and so is `git push origin --delete main`.
    - Pushing a ref that is not HEAD is refused.
+   - A commit that stages `Clock.currentTimeMillis` in `packages/backend/src/payments/` is refused,
+     naming `capxul/time`.
    - Timed: pre-commit ≤ 5 s, pre-push ≤ 90 s.
 6. **CI.** On the T0 pull request, `check` and `secrets` are green within budget. A throwaway
    commit on a scratch branch that adds a `Date.now()` to a fixture-like product file fails `check`
@@ -886,16 +961,35 @@ T0 is done when all of these were run and observed, and their output is in the T
 
     A handler that reaches an undeclared integration, table or door does not compile. Flows are
     typed the same way.
-  - **Workflows.** Skeletons export their typed `steps` (each an `Activity` whose `execute` takes
-    an idempotency key) and `waits` (`DurableDeferred` and `DurableClock`). These are the names
-    `capxul/workflow-body` allows.
+  - **Workflows.** T0's `capxul/workflow-body` and its fixtures are written against this shape,
+    so B1 emits exactly it. `packages/backend/src/generated/workflows/<concept>.ts` exports, for
+    each workflow record, with `<Name>` the PascalCase of its id (`PaymentsLifecyclePayment`):
+    - `<Name>`: its `Workflow.make`;
+    - `<Name>Steps`: one function per step, keyed by the step's name in camelCase (`comeDue`). It
+      takes the step's implementation, an Effect, and runs it as the step's `Activity`, with the
+      step's idempotency key and `StepTime` provided (`time.read-once`);
+    - `<Name>Waits`: one function per wait, keyed the same way. A `timer` wait takes its due
+      instant and calls `Timers.until` (`time.durable-timers`); every other wait takes its routing
+      key's values (`rules.process-wakeups`) and awaits its `DurableDeferred`. A wait's `timeoutMs`
+      is a timer on now or a real timeout, by its kind (`time.real-elapsed`).
+
+    Steps and waits are separate objects because in 5 workflows a step and a wait share a name. The
+    body is the hand-written `<Name>.toLayer(…)` in `src/<concept>/processes.ts`.
+  - **Time.** The router reads `Now` once per rpc and provides `RequestTime`; the answer envelope
+    carries `now`, and the SDK client offers `client.now()` (`time.read-once`,
+    `time.clients-take-server-now`). No migration and no column default uses a Postgres time
+    function: the migration writer refuses one, so `generate:check` fails on it
+    (`time.no-direct-reads`).
   - **Errors.** One `Schema.TaggedError` class per error, with an optional `cause`.
-  - **Spans.** One `Spans` constant for the whole P6 tree.
-  - **Config.** One `Config` module per environment record.
+  - **Spans.** One `Spans` constant for the whole P6 tree, named by the function that writes the
+    lint facts' `spans`.
+  - **Config.** One `Config` module per environment record, with every `config` and `secrets`
+    entry required. It is the only importer of `Config` from `effect` in product code
+    (`capxul/imports`).
   - **Machines.** The transition tables refuse an undeclared transition, and they send the
     machine's one event; nothing else sends events.
-- **Numbers.** A field written `Schema.Number` in the book (97 of them) generates `Schema.Finite`,
-  unless its record says non-finite values are meant. Measured: linted as runtime code, the book's
+- **Numbers.** A field written `Schema.Number` in the book (about 100 of them; 101 on 8 November)
+  generates `Schema.Finite`. No record can say that non-finite values are meant, so every one maps. Measured: linted as runtime code, the book's
   schemas raise 456 `effecttsgo/schema-number` findings.
 - **New facts.** When a rule needs a new fact, it is added to the facts target in the same pull
   request as the rule.
@@ -912,6 +1006,8 @@ T0 is done when all of these were run and observed, and their output is in the T
   every other package that uses it (`npm run workspace`). Listed in the importing package's
   manifest (knip's unlisted count stays 0). No install script unless `allowScripts` approves it
   with a decision.
+- **Tests.** Vitest's API comes from `vite-plus/test`, never `vitest`. A package that uses
+  `@effect/vitest` lists `vitest` `5.1.0`, its required peer.
 - **Lines.** Each concept's lines are counted (`npm run loc`) and stay within its budget once B3
   sets them.
 - **The book.** The four book checks stay green, and the book changes first.
@@ -934,9 +1030,10 @@ and `tooling.branch-protection`.
 | `tooling.effect-rules` | The Effect strict preset, the extras, the Effect-native set in product code; `unstable-api-usage` off |
 | `tooling.lint-standard` | The built-in groups, the named rules and the one strict standard |
 | `tooling.lint-scope` | What Oxlint covers; the design book stays under its own checks |
-| `tooling.plugin` | `packages/lint`: nine rules, facts from the book, line budgets |
-| `tooling.imports` | Import form and the import rules (concept and workspace) |
-| `tooling.workflow-body` | A workflow body is replay-safe |
+| `tooling.plugin` | `packages/lint`: ten rules, facts from the book, line budgets |
+| `tooling.imports` | Import form and the import rules (concept, workspace, `Config`, tests) |
+| `tooling.workflow-body` | A workflow body is replay-safe: generated steps and waits, no clock and no sleep |
+| `tooling.time` | `capxul/time` enforces `time.no-direct-reads` in every package |
 | `tooling.span-names` | Span names only from the generated catalogue |
 | `tooling.generated-header` | The header carries a hash, checked per file |
 | `tooling.errors` | No throw in product code; a catch keeps its cause; typed failures by generated types |
