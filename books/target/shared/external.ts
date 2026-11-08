@@ -29,6 +29,7 @@ import {
   error_ROLE_PERMISSION_DENIED,
   error_TRANSACTION_FAILED,
   error_VERIFICATION_REQUIRED,
+  error_WORK_DIED,
   error_WRONG_ENVIRONMENT,
   error_WRONG_STATE,
 } from "./vocabulary.ts";
@@ -78,7 +79,7 @@ export const integration_chain_rpc = defineIntegration({
       failures: [unavailable("Every configured node"), unusable("The node")],
     },
     getBlock: {
-      about: "eth_getBlockByNumber: the chain head's number, time and base fee (a dated payment's chain clock, fee estimates).",
+      about: "eth_getBlockByNumber: the chain head's number, time and base fee (a deadline the chain judges, fee estimates, the drift watch's lag).",
       ...NODE_READ,
       failures: [unavailable("Every configured node"), unusable("The node")],
     },
@@ -503,22 +504,40 @@ export const integration_service_signer = defineIntegration({
 
 const CONTROL = { retries: { max: 0, backoff: "none" } } as const;
 const controlFailures = [
-  { when: "This machine runs no devnet: there is no control socket, or it is not this user's", error: error_WRONG_ENVIRONMENT },
+  {
+    when: "This machine runs no devnet: there is no control handoff (the supervisor's address and token), or it is not this user's",
+    error: error_WRONG_ENVIRONMENT,
+  },
   { when: "The supervisor did not answer in time", error: error_PROVIDER_ERROR },
 ] as const;
+/** A barrier that could not settle: the clock stays at the last stop that did (decision devnet.warp-barrier). */
+const unsettled = {
+  when: "At a stop the devnet did not settle in time: a follower stayed busy or did not acknowledge. The clock stays at the last stop that settled, and the refusal names the stop and the followers",
+  error: error_WORK_DIED,
+} as const;
+/** A clock call is local and immediate: one read or one state change of the time authority. */
+const CLOCK_CALL = { timeoutMs: 2_000, ...CONTROL, p95Ms: 100 } as const;
+/** A barrier call waits for every follower to settle at every stop, so a long story takes minutes. */
+const BARRIER = { timeoutMs: 600_000, ...CONTROL } as const;
 
 export const integration_devnet_control = defineIntegration({
   id: "devnet-control",
-  title: "The devnet supervisor's control socket",
+  title: "The devnet supervisor's control protocol: the clock and the worlds",
   about:
-    "The Core SDK's Node-only devnet entry talks to the devnet supervisor on the same machine, behind the Effect service " +
-    "`DevnetControl`: named worlds (the chain, Postgres and Ponder together) and the clocks. Only devnet operations use it.",
+    "The devnet supervisor's public control protocol, `capxul.devnet/1`: HTTP JSON on loopback, with the bearer token " +
+    "the supervisor writes to an owner-only handoff file, and the same requests on its owner-only Unix socket without " +
+    "one. Its time part is the one clock's interface for people building on Capxul (decision devnet.time-protocol): read " +
+    "now, start the story at a date, warp, step, settle, freeze and resume, watch the clock's events and follow it as a " +
+    "follower the barrier waits for. Its world part saves, lists and restores named worlds (the chain, Postgres and " +
+    "Ponder together, with the clock). The Core SDK's Node-only devnet entry is its typed client, behind the Effect " +
+    "service `DevnetControl`; the CLI's `dev time` and `dev snapshot` commands and the supervisor's own `capxul-devnet " +
+    "time` commands are thin clients of it, and an outside program may speak the HTTP directly. Only devnet records use it.",
   component: component_core_sdk,
   system: "capxul-devnet supervisor",
   service: "DevnetControl",
   calls: {
     snapshotSave: {
-      about: "Saves the whole world under a name, with the backend code it was saved with; `replace` replaces a world of that name.",
+      about: "Saves the whole world under a name, with its clock and the backend code it was saved with; `replace` replaces a world of that name.",
       timeoutMs: 60_000,
       ...CONTROL,
       p95Ms: 10_000,
@@ -529,7 +548,7 @@ export const integration_devnet_control = defineIntegration({
       ],
     },
     snapshotRestore: {
-      about: "Restores a named world.",
+      about: "Restores a named world, its clock frozen at the world's now during the restore, then in the mode it was saved in.",
       timeoutMs: 60_000,
       ...CONTROL,
       p95Ms: 10_000,
@@ -540,29 +559,71 @@ export const integration_devnet_control = defineIntegration({
       ],
     },
     snapshotList: { about: "The saved worlds, newest first.", timeoutMs: 2_000, ...CONTROL, p95Ms: 100, failures: [...controlFailures] },
-    clockShow: { about: "The chain's and the backend's clocks.", timeoutMs: 2_000, ...CONTROL, p95Ms: 100, failures: [...controlFailures] },
-    clockWarp: {
-      about: "Moves both clocks forward together by a duration or to a date, then runs the work that fell due.",
-      timeoutMs: 30_000,
-      ...CONTROL,
-      p95Ms: 5_000,
-      failures: [...controlFailures, { when: "The target is not later than the chain's time", error: error_INVALID_INPUT }],
+    timeRead: {
+      about:
+        "GET /v1/time: the clock (now, mode, version, world epoch, whether the story has begun), the chain head, the " +
+        "backend's now, Ponder's position, each follower's acknowledged version and next due instant, and whether they agree.",
+      ...CLOCK_CALL,
+      failures: [...controlFailures],
     },
-    clockStartAt: {
-      about: "Sets the date a fresh devnet starts at.",
+    timeWarp: {
+      about:
+        "POST /v1/time/warp: moves now forward by a span or to an instant, stopping at every due instant on the way, and " +
+        "returns when the chain has a block at the target and everything due by then has run and settled.",
+      ...BARRIER,
+      p95Ms: 5_000,
+      failures: [...controlFailures, { when: "The target is not later than now", error: error_INVALID_INPUT }, unsettled],
+    },
+    timeStartAt: {
+      about: "POST /v1/time/start-at: sets a fresh world's story at an earlier instant, mines a block there and settles.",
       timeoutMs: 30_000,
       ...CONTROL,
       p95Ms: 5_000,
       failures: [
         ...controlFailures,
-        { when: "The date is not earlier than the chain's time", error: error_INVALID_INPUT },
-        { when: "The clocks already moved: the world is not fresh", error: error_WRONG_STATE },
+        { when: "The date is not earlier than now", error: error_INVALID_INPUT },
+        { when: "The clock already moved: the world is not fresh", error: error_WRONG_STATE },
+        unsettled,
       ],
     },
+    timeStep: {
+      about: "POST /v1/time/step: moves now to the next instant anything is due (a timer, a cron run, a follower's next due), not past a limit, and settles.",
+      ...BARRIER,
+      p95Ms: 3_000,
+      failures: [...controlFailures, { when: "The limit is not later than now", error: error_INVALID_INPUT }, unsettled],
+    },
+    timeSettle: {
+      about: "POST /v1/time/settle: waits until everything due at now has run and every follower is idle, without moving now.",
+      ...BARRIER,
+      p95Ms: 2_000,
+      failures: [...controlFailures, unsettled],
+    },
+    timeFreeze: {
+      about: "POST /v1/time/freeze: holds now still, at the next whole second, until a warp, step or resume moves it.",
+      ...CLOCK_CALL,
+      failures: [...controlFailures],
+    },
+    timeResume: {
+      about: "POST /v1/time/resume: lets now run on from where it stands, at the real rate.",
+      ...CLOCK_CALL,
+      failures: [...controlFailures],
+    },
+    timeWatch: {
+      about: "GET /v1/time/events: the clock's events as server-sent events, each with its version, now, mode, world and reason.",
+      ...CLOCK_CALL,
+      failures: [...controlFailures],
+    },
+    timeFollow: {
+      about:
+        "POST /v1/followers, then its event stream and its acknowledgements: a follower the barrier waits for at every " +
+        "stop, idle or busy, with its own next due instant, which the warp then stops at.",
+      ...CLOCK_CALL,
+      failures: [...controlFailures, { when: "A follower of that name is already following", error: error_WRONG_STATE }],
+    },
   },
-  fake: "None: it exists only on a devnet machine.",
+  fake: "None: it exists only on a devnet machine. Its conformance suite is the protocol's own, run against the supervisor.",
   secrets: [],
-  was: ["packages/sdk/src/devnet/index.ts:5", "packages/devnet/src/modules/guardian/standing-config.ts:20"],
+  was: ["packages/sdk/src/devnet/index.ts:5", "packages/protocol/src/devnet/control.ts:107", "packages/devnet/src/modules/guardian/standing-config.ts:20"],
 });
 
 // ── contracts: Capxul's Protocol v4 ─────────────────────────────────────────────────────────

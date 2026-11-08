@@ -1,0 +1,598 @@
+# The portal
+
+The portal is the documentation site. It connects everything: the design book's records, the evals derived from them and
+their verdicts, the swarmD ledger, GitHub, PostHog and hand-written prose. It is built first, at D0, beside the B0
+spike.
+
+- **The book** means only the design book (`books/target`).
+- **The portal** means the documentation site.
+
+This document is the portal's design. The build session builds the portal from it, so nothing about the portal is left
+to invent. Every judgment in it is a decision record in
+[`books/target/shared/portal.ts`](../../books/target/shared/portal.ts), with ids `portal.<topic>` (listed at the end).
+
+**See it.** [`portal-prototype.html`](portal-prototype.html) is a working prototype generated from the real records by
+[`tools/portal-prototype.ts`](../../tools/portal-prototype.ts). It is one self-contained page with the overview, Review,
+every concept and operation page, the scoreboard and the CLI surface. Its verdicts are mock until B2. The stands it shows
+for specify and decide come from the real records. Its **Verdicts: None yet** switch shows the stands as the records give
+them today.
+
+```bash
+node --experimental-strip-types tools/portal-prototype.ts docs/design/portal-prototype.html   # about 1.8 MB
+```
+
+## 1. Who it is for
+
+Each audience comes with one job, and the portal gives each job one place to start.
+
+| Audience | Comes to | The portal gives them | Starts at |
+|---|---|---|---|
+| **Aaron**, reviewing and deciding | Decide what waits for him, see where the build stands, and read the design at any depth before code exists | **Review** lists the judgments waiting for him, ordered by how many operations each one holds, and each has Accept, Choose another option and Change. It also lists the decision packs managers raise, the milestone acceptances and the CLI surface's changes. The overview shows the milestones and the stand of all 215 operations. Every page goes down from a concept to an operation to the records under it. | `/review/` |
+| **Lane managers and agents** (the master agent, makers, checkers) | Find their task's records, its evals and their status | Every record has its own page, with the records it links to and the records that link to it, its evals and their verdicts at the head, its gaps and its decisions. An operation's page also lists the records under it, which is its work. Every page has a JSON twin and a Markdown twin, so agents never scrape HTML. | `/data/operation/<id>.json`, or the URL of any record key |
+| **App developers** using the CLI and the SDK | Use a command or an SDK method correctly | The operation page starts with Use: the synopsis and flags, who can run it, examples, the `--json` shape, each refusal with its code, exit code and message, and the budget. There are guides, the error catalogue and the SDK methods by namespace. | `/docs/` |
+| **Operators** on staging | Know what runs where, what is deployed, and whether it holds | The environments and the components each runs, the configuration and secret names, the deployed commit, each operation's live evals (p95 against budget, error rate) and each journey's funnel. There is the error catalogue, with who acts on each code, and the runbooks. | `/operate/` |
+
+The portal is private while it shows pending judgments, internals and money paths (`portal.hosting`). The public developer
+docs come later, as a filtered build of the same site: the Docs section and each operation's Use and Acceptance, built
+from `main`. Publishing them is Aaron's step.
+
+## 2. What it connects, and how each source reaches it
+
+The portal has two layers.
+
+- **Pages.** These are generated from the records at build time. They change only when the records change.
+- **Status.** This is one document per tracked ref, read by the pages when they open (`portal.status-source`). It changes
+  with every eval run, pull request and deploy.
+
+The portal holds no credential and writes nothing (`portal.read-only`). Every action leaves through a system that already
+knows who is acting.
+
+```mermaid
+flowchart LR
+  book["books/target records"] -->|build time| gen["packages/generate: portal target"]
+  prose["packages/portal/content: prose"] --> site
+  gen -->|bundle| site["the portal: static pages, md and json twins"]
+  runs["eval runs: RunResult[] (B2)"] --> job["status job"]
+  ledger["swarmD ledger: verdicts, tasks, matters, refs"] --> job
+  gh["GitHub: lanes, pull requests, CI"] --> job
+  ph["PostHog"] -->|"live evals as verdicts (scout worker)"| ledger
+  job -->|"status document, in R2"| site
+  site -->|"answers: issue, then matter"| ans["GitHub / ledger"]
+  ans -->|"agent edits the record first"| book
+```
+
+| Source | What the portal shows from it | How it reaches the portal | When | Credential |
+|---|---|---|---|---|
+| **The book's records** (`books/target`) | Every page: concepts, operations, flows, rpcs, procedures, workflows, tables, machines, events, errors, integrations, contracts, components, environments, journeys, invariants, decisions | The portal target of `packages/generate` imports `books/target/index.ts`, runs `buildBook`, and writes one page model per record into the bundle | Every portal build: each push to `integration/build`, and a preview for each pull request | none |
+| **Derived from the records** | Problems, gaps, the 4,752 evals (id, level, subject, claim, decider), the reverse links, the records under each operation, the stand's inputs, the CLI surface | The same build, with `buildBook`'s problems, gaps, evals and `linkedBy`, `underOf` and `standOf` (§4) | Same | none |
+| **Decisions and the review list** | Every decision page. Review lists the decisions waiting for review and the operations each one holds. | The decision records and their `review` field (`portal.review-state`), from D0 | Same | none |
+| **Verdicts: the scoreboard** | Each eval's current verdict at the head (pass, fail, unverifiable or error, or unknown), its measures (p50, p95, n) and its evidence. The stand of each operation. | **Until the ledger runs:** the harness's `RunResult[]` from each run at the head (B2), which the status job turns into `status/<ref>.json`. **After:** the ledger's `verdicts` and `score` resources, read by the status job. | After every eval run at a ref head | the status job's only |
+| **The swarmD ledger** | The task on each operation and its state, the assignee and role, the pull request, the open matters and the milestone tasks | **Until the ledger runs:** the task tree from `docs/mission/tasks.json`, which the swarm design derives with `tools/plan-tasks.ts`; progress from `docs/mission/progress.md`. **After:** the ledger's `tasks`, `matters` and `refs` resources, read by the status job. Live detail stays on the manager's board, which the portal links to (`portal.artifact-boundary`). | On ledger feed changes, and at least every 10 minutes | a read-only ledger token, in the status job |
+| **GitHub** | Each lane's branch (`lane/<concept>`), its open pull requests with their CI and review state, CI on `integration/build`, and links to source at the commit | The status job calls the GitHub API with the CI token | On every push and pull request event | CI's token, in the status job |
+| **PostHog** | Each operation's live evals (`live:bud:<op>`, `live:err:<op>`), and each journey's funnel as step counts | Only as verdicts. The scout worker reads PostHog and posts the L4 verdicts to the ledger (spec 30), with the funnel's step counts in `measures`. Each page links to the PostHog insight by the name the telemetry catalogue gives it. | From B5 | none; the key stays in the connector gateway |
+| **Hand-written prose** | Guides, explanations, runbooks, and each command's examples and notes | MDX in `packages/portal/content/`, placed in named slots on generated pages (`portal.prose`) | Every portal build | none |
+
+### The status document
+
+The status job writes one status document for each tracked ref. Every page reads it, and computes stands from it with
+`standOf`. An eval with no entry is `unknown`.
+
+```ts
+/** status/<ref>.json: written by the status job, read by each page when it opens. */
+interface PortalStatus {
+  ref: string;                       // "integration/build"
+  commit: string;                    // the head the verdicts are about
+  writtenAt: string;
+  source: "harness" | "ledger";
+  verdicts: Record<EvalId, {
+    result: "pass" | "fail" | "unverifiable" | "error";
+    commit: string;                  // = commit; an older one is shown greyed as "last seen"
+    at: string;
+    waived?: boolean;                // unverifiable with a person's waiver: counts as a pass
+    measures?: Record<string, number>;  // { p50_ms, p95_ms, n } for a budget eval; a funnel's step counts
+    detail?: string;                 // ≤ 600 characters: what was expected and what was seen
+    evidence?: string[];             // links to the run, the trace, the review
+  }>;
+  work?: Record<OperationId, {       // from the ledger, or docs/mission/tasks.json before it
+    task: string; title: string; state: string; owner: string;
+    assignees: { actor: string; role: string }[]; pr?: number;
+  }[]>;
+  matters?: { id: string; kind: string; title: string; decision?: string; state: "open" | "resolved";
+              options?: { label: string; text: string }[]; recommendation?: string; board: string }[];
+  answers?: { decision: string; answer: "accept" | "choose" | "change"; issue?: number; matter?: string; pr?: number }[];
+  lanes?: Record<ConceptId, { branch: string; head: string;
+              prs: { number: number; title: string; ci: "pass" | "fail" | "pending"; review: string }[] }>;
+  deployed?: Record<EnvironmentId, { commit: string; at: string }>;
+}
+```
+
+The pages and the status can be at different commits. When they are, the banner shows both. A verdict at an older commit
+is shown greyed as "last seen", as in the ledger's roll-up (spec 10).
+
+### What the portal reads from the ledger
+
+The portal needs read access only, to these resources and fields. Their shapes belong to the swarm design
+([`swarm.md`](swarm.md)); the portal names what it reads so that those fields stay stable.
+
+- **`tasks`:** id, title, state, owner, labels, evals and needs.
+- **`assignments`:** actor, role and state.
+- **`matters`:** kind, title, options, recommendation, state, resolution and the task.
+- **`refs` and `verdicts`.**
+- **`score?group=label:area`:** the counts the scoreboard shows. The portal's own counts must equal them, which the
+  status job checks.
+
+## 3. Information architecture
+
+### Sitemap
+
+```
+/                                   Overview
+/review/                            Review: waiting judgments, answers in flight, open matters, acceptances, surface changes
+/decisions/                         every decision, searchable, the waiting ones first
+/design/                            the concept map in build-order layers, the components, the environments
+/concept/<id>/                      a concept
+/<kind>/<id>/                       every record (one URL grammar for all kinds, below)
+/build/                             the scoreboard
+/build/evals/                       the eval catalogue: filter by level, kind, decider, result and concept
+/build/gaps/                        gaps and problems, by rule and concept
+/build/milestones/                  D0 and B0 to B5: exits, state and acceptance
+/build/lanes/  /build/lanes/<c>/    one lane per concept: branch, pull requests, CI, tasks
+/operate/                           environments, deployed commits, live evals, journey funnels
+/operate/runbooks/<slug>/           hand-written runbooks
+/docs/                              the developer home
+/docs/guides/<slug>/                hand-written guides and explanations
+/docs/cli/                          the CLI surface (commands, global flags, flag index, --json shapes, error vocabulary)
+/docs/sdk/                          the Core SDK methods by namespace
+/docs/errors/                       the error catalogue
+/llms.txt   /<page>.md   /data/<page>.json   /status/<ref>.json   /eval/?id=<eval id>
+```
+
+### Navigation
+
+- **Sections.** The top bar holds the six sections: Overview, Review, Design, Build, Operate and Docs
+  (`portal.sitemap`). Review shows a count of what waits.
+- **The concept rail.** Design and record pages have a left rail of the 22 concepts in build-order layers, each with its
+  operation count and its stand bar. On a narrow screen the rail folds into the Design index.
+- **Breadcrumbs.** Every record page has one: section, concept, kind.
+- **Search.** One static index covers commands, SDK methods, record ids and titles, error codes, decision ids and titles,
+  and eval ids.
+- **The stand everywhere.** Every list of operations shows each operation's stand chip, and every list of decisions shows
+  its review state.
+
+### One URL per record
+
+A record key is its URL, so any reader or tool that holds a key, an eval id or a command builds the link without a
+lookup.
+
+| What | URL | Example |
+|---|---|---|
+| A record | `/<kind>/<id>/` | `/operation/payment.send/`, `/table/payments/`, `/decision/system.size/`, `/error/INSUFFICIENT_BALANCE/` |
+| A child record | an anchor on its parent | `/machine/payment/#open`, `/integration/bridge/#createTransfer`, `/contract/payments/#send` |
+| An eval | an anchor on its subject's page (a child's parent): the kind, then the qualifier's parts or the child's name, joined by `-` | `acc:payment.send/3` → `/operation/payment.send/#acc-3`; `tbl:payments/admits/1` → `/table/payments/#tbl-admits-1`; `trn:payment.open` → `/machine/payment/#trn-open` |
+| Any eval id | `/eval/?id=<eval id>` redirects to its anchor | `/eval/?id=ref:payment.send/INSUFFICIENT_BALANCE` |
+| A command, an SDK method | redirect to the canonical page | `/cli/payment/send/` → `/operation/payment.send/`; `/sdk/client.payments.pay/` → `/flow/client.payments.pay/` |
+| The twins | `.md` beside the page, JSON under `/data/` | `/operation/payment.send.md`, `/data/operation/payment.send.json` |
+
+Operation ids never change, so a command renamed by a decision keeps its page. The old command path redirects to it.
+
+## 4. Page types
+
+Every page type is generated from records. The table below says from which record kinds and fields, what the page holds,
+what it links to, and what status it overlays. Every record page also has the same shared parts:
+
+- its forward links, grouped by field;
+- the records that link to it, from `linkedBy`, grouped by field;
+- its evals with their verdicts;
+- its gaps;
+- the decisions whose `affects` name it, the waiting ones first;
+- its source file in `books/target`, linked on GitHub at the commit.
+
+| Page | Generated from | Sections | Links to | Status overlay |
+|---|---|---|---|---|
+| **Overview** `/` | the system (`title`, `about`, `actors`, `surfaces`); the components (`dependsOn`); the concepts (`dependsOn`, transitively reduced); the counts of every kind; problems and gaps; the decisions' `review`; the milestone tasks | What Capxul is; the milestones (D0, B0 to B5); the 215 operations by stand (each stand links to the scoreboard filtered by it); waiting for review (the top five by operations held); what reaches the portal; the component and concept maps; the latest book changes | Review, the scoreboard, each concept, each milestone | stand counts, the review count, each milestone's state |
+| **Review** `/review/` | decisions (`question`, `options`, `chosen`, `why`, `affects`, `review`); the operations each one holds (§4, the stand); matters; `ok:` person evals; the surface model | Waiting for review, ordered by operations held, then touched, each with its actions; answered, waiting for the record (its issue or matter, pull request and preview); open matters (decision packs from managers, answered on the manager's board); milestone acceptances; surface changes since the last acceptance | each decision, each held operation, each matter on its board, the pull request previews | the review state, the answers in flight |
+| **Decision** `/decision/<id>/` | `id`, `title`, `question`, `options[label, text]`, `chosen`, `why`, `source`, `affects`, `review`; its home (the id's first segment when that is a concept, else shared) | Question; options, with the chosen one marked; why; source; affects, grouped by kind; holds at decide (if waiting); touches through the records under them; history (the commits that changed it) | the affected records, the held operations, related decisions (those affecting the same records) | the review state; each held operation's stand |
+| **Concept** `/concept/<id>/` | the concept (`title`, `about`, `component`, `dependsOn`, `lines`); the records its folder exports; its decisions (id prefix); gaps on its records; its layer from `dependsOn` | Header (runs in, depends on, depended on by, layer, lane); operations with their stands; Core SDK flows; rpcs; procedures (its door); durable processes; tables; state machines with their diagrams; events; decisions; gaps; lane | every record of it, the concepts it depends on and those depending on it, `lane/<concept>` on GitHub | stand counts bar; `sys:imports/<concept>` and `sys:loc/<concept>`; lane pull requests and CI |
+| **Operation** `/operation/<id>/` | see below | Use; Acceptance; How it works; Status; Decisions; Frozen text | see below | the stand, with its ladder |
+| **Flow** (an SDK method) | `sdk`, `component`, `input`, `output`, `steps[name, rpc or local, about]`, `errors`, `calls`, `spans`, `surfaces`, `budget` | The method's signature from its input and output schemas; steps (wait steps marked); errors; budget; the operations it implements | its rpcs, the operations | `flw:<id>/budget` and `/spans` |
+| **Rpc** | `kind`, `who`, `input`, `output`, `errors`, `reads`, `writes`, `drives`, `invokes`, `calls`, `chain`, `spans`, `budget`, `concept` | Who may call it; input and output; what it touches; errors; budget | tables, transitions, procedures, calls, contract functions; who reaches it (flows' steps, operations, workflows' signals and triggers) | `rpc:<id>/budget`, `/spans`, `/errors` |
+| **Procedure** (a door) | `input`, `output`, `errors`, `reads`, `writes`, `drives`, `invokes` | As an rpc, and its invokers | its invokers, the tables it writes | `prc:<id>/atomic` |
+| **Workflow** | `trigger`, `instance`, `signals`, `waits[name, for, timeoutMs, events, key]`, `steps`, the tables it touches, `calls`, `chain`, `idempotency`, `timeoutMs`, `retries`, `compensation`, `budget` | Trigger and instance; waits and what wakes each (its key); steps; idempotency, retries and compensation; budget | the transition, rpc or chain event that starts it; the rpcs that signal it | `wfl:<id>/idempotent`, `/resume`, `/wake/<wait>`, `bud:<id>/p95` |
+| **Table** | `tenancy`, `tenantField`, `fields`, `key`, `indexes`, `admits`, `retention`, `scope` | Fields; key and indexes; tenancy and admissions (who besides the tenant may read or write, by clause); the machine on it; writers and readers | the machine, writers and readers, the tables an admission joins | `tbl:<id>/schema`, `/writers`, `/tenancy`, `/admits/<n>` |
+| **Machine** | `table`, `field`, `initial`, `states`, `transitions[from, to, emits, guard]` | The state diagram; transitions, each with what drives it and the processes it starts | the table, the event, drivers, the processes started | `trn:<machine>.<transition>` per transition |
+| **Event** | `props` | Properties beyond the envelope; senders (transitions) and waiters (workflow waits); its PostHog name | senders, waiters, the journeys it proves | `evt:` evals naming it; its live count from B5 |
+| **Error** | `class`, `actor`, `message`, `retryable`, `exit` | Message, class, who acts next, exit code, retryable; the operations that refuse with it, with the world each needs; what produces it (rpcs, procedures, flows, integration call failures) | those operations and producers | the `ref:` evals naming it |
+| **Integration, contract** | integration: `system`, `service`, `component`, `calls` (timeouts, retries, p95, failures mapped to errors), `fake`, `secrets` (names); contract: `addresses`, `functions`, `events` | Calls or functions and events, each with its callers or consumers | callers, consumers, errors | `int:<id>/conformance`, `int:<id>.<call>/<error>` |
+| **Component, environment** | `runtime`, `exposes`, `dependsOn`; `runs[component, on]`, `config`, `secrets` (names only), `deploy`, `bootMs` | What runs where; configuration and secret names; deploy | the components, the environments | `env:<id>/boot`, `/smoke`; the deployed commit |
+| **Journey** | `steps[operation, as, proves]`, `variants` | Steps in order, each with its operation's stand and its proving event; the live funnel | the operations, the events | `jrn:<id>`, `fun:<id>`; `live:fun:<id>` with step counts from B5 |
+| **Scoreboard** `/build/` | operations (`command`, `priority`, `budget`), their concept and layer; the status document | A strip of counts by stand (each a filter); for each concept in build-order layers, each operation's stand, its own evals passing, the evals under it passing, p95 against budget, telemetry coverage (`evt` and `spn` passing), its task and assignee; lines per concept from B3 | operations, concepts, lanes, the manager's board | it is the overlay |
+| **Eval catalogue** `/build/evals/` | `evals.json` (id, level, subject, claim, decider) | A table with filters | each eval's anchor | each eval's verdict |
+| **Gaps** `/build/gaps/` | the build's gaps and problems (`record`, `rule`, `detail`) | By rule, then by concept | the records | none |
+| **Milestones** `/build/milestones/` | the milestone tasks (`docs/mission/tasks.json`, then the ledger) | Each milestone: its goal, exit, state and acceptance (`ok:<milestone>`) | its tasks | task state; the acceptance verdict |
+| **Lane** `/build/lanes/<concept>/` | the concept; the status document's lanes and work | Branch and head; open pull requests with CI and review; the concept's tasks with their states and assignees; a link to the manager's board | GitHub, the board | it is the overlay |
+| **CLI surface** `/docs/cli/` | operations (`command`, `title`, `returns`, `refusals`, then `flags` from B1); errors; the global flags | Command tree by noun; global flags; flag index (B1); every `--json` shape, with an index of field names; error vocabulary and the exit-code-by-class table; verbs; marks where the system is not consistent (`portal.cli-surface`) | each operation, each error | each command's stand |
+| **Environments** `/operate/` | environments; journeys; the status document | Each environment's components, deployed commit, configuration and secret names; live evals by operation; journey funnels; runbooks | environment, operation and journey pages; PostHog insights | live verdicts from B5 |
+| **Guides and runbooks** | MDX in `packages/portal/content/` | Hand-written, citing records through components | the records cited | none |
+
+### The operation page
+
+There is one page per operation, at `/operation/<id>/` (`portal.operation-page`). It runs in a fixed order: the reference
+first, then the design, then the status.
+
+1. **Header.** `capxul <command>` and the title. Then the stand chip, the id, the area, the priority, the SDK method and
+   the journeys it is a step of.
+2. **Use.**
+   - The synopsis, then a flags table. The flags come from the operation's designed flags, from B1. Until then the old
+     CLI's arguments and flags from `books/frozen/flags.ts` are folded underneath and marked reference.
+   - Who can run it (`who`), what it does (`about`), and the examples from its prose slot.
+   - The `--json` shape (`returns`), as a field table and a JSON Schema.
+   - Refusals (`refusals[error, given, when]`): each code links to its error page, with the exit code and message from
+     the error record. A world of `?` shows "no world yet".
+   - The CLI's own errors (`errors`), the budget (`budget`: class, p50, p95, why) and the SDK method or rpc
+     (`implementedBy`, and a flow's `sdk`).
+   - Common mistakes (`mistakes[what, fix]`).
+3. **Acceptance.** Each claim (`acceptance[claim, observes, was]`), with what an eval observes. Each is marked kept or
+   rewritten against the frozen claim; a retired line shows as retired. Each line is the anchor of its `acc:` eval.
+4. **How it works.**
+   - The implementation diagram: the operation, what implements it, the flow's steps, each rpc's procedures, the tables
+     it writes, the transitions it drives and the processes those start.
+   - Then every record under the operation (`underOf`, below), grouped by kind.
+5. **Status.**
+   - The stand ladder: five steps, each with why it is met or not.
+   - Its own evals, each with its claim, decider, verdict and measures.
+   - The evals of the records under it, counted by kind: total, pass, fail and unknown.
+   - Its task, assignee, pull request and CI.
+   - Its live evals.
+6. **Decisions.** The decisions on its own records, the waiting ones first. Then those waiting judgments that touch it
+   through the records under it.
+7. **Frozen text.** The old book's `who`, `changes` and `notes`, as the starting point that `system.frozen-behaviour`
+   keeps for behaviour.
+
+The prototype's `#/operation/payment.send` shows this page.
+
+### The stand
+
+The stand says what is missing for an operation, not whether code exists. One pure function computes it,
+`standOf(book, operation, verdicts)`, which D0 adds to `packages/book` beside `deriveEvals` (`portal.stand`). Every
+reader uses it: the portal's pages, the status job, the scoreboard and swarmD's build template.
+
+**The records under an operation** (`underOf`) are reached by following these links from the operation:
+
+- what implements it (`implementedBy`);
+- a flow's `steps`, `errors` and `calls`;
+- each rpc's and procedure's `reads`, `writes`, `drives`, `invokes`, `calls`, `chain` and `errors`;
+- a transition's machine, and that machine's table;
+- a call's integration, and a function's contract;
+- one hop further, the durable processes its own rpcs and transitions start (`trigger`) or resume (`signals`), with their
+  own records followed by the same rules.
+
+Concepts, components, the system, environments, decisions, admissions and waits are not followed.
+
+**Its own records** are the operation itself, what implements it and, for a flow, its step rpcs.
+
+The first row that matches is the stand:
+
+| Stand | Label | When |
+|---|---|---|
+| specify | Not specified | the operation, or a record under it, has a problem or a gap |
+| decide | Awaiting a judgment | a decision whose `review.state` is `waiting` affects one of its own records |
+| build | Specified, not proven | an L1 eval of the operation, or of a record under it, has no passing verdict at the head. A person's waiver of an `unverifiable` verdict counts as a pass, as in the ledger's roll-up. |
+| observe | Proven, live unseen | every L1 eval passes; its live evals (`live:bud:<op>`, `live:err:<op>`, from B5) do not all hold |
+| done | Done | its live evals hold |
+
+A waiting judgment on a record further under the operation is shown on the operation's page as touching it, not as its
+stand. Recorded choices stand, and the build follows them, so a judgment must not hide build progress.
+
+These are the stands on the book of 8 November 2026, with no verdicts. They are what the portal shows at D0.
+
+| Rule for decide | specify | decide | build |
+|---|---|---|---|
+| the judgments affecting the operation's **own records** (chosen) | 41 | 40 | 134 |
+| the judgments affecting **any record under it** | 41 | 142 | 32 |
+
+With any record under it, two judgments would hold most operations: `parties.directory-tenancy`, because 143 operations
+read the parties table, and `agents.org-owned` (103).
+
+**The overlay.** Every list of operations shows its stand chip. The concept, journey, lane and milestone pages show a
+stacked bar of their operations' stands. Each other record page shows its own evals' verdicts, and how many operations
+under which it sits are at each stand.
+
+## 5. Aaron's review flow
+
+**The portal never edits a record** (`portal.review-flow`). An answer on the portal becomes a typed request, an agent
+changes the record first, and the change lands like any book change.
+
+```mermaid
+sequenceDiagram
+  participant A as Aaron, on the portal
+  participant R as GitHub issue (D0) or ledger matter (later)
+  participant G as Applier agent, and a checker
+  participant B as books/target
+  participant P as Portal
+  A->>R: Accept, Choose another option or Change (a typed answer)
+  R->>G: the answer, with seenAt (the commit he read)
+  G->>B: edit the decision, and every record the change ripples to
+  G->>G: build to 0 problems, check-frozen 0 breaches
+  G->>P: pull request into integration/build, with a portal preview
+  Note over P: Review lists it under "answered, waiting for the record"
+  G->>B: the checker confirms the records say what the answer says, then merge
+  B->>P: rebuild: the decision shows the answer; the operations it held move on
+  B->>B: only then: regenerate and change code
+```
+
+1. **Read.** A waiting decision's page, and its card on Review, shows the question, the options with the chosen one
+   marked, why, what it affects, the operations it holds at decide, and those it touches.
+2. **Answer.** A waiting decision has three buttons; every other decision has **Change**, because any recorded choice
+   may be overruled.
+   - **Accept** keeps the choice.
+   - **Choose another option** picks one of the recorded options.
+   - **Change** takes his own words.
+
+   Each answer is one typed request:
+
+   ```ts
+   interface ReviewAnswer {
+     decision: string;                       // the decision record's id
+     answer: "accept" | "choose" | "change";
+     option?: string;                        // choose: an existing option's label
+     text?: string;                          // change: what he wants instead; otherwise an optional note (≤ 1,000 characters)
+     by: string;                             // "aaron"
+     at: string;
+     seenAt: string;                         // the commit the page was built from
+   }
+   ```
+
+3. **Where it goes.**
+   - **Until the ledger runs:** the button opens a GitHub issue form prefilled through its URL. The form is
+     `.github/ISSUE_TEMPLATE/review-answer.yml`, which the swarm design's templates own, with the fields above and the
+     label `review`. The build session takes `review` issues before any other work.
+   - **After the ledger runs:** each waiting decision has a decision matter, opened from the record with its options and
+     its chosen option as the recommendation. The buttons open that matter on the manager's board, which resolves it
+     with the same fields.
+   - Either way, the answer shows on Review under "answered, waiting for the record" until it merges.
+4. **The record changes first.** An agent applies the answer.
+   - **accept** sets `review: { state: "accepted", by: "aaron", at, ref }`.
+   - **choose** sets `chosen` to the option and puts his reason first in `why`, keeping the earlier reason after it. It
+     then sets `review.state` to `changed`.
+   - **change** adds his option and chooses it, the same way.
+   - Every record the change ripples to changes in the same pull request.
+   - If his words leave a judgment open, the agent does not guess. It raises a decision pack back: the question, two to
+     four graded options and a recommendation.
+   - If the record changed after `seenAt`, the agent asks before applying.
+5. **Prove and merge.**
+   - The book builds to zero problems and `check-frozen` reports zero breaches.
+   - The pull request into `integration/build` carries the portal preview of the changed pages and stands.
+   - A checker confirms that the records say what the answer says.
+   - On merge, the decision shows the answer and its `ref`, and the operations it held move on.
+   - Only then does code change: regenerate, then the lanes.
+
+**The `review` field** (`portal.review-state`) moves the review list into the records at D0, book first. The decision
+schema in `packages/book/src/records/outcomes.ts` gains:
+
+```ts
+review: Schema.optionalKey(Schema.Struct({
+  state: Schema.Literals(["waiting", "accepted", "changed"]),
+  by: Schema.String,                        // the member who decides: "aaron"
+  at: Schema.optionalKey(Schema.String),
+  ref: Schema.optionalKey(Schema.String),   // "github:#123" or "ledger:M-12"
+})),
+```
+
+Every decision on today's list gets `state: "waiting"`: the 17 in `docs/decisions/judgments.md`, `portal.hosting`, and
+any the other design lanes flag. `tools/report-judgments.ts` then reads the field, and its hand list `FLAGGED`, its `CARRIES_OUT` list
+and its name match go. The stand's decide step and the Review page read the same field.
+
+## 6. Stack and hosting
+
+### Stack: Fumadocs on a Next.js static export (`portal.stack`)
+
+The portal's hard parts are its page models and the stand. They live in the generator and in `packages/book`, whatever
+renders them. So the renderer is chosen for what it already solves, and for what the agents know.
+
+| | Fumadocs on Next.js, `output: "export"` | Astro Starlight | The book's own static generator |
+|---|---|---|---|
+| Generated pages from the bundle | a custom Fumadocs source (no generated MDX files) | a content loader | direct |
+| Hand-written prose | MDX, with React components that read the records | MDX, with Astro or React components | Markdown and a small directive syntax, ours to write |
+| Search | static Orama index, built in | Pagefind, built in | ours to write |
+| Agent twins (`llms.txt`, `.md`, `.json`) | built-in routes (the old site and swarmD both serve them) | plugins, or ours | ours |
+| Status overlay | client components | React islands | a client script |
+| Precedent | the old `apps/docs` (Cloudflare Pages) and swarmD's `apps/docs` (a Worker) | none in either repository | the prototype |
+| Cost | heavier (Next, React, Tailwind); the old site had to fix its type-generation order | lightest; new to every agent | no dependencies, but search, navigation, theming, accessibility and the narrow layout are ours to keep |
+| Grade | **A-, recommended** | B+ | B- |
+
+The bundle is JSON, so a switch to Starlight later changes only the renderer. The prototype's plain generator is
+throwaway.
+
+### Hosting: a private Cloudflare Worker behind Access (`portal.hosting`, for Aaron)
+
+- **One Worker, `capxul-portal`, on Aaron's Cloudflare account.** It is the account where swarmD already runs. It serves:
+  - the static export as Workers static assets;
+  - one route, `/status/<ref>.json`, read from an R2 bucket (`capxul-portal-status`), which the status job writes.
+- **Cloudflare Access in front.**
+  - An email allowlist: Aaron, and whoever he adds.
+  - A service token for swarmD's managers and agents, which read the JSON twins.
+- **Deploys.**
+  - CI deploys on every push to `integration/build`.
+  - For every pull request that changes `books/` or `packages/portal/`, CI uploads a preview version and links it from
+    the pull request.
+  - The CI secret is a Cloudflare API token, which Aaron supplies through the credential form, never in chat.
+- **Later, public.** A public developer build (Docs, and each operation's Use and Acceptance, from `main`) is a separate
+  Worker. Publishing it is Aaron's step.
+
+The portal is a tool, not a component of the system (`portal.no-component`). It has no component or environment record,
+so it derives no `env:` evals and leaves no unhosted-component gap. When the developer docs become a public product
+surface, a component and its environment are added then, with a decision.
+
+## 7. The generation pipeline
+
+```
+books/target ──▶ packages/generate (portal target) ──▶ packages/portal/src/generated/   the bundle (gitignored)
+bundle + packages/portal/content/ ──▶ next build (output: export) ──▶ packages/portal/out/
+out/ ──▶ portal check (the gate) ──▶ deploy: the Worker on integration/build, a preview version per pull request
+status job ──▶ R2 status/<ref>.json ──▶ read by each page when it opens
+```
+
+### 1. Generate
+
+The portal target of `packages/generate` builds the bundle; its command shape follows the tooling design
+([`tooling.md`](tooling.md)). It:
+
+- imports `books/target/index.ts` and each concept's module list, to know which concept and file each record comes from;
+- runs `buildBook`;
+- computes `underOf` and the stand's inputs;
+- writes the files in the table below.
+
+| File | Holds |
+|---|---|
+| `index.json` | the counts, the commit, problems and gaps, the navigation tree |
+| `pages/<kind>/<id>.json` | each record's page model: its fields rendered for display (schemas as field tables and JSON Schema); its forward and reverse links; its evals (id, level, claim, decider); its gaps and decisions; its source file. For an operation, also its own records, the records under it, the eval ids under it by kind, and `recordHash`, a hash of the record fields the page renders. |
+| `pages/<kind>/<id>.md` | the Markdown twin |
+| `evals.json` | the eval catalogue, as the book build writes it |
+| `surface.json` | the CLI surface: commands, flags (B1), `--json` shapes with their field names, errors, exit codes by class |
+| `review.json` | the waiting decisions, with the operations each holds and touches |
+| `search.json` | the documents for the search index |
+
+**The bundle is regenerated on every build and never committed** (`portal.generated-content`).
+
+- **Not committed.** Committed portal output would conflict between every pair of lane pull requests, because every book
+  change touches the navigation, the search index and the counts. The old repository lived this (CAP-1081), and ended
+  up refusing generated files in lane pull requests and regenerating them by bot.
+- **Deterministic.** It uses sorted keys and no timestamps, and the commit is passed in, so two runs are byte-identical.
+- **Covered by `sys:generated`.** It runs the portal target with the others and checks that it regenerates and that the
+  portal builds. With nothing committed, there is nothing to diff.
+
+### 2. Render
+
+The Fumadocs app in `packages/portal` reads the bundle through a custom source. Its pieces:
+
+- one page component per record kind;
+- the operation page;
+- the Review, scoreboard and CLI surface pages;
+- the status overlay, a client component that fetches `/status/<ref>.json` and calls `standOf`;
+- the MDX prose in named slots (`portal.prose`): `content/operation/<id>.mdx` with `Example` and `Notes` sections, and
+  guides and runbooks as pages. Prose cites facts through components that read the record, such as
+  `<Synopsis op="payment.send"/>` and `<ErrorMessage code="INSUFFICIENT_BALANCE"/>`, so no fact is retyped.
+
+### 3. The portal check
+
+The portal check is the portal's gate in CI, from D0. It passes when all of these hold:
+
+- every record has a page model and a built page, and every page belongs to a record;
+- every internal link, anchor and `/eval/?id=` resolves;
+- two generations are byte-identical;
+- the waiting list on Review equals `tools/report-judgments.ts`'s "For Aaron" list (one function, once the `review` field
+  lands);
+- every operation has a stand computed with no status (it is specify, decide or build);
+- `doc:<operation>` parts 2 to 5 (below) pass for every operation;
+- no prose slot names a record that does not exist;
+- the build finishes within 5 minutes;
+- the hand-written lines are within `portal.size`: 4,000 non-test lines in `packages/portal` and the portal target,
+  leaving out the bundle and `content/`.
+
+### 4. The status job
+
+The status job writes `status/<ref>.json` to R2.
+
+- **When.** After each eval run at a ref head, on GitHub events, and on ledger feed changes.
+- **Before B2.** It writes no verdicts, only the lanes from GitHub and the task tree from `docs/mission/tasks.json`.
+- **From B2.** It adds the harness's `RunResult[]`.
+- **Once the ledger runs.** It reads the ledger's resources instead, and checks that its counts equal the ledger's
+  `score`.
+
+### What `doc:<operation>` checks
+
+The book derives `doc:<operation>`: "its CLI help, reference page and record agree". At one commit, it passes when all
+five parts hold (`portal.doc-eval`):
+
+1. **The CLI agrees with the record.** The CLI built at that commit is asked for its machine manifest of the command:
+   the target's `schema` command with `--json`. Parsed help text is not used, because help is formatted for people. The
+   manifest shows:
+   - the operation's `command`;
+   - its `title` as the summary;
+   - exactly its designed flags: name, short form, value type, required, default, choices and repeatable;
+   - the global flags.
+2. **The page is the record.** The operation's page model in the bundle equals a fresh generation from the record: the
+   `recordHash` values are equal. The built page renders that model.
+3. **The generated sections are unedited.** Only the prose slots are hand-written. No prose file restates or overrides a
+   generated section.
+4. **The prose agrees.** Every example in the slots parses against the designed flags: each flag exists, the required
+   ones are present, and each value has its type. Every example `--json` output validates against `returns`, and every
+   record a slot cites exists.
+5. **Every link on the page resolves.**
+
+A failure names its first disagreement, for example `flag --org: the manifest says required, the record says optional`.
+Until the CLI exists, part 1 is not runnable and the harness lists the eval as such (B2's rule). Parts 2 to 5 run in the
+portal check from D0.
+
+## 8. The D0 milestone
+
+D0 runs alongside B0 (`portal.milestone`). The build session should add this row to the goal prompt's "Order of work":
+
+| # | Milestone | Exit |
+|---|---|---|
+| D0 | **The portal**, built alongside B0, following `docs/design/portal.md`. **Book first:** add the decision record's `review` field and set it on every decision waiting for review; move `tools/report-judgments.ts` onto the field; add `underOf` and `standOf` to `packages/book`, with tests. **Then:** the portal target of `packages/generate` writes the bundle, and `packages/portal` (Fumadocs, static export) renders it. The site has the overview; Review, with Accept, Choose and Change through a prefilled `review` issue; a page for every record; operation pages with their reference, design and stand; the CLI surface, with the old flags as reference until B1; the scoreboard, the eval catalogue, gaps and decisions; and Markdown and JSON twins with `llms.txt`. It is deployed as a private Cloudflare Worker behind Access, with a preview per pull request. Status comes from `status/<ref>.json`, which has no verdicts until B2. | The portal check passes at the head of `integration/build`: every record has its page, every link resolves, two generations are byte-identical, and Review's list equals the judgments report's. Every operation shows its stand: 41 specify, 40 decide and 134 build on the book as it stands. The portal is live behind Access with a preview on each pull request, and its link has gone to Aaron. |
+
+**The D0 work, in order:**
+
+1. **Book first.**
+   - Add the `review` field to the decision schema, with its decision.
+   - Set `review: { state: "waiting", by: "aaron" }` on every decision on today's list.
+   - Rewrite `tools/report-judgments.ts` to read the field.
+   - Rebuild to zero problems.
+2. **`underOf` and `standOf` in `packages/book`.** Test them on the fixture book, including each stand and the
+   one-hop rule for processes.
+3. **The portal target of `packages/generate`.** If B1 has not created the package yet, create it with this target
+   only, following the tooling design's conventions.
+4. **`packages/portal`.** The page models, the overlay, Review, the scoreboard, the CLI surface page, search and the
+   twins. Start from the prototype's views; do not copy its code.
+5. **The portal check** in CI.
+6. **Hosting.**
+   - The Worker and the R2 bucket.
+   - Access, using Aaron's allowlist and his deploy token through the credential form.
+   - The CI deploy for each push and each pull request.
+7. **The status job,** with lanes and tasks only.
+
+**What later milestones add.**
+
+| Milestone | What it adds to the portal |
+|---|---|
+| B1 | The operations' designed flags: the synopsis, the flags tables and the surface's flag index |
+| B2 | Real verdicts from `RunResult[]`. The stands reach observe. |
+| B3 | The CLI exists, so `doc:` part 1 runs; each concept's line budget |
+| B4 | Tasks, assignments and matters from the ledger, and links to the managers' boards. The goal prompt's B4 line "Generate the reference pages of the docs site" becomes "make each operation's `doc:` eval pass". |
+| B5 | Live evals and funnels from PostHog as verdicts; the deployed commit of each environment. The stands reach done. |
+
+## The decisions
+
+All are in [`books/target/shared/portal.ts`](../../books/target/shared/portal.ts).
+
+| Id | Choice |
+|---|---|
+| `portal.milestone` | Built first, at D0, alongside B0 |
+| `portal.sitemap` | Six sections by job; one URL per record key; evals as anchors |
+| `portal.operation-page` | One page per operation: reference, then design, then status |
+| `portal.stand` | One `standOf` in `packages/book`; decide only from the operation's own records |
+| `portal.status-source` | One status document per ref at a commit, read when a page opens; PostHog only as verdicts |
+| `portal.read-only` | No secret, no write path |
+| `portal.artifact-boundary` | Link to the managers' live boards, do not repeat them; the ledger fields the portal reads |
+| `portal.review-flow` | A typed answer (an issue, then a matter); an agent changes the record first |
+| `portal.review-state` | A `review` field on decision records replaces the hand list and the name match |
+| `portal.cli-surface` | The whole CLI surface on one generated page, reviewed as one system |
+| `portal.doc-eval` | `doc:<operation>` compares the CLI manifest, the page model and the record; prose examples are checked |
+| `portal.prose` | Prose in named slots, citing records through components |
+| `portal.agent-reads` | Markdown and JSON twins; agents never scrape HTML |
+| `portal.generated-content` | The bundle is regenerated on every build, deterministic, never committed |
+| `portal.stack` | Fumadocs on a Next.js static export (graded against Starlight and our own generator) |
+| `portal.hosting` | A private Cloudflare Worker behind Access, with previews; **for Aaron**: the deploy token and the allowlist |
+| `portal.no-component` | A tool, with no component or environment record |
+| `portal.size` | At most 4,000 hand-written lines |
+
+## What other designs provide
+
+- **The swarm design** ([`swarm.md`](swarm.md)) owns:
+  - the task, manager and matter schemas the portal reads;
+  - `docs/mission/tasks.json`, the milestone and lane task tree the portal shows before the ledger runs;
+  - `.github/ISSUE_TEMPLATE/review-answer.yml`, the issue form for a review answer. The portal needs it to have the
+    `ReviewAnswer` fields and the label `review`.
+- **The tooling design** ([`tooling.md`](tooling.md)) owns `packages/generate`'s command shape and conventions, which the
+  portal target follows.

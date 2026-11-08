@@ -7,8 +7,9 @@
 //
 // No table here has a lifecycle, so devnet has no state machine and sends no event (decision
 // devnet.no-machines). Notices' delivery records are notices' (`dev mail notices` reads them there);
-// the saved worlds and the clocks are the devnet supervisor's, on this machine's disk, not rows
-// (decision devnet.supervisor-owns-time-and-worlds).
+// the saved worlds and the clock are the devnet supervisor's, on this machine's disk, not rows
+// (decision devnet.supervisor-owns-time-and-worlds). Every time these tables keep (`sent_at`, `armed_at`,
+// `set_at`, `from_at`) is the one clock's now (decision time.one-clock).
 
 import { Schema } from "effect";
 import { defineTable } from "../../../packages/book/src/index.ts";

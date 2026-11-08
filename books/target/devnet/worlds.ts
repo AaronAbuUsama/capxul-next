@@ -2,10 +2,14 @@
 // line starts from, what it holds, and the builder script that makes it (decision devnet.worlds).
 //
 // A world is one supervisor snapshot of the chain, Postgres (every schema, with the durable
-// workflows' state), Ponder's checkpoint, the clocks, the armed fault switches and the eval machine's
-// CLI home, saved together under its name. The supervisor's world builder (`capxul-devnet world
-// build [<name>…]`, in packages/devnet) makes each one the same way: restore `from` (or boot a fresh
-// devnet when `from` is null), run `steps` in order, then `dev snapshot save <name> --replace`. A
+// workflows' state), Ponder's checkpoint, the clock (its now and mode), the armed fault switches and
+// the eval machine's CLI home, saved together under its name. The supervisor's world builder
+// (`capxul-devnet world build [<name>…]`, in packages/devnet) makes each one the same way: restore
+// `from` (or boot a fresh devnet at the eval epoch when `from` is null), run `steps` in order, then
+// `dev snapshot save <name> --replace`. It builds on a frozen clock, so a world's every time is a
+// function of its steps (decision devnet.deterministic-worlds): before each step it warps one second,
+// so each step happens at its own instant, and after each step it settles, so the next starts from a
+// world where everything the last caused has run; a warp step is a barrier of its own. A
 // step is a black-box action: a `capxul` command, a Core SDK method of a surface with no command
 // (the web onboarding, the operator's waitlist tool), or a supervisor control (a fault switch, a
 // chain action no Capxul surface makes). Steps never write a table: sign-in codes come from the mail
@@ -77,9 +81,9 @@ export const WORLDS: readonly World[] = [
   // ── the machine and one person (access, accounts) ──
   {
     name: "empty-devnet",
-    holds: "Protocol v4 deployed by Companies House, Ponder at the head, no principal, no mail, a fresh CLI home, clocks unmoved.",
+    holds: "Protocol v4 deployed by Companies House, Ponder at the head, no principal, no mail, a fresh CLI home, the clock frozen at the eval epoch and unmoved.",
     from: null,
-    steps: [supervisor("capxul-devnet up (fresh)")],
+    steps: [supervisor("capxul-devnet up --start-at <the eval epoch> --frozen (fresh)")],
     namedBy: ["access", "devnet", "applications"],
   },
   { name: "signed-out", holds: "No session on this machine: the state of empty-devnet.", from: "empty-devnet", steps: [], sameAs: "empty-devnet", namedBy: ["accounts", "organizations", "books", "banking", "payments", "requests", "devnet", "agents", "documents", "activity"] },
@@ -980,9 +984,7 @@ export const WORLDS: readonly World[] = [
       "millisecond; Sam one active key; one quickstart key on this machine; Dana current.",
     from: "two-people-signed-in",
     steps: [
-      supervisor("capxul-devnet clock hold (the backend clock stands still)"),
-      step("dana@acme.test", "capxul key create --name a; capxul key create --name b (one millisecond)"),
-      supervisor("capxul-devnet clock release"),
+      step("dana@acme.test", "capxul key create --name a; capxul key create --name b (one step: the frozen clock gives both one instant)"),
       step("dana@acme.test", "capxul key rotate <a> (a enters its grace window); capxul key create --name c; capxul key revoke <c>"),
       step("sam@acme.test", "capxul key create --name s"),
       anyone("capxul dev key --origin http://localhost:5173"),

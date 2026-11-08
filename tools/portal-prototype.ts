@@ -458,7 +458,7 @@ main{max-width:1240px;margin:0 auto;padding:22px 16px 80px}
 .rail a small{color:var(--muted);font-family:var(--mono)}
 h1{font-size:clamp(24px,3.4vw,34px);line-height:1.15;margin:0 0 6px;letter-spacing:-.015em;text-wrap:balance}
 h1.cmd{font-family:var(--mono);font-size:clamp(20px,3vw,28px);font-weight:600}
-h2{font-size:19px;margin:30px 0 10px;text-wrap:balance}
+h2{font-size:19px;margin:30px 0 10px;text-wrap:balance;scroll-margin-top:120px}
 h3{font-size:15px;margin:0}
 .crumb{font-size:13px;color:var(--muted);margin-bottom:6px}
 .lede{color:var(--muted);max-width:78ch;margin:0 0 16px}
@@ -577,7 +577,7 @@ function claimOf(o,e){if(e[3])return e[3];var kind=e[0].split("/")[0];if(kind===
 var SECTIONS=[["#/","Overview","overview"],["#/review","Review","review"],["#/design","Design","design"],["#/build","Build","build"],["#/cli","Docs","cli"],["#/operate","Operate","operate"]];
 function chrome(cur){var n=document.getElementById("sections");n.replaceChildren.apply(n,SECTIONS.map(function(s){return $("a",{href:s[0],class:s[2]===cur?"on":""},s[1])}));
 document.getElementById("m-mock").className=MODE==="mock"?"on":"";document.getElementById("m-none").className=MODE==="none"?"on":"";
-document.getElementById("banner").textContent=MODE==="mock"?"Prototype, generated from the real records at "+D.meta.commit+". Verdicts are MOCK until B2 (the eval harness): specify and decide come from the real records; build, observe and done read invented verdicts.":"Prototype at "+D.meta.commit+", with no verdicts: what the real records give today. Until B2 every operation stands at specify, decide or build."}
+document.getElementById("banner").textContent=MODE==="mock"?"Prototype, generated from the real records at "+D.meta.commit+". Statuses are MOCK until B2 (the eval harness): every verdict here is invented. The stands specify and decide come from the real records; build, observe and done read the invented verdicts.":"Prototype at "+D.meta.commit+", with no verdicts: what the real records give today. Until B2 every operation stands at specify, decide or build."}
 function setMode(m){MODE=m;try{localStorage.setItem("portal-mode",m)}catch(e){}route()}
 document.getElementById("m-mock").onclick=function(){setMode("mock")};document.getElementById("m-none").onclick=function(){setMode("none")};
 

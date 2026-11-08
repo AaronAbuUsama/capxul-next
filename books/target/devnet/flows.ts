@@ -1,14 +1,17 @@
 // Devnet's Core SDK flows: the methods of the Core SDK's Node-only devnet entry (`connectDevnet()`)
 // that compose more than one rpc, or that reach the devnet supervisor instead of the backend (A4).
 //
-// Two kinds. The clocks and the saved worlds are the supervisor's (decision
-// devnet.supervisor-owns-time-and-worlds): those flows call `devnet-control` over the supervisor's
-// owner-only socket and no backend rpc. The schema's local step kinds have no "outside call", so each
-// supervisor call is a `cache` step (this machine's devnet state) and the flow's `calls` names it
-// (decision devnet.supervisor-steps). The other three flows compose backend rpcs: `dev approve`
-// signs in as the person it plays and signs as the approval page would; `dev gates set` and `dev
-// prices set` script a value and run the one sync that makes it apply. `dev jobs run` and the three
-// mail commands are one rpc each, so they have no flow.
+// Two kinds. The clock and the saved worlds are the supervisor's (decisions
+// devnet.supervisor-owns-time-and-worlds and devnet.time-protocol): those flows call `devnet-control`,
+// the supervisor's public control protocol, and no backend rpc. The schema's local step kinds have no
+// "outside call", so each supervisor call is a `cache` step (this machine's devnet state), or a `poll`
+// step for an event stream, and the flow's `calls` names it (decision devnet.supervisor-steps). Three
+// clock flows implement the frozen `dev time` commands; six more are the protocol's other verbs, for
+// people building on Capxul (surface `sdk`; the supervisor's `capxul-devnet time` commands are thin
+// clients of the same protocol). The other three flows compose backend rpcs: `dev approve` signs in as
+// the person it plays and signs as the approval page would; `dev gates set` and `dev prices set`
+// script a value and run the one sync that makes it apply. `dev jobs run` and the three mail commands
+// are one rpc each, so they have no flow.
 
 import { Schema } from "effect";
 import { budget, defineFlow } from "../../../packages/book/src/index.ts";
@@ -35,65 +38,105 @@ const control = integration_devnet_control.c;
 
 // ── shapes the supervisor answers ───────────────────────────────────────────────────────────
 
-/** The chain's head: its time and block. */
-export const ChainClock = Schema.Struct({ at: Instant, timestamp: N, block: N });
-/** The backend's clock: the time it reads and how far it is from the machine's wall clock. */
-export const BackendClock = Schema.Struct({ at: Instant, offsetMs: N });
-/** How far Ponder has indexed, and whether it has caught up with the chain's head. */
+/** Whether now runs on at the real rate from where it was set, or stands still until it is moved. */
+export const ClockMode = Schema.Literals(["running", "frozen"]);
+/** The one clock, as the time authority holds it (decision devnet.supervisor-owns-time-and-worlds). */
+export const Clock = Schema.Struct({
+  /** `capxul.devnet/1.<minor>`: the protocol version that answered. */
+  protocol: S,
+  now: Instant,
+  mode: ClockMode,
+  /** Increases with every change of the clock; a follower acknowledges it. */
+  version: Schema.Int,
+  /** The world's epoch: a new one at `up` and at every restore, so a subscriber tells a restore from a move. */
+  world: S,
+  /** Whether a warp, step or start-at has moved this world's clock: start-at needs a world that has not begun. */
+  moved: B,
+});
+/** The chain's head: its block and the instant it was mined at. */
+export const ChainHead = Schema.Struct({ block: N, at: Instant });
+/** How far Ponder has indexed, and whether it has reached the chain's head. */
 export const IndexerPosition = Schema.Struct({ block: Schema.NullOr(N), caughtUp: B });
+/** A follower of the clock (decision devnet.followers): the backend, Ponder, the stand-ins, or an outside program. */
+export const Follower = Schema.Struct({ name: S, version: Schema.Int, idle: B, nextDue: Schema.NullOr(Instant) });
+/** One event of the clock, as `watch` and `follow` deliver it. */
+export const ClockEvent = Schema.Struct({
+  version: Schema.Int,
+  now: Instant,
+  mode: ClockMode,
+  world: S,
+  reason: Schema.Literals(["warp", "stop", "step", "tick", "settle", "freeze", "resume", "start-at", "restore", "up"]),
+});
+/** What a move of the clock did: where it went, the stops on the way, what fell due and ran, and where everything stands. */
+const Moved = Schema.Struct({
+  from: Instant,
+  to: Instant,
+  moved: S,
+  stops: Schema.Int,
+  chain: ChainHead,
+  backend: Schema.Struct({ now: Instant, jobs: Schema.Array(JobOutcome), timersFired: Schema.Int }),
+  indexer: IndexerPosition,
+  clock: Clock,
+});
 /** A saved world, as `dev snapshot list` and `save` print it. */
-export const Snapshot = Schema.Struct({ name: S, at: Instant, savedAt: Instant, code: S });
+export const Snapshot = Schema.Struct({ name: S, at: Instant, mode: ClockMode, savedAt: Instant, code: S });
 
 const SUPERVISOR_ERRORS = "The supervisor's own refusals are the `devnet-control` call's failures.";
+const BARRIER =
+  "It is a barrier (decision devnet.warp-barrier): the clock stops at every due instant on the way, in order, and at " +
+  "each the chain gets its block, the backend's timers and crons due by then run once, and every follower settles.";
 
-// ── the clocks ──────────────────────────────────────────────────────────────────────────────
+// ── the clock: the frozen `dev time` commands ───────────────────────────────────────────────
 
 export const flow_devnet_time_show = defineFlow({
   id: "devnet.time.show",
-  title: "Read both devnet clocks and how far Ponder has indexed",
+  title: "Read the devnet's one clock, the chain head and how far Ponder has indexed",
   about:
-    "`dev time`. One supervisor read: the chain's head (time and block), the backend's clock and Ponder's progress, read " +
-    "together, and whether the two clocks agree (within two seconds). With no devnet on this machine, the call is refused " +
-    "WRONG_ENVIRONMENT before anything reaches the network. " + SUPERVISOR_ERRORS,
+    "`dev time`. One read of the time authority: the clock (now, running or frozen, its version and world), the chain " +
+    "head's block and time, the backend's now, Ponder's position, each follower, and whether they agree: every follower " +
+    "has taken the clock's current version and no block is later than now. With no devnet on this machine, the call is " +
+    "refused WRONG_ENVIRONMENT before anything reaches the network. " + SUPERVISOR_ERRORS,
   was: [`${SDK}:260`, `${WORLD}:367`, `${CONTROL}:107`],
   component: component_core_sdk,
   sdk: "devnet.time.show",
   input: Schema.Struct({}),
-  output: Schema.Struct({ chain: ChainClock, backend: BackendClock, indexer: IndexerPosition, agree: B }),
-  steps: [{ name: "clocks", local: "cache", about: "devnet-control clockShow: the chain head, the backend's clock and Ponder's position." }],
+  output: Schema.Struct({
+    clock: Clock,
+    chain: ChainHead,
+    backend: Schema.Struct({ now: Instant }),
+    indexer: IndexerPosition,
+    followers: Schema.Array(Follower),
+    agree: B,
+  }),
+  steps: [{ name: "read", local: "cache", about: "devnet-control timeRead: the clock, the chain head, the backend's now, Ponder and the followers." }],
   errors: [],
-  calls: [control.clockShow],
+  calls: [control.timeRead],
   spans: [],
   budget: budget("read"),
 });
 
 export const flow_devnet_time_warp = defineFlow({
   id: "devnet.time.warp",
-  title: "Move both devnet clocks forward, then run what fell due",
+  title: "Move the devnet's clock forward, running what falls due on the way",
   about:
     "`dev time warp`. The SDK turns a duration (`6h`, `28d`) or a date (`--to`; a date alone is 09:00 UTC) into one " +
-    "target: both or neither is INVALID_INPUT before any call. The supervisor refuses a target not later than the " +
-    "chain's time, mines a block at it, moves the backend's clock to match, then, unless `jobs` is false, runs " +
-    "devnet.jobs.run (the crons once and every durable timer now due) and waits for Ponder to reach the new block. A " +
-    "failed job does not undo the warp: the answer names it. " + SUPERVISOR_ERRORS,
+    "request: both or neither is INVALID_INPUT before any call, and a duration is sent as a span for the supervisor to " +
+    "resolve against its now. The supervisor refuses a target not later than now (INVALID_INPUT). " + BARRIER + " It " +
+    "returns when the chain has a block at the target, the backend reads it and Ponder has indexed it. `jobs` false " +
+    "skips the crons that fell due; every durable timer due still fires, because it is due. A cron that fails does not " +
+    "undo the warp: the answer names it. The clock keeps its mode: a frozen clock stays frozen at the target. " +
+    SUPERVISOR_ERRORS,
   was: [`${SDK}:261`, `${SDK}:267`, `${WORLD}:465`, `${WORLD}:518`, `${CONTROL}:134`],
   component: component_core_sdk,
   sdk: "devnet.time.warp",
   input: Schema.Struct({ by: Schema.optionalKey(S), to: Schema.optionalKey(S), jobs: B }),
-  output: Schema.Struct({
-    from: Instant,
-    to: Instant,
-    moved: S,
-    chain: ChainClock,
-    backend: Schema.Struct({ at: Instant, offsetMs: N, jobs: Schema.Array(JobOutcome), scheduledRun: Schema.Int }),
-    indexer: IndexerPosition,
-  }),
+  output: Moved,
   steps: [
-    { name: "target", local: "build", about: "One target time from the duration or the date; both or neither is INVALID_INPUT." },
-    { name: "warp", local: "cache", about: "devnet-control clockWarp: mine at the target, move the backend's clock, run what fell due, wait for Ponder." },
+    { name: "target", local: "build", about: "One request from the duration or the date; both or neither is INVALID_INPUT." },
+    { name: "warp", local: "cache", about: "devnet-control timeWarp: stop at each due instant, mine there, run what fell due, settle." },
   ],
   errors: [error_INVALID_INPUT],
-  calls: [control.clockWarp],
+  calls: [control.timeWarp],
   spans: [],
   budget: budget("background"),
 });
@@ -103,22 +146,151 @@ export const flow_devnet_time_start_at = defineFlow({
   title: "Set a fresh devnet's story in the past",
   about:
     "`dev time start-at`. The SDK reads the date (a date alone is 09:00 UTC). The supervisor refuses a date not earlier " +
-    "than the chain's time (INVALID_INPUT) and a world whose clocks already moved (WRONG_STATE), then sets the chain's " +
-    "time back, mines a block at that moment, moves the backend's clock to match and waits for Ponder. From then on the " +
-    "story only moves forward. " + SUPERVISOR_ERRORS,
+    "than now (INVALID_INPUT) and a world whose clock a warp, step or start-at already moved (WRONG_STATE), then sets " +
+    "now back to the date for every follower, mines a block at that moment and settles. It is the one move back in a " +
+    "world's life (decision devnet.start-at); from then on the story only moves forward. " + SUPERVISOR_ERRORS,
   was: [`${SDK}:272`, `${WORLD}:417`, `${WORLD}:447`],
   component: component_core_sdk,
   sdk: "devnet.time.startAt",
   input: Schema.Struct({ date: S }),
-  output: Schema.Struct({ from: Instant, to: Instant, chain: ChainClock, backend: BackendClock }),
+  output: Schema.Struct({ from: Instant, to: Instant, chain: ChainHead, backend: Schema.Struct({ now: Instant }), clock: Clock }),
   steps: [
     { name: "date", local: "build", about: "The start date; a date alone is 09:00 UTC that day, an unreadable one INVALID_INPUT." },
-    { name: "start", local: "cache", about: "devnet-control clockStartAt: both clocks back to the date, one block mined there." },
+    { name: "start", local: "cache", about: "devnet-control timeStartAt: now back to the date everywhere, one block mined there." },
   ],
   errors: [error_INVALID_INPUT],
-  calls: [control.clockStartAt],
+  calls: [control.timeStartAt],
   spans: [],
   budget: budget("chain-settle"),
+});
+
+// ── the clock: the protocol's other verbs, for people building on Capxul ────────────────────
+
+const SDK_ONLY =
+  "No CLI command: the Core SDK's devnet entry serves it to programs built on Capxul, and `capxul-devnet time` is the " +
+  "supervisor's own thin client of the same request (decision devnet.time-protocol).";
+
+export const flow_devnet_time_freeze = defineFlow({
+  id: "devnet.time.freeze",
+  title: "Hold the devnet's clock still until it is moved",
+  about:
+    "Holds now at the next whole second (never back), for every follower, until a warp, step or resume moves it, so a " +
+    "program's own steps happen at instants it chooses (decision devnet.clock-modes). Freezing a frozen clock changes " +
+    "nothing. " + SDK_ONLY,
+  was: [`${WORLD}:240`],
+  component: component_core_sdk,
+  sdk: "devnet.time.freeze",
+  input: Schema.Struct({}),
+  output: Clock,
+  steps: [{ name: "freeze", local: "cache", about: "devnet-control timeFreeze." }],
+  errors: [],
+  calls: [control.timeFreeze],
+  spans: [],
+  surfaces: ["sdk"],
+  budget: budget("write"),
+});
+
+export const flow_devnet_time_resume = defineFlow({
+  id: "devnet.time.resume",
+  title: "Let the devnet's clock run on at the real rate",
+  about: "Lets now run on from where it stands, at the real rate, for every follower. Resuming a running clock changes nothing. " + SDK_ONLY,
+  was: [`${WORLD}:240`],
+  component: component_core_sdk,
+  sdk: "devnet.time.resume",
+  input: Schema.Struct({}),
+  output: Clock,
+  steps: [{ name: "resume", local: "cache", about: "devnet-control timeResume." }],
+  errors: [],
+  calls: [control.timeResume],
+  spans: [],
+  surfaces: ["sdk"],
+  budget: budget("write"),
+});
+
+export const flow_devnet_time_step = defineFlow({
+  id: "devnet.time.step",
+  title: "Move the devnet's clock to the next instant anything is due",
+  about:
+    "Moves now to the earliest instant anything is due (a durable timer, a cron run, a follower's own next due), or to " +
+    "`limit` when nothing is due before it, and settles there, as one stop of a warp. With nothing due and no limit, " +
+    "now stays and the answer says so. A limit not later than now is INVALID_INPUT. A discrete-event simulation drives " +
+    "the story this way, one happening at a time. " + SDK_ONLY,
+  was: [`${WORLD}:465`],
+  component: component_core_sdk,
+  sdk: "devnet.time.step",
+  input: Schema.Struct({ limit: Schema.optionalKey(S) }),
+  output: Moved,
+  steps: [{ name: "step", local: "cache", about: "devnet-control timeStep: to the next due instant, not past the limit, then settle." }],
+  errors: [],
+  calls: [control.timeStep],
+  spans: [],
+  surfaces: ["sdk"],
+  budget: budget("background"),
+});
+
+export const flow_devnet_time_settle = defineFlow({
+  id: "devnet.time.settle",
+  title: "Wait until everything due at now has run, without moving the clock",
+  about:
+    "Waits until the backend's due timers and crons have run, its outbox is delivered and its waits woken, every pending " +
+    "transaction is mined at now, Ponder has indexed the head and every follower is idle. A program calls it after each " +
+    "of its own actions, so the next one starts from a settled world. " + SDK_ONLY,
+  was: [`${WORLD}:292`],
+  component: component_core_sdk,
+  sdk: "devnet.time.settle",
+  input: Schema.Struct({}),
+  output: Schema.Struct({ clock: Clock, rounds: Schema.Int, timersFired: Schema.Int, jobs: Schema.Array(JobOutcome), indexer: IndexerPosition }),
+  steps: [{ name: "settle", local: "cache", about: "devnet-control timeSettle." }],
+  errors: [],
+  calls: [control.timeSettle],
+  spans: [],
+  surfaces: ["sdk"],
+  budget: budget("background"),
+});
+
+export const flow_devnet_time_watch = defineFlow({
+  id: "devnet.time.watch",
+  title: "Follow the devnet clock's changes as they happen",
+  about:
+    "A stream of the clock's events: each warp, stop, step, tick, freeze, resume, start-at and restore, with its version, " +
+    "now, mode and world. It only reads: the barrier does not wait for a watcher (follow for that). " + SDK_ONLY,
+  was: [`${CONTROL}:107`],
+  component: component_core_sdk,
+  sdk: "devnet.time.watch",
+  input: Schema.Struct({ after: Schema.optionalKey(Schema.Int) }),
+  output: ClockEvent,
+  steps: [{ name: "events", local: "poll", about: "devnet-control timeWatch: the clock's server-sent events, from `after`'s version on." }],
+  errors: [],
+  calls: [control.timeWatch],
+  spans: [],
+  surfaces: ["sdk"],
+  budget: budget("live-read"),
+});
+
+export const flow_devnet_time_follow = defineFlow({
+  id: "devnet.time.follow",
+  title: "Join the devnet's clock as a follower its barrier waits for",
+  about:
+    "Joins the time authority under a name (one at a time per name: WRONG_STATE). At every stop the follower's handler " +
+    "gets the clock event with now standing still, does its own work at that instant (a simulated customer's deposit, " +
+    "a stand-in's scheduled answer), and returns whether it is idle and its own next due instant; the SDK acknowledges " +
+    "it, and the warp stops at that instant too. A follower that does not acknowledge in time fails the barrier " +
+    "(WORK_DIED, naming it) and is dropped (decision devnet.followers). " + SDK_ONLY,
+  was: [`${WORLD}:292`, "/home/user/factory packages/vending-bench/src/bridge.ts:99"],
+  component: component_core_sdk,
+  sdk: "devnet.time.follow",
+  input: Schema.Struct({ name: S, ackTimeoutMs: Schema.optionalKey(Schema.Int) }),
+  output: ClockEvent,
+  steps: [
+    { name: "join", local: "cache", about: "devnet-control timeFollow: join under the name." },
+    { name: "events", local: "poll", about: "The follower's clock events, one per stop and change." },
+    { name: "ack", local: "cache", about: "After the handler: the version taken, idle or busy, and the next due instant." },
+  ],
+  errors: [],
+  calls: [control.timeFollow],
+  spans: [],
+  surfaces: ["sdk"],
+  budget: budget("live-read"),
 });
 
 // ── saved worlds ────────────────────────────────────────────────────────────────────────────
@@ -154,7 +326,7 @@ export const flow_devnet_snapshots_save = defineFlow({
     `\`dev snapshot save\`. The SDK refuses a name that is not ${NAME_RULE} (INVALID_INPUT) before any call. The ` +
     "supervisor refuses a name already saved unless `replace` (WRONG_STATE), then saves the chain's state, Postgres (the " +
     "concepts' `app` schema, Ponder's `ponder` schema and devnet's own, with the durable workflows' state), Ponder's " +
-    "checkpoint, the world's clocks and its armed fault switches, and the eval machine's CLI home, together, with the " +
+    "checkpoint, the world's clock (its now and mode) and its armed fault switches, and the eval machine's CLI home, together, with the " +
     "backend code it runs. The devnet itself is unchanged. " + SUPERVISOR_ERRORS,
   was: [`${SDK}:281`, `${WORLD}:580`, `${WORLD}:614`, `${CONTROL}:150`],
   component: component_core_sdk,
@@ -163,7 +335,7 @@ export const flow_devnet_snapshots_save = defineFlow({
   output: Snapshot,
   steps: [
     { name: "name", local: "build", about: `The name must be ${NAME_RULE}.` },
-    { name: "save", local: "cache", about: "devnet-control snapshotSave: chain, Postgres, Ponder, clocks, faults and CLI home, together." },
+    { name: "save", local: "cache", about: "devnet-control snapshotSave: chain, Postgres, Ponder, clock, faults and CLI home, together." },
   ],
   errors: [error_INVALID_INPUT],
   calls: [control.snapshotSave],
@@ -178,8 +350,9 @@ export const flow_devnet_snapshots_restore = defineFlow({
     `\`dev snapshot restore\`. The SDK refuses a name that is not ${NAME_RULE} (INVALID_INPUT). The supervisor refuses ` +
     "a name it has not saved (INVALID_INPUT, listing the worlds) and a world saved with other backend code (WRONG_STATE: " +
     "replay its builder instead), then stops the backend and Ponder, replaces the chain's state, Postgres and Ponder's " +
-    "checkpoint with the world's, sets both clocks to the world's time, re-arms its fault switches, restores the CLI home, " +
-    "and starts them again; the durable processes resume from their stored state, each timer at its business due time. " +
+    "checkpoint with the world's, sets the clock to the world's now (frozen while it works, then the world's mode, under " +
+    "a new world epoch), re-arms its fault switches, restores the CLI home, and starts them again; the durable processes " +
+    "resume from their stored state, each timer due at the instant it was stored with, so none needs moving. " +
     "It answers the world's time and how long it took. " + SUPERVISOR_ERRORS,
   was: [`${SDK}:285`, `${WORLD}:677`, `${WORLD}:767`, `${CONTROL}:169`],
   component: component_core_sdk,
@@ -189,12 +362,13 @@ export const flow_devnet_snapshots_restore = defineFlow({
     name: S,
     at: Instant,
     chain: Schema.Struct({ at: Instant, block: N }),
-    backend: Schema.Struct({ at: Instant }),
+    backend: Schema.Struct({ now: Instant }),
+    clock: Clock,
     tookMs: N,
   }),
   steps: [
     { name: "name", local: "build", about: `The name must be ${NAME_RULE}.` },
-    { name: "restore", local: "cache", about: "devnet-control snapshotRestore: the world's chain, Postgres, Ponder, clocks, faults and CLI home." },
+    { name: "restore", local: "cache", about: "devnet-control snapshotRestore: the world's chain, Postgres, Ponder, clock, faults and CLI home." },
   ],
   errors: [error_INVALID_INPUT],
   calls: [control.snapshotRestore],

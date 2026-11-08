@@ -5,7 +5,16 @@
 
 import { defineDecision } from "../../../packages/book/src/index.ts";
 import { component_devnet, concept_devnet, environment_devnet } from "../shared/foundation.ts";
-import { integration_chainlink, integration_devnet_control, integration_mail, integration_posthog } from "../shared/external.ts";
+import {
+  integration_bridge,
+  integration_bundler,
+  integration_chain_rpc,
+  integration_chainlink,
+  integration_devnet_control,
+  integration_indexer,
+  integration_mail,
+  integration_posthog,
+} from "../shared/external.ts";
 import { table_mail_faults, table_mail_messages, table_scripted_gates, table_scripted_prices } from "./data.ts";
 import { rpc_devnet_mail_fail, rpc_devnet_mail_list, rpc_devnet_mail_list_notices } from "./mail.ts";
 import { rpc_devnet_gates_read, rpc_devnet_gates_script } from "./gates.ts";
@@ -18,9 +27,15 @@ import {
   flow_devnet_snapshots_list,
   flow_devnet_snapshots_restore,
   flow_devnet_snapshots_save,
+  flow_devnet_time_follow,
+  flow_devnet_time_freeze,
+  flow_devnet_time_resume,
+  flow_devnet_time_settle,
   flow_devnet_time_show,
   flow_devnet_time_start_at,
+  flow_devnet_time_step,
   flow_devnet_time_warp,
+  flow_devnet_time_watch,
 } from "./flows.ts";
 import * as ops from "./operations.ts";
 
@@ -32,10 +47,16 @@ const RPCS = [
   rpc_devnet_mail_list, rpc_devnet_mail_fail, rpc_devnet_mail_list_notices, rpc_devnet_gates_script, rpc_devnet_gates_read,
   rpc_devnet_prices_script, rpc_devnet_jobs_run,
 ];
-const SUPERVISOR_FLOWS = [
-  flow_devnet_time_show, flow_devnet_time_warp, flow_devnet_time_start_at, flow_devnet_snapshots_list, flow_devnet_snapshots_save,
-  flow_devnet_snapshots_restore,
+const TIME_FLOWS = [
+  flow_devnet_time_show, flow_devnet_time_warp, flow_devnet_time_start_at, flow_devnet_time_freeze, flow_devnet_time_resume,
+  flow_devnet_time_step, flow_devnet_time_settle, flow_devnet_time_watch, flow_devnet_time_follow,
 ];
+const SUPERVISOR_FLOWS = [...TIME_FLOWS, flow_devnet_snapshots_list, flow_devnet_snapshots_save, flow_devnet_snapshots_restore];
+const TIME_OPS = [ops.operation_dev_time, ops.operation_dev_time_warp, ops.operation_dev_time_start_at];
+/** The time design's own evidence (docs/design/time.md). */
+const TIME = (evidence: string) => `Claude, time design, 8 November 2026; evidence: ${evidence}`;
+const OLD_WORLD = "/home/user/factory packages/devnet/src/modules/world";
+const BENCH = "/home/user/factory packages/vending-bench/src";
 const OPERATIONS = [
   ops.operation_dev_time, ops.operation_dev_time_warp, ops.operation_dev_time_start_at, ops.operation_dev_snapshot_save,
   ops.operation_dev_snapshot_list, ops.operation_dev_snapshot_restore, ops.operation_dev_prices_set, ops.operation_dev_gates_set,
@@ -208,47 +229,290 @@ export const decision_devnet_jobs = defineDecision({
     {
       label: "engine",
       text:
-        "The crons P3 keeps (each another concept's singleton workflow) and every durable timer due at the backend clock; " +
-        "one rpc asks the engine for one run of each, waits for them and reports each by name.",
+        "The crons P3 keeps (each another concept's singleton workflow) and every durable timer due at now; one rpc asks " +
+        "the engine for one run of each, waits for them and reports each by name.",
     },
     { label: "as-is", text: "Port old operator.jobs.run and shift, which moved Convex's scheduled functions by the warp." },
   ],
   chosen: "engine",
   why:
     "P3 leaves six crons (Bridge catch-up, prices, flags, the client-grant sweep, the daily agreement notices, the " +
-    "added-token scan) and gives every other wait to a process's own timer, which the engine keeps in Postgres in backend " +
-    "time; on a devnet that clock is the supervisor's, so after a warp the due timers are due, and nothing needs shifting " +
-    "(old shift goes). The rpc names the workflows by id because the schema has no link from an rpc to a workflow; it " +
-    "writes no table of theirs. `only` serves the gates and prices flows. A failed job is WORK_DIED naming it, as the " +
-    "frozen mistake says, after the others finish.",
+    "added-token scan) and gives every other wait to a process's own timer, which the runtime keeps as an instant on the " +
+    "one clock (time.durable-timers); on a devnet that clock is the supervisor's, so after a warp the due timers are due, " +
+    "and nothing needs shifting (old shift goes). A warp no longer calls it: the warp's barrier runs the crons and " +
+    "timers that fell due, each at its own instant (devnet.warp-barrier), so `dev jobs run` is the explicit 'every cron " +
+    "now'. The rpc names the workflows by id because the schema has no link from an rpc to a workflow; it writes no " +
+    "table of theirs. `only` serves the gates and prices flows. A failed job is WORK_DIED naming it, as the frozen " +
+    "mistake says, after the others finish. Revised by the time design, 8 November 2026.",
   source: by("docs/as-is/archive/operator/jobs.ts; docs/decisions/policy-pack.md#p3; apps/docs/factory/operations/dev.jobs.run.yaml"),
   affects: [rpc_devnet_jobs_run, ops.operation_dev_jobs_run, flow_devnet_gates_set, flow_devnet_prices_set],
 });
 
 export const decision_devnet_supervisor_owns_time_and_worlds = defineDecision({
   id: "devnet.supervisor-owns-time-and-worlds",
-  title: "The clocks and the saved worlds are the supervisor's",
-  question: "Old warps set an env var through the deployment's admin API and imported data with the Convex CLI. Who owns the clocks and the worlds now?",
+  title: "The supervisor is the devnet's one time authority, and it keeps the worlds",
+  question:
+    "Old warps set an offset over the wall through the deployment's admin API, Anvil's clock ran on with the wall, and " +
+    "worlds were imported with the Convex CLI. Who holds the devnet's now, how does everything else follow it, and who " +
+    "keeps the worlds?",
   options: [
     {
-      label: "supervisor",
+      label: "authority",
       text:
-        "The supervisor: it runs Anvil, Postgres, Ponder and the backend, so it moves Anvil's time, holds the backend's " +
-        "clock offset (the devnet build's Clock layer reads it from the supervisor), saves and restores worlds on this " +
-        "machine's disk, and calls devnet.jobs.run after a warp. The SDK's devnet flows call devnet-control only.",
+        "The supervisor's time authority holds the devnet's one clock: now, its mode (running or frozen), a version that " +
+        "rises with every change, the world's epoch and whether the story has begun. Its now is the chain's block time: " +
+        "the supervisor is the chain's only miner and mines every block at now (devnet.only-miner). Everything else " +
+        "follows it through the time protocol (devnet.time-protocol) as a follower (devnet.followers): the backend's " +
+        "devnet Now layer, and with it the workflow engine's timers and crons, the mail sink and the fakes; Ponder, whose " +
+        "rows carry the blocks' times; the bundler, paymaster and Bridge stand-ins; and any outside program. The " +
+        "supervisor also saves and restores worlds, with their clock, on this machine's disk. The SDK's devnet flows call " +
+        "devnet-control only.",
     },
+    { label: "offset", text: "Keep a backend clock offset over the wall that the supervisor sets beside the chain, as the old devnet did." },
     { label: "backend-rows", text: "A devnet clock table and snapshot rpcs on the backend, which the flows call." },
   ],
-  chosen: "supervisor",
+  chosen: "authority",
   why:
-    "A world is the whole of Postgres, so its catalog cannot live inside it, and only the process that runs every " +
-    "component can stop them, swap their state and start them again. The backend's clock must agree with the chain's, " +
-    "and the supervisor is the one place that moves both together (devnet-control's clockWarp). Clock rpcs only the " +
-    "supervisor called would be unreached (P2). Old operator.clocks.read and jobs.shift are not ported: clockShow reads " +
-    "both clocks, and timers stored in backend time need no shift. The durable processes resume from their stored state " +
-    "after a restore.",
-  source: by("docs/as-is/archive/operations/devnet.ts:1-40, :295-430; components.devnet; shared external.ts (devnet-control)"),
-  affects: [...SUPERVISOR_FLOWS, component_devnet, integration_devnet_control, concept_devnet],
+    "One instant set in one place is the same for the chain and for everything else only if nothing else runs its own " +
+    "clock: an offset over a moving wall is close to the chain's time, never equal, which is why the old devnet needed " +
+    "'agree within two seconds' and vending-bench took the earlier of two clocks. The supervisor runs every component, " +
+    "so it is the one place that can move them together, stop at each due instant, and stop and restore them for a world. " +
+    "A world is the whole of Postgres, so its catalog cannot live inside it. Clock rpcs only the supervisor called would " +
+    "be unreached (P2). Old operator.clocks.read and jobs.shift are not ported: timeRead reads the clock, and timers kept " +
+    "as instants need no shift. Revised in place by the time design on 8 November 2026 (time.one-clock): the two clocks " +
+    "and the backend's offset became one authority.",
+  source: TIME(`${OLD_WORLD}/README.md (invariants); docs/as-is/archive/operations/devnet.ts:1-40, :295-430; ${BENCH}/devnet-world.ts:542`),
+  affects: [...SUPERVISOR_FLOWS, ...TIME_OPS, component_devnet, environment_devnet, integration_devnet_control, concept_devnet],
+});
+
+export const decision_devnet_only_miner = defineDecision({
+  id: "devnet.only-miner",
+  title: "The supervisor is the chain's only miner, and every block is mined at now",
+  question: "Anvil keeps its own clock, which runs with the wall between blocks and mines a block per transaction. How is a block's time made the devnet's now?",
+  options: [
+    {
+      label: "only-miner",
+      text:
+        "Anvil runs with automine off. The supervisor watches its pending transactions and mines each batch at once with " +
+        "evm_mine at now (to the second), and pins Anvil's own time to now at every clock change, so an eth_call or a gas " +
+        "estimate at `pending` sees now as block.timestamp. If Anvil will not mine two blocks at one second, the authority " +
+        "first ticks now forward one second (a `tick` event to every follower), so a block's time is still now and time " +
+        "never moves backward. A warp, a step and a start-at each mine a block at their target, so the chain has a block " +
+        "at every settled now that moved.",
+    },
+    { label: "automine", text: "Keep automine and set Anvil's time before each warp, letting it run with the wall in between." },
+  ],
+  chosen: "only-miner",
+  why:
+    "With automine, every transaction's block takes Anvil's own clock, which moves with the wall: on a frozen devnet a " +
+    "day-old story would mine at today's time, and a payment's block time would disagree with the backend's row. Mining " +
+    "on demand costs a millisecond or two over automine and batches concurrent transactions as a real chain does. The " +
+    "tick keeps the rule exact whichever way Anvil treats equal timestamps, which B0 measures on the pinned Anvil.",
+  source: TIME(`${OLD_WORLD}/README.md (Anvil's clock moves with the wall); ${OLD_WORLD}/service.ts:240-270, :493`),
+  affects: [component_devnet, environment_devnet, integration_chain_rpc, flow_devnet_time_warp, flow_devnet_time_start_at, flow_devnet_time_step],
+});
+
+export const decision_devnet_clock_modes = defineDecision({
+  id: "devnet.clock-modes",
+  title: "The clock runs or stands still; evals, worlds and simulations stand it still",
+  question: "Should the devnet's now run on with real time between moves, or move only when someone moves it?",
+  options: [
+    {
+      label: "both",
+      text:
+        "Both, as the clock's mode. Running: now runs on at the real rate from where it was last set, which `capxul-devnet " +
+        "up` starts with for a person at the keyboard (a code expires, a timer fires on its own). Frozen: now moves only " +
+        "by a warp, a step, a start-at, a restore or a tick, which the eval devnet, the world builder and any simulation " +
+        "use. freeze and resume switch modes without moving now back. A warp keeps the mode.",
+    },
+    { label: "running-only", text: "Always running, with warps on top, as the old devnet was." },
+    { label: "frozen-only", text: "Always frozen: time moves only by calls." },
+  ],
+  chosen: "both",
+  why:
+    "A running clock is what a developer expects; a frozen one is what makes a story repeatable: with it, the same calls " +
+    "give the same instants, so worlds, eval outputs and a simulated year can be compared run to run " +
+    "(time.frozen-deterministic). Vending-bench's bridge had to skip a warp when the running chain had already passed " +
+    "the engine's minute; frozen, the minute is exactly where it was left. Frozen-only would make a person warp to see a " +
+    "sign-in code expire.",
+  source: TIME(`${BENCH}/devnet-world.ts:542-548 (the chain's clock runs with the wall); ${BENCH}/clock.ts; worlds.ts (people-with-keys)`),
+  affects: [...TIME_FLOWS, component_devnet, environment_devnet],
+});
+
+export const decision_devnet_warp_barrier = defineDecision({
+  id: "devnet.warp-barrier",
+  title: "A warp is a barrier that stops at every due instant on the way",
+  question:
+    "A warp moved the clocks, mined one block at the target and then ran every cron once and shifted the scheduler, so " +
+    "a dated payment due on day 10 of a 28-day warp ran on day 28, and the caller polled until things looked done. What " +
+    "does a warp promise when it returns?",
+  options: [
+    {
+      label: "stepped-barrier",
+      text:
+        "A warp from now to T stops at each instant anything is due on the way, in order: every durable timer's due " +
+        "instant, every run of an hourly-or-slower cron (the daily sweep and the daily notices), and every follower's " +
+        "next due instant; then at T. At each stop the clock stands at that instant, a block is mined there when anything " +
+        "is pending, the backend fires what is due and runs it, the minute-scale syncs that are due run once, and the " +
+        "authority waits until every follower is idle and Ponder has indexed the head, repeating until nothing changes. " +
+        "Then the next stop. It returns when the chain has a block at T, the backend reads T, every timer and cron due by " +
+        "T has fired once and Ponder has indexed that block. `jobs` false skips the crons; timers still fire. A stop that " +
+        "does not settle in time fails the warp WORK_DIED, naming the stop and the busy followers, and the clock stays at " +
+        "the last stop that settled. Step is one stop; settle is a stop at now.",
+    },
+    { label: "jump", text: "Jump to T, mine one block there, then run everything that fell due at T, as before." },
+  ],
+  chosen: "stepped-barrier",
+  why:
+    "A warp should leave the world that time passing would have left: a payment dated day 10 settles in a block dated " +
+    "day 10 and its book fact is dated day 10, a month's budget period closes at the month's end, and a notice is sent " +
+    "the day it is due. The jump made states production can never reach. The barrier also ends the caller's polling: " +
+    "when the call returns, its consequences have happened. The minute-scale syncs read an outside system's current " +
+    "state, so one run per stop is the same as one per minute; stopping at each of them would make a year 525,600 " +
+    "stops. Two calendar crons a day make a year about 730 stops, minutes of work, not seconds, which the barrier " +
+    "budget covers for the warps evals use (a day to a month).",
+  source: TIME(`${OLD_WORLD}/service.ts:465-535; ${BENCH}/devnet-world.ts:123-140 (waitUntil); node_modules/effect/src/testing/TestClock.ts (sleeps woken earliest first)`),
+  affects: [flow_devnet_time_warp, flow_devnet_time_step, flow_devnet_time_settle, ops.operation_dev_time_warp, rpc_devnet_jobs_run, integration_devnet_control, component_devnet],
+});
+
+export const decision_devnet_time_protocol = defineDecision({
+  id: "devnet.time-protocol",
+  title: "The devnet's clock is a versioned HTTP protocol with a typed SDK client",
+  question: "People build on Capxul and drive its time from outside, from TypeScript, Python or a shell. What interface do they get, and what may change under them?",
+  options: [
+    {
+      label: "http-v1",
+      text:
+        "`capxul.devnet/1`, HTTP JSON served by the supervisor on loopback with the bearer token from its owner-only " +
+        "handoff file, and on its owner-only Unix socket: GET /v1/time; POST /v1/time/warp, /step, /settle, /start-at, " +
+        "/freeze and /resume; GET /v1/time/events (server-sent events); POST /v1/followers with its events and acks. " +
+        "Errors are the target's codes in one JSON shape. Every answer names the protocol and its minor version; a field " +
+        "added is a minor version, a field removed or a meaning changed is /v2, served beside /v1 until no client uses " +
+        "it, with a decision. The Core SDK's devnet entry is the typed client, its types generated from the protocol's " +
+        "schema in packages/devnet; `capxul dev time …` and `capxul-devnet time …` are thin clients of it.",
+    },
+    { label: "sdk-only", text: "Keep the socket's wire contract internal and expose the clock only through the SDK's devnet entry, as the old one did." },
+    { label: "json-rpc", text: "Add `capxul_*` methods to the chain's JSON-RPC endpoint." },
+  ],
+  chosen: "http-v1",
+  why:
+    "HTTP JSON is reachable from any language with no Capxul code, which vending-bench's Python engine and outside " +
+    "builders need, and server-sent events give a subscription with no extra dependency. An SDK-only interface ties " +
+    "every builder to TypeScript and to the SDK's release; the chain's endpoint belongs to Anvil and cannot reach the " +
+    "backend or the followers. A version in the path and the answer lets a builder pin what they built against.",
+  source: TIME(`/home/user/factory packages/protocol/src/devnet/control.ts; packages/sdk/src/devnet/index.ts:114-280; ${BENCH}/../README.md`),
+  affects: [integration_devnet_control, ...TIME_FLOWS, ...TIME_OPS, component_devnet],
+});
+
+export const decision_devnet_followers = defineDecision({
+  id: "devnet.followers",
+  title: "Followers take the clock, report idle and their next due, and the barrier waits",
+  question: "How does each component, and an outside program, follow the clock closely enough that a warp can wait for it?",
+  options: [
+    {
+      label: "ack",
+      text:
+        "A follower joins under a name, takes every clock event, and acknowledges each version with whether it is idle " +
+        "and its own next due instant. The built-in followers are the backend (its devnet Now layer: at each event it " +
+        "takes the new now, runs its timer and cron pump, and is idle when no due timer is unfired, no workflow step is " +
+        "running and its outbox is delivered), Ponder (through the supervisor: idle when its indexed block is the head), " +
+        "the bundler and paymaster stand-ins, and the Bridge stand-in (its scheduled answers are its next due). An " +
+        "outside program joins the same way, so a simulation's own happenings become stops. Running, a follower " +
+        "computes now from the last event and its own wall clock (one machine). A follower that misses an " +
+        "acknowledgement fails the barrier and is dropped. The backend's follower channel is the runtime's, not an rpc.",
+    },
+    { label: "poll", text: "Each component reads the supervisor's clock on every use, and the warp polls each one's state." },
+  ],
+  chosen: "ack",
+  why:
+    "A barrier needs to know that each part has taken the new time and finished what fell due, which only the part can " +
+    "say; next due lets the warp stop where something happens instead of at every second. Reading the supervisor on " +
+    "every use puts a round trip in every rpc. The backend's follower is runtime plumbing like the outbox relay " +
+    "(rules.outbox): booking it as an rpc only the supervisor calls would be unreached (P2). Using the public protocol " +
+    "for the built-in followers keeps one path, proven by Capxul's own use.",
+  source: TIME(`${BENCH}/bridge.ts:99-107 (warps to each engine minute); ${OLD_WORLD}/../stand-ins/time.ts (DevnetTime); docs/decisions shared rules.outbox`),
+  affects: [flow_devnet_time_follow, flow_devnet_time_settle, integration_devnet_control, component_devnet, environment_devnet],
+});
+
+export const decision_devnet_deterministic_worlds = defineDecision({
+  id: "devnet.deterministic-worlds",
+  title: "Eval worlds are built at a fixed epoch on a frozen clock",
+  question: "A world saved at whatever time its build happened to run gives different dates every rebuild. How are the eval worlds' times fixed?",
+  options: [
+    {
+      label: "epoch-frozen",
+      text:
+        "The eval devnet boots with `capxul-devnet up --start-at <eval epoch> --frozen`: the epoch is 09:00 UTC on the " +
+        "first Monday after the pinned fork block's time, so it is never before a block the fork already has. The world " +
+        "builder warps one second before each step and settles after it, and a world's warps are barriers. A world's " +
+        "manifest keeps its now and mode, and the harness restores a world frozen. A step that waits on a timer warps " +
+        "past it; nothing waits on real time to move the story.",
+    },
+    { label: "wall", text: "Build at the wall's time, as the old devnet did, and compare times only relative to each other." },
+  ],
+  chosen: "epoch-frozen",
+  why:
+    "With a fixed epoch and a frozen clock every time in a world is a function of its steps, so a rebuilt world gives the " +
+    "same dates, eval outputs can be compared, and a refusal that depends on a deadline is reached the same way every " +
+    "time. One second per step keeps the steps' rows in order by time without depending on how fast the machine is. " +
+    "The epoch after the fork block keeps every block's time at or after the fork's.",
+  source: TIME("books/target/devnet/worlds.ts (people-with-keys' clock hold, the warps); books/target/shared/foundation.ts (devnet: Anvil forking at a pinned block)"),
+  affects: [component_devnet, environment_devnet, concept_devnet],
+});
+
+export const decision_devnet_start_at = defineDecision({
+  id: "devnet.start-at",
+  title: "Start-at is a fresh world's one move back; `up --start-at` is its first form",
+  question: "Start-at sets the story in the past, the one move back in time. When is a world fresh enough for it, and how does it meet the blocks already mined?",
+  options: [
+    {
+      label: "fresh-once",
+      text:
+        "A world is fresh until a warp, step or start-at moves its clock (the clock's `moved`, saved with a world, so a " +
+        "world saved before the story began can start-at again). `dev time start-at` on a fresh world sets now back for " +
+        "every follower, mines a block there and settles: the blocks mined before it (the v4 deployment) keep their later " +
+        "times, the one place a devnet's block times go back, before any product row. `capxul-devnet up --start-at` boots " +
+        "the stack at the date instead, so nothing is ever mined later than the story; the eval devnet boots that way.",
+    },
+    { label: "any-time", text: "Allow start-at whenever, moving every row's time back with it." },
+  ],
+  chosen: "fresh-once",
+  why:
+    "The frozen page says it runs once, on a fresh devnet, before any warp, and refuses WRONG_STATE once the clock moved. " +
+    "Moving back after the story began would put rows later than now, which every expiry and order by time would read " +
+    "wrongly. Booting at the date removes even the deployment's later blocks.",
+  source: TIME(`${OLD_WORLD}/README.md (start-at); ${OLD_WORLD}/service.ts:417-460; apps/docs/factory/operations/dev.time.start-at.yaml`),
+  affects: [flow_devnet_time_start_at, ops.operation_dev_time_start_at, integration_devnet_control, component_devnet],
+});
+
+export const decision_devnet_stand_ins_follow = defineDecision({
+  id: "devnet.stand-ins-follow",
+  title: "Every stand-in reads the devnet's now, and dates its payloads with it",
+  question:
+    "Old stand-ins compared due times with the wall or with Anvil's pending block, the mock paymaster signed from the " +
+    "later of the chain's clock and the wall, and alto checked windows against its own wall clock. How does each " +
+    "stand-in meet the one clock?",
+  options: [
+    {
+      label: "follow",
+      text:
+        "Each takes now from the authority: the mock paymaster signs validAfter and validUntil from now; the bundler " +
+        "stand-in checks a window and simulates at the chain's next block time, which is now, so alto runs only if it " +
+        "can be given that time, else a Capxul bundler stand-in does (B3 records which); the Bridge stand-in dates every " +
+        "event and object at now, schedules its own answers at instants (its next due) and signs its webhooks with the " +
+        "real time; the mail sink, the Chainlink and PostHog fakes are backend layers and read Now; chain-rpc's devnet " +
+        "layer reads at `pending`, which is now.",
+    },
+    { label: "max-of-both", text: "Sign from the later of the chain's time and the wall, as the old mock paymaster did." },
+  ],
+  chosen: "follow",
+  why:
+    "A window signed from the wall is already closed on a story set a year back, and one signed from a moving pending " +
+    "block lapses at the wall's pace; with one clock the window opens at now and lapses when now passes it, as on " +
+    "staging. A webhook's signature is an envelope the backend checks against real time (time.real-elapsed), while the " +
+    "deposit it reports happened at now.",
+  source: TIME(`${OLD_WORLD}/README.md (the mock paymaster signs from the later of the chain's clock and the wall; alto checks its wall clock); ${OLD_WORLD}/../stand-ins/time.ts`),
+  affects: [integration_bundler, integration_bridge, integration_mail, integration_chainlink, integration_posthog, integration_chain_rpc, integration_indexer, component_devnet, environment_devnet],
 });
 
 export const decision_devnet_control_refusals = defineDecision({
@@ -260,8 +524,8 @@ export const decision_devnet_control_refusals = defineDecision({
       label: "frozen",
       text:
         "snapshotSave: WRONG_STATE for a saved name without replace, INVALID_INPUT for a bad name; snapshotRestore: " +
-        "WRONG_STATE for other backend code; clockStartAt: INVALID_INPUT for a date not earlier, WRONG_STATE once the " +
-        "clocks moved. Changed in shared/external.ts.",
+        "WRONG_STATE for other backend code; timeStartAt (once clockStartAt): INVALID_INPUT for a date not earlier, " +
+        "WRONG_STATE once the clock moved. Changed in shared/external.ts.",
     },
     { label: "flow-checks", text: "Keep the calls and make each flow check first (list, compare, then act)." },
   ],
@@ -281,15 +545,21 @@ export const decision_devnet_supervisor_steps = defineDecision({
   title: "A supervisor call is a flow's `cache` step, with the call in `calls`",
   question: "A flow's steps are rpcs or local work of a fixed kind (sign, build, encrypt, wait, poll, prompt, cache). How is a call to the supervisor booked?",
   options: [
-    { label: "cache", text: "As a `cache` step (this machine's devnet state), its about naming the devnet-control call, which the flow's `calls` lists." },
+    {
+      label: "cache",
+      text:
+        "As a `cache` step (this machine's devnet state), its about naming the devnet-control call, which the flow's " +
+        "`calls` lists; the clock's event streams (watch, and a follower's events) are a `poll` step.",
+    },
     { label: "wait", text: "As a `wait` step." },
   ],
   chosen: "cache",
   why:
     "`wait` is a person or the chain and is never system time, but a save, a restore and a warp are the developer's " +
     "system time and must count against the budget. The supervisor is local state on this machine behind an owner-only " +
-    "socket, which `cache` describes best, and the flow's `calls` gives the call its span and its failures, so its " +
-    "refusals are produced (refusal-not-produced reads `calls`).",
+    "handoff, which `cache` describes best, and the flow's `calls` gives the call its span and its failures, so its " +
+    "refusals are produced (refusal-not-produced reads `calls`). An event stream is read as it arrives, which `poll` " +
+    "names. The time design added the clock's six protocol flows on 8 November 2026.",
   source: by("packages/book/src/records/behaviour.ts (Step kinds); docs/as-is/archive/operations/devnet.ts:212 (snapshot list as a cache step)"),
   affects: SUPERVISOR_FLOWS,
 });
@@ -345,7 +615,7 @@ export const decision_devnet_dropped = defineDecision({
       label: "lean",
       text:
         "Kept as devnet rpcs: the sink's list and fail switch, the notices read, jobs run. Gone: clocks.read (the " +
-        "supervisor's clockShow), jobs.shift (timers in backend time), outboxes.record (the mail fake), notices.record " +
+        "supervisor's timeRead), jobs.shift (timers kept as instants), outboxes.record (the mail fake), notices.record " +
         "(notices' own), the receipt hold (the bundler's fault switch), and the gates and price rows of access and books.",
     },
     { label: "port-all", text: "Port every operator internal function as a devnet rpc." },
@@ -389,8 +659,9 @@ export const decision_devnet_budgets = defineDecision({
     {
       label: "defaults",
       text:
-        "read for the clock, list and mail reads; write for the scripts and the fail switch; background for jobs run, warp, " +
-        "save and restore; chain-settle for start-at; vendor for approve and gates set; chain-read for prices set.",
+        "read for the clock, list and mail reads; write for the scripts, the fail switch, freeze and resume; background " +
+        "for jobs run, warp, step, settle, save and restore; live-read for watch and follow; chain-settle for start-at; " +
+        "vendor for approve and gates set; chain-read for prices set.",
     },
     { label: "local", text: "A tighter local budget for every supervisor call, as access did for local commands." },
   ],
@@ -495,8 +766,9 @@ export const decision_devnet_fault_switches = defineDecision({
         "`capxul-devnet fault <switch> <mode>` arms the devnet layers' switches (chain-rpc node-down and garbage-answers, " +
         "bridge fail-all, indexer hold <n>, service-signer refuse-send and hold-receipt, bundler hold-receipt, documents " +
         "tamper) and " +
-        "`capxul-devnet clock hold`, `chain` and `bridge` make what no Capxul surface makes (a still backend clock, a Safe " +
-        "transaction or a Hats ruling outside Capxul, an outside transfer, a token, Bridge deposits, a payout's return). The armed switches " +
+        "`capxul-devnet chain` and `bridge` make what no Capxul surface makes (a Safe transaction or a Hats ruling " +
+        "outside Capxul, an outside transfer, a token, Bridge deposits, a payout's return); a still clock is the clock's " +
+        "frozen mode (devnet.clock-modes), not a switch. The armed switches " +
         "are in the world's manifest and re-armed on restore. The mail switch is `dev mail fail`, in Postgres.",
     },
     { label: "devnet-rpcs", text: "A devnet rpc per switch." },
