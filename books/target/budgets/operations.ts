@@ -712,7 +712,13 @@ export const operation_org_allowance_replace = defineOperation({
   ],
   returns: Nothing,
   errors: [error_CLI_USAGE],
-  refusals: [{ error: error_FEATURE_NOT_AVAILABLE, given: W_TREE, when: "Always: allowances are budgets in v4, and there is no Roles module to replace." }],
+  refusals: [
+    {
+      error: error_FEATURE_NOT_AVAILABLE,
+      given: W_TREE,
+      when: "Always, on any environment and signed in or not: allowances are budgets in v4, and there is no Roles module to replace.",
+    },
+  ],
   budget: budget("read"),
 });
 

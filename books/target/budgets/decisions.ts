@@ -224,7 +224,9 @@ export const decision_budgets_hat_planning = defineDecision({
 export const decision_budgets_role_conflict = defineDecision({
   id: "budgets.role-conflict-people-hat",
   title: "ROLE_CONFLICT on v4: a department's office and the People hat",
-  question: "Old ROLE_CONFLICT kept a Manage allowances holder from holding a department. What is it on v4?",
+  question:
+    "Old ROLE_CONFLICT kept a Manage allowances holder from holding a department. What is it on v4, and can the frozen " +
+    "ROLE_CONFLICT of `org allowance create` and `org allowance assign` (Manage allowances to a department holder) happen?",
   options: [
     { label: "people-hat", text: "A department's or team's office cannot go to a member who wears the People hat (Manage allowances on v4); an allowance's hat can." },
     { label: "drop", text: "Drop it: v4 has no Manage allowances allowance." },
@@ -233,11 +235,31 @@ export const decision_budgets_role_conflict = defineDecision({
   why:
     "The frozen department claims keep the separation of duties ('A member who holds Manage allowances cannot hold a " +
     "department'), and on v4 Manage people is the People hat (org.allowance.create designed, CAP-1101). Allowance wearers " +
-    "were never in the old conflict, so the allowance commands do not check it, and the allowance lines that named Manage " +
-    "Budgets as an allowance are cut or retired (budgets.acceptance-pre-v4). The reverse, granting the People hat to a " +
-    "department holder, is board's `org member grant`, which can read the office hats from indexing's Budgets view.",
-  source: by("packages/backend/src/payroll/departments/reads.ts:76; org.department.create.yaml #3; org.allowance.create.yaml (designed)"),
-  affects: [error_ROLE_CONFLICT, rpc_budgets_departments_create, rpc_budgets_offices_add_holder, op.operation_org_department_create, op.operation_org_department_holder_add, concept_board],
+    "were never in the old conflict: the old guard returned for every grant but Manage people (permissions/guards/" +
+    "conflicts.ts:22), and the old v4 allowance path never raised it. So `org allowance create` and `org allowance assign` " +
+    "drop their frozen ROLE_CONFLICT, which cannot happen on v4: its condition is an allowance that is Manage allowances, " +
+    "and none can exist. A create's policy is a spending budget, and one that allows anything but paying is INVALID_INPUT " +
+    "before any holder is read; an assign names a budget's `allowance_` id or key, and the People hat is no budget " +
+    "(INVALID_INPUT); `budgets.offices.add-holder` raises ROLE_CONFLICT only for a department's or team's office. Neither " +
+    "designed block lists it (P10 rung 1). No guard is loosened (P10 rung 3): the People hat is granted by board's `org " +
+    "member grant`, which refuses a department's office holder ROLE_CONFLICT (board.people-hat-role-conflict), reading " +
+    "the office hats from indexing's Budgets view. The allowance lines that named Manage Budgets as an allowance are cut " +
+    "or retired (budgets.acceptance-pre-v4, budgets.acceptance-retired).",
+  source: by(
+    "packages/backend/src/payroll/departments/reads.ts:76, permissions/guards/conflicts.ts:22, permissions/allowances; " +
+      "org.department.create.yaml #3; org.allowance.create.yaml, org.allowance.assign.yaml (designed)",
+  ),
+  affects: [
+    error_ROLE_CONFLICT,
+    rpc_budgets_departments_create,
+    rpc_budgets_offices_add_holder,
+    rpc_budgets_allowances_create,
+    op.operation_org_department_create,
+    op.operation_org_department_holder_add,
+    op.operation_org_allowance_create,
+    op.operation_org_allowance_assign,
+    concept_board,
+  ],
 });
 
 export const decision_budgets_no_door = defineDecision({
@@ -350,17 +372,35 @@ export const decision_budgets_returns = defineDecision({
 export const decision_budgets_replace_removed = defineDecision({
   id: "budgets.replace-removed",
   title: "`org allowance replace` is refused FEATURE_NOT_AVAILABLE with no rpc",
-  question: "v4 removed the Roles module of allowances. What implements the frozen command?",
+  question:
+    "v4 removed the Roles module of allowances. What implements the frozen command, and which of its page's refusals " +
+    "(CAPABILITY_UNAVAILABLE, NOT_AUTHENTICATED, ROLE_PERMISSION_DENIED, INVALID_INPUT, WRONG_STATE) can still happen?",
   options: [
-    { label: "flow-refuses", text: "Its SDK method refuses at once with FEATURE_NOT_AVAILABLE; no rpc exists." },
-    { label: "rpc-refuses", text: "An rpc that always refuses." },
+    {
+      label: "flow-refuses",
+      text:
+        "Its SDK method refuses at once with FEATURE_NOT_AVAILABLE, for every caller on every environment; no rpc exists, " +
+        "and none of the page's five refusals is reached.",
+    },
+    {
+      label: "rpc-refuses",
+      text: "An rpc that always refuses, after the CLI's environment and sign-in checks, so CAPABILITY_UNAVAILABLE and NOT_AUTHENTICATED stay.",
+    },
   ],
   chosen: "flow-refuses",
   why:
-    "The designed text says it is refused before anything is prepared (CAP-1100, ruled A). An rpc whose only behaviour is " +
-    "a refusal is a server endpoint for nothing (P2). Its acceptance keeps line 1 as the v4 refusal and retires 2-4, which " +
-    "describe carrying a Roles module's state across (budgets.acceptance-retired).",
-  source: by("org.allowance.replace.yaml (designed); P2; P9"),
+    "The designed text says it is refused before anything is prepared, always, and that nobody may run it (CAP-1100, " +
+    "ruled A); P10 rung 1 makes those designed refusal codes the surface. An rpc whose only behaviour is a refusal is a " +
+    "server endpoint for nothing (P2). So the page's five refusals are dropped, because none can happen. The method makes " +
+    "no call, and the CLI resolves no environment's deployment and no sign-in for it, so CAPABILITY_UNAVAILABLE (beta or " +
+    "production chosen) and NOT_AUTHENTICATED (no sign-in, or a session that changed before a signature that never comes) " +
+    "are never reached. ROLE_PERMISSION_DENIED (no verified Manage allowances assignment), INVALID_INPUT (an open " +
+    "allowance command, a stale preview's snapshot, a request key of another command) and WRONG_STATE (an abandoned or " +
+    "prepared command, a Roles module not admitted) each check pre-v4 Roles module state that P9 drops, and the command, " +
+    "which takes no flags, reads none of it. Nothing is loosened (P10 rung 3): no caller gets anything. Its acceptance " +
+    "keeps line 1 as the v4 refusal and retires 2-4, which describe carrying a Roles module's state across " +
+    "(budgets.acceptance-retired).",
+  source: by("org.allowance.replace.yaml (designed: refusals FEATURE_NOT_AVAILABLE 'Always', who 'Nobody', no flags); P2; P9; P10"),
   affects: [flow_client_org_allowances_replace, op.operation_org_allowance_replace, error_FEATURE_NOT_AVAILABLE],
 });
 

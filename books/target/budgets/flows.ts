@@ -299,8 +299,9 @@ export const flow_client_org_allowances_replace = defineFlow({
   title: "Refuse the Roles module replacement, which v4 removed",
   about:
     "Removed in v4: allowances are budgets and hats, Roles holds only Budgets' payout role, and contracts are not " +
-    "upgraded in place. The method fails FEATURE_NOT_AVAILABLE at once, before any call, and nothing is prepared or " +
-    "signed.",
+    "upgraded in place. The CLI calls it without resolving an environment's deployment, a sign-in or an Organization, " +
+    "and it fails FEATURE_NOT_AVAILABLE at once, before any call, so every caller on every environment gets that refusal " +
+    "and nothing is prepared or signed (decision budgets.replace-removed).",
   component: component_core_sdk,
   sdk: "client.org(orgId).allowances.replace",
   input: Schema.Struct({ orgId: Schema.String }),
