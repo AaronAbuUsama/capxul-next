@@ -88,7 +88,7 @@ export const workflow_projects_head_sync = defineWorkflow({
     "use, logged `origin` head. One based on an older version loses and Capxul's version is " +
     "pushed back (a conflict); one Capxul's checks refuse is pushed back too (refused). Frappe never un-submits, so a " +
     "refused head cancel is pushed back as an amendment carrying the same capxul_id, and a refused head submit by " +
-    "cancelling and amending a draft. Fields Capxul derives (percent complete, actual time, totals, a status a timesheet " +
+    "cancelling and amending a draft. Fields Capxul derives (percent complete unless worked out by hand, actual time, totals, a status a timesheet " +
     "sets) are recomputed, never taken from the head; a head's invoice or salary slip marks a timesheet only through " +
     "the billed-once and paid-once guards (projects.billing-and-payslips). A document born in the head is born here " +
     "with a Capxul id. It wakes on its own changes, on the head's ring, and once a day to catch a missed ring; while the " +
@@ -123,8 +123,9 @@ export const workflow_projects_head_sync = defineWorkflow({
     {
       name: "push",
       about:
-        "Page the change log after pushed_seq; upsertDocs in seq order, only the fields Capxul holds (a head-only field, " +
-        "such as a Task's issue or a Project's sales order, is never cleared); record the head's names; advance pushed_seq.",
+        "Page the change log after pushed_seq; upsertDocs in seq order, only the fields Capxul holds (a head-only field " +
+        "is never cleared), holding back a timesheet with no log, which Frappe refuses, until it has one " +
+        "(projects.draft-rechecks); record the head's names; advance pushed_seq.",
     },
     { name: "pull", about: "listChanges after pulled_change; apply, push back a conflict or a refusal; advance pulled_change." },
     { name: "await", about: "Wait for a change here, a ring, the daily catch-up or the connection's next transition." },
@@ -180,8 +181,8 @@ export const workflow_projects_tasks_watch_due = defineWorkflow({
   about:
     "Started by a task's birth, one instance per task. It replaces ERPNext's daily `set_tasks_as_overdue` with the task's " +
     "own timer (P3: no sweep), so a warp stops at the instant a task falls due. It reads the task's expected end and " +
-    "waits until the end of that day in the Organization's time zone (a pending review: until both that day and its " +
-    "review date's day have ended, as ERPNext skips a review still ahead); then, if the task is still unfinished and its " +
+    "waits until the end of that day in the Organization's time zone (a pending review: until that day has ended and its " +
+    "review day has begun, as ERPNext's job skips only a review date still in the future); then, if the task is still unfinished and its " +
     "dates have not moved, it marks it overdue. Each write to the task wakes it to read the dates again. A completed or " +
     "cancelled task disarms it without ending it, because either may be reopened: a reopened task arms it again. It " +
     "lives as long as its task; a template task is never armed.",
@@ -190,7 +191,7 @@ export const workflow_projects_tasks_watch_due = defineWorkflow({
   trigger: { transition: machine_task.t.open },
   instance: { per: table_tasks },
   waits: [
-    { name: "due", for: "timer", about: "The end of the expected end's day (and, under review, the review date's) in the Organization's time zone." },
+    { name: "due", for: "timer", about: "The end of the expected end's day in the Organization's time zone; under review, the start of the review day when that is later." },
     {
       name: "task-written",
       for: "signal",

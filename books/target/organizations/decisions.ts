@@ -95,7 +95,7 @@ import { workflow_organizations_fde_host, workflow_organizations_heads_watch as 
 import { rpc_organizations_apps_add, rpc_organizations_apps_list, rpc_organizations_apps_remove } from "./apps.ts";
 import { rpc_organizations_fde_ask, rpc_organizations_fde_show, rpc_organizations_fde_turn } from "./fde.ts";
 import { rpc_organizations_seats_show } from "./members.ts";
-import { flow_client_org_fde_ask, flow_client_org_head_connect } from "./flows.ts";
+import { flow_client_org_fde_ask, flow_client_org_head_connect, flow_client_org_head_disconnect } from "./flows.ts";
 import {
   NEW_OPERATIONS,
   operation_org_app_add,
@@ -974,7 +974,7 @@ export const decision_organizations_fde_at_start_up = defineDecision({
     "worlds need Organizations without one (organizations.startup-worlds). An Organization started without one gets no " +
     "hosted FDE later, since no pack lists a command for it; `agent create --org` still makes a self-run agent of its " +
     "own, with its key on its creator's machine and no hosting to pay (agents.fde).",
-  source: by("books/target/shared/rulings.ts (aaron.fde-hosted, aaron.fde-agent); AgentOwner.sol:82 (msg.sender == owner); books/target/board/procedures.ts"),
+  source: by("books/target/shared/rulings.ts (aaron.fde-hosted, aaron.fde-agent); AgentOwner.sol:182 (msg.sender == owner); books/target/board/procedures.ts"),
   affects: [
     table_org_setups, table_org_fdes, machine_org_fde, rpc_organizations_setups_begin, workflow_organizations_setups_set_up,
     flow_client_onboarding_begin_organization, operation_org_create, contract_agent_owner,
@@ -1159,13 +1159,14 @@ export const decision_organizations_commands = defineDecision({
       label: "apps-and-head",
       text:
         "Recommended: exactly the 8 commands of docs/design/new-commands.md (section 5.4), in its one grammar, each one " +
-        "SDK method under `client.org(orgId)` and one rpc in organizations (`organizations.<area>.<verb>`): `org app list` " +
+        "SDK method under `client.org(orgId)` over one rpc in organizations (`organizations.<area>.<verb>`), a flow where it " +
+        "prompts or waits: `org app list` " +
         "(any member, read); `org app add <app>` and `org app remove <app>` (a Director, or the Organization's own agent, " +
         "its FDE; write; a fundamental app is never removed); `org head connect <site-url> --host frappe-cloud|self-hosted` " +
         "(a Director; vendor: a flow reads the head user's API key, and on Frappe Cloud the team's token, from a prompt " +
         "or a file, never a flag, previews what is shared, and follows the check to connected or failing), `org head " +
-        "show` (any member, read: status, versions, time zone, issue, each app's sync position) and `org head disconnect` " +
-        "(a Director, write, after a preview); and, for the hosted FDE (aaron.fde-hosted), `org fde show` (any member, " +
+        "show` (any member, read: status, versions, time zone, issue and the apps as the head runs them; each app's sync " +
+        "position is that app concept's) and `org head disconnect` (a Director, write: a flow previews, then one rpc); and, for the hosted FDE (aaron.fde-hosted), `org fde show` (any member, " +
         "read: its state on the host, its hats, the day its hosting is paid through and FDE_HOSTING_PRICE) and `org fde " +
         "ask <message>` (a Director, vendor: a flow sends the message to the host and prints the FDE's reply when its turn " +
         "ends). Paying for the hosting, `org fde pay`, is organizations.buy-seats', since payments books it as it books " +
@@ -1194,7 +1195,8 @@ export const decision_organizations_commands = defineDecision({
     table_org_apps, table_org_heads, table_org_fdes, table_org_fde_asks, machine_org_app, machine_org_head, event_org_head_transitioned,
     rpc_organizations_apps_list, rpc_organizations_apps_add, rpc_organizations_apps_remove, rpc_organizations_heads_connect,
     rpc_organizations_heads_show, rpc_organizations_heads_disconnect, rpc_organizations_fde_show, rpc_organizations_fde_ask,
-    rpc_organizations_fde_turn, flow_client_org_head_connect, flow_client_org_fde_ask, ...NEW_OPERATIONS, system_capxul,
+    rpc_organizations_fde_turn, flow_client_org_head_connect, flow_client_org_head_disconnect, flow_client_org_fde_ask,
+    ...NEW_OPERATIONS, system_capxul,
   ],
 });
 
@@ -1443,7 +1445,7 @@ export const decision_organizations_head_commands = defineDecision({
         "until connected or failing, ending with the issue's code (PROVIDER_ERROR unreachable; WRONG_STATE no Capxul " +
         "app, another time zone or currency; ROLE_PERMISSION_DENIED a refused key). `org head show` is that read, once, " +
         "for any member: the connection's own fields and the apps, never a secret, and not each app's sync position. " +
-        "`org head disconnect` is one rpc after the CLI's preview, keeping every record. Connect and disconnect are a " +
+        "`org head disconnect` is a flow that reads the live head (none is WRONG_STATE), previews and asks, then calls one rpc, keeping every record. Connect and disconnect are a " +
         "Director's (the Director hat, from indexing), never an agent's.",
     },
     { label: "check-in-rpc", text: "The connect rpc reads the site before it writes (an action of class vendor), refusing a bad key at once." },
@@ -1456,10 +1458,12 @@ export const decision_organizations_head_commands = defineDecision({
     "on any later one; the flow's live follow gives the person the answer the rpc would have. Secrets in flags end up " +
     "in shell history and process lists (G5). Each app's sync position is in its own concept's tables, which " +
     "organizations cannot read (P4): a member reads it through that app's records. Disconnecting keeps Capxul's " +
-    "records, which is what makes connecting safe to try.",
+    "records, which is what makes connecting safe to try. A preview is a prompt the SDK method asks, and the CLI calls " +
+    "one method (A4), so both head writes that preview are flows, as `contact link` and `org employee leave` are.",
   source: passBy("books/target/shared/rulings.ts (aaron.frappe-head); docs/design/new-commands.md (G5, section 5.4); organizations.head-connection"),
   affects: [
     rpc_organizations_heads_connect, rpc_organizations_heads_show, rpc_organizations_heads_disconnect, flow_client_org_head_connect,
+    flow_client_org_head_disconnect,
     operation_org_head_connect, operation_org_head_show, operation_org_head_disconnect, table_org_heads, machine_org_head,
   ],
 });
@@ -1580,7 +1584,8 @@ export const decision_organizations_fde_hosting = defineDecision({
         "`payments.prepare-command` (route budget, owner the Organization, one item to Capxul's receiving Safe for the " +
         "months times FDE_HOSTING_PRICE, its source naming only the months, 1 to 12), signed by a person Budgets.authorised " +
         "admits on the budget. Its settlement invokes `organizations.extend-fde-hosting`, moving `paid_through` on from " +
-        "the later of `paid_through` and the settlement; a reorg's reversal invokes `organizations.return-fde-hosting`. " +
+        "the later of `paid_through` and the settlement; a reorg's reversal invokes `organizations.return-fde-hosting`, " +
+        "which takes back exactly the span that payment added (calendar months from a later start do not subtract back). " +
         "The first month is the start-up's, from the setup's readiness. Each month the hosting falls due seven days " +
         "before `paid_through`, and notices reminds the Directors with the command to run. Unpaid at `paid_through`, the " +
         "host pauses the FDE: it takes no turn and its sandbox stops; the host keeps its key, conversation and " +
@@ -1650,12 +1655,12 @@ export const decision_organizations_command_worlds = defineDecision({
       text:
         "Reuse signed-out, two-founders (an outsider names Acme), org-ready (a Director, no head, no FDE), " +
         "org-with-member (Sam, a member with no hat; Olga outside) and org-with-pending-invitation. Ask devnet for: " +
-        "org-with-head-site (org-with-member plus a stand-in Frappe site for Acme, up and not connected), org-with-head " +
-        "(that site connected by Dana), org-with-head-site-down (the site's fault switch down), org-with-fde (rebuilt " +
+        "org-with-head-site (org-with-member plus a stand-in Frappe site for Acme, hosted as on Frappe Cloud, up and not " +
+        "connected), org-with-head (that site connected by Dana as a Frappe Cloud head, whose host installs a wanted app), org-with-head-site-down (the site's fault switch down), org-with-fde (rebuilt " +
         "for the hosted FDE of aaron.fde-hosted: its key with the stand-in host, its hosting running in its start-up " +
         "month), org-with-fde-paused (org-with-fde warped past its paid-through instant, unpaid) and " +
         "org-with-fde-host-down (org-with-fde with the stand-in host's fault switch down); and org-with-fde-allowance " +
-        "(org-with-fde, funded, with an allowance Dana wears), from which a hosting payment, and payments' `org fde pay` " +
+        "(org-with-fde, funded, with a Board top budget, an allowance under it that Dana wears and the payout ceiling set), from which a hosting payment, and payments' `org fde pay` " +
         "and `org seats buy`, start.",
     },
     { label: "steps-in-evals", text: "Each eval connects a site or warps the FDE itself, from org-ready or org-with-fde." },

@@ -867,7 +867,7 @@ export const decision_payments_general_escrow = defineDecision({
     "terms fix the address before anything exists, so prepare shows it, the payer signs money into it, a dated payment " +
     "reserves it, and a later deploy moves nothing. Owner: the recipient's account; for a mailbox, the Safe " +
     "CompaniesHouseClaimer derives. It collects by calling, once Companies House is not among its owners (v4's D11, now " +
-    "a term, so an owner that is not a Companies House Safe can collect too). Sender: where the money came from. A " +
+    "a term, so an owner with no `isOwner`, a plain account, can collect too). Sender: where the money came from. A " +
     "refund pays it whoever calls, so taking money back can never redirect it. The authority term makes the escrow " +
     "general and leaves Budgets unchanged. Under the departments ruling a budget's payment is its department's, and " +
     "`Budgets.authorised(budgetId, caller)` is exactly the department's authority at the call: its hat's wearers in good " +
@@ -879,8 +879,8 @@ export const decision_payments_general_escrow = defineDecision({
     "escrow; and v4 Exits' unclaimed exit payouts, where Exits is the sender and sets `ownerTakesSurplus` instead of " +
     "the escrow asking it `isExitClaimEscrow`. What stays: CREATE2 over the terms and Payments, an idempotent deploy by " +
     "anyone, predicted payment ids, one exact payment through Payments with the escrow as executor, D12, no expiry, S1 " +
-    "to S3, and later deposits returned to the sender. Exits' terms builder is the only other contract line that " +
-    "changes.",
+    "to S3, later deposits returned, and the factory's constructor and `bootstrapOwner()` view. Exits' terms builder is " +
+    "the only other contract line that changes: it reads Companies House from that view.",
   source: by(
     `${V4}/money/Escrow.sol:59-186; EscrowFactory.sol:28-50; Budgets.sol:373 (authorised); equity/Exits.sol:136, :561; ${V4DOCS}/spec/escrow.md (D11, D12); aaron.escrow-general; aaron.departments`,
   ),
@@ -922,7 +922,7 @@ export const decision_payments_claim_escrow_fit = defineDecision({
   why:
     "Counterfactual: each claim escrow's address is EscrowFactory.predictAddress of its terms and the Payment's job " +
     "nonce, fixed at prepare, funded by an ordinary Payments.send, Budgets.spend or dated Budgets.execute to it, and " +
-    "deployed in the same batch or, for a dated one, by the escrow relayer once funded (payments.escrow-on-funding). " +
+    "deployed in the same batch or, for a budget's dated one, by the escrow relayer once funded (payments.escrow-on-funding). " +
     "Only the recipient: the owner is the Safe derived from Companies House, the tier's namespace and the mailbox " +
     "(trimmed, lowercased), the Safe the person's sign-up claims; `collect` answers only it, once Companies House is not " +
     "among its owners. Whenever: no expiry, at setup or later with `account collect` (accounts.collect-any-time). The " +
@@ -971,7 +971,7 @@ export const decision_payments_claim_escrow_routes = defineDecision({
         "and document hash. Personal: sender the payer's Safe, no authority, funded by `Payments.send`. Board now: sender " +
         "the company Safe, no authority, funded by the Board batch's `Payments.send`. A department, allowance or payroll " +
         "run: sender the company Safe, authority Budgets with the funding budget's id, funded by an ordinary " +
-        "`Budgets.spend` to the escrow's address. Dated (a budget's, or the Board's on the company's own top budget): " +
+        "`Budgets.spend` to the escrow's address. Dated (a budget's, or the Board's on a top budget no member holds): " +
         "`Budgets.schedule` to the address, paid by `Budgets.execute` on its day, with the same authority. The funder's " +
         "batch also sends `EscrowFactory.deploy`; a dated escrow is deployed by its Payment's process once funded. Taking " +
         "back is the sender's approval or Board proposal, or for a budget's an approval from any Safe that " +
@@ -1004,8 +1004,8 @@ export const decision_payments_claim_escrow_routes = defineDecision({
     "member taken out of the hat is refused at once, and the Board, as the company Safe, always may. The money returns " +
     "to the company Safe, the treasury every budget pays from. The room is not restored, as open question 1 was " +
     "answered: the refund adds to the Safe's balance, not to the budget's period, and the budget keeps showing the " +
-    "spend as spent. The Board's dated payment sits on the company's own top budget, whose hat is the Board's top hat, " +
-    "so only the Board may cancel or take it back (payments.department-authority). The terms are fixed at prepare, so a " +
+    "spend as spent. The Board's dated payment sits on a top budget no member holds, so only the Board may cancel or " +
+    "take it back while that holds (payments.department-authority). The terms are fixed at prepare, so a " +
     "retry rebuilds the same escrow. A dated escrow opens on its day; a payee who set up before then collects with " +
     "`account collect`. Payroll's new hire is the budget route through the door, item by item. No frozen claim " +
     "changes; INVALID_RECIPIENT stays only for a non-ASCII mailbox.",
@@ -1044,8 +1044,8 @@ export const decision_payments_escrow_on_funding = defineDecision({
       text:
         "The funding's PaymentSent, with the Payment's `funding_payment_id`, drives `escrow` (from prepared, scheduled, " +
         "due or submitted). The funder's batch deploys the escrow beside its funding. Once `Budgets.execute` funds a " +
-        "dated budget payment, its process sends `EscrowFactory.deploy` with the escrow relayer key if the address has " +
-        "no code, once, looked up by hash.",
+        "dated budget payment, its process sends `EscrowFactory.deploy` with the escrow relayer key at once if the address " +
+        "has no code, once, looked up by hash.",
     },
     { label: "escrow-created", text: "EscrowCreated with the Payment's collection payment id drives `escrow`, as before." },
   ],
@@ -1054,12 +1054,13 @@ export const decision_payments_escrow_on_funding = defineDecision({
     "Money waiting is what the email, the reminders and the admission are about, and the funding's PaymentSent is that " +
     "fact on every route: a personal or Board `Payments.send`, a budget spend, or a dated execute. EscrowCreated only " +
     "says that code exists, which anyone can cause before the money arrives. The deploy is still needed. Indexing admits " +
-    "an escrow's logs and transfers, and accounts finds it at setup, only once EscrowDeployed makes it known " +
-    "(indexing.provenance), and a refund or a collection needs code. So every funding is followed by a deploy: in the " +
-    "same batch where the funder signs one (personal, Board, a budget spend), else by the Payment's own process with the " +
-    "relayer key, whose one job this is. A deploy that fails strands nothing: the money is at the address, and the next " +
-    "deploy, by anyone, finds it. The relayer key cannot move money.",
-  source: by("payments.general-escrow; indexing.provenance; books/target/shared/external.ts (service-signer: ESCROW_RELAYER_KEY); payments.escrow-after-send"),
+    "an escrow's own logs, and accounts finds it (at setup or with `account collect`), only once EscrowDeployed makes it " +
+    "known (indexing.admission); the Transfers that fund it are indexed from the first. A refund or a collection needs " +
+    "code. So every funding is followed by a deploy: in the same batch where the funder signs one (personal, Board, a " +
+    "budget spend), else by the Payment's own process with the escrow relayer key as soon as the execute's receipt is " +
+    "in, with no wait, so a money-waiting email never points at an escrow nobody can find. A deploy that fails strands " +
+    "nothing: the money is at the address, and the next deploy, by anyone, finds it. The relayer key cannot move money.",
+  source: by("payments.general-escrow; indexing.admission; books/target/shared/external.ts (service-signer: ESCROW_RELAYER_KEY); payments.escrow-after-send"),
   affects: [P.escrow, workflow_payments_lifecycle_payment, contract_escrow_factory, integration_service_signer, table_payments],
 });
 
@@ -1078,8 +1079,9 @@ export const decision_payments_department_authority = defineDecision({
         "Retry, cancel, reschedule and take back a budget's payment or claim escrow: whoever Budgets.authorised admits on " +
         "its budget now, whoever sent it, and the Board. `payment cancel`'s who: 'The payer. For a budget's dated payment " +
         "or claim escrow, whoever wears the budget's hat or one above it now, or the Board. For a payment the Board made, " +
-        "the Board.' A Board dated payment is scheduled on the company's own top budget in the asset, whose hat is the " +
-        "Board's top hat.",
+        "the Board.' A Board dated payment is scheduled on the open top budget in the asset with the most left among " +
+        "those no member holds: whose hat no Safe but the company Safe wears now (the install's own, or one the Board " +
+        "keeps without a holder).",
     },
     { label: "first-sender", text: "Only the person who sent it, with the Board as a backstop (the recommendation Aaron changed)." },
   ],
@@ -1089,9 +1091,12 @@ export const decision_payments_department_authority = defineDecision({
     "the sender's. `Budgets.cancel` and the general escrow's refund already ask `Budgets.authorised` at the call, so " +
     "the who-lines now say what the chain does. A member who left is refused: ROLE_PERMISSION_DENIED before anything is " +
     "built, or by the chain if they lose the hat after sponsorship. The most-left rule could put the Board's payment on " +
-    "a department, whose holders could then cancel it and whose room it would use unasked. The company's own top budget " +
-    "is the Board's alone, since only the company Safe wears its hat, and its room is checked as any budget's " +
-    "(PAYROLL_BUDGET_EXCEEDED). The frozen claims are unchanged: `payment cancel` #2 and #4 still hold (the Board cancels " +
+    "a department, whose holders could then cancel it and whose room it would use unasked. A top budget no member holds " +
+    "is the Board's alone: Budgets.authorised admits only the company Safe on it. The install's own, whose hat is the " +
+    "Board's top hat, holds 0 at the install (organizations.fde-hosting), so it alone would refuse every Board dated " +
+    "payment until the Board gave it room; one the Board keeps without a holder (org-with-budget-tree's `company`) is " +
+    "as much the Board's. No room in any is PAYROLL_BUDGET_EXCEEDED. Should the Board later give that budget a holder, " +
+    "the departments ruling makes the payment theirs too. The frozen claims are unchanged: `payment cancel` #2 and #4 still hold (the Board cancels " +
     "what it scheduled; a non-Director cannot), and so does `payment retry` #3 (a member who lost the hat is refused).",
   source: by("rules.department-authority (contradictions 1, 2 and 17 of docs/design/authority.md); aaron.departments; open-for-aaron.md question 2; Budgets.sol:268 (cancel)"),
   affects: [
@@ -1115,7 +1120,7 @@ export const decision_payments_escrow_contract_build = defineDecision({
       label: "contracts-package",
       text:
         "`packages/contracts` in this repository holds Protocol v4's Solidity sources, taken at a pinned commit of the v4 " +
-        "package as the chain layer the book records (P9, contracts.v4). It carries only the general escrow's change: " +
+        "package as the chain layer the book records (P9, contracts.v4-set). It carries only the general escrow's change: " +
         "Escrow, EscrowFactory, IEscrow and IEscrowFactory, with their spec, trees and Foundry tests, and Exits' terms " +
         "builder. It lands with the spine at B3, before the pilots, because a claim escrow is a route of `payment send`, a " +
         "pilot. The devnet's `up` deploys it, and the regenerated address book records the factory's devnet address. B5's " +
@@ -1137,12 +1142,13 @@ export const decision_payments_escrow_contract_build = defineDecision({
     "the new staging is a fresh v4 deployment, accepted 'with the changed escrow' (open question 16). v4 is " +
     "not the old system that the never-port rule means. It is the protocol the target book is written against (P9), and " +
     "the book records its contracts as its chain layer; the old TypeScript product stays a reference only. Taking the " +
-    "whole v4 package keeps one compiler, one set of addresses and one deploy script. The change stays the escrow's: " +
+    "whole v4 package keeps one compiler, one set of addresses and one deploy script, whose constructor arguments do not " +
+    "change (the factory still takes Payments and Companies House). The change stays the escrow's and Exits' `_terms`: " +
     "Budgets, Payments, CompaniesHouseClaimer and every other contract are v4's byte for byte, so their trees and audits " +
     "still hold. B3 is the latest it can land, because payments' prepare and the SDK's address prediction need the " +
     "escrow's ABI and creation code. For the goal prompt: the master adds `packages/contracts` to system.layout's " +
     "packages and to B3's spine.",
-  source: by("environments.staging; open-for-aaron.md question 16; contracts.v4; docs/mission/initializer.md (B3: anvil with the v4 contracts; B5); packages/protocol/src/evm/escrows-v4.ts:13 (creation code)"),
+  source: by("environments.staging; open-for-aaron.md question 16; contracts.v4-set; docs/mission/initializer.md (B3: anvil with the v4 contracts; B5); packages/protocol/src/evm/escrows-v4.ts:13 (creation code)"),
   affects: [contract_escrow, contract_escrow_factory, contract_exits, environment_staging, environment_devnet],
 });
 

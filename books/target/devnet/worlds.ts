@@ -95,7 +95,7 @@ export const WORLDS: readonly World[] = [
     steps: [supervisor("capxul-devnet up --start-at <the eval epoch> --frozen (fresh)")],
     namedBy: ["access", "devnet", "applications"],
   },
-  { name: "signed-out", holds: "No session on this machine: the state of empty-devnet.", from: "empty-devnet", steps: [], sameAs: "empty-devnet", namedBy: ["accounts", "organizations", "books", "banking", "payments", "requests", "devnet", "agents", "documents", "activity"] },
+  { name: "signed-out", holds: "No session on this machine: the state of empty-devnet.", from: "empty-devnet", steps: [], sameAs: "empty-devnet", namedBy: ["accounts", "organizations", "books", "banking", "payments", "requests", "devnet", "agents", "documents", "activity", "payroll"] },
   { name: "cli-signed-out", holds: "No sign-in: the state of empty-devnet, under budgets' name.", from: "empty-devnet", steps: [], sameAs: "empty-devnet", namedBy: ["budgets", "board"] },
   {
     name: "cli-on-beta-environment",
@@ -333,8 +333,8 @@ export const WORLDS: readonly World[] = [
   {
     name: "org-with-fde-paused",
     holds:
-      "org-with-fde a day after its start-up month ran out unpaid: the hosting fell due seven days before and then " +
-      "paused on the stand-in host; @acme-fde's Safe, Seat and agent row are as before. Every person whose session " +
+      "org-with-fde 32 days on, one to four days after its start-up month (a calendar month) ran out unpaid: the hosting " +
+      "fell due seven days before its end and paused at it on the stand-in host; @acme-fde's Safe, Seat and agent row are as before. Every person whose session " +
       "the warp ended signed in again; Dana current.",
     from: "org-with-fde",
     steps: [anyone("capxul dev time warp 32d"), signInAgain()],
@@ -343,13 +343,18 @@ export const WORLDS: readonly World[] = [
   {
     name: "org-with-fde-allowance",
     holds:
-      "org-with-fde plus Acme funded with 10,000 USDC and a spending allowance `capxul` of 500 USDC a month assigned to " +
-      "Dana, who also wears the People hat: what `org fde pay` and `org seats buy` spend from (organizations.buy-seats, " +
-      "organizations.fde-hosting); Dana current.",
+      "org-with-fde plus Acme funded with 10,000 USDC, a USDC top budget `running-costs` of 1,000 a month (the Board's, " +
+      "no holder), a spending allowance `capxul` of 500 USDC a month under it assigned to Dana, who also wears the People " +
+      "hat, and the USDC payout ceiling 12,000 a year: what `org fde pay` and `org seats buy` spend from " +
+      "(organizations.buy-seats, organizations.fde-hosting); Dana current.",
     from: "org-with-fde",
     steps: [
       step("dana@acme.test", "capxul dev fund 10000 --asset USDC --org acme"),
-      step("dana@acme.test", "capxul org allowance create --input capxul.json --assign-to dana@acme.test (500 USDC a month, per-payment cap 100)"),
+      step("dana@acme.test", "capxul org department create running-costs --budget 1000/month --org acme --json"),
+      approve("dana@acme.test", "its Board proposal, as the one Director"),
+      step("dana@acme.test", "capxul org allowance create --input capxul.json --assign-to dana@acme.test --org acme (500 USDC a month under running-costs; no per-payment cap, which has no v4 form)"),
+      approve("dana@acme.test", "its Board proposal, as the one Director"),
+      step("dana@acme.test", "capxul org department ceiling set USDC 12000/year --org acme --json"),
       approve("dana@acme.test", "its Board proposal, as the one Director"),
     ],
     namedBy: ["organizations", "payments"],
@@ -377,22 +382,23 @@ export const WORLDS: readonly World[] = [
   {
     name: "org-with-head-site",
     holds:
-      "org-with-member plus a stand-in Frappe site for Acme (devnet.head-stand-in), up and not connected: its URL and " +
-      "its head user's key file are the ones `capxul-devnet head up` printed; Acme has no head; Dana current.",
+      "org-with-member plus a stand-in Frappe site for Acme (devnet.head-stand-in), hosted as on Frappe Cloud, up and " +
+      "not connected: its URL, its head user's key file and its team's token file are the ones `capxul-devnet head up` " +
+      "printed; Acme has no head; Dana current.",
     from: "org-with-member",
-    steps: [supervisor("capxul-devnet head up acme --json (its site URL and the key file it wrote)")],
+    steps: [supervisor("capxul-devnet head up acme --frappe-cloud --json (its site URL, and the key file and team token file it wrote)")],
     namedBy: ["organizations"],
   },
   {
     name: "org-with-head",
     holds:
-      "org-with-head-site with the stand-in site connected as Acme's head by Dana: connected, the members pushed as " +
-      "Users, every fundamental app's sync running; Dana current.",
+      "org-with-head-site with the stand-in site connected as Acme's Frappe Cloud head by Dana: connected, the members " +
+      "pushed as Users, every fundamental app's sync running, and its host able to install an app Acme wants; Dana current.",
     from: "org-with-head-site",
     steps: [
       step(
         "dana@acme.test",
-        "capxul org head connect <the stand-in site's URL> --org acme --host self-hosted --key-file <the key file head up wrote> --confirm --json",
+        "capxul org head connect <the stand-in site's URL> --org acme --host frappe-cloud --key-file <the key file head up wrote> --team-token-file <the team token file it wrote> --confirm --json",
       ),
     ],
     namedBy: ["organizations"],
@@ -674,6 +680,84 @@ export const WORLDS: readonly World[] = [
       step("lead@acme.test", "capxul org agreement pause <plat's agreement> --no-wait"),
       current("sam@acme.test"),
     ],
+    namedBy: ["payroll"],
+  },
+
+  // ── payroll's Frappe HR records and runs (payroll.command-worlds), on org-with-department ──
+  {
+    name: "org-with-employees",
+    holds:
+      "org-with-department (Directors Dana and Eli; Pat with the People hat and no office; Lead wearing `salaries`' " +
+      "office hat; Sam a member with no hat; Olga outside) plus Acme's HR records, all Pat's: Employees of `salaries` " +
+      "Sam Okafor (sam@acme.test, active), Noor Haddad (noor@acme.test, no account: unclaimed, active), Ana Ruiz " +
+      "(ana@acme.test, no account, suspended) and Leo Brandt (leo@acme.test, no account, left on the last day of the " +
+      "month he joined), each joined on the first day of the month three months back; components Basic (B, earning, " +
+      "formula `base`, by payment days), Pension (PEN, deduction, `base * 0.05`) and Bonus (BON, earning, 250, " +
+      "disabled); monthly USDC structures Standard (B; PEN) and Contractors (B), both submitted; Standard assigned " +
+      "from each one's joining day to Sam on 4,000, Noor on 3,000 and Ana on 3,500. No run. Pat current.",
+    from: "org-with-department",
+    steps: [
+      current("pat@acme.test"),
+      step(
+        "pat@acme.test",
+        "capxul org employee add sam@acme.test --first-name Sam --last-name Okafor --joined <the first day of the month three months back> --department salaries --designation Engineer --org acme; " +
+          "the same for noor@acme.test (Noor Haddad), ana@acme.test (Ana Ruiz) and leo@acme.test (Leo Brandt)",
+      ),
+      step("pat@acme.test", "capxul org employee suspend <Ana> --org acme; capxul org employee leave <Leo> --on <the last day of that month> --confirm --org acme"),
+      step(
+        "pat@acme.test",
+        'capxul org payroll component add Basic --abbr B --type earning --formula base --payment-days --org acme; ' +
+          'capxul org payroll component add Pension --abbr PEN --type deduction --formula "base * 0.05" --org acme; ' +
+          "capxul org payroll component add Bonus --abbr BON --type earning --amount 250 --org acme; capxul org payroll component disable BON --org acme",
+      ),
+      step(
+        "pat@acme.test",
+        "capxul org payroll structure create Standard --frequency monthly --token USDC --earning B --deduction PEN --org acme; " +
+          "capxul org payroll structure create Contractors --frequency monthly --token USDC --earning B --org acme",
+      ),
+      step(
+        "pat@acme.test",
+        "capxul org payroll structure assign <Standard> <Sam> --start <his joining day> --base 4000 --org acme; the same for Noor on 3000 and Ana on 3500",
+      ),
+    ],
+    namedBy: ["payroll"],
+  },
+  {
+    name: "org-with-payroll-runs",
+    holds:
+      "org-with-employees plus three runs of `salaries`, each with Sam's and Noor's slips: the first, for the month two " +
+      "months back, submitted by Pat and paid by Lead under one approval (Sam's 3,800 net paid to his Safe; Noor's 2,850 " +
+      "in a claim escrow from `salaries`, as she has no account), so it reads `paying`; the second, for last month, " +
+      "submitted, with Noor's slip withheld (reason `Awaiting signed contract`); and this month's, a draft. `salaries` " +
+      "has 53,350 USDC left this month. Pat current.",
+    from: "org-with-employees",
+    steps: [
+      step("pat@acme.test", "capxul org payroll run create salaries --start <the first day of the month two months back> --end <its last day> --org acme; capxul org payroll run submit <it> --org acme"),
+      step("lead@acme.test", "capxul org payroll run pay <the first run> --org acme --no-wait"),
+      approve("lead@acme.test", "the first run's approval"),
+      step("pat@acme.test", "capxul org payroll run create salaries --start <last month's first day> --end <its last day> --org acme; capxul org payroll run submit <it> --org acme"),
+      step("pat@acme.test", 'capxul org payslip withhold <Noor\'s slip of the second run> --reason "Awaiting signed contract" --org acme'),
+      step("pat@acme.test", "capxul org payroll run create salaries --start <this month's first day> --end <its last day> --org acme (left a draft)"),
+      current("pat@acme.test"),
+    ],
+    namedBy: ["payroll"],
+  },
+  {
+    name: "org-with-payroll-budget-used",
+    holds: "org-with-payroll-runs with `salaries` spent to 1,350 USDC left this month, less than the 3,800 the second run pays; Pat current.",
+    from: "org-with-payroll-runs",
+    steps: [
+      step("lead@acme.test", "capxul payment send olga@outside.test 52000 --org acme --from salaries --json"),
+      approve("lead@acme.test", "that payment's approval"),
+      current("pat@acme.test"),
+    ],
+    namedBy: ["payroll"],
+  },
+  {
+    name: "org-with-payroll-short-safe",
+    holds: "org-with-payroll-runs with the company Safe holding 1,000 USDC, less than the 3,800 the second run pays, while `salaries` has room; Pat current.",
+    from: "org-with-payroll-runs",
+    steps: [...board("dana@acme.test", "capxul payment send olga@outside.test <all but 1,000 USDC> --org acme --as-directors"), current("pat@acme.test")],
     namedBy: ["payroll"],
   },
   {
@@ -1097,13 +1181,14 @@ export const WORLDS: readonly World[] = [
       ready("kai@acme.test", "Kai Moreau"),
       step(
         "dana@acme.test",
-        "client.org(acme).payroll.employees.add kai@acme.test in `people`; .structures.component Basic (an earning of a " +
-          "fixed amount); .structures.create Standard (monthly, Basic); .structures.assign Standard to Kai from this " +
-          "month's first day, base 3000 USDC, paid from `people`",
+        "capxul org employee add kai@acme.test --first-name Kai --last-name Moreau --joined <this month's first day> --department people --org acme; " +
+          "capxul org payroll component add Basic --abbr B --type earning --amount 3000 --org acme; " +
+          "capxul org payroll structure create Standard --frequency monthly --token USDC --earning B --org acme; " +
+          "capxul org payroll structure assign <Standard> <Kai> --start <this month's first day> --base 3000 --org acme",
       ),
       step(
         "dana@acme.test",
-        "client.org(acme).payroll.runs.create for `people`, this month; .runs.submit: Kai's slip is submitted and its payslip stored (documents.payslip-kind)",
+        "capxul org payroll run create people --start <this month's first day> --end <its last day> --org acme; capxul org payroll run submit <it> --org acme: Kai's slip is submitted and its payslip stored (documents.payslip-kind)",
       ),
       step("dana@acme.test", "capxul activity annotate <the payment to Olga> --receipt receipt.pdf --org acme"),
       supervisor('capxul-devnet chain transfer 15 USDC to olga\'s Safe with Memo "Refund 0042" from an Anvil account'),

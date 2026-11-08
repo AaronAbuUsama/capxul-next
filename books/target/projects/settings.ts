@@ -56,9 +56,10 @@ export const rpc_projects_settings_set = defineRpc({
   about:
     HAT_GUARD +
     "It sets the values given and keeps the rest, under the settings row's lock, so a time log checked in the same " +
-    "instant sees either the old values or the new. No value given is INVALID_INPUT. Logs already made are not " +
-    "checked again: the next log is checked against the new values. It is not a projects record a head receives, so " +
-    "it appends no change (projects.settings-here).",
+    "instant sees either the old values or the new. No value given is INVALID_INPUT. A submitted timesheet's logs are " +
+    "not checked again; a draft's are checked against the new values when it next takes a log or is submitted, as " +
+    "ERPNext checks every log of a draft each time it is saved. It is not a projects record a head receives, so it " +
+    "appends no change (projects.settings-here).",
   was: [`${FRAPPE}/projects_settings/projects_settings.json`, `${FRAPPE}/timesheet/timesheet.py:225`],
   concept: concept_projects,
   kind: "action",

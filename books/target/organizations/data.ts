@@ -496,12 +496,15 @@ export const table_org_seat_purchases = defineTable({
 
 // ── apps: which Frappe apps the Organization runs, and where ───────────────────────────────
 
-/** The fundamental apps every Organization starts with (aaron.frappe-shape), and the modules Capxul holds natively. */
+/**
+ * The fundamental apps every Organization starts with (aaron.frappe-shape), and the modules Capxul holds natively, by
+ * each app's module folder: Frappe CRM's one module is FCRM (`crm/fcrm`, modules.txt), not `crm`.
+ */
 export const FUNDAMENTAL_APPS = [
   { app: "frappe", modules: ["core"] },
   { app: "erpnext", modules: ["accounts", "projects"] },
   { app: "hrms", modules: ["payroll"] },
-  { app: "crm", modules: ["crm"] },
+  { app: "crm", modules: ["fcrm"] },
 ] as const;
 
 export const table_org_apps = defineTable({
@@ -522,7 +525,7 @@ export const table_org_apps = defineTable({
     org_id: S,
     /** The Frappe app's name, as `bench get-app` and `get_versions` name it: `erpnext`, `hrms`, `crm`, `helpdesk`. */
     app: S,
-    /** For a native app, the modules whose records Capxul holds; empty for a head app. */
+    /** For a native app, the modules whose records Capxul holds, by module folder (`accounts`, `fcrm`); empty for a head app. */
     modules: Schema.Array(S),
     native: Schema.Boolean,
     status: Schema.Literals(["wanted", "installed", "removed"]),
@@ -649,7 +652,11 @@ export const table_org_fdes = defineTable({
     host_agent_id: S,
     party_id: S,
     safe_address: S,
-    /** The key's address the host made; replaced only if a rotation the host made lands (a key it did not make retires the hosting). */
+    /**
+     * The key's address the host made. Never replaced: only the company Safe can swap an agent's key (AgentOwner.swapSigner),
+     * `agent key rotate` makes the new key on a Director's machine, and the host makes no second key, so a landed rotation
+     * retires the hosting.
+     */
     signer_address: S,
     status: Schema.Literals(["provisioned", "running", "due", "paused", "resuming", "retired"]),
     /** When the host first started it, once the setup was ready. */
@@ -688,8 +695,9 @@ export const table_org_fde_payments = defineTable({
     "births the command at the deployment's FDE_HOSTING_PRICE times the months and settles it on its terms; in the " +
     "settling transaction it invokes `organizations.extend-fde-hosting`, which records the months here and moves the " +
     "hosting's `paid_through` on by them, so the months count exactly when the payment settles. A reorg below finality " +
-    "that reopens the Payment takes them back (`organizations.return-fde-hosting`), and the same Payment settling again " +
-    "adds them again. The amount, token and settling transaction are copied from the settled Payment so `org fde show` " +
+    "that reopens the Payment takes them back (`organizations.return-fde-hosting`): exactly the span this payment added, " +
+    "`paid_through_after` less `paid_through_before`, since calendar months from a later start do not subtract back; " +
+    "the same Payment settling again adds them again, from that settlement. The amount, token and settling transaction are copied from the settled Payment so `org fde show` " +
     "can say what was paid without reading payments, which sits above. `org_id` is the paying command's owner.",
   concept: concept_organizations,
   tenancy: "organization",
@@ -707,7 +715,11 @@ export const table_org_fde_payments = defineTable({
     amount_raw: S,
     /** The member who paid (their Party): a person, never an agent. */
     paid_by_party_id: S,
-    /** The hosting's paid-through instant once these months were counted. */
+    /**
+     * The hosting's paid-through instant just before and just after these months were counted (the later of the old
+     * `paid_through` and the settlement's now, then on by the months): a reorg's return takes back exactly that span.
+     */
+    paid_through_before: N,
     paid_through_after: N,
     tx_hash: S,
     block_number: N,
@@ -732,7 +744,8 @@ export const table_org_fde_asks = defineTable({
   title: "FDE asks: who instructed the hosted FDE, and when",
   about:
     "One row per message a Director sent the hosted FDE (`org fde ask`, organizations.fde-commands), written in the ask's " +
-    "own transaction before the message leaves for the host. The FDE acts with the hats the Board granted its Safe, so " +
+    "own transaction once the host has taken the message and answered the turn's id (a host that does not answer " +
+    "leaves no row). The FDE acts with the hats the Board granted its Safe, so " +
     "whoever instructs it borrows them; this log says who did, and when, beside the FDE's own commands, each traced. It " +
     "keeps the host's turn id, the asker and the message's length and SHA-256, never the message, which is the host's " +
     "conversation. Nothing changes a row: it has no lifecycle.",
@@ -1291,7 +1304,8 @@ export const machine_fde_payment = defineMachine({
   about:
     "org-fde-payments.status, driven only by organizations' two hosting doors inside payments' transactions. Born counted " +
     "when its Payment settles, which moves `paid_through` on; returned when a reorg reopens that Payment, which moves it " +
-    "back; counted again when the Payment settles once more. The hosting's process re-reads `paid_through` on each.",
+    "back by exactly the span it added; counted again when the Payment settles once more. The hosting's process re-reads " +
+    "`paid_through` on each.",
   table: table_org_fde_payments,
   field: "status",
   initial: "counted",
@@ -1304,7 +1318,7 @@ export const machine_fde_payment = defineMachine({
     take_back: {
       from: ["counted"],
       to: "returned",
-      about: "A reorg below finality reopened the Payment; `paid_through` moves back by its months.",
+      about: "A reorg below finality reopened the Payment; `paid_through` moves back by the span its count added.",
       emits: [event_fde_payment_transitioned],
     },
     add_again: {

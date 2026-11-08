@@ -24,18 +24,19 @@ const WRITE_READS = [...MEMBER_READS, table_tasks, table_projects, table_organiz
 const WRITES = [table_tasks, table_projects, ...LOGGED] as const;
 
 const ROLLUP =
-  "Its project's percent complete is worked out again by the project's method, in the same write: an open project at " +
-  "100 completes (project.complete) and a completed one below 100 opens again (project.reopen), while one on hold, " +
-  "cancelled or worked out by hand keeps its status (ERPNext's `update_percent_complete`). ";
+  "Its project's percent complete is worked out again by its method in the same write: at 100 an open project " +
+  "completes (project.complete), below it a completed one opens again (project.reopen); one on hold, cancelled or " +
+  "worked out by hand keeps its status (ERPNext's `update_percent_complete`). ";
 
 const FIELD_RULES =
-  "A subject is 1 to 140 characters. `project` is one of the Organization's projects, in any status. `parent` is a " +
-  "group task of the same project, which is not completed (a task given only a parent takes its project), and " +
-  "`dependsOn` names the Organization's tasks; a link to itself or one that makes a cycle of dependencies or of " +
-  "parents is refused (ERPNext's `check_recursion`). A day given for `start` or `end` is that day in the " +
-  "Organization's time zone, and the end is not before the start nor after the parent's expected end. Expected " +
-  "hours and weight are decimals of at least zero. `type` is a name, as Frappe's Task Type link is held " +
-  "(projects.doctypes). Any of these broken is INVALID_INPUT naming the field, and nothing is written. ";
+  "A subject is 1 to 140 characters. `project` is any of the Organization's projects; `parent` a group task of the " +
+  "same project that is not completed (a parent alone gives its project); " +
+  "`dependsOn` the Organization's tasks, with no cycle of dependencies or parents, itself included (ERPNext's " +
+  "`check_recursion`). A day for `start` or `end` is read in the Organization's time zone; the end is not " +
+  "before the start nor after the parent's expected end, neither lies outside its project's expected days, and a " +
+  "start with expected hours but no end ends that many hours later (projects.task-dates). Expected hours and weight " +
+  "are decimals of at least zero, progress one from 0 to 100 (100 once completed), and `type` a Task Type's " +
+  "name (projects.doctypes). Any broken is INVALID_INPUT naming the field, and nothing is written. ";
 
 export const rpc_projects_tasks_create = defineRpc({
   id: "projects.tasks.create",
@@ -43,8 +44,8 @@ export const rpc_projects_tasks_create = defineRpc({
   about:
     MEMBER_GUARD +
     FIELD_RULES +
-    "Then it writes one task, born `open` (task.open), with a `tsk_` id, the fields given, zero progress, actual time " +
-    "and totals, and the caller's principal as its creator; its own due timer starts with it. " +
+    "Then it writes one task, born `open` (task.open), with a `tsk_` id, the fields given, zero actual time and " +
+    "totals, its progress zero unless given, and the caller's principal as its creator; its own due timer starts with it. " +
     ROLLUP +
     LOG_LINE,
   was: [`${FRAPPE}/task/task.json`, `${FRAPPE}/task/task.py:84`, `${FRAPPE}/task/task.py:249`, `${FRAPPE}/task/task.py:292`],
@@ -120,13 +121,12 @@ export const rpc_projects_tasks_change = defineRpc({
   title: "Change a task's fields",
   about:
     MEMBER_GUARD +
-    "The task by its id (INVALID_INPUT otherwise), in any status. " +
+    "The task by its id (INVALID_INPUT otherwise). " +
     FIELD_RULES +
-    "Also refused as INVALID_INPUT: making a task with children not a group, and moving a task whose children sit in " +
-    "its project to another (ERPNext's `validate_children_project`). It sets the fields given, empties those `clear` " +
-    "names (not the subject) and keeps the rest; its status is never set here. Moving an overdue task's expected end " +
-    "to a later day takes it back to open, or to working when time is logged on it (task.recover_open, " +
-    "task.recover_working), and its timer waits for the new day's end. " +
+    "Also INVALID_INPUT: ungrouping a task with children, or moving it away from its children's project " +
+    "(`validate_children_project`). It sets the fields given and empties those `clear` names (not the subject), never " +
+    "its status, except that an overdue task whose expected end moves to a day not yet ended, or is cleared, is open " +
+    "again, or working with time logged (task.recover_open, recover_working; `validate_status`), its timer re-armed. " +
     ROLLUP.replace("Its project's", "Each project it leaves or joins has its") +
     LOG_LINE,
   was: [`${FRAPPE}/task/task.py:183`, `${FRAPPE}/task/task.py:259`, `${FRAPPE}/task/task.py:277`],
@@ -194,8 +194,9 @@ export const rpc_projects_tasks_review = step(
   "review",
   "Send a task for review by a day",
   "An open, working or overdue task becomes pending review (task.review), with `by` as its review day (a day in the " +
-    "Organization's time zone, else INVALID_INPUT). Its timer waits until both its expected end's day and its review " +
-    "day have ended before it falls overdue, as ERPNext skips a review still ahead.",
+    "Organization's time zone, else INVALID_INPUT). It falls overdue only once its expected end's day has ended and " +
+    "its review day has begun: ERPNext's daily `set_tasks_as_overdue` skips a pending review only while its review " +
+    "date is still in the future.",
   [],
   Schema.Struct({ ...OneTask.fields, by: S }),
 );
@@ -204,7 +205,8 @@ export const rpc_projects_tasks_complete = step(
   "complete",
   "Complete a task whose dependencies are done",
   "An open, working, pending-review or overdue task completes (task.complete): progress 100, and the caller's Party " +
-    "and today's day recorded as who completed it and when. It is WRONG_STATE while a task it depends on, or for a " +
+    "and today (the Organization's day on the one clock) recorded as who completed it and when. It is WRONG_STATE " +
+    "while a task it depends on, or for a " +
     "group task a child, is neither completed nor cancelled, naming each (ERPNext's `validate_status`).",
   [pt.complete],
 );
@@ -212,8 +214,9 @@ export const rpc_projects_tasks_complete = step(
 export const rpc_projects_tasks_reopen = step(
   "reopen",
   "Open a completed or cancelled task again",
-  "A completed or cancelled task opens again (task.reopen): who completed it and when are cleared and its progress is " +
-    "zero, as ERPNext's `clear_completion_on_reopen` does; its due timer arms again.",
+  "A completed or cancelled task opens again (task.reopen); a completed one's completion (who and when) is cleared " +
+    "and its progress zeroed, as ERPNext's `clear_completion_on_reopen` does, and a cancelled one keeps its progress. " +
+    "Its due timer arms again.",
   [pt.reopen],
 );
 

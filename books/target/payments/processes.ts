@@ -48,7 +48,7 @@ export const workflow_payments_lifecycle_payment = defineWorkflow({
     "proposal (executed → `submit`; failed, or replaced by another transaction at its nonce → `lapse`; rejected → " +
     "`cancel`), a budget's reservation (PaymentScheduled with its job nonce on its own budget → " +
     "`schedule`), a claim escrow (its funding's PaymentSent → `escrow`, also from `submitted`; a carrier's answer after " +
-    "it moves nothing; one a dated execute funded is deployed with the escrow relayer key), and a cancel (a void " +
+    "it moves nothing; one a dated execute funded is deployed with the escrow relayer key right after it), and a cancel (a void " +
     "that displaced the held operation, ScheduleCancelled, or EscrowRefunded with state Refunded → `cancel` for every " +
     "Payment it carried, K14). A dated Payment comes due a day " +
     "ahead (`come_due`, funding read, a shortfall kept for the payer's notice); approvals sends a personal one on its day, " +
@@ -105,7 +105,9 @@ export const workflow_payments_lifecycle_payment = defineWorkflow({
       timeoutMs: 60_000,
       events: [contract_escrow.e.EscrowCreated],
       key: [{ on: [contract_escrow.e.EscrowCreated], props: ["chain_id", "paymentId"] }],
-      about: "After `escrow`: EscrowCreated with its payment id, normally from the funder's own batch; past the minute the relayer deploys it.",
+      about:
+        "EscrowCreated with its payment id: from the funder's own batch, or for a budget's dated one from the deploy the " +
+        "`execute` step sent; past a minute with still no code, that deploy is looked up by hash and sent again if lost.",
     },
     { name: "released", for: "indexer", events: [contract_budgets.e.ScheduleCancelled, contract_escrow.e.EscrowRefunded], key: [{ on: [contract_budgets.e.ScheduleCancelled], props: ["chain_id", "budgetId", "scheduledId"] }, { on: [contract_escrow.e.EscrowRefunded], props: ["chain_id", "paymentId"] }], about: "A cancel: ScheduleCancelled of its scheduled id, or EscrowRefunded of its payment id with state Refunded." },
     { name: "day-ahead", for: "timer", about: "A dated Payment, 24 hours before its day: `come_due` and the funding read." },
@@ -131,18 +133,22 @@ export const workflow_payments_lifecycle_payment = defineWorkflow({
       name: "escrow",
       about:
         "On its funding's PaymentSent, `escrow`, admitting its `payee_mailbox` in the same transaction (`accounts.admit`, " +
-        "via escrow). No timer after it: it waits for the collection or the refund.",
+        "via escrow). No product timer after it: it waits for the collection or the refund.",
     },
     {
       name: "deploy",
       about:
-        "After `escrow`, waits for EscrowCreated; if none came and the address has no code (a dated one), sends " +
-        "`EscrowFactory.deploy` with the escrow relayer key, once, looked up by hash, and waits again. Moves no status.",
+        "Waits for EscrowCreated, so the escrow is known to indexing (`account collect` and setup find it only then). " +
+        "Every route's funder deploys it in the funding's own batch except a budget's dated one, which `execute` deploys. " +
+        "Moves no status.",
     },
     { name: "come-due", about: "A day ahead: reads the paying Safe's balance (personal) and moves `come_due`, keeping a shortfall." },
     {
       name: "execute",
-      about: "A budget's dated payment on its day: `Budgets.execute(scheduledId)` sent once with the executor key, its receipt awaited, then `submit`.",
+      about:
+        "A budget's dated payment on its day: `Budgets.execute(scheduledId)` sent once with the executor key, its receipt " +
+        "awaited, then `submit`; for a claim escrow, then at once `EscrowFactory.deploy` with the escrow relayer key if " +
+        "the address has no code, sent once and looked up by hash.",
     },
     {
       name: "settle",

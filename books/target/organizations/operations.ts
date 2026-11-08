@@ -37,10 +37,10 @@ import { rpc_organizations_workspaces_list, rpc_organizations_workspaces_me } fr
 import { MemberView, rpc_organizations_members_list } from "./members.ts";
 import { SetupView } from "./setups.ts";
 import { rpc_organizations_apps_add, rpc_organizations_apps_list, rpc_organizations_apps_remove, WHO_DIRECTOR_OR_FDE, WHO_MEMBER } from "./apps.ts";
-import { rpc_organizations_heads_disconnect, rpc_organizations_heads_show } from "./heads.ts";
+import { rpc_organizations_heads_show } from "./heads.ts";
 import { rpc_organizations_fde_show } from "./fde.ts";
 import { rpc_organizations_seats_show } from "./members.ts";
-import { flow_client_org_fde_ask, flow_client_org_head_connect } from "./flows.ts";
+import { flow_client_org_fde_ask, flow_client_org_head_connect, flow_client_org_head_disconnect } from "./flows.ts";
 import { error_PROVIDER_ERROR } from "../shared/vocabulary.ts";
 import {
   InvitationView,
@@ -571,8 +571,10 @@ export const operation_org_app_add = defineOperation({
   title: "Add a Frappe app the Organization needs",
   about:
     "Asks for a Frappe app beyond the fundamental ones, such as Helpdesk: one Capxul can ask a head's host to install. " +
-    "It lives only on a connected head, so with no head it waits, wanted; with one, the head's host is asked to install " +
-    "it, and it is listed installed once the head shows it. Adding an app already wanted or installed changes nothing. " +
+    "It lives only on a connected head, so with no head it waits, wanted; with a head on Frappe Cloud, its host is asked " +
+    "to install it, and on a self-hosted head its owner installs it with bench; either way it is listed installed once " +
+    "the head shows it. Adding an app already wanted, or installed on the head, changes nothing; a fundamental app is " +
+    "always installed and is refused. " +
     "A Director runs it, or the Organization's FDE in conversation with its people.",
   area: AREA,
   command: "org app add",
@@ -591,7 +593,7 @@ export const operation_org_app_add = defineOperation({
     ),
     claim(
       "With a head connected, an added app is installed on the head and listed installed with the head's version.",
-      "cli: from org-with-head, `org app add helpdesk`; once the head connection's check has run, `org app list` prints helpdesk `status: installed` with the version the stand-in head reports; read: `org head show` lists it installed.",
+      "cli: from org-with-head (a Frappe Cloud head), `org app add helpdesk`; once the head connection's process has asked the head's host and read the site again, `org app list` prints helpdesk `status: installed` with the version the stand-in head reports; read: `org head show` lists it installed.",
     ),
   ],
   returns: rpc_organizations_apps_add.output,
@@ -669,7 +671,7 @@ export const operation_org_head_connect = defineOperation({
   acceptance: [
     claim(
       "A Director connects a site after a preview, and the command follows the check until the head is connected.",
-      "cli: from org-with-head-site, `org head connect <the stand-in's URL> --host self-hosted --key-file <its key file> --confirm --json` prints `status: connected` with the stand-in's Frappe and Capxul app versions and Acme's time zone; read: `org head show` prints the same connection.",
+      "cli: from org-with-head-site, `org head connect <the stand-in's URL> --host frappe-cloud --key-file <its key file> --team-token-file <its team token file> --confirm --json` prints `status: connected` with the stand-in's Frappe and Capxul app versions and Acme's time zone; read: `org head show` prints the same connection.",
     ),
     claim(
       "No key, secret or token is ever printed or read back.",
@@ -737,25 +739,25 @@ export const operation_org_head_disconnect = defineOperation({
   area: AREA,
   command: "org head disconnect",
   priority: "normal",
-  implementedBy: rpc_organizations_heads_disconnect,
+  implementedBy: flow_client_org_head_disconnect,
   who: WHO_DIRECTOR,
   changes: "The live connection moves to disconnected, and every app concept's sync of it ends.",
   acceptance: [
     claim(
       "A Director disconnects the live head after a preview; Capxul keeps its records, and the head's next ring is refused.",
-      "cli: from org-with-head, `org head disconnect --confirm --json` prints `status: disconnected` and disconnectedBy Dana's member id; read: `org head show` prints null and `org project list` prints what it printed before; trace: the stand-in head's next ring is answered NOT_AUTHENTICATED.",
+      "cli: from org-with-head, `org head disconnect --confirm --json` prints `status: disconnected` and disconnectedBy Dana's member id; read: `org head show` prints null and `org project list` prints what it printed before; trace: the ring of the stand-in head's next edit (`capxul-devnet head edit acme …`) is answered NOT_AUTHENTICATED.",
     ),
     claim(
       "Declining the preview disconnects nothing.",
       "cli: from org-with-head, answering no exits CANCELLED; read: `org head show` still prints `status: connected`; world: no diff.",
     ),
   ],
-  returns: rpc_organizations_heads_disconnect.output,
-  errors: [error_CLI_USAGE, error_CANCELLED],
+  returns: flow_client_org_head_disconnect.output,
+  errors: [error_CLI_USAGE],
   refusals: [
     signedOut,
     notDirector(W_HEAD, "disconnects the head"),
-    { error: error_WRONG_STATE, given: W_MEMBER, when: "Acme has no live head: nothing is written." },
+    { error: error_WRONG_STATE, given: W_MEMBER, when: "Acme has no live head: nothing is asked or written." },
     { error: error_CANCELLED, given: W_HEAD, when: "Dana answers no at the preview: nothing is written." },
     { error: error_CLI_USAGE, given: W_HEAD, when: "A script runs it without `--confirm`." },
   ],
@@ -789,7 +791,7 @@ export const operation_org_fde_show = defineOperation({
     ),
     claim(
       "A settled hosting payment moves the paid-through instant on by whole calendar months, counted once.",
-      "cli: from org-with-fde-allowance, after Dana's `org fde pay 2 --from capxul` settles, `org fde show --json` prints monthsPaid 2, lastPaidAt the settlement's time and paidThrough two calendar months after the start-up month's end; the same payment's settlement replayed changes nothing.",
+      "cli: from org-with-fde-allowance, after Dana's `org fde pay 2 --from capxul` settles, `org fde show --json` prints monthsPaid 2, lastPaidAt the settlement's time and paidThrough two calendar months after the start-up month's end; after a devnet reorg that takes the settling block away and mines the payment again (`capxul-devnet chain`), it prints the same monthsPaid and paidThrough.",
     ),
     claim(
       "A month left unpaid pauses the FDE on the host, and nothing on chain changes.",

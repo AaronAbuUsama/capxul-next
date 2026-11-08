@@ -62,7 +62,11 @@ export const rpc_projects_timesheets_create = defineRpc({
     "kept as given, as Frappe's link is held (projects.doctypes). `project` is one of the Organization's projects " +
     "(INVALID_INPUT otherwise) and gives the timesheet its customer. Then it writes one timesheet, born `draft` " +
     "(timesheet.draft), with a `ts_` id, no logs, zero totals and the Organization's currency. " +
-    LOG_LINE,
+    LOG_LINE.replace(
+      "so a connected head receives it on its next push",
+      "and a connected head receives it on the first push after it holds a log: Frappe's Timesheet requires one " +
+        "(`time_logs` is mandatory), so the head sync holds an empty timesheet back",
+    ),
   was: [`${FRAPPE}/timesheet/timesheet.json`, `${FRAPPE}/timesheet/timesheet.py:69`, HRMS],
   concept: concept_projects,
   kind: "action",
@@ -99,7 +103,10 @@ export const rpc_projects_timesheets_log = defineRpc({
     "after it and hours above zero (the other is worked out); a task of the Organization's that is not cancelled; a " +
     "project that is the timesheet's own when it has one, and the task's when a task is named (a task alone gives its " +
     "project); and no overlap with another log of the same worker, or of the same employee, in any timesheet that is " +
-    "not cancelled, this one included, unless the Projects Settings allow it (read under the settings row's lock). The " +
+    "not cancelled, this one included, unless the Projects Settings allow it (read under the settings row's lock). " +
+    "Because ERPNext checks every log of a draft each time the draft is saved, the draft's earlier logs must also still " +
+    "name an activity type that is not disabled and a task that is not cancelled, and overlap nothing the settings now " +
+    "forbid (INVALID_INPUT naming the row). The " +
     "log's rates are its activity type's: costing at its costing rate for its hours, and, when billable, billing hours " +
     "equal to its hours at its billing rate. Then it writes the log and works the timesheet's totals and its start and " +
     "end days out again. " +
@@ -211,12 +218,15 @@ export const rpc_projects_timesheets_submit = rollStep(
   "submit",
   "Submit a draft timesheet: its hours roll into its tasks and project",
   "A draft is submitted (timesheet.submit), else WRONG_STATE. It must have a log, and each log a start and an end, " +
-    "hours above zero, and an activity type when an employee is named (ERPNext's `validate_mandatory_fields`): " +
-    "INVALID_INPUT naming the row otherwise. Its logs then never change, except the mark of what billed them. In the " +
+    "hours above zero, and an activity type when an employee is named (ERPNext's `validate_mandatory_fields`), an " +
+    "activity type that is not disabled and a task that is not cancelled (ERPNext's `validate_time_logs` and " +
+    "`validate_tasks_not_cancelled`, which check every log of a draft again on submit), and no overlap the Projects " +
+    "Settings forbid: INVALID_INPUT naming the row otherwise. Its logs then never change, except the mark of what " +
+    "billed them. In the " +
     "same write each task it logs time on takes its actual time, dates and totals again, and its status as ERPNext's " +
     "`get_task_status` reads the submitted logs: an open or pending-review task becomes working (task.start), one a " +
     "log marks completed completes (task.complete; its dependencies and children must be done, else INVALID_INPUT " +
-    "naming them), and an overdue, completed or cancelled task keeps its status. Each project it logs time on takes its " +
+    "naming them), and an overdue or completed task keeps its status. Each project it logs time on takes its " +
     "actual time, dates and totals again, and its percent complete, which completes an open project at 100 " +
     "(project.complete).",
   [ts.submit, tk.start, tk.complete, pr.complete],
@@ -228,8 +238,10 @@ export const rpc_projects_timesheets_cancel = rollStep(
   "A draft or a submitted timesheet is cancelled (timesheet.cancel) and kept, as Frappe never deletes a document " +
     "here. One billed in part or in full, paid by a salary slip, completed or already cancelled is WRONG_STATE, naming " +
     "its status: what billed or paid it is cancelled first. A submitted one's hours leave its tasks and projects in the " +
-    "same write: their actual time, dates and totals are worked out again, and a working task left with no submitted " +
-    "time is open again (task.stop); a completed or cancelled task keeps its status, as `get_task_status` never " +
-    "reopens one.",
-  [ts.cancel, tk.stop],
+    "same write: their actual time, dates and totals are worked out again, and each task's status is read again from " +
+    "its remaining submitted logs, as ERPNext's `get_task_status` reads them: a working or pending-review task left " +
+    "with no submitted time is open again (task.stop), and a pending-review one with some left is working (task.start); " +
+    "an overdue task stays overdue (its timer would put it back at once), and a completed or cancelled task keeps its " +
+    "status, as `get_task_status` never reopens one.",
+  [ts.cancel, tk.stop, tk.start],
 );

@@ -951,9 +951,11 @@ export const contract_escrow_factory = defineContract({
     "Deploys each escrow at the CREATE2 address of its terms and salt, known before it exists, so the money is sent " +
     "there first and the escrow deployed after, by anyone, in the same batch or later (`deploy` is idempotent and moves " +
     "no money). The init code binds every term (" + ESCROW_TERMS + ") and the factory's Payments, so another deploy at " +
-    "that address can only be the same escrow. It is v4's factory with the general escrow's terms: Companies House is " +
-    "no longer a constructor argument but the `bootstrapOwner` term (decision payments.general-escrow). The build writes " +
-    "and deploys it with its escrow (payments.escrow-contract-build); the devnet address is recorded once it is deployed.",
+    "that address can only be the same escrow. It is v4's factory with the general escrow's terms: it keeps v4's " +
+    "constructor (Payments and the chain's Companies House) and its `bootstrapOwner()` view, which a terms builder reads " +
+    "to fill the `bootstrapOwner` term (Exits from the factory it already holds), but each escrow checks only its own " +
+    "term (decision payments.general-escrow). The build writes and deploys it with its escrow " +
+    "(payments.escrow-contract-build); the devnet address is recorded once it is deployed.",
   functions: {
     deploy: {
       signature: "deploy(Terms terms, bytes32 salt) returns (address escrow)",
@@ -992,7 +994,8 @@ export const contract_escrow = defineContract({
     "pays it out once it holds the amount, and from then it cannot be taken back. No expiry. What changed from v4: " +
     "roles named for what they do (v4's `ownerSafe` is `sender`, `payeeSafe` is `owner`), the authority term, the " +
     "bootstrap owner as a term, the exit-claim lookup replaced by `ownerTakesSurplus`, `canRefund`, and `by` on " +
-    "EscrowRefunded. Payments, Budgets and every other contract stay as v4 has them (decision payments.general-escrow).",
+    "EscrowRefunded. Payments, Budgets and every other contract but Exits' terms builder stay as v4 has them " +
+    "(decision payments.general-escrow).",
   functions: {
     collect: {
       signature: "collect()",

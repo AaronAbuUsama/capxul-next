@@ -1,7 +1,7 @@
-// Payroll's Core SDK flows (A4): one per write command. Each prepares its write with one payroll rpc,
-// has its one call signed, waits for the person and the chain, and follows the write to its end. The
-// CLI calls exactly the flow's SDK method; the reads (agreement list and show, org agreement list)
-// are one rpc each and have no flow.
+// Payroll's Core SDK flows (A4). The agreement writes: one per write command, each preparing its write
+// with one payroll rpc, having its one call signed, waiting for the person and the chain, and following
+// the write to its end; the agreement reads (agreement list and show, org agreement list) are one rpc
+// each and have no flow. Then Frappe HR's: one SDK method per HR command (below).
 //
 // Signing composes approvals' rpcs, as approvals asks every opener to: read the approval until it is
 // sponsored, sign its digest (an agent with its own key; a person on the approval page the CLI opens),
@@ -21,7 +21,7 @@ import {
 } from "./holders.ts";
 import { rpc_payroll_payees_accept, rpc_payroll_payees_collect } from "./payees.ts";
 import { rpc_payroll_writes_watch } from "./writes.ts";
-import { rpc_payroll_employees_add, rpc_payroll_employees_change, rpc_payroll_employees_list } from "./employees.ts";
+import { rpc_payroll_employees_add, rpc_payroll_employees_change, rpc_payroll_employees_get, rpc_payroll_employees_list } from "./employees.ts";
 import {
   rpc_payroll_structures_assign,
   rpc_payroll_structures_cancel,
@@ -39,7 +39,30 @@ import {
 } from "./runs.ts";
 import { rpc_payroll_slips_mine } from "./slips.ts";
 import { rpc_approvals_signing_get, rpc_approvals_signing_sign } from "../approvals/signing.ts";
-import { AcceptInput, AgreementRef, ChangeInput, EndInput, Followed, HolderWriteReturns, OfferInput, PayeeRef } from "./shapes.ts";
+import {
+  AcceptInput,
+  AgreementRef,
+  AssignmentRef,
+  ChangeInput,
+  Component,
+  ComponentAddInput,
+  ComponentChangeInput,
+  ComponentRef,
+  EmployeeEdit,
+  EmployeeLeave,
+  EmployeeRef,
+  EndInput,
+  Followed,
+  HolderWriteReturns,
+  MySlip,
+  MySlipRef,
+  MySlipsList,
+  OfferInput,
+  PayeeRef,
+  SlipRef,
+  SlipWithhold,
+  StructureRef,
+} from "./shapes.ts";
 import { Schema } from "effect";
 
 const SDK = "packages/sdk/src/payroll";
@@ -389,7 +412,7 @@ export const flow_client_org_payroll_components_list = hrFlow({
   about: "`org payroll component list`: the Organization's salary components, enabled first, then by type and name.",
   write: false,
   input: Schema.Struct({ orgId: Schema.String }),
-  output: Schema.Struct({ components: (rpc_payroll_structures_list.output as Schema.Struct<Schema.Struct.Fields>).fields.components }),
+  output: Schema.Struct({ components: Schema.Array(Component) }),
   call: "Runs payroll.structures.list and keeps its components.",
 });
 export const flow_client_org_payroll_components_disable = hrFlow({

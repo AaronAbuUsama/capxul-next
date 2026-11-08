@@ -110,10 +110,14 @@ Changes:
 2. **The authority term.** Who may refund was one address. Now it is the sender or whoever a view given as a term
    admits. This is what lets a department's escrow follow its hat without changing Budgets.
 3. **A refund pays the sender, whoever calls.** In v4 only the owner Safe could call, and it paid itself.
-4. **The bootstrap owner is a term.** v4's factory bound Companies House for every claim escrow. So an owner without
-   code, or one that is not a Companies House Safe, could never collect.
+4. **The bootstrap owner is a term.** v4's factory bound Companies House into every claim escrow, and its check needs
+   the owner to answer `isOwner`. So an owner without code (a plain account), or a contract with no `isOwner`, could
+   never collect. A Safe that Companies House never owned could, since it answers `false`. The factory keeps v4's
+   constructor (Payments and the chain's Companies House) and its `bootstrapOwner()` view. A terms builder reads the
+   view to fill the term, and the escrow checks only its own term.
 5. **`ownerTakesSurplus` replaces the exit-claim lookup.** v4's escrow asked its owner `isExitClaimEscrow` and checked
-   kind 8, an Exits-only path inside a general contract. Exits now sets the term.
+   kind 8, an Exits-only path inside a general contract. Exits now sets the term, and reads Companies House for its
+   `bootstrapOwner` term from the factory it already holds, so its initializer and the Installer do not change.
 6. **`canRefund` and `by` on EscrowRefunded.** Capxul can check a caller before building anything, and every take-back
    names who did it, as the departments ruling needs.
 
@@ -129,7 +133,8 @@ Stays:
 - no expiry;
 - S1, S2 and S7 (no invoice refund once the amount is held);
 - later deposits returned to the sender;
-- the reentrancy guard and exact token transfers.
+- the reentrancy guard and exact token transfers;
+- the factory's constructor arguments, so the deploy manifest does not change.
 
 Not changed: Budgets, Payments, CompaniesHouseClaimer, Agreements, Roles and every other contract. The only other
 contract line that changes is Exits' terms builder, because it constructs the escrow's terms.
@@ -183,9 +188,9 @@ The Payment keeps:
 | Personal payment, now (`payment send` to a mailbox) | the payer's Safe, none | one operation from the payer's Safe: `approve`, `Payments.send` to the address, `EscrowFactory.deploy` | in the funding operation | the payer: `payment cancel`, an approval of `refund()` from their Safe |
 | Personal payment, dated | the payer's Safe, none | the same operation, signed now and sent on its day | in it | before the day: the void of the held operation; after: as above |
 | Board payment, now (`--as-directors`) | the company Safe, none | a Board batch: `approve`, `Payments.send` (executor the company Safe), `EscrowFactory.deploy` | in the batch | the Board: a proposal of `refund()` |
-| Board payment, dated | the company Safe; Budgets and the company's own top budget (whose hat is the Board's top hat, worn only by the company Safe) | a Board proposal of `Budgets.schedule` to the address; on the day the executor key sends `Budgets.execute` | the Payment's process, with the escrow relayer key, once funded | before the day: a Board proposal of `Budgets.cancel`; after: a Board proposal of `refund()` |
+| Board payment, dated | the company Safe; Budgets and the top budget it is scheduled on: the one with the most left that no member holds (the install's own, whose hat is the Board's top hat, or one the Board keeps without a holder) | a Board proposal of `Budgets.schedule` to the address; on the day the executor key sends `Budgets.execute` | the Payment's process, with the escrow relayer key, as soon as the execute's receipt is in | before the day: a Board proposal of `Budgets.cancel`; after: a Board proposal of `refund()` |
 | A department's, team's or allowance's spend (`payment send --org`, `org department pay`) | the company Safe; Budgets and the funding budget | one approval from the wearer's own Safe: `Budgets.spend(id, address, …)`, `EscrowFactory.deploy` | in the approval | whoever `Budgets.authorised` admits on that budget now (an approval of `refund()` from their own Safe), or the Board |
-| A budget's dated payment | the company Safe; Budgets and the budget | an approval of `Budgets.schedule` to the address; on the day `Budgets.execute` | the Payment's process, with the escrow relayer key | before the day: `Budgets.cancel` by any wearer now, or the Board; after: `refund()` as above |
+| A budget's dated payment | the company Safe; Budgets and the budget | an approval of `Budgets.schedule` to the address; on the day `Budgets.execute` | the Payment's process, with the escrow relayer key, as soon as the execute's receipt is in | before the day: `Budgets.cancel` by any wearer now, or the Board; after: `refund()` as above |
 | Payroll's new hire (`payroll.runs.pay`, through the door) | the company Safe; Budgets and the run's budget | the run's one approval: `Budgets.spend` per new-hire item to its address, plus the deploys | in the approval | as a department's |
 | A request's invoice escrow (checkout, requests) | the payer's email Safe, none; condition amount-reached, owner the issuer's Safe | the outside payer, from any wallet or by card or bank | the request's process, with the escrow relayer key, then `payout()` | the payer's email Safe, only while short of the amount |
 | v4 Exits' unclaimed exit payout (equity) | Exits, none; `ownerTakesSurplus` true, owner the shareholder | the Board's settlement batch | Exits' `settle` | Exits (its `claim` and `redirectClaim`) |
@@ -194,9 +199,12 @@ What happens next, on every Capxul payment route:
 
 1. **Escrowed.** The funding's PaymentSent (`funding_payment_id`) is indexed. The Payment's process drives `escrow`,
    and admits the mailbox to the beta in the same transaction (`accounts.admit`). Notices sends the money-waiting
-   email and its reminders, from the `escrow` transition. The process then waits a minute for EscrowCreated, and
-   otherwise deploys the escrow with the relayer key (`payments.escrow-on-funding`). The funding's PaymentSent settles
-   nothing and births no Payment (`payments.settlement.observe`), and books posts nothing while the money waits.
+   email and its reminders, from the `escrow` transition. Every funder deploys the escrow in the funding's own batch,
+   except for a budget's dated payment, whose funding the executor key sends: the process deploys that one with the
+   relayer key as soon as the execute's receipt is in, with no wait (`payments.escrow-on-funding`). Until EscrowCreated
+   is indexed, setup and `account collect` cannot find the escrow, so the deploy never waits. The funding's
+   PaymentSent settles nothing and births no Payment (`payments.settlement.observe`), and books posts nothing while
+   the money waits.
 2. **Collected at sign-up.** The person sets up their Safe. Companies House's claim role makes their signer its only
    owner. Then `accounts.setup.personal-safe` reads indexing's open owner-collects escrows whose owner is the Safe and
    that hold their amount. It opens one approval from the Safe calling `collect()` on each. The collection's
@@ -204,11 +212,12 @@ What happens next, on every Capxul payment route:
 3. **Collected later.** An escrow that opens after setup (a dated payment paid after the person signed up), or one
    the person declined or left at setup, is collected whenever they choose with `account collect`
    (`accounts.collect-any-time`). It reads the same escrows and opens the same approval.
-4. **Taken back.** `payment cancel` prepares the refund by route (`payments.changes.cancel`). It reads `canRefund`,
-   or `Budgets.authorised` while the escrow has no code, so a caller who may not is ROLE_PERMISSION_DENIED before
-   anything is built. If the funding reached the address before the deploy, the batch deploys first. EscrowRefunded
-   with state `Refunded` drives `cancel` (outcome refunded). Notices tells the recipient. A budget's money is back in
-   the company Safe, and its room for the period stays spent.
+4. **Taken back.** `payment cancel` prepares the refund by route (`payments.changes.cancel`). It reads `canRefund`.
+   While the escrow has no code it reads the same rule from the terms: the caller is the sender, or `Budgets.authorised`
+   admits it for a budget's. So a caller who may not is ROLE_PERMISSION_DENIED before anything is built. If the
+   funding reached the address before the deploy, the batch deploys first. EscrowRefunded with state `Refunded` drives
+   `cancel` (outcome refunded). Notices tells the recipient. A budget's money is back in the company Safe, and its
+   room for the period stays spent.
 5. **A race.** A refund racing a collection is decided by the chain: exactly one of the two lands (G7).
 
 ## Where it is built, and when

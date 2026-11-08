@@ -49,6 +49,8 @@ export const ProjectFields = {
   /** A Party locator (email, @handle, 0x address, Party id) or, for a company not on Capxul, its name. */
   customer: Opt(S),
   progress: Opt(PercentMethod),
+  /** `--percent`: the percent complete typed by hand, only for a project worked out by hand (Frappe's Manual method). */
+  percent: Opt(Decimal),
   department: Opt(S),
   costCenter: Opt(S),
   estimatedCost: Opt(Decimal),
@@ -107,6 +109,8 @@ export const TaskFields = {
   end: Opt(N),
   hours: Opt(Decimal),
   weight: Opt(Decimal),
+  /** `--progress`: Frappe's Task progress, 0 to 100, which a project worked out by task progress or weight reads. */
+  progress: Opt(Decimal),
   priority: Opt(TaskPriority),
   milestone: Opt(B),
   type: Opt(S),

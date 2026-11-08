@@ -8,7 +8,7 @@ import { Schema } from "effect";
 import { budget, defineFlow } from "../../../packages/book/src/index.ts";
 import { component_core_sdk } from "../shared/foundation.ts";
 import { error_CANCELLED, error_INVALID_INPUT, error_PROVIDER_ERROR, error_WRONG_STATE } from "../shared/vocabulary.ts";
-import { HeadView, rpc_organizations_heads_connect, rpc_organizations_heads_show } from "./heads.ts";
+import { HeadView, rpc_organizations_heads_connect, rpc_organizations_heads_disconnect, rpc_organizations_heads_show } from "./heads.ts";
 import { rpc_organizations_fde_ask, rpc_organizations_fde_turn } from "./fde.ts";
 import { rpc_organizations_setups_begin, rpc_organizations_setups_get, rpc_organizations_setups_resume, SetupView } from "./setups.ts";
 import { rpc_organizations_workspaces_list } from "./workspaces.ts";
@@ -283,6 +283,30 @@ export const flow_client_org_head_connect = defineFlow({
   calls: [],
   spans: [],
   budget: { ...budget("vendor"), excludes: ["wait.await-check"] },
+});
+
+export const flow_client_org_head_disconnect = defineFlow({
+  id: "client.org.head.disconnect",
+  title: "Disconnect the Organization's live head, after a preview",
+  about:
+    "`org head disconnect` (organizations.head-commands, aaron.frappe-head). It reads the live head first: with none it " +
+    "ends WRONG_STATE before asking anything. At a terminal without `confirm` it shows the site, that every app's sync " +
+    "stops and that Capxul and the head both keep their records, and asks; a decline ends CANCELLED with nothing " +
+    "written, and `confirm` (`--confirm`) answers yes in a script, which without it is the CLI's CLI_USAGE " +
+    "(vocabulary.declined-preview-cancelled). Then it disconnects in one write.",
+  component: component_core_sdk,
+  sdk: "client.org(orgId).head.disconnect",
+  input: Schema.Struct({ orgId: S, confirm: Schema.optionalKey(Schema.Boolean) }),
+  output: HeadView,
+  steps: [
+    { name: "read", rpc: rpc_organizations_heads_show, about: "Read the live head once, for the preview; none is WRONG_STATE and nothing is asked." },
+    { name: "confirm", local: "prompt", about: "Only at a terminal without `confirm`: show what disconnecting does and ask; no is CANCELLED and writes nothing." },
+    { name: "disconnect", rpc: rpc_organizations_heads_disconnect, about: "Move the live connection to disconnected, in one write." },
+  ],
+  errors: [error_CANCELLED, error_WRONG_STATE],
+  calls: [],
+  spans: [],
+  budget: budget("write"),
 });
 
 export const flow_client_org_fde_ask = defineFlow({

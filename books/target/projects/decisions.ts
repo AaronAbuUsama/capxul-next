@@ -33,7 +33,23 @@ import {
 } from "./data.ts";
 import { workflow_projects_head_sync, workflow_projects_startup_open, workflow_projects_tasks_watch_due } from "./processes.ts";
 import { procedure_projects_bill_time } from "./procedures.ts";
-import { CRITICAL, OPERATIONS } from "./operations.ts";
+import {
+  CRITICAL,
+  OPERATIONS,
+  operation_org_project_change,
+  operation_org_project_complete,
+  operation_org_project_create,
+  operation_org_project_reopen,
+  operation_org_project_resume,
+  operation_org_project_settings_set,
+  operation_org_task_change,
+  operation_org_task_create,
+  operation_org_task_review,
+  operation_org_timesheet_cancel,
+  operation_org_timesheet_log,
+  operation_org_timesheet_submit,
+} from "./operations.ts";
+import { rpc_projects_tasks_change, rpc_projects_tasks_create, rpc_projects_tasks_review } from "./tasks.ts";
 import {
   rpc_projects_projects_cancel,
   rpc_projects_projects_change,
@@ -242,10 +258,10 @@ export const decision_projects_change_log = defineDecision({
 
 export const decision_projects_derived = defineDecision({
   id: "projects.derived",
-  title: "Totals, actual time and percent complete are derived, never typed",
+  title: "Totals, actual time and percent complete are derived, unless typed by hand",
   question: "Frappe recomputes a task's actual time and a project's totals and percent complete when a timesheet is submitted or a task changes. Where here?",
   options: [
-    { label: "derived-in-the-write", text: "In the same transaction as the write that changes them: a submitted or cancelled timesheet updates its tasks and project; a task's status updates its project's percent complete and status." },
+    { label: "derived-in-the-write", text: "In the same transaction as the write that changes them: a submitted or cancelled timesheet updates its tasks and project; a task's status or progress updates its project's percent complete and status. Only a project worked out by hand (Frappe's Manual) has its percent typed (projects.percent-by-hand)." },
     { label: "read-time", text: "Computed when read, never stored." },
   ],
   chosen: "derived-in-the-write",
@@ -254,9 +270,9 @@ export const decision_projects_derived = defineDecision({
     "stored, so a head's copy must match Capxul's at each version. Recomputing in the write keeps them one fact with what " +
     "caused them; a value the head sends for one is ignored, because the head computes it from rows it may not have in " +
     "full (its Activity Costs, its Employees). The rules are ERPNext's: percent complete by task completion, progress or " +
-    "weight; a project completes at 100 and opens again below it, unless it is on hold or cancelled; a submitted " +
-    "timesheet makes its open or pending-review tasks working, or completes one its log marks completed, and cancelling " +
-    "the last one makes a working task open again (`get_task_status`).",
+    "weight; a project completes at 100 and opens again below it, unless it is on hold, cancelled or worked out by " +
+    "hand; a submitted timesheet makes its open or pending-review tasks working, or completes one its log marks " +
+    "completed, and cancelling the last one makes a working or pending-review task open again (`get_task_status`).",
   source: by(`${DT}/project/project.py:267; ${DT}/timesheet/timesheet.py:186; ${DT}/timesheet/timesheet.py:324; ${DT}/task/task.py:332`),
   affects: [table_projects, table_tasks, machine_project, machine_task],
 });
@@ -274,8 +290,8 @@ export const decision_projects_overdue_timer = defineDecision({
     "P3 keeps only its named crons; everything the old system swept for is a process's own timer or a chain event. A " +
     "timer is also what the one clock can stop at: a warp past a task's due day marks it overdue at that day's end, not " +
     "at whatever second a daily job ran (devnet.warp-barrier), and a simulated year is not a day of stops per " +
-    "Organization. A pending review falls due only once its review date's day has ended too, as ERPNext skips one whose " +
-    "review date is still ahead. A completed or cancelled task disarms its timer without ending it, because ERPNext lets " +
+    "Organization. A pending review falls due only once its review day has begun too, as ERPNext's job skips one only " +
+    "while its review date is still in the future (projects.review-day). A completed or cancelled task disarms its timer without ending it, because ERPNext lets " +
     "either be reopened.",
   source: by(`${DT}/task/task.py:483 and :532; /tmp/erpnext/erpnext/hooks.py:552 (daily); docs/decisions/policy-pack.md (P3)`),
   affects: [workflow_projects_tasks_watch_due, machine_task],
@@ -334,7 +350,9 @@ export const decision_projects_head_sync = defineDecision({
     "both sides would loop (push in conflict, pull loses, push in conflict again). A head user's change carries that " +
     "user's rights under projects.permissions, and a head user who is no member only a member's, so connecting a head " +
     "adds no second permission model. Frappe never un-submits, so a refused submit or cancel is undone the Frappe way, " +
-    "by cancelling or amending.",
+    "by cancelling or amending. ERPNext gives a group task one Task Depends On row per child (`populate_depends_on`), " +
+    "which Capxul keeps as the children's parent links, so a group's push sends those rows with its own dependencies " +
+    "rather than clearing them (projects review, 8 November 2026).",
   source: by("books/target/shared/rulings.ts (aaron.frappe-head); docs/vision/erp.md (sections 1 and 6)"),
   affects: [workflow_projects_head_sync, table_project_head_syncs, table_project_changes, integration_frappe_head],
 });
@@ -422,7 +440,10 @@ export const decision_projects_commands = defineDecision({
     "differ from the grammar page and each has its decision: the People-or-Director commands read the hat live and so " +
     "take `chain-read` (projects.hat-guard); the commands a pilot's first engagement runs are `critical` " +
     "(projects.critical-commands); and every refusal starts from a world, two of them asked of devnet (projects.worlds). " +
-    "Not in this pack: `org timesheet bill` (requests.bill-time, requests' flow) and templates.",
+    "Review found two more, each a decision: `org project create|change` take `--percent` and `org task create|change` " +
+    "take `--progress`, without which Frappe's Manual, Task Progress and Task Weight methods could not work " +
+    "(projects.percent-by-hand); and a pending review falls overdue when its review day comes, as ERPNext's job has it, " +
+    "not after it (projects.review-day). Not in this pack: `org timesheet bill` (requests.bill-time, requests' flow) and templates.",
   source: by(
     `${DT} (the forms of Project, Task and Timesheet); books/target/shared/rulings.ts (aaron.projects, aaron.frappe-shape, ` +
       "aaron.fde-agent); docs/design/new-commands.md (section 5.1)",
@@ -573,9 +594,10 @@ export const decision_projects_worlds = defineDecision({
       text:
         "Catalogued worlds where they reach the refusal (signed-out, org-ready, org-with-member), and two new ones built " +
         "by commands alone: org-with-projects, from org-with-member, holding Acme's projects Website (open, for Olga, " +
-        "shared with Sam), Retainer (on hold), Handover (completed, no tasks) and Archive (cancelled), created in that " +
-        "order; Website's tasks Design (working, due in a week), Build (open, depending on Design, due in two), Launch " +
-        "(a group) with its open child Announce, and Spec (completed); Execution's rates 40 costing and 90 billing, and " +
+        "shared with Sam), Retainer (on hold), Handover (completed with no tasks, so worked out by hand) and Archive " +
+        "(cancelled), created in that order; Website's tasks Design (working, due in a week), Build (open, depending on " +
+        "Design, due in two), Launch (a group) with its open child Announce, and Spec (completed); Old, a task of no " +
+        "project, cancelled; Execution's rates 40 costing and 90 billing, and " +
         "Research disabled; Sam's draft with one Execution log on Design, his submitted timesheet with two billable " +
         "hours of Execution on Design, and his cancelled one; Dana's own draft with no log; and Dana's timesheet for " +
         "Sam on Website, with a billable Execution log on no task, submitted and billed to Olga by `org timesheet bill`. And org-with-projects-chain-unreachable: the same, with chain-rpc's fault switch " +
@@ -775,4 +797,162 @@ export const decision_projects_customer_name = defineDecision({
     "Billing stays exact, because a Capxul request is paid by a Party and the door compares Parties, never names.",
   source: by(`${DT}/project/project.json (customer); ${DT}/timesheet/timesheet.json (customer); parties.head-parties`),
   affects: [table_projects, table_timesheets, procedure_projects_bill_time, workflow_projects_head_sync],
+});
+
+// ── review against ERPNext (reviewer 1, truth, 8 November 2026) ─────────────────────────────
+
+const REVIEW = "Claude, projects review against ERPNext, 8 November 2026";
+const reviewed = (evidence: string) => `${REVIEW}; evidence: ${evidence}`;
+
+export const decision_projects_percent_by_hand = defineDecision({
+  id: "projects.percent-by-hand",
+  title: "A manual project's percent is typed; one with no tasks completes as manual",
+  question:
+    "Frappe's Project works its percent complete out four ways: Manual (its user types it), Task Completion, Task " +
+    "Progress and Task Weight (both read each task's typed progress). As booked, the commands offered all four but no " +
+    "flag typed a project's percent or a task's progress, and completing a project with no tasks kept its method, where " +
+    "ERPNext switches it to Manual. What does Capxul do?",
+  options: [
+    {
+      label: "as-erpnext",
+      text:
+        "As ERPNext's `update_percent_complete`: `--percent` (0 to 100) on `org project create|change` for a manual " +
+        "project only, and `--progress` (0 to 100) on `org task create|change`. Completing a project with no tasks makes " +
+        "it manual at 100, and a manual project's status moves only by hand. Resuming or reopening a project whose tasks " +
+        "make it 100 completes it in the same write; reopening a completed one its tasks still complete is WRONG_STATE.",
+    },
+    { label: "two-methods", text: "Offer only task completion and task weight, dropping Manual and Task Progress, with no typed figure." },
+    { label: "as-booked", text: "Keep the four methods with no typed figure." },
+  ],
+  chosen: "as-erpnext",
+  why:
+    "As booked, a manual project's percent could never change and Task Progress read a progress no command set, so it " +
+    "was task completion by another name, while the abouts promised a percent 'by hand'. A head runs ERPNext, which on " +
+    "its first save of a completed project with no tasks switches it to Manual: a Capxul copy left on task completion " +
+    "would disagree with the head, and the next task added would reopen it here but not there. ERPNext also completes " +
+    "on save an open project its tasks make 100, which is why resume and reopen complete it in the same write; a " +
+    "completed project its tasks still complete would come straight back, so its reopen is refused rather than doing " +
+    "nothing. The two flags extend the rows of docs/design/new-commands.md 5.1, whose owner is asked to add them. " +
+    "Dropping methods would leave Frappe's shape, which the rulings ask for, and a head's Manual project unreadable here.",
+  source: reviewed(
+    `${DT}/project/project.py:267 (update_percent_complete), :305 (validate_completed_status), :319 (get_task_progress); ` +
+      `${DT}/task/task.py:205 (validate_progress); aaron.frappe-shape; aaron.projects`,
+  ),
+  affects: [
+    rpc_projects_projects_create, rpc_projects_projects_change, rpc_projects_projects_complete, rpc_projects_projects_reopen,
+    rpc_projects_projects_resume, rpc_projects_tasks_create, rpc_projects_tasks_change, machine_project, table_projects,
+    table_tasks, operation_org_project_create, operation_org_project_change, operation_org_project_complete,
+    operation_org_project_reopen, operation_org_project_resume, operation_org_task_create, operation_org_task_change,
+  ],
+});
+
+export const decision_projects_draft_rechecks = defineDecision({
+  id: "projects.draft-rechecks",
+  title: "A draft's every log is checked again; an empty timesheet waits for a log",
+  question:
+    "ERPNext checks every time log of a draft Timesheet each time it is saved (an activity type not disabled, a task " +
+    "not cancelled, no overlap the settings forbid), and Frappe refuses any Timesheet without a time log. As booked, " +
+    "`org timesheet log` and `submit` checked only the new log, and the head sync pushed a draft with none. What holds?",
+  options: [
+    {
+      label: "every-save",
+      text:
+        "`org timesheet log` and `org timesheet submit` check every log of the draft again (INVALID_INPUT naming the " +
+        "row); a submitted timesheet's logs are not checked again. The head sync holds back a timesheet with no log " +
+        "until it has one, and never pushes one cancelled before its first log.",
+    },
+    { label: "new-log-only", text: "Check only the new log, and push every timesheet as written." },
+  ],
+  chosen: "every-save",
+  why:
+    "A draft Capxul lets through that ERPNext would refuse cannot reach a head: its push fails `validate_time_logs`, " +
+    "`validate_tasks_not_cancelled` or the mandatory `time_logs` table, and its hours would be submitted here on a type " +
+    "the Organization had disabled or a task it had cancelled. Checking on each save is what ERPNext does, and costs " +
+    "one read of a draft's few logs. Holding back an empty draft keeps the grammar's two steps (`org timesheet create`, " +
+    "then `log`) while a head only ever sees a Timesheet it can save. The Projects Settings follow the same rule: a " +
+    "draft's logs meet the settings in force when it is next saved.",
+  source: reviewed(
+    `${DT}/timesheet/timesheet.py:69, :81 (validate_tasks_not_cancelled), :209 (validate_time_logs); ` +
+      `timesheet.json (time_logs reqd); frappe/model/document.py:1821; aaron.frappe-head`,
+  ),
+  affects: [
+    rpc_projects_timesheets_create, rpc_projects_timesheets_log, rpc_projects_timesheets_submit, rpc_projects_settings_set,
+    workflow_projects_head_sync, operation_org_timesheet_log, operation_org_timesheet_submit, operation_org_project_settings_set,
+  ],
+});
+
+export const decision_projects_review_day = defineDecision({
+  id: "projects.review-day",
+  title: "A pending review falls overdue when its review day comes, as in ERPNext",
+  question:
+    "ERPNext's daily `set_tasks_as_overdue` skips a Pending Review task only while its review date is after today. As " +
+    "booked, the task's timer waited until its review day had ended, a day later, which the grammar page also said. " +
+    "Which holds?",
+  options: [
+    { label: "erpnext", text: "Overdue once its expected end's day has ended and its review day has begun." },
+    { label: "after-the-day", text: "Overdue only after its review day has ended, as the grammar page wrote." },
+  ],
+  chosen: "erpnext",
+  why:
+    "On a connected head, ERPNext's own job marks the task overdue on its review day; a Capxul task still pending would " +
+    "refuse that head change and push it back, then fall overdue a day later itself, one conflict for every reviewed " +
+    "task. Projects' rules are ERPNext's (projects.derived, projects.machines), and the timer already follows ERPNext " +
+    "for the expected end, overdue once its day has ended (`is_overdue`). The acceptance claim holds either way; the " +
+    "grammar row's 'after that day' is asked to change.",
+  source: reviewed(`${DT}/task/task.py:532 (set_tasks_as_overdue), :483 (is_overdue); erpnext/hooks.py:552 (daily); aaron.frappe-head`),
+  affects: [rpc_projects_tasks_review, workflow_projects_tasks_watch_due, machine_task, operation_org_task_review],
+});
+
+export const decision_projects_cancel_reads_logs = defineDecision({
+  id: "projects.cancel-reads-logs",
+  title: "Cancelling a timesheet reads each task's status from the logs left",
+  question:
+    "ERPNext's `get_task_status`, run for each task of a cancelled timesheet, makes a Pending Review task Working while " +
+    "submitted time is left and Open when none is. As booked, a cancel moved only a working task back to open. What " +
+    "does a cancel do?",
+  options: [
+    {
+      label: "get-task-status",
+      text:
+        "As ERPNext: `stop` also from pending review; a pending review with submitted time left `start`s; an overdue task " +
+        "stays overdue (its own timer would put it back at once); a completed or cancelled task keeps its status.",
+    },
+    { label: "working-only", text: "Move only a working task back to open, and leave a pending review as it is." },
+  ],
+  chosen: "get-task-status",
+  why:
+    "A pending review whose only logged time was cancelled has no work behind it, and ERPNext opens it; keeping it " +
+    "pending would also disagree with a connected head, which recomputes the task when the cancel reaches it. Overdue " +
+    "is the one exception the task machine already makes, because the timer is the overdue rule here.",
+  source: reviewed(`${DT}/timesheet/timesheet.py:324 (get_task_status), :186 (update_task_and_project); aaron.frappe-shape`),
+  affects: [rpc_projects_timesheets_cancel, machine_task, operation_org_timesheet_cancel],
+});
+
+export const decision_projects_task_dates = defineDecision({
+  id: "projects.task-dates",
+  title: "A task's dates sit within its project's; a start with hours gives its end",
+  question:
+    "ERPNext refuses a task whose expected start or end falls outside its project's expected dates, and sets a missing " +
+    "expected end from the start and expected hours. As booked, the task commands checked only the parent's end. Which " +
+    "of these does Capxul keep?",
+  options: [
+    {
+      label: "both",
+      text:
+        "Both: when a task is created or its dates, parent or project change, a start or end outside its project's " +
+        "expected days is INVALID_INPUT, as ERPNext's `report_date_conflict` refuses it; and a start with expected " +
+        "hours and no end gives the end, start plus the hours.",
+    },
+    { label: "parent-only", text: "Check only the parent task's end; set no default end." },
+  ],
+  chosen: "both",
+  why:
+    "A task Capxul accepts outside its project's dates would be refused by the head on its push " +
+    "(`validate_parent_project_dates` throws on a new task or a changed date), and one with no end would gain one there " +
+    "and fall overdue on the head while it never could here. Taking ERPNext's two rules keeps both sides on one task. " +
+    "Left out: ERPNext's `reschedule_dependent_tasks`, which moves a dependant's dates when a task's end passes its " +
+    "start; a connected head does it on the push and the sync brings the new dates back, and without a head the " +
+    "dates stay as typed.",
+  source: reviewed(`${DT}/task/task.py:132 (validate_parent_project_dates), :168 (report_date_conflict), :111, :392; aaron.frappe-shape`),
+  affects: [rpc_projects_tasks_create, rpc_projects_tasks_change, operation_org_task_create, operation_org_task_change],
 });

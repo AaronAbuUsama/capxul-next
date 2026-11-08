@@ -446,6 +446,8 @@ export const Slip = Schema.Struct({
   netPay: Money,
   currency: S,
   status: SlipStatus,
+  /** Frappe's Salary Withholding reason while it is withheld (`org payslip withhold --reason`); null otherwise. */
+  withholdingReason: Null(S),
   document: Null(Schema.Struct({ documentId: S, hash: S })),
   /** Once paid: the settled facts that came back from the chain. */
   paid: Null(Schema.Struct({ paymentId: S, txHash: S, blockNumber: Schema.Int, paidAt: S })),

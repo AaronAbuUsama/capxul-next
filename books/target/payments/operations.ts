@@ -236,7 +236,7 @@ export const operation_payment_cancel = defineOperation({
       "chain: one ScheduleCancelled per item and the budget's left rises by the amount; read: `payment get` reads cancelled; trace: one payment_transitioned to cancelled per item",
     ),
     kept("payment.cancel", 3, "read: the payment still reads scheduled after the void's approval expires or is declined"),
-    kept("payment.cancel", 4, "cli: ROLE_PERMISSION_DENIED for a member who is not a Director; chain: each Director's approval is their own approveHash"),
+    kept("payment.cancel", 4, "cli: ROLE_PERMISSION_DENIED for a member who is not a Director cancelling the Board-scheduled payment (a department's is its hat wearers', payments.department-authority); chain: each Director's approval is their own approveHash"),
     kept("payment.cancel", 5, "cli: `--json` answers the void's approval link and `capxul payment wait`"),
     kept("payment.cancel", 6, "read: the Organization's payment reads cancelled; trace: a malformed id makes no rpc"),
   ],

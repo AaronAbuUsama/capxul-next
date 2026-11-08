@@ -99,8 +99,9 @@ export const rpc_payments_changes_cancel = defineRpc({
     "above, whoever sent it), or a Board proposal; a budget's money returns to the company Safe and its room is not " +
     "restored (payments.claim-escrow-routes). An escrow its funding reached before it was deployed is deployed in the " +
     "same batch (`EscrowFactory.deploy`, then `refund`). Any of them at any time until the owner collects, even after " +
-    "they signed up (D12). A caller who may not take it back (`canRefund`, or `Budgets.authorised` before the escrow " +
-    "has code) is ROLE_PERMISSION_DENIED, and a Payment no longer held (settled, collected, already cancelled) refuses " +
+    "they signed up (D12). A caller who may not take it back (`canRefund`; before the escrow has code, the same rule " +
+    "from its terms: the sender, or `Budgets.authorised` for a budget's) is ROLE_PERMISSION_DENIED, and a Payment no " +
+    "longer held (settled, collected, already cancelled) refuses " +
     "before anything is built, after a chain read of `Budgets.scheduledOf` or the escrow's `state`. It records " +
     "the carrier on the Payment and changes no status: the process cancels it when the chain says the void, the cancel " +
     "or the refund landed.",

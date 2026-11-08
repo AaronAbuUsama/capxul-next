@@ -7,7 +7,8 @@
 // - client.account.collect: `account collect`, the owner collecting its claim escrows whenever it chooses.
 // - client.operator.waitlist.admit: the operator's waitlist tool, the only caller of an admission.
 //
-// The last two implement no frozen operation; they are the surfaces P2 lets an rpc be reached from.
+// client.account.setup and client.operator.waitlist.admit implement no operation; they are the surfaces P2 lets an
+// rpc be reached from. client.account.collect implements `account collect`, an operation beyond the 215.
 
 import { Schema } from "effect";
 import { budget, defineFlow } from "../../../packages/book/src/index.ts";

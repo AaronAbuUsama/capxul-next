@@ -35,6 +35,7 @@ import {
 import * as approvals from "../approvals/procedures.ts";
 import * as booksData from "../books/data.ts";
 import * as budgetsData from "../budgets/data.ts";
+import { table_chain_budgets, table_hat_wearers } from "../indexing/data.ts";
 import * as orgsData from "../organizations/data.ts";
 import * as parties from "../parties/procedures.ts";
 import * as partiesData from "../parties/data.ts";
@@ -184,12 +185,14 @@ export const rpc_payments_commands_propose = defineRpc({
   title: "Propose a Board payment from the company Safe",
   about:
     "Births a payment the company Safe makes as a Board batch (`--as-directors`). Before its transaction it reads the " +
-    "company Safe's balance, or for a dated payment its own top budget in the asset and its `leftOf`. Then, in one " +
+    "company Safe's balance, or for a dated payment the open top budgets in the asset that no member holds (whose hat " +
+    "no Safe but the company Safe wears: the install's own, under the Board's top hat from the Organization's deployment " +
+    "row, or one the Board keeps without a holder; indexing's chain budgets and hat wearers) and their `leftOf`; no " +
+    "room in any is PAYROLL_BUDGET_EXCEEDED, and nothing is written. Then, in one " +
     "transaction: the command, the payee's Party and Safe, the note's document, one Payment per item born through `open`, " +
     "and one Board proposal at the Safe's next nonce (`board.propose`) carrying either `approve` and one exact " +
-    "`Payments.send` (kind 0) whose executor is the company Safe, or, dated, one `Budgets.schedule` on the company's own " +
-    "top budget in the asset, the install's, whose hat is the Board's top hat, so no department can cancel it " +
-    "(payments.department-authority). An immediate Board payment cannot be a budget spend: the Gate refuses re-entry from " +
+    "`Payments.send` (kind 0) whose executor is the company Safe, or, dated, one `Budgets.schedule` on the one of those " +
+    "with the most left, so no department's holders can cancel it (payments.department-authority). An immediate Board payment cannot be a budget spend: the Gate refuses re-entry from " +
     "inside a Safe transaction. The calls are checked against what was asked (amount, recipient, contract) before the " +
     "proposal opens; nothing moves until enough Directors approve. An immediate payment to a mailbox with no live Safe is " +
     "a general escrow whose sender is the company Safe and which names no authority (route `claim_escrow`, its mailbox " +
@@ -208,6 +211,7 @@ export const rpc_payments_commands_propose = defineRpc({
     error_INVALID_INPUT,
     error_INVALID_RECIPIENT,
     error_INSUFFICIENT_BALANCE,
+    error_PAYROLL_BUDGET_EXCEEDED,
     error_ROLE_PERMISSION_DENIED,
     error_WRONG_STATE,
     ...READ_FAILURES,
@@ -218,7 +222,10 @@ export const rpc_payments_commands_propose = defineRpc({
     partiesData.table_parties,
     orgsData.table_organizations,
     orgsData.table_org_members,
+    orgsData.table_org_deployments,
     budgetsData.table_budgets,
+    table_chain_budgets,
+    table_hat_wearers,
   ],
   writes: [table_payment_commands, table_payments],
   drives: [machine_payment.t.open],

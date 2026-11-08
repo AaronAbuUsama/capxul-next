@@ -190,8 +190,8 @@ export const decision_accounts_setup_process = defineDecision({
     "instance is the lock, and the service signer's recorded send is CAP-1097's never-twice rule, so the lock, lane and " +
     "store mutations go. Only chain proof moves it to `claim` (the claim's CapxulSafeClaimed, or the Safe already owned " +
     "by exactly this signer), and only the chain's refusal or a send that never left fails it. Ready does not wait on the " +
-    "collection: the Safe is the person's at the claim, the escrows stay theirs to collect or their payer's to refund " +
-    "(D12), and holding sign-in at `setup-required` for an unsigned approval would block everything else.",
+    "collection: the Safe is the person's at the claim, the escrows stay theirs to collect later (`account collect`) or " +
+    "their sender's to take back (D12), and holding sign-in at `setup-required` for an unsigned approval would block everything else.",
   source: by("docs/as-is/archive/accounts/claims.ts; packages/backend/src/accounts/claims/operations/claim.ts:34; account.retry.yaml (designed call)"),
   affects: [workflow_accounts_setup_personal_safe, machine_personal_safe, table_personal_safes, event_personal_safe_transitioned],
 });

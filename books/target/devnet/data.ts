@@ -174,8 +174,11 @@ export const table_head_sites = defineTable({
     "secret it accepts (devnet keys, kept as given), the ring secret a connection gave it to sign its doorbell, the " +
     "Frappe, ERPNext, Frappe HR, Frappe CRM and Capxul app versions it reports, whether the Capxul app's Custom Fields " +
     "are in place, its System Settings time zone and its Company (with the Organization's id and currency), the apps " +
-    "installed (`installApp` adds one at once), and its fault switch. `capxul-devnet head up <org>` makes it, as a " +
-    "Frappe Cloud site or a self-hosted one; `capxul-devnet fault frappe-head <mode>` arms the switch: `down` (every " +
+    "installed, and its fault switch. `capxul-devnet head up <org> [--frappe-cloud]` makes it, a self-hosted site or, " +
+    "with `--frappe-cloud`, one hosted as on Frappe Cloud, and writes its head user's key file and, for Frappe Cloud, " +
+    "its team's token file (token and team name). `installApp` with that team token adds an app at once on a Frappe " +
+    "Cloud site, and answers WRONG_STATE on a self-hosted one, as a real bench's host cannot install for Capxul. " +
+    "`capxul-devnet fault frappe-head <mode>` arms the switch: `down` (every " +
     "call is PROVIDER_ERROR), `key-refused` (401: ROLE_PERMISSION_DENIED), `conflict` (the next `upsertDocs` answers " +
     "its first document in conflict, as a head user's edit Capxul had not read would), `refuse` (the next document is " +
     "refused, as a Frappe validation would), `replay` (the next `listChanges` answers again from an earlier cursor, as " +
@@ -190,6 +193,8 @@ export const table_head_sites = defineTable({
     host: Schema.Literals(["frappe-cloud", "self-hosted"]),
     api_key: S,
     api_secret: S,
+    /** Frappe Cloud only: the team's `api_key:api_secret` and team name its `installApp` accepts; null for a self-hosted site. */
+    team_token: Schema.NullOr(S),
     /** The doorbell secret the connection handed the site; null until a connection is confirmed. */
     ring_secret: Schema.NullOr(S),
     versions: Schema.Record(S, S),
@@ -289,11 +294,12 @@ export const table_fde_host_agents = defineTable({
     "The stand-in FDE host (the `fde-host` integration's devnet fake, served by the supervisor on loopback; " +
     "organizations.fde-host) keeps one row per hosted FDE it provisioned: the agent id (`fde:<orgId>`), the devnet key " +
     "it made for it, kept here and never returned to the backend but its address, its state (provisioned, running, " +
-    "paused, retired), and its turns as scripted replies: a message is answered at the next stop with the FDE's " +
-    "scripted reply, so an eval reads a fixed answer. `capxul-devnet fde run <org> -- <command>` runs a Capxul command " +
-    "as the FDE, signed with its key, as the hosted FDE's own tool would. `capxul-devnet fault fde-host <mode>` arms " +
-    "its switch: `down` (every call is PROVIDER_ERROR), `hold` (turns stay working until cleared) or `clear`. It joins " +
-    "the clock as a follower, idle when no turn is due. " +
+    "paused, retired), and its turns as scripted replies: a message's turn ends as it is posted, with the FDE's " +
+    "scripted reply, so the first `turn` read finds it ended and an eval reads a fixed answer on a frozen clock, with " +
+    "no stop to wait for. `capxul-devnet fde run <org> -- <command>` runs a Capxul command as the FDE, signed with its " +
+    "key, as the hosted FDE's own tool would. `capxul-devnet fault fde-host <mode>` arms its switch: `down` (every call " +
+    "is PROVIDER_ERROR), `hold` (new turns stay working until cleared, then end with their reply) or `clear`. It joins " +
+    "the clock as a follower with no next due, idle always (a held turn counts as idle, as every armed hold does). " +
     DEVNET_ONLY,
   was: ["organizations.fde-host", "books/target/shared/rulings.ts (aaron.fde-hosted)"],
   concept: concept_devnet,
@@ -305,7 +311,7 @@ export const table_fde_host_agents = defineTable({
     private_key: S,
     signer_address: S,
     state: Schema.Literals(["provisioned", "running", "paused", "retired"]),
-    /** Turns asked and not yet answered, by turn id, with the reply each will get. */
+    /** Turns asked, by turn id: ended with its reply at once, or working while `hold` is armed. */
     turns: Schema.Array(Schema.Struct({ turn_id: S, status: Schema.Literals(["working", "ended", "failed"]), reply: Schema.NullOr(S) })),
     fault: Schema.Literals(["none", "down", "hold"]),
     created_at: Instant,

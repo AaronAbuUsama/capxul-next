@@ -37,9 +37,10 @@ const VIEW_READS = [table_projects, table_project_users, table_tasks] as const;
 
 const FIELD_RULES =
   "A name is 1 to 140 characters; `type` names one of the Organization's project types; `end` is not before `start`; " +
-  "`estimatedCost` is a decimal of at least zero. `customer` is a Party locator (an email, an @handle, a 0x address or " +
-  "a Party id), held as that Party with its display name, or any other text, held as the customer's name alone " +
-  "(projects.customer-name); a locator that names no Party is INVALID_INPUT, as is any field that breaks these rules, " +
+  "`estimatedCost` is a decimal of at least zero; `percent` one from 0 to 100, only for a project worked out by hand " +
+  "(Frappe's Manual; 100 once completed). `customer` is a Party locator (an email, an @handle, a 0x address or a " +
+  "Party id), held as that Party with its display name, or any other text, held as the customer's name alone " +
+  "(projects.customer-name). A locator that names no Party, or any field that breaks these rules, is INVALID_INPUT " +
   "naming the field. `department` and `cost_center` are names, as a Frappe link holds them (projects.doctypes). ";
 
 export const rpc_projects_projects_create = defineRpc({
@@ -49,8 +50,8 @@ export const rpc_projects_projects_create = defineRpc({
     HAT_GUARD +
     FIELD_RULES +
     "Then it writes one project, born `open` (project.open), with a `prj_` id, the fields given, its percent-complete " +
-    "method (`task-completion` when absent), zero totals and percent complete, and the caller's principal as its " +
-    "creator. " +
+    "method (`task-completion` when absent), zero totals, a percent complete of zero (or, worked out by hand, the one " +
+    "given), and the caller's principal as its creator. " +
     LOG_LINE,
   was: [`${FRAPPE}/project/project.json`, `${FRAPPE}/project/project.py:108`],
   concept: concept_projects,
@@ -136,10 +137,11 @@ export const rpc_projects_projects_change = defineRpc({
     HAT_GUARD +
     "The project by its id (INVALID_INPUT otherwise), in any status. " +
     FIELD_RULES +
-    "It sets the fields given and empties those `clear` names (the name cannot be emptied: INVALID_INPUT), and keeps " +
-    "the rest. Its status, totals, actual dates and percent complete are never set here (projects.derived); changing " +
-    "its percent-complete method works the percent out again from its tasks, which moves its status only as a task " +
-    "would (an open project at 100 completes; a completed one below 100 reopens). " +
+    "It sets the fields given, empties those `clear` names (not the name: INVALID_INPUT) and keeps the rest; never its " +
+    "status, totals or actual dates, nor its percent complete unless worked out by hand (projects.derived, " +
+    "projects.percent-by-hand). A new method from its tasks works the percent out again (task progress and weight " +
+    "average each task's progress, a completed or cancelled one counting 100) and moves its status as a task would: an " +
+    "open project at 100 completes, a completed one below 100 reopens. " +
     LOG_LINE,
   was: [`${FRAPPE}/project/project.py:267`],
   concept: concept_projects,
@@ -159,11 +161,15 @@ export const rpc_projects_projects_change = defineRpc({
   budget: budget("chain-read"),
 });
 
-/** One lifecycle step of a project: People or Director moves its status by one transition. */
+/**
+ * One lifecycle step of a project: People or Director moves its status by one transition, and, where ERPNext's
+ * `update_percent_complete` would complete it at once, by `complete` after it in the same write.
+ */
 const step = (
   verb: "hold" | "resume" | "complete" | "reopen" | "cancel",
   title: string,
   what: string,
+  then: readonly (typeof t.complete)[] = [],
 ) =>
   defineRpc({
     id: `projects.projects.${verb}`,
@@ -183,7 +189,7 @@ const step = (
     errors: HAT_ERRORS,
     reads: [...HAT_READS, ...VIEW_READS],
     writes: [table_projects, ...LOGGED],
-    drives: [t[verb]],
+    drives: [t[verb], ...then],
     invokes: [],
     emits: [],
     calls: HAT_CALLS,
@@ -201,22 +207,30 @@ export const rpc_projects_projects_hold = step(
 export const rpc_projects_projects_resume = step(
   "resume",
   "Take a project off hold",
-  "A project on hold opens again (project.resume); its status follows its percent complete from its next change.",
+  "A project on hold opens again (project.resume), and its status follows its percent complete again: one its tasks " +
+    "make 100 completes in the same write (project.complete), as ERPNext's `update_percent_complete` does when it is " +
+    "set open; one worked out by hand stays open.",
+  [t.complete],
 );
 
 export const rpc_projects_projects_complete = step(
   "complete",
   "Complete a project whose tasks are all done",
-  "An open project completes (project.complete) when every task under it is completed or cancelled, or it has none, " +
-    "and its percent complete becomes 100, as ERPNext's `validate_completed_status` allows. One with an unfinished task " +
-    "is WRONG_STATE, naming each unfinished task and its status.",
+  "An open project completes (project.complete) when its percent complete by its method is 100 (by task completion: " +
+    "every task under it completed or cancelled), when it is worked out by hand, or when it has no tasks, which makes " +
+    "it worked out by hand (`manual`) as ERPNext does, so a task added later moves neither its percent nor its status; its percent " +
+    "complete becomes 100 (ERPNext's `update_percent_complete` and `validate_completed_status`). Any other is " +
+    "WRONG_STATE, naming each unfinished task and its status.",
 );
 
 export const rpc_projects_projects_reopen = step(
   "reopen",
   "Open a completed or cancelled project again",
-  "A completed or cancelled project opens again (project.reopen), its tasks and timesheets as they were; its percent " +
-    "complete is worked out again from its tasks.",
+  "A completed or cancelled project opens again (project.reopen), its tasks and timesheets as they were. One worked " +
+    "out by hand keeps its percent; any other's is worked out again from its tasks, and at 100 it completes again in " +
+    "the same write (project.complete), as ERPNext's `update_percent_complete` does, so a completed project its tasks " +
+    "still complete is WRONG_STATE: reopen or add one of its tasks instead.",
+  [t.complete],
 );
 
 export const rpc_projects_projects_cancel = step(

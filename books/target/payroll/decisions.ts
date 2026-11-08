@@ -42,7 +42,8 @@ import {
   table_salary_structure_assignments,
   table_salary_structures,
 } from "./data.ts";
-import { rpc_payroll_employees_add, rpc_payroll_employees_change, rpc_payroll_employees_list } from "./employees.ts";
+import { rpc_payroll_employees_add, rpc_payroll_employees_change, rpc_payroll_employees_get, rpc_payroll_employees_list } from "./employees.ts";
+import { flow_client_org_payroll_runs_pay, rpc_payroll_runs_pay } from "./staged.ts";
 import {
   rpc_payroll_structures_assign,
   rpc_payroll_structures_cancel,
@@ -73,21 +74,33 @@ import { rpc_payroll_payees_accept, rpc_payroll_payees_collect, rpc_payroll_paye
 import { rpc_payroll_writes_watch } from "./writes.ts";
 import { workflow_payroll_agreements_lifecycle, workflow_payroll_head_sync, workflow_payroll_startup_open } from "./processes.ts";
 import {
-  flow_client_me_payslips,
-  flow_client_org_payroll_employees_add,
-  flow_client_org_payroll_employees_change,
-  flow_client_org_payroll_employees_list,
+  flow_client_me_payslips_get,
+  flow_client_me_payslips_list,
+  flow_client_org_employees_add,
+  flow_client_org_employees_change,
+  flow_client_org_employees_deactivate,
+  flow_client_org_employees_get,
+  flow_client_org_employees_leave,
+  flow_client_org_employees_list,
+  flow_client_org_employees_reinstate,
+  flow_client_org_employees_suspend,
+  flow_client_org_payroll_components_add,
+  flow_client_org_payroll_components_change,
+  flow_client_org_payroll_components_disable,
+  flow_client_org_payroll_components_enable,
+  flow_client_org_payroll_components_list,
   flow_client_org_payroll_runs_cancel,
   flow_client_org_payroll_runs_create,
+  flow_client_org_payroll_runs_get,
   flow_client_org_payroll_runs_list,
-  flow_client_org_payroll_runs_show,
   flow_client_org_payroll_runs_submit,
-  flow_client_org_payroll_runs_withhold,
   flow_client_org_payroll_structures_assign,
   flow_client_org_payroll_structures_cancel,
-  flow_client_org_payroll_structures_component,
   flow_client_org_payroll_structures_create,
   flow_client_org_payroll_structures_list,
+  flow_client_org_payroll_structures_unassign,
+  flow_client_org_payslips_release,
+  flow_client_org_payslips_withhold,
   flow_client_me_agreements_accept,
   flow_client_me_agreements_collect,
   flow_client_org_agreements_change,
@@ -109,6 +122,15 @@ import {
   operation_org_agreement_pause,
   operation_org_agreement_resume,
   operation_org_agreement_withdraw,
+  CRITICAL_OPERATIONS,
+  NEW_OPERATIONS,
+  operation_org_employee_leave,
+  operation_org_payroll_component_change,
+  operation_org_payroll_run_create,
+  operation_org_payroll_run_pay,
+  operation_org_payroll_structure_unassign,
+  operation_payslip_get,
+  operation_payslip_list,
 } from "./operations.ts";
 
 const by = (evidence: string) => `Claude, payroll target design, 8 November 2026; evidence: ${evidence}`;
@@ -706,6 +728,7 @@ export const decision_payroll_collection_payment_id = defineDecision({
 const HR_RPCS = [
   rpc_payroll_employees_add,
   rpc_payroll_employees_change,
+  rpc_payroll_employees_get,
   rpc_payroll_employees_list,
   rpc_payroll_structures_component,
   rpc_payroll_structures_create,
@@ -727,22 +750,36 @@ const HR_TABLES = [
   table_payroll_entries,
   table_salary_slips,
 ];
+/** One SDK method per HR command (payroll.hr-surface, payroll.command-flows), in the pack's order. */
 const HR_FLOWS = [
-  flow_client_org_payroll_employees_add,
-  flow_client_org_payroll_employees_change,
-  flow_client_org_payroll_employees_list,
-  flow_client_org_payroll_structures_component,
+  flow_client_org_employees_add,
+  flow_client_org_employees_change,
+  flow_client_org_employees_get,
+  flow_client_org_employees_list,
+  flow_client_org_employees_suspend,
+  flow_client_org_employees_deactivate,
+  flow_client_org_employees_reinstate,
+  flow_client_org_employees_leave,
+  flow_client_org_payroll_components_add,
+  flow_client_org_payroll_components_change,
+  flow_client_org_payroll_components_list,
+  flow_client_org_payroll_components_disable,
+  flow_client_org_payroll_components_enable,
   flow_client_org_payroll_structures_create,
-  flow_client_org_payroll_structures_assign,
   flow_client_org_payroll_structures_cancel,
+  flow_client_org_payroll_structures_assign,
+  flow_client_org_payroll_structures_unassign,
   flow_client_org_payroll_structures_list,
   flow_client_org_payroll_runs_create,
   flow_client_org_payroll_runs_submit,
-  flow_client_org_payroll_runs_withhold,
+  flow_client_org_payroll_runs_pay,
   flow_client_org_payroll_runs_cancel,
-  flow_client_org_payroll_runs_show,
   flow_client_org_payroll_runs_list,
-  flow_client_me_payslips,
+  flow_client_org_payroll_runs_get,
+  flow_client_org_payslips_withhold,
+  flow_client_org_payslips_release,
+  flow_client_me_payslips_list,
+  flow_client_me_payslips_get,
 ];
 const HRMS = "/tmp/hrms/hrms/payroll/doctype";
 
@@ -1069,7 +1106,7 @@ export const decision_payroll_new_hire_escrow = defineDecision({
       text:
         "Payroll sends their net in the same command, to their mailbox's Safe; payments pays it into a claim escrow from " +
         "the budget. The slip reads `escrowed` until they claim it, then `paid` when the escrow's payout settles; if the " +
-        "budget's holder or the Board takes it back, payments cancels that Payment (outcome refunded), the slip is " +
+        "wearer of the budget's hat or one above it, or the Board, takes it back, payments cancels that Payment (outcome refunded), the slip is " +
         "`submitted` again and still owed, and a later `runs.pay` naming it pays it under the next attempt.",
     },
     { label: "hold", text: "Leave their slip submitted and pay it in a later command once their account is live." },
@@ -1095,8 +1132,9 @@ export const decision_payroll_deduction_remittance = defineDecision({
       label: "payee-recorded",
       text:
         "A deduction or employer contribution may name the Party its liability is owed to (a Custom Field on a head). " +
-        "The run's command carries nets only. When a remittance falls due, a holder of the department budget, or the FDE " +
-        "agent, pays that Party with an ordinary budget payment against the component's liability account, which books " +
+        "The run's command carries nets only. When a remittance falls due, whoever wears the department budget's hat, or " +
+        "one above it (the FDE only by a hat the Board granted its Safe), pays that Party with an ordinary budget payment " +
+        "against the component's liability account, which books " +
         "posts as a Bank Entry on that liability. A component with no payee stays a liability, as in Frappe HR.",
     },
     {
@@ -1114,7 +1152,8 @@ export const decision_payroll_deduction_remittance = defineDecision({
     "a remittance schedule. Remittances also fall due on their own calendar (usually once a period for every run), " +
     "which is how the vision has them, not on payday. An ordinary budget payment already carries an account for books " +
     "and keeps its own request key, so nothing new is needed, and Frappe HR's behaviour is kept. Recording the payee " +
-    "lets the FDE agent pay it without asking.",
+    "lets whoever pays it, the FDE among them once it wears such a hat, pay it without asking whom (aaron.departments: " +
+    "authority over the money is the hat's, payroll.command-authority).",
   source: AFTER_RULING("aaron.frappe-shape; docs/vision/erp.md (section 4, step 2); /tmp/hrms/hrms/payroll/doctype/salary_component_account; docs/design/frappe/accounting.md (payment send --account)"),
   affects: [table_salary_components, rpc_payroll_structures_component],
 });
@@ -1282,9 +1321,211 @@ export const decision_payroll_hr_surface = defineDecision({
     "and flows came first (sdk-now); the commands now follow the one grammar every new command keeps " +
     "(docs/design/new-commands.md): nouns then verbs, a status step as its own verb, `get` for one record, and one SDK " +
     "method per command, so a flow that served two steps is two commands. Every rpc stays reached (P2), and each flow " +
-    "keeps its class default budget.",
+    "keeps its class default budget. Booked on 8 November 2026: the 28 operations in this record's `affects`, each " +
+    "one flow (payroll.command-flows); who runs each (payroll.command-authority), the ten a first payroll needs " +
+    "(payroll.critical-commands), the worlds (payroll.command-worlds), and where a row reads its rpc more exactly " +
+    "(payroll.command-details, payroll.run-pay-codes) each have their decision.",
   source: AFTER_RULING("aaron.frappe-shape, aaron.fde-agent, aaron.projects (new capabilities designed book first)"),
-  affects: [...HR_FLOWS, ...HR_RPCS, rpc_payroll_slips_mine],
+  affects: [...NEW_OPERATIONS, ...HR_FLOWS, ...HR_RPCS, rpc_payroll_slips_mine, rpc_payroll_runs_pay],
+});
+
+// ── the payroll commands pass (8 November 2026): booking payroll.hr-surface ─────────────────
+
+const COMMANDS = (rulings: string, evidence: string) =>
+  `Claude, payroll commands pass, 8 November 2026; rulings: ${rulings}; evidence: ${evidence}`;
+
+export const decision_payroll_command_authority = defineDecision({
+  id: "payroll.command-authority",
+  title: "HR records are the People hat's; paying a run is its department hat's",
+  question:
+    "Budgets belong to departments, and people are swapped in and out of a department by its hat. Who may run each of " +
+    "payroll's new commands, and what follows for the person who records pay and the person who pays it?",
+  options: [
+    {
+      label: "hat-not-person",
+      text:
+        "The People hat changes and reads the HR records (Employees, components, structures, assignments, runs, " +
+        "withholding), as Frappe's HR Manager. `org payroll run pay` is whoever `Budgets.authorised` admits on the run's " +
+        "department budget when it pays, read on chain then: a wearer of its hat or of an ancestor's, never the person who " +
+        "drafted the run, paid it before or is named on it. `payslip list|get` is the payee's own Safe. An agent, the FDE " +
+        "included, acts only with the hats its Safe wears. The Board pays no run: it spends from no budget.",
+    },
+    { label: "person", text: "Whoever drafted a run, or whom Capxul records as the department's holder, pays it." },
+  ],
+  chosen: "hat-not-person",
+  why:
+    "aaron.departments makes a department's money its hat's, and v4's `Budgets.spend` checks exactly that at the call, so " +
+    "a holder swapped out between drafting and paying is refused by the chain whatever Capxul says; reading it at the " +
+    "call keeps Capxul's refusal and the chain's the same. Recording pay and paying it stay apart, as Frappe splits HR " +
+    "from Accounts. Because budgets.role-conflict-people-hat keeps a People-hat wearer out of every department and team " +
+    "office, whoever drafts and submits a run is never who pays it from a department (Pat drafts, Lead pays). A founder " +
+    "wears the People hat from setup, so a solo founder pays a run only from an allowance the Board assigned them, or " +
+    "after giving the People hat up; stating that for every money command is budgets' and organizations' " +
+    "(docs/design/authority.md, contradiction 9), and payroll follows it. This pass also corrected payroll.runs.pay, " +
+    "which admitted 'an agent whose Seat holds its allowance' and 'the Organization's own agent': a Seat gives no " +
+    "authority on chain, and the FDE starts with no hat (agents.fde-authority).",
+  source: COMMANDS("aaron.departments, aaron.frappe-shape", "docs/design/authority.md; Budgets.sol authorised; payroll.hr-authority"),
+  affects: [...NEW_OPERATIONS, rpc_payroll_runs_pay],
+});
+
+export const decision_payroll_command_flows = defineDecision({
+  id: "payroll.command-flows",
+  title: "One SDK method per HR command, each a flow, the reads included",
+  question:
+    "The grammar (G7) implements a method that is one rpc call by that rpc, and lists `org employee get` over a new rpc. " +
+    "Payroll's HR rpcs already had one flow each, on the SDK and the web app. How are the 28 commands implemented?",
+  options: [
+    {
+      label: "flows",
+      text:
+        "Every command is one flow under `client.org(orgId)` or `client.me`, on the CLI, the SDK and the web app, each one " +
+        "call of one payroll rpc except `org employee leave`, which reads, previews and writes. Where one rpc serves " +
+        "several verbs each verb is its own flow fixing its part of the input: `employees.suspend|deactivate|reinstate|" +
+        "leave` over `payroll.employees.change`; `payroll.components.add|change|disable|enable` over " +
+        "`payroll.structures.component`, `.list` over `payroll.structures.list`; `payroll.structures.cancel|unassign` " +
+        "over `payroll.structures.cancel`; `payslips.withhold|release` over `payroll.runs.withhold`; `me.payslips.list|" +
+        "get` over `payroll.slips.mine`. Renamed: `payroll.employees.*` to `employees.*`, `payroll.runs.show` to " +
+        "`.get`, `payroll.runs.withhold` to `payslips.withhold`, `me.payslips` to `me.payslips.list`; " +
+        "`payroll.structures.component` is gone.",
+    },
+    { label: "rpc-reads", text: "As G7 reads: `org employee get` implemented by its new rpc directly, every other command by its flow." },
+  ],
+  chosen: "flows",
+  why:
+    "The web app and the FDE call these methods too, so a read implemented by its rpc would give payroll's SDK two " +
+    "kinds of method, flows for every HR method but one. One flow per command keeps one method per command and one " +
+    "command per method (A4), the generated client the same on every surface, and every rpc reached (P2). `change` " +
+    "no longer carries a status, so a status moves only by its lifecycle verb (G3). The leave flow's preview is G5's: " +
+    "a decline is CANCELLED and a script without `--confirm` CLI_USAGE (vocabulary.declined-preview-cancelled).",
+  source: COMMANDS("aaron.frappe-shape, aaron.fde-agent", "docs/design/new-commands.md (G3, G5, G7, section 4)"),
+  affects: [...HR_FLOWS, rpc_payroll_employees_get, operation_org_employee_leave],
+});
+
+export const decision_payroll_command_details = defineDecision({
+  id: "payroll.command-details",
+  title: "Where the booked HR commands read their rpcs more exactly than the rows",
+  question:
+    "Booking the 28 commands against payroll's rpcs found five places where a row of docs/design/new-commands.md " +
+    "section 5.3 says less than, or other than, the rpc it calls. What does each command do there?",
+  options: [
+    {
+      label: "rpc-rules",
+      text:
+        "The rpc's rule stands and the command reads it: (1) `org payroll structure unassign` is WRONG_STATE while a slip " +
+        "that is not cancelled names the assignment, as the assignment machine's guard has it; a later assignment " +
+        "supersedes it instead. (2) `org payroll component change` reaches only structures made after it, since a " +
+        "structure keeps the rows it copied; `disable` and `enable` set `disabled` through the same rpc, which on a change " +
+        "now takes only the fields given. (3) `org payroll run create` defaults `--frequency` to monthly. (4) `payslip " +
+        "list` pages (`--after`, `--limit`, `nextCursor`), and `--employer` is a handle the rpc reads as the payer. (5) " +
+        "`org payroll run pay` takes `--request-key`: the same key again returns the same command and approval; " +
+        "`--timeout-seconds` and `--no-wait` are its flow's.",
+    },
+    { label: "rows", text: "Change the rpcs to match the rows word for word: unassign cancels an assignment slips name." },
+  ],
+  chosen: "rpc-rules",
+  why:
+    "A slip names its assignment as the record of what it was worked out with, so cancelling one under a submitted slip " +
+    "would leave a payslip naming a cancelled assignment. Structures copying their rows is Frappe's Salary Detail, and " +
+    "payroll.frappe-doctypes never edits a submitted document. Monthly is Frappe's default and the frequency of every " +
+    "structure in the worlds. Paging and the request key are G5's for every list and money command; the run's attempt " +
+    "key already made asking twice pay once (K1), and the request key lets a script say which ask it repeats.",
+  source: COMMANDS("aaron.frappe-shape", "docs/design/new-commands.md (5.3, G5); payroll/data.ts (salary-structure-assignment.cancel)"),
+  affects: [
+    operation_org_payroll_structure_unassign,
+    operation_org_payroll_component_change,
+    operation_org_payroll_run_create,
+    operation_payslip_list,
+    operation_org_payroll_run_pay,
+    rpc_payroll_structures_cancel,
+    rpc_payroll_structures_component,
+    rpc_payroll_runs_create,
+    rpc_payroll_slips_mine,
+    rpc_payroll_runs_pay,
+  ],
+});
+
+export const decision_payroll_run_pay_codes = defineDecision({
+  id: "payroll.run-pay-codes",
+  title: "A run the company Safe cannot cover is INSUFFICIENT_BALANCE, as payment send",
+  question:
+    "payroll.runs.pay refused a company Safe holding less than the run as PAYER_BALANCE_TOO_LOW, the code a payee's " +
+    "collection uses. The grammar (G6) gives a case the code the 215 give it. Which code is it?",
+  options: [
+    {
+      label: "insufficient",
+      text:
+        "INSUFFICIENT_BALANCE, which `payment send` from a budget gives when the paying Safe holds too little; a budget " +
+        "with too little left stays PAYROLL_BUDGET_EXCEEDED, as `payment send` and `org department pay` give it.",
+    },
+    { label: "payer-low", text: "PAYER_BALANCE_TOO_LOW, as the rpc first had it." },
+  ],
+  chosen: "insufficient",
+  why:
+    "Paying a run is a payment from a budget, the chain path of `payment send --from`, made by whoever acts for the " +
+    "department, not by a payee collecting; PAYER_BALANCE_TOO_LOW's message speaks of a collection. The frozen " +
+    "`agreement collect` keeps its own code.",
+  source: COMMANDS("aaron.departments, aaron.frappe-shape", "docs/design/new-commands.md (G6); the frozen refusals of payment.send, org.department.pay, agreement.collect"),
+  affects: [rpc_payroll_runs_pay, operation_org_payroll_run_pay],
+});
+
+export const decision_payroll_critical_commands = defineDecision({
+  id: "payroll.critical-commands",
+  title: "The commands of an Organization's first payroll are critical; the rest normal",
+  question:
+    "The grammar makes every new command normal; the commands pass marks those a pilot or a start-up needs critical. " +
+    "Which of payroll's 28?",
+  options: [
+    {
+      label: "first-payroll",
+      text:
+        "Ten: `org employee add|list`, `org payroll component add`, `org payroll structure create|assign`, `org payroll " +
+        "run create|submit|pay|get`, and `payslip list`: hire, define the pay, assign it, draft, submit and pay the first " +
+        "month, check it, and let the Employee see it. The rest (field changes, status verbs, leaving, component upkeep, " +
+        "cancelling, unassigning, withholding, the lists of structures and runs, `payslip get`) refine that loop.",
+    },
+    { label: "none", text: "Every command normal, as G8 has it." },
+    { label: "all", text: "Every payroll command critical." },
+  ],
+  chosen: "first-payroll",
+  why:
+    "Payroll is in every Organization from its first day (aaron.frappe-shape), and the FDE sets an Organization up " +
+    "through the same commands (aaron.fde-agent); a start-up that pays people runs its first month with exactly these " +
+    "ten. As in projects.critical-commands and organizations.command-priorities, critical orders the build's work and " +
+    "the evals a pilot depends on, and changes no budget. None is on the B3 pilots' money path.",
+  source: COMMANDS("aaron.frappe-shape, aaron.fde-agent", "docs/design/new-commands.md (G8); projects.critical-commands; CONVENTIONS rule 4"),
+  affects: [...CRITICAL_OPERATIONS],
+});
+
+export const decision_payroll_command_worlds = defineDecision({
+  id: "payroll.command-worlds",
+  title: "Four worlds hold Acme's HR records and runs in every state a refusal needs",
+  question:
+    "No catalogued world holds Employees, components, structures and runs but org-with-documents, whose one run serves " +
+    "documents. Which worlds do the HR commands' claims and refusals start from?",
+  options: [
+    {
+      label: "four",
+      text:
+        "signed-out, and four built with payroll's own commands on org-with-department (Directors Dana and Eli; Pat with " +
+        "the People hat and no office; Lead wearing `salaries`' office hat; Sam a member with no hat; Olga outside): " +
+        "org-with-employees (Sam, and Noor, Ana and Leo with no accounts; Ana suspended, Leo left; components Basic, " +
+        "Pension and a disabled Bonus; structures Standard and Contractors; Standard assigned to Sam, Noor and Ana); " +
+        "org-with-payroll-runs (three runs of `salaries`: the first paid by Lead with Noor's net in a claim escrow, the " +
+        "second submitted with Noor's slip withheld, this month's a draft); org-with-payroll-budget-used (`salaries` " +
+        "spent to 1,350 USDC left); org-with-payroll-short-safe (the company Safe down to 1,000 USDC).",
+    },
+    { label: "in-eval", text: "Each eval builds what it needs from org-with-department." },
+  ],
+  chosen: "four",
+  why:
+    "Most of the 28 commands' claims and refusals share these states, so one build each serves them all, made only " +
+    "with booked commands and `dev approve`. org-with-department gives each authority claim its actor: Pat records pay " +
+    "but holds no office, Lead holds the department but not the People hat, so every People refusal and every Budget " +
+    "refusal is reached by a real member, and the swap claim moves `salaries`' office to Plat (aaron.departments). " +
+    "People with no account show that an Employee needs none and that their pay waits in a claim escrow " +
+    "(aaron.budget-pay-unclaimed).",
+  source: COMMANDS("aaron.frappe-shape, aaron.departments", "books/target/devnet/worlds.ts (org-with-department); devnet.worlds"),
+  affects: [...NEW_OPERATIONS],
 });
 
 export const decision_payroll_money_and_rounding = defineDecision({

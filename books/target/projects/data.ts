@@ -501,9 +501,10 @@ export const machine_project = defineMachine({
   id: "project",
   title: "Project status",
   about:
-    "projects.status, as Frappe's Project has it (Open, On hold, Completed, Cancelled). A project completes when its " +
-    "percent complete reaches 100 (every task completed or cancelled, or by hand with no tasks), and a task reopened " +
-    "under it opens it again, as Frappe's `update_percent_complete` does; on hold and cancelled are set by hand and kept.",
+    "projects.status, as Frappe's Project has it (Open, On hold, Completed, Cancelled). A project worked out from its " +
+    "tasks completes when its percent complete reaches 100 and opens again below it, as Frappe's " +
+    "`update_percent_complete` does; one worked out by hand moves only by hand, and completing a project with no tasks " +
+    "makes it worked out by hand at 100, as ERPNext does. On hold and cancelled are set by hand and kept.",
   was: [`${FRAPPE}/project/project.py:267`, `${FRAPPE}/project/project.py:305`],
   table: table_projects,
   field: "status",
@@ -521,8 +522,10 @@ export const machine_project = defineMachine({
     complete: {
       from: ["open"],
       to: "completed",
-      about: "Its percent complete reached 100.",
-      guard: "Every task under it is completed or cancelled, or it has none.",
+      about: "Its percent complete reached 100, or it was completed by hand.",
+      guard:
+        "Its percent complete by its method is 100 (by task completion: every task completed or cancelled), or it is " +
+        "worked out by hand, or it has no tasks (ERPNext's `validate_completed_status`).",
       emits: [event_project_transitioned],
     },
     reopen: {
@@ -547,9 +550,10 @@ export const machine_task = defineMachine({
   about:
     "tasks.status, as Frappe's Task has it. A task is working once a submitted timesheet logs time against it or it is " +
     "started by hand, and open again when the last such timesheet is cancelled (ERPNext's `get_task_status`, which also " +
-    "puts a pending review back to working; an overdue task stays overdue, since its timer would put it back at once); " +
-    "pending review when sent for review; overdue when its expected end passes unfinished (its own timer, not Frappe's " +
-    "daily `set_tasks_as_overdue`), and back to open or working when its expected end moves later. A submitted log " +
+    "puts a pending review back to working, or to open when no submitted time is left; an overdue task stays overdue, " +
+    "since its timer would put it back at once); pending review when sent for review; overdue when its expected end " +
+    "passes unfinished (its own timer, not Frappe's daily `set_tasks_as_overdue`), and back to open or working when its " +
+    "expected end moves to a day not yet ended or is cleared. A submitted log " +
     "marked completed completes it. It completes only when every task it depends on is completed or cancelled, and a " +
     "group task only when its children have. A template is born a template and stays one.",
   was: [`${FRAPPE}/task/task.py:183`, `${FRAPPE}/task/task.py:532`, `${FRAPPE}/timesheet/timesheet.py:324`],
@@ -575,7 +579,7 @@ export const machine_task = defineMachine({
       emits: [event_task_transitioned],
     },
     stop: {
-      from: ["working"],
+      from: ["working", "pending_review"],
       to: "open",
       about: "The last submitted timesheet that logged time against it was cancelled: no submitted time is left.",
       emits: [event_task_transitioned],
@@ -591,19 +595,19 @@ export const machine_task = defineMachine({
       to: "overdue",
       about:
         "Its own timer: the end of its expected end's day in the Organization's time zone passed (a pending review: and " +
-        "the end of its review date's day too).",
+        "its review day has begun, as ERPNext's daily job skips only a review date still in the future).",
       emits: [event_task_transitioned],
     },
     recover_open: {
       from: ["overdue"],
       to: "open",
-      about: "Its expected end moved later and no time is logged.",
+      about: "Its expected end moved to a day not yet ended, or was cleared, and no time is logged.",
       emits: [event_task_transitioned],
     },
     recover_working: {
       from: ["overdue"],
       to: "working",
-      about: "Its expected end moved later and time is logged.",
+      about: "Its expected end moved to a day not yet ended, or was cleared, and time is logged.",
       emits: [event_task_transitioned],
     },
     complete: {
@@ -616,7 +620,9 @@ export const machine_task = defineMachine({
     reopen: {
       from: ["completed", "cancelled"],
       to: "open",
-      about: "Opened again: its completion is cleared, and its project reopens if it had completed.",
+      about:
+        "Opened again: a completed task's completion is cleared and its progress zeroed (ERPNext's " +
+        "`clear_completion_on_reopen`), and its project reopens if its tasks had completed it.",
       emits: [event_task_transitioned],
     },
     cancel: {

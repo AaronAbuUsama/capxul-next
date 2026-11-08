@@ -88,7 +88,14 @@ export const flow_client_payments_pay = defineFlow({
       local: "prompt",
       about: "With `--org` and several budgets you hold in the asset, prepare names them; the CLI asks which, then prepares with `--from`.",
     },
-    { name: "check", local: "build", about: "Recomputes each payment id from the preview's terms and refuses a batch that pays anything else." },
+    {
+      name: "check",
+      local: "build",
+      about:
+        "Recomputes each payment id from the preview's terms and refuses a batch that pays anything else; for a claim " +
+        "escrow, also its address from its terms (CREATE2 with the escrow's creation code) and one `EscrowFactory.deploy` " +
+        "of exactly those terms.",
+    },
     {
       name: "annotate",
       rpc: rpc_books_annotations_save,
@@ -127,7 +134,13 @@ export const flow_client_org_departments_pay = defineFlow({
   steps: [
     readDocument,
     { name: "prepare", rpc: rpc_payments_commands_prepare, about: "Births the department's payment, its document and the approval." },
-    { name: "check", local: "build", about: "Checks the route names the department's own active top budget and the asked amount and payee." },
+    {
+      name: "check",
+      local: "build",
+      about:
+        "Checks the route names the department's own active top budget and the asked amount and payee; for a mailbox with " +
+        "no account, the payee is the claim escrow's address recomputed from its terms, with its one deploy beside the spend.",
+    },
     ...signing,
     ...following,
   ],

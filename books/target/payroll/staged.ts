@@ -63,25 +63,23 @@ export const rpc_payroll_runs_pay = defineRpc({
   title: "Pay a submitted run: one payment command, one approval, every net",
   about:
     "Whoever `Budgets.authorised` admits on the run's department budget now pays it: a wearer in good standing of its " +
-    "hat or of an ancestor's, person or agent (the FDE only by a hat the Board granted it), read from the chain at the " +
-    "call (ROLE_PERMISSION_DENIED otherwise). The hat decides: a holder swapped out cannot pay, the next can. Which slips: with none named, every submitted slip of a `submitted` run; named, slips of a `submitted`, " +
-    "`paying` or `paid` run that are each `submitted` (WRONG_STATE otherwise). One call is one command. When the slips " +
-    "hold Payments their command's approval lapsed (`needs_retry`), it resumes that command: `payments.prepare-command` " +
-    "under the same key with `resume`, the same items and payment ids and one new approval, so a lapse can never pay " +
-    "twice; slips with no Payment wait for the next call. Otherwise the slips hold no " +
-    "Payment (never sent, released from withholding, or refunded from escrow) and go out as a new command under the " +
-    "next attempt's key `payroll:<entry>:<attempt>`. Each item is one slip: its `net_pay_raw` to the Employee's " +
-    "`payee_safe`, kind one-off, its payslip's document id and hash, its source (the slip, its run, its Employee) and " +
-    "its `against` (party the Employee, the Payroll Entry allocated the rest, the run's Payroll Payable if it has " +
-    "one: books.payroll-postings); " +
-    "an Employee with no account yet goes as their mailbox, which payments pays into a claim escrow from the budget " +
-    "(aaron.budget-pay-unclaimed). The command carries nets only: a deduction's payee is paid outside the run " +
-    "(payroll.deduction-remittance). Funding is read first: `leftOf` must cover the total (PAYROLL_BUDGET_EXCEEDED) and " +
-    "the company Safe hold it (INSUFFICIENT_BALANCE, as `payment send` from a budget: payroll.run-pay-codes). The same " +
-    "`requestKey` again returns the command it began, `replayed`. Then, in one transaction, the command is born or resumed, purpose " +
-    "payroll, route budget, with one approval from the caller's own Safe for every item (K1: asking twice pays once); a " +
-    "submitted run moves to `paying` (payroll-entry.pay), a paid one reopens (payroll-entry.reopen), a paying one stays, " +
-    "and each slip moves to `paying` (salary-slip.pay) with its payment id, command and attempt.",
+    "hat or an ancestor's, person or agent, read from the chain at the call (ROLE_PERMISSION_DENIED otherwise), so a " +
+    "holder swapped out cannot pay and the next can (payroll.command-authority). Which slips: with none named, every " +
+    "submitted slip of a `submitted` run; named, slips of a `submitted`, `paying` or `paid` run that are each " +
+    "`submitted` (WRONG_STATE otherwise). One call is one command. When the slips hold Payments whose command's " +
+    "approval lapsed (`needs_retry`), it resumes that command: `payments.prepare-command` under the same key with " +
+    "`resume`, the same items and payment ids and one new approval, so a lapse never pays twice. Otherwise the slips " +
+    "hold no Payment (never sent, released, or refunded from escrow) and go out as a new command under the next " +
+    "attempt's key `payroll:<entry>:<attempt>`; the same `requestKey` again returns the command it began, `replayed`. " +
+    "Each item is one slip: its `net_pay_raw` to the Employee's `payee_safe`, kind one-off, its payslip's document id " +
+    "and hash, its source (the slip, its run, its Employee) and its `against` (party the Employee, the Payroll Entry " +
+    "allocated the rest, the run's Payroll Payable if any: books.payroll-postings); an Employee with no account yet " +
+    "goes as their mailbox, paid into a claim escrow from the budget (aaron.budget-pay-unclaimed). The command carries " +
+    "nets only (payroll.deduction-remittance). Funding is read first: `leftOf` must cover the total " +
+    "(PAYROLL_BUDGET_EXCEEDED) and the company Safe hold it (INSUFFICIENT_BALANCE: payroll.run-pay-codes). Then, in " +
+    "one transaction, the command is born or resumed, purpose payroll, route budget, with one approval from the " +
+    "caller's own Safe for every item (K1); a submitted run moves to `paying` (payroll-entry.pay), a paid one reopens " +
+    "(payroll-entry.reopen), and each slip moves to `paying` (salary-slip.pay) with its payment id, command and attempt.",
   was: [`${FRAPPE}:1093`, `${FRAPPE}:1196`],
   concept: concept_payroll,
   kind: "action",
@@ -172,7 +170,7 @@ export const flow_client_org_payroll_runs_pay = defineFlow({
   about:
     "Pays a submitted run as one payment command, resumes its lapsed command, or pays named released or refunded slips " +
     "under the next attempt: the caller signs one approval for every slip's net (an agent with its own key, a person on " +
-    "the approval page), and the flow follows the run until each slip is paid or escrowed, or `timeoutSeconds` passes. " +
+    "the approval page), and the flow follows the run until each slip it pays is paid or escrowed, or `timeoutSeconds` passes. " +
     "With `noWait` it returns at the approval, with `capxul payment wait <approvalId>` as `next`. It serves " +
     "`org payroll run pay`, the SDK and the web app.",
   component: component_core_sdk,
@@ -185,7 +183,7 @@ export const flow_client_org_payroll_runs_pay = defineFlow({
     SIGN,
     SUBMIT,
     WAIT,
-    { name: "follow", rpc: rpc_payroll_runs_show, about: "Reads the run until every slip is paid or escrowed, or the approval lapsed." },
+    { name: "follow", rpc: rpc_payroll_runs_show, about: "Reads the run until every slip this command pays is paid or escrowed, or its approval lapsed." },
   ],
   errors: FLOW_ERRORS,
   calls: [],

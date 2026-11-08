@@ -140,7 +140,7 @@ export const table_payments = defineTable({
     "payer typed it (trimmed and lowercased), for the money-waiting email (payments.claim-escrow-mailbox), and its payee " +
     "tenant is filled when the payee collects. Every claim escrow keeps `escrow_address`, its general escrow's " +
     "counterfactual address, and `funding_payment_id`, the id of the PaymentSent that pays that address (from the payer's " +
-    "Safe, the company Safe or Budgets), which settles nothing; one a budget funds keeps `budget_id` too, the budget " +
+    "Safe, or the company Safe directly or through Budgets), which settles nothing; one a budget funds keeps `budget_id` too, the budget " +
     "whose current hat-wearers may take it back (payments.claim-escrow-routes). `against`, `source` " +
     "and `fee_raw` go to books with its settlement (payments.money-sides). `settled_at` is the settling block's time, and " +
     "the settled transaction, log and block are the holder's to read: a payroll run copies them onto its slips " +

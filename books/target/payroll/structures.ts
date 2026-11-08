@@ -33,27 +33,23 @@ export const rpc_payroll_structures_component = defineRpc({
   title: "Add or change a salary component",
   about:
     HR_GUARD +
-    "Without `componentId` it adds one, which needs a name, an abbreviation, a type and an `amount` or a `formula` " +
-    "(INVALID_INPUT naming what is missing); with it (the component's `sc_` id or abbreviation, INVALID_INPUT for one " +
-    "that is not the Organization's) only the fields given change, `disabled` among them. " +
-    "A component has a name and an abbreviation unique in the Organization (INVALID_INPUT naming the other), a type, " +
-    "and either a fixed `amount` or a `formula`, with an optional `condition`. Each is parsed: one inside the portable " +
-    "subset (numbers, the arithmetic and comparison operators, `and`, `or`, `not`, `x if c else y`, the names `base`, " +
+    "Without `componentId` it adds one, which needs a name, an abbreviation unique in the Organization (INVALID_INPUT " +
+    "naming the other), a type and an `amount` or a `formula`, with an optional `condition` (INVALID_INPUT naming what " +
+    "is missing); with it (an `sc_` id or abbreviation, INVALID_INPUT for one not the Organization's) only the fields " +
+    "given change, `disabled` among them. A formula or condition inside the portable subset " +
+    "(numbers, the arithmetic and comparison operators, `and`, `or`, `not`, `x if c else y`, the names `base`, " +
     "`variable`, `payment_days`, `total_working_days`, `leave_without_pay`, `gross_pay` and other components' " +
     "abbreviations, and Frappe's `round`, `rounded`, `floor`, `ceil`, `min`, `max`, `int` and `float`) is `portable`; " +
     "any other Python Frappe accepts is kept with `portable` false, for a run a head computes; one that does not parse " +
     "is INVALID_INPUT. A deduction's or employer contribution's `payee` is resolved through `parties.resolve-recipient` " +
-    "(INVALID_INPUT when it names nothing): the Party its liability is owed to, which a holder or the FDE agent pays when " +
-    "it falls due with an ordinary budget payment against the component's liability account, never inside a run's " +
-    "command (payroll.deduction-remittance). `account` and `liabilityAccount` are books' accounts by code or `acct_` " +
-    "id, an active ledger account of the chart, read as Frappe HR's accrual reads them: an earning's or employer " +
-    "contribution's `account` under Expenses, a deduction's `account` under Liabilities, and `liabilityAccount`, under " +
-    "Liabilities, only an employer contribution's (INVALID_INPUT otherwise); left out, or before the chart, they are " +
-    "null and the accrual posts to the line's role's account (payroll.books-accounts). " +
-    "A change reaches only structures created after it: a submitted structure keeps its own rows, as Frappe's Salary " +
-    "Detail rows keep what they copied, so no slip of a structure already made changes. A disabled component is taken " +
-    "by no new structure, and enabled again it may be. The agreement component cannot be changed except its accounts " +
-    "(INVALID_INPUT).",
+    "(INVALID_INPUT when it names nothing): the Party its liability is owed to, paid when due by an ordinary payment " +
+    "from a budget by whoever wears its hat, never in a run's command (payroll.deduction-remittance). `account` " +
+    "and `liabilityAccount` are books' active ledger accounts by code or `acct_` id, read as Frappe HR's accrual reads " +
+    "them: an earning's or employer contribution's `account` under Expenses, a deduction's under Liabilities, and " +
+    "`liabilityAccount`, under Liabilities, only an employer contribution's (INVALID_INPUT otherwise); left out, or " +
+    "before the chart, they are null and the accrual posts to the line's role's account (payroll.books-accounts). A " +
+    "change reaches only structures made after it, a submitted one keeping the rows it copied; a disabled component " +
+    "joins no new structure. The agreement component changes only its accounts (INVALID_INPUT).",
   was: [`${FRAPPE}/salary_component/salary_component.json`, `${FRAPPE}/salary_component/salary_component.py`, "/tmp/hrms/hrms/payroll/utils.py:57"],
   concept: concept_payroll,
   kind: "mutation",

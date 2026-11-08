@@ -300,8 +300,9 @@ export const workflow_organizations_heads_watch = defineWorkflow({
     "must survive a crash. It reads the site (`readSite`) and confirms the connection when the Capxul app is there at a " +
     "version Capxul speaks, with its Custom Fields, the fundamental apps (ERPNext, Frappe HR, Frappe CRM), the " +
     "Organization's time zone and a Company in its currency; anything else stalls it with the reason (a head in another " +
-    "time zone would date every document a day wrong, and one in another currency would value every amount wrong). Connected, it asks the head's host to install each wanted app (`installApp`; a self-hosted " +
-    "head's owner installs it) and marks it installed once readSite lists it. It checks the site again once a day by its " +
+    "time zone would date every document a day wrong, and one in another currency would value every amount wrong). Connected, a Frappe Cloud head's host is asked to install each wanted app (`installApp`, " +
+    "with the team's token); a self-hosted head's is not, since its owner installs it with bench; either way it marks " +
+    "the app installed once readSite lists it. It checks the site again once a day by its " +
     "own timer, at once when an app is wanted, and on a ring while failing; a check that fails past its retries stalls " +
     "it, and the next good one recovers it. It ends when a Director disconnects the head. It syncs no app's records: " +
     "each app concept's own process does, from `confirm` (organizations.head-ownership). It pushes the members' " +
@@ -341,7 +342,7 @@ export const workflow_organizations_heads_watch = defineWorkflow({
   ],
   steps: [
     { name: "check", about: "readSite; confirm, stall or recover; record Frappe's and the Capxul app's versions and the time zone." },
-    { name: "install-wanted", about: "Connected: installApp for each wanted app not yet asked for; install each that readSite lists." },
+    { name: "install-wanted", about: "Connected: on a Frappe Cloud head, installApp for each wanted app not yet asked for, then readSite again; on any head, install each wanted app readSite lists." },
     {
       name: "users",
       about:
@@ -450,7 +451,9 @@ export const workflow_organizations_fde_host = defineWorkflow({
   idempotency:
     "One process per hosted FDE (`org-fde:<orgId>`); each transition is guarded by the state it moves from, and the " +
     "host's start, pause, resume and retire are keyed by its agent id, so a replayed step changes nothing.",
-  timeoutMs: 3650 * DAY,
+  // Real time bounding one run's work between its waits (time.real-elapsed): a host call or two with their retries.
+  // The hosting's life has no bound in the story; its dates are the timer waits on the one clock.
+  timeoutMs: 10 * 60_000,
   retries: { max: 5, backoff: "exponential" },
   budget: budget("background"),
 });

@@ -140,9 +140,10 @@ export const operation_org_project_create = defineOperation({
   title: "Create a project",
   about:
     "Creates an open project for the Organization: its name and, as you choose, its project type, priority, expected " +
-    "start and end days, customer, how its percent complete is worked out (by hand, or from its tasks' completion, " +
-    "progress or weight; task completion when not given), department, cost center, estimated cost and notes. Its " +
-    "totals, actual dates and percent complete are worked out from its tasks and submitted timesheets, never typed. A " +
+    "start and end days, customer, how its percent complete is worked out (by hand with `--percent`, or from its " +
+    "tasks' completion, progress or weight; task completion when not given), department, cost center, estimated cost " +
+    "and notes. Its totals and actual dates are worked out from its tasks and submitted timesheets, never typed, and " +
+    "so is its percent complete unless it is worked out by hand. A " +
     "customer on Capxul is named as a Party (an email, an @handle, a 0x address or a Party id); any other text is kept " +
     "as the name of a customer who is not on Capxul.",
   area: AREA,
@@ -248,8 +249,9 @@ export const operation_org_project_change = defineOperation({
   title: "Change a project's fields",
   about:
     "Changes a project's fields, with the flags `org project create` takes; `--clear <field>` empties one. The fields " +
-    "not given are kept. Its status moves only by `hold`, `resume`, `complete`, `reopen` and `cancel`, and its totals, " +
-    "actual dates and percent complete are worked out, never set.",
+    "not given are kept. Its status moves only by `hold`, `resume`, `complete`, `reopen` and `cancel`, and its totals " +
+    "and actual dates are worked out, never set; its percent complete is set with `--percent` only when it is worked " +
+    "out by hand (`--progress manual`).",
   area: AREA,
   command: "org project change",
   priority: "normal",
@@ -263,9 +265,17 @@ export const operation_org_project_change = defineOperation({
         "prints `customer` with both values null; read: `org project get` agrees with each.",
     ),
     claim(
-      "No flag sets a project's status, totals, actual dates or percent complete.",
-      "cli: `org project change <Website> --status completed` is CLI_USAGE and `org project get` shows Website still open; " +
-        "world: the diff is empty.",
+      "No flag sets a project's status, totals or actual dates, and its percent complete is typed only when it is worked out by hand.",
+      "cli: `org project change <Website> --status completed` is CLI_USAGE, and `--percent 50` on Website, worked out by " +
+        "task completion, is INVALID_INPUT naming `percent`; read: `org project get` shows Website still open at 20; " +
+        "world: each diff is empty.",
+    ),
+    claim(
+      "A project worked out by hand takes the percent given and keeps its status; one worked out by task progress " +
+        "averages its tasks' progress, a completed or cancelled task counting 100.",
+      "cli: `org project change <Retainer> --progress manual --percent 40` prints `progress: manual`, a percent complete " +
+        "of 40 and `status: on_hold`; after `org task change <Build> --progress 50`, `org project change <Website> " +
+        "--progress task-progress` prints a percent complete of 30 (Spec 100, Build 50, the other three 0).",
     ),
   ],
   returns: Project,
@@ -273,7 +283,10 @@ export const operation_org_project_change = defineOperation({
   refusals: [
     ...managed("changes Website's priority"),
     unknown("project", "prj_…"),
-    invalid("`--clear name`, an empty name, a `--type` that is none of Acme's, or an `--end` before the `--start`: the refusal names the field."),
+    invalid(
+      "`--clear name`, an empty name, a `--type` that is none of Acme's, an `--end` before the `--start`, or a " +
+        "`--percent` for Website, which is not worked out by hand: the refusal names the field.",
+    ),
   ],
   budget: budget("chain-read"),
 });
@@ -315,7 +328,7 @@ export const operation_org_project_hold = projectStep("hold", {
   claims: [
     claim(
       "An open project goes on hold, and finishing its tasks no longer completes it.",
-      "cli: `org project hold <Website>` prints `status: on_hold`; read: after its open tasks are completed or " +
+      "cli: `org project hold <Website>` prints `status: on_hold`; read: after its unfinished tasks are completed or " +
         "cancelled, `org project get` shows a percent complete of 100 and the status still on_hold.",
     ),
   ],
@@ -324,7 +337,9 @@ export const operation_org_project_hold = projectStep("hold", {
 
 export const operation_org_project_resume = projectStep("resume", {
   title: "Take a project off hold",
-  about: "Takes a project off hold: it is open again, and its status follows its percent complete from then on.",
+  about:
+    "Takes a project off hold: it is open again, and its status follows its percent complete from then on, so one " +
+    "whose tasks are all done completes at once.",
   rpc: rpc_projects_projects_resume,
   claims: [
     claim(
@@ -338,14 +353,17 @@ export const operation_org_project_resume = projectStep("resume", {
 export const operation_org_project_complete = projectStep("complete", {
   title: "Complete a project",
   about:
-    "Completes an open project whose tasks are all completed or cancelled, or that has none; its percent complete " +
-    "becomes 100. A project with an unfinished task is refused, naming each one: finish or cancel them first.",
+    "Completes an open project whose tasks make it 100 percent complete (with task completion: all completed or " +
+    "cancelled), one worked out by hand, or one with no tasks, which from then on is worked out by hand, as ERPNext " +
+    "does; its percent complete becomes 100. A project with an unfinished task is refused, naming each one: finish or " +
+    "cancel them first.",
   rpc: rpc_projects_projects_complete,
   claims: [
     claim(
-      "An open project with no unfinished task completes, at 100 percent.",
-      "cli: a project just created with no tasks prints `status: completed` and a percent complete of 100 after `org " +
-        "project complete`.",
+      "An open project with no tasks completes at 100 percent, worked out by hand from then on.",
+      "cli: a project just created with no tasks prints `status: completed`, a percent complete of 100 and `progress: " +
+        "manual` after `org project complete`; read: after `org task create Review --project <it>`, `org project get` " +
+        "still shows it completed at 100.",
     ),
     claim(
       "A project with an unfinished task stays open, and the refusal names each unfinished task.",
@@ -358,7 +376,9 @@ export const operation_org_project_complete = projectStep("complete", {
 
 export const operation_org_project_reopen = projectStep("reopen", {
   title: "Reopen a completed or cancelled project",
-  about: "Opens a completed or cancelled project again, with its tasks and timesheets as they were.",
+  about:
+    "Opens a completed or cancelled project again, with its tasks and timesheets as they were. A completed project " +
+    "whose tasks still make it 100 percent is refused: reopen or add one of its tasks instead.",
   rpc: rpc_projects_projects_reopen,
   claims: [
     claim(
@@ -484,7 +504,8 @@ export const operation_org_project_settings_set = defineOperation({
   title: "Set the Projects Settings",
   about:
     "Sets the Projects Settings given, each with its `--no-` form, and keeps the rest. The next time log is checked " +
-    "against the new values; logs already made are not checked again.",
+    "against the new values, and so are a draft's earlier logs when it next takes a log or is submitted; a submitted " +
+    "timesheet's logs are not checked again.",
   area: AREA,
   command: "org project settings set",
   priority: "normal",
@@ -511,9 +532,10 @@ export const operation_org_task_create = defineOperation({
   title: "Create a task",
   about:
     "Creates an open task: its subject and, as you choose, its project, its parent group task, the tasks it depends " +
-    "on, its expected start and end days, expected hours, weight, priority, whether it is a group or a milestone, and " +
-    "its type. A parent must be a group task of the same project that is not completed, and no dependency or parent " +
-    "may make a cycle. A task created under a completed project opens the project again.",
+    "on, its expected start and end days (within its project's), expected hours, weight, progress, priority, whether " +
+    "it is a group or a milestone, and its type. A parent must be a group task of the same project that is not " +
+    "completed, and no dependency or parent may make a cycle. A task created under a project its tasks had completed " +
+    "opens the project again.",
   area: AREA,
   command: "org task create",
   priority: "critical",
@@ -527,9 +549,10 @@ export const operation_org_task_create = defineOperation({
         "depending on Build; read: `org project get <Website>` counts six tasks and a percent complete of 16.67.",
     ),
     claim(
-      "A task created under a completed project opens the project again.",
-      "cli: `org task create Review --project <Handover>` prints an open task; read: `org project get <Handover>` shows " +
-        "`status: open`.",
+      "A task created under a project its tasks had completed opens the project again.",
+      "cli: after Design, Build, Announce and Launch are completed (Website completes), `org task create Review " +
+        "--project <Website>` prints an open task; read: `org project get <Website>` shows `status: open` and a percent " +
+        "complete of 83.33.",
     ),
   ],
   returns: Task,
@@ -538,8 +561,9 @@ export const operation_org_task_create = defineOperation({
     ...membered,
     invalid(
       "An empty subject; a `--project`, `--parent` or `--depends-on` that names nothing of Acme's; a parent that is not " +
-        "a group (Design) or is completed (Spec), or is in another project; a dependency on the task itself or one that " +
-        "makes a cycle; an `--end` before the `--start`: the refusal names the field and nothing is written.",
+        "a group (Design, Spec), or one in another project (Launch, for a task of Retainer); a dependency on the task " +
+        "itself or one that makes a cycle; an `--end` before the `--start`: the refusal names the field and nothing is " +
+        "written.",
     ),
   ],
   budget: budget("write"),
@@ -600,8 +624,8 @@ export const operation_org_task_change = defineOperation({
   title: "Change a task's fields",
   about:
     "Changes a task's fields, with the flags `org task create` takes; `--clear <field>` empties one. Its status moves " +
-    "only by its lifecycle commands, except that moving an overdue task's expected end to a later day takes it back " +
-    "to open, or to working if time is logged on it.",
+    "only by its lifecycle commands, except that moving an overdue task's expected end to a day that has not yet " +
+    "ended, or clearing it, takes it back to open, or to working if time is logged on it.",
   area: AREA,
   command: "org task change",
   priority: "normal",
@@ -683,16 +707,16 @@ export const operation_org_task_start = taskStep("start", {
 export const operation_org_task_review = taskStep("review", {
   title: "Send a task for review",
   about:
-    "Sends a task for review by a day (`--by`). It falls overdue only once both its expected end and that day have " +
-    "passed unfinished.",
+    "Sends a task for review by a day (`--by`). Unfinished, it falls overdue once its expected end's day has ended and " +
+    "the review day has come, as ERPNext's daily overdue job has it.",
   rpc: rpc_projects_tasks_review,
   changes: TASK_STATUS,
   claims: [
     claim(
       "The task is pending review by that day, and does not fall overdue while the review day is ahead.",
       "cli: `org task review <Design> --by <a day after its expected end>` prints `status: pending_review` and that " +
-        "`reviewBy`; world: a warp past its expected end leaves it pending review, and a warp past the review day shows " +
-        "it overdue.",
+        "`reviewBy`; world: a warp past its expected end leaves it pending review, and a warp to the start of the review " +
+        "day shows it overdue.",
     ),
   ],
   extra: [invalid("A `--by` that is not a day: the refusal names `--by`.")],
@@ -727,7 +751,8 @@ export const operation_org_task_complete = taskStep("complete", {
 
 export const operation_org_task_reopen = taskStep("reopen", {
   title: "Reopen a task",
-  about: "Opens a completed or cancelled task again, clearing who completed it. A completed project above it opens again.",
+  about:
+    "Opens a completed or cancelled task again, clearing who completed it. A project its tasks had completed opens again.",
   rpc: rpc_projects_tasks_reopen,
   changes: TASK_AND_PROJECT,
   claims: [
@@ -840,7 +865,7 @@ export const operation_org_timesheet_log = defineOperation({
     hatUnread("logs time on Sam's draft"),
     invalid(
       "A disabled activity type (Research); an end not after the start, or hours not above zero; a task that is " +
-        "cancelled or none of Acme's; a project other than the timesheet's; or a log overlapping another of the " +
+        "cancelled (Old) or none of Acme's; a project other than the timesheet's; or a log overlapping another of the " +
         "worker's: the refusal names the field and nothing is written.",
     ),
     wrong("Sam's submitted timesheet: only a draft takes logs. The refusal names its status."),
@@ -904,7 +929,8 @@ export const operation_org_timesheet_submit = defineOperation({
   about:
     "Submits a draft timesheet. Its logs no longer change, and its hours roll into its tasks and projects: a task it " +
     "logs time on becomes working, one a log marks completed completes, and their projects' time, totals and percent " +
-    "complete follow. Every log needs its times and hours, and an activity type when an employee is named.",
+    "complete follow. Every log needs its times and hours, and an activity type when an employee is named; and, as " +
+    "ERPNext checks a draft's every log again, none may name a type since disabled or a task since cancelled.",
   area: AREA,
   command: "org timesheet submit",
   priority: "critical",
@@ -934,7 +960,10 @@ export const operation_org_timesheet_submit = defineOperation({
       when: "Sam submits Dana's own draft: he is not its worker and wears neither the People hat nor the Director hat.",
     },
     hatUnread("submits Sam's draft"),
-    invalid("Dana's own draft, which has no log, or a log marked completed on a task whose dependency is unfinished: the refusal names the row."),
+    invalid(
+      "Dana's own draft, which has no log; Sam's draft after `org activity-type disable Execution`, since its log names " +
+        "Execution; or a log marked completed on a task whose dependency is unfinished: the refusal names the row.",
+    ),
     wrong("Sam's submitted or cancelled timesheet: only a draft is submitted."),
   ],
   budget: budget("chain-read"),
@@ -944,9 +973,10 @@ export const operation_org_timesheet_cancel = defineOperation({
   id: "org.timesheet.cancel",
   title: "Cancel a timesheet",
   about:
-    "Cancels a draft or submitted timesheet and keeps it. A submitted one's hours leave its tasks and projects, and a " +
-    "working task left with no submitted time is open again. A timesheet billed in part or in full, or paid by a " +
-    "salary slip, is refused: cancel what billed or paid it first.",
+    "Cancels a draft or submitted timesheet and keeps it. A submitted one's hours leave its tasks and projects: a " +
+    "working or pending-review task left with no submitted time is open again, and a pending-review one with some left " +
+    "is working. A timesheet billed in part or in full, or paid by a salary slip, is refused: cancel what billed or " +
+    "paid it first.",
   area: AREA,
   command: "org timesheet cancel",
   priority: "normal",
