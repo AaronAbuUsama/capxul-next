@@ -205,11 +205,10 @@ export const operation_contact_bank_add = defineOperation({
   returns: BankAccountView,
   errors: [error_CLI_USAGE],
   refusals: [
-    { error: error_CLI_USAGE, given: "person-with-contacts", when: when("contact.bank.add", "CLI_USAGE") },
     {
       error: error_CLI_USAGE,
       given: "person-with-contacts",
-      when: "The contact is a private entry with no Party (Ada's Northwind Ltd): refused before anything is written, naming how to give it one (banking.private-entries).",
+      when: `${when("contact.bank.add", "CLI_USAGE")} Also a private entry with no Party (Ada's Northwind Ltd), before anything is written (banking.private-entries).`,
     },
     { error: error_INVALID_INPUT, given: "person-with-contacts", when: when("contact.bank.add", "INVALID_INPUT") },
     { error: error_ROLE_PERMISSION_DENIED, given: "person-with-contacts", when: "You cannot write to that book: `--org acme` as Ada, who holds no Seat in Acme." },

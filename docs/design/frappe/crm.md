@@ -478,3 +478,20 @@ An adversarial review read the lane against Frappe's sources and changed these r
 - Moving a person's account to a new mailbox (only if C27 changes).
 - A sales permission apart from the People hat.
 - Linking a request or payment to the deal it closes.
+
+## After the assembly
+
+The assembly of the four Frappe lanes (`assembly-items.md`) settled these points. The records win
+where this page differs.
+
+- **New commands.** `rules.new-operations` now books operations beyond the 215, so question 3 above
+  and the frozen-check item under "For other lanes" are settled. The CRM's commands are booked in
+  the CLI operations pass on the pack's recommendation (`contacts.crm-capabilities`).
+- **Hat-wearers.** Contacts depends on indexing and reads the People hat's wearers.
+- **Start-up.** The CRM writes nothing when the setup begins (`contacts.startup`).
+- **The head.** A pulled edit runs as the member the head user's mailbox matches
+  (`organizations.head-ownership`). An agent owner of a lead or deal goes to the head as null
+  (`contacts.head-mapping`). The Custom Fields are in `organizations.frappe-app-fields`.
+- **Books.** Check C6 is answered by `book-facts.party_id` (`books.fact-read`).
+- **Banking.** A private entry has no bank accounts (`banking.private-entries`).
+- **The FDE.** The FDE is given the People hat by the founder (`agents.fde-people-hat`, for Aaron).

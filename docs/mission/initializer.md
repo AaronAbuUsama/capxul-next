@@ -132,7 +132,7 @@ template's copy.
   pnpm exec tsc -p packages/book && pnpm test          # the record system
   pnpm exec tsc -p books                                                # the target and frozen books typecheck
   node --experimental-strip-types packages/book/src/main.ts books/target/index.ts /tmp/target   # 0 problems
-  node --experimental-strip-types tools/check-frozen.ts           # 0 breaches: every behaviour kept
+  node --experimental-strip-types tools/check-frozen.ts           # 0 breaches: every behaviour kept, every new operation booked by a ruling
   ```
 
   - The build checks every link and rule, derives the gaps and every eval, and draws the diagrams.
@@ -141,6 +141,11 @@ template's copy.
     decision; a rewritten claim keeps the frozen claim first in its `was`. Every frozen refusal's
     behaviour is still refused: under its code where the target's error vocabulary keeps that code,
     otherwise a decision names it. A renamed command or title carries a decision.
+  - It also checks every operation beyond the 215 (`rules.new-operations`, CONVENTIONS rule 4a).
+    Each needs a decision other than the rule that cites an Aaron ruling, and at least one claim.
+    Its id must be its command's words joined by dots. Its id, export name and command must
+    collide with no other operation's, frozen or new. No two operations may share a command.
+    Its line `New: N operations beyond the 215, …` counts them and names the rulings they serve.
 - **Where code goes:** decision `system.layout`.
   - pnpm workspaces, one package per component, plus `packages/generate` and `packages/evals`.
   - In the backend and the SDK, `src/<concept>/` mirrors the book. Another concept is imported only
@@ -170,22 +175,24 @@ template's copy.
 
 | | |
 |---|---|
-| Records | 2,132 in the target book: 22 concepts, 215 operations, 13 journeys, 84 tables, 47 state machines, 81 durable processes, 223 rpcs, 143 Core SDK flows, 14 procedures and 627 decision records |
-| Derived evals | 4,752, including 720 acceptance claims, 724 refusals, 13 journeys and 13 funnels, 40 row-policy clauses and 73 wake routes |
+| Records | 2,637 in the target book: 23 concepts, 215 operations (none yet beyond them), 13 journeys, 118 tables, 61 state machines, 97 durable processes, 252 rpcs, 177 Core SDK flows, 18 procedures and 878 decision records |
+| Derived evals | 5,224, including 720 acceptance claims, 726 refusals, 13 journeys and 13 funnels, 41 row-policy clauses and 94 wake routes |
 | Problems | 0, with the target rules on |
-| Kept behaviour | `check-frozen` reports 0 breaches. All 215 operations are booked once each. Of the 733 acceptance claims, 547 are kept word for word, and 173 rewritten and 13 retired, each with a decision. Of the 705 old refusals, 691 are still refused under their code, and 14 are named by a decision. |
-| Gaps | 74, listed below, each known and owned |
+| Kept behaviour | `check-frozen` reports 0 breaches. All 215 operations are booked once each, and none beyond them yet. Of the 733 acceptance claims, 547 are kept word for word, and 173 rewritten and 13 retired, each with a decision. Of the 705 old refusals, 691 are still refused under their code, and 14 are named by a decision. |
+| Gaps | 83, listed below, each known and owned |
 
-The 74 gaps, and who closes them:
+The 83 gaps, and who closes them:
 
 | Gap | Count | What it is | Who closes it |
 |---|---|---|---|
 | `no-acceptance` | 35 | Pages that had no acceptance lines in the old book: 23 equity, 10 devnet, plus `dev.fund` and `waitlist.invites.grant` | Their returns, refusals and events are still evals. New lines are new claims, so they need Aaron (decisions `equity.acceptance`, `devnet.no-acceptance` and `accounts.no-acceptance`). |
 | `unconsumed-chain-event` | 14 | Chain events that only indexing's views read, or that nothing uses yet | You, when a process or view needs them. Otherwise leave them. |
-| `uncalled-function` | 13 | Hats Elections and the Installer's calls, which wait for the board's seat groups; `budgets.setHat`; `escrow-factory.predictAddress`; `governor.castVote`; the vesting grant calls | Board and equity (low priority) |
+| `uncalled-function` | 12 | Hats Elections and the Installer's calls, which wait for the board's seat groups; `budgets.setHat`; `governor.castVote`; the vesting grant calls | Board and equity (low priority) |
 | `refusal-without-world` | 8 | Refusals no devnet world can reach yet: `dev.fund` WRONG_ENVIRONMENT, `invite.list` and `org.invite.list` WRONG_STATE, `org.books.assets.list`, `address` and `balance` INVALID_INPUT, and `org.round.create` and `org.round.close` CONSENT_MISSING. Each is recorded by its concept. | Devnet, at B2, when it builds the worlds |
 | `unused-call` | 3 | PostHog capture and telemetry export (the outbox relay, `rules.outbox`), and `chain-rpc.getTransactionReceipt` | The runtime, at B3 |
-| `unwritten-table` | 1 | Devnet's `mail-messages`, which the mail sink writes, not the backend | Devnet |
+| `unwritten-table` | 4 | Devnet's `mail-messages`, which the mail sink writes, and `head-sites`, `head-documents` and `head-changes`, which the stand-in head writes (`devnet.head-stand-in`), not the backend | Devnet |
+| `undriven-transition` | 4 | `org-app.remove`, `org-app.want_again`, `org-head.connect` and `org-head.disconnect`: the app and head commands of the pack `organizations.commands` | The new commands' pass (`rules.new-operations`) |
+| `uninvoked-procedure` | 3 | `organizations.add-bought-seats` and `organizations.return-bought-seats`, which a seat purchase's settlement invokes (`organizations.buy-seats`), and `projects.bill-time`, which `timesheet bill` invokes (`requests.bill-time`) | The new commands' pass: payments books `org seats buy`, requests books `timesheet bill` |
 
 Open items outside the gaps, each with its owner:
 - **B0 spike:** prove wake routing by the waits' keys (`rules.process-wakeups`). 30 signal links (26 distinct
@@ -221,7 +228,7 @@ Each milestone ends with its exit check passing and its state committed. T0 come
 | B1 | **Generators** in `packages/generate`. First, book first, design each operation's CLI flags in the book: add the field to the operation schema with a decision record, then design the flags as one consistent system (names, short forms, shared flags such as `--org` and `--json`) and map each onto its flow's or rpc's input. `books/frozen/flags.ts` is reference only. Then generate, from the records: SQL migrations with tenant-first keys and row-level security (P8, with each table's declared exceptions); Effect Schema types; the `RpcGroup` and the server router stubs; the Core SDK client and flow skeletons; workflow skeletons with their waits and wake registrations; the CLI wiring from each operation's designed command and flags; the error catalogue (code, class, message, exit code); each machine's transition table; integration timeouts and retries; the telemetry catalogue (one `<machine>_transitioned` event per machine, plus runtime spans); the eval catalogue. The clock layer too (`docs/design/time.md` §6): `RequestTime` per rpc in the router, `StepTime` per step and `Timers.until` per timer wait in the workflow skeletons, the cron table rows, and `now` on every answer. Nobody edits generated files by hand. | `packages/generate` regenerates every `src/generated/` folder with no diff (`sys:generated`); `npx tsc -b` compiles every package; the migrations apply to an empty Postgres. |
 | B2 | **Eval harness** (`docs/spec/30-capxul-evals.md`), within 2,000 lines, started from the kit's `packages/evals`. Its worlds are devnet snapshots: the worlds the records name, built by the devnet concept's design. It drives the real CLI as the client, uses a local OTLP collector, and outputs `RunResult[]`. The eval devnet boots at the eval epoch with its clock frozen; the world builder warps and settles around each step, and the harness never sleeps for product time (`docs/design/time.md`). The old system is not a baseline: when an eval's intent is unclear, read the old code for the behaviour. | The catalogue runs end to end against the spine as it grows, and every eval id in `evals.json` has a runner or is listed as not yet runnable. |
 | B3 | **Spine and pilots.** The devnet: its time authority and the public `capxul.devnet/1` time protocol, grown from the kit's `dev-time/1` (`docs/design/time.md` §3: the supervisor is the only miner, running and frozen modes, the warp barrier, followers, an SDK client, and `capxul dev time` as a thin client), anvil with the v4 contracts, Postgres, Ponder, the backend, a mock bundler and paymaster, and the mail sink. The runtime: auth, SQL, chain and integration services, the workflow engine and tracing. Then the pilot operations end to end, copying the shape of the kit's ledger: sign in (access), set up an Account (accounts) and send a payment (payments), the operations the book marks critical. Delete the kit's ledger once the pilots pass. From the pilots' measured lines per operation, set each concept's line budget (`system.size`). | The pilots' evals pass within budget, and the line budgets are recorded. |
-| B4 | **Concepts on the critical path.** Each concept is done when its operations' evals pass at the integration head. Build them in dependency layers (decision `system.build-order`), each concept's door before anything that depends on it, and within each concept its critical operations first. The layers: access; media; parties; indexing; approvals; accounts; organizations; then board's proposals and door, books, documents, contacts and applications; budgets and agents; payments and payroll; banking and activity; requests; notices. Board's director and vote commands, and equity, come last. Make each operation's `doc:` eval pass on the portal, which exists from D0. | The scoreboard is green for every operation. |
+| B4 | **Concepts on the critical path.** Each concept is done when its operations' evals pass at the integration head. Build them in dependency layers (decision `system.build-order`), each concept's door before anything that depends on it, and within each concept its critical operations first. The layers: access; media; parties; indexing; approvals; accounts; organizations; then board's proposals and door, documents, contacts, applications and projects; budgets, agents and books; payments; payroll, banking and activity; requests; notices. Board's director and vote commands, and equity, come last. Make each operation's `doc:` eval pass on the portal, which exists from D0. | The scoreboard is green for every operation. |
 | B5 | **New staging.** Deploy, run the suite and watch the live evals for a week, with the drift watch on (`time.drift-watch`: chain lag and host skew alerts). | The live evals hold. Turning off the old staging is Aaron's step. |
 
 ## How to work

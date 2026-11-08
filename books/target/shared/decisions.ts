@@ -1939,7 +1939,7 @@ export const decision_dependencies_of_payments = dependencies(f.concept_payments
   parties: "the recipient is resolved to a Party and its Safe.",
   indexing: "PaymentSent, Transfers, escrow and Budgets events settle, reverse and birth Payments.",
   approvals: "a personal or budget payment is an approval from the payer's Safe.",
-  accounts: "whether the sender and recipient have claimed Safes decides a direct send or a claim escrow.",
+  accounts: "whether the sender and recipient have claimed Safes decides a direct send or a claim escrow, and money waiting in one admits its recipient through accounts.admit (accounts.money-waiting-admits).",
   organizations: "an `--org` payment's Organization and its company Safe.",
   board: "`--as-directors` payments and a company-owned claim escrow's refund are Board proposals.",
   budgets: "which budget pays, what it has left and who may spend from it.",
@@ -2708,8 +2708,9 @@ export const decision_system_build_order = defineDecision({
       label: "layers-then-priority",
       text:
         "By the concept map's layers, each concept's door (its tables, machines and procedures) before any concept that depends on " +
-        "it: access; media; parties; indexing; approvals; accounts; organizations; then board's proposals and door, books, " +
-        "documents, contacts and applications; budgets and agents; payments and payroll; banking and activity; requests; notices; " +
+        "it: access; media; parties; indexing; approvals; accounts; organizations; then board's proposals and door, " +
+        "documents, contacts, applications and projects; budgets, agents and books; payments; payroll, banking and activity; " +
+        "requests; notices; " +
         "devnet's own dev commands alongside the harness. Within a concept, critical operations first. Board's director and vote " +
         "operations and all of equity are built last, and a lane may build against their events before they exist.",
     },
@@ -2720,7 +2721,9 @@ export const decision_system_build_order = defineDecision({
     "Built in layers, every procedure a lane invokes already exists and is proven, so no lane builds against a stub that can " +
     "drift from the real door. Board shows why priority alone fails: its proposal machine and board.propose carry every Board " +
     "payment, budget and grant, so they are on the critical path even though its director and voting commands are not. Equity " +
-    "stays last because only notices depends on it, and only for its events.",
+    "stays last because only notices depends on it, and only for its events. Revised at the Frappe assembly: projects " +
+    "joins the eighth layer; books, which now reads projects, moves up to budgets and agents; payroll, which now pays " +
+    "through payments and posts its accrual through books, moves above payments, beside banking and activity.",
   source: `${HANDOFF}; evidence: the concept dependsOn graph of the built target book (14 layers, no cycle); the fact check of the goal prompt's earlier order`,
   affects: [f.system_capxul, f.concept_board, f.concept_equity, f.concept_notices],
 });

@@ -170,7 +170,7 @@ stable.
 
 - **Sections.** The top bar holds the six sections: Overview, Review, Design, Build, Operate and Docs
   (`portal.sitemap`). Review shows a count of what waits.
-- **The concept rail.** Design and record pages have a left rail of the 22 concepts in build-order layers, each with its
+- **The concept rail.** Design and record pages have a left rail of the 23 concepts in build-order layers, each with its
   operation count and its stand bar. On a narrow screen the rail folds into the Design index.
 - **Breadcrumbs.** Every record page has one: section, concept, kind.
 - **Search.** One static index covers commands, SDK methods, record ids and titles, error codes, decision ids and titles,

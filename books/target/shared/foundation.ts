@@ -476,7 +476,8 @@ export const concept_payments = defineConcept({
   about:
     "Money that moves: the Payment ledger of record. Owns payment commands (one request key, one command; born with their " +
     "Payments and documents, after funding is read), the route each Payment takes (a personal `Payments.send`, a budget " +
-    "spend, a Board batch, a claim escrow for an email with no account yet, a dated payment), settlement from the indexed " +
+    "spend, a Board batch, a claim escrow for an email with no account yet, which admits that mailbox to the beta " +
+    "through `accounts.admit`, a dated payment), settlement from the indexed " +
     "PaymentSent with every term checked (one path), reversal on a reorg, Payments born from chain facts Capxul did not " +
     "prepare (agreement collections, escrow payouts, Budgets.execute, equity purchases), and Movements (indexed Transfers " +
     "attributed to a Payment, or outside money). A dated payment and a command are each one durable process. A settlement " +

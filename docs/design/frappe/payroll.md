@@ -308,7 +308,11 @@ On the head, nothing is forked. The Capxul app adds:
     (legacy)", rounds half up above zero places.
   - Payroll Settings `include_holidays_in_total_working_days` is on, and `disable_rounded_total` is
     on.
-  - `email_salary_slip_to_employee` is off, because Capxul's notices send mail.
+  - `email_salary_slip_to_employee` is off, because Capxul's notices send mail (the payslip email is
+    `notices.payroll.payslip`, `notices.payslip`).
+  - `process_payroll_accounting_entry_based_on_employee` is on, so each net is credited to Payroll
+    Payable with party the Employee and meets that Employee's Bank Entry
+    (`payroll.employee-wise-accounting`, added at assembly).
 - **A Client Script** hides Payroll Entry's Submit Salary Slip and Make Bank Entry on a Capxul run.
   The accrual and the Bank Entries come from books.
 
@@ -718,3 +722,23 @@ An adversarial review against Frappe's sources and payments' machine changed the
   Supporting them is for when a customer needs Lending.
 - **Whether an Organization payee's collection is a Purchase Invoice or a Payment Entry alone.**
   That is books'.
+
+## After the assembly
+
+The assembly of the four Frappe lanes (`assembly-items.md`) changed these parts of this design. The
+records win where this page differs.
+
+- **The edges exist.** Payroll depends on payments and books (`dependencies.payments-payroll`,
+  `dependencies.books-payroll`), and `payroll/staged.ts` is registered, so "the staged half" above
+  is history.
+- **The accrual door is invoked.** `runs.submit` and `runs.cancel` invoke
+  `books.record-payroll-accrual`. A person's paid agreement collection also accrues through it
+  (`payroll.collection-accrual`). The lines arrive in the run's token and books sets the GL lines
+  in the Company's currency (`books.payroll-lines`).
+- **Start-up.** `payroll.startup.open` writes Payroll Settings when the setup begins, and no salary
+  components (`payroll.startup`).
+- **No escrow clearing account.** Nothing posts while a new hire's net waits in a claim escrow
+  (`books.escrow-held`).
+- **One Party field.** The Custom Field is `capxul_party` on Employee and `capxul_payee_party` on
+  Salary Component (`organizations.frappe-app-fields`).
+- **Timesheets.** Paying hours through a slip is deferred (`payroll.timesheet-pay`).

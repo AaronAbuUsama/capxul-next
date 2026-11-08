@@ -263,3 +263,25 @@ Buying seats (`aaron.buy-seats`) is left to the follow-up rulings pass, not this
   (`agents.fde-authority`).
 - **Requests and payroll.** A request or payslip for hours must be refused when a head already
   invoiced or paid them: the timesheet's own guards decide (`projects.billing-and-payslips`).
+
+## After the assembly
+
+The assembly of the four Frappe lanes (`assembly-items.md`) settled these points. The records win
+where this page differs.
+
+- **The map.** The map has 23 concepts, and `dependencies.of-projects` records projects' edges.
+  Books and requests depend on projects.
+- **Billing.** `projects.bill-time` marks the hours an Invoice bills. Requests books the command
+  (`requests.bill-time`, a pack for Aaron).
+- **Paying hours** through a slip is deferred (`payroll.timesheet-pay`).
+- **Customers.** A customer with no Party is kept by name (`projects.customer-name`).
+- **Start-up.** Books makes no chart when the setup begins (`books.startup`). Payroll writes its
+  Settings (`payroll.startup`). The CRM writes nothing (`contacts.startup`).
+- **The FDE.** The `-fde` and `fde-` handles are reserved per owner (`parties.fde-handles`). An agent
+  is never a Director (`board.no-agent-directors`). The founder grants the FDE the People hat
+  (`agents.fde-people-hat`).
+- **Notices.** A stalled head and a ready FDE each send a notice (`notices.head-and-fde`).
+- **Devnet.** Every Organization world is created with `--no-fde`, and there is an `org-with-fde`
+  world. A stand-in head lives in devnet's tables (`devnet.head-stand-in`), and its warp stops are
+  in `devnet.head-warp-stops`.
+- **Commands.** The commands pass books the new commands (`rules.new-operations`).

@@ -59,9 +59,9 @@ The prompts in `tools/workflows/` use the absolute paths `/home/user/capxul-next
 |---|---|---|
 | 1 | Schema for the accepted decisions; the old text of all 215 operations, and the old CLI's flags, as reference; conventions | done |
 | 2 | As-is book of the old system | closed: the reviewed payments lane (`docs/as-is/payments.md`, K1 to K18), `docs/mission/findings.md` and the lane reports are kept; the unfinished lanes are archived in `docs/as-is/archive/`, outside every typecheck |
-| 3 | Target architecture: concept map (22 concepts, no cycles), components, kept errors, integrations, v4 contracts, decisions | done: `books/target/shared/` and `docs/decisions/target-architecture.md` |
-| 4 | Target design of each concept | done: all 22 concepts, each with its decisions |
-| 5 | Target book assembled and built with the target rules | done: 2,132 records, 0 problems, 4,752 evals, 627 decisions; 13 journeys; the row-policy admissions and wait keys the generators need; `tools/check-frozen.ts` 0 breaches (every operation booked once, every behaviour kept); 74 known gaps, each owned (listed in the goal prompt) |
+| 3 | Target architecture: concept map (23 concepts, no cycles), components, kept errors, integrations, v4 contracts, decisions | done: `books/target/shared/` and `docs/decisions/target-architecture.md` |
+| 4 | Target design of each concept | done: all 23 concepts, each with its decisions (projects came with the Frappe redesign) |
+| 5 | Target book assembled and built with the target rules | done: 2,637 records, 0 problems, 5,224 evals, 878 decisions; 13 journeys; the row-policy admissions and wait keys the generators need; `tools/check-frozen.ts` 0 breaches (every operation booked once, every behaviour kept, none beyond the 215 yet); 83 known gaps, each owned (listed in the goal prompt) |
 | 6 | The goal prompt | done: `docs/mission/initializer.md` |
 | 7 | Design lanes for the build's own machinery | done: tooling (`docs/design/tooling.md`), the portal (`portal.md`), the swarm (`swarm.md`, `swarm-templates.md`, `.claude/agents/`, `.github/` templates, `tools/plan-tasks.ts` and `docs/mission/tasks.json`) and the one clock (`time.md`) |
 | 8 | Aaron's rulings of 8 November 2026 | recorded in `books/target/shared/rulings.ts` and applied: seats, contact permissions, money-waiting email and reminders, machine login, the portal generator, claim trust, budget payments to someone with no account, buying seats |
@@ -79,7 +79,7 @@ a timer, wake routing).
 pnpm exec tsc -p packages/book && pnpm test
 pnpm exec tsc -p books
 node --experimental-strip-types packages/book/src/main.ts books/target/index.ts /tmp/target   # 0 problems
-node --experimental-strip-types tools/check-frozen.ts                                           # 0 breaches: every behaviour kept
+node --experimental-strip-types tools/check-frozen.ts                                           # 0 breaches: every behaviour kept, every new operation booked by a ruling
 node --experimental-strip-types tools/report-judgments.ts > docs/decisions/judgments.md        # regenerate
 ```
 

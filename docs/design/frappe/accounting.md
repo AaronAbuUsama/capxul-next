@@ -608,3 +608,24 @@ changed the records where they were wrong:
 - Tax and withholding payees beyond what a bank payout carries.
 - Accounting dimensions beyond the cost centre and the project.
 - A Capxul month-end lock without a head. `closed_through` is ready for it.
+
+## After the assembly
+
+The assembly of the four Frappe lanes (`assembly-items.md`) settled these points. The records win
+where this page differs.
+
+- **Projects.** Books depends on projects, and an annotation's project is checked against it
+  (`books.annotation-project`).
+- **Start-up.** Books makes nothing when the setup begins. The chart comes from `org books
+  accounts import` in the first sitting (`books.startup`).
+- **Payroll.** The role accounts payroll defaults to are 2200 Payroll Payable and 5000 `salaries`
+  (`books.payroll-defaults`). One Bank Entry is posted per settled slip Payment, and a person's
+  collection posts through the accrual door (`books.payroll-postings`). The accrual's lines come in
+  the run's token, converted at the record (`books.payroll-lines`).
+- **Escrow.** No clearing account is used (`books.escrow-held`).
+- **Parties on lines.** A voucher line names a party only on an account ERPNext lets carry one
+  (`books.party-lines`).
+- **The head's set-up.** Before the first push, the Capxul app adopts Main and sets the defaults,
+  the Fiscal Years, the frozen Safe accounts and the immutable ledger (`books.head-setup`).
+- **The journey item is dropped.** `books.sync` pushes to the head, so no journey step follows
+  `books.sync.feed`.
