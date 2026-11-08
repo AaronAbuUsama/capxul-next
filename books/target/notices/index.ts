@@ -1,6 +1,5 @@
-// The notices concept's modules, for books/target/index.ts (the shape of shared/index.ts). kit.ts and
-// links.ts are not modules: kit.ts builds workflow records for the area files, links.ts re-exports
-// board's records by their conventional names.
+// The notices concept's modules, for books/target/index.ts (the shape of shared/index.ts). kit.ts is
+// not a module: it builds workflow records for the area files and defines none of its own.
 
 import * as data from "./data.ts";
 import * as procedures from "./procedures.ts";

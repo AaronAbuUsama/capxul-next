@@ -775,6 +775,253 @@ export const WORLDS: readonly World[] = [
     ],
     namedBy: ["requests"],
   },
+
+  // ── the Board (board) ──
+  {
+    name: "org-with-setup-awaiting-install",
+    holds: "An Organization with no deployment yet: the state of org-awaiting-founder, under board's name.",
+    from: "org-awaiting-founder",
+    steps: [],
+    sameAs: "org-awaiting-founder",
+    namedBy: ["board"],
+  },
+  {
+    name: "org-with-founder-board",
+    holds:
+      "org-with-member (Acme fresh from setup, Dana the one Director, 1 of 1, wearing the Shareholders' top hat; Sam set up; " +
+      "Olga outside and signed in) plus Pat, a member who has not finished signing up; Dana current.",
+    from: "org-with-member",
+    steps: [
+      signIn("pat@acme.test"),
+      step("dana@acme.test", "capxul org member invite pat@acme.test --org acme --json"),
+      step("pat@acme.test", "capxul invite accept <pat's invitation> (the invitation admits Pat; profile and Safe setup left unfinished)"),
+      current("dana@acme.test"),
+    ],
+    namedBy: ["board"],
+  },
+  {
+    name: "org-with-two-directors",
+    holds: "org-with-founder-board with Sam seated as the second Director, threshold 2 of 2.",
+    from: "org-with-founder-board",
+    steps: [
+      step("dana@acme.test", "capxul org board director add sam@acme.test --org acme --json"),
+      approve("dana@acme.test", "its Board proposal, as the one Director"),
+      step("sam@acme.test", "capxul org board claim --org acme"),
+      current("dana@acme.test"),
+    ],
+    namedBy: ["board"],
+  },
+  {
+    name: "org-with-board-change-waiting",
+    holds: "org-with-founder-board with Sam's seat as Director proposed and waiting for Dana's approval.",
+    from: "org-with-founder-board",
+    steps: [step("dana@acme.test", "capxul org board director add sam@acme.test --org acme --json (left unsigned)")],
+    namedBy: ["board"],
+  },
+  {
+    name: "org-with-waiting-proposals",
+    holds:
+      "org-with-two-directors plus two proposals waiting at consecutive nonces, one executed, one rejected, one replaced " +
+      "outside Capxul, a waiting rejection, Sam wearing the Books hat and a waiting Invoicing grant.",
+    from: "org-with-two-directors",
+    steps: [
+      ...board("dana@acme.test", "capxul org member grant sam@acme.test --permission manage-books --org acme").map((s, i) =>
+        i === 0 ? s : step(s.as, s.run.replace("dana@acme.test", i === 1 ? "dana@acme.test" : "sam@acme.test")),
+      ),
+      step("dana@acme.test", "capxul payment send olga@outside.test 10 --org acme --as-directors --json; approve as Dana, then reject as Sam"),
+      supervisor("capxul-devnet chain safe-exec --safe <acme's company Safe> --signers dana@acme.test,sam@acme.test: a transaction at the next nonce, outside Capxul"),
+      step("dana@acme.test", "capxul org member grant pat@acme.test --permission issue-invoices --org acme --json (waiting)"),
+      step("dana@acme.test", "capxul payment send olga@outside.test 20 --org acme --as-directors --json (waiting, the next nonce)"),
+      step("sam@acme.test", "capxul org proposal reject <the second waiting proposal> (Sam's rejection waits for Dana)"),
+    ],
+    namedBy: ["board"],
+  },
+  {
+    name: "org-with-lapsed-director",
+    holds: "org-with-two-directors with Sam's Director hat ruled out on chain while he is still an owner of the company Safe.",
+    from: "org-with-two-directors",
+    steps: [supervisor("capxul-devnet chain hats-status --hat <acme's Director hat> --wearer <sam's Safe> --eligible false, signed with Dana's dev signer, outside Capxul")],
+    namedBy: ["board"],
+  },
+  {
+    name: "org-with-board-handed-over",
+    holds: "org-with-founder-board with equity installed and the Shareholders' top hat handed to the Governor.",
+    from: "org-with-founder-board",
+    steps: [
+      step("dana@acme.test", "capxul org equity setup --org acme --confirm --json"),
+      approve("dana@acme.test", "its Board proposal"),
+      step("dana@acme.test", "capxul org board handover --org acme --json"),
+      approve("dana@acme.test", "its Board proposal"),
+    ],
+    namedBy: ["board"],
+  },
+  {
+    name: "org-with-proposals-gate-off",
+    holds: "org-with-founder-board with the `owner-safe-proposals` gate off for Acme.",
+    from: "org-with-founder-board",
+    steps: [step("dana@acme.test", "capxul dev gates set owner-safe-proposals off --org acme")],
+    namedBy: ["board"],
+  },
+
+  // ── agents ──
+  {
+    name: "person-with-agents",
+    holds:
+      "Dana (claimed Safe) owning @ledger (active, 312.50 USDC and 20.00 EURC), @spare (active, empty), @paused (frozen) and " +
+      "@gone (removed); Sam (claimed Safe) owning @scribe; Dana current.",
+    from: "person-ready",
+    steps: [
+      ready("sam@acme.test", "Sam Okafor"),
+      current("dana@acme.test"),
+      ...["Ledger", "Spare", "Paused", "Gone"].map((n) => step("dana@acme.test", `capxul agent create ${n} --key env; approve with \`dev approve --as dana@acme.test\``)),
+      step("dana@acme.test", "capxul agent freeze @paused; capxul agent remove @gone (each approved as Dana)"),
+      step("dana@acme.test", "capxul dev fund 400 --asset USDC; capxul dev fund 20 --asset EURC; pay @ledger 312.50 USDC and 20.00 EURC (approved)"),
+      step("sam@acme.test", "capxul agent create Scribe --key env; approve as Sam"),
+      current("dana@acme.test"),
+    ],
+    namedBy: ["agents"],
+  },
+  {
+    name: "person-with-waiting-agent-change",
+    holds: "person-with-agents with a freeze of @ledger and an unfreeze of @paused each waiting for Dana's approval, saved inside their windows.",
+    from: "person-with-agents",
+    steps: [step("dana@acme.test", "capxul agent freeze @ledger --no-wait; capxul agent unfreeze @paused --no-wait (both left unsigned)")],
+    namedBy: ["agents"],
+  },
+  {
+    name: "org-with-agent",
+    holds: "Acme with Directors Dana and Lee (threshold 1), the `owner-safe-proposals` gate on, Max a member who is no Director, and @acme-bot, which Acme owns.",
+    from: "org-ready",
+    steps: [
+      ready("lee@acme.test", "Lee Park"),
+      ready("max@acme.test", "Max Ito"),
+      step("dana@acme.test", "capxul org member invite lee@acme.test and max@acme.test --org acme; each accepts"),
+      step("dana@acme.test", "capxul org board director add lee@acme.test --org acme (approved as Dana); Lee claims; threshold stays 1"),
+      step("dana@acme.test", "capxul dev gates set owner-safe-proposals on --org acme"),
+      step("dana@acme.test", "capxul agent create AcmeBot --handle acme-bot --org acme --key env --json; approve its Board proposal as Dana"),
+      current("dana@acme.test"),
+    ],
+    namedBy: ["agents"],
+  },
+
+  // ── documents ──
+  {
+    name: "org-with-documents",
+    holds:
+      "Acme with Sam, who stored documents for it and was then removed, and Lee, who joined after; Olga, whom Acme paid with " +
+      "a note, and her Invoice to Acme; a salary agreement's terms; a receipt file on a Payment; a Movement's Memo from an " +
+      "outside Transfer to Olga; Max signed in as a stranger; Nia signed in with no Party of her own.",
+    from: "org-with-allowance",
+    steps: [
+      step("sam@acme.test", 'capxul payment send olga@outside.test 40 --org acme --from office --note "Design review" --json; approve as Sam'),
+      step("olga@outside.test", 'capxul request issue @acme 120 --reference "OLGA-INV-1" --confirm'),
+      ...board("dana@acme.test", "capxul org department create people --budget 20000/month --holder dana@acme.test --org acme").slice(0, 2),
+      step("dana@acme.test", "capxul org agreement offer olga@outside.test --department people --salary 3000/month --start <today>; approve"),
+      step("dana@acme.test", "capxul activity annotate <the payment to Olga> --receipt receipt.pdf --org acme"),
+      supervisor('capxul-devnet chain transfer 15 USDC to olga\'s Safe with Memo "Refund 0042" from an Anvil account'),
+      step("dana@acme.test", "capxul org member revoke sam@acme.test --org acme (Sam's Seat removed; approved)"),
+      ready("lee@acme.test", "Lee Park"),
+      step("dana@acme.test", "capxul org member invite lee@acme.test --org acme; Lee accepts"),
+      ready("max@acme.test", "Max Ito"),
+      signIn("nia@acme.test"),
+      current("dana@acme.test"),
+    ],
+    namedBy: ["documents"],
+  },
+  {
+    name: "org-with-tampered-note",
+    holds: "org-with-documents with the stored bytes of Sam's payment note altered after it was stored.",
+    from: "org-with-documents",
+    steps: [fault("documents tamper <the note's document hash> (rewrites its stored bytes, as corruption would)")],
+    namedBy: ["documents"],
+  },
+
+  // ── applications ──
+  {
+    name: "people-with-keys",
+    holds:
+      "Dana and Sam signed in; Dana holds an active key, a key in its grace window and a revoked key, two of them made in one " +
+      "millisecond; Sam one active key; one quickstart key on this machine; Dana current.",
+    from: "two-people-signed-in",
+    steps: [
+      supervisor("capxul-devnet clock hold (the backend clock stands still)"),
+      step("dana@acme.test", "capxul key create --name a; capxul key create --name b (one millisecond)"),
+      supervisor("capxul-devnet clock release"),
+      step("dana@acme.test", "capxul key rotate <a> (a enters its grace window); capxul key create --name c; capxul key revoke <c>"),
+      step("sam@acme.test", "capxul key create --name s"),
+      anyone("capxul dev key --origin http://localhost:5173"),
+      current("dana@acme.test"),
+    ],
+    namedBy: ["applications"],
+  },
+  {
+    name: "person-at-key-limit",
+    holds: "Dana signed in holding 20 active keys.",
+    from: "person-signed-in",
+    steps: [step("dana@acme.test", "capxul key create --name k1 … k20 (20 runs)")],
+    namedBy: ["applications"],
+  },
+  {
+    name: "org-with-keys",
+    holds: "Acme with one key; Ivy wears its Invoicing hat, Max is a member without it, Olu is outside it; all signed in here.",
+    from: "org-ready",
+    steps: [
+      ready("ivy@acme.test", "Ivy Moss"),
+      ready("max@acme.test", "Max Ito"),
+      ready("olu@outside.test", "Olu Ade"),
+      step("dana@acme.test", "capxul org member invite ivy@acme.test --permission issue-invoices --org acme; approve; Ivy accepts"),
+      step("dana@acme.test", "capxul org member invite max@acme.test --org acme; Max accepts"),
+      step("ivy@acme.test", "capxul key create --name acme-site --org acme"),
+    ],
+    namedBy: ["applications"],
+  },
+  {
+    name: "quickstart-quota-spent",
+    holds: "One local origin that minted 15 quickstart keys in the last hour.",
+    from: "empty-devnet",
+    steps: [anyone("capxul dev key --origin http://localhost:5173 (15 runs, each in a fresh project folder)")],
+    namedBy: ["applications"],
+  },
+
+  // ── activity ──
+  {
+    name: "person-with-activity",
+    holds:
+      "Dana signed in with a live Safe: Payments sent, received, to herself, settled, pending in and cancelled; outside money " +
+      "in and out in USDC, USDT and WETH; one annotated row.",
+    from: "person-with-funded-safe",
+    steps: [
+      step("dana@acme.test", "capxul payment send sam@acme.test 20 --json; approve as Dana (settled, sent)"),
+      step("sam@acme.test", "capxul dev fund 100; capxul payment send dana@acme.test 30 --json; approve as Sam (received)"),
+      step("dana@acme.test", "capxul payment send dana@acme.test 5 --json; approve (to herself)"),
+      step("sam@acme.test", "capxul payment send dana@acme.test 12 --json (left unsigned: pending in)"),
+      step("dana@acme.test", "capxul payment send sam@acme.test 8 --json; capxul payment cancel <it>"),
+      supervisor("capxul-devnet chain transfer 50 USDC, 40 USDT and 0.1 WETH from Anvil accounts to dana's Safe; and 10 USDC out of it, signed with her dev signer, outside Capxul"),
+      step("dana@acme.test", "capxul activity annotate <the payment to Sam> --memo \"Lunch\""),
+      current("dana@acme.test"),
+    ],
+    namedBy: ["activity"],
+  },
+  {
+    name: "person-with-long-payment-history",
+    holds: "Dana with 151 Payments, the oldest still waiting under 150 newer ones.",
+    from: "person-with-funded-safe",
+    steps: [
+      step("dana@acme.test", "capxul payment send sam@acme.test 1 --json (left unsigned, its window long: the oldest still waits)"),
+      step("dana@acme.test", "150 × capxul payment send sam@acme.test 1 --json, each approved as Dana"),
+    ],
+    namedBy: ["activity"],
+  },
+  {
+    name: "person-with-over-5000-changes",
+    holds: "person-with-activity with more than 5,000 changes after a cursor the eval prints first.",
+    from: "person-with-activity",
+    steps: [
+      step("dana@acme.test", "capxul activity events --json (the cursor the eval reads first is the one saved in the world's notes)"),
+      supervisor("capxul-devnet chain transfer 5,001 transfers of 0.01 USDC from Anvil accounts to dana's Safe, in batches"),
+    ],
+    namedBy: ["activity"],
+  },
 ];
 
 // ── the names devnet's own refusals use ─────────────────────────────────────────────────────

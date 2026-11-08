@@ -8,7 +8,7 @@ import { Schema } from "effect";
 import { budget, defineRpc } from "../../../packages/book/src/index.ts";
 import { concept_devnet } from "../shared/foundation.ts";
 import { error_INVALID_INPUT } from "../shared/vocabulary.ts";
-import { table_notice_deliveries } from "../notices/data.ts";
+import { table_notices } from "../notices/data.ts";
 import { table_mail_faults, table_mail_messages } from "./data.ts";
 
 const OP = "packages/backend/src/operator";
@@ -126,7 +126,7 @@ export const rpc_devnet_mail_list_notices = defineRpc({
   input: Schema.Struct({ to: Schema.optionalKey(S), template: Schema.optionalKey(S) }),
   output: Schema.Struct({ to: NullOr(S), template: NullOr(S), notices: Schema.Array(NoticeDelivery) }),
   errors: [error_INVALID_INPUT],
-  reads: [table_notice_deliveries],
+  reads: [table_notices],
   writes: [],
   drives: [],
   invokes: [],

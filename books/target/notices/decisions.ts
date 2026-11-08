@@ -27,7 +27,13 @@ import {
   workflow_notices_organizations_invitation_sent,
 } from "./organizations.ts";
 import { workflow_notices_budgets_office_changed } from "./budgets.ts";
-import { workflow_notices_board_director_seated, workflow_notices_board_proposal_waiting } from "./board.ts";
+import {
+  workflow_notices_board_director_removed,
+  workflow_notices_board_director_seated,
+  workflow_notices_board_officer_granted,
+  workflow_notices_board_proposal_waiting,
+  workflow_notices_board_threshold_changed,
+} from "./board.ts";
 import {
   workflow_notices_payments_cancelled,
   workflow_notices_payments_failed,
@@ -69,7 +75,10 @@ const OUTBOX = [
   workflow_notices_organizations_invitation_resent,
   workflow_notices_budgets_office_changed,
   workflow_notices_board_director_seated,
+  workflow_notices_board_director_removed,
+  workflow_notices_board_threshold_changed,
   workflow_notices_board_proposal_waiting,
+  workflow_notices_board_officer_granted,
   workflow_notices_payments_scheduled,
   workflow_notices_payments_short,
   workflow_notices_payments_failed,
@@ -92,6 +101,7 @@ const OUTBOX = [
 
 /** The workflows that tell an Organization through its Directors. */
 const TO_DIRECTORS = [
+  workflow_notices_board_threshold_changed,
   workflow_notices_board_proposal_waiting,
   workflow_notices_payments_scheduled,
   workflow_notices_payments_failed,
@@ -113,16 +123,18 @@ export const decision_notices_kinds = defineDecision({
   id: "notices.kinds",
   title: "Which notices the target sends",
   question:
-    "Old Capxul sent 45 kinds of email from a dozen notify actions. Notices owns no frozen operation, so no frozen text " +
+    "Old Capxul sent 44 kinds of email (the sign-in code among them) from a dozen notify actions. Notices owns no " +
+    "frozen operation, so no frozen text " +
     "lists them. Which does the target send?",
   options: [
     {
       label: "live-subjects",
       text:
-        "Every old notice whose subject lives on in the target, to its old audience and under its old template name, plus " +
-        "the ones the architecture and the designed concepts name; none for a subject the target dropped.",
+        "Every old notice whose subject lives on in the target, to its old audience and under its old template name " +
+        "unless that name no longer says what it is, plus the ones the architecture and the designed concepts name; none " +
+        "for a subject the target dropped.",
     },
-    { label: "port-all", text: "Port all 45, mapping each old event to the nearest target transition." },
+    { label: "port-all", text: "Port all 43 notices, mapping each old event to the nearest target transition." },
     { label: "claims-only", text: "Only the notices a frozen claim or note names (the allowance, the resume, the seat, the invite)." },
   ],
   chosen: "live-subjects",
@@ -131,14 +143,15 @@ export const decision_notices_kinds = defineDecision({
     "where no frozen line names it; claims-only would silently stop the invoice, payout and dated-payment emails. " +
     "Port-all would invent subjects for notices whose objects are gone. Kept, by source: the beta welcome and the " +
     "account-ready message (accounts), the invitation (organizations), the allowance and department-holder emails " +
-    "(budgets), Director seated and proposal waiting (board), the five dated-payment emails (payments), eleven " +
+    "(budgets), a Director seated or removed, the threshold changed, a proposal waiting and an officer hat granted " +
+    "(board; old owner-added, owner-removed, approvals-changed, approval-request and the three permission emails, " +
+    "renamed for v4's words), the five dated-payment emails (payments), eleven " +
     "agreement emails (payroll), person verification, verified and payout sent and delivered (banking), the Invoice " +
     "emails (requests). Added because a decision names them: a payout returned and an Invoice declined " +
     "(dependencies.of-notices), a round or SAFE invitation (equity's design). Dropped with their subjects: pay runs' " +
     "pay-run-approval and pay-run-payment, approval-pending (an approval's own signer is at the page; approvals' " +
     "decision on notify), beta-waitlist (accounts.admission-paths), invoice-part-received (requests.escrow-process) and " +
-    "payout-ceiling-alert (notices.agreements). Waiting for board's design: owner-removed, approvals-changed and the " +
-    "officer-hat emails (notices.board-links). The sign-in code stays access' (concepts.notices).",
+    "payout-ceiling-alert (notices.agreements). The sign-in code stays access' (concepts.notices).",
   source: by(`${OLD}/integrations/mail/service.ts:58 (MailTemplate); packages/protocol/src/templates/emails/; concepts.notices; dependencies.of-notices`),
   affects: [table_notices, ...OUTBOX, workflow_notices_payroll_daily],
 });
@@ -160,7 +173,7 @@ export const decision_notices_one_workflow_per_transition = defineDecision({
     "producer's rpcs, miss transitions its processes drive (`open` is the invitation process's, `finish` the setup's), " +
     "and make notices name rpcs of concepts that know nothing of it. Per-kind would leave transitions nobody follows " +
     "while the book claimed they were. So the kinds with several causes have one small workflow each, and the build " +
-    "links each to exactly the transition it follows. 27 outbox workflows, every one of them three to five steps.",
+    "links each to exactly the transition it follows: 30 outbox workflows, each of three to six steps.",
   source: by("packages/book/src/records/behaviour.ts (Trigger: one transition); P4; books/target/organizations/decisions.ts (organizations.invitation-process)"),
   affects: [
     workflow_notices_organizations_invitation_sent,
@@ -215,7 +228,7 @@ export const decision_notices_first_attempt = defineDecision({
   why:
     "`dev mail notices` shows each record 'sent, retrying or failed' (frozen about); a queued state would show a " +
     "fourth, and start a second workflow for every notice that is sent at once, nearly all of them. Retries in every " +
-    "outbox workflow would repeat the backoff and its guard 28 times and make each one wait minutes. Here a notice is " +
+    "outbox workflow would repeat the backoff and its guard in each and make each one wait minutes. Here a notice is " +
     "the long-lived object only when it is held, and then it has one process (A3) that owns its last two attempts. The " +
     "provider's idempotency key is the notice's, so an attempt repeated after a crash is taken once; the mail call " +
     "itself never retries (integrations.timeouts).",
@@ -339,11 +352,8 @@ export const decision_notices_chain_reads = defineDecision({
     concept_notices,
     integration_chain_rpc,
     workflow_notices_budgets_office_changed,
-    workflow_notices_payroll_write_landed,
-    workflow_notices_payroll_agreement_ended,
+    ...TO_DIRECTORS.filter((w) => w !== workflow_notices_payroll_daily),
     workflow_notices_payroll_daily,
-    workflow_notices_board_director_seated,
-    ...TO_DIRECTORS,
   ],
 });
 
@@ -575,31 +585,39 @@ export const decision_notices_round_invitation = defineDecision({
   affects: [workflow_notices_equity_round_invitation],
 });
 
-export const decision_notices_board_links = defineDecision({
-  id: "notices.board-links",
-  title: "Board's two notices follow its transitions by conventional names, pending",
+export const decision_notices_board = defineDecision({
+  id: "notices.board",
+  title: "Board's notices follow its changes, its proposals and its officer grants",
   question:
-    "Board is designed at the same time. The seat's email is a frozen note; the proposal's is the architecture's. How " +
-    "do notices follow transitions not yet written, and what of board's other old emails?",
+    "Board, designed beside notices, sends no mail and says notices follows its events. Which of its transitions " +
+    "send, and to whom?",
   options: [
     {
-      label: "pending-links",
+      label: "board-transitions",
       text:
-        "links.ts takes board's records by conventional export names (`machine_board_seat.t.seat`, " +
-        "`machine_proposal.t.propose`, `table_board_seats`, `table_proposals`), bare ids until they exist; the other " +
-        "board emails wait for board to name their transitions.",
+        "A seat (`seat`) to the member, a removal (`remove`) to the Director, a threshold (`set_threshold`) and a " +
+        "proposal born (`propose`) to the Directors, an officer grant applied (`apply`, grant) to the member.",
     },
-    { label: "chain-events", text: "Follow the Safe's AddedOwner and the proposal's chain events instead." },
+    { label: "chain-events", text: "Follow the Safe's AddedOwner, RemovedOwner and ChangedThreshold through Ponder instead." },
   ],
-  chosen: "pending-links",
+  chosen: "board-transitions",
   why:
-    "The frozen text says board posts `board_seat_transitioned` when a seat lands and Capxul 'emails the member once " +
-    "they are seated'; following the chain event would bypass board's own decision of when a seat counts and need " +
-    "indexing, which notices does not depend on. The proposal's waiting email moved off approvals (approvals' notify " +
-    "decision) to the opener that knows who waits: board. Director removed, threshold changed and officer hat granted " +
-    "(old owner-removed, approvals-changed, the seat-permission emails) are added when board's design names them.",
-  source: by(`org.board.director.add.yaml (note 1, acceptance 5); ${OLD}/organizations/proposals/rules/notices.ts:1; books/target/approvals/decisions.ts`),
-  affects: [workflow_notices_board_director_seated, workflow_notices_board_proposal_waiting],
+    "The frozen note says Capxul 'emails the member once they are seated', and board decides when a change counts: on " +
+    "its approval's landing with the effect in its facts. Chain events would bypass that and need indexing, which " +
+    "notices does not depend on. The waiting email moved off approvals (approvals' decision on notify) to the opener " +
+    "that knows who waits, which for a Board proposal is board. The removal, threshold and officer emails are old " +
+    "owner-removed, approvals-changed and the permission emails, whose subjects live on as board's changes. A claim " +
+    "and a lapsed refresh are the claimer's own act or a hat already gone, and a revoke sent nothing before; they " +
+    "send nothing. The change rows carry the member's email as planned, so a seat reaches them even before they have " +
+    "a principal at that Safe.",
+  source: by(`org.board.director.add.yaml (note 1); books/target/board/data.ts (event abouts); ${OLD}/organizations/proposals/rules/notices.ts:1`),
+  affects: [
+    workflow_notices_board_director_seated,
+    workflow_notices_board_director_removed,
+    workflow_notices_board_threshold_changed,
+    workflow_notices_board_proposal_waiting,
+    workflow_notices_board_officer_granted,
+  ],
 });
 
 // ── what notices is not ─────────────────────────────────────────────────────────────────────

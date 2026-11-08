@@ -254,7 +254,7 @@ export const machine_equity_install = defineMachine({
     propose: {
       from: ["deploying"],
       to: "proposed",
-      about: "EquityDeployed for the company Safe is indexed at finality; the process opens the batch through board.propose.",
+      about: "EquityDeployed is indexed at finality; the process opens the batch (board.propose) with each founder's grant born proposed.",
       emits: EI,
     },
     install: {
@@ -699,7 +699,7 @@ export const table_equity_grants = defineTable({
   id: "equity-grants",
   title: "Equity grants: option grants and founders' vesting grants",
   about:
-    "An option grant the Board proposed from the pool (`og_`), or a founder's vesting grant the install issued (`vg_`). " +
+    "An option grant the Board proposed from the pool (`og_`), or a founder's vesting grant the install's batch issues (`vg_`). " +
     "It keeps the grantee by Party, mailbox and Safe, the class, the shares, an option's strike token and price, the " +
     "vesting in calendar months with its dates, when the offer lapses (30 days on), the expiry (ten years after the " +
     "start), the exercise window after leaving, the agreement stored with it (`documents.store`) and the hash the grantee " +
@@ -767,7 +767,7 @@ export const table_equity_grants = defineTable({
 export const event_equity_grant_transitioned = defineEvent({
   id: "equity_grant_transitioned",
   about:
-    "A grant was proposed, offered on chain, recorded at the install, accepted, ended, lapsed or abandoned. Keeps the old " +
+    "A grant was proposed, offered on chain, vested at the install, accepted, ended, lapsed or abandoned. Keeps the old " +
     "catalog's name.",
   props: Schema.Struct({
     from: Null(S),
@@ -790,14 +790,15 @@ export const machine_equity_grant = defineMachine({
   about:
     "An option grant is born `proposed` with its Board proposal and offered when that write lands with OptionsGranted; " +
     "the grantee's acceptance makes it active, the Board's end ends it (vested options stay exercisable for the window), " +
-    "and its offer lapses unaccepted at offer_expires_at. A founder's vesting grant is born `active` by the install. " +
+    "and its offer lapses unaccepted at offer_expires_at. A founder's vesting grant is born `proposed` with the install's " +
+    "batch, which carries its `Vesting.grantAndIssue`, and is active once that batch lands. " +
     "Exercises are writes on an active or ended grant and move no status.",
   was: [`${OLD}/equity/writes/landed.ts:30`, `${OLD}/equity/rules/grants.ts`],
   table: table_equity_grants,
   field: "status",
   initial: "proposed",
   states: [
-    { id: "proposed", about: "The Board's grant waits for the Directors." },
+    { id: "proposed", about: "The Board's grant, or the install batch carrying a founder's grant, waits for the Directors." },
     { id: "offered", about: "On chain: the grantee accepts the exact terms before the offer lapses." },
     { id: "active", about: "Accepted (or a founder's, issued at the install): vesting runs from the start date." },
     { id: "ended", about: "Ended from its last day: unvested returned to the pool; vested exercisable until exercise_by.", terminal: true },
@@ -806,7 +807,12 @@ export const machine_equity_grant = defineMachine({
   ],
   transitions: {
     propose: { from: [], to: "proposed", about: "Born by equity.grants.propose with its write and agreement.", emits: EG },
-    record: { from: [], to: "active", about: "A founder's vesting grant, born by the install's process when the install batch lands.", emits: EG },
+    vest: {
+      from: ["proposed"],
+      to: "active",
+      about: "A founder's vesting grant: its write in the install batch landed with Vesting's Granted for it; records the uint256 id.",
+      emits: EG,
+    },
     offer: { from: ["proposed"], to: "offered", about: "The grant write landed with OptionsGranted carrying the agreement's hash; records the uint256 id.", emits: EG },
     accept: { from: ["offered"], to: "active", about: "The grantee's accept write landed with OptionsAccepted.", emits: EG },
     end: {

@@ -84,7 +84,7 @@ export const decision_devnet_no_machines = defineDecision({
 
 export const decision_devnet_mail_sink = defineDecision({
   id: "devnet.mail-sink",
-  title: "The mail fake keeps the sink and spends the faults; a refused send fails as an unavailable Resend",
+  title: "The mail fake keeps the sink and spends the faults",
   question: "Who writes the mail sink and the fail switch, and what does an armed fault look like to the sender?",
   options: [
     {
@@ -119,8 +119,8 @@ export const decision_devnet_notices_read = defineDecision({
   why:
     "Devnet depends on notices (dependencies.of-devnet), so a read needs nothing more, and a copy would be a second store " +
     "of one answer. The filters by recipient and template run inside the query, so a filtered list never misses older " +
-    "records, as the old 200-then-filter did. The table is imported as `table_notice_deliveries` from notices' data.ts, " +
-    "which the notices designer has not written yet; the fields printed (state, attempts, last error) are the frozen ones.",
+    "records, as the old 200-then-filter did. The table is notices' `notices`, its mailbox-tenanted delivery records, which notices gave " +
+    "cross-tenant indexes for this read; the fields printed (state, attempts, last error) are the frozen ones.",
   source: by("operations.dev-mail-notices-in-devnet; books/as-is/operator/notices.ts:63-91"),
   affects: [rpc_devnet_mail_list_notices, ops.operation_dev_mail_notices],
 });
@@ -153,7 +153,7 @@ export const decision_devnet_devnet_only_rpcs = defineDecision({
 
 export const decision_devnet_scripted_gates = defineDecision({
   id: "devnet.scripted-gates",
-  title: "Gates are scripted per Organization and reach access through the PostHog fake and one sync",
+  title: "Gates are scripted per Organization and reach access through one sync",
   question: "How does `dev gates set` change a gate without a second production path, and report the value that applies now?",
   options: [
     {
@@ -178,7 +178,7 @@ export const decision_devnet_scripted_gates = defineDecision({
 
 export const decision_devnet_scripted_prices = defineDecision({
   id: "devnet.scripted-prices",
-  title: "Scripted rates feed the Chainlink fake, dated when they take effect; defaults are the frozen ones",
+  title: "Scripted rates feed the Chainlink fake, dated when they take effect",
   question: "How does a scripted rate reach the books' one price writer, and what does a pair read before any script?",
   options: [
     {
@@ -202,7 +202,7 @@ export const decision_devnet_scripted_prices = defineDecision({
 
 export const decision_devnet_jobs = defineDecision({
   id: "devnet.jobs",
-  title: "`dev jobs run` runs P3's crons once and wakes the due timers, through the workflow engine",
+  title: "`dev jobs run` runs P3's crons once and wakes the due timers",
   question: "What are the backend's jobs in the target, and how does a devnet run them now?",
   options: [
     {
@@ -227,7 +227,7 @@ export const decision_devnet_jobs = defineDecision({
 
 export const decision_devnet_supervisor_owns_time_and_worlds = defineDecision({
   id: "devnet.supervisor-owns-time-and-worlds",
-  title: "The clocks and the saved worlds are the supervisor's, reached only through devnet-control",
+  title: "The clocks and the saved worlds are the supervisor's",
   question: "Old warps set an env var through the deployment's admin API and imported data with the Convex CLI. Who owns the clocks and the worlds now?",
   options: [
     {
@@ -296,7 +296,7 @@ export const decision_devnet_supervisor_steps = defineDecision({
 
 export const decision_devnet_approve_as = defineDecision({
   id: "devnet.approve-as",
-  title: "`dev approve` signs in by the mail sink's code and signs with the person's dev signer",
+  title: "`dev approve` signs in by the sink's code and signs with a dev signer",
   question: "The old command signed in with a fixed e2e code and a shared seed. How does the target play another person?",
   options: [
     {
@@ -409,7 +409,7 @@ export const decision_devnet_budgets = defineDecision({
 
 export const decision_devnet_worlds = defineDecision({
   id: "devnet.worlds",
-  title: "One catalog of eval worlds, each built by a script of black-box steps from empty or another world",
+  title: "One catalog of eval worlds, each built by a script of black-box steps",
   question: "The designed concepts' refusals name 66 worlds. How is each built and saved, and where is that written?",
   options: [
     {
@@ -459,7 +459,7 @@ export const decision_devnet_world_aliases = defineDecision({
 
 export const decision_devnet_world_collisions = defineDecision({
   id: "devnet.world-collisions",
-  title: "One `org-with-frozen-ceiling`, and the Organization money worlds share budgets' tree",
+  title: "One `org-with-frozen-ceiling`; the Organization money worlds share one tree",
   question: "Budgets and payroll each named `org-with-frozen-ceiling` for a different state, and payments, payroll and requests each invented an Organization with budgets. One name, one snapshot: which?",
   options: [
     {
@@ -511,7 +511,7 @@ export const decision_devnet_fault_switches = defineDecision({
 
 export const decision_devnet_own_refusal_worlds = defineDecision({
   id: "devnet.own-refusal-worlds",
-  title: "Devnet's own refusals reuse catalogued worlds; two need one step after the restore",
+  title: "Devnet's own refusals reuse catalogued worlds",
   question: "Which worlds do devnet's refusals start from, and does devnet introduce any?",
   options: [
     {

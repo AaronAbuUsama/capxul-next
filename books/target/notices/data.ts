@@ -46,7 +46,10 @@ export const TEMPLATES = [
   "department-holder-removed",
   // board
   "director-seated",
+  "director-removed",
+  "threshold-changed",
   "proposal-waiting",
+  "officer-hat-granted",
   // payments: dated payments
   "payment-scheduled",
   "payment-scheduled-short",
@@ -88,8 +91,9 @@ export const SUBJECTS = [
   "personal-safe",
   "invitation",
   "budget-change",
-  "board-seat",
+  "board-change",
   "proposal",
+  "officer-change",
   "payment",
   "agreement",
   "agreement-write",

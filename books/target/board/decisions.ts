@@ -111,7 +111,7 @@ export const decision_board_failed_proposal = defineDecision({
 
 export const decision_board_propose_procedure = defineDecision({
   id: "board.propose-procedure",
-  title: "`board.propose` takes the opener's calls; board picks the nonce, hashes it and opens the first approval",
+  title: "`board.propose` takes the calls; board picks the nonce, opens the first approval",
   question: "What does the one procedure for a Board proposal take from its opener, and what does board decide?",
   options: [
     {
@@ -243,7 +243,7 @@ export const decision_board_reject_dated_payments = defineDecision({
 
 export const decision_board_changes = defineDecision({
   id: "board.changes",
-  title: "Board changes from a person's own Safe: one table, one process each, one under way at a time",
+  title: "Board changes from a person's own Safe: one process each, one at a time",
   question:
     "Seats, removals, the threshold, the handover, a claim and a refresh are approvals from one person's Safe, never " +
     "proposals. How are they kept, and may two run at once?",
@@ -329,7 +329,7 @@ export const decision_board_claim_seat = defineDecision({
 
 export const decision_board_live_board_reads = defineDecision({
   id: "board.live-board-reads",
-  title: "`org board show` and `org director list` read the Board live; proposal reads read tables",
+  title: "The Board reads ask the chain live; proposal reads read tables",
   question: "The Board reads say 'as the chain answers it now'; the proposal reads were settled from the chain on every read. What reads live?",
   options: [
     { label: "split", text: "Owners, threshold and each owner's `isValidSigner` live from the chain; proposals from board's tables and indexing's approvals." },
@@ -393,7 +393,7 @@ export const decision_board_withdraw_on_settle = defineDecision({
 
 export const decision_board_director_commands = defineDecision({
   id: "board.director-commands",
-  title: "The four `org director` writes refuse WRONG_STATE at once; their pre-v4 lines retire",
+  title: "The four `org director` writes refuse WRONG_STATE; pre-v4 lines retire",
   question:
     "`org director add`, `remove`, `replace` and `threshold` propose the company Safe's own owner calls, which the v4 " +
     "Signer Gate refuses (`CannotCallSafe`); every target Organization is v4 (P9). The designed text moves them to `org " +
