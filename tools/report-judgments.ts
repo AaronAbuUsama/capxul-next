@@ -3,7 +3,7 @@
 // Generated from the records, so it never disagrees with the book.
 
 import { records } from "../books/target/index.ts";
-import { ACCEPTED, REOPENED, SUPERSEDED } from "../books/target/shared/rulings.ts";
+import { ACCEPTED, CARRIES_OUT as CARRIES_OUT_RULINGS, REOPENED, SUPERSEDED } from "../books/target/shared/rulings.ts";
 
 type Decision = {
   _kind: "decision"; id: string; title: string; question: string; chosen: string; why: string; source: string;
@@ -32,7 +32,7 @@ const FLAGGED = [
 ];
 /** Decisions that carry out one of Aaron's own; they cite him but need nothing from him.
  * rules.new-operations is not one: whether a pack's recommendation may book a command before he answers is his. */
-const CARRIES_OUT = ["rules.frozen-flags-kept", "rules.frozen-flags-built-ins"];
+const CARRIES_OUT = ["rules.frozen-flags-kept", "rules.frozen-flags-built-ins", ...CARRIES_OUT_RULINGS];
 /** Aaron's own decisions are settled, not for his review. */
 const byAaron = (d: Decision) => /^Aaron\b/.test(d.source);
 const forAaron = (d: Decision) =>

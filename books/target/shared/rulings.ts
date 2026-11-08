@@ -282,7 +282,7 @@ export const decision_aaron_frappe_head = defineDecision({
 // ── Aaron's fifth batch (8 November 2026): "Yes to all questions" ─────────────────────────────
 
 /** Judgments accepted in the fifth batch; merged into ACCEPTED below. */
-const ACCEPTED_5: readonly string[] = ["organizations.agent-cover", "payments.claim-escrow-fit"];
+const ACCEPTED_5: readonly string[] = ["organizations.agent-cover"]; // payments.claim-escrow-fit: superseded in the sixth batch
 (ACCEPTED as string[]).push(...ACCEPTED_5);
 
 export const decision_aaron_claim_trust = defineDecision({
@@ -369,4 +369,125 @@ export const decision_aaron_buy_seats = defineDecision({
 Object.assign(SUPERSEDED as Record<string, string>, {
   "payments.claim-escrow-routes": "aaron.budget-pay-unclaimed",
   "organizations.seat-limit": "aaron.buy-seats",
+});
+
+// ── Aaron's sixth batch (8 November 2026): departments, the general escrow, the hosted FDE, test prices ────────
+// He answered the 32 questions in docs/decisions/open-for-aaron.md: "I agree with the ones I didn't mention."
+
+const AARON_6 = "Aaron, 8 November 2026, in the build-preparation conversation (sixth batch)";
+
+export const decision_aaron_escrow_general = defineDecision({
+  id: "aaron.escrow-general",
+  title: "One general escrow: the recipient's future account claims; the sender reclaims",
+  question: "How must the claim escrow work, and what changes: the escrow or Budgets?",
+  options: [
+    {
+      label: "general-escrow",
+      text:
+        "The escrow is deployed counterfactually. Its owner is the recipient's account address before that account exists, " +
+        "and the owner may claim the money whenever they want. As an escape hatch the sender may always take the money " +
+        "back until it is claimed. It is a general-purpose escrow, used for other things too, and keeps these properties. " +
+        "The escrow contract changes; Budgets does not.",
+    },
+    { label: "budgets-change", text: "Add claim-escrow functions to Budgets.sol (the money group's design)." },
+  ],
+  chosen: "general-escrow",
+  why:
+    "Aaron, 8 November 2026: 'You're supposed to be able to deploy a contract counterfactually, which is the escrow " +
+    "contract. The owner of that escrow contract is the address of the undeployed owner. They can claim that money " +
+    "whenever they want to. As an escape hatch, the sender can always claim the money back until the claimer has. This is " +
+    "a generalizable escrow, because we're also going to use it for other things, but it needs those properties. We don't " +
+    "need to change the budgets. We need to change the escrow.'",
+  source: AARON_6,
+  affects: [f.concept_payments, f.concept_budgets],
+});
+
+export const decision_aaron_departments = defineDecision({
+  id: "aaron.departments",
+  title: "Budgets belong to departments; people are swapped in and out by hat",
+  question: "Who holds authority over a budget's money: a person, or the department the budget belongs to?",
+  options: [
+    {
+      label: "departments",
+      text:
+        "A budget belongs to a department, as v4 has it: a budget in the company Safe's tree with its own hat, where " +
+        "Budgets.authorised admits the Safe and whoever wears the budget's hat or an ancestor's. People are swapped in and " +
+        "out of a department by its hat, so every action on its money is the department's, taken by whoever wears the hat " +
+        "at the time. The book's authority statements follow the v4 contracts.",
+    },
+    { label: "people", text: "Authority over a budget's money follows the person who holds or spent it." },
+  ],
+  chosen: "departments",
+  why:
+    "Aaron, 8 November 2026: 'There's a concept of departments. Look at the v4 contract properly. There seems to be a " +
+    "misunderstanding with who can do what. The whole purpose of the departments is that budgets belong to departments, " +
+    "and you can swap people in and out of departments.'",
+  source: AARON_6,
+  affects: [f.concept_budgets, f.concept_payments, f.concept_organizations],
+});
+
+export const decision_aaron_fde_hosted = defineDecision({
+  id: "aaron.fde-hosted",
+  title: "Capxul hosts each Organization's FDE as a durable agent; they pay for hosting",
+  question: "Where does an Organization's Forward Deployed Engineer run, and who holds its key?",
+  options: [
+    {
+      label: "hosted",
+      text:
+        "Not on the founder's machine: the FDE is a durable agent on a durable runtime with sandboxes, which Capxul runs " +
+        "for the Organization; the Organization pays Capxul for hosting it.",
+    },
+    { label: "founder-machine", text: "Created in the founder's install, its key made on the founder's machine." },
+  ],
+  chosen: "hosted",
+  why:
+    "Aaron, 8 November 2026: 'The FDE is not hosted on their machine. It's hosted on a durable agent that's hosted on a " +
+    "durable runtime with sandboxes. That's how it works. And we handle that for the users. They pay us for hosting it.'",
+  source: AARON_6,
+  affects: [f.concept_organizations, f.concept_agents],
+});
+
+export const decision_aaron_test_prices = defineDecision({
+  id: "aaron.test-prices",
+  title: "Test prices: a seat 10 USDC once; the hosted FDE 20 USDC a month",
+  question: "What do an extra seat and a hosted FDE cost?",
+  options: [
+    {
+      label: "made-up",
+      text:
+        "Made-up prices on the test USDC, both deployment settings changed freely: SEAT_PRICE 10 USDC per seat, paid once; " +
+        "FDE_HOSTING_PRICE 20 USDC a month per Organization.",
+    },
+    { label: "unset", text: "Leave both unset, so buying is refused until Aaron sets them." },
+  ],
+  chosen: "made-up",
+  why: "Aaron, 8 November 2026: 'Pricing and all that kind of stuff, you can just make it up. It doesn't matter. It's fake money. It's fake USDC.'",
+  source: AARON_6,
+  affects: [f.concept_organizations, f.concept_payments],
+});
+
+/** The recommendations put to Aaron on 8 November 2026 that he accepted ("I agree with the ones I didn't mention"). */
+const ACCEPTED_6: readonly string[] = [
+  "environments.staging", "rules.global-tenancy", "rules.new-operations", "system.size", "tooling.branch-protection",
+  "swarm.accounts", "parties.mailbox-for-life", "parties.outside-companies", "organizations.apps-native-or-head",
+  "organizations.buy-seats", "organizations.commands", "organizations.head-ownership", "board.dropped",
+  "board.failed-proposal", "board.no-agent-directors", "agents.fde-authority", "agents.fde-people-hat",
+  "projects.commands", "projects.permissions", "books.head-vouchers", "books.capxul-assets", "contacts.crm-capabilities",
+  "payroll.hr-surface", "payments.birth-width", "payroll.one-computer-per-run",
+];
+(ACCEPTED as string[]).push(...ACCEPTED_6);
+
+/** Decisions that carry out one of Aaron's rulings: they cite him, but ask him nothing. */
+export const CARRIES_OUT: readonly string[] = [
+  "concepts.map", "accounts.door", "accounts.worlds", "projects.bill-time", "books.payroll-accrual", "books.sync",
+  "notices.money-waiting-reminders", "devnet.fde-worlds", "devnet.head-stand-in", "devnet.money-waiting-world",
+];
+
+// The sixth batch supersedes these; the commands-and-escrow pass rewrites them, book first.
+Object.assign(SUPERSEDED as Record<string, string>, {
+  "concepts.payroll": "aaron.frappe-shape",
+  "payments.claim-escrow-routes": "aaron.escrow-general",
+  "budgets.claim-escrows": "aaron.escrow-general",
+  "payments.claim-escrow-fit": "aaron.escrow-general",
+  "organizations.fde-at-start-up": "aaron.fde-hosted",
 });

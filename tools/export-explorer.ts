@@ -7,7 +7,7 @@ import { writeFileSync } from "node:fs";
 import { name, records, stage } from "../books/target/index.ts";
 import { CONCEPTS } from "../books/target/shared/foundation.ts";
 import { recordsOf } from "../books/target/shared/index.ts";
-import { ACCEPTED, REOPENED, SUPERSEDED } from "../books/target/shared/rulings.ts";
+import { ACCEPTED, CARRIES_OUT as CARRIES_OUT_RULINGS, REOPENED, SUPERSEDED } from "../books/target/shared/rulings.ts";
 import { buildBook, keyOf, type AnyRecord } from "../packages/book/src/index.ts";
 
 const [out = "explorer.json", stamp = ""] = process.argv.slice(2);
@@ -29,7 +29,7 @@ const FLAGGED = [
   "payroll.scope", "payments.birth-width", "parties.directory-tenancy", "procedures.accounts-admit",
   "agents.org-owned", "board.failed-proposal", "equity.acceptance", "contacts.members-write", "notices.claim-escrow", "system.size",
 ];
-const CARRIES_OUT = ["rules.frozen-flags-kept", "rules.frozen-flags-built-ins", "rules.new-operations"];
+const CARRIES_OUT = ["rules.frozen-flags-kept", "rules.frozen-flags-built-ins", ...CARRIES_OUT_RULINGS];
 const PACKS = ["projects.commands", "organizations.commands", "contacts.crm-capabilities", "payroll.hr-surface"];
 const byAaron = (d: AnyRecord) => /^Aaron\b/.test(String(d.source ?? ""));
 const forAaron = (d: AnyRecord) =>
