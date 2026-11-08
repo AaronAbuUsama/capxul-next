@@ -55,13 +55,13 @@ const onV4 = (id: FrozenId, n: number, observes: string): Claim => {
   const line = frozenLine(id, n);
   const rest = line.claim.replace(/^On (?:Protocol v4|a v4|v4),? /, "");
   if (rest === line.claim) throw new Error(`${id} line ${n} does not open with "On v4"`);
-  return { claim: rest.charAt(0).toUpperCase() + rest.slice(1), observes, was: [`frozen: ${line.claim}`, ...line.was] };
+  return { claim: rest.charAt(0).toUpperCase() + rest.slice(1), observes, was: [line.claim, ...line.was] };
 };
 
 /** P1: a claim that named an internal mechanism, rewritten as an outcome (payroll.acceptance). */
 const rewritten = (id: FrozenId, n: number, claim: string, observes: string): Claim => {
   const line = frozenLine(id, n);
-  return { claim, observes, was: [`frozen: ${line.claim}`, ...line.was] };
+  return { claim, observes, was: [line.claim, ...line.was] };
 };
 
 /** The frozen refusal text for a code, so `when` is never retyped. */
