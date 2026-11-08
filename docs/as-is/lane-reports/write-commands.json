@@ -1,0 +1,320 @@
+{
+  "run": "wf_1da00197-4a2",
+  "label": "v2:5f545517d69fcce78aa6fbecde34bd7b29c35c702f961a5a2cfb560a781906bc",
+  "result": {
+    "file": "/home/user/capxul-next/books/as-is/payments/commands.ts",
+    "records": 19,
+    "exports": [
+      "rpc_payments_commands_prepare",
+      "rpc_payments_commands_prepare_organization",
+      "rpc_payments_commands_prepare_request",
+      "rpc_payments_commands_prepare_offer_checkout",
+      "rpc_payments_commands_prepare_invoice_checkout",
+      "rpc_payments_commands_prepare_intent",
+      "rpc_payments_commands_prepare_organization_intent",
+      "rpc_payments_commands_prepare_owners_intent",
+      "rpc_payments_commands_prepare_request_intent",
+      "rpc_payments_commands_prepare_offer_checkout_intent",
+      "rpc_payments_commands_prepare_invoice_checkout_intent",
+      "rpc_payments_commands_prepare_request_checkout_intent",
+      "rpc_payments_commands_claim_initiated",
+      "rpc_payments_commands_fail_prepared",
+      "rpc_payments_commands_link_observation",
+      "rpc_payments_commands_load_birth_funding",
+      "rpc_payments_commands_load_budget_allowance",
+      "rpc_payments_commands_load_context",
+      "rpc_payments_commands_load_execution_context"
+    ],
+    "missing": [
+      {
+        "export": "procedure_access_require_feature",
+        "kind": "procedure",
+        "ownerFile": "neighbors.ts",
+        "why": "requireFeature (#access/features/guards) gates scheduled-payments and books; prepare-intent.ts:40, prepare-organization-intent.ts:37, prepare-owners-intent.ts:40, prepare-request-intent.ts:32, commands/writes/books.ts:42"
+      },
+      {
+        "export": "procedure_accounts_find_account_recipient_in_tx",
+        "kind": "procedure",
+        "ownerFile": "neighbors.ts",
+        "why": "findAccountRecipientInTx (#accounts/reads/ledger), commands/reads/recipients.ts:50"
+      },
+      {
+        "export": "procedure_accounts_require_account_signer_in_tx",
+        "kind": "procedure",
+        "ownerFile": "neighbors.ts",
+        "why": "requireAccountSignerInTx (#accounts/reads/identity): commands/guards.ts:34, writes/organizations.ts:227, writes/requests.ts:27/47/58/69"
+      },
+      {
+        "export": "procedure_accounts_require_payment_account_in_tx",
+        "kind": "procedure",
+        "ownerFile": "neighbors.ts",
+        "why": "requirePaymentAccountInTx (#accounts/reads/identity): writes/commands.ts:104, reads/funding.ts:43, guards/authority.ts:178, reads/recipients.ts:55"
+      },
+      {
+        "export": "procedure_accounts_resolve_account_recipient_safe_in_tx",
+        "kind": "procedure",
+        "ownerFile": "neighbors.ts",
+        "why": "resolveAccountRecipientSafeInTx (#accounts/reads/ledger), commands/reads/recipients.ts:21"
+      },
+      {
+        "export": "procedure_banking_bind_payout_payment_in_tx",
+        "kind": "procedure",
+        "ownerFile": "neighbors.ts",
+        "why": "bindPayoutPaymentInTx (#banking/payouts/writes/payments), commands/writes/payouts.ts:76"
+      },
+      {
+        "export": "procedure_banking_payout_send_failed_in_tx",
+        "kind": "procedure",
+        "ownerFile": "neighbors.ts",
+        "why": "payoutSendFailedInTx (#banking/payouts/writes/payments), payments/writes/outcomes.ts:108, reached by failPrepared"
+      },
+      {
+        "export": "procedure_banking_read_payout_delivery_in_tx",
+        "kind": "procedure",
+        "ownerFile": "neighbors.ts",
+        "why": "wire Payment projection used by readPreparedPaymentViewsInTx (same name movements.ts and procedures.ts import)"
+      },
+      {
+        "export": "procedure_banking_read_payout_quote_for_payment_in_tx",
+        "kind": "procedure",
+        "ownerFile": "neighbors.ts",
+        "why": "readPayoutQuoteForPaymentInTx (#banking/payouts/reads/quotes): writes/personal.ts:82, writes/organizations.ts:151, writes/payouts.ts:51"
+      },
+      {
+        "export": "procedure_books_book_asset_by_id_in_tx",
+        "kind": "procedure",
+        "ownerFile": "neighbors.ts",
+        "why": "wire Payment projection (readPreparedPaymentViewsInTx -> toWirePayment)"
+      },
+      {
+        "export": "procedure_books_classify_row",
+        "kind": "procedure",
+        "ownerFile": "neighbors.ts",
+        "why": "classifyRow (#books/writes), commands/writes/books.ts:56"
+      },
+      {
+        "export": "procedure_books_manages_books_in_tx",
+        "kind": "procedure",
+        "ownerFile": "neighbors.ts",
+        "why": "managesBooksInTx (#books/guards), commands/writes/books.ts:45"
+      },
+      {
+        "export": "procedure_books_read_row_account_in_tx",
+        "kind": "procedure",
+        "ownerFile": "neighbors.ts",
+        "why": "readRowAccountInTx (#books/reads), commands/writes/books.ts:54"
+      },
+      {
+        "export": "procedure_documents_admit_payment_document_pair_in_tx",
+        "kind": "procedure",
+        "ownerFile": "neighbors.ts",
+        "why": "admitPaymentDocumentPairInTx (#documents/reads/contents), payments/writes/births.ts:133"
+      },
+      {
+        "export": "procedure_documents_current_payment_documents",
+        "kind": "procedure",
+        "ownerFile": "neighbors.ts",
+        "why": "wire Payment projection (readPreparedPaymentViewsInTx)"
+      },
+      {
+        "export": "procedure_documents_link_payment_document_in_tx",
+        "kind": "procedure",
+        "ownerFile": "neighbors.ts",
+        "why": "linkPaymentDocumentInTx (#documents/writes/links), commands/writes/documents.ts:90"
+      },
+      {
+        "export": "procedure_documents_load_payment_documents",
+        "kind": "procedure",
+        "ownerFile": "neighbors.ts",
+        "why": "loadPaymentDocuments (#documents/reads/payments), payments/reads/payments.ts:202"
+      },
+      {
+        "export": "procedure_documents_prepare_payment_documents_in_tx",
+        "kind": "procedure",
+        "ownerFile": "neighbors.ts",
+        "why": "preparePaymentDocumentsInTx (#documents/writes/contents), commands/writes/documents.ts:61"
+      },
+      {
+        "export": "procedure_organizations_read_organization_safe_in_tx",
+        "kind": "procedure",
+        "ownerFile": "neighbors.ts",
+        "why": "readOrganizationSafeInTx: guards/budgets.ts:79, guards/owner-approvals.ts:32"
+      },
+      {
+        "export": "procedure_organizations_read_organizations_at_safe_in_tx",
+        "kind": "procedure",
+        "ownerFile": "neighbors.ts",
+        "why": "readOrganizationsAtSafeInTx, commands/reads/recipients.ts:52"
+      },
+      {
+        "export": "procedure_organizations_read_owner_safes_in_tx",
+        "kind": "procedure",
+        "ownerFile": "neighbors.ts",
+        "why": "readOwnerSafesInTx, guards/owner-approvals.ts:31 (Directors' route and submission authority)"
+      },
+      {
+        "export": "procedure_parties_ensure_ledger_party",
+        "kind": "procedure",
+        "ownerFile": "neighbors.ts",
+        "why": "ensureLedgerParty (#parties/writes/ledger), payments/writes/births.ts:167"
+      },
+      {
+        "export": "procedure_parties_ensure_payment_wallet_destination_in_tx",
+        "kind": "procedure",
+        "ownerFile": "neighbors.ts",
+        "why": "ensurePaymentWalletDestinationInTx, commands/reads/recipients.ts:56"
+      },
+      {
+        "export": "procedure_parties_party_by_id",
+        "kind": "procedure",
+        "ownerFile": "neighbors.ts",
+        "why": "wire Payment projection (readPreparedPaymentViewsInTx)"
+      },
+      {
+        "export": "procedure_parties_party_by_safe_address",
+        "kind": "procedure",
+        "ownerFile": "neighbors.ts",
+        "why": "wire Payment projection (readPreparedPaymentViewsInTx)"
+      },
+      {
+        "export": "procedure_parties_record_contact_edges",
+        "kind": "procedure",
+        "ownerFile": "neighbors.ts",
+        "why": "recordContactEdges (#parties/writes/edges), payments/writes/births.ts:237"
+      },
+      {
+        "export": "procedure_parties_resolve_owned_payment_wallet_safe_in_tx",
+        "kind": "procedure",
+        "ownerFile": "neighbors.ts",
+        "why": "resolveOwnedPaymentWalletSafeInTx, commands/reads/recipients.ts:31"
+      },
+      {
+        "export": "procedure_parties_resolve_payment_recipient_in_tx",
+        "kind": "procedure",
+        "ownerFile": "neighbors.ts",
+        "why": "resolvePaymentRecipientInTx (#parties/reads/recipients), writes/personal.ts:103, writes/organizations.ts:172"
+      },
+      {
+        "export": "procedure_payroll_read_department_spend_in_tx",
+        "kind": "procedure",
+        "ownerFile": "neighbors.ts",
+        "why": "readDepartmentSpendInTx, guards/budgets.ts:44 (budget route)"
+      },
+      {
+        "export": "procedure_permissions_find_command_authority",
+        "kind": "procedure",
+        "ownerFile": "neighbors.ts",
+        "why": "findCommandAuthority, guards/owners.ts:36 (submission authority for an owner lifecycle)"
+      },
+      {
+        "export": "procedure_permissions_read_budget_allowance_in_tx",
+        "kind": "procedure",
+        "ownerFile": "neighbors.ts",
+        "why": "readBudgetAllowanceInTx (#permissions/guards/spending), commands/reads/funding.ts:91, commands/reads/budgets.ts:44"
+      },
+      {
+        "export": "procedure_permissions_read_worn_allowances_in_tx",
+        "kind": "procedure",
+        "ownerFile": "neighbors.ts",
+        "why": "readWornAllowancesInTx, guards/budgets.ts:54"
+      },
+      {
+        "export": "procedure_permissions_require_organization_spend_authority_in_tx",
+        "kind": "procedure",
+        "ownerFile": "neighbors.ts",
+        "why": "requireOrganizationSpendAuthorityInTx, guards/authority.ts:139"
+      },
+      {
+        "export": "procedure_requests_checkout_birth_terms_in_tx",
+        "kind": "procedure",
+        "ownerFile": "neighbors.ts",
+        "why": "checkoutBirthTermsInTx (#requests/reads/births), commands/reads/funding.ts:47"
+      },
+      {
+        "export": "procedure_requests_invoice_birth_identity",
+        "kind": "procedure",
+        "ownerFile": "neighbors.ts",
+        "why": "invoiceBirthIdentity (#requests/writes/invoices), commands/writes/items.ts:153"
+      },
+      {
+        "export": "procedure_requests_offer_checkout_birth_identity",
+        "kind": "procedure",
+        "ownerFile": "neighbors.ts",
+        "why": "offerCheckoutBirthIdentity (#requests/reads/births), commands/writes/items.ts:152"
+      },
+      {
+        "export": "procedure_requests_prepare_confirmed_request_in_tx",
+        "kind": "procedure",
+        "ownerFile": "neighbors.ts",
+        "why": "prepareConfirmedRequestInTx (#requests/writes/approvals), commands/writes/requests.ts:28"
+      },
+      {
+        "export": "procedure_requests_prepare_registered_invoice_in_tx",
+        "kind": "procedure",
+        "ownerFile": "neighbors.ts",
+        "why": "prepareRegisteredInvoiceInTx (#requests/writes/checkouts), commands/writes/requests.ts:59"
+      },
+      {
+        "export": "procedure_requests_prepare_registered_purchase_in_tx",
+        "kind": "procedure",
+        "ownerFile": "neighbors.ts",
+        "why": "prepareRegisteredPurchaseInTx (#requests/writes/purchases), commands/writes/requests.ts:48"
+      },
+      {
+        "export": "procedure_requests_prepare_registered_request_in_tx",
+        "kind": "procedure",
+        "ownerFile": "neighbors.ts",
+        "why": "prepareRegisteredRequestInTx (#requests/writes/checkouts), commands/writes/requests.ts:70"
+      },
+      {
+        "export": "procedure_requests_record_budget_settlement_in_tx",
+        "kind": "procedure",
+        "ownerFile": "neighbors.ts",
+        "why": "recordBudgetSettlementInTx (#requests/writes/invoices), commands/writes/items.ts:166"
+      },
+      {
+        "export": "procedure_requests_request_memo_birth_identity",
+        "kind": "procedure",
+        "ownerFile": "neighbors.ts",
+        "why": "requestMemoBirthIdentity (#requests/reads/births), commands/writes/items.ts:141"
+      },
+      {
+        "export": "table_accounts",
+        "kind": "table",
+        "ownerFile": "neighbors.ts",
+        "why": "prepareRequestIntentInTx queries accounts directly (commands/writes/requests.ts:31); also the wire Payment projection"
+      },
+      {
+        "export": "table_counterparty_destinations",
+        "kind": "table",
+        "ownerFile": "neighbors.ts",
+        "why": "wire Payment projection read by the personal prepare (same name movements.ts uses)"
+      },
+      {
+        "export": "table_identities",
+        "kind": "table",
+        "ownerFile": "neighbors.ts",
+        "why": "wire Payment projection read by the personal prepare (same name movements.ts uses)"
+      },
+      {
+        "export": "table_invoice_checkout_payments",
+        "kind": "table",
+        "ownerFile": "neighbors.ts",
+        "why": "payments inserts Requests' invoiceCheckoutPayments directly (commands/writes/items.ts:210): a write-boundary finding"
+      },
+      {
+        "export": "table_orgs",
+        "kind": "table",
+        "ownerFile": "neighbors.ts",
+        "why": "resolveRecipientSafe queries orgs directly (commands/reads/recipients.ts:24)"
+      },
+      {
+        "export": "table_payment_requests",
+        "kind": "table",
+        "ownerFile": "neighbors.ts",
+        "why": "birthProtocol queries Requests' paymentRequests directly (payments/writes/births.ts:45, :78)"
+      }
+    ],
+    "notes": "I booked all 19 operations as rpcs. Five are public actions, one per protocol row of `commands` (operations.ts:150-185): prepare, prepare-organization, prepare-request, prepare-offer-checkout, prepare-invoice-checkout. Errors come from the rows: PREPARE_SEND for the first three, PREPARE for the two checkouts. The other 14 are internal: 9 mutations and 5 queries, kinds as `internalOperation` registers them. None is scheduled, cron-driven or triggered after another call, so there are no workflows. Every caller reaches them with a direct ctx.runQuery or ctx.runMutation; I grepped and found no scheduler call to any of them.\n\nHow touches are booked (also in the file header):\n- **Internal rpc:** what its own transaction does through payments code. A neighbour's function it calls is an invoke of that neighbour's procedure. A neighbour table that payments code reads or writes directly is listed as that table. The one direct neighbour write is the `invoiceCheckoutPayments` insert at commands/writes/items.ts:210.\n- **Public action:** the union of the internal rpcs it runs, because an action has no transaction of its own. For the payments.executions rpcs it runs, only their tables, transitions and chain calls are folded in, not their invokes; executions.ts books those rpcs.\n- **Request and checkout intents:** they list only the Requests procedure plus the signer check, because the birth writes happen inside Requests' writers when they call `preparePaymentCommandInTx`. That procedure exists in procedures.ts with the same names I would use.\n\nOther notes:\n- Spans are the chain-rpc `chain.read <method>` child spans. The commands code itself has no `withSpan`.\n- `chain` lists only eth_call reads: Budgets.leftOf, Roles.allowances, ERC-20 balanceOf and EntryPoint getNonce. Nothing is sent to chain at prepare.\n- `payment_initiated` is sent by the SDK, not the server. `claimInitiated` only claims it; `emitPaymentInitiated` in the reply tells the SDK to send it.\n- Typecheck: the only error left in my file is the allowed \"Cannot find module './neighbors.ts'\". Every other sibling export I use already exists: foundation, vocabulary, data machines and transitions, and the external.ts chain-rpc calls plus contract_budgets, contract_roles, contract_erc20 and contract_entry_point.\n- Runtime check: with a stub neighbors.ts, all 19 records pass defineRpc decoding. A small book of foundation, vocabulary, data, stub neighbors, external, procedures and commands builds. My records show only the expected write-boundary finding on invoice-checkout-payments, plus the gaps no-budget and unused-rpc. unused-rpc fires on all 19 because no operation or flow uses them yet; for the internal ones the schema also has no rpc-to-rpc link.\n\nBug in a sibling file: flows.ts imports `rpc_payments_lifecycles_prepare_scoped` from \"./commands.ts\", but schedules.ts defines it (schedules.ts:1265). The full index build fails on that import until flows.ts imports it from ./schedules.ts.\n\nEvery neighbour procedure and table I use is named the same way procedures.ts and movements.ts already import them."
+  }
+}

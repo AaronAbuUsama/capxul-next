@@ -1,0 +1,145 @@
+{
+  "run": "wf_dc4cec57-692",
+  "label": "v2:718e3a840ca60d124bd2f9a2f562ef0e3e34fdc8cbbc13a3502b8cd134debbf5",
+  "result": {
+    "file": "/home/user/capxul-next/docs/decisions/policy-pack.md",
+    "checked": 78,
+    "findings": [
+      {
+        "record": "P1 Why it matters / Grades / Recommendation / Summary",
+        "problem": "Says 732 of 733 acceptance lines end with a test citation. Its own package breakdown adds to 733, and a strict parse finds that every line ends with one.",
+        "evidence": "YAML parse of apps/docs/factory/operations/*.yaml: 733 lines in 180 records, all end with (backend|cli|sdk|devnet <file>.test.ts): backend 542, cli 154, sdk 36, devnet 1. 35 records have no acceptance lines.",
+        "fixed": true
+      },
+      {
+        "record": "P1 marker count",
+        "problem": "The figure of 148 lines that name a mechanism depends on the word list, and the pack presented it as firm.",
+        "evidence": "A wider list of the same marker kinds flags 204 lines. Added a caveat that the acceptance-internal gap decides which lines are rewritten, not the count.",
+        "fixed": true
+      },
+      {
+        "record": "P2 row surface",
+        "problem": "Says 283 typed rows (87/63/134), and those parts add to 284. Also says status.json reaches 166 rows.",
+        "evidence": "packages/protocol/src has 283 literal Operation.* names (87 query, 63 mutation, 133 action), plus 2 actions made by seatPermissionChange at organizations/operations.ts:168-171. That is 285 rows with 135 actions, matching findings. status.json backend.row plus reaches[] covers 168 rows. The 117 unreached is correct.",
+        "fixed": true
+      },
+      {
+        "record": "P2 callers",
+        "problem": "The 61 methods with no caller is one grep heuristic. The pack also skipped callers that are in the checkout.",
+        "evidence": "A second grep (org(<id>) normalised, tests excluded) gives CLI 65, React 20, scenarios 74 and 71 with no caller. apps/mcp (5, e.g. client.me.get), packages/vending-bench (8) and apps/plugin (2) also call orphans. Restated as 61 to 71.",
+        "fixed": true
+      },
+      {
+        "record": "P2 recommendation",
+        "problem": "Quotes the open item in spec 50 as \"SDK and React surface records\" and says \"a third of the surface\" would have no definition of done.",
+        "evidence": "docs/spec/50-design-book.md:134 says \"React hook records\". 184/348 methods is 53% and 117/285 rows is 41%, so the share is about half.",
+        "fixed": true
+      },
+      {
+        "record": "P3 plumbing table",
+        "problem": "Labels 61 files as `record-*`.",
+        "evidence": "find */operations/: 44 files named record-*.ts plus 17 named record.ts (e.g. payroll/agreements/operations/record.ts), which makes 61.",
+        "fixed": true
+      },
+      {
+        "record": "P3 scheduling",
+        "problem": "Calls all 103 scheduler sites 'direct'.",
+        "evidence": "76 direct scheduler.runAfter/runAt calls plus 27 calls through the platform/schedule.ts wrappers (runAfterBusinessDelay 21, runAtBusinessTime 4, runAtWallTime 2).",
+        "fixed": true
+      },
+      {
+        "record": "P3 crons and recommendation",
+        "problem": "Says there are 8 crons and the plan cuts them to about 4. There are 15 named jobs plus per-asset scanners. The plan also turned 'scan added tokens' into a Ponder trigger, which the code says Ponder cannot do.",
+        "evidence": "platform/jobs.ts:57-162: 12 jobs always registered, 3 gated on PaymentsV2 (:87-112) and the per-asset Movement scanners (:125-134). Missing from the pack: native-authorization sweep, invitation expiry, Invoice escrow payout, agreement notices, settlement recovery, scheduled sends, settle from indexer. jobs.ts:135-139 says the indexer has no source for a token added at run time (ADR-0042). Rewrote the plan as 15 crons down to about 6 plus drift, and kept the token scan.",
+        "fixed": true
+      },
+      {
+        "record": "P4 crossing counts",
+        "problem": "Says 40 write-shaped crossings with pairs payments→books 9, operator→access 5, permissions→organizations 4. A recount does not reproduce this.",
+        "evidence": "Same verb list (record/apply/schedule/reverse/ensure): about 30 distinct functions cross a concept, imported 45 times. The largest pairs are payments→books 6 (plus the read recordsAddedTokenInTx), permissions→organizations 4 and payments→requests 3. operator→access has 1 (ensureProofAuthUserInTx). The 402 InTx statements and 452 names are correct.",
+        "fixed": true
+      },
+      {
+        "record": "P4 evidence and recommendation",
+        "problem": "Leaves out Aaron's existing ruling, which the recommendation rests on.",
+        "evidence": "docs/adr/0042-books-facts-chart-and-posting-rules.md decision 1: other concepts reach Books 'through its door, in the same transaction as their own write'. Added it, and noted that option B would reverse it. Also corrected books/index.ts:12-17 to :10-18.",
+        "fixed": true
+      },
+      {
+        "record": "P4 book change",
+        "problem": "Proposes a new rule `procedure-door` for a dependsOn check that already exists.",
+        "evidence": "capxul-next/packages/book/src/build.ts:159-163 already has the `invoke-boundary` rule. Rewrote the item so only door-only imports in generated code are new.",
+        "fixed": true
+      },
+      {
+        "record": "P5 proof verdicts",
+        "problem": "Says 24,190 steps had 21,091 PASS, 2,122 NOT BUILT, 49 BLOCKED and 10 FAIL. Those add to 23,272.",
+        "evidence": "Those are CLI-surface verdicts on the 23,272 steps that have a CLI surface. Across all steps, including 918 with no CLI surface, the verdicts are 21,818 / 2,122 / 181 / 69.",
+        "fixed": true
+      },
+      {
+        "record": "P5 chain-read tails",
+        "problem": "Gives `org department show` p95 20,589 ms and `org proposal get` 3,751/11,591 ms. Those tails come from multi-command steps whose time is recorded against the last command.",
+        "evidence": "955 PASS samples come from steps that run 2 or more commands. Example: one step runs `org department budget set`, `org proposal approve` (with 2 devnet approvals) and `show`, and records 20,031 ms against `show`. From single-command steps: department show 3,444/6,080 ms, proposal get 1,384/2,212 ms. The class medians move less than 3%. Fixed the bullet and the chain-read row of the table.",
+        "fixed": true
+      },
+      {
+        "record": "P7 journeys",
+        "problem": "Says 46 events are named by journeys, cites a *-contract.ts glob that finds only 12 contracts, and calls the 46 events 'steps'.",
+        "evidence": "12 *-contract.ts files, plus the activation contract inline in internal/contracts.ts, make 13. The contracts name 43 events as steps, or 49 counting drop_reasons. Reworded as journey events, not steps.",
+        "fixed": true
+      },
+      {
+        "record": "P8 and P10 indexer tables",
+        "problem": "Says v4 has 22 Ponder tables.",
+        "evidence": "apps/indexer/src/v4 has 15 evidenceTable(\"v4_<contract>_event\") tables plus 13 onchainTable read models, so 28. There are 9 legacy tables and 2 onchainViews.",
+        "fixed": true
+      },
+      {
+        "record": "P9 pre-v4 TypeScript",
+        "problem": "Says 37 files and 514 lines name PaymentsV2/V3 and 21 files name PayrollDepartments. Neither count reproduces.",
+        "evidence": "git grep over *.ts/*.tsx with tests excluded: 33 files and 113 lines (51 files with tests, 45 case-insensitive). PayrollDepartments: 27 files (41 with tests). The 13 protocolV4() null branches are correct: 7 === and 6 !==.",
+        "fixed": true
+      },
+      {
+        "record": "P9 book acceptance lines",
+        "problem": "Says 36 lines start 'On v4' and that 4 lines are pre-v4 only, then plans to retire all 4 as null. That would delete v4 claims.",
+        "evidence": "36 lines mention v4, and 29 open with On v4 (18), On Protocol v4 (3) or On a v4 (8). Only org.department.close #5 and org.board.show #3 are pre-v4 only. org.allowance.list #1 and org.member.grant #8 are v4 claims that end with a pre-v4 clause. Now 2 are retired and 2 go through P1's rewrite.",
+        "fixed": true
+      },
+      {
+        "record": "P10 two texts",
+        "problem": "Says the SDK method is named differently in 50 operations.",
+        "evidence": "34 operations have both methods and they differ, 31 are the same, and 16 have a method only in designed. The 73 who and 63 refusal differences are correct.",
+        "fixed": true
+      },
+      {
+        "record": "P10 NOT BUILT",
+        "problem": "Says 2,122 NOT BUILT verdicts fall across 37 commands.",
+        "evidence": "They fall on 64 distinct steps. 1,742 name one of 26 book commands, and 380 are steps with no command yet (e.g. 'future (CAP-1182)').",
+        "fixed": true
+      },
+      {
+        "record": "P10 rung 5",
+        "problem": "Cites '24 records with no command', but every record has a command.",
+        "evidence": "All 215 records have a `command`. 35 have no acceptance lines. Replaced the figure.",
+        "fixed": true
+      },
+      {
+        "record": "Summary table",
+        "problem": "The summary repeated the wrong counts (732, 283 rows, 8 crons, 37 files, procedure-door).",
+        "evidence": "Updated to match the corrected sections.",
+        "fixed": true
+      }
+    ],
+    "missing": [],
+    "designFindings": [
+      "The old crons hide pre-v4 coupling. Three jobs (settlement recovery, scheduled sends, settle from indexer) register only when CAPXUL_PAYMENTS_V2_ADDRESS is set (packages/backend/src/platform/jobs.ts:87-112). On a v4-only deployment, dated-payment sending and indexer settlement sweeps are not scheduled by this path at all.",
+      "Door bypass is total: the backend has 0 non-test imports from any `#<concept>` door, while test files do use the doors (e.g. requests/receivables/tests/notify.test.ts imports from #requests). This happens even though package.json maps every door and ADR-0042 decision 1 requires the door.",
+      "The proof evidence is shaped in a misleading way. A multi-command step records durationMs for the whole step but names only the last command (apps/docs/factory/proofs/*.json, surfaces.cli.command). Any per-command latency taken from proofs is wrong for 955 samples.",
+      "Runtime-added tokens have no Ponder source (jobs.ts:135-139, ADR-0042), so a Convex-side scanner duplicates indexer work. The new stack must solve this in the indexer or keep a cron.",
+      "A protocol row factory (seatPermissionChange, protocol/src/organizations/operations.ts:168-171) defeats grep-based row inventories. Any generator that walks `Operation.*(\"name\"` misses 2 rows."
+    ],
+    "notes": "I checked 78 claims against /home/user/factory at 0d2be303e and the specs and book sources in capxul-next. Most counts reproduce exactly. That includes the 348 SDK methods, 164 named, 184 orphans and their group sizes, 117 unreached rows, the 215 operations and their version tags, the 81 designed blocks with 73 who and 63 refusal differences, and the 161/35/19 funnel. Also correct: 52/163 event sources, 2/1/0 spans for 164/27/24 operations, 27 backend overrides, 109 events (9 ui, 23 generic transitions, 16 without a producer), 18 span sites, 442 internal-operation files, 37/12/34 plumbing files, 452/402 InTx imports, the settlement lines 143-146, the bookFacts and moneyFactId key, the 5 deep-path callers, the indexer's auth.ts and polling lines, the 800 ms CPU start-up gate, the staging baseline figures, the 13 null branches, 100/91/24 tags, 1,377 v4 proofs and 35 exemptions. The owner-key shape counts agree within 1 or 2 (parser noise), so I left them. Per-command p50s also reproduce: schema 581, use env 604, allowance create 17,070, org create 15,886, ceiling freeze 17,771, bank settle 4,838. All ten policies keep four real options, a grade per criterion, a recommendation and evidence with paths. The most important fixes are to P3 (the cron inventory and plan), P5 (per-command chain-read tails taken from multi-command steps), P4 (the missing ADR-0042 ruling and a duplicate rule) and P9 (the plan would have deleted 2 v4 claims). Scratch scripts are in /tmp/claude-0/-home-user/c92cd756-b1a0-5414-9fe4-a7834db8d32a/scratchpad/."
+  }
+}

@@ -1,0 +1,37 @@
+{
+  "run": "wf_964b88c4-e6a",
+  "label": "v2:4b7113480602cbd4d6438c4af1b3dd04749345aea18565eec8160be873dd7512",
+  "result": {
+    "files": [
+      "/home/user/capxul-next/books/as-is/operations/payments.ts"
+    ],
+    "records": 26,
+    "missing": [
+      "rpc_accounts_balances_read (../accounts/balances.ts)",
+      "rpc_accounts_summaries_deposit_instructions (../accounts/summaries.ts)",
+      "rpc_requests_receivables_issue (../requests/receivables.ts)",
+      "rpc_requests_receivables_list_current (../requests/receivables.ts)",
+      "rpc_requests_receivables_get_current (../requests/receivables.ts)",
+      "rpc_requests_receivables_cancel (../requests/receivables.ts)",
+      "rpc_requests_inboxes_list_current (../requests/inboxes.ts)",
+      "rpc_requests_inboxes_get_current (../requests/inboxes.ts)",
+      "rpc_requests_inboxes_decline (../requests/inboxes.ts)",
+      "rpc_requests_offers_list (../requests/offers.ts)",
+      "rpc_requests_offers_get (../requests/offers.ts)",
+      "rpc_requests_offers_create (../requests/offers.ts)",
+      "rpc_requests_offers_revise (../requests/offers.ts)",
+      "rpc_requests_offers_deactivate (../requests/offers.ts)",
+      "rpc_parties_contacts_list (../parties/contacts.ts)",
+      "rpc_parties_contacts_get (../parties/contacts.ts)",
+      "rpc_parties_contacts_add (../parties/contacts.ts)",
+      "rpc_parties_contacts_label (../parties/contacts.ts)",
+      "rpc_parties_contacts_hide (../parties/contacts.ts)",
+      "rpc_parties_contacts_unhide (../parties/contacts.ts)",
+      "rpc_parties_accounts_add (../parties/accounts.ts)",
+      "rpc_activity_documents_get (../activity/documents.ts)",
+      "rpc_activity_documents_verify (../activity/documents.ts)",
+      "rpc_activity_documents_render (../activity/documents.ts)"
+    ],
+    "notes": "I wrote one file, books/as-is/operations/payments.ts. It has 26 operation records: balance, address, request.issue/list/get/cancel, inbox.list/get/pay/decline, service.list/get/create/revise/deactivate, contact.list/add/get/label/hide/unhide/bank.add, and document.get/verify/render/export. The seven payment.* records are left to ../payments/operations.ts. Nothing is committed.\n\nChecks: `npx tsc -p books` shows no errors in this file except the 8 unresolved imports of sibling rpc files that do not exist yet (accounts/balances, accounts/summaries, requests/receivables, requests/inboxes, requests/offers, parties/contacts, parties/accounts, activity/documents). In a scratch copy with stand-in rpc records for those files, all 26 records load and pass defineOperation's runtime decode.\n\nHow the records are built:\n- Text comes from frozenText(id) and acceptance from frozenClaims(id). Each refusal's `when` comes from frozenRefusals(id) through a helper that maps the code to its error record, so nothing is retyped. `was` cites the yaml page, the CLI command and execute lines, the SDK method, the protocol row and schema lines, and the scenario steps.\n- Records already written that I import: flow_client_approvals_prepare from payments/flows.ts, operation_payment_send from payments/operations.ts (inbox.pay reuses its `returns`, because the CLI prints the same hand-over), and the error records in shared/vocabulary.ts.\n\nJudgments I made:\n1. The task said the document rpcs live in the documents concept. They do not: the SDK calls activity.documents.get/verify/render (protocol activity/operations.ts:144, registered at backend convex/activity/documents.ts). So implementedBy imports rpc_activity_documents_* from ../activity/documents.ts. document.export reaches the same rpc as document.get.\n2. Each rpc lives in `<concept>/<area>.ts`, where the area is the backend convex folder (receivables, inboxes, offers, contacts, accounts, balances, summaries, documents). The id is the protocol row kebab-cased, for example requests.receivables.list-current. The payments lane named its files differently (movements.ts holds records/notices), so the assembly step may need to reconcile these paths.\n3. implementedBy is an rpc for 25 of the 26, because each SDK method forwards one row. client.accounts.read also retries a dropped connection and values the balances locally with rates; I still counted it as one rpc, not a flow. inbox.pay is the only flow: client.approvals.prepare.\n4. When the CLI makes its own extra SDK calls around the method, I said so in a comment and did not change implementedBy. Examples: request cancel and inbox decline read the request first; contact get also reads bankAccounts.list; request issue reads the balance and the clock; contact bank add reads the book, targets.resolve and the field requirements.\n5. Every refusal has `given: \"?\"`. Only S18 and S10 reach any of them. S18 is parentless (it runs on an empty devnet), and no saved world names that state; I did not invent one such as \"empty\". S10.9 and S10.12 refuse inbox pay with ROLE_PERMISSION_DENIED for budget_exhausted, which the page's `when` does not describe, the same rule the payments lane used for payment send at s10.19.\n6. `errors` lists only codes the CLI builds itself, which is more than the payments example lists. The full set used is CLI_USAGE, CLI_DEFECT (a list cursor that does not advance), CLI_DEADLINE (request get --wait), CLI_STORAGE (document export and render), and for inbox pay WRONG_STATE (request not open, approval expired), CANCELLED (approval rejected), CLI_DEADLINE (follow timed out) and TRANSACTION_FAILED (payment did not settle). ROLE_PERMISSION_DENIED is listed for balance and address, where the CLI's own membership check refuses an Organization (org/internal/read.ts:218). A backend refusal that the CLI only rewords keeps its code and is not listed.\n7. `returns` is a Struct of the page's fields, typed from what the CLI actually prints (the SDK projections), with types from the protocol. Two differ from the page. contact.get's returns is NullOr, because a party outside the book prints data: null with exit 0. document.render prints no `kind`, though the page names it.\n8. priority is \"normal\" on all 26, because the old book has no priority. No budgets.\n\nFindings, recorded as comments in the file:\n- request list, service list and contact list refuse an unknown `--after` with CLI_USAGE (runtime/paging.ts:82), not the INVALID_INPUT the request list page names.\n- service revise and deactivate: another owner's service is refused INVALID_INPUT at the first services.get (backend requests/errors/offers.ts:13), not ROLE_PERMISSION_DENIED. That code comes only from `--org`.\n- contact label, hide and unhide: a party outside the book is CLI_USAGE at a terminal (contact/internal/write.ts:40) and INVALID_INPUT from a script.\n- address `--org` calls no row: the SDK builds the orgTreasury instructions itself (organizations/programs.ts:115).\n\nMy scratch files went in their own subfolder, lane-ops-payments-rest, because another lane overwrote a shared dump.ts in the common scratchpad."
+  }
+}

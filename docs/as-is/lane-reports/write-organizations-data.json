@@ -1,0 +1,48 @@
+{
+  "run": "wf_d6e42c7c-720",
+  "label": "v2:1d3c883d07397a923216fda8ce0fba796b98d9e03af22051703e87e5d95548fe",
+  "result": {
+    "files": [
+      "/home/user/capxul-next/books/as-is/organizations/data.ts",
+      "/home/user/capxul-next/books/as-is/organizations/procedures.ts",
+      "/home/user/capxul-next/books/as-is/organizations/setups.ts",
+      "/home/user/capxul-next/books/as-is/organizations/workspaces.ts",
+      "/home/user/capxul-next/books/as-is/organizations/treasuries.ts",
+      "/home/user/capxul-next/books/as-is/organizations/members.ts",
+      "/home/user/capxul-next/books/as-is/organizations/roles.ts",
+      "/home/user/capxul-next/books/as-is/organizations/reads.ts",
+      "/home/user/capxul-next/books/as-is/organizations/invitations.ts",
+      "/home/user/capxul-next/books/as-is/organizations/flows.ts",
+      "/home/user/capxul-next/books/as-is/organizations/index.ts"
+    ],
+    "records": 147,
+    "missing": [
+      "event_organization_creation_started (shared/vocabulary.ts)",
+      "event_organization_creation_ready (shared/vocabulary.ts)",
+      "event_organization_creation_failed (shared/vocabulary.ts)",
+      "event_org_invite_transitioned (shared/vocabulary.ts)",
+      "event_org_seat_permission_proposed (shared/vocabulary.ts)",
+      "event_account_balance_read (shared/vocabulary.ts)",
+      "event_board_seat_transitioned (shared/vocabulary.ts)",
+      "event_board_threshold_transitioned (shared/vocabulary.ts)",
+      "event_equity_shares_transitioned (shared/vocabulary.ts)",
+      "event_vote_transitioned (shared/vocabulary.ts)",
+      "procedure_parties_party_by_id (parties/procedures.ts)",
+      "procedure_parties_party_by_handle (parties/procedures.ts)",
+      "procedure_parties_party_by_safe_address (parties/procedures.ts)",
+      "procedure_parties_ensure_org_party (parties/procedures.ts)",
+      "procedure_parties_ensure_party_by_email (parties/procedures.ts)",
+      "procedure_parties_find_party_by_email (parties/procedures.ts)",
+      "procedure_parties_is_invitation_grantee_in_tx (parties/procedures.ts)",
+      "procedure_parties_read_claimed_organization_party_in_tx (parties/procedures.ts)",
+      "procedure_parties_read_invitation_delivery_address_in_tx (parties/procedures.ts)",
+      "procedure_parties_read_invitation_grantee_binding_in_tx (parties/procedures.ts)",
+      "procedure_profiles_read_founder_profile_identity_in_tx (profiles/procedures.ts)",
+      "procedure_profiles_read_first_proof_profile_email_in_tx (profiles/procedures.ts)",
+      "procedure_profiles_read_profile_account_binding_in_tx (profiles/procedures.ts)",
+      "procedure_media_find_image_refusal (media/procedures.ts)",
+      "module ./flows-governance.ts (part two; index.ts imports it)"
+    ],
+    "notes": "I booked part one of the old organizations concept. There are 147 records:\n- data.ts: 19 tables and 14 machines. These cover every table in packages/backend/src/organizations/tables/ and every literal-union status field in the whole concept.\n- procedures.ts: 60 procedures, covering every door function that is not a pure rule. This includes all 11 stand-ins in payments/neighbors.ts, with the same ids and export names.\n- setups.ts: 17 rpcs and 2 workflows.\n- workspaces.ts: 2 rpcs. treasuries.ts: 2 rpcs. roles.ts: 1 rpc.\n- members.ts: 8 rpcs and 1 workflow.\n- invitations.ts: 16 rpcs and 1 workflow.\n- flows.ts: 4 flows.\n- reads.ts: no new records (it re-exports procedures).\n- index.ts: lists my files and part two's.\n\nChecks:\n- `tsc -p books` shows only unresolved imports from lanes that have not written those files yet (listed under missing).\n- I mirrored the book in the scratchpad with stubs for those names. All 10 of my modules load there and every record passes its schema check at load time.\n- A build of my lane alone found no machine-state problems. Its \"unreachable-state\" gaps are real findings: org-member's pending and pending_safe states, org-role's revoked state, and org-roles-deployment's requested and failed states are never written.\n- Every transition still marked undriven belongs to part two's machines (director changes, share transfers, votes). Part two's files already import my table and machine names, and all of them match.\n\nJudgments I made:\n1. The reads area (src/organizations/reads/) has no operations; its functions are door functions. reads.ts only re-exports those procedures from procedures.ts and adds no records.\n2. Machine id is the singular of the table name in kebab case: org-lifecycle, org-member, seat-permission-change, org-invitation and so on. A second status field on the same table gets `<entity>-<field>`: org-invitation-delivery and org-invitation-cleanup. Transition names keep the old state literals, so the setup machine has `to_awaitingAuthorization` and `to_needsAttention`.\n3. No old writer inserts a member row as pending, pending_safe or pending_grant; those are legacy states. org-member therefore starts at active, and the moves out of the legacy states (advance, sweep, grant application) are still booked.\n4. Four door functions run from an action rather than in a transaction: `requireSafeOwner`, `settleOrganizationProposals` and `readTreasuryTarget`. `deliverInvitationOutcome` runs in a transaction but queues an email through the Resend component. All four are booked as procedures, and their `about` says so. The first two carry the touches of part two's proposals load and settle.\n5. A few integration calls may not be booked yet, so I reference them through a small `callOf`/`fnOf` helper. It returns the shared record's call when it exists and otherwise a ref with the id that record will carry, so the build flags it if it never appears. I left out `companyMintCall` because it only builds calldata and reaches nothing outside.\n6. `setups.get` and `invitations.get` are booked as kind `live`, because the SDK subscribes to both.\n7. `observe` (scheduled by every check write) and `recover` (cron every minute) are workflows. So are `invitations.expire` (daily at 00:00 UTC) and `members.notify-permission` (scheduled when a grant is applied). observe's trigger is accept-authorization; its other schedulers are named in `about`.\n   - observe has `retries.max` 2 because recovery reschedules a lapsed check twice and halts it on the third.\n   - The 600000 ms timeouts are Convex's action limit, the same value payments used; the old code sets none.\n8. All emit-* operations are rpcs whose `about` starts with \"Telemetry plumbing:\".\n9. Work the old code schedules into Permissions (`permissions.grants.drive` and `permissions.grants.retry`) is named in prose only, not linked.\n10. I set no budgets. Backend rpc spans are empty because no child spans were known; I named the SDK operation spans where the code opens one.\n\nFindings to note:\n- Payments, Permissions' guards, Requests, Indexing drifts and Books' keepers read orgs, orgMembers and orgLifecycles directly instead of through the door. I recorded this in the table descriptions; the write-boundary report belongs to those lanes.\n- index.ts imports part two's flows-governance.ts, which does not exist yet."
+  }
+}

@@ -1,0 +1,123 @@
+{
+  "run": "wf_ac554c5f-cd1",
+  "label": "v2:0d11b98ea9cd4bbe7f4b2dcfd3c4be9193c232bf7057d7f0978a2e84852ae276",
+  "result": {
+    "file": "/home/user/capxul-next/books/as-is/payments/external.ts",
+    "checked": 14,
+    "findings": [
+      {
+        "record": "integration_chain_rpc (secrets)",
+        "problem": "The secrets list had AA_GATEWAY_TOKEN, which the backend never reads. Only packages/aa-gateway reads it, and the token travels as a path segment of BASE_SEPOLIA_BUNDLER_RPC_URL. The list also left out the six BASE_MAINNET_* node names, which liveConfiguration reads every time the layer is built.",
+        "evidence": "grep finds AA_GATEWAY_TOKEN only in packages/aa-gateway/src/main.ts:65 and aa-gateway/README.md:31,57 ('BASE_SEPOLIA_BUNDLER_RPC_URL=https://aa.capxul.com/<AA_GATEWAY_TOKEN>'). The mainnet names are read at packages/backend/src/integrations/chain-rpc/internal/upstreams.ts:46 through rpcEndpoints(RPC_CHAIN_PREFIXES[8453]) (protocol/src/evm/rpc-endpoints.ts:63-67,102-103).",
+        "fixed": true
+      },
+      {
+        "record": "integration_chain_rpc.c.fetchUserOperationReceipt",
+        "problem": "The failures listed only the gateway path. When a caller names recordedTransactionHash, the call first reads eth_getTransactionReceipt from the node list, so every node-read failure can happen too. Payments takes this path at verifications/external.ts:222, and chain-evidence takes it as well.",
+        "evidence": "chain-rpc/internal/userOperationReceipts.ts:106-122 (fetchBoundedTransactionReceipt on nodes when recordedTransactionHash is set); payments/verifications/external.ts:222-226 passes recordedTransactionHash: decision.transactionHash",
+        "fixed": true
+      },
+      {
+        "record": "integration_chain_rpc.c.waitForTransactionReceipt",
+        "problem": "retries {max 60, fixed} was a wrong fact. The loop polls only while the receipt is null. If any poll read fails, the wait ends at once and nothing retries it. The only retrying a poll gets is the node failover, so the right value is {max 3, none}. Also, the 120 s deadline is checked only between polls, so one slow read can push the wait past 120 s.",
+        "evidence": "chain-rpc/internal/userOperationWait.ts:30-45 (`yield* fetchReceipt(...)` fails through; deadline checked after a null answer; sleep 2 s)",
+        "fixed": true
+      },
+      {
+        "record": "integration_chain_rpc.c.prepareTransaction",
+        "problem": "A failure mode was missing. If the caller's sender, to or data is malformed, the code checks it with the provider-answer readers, so the caller sees PROVIDER_ERROR (upstream-down) instead of INVALID_INPUT.",
+        "evidence": "chain-rpc/internal/transactions.ts:58-60 (providerAddress/providerData on args); providerValues.ts:35-37 throws rpcProviderError",
+        "fixed": true
+      },
+      {
+        "record": "integration_chain_rpc.c.broadcastTransaction",
+        "problem": "The about said payments broadcasts 'the stored signed bytes'. In fact payments signs Budgets.execute with the executor key and broadcasts the bytes at once. Nothing is stored.",
+        "evidence": "payments/schedules/external/budget-executor.ts:80-97 (account.signTransaction then rpc.broadcastTransaction)",
+        "fixed": true
+      },
+      {
+        "record": "integration_chain_rpc.c.fetchEntryPointUserOperationEvent",
+        "problem": "The about left out that the service applies the A06 receipt hold (withheldWhileHeld) to the EntryPoint event as well, not only to the receipt.",
+        "evidence": "chain-rpc/service.ts:96-103",
+        "fixed": true
+      },
+      {
+        "record": "integration_chain_evidence.c.verifyPayment (retries)",
+        "problem": "retries {max 3, exponential} was a wrong fact. The value came from the Ponder fact poll at 2, 4 and 8 s. That poll runs only when COMMAND_FATE_READ_SOURCE=ponder, and it re-reads only when a fact is missing. A failed read becomes the provider_failure result and is not retried. On the default rpc path there is no poll at all. The call is never retried.",
+        "evidence": "ponder/pages.ts:65-79 (pollPonderFact re-reads only on undefined); chain-evidence/internal/indexed-payment.ts:185-192; service.ts:201 (rpc path returns the receipt reader)",
+        "fixed": true
+      },
+      {
+        "record": "integration_chain_evidence.c.verifyPayment (failures)",
+        "problem": "The ENV_MISSING failure said a missing BASE_SEPOLIA_BUNDLER_RPC_URL fails the call. It does not. Every adapter read goes through readEvidence, which turns it into AdapterReadFailure and then the provider_failure result. On the Ponder path, any Error becomes providerFailure(). So the declared PROVIDER_ERROR and ENV_MISSING are type-level only, and no site is known to reach them. Both entries are now booked as declared-only.",
+        "evidence": "chain-evidence/internal/receipt-context.ts:100-122,133; payment-receipt.ts:102-108; indexed-payment.ts:185-192",
+        "fixed": true
+      },
+      {
+        "record": "integration_chain_evidence (about)",
+        "problem": "The about said boundSettlementTransfer is imported at writes/settlements.ts:11. writes/settlements.ts imports only settlementTermsMismatch, at line 10. boundSettlementTransfer is imported at verifications/external.ts:21.",
+        "evidence": "payments/writes/settlements.ts:8-11; payments/verifications/external.ts:21",
+        "fixed": true
+      },
+      {
+        "record": "integration_ponder (failures)",
+        "problem": "Two failures cannot happen. INVALID_INPUT (a 400/404/422 that refuses the request's own input) needs a refusal reader, and Ponder passes none. 'Too long' needs maxBodyBytes, and Ponder sets none, so an answer of any size is read whole. A 400/404/422 is a providerRefused PROVIDER_ERROR.",
+        "evidence": "ponder/service.ts:146-158 (send passes no refusal and no maxBodyBytes); platform/provider.ts:142-147,168; platform/provider-body.ts:20 (maxBytes defaults to infinity)",
+        "fixed": true
+      },
+      {
+        "record": "integration_mail (about)",
+        "problem": "'deliverNotices never throws' overstated it. The function awaits run.retry, which schedules through ctx.scheduler, and sendMail calls resendClient.get() outside its try. Either can reject, and payments wraps the call in Effect.promise, so a rejection becomes a defect.",
+        "evidence": "mail/notices.ts:163-164; mail/service.ts:147-149; payments/notices/external.ts:35-47",
+        "fixed": true
+      },
+      {
+        "record": "contract_payments (about)",
+        "problem": "The about said 'a person's own send uses it instead of V3'. On Protocol v4, every V3 send goes to v4 Payments: a fresh personal or Organization send, a payroll run, an obligation send.",
+        "evidence": "payments/commands/rules.ts:45-53 (isV3Send), :60-66 (commandRouter); integrations/companies-house/addresses.ts:58-59 (paymentsRouterAddress)",
+        "fixed": true
+      },
+      {
+        "record": "contract_multi_send_call_only (about)",
+        "problem": "The budget route was missing: a budget payment of more than one call (several spends, or a reschedule's cancel plus schedule) also delegatecalls MultiSendCallOnly from the wearer's or company Safe.",
+        "evidence": "protocol/src/evm/payments.ts:227-234 (safe4337MultiSendUserOpCallData for budget calls)",
+        "fixed": true
+      },
+      {
+        "record": "contract_erc20.f.approve",
+        "problem": "The about said the approval comes 'ahead of the sends'. birthCalls also approves for create_commitment items.",
+        "evidence": "protocol/src/evm/payments.ts:112-122,155-166",
+        "fixed": true
+      },
+      {
+        "record": "integration_mail.c.deliverNotices (timeoutMs 600000)",
+        "problem": "The call has no timeout of its own. 600000 is the Convex action limit, entered only because the schema needs a positive Ms. The about already flags this. I left it, since a smaller number would be invented.",
+        "evidence": "ponder/pages.ts:40 (the ten-minute action limit); mail/notices.ts and service.ts set no timeout",
+        "fixed": false
+      },
+      {
+        "record": "integration_openfort (timeoutMs 30000) and verifyPayment (timeoutMs 30000)",
+        "problem": "Neither is a Capxul bound on the call. Openfort's 30 s is the library's own request timeout, which a comment in the repo describes. verifyPayment's 30 s is the bound on each inner chain read, and nothing bounds the call as a whole. Both are stated in the abouts. I left them, because the schema needs a positive Ms.",
+        "evidence": "sdk/src/signing/openfort-failures.ts:72-78; chain-rpc/internal/quantities.ts:8",
+        "fixed": false
+      }
+    ],
+    "missing": [],
+    "designFindings": [
+      "The chain-rpc boundary is untyped by code. ChainRpcService types every method as Effect<A, CapxulError>, which means any code. Payments narrows each site with admit([...]), and any code not on the list becomes a defect at runtime, for example INVALID_INPUT from a node read on a chain with no node list. Evidence: chain-rpc/types.ts:12; platform/attempt.ts:37-48; payments/commands/external/funding.ts:50,71,128; schedules/external/board-budgets.ts:59. Many execution sites narrow only at the outer admit(SEND_FAILURES/BUILD_FAILURES) (executions/external/sends.ts:248-265).",
+      "Caller input is blamed on the provider. prepareTransaction checks the caller's own sender, to and data with the provider-answer readers, so a malformed argument comes out as PROVIDER_ERROR mode upstream-down, which counts as retryable. Evidence: chain-rpc/internal/transactions.ts:58-60; providerValues.ts:27-38.",
+      "chain-evidence declares an error channel it never uses. verifyPayment is typed PROVIDER_ERROR | ENV_MISSING, but every read is turned into the `provider_failure` result. A configuration error such as a missing BASE_SEPOLIA_BUNDLER_RPC_URL therefore looks like a transient provider failure and goes onto the retry ladder. Evidence: receipt-context.ts:100-122; payment-receipt.ts:102-108; indexed-payment.ts:185-192; README.md:69-74.",
+      "A test-only control lives inside production chain reads. The A06 e2e receipt hold sits inside the production ChainRpc service. Every receipt read and every EntryPoint event read can issue an HTTP query to the deployment's own Convex /api/query, gated by SITE_URL and CONVEX_CLOUD_URL. Evidence: chain-rpc/service.ts:80-104; platform/proof-controls/receipt-policy.ts:41-100.",
+      "Payments owns shared chain plumbing. buildSponsoredSafeUserOp (stub paymaster, estimate, final paymaster) lives in payments/executions/external/safes.ts and is exported through payments/index.ts:149. accounts and payroll deep-import it past the door (accounts/external.ts:9, payroll/agreements/external.ts:23), and organizations uses it in setups, proposals, directors, votes and equity.",
+      "The multi-chain support is partly dead. chain-rpc configures node lists for 84532 and 8453 and reads both at layer build (upstreams.ts:44-47). But the AA Gateway refuses anything that is not 84532 (upstreams.ts:55-60), chain-evidence verifies only BASE_SEPOLIA_CHAIN_ID (receipt-context.ts:13,133; payment-receipt.ts:53), and payments' verification reads hard-code BASE_SEPOLIA_CHAIN_ID (verifications/external.ts:9,136,223).",
+      "The Ponder reader is unbounded. Ponder calls through callProvider with no maxBodyBytes and no refusal reader (ponder/service.ts:146-158), so a Ponder answer of any size is read into memory whole. readTransactionFacts reads pages with maxPages = infinity, bounded only by a 14 s wall deadline (pages.ts:118-138).",
+      "The receipt wait can overrun its deadline. waitForTransactionReceipt checks its 120 s deadline only between polls, and each poll can take 30 s on each of up to four nodes. A failed poll ends the wait at once, with no retry (userOperationWait.ts:30-45). Payments' due job depends on this wait for Budgets.execute (budget-executor.ts:99-104).",
+      "Mail's 'never throws' contract is weaker than its doc. deliverNotices awaits the caller's retry scheduler and sendMail calls resendClient.get() outside its try, so the call can reject. Payments wraps it in Effect.promise, which turns that rejection into a defect (mail/notices.ts:163-164; mail/service.ts:147-149; payments/notices/external.ts:35).",
+      "One switch is read in two places. COMMAND_FATE_READ_SOURCE is read once in productionChainEvidence (chain-evidence/service.ts:201) and again by payments through commandFateReadSource() (verifications/operations/verify.ts:156), which throws a defect on a bad value. The two reads can disagree only if the environment changes between them, but the switch has no single owner.",
+      "The provider label depends on configuration. rpcProviderRole names the provider in an error 'chain-evidence' or 'chain-rpc' from the method set plus whether a hosted node is configured, so the same failing read is labelled differently per deployment (chain-rpc/internal/rpcErrors.ts:26-42).",
+      "Configuration has two paths. The legacy per-provider node names (<CHAIN>_ALCHEMY/INFURA/EVIDENCE/RPC_URL) are still read whenever <CHAIN>_RPC_URLS is unset, with host sniffing to decide wide-log support (protocol/src/evm/rpc-endpoints.ts:48-90, 'CAP-1011 removes them').",
+      "The AA Gateway credential is a URL path segment (aa-gateway/README.md:31,57), not a header secret. The backend holds it only inside BASE_SEPOLIA_BUNDLER_RPC_URL, so it has no secret of its own to rotate or keep apart."
+    ],
+    "notes": "I checked all 14 records against the old code and fixed external.ts in place. Typecheck is clean: `npx tsc -p .` reports no errors in as-is/payments/external.ts. All 14 records still load and pass schema decode at runtime. Every `was` path exists and every line number is in range, and every prose field is within its limit.\n\nConfirmed:\n- The 15 chain-rpc calls payments uses are complete. I grepped every ChainRpc method use in packages/backend/src/payments and none is missing; payments uses no other service method (isDefinitive*, waitForUserOperationReceipt, fetchBounded*, pool status).\n- No other integration is imported by payments: roles, bridge, chainlink, posthog and backend openfort are not. companies-house is used only for its config readers.\n- No escrow, agreements or other v4 contract is used. The 'escrow' wording in payments refers to V2 commitments. The v4 Payments and Budgets addresses match protocol-v4-addresses.ts:46-47. The V2 and V3 addresses and start blocks match payments-abi.ts and payments-v3.ts. Every function and event signature matches the compiled ABIs.\n- The SDK payments code calls only the CapxulSigner methods getAddress and signUserOpHash (command-execution.ts:107,226; execution.ts:195,243). It calls no bundler or chain endpoint directly.\n\nTwo changes may raise new build findings elsewhere:\n- Removing Ponder's INVALID_INPUT shrinks what callers of lookupPayment and readTransactionFacts must declare.\n- The new failure entries on fetchUserOperationReceipt and prepareTransaction are PROVIDER_ERROR only, so a sibling rpc that already declares PROVIDER_ERROR needs no change.\n\nI did not add a record for the Safe itself. Payments never calls a named Safe function: a void is a call from the Safe to itself with no data, inside executeUserOpWithErrorString. The Directors' approveHash calls belong to organizations; payments only packs the prevalidated signatures (safe-transactions safePrevalidatedSignatures, schedules/operations/store-approved.ts:63)."
+  }
+}

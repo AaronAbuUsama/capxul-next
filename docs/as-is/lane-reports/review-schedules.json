@@ -1,0 +1,135 @@
+{
+  "run": "wf_f650b705-60a",
+  "label": "v2:4467350fe9f7ff43061e0d1721e31b12611489d8935196bb62918b0488609463",
+  "result": {
+    "file": "/home/user/capxul-next/books/as-is/payments/schedules.ts",
+    "checked": 18,
+    "findings": [
+      {
+        "record": "rpc_payments_lifecycles_prepare, rpc_payments_lifecycles_prepare_scoped",
+        "problem": "The about said the build runs `payments.commands.claim-initiated` unless the execution already succeeded. It never runs for a lifecycle prepare: storeBuiltExecution calls it only when `\"items\" in request`, and a lifecycle intent (retry, claim, cancel, redirect, reschedule) has no `items`. So emitPaymentInitiated is always false.",
+        "evidence": "packages/backend/src/payments/executions/external/builds.ts:271; lifecycles/external.ts:32 passes input.intent as request; packages/protocol/src/payments/schema/executions.ts:180",
+        "fixed": true
+      },
+      {
+        "record": "rpc_payments_lifecycles_prepare, rpc_payments_lifecycles_prepare_scoped",
+        "problem": "calls left out fetchUserOperationReceipt (a lapsed live Attempt is classified from proof) and fetchErc20Balance (the balance check on an undated birth, e.g. a retry). chain left out erc20.balanceOf.",
+        "evidence": "executions/external/builds.ts:94 -> expiries.ts:78 -> attempts.ts:71; builds.ts:112 -> executions/external/funding.ts:63,36",
+        "fixed": true
+      },
+      {
+        "record": "rpc_payments_lifecycles_prepare, rpc_payments_lifecycles_prepare_scoped",
+        "problem": "invokes left out the submission authority guard, which link-observation and fail-prepared both re-run. It also left out Banking's payoutSendFailedInTx (fail-prepared -> recordPaymentCommandOutcome) and complete's invokes on a settled replay. drives left out the classifier's fates (expired, displaced, succeeded, reverted), the replay's to_settling and to_submitted, and the birth's verification to_not_started.",
+        "evidence": "executions/external/builds.ts:233 (linkObservation), :269 + replays.ts:26 (complete); commands/writes/submissions.ts:37,64; writes/outcomes.ts:108; executions/writes/failures.ts:42",
+        "fixed": true
+      },
+      {
+        "record": "rpc_payments_lifecycles_preview_retry",
+        "problem": "It invoked procedure_access_can_read_scope_in_tx, citing reads/payments.ts:61. That line is requireReadViewer, which previewRetry never calls. participantPayment only loads the Payment and checks isPaymentParticipant, with no scope read.",
+        "evidence": "packages/backend/src/payments/reads/payments.ts:51-54 vs :56-65; lifecycles/reads/previews.ts:37",
+        "fixed": true
+      },
+      {
+        "record": "rpc_payments_schedules_store",
+        "problem": "The answer's projection was booked as loadPaymentDocuments, citing reads/payments.ts:163 (that is readPaymentsForViewerInTx). store actually answers through paymentResponsesForCommandIdInTx, which calls accountIdForAuthUserOrNull and loadPaymentDocumentsForPrincipal and does not call loadPaymentDocuments.",
+        "evidence": "schedules/writes.ts:89; reads/payments.ts:222,242,253",
+        "fixed": true
+      },
+      {
+        "record": "rpc_payments_schedules_store, rpc_payments_schedules_load_command",
+        "problem": "who left out a caller: Accounts' approval send also runs scheduledSubmitted, which runs load-command and store.",
+        "evidence": "packages/backend/src/accounts/approvals/operations/send-approved.ts:241; schedules/external.ts:119,123",
+        "fixed": true
+      },
+      {
+        "record": "rpc_payments_schedules_record_board_scheduled, workflow_payments_schedules_store_board_scheduled",
+        "problem": "drives left out machine_payment_command_verification.t.to_applied. boardScheduledInTx patches verificationState to `applied` directly, and data.ts books that edge at this line.",
+        "evidence": "packages/backend/src/payments/schedules/writes.ts:224-228",
+        "fixed": true
+      },
+      {
+        "record": "workflow_payments_schedules_store_approved",
+        "problem": "emits was []. The void send-now path runs payments.executions.claim and complete, which schedule payment_transitioned. drives left out payment.to_settling (complete's record_submission) and the classifier's fates.",
+        "evidence": "schedules/operations/store-approved.ts:68-73; executions/writes/transactions.ts:41; executions book rpc_payments_executions_complete/claim",
+        "fixed": true
+      },
+      {
+        "record": "workflow_payments_schedules_store_approved",
+        "problem": "The about said 'Any failure schedules it again'. In fact only failures inside the Effect.exit (store, send, complete) are retried. A failed loadActive fails the run with no retry, and the tenth failure stops with nothing recorded on the command.",
+        "evidence": "schedules/operations/store-approved.ts:53-62 (outside exit), :64-88",
+        "fixed": true
+      },
+      {
+        "record": "workflow_payments_schedules_send_due, workflow_payments_schedules_store_approved",
+        "problem": "SEND_CALLS left out fetchUserOperationReceipt and fetchEntryPointUserOperationEvent. Both are reached when a lapsed prepared Attempt is retired, or when a moved lane is classified before the claim. drives left out the classify fates. reads left out providerSendAttempts and complete's wire reads. invokes left out claim's and complete's invokes, although their tables and transitions had been folded in.",
+        "evidence": "executions/external/sends.ts:115,126; preflights.ts:77,87; attempts.ts:56,71,87,183",
+        "fixed": true
+      },
+      {
+        "record": "rpc_payments_schedules_authorize_resend",
+        "problem": "reads left out moneyExecutions. The submission authority guard's void route reads it directly.",
+        "evidence": "packages/backend/src/payments/guards/voids.ts:47",
+        "fixed": true
+      },
+      {
+        "record": "STORE_ERRORS (store)",
+        "problem": "The comment said the errors were SEND_FAILURES (sends.ts:248, ten codes). The three listed codes are store.ts's own attempt list, so only the citation was wrong.",
+        "evidence": "schedules/operations/store.ts:29",
+        "fixed": true
+      },
+      {
+        "record": "rpc_payments_schedules_load, rpc_payments_schedules_load_command",
+        "problem": "commandCompletion was typed Schema.String. It is completionOutcome ?? null, i.e. 'settled' | 'failed' | null.",
+        "evidence": "schedules/reads.ts:76; tables commands completionOutcome",
+        "fixed": true
+      },
+      {
+        "record": "rpc_payments_lifecycles_prepare_intent, rpc_payments_lifecycles_prepare_owners_void",
+        "problem": "drives left out verification to_not_started for the born command. reads left out moneyExecutions: the retry state reads it through paymentExecutionView, and a void's route reads it.",
+        "evidence": "lifecycles/reads/retries.ts:206; guards/voids.ts:47; commands/writes/commands.ts:223",
+        "fixed": true
+      },
+      {
+        "record": "rpc_payments_lifecycles_prepare_owners_void",
+        "problem": "who did not say three things. It runs only when Protocol v4 is not configured. Organizations imports ownersVoidExecution from payments/commands/external/owners.ts, not from the door. No signer check runs, because it calls preparePaymentLifecycleInTx directly.",
+        "evidence": "organizations/proposals/operations/cancel-scheduled.ts:13,47,73; lifecycles/operations/prepare-owners-void.ts:26",
+        "fixed": true
+      },
+      {
+        "record": "workflow_payments_schedules_send_due",
+        "problem": "The record step said only a failed read is counted as skipped. A schedule left unrecorded (missing, not waiting, or a void in flight returns null) is counted as skipped too.",
+        "evidence": "schedules/operations/send-due.ts:46-48; schedules/external.ts:265",
+        "fixed": true
+      },
+      {
+        "record": "workflow_payments_schedules_store_approved, store_board_scheduled, end_board_scheduled, cancel_board_scheduled",
+        "problem": "The trigger is written as { indexer: \"not the indexer: ...\" }. The real trigger is the internal mutation organizations.proposals.settle (fed by the Safe reads), not the indexer. The schema has no trigger for another concept's operation, and no rpc record exists for `{ after }`.",
+        "evidence": "organizations/proposals/operations/settle.ts:11; organizations/proposals/writes/settlements.ts:73,99,106,112",
+        "fixed": false
+      }
+    ],
+    "missing": [
+      {
+        "export": "rpc_organizations_proposals_settle",
+        "kind": "rpc",
+        "ownerFile": "none (no file owns a neighbour's rpc)",
+        "why": "The real trigger of the four Board and approval workflows (settlements.ts:73,99,106,112). With it they could use { after: rpc } instead of an indexer string."
+      }
+    ],
+    "designFindings": [
+      "The Board schedule writer bypasses the guarded writers. boardScheduledInTx patches paymentCommands.state to submitted and verificationState straight to applied (not_started -> applied, no evidence). It then patches each Payment pending -> settling itself, and sends no payment_transitioned (schedules/writes.ts:224-251). chainCancelledInTx patches completionOutcome failed / lastExecutionOutcome superseded and Payments to cancelled the same way (schedules/writes/board-cancels.ts:27-50).",
+      "paymentSchedules.executionId means two things. For a signed schedule it is a money execution id. For a Board budget schedule it is the command id (writes.ts:230). Readers tell the two apart with `schedule.executionId !== schedule.commandId` (reads.ts:136, lifecycles/reads/reschedules.ts:58), and there are two lookups with different semantics: by_execution .unique() and by_command latest .first() (reads.ts:17,28).",
+      "Organizations reaches into Payments' internals. It schedules four internal Payments operations by runAfter (organizations/proposals/writes/settlements.ts:73,99,106,112) and runQuery's internal.payments.schedules.loadBoardCancel (cancel-scheduled.ts:51). It imports ownersVoidExecution from #payments/commands/external/owners (cancel-scheduled.ts:13), not the door. Accounts likewise imports scheduledSubmitted from #payments/schedules/external (accounts/approvals/operations/send-approved.ts:13).",
+      "A reschedule's gate refusal becomes a defect. prepareIntent runs requireFeature('scheduled-payments') outside its attempt (prepare-intent.ts:50-54). The action admits only INTENT_FAILURES (lifecycles/writes/transactions.ts:26), so FEATURE_NOT_AVAILABLE becomes UNKNOWN on the wire, and the PREPARE row does not declare it (protocol operations.ts:79).",
+      "payment_initiated never fires for lifecycle prepares. claimInitiated runs only for requests with `items` (executions/external/builds.ts:271), so a retry or a reschedule's new birth never gets emitPaymentInitiated=true.",
+      "store-approved retries blindly. Every failure of store/send/complete, including permanent refusals (WRONG_STATE, INVALID_INPUT), is retried 10 times a minute apart. After that it stops with nothing recorded on the command or the proposal, so a Directors-approved dated payment can silently never be stored (store-approved.ts:77-88).",
+      "store-board-scheduled gives up quietly. When Budgets' ids are not found after 10 tries 30 s apart, it returns null and leaves the Board-executed command prepared, with no schedule and no failure (board.ts:83-94).",
+      "A failed funding read counts as funded. allowanceShortfall and balanceShortfall are wrapped in Effect.orElseSucceed(() => null), so a chain outage on the day-ahead check reports no shortfall (schedules/external.ts:71-79).",
+      "failCommand is decided in the action, not the transaction that writes it. sendDue reads the execution's state in a separate query, and record applies the result later in its own mutation (schedules/external.ts:194-204, 241-250; writes.ts:188-196). The execution can move between the read and the record.",
+      "The due job does slow chain work while it holds leases. It processes up to 25 schedules sequentially in one action. Budgets.execute signs, broadcasts and waits for each receipt inline (external/budget-executor.ts:56-104) under a 10-minute lease (writes.ts:20). A partially cancelled Budgets batch keeps its cancelled items' Payments settling (budget-executor.ts:63-64 ponytail).",
+      "Lifecycle authorization is split across layers. The signer check lives in lifecycles/guards.ts:22-24 and the scope check in reads/retries.ts:47. The Directors' void path calls the planner directly and skips the signer check (prepare-owners-void.ts:26), relying on Organizations' requireOwner.",
+      "The same JSON is decoded over and over. preparedCommandJson/intentJson are re-decoded by commandFundingFactsInTx (reads.ts:61), authorizePaymentCommandSubmissionInTx (guards/authority.ts:180-193), loadPaymentRetrySourceInTx (retries.ts:220-223) and rescheduledBirthInTx (reschedules.ts:107) within one call chain."
+    ],
+    "notes": "I fixed schedules.ts in place, and it typechecks cleanly: `npx tsc -p .` gives no errors for as-is/payments/schedules.ts. neighbors.ts now exists and defines every procedure and table this file imports, including procedure_access_require_feature_from_action. So the writer's long `missing` list is resolved except rpc_organizations_proposals_settle.\n\nI loaded the module with node --experimental-strip-types. All 18 records build, with no undefined references and no duplicate references in any list. I added a uniq helper because the lifecycle touch lists overlap. No about is longer than 2000 characters and no line is longer than 300.\n\n**New shared constants:**\n- SUBMISSION_AUTHORITY_READS\n- TO_WIRE_INVOKES and COMMAND_WIRE_INVOKES (the store and complete answer)\n- SEND_STEP_INVOKES and SEND_STEP_DRIVES (claim, classify and complete folded into the actions that run them, as commands.ts does)\n- LIFECYCLE_PREPARED_TOUCHES\n\n**Kept as written:**\n- spans stays [], as the task says (no withSpan). Note that executions.ts books chain-rpc and convex.* spans instead, so the two files are inconsistent.\n- timeoutMs uses Convex's platform limits; both abouts say so.\n\n**Problems in sibling files, not mine:**\n- data.ts says machine_payment_schedule.t.to_cancelled emits payment_transitioned. The Board and chain cancel path through chainCancelledInTx sends none (board-cancels.ts:27-50). A build check on transition emits will flag cancel-board-scheduled and record. That flag is accurate evidence about the old code.\n- The full book build fails at module load: operations.ts:33 imports flow_client_approvals_prepare, which flows.ts does not export.\n- The flows.ts import issue the writer reported is already fixed: flows.ts:24 now imports from ./schedules.ts."
+  }
+}

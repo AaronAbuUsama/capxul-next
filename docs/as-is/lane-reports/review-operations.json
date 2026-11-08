@@ -1,0 +1,87 @@
+{
+  "run": "wf_dc4cec57-692",
+  "label": "v2:9a7f87dad5dc84e85fe48a5509f21577f33b769d2e613e7565c8a9d84d4e7857",
+  "result": {
+    "file": "/home/user/capxul-next/books/as-is/payments/operations.ts",
+    "checked": 7,
+    "findings": [
+      {
+        "record": "operation_payment_send",
+        "problem": "The ROLE_PERMISSION_DENIED refusal had given \"after-s1\", and the world after-s1 cannot reach it. The comment also claimed that s2.19 restores after-s1 (s2:827), which is wrong: s2.1 restores it, and s2.19 runs 18 steps later. The `ref:` eval restores the given world and runs one command, so the given must be a world where Ben or Sam is a member who is not a Director.",
+        "evidence": "packages/scenarios/src/acme/s2-the-team-and-its-permissions.scenario.ts:157 (s2.1 restores after-s1), :178 and :206 (Ben is invited at s2.4 and accepts at s2.8), :444 (s2.19 has dependsOn s2.8), :175 and :1599 (s2.20 saves after-s2 straight after s2.19). s1-acme-is-founded.scenario.ts:1722 (s1.15 makes Sam a co-Director, so Acme is 2 of 2 at after-s1, as s2:825 says). packages/book/src/evals.ts:47 (`from ${given}, it refuses ...`). s10.19 (s10:840) reaches the same code from after-s10 by an overspend (reason budget_exhausted), which this `when` does not describe.",
+        "fixed": true
+      },
+      {
+        "record": "operation_payment_send, operation_payment_retry, operation_payment_cancel, operation_payment_reschedule",
+        "problem": "returns was one Struct that requires all eight fields. The CLI prints one of two shapes: the open approval (status, approvalId, approvalUrl, paymentIds, expiresAt, next) or the ApprovalOutcome (approval, payments). A required Schema.Unknown key fails when it is absent (I tested this on effect 4.1.2), so the Struct decoded neither output, and the generated `ret` eval could never pass. Fixed with a shared ApprovalHandOver: a Union of one Struct per shape. `payments` is typed as Schema.Array(Payment), because readApprovalPayments decodes each one through payments.records.get or .get-for-organization.",
+        "evidence": "apps/cli/src/commands/payment/internal/approval.ts:49 (awaitingApproval), :311-313 (returned to --json while the approval is pending), :204 (paidResult data = outcome); packages/sdk/src/accounts/approval-records.ts:23; packages/sdk/src/accounts/organization-approvals.ts:131; packages/book/src/evals.ts:45 ('a success prints exactly the returns schema with --json'). After the fix, both shapes decode and an object of neither shape is refused.",
+        "fixed": true
+      },
+      {
+        "record": "operation_payment_wait",
+        "problem": "returns was one Struct that requires id, status, receipt, approval and payments together. A wait on a payment ID prints the bare Payment, and a wait on an approval ID prints the ApprovalOutcome, so no output decoded. Changed to a Union of the two shapes. A comment notes that an agreement write's approval prints the agreement's own read, which neither shape in the book covers.",
+        "evidence": "apps/cli/src/commands/payment/internal/wait.ts:170 (data: payment); apps/cli/src/commands/payment/subcommands/wait/approval.ts:114-115 (outcome), :100 and :112 (agreement data)",
+        "fixed": true
+      },
+      {
+        "record": "operation_payment_send",
+        "problem": "The comment on implementation was incomplete. It left out the client.accounts.read before prepare and the client.approvals.wait follow. It also left out that the --org path reads the treasury, the allowances and what is left, then refuses an overspend in the CLI itself (ROLE_PERMISSION_DENIED, budget_exhausted). And it left out the CLI-only personalAsDirectors refusal. I updated the comment and added these lines to was.",
+        "evidence": "apps/cli/src/commands/payment/subcommands/send/execute.ts:80 and :94; internal/approval.ts:175; apps/cli/src/commands/org/subcommands/payment/subcommands/send/execute.ts:40-88; send/as-directors.ts:29",
+        "fixed": true
+      },
+      {
+        "record": "operation_payment_get",
+        "problem": "The comment on given \"after-s1\" was misleading. Dana's payment, which s1.37 reads, is made at s1.33, after s1.20 saves after-s1, so it is not in that snapshot. The given still holds: the row answers null both for a missing Payment and for one Sam cannot read, and the CLI refuses any null with INVALID_INPUT. I rewrote the comment and added evidence.",
+        "evidence": "packages/scenarios/src/acme/s1-acme-is-founded.scenario.ts:1958 (s1.20 saves after-s1), :1073-1075 (s1.33-s1.37 come after); personal-payment.ts:344-357; apps/cli/src/commands/payment/internal/shared.ts:69; packages/protocol/src/payments/operations.ts:115",
+        "fixed": true
+      },
+      {
+        "record": "operation_payment_list",
+        "problem": "The book's INVALID_INPUT refusal covers an unknown `--after` cursor, but the CLI refuses that cursor with CLI_USAGE. It also refuses a `--limit` outside 1 to 100 with CLI_USAGE, which the book does not list. I kept the record's code as the book gives it, because refusal codes come from the book, and added a comment that records the difference.",
+        "evidence": "apps/cli/src/runtime/paging.ts:43 and :82 (inputRequired); apps/cli/src/auth/input.ts:20 (code CLI_USAGE); apps/docs/factory/operations/payment.list.yaml:20-21",
+        "fixed": false
+      },
+      {
+        "record": "operation_payment_reschedule",
+        "problem": "The comment on implementation was incomplete. It left out four steps: the CLI refuses an unreadable --on before any session; it reads the Payment first; only a `scheduled` Payment tries the one-approval move; and any answer other than WRONG_STATE is handed over as it is. It also left out that the send-window check (INVALID_INPUT on `on`) runs only on the void path, and that a Payment that is not scheduled goes straight to the last prepare. I rewrote the comment and added the evidence lines.",
+        "evidence": "apps/cli/src/commands/payment/subcommands/reschedule/execute.ts:32, :48, :50-52, :53-61, :64, :76; internal/voids.ts:30",
+        "fixed": true
+      },
+      {
+        "record": "operation_payment_cancel",
+        "problem": "The comment did not say that --org --as-directors prints a proposal output, which the page's returns do not describe. It also did not say that --as-directors without --org is refused CLI_USAGE by personalAsDirectors, or that untilVoided reads the Payment every 2 s for up to 180 s. I added these to the comment.",
+        "evidence": "apps/cli/src/commands/payment/subcommands/cancel/command.ts:30-34; apps/cli/src/commands/org/subcommands/payment/subcommands/send/as-directors.ts:25-31; apps/cli/src/commands/payment/internal/voids.ts:11-12, :38-53",
+        "fixed": true
+      },
+      {
+        "record": "file header",
+        "problem": "The header cited awaitingApproval at approval.ts:50; the function is at :49. It also listed `payments` as Schema.Unknown, which is no longer true. Updated.",
+        "evidence": "apps/cli/src/commands/payment/internal/approval.ts:49",
+        "fixed": true
+      }
+    ],
+    "missing": [
+      {
+        "export": "flow_client_approvals_prepare",
+        "kind": "flow",
+        "ownerFile": "flows.ts",
+        "why": "The send, retry, cancel and reschedule CLI commands all call client.approvals.prepare (packages/sdk/src/accounts/approvals.ts:106). It composes safes.loadByAuthUserId, then a prepare row (payments.commands.prepare or prepare-organization, or payments.lifecycles.prepare-scoped for retry, cancel and reschedule), then approvals.request, and calls executions.abandon on a mismatch. flows.ts now exists, but its header says it books only client.payments and client.org(orgId).payments, and its last comment says the cancel and reschedule pages name client.approvals.prepare. So no file owns this flow. It may belong in an accounts or approvals book, but CONVENTIONS.md names flows.ts as the owner of every flow. operations.ts still imports it, and the one typecheck error left is TS2305 'has no exported member flow_client_approvals_prepare'."
+      }
+    ],
+    "designFindings": [
+      "The book's sdk lines do not match the code. payment.send.yaml:4 names client.payments.pay and payment.retry.yaml:4 names client.payments.retry, but the CLI calls client.approvals.prepare for both (send/execute.ts:94, retry/execute.ts:32). The designed methods client.payments.cancel and .reschedule (payment.cancel.yaml:41, payment.reschedule.yaml:37) do not exist on PaymentsMethods (packages/sdk/src/payments/methods.ts:28-44).",
+      "Writing a payment goes through one SDK method in another concept's folder. client.approvals.prepare (packages/sdk/src/accounts/approvals.ts:106-152) branches on the keys of its input: retry, cancel, reschedule, request and payrollRun go to command approvals (command-approvals.ts:129); invite goes to invitations; permission goes to Permission changes; organizationId goes to Organization payments; anything else is a personal payment. Payments, permissions, invitations and payroll all share this one entry point.",
+      "Business rules are duplicated in the CLI. The --org send refuses ROLE_PERMISSION_DENIED budget_exhausted itself, 'as the backend's gate refuses it' (apps/cli/src/commands/org/subcommands/payment/subcommands/send/execute.ts:77-88). Personal send checks that you hold the asset against a separate client.accounts.read (send/execute.ts:162-168, :175-180). The reschedule date-window check runs in the CLI only on the two-approval path (reschedule/execute.ts:53-61).",
+      "Reschedule is orchestrated in the CLI, and its fallback is driven by an error code. It reads the Payment, tries the one-approval move, and when that is refused WRONG_STATE it prepares a cancel, follows the void, then prepares again (apps/cli/src/commands/payment/subcommands/reschedule/execute.ts:48-77). A business flow with several steps lives below neither the SDK nor the backend.",
+      "The Payment lifecycle has no state for 'void sent'. A cancel's approval ends when the void is sent while the Payment still reads scheduled (#2439), so the CLI polls client.payments.get every 2 s for up to 180 s and fails WRONG_STATE if the Payment still does not read cancelled (apps/cli/src/commands/payment/internal/voids.ts:1-3, :11-12, :38-53).",
+      "Lists are not paged. payments.records.list takes Schema.Struct({}) (packages/protocol/src/payments/operations.ts:109-113), the SDK passes {} (packages/sdk/src/payments/methods.ts:72-76), and the backend 'answers whole' while the CLI cuts pages locally (apps/cli/src/runtime/paging.ts:1-4, :70-97). The payload grows with every Payment the Account ever made.",
+      "The book's refusals disagree with the code or leave codes out. An unknown --after cursor and a bad --limit are refused CLI_USAGE (paging.ts:43, :82; auth/input.ts:20), not the INVALID_INPUT that payment.list.yaml:20 names. The pages for send, retry, cancel and reschedule leave out codes the follow step emits: WRONG_STATE for an expired approval (approval.ts:109, which send acceptance line 5 even tests), CANCELLED for a rejection (approval.ts:100), CLI_DEADLINE (approval.ts:118) and TRANSACTION_FAILED (approval.ts:131). The ROLE_PERMISSION_DENIED `when` for send leaves out the overspend case (budget_exhausted) that s10.19 reaches.",
+      "The meaning the book gives for get's `timing` is wrong. payment.get.yaml:31-32 says 'When it was created, sent and settled', but the wire timing is the release kind: instant, scheduled at, or a stream window (packages/protocol/src/payments/payment-schema.ts:96-110). Creation time is createdAt and updatedAt, and the Payment carries no settlement time.",
+      "The returns pages run two exclusive --json shapes into one field list. One shape is the open approval (approval.ts:49); the other is the ApprovalOutcome (approval.ts:204). For wait, the shapes are a Payment or an ApprovalOutcome. payment.wait.yaml says wait follows an agreement write's approval, but for one it prints the agreement read (wait/approval.ts:100, :112), which the page's returns do not cover.",
+      "One command has two implementations. With --as-directors, `payment send` and `payment cancel` switch to Organization proposal flows (proposals.pay and proposals.cancelScheduled) with their own outputs (send/command.ts:87-94, cancel/command.ts:30-34). Without --org they fail CLI_USAGE through a CLI-only `personalAsDirectors` (org/.../send/as-directors.ts:29). `payment wait` routes on `startsWith(\"approval_\")` (wait/approval.ts:39), so a payment wait and an approval wait share one argument.",
+      "A missing Payment and one the caller may not read get the same answer. payments.records.get returns null for any id the caller did not send or receive (packages/protocol/src/payments/operations.ts:115), and the CLI turns every null into INVALID_INPUT (apps/cli/src/commands/payment/internal/shared.ts:69), so refusals and evals cannot tell the two apart.",
+      "World names are ambiguous. saveWorld(\"after-s1\") runs at s1.20, but S1 goes on to s1.49 (s1:184-185, :1958). after-s2 is saved at s2.20 and S2 runs to s2.40 (s2:174-175). S2 restores after-s1 only 'if another chapter ran since' (s2:825). So after-sN is not the world chapter N leaves, and state such as Dana's payment from s1.33 is in no named world. That makes `given` hard to assign."
+    ],
+    "notes": "I reviewed all 7 records against the yaml pages, the CLI subcommands, the SDK methods, the protocol rows and the scenarios. Every book string is verbatim: I parsed the yaml with PyYAML and found each string exactly in the file. The three send notes over 300 characters are split at sentence ends, and they join back to the original text. Acceptance lines are numbered by position. Ids and export names follow CONVENTIONS.md, there are no budgets, and implementedBy is chosen by what each CLI command calls: list and get forward one rpc each, wait calls client.payments.subscribe, and send, retry, cancel and reschedule call client.approvals.prepare. The Payment transcription matches payment-schema.ts:158.\n\nChanges to /home/user/capxul-next/books/as-is/payments/operations.ts:\n- send's ROLE_PERMISSION_DENIED given changed from after-s1 to after-s2.\n- Added a shared ApprovalHandOver Union, used as returns by send, retry, cancel and reschedule.\n- wait's returns is now a Union of the two shapes.\n- Comments corrected on send, get, list, cancel and reschedule; was evidence added.\n\nChecks:\n- Typecheck: the only error left is TS2305, that ./flows.ts has no exported member flow_client_approvals_prepare (see missing). flow_client_payments_subscribe now exists in flows.ts. vocabulary.ts and movements.ts export everything the file imports.\n- I loaded the file under node with stand-in siblings, in a scratch copy at /tmp/claude-0/-home-user/c92cd756-b1a0-5414-9fe4-a7834db8d32a/scratchpad/rev/run. All 7 records pass defineOperation. The new returns decode a Payment, an ApprovalOutcome and an open approval, and refuse an object of neither shape.\n- I scanned packages/scenarios for every refuse step on a payment command. The only ones in scope are s1.14, s2.19 and s10.19 (send, ROLE_PERMISSION_DENIED) and s1.37 (get, INVALID_INPUT), so every other refusal correctly keeps given \"?\".\n\nSide effect: while testing Effect's missing-key behaviour I briefly created /home/user/capxul-next/packages/book/.rev-tmp.ts and deleted it straight away. Nothing else outside operations.ts was touched, and nothing was committed."
+  }
+}

@@ -1,0 +1,117 @@
+{
+  "run": "wf_6490ba05-3ea",
+  "label": "v2:103a147b51f5320946cdb5bd9834ee0312da3b7c3f6c27ff9029fed75e5c94b0",
+  "result": {
+    "file": "/home/user/capxul-next/books/as-is/payments/movements.ts",
+    "checked": 11,
+    "findings": [
+      {
+        "record": "rpc_payments_records_emit_transition",
+        "problem": "The about said the run 'verifies the Organization when one is named'. It does not: telemetry.organizationVerified just stores the scheduled organizationId and reads nothing. The writer copied that id from command.actorId.",
+        "evidence": "packages/backend/src/payments/events/deliveries.ts:211-212; packages/backend/src/platform/telemetry.ts:133; packages/backend/src/payments/events/writer.ts:166",
+        "fixed": true
+      },
+      {
+        "record": "rpc_payments_records_emit_transition",
+        "problem": "The about left out three facts. The PostHog post waits at most 1 s, and a failed post is reported, never thrown. A per-command payment_verification_retry goes through the per-Payment writer, so it is delivered once per Payment and bumps each Payment's lifecycleSequence.",
+        "evidence": "platform/observation/telemetry.ts:40,113,115; payments/verifications/events.ts:28; payments/events/writer.ts:93-117,217",
+        "fixed": true
+      },
+      {
+        "record": "workflow_payments_notices_notify",
+        "problem": "Wrong about: a `cancelled` notice is sent on more paths than 'a Board cancels it or a landed void ends it'. chainCancelledInTx also runs when the due job reads the reservation cancelled on chain and when a budget holder's reschedule lands.",
+        "evidence": "payments/schedules/writes.ts:178; payments/schedules/writes/board-cancels.ts:66; payments/schedules/operations/board.ts:155; board-cancels.ts:32",
+        "fixed": true
+      },
+      {
+        "record": "workflow_payments_notices_notify",
+        "problem": "The about left out five facts. The args are commandId, event, attempt, plus paymentId and only on a retry. The emails are planned per Payment, so the payer gets one failed or short email for each Payment of a batch. A facts read that throws ends the run as a defect with no retry, and so does a send that throws (resendClient.get() is outside sendMail's try).",
+        "evidence": "notices/operations/notify.ts:44-48; notices/rules.ts:57,95-115; notices/reads.ts:87; notices/external.ts:35 (Effect.promise); integrations/mail/service.ts:149",
+        "fixed": true
+      },
+      {
+        "record": "rpc_payments_notices_notice_facts",
+        "problem": "The about was imprecise and incomplete. The payer's name comes only from the command's first Payment, with fallbacks 'Your payer' and 'your payee'. The payer's mailbox is looked up through moneyExecutions by the schedule's executionId, and a Board's schedule stores its commandId there, so that lookup can come back null.",
+        "evidence": "notices/reads.ts:43,49,50,52,58,65; schedules/writes.ts:230",
+        "fixed": true
+      },
+      {
+        "record": "rpc_payments_records_list / get / list-for-organization / get-for-organization / payout-stage",
+        "problem": "PaymentId and OrgId were Schema.String. The protocol rows use non-empty strings: PaymentIdSchema = nonEmpty(...) and OrgId = Schema.NonEmptyString.",
+        "evidence": "packages/protocol/src/payments/value-schema.ts:13; packages/protocol/src/payments/operations.ts:42",
+        "fixed": true
+      },
+      {
+        "record": "rpc_payments_records_list",
+        "problem": "The about did not say how a list fails. Both index reads are unbounded collect() calls, and if one Payment's projection throws, the whole list fails. A missing counterparty throws INVALID_INPUT; attempt([]) turns it into a defect, but asCapxulError decodes the CapxulError back, so INVALID_INPUT on paymentId reaches the caller. Only a broken stored row comes out as UNKNOWN.",
+        "evidence": "payments/reads/payments.ts:173,179,184; payments/views/recipients.ts:24; platform/execute.ts:120; platform/observation/evidence.ts:27-29",
+        "fixed": true
+      },
+      {
+        "record": "rpc_payments_records_get",
+        "problem": "The about did not say that the Payment row is read twice: findParticipantPaymentReferenceInTx reads it, then readPaymentViewInTx reads it again. It also did not say that a projection that throws fails the read, with INVALID_INPUT for a missing counterparty.",
+        "evidence": "payments/records/reads.ts:34-39; payments/reads/payments.ts:130,139",
+        "fixed": true
+      },
+      {
+        "record": "PROJECTION_WAS (all public records rpcs)",
+        "problem": "The invokes list procedure_parties_party_by_safe_address, but the was list had no line where the projection calls it.",
+        "evidence": "payments/views/recipients.ts:83",
+        "fixed": true
+      },
+      {
+        "record": "workflow_payments_notices_notify",
+        "problem": "The trigger names machine_payment_schedule.t.to_sent. data.ts now books to_waiting (from []), the insert that fires the first notice of every schedule, which would arguably be the better single trigger. The schema allows one trigger, and the about lists every source, so I kept the writer's choice.",
+        "evidence": "books/as-is/payments/data.ts machine_payment_schedule.to_waiting; schedules/writes.ts:84,252; verifications/writes/budget-schedules.ts:106",
+        "fixed": false
+      },
+      {
+        "record": "workflow_payments_notices_notify",
+        "problem": "timeoutMs 600000 is Convex's 10-minute action limit; the code sets no timeout. The schema requires the field, and the about says the value comes from the platform, so it stays, but this is a platform limit rather than a value read from the code.",
+        "evidence": "packages/backend/src/payments/notices/operations/notify.ts:21 (no timeout set)",
+        "fixed": false
+      }
+    ],
+    "missing": [
+      {
+        "export": "table_accounts, table_identities, table_orgs, table_counterparty_destinations",
+        "kind": "table",
+        "ownerFile": "neighbors.ts",
+        "why": "neighbors.ts still does not exist. The wire projection reads these tables directly with ctx.db (views/recipients.ts:74,79,87,108). This is now the file's only typecheck error (TS2307)."
+      },
+      {
+        "export": "procedure_access_authenticated_user, procedure_accounts_account_id_for_auth_user_or_null, procedure_organizations_require_org_participant, procedure_organizations_read_organization_name_in_tx, procedure_parties_party_by_id, procedure_parties_party_by_safe_address, procedure_documents_load_payment_documents, procedure_documents_current_payment_documents, procedure_books_book_asset_by_id_in_tx, procedure_banking_read_payout_delivery_in_tx",
+        "kind": "procedure",
+        "ownerFile": "neighbors.ts",
+        "why": "Invoked by the records rpcs and by noticeFacts (platform/session.ts:18, records/guards.ts:21,33, notices/reads.ts:21,52, views/recipients.ts:52,83, reads/payments.ts:141, views/payments.ts:149,238,255)."
+      },
+      {
+        "export": "operator.notices.record / operator.outboxes.record",
+        "kind": "rpc (operator concept)",
+        "why": "notify writes each recipient's delivery record through operator's internal mutation (integrations/mail/notices.ts:41), and on a local devnet the mail sink (integrations/mail/service.ts:171). No payments file owns operator records, so these appear only in about and steps."
+      },
+      {
+        "export": "posthog integration",
+        "kind": "integration/call",
+        "why": "emitTransition posts to PostHog (platform/observation/telemetry.ts:95,112). The convention's integration list has no posthog entry, so calls is []."
+      }
+    ],
+    "designFindings": [
+      "Telemetry bookkeeping lives in the Payment ledger and drives user-facing reads. scheduleWriterTelemetry is the only writer of payments.terminalOutcome, terminalEventId, terminalAt and lifecycleSequence (events/writer.ts:217-222). The wire projection then reads terminalOutcome to decide execution certainty (executions/views/executions.ts:70), and the rail-return logic reads it too (writer.ts:199). A telemetry claim is acting as domain state.",
+      "payment_verification_retry is a per-command event sent through the per-Payment writer (verifications/events.ts:28 -> events/writer.ts:93-117). A retry of an N-Payment batch delivers N events and bumps lifecycleSequence on every Payment.",
+      "Attribution is trusted by assertion. emitTransition marks the scheduled organizationId as verified without reading anything (deliveries.ts:211-212, platform/telemetry.ts:133).",
+      "The attempt([]) seam does not do what its comment says. It turns an undeclared CapxulError into a defect, but execute squashes the cause and asCapxulError decodes it back (platform/attempt.ts:47, platform/execute.ts:120, observation/evidence.ts:27-29). So a stored-data defect such as a missing counterparty reaches records.list/get callers as INVALID_INPUT on paymentId (views/recipients.ts:24), not UNKNOWN.",
+      "The records list is unbounded and N+1. It runs two whole-index collect() calls (reads/payments.ts:167-180) and then a full projection per Payment, each touching about 10 tables and neighbour readers. It answers one page with nextCursor always null (platform/page.ts:11), and one broken Payment fails the whole list.",
+      "records.get and getForOrganization read the Payment row twice per call (records/reads.ts:34-39; reads/payments.ts:130,139).",
+      "Read boundary: payments' projection reads accounts, identities, orgs and counterpartyDestinations directly with ctx.db (views/recipients.ts:74,79,87,108) instead of going through those concepts' doors.",
+      "Scheduled-payment notices email the payer once per Payment. Planning and delivery run per Payment (notify.ts:44-48), so a batch of N sends the payer N failed or short emails (rules.ts:95-115). The payer's name is taken only from the first Payment (notices/reads.ts:43-52).",
+      "The payer's mailbox is looked up through moneyExecutions by schedule.executionId (notices/reads.ts:46-49). A Board's schedule stores its commandId as executionId (schedules/writes.ts:230), so a Board's payer probably never gets failed or short emails.",
+      "Notices are at-most-once and fragile. A facts read that throws (for example storedRowBroken from loadPayments, reads/payments.ts:47) or a send that throws (resendClient.get() outside the try, mail/service.ts:149) kills the scheduled action with no retry and no delivery record. Correct delivery depends on a side-effect import in the registration file (convex/payments/notices.ts:4).",
+      "No idempotency on notices: the notice key only names the operator delivery row, which is upserted (operator/notices/writes.ts:32). Nothing stops a second send if a step schedules the same event twice.",
+      "The mail integration depends on an app concept: it writes operator.notices.record and, on local devnets, operator.outboxes.record (integrations/mail/notices.ts:41, service.ts:171).",
+      "The Movement canonicalState values included and finalized make no behavioural difference. isIncludedMovement treats them alike (movements/rules/movements.ts:7), and the activity read hard-codes canonicalState 'finalized' whatever is stored (movements/reads/movements.ts:101). The migrate and rollback pair exists only to rename a stored value. The rollback cannot tell migrated rows from rows the scan wrote as included (movements/writes/inclusions.ts:9-24 vs projections.ts:81, rules/movements.ts:105), and observed has no writer.",
+      "Dead code: payments.records.loadPurposeKinds is registered (convex/payments/records.ts:8) and catalogued (observability/src/operations/payments.ts:96) but has no caller. Its purpose, the payment_failed event, was renamed in CAP-1251, yet the emitTransition validator still accepts the legacy names (events/deliveries.ts:34-38)."
+    ],
+    "notes": "I fixed movements.ts in place. All 11 records were checked against the old code: 10 rpcs and 1 workflow. Nothing in scope is missing and every record is classified correctly. The ids and export names follow CONVENTIONS.md, and the sibling imports match the exports in foundation.ts, vocabulary.ts, data.ts and external.ts. In data.ts, machine_movement has to_included from finalized and to_finalized from included, machine_payment_schedule.t.to_sent exists, and external.ts has integration_mail.c.deliverNotices. Every record now passes its define* validation; I ran node --experimental-strip-types in the scratchpad against stub siblings. The real typecheck (cd books && npx tsc -p .) shows one error left in this file, TS2307 for ./neighbors.ts, which does not exist yet. The was lines I added were each checked against the line they describe. No budgets or worlds were added."
+  }
+}

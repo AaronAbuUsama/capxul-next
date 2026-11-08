@@ -1,0 +1,35 @@
+{
+  "run": "wf_dc4cec57-692",
+  "label": "v2:a4e8b177deeb97f8992d6cc821cd13776340cbe1639ddb1844537d49aa9d088d",
+  "result": {
+    "file": "/home/user/capxul-next/docs/decisions/policy-pack.md",
+    "records": 12,
+    "exports": [
+      "How to read this pack",
+      "P1. Frozen acceptance text versus black-box claims",
+      "P2. Orphan SDK methods and unreached protocol rows",
+      "P3. What counts as a workflow, and what old plumbing disappears",
+      "P4. Writes across concepts inside one transaction",
+      "P5. Budget classes and the default p50 and p95 per class",
+      "P6. Required child spans",
+      "P7. Which of the 109 catalog events survive",
+      "P8. The tenancy model in one Postgres with Ponder",
+      "P9. Dropping pre-v4 contracts, tables and code paths entirely",
+      "P10. When the old book and the old code disagree, which wins",
+      "Summary"
+    ],
+    "missing": [
+      {
+        "export": "P5. Budget classes and the default p50 and p95 per class",
+        "kind": "evidence",
+        "why": "This run had no PostHog access, so I could not read staging p95 per operation (capxul_backend_operation duration_ms). The budgets rest on the 1,410 devnet proofs and docs/research/performance-baseline-2026-10.md. capxul/measure should read PostHog before M3."
+      },
+      {
+        "export": "P2. Orphan SDK methods and unreached protocol rows",
+        "kind": "evidence",
+        "why": "The React web app (30 pages) is not in /home/user/factory. React callers of orphan SDK methods were counted only through packages/sdk-react, so some of the 61 methods with no caller may have one in the web app."
+      }
+    ],
+    "notes": "I wrote the decision pack at /home/user/capxul-next/docs/decisions/policy-pack.md (1,087 lines). It names the rubric first (code size, money, measurability, effort, reversibility). Each of the ten policies then has its question, the evidence with counts and file:line paths in /home/user/factory at 0d2be303e, 2 to 4 options, a graded table with a reason in every cell, a recommendation that says why the other options lose, and the change to the book's schema or rules (a TypeScript sketch plus named new rules, gaps and evals). A one-page summary table and a 'not measured' list close it.\n\nRecommendations:\n- P1: freeze the claim, not the text. Strip the 732 of 733 test-file citations into `was`, keep about 585 lines verbatim, and rewrite about 148 lines that cite internals into black-box claims. Real samples are in a table, e.g. activity.events #3 and payment.send #9.\n- P2: classify and delete by default. My recount finds 184 of 348 SDK methods and 117 of 283 rows outside the book; findings said about 189 and about 134. Of these, 61 methods and 17 rows have no caller outside tests.\n- P3: a workflow is durable work that no caller waits on. It goes away: 37 emit-*, 12 *-intent, 34 load-*, 61 record-* (about 166 of 442 internal files). The 103 scheduler sites are classified, and the 8 crons drop to about 4.\n- P4: procedures for writes that belong to the same money fact, the outbox for notices. Evidence: applyChainSettlementInTx (payments/writes/settlements.ts:143-146) writes payroll, requests and books in one transaction. recordSettledPaymentInTx has 5 payments callers plus a books backfill. 0 imports use a door; all 402 cross-concept InTx imports use a deep path.\n- P5: class defaults from hop costs. Operation p50/p95: read 600/1,200 ms, write 700/1,500, chain-read 900/2,000, chain-submit 2,000/4,000, chain-settle 3,000/8,000, vendor 1,500/4,000, background 2,000/15,000, live push 300/1,000. The old devnet medians, from 20,723 proof samples over 189 operations, were read 1,164/2,047, write 1,466/3,207 and signed 6,422/10,054.\n- P6: boundary spans made by the runtime: db.tx, call.<integration>.<call>, workflow.step and wait.*, with one error.code name. The old system has 18 span sites in total.\n- P7: one <machine>_transitioned event per state machine, about 36 events. 54 of the 109 go (the 109 split as 55 state changes, 20 flow steps, 13 plumbing, 9 failures, 9 UI, 3 CLI). 16 of the 46 journey steps re-prove by the operation's success.\n- P8: a tenant column first in every key and index, plus generated row-level security, with tenancy organization, person, owner, global or chain. Ponder is read through Safe-scoped views. The old tables use 6 owner-key shapes, and 42 tables have no owner key.\n- P9: drop pre-v4 entirely and deploy v4 fresh on the new staging. Turning off old staging is flagged as Aaron's irreversible step.\n- P10: a ladder by kind of fact, refereed by a legacy run. Evidence: 81 operations carry two texts (current and designed), 54 are designed but unbuilt, and 35 exemptions.\n\nCaveats: counts come from scripts, so they are close, not exact. The SDK count comes from the generated reference pages, not a TypeScript walk. The budget classes for old proofs were assigned by the command's verb and designed.signs."
+  }
+}

@@ -1,0 +1,72 @@
+{
+  "run": "wf_6490ba05-3ea",
+  "label": "v2:bf7feef348555745901a4373b41e8147ef68c57926ecee7b2e3f4ed4436d89e3",
+  "result": {
+    "file": "/home/user/capxul-next/books/as-is/payments/flows.ts",
+    "records": 7,
+    "exports": [
+      "flow_client_payments_pay",
+      "flow_client_payments_retry",
+      "flow_client_payments_subscribe",
+      "flow_client_org_payments_pay",
+      "flow_client_org_payments_pay_batch",
+      "flow_client_org_payments_retry",
+      "flow_client_org_payments_subscribe"
+    ],
+    "missing": [
+      {
+        "export": "flow_client_approvals_prepare",
+        "kind": "flow",
+        "ownerFile": "flows.ts",
+        "why": "operations.ts already imports it from ./flows.ts (payment send/cancel/reschedule are implemented by client.approvals.prepare), but that method lives in packages/sdk/src/accounts/approvals*.ts (8 files), outside this writer's assigned scope (packages/sdk/src/payments/). Not booked; the build will fail on that import until it is assigned and written."
+      },
+      {
+        "export": "rpc_payments_commands_prepare",
+        "kind": "rpc",
+        "ownerFile": "commands.ts",
+        "why": "Step 'prepare' of flow_client_payments_pay. commands.ts did not exist at typecheck time (Cannot find module)."
+      },
+      {
+        "export": "rpc_payments_commands_prepare_organization",
+        "kind": "rpc",
+        "ownerFile": "commands.ts",
+        "why": "Step 'prepare' of the org pay and payBatch flows. commands.ts did not exist at typecheck time."
+      },
+      {
+        "export": "rpc_payments_lifecycles_prepare_scoped",
+        "kind": "rpc",
+        "ownerFile": "commands.ts",
+        "why": "Step 'prepare' of both retry flows. Owner is a guess: the backend lifecycles/ area has no area file of its own (movements.ts took records and notices). If another area file books it, change the import."
+      },
+      {
+        "export": "rpc_payments_executions_submit",
+        "kind": "rpc",
+        "ownerFile": "executions.ts",
+        "why": "Step 'submit' of flow_client_payments_pay. executions.ts did not exist at typecheck time."
+      },
+      {
+        "export": "rpc_payments_executions_submit_command",
+        "kind": "rpc",
+        "ownerFile": "executions.ts",
+        "why": "Step 'submit' of every prepared-command flow (retry, org pay, payBatch, org retry). executions.ts did not exist at typecheck time."
+      },
+      {
+        "export": "rpc_payments_executions_abandon",
+        "kind": "rpc",
+        "ownerFile": "executions.ts",
+        "why": "Step 'abandon' of the personal and Organization pay flows. executions.ts did not exist at typecheck time."
+      },
+      {
+        "export": "integration for the SDK CapxulSigner (calls getAddress, signUserOpHash)",
+        "kind": "integration",
+        "why": "The flows call the client-side signer directly (packages/sdk/src/signing/signer.ts:47, failures folded by signerFailure at :185). external.ts books only backend src/integrations/<vendor> folders, and the backend openfort integration is auth, not the signer. No owner by convention, so every flow's calls is [] and the signer appears only as local 'sign' steps."
+      },
+      {
+        "export": "rpc for permissions.allowances.list and payroll.departments.get",
+        "kind": "rpc",
+        "why": "The budget-route check (packages/sdk/src/payments/budget-route.ts:19) reads these two rows of other concepts through the Convex port before signing. The conventions give no owner for another concept's rpc (neighbors.ts owns only tables and procedures), so they are described in the 'budget-route' steps' about, not linked."
+      }
+    ],
+    "notes": "Flows booked: client.payments.pay, .retry, .subscribe and client.org(orgId).payments.pay, .payBatch, .retry, .subscribe (ids client.payments.* and client.org.payments.*). The records rpcs (rpc_payments_records_get, rpc_payments_records_get_for_organization) come from movements.ts, which books the records area. All 9 SDK-produced errors (CANCELLED, INVALID_INPUT, NOT_IMPLEMENTED, NOT_AUTHENTICATED, SIGNER_REJECTED, PROVIDER_ERROR, PROVIDER_RESPONSE_INVALID, UNKNOWN, NETWORK_ERROR) resolve in vocabulary.ts, and component_core_sdk resolves in foundation.ts. The only remaining typecheck errors are Cannot find module for ./commands.ts and ./executions.ts. All 7 records loaded without error at runtime against stubbed siblings, so the step-about, about and title length limits hold. As-is findings recorded in the abouts: (1) client.payments.pay opens no SDK span (spans []), because neither makePersonalPay nor executePersonalPayment runs under runCapxulEffect. (2) Lifecycle retries pass closePaymentOnExit false and never abandon a prepared execution. (3) The org pay span is organizationPayments.pay, not the org.payments.pay name the observability tree also declares. (4) Personal subscribe does not decode paymentId; the org path does. (5) On the personal path a missing signer is INVALID_INPUT while a missing actor or chain id is NOT_IMPLEMENTED. (6) payment_transitioned (initiated) is emitted client-side through the TelemetryPort; FlowSpec has no events field, so it is noted only in the abouts. The CLI's payment send/retry/cancel/reschedule use client.approvals.prepare, so the retry and org pay/batch/retry flows will likely report unused-flow. A closing comment lists the forward-only methods (quote, payoutStage, list, get, previewRetry, personal and org) with their rpcs. It also notes that client.payments.cancel and client.payments.reschedule, named by the old book, do not exist on PaymentsMethods, and that the door compositions executeRequestPayment and executePrepared are mounted by the requests and payroll folders. Nothing committed; no other file touched."
+  }
+}

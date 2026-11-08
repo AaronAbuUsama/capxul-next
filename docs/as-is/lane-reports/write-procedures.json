@@ -1,0 +1,468 @@
+{
+  "run": "wf_ac554c5f-cd1",
+  "label": "v2:39854a8436186d5ebd1a56b5b643b121cf67ff775981d808ac004cce93523b35",
+  "result": {
+    "file": "/home/user/capxul-next/books/as-is/payments/procedures.ts",
+    "records": 65,
+    "exports": [
+      "procedure_payments_apply_payout_rail_delivery_in_tx",
+      "procedure_payments_birth_collection_payment_in_tx",
+      "procedure_payments_ensure_proof_payout_payment_in_tx",
+      "procedure_payments_read_payout_funding_in_tx",
+      "procedure_payments_read_activity_settlement_links_in_tx",
+      "procedure_payments_read_payment_activity_view_in_tx",
+      "procedure_payments_read_payment_activity_window_in_tx",
+      "procedure_payments_read_payment_changes_in_tx",
+      "procedure_payments_read_payment_summary_in_tx",
+      "procedure_payments_is_payment_participant_in_tx",
+      "procedure_payments_find_payment_read_reference_in_tx",
+      "procedure_payments_read_payment_detail_in_tx",
+      "procedure_payments_read_movement_activity_view_in_tx",
+      "procedure_payments_read_movement_summary_fact_in_tx",
+      "procedure_payments_read_movement_activity_window_in_tx",
+      "procedure_payments_read_movement_detail_in_tx",
+      "procedure_payments_require_movement_annotation_reference_in_tx",
+      "procedure_payments_read_payment_participants_in_tx",
+      "procedure_payments_read_document_carrier_payments_in_tx",
+      "procedure_payments_lookup_party_recipient",
+      "procedure_payments_lookup_actor_recipient",
+      "procedure_payments_lookup_payment_recipient",
+      "procedure_payments_capture_memo_conflict_removal_in_tx",
+      "procedure_payments_read_account_ledger_references_in_tx",
+      "procedure_payments_read_request_payment_in_tx",
+      "procedure_payments_prepare_payment_command_in_tx",
+      "procedure_payments_replay_request_payment_approval_in_tx",
+      "procedure_payments_find_payment_intent_in_tx",
+      "procedure_payments_voided_by_landed_void_in_tx",
+      "procedure_payments_actor_inventory",
+      "procedure_payments_prepare_organization_payment_in_tx",
+      "procedure_payments_read_collection_payment_in_tx",
+      "procedure_payments_read_payroll_payment_view_in_tx",
+      "procedure_payments_find_payment_replay_source_in_tx",
+      "procedure_payments_prove_payroll_payment_replay_in_tx",
+      "procedure_payments_read_payment_command_completion_in_tx",
+      "procedure_payments_read_payroll_payment_command_proof_in_tx",
+      "procedure_payments_is_payroll_batch_settled_in_tx",
+      "procedure_payments_read_organization_payment_batch_facts_in_tx",
+      "procedure_payments_read_prepared_payment_views_in_tx",
+      "procedure_payments_read_active_payment_execution_replay_in_tx",
+      "procedure_payments_read_settled_payments_page_in_tx",
+      "procedure_payments_read_commitment_claims_in_tx",
+      "procedure_payments_explained_by_capxul",
+      "procedure_payments_read_outside_money_in_tx",
+      "procedure_payments_read_outside_money_orgs_in_tx",
+      "procedure_payments_read_outside_money_page_in_tx",
+      "procedure_payments_read_agreement_holdings_in_tx",
+      "procedure_payments_read_included_payment_occurrences_in_tx",
+      "procedure_payments_correct_payment_occurrences_in_tx",
+      "procedure_payments_read_movement_checkpoint_in_tx",
+      "procedure_payments_apply_movement_window_in_tx",
+      "procedure_payments_read_payment_ids_to_retry_in_tx",
+      "procedure_payments_read_signing_subject_in_tx",
+      "procedure_payments_read_approval_execution_in_tx",
+      "procedure_payments_read_command_join_in_tx",
+      "procedure_payments_has_execution_provider_attempt_in_tx",
+      "procedure_payments_schedule_for_execution_in_tx",
+      "procedure_payments_read_payment_payout_deadline_in_tx",
+      "procedure_payments_admit_permission_execution_acceptance_in_tx",
+      "procedure_payments_admit_invitation_configuration_acceptance_in_tx",
+      "procedure_payments_record_command_execution_acceptance_in_tx",
+      "procedure_payments_close_verified_command_execution_in_tx",
+      "procedure_payments_server_payment_authority_in_tx",
+      "procedure_payments_load_payment_retry_source_in_tx"
+    ],
+    "missing": [
+      {
+        "export": "procedure_access_can_read_scope_in_tx",
+        "kind": "procedure",
+        "ownerFile": "neighbors.ts",
+        "why": "neighbors.ts did not exist at typecheck time; canReadScopeInTx (access/sessions/guards.ts:65), used by findPaymentReadReferenceInTx and readMovementDetailInTx"
+      },
+      {
+        "export": "procedure_access_require_financial_read_principal_in_tx",
+        "kind": "procedure",
+        "ownerFile": "neighbors.ts",
+        "why": "neighbors.ts missing; requireFinancialReadPrincipalInTx (access/sessions/guards.ts), used by loadPaymentRetrySourceInTx"
+      },
+      {
+        "export": "procedure_access_require_financial_read_scope_in_tx",
+        "kind": "procedure",
+        "ownerFile": "neighbors.ts",
+        "why": "neighbors.ts missing; requireFinancialReadScopeInTx (access/sessions/guards.ts), used by readMovementDetailInTx"
+      },
+      {
+        "export": "procedure_accounts_find_account_recipient_in_tx",
+        "kind": "procedure",
+        "ownerFile": "neighbors.ts",
+        "why": "neighbors.ts missing; findAccountRecipientInTx (accounts/reads/ledger.ts:60)"
+      },
+      {
+        "export": "procedure_accounts_read_accounts_at_safe_in_tx",
+        "kind": "procedure",
+        "ownerFile": "neighbors.ts",
+        "why": "neighbors.ts missing; readAccountsAtSafeInTx (accounts/reads/ledger.ts), used by actorInventory"
+      },
+      {
+        "export": "procedure_accounts_require_account_signer_in_tx",
+        "kind": "procedure",
+        "ownerFile": "neighbors.ts",
+        "why": "neighbors.ts missing; requireAccountSignerInTx (accounts/reads/identity.ts:107)"
+      },
+      {
+        "export": "procedure_accounts_require_payment_account_in_tx",
+        "kind": "procedure",
+        "ownerFile": "neighbors.ts",
+        "why": "neighbors.ts missing; requirePaymentAccountInTx (accounts/reads/identity.ts:34)"
+      },
+      {
+        "export": "procedure_accounts_resolve_account_recipient_safe_in_tx",
+        "kind": "procedure",
+        "ownerFile": "neighbors.ts",
+        "why": "neighbors.ts missing; resolveAccountRecipientSafeInTx (accounts/reads/ledger.ts:68)"
+      },
+      {
+        "export": "procedure_activity_read_annotation_in_tx",
+        "kind": "procedure",
+        "ownerFile": "neighbors.ts",
+        "why": "neighbors.ts missing; readAnnotationInTx (activity/reads), used by readMovementDetailInTx"
+      },
+      {
+        "export": "procedure_banking_bind_payout_payment_in_tx",
+        "kind": "procedure",
+        "ownerFile": "neighbors.ts",
+        "why": "neighbors.ts missing; bindPayoutPaymentInTx (banking/payouts/writes/payments.ts:25)"
+      },
+      {
+        "export": "procedure_banking_classify_payout_refund_in_tx",
+        "kind": "procedure",
+        "ownerFile": "neighbors.ts",
+        "why": "neighbors.ts missing; classifyPayoutRefundInTx (banking/payouts/writes/refunds), used by applyMovementWindowInTx"
+      },
+      {
+        "export": "procedure_banking_read_payout_deadline_in_tx",
+        "kind": "procedure",
+        "ownerFile": "neighbors.ts",
+        "why": "neighbors.ts missing; readPayoutDeadlineInTx (banking/payouts/reads), used by readPaymentPayoutDeadlineInTx"
+      },
+      {
+        "export": "procedure_banking_read_payout_delivery_in_tx",
+        "kind": "procedure",
+        "ownerFile": "neighbors.ts",
+        "why": "neighbors.ts missing; readPayoutDeliveryInTx (banking/payouts/reads.ts:128)"
+      },
+      {
+        "export": "procedure_banking_read_payout_quote_for_payment_in_tx",
+        "kind": "procedure",
+        "ownerFile": "neighbors.ts",
+        "why": "neighbors.ts missing; readPayoutQuoteForPaymentInTx (banking/payouts/reads/quotes.ts:19)"
+      },
+      {
+        "export": "procedure_books_book_asset_by_id_in_tx",
+        "kind": "procedure",
+        "ownerFile": "neighbors.ts",
+        "why": "neighbors.ts missing; bookAssetByIdInTx (books/assets/reads.ts:50)"
+      },
+      {
+        "export": "procedure_books_book_asset_in_tx",
+        "kind": "procedure",
+        "ownerFile": "neighbors.ts",
+        "why": "neighbors.ts missing; bookAssetInTx (books/assets/reads.ts:33)"
+      },
+      {
+        "export": "procedure_books_record_settled_payment_in_tx",
+        "kind": "procedure",
+        "ownerFile": "neighbors.ts",
+        "why": "neighbors.ts missing; recordSettledPaymentInTx (books/facts/writes/money.ts:98)"
+      },
+      {
+        "export": "procedure_books_records_added_token_in_tx",
+        "kind": "procedure",
+        "ownerFile": "neighbors.ts",
+        "why": "neighbors.ts missing; recordsAddedTokenInTx (books/assets/reads), used by Movement admission"
+      },
+      {
+        "export": "procedure_books_reverse_commitment_claim_in_tx",
+        "kind": "procedure",
+        "ownerFile": "neighbors.ts",
+        "why": "neighbors.ts missing; reverseCommitmentClaimInTx (books/facts/writes/money)"
+      },
+      {
+        "export": "procedure_books_reverse_outside_money_in_tx",
+        "kind": "procedure",
+        "ownerFile": "neighbors.ts",
+        "why": "neighbors.ts missing; reverseOutsideMoneyInTx (books/facts/writes/movements)"
+      },
+      {
+        "export": "procedure_books_reverse_settled_payment_in_tx",
+        "kind": "procedure",
+        "ownerFile": "neighbors.ts",
+        "why": "neighbors.ts missing; reverseSettledPaymentInTx (books/facts/writes/money)"
+      },
+      {
+        "export": "procedure_books_schedule_outside_money_in_tx",
+        "kind": "procedure",
+        "ownerFile": "neighbors.ts",
+        "why": "neighbors.ts missing; scheduleOutsideMoneyInTx (books/facts/writes/movements)"
+      },
+      {
+        "export": "procedure_documents_admit_payment_document_pair_in_tx",
+        "kind": "procedure",
+        "ownerFile": "neighbors.ts",
+        "why": "neighbors.ts missing; admitPaymentDocumentPairInTx (documents/reads/contents.ts:153)"
+      },
+      {
+        "export": "procedure_documents_current_payment_documents",
+        "kind": "procedure",
+        "ownerFile": "neighbors.ts",
+        "why": "neighbors.ts missing; currentPaymentDocuments (documents/reads/payments.ts:108)"
+      },
+      {
+        "export": "procedure_documents_link_payment_document_in_tx",
+        "kind": "procedure",
+        "ownerFile": "neighbors.ts",
+        "why": "neighbors.ts missing; linkPaymentDocumentInTx (documents/writes/links.ts:73)"
+      },
+      {
+        "export": "procedure_documents_load_payment_documents",
+        "kind": "procedure",
+        "ownerFile": "neighbors.ts",
+        "why": "neighbors.ts missing; loadPaymentDocuments (documents/reads/payments.ts:81)"
+      },
+      {
+        "export": "procedure_documents_mark_movement_memo_orphaned_in_tx",
+        "kind": "procedure",
+        "ownerFile": "neighbors.ts",
+        "why": "neighbors.ts missing; markMovementMemoOrphanedInTx (documents/writes/occurrences)"
+      },
+      {
+        "export": "procedure_documents_orphan_absent_movement_memos_in_tx",
+        "kind": "procedure",
+        "ownerFile": "neighbors.ts",
+        "why": "neighbors.ts missing; orphanAbsentMovementMemosInTx (documents/writes/occurrences)"
+      },
+      {
+        "export": "procedure_documents_persist_movement_memo_in_tx",
+        "kind": "procedure",
+        "ownerFile": "neighbors.ts",
+        "why": "neighbors.ts missing; persistMovementMemoInTx (documents/writes/memos)"
+      },
+      {
+        "export": "procedure_documents_prepare_payment_documents_in_tx",
+        "kind": "procedure",
+        "ownerFile": "neighbors.ts",
+        "why": "neighbors.ts missing; preparePaymentDocumentsInTx (documents/writes/contents.ts:231)"
+      },
+      {
+        "export": "procedure_documents_read_movement_memo_for_occurrence_in_tx",
+        "kind": "procedure",
+        "ownerFile": "neighbors.ts",
+        "why": "neighbors.ts missing; readMovementMemoForOccurrenceInTx (documents/reads/movements)"
+      },
+      {
+        "export": "procedure_organizations_read_organization_safe_in_tx",
+        "kind": "procedure",
+        "ownerFile": "neighbors.ts",
+        "why": "neighbors.ts missing; readOrganizationSafeInTx (organizations/reads/organizations.ts:58)"
+      },
+      {
+        "export": "procedure_organizations_read_organizations_at_safe_in_tx",
+        "kind": "procedure",
+        "ownerFile": "neighbors.ts",
+        "why": "neighbors.ts missing; readOrganizationsAtSafeInTx (organizations/reads/organizations.ts:104)"
+      },
+      {
+        "export": "procedure_organizations_read_owner_safes_in_tx",
+        "kind": "procedure",
+        "ownerFile": "neighbors.ts",
+        "why": "neighbors.ts missing; readOwnerSafesInTx (organizations/reads/organizations.ts:50)"
+      },
+      {
+        "export": "procedure_parties_ensure_ledger_party",
+        "kind": "procedure",
+        "ownerFile": "neighbors.ts",
+        "why": "neighbors.ts missing; ensureLedgerParty (parties/writes/ledger.ts:60)"
+      },
+      {
+        "export": "procedure_parties_ensure_party_by_address",
+        "kind": "procedure",
+        "ownerFile": "neighbors.ts",
+        "why": "neighbors.ts missing; ensurePartyByAddress (parties/writes/parties), used by the Deposit birth"
+      },
+      {
+        "export": "procedure_parties_ensure_payment_wallet_destination_in_tx",
+        "kind": "procedure",
+        "ownerFile": "neighbors.ts",
+        "why": "neighbors.ts missing; ensurePaymentWalletDestinationInTx (parties/destinations/writes/payments.ts:26)"
+      },
+      {
+        "export": "procedure_parties_party_by_id",
+        "kind": "procedure",
+        "ownerFile": "neighbors.ts",
+        "why": "neighbors.ts missing; partyById (parties/reads/parties.ts:52)"
+      },
+      {
+        "export": "procedure_parties_party_by_safe_address",
+        "kind": "procedure",
+        "ownerFile": "neighbors.ts",
+        "why": "neighbors.ts missing; partyBySafeAddress (parties/reads/parties.ts:56)"
+      },
+      {
+        "export": "procedure_parties_record_contact_edges",
+        "kind": "procedure",
+        "ownerFile": "neighbors.ts",
+        "why": "neighbors.ts missing; recordContactEdges (parties/writes/edges.ts:125)"
+      },
+      {
+        "export": "procedure_parties_resolve_owned_payment_wallet_safe_in_tx",
+        "kind": "procedure",
+        "ownerFile": "neighbors.ts",
+        "why": "neighbors.ts missing; resolveOwnedPaymentWalletSafeInTx (parties/destinations/reads.ts:100)"
+      },
+      {
+        "export": "procedure_parties_resolve_payment_recipient_in_tx",
+        "kind": "procedure",
+        "ownerFile": "neighbors.ts",
+        "why": "neighbors.ts missing; resolvePaymentRecipientInTx (parties/reads/recipients.ts:127)"
+      },
+      {
+        "export": "procedure_payroll_read_department_spend_in_tx",
+        "kind": "procedure",
+        "ownerFile": "neighbors.ts",
+        "why": "neighbors.ts missing; readDepartmentSpendInTx (payroll/departments/reads/spend.ts:28)"
+      },
+      {
+        "export": "procedure_payroll_return_run_to_authorized",
+        "kind": "procedure",
+        "ownerFile": "neighbors.ts",
+        "why": "neighbors.ts missing; returnRunToAuthorized (payroll/runs/writes/progression), used by correctPaymentOccurrencesInTx"
+      },
+      {
+        "export": "procedure_payroll_settle_run_for_settled_payment",
+        "kind": "procedure",
+        "ownerFile": "neighbors.ts",
+        "why": "neighbors.ts missing; settleRunForSettledPayment (payroll/runs/writes/progression.ts:51)"
+      },
+      {
+        "export": "procedure_permissions_find_command_authority",
+        "kind": "procedure",
+        "ownerFile": "neighbors.ts",
+        "why": "neighbors.ts missing; findCommandAuthority (permissions/guards/managers.ts:165)"
+      },
+      {
+        "export": "procedure_permissions_read_permission_execution_proof_in_tx",
+        "kind": "procedure",
+        "ownerFile": "neighbors.ts",
+        "why": "neighbors.ts missing; readPermissionExecutionProofInTx (permissions/reads/approvals), used by closeVerifiedCommandExecutionInTx. Not the same function as the readPermissionExecutionOutcomeInTx that executions.ts imports"
+      },
+      {
+        "export": "procedure_permissions_read_worn_allowances_in_tx",
+        "kind": "procedure",
+        "ownerFile": "neighbors.ts",
+        "why": "neighbors.ts missing; readWornAllowancesInTx (permissions/allowances/reads/worn.ts:70)"
+      },
+      {
+        "export": "procedure_permissions_require_organization_spend_authority_in_tx",
+        "kind": "procedure",
+        "ownerFile": "neighbors.ts",
+        "why": "neighbors.ts missing; requireOrganizationSpendAuthorityInTx (permissions/guards/spending.ts:142)"
+      },
+      {
+        "export": "procedure_requests_invoice_birth_identity",
+        "kind": "procedure",
+        "ownerFile": "neighbors.ts",
+        "why": "neighbors.ts missing; invoiceBirthIdentity (requests/writes/invoices.ts:176, takes MutationCtx)"
+      },
+      {
+        "export": "procedure_requests_issued_invoice_read_access",
+        "kind": "procedure",
+        "ownerFile": "neighbors.ts",
+        "why": "neighbors.ts missing; issuedInvoiceReadAccess (requests/reads/documents), used by loadPaymentRetrySourceInTx"
+      },
+      {
+        "export": "procedure_requests_offer_checkout_birth_identity",
+        "kind": "procedure",
+        "ownerFile": "neighbors.ts",
+        "why": "neighbors.ts missing; offerCheckoutBirthIdentity (requests/reads/births.ts:116)"
+      },
+      {
+        "export": "procedure_requests_record_budget_settlement_in_tx",
+        "kind": "procedure",
+        "ownerFile": "neighbors.ts",
+        "why": "neighbors.ts missing; recordBudgetSettlementInTx (requests/writes/invoices.ts:230)"
+      },
+      {
+        "export": "procedure_requests_request_memo_birth_identity",
+        "kind": "procedure",
+        "ownerFile": "neighbors.ts",
+        "why": "neighbors.ts missing; requestMemoBirthIdentity (requests/reads/births.ts:60)"
+      },
+      {
+        "export": "procedure_requests_schedule_request_paid_notice_in_tx",
+        "kind": "procedure",
+        "ownerFile": "neighbors.ts",
+        "why": "neighbors.ts missing; scheduleRequestPaidNoticeInTx (requests/writes/notices.ts:48)"
+      },
+      {
+        "export": "table_accounts",
+        "kind": "table",
+        "ownerFile": "neighbors.ts",
+        "why": "neighbors.ts missing; Accounts' accounts table, read directly by lookupActorRecipient"
+      },
+      {
+        "export": "table_counterparty_destinations",
+        "kind": "table",
+        "ownerFile": "neighbors.ts",
+        "why": "neighbors.ts missing; Parties' counterpartyDestinations, read directly by lookupPaymentRecipient"
+      },
+      {
+        "export": "table_financial_document_links",
+        "kind": "table",
+        "ownerFile": "neighbors.ts",
+        "why": "neighbors.ts missing; Documents' financialDocumentLinks, read directly by readDocumentCarrierPaymentsInTx (reads/participants.ts:124)"
+      },
+      {
+        "export": "table_identities",
+        "kind": "table",
+        "ownerFile": "neighbors.ts",
+        "why": "neighbors.ts missing; identities, read directly by lookupActorRecipient"
+      },
+      {
+        "export": "table_invoice_checkout_payments",
+        "kind": "table",
+        "ownerFile": "neighbors.ts",
+        "why": "neighbors.ts missing; Requests' invoiceCheckoutPayments, written directly by preparePaymentCommandInTx (commands/writes/items.ts:210), a write-boundary finding"
+      },
+      {
+        "export": "table_orgs",
+        "kind": "table",
+        "ownerFile": "neighbors.ts",
+        "why": "neighbors.ts missing; Organizations' orgs, read directly by the recipient lookups and commands/reads/recipients.ts:24"
+      },
+      {
+        "export": "table_payment_requests",
+        "kind": "table",
+        "ownerFile": "neighbors.ts",
+        "why": "neighbors.ts missing; Requests' paymentRequests, read directly by the birth writer (writes/births.ts:45,79)"
+      },
+      {
+        "export": "error_EVIDENCE_MISSING",
+        "kind": "error",
+        "ownerFile": "vocabulary.ts",
+        "why": "A PaymentCoreError code returned in a refused PaymentWriteResult by applyPayoutRailDeliveryInTx (writes/rails.ts:21). vocabulary.ts does not define it, so I left it out of errors and named it in about."
+      },
+      {
+        "export": "error_INVALID_TRANSITION",
+        "kind": "error",
+        "ownerFile": "vocabulary.ts",
+        "why": "A PaymentCoreError code returned as refused by applyPayoutRailDeliveryInTx and birthCollectionPaymentInTx (rules/transitions.ts:45). vocabulary.ts does not define it, so I named it in about only."
+      },
+      {
+        "export": "error_ALREADY_SETTLED",
+        "kind": "error",
+        "ownerFile": "vocabulary.ts",
+        "why": "A PaymentCoreError refusal of the ledger writer (rules/records.ts:89). vocabulary.ts does not define it. None of my procedures can reach it directly, so I left it unlinked."
+      }
+    ],
+    "notes": "The real typecheck (cd books && npx tsc -p . | grep procedures.ts) shows only \"Cannot find module './neighbors.ts'\": neighbors.ts did not exist yet, while foundation.ts, vocabulary.ts and data.ts did. To check the rest, I copied procedures.ts, data.ts, foundation.ts and vocabulary.ts into the scratchpad (/tmp/claude-0/-home-user/c92cd756-b1a0-5414-9fe4-a7834db8d32a/scratchpad/tc) with a stub neighbors.ts that uses the conventional names. tsc reported no errors there, and a runtime import passed the decode checks of all 65 records with no duplicate ids or links. My neighbour names match what commands.ts, executions.ts, schedules.ts and verifications.ts import.\n\nScope: the 60 *InTx exports on the door, plus 5 non-suffixed exports that take the caller's ctx: lookupActorRecipient, lookupPartyRecipient, lookupPaymentRecipient, actorInventory, explainedByCapxul. Not booked as procedures: pure rules, Effect and ActionCtx helpers (buildOrReuseExecution, storeBuiltExecution, submitStoredExecution, recoverSubmissionClaim, checkoutPrepared, ownersScheduledExecution, ownersVoidExecution, plannedOwners, the budget and roles-module checks, scheduledSubmitted) and pure functions (readPaymentReplayIntent, isAcceptedPaymentReplay, expectedFactsForItem, ...).\n\nHow records are built: reads and writes are transitive within payments (view, authority and recipient helpers). A neighbour function is an invokes. Birth transitions follow data.ts, which models a birth as to_pending or to_scheduled etc. I removed payment_transitioned from apply-payout-rail-delivery's emits, because its transitions already carry it. Each about names today's callers with file and line, from a grep of #payments/... subpath imports; no concept imports the door file \"#payments\" itself.\n\nFindings recorded as they are:\n- Neighbour tables read directly: accounts, identities, orgs, counterpartyDestinations, financialDocumentLinks, paymentRequests.\n- Neighbour table written directly: invoiceCheckoutPayments, by prepare-payment-command.\n- ensure-proof-payout inserts an in_transit Payment outside the sole writer.\n- No other concept invokes readOutsideMoneyOrgsInTx, serverPaymentAuthorityInTx or loadPaymentRetrySourceInTx today.\n\nNot representable in the schema, so written in about instead:\n- The scheduled workflows payments.verifications.settle and payments.verifications.verify.\n- The caller callbacks onAuthorized, onLifecyclePayment and observation.onAuthorized.\n- capture-memo-conflict-removal returns a function the caller runs later in the same transaction."
+  }
+}

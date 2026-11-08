@@ -1,0 +1,33 @@
+{
+  "run": "wf_5e476a6b-b21",
+  "label": "v2:e1bc8ea25cd6cd36c79e4c9dfb3d543b1f06a80b1a79293c679323058672c4b1",
+  "result": {
+    "file": "/home/user/capxul-next/books/as-is/payments/data.ts",
+    "records": 21,
+    "exports": [
+      "table_payments",
+      "table_payment_commands",
+      "table_commitment_evidence",
+      "table_money_executions",
+      "table_provider_send_attempts",
+      "table_movements",
+      "table_movement_attributions",
+      "table_movement_scan_checkpoints",
+      "table_deposit_materializations",
+      "table_payment_document_intents",
+      "table_payment_evidence_conflicts",
+      "table_settlement_sweep_cursors",
+      "table_payment_schedules",
+      "machine_payment",
+      "machine_payment_command",
+      "machine_payment_command_verification",
+      "machine_commitment_evidence",
+      "machine_money_execution",
+      "machine_movement",
+      "machine_deposit_materialization",
+      "machine_payment_schedule"
+    ],
+    "missing": [],
+    "notes": "I booked 13 tables and 8 machines. The table set is the one registered at packages/backend/convex/schema.ts:36-40; payments/README.md leaves paymentSchedules out of its table list. The file typechecks clean: `npx tsc -p . | grep as-is/payments/data.ts` prints nothing. Every record also passes the book's runtime schema decode when the module is imported, which is what caught text lengths over 300. Every `from`/`to` names a declared state.\n\nImports, all of which exist now: `concept_payments` from ./foundation.ts, and `event_payment_transitioned`, `event_payment_verification_retry` and `event_payment_writer_incident` from ./vocabulary.ts. The incident event is a console.error JSON line, not a catalog event. I listed it on the transitions that print it because vocabulary.ts books it as an event.\n\nHow I booked things:\n- **Transitions:** `to_<state>`, with every source state in `from`. A write that leaves the field unchanged (a self-loop) is left out and named in the machine's `about`. A birth (an insert) is described in `about`, except money-execution `to_prepared` and payment-schedule `to_waiting`, which are birth-only and use `from: []`.\n- **Payment status sources:** `transitionPayment` plus the writers that set status directly without it: links.ts:216, finishes.ts:223, bindings.ts:131, recoveries.ts:140, outcomes.ts:100, history.ts:165/218, endings.ts:59. The core edges `reorged` (settled to settling) and `instruction_failed` (settling to failed) have no caller, so they are not transitions; the machine's `about` says so.\n- **Not machines:** `executionOutcome`, `terminalOutcome`, `completionOutcome` and `recoveryHold.kind` are not status/state/phase fields.\n- **Tenancy:** for tables whose actor is an account or an organization (payments, paymentCommands, commitmentEvidence, movementAttributions, paymentDocumentIntents) I chose organization and said \"mixed\" in `about`. moneyExecutions and paymentSchedules are person (authUserId). Chain-fact tables and tables with no tenant column are global.\n- **Field translation:** `preDispatchOutcome.details.reason` is `literals(...ROLE_PERMISSION_DENIED_REASONS)`, a list spread from several concepts' error codes, so I booked it as String.\n- **Keys:** Convex has no unique indexes, so `key` is the business id the reads treat as unique, never `_id`.\n\nGaps the build will or should surface:\n- **Indexes no query uses:** on payments, `by_commitment_id`, `by_rail_operation`, `by_movement_id`, `by_organization_created` and `by_document_hash` (used only in tests). Also depositMaterializations `by_payment_id`, paymentEvidenceConflicts `by_payment_observed` and moneyExecutions `by_user_op_hash`.\n- **Unreachable states:** 11 legacy money-execution states (submitting, submitted, pending, included, dropped, replaced, unresolved, failed, settled, rejected, superseded) that the validator admits but nothing writes. Movement `observed` has no writer either.\n- **Comment the code contradicts:** the commitmentEvidence table comment calls `by_user_op_hash` unique, but the reads collect by it."
+  }
+}
