@@ -31,7 +31,7 @@ import {
 } from "../shared/vocabulary.ts";
 import { table_feature_flags } from "../access/data.ts";
 import { table_parties } from "../parties/data.ts";
-import { table_org_members, table_organizations } from "../organizations/data.ts";
+import { table_org_deployments, table_org_members, table_organizations } from "../organizations/data.ts";
 import { table_budgets } from "../budgets/data.ts";
 import { procedure_approvals_open } from "../approvals/procedures.ts";
 import { procedure_documents_store } from "./links.ts";
@@ -100,7 +100,8 @@ export const rpc_payroll_holders_offer = defineRpc({
     "(WRONG_STATE), and the offer's reservation (the Calendar's figure in the budget's period, or a fixed term's exact pay " +
     "if less) must fit what `leftOf` says is left, to the cent (PAYROLL_BUDGET_EXCEEDED). Then, in one transaction: " +
     "`documents.store` stores the terms document (the paying Organization, the payee and the holder may read it) and " +
-    "gives its hash; the agreement is born `prepared` (agreement.prepare) with its offer write (agreement-write.open); and " +
+    "gives its hash; the agreement is born `prepared` (agreement.prepare), keeping the company Safe and its Roles modifier " +
+    "from the deployment, with its offer write (agreement-write.open); and " +
     "`approvals.open` opens the approval of one `Agreements.offer` call from the caller's own Safe. Its birth starts the " +
     "agreement's process.",
   was: [`${OPS}/offer.ts:61`, `${AG}/external/v4-offers.ts:41`, `${AG}/rules/offers.ts:26`, "books/as-is/payroll/agreements.ts"],
@@ -110,7 +111,7 @@ export const rpc_payroll_holders_offer = defineRpc({
   input: OfferInput,
   output: Prepared,
   errors: [...HOLDER_ERRORS, error_PAYROLL_BUDGET_EXCEEDED, error_TOKEN_NOT_BUDGETED, error_TOKEN_NOT_SUPPORTED],
-  reads: [table_org_members, table_feature_flags, table_organizations, table_budgets, table_parties, table_agreements],
+  reads: [table_org_members, table_feature_flags, table_organizations, table_org_deployments, table_budgets, table_parties, table_agreements],
   writes: [table_agreements, table_agreement_writes],
   drives: [machine_agreement.t.prepare, machine_agreement_write.t.open],
   invokes: [procedure_documents_store, procedure_approvals_open],

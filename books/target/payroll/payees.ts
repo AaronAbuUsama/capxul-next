@@ -22,7 +22,7 @@ import {
 } from "../shared/vocabulary.ts";
 import { table_feature_flags } from "../access/data.ts";
 import { table_parties } from "../parties/data.ts";
-import { table_org_deployments, table_org_members, table_organizations } from "../organizations/data.ts";
+import { table_org_members, table_organizations } from "../organizations/data.ts";
 import { procedure_approvals_open } from "../approvals/procedures.ts";
 import { procedure_board_propose } from "./links.ts";
 import { machine_agreement_write, table_agreement_writes, table_agreements } from "./data.ts";
@@ -103,8 +103,8 @@ export const rpc_payroll_payees_collect = defineRpc({
     "withdrawn; an earlier collection still awaiting blocks the next). `availableOf` answers what is released: nothing " +
     "returns `nothing_released` with the next release, and nothing is signed or stored. Otherwise the payer's funds are " +
     "read before anything is signed: the company Safe's balance of the token (PAYER_BALANCE_TOO_LOW below the amount) and " +
-    "what the token's payout ceiling has left on the payout role (Roles' `allowances`, on the Roles modifier organizations' " +
-    "deployment names; ROLE_PERMISSION_DENIED naming what is left, as during a freeze). The pay stays owed either way. A release " +
+    "what the token's payout ceiling has left on the payout role (Roles' `allowances`, on the Roles modifier the agreement " +
+    "keeps; ROLE_PERMISSION_DENIED naming what is left, as during a freeze). The pay stays owed either way. A release " +
     "larger than the ceiling can ever hold is collected up to it and the rest stays owed for the next collection. The " +
     "window runs from where the last collection ended. With the payer's `payslip-preview` gate on, the payslip comes " +
     "with it. The call is `Agreements.collect(id, amount)`, which Budgets pays from the reservation (kind 4). " +
@@ -116,7 +116,7 @@ export const rpc_payroll_payees_collect = defineRpc({
   input: PayeeRef,
   output: Schema.Union([PreparedCollection, NothingReleased]),
   errors: [...PAYEE_WRITE_ERRORS, error_PAYER_BALANCE_TOO_LOW],
-  reads: [table_agreements, table_agreement_writes, table_organizations, table_org_deployments, table_feature_flags],
+  reads: [table_agreements, table_agreement_writes, table_organizations, table_feature_flags],
   writes: [table_agreement_writes],
   drives: [machine_agreement_write.t.open],
   invokes: [procedure_approvals_open, procedure_board_propose],
@@ -143,7 +143,8 @@ export const rpc_payroll_payees_list = defineRpc({
     "ROLE_PERMISSION_DENIED) its Safe, from every payer, newest first. `status` is one of the nine (INVALID_INPUT). Lapsed " +
     "and withdrawn offers show only when their status is asked for; prepared and abandoned ones never, as no holder signed " +
     "them. Each is read from Agreements as it stands now (`agreementOf`, `availableOf`, the chain's time): what the payee " +
-    "earned, can collect and collected, and when the next release lands, with the next command to run (accept an open " +
+    "earned, can collect and collected, and when the next release lands; the payer by its Party's name and handle " +
+    "(parties); and the next command to run (accept an open " +
     "offer, collect released pay). It reads only: a chain that does not answer is PROVIDER_ERROR, and no list is made up.",
   was: [`${OPS}/mine.ts:17`, `${OPS}/organization-received.ts:16`, "books/as-is/payroll/agreements.ts"],
   concept: concept_payroll,

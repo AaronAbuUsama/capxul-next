@@ -310,7 +310,7 @@ export const concept_organizations = defineConcept({
     "its hats, Roles and Signer Gate; the founder approves the install batch; one durable process per setup), its deployment " +
     "(the hat ids, Roles, Gate and Budgets wiring the install produced), its members (Seats, human or agent) and invitations " +
     "(invite, accept, decline, resend, cancel, expire; an invitation admits its invitee to the beta through " +
-    "`accounts.admit`), and `use org`. It answers who is a member and which officer hat is which, so every concept above it " +
+    "`accounts.admit`; the Board proposal of its grants is budgets'), and `use org`. It answers who is a member and which officer hat is which, so every concept above it " +
     "can authorize an Organization tenant. A Seat held by an agent ends when the chain shows the agent removed " +
     "(AgentRemoved). It registers the Organization's Party at birth. " +
     "Old organizations' identity, setups, lifecycles, members, roles and invitations; its Directors and proposals go to " +
@@ -327,9 +327,9 @@ export const concept_board = defineConcept({
     "The Board: the company Safe acting at its Signer Gate threshold. Owns the Directors (seated by the wearer of the " +
     "Shareholders' top hat before equity, claimed when elected, handed over, refreshed), the threshold, Board proposals (one " +
     "company Safe transaction each, approved by each Director's own `approveHash` and executed with the last approval; one " +
-    "durable process per proposal) and the officer hats (Books, Invoicing, People), granted and revoked by proposal, " +
-    "including the grants an invitation offers (`org member invite` is its flow: organizations' invitation, then the " +
-    "proposal of its grants here). A concept that needs the Board opens a proposal inside its own transaction " +
+    "durable process per proposal) and the officer hats (Books, Invoicing, People), granted and revoked by proposal " +
+    "(`org member grant`, `org member revoke`). The grants an invitation offers are proposed by budgets, which also sees " +
+    "the allowances among them. A concept that needs the Board opens a proposal inside its own transaction " +
     "(`board.propose`: the intent and the proposal that carries it are one fact) and follows `proposal_transitioned`. Old " +
     "organizations' directors and proposals, and old permissions' managePeople, now the People hat.",
   component: B,
@@ -360,10 +360,13 @@ export const concept_budgets = defineConcept({
     "teams and spending allowances, which are all budgets), each budget's office hat and its holders, amounts, close and " +
     "reopen, and the payout ceiling per token (the Roles allowance on the payout role, with its freeze and unfreeze). A " +
     "change is a Board proposal or the parent office holder's own approval. It answers, from the chain, who may spend from " +
-    "which budget and what it has left. Old permissions' allowances and assignments, old payroll's departments and their " +
-    "changes, and the payout ceilings.",
+    "which budget and what it has left. It also proposes the grants an Organization invitation offers, and takes them " +
+    "back when the offer ends with them on chain (`org member invite` is its flow: organizations' invitation, then one " +
+    "Board proposal of every grant it offers, officer hats and allowances, existing or new), because only budgets can " +
+    "plan an allowance. Old permissions' allowances, assignments and invitation grant configurations, old payroll's " +
+    "departments and their changes, and the payout ceilings.",
   component: B,
-  dependsOn: [concept_access, concept_indexing, concept_approvals, concept_organizations, concept_board],
+  dependsOn: [concept_access, concept_parties, concept_indexing, concept_approvals, concept_organizations, concept_board],
   was: [`${OLD}/permissions/README.md:3`, `${OLD}/payroll/README.md:3`],
 });
 
@@ -403,7 +406,8 @@ export const concept_contacts = defineConcept({
   about:
     "The address book of whoever you act as, a person or an Organization: contacts by handle, email, address or Party, their " +
     "labels, and hide and unhide. It sits above organizations because an Organization's book needs its membership. A " +
-    "contact's bank accounts are banking's. Split from old parties.",
+    "contact's bank accounts are banking's, so `contact get`, which returns them, is banking's flow over this concept's " +
+    "read. Split from old parties.",
   component: B,
   dependsOn: [concept_access, concept_parties, concept_organizations],
   was: [`${OLD}/parties/README.md:3`],
@@ -453,15 +457,17 @@ export const concept_banking = defineConcept({
     "Bank rails through Bridge: the identity verification (KYC and KYB) bank transfers need, bank details (a receiving " +
     "account per Party and currency, full fields under record-bound encryption) and the token deposits become, bank " +
     "deposits and the book facts they write, saved bank accounts (yours or a contact's), and bank payouts (a quote, a " +
-    "Payment through `payments.prepare-command`, then the payout followed through Bridge's events until it is delivered or " +
-    "returned). Bridge's signed webhook events arrive in an encrypted inbox, with a catch-up for missed ones. Matching a " +
-    "deposit to the request it paid is requests' operation. `invite accept` is its flow: it routes a business verification " +
-    "invitation (`inv_kyb_`) here and every other invitation to organizations. Old banking, old parties' verification and " +
-    "saved bank accounts.",
+    "Payment through `payments.prepare-command`, from your Safe or from a budget named with `--from`, signed by the payer " +
+    "through approvals, then the payout followed through Bridge's events until it is delivered or returned). Bridge's " +
+    "signed webhook events arrive in an encrypted inbox, with a catch-up for missed ones. Matching a deposit to the request " +
+    "it paid is requests' operation. `invite accept` is its flow: it routes a business verification invitation " +
+    "(`inv_kyb_`) here and every other invitation to organizations. `contact get` is its flow too: the contact's entry " +
+    "from contacts, then the bank accounts saved for it here. Old banking, old parties' verification and saved bank " +
+    "accounts.",
   component: B,
   dependsOn: [
-    concept_access, concept_media, concept_parties, concept_indexing, concept_organizations, concept_books, concept_contacts,
-    concept_payments,
+    concept_access, concept_media, concept_parties, concept_indexing, concept_approvals, concept_organizations, concept_budgets,
+    concept_books, concept_contacts, concept_payments,
   ],
   was: [`${OLD}/banking/README.md:3`, `${OLD}/parties/README.md:3`],
 });

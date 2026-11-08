@@ -61,7 +61,7 @@ export const flow_client_verification_start = defineFlow({
     p95Ms: 10_000,
     why: "uploads the person's documents, up to 24 MB each, before the one submission to Bridge",
   },
-  was: [`${SDK}/verification/start.ts:1`, `${CLI}/verify/subcommands/start/execute.ts:1`],
+  was: [`${SDK}/parties/verifications.ts:47`, `${CLI}/verify/subcommands/start/execute.ts:1`],
 });
 
 export const flow_client_verification_status = defineFlow({
@@ -91,7 +91,7 @@ export const flow_client_verification_status = defineFlow({
   calls: [],
   spans: [],
   budget: budget("vendor"),
-  was: [`${SDK}/verification/status.ts:1`, `${CLI}/verify/subcommands/status/execute.ts:1`],
+  was: [`${SDK}/parties/verifications.ts:51`, `${CLI}/verify/subcommands/status/execute.ts:1`],
 });
 
 export const flow_client_account_bank_accounts_add = defineFlow({
@@ -126,7 +126,7 @@ export const flow_client_account_bank_accounts_add = defineFlow({
   calls: [],
   spans: [],
   budget: budget("vendor"),
-  was: [`${SDK}/accounts/bank-accounts.ts:1`, `${CLI}/bank/subcommands/accounts/internal/input.ts:1`, `${CLI}/contact/subcommands/bank/subcommands/add/execute.ts:24`],
+  was: [`${SDK}/parties/accounts.ts:52`, `${CLI}/bank/subcommands/accounts/internal/input.ts:1`, `${CLI}/contact/subcommands/bank/subcommands/add/execute.ts:24`],
 });
 
 export const flow_client_banking_payouts_pay = defineFlow({
@@ -171,7 +171,7 @@ export const flow_client_banking_payouts_pay = defineFlow({
   calls: [],
   spans: [],
   budget: budget("vendor"),
-  was: [`${SDK}/approvals/prepare.ts:1`, `${CLI}/bank/subcommands/pay/execute.ts:1`, `${CLI}/bank/internal/payout-errors.ts:16`],
+  was: [`${SDK}/accounts/command-approvals.ts:137`, `${CLI}/bank/subcommands/pay/execute.ts:1`, `${CLI}/bank/internal/payout-errors.ts:16`],
 });
 
 export const flow_client_org_invitations_accept = defineFlow({
@@ -204,5 +204,5 @@ export const flow_client_org_invitations_accept = defineFlow({
   calls: [],
   spans: [],
   budget: budget("vendor"),
-  was: [`${SDK}/organizations/invitations.ts:1`, `${CLI}/invite/subcommands/accept/execute.ts:1`],
+  was: [`${SDK}/organizations/invitations.ts:1`, `${CLI}/org-invite/subcommands/accept/execute.ts:1`],
 });

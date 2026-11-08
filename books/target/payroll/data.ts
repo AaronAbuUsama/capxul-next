@@ -88,6 +88,8 @@ export const table_agreements = defineTable({
     "`offer_expires_at` are the terms as offered; the current rate, a waiting lowering, earned, collectable and collected " +
     "are read from Agreements (`agreementOf`, `availableOf`) when a reader asks. `status` is one of the nine `--status` " +
     "names; only the agreement's durable process moves it, from Agreements' events and its own timers. " +
+    "`roles_address` is the payer's Roles modifier, copied from its deployment at the offer (it never changes), so a " +
+    "payee's collection reads the payout ceiling without reading the payer's tenant. " +
     "`chain_agreement_id` is the uint256 the offer got on chain, null while prepared. `ends_at` is the exclusive end: a " +
     "fixed term's from the offer, else a holder's end; `end_by_holder` says a holder set it, which is what makes an " +
     "agreement `ending`. Amounts are raw token units as decimal strings; times are Unix ms.",
@@ -104,6 +106,7 @@ export const table_agreements = defineTable({
     budget_ref: S,
     budget_id: S,
     company_safe: S,
+    roles_address: S,
     chain_agreement_id: Null(S),
     kind: Schema.Literals(AGREEMENT_KINDS),
     token: S,

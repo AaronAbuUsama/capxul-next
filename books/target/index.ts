@@ -12,7 +12,9 @@ import * as parties from "./parties/index.ts";
 import * as approvals from "./approvals/index.ts";
 import * as accounts from "./accounts/index.ts";
 import * as organizations from "./organizations/index.ts";
+import * as budgets from "./budgets/index.ts";
 import * as contacts from "./contacts/index.ts";
+import * as payments from "./payments/index.ts";
 import * as payroll from "./payroll/index.ts";
 import * as requests from "./requests/index.ts";
 
@@ -20,6 +22,6 @@ export const name = "Capxul target";
 export const stage = "target" as const;
 
 /** Each designed concept's modules (its <concept>/index.ts exports `modules`). Empty until the designs land. */
-const conceptModules: readonly object[] = [...access.modules, ...parties.modules, ...approvals.modules, ...accounts.modules, ...organizations.modules, ...contacts.modules, ...payroll.modules, ...requests.modules];
+const conceptModules: readonly object[] = [...access.modules, ...parties.modules, ...approvals.modules, ...accounts.modules, ...organizations.modules, ...budgets.modules, ...contacts.modules, ...payments.modules, ...payroll.modules, ...requests.modules];
 
 export const records = recordsOf([...sharedModules, ...conceptModules]);
