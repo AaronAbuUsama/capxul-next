@@ -1101,7 +1101,7 @@ export const machine_employee = defineMachine({
       from: ["active", "inactive", "suspended"],
       to: "left",
       about: "A People hat wearer sets the last day, or the only agreement that paid them ended.",
-      guard: "No slip of theirs is paying, escrowed or withheld, or holds a lapsed Payment.",
+      guard: "No slip of theirs is paying or escrowed; a withheld slip stays withheld, to be released and paid after they leave, as Frappe HR does.",
       emits: [event_employee_transitioned],
     },
   },

@@ -399,8 +399,9 @@ per attempt:
   be released from withholding or refunded from escrow, and its run may be `paying` or `paid`.
 - **Routing.** A run may then hold several commands, so each slip keeps its own command and payment
   id, and `payment_transitioned` reaches the slip by them (`salary-slips.by_command`).
-- **Ending.** The run's process ends only when the run is paid, no slip is withheld or escrowed, and
-  its last settlement is confirmed (twice payments' finality depth). A later command always finds it.
+- **Ending.** The run's process ends only when every slip of the run is paid (none withheld, released,
+  escrowed or owed again) and its last settlement is confirmed (twice payments' finality depth). A
+  later command always finds it.
 
 A person signs a run once. An agent signs with its key and needs no person: one whose Seat holds the
 budget's allowance, or the FDE agent. The chain still caps the run at what the budget has left

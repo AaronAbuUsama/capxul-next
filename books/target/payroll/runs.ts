@@ -162,8 +162,9 @@ export const rpc_payroll_runs_withhold = defineRpc({
     "Frappe's Salary Withholding, for one slip. Withholding needs the slip `submitted` with no lapsed Payment (which " +
     "could still be retried) and its run `submitted`, so it is left out of the run's payment command; releasing needs " +
     "it `withheld`. A slip released before its run is paid goes with the run's command; one released after goes out " +
-    "under the next attempt when `runs.pay` names it (WRONG_STATE otherwise, naming the status). For a run its head " +
-    "computed, the head's Capxul app forwards the head's own withholding and release here. `reason` is kept on the slip.",
+    "under the next attempt when `runs.pay` names it (WRONG_STATE otherwise, naming the status). A run its head computed " +
+    "is withheld and released on the head, whose Salary Withholding payroll's head sync applies; a call here for one is " +
+    "WRONG_STATE naming the head (payroll.one-computer-per-run). `reason` is kept on the slip.",
   was: [`${FRAPPE}/salary_withholding/salary_withholding.json`, `${FRAPPE}/payroll_entry/payroll_entry.py:1138`],
   concept: concept_payroll,
   kind: "mutation",
@@ -188,9 +189,9 @@ export const rpc_payroll_runs_cancel = defineRpc({
   about:
     HR_GUARD +
     "The run must be `draft` or `submitted`, with no slip holding a Payment: paying, escrowed, paid, or lapsed and still " +
-    "retryable (WRONG_STATE naming it). A run its head computed is cancelled on its head, where its accrual is; the " +
-    "head's Capxul app forwards that cancellation here, and a People hat wearer's own call is WRONG_STATE naming the " +
-    "head (payroll.one-computer-per-run). Then, in one transaction, the run and each of its slips are `cancelled` " +
+    "retryable (WRONG_STATE naming it). A run its head computed is cancelled on its head, where its accrual is, and " +
+    "payroll's head sync applies that cancellation; a call here for one is WRONG_STATE naming the head " +
+    "(payroll.one-computer-per-run). Then, in one transaction, the run and each of its slips are `cancelled` " +
     "(payroll-entry.cancel, salary-slip.cancel). The payslips stay stored, as every document does; a submitted " +
     "Capxul-computed run's accrual is cancelled through `books.record-payroll-accrual` (action cancel), once payroll " +
     "depends on books (payroll.accrual).",

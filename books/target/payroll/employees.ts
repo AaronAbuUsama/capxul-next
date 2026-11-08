@@ -81,7 +81,7 @@ export const rpc_payroll_employees_change = defineRpc({
     "The Employee must be the Organization's (INVALID_INPUT). `status` moves as machine employee allows (WRONG_STATE " +
     "otherwise, naming the status it is in): `suspended`, `inactive`, back to `active`, or `left` with " +
     "`relievingDate`, the last day worked, on or after `date_of_joining` (INVALID_INPUT). Leaving is refused while a " +
-    "slip of theirs is paying, escrowed or withheld, or holds a lapsed Payment (WRONG_STATE). Their Party, Safe and mailbox never change here: pay follows " +
+    "slip of theirs is paying or escrowed (WRONG_STATE); a withheld slip stays owed after they leave. Their Party, Safe and mailbox never change here: pay follows " +
     "the person, not the record (payroll.mailbox-for-pay).",
   was: [`${FRAPPE}/employee.py`],
   concept: concept_payroll,

@@ -61,7 +61,7 @@ export const rpc_payroll_runs_pay = defineRpc({
     "`paying` or `paid` run that are each `submitted` (WRONG_STATE otherwise). One call is one command. When the slips " +
     "hold Payments their command's approval lapsed (`needs_retry`), it resumes that command: `payments.prepare-command` " +
     "under the same key with `resume`, the same items and payment ids and one new approval, so a lapse can never pay " +
-    "twice, and a lapsed Payment is never left for `payment retry` beside a new one. Otherwise the slips hold no " +
+    "twice; slips with no Payment wait for the next call. Otherwise the slips hold no " +
     "Payment (never sent, released from withholding, or refunded from escrow) and go out as a new command under the " +
     "next attempt's key `payroll:<entry>:<attempt>`. Each item is one slip: its `net_pay_raw` to the Employee's " +
     "`payee_safe`, kind one-off, its payslip's document id and hash, and its source (the slip, its run, its Employee); " +
@@ -114,8 +114,8 @@ export const workflow_payroll_runs_lifecycle = defineWorkflow({
     "`cancelled` with outcome refunded (the budget's holder or the Board took an escrow back) moves its slip back to " +
     "`submitted` with its payment fields cleared, owed again; `unsettle` (a reorg) moves a paid slip back to `paying` " +
     "and a paid run with it, until it settles again. When every slip that is not withheld is paid the run is `paid` " +
-    "(payroll-entry.settle). It ends when the run is paid, none of its slips is withheld or escrowed, and its last " +
-    "settlement is confirmed (twice payments' finality depth, after which payments reopens nothing); until then it " +
+    "(payroll-entry.settle). It ends when every slip of the run is paid (none withheld, released, escrowed or owed " +
+    "again) and its last settlement is confirmed (twice payments' finality depth, after which payments reopens nothing); until then it " +
     "waits durably, with no deadline, so a released or refunded slip's later command always finds it. Books posts each " +
     "settled Payment's Bank Entry from its own fact (payroll.accrual); this process writes only payroll's rows and " +
     "their change log, which carries each slip's payment facts to a connected head.",
