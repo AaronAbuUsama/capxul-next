@@ -11,13 +11,17 @@ from the build session on, the product code it describes.
   3. change the code.
 
   Never edit `books/frozen/` or any file under a `src/generated/` folder.
+- **What is fixed is behaviour, not spelling** (`system.frozen-behaviour`). The 215 operations
+  stay as the list of capabilities, and their acceptance claims are the evals. Commands, flags,
+  `--json` shapes, refusal codes and wording are the target book's to design as one system. A
+  change to any of them goes into the book first, with a decision.
 - **Every change passes these checks before it merges:**
 
   ```bash
   npx tsc -p packages/book && npm test -w @capxul/book
   npx tsc -p books
   node --experimental-strip-types packages/book/src/main.ts books/target/index.ts /tmp/target   # 0 problems
-  node --experimental-strip-types tools/check-frozen.ts                                           # 0 breaches
+  node --experimental-strip-types tools/check-frozen.ts                                           # 0 breaches: every behaviour kept
   ```
 
 - **Where code goes:** decision `system.layout` in `books/target/shared/decisions.ts`. In short:
@@ -30,5 +34,7 @@ from the build session on, the product code it describes.
   Capxul repository's Linear workflow and `docs/rules` do not apply here.
 - **Decisions.** Every judgment is a decision record. Bring Aaron only what the goal prompt lists
   under "Bring to Aaron".
-- **Old system.** `Xelmar-tech/infrastructure` (branch `integration/factory`) is evidence only.
-  Read it; never port from it without reading its as-is record.
+- **Old system.** `Xelmar-tech/infrastructure` (branch `integration/factory`) is a reference for
+  behaviour, not a baseline. Read its code for edge cases (contract reverts, money paths,
+  permissions). Never port it, and never run the evals against it. The as-is book is closed and
+  archived in `docs/as-is/archive/`.

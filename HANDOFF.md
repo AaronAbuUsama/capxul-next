@@ -6,8 +6,10 @@ A new session needs no access to the conversation that made it.
 
 ## What this is
 
-Capxul is being rebuilt from first principles behind a frozen surface: the CLI and the 215
-operations of the old book. The rebuild is specified as a **design book**: typed records (in Effect
+Capxul is being rebuilt from first principles. The old book's 215 operations are kept as the list
+of capabilities, and what each acceptance claim requires to happen is kept as its evals. The
+spelling is not frozen: flags, `--json` shapes, refusal codes and wording are the new design's
+(Aaron's decision `system.frozen-behaviour`). The rebuild is specified as a **design book**: typed records (in Effect
 Schema) for every part of the system, linked by import, checked by a build that enforces the
 accepted policies and derives the gaps and the evals. Building the code comes after the book.
 
@@ -20,14 +22,16 @@ Read, in order:
 3. `docs/spec/50-design-book.md`: the record schema; code in `packages/book`.
 4. `books/target/CONVENTIONS.md` and `docs/decisions/target-architecture.md`: the target concept
    map and the rules every target concept follows.
-5. `docs/mission/findings.md` and `docs/as-is/payments.md`: what is wrong with the old system.
+5. `docs/mission/findings.md` and `docs/as-is/payments.md`: what is wrong with the old system. The
+   old system is a reference for behaviour (edge cases, contract reverts, money paths,
+   permissions), never ported and never run as a baseline.
 
 ## Set up a session
 
 ```bash
 git clone https://github.com/AaronAbuUsama/capxul-next /home/user/capxul-next
 cd /home/user/capxul-next && git checkout claude/infrastructure-refactor-plan-v41iue && npm install
-# the old system, read only, for evidence (agents read it at this path):
+# the old system, read only, as a reference for behaviour (agents read it at this path):
 git clone --branch integration/factory --depth 1 https://github.com/Xelmar-tech/infrastructure /home/user/factory
 npx tsc -p packages/book && npm test -w @capxul/book   # 16 tests
 npx tsc -p books                                      # the books typecheck
@@ -51,11 +55,11 @@ The prompts in `tools/workflows/` use the absolute paths `/home/user/capxul-next
 
 | # | Milestone | State |
 |---|---|---|
-| 1 | Schema for the accepted decisions; frozen text of all 215 operations; conventions | done |
-| 2 | As-is book of the old system | paused on purpose: 15 of 21 lanes written, payments fully reviewed. It is evidence only, and it has its own typecheck (`npx tsc -p books/as-is`), since its unfinished lanes do not compile. Remaining lanes: `docs/mission/remaining-work.md` |
+| 1 | Schema for the accepted decisions; the old text of all 215 operations, and the old CLI's flags, as reference; conventions | done |
+| 2 | As-is book of the old system | closed: the reviewed payments lane (`docs/as-is/payments.md`, K1 to K18), `docs/mission/findings.md` and the lane reports are kept; the unfinished lanes are archived in `docs/as-is/archive/`, outside every typecheck |
 | 3 | Target architecture: concept map (22 concepts, no cycles), components, kept errors, integrations, v4 contracts, decisions | done: `books/target/shared/` and `docs/decisions/target-architecture.md` |
 | 4 | Target design of each concept | done: all 22 concepts, each with its decisions |
-| 5 | Target book assembled and built with the target rules | done: 0 problems, all 215 operations booked, `tools/check-frozen.ts` 0 breaches, 72 known gaps (listed in the goal prompt) |
+| 5 | Target book assembled and built with the target rules | done: 0 problems; `tools/check-frozen.ts` 0 breaches (every operation booked once, every behaviour kept); the known gaps are listed in the goal prompt |
 | 6 | The goal prompt | done: `docs/mission/initializer.md` |
 
 This work **prepares** the rebuild; it does not run it. No product code is written here. To start
@@ -69,7 +73,7 @@ a timer, wake routing).
 npx tsc -p packages/book && npm test -w @capxul/book
 npx tsc -p books
 node --experimental-strip-types packages/book/src/main.ts books/target/index.ts /tmp/target   # 0 problems
-node --experimental-strip-types tools/check-frozen.ts                                           # 0 breaches
+node --experimental-strip-types tools/check-frozen.ts                                           # 0 breaches: every behaviour kept
 node --experimental-strip-types tools/report-judgments.ts > docs/decisions/judgments.md        # regenerate
 ```
 

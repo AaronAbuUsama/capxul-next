@@ -1,44 +1,17 @@
-# Remaining work on the as-is book
+# The as-is book is closed
 
-This file is about the **as-is book only**: the lanes of the old system that were not written when
-that book was paused on purpose. The rebuild's own state is in `HANDOFF.md`, and its next work is
-`docs/mission/initializer.md`. The as-is book is evidence; target designers read the old code where
-it has gaps, so these lanes are optional. The scripts are in `tools/workflows/`: pass a script's
-text as a Workflow `script` and the lanes below as `args`.
+The as-is book described the old system in the same records as the design book. It was paused,
+and on 8 November 2026 Aaron closed it: the old system is a reference for behaviour, not a
+baseline, and the target book no longer needs it.
 
-## Milestone 2: lanes still to write
+What is kept:
 
-Run with `tools/workflows/book-as-is-writers.js` (writers only). Each writer first lists the names
-other files already expect from its lane (`npx tsc -p books/as-is | grep <folder>`) and defines them.
+- `docs/as-is/payments.md`: the reviewed payments lane. Its keep list (K1 to K18) and findings are
+  still read before anything touches payments.
+- `docs/mission/findings.md`: what is wrong with the old system.
+- `docs/as-is/lane-reports/`: every writer's and reviewer's report.
+- `docs/as-is/archive/`: the as-is records themselves, including the unfinished lanes. They are
+  outside every typecheck and are not maintained. The target records' `was` fields point into it.
 
-| Lane | Writes |
-|---|---|
-| parties | `books/as-is/parties/` (27 files import its procedures) |
-| books | `books/as-is/books/` (two partial files from a stopped writer: overwrite) |
-| small-a | `activity/`, `profiles/`, `media/`, `documents/` |
-| permissions-allowances | `permissions/allowances.ts`, `replacements.ts`, `commands.ts`, `flows-allowances.ts` |
-| shared-events | the whole event catalog in `shared/vocabulary.ts` |
-| ops-equity-orgs | `operations/equity.ts`, `operations/organizations.ts` |
-
-The briefs, verbatim, are in `tools/workflows/remaining-lanes.json`: pass its `writers` array as
-`args.lanes`, two or three lanes per workflow.
-
-## Milestone 2: reviews still to run
-
-Run with `tools/workflows/book-as-is-lanes.js` in review-only form (or the full script; a reviewer
-rereads the old code at every `was:` and fixes the files). Order, by money risk first:
-
-1. books, banking, requests, payroll, permissions (both parts), accounts
-2. parties, the operation files, shared external and events
-3. access, organizations (both parts), applications, operator, indexing, small-a
-
-Usage note: 16 agents at once spent the five-hour limit in about 36 minutes. Run 4 to 6 agents at a
-time.
-
-## Judgments made in running the work
-
-- **Reviews come after the missing writers, money concepts first** (8 November 2026). Low-risk
-  as-is files may reach the target design unreviewed; the target designers reread the old code and
-  the build catches structural errors.
-- **Paused at 10% of the weekly limit** (Aaron, 8 November 2026): the target architecture is the one
-  lane left running, as the highest-value judgment; the as-is writers stopped before writing.
+No as-is lane remains to be written. When a target design needs to know what the old system does,
+read the old code at `/home/user/factory` (branch `integration/factory`) for that behaviour.

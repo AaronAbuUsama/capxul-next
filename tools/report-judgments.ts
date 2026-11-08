@@ -5,7 +5,7 @@
 import { records } from "../books/target/index.ts";
 
 type Decision = {
-  _kind: "decision"; id: string; title: string; question: string; chosen: string; why: string;
+  _kind: "decision"; id: string; title: string; question: string; chosen: string; why: string; source: string;
   options: { label: string; text: string }[]; affects: { _kind: string; id: string }[];
 };
 type Concept = { _kind: "concept"; id: string };
@@ -28,7 +28,10 @@ const FLAGGED = [
   "documents.acceptance-rewrites", "agents.org-owned", "board.failed-proposal", "equity.acceptance",
   "contacts.members-write", "notices.claim-escrow", "system.size",
 ];
-const forAaron = (d: Decision) => FLAGGED.includes(d.id) || /\baaron\b/i.test(`${d.title} ${d.question} ${d.why} ${d.chosen}`);
+/** Aaron's own decisions are settled, not for his review. */
+const byAaron = (d: Decision) => /^Aaron\b/.test(d.source);
+const forAaron = (d: Decision) =>
+  !byAaron(d) && (FLAGGED.includes(d.id) || /\baaron\b/i.test(`${d.title} ${d.question} ${d.why} ${d.chosen}`));
 const chosenText = (d: Decision) => d.options.find((o) => o.label === d.chosen)?.text ?? d.chosen;
 const one = (s: string) => s.replace(/\s+/g, " ").trim();
 
@@ -40,6 +43,10 @@ out.push(`${decisions.length} decisions. The target book holds ${count("concept"
 const missing = FLAGGED.filter((id) => !decisions.some((d) => d.id === id));
 if (missing.length) throw new Error(`flagged for Aaron but not a decision in the book: ${missing.join(", ")}`);
 const review = decisions.filter(forAaron);
+const his = decisions.filter(byAaron);
+out.push(`## Decided by Aaron (${his.length})`, "");
+for (const d of his) out.push(`- **${d.id}**: ${one(d.title)}. ${one(chosenText(d))}`);
+out.push("");
 out.push(`## For Aaron (${review.length})`, "", "Decisions flagged for Aaron's review, or whose text names a call that is his. Each recorded choice stands, and the build follows it, until he changes it; a change goes into the record first.", "");
 for (const d of review) out.push(`- **${d.id}**: ${one(d.title)}. Chosen: ${one(chosenText(d))}`);
 out.push("");

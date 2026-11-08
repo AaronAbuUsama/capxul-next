@@ -1017,6 +1017,13 @@ old history.
 
 ## P10. When the old book and the old code disagree, which wins
 
+> **Superseded for spelling (8 November 2026).** Aaron's decision `system.frozen-behaviour` frees
+> the spelling of the surface: commands, flags, `--json` shapes, refusal codes and wording. The
+> target book designs them as one consistent system, so the first rung ("surface → book") no
+> longer makes the frozen text win on spelling. What each acceptance claim requires still holds.
+> The rungs below still decide behaviour, money and internals. The legacy run (`--target legacy`)
+> is no longer a baseline: the old system is read for behaviour, not run against.
+
 ### Question
 
 The book is frozen and the old code is the baseline (`--target legacy`). Where

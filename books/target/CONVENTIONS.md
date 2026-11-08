@@ -1,7 +1,8 @@
 # Designing the target: conventions for every concept designer
 
 The **target** book is the design of the rebuilt Capxul: Effect 4 on Node with one Postgres, Ponder
-on the same Postgres, Protocol v4 only, every frozen operation kept. It is built with stage
+on the same Postgres, Protocol v4 only, every one of the 215 operations kept as a capability, with
+its behaviour (`system.frozen-behaviour`: the freeze keeps behaviour, not spelling). It is built with stage
 `"target"`, which turns the accepted policies into build rules (`checkTargetRules` in
 `packages/book/src/build.ts`). A target book with a problem does not build.
 
@@ -13,14 +14,15 @@ Read first, in this order:
    decision records in `books/target/shared/decisions.ts`.
 3. `docs/decisions/policy-pack.md` (P1 to P10, accepted) and `docs/decisions/README.md` (A1 to A4).
 4. The schema, `packages/book/src/records/*.ts`, with its reading guide `docs/spec/50-design-book.md`.
-5. The evidence: `books/as-is/<old concept>/` and `docs/as-is/<concept>.md` for every old concept
-   your concept absorbs, and the old code, read only, at `/home/user/factory` (branch
-   `integration/factory`). `OLD_AREAS` in `books/target/shared/landings.ts` lists every old area
+5. The evidence: the old code, read only, at `/home/user/factory` (branch `integration/factory`),
+   read for behaviour and edge cases (contract reverts, money paths, permissions), never ported;
+   `docs/mission/findings.md`; `docs/as-is/payments.md` (the reviewed payments lane, K1 to K18);
+   and, as an archive, the unfinished as-is records in `docs/as-is/archive/`. `OLD_AREAS` in `books/target/shared/landings.ts` lists every old area
    folder, the target concepts it lands in and the decision that put it there: design every area
    that lands in your concept, and nothing that does not.
 
-The as-is book records what is. The target records what will be. Never copy an as-is record:
-design the target one, and point its `was` at what it replaces.
+The target records what will be. Never copy old code or an archived as-is record: design the
+target one, and point its `was` at what it replaces.
 
 ## Folders
 
@@ -128,10 +130,13 @@ does until its rule lands (**review**, with the rule's name from the policy pack
 - An operation's `acceptance` is the frozen list, in order, each line
   `{ claim, observes, was }`; a retired line stays `null` so numbers never move (rule
   `acceptance-claim`).
-- `claim` is the frozen claim, word for word, unless it names a mechanism a black box cannot see
-  (a row, a cursor, a lane, a retry, a Convex function, PostHog). Then rewrite it as an outcome one
-  of the five observers can check, and put the old line in `was` with its test citation
-  (`frozen[id].acceptance[n].was`). A rewritten line must still pass against the old system.
+- What each claim requires to happen is kept: that is the hill (`system.frozen-behaviour`). Its
+  words may change. Keep the frozen claim where it reads as an outcome. Rewrite it where it names a
+  mechanism a black box cannot see (a row, a cursor, a lane, a retry, a Convex function, PostHog),
+  or where the target's own spelling (a command, a flag, an output field, an error code) differs.
+  A rewritten line keeps the frozen claim first in `was`, and a decision on the operation says
+  what changed. A retired line also has a decision. The old system is not run against: a rewritten
+  line need not pass there.
 - `observes` says which observers check it and what each sees: `cli` (output and exit), `read` (a
   read operation), `chain` (devnet state, calldata, logs), `trace` (the local collector) and
   `world` (a before-and-after diff of the world snapshot).
@@ -139,7 +144,13 @@ does until its rule lands (**review**, with the rule's name from the policy pack
   pre-v4-only lines are retired as `null` (P9).
 - Build every operation from the frozen text, never retyped:
   `defineOperation({ ...frozenText("payment.send"), priority, implementedBy, acceptance, returns, refusals, errors, budget })`.
-  Where the frozen record has a `designed` block, its v4 text is the specification (P10).
+  Where the frozen record has a `designed` block, its v4 text is the best evidence of the
+  intended behaviour.
+- The spelling is the target's to design as one consistent system: the command (a rename has a
+  decision), its flags (`books/frozen/flags.ts` is reference only; B1 designs them in the book),
+  the `--json` shape (`returns`), and the refusal codes from the target's error vocabulary. A
+  refusal is a behaviour, such as "a signed-out caller is refused": keep every frozen refusal's
+  behaviour, under its code where the vocabulary keeps it, or name it in a decision.
 - Priority: `low` for equity, `org.director.*`, `org.board.*`, `org.vote.*` and `vote.*`; `critical`
   for the spine's pilots; `normal` for the rest.
 
@@ -242,7 +253,7 @@ does until its rule lands (**review**, with the rule's name from the policy pack
   override, a procedure) are `defineDecision` records in `<concept>/decisions.ts`, whose `affects`
   lists the records they shape.
 - `was` on a target record points at what it replaces: old code (`<path>:<line>` in
-  `/home/user/factory`) or an as-is record (`books/as-is/<concept>/<file>.ts`).
+  `/home/user/factory`) or an archived as-is record (`docs/as-is/archive/<concept>/<file>.ts`).
 
 ## Check your work
 

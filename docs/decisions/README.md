@@ -23,6 +23,14 @@ were accepted as recommended.
 | Y4 | The connector gateway (PostHog through its MCP) is built by another thread | this page |
 | — | The ledger replaces Linear for this work | this page |
 
+## Decided by Aaron (8 November 2026)
+
+| Id | Decision | Recorded in |
+|---|---|---|
+| `system.frozen-behaviour` | **The freeze keeps behaviour, not spelling.** The 215 operations stay as the list of capabilities, and what each acceptance claim requires to happen stays as its evals. The exact flags, `--json` shapes, refusal codes and wording are no longer frozen: the target book designs them as one consistent system. A refusal is a behaviour, and is checked by its code only where the target's error vocabulary keeps it. This supersedes the strict reading of the freeze, and P10's "the frozen text wins" for spelling. | `books/target/shared/decisions.ts` |
+| — | The old system is a reference for behaviour, not a baseline. The evals are not run against it first. Agents read its code for edge cases (contract reverts, money paths, permissions), and never port it. | this page |
+| — | The as-is book is closed. The reviewed payments lane (`docs/as-is/payments.md`, K1 to K18), `docs/mission/findings.md` and the lane reports are kept. The unfinished lanes are archived in `docs/as-is/archive/`. | this page |
+
 ## Made by Claude while designing, recorded as records
 
 Judgments made while building the books are `decision` records, typed and linked to the records
@@ -32,4 +40,4 @@ they affect, so the build lists them and a reviewer can trace each one:
   vocabulary, integrations, contracts), explained in [target-architecture.md](target-architecture.md).
 - `books/target/<concept>/decisions.ts`: each concept's target design.
 
-The as-is book records no decisions: it records what the old code does.
+The archived as-is book records no decisions: it recorded what the old code does.
