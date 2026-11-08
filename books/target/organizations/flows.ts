@@ -11,7 +11,7 @@ import { error_INVALID_INPUT } from "../shared/vocabulary.ts";
 import { rpc_organizations_setups_begin, rpc_organizations_setups_get, rpc_organizations_setups_resume, SetupView } from "./setups.ts";
 import { rpc_organizations_workspaces_list } from "./workspaces.ts";
 import { rpc_approvals_signing_get } from "../approvals/signing.ts";
-import { MemberView, rpc_organizations_members_list } from "./members.ts";
+import { MemberView, rpc_organizations_members_list, rpc_organizations_seats_raise, SeatsView } from "./members.ts";
 import {
   InvitationView,
   Phase,
@@ -211,4 +211,24 @@ export const flow_client_orgs_invitations = defineFlow({
   calls: [],
   spans: [],
   budget: budget("read"),
+});
+
+export const flow_client_operator_organizations_seats_raise = defineFlow({
+  id: "client.operator.organizations.seats.raise",
+  title: "The operator's tool raises an Organization's seat limit",
+  about:
+    "Serves the operator's tool, run with the deployment's operator key, not the CLI: no frozen operation raises a seat " +
+    "limit, and nobody in an Organization may (aaron.seats). It sends the Organization, the new limit and the " +
+    "operator's label to `organizations.seats.raise` and prints the limit and what counts against it.",
+  component: component_core_sdk,
+  surfaces: ["sdk"],
+  sdk: "client.operator.organizations.seats.raise",
+  input: Schema.Struct({ orgId: S, seats: N, by: S }),
+  output: SeatsView,
+  steps: [{ name: "raise", rpc: rpc_organizations_seats_raise, about: "Raises the limit in one transaction." }],
+  errors: [],
+  calls: [],
+  spans: [],
+  budget: budget("write"),
+  was: ["books/target/shared/rulings.ts (aaron.seats)"],
 });

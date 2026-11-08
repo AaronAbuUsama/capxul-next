@@ -4,7 +4,7 @@
 
 import { defineDecision } from "../../../packages/book/src/index.ts";
 import { concept_activity, concept_board, concept_budgets, concept_notices, concept_organizations, concept_parties } from "../shared/foundation.ts";
-import { error_CANCELLED, error_FEATURE_NOT_AVAILABLE, error_WRONG_STATE } from "../shared/vocabulary.ts";
+import { error_CANCELLED, error_FEATURE_NOT_AVAILABLE, error_SEAT_LIMIT_REACHED, error_WRONG_STATE } from "../shared/vocabulary.ts";
 import {
   event_org_invite_transitioned,
   event_org_member_transitioned,
@@ -21,7 +21,7 @@ import {
 import { procedure_organizations_bind_invitation_grants } from "./procedures.ts";
 import { rpc_organizations_setups_begin, rpc_organizations_setups_get, rpc_organizations_setups_resume } from "./setups.ts";
 import { rpc_organizations_workspaces_list, rpc_organizations_workspaces_me } from "./workspaces.ts";
-import { rpc_organizations_members_list } from "./members.ts";
+import { rpc_organizations_members_list, rpc_organizations_seats_raise } from "./members.ts";
 import {
   rpc_organizations_invitations_accept,
   rpc_organizations_invitations_cancel,
@@ -42,6 +42,7 @@ import {
   flow_client_org_setup_resume,
   flow_client_org_setup_subscribe,
   flow_client_orgs_invitations,
+  flow_client_operator_organizations_seats_raise,
   flow_client_orgs_use,
 } from "./flows.ts";
 import {
@@ -653,4 +654,100 @@ export const decision_organizations_declined_previews = defineDecision({
     "script passes `--confirm` and never sees the question, so no frozen refusal or exit of a script changes.",
   source: BUILDER("books/target/shared/decisions.ts (vocabulary.declined-preview-cancelled); frozen org.create, org.retry, invite.decline, org.invite.cancel, org.invite.resend notes"),
   affects: [operation_org_create, operation_org_retry, operation_invite_decline, operation_org_invite_cancel, operation_org_invite_resend, error_CANCELLED],
+});
+
+// ── seats (Aaron's ruling aaron.seats) ──────────────────────────────────────────────────────
+
+const AARON_SEATS = "Aaron, 8 November 2026 (aaron.seats); books/target/shared/rulings.ts";
+
+export const decision_organizations_seat_limit = defineDecision({
+  id: "organizations.seat-limit",
+  title: "Ten seats on the Organization's row; an offer reserves one; an operator raises",
+  question:
+    "aaron.seats: a company starts with ten seats, in the beta and after; each seat may hold one agent account, and the " +
+    "company may hold one agent of its own. Where is the limit kept, what counts against it, when is it checked, and who " +
+    "raises it?",
+  options: [
+    {
+      label: "row-and-offers",
+      text:
+        "`organizations.seat_limit`, 10 at birth. A person's Seat counts one; an agent's rides on its owner's Seat here " +
+        "(one per Seat) or is the Organization's own (one), and any other agent's counts one. A live offer reserves what " +
+        "its Seat will take, so the check is at `org member invite`, under the Organization row's lock, and acceptance " +
+        "only takes what was reserved. A Capxul operator raises the limit with the operator's tool; it never goes down.",
+    },
+    { label: "count-at-accept", text: "Count only held Seats, at acceptance: offers are free, and the eleventh invitee to accept is refused." },
+    { label: "flag", text: "A deployment-wide number in feature flags, the same for every Organization." },
+  ],
+  chosen: "row-and-offers",
+  why:
+    "Refusing at the offer tells the inviter, who can act (cancel an offer, ask for more seats), instead of an invitee " +
+    "who did nothing wrong; reserving keeps acceptance a promise the Organization can keep. The row lock makes two " +
+    "concurrent offers for the last seat one success and one SEAT_LIMIT_REACHED. A per-Organization number is what " +
+    "'raised' needs, and a flag cannot raise one company's. The founder's Seat is the first of the ten. Every frozen " +
+    "operation behaves as before: no eval world fills ten seats (the most is seven, Acme's in org-with-budget-tree), " +
+    "and no frozen claim invites past ten. Who raises it is not in the ruling: an operator alone, until pricing says " +
+    "otherwise (for Aaron: may an Organization buy more seats itself, and at what price?). Not built: lowering a limit, " +
+    "and ending a person's Seat, which no target operation does today.",
+  source: AARON_SEATS,
+  affects: [
+    table_organizations,
+    table_org_members,
+    table_org_invitations,
+    rpc_organizations_invitations_invite,
+    rpc_organizations_invitations_accept,
+    rpc_organizations_seats_raise,
+    flow_client_operator_organizations_seats_raise,
+    rpc_organizations_setups_begin,
+  ],
+});
+
+export const decision_organizations_agent_cover = defineDecision({
+  id: "organizations.agent-cover",
+  title: "An agent rides on its owner's Seat, one per Seat; an uncovered agent takes one",
+  question:
+    "'Every seat can have one agent account, as well as the company's agent.' Whose Seat covers an agent, and what of an " +
+    "agent nobody seated here owns, or a seated person's second agent?",
+  options: [
+    {
+      label: "owner-covers",
+      text:
+        "An agent's Party names its owner. A person who holds a Seat here covers one agent of theirs; the Organization " +
+        "covers the one agent it owns. An agent nothing covers (an outsider's, another Organization's, a second of the " +
+        "same person's) takes a seat of its own, like a person, while one is free.",
+    },
+    { label: "refuse-uncovered", text: "Only covered agents may hold a Seat; any other agent's offer is refused." },
+    { label: "agents-count", text: "Every Seat counts one, person or agent; the ten are shared by both." },
+  ],
+  chosen: "owner-covers",
+  why:
+    "It reads the ruling as ten people, each with an agent, plus the company's: up to 21 members. Refusing uncovered " +
+    "agents would take away what `org member invite @handle --agent` does today (any agent can be offered a Seat), so " +
+    "they count as a person does instead. The owner is read from the agent's Party (parties), which organizations " +
+    "already reads; nothing new is needed from agents, which sits above. A covering Seat is a person's, and a person's " +
+    "Seat never ends, so a covered agent never loses its cover; its own Seat ends when the chain removes it, which frees " +
+    "the cover for another. For Aaron, to confirm the reading: does an agent take one of the ten, or ride beside its " +
+    "person's Seat as here?",
+  source: AARON_SEATS,
+  affects: [table_org_members, table_org_invitations, rpc_organizations_invitations_invite, concept_parties],
+});
+
+export const decision_organizations_seat_limit_error = defineDecision({
+  id: "organizations.seat-limit-error",
+  title: "One new code, SEAT_LIMIT_REACHED, for both of an Organization's limits",
+  question: "Which code refuses an offer past the seat limit, and a second agent of the Organization's own?",
+  options: [
+    { label: "new-code", text: "A new state code, SEAT_LIMIT_REACHED (exit 2, like the other limits), naming the limit, what is used and what is allowed." },
+    { label: "wrong-state", text: "WRONG_STATE, with the limit in its details." },
+    { label: "budget-code", text: "PAYROLL_BUDGET_EXCEEDED, the vocabulary's other limit." },
+  ],
+  chosen: "new-code",
+  why:
+    "A script must tell 'the Organization is full' (ask Capxul, or free a seat) from a wrong state of the thing it named, " +
+    "and the budget code is about money. One code covers both limits because the remedy has the same shape; `limit` " +
+    "says which (`seats`, `own agent`). Its exit is 2, as the designed text gives the other limits (PAYROLL_BUDGET_EXCEEDED, " +
+    "INSUFFICIENT_BALANCE). It joins the shared vocabulary under vocabulary.shared-only. Where it surfaces: organizations' " +
+    "invite rpc, so `org member invite` (budgets' operation), and agents' create with `--org` (agents.org-own-agent).",
+  source: AARON_SEATS,
+  affects: [error_SEAT_LIMIT_REACHED, rpc_organizations_invitations_invite],
 });

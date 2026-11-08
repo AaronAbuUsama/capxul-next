@@ -119,16 +119,17 @@ export const error_FEATURE_NOT_AVAILABLE = defineError({
   was: [`${CODES}:61`],
 });
 
-// aaron.seats: one code for the three limits of an Organization's Seats (decision organizations.seat-limit-error).
+// aaron.seats: one code for an Organization's two limits, its Seats and its own agent (decision organizations.seat-limit-error).
 export const error_SEAT_LIMIT_REACHED = defineError({
   id: "SEAT_LIMIT_REACHED",
   title: "No seat free",
   class: "state",
   actor: "person",
   message:
-    "The Organization has no {limit} free: {used} of {allowed} are taken. Nothing was written; free one, or ask Capxul to raise the limit.",
+    "The Organization has used all {allowed} of its {limit}. Nothing was written. Free one (cancel an offer not yet " +
+    "accepted, remove an agent), or ask Capxul to raise the seat limit.",
   retryable: false,
-  exit: 6,
+  exit: 2,
   was: ["books/target/shared/rulings.ts (aaron.seats)"],
 });
 

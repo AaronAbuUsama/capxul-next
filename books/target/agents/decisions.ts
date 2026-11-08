@@ -14,6 +14,7 @@ import {
   error_ROLE_PERMISSION_DENIED,
   error_TRANSACTION_FAILED,
   error_WRONG_STATE,
+  error_SEAT_LIMIT_REACHED,
 } from "../shared/vocabulary.ts";
 import { table_principals } from "../access/data.ts";
 import { procedure_parties_register, procedure_parties_resolve_recipient } from "../parties/procedures.ts";
@@ -630,4 +631,33 @@ export const decision_agents_no_door = defineDecision({
     "(dependencies.agent-seats); access proves an agent's sign-in on chain (concepts.access).",
   source: by("books/target/shared/decisions.ts (rules.procedures, dependencies.agent-seats, concepts.access); docs/as-is/archive/accounts/procedures.ts"),
   affects: [concept_agents, table_agents],
+});
+
+// ── seats (Aaron's ruling aaron.seats) ──────────────────────────────────────────────────────
+
+export const decision_agents_org_own_agent = defineDecision({
+  id: "agents.org-own-agent",
+  title: "An Organization owns one live agent; a second create is SEAT_LIMIT_REACHED",
+  question: "aaron.seats: 'the company may hold one agent of its own'. Where is that held, and what does a second `agent create --org` do?",
+  options: [
+    {
+      label: "at-create",
+      text:
+        "Agents refuses a create with `--org` while the Organization owns a live agent (creating, active or frozen), " +
+        "SEAT_LIMIT_REACHED with limit `own agent`, before any Party, change or proposal is written. A removed or failed " +
+        "agent frees the place. Organizations covers that agent's Seat (organizations.agent-cover).",
+    },
+    { label: "at-seat", text: "Let an Organization own any number of agents; only one may hold a covered Seat, the rest take seats." },
+  ],
+  chosen: "at-create",
+  why:
+    "The ruling limits the agents the company holds, not only their Seats, and agents is where an Organization's agents " +
+    "are born and counted (`by-owner-created`). Checking before the Board proposal opens tells the Director at once, " +
+    "instead of after the Directors approve a create that would then hold nothing. A person's own agents are not limited " +
+    "here: the ruling limits what a company holds, and a person's agent rides on their Seat in a company " +
+    "(organizations.agent-cover). It is reached from the world `org-with-agent`, where Acme already owns @acme-bot; no " +
+    "frozen claim creates a second agent for one Organization. The agent the ruling's 'company's agent' names is the " +
+    "Organization's own, whatever it does.",
+  source: "Aaron, 8 November 2026 (aaron.seats); books/target/shared/rulings.ts; books/target/agents/data.ts (by-owner-created)",
+  affects: [rpc_agents_changes_create, op.operation_agent_create, error_SEAT_LIMIT_REACHED, table_agents],
 });

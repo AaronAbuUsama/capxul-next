@@ -25,6 +25,7 @@ import {
   error_PROVIDER_ERROR,
   error_PROVIDER_RESPONSE_INVALID,
   error_ROLE_PERMISSION_DENIED,
+  error_SEAT_LIMIT_REACHED,
   error_SMART_ACCOUNT_MISSING,
   error_WRONG_STATE,
 } from "../shared/vocabulary.ts";
@@ -101,8 +102,9 @@ export const rpc_agents_changes_create = defineRpc({
     "own: not the zero address, AgentOwner, the owner's Safe or signer, any Party's Safe, or the key of a live agent " +
     "(`by-signer`); else INVALID_INPUT `signer`. The owner: without `org`, the caller, a person whose own Safe is claimed " +
     "(accounts' personal-safes, claimed; else SMART_ACCOUNT_MISSING); with `org`, the Organization that handle or id " +
-    "names, of which the caller must be a Director (else, or when it names none, ROLE_PERMISSION_DENIED), and whose " +
-    "company Safe must be live on chain (else WRONG_STATE). The agent's Safe is AgentOwner's pure `safeAddressFor(signer, " +
+    "names, of which the caller must be a Director (else, or when it names none, ROLE_PERMISSION_DENIED), whose " +
+    "company Safe must be live on chain (else WRONG_STATE), and which owns no live agent yet (creating, active or " +
+    "frozen): an Organization holds one agent of its own (aaron.seats; else SEAT_LIMIT_REACHED, limit `own agent`). The agent's Safe is AgentOwner's pure `safeAddressFor(signer, " +
     "owner Safe)`, computed in-process (CREATE2 over fixed inputs, no node call). Then, in one transaction: the agent's " +
     "Party (`parties.register`, kind agent; a malformed, reserved or taken handle is INVALID_INPUT and nothing is written), " +
     "the agent `creating`, its create change `waiting`, and " + CARRIER + " The carrier holds exactly one call, " +
@@ -114,7 +116,7 @@ export const rpc_agents_changes_create = defineRpc({
   who: "A signed-in person with a claimed personal Safe; with `org`, a Director of that Organization, which then owns the agent.",
   input: CreateInput,
   output: Prepared,
-  errors: [...CHANGE_ERRORS, error_SMART_ACCOUNT_MISSING],
+  errors: [...CHANGE_ERRORS, error_SMART_ACCOUNT_MISSING, error_SEAT_LIMIT_REACHED],
   reads: [...FIND_READS, table_personal_safes],
   writes: [table_agents, table_agent_changes],
   drives: [machine_agent.t.create, machine_agent_change.t.open],

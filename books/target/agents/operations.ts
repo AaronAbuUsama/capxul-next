@@ -20,6 +20,7 @@ import {
   error_NOT_AUTHENTICATED,
   error_PROVIDER_ERROR,
   error_ROLE_PERMISSION_DENIED,
+  error_SEAT_LIMIT_REACHED,
   error_SMART_ACCOUNT_MISSING,
   error_WRONG_STATE,
 } from "../shared/vocabulary.ts";
@@ -141,6 +142,13 @@ export const operation_agent_create = defineOperation({
     },
     { error: error_SMART_ACCOUNT_MISSING, given: W.unclaimed, when: top("agent.create", "SMART_ACCOUNT_MISSING") },
     { error: error_ROLE_PERMISSION_DENIED, given: W.org, when: designed("agent.create", "ROLE_PERMISSION_DENIED") },
+    {
+      error: error_SEAT_LIMIT_REACHED,
+      given: W.org,
+      when:
+        "With `--org`, the Organization already owns a live agent (creating, active or frozen): it holds one of its own " +
+        "(`agent create Second --org acme` while @acme-bot is active; agents.org-own-agent).",
+    },
     {
       error: error_FEATURE_NOT_AVAILABLE,
       given: W.org,

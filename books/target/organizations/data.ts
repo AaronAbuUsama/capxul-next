@@ -58,6 +58,14 @@ export const Offer = Schema.Union([
   Schema.Struct({ kind: Schema.Literal("new-allowance"), name: S, asset: S, limit: S }),
 ]);
 
+/**
+ * What a Seat, or an offer of one, uses of the Organization's limits (organizations.seat-limit):
+ * `seat` counts one against `seat_limit` (a person, or an agent nothing covers); `owner-seat` is an
+ * agent riding on its owner's Seat here (one per Seat); `organization` is the agent the Organization
+ * owns (one).
+ */
+export const SeatUse = Schema.Literals(["seat", "owner-seat", "organization"]);
+
 // ── organizations ───────────────────────────────────────────────────────────────────────────
 
 export const table_organizations = defineTable({
@@ -68,8 +76,9 @@ export const table_organizations = defineTable({
     "transaction with its setup and its Party (`parties.register`: the handle and the Safe it routes money to). The " +
     "company Safe's address is the minter's pure `companySafeAddressFor` of the founder's Safe and the handle, so it is " +
     "known, and money can be routed to it, before Companies House mints it. The handle lives on the Party (one namespace " +
-    "with agents); the logo is a media file the row points at. Nothing here is a chain copy: the Safe's owners, its " +
-    "threshold and its balances are read from indexing's views.",
+    "with agents); the logo is a media file the row points at. `seat_limit` is how many Seats it may fill: ten at birth, " +
+    "in the beta and after, raised only by a Capxul operator (organizations.seat-limit). Nothing here is a chain copy: " +
+    "the Safe's owners, its threshold and its balances are read from indexing's views.",
   was: [`${T}/organizations.ts:17`, `${AS_IS}:140`],
   concept: concept_organizations,
   tenancy: "organization",
@@ -89,6 +98,11 @@ export const table_organizations = defineTable({
     safe_address: S,
     founder_party_id: S,
     founder_safe: S,
+    /** Seats it may fill: 10 at birth (aaron.seats); only `organizations.seats.raise` changes it, and only upward. */
+    seat_limit: N,
+    /** The operator label and time of the last raise; null while it has its first ten. */
+    seat_limit_raised_by: NullOr(S),
+    seat_limit_raised_at: NullOr(N),
     created_at: N,
     updated_at: N,
   }),
@@ -200,7 +214,9 @@ export const table_org_members = defineTable({
     "from indexing. `safe_address` is the Safe those hats are worn by (a person's or an agent's own). An agent's Seat " +
     "ends when the chain shows the agent removed. The old legacy states (pending, pending_safe, pending_grant, expired), " +
     "the reconciliation stamp and the duplicate rows per email are gone: an invited person who has not joined is an open " +
-    "invitation, not a Seat.",
+    "invitation, not a Seat. `seat_use` is what the Seat takes of the Organization's limits, as its offer reserved it: a " +
+    "person's counts one of `seat_limit`; an agent's rides on its owner's Seat here (`covering_member_id`, one agent per " +
+    "Seat) or is the Organization's own agent (one), and any other agent's counts one (organizations.seat-limit).",
   was: [`${T}/members.ts:10`, `${AS_IS}:391`],
   concept: concept_organizations,
   tenancy: "organization",
@@ -215,6 +231,10 @@ export const table_org_members = defineTable({
     safe_address: S,
     /** The invitation it was accepted from; null for the founder's Seat. */
     invitation_id: NullOr(S),
+    /** What it takes of the limits: the founder's and every person's is `seat`. */
+    seat_use: SeatUse,
+    /** For `owner-seat`: the Seat of the agent's owner that covers it; else null. */
+    covering_member_id: NullOr(S),
     status: Schema.Literals(["active", "removed"]),
     removed_reason: NullOr(Schema.Literal("agent_removed")),
     joined_at: N,
@@ -238,6 +258,16 @@ export const table_org_members = defineTable({
       name: "by_org_joined",
       fields: ["org_id", "joined_at", "member_id"],
       for: "`org member list` pages, in join order.",
+    },
+    {
+      name: "by_org_seat_use",
+      fields: ["org_id", "status", "seat_use"],
+      for: "The seat count an offer is checked against: the active Seats that count one, and whether the Organization's own agent holds one.",
+    },
+    {
+      name: "by_org_covering",
+      fields: ["org_id", "covering_member_id"],
+      for: "Whether a person's Seat already covers an agent of theirs, so a second takes a Seat of its own.",
     },
     {
       name: "by_principal",
@@ -267,8 +297,9 @@ export const table_org_invitations = defineTable({
     "company Safe transaction that carries them here (`organizations.bind-invitation-grants`), and the process opens the " +
     "offer when the chain shows that transaction executed. The digest the invitee accepts covers the Organization, the " +
     "grantee and the offers. `last_sent_at` anchors the resend cooldown; the email itself and its delivery record are " +
-    "notices', which follows `org_invite_transitioned`. The old configure, grant, disable and compensate commands, the " +
-    "generation lineage and the Roles bindings are gone (P9: grants are hats).",
+    "notices', which follows `org_invite_transitioned`. A live offer reserves the Seat it offers (`seat_use`), so ten " +
+    "open offers fill ten seats until they are accepted or end. The old configure, grant, disable and compensate " +
+    "commands, the generation lineage and the Roles bindings are gone (P9: grants are hats).",
   was: [`${T}/invitations.ts:25`, `${AS_IS}:518`],
   concept: concept_organizations,
   tenancy: "organization",
@@ -286,6 +317,9 @@ export const table_org_invitations = defineTable({
     grantee_safe: S,
     /** Null for an offer to an `@handle` (an agent): no email is sent. */
     grantee_mailbox: NullOr(S),
+    /** What the Seat it offers will take, reserved while the offer is live (authorizing or pending). */
+    seat_use: SeatUse,
+    covering_member_id: NullOr(S),
     offers: Schema.Array(Offer),
     offer_digest: S,
     phase: Schema.Literals(["authorizing", "pending", "active", "revoking", "declined", "cancelled", "expired"]),
@@ -322,6 +356,11 @@ export const table_org_invitations = defineTable({
       name: "by_org_phase_created",
       fields: ["org_id", "phase", "created_at", "invitation_id"],
       for: "`org invite list --phase`, merged per phase in page order, and the open invitations `org member list` shows.",
+    },
+    {
+      name: "by_org_phase_seat_use",
+      fields: ["org_id", "phase", "seat_use"],
+      for: "The live offers that reserve a Seat (authorizing or pending), counted with the Seats held when another is offered.",
     },
     {
       name: "by_org_grantee_phase",

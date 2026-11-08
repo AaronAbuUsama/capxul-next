@@ -20,6 +20,7 @@ import {
   error_NOT_AUTHENTICATED,
   error_RATE_LIMITED,
   error_ROLE_PERMISSION_DENIED,
+  error_SEAT_LIMIT_REACHED,
   error_WRONG_STATE,
 } from "../shared/vocabulary.ts";
 import {
@@ -96,10 +97,15 @@ export const rpc_organizations_invitations_invite = defineRpc({
     "with `parties.resolve-recipient`: an email names a person's Party, named provisional at its email-derived Safe when " +
     "nobody has it yet; an `@handle` must name an agent's Party; an Account must be a person principal with a mailbox; " +
     "anything else, an Organization, or an outside address is INVALID_INPUT. At most 16 offers, none twice, and none the grantee already " +
-    "has live here (else INVALID_INPUT). A person invitee is admitted to the beta in the same transaction (`accounts.admit`, " +
-    "which sends nothing: the invitation's own email is the only one). A Seat-only offer is born pending with its " +
-    "seven-day expiry (`send`); one with grants is born authorizing (`send_with_grants`) and waits for budgets to " +
-    "bind the Board proposal that carries them.",
+    "has live here (else INVALID_INPUT). Then the Seat it offers is counted, under the Organization row's lock so two " +
+    "offers cannot both take the last one (organizations.seat-limit): a person takes a seat; an agent whose owner (its " +
+    "Party's) holds a Seat here that covers no other agent rides on that Seat; the Organization's own agent rides on the " +
+    "Organization while no other agent it owns holds or is offered a Seat; any other agent takes a seat. Taking a seat " +
+    "when the Seats that count and the live offers that reserve one already reach `seat_limit` is SEAT_LIMIT_REACHED, " +
+    "nothing written. A person invitee is admitted to the beta in the same transaction (`accounts.admit`, which sends " +
+    "nothing: the invitation's own email is the only one). A Seat-only offer is born pending with its seven-day expiry " +
+    "(`send`); one with grants is born authorizing (`send_with_grants`) and waits for budgets to bind the Board " +
+    "proposal that carries them.",
   was: [`${AS_IS}:241`, `${I}/operations/invite.ts:14`, `${I}/writes/offers.ts:136`, `${I}/reads/grantees.ts:72`],
   concept: concept_organizations,
   kind: "mutation",
@@ -116,7 +122,7 @@ export const rpc_organizations_invitations_invite = defineRpc({
     requestKey: S,
   }),
   output: InvitationView,
-  errors: [error_NOT_AUTHENTICATED, error_ROLE_PERMISSION_DENIED, error_INVALID_INPUT],
+  errors: [error_NOT_AUTHENTICATED, error_ROLE_PERMISSION_DENIED, error_INVALID_INPUT, error_SEAT_LIMIT_REACHED],
   reads: [...PEOPLE_HAT, table_organizations, table_org_invitations, table_parties, table_principals, table_personal_safes],
   writes: [table_org_invitations],
   drives: [machine_org_invite.t.send, machine_org_invite.t.send_with_grants],
@@ -137,7 +143,8 @@ export const rpc_organizations_invitations_accept = defineRpc({
     "caller's Party must be the grantee, else ROLE_PERMISSION_DENIED, the same answer as for an invitation that does not " +
     "exist. Accepted already: the same digest returns it unchanged, another is WRONG_STATE. Otherwise the offer must be " +
     "pending, not past its expiry, at the live digest (else WRONG_STATE); it becomes active and the Seat is born at once " +
-    "(or kept, when the Party already holds one here). Its grants were minted to the grantee's Safe before it opened, so " +
+    "with the use its offer reserved, so acceptance never overfills the Organization (or kept, when the Party already " +
+    "holds one here). Its grants were minted to the grantee's Safe before it opened, so " +
     "nothing waits after consent. Consent grants no authority of its own: the hats do.",
   was: [`${AS_IS}:280`, `${I}/operations/accept.ts:12`, `${I}/writes/consent.ts:40`],
   concept: concept_organizations,

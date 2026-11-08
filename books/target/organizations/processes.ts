@@ -118,7 +118,7 @@ export const workflow_organizations_setups_set_up = defineWorkflow({
     { name: "confirm-deploy", about: "At finality, read MoneyDeployed; write the deployment; steps gains money_deployed." },
     { name: "open-install", about: "Read buildMoney's batch, open the founder's install approval at the company Safe's first nonce; request_authorization." },
     { name: "await-founder", about: "Wait for the founder's signature; authorize once the approval is signed." },
-    { name: "complete", about: "At finality, check the install's facts; steps gains installed; complete; seat the founder." },
+    { name: "complete", about: "At finality, check the install's facts; steps gains installed; complete; seat the founder (`seat_use` seat, one of ten)." },
   ],
   reads: [table_org_setups, table_organizations, table_org_deployments],
   writes: [table_org_setups, table_org_deployments, table_org_members],

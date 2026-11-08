@@ -71,7 +71,8 @@ export const rpc_organizations_setups_begin = defineRpc({
     "if the handle's Party already stands for an Organization this founder began with the same intent, that Organization " +
     "and its setup are returned unchanged; another intent is WRONG_STATE; another founder's handle is INVALID_INPUT. " +
     "Otherwise it computes the company Safe's address in-process with the minter's pure `companySafeAddressFor` (no node " +
-    "call), inserts the Organization and its setup (`begin`, which starts the setup process), and registers the " +
+    "call), inserts the Organization with its ten seats (`seat_limit` 10, aaron.seats) and its setup (`begin`, which " +
+    "starts the setup process), and registers the " +
     "Organization's Party, pending, with the handle and that Safe (`parties.register`): a taken or malformed handle fails " +
     "the whole transaction with INVALID_INPUT, so no Organization and no setup are left.",
   was: [
