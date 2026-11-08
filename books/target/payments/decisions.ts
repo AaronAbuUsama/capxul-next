@@ -1,5 +1,5 @@
 // Every judgment the payments design makes, as a decision record (rule 10 of CONVENTIONS.md). Made by Claude
-// on 8 November 2026 under the accepted A1-A4 and P1-P10, with docs/as-is/payments.md, books/as-is/payments/
+// on 8 November 2026 under the accepted A1-A4 and P1-P10, with docs/as-is/payments.md, docs/as-is/archive/payments/
 // and the old code (/home/user/factory, integration/factory) as evidence.
 //
 // Old against new: 82 old Convex functions (71 rpcs, 11 workflows), 65 door procedures, 8 SDK flows, 13
@@ -94,7 +94,7 @@ export const decision_payments_three_tables = defineDecision({
     "payment-evidence-conflicts is the `mismatched` state with its first differing term. payment-document-intents is the " +
     "command's request digest, which covers the document hashes. deposit-materializations went with Deposit Payments " +
     "(payments.movements-outside-money). Per-route tables would split one ledger the activity feed and books must read as one.",
-  source: by(`${ASIS} (plumbing, K1, K9, M5, D9); books/as-is/payments/data.ts (13 tables)`),
+  source: by(`${ASIS} (plumbing, K1, K9, M5, D9); docs/as-is/archive/payments/data.ts (13 tables)`),
   affects: [table_payment_commands, table_payments, table_movements, concept_payments],
 });
 
@@ -524,7 +524,7 @@ export const decision_payments_worlds = defineDecision({
     "Each is made by running operations as the devnet's fixed identities and saved as a snapshot (environments.devnet), " +
     "named after what it holds. Seven cover all 36 refusals of the eight operations: a refusal that needs an approval to " +
     "lapse (SUPERSEDED) is reached by running the command in its world and moving the clock past the window.",
-  source: by("books/target/shared/decisions.ts (environments.devnet, worlds); books/as-is/payments/operations.ts (27 refusals had no world)"),
+  source: by("books/target/shared/decisions.ts (environments.devnet, worlds); docs/as-is/archive/payments/operations.ts (27 refusals had no world)"),
   affects: OPERATIONS,
 });
 
@@ -633,7 +633,7 @@ export const decision_payments_count = defineDecision({
     "Convex's split of one write into many hops, executions now in approvals, pre-v4 paths, or stores that duplicated " +
     "Ponder. The 60 old door procedures with no booked caller have none now: their callers' needs are prepare-command, " +
     "the outbox (payment_transitioned) and plain reads of payments' tables.",
-  source: by("books/as-is/payments/*.ts (record counts, 8 November 2026); docs/as-is/payments.md (82 functions, 65 procedures)"),
+  source: by("docs/as-is/archive/payments/*.ts (record counts, 8 November 2026); docs/as-is/payments.md (82 functions, 65 procedures)"),
   affects: [
     concept_payments,
     rpc_payments_commands_prepare,

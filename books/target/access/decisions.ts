@@ -1,6 +1,6 @@
 // Access' own judgments in the target design, one decision record each, linked to the records they
 // shape. Made by Claude on 8 November 2026 under A1-A4 and P1-P10, with the old code
-// (/home/user/factory, integration/factory) and the as-is book (books/as-is/access/) as evidence.
+// (/home/user/factory, integration/factory) and the as-is book (docs/as-is/archive/access/) as evidence.
 
 import { defineDecision } from "../../../packages/book/src/index.ts";
 import { component_backend, component_mcp_server, concept_access } from "../shared/foundation.ts";
@@ -58,7 +58,7 @@ export const decision_access_own_sign_in = defineDecision({
     "Capxul needs is small: a hashed six-digit code with a cooldown, a random token stored as a hash, a challenge proved " +
     "on chain, and OAuth's code, token and revocation steps for MCP clients. Each is a few rpcs over access' tables, " +
     "checked by the same evals as every other concept.",
-  source: by("books/as-is/access/sessions.ts:392 (the unused BetterAuth routes); books/as-is/access/data.ts:472 (eight component tables)"),
+  source: by("docs/as-is/archive/access/sessions.ts:392 (the unused BetterAuth routes); docs/as-is/archive/access/data.ts:472 (eight component tables)"),
   affects: [
     concept_access, d.table_principals, d.table_sign_in_codes, d.table_sessions, d.table_assistant_grants,
     sign.rpc_access_sign_in_send_code, sign.rpc_access_sign_in_verify_code,
@@ -100,7 +100,7 @@ export const decision_access_tenancy_before_sign_in = defineDecision({
     "for rows only the system writes (prices, flags), and a code is one person's secret. Keying by the email keeps the " +
     "row the address owner's, which is what the code proves. The other lookups made before a tenant is known (by token " +
     "hash, by code hash, by challenge, by Safe) are crossTenant indexes, each saying why.",
-  source: by("books/as-is/access/data.ts:77 (otp-rate-limits keyed by email); P8 tenancy values"),
+  source: by("docs/as-is/archive/access/data.ts:77 (otp-rate-limits keyed by email); P8 tenancy values"),
   affects: [d.table_sign_in_codes, d.table_sessions, d.table_assistant_grants, d.table_principals],
 });
 
@@ -139,7 +139,7 @@ export const decision_access_sessions = defineDecision({
     "session lasts 30 days, then they sign in again; an agent's lasts 24 hours and the SDK signs a new challenge itself " +
     "(the old agent exchange gave one hour). The session machine records every end, so the funnel sees sign-outs and " +
     "expiries; the daily sweep writes the expiry.",
-  source: by("docs/decisions/policy-pack.md#p5 (hop table); packages/backend/src/access/agents/writes.ts:10; books/as-is/access/sessions.ts:291"),
+  source: by("docs/decisions/policy-pack.md#p5 (hop table); packages/backend/src/access/agents/writes.ts:10; docs/as-is/archive/access/sessions.ts:291"),
   affects: [
     d.table_sessions, d.machine_session, d.event_session_transitioned, ses.rpc_access_sessions_current,
     ses.rpc_access_sessions_revoke, p.workflow_access_sessions_sweep, component_backend,
@@ -181,7 +181,7 @@ export const decision_access_no_device_flow = defineDecision({
     "records only to delete them (`native-grant-cleanup.ts`); `auth login` never opens a browser; no other client calls " +
     "/native/device/code. The browser continuation page has no request to continue. The daily cron P3 keeps survives " +
     "as access.sessions.sweep, and an assistant grant's expiry is its own process's timer.",
-  source: by("apps/cli/src/auth/native-grant-cleanup.ts:5; books/as-is/access/clients.ts (start-request reached only by /native/device/code)"),
+  source: by("apps/cli/src/auth/native-grant-cleanup.ts:5; docs/as-is/archive/access/clients.ts (start-request reached only by /native/device/code)"),
   affects: [concept_access, p.workflow_access_sessions_sweep],
 });
 
@@ -206,7 +206,7 @@ export const decision_access_dropped = defineDecision({
     "Each either has no caller (P2), is plumbing the runtime now does (P3), lives in the concept the map moved it to " +
     "(concepts.access, concepts.accounts, concepts.applications), or existed only to test the old system by hand " +
     "(P8: evals restore worlds instead of seeding proof identities).",
-  source: by("packages/backend/src/access/README.md:3; books/as-is/access/sessions.ts:158; books/as-is/access/procedures.ts"),
+  source: by("packages/backend/src/access/README.md:3; docs/as-is/archive/access/sessions.ts:158; docs/as-is/archive/access/procedures.ts"),
   affects: [concept_access],
 });
 
@@ -234,7 +234,7 @@ export const decision_access_assistants = defineDecision({
     "resolves a session, so the MCP server passes the token through the Core SDK and needs no exchange (its " +
     "MCP_EXCHANGE_SECRET is unused). The scopes keep the old grammar; none signs or sends money: the person signs every " +
     "approval. The discovery documents and registration are stateless protocol routes and are not booked as rpcs.",
-  source: by("packages/backend/src/access/rules.ts:14 (scope grammar); apps/mcp/src/identity.ts:1 (the exchange); books/as-is/access/agents.ts"),
+  source: by("packages/backend/src/access/rules.ts:14 (scope grammar); apps/mcp/src/identity.ts:1 (the exchange); docs/as-is/archive/access/agents.ts"),
   affects: [
     d.table_assistant_grants, d.machine_assistant_grant, d.event_assistant_grant_transitioned,
     asst.rpc_access_assistants_read_request, asst.rpc_access_assistants_consent, asst.rpc_access_assistants_token,
@@ -283,7 +283,7 @@ export const decision_access_gates = defineDecision({
     "PostHog fake, so production code has one path. A gate check is a read, not a money fact, so it is no procedure " +
     "(rules.procedures): a concept that refuses FEATURE_NOT_AVAILABLE lists this table in its reads. features.list and " +
     "setMine had no caller.",
-  source: by("books/as-is/access/data.ts:256, :293, :319; packages/backend/src/access/features/rules.ts:84; books/target/shared/external.ts (posthog fake)"),
+  source: by("docs/as-is/archive/access/data.ts:256, :293, :319; packages/backend/src/access/features/rules.ts:84; books/target/shared/external.ts (posthog fake)"),
   affects: [d.table_feature_flags, p.workflow_access_gates_sync],
 });
 
@@ -301,7 +301,7 @@ export const decision_access_no_procedures = defineDecision({
     "fact writes a principal, a session, a grant or a flag. Who is calling is resolved once per request by the runtime, " +
     "which also sets the tenant for row-level security, so it is no more a record than the outbox is (rules.outbox). " +
     "The old door's read-scope and consent guards went with the indexer scope and application consent.",
-  source: by("books/as-is/access/procedures.ts (26 door functions); books/target/shared/decisions.ts (rules.procedures, rules.outbox)"),
+  source: by("docs/as-is/archive/access/procedures.ts (26 door functions); books/target/shared/decisions.ts (rules.procedures, rules.outbox)"),
   affects: [concept_access, d.table_feature_flags, d.table_principals],
 });
 
@@ -404,7 +404,7 @@ export const decision_access_wallet_recovery = defineDecision({
   why:
     "The backend holds the Shield secrets, and the session belongs to the signed-in person; asking once at sign-in keeps " +
     "the vendor call out of every approval's wait. The CLI and agents sign locally and never ask.",
-  source: by("books/target/shared/external.ts (openfort-shield: an access rpc); books/as-is/access/sessions.ts:365"),
+  source: by("books/target/shared/external.ts (openfort-shield: an access rpc); docs/as-is/archive/access/sessions.ts:365"),
   affects: [ses.rpc_access_sessions_wallet_recovery, fl.flow_client_auth_browser_sign_in, integration_openfort_shield],
 });
 

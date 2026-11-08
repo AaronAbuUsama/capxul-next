@@ -12,7 +12,7 @@ import { table_notices } from "../notices/data.ts";
 import { table_mail_faults, table_mail_messages } from "./data.ts";
 
 const OP = "packages/backend/src/operator";
-const ASIS = "books/as-is/operator";
+const ASIS = "docs/as-is/archive/operator";
 
 const S = Schema.String;
 const Int = Schema.Int;

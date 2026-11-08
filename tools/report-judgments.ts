@@ -28,10 +28,12 @@ const FLAGGED = [
   "documents.acceptance-rewrites", "agents.org-owned", "board.failed-proposal", "equity.acceptance",
   "contacts.members-write", "notices.claim-escrow", "system.size",
 ];
+/** Decisions that carry out one of Aaron's own; they cite him but need nothing from him. */
+const CARRIES_OUT = ["rules.frozen-flags-kept", "rules.frozen-flags-built-ins"];
 /** Aaron's own decisions are settled, not for his review. */
 const byAaron = (d: Decision) => /^Aaron\b/.test(d.source);
 const forAaron = (d: Decision) =>
-  !byAaron(d) && (FLAGGED.includes(d.id) || /\baaron\b/i.test(`${d.title} ${d.question} ${d.why} ${d.chosen}`));
+  !byAaron(d) && !CARRIES_OUT.includes(d.id) && (FLAGGED.includes(d.id) || /\baaron\b/i.test(`${d.title} ${d.question} ${d.why} ${d.chosen}`));
 const chosenText = (d: Decision) => d.options.find((o) => o.label === d.chosen)?.text ?? d.chosen;
 const one = (s: string) => s.replace(/\s+/g, " ").trim();
 

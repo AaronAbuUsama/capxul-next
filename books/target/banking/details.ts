@@ -91,7 +91,7 @@ export const rpc_banking_details_show = defineRpc({
   chain: [],
   spans: [],
   budget: budget("vendor"),
-  was: [`${B}/operations/open.ts:1`, `${B}/operations/get.ts:1`, `${B}/operations/list.ts:1`, "books/as-is/banking/flows.ts:43"],
+  was: [`${B}/operations/open.ts:1`, `${B}/operations/get.ts:1`, `${B}/operations/list.ts:1`, "docs/as-is/archive/banking/flows.ts:43"],
 });
 
 export const rpc_banking_details_settle = defineRpc({
@@ -130,5 +130,5 @@ export const rpc_banking_details_settle = defineRpc({
     p95Ms: 5_000,
     why: "two Bridge calls in sequence for a change: the read of the virtual account, then the token change",
   },
-  was: [`${B}/operations/settle.ts:1`, "books/as-is/banking/bank-details.ts:345"],
+  was: [`${B}/operations/settle.ts:1`, "docs/as-is/archive/banking/bank-details.ts:345"],
 });

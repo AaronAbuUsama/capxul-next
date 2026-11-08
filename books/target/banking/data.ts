@@ -19,7 +19,7 @@ import { concept_banking } from "../shared/foundation.ts";
 const OLD = "packages/backend/src";
 const B = `${OLD}/banking`;
 const P = `${OLD}/parties`;
-const AS_IS = "books/as-is/banking/data.ts";
+const AS_IS = "docs/as-is/archive/banking/data.ts";
 
 const S = Schema.String;
 const N = Schema.Number;

@@ -558,7 +558,7 @@ export const decision_board_dropped = defineDecision({
     "P2 keeps only what an operation, flow step, signal or trigger reaches; each of these was a step of one operation, " +
     "an outside call now owned by approvals or notices, or a pre-v4 path. Events are sent by transitions (P7), so an " +
     "emit rpc has nothing to do. Old staging keeps running these until Aaron turns it off.",
-  source: by("books/as-is/organizations/proposals.ts, directors.ts; books/as-is/permissions/grants.ts"),
+  source: by("docs/as-is/archive/organizations/proposals.ts, directors.ts; docs/as-is/archive/permissions/grants.ts"),
   affects: [table_board_proposals, table_board_changes, workflow_board_proposals_carry, workflow_board_changes_carry, rpc_board_directors_get],
 });
 

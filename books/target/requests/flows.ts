@@ -29,7 +29,7 @@ import {
 import { RequestView, ServiceTerms, ServiceView } from "./shapes.ts";
 
 const SDK = "packages/sdk/src/requests";
-const ASIS = "books/as-is/requests/flows.ts";
+const ASIS = "docs/as-is/archive/requests/flows.ts";
 
 const S = Schema.String;
 const N = Schema.Number;

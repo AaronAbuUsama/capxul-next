@@ -14,7 +14,7 @@ import { procedure_documents_store } from "../documents/procedures.ts";
 import { table_parties } from "../parties/data.ts";
 
 const R = "packages/backend/src/requests/checkouts";
-const ASIS = "books/as-is/requests/checkouts.ts";
+const ASIS = "docs/as-is/archive/requests/checkouts.ts";
 
 const S = Schema.String;
 const N = Schema.Number;

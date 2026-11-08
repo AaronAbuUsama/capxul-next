@@ -18,7 +18,7 @@ import { concept_requests } from "../shared/foundation.ts";
 
 const R = "packages/backend/src/requests";
 const T = `${R}/tables.ts`;
-const AS_IS = "books/as-is/requests/data.ts";
+const AS_IS = "docs/as-is/archive/requests/data.ts";
 
 const S = Schema.String;
 const N = Schema.Number;

@@ -30,7 +30,7 @@ import {
 } from "./flows.ts";
 
 const CLI = "apps/cli/src/commands/contact";
-const AS_IS = "books/as-is/operations/payments.ts";
+const AS_IS = "docs/as-is/archive/operations/payments.ts";
 const page = (id: FrozenId) => `apps/docs/factory/operations/${id}.yaml:1`;
 
 /** The world every refusal here is reached from. */

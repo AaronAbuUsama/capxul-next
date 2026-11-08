@@ -34,7 +34,7 @@ import {
 } from "./flows.ts";
 
 const CLI = "apps/cli/src/commands";
-const AS_IS = "books/as-is/operations";
+const AS_IS = "docs/as-is/archive/operations";
 const page = (id: FrozenId) => `apps/docs/factory/operations/${id}.yaml:1`;
 
 /** The worlds this concept's operations are reached from (decision applications.worlds). */

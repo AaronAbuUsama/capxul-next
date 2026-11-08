@@ -574,6 +574,6 @@ export const decision_indexing_not_ported = defineDecision({
     "copies against Ponder, and the receipt record proved a Convex copy of chain state: nothing copies chain rows now " +
     "(concepts.indexing, concepts.permissions). Movement-scan checkpoints followed Transfers Ponder already indexes; " +
     "payments' Movements are triggered by the Transfer itself, and an added token is books' scan.",
-  source: by("books/as-is/indexing/data.ts; books/as-is/indexing/drifts.ts; books/as-is/indexing/movements.ts; apps/indexer/ponder.schema.ts:62"),
+  source: by("docs/as-is/archive/indexing/data.ts; docs/as-is/archive/indexing/drifts.ts; docs/as-is/archive/indexing/movements.ts; apps/indexer/ponder.schema.ts:62"),
   affects: [concept_indexing, table_safe_owners, table_transfers, table_chain_payments, decision_concepts_indexing, decision_concepts_permissions, decision_components_ponder],
 });

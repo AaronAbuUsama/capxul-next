@@ -67,7 +67,7 @@ export const table_admissions = defineTable({
   key: ["email"],
   indexes: [],
   retention: "Kept for the life of the deployment: an admission is never undone, so its record stays.",
-  was: [`${ACCESS_TABLES}:177`, `${OLD}/access/waitlist/writes.ts:32`, `${OLD}/access/waitlist/writes.ts:71`, "books/as-is/access/data.ts"],
+  was: [`${ACCESS_TABLES}:177`, `${OLD}/access/waitlist/writes.ts:32`, `${OLD}/access/waitlist/writes.ts:71`, "docs/as-is/archive/access/data.ts"],
 });
 
 export const event_waitlist_entry_transitioned = defineEvent({
@@ -126,7 +126,7 @@ export const machine_waitlist_entry = defineMachine({
       emits: [event_waitlist_entry_transitioned],
     },
   },
-  was: [`${OLD}/access/waitlist/rules.ts:24`, `${OLD}/access/waitlist/writes.ts:71`, "books/as-is/access/data.ts"],
+  was: [`${OLD}/access/waitlist/rules.ts:24`, `${OLD}/access/waitlist/writes.ts:71`, "docs/as-is/archive/access/data.ts"],
 });
 
 // ── referrals ───────────────────────────────────────────────────────────────────────────────

@@ -15,7 +15,7 @@ import { CeilingFreezeInput, CeilingPrepared, CeilingSetInput, CeilingUnfreezeIn
 import { BIRTH, GUARD, WRITE_ERRORS, WRITE_READS } from "./departments.ts";
 
 const PAY = "packages/backend/src/payroll/departments/operations";
-const AS_IS = "books/as-is/payroll/departments.ts";
+const AS_IS = "docs/as-is/archive/payroll/departments.ts";
 
 const WHO_BOARD = "A Director of the Organization: the Board signs every payout ceiling write.";
 

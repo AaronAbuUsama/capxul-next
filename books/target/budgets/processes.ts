@@ -122,7 +122,7 @@ export const workflow_budgets_invitations_return_grants = defineWorkflow({
   was: [
     "packages/backend/src/organizations/invitations/writes/endings.ts:175",
     "packages/backend/src/organizations/invitations/writes/retirements.ts:28",
-    "books/as-is/organizations/invitations.ts:586",
+    "docs/as-is/archive/organizations/invitations.ts:586",
   ],
   concept: concept_budgets,
   priority: "normal",

@@ -23,7 +23,7 @@ import { procedure_documents_store } from "../documents/procedures.ts";
 import { table_payments } from "../payments/data.ts";
 
 const R = "packages/backend/src/requests";
-const ASIS = "books/as-is/requests/receivables.ts";
+const ASIS = "docs/as-is/archive/requests/receivables.ts";
 
 const S = Schema.String;
 const N = Schema.Number;

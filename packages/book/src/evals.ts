@@ -85,7 +85,9 @@ export const deriveEvals = (b: Pick<Book, "records">): EvalDef[] => {
       const who = a.match === "anyone" ? "any caller" : `a session matched by ${a.match} on ${a.via ? `${a.via.table.id}.${a.via.field} (joined by ${a.field})` : a.field}`;
       const can = [a.reads && "reads", a.writes && "writes"].filter(Boolean).join(" and ") || "touches";
       const rows = a.where ? `the rows where ${Object.entries(a.where).map(([k, v]) => `${k} = ${String(v)}`).join(" and ")}` : "the rows it names";
-      e(`tbl:${t.id}/admits/${i + 1}`, "L1", t, `${who} ${can} ${rows}${a.writes ? "" : ", and writes none"}; a session it does not match sees none of them`);
+      // Another clause, or the row's own tenant, may admit a session this clause does not: only one that nothing admits sees none.
+      const others = t.tenancy === "chain" ? "no admission" : "neither the row's tenant nor any admission";
+      e(`tbl:${t.id}/admits/${i + 1}`, "L1", t, `${who} ${can} ${rows}${a.writes ? "" : ", and writes none"}; a session that ${others} matches sees none of them`);
     });
   }
   for (const t of ofKind(b, "transition")) e(`trn:${t.id}`, "L1", t, "an eval run observes this transition, with its events");

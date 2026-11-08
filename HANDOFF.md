@@ -33,7 +33,7 @@ git clone https://github.com/AaronAbuUsama/capxul-next /home/user/capxul-next
 cd /home/user/capxul-next && git checkout claude/infrastructure-refactor-plan-v41iue && npm install
 # the old system, read only, as a reference for behaviour (agents read it at this path):
 git clone --branch integration/factory --depth 1 https://github.com/Xelmar-tech/infrastructure /home/user/factory
-npx tsc -p packages/book && npm test -w @capxul/book   # 16 tests
+npx tsc -p packages/book && npm test -w @capxul/book   # 21 tests
 npx tsc -p books                                      # the books typecheck
 node --experimental-strip-types packages/book/src/main.ts books/target/index.ts /tmp/target
 ```
@@ -59,7 +59,7 @@ The prompts in `tools/workflows/` use the absolute paths `/home/user/capxul-next
 | 2 | As-is book of the old system | closed: the reviewed payments lane (`docs/as-is/payments.md`, K1 to K18), `docs/mission/findings.md` and the lane reports are kept; the unfinished lanes are archived in `docs/as-is/archive/`, outside every typecheck |
 | 3 | Target architecture: concept map (22 concepts, no cycles), components, kept errors, integrations, v4 contracts, decisions | done: `books/target/shared/` and `docs/decisions/target-architecture.md` |
 | 4 | Target design of each concept | done: all 22 concepts, each with its decisions |
-| 5 | Target book assembled and built with the target rules | done: 0 problems; `tools/check-frozen.ts` 0 breaches (every operation booked once, every behaviour kept); the known gaps are listed in the goal prompt |
+| 5 | Target book assembled and built with the target rules | done: 2,132 records, 0 problems, 4,752 evals, 627 decisions; 13 journeys; the row-policy admissions and wait keys the generators need; `tools/check-frozen.ts` 0 breaches (every operation booked once, every behaviour kept); 74 known gaps, each owned (listed in the goal prompt) |
 | 6 | The goal prompt | done: `docs/mission/initializer.md` |
 
 This work **prepares** the rebuild; it does not run it. No product code is written here. To start
@@ -88,6 +88,12 @@ shape:
   zero problems.
 - `book-frozen-refusals.js`: a fixer and an adversarial reviewer per concept for the refusals
   `check-frozen` found dropped.
+- `handoff-cold-read.js`: a cold-start build session and a fact checker, reading the handoff.
+- `handoff-freeze-flags-and-journeys.js`: the old CLI's flags into `books/frozen/flags.ts`
+  (reference), and the 13 journeys into `books/target/journeys.ts`, each with a reviewer.
+- `book-returns-and-generation-fields.js`: the row-policy admissions and wait routing keys the
+  generators need, with an adversarial reviewer. Its `returns` task was never run: Aaron's
+  `system.frozen-behaviour` made the old `--json` shapes free.
 
 The as-is scripts (`book-as-is-*.js`, `book-payments-assemble.js`) are kept as history. They
 write to `books/as-is/`, which is now archived in `docs/as-is/archive/`.

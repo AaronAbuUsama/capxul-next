@@ -53,5 +53,5 @@ export const procedure_banking_match_deposit = defineProcedure({
   drives: [machine_bank_deposit_match.t.match_request, machine_bank_deposit_match.t.mark_not_request],
   invokes: [],
   emits: [],
-  was: [`${B}/deposits/operations/match.ts:1`, `${B}/deposits/writes/matching.ts:1`, "books/as-is/banking/deposits.ts:213"],
+  was: [`${B}/deposits/operations/match.ts:1`, `${B}/deposits/writes/matching.ts:1`, "docs/as-is/archive/banking/deposits.ts:213"],
 });

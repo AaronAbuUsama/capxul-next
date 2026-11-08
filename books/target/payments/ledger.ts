@@ -77,7 +77,7 @@ export const rpc_payments_ledger_get = defineRpc({
   chain: [],
   spans: [],
   budget: budget("read"),
-  was: [`${OLD}/records/reads.ts:23`, `${OLD}/reads/payments.ts:130`, `${OLD}/views/recipients.ts:22`, "books/as-is/payments/movements.ts"],
+  was: [`${OLD}/records/reads.ts:23`, `${OLD}/reads/payments.ts:130`, `${OLD}/views/recipients.ts:22`, "docs/as-is/archive/payments/movements.ts"],
 });
 
 export const rpc_payments_ledger_list = defineRpc({

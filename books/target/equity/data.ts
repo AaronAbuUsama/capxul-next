@@ -29,7 +29,7 @@ import { concept_equity } from "../shared/foundation.ts";
 
 const OLD = "packages/backend/src/organizations";
 const T = `${OLD}/tables`;
-const AS_IS = "books/as-is/organizations/data.ts";
+const AS_IS = "docs/as-is/archive/organizations/data.ts";
 
 const S = Schema.String;
 const N = Schema.Number;

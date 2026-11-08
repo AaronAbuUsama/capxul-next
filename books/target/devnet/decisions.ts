@@ -61,7 +61,7 @@ export const decision_devnet_own_schema = defineDecision({
     "with the world, so a restored world brings back its mail (the invitation links and codes evals read), its armed " +
     "faults and its scripted gates and rates. Files outside Postgres would need their own save and restore beside the " +
     "database and could drift from it.",
-  source: by("books/as-is/operator/data.ts:1-9 (devnet tables in the production schema); concepts.devnet; environments.devnet"),
+  source: by("docs/as-is/archive/operator/data.ts:1-9 (devnet tables in the production schema); concepts.devnet; environments.devnet"),
   affects: [...TABLES, concept_devnet, environment_devnet],
 });
 
@@ -78,7 +78,7 @@ export const decision_devnet_no_machines = defineDecision({
     "No row moves through states a reader follows: the sink is append-only, a fault is a counter deleted at zero, and a " +
     "scripted gate's on or off is a setting, not a status. A machine only to send an event would be telemetry booked as " +
     "behaviour (P7's emit-only review), and nothing downstream follows these rows.",
-  source: by("docs/decisions/policy-pack.md#p7; books/as-is/operator/data.ts (only noticeDeliveries had a status, now notices')"),
+  source: by("docs/decisions/policy-pack.md#p7; docs/as-is/archive/operator/data.ts (only noticeDeliveries had a status, now notices')"),
   affects: TABLES,
 });
 
@@ -103,7 +103,7 @@ export const decision_devnet_mail_sink = defineDecision({
     "integration's fake to a table, so the build shows `mail-messages` as unwritten: an expected gap. PROVIDER_ERROR is " +
     "retryable, so `dev mail fail` shows a notice retry, which is its purpose; a send keeps the first message per " +
     "idempotency key, as Resend does.",
-  source: by("books/as-is/operator/outboxes.ts:25-58 (record); packages/backend/src/integrations/mail/service.ts:171; shared external.ts (mail fake)"),
+  source: by("docs/as-is/archive/operator/outboxes.ts:25-58 (record); packages/backend/src/integrations/mail/service.ts:171; shared external.ts (mail fake)"),
   affects: [table_mail_messages, table_mail_faults, rpc_devnet_mail_list, rpc_devnet_mail_fail, integration_mail, ops.operation_dev_mail_fail],
 });
 
@@ -121,7 +121,7 @@ export const decision_devnet_notices_read = defineDecision({
     "of one answer. The filters by recipient and template run inside the query, so a filtered list never misses older " +
     "records, as the old 200-then-filter did. The table is notices' `notices`, its mailbox-tenanted delivery records, which notices gave " +
     "cross-tenant indexes for this read; the fields printed (state, attempts, last error) are the frozen ones.",
-  source: by("operations.dev-mail-notices-in-devnet; books/as-is/operator/notices.ts:57-91"),
+  source: by("operations.dev-mail-notices-in-devnet; docs/as-is/archive/operator/notices.ts:57-91"),
   affects: [rpc_devnet_mail_list_notices, ops.operation_dev_mail_notices],
 });
 
@@ -172,7 +172,7 @@ export const decision_devnet_scripted_gates = defineDecision({
     "applies now) false for a minute. Running the one sync keeps the production path the only path. The table is " +
     "Organization-tenanted (P8) with a cross-tenant index for the fake's flag list. Only Organization gates: the frozen " +
     "command refuses a missing `--org` with CLI_USAGE, so a person gate (beta-access) is not scriptable by it.",
-  source: by("books/target/access/decisions.ts (access.gates); apps/docs/factory/operations/dev.gates.set.yaml; books/as-is/operations/devnet.ts:679-730"),
+  source: by("books/target/access/decisions.ts (access.gates); apps/docs/factory/operations/dev.gates.set.yaml; docs/as-is/archive/operations/devnet.ts:679-730"),
   affects: [table_scripted_gates, rpc_devnet_gates_script, rpc_devnet_gates_read, flow_devnet_gates_set, ops.operation_dev_gates_set, integration_posthog],
 });
 
@@ -221,7 +221,7 @@ export const decision_devnet_jobs = defineDecision({
     "(old shift goes). The rpc names the workflows by id because the schema has no link from an rpc to a workflow; it " +
     "writes no table of theirs. `only` serves the gates and prices flows. A failed job is WORK_DIED naming it, as the " +
     "frozen mistake says, after the others finish.",
-  source: by("books/as-is/operator/jobs.ts; docs/decisions/policy-pack.md#p3; apps/docs/factory/operations/dev.jobs.run.yaml"),
+  source: by("docs/as-is/archive/operator/jobs.ts; docs/decisions/policy-pack.md#p3; apps/docs/factory/operations/dev.jobs.run.yaml"),
   affects: [rpc_devnet_jobs_run, ops.operation_dev_jobs_run, flow_devnet_gates_set, flow_devnet_prices_set],
 });
 
@@ -247,7 +247,7 @@ export const decision_devnet_supervisor_owns_time_and_worlds = defineDecision({
     "supervisor called would be unreached (P2). Old operator.clocks.read and jobs.shift are not ported: clockShow reads " +
     "both clocks, and timers stored in backend time need no shift. The durable processes resume from their stored state " +
     "after a restore.",
-  source: by("books/as-is/operations/devnet.ts:1-40, :295-430; components.devnet; shared external.ts (devnet-control)"),
+  source: by("docs/as-is/archive/operations/devnet.ts:1-40, :295-430; components.devnet; shared external.ts (devnet-control)"),
   affects: [...SUPERVISOR_FLOWS, component_devnet, integration_devnet_control, concept_devnet],
 });
 
@@ -290,7 +290,7 @@ export const decision_devnet_supervisor_steps = defineDecision({
     "system time and must count against the budget. The supervisor is local state on this machine behind an owner-only " +
     "socket, which `cache` describes best, and the flow's `calls` gives the call its span and its failures, so its " +
     "refusals are produced (refusal-not-produced reads `calls`).",
-  source: by("packages/book/src/records/behaviour.ts (Step kinds); books/as-is/operations/devnet.ts:212 (snapshot list as a cache step)"),
+  source: by("packages/book/src/records/behaviour.ts (Step kinds); docs/as-is/archive/operations/devnet.ts:212 (snapshot list as a cache step)"),
   affects: SUPERVISOR_FLOWS,
 });
 
@@ -314,7 +314,7 @@ export const decision_devnet_approve_as = defineDecision({
     "sign) do the rest, so the approval's process sends it as for anyone. Without the handoff the dev signers are unknown " +
     "here (a browser run without it signs with a real Openfort test signer): WRONG_ENVIRONMENT, as the frozen mistake says. " +
     "The kept session is not made current, so the eval's current person is unchanged.",
-  source: by("books/as-is/operations/devnet.ts:606-676; books/target/access/sign-in.ts; books/target/approvals/signing.ts"),
+  source: by("docs/as-is/archive/operations/devnet.ts:606-676; books/target/access/sign-in.ts; books/target/approvals/signing.ts"),
   affects: [flow_devnet_approve, ops.operation_dev_approve],
 });
 
@@ -355,7 +355,7 @@ export const decision_devnet_dropped = defineDecision({
     "Each kept rpc is reached by a frozen operation or a devnet flow (P2). The rest had no caller in the target: the " +
     "supervisor or the fakes now do their work, or another concept owns it. Old proof identities, fixtures and probes are " +
     "dropped by the architecture (responsibilities.operator-proof-tools, concepts.devnet).",
-  source: by("books/as-is/operator/*.ts; shared landings.ts (operator/clocks, jobs, outboxes, notices, receipts)"),
+  source: by("docs/as-is/archive/operator/*.ts; shared landings.ts (operator/clocks, jobs, outboxes, notices, receipts)"),
   affects: [concept_devnet, ...RPCS],
 });
 

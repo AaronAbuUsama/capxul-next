@@ -20,7 +20,7 @@ import { table_hat_wearers } from "../indexing/data.ts";
 import { KeyEnvironment, KeyState, machine_app_key, table_applications, table_publishable_keys } from "./data.ts";
 
 const OLD = "packages/backend/src/applications/keys";
-const ASIS = "books/as-is/applications/keys.ts";
+const ASIS = "docs/as-is/archive/applications/keys.ts";
 const PROTOCOL = "packages/protocol/src/applications/operations.ts";
 
 const S = Schema.String;

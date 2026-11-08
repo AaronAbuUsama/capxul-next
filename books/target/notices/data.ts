@@ -23,7 +23,7 @@ import { concept_notices } from "../shared/foundation.ts";
 
 const OLD = "packages/backend/src";
 const MAIL = `${OLD}/integrations/mail`;
-const ASIS = "books/as-is/operator/data.ts";
+const ASIS = "docs/as-is/archive/operator/data.ts";
 
 const S = Schema.String;
 const N = Schema.Number;

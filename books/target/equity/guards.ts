@@ -33,7 +33,7 @@ import { integration_chain_rpc } from "../shared/external.ts";
 import { table_equity_installs } from "./data.ts";
 
 export const OLD = "packages/backend/src/organizations";
-export const AS_IS = "books/as-is/organizations";
+export const AS_IS = "docs/as-is/archive/organizations";
 
 /** A member of the company, with its gate and its installed equity. */
 export const MEMBER = [table_organizations, table_org_members, table_feature_flags, table_equity_installs, table_chain_deployments] as const;

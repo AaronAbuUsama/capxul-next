@@ -38,7 +38,7 @@ import { machine_budget, machine_budget_change, table_budget_changes, table_budg
 import { CreateDepartmentInput, DepartmentCreated, DepartmentList, OrgInput } from "./shapes.ts";
 
 const PAY = "packages/backend/src/payroll/departments";
-const AS_IS = "books/as-is/payroll/departments.ts";
+const AS_IS = "docs/as-is/archive/payroll/departments.ts";
 
 /** The errors every budgets read raises: the guard, and the chain or Ponder failing to answer. */
 export const READ_ERRORS = [error_NOT_AUTHENTICATED, error_ROLE_PERMISSION_DENIED, error_PROVIDER_ERROR, error_PROVIDER_RESPONSE_INVALID] as const;

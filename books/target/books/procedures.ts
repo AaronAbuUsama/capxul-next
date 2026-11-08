@@ -82,7 +82,7 @@ export const procedure_books_record_money_fact = defineProcedure({
     `${PAY}/writes/settlements.ts:145`,
     `${PAY}/writes/deposits.ts:117`,
     `${PAY}/writes/rails.ts:62`,
-    "books/as-is/books/procedures.ts",
+    "docs/as-is/archive/books/procedures.ts",
   ],
   concept: concept_books,
   input: Schema.Struct({ sides: Schema.Array(MoneySide) }),
@@ -111,7 +111,7 @@ export const procedure_books_reverse_money_fact = defineProcedure({
     `${BK}/facts/writes/standing.ts:57`,
     `${PAY}/verifications/writes/history.ts:190`,
     `${PAY}/writes/rollbacks.ts:71`,
-    "books/as-is/books/procedures.ts",
+    "docs/as-is/archive/books/procedures.ts",
   ],
   concept: concept_books,
   input: Schema.Struct({

@@ -41,7 +41,7 @@ import { machine_budget, machine_budget_change, table_budget_changes, table_budg
 
 const OLD = "packages/backend/src/organizations/invitations";
 const PERM = "packages/backend/src/permissions";
-const AS_IS = "books/as-is/organizations/invitations.ts";
+const AS_IS = "docs/as-is/archive/organizations/invitations.ts";
 
 const S = Schema.String;
 const NullOr = Schema.NullOr;

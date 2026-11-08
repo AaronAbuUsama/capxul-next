@@ -21,7 +21,7 @@ import { table_chain_budgets, table_hat_wearers, table_safe_owners } from "../in
 
 const O = "packages/backend/src/organizations";
 const W = `${O}/workspaces`;
-const AS_IS = "books/as-is/organizations/workspaces.ts";
+const AS_IS = "docs/as-is/archive/organizations/workspaces.ts";
 
 const S = Schema.String;
 const N = Schema.Number;

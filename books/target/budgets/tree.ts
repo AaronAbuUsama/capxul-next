@@ -56,7 +56,7 @@ export const rpc_budgets_tree_set_amount = defineRpc({
     "`Budgets.setAmount(id, amount)`. A top budget's change also moves its token's payout ceiling by the same difference " +
     "(`Installer.buildSetCeiling`, from the Roles allowance as it is now), in the same Board proposal, so no other write " +
     "to that ceiling may wait (WRONG_STATE, naming it: a waiting freeze too). " + BIRTH,
-  was: [`${PAY}/operations/set-budget.ts:1`, `${PERM}/operations/change.ts:1`, "books/as-is/payroll/departments.ts:384"],
+  was: [`${PAY}/operations/set-budget.ts:1`, `${PERM}/operations/change.ts:1`, "docs/as-is/archive/payroll/departments.ts:384"],
   concept: concept_budgets,
   kind: "action",
   who: WHO_ABOVE,
@@ -89,7 +89,7 @@ export const rpc_budgets_tree_close = defineRpc({
     GUARD + " " + FINDS + " " + SIGNER_RULE + " A budget the chain already holds closed is WRONG_STATE (`closed`) and " +
     "proposes nothing. The one call is `Budgets.close(id)` on the budget's own id: nothing new is spent, committed or " +
     "created under it, and it keeps its amount. " + OPEN_STATE + " " + BIRTH,
-  was: [`${PAY}/operations/close.ts:1`, "books/as-is/payroll/departments.ts:544"],
+  was: [`${PAY}/operations/close.ts:1`, "docs/as-is/archive/payroll/departments.ts:544"],
   concept: concept_budgets,
   kind: "action",
   who: WHO_ABOVE,
@@ -108,7 +108,7 @@ export const rpc_budgets_tree_reopen = defineRpc({
   about:
     GUARD + " " + FINDS + " " + SIGNER_RULE + " A budget the chain holds open is WRONG_STATE (`open`) and proposes " +
     "nothing. The one call is `Budgets.reopen(id)` on the budget's own id: it can spend and commit again. " + BIRTH,
-  was: [`${PAY}/operations/reopen.ts:1`, "books/as-is/payroll/departments.ts:570"],
+  was: [`${PAY}/operations/reopen.ts:1`, "docs/as-is/archive/payroll/departments.ts:570"],
   concept: concept_budgets,
   kind: "action",
   who: WHO_ABOVE,
@@ -136,7 +136,7 @@ export const rpc_budgets_tree_show = defineRpc({
     "token's payout ceiling from `Roles.allowances`: frozen when it has no refill, with what is left. With `at`, spent and " +
     "committed are those of the period that holds that date, from indexing's spends; amounts are the chain's now. " +
     "Nothing is written.",
-  was: [`${PAY}/operations/get.ts:1`, `${PAY}/external/budget-reads.ts:1`, "books/as-is/payroll/departments.ts:617"],
+  was: [`${PAY}/operations/get.ts:1`, `${PAY}/external/budget-reads.ts:1`, "docs/as-is/archive/payroll/departments.ts:617"],
   concept: concept_budgets,
   kind: "action",
   who: "Any member of the Organization.",

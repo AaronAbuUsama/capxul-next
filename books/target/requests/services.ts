@@ -11,7 +11,7 @@ import { Org, PageInput, ServicePage, ServiceTerms, ServiceView } from "./shapes
 import { GUARD_WAS, READER, WRITER } from "./guards.ts";
 
 const R = "packages/backend/src/requests/offers";
-const ASIS = "books/as-is/requests/offers.ts";
+const ASIS = "docs/as-is/archive/requests/offers.ts";
 
 const S = Schema.String;
 const N = Schema.Number;

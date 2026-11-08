@@ -15,7 +15,7 @@ import { defineTable } from "../../../packages/book/src/index.ts";
 import { concept_devnet } from "../shared/foundation.ts";
 
 const OP = "packages/backend/src/operator";
-const ASIS = "books/as-is/operator/data.ts";
+const ASIS = "docs/as-is/archive/operator/data.ts";
 
 const S = Schema.String;
 const Int = Schema.Int;
@@ -106,7 +106,7 @@ export const table_scripted_gates = defineTable({
     "list into its feature flags, as it copies PostHog's on staging. So production code reads gates one way everywhere. " +
     "A gate whose devnet ceiling is off is never scripted on. " +
     DEVNET_ONLY,
-  was: ["books/as-is/access/data.ts:256", "packages/backend/src/access/features/operations/set.ts:26"],
+  was: ["docs/as-is/archive/access/data.ts:256", "packages/backend/src/access/features/operations/set.ts:26"],
   concept: concept_devnet,
   tenancy: "organization",
   tenantField: "org_id",

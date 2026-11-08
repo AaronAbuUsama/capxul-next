@@ -26,8 +26,8 @@ export const procedure_organizations_bind_invitation_grants = defineProcedure({
     "transaction, or an invitation that is not authorizing, is WRONG_STATE. It makes no outside call.",
   was: [
     "packages/backend/src/organizations/invitations/writes/phases.ts:55",
-    "books/as-is/organizations/procedures.ts:1007",
-    "books/as-is/organizations/procedures.ts:1042",
+    "docs/as-is/archive/organizations/procedures.ts:1007",
+    "docs/as-is/archive/organizations/procedures.ts:1042",
   ],
   concept: concept_organizations,
   input: Schema.Struct({ org_id: S, invitation_id: S, safe_tx_hash: S, safe_nonce: S }),

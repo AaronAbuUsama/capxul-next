@@ -32,7 +32,7 @@ import { Threshold, machine_board_change, table_board_changes, table_board_propo
 
 const OLD = "packages/backend/src/organizations/directors";
 const PROPOSALS = "packages/backend/src/organizations/proposals";
-const AS_IS = "books/as-is/organizations/directors.ts";
+const AS_IS = "docs/as-is/archive/organizations/directors.ts";
 const S = Schema.String;
 const Int = Schema.Int;
 const NullOr = Schema.NullOr;
@@ -141,7 +141,7 @@ export const rpc_board_directors_show = defineRpc({
     "email or `@handle` their Safe's Party and Seat give, or null for a Safe Capxul does not know. The caller's own Safe " +
     "is marked. Seats, who elects them and terms come with Board elections and are null until then (CAP-1153). The " +
     "reads are live and concurrent; nothing is written.",
-  was: [`${PROPOSALS}/operations/safe.ts:1`, "books/as-is/organizations/proposals.ts:852"],
+  was: [`${PROPOSALS}/operations/safe.ts:1`, "docs/as-is/archive/organizations/proposals.ts:852"],
   concept: concept_board,
   kind: "action",
   who: "Any current member of the Organization.",

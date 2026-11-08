@@ -19,7 +19,7 @@ import { procedure_banking_match_deposit } from "../banking/procedures.ts";
 import { table_bank_deposits } from "../banking/data.ts";
 
 const B = "packages/backend/src/banking/deposits";
-const ASIS = "books/as-is/requests/procedures.ts";
+const ASIS = "docs/as-is/archive/requests/procedures.ts";
 
 const S = Schema.String;
 const N = Schema.Number;

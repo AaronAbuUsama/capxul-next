@@ -44,7 +44,7 @@ import {
 const CLAUDE = "Claude, applications design, 8 November 2026";
 const by = (evidence: string) => `${CLAUDE}; evidence: ${evidence}`;
 const A = "packages/backend/src/applications";
-const ASIS = "books/as-is/applications";
+const ASIS = "docs/as-is/archive/applications";
 
 const KEY_RPCS = [rpc_applications_keys_create, rpc_applications_keys_list, rpc_applications_keys_rotate, rpc_applications_keys_revoke];
 const KEY_OPERATIONS = [operation_key_create, operation_key_list, operation_key_rotate, operation_key_revoke];
@@ -332,7 +332,7 @@ export const decision_applications_no_consent = defineDecision({
     "its one reader outside access was operator's probes. An assistant's consent is access's assistant grant, and the " +
     "bootstrap grants no consent and no authority: a person signs in and acts on their own Safe. If a later frozen " +
     "operation needs an application's consent, it lands here, by this concept's map entry.",
-  source: by(`books/as-is/access/data.ts:39; books/as-is/access/procedures.ts:305; books/target/access/decisions.ts:171`),
+  source: by(`docs/as-is/archive/access/data.ts:39; docs/as-is/archive/access/procedures.ts:305; books/target/access/decisions.ts:171`),
   affects: [concept_applications, concept_access],
 });
 
@@ -389,7 +389,7 @@ export const decision_applications_health_only = defineDecision({
     "reported an e2e auth gate the target does not have; devnet time and its offset are devnet's (`dev time`); the chain " +
     "head is indexing's progress. Health now names the commit as well as the deployment, which is what an operator asks " +
     "after a deploy, and it still reads nothing, so it answers even when a dependency is down.",
-  source: by(`books/as-is/operator/diagnostics.ts:25, :50, :82, :107; frozen doctor notes`),
+  source: by(`docs/as-is/archive/operator/diagnostics.ts:25, :50, :82, :107; frozen doctor notes`),
   affects: [rpc_applications_health_check, flow_client_system_health],
 });
 

@@ -22,7 +22,7 @@ export const workflow_applications_keys_grace = defineWorkflow({
     "`expire` if the key is still in grace, so the key stops resolving and `app_key_transitioned` records it. A revoke " +
     "during the window signals it, and it ends without expiring the key, which is already revoked. Nothing waits on it: " +
     "the rotate rpc answered long before.",
-  was: ["books/as-is/applications/data.ts:201", "packages/backend/src/applications/keys/rules.ts:41"],
+  was: ["docs/as-is/archive/applications/data.ts:201", "packages/backend/src/applications/keys/rules.ts:41"],
   concept: concept_applications,
   priority: "normal",
   trigger: { transition: machine_app_key.t.rotate },

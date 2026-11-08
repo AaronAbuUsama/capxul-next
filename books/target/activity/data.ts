@@ -6,7 +6,7 @@
 // thing it must keep is what those tables cannot answer: the order in which one feed's rows changed,
 // so a reader that follows `--after` sees every change exactly once (decision activity.change-log).
 //
-// Gone from old activity (books/as-is has no activity folder; the old code is the evidence):
+// Gone from old activity (the archived as-is book has no activity folder; the old code is the evidence):
 // `activityAnnotations` is books' book-annotations (concepts.books); the overlays are dropped
 // (responsibilities.overlays); the change and page cursors keep no row (activity.sealed-cursors).
 //

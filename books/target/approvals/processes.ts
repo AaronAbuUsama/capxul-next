@@ -140,8 +140,8 @@ export const workflow_approvals_lifecycle_carry = defineWorkflow({
     "window, and the opener compensates its own intent when it follows the end (a Payment fails, a setup needs attention).",
   budget: budget("background"),
   was: [
-    "books/as-is/accounts/approvals.ts",
-    "books/as-is/payments/executions.ts",
+    "docs/as-is/archive/accounts/approvals.ts",
+    "docs/as-is/archive/payments/executions.ts",
     `${OLD}/accounts/approvals/operations/send-approved.ts:214`,
     `${OLD}/accounts/approvals/operations/expire.ts:31`,
     `${OLD}/payments/executions/external/sends.ts:145`,

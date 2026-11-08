@@ -115,30 +115,42 @@ The system is built on the decisions in `docs/decisions/README.md`:
 
 | | |
 |---|---|
-| Records | 2,098 in the target book: 22 concepts, 215 operations, 606 decision records and every table, machine, process, rpc, procedure and flow under them |
-| Derived evals | 4,534 |
+| Records | 2,132 in the target book: 22 concepts, 215 operations, 13 journeys, 84 tables, 47 state machines, 81 durable processes, 223 rpcs, 143 Core SDK flows, 14 procedures and 627 decision records |
+| Derived evals | 4,752, including 720 acceptance claims, 724 refusals, 13 journeys and 13 funnels, 40 row-policy clauses and 72 wake routes |
 | Problems | 0, with the target rules on |
-| Frozen surface | All 215 operations are booked once each. Of the 733 acceptance lines, 547 are kept word for word, 173 are changed with the frozen claim kept, and 13 are retired. `check-frozen` reports 0 breaches. |
-| Gaps | 72, listed below, each known and owned |
+| Kept behaviour | `check-frozen` reports 0 breaches. All 215 operations are booked once each. Of the 733 acceptance claims, 547 are kept word for word, and 173 rewritten and 13 retired, each with a decision. Of the 705 old refusals, 691 are still refused under their code, and 14 are named by a decision. |
+| Gaps | 74, listed below, each known and owned |
 
-The 72 gaps, and who closes them:
+The 74 gaps, and who closes them:
 
 | Gap | Count | What it is | Who closes it |
 |---|---|---|---|
-| `no-acceptance` | 35 | Pages that had no acceptance lines in the old book: 23 equity, 10 devnet, plus `dev.fund` and `waitlist.invites.grant` | Their returns, refusals and events are still evals. New lines are new public claims, so they need Aaron (decisions `equity.acceptance`, `devnet.no-acceptance` and `accounts.no-acceptance`). |
+| `no-acceptance` | 35 | Pages that had no acceptance lines in the old book: 23 equity, 10 devnet, plus `dev.fund` and `waitlist.invites.grant` | Their returns, refusals and events are still evals. New lines are new claims, so they need Aaron (decisions `equity.acceptance`, `devnet.no-acceptance` and `accounts.no-acceptance`). |
 | `unconsumed-chain-event` | 14 | Chain events that only indexing's views read, or that nothing uses yet | You, when a process or view needs them. Otherwise leave them. |
 | `uncalled-function` | 13 | Hats Elections and the Installer's calls, which wait for the board's seat groups; `budgets.setHat`; `escrow-factory.predictAddress`; `governor.castVote`; the vesting grant calls | Board and equity (low priority) |
-| `refusal-without-world` | 6 | Refusals no devnet world can reach yet: unreachable or staging-only paths, each recorded by its concept | Devnet, at B2, when it builds the worlds |
+| `refusal-without-world` | 8 | Refusals no devnet world can reach yet: `dev.fund` WRONG_ENVIRONMENT, `invite.list` and `org.invite.list` WRONG_STATE, `org.books.assets.list`, `address` and `balance` INVALID_INPUT, and `org.round.create` and `org.round.close` CONSENT_MISSING. Each is recorded by its concept. | Devnet, at B2, when it builds the worlds |
 | `unused-call` | 3 | PostHog capture and telemetry export (the outbox relay, `rules.outbox`), and `chain-rpc.getTransactionReceipt` | The runtime, at B3 |
 | `unwritten-table` | 1 | Devnet's `mail-messages`, which the mail sink writes, not the backend | Devnet |
 
-The assembly also left these open outside the book:
-- **Runtime:** the row-level security clause for `verification-people`.
-- **The B0 spike:** proving wake routing (`rules.process-wakeups`).
-- **`packages/devnet`:** the supervisor controls, including `bridge return`, `gates seed` and the
-  CLI-home snapshot.
+Open items outside the gaps, each with its owner:
+- **B0 spike:** prove wake routing by the waits' keys (`rules.process-wakeups`). 30 signal rpcs are
+  routed by their instance id and appear in no key. A signal that cuts a timer short (such as a
+  payee's accept during an offer's expiry) cannot be keyed, because a timer takes no key. Decide in
+  B0 whether timers may carry rpc-only keys.
+- **B1:**
+  - add the read-only admissions that counterparties need on company rows (decision
+    `rules.counterparty-reads`): investors, shareholders, grantees and payees reading
+    `fundraise-rounds`, `votes`, `equity-installs` and organizations. Start from the rpcs whose
+    `who` is a counterparty;
+  - design each operation's flags (`books/frozen/flags.ts` is reference);
+  - give `budget_change_transitioned` the budget's kind if a funnel must tell its step pairs apart
+    (decision `journeys.onto-target`).
+- **`packages/devnet` (B3):** the supervisor controls, including `bridge return`, `gates seed` and
+  the CLI-home snapshot. Link the smoke journey to each environment (`env:<env>/smoke` names
+  none yet).
 - **Protocol:** the email template renderers.
 - **Backend HTTP layer:** `applications.origin-token`.
+- **Equity (low priority):** the approve-round vote matter carries no round id.
 - **Reviewer:** sign-off on `payments.birth-width`, which is wider than the transaction-width rule
   allows.
 
@@ -181,7 +193,7 @@ Each milestone ends with its exit check passing and its state committed.
 - **Open product or architecture decisions.** Bring any decision the book and the recorded
   decisions do not settle as a decision pack: the question, two to four graded options and a
   recommendation.
-- **The judgments flagged for him.** `docs/decisions/judgments.md` lists 15 under "For Aaron".
+- **The judgments flagged for him.** `docs/decisions/judgments.md` lists 17 under "For Aaron".
   Among them:
   - payroll without runs or groups (`payroll.scope`);
   - the payment birth's transaction width (`payments.birth-width`);

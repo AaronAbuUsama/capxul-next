@@ -305,8 +305,10 @@ const checkRules = (b: Draft, problems: Finding[]) => {
           const from = on._kind === "event" ? eventConcept.get(key) : on._kind === "table" ? keyOf((get(b, key)?.concept ?? { _kind: "concept", id: "" }) as AnyRecord) : undefined;
           if (from && from !== "concept:" && !allowed.has(from)) p(w, "wait-key", `wait ${wait.name} waits on ${key} from ${from}, which its concept does not depend on`);
           let has = carried(b, on);
-          // a signal finds its instance by its input, or by the instance's own columns it resolves from its session
-          if (has && on._kind === "rpc" && instanceCols) has = new Set([...has, ...instanceCols]);
+          // a signal finds its instance by its input, or by the instance's own columns it resolves from its session:
+          // only one that reads or writes the instance's row knows those columns
+          const touches = (r: AnyRecord) => [...ids(r.reads), ...ids(r.writes)].includes(keyOf(instance as AnyRecord));
+          if (has && on._kind === "rpc" && instanceCols && touches(get(b, key) as AnyRecord)) has = new Set([...has, ...instanceCols]);
           if (!has) continue;
           for (const prop of [...k.props, ...(k.reaches ? [k.reaches] : [])])
             if (!has.has(prop)) p(w, "wait-key", `wait ${wait.name} routes by ${prop}, which ${key} does not carry`);
@@ -326,9 +328,17 @@ const checkRules = (b: Draft, problems: Finding[]) => {
       if (a.match === "anyone" && (a.field || a.kindField || a.via)) p(t, "admission", `admission ${i + 1}: anyone is matched by no column`);
       if (a.match !== "anyone" && !a.field) p(t, "admission", `admission ${i + 1}: ${a.match} names the column it matches`);
       if (a.kindField && a.match !== "tenant") p(t, "admission", `admission ${i + 1}: only a tenant match has a kind column`);
+      if (!a.reads && !a.writes) p(t, "admission", `admission ${i + 1}: it neither reads nor writes, so it admits nothing`);
+      if (a.match === "anyone" && a.writes) p(t, "admission", `admission ${i + 1}: anyone, signed in or not, never writes`);
       col(t, a.field, "field", i);
       col(t, a.kindField, "kindField", i);
-      for (const c of Object.keys(a.where ?? {})) col(t, c, "where", i);
+      for (const [c, v] of Object.entries(a.where ?? {})) {
+        col(t, c, "where", i);
+        // a value the column cannot hold limits the clause to no row at all
+        const column = (t.fields as { fields?: Record<string, unknown> } | undefined)?.fields?.[c];
+        if (Schema.isSchema(column) && !(Schema.is as (s: unknown) => (u: unknown) => boolean)(column)(v))
+          p(t, "admission", `admission ${i + 1}: where ${c} = ${String(v)}, a value column ${c} cannot hold`);
+      }
       if (a.via) {
         if (a.via.kindField && a.match !== "tenant") p(t, "admission", `admission ${i + 1}: only a tenant match has a kind column`);
         col(a.via.table, a.via.on, "via.on", i);

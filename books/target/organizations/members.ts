@@ -15,7 +15,7 @@ import { table_parties } from "../parties/data.ts";
 import { table_hat_wearers } from "../indexing/data.ts";
 
 const O = "packages/backend/src/organizations";
-const AS_IS = "books/as-is/organizations/members.ts";
+const AS_IS = "docs/as-is/archive/organizations/members.ts";
 
 const S = Schema.String;
 const N = Schema.Number;

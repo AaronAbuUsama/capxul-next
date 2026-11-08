@@ -19,7 +19,7 @@ import {
 import { machine_session, table_principals, table_sessions, table_sign_in_codes } from "./data.ts";
 
 const OLD = "packages/backend/src/access";
-const ASIS = "books/as-is/access/sessions.ts";
+const ASIS = "docs/as-is/archive/access/sessions.ts";
 
 const S = Schema.String;
 const Time = Schema.DateTimeUtc;

@@ -25,9 +25,10 @@ import { machine_payment, table_payments } from "../payments/data.ts";
 import { machine_bank_deposit, table_bank_deposits } from "../banking/data.ts";
 import { procedure_banking_match_deposit } from "../banking/procedures.ts";
 import { event_request_transitioned } from "./data.ts";
+import { table_indexer_progress } from "../indexing/data.ts";
 
 const R = "packages/backend/src/requests";
-const CHECKOUTS = "books/as-is/requests/checkouts.ts";
+const CHECKOUTS = "docs/as-is/archive/requests/checkouts.ts";
 
 const DAY = 86_400_000;
 
@@ -59,11 +60,28 @@ export const workflow_requests_lifecycle_request = defineWorkflow({
     rpc_requests_deposits_match,
   ],
   waits: [
-    { name: "payer", for: "person", key: [{ on: [rpc_requests_checkout_open], props: ["link"] }, { on: [rpc_requests_inbox_pay, rpc_requests_inbox_decline, rpc_requests_issuing_cancel, rpc_requests_deposits_match], props: ["request_id"], }], about: "The payer pays, declines or names their email at the link, or the issuer cancels; resumed by the rpc's signal." },
+    {
+      name: "payer",
+      for: "person",
+      key: [
+        { on: [rpc_requests_checkout_open], props: ["link"] },
+        { on: [rpc_requests_inbox_pay, rpc_requests_inbox_decline, rpc_requests_issuing_cancel, rpc_requests_deposits_match], props: ["request_id"] },
+        { on: [event_request_transitioned], props: ["request_id"] },
+      ],
+      about:
+        "The payer pays, declines or names their email at the link, or the issuer cancels, each resumed by the rpc's signal; " +
+        "or the auto-match pays it with a bank deposit, whose `match` resumes it by the request's id.",
+    },
     { name: "expiry", for: "timer", about: "Until `expires_at`, when the request has one; an open request then expires." },
     { name: "escrow-funded", for: "indexer", key: [{ on: [contract_erc20.e.Transfer], props: ["chain_id", "contract_address", "to"] }], about: "A Transfer of the token into the escrow address, indexed by Ponder; each one wakes a balance read." },
     { name: "payout", for: "chain", timeoutMs: 600_000, key: [{ on: [integration_service_signer.c.waitForReceipt], props: ["tx_hash"] }], about: "The relayer's deploy and payout transactions mined, each followed to its receipt." },
     { name: "payment", for: "signal", key: [{ on: [event_request_transitioned], props: ["request_id"] }], about: "The request's Payment settled, reversed or cancelled: the payment followers find the request by its chain payment id and resume it by the request's id." },
+    {
+      name: "ended-indexed",
+      for: "indexer",
+      key: [{ on: [table_indexer_progress], props: ["chain_id"], reaches: "indexed_block" }],
+      about: "Cancelled or expired with an escrow: until Ponder has passed the block it ended at, for its one last balance read.",
+    },
   ],
   steps: [
     { name: "start", about: "Reads the request; a terminal one ends the instance, so a second start is a no-op." },

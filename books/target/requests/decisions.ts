@@ -1,6 +1,6 @@
 // Requests' own judgments in the target design, one decision record each, linked to the records
 // they shape. Made by Claude on 8 November 2026 under A1-A4 and P1-P10, with the old code
-// (/home/user/factory, integration/factory), the as-is book (books/as-is/requests/) and the frozen
+// (/home/user/factory, integration/factory), the as-is book (docs/as-is/archive/requests/) and the frozen
 // operations as evidence.
 
 import { defineDecision } from "../../../packages/book/src/index.ts";
@@ -90,7 +90,7 @@ export const decision_requests_one_table = defineDecision({
     "holds every Payment with its v4 payment id, and the request keeps the one that pays it. The receipt, consumption, " +
     "verification, envelope-v3/v4 and settlement-id columns served the V3 router's checkout and the read-time chain " +
     "check, both gone (P9, requests.reads-write-nothing). Money Invoices are dropped by requests.no-money-invoice.",
-  source: by("books/as-is/requests/data.ts; docs/as-is/payments.md (Payments inserts invoiceCheckoutPayments); P2, P9"),
+  source: by("docs/as-is/archive/requests/data.ts; docs/as-is/payments.md (Payments inserts invoiceCheckoutPayments); P2, P9"),
   affects: [d.table_requests, d.table_services, d.table_service_revisions, concept_requests],
 });
 
@@ -116,7 +116,7 @@ export const decision_requests_owner_tenancy = defineDecision({
     "that kind of drift. A global table fails open. The issuer owns the receivable and is the only one who changes its " +
     "terms; the payer's rights are to read, pay and decline, all through rpcs that check the payer Safe is theirs. The " +
     "child tables carry their own tenant columns (no tenancy by join), and service revisions carry the owner's too.",
-  source: by("P8 (owner tenancy, no tenancy by join); books/as-is/requests/data.ts (mixed tenancy, payerPartyId reads)"),
+  source: by("P8 (owner tenancy, no tenancy by join); docs/as-is/archive/requests/data.ts (mixed tenancy, payerPartyId reads)"),
   affects: [d.table_requests, d.table_service_revisions, inb.rpc_requests_inbox_list, inb.rpc_requests_inbox_get, inb.rpc_requests_inbox_pay],
 });
 
@@ -170,7 +170,7 @@ export const decision_requests_machine = defineDecision({
     "it is a real transition. The frozen designed text of `request cancel` says a funded escrow still pays out, which is " +
     "why `settle` leaves cancelled and expired. The frozen note naming draft and viewed stays verbatim: those states " +
     "simply never occur.",
-  source: by("books/as-is/requests/data.ts (payment-request machine); request.cancel.yaml (designed); P7"),
+  source: by("docs/as-is/archive/requests/data.ts (payment-request machine); request.cancel.yaml (designed); P7"),
   affects: [d.machine_request, d.event_request_transitioned, d.table_requests],
 });
 
@@ -186,7 +186,7 @@ export const decision_requests_service_machine = defineDecision({
   why:
     "P7: one event per machine, from every transition. A revision changes the row (its revision) though not its status, " +
     "so `revise` is a self-transition and 'each revision is reported once, in order' is the event's `revision` prop.",
-  source: by("books/as-is/requests/data.ts (fixed-offer machine); service.revise.yaml (acceptance 2)"),
+  source: by("docs/as-is/archive/requests/data.ts (fixed-offer machine); service.revise.yaml (acceptance 2)"),
   affects: [d.machine_service, d.event_service_transitioned, d.table_services],
 });
 
@@ -204,7 +204,7 @@ export const decision_requests_no_money_invoice = defineDecision({
     "deposit arrives as tokens in the owner's Safe (banking credits its net tokens), so matching it to a token request " +
     "covers the frozen `bank match`. The fiat path needed a second amount shape, a second document format and banking's " +
     "receiving-account read in issuing.",
-  source: by("request.issue.yaml; bank.match.yaml; books/as-is/requests/data.ts (amountKind money); P2"),
+  source: by("request.issue.yaml; bank.match.yaml; docs/as-is/archive/requests/data.ts (amountKind money); P2"),
   affects: [d.table_requests, iss.rpc_requests_issuing_issue, dep.rpc_requests_deposits_match],
 });
 
@@ -221,7 +221,7 @@ export const decision_requests_link_by_request_id = defineDecision({
     "The designed example of `request issue` prints `/pay/req_01K3…`. A link shows only public terms (issuer, reference, " +
     "amount, where to pay), never the note, the payer's mailbox or the document, and every write it allows (naming a " +
     "payer, buying) is rate limited. One fewer column and index.",
-  source: by("request.issue.yaml (designed example); books/as-is/requests/data.ts (linkToken)"),
+  source: by("request.issue.yaml (designed example); docs/as-is/archive/requests/data.ts (linkToken)"),
   affects: [d.table_requests, co.rpc_requests_checkout_get, co.rpc_requests_checkout_open],
 });
 
@@ -250,7 +250,7 @@ export const decision_requests_reads_write_nothing = defineDecision({
     "The frozen refusal stays meaningful: a status that may be stale because Ponder is behind is refused, never shown, and " +
     "an unavailable inbox is a failure, never empty. The frozen `changes` lines ('It can record a checkout payment that " +
     "the chain already proved') stay verbatim as frozen text; in the target the request's process records it.",
-  source: by("books/as-is/requests/receivables.ts (CURRENT_ABOUT); request.list.yaml (acceptance 2, 3); P1"),
+  source: by("docs/as-is/archive/requests/receivables.ts (CURRENT_ABOUT); request.list.yaml (acceptance 2, 3); P1"),
   affects: [...READS, integration_indexer],
 });
 
@@ -301,7 +301,7 @@ export const decision_requests_escrow_process = defineDecision({
     "durable-process list (rules.durable-processes). The faucet Safe relay worked on Base Sepolia only; the service " +
     "signer's escrow relayer key does one job and sends once (K4). The old part-received notice is dropped: a partial " +
     "funding is not a state change, so nothing could follow it (P7).",
-  source: by("books/as-is/requests/checkouts.ts (pay-escrows); P3 (crons); rules.durable-processes"),
+  source: by("docs/as-is/archive/requests/checkouts.ts (pay-escrows); P3 (crons); rules.durable-processes"),
   affects: [p.workflow_requests_lifecycle_request, integration_service_signer, contract_escrow, contract_escrow_factory, d.machine_request],
 });
 
@@ -327,7 +327,7 @@ export const decision_requests_one_checkout_path = defineDecision({
     "payments' engine. On v4 every outside payment goes through an escrow whose payment id is fixed by its terms, so a " +
     "direct payment and the payout can never both settle one request. The checkout page is the React SDK's surface " +
     "(`client.checkouts.pay`), not a frozen operation; its rpcs are reached by that flow.",
-  source: by("request.issue.yaml (designed: checkout into an invoice escrow); books/as-is/requests/checkouts.ts; P9"),
+  source: by("request.issue.yaml (designed: checkout into an invoice escrow); docs/as-is/archive/requests/checkouts.ts; P9"),
   affects: [co.rpc_requests_checkout_get, co.rpc_requests_checkout_open, fl.flow_client_checkouts_pay, d.table_requests],
 });
 
@@ -440,7 +440,7 @@ export const decision_requests_no_door = defineDecision({
     "Every old callback went the wrong way (payments and banking calling up into requests). The dependencies now point " +
     "from requests down (dependencies.payments-requests, concepts.requests), a document's participants are given when it " +
     "is stored, and P4 allows a procedure only for a money fact a lower concept must write with its invoker.",
-  source: by("books/as-is/requests/procedures.ts; P4; rules.procedures"),
+  source: by("docs/as-is/archive/requests/procedures.ts; P4; rules.procedures"),
   affects: [concept_requests],
 });
 
@@ -454,7 +454,7 @@ export const decision_requests_telemetry = defineDecision({
   ],
   chosen: "drop",
   why: "Telemetry is never an operation (P7, review emit-only), and no concept but notices sends mail (dependencies.notices-top).",
-  source: by("books/as-is/requests/receivables.ts (emit-*, notify); books/as-is/requests/offers.ts (emit-changed); P7"),
+  source: by("docs/as-is/archive/requests/receivables.ts (emit-*, notify); docs/as-is/archive/requests/offers.ts (emit-changed); P7"),
   affects: [d.event_request_transitioned, d.event_service_transitioned],
 });
 

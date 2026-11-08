@@ -185,7 +185,7 @@ export const flow_create_capxul_client = defineFlow({
     "ends more than 30 s from now is used with no request. Otherwise it bootstraps, retrying a transient answer twice; " +
     "no answer is NETWORK_ERROR, an envelope that does not decode PROVIDER_RESPONSE_INVALID. It keeps the envelope and " +
     "sends its origin token with every backend request, and bootstraps again before the envelope ends.",
-  was: ["books/as-is/applications/flows.ts:27", `${SDK}/platform/production.ts:135`, `${SDK}/applications/bootstrap-adapter.ts:50`],
+  was: ["docs/as-is/archive/applications/flows.ts:27", `${SDK}/platform/production.ts:135`, `${SDK}/applications/bootstrap-adapter.ts:50`],
   component: component_core_sdk,
   surfaces: ["react", "sdk"],
   sdk: "createCapxulClient",

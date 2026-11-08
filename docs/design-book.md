@@ -95,7 +95,7 @@ packages/book/                 the record system; product-neutral except the tar
   src/evals.ts                 deriveEvals: the evals each kind of record implies
   src/budgets.ts               the default budget of each class (policy P5)
   src/views.ts, src/main.ts    the command that writes the views and exits 1 on problems
-  test/                        16 tests, with a small fixture book (invitations)
+  test/                        21 tests, with a small fixture book (invitations)
 books/frozen/                  the old operations and their CLI flags, as reference (generated)
 books/target/
   shared/                      the system, the components, the 22 concepts and what each may depend on,
@@ -226,8 +226,9 @@ What the build makes of these four records:
     operation's text and what it does agree.
   - For the records below it: `flw:client.payments.pay/budget` and `/spans`;
     `rpc:payments.commands.prepare/budget`, `/spans` and `/errors`; `trn:payment.open`;
-    `tbl:payments/schema`, `/writers` and `/tenancy`; and `prc:<procedure>/atomic` for each
-    procedure it invokes.
+    `tbl:payments/schema`, `/writers`, `/tenancy` and `/admits/1` (the payee's read of a Payment);
+    `prc:<procedure>/atomic` for each procedure it invokes; and, for the Payment's durable
+    process, `wfl:payments.lifecycle.payment/resume` and one `/wake/<wait>` per keyed wait.
 - **Gaps.** For example, a refusal whose world no devnet can build yet (`refusal-without-world`),
   or a transition nothing drives. In a target book an rpc nothing reaches is not a gap but a
   problem (`unreached-rpc`).
@@ -252,7 +253,11 @@ node --experimental-strip-types packages/book/src/main.ts books/target/index.ts 
 5. **Rules.** The base rules always run: boundaries, machines, cycles and refusals. With stage
    `"target"`, the policy rules run too: events only on transitions, one event per machine, no rpc
    nobody reaches, budgets, tenant-first keys, acceptance lines as claims, and a flow that
-   implements an operation serving the CLI (`flow-surface`).
+   implements an operation serving the CLI (`flow-surface`). Two more serve the generators:
+   - every wait except a timer has a routing `key` (`wait-without-key`), and each key's properties
+     must be carried by what wakes the wait (`wait-key`);
+   - a table's `admits` clauses (who besides its tenant may read or write a row) must name real
+     columns (`admission`), and a chain table must declare read-only clauses (`chain-admits`).
 6. **Reverse links.** The build records who points at each record.
 7. **Gaps.** The derived list of incomplete design (`docs/spec/50-design-book.md` has the table).
 8. **Evals.** Every eval the records imply. Each has an id, a level, the record it is about, its

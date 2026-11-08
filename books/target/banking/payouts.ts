@@ -142,7 +142,7 @@ export const rpc_banking_payouts_quote = defineRpc({
     `${PO}/operations/prepare.ts:1`,
     `${PO}/operations/request.ts:1`,
     `${PO}/operations/finalize.ts:1`,
-    "books/as-is/banking/payouts.ts:541",
+    "docs/as-is/archive/banking/payouts.ts:541",
   ],
 });
 
@@ -169,7 +169,7 @@ export const rpc_banking_payouts_get = defineRpc({
   chain: [],
   spans: [],
   budget: budget("read"),
-  was: [`${PO}/operations/outcome.ts:1`, `${PO}/rules/stage.ts:1`, "books/as-is/banking/payouts.ts:317"],
+  was: [`${PO}/operations/outcome.ts:1`, `${PO}/rules/stage.ts:1`, "docs/as-is/archive/banking/payouts.ts:317"],
 });
 
 export const rpc_banking_payouts_resolve = defineRpc({
@@ -200,5 +200,5 @@ export const rpc_banking_payouts_resolve = defineRpc({
   chain: [],
   spans: [],
   budget: budget("write"),
-  was: [`${PO}/operations/resolve.ts:1`, "books/as-is/banking/payouts.ts:411"],
+  was: [`${PO}/operations/resolve.ts:1`, "docs/as-is/archive/banking/payouts.ts:411"],
 });

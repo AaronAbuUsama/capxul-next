@@ -13,7 +13,7 @@ import { error_INVALID_INPUT, error_NOT_AUTHENTICATED } from "../shared/vocabula
 import { KeyEnvironment, table_applications, table_publishable_keys, table_quickstart_keys } from "./data.ts";
 
 const OLD = "packages/backend/src/applications/bootstraps";
-const ASIS = "books/as-is/applications/bootstraps.ts";
+const ASIS = "docs/as-is/archive/applications/bootstraps.ts";
 
 const S = Schema.String;
 const N = Schema.Number;

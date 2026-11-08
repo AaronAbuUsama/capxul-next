@@ -288,7 +288,7 @@ export const flow_client_org_proposals_wait = defineFlow({
   calls: [],
   spans: [],
   budget: { ...budget("read"), excludes: ["wait.chain"] },
-  was: [`${SDK}/proposals.ts`, "books/as-is/organizations/flows-governance.ts"],
+  was: [`${SDK}/proposals.ts`, "docs/as-is/archive/organizations/flows-governance.ts"],
 });
 
 // ── officer hats ────────────────────────────────────────────────────────────────────────────

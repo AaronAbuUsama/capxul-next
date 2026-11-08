@@ -258,7 +258,7 @@ export const decision_activity_balances_from_views = defineDecision({
     "off the indexer. A send that must not overdraw reads `balanceOf` at build time, which is payments', not this read. " +
     "A person's `safe-owners` row is the chain's answer to 'is this Safe claimed'. A view that is rebuilding answers less " +
     "than the chain holds, which is a provider failure to report, not a zero (integrations.indexer).",
-  source: by("books/as-is/accounts/balances.ts; books/as-is/organizations/treasuries.ts; books/target/indexing/data.ts (safe-balances, safe-owners)"),
+  source: by("docs/as-is/archive/accounts/balances.ts; docs/as-is/archive/organizations/treasuries.ts; books/target/indexing/data.ts (safe-balances, safe-owners)"),
   affects: [rpc_activity_holdings_balances, operation_balance, table_safe_balances, table_safe_owners, table_indexer_progress],
 });
 
@@ -334,7 +334,7 @@ export const decision_activity_address_from_principal = defineDecision({
     "so every signed-in person has it before their Safe is claimed, and it never changes. Reading it is the claim's " +
     "outcome without the salt setting at read time. An agent's principal holds its own Safe. The answer's chain is the " +
     "deployment's; the old answer said Base Sepolia even for a row on another chain, and v4 has one chain (P9).",
-  source: by("books/as-is/accounts/summaries.ts (deposit-instructions); books/target/access/data.ts (principals)"),
+  source: by("docs/as-is/archive/accounts/summaries.ts (deposit-instructions); books/target/access/data.ts (principals)"),
   affects: [rpc_activity_holdings_address, operation_address],
 });
 
@@ -354,7 +354,7 @@ export const decision_activity_unreachable_refusals = defineDecision({
     "does not decode. But the salt namespace is checked when the backend starts and used only when a principal is born, " +
     "the deployment has one chain so `balance` takes no chain id, and the Safe is the principal's own, so no binding can " +
     "disagree. No devnet world can reach the conditions named; the gap `refusal-without-world` says so.",
-  source: by("books/frozen/operations.ts (address, balance refusals); books/as-is/accounts/balances.ts (read-binding)"),
+  source: by("books/frozen/operations.ts (address, balance refusals); docs/as-is/archive/accounts/balances.ts (read-binding)"),
   affects: [operation_address, operation_balance, rpc_activity_holdings_address, rpc_activity_holdings_balances],
 });
 
@@ -382,7 +382,7 @@ export const decision_activity_dropped = defineDecision({
     "moves there. The overlay joined two stores; documents owns content and verification; books owns annotations; the " +
     "internal binding and load queries were steps of one read, now its first lines. The `since` time input had no CLI " +
     "flag and is what made changes depend on clocks. A read sends no product event: its wide event is the runtime's (P7).",
-  source: by(`${OLD}/README.md:56 (operations table); books/as-is/accounts/summaries.ts; books/as-is/organizations/treasuries.ts`),
+  source: by(`${OLD}/README.md:56 (operations table); docs/as-is/archive/accounts/summaries.ts; docs/as-is/archive/organizations/treasuries.ts`),
   affects: [concept_activity, ...FEED_READS, ...HOLDINGS],
 });
 

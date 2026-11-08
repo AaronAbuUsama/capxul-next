@@ -109,7 +109,7 @@ export const rpc_board_officers_grant = defineRpc({
     "with a parent budget) is no conflict. The batch: " +
     "`Hats.changeHatMaxSupply(hat, supply + waiting + 1)` first when every seat of the hat is worn or taken by grants " +
     "still waiting (indexing's chain-hats and this concept's waiting grants), then `Hats.mintHat(hat, memberSafe)`. " + BIRTH,
-  was: [`${OLD}/operations/grant.ts:158`, `${OLD}/writes/permissions.ts:133`, "books/as-is/organizations/members.ts:1"],
+  was: [`${OLD}/operations/grant.ts:158`, `${OLD}/writes/permissions.ts:133`, "docs/as-is/archive/organizations/members.ts:1"],
   concept: concept_board,
   kind: "action",
   who: "A Director of the Organization.",

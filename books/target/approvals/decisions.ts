@@ -40,7 +40,7 @@ export const decision_approvals_one_table = defineDecision({
     "span (`call.bundler.send`, P6) and the `claim_send`, `accept` and `bounce` transitions with their events; a log row " +
     "would be telemetry stored as data. The pre-v4 Attempt states the old validator kept for history (11 of 19), the " +
     "sweep's recovery holds and the optional fields 'for rows written before them' go (P9).",
-  source: "books/as-is/accounts/data.ts (approvals); books/as-is/payments/data.ts (money-executions, provider-send-attempts); docs/as-is/payments.md",
+  source: "docs/as-is/archive/accounts/data.ts (approvals); docs/as-is/archive/payments/data.ts (money-executions, provider-send-attempts); docs/as-is/payments.md",
   affects: [table_approvals, concept_approvals],
 });
 
@@ -348,7 +348,7 @@ export const decision_approvals_dropped = defineDecision({
     "rows differed only in how they built the summary (now the opener's) and each relay to an area's send existed only " +
     "because each area sent its own kind; one send path ends that. `complete` is the opener following " +
     "`approval_transitioned`. The service-key lanes went to the service signer (responsibilities.service-lanes).",
-  source: "books/as-is/accounts/approvals.ts; books/as-is/payments/executions.ts; docs/as-is/lane-reports/review-executions.json (designFindings); P3",
+  source: "docs/as-is/archive/accounts/approvals.ts; docs/as-is/archive/payments/executions.ts; docs/as-is/lane-reports/review-executions.json (designFindings); P3",
   affects: [workflow_approvals_lifecycle_carry, procedure_approvals_open, concept_approvals],
 });
 

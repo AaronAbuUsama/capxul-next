@@ -83,7 +83,7 @@ export const decision_budgets_two_tables = defineDecision({
     "possible: a budget's name and key, its Capxul id, its planned hat before the chain has its id, the request key, the " +
     "change that blocks another and the ceiling a freeze replaced exist nowhere on chain. The pre-v4 permission, " +
     "assignment, command, receipt and granter tables are dropped with the Roles commands they served.",
-  source: by("books/as-is/permissions/data.ts:400, :451; books/as-is/payroll/data.ts:170, :216; P9"),
+  source: by("docs/as-is/archive/permissions/data.ts:400, :451; docs/as-is/archive/payroll/data.ts:170, :216; P9"),
   affects: [table_budgets, table_budget_changes, machine_budget, machine_budget_change, concept_budgets],
 });
 
@@ -120,7 +120,7 @@ export const decision_budgets_ids_and_keys = defineDecision({
     "office-costs`); payroll's offers name a department the same way. A budget made outside Capxul has only its chain id. " +
     "A unique index on a column that is null once abandoned frees the key of a create that never ran, which the frozen " +
     "list needs ('reads leave it out and its slug is free again'), without a partial index.",
-  source: by("org.department.show.yaml notes; org.allowance.change.yaml (designed example); books/as-is/payroll/data.ts:500"),
+  source: by("org.department.show.yaml notes; org.allowance.change.yaml (designed example); docs/as-is/archive/payroll/data.ts:500"),
   affects: [table_budgets],
 });
 
@@ -144,7 +144,7 @@ export const decision_budgets_one_process_per_change = defineDecision({
     "need one workflow per board and approvals transition and would scatter one object's settlement. Settle-on-read made " +
     "a read write and left a change unsettled until someone looked. Applying only on the indexed effect (BudgetCreated " +
     "with the planned hat, the amount set, the hat minted) means a proposal that ran but did nothing never reads applied.",
-  source: by("packages/backend/src/payroll/departments/writes.ts:232; books/as-is/payroll/departments.ts:775; A3; P3"),
+  source: by("packages/backend/src/payroll/departments/writes.ts:232; docs/as-is/archive/payroll/departments.ts:775; A3; P3"),
   affects: [workflow_budgets_changes_follow, machine_budget_change, machine_budget, rpc_budgets_changes_get],
 });
 
@@ -287,7 +287,7 @@ export const decision_budgets_no_door = defineDecision({
     "the prepare it guards, so the answer could be stale by the time payments writes. Payments depends on budgets, so it " +
     "may read the table, and the chain is the authority anyway: the bundler's simulation refuses an unauthorised or " +
     "over-budget spend before anyone signs (OverBudget, NotAuthorised). No other concept writes budgets' tables.",
-  source: by("books/as-is/permissions/authorities.ts:139, :228; rules.procedures; dependencies.of-payments"),
+  source: by("docs/as-is/archive/permissions/authorities.ts:139, :228; rules.procedures; dependencies.of-payments"),
   affects: [concept_budgets, concept_payments, table_budgets],
 });
 
@@ -754,6 +754,6 @@ export const decision_budgets_dropped_functions = defineDecision({
     "They were Convex's internal queries and mutations an action ran in the same call (P2: no unreached rpc), telemetry " +
     "plumbing (P7) or settlement on read (budgets.one-process-per-change). Their behaviour lives in the one transaction of " +
     "each target rpc and in the change's process.",
-  source: by("books/as-is/payroll/departments.ts:656-903; packages/backend/src/permissions/allowances/operations; P2; P3"),
+  source: by("docs/as-is/archive/payroll/departments.ts:656-903; packages/backend/src/permissions/allowances/operations; P2; P3"),
   affects: [concept_budgets, workflow_budgets_changes_follow, rpc_budgets_changes_get],
 });

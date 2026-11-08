@@ -1,7 +1,7 @@
 // Payroll's own judgments, as decision records. Made by Claude on 8 November 2026 while designing
 // the target payroll concept, under A1-A4 and P1-P10 and the shared decisions (concepts.payroll,
 // dependencies.payments-payroll, dependencies.of-payroll, rules.durable-processes), with the old
-// code (/home/user/factory, integration/factory) and books/as-is/payroll/ as evidence.
+// code (/home/user/factory, integration/factory) and docs/as-is/archive/payroll/ as evidence.
 
 import { defineDecision } from "../../../packages/book/src/index.ts";
 import { concept_board, concept_budgets, concept_notices, concept_payments, concept_payroll } from "../shared/foundation.ts";
@@ -130,7 +130,7 @@ export const decision_payroll_no_door = defineDecision({
     "Every old door procedure served runs, departments or notices, all gone or moved. A collection's Payment is born in " +
     "payments from the indexed PaymentSent, a fact both concepts read, so no money fact spans payroll and a concept above " +
     "it. What follows an agreement's change (an email, a projection) lags harmlessly and goes through the outbox (P4).",
-  source: by("books/as-is/payroll/procedures.ts; P4; dependencies.payments-payroll"),
+  source: by("docs/as-is/archive/payroll/procedures.ts; P4; dependencies.payments-payroll"),
   affects: [concept_payroll, concept_notices],
 });
 
@@ -150,7 +150,7 @@ export const decision_payroll_two_tables = defineDecision({
     "holders' writes be in flight at once (a pause beaten by another holder's pause is a frozen claim). An embedded last " +
     "write lost history and needed a 20-entry side list. Earned, collectable, the current rate and budget figures are read " +
     "from the chain when asked, never copied, so nothing drifts. The notice-claim table goes with the emails (payroll.notices-elsewhere).",
-  source: by(`${OLD}/tables.ts:19-328; books/as-is/payroll/data.ts; org.agreement.pause acceptance 4`),
+  source: by(`${OLD}/tables.ts:19-328; docs/as-is/archive/payroll/data.ts; org.agreement.pause acceptance 4`),
   affects: [table_agreements, table_agreement_writes],
 });
 
@@ -561,7 +561,7 @@ export const decision_payroll_dropped = defineDecision({
     "operation reaches `payroll.agreements.get`, `preview-collect` or the org-side `wait` (P2): a write flow follows its " +
     "own write, and the payslip is part of the collection it previews. An Organization payee is the same payee with " +
     "`--org`, so it needs no second set of rows.",
-  source: by("books/as-is/payroll/agreements.ts (37 rpcs, 2 workflows); books/as-is/payroll/flows.ts:549-857; P2; P3"),
+  source: by("docs/as-is/archive/payroll/agreements.ts (37 rpcs, 2 workflows); docs/as-is/archive/payroll/flows.ts:549-857; P2; P3"),
   affects: [...HOLDER_RPCS, rpc_payroll_payees_accept, rpc_payroll_payees_collect, rpc_payroll_payees_list, rpc_payroll_payees_show, rpc_payroll_writes_watch, workflow_payroll_agreements_lifecycle],
 });
 

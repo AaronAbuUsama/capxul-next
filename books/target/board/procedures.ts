@@ -63,7 +63,7 @@ export const procedure_board_propose = defineProcedure({
     `${OLD}/writes.ts:244`,
     `${OLD}/rules.ts:81`,
     `${OLD}/rules.ts:128`,
-    "books/as-is/organizations/proposals.ts:1124",
+    "docs/as-is/archive/organizations/proposals.ts:1124",
   ],
   concept: concept_board,
   input: Schema.Struct({

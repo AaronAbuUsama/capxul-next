@@ -46,7 +46,7 @@ export const workflow_board_proposals_carry = defineWorkflow({
     `${OLD}/proposals/writes/settlements.ts:36`,
     `${OLD}/proposals/writes/subjects.ts:55`,
     `${OLD}/proposals/operations/follow-approval.ts:1`,
-    "books/as-is/organizations/proposals.ts:1264",
+    "docs/as-is/archive/organizations/proposals.ts:1264",
   ],
   concept: concept_board,
   priority: "normal",
@@ -56,8 +56,10 @@ export const workflow_board_proposals_carry = defineWorkflow({
     {
       name: "directors",
       for: "person",
-      key: [{ on: [event_approval_transitioned], props: ["opener", "subject_kind", "subject_id"] }],
-      about: "The Directors approve its hash from their own Safes until the approval that reaches the threshold executes it.",
+      key: [{ on: [table_safe_executions], props: ["chain_id", "safe_address", "safe_nonce"] }],
+      about:
+        "The Directors approve its hash from their own Safes until the approval that reaches the threshold executes it; " +
+        "only the chain ends it (each approval is its own, and the Gate counts them): the transaction at its nonce.",
     },
     {
       name: "nonce-used",
@@ -123,7 +125,7 @@ export const workflow_board_changes_carry = defineWorkflow({
     `${OLD}/directors/operations/follow.ts:1`,
     `${OLD}/directors/operations/record-outcome.ts:1`,
     `${OLD}/directors/external/settle.ts:1`,
-    "books/as-is/organizations/directors.ts:791",
+    "docs/as-is/archive/organizations/directors.ts:791",
   ],
   concept: concept_board,
   priority: "low",

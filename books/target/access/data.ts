@@ -15,7 +15,7 @@ import { defineEvent, defineMachine, defineTable } from "../../../packages/book/
 import { concept_access } from "../shared/foundation.ts";
 
 const OLD = "packages/backend/src/access";
-const ASIS = "books/as-is/access/data.ts";
+const ASIS = "docs/as-is/archive/access/data.ts";
 
 const S = Schema.String;
 const Time = Schema.DateTimeUtc;

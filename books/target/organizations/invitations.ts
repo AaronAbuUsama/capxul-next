@@ -40,7 +40,7 @@ import { table_hat_wearers, table_safe_executions } from "../indexing/data.ts";
 
 const O = "packages/backend/src/organizations";
 const I = `${O}/invitations`;
-const AS_IS = "books/as-is/organizations/invitations.ts";
+const AS_IS = "docs/as-is/archive/organizations/invitations.ts";
 
 const S = Schema.String;
 const N = Schema.Number;

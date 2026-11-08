@@ -29,7 +29,7 @@ import { Schema } from "effect";
 const OLD = "packages/backend/src/accounts/agents";
 const CONVEX = "packages/backend/convex/accounts/agents.ts";
 const ROWS = "packages/protocol/src/accounts/agent-operations.ts";
-const AS_IS = "books/as-is/accounts/agents.ts";
+const AS_IS = "docs/as-is/archive/accounts/agents.ts";
 
 /** What an agent's view joins: its Party (name, handle), its principal (accountId) and its owner's rows. */
 const VIEW_READS = [

@@ -41,7 +41,7 @@ export const flow_client_onboarding_begin_organization = defineFlow({
     "the setup until it is ready or stops, within one deadline over the write and " +
     "its setup. At the deadline it stops waiting and the setup carries on. The CLI shows the preview and asks before it " +
     "calls this method.",
-  was: [`${SDK}/profiles/organization-onboarding.ts:83`, "books/as-is/organizations/flows.ts:55"],
+  was: [`${SDK}/profiles/organization-onboarding.ts:83`, "docs/as-is/archive/organizations/flows.ts:55"],
   component: component_core_sdk,
   sdk: "client.onboarding.beginOrganization",
   input: Schema.Struct({
@@ -77,7 +77,7 @@ export const flow_client_org_setup_resume = defineFlow({
     "approval page; needing attention or still processing, it asks the setup process to carry on (`resume`); ready, it " +
     "returns at once. Then it follows the setup until it is ready or stops, within the deadline. It never creates an " +
     "Organization and never signs anything but the open install approval.",
-  was: [`${SDK}/organizations/setup-adapter.ts:118`, "books/as-is/organizations/setups.ts:318"],
+  was: [`${SDK}/organizations/setup-adapter.ts:118`, "docs/as-is/archive/organizations/setups.ts:318"],
   component: component_core_sdk,
   sdk: "client.org(orgId).setup.resume",
   input: Schema.Struct({ orgId: S, ...Deadline }),
@@ -102,7 +102,7 @@ export const flow_client_org_setup_get = defineFlow({
     "`org show`. With no Organization given and no choice saved on this machine, it lists the caller's Organizations and " +
     "takes the one unfinished setup they founded (several, or none, is the CLI's usage refusal); then it reads the setup " +
     "once. It never writes and never moves the setup on.",
-  was: [`${SDK}/organizations/setup-adapter.ts:82`, "books/as-is/organizations/setups.ts:247"],
+  was: [`${SDK}/organizations/setup-adapter.ts:82`, "docs/as-is/archive/organizations/setups.ts:247"],
   component: component_core_sdk,
   sdk: "client.org(orgId).setup.get",
   input: Schema.Struct(OrgChoice),
@@ -193,7 +193,7 @@ export const flow_client_orgs_invitations = defineFlow({
   about:
     "`invite list`. Without an Organization it lists the caller's own offers from every Organization and never uses a " +
     "saved choice; with `--org` it lists that Organization's sent invitations instead, which needs the People hat.",
-  was: [`${SDK}/organizations/invitations.ts:1`, "books/as-is/organizations/invitations.ts:215"],
+  was: [`${SDK}/organizations/invitations.ts:1`, "docs/as-is/archive/organizations/invitations.ts:215"],
   component: component_core_sdk,
   sdk: "client.orgs.invitations",
   input: Schema.Struct({

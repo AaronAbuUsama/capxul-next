@@ -2,7 +2,7 @@
 // target notices concept, under A1-A4 and P1-P10 and the shared decisions (concepts.notices,
 // dependencies.notices-top, dependencies.notices-budgets, dependencies.of-notices,
 // operations.dev-mail-notices-in-devnet, vocabulary.drop-email-delivery-failed), with the old code
-// (/home/user/factory, integration/factory), books/as-is/operator/ and the designed concepts'
+// (/home/user/factory, integration/factory), docs/as-is/archive/operator/ and the designed concepts'
 // decisions that expect a notice as evidence.
 
 import { defineDecision } from "../../../packages/book/src/index.ts";
@@ -280,7 +280,7 @@ export const decision_notices_delivery_record = defineDecision({
     "taken, so it missed older matches; an index serves it. `notice_transitioned` replaces the old " +
     "`[CAPXUL_MAIL_FAILED]` and `[CAPXUL_NOTICE_RECORD_FAILED]` log lines: a record that cannot be written is the " +
     "workflow's own retry, not a log line.",
-  source: by(`books/as-is/operator/data.ts (notice-deliveries, notice-delivery); books/as-is/operator/notices.ts; ${OLD}/integrations/mail/notices.ts:41`),
+  source: by(`docs/as-is/archive/operator/data.ts (notice-deliveries, notice-delivery); docs/as-is/archive/operator/notices.ts; ${OLD}/integrations/mail/notices.ts:41`),
   affects: [table_notices, machine_notice, event_notice_transitioned],
 });
 
@@ -300,7 +300,7 @@ export const decision_notices_mailbox_tenancy = defineDecision({
     "payee's email under the payer's tenant. Global would leave personal data with no row policy. Only devnet's `dev " +
     "mail notices` reads across mailboxes, so the two cross-tenant indexes say so; `org_id` and `person_id` are kept on " +
     "the row for the event and for readers that know them.",
-  source: by("books/target/accounts/decisions.ts (accounts.mailbox-tenancy); P8; books/as-is/operator/data.ts (notice-deliveries: no tenant column)"),
+  source: by("books/target/accounts/decisions.ts (accounts.mailbox-tenancy); P8; docs/as-is/archive/operator/data.ts (notice-deliveries: no tenant column)"),
   affects: [table_notices],
 });
 
@@ -645,7 +645,7 @@ export const decision_notices_no_door = defineDecision({
     "in a concept staging runs, which operations.dev-mail-notices-in-devnet refuses; devnet reads the table through " +
     "its dependency. Old record had no environment gate and list read real addresses on production. Every old " +
     "concept's notify action, notice-facts read and scheduler, and payroll's notice-claim table, become these workflows.",
-  source: by("books/as-is/operator/notices.ts; operations.dev-mail-notices-in-devnet; dependencies.notices-top; P2 (notice-facts, notify-*)"),
+  source: by("docs/as-is/archive/operator/notices.ts; operations.dev-mail-notices-in-devnet; dependencies.notices-top; P2 (notice-facts, notify-*)"),
   affects: [concept_notices, concept_devnet, table_notices],
 });
 

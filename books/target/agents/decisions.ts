@@ -3,7 +3,7 @@
 // decisions (concepts.agents, dependencies.of-agents, dependencies.parties-registration,
 // dependencies.agent-seats, dependencies.board-below-proposers, rules.procedures,
 // rules.durable-processes, vocabulary.drop-actor-stopped), with the old code (/home/user/factory,
-// integration/factory) and the as-is book (books/as-is/accounts/agents.ts) as evidence.
+// integration/factory) and the as-is book (docs/as-is/archive/accounts/agents.ts) as evidence.
 
 import { defineDecision } from "../../../packages/book/src/index.ts";
 import { concept_agents } from "../shared/foundation.ts";
@@ -107,7 +107,7 @@ export const decision_agents_tables = defineDecision({
     "change), with its own history, so it needs its own row; an inline last change would lose what earlier changes did. " +
     "Both tables are tenant `owner` because a person or an Organization can own an agent (P8), and every row carries its " +
     "owner, so nothing is scoped by a join.",
-  source: by(`packages/backend/convex/schema/accounts.ts:196 and :230; ${OLD}/writes/rows.ts:59; books/as-is/accounts/data.ts`),
+  source: by(`packages/backend/convex/schema/accounts.ts:196 and :230; ${OLD}/writes/rows.ts:59; docs/as-is/archive/accounts/data.ts`),
   affects: [table_agents, table_agent_changes, concept_agents],
 });
 
@@ -131,7 +131,7 @@ export const decision_agents_machines = defineDecision({
     "were the old send relay's; the approval or the proposal now carries the send, and the change only waits for its " +
     "carrier's end. Removed and failed are terminal: AgentOwner refuses every owner power on a removed agent, and a failed " +
     "create never had a Safe.",
-  source: by(`${OLD}/rules.ts:28; ${OLD}/rules.ts:58; ${OLD}/writes/changes.ts:134; books/as-is/accounts/data.ts`),
+  source: by(`${OLD}/rules.ts:28; ${OLD}/rules.ts:58; ${OLD}/writes/changes.ts:134; docs/as-is/archive/accounts/data.ts`),
   affects: [machine_agent, machine_agent_change, table_agents, table_agent_changes],
 });
 
@@ -260,7 +260,7 @@ export const decision_agents_account_at_sign_in = defineDecision({
     "and access owns principals and has no procedure for another concept to write one (access.no-procedures). An id " +
     "minted here would be a principal access does not know. Reading by Safe needs nothing new: principals are unique " +
     "by Safe. `agent create`'s answer reads `accountId` null, and `agent show` names it once the agent has signed in.",
-  source: by("books/frozen/operations.ts (agent.create returns); books/target/access/data.ts (principals by_safe); books/as-is/accounts/agents.ts (create mints accountId)"),
+  source: by("books/frozen/operations.ts (agent.create returns); books/target/access/data.ts (principals by_safe); docs/as-is/archive/accounts/agents.ts (create mints accountId)"),
   affects: [table_agents, table_principals, rpc_agents_roster_show, rpc_agents_roster_list, op.operation_agent_create],
 });
 
@@ -286,7 +286,7 @@ export const decision_agents_create_one_transaction = defineDecision({
     "Sponsorship is approvals' (concepts.approvals), so the create needs no outside call, and the predicted Safe is a pure " +
     "function (agents.safe-address-in-process). Two procedures from two concepts per transaction (parties and approvals, " +
     "or parties and board) stays within sys:tx-width.",
-  source: by(`${OLD}/operations/create.ts:35; ${OLD}/writes/rows.ts:59; books/as-is/accounts/agents.ts (create, record)`),
+  source: by(`${OLD}/operations/create.ts:35; ${OLD}/writes/rows.ts:59; docs/as-is/archive/accounts/agents.ts (create, record)`),
   affects: [rpc_agents_changes_create, procedure_parties_register, procedure_approvals_open, procedure_board_propose, machine_agent, machine_agent_change],
 });
 
@@ -455,7 +455,7 @@ export const decision_agents_one_process = defineDecision({
     "clear-submission, settle, record-change, record-change-submission, clear-change-submission, settle-change, " +
     "send-signed, send-change-signed, emit-transitioned, follow and follow-change; the agent's own EntryPoint lane " +
     "becomes each approval's own nonce key.",
-  source: by(`${OLD}/operations/follow.ts:24, follow-change.ts:23; ${OLD}/writes/settles.ts:136; ${OLD}/rules.ts:86; books/as-is/accounts/agents.ts`),
+  source: by(`${OLD}/operations/follow.ts:24, follow-change.ts:23; ${OLD}/writes/settles.ts:136; ${OLD}/rules.ts:86; docs/as-is/archive/accounts/agents.ts`),
   affects: [workflow_agents_changes_carry, rpc_agents_roster_list, rpc_agents_roster_show, rpc_agents_changes_get, ...CHANGE_RPCS],
 });
 
@@ -628,6 +628,6 @@ export const decision_agents_no_door = defineDecision({
     "A procedure exists only for one money fact (rules.procedures). Concepts that pay or name an agent name its Party, " +
     "whose state parties already keeps (`pending` until the create lands); organizations ends Seats from the chain " +
     "(dependencies.agent-seats); access proves an agent's sign-in on chain (concepts.access).",
-  source: by("books/target/shared/decisions.ts (rules.procedures, dependencies.agent-seats, concepts.access); books/as-is/accounts/procedures.ts"),
+  source: by("books/target/shared/decisions.ts (rules.procedures, dependencies.agent-seats, concepts.access); docs/as-is/archive/accounts/procedures.ts"),
   affects: [concept_agents, table_agents],
 });

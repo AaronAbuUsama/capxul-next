@@ -61,8 +61,8 @@ export const workflow_organizations_setups_set_up = defineWorkflow({
     "provider outage that outlasts a step's retries stalls it too. `org retry` resumes it from its last finished step. " +
     "It replaces the old observe workflow, its every-minute recovery cron and ten internal rpcs.",
   was: [
-    "books/as-is/organizations/setups.ts:709",
-    "books/as-is/organizations/setups.ts:751",
+    "docs/as-is/archive/organizations/setups.ts:709",
+    "docs/as-is/archive/organizations/setups.ts:751",
     `${O}/setups/external/deploys.ts:191`,
     `${O}/setups/external/installs.ts:80`,
   ],
@@ -170,7 +170,7 @@ export const workflow_organizations_invitations_follow = defineWorkflow({
     "expires_at, which expires an offer with nothing on chain or begins the cleanup of one with hats. Revoking: budgets " +
     "proposes taking the hats back, and the process ends the offer with its recorded reason when the grantee's Safe " +
     "wears none of them. It replaces the old grant drive, retry and verify loops and the daily expiry cron.",
-  was: ["books/as-is/organizations/invitations.ts:427", "books/as-is/organizations/invitations.ts:586", `${O}/invitations/writes/endings.ts:175`],
+  was: ["docs/as-is/archive/organizations/invitations.ts:427", "docs/as-is/archive/organizations/invitations.ts:586", `${O}/invitations/writes/endings.ts:175`],
   concept: concept_organizations,
   priority: "normal",
   trigger: { after: rpc_organizations_invitations_invite },

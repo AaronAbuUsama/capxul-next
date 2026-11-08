@@ -2,7 +2,7 @@
 // each concept defines its machines' `<machine>_transitioned` events in its own data.ts (policy P7).
 //
 // How the list was made (decisions in ./decisions.ts, prefixed `vocabulary.`):
-// - Start from the old codes (books/as-is/shared/vocabulary.ts, 50 codes).
+// - Start from the old codes (docs/as-is/archive/shared/vocabulary.ts, 50 codes).
 // - Keep every code the frozen book names: in a refusal (top-level or designed), a mistake's fix or
 //   an acceptance line (P10 rung 1: the surface is the book's).
 // - Add the five codes the frozen book's equity refusals name that the old code never defined.

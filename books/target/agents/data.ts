@@ -18,7 +18,7 @@ import { defineEvent, defineMachine, defineTable } from "../../../packages/book/
 import { concept_agents } from "../shared/foundation.ts";
 
 const OLD = "packages/backend/src/accounts/agents";
-const AS_IS = "books/as-is/accounts/data.ts";
+const AS_IS = "docs/as-is/archive/accounts/data.ts";
 const TABLES = "packages/backend/convex/schema/accounts.ts";
 
 // ── shapes ──────────────────────────────────────────────────────────────────────────────────
@@ -178,7 +178,7 @@ export const event_agent_transitioned = defineEvent({
     owner_kind: OwnerKind,
     owner_id: S,
   }),
-  was: ["books/as-is/shared/vocabulary.ts", `${OLD}/events.ts:48`],
+  was: ["docs/as-is/archive/shared/vocabulary.ts", `${OLD}/events.ts:48`],
 });
 
 const A = [event_agent_transitioned];
@@ -342,7 +342,7 @@ export const event_agent_change_transitioned = defineEvent({
     owner_id: S,
     failure_code: NullOr(S),
   }),
-  was: ["books/as-is/shared/vocabulary.ts", `${OLD}/events.ts:48`],
+  was: ["docs/as-is/archive/shared/vocabulary.ts", `${OLD}/events.ts:48`],
 });
 
 const C = [event_agent_change_transitioned];

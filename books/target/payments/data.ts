@@ -1,6 +1,6 @@
 // Payments' tables, its two state machines and each machine's one event (P7), in the target design.
 //
-// Three tables replace the old thirteen (books/as-is/payments/data.ts):
+// Three tables replace the old thirteen (docs/as-is/archive/payments/data.ts):
 //   payment-commands  one request key, one command (K1); absorbs payment-document-intents
 //   payments          the Payment ledger; absorbs payment-schedules (dated payments), commitment-evidence
 //                     (the consumed PaymentSent log, unique: K9) and payment-evidence-conflicts (mismatched)
@@ -19,7 +19,7 @@ import { defineEvent, defineMachine, defineTable } from "../../../packages/book/
 import { concept_payments } from "../shared/foundation.ts";
 
 const OLD = "packages/backend/src/payments";
-const ASIS = "books/as-is/payments/data.ts";
+const ASIS = "docs/as-is/archive/payments/data.ts";
 
 const S = Schema.String;
 const Int = Schema.Int;

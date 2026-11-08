@@ -85,7 +85,7 @@ export const decision_banking_tables = defineDecision({
     "columns (observation context, journey, correlation and surface ids, back-off, park, lease and run columns, P2, P3), " +
     "and every private value is encrypted bound to its row with the one RECORD_ENCRYPTION_KEY, so a value copied to " +
     "another row does not decrypt.",
-  source: "books/as-is/banking/data.ts; packages/backend/src/parties/tables.ts:9-130; P2, P3, P9",
+  source: "docs/as-is/archive/banking/data.ts; packages/backend/src/parties/tables.ts:9-130; P2, P3, P9",
   affects: [
     d.table_verifications,
     d.table_verification_people,
@@ -114,7 +114,7 @@ export const decision_banking_owner_tenancy = defineDecision({
     "reaches and submits their own through its invitation id and their email, the one cross-tenant read and write in " +
     "banking, which the generated row-level policy must allow by that clause. Bridge's inbox and cursor are " +
     "the deployment's (`global`). The old tables mixed `ownerPartyId`, `actorId` and `declaredBy`, so a tenancy by join.",
-  source: "P8; books/as-is/banking/data.ts (owner tenancy by ownerPartyId and actorId); books/target/contacts/data.ts",
+  source: "P8; docs/as-is/archive/banking/data.ts (owner tenancy by ownerPartyId and actorId); books/target/contacts/data.ts",
   affects: [
     d.table_verifications,
     d.table_verification_people,
@@ -261,7 +261,7 @@ export const decision_banking_bank_details_machine = defineDecision({
     "`bank settle` records once (its old acceptance queued one `bank_details_changed`); as a transition it sends the " +
     "machine's one event (P7), and the same token sends none. Deactivate and reactivate stay Bridge's: no frozen " +
     "operation does them, so the old rpcs go (P2).",
-  source: "books/as-is/banking/data.ts:693 (to_failed undriven); bank.settle.yaml (acceptance 2, 3); bank.details.yaml (returns)",
+  source: "docs/as-is/archive/banking/data.ts:693 (to_failed undriven); bank.settle.yaml (acceptance 2, 3); bank.details.yaml (returns)",
   affects: [d.machine_bank_details, d.event_bank_details_transitioned, rpc_banking_details_settle, rpc_banking_details_show],
 });
 
@@ -473,7 +473,7 @@ export const decision_banking_not_ported = defineDecision({
     "tables (notices' facts, requests' candidates), or media's (document upload). `payments.quotes.quote`, which old " +
     "banking implemented for payments, is `banking.payouts.quote`. Removing a saved account calls Bridge no more than " +
     "the old one did, so Bridge has no remove call (integrations.bridge-bank-details-read dropped it).",
-  source: "books/as-is/banking/*.ts (41 rpcs, 8 workflows); P2; P9",
+  source: "docs/as-is/archive/banking/*.ts (41 rpcs, 8 workflows); P2; P9",
   affects: [concept_banking, integration_bridge],
 });
 

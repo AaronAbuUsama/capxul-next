@@ -40,7 +40,7 @@ export const workflow_notices_organizations_invitation_sent = noticeWorkflow({
   trigger: { transition: i.send },
   reads: READS,
   steps: STEPS,
-  was: [`${OLD}/external.ts:64`, `${OLD}/operations/invite.ts:1`, "books/as-is/organizations/data.ts:1346"],
+  was: [`${OLD}/external.ts:64`, `${OLD}/operations/invite.ts:1`, "docs/as-is/archive/organizations/data.ts:1346"],
 });
 
 export const workflow_notices_organizations_invitation_opened = noticeWorkflow({

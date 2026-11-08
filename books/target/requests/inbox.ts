@@ -27,7 +27,7 @@ import { table_chain_budgets } from "../indexing/data.ts";
 import { table_budgets } from "../budgets/data.ts";
 
 const R = "packages/backend/src/requests";
-const ASIS = "books/as-is/requests/inboxes.ts";
+const ASIS = "docs/as-is/archive/requests/inboxes.ts";
 
 const S = Schema.String;
 const N = Schema.Number;

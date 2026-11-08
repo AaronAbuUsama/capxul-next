@@ -45,7 +45,7 @@ import { ChangeIdInput, CreateInput, Followed, Prepared, RefInput, RotateInput, 
 const OLD = "packages/backend/src/accounts/agents";
 const CONVEX = "packages/backend/convex/accounts/agents.ts";
 const ROWS = "packages/protocol/src/accounts/agent-operations.ts";
-const AS_IS = "books/as-is/accounts/agents.ts";
+const AS_IS = "docs/as-is/archive/accounts/agents.ts";
 
 // ── what every change shares ────────────────────────────────────────────────────────────────
 

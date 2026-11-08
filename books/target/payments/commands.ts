@@ -163,7 +163,7 @@ export const rpc_payments_commands_prepare = defineRpc({
     `${OLD}/commands/operations/prepare-organization.ts`,
     `${OLD}/commands/external/funding.ts:104`,
     `${OLD}/executions/external/builds.ts:76`,
-    "books/as-is/payments/commands.ts",
+    "docs/as-is/archive/payments/commands.ts",
   ],
 });
 

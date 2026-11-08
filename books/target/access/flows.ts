@@ -52,7 +52,7 @@ export const flow_client_auth_browser_sign_in = defineFlow({
     "the person before they sign an approval or allow an assistant. Sends the code, asks the person for it on the page " +
     "(three tries, as the rpc counts them), signs in, keeps the token in the browser host's store, and readies the " +
     "person's embedded wallet: a recovery session from the backend, then the wallet's address from Openfort.",
-  was: [`${SDK}/auth.ts:105`, `${SDK}/auth.ts:118`, "packages/sdk-react/src/access/client-connection.tsx:33", "books/as-is/access/flows.ts:83"],
+  was: [`${SDK}/auth.ts:105`, `${SDK}/auth.ts:118`, "packages/sdk-react/src/access/client-connection.tsx:33", "docs/as-is/archive/access/flows.ts:83"],
   component: component_core_sdk,
   surfaces: ["react"],
   sdk: "client.auth.browser.signIn",
@@ -105,7 +105,7 @@ export const flow_client_auth_assistants_consent = defineFlow({
     "who is not signed in in this browser signs in first (client.auth.browser.signIn). The page shows the client and " +
     "what each scope lets it do, the person decides, and the browser goes back to the client with a code or with " +
     "`access_denied`.",
-  was: ["books/as-is/access/agents.ts:142", "packages/backend/src/access/agents/views/pages.ts:149"],
+  was: ["docs/as-is/archive/access/agents.ts:142", "packages/backend/src/access/agents/views/pages.ts:149"],
   component: component_core_sdk,
   surfaces: ["react"],
   sdk: "client.auth.assistants.consent",
@@ -133,7 +133,7 @@ export const flow_client_auth_sign_out = defineFlow({
     "`email: null`. It deletes the session and that person's saved context on this machine first, then asks the backend " +
     "to revoke the token. The local sign-out always stands: a revoke that fails or does not answer gives " +
     "`remote: unconfirmed`, and a token the backend already refuses counts as confirmed.",
-  was: [`${SDK}/auth.ts:151`, `${SDK}/sign-out-revoke.ts:21`, "books/as-is/access/flows.ts:257", `${CLI}/auth/native-grant-cleanup.ts:66`],
+  was: [`${SDK}/auth.ts:151`, `${SDK}/sign-out-revoke.ts:21`, "docs/as-is/archive/access/flows.ts:257", `${CLI}/auth/native-grant-cleanup.ts:66`],
   component: component_core_sdk,
   sdk: "client.auth.signOut",
   input: Schema.Struct({ email: Schema.optionalKey(S) }),

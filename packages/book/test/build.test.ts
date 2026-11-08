@@ -178,6 +178,12 @@ test("a wait's key names what wakes it and properties that carrier carries", () 
     [{ name: "answer", for: "indexer", key: [{ on: [chain.e.SeatTaken], props: ["seat_id"] }], about: "x" }, "an argument the signature lacks"],
   ] as const)
     assert.deepEqual(rules(book([...f.records, chain, wait(bad)]).problems), ["wait-key"], why);
+  // a signal that writes the instance's row knows its columns; one that touches neither its row nor its table does not
+  const byRow = wait({ name: "answer", for: "person", key: [{ on: [f.acceptRpc], props: ["role"] }], about: "x" });
+  assert.deepEqual(book([...f.records, byRow]).problems, []);
+  const nudge = defineRpc({ ...f.acceptRpc, id: "organizations.invitations.nudge", reads: [], writes: [], drives: [], invokes: [] });
+  const blind = { ...wait({ name: "answer", for: "person", key: [{ on: [nudge], props: ["role"] }], about: "x" }), signals: [nudge] };
+  assert.deepEqual(rules(book([...f.records, nudge, blind]).problems), ["wait-key"]);
 });
 
 test("a target wait other than a timer names its key; the as-is book is not held to it", () => {
@@ -208,6 +214,9 @@ test("an admission is one policy clause over the table's own columns, and yields
     [{ match: "email", field: "person", kindField: "role", reads: true, writes: false, about: "x" }, "a kind column off a tenant match"],
     [{ match: "email", field: "person", where: { status: "open" }, reads: true, writes: false, about: "x" }, "a where on a column it lacks"],
     [{ match: "email", field: "organizationId", via: { table: f.invitations, on: "organizationId", field: "mailbox" }, reads: true, writes: false, about: "x" }, "a join to a column the other table lacks"],
+    [{ match: "email", field: "person", where: { role: 1 }, reads: true, writes: false, about: "x" }, "a where value its column cannot hold"],
+    [{ match: "anyone", where: { role: "guest" }, reads: true, writes: true, about: "x" }, "anyone writing"],
+    [{ match: "email", field: "person", reads: false, writes: false, about: "x" }, "a clause that admits nothing"],
   ] as const) {
     const t = defineTable({ ...f.grants, admits: [bad] });
     assert.deepEqual(rules(book([...f.records.filter((r) => r !== f.grants), t]).problems), ["admission"], why);

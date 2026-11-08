@@ -27,7 +27,7 @@ import { procedure_books_record_money_fact } from "../books/procedures.ts";
 import { procedure_approvals_withdraw } from "../approvals/procedures.ts";
 import { table_approvals } from "../approvals/data.ts";
 import { contract_erc20 } from "../shared/external.ts";
-import { table_bridge_events } from "./data.ts";
+import { event_bank_account_transitioned, table_bridge_events } from "./data.ts";
 import { event_payment_transitioned } from "../payments/data.ts";
 
 const B = "packages/backend/src/banking";
@@ -139,8 +139,11 @@ export const workflow_banking_payouts_follow = defineWorkflow({
       key: [
         { on: [event_payment_transitioned], props: ["payment_id"] },
         { on: [rpc_banking_accounts_remove], props: ["bank_account_id"] },
+        { on: [event_bank_account_transitioned], props: ["bank_account_id"] },
       ],
-      about: "Its Payment settled, cancelled or lapsed in payments; payment_transitioned, routed by the payout's Payment id, resumes it.",
+      about:
+        "Its Payment settled, cancelled or lapsed in payments (payment_transitioned, by the payout's Payment id), or its " +
+        "account removed (`bank accounts remove`) or deactivated by Bridge (bank_account_transitioned, by the account's id).",
     },
     { name: "quote-deadline", for: "timer", about: "The quote's `expires_at`; unfunded then, it ends expired." },
     {
@@ -214,10 +217,10 @@ export const workflow_banking_payouts_follow = defineWorkflow({
   budget: budget("background"),
   was: [
     `${B}/payouts/README.md:58`,
-    "books/as-is/banking/payouts.ts:621",
-    "books/as-is/banking/payouts.ts:680",
-    "books/as-is/banking/payouts.ts:730",
-    "books/as-is/banking/payouts.ts:762",
+    "docs/as-is/archive/banking/payouts.ts:621",
+    "docs/as-is/archive/banking/payouts.ts:680",
+    "docs/as-is/archive/banking/payouts.ts:730",
+    "docs/as-is/archive/banking/payouts.ts:762",
   ],
 });
 
@@ -266,7 +269,7 @@ export const workflow_banking_deposits_credit = defineWorkflow({
   retries: { max: 10, backoff: "exponential" },
   compensation: "None: a deposit that is never credited stays arriving, visible in `bank deposits`, with its alert.",
   budget: budget("background"),
-  was: [`${B}/deposits/operations/credit.ts:1`, `${B}/deposits/operations/confirm.ts:1`, "books/as-is/banking/deposits.ts:468"],
+  was: [`${B}/deposits/operations/credit.ts:1`, `${B}/deposits/operations/confirm.ts:1`, "docs/as-is/archive/banking/deposits.ts:468"],
 });
 
 export const workflow_banking_inbox_catch_up = defineWorkflow({
@@ -301,5 +304,5 @@ export const workflow_banking_inbox_catch_up = defineWorkflow({
   timeoutMs: 4 * MINUTE,
   retries: { max: 0, backoff: "none" },
   budget: budget("background"),
-  was: [`${B}/reconcile/operations/catch-up.ts:1`, `${B}/reconcile/README.md:3`, "books/as-is/banking/reconcile.ts:141"],
+  was: [`${B}/reconcile/operations/catch-up.ts:1`, `${B}/reconcile/README.md:3`, "docs/as-is/archive/banking/reconcile.ts:141"],
 });

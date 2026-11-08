@@ -104,7 +104,7 @@ export const rpc_payroll_holders_offer = defineRpc({
     "from the deployment, with its offer write (agreement-write.open); and " +
     "`approvals.open` opens the approval of one `Agreements.offer` call from the caller's own Safe. Its birth starts the " +
     "agreement's process.",
-  was: [`${OPS}/offer.ts:61`, `${AG}/external/v4-offers.ts:41`, `${AG}/rules/offers.ts:26`, "books/as-is/payroll/agreements.ts"],
+  was: [`${OPS}/offer.ts:61`, `${AG}/external/v4-offers.ts:41`, `${AG}/rules/offers.ts:26`, "docs/as-is/archive/payroll/agreements.ts"],
   concept: concept_payroll,
   kind: "action",
   who: WHO_HOLDER,
@@ -139,7 +139,7 @@ export const rpc_payroll_holders_withdraw = defineRpc({
     "prepared. " +
     OPEN_ABOUT +
     " Once it lands the reservation frees at once.",
-  was: [`${OPS}/withdraw.ts:15`, "books/as-is/payroll/agreements.ts"],
+  was: [`${OPS}/withdraw.ts:15`, "docs/as-is/archive/payroll/agreements.ts"],
   concept: concept_payroll,
   kind: "action",
   who: WHO_HOLDER,
@@ -165,7 +165,7 @@ export const rpc_payroll_holders_change = defineRpc({
     "another lowering waits (WRONG_STATE, naming it). `cancel` builds `cancelChange` for the waiting lowering " +
     "(WRONG_STATE when none waits). " +
     OPEN_ABOUT,
-  was: [`${OPS}/change.ts:24`, `${OPS}/cancel-change.ts:20`, `${AG}/rules.ts:211`, "books/as-is/payroll/agreements.ts"],
+  was: [`${OPS}/change.ts:24`, `${OPS}/cancel-change.ts:20`, `${AG}/rules.ts:211`, "docs/as-is/archive/payroll/agreements.ts"],
   concept: concept_payroll,
   kind: "action",
   who: WHO_HOLDER,
@@ -192,7 +192,7 @@ export const rpc_payroll_holders_pause = defineRpc({
     " The agreement must be `active` or `ending`: already paused, not accepted, ended or not on chain yet is WRONG_STATE. " +
     OPEN_ABOUT +
     " Once it lands no pay builds up; earned pay stays collectable and the budget does not change.",
-  was: [`${OPS}/pause.ts:15`, "books/as-is/payroll/agreements.ts"],
+  was: [`${OPS}/pause.ts:15`, "docs/as-is/archive/payroll/agreements.ts"],
   concept: concept_payroll,
   kind: "action",
   who: WHO_HOLDER,
@@ -212,7 +212,7 @@ export const rpc_payroll_holders_resume = defineRpc({
     " The agreement must be `paused`: running, ended or not accepted is WRONG_STATE. " +
     OPEN_ABOUT +
     " Once it lands pay builds up again from the block's time, and nothing is paid for the days it was paused.",
-  was: [`${OPS}/resume.ts:10`, `${OPS}/pause.ts:15`, "books/as-is/payroll/agreements.ts"],
+  was: [`${OPS}/resume.ts:10`, `${OPS}/pause.ts:15`, "docs/as-is/archive/payroll/agreements.ts"],
   concept: concept_payroll,
   kind: "action",
   who: WHO_HOLDER,
@@ -235,7 +235,7 @@ export const rpc_payroll_holders_end = defineRpc({
     "otherwise). " +
     OPEN_ABOUT +
     " Once it lands earned pay stays collectable, and the reservation frees when the end comes.",
-  was: [`${OPS}/end.ts:21`, `${AG}/errors.ts:152`, "books/as-is/payroll/agreements.ts"],
+  was: [`${OPS}/end.ts:21`, `${AG}/errors.ts:152`, "docs/as-is/archive/payroll/agreements.ts"],
   concept: concept_payroll,
   kind: "action",
   who: WHO_HOLDER,
@@ -259,7 +259,7 @@ export const rpc_payroll_holders_list = defineRpc({
     "when their status is asked for. Each agreement's current rate comes from Agreements (`agreementOf`) and each " +
     "department's budget per token from Budgets (`budgetOf`, `leftOf`) as the chain answers now. It reads only: a chain " +
     "that does not answer is PROVIDER_ERROR and no list is made up.",
-  was: [`${OPS}/list.ts:20`, `${AG}/rules.ts:88`, "books/as-is/payroll/agreements.ts"],
+  was: [`${OPS}/list.ts:20`, `${AG}/rules.ts:88`, "docs/as-is/archive/payroll/agreements.ts"],
   concept: concept_payroll,
   kind: "action",
   who: "A signed-in member of the Organization, human or agent.",

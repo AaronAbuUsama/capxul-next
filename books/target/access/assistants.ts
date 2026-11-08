@@ -16,7 +16,7 @@ import { error_INVALID_INPUT, error_NOT_AUTHENTICATED } from "../shared/vocabula
 import { machine_assistant_grant, table_assistant_grants } from "./data.ts";
 
 const OLD = "packages/backend/src/access";
-const ASIS = "books/as-is/access/agents.ts";
+const ASIS = "docs/as-is/archive/access/agents.ts";
 
 const S = Schema.String;
 
@@ -99,7 +99,7 @@ export const rpc_access_assistants_token = defineRpc({
     "live refresh token rotates both tokens and slides the window 30 days, never past 90 days from consent; the token " +
     "just spent, presented again within 60 seconds, answers the same pair again; presented later, it revokes the grant. " +
     "Every refusal is OAuth's `invalid_grant` or `invalid_request`, which is INVALID_INPUT. It signals the grant's process.",
-  was: [`${ASIS}:317`, `${OLD}/agents/operations/exchange.ts:1`, "books/as-is/access/clients.ts:371"],
+  was: [`${ASIS}:317`, `${OLD}/agents/operations/exchange.ts:1`, "docs/as-is/archive/access/clients.ts:371"],
   concept: concept_access,
   kind: "mutation",
   who: "An assistant's OAuth client at the token route, with its code and PKCE verifier or its refresh token. No Capxul sign-in.",
@@ -137,7 +137,7 @@ export const rpc_access_assistants_revoke = defineRpc({
     "RFC 7009: the client presents its access or refresh token and the grant it names is revoked in one transaction, so " +
     "every token of it is refused. An unknown or already ended token answers success, as the RFC says, and changes " +
     "nothing; only a malformed request is INVALID_INPUT. It signals the grant's process, which then ends.",
-  was: [`${ASIS}:362`, "books/as-is/access/clients.ts:398"],
+  was: [`${ASIS}:362`, "docs/as-is/archive/access/clients.ts:398"],
   concept: concept_access,
   kind: "mutation",
   who: "An assistant's OAuth client at the revocation route, with a token of its own grant.",

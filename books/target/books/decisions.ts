@@ -1,6 +1,6 @@
 // Books' own judgments, each a decision record linked to the records it shapes (CONVENTIONS rule
 // 10). Made by Claude on 8 November 2026 under A1-A4 and P1-P10, with the old code
-// (/home/user/factory, integration/factory), the as-is book (books/as-is/books/) and ADR-0042 as
+// (/home/user/factory, integration/factory), the as-is book (docs/as-is/archive/books/) and ADR-0042 as
 // evidence. The architecture's own books decisions are in ../shared/decisions.ts
 // (concepts.books, concepts.books-token-scan, dependencies.books-below-money,
 // responsibilities.keepers).
@@ -348,7 +348,7 @@ export const decision_books_births_are_transitions = defineDecision({
   ],
   chosen: "from-empty",
   why: "The schema accepts an empty `from`, the build's state checks pass, and no phantom state is stored or listed. The event's `from` is null for a birth.",
-  source: by("packages/book/src/records/data.ts (TransitionSpec.from); books/as-is/books/data.ts (births said only in prose)"),
+  source: by("packages/book/src/records/data.ts (TransitionSpec.from); docs/as-is/archive/books/data.ts (births said only in prose)"),
   affects: [machine_book_chart, machine_book_account, machine_book_annotation, machine_book_asset],
 });
 
@@ -544,7 +544,7 @@ export const decision_books_worlds = defineDecision({
     "`assets list`'s INVALID_INPUT (an empty id) stays `?`: the CLI's scope refuses an empty `--org` with CLI_USAGE " +
     "first. Reclassify line 3 needs, in org-with-chart, a row with money on both sides of a month: a bank payout's " +
     "Payment settled before the month's end and returned after it (books.straddling-row).",
-  source: by("books/as-is/operations/books.ts (the as-is worlds after-s1 and ?); CONVENTIONS rule 9"),
+  source: by("docs/as-is/archive/operations/books.ts (the as-is worlds after-s1 and ?); CONVENTIONS rule 9"),
   affects: [
     ops.operation_activity_annotate,
     ops.operation_org_books_accounts_import,
@@ -615,7 +615,7 @@ export const decision_books_dropped = defineDecision({
   why:
     "P2: an rpc with no operation, flow or trigger is not ported; P3: a load, intent, record or emit split becomes steps; " +
     "P4: a concept above books reads its tables directly, so only the two money-fact procedures cross the door.",
-  source: by(`${B}/README.md:163 (the tree); ${B}/index.ts:1 (the door); books/as-is/books/procedures.ts`),
+  source: by(`${B}/README.md:163 (the tree); ${B}/index.ts:1 (the door); docs/as-is/archive/books/procedures.ts`),
   affects: [concept_books, procedure_books_record_money_fact, procedure_books_reverse_money_fact, rpc_books_assets_add, workflow_books_assets_scan_added],
 });
 

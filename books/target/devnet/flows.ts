@@ -132,7 +132,7 @@ export const flow_devnet_snapshots_list = defineFlow({
     "`dev snapshot list`. The supervisor lists the worlds in its store on this machine (the eval worlds the catalog " +
     "builds and any a developer saved), each with its name, its world time, when it was saved and the backend code it was " +
     "saved with; the SDK orders them by world time, then name. It reads no backend data. " + SUPERVISOR_ERRORS,
-  was: [`${SDK}:291`, `${WORLD}:560`, "books/as-is/operations/devnet.ts:212"],
+  was: [`${SDK}:291`, `${WORLD}:560`, "docs/as-is/archive/operations/devnet.ts:212"],
   component: component_core_sdk,
   sdk: "devnet.snapshots.list",
   input: Schema.Struct({}),

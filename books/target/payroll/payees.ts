@@ -76,7 +76,7 @@ export const rpc_payroll_payees_accept = defineRpc({
     "anything is signed); without one the call pins the terms the offer has now. `agreementOf` confirms the offer is " +
     "still open on chain. The call is `Agreements.accept(id, termsHash)`. " +
     CARRY_ABOUT,
-  was: [`${OPS}/accept.ts:23`, `${OPS}/organization-accept.ts:25`, `${AG}/guards.ts:221`, "books/as-is/payroll/agreements.ts"],
+  was: [`${OPS}/accept.ts:23`, `${OPS}/organization-accept.ts:25`, `${AG}/guards.ts:221`, "docs/as-is/archive/payroll/agreements.ts"],
   concept: concept_payroll,
   kind: "action",
   who: WHO_PAYEE,
@@ -109,7 +109,7 @@ export const rpc_payroll_payees_collect = defineRpc({
     "window runs from where the last collection ended. With the payer's `payslip-preview` gate on, the payslip comes " +
     "with it. The call is `Agreements.collect(id, amount)`, which Budgets pays from the reservation (kind 4). " +
     CARRY_ABOUT,
-  was: [`${OPS}/collect.ts:40`, `${OPS}/collect.ts:82`, `${OPS}/organization-collect.ts:24`, `${AG}/external/v4-funds.ts:22`, "books/as-is/payroll/agreements.ts"],
+  was: [`${OPS}/collect.ts:40`, `${OPS}/collect.ts:82`, `${OPS}/organization-collect.ts:24`, `${AG}/external/v4-funds.ts:22`, "docs/as-is/archive/payroll/agreements.ts"],
   concept: concept_payroll,
   kind: "action",
   who: WHO_PAYEE,
@@ -146,7 +146,7 @@ export const rpc_payroll_payees_list = defineRpc({
     "earned, can collect and collected, and when the next release lands; the payer by its Party's name and handle " +
     "(parties); and the next command to run (accept an open " +
     "offer, collect released pay). It reads only: a chain that does not answer is PROVIDER_ERROR, and no list is made up.",
-  was: [`${OPS}/mine.ts:17`, `${OPS}/organization-received.ts:16`, "books/as-is/payroll/agreements.ts"],
+  was: [`${OPS}/mine.ts:17`, `${OPS}/organization-received.ts:16`, "docs/as-is/archive/payroll/agreements.ts"],
   concept: concept_payroll,
   kind: "action",
   who: "A signed-in person or agent, for what pays its own Safe; with `--org`, a member of that Organization.",
@@ -173,7 +173,7 @@ export const rpc_payroll_payees_show = defineRpc({
     "(the Organization, its Safe and department), the kind, status, rate and release, the terms document and its hash (the " +
     "value an acceptance pins); for an accepted agreement, earned, collectable, collected and the next release, read from " +
     "Agreements now; and the next command. A lapsed or withdrawn offer is still read by its id. Nothing is stored.",
-  was: [`${OPS}/show.ts:13`, `${OPS}/organization-show.ts:14`, `${AG}/guards.ts:204`, "books/as-is/payroll/agreements.ts"],
+  was: [`${OPS}/show.ts:13`, `${OPS}/organization-show.ts:14`, `${AG}/guards.ts:204`, "docs/as-is/archive/payroll/agreements.ts"],
   concept: concept_payroll,
   kind: "action",
   who: "The payee, a signed-in person or agent; with `--org`, a member of the payee Organization.",

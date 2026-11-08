@@ -10,7 +10,7 @@ import { error_NOT_AUTHENTICATED, error_PROVIDER_ERROR, error_PROVIDER_RESPONSE_
 import { machine_session, table_principals, table_sessions } from "./data.ts";
 
 const OLD = "packages/backend/src/access";
-const ASIS = "books/as-is/access/sessions.ts";
+const ASIS = "docs/as-is/archive/access/sessions.ts";
 
 const S = Schema.String;
 const Time = Schema.DateTimeUtc;

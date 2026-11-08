@@ -1,7 +1,7 @@
 // Every judgment of the accounts design, as a decision record linked to the records it shapes.
 //
 // Made by Claude on 8 November 2026 under the accepted decisions A1-A4 and P1-P10 and the shared
-// target decisions, with the as-is book (books/as-is/accounts, books/as-is/access) and the old code
+// target decisions, with the as-is book (docs/as-is/archive/accounts, docs/as-is/archive/access) and the old code
 // (/home/user/factory, integration/factory) as evidence.
 
 import { defineDecision } from "../../../packages/book/src/index.ts";
@@ -83,7 +83,7 @@ export const decision_accounts_tables = defineDecision({
     "ported. One deployment runs one chain, so a chain column would be the same value in every row. The entry and the " +
     "code stay apart: a code is made for a person who never joined, and making an entry for them would send a `join` " +
     "that never happened.",
-  source: by("packages/backend/src/accounts/tables.ts:15,35,62; packages/backend/src/access/tables.ts:177,213,229; books/as-is/accounts/data.ts"),
+  source: by("packages/backend/src/accounts/tables.ts:15,35,62; packages/backend/src/access/tables.ts:177,213,229; docs/as-is/archive/accounts/data.ts"),
   affects: [table_admissions, table_referral_codes, table_referrals, table_personal_safes, concept_accounts],
 });
 
@@ -106,7 +106,7 @@ export const decision_accounts_mailbox_tenancy = defineDecision({
     "so it is theirs; the friend sees only who referred them, through `by-referee`, which is cross-tenant by design " +
     "because the first referral of a mailbox wins whoever made it. personal-safes is a signed-in person's, so it keys on " +
     "`person_id`.",
-  source: by("P8; packages/backend/src/access/tables.ts:177,229; books/as-is/access/data.ts (beta-waitlist, referrals)"),
+  source: by("P8; packages/backend/src/access/tables.ts:177,229; docs/as-is/archive/access/data.ts (beta-waitlist, referrals)"),
   affects: [
     table_admissions,
     table_referral_codes,
@@ -141,7 +141,7 @@ export const decision_accounts_stored_states = defineDecision({
     "fake earlier state. The stage timestamps stay as columns, because `referral list` prints them. The old " +
     "`self_referral` void reason, which no code produced, is dropped; the old `joined` and `admitted` transition names " +
     "become verbs.",
-  source: by("books/as-is/access/data.ts (machine_waitlist_entry, machine_referral); packages/backend/src/access/referrals/views.ts:8; P7"),
+  source: by("docs/as-is/archive/access/data.ts (machine_waitlist_entry, machine_referral); packages/backend/src/access/referrals/views.ts:8; P7"),
   affects: [machine_waitlist_entry, machine_referral, event_waitlist_entry_transitioned, event_referral_transitioned],
 });
 
@@ -191,7 +191,7 @@ export const decision_accounts_setup_process = defineDecision({
     "by exactly this signer), and only the chain's refusal or a send that never left fails it. Ready does not wait on the " +
     "collection: the Safe is the person's at the claim, the escrows stay theirs to collect or their payer's to refund " +
     "(D12), and holding sign-in at `setup-required` for an unsigned approval would block everything else.",
-  source: by("books/as-is/accounts/claims.ts; packages/backend/src/accounts/claims/operations/claim.ts:34; account.retry.yaml (designed call)"),
+  source: by("docs/as-is/archive/accounts/claims.ts; packages/backend/src/accounts/claims/operations/claim.ts:34; account.retry.yaml (designed call)"),
   affects: [workflow_accounts_setup_personal_safe, machine_personal_safe, table_personal_safes, event_personal_safe_transitioned],
 });
 
@@ -362,7 +362,7 @@ export const decision_accounts_admission_paths = defineDecision({
     "Bridge's webhook. The hold wrote a row inside a refusal, which the target's refusals forbid ('changes nothing'), and " +
     "it existed for the operator's list, which is dropped. The 'on the list' email followed old profile onboarding; any " +
     "email after a change is notices', from `waitlist_entry_transitioned`.",
-  source: by("books/as-is/access/waitlist.ts (record, request, hold, deliver-on-the-list); P2; system_capxul surfaces"),
+  source: by("docs/as-is/archive/access/waitlist.ts (record, request, hold, deliver-on-the-list); P2; system_capxul surfaces"),
   affects: [table_admissions, machine_waitlist_entry, rpc_accounts_admission_join, rpc_accounts_admission_status],
 });
 
@@ -452,7 +452,7 @@ export const decision_accounts_dropped_rows = defineDecision({
     "transitions were steps of one action (P3); the posters were telemetry, which transitions now send (P7). The waitlist " +
     "rows go with the form and the hold (`accounts.admission-paths`); the welcome and on-the-list emails are notices'. " +
     "Balances, summaries, approvals and agents left for activity, approvals and agents by the shared decisions.",
-  source: by("books/as-is/accounts/safes.ts, claims.ts, grants.ts, lanes.ts; books/as-is/access/waitlist.ts, referrals.ts; P2; P3"),
+  source: by("docs/as-is/archive/accounts/safes.ts, claims.ts, grants.ts, lanes.ts; docs/as-is/archive/access/waitlist.ts, referrals.ts; P2; P3"),
   affects: [rpc_accounts_setup_start, rpc_accounts_setup_check, rpc_accounts_setup_lifecycle, workflow_accounts_setup_personal_safe, concept_accounts],
 });
 

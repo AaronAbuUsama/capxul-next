@@ -29,7 +29,7 @@ export const workflow_access_assistants_grant = defineWorkflow({
     "(a signal from the token route) starts the 30-day wait again, never past 90 days from consent, and when a wait runs " +
     "out it expires the grant. A revocation (the revocation route, or the token route seeing a spent refresh token " +
     "reused) ends it. The timers replace the old daily sweep of expired OAuth and native client grants (P3).",
-  was: [`${OLD}/platform/jobs.ts:69`, "books/as-is/access/clients.ts:532", "books/as-is/access/data.ts:584"],
+  was: [`${OLD}/platform/jobs.ts:69`, "docs/as-is/archive/access/clients.ts:532", "docs/as-is/archive/access/data.ts:584"],
   concept: concept_access,
   priority: "normal",
   trigger: { transition: machine_assistant_grant.t.consent },
@@ -71,7 +71,7 @@ export const workflow_access_sessions_sweep = defineWorkflow({
     "event; deletes sessions and assistant grants 30 days after they ended, and sign-in codes that expired unused. " +
     "Sessions are short-lived rows with no process of their own, so a calendar sweep, not a timer per row, is the right " +
     "shape (P3 keeps the daily client-grant sweep; native client grants are gone, decision access.no-device-flow).",
-  was: [`${OLD}/platform/jobs.ts:64`, `${OLD}/access/clients/writes/sweep.ts:19`, "books/as-is/access/clients.ts:532"],
+  was: [`${OLD}/platform/jobs.ts:64`, `${OLD}/access/clients/writes/sweep.ts:19`, "docs/as-is/archive/access/clients.ts:532"],
   concept: concept_access,
   priority: "low",
   trigger: { cron: "17 3 * * *" },

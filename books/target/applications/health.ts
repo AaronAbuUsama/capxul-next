@@ -8,7 +8,7 @@ import { budget, defineRpc } from "../../../packages/book/src/index.ts";
 import { concept_applications } from "../shared/foundation.ts";
 import { error_INVALID_INPUT } from "../shared/vocabulary.ts";
 
-const ASIS = "books/as-is/operator/diagnostics.ts";
+const ASIS = "docs/as-is/archive/operator/diagnostics.ts";
 const OLD = "packages/backend/src/operator/diagnostics";
 
 const S = Schema.String;

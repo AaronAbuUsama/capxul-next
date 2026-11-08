@@ -56,7 +56,7 @@ export const system_capxul = defineSystem({
     { id: "bridge", kind: "system", about: "Bridge, the banking partner, posting signed events to the backend's webhook route." },
   ],
   surfaces: ["cli", "sdk", "react", "mcp", "http"],
-  was: ["books/as-is/shared/foundation.ts", "CONTEXT-MAP.md:29"],
+  was: ["docs/as-is/archive/shared/foundation.ts", "CONTEXT-MAP.md:29"],
 });
 
 // ── components: what runs (a DAG) ───────────────────────────────────────────────────────────

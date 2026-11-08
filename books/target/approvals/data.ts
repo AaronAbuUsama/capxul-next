@@ -14,7 +14,7 @@ import { defineEvent, defineMachine, defineTable } from "../../../packages/book/
 import { concept_approvals } from "../shared/foundation.ts";
 
 const OLD = "packages/backend/src";
-const AS_IS = "books/as-is";
+const AS_IS = "docs/as-is/archive";
 
 // ── shapes ──────────────────────────────────────────────────────────────────────────────────
 

@@ -9,7 +9,7 @@ import { error_INVALID_INPUT, error_RATE_LIMITED, error_WRONG_ENVIRONMENT } from
 import { table_quickstart_keys } from "./data.ts";
 
 const OLD = "packages/backend/src/applications/quickstarts";
-const ASIS = "books/as-is/applications/quickstarts.ts";
+const ASIS = "docs/as-is/archive/applications/quickstarts.ts";
 
 const S = Schema.String;
 

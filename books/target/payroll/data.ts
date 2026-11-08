@@ -94,7 +94,7 @@ export const table_agreements = defineTable({
     "`chain_agreement_id` is the uint256 the offer got on chain, null while prepared. `ends_at` is the exclusive end: a " +
     "fixed term's from the offer, else a holder's end; `end_by_holder` says a holder set it, which is what makes an " +
     "agreement `ending`. Amounts are raw token units as decimal strings; times are Unix ms.",
-  was: [`${OLD}/tables.ts:38`, `${OLD}/tables.ts:55`, `${PROTOCOL}/agreement-schema.ts:33`, "books/as-is/payroll/data.ts"],
+  was: [`${OLD}/tables.ts:38`, `${OLD}/tables.ts:55`, `${PROTOCOL}/agreement-schema.ts:33`, "docs/as-is/archive/payroll/data.ts"],
   concept: concept_payroll,
   tenancy: "organization",
   tenantField: "org_id",

@@ -52,7 +52,7 @@ export const rpc_budgets_offices_add_holder = defineRpc({
     "WRONG_STATE. The calls: `Hats.changeHatMaxSupply(hat, supply + 1)` when every place on the hat is worn (its supply " +
     "and places from indexing's hats), then `Hats.mintHat(hat, memberSafe)`; nothing else. Every wearer spends from the " +
     "same budget. " + BIRTH,
-  was: [`${PAY}/add-holder.ts:1`, `${PERM}/assign.ts:15`, "books/as-is/payroll/departments.ts:421"],
+  was: [`${PAY}/add-holder.ts:1`, `${PERM}/assign.ts:15`, "docs/as-is/archive/payroll/departments.ts:421"],
   concept: concept_budgets,
   kind: "action",
   who: WHO_ADMIN,
@@ -76,7 +76,7 @@ export const rpc_budgets_offices_remove_holder = defineRpc({
     "be given to them again. Under a parent's office hat, signed by that office holder, it is `Hats.transferHat(hat, " +
     "holderSafe, companySafe)`, which hands the place back. The budget, its agreements and its other holders stay; once " +
     "it executes the holder is refused like anyone who does not act for the budget. " + BIRTH,
-  was: [`${PAY}/remove-holder.ts:1`, `${PERM}/revoke.ts:1`, "books/as-is/payroll/departments.ts:444"],
+  was: [`${PAY}/remove-holder.ts:1`, `${PERM}/revoke.ts:1`, "docs/as-is/archive/payroll/departments.ts:444"],
   concept: concept_budgets,
   kind: "action",
   who: WHO_ADMIN,

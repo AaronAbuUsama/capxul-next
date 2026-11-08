@@ -57,7 +57,7 @@ export const workflow_agents_changes_carry = defineWorkflow({
     `${OLD}/writes/changes.ts:186`,
     `${OLD}/external.ts:212`,
     `${OLD}/external.ts:255`,
-    "books/as-is/accounts/agents.ts",
+    "docs/as-is/archive/accounts/agents.ts",
   ],
   concept: concept_agents,
   priority: "normal",

@@ -19,7 +19,7 @@ import { BIRTH, GUARD, READ_ERRORS, WRITE_ERRORS, WRITE_READS } from "./departme
 import { Schema } from "effect";
 
 const PERM = "packages/backend/src/permissions/allowances";
-const AS_IS = "books/as-is/permissions/data.ts";
+const AS_IS = "docs/as-is/archive/permissions/data.ts";
 
 /** What both allowance reads read: Capxul's name for each allowance, the chain's numbers, and who wears its hat. */
 const ALLOWANCE_READS = [

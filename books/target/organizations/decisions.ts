@@ -94,7 +94,7 @@ export const decision_organizations_tables = defineDecision({
     "Roles deployment were pre-v4 shapes; on v4 the deployment's named hats replace them. Every table is tenant-first on " +
     "org_id (P8); the cross-tenant indexes are the caller's own memberships, offers and unfinished setups, an " +
     "Organization by its Party, and Seats by an agent's Safe.",
-  source: by("books/as-is/organizations/data.ts:140-1055 (19 tables); P3; P8; P9; responsibilities.keepers"),
+  source: by("docs/as-is/archive/organizations/data.ts:140-1055 (19 tables); P3; P8; P9; responsibilities.keepers"),
   affects: [table_organizations, table_org_setups, table_org_deployments, table_org_members, table_org_invitations, concept_board],
 });
 
@@ -138,7 +138,7 @@ export const decision_organizations_setup_machine = defineDecision({
     "deployment's finality depth, so ready is terminal. Failed is kept for what no retry can fix: a minted company Safe " +
     "that is not owned by the founder's Safe, or a provider answer that will not change (PROVIDER_RESPONSE_INVALID); " +
     "an install the Installer refuses (InvalidInstall) stalls and stays resumable, as the designed text says.",
-  source: by("books/as-is/organizations/data.ts:1067 (org-lifecycle); org.create.yaml (designed refusals); org.show.yaml (steps); org.wait.yaml"),
+  source: by("docs/as-is/archive/organizations/data.ts:1067 (org-lifecycle); org.create.yaml (designed refusals); org.show.yaml (steps); org.wait.yaml"),
   affects: [machine_org_setup, table_org_setups, event_org_setup_transitioned],
 });
 
@@ -157,7 +157,7 @@ export const decision_organizations_event_names = defineDecision({
     "invitations. The three old setup events (organization_creation_started, _ready, _failed) fold into " +
     "org_setup_transitioned. Transition names are verbs (send, accept, decline), so the event's `transition` carries " +
     "`send` where the old note said `sent`; the new values are listed on the machine.",
-  source: by("org.member.invite.yaml (notes: org_invite_transitioned); P7; books/as-is/organizations/data.ts:1067"),
+  source: by("org.member.invite.yaml (notes: org_invite_transitioned); P7; docs/as-is/archive/organizations/data.ts:1067"),
   affects: [event_org_setup_transitioned, event_org_member_transitioned, event_org_invite_transitioned, machine_org_invite],
 });
 
@@ -181,7 +181,7 @@ export const decision_organizations_members_are_seats = defineDecision({
     "pending. No frozen operation removes a person's Seat (`org member revoke` takes a hat back, which is board's), so the " +
     "only end is the agent's removal on chain, which the concept map gives organizations. One Seat per Party gives every " +
     "concept above one guard: a current Seat for the session's principal.",
-  source: by("books/as-is/organizations/data.ts:1146 (org-member: legacy states never written); concept_organizations (AgentRemoved); org.member.revoke.yaml"),
+  source: by("docs/as-is/archive/organizations/data.ts:1146 (org-member: legacy states never written); concept_organizations (AgentRemoved); org.member.revoke.yaml"),
   affects: [table_org_members, machine_org_member, workflow_organizations_members_end_agent_seats, rpc_organizations_members_list],
 });
 
@@ -200,7 +200,7 @@ export const decision_organizations_invitation_machine = defineDecision({
     "no late cleanup, so revoked has no source. Ending an offer whose hats are on chain still needs the Board to take " +
     "them back, so revoking stays, and the offer ends with its recorded reason when the chain shows them gone. The " +
     "frozen returns keep `pending_grant` in their literal lists; the target never produces it.",
-  source: by("org.member.invite.yaml (designed call); books/as-is/organizations/data.ts:1264 (org-invitation); invite.accept.yaml (returns)"),
+  source: by("org.member.invite.yaml (designed call); docs/as-is/archive/organizations/data.ts:1264 (org-invitation); invite.accept.yaml (returns)"),
   affects: [machine_org_invite, table_org_invitations, event_org_invite_transitioned],
 });
 
@@ -276,7 +276,7 @@ export const decision_organizations_setup_process = defineDecision({
     "parties' door asks. The CAP-1097 rule (record the signed bytes " +
     "before broadcast, look a lost answer up, never send deployMoney twice) is the service signer's. The process's only " +
     "signal is `org retry`; reads never wake it.",
-  source: by("books/as-is/organizations/setups.ts:200-751 (17 rpcs, 2 workflows); deploys.ts:1-8 (CAP-1097); A3; P3; concepts.approvals"),
+  source: by("docs/as-is/archive/organizations/setups.ts:200-751 (17 rpcs, 2 workflows); deploys.ts:1-8 (CAP-1097); A3; P3; concepts.approvals"),
   affects: [
     workflow_organizations_setups_set_up, rpc_organizations_setups_begin, rpc_organizations_setups_get,
     rpc_organizations_setups_resume, table_org_setups,
@@ -302,7 +302,7 @@ export const decision_organizations_invitation_process = defineDecision({
     "crash. P3 sends the daily expiry to a timer per invitation. Its trigger is `after` the invite rpc because an " +
     "invitation has two births (with and without grants) and a trigger names one transition; the about says why it " +
     "cannot be a step. Every transition it drives is guarded by the phase it leaves, so a replayed step is a no-op.",
-  source: by("rules.durable-processes; P3 ('expire pending org invitations' to a timer); books/as-is/organizations/invitations.ts:427, 586"),
+  source: by("rules.durable-processes; P3 ('expire pending org invitations' to a timer); docs/as-is/archive/organizations/invitations.ts:427, 586"),
   affects: [workflow_organizations_invitations_follow, rpc_organizations_invitations_accept, rpc_organizations_invitations_decline, rpc_organizations_invitations_cancel],
 });
 
@@ -325,7 +325,7 @@ export const decision_organizations_invitation_delivery = defineDecision({
     "a delivery outcome is no money fact, so notices cannot write it here. Organizations cannot read notices (it sits " +
     "above), so its views say truthfully that delivery is not confirmed from here. The cooldown needs only the time of " +
     "the last send organizations asked for. The resend acceptance lines are checked against the mail sink.",
-  source: by("concepts.notices; P4; org.invite.resend.yaml (returns: delivery); books/as-is/organizations/data.ts:1346 (delivery machine)"),
+  source: by("concepts.notices; P4; org.invite.resend.yaml (returns: delivery); docs/as-is/archive/organizations/data.ts:1346 (delivery machine)"),
   affects: [rpc_organizations_invitations_resend, rpc_organizations_invitations_list, machine_org_invite, concept_notices],
 });
 
@@ -396,7 +396,7 @@ export const decision_organizations_treasury = defineDecision({
   why:
     "The old treasury read was a balance of the company Safe, which is a read of whoever you act as (activity, with the " +
     "landing map's note). No frozen operation of organizations returns a balance.",
-  source: by("books/as-is/organizations/treasuries.ts:40; landings.ts (organizations/treasuries to activity)"),
+  source: by("docs/as-is/archive/organizations/treasuries.ts:40; landings.ts (organizations/treasuries to activity)"),
   affects: [table_organizations, concept_activity],
 });
 
@@ -452,7 +452,7 @@ export const decision_organizations_dropped = defineDecision({
     "rpcs are transitions' events. Members: grant, revoke, permission-target and record-permission-change are board's " +
     "officer hats; advance and the legacy states are gone; the emit and notify rpcs are events and notices. Roles: the " +
     "list is dropped (responsibilities.roles). Treasuries: activity's.",
-  source: by("books/as-is/organizations/{setups,invitations,members,roles,treasuries,workspaces}.ts; P2; P3; responsibilities.roles"),
+  source: by("docs/as-is/archive/organizations/{setups,invitations,members,roles,treasuries,workspaces}.ts; P2; P3; responsibilities.roles"),
   affects: [concept_organizations, concept_board, concept_activity, concept_notices],
 });
 
@@ -470,7 +470,7 @@ export const decision_organizations_create_refusals = defineDecision({
     "FEATURE_NOT_AVAILABLE (requireBetaAccess). An unclaimed Safe is the frozen WRONG_STATE, not SMART_ACCOUNT_MISSING. " +
     "The install approval is only ever opened for the founder's own Safe, which owns the company Safe, so no other Safe " +
     "can approve the batch and the designed GS026 refusal has no world.",
-  source: by("books/as-is/organizations/setups.ts:200 (requireBetaAccess); org.create.yaml (refusals, designed refusals); P10"),
+  source: by("docs/as-is/archive/organizations/setups.ts:200 (requireBetaAccess); org.create.yaml (refusals, designed refusals); P10"),
   affects: [operation_org_create, rpc_organizations_setups_begin, error_FEATURE_NOT_AVAILABLE, error_WRONG_STATE],
 });
 

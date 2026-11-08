@@ -124,6 +124,13 @@ does until its rule lands (**review**, with the rule's name from the policy pack
   directory that scopes them to the caller's Safes. Nothing but Ponder writes them (review:
   `chain-read-scope`).
 - Every index's `for` names the query it serves.
+- A table that admits anyone besides its own tenant says so in `admits`, one clause each: who is
+  matched, on which column or one-hop join, which rows, and whether they read or write. Examples
+  are a Payment's payee, a request's paying Safe, a kept image and a payee's agreement writes. A
+  `chain` table must have `admits`, and none of its clauses may write (rule `chain-admits`). Every
+  clause is an eval, `tbl:<t>/admits/<n>`. A counterparty without a Seat reads a company's rows
+  only through such a clause, never with elevated rights (decisions
+  `rules.admissions-and-wait-keys` and `rules.counterparty-reads`).
 
 ### 4. Acceptance lines are claims (P1) — built
 
@@ -166,10 +173,13 @@ does until its rule lands (**review**, with the rule's name from the policy pack
   Safe's setup, an agreement, a request, an invitation, a bank payout, a verification, an agent
   change and a round; and, added by their designers, an assistant grant, an identity document, a
   budget change, and an equity install, grant, sale and vote.
-- A wait on another concept's transition or on a chain event names, in its `about`, the key the
-  runtime wakes the instance by: the opener and subject on `approval_transitioned` and
-  `proposal_transitioned`, or the key Ponder's row carries (chain, sender, nonce; a payment id).
-  The runtime routes the event to the waiting instance (decision `rules.process-wakeups`).
+- Every wait except a timer has a `key`: what wakes it (an event, a chain event, a table, a signal
+  rpc or the process's own call) and the properties that route it to exactly one instance. Examples
+  are the opener and subject on `approval_transitioned` and `proposal_transitioned`, or the key
+  Ponder's row carries (chain, sender, nonce; a payment id). The build checks that the carrier
+  really carries those properties (rule `wait-key`; target rule `wait-without-key`), and each keyed
+  wait is an eval, `wfl:<w>/wake/<wait>` (decisions `rules.process-wakeups` and
+  `rules.admissions-and-wait-keys`).
 - A `chain` or `indexer` wait lists the chain events that end it in `events`
   (`events: [contract_safe.e.ExecutionSuccess]`), so the book links the process to what it consumes
   (decision `rules.surfaces-and-wait-events`).

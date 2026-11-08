@@ -23,8 +23,8 @@ import { concept_budgets } from "../shared/foundation.ts";
 
 const PERM = "packages/backend/src/permissions";
 const PAY = "packages/backend/src/payroll";
-const AS_PERM = "books/as-is/permissions/data.ts";
-const AS_PAY = "books/as-is/payroll/data.ts";
+const AS_PERM = "docs/as-is/archive/permissions/data.ts";
+const AS_PAY = "docs/as-is/archive/payroll/data.ts";
 
 const S = Schema.String;
 const N = Schema.Number;

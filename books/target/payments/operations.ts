@@ -166,7 +166,7 @@ export const operation_payment_send = defineOperation({
     { error: error_NOT_AUTHENTICATED, given: W.signedOut, when: "You are not signed in." },
   ],
   budget: budget("chain-submit"),
-  was: [page("payment.send"), "books/as-is/payments/operations.ts"],
+  was: [page("payment.send"), "docs/as-is/archive/payments/operations.ts"],
 });
 
 // ── payment retry ───────────────────────────────────────────────────────────────────────────

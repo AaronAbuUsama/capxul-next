@@ -191,7 +191,7 @@ export const decision_components_graph = defineDecision({
     "The old backend read the indexer and the indexer fetched the backend's keys: a cycle the as-is build reports. Reading " +
     "Ponder in Postgres removes the indexer's edge to the backend. The Core SDK's devnet entry reaches the supervisor " +
     "through an integration, not a component edge, so a staging client depends on nothing devnet.",
-  source: by("books/as-is/shared/foundation.ts (component cycle); docs/as-is/payments.md (17 cycle problems)"),
+  source: by("docs/as-is/archive/shared/foundation.ts (component cycle); docs/as-is/payments.md (17 cycle problems)"),
   affects: [
     f.component_chain, f.component_postgres, f.component_ponder, f.component_bundler_paymaster, f.component_backend,
     f.component_core_sdk, f.component_react_sdk, f.component_cli, f.component_mcp_server, f.component_devnet,
@@ -239,7 +239,7 @@ export const decision_concepts_map = defineDecision({
     "clones are separate contracts with separate authority. Each target concept owns one of those nouns, and its " +
     "dependencies point only at concepts it must read or invoke. Merging into fewer concepts would break the line budgets " +
     "(`sys:loc`) and hide ownership (P4 option C's objection). The new ones are small and each has a decision below.",
-  source: by("books/as-is/shared/foundation.ts (108 edges, 15-concept cycle); docs/planning/protocol-v4/architecture.md"),
+  source: by("docs/as-is/archive/shared/foundation.ts (108 edges, 15-concept cycle); docs/planning/protocol-v4/architecture.md"),
   affects: [...f.CONCEPTS],
 });
 
@@ -261,7 +261,7 @@ export const decision_concepts_access = defineDecision({
     "below everything; a gate for an Organization keys on its id as a value. The commands that sign in and then report " +
     "the account's setup are accounts' flows (operations.sign-in-in-accounts). The device flow's native client grants are " +
     "not ported (concepts.no-device-flow-or-consent).",
-  source: by("books/as-is/shared/foundation.ts (access imports 5 concepts); packages/backend/src/access/README.md:3"),
+  source: by("docs/as-is/archive/shared/foundation.ts (access imports 5 concepts); packages/backend/src/access/README.md:3"),
   affects: [f.concept_access, v.error_FEATURE_NOT_AVAILABLE],
 });
 
@@ -278,7 +278,7 @@ export const decision_concepts_media = defineDecision({
     "Three concepts use files (parties' photos, organizations' logos, banking's identity documents), so a file store under " +
     "all of them is simpler than three copies. The old media imported organizations, permissions and profiles to bind an " +
     "image to its owner; inverting the link removes all three edges.",
-  source: by("books/as-is/shared/foundation.ts (media imports 3 concepts); apps/docs/factory/operations/org.create.yaml (logo)"),
+  source: by("docs/as-is/archive/shared/foundation.ts (media imports 3 concepts); apps/docs/factory/operations/org.create.yaml (logo)"),
   affects: [f.concept_media, f.concept_parties, f.concept_organizations, f.concept_banking],
 });
 
@@ -535,7 +535,7 @@ export const decision_concepts_documents = defineDecision({
     "A document is born with its subject (K2: a command, its Payments and their documents are born together), so the " +
     "subject's concept stores it through a procedure and must depend on documents. Documents then cannot read its subjects; " +
     "giving it the participants at store time means it never has to.",
-  source: by("K2 in docs/as-is/payments.md; books/as-is/shared/foundation.ts (documents imports 7 concepts)"),
+  source: by("K2 in docs/as-is/payments.md; docs/as-is/archive/shared/foundation.ts (documents imports 7 concepts)"),
   affects: [f.concept_documents, f.concept_payments, f.concept_requests, f.concept_payroll],
 });
 
@@ -608,7 +608,7 @@ export const decision_concepts_requests = defineDecision({
     "A request is paid by a Payment, an escrow or a bank deposit: the means are below it, and the request reacts to them. " +
     "With the match in requests, requests depends on payments and banking and neither depends on requests. The deposit " +
     "and the request it paid are one money fact (what the money was for), so the deposit side is a procedure.",
-  source: by("apps/docs/factory/operations/bank.match.yaml; books/as-is/shared/foundation.ts (banking-requests loop)"),
+  source: by("apps/docs/factory/operations/bank.match.yaml; docs/as-is/archive/shared/foundation.ts (banking-requests loop)"),
   affects: [f.concept_requests, f.concept_banking],
 });
 
@@ -627,7 +627,7 @@ export const decision_concepts_applications = defineDecision({
     "a loop. A person's consent to an application would be the application's record, but nothing in the target writes " +
     "one: its only writer was the device flow (concepts.no-device-flow-or-consent). `doctor --online` checks the " +
     "deployment and the app key, which is what bootstrap already describes, so health lives here.",
-  source: by("apps/docs/factory/operations/key.create.yaml, doctor.yaml; books/as-is/shared/foundation.ts (access-applications loop)"),
+  source: by("apps/docs/factory/operations/key.create.yaml, doctor.yaml; docs/as-is/archive/shared/foundation.ts (access-applications loop)"),
   affects: [f.concept_applications, f.concept_access],
 });
 
@@ -833,7 +833,7 @@ export const decision_dependencies_activity_books = defineDecision({
   ],
   chosen: "activity-up",
   why: "Annotations moved to books (concepts.books), so activity is a pure reader above books and nothing reads activity.",
-  source: by("books/as-is/shared/foundation.ts (activity imports books; books imports activity's neighbours)"),
+  source: by("docs/as-is/archive/shared/foundation.ts (activity imports books; books imports activity's neighbours)"),
   affects: [f.concept_activity, f.concept_books],
 });
 
@@ -1259,7 +1259,7 @@ export const decision_integrations_set = defineDecision({
     "relayer, the faucet) were scattered across concepts and an integration folder; one service gives one send-once " +
     "rule. Openfort has a backend half (Shield's recovery session) and a client half (the signer), on different " +
     "components. The devnet's control socket is an outside system to the Core SDK.",
-  source: by("books/as-is/shared/external.ts; docs/mission/findings.md (10 integrations, 186 functions)"),
+  source: by("docs/as-is/archive/shared/external.ts; docs/mission/findings.md (10 integrations, 186 functions)"),
   affects: [
     x.integration_chain_rpc, x.integration_bundler, x.integration_indexer, x.integration_bridge, x.integration_mail,
     x.integration_openfort, x.integration_openfort_shield, x.integration_chainlink, x.integration_posthog,
@@ -1281,7 +1281,7 @@ export const decision_integrations_timeouts = defineDecision({
     "1.5 s per attempt and three nodes keep the worst case near the class. Vendor calls are 2 s p95 at 10 s timeout. A " +
     "send (bundler, service signer) has no retry: its answer can be lost after it took effect, so the rule is look up, " +
     "never resend (K4, CAP-1097). Mail retries in the notices workflow, not in the call.",
-  source: by("P5 (hop table, class defaults); books/as-is/shared/external.ts (NODE: 30 s, 4 nodes); K4"),
+  source: by("P5 (hop table, class defaults); docs/as-is/archive/shared/external.ts (NODE: 30 s, 4 nodes); K4"),
   affects: [x.integration_chain_rpc, x.integration_bundler, x.integration_bridge, x.integration_mail, x.integration_service_signer],
 });
 
@@ -1455,7 +1455,7 @@ export const decision_system_actors = defineDecision({
   why:
     "The designed text replaces `--ai` with `--agent` ('The Seat is held by an agent'), so an AI Seat is an agent with a " +
     "Seat. A workflow acts for no caller, whatever started it, so 'system' covers crons, timers, chain events and transitions.",
-  source: by("org.member.invite.yaml (designed: --agent replaces --ai); books/as-is/shared/foundation.ts (actors)"),
+  source: by("org.member.invite.yaml (designed: --agent replaces --ai); docs/as-is/archive/shared/foundation.ts (actors)"),
   affects: [f.system_capxul],
 });
 
@@ -1665,7 +1665,7 @@ export const decision_responsibilities_summaries = defineDecision({
     "whoever you act as, which is activity's. `home` composed treasuries, payroll runs and activity items in one action; " +
     "no frozen operation calls it, so P2 deletes it until the web app names it, and then it is a react-surface flow over " +
     "activity's, approvals' and requests' reads.",
-  source: reviewed("address.yaml (sdk); books/as-is/accounts/summaries.ts:1-12; P2"),
+  source: reviewed("address.yaml (sdk); docs/as-is/archive/accounts/summaries.ts:1-12; P2"),
   affects: [f.concept_activity, f.concept_accounts],
 });
 
@@ -1693,7 +1693,7 @@ export const decision_responsibilities_repairs = defineDecision({
   ],
   chosen: "drop",
   why: "They mended rows the old shapes let go wrong (disposable proofs). Nothing is migrated from old staging (P9), and the target's generated migrations and tenancy evals cover what they guarded.",
-  source: reviewed("books/as-is/applications/repairs.ts:1-6; P2; P9"),
+  source: reviewed("docs/as-is/archive/applications/repairs.ts:1-6; P2; P9"),
   affects: [f.concept_applications],
 });
 
@@ -1710,7 +1710,7 @@ export const decision_responsibilities_operator_proof_tools = defineDecision({
     "They wrote other concepts' rows from outside (the as-is book's write-boundary findings), which no target rule " +
     "allows. A world made by real operations is the black-box baseline spec 30 asks for, and the supervisor restores it " +
     "in seconds. No frozen operation reaches them.",
-  source: reviewed("packages/backend/src/operator/README.md:3-20; books/as-is/operator/identities.ts, fixtures.ts, receipts.ts"),
+  source: reviewed("packages/backend/src/operator/README.md:3-20; docs/as-is/archive/operator/identities.ts, fixtures.ts, receipts.ts"),
   affects: [f.concept_devnet, f.component_devnet],
 });
 
@@ -1766,7 +1766,7 @@ export const decision_responsibilities_service_lanes = defineDecision({
   ],
   chosen: "integration",
   why: "Every service key (claim, tier, Budgets executor, escrow relayer, faucet) needs the same rule, and only one of them is accounts'.",
-  source: reviewed("books/as-is/accounts/lanes.ts:1-7 (CAP-1097); integrations.set"),
+  source: reviewed("docs/as-is/archive/accounts/lanes.ts:1-7 (CAP-1097); integrations.set"),
   affects: [x.integration_service_signer, f.concept_accounts],
 });
 
@@ -2543,7 +2543,10 @@ export const decision_rules_admissions_and_wait_keys = defineDecision({
     "(agents.who-acts). `writes` is what each concept's decision grants and no more: requests' pay and decline and " +
     "equity's holder writes are their rpcs' work, not a policy's. A key reaches several instances only where the design " +
     "means it: every approval on one nonce, every Payment of one command, every instance whose block Ponder's progress " +
-    "passed. A cross-tenant index stays one named query, not a clause (organizations' offers, accounts' referee).",
+    "passed. A cross-tenant index stays one named query, not a clause (organizations' offers, accounts' referee). Review " +
+    "tightened both rules: a clause must read or write, `anyone` never writes, and a `where` value must be one its column " +
+    "can hold, or the clause admits no row; a signal routes by its instance's own columns only when it reads or writes " +
+    "the instance's table, the row it resolves them from. Each clause's eval allows for the tenant and the other clauses.",
   source: builder("packages/book/src/records/data.ts (Admission), records/behaviour.ts (WaitKey), build.ts, evals.ts; the cold read of B1's inputs"),
   affects: [
     decision_rules_process_wakeups,
@@ -2696,7 +2699,7 @@ export const decision_rules_frozen_flags_source = defineDecision({
 
 export const decision_rules_frozen_flags_built_ins = defineDecision({
   id: "rules.frozen-flags-built-ins",
-  title: "Effect's built-in global flags are frozen as the old CLI printed them",
+  title: "Effect's built-in global flags are recorded as the old CLI printed them",
   question:
     "--help (-h), --version (-v), --wizard, --completions and --log-level come from the Effect library, not from the old " +
     "CLI's source. Are they frozen, and in whose words?",
@@ -2704,15 +2707,16 @@ export const decision_rules_frozen_flags_built_ins = defineDecision({
     {
       label: "printed",
       text:
-        "Frozen, as the newest recorded `capxul schema … --json` result printed them (apps/docs/factory/proofs): name, " +
+        "Recorded, as the newest recorded `capxul schema … --json` result printed them (apps/docs/factory/proofs): name, " +
         "alias, printed type, required and help text.",
     },
-    { label: "library", text: "Frozen, from Effect's GlobalFlag source in this repository's node_modules." },
-    { label: "omit", text: "Not frozen: only the flags the CLI declares itself." },
+    { label: "library", text: "Recorded, from Effect's GlobalFlag source in this repository's node_modules." },
+    { label: "omit", text: "Not recorded: only the flags the CLI declares itself." },
   ],
   chosen: "printed",
   why:
-    "A person types them and the old docs list them among the global flags, so they are surface (P10 rung 1). This " +
+    "A person types them and the old docs list them among the global flags, so the reference must hold them; under " +
+    "system.frozen-behaviour they are reference for the target CLI's own global flags, not surface. This " +
     "repository has Effect 4.1.2, whose --completions also offers powershell and pwsh; the old CLI pinned 4.0.0 and printed " +
     "<bash|zsh|fish|sh>, so the library source is not the old words. The 38 recorded results all agree. The old CLI drops " +
     "--wizard outside an interactive terminal (runtime/entry.ts); that is behaviour, not grammar.",
@@ -2722,32 +2726,36 @@ export const decision_rules_frozen_flags_built_ins = defineDecision({
 
 export const decision_rules_frozen_flags_kept = defineDecision({
   id: "rules.frozen-flags-kept",
-  title: "A frozen command keeps every flag the old CLI or its designed text gives it",
+  title: "The old flags are reference for the target's flags, not surface to keep",
   question:
     "In 66 of the 75 designed operations the old CLI has, the designed (v4) text leaves out 189 flags the CLI declares, most " +
     "often --email, --timeout-seconds and --no-wait. The designed text also lists 58 flags for 25 commands that the old CLI " +
     "never declared (each on the command its synopsis part or table row names: rules.frozen-flags-designed-attribution), " +
-    "and 23 frozen commands the old CLI never had at all. Which flags are frozen?",
+    "and 23 frozen commands the old CLI never had at all. What do books/frozen/flags.ts and the designed flags bind?",
   options: [
+    {
+      label: "reference",
+      text:
+        "Nothing: they are reference. flags.ts records both, the CLI's own and the designed ones the CLI lacks " +
+        "(`designedNotInCli`, with `inCli: false` on the 23 commands), without inventing a type or help text. B1 designs each " +
+        "operation's flags in the book as one consistent system and may keep, rename, merge or drop any old flag; a dropped " +
+        "flag needs no decision, but an acceptance claim that depends on a flag's behaviour keeps that behaviour.",
+    },
     {
       label: "union",
       text:
-        "Both: every flag the old CLI declares on the command, and every flag its designed block lists in its flags table " +
-        "or its synopsis. flags.ts names the designed ones the CLI lacks (`designedNotInCli`) and marks the 23 commands " +
-        "`inCli: false`, without writing a type or help text for them. Dropping a frozen flag needs a decision record on the " +
-        "operation that names it, as for a refusal.",
+        "Both kinds are frozen surface: every flag the old CLI declares and every flag the designed block lists, and dropping " +
+        "one needs a decision on its operation.",
     },
-    { label: "designed-only", text: "Only the designed text's grammar where an operation has one; the CLI's other flags go." },
-    { label: "cli-only", text: "Only what the old CLI declares; designed flags nothing built are not frozen." },
+    { label: "cli-only", text: "Only what the old CLI declares is kept; designed flags nothing built are not." },
   ],
-  chosen: "union",
+  chosen: "reference",
   why:
-    "P10 rung 1 makes flags surface and puts the designed text first, so its flags stay even where nothing built them " +
-    "(`shares exercise --shares`, `org exit pay --vote`). The designed synopses are summaries: they say nothing of removing " +
-    "the flags scripts pass every day, so their silence is not a drop, and tools/check-frozen.ts already reads a dropped " +
-    "refusal only from a decision. Writing types or help text for the designed flags now would invent them; the designed " +
-    "text holds the book's words, and B1 maps both kinds onto each flow's input.",
-  source: flagsBy("books/frozen/flags.ts (designedNotInCli, inCli); books/frozen/operations.ts (designed flags and synopses); P10"),
+    "First recorded as union under P10 rung 1, which made flags surface. Aaron's system.frozen-behaviour (8 November 2026) " +
+    "frees the spelling: the 215 operations and what their acceptance claims require are kept, and the flags are the target's " +
+    "to design. The extraction still earns its keep: it is the one complete list of what the old commands took, so B1's " +
+    "design sees every input an old caller could pass, and the designed-only flags show what v4 meant to add.",
+  source: flagsBy("books/frozen/flags.ts (designedNotInCli, inCli); books/frozen/operations.ts (designed flags and synopses); system.frozen-behaviour"),
   affects: [f.component_cli],
 });
 
@@ -2881,4 +2889,39 @@ export const decision_system_frozen_behaviour = defineDecision({
     "that every acceptance claim and refusal behaviour is kept in intent, or rewritten or retired with a decision.",
   source: "Aaron, 8 November 2026, in the build-preparation conversation",
   affects: [f.system_capxul, f.component_cli, f.component_core_sdk, f.component_mcp_server],
+});
+
+export const decision_rules_counterparty_reads = defineDecision({
+  id: "rules.counterparty-reads",
+  title: "A counterparty reads company rows through admissions, never elevated",
+  question:
+    "Some rpcs serve a counterparty who holds no Seat: an invited investor (equity.investments.*), a shareholder voting " +
+    "(equity.votes.get), a grantee, a payee. They read company rows beyond their own: fundraise-rounds, votes, " +
+    "equity-installs and the organization's public fields. Row-level security (P8) admits only the company's tenant. How do " +
+    "these reads pass it?",
+  options: [
+    {
+      label: "clauses",
+      text:
+        "Each such table gets a read-only admission joined from the counterparty's own row (the investment, the grant, the " +
+        "share holding, the agreement) to the company rows it may see, so the database enforces it. The build session adds " +
+        "these clauses at B1, book first, before generating the policies; the admission-in-prose gap and the tenancy evals " +
+        "show any it misses.",
+    },
+    {
+      label: "elevated",
+      text:
+        "The rpc authorizes the counterparty by the chain or by its own row, then reads in the company's tenant with the " +
+        "service role, returning only its declared output.",
+    },
+  ],
+  chosen: "clauses",
+  why:
+    "P8 puts tenancy in the database so that no handler's mistake can leak another tenant's rows; an elevated read moves " +
+    "that guarantee back into each handler, exactly where the old system leaked. A clause joined from the counterparty's own " +
+    "row admits only what that relationship already entitles them to, and each clause is an eval (tbl:<t>/admits/<n>). " +
+    "Found by the adversarial review of the admissions, which listed fundraise-rounds, votes, equity-installs and " +
+    "organizations; the review did not finish the list, so B1 starts from the rpcs whose `who` is a counterparty.",
+  source: `${HANDOFF}; evidence: the adversarial review of rules.admissions-and-wait-keys (counterparty rpcs in equity, payroll and organizations)`,
+  affects: [f.concept_equity, f.concept_organizations, f.concept_payroll, f.component_postgres],
 });

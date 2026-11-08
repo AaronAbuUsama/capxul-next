@@ -1,5 +1,5 @@
 // Books' tables, the state machines that live on them, and each machine's one event (P7). The
-// target design, not a copy of the old tables: books/as-is/books/data.ts and the old code
+// target design, not a copy of the old tables: docs/as-is/archive/books/data.ts and the old code
 // (packages/backend/src/books/tables.ts, activity/tables.ts) are what each record replaces.
 //
 // Six tables, all an Organization's except annotations (a person's or an Organization's) and
@@ -74,7 +74,7 @@ export const table_book_charts = defineTable({
     "only basis, `cash`. Its row is what every chart guard reads (`no_chart`, `already_set_up`). It carries no backfill or " +
     "opening stamps: money facts are kept from the Organization's first money whether or not a chart exists " +
     "(books.facts-without-chart), so making the chart only maps them to accounts.",
-  was: [`${T}:20`, `${BK}/accounts/writes/chart.ts:32`, "books/as-is/books/data.ts"],
+  was: [`${T}:20`, `${BK}/accounts/writes/chart.ts:32`, "docs/as-is/archive/books/data.ts"],
   concept: concept_books,
   tenancy: "organization",
   tenantField: "org_id",
@@ -104,7 +104,7 @@ export const machine_book_chart = defineMachine({
   about:
     "A chart is born active and stays so. Later slices (the month-end lock, another basis) add states here; the old " +
     "imported, backfilled and opened stamps are gone with the backfill and the Safe opening (books.facts-without-chart).",
-  was: [`${T}:27`, "books/as-is/books/data.ts"],
+  was: [`${T}:27`, "docs/as-is/archive/books/data.ts"],
   table: table_book_charts,
   field: "status",
   initial: "active",
@@ -187,7 +187,7 @@ export const machine_book_account = defineMachine({
   id: "book-account",
   title: "Book account",
   about: "An account is born active, may be renamed while active, and is archived for good; nothing brings it back.",
-  was: [`${T}:43`, `${BK}/accounts/writes/chart.ts:128`, "books/as-is/books/data.ts"],
+  was: [`${T}:43`, `${BK}/accounts/writes/chart.ts:128`, "docs/as-is/archive/books/data.ts"],
   table: table_book_accounts,
   field: "status",
   initial: "active",
@@ -481,7 +481,7 @@ export const machine_book_asset = defineMachine({
   id: "book-asset",
   title: "Added token: recorded or removed",
   about: "A token is born added, may be removed, and may be added again; the old `removedAt` stamp becomes a status.",
-  was: [`${T}:160`, `${BK}/assets/reads.ts:65`, "books/as-is/books/data.ts"],
+  was: [`${T}:160`, `${BK}/assets/reads.ts:65`, "docs/as-is/archive/books/data.ts"],
   table: table_book_assets,
   field: "status",
   initial: "added",

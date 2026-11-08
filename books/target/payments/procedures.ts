@@ -102,6 +102,6 @@ export const procedure_payments_prepare_command = defineProcedure({
     `${OLD}/commands/writes/commands.ts:82`,
     `${OLD}/commands/writes/commands.ts:153`,
     "packages/backend/src/requests/writes/approvals.ts:104",
-    "books/as-is/payments/procedures.ts",
+    "docs/as-is/archive/payments/procedures.ts",
   ],
 });

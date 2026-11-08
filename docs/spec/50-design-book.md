@@ -77,9 +77,9 @@ Because links only point down, the book has no cycles. A record never lists who 
 | `call-error-not-declared` | an rpc calls an integration whose failure maps to an error the rpc does not declare |
 | `refusal-not-produced` | an operation's refusal is an error its rpc or flow cannot produce (its own, its procedures', its steps', its calls' failures) |
 | `flow-surface` | (target) a flow that implements an operation, a CLI command, names `surfaces` without `cli` |
-| `admission` | a table's admission names a column it lacks (its `field`, `kindField` or `where`, or the joined table's `via` columns), matches `anyone` by a column or another match by none, gives a kind column to a match other than `tenant`, or sits on a `global` table |
+| `admission` | a table's admission names a column it lacks (its `field`, `kindField` or `where`, or the joined table's `via` columns), limits its rows by a `where` value its column cannot hold, matches `anyone` by a column or another match by none, lets `anyone` write, neither reads nor writes, gives a kind column to a match other than `tenant`, or sits on a `global` table |
 | `chain-admits` | (target) a `chain` table has no `admits`, or one of its admissions writes: its scope is its whole policy, and only Ponder writes it |
-| `wait-key` | a wait's key routes by a property its carrier does not carry (a product event's props, a chain event's arguments or its log's `chain_id`, `contract_address`, `block_number`, `block_hash`, `tx_hash`, `log_index`, a table's columns, a signal's input or its instance's columns), names an rpc that is not one of its signals or a call that is not one of its calls, waits on an event or a row of a concept its own does not depend on, or sits on a timer |
+| `wait-key` | a wait's key routes by a property its carrier does not carry (a product event's props, a chain event's arguments or its log's `chain_id`, `contract_address`, `block_number`, `block_hash`, `tx_hash`, `log_index`, a table's columns, a signal's input, or its instance's columns when the signal reads or writes the instance's table), names an rpc that is not one of its signals or a call that is not one of its calls, waits on an event or a row of a concept its own does not depend on, or sits on a timer |
 | `wait-without-key` | (target) a wait other than a timer names no `key` |
 | `cycle` | concepts or components depend on each other in a loop |
 | `unknown-actor` | a journey step is taken by someone the system does not list |
@@ -117,7 +117,7 @@ book adds evals for the other record kinds:
 | `tbl:<table>/schema` | table | the migration creates exactly these fields, key and indexes |
 | `tbl:<table>/writers` | table | only the listed writers change it |
 | `tbl:<table>/tenancy` | table | a second tenant reads and writes none of the first's rows, unless an admission names it |
-| `tbl:<table>/admits/<n>` | table | the party admission n matches reads (and writes) exactly the rows it names, and a session it does not match sees none |
+| `tbl:<table>/admits/<n>` | table | the party admission n matches reads (and writes) exactly the rows it names, and a session that neither the row's tenant nor any admission matches sees none |
 | `trn:<machine>.<transition>` | transition | an eval run observes it, with its events |
 | `wfl:<workflow>/idempotent`, `/resume` | workflow | a second run is a no-op; a killed run resumes |
 | `bud:<workflow>/p95` | workflow | from trigger to done, within budget |

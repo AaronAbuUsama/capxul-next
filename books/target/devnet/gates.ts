@@ -38,7 +38,7 @@ export const rpc_devnet_gates_script = defineRpc({
     "is kept. Otherwise it keeps the Organization's row for the gate, replacing an earlier one, with the caller as " +
     "`set_by`, and answers the value kept and the ceiling. What applies is access' flags, which follow at the next " +
     "flag sync; the `dev gates set` flow runs that sync at once.",
-  was: [`${OLD}/operations/set.ts:26`, "packages/protocol/src/features/catalog.ts:284", "books/as-is/operations/devnet.ts:679"],
+  was: [`${OLD}/operations/set.ts:26`, "packages/protocol/src/features/catalog.ts:284", "docs/as-is/archive/operations/devnet.ts:679"],
   concept: concept_devnet,
   kind: "mutation",
   who: MEMBER,

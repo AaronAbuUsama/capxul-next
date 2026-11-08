@@ -18,7 +18,7 @@ import { defineEvent, defineMachine, defineTable } from "../../../packages/book/
 import { concept_applications } from "../shared/foundation.ts";
 
 const OLD = "packages/backend/src/applications";
-const ASIS = "books/as-is/applications/data.ts";
+const ASIS = "docs/as-is/archive/applications/data.ts";
 
 const S = Schema.String;
 const N = Schema.Number;

@@ -36,7 +36,7 @@ import { table_safe_approvals, table_safe_owners } from "../indexing/data.ts";
 
 const O = "packages/backend/src/organizations";
 const SET = `${O}/setups`;
-const AS_IS = "books/as-is/organizations/setups.ts";
+const AS_IS = "docs/as-is/archive/organizations/setups.ts";
 
 const S = Schema.String;
 const N = Schema.Number;

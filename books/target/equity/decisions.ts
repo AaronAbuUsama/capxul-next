@@ -123,7 +123,7 @@ export const decision_equity_chain_is_truth = defineDecision({
     "chain cannot name is what the frozen surface prints and Capxul alone knows: `og_`, `rd_`, `tr_`, `vt_` ids, member " +
     "names, documents and whether their hashes match. A status machine on each object is still Capxul's (P7), driven only " +
     "by chain proof.",
-  source: by(`books/as-is/organizations/data.ts:725-1066 (nine tables); ${OLD}/equity/reads.ts:70 (equityFactsInTx re-read)`),
+  source: by(`docs/as-is/archive/organizations/data.ts:725-1066 (nine tables); ${OLD}/equity/reads.ts:70 (equityFactsInTx re-read)`),
   affects: [...TABLES, concept_equity],
 });
 
@@ -147,7 +147,7 @@ export const decision_equity_tables = defineDecision({
     "Investors had no table at all (the old code built none of rounds' investor side), yet commit, allocate, pay and sign " +
     "each need the investor's place, so `fundraise-investments` is new. Founders' vesting grants join option grants " +
     "because `org options end` ends both. Every table is the company's (P8).",
-  source: by("books/as-is/organizations/data.ts:725-1066; books/frozen/operations.ts (invest.*, org.round.*, org.options.end designed)"),
+  source: by("docs/as-is/archive/organizations/data.ts:725-1066; books/frozen/operations.ts (invest.*, org.round.*, org.options.end designed)"),
   affects: [...TABLES],
 });
 
@@ -541,7 +541,7 @@ export const decision_equity_dropped = defineDecision({
   why:
     "None is reached by a frozen operation (P2) except through what replaces it: P3 drops plumbing, P7 makes telemetry the " +
     "runtime's, and approvals owns every UserOperation's send (concepts.approvals).",
-  source: by(`books/as-is/organizations/equity.ts; books/as-is/organizations/votes.ts; books/as-is/organizations/rounds.ts; P2; P3; P7`),
+  source: by(`docs/as-is/archive/organizations/equity.ts; docs/as-is/archive/organizations/votes.ts; docs/as-is/archive/organizations/rounds.ts; P2; P3; P7`),
   affects: [concept_equity, rpc_equity_writes_watch, ...HOLDER_RPCS],
 });
 

@@ -19,7 +19,7 @@ import { concept_organizations } from "../shared/foundation.ts";
 const O = "packages/backend/src/organizations";
 const T = `${O}/tables`;
 const MODEL = "packages/protocol/src/organizations/model.ts";
-const AS_IS = "books/as-is/organizations/data.ts";
+const AS_IS = "docs/as-is/archive/organizations/data.ts";
 
 const S = Schema.String;
 const N = Schema.Number;

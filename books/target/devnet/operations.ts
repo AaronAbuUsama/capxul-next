@@ -68,7 +68,7 @@ export const operation_dev_time = defineOperation({
   errors: [error_WRONG_ENVIRONMENT],
   refusals: [offDevnet("dev.time")],
   budget: budget("read"),
-  was: [page("dev.time"), `${CLI}/command.ts:118`, "books/as-is/operations/devnet.ts:266"],
+  was: [page("dev.time"), `${CLI}/command.ts:118`, "docs/as-is/archive/operations/devnet.ts:266"],
 });
 
 export const operation_dev_time_warp = defineOperation({
@@ -80,7 +80,7 @@ export const operation_dev_time_warp = defineOperation({
   errors: [error_WRONG_ENVIRONMENT],
   refusals: [refusal("dev.time.warp", error_INVALID_INPUT, W.empty), offDevnet("dev.time.warp")],
   budget: budget("background"),
-  was: [page("dev.time.warp"), `${CLI}/command.ts:74`, "books/as-is/operations/devnet.ts:306"],
+  was: [page("dev.time.warp"), `${CLI}/command.ts:74`, "docs/as-is/archive/operations/devnet.ts:306"],
 });
 
 export const operation_dev_time_start_at = defineOperation({
@@ -96,7 +96,7 @@ export const operation_dev_time_start_at = defineOperation({
     offDevnet("dev.time.start-at"),
   ],
   budget: budget("chain-settle"),
-  was: [page("dev.time.start-at"), `${CLI}/command.ts:103`, "books/as-is/operations/devnet.ts:355"],
+  was: [page("dev.time.start-at"), `${CLI}/command.ts:103`, "docs/as-is/archive/operations/devnet.ts:355"],
 });
 
 // ── saved worlds ────────────────────────────────────────────────────────────────────────────
@@ -114,7 +114,7 @@ export const operation_dev_snapshot_save = defineOperation({
     offDevnet("dev.snapshot.save"),
   ],
   budget: budget("background"),
-  was: [page("dev.snapshot.save"), `${CLI}/command.ts:143`, "books/as-is/operations/devnet.ts:397"],
+  was: [page("dev.snapshot.save"), `${CLI}/command.ts:143`, "docs/as-is/archive/operations/devnet.ts:397"],
 });
 
 export const operation_dev_snapshot_list = defineOperation({
@@ -126,7 +126,7 @@ export const operation_dev_snapshot_list = defineOperation({
   errors: [error_WRONG_ENVIRONMENT],
   refusals: [offDevnet("dev.snapshot.list")],
   budget: budget("read"),
-  was: [page("dev.snapshot.list"), `${CLI}/command.ts:158`, "books/as-is/operations/devnet.ts:433"],
+  was: [page("dev.snapshot.list"), `${CLI}/command.ts:158`, "docs/as-is/archive/operations/devnet.ts:433"],
 });
 
 export const operation_dev_snapshot_restore = defineOperation({
@@ -151,7 +151,7 @@ export const operation_dev_snapshot_restore = defineOperation({
     offDevnet("dev.snapshot.restore"),
   ],
   budget: budget("background"),
-  was: [page("dev.snapshot.restore"), `${CLI}/command.ts:162`, "books/as-is/operations/devnet.ts:468"],
+  was: [page("dev.snapshot.restore"), `${CLI}/command.ts:162`, "docs/as-is/archive/operations/devnet.ts:468"],
 });
 
 // ── scripted prices and gates ───────────────────────────────────────────────────────────────
@@ -170,7 +170,7 @@ export const operation_dev_prices_set = defineOperation({
     { error: error_NOT_AUTHENTICATED, given: W.signedOut, when: "You are not signed in." },
   ],
   budget: budget("chain-read"),
-  was: [page("dev.prices.set"), `${CLI}/prices.ts:14`, "books/as-is/operations/devnet.ts:513"],
+  was: [page("dev.prices.set"), `${CLI}/prices.ts:14`, "docs/as-is/archive/operations/devnet.ts:513"],
 });
 
 export const operation_dev_gates_set = defineOperation({
@@ -187,7 +187,7 @@ export const operation_dev_gates_set = defineOperation({
     { error: error_NOT_AUTHENTICATED, given: W.signedOut, when: "You are not signed in." },
   ],
   budget: budget("vendor"),
-  was: [page("dev.gates.set"), `${CLI}/gates.ts:24`, "books/as-is/operations/devnet.ts:679"],
+  was: [page("dev.gates.set"), `${CLI}/gates.ts:24`, "docs/as-is/archive/operations/devnet.ts:679"],
 });
 
 // ── playing another person ──────────────────────────────────────────────────────────────────
@@ -201,7 +201,7 @@ export const operation_dev_approve = defineOperation({
   errors: [error_CLI_USAGE, error_WRONG_ENVIRONMENT],
   refusals: [refusal("dev.approve", error_WRONG_STATE, W.history), refusal("dev.approve", error_WRONG_ENVIRONMENT, W.history)],
   budget: budget("vendor"),
-  was: [page("dev.approve"), `${CLI}/command.ts:171`, "books/as-is/operations/devnet.ts:628"],
+  was: [page("dev.approve"), `${CLI}/command.ts:171`, "docs/as-is/archive/operations/devnet.ts:628"],
 });
 
 // ── jobs ────────────────────────────────────────────────────────────────────────────────────
@@ -222,7 +222,7 @@ export const operation_dev_jobs_run = defineOperation({
     },
   ],
   budget: budget("background"),
-  was: [page("dev.jobs.run"), `${CLI}/command.ts:128`, "books/as-is/operations/devnet.ts:732"],
+  was: [page("dev.jobs.run"), `${CLI}/command.ts:128`, "docs/as-is/archive/operations/devnet.ts:732"],
 });
 
 // ── mail ────────────────────────────────────────────────────────────────────────────────────
@@ -236,7 +236,7 @@ export const operation_dev_mail_list = defineOperation({
   errors: [error_WRONG_ENVIRONMENT],
   refusals: [offDevnet("dev.mail.list")],
   budget: budget("read"),
-  was: [page("dev.mail.list"), `${CLI}/mail.ts:1`, "books/as-is/operator/outboxes.ts:60"],
+  was: [page("dev.mail.list"), `${CLI}/mail.ts:1`, "docs/as-is/archive/operator/outboxes.ts:60"],
 });
 
 export const operation_dev_mail_fail = defineOperation({
@@ -272,7 +272,7 @@ export const operation_dev_mail_fail = defineOperation({
     offDevnet("dev.mail.fail"),
   ],
   budget: budget("write"),
-  was: [page("dev.mail.fail"), `${CLI}/mail.ts:1`, "books/as-is/operator/outboxes.ts:100"],
+  was: [page("dev.mail.fail"), `${CLI}/mail.ts:1`, "docs/as-is/archive/operator/outboxes.ts:100"],
 });
 
 export const operation_dev_mail_notices = defineOperation({
@@ -292,5 +292,5 @@ export const operation_dev_mail_notices = defineOperation({
   errors: [error_WRONG_ENVIRONMENT],
   refusals: [offDevnet("dev.mail.notices")],
   budget: budget("read"),
-  was: [page("dev.mail.notices"), `${CLI}/mail.ts:1`, "books/as-is/operator/notices.ts:57"],
+  was: [page("dev.mail.notices"), `${CLI}/mail.ts:1`, "docs/as-is/archive/operator/notices.ts:57"],
 });

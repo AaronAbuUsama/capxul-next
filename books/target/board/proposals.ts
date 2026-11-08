@@ -37,7 +37,7 @@ import { procedure_board_propose } from "./procedures.ts";
 import { ProposalKind, table_board_proposals, table_proposal_approvals } from "./data.ts";
 
 const OLD = "packages/backend/src/organizations/proposals";
-const AS_IS = "books/as-is/organizations/proposals.ts";
+const AS_IS = "docs/as-is/archive/organizations/proposals.ts";
 const S = Schema.String;
 const Int = Schema.Int;
 const NullOr = Schema.NullOr;
