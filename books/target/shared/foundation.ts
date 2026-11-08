@@ -1,4 +1,4 @@
-// The target book's bottom layer: the system and its actors, the ten running components, the 22
+// The target book's bottom layer: the system and its actors, the ten running components, the 23
 // target concepts and the two environments. Every judgment here is a decision record in
 // ./decisions.ts; docs/decisions/target-architecture.md explains them for a reader.
 //
@@ -118,7 +118,7 @@ export const component_backend = defineComponent({
   id: "backend",
   title: "Backend",
   about:
-    "One Effect 4 service on Node (A1): the 22 concepts' rpcs as one generated RpcGroup over HTTP (live rpcs over a " +
+    "One Effect 4 service on Node (A1): the 23 concepts' rpcs as one generated RpcGroup over HTTP (live rpcs over a " +
     "WebSocket), the few HTTP routes (bootstrap, OAuth, Bridge's webhook), and the concepts' durable processes on " +
     "Effect Workflow and Cluster with Postgres storage (A2, behind a spike; DBOS is the fallback). Every rpc runs in one " +
     "transaction (A3). The runtime resolves a session or assistant token by its hash in that transaction (no JWKS), " +
@@ -260,8 +260,8 @@ export const concept_parties = defineConcept({
     "The directory: one Party for each identity Capxul can name and pay: a person (by mailbox, provisional until they " +
     "sign in), an agent, an Organization or an outside address. A Party has a handle where it has one (one namespace for " +
     "agents and Organizations), the Safe that money sent to it lands in, and its owner (a person or an Organization). This " +
-    "is the Safe-ownership table P8 scopes every chain read by. It also owns a person's profile (display name, country, " +
-    "photo, onboarding, withdrawal address) and recipient resolution (a handle, mailbox, address or Party id to a Party and " +
+    "is the Safe-ownership table P8 scopes every chain read by. It also owns a person's profile (display name, country and " +
+    "photo) and recipient resolution (a handle, mailbox, address or Party id to a Party and " +
     "its Safe). Organizations and agents register their Party in their own birth transaction (`parties.register`): a name " +
     "and the Safe it routes money to are one money fact. Old parties' identity, destinations and resolution, and all of " +
     "old profiles. Its contacts move to contacts, its verification to banking; payroll's agreements replace its engagements.",
@@ -411,15 +411,20 @@ export const concept_books = defineConcept({
   id: "books",
   title: "Books",
   about:
-    "An Organization's books (ADR-0042): the chart of accounts, the assets it tracks, USD prices (from Chainlink), the " +
-    "annotations that give a Payment or Movement its account and memo (`activity annotate`), the facts that record every " +
-    "change, the scan of each token an Organization adds at run time (Ponder has no source for it; P3 keeps the cron), and " +
-    "the reports, the reconcile against what the chain holds and the QuickBooks export derived from them. " +
-    "Payments and banking write a money fact's book fact in their own transaction (`books.record-money-fact`, " +
-    "`books.reverse-money-fact`; one live fact per money fact). Old books, old activity's annotations, the Chainlink " +
-    "price sync and the added-token Movement scan.",
+    "An Organization's books in the shape of ERPNext's accounting (ADR-0042, aaron.books-first-principles): the " +
+    "accounting half of its Company (chart template, currency, time zone, fiscal year, closed periods), the Account and " +
+    "Cost Center trees, the assets it tracks, USD prices (from Chainlink), the annotations that give a Payment or Movement " +
+    "its account, party, cost centre, project and memo (`activity annotate`), and the append-only facts that record every " +
+    "change, numbered without a gap per Organization so a ledger can follow the feed and never skip one. Each money fact " +
+    "posts its voucher; a connected head's own vouchers (invoices, accruals, closings) come in through the books' sync " +
+    "with that head. It scans each token an Organization adds at run time (Ponder has no source for it; P3 keeps the " +
+    "cron) and derives the reports, the reconcile against what the chain holds and the QuickBooks export. Payments and " +
+    "banking write a money fact's book fact in their own transaction (`books.record-money-fact`, " +
+    "`books.reverse-money-fact`; one live fact per money fact), and payroll posts the accrual of a run Capxul computed " +
+    "through `books.record-payroll-accrual`; books never reads payments or payroll back. It reads projects to check an " +
+    "annotation's project. Old books, old activity's annotations, the Chainlink price sync and the added-token Movement scan.",
   component: B,
-  dependsOn: [concept_access, concept_indexing, concept_organizations],
+  dependsOn: [concept_access, concept_indexing, concept_organizations, concept_projects],
   was: [`${OLD}/books/README.md:3`, `${OLD}/activity/README.md:3`],
 });
 
@@ -442,11 +447,13 @@ export const concept_contacts = defineConcept({
   title: "Contacts",
   about:
     "The address book of whoever you act as, a person or an Organization: contacts by handle, email, address or Party, their " +
-    "labels, and hide and unhide. It sits above organizations because an Organization's book needs its membership. A " +
-    "contact's bank accounts are banking's, so `contact get`, which returns them, is banking's flow over this concept's " +
-    "read. Split from old parties.",
+    "labels, and hide and unhide; and each Organization's CRM in Frappe CRM's shapes (aaron.crm-frappe-shape): contacts and " +
+    "organizations (with or without a Party), leads and deals, synced with a connected head. It sits above organizations " +
+    "because an Organization's book needs its membership, and reads indexing because only the People hat's wearers edit " +
+    "an Organization's book and CRM (contacts.members-write). A contact's bank accounts are banking's, so `contact get`, " +
+    "which returns them, is banking's flow over this concept's read. Split from old parties.",
   component: B,
-  dependsOn: [concept_access, concept_parties, concept_organizations],
+  dependsOn: [concept_access, concept_parties, concept_indexing, concept_organizations],
   was: [`${OLD}/parties/README.md:3`],
 });
 
@@ -474,15 +481,20 @@ export const concept_payroll = defineConcept({
   id: "payroll",
   title: "Payroll",
   about:
-    "Pay agreements (v4 Agreements): salaries, streams and retainers offered from a budget, accepted by the payee, changed, " +
-    "paused, resumed, ended or withdrawn, and collected by the payee from the budget's reservation. Each agreement is one " +
-    "durable process that follows its chain events. A collection becomes a Payment in payments, from the indexed " +
-    "PaymentSent. Old payroll's runs, items and saved groups are dropped (no frozen operation makes one, P2); its " +
-    "departments go to budgets and its notices to notices.",
+    "Frappe HR's payroll beside the v4 Agreements (payroll.scope, aaron.frappe-shape): Employees, Salary Components, " +
+    "Salary Structures and their Assignments, Payroll Entries (runs) and Salary Slips, worked out by Capxul without a " +
+    "head and synced with a Frappe HR head once one is connected. A submitted run Capxul computed posts its accrual " +
+    "through books' `books.record-payroll-accrual`, and is paid as one payment command through " +
+    "`payments.prepare-command` (purpose payroll), its slips following `payment_transitioned` to settled; neither payments " +
+    "nor books depends on payroll. Pay agreements: salaries, streams and retainers offered from a budget, accepted by " +
+    "the payee, changed, paused, resumed, ended or withdrawn, and collected by the payee from the budget's reservation. " +
+    "Each agreement is one durable process that follows its chain events, and a collection becomes a Payment in " +
+    "payments, from the indexed PaymentSent. Old payroll's runs land here as Payroll Entries and Salary Slips; its saved " +
+    "groups and terms stay dropped, its departments go to budgets and its notices to notices.",
   component: B,
   dependsOn: [
     concept_access, concept_parties, concept_indexing, concept_approvals, concept_organizations, concept_board, concept_budgets,
-    concept_documents,
+    concept_books, concept_documents, concept_payments,
   ],
   was: [`${OLD}/payroll/README.md:3`],
 });

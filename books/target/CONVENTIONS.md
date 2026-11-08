@@ -8,7 +8,7 @@ its behaviour (`system.frozen-behaviour`: the freeze keeps behaviour, not spelli
 
 Read first, in this order:
 
-1. `books/target/shared/foundation.ts`: the 22 concepts, what each owns and what it may depend on,
+1. `books/target/shared/foundation.ts`: the 23 concepts, what each owns and what it may depend on,
    and `OPERATION_OWNERS`, which names the concept that designs each frozen operation.
 2. `docs/decisions/target-architecture.md`: why the map is this way. Its judgments are the
    decision records in `books/target/shared/decisions.ts`.

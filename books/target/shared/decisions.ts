@@ -219,27 +219,30 @@ export const decision_components_files = defineDecision({
 
 export const decision_concepts_map = defineDecision({
   id: "concepts.map",
-  title: "22 target concepts in one dependency order",
+  title: "23 target concepts in one dependency order",
   question: "How many concepts, and in what order, so that every old responsibility lands once and nothing loops?",
   options: [
     { label: "keep-17", text: "Keep the 17 old concepts and cut the loop by moving imports." },
     {
-      label: "22-dag",
+      label: "23-dag",
       text:
-        "22 concepts in this order: access, media, parties, indexing, approvals, accounts, organizations, board, agents, " +
-        "budgets, books, documents, contacts, payments, payroll, banking, requests, applications, equity, activity, notices, devnet.",
+        "23 concepts in this order: access, media, parties, indexing, approvals, accounts, organizations, board, agents, " +
+        "projects, budgets, books, documents, contacts, payments, payroll, banking, requests, applications, equity, activity, " +
+        "notices, devnet.",
     },
     { label: "fewer", text: "Merge into about 8 large concepts (identity, organizations, money, books, equity, devnet...)." },
   ],
-  chosen: "22-dag",
+  chosen: "23-dag",
   why:
     "15 of the 17 old concepts formed one import loop, and the loop ran through real responsibilities in the wrong place: " +
     "permissions inside organizations' authority, executions inside payments, Directors inside organizations, waitlist " +
     "credit inside access. v4 itself splits them: Budgets, Agreements, Hats and the Signer Gate, AgentOwner and the equity " +
     "clones are separate contracts with separate authority. Each target concept owns one of those nouns, and its " +
     "dependencies point only at concepts it must read or invoke. Merging into fewer concepts would break the line budgets " +
-    "(`sys:loc`) and hide ownership (P4 option C's objection). The new ones are small and each has a decision below.",
-  source: by("docs/as-is/archive/shared/foundation.ts (108 edges, 15-concept cycle); docs/planning/protocol-v4/architecture.md"),
+    "(`sys:loc`) and hide ownership (P4 option C's objection). The new ones are small and each has a decision below. " +
+    "Projects, the 23rd, is new in the rebuild (aaron.projects): it sits after agents and below budgets, books, requests " +
+    "and payroll, which read it (projects.dependencies).",
+  source: by("docs/as-is/archive/shared/foundation.ts (108 edges, 15-concept cycle); docs/planning/protocol-v4/architecture.md; aaron.projects"),
   affects: [...f.CONCEPTS],
 });
 
@@ -471,20 +474,29 @@ export const decision_concepts_permissions = defineDecision({
 
 export const decision_concepts_payroll = defineDecision({
   id: "concepts.payroll",
-  title: "Payroll keeps agreements; runs, items and groups are dropped",
+  title: "Superseded by payroll.scope: Frappe HR's payroll beside the agreements",
   question: "What does payroll own on v4, and do payroll runs survive?",
   options: [
-    { label: "agreements", text: "Payroll owns v4 Agreements only; runs, items and saved groups are dropped; departments go to budgets." },
+    {
+      label: "payroll-scope",
+      text:
+        "As payroll.scope decides under aaron.frappe-shape: Frappe HR's payroll (Employees, Salary Components, Salary " +
+        "Structures and their Assignments, Payroll Entries and Salary Slips) beside the v4 Agreements; saved groups and " +
+        "terms stay dropped; departments stay budgets'.",
+    },
+    { label: "agreements", text: "The earlier choice: payroll owns v4 Agreements only; runs, items and saved groups are dropped; departments go to budgets." },
     { label: "keep-runs", text: "Keep payroll runs and rosters as batches of payments." },
   ],
-  chosen: "agreements",
+  chosen: "payroll-scope",
   why:
-    "No frozen operation makes, lists or shows a payroll run, so by P2 it has no caller and is deleted by default; it comes " +
-    "back only with a named one. On v4, recurring pay is an Agreement collected by the payee, and a one-off batch is " +
-    "`payment send` or `org department pay`. Dropping runs also removes the settle-run procedure that tied payments to " +
-    "payroll (dependencies.payments-payroll).",
-  source: by("books/frozen/operations.ts (payroll area: agreements only); P2; packages/backend/src/payroll/tables.ts:167"),
-  affects: [f.concept_payroll, f.concept_budgets, f.concept_payments],
+    "Superseded by payroll.scope. This record first chose agreements only: no frozen operation made, listed or showed a " +
+    "payroll run, so by P2 runs had no caller. aaron.frappe-shape and aaron.erp-on-capxul made payroll Frappe HR's from " +
+    "an Organization's first day, which gives runs their caller: the SDK flows of payroll.hr-surface. A run is not old " +
+    "payroll's run: it pays through `payments.prepare-command` and follows `payment_transitioned` " +
+    "(payroll.pays-through-payments), and posts its accrual through books' door, so the old settle-run procedure stays " +
+    "gone and neither payments nor books depends on payroll (dependencies.payments-payroll, dependencies.books-payroll).",
+  source: by("payroll.scope; aaron.frappe-shape; books/frozen/operations.ts (payroll area: agreements only); P2; packages/backend/src/payroll/tables.ts:167"),
+  affects: [f.concept_payroll, f.concept_budgets, f.concept_payments, f.concept_books],
 });
 
 export const decision_concepts_books = defineDecision({
@@ -757,19 +769,59 @@ export const decision_dependencies_accounts_payments = defineDecision({
 
 export const decision_dependencies_payments_payroll = defineDecision({
   id: "dependencies.payments-payroll",
-  title: "Payroll sits above payments' dependencies, and payments never depends on payroll",
+  title: "Payroll depends on payments to pay a run; payments never depends on payroll",
   question: "Old payments called payroll's settle-run inside its settlement, and payroll built payments. Which way now?",
   options: [
-    { label: "independent", text: "Payments does not depend on payroll; payroll depends on budgets; collections are born as Payments from chain facts." },
+    {
+      label: "payroll-up",
+      text:
+        "Payroll depends on payments: a run's payment is born through `payments.prepare-command` (purpose payroll) and its " +
+        "settlement follows `payment_transitioned`. Payments never depends on payroll; collections are born as Payments " +
+        "from chain facts.",
+    },
+    { label: "independent", text: "The earlier choice: neither depends on the other; payroll depends on budgets, and collections are born from chain facts." },
     { label: "procedure", text: "Keep `payroll.settle-run` as a procedure payments invokes (P4's example)." },
   ],
-  chosen: "independent",
+  chosen: "payroll-up",
   why:
-    "P4 kept settle-run as a procedure because a settled Payment with its run still open was a money bug. With runs dropped " +
-    "(concepts.payroll), there is no run to settle. An agreement collection is `Agreements.collect`, whose PaymentSent " +
-    "payments settles like any other; the reservation it pays from is on chain. Neither concept writes the other's tables.",
-  source: by("P4 (settle-run procedure); docs/as-is/payments.md (K11); concepts.payroll"),
+    "Rewritten to payroll.scope, which supersedes concepts.payroll: runs came back as Frappe HR's Payroll Entries and " +
+    "Salary Slips. A run's payment is a Payment and its route is payments' (one request key per command, the funding " +
+    "check, the claim escrow for a new hire, one settlement path with its reorg reversal), so payroll births it through " +
+    "payments' door, as requests and banking do (payroll.pays-through-payments). A slip's paid state and its settled " +
+    "transaction may lag a second, so they follow the Payment's transition (P4's outbox), never a procedure payments " +
+    "invokes: P4 kept settle-run only because a settled Payment with its run still open was a money bug, and a slip " +
+    "following the event closes that without payments knowing payroll. An agreement collection is still " +
+    "`Agreements.collect`, whose PaymentSent payments settles like any other. The edge points down the order (payroll " +
+    "after payments), so it makes no cycle, and payments never writes or reads payroll's tables.",
+  source: by("payroll.scope, payroll.pays-through-payments; P4 (settle-run procedure); docs/as-is/payments.md (K11); docs/design/frappe/payroll.md"),
   affects: [f.concept_payments, f.concept_payroll],
+});
+
+export const decision_dependencies_books_payroll = defineDecision({
+  id: "dependencies.books-payroll",
+  title: "Payroll posts a run's accrual through books' door; books never reads payroll",
+  question:
+    "A run Capxul computed must credit Payroll Payable and the deductions' liabilities when it is submitted, and take " +
+    "them back when it is cancelled (books.payroll-accrual). Which way does the edge between books and payroll point?",
+  options: [
+    {
+      label: "payroll-up",
+      text:
+        "Payroll depends on books and invokes `books.record-payroll-accrual` in `payroll.runs.submit` and " +
+        "`payroll.runs.cancel`, in their own transactions; books reads nothing of payroll's.",
+    },
+    { label: "books-up", text: "Books depends on payroll and follows `payroll_entry_transitioned` to post the accrual." },
+  ],
+  chosen: "payroll-up",
+  why:
+    "Books sits below payments (dependencies.books-below-money) and payroll above payments " +
+    "(dependencies.payments-payroll), so books depending on payroll would make a cycle through payments. The accrual " +
+    "and the submitted run are one money fact: a run that owes its people must have the liability in the books, or a " +
+    "slip's Payment is booked against a payable nothing credited, so the door runs in the run's transaction (P4), as " +
+    "payments and banking write their book facts. Books needs no new edge for it: the lines name books' own accounts and " +
+    "an Employee's Party id, which books keeps as given.",
+  source: by("books.payroll-accrual, payroll.accrual (books/target/payroll/decisions.ts); docs/design/frappe/accounting.md (For other lanes: payroll); P4"),
+  affects: [f.concept_books, f.concept_payroll, f.concept_payments],
 });
 
 export const decision_dependencies_payments_requests = defineDecision({
@@ -1850,6 +1902,11 @@ export const decision_dependencies_of_agents = dependencies(f.concept_agents, {
   organizations: "with `--org` the owner is the Organization's Safe, acted for by a Director.",
   board: "every change to an Organization-owned agent is a Board proposal.",
 });
+export const decision_dependencies_of_projects = dependencies(f.concept_projects, {
+  access: "the caller of every rpc, and the principal a head user's edit is matched to.",
+  parties: "a project's customer and a member named on a task or timesheet are Parties.",
+  organizations: "projects are an Organization's, kept by its members; its setup starts the projects' start-up and its head connection their sync.",
+});
 export const decision_dependencies_of_budgets = dependencies(f.concept_budgets, {
   access: "the caller of every rpc.",
   parties: "a holder or wearer is named by email or an agent's `@handle` and resolved to their Party and Safe; lists name them (dependencies.budgets-parties).",
@@ -1862,6 +1919,7 @@ export const decision_dependencies_of_books = dependencies(f.concept_books, {
   access: "the caller of every rpc.",
   indexing: "the Transfers, PaymentSent facts and Safe balances it reconciles against, and the Books hat's wearers.",
   organizations: "books are an Organization's, and the Books hat id is in its deployment.",
+  projects: "an annotation's or a voucher line's project is checked against projects' table (projects.dependencies put projects below books).",
 });
 export const decision_dependencies_of_documents = dependencies(f.concept_documents, {
   access: "the reader of a document.",
@@ -1871,6 +1929,7 @@ export const decision_dependencies_of_documents = dependencies(f.concept_documen
 export const decision_dependencies_of_contacts = dependencies(f.concept_contacts, {
   access: "the owner of a personal address book.",
   parties: "a contact names a Party, or a handle, email or address that resolves to one.",
+  indexing: "only the People hat's wearers, read from Hats, edit an Organization's book and CRM (contacts.members-write).",
   organizations: "an Organization's book is acted on by its members.",
 });
 export const decision_dependencies_of_payments = dependencies(f.concept_payments, {
@@ -1893,7 +1952,9 @@ export const decision_dependencies_of_payroll = dependencies(f.concept_payroll, 
   organizations: "an agreement is an Organization's, read by its members.",
   board: "an agreement on a top budget is offered or changed by Board proposal.",
   budgets: "an agreement pays from a budget, whose office holder or anyone above may act on it.",
+  books: "a submitted run Capxul computed posts its accrual through books.record-payroll-accrual, and a cancel takes it back (dependencies.books-payroll).",
   documents: "an agreement's terms document is stored at its offer.",
+  payments: "a run is paid through payments.prepare-command, and its slips follow payment_transitioned to settled (dependencies.payments-payroll).",
 });
 export const decision_dependencies_of_banking = dependencies(f.concept_banking, {
   access: "the caller of every rpc.",

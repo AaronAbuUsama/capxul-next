@@ -1,7 +1,7 @@
 // The payroll concept's module list, for books/target/index.ts. (shapes.ts holds only Schemas, no records.)
 //
-// staged.ts is written but not listed: it pays a run through payments' door, and registers once payroll
-// depends on payments (decision payroll.pays-through-payments).
+// staged.ts pays a run through payments' door and follows the settled facts back. It is listed now that
+// payroll depends on payments (payroll.pays-through-payments, dependencies.payments-payroll).
 
 import * as data from "./data.ts";
 import * as procedures from "./procedures.ts";
@@ -12,6 +12,7 @@ import * as employees from "./employees.ts";
 import * as structures from "./structures.ts";
 import * as runs from "./runs.ts";
 import * as slips from "./slips.ts";
+import * as staged from "./staged.ts";
 import * as processes from "./processes.ts";
 import * as flows from "./flows.ts";
 import * as operations from "./operations.ts";
@@ -27,6 +28,7 @@ export const modules = [
   structures,
   runs,
   slips,
+  staged,
   processes,
   flows,
   operations,
