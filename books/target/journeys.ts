@@ -202,14 +202,16 @@ export const journey_run_company = defineJourney({
     "money and holders, offers agreements and pays from a department; the old finish is 'a payroll run settles'. The " +
     "founder takes the setup steps, the People officer the invitations, the invitee their answer, the Directors the " +
     "budgets and Board proposals, the department's office holder its agreements and its payment, and the payee their " +
-    "acceptance and collection. The old `org director add` refuses on v4, so the founder seats the Director with `org " +
-    "board director add` (journeys.steps). Budget changes are Board proposals that land as `budget_change_transitioned`; " +
+    "acceptance and collection. `org create` follows the setup to ready, and `org retry` on a ready setup returns it as " +
+    "it is: `resume` moves only a setup that needs attention, so `org retry` changes no machine here and its own success " +
+    "proves it, as `account retry` does in get_started. The old `org director add` refuses on v4, so the founder seats " +
+    "the Director with `org board director add` (journeys.steps). Budget changes are Board proposals that land as `budget_change_transitioned`; " +
     "a new allowance or department is the budget machine's own birth. `org invite cancel` and `invite decline`, and " +
     "`org agreement withdraw`, are taken on second invitations and offers the scenario's world holds. Left out " +
     "(journeys.steps): the eleven optional books operations and nineteen reads and changes along the way.",
   steps: [
     step(organizations.operation_org_create, "founder", event_org_setup_transitioned),
-    step(organizations.operation_org_retry, "founder", event_org_setup_transitioned),
+    step(organizations.operation_org_retry, "founder", "success"),
     step(organizations.operation_org_show, "founder", "success"),
     step(budgets.operation_org_member_invite, "office-holder", event_org_invite_transitioned),
     step(organizations.operation_org_invite_resend, "office-holder", event_org_invite_transitioned),
@@ -502,7 +504,12 @@ export const decision_journeys_onto_target = defineDecision({
     "P7 move to the wide event's error code, while a target journey is one list that is both the jrn: scenario and the " +
     "fun: funnel. Keys stay as ids (the id pattern takes underscores), so the old catalog's and PostHog's names hold. " +
     "Steps that share an event are told apart by its properties: its `transition`, or the kind of change it carries " +
-    "(nine run_company steps are budget_change_transitioned, told apart by `kind`). Alternative endings the old lists keep (a cancel, a decline, a retry) stay steps: the scenario takes " +
+    "(nine run_company steps are budget_change_transitioned, told apart by `kind`). Three pairs of them share a `kind` " +
+    "too: `org allowance change` and `org department budget set` (set_amount), `org allowance assign` and `org " +
+    "department holder add` (add_holder), `org allowance revoke` and `org department holder remove` (remove_holder). " +
+    "The event carries no budget kind, so within each pair only its `budget_ref` (the allowance's or the department's) " +
+    "tells them apart; a funnel that needs them apart needs that kind on the event, which is budgets' change. " +
+    "Alternative endings the old lists keep (a cancel, a decline, a retry) stay steps: the scenario takes " +
     "each on a second object its world holds, so every step's event is still sent once, in order.",
   source: by(`${OLD}/*.yaml; ${CATALOG}; ${CONTRACTS}/*-contract.ts; docs/decisions/policy-pack.md (P7, recommendation B)`),
   affects: [...JOURNEYS],
