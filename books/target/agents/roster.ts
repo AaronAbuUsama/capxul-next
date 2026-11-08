@@ -85,8 +85,8 @@ export const rpc_agents_roster_show = defineRpc({
     "positions are read live: `balanceOf` of its Safe for each settlement asset of the deployment, at `latest` and in " +
     "parallel (chain-rpc); a node that does not answer is PROVIDER_ERROR, and no balance is made up. Its Seats are " +
     "organizations' active Seats at its Safe, each with what it was given: the hats its Safe wears in that " +
-    "Organization's tree (indexing's hat-wearers and chain-hats), named by the deployment's officer hats and allowances " +
-    "(organizations' org-deployments). It writes nothing.",
+    "Organization's tree (indexing's hat-wearers and chain-hats), named by the deployment's officer hats (organizations' " +
+    "org-deployments: Books, Invoicing, People) or else by the hat's own details. It writes nothing.",
   was: [`${CONVEX}:25`, `${OLD}/operations/show.ts:24`, `${OLD}/reads/rows.ts:24`, `${ROWS}:78`, AS_IS],
   concept: concept_agents,
   kind: "action",

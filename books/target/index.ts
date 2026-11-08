@@ -13,6 +13,7 @@ import * as indexing from "./indexing/index.ts";
 import * as approvals from "./approvals/index.ts";
 import * as accounts from "./accounts/index.ts";
 import * as organizations from "./organizations/index.ts";
+import * as board from "./board/index.ts";
 import * as agents from "./agents/index.ts";
 import * as budgets from "./budgets/index.ts";
 import * as books from "./books/index.ts";
@@ -24,11 +25,12 @@ import * as banking from "./banking/index.ts";
 import * as requests from "./requests/index.ts";
 import * as applications from "./applications/index.ts";
 import * as activity from "./activity/index.ts";
+import * as notices from "./notices/index.ts";
 
 export const name = "Capxul target";
 export const stage = "target" as const;
 
 /** Each designed concept's modules (its <concept>/index.ts exports `modules`). Empty until the designs land. */
-const conceptModules: readonly object[] = [...access.modules, ...parties.modules, ...indexing.modules, ...approvals.modules, ...accounts.modules, ...organizations.modules, ...agents.modules, ...budgets.modules, ...books.modules, ...documents.modules, ...contacts.modules, ...payments.modules, ...payroll.modules, ...banking.modules, ...requests.modules, ...applications.modules, ...activity.modules];
+const conceptModules: readonly object[] = [...access.modules, ...parties.modules, ...indexing.modules, ...approvals.modules, ...accounts.modules, ...organizations.modules, ...board.modules, ...agents.modules, ...budgets.modules, ...books.modules, ...documents.modules, ...contacts.modules, ...payments.modules, ...payroll.modules, ...banking.modules, ...requests.modules, ...applications.modules, ...activity.modules, ...notices.modules];
 
 export const records = recordsOf([...sharedModules, ...conceptModules]);
