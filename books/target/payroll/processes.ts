@@ -10,7 +10,22 @@ import { contract_agreements, integration_chain_rpc, integration_indexer } from 
 import { procedure_approvals_withdraw } from "../approvals/procedures.ts";
 import { table_approvals } from "../approvals/data.ts";
 import { table_board_proposals } from "../board/data.ts";
-import { machine_agreement, machine_agreement_write, table_agreement_writes, table_agreements } from "./data.ts";
+import {
+  machine_agreement,
+  machine_agreement_write,
+  machine_employee,
+  machine_salary_slip,
+  machine_salary_structure,
+  machine_salary_structure_assignment,
+  table_agreement_writes,
+  table_agreements,
+  table_employees,
+  table_salary_components,
+  table_salary_slips,
+  table_salary_structure_assignments,
+  table_salary_structures,
+} from "./data.ts";
+import { table_parties } from "../parties/data.ts";
 import {
   rpc_payroll_holders_change,
   rpc_payroll_holders_end,
@@ -41,7 +56,10 @@ export const workflow_payroll_agreements_lifecycle = defineWorkflow({
     "without its event (another write beat it), or the proposal ended `failed`; it abandons it when the approval was refused, declined, displaced, " +
     "withdrawn or expired unsent, or the proposal was rejected or replaced. A prepared offer whose write did not land is " +
     "abandoned with it. (3) Its timers, by the chain's clock: the offer's expiry lapses an offer nobody accepted or withdrew, and the end (00:00 UTC after the " +
-    "last day paid) ends an accepted agreement. It ends when the agreement is lapsed, withdrawn or abandoned and no write " +
+    "last day paid) ends an accepted agreement. (4) Frappe HR's side (payroll.agreements-in-frappe-shape): an acceptance " +
+    "hires a person payee as an Employee if need be and assigns the agreement structure on the rate, a landed rate " +
+    "change assigns it anew from its date, a landed collection records its paid slip, and the end lets go an Employee " +
+    "nothing else pays. It ends when the agreement is lapsed, withdrawn or abandoned and no write " +
     "awaits, or, once ended, when a landed collection leaves nothing collectable. `timeoutMs` bounds each step; its waits " +
     "are durable and have no deadline. It replaces old payroll's settle-on-read (settledContext), its sent-write settling " +
     "actions and the payroll half of the daily sweep.",
@@ -124,10 +142,43 @@ export const workflow_payroll_agreements_lifecycle = defineWorkflow({
         "When the agreement reaches lapsed, withdrawn or abandoned, each awaiting write but a collection has its unsigned " +
         "approval withdrawn (approvals.withdraw) and is abandoned; a signed one is left for the chain to end.",
     },
+    {
+      name: "hire-and-assign",
+      about:
+        "At agreement.accept for a person payee: their Employee (by Party) or a new one hired at the block's day; the " +
+        "agreement component and structure, made at the Organization's first acceptance; an assignment from the start on the rate.",
+    },
+    { name: "reassign", about: "A landed RateChanged assigns the agreement structure anew from its effective day, on the new rate." },
+    {
+      name: "record-collection",
+      about:
+        "A landed collection to a person records one paid salary slip (salary-slip.record_collection): its window, the " +
+        "collected amount as its one earning, its payment id, transaction and block time, and the terms document.",
+    },
+    { name: "let-go", about: "At agreement.finish: the Employee leaves on the last day paid when no other agreement or assignment pays them." },
     { name: "close", about: "Ends the instance once nothing more can happen; an ended agreement's last collection is read with availableOf." },
   ],
-  reads: [table_agreements, table_agreement_writes, table_approvals, table_board_proposals],
-  writes: [table_agreements, table_agreement_writes],
+  reads: [
+    table_agreements,
+    table_agreement_writes,
+    table_approvals,
+    table_board_proposals,
+    table_parties,
+    table_employees,
+    table_salary_components,
+    table_salary_structures,
+    table_salary_structure_assignments,
+    table_salary_slips,
+  ],
+  writes: [
+    table_agreements,
+    table_agreement_writes,
+    table_employees,
+    table_salary_components,
+    table_salary_structures,
+    table_salary_structure_assignments,
+    table_salary_slips,
+  ],
   drives: [
     a.offer,
     a.abandon,
@@ -142,6 +193,11 @@ export const workflow_payroll_agreements_lifecycle = defineWorkflow({
     w.land,
     w.fail,
     w.abandon,
+    machine_employee.t.hire,
+    machine_employee.t.leave,
+    machine_salary_structure.t.submit,
+    machine_salary_structure_assignment.t.submit,
+    machine_salary_slip.t.record_collection,
   ],
   invokes: [procedure_approvals_withdraw],
   emits: [],
@@ -154,7 +210,8 @@ export const workflow_payroll_agreements_lifecycle = defineWorkflow({
   chain: [contract_agreements.f.availableOf],
   idempotency:
     "One instance per agreement_id. Each Agreements event applies once, by its log (block hash and log index); each write " +
-    "is decided once, by write_id; a timer fires once per agreement and date, and a status the machine has left is not entered again.",
+    "is decided once, by write_id; a timer fires once per agreement and date, and a status the machine has left is not entered again. " +
+    "A collection's slip is recorded once, by its write (salary-slips by_write).",
   timeoutMs: 120_000,
   retries: { max: 5, backoff: "exponential" },
   compensation:

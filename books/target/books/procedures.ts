@@ -6,19 +6,25 @@
 // directly.
 //
 // Neither procedure ever refuses: a settlement must never fail because of the books. A side whose
-// account choice no longer fits the chart is booked and left waiting in review.
+// voucher choice no longer fits the chart is booked and left waiting in review. Each fact takes the
+// Organization's next feed number under its book-companies row lock (books.feed), so the fact, its
+// number and the money commit together or not at all.
 
 import { Schema } from "effect";
 import { defineProcedure } from "../../../packages/book/src/index.ts";
 import { concept_books } from "../shared/foundation.ts";
 import {
+  DocumentRef,
   machine_book_account,
   machine_book_annotation,
+  machine_book_company,
+  PartyType,
   Reference,
   SourceKind,
   table_book_accounts,
   table_book_annotations,
-  table_book_charts,
+  table_book_companies,
+  table_book_cost_centers,
   table_book_facts,
   table_book_prices,
 } from "./data.ts";
@@ -31,6 +37,21 @@ const S = Schema.String;
 const N = Schema.Number;
 const NullOr = Schema.NullOr;
 const opt = Schema.optionalKey;
+
+/**
+ * What the payer, the request or the head said the money is for, when it was instructed: the other side of its
+ * voucher (books.vouchers). The command that moved the money carries it (`payment send --account`, a request's
+ * invoice, a payout's account, a head's "pay this invoice with Capxul").
+ */
+export const Against = Schema.Struct({
+  account_id: opt(S),
+  suggestion: opt(S),
+  same_as: opt(Reference),
+  party: opt(Schema.Struct({ type: PartyType, id: S })),
+  cost_center_id: opt(S),
+  project: opt(S),
+  references: opt(Schema.Array(DocumentRef)),
+});
 
 /** One Organization's side of one money occurrence, as the invoker knows it. */
 const MoneySide = Schema.Struct({
@@ -45,19 +66,21 @@ const MoneySide = Schema.Struct({
   symbol: S,
   decimals: N,
   amount_raw: S,
+  /** The part of the amount a rail kept (a bank payout's or deposit's fee), in the asset's units. */
+  fee_raw: opt(S),
   /** Whether the asset is one of Capxul's priced assets; an added token never is. */
   priced: Schema.Boolean,
   counterparty: NullOr(S),
+  /** The counterparty's Party in the directory, when it has one: the voucher's party. */
+  party_id: NullOr(S),
   chain_id: N,
   block_number: N,
   block_time: N,
   tx_hash: S,
+  log_index: NullOr(N),
   safe_address: S,
   actor: Schema.Struct({ kind: Schema.Literals(["person", "agent", "system"]), id: NullOr(S) }),
-  /** The account the payer chose when sending (`payment send --account`), or the payout's account for its return. */
-  account: opt(
-    Schema.Struct({ account_id: opt(S), suggestion: opt(S), same_as: opt(Reference) }),
-  ),
+  against: opt(Against),
 });
 
 export const procedure_books_record_money_fact = defineProcedure({
@@ -65,14 +88,17 @@ export const procedure_books_record_money_fact = defineProcedure({
   title: "Record a money occurrence's book facts",
   about:
     "Money fact: a settled Payment, a Payment born from a chain fact, a bank deposit, a payout's return and a Movement of " +
-    "outside money always have their book fact, written in the same transaction (K10). For each Organization side the " +
-    "invoker passes, one fact under its `money_key`, with the USD value at the rate in force at the block for a priced " +
-    "asset (unpriced otherwise), chart or no chart (books.facts-without-chart). A key with a standing fact of the same " +
-    "kind and amount writes nothing (a replay, a second writer). A side from a Payment, deposit or payout whose key holds " +
-    "a standing Movement fact reverses it and records itself as the next generation; a Movement side never replaces one " +
-    "of theirs (books.money-key). With a chart, the asset's Safe account is made if missing (`account_created`). An " +
-    "account choice applies only to a row nobody annotated yet; one that no longer fits the chart is dropped and the row " +
-    "waits in review. It never refuses and makes no outside call.",
+    "outside money always have their book fact, written in the same transaction (K10), and so their voucher. For each " +
+    "Organization side the invoker passes, one fact under its `money_key` with the Organization's next feed number, " +
+    "taken under its book-companies row lock (born `open` if the books have not begun), with the USD value at the rate in " +
+    "force at the block for a priced asset (unpriced otherwise), chart or no chart (books.facts-without-chart). A block " +
+    "whose day is on or before `closed_through` gets the first open day as its `posting_date`. A key with a standing fact " +
+    "of the same kind and amount writes nothing (a replay, a second writer). A side from a Payment, deposit or payout " +
+    "whose key holds a standing Movement fact reverses it and records itself as the next generation; a Movement side " +
+    "never replaces one of theirs (books.money-key). With a chart, the asset's Safe account is made if missing " +
+    "(`account_created`). The `against` choice becomes the row's annotation only if nobody annotated the row yet, and " +
+    "only the parts that fit the chart: an archived or group account, a receivable or payable account without its " +
+    "party, or an unknown cost centre is dropped and the row waits in review. It never refuses and makes no outside call.",
   was: [
     `${BK}/facts/writes/money.ts:98`,
     `${BK}/facts/writes/money.ts:130`,
@@ -88,9 +114,21 @@ export const procedure_books_record_money_fact = defineProcedure({
   input: Schema.Struct({ sides: Schema.Array(MoneySide) }),
   output: Schema.Struct({ recorded: Schema.Array(S), unchanged: Schema.Array(S), superseded: Schema.Array(S) }),
   errors: [],
-  reads: [table_book_facts, table_book_prices, table_book_charts, table_book_accounts, table_book_annotations],
-  writes: [table_book_facts, table_book_accounts, table_book_annotations],
-  drives: [machine_book_account.t.add, machine_book_annotation.t.queue, machine_book_annotation.t.assign],
+  reads: [
+    table_book_companies,
+    table_book_facts,
+    table_book_prices,
+    table_book_accounts,
+    table_book_annotations,
+    table_book_cost_centers,
+  ],
+  writes: [table_book_companies, table_book_facts, table_book_accounts, table_book_annotations],
+  drives: [
+    machine_book_company.t.open,
+    machine_book_account.t.add,
+    machine_book_annotation.t.queue,
+    machine_book_annotation.t.assign,
+  ],
   invokes: [],
   emits: [],
 });
@@ -100,10 +138,11 @@ export const procedure_books_reverse_money_fact = defineProcedure({
   title: "Reverse a money occurrence's book facts",
   about:
     "Money fact: money the chain took back is taken back in the books in the same transaction (K12). For each " +
-    "Organization whose standing fact under `money_key` exists, a `reversed` fact `<fact id>_rev` with the same amount, " +
-    "asset and USD value, naming the fact it cancels, dated when the reorganization was seen; reports net the two. " +
-    "Settling again later is the next generation (`record-money-fact`). A key with no standing fact writes nothing; a " +
-    "second call is a no-op. It never refuses and makes no outside call.",
+    "Organization whose standing fact under `money_key` exists, a `reversed` fact `<fact id>_rev` with the next feed " +
+    "number and the same amount, asset and USD value, naming the fact it cancels, dated when the reorganization was " +
+    "seen: its voucher is cancelled on that day, the immutable ledger's way, and reports net the two. Settling again " +
+    "later is the next generation, a new voucher amended from the cancelled one (`record-money-fact`). A key with no " +
+    "standing fact writes nothing; a second call is a no-op. It never refuses and makes no outside call.",
   was: [
     `${BK}/facts/writes/money.ts:163`,
     `${BK}/facts/writes/money.ts:180`,
@@ -122,8 +161,8 @@ export const procedure_books_reverse_money_fact = defineProcedure({
   }),
   output: Schema.Struct({ reversed: Schema.Array(S) }),
   errors: [],
-  reads: [table_book_facts],
-  writes: [table_book_facts],
+  reads: [table_book_companies, table_book_facts],
+  writes: [table_book_companies, table_book_facts],
   drives: [],
   invokes: [],
   emits: [],

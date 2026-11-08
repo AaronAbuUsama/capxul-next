@@ -12,10 +12,17 @@ import {
   contract_installer,
   contract_safe,
   integration_chain_rpc,
+  integration_frappe_head,
   integration_indexer,
   integration_service_signer,
 } from "../shared/external.ts";
 import {
+  event_org_app_transitioned,
+  event_org_head_transitioned,
+  machine_org_app,
+  machine_org_head,
+  table_org_apps,
+  table_org_heads,
   machine_org_invite,
   machine_org_member,
   machine_org_setup,
@@ -37,6 +44,7 @@ import { procedure_parties_activate, procedure_parties_release } from "../partie
 import { table_hat_wearers, table_safe_executions } from "../indexing/data.ts";
 import { event_approval_transitioned } from "../approvals/data.ts";
 import { table_indexer_progress } from "../indexing/data.ts";
+import { rpc_organizations_heads_ring } from "./heads.ts";
 
 const O = "packages/backend/src/organizations";
 const DAY = 86_400_000;
@@ -59,7 +67,11 @@ export const workflow_organizations_setups_set_up = defineWorkflow({
     "Installer refuses), declined, expired, reverted or displaced stalls it with that reason and approvals' code " +
     "(declined CANCELLED, expired or displaced WRONG_STATE, reverted TRANSACTION_FAILED, refused its stored code). A " +
     "provider outage that outlasts a step's retries stalls it too. `org retry` resumes it from its last finished step. " +
-    "It replaces the old observe workflow, its every-minute recovery cron and ten internal rpcs.",
+    "With an FDE key recorded, the install batch also calls `AgentOwner.create(that key, the company Safe)` from the " +
+    "company Safe, so the founder's one signature creates the FDE; at completion its Party is activated and it is seated " +
+    "as the Organization's own agent, and a failed setup releases its Party with the Organization's " +
+    "(organizations.fde-at-start-up). It replaces the old observe workflow, its every-minute recovery cron and ten " +
+    "internal rpcs.",
   was: [
     "docs/as-is/archive/organizations/setups.ts:709",
     "docs/as-is/archive/organizations/setups.ts:751",
@@ -102,7 +114,7 @@ export const workflow_organizations_setups_set_up = defineWorkflow({
       name: "install-final",
       for: "indexer",
       key: [{ on: [table_indexer_progress], props: ["chain_id"], reaches: "indexed_block" }],
-      about: "The install's facts at finality: the Gate as module and guard, the hats minted.",
+      about: "The install's facts at finality: the Gate as module and guard, the hats minted, and the FDE's AgentCreated when it carries one.",
     },
     {
       name: "retry",
@@ -116,9 +128,9 @@ export const workflow_organizations_setups_set_up = defineWorkflow({
     { name: "confirm-mint", about: "At finality, read the mint's facts: steps gains safe_minted and the Party is activated, or the setup fails and the Party is released." },
     { name: "deploy", about: "Send Installer.deployMoney with the tier key, unless deploy_tx_hash is recorded: it mints new hats each time it runs." },
     { name: "confirm-deploy", about: "At finality, read MoneyDeployed; write the deployment; steps gains money_deployed." },
-    { name: "open-install", about: "Read buildMoney's batch, open the founder's install approval at the company Safe's first nonce; request_authorization." },
+    { name: "open-install", about: "Read buildMoney's batch, add AgentOwner.create of the FDE's key when one is recorded, open the founder's install approval; request_authorization." },
     { name: "await-founder", about: "Wait for the founder's signature; authorize once the approval is signed." },
-    { name: "complete", about: "At finality, check the install's facts; steps gains installed; complete; seat the founder (`seat_use` seat, one of ten)." },
+    { name: "complete", about: "At finality, check the install's facts (AgentCreated for the FDE's Safe too); complete; seat the founder (`seat`) and the FDE (`organization`); activate the FDE's Party." },
   ],
   reads: [table_org_setups, table_organizations, table_org_deployments],
   writes: [table_org_setups, table_org_deployments, table_org_members],
@@ -145,6 +157,7 @@ export const workflow_organizations_setups_set_up = defineWorkflow({
     contract_installer.f.buildMoney,
     contract_safe.f.execTransaction,
     contract_hats.f.mintHat,
+    contract_agent_owner.f.create,
   ],
   idempotency:
     "One process per Organization (`org-setup:<orgId>`). The mint and deployMoney are each sent once: the service signer " +
@@ -258,6 +271,66 @@ export const workflow_organizations_members_end_agent_seats = defineWorkflow({
   chain: [],
   idempotency: "The AgentRemoved log's transaction hash and log index; a Seat already removed is skipped.",
   timeoutMs: 60_000,
+  retries: { max: 5, backoff: "exponential" },
+  budget: budget("background"),
+});
+
+export const workflow_organizations_heads_watch = defineWorkflow({
+  id: "organizations.heads.watch",
+  title: "One head connection's life: check the site, install wanted apps, follow it",
+  about:
+    "The one durable process of a head connection, started by its `connect`: it waits on the site for days at a time and " +
+    "must survive a crash. It reads the site (`readSite`) and confirms the connection when the Capxul app is there at a " +
+    "version Capxul speaks, with its Custom Fields, the fundamental apps (ERPNext, Frappe HR, Frappe CRM) and the " +
+    "Organization's time zone; anything else stalls it with the reason (a head in another time zone would date every " +
+    "document a day wrong). Connected, it asks the head's host to install each wanted app (`installApp`; a self-hosted " +
+    "head's owner installs it) and marks it installed once readSite lists it. It checks the site again once a day by its " +
+    "own timer, at once when an app is wanted, and on a ring while failing; a check that fails past its retries stalls " +
+    "it, and the next good one recovers it. It ends when a Director disconnects the head. It syncs no records: each app " +
+    "concept's own process does, from `confirm` (organizations.head-ownership). On a devnet its daily timer is a stop, " +
+    "and the stand-in head follows the clock (organizations.head-clock).",
+  concept: concept_organizations,
+  priority: "normal",
+  trigger: { transition: machine_org_head.t.connect },
+  instance: { per: table_org_heads },
+  signals: [rpc_organizations_heads_ring],
+  waits: [
+    { name: "daily-check", for: "timer", timeoutMs: DAY, about: "Read the site again a day after the last check." },
+    {
+      name: "app-wanted",
+      for: "signal",
+      key: [{ on: [event_org_app_transitioned], props: ["org_id"] }],
+      about: "An app became wanted: ask the head's host to install it now.",
+    },
+    {
+      name: "ring",
+      for: "signal",
+      key: [{ on: [rpc_organizations_heads_ring], props: ["headId"] }],
+      about: "The head rang while the connection is failing: the site is up again, so check it now.",
+    },
+    {
+      name: "disconnected",
+      for: "signal",
+      key: [{ on: [event_org_head_transitioned], props: ["org_id", "head_id"] }],
+      about: "A Director disconnected it: end.",
+    },
+  ],
+  steps: [
+    { name: "check", about: "readSite; confirm, stall or recover; record Frappe's and the Capxul app's versions and the time zone." },
+    { name: "install-wanted", about: "Connected: installApp for each wanted app not yet asked for; install each that readSite lists." },
+    { name: "await", about: "Wait for the timer, a wanted app, a ring or the disconnect." },
+  ],
+  reads: [table_org_heads, table_org_apps, table_organizations],
+  writes: [table_org_heads, table_org_apps],
+  drives: [machine_org_head.t.confirm, machine_org_head.t.stall, machine_org_head.t.recover, machine_org_app.t.install],
+  invokes: [],
+  emits: [],
+  calls: [integration_frappe_head.c.readSite, integration_frappe_head.c.installApp],
+  chain: [],
+  idempotency:
+    "One process per head connection (`org-head:<orgId>:<headId>`); each transition is guarded by the state it moves " +
+    "from, and an app already asked for is not asked for again.",
+  timeoutMs: 3650 * DAY,
   retries: { max: 5, backoff: "exponential" },
   budget: budget("background"),
 });

@@ -7,6 +7,12 @@
 //
 // Every refusal is reached from the world `person-with-contacts` (decision contacts.worlds):
 // NOT_AUTHENTICATED by calling there with no session.
+//
+// The book is now also each Organization's CRM, in Frappe CRM's shapes (decision
+// contacts.frappe-shape): an entry is a Contact or a CRM Organization, and may be private, with no
+// Party yet. Every entry these five commands make is born from a Party and has its PartyId as its
+// id, so each claim below holds as it did; the CRM's own capabilities (recording, leads, deals)
+// are no operation (decision contacts.crm-capabilities).
 
 import { Schema } from "effect";
 import { budget, defineOperation } from "../../../packages/book/src/index.ts";
@@ -20,6 +26,7 @@ import {
 } from "../shared/vocabulary.ts";
 import {
   Entry,
+  PartyRef,
   rpc_contacts_book_add,
   rpc_contacts_book_list,
 } from "./book.ts";
@@ -81,8 +88,6 @@ const rewritten = (id: FrozenId, n: number, claim: string, observes: string) => 
   return { claim, observes, was: [a.claim, ...a.was] };
 };
 
-const PartyRef = Entry.fields.ref;
-
 /** At a terminal, a guided command makes a second call before its one write or read. */
 const guidedWrite = {
   ...budget("write"),
@@ -132,7 +137,7 @@ export const operation_contact_add = defineOperation({
   ],
   returns: Schema.Struct({
     id: Entry.fields.id, // The contact's stable PartyId.
-    ref: PartyRef, // How you named them: the party locator the money path takes.
+    ref: PartyRef, // How you named them: the party locator the money path takes; an added entry always has one.
     label: Entry.fields.label, // Its label.
     relationship: Entry.fields.relationship, // How you know them.
     hidden: Entry.fields.hidden, // false.

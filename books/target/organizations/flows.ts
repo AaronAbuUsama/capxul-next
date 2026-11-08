@@ -40,7 +40,11 @@ export const flow_client_onboarding_begin_organization = defineFlow({
     "approval page in the browser, where their own signer signs it (approvals' `client.approvals.sign`), then follows " +
     "the setup until it is ready or stops, within one deadline over the write and " +
     "its setup. At the deadline it stops waiting and the setup carries on. The CLI shows the preview and asks before it " +
-    "calls this method.",
+    "calls this method. Start-up (organizations.startup, organizations.fde-at-start-up): unless `fde` is false, it first " +
+    "makes the Organization's FDE key on this machine, as `agent create` makes an agent's, keeps it in this machine's key " +
+    "store under the handle (a private file, or printed once for `CAPXUL_PRIVATE_KEY`), and passes only its address, so " +
+    "the founder's one install signature also creates the FDE. A resume of the same intent reuses the key this machine " +
+    "keeps; from another machine the setup keeps the key it recorded first, and the answer says the FDE's key is not here.",
   was: [`${SDK}/profiles/organization-onboarding.ts:83`, "docs/as-is/archive/organizations/flows.ts:55"],
   component: component_core_sdk,
   sdk: "client.onboarding.beginOrganization",
@@ -51,10 +55,20 @@ export const flow_client_onboarding_begin_organization = defineFlow({
     bio: Schema.optionalKey(S),
     size: Schema.optionalKey(S),
     logoFileId: Schema.optionalKey(S),
+    currency: Schema.optionalKey(S),
+    timeZone: Schema.optionalKey(S),
+    fiscalYearStart: Schema.optionalKey(S),
+    apps: Schema.optionalKey(Schema.Array(S)),
+    /** False starts the Organization without an FDE (`--no-fde`); a Director can create one later with `agent create --org`. */
+    fde: Schema.optionalKey(Schema.Boolean),
+    /** Where this machine keeps the FDE's key: a private file (the default) or printed once for `CAPXUL_PRIVATE_KEY`. */
+    fdeKey: Schema.optionalKey(Schema.Literals(["file", "env"])),
     ...Deadline,
   }),
   output: Lifecycle,
   steps: [
+    { name: "fde-key", local: "build", about: "Unless `fde` is false: make the FDE's key, or reuse the one this machine keeps for the handle." },
+    { name: "keep-key", local: "cache", about: "Keep the FDE's key in this machine's key store before the address leaves it." },
     { name: "begin", rpc: rpc_organizations_setups_begin, about: "Create the Organization, its Party and its setup, or resume the same intent." },
     { name: "save", local: "cache", about: "Record the Organization ID and handle on this machine before anything else can fail." },
     { name: "watch", rpc: rpc_organizations_setups_get, about: "Subscribe to the setup's changes." },

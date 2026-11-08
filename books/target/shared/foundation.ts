@@ -198,6 +198,23 @@ export const component_devnet = defineComponent({
   was: ["packages/devnet/README.md:5"],
 });
 
+export const component_frappe_app = defineComponent({
+  id: "frappe-app",
+  title: "Capxul app for Frappe",
+  about:
+    "The Frappe app Capxul publishes for a connected head (aaron.frappe-head): installed on the Organization's Frappe site " +
+    "with ERPNext, Frappe HR and Frappe CRM, it is the head's half of the `frappe-head` integration and the one seam, with " +
+    "no fork. It adds Custom Fields (`capxul_id`, `capxul_version` on every synced DocType; the Party id on Customer, " +
+    "Supplier, Contact, Employee and CRM Organization), makes the fields Capxul owns read-only and refuses edits to them " +
+    "in a `validate` hook, records every change to a synced DocType in its own change list in the same database " +
+    "transaction, answers the whitelisted methods Capxul calls, and rings Capxul's doorbell route after a change (a signed " +
+    "ping that carries no data). It holds no Capxul key: Capxul reads it and writes to it. On a devnet it follows the one clock (devnet.followers): it sets `frappe.utils.now_datetime` " +
+    "to the devnet's now and runs Frappe's due scheduled jobs at each stop.",
+  runtime: "python (Frappe Framework v15)",
+  exposes: ["http"],
+  dependsOn: [],
+});
+
 // ── concepts: the target map (each after everything it depends on) ─────────────────────────
 
 const B = component_backend;
@@ -352,6 +369,23 @@ export const concept_agents = defineConcept({
     concept_access, concept_parties, concept_indexing, concept_approvals, concept_accounts, concept_organizations, concept_board,
   ],
   was: [`${OLD}/accounts/README.md:3`],
+});
+
+export const concept_projects = defineConcept({
+  id: "projects",
+  title: "Projects",
+  about:
+    "Projects in the shape of ERPNext's Projects module, one of the fundamental apps every Organization starts with " +
+    "(aaron.projects, aaron.frappe-shape): projects with their users, tasks with their parents and dependencies, " +
+    "timesheets with their time logs, activity types, project types and the Projects Settings, each a Frappe DocType's " +
+    "fields with a Capxul id beside the head's name. Its start-up creates the settings and ERPNext's starting activity and " +
+    "project types when the Organization begins, whether or not a Frappe head is ever connected; once one is, its sync " +
+    "process pushes every change in order from its gap-free change log and applies the head's changes (organizations' " +
+    "head-ownership rules). A task's expected end is its own process's timer on the one clock, never a daily sweep. It " +
+    "moves no money: billing hours (a request) and paying them (a payslip) sit above it. Its commands are new capabilities, " +
+    "proposed to Aaron in a decision pack (projects.commands); none is among the 215. New in the rebuild.",
+  component: B,
+  dependsOn: [concept_access, concept_parties, concept_organizations],
 });
 
 export const concept_budgets = defineConcept({
@@ -576,7 +610,7 @@ export const concept_devnet = defineConcept({
 /** Every target concept, in dependency order. */
 export const CONCEPTS: readonly Concept[] = [
   concept_access, concept_media, concept_parties, concept_indexing, concept_approvals, concept_accounts, concept_organizations,
-  concept_board, concept_agents, concept_budgets, concept_books, concept_documents, concept_contacts, concept_payments,
+  concept_board, concept_agents, concept_projects, concept_budgets, concept_books, concept_documents, concept_contacts, concept_payments,
   concept_payroll, concept_banking, concept_requests, concept_applications, concept_equity, concept_activity, concept_notices,
   concept_devnet,
 ];
@@ -602,6 +636,10 @@ export const environment_devnet = defineEnvironment({
     { component: component_cli, on: "On the same machine after `capxul use env devnet`, with the devnet's fixed test identities." },
     { component: component_mcp_server, on: "A local MCP server on loopback, for assistant evals." },
     { component: component_devnet, on: "The supervisor process and its owner-only control socket; `capxul-devnet up`, `reset`, `down`." },
+    {
+      component: component_frappe_app,
+      on: "Imitated by the stand-in head (the `frappe-head` integration's fake); a head eval installs it on a local Frappe bench that follows the clock.",
+    },
   ],
   config: [
     "CAPXUL_ENV",
@@ -663,6 +701,10 @@ export const environment_staging = defineEnvironment({
     { component: component_react_sdk, on: "The published npm package, inside the staging web app and its approval page." },
     { component: component_cli, on: "The published npm package on the person's machine, after `capxul use env staging`." },
     { component: component_mcp_server, on: "The MCP server service on the spine's host, at its own HTTPS endpoint." },
+    {
+      component: component_frappe_app,
+      on: "Installed by each Organization's head host on the Frappe site it connects, from the published app; Capxul reaches it over HTTPS.",
+    },
   ],
   config: [
     "CAPXUL_ENV",

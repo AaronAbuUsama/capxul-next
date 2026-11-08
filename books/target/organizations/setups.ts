@@ -18,9 +18,11 @@ import {
   error_ROLE_PERMISSION_DENIED,
   error_WRONG_STATE,
 } from "../shared/vocabulary.ts";
-import { contract_company_safe_minter } from "../shared/external.ts";
+import { contract_agent_owner, contract_company_safe_minter } from "../shared/external.ts";
 import {
+  machine_org_app,
   machine_org_setup,
+  table_org_apps,
   SetupIssue,
   SetupStep,
   table_org_members,
@@ -56,6 +58,8 @@ export const SetupView = Schema.Struct({
   checkedAt: N,
   /** Once ready, from the chain: the Directors (the Gate's valid signers), the threshold, the next nonce, the proposals waiting. */
   board: NullOr(Schema.Struct({ directors: N, threshold: N, nonce: N, waitingProposals: N })),
+  /** The Organization's FDE, when it started with one: its Party and Safe; live once the install has landed. */
+  fde: NullOr(Schema.Struct({ partyId: S, safe: S })),
 });
 
 const OneOrganization = Schema.Struct({ orgId: S });
@@ -74,7 +78,15 @@ export const rpc_organizations_setups_begin = defineRpc({
     "call), inserts the Organization with its ten seats (`seat_limit` 10, aaron.seats) and its setup (`begin`, which " +
     "starts the setup process), and registers the " +
     "Organization's Party, pending, with the handle and that Safe (`parties.register`): a taken or malformed handle fails " +
-    "the whole transaction with INVALID_INPUT, so no Organization and no setup are left.",
+    "the whole transaction with INVALID_INPUT, so no Organization and no setup are left. Start-up (organizations.startup): " +
+    "the Company's abbreviation comes from the name's initials, and its currency, time zone and fiscal-year start from " +
+    "the country unless given (a currency, zone or `MM-DD` that is not one is INVALID_INPUT); the fundamental apps are " +
+    "born installed and native, and each app named in `apps` wanted (an unknown app, or a fundamental one, is " +
+    "INVALID_INPUT); each fundamental app's concept then starts itself from `begin`. With `fde`, the key the founder's " +
+    "machine made for the Organization's FDE (organizations.fde-at-start-up): the FDE's Safe is computed in-process " +
+    "(`AgentOwner.safeAddressFor` of that key and the company Safe) and its Party registered pending in the same " +
+    "transaction, owned by the Organization, as `<handle>-fde` (the handle's first 26 characters) or, when that is " +
+    "taken, `fde-` and ten characters of the Organization's id.",
   was: [
     `${AS_IS}:200`,
     `${SET}/operations/begin.ts:11`,
@@ -92,16 +104,26 @@ export const rpc_organizations_setups_begin = defineRpc({
     bio: Schema.optionalKey(S),
     size: Schema.optionalKey(S),
     logoFileId: Schema.optionalKey(S),
+    /** ISO 4217; the country's currency when absent. */
+    currency: Schema.optionalKey(S),
+    /** IANA; the country's first zone when absent. */
+    timeZone: Schema.optionalKey(S),
+    /** `MM-DD`; the country's fiscal-year start when absent, else `01-01`. */
+    fiscalYearStart: Schema.optionalKey(S),
+    /** Frappe apps beyond the fundamental ones, wanted until a head installs them. */
+    apps: Schema.optionalKey(Schema.Array(S)),
+    /** The FDE's key address and where the founder's machine keeps it; absent: the Organization starts without an FDE. */
+    fde: Schema.optionalKey(Schema.Struct({ signer: S, keyStore: Schema.Literals(["file", "env"]) })),
   }),
   output: Schema.Struct({ orgId: S, resumed: Schema.Boolean, setup: SetupView }),
   errors: [error_NOT_AUTHENTICATED, error_FEATURE_NOT_AVAILABLE, error_INVALID_INPUT, error_WRONG_STATE],
   reads: [table_principals, table_admissions, table_personal_safes, table_parties, table_files, table_organizations, table_org_setups],
-  writes: [table_organizations, table_org_setups],
-  drives: [machine_org_setup.t.begin],
+  writes: [table_organizations, table_org_setups, table_org_apps],
+  drives: [machine_org_setup.t.begin, machine_org_app.t.install_native, machine_org_app.t.want],
   invokes: [procedure_parties_register],
   emits: [],
   calls: [],
-  chain: [contract_company_safe_minter.f.companySafeAddressFor],
+  chain: [contract_company_safe_minter.f.companySafeAddressFor, contract_agent_owner.f.safeAddressFor],
   spans: [],
   budget: budget("write"),
 });

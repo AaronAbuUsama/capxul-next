@@ -15,6 +15,7 @@ import { frozen, frozenText, type FrozenId } from "../../frozen/index.ts";
 import {
   error_CANCELLED,
   error_CLI_DEADLINE,
+  error_CLI_STORAGE,
   error_CLI_USAGE,
   error_FEATURE_NOT_AVAILABLE,
   error_INVALID_INPUT,
@@ -113,7 +114,8 @@ export const operation_org_create = defineOperation({
       when: "You are still on the beta waitlist. Nothing is created until an operator admits you.",
     },
   ],
-  errors: [error_CLI_USAGE, error_CLI_DEADLINE, error_CANCELLED],
+  // CLI_STORAGE: this machine could not keep the FDE's key it made (organizations.fde-at-start-up); nothing was begun.
+  errors: [error_CLI_USAGE, error_CLI_DEADLINE, error_CANCELLED, error_CLI_STORAGE],
   budget: {
     ...budget("chain-submit"),
     p50Ms: 4_000,

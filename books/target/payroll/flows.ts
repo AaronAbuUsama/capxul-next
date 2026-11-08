@@ -21,37 +21,55 @@ import {
 } from "./holders.ts";
 import { rpc_payroll_payees_accept, rpc_payroll_payees_collect } from "./payees.ts";
 import { rpc_payroll_writes_watch } from "./writes.ts";
+import { rpc_payroll_employees_add, rpc_payroll_employees_change, rpc_payroll_employees_list } from "./employees.ts";
+import {
+  rpc_payroll_structures_assign,
+  rpc_payroll_structures_cancel,
+  rpc_payroll_structures_component,
+  rpc_payroll_structures_create,
+  rpc_payroll_structures_list,
+} from "./structures.ts";
+import {
+  rpc_payroll_runs_cancel,
+  rpc_payroll_runs_create,
+  rpc_payroll_runs_import,
+  rpc_payroll_runs_list,
+  rpc_payroll_runs_show,
+  rpc_payroll_runs_submit,
+  rpc_payroll_runs_withhold,
+} from "./runs.ts";
+import { rpc_payroll_slips_mine } from "./slips.ts";
 import { rpc_approvals_signing_get, rpc_approvals_signing_sign } from "../approvals/signing.ts";
 import { AcceptInput, AgreementRef, ChangeInput, EndInput, Followed, HolderWriteReturns, OfferInput, PayeeRef } from "./shapes.ts";
 import { Schema } from "effect";
 
 const SDK = "packages/sdk/src/payroll";
 
-const SPONSORED = {
+export const SPONSORED = {
   name: "sponsored",
   rpc: rpc_approvals_signing_get,
   about: "The write's approval, live, until approvals has sponsored it (`pending`, with its digest) or it ends.",
 } as const;
 
-const SIGN = {
+export const SIGN = {
   name: "sign",
   local: "sign",
   about: "An agent signs the digest with its own key; a person is handed the approval page (client.approvals.sign), which signs there.",
 } as const;
 
-const SUBMIT = {
+export const SUBMIT = {
   name: "submit",
   rpc: rpc_approvals_signing_sign,
   about: "An agent's signature goes to its approval, which approvals sends once; a person's page submits its own.",
 } as const;
 
-const WAIT = {
+export const WAIT = {
   name: "wait",
   local: "wait",
   about: "wait.person for the signature, then wait.chain until the operation is on chain and indexed; `--no-wait` returns before it.",
 } as const;
 
-const FOLLOW = {
+export const FOLLOW = {
   name: "follow",
   rpc: rpc_payroll_writes_watch,
   about: "Subscribed until the agreement's process lands, fails or abandons the write; returns the agreement as it now stands.",
@@ -62,7 +80,7 @@ const FOLLOW = {
  * ends the flow CANCELLED; one that expired unsent, WRONG_STATE; a write the chain refused, another write beat, or a
  * Board proposal that ran and failed (board's `fail`), TRANSACTION_FAILED.
  */
-const FLOW_ERRORS = [error_CANCELLED, error_WRONG_STATE, error_TRANSACTION_FAILED];
+export const FLOW_ERRORS = [error_CANCELLED, error_WRONG_STATE, error_TRANSACTION_FAILED];
 
 const holderFlow = (
   verb: string,
@@ -207,3 +225,143 @@ export const flow_client_me_agreements_collect = defineFlow({
   spans: [],
   budget: budget("chain-submit"),
 });
+
+// ── Frappe HR's doctypes ────────────────────────────────────────────────────────────────────
+//
+// One flow per HR rpc, each one call. They serve the Organization's own agent (its Forward Deployed
+// Engineer, aaron.fde-agent), any agent or person on the SDK, the web app, and a connected head's Capxul
+// app, which takes in the runs its head computed. They implement no frozen operation, so they name their
+// surfaces; their CLI commands come with the payroll operations pass (payroll.hr-surface).
+
+const HR_SURFACES = ["sdk", "react"] as const;
+
+const oneCall = (sdk: string, rpc: Rpc, title: string, about: string, write: boolean, surfaces: readonly ("sdk" | "react")[] = HR_SURFACES) =>
+  defineFlow({
+    id: sdk.replace("(orgId)", ""),
+    title,
+    about,
+    component: component_core_sdk,
+    sdk,
+    input: rpc.input as Schema.Top,
+    output: rpc.output as Schema.Top,
+    steps: [{ name: "call", rpc, about: `Runs ${rpc.id}.` }],
+    errors: [],
+    calls: [],
+    spans: [],
+    surfaces: [...surfaces],
+    budget: budget(write ? "write" : "read"),
+  });
+
+export const flow_client_org_payroll_employees_add = oneCall(
+  "client.org(orgId).payroll.employees.add",
+  rpc_payroll_employees_add,
+  "Add an Employee",
+  "Adds a person, by mailbox, handle or Party, as an Employee; a new hire needs no account. For the FDE agent, the web app and the head's app.",
+  true,
+);
+export const flow_client_org_payroll_employees_change = oneCall(
+  "client.org(orgId).payroll.employees.change",
+  rpc_payroll_employees_change,
+  "Change an Employee",
+  "Changes an Employee's department, designation, type or status, including letting them go on a day.",
+  true,
+);
+export const flow_client_org_payroll_employees_list = oneCall(
+  "client.org(orgId).payroll.employees.list",
+  rpc_payroll_employees_list,
+  "List the Employees",
+  "Lists the Organization's Employees, with whether each has claimed their account.",
+  false,
+);
+export const flow_client_org_payroll_structures_component = oneCall(
+  "client.org(orgId).payroll.structures.component",
+  rpc_payroll_structures_component,
+  "Add or change a salary component",
+  "Adds or changes an earning, deduction or employer contribution, with its amount or Frappe formula.",
+  true,
+);
+export const flow_client_org_payroll_structures_create = oneCall(
+  "client.org(orgId).payroll.structures.create",
+  rpc_payroll_structures_create,
+  "Create a salary structure",
+  "Creates a submitted salary structure from components, optionally replacing an earlier one.",
+  true,
+);
+export const flow_client_org_payroll_structures_assign = oneCall(
+  "client.org(orgId).payroll.structures.assign",
+  rpc_payroll_structures_assign,
+  "Assign a salary structure",
+  "Assigns a structure to an Employee from a day, on a base, paid from a department's budget.",
+  true,
+);
+export const flow_client_org_payroll_structures_cancel = oneCall(
+  "client.org(orgId).payroll.structures.cancel",
+  rpc_payroll_structures_cancel,
+  "Cancel a structure or assignment",
+  "Cancels a structure nothing is assigned to, or an assignment no live slip names.",
+  true,
+);
+export const flow_client_org_payroll_structures_list = oneCall(
+  "client.org(orgId).payroll.structures.list",
+  rpc_payroll_structures_list,
+  "List components, structures and assignments",
+  "Lists the Organization's salary components, structures and assignments.",
+  false,
+);
+export const flow_client_org_payroll_runs_create = oneCall(
+  "client.org(orgId).payroll.runs.create",
+  rpc_payroll_runs_create,
+  "Draft a payroll run",
+  "Drafts a department's run for a period with every slip worked out: gross, deductions and net.",
+  true,
+);
+export const flow_client_org_payroll_runs_import = oneCall(
+  "client.org(orgId).payroll.runs.import",
+  rpc_payroll_runs_import,
+  "Take in a run the head computed",
+  "Used by a connected head's Capxul app: takes in a Payroll Entry Frappe HR computed and submitted, to be paid by Capxul.",
+  true,
+  ["sdk"],
+);
+export const flow_client_org_payroll_runs_submit = oneCall(
+  "client.org(orgId).payroll.runs.submit",
+  rpc_payroll_runs_submit,
+  "Submit a payroll run",
+  "Submits a drafted run: its slips are fixed, owed, and each payslip is stored.",
+  true,
+);
+export const flow_client_org_payroll_runs_withhold = oneCall(
+  "client.org(orgId).payroll.runs.withhold",
+  rpc_payroll_runs_withhold,
+  "Withhold or release a slip",
+  "Withholds one submitted slip from its run's payment, or releases it.",
+  true,
+);
+export const flow_client_org_payroll_runs_cancel = oneCall(
+  "client.org(orgId).payroll.runs.cancel",
+  rpc_payroll_runs_cancel,
+  "Cancel a payroll run",
+  "Cancels a run nothing of which was paid, with its slips.",
+  true,
+);
+export const flow_client_org_payroll_runs_show = oneCall(
+  "client.org(orgId).payroll.runs.show",
+  rpc_payroll_runs_show,
+  "Show a payroll run",
+  "Shows one run with its slips and, once paid, the settled facts on each.",
+  false,
+);
+export const flow_client_org_payroll_runs_list = oneCall(
+  "client.org(orgId).payroll.runs.list",
+  rpc_payroll_runs_list,
+  "List payroll runs",
+  "Lists the Organization's runs by department and period, with the next step for each.",
+  false,
+);
+export const flow_client_me_payslips = oneCall(
+  "client.me.payslips",
+  rpc_payroll_slips_mine,
+  "Your payslips",
+  "Lists the payslips that pay your Safe, from every Organization, run slips and agreement collections alike.",
+  false,
+);

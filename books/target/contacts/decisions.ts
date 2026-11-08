@@ -3,22 +3,53 @@
 // contacts area and the CLI's contact commands) and the frozen book as evidence.
 
 import { defineDecision } from "../../../packages/book/src/index.ts";
-import { concept_contacts } from "../shared/foundation.ts";
-import { table_org_members } from "../organizations/data.ts";
+import { concept_contacts, concept_parties } from "../shared/foundation.ts";
+import { table_org_deployments, table_org_members } from "../organizations/data.ts";
+import { table_parties } from "../parties/data.ts";
 import { procedure_parties_resolve_recipient } from "../parties/procedures.ts";
-import { event_contact_transitioned, machine_contact, table_contacts } from "./data.ts";
+import {
+  event_contact_transitioned,
+  event_deal_transitioned,
+  event_lead_transitioned,
+  machine_contact,
+  machine_deal,
+  machine_lead,
+  table_contacts,
+  table_deal_contacts,
+  table_deals,
+  table_leads,
+} from "./data.ts";
 import {
   rpc_contacts_book_add,
   rpc_contacts_book_get,
   rpc_contacts_book_hide,
   rpc_contacts_book_label,
   rpc_contacts_book_list,
+  rpc_contacts_book_record,
   rpc_contacts_book_unhide,
 } from "./book.ts";
 import {
+  rpc_contacts_leads_convert,
+  rpc_contacts_leads_get,
+  rpc_contacts_leads_list,
+  rpc_contacts_leads_move,
+  rpc_contacts_leads_save,
+} from "./leads.ts";
+import { rpc_contacts_deals_get, rpc_contacts_deals_list, rpc_contacts_deals_move, rpc_contacts_deals_save } from "./deals.ts";
+import {
   flow_client_account_address_book_hide,
   flow_client_account_address_book_label,
+  flow_client_account_address_book_record,
   flow_client_account_address_book_unhide,
+  flow_client_org_crm_deals_get,
+  flow_client_org_crm_deals_list,
+  flow_client_org_crm_deals_move,
+  flow_client_org_crm_deals_save,
+  flow_client_org_crm_leads_convert,
+  flow_client_org_crm_leads_get,
+  flow_client_org_crm_leads_list,
+  flow_client_org_crm_leads_move,
+  flow_client_org_crm_leads_save,
 } from "./flows.ts";
 import {
   operation_contact_add,
@@ -30,7 +61,11 @@ import {
 
 const CLAUDE = "Claude, contacts design, 8 November 2026";
 const by = (evidence: string) => `${CLAUDE}; evidence: ${evidence}`;
+const FRAPPE_CRM = "Claude, contacts Frappe redesign (crm lane), 8 November 2026";
+const crmBy = (evidence: string) => `${FRAPPE_CRM}; evidence: ${evidence}`;
 const P = "packages/backend/src/parties";
+/** Frappe's sources, read on 8 November 2026. */
+const CRM = "frappe/crm@2cecd300 crm";
 
 const OPERATIONS = [
   operation_contact_add, operation_contact_hide, operation_contact_label, operation_contact_list, operation_contact_unhide,
@@ -40,19 +75,35 @@ const READS = [rpc_contacts_book_list, rpc_contacts_book_get];
 const FLOWS = [
   flow_client_account_address_book_label, flow_client_account_address_book_hide, flow_client_account_address_book_unhide,
 ];
+const LEAD_RPCS = [
+  rpc_contacts_leads_save, rpc_contacts_leads_move, rpc_contacts_leads_convert, rpc_contacts_leads_list, rpc_contacts_leads_get,
+];
+const DEAL_RPCS = [rpc_contacts_deals_save, rpc_contacts_deals_move, rpc_contacts_deals_list, rpc_contacts_deals_get];
+const CRM_RPCS = [rpc_contacts_book_record, ...LEAD_RPCS, ...DEAL_RPCS];
+const CRM_WRITES = [
+  rpc_contacts_book_record, rpc_contacts_leads_save, rpc_contacts_leads_move, rpc_contacts_leads_convert,
+  rpc_contacts_deals_save, rpc_contacts_deals_move,
+];
+const CRM_FLOWS = [
+  flow_client_account_address_book_record,
+  flow_client_org_crm_leads_save, flow_client_org_crm_leads_move, flow_client_org_crm_leads_convert,
+  flow_client_org_crm_leads_list, flow_client_org_crm_leads_get,
+  flow_client_org_crm_deals_save, flow_client_org_crm_deals_move, flow_client_org_crm_deals_list, flow_client_org_crm_deals_get,
+];
 
 // ── data ────────────────────────────────────────────────────────────────────────────────────
 
 export const decision_contacts_one_book_table = defineDecision({
   id: "contacts.one-book-table",
-  title: "One contacts table per owner, keyed by the counterparty's Party",
+  title: "One contacts table per owner, an entry per Party, its id the PartyId",
   question: "How is the address book stored, now that it leaves old parties' party edges?",
   options: [
     {
       label: "owner-table",
       text:
         "One `contacts` table with tenancy `owner` (`owner_kind` person or organization, `owner_id` their tenant id), one row " +
-        "per owner and counterparty PartyId.",
+        "per owner and entry, keyed by the entry's `contact_id`, which is the PartyId for an entry born from a Party; at " +
+        "most one entry per Party in a book (`contacts-by-party`, unique).",
     },
     { label: "two-tables", text: "A person's book and an Organization's book in two tables, each with its own tenant column." },
     {
@@ -64,11 +115,13 @@ export const decision_contacts_one_book_table = defineDecision({
   why:
     "Every frozen contact command runs the same way for both books, so one table and one set of rpcs serve them, with the " +
     "`owner` tenancy P8 gives a row a person or an Organization can own. Keying by the tenant ids, not by the owner's Party, " +
-    "lets the generated row-level security match the session's tenant directly. The key (owner, counterparty PartyId) " +
-    "is what 'every locator lands on one party-keyed entry' needs. The old edge table also held payroll's `employed` " +
-    "engagements and the provenance other concepts wrote; both go (contacts.relationships), so a plain table of entries " +
-    "is all that is left. `owner_id` leads the key and the index with `owner_kind` second, so the two kinds' ids never " +
-    "need to differ.",
+    "lets the generated row-level security match the session's tenant directly. 'Every locator lands on one party-keyed " +
+    "entry' is the unique `contacts-by-party` index, and every entry the frozen commands make is born from a Party, so its " +
+    "id is its PartyId, as `contact add` prints. The key is the entry's own id rather than the PartyId because the book is " +
+    "also an Organization's CRM, which keeps people and companies before they have a Party (contacts.private-entries). " +
+    "The old edge table also held payroll's `employed` engagements and the provenance other concepts wrote; both go " +
+    "(contacts.relationships). `owner_id` leads the key and the indexes with `owner_kind` second, so the two kinds' ids " +
+    "never need to differ.",
   source: by(`${P}/tables.ts:153 (partyEdges, contact and employed kinds); ${P}/contacts/reads.ts:140; P8`),
   affects: [table_contacts, concept_contacts],
 });
@@ -161,7 +214,7 @@ export const decision_contacts_visibility_machine = defineDecision({
     "now gone with its emitter). `add_again` is separate from `unhide` because a different command takes it: adding a " +
     "hidden contact by hand lists it again, as the old add did and as `contact add`'s `hidden: false` says. Hiding a " +
     "hidden entry or unhiding a listed one is no transition and returns the entry as it is (`contact unhide` #2). Label " +
-    "changes are not a status, so they send nothing. The event carries the book and the PartyId, never a label or mailbox.",
+    "changes are not a status, so they send nothing. The event carries the book and the entry's id, never a label or mailbox.",
   source: by(`${P}/contacts/operations/add.ts:21; ${P}/contacts/rules.ts:43; ${P}/contacts/events.ts:66; P7`),
   affects: [machine_contact, event_contact_transitioned, rpc_contacts_book_hide, rpc_contacts_book_unhide, rpc_contacts_book_add],
 });
@@ -174,8 +227,9 @@ export const decision_contacts_ref_and_label = defineDecision({
     {
       label: "party-ref",
       text:
-        "`ref` is always `{kind: party, partyId}`. `label` is the owner's label, or the mailbox they typed when adding by " +
-        "email with none, else the Party's display name, handle, then PartyId. A given label is trimmed and must be 1 to 120 characters.",
+        "`ref` is `{kind: party, partyId}` for every entry with a Party (null on a private one). `label` is the owner's " +
+        "label, or the primary mailbox they typed (kept in the entry's `email_ids` when they added by email), else the " +
+        "Party's display name, handle, then the entry's id. A given label is trimmed and must be 1 to 120 characters.",
     },
     { label: "typed-ref", text: "`ref` is the locator the owner typed (handle, email, address or party)." },
   ],
@@ -187,7 +241,9 @@ export const decision_contacts_ref_and_label = defineDecision({
     "ref too. The label never falls back to a mailbox or an address: a PartyId is public (any address resolves to one), " +
     "so a mailbox fallback would turn an address into an email in two calls (`contact add` #3). An explicit empty label " +
     "on add is INVALID_INPUT, as the frozen refusal says ('the label is empty'); the old code read it as no label. That is " +
-    "surface, so the book wins (P10 rung 1).",
+    "surface, so the book wins (P10 rung 1). The typed mailbox moved from the label to `email_ids`, Frappe Contact's own " +
+    "list of mailboxes, so a label is only ever the owner's own words; it is still shown before the Party's name, so an " +
+    "entry added by email with no label shows the mailbox typed, as before.",
   source: by(`${P}/contacts/rules.ts:26 and :36; ${P}/rules.ts:19; ${P}/contacts/tests/add.test.ts:25 and :147`),
   affects: [table_contacts, rpc_contacts_book_add, rpc_contacts_book_label, operation_contact_add, operation_contact_list],
 });
@@ -399,7 +455,7 @@ export const decision_contacts_no_door_no_process = defineDecision({
     "copied, so nothing reacts to anything. Old parties' `recordContactEdges`, `ensureEmployedEdge` and the " +
     "`emitRelationshipChanged` telemetry action are not ported (P2, P4, P7).",
   source: by(`${P}/contacts/operations/emit-relationship-changed.ts:1; ${P}/accounts/README.md:26 (a new contact needs a name)`),
-  affects: [concept_contacts, table_contacts, rpc_contacts_book_add],
+  affects: [concept_contacts, table_contacts, table_leads, table_deals, rpc_contacts_book_add],
 });
 
 export const decision_contacts_no_destinations = defineDecision({
@@ -480,8 +536,8 @@ export const decision_contacts_budgets = defineDecision({
     {
       label: "class-with-guided",
       text:
-        "Reads `read`, writes `write`; the guided get, label, hide and unhide (flow and operation) allow a second call in " +
-        "sequence: read 800/1,600 ms, write 900/1,900 ms, excluding `wait.person`.",
+        "Reads `read`, writes `write`, the CRM's included; the guided get, label, hide and unhide (flow and operation) " +
+        "allow a second call in sequence: read 800/1,600 ms, write 900/1,900 ms, excluding `wait.person`.",
     },
     { label: "class-only", text: "Class defaults everywhere, the guided path included." },
   ],
@@ -492,7 +548,10 @@ export const decision_contacts_budgets = defineDecision({
     "default does not allow for. The person's picking and answering are `wait.person` spans and never system time. A " +
     "script's run of the same flow makes one call and stays well inside the override.",
   source: by("packages/book/src/budgets.ts; P5; P6 (wait.person for prompt steps)"),
-  affects: [...FLOWS, operation_contact_label, operation_contact_hide, operation_contact_unhide, ...READS, ...WRITES],
+  affects: [
+    ...FLOWS, operation_contact_label, operation_contact_hide, operation_contact_unhide, ...READS, ...WRITES, ...CRM_RPCS,
+    ...CRM_FLOWS,
+  ],
 });
 
 // ── assembly ────────────────────────────────────────────────────────────────────────────────

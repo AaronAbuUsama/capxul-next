@@ -206,3 +206,270 @@ export const HolderWriteReturns = Schema.Struct({
   department: Department,
   next: Null(Schema.Array(S)),
 });
+
+// ── Frappe HR's doctypes: the rpcs' inputs and outputs ─────────────────────────────────────
+//
+// The SDK speaks camelCase, as every other concept's; each field is the Frappe field of the same name
+// (`dateOfJoining` is `date_of_joining`), so the head's Capxul app maps them by rule, not by hand.
+
+const Frequency = Schema.Literals(["monthly", "fortnightly", "bimonthly", "weekly", "daily"]);
+const EmploymentType = Schema.Literals(["full-time", "part-time", "contract", "intern", "apprentice", "probation", "commission", "piecework"]);
+const EmployeeStatus = Schema.Literals(["active", "inactive", "suspended", "left"]);
+const ComponentType = Schema.Literals(["earning", "deduction", "employer_contribution"]);
+const SlipStatus = Schema.Literals(["draft", "submitted", "withheld", "paying", "escrowed", "paid", "cancelled"]);
+const EntryStatus = Schema.Literals(["draft", "submitted", "paying", "paid", "cancelled"]);
+/** A decimal amount at the token's display precision, as Frappe's Currency: `"4166.67"`. */
+const Money = S;
+
+export const EmployeeInput = Schema.Struct({
+  orgId: S,
+  /** The person's mailbox (their `personal_email`), `@handle` or Party id. */
+  person: S,
+  firstName: S,
+  lastName: opt(S),
+  dateOfJoining: Day,
+  /** The department's key or `dep_…` id: the budget that pays them. */
+  department: opt(S),
+  designation: opt(S),
+  employmentType: opt(EmploymentType),
+});
+
+export const EmployeeChange = Schema.Struct({
+  orgId: S,
+  employeeId: S,
+  status: opt(Schema.Literals(["active", "inactive", "suspended", "left"])),
+  /** With `status: left`: the last day worked, inclusive. */
+  relievingDate: opt(Day),
+  department: opt(S),
+  designation: opt(S),
+  employmentType: opt(EmploymentType),
+});
+
+export const Employee = Schema.Struct({
+  employeeId: S,
+  orgId: S,
+  partyId: S,
+  employeeName: S,
+  status: EmployeeStatus,
+  dateOfJoining: Day,
+  relievingDate: Null(Day),
+  department: Null(S),
+  designation: Null(S),
+  employmentType: EmploymentType,
+  payeeSafe: S,
+  /** True while the person has no Capxul account: pay to them waits in a claim escrow (payroll.new-hire-escrow). */
+  unclaimed: Schema.Boolean,
+  headName: Null(S),
+});
+
+export const EmployeeListInput = Schema.Struct({ orgId: S, department: opt(S), status: opt(EmployeeStatus) });
+
+export const ComponentInput = Schema.Struct({
+  orgId: S,
+  /** An existing component's id to change it; absent to add one. */
+  componentId: opt(S),
+  name: S,
+  abbr: S,
+  type: ComponentType,
+  description: opt(S),
+  amount: opt(Money),
+  formula: opt(S),
+  condition: opt(S),
+  dependsOnPaymentDays: opt(Schema.Boolean),
+  statisticalComponent: opt(Schema.Boolean),
+  doNotIncludeInTotal: opt(Schema.Boolean),
+  isTaxApplicable: opt(Schema.Boolean),
+  account: opt(S),
+  liabilityAccount: opt(S),
+  /** For a deduction or employer contribution: the Party it is remitted to (`@handle`, mailbox or Party id). */
+  payee: opt(S),
+  disabled: opt(Schema.Boolean),
+});
+
+export const Component = Schema.Struct({
+  componentId: S,
+  name: S,
+  abbr: S,
+  type: ComponentType,
+  amount: Money,
+  formula: Null(S),
+  condition: Null(S),
+  dependsOnPaymentDays: Schema.Boolean,
+  statisticalComponent: Schema.Boolean,
+  doNotIncludeInTotal: Schema.Boolean,
+  payeePartyId: Null(S),
+  portable: Schema.Boolean,
+  disabled: Schema.Boolean,
+});
+
+/** A structure's row: a component by abbr, with its own amount or formula where it differs from the component's. */
+export const StructureRowInput = Schema.Struct({ abbr: S, amount: opt(Money), formula: opt(S), condition: opt(S) });
+
+export const StructureInput = Schema.Struct({
+  orgId: S,
+  name: S,
+  payrollFrequency: Frequency,
+  token: opt(S),
+  earnings: Schema.Array(StructureRowInput),
+  deductions: opt(Schema.Array(StructureRowInput)),
+  employerContributions: opt(Schema.Array(StructureRowInput)),
+  /** The structure this one replaces, which is cancelled with no assignment left on it. */
+  amends: opt(S),
+});
+
+export const StructureRowOut = Schema.Struct({
+  abbr: S,
+  component: S,
+  amount: Money,
+  formula: Null(S),
+  condition: Null(S),
+  dependsOnPaymentDays: Schema.Boolean,
+});
+
+export const Structure = Schema.Struct({
+  structureId: S,
+  name: S,
+  payrollFrequency: Null(Frequency),
+  currency: S,
+  isActive: Schema.Boolean,
+  docstatus: Schema.Literals(["submitted", "cancelled"]),
+  origin: Schema.Literals(["capxul", "agreement", "head"]),
+  earnings: Schema.Array(StructureRowOut),
+  deductions: Schema.Array(StructureRowOut),
+  employerContributions: Schema.Array(StructureRowOut),
+});
+
+export const AssignmentInput = Schema.Struct({
+  orgId: S,
+  employeeId: S,
+  structureId: S,
+  fromDate: Day,
+  base: Money,
+  variable: opt(Money),
+  /** The department budget the pay comes from; defaults to the Employee's department. */
+  department: opt(S),
+  payrollPayableAccount: opt(S),
+});
+
+export const Assignment = Schema.Struct({
+  assignmentId: S,
+  employeeId: S,
+  structureId: S,
+  fromDate: Day,
+  base: Money,
+  variable: Money,
+  currency: S,
+  department: S,
+  agreementId: Null(S),
+  docstatus: Schema.Literals(["submitted", "cancelled"]),
+});
+
+export const CancelInput = Schema.Struct({ orgId: S, structureId: opt(S), assignmentId: opt(S) });
+
+export const StructureListInput = Schema.Struct({ orgId: S, employeeId: opt(S) });
+
+export const RunInput = Schema.Struct({
+  orgId: S,
+  department: S,
+  startDate: Day,
+  endDate: Day,
+  postingDate: opt(Day),
+  payrollFrequency: Frequency,
+  /** Only these Employees; absent: every active Employee of the department with an assignment in the run's token. */
+  employees: opt(Schema.Array(S)),
+  /** Days of leave without pay, per Employee, in the period. */
+  leaveWithoutPay: opt(Schema.Array(Schema.Struct({ employeeId: S, days: N }))),
+});
+
+export const SlipRowOut = Schema.Struct({ abbr: S, component: S, amount: Money, defaultAmount: Money, source: Schema.Literals(["structure", "collection"]) });
+
+export const Slip = Schema.Struct({
+  salarySlipId: S,
+  orgId: S,
+  employeeId: S,
+  employeeName: S,
+  payrollEntryId: Null(S),
+  source: Schema.Literals(["run", "collection"]),
+  computedBy: Schema.Literals(["capxul", "head", "chain"]),
+  startDate: Day,
+  endDate: Day,
+  postingDate: Day,
+  totalWorkingDays: N,
+  paymentDays: N,
+  earnings: Schema.Array(SlipRowOut),
+  deductions: Schema.Array(SlipRowOut),
+  employerContributions: Schema.Array(SlipRowOut),
+  grossPay: Money,
+  totalDeduction: Money,
+  netPay: Money,
+  currency: S,
+  status: SlipStatus,
+  document: Null(Schema.Struct({ documentId: S, hash: S })),
+  /** Once paid: the settled facts that came back from the chain. */
+  paid: Null(Schema.Struct({ paymentId: S, txHash: S, blockNumber: Schema.Int, paidAt: S })),
+});
+
+export const Run = Schema.Struct({
+  payrollEntryId: S,
+  orgId: S,
+  department: S,
+  startDate: Day,
+  endDate: Day,
+  postingDate: Day,
+  payrollFrequency: Frequency,
+  currency: S,
+  status: EntryStatus,
+  computedBy: Schema.Literals(["capxul", "head"]),
+  numberOfEmployees: Schema.Int,
+  totals: Schema.Struct({ grossPay: Money, totalDeduction: Money, netPay: Money }),
+  approvalId: Null(S),
+  slips: Schema.Array(Slip),
+});
+
+export const RunRef = Schema.Struct({ orgId: S, payrollEntryId: S });
+
+export const ImportInput = Schema.Struct({
+  orgId: S,
+  /** The head's Payroll Entry `name`. */
+  headName: S,
+  department: S,
+  startDate: Day,
+  endDate: Day,
+  postingDate: Day,
+  payrollFrequency: Frequency,
+  slips: Schema.Array(
+    Schema.Struct({
+      headName: S,
+      employeeId: S,
+      assignmentId: S,
+      totalWorkingDays: N,
+      paymentDays: N,
+      leaveWithoutPay: N,
+      earnings: Schema.Array(Schema.Struct({ abbr: S, amount: Money, defaultAmount: Money })),
+      deductions: Schema.Array(Schema.Struct({ abbr: S, amount: Money, defaultAmount: Money })),
+      employerContributions: opt(Schema.Array(Schema.Struct({ abbr: S, amount: Money, defaultAmount: Money }))),
+      grossPay: Money,
+      totalDeduction: Money,
+      netPay: Money,
+    }),
+  ),
+});
+
+export const WithholdInput = Schema.Struct({ orgId: S, salarySlipId: S, withhold: Schema.Boolean, reason: opt(S) });
+
+export const RunListInput = Schema.Struct({ orgId: S, department: opt(S), status: opt(EntryStatus) });
+
+export const RunRow = Schema.Struct({
+  payrollEntryId: S,
+  department: S,
+  startDate: Day,
+  endDate: Day,
+  status: EntryStatus,
+  numberOfEmployees: Schema.Int,
+  netPay: Money,
+  currency: S,
+  next: Null(Schema.Array(S)),
+});
+
+/** The caller's own payslips, from every Organization that pays them; one slip with `salarySlipId`. */
+export const MySlipsInput = Schema.Struct({ salarySlipId: opt(S), orgId: opt(S) });

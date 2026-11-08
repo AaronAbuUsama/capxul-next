@@ -81,7 +81,9 @@ export const table_agents = defineTable({
     "`owner_id` their principal id) or an Organization (`owner_kind` organization, `owner_id` its org_id); it never " +
     "changes, because AgentOwner binds the owner's Safe at creation. Name and handle are read from the Party, the " +
     "agent's principal (its accountId) from access by its Safe, the owner's email and Safe from the owner's own rows: " +
-    "the old copies of each are gone. Only agents' rpcs and its process write it.",
+    "the old copies of each are gone. Only agents' rpcs and its processes write it. The one live agent an Organization " +
+    "owns is its Forward Deployed Engineer (aaron.fde-agent, agents.fde): born with the Organization's setup, whose " +
+    "install batch creates it on chain, or later by `agent create --org` when the Organization has none.",
   concept: concept_agents,
   tenancy: "owner",
   tenantField: "owner_id",
@@ -172,7 +174,7 @@ export const event_agent_transitioned = defineEvent({
   props: Schema.Struct({
     from: NullOr(AgentState),
     to: AgentState,
-    transition: Schema.Literals(["create", "activate", "fail", "freeze", "unfreeze", "remove"]),
+    transition: Schema.Literals(["create", "found", "activate", "fail", "freeze", "unfreeze", "remove"]),
     agent_id: S,
     party_id: S,
     owner_kind: OwnerKind,
@@ -211,18 +213,30 @@ export const machine_agent = defineMachine({
       guard: "A trimmed name; a free handle; a key of its own; the owner's Safe claimed, or the caller a Director of the owning Organization.",
       emits: A,
     },
+    found: {
+      from: [],
+      to: "creating",
+      about:
+        "The Organization's FDE, born when its Organization's setup begins with an FDE key: its Party is the one the setup " +
+        "registered, and its create is the setup's install batch, not a change of its own (agents.fde).",
+      emits: A,
+    },
     activate: {
       from: ["creating"],
       to: "active",
-      about: "Its create landed: the carrier's transaction holds AgentCreated naming its Safe, its owner's Safe and its key.",
-      guard: "In the same transaction its Party is activated (`parties.activate`).",
+      about:
+        "Its create landed: the carrier's transaction holds AgentCreated naming its Safe, its owner's Safe and its key. For " +
+        "the FDE the carrier is its Organization's install, and the setup's completion has activated its Party already.",
+      guard: "In the same transaction its Party is activated (`parties.activate`), except the FDE's, which organizations activates.",
       emits: A,
     },
     fail: {
       from: ["creating"],
       to: "failed",
-      about: "Its create change failed: declined, lapsed unsent, refused, reverted, rejected, or landed without its AgentCreated.",
-      guard: "In the same transaction its Party is released (`parties.release`).",
+      about:
+        "Its create change failed: declined, lapsed unsent, refused, reverted, rejected, or landed without its AgentCreated; " +
+        "or, for the FDE, its Organization's setup failed.",
+      guard: "In the same transaction its Party is released (`parties.release`), except the FDE's, which organizations releases.",
       emits: A,
     },
     freeze: {

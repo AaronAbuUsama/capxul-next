@@ -633,6 +633,94 @@ export const integration_devnet_control = defineIntegration({
   was: ["packages/sdk/src/devnet/index.ts:5", "packages/protocol/src/devnet/control.ts:107", "packages/devnet/src/modules/guardian/standing-config.ts:20"],
 });
 
+// ── frappe-head ─────────────────────────────────────────────────────────────────────────────
+
+/** A head call is a vendor call to one Frappe site: 2 s p95, retried only where the call is idempotent by version. */
+const headUnavailable = unavailable("The Frappe head");
+const headRefusedKey = {
+  when: "The head answered 401 or 403: the API key the head connection holds is wrong, revoked, or its user lacks a role the Capxul app needs",
+  error: error_ROLE_PERMISSION_DENIED,
+} as const;
+const headThrottled = { when: "The head answered 429 and the retries ran out", error: error_RATE_LIMITED } as const;
+const headUnusable = unusable("The Frappe head");
+
+export const integration_frappe_head = defineIntegration({
+  id: "frappe-head",
+  title: "A connected Frappe head: the Organization's Frappe site and its host",
+  about:
+    "An Organization's Frappe site (the head, aaron.frappe-head), reached over HTTPS with the API key and secret its head " +
+    "connection holds under record-bound encryption, behind the Effect service `FrappeHead`. Capxul always calls; the head " +
+    "only rings Capxul's doorbell, with no data. Every call goes to the Capxul app for Frappe's whitelisted methods (component frappe-app), so " +
+    "Capxul depends on one versioned contract, not on ERPNext's internals. Each concept that holds a fundamental app's " +
+    "records syncs them itself: it pushes its changes in its own change order and pulls the head's, by the rules of " +
+    "organizations.head-ownership. Dates cross in the Organization's time zone, which the head's System Settings must " +
+    "share; instants cross as UTC. Nothing that moves money goes through the head: a head asks for money only through " +
+    "Capxul's commands. Installing an app is the head's host's: Frappe Cloud's site API when the head is hosted there.",
+  component: component_backend,
+  system: "frappe",
+  service: "FrappeHead",
+  calls: {
+    readSite: {
+      about:
+        "The site as it stands: Frappe's version, the installed apps and their versions, the System Settings time zone, the " +
+        "Capxul app's version and whether its Custom Fields are in place, and the Company that carries the Organization's id.",
+      timeoutMs: 5_000,
+      retries: { max: 2, backoff: "exponential" },
+      p95Ms: 2_000,
+      failures: [
+        headUnavailable,
+        headRefusedKey,
+        { when: "The site has no Capxul app, or one older than the contract Capxul speaks (its method is missing)", error: error_WRONG_STATE },
+        headThrottled,
+        headUnusable,
+      ],
+    },
+    upsertDocs: {
+      about:
+        "Writes a batch of Capxul's documents in Capxul's change order, each found by its `capxul_id`: insert, update, submit " +
+        "or cancel, and answers each one written, unchanged (already at that version), in conflict (the head's copy changed " +
+        "since the version it was based on: not written) or refused (the head's own validation), with the head's name.",
+      timeoutMs: 15_000,
+      retries: { max: 2, backoff: "exponential" },
+      p95Ms: 3_000,
+      failures: [headUnavailable, headRefusedKey, headThrottled, headUnusable],
+    },
+    listChanges: {
+      about:
+        "The head's own changes to the synced DocTypes after a change id, oldest first: DocType, head name, `capxul_id` (null " +
+        "for a document born in the head), the version it was based on, its fields, docstatus, the head user and its time.",
+      timeoutMs: 10_000,
+      retries: { max: 2, backoff: "exponential" },
+      p95Ms: 2_000,
+      failures: [headUnavailable, headRefusedKey, headThrottled, headUnusable],
+    },
+    installApp: {
+      about:
+        "Asks the head's host to install a Frappe app on the site (Frappe Cloud's site API); answers when the job is queued. " +
+        "The app appears in readSite once it is installed.",
+      timeoutMs: 10_000,
+      retries: { max: 0, backoff: "none" },
+      p95Ms: 2_000,
+      failures: [
+        headUnavailable,
+        headRefusedKey,
+        { when: "The head's host cannot install apps for Capxul (a self-hosted bench): its owner runs `bench install-app` instead", error: error_WRONG_STATE },
+        { when: "The host knows no such app, or not for the site's Frappe version", error: error_INVALID_INPUT },
+        headUnusable,
+      ],
+    },
+  },
+  fake:
+    "The devnet's stand-in head: an in-memory Frappe double the supervisor serves on loopback, speaking the Capxul app's " +
+    "methods. It keeps documents by DocType and `capxul_id`, records its own edits (made through its scripted user) as " +
+    "listChanges rows, installs any app at once, follows the one clock as a follower, and has a fault switch (down, key " +
+    "refused, conflict on the next write, refuse the next document). It runs none of Frappe's validations, reports or " +
+    "scheduled jobs. A head eval that needs real Frappe boots a bench with ERPNext, Frappe HR, Frappe CRM and the Capxul " +
+    "app instead, also as a follower.",
+  secrets: [],
+  was: ["docs/vision/erp.md (sections 1, 5 and 7)"],
+});
+
 // ── contracts: Capxul's Protocol v4 ─────────────────────────────────────────────────────────
 
 const DEV = "devnet" as const;

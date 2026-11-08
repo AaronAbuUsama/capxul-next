@@ -6,6 +6,12 @@
 // org-members) while the `books` gate is on (access' feature-flags). A change needs Manage books:
 // the caller's Safe wears the Organization's Books hat (organizations' org-deployments names the
 // hat, indexing's hat-wearers says who wears it; shared decision responsibilities.keepers).
+//
+// The chart is ERPNext's Account tree (books.chart-tree): a connected head adds, renames and
+// archives accounts by calling these same rpcs as the Organization's agent, so Capxul assigns every
+// code and id and the head's chart is a copy of Capxul's, never a second chart (books.sync). Every
+// rpc that records a fact takes the Organization's next feed number (books.feed), so each writes
+// book-companies.
 
 import { Schema } from "effect";
 import { budget, defineRpc } from "../../../packages/book/src/index.ts";
@@ -22,13 +28,16 @@ import { table_org_deployments, table_org_members, table_organizations } from ".
 import { table_hat_wearers } from "../indexing/data.ts";
 import {
   AccountType,
+  FrappeAccountType,
   machine_book_account,
   machine_book_annotation,
-  machine_book_chart,
+  machine_book_company,
   Reference,
+  RootType,
   table_book_accounts,
   table_book_annotations,
-  table_book_charts,
+  table_book_companies,
+  table_book_cost_centers,
   table_book_facts,
 } from "./data.ts";
 
@@ -58,8 +67,12 @@ export const BookAccount = Schema.Struct({
   code: S,
   name: S,
   type: AccountType,
+  rootType: RootType,
+  accountType: NullOr(FrappeAccountType),
+  isGroup: Schema.Boolean,
+  currency: S,
   parent: NullOr(AccountRef),
-  quickbooksDetailType: S,
+  quickbooksDetailType: NullOr(S),
   status: Schema.Literals(["active", "archived"]),
   protection: NullOr(Schema.Literals(["safe", "uncategorized", "posting", "opening"])),
   safe: NullOr(Schema.Struct({ address: S, asset: S })),
@@ -72,26 +85,35 @@ export const rpc_books_accounts_import = defineRpc({
   id: "books.accounts.import",
   title: "Make the chart from a template",
   about:
-    "Makes the Organization's chart once, in one transaction: every `us-services` account, Capxul's 4999, 6999 and 3990, " +
-    "and one Safe account per asset: 1010 for the first settlement asset and the next free code for each other asset the " +
-    "Organization's money facts already moved, so the money recorded before the chart posts at once " +
-    "(books.facts-without-chart). Each account is an `account_created` fact. Nothing is scheduled: there is no backfill.",
+    "Makes the Organization's chart once, in one transaction, as ERPNext's Account tree (books.chart-tree): the five " +
+    "roots and the two Expenses groups that make Capxul's six types, every `us-services` account under its type's group " +
+    "with its Frappe account type, Capxul's 4999, 6999 and 3990, and one Safe account per asset (type Bank, in the " +
+    "token's currency, frozen to all but Capxul): 1010 for the first settlement asset and the next free code for each " +
+    "other asset the Organization's money facts already moved, so the money recorded before the chart posts at once " +
+    "(books.facts-without-chart). It makes the cost-centre root and Main, the Company's default, and sets the books' " +
+    "time zone (default UTC) and fiscal year start (default 01-01), fixed from then on (books.company-settings). The " +
+    "books are born `open` if they had not begun, then `import`ed. Each account and cost centre is a fact with its feed " +
+    "number. Nothing is scheduled: there is no backfill.",
   was: [`${OPS}/import.ts:13`, `${OLD}/accounts/writes/chart.ts:32`, `${OLD}/facts/writes/backfill.ts:86`, `${ROWS}/operations.ts:82`],
   concept: concept_books,
   kind: "mutation",
   who: KEEPER_WHO,
-  input: Schema.Struct({ orgId: S, template: S }),
+  input: Schema.Struct({ orgId: S, template: S, timeZone: opt(S), fiscalYearStart: opt(S) }),
   output: Schema.Struct({
     template: Schema.Literal("us-services"),
     added: N,
     protected: Schema.Array(S),
     safeAccounts: Schema.Array(Schema.Struct({ code: S, accountId: S, safe: S, asset: S })),
+    costCenter: Schema.Struct({ costCenterId: S, name: S }),
+    currency: Schema.Literal("USD"),
+    timeZone: S,
+    fiscalYearStart: S,
     basis: Schema.Literal("cash"),
   }),
   errors: [...GUARD_ERRORS, error_WRONG_STATE, error_INVALID_INPUT],
-  reads: [...KEEPER_READS, table_organizations, table_book_charts, table_book_facts],
-  writes: [table_book_charts, table_book_accounts, table_book_facts],
-  drives: [machine_book_chart.t.import, machine_book_account.t.add],
+  reads: [...KEEPER_READS, table_organizations, table_book_companies, table_book_facts],
+  writes: [table_book_companies, table_book_accounts, table_book_cost_centers, table_book_facts],
+  drives: [machine_book_company.t.open, machine_book_company.t.import, machine_book_account.t.add],
   invokes: [],
   emits: [],
   calls: [],
@@ -105,7 +127,11 @@ export const rpc_books_accounts_import = defineRpc({
 export const rpc_books_accounts_list = defineRpc({
   id: "books.accounts.list",
   title: "Read the chart of accounts",
-  about: "The chart in code order, archived accounts only with `archived`, each with its protection. WRONG_STATE `no_chart` before the import.",
+  about:
+    "The chart in code order, archived accounts only with `archived`, each with its protection, its Frappe root and " +
+    "account type, whether it is a group, and its currency. The five roots and the two Expenses groups have no code and " +
+    "are not listed: they are each account's `type`. An account directly under its type's group shows no parent. " +
+    "WRONG_STATE `no_chart` before the import.",
   was: [`${OPS}/list.ts:13`, `${ROWS}/operations.ts:72`],
   concept: concept_books,
   kind: "query",
@@ -113,7 +139,7 @@ export const rpc_books_accounts_list = defineRpc({
   input: Schema.Struct({ orgId: S, archived: opt(Schema.Boolean) }),
   output: Schema.Struct({ basis: Schema.Literal("cash"), accounts: Schema.Array(BookAccount) }),
   errors: [...GUARD_ERRORS, error_WRONG_STATE],
-  reads: [...SEAT_READS, table_book_charts, table_book_accounts],
+  reads: [...SEAT_READS, table_book_companies, table_book_accounts],
   writes: [],
   drives: [],
   invokes: [],
@@ -130,9 +156,12 @@ export const rpc_books_accounts_add = defineRpc({
   id: "books.accounts.add",
   title: "Add an account to the chart",
   about:
-    "One new active account, with its `account_created` fact. A sub-account takes its parent's type and, without a code, " +
-    "the next code in the parent's ten; a top-level account needs a type and takes the next free hundred in its range. A " +
-    "given code must be free among active accounts and start with the type's digit.",
+    "One new active ledger account, with its `account_created` fact. A sub-account takes its parent's type and, without " +
+    "a code, the next code in the parent's ten; its parent becomes a group if it was a ledger account, which needs the " +
+    "parent to hold no postings (no money fact posts to it and no annotation names it: WRONG_STATE `parent_has_postings`), " +
+    "since in ERPNext only a ledger account takes GL Entries (books.chart-tree). A top-level account sits directly under " +
+    "its type's group, needs a type and takes the next free hundred in its range. A given code must be free among active " +
+    "accounts and start with the type's digit.",
   was: [`${OPS}/add.ts:13`, `${OLD}/writes.ts:91`, `${OLD}/rules.ts:1`, `${ROWS}/operations.ts:89`],
   concept: concept_books,
   kind: "mutation",
@@ -140,8 +169,8 @@ export const rpc_books_accounts_add = defineRpc({
   input: Schema.Struct({ orgId: S, name: S, type: opt(AccountType), under: opt(S), code: opt(S) }),
   output: BookAccount,
   errors: [...GUARD_ERRORS, error_INVALID_INPUT, error_WRONG_STATE],
-  reads: [...KEEPER_READS, table_book_charts, table_book_accounts],
-  writes: [table_book_accounts, table_book_facts],
+  reads: [...KEEPER_READS, table_book_companies, table_book_accounts, table_book_annotations, table_book_facts],
+  writes: [table_book_companies, table_book_accounts, table_book_facts],
   drives: [machine_book_account.t.add],
   invokes: [],
   emits: [],
@@ -167,8 +196,8 @@ export const rpc_books_accounts_rename = defineRpc({
   input: Schema.Struct({ orgId: S, account: S, name: opt(S), code: opt(S) }),
   output: BookAccount,
   errors: [...GUARD_ERRORS, error_INVALID_INPUT, error_WRONG_STATE],
-  reads: [...KEEPER_READS, table_book_charts, table_book_accounts],
-  writes: [table_book_accounts, table_book_facts],
+  reads: [...KEEPER_READS, table_book_companies, table_book_accounts],
+  writes: [table_book_companies, table_book_accounts, table_book_facts],
   drives: [machine_book_account.t.rename],
   invokes: [],
   emits: [],
@@ -185,7 +214,8 @@ export const rpc_books_accounts_archive = defineRpc({
   title: "Archive an account",
   about:
     "Archives an active account that has no role and no active sub-account, with an `account_archived` fact; its code is " +
-    "free again. A protected account is WRONG_STATE `protected`, one with active sub-accounts `sub_accounts`.",
+    "free again (a head's copy is disabled and loses its number, since ERPNext keeps numbers unique among all accounts). " +
+    "A protected account is WRONG_STATE `protected`, one with active sub-accounts `sub_accounts`.",
   was: [`${OPS}/archive.ts:13`, `${OLD}/accounts/writes/chart.ts:128`, `${OLD}/accounts/guards.ts:38`],
   concept: concept_books,
   kind: "mutation",
@@ -193,8 +223,8 @@ export const rpc_books_accounts_archive = defineRpc({
   input: Schema.Struct({ orgId: S, account: S }),
   output: BookAccount,
   errors: [...GUARD_ERRORS, error_WRONG_STATE],
-  reads: [...KEEPER_READS, table_book_charts, table_book_accounts],
-  writes: [table_book_accounts, table_book_facts],
+  reads: [...KEEPER_READS, table_book_companies, table_book_accounts],
+  writes: [table_book_companies, table_book_accounts, table_book_facts],
   drives: [machine_book_account.t.archive],
   invokes: [],
   emits: [],
@@ -220,7 +250,7 @@ export const rpc_books_accounts_review = defineRpc({
   input: Schema.Struct({ orgId: S }),
   output: Schema.Struct({ rows: Schema.Array(ReviewRow) }),
   errors: [...GUARD_ERRORS, error_WRONG_STATE],
-  reads: [...SEAT_READS, table_book_charts, table_book_accounts, table_book_annotations, table_book_facts],
+  reads: [...SEAT_READS, table_book_companies, table_book_accounts, table_book_annotations, table_book_facts],
   writes: [],
   drives: [],
   invokes: [],
@@ -236,9 +266,10 @@ export const rpc_books_accounts_accept = defineRpc({
   title: "Accept a suggestion from the queue",
   about:
     "Makes a waiting row's suggestion (or `name`) a new account under `under`, else at the top of the waiting account's " +
-    "type, with its `account_created` fact, and moves the row to it with a `recategorized` fact. The row is named by its " +
-    "id only: books finds its kind from its own facts. A row not waiting is WRONG_STATE `not_in_review`; no suggestion " +
-    "and no name is INVALID_INPUT.",
+    "type, with its `account_created` fact, and moves the row to it with a `recategorized` fact, which reposts the row's " +
+    "voucher. The row is named by its id only: books finds its kind from its own facts. A row not waiting is WRONG_STATE " +
+    "`not_in_review`, one whose voucher posts on or before `closed_through` WRONG_STATE `period_closed` " +
+    "(books.closed-periods); no suggestion and no name is INVALID_INPUT.",
   was: [`${OPS}/accept.ts:13`, `${OLD}/accounts/writes/review.ts:24`, `${ROWS}/operations.ts:117`],
   concept: concept_books,
   kind: "mutation",
@@ -246,8 +277,8 @@ export const rpc_books_accounts_accept = defineRpc({
   input: Schema.Struct({ orgId: S, rowId: S, name: opt(S), under: opt(S) }),
   output: Schema.Struct({ reference: Reference, account: BookAccount, factIds: Schema.Array(S) }),
   errors: [...GUARD_ERRORS, error_INVALID_INPUT, error_WRONG_STATE],
-  reads: [...KEEPER_READS, table_book_charts, table_book_accounts, table_book_annotations, table_book_facts],
-  writes: [table_book_accounts, table_book_annotations, table_book_facts],
+  reads: [...KEEPER_READS, table_book_companies, table_book_accounts, table_book_annotations, table_book_facts],
+  writes: [table_book_companies, table_book_accounts, table_book_annotations, table_book_facts],
   drives: [machine_book_account.t.add, machine_book_annotation.t.accept, machine_book_annotation.t.assign],
   invokes: [],
   emits: [],
@@ -264,9 +295,10 @@ export const rpc_books_accounts_reclassify = defineRpc({
   title: "Move the rows waiting in a not-decided account",
   about:
     "Moves every row waiting in 4999 or 6999, or only the rows named by id, whose money falls inside the period, to one " +
-    "account, under one `rows_reclassified` fact listing every row moved (so the change reverses as one). A named row not " +
-    "waiting there, outside the period, or with money on both sides of it stays, with its reason. Nothing moved: no fact. " +
-    "Books finds each named row's kind from its own facts, so the client passes ids only.",
+    "account, under one `rows_reclassified` fact listing every row moved (so the change reverses as one); each moved " +
+    "row's voucher reposts. A named row not waiting there, outside the period, with money on both sides of it, or posted " +
+    "on or before `closed_through` stays, with its reason. Nothing moved: no fact. Books finds each named row's kind from " +
+    "its own facts, so the client passes ids only.",
   was: [`${OPS}/reclassify.ts:16`, `${OLD}/accounts/writes/review.ts:98`, `${ROWS}/operations.ts:129`],
   concept: concept_books,
   kind: "mutation",
@@ -285,12 +317,15 @@ export const rpc_books_accounts_reclassify = defineRpc({
     factId: NullOr(S),
     moved: Schema.Array(Reference),
     refused: Schema.Array(
-      Schema.Struct({ reference: Reference, reason: Schema.Literals(["not_waiting", "outside_period", "straddles_period"]) }),
+      Schema.Struct({
+        reference: Reference,
+        reason: Schema.Literals(["not_waiting", "outside_period", "straddles_period", "period_closed"]),
+      }),
     ),
   }),
   errors: [...GUARD_ERRORS, error_INVALID_INPUT, error_WRONG_STATE],
-  reads: [...KEEPER_READS, table_book_charts, table_book_accounts, table_book_annotations, table_book_facts],
-  writes: [table_book_annotations, table_book_facts],
+  reads: [...KEEPER_READS, table_book_companies, table_book_accounts, table_book_annotations, table_book_facts],
+  writes: [table_book_companies, table_book_annotations, table_book_facts],
   drives: [machine_book_annotation.t.reclassify, machine_book_annotation.t.assign],
   invokes: [],
   emits: [],

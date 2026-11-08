@@ -96,7 +96,8 @@ export const rpc_organizations_invitations_invite = defineRpc({
     "already made an offer here returns it unchanged; under another request it is INVALID_INPUT. The grantee is resolved " +
     "with `parties.resolve-recipient`: an email names a person's Party, named provisional at its email-derived Safe when " +
     "nobody has it yet; an `@handle` must name an agent's Party; an Account must be a person principal with a mailbox; " +
-    "anything else, an Organization, or an outside address is INVALID_INPUT. At most 16 offers, none twice, and none the grantee already " +
+    "anything else, an Organization, an outside address, or another Organization's own agent (its FDE serves only its " +
+    "Organization: organizations.fde-seat) is INVALID_INPUT. At most 16 offers, none twice, and none the grantee already " +
     "has live here (else INVALID_INPUT). Then the Seat it offers is counted, under the Organization row's lock so two " +
     "offers cannot both take the last one (organizations.seat-limit): a grantee who already holds an active Seat here " +
     "takes nothing (`seat_use` null: an offer of grants to a member is never refused for seats); a person takes a seat; " +

@@ -25,8 +25,11 @@ const NullOr = Schema.NullOr;
 /** Whose record a document's subject is (P8 `owner`): a person's or an Organization's. */
 export const OwnerKind = Schema.Literals(["person", "organization"]);
 
-/** What a document is: a Memo, an Invoice, the terms of an offer, or a receipt file someone supplied. */
-export const DOCUMENT_KINDS = ["memo", "invoice", "terms", "receipt"] as const;
+/**
+ * What a document is: a Memo, an Invoice, the terms of an offer, a payslip (one Salary Slip's pay, whose hash its
+ * Payment carries; documents.payslip-kind), or a receipt file someone supplied.
+ */
+export const DOCUMENT_KINDS = ["memo", "invoice", "terms", "payslip", "receipt"] as const;
 export const DocumentKind = Schema.Literals(DOCUMENT_KINDS);
 
 /** How it is stored: a canonical envelope Capxul built, or an opaque file kept byte for byte. */
@@ -37,14 +40,15 @@ export const MediaType = Schema.Literals(["application/json", "application/pdf",
 
 /**
  * The record a document belongs to, named by the concept that stored it: payments' Payments and Movements,
- * requests' requests, payroll's agreements, and equity's offers (a share or option grant, a round, an
- * investor's commitment or SAFE note, a share transfer offer), whose contracts each take a document hash.
+ * requests' requests, payroll's agreements and salary slips, and equity's offers (a share or option grant, a
+ * round, an investor's commitment or SAFE note, a share transfer offer), whose contracts each take a document hash.
  */
 export const SUBJECT_KINDS = [
   "payment",
   "movement",
   "request",
   "agreement",
+  "salary-slip",
   "grant",
   "round",
   "commitment",
@@ -73,16 +77,16 @@ export const table_documents = defineTable({
   about:
     "One immutable row per stored document, written once by `documents.store` in the transaction that births its subject " +
     "and never updated or deleted. `bytes` are the exact bytes: for an envelope, the canonical JSON of the typed message " +
-    "Capxul built (a Memo, an Invoice with its lines, or the terms of an offer); for a receipt, the file as supplied (at " +
+    "Capxul built (a Memo, an Invoice with its lines, the terms of an offer, or a payslip); for a receipt, the file as supplied (at " +
     "most 128 KB). `content_hash` is keccak-256 over the bytes; `document_hash` is the EIP-712 hash of the typed message, " +
     "the value a payment, an escrow or an offer carries on chain (for a receipt, the two are one). `kind`, `format`, " +
     "`media_type` and `issued_at` are read from the bytes at store time and checked against them again on every read. " +
-    "`subject_kind` and `subject_id` name the record it belongs to (a Payment, a request, an agreement, an equity offer, a " +
+    "`subject_kind` and `subject_id` name the record it belongs to (a Payment, a request, an agreement, a salary slip, an equity offer, a " +
     "Movement's `<chain id>:<tx hash>:<log index>`); the envelope binds it through its origin id, so one note on two Payments is " +
     "two documents. `participants` are who may read it, as the storing concept gave them: each by Safe, with its Party and " +
     "role. An Organization participant is read by whoever holds an active Seat in it at read time, never by whoever stored " +
     "it. `owner_kind` and `owner_id` are the tenant whose subject it is: the payer of a Payment, the issuer of a request, " +
-    "the offering Organization of an agreement, the first Capxul side of a Movement. Replaces old `paymentDocuments` and " +
+    "the offering Organization of an agreement, the paying Organization of a salary slip, the first Capxul side of a Movement. Replaces old `paymentDocuments` and " +
     "`financialDocumentLinks` (one link row per actor and subject); the Movement occurrence copy, its conflict log, the " +
     "line-item and adjustment projections and the signature column are gone (decisions).",
   concept: concept_documents,

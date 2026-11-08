@@ -6,6 +6,7 @@ import * as setups from "./setups.ts";
 import * as workspaces from "./workspaces.ts";
 import * as members from "./members.ts";
 import * as invitations from "./invitations.ts";
+import * as heads from "./heads.ts";
 import * as processes from "./processes.ts";
 import * as flows from "./flows.ts";
 import * as operations from "./operations.ts";
@@ -18,6 +19,7 @@ export const modules = [
   workspaces,
   members,
   invitations,
+  heads,
   processes,
   flows,
   operations,
