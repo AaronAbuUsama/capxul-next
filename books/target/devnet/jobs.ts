@@ -32,7 +32,8 @@ export const rpc_devnet_jobs_run = defineRpc({
     "name is INVALID_INPUT. A warp does not call it: the warp's barrier runs only what fell due, at the instant it fell " +
     "due (decision devnet.warp-barrier). A failed job is reported by name with the first 300 characters of its error " +
     "while the others finish, and the rpc then fails with WORK_DIED naming it and carrying the report. The clock does " +
-    "not move. Each run is the workflow's own durable run, with its own idempotency.",
+    "not move. Each run is the workflow's own durable run, with its own idempotency and its own execution id " +
+    "(`cron/<name>/manual/<request id>`), so a second call at one frozen instant runs again.",
   was: [`${OP}/operations/run.ts:50`, `${OP}/operations/run.ts:90`, `${OP}/rules.ts:42`, "packages/backend/src/platform/jobs.ts:57"],
   concept: concept_devnet,
   kind: "action",

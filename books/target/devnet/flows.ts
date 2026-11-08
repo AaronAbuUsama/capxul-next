@@ -45,6 +45,8 @@ export const Clock = Schema.Struct({
   /** `capxul.devnet/1.<minor>`: the protocol version that answered. */
   protocol: S,
   now: Instant,
+  /** This machine's real time when now held that value: running, now is `now` plus the real time since `realAt`. */
+  realAt: Instant,
   mode: ClockMode,
   /** Increases with every change of the clock; a follower acknowledges it. */
   version: Schema.Int,
@@ -63,6 +65,7 @@ export const Follower = Schema.Struct({ name: S, version: Schema.Int, idle: B, n
 export const ClockEvent = Schema.Struct({
   version: Schema.Int,
   now: Instant,
+  realAt: Instant,
   mode: ClockMode,
   world: S,
   reason: Schema.Literals(["warp", "stop", "step", "tick", "settle", "freeze", "resume", "start-at", "restore", "up"]),
@@ -83,8 +86,9 @@ export const Snapshot = Schema.Struct({ name: S, at: Instant, mode: ClockMode, s
 
 const SUPERVISOR_ERRORS = "The supervisor's own refusals are the `devnet-control` call's failures.";
 const BARRIER =
-  "It is a barrier (decision devnet.warp-barrier): the clock stops at every due instant on the way, in order, and at " +
-  "each the chain gets its block, the backend's timers and crons due by then run once, and every follower settles.";
+  "It is a barrier (decision devnet.warp-barrier): the clock stops at every due second on the way, in order, each " +
+  "next stop chosen after the last settled, and at each the backend's timers and crons due by then run once, the " +
+  "chain's head reaches that second and every follower settles.";
 
 // ── the clock: the frozen `dev time` commands ───────────────────────────────────────────────
 
@@ -123,9 +127,9 @@ export const flow_devnet_time_warp = defineFlow({
     "request: both or neither is INVALID_INPUT before any call, and a duration is sent as a span for the supervisor to " +
     "resolve against its now. The supervisor refuses a target not later than now (INVALID_INPUT). " + BARRIER + " It " +
     "returns when the chain has a block at the target, the backend reads it and Ponder has indexed it. `jobs` false " +
-    "skips the crons that fell due; every durable timer due still fires, because it is due. A cron that fails does not " +
-    "undo the warp: the answer names it. The clock keeps its mode: a frozen clock stays frozen at the target. " +
-    SUPERVISOR_ERRORS,
+    "skips the crons that fell due, and they stay skipped (their next runs move past the target); every durable timer " +
+    "due still fires, because it is due. A cron that fails does not undo the warp: the answer names it. The clock " +
+    "keeps its mode: a frozen clock stays frozen at the target. " + SUPERVISOR_ERRORS,
   was: [`${SDK}:261`, `${SDK}:267`, `${WORLD}:465`, `${WORLD}:518`, `${CONTROL}:134`],
   component: component_core_sdk,
   sdk: "devnet.time.warp",
@@ -233,8 +237,10 @@ export const flow_devnet_time_settle = defineFlow({
   title: "Wait until everything due at now has run, without moving the clock",
   about:
     "Waits until the backend's due timers and crons have run, its outbox is delivered and its waits woken, every pending " +
-    "transaction is mined at now, Ponder has indexed the head and every follower is idle. A program calls it after each " +
-    "of its own actions, so the next one starts from a settled world. " + SDK_ONLY,
+    "transaction is mined at now (with the empty blocks its depth waits need), Ponder has indexed the head and every " +
+    "follower is idle, all in one settle round with nothing changing during it. A program calls it after each of its " +
+    "own actions, so the next one starts from a settled world; a follower never calls it from its own handler, where " +
+    "it would wait on itself (it acknowledges busy instead). " + SDK_ONLY,
   was: [`${WORLD}:292`],
   component: component_core_sdk,
   sdk: "devnet.time.settle",
@@ -273,9 +279,11 @@ export const flow_devnet_time_follow = defineFlow({
   about:
     "Joins the time authority under a name (one at a time per name: WRONG_STATE). At every stop the follower's handler " +
     "gets the clock event with now standing still, does its own work at that instant (a simulated customer's deposit, " +
-    "a stand-in's scheduled answer), and returns whether it is idle and its own next due instant; the SDK acknowledges " +
-    "it, and the warp stops at that instant too. A follower that does not acknowledge in time fails the barrier " +
-    "(WORK_DIED, naming it) and is dropped (decision devnet.followers). " + SDK_ONLY,
+    "a stand-in's scheduled answer), and returns whether it is idle and its own next due instant (later than now, or " +
+    "none); the SDK acknowledges it, and the warp stops at that instant too. The handler may call Capxul (the CLI, the " +
+    "SDK, its own transactions, which the supervisor mines at now) but not move the clock: one move runs at a time. A " +
+    "follower that does not acknowledge in time fails the barrier (WORK_DIED, naming it) and is dropped (decision " +
+    "devnet.followers). " + SDK_ONLY,
   was: [`${WORLD}:292`, "/home/user/factory packages/vending-bench/src/bridge.ts:99"],
   component: component_core_sdk,
   sdk: "devnet.time.follow",

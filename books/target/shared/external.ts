@@ -515,9 +515,15 @@ const unsettled = {
   when: "At a stop the devnet did not settle in time: a follower stayed busy or did not acknowledge. The clock stays at the last stop that settled, and the refusal names the stop and the followers",
   error: error_WORK_DIED,
 } as const;
+/** One move of the clock runs at a time (decision devnet.warp-barrier); reads and watches always answer. */
+const busy = {
+  when: "Another move of the clock (a warp, step, settle, start-at, freeze or resume) is running; the refusal names it",
+  error: error_WRONG_STATE,
+} as const;
 /** A clock call is local and immediate: one read or one state change of the time authority. */
 const CLOCK_CALL = { timeoutMs: 2_000, ...CONTROL, p95Ms: 100 } as const;
-/** A barrier call waits for every follower to settle at every stop, so a long story takes minutes. */
+/** A barrier call waits for every follower to settle at every stop, so a month takes seconds and a year minutes; a
+ * caller's ten-minute patience bounds one call, so a long story is driven in steps or day-sized warps. */
 const BARRIER = { timeoutMs: 600_000, ...CONTROL } as const;
 
 export const integration_devnet_control = defineIntegration({
@@ -561,18 +567,19 @@ export const integration_devnet_control = defineIntegration({
     snapshotList: { about: "The saved worlds, newest first.", timeoutMs: 2_000, ...CONTROL, p95Ms: 100, failures: [...controlFailures] },
     timeRead: {
       about:
-        "GET /v1/time: the clock (now, mode, version, world epoch, whether the story has begun), the chain head, the " +
+        "GET /v1/time: the clock (now and its realAt, mode, version, world epoch, whether it moved), the chain head, the " +
         "backend's now, Ponder's position, each follower's acknowledged version and next due instant, and whether they agree.",
       ...CLOCK_CALL,
       failures: [...controlFailures],
     },
     timeWarp: {
       about:
-        "POST /v1/time/warp: moves now forward by a span or to an instant, stopping at every due instant on the way, and " +
-        "returns when the chain has a block at the target and everything due by then has run and settled.",
+        "POST /v1/time/warp: moves now forward by a span or to an instant, stopping at every due second on the way, and " +
+        "returns when the chain has a block at the target and everything due by then has run and settled. A warp whose " +
+        "caller goes away stops at its next settled stop.",
       ...BARRIER,
       p95Ms: 5_000,
-      failures: [...controlFailures, { when: "The target is not later than now", error: error_INVALID_INPUT }, unsettled],
+      failures: [...controlFailures, { when: "The target is not later than now", error: error_INVALID_INPUT }, busy, unsettled],
     },
     timeStartAt: {
       about: "POST /v1/time/start-at: sets a fresh world's story at an earlier instant, mines a block there and settles.",
@@ -582,7 +589,7 @@ export const integration_devnet_control = defineIntegration({
       failures: [
         ...controlFailures,
         { when: "The date is not earlier than now", error: error_INVALID_INPUT },
-        { when: "The clock already moved: the world is not fresh", error: error_WRONG_STATE },
+        { when: "The clock already moved: the world is not fresh, or another move of the clock is running", error: error_WRONG_STATE },
         unsettled,
       ],
     },
@@ -590,26 +597,26 @@ export const integration_devnet_control = defineIntegration({
       about: "POST /v1/time/step: moves now to the next instant anything is due (a timer, a cron run, a follower's next due), not past a limit, and settles.",
       ...BARRIER,
       p95Ms: 3_000,
-      failures: [...controlFailures, { when: "The limit is not later than now", error: error_INVALID_INPUT }, unsettled],
+      failures: [...controlFailures, { when: "The limit is not later than now", error: error_INVALID_INPUT }, busy, unsettled],
     },
     timeSettle: {
       about: "POST /v1/time/settle: waits until everything due at now has run and every follower is idle, without moving now.",
       ...BARRIER,
       p95Ms: 2_000,
-      failures: [...controlFailures, unsettled],
+      failures: [...controlFailures, busy, unsettled],
     },
     timeFreeze: {
       about: "POST /v1/time/freeze: holds now still, at the next whole second, until a warp, step or resume moves it.",
       ...CLOCK_CALL,
-      failures: [...controlFailures],
+      failures: [...controlFailures, busy],
     },
     timeResume: {
       about: "POST /v1/time/resume: lets now run on from where it stands, at the real rate.",
       ...CLOCK_CALL,
-      failures: [...controlFailures],
+      failures: [...controlFailures, busy],
     },
     timeWatch: {
-      about: "GET /v1/time/events: the clock's events as server-sent events, each with its version, now, mode, world and reason.",
+      about: "GET /v1/time/events: the clock's events as server-sent events, each with its version, now and realAt, mode, world and reason.",
       ...CLOCK_CALL,
       failures: [...controlFailures],
     },

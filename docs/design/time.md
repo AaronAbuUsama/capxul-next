@@ -1,6 +1,8 @@
 # One clock
 
-Status: designed 8 November 2026, from Aaron's direction of the same day. Records:
+Status: designed 8 November 2026, from Aaron's direction of the same day, and revised the same day after an
+adversarial review (the settle test, whole-second stops, depth waits, sessions across warps, chain-judged
+deadlines, vendor envelopes, lifecycle timeouts and the vending-bench year). Records:
 `books/target/shared/time.ts` (the rules and the invariants), `books/target/devnet/` (the time
 authority, its protocol and its flows) and the `devnet-control` integration in
 `books/target/shared/external.ts`. Every judgment below is a decision record; its id is given in
@@ -51,13 +53,20 @@ Capxul has **one clock**. Its reading, **now**, is the instant every product dec
 | The Bridge stand-in | Every event and object is dated at now. Its own scheduled answers are instants. |
 | The Core SDK, the CLI, the MCP server and the React SDK | They take now from the backend's answers, never from their own clock [`time.clients-take-server-now`]. |
 
-Two things follow:
+Four things follow:
 
 - **A time that reaches the chain is a whole second.** This covers a `validUntil`, a cliff, a
-  budget period or a close. A due instant for one is rounded up to the second
-  [`time.chain-judged-deadlines`].
+  budget period, a vote's end or a close [`time.chain-judged-deadlines`].
+- **Every due instant is a whole second, rounded up.** That covers a timer's `at` and a cron's
+  run, so a warp's stops are whole seconds and a stop's block is at its instant exactly
+  [`time.durable-timers`].
 - **A row's id that carries a time (a ULID) takes the instant of its request or step.** So ids
-  sort the way their rows' times do.
+  sort the way their rows' times do. ULIDs increment within one instant, so rows made at one
+  frozen instant keep the order they were made in.
+- **No key rests on an instant alone.** On a frozen clock many requests share one instant: a
+  world step, an eval, a stop's whole cascade. So a key or a uniqueness rule also carries an id
+  or a sequence, and every order by time has a tie-break [`time.read-once`]. Two cases in the book
+  today are a cron's manual run (§4) and two price rounds scripted at one instant (open points).
 
 ### What stays on real elapsed time
 
@@ -68,7 +77,7 @@ product rule compares [`time.real-elapsed`].
 | On real time | Why |
 |---|---|
 | A call's per-attempt timeout and its retries' backoff (each integration's `timeoutMs` and `retries`) | A warp cannot make a node answer sooner. |
-| A workflow run's own `timeoutMs` and `retries`. The `timeoutMs` of a `chain` or `indexer` wait. | These measure how long Capxul's own machinery (the node, Ponder) may lag. |
+| A workflow run's own `timeoutMs` and `retries`: they bound one run's work between its waits. The `timeoutMs` of a `chain` or `indexer` wait. | These measure how long Capxul's own machinery (the node, Ponder) may lag. A bound on how long an object may live in the story is not a run timeout: it is a `timer` wait on now (open points). |
 | Span timestamps and durations, and so every budget | A budget measured on a frozen clock would read zero. |
 | The engine's leases, heartbeats and poll intervals, and the outbox relay's and Ponder's polling | Infrastructure. |
 | A client's patience: how long a `wait` step polls before it gives up | A person's patience is real time. |
@@ -76,12 +85,18 @@ product rule compares [`time.real-elapsed`].
 | A vendor's envelope: a webhook signature's freshness, a vendor-issued token's expiry, a certificate | The vendor checks it against its own clock. |
 
 **Envelope in real time, payload on now.** The Bridge stand-in signs its webhook with the real
-time and dates the deposit it reports at now.
+time and dates the deposit it reports at now. Checking an envelope's freshness, or putting a
+timestamp into a vendor's request, needs a real *instant*, not a duration. That instant comes from
+`RealTime`, beside `Now` in `packages/runtime/src/time/`. Only integration layers call it, and its
+value is never stored in a row or compared with a product time.
 
 **What a person is promised in time is on now.** That includes Capxul's own expiries: a session,
 a sign-in code and its resend cooldown, an assistant grant and a key's grace window. It also
 includes the `timeoutMs` of every `person`, `signal` and `timer` wait. A month warped past a
-30-day session ends that session, as a month would.
+30-day session ends that session, as a month would. So after a warp that ends sessions, the world
+builder and the eval harness sign the world's people in again by the mail sink's code
+[`devnet.sessions-across-warps`]. Three worlds need it today: `org-with-agreements` warps 31 days,
+and `org-with-option-active` and `org-with-sale-offered` warp 400 days.
 
 **The guard.** Effect's own `Clock` stays the real clock in every layer (§4). Product code gets an
 instant only from `Now`, and the lint enforces it (§4, T0).
@@ -140,24 +155,52 @@ The supervisor is the chain's **only miner** [`devnet.only-miner`].
   batch at once with `evm_mine` at now.
 - It pins Anvil's own time to now at every change, so an `eth_call` or a gas estimate at
   `pending` sees now.
-- If Anvil will not mine two blocks in the same second, the authority first **ticks** now forward
-  one second. That way a block's time is still now and time never goes back.
-- A warp, a step and a start-at each mine a block at their target.
+- **On a frozen clock every move ends with the head at now.** A stop of a warp or step, a
+  start-at, a freeze that moved now and a restore each end by mining an empty block at now, when
+  nothing else was mined at that second. So `latest` reads now, and chain-rpc reads at `latest` on
+  every environment, with no devnet branch. Without this, a stop that mined nothing would leave
+  every contract view that computes from `block.timestamp` reading the past: Agreements' released
+  pay, Budgets' period, `Governor.state`.
+- **Depth waits end inside the stop** [`devnet.mine-to-depth`]. No block follows a quiet one, so a
+  reader waiting for a fact to be k blocks deep would wait forever. Payments settle at the
+  deployment's finality depth and confirm at twice it, approvals land at it, and books' added-token
+  scan stops k below the head. So each stop ends by mining empty blocks at now until its newest
+  block with a transaction is 2k deep. With k = 0 it mines none.
+- **A stop mines several blocks in one second.** Its cascade (a timer's transaction, then the one
+  its indexed fact wakes, then the depth blocks) needs the pinned Anvil to accept equal
+  timestamps. B0 measures it. If Anvil refuses, the authority **ticks** now forward one second
+  before such a block. That keeps time forward, but it carries a stop's later work past its
+  instant, and how many ticks a stop takes depends on how its transactions batch, which is
+  timing. G3 and G4 then hold only for stops that mine once, and B3 records how mining is made
+  deterministic before anything relies on them.
 
 #### The backend
 
 Its devnet `Now` layer is the follower `backend`. At boot it takes the clock from the protocol,
-and it does not serve until it has one. Frozen, now is the clock's now. Running, it is the last
-event's now plus the real time since that event, read on the same machine.
+and it does not serve until it has one. Frozen, now is the clock's now. Running, it is the clock's
+now plus the real time since the clock's `realAt`, the instant on this machine's real clock when
+now held that value. Every follower computes it the same way, so they all read one function of
+one real clock. Timing from its own receipt of an event would make a follower trail the authority
+by the event's delivery, and a block mined at the authority's second could then be later than the
+backend's now.
 
 At every clock event the backend takes the new now and runs its timer and cron pump. It
-acknowledges the event as idle only when all three of these hold:
+acknowledges the event as idle only when all of these hold:
 
 - no due timer is unfired;
-- no workflow step is running;
-- its outbox is delivered.
+- no workflow run or step is executing;
+- the engine's message storage holds nothing deliverable that has not been processed: a resume, a
+  deferred's completion, a new execution or a run's retry;
+- its outbox is delivered;
+- its wake router has consumed every indexed row up to the block Ponder has indexed.
 
-It also reports its next due instant.
+The third and fifth close two gaps where "no step running, outbox delivered" is idle while work is
+still coming. Effect's cluster persists a message and only then reads it, so there is a gap after
+the pump completes a timer's deferred, or the relay starts a workflow, and before the run begins.
+The other gap is between Ponder indexing a block and the router routing its rows.
+
+It also reports its next due instant: its earliest unfired timer, or its next hourly-or-slower
+cron run.
 
 #### The workflow engine's timers and crons
 
@@ -166,9 +209,11 @@ These are the runtime's own (§4), so they follow the backend's `Now` with nothi
 #### Ponder
 
 Ponder follows the chain by construction: its rows carry the blocks' timestamps. The supervisor's
-Ponder adapter is a follower that is idle when Ponder's indexed block is the head. Its own polling
-runs on real time. B3 sets it to 100 ms, or to a WebSocket subscription to new heads, so a stop
-does not wait half a second for each block.
+Ponder adapter is a follower that is idle when Ponder's indexed block is the head. Under an armed
+`indexer hold` it is idle at the held block instead: an armed fault switch's held state counts as
+settled, or the `requests-indexer-behind` world could never be built. Its own polling runs on real
+time. B3 sets it to 100 ms, or to a WebSocket subscription to new heads, so a stop does not wait
+half a second for each block.
 
 #### The stand-ins
 
@@ -177,7 +222,9 @@ Each stand-in follows the authority [`devnet.stand-ins-follow`]:
 - **The mock paymaster** signs windows from now.
 - **The bundler stand-in** checks a window and simulates at the chain's next block time, which is
   now. Alto checks windows against its own wall clock. So alto runs only if it can be given that
-  time. Otherwise B3 writes a Capxul bundler stand-in, with a decision record.
+  time. Otherwise B3 writes a Capxul bundler stand-in, with a decision record. The bundler
+  stand-in is idle when its mempool is empty and no bundle is in flight.
+- **chain-rpc** reads at `latest`, as on staging. On a frozen devnet that is a block at now.
 - **The Bridge stand-in** dates its payloads at now. Its scheduled answers are its next due. It
   signs its envelopes with the real time.
 - **The mail sink, and the Chainlink and PostHog fakes,** are backend layers that read `Now`.
@@ -191,6 +238,10 @@ Every rpc answer carries the now its transaction read. The Core SDK keeps the la
 - No client decides on time.
 - A relative span goes to whoever owns now. A warp's `6h` goes to the supervisor, which resolves
   it.
+- `client.now()` is the latest answer's now plus the real time since that answer. It is stale
+  after a warp the client did not see. So a client renews a session or refreshes a token when the
+  backend refuses it, never only on its own reading. Examples are an agent's 24-hour session after
+  a two-day warp, and an assistant's access token.
 
 #### The mode
 
@@ -206,10 +257,25 @@ The clock runs or stands still [`devnet.clock-modes`]:
 - **Now is the host's clock** (NTP), read through the same `Now` service with its live layer.
 - **The chain's time is read from blocks and never computed.** This covers indexing's rows and
   `chain-rpc.getBlock`.
-- **A timer for a deadline the chain enforces fires at now.** If the head has not reached the due
-  second (a simulation reverts as too early), the timer re-arms for the shortfall instead of
-  failing [`time.chain-judged-deadlines`]. Payroll's, equity's and approvals' timers "by the
-  chain's clock" work this way. On a devnet the head and now are equal at every settle, so the
+- **A timer for a deadline the chain enforces is due at the first second at which the chain's own
+  rule gives the new answer** [`time.chain-judged-deadlines`]. That second is read off the
+  contract:
+  - v4 Agreements' offer expiry (`block.timestamp >= offerExpiresAt`) and Budgets' `payAt`
+    (`block.timestamp < payAt` reverts) change at the deadline second itself.
+  - OpenZeppelin's Governor keeps a vote Active through its deadline second, so a vote's end is
+    due at `voteEnd + 1`. A timer due at `voteEnd` fires at a stop whose block is at `voteEnd`,
+    where `Governor.state` still answers Active.
+  - The EntryPoint's `validAfter` bound is read off the pinned EntryPoint the same way.
+- **When the timer fires it checks the head.** While the head has not reached the due second (on
+  staging it trails now), the timer re-arms for the shortfall instead of acting or failing. It acts
+  once Ponder has indexed that head. A lapse needs no chain call, so nothing would revert to say it
+  is early. Without the check, a payee's accept mined in the deadline's last second could land
+  after the backend had already lapsed the offer. Payroll's, equity's and approvals' timers "by
+  the chain's clock" work this way.
+- **A span of chain-dated facts is half-open**, `[start, end)`, as the v4 Calendar's periods are:
+  a month's books, a budget period. A process that closes one waits the same way, until the head
+  and Ponder are past its end.
+- On a devnet the head is at now at every settled stop. With due seconds set by this rule, the
   re-arm never happens there.
 - **Drift is watched** [`time.drift-watch`] with two signals, both riding on reads that are already
   made:
@@ -233,7 +299,13 @@ The clock runs or stands still [`devnet.clock-modes`]:
 
 - **Transport.** HTTP JSON on loopback. It uses the bearer token that the supervisor writes to an
   owner-only handoff file. The file sits beside the control socket and holds the address and the
-  token. The same requests work on the owner-only Unix socket without a token.
+  token. The same requests work on the owner-only Unix socket without a token. The server answers
+  only a loopback `Host` and no cross-origin request, so a web page on the same machine cannot
+  drive it.
+- **Every clock it answers carries `realAt`**, this machine's real time when now held that value.
+  On a running clock every reader computes now as `now + (real time − realAt)`.
+- **One move at a time.** A warp, step, settle, start-at, freeze or resume while another move runs
+  is `WRONG_STATE`, and the refusal names the running move. Reads and watches always answer.
 - **Clients.** All of these are clients of the one protocol:
   - The Core SDK's Node-only devnet entry (`connectDevnet()`) is the typed client. Its types are
     generated from the protocol's schema in `packages/devnet`.
@@ -265,15 +337,20 @@ The clock runs or stands still [`devnet.clock-modes`]:
 
 - `INVALID_INPUT`: a target not later than now, a start-at date not earlier than now, or a step
   limit not later than now.
-- `WRONG_STATE`: a start-at once the clock has moved, or a follower name already in use.
-- `WORK_DIED`: a stop that did not settle in time. It names the stop and the busy followers.
+- `WRONG_STATE`: a start-at once the clock has moved, a follower name already in use, or a move
+  while another move runs.
+- `WORK_DIED`: a stop that did not settle within its limit (60 s of real time by default). It
+  names the stop and the busy followers.
 - `WRONG_ENVIRONMENT`: the client finds no handoff file.
 - `PROVIDER_ERROR`: the supervisor timed out.
 
 ### Followers
 
 A follower joins under a name and takes every clock event. It acknowledges each version, saying
-whether it is idle and giving its own next due instant [`devnet.followers`].
+whether it is idle and giving its own next due instant, later than now or none
+[`devnet.followers`]. Its handler may call Capxul (the CLI, the SDK, its own transactions, which
+the supervisor mines at now), but it never moves the clock and never calls settle: it would wait
+on itself. It acknowledges busy instead.
 
 - **The built-in followers** are the backend, Ponder (through the adapter), and the bundler,
   paymaster and Bridge stand-ins.
@@ -306,21 +383,35 @@ sequenceDiagram
   A-->>C: {from, to, stops, chain at T, backend now T, indexer caught up}
 ```
 
-1. A warp from now to T builds a list of stops, in order:
-   - every durable timer's due instant;
-   - every run of an hourly-or-slower cron (the daily sweep and the daily notices);
-   - every follower's next due instant;
-   - then T itself.
+1. A warp from now to T moves through **stops**, each a whole second (T is rounded up). The next
+   stop is chosen *after* each stop settles, as the earliest of:
+   - every follower's next due instant (the backend's is its earliest unfired timer or its next
+     run of an hourly-or-slower cron: the daily sweep and the daily notices);
+   - T itself.
+
+   So a timer that one stop's work sets for before T is a stop too, such as a dated payment's
+   day-ahead timer set at the stop that created the payment. A list built when the warp starts
+   would miss it.
 2. At each stop the clock stands at that instant, and then:
-   - a block is mined there when anything is pending;
    - the backend fires what is due and runs it;
    - each minute-scale sync that is due runs once;
-   - the authority waits until every follower is idle and Ponder has indexed the head. It repeats
-     this until nothing changes.
-3. `jobs: false` skips the crons. Timers still fire, because they are due.
+   - the supervisor mines what is pending at that second, and ends with the head there and its
+     depth blocks mined;
+   - the authority runs **settle rounds**. A round is a `settle` event: a new version, with now
+     unchanged. The stop has settled when, in one round, all of these hold: every follower
+     acknowledged the round idle; Anvil holds no pending transaction; Ponder has indexed the head
+     (or the block an armed indexer hold keeps it at); and nothing was mined and no follower
+     reported busy since the round began. Otherwise another round runs. A round whose
+     acknowledgements all postdate its start, with nothing mined meanwhile, cannot pass in the gap
+     between Ponder indexing a fact and the wake it causes.
+3. `jobs: false` skips the crons and moves each skipped cron's next run past T, so none runs late.
+   A cron left due would run on the pump's next poll, right after the warp. Timers still fire,
+   because they are due.
 4. A cron that fails is named in the answer and does not undo the warp, as the frozen page says.
-5. A stop that does not settle in time fails the warp with `WORK_DIED`. The clock stays at the
-   last stop that settled, and nothing rolls back.
+5. A stop that does not settle within its limit (60 s of real time by default) fails the warp
+   with `WORK_DIED`. The clock stays at the last stop that settled, and nothing rolls back.
+6. A warp whose caller goes away stops at its next settled stop. On a running clock the warp holds
+   now at each stop and lets it run on from T when it returns.
 
 Step and settle are special cases:
 
@@ -338,9 +429,9 @@ month.
 | # | Guarantee |
 |---|---|
 | G1 | **Never backward.** Within a world, now never decreases for any follower (`inv:time.monotonic`). There are two exceptions. A `start-at` on a fresh world is the story's one move back. A restore replaces the world and carries a new `world` epoch, so a subscriber can tell it from a move [`devnet.start-at`]. |
-| G2 | **One value when settled.** After any time call returns, the backend's now, every follower's now and Ponder's indexed head time equal the authority's now. When the call mined, the chain head is at that second (`inv:time.one-now`). Every block is mined at now, and no block is later than now (`inv:time.blocks-at-now`). |
-| G3 | **A warp is a barrier.** When a warp to T returns, the chain has a block at T and the backend reads T. Every durable timer due by T has fired once, with its step reading its own due instant. Every hourly-or-slower cron run due by T has run once, at its scheduled instant. Everything they caused has settled: the outbox is delivered, waits are woken and Ponder has indexed that block (`inv:time.due-fires-once`). |
-| G4 | **Frozen is deterministic.** In frozen mode now moves only by the caller's calls, and by ticks, which are a function of the blocks mined. So the same calls from the same world, each followed by a settle, give the same block timestamps, row times and timer firings (`inv:time.frozen-deterministic`). |
+| G2 | **One value when settled.** After any time call returns on a frozen clock, the backend's now and every follower's acknowledged now equal the authority's now, the chain head's time is that second, and Ponder has indexed the head (`inv:time.one-now`). On a running clock they agree as one function of the machine's real clock, and the head may trail now, as on staging. Every block is mined at now, and no block is later than now, except the blocks mined before a start-at (`inv:time.blocks-at-now`). |
+| G3 | **A warp is a barrier.** When a warp to T returns, the chain has a block at T and the backend reads T. Every durable timer due by T has fired once, with its step reading its own due instant, including timers set by the work on the way. Unless `jobs` was false, every hourly-or-slower cron run due by T has run once, at its scheduled instant. Everything they caused has settled: the outbox is delivered, waits are woken and Ponder has indexed the head (`inv:time.due-fires-once`). |
+| G4 | **Frozen is deterministic.** In frozen mode now moves only by the caller's calls. So the same calls from the same world, each followed by a settle, give the same block timestamps, row times and timer firings (`inv:time.frozen-deterministic`). Two things the run does not control must hold: the pinned Anvil mines several blocks in one second, so no tick is needed (B0), and the script stays below the infrastructure rate limits, which run on real time. |
 | G5 | **Failure is visible.** A barrier that cannot settle fails with `WORK_DIED`, names what is busy and leaves the clock at the last settled stop. |
 | G6 | **Refusals.** Each is the frozen behaviour: a warp target not later than now is `INVALID_INPUT`; both or neither of a duration and `--to` is `INVALID_INPUT` (checked by the SDK); a start-at date not earlier than now is `INVALID_INPUT`; a start-at after the clock moved is `WRONG_STATE`; off a devnet is `WRONG_ENVIRONMENT`. |
 

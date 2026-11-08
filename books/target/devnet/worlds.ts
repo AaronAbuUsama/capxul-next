@@ -9,7 +9,10 @@
 // `dev snapshot save <name> --replace`. It builds on a frozen clock, so a world's every time is a
 // function of its steps (decision devnet.deterministic-worlds): before each step it warps one second,
 // so each step happens at its own instant, and after each step it settles, so the next starts from a
-// world where everything the last caused has run; a warp step is a barrier of its own. A
+// world where everything the last caused has run; a warp step is a barrier of its own. Sessions run
+// on the one clock (a person's for 30 days), so after a warp step that ends a session the builder
+// signs in again, by the sink's code, every person whose session it ended, and the current person
+// stays current (decision devnet.sessions-across-warps); the worlds that warp past 30 days say so. A
 // step is a black-box action: a `capxul` command, a Core SDK method of a surface with no command
 // (the web onboarding, the operator's waitlist tool), or a supervisor control (a fault switch, a
 // chain action no Capxul surface makes). Steps never write a table: sign-in codes come from the mail
@@ -58,6 +61,9 @@ const ready = (email: string, name: string) =>
     `as person-ready: sign in; \`capxul waitlist join\`; the operator admits ${email}; the web onboarding's profile ` +
       `(display name ${name}); \`client.account.setup\` with the dev signer, until CapxulSafeClaimed`,
   );
+/** After a warp that ended sessions: everyone whose session it ended signs in again (devnet.sessions-across-warps). */
+const signInAgain = () =>
+  anyone("the builder signs in again, by the sink's code and in sign-in order, every person whose session that warp ended; the current person stays current");
 /** Sign the open approval of `what` as `email`, with their dev signer. */
 const approve = (email: string, what: string) => anyone(`capxul dev approve --as ${email} <${what}>`);
 /** Found an Organization and finish its setup. */
@@ -526,7 +532,8 @@ export const WORLDS: readonly World[] = [
       approve("sam@acme.test", "the acceptance"),
       step("lead@acme.test", "three more offers to plat@, pat@ and eli@, each accepted; then pause one, end one with notice, end one now (each approved)"),
       step("lead@acme.test", "an offer to dana@ left to lapse, an offer to mia@ withdrawn, then the open offers to mia@acme.test and @northwind"),
-      anyone("capxul dev time warp 31d (a month of pay released, the lapsing offer lapses, the ended agreement ends)"),
+      anyone("capxul dev time warp 31d (a month of pay released, the lapsing offer lapses, the ended agreement ends; every session ends)"),
+      signInAgain(),
       step("lead@acme.test", "one more offer to mia@ sized to leave `salaries` nearly used, accepted"),
       current("lead@acme.test"),
     ],
@@ -1145,7 +1152,8 @@ export const WORLDS: readonly World[] = [
     steps: [
       step("ray@initech.test", "capxul shares accept <ray's grant> --json"),
       approve("ray@initech.test", "the acceptance"),
-      anyone("capxul dev time warp 400d"),
+      anyone("capxul dev time warp 400d (every session ends)"),
+      signInAgain(),
       step("ray@initech.test", "capxul dev fund 500 --asset USDC; capxul shares exercise <ray's grant> --shares 1000 --json"),
       approve("ray@initech.test", "the exercise"),
       current("nia@initech.test"),
@@ -1205,7 +1213,8 @@ export const WORLDS: readonly World[] = [
     holds: "org-with-equity past the founders' cliff with Omar's sale of 100,000 shares to Olga offered and waiting for the Board, and Nia's sale of 50,000 to Ivan already approved.",
     from: "org-with-equity",
     steps: [
-      anyone("capxul dev time warp 400d"),
+      anyone("capxul dev time warp 400d (every session ends)"),
+      signInAgain(),
       step("nia@initech.test", "capxul shares sell --org initech --to ivan@invest.test --shares 50000 --price 0.50 --json; approve as Nia"),
       step("nia@initech.test", "capxul org equity transfer approve <nia's transfer> --org initech --json; approve as Nia and Omar"),
       step("omar@initech.test", "capxul shares sell --org initech --to olga@outside.test --shares 100000 --price 0.50 --json; approve as Omar"),
