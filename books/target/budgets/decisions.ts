@@ -772,9 +772,10 @@ export const decision_budgets_claim_escrows = defineDecision({
       text:
         "Whoever `Budgets.authorised` admits on the funding budget takes it back: a wearer of its office hat or of any hat " +
         "above it, or the company Safe, so the Board. While it waits, the amount counts as spent this period, as any " +
-        "spend does. A refund (`Budgets.refundClaim`) returns the money to the company Safe and, when it lands in the " +
-        "period that spent it, takes the amount off the budget's and its ancestors' spent, so `leftOf` rises by it; " +
-        "after the period turned it changes no room. Budgets stores nothing of it: its reads show the chain.",
+        "spend does. A refund (`Budgets.refundClaim`) returns the money to the company Safe and, when it takes back an " +
+        "escrow still open in the period that spent it, takes the claim's amount off the budget's and its ancestors' " +
+        "spent, so `leftOf` rises by it; after the period turned, or for an escrow already collected, it changes no " +
+        "room. Budgets stores nothing of it: its reads show the chain.",
     },
     { label: "board-only", text: "Only the Board takes it back (v4 as deployed), and the room stays spent for that period." },
     { label: "credit-now", text: "A refund always gives room to the budget's current period, even after the period turned." },

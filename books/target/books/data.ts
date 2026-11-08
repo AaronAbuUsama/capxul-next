@@ -82,6 +82,29 @@ export const AccountRole = Schema.Literals([
 ]);
 /** Frappe's Party Type: the role a Party of the directory plays on a receivable or payable line. */
 export const PartyType = Schema.Literals(["Customer", "Supplier", "Employee", "Shareholder"]);
+/**
+ * One line of a payroll accrual as payroll gives it, in the run's token (books.payroll-lines): what Frappe HR's
+ * `make_accrual_jv_entry` posts, before books fixes its account and its value in the Company's currency.
+ */
+export const PayrollLine = Schema.Struct({
+  /**
+   * The Salary Component Account's account, or the run's payable, by books' account id: an earning's or employer
+   * contribution's `account` (its expense), a deduction's `account` or an employer contribution's `liability_account`
+   * (its liability), the run's Payroll Payable; null for its role's (books.payroll-defaults).
+   */
+  account_id: NullOr(S),
+  /** What the line is, so a missing or unfit account falls back: `expense` to `salaries` (5000), the others to Payroll Payable. */
+  role: Schema.Literals(["expense", "liability", "payable"]),
+  party_type: NullOr(PartyType),
+  party_id: NullOr(S),
+  cost_center_id: NullOr(S),
+  project: NullOr(S),
+  /** A net's payable line names its Payroll Entry, as Frappe HR's does; every other line names none. */
+  reference: NullOr(Schema.Struct({ reference_doctype: Schema.Literal("Payroll Entry"), reference_name: S })),
+  /** In the run's token, at its display precision, as the slip's rows are. */
+  debit: S,
+  credit: S,
+});
 /** The documents a Capxul voucher may pay or be paid for: what Payment Entry Reference and Journal Entry Account allow. */
 export const ReferenceDoctype = Schema.Literals([
   "Sales Invoice",
@@ -631,7 +654,10 @@ export const table_book_document_vouchers = defineTable({
     "Capxul computed, or of an agreement collection's paid slip (naming the collection's Payment, `payment_id`, whose " +
     "voucher then posts on the payable this one credits: books.payroll-postings), recorded by " +
     "`books.record-payroll-accrual` in payroll's own transaction, keyed by its `accrual_posted` fact's id and pushed to " +
-    "a head like Capxul's money vouchers (books.payroll-accrual). A " +
+    "a head like Capxul's money vouchers (books.payroll-accrual). A payroll voucher keeps payroll's lines as given " +
+    "(`payroll_lines`, in the run's token `asset_id`); its GL lines are fixed once, when the books are charted (at the " +
+    "record, or by the import for one recorded before), and until then `lines` is empty and it posts nothing " +
+    "(books.payroll-lines). A " +
     "cancellation appends the reversing lines, dated the day it was cancelled (the immutable ledger's way). No line is " +
     "ever on a Safe account: money in a Safe is posted only from its fact. A head voucher never posts on or before " +
     "`closed_through` unless it is the closing itself; a submitted Period Closing Voucher's `period_end_date` sets the " +
@@ -655,6 +681,9 @@ export const table_book_document_vouchers = defineTable({
     /** For a collection's accrual, the paid slip it accrues and the Payment that paid it (`payment_<id>`); null otherwise. */
     salary_slip_id: NullOr(S),
     payment_id: NullOr(S),
+    /** For a payroll voucher, the run's token and payroll's lines as given (books.payroll-lines); null for a head's. */
+    asset_id: NullOr(S),
+    payroll_lines: NullOr(Schema.Array(PayrollLine)),
     lines: Schema.Array(GlLine),
     head_modified: NullOr(N),
     received_at: N,
@@ -706,16 +735,17 @@ export const machine_book_document_voucher = defineMachine({
       to: "submitted",
       about:
         "The head sync's first sight of a submitted head voucher (a later version replaces its lines without a " +
-        "transition), or a payroll run's accrual recorded when the run is submitted.",
+        "transition), or a payroll accrual recorded when its run is submitted or its collection slip is paid.",
       guard:
-        "It balances in the Company's currency and no line is on a Safe account; a head's lines name only accounts and " +
-        "cost centres of Capxul's chart; a payroll line whose account is missing or unfit posts to its role's account.",
+        "It balances (a head's in the Company's currency, payroll's in its token) and no line is on a Safe account; a " +
+        "head's lines name only accounts and cost centres of Capxul's chart; an unfit payroll account posts to its " +
+        "role's once charted (books.payroll-lines).",
       emits: [event_book_document_voucher_transitioned],
     },
     cancel: {
       from: ["submitted"],
       to: "cancelled",
-      about: "Its author cancelled it (the head, or payroll cancelling the run): its reversing lines are appended.",
+      about: "Its author cancelled it (the head, or payroll cancelling the run): its reversing lines are appended, a payroll voucher's once charted.",
       emits: [event_book_document_voucher_transitioned],
     },
   },

@@ -69,24 +69,24 @@ export const rpc_banking_payouts_quote = defineRpc({
   title: "Quote a bank payout and birth it with its Payment",
   about:
     "`bank pay`'s one write. A known request key with the same request returns its payout and pays nothing twice; " +
-    "another request under it is INVALID_INPUT. Before any call it refuses an amount unit that disagrees with " +
-    "the funding asset, or an asset that cannot pay the currency (EURC to GBP): INVALID_INPUT; an account that is not " +
-    "the owner's, removed or inactive: WRONG_STATE (the bank account changed); an owner not verified for the currency: " +
+    "another request under it is INVALID_INPUT. Before any call it refuses an amount unit that disagrees with the " +
+    "funding asset, or an asset that cannot pay the currency (EURC to GBP): INVALID_INPUT; an account that is not the " +
+    "owner's, removed or inactive: WRONG_STATE (the bank account changed); an owner not verified for the currency: " +
     "VERIFICATION_REQUIRED. An account still `saved` is registered at Bridge first, under its own id. Bridge then " +
     "creates the transfer under the payout's id (derived from the owner and request key): an amount on its own fixes " +
     "what reaches the bank, a token fixes what leaves the Safe; the quote locks the bank amount and a slippage buffer " +
     "inside the funding. An Organization's `from` is the budget's Capxul key (`office-costs`) or chain id; an unknown " +
-    "key is INVALID_INPUT. It reads the funding live at one block: the Safe's " +
-    "`balanceOf` for a person; for an Organization the budget's `budgetOf` (closed: WRONG_STATE), `authorised` for the " +
-    "member's Safe (ROLE_PERMISSION_DENIED) and `leftOf`. Then one " +
-    "transaction writes the payout (`quote`, with the approval's id), the account's `register`, Bridge's deposit address " +
-    "as an outside Party (`parties.resolve-recipient`) and the Payment command (`payments.prepare-command`, purpose " +
-    "`bank_payout`, one item of the quoted amount to the deposit address, kind 0, no document and the zero hash, its " +
-    "`fee_raw` the quote's `fee_amount` and, for a contact's account, its `against` party the contact's Party as " +
-    "Supplier (banking.payout-books); `not_after` the quote's `expires_at`, so no approval or retry moves money after " +
-    "it; `pay_at` null, `resume` false): personal `approve` and `Payments.send`, or the budget's `Budgets.spend`. " +
-    "Funding short is INSUFFICIENT_BALANCE, a budget short PAYROLL_BUDGET_EXCEEDED, both before anything is written. " +
-    "It answers the quote with the approval to sign.",
+    "key is INVALID_INPUT. It reads the funding live at one block: the Safe's `balanceOf` for a person; for an " +
+    "Organization the budget's `budgetOf` (closed: WRONG_STATE), `authorised` for the member's Safe " +
+    "(ROLE_PERMISSION_DENIED) and `leftOf`. Then one transaction writes the payout (`quote`, with the approval's id), " +
+    "the account's `register`, Bridge's deposit address as an outside Party (`parties.resolve-recipient`) and the " +
+    "Payment command (`payments.prepare-command`, purpose `bank_payout`, one item of the quoted amount to the deposit " +
+    "address, kind 0, no document, its hash the keccak-256 of the payout id (banking.payout-document-hash), `fee_raw` " +
+    "the quote's `fee_amount`, for a contact's account `against` party the contact's Party as Supplier " +
+    "(banking.payout-books); `not_after` the quote's `expires_at`, so nothing moves after it; `pay_at` null, `resume` " +
+    "false): personal `approve` and `Payments.send`, or the budget's `Budgets.spend`. Funding short is " +
+    "INSUFFICIENT_BALANCE, a budget short PAYROLL_BUDGET_EXCEEDED, both before anything is written. It answers the " +
+    "quote with the approval to sign.",
   concept: concept_banking,
   kind: "action",
   who:

@@ -41,6 +41,7 @@ import {
   table_book_cost_centers,
   table_book_document_vouchers,
   table_book_facts,
+  table_book_prices,
 } from "./data.ts";
 
 const OLD = "packages/backend/src/books";
@@ -98,7 +99,8 @@ export const rpc_books_accounts_import = defineRpc({
     "(books.company-settings); a currency Capxul cannot value (no USD price pair) is INVALID_INPUT " +
     "`currency_not_priced`. Fiscal years, the first included, are derived from that start, never stored. The books are " +
     "born `open` if they had not begun, then `import`ed. Each account and cost centre is a fact with its feed number. " +
-    "Nothing is scheduled: there is no backfill. It is the start-up's chart step, which the Organization's FDE or a " +
+    "Nothing is scheduled: there is no backfill. A payroll accrual recorded before the chart gets its GL lines then, " +
+    "valued at its record (books.payroll-lines). It is the start-up's chart step, which the Organization's FDE or a " +
     "Books-hat wearer runs in the first sitting; nothing makes a chart at the setup's begin (books.startup).",
   was: [`${OPS}/import.ts:13`, `${OLD}/accounts/writes/chart.ts:32`, `${OLD}/facts/writes/backfill.ts:86`, `${ROWS}/operations.ts:82`],
   concept: concept_books,
@@ -114,11 +116,11 @@ export const rpc_books_accounts_import = defineRpc({
     currency: S,
     timeZone: S,
     fiscalYearStart: S,
-    basis: Schema.Literal("cash"),
+    basis: Schema.Literals(["cash", "accrual"]),
   }),
   errors: [...GUARD_ERRORS, error_WRONG_STATE, error_INVALID_INPUT],
-  reads: [...KEEPER_READS, table_organizations, table_book_companies, table_book_facts],
-  writes: [table_book_companies, table_book_accounts, table_book_cost_centers, table_book_facts],
+  reads: [...KEEPER_READS, table_organizations, table_book_companies, table_book_facts, table_book_document_vouchers, table_book_prices],
+  writes: [table_book_companies, table_book_accounts, table_book_cost_centers, table_book_facts, table_book_document_vouchers],
   drives: [machine_book_company.t.open, machine_book_company.t.import, machine_book_account.t.add],
   invokes: [],
   emits: [],
@@ -137,15 +139,16 @@ export const rpc_books_accounts_list = defineRpc({
     "The chart in code order, archived accounts only with `archived`, each with its protection, its Frappe root and " +
     "account type, whether it is a group, and its currency. The five roots and the two Expenses groups have no code and " +
     "are not listed: they are each account's `type`. An account directly under its type's group shows no parent. " +
-    "WRONG_STATE `no_chart` before the import.",
+    "WRONG_STATE `no_chart` before the import. `basis` is `accrual` once a payroll accrual or a head's voucher is in " +
+    "the books, else `cash` (books.head-vouchers).",
   was: [`${OPS}/list.ts:13`, `${ROWS}/operations.ts:72`],
   concept: concept_books,
   kind: "query",
   who: SEAT_WHO,
   input: Schema.Struct({ orgId: S, archived: opt(Schema.Boolean) }),
-  output: Schema.Struct({ basis: Schema.Literal("cash"), accounts: Schema.Array(BookAccount) }),
+  output: Schema.Struct({ basis: Schema.Literals(["cash", "accrual"]), accounts: Schema.Array(BookAccount) }),
   errors: [...GUARD_ERRORS, error_WRONG_STATE],
-  reads: [...SEAT_READS, table_book_companies, table_book_accounts],
+  reads: [...SEAT_READS, table_book_companies, table_book_accounts, table_book_document_vouchers],
   writes: [],
   drives: [],
   invokes: [],

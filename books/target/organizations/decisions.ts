@@ -972,14 +972,21 @@ export const decision_organizations_fde_handle = defineDecision({
   title: "The FDE's handle is `<handle>-fde`, or `fde-` and the Organization's id",
   question: "Every agent's Party has a handle (3 to 30 characters). What is the FDE's, and what if it is taken?",
   options: [
-    { label: "derived", text: "`<handle>-fde`, from the Organization handle's first 26 characters; when that is taken, `fde-` and ten characters of the Organization's id. Display name `<name> FDE`." },
+    {
+      label: "derived",
+      text:
+        "`<handle>-fde`, from the Organization handle's first 26 characters; when that is taken, `fde-` and the last ten " +
+        "characters of the Organization's id (`org_<ulid>`), lowercased. Display name `<name> FDE`.",
+    },
     { label: "chosen", text: "The founder chooses it at `org create`." },
   ],
   chosen: "derived",
   why:
     "`org create` must never be refused because of the FDE's name, and a founder should not have to choose one. The " +
-    "derived handle is free in practice; the fallback is unique by the id. Parties keeps the `-fde` suffix and the " +
-    "`fde-` prefix for agents an Organization owns (parties.fde-handles), so nobody else can take an FDE's handle.",
+    "derived handle is free in practice; the fallback is unique by the id. Its last ten characters are the ULID's random " +
+    "part: the first ten are its instant, which two Organizations born at one frozen instant share (time.read-once), so " +
+    "a fallback cut from them could collide and refuse the second `org create`. Parties keeps both forms for the " +
+    "Organization they name (parties.fde-handles), so nobody else can take an FDE's handle.",
   source: by("books/target/parties/procedures.ts (parties.register: handle rules)"),
   affects: [rpc_organizations_setups_begin, table_org_setups],
 });

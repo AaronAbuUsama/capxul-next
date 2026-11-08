@@ -113,14 +113,13 @@ export const rpc_payments_commands_prepare = defineRpc({
     "(`approvals.open`): `approve` and `Payments.send` (kind 0, `sendBatch` for several items of `--input`), or " +
     "`Budgets.spend` or, dated, `Budgets.schedule` from a budget. A mailbox with no live Safe is a claim escrow (route " +
     "`claim_escrow`, its mailbox kept), now or dated: payee the email's derived Safe, terms the token, raw amount, job " +
-    "nonce, kind 0, document hash and condition payee-claimed, salt the job nonce (a retry rebuilds the same address), " +
-    "kept in `escrow_address`. The payer's own Safe owns its own: one operation sends the amount there and " +
-    "`EscrowFactory.deploy`. A budget funds a budget's (`Budgets.spendToClaim`, dated `Budgets.scheduleToClaim`), which " +
-    "its holder or the Board may take back to it; the funding's payment id is kept. A non-ASCII mailbox is " +
-    "INVALID_RECIPIENT (payments.claim-escrow-routes). `--account` (a code of the Organization's chart from books' " +
-    "accounts: one it lacks, archived or a group, is INVALID_INPUT naming it) and `--suggest` become each Payment's " +
-    "`against`, kept from birth (payments.money-sides). A dated personal payment is signed now, sent on its day. It " +
-    "answers the hand-over with the CLI's preview.",
+    "nonce, kind 0, document hash and condition payee-claimed, salt the job nonce, kept in `escrow_address`. The " +
+    "payer's own Safe owns its own: one operation sends the amount there and `EscrowFactory.deploy`. A budget funds a " +
+    "budget's (`Budgets.spendToClaim`, dated `Budgets.scheduleToClaim`), which its holder or the Board may take back; " +
+    "the funding's payment id is kept. A non-ASCII mailbox is INVALID_RECIPIENT (payments.claim-escrow-routes). " +
+    "`--account` (a code of the payer's chart: the Organization's open ledger accounts, or the fixed personal chart) " +
+    "and `--suggest` (only beside 4999 or 6999) become each Payment's `against`; a bad one is INVALID_INPUT naming it " +
+    "(payments.money-sides). A dated personal payment is signed now, sent on its day. It answers the CLI's preview.",
   concept: concept_payments,
   kind: "action",
   who:

@@ -62,8 +62,8 @@ export const rpc_payroll_runs_create = defineRpc({
     COMPUTE +
     " A net below zero is INVALID_INPUT naming the Employee, as Frappe refuses one on submit. Then, in one transaction, " +
     "the run is born `draft` (payroll-entry.create), with the company Safe, its Payroll Payable and treasury books' role " +
-    "accounts (null before the chart: payroll.books-accounts), and each slip `draft` (salary-slip.compute). Nothing is " +
-    "owed yet.",
+    "accounts (null before the chart, the treasury also while books has no account for that Safe and token: " +
+    "payroll.books-accounts), and each slip `draft` (salary-slip.compute). Nothing is owed yet.",
   was: [`${FRAPPE}/payroll_entry/payroll_entry.py:309`, `${FRAPPE}/salary_slip/salary_slip.py:985`, `${FRAPPE}/salary_slip/salary_slip.py:1471`],
   concept: concept_payroll,
   kind: "mutation",
@@ -130,9 +130,10 @@ export const rpc_payroll_runs_submit = defineRpc({
     " The accrual (expense up, Payroll Payable and each deduction's liability up) is books' to post, and only books': " +
     "Capxul computed this run, so its accrual is Capxul's voucher, which a head receives and never posts again. Books " +
     "cannot read payroll, so this rpc invokes books' door `books.record-payroll-accrual` in the same transaction " +
-    "(action submit, the run's lines in the Company's currency: each earning's and employer cost's account, each " +
-    "deduction's liability, each net on the run's Payroll Payable with party the Employee; a null account is the line's " +
-    "role's: payroll.accrual, books.payroll-defaults).",
+    "(action submit, the run's lines in its token, which books values in the Company's currency: each earning's and " +
+    "employer contribution's expense, each deduction's and employer contribution's liability, each net on the run's " +
+    "Payroll Payable with party the Employee and reference the Payroll Entry; a null account is the line's role's: " +
+    "payroll.accrual, books.payroll-lines).",
   was: [`${FRAPPE}/payroll_entry/payroll_entry.py:372`, `${FRAPPE}/payroll_entry/payroll_entry.py:619`],
   concept: concept_payroll,
   kind: "mutation",

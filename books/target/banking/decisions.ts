@@ -712,7 +712,8 @@ export const decision_banking_payout_deadline = defineDecision({
     {
       label: "cap-and-withdraw",
       text:
-        "The quote passes `not_after` = the quote's `expires_at` and an item with a null document and the zero hash, and " +
+        "The quote passes `not_after` = the quote's `expires_at` and an item with a null document (its hash the " +
+        "payout's digest, banking.payout-document-hash), and " +
         "keeps the approval's id on the payout; the payout's process, ending a quoted payout on its account's removal or " +
         "deactivation, invokes `approvals.withdraw` in that transaction. Answered `signed`, it stays quoted and follows its Payment.",
     },
@@ -909,4 +910,37 @@ export const decision_banking_private_entries = defineDecision({
     o.operation_contact_bank_add,
     rpc_contacts_book_get,
   ],
+});
+
+export const decision_banking_payout_document_hash = defineDecision({
+  id: "banking.payout-document-hash",
+  title: "A payout's Payment carries its payout's digest as the document hash",
+  question:
+    "A payout's item to `payments.prepare-command` had no document and the zero hash (payments.door-inputs). v4 " +
+    "refuses the zero hash in every call that pays: `Payments.send` (`ZeroDocumentHash`), `Budgets.spend` and " +
+    "`Budgets.schedule`, and `Escrow`'s constructor. So every bank payout would revert at sponsorship. What hash does " +
+    "a payout's Payment carry?",
+  options: [
+    {
+      label: "payout-digest",
+      text:
+        "The keccak-256 of the payout's id (`payout_id`, derived from the owner and request key), with `document_id` " +
+        "null: fixed at the quote, the same on a repeat, unique to the payout, never zero, and naming no stored " +
+        "document. The door refuses the zero hash with INVALID_INPUT, so no other invoker can build a call v4 reverts.",
+    },
+    { label: "store-document", text: "Make banking depend on documents and store a payout instruction document, as the old payments' instruction did." },
+    { label: "bridge-transfer", text: "The keccak-256 of Bridge's transfer id." },
+  ],
+  chosen: "payout-digest",
+  why:
+    "The old system never sent a zero hash: every old payment command carried an instruction document's hash. The " +
+    "payout's id exists before Bridge answers and before the Payment is born, so the payment id is still fixed before " +
+    "anyone signs (K1) and a repeat under the same request key derives the same hash and the same id. Bridge's " +
+    "transfer id would also do, but it arrives from an outside call and a failed create leaves none. A stored document " +
+    "would be one nobody reads (payments.door-inputs rejected that edge). No reader resolves the hash: the Payment's " +
+    "`document_id` is null, so activity and documents show no document for it.",
+  source: FRAPPE(
+    "packages/contracts/v4/src/money/Payments.sol:56, Budgets.sol:223 and :254, Escrow.sol:65 (ZeroDocumentHash); packages/backend/src/payments/commands/writes/items.ts:159",
+  ),
+  affects: [rpc_banking_payouts_quote, procedure_payments_prepare_command, d.table_bank_payouts],
 });

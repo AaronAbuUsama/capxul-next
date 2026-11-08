@@ -160,7 +160,9 @@ export const operation_payment_send = defineOperation({
       error: error_INVALID_INPUT,
       given: W.funded,
       when:
-        "The signature does not recover the account's signer, or the execution is unknown; or `--on` or `--at` is not in the future, or `--account` names no open ledger account of the Organization's chart.",
+        "The signature does not recover the account's signer, or the execution is unknown; or `--on` or `--at` is not in " +
+        "the future, `--account` names no code of the payer's chart (an Organization's open ledger accounts, a person's " +
+        "fixed personal chart), or `--suggest` comes without `--account` 4999 or 6999.",
     },
     { error: error_INSUFFICIENT_BALANCE, given: W.empty, when: "Your Safe, or the company Safe, holds less than the amount." },
     {

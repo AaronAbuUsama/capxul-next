@@ -38,8 +38,10 @@ export const procedure_parties_register = defineProcedure({
     "company Safe (organizations.fde-handle); agents in `agent create`'s with the agent's " +
     "predicted Safe (`AgentOwner.safeAddressFor`). The handle is trimmed, lowercased and stripped of a leading `@`, then " +
     "must be 3 to 30 of a-z, 0-9, `_` or `-` and not reserved (admin, api, capxul, help, root, support, system, www). A " +
-    "handle ending in `-fde` or starting with `fde-` is kept for an Organization's FDE: it is accepted only for kind agent " +
-    "with owner_kind organization, and is reserved for any other registration (parties.fde-handles). A " +
+    "handle ending in `-fde` or starting with `fde-` is kept for its Organization's FDE: `<p>-fde` only for an agent an " +
+    "Organization owns whose own Party's handle, cut to its first 26 characters, is `<p>`; `fde-<x>` only when `<x>` is the " +
+    "last ten characters of the owning Organization's id, lowercased; any other registration of either is reserved " +
+    "(parties.fde-handles). A " +
     "malformed, reserved or taken handle, or a Safe some Party that is not released already holds, refuses with " +
     "`INVALID_INPUT` and the " +
     "invoker's birth rolls back with it: no handle is ever held by a birth that did not happen. The Party is born " +

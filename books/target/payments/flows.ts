@@ -11,6 +11,7 @@ import { component_core_sdk } from "../shared/foundation.ts";
 import { integration_openfort } from "../shared/external.ts";
 import { error_CANCELLED, error_SUPERSEDED, error_TRANSACTION_FAILED, error_WRONG_STATE } from "../shared/vocabulary.ts";
 import * as approvalsSigning from "../approvals/signing.ts";
+import { rpc_books_annotations_save } from "../books/annotations.ts";
 import { rpc_payments_changes_cancel, rpc_payments_changes_reschedule, rpc_payments_changes_retry } from "./changes.ts";
 import { Handover, SendInput, rpc_payments_commands_prepare, rpc_payments_commands_propose } from "./commands.ts";
 import { Followed, PaymentView, rpc_payments_ledger_get, rpc_payments_ledger_watch } from "./ledger.ts";
@@ -72,7 +73,8 @@ export const flow_client_payments_pay = defineFlow({
     "(the preview's payment ids), then signs and follows. An approval that expires or is displaced before it lands answers " +
     "SUPERSEDED with the `payment retry` and `payment wait` commands; one declined on the page answers CANCELLED; one the " +
     "chain's simulation refused answers its code. A repeat with the same `--request-key` answers where the first " +
-    "approval ended. Its React twin serves the web app's send form with the same steps.",
+    "approval ended. A person's `--account` or `--suggest` becomes their own annotation of each Payment, as the old " +
+    "send classified the row (payments.money-sides). Its React twin serves the web app's send form with the same steps.",
   component: component_core_sdk,
   sdk: "client.payments.pay",
   input: Schema.Struct({ ...SendInput.fields, as_directors: Schema.Boolean, ...Follow }),
@@ -87,6 +89,13 @@ export const flow_client_payments_pay = defineFlow({
       about: "With `--org` and several budgets you hold in the asset, prepare names them; the CLI asks which, then prepares with `--from`.",
     },
     { name: "check", local: "build", about: "Recomputes each payment id from the preview's terms and refuses a batch that pays anything else." },
+    {
+      name: "annotate",
+      rpc: rpc_books_annotations_save,
+      about:
+        "A personal payment with `--account` or `--suggest` only, and not on a replay: each Payment's annotation in the " +
+        "person's own books (actor person), as the old send classified it; an Organization's reaches books at settlement.",
+    },
     ...signing,
     ...following,
   ],
@@ -94,7 +103,13 @@ export const flow_client_payments_pay = defineFlow({
   calls: [integration_openfort.c.signDigest],
   spans: [],
   budget: budget("chain-submit"),
-  was: [`${SDK}/accounts/approvals.ts:106`, `${SDK}/payments/execution.ts:269`, `${SDK}/payments/command-execution.ts:226`, "apps/cli/src/commands/payment/subcommands/send/execute.ts:94"],
+  was: [
+    `${SDK}/accounts/approvals.ts:106`,
+    `${SDK}/payments/execution.ts:269`,
+    `${SDK}/payments/command-execution.ts:226`,
+    "apps/cli/src/commands/payment/subcommands/send/execute.ts:94",
+    "packages/backend/src/payments/commands/writes/books.ts:33",
+  ],
 });
 
 export const flow_client_org_departments_pay = defineFlow({

@@ -622,9 +622,10 @@ export const table_salary_components = defineTable({
     "One Salary Component: `salary_component` (its name), `salary_component_abbr`, `type`, and how it is worked out " +
     "(`amount`, or `formula` and `condition` with `amount_based_on_formula`), with Frappe's flags " +
     "(`depends_on_payment_days`, `statistical_component`, `do_not_include_in_total`, `is_tax_applicable`, " +
-    "`remove_if_zero_valued`, `disabled`). `accounts` are Frappe's Salary Component Account: the expense `account` " +
-    "and, for a deduction or employer contribution, its `liability_account`, as books' account ids (null: the line's " +
-    "role's account, books.payroll-defaults). `payee_party_id` is " +
+    "`remove_if_zero_valued`, `disabled`). `accounts` are Frappe's Salary Component Account, as books' account ids " +
+    "read the way Frappe HR's accrual reads them: an earning's `account` is its expense, a deduction's `account` its " +
+    "liability, and an employer contribution's `account` its expense and `liability_account` its liability; null is " +
+    "the line's role's account (payroll.books-accounts, books.payroll-defaults). `payee_party_id` is " +
     "Capxul's own field (a Custom Field on a head): the Party a deduction's or employer contribution's liability is owed " +
     "to (a tax office, a pension fund), paid when due by an ordinary budget payment, never in a run's command; null when " +
     "none is named (payroll.deduction-remittance). `portable` says the formula and condition are in the subset Capxul " +
@@ -977,8 +978,10 @@ export const table_payroll_settings = defineTable({
     "Frappe HR's Payroll Settings, one row per Organization, born by payroll's start-up at the setup's begin " +
     "(payroll.startup.open); a payroll write that finds none (the start-up not yet run) births it. Its " +
     "values are the same for every Organization, because they are what Capxul computes by and what a head must match: " +
-    "`payroll_based_on` leave, `include_holidays_in_total_working_days` on, `disable_rounded_total` on and " +
-    "`email_salary_slip_to_employee` off (notices sends mail). `last_seq` is the counter of `payroll-changes`: a payroll " +
+    "`payroll_based_on` leave, `include_holidays_in_total_working_days` on, `disable_rounded_total` on, " +
+    "`email_salary_slip_to_employee` off (notices sends mail) and `process_payroll_accounting_entry_based_on_employee` " +
+    "on, so every accrual and Bank Entry carries each Employee as the party on Payroll Payable " +
+    "(payroll.employee-wise-accounting). `last_seq` is the counter of `payroll-changes`: a payroll " +
     "write takes the next number under this row's lock, so the log has no gap (payroll.startup, payroll.head-sync).",
   was: [`${FRAPPE_HR}/payroll_settings/payroll_settings.json`],
   concept: concept_payroll,
@@ -990,6 +993,7 @@ export const table_payroll_settings = defineTable({
     include_holidays_in_total_working_days: Schema.Literal(true),
     disable_rounded_total: Schema.Literal(true),
     email_salary_slip_to_employee: Schema.Literal(false),
+    process_payroll_accounting_entry_based_on_employee: Schema.Literal(true),
     last_seq: N,
     created_at: N,
     updated_at: N,

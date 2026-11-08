@@ -1381,11 +1381,14 @@ export const decision_books_payroll_postings = defineDecision({
         "Party, a reference to the Payroll Entry, and Payroll Payable when the books are charted), which payments keeps " +
         "from birth and passes at settlement (payments.payroll-door). Its voucher is the Bank Entry Frappe HR's " +
         "`make_bank_entry` makes, one per slip: Dr Payroll Payable, party Employee, reference the Payroll Entry; Cr the " +
-        "company Safe's account for the token; cheque number the transaction, dated at the block. A Payroll Entry named " +
+        "company Safe's account for the token; cheque number the transaction, dated at the block. The reference is " +
+        "allocated the whole of what is left (null), so the Employee's payable closes at par. A Payroll Entry named " +
         "with no account (paid before the chart) posts on Payroll Payable too. A collection to a person: payroll's " +
         "agreement process, recording the paid slip, invokes `books.record-payroll-accrual` (action collection): Dr the " +
         "agreement component's expense, Cr Payroll Payable, party the Employee, naming the collection's Payment, whose " +
-        "voucher then posts Dr Payroll Payable, party the Employee, Cr Safe, whichever commits first. A collection to an " +
+        "voucher is then a Payment Entry (Pay, party the Employee) on Payroll Payable allocated to that Journal Entry, " +
+        "whichever commits first: when the Payment's fact came first, the accrual's fact carries its new version. A " +
+        "Payment already posted in a closed period keeps its voucher, and the door records nothing. A collection to an " +
         "Organization payee waits in review, or a head's Purchase Invoice and classification make it a Supplier Payment " +
         "Entry. A remittance posts on the liability account its payer names. An annotation, when given, wins.",
     },
@@ -1477,4 +1480,52 @@ export const decision_books_annotation_project = defineDecision({
     "case under a code `activity annotate` already produces, never a dropped behaviour.",
   source: byAssembly("erpnext/accounts/doctype/gl_entry/gl_entry.json (project: Link to Project); projects.dependencies; dependencies.of-books"),
   affects: [rpc_books_annotations_save, procedure_books_record_money_fact, workflow_books_head_sync, table_book_annotations],
+});
+
+export const decision_books_payroll_lines = defineDecision({
+  id: "books.payroll-lines",
+  title: "A payroll accrual's lines come in the run's token; books fixes them once charted",
+  question:
+    "The accrual door took lines 'in the Company's currency' with accounts resolved by role. Payroll computes in the " +
+    "run's token and cannot know the Company's currency, which the import fixes (books.company-settings), nor the " +
+    "chart's role accounts before there is a chart; a voucher kept before the chart has neither. Who values and " +
+    "accounts a payroll line, when, and on which day does it post?",
+  options: [
+    {
+      label: "token-lines-fixed-once",
+      text:
+        "Payroll gives its lines in the run's token, with Frappe HR's accounts or null, and books keeps them as given. " +
+        "When the books are charted (at the record, or by the import for one recorded before), books fixes the GL lines " +
+        "once: each null or unfit account to its role's; each amount in the Company's currency at par when that currency " +
+        "is the token's peg (USD for USDC, EUR for EURC), else through the two USD rates in force at the record, any " +
+        "rounding left on exchange gain or loss (6510). A run's voucher posts on its `posting_date`, a collection's on " +
+        "its block's day, a cancellation on the day of `at`, each a day in the Company's time zone and moved to the first " +
+        "open day when on or before `closed_through`. The lines are Frappe HR's: an earning's `account` and an employer " +
+        "contribution's are expense, a deduction's `account` and an employer contribution's `liability_account` are " +
+        "liability, and only a net's Payroll Payable line names the Payroll Entry.",
+    },
+    { label: "payroll-converts", text: "Payroll converts its lines into the Company's currency and resolves the accounts before it invokes the door." },
+    { label: "derive-on-read", text: "Derive a payroll voucher's GL lines from payroll's lines every time it is read, as a money fact's voucher is." },
+  ],
+  chosen: "token-lines-fixed-once",
+  why:
+    "Books owns the Company's currency, the prices and the chart; payroll reads none of them before the chart and would " +
+    "copy books' rules if it converted. Deriving on every read would move a posted accrual when an account is archived " +
+    "or a price row arrives late, and ERPNext never moves a submitted entry. At par for the peg is what the slip says " +
+    "and what Frappe HR posts with the exchange rate 1 the Capxul app sets on a head, and it matches the at-par " +
+    "allocation of each slip's Bank Entry (books.vouchers), so an Employee's Payroll Payable closes exactly; another " +
+    "currency is valued at the record's rates, the Bank Entry's difference going to 6510 as ERPNext's does. Moving a " +
+    "closed day forward is what books.closed-periods does for late money, since a head refuses a posting on or before " +
+    "its closing. Frappe HR posts employer contributions as a second Journal Entry; Capxul keeps them in the run's one " +
+    "voucher, which still balances and is keyed by the run. A deduction's liability is its component's `account` in " +
+    "Frappe HR (`make_accrual_jv_entry` credits it); `liability_account` is an employer contribution's.",
+  source: byAssembly("hrms payroll_entry.py:619, :784, :891, :1011; books.company-settings, books.vouchers, books.closed-periods"),
+  affects: [
+    procedure_books_record_payroll_accrual,
+    table_book_document_vouchers,
+    machine_book_document_voucher,
+    rpc_books_accounts_import,
+    rpc_books_sync_feed,
+    table_book_prices,
+  ],
 });

@@ -25,6 +25,7 @@ import {
   machine_book_company,
   machine_book_document_voucher,
   PartyType,
+  PayrollLine,
   Reference,
   SourceKind,
   table_book_accounts,
@@ -181,58 +182,59 @@ export const procedure_books_reverse_money_fact = defineProcedure({
   emits: [],
 });
 
-/** One line of a payroll accrual, in the Company's currency, as Frappe HR's `make_accrual_jv_entry` makes it. */
-const AccrualLine = Schema.Struct({
-  /** The component's expense or liability account, or the run's payable, by books' account id; null for its role's. */
-  account_id: NullOr(S),
-  /**
-   * What the line is, so a missing or unfit account falls back (books.payroll-defaults): an earning or employer cost to
-   * `salaries` (5000), a deduction's liability or the net to Payroll Payable.
-   */
-  role: Schema.Literals(["expense", "liability", "payable"]),
-  party_type: NullOr(PartyType),
-  party_id: NullOr(S),
-  cost_center_id: NullOr(S),
-  project: NullOr(S),
-  debit: S,
-  credit: S,
-});
+/** One line of a payroll accrual, in the run's token, as Frappe HR's `make_accrual_jv_entry` makes it (books.payroll-lines). */
+const AccrualLine = PayrollLine;
 
 export const procedure_books_record_payroll_accrual = defineProcedure({
   id: "books.record-payroll-accrual",
   title: "Record or cancel a payroll accrual: a run's, or a collection slip's",
   about:
-    "Money fact: a submitted payroll run owes each employee's net pay and each withheld deduction until its Payments " +
-    "settle them; the books credit that liability in the run's own transaction, so no slip's Payment is ever booked " +
-    "against a payable nothing credited, and cancelling the run takes the liability back with it (books.payroll-accrual). " +
-    "`submit` records an `accrual_posted` fact with the Organization's next feed number (source the run) and its " +
-    "Journal Entry as a `payroll` document voucher whose id is that fact's, dated `posting_date`: each earning's and " +
-    "employer cost's expense debited, each deduction's liability and each employee's net on Payroll Payable credited " +
-    "(party the Employee), every line naming the Payroll Entry, the lines payroll computed in the Company's currency. " +
-    "`collection` does the same for one landed agreement collection's paid slip (source the agreement), naming the " +
-    "Payment that paid it, so that Payment's voucher posts on the payable this one credits and the slip's expense is " +
-    "its component's (books.payroll-postings). A line whose account is missing, archived, a group or of the wrong root " +
-    "posts to its role's account (books.payroll-defaults), and without a chart the voucher is kept and posts once the " +
-    "chart exists, as money facts do. A run or slip with a standing accrual writes nothing. `cancel` records " +
-    "`accrual_cancelled` naming the run's and cancels the voucher on that day, its reversing lines appended; a run with " +
-    "no standing accrual writes nothing. A head-computed run never reaches this door: its accrual is the head's own " +
-    "voucher. It never refuses and makes no outside call.",
+    "Money fact: a submitted payroll run owes each employee's net and each withheld deduction until its Payments settle " +
+    "them, and a landed agreement collection's paid slip is pay the books must expense; the books post that liability " +
+    "or expense in payroll's own transaction, so no payroll Payment is booked against a payable nothing credited, and " +
+    "cancelling a run takes it back (books.payroll-accrual). `submit` records an `accrual_posted` fact with the next " +
+    "feed number (source the run) and a `payroll` Journal Entry whose id is the fact's: each earning's and employer " +
+    "contribution's expense debited, each deduction's and employer contribution's liability credited, each net on " +
+    "Payroll Payable credited, party the Employee and reference the Payroll Entry. `collection` does the same for one " +
+    "collection slip (source the agreement): the agreement component's expense against Payroll Payable, party the " +
+    "Employee, naming the Payment that paid it, which then posts on that payable (books.payroll-postings); if that " +
+    "Payment's row is in a closed period it writes nothing. The lines come in the run's token; books fixes each " +
+    "account (a missing, archived, group or wrong-root one to its role's: books.payroll-defaults) and each value in " +
+    "the Company's currency once charted, at the record or the import, and dates the voucher on the Company's day: " +
+    "the run's `posting_date`, or for a collection the block's day, moved to the first open day when closed " +
+    "(books.payroll-lines). A run or slip with a standing accrual writes nothing. `cancel` records `accrual_cancelled` " +
+    "naming the run's and cancels the voucher on the day of `at`; a run with no standing accrual writes nothing. A " +
+    "head-computed run never reaches this door: its accrual is the head's own voucher. It never refuses and makes no " +
+    "outside call.",
   concept: concept_books,
   input: Schema.Struct({
     org_id: S,
     action: Schema.Literals(["submit", "cancel", "collection"]),
     /** `submit` and `cancel`: the run (its Payroll Entry id); null for `collection`. */
     run_id: NullOr(S),
-    /** `collection` only: the paid slip, its agreement, and the Payment (`payment_<id>`) the collection is. */
-    collection: NullOr(Schema.Struct({ salary_slip_id: S, agreement_id: S, payment_id: S })),
-    posting_date: S,
+    /** `collection` only: the paid slip, its agreement, the Payment (`payment_<id>`) the collection is, and its block's time. */
+    collection: NullOr(Schema.Struct({ salary_slip_id: S, agreement_id: S, payment_id: S, block_time: N })),
+    /** The run's token, as a money side names its asset. */
+    asset_id: S,
+    symbol: S,
+    /** `submit`: the run's posting date (Frappe's `YYYY-MM-DD`); null for `cancel` and `collection`, which books dates. */
+    posting_date: NullOr(S),
     lines: Schema.Array(AccrualLine),
     at: N,
     actor: Schema.Struct({ kind: Schema.Literals(["person", "agent", "system"]), id: NullOr(S) }),
   }),
   output: Schema.Struct({ factId: NullOr(S), voucher: NullOr(S) }),
   errors: [],
-  reads: [table_book_companies, table_book_facts, table_book_accounts, table_book_cost_centers, table_book_document_vouchers],
+  reads: [
+    table_book_companies,
+    table_book_facts,
+    table_book_accounts,
+    table_book_cost_centers,
+    table_book_annotations,
+    table_book_document_vouchers,
+    table_book_prices,
+    table_projects,
+  ],
   writes: [table_book_companies, table_book_facts, table_book_document_vouchers],
   drives: [machine_book_company.t.open, machine_book_document_voucher.t.post, machine_book_document_voucher.t.cancel],
   invokes: [],

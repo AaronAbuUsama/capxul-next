@@ -520,32 +520,41 @@ const asmBy = (evidence: string) => `${ASSEMBLY}; evidence: ${evidence}`;
 
 export const decision_parties_fde_handles = defineDecision({
   id: "parties.fde-handles",
-  title: "Handles ending `-fde` or starting `fde-` are kept for Organizations' FDEs",
+  title: "A handle ending `-fde` or starting `fde-` is kept for its Organization's FDE",
   question:
-    "organizations.fde-handle derives an Organization's FDE handle as `<handle>-fde`, or `fde-` and ten characters of the " +
-    "Organization's id when that is taken. Anyone can take `acme-fde` first today. Should the directory keep those forms " +
-    "for FDEs?",
+    "organizations.fde-handle derives an Organization's FDE handle as `<handle>-fde`, or `fde-` and the last ten " +
+    "characters of the Organization's id when that is taken. Anyone can take `acme-fde` first today. Should the " +
+    "directory keep those forms for FDEs, and for whose?",
   options: [
+    {
+      label: "per-owner",
+      text:
+        "`parties.register` accepts `<p>-fde` only for an agent an Organization owns whose own Party (kind organization, " +
+        "owned by that Organization, in this table) has a handle that, cut to its first 26 characters, is `<p>`, and `fde-<x>` only " +
+        "for an agent an Organization owns when `<x>` is the last ten characters of that Organization's id, lowercased. " +
+        "Any other registration of either form, an Organization's own included, is INVALID_INPUT, as a reserved word is. " +
+        "A handle registered before this rule is not changed.",
+    },
     {
       label: "reserve-forms",
       text:
-        "`parties.register` accepts a handle ending in `-fde` or starting with `fde-` only for an agent an Organization " +
-        "owns (kind agent, owner_kind organization); any other registration of one is INVALID_INPUT, as a reserved word is. " +
-        "A handle registered before this rule is not changed.",
+        "Accept either form for any agent an Organization owns (kind agent, owner_kind organization), whichever " +
+        "Organization that is.",
     },
     { label: "first-come", text: "No reservation: the fallback `fde-<id>` keeps `org create` from failing, so a taken `-fde` handle only costs the nicer name." },
-    { label: "per-organization", text: "Reserve `<handle>-fde` only for the Organization that holds `<handle>`, by reading organizations' table." },
   ],
-  chosen: "reserve-forms",
+  chosen: "per-owner",
   why:
-    "A person who registers `@acme-fde` for their own agent can pass it off as Acme's engineer: the handle is how people " +
-    "and other agents name an agent, and Acme's FDE acts inside Acme's records. Reserving the two forms keeps every " +
-    "handle that reads as an FDE an Organization's own agent's. Reserving per Organization would make parties read " +
-    "organizations, which sits above it; the coarse rule needs only the kind and owner the invoker already passes. An " +
-    "Organization owns one live agent (agents.org-own-agent), its FDE whoever made its key (agents.fde), so an " +
-    "Organization's agent made later by `agent create --org` may use the forms too. The rule refuses nothing a frozen " +
-    "claim registers: no world's handle has either form.",
-  source: asmBy("books/target/organizations/decisions.ts (organizations.fde-handle); books/target/agents/decisions.ts (agents.org-own-agent, agents.fde)"),
+    "A party who registers `@acme-fde` for their own agent can pass it off as Acme's engineer: the handle is how people " +
+    "and other agents name an agent, and Acme's FDE acts inside Acme's records. Reserve-forms stops a person's agent but " +
+    "not another Organization's: Globex, started without an FDE, could make its own agent `@acme-fde` with `agent " +
+    "create --org`. Per-owner needs nothing above parties: an Organization's handle lives on its own Party in this " +
+    "table, which `parties.register` already reads, and organizations registers the Organization's Party before its " +
+    "FDE's in `begin`'s one transaction (organizations.fde-handle). An Organization owns one live agent " +
+    "(agents.org-own-agent), its FDE whoever made its key (agents.fde), so one made later by `agent create --org` may " +
+    "take its own Organization's forms. The rule refuses nothing a frozen claim registers: no world's handle has either " +
+    "form but `@acme-fde`, Acme's own FDE in `org-with-fde`.",
+  source: asmBy("books/target/organizations/decisions.ts (organizations.fde-handle); books/target/agents/decisions.ts (agents.org-own-agent, agents.fde); identity review"),
   affects: [procedure_parties_register, table_parties, decision_parties_handles, concept_organizations, concept_agents],
 });
 

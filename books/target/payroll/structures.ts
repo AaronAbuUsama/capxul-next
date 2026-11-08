@@ -43,9 +43,10 @@ export const rpc_payroll_structures_component = defineRpc({
     "(INVALID_INPUT when it names nothing): the Party its liability is owed to, which a holder or the FDE agent pays when " +
     "it falls due with an ordinary budget payment against the component's liability account, never inside a run's " +
     "command (payroll.deduction-remittance). `account` and `liabilityAccount` are books' accounts by code or `acct_` " +
-    "id: an active ledger account of the chart under Expenses, and one under Liabilities (INVALID_INPUT otherwise); " +
-    "left out, or before the chart, they are null and the accrual posts to the line's role's account " +
-    "(payroll.books-accounts). " +
+    "id, an active ledger account of the chart, read as Frappe HR's accrual reads them: an earning's or employer " +
+    "contribution's `account` under Expenses, a deduction's `account` under Liabilities, and `liabilityAccount`, under " +
+    "Liabilities, only an employer contribution's (INVALID_INPUT otherwise); left out, or before the chart, they are " +
+    "null and the accrual posts to the line's role's account (payroll.books-accounts). " +
     "A change to an existing component affects only slips worked out after it, as in Frappe; the agreement component " +
     "cannot be changed except its accounts (INVALID_INPUT).",
   was: [`${FRAPPE}/salary_component/salary_component.json`, `${FRAPPE}/salary_component/salary_component.py`, "/tmp/hrms/hrms/payroll/utils.py:57"],

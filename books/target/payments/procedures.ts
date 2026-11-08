@@ -26,7 +26,8 @@ const OwnerKind = Schema.Literals(["person", "organization"]);
 
 /** One payment a request, a bank payout or a payroll run needs: its payee already resolved to a Party and Safe, its
  * document, if it has one, already stored. An item with no document (a bank payout: banking does not depend on documents)
- * carries a null `document_id` and the zero hash, which stamps no document on chain. The optional keys are what the
+ * carries a null `document_id` and a hash the invoker derives (banking.payout-document-hash), never the zero hash, which
+ * `Payments.send`, `Budgets.spend` and `Escrow` all revert on (`ZeroDocumentHash`). The optional keys are what the
  * money is for (payments.money-sides, payments.payroll-door): `against` for the books, `source` for a payroll slip or
  * remittance, `fee_raw` for a rail's fee, and `payee_mailbox` for a payee who has no account yet. */
 export const PreparedItem = Schema.Struct({
@@ -41,7 +42,7 @@ export const PreparedItem = Schema.Struct({
   amount_raw: Schema.String,
   kind: Schema.Int,
   document_id: Schema.NullOr(Schema.String),
-  /** The stored document's hash, or `0x` and 64 zeros for an item with none. */
+  /** The stored document's hash, or for an item with none the digest its invoker derives; never `0x` and 64 zeros. */
   document_hash: Schema.String,
   /** What the payer's books post it against: an account, a party, documents (books' own shape), kept from birth. */
   against: Schema.optionalKey(Against),
@@ -59,23 +60,24 @@ export const procedure_payments_prepare_command = defineProcedure({
   id: "payments.prepare-command",
   title: "Birth a Payment command another concept's money needs",
   about:
-    "Money fact: a Payment command another concept births: the request it pays, the bank payout it funds or the payroll " +
-    "run it pays, the Payments that carry it and the approval that moves them commit together, or none of them do. " +
-    "Requests invokes it from the inbox, banking for a bank payout, payroll for a run (purpose payroll, route budget). " +
-    "It keeps every birth rule of `payment send`: one owner and request key reach one command, another request under a " +
-    "used key is refused (K1); the funding the invoker read before its transaction (the Safe's balance, or the budget's " +
+    "Money fact: a Payment command another concept births (the request it pays, the bank payout it funds, the payroll " +
+    "run it pays): the command, its Payments and the approval that moves them commit together, or none do. Requests " +
+    "invokes it from the inbox, banking for a bank payout, payroll for a run (purpose payroll, route budget). It keeps " +
+    "every birth rule of `payment send`: one owner and request key reach one command, another request under a used key " +
+    "is refused (K1); the funding the invoker read before its transaction (the Safe's balance, or the budget's " +
     "`leftOf`) must cover every item, or nothing is written (K3); each item's v4 payment id is fixed here, before anyone " +
     "signs. It births each Payment through `open` and opens one approval from the payer's own Safe for all of them " +
     "(`approvals.open`). A dated birth (`pay_at`, at least an hour ahead, else INVALID_INPUT) is a personal operation " +
     "signed now and sent on its day (`send_after`) or a budget's `Budgets.schedule`. `not_after` (a bank quote's expiry) " +
-    "caps the approval's deadline and is kept on the command, so no later `payment retry` moves the money after it. A repeat under the same " +
-    "key answers the command as it stands (`replayed`); with `resume`, one whose Payments all lapsed opens one new " +
-    "approval for the same payment ids and moves them `retry` after the same funding check, so a retry never pays twice " +
-    "(past `not_after`: WRONG_STATE). An item with `payee_mailbox` whose payee Party is still provisional (parties' directory) is a claim " +
-    "escrow (route `claim_escrow`): a personal Safe owns its own; a budget funds a budget's, and its holder or the Board " +
-    "may take it back to the budget (payments.claim-escrow-routes). A mailbox that is not ASCII is INVALID_RECIPIENT. Each " +
-    "item's `against`, `payee_against`, `source` and `fee_raw` are kept on its Payment for its book facts. The documents come stored. It " +
-    "answers the approval's deadline as opened. It makes no outside call; the invoker follows `payment_transitioned`.",
+    "caps the approval's deadline and is kept on the command, so no later `payment retry` moves the money after it. A " +
+    "repeat under the key answers the command as it stands (`replayed`); with `resume`, one whose Payments all lapsed " +
+    "opens one new approval for the same payment ids and moves them `retry` after the same funding check, so a retry " +
+    "never pays twice (past `not_after`: WRONG_STATE). An item whose payee Party is still provisional is a claim escrow " +
+    "(route `claim_escrow`) and needs its ASCII `payee_mailbox`, else INVALID_RECIPIENT: a personal Safe owns its own; a " +
+    "budget funds a budget's, which its holder or the Board may take back (payments.claim-escrow-routes). The zero " +
+    "document hash, which every v4 call refuses, is INVALID_INPUT. Each item's `against`, `payee_against`, `source` and " +
+    "`fee_raw` are kept on its Payment for its book facts. It answers the approval's deadline as opened. It makes no " +
+    "outside call; the invoker follows `payment_transitioned`.",
   concept: concept_payments,
   input: Schema.Struct({
     owner_kind: OwnerKind,

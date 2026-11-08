@@ -173,9 +173,9 @@ export const workflow_payroll_agreements_lifecycle = defineWorkflow({
     {
       name: "record-collection",
       about:
-        "A landed collection to a person records one paid salary slip (salary-slip.record_collection: its window, the " +
-        "amount as its one earning, its payment id, tx, block time and terms document) and, in that transaction, its " +
-        "accrual (books.record-payroll-accrual, action collection).",
+        "A landed collection to a person records one paid salary slip (salary-slip.record_collection: window, amount as " +
+        "its one earning, payment id, tx, block time, terms document) and in that transaction its accrual " +
+        "(books.record-payroll-accrual, action collection: block time, the component's accounts).",
     },
     {
       name: "let-go",
@@ -243,7 +243,8 @@ export const workflow_payroll_agreements_lifecycle = defineWorkflow({
   timeoutMs: 120_000,
   retries: { max: 5, backoff: "exponential" },
   compensation:
-    "None: it writes only payroll's own rows, from chain facts read at the finality depth, which Capxul never undoes. A step " +
+    "None: it writes only payroll's own rows and, through books' door, a collection slip's accrual, from chain facts read " +
+    "at the finality depth, which Capxul never undoes. A step " +
     "that fails after its retries leaves the agreement where the last committed step put it, and the step runs again on resume.",
   budget: budget("chain-settle"),
 });
@@ -256,10 +257,11 @@ export const workflow_payroll_startup_open = defineWorkflow({
   about:
     "Started by an Organization setup's `begin`, through the outbox: payroll is a fundamental app, in Frappe HR's shape " +
     "from the first day whether or not a head is ever connected (aaron.frappe-shape, payroll.startup). In one " +
-    "transaction it writes the Organization's Payroll Settings, as Frappe HR's install sets that single's defaults " +
-    "(`set_single_defaults`), with the values Capxul computes by and a head must match (leave-based, holidays counted " +
-    "as working days, no rounded total, no Frappe email) and the change counter at zero, so every payroll write finds " +
-    "its lock row. It makes no salary component: Frappe HR installs none, and a business's pay is its own to define; " +
+    "transaction it writes the Organization's Payroll Settings, as Frappe HR's install writes that single " +
+    "(`set_single_defaults`), but with the values Capxul computes by and a head must match (leave-based, holidays " +
+    "counted as working days, no rounded total, no Frappe email, accounting by Employee) and the change counter at " +
+    "zero, so every payroll write finds its lock row. It makes no salary component: Frappe HR installs none outside " +
+    "its India setup, and a business's pay is its own to define; " +
     "the agreement component is made at the first acceptance. It cannot be a step of `begin`, which is organizations' " +
     "and may not write another concept's tables.",
   concept: concept_payroll,

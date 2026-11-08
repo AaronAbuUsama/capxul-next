@@ -61,7 +61,8 @@ export const rpc_payroll_runs_pay = defineRpc({
     "Payment (never sent, released from withholding, or refunded from escrow) and go out as a new command under the " +
     "next attempt's key `payroll:<entry>:<attempt>`. Each item is one slip: its `net_pay_raw` to the Employee's " +
     "`payee_safe`, kind one-off, its payslip's document id and hash, its source (the slip, its run, its Employee) and " +
-    "its `against` for books (party the Employee, the Payroll Entry, Payroll Payable once charted: payroll.books-accounts); " +
+    "its `against` (party the Employee, the Payroll Entry allocated the rest, the run's Payroll Payable if it has " +
+    "one: books.payroll-postings); " +
     "an Employee with no account yet goes as their mailbox, which payments pays into a claim escrow from the budget " +
     "(aaron.budget-pay-unclaimed). The command carries nets only: a deduction's payee is paid outside the run " +
     "(payroll.deduction-remittance). Funding is read first: `leftOf` must cover the total (PAYROLL_BUDGET_EXCEEDED) and " +

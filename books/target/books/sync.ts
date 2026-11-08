@@ -54,8 +54,9 @@ export const rpc_books_sync_feed = defineRpc({
     "`account_*` an Account (an `account_created` under a ledger parent hands that parent, now a group, first); " +
     "`cost_center_created` a Cost Center; a priced money fact its voucher (books.vouchers); `account_assigned`, " +
     "`recategorized` and `rows_reclassified` each voucher they repost, at `capxul_version` this number; `reversed` the " +
-    "voucher cancelled, dated when the money was taken back; `accrual_posted` a payroll run's accrual Journal Entry and " +
-    "`accrual_cancelled` it cancelled (books.payroll-accrual). Before the chart a money fact has no document, so a reader " +
+    "voucher cancelled, dated when the money was taken back; `accrual_posted` a payroll accrual's Journal Entry (a run's, or a collection " +
+    "slip's with a new version of its Payment's voucher when that Payment's fact came first: books.payroll-postings) " +
+    "and `accrual_cancelled` it cancelled (books.payroll-accrual). Before the chart a money fact has no document, so a reader " +
     "that began before the import reads again from 0 once it sees the import's facts (the head sync pushes nothing " +
     "until the books are charted). A voucher a reader first sees already cancelled is inserted, submitted and cancelled " +
     "on its `cancelled_on`. An unpriced fact (an added token) posts no voucher. It writes nothing: the reader keeps its " +

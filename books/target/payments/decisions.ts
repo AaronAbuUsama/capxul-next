@@ -681,7 +681,8 @@ export const decision_payments_door_inputs = defineDecision({
       text:
         "All five: `pay_at`, `not_after` (kept on the command; it caps the approval's deadline and `payment retry` refuses " +
         "after it), `resume` (a repeat whose Payments all lapsed opens one new approval for the same payment ids and moves " +
-        "them `retry`), `expires_at` in the answer, and an item's `document_id` null with the zero hash.",
+        "them `retry`), `expires_at` in the answer, and an item's `document_id` null with a hash its invoker derives " +
+        "(never the zero hash, which v4 reverts on: banking.payout-document-hash).",
     },
     { label: "retry-rpc", text: "Keep K1 strict: a resume calls `payments.changes.retry` per Payment from the requests flow." },
     { label: "require-document", text: "Make banking depend on documents so every item carries a stored document." },
@@ -694,8 +695,8 @@ export const decision_payments_door_inputs = defineDecision({
     "could not promise; it is asked for explicitly, so K1's plain repeat still answers as it stands. `not_after` belongs " +
     "on the command because a retry opens a new approval long after the first: only the command remembers the quote. " +
     "The deadline answered is an upper bound, since the paymaster cuts the window when it sponsors. A payout's Payment " +
-    "has no document of its own on chain today (its Bridge transfer is the record), and the zero hash names none; a new " +
-    "edge to documents would make banking store a document nobody reads.",
+    "has no document of its own on chain today (its Bridge transfer is the record), and its payout's digest names none " +
+    "stored; a new edge to documents would make banking store a document nobody reads.",
   source: by(
     "docs/decisions/assembly-items.md (requests: pay_at, expiry, resume; banking: document, expiry); books/target/requests/inbox.ts; " +
       "books/target/banking (payouts); K1, K3",
@@ -889,7 +890,10 @@ export const decision_payments_claim_escrow_routes = defineDecision({
         "`scheduleToClaim` (the same terms and `payAt`) reserves it as `schedule` does and does the same on `execute`. " +
         "`refundClaim(id, escrow)`, open to whoever `authorised(id, sender)` admits (the hat's wearers, those above, and " +
         "the company Safe, so the Board), calls `Escrow.refund()` as the owner, sends the balance on to the company Safe, " +
-        "and in the period it was spent gives the budget back its room; events ClaimFunded and ClaimRefunded. Escrow, " +
+        "and gives the budget back the claim's amount as room only when that call moved the escrow from Open to Refunded " +
+        "in the period that spent it (`Escrow.refund()` also answers a collected escrow, which must return no room); " +
+        "events ClaimFunded and ClaimRefunded. A collection pays any surplus (tokens sent to the escrow beyond its " +
+        "amount) to the owner, so Budgets must forward that to the company Safe as well, or it stays in Budgets. Escrow, " +
         "EscrowFactory and the payout role are unchanged. The Payment goes `escrowed`, `settled` on the collection, " +
         "`cancelled` with outcome refunded on a refund.",
     },
@@ -923,13 +927,14 @@ export const decision_payments_claim_escrow_routes = defineDecision({
     "member) can make act, so no holder can send that refund; and no Budgets call lowers a period's spend, so the " +
     "budget would not get its room back. The exact change is the three Budgets calls above. With Budgets the owner, " +
     "the refund comes from Budgets and goes on to the company Safe in the same call. `refundClaim` gives back at most " +
-    "the claim's amount, only for an escrow Budgets recorded, and only in the period that spent it: after the period " +
+    "the claim's amount, only for an escrow Budgets recorded and still open (else a holder could take back the room " +
+    "of a collected escrow), and only in the period that spent it: after the period " +
     "turned its room is gone, and the money just returns to the company Safe. The funding goes through Payments, so it " +
     "has a PaymentSent of its own (`funding_payment_id`), which settles and books nothing: the one book fact is the " +
     "collection's, as books posts nothing while money waits in an escrow. A dated claim escrow opens on its day; a " +
     "payee who set up before then was not offered it at setup (gap 5 of payments.claim-escrow-fit, asked again of " +
-    "accounts), and the payer, holder or Board can still take it back. The terms stay fixed at prepare (kind 0, the " +
-    "job nonce, condition payee-claimed, the job nonce as salt), so a retry rebuilds the same escrow. No frozen claim " +
+    "accounts), and the payer, holder or Board can still take it back. The terms stay fixed at prepare, so a retry " +
+    "rebuilds the same escrow. No frozen claim " +
     "changes; the refusal of a mailbox nobody can claim keeps INVALID_RECIPIENT, now only for a non-ASCII mailbox. For " +
     "Aaron: the ruling needs this change to the v4 Budgets contract and its redeploy; shared/external.ts must list the " +
     "calls before the records can link them. If it is declined, company-owned is the fallback: the Board alone takes " +
@@ -1020,11 +1025,13 @@ export const decision_payments_money_sides = defineDecision({
       label: "kept-on-payment",
       text:
         "The Payment keeps `against`, `source` and `fee_raw` from its birth: prepare turns `--account` (a code, resolved " +
-        "to its account in the Organization's chart) and `--suggest` into `against`, and the door's items bring theirs " +
-        "from requests, banking and payroll, with `payee_against` for the payee's side when the invoker knows it (a paid " +
-        "request's income account, Customer and invoice). The settlement passes each side its own, with the side's " +
-        "Safe, the settled log index, the block's time and the other Safe's Party from parties' directory, in the " +
-        "transaction that settles it.",
+        "to its account in the Organization's chart, or for a person a code of the fixed personal chart) and `--suggest` " +
+        "into `against`, and the door's items bring theirs from requests, banking and payroll, with `payee_against` for " +
+        "the payee's side when the invoker knows it (a paid request's income account, Customer and invoice). The " +
+        "settlement passes each side its own, with the side's Safe, the settled log index, the block's time and the other " +
+        "side's Party from parties' directory, in the transaction that settles it. A claim escrow's PaymentSent comes " +
+        "from the escrow, so its payer side's Safe is `payer_safe`, the Safe that funded it (the payer's own, or the " +
+        "company Safe for a budget or the Board), and its counterparty the payee's Party; the escrow is never a side.",
     },
     { label: "classify-at-send", text: "Annotate books' row at send time through a books procedure, as the old `bookSentPayments` did." },
     { label: "books-reads", text: "Books reads the command at settlement." },
@@ -1035,14 +1042,19 @@ export const decision_payments_money_sides = defineDecision({
     "cannot read payments, which sits above it. Kept on the Payment from birth, the choice is the same for a retry, a " +
     "resume and a reorg's second settlement, and a replay changes nothing. Books applies only the parts that fit the " +
     "chart and leaves the rest in review (its door never refuses), so payments refuses only what it can check at the " +
-    "birth: an `--account` code the Organization's chart lacks, archived or a group is INVALID_INPUT naming it, as the " +
-    "old classifier refused before saving. `--as-directors` takes neither flag (the frozen note says so), and a " +
-    "person's own payment keeps the choice but has no books to post it. The counterparty's Party is read at " +
+    "birth: an `--account` code the Organization's chart lacks, archived or a group, and a `--suggest` with no " +
+    "`--account` or beside one other than 4999 or 6999, are INVALID_INPUT naming it, as the old classifier refused " +
+    "before saving (packages/backend/src/books/writes.ts:223). `--as-directors` takes neither flag (the frozen note " +
+    "says so). A person's own payment has books too, the fixed personal chart, which keep no fact: the old send gave " +
+    "the person's row its account at prepare, so `client.payments.pay` saves a personal choice as the person's own " +
+    "annotation of each Payment (`books.annotations.save`, actor person) right after prepare, and not on a replay, so " +
+    "a repeat never undoes a later choice. An escrow's own address names no Safe of the payer's, and books makes a " +
+    "Safe account for any side's Safe it lacks, so the funding Safe is passed. The counterparty's Party is read at " +
     "settlement, not snapshotted: a Party id never changes, and a chain-born Payment has none at birth. `fee_raw` comes " +
     "from the rail that knows it (a bank payout's quote): payments never computes a fee. A deposit's and a payout " +
     "return's sides are banking's own facts and carry the same fields from banking.",
   source: by(
-    "docs/design/frappe/accounting.md (For other lanes: payments); books/target/books/procedures.ts (MoneySide, Against); packages/backend/src/payments/commands/writes/books.ts:24",
+    "docs/design/frappe/accounting.md (For other lanes: payments); books/target/books/procedures.ts (MoneySide, Against); packages/backend/src/payments/commands/writes/books.ts:24; books/writes.ts:223",
   ),
   affects: [
     table_payments,
@@ -1052,6 +1064,7 @@ export const decision_payments_money_sides = defineDecision({
     workflow_payments_lifecycle_payment,
     procedure_books_record_money_fact,
     operation_payment_send,
+    flow_client_payments_pay,
   ],
 });
 

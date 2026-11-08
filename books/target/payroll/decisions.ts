@@ -1346,8 +1346,9 @@ export const decision_payroll_startup = defineDecision({
     "as projects does (projects.startup) and as organizations.startup expects, in Frappe's shape from the first day. " +
     "A writer that still finds no row (the start-up not yet run) births it, so nothing waits on the process. Starting " +
     "components would be guesses about a business's pay that its People hat or FDE makes better in conversation, and " +
-    "Frappe HR installs none either (its `make_fixtures` has no Salary Component); organizations.startup's mention of " +
-    "salary components is answered with none.",
+    "Frappe HR installs none either outside its India regional setup (its `make_fixtures` has no Salary Component); " +
+    "organizations.startup's mention of salary components is answered with none. The values written are Capxul's, " +
+    "not Frappe HR's install defaults (which count no holidays, round the total and email slips).",
   source: AFTER_RULING("aaron.frappe-shape, aaron.fde-agent; organizations.startup; /tmp/hrms/hrms/setup.py:606 (set_single_defaults); payroll_settings.json"),
   affects: [table_payroll_settings, concept_payroll, workflow_payroll_startup_open],
 });
@@ -1392,10 +1393,12 @@ export const decision_payroll_books_accounts = defineDecision({
       text:
         "A run's and an assignment's Payroll Payable is books' `payroll_payable` account, and a run's `payment_account` " +
         "the `safe` account of the company Safe and the run's token, each read from books' chart when the record is " +
-        "made, null before the chart. A component's `account` and `liabilityAccount` are given by code or id and must be " +
-        "an active ledger account under Expenses and one under Liabilities; left out they are null, and the accrual " +
-        "posts the line to its role's account (books.payroll-defaults). The agreement component's accounts may be set, " +
-        "so collections accrue to the expense the business chooses (contractors, say).",
+        "made, null before the chart. A component's `account` and `liabilityAccount` are given by code or id, active " +
+        "ledger accounts read as Frappe HR's accrual reads them: an earning's or employer contribution's `account` under " +
+        "Expenses, a deduction's `account` under Liabilities, `liabilityAccount` only an employer contribution's, under " +
+        "Liabilities; left out they are null, and the accrual posts the line to its role's account " +
+        "(books.payroll-defaults). The agreement component's accounts may be set, so collections accrue to the expense " +
+        "the business chooses (contractors, say).",
     },
     { label: "unchecked", text: "Keep whatever account ids are given, and let books' fallback catch an unfit one." },
   ],
@@ -1405,7 +1408,7 @@ export const decision_payroll_books_accounts = defineDecision({
     "so payroll is where a wrong account is caught, at the command, while a person can still fix it. One Payroll " +
     "Payable per Company keeps a run's accrual and its slips' Bank Entries on the same account, chart or no chart " +
     "(books.payroll-postings). Payroll reads books' chart as a plain read: books sits below it.",
-  source: FRAPPE_ASSEMBLY("docs/design/frappe/payroll.md (For other lanes: Books); books.payroll-defaults; hrms payroll_entry.py:408, :810"),
+  source: FRAPPE_ASSEMBLY("docs/design/frappe/payroll.md (For other lanes: Books); books.payroll-defaults; hrms payroll_entry.py:408, :810, :891 (a deduction credits its `account`)"),
   affects: [
     table_salary_components,
     table_salary_structure_assignments,
@@ -1478,4 +1481,32 @@ export const decision_payroll_timesheet_pay = defineDecision({
     "design `projects.pay-time` together.",
   source: FRAPPE_ASSEMBLY("docs/design/frappe/projects-and-startup.md (For other lanes: payroll); projects.billing-and-payslips; hrms salary_slip.py:2402"),
   affects: [concept_payroll, rpc_payroll_runs_create, workflow_payroll_head_sync],
+});
+
+export const decision_payroll_employee_wise_accounting = defineDecision({
+  id: "payroll.employee-wise-accounting",
+  title: "Payroll accounts by Employee: each Payroll Payable line carries its party",
+  question:
+    "Frappe HR's Payroll Settings `process_payroll_accounting_entry_based_on_employee` (off by default) decides whether a " +
+    "run's accrual and Bank Entry put each Employee on the Payroll Payable lines, or post one party-less line. Capxul " +
+    "posts each slip's Bank Entry with party the Employee. Which does payroll set?",
+  options: [
+    {
+      label: "by-employee",
+      text:
+        "On, the same for every Organization, as a fixed value of Payroll Settings that a head must match: Capxul's " +
+        "accrual credits each net on Payroll Payable with party the Employee, and a head-computed run's accrual does the " +
+        "same, so each slip's Bank Entry closes its own Employee's payable.",
+    },
+    { label: "frappe-default", text: "Off, Frappe HR's default: one party-less Payroll Payable line per run." },
+  ],
+  chosen: "by-employee",
+  why:
+    "Capxul pays each slip as its own Payment and posts one Bank Entry per slip with party the Employee " +
+    "(books.payroll-postings), so the accrual must credit per Employee too, or every Employee would show a debit on " +
+    "Payroll Payable against one party-less credit; a head-computed run Capxul pays meets the same Bank Entries. With " +
+    "it off, ERPNext lets a Payroll Entry's Payable lines go without a party (`party_not_required`), which no other " +
+    "Capxul voucher does. The Capxul app sets it on a head with the other fixed settings.",
+  source: FRAPPE_ASSEMBLY("hrms payroll_entry.py:621, :1196; payroll_settings.json; erpnext journal_entry.py:509 (party_not_required)"),
+  affects: [table_payroll_settings, workflow_payroll_startup_open, rpc_payroll_runs_submit, workflow_payroll_head_sync],
 });
