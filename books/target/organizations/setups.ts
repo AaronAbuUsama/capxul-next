@@ -29,10 +29,10 @@ import {
 } from "./data.ts";
 import { table_principals } from "../access/data.ts";
 import { table_admissions, table_personal_safes } from "../accounts/data.ts";
-import { table_files } from "./links.ts";
+import { table_files } from "../media/data.ts";
 import { table_parties } from "../parties/data.ts";
 import { procedure_parties_register } from "../parties/procedures.ts";
-import { table_safe_approvals, table_safe_owners } from "./links.ts";
+import { table_safe_approvals, table_safe_owners } from "../indexing/data.ts";
 
 const O = "packages/backend/src/organizations";
 const SET = `${O}/setups`;

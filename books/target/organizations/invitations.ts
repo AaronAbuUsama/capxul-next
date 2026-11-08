@@ -36,7 +36,7 @@ import { table_parties } from "../parties/data.ts";
 import { procedure_parties_resolve_recipient } from "../parties/procedures.ts";
 import { table_personal_safes } from "../accounts/data.ts";
 import { procedure_accounts_admit } from "../accounts/procedures.ts";
-import { table_hat_wearers, table_safe_executions } from "./links.ts";
+import { table_hat_wearers, table_safe_executions } from "../indexing/data.ts";
 
 const O = "packages/backend/src/organizations";
 const I = `${O}/invitations`;

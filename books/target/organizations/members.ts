@@ -12,7 +12,7 @@ import { error_INVALID_INPUT, error_NOT_AUTHENTICATED, error_ROLE_PERMISSION_DEN
 import { table_org_deployments, table_org_invitations, table_org_members } from "./data.ts";
 import { table_principals } from "../access/data.ts";
 import { table_parties } from "../parties/data.ts";
-import { table_hat_wearers } from "./links.ts";
+import { table_hat_wearers } from "../indexing/data.ts";
 
 const O = "packages/backend/src/organizations";
 const AS_IS = "books/as-is/organizations/members.ts";

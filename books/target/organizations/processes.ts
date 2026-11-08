@@ -34,7 +34,7 @@ import {
 } from "./invitations.ts";
 import { procedure_approvals_open } from "../approvals/procedures.ts";
 import { procedure_parties_activate, procedure_parties_release } from "../parties/procedures.ts";
-import { table_hat_wearers, table_safe_executions } from "./links.ts";
+import { table_hat_wearers, table_safe_executions } from "../indexing/data.ts";
 
 const O = "packages/backend/src/organizations";
 const DAY = 86_400_000;

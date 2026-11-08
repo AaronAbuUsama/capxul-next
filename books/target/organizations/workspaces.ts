@@ -17,7 +17,7 @@ import {
 } from "./data.ts";
 import { SetupView } from "./setups.ts";
 import { table_parties } from "../parties/data.ts";
-import { table_chain_budgets, table_hat_wearers, table_safe_owners } from "./links.ts";
+import { table_chain_budgets, table_hat_wearers, table_safe_owners } from "../indexing/data.ts";
 
 const O = "packages/backend/src/organizations";
 const W = `${O}/workspaces`;

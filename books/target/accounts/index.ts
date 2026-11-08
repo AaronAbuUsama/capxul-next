@@ -1,6 +1,5 @@
 // The accounts concept's records, as books/target/index.ts takes them: every module whose exports
-// are this concept's records. ./links.ts is left out on purpose: it holds links to other concepts'
-// records, never records of its own.
+// are this concept's records.
 
 import * as data from "./data.ts";
 import * as procedures from "./procedures.ts";

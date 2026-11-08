@@ -285,7 +285,7 @@ export const operation_waitlist_status = defineOperation({
     line(
       "waitlist.status",
       1,
-      "cli: from person-on-waitlist with the `beta-access` gate set open for the person (`dev gates set`), `access` `open` and `admittedAt` null.",
+      "cli: from person-on-waitlist-open-beta (on the list, never admitted, the deployment's `beta-access` gate on for everyone), `access` `open` and `admittedAt` null.",
     ),
     line(
       "waitlist.status",

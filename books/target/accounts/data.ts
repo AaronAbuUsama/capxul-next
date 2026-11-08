@@ -42,7 +42,7 @@ export const table_admissions = defineTable({
   id: "admissions",
   title: "Admissions: one mailbox's place in the beta, waiting or admitted",
   about:
-    "One row per normalized mailbox (trimmed, lowercased ASCII) that asked to join the permissioned beta or was " +
+    "One row per normalized mailbox (trimmed and lowercased, the Safe salt's rule) that asked to join the permissioned beta or was " +
     "admitted to it. Born `waiting` by `waitlist join`, or born `admitted` when an operator, a referrer's invite, an " +
     "Organization's invitation (`accounts.admit`) or a referral reward admits a mailbox not on the list. A second join " +
     "keeps `requested_at` and replaces the note only when one is given; an admission is never undone. Where a person " +
@@ -343,8 +343,8 @@ export const event_personal_safe_transitioned = defineEvent({
   id: "personal_safe_transitioned",
   about:
     "A person's Safe setup moved: started, claimed for their signer, ready, failed or retried. Sent by every transition " +
-    "of `personal-safe`, through the outbox. Organizations follows `claim` to advance the person's waiting Seats; the " +
-    "activation funnel ends at `finish`. Replaces old member_activation_* and provisioning_safe_confirmed.",
+    "of `personal-safe`, through the outbox. No Seat waits on it: an invitee takes their Seat when they accept " +
+    "(organizations). The activation funnel ends at `finish`. Replaces old member_activation_* and provisioning_safe_confirmed.",
   props: Schema.Struct({
     from: Schema.NullOr(Schema.Literals(SAFE_STATES)),
     to: Schema.Literals(SAFE_STATES),

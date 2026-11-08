@@ -11,6 +11,7 @@
 import { budget, defineWorkflow } from "../../../packages/book/src/index.ts";
 import {
   contract_companies_house_claimer,
+  contract_erc20,
   contract_escrow,
   contract_roles,
   contract_safe,
@@ -29,7 +30,7 @@ import {
   table_admissions,
 } from "./data.ts";
 import { procedure_approvals_open } from "../approvals/procedures.ts";
-import { table_escrows } from "./links.ts";
+import { table_escrows } from "../indexing/data.ts";
 import { rpc_accounts_setup_start } from "./setup.ts";
 
 const OLD = "packages/backend/src";
@@ -108,6 +109,7 @@ export const workflow_accounts_setup_personal_safe = defineWorkflow({
     contract_safe.f.getOwners,
     contract_roles.f.execTransactionWithRole,
     contract_companies_house_claimer.f.claim,
+    contract_erc20.f.mint,
     contract_escrow.f.collect,
   ],
   idempotency:

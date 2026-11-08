@@ -5,7 +5,7 @@
 // (/home/user/factory, integration/factory) as evidence.
 
 import { defineDecision } from "../../../packages/book/src/index.ts";
-import { contract_companies_house_claimer, integration_service_signer } from "../shared/external.ts";
+import { contract_companies_house_claimer, contract_erc20, integration_service_signer } from "../shared/external.ts";
 import { concept_accounts, concept_organizations } from "../shared/foundation.ts";
 import { error_PROFILE_NOT_FOUND, error_SMART_ACCOUNT_MISSING, error_WRONG_ENVIRONMENT } from "../shared/vocabulary.ts";
 import { rpc_accounts_admission_admit, rpc_accounts_admission_join, rpc_accounts_admission_status } from "./admission.ts";
@@ -378,8 +378,8 @@ export const decision_accounts_door = defineDecision({
   why:
     "A procedure is for a write that must commit with the invoker's (P4); reads need none, because a concept may read the " +
     "tables of what it depends on. Organizations needs 'the founder is admitted with a claimed Safe' (the two tables) and " +
-    "follows `personal_safe_transitioned` `claim` to advance a person's waiting Seats; payments reads a live Safe from " +
-    "the chain. `accounts.admit` takes the invitation's Organization, answers whether it admitted, and never welcomes an " +
+    "follows no accounts event, since an invitee takes the Seat on accepting and no Seat waits; payments reads a live " +
+    "Safe from the chain. `accounts.admit` takes the invitation's Organization, answers whether it admitted, and never welcomes an " +
     "invitee twice, as the shared ruling needs.",
   source: by("shared decision procedures.accounts-admit; org.member.invite.yaml (acceptance 1); packages/backend/src/accounts/index.ts"),
   affects: [procedure_accounts_admit, table_personal_safes, table_admissions, concept_organizations],
@@ -425,10 +425,10 @@ export const decision_accounts_faucet = defineDecision({
     "signer records the signed bytes before broadcasting, so a lost answer lands or is looked up, never sent twice. It is " +
     "refused off test networks, and `--org` off a devnet, with WRONG_ENVIRONMENT (no devnet world reaches that refusal; " +
     "the staging `live:*` evals do). Admission is required, as `waitlist status` says of the faucet, and the person's " +
-    "Safe is the one their setup names. The test token's open `mint(address,uint256)` is not in shared/external.ts, so " +
-    "the rpc's `chain` is empty until that shared change lands.",
+    "Safe is the one their setup names. The mint is the test tokens' open `ERC20.mint(recipient, amount)` (shared " +
+    "`contracts.test-token-mint`), named in the `chain` of this rpc and of the setup's staging welcome step.",
   source: by("dev.fund.yaml; waitlist.status.yaml (notes); packages/backend/src/accounts/grants/external/mints.ts:76; packages/contracts/src/TestMoneyToken.sol:22"),
-  affects: [rpc_accounts_grants_fund, ops.operation_dev_fund, integration_service_signer, error_WRONG_ENVIRONMENT],
+  affects: [rpc_accounts_grants_fund, workflow_accounts_setup_personal_safe, ops.operation_dev_fund, integration_service_signer, contract_erc20, error_WRONG_ENVIRONMENT],
 });
 
 export const decision_accounts_dropped_rows = defineDecision({
@@ -462,7 +462,7 @@ export const decision_accounts_worlds = defineDecision({
   question: "Which named devnet snapshots do accounts' refusals and acceptance lines need?",
   options: [
     {
-      label: "ten",
+      label: "eleven",
       text:
         "signed-out (nobody signed in here); person-signed-in (access': signed in, not on the list); person-on-waitlist " +
         "(signed in, on the list, closed beta); " +
@@ -470,18 +470,22 @@ export const decision_accounts_worlds = defineDecision({
         "person-admitted-no-invites (all invites " +
         "spent); two-people-admitted (two admitted mailboxes with profiles, one signed " +
         "in); person-ready (Safe set up); setup-refused-other-signer (claim refused by SwapRefused); " +
-        "setup-refused-non-ascii-email (claim refused by EmailNotNormalized).",
+        "setup-refused-non-ascii-email (claim refused by EmailNotNormalized); person-on-waitlist-open-beta " +
+        "(person-on-waitlist with the `beta-access` gate on for everyone).",
     },
     { label: "per-test", text: "Build each state inside each eval from a fresh devnet." },
   ],
-  chosen: "ten",
+  chosen: "eleven",
   why:
     "Names already used by other concepts for the same state (signed-out, person-signed-in, person-on-waitlist, person-unclaimed, " +
     "person-ready) are reused, since a world is one shared snapshot. Each is made by running operations as the devnet's " +
     "fixed identities and saved (shared " +
     "`responsibilities.operator-proof-tools`): sign-in, `waitlist join`, the operator's admission, invites, the web setup " +
     "flow. The refused setups need the chain to refuse: the first restarts setup with a second signer after a claim " +
-    "landed with the first; the second signs in with a mailbox whose local part is not ASCII. Only `dev fund`'s " +
+    "landed with the first; the second signs in with a mailbox whose local part is not ASCII (sign-in keeps it, " +
+    "access.email-rule). The open beta is a world, not a `dev gates set` step: that command scripts only Organization " +
+    "gates (devnet.scripted-gates), so the world builder seeds the PostHog fake with `beta-access` on at rollout 100 " +
+    "for everyone before the sync. Only `dev fund`'s " +
     "WRONG_ENVIRONMENT has no devnet world (`?`). No acceptance claim names a mechanism, so none was rewritten; every " +
     "operation is `normal`, since no pilot of the spine is among them.",
   source: by("docs/spec/30-capxul-evals.md; ICompaniesHouseClaimer.sol (SwapRefused, EmailNotNormalized); books/frozen/operations.ts"),

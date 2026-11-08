@@ -7,7 +7,7 @@
 
 import { Schema } from "effect";
 import { budget, defineRpc } from "../../../packages/book/src/index.ts";
-import { integration_service_signer } from "../shared/external.ts";
+import { contract_erc20, integration_service_signer } from "../shared/external.ts";
 import { concept_accounts } from "../shared/foundation.ts";
 import {
   error_FEATURE_NOT_AVAILABLE,
@@ -59,8 +59,8 @@ export const rpc_accounts_grants_fund = defineRpc({
   invokes: [],
   emits: [],
   calls: [integration_service_signer.c.send],
-  // The test token's open `mint(address,uint256)` is not in shared/external.ts yet (decision `accounts.faucet`).
-  chain: [],
+  // The test token's open mint, sent by the faucet key (decisions `accounts.faucet`, shared `contracts.test-token-mint`).
+  chain: [contract_erc20.f.mint],
   spans: [],
   budget: budget("chain-submit"),
   was: [`${G}/operations/faucet-mint.ts:16`, `${G}/guards.ts:10`, `${G}/rules.ts:23`, `${G}/external/mints.ts:76`, `${OLD}/operator/faucets/operations`],

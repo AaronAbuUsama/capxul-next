@@ -37,7 +37,8 @@ export const rpc_access_sign_in_send_code = defineRpc({
   id: "access.sign-in.send-code",
   title: "Email a six-digit sign-in code",
   about:
-    "Normalises the email (trimmed, lowercased, ASCII) and refuses one that is not an address. Inside 60 seconds of the " +
+    "Normalises the email by the Safe salt's rule (trimmed and lowercased; a letter outside ASCII is kept, and only the " +
+    "Safe's claim refuses it, decision access.email-rule) and refuses one that is not an address. Inside 60 seconds of the " +
     "last send to it, refuses RATE_LIMITED with `retryAfterMs`. Otherwise it mints a code, sends it through Mail with the " +
     "code's hash as the idempotency key, and only after Mail accepted it stores the code's hash, three tries and a " +
     "five-minute expiry in one transaction, replacing any earlier code. A send that fails stores nothing, so the person " +

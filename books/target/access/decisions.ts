@@ -470,3 +470,29 @@ export const decision_access_local_budgets = defineDecision({
   source: by("docs/decisions/policy-pack.md#p5 (CLI process start 300 ms)"),
   affects: [...LOCAL_FLOWS.filter((f) => f !== fl.flow_client_auth_switch && f !== fl.flow_client_auth_sign_out), ...LOCAL_OPERATIONS],
 });
+
+// ── assembly ────────────────────────────────────────────────────────────────────────────────
+
+export const decision_access_email_rule = defineDecision({
+  id: "access.email-rule",
+  title: "Sign-in normalises a mailbox by the Safe salt's rule and keeps non-ASCII letters",
+  question:
+    "Sign-in said it normalises the email to ASCII. Accounts' world setup-refused-non-ascii-email signs in with a " +
+    "mailbox whose local part is not ASCII, so that the claim can fail with EmailNotNormalized (`account retry` " +
+    "INVALID_INPUT). Does sign-in refuse such a mailbox, or let it through for the chain to refuse?",
+  options: [
+    {
+      label: "salt-rule",
+      text: "Trim and lowercase, as the Safe salt does; refuse only what is not an address. A non-ASCII mailbox signs in and its claim is refused on chain.",
+    },
+    { label: "ascii-only", text: "Refuse a non-ASCII mailbox at sign-in with INVALID_INPUT, before any setup." },
+  ],
+  chosen: "salt-rule",
+  why:
+    "`waitlist status` says signing in always works, and the old sign-in normalised with normalizeSafeSaltEmail (trim, " +
+    "lowercase) and refused nothing more. The salt rule fixes every person's Safe address, so access must apply it " +
+    "unchanged. Refusing at sign-in would lock such a person out of every read and leave `account retry`'s frozen " +
+    "INVALID_INPUT (EmailNotNormalized) with no world. Accounts' setup-refused-non-ascii-email therefore stays buildable.",
+  source: by("packages/protocol/src/evm/safe-email.ts:17; packages/backend/src/access/sessions/reads.ts:104; CompaniesHouseClaimer.sol:189-199; waitlist.status.yaml (notes); account.retry.yaml (designed refusals)"),
+  affects: [sign.rpc_access_sign_in_send_code, sign.rpc_access_sign_in_verify_code, d.table_principals, d.table_sign_in_codes],
+});
