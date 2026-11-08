@@ -12,7 +12,8 @@ import { table_org_members } from "../organizations/data.ts";
 import { procedure_approvals_open } from "../approvals/procedures.ts";
 import { machine_equity_write, machine_share_sale, table_equity_writes, table_share_sales } from "./data.ts";
 import { APPROVE_ABOUT, BOARD_ABOUT, BOARD_ERRORS, DIRECTOR, GUARD_WAS, HOLDER, HOLDER_ERRORS, OLD, PROPOSE_ABOUT, READS_CHAIN } from "./guards.ts";
-import { procedure_board_propose, procedure_documents_store } from "./links.ts";
+import { procedure_board_propose } from "../board/procedures.ts";
+import { procedure_documents_store } from "../documents/procedures.ts";
 import { Prepared, SaleRef, SellInput } from "./shapes.ts";
 
 const OPS = `${OLD}/equity/operations`;

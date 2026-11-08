@@ -10,7 +10,7 @@ import { contract_captable, contract_erc20, contract_exits, contract_payments } 
 import { table_chain_logs, table_equity_instruments, table_equity_positions } from "../indexing/data.ts";
 import { machine_equity_write, table_equity_grants, table_equity_writes, table_votes } from "./data.ts";
 import { BOARD_ABOUT, BOARD_ERRORS, CHAIN_READ_ERRORS, DIRECTOR, MEMBER, MEMBER_READ_ERRORS, PROPOSE_ABOUT, READS_CHAIN, RESOLVE } from "./guards.ts";
-import { procedure_board_propose } from "./links.ts";
+import { procedure_board_propose } from "../board/procedures.ts";
 import { ExitPayInput, ExitPreviewInput, ExitPreviewReturns, Prepared } from "./shapes.ts";
 
 const DESIGNED = (id: string) => `books/frozen/operations.ts (${id}, designed)`;

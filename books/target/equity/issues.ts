@@ -9,7 +9,8 @@ import { error_AUTHORISED_EXCEEDED } from "../shared/vocabulary.ts";
 import { table_equity_positions } from "../indexing/data.ts";
 import { machine_equity_write, table_equity_writes } from "./data.ts";
 import { BOARD_ABOUT, BOARD_ERRORS, DIRECTOR, GUARD_WAS, OLD, PROPOSE_ABOUT, READS_CHAIN, RESOLVE } from "./guards.ts";
-import { procedure_board_propose, procedure_documents_store } from "./links.ts";
+import { procedure_board_propose } from "../board/procedures.ts";
+import { procedure_documents_store } from "../documents/procedures.ts";
 import { IssueInput, Prepared } from "./shapes.ts";
 
 export const rpc_equity_issues_propose = defineRpc({

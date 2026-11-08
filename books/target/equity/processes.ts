@@ -49,7 +49,7 @@ import { rpc_equity_safes_close, rpc_equity_safes_invite } from "./safes.ts";
 import { rpc_equity_sales_approve } from "./sales.ts";
 import { rpc_equity_votes_cast, rpc_equity_votes_execute } from "./votes.ts";
 import { OLD } from "./guards.ts";
-import { procedure_board_propose } from "./links.ts";
+import { procedure_board_propose } from "../board/procedures.ts";
 
 const MINUTE = 60_000;
 const w = machine_equity_write.t;

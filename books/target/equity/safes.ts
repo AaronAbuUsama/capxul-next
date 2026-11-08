@@ -17,7 +17,8 @@ import {
   table_fundraise_rounds,
 } from "./data.ts";
 import { BOARD_ABOUT, BOARD_ERRORS, DIRECTOR, GUARD_WAS, MEMBER, MEMBER_READ_ERRORS, OLD, PROPOSE_ABOUT, READS_CHAIN, RESOLVE } from "./guards.ts";
-import { procedure_board_propose, procedure_documents_store } from "./links.ts";
+import { procedure_board_propose } from "../board/procedures.ts";
+import { procedure_documents_store } from "../documents/procedures.ts";
 import { InviteInput, Prepared, RoundRef, SafeCreateInput, SafeShowReturns } from "./shapes.ts";
 
 const DESIGNED = "books/frozen/operations.ts (org.safe.create, designed)";

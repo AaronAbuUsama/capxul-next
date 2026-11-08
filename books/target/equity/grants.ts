@@ -31,7 +31,8 @@ import {
   READS_CHAIN,
   RESOLVE,
 } from "./guards.ts";
-import { procedure_board_propose, procedure_documents_store } from "./links.ts";
+import { procedure_board_propose } from "../board/procedures.ts";
+import { procedure_documents_store } from "../documents/procedures.ts";
 import { EndGrantInput, ExerciseInput, GrantInput, GrantRef, GrantShowInput, GrantShowReturns, Prepared } from "./shapes.ts";
 
 const OPS = `${OLD}/equity/operations`;

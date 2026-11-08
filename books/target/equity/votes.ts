@@ -21,7 +21,7 @@ import { table_org_members, table_organizations } from "../organizations/data.ts
 import { procedure_approvals_open } from "../approvals/procedures.ts";
 import { machine_equity_write, machine_vote, table_equity_writes, table_votes } from "./data.ts";
 import { APPROVE_ABOUT, CHAIN_READ_ERRORS, HOLDER, HOLDER_ERRORS, MEMBER, OLD, READS_CHAIN } from "./guards.ts";
-import { procedure_documents_store } from "./links.ts";
+import { procedure_documents_store } from "../documents/procedures.ts";
 import { CastInput, MyVotesReturns, Prepared, VoteCreateInput, VoteRef, VoteReturns, VotesReturns } from "./shapes.ts";
 import { Schema } from "effect";
 
