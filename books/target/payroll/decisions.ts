@@ -1183,7 +1183,8 @@ export const decision_payroll_head_sync = defineDecision({
     "organizations.head-ownership; a head pushing through the SDK would make it a writer into Capxul holding Capxul's " +
     "trust, which that contract refuses. A change log numbered under one lock is what lets a head replay payroll exactly " +
     "once; a time column cannot. On the head, nothing is forked. Custom Fields carry what Frappe has no field for: " +
-    "`capxul_id` on all six doctypes; `capxul_party_id` on Employee; `capxul_payee_party_id` on Salary Component; " +
+    "`capxul_id` on all six doctypes; `capxul_party` on Employee; `capxul_payee_party` on Salary Component " +
+    "(organizations.frappe-app-fields: one Party field across the apps); " +
     "`capxul_budget_id` and `capxul_agreement_id` on Salary Structure Assignment; `capxul_budget_id`, " +
     "`capxul_command_id`, `capxul_status` and `capxul_computed_by` on Payroll Entry (Frappe validates `status` against " +
     "its options, so paying and paid cannot go there); and on Salary Slip `capxul_status`, `capxul_payment_id`, " +
@@ -1191,9 +1192,10 @@ export const decision_payroll_head_sync = defineDecision({
     "Three Property Setters: Employee's `gender` and `date_of_birth` optional (Capxul never needs them), and `Capxul` " +
     "added to Employee's `salary_mode` options (Bank, Cash, Cheque otherwise refuse Capxul's value). Settings match " +
     "payroll-settings and Banker's Rounding. A Client Script hides Payroll Entry's Submit Salary Slip and Make Bank Entry " +
-    "on a Capxul run, and the app sets each such slip's `journal_entry` to books' accrual voucher, so neither Frappe " +
+    "on a Capxul run, and the app sets each such slip's, and each collection slip's, `journal_entry` to books' accrual voucher, so neither Frappe " +
     "button can post a second entry. Frappe's mandatory `company`, `cost_center`, `exchange_rate` and Payable " +
-    "`payroll_payable_account` come from the Company's defaults and books' chart. Withholding is a Salary Withholding " +
+    "`payroll_payable_account` come from the Company's defaults, books' chart and the rate books posted at " +
+    "(books.payroll-lines). Withholding is a Salary Withholding " +
     "over the slip's period both ways. A collection is a submitted slip, never an Additional Salary.",
   source: AFTER_RULING("aaron.frappe-head, aaron.erp-on-capxul; organizations.head-ownership, organizations.head-doorbell; shared/external.ts (frappe-head); contacts.head.sync; erpnext employee.json; hrms payroll_entry.json"),
   affects: [...HR_TABLES, table_payroll_changes, table_payroll_settings, table_payroll_head_syncs, workflow_payroll_head_sync, ...HR_RPCS, workflow_payroll_agreements_lifecycle],

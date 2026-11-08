@@ -105,8 +105,8 @@ export const rpc_organizations_invitations_invite = defineRpc({
     "rides on that Seat; the Organization's own agent rides on the Organization while no other agent it owns holds or " +
     "is offered a Seat; any other agent takes a seat. Taking a seat " +
     "when the Seats that count and the live offers that reserve one already reach `seat_limit` is SEAT_LIMIT_REACHED, " +
-    "nothing written. A person invitee is admitted to the beta in the same transaction (`accounts.admit`, which sends " +
-    "nothing: the invitation's own email is the only one). A Seat-only offer is born pending with its seven-day expiry " +
+    "nothing written. A person invitee is admitted to the beta in the same transaction (`accounts.admit`, `via` " +
+    "invitation, `ref` the Organization's id; it sends nothing: the invitation's own email is the only one). A Seat-only offer is born pending with its seven-day expiry " +
     "(`send`); one with grants is born authorizing (`send_with_grants`) and waits for budgets to bind the Board " +
     "proposal that carries them.",
   was: [`${AS_IS}:241`, `${I}/operations/invite.ts:14`, `${I}/writes/offers.ts:136`, `${I}/reads/grantees.ts:72`],

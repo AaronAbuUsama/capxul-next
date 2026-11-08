@@ -382,7 +382,10 @@ export const decision_equity_vote_matters = defineDecision({
     "NOT_IMPLEMENTED is the code a frozen command answers until it is built (vocabulary.keep-unnamed), and the Board-seat " +
     "matters belong with board's seat design (`org board claim`), whose seat groups are still null (CAP-1153). The shared " +
     "records now hold the Elections calls (contracts.hats-elections), so that blocker is gone; choosing seat groups and " +
-    "terms in equity would design board's seats from outside board, so equity builds the three once board defines them.",
+    "terms in equity would design board's seats from outside board, so equity builds the three once board defines them. " +
+    "When `elect` is built, a candidate whose Safe is an agent's is refused before the vote opens (INVALID_INPUT, as " +
+    "board.directors.seat refuses one), since an agent is never a Director (board.no-agent-directors); an elected " +
+    "agent could not claim the seat anyway.",
   source: by("books/frozen/operations.ts (org.vote.create designed flags W5-W8); packages/contracts/v4/src/authority/InstallerElections.sol"),
   affects: [votes.rpc_equity_votes_propose, error_NOT_IMPLEMENTED],
 });

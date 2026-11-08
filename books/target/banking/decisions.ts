@@ -899,7 +899,9 @@ export const decision_banking_private_entries = defineDecision({
     "in the books. The value of `contactId` equals the old `partyId` for every Party-backed entry, so the frozen " +
     "`contact get` claims hold as they stand: one `contacts.book.get` and one `banking.accounts.list-for-contact` for an " +
     "entry with a Party. The refusal is the CLI's own, as the frozen 'not in your book' already is for `contact bank " +
-    "add`. A payee known only by name may later name a private company entry; that waits for a need.",
+    "add`. `contact get`'s frozen CLI_USAGE ('not a valid PartyId') now reads 'neither a PartyId nor a `contact_` id', " +
+    "since both are ids of an entry. Both refusals start from person-with-contacts, whose book holds a private company " +
+    "entry (Northwind Ltd). A payee known only by name may later name a private company entry; that waits for a need.",
   source: FRAPPE("docs/design/frappe/crm.md (banking); books/target/contacts/book.ts (Entry.ref, OneEntry); contact.bank.add.yaml (CLI_USAGE)"),
   affects: [
     flow_client_account_address_book_get,
@@ -943,4 +945,38 @@ export const decision_banking_payout_document_hash = defineDecision({
     "packages/contracts/v4/src/money/Payments.sol:56, Budgets.sol:223 and :254, Escrow.sol:65 (ZeroDocumentHash); packages/backend/src/payments/commands/writes/items.ts:159",
   ),
   affects: [rpc_banking_payouts_quote, procedure_payments_prepare_command, d.table_bank_payouts],
+});
+
+const BUILD = (evidence: string) => `Claude, Frappe assembly (build), 8 November 2026; evidence: ${evidence}`;
+
+export const decision_banking_matched_deposit_meaning = defineDecision({
+  id: "banking.matched-deposit-meaning",
+  title: "A matched deposit's row waits in review; the match names the request",
+  question:
+    "A paid request now carries its income account (requests.income-meaning), and a payment from the inbox passes it to " +
+    "books at settlement. A bank deposit is booked when Bridge credits it, before anyone matches it to a request. Should " +
+    "`bank match` carry the request's meaning to the deposit's row?",
+  options: [
+    {
+      label: "review",
+      text:
+        "No meaning moves at the match: the deposit's row keeps the annotation it had, or waits in 4999, and the match " +
+        "(`banking.match-deposit`) names the request on the deposit, so the review queue shows which request it paid " +
+        "and the Books hat or a head classifies it with `activity annotate`.",
+    },
+    {
+      label: "annotate-door",
+      text: "A books door that sets a standing row's annotation, invoked by the match from the request's `income`.",
+    },
+  ],
+  chosen: "review",
+  why:
+    "The deposit's book fact is written when the money arrives (its money fact, banking.payout-books); by the match " +
+    "it stands, and books' door writes nothing for a key it already holds, so carrying the meaning would need a new " +
+    "procedure that edits an annotation. That is a classification, not a money fact (rules.procedures): nothing about " +
+    "the money changes if it lags, and books' own `activity annotate` already does it with the right hat's check. The " +
+    "match keeps the money fact it is for, the deposit and the request it paid. Revisit if Organizations match many " +
+    "deposits and classifying them by hand proves heavy.",
+  source: BUILD("books/target/requests/decisions.ts (requests.income-meaning: 'banking.match-deposit takes no meaning yet'); books/target/books/procedures.ts (record-money-fact replays write nothing)"),
+  affects: [procedure_banking_match_deposit],
 });

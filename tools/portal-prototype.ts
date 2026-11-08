@@ -110,7 +110,7 @@ const ownOf = (o: R) => {
 };
 
 // ── decisions waiting for review: the rule of tools/report-judgments.ts until portal.review-state lands ──────────
-const FLAGGED = ["payroll.scope", "payments.birth-width", "parties.directory-tenancy", "procedures.accounts-admit", "documents.acceptance-rewrites", "agents.org-owned", "board.failed-proposal", "equity.acceptance", "contacts.members-write", "notices.claim-escrow", "system.size"];
+const FLAGGED = ["payroll.scope", "payments.birth-width", "parties.directory-tenancy", "procedures.accounts-admit", "agents.org-owned", "board.failed-proposal", "equity.acceptance", "contacts.members-write", "notices.claim-escrow", "system.size"];
 const CARRIES_OUT = ["rules.frozen-flags-kept", "rules.frozen-flags-built-ins"];
 const byAaron = (d: R) => /^Aaron\b/.test(String(d.source));
 const waiting = (d: R) => !byAaron(d) && !CARRIES_OUT.includes(d.id) && (FLAGGED.includes(d.id) || /\baaron\b/i.test(`${d.title} ${d.question} ${d.why} ${d.chosen}`));

@@ -34,7 +34,7 @@ Integration (calls) under Component        Contract (functions, chain events)
 Procedure → Concept, Table, Transition, Procedure, Event, Error          (in-transaction; no outside calls)
 Rpc, Workflow → Concept, Table, Transition, Procedure, Call, Function, Event, Error
 Flow → Component (the Core SDK), Rpc, Call, Error
-Operation → Rpc or Flow (implementedBy), Error (refusals)                 (one of the 215 capabilities)
+Operation → Rpc or Flow (implementedBy), Error (refusals)                 (one of the 215, or new by rules.new-operations)
 Journey → Operation        Invariant → Table, Machine, Workflow        Environment → Component
 Decision → any record
 ```
@@ -58,7 +58,7 @@ Because links only point down, the book has no cycles. A record never lists who 
 | `procedure` | `defineProcedure` | a concept's in-transaction entry point, listed on its door: input, output, errors, what it touches. Another concept writes this concept's tables only by invoking one |
 | `rpc` | `defineRpc` | one server endpoint (query, live, mutation, action): who, input, output, errors, what it touches (reads, writes, drives, invokes, calls, chain, emits), server spans, server budget. The generated `RpcGroup` comes from these |
 | `flow` | `defineFlow` | a Core SDK composition: its SDK method, steps (an rpc, or a local step: sign, build, encrypt, wait, poll, prompt, cache), its own errors, client-side calls, spans, client budget, and `surfaces` when a surface other than the CLI calls it (the approval page, checkout or the web app on `react`, an agent's SDK host on `sdk`) |
-| `operation` | `defineOperation` | **one of the 215 kept capabilities**: the old book's text as its starting point, its acceptance claims numbered (a retired line stays `null`), what `--json` returns, refusals with their `given` world, the end-to-end budget, and `implementedBy` one rpc or one flow. The capability and what its acceptance claims require are kept; its command, `--json` shape and refusal codes are the target's to design, and a change carries a decision (`system.frozen-behaviour`) |
+| `operation` | `defineOperation` | **one of the 215 kept capabilities, or a new one booked under `rules.new-operations`** (its own title, about and claims, no frozen text; CONVENTIONS rule 4a): for one of the 215, the old book's text as its starting point, its acceptance claims numbered (a retired line stays `null`), what `--json` returns, refusals with their `given` world, the end-to-end budget, and `implementedBy` one rpc or one flow. The capability and what its acceptance claims require are kept; its command, `--json` shape and refusal codes are the target's to design, and a change carries a decision (`system.frozen-behaviour`) |
 | `workflow` | `defineWorkflow` | its trigger (after an rpc, a transition, a chain event, an indexer event or a cron), steps, what it touches, its waits (a wait on the chain or the indexer lists the chain events that end it in `events`; every wait but a timer names its `key`: each way it is woken, by its carriers (a product event, a chain event, a table's row, a signal rpc, or the instance's own call) and the properties they carry, with `reaches` for Ponder's progress passing a block), idempotency key, timeout, retries, compensation, budget |
 | `journey` | `defineJourney` | ordered steps: operation, actor, proving event |
 | `invariant` | `defineInvariant` | a statement over tables and machines; checked by property test, fuzz, reconciliation (`by` a workflow) or static check |

@@ -856,7 +856,7 @@ export const decision_payments_claim_escrow_fit = defineDecision({
     "it is refused before signing (payments.claim-escrow-routes). (5) An escrow that opens after the payee's setup, or " +
     "that they declined there, has no later collection path in Capxul, though the contract allows one (asked of " +
     "accounts). (6) In the beta, setup refuses a mailbox that is not admitted, so such a payee cannot collect until " +
-    "money waiting admits them as an invitation does (for Aaron; asked of accounts). Settlement: the collection's " +
+    "money waiting admits them as an invitation does; settled: the `escrow` step admits it (accounts.money-waiting-admits). Settlement: the collection's " +
     "PaymentSent comes from the escrow, its executor, so its sender term is `escrow_address`, not the payer's Safe.",
   source: by(`${V4}/money/Escrow.sol:107-197; ${V4}/money/EscrowFactory.sol:28; ${V4}/companies-house/CompaniesHouseClaimer.sol:85; ${V4DOCS}/spec/escrow.md (D11, D12)`),
   affects: [

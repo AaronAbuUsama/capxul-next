@@ -931,7 +931,9 @@ export const decision_contacts_head_mapping = defineDecision({
         "there. A Contact's `first_name` is the shown name, with no last name, and Frappe names it. A pulled " +
         "`full_name` or `organization_name` becomes the entry's label only when it differs from the name Capxul shows; " +
         "a Party's display name is never taken from a head. A member is a User on the head with the Contact Frappe made " +
-        "for it: a deal naming a member names that Contact, found by its `capxul_party`; a member's own row (its label " +
+        "for it: a deal naming a member names that Contact, found by its `capxul_party`, and a lead's or deal's owner is " +
+        "the owner's User; an agent has no User (organizations.head-users), so an agent owner goes as null and a pulled " +
+        "null owner leaves Capxul's agent owner as it is; a member's own row (its label " +
         "or hide) is not pushed while the member holds a Seat, and a change to a User's Contact is not pulled. A lead " +
         "with no first name is written as Frappe's Data Import writes one (mandatory fields not enforced), the path " +
         "`set_lead_name` serves. A converted lead is `converted` there with status Qualified; a lead the head converts " +

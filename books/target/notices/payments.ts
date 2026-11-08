@@ -186,7 +186,7 @@ export const workflow_notices_payments_money_reminders = defineWorkflow({
       name: "moved",
       for: "signal",
       key: [{ on: [event_payment_transitioned], props: ["payment_id"] }],
-      about: "The Payment left `escrowed`: collected and settled, or taken back (`cancel`, outcome refunded). Nothing more is sent.",
+      about: "The Payment left `escrowed`: collected (`settle`, or `mismatch` on a differing term) or taken back (`cancel`, outcome refunded). Nothing more is sent.",
     },
   ],
   steps: [
@@ -202,7 +202,7 @@ export const workflow_notices_payments_money_reminders = defineWorkflow({
     {
       name: "remind",
       about:
-        "`money-waiting-reminder` to the mailbox; at 10 and 30 days also `money-uncollected` to the payer, keyed by the command so a batch tells its payer once per stop.",
+        "`money-waiting-reminder` to the mailbox; at 10 and 30 days also `money-uncollected` to the payer, keyed by the command and the stop (`money-uncollected:<command>:<days>`) and naming every Payment of that command still `escrowed`, so a batch tells its payer once per stop.",
     },
     ...SEND_STEPS,
     { name: "next", about: "Arms the next stop, or ends after the 30-day one." },
@@ -215,8 +215,9 @@ export const workflow_notices_payments_money_reminders = defineWorkflow({
   calls: [integration_mail.c.send],
   chain: [],
   idempotency:
-    "`money-reminders:<payment>` for the instance; each notice id names the Payment and its stop, so a rerun or a " +
-    "replayed timer finds its rows and sends nothing again.",
+    "`money-reminders:<payment>` for the instance; the recipient's notice id names the Payment and its stop, the " +
+    "payer's the command and the stop, so a rerun, a replayed timer or a batch's other Payments find their rows and " +
+    "send nothing again.",
   timeoutMs: 31 * DAY_MS,
   retries: { max: 5, backoff: "exponential" },
   compensation: "None: a reminder reports money that is still waiting; the Payment is payments' alone.",

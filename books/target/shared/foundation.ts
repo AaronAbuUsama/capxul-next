@@ -320,7 +320,7 @@ export const concept_accounts = defineConcept({
   about:
     "A person's way into Capxul and their own Safe. Owns admission (the waitlist, an operator's admissions, referral invites " +
     "and the invites a referrer earns, counted from the chain's Safe claims, and the admission an Organization invitation " +
-    "gives, through `accounts.admit` in the invitation's transaction), the sign-in commands (`auth login` and `auth verify` " +
+    "or money waiting in a claim escrow gives, through `accounts.admit` in the invitation's or the escrow's transaction), the sign-in commands (`auth login` and `auth verify` " +
     "are its flows over access' sign-in rpcs, because they answer with the account's setup), the personal Safe's setup (its address a pure " +
     "function of the email; Companies House's claim role installs the person's signer; the claim escrows waiting for them " +
     "are collected; one durable process per setup) and test-network grants (the faucet and welcome grants, refused on " +
@@ -342,7 +342,9 @@ export const concept_organizations = defineConcept({
     "(invite, accept, decline, resend, cancel, expire; an invitation admits its invitee to the beta through " +
     "`accounts.admit`; the Board proposal of its grants is budgets'), and `use org`. It answers who is a member and which officer hat is which, so every concept above it " +
     "can authorize an Organization tenant. A Seat held by an agent ends when the chain shows the agent removed " +
-    "(AgentRemoved). It registers the Organization's Party at birth. " +
+    "(AgentRemoved). It keeps the seat limit (ten, plus what an operator raised or the Organization bought): seats " +
+    "bought are counted through its doors `organizations.add-bought-seats` and `organizations.return-bought-seats`, " +
+    "for the settlement of a seat purchase (organizations.buy-seats). It registers the Organization's Party at birth. " +
     "Old organizations' identity, setups, lifecycles, members, roles and invitations; its Directors and proposals go to " +
     "board, its equity, rounds and votes to equity, its treasury reads to activity.",
   component: B,
@@ -393,7 +395,8 @@ export const concept_projects = defineConcept({
     "project types when the Organization begins, whether or not a Frappe head is ever connected; once one is, its sync " +
     "process pushes every change in order from its gap-free change log and applies the head's changes (organizations' " +
     "head-ownership rules). A task's expected end is its own process's timer on the one clock, never a daily sweep. It " +
-    "moves no money: billing hours (a request) and paying them (a payslip) sit above it. Its commands are new capabilities, " +
+    "moves no money: billing hours (a request) and paying them (a payslip) sit above it, and its one door, " +
+    "`projects.bill-time`, marks the hours an Invoice bills in that request's transaction. Its commands are new capabilities, " +
     "proposed to Aaron in a decision pack (projects.commands); none is among the 215. New in the rebuild.",
   component: B,
   dependsOn: [concept_access, concept_parties, concept_organizations],
@@ -540,12 +543,13 @@ export const concept_requests = defineConcept({
     "and matching a bank deposit to the request it paid. A request is one durable process. Paying from the inbox births the " +
     "payment through `payments.prepare-command`, from your Safe or from a budget named with `--from`, and the payer signs " +
     "it through approvals (an agent with its own key at once, a person on the approval page); a match marks the deposit " +
-    "through `banking.match-deposit`; the paid state follows `payment_transitioned` and the escrow's chain events. Old " +
-    "requests, with the deposit match from banking.",
+    "through `banking.match-deposit`; the paid state follows `payment_transitioned` and the escrow's chain events. An " +
+    "Invoice for logged hours marks them through projects' door, `projects.bill-time`, in its own transaction " +
+    "(requests.bill-time). Old requests, with the deposit match from banking.",
   component: B,
   dependsOn: [
-    concept_access, concept_parties, concept_indexing, concept_approvals, concept_organizations, concept_budgets, concept_documents,
-    concept_payments, concept_banking,
+    concept_access, concept_parties, concept_indexing, concept_approvals, concept_organizations, concept_projects, concept_budgets,
+    concept_documents, concept_payments, concept_banking,
   ],
   was: [`${OLD}/requests/README.md:3`],
 });
@@ -601,7 +605,8 @@ export const concept_notices = defineConcept({
   about:
     "Every email Capxul sends after a change: one workflow per notice kind, triggered by a transition of the concept it " +
     "tells about (an invitation sent, a request issued or paid, a dated payment due or failed, an agreement offered, an " +
-    "allowance assigned, a proposal waiting for a Director, a referral invite, a round invitation), with templates, " +
+    "allowance assigned, a proposal waiting for a Director, a referral invite, a round invitation, money waiting in a " +
+    "claim escrow with its reminders and its taking back, a payslip, a stalled head, a ready FDE), with templates, " +
     "recipients and delivery records (sent, retrying, failed). No other concept sends mail, except access' sign-in code, " +
     "which is the operation itself. It owns no frozen operation: `dev mail notices` reads its delivery records from the " +
     "devnet concept. The old notify actions of every concept and old operator's delivery records.",

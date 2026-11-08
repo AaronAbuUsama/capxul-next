@@ -555,7 +555,9 @@ export const decision_accounts_money_waiting_admits = defineDecision({
     "and referrals also admitted; with money now admitting a person nobody invited, it names that way too, and the " +
     "operator's way is unchanged. Proven from devnet's person-with-money-waiting. For the payments designer: invoke " +
     "`accounts.admit` from `payments.lifecycle.payment`'s `escrow` step; for the shared owner, procedures.accounts-admit " +
-    "gains this second invoker.",
+    "gains this second invoker. For Aaron: as with an invitation then cancelled, any admitted payer can admit any " +
+    "mailbox, a +tag of their own included, for a small payment taken back at once, outside the referral cap of 10; " +
+    "the recommendation is to keep that for the beta, as ruled, with no minimum amount.",
   source: by("books/target/shared/rulings.ts (aaron.money-waiting-reminders); procedures.accounts-admit; payments.claim-escrow-mailbox; waitlist.status.yaml #2"),
   affects: [
     procedure_accounts_admit,

@@ -124,7 +124,7 @@ export const table_projects = defineTable({
   about:
     "Frappe's Project for the Organization (its Company): name, status, type, priority, expected and actual dates, how " +
     "its percent complete is worked out (by hand, or from its tasks' completion, progress or weight), its customer (a " +
-    "Party: the CRM's customer in the global directory), its costing and billable totals and notes. The totals and the " +
+    "Party in the global directory, or only a name for a company not on Capxul: projects.customer-name), its costing and billable totals and notes. The totals and the " +
     "actual dates and time are derived from its submitted timesheets and its tasks, never typed (projects.derived). " +
     "Frappe's totals that come from documents above projects (`total_billed_amount` from Sales Invoices, " +
     "`total_sales_amount` from Sales Orders, `total_purchase_cost`, the consumed material cost and the gross margin) are " +
@@ -153,8 +153,10 @@ export const table_projects = defineTable({
     actual_end_date: NullOr(Day),
     /** Hours logged on its submitted timesheets. */
     actual_time: Decimal,
-    /** The customer's Party (parties); null for an internal project. */
+    /** The customer's Party (parties); null for an internal project, or a customer not on Capxul. */
     customer_party_id: NullOr(S),
+    /** Frappe's `customer` link as text: the head's Customer name or the name given; checked by nothing (projects.customer-name). */
+    customer_name: NullOr(S),
     department: NullOr(S),
     cost_center: NullOr(S),
     estimated_costing: Decimal,
@@ -321,6 +323,8 @@ export const table_timesheets = defineTable({
     employee: NullOr(S),
     parent_project_id: NullOr(S),
     customer_party_id: NullOr(S),
+    /** Frappe's `customer` as text, for a customer with no Party (projects.customer-name). */
+    customer_name: NullOr(S),
     start_date: NullOr(Day),
     end_date: NullOr(Day),
     total_hours: Decimal,
@@ -373,9 +377,9 @@ export const table_timesheet_logs = defineTable({
     "whether the work is completed, the project and task it was for, whether it is billable, the billing hours, rate and " +
     "amount, the costing rate and amount, and the sales invoice that billed it: a request's id when Capxul billed it " +
     "(`projects.bill-time`), or the head's Sales Invoice name when a head did. A log is written with its timesheet, in " +
-    "the same transaction, or by that door. A submitted timesheet's logs never change except `sales_invoice` and the " +
-    "`billing_amount` the invoice asked, Frappe's fields allowed on submit: a log is billed once, and its link is " +
-    "cleared only when that invoice is cancelled or declined.",
+    "the same transaction, or by that door. A submitted timesheet's logs never change except `sales_invoice`, Frappe's " +
+    "one field allowed on submit (`billing_amount` is read-only, its rate times its billing hours, whatever an invoice " +
+    "asks): a log is billed once, and its link is cleared only when that invoice is cancelled or declined.",
   was: [
     `${FRAPPE}/timesheet_detail/timesheet_detail.json`,
     "/tmp/erpnext/erpnext/accounts/doctype/sales_invoice/services/timesheet_billing.py:19",
@@ -415,6 +419,11 @@ export const table_timesheet_logs = defineTable({
       name: "by_org_project",
       fields: ["org_id", "project_id", "timesheet_id"],
       for: "A project's logs across timesheets.",
+    },
+    {
+      name: "by_org_sales_invoice",
+      fields: ["org_id", "sales_invoice", "timesheet_id"],
+      for: "The logs an invoice billed: `projects.bill-time`'s `unbill` clears a request's, and the head sync a cancelled Sales Invoice's.",
     },
   ],
   retention: KEPT,
@@ -700,7 +709,8 @@ export const machine_timesheet = defineMachine({
     uncomplete: {
       from: ["completed"],
       to: "payslip",
-      about: "The invoice that completed it was cancelled or declined: its link leaves it, and the salary slip still names it.",
+      about:
+        "A head's timesheet whose own sales-invoice link left it while a salary slip still names it (Frappe HR's set_status); Capxul's bills never set that link (projects.bill-time).",
       emits: [event_timesheet_transitioned],
     },
     cancel: {

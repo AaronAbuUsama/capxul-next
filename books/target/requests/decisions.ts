@@ -584,7 +584,8 @@ export const decision_requests_income_meaning = defineDecision({
     "asks for the payment by naming its invoice, and its Payment Entry follows the fact. Two paths still carry no " +
     "meaning: an outside payer's invoice escrow pays out as a Payment born from the chain, which payments cannot tie " +
     "to a request, and a matched bank deposit, whose fact is banking's (`banking.match-deposit` takes no meaning yet); " +
-    "both wait in review for `activity annotate` or the head (asked of payments and banking).",
+    "both wait in review for `activity annotate` or the head (banking.matched-deposit-meaning; the escrow payout is " +
+    "the escrow redesign's to carry).",
   source: ASSEMBLY("docs/design/frappe/accounting.md (For other lanes: requests); books/target/payments/procedures.ts (payee_against)"),
   affects: [d.table_requests, iss.rpc_requests_issuing_issue, inb.rpc_requests_inbox_pay, concept_books],
 });
@@ -601,8 +602,9 @@ export const decision_requests_bill_time = defineDecision({
       text:
         "Recommended. A new operation, `timesheet bill <timesheet…> --org <org> [--to <payer>]`, as requests' flow over " +
         "`requests.issuing.issue`: it reads the timesheets' billable logs not yet billed, previews an Invoice to the " +
-        "project's customer with one line per activity (hours times the billing rate), and in the issue's transaction " +
-        "invokes `projects.bill-time` (`bill`) so the logs name the request. `request cancel` and `inbox decline` of " +
+        "project's customer with one line per activity (hours times the billing rate), keeps the hours and amount it " +
+        "asks for each log on the request (as a Sales Invoice's Timesheet rows do; the log keeps its own), and in the " +
+        "issue's transaction invokes `projects.bill-time` (`bill`) so the logs name the request. `request cancel` and `inbox decline` of " +
         "such a request invoke it with `unbill` in their own transactions; paid keeps the marks.",
     },
     {
@@ -620,9 +622,9 @@ export const decision_requests_bill_time = defineDecision({
     "Sales Invoice unlinks its timesheets; an expired request keeps them until cancelled, as an unpaid invoice does. " +
     "A command of its own reads as ERPNext's 'Make Sales Invoice' from a timesheet and keeps `request issue` the kept " +
     "command it was; the flag would widen a frozen command's flags for one source of lines. Head-only leaves an " +
-    "Organization with no head unable to bill its time. Booking waits on two things: Aaron's answer, and an edge, " +
-    "requests depending on projects (shared foundation and dependencies.of-requests, asked of its owner), without " +
-    "which the issue may not invoke the door; projects sits below requests, so the edge makes no cycle.",
+    "Organization with no head unable to bill its time. Booking waits only on Aaron's answer and the CLI pass that " +
+    "books the new commands: the edge it needs, requests depending on projects (dependencies.of-requests), exists, " +
+    "and projects sits below requests, so it makes no cycle.",
   source: ASSEMBLY("docs/design/frappe/projects-and-startup.md (section 2); projects.billing-and-payslips; projects.commands; aaron.projects"),
   affects: [concept_requests, concept_projects, d.table_requests, iss.rpc_requests_issuing_issue, iss.rpc_requests_issuing_cancel, inb.rpc_requests_inbox_decline],
 });

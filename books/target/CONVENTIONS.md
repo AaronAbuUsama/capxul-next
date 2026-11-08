@@ -232,7 +232,8 @@ the 215. `OPERATION_OWNERS` lists only the 215: a new operation's owner is the c
   `approvals.open`, `board.propose`, `parties.register`, `documents.store`,
   `books.record-money-fact`, `books.reverse-money-fact`, `payments.prepare-command` and
   `banking.match-deposit`, and one authority fact, `accounts.admit` (an Organization invitation
-  admits its invitee to the beta; decision `procedures.accounts-admit`). A concept designer may add
+  admits its invitee to the beta, and money waiting in a claim escrow its recipient; decisions
+  `procedures.accounts-admit` and `accounts.money-waiting-admits`). A concept designer may add
   one only with a decision record that names its money fact.
 - A procedure's `about` begins with `Money fact:` and the fact, for example
   `Money fact: a settled Payment always has its book fact.` (`accounts.admit` begins

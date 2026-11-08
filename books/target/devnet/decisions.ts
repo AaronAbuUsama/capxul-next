@@ -509,8 +509,9 @@ export const decision_devnet_followers = defineDecision({
         "has not been processed (a resume, a deferred's completion, a new execution, a run's retry); its outbox is " +
         "delivered; and its wake router has consumed every row up to the block Ponder has indexed), Ponder (through " +
         "the supervisor: idle when its indexed block is the head), the bundler stand-in (idle when its mempool is empty " +
-        "and no bundle is in flight), the paymaster stand-in, and the Bridge stand-in (its scheduled answers are its next " +
-        "due). An armed fault switch's held state counts as idle (a held receipt, an indexer hold). An outside program " +
+        "and no bundle is in flight), the paymaster stand-in, the Bridge stand-in (its scheduled answers are its next " +
+        "due), and each stand-in Frappe head (idle when no ring it sent is unanswered, with no next due: " +
+        "devnet.head-stand-in). An armed fault switch's held state counts as idle (a held receipt, an indexer hold). An outside program " +
         "joins the same way, so a simulation's own happenings become stops. Running, a follower computes now as the " +
         "event's now plus the real time since its `realAt` (one machine, one real clock). A follower that misses an " +
         "acknowledgement fails the barrier and is dropped. The backend's follower channel is the runtime's, not an rpc.",
@@ -904,7 +905,9 @@ export const decision_devnet_fault_switches = defineDecision({
         "`capxul-devnet chain` and `bridge` make what no Capxul surface makes (a Safe transaction or a Hats ruling " +
         "outside Capxul, an outside transfer, a token, Bridge deposits, a payout's return); a still clock is the clock's " +
         "frozen mode (devnet.clock-modes), not a switch. The armed switches " +
-        "are in the world's manifest and re-armed on restore. The mail switch is `dev mail fail`, in Postgres.",
+        "are in the world's manifest and re-armed on restore. The mail switch is `dev mail fail`, in Postgres, and so " +
+        "is the stand-in Frappe head's (`fault frappe-head down|key-refused|conflict|refuse|replay|clear`, on its site " +
+        "row: devnet.head-stand-in).",
     },
     { label: "devnet-rpcs", text: "A devnet rpc per switch." },
   ],
@@ -1117,32 +1120,35 @@ export const decision_devnet_head_warp_stops = defineDecision({
   id: "devnet.head-warp-stops",
   title: "A head's daily-or-slower Frappe jobs are warp stops; faster ones run at stops",
   question:
-    "Frappe runs scheduled jobs (`all`, `hourly`, `hourly_long`, `daily`, `daily_long`, `weekly`, `monthly`, their " +
-    "`_long` forms and cron entries). On a devnet a head follows the one clock (organizations.head-clock). Which of its " +
-    "jobs are stops a warp must halt at, and which merely run?",
+    "Frappe runs scheduled jobs by a Scheduled Job Type's frequency (All, Hourly, Hourly Long, Hourly Maintenance, " +
+    "Daily, Daily Long, Daily Maintenance, Weekly, Weekly Long, Monthly, Monthly Long, Yearly, Annual, Cron). On a " +
+    "devnet a head follows the one clock (organizations.head-clock). Which of its jobs are stops a warp must halt at, " +
+    "and which merely run?",
   options: [
     {
       label: "daily-or-slower",
       text:
-        "A followed bench reports as its next due only its next `daily`, `daily_long`, `weekly`, `weekly_long`, " +
-        "`monthly`, `monthly_long` run or cron entry whose period is a day or more, at the site's time zone; `all`, " +
-        "`hourly`, `hourly_long` and faster crons run once at each stop it reaches, never making one. The stand-in runs " +
-        "no Frappe job and reports no next due.",
+        "A followed bench reports as its next due only the next run of a job whose period is a day or more: Daily, " +
+        "Daily Long, Daily Maintenance (at the site's own minute offset, as Frappe schedules it), Weekly, Weekly Long, " +
+        "Monthly, Monthly Long, Yearly, Annual, or a cron entry of a day or more, at the site's time zone; All, Hourly, " +
+        "Hourly Long, Hourly Maintenance and faster crons run once at each stop it reaches, never making one. The " +
+        "stand-in runs no Frappe job and reports no next due.",
     },
     { label: "hourly-or-slower", text: "As the backend's own crons: every hourly-or-slower job is a stop too." },
     { label: "none", text: "No head job is a stop; every due job runs at whatever stop comes next." },
   ],
   chosen: "daily-or-slower",
   why:
-    "A head's daily jobs are calendar work a simulation must see on the right day: ERPNext's `set_tasks_as_overdue` is " +
-    "Capxul's own timer now (projects.overdue-timer), but a head's other apps (auto-repeat invoices, subscriptions, " +
-    "leave allocation, depreciation) date documents by the day, so a warp past one must stop at it. Frappe's hourly " +
+    "A head's daily jobs are calendar work a simulation must see on the right day: ERPNext's `set_tasks_as_overdue` " +
+    "(Daily Maintenance) is Capxul's own timer now (projects.overdue-timer), but a head's other apps (Frappe's " +
+    "auto-repeat and ERPNext's subscriptions and asset postings, Daily Maintenance; Frappe HR's earned leave, Daily " +
+    "Long) date documents by the day, so a warp past one must stop at it, the Maintenance kind included. Frappe's hourly " +
     "and faster jobs are sweeps (email queues, project status reminders, reposts) whose result at a stop is the same " +
     "whether they ran once or twenty-four times; as stops they would add 8,760 per simulated year per head, against " +
     "the barrier's minutes for a year (devnet.warp-barrier), and the backend's hourly crons are its own few, not a " +
     "whole ERP's. None would leave a dated job to run late, on whatever day the next stop fell. The stand-in has " +
     "nothing scheduled, so a world with a stand-in head stops exactly where it would without one.",
-  source: WORLD_GROUP("organizations.head-clock; devnet.warp-barrier; frappe/hooks.py scheduler_events (erpnext, hrms)"),
+  source: WORLD_GROUP("organizations.head-clock; devnet.warp-barrier; frappe core/doctype/scheduled_job_type (frequency, CRON_MAP); hooks.py scheduler_events (frappe, erpnext, hrms)"),
   affects: [integration_frappe_head, integration_devnet_control, component_frappe_app, component_devnet],
 });
 

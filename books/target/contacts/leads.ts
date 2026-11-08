@@ -3,7 +3,8 @@
 // Organization keeps leads. Every member reads them; only a member whose Safe wears the People hat
 // changes them, as with the contact book (decision contacts.crm-permission). These are new
 // capabilities, not among the 215: the Core SDK reaches them for the Organization's agents, and
-// their CLI commands wait on a decision (contacts.crm-capabilities); a connected head's edits come
+// their CLI commands are booked in the CLI operations pass by rules.new-operations
+// (contacts.crm-capabilities); a connected head's edits come
 // in through contacts.head.sync, by the same rules. Nothing here is signed and no money moves.
 
 import { Schema } from "effect";

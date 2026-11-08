@@ -716,10 +716,11 @@ export const integration_frappe_head = defineIntegration({
     },
   },
   fake:
-    "The devnet's stand-in head: an in-memory Frappe double the supervisor serves on loopback, speaking the Capxul app's " +
-    "methods. It keeps documents by DocType and `capxul_id`, records its own edits (made through its scripted user) as " +
-    "listChanges rows, installs any app at once, follows the one clock as a follower, and has a fault switch (down, key " +
-    "refused, conflict on the next write, refuse the next document). It runs none of Frappe's validations, reports or " +
+    "The devnet's stand-in head (devnet.head-stand-in): the supervisor serves it on loopback, speaking the Capxul app's " +
+    "methods, and keeps its state in devnet's tables: sites (`head-sites`), documents by DocType and `capxul_id` " +
+    "(`head-documents`) and its scripted edits as listChanges rows that ring `organizations.heads.ring` " +
+    "(`head-changes`). It installs any app at once, follows the one clock as a follower, and has a fault switch (down, " +
+    "key refused, conflict on the next write, refuse the next document, replay, clear). It runs none of Frappe's validations, reports or " +
     "scheduled jobs. A head eval that needs real Frappe boots a bench with ERPNext, Frappe HR, Frappe CRM and the Capxul " +
     "app instead, also as a follower.",
   secrets: [],

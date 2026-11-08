@@ -23,6 +23,7 @@ import {
 import * as approvalsData from "../approvals/data.ts";
 import * as approvalsSigning from "../approvals/signing.ts";
 import * as books from "../books/procedures.ts";
+import { procedure_accounts_admit } from "../accounts/procedures.ts";
 import { procedure_documents_store } from "../documents/procedures.ts";
 import * as partiesData from "../parties/data.ts";
 import { rpc_payments_changes_cancel, rpc_payments_changes_reschedule, rpc_payments_changes_retry } from "./changes.ts";
@@ -113,7 +114,9 @@ export const workflow_payments_lifecycle_payment = defineWorkflow({
     {
       name: "escrow",
       about:
-        "On EscrowCreated with its payment id, `escrow`, whether the carrier's send already moved it to `submitted` or not. An escrowed Payment has no timer: it waits for the payee's collection (its PaymentSent) or the owner's refund.",
+        "On EscrowCreated with its payment id, `escrow` (from `prepared` or `submitted`), admitting its `payee_mailbox` " +
+        "in the same transaction (`accounts.admit`, via escrow, ref the Payment; accounts.money-waiting-admits). No timer: " +
+        "it waits for the collection's PaymentSent or the refund.",
     },
     { name: "come-due", about: "A day ahead: reads the paying Safe's balance (personal) and moves `come_due`, keeping a shortfall." },
     {
@@ -134,7 +137,7 @@ export const workflow_payments_lifecycle_payment = defineWorkflow({
   reads: [table_payments, table_payment_commands, approvalsData.table_approvals, partiesData.table_parties],
   writes: [table_payments],
   drives: [p.schedule, p.come_due, p.escrow, p.submit, p.settle, p.mismatch, p.unsettle, p.lapse, p.cancel],
-  invokes: [books.procedure_books_record_money_fact, books.procedure_books_reverse_money_fact],
+  invokes: [books.procedure_books_record_money_fact, books.procedure_books_reverse_money_fact, procedure_accounts_admit],
   emits: [],
   calls: [
     integration_indexer.c.factsOf,

@@ -796,7 +796,8 @@ export const decision_notices_money_waiting_reminders = defineDecision({
     "with this email address, set up your account, and sign the collection. Until you do, <payer> can take it back.' " +
     "(the 30-day one adds 'This is our last reminder.'); uncollected, 'The <amount> <asset> you sent to <mailbox> <n> " +
     "days ago has not been collected: they have not set up their account yet. It stays theirs to collect until you " +
-    "take it back with `capxul payment cancel <payment>`.'; taken back, '<payer> took back the <amount> <asset> that " +
+    "take it back with `capxul payment cancel <payment>`' (an Organization's names its `--org`, and `--as-directors` " +
+    "where the Board must take it back); taken back, '<payer> took back the <amount> <asset> that " +
     "was waiting for you. Nothing waits for you now; you can still sign up with this email address.' The admission the " +
     "money gave stands (accounts.money-waiting-admits). Observed from devnet's person-with-money-waiting: `dev time " +
     "warp 3d`, then `dev mail notices --to nobody@outside.test --template money-waiting-reminder`.",

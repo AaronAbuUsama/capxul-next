@@ -700,7 +700,8 @@ export const WORLDS: readonly World[] = [
     name: "person-with-contacts",
     holds:
       "Ada (ada@example.com) signed in with a book holding Bea (by handle, label `Bea`), vendor@example.com (provisional, no " +
-      "label), Cy (hidden) and two different Parties both labelled `Sam`; Zed in no book of Ada's; Acme, where Ada holds no " +
+      "label), Cy (hidden), two different Parties both labelled `Sam` and Northwind Ltd, a private company entry with no " +
+      "Party; Zed in no book of Ada's; Acme, where Ada holds no " +
       "Seat, with Seats for Dan and Rex (an agent Dan owns), its book holding Dan (`manual` and `member`) and Rex (`member`).",
     from: "empty-devnet",
     steps: [
@@ -712,6 +713,7 @@ export const WORLDS: readonly World[] = [
       ready("ada@example.com", "Ada Lovell"),
       step("ada@example.com", "capxul contact add @bea --label Bea; capxul contact add vendor@example.com; capxul contact add cy@example.com; capxul contact hide cy@example.com"),
       step("ada@example.com", "capxul contact add sam.one@example.com --label Sam; capxul contact add sam.two@example.com --label Sam"),
+      step("ada@example.com", "client.account.addressBook.record in her own book: a CRM Organization `Northwind Ltd` with no link, a private `contact_` entry (contacts.private-entries)"),
       current("ada@example.com"),
     ],
     namedBy: ["contacts", "banking"],

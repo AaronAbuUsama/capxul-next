@@ -206,6 +206,11 @@ export const operation_contact_bank_add = defineOperation({
   errors: [error_CLI_USAGE],
   refusals: [
     { error: error_CLI_USAGE, given: "person-with-contacts", when: when("contact.bank.add", "CLI_USAGE") },
+    {
+      error: error_CLI_USAGE,
+      given: "person-with-contacts",
+      when: "The contact is a private entry with no Party (Ada's Northwind Ltd): refused before anything is written, naming how to give it one (banking.private-entries).",
+    },
     { error: error_INVALID_INPUT, given: "person-with-contacts", when: when("contact.bank.add", "INVALID_INPUT") },
     { error: error_ROLE_PERMISSION_DENIED, given: "person-with-contacts", when: "You cannot write to that book: `--org acme` as Ada, who holds no Seat in Acme." },
     { error: error_NOT_AUTHENTICATED, given: "signed-out", when: when("contact.bank.add", "NOT_AUTHENTICATED") },
@@ -227,7 +232,11 @@ export const operation_contact_get = defineOperation({
   returns: Schema.NullOr(ContactWithAccounts),
   errors: [error_CLI_USAGE],
   refusals: [
-    { error: error_CLI_USAGE, given: "person-with-contacts", when: when("contact.get", "CLI_USAGE") },
+    {
+      error: error_CLI_USAGE,
+      given: "person-with-contacts",
+      when: "Gave an id that is neither a PartyId nor a private entry's `contact_` id: refused before anything is read (banking.private-entries).",
+    },
     { error: error_ROLE_PERMISSION_DENIED, given: "person-with-contacts", when: "`--org` names an Organization you are outside: `--org acme` as Ada, who holds no Seat in Acme." },
     { error: error_NOT_AUTHENTICATED, given: "signed-out", when: when("contact.get", "NOT_AUTHENTICATED") },
   ],
@@ -369,6 +378,11 @@ export const operation_bank_pay = defineOperation({
   errors: [error_CLI_USAGE],
   refusals: [
     { error: error_INVALID_INPUT, given: "person-with-gbp-account", when: when("bank.pay", "INVALID_INPUT") },
+    {
+      error: error_CLI_USAGE,
+      given: "person-with-contacts",
+      when: "The contact is a private entry with no Party (Ada's Northwind Ltd): refused before any quote, naming how to give it one (banking.private-entries).",
+    },
     { error: error_WRONG_STATE, given: "person-with-gbp-account", when: when("bank.pay", "WRONG_STATE") },
     { error: error_VERIFICATION_REQUIRED, given: "person-ready", when: "You are not verified: a new payee in `--input`. It names `capxul verify start`." },
     { error: error_INSUFFICIENT_BALANCE, given: "person-with-gbp-account", when: "The Safe cannot fund the payout: more than its 1,000 USDC." },

@@ -431,29 +431,65 @@ export const decision_projects_bill_time = defineDecision({
     {
       label: "door",
       text:
-        "`projects.bill-time`, a money-fact procedure: `bill` marks each log's `sales_invoice` and `billing_amount` " +
-        "and moves the timesheet `bill_part`, `bill` or (already paid) `complete`; `unbill` clears them and moves " +
-        "`unbill`, `bill_part` or `uncomplete`. Requests invokes it in the issue's transaction and in the cancel's or " +
-        "decline's.",
+        "`projects.bill-time`, a money-fact procedure: `bill` marks each log's `sales_invoice` and moves the timesheet " +
+        "`bill_part` or `bill` (a paid one keeps `payslip`, its totals updated); `unbill` clears the marks and moves " +
+        "`unbill` or `bill_part`. Requests invokes it in the issue's transaction and in the cancel's or decline's.",
     },
     { label: "outbox", text: "Projects follows `request_transitioned` and marks the logs after the request commits." },
     { label: "head-only", text: "Only a connected head bills hours; Capxul requests never name timesheets." },
   ],
   chosen: "door",
   why:
-    "Hours billed twice are money asked twice: an Invoice that commits while its logs stay unmarked could be followed " +
-    "by a second Invoice, a Capxul one or a head's, for the same hours. So the mark and the Invoice are one money fact " +
-    "(rules.procedures), and only the owner's procedure may write projects' tables (P4). The outbox would leave that " +
-    "window open, and projects would have to depend on requests (a cycle). Head-only contradicts aaron.projects: an " +
-    "Organization with no head must still bill its time. The guards are ERPNext's: a log names one invoice " +
-    "(`validate_time_sheets_are_submitted`), only a submitted timesheet's billable logs are billed, a log bills no " +
-    "more than its billing hours, and Frappe HR's `set_status` decides the status (a timesheet a slip already paid " +
-    "keeps `payslip`, and completes when billed). A paid request keeps its marks; a declined or cancelled one clears " +
-    "them, as cancelling a Sales Invoice does (`unlink_sales_invoice_from_timesheets`); an expired one keeps them until " +
-    "it is cancelled. `uncomplete` is the way back for a completed timesheet whose invoice is cancelled, and `unpay` " +
-    "now also starts from completed. Every mark appends to the change log, so a head learns the hours are billed " +
-    "before it could invoice them itself. Requests cannot invoke it until requests depends on projects (shared " +
-    "foundation, asked of its owner); until then it is an uninvoked door.",
+    "Hours billed twice are money asked twice, so the mark and the Invoice are one money fact (rules.procedures), and " +
+    "only the owner's procedure may write projects' tables (P4). The outbox would leave a window for a second Invoice, " +
+    "and projects would have to depend on requests (a cycle). Head-only contradicts aaron.projects: an " +
+    "Organization with no head must still bill its time. The guards and writes are ERPNext's: a log names one invoice " +
+    "(`validate_time_sheets_are_submitted`), only a submitted, partly or wholly billed, or payslip timesheet's billable " +
+    "logs are billed, and `update_time_sheet` writes only each log's `sales_invoice` (Timesheet Detail's one field " +
+    "allowed on submit; its `billing_amount` is read-only), then the totals from the logs' own hours and amounts and " +
+    "Frappe HR's `set_status`. So the hours and amount a request asks per log are the request's, as a Sales Invoice " +
+    "Timesheet row's are, and a timesheet a slip already paid keeps `payslip`: no ERPNext path sets a timesheet's own " +
+    "sales-invoice link, and neither does Capxul, so `complete` and `uncomplete` stay a head's (its sync drives them), " +
+    "and `unpay` also starts from completed for such a head timesheet. A paid request keeps its marks; a declined or " +
+    "cancelled one clears them, as cancelling a Sales Invoice does (`unlink_sales_invoice_from_timesheets`); an expired " +
+    "one keeps them until it is cancelled. Every mark appends to the change log, so a head learns the hours are billed " +
+    "before it could invoice them itself. Open for the head owner: Timesheet Detail's `sales_invoice` is a Link to a " +
+    "Sales Invoice, so a log a Capxul request billed reaches a head only once the Capxul app holds a Sales Invoice for " +
+    "that request (or another mark its own Make Sales Invoice honours); until then the push would be refused. Requests " +
+    "now depends on projects (dependencies.of-requests); the door stays uninvoked until requests books the command " +
+    "that bills hours (requests.bill-time).",
   source: by(`erpnext/accounts/doctype/sales_invoice/services/timesheet_billing.py:19; ${DT}/timesheet/timesheet.py:141; hrms employee_timesheet.py`),
   affects: [procedure_projects_bill_time, table_timesheet_logs, table_timesheets, machine_timesheet, concept_requests],
+});
+
+export const decision_projects_customer_name = defineDecision({
+  id: "projects.customer-name",
+  title: "A customer with no Party is kept by name, as Frappe's Customer link is",
+  question:
+    "A project's and a timesheet's customer is a Party (`customer_party_id`), but a company not on Capxul is a private CRM " +
+    "entry with no Party (parties.head-parties, parties.outside-companies), and projects sits below contacts, so it cannot " +
+    "name the entry. How does a project for a prospect company name its customer?",
+  options: [
+    {
+      label: "name-beside-party",
+      text:
+        "Beside `customer_party_id`, keep `customer_name`: Frappe's `customer` link as text, the head's Customer name or " +
+        "the name a member gave, and null with no customer. With a Party it is the name the head shows for it; without " +
+        "one it is the only mark. Nothing checks it: whatever must know the customer checks `customer_party_id`, so " +
+        "`projects.bill-time` treats a log whose timesheet names a customer only by name as another customer than any " +
+        "payer (INVALID_INPUT), and such hours are billed by a head's own Sales Invoice, or through Capxul once that " +
+        "customer has a Party and the timesheet names it.",
+    },
+    { label: "crm-id", text: "Keep the CRM entry's `contact_` id as opaque text, which projects can neither check nor read." },
+    { label: "party-only", text: "A customer must be a Party: a prospect company cannot be a project's customer until it is on Capxul." },
+  ],
+  chosen: "name-beside-party",
+  why:
+    "ERPNext's Project and Timesheet carry `customer`, a Link to Customer, and a head sync must round-trip it whether or " +
+    "not that Customer has a `capxul_party`. A name is what Frappe shows and what the Capxul app looks the Customer up by " +
+    "when it has no Party, and it invents no identity. An opaque CRM id would be a link projects could never check, " +
+    "pointing up the map. Party-only would refuse what every services business does first, a project for a prospect. " +
+    "Billing stays exact, because a Capxul request is paid by a Party and the door compares Parties, never names.",
+  source: by(`${DT}/project/project.json (customer); ${DT}/timesheet/timesheet.json (customer); parties.head-parties`),
+  affects: [table_projects, table_timesheets, procedure_projects_bill_time, workflow_projects_head_sync],
 });

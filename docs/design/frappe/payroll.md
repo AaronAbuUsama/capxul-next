@@ -293,8 +293,8 @@ On the head, nothing is forked. The Capxul app adds:
 
 - **Custom Fields:**
   - `capxul_id` on all six doctypes;
-  - `capxul_party_id` on Employee;
-  - `capxul_payee_party_id` on Salary Component;
+  - `capxul_party` on Employee (the one Party field across the apps, `organizations.frappe-app-fields`);
+  - `capxul_payee_party` on Salary Component;
   - `capxul_budget_id` and `capxul_agreement_id` on Salary Structure Assignment;
   - `capxul_budget_id`, `capxul_command_id`, `capxul_status` and `capxul_computed_by` on Payroll
     Entry. Frappe validates `status` against Draft, Submitted, Cancelled, Queued and Failed, so
@@ -480,11 +480,12 @@ Payroll posts nothing into books itself (`payroll.accrual`). Every voucher has o
 
 - **The accrual of a run Capxul computed** is books', through its door
   `books.record-payroll-accrual`. `runs.submit` invokes it (action submit) and `runs.cancel` invokes
-  it (action cancel), in their own transactions, once payroll depends on books:
+  it (action cancel), in their own transactions (payroll now depends on books):
   - debit each earning's `accounts.account`;
-  - credit each deduction's `liability_account`;
+  - credit each deduction's `accounts.account`, which for a deduction is its liability
+    (`payroll_entry.py:891`; `liability_account` is read only for employer contributions);
   - credit Payroll Payable (`payroll_payable_account`) for each net, with party the Employee;
-  - for employer contributions, debit the expense and credit the liability.
+  - for employer contributions, debit the expense and credit the `liability_account`.
 
   This mirrors `make_accrual_jv_entry`. A head receives the voucher from books' feed and posts none
   of its own, because its slips are submitted one by one.

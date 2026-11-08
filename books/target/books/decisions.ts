@@ -6,7 +6,7 @@
 // responsibilities.keepers).
 
 import { defineDecision } from "../../../packages/book/src/index.ts";
-import { concept_books } from "../shared/foundation.ts";
+import { component_frappe_app, concept_books } from "../shared/foundation.ts";
 import {
   event_book_account_transitioned,
   event_book_annotation_transitioned,
@@ -1528,4 +1528,82 @@ export const decision_books_payroll_lines = defineDecision({
     rpc_books_sync_feed,
     table_book_prices,
   ],
+});
+
+export const decision_books_party_lines = defineDecision({
+  id: "books.party-lines",
+  title: "A voucher line names a party only on an account ERPNext lets carry one",
+  question:
+    "A bank payout's side carries a party (the contact's Party as Supplier) and no account, and a paid request's or a " +
+    "payer's side may too. Until someone annotates the row it waits in 6999, and a payout to your own bank account (scope " +
+    "self) carries no party. ERPNext refuses a party on an account whose type is not Receivable, Payable or Equity. What " +
+    "does the voucher post for such a row?",
+  options: [
+    {
+      label: "party-where-allowed",
+      text:
+        "The fact and the annotation keep the party as given, so the review shows it as the suggestion and the CRM's " +
+        "link (`party_id`) holds. The voucher names it only on a line whose account ERPNext lets carry one: a " +
+        "Receivable, Payable or Equity account, or one with no account type. On any other, 6999 waiting included, the " +
+        "line names no party. When a reviewer moves the row to the payable account, its voucher becomes a Payment Entry " +
+        "Pay to that Supplier, unallocated, as ERPNext records an advance (books.vouchers). A payout to the payer's own " +
+        "bank account has no party: it waits in review, and the Books hat moves it to an asset account of the chart " +
+        "(money between the company's own accounts, never an expense).",
+    },
+    { label: "advance", text: "Post every payout with a Supplier party as a Payment Entry Pay on Creditors at once, an advance until an invoice." },
+    { label: "drop-party", text: "Drop the party from the fact whenever no account is given." },
+  ],
+  chosen: "party-where-allowed",
+  why:
+    "ERPNext's `validate_account_party_type` refuses a GL line with a party on an account typed other than Receivable, " +
+    "Payable or Equity, and allows one with no type, so a voucher that kept the party on 6999 would be refused by the " +
+    "head. Posting an advance at once would choose the bookkeeping for the Organization: a payout to a supplier can be " +
+    "an expense paid on the spot, and an unallocated advance sits on Creditors until someone reconciles it. Dropping " +
+    "the party from the fact would lose what the payer told Capxul and the counterparty's Party the CRM pins (C6). " +
+    "Keeping it on the fact and the annotation and off the line costs nothing and posts what ERPNext accepts. A " +
+    "transfer to one's own bank account is neither income nor expense, and books has no account for the off-chain " +
+    "bank until the Books hat makes one, so it waits like any row nobody has classified.",
+  source: byAssembly(`/tmp/erpnext/erpnext/accounts/party.py:939 (validate_account_party_type); ${ERP}/payment_entry/payment_entry.json (payment_type); banking.payout-books`),
+  affects: [procedure_books_record_money_fact, table_book_annotations, rpc_books_sync_feed, rpc_books_annotations_save],
+});
+
+export const decision_books_head_setup = defineDecision({
+  id: "books.head-setup",
+  title: "Before the first push, the Capxul app sets a head's accounting to match",
+  question:
+    "A head's ERPNext Company already has a chart, a root cost centre and Main, default accounts and settings of its " +
+    "own. What does a connected head's accounting look like before books pushes its first voucher, who sets it, and may a " +
+    "head connect before the books are charted?",
+  options: [
+    {
+      label: "app-setup-before-push",
+      text:
+        "A head connects at any time; books pushes nothing until the books are charted (books.sync). The first push " +
+        "then writes the chart through `upsertDocs` in tree order, each Account with its `capxul_id`, and the Capxul " +
+        "app adopts ERPNext's own root cost centre and Main (made with the Company) as Capxul's, by `capxul_id`, " +
+        "instead of making a second Main. With them it sets the Company's defaults to the role accounts (receivable, " +
+        "payable, Payroll Payable, round off and exchange gain or loss, Main as the default and round-off cost " +
+        "centre), the Fiscal Years derived from the fiscal year start, a Currency per token, each Safe account " +
+        "frozen with the app's own role as the Company's `role_allowed_for_frozen_entries`, and Accounts Settings " +
+        "`enable_immutable_ledger` on. A head user cannot then post on a Safe account, and a repost never edits a " +
+        "past day's GL.",
+    },
+    {
+      label: "importer",
+      text: "Replace the head's chart with ERPNext's Chart of Accounts Importer, which a Company with no transactions accepts.",
+    },
+    { label: "head-agent", text: "The head's own agent, on a Seat wearing the Books hat, sets the head up from the books' feed." },
+  ],
+  chosen: "app-setup-before-push",
+  why:
+    "The accounting lane asked for a head set up before any transaction. The importer works only on an empty Company, " +
+    "and a head is often connected to a site already in use; writing the tree through the one seam, by `capxul_id`, " +
+    "works on either, and keeps a head-born account Capxul's to number (books.head.sync). ERPNext makes its root " +
+    "cost centre and Main with every Company (`create_default_cost_center`), so adopting them keeps one Main on both " +
+    "sides. A head's agent on a Seat was rejected by books.sync: Capxul calls, the head only rings, and the app holds " +
+    "no Capxul key. Freezing the Safe accounts and turning on the immutable ledger are what make 'money vouchers are " +
+    "Capxul's alone' hold on the head itself, not only in Capxul's push-back. Refusing a connection before the chart " +
+    "would hold back the CRM, projects and payroll, which sync from the first day.",
+  source: byAssembly(`accounting.md (the head connection); erpnext/setup/doctype/company/company.py:927, company.json; ${ERP}/accounts_settings/accounts_settings.json; hrms/setup.py:171`),
+  affects: [workflow_books_head_sync, component_frappe_app, table_book_accounts, table_book_cost_centers, table_book_companies],
 });

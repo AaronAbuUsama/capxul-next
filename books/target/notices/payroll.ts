@@ -106,6 +106,10 @@ export const workflow_notices_payroll_payslip = noticeWorkflow({
     "the payee. A slip still `escrowed` is not paid: its money-waiting email told the new hire.",
   trigger: { transition: machine_salary_slip.t.settle },
   reads: [table_salary_slips, table_employees, table_organizations],
+  idempotency:
+    "Per recipient, `payslip:<salary slip id>`, not the transition's outbox id: a slip a reorg reopened (`reverse`) " +
+    "settles again as the next generation and finds its row, so its employee is told once. A send lost before its " +
+    "record is repeated under the same provider idempotency key, taken once.",
   steps: [
     { name: "slip", about: "Reads the paid slip (source `run`) and its Employee; one with no `personal_email` ends here." },
     {

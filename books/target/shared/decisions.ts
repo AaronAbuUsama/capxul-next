@@ -1586,10 +1586,12 @@ export const decision_procedures_accounts_admit = defineDecision({
     "is not a money fact; its `about` begins `Authority fact:`. Admission stays in accounts with referrals, because a " +
     "spent invite and the friend it admits are one write there. The beta gate is checked only above accounts (setting " +
     "up the Safe, the faucet, `org create`, `referral invite`); the old hold at profile onboarding (old profiles, now " +
-    "parties, below accounts) moves to the Safe's setup, which already refuses a waiting person. Aaron may rule this " +
-    "against P4's narrow reading.",
+    "parties, below accounts) moves to the Safe's setup, which already refuses a waiting person. Aaron accepted it. A " +
+    "second invoker came with the ruling that waiting money admits its recipient as an invitation does: payments' " +
+    "`escrow` step invokes it for a claim escrow's mailbox (`via` escrow; accounts.money-waiting-admits), for the same " +
+    "reason, since accounts sits below payments too.",
   source: reviewed("org.member.invite.yaml (acceptance), org.create.yaml ('a founder on the beta waitlist is refused'); access/waitlist/guards.ts:49; P4"),
-  affects: [f.concept_accounts, f.concept_organizations, f.concept_parties, decision_rules_procedures],
+  affects: [f.concept_accounts, f.concept_organizations, f.concept_parties, f.concept_payments, decision_rules_procedures],
 });
 
 export const decision_operations_sign_in = defineDecision({
@@ -1974,6 +1976,7 @@ export const decision_dependencies_of_requests = dependencies(f.concept_requests
   indexing: "an invoice escrow's events pay a checkout request.",
   approvals: "the payer signs an inbox payment's approval: an agent with its own key at once (dependencies.payers-sign-and-name-budgets).",
   organizations: "an Organization's requests need the Invoicing hat; its inbox is read by members.",
+  projects: "an Invoice for logged hours marks them billed through projects.bill-time in its own transaction (requests.bill-time).",
   budgets: "`inbox pay --from` names the budget an Organization pays from by its key, and who may spend from it.",
   documents: "a request's invoice document is stored at issue.",
   payments: "paying from the inbox births a command; a request's paid state follows payment_transitioned.",

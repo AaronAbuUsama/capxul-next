@@ -1,6 +1,7 @@
 // What the system does, in four layers:
 //
-//   operation  the frozen, user-facing unit: one CLI command from the old book
+//   operation  the user-facing unit: one CLI command, one of the 215 the old book kept or a new one
+//              booked under rules.new-operations
 //   flow       a Core SDK composition: rpcs and local steps (sign, wait, build a UserOperation)
 //   rpc        one server endpoint: the redesignable internals, generated into the RpcGroup
 //   procedure  a concept's in-transaction entry point, listed on its door, invoked by others
@@ -105,9 +106,9 @@ export type Flow = ReturnType<typeof defineFlow>;
 
 export const OperationSpec = Schema.Struct({
   ...Common,
-  /** The old book's area: `payments`, `books`. Not a concept: an area is how people find it. */
+  /** The old book's area: `payments`, `books`; a new operation's old area or owning concept. Not a concept: an area is how people find it. */
   area: Schema.String,
-  /** The CLI command, from the old book's text unless the target renames it with a decision (system.frozen-behaviour). */
+  /** The CLI command: a frozen operation's from the old book's text unless renamed with a decision (system.frozen-behaviour); a new one's its own. */
   command: Schema.String,
   priority: Priority,
   implementedBy: Schema.Union([Ref("rpc"), Ref("flow")]),

@@ -12,7 +12,8 @@
 //
 // The CRM's methods (recording a person or company, leads, deals) serve the SDK, not the CLI: they
 // are new capabilities, not among the 215, used by the Organization's agents (its Forward Deployed
-// Engineer first); their CLI commands wait on a decision (decision contacts.crm-capabilities). Each
+// Engineer first); their CLI commands are the pack's recommendation, booked in the CLI operations
+// pass by rules.new-operations (decision contacts.crm-capabilities). Each
 // is one rpc. A connected Frappe head syncs through contacts' own process (./processes.ts), not
 // these methods.
 
@@ -159,8 +160,8 @@ export const flow_client_account_address_book_unhide = defineFlow({
 
 const SDK_ONLY =
   "Serves the SDK, not the CLI: a new capability, not among the 215, used by the Organization's agents (its Forward " +
-  "Deployed Engineer first, wearing the People hat to write); its CLI command waits on a decision " +
-  "(contacts.crm-capabilities). One rpc.";
+  "Deployed Engineer first, wearing the People hat to write); its CLI command is booked in the CLI operations pass " +
+  "(rules.new-operations, contacts.crm-capabilities). One rpc.";
 
 /** One SDK method over one CRM rpc. */
 const crm = (spec: {

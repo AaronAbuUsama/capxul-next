@@ -131,8 +131,9 @@ export const table_notices = defineTable({
   title: "Notices: each notice to one recipient, and how its delivery went",
   about:
     "One row per notice and recipient. `notice_id` is `<template>:<occasion>`: the occasion is the outbox id of the " +
-    "transition that caused it (so a redelivered transition finds the row and sends nothing again), or, for the daily " +
-    "agreement notices, the agreement and its period. `recipient` is the mailbox it went to, trimmed and lowercased; " +
+    "transition that caused it (so a redelivered transition finds the row and sends nothing again), or, where a " +
+    "workflow's idempotency says so, what it is about: the daily agreement notices' agreement and period, a dated " +
+    "payer's command and day, a payslip's slip, a money-waiting reminder's Payment and stop. `recipient` is the mailbox it went to, trimmed and lowercased; " +
     "`person_id` names the recipient's principal when Capxul has one, and `org_id` the Organization the notice is about. " +
     "`facts` are the template's inputs (names, amounts, dates, links), never the rendered body: a retry renders the same " +
     "message from them. The row is born by the first attempt's outcome: `sent` when the provider (or the devnet's mail " +
@@ -153,7 +154,7 @@ export const table_notices = defineTable({
     template: Template,
     subject_kind: Subject,
     subject_id: S,
-    /** What caused it: the transition (`org-invite.resend`), or `daily` for the daily agreement notices. */
+    /** What caused it: the transition (`org-invite.resend`), `daily` for the daily agreement notices, or `stop` for a money-waiting reminder. */
     cause: S,
     person_id: Null(S),
     org_id: Null(S),

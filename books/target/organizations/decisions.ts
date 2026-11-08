@@ -831,7 +831,8 @@ export const decision_organizations_startup = defineDecision({
     "them and a head's Company and System Settings must carry the same ones. What each app creates is each designer's: " +
     "for books, nothing at begin, since a chart comes only from the import (books' own decision, keeping the frozen " +
     "'no chart until one is made'), and the import makes the tree, the fiscal years from `fiscal_year_start` and the " +
-    "main cost centre; for payroll, Payroll Settings and the salary components; for the CRM, nothing: its statuses " +
+    "main cost centre (books.startup); for payroll, Payroll Settings only, through payroll.startup.open, and no salary " +
+    "components, which a business defines itself (payroll.startup); for the CRM, nothing: its statuses " +
     "are fixed defaults and its counter comes with its first write (contacts.startup); for projects, projects.startup.",
   source: by(`${WIZARD}/setup_wizard.py:get_setup_stages; ${WIZARD}/operations/install_fixtures.py; books/target/shared/rulings.ts (aaron.frappe-shape)`),
   affects: [

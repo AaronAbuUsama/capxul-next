@@ -26,14 +26,13 @@ const N = Schema.Number;
 /** An exact decimal string in the Company's currency (projects.amounts). */
 const Decimal = S;
 
-/** One time log a request bills, by its timesheet and row, with what it bills of it. */
+/**
+ * One time log a request bills, by its timesheet and row. Only the log is named: the hours and amount the request asks
+ * for it are the request's own, as a Sales Invoice Timesheet row's are, and never written to the log (projects.bill-time).
+ */
 export const BilledLog = Schema.Struct({
   timesheet_id: S,
   idx: N,
-  /** The hours billed: the log's `billing_hours`, or fewer; never more. */
-  billing_hours: Decimal,
-  /** What the request asks for them, in the Company's currency: hours times the log's billing rate, unless the issuer set it. */
-  billing_amount: Decimal,
 });
 
 /** Where each timesheet the call touched now stands. */
@@ -56,17 +55,19 @@ export const procedure_projects_bill_time = defineProcedure({
     "invokes it in the transaction that issues an Invoice for time (`bill`) and in the one that cancels or declines " +
     "it (`unbill`); a paid request keeps its marks, and an expired one keeps them until it is cancelled, as an unpaid " +
     "Sales Invoice keeps its timesheets billed. `bill`, under the Organization's projects lock: every log must be " +
-    "the Organization's, billable, of a timesheet that is submitted (or partially billed, billed or paid by a " +
-    "payslip) and of no other customer than the request's payer (INVALID_INPUT), and must name no sales invoice yet " +
-    "(WRONG_STATE: a log is billed once, whichever side's invoice took it first; ERPNext refuses the same). It writes " +
-    "each log's `sales_invoice` (the request's id) and `billing_amount`, then each timesheet's billed totals and " +
-    "`per_billed`, and its status as Frappe HR's `set_status` works it out: `bill_part` below 100 percent, `bill` at " +
-    "100, or, for a timesheet a salary slip already paid, totals only, unless the bill completes it, when its own " +
-    "`sales_invoice` is set and it moves `complete`. `unbill` clears the request's id from its logs and works the " +
-    "status out again: `unbill` back to submitted, `bill_part` while another invoice still holds part, or " +
-    "`uncomplete` back to payslip. Every write takes the next `seq` and appends to the change log, so a connected " +
-    "head's sync pushes the marks in order (projects.change-log). It answers each touched timesheet as it stands. It " +
-    "makes no outside call and reads nothing above projects.",
+    "the Organization's, billable and of no other customer than the request's payer (INVALID_INPUT), of a timesheet " +
+    "that is submitted, partly or wholly billed or paid by a payslip, and name no sales invoice yet (WRONG_STATE: a " +
+    "log is billed once, whichever side's invoice took it first; ERPNext refuses both). It writes " +
+    "each log's `sales_invoice` (the request's id) and nothing else of the log, as ERPNext's `update_time_sheet` does: " +
+    "a log's `billing_amount` stays its rate times its billing hours, and what the request asks for it is the " +
+    "request's. Then each timesheet's billed totals count every billed log's own billing hours and amount, " +
+    "`per_billed` is worked out again, and its status follows Frappe HR's `set_status`: `bill_part` below 100 percent, " +
+    "`bill` at 100; a timesheet a salary slip already paid keeps `payslip` and changes its totals only, since a bill " +
+    "sets no timesheet's own sales-invoice link. `unbill` clears the request's id from every log that names it " +
+    "(`by_org_sales_invoice`) and works the totals and status out again: `unbill` back to submitted, or `bill_part` " +
+    "while another invoice still holds part. Every write takes the next `seq` and appends to the change log, so a " +
+    "connected head's sync pushes the marks in order (projects.change-log). It answers the billed logs' own hours and " +
+    "amount, which the request's lines start from, and each touched timesheet. No outside call; nothing above projects.",
   concept: concept_projects,
   input: Schema.Struct({
     org_id: S,
@@ -75,12 +76,13 @@ export const procedure_projects_bill_time = defineProcedure({
     request_id: S,
     /** The request's payer, a Party: a timesheet or project with another customer cannot be billed to it. */
     customer_party_id: S,
-    /** `bill`: the logs and what is billed of each. `unbill`: empty; every log naming the request is cleared. */
+    /** `bill`: the logs it bills. `unbill`: empty; every log naming the request is cleared. */
     logs: Schema.Array(BilledLog),
     /** The principal whose command it is, for the change log. */
     by: S,
   }),
   output: Schema.Struct({
+    /** The billed logs' own billing hours and amount (Frappe's totals), from which the request's lines start. */
     billed_hours: Decimal,
     billed_amount: Decimal,
     timesheets: Schema.Array(BilledTimesheet),
@@ -88,7 +90,7 @@ export const procedure_projects_bill_time = defineProcedure({
   errors: [error_INVALID_INPUT, error_WRONG_STATE],
   reads: [table_project_settings, table_projects, table_timesheets, table_timesheet_logs],
   writes: [table_timesheet_logs, table_timesheets, table_project_changes, table_project_settings],
-  drives: [t.bill_part, t.bill, t.complete, t.unbill, t.uncomplete],
+  drives: [t.bill_part, t.bill, t.unbill],
   invokes: [],
   emits: [],
   was: [
