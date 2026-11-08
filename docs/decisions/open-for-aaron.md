@@ -43,6 +43,16 @@ stands, and the build follows it, until he answers. His answers go into `books/t
   or move money; recruitment, appraisal, training and onboarding on the head, reached through the generic family.
   Recommended: designed next.
 
+## His answers, 8 November 2026, night (to apply after the commands pass)
+
+- **The recipient's command is `payment claim`**, not `account collect` (rename `account.collect` to `payment.claim`;
+  "claim" is the word of `aaron.escrow-general`). The sender's take-back stays `payment cancel`.
+- **Anyone may talk to the FDE** (`organizations.fde-commands`: the any-member option, "or anyone the management is
+  speaking to"): the host passes the asker's Seat, so the FDE does for them only what their own hats allow. The FDE is
+  not on the critical path.
+- **Accepted as recommended:** `organizations.fde-hosting` (monthly in advance from a budget, paused when unpaid),
+  `payments.seat-authority` (People hat and authorised on the budget now), `payments.seat-purchase` (its own command).
+
 ## The escrow
 
 His ruling of this batch (to be recorded as `aaron.escrow-general`): the escrow is deployed counterfactually; its owner
