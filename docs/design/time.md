@@ -501,15 +501,26 @@ renews on the refusal [`time.clients-take-server-now`].
    transaction's instant.
 5. **Timers and crons** [`time.durable-timers`]:
    - **A timer.** `Timers.until` stores the timer (instance, wait name, due instant) in the
-     runtime's timers table. The body awaits the timer's durable deferred. One pump fires every
-     timer due at now. It completes the deferred through the engine's `deferredDone`, where a
-     second completion is a no-op. The pump runs on every clock change and on a short poll.
+     runtime's timers table. The due instant is a whole second, rounded up. The body awaits the
+     timer's durable deferred. One pump fires every timer due at now. It completes the deferred
+     through the engine's `deferredDone`, where a second completion is a no-op. The pump runs on
+     every clock change and on a short poll.
+   - **A timer that lost its race** (a signal cut its wait short) is cancelled in the step that saw
+     the winner. So it neither fires nor becomes a warp's stop.
    - **A cron.** A cron is a row of the runtime's cron table: its expression and its next run as an
-     instant. Each run starts the cron's workflow with the execution id `cron/<name>/<instant>` and
-     is given that instant. A run missed while the clock jumped runs once.
+     instant. Each scheduled run starts the cron's workflow with the execution id
+     `cron/<name>/<instant>` and is given that instant. A run missed while the clock jumped runs
+     once. A manual run (`dev jobs run`) has its own id, `cron/<name>/manual/<request id>`.
+     Keyed by the instant alone, a second `dev prices set` at one frozen instant would find the
+     first one's run and sync nothing.
    - **Waits.** A wait's `timeoutMs` is a timer on now for `person`, `signal` and `timer` waits. It
      is real time for `chain` and `indexer` waits.
+   - **A workflow's own `timeoutMs`** bounds one run's work between its waits, in real time. A bound
+     on an object's life in the story is a `timer` wait instead.
 6. **Effect's `Clock` stays real.** Spans, logs, timeouts, `Schedule` and sleeps keep real time.
+7. **`RealTime` is for envelopes only.** `packages/runtime/src/time/` also exports `RealTime`, the
+   real clock's instant. Only an integration layer's envelope code calls it: a webhook's freshness,
+   a timestamp signed into a vendor's request.
 
 ### How a driven clock reaches Effect 4.1.2 (read in `node_modules/effect`)
 
@@ -538,6 +549,13 @@ renews on the refusal [`time.clients-take-server-now`].
 - **`ClusterCron.make`** schedules each run at `Cron.next(cron, DateTime.now)` with `DeliverAt`.
   It reschedules from `DateTime.now`. With the default `skipIfOlderThan` of one day it skips a run
   delivered more than a day late, so a 28-day warp would skip every daily run.
+
+**So does a sleeping instance wake when the injected clock jumps?** On the engine-native path it
+does not. Its message is read again only on the storage poll (10 s) or an explicit `pollStorage`,
+and a sleep of 60 s or less is a real in-memory sleep that a warp never reaches. On the chosen
+path the pump calls `deferredDone`. That persists the completion, then opens the local storage
+latch (`Sharding.notifyLocal`), or notifies the owning runner. The instance resumes at once, and
+the barrier's idle test counts the persisted message until the run takes it.
 
 The engine-native path would need five seams in Effect's unstable cluster code:
 
