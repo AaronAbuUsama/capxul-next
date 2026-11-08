@@ -1,12 +1,12 @@
 # Assembly items from the concept designers
 
-Each designer listed what its concept needs from others, or what others need from it. The assembly step works through every item: each becomes a change in the owning concept, or a decision not to.
+Each designer listed what its concept needs from others, or what others need from it. The assembly step resolves each one in the owning concept, or records a decision not to.
 
-Architecture review findings: `target-architecture-review.json`. Full designer reports: `concept-reports.json`.
+Also: the architecture review moved org.member.invite to budgets and dev.mail.notices to devnet after some designs were written (`target-architecture-review.json`). Full reports: `concept-reports.json`.
 
 ## access
 
-Old 51 rpcs and workflows → 27 target rpcs, flows, procedures and workflows. 10 frozen operations, 21 decisions.
+Old 51 rpcs and workflows; target 27 rpcs, flows, procedures and workflows. 10 frozen operations, 21 decisions.
 
 - Shared foundation text is out of date: concept_access's about still says access owns 'the CLI's native client grants (device flow)'. Decision access.no-device-flow drops them under P2: no client starts a device request, and the CLI keeps v1 grant records only to delete them (apps/cli/src/auth/native-grant-cleanup.ts:5). The shared foundation needs this update; I did not edit it.
 - Two shared settings are no longer needed: the MCP_EXCHANGE_SECRET entry in the devnet and staging environment secrets, and the JWKS route named in component_backend's about. The runtime now resolves assistant access tokens and opaque session tokens directly (decisions access.assistants and access.sessions).
@@ -18,7 +18,7 @@ Old 51 rpcs and workflows → 27 target rpcs, flows, procedures and workflows. 1
 
 ## accounts
 
-Old 42 rpcs and workflows → 18 target rpcs, flows, procedures and workflows. 11 frozen operations, 17 decisions.
+Old 42 rpcs and workflows; target 18 rpcs, flows, procedures and workflows. 11 frozen operations, 17 decisions.
 
 - One build problem is mine and it is allowed: the setup process accounts.setup.personal-safe reads indexing's `escrows` table, and indexing is not designed yet, so the link is reported as dangling. It goes through books/target/accounts/links.ts and resolves on its own once books/target/indexing/data.ts exports `table_escrows` (other concepts use that name too).
 - Shared change needed in shared/external.ts: the test token's open `mint(address,uint256)` (old packages/contracts/src/TestMoneyToken.sol:22) is missing. Until it is added, the `chain` list of accounts.grants.fund and of the setup's welcome-grant step is empty (see decision accounts.faucet).
@@ -29,9 +29,41 @@ Old 42 rpcs and workflows → 18 target rpcs, flows, procedures and workflows. 1
 - For Aaron: accounts.admit is the one procedure that is an authority fact, not a money fact. It is booked as the shared decision procedures.accounts-admit rules, and Aaron may rule against it under P4.
 - link: indexing: table_escrows (id `escrows`) from books/target/indexing/data.ts, read by workflow accounts.setup.personal-safe to find the open claim escrows that pay the person's Safe; it is taken by its export name in books/target/accounts/links.ts once indexing lands
 
+## activity
+
+Old 13 rpcs and workflows; target 19 rpcs, flows, procedures and workflows. 6 frozen operations, 18 decisions.
+
+- The official build (node --experimental-strip-types packages/book/src/main.ts books/target/index.ts ...) stops before checking anything, with ERR_MODULE_NOT_FOUND for books/target/media/data.ts. banking/verification.ts imports it, so the fault is in banking's or media's lane, not activity's. I checked activity instead with a scratch index of the shared records, access, parties, indexing, approvals, accounts, organizations, budgets, books, documents, payments and activity, kept at /tmp/claude-0/-home-user/c92cd756-b1a0-5414-9fe4-a7834db8d32a/scratchpad/activity-check.index.ts. Result: 1148 records, 0 activity problems. The 14 problems that build reports belong to other concepts: rpc:organizations.setups.begin reads table:files, and budgets' and payments' rpcs invoke procedure:board.propose, neither of which is in the book yet.
+- Two known gaps, both recorded in decision activity.unreachable-refusals: operation:address and operation:balance each keep their frozen INVALID_INPUT refusal with world '?'. The malformed Safe salt namespace setting, a non-positive chain id and a mismatched stored Safe cannot happen at read time in the target.
+- link: documents: table_documents (id 'documents') through books/target/activity/links.ts, by its conventional name. It resolves now that books/target/documents/data.ts exports it, and the get rpc uses that table's by_subject index to find a Movement's Memo by `<chain id>:<tx hash>:<log index>`.
+- link: payments: imports the PaymentView schema from books/target/payments/ledger.ts (activity get shows a Payment exactly as payment get does), and the change-log workflows depend on the payment and movement machines' transitions in books/target/payments/data.ts.
+- link: books: imports the Annotation schema from books/target/books/annotations.ts, and table_book_annotations, table_book_accounts and table_book_prices from books/target/books/data.ts. books is not yet in books/target/index.ts.
+
+## agents
+
+Old 25 rpcs and workflows; target 16 rpcs, flows, procedures and workflows. 8 frozen operations, 24 decisions.
+
+- The full target build (books/target/index.ts) cannot run yet, and the cause is outside agents: banking/verification.ts imports books/target/media/data.ts, which does not exist. Agents was checked instead with two check indexes in the scratchpad. The narrow one (shared, access, parties, indexing, approvals, accounts, organizations, board data and procedures, agents) and the wide one (that set plus all board files, budgets, books and contacts) both report 0 agents problems and 0 agents gaps.
+- Problems from other concepts in the wide check: organizations.setups.begin has a dangling link to media's files table, and board.directors.safe, board.directors.show and board.proposals.list are unreached rpcs. These are the other designers' to fix.
+- Board has no index.ts yet and is not listed in books/target/index.ts. Agents' links to procedure_board_propose (board/procedures.ts) and table_board_proposals (board/data.ts) will dangle in the full build until the board designer adds board's modules before agents.
+- sys:tx-width open question: an Organization-owned create or sweep calls 2 procedures from 2 concepts directly (parties, board), but board.propose itself calls approvals.open, which makes 3 concepts if nested calls count. Recorded in decision agents.transaction-width for the reviewer of that rule.
+- Removed the `agent create --org` FEATURE_NOT_AVAILABLE refusal in favour of the designed v4 `--org` (P10 rung 1). FEATURE_NOT_AVAILABLE is still reachable through board.propose's owner-safe-proposals gate. Decision agents.org-owned; Aaron may want to review this surface choice.
+- link: procedure_board_propose (../board/procedures.ts): the file exists, but board is not yet in books/target/index.ts
+- link: table_board_proposals (../board/data.ts): the file exists, but board is not yet in books/target/index.ts
+
+## applications
+
+Old 28 rpcs and workflows; target 13 rpcs, flows, procedures and workflows. 6 frozen operations, 23 decisions.
+
+- The full target book still does not load, and not because of applications: books/target/banking/verification.ts imports books/target/media/data.ts, which does not exist yet (ERR_MODULE_NOT_FOUND). So I proved applications on a scratch slice instead: shared + access + parties + indexing + approvals + accounts + organizations + applications, built from /tmp/claude-0/-home-user/c92cd756-b1a0-5414-9fe4-a7834db8d32a/scratchpad/apps-book.ts into /tmp/target-applications. It reports 0 problems in applications' records.
+- The slice build's only problem belongs to organizations: rpc organizations.setups.begin reads table:files, which is dangling because media is not designed yet.
+- The shared records still say applications owns consent: concept_applications.about in books/target/shared/foundation.ts and decision concepts.applications. My decision applications.no-consent drops the consent table. Its only old writer was the native device-flow accept, which access dropped, and its only old reader was the operator probes. The owner of the shared records should change that wording.
+- Decision applications.origin-token lists component_backend in affects. It sets a contract for the backend's HTTP layer that no runtime record holds: a browser origin is admitted when the request carries a valid origin token from the bootstrap, or when the origin is in TRUSTED_ORIGINS. Whoever builds the backend runtime needs to implement it.
+- One gap remains, and it is expected: flow create-capxul-client is unused-flow. It is the browser bootstrap for the web surfaces (React SDK), and no frozen operation uses it.
+
 ## approvals
 
-Old 37 rpcs and workflows → 8 target rpcs, flows, procedures and workflows. 0 frozen operations, 18 decisions.
+Old 37 rpcs and workflows; target 8 rpcs, flows, procedures and workflows. 0 frozen operations, 18 decisions.
 
 - Gap `unused-flow` on client.approvals.sign: the schema's FlowSpec has no `for: surface` field yet (P2's sketch), so the approval-page flow stays listed as unused. Decision approvals.no-operations says this is expected.
 - Gaps `uninvoked-procedure` on approvals.open and approvals.withdraw: they close as openers are registered in books/target/index.ts. payments and organizations already import procedure_approvals_open. No opener invokes approvals.withdraw yet; payments, board and organizations should, when an intent ends before anyone signs.
@@ -42,7 +74,7 @@ Old 37 rpcs and workflows → 8 target rpcs, flows, procedures and workflows. 0 
 
 ## banking
 
-Old 75 rpcs and workflows → 23 target rpcs, flows, procedures and workflows. 11 frozen operations, 23 decisions.
+Old 75 rpcs and workflows; target 23 rpcs, flows, procedures and workflows. 11 frozen operations, 23 decisions.
 
 - The real build of books/target/index.ts crashes for everyone right now: organizations, budgets, payments and requests already import modules that do not exist yet (indexing, board, documents, media). I added banking in foundation order (after payroll, before requests); its own missing links are listed under pendingLinks.
 - payments.prepare-command's PreparedItem requires a stored document_id and document_hash, but banking's dependsOn does not include documents. A bank payout's item therefore carries no document (the zero hash). Fix one of two ways: add documents to banking's dependsOn, or let prepare-command accept an item with no document.
@@ -56,9 +88,18 @@ Old 75 rpcs and workflows → 23 target rpcs, flows, procedures and workflows. 1
 - link: ../media/files.ts: rpc_media_files_upload (the upload step of flow client.verification.start; name guessed by convention)
 - link: ../books/procedures.ts: procedure_books_record_money_fact (exists, but books is not in books/target/index.ts yet; invoked by banking.deposits.credit and banking.payouts.follow)
 
+## board
+
+Old 53 rpcs and workflows; target 34 rpcs, flows, procedures and workflows. 19 frozen operations, 20 decisions.
+
+- None in board's records: tsc -p books reports no errors in books/target/board, and a partial target book of shared + access, parties, indexing, approvals, accounts, organizations, board (+ agents, budgets) builds with 0 board problems and no board gaps.
+- The full target build (books/target/index.ts) cannot run yet: another designer's banking/verification.ts imports books/target/media/data.ts, which does not exist. Even in the partial book there is one problem that is not board's: organizations.setups.begin reads media's table `files`.
+- Organizations still has old wording (its folder, so I left it alone): procedures.ts (organizations.bind-invitation-grants) and data.ts (table org-invitations) say board's `org member invite` flow invokes the binding. Budgets owns that flow now (operations.member-invite-in-budgets).
+- One status was added to the frozen surface: a proposal whose Safe execution reports ExecutionFailure reads `failed` (decision board.failed-proposal). Budgets, payments, payroll, agents and equity follow proposal_transitioned, so they should treat `fail` as 'ran without effect'.
+
 ## books
 
-Old 46 rpcs and workflows → 23 target rpcs, flows, procedures and workflows. 17 frozen operations, 21 decisions.
+Old 46 rpcs and workflows; target 23 rpcs, flows, procedures and workflows. 17 frozen operations, 21 decisions.
 
 - Books is NOT registered in books/target/index.ts yet. Its files import table_hat_wearers and table_escrows from ../indexing/data.ts, and nobody has written that file. Registering books now would crash the shared build for every designer. Add `...books.modules` after budgets once indexing/data.ts exists and organizations is registered. Verified instead in a scratch harness: the real shared files plus access, parties, approvals, contacts, organizations/data.ts, an indexing stub and books. Result: 777 records, 0 problems, written to /tmp/target-books.
 - Harness gaps for books, expected: books.record-money-fact and books.reverse-money-fact show as uninvoked only because payments and banking are not in the harness. Their processes.ts files already invoke both by these names. org.books.assets.list's INVALID_INPUT keeps given '?': an empty id is refused by the CLI's --org scope with CLI_USAGE before it reaches the rpc.
@@ -76,7 +117,7 @@ Old 46 rpcs and workflows → 23 target rpcs, flows, procedures and workflows. 1
 
 ## budgets
 
-Old 35 rpcs and workflows → 30 target rpcs, flows, procedures and workflows. 18 frozen operations, 24 decisions.
+Old 35 rpcs and workflows; target 30 rpcs, flows, procedures and workflows. 18 frozen operations, 24 decisions.
 
 - The real target build cannot load until books/target/indexing/data.ts and books/target/board/procedures.ts exist; organizations/workspaces.ts imports indexing too, so it was already blocked. With scratch stand-ins for exactly the pending links, the budgets slice builds with 0 problems and no gaps on budgets' own records.
 - Notices' dependsOn does not list budgets, so the frozen claim that the member is emailed once an allowance assign executes (org.allowance.assign #5) has no sender. Adding concept_budgets to notices' dependsOn in shared/foundation.ts, and a notices workflow on budget_change.apply, would give it one (decision budgets.notices-need-budgets).
@@ -92,7 +133,7 @@ Old 35 rpcs and workflows → 30 target rpcs, flows, procedures and workflows. 1
 
 ## contacts
 
-Old 10 rpcs and workflows → 10 target rpcs, flows, procedures and workflows. 6 frozen operations, 17 decisions.
+Old 10 rpcs and workflows; target 10 rpcs, flows, procedures and workflows. 6 frozen operations, 17 decisions.
 
 - contact.get's frozen returns include `bankAccounts`, which banking owns. Contacts sits below banking, so its flow cannot read them without depending on banking. Decision contacts.get-bank-accounts recommends moving contact.get to banking in OPERATION_OWNERS, as contact.bank.add already is: banking's flow would call contacts.book.get, then its own masked account list. Until the map changes, the operation keeps its frozen returns but its flow returns only the entry. This needs the concept-map owner (shared/foundation.ts), not a contacts edit.
 - The real target build shows 7 contacts problems, all one cause: `dangling: reads → table:org-members`. Organizations has no index.ts yet, so it is not in books/target/index.ts. A scratch build that includes books/target/organizations/data.ts gives 0 problems and 0 contacts gaps. These clear when organizations adds itself to the index.
@@ -104,9 +145,85 @@ Old 10 rpcs and workflows → 10 target rpcs, flows, procedures and workflows. 6
 - link: procedure_parties_resolve_recipient from ../parties/procedures.ts: resolves (exists, in the book)
 - link: table_parties from ../parties/data.ts: resolves (exists, in the book)
 
+## devnet
+
+Old 10 rpcs and workflows; target 16 rpcs, flows, procedures and workflows. 13 frozen operations, 21 decisions.
+
+- Equity has no operations.ts yet, so its refusal worlds are not in the catalog. When equity lands, run worldGaps(records) from devnet/worlds.ts and add each world it names.
+- accounts' waitlist.status acceptance line 1 uses `dev gates set` to open the person gate `beta-access`. The frozen command refuses a missing `--org` with CLI_USAGE, and devnet.scripted-gates only scripts Organization gates, so accounts needs another way to reach that state.
+- setup-refused-non-ascii-email (accounts) signs in with a non-ASCII mailbox. access.sign-in.send-code says it normalises email to ASCII, which may refuse that sign-in before the claim can fail with EmailNotNormalized. Accounts and access should check this between them.
+- Name collision resolved in devnet.world-collisions: budgets and payroll both used `org-with-frozen-ceiling`. The catalog builds it once, on payroll's org-with-agreements, which now sits on budgets' org-with-budget-tree. payroll's org-with-department, payments' org-with-budgets and requests' org-with-requests are also built on that tree. Budgets' doc comment on W_FROZEN (budgets/operations.ts:68) still says it is built on org-with-budget-tree and should be updated.
+- Expected gap: table:mail-messages shows unwritten-table. The `mail` integration's devnet fake writes it, and the schema has no link from a fake to a table (decision devnet.mail-sink).
+- I edited shared/external.ts, under decisions devnet.control-refusals and devnet.scripted-prices. devnet-control now carries the refusals the frozen pages give: snapshotSave WRONG_STATE (name exists) and INVALID_INPUT (bad name), snapshotRestore WRONG_STATE (other backend code), clockStartAt INVALID_INPUT (date not earlier) and WRONG_STATE (clocks already moved; was INVALID_INPUT). The chainlink fake now answers the frozen default rates instead of the forked feed. The text of docs/decisions/target-architecture.md was not updated for these.
+- The world builder and supervisor controls the catalog relies on are designed but are not records: `capxul-devnet world build`, `fault <switch> <mode>`, `clock hold/release`, `chain safe-exec|transfer|deploy-token|hats-status` and `bridge deposits`. packages/devnet must build them, and the schema has no record kind for supervisor commands.
+- Six refusals in other concepts still name `?` because no devnet world can reach them: dev.fund WRONG_ENVIRONMENT, invite.list WRONG_STATE, org.invite.list WRONG_STATE, org.books.assets.list INVALID_INPUT, address INVALID_INPUT, balance INVALID_INPUT.
+- The target build reports 3 problems, none in devnet. All three are notices.equity.round-invitation pointing at equity's fundraise tables, which are not in books/target/index.ts yet.
+
+## documents
+
+Old 6 rpcs and workflows; target 6 rpcs, flows, procedures and workflows. 4 frozen operations, 16 decisions.
+
+- Payments has to change: payments.movements.record (books/target/payments/processes.ts) does not invoke documents.store yet. Until it stores each Movement's Memo (basis movement, issued at the Transfer's block time, the Movement's sides as participants) in its record transaction, the frozen line document.verify #1 ('A standalone Movement participant can verify its exact Memo') has no Memo to verify. Activity's feed already assumes the Memo exists. Decision: documents.movement-memos.
+- Payments' SendInput.document is {content_hash, file_id} and points at a media file. documents.store takes the receipt's bytes (at most 128 KB) because documents does not depend on media, so payments' flow or rpc must pass the bytes. This is for payments' designer to settle.
+- document.render acceptance #1 is rewritten: 'A document that names an employer and an employee (a payslip, or an agreement's terms) renders their names, not their Party IDs.' P1 allows a rewrite only when a line names a mechanism, and a payslip is not one, so this goes further than P1 and Aaron should review it (W1). Decision: documents.acceptance-rewrites.
+- Two new devnet worlds need building: org-with-documents and org-with-tampered-note. The shared world signed-out is reused. Decision: documents.worlds.
+- The full target build (books/target/index.ts) fails before reaching documents, for reasons outside documents: banking/verification.ts imports books/target/media/data.ts, which does not exist yet; organizations.setups.begin reads table:files (media); budgets, payments and payroll invoke board.propose (board is not designed). Scratch builds of documents with access, parties, indexing, approvals, accounts and organizations, then with budgets, books, contacts, payments, payroll and activity added, report no documents problems and no documents gaps.
+- The links.ts files in payments, payroll, requests and activity still load documents dynamically. procedure_documents_store and table_documents now resolve to real records, so their designers can switch to static imports.
+
+## equity
+
+Old 54 rpcs and workflows; target 71 rpcs, flows, procedures and workflows. 38 frozen operations, 20 decisions.
+
+- The concept map gives equity 38 frozen operations, not 36: 30 from the equity area plus 8 shareholder-vote operations from governance. All 38 have target records.
+- 23 of the 38 operations have no frozen acceptance lines, because equity was never built on the old devnet. They keep none (decision equity.acceptance), so the build reports a no-acceptance gap for each until Aaron accepts new lines under spec 30.
+- Three vote matters (board-settings, elect, remove) answer NOT_IMPLEMENTED. They need a Hats Elections contract record in shared/external.ts and board's seat design (decision equity.vote-matters).
+- `org cap-table --at` answers NOT_IMPLEMENTED until the class tokens' checkpoint reads are recorded in shared/external.ts.
+- Each Board-matter prepare rpc calls documents.store and board.propose, and board.propose in turn calls approvals.open. That is procedures of three other concepts in one transaction, which the review-only sys:tx-width rule (at most 2) may flag. payments and payroll have the same shape, so this needs a reviewer ruling.
+- Processes follow the equity contracts' chain events through their waits (described in words) and indexer.factsOf, not through workflow triggers. The build therefore reports unconsumed-chain-event gaps for captable, options, rounds, exits, governor, vesting and share-class events. Several events named in the prose (OptionsAccepted, SafeRoundCreated, SafeInvited, SafeSigned, Invited, Allocated, RoundCancelled, TransferOffered, TransferApproved, SaleApproved, Granted, Revoked) are not in shared/external.ts.
+- I edited the shared file books/target/shared/external.ts, inside the equity contracts only, adding 14 view and call functions (decision equity.contract-functions). Captable: setTransferRule, freeze, convertibleReserved, closedForExit. Options: vestedOf. Rounds: pricedRound, position, consent. Exits: transfer, sale. Governor: getVotes, proposalThreshold, hasVoted, isAllowedTarget. Other designers should know about this change.
+- The shared decision rules.durable-processes still lists only a round for equity. Decision equity.processes adds an install, a grant, a sale and a vote; the shared record is unchanged.
+- Nothing is committed.
+
+## indexing
+
+Old 12 rpcs and workflows; target 0 rpcs, flows, procedures and workflows. 0 frozen operations, 18 decisions.
+
+- The official build (books/target/index.ts) cannot load yet: budgets/*.ts import ../board/procedures.ts and banking/verification.ts and banking/flows.ts import ../media/*.ts, and neither concept has been designed. These are other designers' folders, so I did not touch them. A scratch index of shared plus every concept that loads (in the scratchpad) builds with 29 problems, all dangling refs to table:budgets, procedure:documents.store, procedure:board.propose, table:bank-deposits, procedure:banking.match-deposit, transition:bank-deposit.credit and table:files. None names an indexing record. Indexing's load cut the count from 65 to 29.
+- Every chain table shows the derived gap unwritten-table. That is expected: only Ponder writes these tables, and the book has no writer record for Ponder. The gap will never close unless deriveGaps in packages/book/src/build.ts skips tenancy 'chain' tables. That change is outside indexing's files.
+- The agents folder has only data.ts and no index.ts, so I left it out of books/target/index.ts. Payments and banking were already registered; I added indexing and books.
+- IEscrow's InvoicePaymentCompleted event (surplus) is not in shared/external.ts. Ponder still writes it to chain-logs under the escrow contract, but no reader needs it.
+
+## media
+
+Old 9 rpcs and workflows; target 5 rpcs, flows, procedures and workflows. 0 frozen operations, 10 decisions.
+
+- Not in media's folder: parties.profiles.save (books/target/parties/profiles.ts) says it checks the photo is a kept image the person uploaded, but its reads do not list media's table_files. Parties' decision said this link was waiting for media's tables, and they now exist.
+- Not in media's folder: books/target/organizations/links.ts loads table_files with a dynamic import and keeps it in PENDING. media/data.ts now exports table_files, so organizations can change this to a static import.
+- Not in media's folder: banking.verification.start reads table_files, but its about does not say it checks each file's purpose and state. It should require id-image for id_front and id_back, id-image or document for the other fields, and state held.
+- For Aaron's data-model review: a replaced photo or logo is now kept for good. The old system deleted it when the new one was bound. Media cannot see a replacement because owners point at its files (concepts.media), and an owner's procedure would not be a money fact (decision media.retention).
+- Media adds an identity document to the list of long-lived objects with one durable process each (media.files.expire-document, a 30-minute timer). rules.durable-processes allows a designer to add an object; this one is recorded in decision media.document-process.
+- Target build: 0 problems in media. The 3 problems reported come from another concept: workflow notices.equity.round-invitation links to equity's fundraise transition and tables, which are not in the book yet. Media's only gaps are two expected unused-flow gaps: client.media.upload and client.media.fetch-image serve the web app, not a CLI operation.
+
+## notices
+
+Old 30 rpcs and workflows; target 32 rpcs, flows, procedures and workflows. 0 frozen operations, 22 decisions.
+
+- Equity is not in books/target/index.ts yet (equity/index.ts does not exist), so notices.equity.round-invitation has 3 dangling links: transition fundraise-investment.invite and tables fundraise-investments and fundraise-rounds. They are imported statically from books/target/equity/data.ts by their conventional names. A scratch build that adds equity/data.ts gives notices 0 problems.
+- The full target build reports 6 problems. The 3 that are not notices' belong to organizations and banking, which link media's table files and the rpc media.files.upload; media has not landed.
+- Product question for Aaron, not decided: when an email with no account is paid into a claim escrow (payment.escrow), no notice is sent. The old system sent none either, so the payee may never learn the money is waiting.
+- Product question, kept as the old system had it: an undated Payment sends no email when it settles or lapses. Only dated Payments notify (notices.dated-payments).
+- Product question, kept as the old system had it: Invoices are the only requests that send email, and a payer who is a person on Capxul is not emailed when one is issued (notices.invoices).
+- Ten templates are new or renamed and need renderers in protocol's email templates: account-ready, allowance-assigned, director-seated, director-removed, threshold-changed, proposal-waiting, officer-hat-granted, bank-payout-returned, invoice-declined and round-invitation.
+- The old payout-ceiling alert to Directors is dropped because a failed agreement write does not keep its revert reason. If payroll later records the revert code, the alert can come back on notices.payroll.collection-refused.
+- Recipient rule: an Organization is told through its Directors, read from the company Safe's owners via chain-rpc Safe.getOwners. This is wider than what chain-rpc's about describes (reads before a write is built). Recorded in notices.chain-reads and notices.recipients for review.
+- Cosmetic: the generated state diagram for notice shows only its initial birth (send). The hold and refuse births exist in the records, but the view generator draws only the initial state.
+- link: equity: machine_fundraise_investment.t.invite (transition fundraise-investment.invite), from books/target/equity/data.ts
+- link: equity: table_fundraise_investments (fundraise-investments), from books/target/equity/data.ts
+- link: equity: table_fundraise_rounds (fundraise-rounds), from books/target/equity/data.ts
+
 ## organizations
 
-Old 50 rpcs and workflows → 24 target rpcs, flows, procedures and workflows. 14 frozen operations, 22 decisions.
+Old 50 rpcs and workflows; target 24 rpcs, flows, procedures and workflows. 14 frozen operations, 22 decisions.
 
 - 16 dangling links, all from my records to 6 tables of concepts that are not designed yet (allowed by the conventions): indexing's hat-wearers, safe-owners, safe-approvals, safe-executions and chain-budgets, and media's files. They load through organizations/links.ts, so the shared build keeps running until those concepts land. The whole book now has 57 problems, none of them from my records except these 16.
 - Gap: nothing invokes procedure organizations.bind-invitation-grants yet. It is waiting for board: its `org member invite` flow is meant to invoke it in the same transaction that opens the proposal of an invitation's grants.
@@ -126,7 +243,7 @@ Old 50 rpcs and workflows → 24 target rpcs, flows, procedures and workflows. 1
 
 ## parties
 
-Old 12 rpcs and workflows → 8 target rpcs, flows, procedures and workflows. 0 frozen operations, 13 decisions.
+Old 12 rpcs and workflows; target 8 rpcs, flows, procedures and workflows. 0 frozen operations, 13 decisions.
 
 - Photo check: rpc parties.profiles.save should read media's stored-file table to confirm the photo is an admitted image. The link is left out because books/target/media does not exist yet and importing it would crash the shared build.
 - organizations.invitations.invite invokes parties.register to name an invitee by email, but parties.register only takes Organization and agent births. It should invoke parties.resolve-recipient with a mailbox locator. This is in organizations' folder, so I did not edit it.
@@ -137,7 +254,7 @@ Old 12 rpcs and workflows → 8 target rpcs, flows, procedures and workflows. 0 
 
 ## payments
 
-Old 82 rpcs and workflows → 18 target rpcs, flows, procedures and workflows. 8 frozen operations, 22 decisions.
+Old 82 rpcs and workflows; target 18 rpcs, flows, procedures and workflows. 8 frozen operations, 22 decisions.
 
 - The shared target build fails at module load for a reason outside payments: books/target/budgets/departments.ts imports ../indexing/data.ts, which does not exist yet. Payments builds with 0 problems except the four pending links when checked in a scratch copy of the current tree with budgets cut down to its data module.
 - approvals.signing.sign answers ROLE_PERMISSION_DENIED for an unknown approval id, but payment send's frozen refusal says INVALID_INPUT for 'the execution is unknown' (P10 rung 1: the frozen surface wins). The approvals designer should change it.
@@ -154,7 +271,7 @@ Old 82 rpcs and workflows → 18 target rpcs, flows, procedures and workflows. 8
 
 ## payroll
 
-Old 39 rpcs and workflows → 21 target rpcs, flows, procedures and workflows. 11 frozen operations, 22 decisions.
+Old 39 rpcs and workflows; target 21 rpcs, flows, procedures and workflows. 11 frozen operations, 22 decisions.
 
 - The real target build cannot run at the moment, and the cause is not in payroll. books/target/budgets/departments.ts statically imports ../indexing/data.ts, which does not exist yet, so node stops with ERR_MODULE_NOT_FOUND. That is the budgets designer's file and I did not edit it. A scratch build of payroll together with its dependencies (stubs for only board.propose and documents.store) reports 0 payroll problems and 0 payroll gaps. Before budgets was added, the real build gave payroll only dangling-link problems.
 - The brief asked for payroll runs (one durable workflow per run), saved groups, departments and a settle-run procedure from payments. The concept map (concepts.payroll, dependencies.payments-payroll, landings) assigns only agreements, and the brief says 'as the concept map assigns', so I designed agreements only and recorded the reasons in decision payroll.scope. If Aaron wants runs back, they need a frozen operation that names them and a changed map.
@@ -170,7 +287,7 @@ Old 39 rpcs and workflows → 21 target rpcs, flows, procedures and workflows. 1
 
 ## requests
 
-Old 54 rpcs and workflows → 33 target rpcs, flows, procedures and workflows. 14 frozen operations, 20 decisions.
+Old 54 rpcs and workflows; target 33 rpcs, flows, procedures and workflows. 14 frozen operations, 20 decisions.
 
 - inbox pay --from <budget>: the designed text takes the budget by its Capxul key (`--from operations`), but the key-to-chain-id mapping is in budgets' org-budgets, and requests does not depend on budgets. Until the concept map adds budgets to requests' dependsOn (no cycle: budgets sits below requests), or payments.prepare-command resolves the key itself, `--from` takes the budget's chain id. Decision requests.inbox-pay-funding.
 - inbox pay for an agent payer: A4 gives the flow every signature, but submitting an agent's immediate signature needs approvals' signature rpc, and requests does not depend on approvals. The flow only waits for the approval page. This needs a concept-map change or a payments rpc that takes the signature. Decision requests.inbox-pay-approval.
