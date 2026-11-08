@@ -1036,7 +1036,8 @@ export const decision_organizations_head_ownership = defineDecision({
         "the member the head user's mailbox matches, with that member's rights and hats, never the connection's own; an " +
         "app may be stricter, never looser. With no member matched, an app may apply only what any member may do " +
         "(projects), or push the edit back: the CRM always does, since editing it needs the People hat by ruling " +
-        "(contacts.crm-permission). The head's roles (Sales User and Manager, HR Manager, Accounts User) follow the hats.",
+        "(contacts.crm-permission). The members' Users and their roles are identity, pushed one way from the hats " +
+        "(organizations.head-users); a role never authorizes a pulled edit, the member's hats do.",
     },
     { label: "capxul-all", text: "Capxul owns everything it holds; the head may only read and ask." },
     { label: "head-all", text: "Once connected, the head owns everything but money and identity, and Capxul follows it." },
@@ -1052,8 +1053,8 @@ export const decision_organizations_head_ownership = defineDecision({
     "lane (identity assembly): the matched member's, because the Organization's permissions are hats worn by members, " +
     "and a connection that edited with its own authority would let every head user do what only a hat allows. The head " +
     "vouches for its own users: a Director who connects one trusts its administrators with the shared records, and the " +
-    "match gives an edit a member's rights, never more. Roles that follow the hats let the head's forms stop an edit " +
-    "before Capxul must push it back.",
+    "match gives an edit a member's rights, never more. Roles pushed from the hats let the head's forms stop most such " +
+    "edits before Capxul must push them back.",
   source: FRAPPE_RULINGS,
   affects: [integration_frappe_head, component_frappe_app, table_org_heads, concept_books, concept_payroll, concept_contacts, concept_projects],
 });
@@ -1238,11 +1239,17 @@ export const decision_organizations_frappe_app_fields = defineDecision({
         "Organization, Customer, Supplier and Employee (payroll's `capxul_party_id` takes this name); a Party in any " +
         "other role is named by role (`capxul_payee_party` on Salary Component). `capxul_hidden` on Contact and CRM " +
         "Organization. Each app concept's own fields by its decisions (payroll.head-sync's on Salary Structure " +
-        "Assignment, Payroll Entry and Salary Slip). The app finds or creates a document Capxul names by `capxul_party` " +
-        "(parties.head-parties) and makes the link records it names first (CRM Industry, Lead Source, Territory, " +
-        "Currency). `listChanges` reports every synced DocType (the CRM's Contact, CRM Organization, CRM Lead, CRM Deal; " +
-        "projects', payroll's and the books'), every write path (save, `db_set`, `frappe.db.set_value`), and on a " +
-        "connection's first call every document the site already holds.",
+        "Assignment, Payroll Entry and Salary Slip); on User, a member's `capxul_id` and `capxul_party` " +
+        "(organizations.head-users). The app finds or creates a document Capxul names by `capxul_party` " +
+        "(parties.head-parties) and makes the link records it names first (CRM Industry, CRM Lead Source, CRM " +
+        "Territory, Currency). `listChanges` reports every synced DocType (the CRM's Contact, CRM Organization, CRM " +
+        "Lead, CRM Deal; projects', payroll's and the books') and every write path: a document event (`on_change`, " +
+        "which Frappe runs for a save, a submit, a cancel and a `db_set`) appends a change row naming the document, and " +
+        "`frappe.db.set_value`, which runs no event, is caught by `listChanges` itself, which first appends a row for " +
+        "each synced document whose `modified` is later than its own last row recorded. A row names the document; its fields are " +
+        "read as they stand when `listChanges` answers, so a raw write in the same request as a recorded change (Frappe " +
+        "CRM restoring a new deal's `deal_owner` with `update_modified=False`) is reported with it. On a connection's " +
+        "first call it lists every document the site already holds.",
     },
     { label: "per-app-names", text: "Each app's lane keeps the names it chose; the app carries both Party fields on Employee." },
   ],
@@ -1253,10 +1260,60 @@ export const decision_organizations_frappe_app_fields = defineDecision({
     "every write path matters because Frappe CRM converts a lead with `db_set` and `set_value`, which run no `on_update`, " +
     "so a hook on saves alone would lose a conversion; reporting what the site already holds on the first call lets a " +
     "head connected late be adopted (contacts.head-mapping). Renaming a CRM Organization also rewrites the " +
-    "`company_name` of its Contacts, a Data field `rename_doc` does not follow. Every Seat is a User whose Contact " +
-    "carries the member's `capxul_party`, and a won deal's Customer the head makes (`create_customer_on_status_change`) " +
-    "is the head's, given the deal's `capxul_party`. Payroll's own field list is payroll's; this records only the " +
-    "shared names.",
+    "`company_name` of its Contacts, a Data field `rename_doc` does not follow. Every person's Seat is a User whose " +
+    "Contact carries the member's `capxul_party` (organizations.head-users), and a won deal's Customer the head makes " +
+    "(`create_customer_on_status_change`) is the head's, given the `capxul_party` of what Frappe makes it from: the " +
+    "deal's CRM Organization (a Company customer) or, with none, its primary Contact (an Individual), and none when " +
+    "that has no Party. The `modified` sweep is needed because Frappe CRM writes CRM Lead (`update_lead_contact`) and " +
+    "CRM Deal (a Contact's mailbox change) with `frappe.db.set_value`, which no hook sees. Payroll's own field list is " +
+    "payroll's; this records only the shared names.",
   source: asmBy("docs/design/frappe/crm.md (head and organizations); docs/design/frappe/accounting.md (capxul_party); books/target/payroll/decisions.ts"),
   affects: [component_frappe_app, integration_frappe_head, table_org_heads, concept_contacts, concept_payroll, concept_books, concept_projects],
+});
+
+export const decision_organizations_head_users = defineDecision({
+  id: "organizations.head-users",
+  title: "Each person's Seat is a User on the head, with the roles its hats give",
+  question:
+    "A connected head needs each member as a User: Frappe CRM names a lead's or deal's owner by User, Frappe makes a " +
+    "Contact for every User, and a pulled edit is judged as the member the head user's mailbox matches. The CRM lane " +
+    "asked that every Seat be a User and that the head's roles follow the hats, but no process pushed them. Who makes " +
+    "the members' Users, with which roles, and when?",
+  options: [
+    {
+      label: "heads-watch",
+      text:
+        "Organizations' own head process (`organizations.heads.watch`) pushes the members as identity, one way: at " +
+        "`confirm`, on each `org_member_transitioned` and at each daily check, `upsertDocs` writes a User for each person " +
+        "holding a current Seat (their email, name, the member's `capxul_id` and `capxul_party`, enabled) and disables " +
+        "the User of a Seat that ended, never deleting it. An agent's Seat has no User: Frappe keys a User by email and " +
+        "an agent has none, and an agent works through the CLI and SDK; a record naming an agent member names no User " +
+        "there. A User's roles are what its member's hats give, as Has Role rows Capxul holds: the People hat Sales User, " +
+        "Sales Manager, HR Manager and Projects Manager; the Books hat Accounts User and Accounts Manager; the Invoicing " +
+        "hat Accounts User; every member Projects User. A role whose hat is gone is taken away at the next push; one a " +
+        "head administrator gives by hand is the head's and authorizes nothing in Capxul. Frappe makes the User's " +
+        "Contact after the User commits (`create_contact`, enqueued), and the Capxul app copies the User's " +
+        "`capxul_party` onto it.",
+    },
+    { label: "per-app", text: "Each app concept pushes the Users it needs, with the roles its own records need." },
+    { label: "head-admin", text: "The head's administrator makes the Users and gives the roles; Capxul only matches mailboxes." },
+  ],
+  chosen: "heads-watch",
+  why:
+    "Seats and hats are identity, which is Capxul's (organizations.head-ownership), and organizations holds both, so " +
+    "it pushes them; one owner keeps three app concepts from writing the same User. A role is a convenience that lets " +
+    "the head's own forms stop an edit early: a pulled edit is still judged by the member's hats when it is applied, " +
+    "so a role up to a day behind a hat (hats are chain facts this process reads at each check, not events it follows) " +
+    "only means the head accepts an edit Capxul then pushes back, or refuses one a new hat would allow until the next " +
+    "push. The mapping follows each app's own decision: contacts.crm-permission (Sales User and Sales Manager follow " +
+    "the People hat), payroll.hr-authority (the People hat is HR Manager), projects.permissions (members work tasks and " +
+    "time; the People hat manages projects) and ERPNext's own permissions (Accounts User makes Journal Entries and Sales " +
+    "Invoices; only Accounts Manager makes Cost Centers). Frappe's roles are coarser than Capxul's checks (a Projects " +
+    "User may make a Project there, which projects then pushes back), which is why roles never authorize. Head-admin " +
+    "would let a head admit someone with no Seat. Found in the identity review.",
+  source: by("/tmp/frappe/frappe/core/doctype/user/user.py:349 (on_update, create_contact); /tmp/erpnext account, cost_center, journal_entry, sales_invoice, project, task .json permissions"),
+  affects: [
+    workflow_heads_watch, integration_frappe_head, component_frappe_app, table_org_heads, table_org_members, concept_contacts,
+    concept_payroll, concept_projects, concept_books,
+  ],
 });

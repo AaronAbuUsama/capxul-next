@@ -19,6 +19,7 @@ import {
 import {
   event_org_app_transitioned,
   event_org_head_transitioned,
+  event_org_member_transitioned,
   machine_org_app,
   machine_org_head,
   table_org_apps,
@@ -45,6 +46,8 @@ import { table_hat_wearers, table_safe_executions } from "../indexing/data.ts";
 import { event_approval_transitioned } from "../approvals/data.ts";
 import { table_indexer_progress } from "../indexing/data.ts";
 import { rpc_organizations_heads_ring } from "./heads.ts";
+import { table_principals } from "../access/data.ts";
+import { table_parties } from "../parties/data.ts";
 
 const O = "packages/backend/src/organizations";
 const DAY = 86_400_000;
@@ -69,8 +72,7 @@ export const workflow_organizations_setups_set_up = defineWorkflow({
     "provider outage that outlasts a step's retries stalls it too. `org retry` resumes it from its last finished step. " +
     "With an FDE key recorded, the install batch also calls `AgentOwner.create(that key, the company Safe)` from the " +
     "company Safe, so the founder's one signature creates the FDE; at completion its Party is activated and it is seated " +
-    "as the Organization's own agent, and a failed setup releases its Party, with the Organization's while that is still " +
-    "pending (a minted company Safe's Party is active and keeps its handle) " +
+    "as the Organization's own agent; a failed setup releases its Party, and the Organization's while still pending " +
     "(organizations.fde-at-start-up). It replaces the old observe workflow, its every-minute recovery cron and ten " +
     "internal rpcs.",
   was: [
@@ -287,8 +289,9 @@ export const workflow_organizations_heads_watch = defineWorkflow({
     "time zone would date every document a day wrong, and one in another currency would value every amount wrong). Connected, it asks the head's host to install each wanted app (`installApp`; a self-hosted " +
     "head's owner installs it) and marks it installed once readSite lists it. It checks the site again once a day by its " +
     "own timer, at once when an app is wanted, and on a ring while failing; a check that fails past its retries stalls " +
-    "it, and the next good one recovers it. It ends when a Director disconnects the head. It syncs no records: each app " +
-    "concept's own process does, from `confirm` (organizations.head-ownership). On a devnet its daily timer is a stop, " +
+    "it, and the next good one recovers it. It ends when a Director disconnects the head. It syncs no app's records: " +
+    "each app concept's own process does, from `confirm` (organizations.head-ownership). It pushes the members' " +
+    "Users, with their hats' roles, at `confirm`, on a Seat's change and daily (organizations.head-users). On a devnet its daily timer is a stop, " +
     "and the stand-in head follows the clock (organizations.head-clock).",
   concept: concept_organizations,
   priority: "normal",
@@ -302,6 +305,12 @@ export const workflow_organizations_heads_watch = defineWorkflow({
       for: "signal",
       key: [{ on: [event_org_app_transitioned], props: ["org_id"] }],
       about: "An app became wanted: ask the head's host to install it now.",
+    },
+    {
+      name: "seat-changed",
+      for: "signal",
+      key: [{ on: [event_org_member_transitioned], props: ["org_id"] }],
+      about: "A Seat of the Organization was born or ended: push the members' Users now.",
     },
     {
       name: "ring",
@@ -319,18 +328,27 @@ export const workflow_organizations_heads_watch = defineWorkflow({
   steps: [
     { name: "check", about: "readSite; confirm, stall or recover; record Frappe's and the Capxul app's versions and the time zone." },
     { name: "install-wanted", about: "Connected: installApp for each wanted app not yet asked for; install each that readSite lists." },
-    { name: "await", about: "Wait for the timer, a wanted app, a ring or the disconnect." },
+    {
+      name: "users",
+      about:
+        "Connected: upsertDocs a User for each person holding a current Seat, with the roles its hats give now, and disable the User of a Seat that ended.",
+    },
+    { name: "await", about: "Wait for the timer, a wanted app, a Seat's change, a ring or the disconnect." },
   ],
-  reads: [table_org_heads, table_org_apps, table_organizations],
+  reads: [
+    table_org_heads, table_org_apps, table_organizations, table_org_members, table_principals, table_parties,
+    table_org_deployments, table_hat_wearers,
+  ],
   writes: [table_org_heads, table_org_apps],
   drives: [machine_org_head.t.confirm, machine_org_head.t.stall, machine_org_head.t.recover, machine_org_app.t.install],
   invokes: [],
   emits: [],
-  calls: [integration_frappe_head.c.readSite, integration_frappe_head.c.installApp],
+  calls: [integration_frappe_head.c.readSite, integration_frappe_head.c.installApp, integration_frappe_head.c.upsertDocs],
   chain: [],
   idempotency:
     "One process per head connection (`org-head:<orgId>:<headId>`); each transition is guarded by the state it moves " +
-    "from, and an app already asked for is not asked for again.",
+    "from, an app already asked for is not asked for again, and a User is written by the member's `capxul_id` with its " +
+    "version, so a repeated push changes nothing.",
   timeoutMs: 3650 * DAY,
   retries: { max: 5, backoff: "exponential" },
   budget: budget("background"),

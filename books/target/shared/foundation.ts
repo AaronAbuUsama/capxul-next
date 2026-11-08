@@ -206,18 +206,21 @@ export const component_frappe_app = defineComponent({
     "The Frappe app Capxul publishes for a connected head (aaron.frappe-head): installed on the Organization's Frappe site " +
     "with ERPNext, Frappe HR and Frappe CRM, it is the head's half of the `frappe-head` integration and the one seam, with " +
     "no fork. Its Custom Fields (organizations.frappe-app-fields): `capxul_id` and `capxul_version` on every synced " +
-    "DocType; `capxul_party`, the directory Party id, on Contact, CRM Organization, Customer, Supplier and Employee, by " +
-    "which it finds or creates the document Capxul names; `capxul_hidden` on Contact and CRM Organization; and each app " +
-    "concept's own fields (payroll's on Salary Component, Salary Structure Assignment, Payroll Entry and Salary Slip). It " +
-    "makes the fields Capxul owns read-only and refuses edits to them in a `validate` hook, writes only the fields and " +
-    "child rows Capxul sends (never clearing one it does not hold), and makes the link records a document names first. " +
-    "It records every change to a synced DocType in its own change list in the same database transaction, saves and " +
-    "`db_set` and `set_value` writes alike, and `listChanges` reports them for every synced DocType (the CRM's Contact, " +
-    "CRM Organization, CRM Lead and CRM Deal; projects', payroll's and the books'), the first time with every document " +
-    "the site already holds. It answers the whitelisted methods Capxul calls and rings Capxul's doorbell route " +
-    "(`organizations.heads.ring`) after a change: a signed ping that carries no data. It holds no Capxul key: Capxul " +
-    "reads it and writes to it. On a devnet it follows the one clock (devnet.followers): it sets " +
-    "`frappe.utils.now_datetime` to the devnet's now and runs Frappe's due scheduled jobs at each stop.",
+    "DocType; `capxul_party`, the directory Party id, on Contact, CRM Organization, Customer, Supplier, Employee and a " +
+    "member's User, by which it finds or creates the document Capxul names; `capxul_hidden` on Contact and CRM " +
+    "Organization; and each app concept's own fields (payroll's on Salary Component, Salary Structure Assignment, " +
+    "Payroll Entry and Salary Slip). It makes the fields Capxul owns read-only and refuses edits to them in a `validate` " +
+    "hook, writes only the fields and child rows Capxul sends (never clearing one it does not hold), makes the link " +
+    "records a document names first, and copies a User's `capxul_party` onto the Contact Frappe makes for it. It appends " +
+    "a row to its own change list, in the writing transaction, from each synced document's `on_change` event (a save, " +
+    "submit, cancel or `db_set`), and before answering `listChanges` adds a row for each document whose `modified` is " +
+    "later than its last row's, which catches `frappe.db.set_value`; a row names the document, read as it stands when " +
+    "listed. `listChanges` covers every synced DocType (the CRM's Contact, CRM Organization, CRM Lead and CRM Deal; " +
+    "projects', payroll's and the books'), the first time with every document the site already holds. It answers the " +
+    "whitelisted methods Capxul calls and rings Capxul's doorbell route (`organizations.heads.ring`) after a change: a " +
+    "signed ping that carries no data. It holds no Capxul key: Capxul reads it and writes to it. On a devnet it follows " +
+    "the one clock (devnet.followers): it sets `frappe.utils.now_datetime` to the devnet's now and runs Frappe's due " +
+    "scheduled jobs at each stop.",
   runtime: "python (Frappe Framework v15)",
   exposes: ["http"],
   dependsOn: [],
