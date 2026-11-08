@@ -761,6 +761,13 @@ export const WORLDS: readonly World[] = [
     namedBy: ["payroll"],
   },
   {
+    name: "org-with-payroll-runs-chain-unreachable",
+    holds: "org-with-payroll-runs with the backend's chain node failing every read (chain-rpc's fault switch); Lead current.",
+    from: "org-with-payroll-runs",
+    steps: [fault("chain-rpc node-down"), current("lead@acme.test")],
+    namedBy: ["payroll"],
+  },
+  {
     name: "org-with-requests",
     holds:
       "org-with-budget-tree plus requests Acme issued (Mia wears the Invoicing hat) and received (from Olga, 1,500 USDC, " +

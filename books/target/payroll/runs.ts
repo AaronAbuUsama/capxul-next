@@ -49,21 +49,21 @@ export const rpc_payroll_runs_create = defineRpc({
   title: "Draft a department's payroll run for a period, its slips worked out",
   about:
     HR_GUARD +
-    "The department is one of the Organization's budgets (INVALID_INPUT); the period's days are calendar days, the end " +
-    "on or after the start (INVALID_INPUT). A run's Employee has a submitted assignment on or before the period's end " +
-    "whose structure pays at the run's frequency (monthly unless given) and in the department budget's token, and which mirrors no agreement: " +
-    "an agreement pays itself on chain, never through a run. With none named, the run takes the department's `active` " +
-    "Employees that have one and lists the rest as left out; a named Employee without one, or not the department's, is " +
-    "INVALID_INPUT. An Employee with a live run slip whose period overlaps is WRONG_STATE naming that run, a stricter " +
-    "`check_existing` than Frappe's (same dates only; collection slips are not run slips), under each Employee's row " +
-    "lock, so two runs can never both take one Employee's period. A row whose formula or " +
-    "condition is not portable is INVALID_INPUT naming the component and saying the run must be computed by the " +
-    "Organization's head. " +
+    "The department is one of the Organization's budgets and the end on or after the start, in calendar days " +
+    "(INVALID_INPUT). Its Employees are those whose own `department` it is, as Frappe's Payroll Entry filters them, " +
+    "paid from it; each needs a submitted assignment on or before the period's end, at the run's frequency (monthly " +
+    "unless given) and in the budget's token, mirroring no agreement, which pays itself on chain. With none named it " +
+    "takes the `active` ones, and those `left` on or after the period's first day (their last period, to that day), " +
+    "never an `inactive` or `suspended` one (stricter than Frappe, which leaves out only Inactive: " +
+    "payroll.run-employees), and lists the rest as left out; a named one it cannot pay this period is INVALID_INPUT. " +
+    "An Employee with a live run slip of an overlapping period is WRONG_STATE naming that run (Frappe's " +
+    "`check_existing` matches same dates only), under each Employee's row lock, so two runs never take one period. A row whose formula or condition is not portable is INVALID_INPUT naming the " +
+    "component: the head must compute the run. " +
     COMPUTE +
     " A net below zero is INVALID_INPUT naming the Employee, as Frappe refuses one on submit. Then, in one transaction, " +
-    "the run is born `draft` (payroll-entry.create), with the company Safe, its Payroll Payable and treasury books' role " +
-    "accounts (null before the chart, the treasury also while books has no account for that Safe and token: " +
-    "payroll.books-accounts), and each slip `draft` (salary-slip.compute). Nothing is owed yet.",
+    "the run is born `draft` (payroll-entry.create), with the company Safe and books' Payroll Payable and treasury " +
+    "role accounts (null until books has them: payroll.books-accounts), and each slip `draft` (salary-slip.compute). " +
+    "Nothing is owed yet.",
   was: [`${FRAPPE}/payroll_entry/payroll_entry.py:309`, `${FRAPPE}/salary_slip/salary_slip.py:985`, `${FRAPPE}/salary_slip/salary_slip.py:1471`],
   concept: concept_payroll,
   kind: "mutation",
@@ -253,14 +253,15 @@ export const rpc_payroll_runs_list = defineRpc({
   about:
     HR_GUARD +
     "Runs by department and period, newest first, with their status, head count, net total and the next step (submit " +
-    "a draft, pay a submitted run). `department` and `status` filter (INVALID_INPUT for one that names nothing). It " +
-    "reads only.",
+    "a draft, pay a submitted run). `department` and `status` filter (INVALID_INPUT for one that names nothing). A page " +
+    "at a time: at most `limit` (1 to 100, 25 by default) after the cursor `after` (INVALID_INPUT for one this list " +
+    "did not give), and `nextCursor` the next page's `after`, null on the last (payroll.command-fit). It reads only.",
   was: [`${FRAPPE}/payroll_entry/payroll_entry.json`],
   concept: concept_payroll,
   kind: "query",
   who: WHO_HR,
   input: RunListInput,
-  output: Schema.Struct({ items: Schema.Array(RunRow) }),
+  output: Schema.Struct({ items: Schema.Array(RunRow), nextCursor: Schema.NullOr(Schema.String) }),
   errors: [...READ_ERRORS],
   reads: [...HR_READS, table_budgets, table_payroll_entries],
   writes: [],

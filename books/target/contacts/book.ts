@@ -248,9 +248,9 @@ export const rpc_contacts_book_record = defineRpc({
   about:
     WRITE_GUARD +
     "One write for three commands (contacts.book-verbs). With no `contactId` (`contact create`) it records a new " +
-    "entry: a `doctype` and a label (trimmed, 1 to 120 characters). A new person given a primary mailbox " +
-    "is named through `parties.resolve-recipient`, as `contact add` by email names them, and born with that PartyId as " +
-    "its id; if that Party already has an entry here it is INVALID_INPUT naming it, never merged. Any other new entry " +
+    "entry: a `doctype` and a label (trimmed, 1 to 120 characters). A new person given a primary mailbox is named " +
+    "through `parties.resolve-recipient` and born with that PartyId as its id; if that Party is the book's own or " +
+    "already has an entry here it is INVALID_INPUT naming it, never merged. Any other new entry " +
     "is private, with a `contact_<ulid>` id and no Party. With `contactId` and `details` (`contact change`) it never " +
     "names a Party: a private person's mailbox is only a detail. With `contactId` and `link` (`contact link`) it names " +
     "a private entry's Party once: a handle, an address, a Party id, or for a person a mailbox. A link on an entry with " +
@@ -260,8 +260,8 @@ export const rpc_contacts_book_record = defineRpc({
     "10, one primary of each kind; a lone one is primary), `designation` (140) and `company` (an organization entry " +
     "of this book); a company's `website` (255), `industry` and `territory` (140), `no_of_employees` (Frappe's " +
     "ranges), `annual_revenue` (a non-negative decimal, in a `currency` of 3 to 10 capitals) and " +
-    "`company_description` (2000); null clears one. A field of the other doctype, an id not in the book or a bad " +
-    "value is INVALID_INPUT naming the field; nothing is written. A change to a member's entry with no row writes its " +
+    "`company_description` (2000); null clears one. A field of the other doctype, an id not in the book, a bad " +
+    "value or `details` that set nothing is INVALID_INPUT naming it; nothing is written. A change to a member's entry with no row writes its " +
     "curating row. Returns the entry with details.",
   concept: concept_contacts,
   kind: "mutation",

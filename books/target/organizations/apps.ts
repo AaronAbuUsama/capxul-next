@@ -63,16 +63,19 @@ export const rpc_organizations_apps_list = defineRpc({
   id: "organizations.apps.list",
   title: "The Organization's Frappe apps: native or on its head, and where each stands",
   about:
-    `${MEMBER_GUARD} It lists every app the Organization has a row for, fundamental apps first, then the rest by name: ` +
-    "whether it is native, its modules, wanted, installed or removed, the version the connected head reports, and who " +
-    "asked for it. A removed app stays listed, so the list says what was given up. It never writes.",
+    `${MEMBER_GUARD} It lists one page of the apps the Organization has a row for, the fundamental apps first (frappe, ` +
+    "erpnext, hrms, crm, as FUNDAMENTAL_APPS orders them), then the rest by name: whether it is native, its modules, wanted, installed or removed, the version the connected head " +
+    "reports, and who asked for it. A removed app stays listed, so the list says what was given up. Pages are 25 by " +
+    "default (`limit` 1 to 100) and `nextCursor` is the `after` of the next page, null on the last, as every list's " +
+    "(docs/design/new-commands.md G3, G5, G9); a limit outside 1 to 100, or a cursor this list did not issue, is " +
+    "INVALID_INPUT. It never writes.",
   was: [RULING],
   concept: concept_organizations,
   kind: "query",
   who: WHO_MEMBER,
-  input: Schema.Struct({ orgId: S }),
-  output: Schema.Struct({ items: Schema.Array(AppView) }),
-  errors: [error_NOT_AUTHENTICATED, error_ROLE_PERMISSION_DENIED],
+  input: Schema.Struct({ orgId: S, limit: Schema.optionalKey(N), after: Schema.optionalKey(S) }),
+  output: Schema.Struct({ items: Schema.Array(AppView), nextCursor: NullOr(S) }),
+  errors: [error_NOT_AUTHENTICATED, error_ROLE_PERMISSION_DENIED, error_INVALID_INPUT],
   reads: [table_org_members, table_org_apps],
   writes: [],
   drives: [],

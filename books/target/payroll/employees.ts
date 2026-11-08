@@ -25,7 +25,7 @@ import {
   table_salary_structure_assignments,
   table_salary_structures,
 } from "./data.ts";
-import { Assignment, Employee, EmployeeChange, EmployeeInput, EmployeeListInput, EmployeeRef } from "./shapes.ts";
+import { Employee, EmployeeChange, EmployeeInput, EmployeeListInput, EmployeeRef, EmployeeView } from "./shapes.ts";
 
 const FRAPPE = "/tmp/erpnext/erpnext/setup/doctype/employee";
 
@@ -56,20 +56,24 @@ export const rpc_payroll_employees_add = defineRpc({
   title: "Add a person as an Employee of the Organization",
   about:
     HR_GUARD +
-    "The person is resolved through `parties.resolve-recipient`: a mailbox no Party holds is named `provisional` at the " +
+    "The person (a mailbox, `@handle`, their Safe's 0x address or a Party id) is resolved through " +
+    "`parties.resolve-recipient`: a mailbox no Party holds is named `provisional` at the " +
     "Safe it derives, so a new hire needs no account to be employed or paid (INVALID_INPUT for a locator that names " +
-    "nothing, or names an agent, an Organization or an outside address: Frappe's Employee is a person). A person " +
+    "nothing, or names an agent, an Organization or an outside address: Frappe's Employee is a person; and for a " +
+    "mailbox no account holds whose Safe could never be claimed, not ASCII, since no claim escrow could wait for their " +
+    "pay and every run paying them would be INVALID_RECIPIENT: payments.claim-escrow-routes). A person " +
     "who is a live Employee here (not left) is WRONG_STATE naming their `emp_` id; one who left is hired as a new " +
     "Employee, as Frappe does on a rehire (payroll.one-live-employee). `department`, when given, is one of the " +
     "Organization's budgets by key or `dep_…` id (INVALID_INPUT). `employmentType` defaults to `full-time`. Then the " +
     "Employee is born `active` (employee.hire) with the Party's Safe as `payee_safe` and a mailbox locator as " +
-    "`personal_email`.",
+    "`personal_email`. It answers the Employee as `payroll.employees.get` does, with a null assignment: a new hire has " +
+    "none yet (payroll.command-fit).",
   was: [`${FRAPPE}/employee.json`, `${FRAPPE}/employee.py`],
   concept: concept_payroll,
   kind: "mutation",
   who: WHO_HR,
   input: EmployeeInput,
-  output: Schema.Struct({ employee: Employee }),
+  output: EmployeeView,
   errors: [...HR_ERRORS],
   reads: [...HR_READS, table_budgets, table_employees],
   writes: [table_employees, ...LOGGED],
@@ -91,15 +95,16 @@ export const rpc_payroll_employees_change = defineRpc({
     "otherwise, naming the status it is in): `suspended`, `inactive`, back to `active`, or `left` with " +
     "`relievingDate`, the last day worked, on or after `date_of_joining` (INVALID_INPUT). Leaving is refused while a " +
     "slip of theirs is paying or escrowed (WRONG_STATE); a withheld slip stays owed after they leave. Their Party, Safe and mailbox never change here: pay follows " +
-    "the person, not the record (payroll.mailbox-for-pay).",
+    "the person, not the record (payroll.mailbox-for-pay). It answers the Employee as `payroll.employees.get` does, " +
+    "with the assignment that pays them today (payroll.command-fit).",
   was: [`${FRAPPE}/employee.py`],
   concept: concept_payroll,
   kind: "mutation",
   who: WHO_HR,
   input: EmployeeChange,
-  output: Schema.Struct({ employee: Employee }),
+  output: EmployeeView,
   errors: [...HR_ERRORS],
-  reads: [...HR_READS, table_budgets, table_employees, table_salary_slips],
+  reads: [...HR_READS, table_budgets, table_employees, table_salary_slips, table_salary_structure_assignments, table_salary_structures],
   writes: [table_employees, ...LOGGED],
   drives: [machine_employee.t.suspend, machine_employee.t.deactivate, machine_employee.t.reinstate, machine_employee.t.leave],
   invokes: [],
@@ -124,7 +129,7 @@ export const rpc_payroll_employees_get = defineRpc({
   kind: "query",
   who: WHO_HR,
   input: EmployeeRef,
-  output: Schema.Struct({ employee: Employee, assignment: Schema.NullOr(Assignment) }),
+  output: EmployeeView,
   errors: [error_NOT_AUTHENTICATED, error_ROLE_PERMISSION_DENIED, error_INVALID_INPUT],
   reads: [...HR_READS, table_employees, table_parties, table_salary_structure_assignments, table_salary_structures],
   writes: [],
@@ -143,13 +148,15 @@ export const rpc_payroll_employees_list = defineRpc({
   about:
     HR_GUARD +
     "The Organization's Employees, by department and name, `left` ones only when asked for by status. `unclaimed` " +
-    "says the person's Party is still provisional (no account yet), read from parties. It reads only.",
+    "says the person's Party is still provisional (no account yet), read from parties. A page at a time: at most " +
+    "`limit` (1 to 100, 25 by default) after the cursor `after` (INVALID_INPUT for one this list did not give), and " +
+    "`nextCursor` the next page's `after`, null on the last, as every list's (payroll.command-fit). It reads only.",
   was: [`${FRAPPE}/employee.json`],
   concept: concept_payroll,
   kind: "query",
   who: WHO_HR,
   input: EmployeeListInput,
-  output: Schema.Struct({ items: Schema.Array(Employee) }),
+  output: Schema.Struct({ items: Schema.Array(Employee), nextCursor: Schema.NullOr(Schema.String) }),
   errors: [error_NOT_AUTHENTICATED, error_ROLE_PERMISSION_DENIED, error_INVALID_INPUT],
   reads: [...HR_READS, table_employees, table_parties],
   writes: [],

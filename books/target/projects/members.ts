@@ -7,7 +7,7 @@ import { Schema } from "effect";
 import { budget, defineRpc } from "../../../packages/book/src/index.ts";
 import { concept_projects } from "../shared/foundation.ts";
 import { table_project_users, table_projects, table_tasks } from "./data.ts";
-import { FRAPPE, HAT_CALLS, HAT_CHAIN, MANAGE_ERRORS, HAT_GUARD, HAT_READS, LOG_LINE, LOGGED, WHO_MANAGER } from "./guards.ts";
+import { FRAPPE, HAT_CALLS, HAT_CHAIN, HAT_ERRORS, HAT_GUARD, HAT_READS, LOG_LINE, LOGGED, WHO_MANAGER } from "./guards.ts";
 import { OrgInput, Project } from "./shapes.ts";
 
 const S = Schema.String;
@@ -25,15 +25,16 @@ export const rpc_projects_members_add = defineRpc({
     HAT_GUARD +
     RESOLVE +
     "It writes one Project User row for them (not seeing attachments, timesheets not hidden, as Frappe's row defaults). " +
-    "A member it is already shared with keeps their row and nothing is written. " +
-    LOG_LINE.replace("The write", "A new row"),
+    "A member it is already shared with is WRONG_STATE, naming them, and nothing is written, as `org department holder " +
+    "add` refuses a holder (projects.refusal-codes). " +
+    LOG_LINE,
   was: [`${FRAPPE}/project_user/project_user.json`, `${FRAPPE}/project/project.py:422`],
   concept: concept_projects,
   kind: "action",
   who: WHO_MANAGER,
   input: OneMember,
   output: Project,
-  errors: MANAGE_ERRORS,
+  errors: HAT_ERRORS,
   reads: [...HAT_READS, table_projects, table_project_users, table_tasks],
   writes: [table_project_users, ...LOGGED],
   drives: [],
@@ -51,7 +52,8 @@ export const rpc_projects_members_remove = defineRpc({
   about:
     HAT_GUARD +
     RESOLVE +
-    "It deletes their Project User row; a member the project is not shared with is INVALID_INPUT. Their tasks, time " +
+    "It deletes their Project User row; a member the project is not shared with is WRONG_STATE, naming them, as `org " +
+    "department holder remove` refuses one who holds nothing (projects.refusal-codes). Their tasks, time " +
     "logs and timesheets on the project are kept, and they still read it as any member reads every project " +
     "(projects.permissions): sharing is Frappe's list of the project's users, which a head uses for its portal and " +
     "its project emails. " +
@@ -62,7 +64,7 @@ export const rpc_projects_members_remove = defineRpc({
   who: WHO_MANAGER,
   input: OneMember,
   output: Project,
-  errors: MANAGE_ERRORS,
+  errors: HAT_ERRORS,
   reads: [...HAT_READS, table_projects, table_project_users, table_tasks],
   writes: [table_project_users, ...LOGGED],
   drives: [],

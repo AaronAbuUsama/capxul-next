@@ -264,6 +264,9 @@ These records are outside this pass's folders. Each is listed for its owner in t
   - The text of `person-with-money-waiting` ("her Safe owns") reads "her Safe sent".
 - **Payroll.** Its text says the budget's current wearers or the Board take a new hire's escrow back.
 - **Equity.** Exits builds the new terms and sets `ownerTakesSurplus`.
+- **The command grammar page.** `docs/design/new-commands.md` lists `payment claim` (payments, `client.payments.claim`)
+  in sections 1, 2 (G3, G5, G8), 4, 6 and 7. The booked operation is `account collect` (accounts,
+  `client.account.collect`, `--json` and `--timeout-seconds`, no `--request-key`).
 - **Shared and the goal prompt.** `packages/contracts` joins `system.layout` and B3. `component_chain` and the devnet
   name it as the source of the v4 deployment. The rulings file moves the rewritten records from SUPERSEDED to
   CARRIES_OUT.
@@ -275,4 +278,8 @@ These records are outside this pass's folders. Each is listed for its owner in t
 - **A frozen agent.** An agent that sent a payment cannot take its escrow back while it is frozen. The recipient can
   still collect.
 - **Which commands.** `account collect` is a new operation booked on its pack's recommendation. Which commands a
-  capability gets is Aaron's (`accounts.collect-any-time`, "For Aaron").
+  capability gets is Aaron's (`accounts.collect-any-time`, "For Aaron"). It is the capability
+  `docs/design/new-commands.md` lists as `payment claim` (section 6, question 3), respelled by that page's own rules:
+  `collect` is the 215's verb for a payee taking money owed (`agreement collect`) while `claim` takes up a Safe or a
+  seat (G3); the noun is the person's account, as in `account retry` (G2); it takes no payment id, since a waiting
+  Payment has no payee tenant (G5); and accounts' rpc implements it (G10).

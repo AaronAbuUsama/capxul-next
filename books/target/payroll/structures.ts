@@ -33,23 +33,25 @@ export const rpc_payroll_structures_component = defineRpc({
   title: "Add or change a salary component",
   about:
     HR_GUARD +
-    "Without `componentId` it adds one, which needs a name, an abbreviation unique in the Organization (INVALID_INPUT " +
-    "naming the other), a type and an `amount` or a `formula`, with an optional `condition` (INVALID_INPUT naming what " +
-    "is missing); with it (an `sc_` id or abbreviation, INVALID_INPUT for one not the Organization's) only the fields " +
-    "given change, `disabled` among them. A formula or condition inside the portable subset " +
-    "(numbers, the arithmetic and comparison operators, `and`, `or`, `not`, `x if c else y`, the names `base`, " +
-    "`variable`, `payment_days`, `total_working_days`, `leave_without_pay`, `gross_pay` and other components' " +
-    "abbreviations, and Frappe's `round`, `rounded`, `floor`, `ceil`, `min`, `max`, `int` and `float`) is `portable`; " +
-    "any other Python Frappe accepts is kept with `portable` false, for a run a head computes; one that does not parse " +
-    "is INVALID_INPUT. A deduction's or employer contribution's `payee` is resolved through `parties.resolve-recipient` " +
-    "(INVALID_INPUT when it names nothing): the Party its liability is owed to, paid when due by an ordinary payment " +
-    "from a budget by whoever wears its hat, never in a run's command (payroll.deduction-remittance). `account` " +
-    "and `liabilityAccount` are books' active ledger accounts by code or `acct_` id, read as Frappe HR's accrual reads " +
-    "them: an earning's or employer contribution's `account` under Expenses, a deduction's under Liabilities, and " +
-    "`liabilityAccount`, under Liabilities, only an employer contribution's (INVALID_INPUT otherwise); left out, or " +
-    "before the chart, they are null and the accrual posts to the line's role's account (payroll.books-accounts). A " +
-    "change reaches only structures made after it, a submitted one keeping the rows it copied; a disabled component " +
-    "joins no new structure. The agreement component changes only its accounts (INVALID_INPUT).",
+    "Without `componentId` it adds one: a name, an abbreviation unique in the Organization (INVALID_INPUT naming the " +
+    "other), a type and an `amount` or a `formula`, with an optional `condition` (INVALID_INPUT otherwise); its " +
+    "four flags (`dependsOnPaymentDays`, `statisticalComponent`, `doNotIncludeInTotal`, " +
+    "`isTaxApplicable`) are off unless given, and `remove_if_zero_valued` on (payroll.component-defaults). With it (an " +
+    "`sc_` id or abbreviation, INVALID_INPUT for one not the Organization's) only the fields given change, `disabled` " +
+    "among them, WRONG_STATE if it is already so (payroll.command-fit). A formula or " +
+    "condition in the portable subset (payroll.portable-formulas: numbers, arithmetic and " +
+    "comparisons, `and`, `or`, `not`, `x if c else y`, `base`, `variable`, the payment-day names, `gross_pay`, other " +
+    "abbreviations, and Frappe's `round`, `rounded`, `floor`, `ceil`, `min`, `max`, `int`, `float`) is `portable`; " +
+    "other Python Frappe accepts is kept, `portable` false, for " +
+    "a run a head computes; one that does not parse is INVALID_INPUT. A deduction's or employer contribution's `payee` " +
+    "is resolved through `parties.resolve-recipient` (INVALID_INPUT for none): the Party its liability is " +
+    "owed to, paid when due by a budget payment from whoever wears its hat, never in a run " +
+    "(payroll.deduction-remittance). `account` and `liabilityAccount` are books' active accounts by code or `acct_` " +
+    "id, as Frappe HR's accrual reads them: an earning's or contribution's `account` under Expenses, a deduction's " +
+    "under Liabilities, and `liabilityAccount`, there too, only a contribution's (INVALID_INPUT otherwise); " +
+    "left out, or before the chart, null: the line's role's account (payroll.books-accounts). A change " +
+    "reaches only structures made after it, a submitted one keeping the rows it copied. The agreement component " +
+    "changes only its accounts (INVALID_INPUT).",
   was: [`${FRAPPE}/salary_component/salary_component.json`, `${FRAPPE}/salary_component/salary_component.py`, "/tmp/hrms/hrms/payroll/utils.py:57"],
   concept: concept_payroll,
   kind: "mutation",
@@ -78,8 +80,10 @@ export const rpc_payroll_structures_create = defineRpc({
     "name only `base`, `variable`, the payment-day names and the abbreviations of rows above it (INVALID_INPUT naming " +
     "the row), so a slip works out in one pass as Frappe's does. The token defaults to the one the Organization's " +
     "budgets pay in; a token none of its budgets pays in is TOKEN_NOT_BUDGETED. With `amends`, the structure it " +
-    "replaces must be submitted with no submitted assignment left on it (INVALID_INPUT otherwise) and is cancelled in " +
-    "the same transaction (salary-structure.cancel). Then the structure is born submitted (salary-structure.submit).",
+    "replaces must be one of the Organization's (INVALID_INPUT) and submitted with no submitted assignment left on it " +
+    "(WRONG_STATE naming its status or the assignments, as `payroll.structures.cancel` refuses the same cancel: " +
+    "payroll.command-fit), and is cancelled in the same transaction (salary-structure.cancel). Then the structure is " +
+    "born submitted (salary-structure.submit).",
   was: [`${FRAPPE}/salary_structure/salary_structure.json`, `${FRAPPE}/salary_structure/salary_structure.py`],
   concept: concept_payroll,
   kind: "mutation",
@@ -105,8 +109,11 @@ export const rpc_payroll_structures_assign = defineRpc({
     HR_GUARD +
     "The Employee must be the Organization's and not `left` (INVALID_INPUT, WRONG_STATE); the structure submitted and " +
     "not the agreement structure, which only an agreement's acceptance assigns (INVALID_INPUT). `fromDate` must be on " +
-    "or after `date_of_joining` (INVALID_INPUT). The department budget, the Employee's own unless given, must be one " +
-    "of the Organization's budgets and pay in the structure's token (INVALID_INPUT, TOKEN_NOT_BUDGETED). `base` and " +
+    "or after `date_of_joining` (INVALID_INPUT). The assignment records the Employee's department, as Frappe's fetches " +
+    "it; `department`, when given, must be that one (INVALID_INPUT naming it otherwise), and an Employee with none yet " +
+    "is INVALID_INPUT, since a run takes an Employee by their own department and pays from it " +
+    "(payroll.run-employees); it must pay in the structure's " +
+    "token (TOKEN_NOT_BUDGETED). `base` and " +
     "`variable` are amounts in that token, at its display precision. Then the assignment is born submitted " +
     "(salary-structure-assignment.submit), owed on books' Payroll Payable (null before the chart: " +
     "payroll.books-accounts); from `fromDate` it supersedes any earlier one for the periods after it.",

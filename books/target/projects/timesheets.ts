@@ -99,7 +99,8 @@ export const rpc_projects_timesheets_log = defineRpc({
     WORKER_GUARD +
     "The timesheet by its id (INVALID_INPUT otherwise), a draft (WRONG_STATE otherwise: a submitted timesheet's logs " +
     "never change). The log is checked as ERPNext's Timesheet and Timesheet Detail check it, each failure INVALID_INPUT " +
-    "naming the field: an activity type of the Organization's that is not disabled; a start and exactly one of an end " +
+    "naming the field: an activity type of the Organization's, named without regard to case, that is not disabled; a " +
+    "start and exactly one of an end " +
     "after it and hours above zero (the other is worked out); a task of the Organization's that is not cancelled; a " +
     "project that is the timesheet's own when it has one, and the task's when a task is named (a task alone gives its " +
     "project); and no overlap with another log of the same worker, or of the same employee, in any timesheet that is " +

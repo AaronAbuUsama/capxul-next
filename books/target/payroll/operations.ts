@@ -666,13 +666,16 @@ const W_RUNS = "org-with-payroll-runs";
 const W_BUDGET_USED = "org-with-payroll-budget-used";
 /** org-with-payroll-runs with the company Safe holding 1,000 USDC. */
 const W_SHORT_SAFE = "org-with-payroll-short-safe";
+/** org-with-payroll-runs with the backend's chain node failing every read. */
+const W_CHAIN_DOWN = "org-with-payroll-runs-chain-unreachable";
 
 const WHO_BUDGET =
   "A signed-in member of the Organization, person or agent, whose own Safe `Budgets.authorised` admits on the run's " +
   "department budget when it pays: a wearer in good standing of that budget's hat or of the hat of any budget above it, " +
   "as the chain reads it then. Authority follows the hat, never the person who drafted the run or paid it before: " +
   "someone swapped out of the department can no longer pay its runs, and whoever wears its hat next can. An agent, the " +
-  "FDE included, pays only through a hat the Board granted its Safe. Never the Board itself, which spends from no budget.";
+  "FDE included, pays only through a hat its Safe was granted, by the Board or by an office above. Never the Board " +
+  "itself, which spends from no budget.";
 
 const WHO_SELF =
   "A signed-in person or agent, for the payslips that pay its own Safe, from every Organization that pays it; an " +
@@ -706,7 +709,8 @@ export const operation_org_employee_add = defineOperation({
   title: "Add a person as an Employee",
   about:
     "Adds a person as an active Employee of the Organization, in Frappe HR's Employee shape, paid from the department " +
-    "named: one of its budgets, by key or id. The person is named by the mailbox they keep, an `@handle` or a Party id. " +
+    "named: one of its budgets, by key or id. The person is a Party, as G5 names one: the mailbox they keep, an " +
+    "`@handle`, their Safe's 0x address or a Party id. " +
     "Someone with no Capxul account yet is employed and paid all the same: their pay waits in a claim escrow until they " +
     "claim it. Pay goes to the Safe of the mailbox they keep, never a work address. A person has at most one live " +
     "Employee in an Organization, and one who left and comes back is a new Employee. Being paid from a department gives " +
@@ -721,8 +725,8 @@ export const operation_org_employee_add = defineOperation({
     hrClaim(
       "A person with no account is added as an active Employee, paid at the Safe their mailbox derives, and shown unclaimed.",
       "cli: from org-with-employees, Pat's `org employee add ivy@acme.test --first-name Ivy --last-name Lund --joined <today> " +
-        "--department salaries --org acme --json` prints an `emp_` id, `status: active`, `unclaimed: true` and a `payeeSafe`; " +
-        "read: `org employee get` of that id prints the same; world: one Employee and one provisional Party added.",
+        "--department salaries --org acme --json` prints an `emp_` id, `status: active`, `unclaimed: true`, a `payeeSafe` " +
+        "and `assignment: null`; read: `org employee get` of that id prints the same; world: one Employee and one provisional Party added.",
     ),
     hrClaim(
       "A live Employee is not added twice; a person who left is added again as a new Employee.",
@@ -742,7 +746,8 @@ export const operation_org_employee_add = defineOperation({
     ...peopleOnly("adds ivy@acme.test as an Employee"),
     hrInvalid(
       "The person names nothing (`nobody`), or names an Organization (`@acme`), an agent or an outside address, since " +
-        "Frappe's Employee is a person; or `--department` names none of Acme's budgets: the refusal names the field.",
+        "Frappe's Employee is a person; or is a mailbox with no account whose Safe could never be claimed (not ASCII), " +
+        "so no claim escrow could wait for their pay; or `--department` names none of Acme's budgets: the refusal names the field.",
     ),
     hrWrong("Sam is already a live Employee of Acme: the refusal names his `emp_` id, and nothing is written."),
   ],
@@ -832,13 +837,21 @@ export const operation_org_employee_list = defineOperation({
     hrClaim(
       "The live Employees list by department and name; those who left only when asked for.",
       "cli: from org-with-employees, Pat's `org employee list --org acme --json` lists Ana (suspended), Noor (active, " +
-        "`unclaimed: true`) and Sam (active, `unclaimed: false`), and not Leo; `--status left` lists Leo alone; " +
-        "`--department engineering` lists none.",
+        "`unclaimed: true`) and Sam (active, `unclaimed: false`), and not Leo, with `nextCursor: null`; `--status left` " +
+        "lists Leo alone; `--department engineering` lists none.",
+    ),
+    hrClaim(
+      "The list pages as every list does.",
+      "cli: from org-with-employees, Pat's `org employee list --limit 2 --org acme --json` lists Ana and Noor and a " +
+        "`nextCursor`; `--after <it>` lists Sam with `nextCursor: null`.",
     ),
   ],
   returns: flow_client_org_employees_list.output,
   errors: HR_ERRORS_CLI,
-  refusals: [...peopleOnly("lists Acme's Employees"), hrInvalid("`--department` names none of Acme's budgets: nothing is listed.")],
+  refusals: [
+    ...peopleOnly("lists Acme's Employees"),
+    hrInvalid("`--department` names none of Acme's budgets, or `--after` is a cursor this list did not give: nothing is listed."),
+  ],
   budget: budget("read"),
 });
 
@@ -852,7 +865,9 @@ const statusRefusals = (what: string, wrong: string) => [
 export const operation_org_employee_suspend = defineOperation({
   id: "org.employee.suspend",
   title: "Suspend an Employee",
-  about: "Suspends an active Employee, as Frappe's Suspended status: they stay on the books, and no new run pays them until they are reinstated.",
+  about:
+    "Suspends an active Employee (Frappe's Suspended status): they stay on the books, and Capxul's runs leave them out " +
+    "until they are reinstated, which is stricter than Frappe's Payroll Entry (payroll.run-employees).",
   area: HR_AREA,
   command: "org employee suspend",
   priority: "normal",
@@ -940,8 +955,10 @@ export const operation_org_employee_leave = defineOperation({
   about:
     "The Employee leaves on the day given, their last day worked, and this is final for the record: someone who comes " +
     "back is added as a new Employee. It first previews who leaves, from when, the assignment that stops and any " +
-    "withheld slip that stays owed, and asks; `--confirm` answers yes in a script. Someone whose pay is on its way or " +
-    "waiting in a claim escrow leaves once it lands. Their slips, and an agreement's earned pay, stay theirs.",
+    "withheld slip that stays owed, and asks; `--confirm` answers yes in a script. A run of a period they worked in " +
+    "still pays them to that day, and no run pays them after it (payroll.run-employees). It is refused while pay of " +
+    "theirs is on its way or waiting in a claim escrow, until it lands or is taken back. Their slips, and an " +
+    "agreement's earned pay, stay theirs.",
   area: HR_AREA,
   command: "org employee leave",
   priority: "normal",
@@ -974,6 +991,7 @@ export const operation_org_employee_leave = defineOperation({
     hrWrong("Leo has already left: the refusal names `left`, and nothing is written."),
     hrWrong("Noor's slip of the first run waits in a claim escrow: the refusal names it, and nothing is written.", W_RUNS),
     { error: error_CANCELLED, given: W_HR, when: "At a terminal, Pat answers no to the preview of Ana's leaving: nothing is written." },
+    { error: error_CLI_USAGE, given: W_HR, when: "A script with no terminal and no `--confirm` lets Ana go: refused before any call, and nothing is written." },
   ],
   budget: budget("write"),
 });
@@ -1069,12 +1087,13 @@ export const operation_org_payroll_component_list = defineOperation({
       "The components list enabled first, each with how it is worked out.",
       "cli: from org-with-employees, Pat's `org payroll component list --org acme --json` lists Basic (B, earning, formula " +
         "`base`, `portable: true`) and Pension (PEN, deduction, formula `base * 0.05`), then Bonus (BON, earning, 250.00, " +
-        "`disabled: true`).",
+        "`disabled: true`), with `nextCursor: null`; `--limit 2` lists Basic and Pension and a `nextCursor`, and `--after " +
+        "<it>` Bonus alone.",
     ),
   ],
   returns: flow_client_org_payroll_components_list.output,
   errors: HR_ERRORS_CLI,
-  refusals: peopleOnly("lists the components"),
+  refusals: [...peopleOnly("lists the components"), hrInvalid("`--after` is a cursor this list did not give: nothing is listed.")],
   budget: budget("read"),
 });
 
@@ -1095,10 +1114,18 @@ export const operation_org_payroll_component_disable = defineOperation({
         "`org payroll structure create Lean --frequency monthly --token USDC --earning B --deduction PEN` then exits " +
         "INVALID_INPUT naming PEN; `org payroll structure list` still shows Standard's PEN row.",
     ),
+    hrClaim(
+      "A component already disabled is not disabled again.",
+      "cli: from org-with-employees, `org payroll component disable BON --org acme` exits WRONG_STATE naming `disabled`; world: no diff.",
+    ),
   ],
   returns: flow_client_org_payroll_components_disable.output,
   errors: HR_ERRORS_CLI,
-  refusals: [...peopleOnly("disables Pension"), unknownId("salary components", "sc_")],
+  refusals: [
+    ...peopleOnly("disables Pension"),
+    unknownId("salary components", "sc_"),
+    hrWrong("Bonus is already disabled: the refusal names `disabled`, as a second `org activity-type disable` is, and nothing is written."),
+  ],
   budget: budget("write"),
 });
 
@@ -1119,10 +1146,18 @@ export const operation_org_payroll_component_enable = defineOperation({
         "`org payroll structure create Plus --frequency monthly --token USDC --earning B --earning BON` then prints a " +
         "submitted structure with both rows.",
     ),
+    hrClaim(
+      "A component already enabled is not enabled again.",
+      "cli: from org-with-employees, `org payroll component enable B --org acme` exits WRONG_STATE naming `enabled`; world: no diff.",
+    ),
   ],
   returns: flow_client_org_payroll_components_enable.output,
   errors: HR_ERRORS_CLI,
-  refusals: [...peopleOnly("enables Bonus"), unknownId("salary components", "sc_")],
+  refusals: [
+    ...peopleOnly("enables Bonus"),
+    unknownId("salary components", "sc_"),
+    hrWrong("Basic is already enabled: the refusal names `enabled`, and nothing is written."),
+  ],
   budget: budget("write"),
 });
 
@@ -1152,8 +1187,11 @@ export const operation_org_payroll_structure_create = defineOperation({
     hrClaim(
       "An amendment replaces the structure it amends, once nothing is assigned to it.",
       "cli: from org-with-employees, `org payroll structure create Contractors-2 --frequency monthly --token USDC --earning B " +
-        "--amends <Contractors>` prints it submitted, and `org payroll structure list` shows Contractors cancelled; with " +
-        "`--amends <Standard>`, which three assignments name, it exits INVALID_INPUT; world: one structure added and one cancelled.",
+        "--amends <Contractors>` prints it submitted, and `org payroll structure list`, which lists submitted structures, " +
+        "shows Contractors-2 and Standard and no longer Contractors; trace: Contractors' salary_structure_transitioned " +
+        "submitted → cancelled, transition `cancel`; with " +
+        "`--amends <Standard>`, which three assignments name, it exits WRONG_STATE naming them, as `org payroll structure " +
+        "cancel <Standard>` does; world: one structure added and one cancelled.",
     ),
     hrClaim(
       "A structure pays in a token one of the Organization's budgets pays in.",
@@ -1166,7 +1204,12 @@ export const operation_org_payroll_structure_create = defineOperation({
     ...peopleOnly("creates a structure"),
     hrInvalid(
       "A row names an unknown or disabled component (`--earning BON` while Bonus is disabled), a deduction as an earning, " +
-        "or a formula names a row below it: the refusal names the row, and nothing is written.",
+        "or a formula names a row below it, or `--amends` names none of Acme's structures: the refusal names the row or " +
+        "the field, and nothing is written.",
+    ),
+    hrWrong(
+      "`--amends <Standard>`, which three submitted assignments still name: the refusal names them, as cancelling " +
+        "Standard is refused, and nothing is written.",
     ),
     { error: error_TOKEN_NOT_BUDGETED, given: W_HR, when: "`--token EURC`: Acme admits EURC, but none of its budgets pays in it, and nothing is written." },
   ],
@@ -1211,7 +1254,8 @@ export const operation_org_payroll_structure_assign = defineOperation({
   title: "Assign a salary structure to an Employee",
   about:
     "Assigns a submitted structure to an Employee from a day, on a base (and a variable amount, if any) in its token, " +
-    "paid from their department or the budget named. From that day it pays them in place of any earlier assignment. " +
+    "paid from their department, which the assignment records as Frappe's does: a run of that department pays them " +
+    "(payroll.run-employees). From that day it pays them in place of any earlier assignment. " +
     "An agreement's own structure is assigned only by the agreement.",
   area: HR_AREA,
   command: "org payroll structure assign",
@@ -1237,7 +1281,10 @@ export const operation_org_payroll_structure_assign = defineOperation({
   errors: HR_ERRORS_CLI,
   refusals: [
     ...peopleOnly("assigns Contractors to Sam"),
-    hrInvalid("The Employee or structure is none of Acme's, `--start` is before the Employee joined, or `--department` names none of its budgets: the refusal names the field."),
+    hrInvalid(
+      "The Employee or structure is none of Acme's, `--start` is before the Employee joined, or `--department` names a " +
+        "budget that is not the Employee's department: the refusal names the field.",
+    ),
     hrWrong("Leo has left: the refusal names `left`, and nothing is written."),
   ],
   budget: budget("write"),
@@ -1290,13 +1337,18 @@ export const operation_org_payroll_structure_list = defineOperation({
   acceptance: [
     hrClaim(
       "The structures list with their assignments, and one Employee's alone with `--employee`.",
-      "cli: from org-with-employees, Pat's `org payroll structure list --org acme --json` lists Contractors and Standard, " +
-        "submitted, and Standard's assignments to Ana (3500.00), Noor (3000.00) and Sam (4000.00); `--employee <Sam>` lists Sam's alone.",
+      "cli: from org-with-employees, Pat's `org payroll structure list --org acme --json` lists Contractors, submitted, " +
+        "with no assignment, then Standard with its assignments to Ana (3500.00), Noor (3000.00) and Sam (4000.00), and " +
+        "`nextCursor: null`; `--employee <Sam>` lists Standard with Sam's assignment alone; `--limit 1` lists Contractors " +
+        "and a `nextCursor`.",
     ),
   ],
   returns: flow_client_org_payroll_structures_list.output,
   errors: HR_ERRORS_CLI,
-  refusals: [...peopleOnly("lists the structures"), hrInvalid("`--employee` names none of Acme's Employees: nothing is listed.")],
+  refusals: [
+    ...peopleOnly("lists the structures"),
+    hrInvalid("`--employee` names none of Acme's Employees, or `--after` is a cursor this list did not give: nothing is listed."),
+  ],
   budget: budget("read"),
 });
 
@@ -1306,9 +1358,10 @@ export const operation_org_payroll_run_create = defineOperation({
   id: "org.payroll.run.create",
   title: "Draft a department's payroll run for a period",
   about:
-    "Drafts a department's payroll run for a period, as Frappe HR's Payroll Entry: one slip for each of its active " +
-    "Employees with a structure assignment, or for those named, each worked out from that assignment (gross, " +
-    "deductions, net), prorated by the days employed and any leave without pay. Nothing is owed until it is " +
+    "Drafts a department's payroll run for a period, as Frappe HR's Payroll Entry: one slip for each of its Employees " +
+    "with a structure assignment who is active, or who left on or after the period's first day, or for those named, " +
+    "each worked out from that assignment (gross, deductions, net), prorated by the days employed and any leave " +
+    "without pay. An inactive or suspended Employee is left out (payroll.run-employees). Nothing is owed until it is " +
     "submitted. An Employee's period is in at most one live run. A structure whose formulas Capxul cannot work out " +
     "is run by a connected head instead.",
   area: HR_AREA,
@@ -1329,6 +1382,12 @@ export const operation_org_payroll_run_create = defineOperation({
       "Leave without pay prorates a slip by its payment days.",
       "cli: from org-with-employees, the same command with `--unpaid <Sam>=3` gives Sam's slip three fewer payment days " +
         "than the month has, B at 4000.00 times its payment days over its days, rounded half to even, PEN 200.00, and the net the difference.",
+    ),
+    hrClaim(
+      "A leaver's last period is paid to their relieving day, and no later period is.",
+      "cli: from org-with-employees, after Pat's `org employee leave <Sam> --on <this month's 10th> --confirm`, `org " +
+        "payroll run create salaries` for this month holds Noor's slip and Sam's with 10 payment days, B at 4000.00 " +
+        "times 10 over the month's days and PEN 200.00; for next month it holds Noor's alone.",
     ),
     hrClaim(
       "An Employee's period is in at most one live run.",
@@ -1409,7 +1468,7 @@ export const operation_org_payroll_run_pay = defineOperation({
     hrClaim(
       "One approval pays every unpaid submitted slip of the run, each to its Employee's Safe.",
       "cli: from org-with-payroll-runs, Lead's `org payroll run pay <last month's run> --org acme --json` signs one approval " +
-        "and prints the run `paid`, Sam's slip `paid` with a payment id and transaction, Noor's still `withheld`; chain: one " +
+        "and prints `status: paid` and the run, Sam's slip `paid` with a payment id and transaction, Noor's still `withheld`; chain: one " +
         "UserOperation from Lead's Safe whose Budgets.spend from `salaries` pays 3800 USDC to Sam's Safe; trace: one " +
         "payroll_entry_transitioned submitted → paying and one paying → paid.",
     ),
@@ -1433,9 +1492,16 @@ export const operation_org_payroll_run_pay = defineOperation({
     ),
     hrClaim(
       "A lapsed approval resumes the same command, never a second.",
-      "cli: from org-with-payroll-runs, Lead's `org payroll run pay <last month's run> --no-wait` prints an approval and " +
-        "`next`; after it lapses unsigned (`capxul dev time warp 2h`) the run reads `submitted`, and Lead's next `org payroll " +
+      "cli: from org-with-payroll-runs, Lead's `org payroll run pay <last month's run> --no-wait --json` prints `status: " +
+        "awaiting_approval`, an `approvalId`, its `approvalUrl` and `expiresAt`, and `next`; after it lapses unsigned (`capxul dev time warp 2h`) the run reads `submitted`, and Lead's next `org payroll " +
         "run pay <it>` opens a new approval on the same payment command with the same payment ids; world: one payment command for the run.",
+    ),
+    hrClaim(
+      "A declined approval sends nothing and leaves the run owed again, for a new command.",
+      "cli: from org-with-payroll-runs, Lead declines the approval of `org payroll run pay <last month's run>` on the " +
+        "approval page: exit 130, CANCELLED; read: Pat's `org payroll run get <it>` then shows the run and Sam's slip " +
+        "`submitted` with no payment; Lead's next `org payroll run pay <it>` opens a new command under the next " +
+        "attempt and pays Sam; chain: one Budgets.spend of 3800 USDC to Sam's Safe in all.",
     ),
   ],
   returns: flow_client_org_payroll_runs_pay.output,
@@ -1462,7 +1528,20 @@ export const operation_org_payroll_run_pay = defineOperation({
       given: W_SHORT_SAFE,
       when: "The company Safe holds 1,000 USDC, less than the 3,800 last month's run pays, though `salaries` has room: nothing is prepared or signed.",
     },
-    { error: error_CANCELLED, given: W_RUNS, when: "Lead declines the run's approval on the approval page: the run stays submitted, and nothing is sent." },
+    {
+      error: error_PROVIDER_ERROR,
+      given: W_CHAIN_DOWN,
+      when:
+        "The chain cannot be read, so whether Budgets authorises the payer, what `salaries` has left and what the company " +
+        "Safe holds are unknown: nothing is prepared or signed, as the department commands refuse a chain they cannot read.",
+    },
+    {
+      error: error_CANCELLED,
+      given: W_RUNS,
+      when:
+        "Lead declines the run's approval on the approval page: nothing is sent, its Payments are cancelled, and the run " +
+        "and its slips are back to submitted, owed, for the next `org payroll run pay` (payroll.declined-run-approval).",
+    },
   ],
   budget: budget("chain-submit"),
 });
@@ -1518,12 +1597,16 @@ export const operation_org_payroll_run_list = defineOperation({
       "The runs list newest first, with their status, head count, net total and next step.",
       "cli: from org-with-payroll-runs, Pat's `org payroll run list --org acme --json` lists this month's run (draft, 2, " +
         "6650.00, next `org payroll run submit`), last month's (submitted, next `org payroll run pay`) and the first " +
-        "(paying); `--status draft` lists this month's alone.",
+        "(paying), with `nextCursor: null`; `--status draft` lists this month's alone; `--limit 1` lists this month's and " +
+        "a `nextCursor`.",
     ),
   ],
   returns: flow_client_org_payroll_runs_list.output,
   errors: HR_ERRORS_CLI,
-  refusals: [...peopleOnly("lists the runs", W_RUNS), hrInvalid("`--department` names none of Acme's budgets: nothing is listed.", W_RUNS)],
+  refusals: [
+    ...peopleOnly("lists the runs", W_RUNS),
+    hrInvalid("`--department` names none of Acme's budgets, or `--after` is a cursor this list did not give: nothing is listed.", W_RUNS),
+  ],
   budget: budget("read"),
 });
 
@@ -1639,7 +1722,7 @@ export const operation_payslip_list = defineOperation({
     hrClaim(
       "You see the payslips that pay your own Safe, newest first, and never a draft or another's.",
       "cli: from org-with-payroll-runs, Sam's `payslip list --json` lists his slip of last month's run (submitted) and of " +
-        "the first run (paid, net 3800.00, payer Acme), and not this month's draft nor any of Noor's.",
+        "the first run (paid, net 3800.00, payer Acme Ltd), and not this month's draft nor any of Noor's.",
     ),
     hrClaim(
       "`--employer` keeps one payer's payslips, and a page holds at most `--limit`.",
@@ -1661,7 +1744,8 @@ export const operation_payslip_get = defineOperation({
   title: "Read one of your payslips",
   about:
     "Reads one payslip that pays your own Safe: its payer, period, rows, totals, status and, once paid, its payment and " +
-    "its stored document, which `document render` shows. Another person's payslip is theirs alone.",
+    "its stored document, which `document render` shows. It never reads another person's payslip, even for the People " +
+    "hat, which reads a run's slips with `org payroll run get`.",
   area: HR_AREA,
   command: "payslip get",
   priority: "normal",
@@ -1671,7 +1755,7 @@ export const operation_payslip_get = defineOperation({
   acceptance: [
     hrClaim(
       "One of your payslips reads with its rows, totals, payer and payment.",
-      "cli: from org-with-payroll-runs, Sam's `payslip get <his slip of the first run> --json` prints payer Acme, B " +
+      "cli: from org-with-payroll-runs, Sam's `payslip get <his slip of the first run> --json` prints payer Acme Ltd, B " +
         "4000.00, PEN 200.00, net 3800.00, `status: paid`, its payment id and transaction; read: `document render` of its " +
         "document names Sam.",
     ),

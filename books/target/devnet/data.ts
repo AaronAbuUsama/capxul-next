@@ -176,7 +176,7 @@ export const table_head_sites = defineTable({
     "are in place, its System Settings time zone and its Company (with the Organization's id and currency), the apps " +
     "installed, and its fault switch. `capxul-devnet head up <org> [--frappe-cloud]` makes it, a self-hosted site or, " +
     "with `--frappe-cloud`, one hosted as on Frappe Cloud, and writes its head user's key file and, for Frappe Cloud, " +
-    "its team's token file (token and team name). `installApp` with that team token adds an app at once on a Frappe " +
+    "its team's token file (its token, then its name), in the forms `org head connect` reads. `installApp` with that team token adds an app at once on a Frappe " +
     "Cloud site, and answers WRONG_STATE on a self-hosted one, as a real bench's host cannot install for Capxul. " +
     "`capxul-devnet fault frappe-head <mode>` arms the switch: `down` (every " +
     "call is PROVIDER_ERROR), `key-refused` (401: ROLE_PERMISSION_DENIED), `conflict` (the next `upsertDocs` answers " +

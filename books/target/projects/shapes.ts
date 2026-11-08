@@ -18,6 +18,9 @@ const Opt = Schema.optionalKey;
 const Decimal = S;
 /** A day in the Organization's time zone (projects.dates). */
 const Day = S;
+/** A Frappe Datetime as a command takes it: an instant in epoch milliseconds, or a day, read as its 00:00 in the
+ * Organization's time zone. */
+const DayOrInstant = Schema.Union([N, Day]);
 
 /** Which Organization a command acts for: `--org`, else the one `use org` chose. */
 export const OrgInput = { orgId: S };
@@ -104,13 +107,16 @@ export const TaskFields = {
   parent: Opt(S),
   group: Opt(B),
   dependsOn: Opt(Schema.Array(S)),
-  /** Instants (a Frappe Datetime), given as a day or a time. */
-  start: Opt(N),
-  end: Opt(N),
+  /** A Frappe Datetime: an instant in epoch milliseconds, or a day (`YYYY-MM-DD`), which is 00:00 of that day in the
+   * Organization's time zone (projects.dates). */
+  start: Opt(DayOrInstant),
+  end: Opt(DayOrInstant),
   hours: Opt(Decimal),
   weight: Opt(Decimal),
-  /** `--progress`: Frappe's Task progress, 0 to 100, which a project worked out by task progress or weight reads. */
-  progress: Opt(Decimal),
+  /** `--percent`: the task's percent complete typed by hand, 0 to 100 (Frappe's Task `progress`), which a project worked
+   * out by task progress or weight reads. `--percent` is a typed percent on a project and a task alike, and
+   * `--progress` only a project's method (projects.percent-by-hand). */
+  percent: Opt(Decimal),
   priority: Opt(TaskPriority),
   milestone: Opt(B),
   type: Opt(S),
@@ -125,7 +131,8 @@ export const TaskSummary = Schema.Struct({
   status: TaskStatus,
   priority: NullOr(TaskPriority),
   expectedEnd: NullOr(N),
-  progress: Decimal,
+  /** Frappe's Task `progress`: typed with `--percent`, 100 once completed. */
+  percentComplete: Decimal,
   updatedAt: N,
 });
 

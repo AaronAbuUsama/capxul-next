@@ -79,7 +79,7 @@ const refusals = (id: FrozenId) =>
 
 /**
  * A write's refusals: the page's, with ROLE_PERMISSION_DENIED widened to a member without the People hat, whom
- * `person-with-contacts` holds as Rex, Acme's agent with a Seat and no hat (decision contacts.members-write).
+ * `person-with-contacts` holds as Rex, Dan's agent with a Seat in Acme and no hat (decision contacts.members-write).
  */
 const writeRefusals = (id: FrozenId) =>
   refusals(id).map((r) =>
@@ -352,8 +352,8 @@ const denied = (given: string, what: string): Refusal => ({
   error: error_ROLE_PERMISSION_DENIED,
   given,
   when:
-    `Ada, signed in, names Acme with \`--org\`, where she holds no Seat; or Rex, Acme's agent, holds a Seat but its Safe ` +
-    `wears no People hat, and ${what}: nothing is written. The right is the hat's: once the Board grants Rex's Safe the ` +
+    `Ada, signed in, names Acme with \`--org\`, where she holds no Seat; or Rex, Dan's agent, holds a Seat in Acme but ` +
+    `its Safe wears no People hat, and ${what}: nothing is written. The right is the hat's: once the Board grants Rex's Safe the ` +
     "hat the same command succeeds, and once it revokes it, it is refused again.",
 });
 const invalid = (given: string, when: string): Refusal => ({ error: error_INVALID_INPUT, given, when });
@@ -451,7 +451,7 @@ export const operation_contact_change = defineOperation({
     "territory, size, annual revenue and description. Each detail given replaces the stored one, `--clear` empties one, " +
     "and the rest stay. `--email` and `--phone`, when given, replace the whole list, the first primary. The entry keeps " +
     "its id, its label (`contact label` changes it) and its Party: a mailbox given to a private person is only a " +
-    "detail, and only `contact link` decides where money paid to the entry goes.",
+    "detail, and only `contact link` decides where money paid to the entry goes. A change that gives nothing is refused.",
   area: BOOK_AREA,
   command: "contact change",
   priority: "normal",
@@ -488,7 +488,8 @@ export const operation_contact_change = defineOperation({
     invalid(
       CRM_WORLD,
       "An id not in the book; a field of the other doctype; a malformed mailbox or number, or more than 10 of either; a " +
-        "`--company` that is not an organization entry of the book; a negative `--revenue`: the refusal names the field and nothing is written.",
+        "`--company` that is not an organization entry of the book; a negative `--revenue`; or no detail and no `--clear` " +
+        "at all: the refusal names the field, or says nothing was given, and nothing is written.",
     ),
   ],
   budget: budget("write"),
@@ -545,6 +546,8 @@ export const operation_contact_link = defineOperation({
         "Party already in the book or a Party of the other kind (an Organization for a person, a mailbox, a person or an " +
         "agent for a company): nothing is written and no Party is named.",
     ),
+    { error: error_CANCELLED, given: CRM_WORLD, when: "At a terminal, Ada answers no to the preview of linking Lou: nothing is written and no Party is named." },
+    { error: error_CLI_USAGE, given: CRM_WORLD, when: "A script runs it without `--confirm`: nothing is read or written." },
   ],
   budget: guidedWrite,
 });
@@ -557,7 +560,7 @@ export const operation_org_crm_lead_create = defineOperation({
   about:
     "Captures a lead in the Organization's CRM with status New: a prospect you have not yet qualified, by their name, " +
     "mailbox, numbers and job title, and their company's name, website, industry, territory, size and revenue, with " +
-    "where the lead came from (`--source`) and the member who works it (`--owner`, an email or @handle). A lead needs a " +
+    "where the lead came from (`--source`) and the member who works it (`--owner`, an email or an agent's @handle). A lead needs a " +
     "first name, a company name or a mailbox. Its mailbox stays the Organization's note: nobody is named in the " +
     "directory until the lead converts.",
   area: CRM_AREA,
@@ -579,7 +582,7 @@ export const operation_org_crm_lead_create = defineOperation({
         "create --company Initech --org acme` prints a lead; world: the refusal's diff is empty.",
     ),
     claim(
-      "A lead's owner is a member of the Organization, named by email or @handle, and never the lead's own mailbox.",
+      "A lead's owner is a member of the Organization, named by email or an agent's @handle, and never the lead's own mailbox.",
       "cli: `--owner @rex` prints Rex's Party id as `lead_owner`; `--owner ada@example.com` (no Seat in Acme) and " +
         "`--email dan@acme.test --owner dan@acme.test` are each INVALID_INPUT naming `lead_owner`; world: each refusal's diff is empty.",
     ),
@@ -613,7 +616,7 @@ export const operation_org_crm_lead_change = defineOperation({
   title: "Change a lead's fields",
   about:
     "Changes the fields of one lead, named by its id: each flag given replaces the stored value, `--clear` empties one, " +
-    "and the rest stay. A lead must still have a first name, a company name or a mailbox. Its status moves only with " +
+    "and the rest stay; a change that gives nothing is refused. A lead must still have a first name, a company name or a mailbox. Its status moves only with " +
     "`org crm lead move`, and a converted lead no longer changes: its deal carries the work on.",
   area: CRM_AREA,
   command: "org crm lead change",
@@ -636,8 +639,9 @@ export const operation_org_crm_lead_change = defineOperation({
       "cli: `org crm lead change <Ivy's lead> --phone +447700900222 --org acme` is WRONG_STATE naming `converted`; world: the diff is empty.",
     ),
     claim(
-      "An id that is none of the Organization's leads is refused, as there is no not-found code.",
-      "cli: a deal's id, and a well-formed `lead_` id that names no lead of Acme's, are each INVALID_INPUT; world: each diff is empty.",
+      "An id that names none of the Organization's leads is refused, as there is no not-found code; one that is no lead's id is a usage error.",
+      "cli: a well-formed `lead_` id that names no lead of Acme's is INVALID_INPUT, and a deal's id is CLI_USAGE (exit 2), as " +
+        "`payment get` refuses an id not starting `payment_`; trace: the second makes no rpc call; world: each diff is empty.",
     ),
   ],
   returns: LeadView,
@@ -647,8 +651,8 @@ export const operation_org_crm_lead_change = defineOperation({
     denied(CRM_WORLD, "changes a lead"),
     invalid(
       CRM_WORLD,
-      "A lead id that is none of Acme's; a bad value, as for `org crm lead create`; or a change that leaves no first " +
-        "name, company name or mailbox: the refusal names the field and nothing is written.",
+      "A lead id that is none of Acme's; a bad value, as for `org crm lead create`; a change that leaves no first " +
+        "name, company name or mailbox; or no flag at all: the refusal names the field, or says nothing was given, and nothing is written.",
     ),
     wrong("Dan changes Ivy's lead, which is converted: its deal carries the work on. Nothing is written."),
   ],
@@ -711,8 +715,9 @@ export const operation_org_crm_lead_convert = defineOperation({
   about:
     "Converts one lead to an open deal, as Frappe CRM's Convert to Deal does: the deal, in Qualification, with the " +
     "lead's company and its person as the primary one, its owner and source, and the value, currency and expected close " +
-    "day given. The person is the `--contact` given, else the book's entry for the lead's mailbox (named in the " +
-    "directory if new), else a new private one; the company is the `--company` given, else the book's company of that " +
+    "day given. The person is the `--contact` given, else the book's person who keeps the lead's mailbox, else the " +
+    "entry of that mailbox's Party (named in the directory if new), else a new private one; the company is the " +
+    "`--company` given, else the book's company of that " +
     "name, else a new private one. The lead becomes converted, status Qualified. Converting again prints the same deal; " +
     "a lost lead does not convert.",
   area: CRM_AREA,
@@ -722,20 +727,24 @@ export const operation_org_crm_lead_convert = defineOperation({
   who: WHO_CRM_WRITE_OP,
   changes:
     "One deal in Qualification, the lead converted, and the person and company entries it makes, each with its entry in " +
-    "the CRM's change log. A lead's mailbox no Party holds is named in the directory.",
+    "the CRM's change log. A lead's mailbox that no person of the book keeps and no Party holds is named in the directory.",
   acceptance: [
     claim(
       "Converting makes an open deal from the lead, with its company and its person as primary, and marks the lead converted, status Qualified.",
       "cli: `org crm lead convert <Jo's lead> --value 8000 --currency GBP --close-by 2027-01-31 --org acme` prints the " +
         "lead with `stage: converted`, `status: Qualified` and `deal` the new deal's id; read: `org crm deal get <it>` " +
-        "shows Qualification, Hooli, Jo as its primary person, the lead, 8000 GBP and that day, and `contact list --org " +
+        "shows Qualification, Hooli's new entry as `organization`, Jo's as its primary person, the lead, 8000 GBP and " +
+        "that day, and `contact list --org " +
         "acme` shows Jo (a `party_` entry) and Hooli (a `contact_` company); trace: one `lead_transitioned` (convert) and one `deal_transitioned` (start).",
     ),
     claim(
-      "The person is matched by mailbox and the company by its shown name, so nobody is entered twice.",
+      "The person is matched by the mailbox an entry keeps, private or not, or by that mailbox's Party, and the company by its shown name, so nobody is entered twice.",
       "cli: `org crm lead convert <Kim's lead> --org acme` prints Kim's entry as `contact` and Globex's as " +
         "`organization`; read: `contact list --org acme` shows no new entry, and `org crm deal list --company <Globex>` " +
-        "lists the new deal beside the three it had.",
+        "lists the new deal beside the three it had; cli: after `contact create Nia --type person --phone " +
+        "+447700900333 --org acme`, `contact change <Nia> --email nia@bakers.test --org acme` and `org crm lead create " +
+        "--first-name Nia --email nia@bakers.test --org acme`, converting that lead prints Nia's `contact_` id as " +
+        "`contact`; world: that conversion names no Party for nia@bakers.test and adds no person to the book.",
     ),
     claim(
       "A lead converts once: converting again prints the same deal, and a lost lead does not convert.",
@@ -745,7 +754,8 @@ export const operation_org_crm_lead_convert = defineOperation({
     claim(
       "A person or company given must be an entry of the Organization's book, of that kind.",
       "cli: `convert <Pat's lead> --company <Kim>` and `convert <Pat's lead> --contact <Globex>` are each INVALID_INPUT " +
-        "naming the flag; world: each diff is empty, with no Party named for pat@initech.test.",
+        "naming the field it sets, `organization` or `contact`, as G6 names a field; world: each diff is empty, with no " +
+        "Party named for pat@initech.test.",
     ),
   ],
   returns: rpc_contacts_leads_convert.output,
@@ -768,9 +778,10 @@ export const operation_org_crm_lead_list = defineOperation({
   id: "org.crm.lead.list",
   title: "List the Organization's leads",
   about:
-    "Lists the Organization's leads, most recent change first, a page at a time, each with its status, stage, name, " +
-    "company, mailbox, source and owner. `--stage` shows one stage only: open, ongoing, won, lost, or converted (a " +
-    "converted lead is never listed as won). Use it to find a lead's id.",
+    "Lists the Organization's leads that are not converted, most recent change first, a page at a time, each with its " +
+    "status, stage, name, company, mailbox, source and owner, as Frappe CRM's leads list shows them: a converted " +
+    "lead's work goes on in its deal. `--stage` shows one stage only: open, ongoing, won, lost, or converted, the one " +
+    "way to list converted leads (a converted lead is never listed as won). Use it to find a lead's id.",
   area: CRM_AREA,
   command: "org crm lead list",
   priority: "critical",
@@ -780,16 +791,17 @@ export const operation_org_crm_lead_list = defineOperation({
   notes: PAGE_NOTES,
   acceptance: [
     claim(
-      "Every member sees the Organization's leads, most recent change first.",
-      "read: as Rex (a Seat, no hat), `org crm lead list --org acme` prints Ivy's, Kim's, Max's, Jo's, Quinn's and Pat's leads, in that order.",
+      "Every member sees the Organization's leads that are not converted, most recent change first, as Frappe CRM's leads list shows them.",
+      "read: as Rex (a Seat, no hat), `org crm lead list --org acme` prints Kim's, Max's, Jo's, Quinn's and Pat's leads, " +
+        "in that order, and not Ivy's, which is converted.",
     ),
     claim(
-      "A stage filter shows that stage only, and a converted lead is under converted, never won.",
+      "A stage filter shows that stage only, and a converted lead is listed only under converted, never won.",
       "read: `--stage lost` prints Max's lead alone, `--stage converted` Ivy's alone and `--stage won` Jo's alone.",
     ),
     claim(
       "A page holds at most `--limit` leads and gives the cursor for the next; a cursor from another list is refused.",
-      "cli: `--limit 4` prints four and a `nextCursor`; `--after <it>` prints the other two and `nextCursor: null`; a " +
+      "cli: `--limit 4` prints four and a `nextCursor`; `--after <it>` prints Pat's alone and `nextCursor: null`; a " +
         "cursor `org crm deal list` gave is INVALID_INPUT.",
     ),
   ],
@@ -820,8 +832,9 @@ export const operation_org_crm_lead_get = defineOperation({
         "the Umbrella deal's id, and her mailbox and company as they were captured.",
     ),
     claim(
-      "An id that is none of the Organization's leads is refused, as there is no not-found code.",
-      "cli: a deal's id, and a well-formed `lead_` id that names no lead of Acme's, are each INVALID_INPUT.",
+      "An id that names none of the Organization's leads is refused, as there is no not-found code; one that is no lead's id is a usage error.",
+      "cli: a well-formed `lead_` id that names no lead of Acme's is INVALID_INPUT, never null, and a deal's id is " +
+        "CLI_USAGE (exit 2), as `payment get` refuses an id not starting `payment_`; trace: the second makes no rpc call.",
     ),
   ],
   returns: LeadView,
@@ -829,7 +842,7 @@ export const operation_org_crm_lead_get = defineOperation({
   refusals: [
     signedOut(CRM_WORLD),
     outsider(CRM_WORLD),
-    invalid(CRM_WORLD, "The id is none of Acme's leads (a well-formed `lead_` id that names nothing here, or another kind's id): nothing is read."),
+    invalid(CRM_WORLD, "The id is a well-formed `lead_` id that names none of Acme's leads: there is no not-found code, and nothing is read."),
   ],
   budget: budget("read"),
 });
@@ -855,8 +868,8 @@ export const operation_org_crm_deal_create = defineOperation({
     claim(
       "A deal opens in Qualification, at stage open with probability 10, for its company, with the people and values given.",
       "cli: `org crm deal create --company <Globex> --contact <Kim> --value 5000 --currency GBP --close-by 2027-03-31 " +
-        "--org acme` prints a `deal_` id, `status: Qualification`, `stage: open`, `probability: 10`, Globex, Kim as its " +
-        "primary person, `lead: null` and those values; read: `org crm deal list --company <Globex>` lists it first; " +
+        "--org acme` prints a `deal_` id, `status: Qualification`, `stage: open`, `probability: 10`, Globex's entry as " +
+        "`organization`, Kim's as its primary person, `lead: null` and those values; read: `org crm deal list --company <Globex>` lists it first; " +
         "trace: one `deal_transitioned` (start).",
     ),
     claim(
@@ -890,7 +903,7 @@ export const operation_org_crm_deal_change = defineOperation({
   about:
     "Changes one deal, named by its id, whatever its stage, as Frappe lets a won or lost deal be edited: each flag " +
     "given replaces the stored value, `--contact` (repeated) replaces its people, `--clear` empties a field, and the " +
-    "rest stay. Its status moves only with `org crm deal move`.",
+    "rest stay; a change that gives nothing is refused. Its status moves only with `org crm deal move`.",
   area: CRM_AREA,
   command: "org crm deal change",
   priority: "normal",
@@ -913,8 +926,9 @@ export const operation_org_crm_deal_change = defineOperation({
       "cli: `org crm deal change <the Globex pilot> --clear close-by --org acme` prints `expected_closure_date: null` with its value kept.",
     ),
     claim(
-      "An id that is none of the Organization's deals is refused, as there is no not-found code.",
-      "cli: a lead's id, and a well-formed `deal_` id that names no deal of Acme's, are each INVALID_INPUT; world: each diff is empty.",
+      "An id that names none of the Organization's deals is refused, as there is no not-found code; one that is no deal's id is a usage error.",
+      "cli: a well-formed `deal_` id that names no deal of Acme's is INVALID_INPUT, and a lead's id is CLI_USAGE (exit 2), as " +
+        "`payment get` refuses an id not starting `payment_`; trace: the second makes no rpc call; world: each diff is empty.",
     ),
   ],
   returns: DealView,
@@ -922,7 +936,11 @@ export const operation_org_crm_deal_change = defineOperation({
   refusals: [
     signedOut(CRM_WORLD),
     denied(CRM_WORLD, "changes a deal"),
-    invalid(CRM_WORLD, "A deal id that is none of Acme's, or a bad value, as for `org crm deal create`: the refusal names the field and nothing is written."),
+    invalid(
+      CRM_WORLD,
+      "A deal id that is none of Acme's, a bad value, as for `org crm deal create`, or no flag at all: the refusal names " +
+        "the field, or says nothing was given, and nothing is written.",
+    ),
   ],
   budget: budget("write"),
 });
@@ -976,8 +994,8 @@ export const operation_org_crm_deal_list = defineOperation({
   title: "List the Organization's deals",
   about:
     "Lists the Organization's deals with their people, most recent change first, a page at a time: each with its " +
-    "status, stage, company, probability, value and expected close day. Filter by one of `--stage`, `--company` (an " +
-    "organization entry) or `--contact` (a person's deals). Use it to find a deal's id.",
+    "status, stage, company, probability, value and expected close day. Filter by `--stage`, `--company` (an " +
+    "organization entry) and `--contact` (a person's deals); filters given together all apply. Use it to find a deal's id.",
   area: CRM_AREA,
   command: "org crm deal list",
   priority: "critical",
@@ -992,8 +1010,9 @@ export const operation_org_crm_deal_list = defineOperation({
         "Globex pilot and the Umbrella deal, in that order, each with its people.",
     ),
     claim(
-      "A filter picks one stage's, one company's or one person's deals.",
-      "read: `--stage won` prints the renewal alone; `--company <Globex>` the three Globex deals; `--contact <Ivy>` the Umbrella deal alone.",
+      "A filter picks one stage's, one company's or one person's deals, and filters given together all apply.",
+      "read: `--stage won` prints the renewal alone; `--company <Globex>` the three Globex deals; `--contact <Ivy>` the " +
+        "Umbrella deal alone; `--company <Globex> --stage open` the Globex pilot alone; `--contact <Ivy> --stage won` none.",
     ),
     claim(
       "A page holds at most `--limit` deals and gives the cursor for the next; a cursor from another list is refused.",
@@ -1024,12 +1043,13 @@ export const operation_org_crm_deal_get = defineOperation({
   acceptance: [
     claim(
       "One deal with its people, its lead and its owner; every member reads it.",
-      "read: as Rex, `org crm deal get <the Umbrella deal> --org acme` prints Umbrella Corp, Ivy as its primary person, " +
-        "Ivy's lead and Dan's Party id as `deal_owner`.",
+      "read: as Rex, `org crm deal get <the Umbrella deal> --org acme` prints Umbrella Corp's entry id as " +
+        "`organization`, Ivy's as its primary person, Ivy's lead as `lead` and Dan's Party id as `deal_owner`.",
     ),
     claim(
-      "An id that is none of the Organization's deals is refused, as there is no not-found code.",
-      "cli: a lead's id, and a well-formed `deal_` id that names no deal of Acme's, are each INVALID_INPUT.",
+      "An id that names none of the Organization's deals is refused, as there is no not-found code; one that is no deal's id is a usage error.",
+      "cli: a well-formed `deal_` id that names no deal of Acme's is INVALID_INPUT, never null, and a lead's id is " +
+        "CLI_USAGE (exit 2), as `payment get` refuses an id not starting `payment_`; trace: the second makes no rpc call.",
     ),
   ],
   returns: DealView,
@@ -1037,7 +1057,7 @@ export const operation_org_crm_deal_get = defineOperation({
   refusals: [
     signedOut(CRM_WORLD),
     outsider(CRM_WORLD),
-    invalid(CRM_WORLD, "The id is none of Acme's deals (a well-formed `deal_` id that names nothing here, or another kind's id): nothing is read."),
+    invalid(CRM_WORLD, "The id is a well-formed `deal_` id that names none of Acme's deals: there is no not-found code, and nothing is read."),
   ],
   budget: budget("read"),
 });

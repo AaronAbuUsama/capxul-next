@@ -27,7 +27,7 @@ import {
 } from "../shared/vocabulary.ts";
 import { machine_personal_safe, table_admissions, table_personal_safes } from "./data.ts";
 import { table_feature_flags } from "../access/data.ts";
-import { table_profiles } from "../parties/data.ts";
+import { table_parties, table_profiles } from "../parties/data.ts";
 import { table_escrows, table_safe_balances } from "../indexing/data.ts";
 import { procedure_approvals_open } from "../approvals/procedures.ts";
 import { contract_escrow } from "../shared/external.ts";
@@ -152,10 +152,17 @@ export const WaitingEscrow = Schema.Struct({
   amount: S,
   /** The sender's address: the payer's Safe, or the company Safe for an Organization's payment. */
   sender: S,
+  /** Who sent it, as parties' directory names the sender's Safe (a person, or the Organization for its company Safe); null when no Party does. */
+  from_label: Schema.NullOr(S),
 });
 
-/** What `account collect` answers: what waits, and the approval that collects it (none when nothing waits). */
+/**
+ * What `account collect` answers, as `agreement collect` answers `nothing_released`: `nothing_waiting` (nothing opened),
+ * `awaiting_approval` (the hand-over: with `--json`, or `--timeout-seconds` passed before the approval ended) or
+ * `collected` (the approval's operation landed: each listed escrow paid the Safe).
+ */
 export const Collection = Schema.Struct({
+  status: Schema.Literals(["nothing_waiting", "awaiting_approval", "collected"]),
   safe: S,
   escrows: Schema.Array(WaitingEscrow),
   approval_id: Schema.NullOr(S),
@@ -168,10 +175,13 @@ export const rpc_accounts_setup_collect = defineRpc({
   title: "Open the approval that collects the claim escrows the person's Safe owns",
   about:
     "The general escrow's owner collects whenever it chooses (aaron.escrow-general): this is that choice, any time after " +
-    "setup. It reads the caller's own setup (a Safe still claiming, failed or not started is SMART_ACCOUNT_MISSING), then " +
-    "indexing's open owner-collects escrows whose owner is that Safe and whose balance in safe-balances holds their " +
-    "amount, so one deployed before its money arrived is never signed into a revert. None: it answers the empty list and " +
-    "opens nothing. Otherwise it opens one approval from the person's own Safe (`approvals.open`, subject the Safe's " +
+    "setup. It reads the caller's own setup: not started, still claiming, or failed in a way a new start retries is " +
+    "SMART_ACCOUNT_MISSING; one the chain refused answers as `account retry` does (SwapRefused, the Safe claimed by " +
+    "another signer, WRONG_STATE; EmailNotNormalized or InvalidSigner INVALID_INPUT). Then indexing's open " +
+    "owner-collects escrows whose owner is that Safe and whose balance in safe-balances holds their amount, so one " +
+    "deployed before its money arrived is never signed into a revert, each with its sender's Party name from parties' " +
+    "directory. None: `nothing_waiting`, the empty list, and nothing opened. Otherwise (`awaiting_approval`) it opens " +
+    "one approval from the person's own Safe (`approvals.open`, subject the Safe's " +
     "setup and `collect`) carrying `Escrow.collect()` on each; a live approval for the same subject answers as it " +
     "stands, so asking twice signs once. Each collection's PaymentSent settles its Payment for the payer and the person, " +
     "as setup's does. It writes no row of accounts. An escrow its sender takes back before the approval lands makes the " +
@@ -181,8 +191,8 @@ export const rpc_accounts_setup_collect = defineRpc({
   who: "A signed-in person whose own Safe is set up, for the claim escrows that Safe owns.",
   input: Schema.Struct({}),
   output: Collection,
-  errors: [error_NOT_AUTHENTICATED, error_SMART_ACCOUNT_MISSING, error_WRONG_STATE],
-  reads: [table_personal_safes, table_escrows, table_safe_balances],
+  errors: [error_NOT_AUTHENTICATED, error_SMART_ACCOUNT_MISSING, error_WRONG_STATE, error_INVALID_INPUT],
+  reads: [table_personal_safes, table_escrows, table_safe_balances, table_parties],
   writes: [],
   drives: [],
   invokes: [procedure_approvals_open],

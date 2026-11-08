@@ -604,7 +604,9 @@ export const table_employees = defineTable({
     {
       name: "by_department",
       fields: ["org_id", "department", "status"],
-      for: "A run's employees: the active people of one department (Payroll Entry's `department` filter).",
+      for:
+        "A run's employees: one department's active people, and those who left on or after its period's first day " +
+        "(Payroll Entry's `department` and `relieving_date` filters, payroll.run-employees).",
     },
     {
       name: "by_head_name",
@@ -729,8 +731,10 @@ export const table_salary_structure_assignments = defineTable({
     "One Salary Structure Assignment, written submitted: an Employee is paid by a structure from `from_date`, with " +
     "`base` and `variable` (the values formulas read) in its token; the latest submitted assignment on or before a " +
     "period's end is the one that period uses, as in Frappe. `payroll_payable_account` is books' account the net is owed " +
-    "on until paid: its `payroll_payable` role account, null before the chart (payroll.books-accounts). `budget_ref` and `budget_id` are Capxul's (Custom Fields on a head): the department budget the pay " +
-    "comes from, which decides who may pay it. `agreement_id` is set when the assignment mirrors an accepted agreement: " +
+    "on until paid: its `payroll_payable` role account, null before the chart (payroll.books-accounts). `budget_ref` and `budget_id` are the Employee's department when it was " +
+    "assigned, as Frappe's assignment fetches `department` from the Employee: a run takes an Employee by their own " +
+    "`department` and pays from it, as Frappe's Payroll Entry filters the Employee (payroll.run-employees); for an " +
+    "agreement's assignment, the agreement's department, whose hat pays it on chain. `agreement_id` is set when the assignment mirrors an accepted agreement: " +
     "its `base` is the agreement's rate in its period, and no run ever pays it, because the agreement pays itself on " +
     "chain (payroll.agreements-in-frappe-shape). `docstatus` moves only through machine `salary-structure-assignment`.",
   was: [`${FRAPPE_HR}/salary_structure_assignment/salary_structure_assignment.json`],
@@ -784,8 +788,11 @@ export const table_payroll_entries = defineTable({
     "Employee Detail rows: who the run covers, and whether each is withheld. `computed_by` says which side worked its " +
     "slips out: Capxul, or a connected head (payroll.one-computer-per-run). Once paying, `request_key` (`payroll:`, the " +
     "entry's id and the attempt) is the payment command its slips' nets go out under, with one approval " +
-    "(payroll.run-one-approval); `attempt`, `request_key`, `command_id` and `approval_id` name the latest. A lapsed " +
-    "command is resumed under its own key; only slips that hold no Payment (released, or refunded from escrow) go out " +
+    "(payroll.run-one-approval); `attempt`, `request_key`, `command_id` and `approval_id` name the latest, and " +
+    "`asked_key` the caller's `--request-key` it was asked under, if any, so the same ask again finds it " +
+    "(payroll.run-request-key). A lapsed " +
+    "command is resumed under its own key; only slips that hold no Payment (released, refunded from escrow, or returned " +
+    "unsent) go out " +
     "under the next attempt. Each slip keeps its own command, by which a Payment's transition finds it. `head_name` is " +
     "the head's Payroll Entry for a run taken in, unique, so a run is taken in once; for a run Capxul made, the head's name for its copy. `status` moves only through " +
     "machine `payroll-entry`.",
@@ -812,6 +819,8 @@ export const table_payroll_entries = defineTable({
     status: Schema.Literals(PAYROLL_ENTRY_STATUSES),
     attempt: Schema.Int,
     request_key: Null(S),
+    /** The caller's `--request-key` the latest attempt was asked under: the same key again answers that command as it stands. */
+    asked_key: Null(S),
     command_id: Null(S),
     approval_id: Null(S),
     created_by: S,
@@ -1234,7 +1243,10 @@ export const machine_payroll_entry = defineMachine({
     lapse: {
       from: ["paying"],
       to: "submitted",
-      about: "The command's approval lapsed before anything was sent; `runs.pay` resumes that command, same key and payment ids.",
+      about:
+        "Nothing of the command moved: its approval lapsed (`runs.pay` resumes that command, same key and payment ids), or " +
+        "was declined, refused or withdrawn (its Payments are cancelled, and `runs.pay` sends the slips again under the " +
+        "next attempt: payroll.declined-run-approval).",
       guard: "No slip of it is paid or escrowed: a later command's lapse returns only its own slips and leaves the run paying.",
       emits: [event_payroll_entry_transitioned],
     },
@@ -1253,8 +1265,8 @@ export const machine_payroll_entry = defineMachine({
 export const event_salary_slip_transitioned = defineEvent({
   id: "salary_slip_transitioned",
   about:
-    "A Salary Slip was computed, imported, submitted, withheld, released, sent, escrowed, paid, lapsed, refunded, " +
-    "reversed or cancelled, or a collection's slip was recorded. `occurred_at` is the block's time when the chain moved it.",
+    "A Salary Slip was computed, imported, submitted, withheld, released, sent, escrowed, paid, lapsed, returned unsent, " +
+    "refunded, reversed or cancelled, or a collection's slip was recorded. `occurred_at` is the block's time when the chain moved it.",
   props: Schema.Struct({
     from: Null(Schema.Literals(SALARY_SLIP_STATUSES)),
     to: Schema.Literals(SALARY_SLIP_STATUSES),
@@ -1326,6 +1338,15 @@ export const machine_salary_slip = defineMachine({
       from: ["paying"],
       to: "submitted",
       about: "Its command's approval lapsed unsent: it keeps its payment id and command, so only that command's resume pays it.",
+      emits: [event_salary_slip_transitioned],
+    },
+    unsend: {
+      from: ["paying"],
+      to: "submitted",
+      about:
+        "Its Payment was cancelled before any money moved (the approval declined, refused or withdrawn): a cancelled " +
+        "Payment is never resumed, so its payment fields clear and the net is owed again, paid under the run's next " +
+        "attempt (payroll.declined-run-approval).",
       emits: [event_salary_slip_transitioned],
     },
     refund: {

@@ -36,7 +36,8 @@ const t = machine_project.t;
 const VIEW_READS = [table_projects, table_project_users, table_tasks] as const;
 
 const FIELD_RULES =
-  "A name is 1 to 140 characters; `type` names one of the Organization's project types; `end` is not before `start`; " +
+  "A name is 1 to 140 characters; `type` names one of the Organization's project types, ignoring case; `end` is not " +
+  "before `start`; " +
   "`estimatedCost` is a decimal of at least zero; `percent` one from 0 to 100, only for a project worked out by hand " +
   "(Frappe's Manual; 100 once completed). `customer` is a Party locator (an email, an @handle, a 0x address or a " +
   "Party id), held as that Party with its display name, or any other text, held as the customer's name alone " +
@@ -137,11 +138,11 @@ export const rpc_projects_projects_change = defineRpc({
     HAT_GUARD +
     "The project by its id (INVALID_INPUT otherwise), in any status. " +
     FIELD_RULES +
-    "It sets the fields given, empties those `clear` names (not the name: INVALID_INPUT) and keeps the rest; never its " +
-    "status, totals or actual dates, nor its percent complete unless worked out by hand (projects.derived, " +
-    "projects.percent-by-hand). A new method from its tasks works the percent out again (task progress and weight " +
-    "average each task's progress, a completed or cancelled one counting 100) and moves its status as a task would: an " +
-    "open project at 100 completes, a completed one below 100 reopens. " +
+    "It sets the fields given, empties those `clear` names (not the name: INVALID_INPUT) and keeps the rest; giving " +
+    "none is INVALID_INPUT. It never sets its status, totals or actual dates, nor its percent unless worked out by hand " +
+    "(projects.derived, projects.percent-by-hand). A new method from its tasks works the percent out again (task " +
+    "progress and weight average the tasks' typed percent, a completed or cancelled one counting 100), which, as a " +
+    "task's write would, completes an open project at 100 and reopens a completed one below it. " +
     LOG_LINE,
   was: [`${FRAPPE}/project/project.py:267`],
   concept: concept_projects,

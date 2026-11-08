@@ -132,6 +132,7 @@ const unknown = (kind: string, id: string) =>
   invalid(`The ${kind} named is none of Acme's (a well-formed \`${id}\` id that names nothing here): there is no not-found code.`);
 
 const ERRORS = [error_CLI_USAGE];
+const PAGE_NOTES = ["It shows 25 at a time by default. `--limit` takes 1 to 100.", "When there are more, `nextCursor` is the `--after` value for the next page."];
 
 // ── projects ────────────────────────────────────────────────────────────────────────────────
 
@@ -167,9 +168,10 @@ export const operation_org_project_create = defineOperation({
     claim(
       "Authority is the hat worn when the command runs: a member is refused without the People hat, admitted once the " +
         "Board grants it to their Safe, and refused again once it is taken back.",
-      "cli: in org-with-member, Sam's create is ROLE_PERMISSION_DENIED; after `org member grant` gives Sam's Safe the " +
-        "People permission and its proposal executes, the same command by Sam prints an open project; after `org member " +
-        "revoke` executes, it is ROLE_PERMISSION_DENIED again; world: each refusal's diff is empty.",
+      "cli: in org-with-member, Sam's create is ROLE_PERMISSION_DENIED; after Dana's `org member grant sam@acme.test " +
+        "--permission manage-people` executes (she approves its proposal as the one Director), the same command by Sam " +
+        "prints an open project; after `org member revoke sam@acme.test --permission manage-people` executes, it is " +
+        "ROLE_PERMISSION_DENIED again; world: each refusal's diff is empty.",
     ),
   ],
   returns: Project,
@@ -199,7 +201,7 @@ export const operation_org_project_list = defineOperation({
   implementedBy: rpc_projects_projects_list,
   who: WHO_MEMBER,
   changes: NOTHING_READ,
-  notes: ["It shows 25 at a time by default. `--limit` takes 1 to 100.", "When there are more, `nextCursor` is the `--after` value for the next page."],
+  notes: PAGE_NOTES,
   acceptance: [
     claim(
       "Every member sees every project of the Organization, newest first, filtered as asked.",
@@ -249,9 +251,11 @@ export const operation_org_project_change = defineOperation({
   title: "Change a project's fields",
   about:
     "Changes a project's fields, with the flags `org project create` takes; `--clear <field>` empties one. The fields " +
-    "not given are kept. Its status moves only by `hold`, `resume`, `complete`, `reopen` and `cancel`, and its totals " +
-    "and actual dates are worked out, never set; its percent complete is set with `--percent` only when it is worked " +
-    "out by hand (`--progress manual`).",
+    "not given are kept, and a change that gives none is refused. No flag sets its status, which `hold`, `resume`, " +
+    "`complete`, `reopen` and `cancel` move, except that a new `--progress` method from its tasks works its percent " +
+    "out again and, as a task's change would, completes an open project at 100 or opens a completed one below it. " +
+    "Its totals and actual dates are worked out, never set; its percent complete is set with `--percent` only when it " +
+    "is worked out by hand (`--progress manual`).",
   area: AREA,
   command: "org project change",
   priority: "normal",
@@ -272,9 +276,9 @@ export const operation_org_project_change = defineOperation({
     ),
     claim(
       "A project worked out by hand takes the percent given and keeps its status; one worked out by task progress " +
-        "averages its tasks' progress, a completed or cancelled task counting 100.",
+        "averages its tasks' typed percents, a completed or cancelled task counting 100.",
       "cli: `org project change <Retainer> --progress manual --percent 40` prints `progress: manual`, a percent complete " +
-        "of 40 and `status: on_hold`; after `org task change <Build> --progress 50`, `org project change <Website> " +
+        "of 40 and `status: on_hold`; after `org task change <Build> --percent 50`, `org project change <Website> " +
         "--progress task-progress` prints a percent complete of 30 (Spec 100, Build 50, the other three 0).",
     ),
   ],
@@ -284,8 +288,9 @@ export const operation_org_project_change = defineOperation({
     ...managed("changes Website's priority"),
     unknown("project", "prj_…"),
     invalid(
-      "`--clear name`, an empty name, a `--type` that is none of Acme's, an `--end` before the `--start`, or a " +
-        "`--percent` for Website, which is not worked out by hand: the refusal names the field.",
+      "`--clear name`, an empty name, a `--type` that is none of Acme's, an `--end` before the `--start`, a " +
+        "`--percent` for Website, which is not worked out by hand, or no flag at all: the refusal names the field, or " +
+        "says nothing was given.",
     ),
   ],
   budget: budget("chain-read"),
@@ -428,8 +433,8 @@ export const operation_org_project_member_add = defineOperation({
         "project list --member sam@acme.test` lists Retainer and Website.",
     ),
     claim(
-      "Adding a member the project is already shared with changes nothing.",
-      "cli: `org project member add <Website> sam@acme.test` prints Website as before; world: the diff is empty.",
+      "Adding a member the project is already shared with is refused, as adding a department's holder again is.",
+      "cli: `org project member add <Website> sam@acme.test` is WRONG_STATE naming Sam; world: the diff is empty.",
     ),
   ],
   returns: Project,
@@ -438,6 +443,7 @@ export const operation_org_project_member_add = defineOperation({
     ...managed("shares Website with a member"),
     unknown("project", "prj_…"),
     invalid("The member named is Olga, who holds no Seat in Acme, or an email or @handle no Party holds: the refusal names the member."),
+    wrong("Website is already shared with Sam: the refusal names him, as `org department holder add` names a holder."),
   ],
   budget: budget("chain-read"),
 });
@@ -467,7 +473,11 @@ export const operation_org_project_member_remove = defineOperation({
   refusals: [
     ...managed("stops sharing Website with a member"),
     unknown("project", "prj_…"),
-    invalid("The project is not shared with the member named (Dana, on Retainer): the refusal names the member."),
+    invalid("The member named is Olga, who holds no Seat in Acme: the refusal names the member."),
+    wrong(
+      "Retainer is not shared with Dana, the member named: the refusal names her, as `org department holder remove` " +
+        "names someone who holds nothing.",
+    ),
   ],
   budget: budget("chain-read"),
 });
@@ -521,7 +531,10 @@ export const operation_org_project_settings_set = defineOperation({
   ],
   returns: Settings,
   errors: ERRORS,
-  refusals: managed("sets the Projects Settings"),
+  refusals: [
+    ...managed("sets the Projects Settings"),
+    invalid("No setting given, neither a flag nor its `--no-` form: the refusal says so and nothing is written.", "org-ready"),
+  ],
   budget: budget("chain-read"),
 });
 
@@ -532,7 +545,8 @@ export const operation_org_task_create = defineOperation({
   title: "Create a task",
   about:
     "Creates an open task: its subject and, as you choose, its project, its parent group task, the tasks it depends " +
-    "on, its expected start and end days (within its project's), expected hours, weight, progress, priority, whether " +
+    "on, its expected start and end (days or times, within its project's days), expected hours, weight, percent " +
+    "complete (`--percent`), priority, whether " +
     "it is a group or a milestone, and its type. A parent must be a group task of the same project that is not " +
     "completed, and no dependency or parent may make a cycle. A task created under a project its tasks had completed " +
     "opens the project again.",
@@ -574,14 +588,14 @@ export const operation_org_task_list = defineOperation({
   title: "List the Organization's tasks",
   about:
     "Lists the Organization's tasks, earliest expected end first, a page at a time, with their status, priority and " +
-    "progress. Filter by `--project`, `--status` or `--parent`.",
+    "percent complete. Filter by `--project`, `--status` or `--parent`.",
   area: AREA,
   command: "org task list",
   priority: "critical",
   implementedBy: rpc_projects_tasks_list,
   who: WHO_MEMBER,
   changes: NOTHING_READ,
-  notes: ["It shows 25 at a time by default. `--limit` takes 1 to 100."],
+  notes: PAGE_NOTES,
   acceptance: [
     claim(
       "Every member sees the Organization's tasks by expected end, filtered as asked.",
@@ -641,9 +655,9 @@ export const operation_org_task_change = defineOperation({
     claim(
       "An overdue task whose expected end moves to a later day is open again, or working with time logged, and falls " +
         "overdue again when that day ends unfinished.",
-      "world: after a warp past the end of Build's expected end day, `org task get <Build>` shows overdue; cli: `org " +
-        "task change <Build> --end <a later day>` prints `status: open`; world: a warp past the end of that day shows it " +
-        "overdue again.",
+      "read: after `dev time warp` past the end of Build's expected end day, `org task get <Build>` shows overdue; cli: " +
+        "`org task change <Build> --end <a later day>` prints `status: open`; read: after `dev time warp` past the end of " +
+        "that day, `org task get <Build>` shows it overdue again.",
     ),
   ],
   returns: Task,
@@ -653,7 +667,8 @@ export const operation_org_task_change = defineOperation({
     unknown("task", "tsk_…"),
     invalid(
       "A dependency that makes a cycle (Design depending on Build), a parent that is not a group, making Launch not a " +
-        "group while Announce is its child, or `--clear subject`: the refusal names the field.",
+        "group while Announce is its child, `--clear subject`, or no flag at all: the refusal names the field, or says " +
+        "nothing was given.",
     ),
   ],
   budget: budget("write"),
@@ -715,8 +730,8 @@ export const operation_org_task_review = taskStep("review", {
     claim(
       "The task is pending review by that day, and does not fall overdue while the review day is ahead.",
       "cli: `org task review <Design> --by <a day after its expected end>` prints `status: pending_review` and that " +
-        "`reviewBy`; world: a warp past its expected end leaves it pending review, and a warp to the start of the review " +
-        "day shows it overdue.",
+        "`reviewBy`; read: after `dev time warp` past its expected end day, `org task get <Design>` shows it pending " +
+        "review, and after `dev time warp` to the start of the review day, overdue.",
     ),
   ],
   extra: [invalid("A `--by` that is not a day: the refusal names `--by`.")],
@@ -735,7 +750,7 @@ export const operation_org_task_complete = taskStep("complete", {
   claims: [
     claim(
       "The task is completed, with who completed it and when, and its project's percent complete moves.",
-      "cli: Sam's `org task complete <Design>` prints `status: completed`, a progress of 100, `completedBy` Sam and " +
+      "cli: Sam's `org task complete <Design>` prints `status: completed`, `percentComplete` 100, `completedBy` Sam and " +
         "today's day; read: `org project get <Website>` shows a percent complete of 40.",
     ),
     claim(
@@ -758,7 +773,7 @@ export const operation_org_task_reopen = taskStep("reopen", {
   claims: [
     claim(
       "A completed task is open again, its completion cleared.",
-      "cli: `org task reopen <Spec>` prints `status: open`, a progress of 0 and `completedBy` null; read: `org project " +
+      "cli: `org task reopen <Spec>` prints `status: open`, `percentComplete` 0 and `completedBy` null; read: `org project " +
         "get <Website>` shows a percent complete of 0.",
     ),
   ],
@@ -909,7 +924,7 @@ export const operation_org_timesheet_list = defineOperation({
   implementedBy: rpc_projects_timesheets_list,
   who: WHO_MEMBER,
   changes: NOTHING_READ,
-  notes: ["It shows 25 at a time by default. `--limit` takes 1 to 100."],
+  notes: PAGE_NOTES,
   acceptance: [
     claim(
       "Every member sees the Organization's timesheets by start day, filtered as asked.",

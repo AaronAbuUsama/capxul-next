@@ -19,7 +19,7 @@ import {
   MANAGE_ERRORS,
   MEMBER_GUARD,
   MEMBER_READS,
-  READ_ERRORS,
+  GUARD_ERRORS,
   WHO_MANAGER,
   WHO_MEMBER,
 } from "./guards.ts";
@@ -72,7 +72,7 @@ export const rpc_projects_activity_types_add = write(
 export const rpc_projects_activity_types_change = write(
   "change",
   "Change an activity type's default rates",
-  "The type by its name (INVALID_INPUT otherwise), enabled or not, with at least one rate given (INVALID_INPUT " +
+  "The type by its name, without regard to case (INVALID_INPUT otherwise), enabled or not, with at least one rate given (INVALID_INPUT " +
     "otherwise). " +
     RATES +
     "It sets the rates given and keeps the other. Logs already made keep their own rates; the next log takes the new.",
@@ -83,7 +83,7 @@ export const rpc_projects_activity_types_change = write(
 export const rpc_projects_activity_types_disable = write(
   "disable",
   "Disable an activity type: it takes no new logs",
-  "The type by its name (INVALID_INPUT otherwise). An enabled type is disabled, so no new log names it (ERPNext's " +
+  "The type by its name, without regard to case (INVALID_INPUT otherwise). An enabled type is disabled, so no new log names it (ERPNext's " +
     "`validate_activity_type`); the logs that name it are kept. One already disabled is WRONG_STATE.",
   OneType,
   true,
@@ -92,7 +92,7 @@ export const rpc_projects_activity_types_disable = write(
 export const rpc_projects_activity_types_enable = write(
   "enable",
   "Enable an activity type again",
-  "The type by its name (INVALID_INPUT otherwise). A disabled type is enabled and takes logs again. One already " +
+  "The type by its name, without regard to case (INVALID_INPUT otherwise). A disabled type is enabled and takes logs again. One already " +
     "enabled is WRONG_STATE.",
   OneType,
   true,
@@ -111,7 +111,7 @@ export const rpc_projects_activity_types_list = defineRpc({
   who: WHO_MEMBER,
   input: Schema.Struct(OrgInput),
   output: Page(ActivityType),
-  errors: READ_ERRORS,
+  errors: GUARD_ERRORS,
   reads: [...MEMBER_READS, table_activity_types],
   writes: [],
   drives: [],

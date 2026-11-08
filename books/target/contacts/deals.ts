@@ -87,11 +87,12 @@ export const rpc_contacts_deals_save = defineRpc({
     GUARD +
     "With no `deal` (`org crm deal create`) it opens a new one by hand (`start`): status Qualification, stage open, the " +
     "fields given. With `deal` (`org crm deal change`) it changes the fields given and keeps the rest, whatever its " +
-    "stage, as Frappe lets a won or lost deal be edited; its status moves only through `contacts.deals.move`. " +
+    "stage, as Frappe lets a won or lost deal be edited, and a change that gives no field is INVALID_INPUT; its status " +
+    "moves only through `contacts.deals.move`. " +
     "`organization` must be a CRM Organization entry of the " +
     "Organization's book and each of `contacts` a Contact entry of it, at most one primary and the only one primary " +
-    "(Frappe's `set_primary_contact`); `contacts` replaces the deal's people. `deal_owner` is a member named by a " +
-    "mailbox, an @handle or the PartyId of an active Seat (kept as its PartyId); `probability` 0 to 100, taken from " +
+    "(Frappe's `set_primary_contact`); `contacts` replaces the deal's people. `deal_owner` is a member named as G5 " +
+    "names one, by a mailbox or an agent's @handle, with an active Seat (kept as its PartyId); `probability` 0 to 100, taken from " +
     "the status's (Qualification 10) when none is given or 0, as Frappe's " +
     "`update_default_probability`; values non-negative decimals given with `currency` (3 to 10 capitals); " +
     "`expected_closure_date` a calendar date; texts trimmed and at most 140. A bad value, or a deal id not in this " +
@@ -153,9 +154,11 @@ export const rpc_contacts_deals_list = defineRpc({
   id: "contacts.deals.list",
   title: "List an Organization's deals, most recent change first",
   about:
-    "One page of the Organization's deals with their people, newest change first (`deals-by-activity`), or only those " +
-    "at one `stage` (`deals-by-stage`), or one company's (`organization`, by `deals-by-organization`), or one person's " +
-    "(`contact`, by `deal-contacts-by-contact`, Frappe's `get_linked_deals`). `limit` is 1 to 100 (25 when absent); " +
+    "One page of the Organization's deals with their people, newest change first (`deals-by-activity`), filtered by " +
+    "`stage`, `organization` (a company's) and `contact` (a person's, Frappe's `get_linked_deals`), which all apply when " +
+    "given together, as Frappe's list filters do: a person's are read by `deal-contacts-by-contact`, else a company's by " +
+    "`deals-by-organization`, else a stage's by `deals-by-stage`, and any other filter given is checked on each row " +
+    "(contacts.deal-list-filters). `limit` is 1 to 100 (25 when absent); " +
     "`after` is the opaque cursor the last page returned, bound to this Organization and filter: another's, or a forged " +
     "one, is INVALID_INPUT.",
   concept: concept_contacts,

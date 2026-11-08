@@ -43,7 +43,7 @@ import {
   table_salary_structures,
 } from "./data.ts";
 import { rpc_payroll_employees_add, rpc_payroll_employees_change, rpc_payroll_employees_get, rpc_payroll_employees_list } from "./employees.ts";
-import { flow_client_org_payroll_runs_pay, rpc_payroll_runs_pay } from "./staged.ts";
+import { flow_client_org_payroll_runs_pay, rpc_payroll_runs_pay, workflow_payroll_runs_lifecycle } from "./staged.ts";
 import {
   rpc_payroll_structures_assign,
   rpc_payroll_structures_cancel,
@@ -124,10 +124,22 @@ import {
   operation_org_agreement_withdraw,
   CRITICAL_OPERATIONS,
   NEW_OPERATIONS,
+  operation_org_employee_add,
+  operation_org_employee_change,
   operation_org_employee_leave,
+  operation_org_employee_list,
+  operation_org_employee_suspend,
+  operation_org_payroll_component_add,
   operation_org_payroll_component_change,
+  operation_org_payroll_component_disable,
+  operation_org_payroll_component_enable,
+  operation_org_payroll_component_list,
   operation_org_payroll_run_create,
+  operation_org_payroll_run_list,
   operation_org_payroll_run_pay,
+  operation_org_payroll_structure_assign,
+  operation_org_payroll_structure_create,
+  operation_org_payroll_structure_list,
   operation_org_payroll_structure_unassign,
   operation_payslip_get,
   operation_payslip_list,
@@ -1083,7 +1095,7 @@ export const decision_payroll_run_one_approval = defineDecision({
   why:
     "`payments.prepare-command` already takes many items, each with its own document, under one approval from the " +
     "payer's own Safe: what blocked C9 was only `payment send`'s one recipient, which payroll does not use. A person " +
-    "signs a run once; an agent whose Seat holds the budget's allowance, or the Organization's FDE agent, signs it with " +
+    "signs a run once; an agent whose Safe wears the budget's hat or one above it, the FDE included, signs it with " +
     "its key and needs no person, and the chain still caps it at what the budget has left. Each Payment keeps its own " +
     "payslip hash on chain, so every employee can prove their pay alone. A new key after a lapse would birth new " +
     "Payments while the lapsed ones stay `needs_retry` and retryable by `payment retry`, so one slip could be paid " +
@@ -1133,7 +1145,7 @@ export const decision_payroll_deduction_remittance = defineDecision({
       text:
         "A deduction or employer contribution may name the Party its liability is owed to (a Custom Field on a head). " +
         "The run's command carries nets only. When a remittance falls due, whoever wears the department budget's hat, or " +
-        "one above it (the FDE only by a hat the Board granted its Safe), pays that Party with an ordinary budget payment " +
+        "one above it (the FDE only by a hat its Safe was granted), pays that Party with an ordinary budget payment " +
         "against the component's liability account, which books " +
         "posts as a Bank Entry on that liability. A component with no payee stays a liability, as in Frappe HR.",
     },
@@ -1310,13 +1322,14 @@ export const decision_payroll_hr_surface = defineDecision({
         "`payroll.slips.mine`, filtered by `--employer`, never `--org`). Who (payroll.hr-authority): a member whose Safe " +
         "wears the People hat changes and reads the records; paying a run is whoever Budgets.authorised admits on its " +
         "department's budget; a payee reads their own slips. Reads are `read`, `org payroll run pay` `chain-submit`, " +
-        "the rest `write`, all `normal`.",
+        "the rest `write`; the ten a first payroll needs are `critical` (payroll.critical-commands), the rest `normal`. " +
+        "Every list pages, and every write prints its record as `get` does (payroll.command-fit).",
     },
   ],
   chosen: "cli-now",
   why:
-    "Aaron asked on 8 November 2026 for the new commands to be designed in the book; booked under rules.new-operations " +
-    "on this recommendation, which stands until he answers. The capability serves aaron.frappe-shape (payroll in " +
+    "Aaron asked on 8 November 2026 for the new commands to be designed in the book, and the same day accepted this " +
+    "recommendation with the others he did not mention; booked under rules.new-operations on it. The capability serves aaron.frappe-shape (payroll in " +
     "Frappe HR's shape in every Organization), and the FDE works it through the same CLI (aaron.fde-agent). The rpcs " +
     "and flows came first (sdk-now); the commands now follow the one grammar every new command keeps " +
     "(docs/design/new-commands.md): nouns then verbs, a status step as its own verb, `get` for one record, and one SDK " +
@@ -1324,7 +1337,11 @@ export const decision_payroll_hr_surface = defineDecision({
     "keeps its class default budget. Booked on 8 November 2026: the 28 operations in this record's `affects`, each " +
     "one flow (payroll.command-flows); who runs each (payroll.command-authority), the ten a first payroll needs " +
     "(payroll.critical-commands), the worlds (payroll.command-worlds), and where a row reads its rpc more exactly " +
-    "(payroll.command-details, payroll.run-pay-codes) each have their decision.",
+    "(payroll.command-details, payroll.run-pay-codes) each have their decision. Review then found more, each a " +
+    "decision: a declined run approval leaves the run owed (payroll.declined-run-approval), the run keeps the caller's " +
+    "request key (payroll.run-request-key), a component's flags are off unless given (payroll.component-defaults), a " +
+    "run takes its department's Employees and its leavers' last period (payroll.run-employees), and the commands keep " +
+    "the grammar's lists, outputs and codes as the 215 and the other packs do (payroll.command-fit).",
   source: AFTER_RULING("aaron.frappe-shape, aaron.fde-agent, aaron.projects (new capabilities designed book first)"),
   affects: [...NEW_OPERATIONS, ...HR_FLOWS, ...HR_RPCS, rpc_payroll_slips_mine, rpc_payroll_runs_pay],
 });
@@ -1379,7 +1396,8 @@ export const decision_payroll_command_flows = defineDecision({
       label: "flows",
       text:
         "Every command is one flow under `client.org(orgId)` or `client.me`, on the CLI, the SDK and the web app, each one " +
-        "call of one payroll rpc except `org employee leave`, which reads, previews and writes. Where one rpc serves " +
+        "call of one payroll rpc except `org employee leave`, which reads, previews and writes, and `org payroll run pay`, " +
+        "which signs its approval and follows the chain. Where one rpc serves " +
         "several verbs each verb is its own flow fixing its part of the input: `employees.suspend|deactivate|reinstate|" +
         "leave` over `payroll.employees.change`; `payroll.components.add|change|disable|enable` over " +
         "`payroll.structures.component`, `.list` over `payroll.structures.list`; `payroll.structures.cancel|unassign` " +
@@ -1498,25 +1516,27 @@ export const decision_payroll_critical_commands = defineDecision({
 
 export const decision_payroll_command_worlds = defineDecision({
   id: "payroll.command-worlds",
-  title: "Four worlds hold Acme's HR records and runs in every state a refusal needs",
+  title: "Five worlds hold Acme's HR records and runs in every state a refusal needs",
   question:
     "No catalogued world holds Employees, components, structures and runs but org-with-documents, whose one run serves " +
     "documents. Which worlds do the HR commands' claims and refusals start from?",
   options: [
     {
-      label: "four",
+      label: "five",
       text:
-        "signed-out, and four built with payroll's own commands on org-with-department (Directors Dana and Eli; Pat with " +
+        "signed-out, and five built with payroll's own commands on org-with-department (Directors Dana and Eli; Pat with " +
         "the People hat and no office; Lead wearing `salaries`' office hat; Sam a member with no hat; Olga outside): " +
         "org-with-employees (Sam, and Noor, Ana and Leo with no accounts; Ana suspended, Leo left; components Basic, " +
         "Pension and a disabled Bonus; structures Standard and Contractors; Standard assigned to Sam, Noor and Ana); " +
         "org-with-payroll-runs (three runs of `salaries`: the first paid by Lead with Noor's net in a claim escrow, the " +
         "second submitted with Noor's slip withheld, this month's a draft); org-with-payroll-budget-used (`salaries` " +
-        "spent to 1,350 USDC left); org-with-payroll-short-safe (the company Safe down to 1,000 USDC).",
+        "spent to 1,350 USDC left); org-with-payroll-short-safe (the company Safe down to 1,000 USDC); and " +
+        "org-with-payroll-runs-chain-unreachable (chain-rpc's fault switch failing every read, added by the fit review " +
+        "so `org payroll run pay`'s chain read refuses PROVIDER_ERROR from a world, as the department commands' does).",
     },
     { label: "in-eval", text: "Each eval builds what it needs from org-with-department." },
   ],
-  chosen: "four",
+  chosen: "five",
   why:
     "Most of the 28 commands' claims and refusals share these states, so one build each serves them all, made only " +
     "with booked commands and `dev approve`. org-with-department gives each authority claim its actor: Pat records pay " +
@@ -1772,4 +1792,209 @@ export const decision_payroll_employee_wise_accounting = defineDecision({
     "Capxul voucher does. The Capxul app sets it on a head with the other fixed settings.",
   source: FRAPPE_ASSEMBLY("hrms payroll_entry.py:621, :1196; payroll_settings.json; erpnext journal_entry.py:509 (party_not_required)"),
   affects: [table_payroll_settings, workflow_payroll_startup_open, rpc_payroll_runs_submit, workflow_payroll_head_sync],
+});
+
+// ── the payroll truth review (8 November 2026): what the booked commands could not yet produce ──
+
+const REVIEW = (rulings: string, evidence: string) =>
+  `Claude, payroll truth review, 8 November 2026; rulings: ${rulings}; evidence: ${evidence}`;
+
+export const decision_payroll_declined_run_approval = defineDecision({
+  id: "payroll.declined-run-approval",
+  title: "A declined or refused run approval returns its slips owed, for a new command",
+  question:
+    "`payroll.runs.pay` moves the run and its slips to `paying` when its command is born, before anyone signs. When " +
+    "the approval is then declined, refused at sponsorship (a payer swapped out of the department) or withdrawn, " +
+    "payments cancels its Payments. The run's process handled only a lapse and an escrow refund, so such a run stayed " +
+    "`paying` for good and no command could pay it. What happens to it?",
+  options: [
+    {
+      label: "owed-again",
+      text:
+        "The process takes a cancel that moved no money like a refund: the command's paying slips return to `submitted` " +
+        "with their payment fields cleared (salary-slip.unsend), and the run returns to `submitted` when nothing of it " +
+        "is paid or escrowed (payroll-entry.lapse). The next `org payroll run pay` sends them as a new command under the " +
+        "next attempt, since a cancelled Payment is never resumed.",
+    },
+    { label: "stuck", text: "Leave the run `paying`; a person cancels and redrafts it." },
+  ],
+  chosen: "owed-again",
+  why:
+    "A cancelled Payment is terminal in payments, and the run's cancel needs no slip holding a Payment, so a stuck run " +
+    "could be neither paid nor cancelled, while its accrual stood owed. A decline is the CANCELLED ending every payroll " +
+    "flow already gives, and under aaron.departments a refusal at sponsorship is the normal end of an approval its payer " +
+    "lost the hat for: the department's next wearer must be able to pay the run. Clearing the payment fields keeps one " +
+    "Payment per slip and attempt, so nothing pays twice.",
+  source: REVIEW("aaron.departments, aaron.frappe-shape", "payments/data.ts (payment.cancel: declined, refused, withdrawn); payroll/staged.ts (payroll.runs.lifecycle); docs/design/authority.md"),
+  affects: [machine_salary_slip, machine_payroll_entry, workflow_payroll_runs_lifecycle, rpc_payroll_runs_pay, operation_org_payroll_run_pay],
+});
+
+export const decision_payroll_run_request_key = defineDecision({
+  id: "payroll.run-request-key",
+  title: "The run keeps the caller's request key, so the same ask returns its command",
+  question:
+    "`org payroll run pay --request-key` must return the command and approval a repeat of the same ask began. The " +
+    "command's own key is `payroll:<entry>:<attempt>`, which a resume derives from a slip's attempt, and nothing kept " +
+    "the caller's key, while a repeat finds its slips already paying or escrowed and would be WRONG_STATE. Where is it kept?",
+  options: [
+    {
+      label: "asked-key",
+      text:
+        "On the run, as `asked_key`, beside the latest attempt's `request_key`, `command_id` and `approval_id`. A " +
+        "`requestKey` equal to it answers that command and approval as they stand, `replayed`, before any slip check. " +
+        "The command keeps its derived key.",
+    },
+    { label: "as-command-key", text: "Use the caller's key as the command's key, and derive nothing from the attempt." },
+  ],
+  chosen: "asked-key",
+  why:
+    "A resume finds a lapsed command by its slips' attempt, so the derived key must stay. Keeping the caller's key apart " +
+    "lets a script repeat the ask it lost the answer to (G5), and payments' K1 still guards the command itself.",
+  source: REVIEW("aaron.frappe-shape, aaron.fde-agent", "docs/design/new-commands.md (G5); payments/procedures.ts (payments.prepare-command: one owner and request key, one command)"),
+  affects: [table_payroll_entries, rpc_payroll_runs_pay, operation_org_payroll_run_pay],
+});
+
+export const decision_payroll_component_defaults = defineDecision({
+  id: "payroll.component-defaults",
+  title: "A salary component's flags are off unless its command sets them",
+  question:
+    "Frappe's Salary Component starts `depends_on_payment_days` and `is_tax_applicable` on. The grammar gives `org " +
+    "payroll component add` opt-in flags (`--payment-days`, `--statistical`, `--not-in-total`, `--taxable`), and the " +
+    "worlds give Basic `--payment-days` and Pension none, but payroll's rpc never said what an absent flag means. What " +
+    "does it mean?",
+  options: [
+    {
+      label: "off-unless-given",
+      text:
+        "Off: a component prorates by payment days, is statistical, stays out of totals or is taxable on a head only when " +
+        "its command says so; `remove_if_zero_valued` stays on, as Frappe's. A head shows the values Capxul set.",
+    },
+    { label: "frappe-form", text: "Frappe's form defaults: payment days and taxable on unless turned off." },
+  ],
+  chosen: "off-unless-given",
+  why:
+    "A flag that only turns something on must default off, or `--payment-days` would say nothing. With Frappe's default " +
+    "a fixed deduction such as Pension would shrink with unpaid leave without anyone asking. The head's tax engine then " +
+    "taxes only components marked `--taxable`, which the FDE sets as the Organization's rules need.",
+  source: REVIEW("aaron.frappe-shape", "/tmp/hrms/hrms/payroll/doctype/salary_component/salary_component.json (two flags default 1); docs/design/new-commands.md (component add)"),
+  affects: [rpc_payroll_structures_component, operation_org_payroll_component_add, operation_org_payroll_run_create],
+});
+
+export const decision_payroll_run_employees = defineDecision({
+  id: "payroll.run-employees",
+  title: "A run takes its department's active Employees and its leavers' last period",
+  question:
+    "Frappe's Payroll Entry takes every Employee of the department whose status is not Inactive and whose relieving " +
+    "date is on or after the period's start, so it pays a leaver's last period and a suspended Employee too. Payroll's " +
+    "run took only `active` Employees, so a leaver was never paid their last period, and an assignment's own " +
+    "department claimed to decide who pays it while the run paid from its own. Which Employees does a run take, and " +
+    "from which budget?",
+  options: [
+    {
+      label: "frappe-filter",
+      text:
+        "The department's Employees are those whose own `department` is it, as Frappe filters the Employee, and the run " +
+        "pays them from it. It takes the active ones and those who left on or after the period's first day, paid to " +
+        "their relieving day; never an inactive or a suspended one. An assignment records the Employee's department, as " +
+        "Frappe fetches it, and `--department` on assign must name that one.",
+    },
+    { label: "active-only", text: "Only `active` Employees, as before; a leaver's last period is paid before they are marked left." },
+    { label: "frappe-exact", text: "As Frappe, suspended Employees included." },
+  ],
+  chosen: "frappe-filter",
+  why:
+    "Frappe pays a leaver's last period, and payroll's own machine says no run pays them after their relieving day, " +
+    "which only means something if a run may pay them up to it. Leaving out a suspended Employee is Capxul's stricter " +
+    "rule, which the worlds and the suspend command keep. One department per Employee, as Frappe has it, keeps one " +
+    "answer to which budget pays them and so whose hat may pay the run (aaron.departments).",
+  source: REVIEW("aaron.frappe-shape, aaron.departments", "/tmp/hrms/hrms/payroll/doctype/payroll_entry/payroll_entry.py:1522 (status, relieving_date); salary_structure_assignment.json (department fetched)"),
+  affects: [
+    rpc_payroll_runs_create,
+    rpc_payroll_structures_assign,
+    table_salary_structure_assignments,
+    table_employees,
+    operation_org_payroll_run_create,
+    operation_org_payroll_structure_assign,
+    operation_org_employee_suspend,
+    operation_org_employee_leave,
+    operation_org_employee_change,
+  ],
+});
+
+// ── the payroll fit review (8 November 2026): the booked commands against the grammar and the 215 ──
+
+const FIT = (rulings: string, evidence: string) =>
+  `Claude, payroll fit review, 8 November 2026; rulings: ${rulings}; evidence: ${evidence}`;
+
+export const decision_payroll_command_fit = defineDecision({
+  id: "payroll.command-fit",
+  title: "The HR commands keep the grammar's pages, outputs and codes, as the 215 do",
+  question:
+    "A fit review of the 28 booked commands against docs/design/new-commands.md and the 215 found commands that read " +
+    "a row of section 5.3 more loosely than the grammar's own rules (G5, G6, G9, G10), or that gave a case another code " +
+    "than the 215 and the other packs give it. What does each command do there?",
+  options: [
+    {
+      label: "grammar",
+      text:
+        "(1) Every list pages and prints `items` and `nextCursor`; a cursor it did not give is INVALID_INPUT, as `org " +
+        "app list` and `org activity-type list` do: `org employee list` and `org payroll run list` page in their rpc, and " +
+        "`org payroll component list` and `org payroll structure list`, short catalogs, in their method over one read; " +
+        "structures list by name, each with the assignments that name it. (2) Every Employee write prints the Employee as " +
+        "`org employee get` does, with today's assignment. (3) `org payroll run pay` prints as `payment send` and the " +
+        "agreement writes do: `status` (`awaiting_approval` at the hand-over, else the run's), `approvalId`, " +
+        "`approvalUrl`, `expiresAt`, the run and `next`. (4) Disabling a disabled component, or enabling an enabled one, " +
+        "is WRONG_STATE, as a second `org activity-type disable` and a frozen token's freeze are. (5) `--amends` naming a " +
+        "structure an assignment still names, or one already cancelled, is WRONG_STATE, as cancelling it is; " +
+        "INVALID_INPUT stays for one that names nothing. (6) `org employee leave` from a script without `--confirm` is a " +
+        "CLI_USAGE refusal from a world, and `org payroll run pay` refuses PROVIDER_ERROR when the chain cannot be read, " +
+        "from org-with-payroll-runs-chain-unreachable, as the department commands do. (7) `org employee add` takes a " +
+        "Party as G5 names one (a Safe's 0x address too), refuses a mailbox no claim escrow could hold (not ASCII) as " +
+        "INVALID_INPUT, and takes `--last-name` as optional, as Frappe's `last_name` is, where the row shows it bare. " +
+        "(8) Each flag that is not its field's name is named on its input shape.",
+    },
+    {
+      label: "rows",
+      text:
+        "Keep the booking as section 5.3's rows read: only `payslip list` pages, each write prints its rpc's answer, and " +
+        "each case keeps the code it was first booked with.",
+    },
+  ],
+  chosen: "grammar",
+  why:
+    "The grammar says every new command follows its rules with no exception, and payroll.command-details already took " +
+    "paging as G5's for every list; the rows of 5.3 left four lists unpaged, while the other packs' lists page. A write " +
+    "that prints less than `get` gives one record two shapes, and a money command that prints no status or approval " +
+    "page leaves a script nothing to wait on. One case keeps one code across the book (G6): a second disable is " +
+    "projects' and budgets' WRONG_STATE, and an amendment cancels the structure it amends, which the cancel's own guard " +
+    "refuses WRONG_STATE. A mailbox no escrow can hold would make every run that pays that Employee INVALID_RECIPIENT, " +
+    "so it is refused where it is typed. Naming each flag's field leaves the build nothing to guess. None of this " +
+    "changes who may run a command or what it does with money (aaron.departments, aaron.frappe-shape).",
+  source: FIT(
+    "aaron.frappe-shape, aaron.departments",
+    "docs/design/new-commands.md (G5, G6, G9, G10, 5.3); projects and organizations operations.ts (lists, disable); " +
+      "payments/operations.ts (MoneyJson)",
+  ),
+  affects: [
+    operation_org_employee_add,
+    operation_org_employee_change,
+    operation_org_employee_list,
+    operation_org_employee_leave,
+    operation_org_payroll_component_list,
+    operation_org_payroll_component_disable,
+    operation_org_payroll_component_enable,
+    operation_org_payroll_structure_create,
+    operation_org_payroll_structure_list,
+    operation_org_payroll_run_list,
+    operation_org_payroll_run_pay,
+    rpc_payroll_employees_add,
+    rpc_payroll_employees_change,
+    rpc_payroll_employees_list,
+    rpc_payroll_runs_list,
+    rpc_payroll_structures_component,
+    rpc_payroll_structures_create,
+    flow_client_org_payroll_components_list,
+    flow_client_org_payroll_structures_list,
+    flow_client_org_payroll_runs_pay,
+  ],
 });

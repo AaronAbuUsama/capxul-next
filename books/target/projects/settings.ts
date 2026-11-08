@@ -16,7 +16,7 @@ import {
   HAT_READS,
   MEMBER_GUARD,
   MEMBER_READS,
-  READ_ERRORS,
+  GUARD_ERRORS,
   WHO_MANAGER,
   WHO_MEMBER,
 } from "./guards.ts";
@@ -38,7 +38,7 @@ export const rpc_projects_settings_show = defineRpc({
   who: WHO_MEMBER,
   input: Schema.Struct(OrgInput),
   output: Settings,
-  errors: READ_ERRORS,
+  errors: GUARD_ERRORS,
   reads: [...MEMBER_READS, table_project_settings],
   writes: [],
   drives: [],

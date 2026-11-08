@@ -142,7 +142,8 @@ export const decision_projects_ids_and_names = defineDecision({
     "collide with the new one's. Activity Types and Project " +
     "Types are named by their title in Frappe (`autoname: field:...`), so their title is their key here too, and a " +
     "push adopts a head's type of the same name (its setup wizard made the same five and three) by stamping its " +
-    "capxul_id, instead of inserting a duplicate Frappe would refuse.",
+    "capxul_id, instead of inserting a duplicate Frappe would refuse. A command names a type by its title without " +
+    "regard to case, as Frappe's names compare, so `research` finds Research and `add planning` is a duplicate.",
   source: by(`${DT}/project/project.json (naming_series PROJ-.####); ${DT}/task/task.json (autoname TASK-.YYYY.-.#####); ${DT}/activity_type/activity_type.json (field:activity_type)`),
   affects: [table_projects, table_tasks, table_timesheets, table_activity_types, table_project_types],
 });
@@ -179,7 +180,10 @@ export const decision_projects_dates = defineDecision({
     "A project's expected end is a day the business means, not an instant; turning it into midnight UTC would move it a " +
     "day for anyone west of Greenwich. A time log's from and to are moments, and a task's expected start and end are " +
     "Datetime fields in Frappe, so they stay instants. One zone for the Organization, shared with the head's System " +
-    "Settings, is what makes both sides agree on which day an instant falls on (organizations.head-clock).",
+    "Settings, is what makes both sides agree on which day an instant falls on (organizations.head-clock). A command " +
+    "takes a task's Datetime as an instant or as a day, which the rpc reads as that day's 00:00 in the Organization's " +
+    "zone, as Frappe stores a Datetime given only its date; the CLI cannot convert a day itself, since it does not " +
+    "know the zone (projects review for fit, 8 November 2026).",
   source: by(`${DT}/project/project.json (expected_end_date Date); ${DT}/task/task.json (exp_end_date Datetime); ${DT}/timesheet_detail/timesheet_detail.json (from_time Datetime)`),
   affects: [table_projects, table_tasks, table_timesheets, table_timesheet_logs],
 });
@@ -440,10 +444,13 @@ export const decision_projects_commands = defineDecision({
     "differ from the grammar page and each has its decision: the People-or-Director commands read the hat live and so " +
     "take `chain-read` (projects.hat-guard); the commands a pilot's first engagement runs are `critical` " +
     "(projects.critical-commands); and every refusal starts from a world, two of them asked of devnet (projects.worlds). " +
-    "Review found two more, each a decision: `org project create|change` take `--percent` and `org task create|change` " +
-    "take `--progress`, without which Frappe's Manual, Task Progress and Task Weight methods could not work " +
+    "Review found two more, each a decision: `org project create|change` and `org task create|change` take `--percent`, " +
+    "without which Frappe's Manual, Task Progress and Task Weight methods could not work " +
     "(projects.percent-by-hand); and a pending review falls overdue when its review day comes, as ERPNext's job has it, " +
-    "not after it (projects.review-day). Not in this pack: `org timesheet bill` (requests.bill-time, requests' flow) and templates.",
+    "not after it (projects.review-day). A fit review then aligned the booking with the 215: `--percent` is the one " +
+    "flag for a typed percent and `--progress` only a project's method; a member shared twice or removed unshared is " +
+    "WRONG_STATE, as `org department holder add|remove` refuse it; and a change that gives nothing is INVALID_INPUT " +
+    "(projects.refusal-codes). Not in this pack: `org timesheet bill` (requests.bill-time, requests' flow) and templates.",
   source: by(
     `${DT} (the forms of Project, Task and Timesheet); books/target/shared/rulings.ts (aaron.projects, aaron.frappe-shape, ` +
       "aaron.fde-agent); docs/design/new-commands.md (section 5.1)",
@@ -684,8 +691,10 @@ export const decision_projects_refusal_codes = defineDecision({
         "WRONG_STATE only when the record the command acts on is in a status (or fails a guard of its own machine) that " +
         "does not allow the step, naming the status or the unfinished tasks; INVALID_INPUT for a record it names that " +
         "cannot take part (a disabled activity type, a cancelled task, a completed or non-group parent, a cycle, an " +
-        "overlap), naming the field. Sharing with a member already shared is a no-op; removing one not shared, and " +
-        "disabling a disabled type or enabling an enabled one, are refused.",
+        "overlap), naming the field. A project's members are the project's own state, as a department's holders are " +
+        "the department's: sharing with a member already shared and removing one not shared are WRONG_STATE naming the " +
+        "member, as are disabling a disabled type and enabling an enabled one. A change or set that gives nothing is " +
+        "INVALID_INPUT, as a rate change with no rate is.",
     },
     { label: "all-wrong-state", text: "WRONG_STATE for every status a check reads, whichever record it is." },
   ],
@@ -694,10 +703,13 @@ export const decision_projects_refusal_codes = defineDecision({
     "The grammar gives WRONG_STATE to a transition's `from` or its guard, and INVALID_INPUT to a value that names " +
     "something unfit (a disabled activity type is its own example), so a caller tells 'this record cannot move' from " +
     "'fix this argument'. A task's own dependency guard is WRONG_STATE because it is the task's machine; a log naming " +
-    "a cancelled task is a bad argument to the timesheet. A repeated share is the 215's `contact add` of an entry " +
-    "already there; a remove, disable or enable that changes nothing is refused so a script learns its picture was " +
-    "wrong, as `org department close` of a closed department is.",
-  source: booked(`docs/design/new-commands.md (G6); ${DT}: timesheet/timesheet.py:81, task/task.py:183 and :249, timesheet_detail/timesheet_detail.py:128; aaron.frappe-shape`),
+    "a cancelled task is a bad argument to the timesheet. The grammar models `org project member` on `org department " +
+    "holder` (G2), and the 215 refuse a holder added twice or removed when absent with WRONG_STATE, as they do a hat " +
+    "granted twice (`org member grant`) and a department closed twice: so a share, a remove, a disable or an enable " +
+    "that would change nothing is WRONG_STATE, and a script learns its picture was wrong. `contact add` returning an " +
+    "entry already there is a book's lookup by Party, not a list of people in an office. A change with nothing to " +
+    "change is a bad argument, as `org activity-type change` with no rate is (fit review, 8 November 2026).",
+  source: booked(`docs/design/new-commands.md (G2, G6); org.department.holder.add|remove; ${DT}: timesheet.py:81, task.py:183 and :249, timesheet_detail.py:128; aaron.frappe-shape`),
   affects: [...OPERATIONS],
 });
 
@@ -817,7 +829,8 @@ export const decision_projects_percent_by_hand = defineDecision({
       label: "as-erpnext",
       text:
         "As ERPNext's `update_percent_complete`: `--percent` (0 to 100) on `org project create|change` for a manual " +
-        "project only, and `--progress` (0 to 100) on `org task create|change`. Completing a project with no tasks makes " +
+        "project only, and `--percent` (0 to 100, Frappe's Task `progress`, printed as `percentComplete`) on `org task " +
+        "create|change`. Completing a project with no tasks makes " +
         "it manual at 100, and a manual project's status moves only by hand. Resuming or reopening a project whose tasks " +
         "make it 100 completes it in the same write; reopening a completed one its tasks still complete is WRONG_STATE.",
     },
@@ -832,7 +845,9 @@ export const decision_projects_percent_by_hand = defineDecision({
     "would disagree with the head, and the next task added would reopen it here but not there. ERPNext also completes " +
     "on save an open project its tasks make 100, which is why resume and reopen complete it in the same write; a " +
     "completed project its tasks still complete would come straight back, so its reopen is refused rather than doing " +
-    "nothing. The two flags extend the rows of docs/design/new-commands.md 5.1, whose owner is asked to add them. " +
+    "nothing. The flag extends the rows of docs/design/new-commands.md 5.1, whose owner is asked to add it. One flag " +
+    "serves both, because the grammar's `--progress` already names a project's method: a task's own `--progress` " +
+    "would make one flag a method on one command and a number on its neighbour, and the same in `--json`. " +
     "Dropping methods would leave Frappe's shape, which the rulings ask for, and a head's Manual project unreadable here.",
   source: reviewed(
     `${DT}/project/project.py:267 (update_percent_complete), :305 (validate_completed_status), :319 (get_task_progress); ` +

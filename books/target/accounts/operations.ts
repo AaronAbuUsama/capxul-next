@@ -14,12 +14,15 @@ import { Schema } from "effect";
 import { budget, defineOperation } from "../../../packages/book/src/index.ts";
 import { frozen, frozenText, type FrozenId } from "../../frozen/index.ts";
 import {
+  error_CANCELLED,
   error_CLI_USAGE,
   error_FEATURE_NOT_AVAILABLE,
   error_INVALID_INPUT,
   error_NOT_AUTHENTICATED,
   error_PROFILE_NOT_FOUND,
   error_SMART_ACCOUNT_MISSING,
+  error_SUPERSEDED,
+  error_TRANSACTION_FAILED,
   error_WRONG_ENVIRONMENT,
   error_WRONG_STATE,
 } from "../shared/vocabulary.ts";
@@ -164,11 +167,11 @@ export const operation_account_collect = defineOperation({
       claim:
         "A person whose Safe is set up collects, in one approval, every claim escrow their Safe owns that holds its amount, and each of those payments then reads settled for its payer and for them.",
       observes:
-        `From ${PERSON_READY_MONEY_WAITING}: chain: one UserOperation from the person's Safe calls \`collect\` on each open escrow, and one PaymentSent per escrow with the escrow as sender and the Safe as recipient; read: the payer's \`payment get\` reads settled; world: each escrow reads paid.`,
+        `From ${PERSON_READY_MONEY_WAITING}: cli: \`status\` \`collected\`, listing each escrow with its sender's name; chain: one UserOperation from the person's Safe calls \`collect\` on each open escrow, and one PaymentSent per escrow with the escrow as sender and the Safe as recipient; read: the payer's \`payment get\` reads settled; world: each escrow reads paid.`,
     },
     {
       claim: "With nothing waiting for the person's Safe, nothing is opened and the command says so.",
-      observes: "cli: from person-ready, exit 0 with an empty `escrows` list and no `approval_id`; world: the before-and-after diff holds no approval.",
+      observes: "cli: from person-ready, exit 0 with `status` `nothing_waiting`, an empty `escrows` list and no `approval_id`; world: the before-and-after diff holds no approval.",
     },
     {
       claim: "Money its sender took back is not offered, and a collection pays only the person's own Safe.",
@@ -184,6 +187,33 @@ export const operation_account_collect = defineOperation({
       error: error_SMART_ACCOUNT_MISSING,
       given: PERSON_MONEY_WAITING,
       when: "Your Safe is not set up yet. Setting it up collects what waits for you; `capxul account retry` gives the link.",
+    },
+    {
+      error: error_WRONG_STATE,
+      given: REFUSED_OTHER_SIGNER,
+      when: "Your Safe's setup was refused because another signer already holds it, as `account retry` reports: nothing is opened.",
+    },
+    {
+      error: error_INVALID_INPUT,
+      given: REFUSED_EMAIL,
+      when: "Your Safe's setup was refused for your email or signer, as `account retry` reports: nothing is opened.",
+    },
+    {
+      error: error_CANCELLED,
+      given: PERSON_READY_MONEY_WAITING,
+      when: "You declined the collection on the approval page (exit 130): nothing moved, and the money still waits for you.",
+    },
+    {
+      error: error_SUPERSEDED,
+      given: PERSON_READY_MONEY_WAITING,
+      when: "The collection's approval lapsed before it landed: nothing moved; `capxul account collect` again opens a new one.",
+    },
+    {
+      error: error_TRANSACTION_FAILED,
+      given: PERSON_READY_MONEY_WAITING,
+      when:
+        "The sender's take-back of one escrow landed after you signed: the chain refused the whole collection and nothing " +
+        "moved; `capxul account collect` again collects what still waits.",
     },
   ],
   budget: budget("chain-submit"),

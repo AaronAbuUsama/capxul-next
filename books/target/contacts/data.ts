@@ -405,7 +405,7 @@ export const table_leads = defineTable({
     {
       name: "leads-by-activity",
       fields: ["org_id", "updated_at", "lead_id"],
-      for: "The Organization's leads, most recent change first, after a cursor: Frappe CRM's leads list",
+      for: "The Organization's leads not converted, most recent change first, after a cursor, converted ones skipped: Frappe CRM's leads list",
     },
     {
       name: "leads-by-stage",

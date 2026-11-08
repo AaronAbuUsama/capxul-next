@@ -175,10 +175,12 @@ export const flow_client_account_collect = defineFlow({
   about:
     "`account collect`: opens the approval that collects every claim escrow the person's Safe owns and that holds its " +
     "amount (`accounts.setup.collect`), then the person signs it on the approval page the CLI opens and the flow waits " +
-    "until it ends. With nothing waiting it answers at once and opens nothing; with `--json` it answers the hand-over " +
-    "after the rpc. An approval that expires before it lands answers SUPERSEDED (run it again), one declined on the page " +
-    "CANCELLED, and one the chain's simulation refused (an escrow taken back meanwhile) its code. The web app's money " +
-    "page offers the same through its React twin (decision accounts.collect-any-time).",
+    "until it ends, answering `collected` once its operation lands. With nothing waiting it answers `nothing_waiting` at " +
+    "once and opens nothing; with `--json`, or when `--timeout-seconds` passes first, it answers the hand-over " +
+    "(`awaiting_approval`), and running it again answers the same live approval. As payment send's flow: an approval that " +
+    "lapses before it lands answers SUPERSEDED (run it again), one declined on the page CANCELLED, one whose sponsorship " +
+    "the chain's simulation refused its code, and one the chain refused after signing (an escrow taken back meanwhile) " +
+    "TRANSACTION_FAILED. The web app's money page offers the same through its React twin (accounts.collect-any-time).",
   component: component_core_sdk,
   sdk: "client.account.collect",
   input: Schema.Struct({ json: Schema.Boolean, timeout_seconds: Schema.NullOr(Schema.Int) }),

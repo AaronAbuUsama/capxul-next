@@ -880,15 +880,15 @@ export const decision_contacts_crm_capabilities = defineDecision({
   why:
     "Aaron asked on 8 November 2026 for the new commands to be designed in the book, and accepted this recommendation " +
     "in his sixth batch; the fourteen are booked under rules.new-operations in ./operations.ts, each in this pack's " +
-    "affects, with its verbs (contacts.book-verbs, contacts.crm-verbs), its priority (contacts.critical-commands) and its " +
-    "worlds (contacts.crm-worlds) decided apart. The capability serves aaron.crm-frappe-shape and " +
+    "affects, with its verbs (contacts.book-verbs, contacts.crm-verbs), its priority (contacts.critical-commands, which " +
+    "makes six of them `critical` in place of this option's 'all `normal`') and its worlds (contacts.crm-worlds) decided apart. The capability serves aaron.crm-frappe-shape and " +
     "aaron.frappe-shape: an Organization with no head works its CRM through these commands, and the FDE through the " +
     "same CLI (aaron.fde-agent). The rpcs and flows were booked SDK-first (sdk-now-cli-later); the commands now follow " +
     "the one grammar every new command keeps (docs/design/new-commands.md): `org` for what only an Organization has, " +
     "`create` for a document with a lifecycle (a lead, a deal, a new book entry; `add` keeps `contact add`'s meaning), " +
     "`change` for fields, `get` for one record, and one SDK method per command, so an rpc that both creates and " +
     "changes is two commands. Head-only would leave an Organization without a head with no leads or deals.",
-  source: crmBy("tools/check-frozen.ts ('a target operation that is none of the 215'); books/target/shared/rulings.ts (aaron.frappe-shape, aaron.fde-agent, aaron.projects)"),
+  source: crmBy("tools/check-frozen.ts ('a target operation that is none of the 215'); books/target/shared/rulings.ts (aaron.crm-frappe-shape, aaron.frappe-shape, aaron.fde-agent)"),
   affects: [...CRM_OPERATIONS, ...CRM_RPCS, ...CRM_FLOWS, concept_contacts],
 });
 
@@ -1098,7 +1098,7 @@ export const decision_contacts_book_verbs = defineDecision({
         "`contact create <label> --type person|company` records a new entry: a person given a primary mailbox is born " +
         "from its Party, and one whose Party already has an entry in the book is INVALID_INPUT naming it, never merged. " +
         "`contact change <contact>` sets details only and never names a Party: a mailbox given to a private person stays " +
-        "a detail. `contact link <contact> <locator>` names a private entry's Party once, after a preview at a terminal " +
+        "a detail, and a change that gives nothing is INVALID_INPUT, as projects' `change` commands refuse it. `contact link <contact> <locator>` names a private entry's Party once, after a preview at a terminal " +
         "(`--confirm` from a script), and refuses an entry that has one, a Party already in the book and a Party of the " +
         "other kind (an Organization's for a person; a mailbox, a person's or an agent's for a company). The label stays " +
         "`contact label`'s. Three flows over the one rpc, area `payments` as the frozen contact commands are.",
@@ -1137,9 +1137,11 @@ export const decision_contacts_crm_verbs = defineDecision({
       text:
         "`create` (no id) and `change <id>` are two SDK methods and two flows over each save; `move`, `convert`, `list` " +
         "and `get` keep their one-rpc flows, each now serving the CLI and the SDK alike. `--owner` names a member as G5 " +
-        "does, an email or an @handle (or a PartyId), which the save resolves against the Organization's active Seats. " +
+        "does, an email or an agent's @handle, which the save resolves against the Organization's active Seats. " +
         "`get` of an id that is none of the Organization's leads or deals is INVALID_INPUT, as `payment get` is, never " +
-        "null. `org crm deal create` needs `--company`; `--contact` repeats and `--primary` names the one primary " +
+        "null; an id of another kind (a `deal_` id for a lead, a `lead_` id for a deal) is CLI_USAGE before any call, as " +
+        "`payment get` refuses an id not starting `payment_`. A `change` that gives no field is INVALID_INPUT. `org crm " +
+        "deal create` needs `--company`; `--contact` repeats and `--primary` names the one primary " +
         "person. A lead's change must still leave a first name, a company name or a mailbox. `--clear <field>` empties " +
         "a field, named by its flag.",
     },
@@ -1150,10 +1152,15 @@ export const decision_contacts_crm_verbs = defineDecision({
   why:
     "G3: `create` makes a document with a lifecycle and `change` edits fields, never a status, so one rpc that does both " +
     "is two commands and two methods (docs/design/new-commands.md, section 4). An owner is a member who works the record " +
-    "(Frappe's `lead_owner` and `deal_owner`), and G5 names a member by email or @handle everywhere; a PartyId alone " +
-    "would make every script look one up first. G6 has no not-found code, so `get` refuses an unknown id as `payment " +
-    "get` does, and the SDK's agents read the same refusal. A deal opened by hand names its company because Frappe CRM " +
-    "lists and links deals by it and a conversion always sets it. A change that empties every name would leave a lead " +
+    "(Frappe's `lead_owner` and `deal_owner`), and G5 names a member by email or an agent's @handle everywhere, as " +
+    "projects' `--member` does; a PartyId alone would make every script look one up first. G6 has no not-found code, " +
+    "so `get` refuses an unknown id as `payment get` does, and the SDK's agents read the same refusal; G6 makes a " +
+    "malformed id CLI_USAGE, and the 215 do so for an id of the wrong kind (`payment get`, `activity get`), so a " +
+    "deal's id given for a lead is one too. An empty `change` is refused, as projects' are (corrected in review " +
+    "(fit): this let `--owner` take any @handle or a PartyId, and refused a wrong-kind id as INVALID_INPUT). A deal opened by hand names its company because Frappe CRM's " +
+    "deals list leads with it and its Organization page links deals by it; CRM Deal itself requires only `status`, and " +
+    "a conversion sets the company only when the lead names one or `--company` is given, so the SDK method, as Frappe, " +
+    "takes a deal with none (corrected in review: this said a conversion always sets it). A change that empties every name would leave a lead " +
     "Frappe's `set_lead_name` cannot name. Each rpc stays one transaction; only its spelling and the owner lookup " +
     "change, which reads `parties` for a handle or a mailbox's digest. Found on the way: `contacts.deals.move` checked " +
     "the People hat without reading its wearers, and now reads them. The FDE works the CRM through these same commands.",
@@ -1186,7 +1193,9 @@ export const decision_contacts_critical_commands = defineDecision({
     "capture, list, convert, list the deals, move one to won. `change`, `link`, `get` and a lead's `move` refine it, and " +
     "`create` and `list` print every id the loop needs. None is on the B3 pilots' money path, so `critical` orders the " +
     "build's work and the evals a pilot depends on; it changes no budget. Projects marks its first engagement the same " +
-    "way (projects.critical-commands).",
+    "way (projects.critical-commands). It changes one line of the pack's accepted recommendation, 'all `normal`' " +
+    "(contacts.crm-capabilities), because the commands pass asked for the commands a pilot or start-up needs to be " +
+    "marked critical; no command, flag or budget changes.",
   source: cmdBy("serves aaron.frappe-shape and aaron.fde-agent; docs/design/new-commands.md (G8); contacts.startup; CONVENTIONS rule 4 (priority)"),
   affects: CRITICAL,
 });
@@ -1223,4 +1232,112 @@ export const decision_contacts_crm_worlds = defineDecision({
     "People hat to Rex, which the hat claims make, are steps of those evals, not of the world, so Rex starts with no hat.",
   source: cmdBy("books/target/devnet/worlds.ts (person-with-contacts, org-with-crm); devnet.deterministic-worlds; contacts.worlds"),
   affects: CRM_OPERATIONS,
+});
+
+// ── the CRM review (truth), 8 November 2026 ─────────────────────────────────────────────────
+
+const REVIEW = "Claude, CRM review (truth), 8 November 2026";
+const reviewBy = (evidence: string) => `${REVIEW}; evidence: ${evidence}`;
+
+export const decision_contacts_convert_by_kept_mailbox = defineDecision({
+  id: "contacts.convert-by-kept-mailbox",
+  title: "A conversion first takes the person whose entry keeps the lead's mailbox",
+  question:
+    "`contacts.leads.convert` found the lead's person only through the Party of its mailbox. Since `contact change` " +
+    "no longer links (contacts.book-verbs), and a head's edit of a private Contact's mailbox comes in through the same " +
+    "checks, a private person can keep that mailbox as a detail with no Party. Frappe's `convert_to_deal` finds the " +
+    "person by Contact Email (`contact_exists`). Which entry does a conversion take?",
+  options: [
+    {
+      label: "kept-mailbox",
+      text:
+        "The `--contact` given; else the book's Contact that keeps the lead's mailbox among its `email_ids`, case aside " +
+        "(the latest changed if several), private or not, never linked by the match; else the entry of the mailbox's " +
+        "Party, resolved through `parties.resolve-recipient` (an entry added by handle keeps no mailbox), or a new one " +
+        "born from it; else, with no mailbox, a new private Contact. A new entry keeps the lead's mailbox, numbers and " +
+        "job title, as Frappe's `create_contact` copies them.",
+    },
+    {
+      label: "party-only",
+      text:
+        "As first booked: the Party's entry or a new one. A private person who keeps the mailbox is not found, and the " +
+        "conversion enters them a second time.",
+    },
+    { label: "link-on-convert", text: "Take the private person and link it to the mailbox's Party in the conversion." },
+  ],
+  chosen: "kept-mailbox",
+  why:
+    "Refuted in review: with party-only, a private person who keeps nia@bakers.test as a detail is entered again by " +
+    "converting a lead with that mailbox, against the conversion's own claim that nobody is entered twice, and against " +
+    "Frappe, whose `contact_exists` matches 'only on email which uniquely identifies a person' in Contact Email, the " +
+    "rows the book's `email_ids` are. Two entries for one person would also reach a head as two Contacts with one " +
+    "mailbox. Matching the kept mailbox first finds every entry Frappe would; the Party's entry next finds one added by " +
+    "handle, which keeps no mailbox (`contact add` #3) but is the same person. Link-on-convert would choose where money " +
+    "paid to the entry goes without `contact link`'s preview, which contacts.book-verbs keeps for that step alone. A " +
+    "match changes no Party, so a private person stays private and the lead's mailbox then names nobody in the " +
+    "directory. Refines contacts.lead-conversion, whose person was the mailbox's entry.",
+  source: reviewBy("frappe/crm@2cecd300 crm_lead.py:230 (create_contact), :335 (contact_exists, by Contact Email); contacts.book-verbs; contacts.head.sync"),
+  affects: [rpc_contacts_leads_convert, operation_org_crm_lead_convert, table_contacts],
+});
+
+export const decision_contacts_lead_list_like_frappe = defineDecision({
+  id: "contacts.lead-list-like-frappe",
+  title: "The lead list leaves converted leads out, as Frappe CRM's does",
+  question:
+    "`contacts.leads.list` said it read the leads as Frappe CRM's list and kanban do, yet it listed converted leads by " +
+    "default. Frappe CRM's Leads page passes `converted: 0` to every view (list, group by, kanban), and its quick " +
+    "filters drop `converted`, so a converted lead is never listed there; it is reached from its deal. What does " +
+    "`org crm lead list` list with no `--stage`?",
+  options: [
+    {
+      label: "like-frappe",
+      text:
+        "The leads not converted, newest change first; `--stage converted` lists the converted ones, the only way to; " +
+        "every other stage lists as before.",
+    },
+    { label: "every-lead", text: "Every lead, converted ones included, as first booked; only the words change." },
+  ],
+  chosen: "like-frappe",
+  why:
+    "Refuted in review against Frappe CRM's Leads page and its list api. The pipeline a member works is the leads still " +
+    "to win or lose; a converted lead's work goes on in its deal, which `org crm deal list` shows and whose `lead` " +
+    "names it, so listing it among open leads shows work already done, and the default list would grow with every " +
+    "sale. `--stage converted` keeps every converted lead one command away, and `org crm lead get` still reads one. " +
+    "Only the read changes: no table, machine or event, and `leads-by-activity` serves the list with converted rows " +
+    "skipped. In org-with-crm the list now prints five leads, and Ivy's only under converted.",
+  source: reviewBy("frappe/crm@2cecd300 frontend/src/pages/Leads.vue:26 (converted: 0 on every view), crm/api/doc.py:207; contacts.crm-statuses"),
+  affects: [rpc_contacts_leads_list, flow_client_org_crm_leads_list, operation_org_crm_lead_list, table_leads],
+});
+
+// ── the CRM review (fit), 8 November 2026 ───────────────────────────────────────────────────
+
+const FIT = "Claude, CRM review (fit), 8 November 2026";
+const fitBy = (evidence: string) => `${FIT}; evidence: ${evidence}`;
+
+export const decision_contacts_deal_list_filters = defineDecision({
+  id: "contacts.deal-list-filters",
+  title: "The deal list's filters apply together, as every other list's do",
+  question:
+    "`org crm deal list` took `--stage`, `--company` and `--contact`, and said to filter by one of them, but said " +
+    "nothing of two given at once, so the build would choose. What does the list do when more than one is given?",
+  options: [
+    {
+      label: "together",
+      text:
+        "Every filter given applies: `--company <Globex> --stage open` lists Globex's open deals. The rpc reads by the " +
+        "narrowest index it has (a person's deals, else a company's, else a stage's, else all by last change) and checks " +
+        "the other filters on each row, newest change first; the cursor stays bound to the Organization and the filters.",
+    },
+    { label: "one-only", text: "One filter at a time: two or more together are CLI_USAGE before any call." },
+  ],
+  chosen: "together",
+  why:
+    "Refuted in review (fit): the grammar's row gives the three flags side by side with no exclusion, and every list " +
+    "of the 215 and of the other packs combines its filters (`activity list` its status, kind, direction and dates; " +
+    "`org project list` its status, type, customer and member), as Frappe CRM's deals list combines its filters. A " +
+    "pilot's question is often one company's open deals. A CLI_USAGE for a pair would be a refusal no other list has. " +
+    "No table or index changes: one person's or one company's deals are few, so a row check after the narrowest " +
+    "index stays within the read budget.",
+  source: fitBy("docs/design/new-commands.md (5.2, G6); books/target/activity/operations.ts (activity list); books/target/projects/projects.ts (projects.projects.list); frappe/crm@2cecd300 crm_deal.py:304"),
+  affects: [rpc_contacts_deals_list, flow_client_org_crm_deals_list, operation_org_crm_deal_list],
 });

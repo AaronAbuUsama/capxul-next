@@ -169,7 +169,7 @@ export const workflow_projects_head_sync = defineWorkflow({
   chain: [contract_hats.f.isWearerOfHat],
   idempotency:
     "One process per head connection (`projects-head:<orgId>:<headId>`). A push is idempotent by version (the head " +
-    "answers unchanged), and a pulled change already applied is skipped by its head name and time.",
+    "answers unchanged); a pulled change already applied, or one leaving every field Capxul holds as it was, is skipped.",
   timeoutMs: 3650 * DAY,
   retries: { max: 8, backoff: "exponential" },
   budget: budget("background"),

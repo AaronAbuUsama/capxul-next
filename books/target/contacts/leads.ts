@@ -110,7 +110,8 @@ export const LOGGED = [table_contact_changes, table_crm_settings];
 const FIELD_RULES =
   "Each text is trimmed and at most 140 characters (a mailbox well formed and at most 254, a website at most 255), " +
   "`annual_revenue` a non-negative decimal in the Organization's currency (CRM Lead has no currency field), `lead_owner` a " +
-  "member named by a mailbox, an @handle or the PartyId of an active Seat of the Organization (kept as its PartyId), " +
+  "member, named as the grammar's G5 names one, by a mailbox or an agent's @handle, holding an active Seat of the " +
+  "Organization (kept as its PartyId), " +
   "never the lead's own mailbox (Frappe's `validate_email`); a bad value is INVALID_INPUT naming the field, and " +
   "nothing is written. ";
 
@@ -121,8 +122,8 @@ export const rpc_contacts_leads_save = defineRpc({
     GUARD +
     "With no `lead` (`org crm lead create`) it captures a new one (`capture`): status New, stage open, the fields given. " +
     "A lead needs a person's first name, a company's name or a mailbox, as Frappe's `set_lead_name` requires, else " +
-    "INVALID_INPUT. With `lead` (`org crm lead change`) it changes the fields given and keeps the rest, and a change that " +
-    "leaves no name, company or mailbox is INVALID_INPUT; its status moves only through `contacts.leads.move`. " +
+    "INVALID_INPUT. With `lead` (`org crm lead change`) it changes the fields given and keeps the rest; a change that " +
+    "gives no field, or leaves no name, company or mailbox, is INVALID_INPUT; its status moves only through `contacts.leads.move`. " +
     FIELD_RULES +
     "A converted lead is WRONG_STATE: its deal carries the work on. The lead's mailbox stays the Organization's private " +
     "note and names nobody in the directory. A lead id not in this Organization is INVALID_INPUT. Returns the lead.",
@@ -154,7 +155,8 @@ export const rpc_contacts_leads_move = defineRpc({
     "`lose`. Converted is a won status like Qualified, as Frappe's defaults type it; it makes no deal, which only " +
     "`contacts.leads.convert` does. A lost status needs a `lost_reason` from Frappe's list, and `Other` also needs " +
     "`lost_notes` (Frappe's `validate_lost_reason`), else INVALID_INPUT; moving out of lost clears them. A converted " +
-    "lead is WRONG_STATE. The same status again returns the lead unchanged. Returns the lead.",
+    "lead is WRONG_STATE. The same status again returns the lead unchanged. A lead id not in this Organization is " +
+    "INVALID_INPUT. Returns the lead.",
   concept: concept_contacts,
   kind: "mutation",
   who: WHO_CRM_WRITE,
@@ -184,23 +186,22 @@ export const rpc_contacts_leads_convert = defineRpc({
   title: "Convert a lead to a deal, with its contact and organization",
   about:
     GUARD +
-    "Frappe CRM's `convert_to_deal`, in one transaction that locks the lead first. A lost lead is WRONG_STATE (Frappe: " +
-    "'Cannot convert a lead with status' of type Lost); a converted one answers the deal it made (its `deal_id`, read " +
-    "under the lock: Frappe's 'Return Existing'), so a retry never makes a second. The person: the `contact` entry given " +
-    "(a Contact of this book), else the lead's mailbox " +
-    "resolved through `parties.resolve-recipient` (named in the directory if new, as `contact add` by email) and the " +
-    "book's entry for that Party or a new one born from it, else, with no mailbox, a new private Contact; a new entry " +
-    "takes the lead's name as its label and its numbers and job title as details. The company: the `organization` entry " +
-    "given (a CRM Organization of this book), else, when the lead names a company, the book's CRM Organization entry " +
-    "whose shown name is that name (trimmed, case aside, as Frappe's `create_organization` finds one by " +
-    "`organization_name`), else a new private CRM Organization labelled with it and holding its website, industry, " +
-    "territory, size and revenue (with no currency, as Frappe copies it). The person's entry takes the company when it " +
-    "has none. Then the deal is born (`start`): " +
-    "status Qualification, the company, the person as its primary, the lead, its owner as `deal_owner`, its source, and " +
-    "the `deal` fields given (`deal_value`, `expected_deal_value`, `currency`, `expected_closure_date`). Last the lead " +
-    "drives `convert` with the deal's id, status Qualified (Frappe's `mark_converted`). A given entry not in this " +
-    "book, or of the other doctype, is INVALID_INPUT and nothing is written, the named Party included. Returns the lead " +
-    "and the deal.",
+    "Frappe CRM's `convert_to_deal`, in one transaction that locks the lead first. A lead id not in this " +
+    "Organization is INVALID_INPUT; a lost lead is WRONG_STATE (Frappe refuses a status of type Lost); a converted " +
+    "one answers its deal (`deal_id` under the lock: Frappe's 'Return Existing') with its person and company as " +
+    "they stand (null if none), so a retry never makes a second. The person: the `contact` given (a Contact of this " +
+    "book); else the book's Contact keeping the lead's mailbox in `email_ids`, case aside, the latest changed, " +
+    "private or not and never linked by it (Frappe's `contact_exists`; contacts.convert-by-kept-mailbox); else the " +
+    "book's entry of the mailbox's Party (`parties.resolve-recipient`, named if new) or a new one born from it; " +
+    "else a new private Contact. A new entry takes the lead's name, mailbox, numbers and job title. The company: " +
+    "the `organization` given (a CRM Organization of this book); else, when the lead names one, the book's CRM " +
+    "Organization whose shown name it is (trimmed, case aside: Frappe's `create_organization`); else a new private " +
+    "one labelled with it, with the lead's company fields (revenue with no currency, as Frappe copies it). The " +
+    "person's entry takes the company when it has none. Then the deal is born (`start`): Qualification, the " +
+    "company, the person as primary, the lead, its owner as `deal_owner`, its source and the `deal` fields given, " +
+    "checked as `contacts.deals.save` checks them. Last the lead drives `convert` with the deal's id, status " +
+    "Qualified (Frappe's `mark_converted`). A given entry not in this book or of the other doctype, or a bad value, " +
+    "is INVALID_INPUT naming it, and nothing is written, the named Party included. Returns the lead and the deal.",
   concept: concept_contacts,
   kind: "mutation",
   who: WHO_CRM_WRITE,
@@ -216,7 +217,7 @@ export const rpc_contacts_leads_convert = defineRpc({
       expected_closure_date: Schema.optionalKey(S),
     })),
   }),
-  output: Schema.Struct({ lead: LeadView, deal: S, contact: S, organization: NullOr(S) }),
+  output: Schema.Struct({ lead: LeadView, deal: S, contact: NullOr(S), organization: NullOr(S) }),
   errors: WRITE_ERRORS,
   reads: [...WRITE_READS, table_contacts, table_deals, table_parties],
   writes: [table_leads, table_deals, table_deal_contacts, table_contacts, ...LOGGED],
@@ -234,8 +235,10 @@ export const rpc_contacts_leads_list = defineRpc({
   id: "contacts.leads.list",
   title: "List an Organization's leads, most recent change first",
   about:
-    "One page of the Organization's leads, newest change first (`leads-by-activity`), or only those at one `stage` " +
-    "(`leads-by-stage`), as Frappe CRM's list and kanban read them. `limit` is 1 to 100 (25 when absent); `after` is the " +
+    "One page of the Organization's leads that are not converted, newest change first (`leads-by-activity`, " +
+    "converted ones skipped), as Frappe CRM's leads list and kanban show them (their `converted: 0` filter, which its " +
+    "quick filters cannot remove); or only those at one `stage` (`leads-by-stage`), `converted` the one way to list " +
+    "converted leads (contacts.lead-list-like-frappe). `limit` is 1 to 100 (25 when absent); `after` is the " +
     "opaque cursor the last page returned, bound to this Organization and stage: another's, or a forged one, is " +
     "INVALID_INPUT.",
   concept: concept_contacts,

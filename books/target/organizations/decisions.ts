@@ -1150,10 +1150,10 @@ export const decision_organizations_head_clock = defineDecision({
 
 export const decision_organizations_commands = defineDecision({
   id: "organizations.commands",
-  title: "Decision pack: the app and head commands to add (new capabilities)",
+  title: "Decision pack: the app, head and hosted FDE commands to add (new capabilities)",
   question:
-    "Adding Frappe apps and connecting a head are new capabilities, not among the 215 (aaron.frappe-shape, " +
-    "aaron.frappe-head). Which commands does Capxul add, and who may run them?",
+    "Adding Frappe apps, connecting a head and reaching the hosted FDE are new capabilities, not among the 215 " +
+    "(aaron.frappe-shape, aaron.frappe-head, aaron.fde-hosted). Which commands does Capxul add, and who may run them?",
   options: [
     {
       label: "apps-and-head",
@@ -1177,9 +1177,12 @@ export const decision_organizations_commands = defineDecision({
   ],
   chosen: "apps-and-head",
   why:
-    "A decision pack under rules.new-operations, which Aaron accepted as recommended (8 November 2026, sixth batch), so " +
-    "its eight commands are booked as operations beyond the 215, with their claims, refusals and worlds " +
-    "(organizations.app-commands, organizations.head-commands, organizations.fde-commands, organizations.command-worlds). " +
+    "A decision pack under rules.new-operations. Aaron accepted its app and head commands as recommended (8 November " +
+    "2026, sixth batch, question 10 of docs/decisions/open-for-aaron.md); the two FDE commands were added after his " +
+    "answer, under aaron.fde-hosted (docs/design/new-commands.md section 6), and who may ask the FDE is put to him in " +
+    "organizations.fde-commands. All eight are booked as operations beyond the 215, with their claims, refusals and " +
+    "worlds (organizations.app-commands, organizations.head-commands, organizations.fde-commands, " +
+    "organizations.command-worlds). " +
     "The FDE acts through the same CLI as everyone (aaron.fde-agent), so whatever it may do must be a command; an " +
     "FDE-only surface would put an unchecked path beside the CLI. Connecting a head hands the Organization's records to " +
     "an outside system, so it is a Director's step, not the FDE's: the FDE prepares it and a Director runs it. Adding an " +
@@ -1190,7 +1193,9 @@ export const decision_organizations_commands = defineDecision({
     "with the hats the Board granted it and whoever instructs it borrows them. The start-up's four (app list and add, " +
     "FDE show and ask) are critical (organizations.command-priorities). Buying seats and paying the hosting are " +
     "organizations.buy-seats', and organizations books that pack's `org seats show` (organizations.seats-show).",
-  source: FRAPPE_RULINGS,
+  source: by(
+    "books/target/shared/rulings.ts (aaron.erp-on-capxul, aaron.frappe-shape, aaron.frappe-head, aaron.fde-agent, aaron.fde-hosted); docs/design/new-commands.md (section 5.4); docs/decisions/open-for-aaron.md (question 10)",
+  ),
   affects: [
     table_org_apps, table_org_heads, table_org_fdes, table_org_fde_asks, machine_org_app, machine_org_head, event_org_head_transitioned,
     rpc_organizations_apps_list, rpc_organizations_apps_add, rpc_organizations_apps_remove, rpc_organizations_heads_connect,
@@ -1491,8 +1496,9 @@ export const decision_organizations_fde_commands = defineDecision({
   chosen: "show-and-ask",
   why:
     "The FDE acts with the hats the Board granted its Safe, so whoever instructs it borrows them; a Director may propose " +
-    "any grant anyway, so a Director asking borrows nothing they could not get (docs/design/new-commands.md section 7, " +
-    "question 1, accepted with organizations.commands). Any member asking would need the FDE to act within each asker's " +
+    "any grant anyway, so a Director asking borrows nothing they could not get. For Aaron (docs/design/new-commands.md " +
+    "section 7, question 1, which his sixth batch did not cover: the FDE commands came after it): who may ask the " +
+    "hosted FDE; a Director stands until he answers. Any member asking would need the FDE to act within each asker's " +
     "hats, which nothing on chain enforces: its Safe holds its own hats, whoever asks. A surface on the host alone would " +
     "put an unchecked path beside the CLI, through which the FDE must act. Recording who asked, but not what, gives the " +
     "Organization its audit beside the FDE's traced commands without copying the host's conversation into Capxul. The " +
@@ -1610,7 +1616,9 @@ export const decision_organizations_fde_hosting = defineDecision({
     "is as before when it resumes; months run from the payment, so a pause is never charged. The start-up month exists " +
     "because the FDE must set the Organization up before anyone can pay: at the install the company's top budget is 0 " +
     "and no budget is funded. No price, no charge, so `org fde pay`'s FEATURE_NOT_AVAILABLE means what it says. For " +
-    "payments' booking of `org fde pay`: check a hosting that is not retired and a price set before the command is born.",
+    "payments' booking of `org fde pay`: check a hosting that is not retired and a price set before the command is born. " +
+    "For Aaron (docs/design/new-commands.md section 7, question 2): paying in advance by the month stands until he " +
+    "answers; the alternative is the standing agreement, an automatic monthly charge.",
   source: passBy("books/target/shared/rulings.ts (aaron.fde-hosted, aaron.test-prices, aaron.departments); payments.prepare-command"),
   affects: [
     table_org_fdes, table_org_fde_payments, machine_org_fde, machine_fde_payment, procedure_organizations_extend_fde_hosting,

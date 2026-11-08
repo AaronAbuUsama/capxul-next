@@ -47,6 +47,7 @@ import {
   Component,
   ComponentAddInput,
   ComponentChangeInput,
+  ComponentListInput,
   ComponentRef,
   EmployeeEdit,
   EmployeeLeave,
@@ -61,6 +62,8 @@ import {
   PayeeRef,
   SlipRef,
   SlipWithhold,
+  StructureListed,
+  StructurePageInput,
   StructureRef,
 } from "./shapes.ts";
 import { Schema } from "effect";
@@ -405,15 +408,20 @@ export const flow_client_org_payroll_components_change = hrFlow({
   output: ComponentOut,
   call: "Runs payroll.structures.component with the component as `componentId` and only the fields given.",
 });
+/** How a catalog list pages: one read of payroll.structures.list, then one page of it (payroll.command-fit). */
+const CATALOG_PAGE =
+  "at most `limit` (1 to 100, 25 by default) after `after`, a cursor it gave (INVALID_INPUT otherwise), and " +
+  "`nextCursor`, null on the last page.";
+
 export const flow_client_org_payroll_components_list = hrFlow({
   sdk: "client.org(orgId).payroll.components.list",
   rpc: rpc_payroll_structures_list,
   title: "List the salary components",
-  about: "`org payroll component list`: the Organization's salary components, enabled first, then by type and name.",
+  about: "`org payroll component list`: the Organization's salary components, enabled first, then by type and name, a page at a time.",
   write: false,
-  input: Schema.Struct({ orgId: Schema.String }),
-  output: Schema.Struct({ components: Schema.Array(Component) }),
-  call: "Runs payroll.structures.list and keeps its components.",
+  input: ComponentListInput,
+  output: Schema.Struct({ items: Schema.Array(Component), nextCursor: Schema.NullOr(Schema.String) }),
+  call: `Runs payroll.structures.list once and pages its components, a short catalog, enabled first, then by type and name: ${CATALOG_PAGE}`,
 });
 export const flow_client_org_payroll_components_disable = hrFlow({
   sdk: "client.org(orgId).payroll.components.disable",
@@ -474,8 +482,13 @@ export const flow_client_org_payroll_structures_list = hrFlow({
   sdk: "client.org(orgId).payroll.structures.list",
   rpc: rpc_payroll_structures_list,
   title: "List structures and assignments",
-  about: "`org payroll structure list`: the submitted structures and their assignments, one Employee's with `--employee`.",
+  about:
+    "`org payroll structure list`: the submitted structures by name, each with its rows and the assignments that name " +
+    "it; with `--employee`, only the structures assigned to that Employee, each with their assignments alone.",
   write: false,
+  input: StructurePageInput,
+  output: Schema.Struct({ items: Schema.Array(StructureListed), nextCursor: Schema.NullOr(Schema.String) }),
+  call: `Runs payroll.structures.list once, with \`employeeId\` when given, and pages its structures by name, each with its assignments: ${CATALOG_PAGE}`,
 });
 
 // Payroll runs (paying one is staged.ts's flow, client.org.payroll.runs.pay)

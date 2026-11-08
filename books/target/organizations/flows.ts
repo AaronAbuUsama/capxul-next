@@ -7,9 +7,10 @@
 import { Schema } from "effect";
 import { budget, defineFlow } from "../../../packages/book/src/index.ts";
 import { component_core_sdk } from "../shared/foundation.ts";
-import { error_CANCELLED, error_INVALID_INPUT, error_PROVIDER_ERROR, error_WRONG_STATE } from "../shared/vocabulary.ts";
+import { error_CANCELLED, error_INVALID_INPUT, error_PROVIDER_ERROR, error_ROLE_PERMISSION_DENIED, error_WRONG_STATE } from "../shared/vocabulary.ts";
 import { HeadView, rpc_organizations_heads_connect, rpc_organizations_heads_disconnect, rpc_organizations_heads_show } from "./heads.ts";
 import { rpc_organizations_fde_ask, rpc_organizations_fde_turn } from "./fde.ts";
+import { rpc_organizations_apps_list } from "./apps.ts";
 import { rpc_organizations_setups_begin, rpc_organizations_setups_get, rpc_organizations_setups_resume, SetupView } from "./setups.ts";
 import { rpc_organizations_workspaces_list } from "./workspaces.ts";
 import { rpc_approvals_signing_get } from "../approvals/signing.ts";
@@ -29,6 +30,8 @@ const NullOr = Schema.NullOr;
 const Lifecycle = Schema.Struct({ organizationId: S, lifecycle: SetupView });
 /** The SDK's own deadline over a write and the setup it starts: 120 s by default, 1 to 3600. */
 const Deadline = { timeoutSeconds: Schema.optionalKey(N) };
+/** How long `org fde ask` waits for the FDE's turn: 300 s by default, 1 to 3600. */
+const AskDeadline = { timeoutSeconds: Schema.optionalKey(N) };
 /** Without an id, the SDK takes the saved choice, else the one unfinished setup the caller founded. */
 const OrgChoice = { orgId: Schema.optionalKey(S) };
 
@@ -251,14 +254,19 @@ export const flow_client_org_head_connect = defineFlow({
   id: "client.org.head.connect",
   title: "Connect a Frappe site as the head, after a preview, and follow its check",
   about:
-    "`org head connect` (organizations.head-commands, aaron.frappe-head). It reads the head user's API key and secret, " +
-    "and on Frappe Cloud the team's token and name, from a prompt or from `--key-file` and `--team-token-file`, never " +
-    "from a flag. It previews what connecting shares (every fundamental app's records, the members as Users with the " +
-    "roles their hats give, and the apps wanted) and asks; no is CANCELLED and nothing is sent, and a script without " +
-    "`--confirm` is the CLI's usage refusal. Then it connects (one write) and subscribes to the head until it is " +
-    "connected, or failing, when it ends with the issue's code (PROVIDER_ERROR for a site that does not answer, " +
-    "WRONG_STATE for one without the Capxul app or in another time zone or currency), within one deadline; `--no-wait` " +
-    "returns the connection as the write left it. The secrets leave this machine only in the connect call.",
+    "`org head connect` (organizations.head-commands, aaron.frappe-head). It first reads the live head (one live is " +
+    "WRONG_STATE before anything is asked, as `org head disconnect` reads first) and the Organization's apps, for the " +
+    "preview. It reads the head user's API key and secret, and on Frappe Cloud the team's token and name, from a prompt " +
+    "or from `--key-file` and `--team-token-file`, never from a flag: the key file holds one line, " +
+    "`<api_key>:<api_secret>`, as Frappe's token header takes it; the team token file holds two, the team's " +
+    "`<api_key>:<api_secret>` and then the team's name. A file not in its form is INVALID_INPUT naming it; with no " +
+    "terminal to prompt at and no file for a secret the host needs, it is the CLI's usage refusal. It previews what " +
+    "connecting shares (every fundamental app's records, the members as Users with the roles their hats give, and the " +
+    "apps wanted) and asks; no is CANCELLED and nothing is sent, and a script without `--confirm` is the CLI's usage " +
+    "refusal. Then it connects (one write) and subscribes to the head until it is connected, or failing, when it ends " +
+    "with the issue's code (PROVIDER_ERROR for a site that does not answer, WRONG_STATE for one without the Capxul app " +
+    "or in another time zone or currency, ROLE_PERMISSION_DENIED for a key the site refuses), within one deadline; " +
+    "`--no-wait` returns the connection as the write left it. The secrets leave this machine only in the connect call.",
   component: component_core_sdk,
   sdk: "client.org(orgId).head.connect",
   input: Schema.Struct({
@@ -273,13 +281,15 @@ export const flow_client_org_head_connect = defineFlow({
   }),
   output: HeadView,
   steps: [
-    { name: "secrets", local: "prompt", about: "Read the key and secret (and a Frappe Cloud team's token) from a prompt, or from the files named." },
+    { name: "read", rpc: rpc_organizations_heads_show, about: "Read the live head once: a live one is WRONG_STATE and nothing is asked." },
+    { name: "apps", rpc: rpc_organizations_apps_list, about: "The Organization's apps, every page, for the preview: the fundamental ones and those wanted." },
+    { name: "secrets", local: "prompt", about: "Read the key and secret (and a Frappe Cloud team's token and name) from a prompt, or from the files named." },
     { name: "preview", local: "prompt", about: "Show what connecting shares and ask; no is CANCELLED, and `--confirm` answers yes." },
     { name: "connect", rpc: rpc_organizations_heads_connect, about: "Seal the secrets and birth the connection, which starts its check." },
     { name: "watch", rpc: rpc_organizations_heads_show, about: "Subscribe to the live head." },
     { name: "await-check", local: "wait", about: "Until the head is connected or failing, or the deadline; skipped with `--no-wait`." },
   ],
-  errors: [error_CANCELLED, error_PROVIDER_ERROR, error_WRONG_STATE],
+  errors: [error_CANCELLED, error_INVALID_INPUT, error_PROVIDER_ERROR, error_ROLE_PERMISSION_DENIED, error_WRONG_STATE],
   calls: [],
   spans: [],
   budget: { ...budget("vendor"), excludes: ["wait.await-check"] },
@@ -316,11 +326,13 @@ export const flow_client_org_fde_ask = defineFlow({
     "`org fde ask` (organizations.fde-commands, aaron.fde-hosted). It sends the message to the Organization's hosted FDE " +
     "through Capxul (one call, which records who asked), then waits for the FDE's turn, reading it from the host every " +
     "few seconds, until it ends with the FDE's reply, fails with the host's reason, or the deadline passes (300 seconds " +
-    "by default, 1 to 3,600). At the deadline it stops waiting and prints the turn's id; the FDE carries on, and what " +
-    "it does it does through its own commands, each traced. The FDE's turn is a wait, never system time.",
+    "by default, 1 to 3,600). A turn the host answers failed ends PROVIDER_ERROR with the host's reason, as a head " +
+    "connection that fails ends with its issue's code; the ask stays recorded. At the deadline it stops waiting " +
+    "(CLI_DEADLINE) and prints the turn's id; the FDE carries on, and what it does it does through its own commands, " +
+    "each traced. The FDE's turn is a wait, never system time.",
   component: component_core_sdk,
   sdk: "client.org(orgId).fde.ask",
-  input: Schema.Struct({ orgId: S, message: S, ...Deadline }),
+  input: Schema.Struct({ orgId: S, message: S, ...AskDeadline }),
   output: Schema.Struct({
     askId: S,
     turnId: S,
@@ -333,7 +345,7 @@ export const flow_client_org_fde_ask = defineFlow({
     { name: "await-turn", local: "wait", about: "Until the FDE's turn ends or fails, or the deadline." },
     { name: "turn", rpc: rpc_organizations_fde_turn, about: "Read the turn from the host, every few seconds while it works, and its reply once it ends." },
   ],
-  errors: [],
+  errors: [error_PROVIDER_ERROR],
   calls: [],
   spans: [],
   budget: { ...budget("vendor"), excludes: ["wait.await-turn"] },

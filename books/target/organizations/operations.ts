@@ -553,16 +553,24 @@ export const operation_org_app_list = defineOperation({
   acceptance: [
     claim(
       "A new Organization runs the four fundamental apps, installed and native, and nothing else.",
-      "cli: from org-ready, `org app list --json` prints frappe, erpnext, hrms and crm, each `native: true`, `status: installed`, `addedBy: null`, and no other app.",
+      "cli: from org-ready, `org app list --json` prints frappe, erpnext, hrms and crm, each `native: true`, `status: installed`, `addedBy: null`, no other app, and `nextCursor: null`.",
     ),
     claim(
       "An app asked for is listed as wanted, with who asked, until a head installs it.",
       "cli: from org-ready, after `org app add helpdesk`, `org app list` lists helpdesk once, `native: false`, `status: wanted`, `version: null` and addedBy Dana's member id.",
     ),
+    claim(
+      "The list is paged as every list is.",
+      "cli: from org-ready, `org app list --limit 2 --json` prints frappe and erpnext and a `nextCursor`; `--after <it>` prints hrms and crm and `nextCursor: null`.",
+    ),
   ],
   returns: rpc_organizations_apps_list.output,
   errors: [error_CLI_USAGE],
-  refusals: [signedOut, outsider()],
+  refusals: [
+    signedOut,
+    outsider(),
+    { error: error_INVALID_INPUT, given: W_READY, when: "`--limit` is outside 1 to 100, or `--after` is a cursor this list did not issue: nothing is read." },
+  ],
   budget: budget("read"),
 });
 
@@ -694,11 +702,15 @@ export const operation_org_head_connect = defineOperation({
     {
       error: error_INVALID_INPUT,
       given: W_SITE,
-      when: "The site URL is not https, or has a path, query or credentials, or a Frappe Cloud head has no team token: the refusal names the field and nothing is written.",
+      when: "The site URL is not https, or has a path, query or credentials, or the key file or team token file is not in its form: the refusal names the field and nothing is written.",
     },
     { error: error_WRONG_STATE, given: W_HEAD, when: "Acme already has a live head (connecting, connected or failing): disconnect it first. Nothing is written." },
     { error: error_CANCELLED, given: W_SITE, when: "Dana answers no at the preview: nothing is sent or written." },
-    { error: error_CLI_USAGE, given: W_SITE, when: "A script runs it without `--confirm`, or with neither a terminal nor `--key-file` to read the key from." },
+    {
+      error: error_CLI_USAGE,
+      given: W_SITE,
+      when: "A script runs it without `--confirm`, or with no terminal to prompt at and no `--key-file` (or, for `--host frappe-cloud`, no `--team-token-file`) to read a secret from: nothing is read or sent.",
+    },
     { error: error_PROVIDER_ERROR, given: W_SITE_DOWN, when: "The site does not answer: the connection is kept failing, with the reason, and its process checks it again." },
   ],
   budget: budget("vendor"),
@@ -766,6 +778,11 @@ export const operation_org_head_disconnect = defineOperation({
 
 // ── the hosted FDE (organizations.fde-commands; aaron.fde-agent, aaron.fde-hosted) ──────────
 
+const WHO_ASKER =
+  "A Director of the Organization: a member whose own Safe wears the Director hat, as indexing reads the chain. The " +
+  "FDE acts with the hats the Board granted its Safe, so whoever instructs it borrows them. Never an agent, so the " +
+  "FDE never asks itself.";
+
 export const operation_org_fde_show = defineOperation({
   id: "org.fde.show",
   title: "Show the Organization's hosted FDE and what its hosting costs",
@@ -817,7 +834,7 @@ export const operation_org_fde_ask = defineOperation({
   command: "org fde ask",
   priority: "critical",
   implementedBy: flow_client_org_fde_ask,
-  who: WHO_DIRECTOR,
+  who: WHO_ASKER,
   changes: "One ask recorded (who asked, and when; never the message), and one turn of the FDE on the host.",
   acceptance: [
     claim(
@@ -880,7 +897,7 @@ export const operation_org_seats_show = defineOperation({
   budget: budget("read"),
 });
 
-/** The operations beyond the 215 organizations books, for its pack decisions' `affects`. */
+/** The eight operations of the pack organizations.commands, for its `affects`; `org seats show` is organizations.buy-seats'. */
 export const NEW_OPERATIONS = [
   operation_org_app_list, operation_org_app_add, operation_org_app_remove, operation_org_head_connect, operation_org_head_show,
   operation_org_head_disconnect, operation_org_fde_show, operation_org_fde_ask,

@@ -247,8 +247,9 @@ export const flow_client_account_address_book_link = defineFlow({
   id: "client.account.address-book.link",
   title: "Name a private entry's Party, once, with a preview at a terminal",
   about:
-    "At a terminal it reads the entry, shows it with the Party the locator names and that money paid to the entry will " +
-    "reach that Party from then on, for good, and asks; a decline is CANCELLED and writes nothing. Then, or straight " +
+    "At a terminal it reads the entry, shows it with the locator as typed (it resolves nothing before the write) and " +
+    "that money paid to the entry will reach the Party it names from then on, for good, and asks; a decline is " +
+    "CANCELLED and writes nothing. Then, or straight " +
     "away with `--confirm`, the one write: `contacts.book.record` with the entry's id and `link`, which refuses an entry " +
     "that already has a Party, a Party already in the book and a Party of the other kind (contacts.book-verbs). A " +
     "script without `--confirm` is the CLI's CLI_USAGE. " +
@@ -324,7 +325,7 @@ export const flow_client_org_crm_leads_convert = crm({
 export const flow_client_org_crm_leads_list = crm({
   id: "client.org.crm.leads.list",
   title: "List an Organization's leads",
-  about: "Frappe CRM's leads list and kanban: a page, newest change first, or one stage's.",
+  about: "Frappe CRM's leads list and kanban: a page of the leads not converted, newest change first, or one stage's (converted the only way to list converted ones).",
   command: "org crm lead list",
   sdk: "client.org(orgId).crm.leads.list",
   rpc: rpc_contacts_leads_list,
@@ -389,7 +390,7 @@ export const flow_client_org_crm_deals_move = crm({
 export const flow_client_org_crm_deals_list = crm({
   id: "client.org.crm.deals.list",
   title: "List an Organization's deals",
-  about: "Frappe CRM's deals list and pipeline: a page, newest change first, or one stage's, company's or person's.",
+  about: "Frappe CRM's deals list and pipeline: a page, newest change first, filtered by stage, company and person, together when given.",
   command: "org crm deal list",
   sdk: "client.org(orgId).crm.deals.list",
   rpc: rpc_contacts_deals_list,

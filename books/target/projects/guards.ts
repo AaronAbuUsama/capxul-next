@@ -74,7 +74,9 @@ export const HAT_CHAIN = [contract_hats.f.isWearerOfHat] as const;
 /** What every write also writes: the change log and its counter. */
 export const LOGGED = [table_project_changes, table_project_settings] as const;
 
-export const READ_ERRORS = [error_NOT_AUTHENTICATED, error_ROLE_PERMISSION_DENIED, error_INVALID_INPUT] as const;
+/** A read that takes nothing but the Organization fails only at the member guard. */
+export const GUARD_ERRORS = [error_NOT_AUTHENTICATED, error_ROLE_PERMISSION_DENIED] as const;
+export const READ_ERRORS = [...GUARD_ERRORS, error_INVALID_INPUT] as const;
 export const WRITE_ERRORS = [...READ_ERRORS, error_WRONG_STATE] as const;
 /** A write behind the hat guard also fails as chain-rpc's readContract fails. */
 export const MANAGE_ERRORS = [...READ_ERRORS, error_PROVIDER_ERROR, error_PROVIDER_RESPONSE_INVALID] as const;
