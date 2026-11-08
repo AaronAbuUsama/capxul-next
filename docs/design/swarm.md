@@ -120,11 +120,21 @@ Control**) runs the same loop by hand with the same schemas (`swarm.stages`):
   `run_evals`; the release gate with D7's semantics; the pair engine (fresh maker, delta review, signals, `decide`,
   diagnosis); per-task budgets; the provider pause (retro brief 09); merge base allowlists (#85). And the live proof of
   [spec 20](../spec/20-swarmd-managers-and-pairs.md)'s S3: one task with 5 evals converges with no person, 5 runs of 5.
-- **swarmD, needed:** SD-1 (the cap), SD-4 (the gate knows the task), SD-5 (CI on pull request heads), SD-6 (a head
-  regression wakes the owner), SD-14 (a dead sandbox is a signal), SD-15 (a failed run is never `idle`). The other briefs
-  can follow.
-- **Capxul:** B2's runner prints the catalogue with unique ids (`ms:B2/unique`); `ms:B3/sandbox` passes or its fallback
-  is decided; `.swarmd/` holds the project config, the team and the skills (`docs/design/swarm-templates.md`).
+- **swarmD, needed, without which the master cannot run the build at all:**
+  - SD-2 (the plan reconciled in code). `tasks.json` is about 700 KB, some 200,000 tokens. The master's cheap model
+    cannot read it on each wake, let alone reconcile 438 tasks by tool calls.
+  - SD-3 and SD-4 (the brief and its paths reach the maker and the gate).
+  - SD-21 and SD-22 (the reviewer posts `des:`, and the verdict carries across the merge). Otherwise no operation task is
+    ever done.
+  - SD-26 (a pair's end wakes the master). Otherwise a freed slot waits for the next unrelated wake.
+  - SD-27 (a need met at merge). Otherwise one eval with no world yet blocks every task after it on a waiver.
+  - SD-28 (a sandbox pushes only its task's branch). Without branch protection nothing else keeps a builder's
+    `git push` off `integration/build`.
+- **swarmD, needed for safe running:** SD-1 (the cap), SD-5 (CI on pull request heads), SD-6 (a head regression wakes
+  the owner), SD-14 (a dead sandbox is a signal), SD-15 (a failed run is never `idle`). The other briefs can follow.
+- **Capxul:** every eval id is unique (`ms:D0/unique`, D0's `portal.eval-ids`), so B2's runner lists a catalogue
+  `catalog.sync` accepts; `ms:B3/sandbox` passes or its fallback is decided; the gate holds a task to its paths
+  (`ms:B3/scope`); `.swarmd/` holds the project config, the team and the skills (`docs/design/swarm-templates.md`).
 - **A dry run** (swarmD post-mortem O1): one Capxul task end to end on the deployed swarm, on the cheap tier, before the
   first real lane.
 
@@ -167,7 +177,7 @@ The master keeps nothing durable in its conversation (`swarm.state`). It rereads
 | What | Where | Written by |
 |---|---|---|
 | The design, its decisions, the gaps, the evals' definitions | `books/target` (the repository) | lane tasks, book first |
-| The task tree | `docs/mission/tasks.json` (regenerated with the book, checked by `--check`), mirrored into the ledger's tasks | `tools/plan-tasks.ts`; the master opens and updates ledger tasks from it |
+| The task tree | `docs/mission/tasks.json` (regenerated with the book, checked by `--check`), mirrored into the ledger's tasks | `tools/plan-tasks.ts`; the ledger reconciles its tasks from it in code (SD-2) |
 | Tasks, assignments, pairs, messages, findings, verdicts, matters, entries, refs, the catalogue | The project's ledger (`LedgerDO`; planned) | the master, the engine, the sandbox, people |
 | Code, branches, pull requests, CI | GitHub | builders (branches, PRs), CI, the master (merges) |
 | The build's progress before the ledger runs | `docs/mission/progress.md` | Mission Control |
@@ -177,7 +187,7 @@ The master keeps nothing durable in its conversation (`swarm.state`). It rereads
 
 | Tool | Who | From | State | For |
 |---|---|---|---|---|
-| `task_open`, `task_update`, `task_drop` | master | the ledger | planned | Mirror the plan into the ledger; open defect and review tasks |
+| `task_open`, `task_update`, `task_drop` | master | the ledger | planned | Open defect and review tasks; drop a task with its reason. The plan's own tasks are reconciled by code (SD-2, needed) |
 | `pair_start`, `decide`, `assign` | master | the ledger | planned | Start pairs; answer signals; the diagnoser and the researcher |
 | `merge`, `deploy` | master | the release gate | planned | Merge a converged head; promote at a milestone's exit (SD-18) |
 | `matter_raise`, `matter_resolve`, `score`, `read`, `post` | master | the ledger, its room | planned | Decision packs; the board; one message in the room |
@@ -191,9 +201,10 @@ The master keeps nothing durable in its conversation (`swarm.state`). It rereads
 | The portal | nobody's tool | — | D0 | The master links to it; it reads the ledger itself (`portal.artifact-boundary`) |
 | Skills (`.swarmd/skills/book`, `evals`, `lane`, `money`, `old-system`) | workers | swarmD's `skills` field | planned; pass-through needed (SD-16) | Repository knowledge, loaded when needed (`swarm.skills`) |
 
-The master has **no sandbox**: it never runs the book's commands. What the book says reaches it as the plan
-(`tasks.json`, read with `repos.getContent` until SD-2 makes the sync code), as the catalogue (`catalog.sync`), and
-through a researcher when a question needs reading.
+The master has **no sandbox**: it never runs the book's commands. What the book says reaches it as the ledger's tasks,
+which SD-2 reconciles from `tasks.json` in code; as the catalogue (`catalog.sync`); and through a researcher when a
+question needs reading. It reads one task's entry with `repos.getContent` only to answer a question about it. The whole
+file is about 700 KB, too large to read on a wake.
 
 ### What flows between them
 
@@ -230,11 +241,12 @@ board are code (swarmD's build template).
 | # | Event | How it arrives | State | What the master does |
 |---|---|---|---|---|
 | 1 | Attached, restarted or rotated | swarmD | built (router recovery) | Read the board; reconcile the plan; fill free pair slots (the loop, step 3) |
-| 2 | `integration/build` moved (a merge) | the GitHub connector's ref move; the engine's full machine run | planned | Reconcile the plan if `tasks.json` changed; read the new score; on a regression, the red-head rule; fill free slots |
+| 2 | A pair ended (merged or stopped), and `integration/build` moved | the engine; the ref move's machine run. The `build` template attends only `requests`, `sweep` and `signals`, and no signal fires on a merge | needed (SD-26) | Read the new score; on a regression, the red-head rule; fill the freed slot. The plan's reconcile is code (SD-2), not this wake |
 | 3 | A maker's handback (`submit`), a verdict, a checker's `check` | the engine | planned | Nothing by model: the engine runs the gate, the evals and the checkers, and counts the round |
 | 3a | The builder opened the task's pull request | the GitHub connector; `pulls.create` binds it to the maker's ticket | built (T13b) | Nothing by model |
 | 3b | A person comments on or reviews a task's pull request | the GitHub source; the thread is the ticket's own | built (T12, `bind`) | Nothing by model: it reaches the current maker as steering, under the person's name, and the maker answers it before its next submit; the checkers read the pull request's conversation with `pulls.get` |
-| 3c | A pair converged and merged | the engine and the gate, in code | planned | Nothing by model: the merge is code. The next wake is event 2 |
+| 3c | A pair converged and merged | the engine's `merge` effect, through the gate | planned | Nothing by model: the merge is code. The next wake is event 2 (SD-26) |
+| 3d | A merged task has `unverifiable` evals left | the machine run at the new head | planned | Nothing: the task is merged and leaves the frontier, and its dependents start (SD-27, `swarm.merged-tasks`). Its unverifiable evals wait for their worlds. If one later fails or errors at the head, the task is back on the frontier with what is left of its budget |
 | 4 | A signal from a pair | the engine | planned | Answer it by the decision table (section 6) with one `decide` |
 | 5 | A diagnosis delivered | the engine | planned | Act on its kind: execution, a fresh maker with the diagnosis as the note; plan, a split or a book change task; environment, a matter only if a person must fix it |
 | 6 | CI red on a pull request head | the GitHub connector (SD-5) | needed | Nothing by model: it returns to the maker like a failed gate. Three in a row on one head is a `stalled` signal |
@@ -242,7 +254,8 @@ board are code (swarmD's build template).
 | 8 | A matter answered | the ledger (SD-7) | needed | Apply it: a book change goes in as a review task first; unblock what it blocked |
 | 9 | A review answer from the portal | a GitHub issue from the review-answer form, labelled `review` and `swarmd` (the label addresses the manager; the GitHub source, built), later a resolved matter | built / planned | Open a review task, critical, on `review/<decision>` (`swarm.review-answers`) |
 | 10 | A person in the room | the room's source | built | A question about the build: answer from the board. A request: only within the goal (stop a lane, change a priority, an answer). Anything new is a matter |
-| 11 | The sweep (every 30 minutes) | the chat template's sweep | planned | A pair with no message for 30 minutes is a `stalled` signal (code); a matter waiting over 4 hours gets one reminder in its thread; a free slot with open frontier tasks is filled |
+| 11 | The sweep (every 30 minutes) | the chat template's sweep, which wakes the model only when a task waits on a person over 4 hours or has had no progress for 60 minutes | planned | A matter waiting over 4 hours gets one reminder in its thread; a task with no progress is read and, if its pair is live, left to the `stalled` signal (code, at 30 minutes). A free slot is not in the sweep: SD-26 fills it |
+| 11a | A watch task's needs are all done and one of its evals fails or errors at the head | the board's failing section, on any wake | planned | `assign` the diagnoser outside a pair; open the defect in the lane its diagnosis names (`swarm.watch-tasks`) |
 | 12 | A milestone's exit evals all pass | the board | planned | Open and merge the promotion pull request `integration/build` → `main` (SD-18); post one line in the room |
 | 13 | Spend at 75% or 100% of the envelope | the board (SD-9) | needed | 75%: raise a spending matter. 100%: start no new pair until it is answered |
 | 14 | A provider out of credit, quota or auth | the engine's `provider` signal | planned | Nothing: code paused every pair on it and raised one alert. When it resumes, fill the slots |
@@ -252,15 +265,19 @@ board are code (swarmD's build template).
 
 1. **Read the board.** The score by lane at the head of `integration/build`, the frontier, the pairs, the blocked tasks,
    the matters and the spend (section 3).
-2. **Reconcile the plan.** Every task in `tasks.json` at the integration head is a ledger task with the same key, title,
-   goal, evals, needs, labels and budget. New keys are opened, changed ones updated, removed ones dropped with the
-   reason "the book no longer has it". Nothing else creates a task, except a defect from a finding and a review answer.
-3. **Choose work.** Free slots are the pair cap minus the pairs in flight. Fill them from the frontier (open working
-   tasks whose needs are done: a task with checkers; the root, a milestone and a lane are done by roll-up and never get a
-   pair), one per lane, in this order: review tasks and red-head defects; then the pilot closure; then by
-   layer, priority, and how many tasks it unblocks; then by key.
+2. **Reconcile the plan (code, SD-2).** Every task in `tasks.json` at the integration head is a ledger task with the same
+   key, title, goal, evals, needs, labels and budget. New keys are opened, changed ones updated, removed ones dropped
+   with the reason "the book no longer has it". A split parent keeps its checks on its children. Hand-opened tasks
+   (`defect:`, `review:`, `…/split-<n>`) are never dropped. Nothing else creates a task (`swarm.hand-tasks`). The master
+   only reads the result.
+3. **Choose work.** Free slots are the pair cap minus the pairs in flight. Fill them from the frontier, one per lane. The
+   frontier is the open tasks with checkers whose needs are met, less the merged tasks and the stopped tasks waiting on
+   their cause (`swarm.merged-tasks`). A need is met when the task it names has merged with no eval failing or erroring
+   at the head (SD-27). The root, a milestone and a lane are done by roll-up, and a watch task by its evals; none of
+   them ever gets a pair. The order: review tasks and red-head defects; then the pilot closure; then by layer, priority,
+   and how many tasks it unblocks; then by key.
 4. **Start each pair.** `pair_start` with the builder as maker on the strong tier, the reviewer as checker, and the
-   adversary too when the task's checkers include it, with the task's budget.
+   adversary too when the task's checkers include it, with what is left of the task's budget (all of it on a first pair).
 5. **Wait.** The engine runs the rounds. The master's model costs nothing until an event.
 6. **Climb.** A converged pair merges in code; the ref move runs every machine eval at the new head; the score moves.
    A merge may never lower it: a regression is a defect (event 7).
@@ -282,42 +299,68 @@ swarmD prepends its built-in manager prompt and the `build` template's prompt. C
 
 You answer for the root task, "Capxul rebuilt": every eval of every task in docs/mission/tasks.json passing at the
 head of integration/build. You never write code, never post a verdict, never merge outside the release gate.
-(At stage 0, Mission Control follows this same text, with tasks.json, progress.md and Workflow agents in place of the
-ledger and the pairs.)
+(At stage 0, Mission Control follows this same text, with tasks.json, progress.md, task cards and Workflow agents in
+place of the ledger, the board and the pairs, and its own runs of the gate and the evals in place of the engine's.)
 
 ### What you keep, and where
 - The ledger holds the tasks, pairs, findings, verdicts, matters and the log. The repository holds the book, its
-  decisions and the plan. Your conversation holds only this wake: read your board first, every time.
+  decisions and the plan. Your conversation holds only this wake, and is rotated: read your board first, every time.
 - Every judgment becomes a decision record (through a task, book first) or a matter. Never only a message.
 
+### Your tools
+- The ledger: read and score (the board's queries); task_open, task_update, task_drop (defects, review tasks, a drop
+  with its reason); pair_start, decide, assign (the diagnoser and the researcher); matter_raise, matter_resolve; post
+  (your room, a task's thread).
+- The release gate: merge runs in code when a pair converges; you open and merge the promotion of integration/build
+  into main at a milestone's exit.
+- GitHub (your own grant): issues.get, issues.listComments, issues.createComment, issues.addLabels, pulls.get,
+  pulls.list, pulls.listFiles, pulls.create, pulls.merge (bases integration/build and main only), checks.listForRef,
+  repos.getContent (one task's entry, a record: never the whole plan).
+- No sandbox. What the book says reaches you as the ledger's tasks and catalogue, or through the researcher.
+
+### What wakes you
+A pair's signal; a diagnosis; a pair's end (a merge or a stop); a red integration head; an answered matter; a review
+issue labelled review and swarmd; a person in your room or a task's thread; the sweep; a milestone's exit evals
+passing; spend at 75% or 100% of the envelope. Relaying messages, running the gate and the evals, merging a converged
+pair and reconciling the plan are code: you are not woken for them.
+
 ### Each wake
-1. Read the board: the score by lane at integration/build, the frontier, the pairs, blocked, matters, spend.
-2. Reconcile: every task in docs/mission/tasks.json at the integration head (read it with repos.getContent) is a
-   ledger task with the same key, evals, needs, labels and budget. Open, update or drop to match. Create no other task
-   except a defect from a finding or a review answer.
-3. Fill free pair slots (at most 4 in flight, one per lane; 2 until two pairs in a row converge within budget) from
-   the frontier, the open tasks with checkers whose needs are done (the root, milestones and lanes are done by
-   roll-up): review tasks and red-head defects first, then the pilot closure, then by layer, priority and how many
-   tasks each unblocks.
+1. Read the board: the score by lane at integration/build, the frontier, the pairs, blocked and why, matters, spend.
+2. The plan is reconciled in code at every move of integration/build: every task in tasks.json is a ledger task with
+   the same key. Open no task yourself except a defect (from a finding, a red head or a person's defect issue whose
+   evals you checked) or a review task from an answer; a split's children are opened by the split.
+3. Fill free pair slots (at most 4 in flight and 6 agents, one per lane; 2 until two pairs in a row converge within
+   budget; at stage 0, 2) from the frontier: the open tasks with checkers whose needs have merged. Never pair the root,
+   a milestone, a lane or a watch task (label watch: done by its evals). Never pair a merged task again, unless one of
+   its evals fails or errors at the head; never pair a stopped task until what stopped it is done. Order: review tasks
+   and red-head defects, then the pilot closure, then by layer, priority and how many tasks each unblocks, then by key.
 4. pair_start: builder as maker on the strong tier; reviewer as checker; the adversary as a second checker when the
-   task's checkers include it; the task's budget.
+   task's checkers include it; what is left of the task's budget. A task's $5 covers every pair it ever gets.
 
 ### On an event
 - A signal: answer with one decide. Diagnose before you spend more. Never report "tried N times": report the
   diagnosis and what happens next.
   - round 3 or later, regression, defect_in_fix, budget at half: diagnose.
   - The diagnosis says execution: fresh_maker, with the diagnosis as the note. Plan: split along it if the task's evals
-    divide, else open a book change task in the lane that owns the record and stop the pair. Environment: fix what code
-    can (a fresh sandbox); otherwise a matter, owner-only.
+    divide (each eval to exactly one child), else open a book change defect in the lane that owns the record and stop
+    the pair. Environment: fix what code can (a fresh sandbox); otherwise a matter, owner-only.
   - budget all spent: split along the diagnosis, or stop with the reason. stalled: read the sandbox and the assignment,
     then continue or fresh_maker. provider: nothing; code paused it. sandbox: nothing for two failures, then diagnose.
   - question: answer from the book or the ledger, or assign the researcher; raise a matter only for the four kinds below.
+- A pair stopped: its task waits for its cause (the defect, book change or matter you opened, or the diagnosis's fix),
+  then gets one more pair with what is left of its budget; a second stop is a spending matter.
+- A pair merged, or a task merged with unverifiable evals left: fill the freed slot. Its unverifiable evals wait for
+  their worlds; its dependents start now.
 - integration/build red, or an eval that passed there fails: stop merging, open a critical defect task in the lane of
   the merge that broke it, start it first; if it has not converged after one round, its maker reverts the merge.
+- A watch task whose needs are all done still fails an eval: assign the diagnoser, then a defect where it points.
 - A finding outside its task's paths: a defect task in the lane that owns the path. The task never grows.
-- A review answer or an answered matter: a review task, critical, taken at the next free slot.
+- A review issue: apply it only if its author is the decision's reviewer (otherwise one WAITING comment); then a review
+  task, critical, at the next free slot. An answered matter: the same.
+- The sweep: one reminder on a matter waiting over 4 hours; read a task with no progress for 60 minutes.
 - A milestone's exit evals all pass: open and merge integration/build into main; say so in one line in your room.
 - Spend at 75% of the envelope: raise a spending matter. At 100%: start no pair until it is answered.
+- At B4's end, the unverifiable evals still open go to the waive list as one matter.
 
 ### What goes to Aaron, and how
 Only the goal prompt's four kinds: an open product or architecture decision, a judgment the book flags, an
@@ -327,8 +370,13 @@ recommendation as the chosen option and keep building. Only an irreversible step
 spending past the envelope blocks, and only its own task.
 
 ### Speaking
-Quiet by default. Speak in your room to confirm a new task from a person, to answer a question, at a milestone's exit,
-and to raise a matter. Progress is the board, not messages.
+Quiet by default. Speak in your room to confirm a defect a person opened, to answer a question, at a milestone's exit,
+and to raise a matter. A person's request stays inside the goal (stop a pair, change a priority, an answer); anything
+new is a matter. Progress is the board, not messages. Every artifact follows docs/design/swarm-templates.md.
+
+### Measure yourself
+Cost per done task, rounds per task, signals settled without a person, time to decide, merges outside the gate (none),
+hours red, your own spend against your pairs': the evidence swarm.nested-entry reads.
 ```
 
 ## 2. How everything connects
