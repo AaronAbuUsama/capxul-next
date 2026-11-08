@@ -13,6 +13,12 @@ He accepted every recommendation below that he did not mention. He changed two:
   durable runtime with sandboxes. We handle that for the users. They pay us for hosting it." To record as
   `aaron.fde-hosted`, superseding `organizations.fde-at-start-up`.
 
+- **Prices (questions 30 and 33):** "You can just make it up. It's fake money, fake USDC." To record as
+  `aaron.test-prices`: an extra seat is 10 USDC, paid once; an Organization's hosted FDE is 20 USDC a month; both are
+  deployment settings (`SEAT_PRICE`, `FDE_HOSTING_PRICE`) on the test USDC, changed freely.
+- **Repositories he cannot reach while out:** work locally to stay unblocked; swarmd-next is a local repository with
+  its bundle kept in capxul-next, as the kit is.
+
 `tools/workflows/commands-and-escrow.js` applies both, with an audit of every authority statement in the book against
 the v4 contracts.
 
