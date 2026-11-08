@@ -112,3 +112,38 @@ export const rpc_organizations_seats_raise = defineRpc({
   spans: [],
   budget: budget("write"),
 });
+
+/** What `org seats show` prints: the limit and what counts against it, the seats bought, and the price of one more. */
+export const SeatsShowView = Schema.Struct({
+  ...SeatsView.fields,
+  /** The deployment's SEAT_PRICE, paid once a seat (aaron.test-prices: 10 USDC); null when unset, and seats cannot be bought. */
+  price: NullOr(Schema.Struct({ amount: S, asset: S })),
+});
+
+export const rpc_organizations_seats_show = defineRpc({
+  id: "organizations.seats.show",
+  title: "The Organization's seat limit, what counts against it, and the price of a seat",
+  about:
+    "Only a current member may read it (by principal, an agent's by its Safe; else ROLE_PERMISSION_DENIED, as for an " +
+    "Organization that does not exist). It answers the seat limit, the active Seats that count one and the live offers " +
+    "that reserve one (organizations.seat-limit), whether the Organization's own agent holds its place, the seats it " +
+    "bought and counted now (its settled purchases), who last raised the limit and when, and the deployment's SEAT_PRICE " +
+    "for one more, paid once (null when unset, when `org seats buy` is FEATURE_NOT_AVAILABLE). It never writes " +
+    "(organizations.seats-show, aaron.buy-seats).",
+  was: ["books/target/shared/rulings.ts (aaron.buy-seats, aaron.test-prices)"],
+  concept: concept_organizations,
+  kind: "query",
+  who: "Any member of the Organization: an active Seat, a person's or an agent's (the FDE included).",
+  input: Schema.Struct({ orgId: S }),
+  output: SeatsShowView,
+  errors: [error_NOT_AUTHENTICATED, error_ROLE_PERMISSION_DENIED],
+  reads: [table_organizations, table_org_members, table_org_invitations, table_org_seat_purchases],
+  writes: [],
+  drives: [],
+  invokes: [],
+  emits: [],
+  calls: [],
+  chain: [],
+  spans: [],
+  budget: budget("read"),
+});

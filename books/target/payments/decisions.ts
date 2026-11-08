@@ -7,14 +7,16 @@
 // (decision payments.count).
 
 import { defineDecision } from "../../../packages/book/src/index.ts";
-import { concept_payments } from "../shared/foundation.ts";
+import { concept_payments, environment_devnet, environment_staging } from "../shared/foundation.ts";
 import {
   contract_budgets,
   contract_companies_house_claimer,
   contract_escrow,
   contract_escrow_factory,
+  contract_exits,
   contract_payments,
   integration_indexer,
+  integration_service_signer,
 } from "../shared/external.ts";
 import { error_INVALID_RECIPIENT, error_PAYROLL_BUDGET_EXCEEDED, error_ROLE_PERMISSION_DENIED } from "../shared/vocabulary.ts";
 import { rpc_payments_changes_cancel, rpc_payments_changes_reschedule, rpc_payments_changes_retry } from "./changes.ts";
@@ -812,53 +814,134 @@ export const decision_payments_document_bytes = defineDecision({
   affects: [rpc_payments_commands_prepare, rpc_payments_commands_propose, flow_client_payments_pay, flow_client_org_departments_pay],
 });
 
-// ── the claim escrow, checked against Aaron's ruling (aaron.money-waiting) ──────────────────
+// ── the general escrow (aaron.escrow-general, aaron.departments, 8 November 2026) ──────────────
 
 const V4 = "packages/contracts/v4/src";
 const V4DOCS = "docs/planning/protocol-v4";
 
+export const decision_payments_general_escrow = defineDecision({
+  id: "payments.general-escrow",
+  title: "General escrow: the owner collects at any time; the sender takes back until then",
+  question:
+    "The escrow ruling: one escrow, deployed counterfactually, whose owner is the recipient's account before that " +
+    "account exists and may claim whenever it wants, and whose sender may always take the money back until it is " +
+    "claimed; general, for other uses too; the escrow changes, Budgets does not. What are its terms and functions, and " +
+    "what changes from v4's Escrow and EscrowFactory?",
+  options: [
+    {
+      label: "general-escrow",
+      text:
+        "v4's Escrow and EscrowFactory, changed and deployed again. Terms: `owner` (who collects), `sender` (where the " +
+        "money came from, the only address a refund pays), `authority` and `authorityKey` (zero, or a view " +
+        "`authorised(uint256 key, address who)` that admits other callers to refund for the sender), `bootstrapOwner` " +
+        "(zero, or an address the owner must no longer list among its owners before it can act), token, amount, job " +
+        "nonce, kind, document hash, `condition` (amount-reached: the owner's claim stands in the terms and anyone pays " +
+        "it out once funded; owner-collects: the owner collects when it chooses) and `ownerTakesSurplus`. Every term is in " +
+        "the CREATE2 address. Functions: `collect` (the owner, once it can act), `payout` (anyone, amount-reached only), " +
+        "`refund` (the sender, or whoever the authority admits at the call; it always pays the sender), `canRefund`, " +
+        "`conditionMet` and `state`; EscrowRefunded names who took it back. A department's escrow names Budgets and the " +
+        "budget id as its authority.",
+    },
+    {
+      label: "sender-is-an-address",
+      text:
+        "v4 as deployed: `refund` answers one owner address. A department's escrow then belongs to the company Safe (the " +
+        "Board alone) or to the spender's Safe (one person, even after they leave the department).",
+    },
+    {
+      label: "budgets-calls",
+      text:
+        "Budgets gains spendToClaim, scheduleToClaim and refundClaim and owns each budget's escrow (the superseded " +
+        "design of payments.claim-escrow-routes). The ruling rules out changing Budgets.",
+    },
+    {
+      label: "second-contract",
+      text:
+        "A new claim escrow beside v4's Escrow, which stays for invoices and Exits: two escrow contracts, two factories and " +
+        "two event sets to index, and v4's claim condition kept with its exit-only lookup.",
+    },
+  ],
+  chosen: "general-escrow",
+  why:
+    "It is the ruling, met by the smallest change that keeps every v4 behaviour the book relies on. Counterfactual: the " +
+    "terms fix the address before anything exists, so prepare shows it, the payer signs money into it, a dated payment " +
+    "reserves it, and a later deploy moves nothing. Owner: the recipient's account; for a mailbox, the Safe " +
+    "CompaniesHouseClaimer derives. It collects by calling, once Companies House is not among its owners (v4's D11, now " +
+    "a term, so an owner that is not a Companies House Safe can collect too). Sender: where the money came from. A " +
+    "refund pays it whoever calls, so taking money back can never redirect it. The authority term makes the escrow " +
+    "general and leaves Budgets unchanged. Under the departments ruling a budget's payment is its department's, and " +
+    "`Budgets.authorised(budgetId, caller)` is exactly the department's authority at the call: its hat's wearers in good " +
+    "standing, those above, and the company Safe. So whoever wears the hat when it is taken back may take it back, and " +
+    "whoever left may not. A revert or a malformed answer refuses, and the sender itself can always refund, so the " +
+    "Board stays the backstop. The invoice condition keeps v4's checkout: its owner's claim is in its terms, so it can be " +
+    "taken back only until it holds the amount (v4's S7). Uses that show it is general, not features: a payment to a " +
+    "mailbox from a person, the Board, a department (now or dated) and a payroll run's new hire; a request's invoice " +
+    "escrow; and v4 Exits' unclaimed exit payouts, where Exits is the sender and sets `ownerTakesSurplus` instead of " +
+    "the escrow asking it `isExitClaimEscrow`. What stays: CREATE2 over the terms and Payments, an idempotent deploy by " +
+    "anyone, predicted payment ids, one exact payment through Payments with the escrow as executor, D12, no expiry, S1 " +
+    "to S3, and later deposits returned to the sender. Exits' terms builder is the only other contract line that " +
+    "changes.",
+  source: by(
+    `${V4}/money/Escrow.sol:59-186; EscrowFactory.sol:28-50; Budgets.sol:373 (authorised); equity/Exits.sol:136, :561; ${V4DOCS}/spec/escrow.md (D11, D12); aaron.escrow-general; aaron.departments`,
+  ),
+  affects: [
+    contract_escrow,
+    contract_escrow_factory,
+    contract_budgets,
+    contract_companies_house_claimer,
+    contract_exits,
+    table_payments,
+    P.escrow,
+    P.cancel,
+    rpc_payments_changes_cancel,
+  ],
+});
+
 export const decision_payments_claim_escrow_fit = defineDecision({
   id: "payments.claim-escrow-fit",
-  title: "The v4 claim escrow does what Aaron's ruling asks; six gaps named",
+  title: "The general escrow does what the escrow rulings ask; six gaps named",
   question:
-    "aaron.money-waiting: the escrow holds the money, only the recipient's Capxul account can unlock it once they have " +
-    "one, and the sender can refund at any time before the recipient accepts. Do v4's Escrow, EscrowFactory and " +
-    "CompaniesHouseClaimer do exactly this, and what happens at expiry?",
+    "The escrow ruling and the money-waiting ruling ask for these properties. The escrow is counterfactual. Only the " +
+    "recipient's future account may claim it, whenever it wants. The sender may take the money back until then. A " +
+    "money-waiting email goes out. Does the general escrow (payments.general-escrow) do exactly this on every route, and " +
+    "what is left open?",
   options: [
     {
       label: "fits",
       text:
-        "Use the v4 contracts unchanged. At send time the payee is bound to a predicted address: the personal Safe " +
-        "CompaniesHouseClaimer derives from Companies House, the tier's namespace and the mailbox (trimmed, lowercased), " +
-        "the same Safe the person's sign-up later claims; every term is in the escrow's CREATE2 address. Only that Safe " +
-        "may `collect`, once Companies House is no longer an owner (D11, failing closed) and the escrow holds the amount; " +
-        "`payout` reverts for it. Only the owner Safe may `refund`, only to itself, while it is open, even after the " +
-        "claim (D12). No one else can move it, and it never expires.",
+        "Yes, clause by clause, through the book's flows: the address fixed at prepare, the derived Safe as owner with " +
+        "Companies House as bootstrap owner, the sender's or the department's refund until the collection, and no " +
+        "expiry; the gaps below are accepted rulings or are named in other records.",
     },
     {
-      label: "change-contract",
-      text: "Change the contracts: an on-chain expiry that refunds the payer, or a claim secret in the email instead of a derived Safe.",
+      label: "change-more",
+      text: "Change the contract further: an on-chain expiry that returns the money, or a claim secret in the email instead of a derived Safe.",
     },
   ],
   chosen: "fits",
   why:
-    "Read against Escrow.sol, EscrowFactory.sol and CompaniesHouseClaimer.sol, each clause holds. Binding: no email hash " +
-    "or secret, a predicted Safe whose salt is keccak256(namespace ':' mailbox). Accepting is the payee signing the " +
-    "collection approval their setup opens (accounts.setup.personal-safe); until it lands the payer may refund, and a " +
-    "refund racing a collection is decided by the chain, one or the other. A claim secret would let whoever holds the " +
-    "link collect without an account, which the ruling rules out. Expiry: none; the money waits until collected or " +
-    "refunded. Gaps: (1) the trust root: Companies House's claim role chooses the signer an email's Safe goes to, so " +
-    "'only the recipient's account' holds because Capxul claims a Safe only for the person who signed in with that " +
-    "mailbox's code, and Companies House's 2-of-3 owners could redirect an unclaimed Safe (for Aaron: accept this for " +
-    "the beta). (2) No expiry or reminder, and a payer who loses their Safe can no longer refund (for Aaron). (3) The " +
-    "exact mailbox: an alias or a typo is another Safe; the preview and the email show it, and the payer refunds and " +
-    "sends again (payments.claim-escrow-mailbox). (4) A non-ASCII mailbox can never be claimed (EmailNotNormalized), so " +
-    "it is refused before signing (payments.claim-escrow-routes). (5) An escrow that opens after the payee's setup, or " +
-    "that they declined there, has no later collection path in Capxul, though the contract allows one (asked of " +
-    "accounts). (6) In the beta, setup refuses a mailbox that is not admitted, so such a payee cannot collect until " +
-    "money waiting admits them as an invitation does; settled: the `escrow` step admits it (accounts.money-waiting-admits). Settlement: the collection's " +
-    "PaymentSent comes from the escrow, its executor, so its sender term is `escrow_address`, not the payer's Safe.",
-  source: by(`${V4}/money/Escrow.sol:107-197; ${V4}/money/EscrowFactory.sol:28; ${V4}/companies-house/CompaniesHouseClaimer.sol:85; ${V4DOCS}/spec/escrow.md (D11, D12)`),
+    "Counterfactual: each claim escrow's address is EscrowFactory.predictAddress of its terms and the Payment's job " +
+    "nonce, fixed at prepare, funded by an ordinary Payments.send, Budgets.spend or dated Budgets.execute to it, and " +
+    "deployed in the same batch or, for a dated one, by the escrow relayer once funded (payments.escrow-on-funding). " +
+    "Only the recipient: the owner is the Safe derived from Companies House, the tier's namespace and the mailbox " +
+    "(trimmed, lowercased), the Safe the person's sign-up claims; `collect` answers only it, once Companies House is not " +
+    "among its owners. Whenever: no expiry, at setup or later with `account collect` (accounts.collect-any-time). The " +
+    "sender until then: the payer's Safe; the company Safe, so the Board, for a Board one; for a department's, whoever " +
+    "Budgets.authorised admits on the funding budget at the refund, the money returning to the company Safe. A refund " +
+    "racing a collection is decided by the chain, one or the other, and a refund after the owner can act still works " +
+    "until it collects (D12). Collecting is accepting: the recipient signs it. A claim secret would let whoever holds a " +
+    "link collect without an account, which the ruling rules out; an expiry would move unasked money. " +
+    "Gaps: (1) Companies House's claim role picks the signer an email's Safe goes to, a trust root accepted for the " +
+    "beta (the claim-trust ruling). (2) Reminders are notices' (the reminders ruling). " +
+    "(3) An alias or a typo is another Safe: the preview and the email show the exact mailbox, and the sender takes it " +
+    "back and sends again (payments.claim-escrow-mailbox). (4) A non-ASCII mailbox can never be claimed " +
+    "(EmailNotNormalized), so it is refused before signing (INVALID_RECIPIENT). (5) A frozen agent cannot take back its " +
+    "payment's escrow until unfrozen; the recipient can still collect. (6) Waiting money admits its recipient " +
+    "(accounts.money-waiting-admits). The collection's PaymentSent comes from the escrow, its executor, so its sender " +
+    "term is `escrow_address`.",
+  source: by(
+    `${V4}/money/Escrow.sol:98-186; ${V4}/companies-house/CompaniesHouseClaimer.sol:85-152; ${V4DOCS}/spec/escrow.md (D11, D12); aaron.escrow-general; aaron.money-waiting; payments.general-escrow`,
+  ),
   affects: [
     contract_escrow,
     contract_escrow_factory,
@@ -867,80 +950,67 @@ export const decision_payments_claim_escrow_fit = defineDecision({
     P.settle,
     workflow_payments_lifecycle_payment,
     rpc_payments_changes_cancel,
+    operation_payment_send,
   ],
 });
 
 export const decision_payments_claim_escrow_routes = defineDecision({
   id: "payments.claim-escrow-routes",
-  title: "A budget pays someone with no account through a claim escrow it funds",
+  title: "Every payment to a mailbox with no account is a general escrow, on every route",
   question:
-    "Aaron ruled (aaron.budget-pay-unclaimed) that a budget spend and a dated payment may go to someone with no account " +
-    "through a claim escrow funded by the budget, that a refund goes back to the budget it came from, and that the " +
-    "budget's holder or the Board may take it back. Which payments to a mailbox with no live Safe become claim escrows, " +
-    "who owns each escrow, and can v4's contracts do it?",
+    "The ruling on paying someone with no account lets a budget spend and a dated payment go to them. The escrow " +
+    "ruling makes the escrow general and leaves Budgets unchanged, and the departments ruling makes a budget's payment its " +
+    "department's. Which payments become claim escrows? What are each route's terms, how is each funded and taken " +
+    "back, and what does the budget show?",
   options: [
+    {
+      label: "general-escrow",
+      text:
+        "Every payment to a mailbox with no live Safe, now or dated, is a general escrow: owner the mailbox's derived Safe, " +
+        "condition owner-collects, bootstrap owner Companies House, salt the job nonce, the item's token, amount, kind " +
+        "and document hash. Personal: sender the payer's Safe, no authority, funded by `Payments.send`. Board now: sender " +
+        "the company Safe, no authority, funded by the Board batch's `Payments.send`. A department, allowance or payroll " +
+        "run: sender the company Safe, authority Budgets with the funding budget's id, funded by an ordinary " +
+        "`Budgets.spend` to the escrow's address. Dated (a budget's, or the Board's on the company's own top budget): " +
+        "`Budgets.schedule` to the address, paid by `Budgets.execute` on its day, with the same authority. The funder's " +
+        "batch also sends `EscrowFactory.deploy`; a dated escrow is deployed by its Payment's process once funded. Taking " +
+        "back is the sender's approval or Board proposal, or for a budget's an approval from any Safe that " +
+        "`Budgets.authorised` admits now. The money returns to the sender, and the budget's room is not restored.",
+    },
     {
       label: "budget-owned",
       text:
-        "Every payment to a mailbox with no live Safe is a claim escrow, now or dated. The payer's own Safe owns a personal " +
-        "one; the company Safe owns an immediate Board one, which a Board proposal refunds. A budget funds a budget's, " +
-        "through calls v4's Budgets gains: `spendToClaim(id, payeeSafe, amount, kind, documentHash, jobNonce) returns " +
-        "(address escrow, bytes32 paymentId)` counts it against the budget as `spend` does, deploys the claim escrow through " +
-        "EscrowFactory with Budgets as its owner, and pays it from the company Safe through the payout role; " +
-        "`scheduleToClaim` (the same terms and `payAt`) reserves it as `schedule` does and does the same on `execute`. " +
-        "`refundClaim(id, escrow)`, open to whoever `authorised(id, sender)` admits (the hat's wearers, those above, and " +
-        "the company Safe, so the Board), calls `Escrow.refund()` as the owner, sends the balance on to the company Safe, " +
-        "and gives the budget back the claim's amount as room only when that call moved the escrow from Open to Refunded " +
-        "in the period that spent it (`Escrow.refund()` also answers a collected escrow, which must return no room); " +
-        "events ClaimFunded and ClaimRefunded. A collection pays any surplus (tokens sent to the escrow beyond its " +
-        "amount) to the owner, so Budgets must forward that to the company Safe as well, or it stays in Budgets. Escrow, " +
-        "EscrowFactory and the payout role are unchanged. The Payment goes `escrowed`, `settled` on the collection, " +
-        "`cancelled` with outcome refunded on a refund.",
+        "The superseded design: Budgets gains spendToClaim, scheduleToClaim and refundClaim, owns the escrow and gives " +
+        "the room back in the period that spent it.",
     },
     {
       label: "company-owned",
-      text:
-        "v4 as deployed: the holder's approval sends `Budgets.spend` to the escrow's predicted address and " +
-        "`EscrowFactory.deploy`, with the company Safe as the escrow's owner. Only a Board proposal can send its " +
-        "`Escrow.refund()`: the money returns to the company Safe, Budgets keeps it counted as spent for the period, and " +
-        "no holder can take it back.",
-    },
-    {
-      label: "holder-owned",
-      text:
-        "The spender's own Safe owns the escrow, and its refund operation sends the money on to the company Safe. The " +
-        "Board cannot take it back, a holder who lost the hat still could, and nothing gives the budget its room back.",
+      text: "v4 as deployed, for a budget's: the company Safe owns the escrow, and only a Board proposal takes it back.",
     },
     {
       label: "own-safe-or-board",
       text:
-        "The earlier choice: only a personal and an immediate `--as-directors` payment are claim escrows; a budget spend, " +
-        "a dated payment and a non-ASCII mailbox are INVALID_RECIPIENT.",
+        "The first choice: only personal and immediate Board payments are claim escrows; a budget spend, a dated payment " +
+        "and a non-ASCII mailbox are INVALID_RECIPIENT.",
     },
   ],
-  chosen: "budget-owned",
+  chosen: "general-escrow",
   why:
-    "This record had chosen own-safe-or-board; it now follows Aaron's ruling aaron.budget-pay-unclaimed (payroll to new " +
-    "hires needs it). The v4 check: as deployed, v4 cannot do what the ruling asks. `Escrow.refund()` reverts unless its " +
-    "owner sends it and pays only the owner. A budget's money is the company Safe's, which only the Board (its owners, " +
-    "through the Gate) or Budgets (the Roles payout role, scoped to `approve` and `send` on Payments, Budgets its only " +
-    "member) can make act, so no holder can send that refund; and no Budgets call lowers a period's spend, so the " +
-    "budget would not get its room back. The exact change is the three Budgets calls above. With Budgets the owner, " +
-    "the refund comes from Budgets and goes on to the company Safe in the same call. `refundClaim` gives back at most " +
-    "the claim's amount, only for an escrow Budgets recorded and still open (else a holder could take back the room " +
-    "of a collected escrow), and only in the period that spent it: after the period " +
-    "turned its room is gone, and the money just returns to the company Safe. The funding goes through Payments, so it " +
-    "has a PaymentSent of its own (`funding_payment_id`), which settles and books nothing: the one book fact is the " +
-    "collection's, as books posts nothing while money waits in an escrow. A dated claim escrow opens on its day; a " +
-    "payee who set up before then was not offered it at setup (gap 5 of payments.claim-escrow-fit, asked again of " +
-    "accounts), and the payer, holder or Board can still take it back. The terms stay fixed at prepare, so a retry " +
-    "rebuilds the same escrow. No frozen claim " +
-    "changes; the refusal of a mailbox nobody can claim keeps INVALID_RECIPIENT, now only for a non-ASCII mailbox. For " +
-    "Aaron: the ruling needs this change to the v4 Budgets contract and its redeploy; shared/external.ts must list the " +
-    "calls before the records can link them. If it is declined, company-owned is the fallback: the Board alone takes " +
-    "it back, and the budget's room stays spent for that period.",
+    "It follows the three rulings without changing Budgets. A budget pays the escrow exactly as it pays anyone: " +
+    "`spend` and `schedule` take any recipient, and the counterfactual address is one. So the spend counts against the " +
+    "budget as every spend does. Its PaymentSent is the escrow's funding (`funding_payment_id`, kept on every route), " +
+    "which settles nothing. The Payment settles on the collection's PaymentSent, and books posts nothing while the money " +
+    "waits. The department's authority is read at the refund: the next wearer may take back what the last one sent, a " +
+    "member taken out of the hat is refused at once, and the Board, as the company Safe, always may. The money returns " +
+    "to the company Safe, the treasury every budget pays from. The room is not restored, as open question 1 was " +
+    "answered: the refund adds to the Safe's balance, not to the budget's period, and the budget keeps showing the " +
+    "spend as spent. The Board's dated payment sits on the company's own top budget, whose hat is the Board's top hat, " +
+    "so only the Board may cancel or take it back (payments.department-authority). The terms are fixed at prepare, so a " +
+    "retry rebuilds the same escrow. A dated escrow opens on its day; a payee who set up before then collects with " +
+    "`account collect`. Payroll's new hire is the budget route through the door, item by item. No frozen claim " +
+    "changes; INVALID_RECIPIENT stays only for a non-ASCII mailbox.",
   source: by(
-    `${V4}/money/Escrow.sol:176 (refund: owner only); ${V4}/money/Budgets.sol:206 (spend), :497 (_pay); ${V4DOCS}/spec/installer.md steps 3-5 (payout role); aaron.budget-pay-unclaimed`,
+    `aaron.escrow-general; aaron.departments; aaron.budget-pay-unclaimed; ${V4}/money/Budgets.sol:206 (spend), :235 (schedule), :283 (execute); docs/decisions/open-for-aaron.md (question 1)`,
   ),
   affects: [
     rpc_payments_commands_prepare,
@@ -958,6 +1028,122 @@ export const decision_payments_claim_escrow_routes = defineDecision({
     workflow_payments_lifecycle_payment,
     workflow_payments_settlement_observe,
   ],
+});
+
+export const decision_payments_escrow_on_funding = defineDecision({
+  id: "payments.escrow-on-funding",
+  title: "A claim escrow's Payment is escrowed when its funding lands; the deploy follows",
+  question:
+    "The general escrow is funded before it exists, and anyone may deploy it. If `escrow` waited on EscrowCreated, an " +
+    "escrow deployed early (anyone can) would send the money-waiting email before the money arrived, and one deployed " +
+    "late would leave its Payment `submitted`. What moves a claim escrow's Payment to `escrowed`, and who deploys the " +
+    "escrow?",
+  options: [
+    {
+      label: "funding",
+      text:
+        "The funding's PaymentSent, with the Payment's `funding_payment_id`, drives `escrow` (from prepared, scheduled, " +
+        "due or submitted). The funder's batch deploys the escrow beside its funding. Once `Budgets.execute` funds a " +
+        "dated budget payment, its process sends `EscrowFactory.deploy` with the escrow relayer key if the address has " +
+        "no code, once, looked up by hash.",
+    },
+    { label: "escrow-created", text: "EscrowCreated with the Payment's collection payment id drives `escrow`, as before." },
+  ],
+  chosen: "funding",
+  why:
+    "Money waiting is what the email, the reminders and the admission are about, and the funding's PaymentSent is that " +
+    "fact on every route: a personal or Board `Payments.send`, a budget spend, or a dated execute. EscrowCreated only " +
+    "says that code exists, which anyone can cause before the money arrives. The deploy is still needed. Indexing admits " +
+    "an escrow's logs and transfers, and accounts finds it at setup, only once EscrowDeployed makes it known " +
+    "(indexing.provenance), and a refund or a collection needs code. So every funding is followed by a deploy: in the " +
+    "same batch where the funder signs one (personal, Board, a budget spend), else by the Payment's own process with the " +
+    "relayer key, whose one job this is. A deploy that fails strands nothing: the money is at the address, and the next " +
+    "deploy, by anyone, finds it. The relayer key cannot move money.",
+  source: by("payments.general-escrow; indexing.provenance; books/target/shared/external.ts (service-signer: ESCROW_RELAYER_KEY); payments.escrow-after-send"),
+  affects: [P.escrow, workflow_payments_lifecycle_payment, contract_escrow_factory, integration_service_signer, table_payments],
+});
+
+export const decision_payments_department_authority = defineDecision({
+  id: "payments.department-authority",
+  title: "A budget payment is its department's: whoever wears the hat now acts on it",
+  question:
+    "rules.department-authority: authority over a budget's money is the hat a Safe wears now. `payment cancel`'s who " +
+    "gives a claim escrow to its owner or the Board; `payment retry` refuses 'a caller who no longer holds the authority " +
+    "the first send needed'; a Board dated payment is scheduled on 'the open top budget with the most left', which may " +
+    "be a department. How do payments' who-lines and that choice read?",
+  options: [
+    {
+      label: "hat-now",
+      text:
+        "Retry, cancel, reschedule and take back a budget's payment or claim escrow: whoever Budgets.authorised admits on " +
+        "its budget now, whoever sent it, and the Board. `payment cancel`'s who: 'The payer. For a budget's dated payment " +
+        "or claim escrow, whoever wears the budget's hat or one above it now, or the Board. For a payment the Board made, " +
+        "the Board.' A Board dated payment is scheduled on the company's own top budget in the asset, whose hat is the " +
+        "Board's top hat.",
+    },
+    { label: "first-sender", text: "Only the person who sent it, with the Board as a backstop (the recommendation Aaron changed)." },
+  ],
+  chosen: "hat-now",
+  why:
+    "The departments ruling changed open question 2's recommendation: a budget payment is the department's, not " +
+    "the sender's. `Budgets.cancel` and the general escrow's refund already ask `Budgets.authorised` at the call, so " +
+    "the who-lines now say what the chain does. A member who left is refused: ROLE_PERMISSION_DENIED before anything is " +
+    "built, or by the chain if they lose the hat after sponsorship. The most-left rule could put the Board's payment on " +
+    "a department, whose holders could then cancel it and whose room it would use unasked. The company's own top budget " +
+    "is the Board's alone, since only the company Safe wears its hat, and its room is checked as any budget's " +
+    "(PAYROLL_BUDGET_EXCEEDED). The frozen claims are unchanged: `payment cancel` #2 and #4 still hold (the Board cancels " +
+    "what it scheduled; a non-Director cannot), and so does `payment retry` #3 (a member who lost the hat is refused).",
+  source: by("rules.department-authority (contradictions 1, 2 and 17 of docs/design/authority.md); aaron.departments; open-for-aaron.md question 2; Budgets.sol:268 (cancel)"),
+  affects: [
+    rpc_payments_changes_cancel,
+    rpc_payments_changes_retry,
+    rpc_payments_changes_reschedule,
+    rpc_payments_commands_propose,
+    operation_payment_cancel,
+    operation_payment_retry,
+  ],
+});
+
+export const decision_payments_escrow_contract_build = defineDecision({
+  id: "payments.escrow-contract-build",
+  title: "The build writes the general escrow in packages/contracts and deploys it",
+  question:
+    "The general escrow changes v4's Escrow and EscrowFactory, and the one line of Exits that builds their terms. Who " +
+    "writes it, where does it live, when must it exist, and which deployments carry it?",
+  options: [
+    {
+      label: "contracts-package",
+      text:
+        "`packages/contracts` in this repository holds Protocol v4's Solidity sources, taken at a pinned commit of the v4 " +
+        "package as the chain layer the book records (P9, contracts.v4). It carries only the general escrow's change: " +
+        "Escrow, EscrowFactory, IEscrow and IEscrowFactory, with their spec, trees and Foundry tests, and Exits' terms " +
+        "builder. It lands with the spine at B3, before the pilots, because a claim escrow is a route of `payment send`, a " +
+        "pilot. The devnet's `up` deploys it, and the regenerated address book records the factory's devnet address. B5's " +
+        "new staging deploys it fresh on Base Sepolia (environments.staging). Its exit check: the trees and invariant " +
+        "suite in docs/design/escrow.md pass, and `forge build` gives the creation code the SDK's address prediction uses.",
+    },
+    {
+      label: "old-repository",
+      text: "Change the escrow in Xelmar-tech/infrastructure's v4 package and deploy from there; the old system is read only, and the build could not change or test it.",
+    },
+    {
+      label: "escrow-only",
+      text: "Only the escrow in this repository, the rest of v4 deployed from the old repository: Exits imports the escrow's terms, so the two would not build together.",
+    },
+  ],
+  chosen: "contracts-package",
+  why:
+    "The rebuild must deploy and test its contracts from the repository it builds. The devnet deploys v4 at `up`, and " +
+    "the new staging is a fresh v4 deployment, accepted 'with the changed escrow' (open question 16). v4 is " +
+    "not the old system that the never-port rule means. It is the protocol the target book is written against (P9), and " +
+    "the book records its contracts as its chain layer; the old TypeScript product stays a reference only. Taking the " +
+    "whole v4 package keeps one compiler, one set of addresses and one deploy script. The change stays the escrow's: " +
+    "Budgets, Payments, CompaniesHouseClaimer and every other contract are v4's byte for byte, so their trees and audits " +
+    "still hold. B3 is the latest it can land, because payments' prepare and the SDK's address prediction need the " +
+    "escrow's ABI and creation code. For the goal prompt: the master adds `packages/contracts` to system.layout's " +
+    "packages and to B3's spine.",
+  source: by("environments.staging; open-for-aaron.md question 16; contracts.v4; docs/mission/initializer.md (B3: anvil with the v4 contracts; B5); packages/protocol/src/evm/escrows-v4.ts:13 (creation code)"),
+  affects: [contract_escrow, contract_escrow_factory, contract_exits, environment_staging, environment_devnet],
 });
 
 export const decision_payments_claim_escrow_mailbox = defineDecision({
@@ -985,17 +1171,17 @@ export const decision_payments_escrow_after_send = defineDecision({
   title: "A claim escrow escrows from `submitted` too: its carrier answers before Ponder",
   question:
     "A personal claim escrow's approval is `sent` when the bundler accepts it, and the process then drives `submit`; a " +
-    "Board one's proposal executes in the escrow's own transaction. EscrowCreated is indexed after both. If `escrow` ran " +
-    "only from `prepared`, what would a claim escrow do?",
+    "Board one's proposal executes in the funding's own transaction. The funding's PaymentSent, which drives `escrow` " +
+    "(payments.escrow-on-funding), is indexed after both. If `escrow` ran only from `prepared`, what would a claim escrow do?",
   options: [
     {
       label: "from-submitted",
       text:
         "`escrow` runs from `prepared` or `submitted`, and for a dated claim escrow from `scheduled` or `due`: whichever " +
-        "answer the process sees first, EscrowCreated takes the Payment to `escrowed`, and a carrier's answer after that " +
-        "moves nothing.",
+        "answer the process sees first, the funding's PaymentSent takes the Payment to `escrowed`, and a carrier's answer " +
+        "after that moves nothing.",
     },
-    { label: "hold-submit", text: "A claim escrow's carrier never drives `submit`; it stays `prepared` until EscrowCreated." },
+    { label: "hold-submit", text: "A claim escrow's carrier never drives `submit`; it stays `prepared` until its funding is indexed." },
   ],
   chosen: "from-submitted",
   why:
@@ -1004,7 +1190,7 @@ export const decision_payments_escrow_after_send = defineDecision({
     "though a collection would still settle it. Keeping `submit` means a claim escrow reads like every other sent " +
     "payment until the chain says where the money is, and a reverted operation still lapses from `submitted`. Holding " +
     "`submit` would give one route its own carrier rules. A dated claim escrow, which payments.claim-escrow-routes now " +
-    "allows, opens on its day from `scheduled` or `due` when EscrowCreated is indexed before " +
+    "allows, opens on its day from `scheduled` or `due` when `Budgets.execute`'s PaymentSent to it is indexed before " +
     "its carrier's answer, for the same reason.",
   source: by("books/target/approvals/data.ts (state sent: the bundler accepted it); books/target/board/data.ts (executed); books/target/payments/processes.ts (follow-carrier); books/target/notices/payments.ts (money-waiting follows escrow)"),
   affects: [P.escrow, P.submit, P.cancel, workflow_payments_lifecycle_payment, machine_approval, machine_proposal],

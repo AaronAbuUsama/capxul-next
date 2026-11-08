@@ -2,9 +2,9 @@
 // Contacts), opened by hand or by a lead's conversion (./leads.ts), and moved through Frappe CRM's
 // deal statuses to won or lost (decisions contacts.frappe-shape, contacts.crm-statuses). Only an
 // Organization keeps deals. Every member reads them; only a member whose Safe wears the People hat
-// changes them (decision contacts.crm-permission). New capabilities, reached through the Core SDK
-// (decision contacts.crm-capabilities). A deal is a forecast: nothing here is signed and no money
-// moves.
+// changes them (decision contacts.crm-permission). New capabilities: the `org crm deal` commands
+// reach them through one Core SDK method each (decision contacts.crm-capabilities). A deal is a
+// forecast: nothing here is signed and no money moves.
 
 import { Schema } from "effect";
 import { budget, defineRpc } from "../../../packages/book/src/index.ts";
@@ -17,6 +17,7 @@ import {
 import { DEAL_STATUSES, DealStage, LOST_REASONS, machine_deal, table_contacts, table_deal_contacts, table_deals } from "./data.ts";
 import { table_org_deployments, table_org_members } from "../organizations/data.ts";
 import { table_hat_wearers } from "../indexing/data.ts";
+import { table_parties } from "../parties/data.ts";
 import { LOGGED, WHO_CRM_READ, WHO_CRM_WRITE } from "./leads.ts";
 
 const CRM = "github.com/frappe/crm@2cecd300:crm";
@@ -55,7 +56,8 @@ export const DealView = Schema.Struct({
   updatedAt: N,
 });
 
-const DealFields = Schema.Struct({
+/** The fields a save may set: each given replaces the stored one, null clears it. */
+export const DealFields = Schema.Struct({
   organization: Schema.optionalKey(NullOr(S)),
   contacts: Schema.optionalKey(Schema.Array(DealContact)),
   deal_owner: Schema.optionalKey(NullOr(S)),
@@ -70,7 +72,9 @@ const DealFields = Schema.Struct({
 
 const READ_ERRORS = [error_NOT_AUTHENTICATED, error_ROLE_PERMISSION_DENIED, error_INVALID_INPUT];
 const READS = [table_deals, table_deal_contacts, table_org_members];
-const WRITE_READS = [...READS, table_contacts, table_org_deployments, table_hat_wearers];
+/** A write also reads the People hat's wearers (contacts.members-write); a save reads `parties` for an owner named by handle or mailbox. */
+const GUARD_READS = [...READS, table_org_deployments, table_hat_wearers];
+const WRITE_READS = [...GUARD_READS, table_contacts, table_parties];
 const GUARD =
   "It first checks the caller's Seat wears the People hat (the deployment's people hat id, wearers from indexing), " +
   "else ROLE_PERMISSION_DENIED and nothing is written. The deal it changes is appended to `contact-changes` and takes " +
@@ -81,12 +85,14 @@ export const rpc_contacts_deals_save = defineRpc({
   title: "Open a deal, or change one",
   about:
     GUARD +
-    "With no `deal` it opens a new one by hand (`start`): status Qualification, stage open, the fields given. With " +
-    "`deal` it changes the fields given and keeps the rest, whatever its stage, as Frappe lets a won or lost deal be " +
-    "edited; its status moves only through `contacts.deals.move`. `organization` must be a CRM Organization entry of the " +
+    "With no `deal` (`org crm deal create`) it opens a new one by hand (`start`): status Qualification, stage open, the " +
+    "fields given. With `deal` (`org crm deal change`) it changes the fields given and keeps the rest, whatever its " +
+    "stage, as Frappe lets a won or lost deal be edited; its status moves only through `contacts.deals.move`. " +
+    "`organization` must be a CRM Organization entry of the " +
     "Organization's book and each of `contacts` a Contact entry of it, at most one primary and the only one primary " +
-    "(Frappe's `set_primary_contact`); `contacts` replaces the deal's people. `deal_owner` is the PartyId of an active " +
-    "Seat; `probability` 0 to 100, taken from the status's (Qualification 10) when none is given or 0, as Frappe's " +
+    "(Frappe's `set_primary_contact`); `contacts` replaces the deal's people. `deal_owner` is a member named by a " +
+    "mailbox, an @handle or the PartyId of an active Seat (kept as its PartyId); `probability` 0 to 100, taken from " +
+    "the status's (Qualification 10) when none is given or 0, as Frappe's " +
     "`update_default_probability`; values non-negative decimals given with `currency` (3 to 10 capitals); " +
     "`expected_closure_date` a calendar date; texts trimmed and at most 140. A bad value, or a deal id not in this " +
     "Organization, is INVALID_INPUT naming the field, and nothing is written. Returns the deal.",
@@ -131,7 +137,7 @@ export const rpc_contacts_deals_move = defineRpc({
   }),
   output: DealView,
   errors: READ_ERRORS,
-  reads: [...READS, table_org_deployments],
+  reads: GUARD_READS,
   writes: [table_deals, ...LOGGED],
   drives: [machine_deal.t.reopen, machine_deal.t.engage, machine_deal.t.win, machine_deal.t.lose],
   invokes: [],

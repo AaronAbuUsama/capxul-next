@@ -37,7 +37,7 @@ const SHOWS =
   "(`Budgets.budgetOf` and `leftOf` at the latest block: an allowance has left what `leftOf` reads), when it is whole " +
   "again (the start of the next calendar period, by the chain's clock, `getBlock`), whether it is closed, its hat and the " +
   "hat's wearers (indexing; a member by email, any other Safe by its address with no invented name). What it paid into " +
-  "a claim escrow still waiting counts as spent; a refund in the same period gives that room back (budgets.claim-escrows). A proposed one " +
+  "a claim escrow counts as spent, and stays spent if it is taken back: the money returns to the company Safe, not the room (budgets.claim-escrows). A proposed one " +
   "shows its planned amount and no chain id. Each read reads only its own allowances' budgets, so it does not grow with " +
   "the Organization's other budgets. Nothing is written.";
 

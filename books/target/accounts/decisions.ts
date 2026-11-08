@@ -5,7 +5,7 @@
 // (/home/user/factory, integration/factory) as evidence.
 
 import { defineDecision } from "../../../packages/book/src/index.ts";
-import { contract_companies_house_claimer, contract_erc20, integration_service_signer } from "../shared/external.ts";
+import { contract_companies_house_claimer, contract_erc20, contract_escrow, integration_service_signer } from "../shared/external.ts";
 import { concept_accounts, concept_organizations, concept_payments } from "../shared/foundation.ts";
 import { error_PROFILE_NOT_FOUND, error_SMART_ACCOUNT_MISSING, error_WRONG_ENVIRONMENT } from "../shared/vocabulary.ts";
 import { rpc_accounts_admission_admit, rpc_accounts_admission_join, rpc_accounts_admission_status } from "./admission.ts";
@@ -22,6 +22,7 @@ import {
   table_admissions,
 } from "./data.ts";
 import {
+  flow_client_account_collect,
   flow_client_account_setup,
   flow_client_auth_sign_in,
   flow_client_auth_verify_otp,
@@ -37,7 +38,7 @@ import {
   rpc_accounts_referrals_list,
   rpc_accounts_referrals_show,
 } from "./referrals.ts";
-import { rpc_accounts_setup_check, rpc_accounts_setup_lifecycle, rpc_accounts_setup_start } from "./setup.ts";
+import { rpc_accounts_setup_check, rpc_accounts_setup_collect, rpc_accounts_setup_lifecycle, rpc_accounts_setup_start } from "./setup.ts";
 
 const by = (evidence: string) => `Claude, accounts design, 8 November 2026; evidence: ${evidence}`;
 
@@ -543,7 +544,7 @@ export const decision_accounts_money_waiting_admits = defineDecision({
   why:
     "The ruling says 'as an invitation does', and an invitation admits through `accounts.admit` in the transaction " +
     "that writes it (procedures.accounts-admit): recorded, permanent, and the email that tells the person is the welcome. " +
-    "The same moment for money is when it starts to wait: EscrowCreated is indexed and payments drives `escrow`. That is " +
+    "The same moment for money is when it starts to wait: the escrow's funding is indexed and payments drives `escrow` (payments.escrow-on-funding). That is " +
     "the transition notices' money-waiting email follows, so the recipient is admitted before the email that sends " +
     "them to set up can arrive. Payments sits above accounts and holds the mailbox (`payee_mailbox`, " +
     "payments.claim-escrow-mailbox); accounts cannot follow payments' event (a cycle), and nothing below payments knows " +
@@ -567,5 +568,53 @@ export const decision_accounts_money_waiting_admits = defineDecision({
     ops.operation_waitlist_status,
     rpc_accounts_admission_status,
     concept_payments,
+  ],
+});
+
+// ── the owner collects whenever it chooses (aaron.escrow-general, 8 November 2026) ─────────────
+
+export const decision_accounts_collect_any_time = defineDecision({
+  id: "accounts.collect-any-time",
+  title: "`account collect`: the owner collects its claim escrows whenever it chooses",
+  question:
+    "aaron.escrow-general: the escrow's owner 'can claim that money whenever they want'. Setup collects what waits at " +
+    "the claim, but nothing collected an escrow that opens after setup (a dated payment paid after the payee signed up), " +
+    "one the person declined or let lapse at setup, or one funded while setup ran. How does the owner collect later?",
+  options: [
+    {
+      label: "account-collect",
+      text:
+        "A new operation, `account collect` (id `account.collect`, rules.new-operations). Its rpc reads indexing's open " +
+        "owner-collects escrows whose owner is the caller's set-up Safe and that hold their amount, and opens one approval " +
+        "from that Safe calling `collect` on each, which the person signs on the approval page. Nothing waiting answers " +
+        "an empty list and opens nothing. The web app offers the same through the React twin, and setup keeps its own " +
+        "collection at the claim.",
+    },
+    {
+      label: "auto-approval",
+      text:
+        "Open a collection approval for the payee each time an escrow opens for a live Safe: approvals expire, so the " +
+        "money would again have no way out after the deadline.",
+    },
+    { label: "setup-again", text: "Run the setup process again on demand: setup is one process per Safe and ends at ready." },
+  ],
+  chosen: "account-collect",
+  why:
+    "'Whenever they want' needs a command, not a moment: the owner chooses when, and an approval is opened only when " +
+    "asked, so it never lapses unasked. Accounts already reads the escrows that pay a Safe and opens setup's collection " +
+    "(dependencies.accounts-payments: chain facts from indexing, not payments' rows), so the later collection is the " +
+    "same step behind its own rpc. It writes no row of accounts, and approvals.open answers the live approval of the " +
+    "same subject, so asking twice signs once. Each collection's PaymentSent settles its Payment for the payer and the " +
+    "person, as at setup. Only escrows holding their amount are offered, so one deployed before its funding is never " +
+    "signed into a revert. Its id is its command's words and collides with no frozen or new operation. For Aaron: " +
+    "rules.new-operations makes the commands a capability gets a pack question; this recommends `account collect` and " +
+    "books it now, as rules.new-operations allows.",
+  source: by("aaron.escrow-general; rules.new-operations; payments.claim-escrow-fit; books/target/accounts/processes.ts (escrows, collect)"),
+  affects: [
+    ops.operation_account_collect,
+    flow_client_account_collect,
+    rpc_accounts_setup_collect,
+    workflow_accounts_setup_personal_safe,
+    contract_escrow,
   ],
 });

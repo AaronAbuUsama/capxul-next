@@ -151,9 +151,11 @@ export const table_org_setups = defineTable({
     "once: the service signer records the signed bytes before it broadcasts), the founder's install approval, the issue " +
     "it stopped on, and when it last checked. The old row's scheduling plumbing (generation, lease, dispatch and send " +
     "tokens, due times, park, unresolved counters, the preparation and submission copies) is gone: the workflow engine " +
-    "holds the schedule, and approvals hold the UserOperation. When the founder's machine made the Organization's FDE key " +
-    "(organizations.fde-at-start-up), the setup keeps that key's address, where the machine keeps it, the FDE's predicted " +
-    "Safe and its Party: the install batch creates the FDE on chain and the setup seats it.",
+    "holds the schedule, and approvals hold the UserOperation. Unless the founder started without one (`with_fde` " +
+    "false), the setup asks Capxul's FDE host to make the Organization's Forward Deployed Engineer once the company Safe " +
+    "is minted (organizations.fde-at-start-up, aaron.fde-hosted): the host makes and keeps its key, and the setup keeps " +
+    "only that key's address, the FDE's predicted Safe and its Party; the install batch creates the FDE on chain and the " +
+    "setup seats it. Its hosting is `org-fdes`'.",
   was: [`${T}/setups.ts:35`, `${AS_IS}:203`],
   concept: concept_organizations,
   tenancy: "organization",
@@ -164,9 +166,11 @@ export const table_org_setups = defineTable({
     founder_principal_id: S,
     /**
      * Hash of name, handle, country, bio, size, logo and the start-up choices (currency, time zone, fiscal-year start,
-     * apps) as begun: the same intent resumes, another refuses. The FDE key is not in it: a resume keeps the first.
+     * apps, and whether it starts with an FDE) as begun: the same intent resumes, another refuses.
      */
     intent_hash: S,
+    /** Whether the Organization starts with its hosted FDE: false only for `org create --no-fde`. */
+    with_fde: Schema.Boolean,
     status: Schema.Literals(["processing", "awaiting_authorization", "needs_attention", "ready", "failed"]),
     steps: Schema.Array(SetupStep),
     mint_tx_hash: NullOr(S),
@@ -174,13 +178,14 @@ export const table_org_setups = defineTable({
     /** The founder's install batch: an approval opened with `approvals.open` in this concept's transaction. */
     install_approval_id: NullOr(S),
     issue: NullOr(SetupIssue),
-    /** The FDE's key (its address only), made on the founder's machine; null when the Organization starts without one. */
+    /**
+     * The FDE's key (its address only), made and held by Capxul's FDE host when the setup asked it; null before then and
+     * when the Organization starts without one. The key itself never leaves the host.
+     */
     fde_signer: NullOr(S),
-    /** Where that machine keeps the FDE's key, as agents' key_store names it. */
-    fde_key_store: NullOr(Schema.Literals(["file", "env"])),
-    /** AgentOwner.safeAddressFor(fde_signer, the company Safe), computed at begin. */
+    /** AgentOwner.safeAddressFor(fde_signer, the company Safe), computed when the host answered. */
     fde_safe: NullOr(S),
-    /** The FDE's Party, registered pending at begin, activated when the install lands, released if the setup fails. */
+    /** The FDE's Party, registered pending when the host answered, activated when the install lands, released if the setup fails. */
     fde_party_id: NullOr(S),
     checked_at: N,
     ready_at: NullOr(N),
@@ -605,6 +610,152 @@ export const table_org_heads = defineTable({
       for:
         "The Organization's live head (connecting, connected or failing), and every app's sync reads it. One at a time: a " +
         "connect takes the Organization row's lock and refuses WRONG_STATE while a live row exists.",
+    },
+  ],
+  retention: KEPT,
+});
+
+// ── the hosted FDE (aaron.fde-hosted): its hosting, what paid for it, and who asked it what ──
+
+/** The calendar months one hosting payment may buy: 1 to 12 (organizations.fde-hosting). */
+export const MAX_HOSTING_MONTHS = 12;
+
+/** The Frappe apps Capxul can ask a head's host to install, beyond the fundamental ones (organizations.app-commands). */
+export const HEAD_APPS = [
+  "helpdesk", "insights", "lms", "wiki", "drive", "gameplan", "builder", "print_designer", "lending", "education",
+  "healthcare", "webshop", "ecommerce_integrations",
+] as const;
+
+export const table_org_fdes = defineTable({
+  id: "org-fdes",
+  title: "Hosted FDEs: the Organization's Forward Deployed Engineer on Capxul's host",
+  about:
+    "One row per Organization whose Forward Deployed Engineer Capxul hosts (aaron.fde-hosted): a durable agent on a " +
+    "durable runtime with sandboxes, which Capxul's FDE host (swarmD, organizations.fde-host) runs for the Organization. " +
+    "Born when the setup's `host-fde` step has the host's answer: the host's id for the agent, the key's address the " +
+    "host made and keeps (never the key), the FDE's predicted Safe and its Party. Its one durable process " +
+    "(`organizations.fde.host`) starts the agent on the host when the setup is ready, pauses it when its hosting lapses " +
+    "and resumes it when it is paid again (organizations.fde-hosting). `paid_through` is the instant its hosting is paid " +
+    "to: the start-up month from the setup's readiness, then moved on by each settled hosting payment " +
+    "(`organizations.extend-fde-hosting`, invoked by payments' settlement) and back by a reorg's reversal; null while the " +
+    "deployment sets no FDE_HOSTING_PRICE, when hosting is not charged. Nothing here is a chain fact: the FDE's Safe, " +
+    "its hats and its owner (the company Safe) are read from indexing, and its agent row is agents'.",
+  concept: concept_organizations,
+  tenancy: "organization",
+  tenantField: "org_id",
+  fields: Schema.Struct({
+    org_id: S,
+    /** The host's id for this Organization's FDE agent: `fde:<orgId>`, so a repeated provision finds the same agent. */
+    host_agent_id: S,
+    party_id: S,
+    safe_address: S,
+    /** The key's address the host made; replaced only if a rotation the host made lands (a key it did not make retires the hosting). */
+    signer_address: S,
+    status: Schema.Literals(["provisioned", "running", "due", "paused", "resuming", "retired"]),
+    /** When the host first started it, once the setup was ready. */
+    started_at: NullOr(N),
+    /** The instant its hosting is paid to; null while hosting is not charged (no FDE_HOSTING_PRICE). */
+    paid_through: NullOr(N),
+    /** When it last paused for an unpaid month, and when it last resumed. */
+    paused_at: NullOr(N),
+    resumed_at: NullOr(N),
+    retired_at: NullOr(N),
+    retire_reason: NullOr(Schema.Literals(["setup_failed", "agent_removed", "key_moved"])),
+    /** The last time a Director asked it something (`org fde ask`), and who. */
+    last_asked_at: NullOr(N),
+    last_asked_by: NullOr(S),
+    created_at: N,
+    updated_at: N,
+  }),
+  key: ["org_id"],
+  indexes: [
+    {
+      name: "by_safe",
+      fields: ["safe_address"],
+      unique: true,
+      crossTenant: true,
+      for: "The hosting an AgentRemoved or AgentSignerSwapped names by the FDE's Safe.",
+    },
+  ],
+  retention: KEPT,
+});
+
+export const table_org_fde_payments = defineTable({
+  id: "org-fde-payments",
+  title: "FDE hosting payments: the months paid, one row per settled Payment",
+  about:
+    "One row per Payment that paid for the hosted FDE (`org fde pay`, payments'; organizations.fde-hosting). Payments " +
+    "births the command at the deployment's FDE_HOSTING_PRICE times the months and settles it on its terms; in the " +
+    "settling transaction it invokes `organizations.extend-fde-hosting`, which records the months here and moves the " +
+    "hosting's `paid_through` on by them, so the months count exactly when the payment settles. A reorg below finality " +
+    "that reopens the Payment takes them back (`organizations.return-fde-hosting`), and the same Payment settling again " +
+    "adds them again. The amount, token and settling transaction are copied from the settled Payment so `org fde show` " +
+    "can say what was paid without reading payments, which sits above. `org_id` is the paying command's owner.",
+  concept: concept_organizations,
+  tenancy: "organization",
+  tenantField: "org_id",
+  fields: Schema.Struct({
+    org_id: S,
+    payment_id: S,
+    command_id: S,
+    /** Calendar months it paid for, 1 to 12. */
+    months: N,
+    status: Schema.Literals(["counted", "returned"]),
+    chain_id: N,
+    token_address: S,
+    asset: S,
+    amount_raw: S,
+    /** The member who paid (their Party): a person, never an agent. */
+    paid_by_party_id: S,
+    /** The hosting's paid-through instant once these months were counted. */
+    paid_through_after: N,
+    tx_hash: S,
+    block_number: N,
+    counted_at: N,
+    returned_at: NullOr(N),
+    created_at: N,
+    updated_at: N,
+  }),
+  key: ["org_id", "payment_id"],
+  indexes: [
+    {
+      name: "by_org_counted",
+      fields: ["org_id", "counted_at", "payment_id"],
+      for: "The Organization's hosting payments in the order they were counted: what `org fde show` reports as paid.",
+    },
+  ],
+  retention: KEPT,
+});
+
+export const table_org_fde_asks = defineTable({
+  id: "org-fde-asks",
+  title: "FDE asks: who instructed the hosted FDE, and when",
+  about:
+    "One row per message a Director sent the hosted FDE (`org fde ask`, organizations.fde-commands), written in the ask's " +
+    "own transaction before the message leaves for the host. The FDE acts with the hats the Board granted its Safe, so " +
+    "whoever instructs it borrows them; this log says who did, and when, beside the FDE's own commands, each traced. It " +
+    "keeps the host's turn id, the asker and the message's length and SHA-256, never the message, which is the host's " +
+    "conversation. Nothing changes a row: it has no lifecycle.",
+  concept: concept_organizations,
+  tenancy: "organization",
+  tenantField: "org_id",
+  fields: Schema.Struct({
+    org_id: S,
+    /** `ask_` and a ULID. */
+    ask_id: S,
+    /** The host's id for the FDE's turn that answers it. */
+    host_turn_id: S,
+    asked_by_member_id: S,
+    message_chars: N,
+    message_sha256: S,
+    asked_at: N,
+  }),
+  key: ["org_id", "ask_id"],
+  indexes: [
+    {
+      name: "by_org_asked",
+      fields: ["org_id", "asked_at", "ask_id"],
+      for: "The Organization's asks, newest first: who instructed its FDE last, as `org fde show` prints it.",
     },
   ],
   retention: KEPT,
@@ -1036,6 +1187,131 @@ export const machine_org_head = defineMachine({
       to: "disconnected",
       about: "A Director disconnects it.",
       emits: [event_org_head_transitioned],
+    },
+  },
+});
+
+export const event_org_fde_transitioned = defineEvent({
+  id: "org_fde_transitioned",
+  about:
+    "An Organization's hosted FDE was provisioned on the host, started, fell due, paused for an unpaid month, was paid " +
+    "(extended, or woken from a pause), resumed or retired. Notices reminds the Directors from `fall_due` and `pause`; " +
+    "agents writes the FDE's agent row from `provision`.",
+  props: Schema.Struct({
+    from: From,
+    to: S,
+    transition: S,
+    org_id: S,
+    safe_address: S,
+    paid_through: NullOr(N),
+  }),
+});
+
+export const machine_org_fde = defineMachine({
+  id: "org-fde",
+  title: "Hosted FDE",
+  about:
+    "org-fdes.status, owned by the hosting's one durable process except the two moves a settled hosting payment makes " +
+    "(`extend`, `wake`, driven by `organizations.extend-fde-hosting` in payments' settling transaction). Born provisioned " +
+    "when the host has made the FDE's key; running once the setup is ready and the host started it; due seven days " +
+    "before `paid_through`; paused when `paid_through` passes unpaid; resuming once paid again, until the host has " +
+    "resumed it; retired for good when the setup failed, the chain removed the agent, or its key moved off the host.",
+  table: table_org_fdes,
+  field: "status",
+  initial: "provisioned",
+  states: [
+    { id: "provisioned", about: "The host made the FDE's key; it waits for the install to create it on chain and the setup to be ready." },
+    { id: "running", about: "Running on the host: it answers `org fde ask` and works through its own commands." },
+    { id: "due", about: "Running, with its hosting paid through a day less than seven days ahead: the Directors are reminded." },
+    { id: "paused", about: "Its hosting lapsed unpaid: the host keeps its key, conversation and workspace, and it takes no turn." },
+    { id: "resuming", about: "Paid again: waiting for the host to resume it." },
+    { id: "retired", about: "Hosting ended: the setup failed, the agent was removed, or its key is no longer the host's.", terminal: true },
+  ],
+  transitions: {
+    provision: {
+      from: [],
+      to: "provisioned",
+      about: "Birth: the setup's `host-fde` step has the host's answer (its agent id and key's address).",
+      emits: [event_org_fde_transitioned],
+    },
+    start: {
+      from: ["provisioned"],
+      to: "running",
+      about: "The setup is ready: the host started the FDE, and its start-up month begins (`paid_through`, when a price is set).",
+      emits: [event_org_fde_transitioned],
+    },
+    fall_due: {
+      from: ["running"],
+      to: "due",
+      about: "Seven days before `paid_through`, by the process's own timer.",
+      emits: [event_org_fde_transitioned],
+    },
+    extend: {
+      from: ["running", "due"],
+      to: "running",
+      about: "A hosting payment settled: `paid_through` moved on by its months (the door, in payments' settlement).",
+      emits: [event_org_fde_transitioned],
+    },
+    pause: {
+      from: ["running", "due"],
+      to: "paused",
+      about: "`paid_through` passed unpaid: the host paused the FDE.",
+      emits: [event_org_fde_transitioned],
+    },
+    wake: {
+      from: ["paused"],
+      to: "resuming",
+      about: "A hosting payment settled while it was paused: `paid_through` runs on from the settlement (the door).",
+      emits: [event_org_fde_transitioned],
+    },
+    resume: {
+      from: ["resuming"],
+      to: "running",
+      about: "The host resumed the FDE.",
+      emits: [event_org_fde_transitioned],
+    },
+    retire: {
+      from: ["provisioned", "running", "due", "paused", "resuming"],
+      to: "retired",
+      about: "The setup failed, AgentRemoved names its Safe, or AgentSignerSwapped names a key the host did not make; the host retired its runtime.",
+      emits: [event_org_fde_transitioned],
+    },
+  },
+});
+
+export const event_fde_payment_transitioned = defineEvent({
+  id: "fde_payment_transitioned",
+  about: "A hosting payment's months were counted (its Payment settled), taken back by a reorg, or counted again.",
+  props: Schema.Struct({ from: From, to: S, transition: S, org_id: S, payment_id: S, months: N }),
+});
+
+export const machine_fde_payment = defineMachine({
+  id: "fde-payment",
+  title: "FDE hosting payment",
+  about:
+    "org-fde-payments.status, driven only by organizations' two hosting doors inside payments' transactions. Born counted " +
+    "when its Payment settles, which moves `paid_through` on; returned when a reorg reopens that Payment, which moves it " +
+    "back; counted again when the Payment settles once more. The hosting's process re-reads `paid_through` on each.",
+  table: table_org_fde_payments,
+  field: "status",
+  initial: "counted",
+  states: [
+    { id: "counted", about: "Its Payment is settled: its months are in `paid_through`." },
+    { id: "returned", about: "A reorg took its PaymentSent away: its months are out of `paid_through` until it settles again." },
+  ],
+  transitions: {
+    add: { from: [], to: "counted", about: "Birth: the Payment settled; `paid_through` moves on by its months.", emits: [event_fde_payment_transitioned] },
+    take_back: {
+      from: ["counted"],
+      to: "returned",
+      about: "A reorg below finality reopened the Payment; `paid_through` moves back by its months.",
+      emits: [event_fde_payment_transitioned],
+    },
+    add_again: {
+      from: ["returned"],
+      to: "counted",
+      about: "The reopened Payment settled again; `paid_through` moves on by its months once more.",
+      emits: [event_fde_payment_transitioned],
     },
   },
 });

@@ -18,7 +18,7 @@ import {
   error_ROLE_PERMISSION_DENIED,
   error_WRONG_STATE,
 } from "../shared/vocabulary.ts";
-import { contract_agent_owner, contract_company_safe_minter } from "../shared/external.ts";
+import { contract_company_safe_minter } from "../shared/external.ts";
 import {
   machine_org_app,
   machine_org_setup,
@@ -58,7 +58,7 @@ export const SetupView = Schema.Struct({
   checkedAt: N,
   /** Once ready, from the chain: the Directors (the Gate's valid signers), the threshold, the next nonce, the proposals waiting. */
   board: NullOr(Schema.Struct({ directors: N, threshold: N, nonce: N, waitingProposals: N })),
-  /** The Organization's FDE, when it started with one: its Party and Safe; live once the install has landed. */
+  /** The Organization's hosted FDE, once the host has made it: its Party and Safe; live once the install has landed. */
   fde: NullOr(Schema.Struct({ partyId: S, safe: S })),
 });
 
@@ -82,11 +82,9 @@ export const rpc_organizations_setups_begin = defineRpc({
     "the Company's abbreviation comes from the name's initials, and its currency, time zone and fiscal-year start from " +
     "the country unless given (USD for a country currency with no USD price pair; an unpriced currency, a bad zone or " +
     "`MM-DD` is INVALID_INPUT); the fundamental apps are " +
-    "born installed and native, each app in `apps` wanted (an unknown or fundamental one is INVALID_INPUT), and each " +
-    "fundamental app's concept starts itself from `begin`. With `fde`, the FDE key's address the founder's machine made " +
-    "(organizations.fde-at-start-up): the FDE's Safe is computed in-process (`AgentOwner.safeAddressFor` of it and the " +
-    "company Safe) and its Party registered pending, owned by the Organization (organizations.fde-handle): a second " +
-    "`parties.register`.",
+    "born installed and native, each app in `apps` wanted (one not in HEAD_APPS, or a fundamental one, is INVALID_INPUT), " +
+    "and each fundamental app's concept starts itself from `begin`. Unless `fde` is false, it records `with_fde`: the " +
+    "setup's process asks Capxul's FDE host for the FDE later (organizations.fde-at-start-up); no key is made here.",
   was: [
     `${AS_IS}:200`,
     `${SET}/operations/begin.ts:11`,
@@ -112,8 +110,8 @@ export const rpc_organizations_setups_begin = defineRpc({
     fiscalYearStart: Schema.optionalKey(S),
     /** Frappe apps beyond the fundamental ones, wanted until a head installs them. */
     apps: Schema.optionalKey(Schema.Array(S)),
-    /** The FDE's key address and where the founder's machine keeps it; absent: the Organization starts without an FDE. */
-    fde: Schema.optionalKey(Schema.Struct({ signer: S, keyStore: Schema.Literals(["file", "env"]) })),
+    /** False starts the Organization without its hosted FDE (`--no-fde`); absent or true, the setup asks the FDE host for one. */
+    fde: Schema.optionalKey(Schema.Boolean),
   }),
   output: Schema.Struct({ orgId: S, resumed: Schema.Boolean, setup: SetupView }),
   errors: [error_NOT_AUTHENTICATED, error_FEATURE_NOT_AVAILABLE, error_INVALID_INPUT, error_WRONG_STATE],
@@ -123,7 +121,7 @@ export const rpc_organizations_setups_begin = defineRpc({
   invokes: [procedure_parties_register],
   emits: [],
   calls: [],
-  chain: [contract_company_safe_minter.f.companySafeAddressFor, contract_agent_owner.f.safeAddressFor],
+  chain: [contract_company_safe_minter.f.companySafeAddressFor],
   spans: [],
   budget: budget("write"),
 });

@@ -371,7 +371,7 @@ export const machine_personal_safe = defineMachine({
     "(a birth) and `retry` come from the web app's setup start; `claim`, `fail` and `finish` from the process. `claim` " +
     "needs chain proof: the claim's CapxulSafeClaimed for this Safe and signer, or the Safe already owned by exactly this " +
     "signer. Only the claim can fail; a collection the person declines or lets lapse still finishes, and the escrows stay " +
-    "theirs to collect or the payer's to refund. The old row had no state column (deployedAt, claimLockId and claimedAt " +
+    "theirs to collect later (`account collect`) or their sender's to take back. The old row had no state column (deployedAt, claimLockId and claimedAt " +
     "stood for it) and a ten-minute claim lock; the process's single instance replaces the lock.",
   table: table_personal_safes,
   field: "status",

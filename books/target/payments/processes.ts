@@ -15,6 +15,7 @@ import {
   contract_budgets,
   contract_erc20,
   contract_escrow,
+  contract_escrow_factory,
   contract_payments,
   integration_chain_rpc,
   integration_indexer,
@@ -46,15 +47,16 @@ export const workflow_payments_lifecycle_payment = defineWorkflow({
     "reverted, displaced or expired → `lapse`; declined, refused or withdrawn by its opener → `cancel`), its Board " +
     "proposal (executed → `submit`; failed, or replaced by another transaction at its nonce → `lapse`; rejected → " +
     "`cancel`), a budget's reservation (PaymentScheduled with its job nonce on its own budget → " +
-    "`schedule`), a claim escrow (EscrowCreated → `escrow`, from `prepared` or from the `submitted` its sent approval or " +
-    "executed proposal left; a carrier's answer after `escrow` moves nothing), and a cancel (a void that displaced the held operation, " +
-    "ScheduleCancelled or EscrowRefunded → `cancel` for every Payment it carried, K14). A dated Payment comes due a day " +
+    "`schedule`), a claim escrow (its funding's PaymentSent → `escrow`, also from `submitted`; a carrier's answer after " +
+    "it moves nothing; one a dated execute funded is deployed with the escrow relayer key), and a cancel (a void " +
+    "that displaced the held operation, ScheduleCancelled, or EscrowRefunded with state Refunded → `cancel` for every " +
+    "Payment it carried, K14). A dated Payment comes due a day " +
     "ahead (`come_due`, funding read, a shortfall kept for the payer's notice); approvals sends a personal one on its day, " +
     "and for a budget's this process asks Budgets to pay it (`Budgets.execute` with the executor key, sent once and looked " +
     "up by hash, again an hour later while the chain refuses: only the chain ends a dated budget payment). It settles " +
     "only from the indexed PaymentSent with its payment id, every term compared (K7): all equal settles it, consuming the " +
     "log (unique, K9), `settled_at` the block's time, and writing each Organization side's book fact in the same " +
-    "transaction (K10, K8; payments.money-sides); a differing term is `mismatch`, booked nothing. After settling it waits until the block is twice the finality " +
+    "transaction (K10, K8; payments.money-sides); a differing term is `mismatch`. After settling it waits until the block is twice the finality " +
     "depth deep and reads the facts again: gone, it reopens (`unsettle`) and reverses the book fact in one transaction " +
     "(K12). A Payment born from a chain fact meets its PaymentSent at once. A `needs_retry` Payment rests until `payment " +
     "retry` resumes it; the instance ends once its Payment is cancelled, mismatched for good, or settled and confirmed.",
@@ -90,8 +92,22 @@ export const workflow_payments_lifecycle_payment = defineWorkflow({
       key: [{ on: [contract_budgets.e.PaymentScheduled], props: ["chain_id", "budgetId", "jobNonce"] }],
       about: "A budget's dated payment: PaymentScheduled with its job nonce on its own budget, which gives its scheduled id.",
     },
-    { name: "escrowed", for: "indexer", events: [contract_escrow.e.EscrowCreated], key: [{ on: [contract_escrow.e.EscrowCreated], props: ["chain_id", "paymentId"] }], about: "A claim escrow: EscrowCreated with its payment id." },
-    { name: "released", for: "indexer", events: [contract_budgets.e.ScheduleCancelled, contract_escrow.e.EscrowRefunded], key: [{ on: [contract_budgets.e.ScheduleCancelled], props: ["chain_id", "budgetId", "scheduledId"] }, { on: [contract_escrow.e.EscrowRefunded], props: ["chain_id", "paymentId"] }], about: "A cancel: ScheduleCancelled of its scheduled id, or EscrowRefunded of its payment id." },
+    {
+      name: "escrowed",
+      for: "indexer",
+      events: [contract_payments.e.PaymentSent],
+      key: [{ on: [contract_payments.e.PaymentSent], props: ["chain_id", "paymentId"] }],
+      about: "A claim escrow: the PaymentSent with its `funding_payment_id`, which pays the escrow's address (payments.escrow-on-funding).",
+    },
+    {
+      name: "deployed",
+      for: "indexer",
+      timeoutMs: 60_000,
+      events: [contract_escrow.e.EscrowCreated],
+      key: [{ on: [contract_escrow.e.EscrowCreated], props: ["chain_id", "paymentId"] }],
+      about: "After `escrow`: EscrowCreated with its payment id, normally from the funder's own batch; past the minute the relayer deploys it.",
+    },
+    { name: "released", for: "indexer", events: [contract_budgets.e.ScheduleCancelled, contract_escrow.e.EscrowRefunded], key: [{ on: [contract_budgets.e.ScheduleCancelled], props: ["chain_id", "budgetId", "scheduledId"] }, { on: [contract_escrow.e.EscrowRefunded], props: ["chain_id", "paymentId"] }], about: "A cancel: ScheduleCancelled of its scheduled id, or EscrowRefunded of its payment id with state Refunded." },
     { name: "day-ahead", for: "timer", about: "A dated Payment, 24 hours before its day: `come_due` and the funding read." },
     {
       name: "pay-day",
@@ -114,9 +130,14 @@ export const workflow_payments_lifecycle_payment = defineWorkflow({
     {
       name: "escrow",
       about:
-        "On EscrowCreated with its payment id, `escrow` (from `prepared` or `submitted`), admitting its `payee_mailbox` " +
-        "in the same transaction (`accounts.admit`, via escrow, ref the Payment; accounts.money-waiting-admits). No timer: " +
-        "it waits for the collection's PaymentSent or the refund.",
+        "On its funding's PaymentSent, `escrow`, admitting its `payee_mailbox` in the same transaction (`accounts.admit`, " +
+        "via escrow). No timer after it: it waits for the collection or the refund.",
+    },
+    {
+      name: "deploy",
+      about:
+        "After `escrow`, waits for EscrowCreated; if none came and the address has no code (a dated one), sends " +
+        "`EscrowFactory.deploy` with the escrow relayer key, once, looked up by hash, and waits again. Moves no status.",
     },
     { name: "come-due", about: "A day ahead: reads the paying Safe's balance (personal) and moves `come_due`, keeping a shortfall." },
     {
@@ -130,7 +151,7 @@ export const workflow_payments_lifecycle_payment = defineWorkflow({
         "fact (Safe, log index, block time, other side's Party, `fee_raw`, `against`; an escrow's payer Safe is " +
         "`payer_safe`); else `mismatch`. An escrow's payee tenant is its payee's Party.",
     },
-    { name: "release", about: "On ScheduleCancelled or EscrowRefunded for it, `cancel`." },
+    { name: "release", about: "On ScheduleCancelled, or EscrowRefunded with state Refunded, for it, `cancel`; a later deposit's return moves nothing." },
     { name: "confirm", about: "Twice the finality depth later, reads the facts again; gone → `unsettle` with the book fact reversed." },
     { name: "rest", about: "A `needs_retry` Payment rests until a retry; an ended or confirmed Payment ends the instance." },
   ],
@@ -144,10 +165,11 @@ export const workflow_payments_lifecycle_payment = defineWorkflow({
     integration_indexer.c.awaitBlock,
     integration_indexer.c.head,
     integration_chain_rpc.c.readContract,
+    integration_chain_rpc.c.getCode,
     integration_service_signer.c.send,
     integration_service_signer.c.waitForReceipt,
   ],
-  chain: [contract_budgets.f.execute, contract_erc20.f.balanceOf],
+  chain: [contract_budgets.f.execute, contract_escrow_factory.f.deploy, contract_erc20.f.balanceOf],
   idempotency:
     "One instance per Payment id. Each step's transaction moves the status only from the state it read; the settled log " +
     "is unique and the book fact's money key is `payment:<v4 payment id>`, so a replayed step writes nothing twice.",
@@ -190,8 +212,8 @@ export const workflow_payments_settlement_observe = defineWorkflow({
     {
       name: "match",
       about:
-        "A Payment holding the payment id ends the run (its process settles it), as does one holding it as its budget " +
-        "claim escrow's `funding_payment_id`: that PaymentSent only funds the escrow and settles nothing.",
+        "A Payment holding the payment id ends the run (its process settles it), as does one holding it as its claim " +
+        "escrow's `funding_payment_id`, on any route: that PaymentSent only funds the escrow and settles nothing.",
     },
     { name: "birth", about: "A Capxul Safe on either side births the Payment through `open` with the fact's terms." },
   ],
@@ -216,8 +238,8 @@ export const workflow_payments_movements_record = defineWorkflow({
     "Triggered by each indexed ERC-20 Transfer that touches a Capxul Safe. It reads every fact of the transaction and " +
     "sets aside a Transfer that a Payment explains for that side: the one beside a PaymentSent moving the same token and " +
     "amount between the same addresses (a direct send, a budget's payout through Roles, an escrow's payout), or a claim " +
-    "escrow's funding or refund of one of that side's Payments, a budget's returned to the company Safe through Budgets " +
-    "in the refund's transaction (K17). For each remaining side whose Safe a Capxul tenant " +
+    "escrow's funding or refund of one of that side's Payments, a refund paying the escrow's sender (the company Safe " +
+    "for a budget's or the Board's) (K17). For each remaining side whose Safe a Capxul tenant " +
     "owns, it records a Movement (`record`), that side's book fact (`books.record-money-fact`, key `transfer:<chain " +
     "id>:<tx hash>:<log index>`) and the Transfer's Memo (`documents.store`: basis movement, reference the same key, " +
     "issued at the block time, the Capxul sides as participants, so a replayed Transfer stores nothing new) in one " +

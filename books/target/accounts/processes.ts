@@ -30,7 +30,7 @@ import {
   table_admissions,
 } from "./data.ts";
 import { procedure_approvals_open } from "../approvals/procedures.ts";
-import { table_escrows } from "../indexing/data.ts";
+import { table_escrows, table_safe_balances } from "../indexing/data.ts";
 import { rpc_accounts_setup_start } from "./setup.ts";
 import { event_approval_transitioned } from "../approvals/data.ts";
 import { table_indexer_progress } from "../indexing/data.ts";
@@ -50,11 +50,12 @@ export const workflow_accounts_setup_personal_safe = defineWorkflow({
     "email, signer)` with the tier's namespace pinned; it deploys the Safe if it has no code and swaps Companies House out " +
     "for the signer. A revert fails the setup with the chain's code; a lost answer is looked up by hash, never sent again. " +
     "Once Ponder has the claim's block it drives `claim`. On staging, with welcome funding on, it mints the welcome assets " +
-    "into the Safe from the faucet key. Then it reads the open claim escrows that pay the Safe (an email paid before it " +
-    "had a Safe) and, if any, opens one approval from the person's own Safe, sponsored by the paymaster, calling " +
-    "`Escrow.collect()` on each; the web app hands the person to the approval page to sign it. When that approval has " +
-    "ended (collected, declined or lapsed) it drives `finish` with what was paid to the Safe. Ready never waits on the " +
-    "collection: an escrow left stays collectible by the Safe and refundable by its payer.",
+    "into the Safe from the faucet key. Then it reads the open claim escrows the Safe owns that hold their amount (an " +
+    "email paid before it had a Safe: general escrows whose owner is the Safe, payments.general-escrow) and, if any, " +
+    "opens one approval from the person's own Safe, sponsored by the paymaster, calling `Escrow.collect()` on each; the " +
+    "web app hands the person to the approval page to sign it. When that approval has ended (collected, declined or " +
+    "lapsed) it drives `finish` with what was paid to the Safe. Ready never waits on the collection: an escrow left " +
+    "stays the Safe's to collect whenever it chooses (`account collect`) and its sender's to take back until then.",
   concept: concept_accounts,
   priority: "normal",
   trigger: { after: rpc_accounts_setup_start },
@@ -88,7 +89,7 @@ export const workflow_accounts_setup_personal_safe = defineWorkflow({
       timeoutMs: 600_000,
       key: [
         { on: [event_approval_transitioned], props: ["opener", "subject_kind", "subject_id"] },
-        { on: [contract_escrow.e.EscrowPaid], props: ["chain_id", "payeeSafe"] },
+        { on: [contract_escrow.e.EscrowPaid], props: ["chain_id", "owner"] },
       ],
       about: "The collection approval ends on chain proof: EscrowPaid to the Safe for each escrow it collected.",
     },
@@ -99,11 +100,11 @@ export const workflow_accounts_setup_personal_safe = defineWorkflow({
     { name: "receipt", about: "A revert fails it: SwapRefused is WRONG_STATE, EmailNotNormalized or InvalidSigner INVALID_INPUT, any other TRANSACTION_FAILED." },
     { name: "claimed", about: "After Ponder has the block: drives `claim` with the hash, the block and its time." },
     { name: "welcome", about: "Staging only, with welcome funding on: mints each welcome asset into the Safe from the faucet key, once per asset." },
-    { name: "escrows", about: "Reads the open claim escrows (condition payee-claimed) whose payee is the Safe; none drives `finish` with 0 collected." },
+    { name: "escrows", about: "Reads the open owner-collects escrows whose owner is the Safe and that hold their amount; none drives `finish` with 0 collected." },
     { name: "collect", about: "Opens one approval from the person's Safe carrying Escrow.collect() on each, through `approvals.open`, and keeps its id." },
     { name: "finish", about: "When the approval has ended: drives `finish` with the number of escrows paid to the Safe." },
   ],
-  reads: [table_personal_safes, table_escrows],
+  reads: [table_personal_safes, table_escrows, table_safe_balances],
   writes: [table_personal_safes],
   drives: [machine_personal_safe.t.claim, machine_personal_safe.t.fail, machine_personal_safe.t.finish],
   invokes: [procedure_approvals_open],

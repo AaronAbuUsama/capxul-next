@@ -1,15 +1,16 @@
 // The projects concept's durable work: its start-up when an Organization begins, its sync with a
-// connected head, and each task's own due timer. Its commands are new capabilities proposed to
-// Aaron (projects.commands); until he answers, nothing but these processes writes the concept's
-// tables, so a projects record changes only at start-up or from a connected head.
+// connected head, and each task's own due timer. Its commands (operations.ts, projects.commands) are
+// one rpc each and wait on nothing, so none of them is a process; each write they make wakes the
+// processes that follow it (a task's due timer by its row, the head sync by the change log).
 
 import { budget, defineWorkflow } from "../../../packages/book/src/index.ts";
 import { concept_projects } from "../shared/foundation.ts";
-import { integration_frappe_head } from "../shared/external.ts";
+import { contract_hats, integration_chain_rpc, integration_frappe_head } from "../shared/external.ts";
 import {
   event_org_head_transitioned,
   machine_org_head,
   machine_org_setup,
+  table_org_deployments,
   table_org_heads,
   table_org_members,
   table_organizations,
@@ -82,8 +83,9 @@ export const workflow_projects_head_sync = defineWorkflow({
     "for one Capxul has not read, so the next pull settles it and no conflict loops. Pull: it reads the head's own " +
     "changes after `pulled_change` (`listChanges`) and applies each by organizations.head-ownership. A change based on " +
     "the version Capxul holds is applied with its head user's rights (a member matched by mailbox, under " +
-    "projects.permissions; a head user who is no member has only what any member may do), through the same checks and " +
-    "transitions a command would use, logged `origin` head. One based on an older version loses and Capxul's version is " +
+    "projects.permissions, the People or Director hat read live as a command reads it, projects.hat-guard; a head " +
+    "user who is no member has only what any member may do), through the same checks and transitions a command would " +
+    "use, logged `origin` head. One based on an older version loses and Capxul's version is " +
     "pushed back (a conflict); one Capxul's checks refuse is pushed back too (refused). Frappe never un-submits, so a " +
     "refused head cancel is pushed back as an amendment carrying the same capxul_id, and a refused head submit by " +
     "cancelling and amending a draft. Fields Capxul derives (percent complete, actual time, totals, a status a timesheet " +
@@ -127,7 +129,10 @@ export const workflow_projects_head_sync = defineWorkflow({
     { name: "pull", about: "listChanges after pulled_change; apply, push back a conflict or a refusal; advance pulled_change." },
     { name: "await", about: "Wait for a change here, a ring, the daily catch-up or the connection's next transition." },
   ],
-  reads: [table_org_heads, table_organizations, table_org_members, table_principals, table_parties, table_project_head_syncs, table_project_changes, ...RECORDS],
+  reads: [
+    table_org_heads, table_organizations, table_org_members, table_org_deployments, table_principals, table_parties,
+    table_project_head_syncs, table_project_changes, ...RECORDS,
+  ],
   writes: [table_project_head_syncs, table_project_changes, table_project_settings, ...RECORDS],
   drives: [
     machine_project.t.open,
@@ -159,8 +164,8 @@ export const workflow_projects_head_sync = defineWorkflow({
   ],
   invokes: [],
   emits: [],
-  calls: [integration_frappe_head.c.upsertDocs, integration_frappe_head.c.listChanges],
-  chain: [],
+  calls: [integration_frappe_head.c.upsertDocs, integration_frappe_head.c.listChanges, integration_chain_rpc.c.readContract],
+  chain: [contract_hats.f.isWearerOfHat],
   idempotency:
     "One process per head connection (`projects-head:<orgId>:<headId>`). A push is idempotent by version (the head " +
     "answers unchanged), and a pulled change already applied is skipped by its head name and time.",

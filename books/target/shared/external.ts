@@ -1016,10 +1016,6 @@ export const contract_escrow = defineContract({
       signature: "canRefund(address who) view returns (bool)",
       about: "Whether `who` may take it back now: the sender, or the authority's answer for its key, read the way `refund` reads it.",
     },
-    conditionMet: {
-      signature: "conditionMet() view returns (bool)",
-      about: "Whether it would pay its owner now: an owner-collects escrow whose owner can act, or an amount-reached one holding the amount.",
-    },
     state: { signature: "state() view returns (State)", about: "Open, Paid (collected or paid out) or Refunded (taken back)." },
   },
   events: {

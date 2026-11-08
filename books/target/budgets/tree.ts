@@ -132,8 +132,8 @@ export const rpc_budgets_tree_show = defineRpc({
     "to the chain again: `Budgets.childrenOf`, `budgetOf` and `leftOf` at the latest block, concurrently, so a release, a " +
     "payout or a new team shows on the next read. Each node shows its amount, what its children hold, what it spent and " +
     "committed this period and what is left, open or closed, its office hat's wearers, and offers and running agreements " +
-    "from indexing. What a budget paid into a claim escrow still waiting counts as spent, and a refund in the same " +
-    "period shows as room again (budgets.claim-escrows). A department whose create waits reads as proposed, with its planned amount. Each tree shows its " +
+    "from indexing. What a budget paid into a claim escrow counts as spent, and stays spent if it is taken back: the " +
+    "money returns to the company Safe, not the room (budgets.claim-escrows). A department whose create waits reads as proposed, with its planned amount. Each tree shows its " +
     "token's payout ceiling from `Roles.allowances`: frozen when it has no refill, with what is left. With `at`, spent and " +
     "committed are those of the period that holds that date, from indexing's spends; amounts are the chain's now. " +
     "Nothing is written.",

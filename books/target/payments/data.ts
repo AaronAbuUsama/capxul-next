@@ -15,9 +15,10 @@
 // the funnel sees it and the Payment's process can start from it.
 
 import { Schema } from "effect";
-import { defineEvent, defineMachine, defineTable } from "../../../packages/book/src/index.ts";
+import { defineEvent, defineInvariant, defineMachine, defineTable } from "../../../packages/book/src/index.ts";
 import { concept_payments } from "../shared/foundation.ts";
 import { Against } from "../books/procedures.ts";
+import { table_escrows } from "../indexing/data.ts";
 
 const OLD = "packages/backend/src/payments";
 const ASIS = "docs/as-is/archive/payments/data.ts";
@@ -137,8 +138,10 @@ export const table_payments = defineTable({
     "of its v4 payment id, so a concept that read the PaymentSent (payroll's collection) names it without reading " +
     "payments; a prepared Payment's id is `payment_` and a ULID. A claim escrow's Payment keeps `payee_mailbox` as the " +
     "payer typed it (trimmed and lowercased), for the money-waiting email (payments.claim-escrow-mailbox), and its payee " +
-    "tenant is filled when the payee collects; one a budget funds keeps `budget_id` and `funding_payment_id`, the id of " +
-    "the PaymentSent that funds the escrow, which settles nothing (payments.claim-escrow-routes). `against`, `source` " +
+    "tenant is filled when the payee collects. Every claim escrow keeps `escrow_address`, its general escrow's " +
+    "counterfactual address, and `funding_payment_id`, the id of the PaymentSent that pays that address (from the payer's " +
+    "Safe, the company Safe or Budgets), which settles nothing; one a budget funds keeps `budget_id` too, the budget " +
+    "whose current hat-wearers may take it back (payments.claim-escrow-routes). `against`, `source` " +
     "and `fee_raw` go to books with its settlement (payments.money-sides). `settled_at` is the settling block's time, and " +
     "the settled transaction, log and block are the holder's to read: a payroll run copies them onto its slips " +
     "(payments.payroll-door). Status changes only through machine `payment`.",
@@ -188,7 +191,7 @@ export const table_payments = defineTable({
     budget_id: Null(S),
     scheduled_id: Null(S),
     escrow_address: Null(S),
-    /** A budget claim escrow's funding: the payment id of the company Safe's PaymentSent to the escrow. Null otherwise. */
+    /** A claim escrow's funding: the payment id of the PaymentSent that pays the escrow's address, on every route. Null otherwise. */
     funding_payment_id: Null(S),
     /** What the payer's books post it against, as the command carried it at birth; null when nothing was said. */
     against: Null(Against),
@@ -254,7 +257,7 @@ export const table_payments = defineTable({
       fields: ["chain_id", "funding_payment_id"],
       unique: true,
       crossTenant: true,
-      for: "A budget claim escrow's funding PaymentSent: the Payment it funds, so the PaymentSent births no Payment of its own.",
+      for: "A claim escrow's funding PaymentSent: the Payment it funds, which `escrow` follows, so the PaymentSent births no Payment of its own.",
     },
     {
       name: "by-settled-log",
@@ -372,7 +375,7 @@ export const machine_payment = defineMachine({
     {
       id: "escrowed",
       about:
-        "In a claim escrow for an email with no account yet: the payer (for a budget's, its holder or the Board) can take it back until the payee collects; it has no expiry.",
+        "In a claim escrow for an email with no account yet: its owner may collect whenever it chooses, and its sender (for a budget's, whoever wears the budget's hat now, or the Board) may take it back until then; no expiry.",
     },
     { id: "submitted", about: "Sent: its approval was sent, its Board proposal executed, or Budgets was asked to pay it; waiting for the indexed PaymentSent." },
     { id: "needs_retry", about: "Its approval ended without moving money; `payment retry` sends the same terms again under the same payment id." },
@@ -404,9 +407,8 @@ export const machine_payment = defineMachine({
       from: ["prepared", "scheduled", "due", "submitted"],
       to: "escrowed",
       about:
-        "EscrowCreated with its payment id is indexed: the claim escrow holds the money and notices sends the money-waiting " +
-        "email. Also from `submitted`, and for a dated one from `scheduled` or `due`: its carrier answers before Ponder " +
-        "(payments.escrow-after-send).",
+        "Its funding's PaymentSent (`funding_payment_id`) is indexed: the escrow's address holds the money, and notices " +
+        "sends the money-waiting email. Also from `submitted`, or `scheduled` or `due` for a dated one (payments.escrow-on-funding).",
       emits: sends,
     },
     submit: {
@@ -453,7 +455,7 @@ export const machine_payment = defineMachine({
       from: ["prepared", "scheduled", "due", "escrowed"],
       to: "cancelled",
       about:
-        "Its approval was declined, refused or withdrawn before signing, its proposal rejected, or its void, `Budgets.cancel` or escrow refund landed (outcome refunded, a budget's escrow back to its budget); a void cancels every Payment of its operation (K14).",
+        "Its approval was declined, refused or withdrawn before signing, its proposal rejected, or its void, `Budgets.cancel` or escrow refund landed (outcome refunded: the money back at its sender, a budget's at the company Safe, no room restored); a void cancels every Payment of its operation (K14).",
       emits: sends,
     },
   },
@@ -499,4 +501,90 @@ export const machine_movement = defineMachine({
     restore: { from: ["removed"], to: "recorded", about: "The chain included the same Transfer again.", emits: [event_movement_transitioned] },
   },
   was: [`${OLD}/movements/rules/movements.ts:6`, ASIS],
+});
+
+// ── invariants of the general escrow (aaron.escrow-general; docs/design/escrow.md) ─────────────
+//
+// What the general escrow must keep, as the evals check it: the contracts package's Foundry trees and invariant
+// suite check them on the contract, and the devnet's evals check them through each claim escrow's Payment.
+
+const ESCROW_EVIDENCE = "docs/design/escrow.md (invariants G1 to G11)";
+
+export const invariant_payments_escrow_counterfactual = defineInvariant({
+  id: "payments.escrow-counterfactual",
+  title: "A claim escrow's address is fixed by its terms before anything is on chain",
+  about:
+    "G1 and G2: the general escrow is deployed counterfactually. Prepare fixes the address from the terms and the job " +
+    "nonce, the payer signs the money into it, and a deploy before or after the funding moves nothing. Checked by the " +
+    "factory's trees (deploy, predictAddress, predictPaymentId) and, on the devnet, by each claim escrow's Payment: its " +
+    "`escrow_address` is where the funding went and where EscrowDeployed lands. " + ESCROW_EVIDENCE + ".",
+  statement:
+    "For every claim-escrow Payment, `escrow_address` equals EscrowFactory.predictAddress of its terms and salt from prepare on; its funding, collection and refund touch only that address, and a second deploy returns the same escrow.",
+  over: [table_payments, table_escrows],
+  check: "property",
+});
+
+export const invariant_payments_escrow_two_ways_out = defineInvariant({
+  id: "payments.escrow-two-ways-out",
+  title: "Money in a claim escrow leaves only to its owner or its sender",
+  about:
+    "G3 and G7: the money goes to the owner when it collects, or back to the sender when it is taken back; never to a " +
+    "caller, never both. Checked by the escrow's invariant handler over random calls, deposits and authority answers, " +
+    "and on the devnet by each Payment ending once. " + ESCROW_EVIDENCE + ".",
+  statement:
+    "Every token that leaves a general escrow goes to its owner (a collection or payout, through Payments) or to its sender (a refund); at most one of the two ends it, and its Payment ends settled to the owner's Safe or cancelled refunded, never both.",
+  over: [table_payments, machine_payment, table_escrows],
+  check: "fuzz",
+});
+
+export const invariant_payments_escrow_owner_any_time = defineInvariant({
+  id: "payments.escrow-owner-any-time",
+  title: "The owner collects whenever it chooses, and nobody else can",
+  about:
+    "G4 and G5: an owner-collects escrow has no expiry; its owner collects once it can act (it has code and no longer " +
+    "lists the bootstrap owner among its owners, read failing closed), at setup or later with `account collect`. " +
+    ESCROW_EVIDENCE + ".",
+  statement:
+    "While open and holding its amount, `collect` from the owner succeeds once the owner can act, at any time; from any other caller, or while Companies House is still among the owner's owners, it reverts and moves nothing.",
+  over: [table_payments, table_escrows],
+  check: "fuzz",
+});
+
+export const invariant_payments_escrow_sender_until_collected = defineInvariant({
+  id: "payments.escrow-sender-until-collected",
+  title: "The sender takes it back at any time until it is collected",
+  about:
+    "G6 and G11: the escape hatch. A refund works while the escrow is open, even after the owner can act (D12), and always " +
+    "pays the sender, whoever calls. An amount-reached escrow (an invoice) carries its owner's claim, so it can be taken " +
+    "back only while short. " + ESCROW_EVIDENCE + ".",
+  statement:
+    "While an owner-collects escrow is open, `refund` by its sender, or by a caller its authority admits at that block, succeeds and pays its sender the whole balance; any other caller, or an authority that reverts or answers malformed, is refused.",
+  over: [table_payments, machine_payment, table_escrows],
+  check: "fuzz",
+});
+
+export const invariant_payments_escrow_department_now = defineInvariant({
+  id: "payments.escrow-department-now",
+  title: "A department's escrow is taken back by whoever wears its hat at the refund",
+  about:
+    "G9, aaron.departments through the authority term: an escrow a budget funded names Budgets and the budget id, so the " +
+    "department's authority is read at the call. A holder taken out of the hat is refused at once and the next wearer " +
+    "admitted, with no Capxul write in between; the Board, as the company Safe, always may. " + ESCROW_EVIDENCE + ".",
+  statement:
+    "For an escrow whose authority is Budgets and a budget id, `refund` from a caller other than the sender succeeds exactly when Budgets.authorised(budgetId, caller) holds at that block, and the money goes to the company Safe.",
+  over: [table_payments, table_escrows],
+  check: "property",
+});
+
+export const invariant_payments_escrow_budgets_unchanged = defineInvariant({
+  id: "payments.escrow-budgets-unchanged",
+  title: "A budget funds a claim escrow as any spend, and its refund restores no room",
+  about:
+    "G10: aaron.escrow-general leaves Budgets unchanged, and Aaron accepted that the room is not restored (open question 1). " +
+    "A budget's claim escrow is an ordinary Budgets.spend, or a schedule paid by execute, to the escrow's address; the " +
+    "refund is a transfer to the company Safe that Budgets never sees. " + ESCROW_EVIDENCE + ".",
+  statement:
+    "A budget's claim escrow is funded only by Budgets.spend or a scheduled Budgets.execute to its address, and its refund leaves every budget's spent and leftOf as they were; the money's return shows only in the company Safe's balance.",
+  over: [table_payments],
+  check: "property",
 });

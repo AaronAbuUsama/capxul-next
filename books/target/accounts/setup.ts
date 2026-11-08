@@ -10,6 +10,9 @@
 //
 // Two reads, because the two commands answer differently (decision `accounts.setup-reads`):
 // `account show` shows a failed setup as a lifecycle, `account retry` refuses with the chain's code.
+//
+// One write the CLI does start: `account collect` opens the approval that collects, whenever the person chooses, the
+// claim escrows their Safe owns (decision `accounts.collect-any-time`, under aaron.escrow-general).
 
 import { Schema } from "effect";
 import { budget, defineRpc } from "../../../packages/book/src/index.ts";
@@ -25,6 +28,9 @@ import {
 import { machine_personal_safe, table_admissions, table_personal_safes } from "./data.ts";
 import { table_feature_flags } from "../access/data.ts";
 import { table_profiles } from "../parties/data.ts";
+import { table_escrows, table_safe_balances } from "../indexing/data.ts";
+import { procedure_approvals_open } from "../approvals/procedures.ts";
+import { contract_escrow } from "../shared/external.ts";
 
 const OLD = "packages/backend/src/accounts";
 const SDK = "packages/sdk/src/accounts";
@@ -137,4 +143,53 @@ export const rpc_accounts_setup_check = defineRpc({
   ...noCalls,
   budget: budget("read"),
   was: [`${OLD}/safes/operations/load-by-auth-user-id.ts:11`, "apps/cli/src/auth/profile-report.ts:18", "apps/docs/factory/operations/account.retry.yaml"],
+});
+
+/** One claim escrow the caller's Safe owns, as `account collect` lists it. */
+export const WaitingEscrow = Schema.Struct({
+  escrow: S,
+  asset: S,
+  amount: S,
+  /** The sender's address: the payer's Safe, or the company Safe for an Organization's payment. */
+  sender: S,
+});
+
+/** What `account collect` answers: what waits, and the approval that collects it (none when nothing waits). */
+export const Collection = Schema.Struct({
+  safe: S,
+  escrows: Schema.Array(WaitingEscrow),
+  approval_id: Schema.NullOr(S),
+  approval_url: Schema.NullOr(S),
+  expires_at: Schema.NullOr(Schema.Number),
+});
+
+export const rpc_accounts_setup_collect = defineRpc({
+  id: "accounts.setup.collect",
+  title: "Open the approval that collects the claim escrows the person's Safe owns",
+  about:
+    "The general escrow's owner collects whenever it chooses (aaron.escrow-general): this is that choice, any time after " +
+    "setup. It reads the caller's own setup (a Safe still claiming, failed or not started is SMART_ACCOUNT_MISSING), then " +
+    "indexing's open owner-collects escrows whose owner is that Safe and whose balance in safe-balances holds their " +
+    "amount, so one deployed before its money arrived is never signed into a revert. None: it answers the empty list and " +
+    "opens nothing. Otherwise it opens one approval from the person's own Safe (`approvals.open`, subject the Safe's " +
+    "setup and `collect`) carrying `Escrow.collect()` on each; a live approval for the same subject answers as it " +
+    "stands, so asking twice signs once. Each collection's PaymentSent settles its Payment for the payer and the person, " +
+    "as setup's does. It writes no row of accounts. An escrow its sender takes back before the approval lands makes the " +
+    "chain's simulation refuse it, and nothing moves (decision accounts.collect-any-time).",
+  concept: concept_accounts,
+  kind: "action",
+  who: "A signed-in person whose own Safe is set up, for the claim escrows that Safe owns.",
+  input: Schema.Struct({}),
+  output: Collection,
+  errors: [error_NOT_AUTHENTICATED, error_SMART_ACCOUNT_MISSING, error_WRONG_STATE],
+  reads: [table_personal_safes, table_escrows, table_safe_balances],
+  writes: [],
+  drives: [],
+  invokes: [procedure_approvals_open],
+  emits: [],
+  calls: [],
+  chain: [contract_escrow.f.collect],
+  spans: [],
+  budget: budget("write"),
+  was: [`${OLD}/claims/operations/claim.ts:34`, "apps/docs/factory/operations/account.retry.yaml (designed: collects claim escrows)"],
 });

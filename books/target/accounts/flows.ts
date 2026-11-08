@@ -4,6 +4,7 @@
 //   agent's key challenge are access' rpcs; these flows sit in accounts because both commands end by
 //   reporting the account's setup (shared decision `operations.sign-in-in-accounts`).
 // - client.account.setup: the web app's setup page (React SDK), the only caller of the setup start.
+// - client.account.collect: `account collect`, the owner collecting its claim escrows whenever it chooses.
 // - client.operator.waitlist.admit: the operator's waitlist tool, the only caller of an admission.
 //
 // The last two implement no frozen operation; they are the surfaces P2 lets an rpc be reached from.
@@ -12,6 +13,8 @@ import { Schema } from "effect";
 import { budget, defineFlow } from "../../../packages/book/src/index.ts";
 import { integration_openfort } from "../shared/external.ts";
 import { component_core_sdk } from "../shared/foundation.ts";
+import { error_CANCELLED, error_SUPERSEDED, error_TRANSACTION_FAILED } from "../shared/vocabulary.ts";
+import { rpc_approvals_signing_get } from "../approvals/signing.ts";
 import { rpc_accounts_admission_admit } from "./admission.ts";
 import {
   rpc_access_sign_in_challenge,
@@ -19,7 +22,14 @@ import {
   rpc_access_sign_in_verify_code,
   rpc_access_sign_in_with_key,
 } from "../access/sign-in.ts";
-import { rpc_accounts_setup_check, rpc_accounts_setup_lifecycle, rpc_accounts_setup_start, SetupCheck } from "./setup.ts";
+import {
+  Collection,
+  rpc_accounts_setup_check,
+  rpc_accounts_setup_collect,
+  rpc_accounts_setup_lifecycle,
+  rpc_accounts_setup_start,
+  SetupCheck,
+} from "./setup.ts";
 
 const CLI = "apps/cli/src";
 const SDK = "packages/sdk/src";
@@ -156,4 +166,31 @@ export const flow_client_operator_waitlist_admit = defineFlow({
   spans: [],
   budget: budget("write"),
   was: ["packages/backend/scripts/beta-waitlist.ts", "packages/backend/src/access/waitlist/operations/admit.ts:23"],
+});
+
+export const flow_client_account_collect = defineFlow({
+  id: "client.account.collect",
+  title: "Collect the money waiting for the person in claim escrows",
+  about:
+    "`account collect`: opens the approval that collects every claim escrow the person's Safe owns and that holds its " +
+    "amount (`accounts.setup.collect`), then the person signs it on the approval page the CLI opens and the flow waits " +
+    "until it ends. With nothing waiting it answers at once and opens nothing; with `--json` it answers the hand-over " +
+    "after the rpc. An approval that expires before it lands answers SUPERSEDED (run it again), one declined on the page " +
+    "CANCELLED, and one the chain's simulation refused (an escrow taken back meanwhile) its code. The web app's money " +
+    "page offers the same through its React twin (decision accounts.collect-any-time).",
+  component: component_core_sdk,
+  sdk: "client.account.collect",
+  input: Schema.Struct({ json: Schema.Boolean, timeout_seconds: Schema.NullOr(Schema.Int) }),
+  output: Collection,
+  steps: [
+    { name: "collect", rpc: rpc_accounts_setup_collect, about: "What waits for the Safe, and the approval that collects it; none ends the flow." },
+    { name: "sponsored", rpc: rpc_approvals_signing_get, about: "Follows the approval until it is sponsored, or refused with the chain's code." },
+    { name: "sign", local: "sign", about: "The person signs on the approval page the CLI opens (Openfort in a browser)." },
+    { name: "approval", local: "wait", about: "Waits until the approval ends: sent, declined, expired or refused, or `--timeout-seconds`." },
+  ],
+  errors: [error_SUPERSEDED, error_CANCELLED, error_TRANSACTION_FAILED],
+  calls: [integration_openfort.c.signDigest],
+  spans: [],
+  budget: budget("chain-submit"),
+  was: [`${SDK}/accounts/approvals.ts:106`, `${SDK}/accounts/account-setup.ts:86`],
 });

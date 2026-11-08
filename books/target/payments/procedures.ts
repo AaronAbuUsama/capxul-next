@@ -73,8 +73,8 @@ export const procedure_payments_prepare_command = defineProcedure({
     "repeat under the key answers the command as it stands (`replayed`); with `resume`, one whose Payments all lapsed " +
     "opens one new approval for the same payment ids and moves them `retry` after the same funding check, so a retry " +
     "never pays twice (past `not_after`: WRONG_STATE). An item whose payee Party is still provisional is a claim escrow " +
-    "(route `claim_escrow`) and needs its ASCII `payee_mailbox`, else INVALID_RECIPIENT: a personal Safe owns its own; a " +
-    "budget funds a budget's, which its holder or the Board may take back (payments.claim-escrow-routes). The zero " +
+    "(route `claim_escrow`) and needs its ASCII `payee_mailbox`, else INVALID_RECIPIENT; a budget's sender is the " +
+    "company Safe, with Budgets and the budget as authority (payments.claim-escrow-routes). The zero " +
     "document hash, which every v4 call refuses, is INVALID_INPUT. Each item's `against`, `payee_against`, `source` and " +
     "`fee_raw` are kept on its Payment for its book facts. It answers the approval's deadline as opened. It makes no " +
     "outside call; the invoker follows `payment_transitioned`.",

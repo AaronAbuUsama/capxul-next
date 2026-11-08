@@ -1,6 +1,8 @@
 // The target operation records of the eleven frozen operations accounts designs (OPERATION_OWNERS):
 // account retry and show, auth login and verify, referral, referral invite and list, the operator's
-// waitlist invites grant, waitlist join and status, and dev fund.
+// waitlist invites grant, waitlist join and status, and dev fund. One operation beyond the 215 (rule 4a):
+// `account collect`, the owner of a claim escrow collecting it whenever it chooses (aaron.escrow-general, decision
+// accounts.collect-any-time); it has no frozen text, so its title, about and who are written for the target.
 //
 // Every record is built from the frozen text (frozenText), never retyped. Acceptance lines keep the
 // frozen claims word for word (none names a mechanism a black box cannot see), each with what its
@@ -22,7 +24,7 @@ import {
   error_WRONG_STATE,
 } from "../shared/vocabulary.ts";
 import { rpc_accounts_admission_join, rpc_accounts_admission_status, WaitlistStatus } from "./admission.ts";
-import { flow_client_auth_sign_in, flow_client_auth_verify_otp } from "./flows.ts";
+import { flow_client_account_collect, flow_client_auth_sign_in, flow_client_auth_verify_otp } from "./flows.ts";
 import { rpc_accounts_grants_fund } from "./grants.ts";
 import {
   rpc_accounts_referrals_grant_invites,
@@ -30,7 +32,7 @@ import {
   rpc_accounts_referrals_list,
   rpc_accounts_referrals_show,
 } from "./referrals.ts";
-import { rpc_accounts_setup_check, rpc_accounts_setup_lifecycle, SetupCheck, SetupLifecycle } from "./setup.ts";
+import { Collection, rpc_accounts_setup_check, rpc_accounts_setup_lifecycle, SetupCheck, SetupLifecycle } from "./setup.ts";
 
 const S = Schema.String;
 const Int = Schema.Int;
@@ -74,6 +76,10 @@ const TWO_ADMITTED = "two-people-admitted";
 const PERSON_READY = "person-ready";
 const REFUSED_OTHER_SIGNER = "setup-refused-other-signer";
 const REFUSED_EMAIL = "setup-refused-non-ascii-email";
+/** A person whose Safe is set up, with a claim escrow it owns still uncollected (devnet names it; accounts.collect-any-time). */
+const PERSON_READY_MONEY_WAITING = "person-ready-money-waiting";
+/** Money waits for a mailbox whose person has signed in but not set up (devnet's `person-with-money-waiting`). */
+const PERSON_MONEY_WAITING = "person-with-money-waiting";
 /** No devnet world runs off a devnet; the staging `live:*` evals reach it. */
 const OFF_DEVNET = "?";
 
@@ -135,6 +141,53 @@ export const operation_account_show = defineOperation({
   ],
   budget: budget("read"),
   was: ["apps/docs/factory/operations/account.show.yaml", "apps/cli/src/commands/account"],
+});
+
+// ── account collect: beyond the 215 (rules.new-operations; decision accounts.collect-any-time) ──────
+
+export const operation_account_collect = defineOperation({
+  id: "account.collect",
+  title: "Collect the money waiting for you",
+  about:
+    "Collects into your own Safe every payment waiting for you in a claim escrow: money someone sent your email before " +
+    "you had an account and that you did not collect at setup, or a dated payment that reached its escrow after you set " +
+    "up. One approval from your Safe collects them all; you sign it on the approval page. Until you collect, the sender " +
+    "may still take the money back (for an Organization's payment, whoever wears the paying budget's hat then, or its " +
+    "Board). Nothing waiting: it says so and opens nothing.",
+  who: "A signed-in person whose own Safe is set up, for the payments waiting for that Safe.",
+  area: "accounts",
+  command: "account collect",
+  priority: "normal",
+  implementedBy: flow_client_account_collect,
+  acceptance: [
+    {
+      claim:
+        "A person whose Safe is set up collects, in one approval, every claim escrow their Safe owns that holds its amount, and each of those payments then reads settled for its payer and for them.",
+      observes:
+        `From ${PERSON_READY_MONEY_WAITING}: chain: one UserOperation from the person's Safe calls \`collect\` on each open escrow, and one PaymentSent per escrow with the escrow as sender and the Safe as recipient; read: the payer's \`payment get\` reads settled; world: each escrow reads paid.`,
+    },
+    {
+      claim: "With nothing waiting for the person's Safe, nothing is opened and the command says so.",
+      observes: "cli: from person-ready, exit 0 with an empty `escrows` list and no `approval_id`; world: the before-and-after diff holds no approval.",
+    },
+    {
+      claim: "Money its sender took back is not offered, and a collection pays only the person's own Safe.",
+      observes:
+        `From ${PERSON_READY_MONEY_WAITING} after the payer's \`payment cancel\` of it landed: cli: \`escrows\` no longer lists it and no approval is opened for it; chain: every collection's PaymentSent names the person's Safe as recipient.`,
+    },
+  ],
+  returns: Collection,
+  errors: [error_CLI_USAGE],
+  refusals: [
+    { error: error_NOT_AUTHENTICATED, given: NO_SESSION, when: "You are not signed in." },
+    {
+      error: error_SMART_ACCOUNT_MISSING,
+      given: PERSON_MONEY_WAITING,
+      when: "Your Safe is not set up yet. Setting it up collects what waits for you; `capxul account retry` gives the link.",
+    },
+  ],
+  budget: budget("chain-submit"),
+  was: ["apps/docs/factory/operations/account.retry.yaml (designed: Escrow.collect() at setup)"],
 });
 
 // ── auth ────────────────────────────────────────────────────────────────────────────────────

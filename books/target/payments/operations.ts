@@ -220,7 +220,11 @@ export const operation_payment_retry = defineOperation({
 
 export const operation_payment_cancel = defineOperation({
   ...frozenText("payment.cancel"),
-  who: designedWho("payment.cancel"),
+  // The designed who gave a claim escrow to its owner or the Board; under aaron.departments a budget's is its department's
+  // (decision payments.department-authority).
+  who:
+    "The payer. For a budget's dated payment or claim escrow, whoever wears the budget's hat or one above it now, or the " +
+    "Board. For a payment the Board made, the Board.",
   priority: "normal",
   implementedBy: flow_client_payments_cancel,
   acceptance: [
@@ -249,7 +253,7 @@ export const operation_payment_cancel = defineOperation({
       error: error_ROLE_PERMISSION_DENIED,
       given: W.dated,
       when:
-        "You wear no hat on the payment's budget or above it (for a budget's claim escrow too), you are not the owner of a personal claim escrow, or for an Organization-funded payment you are not a Director.",
+        "You wear no hat on the payment's budget or above it now (for a budget's claim escrow too, whoever sent it), you are not the sender of a personal claim escrow, or for a payment the Board made you are not a Director.",
     },
     { error: error_NOT_AUTHENTICATED, given: W.signedOut, when: "You are not signed in." },
   ],

@@ -7,7 +7,8 @@
 //
 // Every prepared Payment knows its v4 payment id before anyone signs: `Payments.paymentId(item)` for a direct
 // send, Budgets' derivation from the job nonce for a budget spend or schedule, `EscrowFactory.predictPaymentId`
-// for a claim escrow. That id is what settles it (./processes.ts) and what makes a retry unable to pay twice.
+// for a claim escrow, the general escrow at its counterfactual address (payments.general-escrow). That id is what
+// settles it (./processes.ts) and what makes a retry unable to pay twice.
 
 import { Schema } from "effect";
 import { budget, defineRpc } from "../../../packages/book/src/index.ts";
@@ -112,11 +113,12 @@ export const rpc_payments_commands_prepare = defineRpc({
     "born through `open` with its payment id, and the approval from the caller's Safe carrying the calls " +
     "(`approvals.open`): `approve` and `Payments.send` (kind 0, `sendBatch` for several items of `--input`), or " +
     "`Budgets.spend` or, dated, `Budgets.schedule` from a budget. A mailbox with no live Safe is a claim escrow (route " +
-    "`claim_escrow`, its mailbox kept), now or dated: payee the email's derived Safe, terms the token, raw amount, job " +
-    "nonce, kind 0, document hash and condition payee-claimed, salt the job nonce, kept in `escrow_address`. The " +
-    "payer's own Safe owns its own: one operation sends the amount there and `EscrowFactory.deploy`. A budget funds a " +
-    "budget's (`Budgets.spendToClaim`, dated `Budgets.scheduleToClaim`), which its holder or the Board may take back; " +
-    "the funding's payment id is kept. A non-ASCII mailbox is INVALID_RECIPIENT (payments.claim-escrow-routes). " +
+    "`claim_escrow`, its mailbox kept), now or dated: a general escrow owned by the email's derived Safe, its address " +
+    "in `escrow_address`, its funding's payment id in `funding_payment_id`. A personal one's sender is the payer's " +
+    "Safe (`Payments.send` to the address, and `EscrowFactory.deploy`); a budget's is the company Safe, with Budgets " +
+    "and the budget as authority (`Budgets.spend` or, dated, `schedule` to the address), so whoever wears the budget's " +
+    "hat or one above it then, or the Board, may take it back. A non-ASCII mailbox is INVALID_RECIPIENT " +
+    "(payments.claim-escrow-routes). " +
     "`--account` (a code of the payer's chart: the Organization's open ledger accounts, or the fixed personal chart) " +
     "and `--suggest` (only beside 4999 or 6999) become each Payment's `against`; a bad one is INVALID_INPUT naming it " +
     "(payments.money-sides). A dated personal payment is signed now, sent on its day. It answers the CLI's preview.",
@@ -182,18 +184,19 @@ export const rpc_payments_commands_propose = defineRpc({
   title: "Propose a Board payment from the company Safe",
   about:
     "Births a payment the company Safe makes as a Board batch (`--as-directors`). Before its transaction it reads the " +
-    "company Safe's balance, or for a dated payment its open top budgets in the asset and their `leftOf`. Then, in one " +
+    "company Safe's balance, or for a dated payment its own top budget in the asset and its `leftOf`. Then, in one " +
     "transaction: the command, the payee's Party and Safe, the note's document, one Payment per item born through `open`, " +
     "and one Board proposal at the Safe's next nonce (`board.propose`) carrying either `approve` and one exact " +
-    "`Payments.send` (kind 0) whose executor is the company Safe, or, dated, one `Budgets.schedule` on the open top budget " +
-    "in the asset with the most left. An immediate Board payment cannot be a budget spend: the Gate refuses re-entry from " +
+    "`Payments.send` (kind 0) whose executor is the company Safe, or, dated, one `Budgets.schedule` on the company's own " +
+    "top budget in the asset, the install's, whose hat is the Board's top hat, so no department can cancel it " +
+    "(payments.department-authority). An immediate Board payment cannot be a budget spend: the Gate refuses re-entry from " +
     "inside a Safe transaction. The calls are checked against what was asked (amount, recipient, contract) before the " +
     "proposal opens; nothing moves until enough Directors approve. An immediate payment to a mailbox with no live Safe is " +
-    "a claim escrow the company Safe owns (route `claim_escrow`, its mailbox kept, its terms and salt as `prepare` gives " +
-    "them): the batch sends the amount to the predicted address and `EscrowFactory.deploy`, and only a Board proposal " +
-    "refunds it. A dated one is the top budget's claim escrow (`Budgets.scheduleToClaim` in place of " +
-    "`Budgets.schedule`), which the Board or that budget's holder may take back to it; a non-ASCII mailbox is " +
-    "INVALID_RECIPIENT (payments.claim-escrow-routes). It takes no `--account` or `--suggest`. A Board payment takes no " +
+    "a general escrow whose sender is the company Safe and which names no authority (route `claim_escrow`, its mailbox " +
+    "kept, its other terms as `prepare` gives them): the batch pays its address through `Payments.send` and sends " +
+    "`EscrowFactory.deploy`, and only a Board proposal takes it back. A dated one is `Budgets.schedule` on that top " +
+    "budget to the escrow's address, its authority Budgets with that budget's id, so again only the Board; a non-ASCII " +
+    "mailbox is INVALID_RECIPIENT (payments.claim-escrow-routes). It takes no `--account` or `--suggest`. A Board payment takes no " +
     "request key from the caller: its key is the proposal's own subject.",
   concept: concept_payments,
   kind: "action",

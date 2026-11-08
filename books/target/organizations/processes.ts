@@ -17,6 +17,12 @@ import {
   integration_service_signer,
 } from "../shared/external.ts";
 import {
+  event_fde_payment_transitioned,
+  event_org_fde_transitioned,
+  event_org_setup_transitioned,
+  machine_org_fde,
+  table_org_fde_payments,
+  table_org_fdes,
   event_org_app_transitioned,
   event_org_head_transitioned,
   event_org_member_transitioned,
@@ -41,7 +47,7 @@ import {
   rpc_organizations_invitations_invite,
 } from "./invitations.ts";
 import { procedure_approvals_open } from "../approvals/procedures.ts";
-import { procedure_parties_activate, procedure_parties_release } from "../parties/procedures.ts";
+import { procedure_parties_activate, procedure_parties_register, procedure_parties_release } from "../parties/procedures.ts";
 import { table_hat_wearers, table_safe_executions } from "../indexing/data.ts";
 import { event_approval_transitioned } from "../approvals/data.ts";
 import { table_indexer_progress } from "../indexing/data.ts";
@@ -57,24 +63,24 @@ export const workflow_organizations_setups_set_up = defineWorkflow({
   title: "One Organization's setup: mint the Safe, deploy, install, ready",
   about:
     "The one durable process of an Organization's setup, started by its `begin`. Companies House's company-Safe role " +
-    "mints the company Safe for the founder's Safe (the service signer's send, recorded before broadcast); the process " +
+    "mints the company Safe for the founder's Safe; the process " +
     "waits for CompanySafeMinted at finality: the founder's Safe as owner activates the Organization's Party " +
     "(`parties.activate`, its handle now routes money), any other owner fails the setup and releases the Party " +
-    "(`parties.release`, freeing the handle). The tier key " +
+    "(`parties.release`). The tier key " +
     "sends `Installer.deployMoney` once (founder as the one Director, threshold 1 of 1, officers Books, Invoicing and " +
     "People); at finality MoneyDeployed names the deployment, which is written with the install approval in one " +
     "transaction (`approvals.open`: the founder's Safe calls the company Safe's `execTransaction` of `buildMoney`'s batch " +
     "for USDC, top amount 0, then `Hats.mintHat` of the three officer hats to the founder's Safe). It waits for the " +
     "founder's signature and the approval's outcome, both told by approval_transitioned: signed moves it to processing, " +
-    "landed at finality completes it and seats the founder; refused (the paymaster's simulation of an install the " +
-    "Installer refuses), declined, expired, reverted or displaced stalls it with that reason and approvals' code " +
-    "(declined CANCELLED, expired or displaced WRONG_STATE, reverted TRANSACTION_FAILED, refused its stored code). A " +
+    "landed at finality completes it and seats the founder; refused (by the paymaster's simulation), declined, " +
+    "expired, reverted or displaced stalls it with that reason and approvals' code (organizations.approval-endings). A " +
     "provider outage that outlasts a step's retries stalls it too. `org retry` resumes it from its last finished step. " +
-    "With an FDE key recorded, the install batch also calls `AgentOwner.create(that key, the company Safe)` from the " +
-    "company Safe, so the founder's one signature creates the FDE; at completion its Party is activated and it is seated " +
-    "as the Organization's own agent; a failed setup releases its Party, and the Organization's while still pending " +
-    "(organizations.fde-at-start-up). It replaces the old observe workflow, its every-minute recovery cron and ten " +
-    "internal rpcs.",
+    "With `with_fde`, once the company Safe is the founder's, it asks Capxul's FDE host to provision the FDE " +
+    "(organizations.fde-at-start-up, aaron.fde-hosted): the host makes and keeps its key and answers its address; one " +
+    "transaction records it with the FDE's Safe, registers its Party pending (`parties.register`) and births its hosting " +
+    "(`org-fdes`). The install batch also calls `AgentOwner.create(that key, the company Safe)`, so one signature creates " +
+    "the FDE, which completion seats and activates. A failed setup releases the FDE's Party, and the Organization's " +
+    "while pending. It replaces the old observe workflow, its recovery cron and ten internal rpcs.",
   was: [
     "docs/as-is/archive/organizations/setups.ts:709",
     "docs/as-is/archive/organizations/setups.ts:751",
@@ -129,14 +135,19 @@ export const workflow_organizations_setups_set_up = defineWorkflow({
   steps: [
     { name: "mint", about: "Send CompanySafeMinter.mint with the company-Safe role, unless mint_tx_hash is recorded; then follow that one." },
     { name: "confirm-mint", about: "At finality, read the mint's facts: steps gains safe_minted and the Party is activated, or the setup fails and the Party is released." },
+    {
+      name: "host-fde",
+      about:
+        "With `with_fde` and no FDE recorded: ask the FDE host to provision the FDE; record its key's address and Safe, register its Party, birth its hosting.",
+    },
     { name: "deploy", about: "Send Installer.deployMoney with the tier key, unless deploy_tx_hash is recorded: it mints new hats each time it runs." },
     { name: "confirm-deploy", about: "At finality, read MoneyDeployed; write the deployment; steps gains money_deployed." },
-    { name: "open-install", about: "Read buildMoney's batch, add AgentOwner.create of the FDE's key when one is recorded, open the founder's install approval; request_authorization." },
+    { name: "open-install", about: "Read buildMoney's batch, add AgentOwner.create of the host's FDE key when one is recorded, open the founder's install approval; request_authorization." },
     { name: "await-founder", about: "Wait for the founder's signature; authorize once the approval is signed." },
     { name: "complete", about: "At finality, check the install's facts (AgentCreated for the FDE's Safe too); complete; seat the founder (`seat`) and the FDE (`organization`); activate the FDE's Party." },
   ],
-  reads: [table_org_setups, table_organizations, table_org_deployments],
-  writes: [table_org_setups, table_org_deployments, table_org_members],
+  reads: [table_org_setups, table_organizations, table_org_deployments, table_org_fdes],
+  writes: [table_org_setups, table_org_deployments, table_org_members, table_org_fdes],
   drives: [
     machine_org_setup.t.request_authorization,
     machine_org_setup.t.authorize,
@@ -144,8 +155,9 @@ export const workflow_organizations_setups_set_up = defineWorkflow({
     machine_org_setup.t.stall,
     machine_org_setup.t.fail,
     machine_org_member.t.seat,
+    machine_org_fde.t.provision,
   ],
-  invokes: [procedure_approvals_open, procedure_parties_activate, procedure_parties_release],
+  invokes: [procedure_approvals_open, procedure_parties_activate, procedure_parties_release, procedure_parties_register],
   emits: [],
   calls: [
     integration_service_signer.c.send,
@@ -161,10 +173,12 @@ export const workflow_organizations_setups_set_up = defineWorkflow({
     contract_safe.f.execTransaction,
     contract_hats.f.mintHat,
     contract_agent_owner.f.create,
+    contract_agent_owner.f.safeAddressFor,
   ],
   idempotency:
     "One process per Organization (`org-setup:<orgId>`). The mint and deployMoney are each sent once: the service signer " +
-    "records the signed bytes before broadcast and looks a lost answer up by hash (CAP-1097); one install approval at a time.",
+    "records the signed bytes before broadcast and looks a lost answer up by hash (CAP-1097); one install approval at a " +
+    "time. The host's provision is keyed by the Organization's id, so asking again answers the same FDE and key.",
   timeoutMs: 30 * DAY,
   retries: { max: 5, backoff: "exponential" },
   compensation:
@@ -349,6 +363,94 @@ export const workflow_organizations_heads_watch = defineWorkflow({
     "One process per head connection (`org-head:<orgId>:<headId>`); each transition is guarded by the state it moves " +
     "from, an app already asked for is not asked for again, and a User is written by the member's `capxul_id` with its " +
     "version, so a repeated push changes nothing.",
+  timeoutMs: 3650 * DAY,
+  retries: { max: 5, backoff: "exponential" },
+  budget: budget("background"),
+});
+
+export const workflow_organizations_fde_host = defineWorkflow({
+  id: "organizations.fde.host",
+  title: "One hosted FDE's life on Capxul's host: start, fall due, pause, resume",
+  about:
+    "The one durable process of an Organization's hosted Forward Deployed Engineer (aaron.fde-hosted, " +
+    "organizations.fde-hosting), started by its `provision`: it waits on the setup for days, then on the hosting's dates " +
+    "for months, and must survive a crash. When the setup completes (the install created the FDE on chain and seated " +
+    "it) it asks the FDE host to start the agent (the `fde-host` integration's `start`, with the Organization's handle, " +
+    "the FDE's handle and Safe, and Capxul's FDE persona and Frappe skills) and starts the hosting: its start-up month " +
+    "runs to one calendar month after the setup was ready, in the Organization's time zone, when the deployment sets " +
+    "FDE_HOSTING_PRICE; with none, hosting is not charged and `paid_through` stays null until a daily check finds a " +
+    "price, which starts the start-up month then. A failed setup retires it on the host. Running, its own timers make " +
+    "it due seven days before `paid_through` (notices reminds the Directors) and pause it when `paid_through` passes " +
+    "unpaid (the host's `pause`: the agent takes no turn, its sandbox stops, and the host keeps its key, conversation " +
+    "and workspace; nothing on chain changes, so its Safe, its hats and its Seat stay). A settled hosting payment " +
+    "extends it, or wakes a paused one, which it resumes on the host (`resume`); a reorg that returns a payment makes " +
+    "it re-read `paid_through` and fall due or pause at once if that says so. It retires the hosting for good (`retire` " +
+    "on the host) when AgentRemoved names the FDE's Safe, or AgentSignerSwapped names a key the host did not make, so " +
+    "its key has left the host. A paused FDE is never deleted for being unpaid: it waits, paused, until it is paid or " +
+    "the Board removes it.",
+  concept: concept_organizations,
+  priority: "normal",
+  trigger: { transition: machine_org_fde.t.provision },
+  instance: { per: table_org_fdes },
+  waits: [
+    {
+      name: "setup-ended",
+      for: "signal",
+      key: [{ on: [event_org_setup_transitioned], props: ["org_id"] }],
+      about: "The setup completed (the install landed at finality) or failed; any other transition keeps the wait.",
+    },
+    { name: "fall-due", for: "timer", about: "Until seven days before `paid_through`, on the one clock." },
+    { name: "lapse", for: "timer", about: "Until `paid_through`, on the one clock." },
+    { name: "daily-price", for: "timer", timeoutMs: DAY, about: "While hosting is not charged: check once a day whether the deployment set FDE_HOSTING_PRICE." },
+    {
+      name: "paid",
+      for: "signal",
+      key: [{ on: [event_org_fde_transitioned], props: ["org_id"] }],
+      about: "A settled hosting payment extended the hosting or woke a paused one (the door's `extend` or `wake`).",
+    },
+    {
+      name: "returned",
+      for: "signal",
+      key: [{ on: [event_fde_payment_transitioned], props: ["org_id"] }],
+      about: "A reorg took a hosting payment back: re-read `paid_through` and re-arm the timers.",
+    },
+    {
+      name: "agent-gone",
+      for: "indexer",
+      events: [contract_agent_owner.e.AgentRemoved, contract_agent_owner.e.AgentSignerSwapped],
+      key: [
+        { on: [contract_agent_owner.e.AgentRemoved], props: ["chain_id", "safe"] },
+        { on: [contract_agent_owner.e.AgentSignerSwapped], props: ["chain_id", "safe"] },
+      ],
+      about: "At finality: the Board removed the FDE, or swapped its key; a swap to the key the host holds keeps the wait.",
+    },
+  ],
+  steps: [
+    { name: "await-setup", about: "Wait for the setup's complete or fail; fail retires the hosting on the host." },
+    { name: "start", about: "Ask the host to start the FDE; start, with the start-up month's `paid_through` when a price is set." },
+    { name: "await", about: "Wait for the timers, a payment, a returned payment or the agent's removal or re-key." },
+    { name: "fall-due", about: "Seven days before `paid_through`: fall_due." },
+    { name: "pause", about: "At `paid_through`, unpaid: ask the host to pause the FDE; pause." },
+    { name: "resume", about: "Woken by a payment: ask the host to resume the FDE; resume." },
+    { name: "retire", about: "Setup failed, agent removed or key moved: ask the host to retire the FDE's runtime; retire." },
+  ],
+  reads: [table_org_fdes, table_org_setups, table_organizations, table_org_fde_payments],
+  writes: [table_org_fdes],
+  drives: [
+    machine_org_fde.t.start,
+    machine_org_fde.t.fall_due,
+    machine_org_fde.t.pause,
+    machine_org_fde.t.resume,
+    machine_org_fde.t.retire,
+  ],
+  invokes: [],
+  emits: [],
+  calls: [],
+  chain: [],
+  idempotency:
+    "One process per Organization's hosted FDE (`org-fde:<orgId>`); every transition is guarded by the state it moves " +
+    "from, and the host's start, pause, resume and retire are keyed by the host's agent id, so a replayed step asks for " +
+    "what is already so and changes nothing.",
   timeoutMs: 3650 * DAY,
   retries: { max: 5, backoff: "exponential" },
   budget: budget("background"),

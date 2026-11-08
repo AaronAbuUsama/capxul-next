@@ -2,10 +2,10 @@
 // (decisions contacts.frappe-shape, contacts.crm-statuses, contacts.lead-conversion). Only an
 // Organization keeps leads. Every member reads them; only a member whose Safe wears the People hat
 // changes them, as with the contact book (decision contacts.crm-permission). These are new
-// capabilities, not among the 215: the Core SDK reaches them for the Organization's agents, and
-// their CLI commands are booked in the CLI operations pass by rules.new-operations
-// (contacts.crm-capabilities); a connected head's edits come
-// in through contacts.head.sync, by the same rules. Nothing here is signed and no money moves.
+// capabilities, not among the 215: the `org crm lead` commands reach them through one Core SDK
+// method each, booked under rules.new-operations (contacts.crm-capabilities), and the
+// Organization's agents call the same methods; a connected head's edits come in through
+// contacts.head.sync, by the same rules. Nothing here is signed and no money moves.
 
 import { Schema } from "effect";
 import { budget, defineRpc } from "../../../packages/book/src/index.ts";
@@ -73,7 +73,7 @@ export const LeadView = Schema.Struct({
 });
 
 /** The fields a save may set: each given replaces the stored one, null clears it. */
-const LeadFields = Schema.Struct({
+export const LeadFields = Schema.Struct({
   first_name: Schema.optionalKey(NullOr(S)),
   last_name: Schema.optionalKey(NullOr(S)),
   email: Schema.optionalKey(NullOr(S)),
@@ -108,18 +108,20 @@ const GUARD =
 export const LOGGED = [table_contact_changes, table_crm_settings];
 const FIELD_RULES =
   "Each text is trimmed and at most 140 characters (a mailbox well formed and at most 254, a website at most 255), " +
-  "`annual_revenue` a non-negative decimal in the Organization's currency (CRM Lead has no currency field), `lead_owner` the PartyId of an " +
-  "active Seat of the Organization and never the lead's own mailbox (Frappe's `validate_email`); a bad value is " +
-  "INVALID_INPUT naming the field, and nothing is written. ";
+  "`annual_revenue` a non-negative decimal in the Organization's currency (CRM Lead has no currency field), `lead_owner` a " +
+  "member named by a mailbox, an @handle or the PartyId of an active Seat of the Organization (kept as its PartyId), " +
+  "never the lead's own mailbox (Frappe's `validate_email`); a bad value is INVALID_INPUT naming the field, and " +
+  "nothing is written. ";
 
 export const rpc_contacts_leads_save = defineRpc({
   id: "contacts.leads.save",
   title: "Capture a lead, or change one",
   about:
     GUARD +
-    "With no `lead` it captures a new one (`capture`): status New, stage open, the fields given. A lead needs a person's " +
-    "first name, a company's name or a mailbox, as Frappe's `set_lead_name` requires, else INVALID_INPUT. With `lead` it " +
-    "changes the fields given and keeps the rest; its status moves only through `contacts.leads.move`. " +
+    "With no `lead` (`org crm lead create`) it captures a new one (`capture`): status New, stage open, the fields given. " +
+    "A lead needs a person's first name, a company's name or a mailbox, as Frappe's `set_lead_name` requires, else " +
+    "INVALID_INPUT. With `lead` (`org crm lead change`) it changes the fields given and keeps the rest, and a change that " +
+    "leaves no name, company or mailbox is INVALID_INPUT; its status moves only through `contacts.leads.move`. " +
     FIELD_RULES +
     "A converted lead is WRONG_STATE: its deal carries the work on. The lead's mailbox stays the Organization's private " +
     "note and names nobody in the directory. A lead id not in this Organization is INVALID_INPUT. Returns the lead.",
@@ -129,7 +131,7 @@ export const rpc_contacts_leads_save = defineRpc({
   input: Schema.Struct({ orgId: S, lead: Schema.optionalKey(S), fields: LeadFields }),
   output: LeadView,
   errors: WRITE_ERRORS,
-  reads: WRITE_READS,
+  reads: [...WRITE_READS, table_parties],
   writes: [table_leads, ...LOGGED],
   drives: [machine_lead.t.capture],
   invokes: [],

@@ -7,7 +7,9 @@
 import { Schema } from "effect";
 import { budget, defineFlow } from "../../../packages/book/src/index.ts";
 import { component_core_sdk } from "../shared/foundation.ts";
-import { error_INVALID_INPUT } from "../shared/vocabulary.ts";
+import { error_CANCELLED, error_INVALID_INPUT, error_PROVIDER_ERROR, error_WRONG_STATE } from "../shared/vocabulary.ts";
+import { HeadView, rpc_organizations_heads_connect, rpc_organizations_heads_show } from "./heads.ts";
+import { rpc_organizations_fde_ask, rpc_organizations_fde_turn } from "./fde.ts";
 import { rpc_organizations_setups_begin, rpc_organizations_setups_get, rpc_organizations_setups_resume, SetupView } from "./setups.ts";
 import { rpc_organizations_workspaces_list } from "./workspaces.ts";
 import { rpc_approvals_signing_get } from "../approvals/signing.ts";
@@ -40,11 +42,10 @@ export const flow_client_onboarding_begin_organization = defineFlow({
     "approval page in the browser, where their own signer signs it (approvals' `client.approvals.sign`), then follows " +
     "the setup until it is ready or stops, within one deadline over the write and " +
     "its setup. At the deadline it stops waiting and the setup carries on. The CLI shows the preview and asks before it " +
-    "calls this method. Start-up (organizations.startup, organizations.fde-at-start-up): unless `fde` is false, it first " +
-    "makes the Organization's FDE key on this machine, as `agent create` makes an agent's, keeps it in this machine's key " +
-    "store under the handle (a private file, or printed once for `CAPXUL_PRIVATE_KEY`), and passes only its address, so " +
-    "the founder's one install signature also creates the FDE. A resume of the same intent reuses the key this machine " +
-    "keeps; from another machine the setup keeps the key it recorded first, and the answer says the FDE's key is not here.",
+    "calls this method. Start-up (organizations.startup, organizations.fde-at-start-up): unless `fde` is false " +
+    "(`--no-fde`), the setup asks Capxul's FDE host to make the Organization's Forward Deployed Engineer, whose key the " +
+    "host keeps (aaron.fde-hosted), so the founder's one install signature also creates the FDE; this machine makes and " +
+    "keeps no key for it, and a resume from any machine finds the same FDE.",
   was: [`${SDK}/profiles/organization-onboarding.ts:83`, "docs/as-is/archive/organizations/flows.ts:55"],
   component: component_core_sdk,
   sdk: "client.onboarding.beginOrganization",
@@ -59,16 +60,12 @@ export const flow_client_onboarding_begin_organization = defineFlow({
     timeZone: Schema.optionalKey(S),
     fiscalYearStart: Schema.optionalKey(S),
     apps: Schema.optionalKey(Schema.Array(S)),
-    /** False starts the Organization without an FDE (`--no-fde`); a Director can create one later with `agent create --org`. */
+    /** False starts the Organization without its hosted FDE (`--no-fde`), and so without paying to host one. */
     fde: Schema.optionalKey(Schema.Boolean),
-    /** Where this machine keeps the FDE's key: a private file (the default) or printed once for `CAPXUL_PRIVATE_KEY`. */
-    fdeKey: Schema.optionalKey(Schema.Literals(["file", "env"])),
     ...Deadline,
   }),
   output: Lifecycle,
   steps: [
-    { name: "fde-key", local: "build", about: "Unless `fde` is false: make the FDE's key, or reuse the one this machine keeps for the handle." },
-    { name: "keep-key", local: "cache", about: "Keep the FDE's key in this machine's key store before the address leaves it." },
     { name: "begin", rpc: rpc_organizations_setups_begin, about: "Create the Organization, its Party and its setup, or resume the same intent." },
     { name: "save", local: "cache", about: "Record the Organization ID and handle on this machine before anything else can fail." },
     { name: "watch", rpc: rpc_organizations_setups_get, about: "Subscribe to the setup's changes." },
@@ -246,4 +243,74 @@ export const flow_client_operator_organizations_seats_raise = defineFlow({
   spans: [],
   budget: budget("write"),
   was: ["books/target/shared/rulings.ts (aaron.seats, aaron.buy-seats)"],
+});
+
+// ── the head and the hosted FDE (organizations.commands) ────────────────────────────────────
+
+export const flow_client_org_head_connect = defineFlow({
+  id: "client.org.head.connect",
+  title: "Connect a Frappe site as the head, after a preview, and follow its check",
+  about:
+    "`org head connect` (organizations.head-commands, aaron.frappe-head). It reads the head user's API key and secret, " +
+    "and on Frappe Cloud the team's token and name, from a prompt or from `--key-file` and `--team-token-file`, never " +
+    "from a flag. It previews what connecting shares (every fundamental app's records, the members as Users with the " +
+    "roles their hats give, and the apps wanted) and asks; no is CANCELLED and nothing is sent, and a script without " +
+    "`--confirm` is the CLI's usage refusal. Then it connects (one write) and subscribes to the head until it is " +
+    "connected, or failing, when it ends with the issue's code (PROVIDER_ERROR for a site that does not answer, " +
+    "WRONG_STATE for one without the Capxul app or in another time zone or currency), within one deadline; `--no-wait` " +
+    "returns the connection as the write left it. The secrets leave this machine only in the connect call.",
+  component: component_core_sdk,
+  sdk: "client.org(orgId).head.connect",
+  input: Schema.Struct({
+    orgId: S,
+    siteUrl: S,
+    host: Schema.Literals(["frappe-cloud", "self-hosted"]),
+    keyFile: Schema.optionalKey(S),
+    teamTokenFile: Schema.optionalKey(S),
+    confirm: Schema.optionalKey(Schema.Boolean),
+    noWait: Schema.optionalKey(Schema.Boolean),
+    ...Deadline,
+  }),
+  output: HeadView,
+  steps: [
+    { name: "secrets", local: "prompt", about: "Read the key and secret (and a Frappe Cloud team's token) from a prompt, or from the files named." },
+    { name: "preview", local: "prompt", about: "Show what connecting shares and ask; no is CANCELLED, and `--confirm` answers yes." },
+    { name: "connect", rpc: rpc_organizations_heads_connect, about: "Seal the secrets and birth the connection, which starts its check." },
+    { name: "watch", rpc: rpc_organizations_heads_show, about: "Subscribe to the live head." },
+    { name: "await-check", local: "wait", about: "Until the head is connected or failing, or the deadline; skipped with `--no-wait`." },
+  ],
+  errors: [error_CANCELLED, error_PROVIDER_ERROR, error_WRONG_STATE],
+  calls: [],
+  spans: [],
+  budget: { ...budget("vendor"), excludes: ["wait.await-check"] },
+});
+
+export const flow_client_org_fde_ask = defineFlow({
+  id: "client.org.fde.ask",
+  title: "Ask the hosted FDE something, and print its reply when its turn ends",
+  about:
+    "`org fde ask` (organizations.fde-commands, aaron.fde-hosted). It sends the message to the Organization's hosted FDE " +
+    "through Capxul (one call, which records who asked), then waits for the FDE's turn, reading it from the host every " +
+    "few seconds, until it ends with the FDE's reply, fails with the host's reason, or the deadline passes (300 seconds " +
+    "by default, 1 to 3,600). At the deadline it stops waiting and prints the turn's id; the FDE carries on, and what " +
+    "it does it does through its own commands, each traced. The FDE's turn is a wait, never system time.",
+  component: component_core_sdk,
+  sdk: "client.org(orgId).fde.ask",
+  input: Schema.Struct({ orgId: S, message: S, ...Deadline }),
+  output: Schema.Struct({
+    askId: S,
+    turnId: S,
+    status: Schema.Literals(["working", "ended", "failed"]),
+    reply: NullOr(S),
+    reason: NullOr(S),
+  }),
+  steps: [
+    { name: "send", rpc: rpc_organizations_fde_ask, about: "Post the message to the FDE's conversation and record the ask." },
+    { name: "await-turn", local: "wait", about: "Until the FDE's turn ends or fails, or the deadline." },
+    { name: "turn", rpc: rpc_organizations_fde_turn, about: "Read the turn from the host, every few seconds while it works, and its reply once it ends." },
+  ],
+  errors: [],
+  calls: [],
+  spans: [],
+  budget: { ...budget("vendor"), excludes: ["wait.await-turn"] },
 });

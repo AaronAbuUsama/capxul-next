@@ -76,7 +76,7 @@ export const rpc_budgets_offices_remove_holder = defineRpc({
     "be given to them again. Under a parent's office hat, signed by that office holder, it is `Hats.transferHat(hat, " +
     "holderSafe, companySafe)`, which hands the place back. The budget, its agreements and its other holders stay; once " +
     "it executes the holder is refused like anyone who does not act for the budget, taking back its claim escrows " +
-    "included (budgets.claim-escrows). " + BIRTH,
+    "included, and the next wearer takes them back instead (budgets.claim-escrows). " + BIRTH,
   was: [`${PAY}/remove-holder.ts:1`, `${PERM}/revoke.ts:1`, "docs/as-is/archive/payroll/departments.ts:444"],
   concept: concept_budgets,
   kind: "action",

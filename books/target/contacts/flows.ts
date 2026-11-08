@@ -10,21 +10,24 @@
 // "person" }`, or `{ kind: "organization", orgId }` for `--org`), so one SDK method serves both
 // books; the old `client.org(id).addressBook` twin goes.
 //
-// The CRM's methods (recording a person or company, leads, deals) serve the SDK, not the CLI: they
-// are new capabilities, not among the 215, used by the Organization's agents (its Forward Deployed
-// Engineer first); their CLI commands are the pack's recommendation, booked in the CLI operations
-// pass by rules.new-operations (decision contacts.crm-capabilities). Each
-// is one rpc. A connected Frappe head syncs through contacts' own process (./processes.ts), not
-// these methods.
+// The CRM's methods (recording, changing and linking a person or company; leads; deals) are new
+// capabilities, not among the 215, booked under rules.new-operations (decision
+// contacts.crm-capabilities): one SDK method per command, which the CLI calls and the
+// Organization's agents (its Forward Deployed Engineer first) call through the SDK. `contact link`
+// previews at a terminal, as the guided writes do; every other is one rpc call. A connected Frappe
+// head syncs through contacts' own process (./processes.ts), not these methods.
 
 import { Schema } from "effect";
 import { budget, defineFlow, type Rpc } from "../../../packages/book/src/index.ts";
 import { component_core_sdk } from "../shared/foundation.ts";
 import { error_CANCELLED, error_INVALID_INPUT } from "../shared/vocabulary.ts";
+import { Doctype } from "./data.ts";
 import {
   Book,
+  DetailsInput,
   Entry,
   EntryWithDetails,
+  Locator,
   rpc_contacts_book_get,
   rpc_contacts_book_record,
   rpc_contacts_book_hide,
@@ -33,8 +36,16 @@ import {
   rpc_contacts_book_unhide,
 } from "./book.ts";
 
-import { DealView, rpc_contacts_deals_get, rpc_contacts_deals_list, rpc_contacts_deals_move, rpc_contacts_deals_save } from "./deals.ts";
 import {
+  DealFields,
+  DealView,
+  rpc_contacts_deals_get,
+  rpc_contacts_deals_list,
+  rpc_contacts_deals_move,
+  rpc_contacts_deals_save,
+} from "./deals.ts";
+import {
+  LeadFields,
   LeadView,
   rpc_contacts_leads_convert,
   rpc_contacts_leads_get,
@@ -156,60 +167,131 @@ export const flow_client_account_address_book_unhide = defineFlow({
   was: [`${CLI}/subcommands/unhide/execute.ts:3`, `${CLI}/internal/visibility.ts:20`, `${CLI}/internal/write.ts:26`, `${SDK}:170`],
 });
 
-// ── the CRM's methods: the SDK only, for the Organization's agents ─────────────────────────
+// ── the CRM's methods: one per command, for the CLI and the SDK ────────────────────────────
 
-const SDK_ONLY =
-  "Serves the SDK, not the CLI: a new capability, not among the 215, used by the Organization's agents (its Forward " +
-  "Deployed Engineer first, wearing the People hat to write); its CLI command is booked in the CLI operations pass " +
-  "(rules.new-operations, contacts.crm-capabilities). One rpc.";
+const CRM_SURFACES = ["cli", "sdk"] as const;
+/** Every CRM method serves its command and the SDK alike (rules.new-operations, contacts.crm-capabilities). */
+const serves = (command: string) =>
+  `Serves \`${command}\` and the SDK alike: the Organization's agents (its Forward Deployed Engineer first, wearing ` +
+  "the People hat to write) call the same method (contacts.crm-capabilities).";
+const S = Schema.String;
 
-/** One SDK method over one CRM rpc. */
+/** One SDK method that is one call to one CRM rpc. */
 const crm = (spec: {
   id: string;
   title: string;
   about: string;
+  command: string;
   sdk: string;
   rpc: Rpc;
+  input?: Schema.Top;
   output: Schema.Top;
   read: boolean;
+  /** Errors the flow raises itself: a get's null answer is INVALID_INPUT (contacts.crm-verbs). */
+  errors?: readonly (typeof error_INVALID_INPUT)[];
   was: readonly string[];
 }) =>
   defineFlow({
     id: spec.id,
     title: spec.title,
-    about: `${spec.about} ${SDK_ONLY}`,
+    about: `${spec.about} One rpc call. ${serves(spec.command)}`,
     component: component_core_sdk,
-    surfaces: ["sdk"],
+    surfaces: CRM_SURFACES,
     sdk: spec.sdk,
-    input: spec.rpc.input,
+    input: spec.input ?? spec.rpc.input,
     output: spec.output,
     steps: [{ name: "call", rpc: spec.rpc }],
-    errors: [],
+    errors: spec.errors ?? [],
     calls: [],
     spans: [],
     budget: budget(spec.read ? "read" : "write"),
     was: spec.was,
   });
 
-export const flow_client_account_address_book_record = crm({
-  id: "client.account.address-book.record",
-  title: "Record a person or company in a book, or what it keeps about one",
+// ── recording, changing and linking a book entry: three methods over contacts.book.record ──
+
+export const flow_client_account_address_book_create = crm({
+  id: "client.account.address-book.create",
+  title: "Record a new person or company in a book",
   about:
-    "A Contact or CRM Organization with its Frappe fields: a private entry (a company not on Capxul, a person with no " +
-    "mailbox), its link to a Party once it has one, or the details any entry keeps.",
-  sdk: "client.account.addressBook.record",
+    "A new Contact or CRM Organization with its Frappe fields, in the caller's book or, with the Organization's id, its " +
+    "book: `contacts.book.record` with no `contactId`. A person given a primary mailbox is born from that mailbox's " +
+    "Party; any other entry is private, with no Party (contacts.book-verbs).",
+  command: "contact create",
+  sdk: "client.account.addressBook.create",
   rpc: rpc_contacts_book_record,
+  input: Schema.Struct({ book: Book, doctype: Doctype, label: S, details: Schema.optionalKey(DetailsInput) }),
+  output: EntryWithDetails,
+  read: false,
+  was: [`${CRM}/api/contact.py:73`, `${CRM}/fcrm/doctype/crm_organization/crm_organization.json`],
+});
+
+export const flow_client_account_address_book_change = crm({
+  id: "client.account.address-book.change",
+  title: "Change what a book keeps about one entry",
+  about:
+    "Sets the details given on one entry of the book and keeps the rest: `contacts.book.record` with the entry's id and " +
+    "`details`. It never names a Party: a mailbox given to a private person is only a detail, and `contact link` alone " +
+    "chooses where money paid to the entry goes (contacts.book-verbs). The label is `contact label`'s.",
+  command: "contact change",
+  sdk: "client.account.addressBook.change",
+  rpc: rpc_contacts_book_record,
+  input: Schema.Struct({ book: Book, contactId: S, details: DetailsInput }),
   output: EntryWithDetails,
   read: false,
   was: [`${CRM}/api/contact.py:73`],
 });
 
-export const flow_client_org_crm_leads_save = crm({
-  id: "client.org.crm.leads.save",
-  title: "Capture a lead, or change one",
-  about: "Frappe CRM's lead form: a new lead (status New), or a change to one that is not converted.",
-  sdk: "client.org(orgId).crm.leads.save",
+/** The guided link: a preview at a terminal, then the one write (contacts.book-verbs). */
+export const flow_client_account_address_book_link = defineFlow({
+  id: "client.account.address-book.link",
+  title: "Name a private entry's Party, once, with a preview at a terminal",
+  about:
+    "At a terminal it reads the entry, shows it with the Party the locator names and that money paid to the entry will " +
+    "reach that Party from then on, for good, and asks; a decline is CANCELLED and writes nothing. Then, or straight " +
+    "away with `--confirm`, the one write: `contacts.book.record` with the entry's id and `link`, which refuses an entry " +
+    "that already has a Party, a Party already in the book and a Party of the other kind (contacts.book-verbs). A " +
+    "script without `--confirm` is the CLI's CLI_USAGE. " +
+    serves("contact link"),
+  component: component_core_sdk,
+  surfaces: CRM_SURFACES,
+  sdk: "client.account.addressBook.link",
+  input: Schema.Struct({ book: Book, contactId: S, link: Locator, confirm: Schema.optionalKey(Schema.Boolean) }),
+  output: EntryWithDetails,
+  steps: [
+    ...preview("the locator it will be linked to, and that money paid to it then reaches that Party for good"),
+    { name: "link", rpc: rpc_contacts_book_record, about: "The one write." },
+  ],
+  errors: [error_CANCELLED, error_INVALID_INPUT],
+  calls: [],
+  spans: [],
+  budget: guidedWrite,
+  was: [`${CRM}/api/contact.py:73`, "packages/backend/src/parties/rules.ts:19"],
+});
+
+// ── leads ───────────────────────────────────────────────────────────────────────────────────
+
+export const flow_client_org_crm_leads_create = crm({
+  id: "client.org.crm.leads.create",
+  title: "Capture a lead",
+  about: "Frappe CRM's new lead form: `contacts.leads.save` with no lead, a new lead with status New.",
+  command: "org crm lead create",
+  sdk: "client.org(orgId).crm.leads.create",
   rpc: rpc_contacts_leads_save,
+  input: Schema.Struct({ orgId: S, fields: LeadFields }),
+  output: LeadView,
+  read: false,
+  was: [`${CRM}/fcrm/doctype/crm_lead/crm_lead.json`, `${CRM}/fcrm/doctype/crm_lead/crm_lead.py:140`],
+});
+
+export const flow_client_org_crm_leads_change = crm({
+  id: "client.org.crm.leads.change",
+  title: "Change a lead's fields",
+  about: "Frappe CRM's lead form on a saved lead: `contacts.leads.save` with the lead's id; a converted lead is WRONG_STATE.",
+  command: "org crm lead change",
+  sdk: "client.org(orgId).crm.leads.change",
+  rpc: rpc_contacts_leads_save,
+  input: Schema.Struct({ orgId: S, lead: S, fields: LeadFields }),
   output: LeadView,
   read: false,
   was: [`${CRM}/fcrm/doctype/crm_lead/crm_lead.json`],
@@ -219,6 +301,7 @@ export const flow_client_org_crm_leads_move = crm({
   id: "client.org.crm.leads.move",
   title: "Move a lead to another status",
   about: "Frappe CRM's lead status menu and kanban drag: a default status, with a lost reason for a lost one.",
+  command: "org crm lead move",
   sdk: "client.org(orgId).crm.leads.move",
   rpc: rpc_contacts_leads_move,
   output: LeadView,
@@ -230,6 +313,7 @@ export const flow_client_org_crm_leads_convert = crm({
   id: "client.org.crm.leads.convert",
   title: "Convert a lead to a deal",
   about: "Frappe CRM's Convert to Deal: the deal, its person and its company, once; a retry answers the same deal.",
+  command: "org crm lead convert",
   sdk: "client.org(orgId).crm.leads.convert",
   rpc: rpc_contacts_leads_convert,
   output: rpc_contacts_leads_convert.output,
@@ -241,6 +325,7 @@ export const flow_client_org_crm_leads_list = crm({
   id: "client.org.crm.leads.list",
   title: "List an Organization's leads",
   about: "Frappe CRM's leads list and kanban: a page, newest change first, or one stage's.",
+  command: "org crm lead list",
   sdk: "client.org(orgId).crm.leads.list",
   rpc: rpc_contacts_leads_list,
   output: rpc_contacts_leads_list.output,
@@ -251,29 +336,49 @@ export const flow_client_org_crm_leads_list = crm({
 export const flow_client_org_crm_leads_get = crm({
   id: "client.org.crm.leads.get",
   title: "Read one lead",
-  about: "Frappe CRM's lead page: one lead, or null.",
+  about: "Frappe CRM's lead page: one lead; an id that is none of the Organization's leads is INVALID_INPUT, never null.",
+  command: "org crm lead get",
   sdk: "client.org(orgId).crm.leads.get",
   rpc: rpc_contacts_leads_get,
-  output: rpc_contacts_leads_get.output,
+  output: LeadView,
   read: true,
+  errors: [error_INVALID_INPUT],
   was: [`${CRM}/fcrm/doctype/crm_lead/crm_lead.json`],
 });
 
-export const flow_client_org_crm_deals_save = crm({
-  id: "client.org.crm.deals.save",
-  title: "Open a deal, or change one",
-  about: "Frappe CRM's deal form: a new deal by hand (status Qualification), or a change to one, its people included.",
-  sdk: "client.org(orgId).crm.deals.save",
+// ── deals ───────────────────────────────────────────────────────────────────────────────────
+
+export const flow_client_org_crm_deals_create = crm({
+  id: "client.org.crm.deals.create",
+  title: "Open a deal",
+  about: "Frappe CRM's new deal form: `contacts.deals.save` with no deal, a new deal in Qualification for its company.",
+  command: "org crm deal create",
+  sdk: "client.org(orgId).crm.deals.create",
   rpc: rpc_contacts_deals_save,
+  input: Schema.Struct({ orgId: S, fields: DealFields }),
   output: DealView,
   read: false,
   was: [`${CRM}/fcrm/doctype/crm_deal/crm_deal.py:482`],
+});
+
+export const flow_client_org_crm_deals_change = crm({
+  id: "client.org.crm.deals.change",
+  title: "Change a deal's fields or its people",
+  about: "Frappe CRM's deal form on a saved deal: `contacts.deals.save` with the deal's id, whatever its stage.",
+  command: "org crm deal change",
+  sdk: "client.org(orgId).crm.deals.change",
+  rpc: rpc_contacts_deals_save,
+  input: Schema.Struct({ orgId: S, deal: S, fields: DealFields }),
+  output: DealView,
+  read: false,
+  was: [`${CRM}/fcrm/doctype/crm_deal/crm_deal.json`],
 });
 
 export const flow_client_org_crm_deals_move = crm({
   id: "client.org.crm.deals.move",
   title: "Move a deal to another status",
   about: "Frappe CRM's deal status menu and pipeline drag: worked, won or lost, with a lost reason for a lost one.",
+  command: "org crm deal move",
   sdk: "client.org(orgId).crm.deals.move",
   rpc: rpc_contacts_deals_move,
   output: DealView,
@@ -285,6 +390,7 @@ export const flow_client_org_crm_deals_list = crm({
   id: "client.org.crm.deals.list",
   title: "List an Organization's deals",
   about: "Frappe CRM's deals list and pipeline: a page, newest change first, or one stage's, company's or person's.",
+  command: "org crm deal list",
   sdk: "client.org(orgId).crm.deals.list",
   rpc: rpc_contacts_deals_list,
   output: rpc_contacts_deals_list.output,
@@ -295,10 +401,12 @@ export const flow_client_org_crm_deals_list = crm({
 export const flow_client_org_crm_deals_get = crm({
   id: "client.org.crm.deals.get",
   title: "Read one deal",
-  about: "Frappe CRM's deal page: one deal with its people, or null.",
+  about: "Frappe CRM's deal page: one deal with its people; an id that is none of the Organization's deals is INVALID_INPUT.",
+  command: "org crm deal get",
   sdk: "client.org(orgId).crm.deals.get",
   rpc: rpc_contacts_deals_get,
-  output: rpc_contacts_deals_get.output,
+  output: DealView,
   read: true,
+  errors: [error_INVALID_INPUT],
   was: [`${CRM}/fcrm/doctype/crm_deal/crm_deal.json`],
 });

@@ -2,7 +2,9 @@
 // under Aaron's rulings aaron.projects, aaron.frappe-shape, aaron.erp-on-capxul and
 // aaron.frappe-head, with ERPNext's Projects module (frappe/erpnext, cloned at /tmp/erpnext) and
 // docs/vision/erp.md as evidence. The old system had no projects, so nothing here replaces old code.
-// Two of them are for Aaron: the commands (a decision pack) and who may use them.
+// Aaron accepted the two that were his, the commands (a decision pack) and who may use them, on
+// 8 November 2026; the commands are now booked (operations.ts), and the judgments made in booking
+// them follow the pack.
 
 import { defineDecision } from "../../../packages/book/src/index.ts";
 import {
@@ -31,6 +33,33 @@ import {
 } from "./data.ts";
 import { workflow_projects_head_sync, workflow_projects_startup_open, workflow_projects_tasks_watch_due } from "./processes.ts";
 import { procedure_projects_bill_time } from "./procedures.ts";
+import { CRITICAL, OPERATIONS } from "./operations.ts";
+import {
+  rpc_projects_projects_cancel,
+  rpc_projects_projects_change,
+  rpc_projects_projects_complete,
+  rpc_projects_projects_create,
+  rpc_projects_projects_hold,
+  rpc_projects_projects_list,
+  rpc_projects_projects_reopen,
+  rpc_projects_projects_resume,
+} from "./projects.ts";
+import { rpc_projects_members_add, rpc_projects_members_remove } from "./members.ts";
+import { rpc_projects_settings_set, rpc_projects_settings_show } from "./settings.ts";
+import {
+  rpc_projects_timesheets_cancel,
+  rpc_projects_timesheets_create,
+  rpc_projects_timesheets_list,
+  rpc_projects_timesheets_log,
+  rpc_projects_timesheets_submit,
+} from "./timesheets.ts";
+import {
+  rpc_projects_activity_types_add,
+  rpc_projects_activity_types_change,
+  rpc_projects_activity_types_disable,
+  rpc_projects_activity_types_enable,
+} from "./activity-types.ts";
+import { rpc_projects_project_types_add } from "./project-types.ts";
 
 const CLAUDE = "Claude, projects design, 8 November 2026";
 const by = (evidence: string) => `${CLAUDE}; evidence: ${evidence}`;
@@ -362,8 +391,7 @@ export const decision_projects_commands = defineDecision({
         "start, end or hours, task, project, billable, completed); `org activity-type add|change|list|disable|enable`; " +
         "`org project-type add|list`. Who (projects.permissions): any member reads, and creates and works tasks; a worker " +
         "keeps their own timesheets; the People hat or a Director manages projects, their members, types, rates, " +
-        "settings and anyone else's time. Reads are `read`, the rest `write`, all `normal`. Billing hours is requests' " +
-        "`org timesheet bill` (requests.bill-time).",
+        "settings and anyone else's time. Billing hours is requests' `org timesheet bill` (requests.bill-time).",
     },
     {
       label: "minimal",
@@ -384,21 +412,27 @@ export const decision_projects_commands = defineDecision({
   ],
   chosen: "working-set",
   why:
-    "For Aaron: this is a decision pack, and the recommendation stands until he answers. The working set is what ERPNext's " +
-    "Projects forms let a user do with the nine DocTypes the concept holds, so an Organization with no head can run its " +
-    "projects, and the FDE does the same through the CLI. Minimal would leave a headless Organization unable to hold or " +
-    "reopen a project or share it. Generic documents read like Frappe's API, which suits agents, but give people no " +
-    "help and no per-command refusals. Head-only contradicts the ruling that projects are present from the start. Aaron " +
-    "accepted the working set and asked on 8 November 2026 for the commands to be designed in the book, so its list " +
-    "is now docs/design/new-commands.md's, in the one grammar of every new command. Not in this pack: `org timesheet " +
-    "bill` (requests.bill-time, requests' flow) and templates.",
-  source: by(`${DT} (the forms of Project, Task and Timesheet); books/target/shared/rulings.ts (aaron.projects, aaron.fde-agent)`),
-  affects: [concept_projects, ...TABLES, machine_project, machine_task, machine_timesheet],
+    "Aaron accepted the working set on 8 November 2026 and asked for the commands to be designed in the book; they are " +
+    "now booked, as 35 operations under rules.new-operations, each implemented by one new rpc of this concept, so no " +
+    "flow is needed, and each in this pack's `affects`. The working set is what ERPNext's Projects forms let a user do " +
+    "with the nine DocTypes the concept holds, so an Organization with no head can run its projects, and the FDE does " +
+    "the same through the CLI. Minimal would leave a headless Organization unable to hold or reopen a project or share " +
+    "it. Generic documents read like Frappe's API, which suits agents, but give people no help and no per-command " +
+    "refusals. Head-only contradicts the ruling that projects are present from the start. As booked, three things " +
+    "differ from the grammar page and each has its decision: the People-or-Director commands read the hat live and so " +
+    "take `chain-read` (projects.hat-guard); the commands a pilot's first engagement runs are `critical` " +
+    "(projects.critical-commands); and every refusal starts from a world, two of them asked of devnet (projects.worlds). " +
+    "Not in this pack: `org timesheet bill` (requests.bill-time, requests' flow) and templates.",
+  source: by(
+    `${DT} (the forms of Project, Task and Timesheet); books/target/shared/rulings.ts (aaron.projects, aaron.frappe-shape, ` +
+      "aaron.fde-agent); docs/design/new-commands.md (section 5.1)",
+  ),
+  affects: [concept_projects, ...TABLES, machine_project, machine_task, machine_timesheet, ...OPERATIONS],
 });
 
 export const decision_projects_permissions = defineDecision({
   id: "projects.permissions",
-  title: "Members work their tasks and time; the People hat manages projects",
+  title: "Members work their tasks and time; the People hat or a Director manages",
   question:
     "Frappe has the roles Projects User and Projects Manager. Who may read, work and manage an Organization's projects " +
     "once the commands exist?",
@@ -406,24 +440,266 @@ export const decision_projects_permissions = defineDecision({
     {
       label: "members-and-people-hat",
       text:
-        "Every member reads every project and task and logs and submits their own time; any member creates and works tasks. " +
-        "Creating, holding, completing, reopening and cancelling a project, its users, its types and rates, and another " +
-        "member's timesheet need the People hat (or a Director). A head's user acts with the rights of the member matched by " +
-        "mailbox, and one who is no member with only what any member may do.",
+        "Every member (an active Seat, a person's or an agent's) reads every project, task and timesheet, creates and " +
+        "works tasks, and keeps their own timesheets. Creating, changing, holding, completing, reopening and cancelling a " +
+        "project, sharing it, setting the Projects Settings, adding project and activity types and their rates, and " +
+        "keeping another worker's timesheet need a member whose own Safe wears the People hat or the Director hat, read " +
+        "from the chain when the command runs. A head's user acts with the rights of the member matched by mailbox, and " +
+        "one who is no member with only what any member may do.",
     },
     { label: "frappe-roles", text: "Off-chain roles per Seat in Frappe's shape (Projects User, Projects Manager), granted by the People hat and synced to the head's users." },
     { label: "projects-hat", text: "A fourth officer hat, Projects, minted by the Installer like Books, Invoicing and People." },
+    {
+      label: "department-hat",
+      text: "As members-and-people-hat, and the wearers of the hat of the budget a project's `department` names also manage that project.",
+    },
     { label: "any-member", text: "Every member may do everything." },
   ],
   chosen: "members-and-people-hat",
   why:
-    "For Aaron, with the commands. Projects move no money, so they need no chain authority of their own, but Aaron ruled " +
-    "that the contact book is not open to anyone (aaron.contacts-permissions); managing projects is the same kind of " +
-    "office, and the People hat already exists on every Organization. Frappe roles would give Capxul a second permission " +
-    "model beside hats. A Projects hat changes the Installer, a v4 contract. Any member would let one Seat cancel every " +
-    "project.",
-  source: by("/tmp/erpnext/erpnext/projects/doctype/project/project.json (permissions: Projects User, Projects Manager); books/target/shared/rulings.ts (aaron.contacts-permissions)"),
-  affects: [concept_projects, table_projects, table_tasks, table_timesheets],
+    "Aaron accepted it on 8 November 2026, with the commands. Projects move no money, so they need no chain authority " +
+    "of their own, but the contact book is not open to anyone (aaron.contacts-permissions); managing projects is the " +
+    "same kind of office, and the People hat already exists on every Organization. As the authority model has it " +
+    "(docs/design/authority.md, aaron.departments), authority is a hat's, never a person's: a project's creator, its " +
+    "members and its customer gain no right over it, and the Board swaps a member in or out of managing projects by " +
+    "granting or revoking the People hat, which takes effect at their next command. An agent is a member like any " +
+    "other, so the FDE works tasks and its own time from its Seat and manages only once the Board grants its Safe the " +
+    "People hat (agents.fde-authority). Frappe roles would give Capxul a second permission model beside hats. A " +
+    "Projects hat changes the Installer, a v4 contract. A department's hat cannot manage its projects: projects sits " +
+    "below budgets, and a project's `department` is a head's name, not a budget. Any member would let one Seat cancel " +
+    "every project.",
+  source: by("/tmp/erpnext/erpnext/projects/doctype/project/project.json (permissions: Projects User, Projects Manager); books/target/shared/rulings.ts (aaron.contacts-permissions, aaron.departments); docs/design/authority.md"),
+  affects: [concept_projects, table_projects, table_tasks, table_timesheets, ...OPERATIONS],
+});
+
+// ── the commands as booked (commands-and-escrow pass, 8 November 2026) ──────────────────────
+
+const BOOKED = "Claude, projects commands, 8 November 2026";
+const booked = (evidence: string) => `${BOOKED}; evidence: ${evidence}`;
+
+/** The rpcs whose guard reads a hat live. */
+const HAT_RPCS = [
+  rpc_projects_projects_create, rpc_projects_projects_change, rpc_projects_projects_hold, rpc_projects_projects_resume,
+  rpc_projects_projects_complete, rpc_projects_projects_reopen, rpc_projects_projects_cancel, rpc_projects_members_add,
+  rpc_projects_members_remove, rpc_projects_settings_set, rpc_projects_timesheets_create, rpc_projects_timesheets_log,
+  rpc_projects_timesheets_submit, rpc_projects_timesheets_cancel, rpc_projects_activity_types_add,
+  rpc_projects_activity_types_change, rpc_projects_activity_types_disable, rpc_projects_activity_types_enable,
+  rpc_projects_project_types_add,
+];
+
+export const decision_projects_hat_guard = defineDecision({
+  id: "projects.hat-guard",
+  title: "The People and Director hats are read live from the chain, not from indexing",
+  question:
+    "Nineteen commands need the People hat or the Director hat (projects.permissions). Contacts and payroll read a hat's " +
+    "wearers from indexing's hat-wearers, but projects does not depend on indexing. How does a projects command learn " +
+    "the hat the caller's Safe wears?",
+  options: [
+    {
+      label: "live",
+      text:
+        "Read it live: after the Seat, `Hats.isWearerOfHat(seat Safe, people_hat)` and, if false, the same for the " +
+        "Director hat, through chain-rpc's readContract, with the hat ids from organizations' deployment row. An rpc " +
+        "that does is an `action` of class `chain-read`, and fails PROVIDER_ERROR when no node answers. A member's own " +
+        "work (reads, tasks, their own time) reads no chain.",
+    },
+    {
+      label: "indexing-edge",
+      text: "Projects gains a dependency on indexing and reads hat-wearers, as contacts and payroll do; its writes stay `write`.",
+    },
+    {
+      label: "seat-role",
+      text: "Keep a manager flag on the Seat, set when the People hat is granted or revoked.",
+    },
+  ],
+  chosen: "live",
+  why:
+    "Authority follows the hat as the chain reads it when the command runs (docs/design/authority.md, the grammar's " +
+    "Budget and People terms): a live view call sees a Board's swap at once, where an indexed view trails it by the " +
+    "finality depth. Whether a Safe wears a hat now is state as of now, a view call chain-rpc serves before a write " +
+    "(integrations.chain-rpc-live-reads); the shared rule already admits a live read for a concept with no indexing " +
+    "edge, as notices reads the Safe's owners. Projects then stays where projects.dependencies put it, reading only " +
+    "access, parties and organizations, and the hat ids come from organizations' deployment row. The cost: those " +
+    "nineteen commands take one or two node reads (p95 400 ms each) before their one transaction, so they are " +
+    "`chain-read` (900 ms p50, 2 s p95) rather than the grammar's `write`, and they refuse with PROVIDER_ERROR while no " +
+    "node answers, the one refusal they add; a worker's own time, every task command and every read stay off the " +
+    "chain. The indexing edge would also work and match contacts; it is the better choice if the shared owner adds " +
+    "indexing to projects' dependencies for another reason, and the guard is one constant in projects/guards.ts. A " +
+    "flag on the Seat would be a second record of a chain fact, wrong whenever the Board acts at the Safe outside " +
+    "Capxul. The head sync applies a head user's change with the same guard, so it makes the same reads.",
+  source: booked(
+    "books/target/shared/decisions.ts (integrations.chain-rpc-live-reads; dependencies.of-projects); docs/design/authority.md " +
+      "(the officer hats; Capxul's own checks); aaron.departments; books/target/contacts/book.ts (WRITE_GUARD)",
+  ),
+  affects: [...HAT_RPCS, workflow_projects_head_sync, concept_projects],
+});
+
+export const decision_projects_critical_commands = defineDecision({
+  id: "projects.critical-commands",
+  title: "The commands of a pilot's first engagement are critical; the rest normal",
+  question:
+    "The grammar makes every new command `normal`. Which projects commands does a pilot, a small services business " +
+    "starting on Capxul, need on its first day, so that they are `critical`?",
+  options: [
+    {
+      label: "first-engagement",
+      text:
+        "Eleven: `org project create|list|get`, `org task create|list|complete`, and `org timesheet create|log|submit|" +
+        "list|get`: plan the work, do it, log the time and submit it, so `org timesheet bill` can invoice it. Every other " +
+        "command is `normal`.",
+    },
+    { label: "none", text: "Every command `normal`, as the grammar page has it: no B3 pilot runs one." },
+    { label: "all", text: "Every projects command `critical`." },
+  ],
+  chosen: "first-engagement",
+  why:
+    "The concept is fundamental from an Organization's first day (projects.startup), and the first business a pilot " +
+    "runs is an engagement for a customer: a project, its tasks and the time logged on them, which requests then bills. " +
+    "Those eleven commands are that loop, and the FDE runs the same ones through the CLI. The rest (hold, resume, " +
+    "reopen, review, sharing, types, rates and settings) refine it, and a start-up uses ERPNext's starting types and " +
+    "settings. None of these is on the B3 pilots' money path, so `critical` here orders the build's work and the evals " +
+    "a pilot depends on; it changes no budget.",
+  source: booked("docs/design/new-commands.md (G8, section 5.1); aaron.projects; aaron.fde-agent; CONVENTIONS rule 4 (priority)"),
+  affects: [...CRITICAL],
+});
+
+export const decision_projects_worlds = defineDecision({
+  id: "projects.worlds",
+  title: "Two worlds hold Acme's projects in every state a refusal needs",
+  question: "No catalogued world holds a project, a task or a timesheet. Which worlds do the projects refusals start from?",
+  options: [
+    {
+      label: "two-worlds",
+      text:
+        "Catalogued worlds where they reach the refusal (signed-out, org-ready, org-with-member), and two new ones built " +
+        "by commands alone: org-with-projects, from org-with-member, holding Acme's projects Website (open, for Olga, " +
+        "shared with Sam), Retainer (on hold), Handover (completed, no tasks) and Archive (cancelled), created in that " +
+        "order; Website's tasks Design (working, due in a week), Build (open, depending on Design, due in two), Launch " +
+        "(a group) with its open child Announce, and Spec (completed); Execution's rates 40 costing and 90 billing, and " +
+        "Research disabled; Sam's draft with one Execution log on Design, his submitted timesheet with two billable " +
+        "hours of Execution on Design, and his cancelled one; Dana's own draft with no log; and Dana's timesheet for " +
+        "Sam on Website, with a billable Execution log on no task, submitted and billed to Olga by `org timesheet bill`. And org-with-projects-chain-unreachable: the same, with chain-rpc's fault switch " +
+        "failing every read.",
+    },
+    { label: "unknown", text: "Leave `given` as `?` until devnet designs projects worlds: each refusal a gap." },
+  ],
+  chosen: "two-worlds",
+  why:
+    "A refusal is an eval only once a world reaches it, and every WRONG_STATE here needs a record in a given status: a " +
+    "completed task, a project on hold, a billed timesheet. One world holds them all, so a refusal names which record " +
+    "and an eval switches only who is signed in. It is built from org-with-member, which already gives the three " +
+    "people the guards tell apart (Dana with the People and Director hats, Sam with a Seat and no hat, Olga outside), " +
+    "by the commands booked here and requests' `org timesheet bill`, never a table write (devnet.worlds). The hat " +
+    "guard's PROVIDER_ERROR needs a record and a failing chain at once, so its world is the same snapshot with the " +
+    "fault switch armed, as org-with-chart-and-node-down is. A refusal that needs no record starts from a catalogued " +
+    "world. Devnet owns the catalogue, so both worlds are asked of it, with these contents.",
+  source: booked("books/target/devnet/worlds.ts (org-with-member, org-with-budget-tree-chain-unreachable, org-with-chart-and-node-down); devnet.worlds; aaron.projects"),
+  affects: [...OPERATIONS],
+});
+
+export const decision_projects_named_people = defineDecision({
+  id: "projects.named-people",
+  title: "A member is a Seat; a worker is any Party, found read-only",
+  question:
+    "Commands name people: a project's member, a timesheet's worker (`--for`), a project's customer and a worker's " +
+    "employee. How is each resolved, and may a command name a Party that does not exist yet?",
+  options: [
+    {
+      label: "read-only",
+      text:
+        "A member (`org project member add`, `--member`) is an email or an agent's @handle, resolved through parties' " +
+        "directory to a Party holding an active Seat. A worker (`--for`) is any Party locator, resolved read-only: an " +
+        "employee or contractor with no Seat is a worker once they are a Party. A customer is a Party locator, or any " +
+        "other text as a name (projects.customer-name). `--employee` is a name, kept as Frappe's link is. A locator " +
+        "that names no Party is INVALID_INPUT; projects never names one.",
+    },
+    {
+      label: "name-provisional",
+      text: "Resolve through `parties.resolve-recipient`, naming a provisional Party for a mailbox no Party holds, as contacts and payroll do.",
+    },
+  ],
+  chosen: "read-only",
+  why:
+    "Projects moves no money, so it has no money fact to share with parties' door (rules.procedures): naming a Party " +
+    "is how a payee is made ready to be paid, which is payroll's (an Employee) and contacts' (a book entry), and a " +
+    "person they name is a worker here at once. Frappe shares a project with a User, so a member must hold a Seat; a " +
+    "head user who is not one is the head's own. Frappe's Timesheet names an Employee, which payroll holds above " +
+    "projects, so the employee is kept as the name the head gives, as `department` and `cost_center` are " +
+    "(projects.doctypes). ERPNext checks a time log's overlap by user and by employee, which here is the worker's " +
+    "Party and that name.",
+  source: booked(`${DT}/project_user/project_user.json; ${DT}/timesheet/timesheet.py:225; books/target/parties/procedures.ts; rules.procedures; aaron.projects`),
+  affects: [rpc_projects_members_add, rpc_projects_members_remove, rpc_projects_timesheets_create, rpc_projects_projects_create, rpc_projects_projects_list, rpc_projects_timesheets_list],
+});
+
+export const decision_projects_settings_here = defineDecision({
+  id: "projects.settings-here",
+  title: "Projects Settings are Capxul's checks, not a record a head receives",
+  question: "The change log carries Activity Types, Project Types, Projects, Tasks and Timesheets. Does `org project settings set` reach a connected head?",
+  options: [
+    { label: "here", text: "No: the settings are the checks Capxul runs on every change, a head's included, so they stay here and append no change." },
+    { label: "pushed", text: "Add Projects Settings to the change log and push it to the head's single." },
+  ],
+  chosen: "here",
+  why:
+    "The head sync applies a head's change through the same checks a command uses (projects.head-sync), so the overlap " +
+    "check that matters is Capxul's, whatever the head's single says. Pushing a single would let a later head write " +
+    "back a value that loosens Capxul's checks. A head's own settings still govern edits it refuses before they reach " +
+    "Capxul, which is stricter, never looser.",
+  source: booked(`${DT}/projects_settings/projects_settings.json; ${DT}/timesheet/timesheet.py:225; projects.head-sync; aaron.frappe-head`),
+  affects: [rpc_projects_settings_set, rpc_projects_settings_show, table_project_settings, table_project_changes],
+});
+
+export const decision_projects_refusal_codes = defineDecision({
+  id: "projects.refusal-codes",
+  title: "WRONG_STATE for the record acted on; INVALID_INPUT for one it names",
+  question:
+    "ERPNext refuses a log on a cancelled task, a task under a completed parent and a disabled activity type, and a " +
+    "transition from the wrong status. Which of the grammar's codes does each take, and what of a repeat?",
+  options: [
+    {
+      label: "acted-on",
+      text:
+        "WRONG_STATE only when the record the command acts on is in a status (or fails a guard of its own machine) that " +
+        "does not allow the step, naming the status or the unfinished tasks; INVALID_INPUT for a record it names that " +
+        "cannot take part (a disabled activity type, a cancelled task, a completed or non-group parent, a cycle, an " +
+        "overlap), naming the field. Sharing with a member already shared is a no-op; removing one not shared, and " +
+        "disabling a disabled type or enabling an enabled one, are refused.",
+    },
+    { label: "all-wrong-state", text: "WRONG_STATE for every status a check reads, whichever record it is." },
+  ],
+  chosen: "acted-on",
+  why:
+    "The grammar gives WRONG_STATE to a transition's `from` or its guard, and INVALID_INPUT to a value that names " +
+    "something unfit (a disabled activity type is its own example), so a caller tells 'this record cannot move' from " +
+    "'fix this argument'. A task's own dependency guard is WRONG_STATE because it is the task's machine; a log naming " +
+    "a cancelled task is a bad argument to the timesheet. A repeated share is the 215's `contact add` of an entry " +
+    "already there; a remove, disable or enable that changes nothing is refused so a script learns its picture was " +
+    "wrong, as `org department close` of a closed department is.",
+  source: booked(`docs/design/new-commands.md (G6); ${DT}: timesheet/timesheet.py:81, task/task.py:183 and :249, timesheet_detail/timesheet_detail.py:128; aaron.frappe-shape`),
+  affects: [...OPERATIONS],
+});
+
+export const decision_projects_json_shapes = defineDecision({
+  id: "projects.json-shapes",
+  title: "Every write prints the record as `get` does; lists print a page",
+  question: "What does each projects command print with `--json`?",
+  options: [
+    {
+      label: "record-as-get",
+      text:
+        "A write prints its record after the change, exactly as `get` prints it (projects/shapes.ts), so a script reads " +
+        "one shape per kind; a list prints a page of summaries and the next cursor; the type lists, which hold a few " +
+        "rows, print every row and a null cursor; the settings print the three values.",
+    },
+    { label: "ack", text: "A write prints only the id and the new status." },
+  ],
+  chosen: "record-as-get",
+  why:
+    "It is the grammar's G9 and how the 215's writes print. Derived values (totals, actual time, percent complete, a " +
+    "task's new status after a timesheet) change in the same write, so printing the record shows a caller what the " +
+    "command caused without a second read. Ids are Capxul's and the head's name sits beside them (projects.ids-and-names).",
+  source: booked("docs/design/new-commands.md (G9); books/target/projects/shapes.ts; aaron.projects"),
+  affects: [...OPERATIONS],
 });
 
 // ── billing hours: the door requests invokes (assembly, 8 November 2026) ────────────────────

@@ -94,6 +94,21 @@ export const Details = Schema.Struct({
 /** An entry with what the book keeps about it. */
 export const EntryWithDetails = Schema.Struct({ ...Entry.fields, details: Details });
 
+/** The details a write may set: each one given replaces the stored one, null clears it; the rest are kept. */
+export const DetailsInput = Schema.Struct({
+  email_ids: Schema.optionalKey(Schema.Array(ContactEmail)),
+  phone_nos: Schema.optionalKey(Schema.Array(ContactPhone)),
+  designation: Schema.optionalKey(NullOr(S)),
+  company: Schema.optionalKey(NullOr(S)),
+  website: Schema.optionalKey(NullOr(S)),
+  industry: Schema.optionalKey(NullOr(S)),
+  territory: Schema.optionalKey(NullOr(S)),
+  no_of_employees: Schema.optionalKey(NullOr(Schema.Literals(EMPLOYEE_RANGES))),
+  annual_revenue: Schema.optionalKey(NullOr(S)),
+  currency: Schema.optionalKey(NullOr(S)),
+  company_description: Schema.optionalKey(NullOr(S)),
+});
+
 const OneEntry = Schema.Struct({ book: Book, contactId: S });
 
 const errors = [error_NOT_AUTHENTICATED, error_ROLE_PERMISSION_DENIED, error_INVALID_INPUT];
@@ -228,25 +243,26 @@ export const rpc_contacts_book_add = defineRpc({
 
 export const rpc_contacts_book_record = defineRpc({
   id: "contacts.book.record",
-  title: "Record a person or company in a book, or what the book keeps about one",
+  title: "Record a person or company in a book, change its details, or link its Party",
   about:
     WRITE_GUARD +
-    "With no `contactId` it records a new entry, which needs a `doctype` and a label (trimmed, 1 to 120 characters). A " +
-    "new person whose details give a primary mailbox is named " +
-    "through `parties.resolve-recipient` as `contact add` by email names them, so the entry is born with that Party and " +
-    "its PartyId as its id, or lands on the book's entry for it; any other new entry is private, with a `contact_<ulid>` " +
-    "id and no Party (decision contacts.private-entries). `link` names a private entry's Party (a handle, an address, a " +
-    "Party id, or for a person a mailbox), resolved in the same transaction, and a private person given a primary " +
-    "mailbox is linked the same way; on an entry that has a Party a mailbox is only a detail. A Party already in the book " +
-    "under another entry, a locator that names nothing, the book's own Party, or a link on an entry that has a Party is " +
-    "INVALID_INPUT: an entry's Party never changes. `details` sets the fields it gives and keeps the rest (null clears " +
-    "one): a person's `email_ids` and `phone_nos` (at most 10 each, at most one primary of each kind, mailboxes well " +
-    "formed; a lone one is primary, as Frappe makes it), `designation` (at most 140) and `company` (an organization " +
-    "entry of this book); a company's `website` (at most 255), `industry` and `territory` (at most 140), " +
-    "`no_of_employees` (Frappe's ranges), `annual_revenue` (a non-negative decimal, in `currency` if given: 3 to 10 " +
-    "capitals) and `company_description` (at most 2000). A field of the " +
-    "other doctype, or a bad value, is INVALID_INPUT naming the field; nothing is written. A new entry is born listed; a " +
-    "change to a member's entry with no row writes its curating row. Returns the entry with details.",
+    "The one write behind three commands, each its own SDK method (contacts.book-verbs). With no `contactId` " +
+    "(`contact create`) it records a new entry: a `doctype` and a label (trimmed, 1 to 120 characters). A new person " +
+    "whose details give a primary mailbox is named through `parties.resolve-recipient` as `contact add` by email names " +
+    "them, and born with that Party and its PartyId as its id; if that Party already has an entry here it is " +
+    "INVALID_INPUT naming the entry, never merged. Any other new entry is private: a `contact_<ulid>` id and no Party " +
+    "(contacts.private-entries). With `contactId` and `details` (`contact change`) it never names a Party: a mailbox " +
+    "given to a private person is only a detail. With `contactId` and `link` (`contact link`) it names a private " +
+    "entry's Party once, in the same transaction: a handle, an address or a Party id, or for a person a mailbox. A link " +
+    "on an entry that has a Party, to a Party already in the book, to the book's own Party, to a locator that names " +
+    "nothing, or to a Party of the other kind (an Organization's for a person, a person's or agent's for a company) is " +
+    "INVALID_INPUT: an entry's Party never changes. `details` sets the fields given and keeps the rest (null clears " +
+    "one): a person's `email_ids` and `phone_nos` (each replaced whole, at most 10, one primary of each kind, mailboxes " +
+    "well formed; a lone one is primary), `designation` (at most 140) and `company` (an organization entry of this " +
+    "book); a company's `website` (at most 255), `industry` and `territory` (140), `no_of_employees` (Frappe's ranges), " +
+    "`annual_revenue` (a non-negative decimal, in `currency`: 3 to 10 capitals) and `company_description` (2000). A " +
+    "field of the other doctype, an id not in the book or a bad value is INVALID_INPUT naming the field, and nothing " +
+    "is written. A change to a member's entry with no row writes its curating row. Returns the entry with details.",
   concept: concept_contacts,
   kind: "mutation",
   who: WHO_WRITE,
@@ -256,19 +272,7 @@ export const rpc_contacts_book_record = defineRpc({
     doctype: Schema.optionalKey(Doctype),
     label: Schema.optionalKey(S),
     link: Schema.optionalKey(Locator),
-    details: Schema.optionalKey(Schema.Struct({
-      email_ids: Schema.optionalKey(Schema.Array(ContactEmail)),
-      phone_nos: Schema.optionalKey(Schema.Array(ContactPhone)),
-      designation: Schema.optionalKey(NullOr(S)),
-      company: Schema.optionalKey(NullOr(S)),
-      website: Schema.optionalKey(NullOr(S)),
-      industry: Schema.optionalKey(NullOr(S)),
-      territory: Schema.optionalKey(NullOr(S)),
-      no_of_employees: Schema.optionalKey(NullOr(Schema.Literals(EMPLOYEE_RANGES))),
-      annual_revenue: Schema.optionalKey(NullOr(S)),
-      currency: Schema.optionalKey(NullOr(S)),
-      company_description: Schema.optionalKey(NullOr(S)),
-    })),
+    details: Schema.optionalKey(DetailsInput),
   }),
   output: EntryWithDetails,
   errors,
