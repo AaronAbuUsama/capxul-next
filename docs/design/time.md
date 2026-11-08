@@ -316,8 +316,9 @@ The clock runs or stands still [`devnet.clock-modes`]:
 
 - Every answer names `protocol: "capxul.devnet/1.<minor>"`.
 - A field added is a minor version.
-- A field removed or a meaning changed is `/v2`. It is served beside `/v1` until no client uses
-  `/v1`, and it carries a decision.
+- There is no support window and no parallel version (Aaron, 8 November 2026). A field removed or
+  a meaning changed fixes every client in the same change and cuts everyone over at once, with a
+  decision.
 
 ### Endpoints
 

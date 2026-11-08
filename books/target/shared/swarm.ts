@@ -922,45 +922,61 @@ export const decision_swarm_superset = defineDecision({
 
 export const decision_swarm_checker_family = defineDecision({
   id: "swarm.checker-family",
-  title: "Makers and checkers on two model families needs a second provider",
+  title: "Models are configured per role; OpenAI by default, Anthropic only when guarded",
   question:
-    "Checkers run on another model family than makers. swarmD's OpenAI account has no credit, the gateway serves OpenAI " +
-    "models and Anthropic is on. Which families does Aaron fund for the build?",
+    "Checkers run on another model family than makers. Aaron has a $10,000 OpenAI credit, pays DeepSeek per token up to $40 " +
+    "a month, and has $200 a month of Anthropic. Which provider and model does each role use?",
   options: [
+    {
+      label: "configured-openai-first",
+      text:
+        "Routing is configuration, not code: each role names a provider and model in the project's swarm config, and each " +
+        "provider has a monthly cap. Defaults: makers, the manager and the researcher on OpenAI (the credit); checkers and " +
+        "the adversary on DeepSeek (another family, per token, capped at $40 a month); Anthropic only in guarded, " +
+        "context-aware cases (a named escalation such as a stuck money task's diagnosis, opened by the manager with the " +
+        "task's full context, logged, and capped at $200 a month), never on the build's ordinary path.",
+    },
     {
       label: "gateway-and-anthropic",
       text:
-        "Makers on gateway/gpt-6.1-sol, checkers and the adversary on anthropic/claude-sonnet-5-5, the manager and researcher " +
-        "on anthropic/claude-haiku-5-5. Two providers, two keys, one bill each.",
+        "Makers on gateway/gpt-6.1-sol, checkers and the adversary on anthropic/claude-sonnet-5-5, the manager and " +
+        "researcher on anthropic/claude-haiku-5-5.",
     },
-    { label: "anthropic-only", text: "Everything on Anthropic: Sonnet makers, Haiku manager, and checkers on the same family." },
-    { label: "openai-and-anthropic", text: "Top up OpenAI's API credit and use it for makers instead of the gateway." },
   ],
-  chosen: "gateway-and-anthropic",
+  chosen: "configured-openai-first",
   why:
-    "A checker on the maker's own family shares its blind spots (swarmD's Zen, rule 5). Both providers already work in the " +
-    "deployed swarm (the sitrep), so no new account is needed. Keys and spending are Aaron's to provide.",
-  source: by(`${SWARMD} docs/planning/sitrep-2026-11-08.md (models); apps/docs/content/docs/zen.mdx (rule 5); docs/spec/40-capxul-team.md`),
+    "Aaron, 8 November 2026: budgets are configurable; Anthropic is not used on the production path outside very well " +
+    "guarded, context-aware situations ($200 a month); the $10,000 OpenAI credit carries the work; DeepSeek is cheap per " +
+    "token but capped at $40 a month. A checker still runs on another family than its maker (swarmD's Zen, rule 5): " +
+    "DeepSeek against OpenAI. Which model of each provider fills each role is configuration the master can tune within the caps.",
+  source: "Aaron, 8 November 2026, in the build-preparation conversation",
   affects: [f.system_capxul],
 });
 
 export const decision_swarm_spend_envelope = defineDecision({
   id: "swarm.spend-envelope",
-  title: "The build's spend envelope: $2,500, expected about $1,000",
+  title: "Budgets are configurable: per task, per lane, per provider per month",
   question:
-    "The task tree's ceiling is $5 for each of its 390 paired tasks (its 15 watch tasks get no pair). How much may the " +
-    "build spend on models before it asks Aaron again?",
+    "The task tree's ceiling is $5 for each of its 390 paired tasks (its 15 watch tasks get no pair). How is the build's " +
+    "spending bounded, and who sets the numbers?",
   options: [
-    { label: "2500", text: "$2,500: the plan's $1,950 ceiling plus about a quarter for the manager, diagnoses, defect and review tasks." },
-    { label: "1000", text: "$1,000: the expected spend, asking again when it is reached." },
-    { label: "per-milestone", text: "An envelope per milestone, set at each milestone's start." },
+    {
+      label: "configured",
+      text:
+        "Every budget is configuration the master reads and the board shows: a per-task cap (default $5), a lane's budget " +
+        "(the sum of its tasks'), an envelope for the whole build (default the plan's $1,950 ceiling plus a quarter for the " +
+        "manager, diagnoses and defects, drawn from the OpenAI credit), and a monthly cap per provider (DeepSeek $40, " +
+        "Anthropic $200, OpenAI set by Aaron within the $10,000 credit). Reaching 75% of any cap raises a matter; reaching " +
+        "100% stops new work on that budget until Aaron raises it.",
+    },
+    { label: "fixed-2500", text: "A fixed $2,500 envelope for the build." },
   ],
-  chosen: "2500",
+  chosen: "configured",
   why:
-    "The retro measured $0.77 for a small healthy task and $4.92 for a large one that never converged; most operation tasks " +
-    "sit between, about $2.50, so expect about $1,000. An envelope at the ceiling means the master asks only if the plan " +
-    "itself was wrong. Spending is Aaron's to set.",
-  source: by(`${RETRO} (per mission); tools/plan-tasks.ts (budgetUsd 1950, 390 paired tasks)`),
+    "Aaron, 8 November 2026: budgets should be configurable, and the providers have different limits ($10,000 OpenAI credit; " +
+    "DeepSeek per token up to $40 a month; Anthropic $200 a month). The retro measured $0.77 for a small healthy task and " +
+    "$4.92 for one that never converged, so about $1,000 is expected; the defaults stand until Aaron changes them.",
+  source: "Aaron, 8 November 2026, in the build-preparation conversation",
   affects: [f.system_capxul],
 });
 

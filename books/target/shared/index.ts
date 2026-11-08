@@ -11,6 +11,7 @@ import * as tooling from "./tooling.ts";
 import * as portal from "./portal.ts";
 import * as swarm from "./swarm.ts";
 import * as time from "./time.ts";
+import * as rulings from "./rulings.ts";
 
 /** Records carried by a parent (a machine's transitions, an integration's calls, a contract's parts) come with it. */
 const CHILDREN = new Set(["transition", "call", "function", "chainEvent"]);
@@ -28,5 +29,5 @@ export const recordsOf = (modules: readonly object[]): unknown[] => [
   ),
 ];
 
-export const sharedModules = [foundation, vocabulary, external, decisions, landings, tooling, portal, swarm, time] as const;
+export const sharedModules = [foundation, vocabulary, external, decisions, landings, tooling, portal, swarm, time, rulings] as const;
 export const sharedRecords = recordsOf(sharedModules);

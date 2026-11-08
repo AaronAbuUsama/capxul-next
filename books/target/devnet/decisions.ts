@@ -449,9 +449,9 @@ export const decision_devnet_time_protocol = defineDecision({
         "It answers only a loopback Host and no cross-origin request, so a web page on the same machine cannot drive it. " +
         "Every clock it answers carries `realAt`, this machine's real time when now held that value, so a running " +
         "clock's now is now + (real time - realAt) for every reader. One move runs at a time (devnet.warp-barrier). " +
-        "Errors are the target's codes in one JSON shape. Every answer names the protocol and its minor version; a field " +
-        "added is a minor version, a field removed or a meaning changed is /v2, served beside /v1 until no client uses " +
-        "it, with a decision. The Core SDK's devnet entry is the typed client, its types generated from the protocol's " +
+        "Errors are the target's codes in one JSON shape. Every answer names the protocol and its version. There is no " +
+        "support window and no parallel version: a change to the protocol fixes every client in the same change and cuts " +
+        "everyone over at once (Aaron, 8 November 2026). The Core SDK's devnet entry is the typed client, its types generated from the protocol's " +
         "schema in packages/devnet; `capxul dev time …` and `capxul-devnet time …` are thin clients of it.",
     },
     { label: "sdk-only", text: "Keep the socket's wire contract internal and expose the clock only through the SDK's devnet entry, as the old one did." },
@@ -462,7 +462,8 @@ export const decision_devnet_time_protocol = defineDecision({
     "HTTP JSON is reachable from any language with no Capxul code, which vending-bench's Python engine and outside " +
     "builders need, and server-sent events give a subscription with no extra dependency. An SDK-only interface ties " +
     "every builder to TypeScript and to the SDK's release; the chain's endpoint belongs to Anvil and cannot reach the " +
-    "backend or the followers. A version in the path and the answer lets a builder pin what they built against.",
+    "backend or the followers. The version in the path and the answer tells a client which protocol it speaks; " +
+    "Aaron ruled on 8 November 2026 that there is no support window: every client is fixed and cut over together.",
   source: TIME(`/home/user/factory packages/protocol/src/devnet/control.ts; packages/sdk/src/devnet/index.ts:114-280; ${BENCH}/../README.md`),
   affects: [integration_devnet_control, ...TIME_FLOWS, ...TIME_OPS, component_devnet],
 });
