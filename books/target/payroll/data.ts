@@ -20,6 +20,8 @@
 //   Assignment), `payroll-entries` (Payroll Entry) and `salary-slips` (Salary Slip).
 // An accepted agreement to a person is an Employee and an assignment of the Organization's agreement
 // structure, and each landed collection is a paid Salary Slip (payroll.agreements-in-frappe-shape).
+// `payroll-settings`, `payroll-changes` and `payroll-head-syncs` carry payroll's own sync with a connected
+// head (payroll.head-sync).
 //
 // Old payroll's saved groups and terms are not here, and departments are budgets' (landings). The old
 // notice-claim table goes with the notices themselves (payroll.notices-elsewhere).
@@ -537,7 +539,7 @@ export const SlipRow = Schema.Struct({
   additional_amount: S,
   statistical_component: Schema.Boolean,
   do_not_include_in_total: Schema.Boolean,
-  /** `structure`: the assignment's structure; `collection`: an agreement collection (an Additional Salary on a head). */
+  /** `structure`: the assignment's structure; `collection`: an agreement collection, pushed to a head as its own slip, never an Additional Salary. */
   source: Schema.Literals(["structure", "collection"]),
 });
 
@@ -622,10 +624,10 @@ export const table_salary_components = defineTable({
     "(`depends_on_payment_days`, `statistical_component`, `do_not_include_in_total`, `is_tax_applicable`, " +
     "`remove_if_zero_valued`, `disabled`). `accounts` are Frappe's Salary Component Account: the expense `account` " +
     "and, for a deduction or employer contribution, its `liability_account`, as books' account ids. `payee_party_id` is " +
-    "Capxul's own field (a Custom Field on a head): the Party a deduction or employer contribution is remitted to (a tax " +
-    "office, a pension fund), null when it stays a liability for someone to pay outside payroll " +
-    "(payroll.deduction-remittance). `portable` says the formula and condition are in the subset Capxul evaluates " +
-    "exactly as Frappe does; a component that is not can be used only by a run its head computes " +
+    "Capxul's own field (a Custom Field on a head): the Party a deduction's or employer contribution's liability is owed " +
+    "to (a tax office, a pension fund), paid when due by an ordinary budget payment, never in a run's command; null when " +
+    "none is named (payroll.deduction-remittance). `portable` says the formula and condition are in the subset Capxul " +
+    "evaluates as Frappe does; a component that is not can be used only by a run its head computes " +
     "(payroll.portable-formulas). `origin` `agreement` is the one component an Organization's agreement collections " +
     "are paid under, made when its first agreement is accepted: an earning with no amount, `depends_on_payment_days` " +
     "and `is_tax_applicable` off and `remove_if_zero_valued` on, so a head never prorates, taxes or adds a zero row for " +

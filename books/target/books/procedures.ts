@@ -103,9 +103,9 @@ export const procedure_books_record_money_fact = defineProcedure({
     "whose key holds a standing Movement fact reverses it and records itself as the next generation; a Movement side " +
     "never replaces one of theirs (books.money-key). With a chart, the asset's Safe account is made if missing " +
     "(`account_created`). The `against` choice becomes the row's annotation only if nobody annotated the row yet, and " +
-    "only the parts that fit the chart: an archived or group account, a receivable or payable account without its " +
-    "party, a document its party type cannot reference, or an unknown cost centre is dropped and the row waits in " +
-    "review. It never refuses and makes no outside call.",
+    "only the parts that fit the chart: an archived or group account, a receivable or payable account with no party " +
+    "given and no counterparty Party on the side, a document its party type cannot reference, or an unknown cost centre " +
+    "is dropped and the row waits in review. It never refuses and makes no outside call.",
   was: [
     `${BK}/facts/writes/money.ts:98`,
     `${BK}/facts/writes/money.ts:130`,

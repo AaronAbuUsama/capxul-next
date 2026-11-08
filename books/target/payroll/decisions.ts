@@ -768,7 +768,8 @@ export const decision_payroll_frappe_doctypes = defineDecision({
     "alone. Writing submitted documents at once keeps Frappe's rule that a submitted document is amended, never edited, " +
     "without a draft lifecycle for structures nobody reviews in Capxul. The rest (Income Tax Slab, Payroll Period, " +
     "benefits, gratuity, leave, attendance, timesheets) are a head's: a run that needs them is computed there " +
-    "(payroll.one-computer-per-run). Frappe's Additional Salary is how a head shows a collection's earning, not a Capxul table.",
+    "(payroll.one-computer-per-run). Additional Salary stays a head's own: a collection is pushed as its own slip, " +
+    "never as one, which Frappe would fold into the next slip (payroll.agreements-in-frappe-shape).",
   source: AFTER_RULING(`aaron.frappe-shape, aaron.erp-on-capxul; ${HRMS} (salary_slip, payroll_entry, salary_structure_assignment JSON)`),
   affects: [...HR_TABLES, concept_payroll],
 });
