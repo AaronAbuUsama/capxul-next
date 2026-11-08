@@ -1,6 +1,5 @@
 {
   "extends": "../packages/book/tsconfig.json",
   "compilerOptions": { "types": ["node"] },
-  "include": ["**/*.ts"],
-  "exclude": ["as-is/**"]
+  "include": ["**/*.ts"]
 }

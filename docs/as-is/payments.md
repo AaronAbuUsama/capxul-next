@@ -13,7 +13,7 @@ This report reads the old system as it is. It is evidence, not a design.
   `packages/backend/src/payments/writes/rails.ts`, line 33. Other paths start
   at the repository root (`apps/cli/...`, `packages/sdk/...`,
   `packages/protocol/...`).
-- **Sources:** the as-is book in `books/as-is/payments/` (13 files), the seven
+- **Sources:** the as-is book in `docs/as-is/archive/payments/` (13 files), the seven
   writer and reviewer journals that built it, the probe build of that book
   (503 records, 722 evals, 56 problems, 354 gaps) and the
   [policy pack](../decisions/policy-pack.md).
@@ -84,7 +84,7 @@ This report reads the old system as it is. It is evidence, not a design.
 
 These are the machines as the code writes them, not as the core function
 `transitionPayment` (`payments/rules/transitions.ts:196`) describes them. The
-book's full machines are in `books/as-is/payments/data.ts:860-1300`.
+book's full machines are in `docs/as-is/archive/payments/data.ts:860-1300`.
 
 **Payment status** (`payments.status`). The main edges:
 

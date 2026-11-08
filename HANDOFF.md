@@ -89,6 +89,9 @@ shape:
 - `book-frozen-refusals.js`: a fixer and an adversarial reviewer per concept for the refusals
   `check-frozen` found dropped.
 
+The as-is scripts (`book-as-is-*.js`, `book-payments-assemble.js`) are kept as history. They
+write to `books/as-is/`, which is now archived in `docs/as-is/archive/`.
+
 The designers' and the assembly's reports are in `docs/decisions/concept-reports.json` and
 `docs/decisions/assembly-items.md`. Every judgment is a decision record, and the judgments report
 (`docs/decisions/judgments.md`) lists them all, with the ones for Aaron first.
