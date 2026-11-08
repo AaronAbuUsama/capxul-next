@@ -68,8 +68,11 @@ Try to refute: does each wait's key name properties its event's props schema rea
   },
 ]
 
+// args: { only: ["returns"] } or { only: ["generation-fields"] } runs one task; no args runs both.
+const chosen = args && Array.isArray(args.only) ? TASKS.filter((t) => args.only.includes(t.key)) : TASKS
+
 return await pipeline(
-  TASKS,
+  chosen,
   (t) => agent(t.make, { label: `make:${t.key}`, phase: 'Make', schema: MAKE }),
   (made, t) => agent(t.review(made), { label: `review:${t.key}`, phase: 'Review', schema: REVIEW }).then((r) => ({ made, review: r })),
 )
