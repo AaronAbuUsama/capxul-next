@@ -258,7 +258,8 @@ const deriveGaps = (b: Draft): Finding[] => {
   const g = (record: AnyRecord, rule: string, detail: string) => gaps.push({ record: keyOf(record), rule, detail });
   const by = (r: AnyRecord, field?: string) => (b.linkedBy.get(keyOf(r)) ?? []).filter((l) => !field || l.field === field);
 
-  for (const t of all(b, "table")) if (by(t, "writes").length === 0) g(t, "unwritten-table", "no operation or workflow writes it");
+  // A chain table is written by the indexer (Ponder), which the book does not model as a writer.
+  for (const t of all(b, "table")) if (t.tenancy !== "chain" && by(t, "writes").length === 0) g(t, "unwritten-table", "no operation or workflow writes it");
   for (const t of all(b, "transition")) if (by(t, "drives").length === 0) g(t, "undriven-transition", "no operation or workflow drives it");
   for (const m of all(b, "machine")) {
     const reached = new Set([m.initial as string, ...Object.values(m.transitions as Record<string, { to: string }>).map((t) => t.to)]);
