@@ -25,6 +25,23 @@ the v4 contracts.
 The open decisions, numbered as they were put to Aaron (in text written for text-to-speech). Each recommendation
 stands, and the build follows it, until he answers. His answers go into `books/target/shared/rulings.ts`, book first.
 
+## His direction of 8 November 2026, evening (to record after the commands pass)
+
+- **One world, one clock, for everything** (`aaron.world-clock`): a devnet, a staging network or a shared world is a
+  self-contained world whose clock is controlled, and everything in it follows that clock: the chain, the backend,
+  Ponder, emails, WhatsApp, the Frappe head and the FDE. A shared world may run faster than real time ("every hour the
+  clock moves forward four"), so the clock gains a rate beside frozen and running. Outside channels are the world's:
+  a devnet's mail goes to its sink, WhatsApp to a stand-in, and a connected head follows the world clock as a follower.
+- **Everything is reachable through the SDK and its surfaces** (`aaron.sdk-reaches-everything`): the CLI, the MCP
+  server and the React SDK reach every capability, native or on a connected head. Native concepts have their own
+  commands; what lives only on the head is reached through a generic document family over the SDK
+  (`org doc list|get|create|change|submit|cancel <DocType>`), with the caller's authority, logged, on the world clock.
+- **The CRM tracks every conversation** (asked): email, WhatsApp, calls, notes and tasks on one timeline per contact,
+  lead and deal, in Frappe CRM's shape. Recommended: native, designed next.
+- **Payroll means HR** (asked): leave, holidays, attendance, expense claims and advances native, because they change pay
+  or move money; recruitment, appraisal, training and onboarding on the head, reached through the generic family.
+  Recommended: designed next.
+
 ## The escrow
 
 His ruling of this batch (to be recorded as `aaron.escrow-general`): the escrow is deployed counterfactually; its owner
