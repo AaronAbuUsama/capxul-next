@@ -278,3 +278,95 @@ export const decision_aaron_frappe_head = defineDecision({
   source: AARON,
   affects: [f.system_capxul],
 });
+
+// ── Aaron's fifth batch (8 November 2026): "Yes to all questions" ─────────────────────────────
+
+/** Judgments accepted in the fifth batch; merged into ACCEPTED below. */
+const ACCEPTED_5: readonly string[] = ["organizations.agent-cover", "payments.claim-escrow-fit"];
+(ACCEPTED as string[]).push(...ACCEPTED_5);
+
+export const decision_aaron_claim_trust = defineDecision({
+  id: "aaron.claim-trust",
+  title: "The beta accepts Companies House as the claim escrow's trust root",
+  question:
+    "Claim escrows rely on Companies House's claim role to hand an email's Safe only to the person who proved that email; " +
+    "its owners (2 of 3 Capxul keys) could redirect an unclaimed Safe. Is that trust accepted for the beta?",
+  options: [
+    { label: "accept", text: "Yes, for the beta: Capxul hands a Safe only to the person who signed in with that email's code." },
+    { label: "harden", text: "No: change the claim before the beta (a recipient-held secret, or a timelock on redirection)." },
+  ],
+  chosen: "accept",
+  why: "Aaron, 8 November 2026: yes to all the open questions, including this one.",
+  source: AARON,
+  affects: [f.system_capxul],
+});
+
+export const decision_aaron_money_waiting_reminders = defineDecision({
+  id: "aaron.money-waiting-reminders",
+  title: "Waiting money reminds both sides, and admits its recipient to the beta",
+  question:
+    "Money waiting in a claim escrow has no expiry. Should Capxul remind anyone, and should waiting money admit its " +
+    "recipient to the beta (without it, a recipient who is not admitted cannot set up an account, so cannot collect)?",
+  options: [
+    {
+      label: "remind-and-admit",
+      text:
+        "Yes to both: the recipient is reminded after some days that money is waiting, the payer is told it is still " +
+        "uncollected, the recipient is told if the payer takes it back, and waiting money admits its recipient to the beta " +
+        "as an invitation does. The days and the wording are designed with the notices, book first.",
+    },
+    { label: "neither", text: "No reminders and no admission." },
+  ],
+  chosen: "remind-and-admit",
+  why: "Aaron, 8 November 2026: yes to all the open questions, including these two.",
+  source: AARON,
+  affects: [f.system_capxul],
+});
+
+export const decision_aaron_budget_pay_unclaimed = defineDecision({
+  id: "aaron.budget-pay-unclaimed",
+  title: "A budget holder may pay someone who has no account yet",
+  question:
+    "Budget spends and dated payments to someone with no account are refused for now, because the escrow's refund would go " +
+    "to the company Safe or to the spender. Must a budget holder be able to pay someone with no account?",
+  options: [
+    {
+      label: "yes",
+      text:
+        "Yes: a budget spend, and a dated payment, may go to someone with no account through a claim escrow. The design " +
+        "settles where a refund goes (back to the budget it came from) and who may take it back (the budget's holder or the " +
+        "Board), book first.",
+    },
+    { label: "no", text: "No: the recipient must claim an account first." },
+  ],
+  chosen: "yes",
+  why: "Aaron, 8 November 2026: yes to all the open questions; payroll to new hires needs it.",
+  source: AARON,
+  affects: [f.system_capxul],
+});
+
+export const decision_aaron_buy_seats = defineDecision({
+  id: "aaron.buy-seats",
+  title: "A company may buy more seats itself",
+  question: "Who raises a company's seat limit? Only a Capxul operator, or may a company buy seats?",
+  options: [
+    {
+      label: "buy",
+      text:
+        "A company may buy more seats itself; a Capxul operator may still raise the limit. The price and how it is paid " +
+        "(in stablecoins, from the company Safe) are designed with the organizations concept, book first, and the price is " +
+        "Aaron's to set.",
+    },
+    { label: "operator-only", text: "Only a Capxul operator raises the limit." },
+  ],
+  chosen: "buy",
+  why: "Aaron, 8 November 2026: yes to all the open questions, including whether a company may buy seats itself. The reading of the seat ruling (ten people, one agent per seat, plus the company's own) is confirmed (organizations.agent-cover).",
+  source: AARON,
+  affects: [f.concept_agents, f.concept_access],
+});
+
+// The fifth batch also supersedes two judgments; the next design pass rewrites them, book first.
+Object.assign(SUPERSEDED as Record<string, string>, {
+  "payments.claim-escrow-routes": "aaron.budget-pay-unclaimed",
+  "organizations.seat-limit": "aaron.buy-seats",
+});
