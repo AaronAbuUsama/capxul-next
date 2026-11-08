@@ -2499,3 +2499,38 @@ export const decision_rules_surfaces_and_wait_events = defineDecision({
   source: builder("packages/book/src/records/behaviour.ts (FlowSpec, Wait); packages/book/src/build.ts (unused-flow, unconsumed-chain-event, flow-surface); approvals', identity's, rails' and shared's assembly asks"),
   affects: [f.component_core_sdk, f.component_ponder, x.integration_indexer],
 });
+
+// ── size ────────────────────────────────────────────────────────────────────────────────────
+
+const HANDOFF = "Claude, handoff to the build, 8 November 2026";
+
+export const decision_system_size = defineDecision({
+  id: "system.size",
+  title: "The rebuild's hand-written code is at most a quarter of the old system's",
+  question:
+    "The rebuild is meant to need much less code, and lines of code are on the scoreboard. How much hand-written product code " +
+    "may the target have, and when does each concept get its own line budget (sys:loc/<concept>)?",
+  options: [
+    {
+      label: "quarter-then-measured",
+      text:
+        "At most 100,000 hand-written, non-test, non-generated lines across the backend, Core SDK, CLI, React SDK, MCP server, " +
+        "indexer and devnet: a quarter of the old system's 400,000 or so. The build session sets each concept's lines (the " +
+        "concept record's budget, checked by sys:loc) after the pilots (B3), from the lines per operation they measure, and " +
+        "records it here.",
+    },
+    { label: "per-concept-now", text: "Set every concept's line budget now, from the old areas each absorbs." },
+    { label: "no-budget", text: "Report lines on the scoreboard and set no budget." },
+  ],
+  chosen: "quarter-then-measured",
+  why:
+    "Measured on integration/factory (8 November 2026), the old product code is about 400,000 non-test lines: backend 184,000, " +
+    "Core SDK 59,000, protocol 55,000, CLI 48,000, devnet 22,000, React SDK 9,600, observability 9,400, indexer 4,600, MCP " +
+    "4,400, AA gateway 2,900. Much of it goes: pre-v4 paths (P9), schemas, routers, clients, CLI wiring and telemetry that " +
+    "are now generated from the records, and duplicate event and status plumbing (P7). What is left to write by hand is the " +
+    "body of each rpc, flow step and workflow step, about 215 operations at 150 to 300 lines, plus a runtime spine of some " +
+    "15,000 and a devnet of some 10,000: 60,000 to 100,000. A per-concept number set now would be a guess from the old " +
+    "areas, which are what is being cut; the pilots measure the real ratio first. With no budget, size is not hill-climbable.",
+  source: `${HANDOFF}; evidence: git ls-files of /home/user/factory (integration/factory), .ts and .tsx without tests, fixtures, .d.ts or generated files`,
+  affects: [f.system_capxul, f.component_backend, f.component_core_sdk, f.component_cli, f.component_react_sdk, f.component_mcp_server, f.component_devnet],
+});

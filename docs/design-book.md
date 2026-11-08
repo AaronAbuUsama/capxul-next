@@ -61,7 +61,7 @@ packages/book/                 the record system; product-neutral except the tar
   src/evals.ts                 deriveEvals: the evals each kind of record implies
   src/budgets.ts               the default budget of each class (policy P5)
   src/views.ts, src/main.ts    the command that writes the views and exits 1 on problems
-  test/                        14 tests, with a small fixture book (invitations)
+  test/                        16 tests, with a small fixture book (invitations)
 books/frozen/                  the frozen operations (generated)
 books/as-is/                   the old system (evidence)
 books/target/
@@ -283,6 +283,7 @@ source has many readers:
 | The book build | every record | problems, gaps, evals | built |
 | Markdown views | every record | the summary page and concept pages, with diagrams | built |
 | Judgments report | decisions | `docs/decisions/judgments.md`, with "For Aaron" | built |
+| Frozen check | the frozen book beside the target operations | breaches of the frozen surface | built |
 | The docs site | operations, flows, errors, concepts, machines | the reference: a page per CLI command and SDK method, the error catalogue, the state diagrams | to build; a prototype renderer exists |
 | Generators | tables, rpcs, flows, operations, machines, events | migrations, schemas, the `RpcGroup`, the SDK client, the CLI wiring, the telemetry catalogue | B1 |
 | The product runtime | the generated code (see below) | the error catalogue, the transition tables, integration timeouts and retries, span names | B1 and B3 |
@@ -366,8 +367,15 @@ The `chain` tenancy for Ponder's indexed tables has since been added.
 ## Commands
 
 ```bash
-npx tsc -p packages/book && npm test -w @capxul/book     # the record system and its 14 tests
+npx tsc -p packages/book && npm test -w @capxul/book     # the record system and its 16 tests
 npx tsc -p books                                           # every book typechecks
 node --experimental-strip-types packages/book/src/main.ts books/target/index.ts /tmp/target
+node --experimental-strip-types tools/check-frozen.ts       # the target keeps the frozen surface: 0 breaches
 node --experimental-strip-types tools/report-judgments.ts > docs/decisions/judgments.md
 ```
+
+The book build does not see the frozen text's refusals and claims beside the target's, so
+`tools/check-frozen.ts` does that separately. It checks that every frozen operation has its
+record with its command and title. It checks that every acceptance line is kept word for word, or
+changed with the frozen claim kept first in its `was`. And it checks that every refusal, from the
+page or its designed v4 block, is still a refusal, unless a decision on the operation names it.

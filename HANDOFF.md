@@ -29,7 +29,7 @@ git clone https://github.com/AaronAbuUsama/capxul-next /home/user/capxul-next
 cd /home/user/capxul-next && git checkout claude/infrastructure-refactor-plan-v41iue && npm install
 # the old system, read only, for evidence (agents read it at this path):
 git clone --branch integration/factory --depth 1 https://github.com/Xelmar-tech/infrastructure /home/user/factory
-npx tsc -p packages/book && npm test -w @capxul/book   # 14 tests
+npx tsc -p packages/book && npm test -w @capxul/book   # 16 tests
 npx tsc -p books                                      # the books typecheck
 node --experimental-strip-types packages/book/src/main.ts books/target/index.ts /tmp/target
 ```
@@ -42,34 +42,42 @@ The prompts in `tools/workflows/` use the absolute paths `/home/user/capxul-next
 | # | Milestone | State |
 |---|---|---|
 | 1 | Schema for the accepted decisions; frozen text of all 215 operations; conventions | done |
-| 2 | As-is book of the old system | paused on purpose: 15 of 21 lanes written, payments fully reviewed. It is evidence only; target designers read the old code where it has gaps. Remaining lanes: `docs/mission/remaining-work.md` |
-| 3 | Target architecture: concept map (22 concepts, no cycles), components, kept errors, integrations, v4 contracts, decisions | see `books/target/shared/` and `docs/decisions/target-architecture.md` |
-| 4 | Target design of each concept | next, in the order below |
-| 5 | Target book built with the target rules, zero problems | after 4 |
-| 6 | The goal prompt: rewrite `docs/mission/initializer.md` as the prompt that starts the build from the finished book | last |
+| 2 | As-is book of the old system | paused on purpose: 15 of 21 lanes written, payments fully reviewed. It is evidence only, and it has its own typecheck (`npx tsc -p books/as-is`), since its unfinished lanes do not compile. Remaining lanes: `docs/mission/remaining-work.md` |
+| 3 | Target architecture: concept map (22 concepts, no cycles), components, kept errors, integrations, v4 contracts, decisions | done: `books/target/shared/` and `docs/decisions/target-architecture.md` |
+| 4 | Target design of each concept | done: all 22 concepts, each with its decisions |
+| 5 | Target book assembled and built with the target rules | done: 0 problems, all 215 operations booked, `tools/check-frozen.ts` 0 breaches, 72 known gaps (listed in the goal prompt) |
+| 6 | The goal prompt | done: `docs/mission/initializer.md` |
 
-This work **prepares** the rebuild; it does not run it. No product code is written here. The
-build, starting with the spike that proves Effect Workflow on Postgres (kill and resume, a signal,
-a timer), is the first task the goal prompt hands to the build session.
+This work **prepares** the rebuild; it does not run it. No product code is written here. To start
+the build, open a session on this repository and give it `docs/mission/initializer.md` as its goal.
+Its first task is the B0 spike, which proves Effect Workflow on Postgres (kill and resume, a signal,
+a timer, wake routing).
 
-## How to continue milestone 4
+## Checks
 
-Run `tools/workflows/book-target-concepts.js` with the Workflow tool (`scriptPath`), passing
-`{ concepts: [{ id, brief }] }`, two to four concepts per run. Each designer writes
-`books/target/<concept>/`, records every judgment in its `decisions.ts`, and checks itself with the
-target build. Order, critical path first:
+```bash
+npx tsc -p packages/book && npm test -w @capxul/book
+npx tsc -p books
+node --experimental-strip-types packages/book/src/main.ts books/target/index.ts /tmp/target   # 0 problems
+node --experimental-strip-types tools/check-frozen.ts                                           # 0 breaches
+node --experimental-strip-types tools/report-judgments.ts > docs/decisions/judgments.md        # regenerate
+```
 
-1. access, accounts, organizations, parties, contacts
-2. payments (one durable process per Payment), books, requests
-3. budgets, approvals, banking, payroll, documents, activity, notices
-4. applications, indexing, media, devnet, agents
-5. board, equity (low priority: directors and voting are off the critical path)
+## How the book was made
 
-Without the Workflow tool, run each concept's prompt (the `CONTEXT` text in the script plus
-`YOUR CONCEPT: <id>`) as a subagent or a separate session; the instructions are self-contained.
+The scripts in `tools/workflows/` wrote the book with the Workflow tool, and are kept to show the
+shape:
 
-Then milestone 5: build `books/target/index.ts` with all concepts, fix every problem, and report
-the evals, the gaps, the decisions and the size of the target against the old system.
+- `book-target-architecture.js`: the architecture.
+- `book-target-concepts.js`: concept designers, two to four per run, critical path first.
+- `book-target-assemble.js`: the cross-concept items, resolved by owning group, then a builder to
+  zero problems.
+- `book-frozen-refusals.js`: a fixer and an adversarial reviewer per concept for the refusals
+  `check-frozen` found dropped.
+
+The designers' and the assembly's reports are in `docs/decisions/concept-reports.json` and
+`docs/decisions/assembly-items.md`. Every judgment is a decision record, and the judgments report
+(`docs/decisions/judgments.md`) lists them all, with the ones for Aaron first.
 
 ## Lessons that save usage
 
