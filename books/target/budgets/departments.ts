@@ -87,8 +87,8 @@ export const rpc_budgets_departments_create = defineRpc({
     "here or is eight deep, a holder who is not a current member with a set-up Safe (INVALID_INPUT); a holder wearing " +
     "the People hat (ROLE_CONFLICT, naming them); an unadmitted token (TOKEN_NOT_SUPPORTED); a closed parent or one above " +
     "it (WRONG_STATE); a parent with less left to give than the amount (`budgetOf` and `leftOf` now; " +
-    "CHILDREN_EXCEED_PARENT). The office hat's id is planned from indexing's hats under its admin (the Board's top hat, " +
-    "or the parent's office hat), with Ponder at the head (`Indexer.head`). The calls: " +
+    "CHILDREN_EXCEED_PARENT). The hat id is planned from its admin's `Hats.viewHat` `lastHatId` now; indexing is read " +
+    "at the head (`Indexer.head`). The calls: " +
     "`Hats.createHat`, `Hats.mintHat` per holder, then `Budgets.createChildBudget(parent, amount, hat)`, or " +
     "`Budgets.createTopBudget(token, period, amount, hat)` with the ceiling grown by `Installer.buildSetCeiling`, or set " +
     "up by `buildAddToken` for a token's first budget. " + BIRTH + " The budget is born proposed with no chain id.",
@@ -115,6 +115,7 @@ export const rpc_budgets_departments_create = defineRpc({
     contract_installer.f.buildAddToken,
     contract_installer.f.buildSetCeiling,
     contract_roles.f.setAllowance,
+    contract_hats.f.viewHat,
     contract_hats.f.createHat,
     contract_hats.f.mintHat,
     contract_budgets.f.createTopBudget,

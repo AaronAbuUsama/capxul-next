@@ -620,6 +620,27 @@ export const WORLDS: readonly World[] = [
     namedBy: ["books"],
   },
   {
+    name: "org-with-straddling-payout",
+    holds:
+      "org-with-chart plus Acme KYB-approved with a registered GBP account and a USDC top budget `payouts` of 5,000 a " +
+      "month Dana holds; a 100 USDC bank payout from it settled on the last day of a month and returned by the Bridge " +
+      "stand-in after a warp into the next month, so the payout's Payment has a money fact in each month.",
+    from: "org-with-chart",
+    steps: [
+      step("dana@acme.test", "capxul verify start --org acme --input kyb.json; the Bridge stand-in approves"),
+      step("dana@acme.test", "capxul bank accounts add --org acme --currency GBP --input gbp-account.json"),
+      step("dana@acme.test", "capxul org department create payouts --budget 5000/month --holder dana@acme.test --org acme --json"),
+      approve("dana@acme.test", "its Board proposal, as the one Director"),
+      anyone("capxul dev time warp --to <the last day of the current month, 12:00 UTC>"),
+      step("dana@acme.test", "capxul bank pay self 100 USDC --account <the GBP account> --org acme --from payouts --json"),
+      approve("dana@acme.test", "the payout's approval"),
+      anyone("capxul dev time warp --to <the 2nd of the next month, 12:00 UTC>"),
+      supervisor("capxul-devnet bridge return <the payout>: the stand-in posts the return and sends the refund to acme's company Safe"),
+      current("dana@acme.test"),
+    ],
+    namedBy: ["books"],
+  },
+  {
     name: "org-with-chart-and-node-down",
     holds: "org-with-chart with chain-rpc's fault switch failing every read.",
     from: "org-with-chart",

@@ -72,8 +72,8 @@ export const workflow_organizations_setups_set_up = defineWorkflow({
   waits: [
     { name: "safe-minted", for: "indexer", about: "CompanySafeMinted of the mint transaction, at the deployment's finality depth." },
     { name: "money-deployed", for: "indexer", about: "MoneyDeployed of the deployMoney transaction, at finality." },
-    { name: "founder-signature", for: "person", about: "The founder signs the install approval on the approval page; approval_transitioned resumes it." },
-    { name: "install-landed", for: "chain", about: "The install approval lands, reverts or expires on chain proof; approval_transitioned resumes it." },
+    { name: "founder-signature", for: "person", about: "The founder signs the install approval on the approval page; approval_transitioned (opener organizations, the setup as subject) resumes it." },
+    { name: "install-landed", for: "chain", about: "The install approval lands, reverts or expires on chain proof; approval_transitioned (opener organizations, the setup as subject) resumes it." },
     { name: "install-final", for: "indexer", about: "The install's facts at finality: the Gate as module and guard, the hats minted." },
     { name: "retry", for: "signal", about: "From needs_attention, `org retry` wakes it to run its next unfinished step again." },
   ],

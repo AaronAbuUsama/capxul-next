@@ -68,7 +68,7 @@ export const workflow_payments_lifecycle_payment = defineWorkflow({
       name: "carrier",
       for: "signal",
       about:
-        "Its approval's `approval_transitioned` (its command or Payment as subject) or its Board proposal's `proposal_transitioned`; each ends on chain proof, a window or an answer.",
+        "Its approval's `approval_transitioned` or its Board proposal's `proposal_transitioned`, routed by opener payments and its command or Payment as subject; each ends on chain proof, a window or an answer.",
     },
     {
       name: "payment-sent",

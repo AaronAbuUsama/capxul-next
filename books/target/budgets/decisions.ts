@@ -202,21 +202,23 @@ export const decision_budgets_one_waiting_change = defineDecision({
 
 export const decision_budgets_hat_planning = defineDecision({
   id: "budgets.hat-planning",
-  title: "A new office hat's id is planned from indexing, with Ponder at the chain head",
+  title: "A new office hat's id is planned from Hats.viewHat at the chain head",
   question: "A create's batch must name the new hat before it exists. Where does its id come from?",
   options: [
-    { label: "indexing-at-head", text: "From indexing's hats under the admin hat, refusing with PROVIDER_ERROR while Ponder is behind the chain head (`Indexer.head`)." },
-    { label: "live", text: "From `Hats.getNextId(admin)` at the latest block, as the old code did." },
+    { label: "indexing-at-head", text: "From indexing's hats under the admin hat, refusing with PROVIDER_ERROR while Ponder is behind the chain head (`Indexer.head`). Chosen first, while the shared Hats record had no read of the next id." },
+    { label: "view-hat", text: "From `Hats.viewHat(admin)`: its `lastHatId` at the latest block names the next child (lastHatId + 1 at the admin's next level), read through chain-rpc." },
+    { label: "get-next-id", text: "From `Hats.getNextId(admin)`, as the old code did. v4's IHats does not declare it (contracts.hats-view-hat)." },
   ],
-  chosen: "indexing-at-head",
+  chosen: "view-hat",
   why:
-    "The shared Hats contract record has no `getNextId` or `viewHat`, and adding a function is shared/external.ts's " +
-    "writer's change. Planning from a lagging index could name a hat that already exists and mint it to the wrong person, " +
-    "so the create waits for Ponder to be at the head. The live read is better and should replace this once the function " +
-    "is booked. Either way a hat made outside Capxul under the same admin between proposal and execution shifts the id; " +
-    "the batch is atomic, and the change's process applies it only when BudgetCreated names the planned hat.",
-  source: by("packages/backend/src/permissions/allowances/external.ts:99 (readNextHat via hatsNextId); books/target/shared/external.ts (contract_hats)"),
-  affects: [rpc_budgets_departments_create, rpc_budgets_allowances_create, contract_hats, integration_indexer],
+    "Assembly: shared/external.ts now books `viewHat` (contracts.hats-view-hat), so the live read replaces the index, as " +
+    "the first version of this decision said it should. A lagging index can no longer name a hat that already exists. " +
+    "Indexing's other reads (wearers, a full hat's supply, budgets) still wait for Ponder at the head. Two creates under " +
+    "one admin would still plan the same id before either executes, so the one-create-per-admin WRONG_STATE stays. A hat " +
+    "made outside Capxul under the same admin between proposal and execution shifts the id; the batch is atomic, and the " +
+    "change's process applies it only when BudgetCreated names the planned hat.",
+  source: by("packages/backend/src/permissions/allowances/external.ts:99 (readNextHat via hatsNextId); books/target/shared/decisions.ts (contracts.hats-view-hat)"),
+  affects: [rpc_budgets_departments_create, rpc_budgets_allowances_create, rpc_budgets_invitations_plan, rpc_budgets_invitations_propose, contract_hats, integration_indexer],
 });
 
 export const decision_budgets_role_conflict = defineDecision({

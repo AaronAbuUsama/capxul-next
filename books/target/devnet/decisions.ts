@@ -496,7 +496,7 @@ export const decision_devnet_fault_switches = defineDecision({
         "bridge fail-all, indexer hold <n>, service-signer refuse-send and hold-receipt, bundler hold-receipt, documents " +
         "tamper) and " +
         "`capxul-devnet clock hold`, `chain` and `bridge` make what no Capxul surface makes (a still backend clock, a Safe " +
-        "transaction or a Hats ruling outside Capxul, an outside transfer, a token, Bridge deposits). The armed switches " +
+        "transaction or a Hats ruling outside Capxul, an outside transfer, a token, Bridge deposits, a payout's return). The armed switches " +
         "are in the world's manifest and re-armed on restore. The mail switch is `dev mail fail`, in Postgres.",
     },
     { label: "devnet-rpcs", text: "A devnet rpc per switch." },
@@ -589,4 +589,29 @@ export const decision_devnet_open_beta_world = defineDecision({
     "and the sync job keeps access' flags written only by access.",
   source: ASSEMBLY("books/target/accounts/decisions.ts (accounts.worlds); devnet.scripted-gates; dev.gates.set.yaml (refusal CLI_USAGE)"),
   affects: [concept_devnet, table_scripted_gates, ops.operation_dev_gates_set],
+});
+
+// ── target assembly (builder) ───────────────────────────────────────────────────────────────
+
+const BUILDER = (evidence: string) => `Claude, target assembly (builder), 8 November 2026; evidence: ${evidence}`;
+
+export const decision_devnet_straddling_payout_world = defineDecision({
+  id: "devnet.straddling-payout-world",
+  title: "Reclassify's straddling row is its own world, built on org-with-chart",
+  question:
+    "Books' reclassify #3 needs a row with money facts on both sides of a period: a bank payout settled on a month's " +
+    "last day and returned in the next (books.straddling-row). Books asked for it in org-with-chart. Where is it built?",
+  options: [
+    { label: "own-world", text: "A new world, org-with-straddling-payout, from org-with-chart: Acme's KYB, a GBP account, a `payouts` budget, a payout on the month's last day, a warp, then the Bridge stand-in's return." },
+    { label: "in-org-with-chart", text: "Add the payout and its return to org-with-chart itself." },
+  ],
+  chosen: "own-world",
+  why:
+    "Reclassify #1 lists every waiting row of the period and books' list and report lines count org-with-chart's rows, " +
+    "so a payout in it would change what those lines see, and its two dependents (the added token, the node down) would " +
+    "carry it too. A world of its own adds only what #3 needs. The return is a supervisor control, `capxul-devnet bridge " +
+    "return <payout>`, beside `bridge deposits`: the stand-in posts Bridge's return events and sends the refund to the " +
+    "Safe, which no Capxul surface makes (devnet.fault-switches).",
+  source: BUILDER("books/target/books/decisions.ts (books.straddling-row); org.books.accounts.reclassify.yaml #3; books/target/banking/processes.ts (banking.payouts.follow)"),
+  affects: [concept_devnet, environment_devnet, integration_devnet_control],
 });

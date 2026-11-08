@@ -258,10 +258,10 @@ export const flow_client_org_invitations_accept = defineFlow({
   steps: [
     { name: "route", local: "build", about: "An `inv_kyb_` id goes to the verification; every other id to the Organization's invitation." },
     { name: "verify", rpc: rpc_banking_verification_start, about: "`inv_kyb_` only: the invited person's own details, as that invitation." },
-    { name: "digest", local: "prompt", about: "At a terminal, for an Organization invitation: shows the offer and uses its digest." },
+    { name: "digest", local: "prompt", about: "At a terminal, for an Organization invitation: shows the offer and asks; a yes uses its digest, a no ends CANCELLED." },
     { name: "accept", rpc: rpc_organizations_invitations_accept, about: "Every other id: consent at the digest, and the Seat." },
   ],
-  errors: [],
+  errors: [error_CANCELLED],
   calls: [],
   spans: [],
   budget: budget("vendor"),

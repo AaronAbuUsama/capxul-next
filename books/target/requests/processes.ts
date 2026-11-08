@@ -62,7 +62,7 @@ export const workflow_requests_lifecycle_request = defineWorkflow({
     { name: "expiry", for: "timer", about: "Until `expires_at`, when the request has one; an open request then expires." },
     { name: "escrow-funded", for: "indexer", about: "A Transfer of the token into the escrow address, indexed by Ponder; each one wakes a balance read." },
     { name: "payout", for: "chain", timeoutMs: 600_000, about: "The relayer's deploy and payout transactions mined, each followed to its receipt." },
-    { name: "payment", for: "signal", about: "The request's Payment settled, reversed or cancelled, from the payment followers." },
+    { name: "payment", for: "signal", about: "The request's Payment settled, reversed or cancelled: the payment followers find the request by its chain payment id and resume it by the request's id." },
   ],
   steps: [
     { name: "start", about: "Reads the request; a terminal one ends the instance, so a second start is a no-op." },

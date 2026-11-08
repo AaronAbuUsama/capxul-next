@@ -57,18 +57,18 @@ export const workflow_budgets_changes_follow = defineWorkflow({
     {
       name: "carrier",
       for: "person",
-      about: "The Directors approve the Board proposal, or the office holder signs or declines; proposal_transitioned or approval_transitioned resumes it.",
+      about: "The Directors approve the Board proposal, or the office holder signs or declines; proposal_transitioned or approval_transitioned, routed by opener budgets and the change as subject, resumes it.",
     },
     {
       name: "executed",
       for: "chain",
-      about: "The carrier's transaction lands, reverts or is displaced on chain proof, as board and approvals report it.",
+      about: "The carrier's transaction lands, reverts or is displaced on chain proof, as board and approvals report it (opener budgets, the change as subject).",
     },
     {
       name: "indexed",
       for: "indexer",
       timeoutMs: 10 * MINUTE,
-      about: "Ponder has indexed the executed transaction at finality, so its Budgets and Hats facts can be read.",
+      about: "Ponder has indexed the executed transaction (by chain and hash) at finality, so its Budgets and Hats facts can be read.",
     },
   ],
   steps: [

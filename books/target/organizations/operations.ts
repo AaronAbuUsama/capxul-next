@@ -13,6 +13,7 @@ import { Schema } from "effect";
 import { budget, defineOperation, type ErrorRecord } from "../../../packages/book/src/index.ts";
 import { frozen, frozenText, type FrozenId } from "../../frozen/index.ts";
 import {
+  error_CANCELLED,
   error_CLI_DEADLINE,
   error_CLI_USAGE,
   error_FEATURE_NOT_AVAILABLE,
@@ -112,7 +113,7 @@ export const operation_org_create = defineOperation({
       when: "You are still on the beta waitlist. Nothing is created until an operator admits you.",
     },
   ],
-  errors: [error_CLI_USAGE, error_CLI_DEADLINE],
+  errors: [error_CLI_USAGE, error_CLI_DEADLINE, error_CANCELLED],
   budget: {
     ...budget("chain-submit"),
     p50Ms: 4_000,
@@ -192,7 +193,7 @@ export const operation_org_retry = defineOperation({
     refusal("org.retry", error_NOT_AUTHENTICATED, "signed-out"),
     { error: error_WRONG_STATE, given: "org-setup-failed", when: "The setup failed for good: nothing a retry does can finish it." },
   ],
-  errors: [error_CLI_USAGE, error_CLI_DEADLINE],
+  errors: [error_CLI_USAGE, error_CLI_DEADLINE, error_CANCELLED],
   budget: budget("chain-submit"),
 });
 
@@ -374,7 +375,7 @@ export const operation_invite_decline = defineOperation({
     refusal("invite.decline", error_WRONG_STATE, "org-with-accepted-invitation"),
     refusal("invite.decline", error_NOT_AUTHENTICATED, "signed-out"),
   ],
-  errors: [error_CLI_USAGE],
+  errors: [error_CLI_USAGE, error_CANCELLED],
   budget: budget("write"),
 });
 
@@ -446,7 +447,7 @@ export const operation_org_invite_cancel = defineOperation({
     refusal("org.invite.cancel", error_WRONG_STATE, "org-with-authorizing-invitation"),
     refusal("org.invite.cancel", error_NOT_AUTHENTICATED, "signed-out"),
   ],
-  errors: [error_CLI_USAGE],
+  errors: [error_CLI_USAGE, error_CANCELLED],
   budget: budget("write"),
 });
 
@@ -477,6 +478,6 @@ export const operation_org_invite_resend = defineOperation({
     refusal("org.invite.resend", error_RATE_LIMITED, "org-with-pending-invitation"),
     refusal("org.invite.resend", error_NOT_AUTHENTICATED, "signed-out"),
   ],
-  errors: [error_CLI_USAGE],
+  errors: [error_CLI_USAGE, error_CANCELLED],
   budget: budget("write"),
 });

@@ -472,7 +472,7 @@ export const decision_banking_not_ported = defineDecision({
     "reaches (deactivate, reactivate, the conversion of pre-v4 rows, P9), a read another concept now does on banking's " +
     "tables (notices' facts, requests' candidates), or media's (document upload). `payments.quotes.quote`, which old " +
     "banking implemented for payments, is `banking.payouts.quote`. Removing a saved account calls Bridge no more than " +
-    "the old one did, so Bridge's `removeBankAccount` stays unused.",
+    "the old one did, so Bridge has no remove call (integrations.bridge-bank-details-read dropped it).",
   source: "books/as-is/banking/*.ts (41 rpcs, 8 workflows); P2; P9",
   affects: [concept_banking, integration_bridge],
 });
@@ -785,4 +785,45 @@ export const decision_banking_settle_reads_first = defineDecision({
     "queued event, which P7 replaces. The second call needs a 5 s p95, as `bank pay`'s two calls do.",
   source: ASSEMBLY("bank.settle.yaml acceptance #1-#4; books/target/shared/external.ts (bridge.readBankDetails); P1; banking.budgets"),
   affects: [rpc_banking_details_settle, o.operation_bank_settle, integration_bridge],
+});
+
+// ── target assembly (builder) ───────────────────────────────────────────────────────────────
+
+const BUILDER = (evidence: string) => `Claude, target assembly (builder), 8 November 2026; evidence: ${evidence}`;
+
+export const decision_banking_payout_return_reference = defineDecision({
+  id: "banking.payout-return-reference",
+  title: "A payout's return fact references the payout's Payment",
+  question:
+    "Books' reclassify #3 needs a v4 row with money facts in two periods (books.straddling-row): a payout settled in one " +
+    "month and returned in the next. Which reference does banking pass on the return's `payout_returned` fact?",
+  options: [
+    { label: "payment", text: "`{kind: payment, id: <the payout's Payment id>}`, keyed (`money_key`) by the return's Transfer as before." },
+    { label: "movement", text: "`{kind: movement, id}`: the return's own Movement, as an outside Transfer into the Safe." },
+  ],
+  chosen: "payment",
+  why:
+    "Books groups a row's facts by their reference. With the payout's Payment as the reference, the settlement and the " +
+    "return are one row's two money facts, the shape the old commitment had, so a return after the month's end straddles " +
+    "it. The money key stays the Transfer, so payments' Movement of the same Transfer is still the same fact and is not " +
+    "booked twice (books.money-key). The quote's other new inputs to `payments.prepare-command` are stated too: `pay_at` " +
+    "null (a payout pays at once) and `resume` false (a payout never reopens a lapsed command; a new quote is a new payout).",
+  source: BUILDER("books/target/books/decisions.ts (books.straddling-row); books/target/payments/decisions.ts (payments.door-inputs); org.books.accounts.reclassify.yaml #3"),
+  affects: [workflow_banking_payouts_follow, rpc_banking_payouts_quote, procedure_payments_prepare_command],
+});
+
+export const decision_banking_invite_accept_declined = defineDecision({
+  id: "banking.invite-accept-declined",
+  title: "Declining an invitation's offer at the terminal ends CANCELLED",
+  question: "`invite accept` at a terminal shows the offer and uses its digest. What does a 'no' to it end with?",
+  options: [
+    { label: "cancelled", text: "CANCELLED, from the flow's `digest` prompt, which lists it in its `errors`; nothing is accepted." },
+    { label: "usage", text: "CLI_USAGE, as a missing `--offer-digest` in a script is." },
+  ],
+  chosen: "cancelled",
+  why:
+    "vocabulary.declined-preview-cancelled: a 'no' is the person's choice, not a usage mistake. A script still passes " +
+    "`--offer-digest` and `--confirm` and never sees the question; the invitation stays pending for a later accept or decline.",
+  source: BUILDER("books/target/shared/decisions.ts (vocabulary.declined-preview-cancelled); frozen invite.accept notes"),
+  affects: [flow_client_org_invitations_accept, o.operation_invite_accept, error_CANCELLED],
 });

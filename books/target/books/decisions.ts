@@ -589,8 +589,9 @@ export const decision_books_straddling_row = defineDecision({
     "The claim is kept word for word (P1), so it needs a real v4 row. Grouping collections would make payments know " +
     "payroll's agreements, which the map keeps apart (dependencies.payments-payroll), and payments keeps one Payment per " +
     "collection (payments.chain-born-ids). A payout and its return are the same row's two money facts, the shape the old " +
-    "commitment had. For the world, org-with-chart gets a payout settled on the last day of a month and returned by " +
-    "Bridge's fake after a `dev time warp` past it; banking must pass the payout's Payment as the return fact's reference.",
+    "commitment had. The world is org-with-straddling-payout, built on org-with-chart: a payout settled on the last day of " +
+    "a month and returned by Bridge's fake after a `dev time warp` past it (devnet.straddling-payout-world); banking passes " +
+    "the payout's Payment as the return fact's reference (banking.payout-return-reference).",
   source: by("org.books.accounts.reclassify.yaml #3; books/target/banking/processes.ts (payout_returned); dependencies.payments-payroll"),
   affects: [ops.operation_org_books_accounts_reclassify, rpc_books_accounts_reclassify, procedure_books_record_money_fact],
 });
@@ -633,4 +634,24 @@ export const decision_books_budgets = defineDecision({
     "parallel reads at it), inside chain-read. An override can come with a measurement.",
   source: by("packages/book/src/budgets.ts; P5 hop table"),
   affects: [rpc_books_reports_trial_balance, rpc_books_reports_balance_sheet, rpc_books_assets_add, rpc_books_reports_reconcile, flow_client_org_books_accounts_review],
+});
+
+// ── target assembly (builder) ───────────────────────────────────────────────────────────────
+
+const BUILDER = (evidence: string) => `Claude, target assembly (builder), 8 November 2026; evidence: ${evidence}`;
+
+export const decision_books_annotate_declined_preview = defineDecision({
+  id: "books.annotate-declined-preview",
+  title: "A declined `activity annotate` preview ends CANCELLED",
+  question: "`activity annotate` shows a preview at a terminal and asks before it saves. What does a 'no' end with?",
+  options: [
+    { label: "cancelled", text: "CANCELLED (exit 130), listed in the operation's `errors` with CLI_USAGE: the CLI asks before its one rpc." },
+    { label: "usage", text: "CLI_USAGE, as the old CLI's confirmWrite answered." },
+  ],
+  chosen: "cancelled",
+  why:
+    "The shared rule (vocabulary.declined-preview-cancelled) is one answer for every command. A script without " +
+    "`--confirm` stays CLI_USAGE, so acceptance #6 is unchanged, and a 'no' saves nothing, as #5's refused save does.",
+  source: BUILDER("books/target/shared/decisions.ts (vocabulary.declined-preview-cancelled); frozen activity.annotate (preview, #6)"),
+  affects: [ops.operation_activity_annotate],
 });

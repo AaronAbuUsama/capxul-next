@@ -7,7 +7,8 @@
 //
 // Each operation is implemented by one rpc, except `org books accounts review`, which is one Core
 // SDK flow (books.review-flow). `errors` holds what the CLI produces itself: CLI_USAGE (the
-// Organization scope and its own argument checks) and, for the export, CLI_STORAGE.
+// Organization scope and its own argument checks), for the export CLI_STORAGE, and for `activity
+// annotate`'s terminal preview CANCELLED (vocabulary.declined-preview-cancelled).
 //
 // Worlds (books.worlds): org-without-chart, org-with-chart, org-with-chart-and-added-token,
 // org-with-chart-and-node-down, signed-out.
@@ -16,6 +17,7 @@ import { Schema } from "effect";
 import { budget, defineOperation, type Ref } from "../../../packages/book/src/index.ts";
 import { frozen, frozenRefusals, frozenText, type FrozenId } from "../../frozen/index.ts";
 import {
+  error_CANCELLED,
   error_CLI_STORAGE,
   error_CLI_USAGE,
   error_INVALID_INPUT,
@@ -120,7 +122,7 @@ export const operation_activity_annotate = defineOperation({
     keep("activity.annotate", 6, "cli: without `--confirm` a script exits with CLI_USAGE; read: the saved annotation holds only the reference and annotation fields."),
   ],
   returns: Schema.Struct({ annotation: Annotation }),
-  errors: [error_CLI_USAGE],
+  errors: [error_CLI_USAGE, error_CANCELLED],
   refusals: refusalsOf("activity.annotate", {
     CLI_USAGE: [error_CLI_USAGE, CHART],
     INVALID_INPUT: [error_INVALID_INPUT, CHART],
@@ -321,7 +323,7 @@ export const operation_org_books_accounts_reclassify = defineOperation({
   acceptance: [
     keep("org.books.accounts.reclassify", 1, "cli: `moved` lists every waiting row of the period and one `factId`; read: one rows_reclassified fact."),
     keep("org.books.accounts.reclassify", 2, "cli: `moved` and `refused` with each reason."),
-    keep("org.books.accounts.reclassify", 3, "cli: the row is in `refused` with `straddles_period`, with or without `--row`."),
+    keep("org.books.accounts.reclassify", 3, "cli: from org-with-straddling-payout, the payout's row is in `refused` with `straddles_period`, with or without `--row`."),
     rewrite(
       "org.books.accounts.reclassify",
       4,

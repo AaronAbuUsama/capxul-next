@@ -65,18 +65,18 @@ const CARRIER_WAITS = [
   {
     name: "carrier",
     for: "person" as const,
-    about: "A holder signs or declines their approval, or the Directors approve or reject the Board proposal; approval_transitioned or proposal_transitioned resumes it.",
+    about: "A holder signs or declines their approval, or the Directors approve or reject the Board proposal; approval_transitioned or proposal_transitioned, routed by opener equity and the write as subject, resumes it.",
   },
   {
     name: "executed",
     for: "chain" as const,
-    about: "The carrier's operation or Safe transaction lands, reverts or is displaced, as approvals and board report it on chain proof.",
+    about: "The carrier's operation or Safe transaction lands, reverts or is displaced, as approvals and board report it on chain proof (opener equity, the write as subject).",
   },
   {
     name: "indexed",
     for: "indexer" as const,
     timeoutMs: 10 * MINUTE,
-    about: "Ponder has indexed the carrier's transaction at finality, so its clone events can be read (awaitBlock, then factsOf).",
+    about: "Ponder has indexed the carrier's transaction (by chain and hash) at finality, so its clone events can be read (awaitBlock, then factsOf).",
   },
 ];
 

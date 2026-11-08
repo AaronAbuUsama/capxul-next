@@ -69,13 +69,13 @@ export const workflow_agents_changes_carry = defineWorkflow({
     {
       name: "executed",
       for: "chain",
-      about: "The carrier's transaction lands, reverts or is displaced, or its window lapses, on chain proof as approvals and board report it.",
+      about: "The carrier's transaction lands, reverts or is displaced, or its window lapses, on chain proof: approval_transitioned or proposal_transitioned, routed by opener agents and the change as subject.",
     },
     {
       name: "indexed",
       for: "indexer",
       timeoutMs: 10 * MINUTE,
-      about: "Ponder has the carrier's transaction at the finality depth, so its AgentOwner logs can be read together.",
+      about: "Ponder has the carrier's transaction (by chain and hash) at the finality depth, so its AgentOwner logs can be read together.",
     },
   ],
   steps: [

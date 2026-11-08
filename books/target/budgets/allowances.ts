@@ -52,7 +52,7 @@ export const rpc_budgets_allowances_create = defineRpc({
     "with every budget above it and fewer than eight deep (WRONG_STATE), with the amount left to give (CHILDREN_EXCEED_" +
     "PARENT, naming what is left), from `Budgets.budgetOf` and `leftOf` now. `assignTo` must be a current member whose " +
     "Safe is set up (INVALID_INPUT). No other create may wait under the Board's top hat: it would take the same hat id " +
-    "(WRONG_STATE, naming it). The hat id is planned from indexing's hats with Ponder at the chain head (`Indexer.head`). " +
+    "(WRONG_STATE, naming it). The hat id is planned from the top hat's `Hats.viewHat` `lastHatId` at the latest block. " +
     "The calls, one Board batch: `Hats.createHat(boardTopHat, details, 1, safe, safe, true, image)`, " +
     "`Budgets.createChildBudget(parent, amount, hat)` and, with `assignTo`, `Hats.mintHat(hat, memberSafe)`. " + BIRTH +
     " The allowance is born proposed (budget.propose) with no chain id; the same request key answers it active with its " +
@@ -73,6 +73,7 @@ export const rpc_budgets_allowances_create = defineRpc({
   chain: [
     contract_budgets.f.budgetOf,
     contract_budgets.f.leftOf,
+    contract_hats.f.viewHat,
     contract_hats.f.createHat,
     contract_budgets.f.createChildBudget,
     contract_hats.f.mintHat,

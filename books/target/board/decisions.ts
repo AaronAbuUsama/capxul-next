@@ -602,3 +602,26 @@ export const decision_board_approval_endings = defineDecision({
   source: by("books/target/approvals/decisions.ts (approvals.machine); books/target/board/flows.ts (CHANGE_ERRORS); books/target/agents/decisions.ts (agents.failure-codes)"),
   affects: [workflow_board_changes_carry, table_board_changes, machine_board_change],
 });
+
+// ── target assembly (builder) ───────────────────────────────────────────────────────────────
+
+const BUILDER = (evidence: string) => `Claude, target assembly (builder), 8 November 2026; evidence: ${evidence}`;
+
+export const decision_board_director_refusals_ask_nothing = defineDecision({
+  id: "board.director-refusals-ask-nothing",
+  title: "The refused `org director` writes ask nothing, so they list no CANCELLED",
+  question:
+    "The shared assembly listed `org director add`, `remove`, `replace` and `threshold` among commands whose terminal " +
+    "preview should end CANCELLED. Do they ask?",
+  options: [
+    { label: "no-question", text: "No: each method fails WRONG_STATE at once, before any rpc or question, naming the `org board` command to use; `--confirm` is accepted and changes nothing." },
+    { label: "ask-then-refuse", text: "Ask the frozen `--confirm` question first, then refuse, and list CANCELLED." },
+  ],
+  chosen: "no-question",
+  why:
+    "On v4 the Signer Gate refuses an owner change the Safe makes itself (board's refused flows), so there is nothing to " +
+    "confirm. Asking first would make a person agree to a change that cannot happen, and listing CANCELLED would declare " +
+    "an error the flow never produces. The `org board` commands that do ask already list CANCELLED.",
+  source: BUILDER("books/target/board/flows.ts (refused); books/target/shared/decisions.ts (vocabulary.declined-preview-cancelled)"),
+  affects: [flow_client_org_directors_add, flow_client_org_directors_remove, flow_client_org_directors_replace, flow_client_org_directors_set_threshold],
+});

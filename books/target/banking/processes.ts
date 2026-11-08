@@ -102,7 +102,8 @@ export const workflow_banking_payouts_follow = defineWorkflow({
     "the sixty days a bank can still return a payment (K13). Returning: Bridge names the refund's transaction; at " +
     "finality the indexer shows its Transfer into the source Safe, and `refund` writes it with the refund's book fact " +
     "for an Organization (`books.record-money-fact`, kind payout_returned, keyed by the Transfer, so payments' Movement " +
-    "of it is the same fact); fourteen days with none is refund_missing. Bridge moving the transfer without the funding " +
+    "of it is the same fact, and referencing the payout's Payment, `{kind: payment, id}`, so books reads the payout and " +
+    "its return as one row); fourteen days with none is refund_missing. Bridge moving the transfer without the funding " +
     "is bridge_moved_unfunded. Needs attention: one reason, then Bridge's later events or an operator's resolution. " +
     "Replaces old banking's dispatcher, tick, watchdog and notify workflows, the payout door and its timers.",
   concept: concept_banking,
@@ -111,7 +112,7 @@ export const workflow_banking_payouts_follow = defineWorkflow({
   instance: { per: table_bank_payouts },
   signals: [rpc_banking_inbox_receive, rpc_banking_payouts_resolve, rpc_banking_accounts_remove],
   waits: [
-    { name: "funded", for: "indexer", about: "Its Payment settled, cancelled or lapsed in payments; payment_transitioned resumes it." },
+    { name: "funded", for: "indexer", about: "Its Payment settled, cancelled or lapsed in payments; payment_transitioned, routed by the payout's Payment id, resumes it." },
     { name: "quote-deadline", for: "timer", about: "The quote's `expires_at`; unfunded then, it ends expired." },
     { name: "delivery", for: "signal", timeoutMs: 7 * DAY, about: "Bridge's transfer events after funding: delivered, returned, refunded, cancelled, undeliverable." },
     { name: "late-return", for: "signal", timeoutMs: 60 * DAY, about: "After delivery, a bank's return that Bridge reports." },

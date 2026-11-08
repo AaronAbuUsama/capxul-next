@@ -4,7 +4,7 @@
 
 import { defineDecision } from "../../../packages/book/src/index.ts";
 import { concept_activity, concept_board, concept_budgets, concept_notices, concept_organizations, concept_parties } from "../shared/foundation.ts";
-import { error_FEATURE_NOT_AVAILABLE, error_WRONG_STATE } from "../shared/vocabulary.ts";
+import { error_CANCELLED, error_FEATURE_NOT_AVAILABLE, error_WRONG_STATE } from "../shared/vocabulary.ts";
 import {
   event_org_invite_transitioned,
   event_org_member_transitioned,
@@ -624,4 +624,33 @@ export const decision_organizations_approval_endings = defineDecision({
     "setup's recorded failure, not a refusal.",
   source: by("books/target/approvals/decisions.ts (approvals.machine); books/target/agents/decisions.ts (agents.failure-codes); org.show.yaml; org.retry.yaml"),
   affects: [workflow_organizations_setups_set_up, table_org_setups, machine_org_setup],
+});
+
+// ── target assembly (builder) ───────────────────────────────────────────────────────────────
+
+const BUILDER = (evidence: string) => `Claude, target assembly (builder), 8 November 2026; evidence: ${evidence}`;
+
+export const decision_organizations_declined_previews = defineDecision({
+  id: "organizations.declined-previews",
+  title: "Five organizations commands end CANCELLED on a declined terminal preview",
+  question:
+    "Under vocabulary.declined-preview-cancelled a 'no' at a terminal preview ends CANCELLED (exit 130). Which " +
+    "organizations commands ask, and where is CANCELLED listed?",
+  options: [
+    {
+      label: "operation-errors",
+      text:
+        "`org create`, `org retry`, `invite decline`, `org invite cancel` and `org invite resend` ask at a terminal before " +
+        "they call their one SDK method (their frozen notes: a script must pass `--confirm`; org create 'shows a preview " +
+        "and asks first'). CANCELLED goes in each operation's `errors`, with the CLI's own codes, as `contact add` does.",
+    },
+    { label: "flow-prompt", text: "Move each question into an SDK flow as a `local: \"prompt\"` step and list CANCELLED there." },
+  ],
+  chosen: "operation-errors",
+  why:
+    "The CLI asks before it calls the method (org create's flow says so), and three of the five are one rpc with no " +
+    "flow; giving them a flow only to ask would break A4's one-call operation is its rpc. A 'no' writes nothing, and a " +
+    "script passes `--confirm` and never sees the question, so no frozen refusal or exit of a script changes.",
+  source: BUILDER("books/target/shared/decisions.ts (vocabulary.declined-preview-cancelled); frozen org.create, org.retry, invite.decline, org.invite.cancel, org.invite.resend notes"),
+  affects: [operation_org_create, operation_org_retry, operation_invite_decline, operation_org_invite_cancel, operation_org_invite_resend, error_CANCELLED],
 });

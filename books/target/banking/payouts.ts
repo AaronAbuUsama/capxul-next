@@ -82,7 +82,8 @@ export const rpc_banking_payouts_quote = defineRpc({
     "transaction writes the payout (`quote`, with the approval's id), the account's `register`, Bridge's deposit address " +
     "as an outside Party (`parties.resolve-recipient`) and the Payment command (`payments.prepare-command`, purpose " +
     "`bank_payout`, one item of the quoted amount to the deposit address, kind 0, with no document and the zero hash, " +
-    "and `not_after` the quote's `expires_at`, so neither its approval nor a retry can move money after the deadline): " +
+    "`not_after` the quote's `expires_at`, so neither its approval nor a retry can move money after the deadline, " +
+    "`pay_at` null and `resume` false): " +
     "personal `approve` and `Payments.send`, or the budget's `Budgets.spend`. Funding short is INSUFFICIENT_BALANCE, a " +
     "budget short PAYROLL_BUDGET_EXCEEDED, both before anything is written. It answers the quote with the approval to sign.",
   concept: concept_banking,

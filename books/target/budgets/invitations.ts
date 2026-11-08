@@ -146,7 +146,7 @@ const PLAN =
   "deployment does not admit is TOKEN_NOT_SUPPORTED), in that budget's period, for `limit` per period, which must be " +
   "above 0 and within what the parent has left to give (`Budgets.budgetOf`, `leftOf`: CHILDREN_EXCEED_PARENT, naming " +
   "what is left); its key is taken from its name and must be free; no other create may wait under the Board's top hat " +
-  "(WRONG_STATE); its hat id is planned from indexing's hats with Ponder at the chain head. Its calls are " +
+  "(WRONG_STATE); its hat id is planned from the top hat's `Hats.viewHat` `lastHatId` at the latest block. Its calls are " +
   "`Hats.createHat(boardTopHat, details, 1, safe, safe, true, image)`, `Budgets.createChildBudget(parent, limit, hat)` " +
   "and `Hats.mintHat(hat, granteeSafe)`. Every mint goes to the personal Safe the grantee's email names, or the agent's Safe.";
 
@@ -173,7 +173,7 @@ export const rpc_budgets_invitations_plan = defineRpc({
   invokes: [],
   emits: [],
   calls: [integration_chain_rpc.c.readContract, integration_indexer.c.head],
-  chain: [contract_budgets.f.budgetOf, contract_budgets.f.leftOf],
+  chain: [contract_budgets.f.budgetOf, contract_budgets.f.leftOf, contract_hats.f.viewHat],
   spans: [],
   budget: budget("chain-read"),
 });
@@ -216,6 +216,7 @@ export const rpc_budgets_invitations_propose = defineRpc({
   chain: [
     contract_budgets.f.budgetOf,
     contract_budgets.f.leftOf,
+    contract_hats.f.viewHat,
     contract_hats.f.createHat,
     contract_budgets.f.createChildBudget,
     contract_hats.f.changeHatMaxSupply,

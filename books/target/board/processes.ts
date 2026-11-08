@@ -133,7 +133,7 @@ export const workflow_board_changes_carry = defineWorkflow({
     {
       name: "approval",
       for: "chain",
-      about: "The approval lands, reverts, expires or is displaced on chain proof, as approval_transitioned reports it.",
+      about: "The approval lands, reverts, expires or is displaced on chain proof, as approval_transitioned reports it, routed by opener board and the change as subject.",
     },
     {
       name: "indexed",

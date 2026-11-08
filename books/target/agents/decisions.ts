@@ -350,8 +350,9 @@ export const decision_agents_transaction_width = defineDecision({
     "(dependencies.parties-registration), a chain write is born with its carrier (rules.procedures), and a Board proposal " +
     "opens its proposer's approval (board.propose). Splitting any of them would leave a held handle, a named recipient or " +
     "a proposal without the intent it carries. A person's create or sweep is 2 procedures from 2 concepts either way. " +
-    "Whether nested invocations count is the rule's open question, recorded for the reviewer of sys:tx-width.",
-  source: by("CONVENTIONS.md rule 6 (sys:tx-width); books/target/board/procedures.ts (board.propose invokes approvals.open)"),
+    "Assembly: rules.transaction-width closes the open question this left: one run counts what it invokes itself, on its " +
+    "widest branch, and a door's own invocations count against the door, so both are within sys:tx-width.",
+  source: by("CONVENTIONS.md rule 6 (sys:tx-width); books/target/board/procedures.ts (board.propose invokes approvals.open); shared rules.transaction-width"),
   affects: [rpc_agents_changes_create, rpc_agents_changes_sweep, procedure_board_propose, procedure_parties_register, procedure_parties_resolve_recipient],
 });
 
