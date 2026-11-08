@@ -37,7 +37,7 @@ import * as orgsData from "../organizations/data.ts";
 import * as parties from "../parties/procedures.ts";
 import * as partiesData from "../parties/data.ts";
 import { procedure_board_propose } from "../board/procedures.ts";
-import { procedure_documents_store } from "../documents/procedures.ts";
+import { ReceiptContent, procedure_documents_store } from "../documents/procedures.ts";
 import { Route, machine_payment, table_payment_commands, table_payments } from "./data.ts";
 
 const OLD = "packages/backend/src/payments";
@@ -60,7 +60,8 @@ export const SendInput = Schema.Struct({
   kind: Null(PaymentKind),
   pay_at: Null(S),
   note: Null(S),
-  document: Null(Schema.Struct({ content_hash: S, file_id: Null(S) })),
+  /** `--document <file>`: the receipt's bytes as the SDK read them (at most 128 KB), stored byte for byte by documents. */
+  document: Null(ReceiptContent),
   request_key: S,
 });
 
@@ -104,7 +105,7 @@ export const rpc_payments_commands_prepare = defineRpc({
     "here, and nothing is written (K3). Then, in one transaction: the request key's command (a repeat with the same " +
     "request answers the first command as it stands; another request under the key is refused, K1), the payee resolved " +
     "to its Party and Safe (`parties.resolve-recipient`; a mailbox with no live Safe is paid into a claim escrow), the " +
-    "document of the note or `--document` (`documents.store`: its hash goes on chain), one Payment per item born through " +
+    "document of the note, or the bytes of `--document` (`documents.store`: its hash goes on chain), one Payment per item born through " +
     "`open` with its payment id, and the approval from the caller's Safe that carries the calls (`approvals.open`): " +
     "`approve` and `Payments.send` (kind 0) for a personal payment (`sendBatch` for several items of `--input`, all or none), " +
     "`Budgets.spend` or, dated, `Budgets.schedule` from a " +

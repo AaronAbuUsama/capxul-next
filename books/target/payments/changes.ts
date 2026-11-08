@@ -49,7 +49,8 @@ export const rpc_payments_changes_retry = defineRpc({
     "Retries one Payment that needs it (its approval expired, was displaced or reverted, or its dated window closed): the " +
     "same recipient, amount, asset, kind, document and job nonce, so the same v4 payment id, which the chain consumes " +
     "once: a retry can never pay twice. It refuses a Payment that does not need a retry, an incoming Payment as an " +
-    "Organization's retry source, and a caller who no longer holds the authority the first send needed. Before its " +
+    "Organization's retry source, a Payment whose command's `not_after` has passed (a bank payout whose quote expired: " +
+    "WRONG_STATE), and a caller who no longer holds the authority the first send needed. Before its " +
     "transaction it reads the funding again (the Safe's balance, or the budget's `leftOf` and `authorised`) and that the " +
     "id is not consumed (`Payments.paid`). In one transaction it opens the carrier the first send had (an approval from " +
     "the caller's own Safe, or a Board proposal at the Safe's next nonce for a Board payment) and moves the Payment " +

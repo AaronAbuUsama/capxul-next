@@ -22,6 +22,7 @@ import {
 import * as approvalsData from "../approvals/data.ts";
 import * as approvalsSigning from "../approvals/signing.ts";
 import * as books from "../books/procedures.ts";
+import { procedure_documents_store } from "../documents/procedures.ts";
 import * as partiesData from "../parties/data.ts";
 import { rpc_payments_changes_cancel, rpc_payments_changes_reschedule, rpc_payments_changes_retry } from "./changes.ts";
 import { machine_movement, machine_payment, table_movements, table_payment_commands, table_payments } from "./data.ts";
@@ -37,8 +38,9 @@ export const workflow_payments_lifecycle_payment = defineWorkflow({
   about:
     "Started by the `open` transition's event, one instance per Payment, for every route. It follows what carries the " +
     "Payment and moves it on each answer: its approval (signed and held for its day → `schedule`; sent → `submit`; " +
-    "reverted, displaced or expired → `lapse`; declined or refused → `cancel`), its Board proposal (executed → `submit`, " +
-    "rejected or expired → `cancel`), a budget's reservation (PaymentScheduled with its job nonce on its own budget → " +
+    "reverted, displaced or expired → `lapse`; declined, refused or withdrawn by its opener → `cancel`), its Board " +
+    "proposal (executed → `submit`; failed, or replaced by another transaction at its nonce → `lapse`; rejected → " +
+    "`cancel`), a budget's reservation (PaymentScheduled with its job nonce on its own budget → " +
     "`schedule`), a claim escrow (EscrowCreated → `escrow`), and a cancel (a void that displaced the held operation, " +
     "ScheduleCancelled or EscrowRefunded → `cancel` for every Payment it carried, K14). A dated Payment comes due a day " +
     "ahead (`come_due`, funding read, a shortfall kept for the payer's notice); approvals sends a personal one on its day, " +
@@ -66,8 +68,7 @@ export const workflow_payments_lifecycle_payment = defineWorkflow({
       name: "carrier",
       for: "signal",
       about:
-        "Its approval's `approval_transitioned` (opener payments, its command or Payment as subject) or its Board proposal's " +
-        "`proposal_transitioned`; approvals and board end each on chain proof, a window or a person's answer.",
+        "Its approval's `approval_transitioned` (its command or Payment as subject) or its Board proposal's `proposal_transitioned`; each ends on chain proof, a window or an answer.",
     },
     {
       name: "payment-sent",
@@ -154,8 +155,9 @@ export const workflow_payments_settlement_observe = defineWorkflow({
   about:
     "Triggered by each indexed PaymentSent. When a Payment already holds its payment id, it does nothing: that Payment's " +
     "process is waiting for this fact. Otherwise, when the sender or the recipient Safe is a Party a Capxul tenant owns " +
-    "(parties' directory), it births the Payment (`open`, origin `chain`) with the fact's terms and the side that holds " +
-    "it: the payer's tenant when the payer is Capxul's, else the payee's. That covers agreement collections (kind 4), " +
+    "(parties' directory), it births the Payment (`open`, origin `chain`, id `payment_` and the payment id's 64 hex " +
+    "digits) with the fact's terms and the side that holds it: the payer's tenant when the payer is Capxul's, else the " +
+    "payee's. That covers agreement collections (kind 4, so `payment get` finds the payment payroll reports), " +
     "escrow payouts (an invoice escrow's checkout), `Budgets.execute` of a dated payment Capxul did not schedule, equity " +
     "purchases and payments made outside Capxul from a Capxul Safe. The birth's event starts the Payment's own process, " +
     "which settles it on the same fact through the one settlement step. A second run births nothing: the payment id is " +
@@ -190,10 +192,12 @@ export const workflow_payments_movements_record = defineWorkflow({
     "sets aside a Transfer that a Payment explains for that side: the one beside a PaymentSent moving the same token and " +
     "amount between the same addresses (a direct send, a budget's payout through Roles, an escrow's payout), or a claim " +
     "escrow's funding or refund of one of that side's Payments (K17). For each remaining side whose Safe a Capxul tenant " +
-    "owns, it records a Movement (`record`) and that side's book fact (`books.record-money-fact`, key `transfer:<chain " +
-    "id>:<tx hash>:<log index>`) in one transaction, so an Organization's direct transfer to a person is outside money " +
-    "for both (old M1). Twice the finality depth later it reads the facts again: a Transfer no longer there is `remove`d " +
-    "with its book fact reversed; one the chain brought back is `restore`d and booked again.",
+    "owns, it records a Movement (`record`), that side's book fact (`books.record-money-fact`, key `transfer:<chain " +
+    "id>:<tx hash>:<log index>`) and the Transfer's Memo (`documents.store`: basis movement, reference the same key, " +
+    "issued at the block time, the Capxul sides as participants, so a replayed Transfer stores nothing new) in one " +
+    "transaction, so an Organization's direct transfer to a person is outside money for both (old M1). Twice the " +
+    "finality depth later it reads the facts again: a Transfer no longer there is `remove`d with its book fact reversed " +
+    "(the Memo, immutable, stays); one the chain brought back is `restore`d and booked again.",
   concept: concept_payments,
   priority: "normal",
   trigger: { chainEvent: contract_erc20.e.Transfer },
@@ -201,13 +205,13 @@ export const workflow_payments_movements_record = defineWorkflow({
   steps: [
     { name: "facts", about: "Reads every fact of the Transfer's transaction at the finality depth." },
     { name: "explain", about: "Sets aside a side whose Payment explains the Transfer." },
-    { name: "record", about: "Records each remaining Capxul side and its book fact in one transaction." },
+    { name: "record", about: "Records each remaining Capxul side, its book fact and the Transfer's Memo in one transaction." },
     { name: "confirm", about: "Reads the facts again later: gone → `remove` and reverse; back → `restore` and book again." },
   ],
   reads: [table_movements, table_payments, partiesData.table_parties],
   writes: [table_movements],
   drives: [m.record, m.remove, m.restore],
-  invokes: [books.procedure_books_record_money_fact, books.procedure_books_reverse_money_fact],
+  invokes: [books.procedure_books_record_money_fact, books.procedure_books_reverse_money_fact, procedure_documents_store],
   emits: [],
   calls: [integration_indexer.c.factsOf, integration_indexer.c.awaitBlock],
   chain: [],

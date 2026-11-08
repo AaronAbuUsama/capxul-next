@@ -58,6 +58,7 @@ export const Outcome = Schema.Literals([
   "voided",
   "budget_cancelled",
   "refunded",
+  "withdrawn",
 ]);
 
 // ── payment-commands ────────────────────────────────────────────────────────────────────────
@@ -71,8 +72,9 @@ export const table_payment_commands = defineTable({
     "The same owner and request key always reach the same command and its Payments; another request under a used key is " +
     "refused, because the digest of the canonical request (route, items, date, document hashes) differs (K1). A command " +
     "has no state of its own: where it ended is its Payments' and its approval's. It carries the approval or Board " +
-    "proposal it opened, so a repeat reports where the first approval ended. The old document intents are the digest's " +
-    "document hashes.",
+    "proposal it opened (the latest, after a resume), so a repeat reports where that approval ended. `not_after` is the " +
+    "last moment its money may move (a bank quote's expiry): its approval's deadline is capped at it, and `payment " +
+    "retry` refuses after it. The old document intents are the digest's document hashes.",
   concept: concept_payments,
   tenancy: "owner",
   tenantField: "owner_id",
@@ -87,6 +89,7 @@ export const table_payment_commands = defineTable({
     requested_by: S,
     approval_id: Null(S),
     proposal_id: Null(S),
+    not_after: Null(At),
     created_at: At,
   }),
   key: ["owner_id", "owner_kind", "id"],
@@ -116,7 +119,9 @@ export const table_payments = defineTable({
     "prepare). The payee's tenant is on the row too, so a recipient reads it through the payee index and the generated " +
     "row-level policy admits either side. Labels are the names as the payer gave them, snapshotted at birth, so no read " +
     "reaches into parties. Dated payments are rows here with `pay_at`: the old payment-schedules table, its signed bytes " +
-    "(now approvals') and its lease are gone. Status changes only through machine `payment`.",
+    "(now approvals') and its lease are gone. A Payment born from a chain fact has the id `payment_` and the 64 hex " +
+    "digits of its v4 payment id, so a concept that read the PaymentSent (payroll's collection) names it without reading " +
+    "payments; a prepared Payment's id is `payment_` and a ULID. Status changes only through machine `payment`.",
   concept: concept_payments,
   tenancy: "owner",
   tenantField: "owner_id",
@@ -374,21 +379,22 @@ export const machine_payment = defineMachine({
     lapse: {
       from: ["prepared", "scheduled", "due", "submitted"],
       to: "needs_retry",
-      about: "Its approval ended expired, displaced or reverted, or a dated operation's signed window closed; nothing moved.",
+      about:
+        "Its approval ended expired, displaced or reverted, its Board proposal failed or lost its nonce to another transaction, or a dated operation's signed window closed; nothing moved.",
       emits: sends,
     },
     retry: {
       from: ["needs_retry"],
       to: "prepared",
       about: "`payment retry` opened a new approval or Board proposal for the same terms and payment id.",
-      guard: "The payer still has the funds and the authority the first send needed.",
+      guard: "The payer still has the funds and the authority the first send needed, and its command's `not_after` has not passed.",
       emits: sends,
     },
     cancel: {
       from: ["prepared", "scheduled", "due", "escrowed"],
       to: "cancelled",
       about:
-        "Its approval was declined or refused before signing, its proposal rejected, or its void, `Budgets.cancel` or escrow refund landed; a void cancels every Payment of its operation (K14).",
+        "Its approval was declined, refused or withdrawn before signing, its proposal rejected, or its void, `Budgets.cancel` or escrow refund landed; a void cancels every Payment of its operation (K14).",
       emits: sends,
     },
   },
