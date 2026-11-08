@@ -869,8 +869,9 @@ export const decision_swarm_accounts = defineDecision({
       text:
         "A swarmD namespace capxul with Aaron as admin; the swarmd-agent GitHub App installed on AaronAbuUsama/capxul-next " +
         "(contents, issues, pull requests, checks) and on Xelmar-tech/infrastructure (contents read); branch protection on " +
-        "main and integration/build (tooling.branch-protection); the provider keys of swarm.checker-family; and the master's " +
-        "room: Pi at once, and a Slack channel once the app is connected.",
+        "main and integration/build (tooling.branch-protection), which on a private repository needs GitHub Pro (GitHub " +
+        "refused it on swarmD's, #85), or else the release gate's CI check (SD-5) and #85 are the only guard; the provider " +
+        "keys of swarm.checker-family; and the master's room: Pi at once, and a Slack channel once the app is connected.",
     },
     { label: "reuse-swarmd", text: "Run the build in the existing namespace swarmd beside swarmD's own team." },
   ],
