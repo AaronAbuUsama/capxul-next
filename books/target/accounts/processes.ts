@@ -79,6 +79,7 @@ export const workflow_accounts_setup_personal_safe = defineWorkflow({
     {
       name: "collected",
       for: "chain",
+      events: [contract_escrow.e.EscrowPaid],
       timeoutMs: 600_000,
       about: "The collection approval ends on chain proof: EscrowPaid to the Safe for each escrow it collected.",
     },

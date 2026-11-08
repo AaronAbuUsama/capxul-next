@@ -70,8 +70,8 @@ export const workflow_organizations_setups_set_up = defineWorkflow({
   instance: { per: table_org_setups },
   signals: [rpc_organizations_setups_resume],
   waits: [
-    { name: "safe-minted", for: "indexer", about: "CompanySafeMinted of the mint transaction, at the deployment's finality depth." },
-    { name: "money-deployed", for: "indexer", about: "MoneyDeployed of the deployMoney transaction, at finality." },
+    { name: "safe-minted", for: "indexer", events: [contract_company_safe_minter.e.CompanySafeMinted], about: "CompanySafeMinted of the mint transaction, at the deployment's finality depth." },
+    { name: "money-deployed", for: "indexer", events: [contract_installer.e.MoneyDeployed], about: "MoneyDeployed of the deployMoney transaction, at finality." },
     { name: "founder-signature", for: "person", about: "The founder signs the install approval on the approval page; approval_transitioned (opener organizations, the setup as subject) resumes it." },
     { name: "install-landed", for: "chain", about: "The install approval lands, reverts or expires on chain proof; approval_transitioned (opener organizations, the setup as subject) resumes it." },
     { name: "install-final", for: "indexer", about: "The install's facts at finality: the Gate as module and guard, the hats minted." },
@@ -143,10 +143,10 @@ export const workflow_organizations_invitations_follow = defineWorkflow({
   instance: { per: table_org_invitations },
   signals: [rpc_organizations_invitations_accept, rpc_organizations_invitations_decline, rpc_organizations_invitations_cancel],
   waits: [
-    { name: "grants-executed", for: "indexer", about: "Authorizing: the bound Safe transaction's ExecutionSuccess at finality, or its nonce taken by another." },
+    { name: "grants-executed", for: "indexer", events: [contract_safe.e.ExecutionSuccess, contract_safe.e.ExecutionFailure], about: "Authorizing: the bound Safe transaction's ExecutionSuccess at finality, or its nonce taken by another." },
     { name: "invitee", for: "person", about: "Pending: the invitee accepts or declines, or the Organization cancels." },
     { name: "expiry", for: "timer", timeoutMs: 7 * DAY, about: "Seven days after the offer opened; a resend never moves it." },
-    { name: "hats-removed", for: "indexer", about: "Revoking: the grantee's Safe wears none of the granted hats." },
+    { name: "hats-removed", for: "indexer", events: [contract_hats.e.WearerStandingChanged, contract_hats.e.TransferSingle], about: "Revoking: the grantee's Safe wears none of the granted hats." },
   ],
   steps: [
     { name: "await-grants", about: "Authorizing only: wait for the binding, then for the transaction or its nonce to pass." },

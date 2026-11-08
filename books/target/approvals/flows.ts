@@ -28,6 +28,7 @@ export const flow_client_approvals_sign = defineFlow({
     "with no signer is CAPABILITY_UNAVAILABLE (an SDK host without a browser hands the person the link instead); an " +
     "approval that is not pending when read is WRONG_STATE with its state.",
   component: component_core_sdk,
+  surfaces: ["react"],
   sdk: "client.approvals.sign",
   input: Schema.Struct({ approvalId: Schema.String }),
   output: ApprovalView,

@@ -91,6 +91,10 @@ export const FlowSpec = Schema.Struct({
   /** Outside systems the client calls directly: the signer, the bundler. */
   calls: Schema.Array(Ref("call")),
   spans: Schema.Array(Schema.String),
+  /** The surfaces that call the method, from the system's surfaces. Absent: the CLI, through the operation the
+   * flow implements. A flow only another surface calls (the approval page, checkout or the web app on `react`, an
+   * agent's SDK host on `sdk`, MCP) names them, and then no operation implementing it is not a gap. */
+  surfaces: Schema.optionalKey(Schema.Array(Schema.Literals(["cli", "sdk", "react", "mcp", "http"]))),
   /** Client time, excluding `wait` steps. */
   budget: Schema.optionalKey(Budget),
 });
@@ -167,6 +171,8 @@ export const WorkflowSpec = Schema.Struct({
         name: Schema.String,
         for: Schema.Literals(["signal", "timer", "chain", "person", "indexer"]),
         timeoutMs: Schema.optionalKey(Ms),
+        /** The chain events (Ponder's, `contract_x.e.<Event>`) whose arrival ends a `chain` or `indexer` wait. */
+        events: Schema.optionalKey(Schema.Array(Ref("chainEvent"))),
         about: Line,
       }),
     ),

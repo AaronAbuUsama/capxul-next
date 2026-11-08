@@ -6,7 +6,7 @@
 
 import { budget, defineWorkflow } from "../../../packages/book/src/index.ts";
 import { concept_board } from "../shared/foundation.ts";
-import { integration_indexer } from "../shared/external.ts";
+import { contract_hats, contract_safe, integration_indexer } from "../shared/external.ts";
 import { table_hat_wearers, table_safe_approvals, table_safe_executions, table_safe_owners } from "../indexing/data.ts";
 import { table_approvals } from "../approvals/data.ts";
 import { procedure_approvals_withdraw } from "../approvals/procedures.ts";
@@ -59,6 +59,7 @@ export const workflow_board_proposals_carry = defineWorkflow({
     {
       name: "nonce-used",
       for: "indexer",
+      events: [contract_safe.e.ExecutionSuccess, contract_safe.e.ExecutionFailure],
       about: "Ponder has indexed, at finality, the ExecutionSuccess or ExecutionFailure that used the proposal's Safe nonce.",
     },
   ],
@@ -138,6 +139,7 @@ export const workflow_board_changes_carry = defineWorkflow({
     {
       name: "indexed",
       for: "indexer",
+      events: [contract_safe.e.AddedOwner, contract_safe.e.RemovedOwner, contract_safe.e.ChangedThreshold, contract_hats.e.TransferSingle],
       timeoutMs: 10 * MINUTE,
       about: "Ponder has indexed the landed transaction at finality, so its Safe and Hats facts can be read.",
     },

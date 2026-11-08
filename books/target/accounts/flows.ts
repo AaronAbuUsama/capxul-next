@@ -120,6 +120,7 @@ export const flow_client_account_setup = defineFlow({
     "or the setup fails. When claim escrows were waiting for the person, the setup opens one approval to collect them, " +
     "and the page hands the person to the approval page to sign it.",
   component: component_core_sdk,
+  surfaces: ["react"],
   sdk: "client.account.setup",
   input: Schema.Struct({}),
   output: Schema.Struct({ lifecycle: Schema.Unknown }),
@@ -145,6 +146,7 @@ export const flow_client_operator_waitlist_admit = defineFlow({
     "CLI. It sends the emails and the operator's label to `accounts.admission.admit` and prints who was admitted, who " +
     "was already and which were not emails. It is the only way an operator admits a waiting person in a closed beta.",
   component: component_core_sdk,
+  surfaces: ["sdk"],
   sdk: "client.operator.waitlist.admit",
   input: Schema.Struct({ emails: Schema.Array(S), by: S }),
   output: Schema.Struct({ admitted: Schema.Array(S), already: Schema.Array(S), invalid: Schema.Array(S) }),

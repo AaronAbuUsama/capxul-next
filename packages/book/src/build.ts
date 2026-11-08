@@ -225,6 +225,11 @@ const checkTargetRules = (b: Draft, problems: Finding[]) => {
   for (const r of all(b, "rpc")) if (by(r, "implementedBy").length + by(r, "steps").length + by(r, "signals").length + by(r, "trigger").length === 0)
     p(r, "unreached-rpc", "no operation, flow or workflow reaches it");
 
+  // A4: an operation is a CLI command, so a flow that implements one is called by the CLI.
+  for (const f of all(b, "flow"))
+    if (Array.isArray(f.surfaces) && !(f.surfaces as string[]).includes("cli") && by(f, "implementedBy").length > 0)
+      p(f, "flow-surface", "it implements an operation, a CLI command, but its surfaces leave out cli");
+
   // P5: every piece of behaviour has a budget; one that leaves its class default says why.
   for (const r of [...all(b, "operation"), ...all(b, "rpc"), ...all(b, "flow"), ...all(b, "workflow")]) {
     const bud = r.budget as { class: keyof typeof BUDGET_DEFAULTS; p50Ms: number; p95Ms: number; why?: string } | undefined;
@@ -269,10 +274,12 @@ const deriveGaps = (b: Draft): Finding[] => {
   for (const e of all(b, "error")) if (by(e).length === 0) g(e, "unproduced-error", "nothing produces it");
   for (const c of all(b, "call")) if (by(c, "calls").length === 0) g(c, "unused-call", "nothing calls it");
   for (const f of all(b, "function")) if (by(f, "chain").length === 0) g(f, "uncalled-function", "nothing calls it");
-  for (const e of all(b, "chainEvent")) if (by(e).length === 0) g(e, "unconsumed-chain-event", "no workflow is triggered by it");
+  for (const e of all(b, "chainEvent")) if (by(e).length === 0) g(e, "unconsumed-chain-event", "no workflow is triggered by it or waits on it");
   for (const c of all(b, "concept")) if (by(c, "concept").length === 0) g(c, "empty-concept", "it owns no tables, rpcs, procedures or workflows");
   for (const r of all(b, "rpc")) if (by(r, "implementedBy").length + by(r, "steps").length + by(r, "signals").length + by(r, "trigger").length === 0) g(r, "unused-rpc", "no operation or flow uses it");
-  for (const f of all(b, "flow")) if (by(f, "implementedBy").length === 0) g(f, "unused-flow", "no operation is implemented by it");
+  // A flow that names only surfaces other than the CLI is used by them, which the book does not model as callers.
+  const otherSurfacesOnly = (f: AnyRecord) => Array.isArray(f.surfaces) && !(f.surfaces as string[]).includes("cli");
+  for (const f of all(b, "flow")) if (by(f, "implementedBy").length === 0 && !otherSurfacesOnly(f)) g(f, "unused-flow", "no operation is implemented by it");
   for (const pr of all(b, "procedure")) if (by(pr, "invokes").length === 0) g(pr, "uninvoked-procedure", "nothing invokes it");
   for (const c of all(b, "component")) if (by(c, "runs").length === 0) g(c, "unhosted-component", "no environment runs it");
   for (const o of all(b, "operation"))

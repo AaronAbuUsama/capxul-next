@@ -7,12 +7,16 @@
 // operation reverted or ran without it, and is abandoned when its carrier ended unsent. Timers run by
 // the chain's clock. No cron: nothing here sweeps.
 
-import { budget, defineWorkflow } from "../../../packages/book/src/index.ts";
+import { budget, defineWorkflow, type ChainEventRef } from "../../../packages/book/src/index.ts";
 import { concept_equity } from "../shared/foundation.ts";
 import {
   contract_captable,
+  contract_exits,
+  contract_governor,
   contract_installer,
   contract_options,
+  contract_rounds,
+  contract_share_class,
   contract_vesting,
   integration_chain_rpc,
   integration_indexer,
@@ -60,8 +64,8 @@ const DECIDE = [w.land, w.fail, w.abandon] as const;
 /** Reading a carrier's transaction at finality: the calls every deciding process makes. */
 const FACTS = [integration_indexer.c.awaitBlock, integration_indexer.c.factsOf] as const;
 
-/** How a deciding process waits on its writes' carriers. */
-const CARRIER_WAITS = [
+/** How a deciding process waits on its writes' carriers; `events` are the logs its writes land on, read at finality. */
+const carrierWaits = (events: readonly ChainEventRef[]) => [
   {
     name: "carrier",
     for: "person" as const,
@@ -76,6 +80,7 @@ const CARRIER_WAITS = [
     name: "indexed",
     for: "indexer" as const,
     timeoutMs: 10 * MINUTE,
+    ...(events.length ? { events } : {}),
     about: "Ponder has indexed the carrier's transaction (by chain and hash) at finality, so its clone events can be read (awaitBlock, then factsOf).",
   },
 ];
@@ -118,8 +123,8 @@ export const workflow_equity_installs_setup = defineWorkflow({
   instance: { per: table_equity_installs },
   waits: [
     { name: "deploy-receipt", for: "chain", about: "deployEquity's receipt, through the service signer's one send and its lookup." },
-    { name: "deployed", for: "indexer", timeoutMs: 10 * MINUTE, about: "EquityDeployed for the company Safe, indexed at finality." },
-    ...CARRIER_WAITS,
+    { name: "deployed", for: "indexer", timeoutMs: 10 * MINUTE, events: [contract_installer.e.EquityDeployed], about: "EquityDeployed for the company Safe, indexed at finality." },
+    ...carrierWaits([]),
   ],
   steps: [
     { name: "deploy", about: "Sends deployEquity with the tier key once, recorded before broadcast; waits for its receipt." },
@@ -187,7 +192,14 @@ export const workflow_equity_grants_lifecycle = defineWorkflow({
   instance: { per: table_equity_grants },
   signals: [rpc_equity_grants_end, rpc_equity_grants_accept, rpc_equity_grants_exercise],
   waits: [
-    ...CARRIER_WAITS,
+    ...carrierWaits([
+      contract_options.e.OptionsGranted,
+      contract_options.e.OptionsAccepted,
+      contract_options.e.OptionsEnded,
+      contract_options.e.Exercised,
+      contract_vesting.e.Granted,
+      contract_vesting.e.Revoked,
+    ]),
     { name: "offer-expiry", for: "timer", about: "offer_expires_at, while the offer waits for its grantee." },
     { name: "expiry", for: "timer", about: "exercise_by after an end, else expires_at: when nothing more can be exercised." },
   ],
@@ -258,7 +270,18 @@ export const workflow_equity_rounds_lifecycle = defineWorkflow({
     rpc_equity_investments_sign,
   ],
   waits: [
-    ...CARRIER_WAITS,
+    ...carrierWaits([
+      contract_rounds.e.PricedRoundCreated,
+      contract_rounds.e.SafeRoundCreated,
+      contract_rounds.e.Invited,
+      contract_rounds.e.SafeInvited,
+      contract_rounds.e.Committed,
+      contract_rounds.e.Allocated,
+      contract_rounds.e.Paid,
+      contract_rounds.e.SafeSigned,
+      contract_rounds.e.RoundClosed,
+      contract_rounds.e.RoundCancelled,
+    ]),
     { name: "pay-by", for: "timer", about: "A priced round's pay-by day: allocated investors who did not pay lapse." },
     { name: "close-day", for: "timer", about: "A SAFE round's last day to sign: invited investors who did not sign lapse." },
   ],
@@ -305,7 +328,7 @@ export const workflow_equity_sales_lifecycle = defineWorkflow({
   trigger: { transition: s.request },
   instance: { per: table_share_sales },
   signals: [rpc_equity_sales_approve, rpc_equity_investments_pay],
-  waits: [...CARRIER_WAITS, { name: "expiry", for: "timer", about: "expires_at, while the offer waits for the Board or the buyer." }],
+  waits: [...carrierWaits([contract_exits.e.TransferOffered, contract_exits.e.TransferApproved, contract_exits.e.Bought]), { name: "expiry", for: "timer", about: "expires_at, while the offer waits for the Board or the buyer." }],
   steps: [
     DECIDE_STEP,
     { name: "lapse", about: "At expires_at by the chain's clock, a sale not bought: share-sale.lapse, and its unsigned carriers withdrawn." },
@@ -347,8 +370,8 @@ export const workflow_equity_votes_lifecycle = defineWorkflow({
   instance: { per: table_votes },
   signals: [rpc_equity_votes_cast, rpc_equity_votes_execute],
   waits: [
-    ...CARRIER_WAITS,
-    { name: "proposal-executed", for: "chain", about: "ProposalExecuted for the vote's Governor and proposal id, from any sender." },
+    ...carrierWaits([contract_governor.e.ProposalCreated, contract_governor.e.VoteCast, contract_governor.e.ProposalExecuted]),
+    { name: "proposal-executed", for: "chain", events: [contract_governor.e.ProposalExecuted], about: "ProposalExecuted for the vote's Governor and proposal id, from any sender." },
     { name: "vote-end", for: "timer", about: "voteEnd, by the Governor's clock: when it reads whether the vote passed and may end." },
   ],
   steps: [
@@ -387,7 +410,7 @@ export const workflow_equity_writes_follow = defineWorkflow({
   priority: "low",
   trigger: { transition: w.open },
   instance: { per: table_equity_writes },
-  waits: [...CARRIER_WAITS],
+  waits: [...carrierWaits([contract_captable.e.Issued, contract_captable.e.Converted, contract_share_class.e.DelegateChanged, contract_exits.e.Settled])],
   steps: [
     { name: "own", about: "A write with a long-lived subject is left to its object's process; the instance ends." },
     DECIDE_STEP,

@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { Schema } from "effect";
-import { buildBook, defineConcept, defineRpc, defineTable } from "../src/index.ts";
+import { buildBook, defineConcept, defineContract, defineRpc, defineTable } from "../src/index.ts";
 import { summaryPage, conceptPage } from "../src/views.ts";
 import * as f from "./fixtures/invitations.ts";
 
@@ -113,4 +113,32 @@ test("a target workflow can be one durable process per row, resumed by signals",
   // its budget eval counts system time only: the person's wait is excluded
   const bud = b.evals.find((e) => e.id === "bud:organizations.invitations.lifecycle/p95");
   assert.match(bud?.claim ?? "", /excluding its waits \(wait\.answer, chain\.confirm\)/);
+});
+
+test("a flow only another surface calls is no unused-flow gap; one that implements an operation must serve the cli", () => {
+  const pageFlow = { ...f.acceptFlow, id: "organizations.accept-on-page", sdk: "client.invitations.acceptOnPage", surfaces: ["react"] as const };
+  const plainFlow = { ...f.acceptFlow, id: "organizations.accept-unused", sdk: "client.invitations.acceptUnused" };
+  const b = book([...f.records, pageFlow, plainFlow]);
+  const unused = b.gaps.filter((g) => g.rule === "unused-flow").map((g) => g.record);
+  assert.ok(!unused.includes("flow:organizations.accept-on-page"));
+  assert.ok(unused.includes("flow:organizations.accept-unused"));
+  // the fixture's CLI flow named as a web-only flow breaks the target rule
+  const misnamed = { ...f.acceptFlow, surfaces: ["react"] as const };
+  const t = buildBook({ name: "test", stage: "target", records: [...f.records.filter((r) => r !== f.acceptFlow), misnamed] });
+  assert.ok(t.problems.some((p) => p.rule === "flow-surface" && p.record === "flow:organizations.accept-invitation"));
+});
+
+test("a wait that names a chain event consumes it", () => {
+  const chain = defineContract({
+    id: "seats",
+    title: "Seats",
+    about: "A test contract.",
+    functions: {},
+    events: { SeatTaken: { signature: "SeatTaken(address safe)", about: "A Seat was taken." }, SeatLeft: { signature: "SeatLeft(address safe)", about: "A Seat was left." } },
+  });
+  const process = { ...f.expire, id: "organizations.invitations.seated", waits: [{ name: "seated", for: "indexer", events: [chain.e.SeatTaken], about: "Ponder indexes the Seat, keyed by the Safe." }] };
+  const b = book([...f.records, chain, process]);
+  const unconsumed = b.gaps.filter((g) => g.rule === "unconsumed-chain-event").map((g) => g.record);
+  assert.deepEqual(unconsumed, ["chainEvent:seats.SeatLeft"]);
+  assert.deepEqual(b.problems, []);
 });

@@ -79,6 +79,7 @@ export const workflow_approvals_lifecycle_carry = defineWorkflow({
     {
       name: "chain",
       for: "indexer",
+      events: [contract_entry_point.e.UserOperationEvent],
       about:
         "The UserOperationEvent at its sender and nonce, indexed by Ponder at the finality depth (index by-sender-nonce " +
         "finds every approval on that nonce); a bundler receipt only says which block to wait for.",

@@ -18,6 +18,7 @@ export const flow_client_me_profile_save = defineFlow({
     "check, payout addresses and account step are not here: a person has no handle, payout wallets are their Safe, and " +
     "the Safe's setup is accounts' flow, which the page runs next.",
   component: component_core_sdk,
+  surfaces: ["react"],
   sdk: "client.me.profile.save",
   input: rpc_parties_profiles_save.input,
   output: rpc_parties_profiles_save.output,
@@ -36,6 +37,7 @@ export const flow_client_me_profile_get = defineFlow({
     "Serves the web app's setup page and profile settings (react surface), not the CLI: whether the person has " +
     "completed their profile, and what they gave. One rpc.",
   component: component_core_sdk,
+  surfaces: ["react"],
   sdk: "client.me.profile.get",
   input: Schema.Struct({}),
   output: rpc_parties_profiles_get.output,

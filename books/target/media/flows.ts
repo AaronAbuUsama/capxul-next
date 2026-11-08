@@ -20,6 +20,7 @@ export const flow_client_media_upload = defineFlow({
     "(`client.me.profile.save`) or the new Organization (`client.onboarding.beginOrganization`). It never binds the file " +
     "itself: the record that points at it does, in its own write.",
   component: component_core_sdk,
+  surfaces: ["react"],
   sdk: "client.media.upload",
   input: Schema.Struct({
     purpose: Schema.Literal("image"),
@@ -51,6 +52,7 @@ export const flow_client_media_fetch_image = defineFlow({
     "page, the checkout page), not the CLI. A file never changes, so it keeps the bytes by file id on the device and asks " +
     "the backend only for an id it has not seen. Null when the id names no image.",
   component: component_core_sdk,
+  surfaces: ["react"],
   sdk: "client.media.fetchImage",
   input: Schema.Struct({ file_id: Schema.String }),
   output: rpc_media_files_get.output,

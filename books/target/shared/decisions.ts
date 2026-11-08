@@ -2463,3 +2463,39 @@ export const decision_contracts_no_checkpoint_reads = defineDecision({
   source: assembly("frozen org.cap-table (designed call); packages/contracts/v4/src/interfaces/IShareClass.sol:8-58; books/target/equity/holdings.ts:39"),
   affects: [x.contract_share_class, f.concept_equity],
 });
+
+// ── target assembly (builder) ───────────────────────────────────────────────────────────────
+
+const builder = (evidence: string) => `Claude, target assembly (builder), 8 November 2026; evidence: ${evidence}`;
+
+export const decision_rules_surfaces_and_wait_events = defineDecision({
+  id: "rules.surfaces-and-wait-events",
+  title: "Flows name their surfaces; waits name the chain events that end them",
+  question:
+    "Three groups asked for the schema to say what the book could only say in prose: twelve flows serve the approval " +
+    "page, checkout, the web app or an agent's SDK host and read as `unused-flow`, and a process that waits on a chain " +
+    "event cannot link it, so sixty chain events read as `unconsumed-chain-event` (A3 makes a process wait on its " +
+    "events, not be triggered by them). Change packages/book, or leave the gaps?",
+  options: [
+    {
+      label: "two-optional-fields",
+      text:
+        "FlowSpec gains `surfaces` (the system's surfaces: cli, sdk, react, mcp, http); a flow whose surfaces leave out " +
+        "cli is not an unused-flow, and a target flow that implements an operation must keep cli (rule flow-surface). A " +
+        "workflow wait gains `events` (chain events), a link the gap counts. Both are optional, so the as-is and frozen " +
+        "books are unchanged.",
+    },
+    { label: "leave", text: "Leave the gaps and explain each in its concept's decisions." },
+    { label: "trigger-per-event", text: "A workflow triggered by each chain event, beside each process." },
+  ],
+  chosen: "two-optional-fields",
+  why:
+    "A gap should mean something is missing; these were the schema's blind spots, and 72 real gaps were hidden among " +
+    "130. A workflow per event would split an object's one writer (A3, rules.durable-processes). `surfaces` reuses the " +
+    "system's vocabulary, and flow-surface keeps it from hiding a CLI flow. A wait's `events` are the logs the process " +
+    "reads at finality, so the remaining unconsumed events are ones only indexing's views read or nothing uses. The " +
+    "routing key stays in the wait's `about` (rules.process-wakeups): it is the runtime's and has no record kind yet. " +
+    "Tests in packages/book/test/build.test.ts cover both.",
+  source: builder("packages/book/src/records/behaviour.ts (FlowSpec, Wait); packages/book/src/build.ts (unused-flow, unconsumed-chain-event, flow-surface); approvals', identity's, rails' and shared's assembly asks"),
+  affects: [f.component_core_sdk, f.component_ponder, x.integration_indexer],
+});

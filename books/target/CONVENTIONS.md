@@ -159,6 +159,9 @@ does until its rule lands (**review**, with the rule's name from the policy pack
   runtime wakes the instance by: the opener and subject on `approval_transitioned` and
   `proposal_transitioned`, or the key Ponder's row carries (chain, sender, nonce; a payment id).
   The runtime routes the event to the waiting instance (decision `rules.process-wakeups`).
+- A `chain` or `indexer` wait lists the chain events that end it in `events`
+  (`events: [contract_safe.e.ExecutionSuccess]`), so the book links the process to what it consumes
+  (decision `rules.surfaces-and-wait-events`).
 - A workflow's trigger is a transition (the outbox), a chain event (`contract_x.e.<Event>`, from
   Ponder), a timer of its own, or a cron. Only P3's crons survive: Bridge catch-up, Chainlink
   prices, feature flags, the daily client-grant sweep (now access' daily sweep of sessions, codes
@@ -195,7 +198,9 @@ does until its rule lands (**review**, with the rule's name from the policy pack
 - Every rpc is reached by an operation (`implementedBy`), a flow's step, a workflow's `signals` or
   a `trigger` (rule `unreached-rpc`). An old method or row with no caller is not ported. A flow
   that serves a surface other than the CLI (the approval page, checkout, the web app, MCP) says
-  which in its `about`.
+  which in its `about` and names it in `surfaces` (`["react"]`, `["sdk"]`), which the build reads
+  instead of reporting it as an `unused-flow`; a flow that implements an operation keeps `cli`
+  (rule `flow-surface`).
 - Devnet-only rpcs live in the devnet concept, `who` starting `devnet only:`, and so does every
   devnet-only operation, even one that reads another concept's records (`dev mail notices` reads
   notices' delivery records; decision `operations.dev-mail-notices-in-devnet`).

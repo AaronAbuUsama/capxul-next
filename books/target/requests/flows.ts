@@ -322,6 +322,7 @@ export const flow_client_checkouts_pay = defineFlow({
     "the request reads paid, or the page is closed; the escrow pays the issuer once it holds the amount.",
   was: [`${SDK}/checkouts.ts:1`, ASIS],
   component: component_core_sdk,
+  surfaces: ["react"],
   sdk: "client.checkouts.pay",
   input: Schema.Struct({ link: S, email: opt(S), quantity: opt(N) }),
   output: Schema.Struct({ requestId: S, status: S }),

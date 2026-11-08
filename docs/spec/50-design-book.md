@@ -54,9 +54,9 @@ Because links only point down, the book has no cycles. A record never lists who 
 | `contract` | `defineContract` | addresses, functions (`contract.f.<name>`) and chain events (`contract.e.<name>`) |
 | `procedure` | `defineProcedure` | a concept's in-transaction entry point, listed on its door: input, output, errors, what it touches. Another concept writes this concept's tables only by invoking one |
 | `rpc` | `defineRpc` | one server endpoint (query, live, mutation, action): who, input, output, errors, what it touches (reads, writes, drives, invokes, calls, chain, emits), server spans, server budget. The generated `RpcGroup` comes from these |
-| `flow` | `defineFlow` | a Core SDK composition: its SDK method, steps (an rpc, or a local step: sign, build, encrypt, wait, poll, prompt, cache), its own errors, client-side calls, spans, client budget |
+| `flow` | `defineFlow` | a Core SDK composition: its SDK method, steps (an rpc, or a local step: sign, build, encrypt, wait, poll, prompt, cache), its own errors, client-side calls, spans, client budget, and `surfaces` when a surface other than the CLI calls it (the approval page, checkout or the web app on `react`, an agent's SDK host on `sdk`) |
 | `operation` | `defineOperation` | **the frozen unit**: the CLI command and the old book's text, acceptance lines numbered (a retired line stays `null`), what `--json` returns, refusals with their `given` world, the end-to-end budget, and `implementedBy` one rpc or one flow. Everything below it may change; it may not |
-| `workflow` | `defineWorkflow` | its trigger (after an rpc, a transition, a chain event, an indexer event or a cron), steps, what it touches, idempotency key, timeout, retries, compensation, budget |
+| `workflow` | `defineWorkflow` | its trigger (after an rpc, a transition, a chain event, an indexer event or a cron), steps, what it touches, its waits (a wait on the chain or the indexer lists the chain events that end it in `events`), idempotency key, timeout, retries, compensation, budget |
 | `journey` | `defineJourney` | ordered steps: operation, actor, proving event |
 | `invariant` | `defineInvariant` | a statement over tables and machines; checked by property test, fuzz, reconciliation (`by` a workflow) or static check |
 | `environment` | `defineEnvironment` | which components run where, config and secret names, deploy, boot budget |
@@ -76,6 +76,7 @@ Because links only point down, the book has no cycles. A record never lists who 
 | `drives-without-write` | it drives a transition on a table it does not write |
 | `call-error-not-declared` | an rpc calls an integration whose failure maps to an error the rpc does not declare |
 | `refusal-not-produced` | an operation's refusal is an error its rpc or flow cannot produce (its own, its procedures', its steps', its calls' failures) |
+| `flow-surface` | (target) a flow that implements an operation, a CLI command, names `surfaces` without `cli` |
 | `cycle` | concepts or components depend on each other in a loop |
 | `unknown-actor` | a journey step is taken by someone the system does not list |
 
@@ -88,11 +89,11 @@ Because links only point down, the book has no cycles. A record never lists who 
 | `unreachable-state` | no transition reaches it |
 | `unsent-event` | no transition, operation or workflow sends it |
 | `unproduced-error` | no operation or integration produces it |
-| `unused-call`, `uncalled-function`, `unconsumed-chain-event` | an integration call, a contract function or a chain event that nothing uses |
+| `unused-call`, `uncalled-function`, `unconsumed-chain-event` | an integration call, a contract function or a chain event that nothing uses (a chain event is used by a workflow it triggers or a wait that lists it) |
 | `empty-concept` | it owns no tables, operations or workflows |
 | `unhosted-component` | no environment runs it |
 | `no-acceptance` | an operation has no acceptance lines |
-| `unused-rpc`, `unused-flow`, `uninvoked-procedure` | nothing uses it: the old system's orphan rows show up here |
+| `unused-rpc`, `unused-flow`, `uninvoked-procedure` | nothing uses it: the old system's orphan rows show up here (a flow whose `surfaces` leave out the CLI is used by those surfaces, which the book does not model) |
 | `no-budget` | an operation, rpc, flow or workflow says nothing about how fast it must be |
 | `refusal-without-world` | a refusal's `given` is `?`: no devnet world reaches it yet |
 | `unproven-step` | a journey step has no proving event |

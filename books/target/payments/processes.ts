@@ -14,6 +14,7 @@ import { concept_payments } from "../shared/foundation.ts";
 import {
   contract_budgets,
   contract_erc20,
+  contract_escrow,
   contract_payments,
   integration_chain_rpc,
   integration_indexer,
@@ -78,10 +79,11 @@ export const workflow_payments_lifecycle_payment = defineWorkflow({
     {
       name: "reserved",
       for: "indexer",
+      events: [contract_budgets.e.PaymentScheduled],
       about: "A budget's dated payment: PaymentScheduled with its job nonce on its own budget, which gives its scheduled id.",
     },
-    { name: "escrowed", for: "indexer", about: "A claim escrow: EscrowCreated with its payment id." },
-    { name: "released", for: "indexer", about: "A cancel: ScheduleCancelled of its scheduled id, or EscrowRefunded of its payment id." },
+    { name: "escrowed", for: "indexer", events: [contract_escrow.e.EscrowCreated], about: "A claim escrow: EscrowCreated with its payment id." },
+    { name: "released", for: "indexer", events: [contract_budgets.e.ScheduleCancelled, contract_escrow.e.EscrowRefunded], about: "A cancel: ScheduleCancelled of its scheduled id, or EscrowRefunded of its payment id." },
     { name: "day-ahead", for: "timer", about: "A dated Payment, 24 hours before its day: `come_due` and the funding read." },
     {
       name: "pay-day",

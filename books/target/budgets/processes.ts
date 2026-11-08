@@ -8,7 +8,7 @@
 
 import { budget, defineWorkflow } from "../../../packages/book/src/index.ts";
 import { concept_budgets } from "../shared/foundation.ts";
-import { contract_hats, integration_indexer } from "../shared/external.ts";
+import { contract_budgets, contract_hats, integration_indexer } from "../shared/external.ts";
 import { table_principals } from "../access/data.ts";
 import { table_chain_budgets, table_hat_wearers } from "../indexing/data.ts";
 import {
@@ -67,6 +67,7 @@ export const workflow_budgets_changes_follow = defineWorkflow({
     {
       name: "indexed",
       for: "indexer",
+      events: [contract_budgets.e.BudgetCreated, contract_budgets.e.BudgetAmountSet, contract_budgets.e.BudgetClosed, contract_budgets.e.BudgetReopened, contract_hats.e.TransferSingle],
       timeoutMs: 10 * MINUTE,
       about: "Ponder has indexed the executed transaction (by chain and hash) at finality, so its Budgets and Hats facts can be read.",
     },

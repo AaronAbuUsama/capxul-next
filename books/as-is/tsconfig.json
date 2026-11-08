@@ -1,0 +1,6 @@
+{
+  "//": "The as-is book is paused evidence: its unfinished lanes import records never written, so it does not typecheck. npx tsc -p books/as-is shows them.",
+  "extends": "../../packages/book/tsconfig.json",
+  "compilerOptions": { "types": ["node"] },
+  "include": ["**/*.ts"]
+}

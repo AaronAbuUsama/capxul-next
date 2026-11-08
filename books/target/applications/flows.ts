@@ -187,6 +187,7 @@ export const flow_create_capxul_client = defineFlow({
     "sends its origin token with every backend request, and bootstraps again before the envelope ends.",
   was: ["books/as-is/applications/flows.ts:27", `${SDK}/platform/production.ts:135`, `${SDK}/applications/bootstrap-adapter.ts:50`],
   component: component_core_sdk,
+  surfaces: ["react", "sdk"],
   sdk: "createCapxulClient",
   input: Schema.Struct({
     publishableKey: S,

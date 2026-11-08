@@ -14,7 +14,7 @@ The records it explains:
 | `books/target/shared/foundation.ts` | the system and its actors, 10 components, 22 concepts, 2 environments, `OPERATION_OWNERS` (the concept that designs each of the 215 frozen operations) and `AREA_CONCEPTS` |
 | `books/target/shared/vocabulary.ts` | the 47 error codes the target answers with (no events: each concept defines its machines' events) |
 | `books/target/shared/external.ts` | 11 integrations as Effect services, and 25 contracts: Protocol v4 and the third-party contracts its install wires |
-| `books/target/shared/decisions.ts` | 136 decision records, one per judgment, 22 of them one per concept's dependencies |
+| `books/target/shared/decisions.ts` | 137 decision records, one per judgment, 22 of them one per concept's dependencies |
 | `books/target/shared/landings.ts` | `OLD_AREAS`: each of the old concepts' 93 areas, where it lands and the decision that put it there |
 | `books/target/CONVENTIONS.md` | the folders, names and target rules every concept designer follows |
 
@@ -363,6 +363,27 @@ Declined: Bridge's `cancelPayout` (no frozen line needs it; a changed account wi
 unsigned approval), Hats' `getNextId` (not in v4's IHats, and it closes no race `viewHat` leaves
 open), and Escrow's `InvoicePaymentCompleted` (nothing reads the surplus it reports).
 
+## What the builder changed when the book was assembled (8 November 2026)
+
+The assembled book registers all 22 concepts and books each of the 215 frozen operations exactly
+once, in its owner's `operations.ts`. The concept fixers' work changed two things a reader of this
+page should know about: `contact get` is banking's flow `client.account.address-book.get` (contacts'
+picker and entry read, then the new query `banking.accounts.list-for-contact`, decision
+`banking.contact-get`), and `bank settle` reads the virtual account through Bridge's
+`readBankDetails` before it writes (`banking.settle-reads-first`).
+
+The builder applied the asks the fixers left for others. Each change is a decision record:
+
+| Change | Record |
+|---|---|
+| The schema says what the book had only said in prose: a flow names the surfaces that call it (`surfaces`), a wait names the chain events that end it (`events`); target rule `flow-surface` | `rules.surfaces-and-wait-events` |
+| Budgets plans a new hat's id from `Hats.viewHat`'s `lastHatId` at the chain head, not from indexing | `budgets.hat-planning` (revised) |
+| A payout's return fact references the payout's Payment, and the quote states `pay_at` null and `resume` false | `banking.payout-return-reference` |
+| Reclassify's straddling row has its own world, `org-with-straddling-payout`, built on `org-with-chart` | `devnet.straddling-payout-world` |
+| A declined terminal preview ends CANCELLED in `org create`, `org retry`, `invite decline`, `org invite cancel`, `org invite resend`, `activity annotate` and `invite accept`; the refused `org director` writes ask nothing | `organizations.declined-previews`, `books.annotate-declined-preview`, `banking.invite-accept-declined`, `board.director-refusals-ask-nothing` |
+| Waits on another concept's transition or a chain event name their routing key | `rules.process-wakeups` (applied) |
+| `agents.transaction-width` is closed by `rules.transaction-width` | `agents.transaction-width` (revised) |
+
 ## For Aaron
 
 The records settle everything under the accepted decisions. Three judgments go furthest beyond
@@ -557,6 +578,8 @@ concept follow in the next section.
 - **A procedure only for one money fact, read narrowly** (`rules.procedures`). *Chosen:* A fact about money moved, reserved, routed or owned: a Payment and its book fact or document; a chain write and the approval or proposal that carries it; a name and the Safe it routes money to; a deposit and the request it paid; a Payment command another concept births. Everything else goes through the outbox. *Why:* The test is P4's: if the two writes disagreed at a commit, could money move, or be owned, that Capxul's records do not account for? An approval opened without its intent would let a person sign a money movement with no Payment; a proposal without its intent would execute a budget nobody recorded; a handle bound to the wrong Safe misroutes payments. A notice, a projection or telemetry can lag and be rebuilt, so it never qualifies. Each procedure's `about` names its fact, and the build's `notice-in-transaction` rule, when it lands, refuses one that is only a notice. One authority fact is admitted beside them, `accounts.admit` (procedures.accounts-admit), because neither a procedure for money nor the outbox can carry it. *Not chosen:* *payments-only*: Only payments and books writing together. *any-atomic*: Any write the caller wants atomic.
 
 - **The runtime wakes a waiting process by the key its event carries** (`rules.process-wakeups`). *Chosen:* The runtime. A transition's outbox event wakes each instance whose wait names it and whose key its props carry (the opener and subject on approval_transitioned and proposal_transitioned); an indexed chain event wakes one by the key Ponder's row carries (chain, sender, nonce; a payment id). The book names the wait and, in its about, the key. *Why:* A3 makes each long-lived object one process that owns its machine, and a wait is its own span, never system time. A reactor per event would add a workflow for every wait, and a poll spends system time and lags by its interval. Effect Workflow resumes an instance through a durable deferred it can address, so the runtime keeps the map from an event's key to that address, fed by the outbox relay and by Ponder's progress (integration indexer). The A2 spike must prove both, including a transition a procedure writes in another concept's transaction (approvals.withdraw). The schema has no field for a wait's key yet, so its about names it. *Not chosen:* *reactor*: One reacting workflow per event finds the waiting instance by a table read and signals it. *poll*: Each waiting instance polls the tables it waits on.
+
+- **Flows name their surfaces; waits name the chain events that end them** (`rules.surfaces-and-wait-events`). *Chosen:* FlowSpec gains `surfaces` (the system's surfaces: cli, sdk, react, mcp, http); a flow whose surfaces leave out cli is not an unused-flow, and a target flow that implements an operation must keep cli (rule flow-surface). A workflow wait gains `events` (chain events), a link the gap counts. Both are optional, so the as-is and frozen books are unchanged. *Why:* A gap should mean something is missing; these were the schema's blind spots, and 72 real gaps were hidden among 130. A workflow per event would split an object's one writer (A3, rules.durable-processes). `surfaces` reuses the system's vocabulary, and flow-surface keeps it from hiding a CLI flow. A wait's `events` are the logs the process reads at finality, so the remaining unconsumed events are ones only indexing's views read or nothing uses. The routing key stays in the wait's `about` (rules.process-wakeups): it is the runtime's and has no record kind yet. Tests in packages/book/test/build.test.ts cover both. *Not chosen:* *leave*: Leave the gaps and explain each in its concept's decisions. *trigger-per-event*: A workflow triggered by each chain event, beside each process.
 
 - **sys:tx-width counts the procedures an rpc invokes itself** (`rules.transaction-width`). *Chosen:* Count what one run of the rpc or workflow invokes itself; where its branches invoke different doors (approvals.open for a person, board.propose for an Organization), its widest branch. A procedure's own invocations count against that procedure, held to the same limit. A wider transaction needs the invoking concept's decision record. *Why:* The rule bounds what one concept couples into its transaction, and an invoker cannot change what a door does inside: board.propose always opens its first approval. Counting that against every proposer (budgets, payroll, payments, agents, equity) would push each to split one money fact over two transactions, which P4 exists to prevent. The door is bounded on its own (board.propose: one procedure of one concept). An rpc's `invokes` lists every branch's doors, so agents' create and sweep list three concepts but run two (agents.transaction-width). P4 allows a wider one with a decision record: payments.birth-width is that record for payments' prepare and propose (parties, documents, and approvals or board). Equity's Board-matter prepares are within the rule. *Not chosen:* *nested*: Count every procedure the transaction runs, nested ones included.
 
