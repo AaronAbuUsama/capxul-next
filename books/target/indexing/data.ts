@@ -10,7 +10,7 @@
 // Every indexed log is stored once (decision indexing.one-row-per-log): in its typed fact table
 // when readers query it by its columns (transfers, chain-payments, user-operations, safe-approvals,
 // safe-executions), else in chain-logs, the one decoded log that replaces the old fifteen
-// `v4_<contract>_event` evidence tables, `safe_event` and `role_authority`. Projections hold what a
+// `v4_<contract>_event` evidence tables and `safe_event`. Projections hold what a
 // fact log alone cannot answer cheaply: the current state of a Safe, a hat, a budget, an agreement,
 // an escrow or an equity position. Reorgs are Ponder's: it rolls back a reorganised block's rows
 // and replays the canonical ones, so every view is the chain at Ponder's head
@@ -144,8 +144,8 @@ export const table_chain_logs = defineTable({
     "log is admitted when its contract is Capxul's, or its Safe, hat tree or escrow is one a Capxul event made known " +
     "(CapxulSafeClaimed, CompanySafeMinted, AgentCreated, MoneyDeployed, EscrowDeployed); Hats events of other trees are " +
     "not indexed. This is the source of the `chainEvent` triggers of every concept above and of `indexer.factsOf`; the " +
-    "projections below are built from it. It replaces the old fifteen `v4_<contract>_event` evidence tables, `safe_event` " +
-    "and `role_authority`, which held the same log shape once per contract.",
+    "projections below are built from it. It replaces the old fifteen `v4_<contract>_event` evidence tables and " +
+    "`safe_event`, which held the same log shape once per contract. Roles' events are not indexed (indexing.roles-not-indexed).",
   was: [`${V4}/evidence-table.ts:9`, `${V4}/evidence.ts:38`, `${PONDER}:75`, `${PONDER}:152`, `${V4}/schema.ts:1`],
   concept: concept_indexing,
   tenancy: "chain",
@@ -188,7 +188,7 @@ export const table_transfers = defineTable({
     "transfer, activity for a Safe's history, books to reconcile. Replaces the old `transfer` table and `activity_transfer` " +
     "view, whose pre-v4 matching of a Transfer to a V2 PaymentSent is gone (payments matches by the transaction's facts); " +
     "native ETH is not indexed (no frozen operation moves or shows it).",
-  was: [`${PONDER}:3`, `${PONDER}:243`, "apps/indexer/ponder.config.ts:20", "apps/indexer/src/native-schema.ts:6"],
+  was: [`${PONDER}:3`, `${PONDER}:243`, "apps/indexer/ponder.config.ts:23", "apps/indexer/src/native-schema.ts:6"],
   concept: concept_indexing,
   tenancy: "chain",
   scope: scope("`from_address` or `to_address`"),
@@ -218,7 +218,7 @@ export const table_transfers = defineTable({
 
 export const table_chain_payments = defineTable({
   id: "chain-payments",
-  title: "Chain payments: every PaymentSent, with the budget, agreement or escrow beside it",
+  title: "Chain payments: every PaymentSent, with its budget, agreement or escrow",
   about:
     "One row per `Payments.PaymentSent`: on v4 every movement of money ends in one, whoever started it, and it is the fact a " +
     "Payment settles from or is born from (concepts.payments). Every PaymentSent of the deployment's Payments contract is " +
@@ -276,13 +276,14 @@ export const table_chain_payments = defineTable({
 
 export const table_user_operations = defineTable({
   id: "user-operations",
-  title: "User operations: each UserOperationEvent Capxul's paymaster sponsored",
+  title: "User operations: each UserOperationEvent sent from a Capxul Safe",
   about:
-    "One row per EntryPoint v0.7 `UserOperationEvent` whose paymaster is the deployment's: every approval is sponsored by " +
-    "Capxul's paymaster, so this is every UserOperation Capxul sent, and none of the chain's others. `nonce` is split into " +
-    "its key (the approval's own nonce key) and sequence. It is the chain proof that ends an approval: the event at the " +
-    "approval's sender and nonce lands or reverts it (its own hash) or displaces it (another hash) (concepts.approvals). " +
-    "The old indexer did not index it; the old backend read receipts through chain-evidence instead.",
+    "One row per EntryPoint v0.7 `UserOperationEvent` whose sender is a Capxul Safe (a person's or an agent's, known from " +
+    "CapxulSafeClaimed and AgentCreated), whatever paid for it: every approval is sponsored by Capxul's paymaster, but an " +
+    "operation that takes an approval's nonce may not be, and it must still be seen. `paymaster` says who paid. `nonce` " +
+    "is split into its key (the approval's own nonce key) and sequence. It is the chain proof that ends an approval: the " +
+    "event at the approval's sender and nonce lands or reverts it (its own hash) or displaces it (another hash) " +
+    "(concepts.approvals). The old indexer did not index it; the old backend read receipts through chain-evidence instead.",
   was: ["packages/backend/src/integrations/chain-evidence/service.ts:76", "packages/backend/src/payments/executions/external/sends.ts:145"],
   concept: concept_indexing,
   tenancy: "chain",
@@ -325,8 +326,9 @@ export const table_safe_owners = defineTable({
   about:
     "One row per Safe a Capxul event made known: a person's (CapxulSafeClaimed: claimed, with their signer), a company's " +
     "(CompanySafeMinted, with its founder's Safe) and an agent's (AgentCreated, with its owner). Its owners, threshold, " +
-    "modules and guard are read by Ponder at the block of each event that changes them (the Safe's setup, AddedOwner, " +
-    "RemovedOwner, ChangedThreshold, a module or guard change), and `nonce` counts the transactions it executed. For a " +
+    "nonce, modules and guard are read by Ponder at the block of each event that changes them (the Safe's setup, " +
+    "AddedOwner, RemovedOwner, ChangedThreshold, a module or guard change, an execution), so a Safe deployed before " +
+    "Capxul knew it still reads right. For a " +
     "company Safe the owners are the seated Directors' Safes and the Gate its one module and guard; for an agent, " +
     "AgentOwner's state rides on the same row (`agent_owner`, `frozen`, `removed`), so an agent needs no table of its own. " +
     "A person's row existing is the chain's answer to 'is this Safe claimed', which is why no lower concept needs accounts " +
@@ -522,7 +524,8 @@ export const table_chain_hats = defineTable({
   about:
     "One row per hat in a company's Board tree or Shareholders tree (HatCreated, attributed to the company by its top hat " +
     "in chain-deployments): its admin hat (null for a top hat), level, details, max supply, current supply (wearers " +
-    "now), eligibility and toggle. Budgets plans a new office or allowance hat's id from its admin's children here, with " +
+    "now), eligibility, toggle and whether it is active, kept current by Hats' max supply, eligibility, toggle and " +
+    "status change events. Budgets plans a new office or allowance hat's id from its admin's children here, with " +
     "Ponder at the chain head (Hats ids are positional, so the next child is the count of children so far); board names " +
     "the officer and Director hats from it. Hats of other trees are not indexed.",
   was: ["packages/protocol/src/evm/company-hats.ts:11"],
@@ -541,6 +544,7 @@ export const table_chain_hats = defineTable({
     supply: Int,
     eligibility: S,
     toggle: S,
+    active: B,
     mutable: B,
     ...SET_BY,
   }),
@@ -566,9 +570,12 @@ export const table_hat_wearers = defineTable({
   about:
     "One row per hat and wearer that ever held it, from Hats' TransferSingle (minted, moved or burned) and " +
     "WearerStandingChanged: `holds` while the wearer's balance is one, `standing` while in good standing, and `wearing` " +
-    "when both hold, which is what every reader asks (an officer hat, the Director hat, a budget's office hat). Capxul's " +
-    "trees use an address, not a module, for eligibility, so these events are the whole story; a check that must be exact " +
-    "at the moment of a write (the Gate seating a signer) reads `isWearerOfHat` live. `company_safe` is the company whose " +
+    "when both hold and the hat is active (chain-hats), which is what every reader asks (an officer hat, the Director hat, " +
+    "a budget's office hat). The install gives every hat an address, not a module, for eligibility and toggle (the company " +
+    "Safe; the founder's Safe, then the Governor, for the Director hat), so these events are the whole story. Once a " +
+    "company attaches elections (equity, low priority), its Director hat's eligibility is the Elections module, whose " +
+    "term end rules wearers out with no event; that hat's readers, and any check that must be exact at the moment of a " +
+    "write (the Gate seating a signer), read `isWearerOfHat` live (indexing.hats-indexed). `company_safe` is the company whose " +
     "tree holds the hat. Board, budgets, books, requests, banking, applications and organizations read it. New: the old " +
     "system read hats from the chain on every request.",
   was: ["packages/protocol/src/evm/company-hats.ts:11", "packages/backend/src/permissions/tables/permissions.ts:57"],
@@ -710,7 +717,8 @@ export const table_escrows = defineTable({
   about:
     "One row per escrow the EscrowFactory deployed (EscrowDeployed, with its CREATE2 address, owner Safe, payee Safe, " +
     "payment id and salt) and the terms its EscrowCreated names: token, amount, kind, document hash and condition " +
-    "(`invoice`: paid out once its balance reaches the amount; `claim`: collected once the payee's Safe is claimed). " +
+    "named as the contract's constants (`invoice_amount_reached`: paid out once its balance reaches the amount; " +
+    "`payee_claimed`: the payee's Safe collects it once claimed). " +
     "`standing` is open until EscrowPaid or EscrowRefunded. What it holds is its row in safe-balances. Accounts finds the " +
     "claim escrows waiting for a person's Safe at its setup; requests follows an invoice escrow's checkout; books and " +
     "payments read what an owner has in escrow.",
@@ -729,7 +737,7 @@ export const table_escrows = defineTable({
     amount: S,
     kind: Int,
     document_hash: S,
-    condition: Schema.Literals(["invoice", "claim"]),
+    condition: Schema.Literals(["invoice_amount_reached", "payee_claimed"]),
     standing: Schema.Literals(["open", "paid", "refunded"]),
     ...SET_BY,
   }),

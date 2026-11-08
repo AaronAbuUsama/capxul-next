@@ -77,7 +77,7 @@ export const table_agents = defineTable({
     "AgentOwner.safeAddressFor(signer, owner's Safe), known before the Safe exists and never changed, so it is the " +
     "agent's chain key. `signer_address` is the key that signs for it now: the key it was created with, replaced only " +
     "when a rotation lands on chain naming that new key. `key_store` is where the creator's machine said it keeps the " +
-    "key (never the key: the backend only ever sees its address). The owner is a person (`owner_kind` person, " +
+    "key (never the key: the backend only ever sees its address); a landed rotation sets its new key's. The owner is a person (`owner_kind` person, " +
     "`owner_id` their principal id) or an Organization (`owner_kind` organization, `owner_id` its org_id); it never " +
     "changes, because AgentOwner binds the owner's Safe at creation. Name and handle are read from the Party, the " +
     "agent's principal (its accountId) from access by its Safe, the owner's email and Safe from the owner's own rows: " +
@@ -87,7 +87,8 @@ export const table_agents = defineTable({
   tenantField: "owner_id",
   scope:
     "The owner is `owner_kind` with `owner_id`: a person's principal id, or an org_id. The generated row-level security " +
-    "policy matches each kind to the session's person, or to an Organization the session's principal is a member of.",
+    "policy matches each kind to the session's person, or to an Organization the session's principal is a member of; " +
+    "an agent signed in with its own key also sees its own row (its principal's Safe is `safe_address`).",
   fields: Schema.Struct({
     owner_id: S,
     owner_kind: OwnerKind,
@@ -121,6 +122,15 @@ export const table_agents = defineTable({
       for:
         "One agent by its `agent_` id, for `agent show` and every change (row-level security still scopes the read to " +
         "its owner), and for its change's process.",
+    },
+    {
+      name: "by-safe",
+      fields: ["safe_address"],
+      unique: true,
+      crossTenant: true,
+      for:
+        "The agent a Safe is: `agent show` run by the agent itself (its principal names its Safe), and the AgentOwner " +
+        "event a change's process reads, which names the agent only by its Safe.",
     },
     {
       name: "by-party",
@@ -261,6 +271,8 @@ export const table_agent_changes = defineTable({
     old_signer: NullOr(S),
     /** A create's key, or a rotation's new key; null for every other kind. */
     signer: NullOr(S),
+    /** Where the creator's machine keeps a create's or a rotation's key; null for every other kind. */
+    key_store: NullOr(KeyStore),
     /** A sweep's recipient; null for every other kind (a removal always sweeps to the owner's Safe). */
     recipient: NullOr(Recipient),
     /** A sweep's or a removal's settlement assets, as prepared; empty for every other kind. */
