@@ -32,7 +32,7 @@ Read, in order:
 
 ```bash
 git clone https://github.com/AaronAbuUsama/capxul-next /home/user/capxul-next
-cd /home/user/capxul-next && git checkout claude/infrastructure-refactor-plan-v41iue && ppnpm install
+cd /home/user/capxul-next && git checkout claude/infrastructure-refactor-plan-v41iue && pnpm install
 # the old system, read only, as a reference for behaviour (agents read it at this path):
 git clone --branch integration/factory --depth 1 https://github.com/Xelmar-tech/infrastructure /home/user/factory
 pnpm exec tsc -p packages/book && pnpm test   # 21 tests
@@ -63,6 +63,10 @@ The prompts in `tools/workflows/` use the absolute paths `/home/user/capxul-next
 | 4 | Target design of each concept | done: all 22 concepts, each with its decisions |
 | 5 | Target book assembled and built with the target rules | done: 2,132 records, 0 problems, 4,752 evals, 627 decisions; 13 journeys; the row-policy admissions and wait keys the generators need; `tools/check-frozen.ts` 0 breaches (every operation booked once, every behaviour kept); 74 known gaps, each owned (listed in the goal prompt) |
 | 6 | The goal prompt | done: `docs/mission/initializer.md` |
+| 7 | Design lanes for the build's own machinery | done: tooling (`docs/design/tooling.md`), the portal (`portal.md`), the swarm (`swarm.md`, `swarm-templates.md`, `.claude/agents/`, `.github/` templates, `tools/plan-tasks.ts` and `docs/mission/tasks.json`) and the one clock (`time.md`) |
+| 8 | Aaron's rulings of 8 November 2026 | recorded in `books/target/shared/rulings.ts` and applied: seats, contact permissions, money-waiting email and reminders, machine login, the portal generator, claim trust, budget payments to someone with no account, buying seats |
+| 9 | The Frappe redesign | done: books in ERPNext accounting's shapes, payroll in Frappe HR's, the CRM in Frappe CRM's, a new projects concept, organization start-up with its FDE agent, and the head integration (`docs/design/frappe/`); the cross-concept assembly in `docs/design/frappe/assembly-items.md` |
+| 10 | The hill-climbing starter kit | built and verified from a fresh clone; kept as `kit/hillclimb-kit.bundle` (`kit/README.md`). The build starts from it |
 
 This work **prepares** the rebuild; it does not run it. No product code is written here. To start
 the build, open a session on this repository and give it `docs/mission/initializer.md` as its goal.
@@ -97,6 +101,15 @@ shape:
   generators need, with an adversarial reviewer. Its `returns` task was never run: Aaron's
   `system.frozen-behaviour` made the old `--json` shapes free.
 
+Later scripts:
+
+- `design-*.js`: the design lanes (tooling, portal, swarm, time), Aaron's rulings and the vision,
+  and the Frappe lanes (`design-frappe.js`, its lanes given as arguments), each a designer and an
+  adversarial reviewer.
+- `frappe-assembly.js`: the Frappe lanes' cross-concept items and the follow-up rulings, by owning
+  group, then a builder.
+- `build-hillclimb-kit*.js`, `kit-swarm-dx.js` and `kit-provable-evals.js`: the starter kit.
+
 The as-is scripts (`book-as-is-*.js`, `book-payments-assemble.js`) are kept as history. They
 write to `books/as-is/`, which is now archived in `docs/as-is/archive/`.
 
@@ -119,5 +132,7 @@ The designers' and the assembly's reports are in `docs/decisions/concept-reports
 
 - The decision board was a claude.ai page in Aaron's account; every answer on it is recorded in
   `docs/decisions/README.md`.
+- The starter kit has no repository yet; `kit/hillclimb-kit.bundle` is a git bundle of it, and
+  `git clone kit/hillclimb-kit.bundle /home/user/hillclimb-kit` restores it with its history.
 - swarmD (`AaronAbuUsama/swarmd`) is a separate repository. Its specs for the ledger, managers and
   pairs are here in `docs/spec/10-swarmd-ledger.md` and `20-swarmd-managers-and-pairs.md`.

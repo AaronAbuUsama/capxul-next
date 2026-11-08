@@ -327,7 +327,7 @@ Pair: P-44
 Rounds: 2
 Cost-Usd: 1.84
 Evals: 37 pass, 0 fail, 1 unverifiable
-Approved-By: reviewer#9 (anthropic/claude-sonnet-5-5), adversary#3 (anthropic/claude-sonnet-5-5)
+Approved-By: reviewer#9 (openai/gpt-6.1-sol), adversary#3 (openai/gpt-6.1-sol)
 ```
 
 The body is the last submit's `Changed:` part; at stage 0 `Ledger-Task` and `Pair` are omitted.
@@ -577,14 +577,14 @@ the template; the reason is the diagnosis or the table's row, never free text:
 ```json
 {
   "kind": "decision",
-  "title": "Fund the adversary on Sonnet or Opus?",
-  "body": "The adversary found 0 attacks on 12 money tasks in a row; swarm.checker-family puts it on claude-sonnet-5-5. The retro's strong-model finding on #46 suggests a stronger model finds what a cheaper one misses.",
+  "title": "Raise the adversary's thinking on money tasks?",
+  "body": "The adversary found 0 attacks on 12 money tasks in a row; it runs on the check tier at high thinking (swarm.checker-family). The retro's strong-model finding on #46 suggests more reasoning finds what less misses.",
   "options": [
-    { "label": "sonnet", "text": "Keep the adversary on anthropic/claude-sonnet-5-5.", "grade": "recommended", "cost": "about $0.40 a money task", "risk": "a missed attack class" },
-    { "label": "opus", "text": "Move the adversary to anthropic/claude-opus-5-5.", "grade": "viable", "cost": "about $1.60 a money task, $180 over the build", "risk": "budget signals on money tasks" }
+    { "label": "high", "text": "Keep the adversary on the check tier at high thinking.", "grade": "recommended", "cost": "about $0.40 a money task", "risk": "a missed attack class" },
+    { "label": "xhigh", "text": "Run the adversary at xhigh thinking on money tasks.", "grade": "viable", "cost": "about $1.60 a money task, $180 over the build", "risk": "budget signals on money tasks" }
   ],
-  "recommendation": "sonnet",
-  "default": "sonnet stands; the build continues.",
+  "recommendation": "high",
+  "default": "high stands; the build continues.",
   "bring": "decision",
   "records": ["swarm.checker-family", ".swarmd/workers/adversary.ts"],
   "decider": "aaron",
@@ -610,12 +610,12 @@ Rendered in the room, on the board and (stage 0) as the issue body of
 
 ```text
 M-11 · decision · bring: decision · for @aaron
-Fund the adversary on Sonnet or Opus?
+Raise the adversary's thinking on money tasks?
 The adversary found 0 attacks on 12 money tasks in a row; …
 Options
-  sonnet (recommended): Keep the adversary on anthropic/claude-sonnet-5-5. Cost: about $0.40 a money task. Risk: a missed attack class.
-  opus (viable): Move the adversary to anthropic/claude-opus-5-5. Cost: … Risk: …
-Recommendation: sonnet. Meanwhile: sonnet stands; the build continues.
+  high (recommended): Keep the adversary on the check tier at high thinking. Cost: about $0.40 a money task. Risk: a missed attack class.
+  xhigh (viable): Run the adversary at xhigh thinking on money tasks. Cost: … Risk: …
+Recommendation: high. Meanwhile: high stands; the build continues.
 Touches: swarm.checker-family, .swarmd/workers/adversary.ts
 Answer with an option's label, or in your own words.
 ```
@@ -852,8 +852,8 @@ Blocked (2)
 Frontier (25 open) · next: door:requests, operation:payroll.run.create, operation:notices.list
 Matters waiting for a person (2)
   M-9  question  Staging deploy token? (owner-only) · 3h
-  M-11 decision  Fund the adversary on Sonnet or Opus? (decision) · 1d · recommendation stands: sonnet
-Spend  $812 of $2,500 (32%) · committed $11.20 · today $46 · manager $31 (3.8%) · gateway up · anthropic up
+  M-11 decision  Raise the adversary's thinking on money tasks? (decision) · 1d · recommendation stands: high
+Spend  $812 of $4,000 (20%) · committed $11.20 · today $46 · manager $31 (3.8%) · openai up
 Failing (10 of 31)
   ref:payment.send/WRONG_STATE at integration/build · expected exit 4, saw 0
 Timeline
@@ -953,13 +953,12 @@ for the dry run (swarm.md 1.2). The today form below typechecks against `package
 ### 10.2 The documented API (stage 1)
 
 ```ts
-// .swarmd/models.ts (planned: how-to/choose-models)
-import { anthropic, provider } from "@swarmd/agent/models";
-
-const gateway = provider({ name: "gateway", api: "openai", baseUrl: "https://cliproxy.capxul.com/v1", secret: "GATEWAY_API_KEY" });
-export const sol = gateway("gpt-6.1-sol", { thinking: "high" });              // makers (strong tier)
-export const sonnet = anthropic("claude-sonnet-5-5", { thinking: "high" });   // checkers, adversary, diagnoser (strong, other family)
-export const haiku = anthropic("claude-haiku-5-5", { thinking: "low" });      // the manager, the researcher (cheap)
+// .swarmd/models.ts (planned: how-to/choose-models). Tiers, not model objects: a tier is namespace configuration, so
+// the model behind it is set when the build runs (swarm.checker-family: everything on OpenAI for now), e.g.
+//   pnpm exec swarmd ns config capxul --tier cheap=openai/gpt-6-luna --tier strong=openai/gpt-6.1-sol --tier check=openai/gpt-6.1-sol
+export const strong = { tier: "strong", thinking: "medium" } as const;   // the builder and the diagnoser
+export const check = { tier: "check", thinking: "high" } as const;       // the reviewer and the adversary: a different model from the maker where one is set
+export const cheap = { tier: "cheap", thinking: "low" } as const;        // the manager and the researcher
 ```
 
 ```ts
@@ -999,7 +998,7 @@ export default definePolicy({
 ```ts
 // .swarmd/managers/master.ts (planned: reference/manager). swarm.md 2.5, with the board and the cap.
 import { defineManager, github, pi } from "@swarmd/agent";
-import { haiku, sol } from "../models";
+import { cheap, strong } from "../models";
 import adversary from "../workers/adversary";
 import builder from "../workers/builder";
 import diagnoser from "../workers/diagnoser";
@@ -1011,11 +1010,11 @@ export default defineManager({
   description: "Builds Capxul from its design book: every eval of docs/mission/tasks.json green at integration/build.",
   template: "build",
   project: "capxul-next",
-  model: haiku,
+  model: cheap,
   instructions: "../prompts/master.md",                                   // docs/mission/initializer.md whole, then swarm.md 1b's skeleton
   scope: { root: "K-1" },
   workers: [
-    { worker: builder, role: "maker", models: [sol] },
+    { worker: builder, role: "maker", models: [strong] },
     { worker: reviewer, role: "checker" },
     { worker: adversary, role: "checker" },
     { worker: diagnoser, role: "diagnoser" },
@@ -1037,12 +1036,12 @@ Each worker is its own file with a default export; they are shown in one block, 
 ```ts
 // .swarmd/workers/builder.ts (planned: reference/worker). A maker: no input or result of its own.
 import { defineWorker, sandbox } from "@swarmd/agent";
-import { sol } from "../models";
+import { strong } from "../models";
 
 export default defineWorker({
   name: "builder",
   description: "Makes one Capxul task's evals pass on its lane branch, book first, inside the task's paths, and opens the task's pull request.",
-  model: sol,
+  model: strong,
   instructions: "../prompts/builder.md",
   sandbox: sandbox.repo("github:AaronAbuUsama/capxul-next"),
   skills: ["../skills/book", "../skills/evals", "../skills/lane", "../skills/money", "../skills/old-system"],
@@ -1051,11 +1050,11 @@ export default defineWorker({
   icon: ":hammer_and_wrench:",
 });
 
-// .swarmd/workers/reviewer.ts: a checker on another family; posts the des: verdicts.
+// .swarmd/workers/reviewer.ts: a checker on the check tier; posts the des: verdicts.
 export default defineWorker({
   name: "reviewer",
-  description: "Checks one version of a Capxul task against its evals and the repository's rules, on another model family, and decides des:. Changes nothing.",
-  model: sonnet,
+  description: "Checks one version of a Capxul task against its evals and the repository's rules, on a different model from its maker where one is set, and decides des:. Changes nothing.",
+  model: check,
   instructions: "../prompts/reviewer.md",
   sandbox: sandbox.repo("github:AaronAbuUsama/capxul-next", { readOnly: true }),
   skills: ["../skills/book", "../skills/evals", "../skills/lane", "../skills/old-system"],
@@ -1068,7 +1067,7 @@ export default defineWorker({
 export default defineWorker({
   name: "adversary",
   description: "Tries to break the money paths of one version of a Capxul money task: idempotency, authorization, double spend, rounding, chain reverts. Changes nothing.",
-  model: sonnet,
+  model: check,
   instructions: "../prompts/adversary.md",
   sandbox: sandbox.repo("github:AaronAbuUsama/capxul-next", { readOnly: true }),
   skills: ["../skills/money", "../skills/evals", "../skills/old-system"],
@@ -1081,7 +1080,7 @@ export default defineWorker({
 export default defineWorker({
   name: "diagnoser",
   description: "Diagnoses a Capxul pair that stopped converging: the cause, plan, execution or environment, what it touches, and graded options. Changes nothing.",
-  model: sonnet,
+  model: check,
   instructions: "../prompts/diagnoser.md",
   sandbox: sandbox.repo("github:AaronAbuUsama/capxul-next", { readOnly: true }),
   skills: ["../skills/book", "../skills/evals", "../skills/old-system"],
@@ -1094,7 +1093,7 @@ import { researchInput, researchResult } from "../schemas";
 export default defineWorker({
   name: "researcher",
   description: "Answers one question about the book, the old system or a library, with sources and a recommendation. Writes no code.",
-  model: haiku,
+  model: cheap,
   instructions: "../prompts/researcher.md",
   sandbox: sandbox.repo("github:AaronAbuUsama/capxul-next", { readOnly: true }),
   skills: ["../skills/book", "../skills/old-system"],
@@ -1107,12 +1106,12 @@ export default defineWorker({
 
 | Worker | Role | Model (tier) | Concurrency | Sandbox | Tools | Output |
 |---|---|---|---|---|---|---|
-| builder | maker | `sol` (strong) | 4 | the repository, writable, devnet from B3 | `pulls.create`, `pulls.get`, `pulls.update`, `issues.createComment`; `run_evals`, `submit`, `handover`, `ask`, `progress` | submit (3.1), handover (3.2), the pull request (3.3) |
-| reviewer | checker | `sonnet` (strong, other family) | 4 | read-only (planned) | `pulls.get`, `pulls.listFiles`; `run_evals`, `check`, `ask`, `progress` | check (4.1) with `des:` verdicts (4.4) |
-| adversary | checker | `sonnet` (strong, other family) | 2 | read-only (planned) | as the reviewer | check (4.1, 4.3) |
-| diagnoser | diagnoser | `sonnet` (strong, the checkers' family) | 1 | read-only (planned) | none | diagnosis (6.1) |
-| researcher | none | `haiku` (cheap) | 1 | read-only (planned) | none | its result (6.2) |
-| master | manager | `haiku` (cheap) | one, always on | none | the `build` template's manager tools; the GitHub grant above | decide (7.1), matters (7.2), tasks (8), room messages (9.4) |
+| builder | maker | `strong` | 4 | the repository, writable, devnet from B3 | `pulls.create`, `pulls.get`, `pulls.update`, `issues.createComment`; `run_evals`, `submit`, `handover`, `ask`, `progress` | submit (3.1), handover (3.2), the pull request (3.3) |
+| reviewer | checker | `check` (a different model from the maker where set) | 4 | read-only (planned) | `pulls.get`, `pulls.listFiles`; `run_evals`, `check`, `ask`, `progress` | check (4.1) with `des:` verdicts (4.4) |
+| adversary | checker | `check` | 2 | read-only (planned) | as the reviewer | check (4.1, 4.3) |
+| diagnoser | diagnoser | `strong` | 1 | read-only (planned) | none | diagnosis (6.1) |
+| researcher | none | `cheap` | 1 | read-only (planned) | none | its result (6.2) |
+| master | manager | `cheap` | one, always on | none | the `build` template's manager tools; the GitHub grant above | decide (7.1), matters (7.2), tasks (8), room messages (9.4) |
 
 Each worker's grant is its own (since swarmD #54): no worker holds `pulls.merge`, and the master's `pulls.merge` reaches
 only `integration/build` and `main` once #85's base allowlist lands (planned). The researcher's "web" is the sandbox's
@@ -1309,27 +1308,27 @@ export default defineWorker({
 import { defineWorker, sandbox } from "@swarmd/agent";
 import { check, checkerInput, diagnoserInput, diagnosis, researchInput, researchResult } from "../schemas.ts";
 
-const sonnet = { provider: "anthropic", modelId: "claude-sonnet-5-5", thinking: "high" } as const;
+const check = { provider: "openai", modelId: "gpt-6.1-sol", thinking: "high" } as const;  // OpenAI for now; set at run time (swarm.checker-family)
 const repo = sandbox.repo("github:AaronAbuUsama/capxul-next");          // read-only is planned; the prompt forbids writes
 
 export const reviewer = defineWorker({
   name: "reviewer",
-  description: "Checks one version of a Capxul task against its evals and the repository's rules, on another model family, and decides des:. Changes nothing.",
-  model: sonnet, instructions: "../prompts/reviewer.md", concurrency: 4,
+  description: "Checks one version of a Capxul task against its evals and the repository's rules, on a different model from its maker where one is set, and decides des:. Changes nothing.",
+  model: check, instructions: "../prompts/reviewer.md", concurrency: 4,
   input: checkerInput, result: check, sandbox: repo,
   connectors: { github: ["pulls.get", "pulls.listFiles", "issues.createComment"] },   // posts its CHECK comment until SD-13
 });
 export const adversary = defineWorker({
   name: "adversary",
   description: "Tries to break the money paths of one version of a Capxul money task. Changes nothing.",
-  model: sonnet, instructions: "../prompts/adversary.md", concurrency: 2,
+  model: check, instructions: "../prompts/adversary.md", concurrency: 2,
   input: checkerInput, result: check, sandbox: repo,
   connectors: { github: ["pulls.get", "pulls.listFiles", "issues.createComment"] },
 });
 export const diagnoser = defineWorker({
   name: "diagnoser",
   description: "Diagnoses a Capxul pair that stopped converging. Changes nothing.",
-  model: sonnet, instructions: "../prompts/diagnoser.md", concurrency: 1,
+  model: check, instructions: "../prompts/diagnoser.md", concurrency: 1,
   input: diagnoserInput, result: diagnosis, sandbox: repo,
 });
 export const researcher = defineWorker({
@@ -1456,7 +1455,7 @@ returns, and a section on where it runs before swarmD.
 | [`researcher`](../../.claude/agents/researcher.md) | researcher | haiku | Read, Grep, Glob, Bash, WebFetch, WebSearch | research answer (6.2) |
 
 At stage 0 a checker runs on a different model of the same family as the maker: the only family the Claude session
-has. Another family arrives at stage 1 (`swarm.checker-family`).
+has. At stage 1 every role runs on OpenAI, each tier's model set when the build runs (`swarm.checker-family`).
 
 ## 12. Briefs for swarmD this page adds
 

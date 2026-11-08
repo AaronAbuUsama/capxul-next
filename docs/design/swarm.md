@@ -64,8 +64,8 @@ flowchart LR
 |---|---|---|---|---|---|---|---|
 | **capxul/master** | One swarmD manager on the `build` template; its instructions are the goal prompt plus the skeleton in 1b | The root task and every task in the tree; the order of work; the matters; the merges | Its board (section 3): the ledger, the heads, CI | Open, update and drop tasks from the plan; start pairs; answer signals; assign the diagnoser and the researcher; merge through the gate; promote to main at a milestone's exit; raise and resolve matters; post in its room | Edit the repository; post a verdict; merge outside the gate or outside `integration/build` and `main`; deploy to production | cheap tier | one, always on |
 | **builder** | The maker | One round of one task: a version on `lane/<concept>` | Its task (goal, evals with claims, brief, paths), the open findings, the last handover, its sandbox | Change the task's paths; run evals in its sandbox (`run_evals`); push its branch; open and update the task's pull request; submit; hand over; ask | Merge; change a path outside the task; change `packages/evals`, `packages/book` or another concept's records; weaken an eval; report done | strong tier | 4 |
-| **reviewer** | The checker, on another model family | Its `check` of one version | The version, the diff (the delta from round 2), the open findings, the verdicts, the task's evals | Approve or ask for changes with findings, each naming the eval it threatens or the rule it breaks, and where; post the `des:` verdicts; run evals to explore | Change the repository; weaken or skip an eval; approve with a blocking finding open | strong tier, other family | 4 |
-| **adversary** | A second checker on every money task (`swarm.money`) | Its `check` of one version | As the reviewer, and the whole of each money-path file the delta touches | Try to break the money paths (idempotency, authorization, double spend, rounding, chain reverts, K1 to K18 of `docs/as-is/payments.md`), as findings | As the reviewer | strong tier, other family | 2 |
+| **reviewer** | The checker, on a different model from its maker (`swarm.checker-family`) | Its `check` of one version | The version, the diff (the delta from round 2), the open findings, the verdicts, the task's evals | Approve or ask for changes with findings, each naming the eval it threatens or the rule it breaks, and where; post the `des:` verdicts; run evals to explore | Change the repository; weaken or skip an eval; approve with a blocking finding open | strong tier, a different model | 4 |
+| **adversary** | A second checker on every money task (`swarm.money`) | Its `check` of one version | As the reviewer, and the whole of each money-path file the delta touches | Try to break the money paths (idempotency, authorization, double spend, rounding, chain reverts, K1 to K18 of `docs/as-is/payments.md`), as findings | As the reviewer | strong tier, a different model | 2 |
 | **diagnoser** | Fresh context on a signal | One diagnosis | The pair, the signal, its history, the findings, the verdicts, the task's records | Return a typed diagnosis (section 4) | Change anything; inherit the maker's framing | strong tier | 1 |
 | **researcher** | No role: a question in, an answer with sources out | One answer | The repository, the old system read-only, the web | Answer, with sources and a recommendation | Write code | cheap tier | 1 |
 | **Aaron** | The owner | The decisions the goal prompt brings to him; accounts, keys, spending; irreversible steps | The portal (Review, the stands, the scoreboard) and the master's board | Answer matters and review items; steer in the room; stop; waive an `unverifiable` eval | — | — | — |
@@ -93,8 +93,8 @@ pairs in a row converge within budget. **At stage 0, at most 2 pairs** (3 agents
   the frontier is 104 tasks over 22 lanes (`plan-tasks` prints `frontierAfterB3`), so 4 slots never starve.
 - swarmD caps concurrency per worker (built), not across a manager (needed, SD-1). Until SD-1, the per-worker caps
   above bound the worst case at 12, and the master's pacing rule keeps it at 6.
-- At stage 1 the limits are money ($5 a task, the envelope) and the providers'. Anthropic's are rate limits: a 429
-  with a retry-after is retried, not an outage (retro brief 09). The `gateway` is a CLIProxy over a subscription (sitrep,
+- At stage 1 the limits are money ($5 a task, the envelope) and the providers'. A provider's rate limit is not an outage:
+  a 429 with a retry-after is retried (retro brief 09). The `gateway` is a CLIProxy over a subscription (sitrep,
   "Models"). It is priced like OpenAI's model of the same id, but it has its own usage window. When that window runs out,
   the provider error pauses every maker on it (the `provider` signal). The dry run measures how many makers it carries.
   Until then the 4 makers are an assumption to test (swarmD's Zen, rule 6).
@@ -406,7 +406,7 @@ hours red, your own spend against your pairs': the evidence swarm.nested-entry r
 | A need met at merge, and waivers that carry | A merged task with `unverifiable` evals unblocks its dependents | needed (SD-27): `blocked` while a needed task is not `done`, and `done` needs a waiver at that version | `reference/ledger.md` (roll-up) |
 | **MCP connectors** (PostHog) | The scout at B5 | planned | `concepts/connectors` |
 | **Skills** on definitions | Repository knowledge | planned in the docs; nothing passes them to Pi yet | `reference/worker.md`; SD-16 |
-| **Models**: providers, tiers, a model per assignment | Strong makers, other-family checkers, cheap manager | built (strings); `models.ts` planned | `STATUS.md` models |
+| **Models**: providers, tiers, a model per assignment | Strong makers, checkers on a different model, a cheap manager; all OpenAI for now | built (strings); `models.ts` planned | `STATUS.md` models |
 | **Mission briefs** (`defineBrief`, typed inputs) | Not used: a task's brief comes from the plan | in an open PR (#71), superseded by tasks | `sitrep-2026-11-08.md` |
 | **Hierarchy** (`lead`, `manages`, bubbling) | Stage 2 only | planned | `concepts/managers-and-workers` |
 | **Persistent workers**, steward | Not used | — | — |
@@ -503,11 +503,11 @@ export default defineManager({
   description: "Builds Capxul from its design book: every eval of docs/mission/tasks.json green at integration/build.",
   template: "build",
   project: "capxul-next",
-  model: haiku,                                                            // cheap tier (swarm.checker-family)
+  model: cheap,                                                            // the cheap tier, set at run time (swarm.checker-family)
   instructions: "../prompts/master.md",                                   // the goal prompt, then the skeleton above
   scope: { root: "K-1" },
   workers: [
-    { worker: builder, role: "maker", models: [sol] },
+    { worker: builder, role: "maker", models: [strong] },
     { worker: reviewer, role: "checker" },
     { worker: adversary, role: "checker" },
     { worker: diagnoser, role: "diagnoser" },
@@ -546,8 +546,8 @@ Blocked (2)
 Frontier (25 open) · next: door:requests, operation:payroll.run.create, operation:notices.list
 Matters waiting for a person (2)
   M-9  question  Staging deploy token (owner only) · 3h
-  M-11 decision  Fund the adversary on Sonnet or Opus? (recommendation stands: Sonnet) · 1d
-Spend  $812 of $2,500 · committed $11.20 · today $46 · manager $31 (3.8%) · gateway up · anthropic up
+  M-11 decision  Raise the adversary's thinking on money tasks? (recommendation stands: high) · 1d
+Spend  $812 of $4,000 · committed $11.20 · today $46 · manager $31 (3.8%) · openai up
 Timeline
   #4412 manager master   merged      e7f8a9b operation:payroll.run.list into integration/build · $1.84
   …
@@ -679,7 +679,7 @@ types" says:
 |---|---|
 | `assignee.worker` | the role's worker at its pinned version: `builder@3` |
 | `input` | the role's input: `MakerInput` or `CheckerInput` (below), or the researcher's own schema |
-| `model` | the strong tier for builders, the other family for checkers |
+| `model` | the strong tier for builders, a different model for checkers (all OpenAI, set at run time) |
 | `mandate` | `explicit`, actor the master, source `pair` (its `policyVersion` the master's) |
 | `checks` | for a checker, the maker's ticket (until pairs replace the link) |
 | `subscriptions` | the task's pull request thread, bound by the builder (`bind`) |
@@ -1186,7 +1186,7 @@ The goal prompt's **How to work** bullets this design replaces or adds:
   `tools/plan-tasks.ts`. Regenerate it with the book (`--check` in CI). Never write a task by hand, except a defect from a
   finding or a review answer.
 - **Replaces "Pair a maker with a checker …":** every task is a pair. The builder makes; the reviewer checks on another
-  model family and posts the `des:` verdicts; on the seven money lanes and B0.once the adversary checks too. The engine
+  model (all OpenAI for now, `swarm.checker-family`) and posts the `des:` verdicts; on the seven money lanes and B0.once the adversary checks too. The engine
   runs the machine evals. A reviewer never weakens an eval, and the gate refuses a change that removes one.
 - **Replaces "Pace the usage":** on swarmD at most 4 pairs in flight (6 agents at once), one task per lane; start B3 at 2.
   Before swarmD (stage 0), at most 2 pairs: the subscription's window holds about 2 agents' worth of five hours, so
@@ -1209,9 +1209,10 @@ are its `ms:` evals (`swarm.milestone-evals`).
 
 ## 9. The decisions
 
-All are in [`books/target/shared/swarm.ts`](../../books/target/shared/swarm.ts). Four are for Aaron, and the recommendation
-stands until he answers: `swarm.checker-family`, `swarm.spend-envelope`, `swarm.superset` and `swarm.accounts`.
-`swarm.start-small` records his own direction.
+All are in [`books/target/shared/swarm.ts`](../../books/target/shared/swarm.ts). Aaron decided `swarm.checker-family` (everything
+on OpenAI, models set when the build runs), `swarm.spend-envelope` ($4,000 for the rollout, then reassess) and
+`swarm.superset` (skills passed through now); `swarm.accounts` waits for him. `swarm.start-small` records his own
+direction.
 
 | Id | Choice |
 |---|---|
@@ -1249,9 +1250,9 @@ stands until he answers: `swarm.checker-family`, `swarm.spend-envelope`, `swarm.
 | `swarm.budget` | $5 a task across all its pairs, a lane's budget the sum, one envelope; no daily ceiling |
 | `swarm.sandbox` | One golden sandbox with the repository, the old system and a devnet snapshot |
 | `swarm.skills` | Repository knowledge in skills, passed through to Pi |
-| `swarm.superset` | **For Aaron:** skills now, pi-durable's other sections later |
-| `swarm.checker-family` | **For Aaron:** makers on the gateway's gpt-6.1-sol, checkers on Anthropic's Sonnet |
-| `swarm.spend-envelope` | **For Aaron:** $2,500, expected about $1,000 |
+| `swarm.superset` | Aaron: skills passed through now, pi-durable's other sections later |
+| `swarm.checker-family` | Aaron: everything on OpenAI; each role's model is set when the build runs; a checker on a different model from its maker |
+| `swarm.spend-envelope` | Aaron: up to $4,000 for the rollout, then reassess; budgets configurable |
 | `swarm.accounts` | **For Aaron:** the `capxul` namespace, the App on both repositories, branch protection, a room |
 
 ## 10. Open items for other owners
