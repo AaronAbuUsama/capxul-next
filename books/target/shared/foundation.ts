@@ -479,11 +479,14 @@ export const concept_requests = defineConcept({
     "Asking to be paid: requests and Invoices an issuer sends, lists and cancels; the payer's inbox to review, pay or decline " +
     "them; fixed-price services with immutable revisions; link checkout into an invoice escrow for a payer outside Capxul; " +
     "and matching a bank deposit to the request it paid. A request is one durable process. Paying from the inbox births the " +
-    "payment through `payments.prepare-command`; a match marks the deposit through `banking.match-deposit`; the paid state " +
-    "follows `payment_transitioned` and the escrow's chain events. Old requests, with the deposit match from banking.",
+    "payment through `payments.prepare-command`, from your Safe or from a budget named with `--from`, and the payer signs " +
+    "it through approvals (an agent with its own key at once, a person on the approval page); a match marks the deposit " +
+    "through `banking.match-deposit`; the paid state follows `payment_transitioned` and the escrow's chain events. Old " +
+    "requests, with the deposit match from banking.",
   component: B,
   dependsOn: [
-    concept_access, concept_parties, concept_indexing, concept_organizations, concept_documents, concept_payments, concept_banking,
+    concept_access, concept_parties, concept_indexing, concept_approvals, concept_organizations, concept_budgets, concept_documents,
+    concept_payments, concept_banking,
   ],
   was: [`${OLD}/requests/README.md:3`],
 });
@@ -538,14 +541,15 @@ export const concept_notices = defineConcept({
   title: "Notices",
   about:
     "Every email Capxul sends after a change: one workflow per notice kind, triggered by a transition of the concept it " +
-    "tells about (an invitation sent, a request issued or paid, a dated payment due or failed, an agreement offered, a " +
-    "proposal waiting for a Director, a referral invite, a round invitation), with templates, recipients and delivery " +
-    "records (sent, retrying, failed). No other concept sends mail, except access' sign-in code, which is the operation " +
-    "itself. The old notify actions of every concept and old operator's delivery records.",
+    "tells about (an invitation sent, a request issued or paid, a dated payment due or failed, an agreement offered, an " +
+    "allowance assigned, a proposal waiting for a Director, a referral invite, a round invitation), with templates, " +
+    "recipients and delivery records (sent, retrying, failed). No other concept sends mail, except access' sign-in code, " +
+    "which is the operation itself. It owns no frozen operation: `dev mail notices` reads its delivery records from the " +
+    "devnet concept. The old notify actions of every concept and old operator's delivery records.",
   component: B,
   dependsOn: [
-    concept_access, concept_parties, concept_accounts, concept_organizations, concept_board, concept_payments, concept_payroll,
-    concept_banking, concept_requests, concept_equity,
+    concept_access, concept_parties, concept_accounts, concept_organizations, concept_board, concept_budgets, concept_payments,
+    concept_payroll, concept_banking, concept_requests, concept_equity,
   ],
   was: [`${OLD}/operator/README.md:3`],
 });
@@ -555,14 +559,15 @@ export const concept_devnet = defineConcept({
   title: "Devnet",
   about:
     "Devnet-only tools, refused on staging and production: signing as another person (`dev approve`), feature gates, " +
-    "scripted prices, the mail sink and its fail switch, running due jobs now, and snapshots and time (through the devnet " +
-    "supervisor). Its tables are what the integrations' devnet fakes read and write, so no production concept depends on " +
-    "it. Replaces old operator: its faucet goes to accounts (`dev fund`, whose `--org` is refused off a devnet), its " +
-    "diagnostics to applications' health, its tenancy probes to the generated tenancy evals, its delivery records to " +
+    "scripted prices, the mail sink and its fail switch, notices' delivery records (`dev mail notices`), running due jobs " +
+    "now, and snapshots and time (through the devnet supervisor). Every devnet-only operation is here, so no production " +
+    "concept carries one. Its tables are what the integrations' devnet fakes read and write, so no production concept " +
+    "depends on it. Replaces old operator: its faucet goes to accounts (`dev fund`, whose `--org` is refused off a devnet), " +
+    "its diagnostics to applications' health, its tenancy probes to the generated tenancy evals, its delivery records to " +
     "notices; its proof identities, fixtures and receipt hold give way to worlds built by running operations and saved " +
     "as snapshots, and to the integrations' fault switches.",
   component: B,
-  dependsOn: [concept_access, concept_approvals, concept_organizations],
+  dependsOn: [concept_access, concept_approvals, concept_organizations, concept_notices],
   was: [`${OLD}/operator/README.md:3`],
 });
 
@@ -821,7 +826,7 @@ export const OPERATION_OWNERS: { readonly [Id in FrozenId]: Concept } = {
   "dev.key": o.applications, // exception: quickstart test keys work on staging too
   "dev.mail.fail": o.devnet,
   "dev.mail.list": o.devnet,
-  "dev.mail.notices": o.notices, // exception: delivery records are notices'
+  "dev.mail.notices": o.devnet, // devnet-only: it reads notices' delivery records
   "dev.prices.set": o.devnet,
   "dev.snapshot.list": o.devnet,
   "dev.snapshot.restore": o.devnet,
@@ -888,7 +893,7 @@ export const OPERATION_OWNERS: { readonly [Id in FrozenId]: Concept } = {
   "org.invite.resend": o.organizations,
   "org.member.get": o.organizations,
   "org.member.grant": o.board, // an officer hat, by Board proposal
-  "org.member.invite": o.board, // the invitation, then the proposal of its grants
+  "org.member.invite": o.budgets, // exception: the invitation, then one proposal of its grants, allowances included
   "org.member.list": o.organizations,
   "org.member.revoke": o.board,
   "org.proposal.approve": o.board,
@@ -916,7 +921,7 @@ export const OPERATION_OWNERS: { readonly [Id in FrozenId]: Concept } = {
   balance: o.activity,
   "contact.add": o.contacts,
   "contact.bank.add": o.banking, // exception: a bank account on a contact
-  "contact.get": o.contacts,
+  "contact.get": o.banking, // exception: it returns the contact's bank accounts
   "contact.hide": o.contacts,
   "contact.label": o.contacts,
   "contact.list": o.contacts,

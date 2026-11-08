@@ -101,7 +101,8 @@ export const decision_banking_owner_tenancy = defineDecision({
     "The row-level policy sets the session's person or Organization tenant (P8), which is an owner, not a Party; contacts " +
     "and payments' rows use the same pair. The Party stays a column where the row names one (whose Safe a deposit lands " +
     "in, whose account a payout pays). A business verification's people are the Organization's rows; the invited person " +
-    "reaches their own through its invitation id, the one cross-tenant read of that table. Bridge's inbox and cursor are " +
+    "reaches and submits their own through its invitation id and their email, the one cross-tenant read and write in " +
+    "banking, which the generated row-level policy must allow by that clause. Bridge's inbox and cursor are " +
     "the deployment's (`global`). The old tables mixed `ownerPartyId`, `actorId` and `declaredBy`, so a tenancy by join.",
   source: "P8; books/as-is/banking/data.ts (owner tenancy by ownerPartyId and actorId); books/target/contacts/data.ts",
   affects: [

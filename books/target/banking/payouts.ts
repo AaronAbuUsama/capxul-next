@@ -72,13 +72,14 @@ export const rpc_banking_payouts_quote = defineRpc({
     "VERIFICATION_REQUIRED. An account still `saved` is registered at Bridge first, under its own id. Bridge then " +
     "creates the transfer under the payout's id (derived from the owner and request key): an amount on its own fixes " +
     "what reaches the bank, a token fixes what leaves the Safe; the quote locks the bank amount and a slippage buffer " +
-    "inside the funding. It reads the funding live: the Safe's `balanceOf` for a person; for an Organization the " +
-    "budget's `budgetOf`, `authorised` for the member's Safe (ROLE_PERMISSION_DENIED) and `leftOf`. Then one " +
+    "inside the funding. It reads the funding live at one block: the Safe's `balanceOf` for a person; for an " +
+    "Organization the budget's `budgetOf` (closed: WRONG_STATE), `authorised` for the member's Safe " +
+    "(ROLE_PERMISSION_DENIED) and `leftOf`. Then one " +
     "transaction writes the payout (`quote`), the account's `register`, Bridge's deposit address as an outside Party " +
     "(`parties.resolve-recipient`) and the Payment command (`payments.prepare-command`, purpose `bank_payout`, one item " +
-    "of the quoted amount to the deposit address, kind 0): personal `approve` and `Payments.send`, or the budget's " +
-    "`Budgets.spend`. Funding short is INSUFFICIENT_BALANCE, a budget short PAYROLL_BUDGET_EXCEEDED, both before " +
-    "anything is written. It answers the quote with the approval to sign.",
+    "of the quoted amount to the deposit address, kind 0, with no document: banking does not depend on documents): " +
+    "personal `approve` and `Payments.send`, or the budget's `Budgets.spend`. Funding short is INSUFFICIENT_BALANCE, a " +
+    "budget short PAYROLL_BUDGET_EXCEEDED, both before anything is written. It answers the quote with the approval to sign.",
   concept: concept_banking,
   kind: "action",
   who:
@@ -116,7 +117,12 @@ export const rpc_banking_payouts_quote = defineRpc({
   drives: [machine_bank_payout.t.quote, machine_bank_account.t.register],
   invokes: [procedure_parties_resolve_recipient, procedure_payments_prepare_command],
   emits: [],
-  calls: [integration_bridge.c.addBankAccount, integration_bridge.c.quotePayout, integration_chain_rpc.c.readContract],
+  calls: [
+    integration_bridge.c.addBankAccount,
+    integration_bridge.c.quotePayout,
+    integration_chain_rpc.c.getBlock,
+    integration_chain_rpc.c.readContract,
+  ],
   chain: [contract_erc20.f.balanceOf, contract_budgets.f.budgetOf, contract_budgets.f.authorised, contract_budgets.f.leftOf],
   spans: [],
   budget: {

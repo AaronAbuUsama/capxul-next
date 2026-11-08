@@ -206,8 +206,8 @@ export const workflow_banking_inbox_catch_up = defineWorkflow({
     "The one Bridge sweep P3 keeps. Every five minutes, one run at a time, it asks Bridge for every event after the " +
     "cursor, page by page, stores each one it does not hold and applies it as the webhook route would (the same " +
     "transitions, and the same signals to a payout's or a verification's process), then applies again the events still " +
-    "pending, oldest first, and moves the cursor past the last page it read. A webhook delivery never moves the cursor, " +
-    "so a gap in deliveries is always read. Replaces old banking's catch-up with its lease and lease release, its " +
+    "pending, oldest first, moves the cursor past the last page it read, and deletes finished events older than 90 days. " +
+    "A webhook delivery never moves the cursor, so a gap in deliveries is always read. Replaces old banking's catch-up with its lease and lease release, its " +
     "recovery of unprocessed rows and the inbox's back-off job.",
   concept: concept_banking,
   priority: "normal",
@@ -218,6 +218,7 @@ export const workflow_banking_inbox_catch_up = defineWorkflow({
     { name: "store", about: "Store each new event encrypted by its id and apply it, one transaction per event." },
     { name: "retry", about: "Apply again the pending events, oldest first; one that still cannot apply stays pending." },
     { name: "advance", about: "Move the cursor past the last page read." },
+    { name: "prune", about: "Delete applied, ignored and refused events older than 90 days: their payloads hold people's data." },
   ],
   reads: [...APPLY.reads, table_bridge_sync],
   writes: [...APPLY.writes, table_bridge_sync],

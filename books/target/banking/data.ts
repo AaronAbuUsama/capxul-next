@@ -1045,7 +1045,7 @@ export const table_bridge_events = defineTable({
       for: "The catch-up's retry read: events still pending, oldest first.",
     },
   ],
-  retention: "Applied, ignored and refused rows are deleted after 90 days; a pending row is kept until it applies or is refused.",
+  retention: "The catch-up deletes applied, ignored and refused rows after 90 days; a pending row is kept until it applies or is refused.",
   was: [`${B}/tables.ts:59`, `${B}/webhooks/README.md:3`, `${AS_IS}:246`],
 });
 

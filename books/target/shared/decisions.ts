@@ -427,8 +427,9 @@ export const decision_concepts_board = defineDecision({
   why:
     "v4 makes every officer permission a hat granted by a Board batch (CAP-1101), and a Board proposal is one company Safe " +
     "transaction approved by Directors' own approveHash. Grants, Director changes and every other concept's Board batches " +
-    "share that one machine, so it is one concept. It reads members from organizations, and invitations' offered grants " +
-    "become proposals here (the invite flow's second step), so organizations never depends on board.",
+    "share that one machine, so it is one concept. It reads members from organizations. An invitation's offered grants " +
+    "become one Board proposal that budgets opens through `board.propose` (operations.member-invite-in-budgets), so " +
+    "organizations never depends on board.",
   source: by("apps/docs/factory/operations/org.member.grant.yaml, org.proposal.approve.yaml (designed)"),
   affects: [f.concept_board, f.concept_organizations],
 });
@@ -894,7 +895,7 @@ export const decision_dependencies_notices = defineDecision({
   title: "Notices depends on what it tells about; nothing depends on notices",
   question: "Which way do notices and the concepts that cause emails point?",
   options: [
-    { label: "notices-up", text: "Notices depends on accounts, organizations, board, payments, payroll, banking, requests and equity; their transitions trigger it." },
+    { label: "notices-up", text: "Notices depends on accounts, organizations, board, budgets, payments, payroll, banking, requests and equity; their transitions trigger it." },
     { label: "senders-up", text: "Each concept depends on notices and invokes it." },
   ],
   chosen: "notices-up",
@@ -1463,13 +1464,14 @@ export const decision_operations_owners = defineDecision({
     "Areas are how people find commands, not concepts (the operation record says so). 134 operations sit in their area's " +
     "primary concept (AREA_CONCEPTS) and 81 move with their behaviour: agents, session and local commands out of accounts; " +
     "`doctor` and keys to applications; verification and `contact bank add` to banking; invitations and members to " +
-    "organizations, `invite accept` to banking, allowances to budgets and votes to equity out of governance; requests, services, the inbox, contacts, " +
-    "documents, `address` and `balance` out of payments; `activity annotate` to books; `bank match` to requests; `org " +
-    "department pay` to payments; `dev fund` to accounts, `dev key` to applications, `dev mail notices` to notices. The " +
-    "map is typed against every frozen id, so none can be missed, and every concept but media, parties, indexing and " +
-    "approvals owns at least one operation. The rule behind each exception: an operation's flow sits in a concept that " +
-    "depends on every concept whose rpcs it composes (operations.sign-in-in-accounts, operations.member-invite-in-board, " +
-    "operations.invite-accept-in-banking).",
+    "organizations, `invite accept` to banking, allowances and `org member invite` to budgets and votes to equity out of " +
+    "governance; requests, services, the inbox, contacts, documents, `address` and `balance` out of payments, with " +
+    "`contact get` to banking; `activity annotate` to books; `bank match` to requests; `org department pay` to payments; " +
+    "`dev fund` to accounts, `dev key` to applications. The map is typed against every frozen id, so none can be missed, " +
+    "and every concept but media, parties, indexing, approvals and notices owns at least one operation. The rule behind " +
+    "each exception: an operation's flow sits in a concept that depends on every concept whose rpcs it composes " +
+    "(operations.sign-in-in-accounts, operations.member-invite-in-budgets, operations.invite-accept-in-banking, " +
+    "operations.contact-get-in-banking); every devnet-only operation is devnet's (operations.dev-mail-notices-in-devnet).",
   source: by("books/frozen/operations.ts (215 operations, 11 areas); OPERATION_OWNERS in books/target/shared/foundation.ts"),
   affects: [...f.CONCEPTS],
 });
@@ -1546,20 +1548,42 @@ export const decision_operations_sign_in = defineDecision({
 });
 
 export const decision_operations_member_invite = defineDecision({
-  id: "operations.member-invite-in-board",
-  title: "`org member invite` is board's flow",
-  question: "An invitation is organizations'; the grants it offers are one Board proposal. Which concept owns the operation's flow?",
+  id: "operations.member-invite-in-budgets",
+  title: "`org member invite` is budgets' flow, because its grants include allowances",
+  question:
+    "An invitation is organizations'; the grants it offers (officer hats, existing allowances, a new allowance) are one " +
+    "Board proposal. Which concept owns the operation's flow and the proposal of the grants?",
   options: [
-    { label: "board", text: "Board: the flow creates the invitation through organizations' rpc, then proposes its grants through board's own." },
+    {
+      label: "budgets",
+      text:
+        "Budgets: the flow creates the invitation through organizations' rpc, then budgets' rpc plans every grant (officer " +
+        "hat mints from the deployment's hat ids; an allowance's hat, and for a new one `Hats.createHat` and " +
+        "`Budgets.createChildBudget` with its budgets row), opens one proposal (`board.propose`) and binds it to the " +
+        "invitation (`organizations.bind-invitation-grants`). Budgets also proposes taking the hats back when an offer " +
+        "ends with them on chain.",
+    },
+    { label: "board", text: "Board, as first decided: board's flow proposes the grants through its own rpc." },
+    { label: "existing-only", text: "Board, with invitations narrowed to officer hats and existing allowances; a new allowance waits for `org allowance create --assign-to`." },
     { label: "organizations", text: "Organizations, calling board's rpc (organizations would depend on board, and board on organizations: a cycle)." },
   ],
-  chosen: "board",
+  chosen: "budgets",
   why:
-    "One operation is one flow, and a flow composes only concepts its concept depends on. Board already depends on " +
-    "organizations; the reverse would loop. The invitation without grants is still organizations' rpc alone, called as the " +
-    "flow's first step; the request key makes a repeat return the same invitation and the same proposal.",
-  source: reviewed("org.member.invite.yaml (designed call: the Board batch for a grant); concepts.board"),
-  affects: [f.concept_board, f.concept_organizations],
+    "Revised in the 8 November adversarial review. The frozen text offers 'existing spending allowances, a new spending " +
+    "allowance or Manage allowances with the invitation', and the designed call is one Board batch with 'the allowance's " +
+    "`Hats.createHat`, `Budgets.createChildBudget` and `Hats.mintHat`'. Planning an allowance (its parent, its hat, " +
+    "CHILDREN_EXCEED_PARENT, its budgets row) is budgets' alone, and board sits below budgets, so board's flow could not " +
+    "compose it; the budgets designer had to narrow the frozen offer to existing allowances " +
+    "(budgets.invitation-allowance-offers), which P10 rung 1 does not allow. Budgets is the lowest concept that depends on " +
+    "organizations, board and its own allowances, and it already opens Board proposals for allowances " +
+    "(`org allowance assign`). Officer hat mints are two Hats calls built from hat ids organizations already holds. Board " +
+    "keeps `org member grant` and `org member revoke`; an invitation's grants, and taking them back, have one owner. The " +
+    "request key makes a repeat return the same invitation and the same proposal.",
+  source: reviewed(
+    "org.member.invite.yaml (about; designed call); books/target/budgets/decisions.ts (budgets.invitation-allowance-offers); " +
+      "books/target/organizations/procedures.ts (organizations.bind-invitation-grants)",
+  ),
+  affects: [f.concept_budgets, f.concept_board, f.concept_organizations],
 });
 
 export const decision_operations_invite_accept = defineDecision({
@@ -1818,10 +1842,11 @@ export const decision_dependencies_of_agents = dependencies(f.concept_agents, {
 });
 export const decision_dependencies_of_budgets = dependencies(f.concept_budgets, {
   access: "the caller of every rpc.",
+  parties: "a holder or wearer is named by email or an agent's `@handle` and resolved to their Party and Safe; lists name them (dependencies.budgets-parties).",
   indexing: "Budgets' tree, amounts and spends, and each budget hat's wearers, are chain views.",
   approvals: "an office holder's change is an approval from their own Safe.",
-  organizations: "the company Safe, members and hat ids from the install.",
-  board: "top budgets, payout ceilings and allowance hats are Board batches.",
+  organizations: "the company Safe, members, hat ids from the install, and the invitations whose grants it proposes.",
+  board: "top budgets, payout ceilings, allowance hats and an invitation's grants are Board batches.",
 });
 export const decision_dependencies_of_books = dependencies(f.concept_books, {
   access: "the caller of every rpc.",
@@ -1865,16 +1890,20 @@ export const decision_dependencies_of_banking = dependencies(f.concept_banking, 
   media: "verification documents are stored files.",
   parties: "bank details are per Party and currency, and a deposit lands in a Party's Safe.",
   indexing: "the token Transfer a bank deposit becomes, and Director hat wearers for a business's people.",
+  approvals: "the payer signs a bank payout's approval: an agent with its own key at once (dependencies.payers-sign-and-name-budgets).",
   organizations: "who may manage an Organization's banking, and the routing of `invite accept`.",
+  budgets: "`bank pay --from` names the budget an Organization pays from by its key, and who may spend from it.",
   books: "a bank deposit writes its book fact in its own transaction.",
-  contacts: "a saved bank account may belong to a contact.",
+  contacts: "a saved bank account may belong to a contact, and `contact get` reads the entry before its accounts.",
   payments: "a bank payout's money leaves as a Payment born through payments.prepare-command.",
 });
 export const decision_dependencies_of_requests = dependencies(f.concept_requests, {
   access: "the caller of every rpc.",
   parties: "the issuer and the payer are Parties.",
   indexing: "an invoice escrow's events pay a checkout request.",
+  approvals: "the payer signs an inbox payment's approval: an agent with its own key at once (dependencies.payers-sign-and-name-budgets).",
   organizations: "an Organization's requests need the Invoicing hat; its inbox is read by members.",
+  budgets: "`inbox pay --from` names the budget an Organization pays from by its key, and who may spend from it.",
   documents: "a request's invoice document is stored at issue.",
   payments: "paying from the inbox births a command; a request's paid state follows payment_transitioned.",
   banking: "a matched deposit is marked through banking.match-deposit.",
@@ -1910,6 +1939,7 @@ export const decision_dependencies_of_notices = dependencies(f.concept_notices, 
   accounts: "referral invites and admissions.",
   organizations: "invitations sent, resent and expiring.",
   board: "a proposal waiting for a Director.",
+  budgets: "an allowance assigned to a member, at its amount once the assign executes (dependencies.notices-budgets).",
   payments: "a dated payment due or failed, and money received.",
   payroll: "an agreement offered, changed or ending.",
   banking: "a business verification invitation and a payout returned.",
@@ -1920,4 +1950,5 @@ export const decision_dependencies_of_devnet = dependencies(f.concept_devnet, {
   access: "`dev approve` signs in as another person, and `dev gates set` writes gates.",
   approvals: "`dev approve` signs an approval with the dev signer.",
   organizations: "`dev gates set` for an Organization needs its membership.",
+  notices: "`dev mail notices` reads notices' delivery records (operations.dev-mail-notices-in-devnet).",
 });
