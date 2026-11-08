@@ -11,6 +11,10 @@ This document is the portal's design. The build session builds the portal from i
 to invent. Every judgment in it is a decision record in
 [`books/target/shared/portal.ts`](../../books/target/shared/portal.ts), with ids `portal.<topic>` (listed at the end).
 
+**What renders it.** The book's own generator does (`portal.stack`, by Aaron's ruling `aaron.portal-generator`):
+the starter kit's `packages/portal`, copied into this repository and grown. Fumadocs is set aside for now, to revisit
+later. Whatever the generator writes is the portal.
+
 **See it.** [`portal-prototype.html`](portal-prototype.html) is a working prototype generated from the real records by
 [`tools/portal-prototype.ts`](../../tools/portal-prototype.ts). It is one self-contained page with the overview, Review,
 every concept and operation page, the scoreboard and the CLI surface. Its verdicts are mock until B2. The stands it shows
@@ -49,9 +53,9 @@ knows who is acting.
 
 ```mermaid
 flowchart LR
-  book["books/target records"] -->|build time| gen["packages/generate: portal target"]
-  prose["packages/portal/content: prose"] --> site
-  gen -->|bundle| site["the portal: static pages, md and json twins"]
+  book["books/target records"] -->|generation| gen["packages/portal: the generator"]
+  prose["packages/portal/content: prose"] --> gen
+  gen -->|"dist/"| site["the portal: html pages, md and json twins"]
   runs["eval runs: RunResult[] (B2)"] --> job["status job"]
   ledger["swarmD ledger: verdicts, tasks, matters, refs"] --> job
   gh["GitHub: lanes, pull requests, CI"] --> job
@@ -63,16 +67,16 @@ flowchart LR
 
 | Source | What the portal shows from it | How it reaches the portal | When | Credential |
 |---|---|---|---|---|
-| **The book's records** (`books/target`) | Every page: concepts, operations, flows, rpcs, procedures, workflows, tables, machines, events, errors, integrations, contracts, components, environments, journeys, invariants, decisions, and the system (the Overview) | The portal target of `packages/generate` imports `books/target/index.ts`, runs `buildBook`, and writes one page model per record into the bundle. It also imports every file under `books/target` and maps each record to the file whose exports hold it (modules are loaded once, so the values are the same objects); a child record takes its parent's file. | Every portal build: each push to `integration/build`, and a preview for each pull request | none |
+| **The book's records** (`books/target`) | Every page: concepts, operations, flows, rpcs, procedures, workflows, tables, machines, events, errors, integrations, contracts, components, environments, journeys, invariants, decisions, and the system (the Overview) | The generator (`packages/portal`) imports `books/target/index.ts`, runs `buildBook`, and writes each record's page with its page model, the JSON twin. It also imports every file under `books/target` and maps each record to the file whose exports hold it (modules are loaded once, so the values are the same objects); a child record takes its parent's file. | Every portal build: each push to `integration/build`, and a preview for each pull request | none |
 | **The frozen book** (`books/frozen`) | Each acceptance line marked kept or rewritten (against `operations.ts`); the old arguments and flags, and the global flags, as reference until B1 (`flags.ts`) | The same build imports `books/frozen/index.ts`, as `tools/check-frozen.ts` does | Same | none |
 | **Derived from the records** | Problems, gaps, every derived eval (id, level, subject, claim, decider; 4,789 on 8 November 2026), the reverse links, the records under each operation, each operation's stand with no verdicts, the CLI surface | The same build, with `buildBook`'s problems, gaps, evals and `linkedBy`, `underOf` and `standOf` (§4) | Same | none |
-| **Git** | The commit each page is built from (`seenAt`), and links to a record's file and its history on GitHub at that commit | The build passes the commit in. History is a link, not data, so the bundle stays deterministic and CI needs no full clone. | Same | none |
+| **Git** | The commit each page is built from (`seenAt`), and links to a record's file and its history on GitHub at that commit | The build passes the commit in. History is a link, not data, so the site stays deterministic and CI needs no full clone. | Same | none |
 | **Decisions and the review list** | Every decision page. Review lists the decisions waiting for review and the operations each one holds. | The decision records and their `review` field (`portal.review-state`), from D0 | Same | none |
 | **Verdicts: the scoreboard** | Each eval's current verdict at the head (pass, fail, unverifiable or error, or unknown), its measures (p50, p95, n) and its evidence. The stand of each operation. | **Until the ledger runs:** the harness's `RunResult[]` from each run at the head (B2), which the status job turns into `status/<ref>.json`. **After:** the ledger's `verdicts` and `score` resources, read by the status job. | After every eval run at a ref head | the status job's only |
 | **The swarmD ledger** | The task on each operation and its state, the assignee and role, the pull request, the open matters and the milestone tasks | **Until the ledger runs:** the task tree from `docs/mission/tasks.json`, which the swarm design derives with `tools/plan-tasks.ts` (absent, the work sections say "no tasks yet"); `docs/mission/progress.md` is linked, not parsed. **After:** the ledger resources listed below, read by the status job. Live detail stays on the manager's board, which the portal links to (`portal.artifact-boundary`). | Every 10 minutes, and on a `repository_dispatch` if the swarm design's manager sends one on a ref move | a read-only ledger token, in the status job |
 | **GitHub** | Each lane's branch (`lane/<concept>`), its open pull requests with their CI and review state, CI on `integration/build`, the open `review` issues and the pull requests that answer them, and links to source at the commit | The status job calls the GitHub API with the CI token | On every push, pull request and issue event | CI's token, in the status job |
 | **PostHog** | Each operation's live evals (`live:bud:<op>`, `live:err:<op>`), and each journey's funnel as step counts | Only as verdicts. The scout worker reads PostHog and posts the L4 verdicts to the ledger (spec 30), with the funnel's step counts in `measures`. Each page links to the PostHog insight by the name the telemetry catalogue gives it. | From B5 | none; the key stays in the connector gateway |
-| **Hand-written prose** | Guides, explanations, runbooks, and each command's examples and notes | MDX in `packages/portal/content/`, placed in named slots on generated pages (`portal.prose`) | Every portal build | none |
+| **Hand-written prose** | Guides, explanations, runbooks, and each command's examples and notes | Markdown with directives in `packages/portal/content/`, placed in named slots on generated pages (`portal.prose`) | Every portal build | none |
 
 ### The status document
 
@@ -80,7 +84,7 @@ The status job writes one status document for each tracked ref: `integration/bui
 (`pr/<n>`, which that pull request's preview reads). It computes every operation's stand with `standOf`, from the book
 at the document's commit and the verdicts, and writes it in. Pages show those stands; they never compute one, because
 `standOf` needs the book and the browser has only page models. An eval with no entry is `unknown`. With no status
-document yet, a page shows the stand the bundle computed with no verdicts.
+document yet, a page shows the stand the generation computed with no verdicts.
 
 ```ts
 /** status/<ref>.json: written by the status job, read by each page when it opens. */
@@ -184,9 +188,9 @@ lookup.
 | A record | `/<kind>/<id>/` | `/operation/payment.send/`, `/table/payments/`, `/decision/system.size/`, `/error/INSUFFICIENT_BALANCE/`, `/invariant/<id>/`. The system's page is the Overview: `/system/capxul/` redirects to `/`. |
 | A child record | an anchor on its parent: its kind, then its name | `/machine/payment/#transition-open`, `/integration/bridge/#call-createTransfer`, `/contract/payments/#function-send`, `/contract/payments/#chainEvent-Sent`. The kind keeps a contract's function and event apart (the Safe has `approveHash` and `ApproveHash`). |
 | An eval | an anchor on its subject's page (a child's parent): the eval's kind, then what its id holds beyond the subject's id, split at `.` and `/`, joined by `-` | `acc:payment.send/3` → `/operation/payment.send/#acc-3`; `tbl:payments/admits/1` → `/table/payments/#tbl-admits-1`; `trn:payment.open` → `/machine/payment/#trn-open`; `int:bridge.createTransfer/PROVIDER_ERROR` → `/integration/bridge/#int-createTransfer-PROVIDER_ERROR`; `sys:imports/payments` → `/concept/payments/#sys-imports` |
-| Any eval id | `/eval/?id=<eval id>`: a static page that looks the id up in the bundle's eval index (id → page and anchor) and redirects; an unknown id says "no such eval at this commit" | `/eval/?id=ref:payment.send/INSUFFICIENT_BALANCE` |
+| Any eval id | `/eval/?id=<eval id>`: a static page that looks the id up in the site's eval index (`data/evals.json`: id → page and anchor) and redirects; an unknown id says "no such eval at this commit" | `/eval/?id=ref:payment.send/INSUFFICIENT_BALANCE` |
 | A command, an SDK method | redirect to the canonical page, through the static assets' `_redirects` file (about 360 rules, under its 2,000) | `/cli/payment/send/` → `/operation/payment.send/`; `/sdk/client.payments.pay/` → `/flow/client.payments.pay/` |
-| The twins | `.md` beside the page, JSON under `/data/`: files from the bundle, copied into the export | `/operation/payment.send.md`, `/data/operation/payment.send.json` |
+| The twins | `.md` beside the page, JSON under `/data/`: files the generator writes in the same generation | `/operation/payment.send.md`, `/data/operation/payment.send.json` |
 
 Operation ids never change, so a command renamed by a decision keeps its page. The old command path redirects to it.
 
@@ -239,7 +243,7 @@ the portal build's settings, none of them secret.
 | **Lane** `/build/lanes/<concept>/` | the concept; the status document's lanes and work | Branch and head; open pull requests with CI and review; the concept's tasks with their states and assignees; a link to the manager's board | GitHub, the board | it is the overlay |
 | **CLI surface** `/docs/cli/` | operations (`command`, `title`, `returns`, `refusals`, then `flags` from B1); errors; the global flags | Command tree by noun; global flags; flag index (B1); every `--json` shape, with an index of field names; error vocabulary and the exit-code-by-class table; verbs; marks where the system is not consistent (`portal.cli-surface`) | each operation, each error | each command's stand |
 | **Environments** `/operate/` | environments; journeys; the status document | Each environment's components, deployed commit, configuration and secret names; live evals by operation; journey funnels; runbooks | environment, operation and journey pages; PostHog insights | live verdicts from B5 |
-| **Guides and runbooks** | MDX in `packages/portal/content/` | Hand-written, citing records through components | the records cited | none |
+| **Guides and runbooks** | Markdown in `packages/portal/content/` | Hand-written, citing records through directives | the records cited | none |
 
 ### The operation page
 
@@ -281,7 +285,7 @@ The prototype's `#/operation/payment.send` shows this page.
 
 The stand says what is missing for an operation, not whether code exists. One pure function computes it,
 `standOf(book, operation, verdicts)`, which D0 adds to `packages/book` beside `deriveEvals` (`portal.stand`). It needs
-the book, so it runs only where the book is: the portal target (the stand with no verdicts, in the bundle) and the
+the book, so it runs only where the book is: the generator (the stand with no verdicts, in each JSON twin) and the
 status job (the stand at the status document's commit). Everyone else reads its results as data: the pages, the
 scoreboard, agents, and swarmD's managers, which live in a separate, product-neutral repository and read
 `/status/<ref>.json`. Nobody reimplements it.
@@ -396,8 +400,8 @@ sequenceDiagram
    - **choose** sets `chosen` to the option and puts his reason first in `why`, keeping the earlier reason after it. It
      then sets `review.state` to `changed`.
    - **change** adds his option and chooses it, the same way.
-   - **An answer on `surface`** (accept only) writes `docs/decisions/accepted-surface.json` from the bundle's
-     `surface.json` at `seenAt`, with the portal target's `--accept-surface`. It is the one portal file that is
+   - **An answer on `surface`** (accept only) writes `docs/decisions/accepted-surface.json` from the generated
+     `data/surface.json` at `seenAt`, with the generator's `--accept-surface`. It is the one portal file that is
      committed: it changes only when he accepts the surface, so lanes never conflict over it.
    - Every record the change ripples to changes in the same pull request.
    - If his words leave a judgment open, the agent does not guess. It raises a decision pack back: the question, two to
@@ -429,30 +433,37 @@ and its name match go. The stand's decide step and the Review page read the same
 
 ## 6. Stack and hosting
 
-### Stack: Fumadocs on a Next.js static export (`portal.stack`)
+### Stack: the book's own generator (`portal.stack`)
 
-The portal's hard parts are its page models and the stand. They live in the generator and in `packages/book`, whatever
-renders them. So the renderer is chosen for what it already solves, and for what the agents know.
+Aaron ruled on 8 November 2026 (`aaron.portal-generator`): "let's forget Fumadocs for now and just run the generate;
+whatever we get generated from that generator, we'll stick with that for now." The portal is the generator's output.
 
-| | Fumadocs on Next.js, `output: "export"` | Astro Starlight | The book's own static generator |
-|---|---|---|---|
-| Generated pages from the bundle | a custom Fumadocs source (no generated MDX files) | a content loader | direct |
-| Hand-written prose | MDX, with React components that read the records | MDX, with Astro or React components | Markdown and a small directive syntax, ours to write |
-| Search | static Orama index, built in | Pagefind, built in | ours to write |
-| Agent twins (`llms.txt`, `.md`, `.json`) | files the portal target writes, copied into `out/` (a static export has no middleware; the old site served Markdown from static route handlers, swarmD's through middleware on its server) | the same files | the same files |
-| Redirects (commands, SDK methods) | a `_redirects` file in the static assets | the same | the same |
-| Status overlay | client components | React islands | a client script |
-| Precedent | the old `apps/docs`: Fumadocs, `output: "export"`, on Cloudflare Pages. swarmD's `apps/docs` is Fumadocs too, but on OpenNext: a server on a Worker, not a static export. | none in either repository | the prototype |
-| Cost | heavier (Next, React, Tailwind); the old site had to fix its type-generation order | lightest; new to every agent | no dependencies, but search, navigation, theming, accessibility and the narrow layout are ours to keep |
-| Grade | **A-, recommended** | B+ | B- |
+The generator is the starter kit's `packages/portal`: plain TypeScript and Effect, with no framework and no dependency
+beyond the kit's own packages. One generation writes the whole site: every page as HTML, its Markdown twin and its JSON
+twin (the page model), `llms.txt`, one stylesheet, one small script and inline SVG diagrams. Every link is relative, so
+the site works from `file://` and from any static host. The kit's generator already has a page per record with both
+twins, the implementation and state-machine diagrams, the scoreboard, the eval catalogue with its filter, the CLI
+surface, the stand and the portal check, each part tested (3,292 lines).
 
-The bundle is JSON, so a switch to Starlight later changes only the renderer. The prototype's plain generator is
-throwaway.
+| Part | What the generator does |
+|---|---|
+| Generated pages | its views, one per record kind and index, made of blocks rendered as HTML and as Markdown |
+| Hand-written prose | Markdown slot files with a small directive syntax (`::synopsis{op=payment.send}`), filled from the records (`portal.prose`) |
+| Search | the kit's table filters and the eval finder now; a site-wide index over `data/search.json` in the same script when it is wanted |
+| Agent twins (`llms.txt`, `.md`, `.json`) | written beside each page in the same generation |
+| Redirects (commands, SDK methods) | a `_redirects` file it writes, which Workers static assets read |
+| Status overlay | the one client script: it reads `/status/<ref>.json` when a page opens (§2) |
+| Precedent | the starter kit and the prototype |
+
+What Capxul adds to the kit's generator: Review (§5), the status overlay, the prose slots, `_redirects`, search, and
+the operation page's design and status sections as §4 gives them. Fumadocs on a Next.js static export, the earlier
+choice, is set aside. The JSON twins are the page models, so a framework could render them later without changing the
+generator's views.
 
 ### Hosting: a private Cloudflare Worker behind Access (`portal.hosting`, for Aaron)
 
 - **One Worker, `capxul-portal`, on Aaron's Cloudflare account.** It is the account where swarmD already runs. It serves:
-  - the static export as Workers static assets;
+  - the generated site (`packages/portal/dist/`) as Workers static assets;
   - one route, `/status/<ref>.json`, read from an R2 bucket (`capxul-portal-status`), which the status job writes.
 - **Cloudflare Access in front.**
   - An email allowlist: Aaron, and whoever he adds.
@@ -464,8 +475,8 @@ throwaway.
     URLs).
   - The CI secret is one Cloudflare API token, allowed to deploy Workers and to write the R2 bucket, which Aaron
     supplies through the credential form, never in chat. The deploy and the status job both use it.
-- **Size.** About 1,700 record pages (the 523 child records are anchors), each with its HTML, Next's payload file and
-  two twins: some 7,000 files, under the 20,000 files a Worker's static assets allow on the free plan.
+- **Size.** About 1,700 record pages (the 523 child records are anchors), each with its HTML and two twins: some
+  5,100 files, under the 20,000 files a Worker's static assets allow on the free plan.
 - **Later, public.** A public developer build (Docs, and each operation's Use and Acceptance, from `main`) is a separate
   Worker. Publishing it is Aaron's step.
 
@@ -476,67 +487,70 @@ surface, a component and its environment are added then, with a decision.
 ## 7. The generation pipeline
 
 ```
-books/target, books/frozen ──▶ packages/generate (portal target) ──▶ packages/portal/.bundle/   the bundle (gitignored)
-bundle + packages/portal/content/ ──▶ next build (output: export) ──▶ packages/portal/out/, plus the twins and _redirects
-out/ ──▶ portal check (the gate) ──▶ deploy: the Worker on integration/build, a preview version per pull request
+books/target, books/frozen, content/ ──▶ packages/portal (generate) ──▶ packages/portal/dist/   the site (gitignored)
+dist/ ──▶ portal check (the gate) ──▶ deploy: the Worker on integration/build, a preview version per pull request
 status job ──▶ R2 status/<ref>.json ──▶ read by each page when it opens
 ```
 
+`pnpm portal` generates and `pnpm portal:check` checks, as in the starter kit: one package with its own `generate`
+and `check` commands, an Effect CLI with Effect's FileSystem.
+
 ### 1. Generate
 
-The portal target of `packages/generate` builds the bundle; its command shape follows the tooling design
-([`tooling.md`](tooling.md)). It:
+The generator, in one generation:
 
 - imports `books/target/index.ts` and each concept's module list, to know which concept each record comes from, and
   every file under `books/target`, to know which file (§2);
 - imports `books/frozen/index.ts`, for the kept marks and the reference flags;
 - runs `buildBook`;
 - computes `underOf`, and each operation's stand with no verdicts;
-- writes the files in the table below.
+- reads the prose slots in `packages/portal/content/` and fills their directives from the records;
+- writes every page and the files in the table below into `packages/portal/dist/`.
 
 | File | Holds |
 |---|---|
-| `index.json` | the counts, the commit, problems and gaps, the navigation tree |
-| `pages/<kind>/<id>.json` | each record's page model, which is also its JSON twin: its fields rendered for display (schemas as field tables and JSON Schema); its forward and reverse links; its evals (id, level, claim, decider, anchor); its gaps and decisions; its source file; and `recordHash`, a hash of the record fields the page renders. For an operation, also its own records, the records under it, the eval ids under it by kind, and its stand with no verdicts. |
-| `pages/<kind>/<id>.md` | the Markdown twin |
-| `evals.json` | the eval catalogue, as the book build writes it, with each eval's page and anchor (the index `/eval/?id=` reads) |
-| `surface.json` | the CLI surface: commands, flags (B1), `--json` shapes with their field names, errors, exit codes by class |
-| `review.json` | the waiting decisions, with the operations each holds and touches |
-| `search.json` | the documents for the search index |
+| `<kind>/<id>/index.html` | each record's page, with `<meta name="record-hash">` |
+| `data/<kind>/<id>.json` | each record's page model, which is its JSON twin: its fields rendered for display (schemas as field tables and JSON Schema); its forward and reverse links; its evals (id, level, claim, decider, anchor); its gaps and decisions; its source file; and `recordHash`, a hash of the record fields the page renders. For an operation, also its own records, the records under it, the eval ids under it by kind, and its stand with no verdicts. |
+| `<kind>/<id>.md` | the Markdown twin |
+| `data/index.json` | the counts, the commit, problems and gaps, the navigation tree |
+| `data/evals.json` | the eval catalogue, as the book build writes it, with each eval's page and anchor (the index `/eval/?id=` reads) |
+| `data/surface.json` | the CLI surface: commands, flags (B1), `--json` shapes with their field names, errors, exit codes by class |
+| `data/review.json` | the waiting decisions, with the operations each holds and touches |
+| `data/search.json` | the documents for search |
+| `llms.txt`, `_redirects`, the stylesheet and the script | as §3 and §6 give them |
 
-**The bundle is regenerated on every build and never committed** (`portal.generated-content`).
+**The site is regenerated on every build and never committed** (`portal.generated-content`).
 
 - **Not committed.** Committed portal output would conflict between every pair of lane pull requests, because every book
-  change touches the navigation, the search index and the counts. The old repository lived this (CAP-1081), and ended
-  up refusing generated files in lane pull requests and regenerating them by bot.
+  change touches the navigation, the search documents and the counts. The old repository lived this (CAP-1081), and
+  ended up refusing generated files in lane pull requests and regenerating them by bot.
 - **Deterministic.** It uses sorted keys and no timestamps, and the commit is passed in, so two runs are byte-identical.
   The portal check holds this.
-- **Not generated code.** It lives in `packages/portal/.bundle/`, a build input like `out/`, and not under
-  `src/generated/`. That folder's files are committed, carry the hashed do-not-edit header, and are compared by the
-  tooling design's `generate:check` and by `sys:generated`. JSON and Markdown carry no header, and a fresh clone has no
-  bundle to compare, so the portal target is a target of `packages/generate` that writes with `--out`, outside
-  `generate:check`.
+- **Not generated code.** It lives in `packages/portal/dist/`, not under `src/generated/`. That folder's files are
+  committed, carry the hashed do-not-edit header, and are compared by the tooling design's `generate:check` and by
+  `sys:generated`. HTML, JSON and Markdown carry no header, and a fresh clone has no site to compare, so the portal stays
+  outside `generate:check`.
 
-### 2. Render
+### 2. The views
 
-The Fumadocs app in `packages/portal` reads the bundle through a custom source. Its pieces:
+The generator's views, started from the kit's (`src/views/*.ts`, one Page per record or index, rendered by `html.ts`
+and `markdown.ts`). Its pieces:
 
-- one page component per record kind;
-- the operation page;
+- one view per record kind, and the generic record page for a kind with no view of its own;
+- the operation page (§4);
 - the Review, scoreboard and CLI surface pages;
-- the status overlay, a client component that fetches `/status/<ref>.json` and shows its verdicts and stands (the
-  bundle's no-verdict stand when there is no document);
-- after `next build`, a step that copies the twins, `llms.txt` and `_redirects` from the bundle into `out/`;
-- the MDX prose in named slots (`portal.prose`): `content/operation/<id>.mdx` with `Example` and `Notes` sections, and
-  guides and runbooks as pages. Prose cites facts through components that read the record, such as
-  `<Synopsis op="payment.send"/>` and `<ErrorMessage code="INSUFFICIENT_BALANCE"/>`, so no fact is retyped.
+- the status overlay, the client script that fetches `/status/<ref>.json` and shows its verdicts and stands (the
+  generation's no-verdict stand when there is no document);
+- the prose in named slots (`portal.prose`): `content/operation/<id>.md` with `Example` and `Notes` sections, and
+  guides and runbooks as pages. Prose cites facts through directives the generator fills from the record, such as
+  `::synopsis{op=payment.send}` and `::error{code=INSUFFICIENT_BALANCE}`, so no fact is retyped.
 
 ### 3. The portal check
 
 The portal check is the portal's gate in CI, from D0. It passes when all of these hold:
 
 - every record has a page model and a built page, or, for a child record, its anchor on its parent's page; every
-  record page in `out/` belongs to a record;
+  record page in `dist/` belongs to a record;
 - every eval id is unique (`portal.eval-ids`), and every eval has its anchor;
 - every internal link, anchor and `/eval/?id=` resolves;
 - two generations are byte-identical;
@@ -546,8 +560,8 @@ The portal check is the portal's gate in CI, from D0. It passes when all of thes
 - `doc:<operation>` parts 2 to 5 (below) pass for every operation;
 - no prose slot names a record that does not exist;
 - the build finishes within 5 minutes;
-- the hand-written lines are within `portal.size`: 4,000 non-test lines in `packages/portal` and the portal target,
-  leaving out the bundle and `content/`.
+- the hand-written lines are within `portal.size`: 5,000 non-test lines in `packages/portal`, leaving out `dist/` and
+  `content/`.
 
 ### 4. The status job
 
@@ -583,8 +597,8 @@ five parts hold (`portal.doc-eval`):
    of an older commit fails here.
 3. **The generated sections are unedited.** Only the prose slots are hand-written, and a slot file is structured, not
    free: it holds only its named sections (`Example`, `Notes`), and it names no error code, exit code, flag or `--json`
-   field as literal text outside an example's code block. It cites them through components (`<ErrorMessage
-   code="…"/>`), so it cannot restate a generated fact.
+   field as literal text outside an example's code block. It cites them through directives
+   (`::error{code=…}`), so it cannot restate a generated fact.
 4. **The prose agrees.** Every example command in the slots parses against the designed flags: each flag exists, the
    required ones are present, and each value has its type. Until B1 adds the flags, an example is checked for its
    command only. Every example `--json` output validates against `returns`, and every record a slot cites exists.
@@ -592,7 +606,7 @@ five parts hold (`portal.doc-eval`):
 
 A failure names its first disagreement, for example `flag --org: the manifest says required, the record says optional`.
 Until the CLI exists, part 1 is not runnable and the harness lists the eval as such (B2's rule). Parts 2 to 5 run in the
-portal check from D0, against the built `out/`. The manifest of part 1 is the `schema` operation's own promise:
+portal check from D0, against the generated `dist/`. The manifest of part 1 is the `schema` operation's own promise:
 its acceptance line 2 says `schema payment send --json` gives that command's arguments, flags, output and error codes.
 
 ## 8. The D0 milestone
@@ -601,7 +615,7 @@ D0 runs alongside B0 (`portal.milestone`). The build session should add this row
 
 | # | Milestone | Exit |
 |---|---|---|
-| D0 | **The portal**, built alongside B0, following `docs/design/portal.md`. **Book first:** add the decision record's `review` field and set it on every decision waiting for review; move `tools/report-judgments.ts` onto the field; make every eval id unique (`portal.eval-ids`: one `ref:` eval per operation and code, one `int:` eval per call and error, and the `duplicate-eval` problem); add `underOf` and `standOf` to `packages/book`, with tests. **Then:** the portal target of `packages/generate` writes the bundle (into `packages/portal/.bundle/`, regenerated on every build, never committed), and `packages/portal` (Fumadocs, static export) renders it. The site has the overview; Review, with Accept, Choose and Change through a prefilled `review` issue; a page for every record; operation pages with their reference, design and stand; the CLI surface, with the old flags as reference until B1; the scoreboard, the eval catalogue, gaps and decisions; and Markdown and JSON twins with `llms.txt`. It is deployed as a private Cloudflare Worker behind Access, with a preview per pull request. Status comes from `status/<ref>.json`, which has no verdicts until B2. | The portal check passes at the head of `integration/build`: every record has its page, every link resolves, two generations are byte-identical, and Review's list equals the judgments report's. Every operation shows the stand `standOf` gives it (41 specify, 40 decide and 134 build on the book of 8 November 2026; the numbers move as the book does). The portal is live behind Access with a preview on each pull request, and its link has gone to Aaron. |
+| D0 | **The portal**, built alongside B0, following `docs/design/portal.md`. **Book first:** add the decision record's `review` field and set it on every decision waiting for review; move `tools/report-judgments.ts` onto the field; make every eval id unique (`portal.eval-ids`: one `ref:` eval per operation and code, one `int:` eval per call and error, and the `duplicate-eval` problem); add `underOf` and `standOf` to `packages/book`, with tests. **Then:** `packages/portal`, the starter kit's generator copied and grown (`portal.stack`), generates the site into `packages/portal/dist/` (regenerated on every build, never committed). The site has the overview; Review, with Accept, Choose and Change through a prefilled `review` issue; a page for every record; operation pages with their reference, design and stand; the CLI surface, with the old flags as reference until B1; the scoreboard, the eval catalogue, gaps and decisions; and Markdown and JSON twins with `llms.txt`. It is deployed as a private Cloudflare Worker behind Access, with a preview per pull request. Status comes from `status/<ref>.json`, which has no verdicts until B2. | The portal check passes at the head of `integration/build`: every record has its page, every link resolves, two generations are byte-identical, and Review's list equals the judgments report's. Every operation shows the stand `standOf` gives it (41 specify, 40 decide and 134 build on the book of 8 November 2026; the numbers move as the book does). The portal is live behind Access with a preview on each pull request, and its link has gone to Aaron. |
 
 **The D0 work, in order:**
 
@@ -613,10 +627,12 @@ D0 runs alongside B0 (`portal.milestone`). The build session should add this row
    - Rebuild to zero problems.
 2. **`underOf` and `standOf` in `packages/book`.** Test them on the fixture book, including each stand and the
    one-hop rule for processes.
-3. **The portal target of `packages/generate`.** If B1 has not created the package yet, create it with this target
-   only, following the tooling design's conventions.
-4. **`packages/portal`.** The page models, the overlay, Review, the scoreboard, the CLI surface page, search and the
-   twins. Start from the prototype's views; do not copy its code.
+3. **`packages/portal`.** Copy the starter kit's `packages/portal`, which is made to be copied: edit its
+   `src/project.ts` to name Capxul's book, the CLI's command tree, the binary `capxul`, the results file and the output
+   folder.
+4. **What Capxul adds to it.** Review, the status overlay, the prose slots with their directives, `_redirects`, search,
+   and the operation page's sections as §4 gives them. The prototype's views are a reference for what the kit lacks
+   (Review); do not copy its code.
 5. **The portal check** in CI.
 6. **Hosting.**
    - The Worker and the R2 bucket.
@@ -652,13 +668,13 @@ All are in [`books/target/shared/portal.ts`](../../books/target/shared/portal.ts
 | `portal.review-state` | A `review` field on decision records replaces the hand list and the name match |
 | `portal.cli-surface` | The whole CLI surface on one generated page, reviewed as one system |
 | `portal.doc-eval` | `doc:<operation>` compares the CLI manifest, the page model and the record; prose examples are checked |
-| `portal.prose` | Prose in named slots, citing records through components |
+| `portal.prose` | Prose in named slots, citing records through directives |
 | `portal.agent-reads` | Markdown and JSON twins; agents never scrape HTML |
-| `portal.generated-content` | The bundle is regenerated on every build, deterministic, never committed |
-| `portal.stack` | Fumadocs on a Next.js static export (graded against Starlight and our own generator) |
+| `portal.generated-content` | The site is regenerated on every build, deterministic, never committed |
+| `portal.stack` | The book's own generator, the starter kit's `packages/portal` grown; Fumadocs set aside (Aaron's `aaron.portal-generator`) |
 | `portal.hosting` | A private Cloudflare Worker behind Access, with previews; **for Aaron**: the deploy token and the allowlist |
 | `portal.no-component` | A tool, with no component or environment record |
-| `portal.size` | At most 4,000 hand-written lines |
+| `portal.size` | At most 5,000 hand-written lines |
 
 ## What other designs provide
 
@@ -671,6 +687,7 @@ All are in [`books/target/shared/portal.ts`](../../books/target/shared/portal.ts
     reading `assigned` entries from the log); an entry kind for `verdict.waive`, so a waiver can be read; and, on
     `Matter`, the record it is about (`subject`) and a typed resolution, so a decision matter can carry a
     `ReviewAnswer`. Until the last two exist, answers stay GitHub issues.
-- **The tooling design** ([`tooling.md`](tooling.md)) owns `packages/generate`'s command shape and conventions, which the
-  portal target follows. The portal target writes with `--out` into `packages/portal/.bundle/` and stays outside
-  `generate:check`, whose targets are committed files under `src/generated/`.
+- **The tooling design** ([`tooling.md`](tooling.md)) owns the toolchain and the conventions the generator follows (an
+  Effect CLI, the pinned Node and pnpm, the lint). The portal is its own package with its own `generate` and `check`,
+  as in the starter kit, not a target of `packages/generate`, and it stays outside `generate:check`, whose targets are
+  committed files under `src/generated/`.

@@ -1,7 +1,9 @@
 // Contacts' one area, the book: reading it (list, get) and curating it (add, label, hide, unhide).
 // Every rpc runs as the caller's book: their own (`{ kind: "person" }`), or an Organization's they
 // hold a Seat in (`{ kind: "organization", orgId }`); a non-member is ROLE_PERMISSION_DENIED before
-// anything is read. An entry is in the book when its owner added it by hand (`manual`) or, in an
+// anything is read. Every member may read an Organization's book; only a member whose Safe wears its
+// People hat may change it (Aaron's ruling aaron.contacts-permissions; decision contacts.members-write).
+// An entry is in the book when its owner added it by hand (`manual`) or, in an
 // Organization's book, when its Party holds an active Seat there (`member`, read from
 // organizations' Seats at read time). Curating a member's entry writes the row that keeps its label
 // and visibility. Nothing here is signed and no money moves.
@@ -11,7 +13,7 @@ import { budget, defineRpc } from "../../../packages/book/src/index.ts";
 import { concept_contacts } from "../shared/foundation.ts";
 import { error_INVALID_INPUT, error_NOT_AUTHENTICATED, error_ROLE_PERMISSION_DENIED } from "../shared/vocabulary.ts";
 import { table_contacts, machine_contact } from "./data.ts";
-import { table_org_members } from "../organizations/data.ts";
+import { table_org_deployments, table_org_members } from "../organizations/data.ts";
 import { table_parties } from "../parties/data.ts";
 import { procedure_parties_resolve_recipient } from "../parties/procedures.ts";
 
@@ -54,10 +56,23 @@ const OneEntry = Schema.Struct({ book: Book, partyId: Schema.String });
 
 const errors = [error_NOT_AUTHENTICATED, error_ROLE_PERMISSION_DENIED, error_INVALID_INPUT];
 const READS = [table_contacts, table_org_members, table_parties];
+/**
+ * A write to an Organization's book also reads the People hat's id from the deployment, and whether the Seat's
+ * Safe wears it from indexing's `hat-wearers`, which joins this list once contacts depends on indexing (asked of
+ * shared/foundation.ts and dependencies.of-contacts; decision contacts.members-write).
+ */
+const WRITE_READS = [...READS, table_org_deployments];
 const WHO_READ =
   "A signed-in person, for their own book; or a member of the Organization (an active Seat, a person's or an agent's), " +
   "for its book. Anyone else naming that Organization is ROLE_PERMISSION_DENIED.";
-const WHO_WRITE = `${WHO_READ} Any member may curate an Organization's book (decision contacts.members-write).`;
+const WHO_WRITE =
+  "A signed-in person, for their own book; or, for an Organization's book, a member whose Safe wears the Organization's " +
+  "People hat (the founder does from setup). Any other member may read the book but not change it, and they and " +
+  "anyone outside are ROLE_PERMISSION_DENIED with nothing written (decision contacts.members-write).";
+/** The check every write runs first, before it reads or writes anything else. */
+const WRITE_GUARD =
+  "For an Organization's book it first checks the caller's Seat wears the People hat (the deployment's people hat id, " +
+  "wearers from indexing), else ROLE_PERMISSION_DENIED and nothing is written. ";
 
 // ── reads ───────────────────────────────────────────────────────────────────────────────────
 
@@ -124,6 +139,7 @@ export const rpc_contacts_book_add = defineRpc({
   id: "contacts.book.add",
   title: "Add a Party to a book",
   about:
+    WRITE_GUARD +
     "Checks the label first (trimmed, 1 to 120 characters, else INVALID_INPUT), then resolves the locator to its Party " +
     "through `parties.resolve-recipient` in the same transaction (an `email` locator is parties' `mailbox`): a mailbox or " +
     "address no Party holds is named there, so the entry's PartyId is the one that Party keeps when the person signs up. " +
@@ -140,7 +156,7 @@ export const rpc_contacts_book_add = defineRpc({
   input: Schema.Struct({ book: Book, ref: Locator, label: Schema.optionalKey(Schema.String) }),
   output: Entry,
   errors,
-  reads: READS,
+  reads: WRITE_READS,
   writes: [table_contacts],
   drives: [machine_contact.t.add_again],
   invokes: [procedure_parties_resolve_recipient],
@@ -163,6 +179,7 @@ export const rpc_contacts_book_label = defineRpc({
   id: "contacts.book.label",
   title: "Rename one entry",
   about:
+    WRITE_GUARD +
     "Sets the label of the entry for one PartyId: trimmed, 1 to 120 characters, else INVALID_INPUT and the entry is " +
     "unchanged. Only that PartyId's row changes, whatever other entries share the label. A Party not in the book is " +
     "INVALID_INPUT; curation never adds one. A member's entry with no row gets its curating row, born listed.",
@@ -172,7 +189,7 @@ export const rpc_contacts_book_label = defineRpc({
   input: Schema.Struct({ book: Book, partyId: Schema.String, label: Schema.String }),
   output: Entry,
   errors,
-  reads: READS,
+  reads: WRITE_READS,
   writes: [table_contacts],
   drives: [],
   invokes: [],
@@ -188,6 +205,7 @@ export const rpc_contacts_book_hide = defineRpc({
   id: "contacts.book.hide",
   title: "Hide one entry",
   about:
+    WRITE_GUARD +
     "Drives `hide` on the entry for one PartyId, keeping every field; a hidden entry is returned as it is. A Party not in " +
     "the book is INVALID_INPUT. A member's entry with no row gets its curating row, born listed, then hidden in the same " +
     "transaction.",
@@ -197,7 +215,7 @@ export const rpc_contacts_book_hide = defineRpc({
   input: OneEntry,
   output: Entry,
   errors,
-  reads: READS,
+  reads: WRITE_READS,
   writes: [table_contacts],
   drives: [machine_contact.t.hide],
   invokes: [],
@@ -213,6 +231,7 @@ export const rpc_contacts_book_unhide = defineRpc({
   id: "contacts.book.unhide",
   title: "List a hidden entry again",
   about:
+    WRITE_GUARD +
     "Drives `unhide` on the entry for one PartyId, keeping its identity and fields; an entry already listed is returned " +
     "as it is. A Party not in the book is INVALID_INPUT.",
   concept: concept_contacts,
@@ -221,7 +240,7 @@ export const rpc_contacts_book_unhide = defineRpc({
   input: OneEntry,
   output: Entry,
   errors,
-  reads: READS,
+  reads: WRITE_READS,
   writes: [table_contacts],
   drives: [machine_contact.t.unhide],
   invokes: [],

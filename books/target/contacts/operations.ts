@@ -51,6 +51,21 @@ const refusals = (id: FrozenId) =>
     return { error, given: WORLD, when };
   });
 
+/**
+ * A write's refusals: the page's, with ROLE_PERMISSION_DENIED widened to a member without the People hat, whom
+ * `person-with-contacts` holds as Rex, Acme's agent with a Seat and no hat (decision contacts.members-write).
+ */
+const writeRefusals = (id: FrozenId) =>
+  refusals(id).map((r) =>
+    r.error === error_ROLE_PERMISSION_DENIED
+      ? { ...r, when: `${r.when} Also a member of it whose Safe does not wear its People hat (as Rex in Acme): every member reads the book, only the People hat changes it.` }
+      : r,
+  );
+
+/** Who may run a write, as the ruling has it: the frozen `who` said any member (decision contacts.members-write). */
+const WRITE_WHO =
+  "A signed-in person for their own book, or a member of the Organization whose Safe wears its People hat for its book.";
+
 type FrozenLine = { readonly claim: string; readonly was: readonly string[] };
 const frozenLine = (id: FrozenId, n: number) => (frozen[id].acceptance as readonly FrozenLine[])[n - 1]!;
 
@@ -84,6 +99,7 @@ const guidedWrite = {
 // one SDK method `client.account.addressBook.add`, which is one rpc.
 export const operation_contact_add = defineOperation({
   ...frozenText("contact.add"),
+  who: WRITE_WHO,
   was: [page("contact.add"), `${AS_IS}:916`, `${CLI}/subcommands/add/execute.ts:23`, `${CLI}/internal/parse.ts:48`],
   priority: "normal",
   implementedBy: rpc_contacts_book_add,
@@ -122,7 +138,7 @@ export const operation_contact_add = defineOperation({
     hidden: Entry.fields.hidden, // false.
   }),
   errors: [error_CLI_USAGE, error_CANCELLED],
-  refusals: refusals("contact.add"),
+  refusals: writeRefusals("contact.add"),
   budget: budget("write"),
 });
 
@@ -130,6 +146,7 @@ export const operation_contact_add = defineOperation({
 
 export const operation_contact_hide = defineOperation({
   ...frozenText("contact.hide"),
+  who: WRITE_WHO,
   was: [page("contact.hide"), `${AS_IS}:979`, `${CLI}/internal/visibility.ts:20`, `${CLI}/internal/write.ts:26`],
   priority: "normal",
   implementedBy: flow_client_account_address_book_hide,
@@ -156,7 +173,7 @@ export const operation_contact_hide = defineOperation({
     hidden: Entry.fields.hidden, // true.
   }),
   errors: [error_CLI_USAGE],
-  refusals: refusals("contact.hide"),
+  refusals: writeRefusals("contact.hide"),
   budget: guidedWrite,
 });
 
@@ -164,6 +181,7 @@ export const operation_contact_hide = defineOperation({
 
 export const operation_contact_label = defineOperation({
   ...frozenText("contact.label"),
+  who: WRITE_WHO,
   was: [page("contact.label"), `${AS_IS}:949`, `${CLI}/subcommands/label/execute.ts:24`, `${CLI}/internal/write.ts:40`],
   priority: "normal",
   implementedBy: flow_client_account_address_book_label,
@@ -191,7 +209,7 @@ export const operation_contact_label = defineOperation({
     label: Entry.fields.label, // The new label.
   }),
   errors: [error_CLI_USAGE],
-  refusals: refusals("contact.label"),
+  refusals: writeRefusals("contact.label"),
   budget: guidedWrite,
 });
 
@@ -243,6 +261,7 @@ export const operation_contact_list = defineOperation({
 
 export const operation_contact_unhide = defineOperation({
   ...frozenText("contact.unhide"),
+  who: WRITE_WHO,
   was: [page("contact.unhide"), `${AS_IS}:1007`, `${CLI}/internal/visibility.ts:20`, `${CLI}/internal/write.ts:40`],
   priority: "normal",
   implementedBy: flow_client_account_address_book_unhide,
@@ -265,6 +284,6 @@ export const operation_contact_unhide = defineOperation({
     hidden: Entry.fields.hidden, // false.
   }),
   errors: [error_CLI_USAGE],
-  refusals: refusals("contact.unhide"),
+  refusals: writeRefusals("contact.unhide"),
   budget: guidedWrite,
 });

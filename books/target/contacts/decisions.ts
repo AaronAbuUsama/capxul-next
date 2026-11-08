@@ -265,23 +265,39 @@ export const decision_contacts_not_in_book_code = defineDecision({
 
 export const decision_contacts_members_write = defineDecision({
   id: "contacts.members-write",
-  title: "Any member may write an Organization's book",
+  title: "Only the People hat edits an Organization's book; every member reads it",
   question: "Who may add, label, hide and unhide in an Organization's book?",
   options: [
     { label: "member", text: "Any active Seat, as the frozen `who` says ('a member of the Organization for its book')." },
-    { label: "manager", text: "Only a manager, as old parties' `requireWriter` checked (old permissions' managePeople, now the People hat)." },
+    {
+      label: "people-hat",
+      text:
+        "Only a member whose Safe wears the Organization's People hat (old managePeople, as old parties' `requireWriter` " +
+        "checked); every member may read the book. A member without it is ROLE_PERMISSION_DENIED, nothing written.",
+    },
+    {
+      label: "contacts-permission",
+      text: "A new Capxul-side contacts permission on the Seat, granted and taken back by the People hat's wearer.",
+    },
   ],
-  chosen: "member",
+  chosen: "people-hat",
   why:
-    "The frozen `who` of every contact command says a member, and the only Organization refusal is for one 'you are " +
-    "outside'. P10 rung 3 (the stricter wins for money and authority) does not apply: an entry moves no money and grants " +
-    "nothing, the label never resolves a payee (parties resolves; every payment shows its PartyId and needs its own " +
-    "budget authority and approval), and the book cannot hide a member from itself. The stricter check is also not " +
-    "buildable here: whether a Safe wears the People hat is an indexing fact, and contacts depends only on access, " +
-    "parties and organizations. If a ruling wants the People hat, the map must let contacts read hat wearers.",
-  source: by(`${P}/guards.ts:41 (requireWriter, requireManager); packages/protocol/src/parties/operations.ts:100 (ADMIN)`),
-  affects: [...WRITES, concept_contacts],
+    "Aaron's ruling (aaron.contacts-permissions, 8 November 2026): 'there should be permissions for editing the contact " +
+    "book. It shouldn't just be anyone can do anything.' This record had chosen `member`; it now follows the ruling. The " +
+    "People hat is the permission: authority in an Organization is hats (P9), the People hat already decides who may " +
+    "invite and manage members, the old code checked exactly it (`requireWriter`), and the founder wears it from setup, " +
+    "so no new grant, command or table is needed; a separate permission would be a second authority system beside the " +
+    "hats. Behaviour kept: an outsider is still ROLE_PERMISSION_DENIED, and every frozen claim's world still holds (in " +
+    "`person-with-contacts` Dan, Acme's founder, writes its book); the frozen `who` is rewritten (a spelling of who, P10 " +
+    "rung 1), and the designed refusal 'You cannot write to that book' now has its case: Rex, Acme's agent, holds a Seat " +
+    "and no hat. The map needs one edge: whether a Safe wears a hat is indexing's, and contacts depends only on access, " +
+    "parties and organizations, so contacts must depend on indexing too (asked of shared/foundation.ts and " +
+    "dependencies.of-contacts); until it does, the writes read the hat id from organizations' deployment and the build " +
+    "cannot see their read of the wearers.",
+  source: by(`${P}/guards.ts:41 (requireWriter, requireManager); books/target/shared/rulings.ts (aaron.contacts-permissions); contact.add.yaml (designed refusals)`),
+  affects: [...WRITES, ...OPERATIONS.filter((o) => o !== operation_contact_list), concept_contacts],
 });
+
 
 export const decision_contacts_get_bank_accounts = defineDecision({
   id: "contacts.get-bank-accounts",

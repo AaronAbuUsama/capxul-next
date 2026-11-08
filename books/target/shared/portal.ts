@@ -44,8 +44,7 @@ export const decision_portal_milestone = defineDecision({
     "verdicts wait for B2, and a stand computed without them is still true (specify, decide or build). Built at B4, the " +
     "review of the design and of the CLI surface would happen in Markdown files and terminal output, and the surface B1 " +
     "designs would first be seen as code. After B1 delays it behind work it does not need. D0 runs beside B0, so it costs " +
-    "nothing on the critical path; its generator becomes the portal target of packages/generate once B1 sets that " +
-    "package's conventions.",
+    "nothing on the critical path; its generator is packages/portal, grown from the starter kit's (portal.stack).",
   source: by("docs/mission/initializer.md (order of work, B4); docs/design-book.md (the docs site row); the old apps/docs read the YAML book and the factory's state.json"),
   affects: [f.system_capxul, decision_system_build_order],
 });
@@ -184,7 +183,7 @@ export const decision_portal_stand = defineDecision({
     "decide must not hide build progress. With its own records, 41 stand at specify, 40 at decide and 134 at build, and " +
     "each held operation is held by a judgment about what it does. decide-last breaks the order docs/design-book.md " +
     "states. One function in packages/book keeps the stand derived like the gaps and the evals and product-neutral. It " +
-    "needs the book, so it runs where the book is (the portal target and the status job); the browser and swarmD, a " +
+    "needs the book, so it runs where the book is (the portal's generator and the status job); the browser and swarmD, a " +
     "separate product-neutral repository, read its results as data and never reimplement it.",
   source: by("tools/portal-prototype.ts over buildBook(books/target): 41 specify, 40 decide, 134 build with no verdicts; docs/design-book.md (the stand table); docs/spec/10 (roll-up)"),
   affects: [f.system_capxul],
@@ -368,8 +367,8 @@ export const decision_portal_cli_surface = defineDecision({
         "consistent system would not have, such as one class with two exit codes or one flag name with two value types. " +
         "Until B1 the old CLI's flags show on each operation page, marked reference. Review lists what changed in the " +
         "surface since the last accepted one, to accept like a judgment: the accepted surface is a committed snapshot, " +
-        "docs/decisions/accepted-surface.json, which the agent applying an Accept of the surface writes from the bundle " +
-        "at its seenAt commit, in the same pull request. Before the first acceptance the whole surface is listed.",
+        "docs/decisions/accepted-surface.json, which the agent applying an Accept of the surface writes from the generated " +
+        "surface.json at its seenAt commit, in the same pull request. Before the first acceptance the whole surface is listed.",
     },
     { label: "per-command", text: "Show each command's surface only on its own page." },
   ],
@@ -401,7 +400,7 @@ export const decision_portal_doc_eval = defineDecision({
         "in its HTML, the hash of the record fields it renders that a fresh generation from the record computes, so a " +
         "stale build or deploy fails. 3: a prose slot file holds only its named sections (Example, Notes), and names no " +
         "error code, exit code, flag or --json field as literal text outside an example's code block: it cites them " +
-        "through components. 4: every example command parses against the designed flags (until B1 adds them, against " +
+        "through directives. 4: every example command parses against the designed flags (until B1 adds them, against " +
         "the command only), every example --json output validates against the returns schema, and every record the " +
         "prose cites exists. 5: every link on the page resolves. A failure names its first disagreement. Until the CLI " +
         "exists part 1 is not runnable and the eval is listed so; parts 2 to 5 run in the portal's own check from D0, " +
@@ -429,19 +428,20 @@ export const decision_portal_prose = defineDecision({
     {
       label: "slots",
       text:
-        "packages/portal/content/: guides, explanations and runbooks as MDX pages, and per-record slot files " +
-        "(content/operation/<id>.mdx) whose named sections (Example, Notes) the page places in fixed positions. Prose " +
-        "embeds facts through components that read the record (a command's synopsis, an error's message, a budget), so a " +
-        "fact is never retyped; doc:<operation> checks the examples. A slot for a record that no longer exists fails the " +
-        "portal's check.",
+        "packages/portal/content/: guides, explanations and runbooks as Markdown pages, and per-record slot files " +
+        "(content/operation/<id>.md) whose named sections (Example, Notes) the page places in fixed positions. Prose " +
+        "embeds facts through directives the generator fills from the record (`::synopsis{op=payment.send}`, " +
+        "`::error{code=INSUFFICIENT_BALANCE}`, a budget), so a fact is never retyped; doc:<operation> checks the examples. " +
+        "A slot for a record that no longer exists fails the portal's check.",
     },
-    { label: "free", text: "Free MDX pages beside the generated ones, linking to them." },
+    { label: "free", text: "Free Markdown pages beside the generated ones, linking to them." },
   ],
   chosen: "slots",
   why:
     "The old site's contributing guide called existing prose the weakest source and still found pages derived from " +
-    "pages. Prose that cites records through components cannot go stale, and prose that names a missing record fails a " +
-    "check instead of lingering. Fixed slots keep every operation page in one shape.",
+    "pages. Prose that cites records through directives cannot go stale, and prose that names a missing record fails a " +
+    "check instead of lingering. Fixed slots keep every operation page in one shape. Markdown with directives, not MDX, " +
+    "because the generator renders it (portal.stack).",
   source: by("old apps/docs CONTRIBUTING.md (evidence hierarchy, a template per page type); docs/design-book.md (prose next to the generated reference)"),
   affects: [f.system_capxul],
 });
@@ -457,10 +457,10 @@ export const decision_portal_agent_reads = defineDecision({
       label: "twins",
       text:
         "Every page is also served as Markdown (<page>.md, for reading) and JSON (/data/<kind>/<id>.json: the page model, " +
-        "for tools), with /llms.txt listing the sections. Both twins are files the portal target writes; the renderer " +
-        "copies them into the static output. Status is not in the twins: an agent reads /status/<ref>.json, which carries " +
+        "for tools), with /llms.txt listing the sections. Both twins are files the generator writes beside each page, " +
+        "in the same generation. Status is not in the twins: an agent reads /status/<ref>.json, which carries " +
         "every verdict and every operation's stand at its commit. An agent cites a record by its URL and an eval by its " +
-        "anchor. An agent with the repository can run the portal target locally and read the same JSON. Agents never " +
+        "anchor. An agent with the repository can run the generator locally (`pnpm portal`) and read the same JSON. Agents never " +
         "scrape HTML.",
     },
     { label: "repo-only", text: "Agents read the records in the repository and ignore the portal." },
@@ -480,75 +480,75 @@ export const decision_portal_generated_content = defineDecision({
   id: "portal.generated-content",
   title: "The portal's content is regenerated on every build and never committed",
   question:
-    "The portal target of packages/generate writes each page's model from the records. Is that output committed, like " +
-    "the product's src/generated/ folders that sys:generated diffs, or rebuilt each time?",
+    "The portal's generator writes every page and its model from the records. Is that output committed, like the " +
+    "product's src/generated/ folders that sys:generated diffs, or rebuilt each time?",
   options: [
     {
       label: "uncommitted",
       text:
-        "Rebuilt on every portal build into packages/portal/.bundle/, which is gitignored: a build input like the export " +
-        "in out/, not generated code. It is not under src/generated/ (whose files are committed, carry the hashed " +
+        "Rebuilt on every portal build into packages/portal/dist/, which is gitignored: the site, as the starter kit " +
+        "writes it, not generated code. It is not under src/generated/ (whose files are committed, carry the hashed " +
         "do-not-edit header and are compared by generate:check and sys:generated), and it is not a generate:check " +
-        "target: JSON and Markdown carry no header, and a fresh clone has no bundle to compare. The output is " +
+        "target: HTML, JSON and Markdown carry no header, and a fresh clone has no site to compare. The output is " +
         "deterministic (sorted keys, no timestamps, the commit passed in), so two runs are byte-identical, which the " +
         "portal check holds.",
     },
     { label: "committed", text: "Committed like the product's generated code, and diffed by sys:generated." },
-    { label: "import", text: "No generated content: the site imports books/target directly at build time." },
+    { label: "import", text: "No generated content: a site framework imports books/target directly at its build." },
   ],
   chosen: "uncommitted",
   why:
     "Every book change touches the portal's aggregates (the navigation, the search index, the counts), so committed " +
     "output would conflict between every pair of lane pull requests. The old repository lived this (CAP-1081): it ended " +
     "up refusing generated files in lane pull requests and regenerating them by bot. A page model's diff tells a " +
-    "reviewer nothing the record's diff does not. Importing the book directly ties the site's bundler to the book's .ts " +
-    "imports and Effect Schema; a JSON bundle keeps the renderer replaceable (portal.stack).",
+    "reviewer nothing the record's diff does not. The generator imports the book at generation time (it is TypeScript " +
+    "beside it), and the browser gets only files; the JSON twins are the page models, so a later renderer (Fumadocs, if " +
+    "it is revisited) could read them unchanged (portal.stack).",
   source: by("old packages/tools docs module README (generated-diff, the book-regenerate bot, CAP-1081); decision system.layout (src/generated, sys:generated); docs/design/tooling.md (generate:check, capxul/generated-intact)"),
   affects: [f.system_capxul, decision_system_layout],
 });
 
 export const decision_portal_stack = defineDecision({
   id: "portal.stack",
-  title: "Fumadocs on a Next.js static export, fed from the generated bundle",
+  title: "The book's own generator renders the portal; Fumadocs is set aside",
   question: "What renders the portal: a documentation framework, or the book's own static generator?",
   options: [
     {
+      label: "own-generator",
+      text:
+        "The book's own generator, as the starter kit's packages/portal and the prototype are: plain TypeScript and Effect, " +
+        "no framework. One generation writes every page as HTML, its Markdown twin and its JSON twin (the page model), " +
+        "llms.txt, one stylesheet, one small script and inline SVG diagrams, with relative links, so the site works from " +
+        "file:// and any static host. packages/portal starts as a copy of the kit's (its src/project.ts names Capxul's " +
+        "book, CLI and output) and gains what Capxul's design adds: Review, the status overlay, prose slots and search.",
+    },
+    {
       label: "fumadocs",
       text:
-        "Grade A-. Fumadocs on Next.js with output: export, as the old apps/docs is (swarmD's apps/docs is Fumadocs too, " +
-        "but on OpenNext: a server on a Worker, whose middleware serves its Markdown). Generated pages come from the " +
-        "bundle through a custom Fumadocs source (no generated MDX files); hand-written prose is MDX; search is Fumadocs' " +
-        "static Orama index; the Markdown and JSON twins and llms.txt are files from the bundle, copied into the export, " +
-        "since a static export has no middleware; redirects are a _redirects file; client components read the status " +
-        "document. Known to the agents from both repositories. Heavier (Next, React, Tailwind), and the old site had to " +
-        "fix the order of its type generation.",
+        "Fumadocs on Next.js with output: export, as the old apps/docs is: generated pages through a custom source, MDX " +
+        "prose, Orama search, client components for the status. Set aside for now, to revisit later.",
     },
     {
       label: "starlight",
-      text:
-        "Grade B+. Astro Starlight with a content loader over the bundle, Pagefind search and React islands for the " +
-        "status overlay. The lightest static docs framework and fast builds; new to both repositories, so every agent " +
-        "learns it.",
-    },
-    {
-      label: "own-generator",
-      text:
-        "Grade B-. Grow the book's views into a static generator in plain TypeScript, as the prototype is: no framework, " +
-        "the fastest builds, full control. Search, navigation, theming, accessibility, Markdown prose and the narrow " +
-        "layout are then ours to write and keep, and it grows into a framework of its own.",
+      text: "Astro Starlight with a content loader over the page models, Pagefind search and React islands for the status overlay.",
     },
   ],
-  chosen: "fumadocs",
+  chosen: "own-generator",
   why:
-    "The portal's hard parts are its page models and the stand, which live in the generator and packages/book whatever " +
-    "renders them; the renderer should be the one the agents know and that already solves search, navigation, MDX prose " +
-    "and agent-readable routes. Both precedents are Fumadocs on Next: the old site statically exported to Cloudflare " +
-    "Pages, swarmD's runs on a Worker. Starlight is a close second, and the JSON bundle keeps a switch cheap. The " +
-    "prototype's plain generator is throwaway: fine for one page, but at some 2,700 pages with prose and search it " +
-    "becomes a framework to maintain.",
-  source: by("/home/user/factory/apps/docs (package.json, next.config.mjs, source.config.ts, CONTEXT.md invariant 9); /home/user/swarmd/apps/docs (wrangler.jsonc, open-next.config.ts)"),
+    "Aaron's ruling (aaron.portal-generator, 8 November 2026): 'let's forget Fumadocs for now and just run the generate; " +
+    "whatever we get generated from that generator, we'll stick with that for now.' This record had chosen Fumadocs " +
+    "(graded A-, the generator B- for the search, navigation, theming, accessibility and prose it leaves to write), and " +
+    "now follows the ruling. The gap has narrowed since that grading: the starter kit's generator exists and is checked " +
+    "(3,292 lines: a page per record with both twins, diagrams, the scoreboard, the eval catalogue, the CLI surface and " +
+    "the portal check's five parts, each tested), so what is left to write is Review, the status overlay (a client " +
+    "script reading /status/<ref>.json), Markdown prose slots with directives, and search (the kit's table filters and " +
+    "eval finder now; a site-wide index over search.json when it is wanted). Everything else in the design stands: the " +
+    "sitemap, the page types, the stand, the status document, the review flow, doc:<operation>, the twins and the " +
+    "hosting. The JSON twins keep a switch to a framework possible later without changing the generator's views.",
+  source: by("books/target/shared/rulings.ts (aaron.portal-generator); /home/user/hillclimb-kit/packages/portal (README, src/, 3,292 lines); tools/portal-prototype.ts"),
   affects: [f.system_capxul],
 });
+
 
 export const decision_portal_hosting = defineDecision({
   id: "portal.hosting",
@@ -561,7 +561,7 @@ export const decision_portal_hosting = defineDecision({
     {
       label: "worker-access",
       text:
-        "One Cloudflare Worker, capxul-portal, serving the static export as Workers static assets, plus one route that " +
+        "One Cloudflare Worker, capxul-portal, serving the generated site (dist/) as Workers static assets, plus one route that " +
         "serves status/<ref>.json from an R2 bucket. Cloudflare Access in front: an email allowlist (Aaron, and whoever " +
         "he adds) and a service token for swarmD's managers and agents. CI deploys on every push to integration/build and " +
         "uploads a preview version for every pull request that changes books/ or the portal, linked from the pull " +
@@ -614,26 +614,27 @@ export const decision_portal_no_component = defineDecision({
 
 export const decision_portal_size = defineDecision({
   id: "portal.size",
-  title: "The portal is at most 4,000 hand-written lines",
+  title: "The portal is at most 5,000 hand-written lines",
   question:
     "The rebuild keeps its code small (system.size), and the harness has its own budget of 2,000 lines. How large may the " +
     "portal's own code be?",
   options: [
     {
-      label: "4000",
+      label: "5000",
       text:
-        "At most 4,000 non-test lines of hand-written code in packages/portal and the portal target of packages/generate, " +
-        "leaving out the generated bundle and the prose in content/. The portal's check counts them. Raising it takes a " +
-        "decision.",
+        "At most 5,000 non-test lines of hand-written code in packages/portal, leaving out the generated site (dist/) and " +
+        "the prose in content/. The portal's check counts them. Raising it takes a decision.",
     },
+    { label: "4000", text: "At most 4,000, as set while Fumadocs was to supply the shell." },
     { label: "none", text: "No budget: it is a tool." },
   ],
-  chosen: "4000",
+  chosen: "5000",
   why:
-    "The old site's page components alone were 1,812 lines, beside a docs generator in packages/tools. Fumadocs supplies " +
-    "navigation, search and the shell, so the portal writes the page models (about one per record kind), the stand " +
-    "overlay, the scoreboard and the surface page; 4,000 leaves room for that and not for a second framework. It sits " +
-    "outside system.size because it is not product code, as the harness does.",
+    "The old site's page components alone were 1,812 lines, beside a docs generator in packages/tools. The limit was " +
+    "4,000 while Fumadocs was to supply navigation, search and the shell; the generator writes those too (portal.stack). " +
+    "The starter kit's generator is 3,292 lines with its shell, page views, diagrams, scoreboard, surface page and check; " +
+    "Review, the status overlay, prose slots and search add about a thousand, so 5,000 leaves room for that and not for " +
+    "a framework of its own. It sits outside system.size because it is not product code, as the harness does.",
   source: by("old apps/docs components/page (1,812 lines); decision system.size; docs/spec/30 (the harness's 2,000 lines)"),
   affects: [decision_system_size],
 });
