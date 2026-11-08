@@ -2,9 +2,10 @@
 // The text is copied, never edited. What the old book never wrote is marked, not invented.
 
 import { Schema } from "effect";
+import { frozenFlagBook } from "./flags.ts";
 import { frozen, type FrozenId } from "./operations.ts";
 
-export { frozen, type FrozenId };
+export { frozen, frozenFlagBook, type FrozenId };
 
 /** Marks text the old book never wrote. The target design writes it; the as-is book keeps the mark. */
 export const NOT_IN_OLD_BOOK = "Not written in the old book.";
@@ -42,3 +43,15 @@ export const frozenReturns = (id: FrozenId) =>
 /** The refusal codes and texts, for a writer to map onto error records and worlds. */
 export const frozenRefusals = (id: FrozenId) =>
   (frozen[id].refusals as readonly { code: string; when: string }[]).map((r) => ({ code: String(r.code), when: String(r.when) }));
+
+/**
+ * The old CLI's grammar for a frozen command (books/frozen/flags.ts): its positional arguments and its
+ * own flags, as apps/cli/src declares them, with the help text word for word. `inCli` is false for a
+ * command the old CLI never declared; its flags are only in the frozen text's designed block. The
+ * global flags every command takes are `frozenGlobalFlags`, not repeated here.
+ */
+export const frozenFlags = (id: FrozenId) =>
+  (frozenFlagBook.commands satisfies Record<FrozenId, { readonly command: string; readonly inCli: boolean }>)[id];
+
+/** The global flags every command takes: the six the old CLI declares, then Effect's built-in ones. */
+export const frozenGlobalFlags = frozenFlagBook.globalFlags;

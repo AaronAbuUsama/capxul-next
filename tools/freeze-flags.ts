@@ -24,6 +24,9 @@ import { frozen } from "../books/frozen/operations.ts";
 
 const ROOT = path.resolve(process.argv[2] ?? "/home/user/factory");
 const OUT = path.resolve(process.argv[3] ?? "books/frozen/flags.ts");
+type FrozenDesigned = { readonly flags?: readonly { readonly flag: string }[]; readonly synopsis?: string } | null;
+const frozenById = frozen as unknown as Record<string, { readonly command: string; readonly designed: FrozenDesigned }>;
+const frozenOf = (id: string) => frozenById[id]!;
 const CLI = path.join(ROOT, "apps/cli");
 
 // ── values ──────────────────────────────────────────────────────────────────────────────────
@@ -342,7 +345,7 @@ function resolveSpec(from: string, spec: string): string | undefined {
   }
   if (spec.startsWith("~/") && pkg) return asFile(path.join(pkg, "src", spec.slice(2)));
   const parts = spec.split("/");
-  const name = spec.startsWith("@") ? parts.slice(0, 2).join("/") : parts[0];
+  const name = spec.startsWith("@") ? parts.slice(0, 2).join("/") : (parts[0] ?? spec);
   const dir = workspacePackages.get(name);
   if (!dir) return undefined;
   const sub = "." + spec.slice(name.length);
@@ -539,7 +542,7 @@ function execOne(st: ts.Statement, env: Env): Completion {
     if (isUnknown(it) || it === null || typeof (it as Iterable<Val>)[Symbol.iterator] !== "function") return unsupported(st, "a loop over an unknown value");
     for (const x of it as Iterable<Val>) {
       const scope = new Env(env);
-      bind(st.initializer.declarations[0].name, x, scope);
+      bind(st.initializer.declarations[0]!.name, x, scope);
       const out = execOne(st.statement, scope);
       if (out?.kind === "break") break;
       if (out?.kind === "return") return out;
@@ -672,7 +675,7 @@ function evaluate(node: ts.Expression, env: Env): Val {
       } else args.push(evaluate(a, env));
     }
     const optional = !!(node.flags & ts.NodeFlags.OptionalChain);
-    let callee = node.expression;
+    let callee: ts.Expression = node.expression;
     while (ts.isParenthesizedExpression(callee) || ts.isNonNullExpression(callee)) callee = callee.expression;
     if (ts.isPropertyAccessExpression(callee) || ts.isElementAccessExpression(callee)) {
       const self = evaluate(callee.expression, env);
@@ -847,7 +850,7 @@ for (const file of fs.readdirSync(proofsDir).filter((f) => f.endsWith(".json")).
 }
 if (!printedRuns.length) throw new Fatal("no `capxul schema` result with globalFlags in apps/docs/factory/proofs");
 printedRuns.sort((a, b) => runStamp(a.file).localeCompare(runStamp(b.file)) || a.file.localeCompare(b.file));
-const newest = printedRuns[printedRuns.length - 1];
+const newest = printedRuns[printedRuns.length - 1]!;
 const disagreeing = printedRuns.filter((r) => JSON.stringify(r.globals) !== JSON.stringify(newest.globals)).length;
 const declaredNames = new Set(declaredGlobals.map((g) => g.flag));
 const builtInGlobals = newest.globals.filter((g) => !declaredNames.has(g.name)).map((g) => ({
@@ -872,11 +875,11 @@ if (globalProblems.length) throw new Fatal(`the printed global flags disagree wi
 // ── matching the frozen commands ────────────────────────────────────────────────────────────
 
 const ids = Object.keys(frozen).sort();
-const frozenCommands = new Map(ids.map((id) => [(frozen as Record<string, { command: string }>)[id].command, id]));
+const frozenCommands = new Map(ids.map((id) => [frozenOf(id).command, id]));
 const commands: Record<string, Val> = {};
 const notInCli: string[] = [];
 for (const id of ids) {
-  const command = (frozen as Record<string, { command: string }>)[id].command;
+  const command = frozenOf(id).command;
   const n = byPath.get(command);
   if (!n) { notInCli.push(id); commands[id] = { command, inCli: false }; continue; }
   commands[id] = { command, inCli: true, ...entryOf(n) };
@@ -884,29 +887,53 @@ for (const id of ids) {
 const notFrozen = nodes.filter((n) => !frozenCommands.has(n.path) && !(n.hasChildren && !n.cmd.c.params.length && nodes.some((m) => m.path.startsWith(n.path + " ") && frozenCommands.has(m.path))));
 const notFrozenRunnable = nodes.filter((n) => !frozenCommands.has(n.path));
 
-// A flag the frozen designed (v4) block lists that the CLI does not declare on that command.
-type Designed = { flags?: { flag: string }[] } | null;
-const designedOnly: { id: string; flag: string }[] = [];
+// A flag the frozen designed (v4) block lists, in its flags table or its synopsis, that the CLI does
+// not declare on that command or as a global flag. A synopsis can show several commands, joined by
+// " · "; only the part for this command counts (the whole synopsis when no part names it).
+const designedOnly: { id: string; flag: string; listedIn: string }[] = [];
 const globalNames = new Set([...declaredGlobals.map((g) => g.flag), ...builtInGlobals.map((g) => g.flag)]);
+const ownSynopsis = (synopsis: string, command: string) => {
+  const parts = synopsis.split(" · ");
+  const words = command.split(" ");
+  const heads = [command, words.slice(1).join(" ")].filter(Boolean);
+  const mine = parts.filter((p) => {
+    const rest = p.trim().split(" ").slice(1).join(" ");
+    return heads.some((h) => rest === h || rest.startsWith(h + " ") || rest.startsWith(h + "|"));
+  });
+  return (mine.length ? mine : parts).join(" ");
+};
 for (const id of ids) {
-  const designed = (frozen as Record<string, { designed: Designed }>)[id].designed;
+  const f = frozenOf(id);
   const entry = commands[id] as { inCli: boolean; flags?: { flag: string }[] };
-  const own = new Set((entry.flags ?? []).map((f) => f.flag));
-  for (const row of designed?.flags ?? []) {
-    for (const token of row.flag.match(/`(--?[a-z][a-z0-9-]*)/g) ?? []) {
-      const flag = token.slice(1);
-      if (!own.has(flag) && !globalNames.has(flag)) designedOnly.push({ id, flag });
-    }
-  }
+  const own = new Set((entry.flags ?? []).map((x) => x.flag));
+  const listed = new Map<string, string>();
+  for (const row of f.designed?.flags ?? [])
+    for (const token of row.flag.match(/`(--?[a-z][a-z0-9-]*)/g) ?? []) listed.set(token.slice(1), "flags");
+  for (const token of ownSynopsis(f.designed?.synopsis ?? "", f.command).match(/(?<![\w-])--[a-z][a-z0-9-]*/g) ?? [])
+    if (!listed.has(token)) listed.set(token, "synopsis");
+  for (const [flag, listedIn] of listed) if (!own.has(flag) && !globalNames.has(flag)) designedOnly.push({ id, flag, listedIn });
+  const missing = designedOnly.filter((d) => d.id === id).map((d) => d.flag);
+  if (missing.length) commands[id] = { ...(commands[id] as object), designedNotInCli: missing };
 }
 
 // ── the file ────────────────────────────────────────────────────────────────────────────────
 
-const body = {
-  globalFlags: { declared: declaredGlobals, builtIn: builtInGlobals },
-  commands,
-};
-const json = JSON.stringify(body, null, 2);
+// One flag or argument per line, so a change to the old CLI reads as a one-line diff.
+const rows = (list: readonly unknown[], pad: string) =>
+  list.length ? `[\n${list.map((x) => `${pad}  ${JSON.stringify(x)},`).join("\n")}\n${pad}]` : "[]";
+const entry = (e: Record<string, Val>, pad: string) =>
+  `{\n${Object.entries(e).map(([k, v]) => `${pad}  ${JSON.stringify(k)}: ${Array.isArray(v) ? rows(v, pad + "  ") : JSON.stringify(v)},`).join("\n")}\n${pad}}`;
+const json = [
+  "{",
+  `  "globalFlags": {`,
+  `    "declared": ${rows(declaredGlobals, "    ")},`,
+  `    "builtIn": ${rows(builtInGlobals, "    ")},`,
+  "  },",
+  `  "commands": {`,
+  ...ids.map((id) => `    ${JSON.stringify(id)}: ${entry(commands[id] as Record<string, Val>, "    ")},`),
+  "  },",
+  "}",
+].join("\n");
 const lines = [
   "// GENERATED by tools/freeze-flags.ts from the old CLI. Do not edit: regenerate.",
   "//   node --experimental-strip-types tools/freeze-flags.ts /home/user/factory books/frozen/flags.ts",
@@ -915,7 +942,9 @@ const lines = [
   "// global flags are read from the source (`Command.withGlobalFlags` in apps/cli/src/command.ts);",
   "// `builtIn` ones are Effect's own, as the old CLI printed them in the newest recorded",
   `// \`capxul schema\` result (apps/docs/factory/proofs/${newest.file}).`,
-  "// A frozen command with `inCli: false` is one the old CLI never declared.",
+  "// A frozen command with `inCli: false` is one the old CLI never declared. `designedNotInCli` names",
+  "// the flags its frozen designed (v4) block lists, in its flags table or synopsis, that the old CLI",
+  "// does not declare; by P10 the designed text is the surface, so the target keeps them too.",
   "",
   `export const frozenFlagBook = ${json} as const;`,
   "",
@@ -932,6 +961,7 @@ const argCount = ids.reduce((s, id) => s + (((commands[id] as { arguments?: unkn
 console.log(`${ids.length} frozen commands: ${inCli} in the CLI with ${argCount} arguments and ${flagCount} flags; ${notInCli.length} the CLI does not have.`);
 console.log(`${declaredGlobals.length} declared global flags (checked against the printed schema), ${builtInGlobals.length} built-in; ${printedRuns.length} recorded schema results, ${disagreeing} differing from the newest.`);
 console.log(`${nodes.length} CLI command paths; ${notFrozenRunnable.length} not frozen (${notFrozen.length} excluding groups that only hold frozen commands).`);
-for (const id of notInCli) console.log(`frozen-not-in-cli ${id} (${(frozen as Record<string, { command: string }>)[id].command})`);
+for (const id of notInCli) console.log(`frozen-not-in-cli ${id} (${frozenOf(id).command})`);
 for (const n of notFrozen) console.log(`cli-not-frozen ${n.path}${n.unlisted ? " (unlisted)" : ""}${n.hasChildren ? " (group)" : ""} ${fileOf(n.cmd.c.at)}`);
-for (const d of designedOnly) console.log(`designed-flag-not-in-cli ${d.id} ${d.flag}`);
+for (const d of designedOnly) console.log(`designed-flag-not-in-cli ${d.id} ${d.flag} (designed ${d.listedIn})`);
+console.log(`${designedOnly.length} designed flags the CLI does not declare, in ${new Set(designedOnly.map((d) => d.id)).size} commands.`);

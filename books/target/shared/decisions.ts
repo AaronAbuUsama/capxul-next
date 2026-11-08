@@ -2595,3 +2595,121 @@ export const decision_system_build_order = defineDecision({
   source: `${HANDOFF}; evidence: the concept dependsOn graph of the built target book (14 layers, no cycle); the fact check of the goal prompt's earlier order`,
   affects: [f.system_capxul, f.concept_board, f.concept_equity, f.concept_notices],
 });
+
+// ── the frozen flags (8 November 2026) ──────────────────────────────────────────────────────
+
+const flagsBy = (evidence: string) => `Claude, frozen flags, 8 November 2026; evidence: ${evidence}`;
+
+export const decision_rules_frozen_flags_source = defineDecision({
+  id: "rules.frozen-flags-source",
+  title: "The frozen flags are read from the old CLI's own grammar",
+  question:
+    "Where does books/frozen/flags.ts take each frozen command's arguments and flags from, so that it keeps the old CLI's " +
+    "words and invents nothing?",
+  options: [
+    {
+      label: "source",
+      text:
+        "tools/freeze-flags.ts parses apps/cli/src with the TypeScript compiler API and evaluates only the Effect CLI grammar " +
+        "(Command.make, Flag.*, Argument.*, GlobalFlag.Setting), following constants and flag helpers across imports into the " +
+        "old packages. It never runs a handler, and it stops on any name, help text, choice or default it cannot work out.",
+    },
+    { label: "run-schema", text: "Run the old CLI's `capxul schema <command> --json` for every command." },
+    {
+      label: "docs-pages",
+      text: "Parse the old docs site's CLI reference (apps/docs/content/docs/reference/cli), which `capxul schema` generated.",
+    },
+  ],
+  chosen: "source",
+  why:
+    "`capxul schema` is the CLI's own manifest, but running it needs the old workspace installed (Effect 4.0.0, @capxul/sdk " +
+    "and their dependencies) and runs the old code; the checkout has no node_modules. The docs pages lose what the frozen " +
+    "surface needs: they capitalise each help text and end it with a period, escape Markdown, and drop types, defaults and " +
+    "repeats. Read from source, the grammar agrees with the docs pages on all 192 commands the old CLI has (names, order, " +
+    "required, and help text once the docs formatting is undone), and the six global flags it declares agree with its " +
+    "recorded `capxul schema` output. Two runs write the same file byte for byte.",
+  source: flagsBy("apps/cli/src/command.ts; runtime/format.ts; commands/schema/internal/describe.ts; apps/docs/content/docs/reference/cli"),
+  affects: [f.component_cli],
+});
+
+export const decision_rules_frozen_flags_built_ins = defineDecision({
+  id: "rules.frozen-flags-built-ins",
+  title: "Effect's built-in global flags are frozen as the old CLI printed them",
+  question:
+    "--help (-h), --version (-v), --wizard, --completions and --log-level come from the Effect library, not from the old " +
+    "CLI's source. Are they frozen, and in whose words?",
+  options: [
+    {
+      label: "printed",
+      text:
+        "Frozen, as the newest recorded `capxul schema … --json` result printed them (apps/docs/factory/proofs): name, " +
+        "alias, printed type, required and help text.",
+    },
+    { label: "library", text: "Frozen, from Effect's GlobalFlag source in this repository's node_modules." },
+    { label: "omit", text: "Not frozen: only the flags the CLI declares itself." },
+  ],
+  chosen: "printed",
+  why:
+    "A person types them and the old docs list them among the global flags, so they are surface (P10 rung 1). This " +
+    "repository has Effect 4.1.2, whose --completions also offers powershell and pwsh; the old CLI pinned 4.0.0 and printed " +
+    "<bash|zsh|fish|sh>, so the library source is not the old words. The 38 recorded results all agree. The old CLI drops " +
+    "--wizard outside an interactive terminal (runtime/entry.ts); that is behaviour, not grammar.",
+  source: flagsBy("apps/docs/factory/proofs (38 `capxul schema` results); apps/cli/src/runtime/entry.ts:192; node_modules/effect/src/cli/GlobalFlag.ts"),
+  affects: [f.component_cli],
+});
+
+export const decision_rules_frozen_flags_kept = defineDecision({
+  id: "rules.frozen-flags-kept",
+  title: "A frozen command keeps every flag the old CLI or its designed text gives it",
+  question:
+    "In 66 of the 75 designed operations the old CLI has, the designed (v4) text leaves out 189 flags the CLI declares, most " +
+    "often --email, --timeout-seconds and --no-wait. The designed text also lists 34 flags in 22 commands that the old CLI " +
+    "never declared, and 23 frozen commands the old CLI never had at all. Which flags are frozen?",
+  options: [
+    {
+      label: "union",
+      text:
+        "Both: every flag the old CLI declares on the command, and every flag its designed block lists in its flags table " +
+        "or its synopsis. flags.ts names the designed ones the CLI lacks (`designedNotInCli`) and marks the 23 commands " +
+        "`inCli: false`, without writing a type or help text for them. Dropping a frozen flag needs a decision record on the " +
+        "operation that names it, as for a refusal.",
+    },
+    { label: "designed-only", text: "Only the designed text's grammar where an operation has one; the CLI's other flags go." },
+    { label: "cli-only", text: "Only what the old CLI declares; designed flags nothing built are not frozen." },
+  ],
+  chosen: "union",
+  why:
+    "P10 rung 1 makes flags surface and puts the designed text first, so its flags stay even where nothing built them " +
+    "(`shares exercise --shares`, `org exit pay --vote`). The designed synopses are summaries: they say nothing of removing " +
+    "the flags scripts pass every day, so their silence is not a drop, and tools/check-frozen.ts already reads a dropped " +
+    "refusal only from a decision. Writing types or help text for the designed flags now would invent them; the designed " +
+    "text holds the book's words, and B1 maps both kinds onto each flow's input.",
+  source: flagsBy("books/frozen/flags.ts (designedNotInCli, inCli); books/frozen/operations.ts (designed flags and synopses); P10"),
+  affects: [f.component_cli],
+});
+
+export const decision_rules_frozen_flags_unlisted = defineDecision({
+  id: "rules.frozen-flags-unlisted",
+  title: "The old CLI's 21 unlisted commands are not frozen",
+  question:
+    "The old CLI has 21 command paths that no frozen page names, all hidden from --help: bare `capxul` (home), `invite " +
+    "get|review|wait`, `org invite get|wait|retry`, `org allowance command get|wait`, the ten `org payroll` paths and `org " +
+    "proposal create`. Does flags.ts freeze them?",
+  options: [
+    {
+      label: "not-frozen",
+      text:
+        "No. They are recovery and unfinished commands the old book never made operations. flags.ts covers the 215 frozen " +
+        "commands only, and the target adds such a command only through an operation record.",
+    },
+    { label: "frozen", text: "Freeze them too, with their flags." },
+  ],
+  chosen: "not-frozen",
+  why:
+    "The frozen surface is the 215 operations (P10), and P2 deletes what nothing reaches. No frozen page or acceptance line " +
+    "needs one of them: `schema` #4 uses `schema org.payroll.run` as its example, but it still holds when neither spelling " +
+    "names a command, since both are refused alike with CLI_USAGE; its eval should use a frozen command. No frozen operation " +
+    "describes bare `capxul`, so what it prints is the target CLI's own design.",
+  source: flagsBy("tools/freeze-flags.ts (cli-not-frozen); apps/cli/src/commands/home/command.ts; books/frozen/operations.ts (schema #4)"),
+  affects: [f.component_cli],
+});

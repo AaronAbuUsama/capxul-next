@@ -3,8 +3,10 @@
 // target record with the same command and title; every acceptance line is kept word for word, or
 // changed with the frozen claim first in its `was`, or retired as null; every frozen refusal code
 // is still a refusal, from the page or its designed (v4) block, unless a decision on the operation
-// names it. Exits 1 on a breach. A changed line with no decision on its operation is listed.
+// names it; and books/frozen/flags.ts holds the old CLI's grammar for every frozen command. Exits 1 on a
+// breach. A changed line with no decision on its operation is listed.
 
+import { frozenFlagBook } from "../books/frozen/flags.ts";
 import { frozen, type FrozenId } from "../books/frozen/operations.ts";
 import { records } from "../books/target/index.ts";
 
@@ -67,11 +69,39 @@ for (const id of Object.keys(frozen) as FrozenId[]) {
 }
 for (const id of ops.keys()) if (!(id in frozen)) breaches.push(`${id}: a target operation the frozen book does not have`);
 
+// The frozen flags (books/frozen/flags.ts, from the old CLI by tools/freeze-flags.ts) cover every frozen
+// command: one entry per frozen operation, under its id, with its command word for word. They are not yet
+// compared with the target: operation records do not map flags onto flow inputs until the build's first
+// B1 step adds that field, book first.
+type FlagEntry = {
+  command: string; inCli: boolean; designedNotInCli?: readonly string[];
+  arguments?: readonly { name: string }[]; flags?: readonly { flag: string }[];
+};
+const flagEntries = frozenFlagBook.commands as unknown as Record<string, FlagEntry>;
+const flagTally = { covered: 0, inCli: 0, notInCli: 0, arguments: 0, flags: 0, designedNotInCli: 0 };
+for (const id of Object.keys(frozen) as FrozenId[]) {
+  const e = flagEntries[id];
+  if (!e) { breaches.push(`${id}: no entry in books/frozen/flags.ts`); continue; }
+  if (e.command !== frozen[id].command) { breaches.push(`${id}: flags.ts names "${e.command}", the frozen command is "${frozen[id].command}"`); continue; }
+  if (e.inCli && !(Array.isArray(e.arguments) && Array.isArray(e.flags))) { breaches.push(`${id}: flags.ts has no arguments or flags list`); continue; }
+  flagTally.covered++;
+  if (e.inCli) flagTally.inCli++; else flagTally.notInCli++;
+  flagTally.arguments += e.arguments?.length ?? 0;
+  flagTally.flags += e.flags?.length ?? 0;
+  flagTally.designedNotInCli += e.designedNotInCli?.length ?? 0;
+}
+for (const id of Object.keys(flagEntries)) if (!(id in frozen)) breaches.push(`${id}: an entry in books/frozen/flags.ts the frozen book does not have`);
+
 console.log(
   `${tally.operations} of ${Object.keys(frozen).length} operations; ${tally.lines} acceptance lines: ${tally.kept} kept word for word, ` +
     `${tally.changed} changed with the frozen claim kept in was, ${tally.retired} retired; ${tally.refusals} frozen refusal codes checked, ${tally.droppedByDecision} dropped by a decision that names them.`,
 );
 console.log(`${undecided.length} changed lines whose operation no decision record names${undecided.length ? ": " + undecided.join(", ") : ""}.`);
+console.log(
+  `Flags: ${flagTally.covered} of ${Object.keys(frozen).length} frozen commands covered by books/frozen/flags.ts; ${flagTally.inCli} in the old CLI ` +
+    `(${flagTally.arguments} arguments, ${flagTally.flags} flags), ${flagTally.notInCli} it never declared; ${flagTally.designedNotInCli} designed flags ` +
+    `it does not declare; ${frozenFlagBook.globalFlags.declared.length + frozenFlagBook.globalFlags.builtIn.length} global flags. Not yet compared with the target (B1).`,
+);
 console.log(`${breaches.length} breaches.`);
 for (const b of breaches) console.log(`breach ${b}`);
 process.exitCode = breaches.length ? 1 : 0;
