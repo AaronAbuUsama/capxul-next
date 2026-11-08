@@ -58,8 +58,12 @@ export const decision_swarm_stages = defineDecision({
       text:
         "Stage 0: the build session (a Claude session, Mission Control) runs the master's loop by hand with the same schemas: " +
         "docs/mission/tasks.json as the task tree, pull requests on the same branches, makers and checkers as Workflow agents, " +
-        "4 to 6 at a time, and docs/mission/progress.md as the log. Stage 1: capxul/master on swarmD, when the entry criteria " +
-        "in docs/design/swarm.md hold (expected at B3). Stage 2: lane managers under the master as lead (swarm.nested-entry).",
+        "at most 2 pairs at a time (swarm.pacing), and docs/mission/progress.md as the log. Stage 1: capxul/master on swarmD, " +
+        "when the entry criteria in docs/design/swarm.md section 1.2 hold (expected at B3): among them the briefs without " +
+        "which the master cannot run at all, the plan reconciled in code (SD-2), the brief and paths reaching the gate (SD-3, " +
+        "SD-4), des: verdicts posted and carried (SD-21, SD-22), a pair's end waking the master (SD-26), needs met at merge " +
+        "(SD-27) and pushes held to the task's branch (SD-28). Stage 2: lane managers under the master as lead " +
+        "(swarm.nested-entry).",
     },
     { label: "wait", text: "Start nothing until swarmD's manager runs." },
     { label: "workflows-only", text: "Run the whole build from Claude sessions and workflows; swarmD is not used." },
@@ -180,20 +184,28 @@ export const decision_swarm_pacing = defineDecision({
     {
       label: "four-pairs",
       text:
-        "At most 4 pairs in flight and 6 worker assignments running at once, plus the manager: a pair runs its maker and its " +
-        "checkers in turn, and a money pair's two checkers run together. One task in flight per lane. Start at 2 pairs for B3, " +
-        "whose pilot closure is narrow; go to 4 when two pairs in a row converge within budget. Worker concurrency: builder 4, " +
-        "reviewer 4, adversary 2, diagnoser 1, researcher 1, under a manager-level cap of 6 (a needed brief).",
+        "Stage 1: at most 4 pairs in flight and 6 worker assignments running at once, plus the manager: a pair runs its maker " +
+        "and its checkers in turn, and a money pair's two checkers run together. One task in flight per lane. Start at 2 pairs " +
+        "for B3, whose pilot closure is narrow; go to 4 when two pairs in a row converge within budget. Worker concurrency: " +
+        "builder 4, reviewer 4, adversary 2, diagnoser 1, researcher 1, under a manager-level cap of 6 (a needed brief). " +
+        "Stage 0: at most 2 pairs (3 agents at most), because there the limit is the subscription's usage window, not the " +
+        "agent count; Mission Control starts no pair it expects to outlast the window, and moves to 3 pairs only when a window " +
+        "has ended with usage left twice in a row.",
     },
     { label: "sixteen", text: "As many as the frontier allows." },
     { label: "one", text: "One pair at a time." },
+    { label: "four-at-stage-0", text: "4 pairs and 6 agents at stage 0 too, as the goal prompt's 4-to-6 line says." },
   ],
   chosen: "four-pairs",
   why:
-    "Sixteen agents at once spent a five-hour window in 36 minutes; the goal prompt says 4 to 6. The retro's healthy task took " +
-    "16 active minutes and $0.77, a long one 11 minutes a round: 4 pairs keep about 6 agents busy. After B3 the frontier is 38 " +
-    "tasks over many lanes, so one task per lane costs no parallelism and keeps lane branches free of conflicts.",
-  source: by(`HANDOFF.md (lessons that save usage); ${RETRO} (per mission, per ticket); docs/mission/tasks.json (frontier 38)`),
+    "Sixteen agents at once spent a five-hour window in 36 minutes: the window holds about 576 agent-minutes, about 2 agents " +
+    "busy for all 5 hours. Six agents spend it in about 1.6 hours and then wait 3.4 with nothing running, doing no more work " +
+    "and losing what each agent had not written when the window closed; so stage 0 runs 2 pairs. At stage 1 the limits are " +
+    "money and the providers': the anthropic key's rate limits, and the gateway, which is a CLIProxy over a subscription " +
+    "with its own window, whose exhaustion is a provider signal that pauses the makers. The retro's healthy task took 16 " +
+    "active minutes and $0.77, a long one 11 minutes a round: 4 pairs keep about 6 agents busy. After B3 the frontier is 92 " +
+    "tasks over 22 lanes, so one task per lane costs no parallelism and keeps lane branches free of conflicts.",
+  source: by(`HANDOFF.md (lessons that save usage); ${RETRO} (per mission, per ticket); ${SWARMD} docs/planning/sitrep-2026-11-08.md (gateway: CLIProxy); tools/plan-tasks.ts (frontierAfterB3 92, 22 lanes)`),
   affects: [f.system_capxul, decision_system_layout],
 });
 
@@ -210,8 +222,11 @@ export const decision_swarm_task_tree = defineDecision({
         "tools/plan-tasks.ts derives every task from the records: milestones and their steps, a lane per concept, and in each " +
         "lane its door, processes, operations and the rpcs and helper flows no operation of its lane owns, plus integrations " +
         "and journeys. A task's key is its record's key. Its evals are the book's eval ids. Its needs come from the links. " +
-        "docs/mission/tasks.json is regenerated with the book and checked (--check). The master opens and updates ledger tasks " +
-        "from it at each move of integration/build; it never invents a task, except a defect from a finding.",
+        "docs/mission/tasks.json is regenerated with the book and checked (--check); it holds the tasks and no counts over " +
+        "the book, so lanes that change different tasks regenerate it without a conflict. At stage 1 the ledger reconciles its " +
+        "tasks from it in code at each move of integration/build (SD-2); the file is about 700 KB, too large for a model to " +
+        "reconcile by reading. Nothing else opens a task, except a defect (from a finding, a red head or a person), a review " +
+        "task from an answer, and the children a split creates (swarm.hand-tasks).",
     },
     { label: "manager-writes", text: "The manager reads the book and opens tasks as it goes." },
     { label: "hand-plan", text: "A hand-written plan of missions, as swarmD's own team uses issues." },
@@ -435,7 +450,9 @@ export const decision_swarm_merge = defineDecision({
         "unverifiable evals are listed under After merge on the pull request and do not block (the retro's D7); GitHub's " +
         "required checks are green. It squash-merges into integration/build. At a milestone's exit it opens and merges the " +
         "pull request from integration/build into main. No worker holds pulls.merge, and the manager's grant allows only the " +
-        "bases integration/build and main (swarmD #85). A production deploy is the owner's step.",
+        "bases integration/build and main (swarmD #85). No sandbox can push integration/build or main either: a maker's push " +
+        "reaches only its task's branch, and a checker's, the diagnoser's and the researcher's sandboxes carry no write " +
+        "credential (SD-28). A production deploy is the owner's step.",
     },
     { label: "builder", text: "The builder merges its own pull request once checks pass, as swarmD's team first did." },
     { label: "person", text: "A person merges every pull request." },
@@ -444,8 +461,11 @@ export const decision_swarm_merge = defineDecision({
   why:
     "The builder merging, and a merge waiting on lines nothing could run, were two of the retro's failures. A person merging " +
     "430 pull requests is the bottleneck the swarm exists to remove. GitHub rulesets need a paid plan on that repository, so " +
-    "the connector's base allowlist is what keeps the manager off other branches.",
-  source: by(`${RETRO} (D7, what did not work 2); ${SWARMD} docs/planning/sitrep-2026-11-08.md (#85); concepts/the-record.mdx (release gate)`),
+    "the connector's base allowlist is what keeps the manager off other branches. #85 guards only the connector's merge: " +
+    "every sandbox reaches github.com through an egress that adds the App's installation token, which can write every " +
+    "branch, so without branch protection a builder's git push to integration/build is a merge outside the gate, the " +
+    "retro's failure by another door. SD-28 closes it in the egress.",
+  source: by(`${RETRO} (D7, what did not work 2); ${SWARMD} docs/planning/sitrep-2026-11-08.md (#85); concepts/the-record.mdx (release gate); how-to/connect-github.mdx (the egress adds the token, git push works); packages/server/src/modules/sandbox/service.ts (the egress adds the header, no ref check)`),
   affects: [decision_system_layout],
 });
 
@@ -481,17 +501,26 @@ export const decision_swarm_scope = defineDecision({
       label: "paths-and-guard",
       text:
         "Each task lists its paths: for a lane task books/target/<concept>/ and src/<concept>/ in the backend and the SDK, " +
-        "plus generated files through npm run generate. The gate refuses a change outside them, any change to packages/book or " +
-        "packages/evals from a lane task, and a submitted version whose catalogue lacks one of the task's eval ids. A record " +
-        "may change only book first, with a decision record. A change needed elsewhere is a finding.",
+        "plus packages/indexer/ for indexing (Ponder writes its views) and packages/devnet/ for devnet (its supervisor and " +
+        "world builder). Every task may also change the regenerated outputs that tasks.json lists (docs/mission/tasks.json " +
+        "and every package's src/generated/), but only to what the generators write at its version, which generate:check and " +
+        "plan-tasks --check prove; so a book-first change carries its outputs in the same pull request. The gate refuses a " +
+        "change outside them, any change to packages/book or packages/evals from a lane task, and a submitted version whose " +
+        "catalogue lacks one of the task's eval ids. tools/check-scope.ts, step B3.sandbox (ms:B3/scope), is that part of the " +
+        "gate; at stage 0 Mission Control runs git diff --name-only against the paths before any checker starts. A record may " +
+        "change only book first, with a decision record. A change needed elsewhere is a finding.",
     },
     { label: "trust", text: "No paths; the reviewer catches it." },
+    { label: "concept-folders-only", text: "Only the concept's own folders, with generated files and the plan left to a later task." },
   ],
   chosen: "paths-and-guard",
   why:
     "A reviewer never weakens an eval (goal prompt), and the old factory refused a handback that touched a grader or a path " +
-    "outside its ticket; both rules are cheaper as a gate than as a review finding.",
-  source: by("/home/user/factory apps/factory/src/ticket.ts (files, outOfScope, graders); docs/mission/initializer.md (How to work)"),
+    "outside its ticket; both rules are cheaper as a gate than as a review finding. The concept folders alone would refuse " +
+    "every book-first change, which must regenerate src/generated/ and tasks.json, and would leave indexing's and devnet's " +
+    "code out of their own lanes. A failed gate costs no round, so a scope that refuses needed work loops until the budget " +
+    "signal.",
+  source: by("/home/user/factory apps/factory/src/ticket.ts (files, outOfScope, graders); docs/mission/initializer.md (How to work); system.layout (packages/indexer, packages/devnet, src/generated/); books/target/shared/foundation.ts (concept_indexing: Ponder alone writes them); docs/design/tooling.md (the check gate)"),
   affects: [decision_system_layout],
 });
 
@@ -515,6 +544,67 @@ export const decision_swarm_findings = defineDecision({
   affects: [f.system_capxul],
 });
 
+export const decision_swarm_watch_tasks = defineDecision({
+  id: "swarm.watch-tasks",
+  title: "A task with evals but no paths is watched, never paired",
+  question:
+    "The journeys, B3.pilots and B5.week own evals but no code: their work is other tasks'. A pair for one would have a " +
+    "maker who may change nothing, and a failed gate costs no round. How are they run?",
+  options: [
+    {
+      label: "watch",
+      text:
+        "tools/plan-tasks.ts gives a working task with no paths the label watch, no checkers and no budget. The master never " +
+        "pairs it: it is done when its evals pass at the integration head, by the machine runs every ref move makes. When its " +
+        "needs are all done and one of its evals still fails or errors, the master assigns the diagnoser outside a pair, and " +
+        "opens a defect in the lane the diagnosis names. A watch task gets no task card at stage 0.",
+    },
+    { label: "pair-anyway", text: "Pair them like any task; the reviewer finds nothing to check." },
+    { label: "give-paths", text: "Give each journey the paths of every lane its steps touch." },
+  ],
+  chosen: "watch",
+  why:
+    "A maker that may change nothing fails its gate on any change and passes it on none, so the pair loops or idles until " +
+    "the budget signal: $75 over the 15 such tasks for no work. Giving a journey every lane's paths would let one task " +
+    "change 10 concepts at once, which swarm.scope and the one-task-per-lane rule exist to stop. Its failure is a defect " +
+    "in the lane that owns the cause.",
+  source: by("tools/plan-tasks.ts (watch: 13 journeys, B3.pilots, B5.week); .github/ISSUE_TEMPLATE/task-journey.yml (\"a journey's paths may be empty\", now removed); swarmD reference/pairs.md (a failed code level doesn't count)"),
+  affects: [f.system_capxul],
+});
+
+export const decision_swarm_merged_tasks = defineDecision({
+  id: "swarm.merged-tasks",
+  title: "After a merge or a stop, a task leaves the frontier; dependents start at its merge",
+  question:
+    "In swarmD's roll-up a task is done only when every own check passes, or is unverifiable and waived by a person at " +
+    "that version; until then it reads open, and every task that needs it reads blocked. A merged operation task with an " +
+    "eval whose world is not built yet would be paired again at once, and its dependents would wait for a waiver. A " +
+    "stopped task would be paired again at once too. What does the master do with each?",
+  options: [
+    {
+      label: "leave-the-frontier",
+      text:
+        "A task whose last pair merged, and none of whose evals fails or errors at the integration head, is merged: never " +
+        "paired again, and its unverifiable evals wait for their worlds, posted by the machine runs at later heads. A need on " +
+        "it is met at its merge (SD-27: needs until merged), not at its done. If one of its evals later fails or errors at the " +
+        "head, it returns to the frontier with what is left of its budget, or, if it had passed there, the red-head rule. A " +
+        "stopped task leaves the frontier until what stopped it is done: its book change or defect task, its matter, or the " +
+        "fix its diagnosis names; then it is paired once more with what is left of its budget, and a second stop raises a " +
+        "spending matter. The unverifiable evals still open at B4's end go to the waive list as one matter, never one by one.",
+    },
+    { label: "as-swarmd", text: "Keep swarmD's roll-up as it is: re-pair open tasks, and waive each unverifiable eval as it comes." },
+    { label: "never-unverifiable", text: "Hold every merge until every eval of the task can run." },
+  ],
+  chosen: "leave-the-frontier",
+  why:
+    "Worlds are built by running operations (devnet.worlds), so an early operation's refusal often has no world until later " +
+    "lanes exist: as swarmD's roll-up stands, its task is re-paired for nothing and the lanes after it wait on a person, " +
+    "the bottleneck matters-dont-block removes. A stopped task re-paired at once is #46 again with a fresh $5. Holding " +
+    "merges for every world serializes the build behind devnet, layer 13 of 14.",
+  source: by(`${SWARMD} apps/docs/content/docs/reference/ledger.md (roll-up: done, blocked); how-to/run-a-pair.mdx (waive, or leave the task open); books/target/devnet/worlds.ts (steps are capxul commands; a world saved with other code refuses to restore); ${RETRO} (#46)`),
+  affects: [f.system_capxul],
+});
+
 // ── the pair ────────────────────────────────────────────────────────────────────────────────
 
 export const decision_swarm_pair_limits = defineDecision({
@@ -528,7 +618,9 @@ export const decision_swarm_pair_limits = defineDecision({
         "maxRounds 5 (a hard stop; the round signal fires at 3), budgetUsd 5 (the budget signal at $2.50, and at $5 the pair " +
         "stops spending until decide), freshMakerEachRound true, deltaReview true (the adversary also reads the whole of each " +
         "money-path file the delta touches), staleAfterMinutes 30. The gate (L0) runs before any checker, and a failed gate " +
-        "costs no round.",
+        "costs no round but does cost money, so the budget signal bounds a gate that keeps failing. The limits are the task's, " +
+        "not one pair's: a later pair on the same task starts with the task's spend and rounds so far (its budgetUsd is what " +
+        "is left), and a stopped task leaves the frontier until what stopped it is done (swarm.merged-tasks).",
     },
     { label: "unbounded", text: "No round limit; the reviewer decides when it is done." },
     { label: "three-and-ask", text: "Three rounds, then ask a person." },
@@ -727,17 +819,21 @@ export const decision_swarm_budget = defineDecision({
     {
       label: "task-lane-envelope",
       text:
-        "Each task has its pair's $5 (D6). A lane's budget is the sum of its tasks' budgets; the board shows spend against it " +
-        "and cost per done task. The whole build has one envelope, set by the owner; at 75% of it the master raises a " +
-        "spending matter, and at 100% it starts no new pair until answered. The manager's own spend is shown apart and kept " +
-        "under 10% of its pairs'. No daily ceiling (D8).",
+        "Each task has $5 (D6), across every pair it ever gets: a re-paired task's pair gets what is left, and one past it " +
+        "re-opens only by a raise of the task's budget recorded as a decide or a matter. A watch task has none: it never gets " +
+        "a pair. A lane's budget is the sum of its tasks' budgets; the board shows spend against it and cost per done task. " +
+        "The whole build has one envelope, set by the owner; at 75% of it the master raises a spending matter, and at 100% it " +
+        "starts no new pair until answered. The manager's own spend is shown apart and kept under 10% of its pairs'. No daily " +
+        "ceiling (D8).",
     },
     { label: "daily", text: "A daily ceiling for the namespace." },
+    { label: "per-pair", text: "$5 for each pair, so a task re-paired after a stop starts again at $5." },
   ],
   chosen: "task-lane-envelope",
   why:
-    "The retro's D6 and D8, and its finding that the router's own $0.44 belonged to no mission. A lane sum makes the plan's " +
-    "ceiling known before work starts: $2,025 over 405 working tasks on this book.",
+    "The retro's D6 and D8, and its finding that the router's own $0.44 belonged to no mission. A budget per pair would let " +
+    "a stopped task, back on the frontier, spend $5 again on every new pair: #46 unbounded by another name. A lane sum " +
+    "makes the plan's ceiling known before work starts: $1,950 over the 390 paired tasks on this book.",
   source: by(`${RETRO} (D6, D8, router cost); docs/mission/tasks.json (budgetUsd)`),
   affects: [f.system_capxul],
 });
@@ -752,8 +848,11 @@ export const decision_swarm_sandbox = defineDecision({
       text:
         "sandbox.repo of capxul-next on standard-3. prepare runs npm ci, clones the old system read-only for reference, and " +
         "from B3 builds the devnet's base snapshot; runner.setup restores it on each boot. Egress: the npm registry, " +
-        "github.com with the App's token, and the chain RPC the devnet forks. A sandbox that fails to boot twice is a signal " +
-        "that pauses the pair's spend (a needed brief), never a model's blocked report.",
+        "github.com with the App's token (for a maker, a push only to its task's branch; for the read-only roles, no write " +
+        "credential: SD-28), and the chain RPC the devnet forks. A sandbox that fails to boot twice is a signal that pauses " +
+        "the pair's spend (a needed brief), never a model's blocked report. A world saved with other backend code refuses to " +
+        "restore, so a snapshot older than the integration head is rebuilt at boot; B3.sandbox measures the boot at a head " +
+        "newer than the snapshot, and the golden snapshot is rebuilt (swarmd up) at each promotion to main.",
     },
     { label: "outside-devnet", text: "One long-lived devnet host per project, outside the sandboxes." },
   ],
@@ -842,10 +941,10 @@ export const decision_swarm_spend_envelope = defineDecision({
   id: "swarm.spend-envelope",
   title: "The build's spend envelope: $2,500, expected about $1,000",
   question:
-    "The task tree's ceiling is $5 for each of its 405 working tasks. How much may the build spend on models before it " +
-    "asks Aaron again?",
+    "The task tree's ceiling is $5 for each of its 390 paired tasks (its 15 watch tasks get no pair). How much may the " +
+    "build spend on models before it asks Aaron again?",
   options: [
-    { label: "2500", text: "$2,500: the plan's $2,025 ceiling plus a quarter for the manager, diagnoses and defect tasks." },
+    { label: "2500", text: "$2,500: the plan's $1,950 ceiling plus about a quarter for the manager, diagnoses, defect and review tasks." },
     { label: "1000", text: "$1,000: the expected spend, asking again when it is reached." },
     { label: "per-milestone", text: "An envelope per milestone, set at each milestone's start." },
   ],
@@ -854,7 +953,7 @@ export const decision_swarm_spend_envelope = defineDecision({
     "The retro measured $0.77 for a small healthy task and $4.92 for a large one that never converged; most operation tasks " +
     "sit between, about $2.50, so expect about $1,000. An envelope at the ceiling means the master asks only if the plan " +
     "itself was wrong. Spending is Aaron's to set.",
-  source: by(`${RETRO} (per mission); docs/mission/tasks.json (budgetUsd 2025, 405 working tasks)`),
+  source: by(`${RETRO} (per mission); tools/plan-tasks.ts (budgetUsd 1950, 390 paired tasks)`),
   affects: [f.system_capxul],
 });
 
@@ -870,7 +969,8 @@ export const decision_swarm_accounts = defineDecision({
         "A swarmD namespace capxul with Aaron as admin; the swarmd-agent GitHub App installed on AaronAbuUsama/capxul-next " +
         "(contents, issues, pull requests, checks) and on Xelmar-tech/infrastructure (contents read); branch protection on " +
         "main and integration/build (tooling.branch-protection), which on a private repository needs GitHub Pro (GitHub " +
-        "refused it on swarmD's, #85), or else the release gate's CI check (SD-5) and #85 are the only guard; the provider " +
+        "refused it on swarmD's, #85): recommended, because without it nothing stops a sandbox's git push to either branch " +
+        "until swarmD builds SD-28, and the release gate's CI check (SD-5) and #85 guard only the merge call; the provider " +
         "keys of swarm.checker-family; and the master's room: Pi at once, and a Slack channel once the app is connected.",
     },
     { label: "reuse-swarmd", text: "Run the build in the existing namespace swarmd beside swarmD's own team." },
@@ -881,4 +981,222 @@ export const decision_swarm_accounts = defineDecision({
     "for the stage 2 evidence. The App on the old repository lets a sandbox clone it for reference without a token in it.",
   source: by(`${SWARMD} apps/docs/content/docs/how-to/connect-github.mdx; docs/planning/sitrep-2026-11-08.md (team, namespaces)`),
   affects: [f.system_capxul],
+});
+
+// ── the templates (docs/design/swarm-templates.md) ───────────────────────────────────────────
+
+const TEMPLATES_BY = "Claude, swarm templates, 8 November 2026";
+const tby = (evidence: string) => `${TEMPLATES_BY}; evidence: ${evidence}`;
+
+export const decision_swarm_templates = defineDecision({
+  id: "swarm.templates",
+  title: "Every artifact an agent produces has one template, field for field its schema",
+  question:
+    "Pull request bodies, handovers, reviews and briefs were prose each agent worded afresh in the old system and in " +
+    "swarmD's first missions. How is each artifact written so that nothing is freestyled and code can read it back?",
+  options: [
+    {
+      label: "one-template",
+      text:
+        "docs/design/swarm-templates.md gives each artifact one template whose fields are its schema's fields in " +
+        "docs/design/swarm.md section 4, in the same order and with the same names. A GitHub body renders each field under " +
+        "a fixed heading (### <Label>), a list one item per line, an empty field as _none_, so an issue form and a body " +
+        "written through the API parse alike. A worker's answer is one typed message: at stage 0 its last message is one " +
+        "fenced json block, at stage 1 the same object is its tool call. The schemas' limits hold (note 600, handover " +
+        "1,500, finding 600, title 80). A worker's input is built from the plan, the book and the pair, never from memory. " +
+        "A worker asks the manager, never a person: only the master raises a matter.",
+    },
+    { label: "guidance", text: "Say what each artifact should contain and let each agent word it." },
+    { label: "json-only", text: "Every artifact is JSON only, with no rendered form for people." },
+  ],
+  chosen: "one-template",
+  why:
+    "On #46 the router merged on a condition it read from free-text verdicts, and missed the unverifiable lines (the " +
+    "retro's D7). A fixed field order lets code (the mirror comments, the reconcile, the portal) read what an agent wrote, " +
+    "and makes a missing part visible to a person. JSON alone is unreadable to whoever reviews a pull request on GitHub. A " +
+    "worker that asks a person directly bypasses the four kinds that may reach the owner (swarm.escalation).",
+  source: tby(`${RETRO} (D7, #46); ${SWARMD} dogfood/prompts/builder.md, reviewer.md; /home/user/factory/docs/agents/work-contract.md (comment markers)`),
+  affects: [f.system_capxul, decision_swarm_handback, decision_swarm_escalation],
+});
+
+export const decision_swarm_task_cards = defineDecision({
+  id: "swarm.task-cards",
+  title: "Task cards: an issue per task in flight at stage 0, none at stage 1",
+  question:
+    "Every task comes from the plan, yet a task needs a thread where a person can steer it and see why it waits. What is " +
+    "a GitHub issue form for a derived task for, and who opens one?",
+  options: [
+    {
+      label: "cards-in-flight",
+      text:
+        "One issue form per kind that gets a pair (step, integration, door, process, rpc, flow, operation, review, defect) " +
+        "renders TaskDef and its brief field for field. At stage 0 Mission Control opens a card from tasks.json when the " +
+        "task's pair starts: it is the task's thread and holds the status card, edited in place, and it closes at the merge " +
+        "or the drop. At stage 1 the ledger's task and the room thread replace it and no card is opened. The root, the " +
+        "milestones and the lanes have no form: they are done by roll-up and never get a pair; nor do the watch tasks " +
+        "(swarm.watch-tasks), the journeys among them. People open three forms only: a review answer, a decision pack and " +
+        "a defect.",
+    },
+    { label: "pull-request-only", text: "No issue per task; the pull request is the task's only thread." },
+    { label: "every-task", text: "An issue for each of the 438 tasks, opened at once from the plan." },
+  ],
+  chosen: "cards-in-flight",
+  why:
+    "At stage 0 there is no ledger task and no room thread, and a pull request exists only from the first submit, so a " +
+    "pair waiting on a gate or a question has nowhere to show it. Cards for tasks in flight keep about six open at once; " +
+    "438 issues would bury the three forms people use. At stage 1 a card would duplicate the ledger. Every working task in " +
+    "tasks.json renders into its kind's form and parses back with no field lost (checked on all 405 before the journeys " +
+    "became watch tasks; 390 get a pair, and so a card).",
+  source: tby("docs/mission/tasks.json (390 paired tasks); .github/ISSUE_TEMPLATE/task-*.yml; swarmD concepts/rooms-and-roles.mdx (a thread per task, its status card)"),
+  affects: [f.system_capxul, decision_swarm_task_tree],
+});
+
+export const decision_swarm_hand_tasks = defineDecision({
+  id: "swarm.hand-tasks",
+  title: "Keys and evals of the defect, review and split tasks opened outside the plan",
+  question:
+    "Only defects, review tasks and a split's children are opened outside the plan. The ledger derives done from a task's " +
+    "checks, and refuses a check its catalogue lacks, so a task with no eval reads done at once. What are their keys and " +
+    "their evals?",
+  options: [
+    {
+      label: "keys-and-evals",
+      text:
+        "A defect is defect:<lane>/<slug> in the lane that owns the path, on that lane's branch; a red-head defect is " +
+        "defect:<lane>/head-<7 hex>, critical. Its evals are existing ids that fail, error or are unknown at the integration " +
+        "head, or that its finding names; they may also belong to a derived task, since one owner binds only the plan. A " +
+        "finding that names no eval is advisory and opens nothing. A book change after a plan diagnosis is a defect labelled " +
+        "book-change, whose evals are the stopped task's evals the record governs. A review task is review:<decision> on " +
+        "review/<decision>; its eval is dec:<decision>/review, derived by the book from the review field D0 adds (it passes " +
+        "when the review is accepted or changed) and owned by no derived task; until it exists, Mission Control counts a " +
+        "review task done at its merge. A split's children (decide split, which drops the parent's own checks onto them and " +
+        "keeps the parent open until they pass) are <parent key>/split-<n>, labelled from:split, with the parent's lane, " +
+        "paths, checkers and what is left of its budget divided among them; every parent check goes to exactly one child, " +
+        "and the reconcile keeps a split parent's checks on its children rather than restoring them from the plan.",
+    },
+    { label: "free-keys", text: "The master names each task it opens as it sees fit." },
+    { label: "done-at-merge", text: "Hand-opened tasks carry no eval and are done when their pull request merges." },
+  ],
+  chosen: "keys-and-evals",
+  why:
+    "Fixed prefixes let the reconcile tell a hand-opened task from a derived one, so it never drops a defect as a key the " +
+    "book no longer has. Evals that exist and do not pass are the only way the ledger keeps such a task open until its fix " +
+    "lands; done at merge would make the ledger's roll-up and the board disagree. A style note is not a defect. A split " +
+    "child without a key would be dropped by the next reconcile, and a reconcile that restored the parent's checks would " +
+    "own each of them twice.",
+  source: tby(`${SWARMD} apps/docs/content/docs/reference/ledger.md (roll-up; task.open refuses unknown checks); reference/pairs.md (split drops the task's own checks onto its new children); docs/design/portal.md (the review field)`),
+  affects: [f.system_capxul, decision_swarm_findings, decision_swarm_review_answers],
+});
+
+export const decision_swarm_pr_mirror = defineDecision({
+  id: "swarm.pr-mirror",
+  title: "The pair's rounds show on its pull request as marked comments posted by code",
+  question: "Besides the body the builder writes, who writes what on a task's pull request, so that it alone shows every round?",
+  options: [
+    {
+      label: "marker-comments",
+      text:
+        "The builder writes the body, the Handback template, and nothing else. Every other event is one comment whose first " +
+        "line is a marker (SUBMIT, GATE, CI, EVALS, CHECK, SIGNAL, DECIDE, DIAGNOSIS, MERGED, STOPPED) with the round, the " +
+        "version and the actor, and a fixed body below. Code posts them under each actor's name at stage 1 (SD-13); Mission " +
+        "Control posts them from each worker's returned message at stage 0. Checkers post no review of their own, and the " +
+        "status card is edited in place, never reposted.",
+    },
+    { label: "workers-post", text: "Each worker posts its own review or comment, as swarmD's own team does today." },
+    { label: "body-only", text: "Everything goes into the pull request body, rewritten each round." },
+  ],
+  chosen: "marker-comments",
+  why:
+    "swarmD's reviewer today posts a COMMENT review because the app cannot approve its own pull request, and the verifier " +
+    "a comment of its own wording; the router then judged them. A comment posted by code from the typed message cannot " +
+    "drift from it. A first-line marker is what the old work contract used, so people and scripts read the same line.",
+  source: tby(`${SWARMD} dogfood/prompts/reviewer.md (step 6); /home/user/factory/docs/agents/work-contract.md (comment markers); docs/design/swarm.md (SD-13)`),
+  affects: [f.system_capxul, decision_swarm_merge],
+});
+
+export const decision_swarm_agent_verdicts = defineDecision({
+  id: "swarm.agent-verdicts",
+  title: "The reviewer posts des: in its check, and it counts until its paths change",
+  question:
+    "des:<operation> is an agent eval its named checker decides. swarmD's checkers have no tool that posts an agent " +
+    "verdict, and a verdict counts only at the exact head, so after a squash merge or any later merge every des: is " +
+    "unknown at integration/build and no operation task could be done. How is it posted, and how long does it count?",
+  options: [
+    {
+      label: "check-and-carry",
+      text:
+        "The reviewer's check carries a verdicts list for the agent evals it is the named checker of (needed: SD-21), which " +
+        "the engine posts under its actor. The merge carries each agent and person verdict of the converged version to the " +
+        "merge commit, and it stays current at later heads until a commit changes one of its task's paths, or its check's " +
+        "definition changes (needed: SD-22). The rubric is the book's claim (its record is complete and consistent with the " +
+        "old book and the old behaviour) plus: the code does what the record says and nothing more.",
+    },
+    { label: "re-judge", text: "Re-run every des: at each move of integration/build." },
+    { label: "machine-only", text: "Count only machine evals toward done; des: is advisory." },
+  ],
+  chosen: "check-and-carry",
+  why:
+    "Re-judging would be some 215 agent calls a merge. Dropping des: from done drops the one eval that checks a record " +
+    "against the old behaviour. Carrying a verdict while the files it covered are unchanged is the old factory's carried " +
+    "rule for proofs, and the task's paths are exactly the files a des: covers.",
+  source: tby(`${SWARMD} apps/docs/content/docs/reference/ledger.md (current verdict), reference/tools.md (pair tools); /home/user/factory/docs/agents/work-contract.md (carried steps)`),
+  affects: [f.system_capxul, decision_swarm_review_evals],
+});
+
+export const decision_swarm_stage0_profiles = defineDecision({
+  id: "swarm.stage0-profiles",
+  title: "At stage 0 the roles run as Claude Code profiles with the swarmD prompts",
+  question:
+    "Before swarmD runs, Mission Control's makers and checkers are Claude subagents. How are they defined, and on which " +
+    "models, when only one model family is available there?",
+  options: [
+    {
+      label: "profiles",
+      text:
+        ".claude/agents/ holds one profile per role (master, builder, reviewer, adversary, diagnoser, researcher). Each body " +
+        "is the role's swarmD prompt with what it reads, does, may not do and returns, and the same typed message as its " +
+        "final json block. The builder runs on opus; the reviewer, the adversary and the diagnoser on sonnet, another model " +
+        "of the same family; the researcher on haiku; the master is the session itself. Another family for checkers arrives " +
+        "at stage 1 (swarm.checker-family).",
+    },
+    { label: "workflow-prompts", text: "Write each worker's prompt inside each Workflow script, as the book's workflows did." },
+    { label: "codex-checkers", text: "Run the checkers through Codex at stage 0, for another family." },
+  ],
+  chosen: "profiles",
+  why:
+    "One text per role at both stages makes the move to swarmD a change of runner, not of behaviour (swarm.stages). A " +
+    "different model is the nearest one family allows, and the book's own lesson is that a same-subscription adversarial " +
+    "reviewer still found real errors in every money file it read. Codex would add a second subscription and its tooling " +
+    "for stage 0 alone.",
+  source: tby("HANDOFF.md (lessons that save usage); tools/workflows/; .claude/agents/; the old system's .claude/agents/ (profiles with name, description, tools, model)"),
+  affects: [f.system_capxul, decision_swarm_stages],
+});
+
+export const decision_swarm_team_definition = defineDecision({
+  id: "swarm.team-definition",
+  title: "The team on swarmD: one manager and five workers, in both APIs",
+  question: "How is the team declared in .swarmd/, so that stage 1 needs no new design and a dry run can happen on today's code?",
+  options: [
+    {
+      label: "both-apis",
+      text:
+        "docs/design/swarm-templates.md section 10 declares it. In swarmD's documented API: defineManager master on the " +
+        "build template with its workers imported and their roles; builder (sol, concurrency 4, a writable sandbox, " +
+        "pulls.create, pulls.get, pulls.update, issues.createComment); reviewer (sonnet, 4) and adversary (sonnet, 2) on " +
+        "read-only sandboxes with pulls.get and pulls.listFiles; diagnoser (sonnet, 1, read-only, no tools); researcher " +
+        "(haiku, 1, its own input and result); the skills book, evals, lane, money and old-system. In today's API: " +
+        "defineRouter and defineWorker with the typed messages as each worker's input and result JSON Schema " +
+        "(.swarmd/schemas.ts), and CI driving the rounds as swarmD's own team does, for the dry run only.",
+    },
+    { label: "documented-only", text: "Declare only the documented API, and wait for it." },
+    { label: "today-only", text: "Declare only today's API, and redo it when the documented API lands." },
+  ],
+  chosen: "both-apis",
+  why:
+    "The dry run (post-mortem O1) can run on today's code; the build runs on the documented API. The diagnoser on the " +
+    "checkers' family keeps it off the maker's framing (retro brief 04). Read-only sandboxes are planned in the docs and " +
+    "keep a checker from changing what it judges. The today form typechecks against packages/agent's types, and the " +
+    "templates' examples validate against its schemas with swarmD's own validator.",
+  source: tby(`${SWARMD} packages/agent/src/modules/define/types.ts; examples/api-team; dogfood/; how-to/define-a-manager.mdx; reference/manager.md, worker.md`),
+  affects: [f.system_capxul, decision_swarm_workers, decision_swarm_pacing],
 });

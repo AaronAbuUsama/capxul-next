@@ -1,32 +1,9 @@
 {
-  "about": "The build's task tree, derived from books/target by tools/plan-tasks.ts (docs/design/swarm.md, section 5). Do not edit: change the book or the script, then regenerate.",
-  "book": {
-    "records": 2251,
-    "evals": 4794,
-    "problems": 0,
-    "gaps": 74
-  },
-  "counts": {
-    "tasks": 438,
-    "milestones": 8,
-    "steps": 28,
-    "lanes": 24,
-    "doors": 22,
-    "processes": 81,
-    "operations": 215,
-    "rpcs": 17,
-    "flows": 18,
-    "integrations": 11,
-    "journeys": 13,
-    "pilotClosure": 33,
-    "money": 114,
-    "bookEvals": 4794,
-    "uniqueBookEvals": 4764,
-    "duplicateEvalIds": 28,
-    "milestoneEvals": 37,
-    "needs": 2394,
-    "budgetUsd": 2025
-  },
+  "about": "The build's task tree, derived from books/target by tools/plan-tasks.ts (docs/design/swarm.md, section 5). Do not edit: change the book or the script, then regenerate. It holds no counts over the book, so lanes that change different tasks never conflict here.",
+  "regenerated": [
+    "docs/mission/tasks.json",
+    "packages/*/src/generated/"
+  ],
   "layers": [
     [
       "integrations"
@@ -688,8 +665,7 @@
       "parent": "milestone:B2",
       "priority": "critical",
       "evals": [
-        "ms:B2/runner",
-        "ms:B2/unique"
+        "ms:B2/runner"
       ],
       "paths": [
         "packages/evals/"
@@ -703,11 +679,7 @@
       "exit": [
         {
           "id": "ms:B2/runner",
-          "claim": "`eval list --json` prints the catalogue (the book's evals and the milestone evals) and `eval run --json` prints one RunResult per id asked for."
-        },
-        {
-          "id": "ms:B2/unique",
-          "claim": "Every eval id in the catalogue is unique: the book derives no id twice."
+          "claim": "`eval list --json` prints the catalogue (the book's evals and the milestone evals, each id once) and `eval run --json` prints one RunResult per id asked for."
         }
       ],
       "labels": [
@@ -719,7 +691,7 @@
       "key": "step:B2.worlds",
       "kind": "step",
       "title": "B2 Worlds as devnet snapshots",
-      "goal": "Each world a refusal or claim names is built by the devnet concept's design and restored as a named snapshot.",
+      "goal": "The world builder builds each world a refusal or claim names from its steps, as the devnet concept designs it, and restores it as a named snapshot once the operations its steps run exist.",
       "parent": "milestone:B2",
       "priority": "critical",
       "evals": [
@@ -739,7 +711,7 @@
       "exit": [
         {
           "id": "ms:B2/worlds",
-          "claim": "Every world the records name is built and restored by name."
+          "claim": "The world builder builds a world from its steps and restores it by name, and lists every world whose steps run an operation not built yet, with those operations, as not yet buildable."
         }
       ],
       "labels": [
@@ -758,9 +730,7 @@
         "ms:B3/pilots"
       ],
       "paths": [],
-      "checkers": [
-        "reviewer"
-      ],
+      "checkers": [],
       "needs": [
         "flow:client.account.setup",
         "milestone:B2",
@@ -782,22 +752,25 @@
         }
       ],
       "labels": [
-        "kind:step"
+        "kind:step",
+        "watch"
       ],
-      "budgetUsd": 5
+      "budgetUsd": 0
     },
     {
       "key": "step:B3.sandbox",
       "kind": "step",
-      "title": "B3 The devnet in a swarmD sandbox",
-      "goal": "A swarmD sandbox boots the devnet from a golden snapshot and runs an L1 eval fast enough for pairs; otherwise a decision records the fallback host.",
+      "title": "B3 The devnet in a swarmD sandbox, and the gate's scope",
+      "goal": "A swarmD sandbox boots the devnet from a golden snapshot and runs an L1 eval fast enough for pairs, otherwise a decision records the fallback host; and the gate refuses a change outside the task's paths.",
       "parent": "milestone:B3",
       "priority": "critical",
       "evals": [
-        "ms:B3/sandbox"
+        "ms:B3/sandbox",
+        "ms:B3/scope"
       ],
       "paths": [
-        ".swarmd/"
+        ".swarmd/",
+        "tools/check-scope.ts"
       ],
       "checkers": [
         "reviewer"
@@ -808,7 +781,11 @@
       "exit": [
         {
           "id": "ms:B3/sandbox",
-          "claim": "The devnet boots in a swarmD sandbox from a golden snapshot in at most 2 minutes and one L1 eval runs in at most 10 seconds, or a decision records the fallback: one long-lived devnet host, a world restored per pair under a lock."
+          "claim": "At an integration head newer than its golden snapshot, the devnet boots in a swarmD sandbox in at most 2 minutes and one L1 eval runs in at most 10 seconds, or a decision records the fallback: one long-lived devnet host, a world restored per pair under a lock."
+        },
+        {
+          "id": "ms:B3/scope",
+          "claim": "With SWARMD_TASK_PATHS set, the project's gate fails on a change outside the task's paths, or to packages/book or packages/evals from a lane task, and admits the regenerated outputs only when generate:check and plan-tasks --check pass."
         }
       ],
       "labels": [
@@ -964,9 +941,7 @@
         "ms:B5/week"
       ],
       "paths": [],
-      "checkers": [
-        "reviewer"
-      ],
+      "checkers": [],
       "needs": [
         "milestone:B4",
         "step:B5.live"
@@ -978,19 +953,21 @@
         }
       ],
       "labels": [
-        "kind:step"
+        "kind:step",
+        "watch"
       ],
-      "budgetUsd": 5
+      "budgetUsd": 0
     },
     {
       "key": "step:D0.book",
       "kind": "step",
       "title": "D0 Review field, underOf and standOf in the book",
-      "goal": "Decisions carry their review state, the judgments report reads it, and packages/book computes the records under an operation and its stand.",
+      "goal": "Decisions carry their review state, the judgments report reads it, every eval id is unique, and packages/book computes the records under an operation and its stand.",
       "parent": "milestone:D0",
       "priority": "critical",
       "evals": [
-        "ms:D0/book"
+        "ms:D0/book",
+        "ms:D0/unique"
       ],
       "paths": [
         "packages/book/",
@@ -1008,6 +985,10 @@
         {
           "id": "ms:D0/book",
           "claim": "The decision schema has its review field, report-judgments reads it, and underOf and standOf pass their tests on the fixture book."
+        },
+        {
+          "id": "ms:D0/unique",
+          "claim": "Every eval id the book derives is unique (portal.eval-ids), and a duplicate id is the build problem duplicate-eval."
         }
       ],
       "labels": [
@@ -3064,7 +3045,8 @@
       "paths": [
         "books/target/indexing/",
         "packages/backend/src/indexing/",
-        "packages/sdk/src/indexing/"
+        "packages/sdk/src/indexing/",
+        "packages/indexer/"
       ]
     },
     {
@@ -16233,7 +16215,8 @@
       "paths": [
         "books/target/devnet/",
         "packages/backend/src/devnet/",
-        "packages/sdk/src/devnet/"
+        "packages/sdk/src/devnet/",
+        "packages/devnet/"
       ]
     },
     {
@@ -16266,7 +16249,8 @@
       "paths": [
         "books/target/devnet/",
         "packages/backend/src/devnet/",
-        "packages/sdk/src/devnet/"
+        "packages/sdk/src/devnet/",
+        "packages/devnet/"
       ]
     },
     {
@@ -16299,7 +16283,8 @@
       "paths": [
         "books/target/devnet/",
         "packages/backend/src/devnet/",
-        "packages/sdk/src/devnet/"
+        "packages/sdk/src/devnet/",
+        "packages/devnet/"
       ]
     },
     {
@@ -16332,7 +16317,8 @@
       "paths": [
         "books/target/devnet/",
         "packages/backend/src/devnet/",
-        "packages/sdk/src/devnet/"
+        "packages/sdk/src/devnet/",
+        "packages/devnet/"
       ]
     },
     {
@@ -16365,7 +16351,8 @@
       "paths": [
         "books/target/devnet/",
         "packages/backend/src/devnet/",
-        "packages/sdk/src/devnet/"
+        "packages/sdk/src/devnet/",
+        "packages/devnet/"
       ]
     },
     {
@@ -16398,7 +16385,8 @@
       "paths": [
         "books/target/devnet/",
         "packages/backend/src/devnet/",
-        "packages/sdk/src/devnet/"
+        "packages/sdk/src/devnet/",
+        "packages/devnet/"
       ]
     },
     {
@@ -16431,7 +16419,8 @@
       "paths": [
         "books/target/devnet/",
         "packages/backend/src/devnet/",
-        "packages/sdk/src/devnet/"
+        "packages/sdk/src/devnet/",
+        "packages/devnet/"
       ]
     },
     {
@@ -16481,7 +16470,8 @@
       "paths": [
         "books/target/devnet/",
         "packages/backend/src/devnet/",
-        "packages/sdk/src/devnet/"
+        "packages/sdk/src/devnet/",
+        "packages/devnet/"
       ]
     },
     {
@@ -16536,7 +16526,8 @@
       "paths": [
         "books/target/devnet/",
         "packages/backend/src/devnet/",
-        "packages/sdk/src/devnet/"
+        "packages/sdk/src/devnet/",
+        "packages/devnet/"
       ]
     },
     {
@@ -16575,7 +16566,8 @@
       "paths": [
         "books/target/devnet/",
         "packages/backend/src/devnet/",
-        "packages/sdk/src/devnet/"
+        "packages/sdk/src/devnet/",
+        "packages/devnet/"
       ]
     },
     {
@@ -16621,7 +16613,8 @@
       "paths": [
         "books/target/devnet/",
         "packages/backend/src/devnet/",
-        "packages/sdk/src/devnet/"
+        "packages/sdk/src/devnet/",
+        "packages/devnet/"
       ]
     },
     {
@@ -16659,7 +16652,8 @@
       "paths": [
         "books/target/devnet/",
         "packages/backend/src/devnet/",
-        "packages/sdk/src/devnet/"
+        "packages/sdk/src/devnet/",
+        "packages/devnet/"
       ]
     },
     {
@@ -16702,7 +16696,8 @@
       "paths": [
         "books/target/devnet/",
         "packages/backend/src/devnet/",
-        "packages/sdk/src/devnet/"
+        "packages/sdk/src/devnet/",
+        "packages/devnet/"
       ]
     },
     {
@@ -16749,7 +16744,8 @@
       "paths": [
         "books/target/devnet/",
         "packages/backend/src/devnet/",
-        "packages/sdk/src/devnet/"
+        "packages/sdk/src/devnet/",
+        "packages/devnet/"
       ]
     },
     {
@@ -16789,7 +16785,8 @@
       "paths": [
         "books/target/devnet/",
         "packages/backend/src/devnet/",
-        "packages/sdk/src/devnet/"
+        "packages/sdk/src/devnet/",
+        "packages/devnet/"
       ]
     },
     {
@@ -16832,7 +16829,8 @@
       "paths": [
         "books/target/devnet/",
         "packages/backend/src/devnet/",
-        "packages/sdk/src/devnet/"
+        "packages/sdk/src/devnet/",
+        "packages/devnet/"
       ]
     },
     {
@@ -16874,7 +16872,8 @@
       "paths": [
         "books/target/devnet/",
         "packages/backend/src/devnet/",
-        "packages/sdk/src/devnet/"
+        "packages/sdk/src/devnet/",
+        "packages/devnet/"
       ]
     },
     {
@@ -16914,7 +16913,8 @@
       "paths": [
         "books/target/devnet/",
         "packages/backend/src/devnet/",
-        "packages/sdk/src/devnet/"
+        "packages/sdk/src/devnet/",
+        "packages/devnet/"
       ]
     },
     {
@@ -16956,7 +16956,8 @@
       "paths": [
         "books/target/devnet/",
         "packages/backend/src/devnet/",
-        "packages/sdk/src/devnet/"
+        "packages/sdk/src/devnet/",
+        "packages/devnet/"
       ]
     },
     {
@@ -16997,7 +16998,8 @@
       "paths": [
         "books/target/devnet/",
         "packages/backend/src/devnet/",
-        "packages/sdk/src/devnet/"
+        "packages/sdk/src/devnet/",
+        "packages/devnet/"
       ]
     },
     {
@@ -19620,12 +19622,11 @@
       "labels": [
         "kind:journey",
         "lane:journeys",
-        "layer:15"
+        "layer:15",
+        "watch"
       ],
-      "budgetUsd": 5,
-      "checkers": [
-        "reviewer"
-      ],
+      "budgetUsd": 0,
+      "checkers": [],
       "paths": []
     },
     {
@@ -19661,12 +19662,11 @@
       "labels": [
         "kind:journey",
         "lane:journeys",
-        "layer:15"
+        "layer:15",
+        "watch"
       ],
-      "budgetUsd": 5,
-      "checkers": [
-        "reviewer"
-      ],
+      "budgetUsd": 0,
+      "checkers": [],
       "paths": []
     },
     {
@@ -19697,12 +19697,11 @@
       "labels": [
         "kind:journey",
         "lane:journeys",
-        "layer:15"
+        "layer:15",
+        "watch"
       ],
-      "budgetUsd": 5,
-      "checkers": [
-        "reviewer"
-      ],
+      "budgetUsd": 0,
+      "checkers": [],
       "paths": []
     },
     {
@@ -19736,12 +19735,11 @@
       "labels": [
         "kind:journey",
         "lane:journeys",
-        "layer:15"
+        "layer:15",
+        "watch"
       ],
-      "budgetUsd": 5,
-      "checkers": [
-        "reviewer"
-      ],
+      "budgetUsd": 0,
+      "checkers": [],
       "paths": []
     },
     {
@@ -19769,12 +19767,11 @@
       "labels": [
         "kind:journey",
         "lane:journeys",
-        "layer:15"
+        "layer:15",
+        "watch"
       ],
-      "budgetUsd": 5,
-      "checkers": [
-        "reviewer"
-      ],
+      "budgetUsd": 0,
+      "checkers": [],
       "paths": []
     },
     {
@@ -19799,12 +19796,11 @@
       "labels": [
         "kind:journey",
         "lane:journeys",
-        "layer:15"
+        "layer:15",
+        "watch"
       ],
-      "budgetUsd": 5,
-      "checkers": [
-        "reviewer"
-      ],
+      "budgetUsd": 0,
+      "checkers": [],
       "paths": []
     },
     {
@@ -19846,12 +19842,11 @@
       "labels": [
         "kind:journey",
         "lane:journeys",
-        "layer:15"
+        "layer:15",
+        "watch"
       ],
-      "budgetUsd": 5,
-      "checkers": [
-        "reviewer"
-      ],
+      "budgetUsd": 0,
+      "checkers": [],
       "paths": []
     },
     {
@@ -19881,12 +19876,11 @@
       "labels": [
         "kind:journey",
         "lane:journeys",
-        "layer:15"
+        "layer:15",
+        "watch"
       ],
-      "budgetUsd": 5,
-      "checkers": [
-        "reviewer"
-      ],
+      "budgetUsd": 0,
+      "checkers": [],
       "paths": []
     },
     {
@@ -19923,12 +19917,11 @@
       "labels": [
         "kind:journey",
         "lane:journeys",
-        "layer:15"
+        "layer:15",
+        "watch"
       ],
-      "budgetUsd": 5,
-      "checkers": [
-        "reviewer"
-      ],
+      "budgetUsd": 0,
+      "checkers": [],
       "paths": []
     },
     {
@@ -19965,12 +19958,11 @@
       "labels": [
         "kind:journey",
         "lane:journeys",
-        "layer:15"
+        "layer:15",
+        "watch"
       ],
-      "budgetUsd": 5,
-      "checkers": [
-        "reviewer"
-      ],
+      "budgetUsd": 0,
+      "checkers": [],
       "paths": []
     },
     {
@@ -20009,12 +20001,11 @@
       "labels": [
         "kind:journey",
         "lane:journeys",
-        "layer:15"
+        "layer:15",
+        "watch"
       ],
-      "budgetUsd": 5,
-      "checkers": [
-        "reviewer"
-      ],
+      "budgetUsd": 0,
+      "checkers": [],
       "paths": []
     },
     {
@@ -20041,12 +20032,11 @@
       "labels": [
         "kind:journey",
         "lane:journeys",
-        "layer:15"
+        "layer:15",
+        "watch"
       ],
-      "budgetUsd": 5,
-      "checkers": [
-        "reviewer"
-      ],
+      "budgetUsd": 0,
+      "checkers": [],
       "paths": []
     },
     {
@@ -20101,12 +20091,11 @@
       "labels": [
         "kind:journey",
         "lane:journeys",
-        "layer:15"
+        "layer:15",
+        "watch"
       ],
-      "budgetUsd": 5,
-      "checkers": [
-        "reviewer"
-      ],
+      "budgetUsd": 0,
+      "checkers": [],
       "paths": []
     }
   ]

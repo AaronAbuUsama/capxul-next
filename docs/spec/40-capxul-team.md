@@ -1,151 +1,128 @@
 # The Capxul team on swarmD
 
-How Capxul uses the ledger, the managers and the pairs. Namespace `capxul`,
-project `capxul-next`.
+How Capxul uses swarmD's ledger, manager and pairs. Namespace `capxul`, project `capxul-next`. This page is the short
+form; the design is [`docs/design/swarm.md`](../design/swarm.md) (topology, the schemas, the task tree, the pair
+protocol, the briefs for swarmD) and [`docs/design/swarm-templates.md`](../design/swarm-templates.md) (every template,
+and the team as swarmD declares it). Where they differ from this page, they win.
+
+**Revised 8 November 2026** to the swarm design. The four managers, the designer, the design reviewer, the scout before
+B5, the old-system baseline and the copied frozen text of the first version are replaced; the table at the end says by
+what.
 
 ## The task tree
 
+Derived from the book by `tools/plan-tasks.ts` into `docs/mission/tasks.json` (`swarm.task-tree`; swarm.md section 5).
+Nobody writes a task by hand, except a defect from a finding or a red head, and a review task from an answer
+(`swarm.hand-tasks`).
+
+```text
+capxul                       Capxul rebuilt                       evals: ok:capxul (Aaron)          owner: capxul/master
+├─ milestone:T0 … B5         each milestone                       done by its steps' roll-up
+│  └─ step:B3.spine …        a milestone's work                   evals: its exit lines, ms:<M>/<slug>
+├─ lane:payments             a concept                            evals: sys:imports/payments
+│  ├─ door:payments          its tables, machines, procedures     tbl:, trn:, prc:, inv:
+│  ├─ workflow:payments.…    each durable process                 wfl:, bud:
+│  └─ operation:payment.send each of the 215 operations           acc:, ret:, ref:, evt:, spn:, bud:, doc:, des:, flw:, rpc:
+├─ lane:integrations         the 11 integrations                  int:
+└─ lane:journeys             the 13 journeys                      jrn:, fun:
 ```
-K-1  Capxul rebuilt                         evals: ok:K-1 (aaron)                     owner: capxul/lead
-├─ K-2  Spine                                evals: sys:*, three pilot operations      owner: capxul/build
-├─ K-3  Area: payments                       evals: jrn:pay_someone, fun:pay_someone   owner: capxul/build
-│  ├─ K-40 Design payment.send               evals: des:payment.send, doc:payment.send owner: capxul/design
-│  └─ K-41 Build payment.send  needs K-40    evals: acc:payment.send/*, ret:, ref:*/…, evt:*, spn:, bud:*, rev:K-41
-│  … one design task and one build task per operation
-├─ K-9  Area: equity                         priority: low (off the critical path; directors and voting too)
-└─ K-12 Live on staging                      evals: live:*                             owner: capxul/measure
-```
 
-**Labels:** `area:<area>` (the old book's 11 areas), `kind:design`,
-`kind:operation`, `kind:journey`, `kind:system`.
+438 tasks on the book of 8 November 2026: 405 working tasks at $5 each. The operation is the unit (`swarm.task-unit`).
+Labels come from the plan: `kind:`, `lane:`, `layer:`, `area:`, `money`, `pilot`, `pilot-closure`, `after:`.
+Priority is the record's own; milestones and steps are critical; equity and board's director and vote commands are low
+(`system.build-order`).
 
-**Priority:** the equity area, `org.director.*`, `org.board.*`, `org.vote.*`
-and `vote.*` are `low`. Everything else is `normal`. The spine and its pilots
-are `critical`.
+## The manager
 
-## Managers
+One swarmD manager, **`capxul/master`**, on the `build` template (`swarm.start-small`). Its instructions are the goal
+prompt whole, followed by the operating skeleton in swarm.md section 1b (`swarm.master-prompt`). It owns every task,
+starts the pairs, answers the signals, merges through the release gate, promotes `integration/build` to `main` at each
+milestone's exit, and brings Aaron only decision packs (`swarm.escalation`). Its room is Pi now, and a Slack channel
+once the app is connected.
 
-| Manager | Template | Room | Owns | Pairs (maker + checkers) |
-|---|---|---|---|---|
-| `capxul/lead` | lead | Slack `#capxul` | K-1 and the top-level tasks, their order, and the matters a person must decide | none: it delegates to the other managers |
-| `capxul/design` | build | thread per task in `#capxul-design` | `kind:design` tasks | `designer` + `design-reviewer` |
-| `capxul/build` | build | `#capxul-build` | `kind:operation`, `kind:journey`, `kind:system` | `builder` + `reviewer`; the machine evals are run by the engine |
-| `capxul/measure` | build | `#capxul-measure` | the L4 evals, the old-system baseline, and regression tasks it opens itself | `scout` + `reviewer` for fixes; opens build tasks for others |
-
-**Mission Control** is the Claude session started from
-[`docs/mission/initializer.md`](../mission/initializer.md). It acts as
-`capxul/lead` through the control plane until the lead manager runs on
-swarmD, and then hands over to it.
-
-There is no `verifier` worker. The pair engine runs the machine evals itself
-and posts their verdicts, so a separate agent re-running checks adds cost and
-no trust.
+| Stage | Who runs the loop | Where the state is |
+|---|---|---|
+| 0 | **Mission Control**: the Claude session started from the goal prompt, with the profiles in `.claude/agents/` | `docs/mission/tasks.json`, `docs/mission/progress.md`, task cards and matters as GitHub issues |
+| 1 | `capxul/master` on swarmD, once swarm.md 1.2's entry criteria hold (expected at B3) | the ledger |
+| 2 | `capxul/master` as a lead over lane managers, only on `swarm.nested-entry`'s evidence | the ledger |
 
 ## Workers
 
-| Worker | Model (tier) | Input | Result | Sandbox | Tools and grants |
-|---|---|---|---|---|---|
-| `designer` | strong | `{task, operation, book: <old record>, legacy: <paths>}` | via `submit`: a definition file, an evals file and the world it needs | repo + old repo read-only + legacy devnet | `run_evals` (`--target legacy`, to check claims against the old system), github read, posthog read |
-| `design-reviewer` | strong, another family | via `check` | `approve` / `changes` with findings keyed to `des:` | repo | github read |
-| `builder` | strong (`gpt-6.1-sol`) | `{task, goal, evals: EvalDef[], openFindings, handover?}` | via `submit` | repo + devnet | `run_evals`, git push to its branch, github read |
-| `reviewer` | strong, another family | via `check`: version, diff or delta, findings, verdicts | `approve` / `changes` | repo | github read |
-| `diagnoser` | strong | `{pair, signal, history: entries, findings}` | `{cause, kind, ripple, options, recommendation}` | repo read | ledger read |
-| `researcher` | cheap | `{question, context?}` | `{answer, sources}` | repo + old repo read-only | posthog read, github read, web |
-| `scout` | cheap; strong on a finding | `{evals: live:*, window}` | via `run_evals` (HogQL in the sandbox); opens tasks through the manager | posthog read | posthog read |
+| Worker | Role | Model (tier) | Concurrency | Sandbox | Tools | Returns |
+|---|---|---|---|---|---|---|
+| `builder` | maker | gateway/gpt-6.1-sol (strong) | 4 | the repository and, from B3, a devnet | `run_evals`, `submit`, `handover`, `ask`; GitHub `pulls.create`, `pulls.get`, `pulls.update`, `issues.createComment` | the Handback |
+| `reviewer` | checker | anthropic/claude-sonnet-5-5 (strong, other family) | 4 | the repository, read-only | `run_evals`, `check`, `ask`; GitHub `pulls.get`, `pulls.listFiles` | a check, with the `des:` verdicts |
+| `adversary` | second checker on money tasks | anthropic/claude-sonnet-5-5 | 2 | read-only | as the reviewer | a check |
+| `diagnoser` | diagnoser | anthropic/claude-sonnet-5-5 | 1 | read-only | none | a diagnosis |
+| `researcher` | none | anthropic/claude-haiku-5-5 (cheap) | 1 | read-only | none | an answer, a recommendation, sources |
 
-**"Another family" for checkers.** This follows the swarmD Zen: a checker
-should run on a different model family from the maker. That needs a second
-provider key: `ANTHROPIC_API_KEY`, which is a slot in swarmD today, or another
-gateway model. [Decision for Aaron.]
+The manager runs on claude-haiku-5-5. At most 4 pairs in flight and 6 agents at once, one task per lane
+(`swarm.pacing`). There is no verifier: the engine runs the machine evals in the sandbox. The models are
+`swarm.checker-family`, Aaron's to fund; the recommendation stands until he answers.
+
+## The pair
+
+Every task with checkers is a pair (swarm.md section 6): the builder makes, the reviewer checks (and the adversary on
+the seven money lanes and B0.once), the engine runs the gate and the machine evals. Limits: 5 rounds (the round signal
+at 3), $5 a task (the budget signal at half), a fresh maker and a delta review each round, stalled after 30 minutes
+(`swarm.pair-limits`). Only the manager merges, in code, when every checker approves, no machine eval failed and the
+required CI is green; unverifiable evals are listed under After merge (`swarm.merge`).
 
 ## Connectors, secrets and egress
 
-| Need | Used by | Connector or egress | Secret (swarmD Worker secret or egress credential) |
-|---|---|---|---|
-| Git host: clone, push, PR, merge, CI and ref events | all sandboxes, the managers | GitHub connector (built) or swarmD git | the GitHub App (exists), granted on the new repo |
-| The old repo, read only | designer, researcher | GitHub connector, `sandbox.repo("github:Xelmar-tech/infrastructure#integration/factory")` | the App installed on that repo |
-| PostHog: queries, insights, events, error tracking (read); insights, alerts, annotations, dashboards (write); alerts and webhook destinations as events in | scout, designer, researcher (read); the measure manager (write); alerts wake `capxul/measure` | a **PostHog connector (gateway)**: tools out from PostHog's MCP server, granted by tool pattern (read or write); events in from PostHog alerts and webhook destinations. The connector primitive is being redesigned in another thread; this row states only what Capxul needs from it | `POSTHOG_PERSONAL_API_KEY`, held by the gateway and never in a sandbox; project ids for the old staging and production and the new staging |
-| Slack: the managers' rooms | managers | Slack connector (code only today); connect the app | Slack app tokens |
-| Chain: Base Sepolia RPC for the devnet fork and staging | sandboxes | egress | `BASE_SEPOLIA_RPC_URL` (an Alchemy key) |
-| Bundler and paymaster | sandboxes (devnet uses a mock), staging | egress | the provider key the stack decision picks |
-| Bridge sandbox (banking) | sandboxes for the banking operations | egress | `BRIDGE_SANDBOX_API_KEY` |
-| Email | devnet uses the mail sink; staging uses Resend | egress | `RESEND_API_KEY` (staging only) |
-| Hosting for the stack | managers' `deploy` | the Cloudflare API or Convex deploy, per C1 | `CLOUDFLARE_API_TOKEN` or `CONVEX_DEPLOY_KEY` |
-| npm, pnpm, foundry | sandboxes | egress to the registries | none |
+| Need | Used by | Connector or egress | Secret | State |
+|---|---|---|---|---|
+| The repository: clone, push, pull requests, CI, the merge | builder, the master | the GitHub connector and `sandbox.repo("github:AaronAbuUsama/capxul-next")` | the swarmd-agent App, installed with write (`swarm.accounts`) | built |
+| The old system, read only | every sandbox | cloned in `.swarmd/sandbox.ts`'s `prepare` | the same App, installed read-only on `Xelmar-tech/infrastructure` | built |
+| Models | every agent | the `gateway` and `anthropic` providers | `GATEWAY_API_KEY`, `ANTHROPIC_API_KEY` (Worker secrets) | built |
+| PostHog: the live evals | a scout, from B5 only | an MCP connector | `POSTHOG_API_KEY`, held by swarmD | planned |
+| Chain: Base Sepolia for staging | B5 | egress | `BASE_SEPOLIA_RPC_URL` | built (egress) |
+| Bridge sandbox (banking) | sandboxes running the banking evals | egress | `BRIDGE_SANDBOX_API_KEY` | built (egress) |
+| Email | the devnet uses the mail sink; staging uses Resend | egress | `RESEND_API_KEY` (staging only) | built (egress) |
+| npm | every sandbox | egress to `registry.npmjs.org` | none | built |
 
-**Linear is not used.** The ledger is the tracker. [Confirm with Aaron.]
+The ledger is the tracker; Linear is not used (spec 00, decision 8). Keys are asked for through the credential form,
+never in chat.
 
 ## The devnet in a sandbox
 
-This is a risk on the critical path. Every machine eval runs on a devnet: anvil
-forking Base Sepolia, the v4 contracts, the backend, the indexer, a mock
-bundler and the mail sink. A Cloudflare container must hold it, or reach it.
-The first task of the spine (K-2.1) is a **spike**. Boot the devnet in a
-`standard-3`-or-larger sandbox from a golden snapshot, restore a world, and run
-one `acc` eval. Measure the boot time and the time per eval.
+Every machine eval runs on a devnet: anvil with the v4 contracts, Postgres, Ponder, the backend, a mock bundler and
+paymaster, and the mail sink. Step `B3.sandbox` boots it in a `standard-3` sandbox from a golden snapshot, restores a
+world and runs one eval, and measures both (`swarm.sandbox`).
 
-- **Exit:** boot takes ≤ 2 min from the snapshot, and an L1 eval takes ≤ 10 s.
-- **If it fails,** the fallback is one long-lived devnet host per project,
-  outside the sandboxes, with a world restored per pair under a lock.
+- **Exit:** boot within 2 minutes from the snapshot, and an L1 eval within 10 seconds.
+- **If it fails,** the fallback is one long-lived devnet host per project, outside the sandboxes, with a world restored
+  per pair under a lock.
 
-## Prompt skeletons
+## Prompts and templates
 
-These are appended to swarmD's built-in role prompts. Each is short. Its rules
-are assumptions to test and delete (Zen rule 6).
-
-**`capxul/lead`**
-
-```md
-You answer for K-1: Capxul rebuilt behind the frozen CLI and book, measured by its evals.
-- Keep the critical path moving: order top-level tasks by `needs`, keep the low-priority areas off it.
-- Child managers own their tasks. You act on what bubbles up: signals they could not settle, matters for a person.
-- Bring Aaron only product or architecture decisions, irreversible steps, and what only he can do. Each as a matter with options and a recommendation.
-- Never report "tried N times". Report the diagnosis and what happens next.
-```
-
-**`capxul/build`**
-
-```md
-You turn operation tasks green. One pair per task: builder + reviewer. The engine runs the machine evals.
-- Open a build task only when its design task is done.
-- On a signal, choose the cheapest action that changes the outcome: a fresh maker, a diagnosis, or a split. Raise a matter only when none fits.
-- Merge only what the engine marks converged. Deploy the devnet after each merge to integration.
-```
-
-**`designer`**
-
-```md
-Turn one operation from the old book into its definition and evals.
-- The book record's command, returns, refusals and acceptance text are frozen: copy them, never improve them.
-- Run every claim against the old system (`run_evals --target legacy`). A claim the old system fails is a finding: say whether the claim or the old system is wrong.
-- Fill events, spans and budget by the rules in docs/decisions/measurement.md and budgets.md.
-```
-
-**`builder`**
-
-```md
-Make the task's evals pass. They are the definition of done: choose the steps yourself.
-- Write the operation as named steps in its entry file. Put the detail in its kind files.
-- Run `run_evals` before you submit. L0 must pass, or the engine returns your submission.
-- Address every open finding, or say in `submit` why it is wrong. Never weaken an eval.
-```
-
-**`reviewer`**
-
-```md
-Check one version against the task's evals and the repository rules. Change nothing.
-- From round 2 you see only the delta: say which earlier findings are fixed.
-- A blocking finding names the eval it threatens, or the rule it breaks, and where.
-- Approve when nothing blocking remains. Style preferences are advisory.
-```
+Each role's prompt, its swarmD definition (in the documented API and in today's), its JSON Schemas and its Claude Code
+profile are in [`docs/design/swarm-templates.md`](../design/swarm-templates.md) sections 10 and 11. Every artifact an
+agent produces (the pull request, the handback, the check, the diagnosis, a matter, an issue) has its template there.
 
 ## Proof that the team works
 
-The pilot is the spine's three operations, designed and built end to end on
-swarmD:
-- each task is `done` on `integration`
-- its timeline shows every assignment, round and cost
-- the artifact shows the scoreboard live
-- no person acts except to answer matters
+1. **The dry run** (swarmD post-mortem O1): one Capxul task end to end on the deployed swarm, on the cheap tier, with
+   today's API (swarm-templates.md 10.4).
+2. **Stage 1's entry** (swarm.md 1.2): swarmD's planned pieces built and passing their docs' acceptance lines, the
+   needed briefs SD-1, SD-4, SD-5, SD-6, SD-14 and SD-15, and spec 20's S3: one task with 5 evals converging with no
+   person, 5 runs of 5.
+3. **The pilots** (B3): the pilot closure's 33 tasks done on `integration/build`, each with its timeline of
+   assignments, rounds and cost, the board live, and no person acting except to answer matters.
 
-That is the exit of K-2.
+## What the swarm design replaced
+
+| The first version of this page | Now | Decision |
+|---|---|---|
+| Four managers: `capxul/lead`, `capxul/design`, `capxul/build`, `capxul/measure` | One manager, `capxul/master`; lane managers only at stage 2 | `swarm.start-small`, `swarm.nested-entry` |
+| `designer` and `design-reviewer`, a design task per operation (`K-40`) | None: the book is the design; its records are already built and checked | `swarm.workers` |
+| `rev:K-41` on every build task | No `rev:` evals: the checkers' approval is convergence; the reviewer posts `des:` | `swarm.review-evals` |
+| `ok:K-1` | `ok:capxul` on the root, the only person eval; milestones exit on `ms:` evals | `swarm.milestone-evals` |
+| `run_evals --target legacy`, an old-system baseline | The old system is a reference for behaviour, never a baseline | the goal prompt; `system.frozen-behaviour` |
+| "Copy the frozen text, never improve it" | Behaviour, not spelling: the target designs the surface | `system.frozen-behaviour` |
+| A `scout` from the start | A scout only from B5, for the live evals | `swarm.workers` |
+| Labels `area:` and `kind:design`, `kind:operation`, `kind:journey`, `kind:system` | The plan's labels (`kind:<task kind>`, `lane:`, `layer:`, `area:`, `money`, `pilot`) | `swarm.task-tree` |
+| A hand-written tree, one design and one build task per operation | Derived by `tools/plan-tasks.ts`; one task per operation | `swarm.task-tree`, `swarm.task-unit` |
+| "Linear is not used [confirm with Aaron]" | Confirmed: the ledger is the tracker (spec 00, decision 8) | — |
+| The second family as "a decision for Aaron" | `swarm.checker-family`: gateway makers, Anthropic checkers, for Aaron | `swarm.checker-family` |
+| Prompt skeletons for the lead, the build manager, the designer, the builder and the reviewer | The master's skeleton (swarm.md 1b) and each role's prompt (swarm-templates.md 10.5) | `swarm.master-prompt`, `swarm.templates` |

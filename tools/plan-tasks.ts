@@ -15,6 +15,13 @@
 //
 // It fails (exit 1) if the book has problems, an eval is owned twice or not at all, an operation has no task or two, a
 // need points at a later layer, or the needs (with each parent waiting on its children) have a cycle.
+//
+// A task with evals but no paths is a watch task (swarm.watch-tasks): no maker could change anything for it, so it has no
+// checkers and no budget, never gets a pair, and is done when its evals pass (the journeys, B3.pilots, B5.week).
+//
+// The file holds the tasks and nothing aggregated over the book: no record or eval counts, which change with every
+// decision record a lane adds. So two lanes that change different tasks regenerate it without a conflict, and a merge of
+// both is the file plan-tasks writes at the merged head (swarm.task-tree). The counts are printed instead.
 
 import { readFileSync, writeFileSync } from "node:fs";
 import { name, records, stage } from "../books/target/index.ts";
@@ -60,12 +67,13 @@ const concept = (key: string): string => {
 };
 
 // The evals, by id. The book derives a few ids twice (a refusal under two worlds; an integration error listed twice):
-// swarmD's catalog.sync refuses a duplicate, so they are reported here and fixed in packages/book (ms:B2/unique).
+// swarmD's catalog.sync refuses a duplicate, so they are reported here and fixed in packages/book by D0, whose
+// portal.eval-ids makes every id unique and adds the duplicate-eval problem (ms:D0/unique).
 const evalsById = new Map<string, EvalDef[]>();
 for (const e of book.evals) evalsById.set(e.id, [...(evalsById.get(e.id) ?? []), e]);
 const duplicated = [...evalsById].filter(([, v]) => v.length > 1).map(([id]) => id);
 if (duplicated.length)
-  warnings.push(`${duplicated.length} eval ids occur more than once in the book's evals (catalog.sync refuses them; ms:B2/unique): ${duplicated.slice(0, 4).join(", ")}, …`);
+  warnings.push(`${duplicated.length} eval ids occur more than once in the book's evals (catalog.sync refuses them; ms:D0/unique): ${duplicated.slice(0, 4).join(", ")}, …`);
 const evalsOf = new Map<string, string[]>(); // subject record key → unique eval ids
 for (const [id, [e]] of evalsById) evalsOf.set(e!.subject, [...(evalsOf.get(e!.subject) ?? []), id]);
 const evalIdsOf = (subject: string) => evalsOf.get(subject) ?? [];
@@ -132,13 +140,17 @@ const add = (t: Omit<TaskDef, "needs" | "labels" | "budgetUsd" | "checkers" | "p
   if (tasks.has(t.key)) throw new Error(`task ${t.key} twice`);
   const lane = t.lane;
   const money = lane !== undefined && MONEY.has(lane);
+  const paths = t.paths ?? (lane && lane !== JOURNEYS && lane !== INTEGRATIONS ? lanePaths(lane) : lane === INTEGRATIONS ? ["packages/runtime/src/integrations/"] : []);
+  // A structural task (root, milestone, lane) is done by roll-up; a working task with no paths is a watch task.
+  const working = t.kind !== "root" && t.kind !== "milestone" && t.kind !== "lane";
+  const watch = working && paths.length === 0;
   const full: TaskDef = {
     ...t,
     needs: [],
-    labels: t.labels ?? [],
-    budgetUsd: t.budgetUsd ?? 5,
-    checkers: t.checkers ?? (money ? ["reviewer", "adversary"] : ["reviewer"]),
-    paths: t.paths ?? (lane && lane !== JOURNEYS && lane !== INTEGRATIONS ? lanePaths(lane) : lane === INTEGRATIONS ? ["packages/runtime/src/integrations/"] : []),
+    labels: [...(t.labels ?? []), ...(watch ? ["watch"] : [])],
+    budgetUsd: watch ? 0 : (t.budgetUsd ?? 5),
+    checkers: watch ? [] : (t.checkers ?? (money ? ["reviewer", "adversary"] : ["reviewer"])),
+    paths,
   };
   tasks.set(t.key, full);
   need.set(t.key, new Set(t.needs ?? []));
@@ -148,7 +160,13 @@ const needs = (from: string, ...to: string[]) => {
   const s = need.get(from)!;
   for (const k of to) if (k !== from) s.add(k);
 };
-const lanePaths = (c: string) => [`books/target/${c}/`, `packages/backend/src/${c}/`, `packages/sdk/src/${c}/`];
+/** Where a concept's hand-written code lives (system.layout): its book folder and src/<concept>/ in the backend and the
+ * SDK; indexing's views are Ponder's (packages/indexer), and devnet's supervisor and world builder are packages/devnet. */
+const OWN_PACKAGE: Record<string, string> = { indexing: "packages/indexer/", devnet: "packages/devnet/" };
+const lanePaths = (c: string) => [`books/target/${c}/`, `packages/backend/src/${c}/`, `packages/sdk/src/${c}/`, ...(OWN_PACKAGE[c] ? [OWN_PACKAGE[c]!] : [])];
+/** What every task may also change, but only to what the generators write at its version (swarm.scope): the gate admits a
+ * change here when `npm run generate:check` and `plan-tasks --check` pass, so a book-first change carries its outputs. */
+const REGENERATED = ["docs/mission/tasks.json", "packages/*/src/generated/"];
 const clip = (s: string, n: number) => (s.length <= n ? s : `${s.slice(0, n - 1)}…`);
 const RANK: Record<Priority, number> = { critical: 0, normal: 1, low: 2 };
 
@@ -178,8 +196,9 @@ const MILESTONES: Milestone[] = [
     goal: "The portal (docs/design/portal.md) is live behind Access: a page for every record, Review with typed answers, the stands, the scoreboard and the CLI surface, with Markdown and JSON twins.",
     steps: [
       { key: "D0.book", title: "D0 Review field, underOf and standOf in the book", paths: ["packages/book/", "books/target/", "tools/report-judgments.ts", "docs/decisions/judgments.md"],
-        goal: "Decisions carry their review state, the judgments report reads it, and packages/book computes the records under an operation and its stand.",
-        exit: [["ms:D0/book", "The decision schema has its review field, report-judgments reads it, and underOf and standOf pass their tests on the fixture book."]] },
+        goal: "Decisions carry their review state, the judgments report reads it, every eval id is unique, and packages/book computes the records under an operation and its stand.",
+        exit: [["ms:D0/book", "The decision schema has its review field, report-judgments reads it, and underOf and standOf pass their tests on the fixture book."],
+          ["ms:D0/unique", "Every eval id the book derives is unique (portal.eval-ids), and a duplicate id is the build problem duplicate-eval."]] },
       { key: "D0.site", title: "D0 The portal target and site", paths: ["packages/generate/", "packages/portal/", ".github/workflows/"], needs: ["step:D0.book"],
         goal: "packages/generate's portal target writes the bundle and packages/portal renders every page, twin and the status overlay, checked in CI.",
         exit: [["ms:D0/check", "The portal check passes: every record has its page, every link resolves, two generations are byte-identical, and Review's list equals the judgments report's."], ["ms:D0/stands", "Every operation shows its stand, equal to standOf over the book at that commit."]] },
@@ -239,10 +258,10 @@ const MILESTONES: Milestone[] = [
     steps: [
       { key: "B2.runner", title: "B2 The runner contract", paths: ["packages/evals/"],
         goal: "`eval list --json` and `eval run --json --out <dir> -- <ids>` print exactly the catalogue and one RunResult per id.",
-        exit: [["ms:B2/runner", "`eval list --json` prints the catalogue (the book's evals and the milestone evals) and `eval run --json` prints one RunResult per id asked for."], ["ms:B2/unique", "Every eval id in the catalogue is unique: the book derives no id twice."]] },
+        exit: [["ms:B2/runner", "`eval list --json` prints the catalogue (the book's evals and the milestone evals, each id once) and `eval run --json` prints one RunResult per id asked for."]] },
       { key: "B2.worlds", title: "B2 Worlds as devnet snapshots", paths: ["packages/evals/", "books/target/devnet/"], needs: ["step:B2.runner"],
-        goal: "Each world a refusal or claim names is built by the devnet concept's design and restored as a named snapshot.",
-        exit: [["ms:B2/worlds", "Every world the records name is built and restored by name."]] },
+        goal: "The world builder builds each world a refusal or claim names from its steps, as the devnet concept designs it, and restores it as a named snapshot once the operations its steps run exist.",
+        exit: [["ms:B2/worlds", "The world builder builds a world from its steps and restores it by name, and lists every world whose steps run an operation not built yet, with those operations, as not yet buildable."]] },
       { key: "B2.otlp", title: "B2 Spans and measures", paths: ["packages/evals/"], needs: ["step:B2.runner"],
         goal: "A local OTLP collector gives each run its trace, so span, event and budget evals carry measures.",
         exit: [["ms:B2/otlp", "Span, event and budget evals read the run's trace and report p50, p95 and n."]] },
@@ -259,9 +278,10 @@ const MILESTONES: Milestone[] = [
         goal: "The devnet (anvil with the v4 contracts, Postgres, Ponder, the backend, a mock bundler and paymaster, the mail sink) boots, and the runtime's services run on it under one clock.",
         book: ["environment:devnet", ...ofKind("invariant").filter((i) => !(i.over as unknown[] | undefined)?.length).map(keyOf)],
         exit: [["ms:B3/runtime", "The runtime's services (auth, SQL, chain, integrations, the workflow engine, tracing) start on the devnet."]] },
-      { key: "B3.sandbox", title: "B3 The devnet in a swarmD sandbox", paths: [".swarmd/"], base: [], needs: ["step:B3.spine"],
-        goal: "A swarmD sandbox boots the devnet from a golden snapshot and runs an L1 eval fast enough for pairs; otherwise a decision records the fallback host.",
-        exit: [["ms:B3/sandbox", "The devnet boots in a swarmD sandbox from a golden snapshot in at most 2 minutes and one L1 eval runs in at most 10 seconds, or a decision records the fallback: one long-lived devnet host, a world restored per pair under a lock."]] },
+      { key: "B3.sandbox", title: "B3 The devnet in a swarmD sandbox, and the gate's scope", paths: [".swarmd/", "tools/check-scope.ts"], base: [], needs: ["step:B3.spine"],
+        goal: "A swarmD sandbox boots the devnet from a golden snapshot and runs an L1 eval fast enough for pairs, otherwise a decision records the fallback host; and the gate refuses a change outside the task's paths.",
+        exit: [["ms:B3/sandbox", "At an integration head newer than its golden snapshot, the devnet boots in a swarmD sandbox in at most 2 minutes and one L1 eval runs in at most 10 seconds, or a decision records the fallback: one long-lived devnet host, a world restored per pair under a lock."],
+          ["ms:B3/scope", "With SWARMD_TASK_PATHS set, the project's gate fails on a change outside the task's paths, or to packages/book or packages/evals from a lane task, and admits the regenerated outputs only when generate:check and plan-tasks --check pass."]] },
       { key: "B3.pilots", title: "B3 The pilots pass", paths: [], needs: [],
         goal: "Sign in, set up an Account and send a payment pass every eval of their tasks at the integration head, within budget.",
         exit: [["ms:B3/pilots", "Every eval of the pilot tasks passes at the integration head in one run, within its budget."]] },
@@ -580,8 +600,17 @@ const out = [...tasks.values()].sort(cmp).map((t) => ({
   evals: [...t.evals].sort(),
 }));
 const count = (f: (t: TaskDef) => boolean) => out.filter(f).length;
+const isWorking = (t: TaskDef) => t.kind !== "root" && t.kind !== "milestone" && t.kind !== "lane";
+/** The frontier once B3 is done: the working tasks with checkers, outside the pilot closure, whose needs are all met by
+ * the milestones T0 to B3, their steps and the closure (the loop's step 3 takes from it, one task per lane). */
+const doneByB3 = new Set(out.filter((t) => (t.kind === "milestone" || t.kind === "step") && /^(milestone|step):(T0|D0|B0|B1|B2|B3)\b/.test(t.key)).map((t) => t.key));
+for (const k of closure) doneByB3.add(k);
+const frontierAfterB3 = out.filter((t) => isWorking(t) && t.checkers.length && !doneByB3.has(t.key) && t.needs.every((n) => doneByB3.has(n)));
 const counts = {
   tasks: out.length,
+  working: count(isWorking),
+  paired: count((t) => isWorking(t) && t.checkers.length > 0),
+  watch: count((t) => t.labels.includes("watch")),
   milestones: count((t) => t.kind === "milestone"),
   steps: count((t) => t.kind === "step"),
   lanes: count((t) => t.kind === "lane"),
@@ -599,12 +628,14 @@ const counts = {
   duplicateEvalIds: duplicated.length,
   milestoneEvals: [...owned.keys()].filter((id) => !evalsById.has(id)).length,
   needs: out.reduce((n, t) => n + t.needs.length, 0),
-  budgetUsd: out.reduce((n, t) => n + (t.kind === "root" || t.kind === "milestone" || t.kind === "lane" ? 0 : t.budgetUsd), 0),
+  budgetUsd: out.reduce((n, t) => n + (isWorking(t) ? t.budgetUsd : 0), 0),
+  frontierAfterB3: frontierAfterB3.length,
+  frontierLanesAfterB3: new Set(frontierAfterB3.map((t) => t.lane)).size,
+  bookRecords: book.records.size,
 };
 const doc = {
-  about: "The build's task tree, derived from books/target by tools/plan-tasks.ts (docs/design/swarm.md, section 5). Do not edit: change the book or the script, then regenerate.",
-  book: { records: book.records.size, evals: book.evals.length, problems: book.problems.length, gaps: book.gaps.length },
-  counts,
+  about: "The build's task tree, derived from books/target by tools/plan-tasks.ts (docs/design/swarm.md, section 5). Do not edit: change the book or the script, then regenerate. It holds no counts over the book, so lanes that change different tasks never conflict here.",
+  regenerated: REGENERATED,
   layers: [[INTEGRATIONS], ...computed, [JOURNEYS]],
   tasks: out,
 };
