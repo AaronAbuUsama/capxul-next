@@ -106,6 +106,9 @@ The designers' and the assembly's reports are in `docs/decisions/concept-reports
 
 ## Lessons that save usage
 
+- Use a workflow only for workflow-shaped work: independent pieces that run in parallel, or a
+  maker followed by a reviewer. Do single edits, checks, reconciling, commits and merges directly.
+
 - Sixteen agents at once spent a five-hour usage window in about 36 minutes. Run 4 to 6 at a time.
 - A writer followed by an adversarial reviewer found real errors in every file it reviewed. For
   money concepts (payments, books, banking, requests, payroll, budgets) a reviewer is worth it.

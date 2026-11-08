@@ -184,6 +184,8 @@ Each milestone ends with its exit check passing and its state committed.
 - **Pair a maker with a checker.** A second agent checks every change against the record's evals.
   Every money concept (payments, books, banking, requests, payroll, budgets and approvals) also gets
   an adversarial reviewer. A reviewer never weakens an eval.
+- **Use a workflow only where the work is workflow-shaped:** independent lanes in parallel, or a
+  maker followed by a checker. Do single edits, checks, reconciling and merges directly.
 - **Pace the usage.** Sixteen agents at once spent a five-hour usage window in about 36 minutes. Run
   four to six at a time, write files as you go, and commit and push after every finished lane.
 - **Prove by running.** Report what a run observed. A claim no eval checks is unproven.
