@@ -103,7 +103,7 @@ export const decision_devnet_mail_sink = defineDecision({
     "integration's fake to a table, so the build shows `mail-messages` as unwritten: an expected gap. PROVIDER_ERROR is " +
     "retryable, so `dev mail fail` shows a notice retry, which is its purpose; a send keeps the first message per " +
     "idempotency key, as Resend does.",
-  source: by("books/as-is/operator/outboxes.ts:22-63 (record); packages/backend/src/integrations/mail/service.ts:171; shared external.ts (mail fake)"),
+  source: by("books/as-is/operator/outboxes.ts:25-58 (record); packages/backend/src/integrations/mail/service.ts:171; shared external.ts (mail fake)"),
   affects: [table_mail_messages, table_mail_faults, rpc_devnet_mail_list, rpc_devnet_mail_fail, integration_mail, ops.operation_dev_mail_fail],
 });
 
@@ -121,7 +121,7 @@ export const decision_devnet_notices_read = defineDecision({
     "of one answer. The filters by recipient and template run inside the query, so a filtered list never misses older " +
     "records, as the old 200-then-filter did. The table is notices' `notices`, its mailbox-tenanted delivery records, which notices gave " +
     "cross-tenant indexes for this read; the fields printed (state, attempts, last error) are the frozen ones.",
-  source: by("operations.dev-mail-notices-in-devnet; books/as-is/operator/notices.ts:63-91"),
+  source: by("operations.dev-mail-notices-in-devnet; books/as-is/operator/notices.ts:57-91"),
   affects: [rpc_devnet_mail_list_notices, ops.operation_dev_mail_notices],
 });
 
@@ -172,7 +172,7 @@ export const decision_devnet_scripted_gates = defineDecision({
     "applies now) false for a minute. Running the one sync keeps the production path the only path. The table is " +
     "Organization-tenanted (P8) with a cross-tenant index for the fake's flag list. Only Organization gates: the frozen " +
     "command refuses a missing `--org` with CLI_USAGE, so a person gate (beta-access) is not scriptable by it.",
-  source: by("books/target/access/decisions.ts (access.gates); apps/docs/factory/operations/dev.gates.set.yaml; books/as-is/operations/devnet.ts:618-664"),
+  source: by("books/target/access/decisions.ts (access.gates); apps/docs/factory/operations/dev.gates.set.yaml; books/as-is/operations/devnet.ts:679-730"),
   affects: [table_scripted_gates, rpc_devnet_gates_script, rpc_devnet_gates_read, flow_devnet_gates_set, ops.operation_dev_gates_set, integration_posthog],
 });
 
@@ -247,7 +247,7 @@ export const decision_devnet_supervisor_owns_time_and_worlds = defineDecision({
     "supervisor called would be unreached (P2). Old operator.clocks.read and jobs.shift are not ported: clockShow reads " +
     "both clocks, and timers stored in backend time need no shift. The durable processes resume from their stored state " +
     "after a restore.",
-  source: by("books/as-is/operations/devnet.ts:1-40, :259-375; components.devnet; shared external.ts (devnet-control)"),
+  source: by("books/as-is/operations/devnet.ts:1-40, :295-430; components.devnet; shared external.ts (devnet-control)"),
   affects: [...SUPERVISOR_FLOWS, component_devnet, integration_devnet_control, concept_devnet],
 });
 
@@ -290,7 +290,7 @@ export const decision_devnet_supervisor_steps = defineDecision({
     "system time and must count against the budget. The supervisor is local state on this machine behind an owner-only " +
     "socket, which `cache` describes best, and the flow's `calls` gives the call its span and its failures, so its " +
     "refusals are produced (refusal-not-produced reads `calls`).",
-  source: by("packages/book/src/records/behaviour.ts (Step kinds); books/as-is/operations/devnet.ts:186 (snapshot list as a cache step)"),
+  source: by("packages/book/src/records/behaviour.ts (Step kinds); books/as-is/operations/devnet.ts:212 (snapshot list as a cache step)"),
   affects: SUPERVISOR_FLOWS,
 });
 
@@ -314,7 +314,7 @@ export const decision_devnet_approve_as = defineDecision({
     "sign) do the rest, so the approval's process sends it as for anyone. Without the handoff the dev signers are unknown " +
     "here (a browser run without it signs with a real Openfort test signer): WRONG_ENVIRONMENT, as the frozen mistake says. " +
     "The kept session is not made current, so the eval's current person is unchanged.",
-  source: by("books/as-is/operations/devnet.ts:592-660; books/target/access/sign-in.ts; books/target/approvals/signing.ts"),
+  source: by("books/as-is/operations/devnet.ts:606-676; books/target/access/sign-in.ts; books/target/approvals/signing.ts"),
   affects: [flow_devnet_approve, ops.operation_dev_approve],
 });
 
@@ -410,7 +410,7 @@ export const decision_devnet_budgets = defineDecision({
 export const decision_devnet_worlds = defineDecision({
   id: "devnet.worlds",
   title: "One catalog of eval worlds, each built by a script of black-box steps",
-  question: "The designed concepts' refusals name 66 worlds. How is each built and saved, and where is that written?",
+  question: "The designed concepts' refusals name 78 worlds and their claims and worlds decisions 10 more. How is each built and saved, and where is that written?",
   options: [
     {
       label: "catalog",
@@ -437,14 +437,15 @@ export const decision_devnet_worlds = defineDecision({
 
 export const decision_devnet_world_aliases = defineDecision({
   id: "devnet.world-aliases",
-  title: "Three names are second names of one snapshot",
+  title: "Four names are second names of one snapshot",
   question: "Some concepts named the same state differently. Are those separate snapshots?",
   options: [
     {
       label: "same-as",
       text:
-        "No: `signed-out` and budgets' `cli-signed-out` are empty-devnet's state, and payments' `person-without-account` " +
-        "is person-signed-in's; each is saved once and listed under both names (`sameAs`).",
+        "No: `signed-out` and budgets' `cli-signed-out` are empty-devnet's state, payments' `person-without-account` is " +
+        "person-signed-in's and board's `org-with-setup-awaiting-install` is org-awaiting-founder's; each is saved once " +
+        "and listed under both names (`sameAs`).",
     },
     { label: "rename", text: "Ask the owners to rename their refusals' worlds." },
   ],
@@ -492,10 +493,10 @@ export const decision_devnet_fault_switches = defineDecision({
       label: "supervisor",
       text:
         "`capxul-devnet fault <switch> <mode>` arms the devnet layers' switches (chain-rpc node-down and garbage-answers, " +
-        "bridge fail-all, indexer hold <n>, service-signer refuse-send, bundler hold-receipt) and `capxul-devnet chain` and " +
-        "`bridge` make outside facts (a Safe transaction outside Capxul, an outside transfer, a token, Bridge deposits). " +
-        "The armed switches are in the world's manifest and re-armed on restore. The mail switch is `dev mail fail`, in " +
-        "Postgres.",
+        "bridge fail-all, indexer hold <n>, service-signer refuse-send, bundler hold-receipt, documents tamper) and " +
+        "`capxul-devnet clock hold`, `chain` and `bridge` make what no Capxul surface makes (a still backend clock, a Safe " +
+        "transaction or a Hats ruling outside Capxul, an outside transfer, a token, Bridge deposits). The armed switches " +
+        "are in the world's manifest and re-armed on restore. The mail switch is `dev mail fail`, in Postgres.",
     },
     { label: "devnet-rpcs", text: "A devnet rpc per switch." },
   ],
@@ -504,8 +505,9 @@ export const decision_devnet_fault_switches = defineDecision({
     "The switches belong to integration layers and processes the supervisor runs, and outside facts are by definition not " +
     "made by Capxul's operations; rpcs for them would be reached by no operation (P2) and would put eval controls in the " +
     "backend. Saving them with the world makes a world like bridge-unreachable one restore. The old receipt hold is the " +
-    "bundler switch (responsibilities.operator-proof-tools).",
-  source: by("responsibilities.operator-proof-tools; shared external.ts (fakes and fault switches); banking.worlds, books.worlds, budgets.worlds, requests.worlds"),
+    "bundler switch (responsibilities.operator-proof-tools). `documents tamper` is the one control that changes stored " +
+    "bytes, as disk corruption would, for documents' org-with-tampered-note; it is a fault, never a way to build state.",
+  source: by("responsibilities.operator-proof-tools; shared external.ts (fakes and fault switches); the banking, books, budgets, requests, board, documents and applications worlds"),
   affects: [component_devnet, environment_devnet, concept_devnet],
 });
 

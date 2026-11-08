@@ -78,10 +78,10 @@ export const WORLDS: readonly World[] = [
     holds: "Protocol v4 deployed by Companies House, Ponder at the head, no principal, no mail, a fresh CLI home, clocks unmoved.",
     from: null,
     steps: [supervisor("capxul-devnet up (fresh)")],
-    namedBy: ["access", "devnet"],
+    namedBy: ["access", "devnet", "applications"],
   },
-  { name: "signed-out", holds: "No session on this machine: the state of empty-devnet.", from: "empty-devnet", steps: [], sameAs: "empty-devnet", namedBy: ["accounts", "organizations", "books", "banking", "payments", "requests", "devnet"] },
-  { name: "cli-signed-out", holds: "No sign-in: the state of empty-devnet, under budgets' name.", from: "empty-devnet", steps: [], sameAs: "empty-devnet", namedBy: ["budgets"] },
+  { name: "signed-out", holds: "No session on this machine: the state of empty-devnet.", from: "empty-devnet", steps: [], sameAs: "empty-devnet", namedBy: ["accounts", "organizations", "books", "banking", "payments", "requests", "devnet", "agents", "documents", "activity"] },
+  { name: "cli-signed-out", holds: "No sign-in: the state of empty-devnet, under budgets' name.", from: "empty-devnet", steps: [], sameAs: "empty-devnet", namedBy: ["budgets", "board"] },
   {
     name: "cli-on-beta-environment",
     holds: "empty-devnet with the CLI home pointed at beta, which this machine has no deployment for: every devnet command is refused before a network call.",
@@ -94,7 +94,7 @@ export const WORLDS: readonly World[] = [
     holds: "Dana (dana@acme.test) signed in and current; not on the waitlist, not admitted, no Safe.",
     from: "empty-devnet",
     steps: [signIn("dana@acme.test")],
-    namedBy: ["access", "accounts", "devnet"],
+    namedBy: ["access", "accounts", "devnet", "applications"],
   },
   {
     name: "person-without-account",
@@ -109,7 +109,7 @@ export const WORLDS: readonly World[] = [
     holds: "Dana and Sam (sam@acme.test) signed in on this machine, Dana current.",
     from: "person-signed-in",
     steps: [signIn("sam@acme.test"), current("dana@acme.test")],
-    namedBy: ["access"],
+    namedBy: ["access", "activity"],
   },
   {
     name: "person-on-waitlist",
@@ -130,7 +130,7 @@ export const WORLDS: readonly World[] = [
     holds: "Dana admitted with her profile done and three invites, her Safe not set up.",
     from: "person-admitted-no-profile",
     steps: [step("dana@acme.test", "the web onboarding's profile step through the Core SDK: display name Dana Reyes, country GB")],
-    namedBy: ["accounts", "organizations"],
+    namedBy: ["accounts", "organizations", "agents", "activity"],
   },
   {
     name: "person-admitted-no-invites",
@@ -157,7 +157,7 @@ export const WORLDS: readonly World[] = [
     holds: "Dana admitted, profile done, her Safe claimed by Companies House with her dev signer; no Organization, no money.",
     from: "person-unclaimed",
     steps: [step("dana@acme.test", "client.account.setup through the Core SDK with her dev signer, until CapxulSafeClaimed is indexed")],
-    namedBy: ["accounts", "organizations", "banking"],
+    namedBy: ["accounts", "organizations", "banking", "activity"],
   },
   {
     name: "setup-refused-other-signer",
@@ -185,7 +185,7 @@ export const WORLDS: readonly World[] = [
     holds: "Dana ready with 1,000 USDC in her Safe and current; Sam ready with a live Safe; nobody@outside.test has no account.",
     from: "person-ready",
     steps: [ready("sam@acme.test", "Sam Okafor"), current("dana@acme.test"), step("dana@acme.test", "capxul dev fund 1000 --asset USDC")],
-    namedBy: ["payments"],
+    namedBy: ["payments", "activity"],
   },
   {
     name: "person-with-empty-safe",
@@ -195,7 +195,7 @@ export const WORLDS: readonly World[] = [
       step("dana@acme.test", "capxul payment send sam@acme.test 5 --json (its approval left unsigned)"),
       anyone("capxul dev time warp 2h (past the sponsorship window)"),
     ],
-    namedBy: ["payments"],
+    namedBy: ["payments", "activity"],
   },
   {
     name: "person-with-payment-history",
@@ -465,7 +465,7 @@ export const WORLDS: readonly World[] = [
       "`hiring` closed, Sam holding nothing, Olga outside and signed in) plus a proposed department `research`.",
     from: "org-with-budget-tree",
     steps: [step("dana@acme.test", "capxul org department create research --parent company --budget 40000/year --json (left waiting)"), current("olga@outside.test")],
-    namedBy: ["payments"],
+    namedBy: ["payments", "activity"],
   },
   {
     name: "org-with-dated-payments",
@@ -762,7 +762,7 @@ export const WORLDS: readonly World[] = [
       supervisor("capxul-devnet bridge deposits --to dana@acme.test: 200 USD credited twice, 50 arriving"),
       step("dana@acme.test", "capxul bank match <the first credited deposit> <D-2>"),
     ],
-    namedBy: ["requests"],
+    namedBy: ["requests", "activity"],
   },
   {
     name: "org-with-credited-deposit",
@@ -825,11 +825,12 @@ export const WORLDS: readonly World[] = [
       "outside Capxul, a waiting rejection, Sam wearing the Books hat and a waiting Invoicing grant.",
     from: "org-with-two-directors",
     steps: [
-      ...board("dana@acme.test", "capxul org member grant sam@acme.test --permission manage-books --org acme").map((s, i) =>
-        i === 0 ? s : step(s.as, s.run.replace("dana@acme.test", i === 1 ? "dana@acme.test" : "sam@acme.test")),
-      ),
+      step("dana@acme.test", "capxul org member grant sam@acme.test --permission manage-books --org acme --json"),
+      approve("dana@acme.test", "its Board proposal, as Director"),
+      approve("sam@acme.test", "its Board proposal, as Director"),
       step("dana@acme.test", "capxul payment send olga@outside.test 10 --org acme --as-directors --json; approve as Dana, then reject as Sam"),
-      supervisor("capxul-devnet chain safe-exec --safe <acme's company Safe> --signers dana@acme.test,sam@acme.test: a transaction at the next nonce, outside Capxul"),
+      step("dana@acme.test", "capxul payment send olga@outside.test 15 --org acme --as-directors --json (waiting at the next nonce)"),
+      supervisor("capxul-devnet chain safe-exec --safe <acme's company Safe> --signers dana@acme.test,sam@acme.test: another transaction at that nonce, outside Capxul, which replaces it"),
       step("dana@acme.test", "capxul org member grant pat@acme.test --permission issue-invoices --org acme --json (waiting)"),
       step("dana@acme.test", "capxul payment send olga@outside.test 20 --org acme --as-directors --json (waiting, the next nonce)"),
       step("sam@acme.test", "capxul org proposal reject <the second waiting proposal> (Sam's rejection waits for Dana)"),
@@ -915,7 +916,8 @@ export const WORLDS: readonly World[] = [
     steps: [
       step("sam@acme.test", 'capxul payment send olga@outside.test 40 --org acme --from office --note "Design review" --json; approve as Sam'),
       step("olga@outside.test", 'capxul request issue @acme 120 --reference "OLGA-INV-1" --confirm'),
-      ...board("dana@acme.test", "capxul org department create people --budget 20000/month --holder dana@acme.test --org acme").slice(0, 2),
+      step("dana@acme.test", "capxul org department create people --budget 20000/month --holder dana@acme.test --org acme --json"),
+      approve("dana@acme.test", "its Board proposal, as the one Director"),
       step("dana@acme.test", "capxul org agreement offer olga@outside.test --department people --salary 3000/month --start <today>; approve"),
       step("dana@acme.test", "capxul activity annotate <the payment to Olga> --receipt receipt.pdf --org acme"),
       supervisor('capxul-devnet chain transfer 15 USDC to olga\'s Safe with Memo "Refund 0042" from an Anvil account'),

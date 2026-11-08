@@ -35,7 +35,7 @@ export const table_mail_messages = defineTable({
     "an armed fault refuses keeps nothing. `dev mail list` reads it, and so does `dev approve`, for the sign-in code of the " +
     "person it plays; evals read invitation links and codes here. The HTML body is not kept: the text carries every link. " +
     DEVNET_ONLY,
-  was: [`${ASIS}:43`, `${OP}/tables.ts:21`, `${OP}/outboxes/writes.ts:58`, "packages/backend/src/integrations/mail/service.ts:171"],
+  was: [`${ASIS}:50`, `${OP}/tables.ts:21`, `${OP}/outboxes/writes.ts:58`, "packages/backend/src/integrations/mail/service.ts:171"],
   concept: concept_devnet,
   tenancy: "global",
   fields: Schema.Struct({
@@ -73,12 +73,13 @@ export const table_mail_faults = defineTable({
   id: "mail-faults",
   title: "Mail faults: the mail sink's fail switch",
   about:
-    "The next `remaining` sends to `address` fail as Resend refusing them, so a notice's retry can be watched. `address` " +
+    "The next `remaining` sends to `address` fail as an unavailable Resend (PROVIDER_ERROR, which a notice's workflow " +
+    "retries), so a notice's retry can be watched. `address` " +
     "is a lowercased email, or `*` for any address. `dev mail fail` arms (replacing that address's fault), lists and clears " +
     "them; the mail fake spends one in the send it refuses, the address's own fault first and then `*`, and deletes a " +
     "fault spent to zero. A refused send keeps no message. " +
     DEVNET_ONLY,
-  was: [`${ASIS}:84`, `${OP}/tables.ts:38`, `${OP}/outboxes/writes.ts:14`, `${OP}/outboxes/writes.ts:37`],
+  was: [`${ASIS}:90`, `${OP}/tables.ts:38`, `${OP}/outboxes/writes.ts:14`, `${OP}/outboxes/writes.ts:37`],
   concept: concept_devnet,
   tenancy: "global",
   fields: Schema.Struct({

@@ -92,7 +92,7 @@ export const rpc_media_files_get = defineRpc({
   output: Schema.NullOr(
     Schema.Struct({
       file_id: S,
-      content_type: ContentType,
+      content_type: Schema.Literals(["image/jpeg", "image/png", "image/webp"]),
       size: N,
       bytes: Schema.Uint8Array,
     }),

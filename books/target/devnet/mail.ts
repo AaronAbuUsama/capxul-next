@@ -45,7 +45,7 @@ export const rpc_devnet_mail_list = defineRpc({
     "older match; `dev approve` asks for the newest `sign-in-code` message to the person it plays. Sign-in codes are shown " +
     "as sent: on a devnet the sink is how a developer, an eval or `dev approve` signs in. A `to` that is not an address " +
     "is INVALID_INPUT.",
-  was: [`${ASIS}/outboxes.ts:66`, `${OP}/outboxes/operations/list.ts:11`, `${OP}/outboxes/reads.ts:11`],
+  was: [`${ASIS}/outboxes.ts:60`, `${OP}/outboxes/operations/list.ts:11`, `${OP}/outboxes/reads.ts:11`],
   concept: concept_devnet,
   kind: "query",
   who: ON_THE_MACHINE,
@@ -76,7 +76,7 @@ export const rpc_devnet_mail_fail = defineRpc({
     "`to`, lowercased, or to any address without it, replacing that address's fault; a missing or out-of-range `next` is " +
     "INVALID_INPUT naming the range. It answers the faults still armed. The CLI refuses the combinations the page forbids " +
     "(`--list` with anything, `--clear` with `--next` or `--to`) before it calls.",
-  was: [`${ASIS}/outboxes.ts:96`, `${OP}/outboxes/operations/fail.ts:20`, `${OP}/outboxes/rules.ts:15`, `${OP}/outboxes/writes.ts:14`],
+  was: [`${ASIS}/outboxes.ts:100`, `${OP}/outboxes/operations/fail.ts:20`, `${OP}/outboxes/rules.ts:15`, `${OP}/outboxes/writes.ts:14`],
   concept: concept_devnet,
   kind: "mutation",
   who: ON_THE_MACHINE,
@@ -119,7 +119,7 @@ export const rpc_devnet_mail_list_notices = defineRpc({
     "retrying or failed), its attempts and its last error. It lives in devnet, not notices, because it answers only on a " +
     "devnet (operations.dev-mail-notices-in-devnet); on staging the same records are read by an operator through the " +
     "database, never through an rpc. A `to` that is not an address is INVALID_INPUT.",
-  was: [`${ASIS}/notices.ts:63`, `${OP}/notices/operations/list.ts:14`, `${OP}/notices/reads.ts:26`],
+  was: [`${ASIS}/notices.ts:57`, `${OP}/notices/operations/list.ts:14`, `${OP}/notices/reads.ts:26`],
   concept: concept_devnet,
   kind: "query",
   who: ON_THE_MACHINE,
