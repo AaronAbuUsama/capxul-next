@@ -7,6 +7,9 @@ import * as vocabulary from "./vocabulary.ts";
 import * as external from "./external.ts";
 import * as decisions from "./decisions.ts";
 import * as landings from "./landings.ts";
+import * as tooling from "./tooling.ts";
+import * as portal from "./portal.ts";
+import * as swarm from "./swarm.ts";
 
 /** Records carried by a parent (a machine's transitions, an integration's calls, a contract's parts) come with it. */
 const CHILDREN = new Set(["transition", "call", "function", "chainEvent"]);
@@ -24,5 +27,5 @@ export const recordsOf = (modules: readonly object[]): unknown[] => [
   ),
 ];
 
-export const sharedModules = [foundation, vocabulary, external, decisions, landings] as const;
+export const sharedModules = [foundation, vocabulary, external, decisions, landings, tooling, portal, swarm] as const;
 export const sharedRecords = recordsOf(sharedModules);
