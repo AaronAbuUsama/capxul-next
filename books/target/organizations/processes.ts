@@ -69,7 +69,8 @@ export const workflow_organizations_setups_set_up = defineWorkflow({
     "provider outage that outlasts a step's retries stalls it too. `org retry` resumes it from its last finished step. " +
     "With an FDE key recorded, the install batch also calls `AgentOwner.create(that key, the company Safe)` from the " +
     "company Safe, so the founder's one signature creates the FDE; at completion its Party is activated and it is seated " +
-    "as the Organization's own agent, and a failed setup releases its Party with the Organization's " +
+    "as the Organization's own agent, and a failed setup releases its Party, with the Organization's while that is still " +
+    "pending (a minted company Safe's Party is active and keeps its handle) " +
     "(organizations.fde-at-start-up). It replaces the old observe workflow, its every-minute recovery cron and ten " +
     "internal rpcs.",
   was: [

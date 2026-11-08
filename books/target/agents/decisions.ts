@@ -756,9 +756,10 @@ export const decision_agents_fde_people_hat = defineDecision({
     {
       label: "founder-grants",
       text:
-        "The setup grants no hat (agents.fde-authority). When the FDE first needs the CRM it prepares `org member grant " +
-        "@<its handle> people` for the founder, who approves the Board proposal; while the founder is the only Director " +
-        "that is one signature. Until then the FDE reads the CRM like any member, and a People hat wearer imports.",
+        "The setup grants no hat (agents.fde-authority). When the FDE first needs the CRM it asks the founder to run `org " +
+        "member grant @<its handle> --permission manage-people` (an agent named by its handle: board.agent-officer-hats), " +
+        "whose Board proposal, while the founder is the only Director, needs that one signature. Until then the FDE " +
+        "reads the CRM like any member, and a People hat wearer imports.",
     },
     {
       label: "install-batch",
@@ -775,7 +776,7 @@ export const decision_agents_fde_people_hat = defineDecision({
     "HR Manager for payroll's employees, components and runs, so granting it at install gives an AI agent people and " +
     "payroll authority no person chose. A dedicated sales permission would be the narrow grant, but none exists " +
     "(contacts.crm-permission keeps one permission for the CRM). The cost of waiting is one Board approval the FDE " +
-    "prepares, in the same sitting as the start-up import (contacts.startup). If Aaron wants the FDE to start working " +
+    "asks the founder for, in the same sitting as the start-up import (contacts.startup). If Aaron wants the FDE to start working " +
     "the CRM unasked, install-batch adds one call to the batch the founder already signs and no new record.",
   source: asmBy("docs/design/frappe/crm.md (FDE and organizations); books/target/contacts/decisions.ts (contacts.crm-permission); books/target/agents/decisions.ts (agents.fde-authority)"),
   affects: [table_agents, table_org_members, table_org_setups, concept_organizations, concept_projects],

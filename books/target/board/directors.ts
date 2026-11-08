@@ -274,9 +274,9 @@ export const rpc_board_directors_seat = defineRpc({
   id: "board.directors.seat",
   title: "Seat a member as a Director, from the Shareholders' top hat",
   about:
-    MEMBER + " " + TOP_HAT + " The email must name a current member who is a person (INVALID_INPUT otherwise: an " +
-    "agent's Seat, named by its `@handle`, is refused whoever owns the agent, the Organization's FDE above all, because " +
-    "an agent is never a Director, board.no-agent-directors) whose Safe is claimed " +
+    MEMBER + " " + TOP_HAT + " The email must be a current member's (INVALID_INPUT otherwise). Only a person has one: an " +
+    "agent has no mailbox, so a `@handle` names nobody here and is INVALID_INPUT whoever owns the agent, the " +
+    "Organization's FDE above all (an agent is never a Director, board.no-agent-directors). The member's Safe must be claimed " +
     "(indexing's safe-owners; WRONG_STATE: they have not finished signing up) and does not sign the company Safe yet " +
     "(WRONG_STATE). The calls, from the founder's Safe: `Hats.changeHatMaxSupply(director, supply + 1)` when every " +
     "Director seat is worn, `Hats.mintHat(director, memberSafe)` unless the member already wears the hat, then " +

@@ -106,7 +106,9 @@ export const procedure_parties_release = defineProcedure({
     "Money fact: a handle whose Safe will never exist must stop naming it, so no payment is routed to a Safe nobody can " +
     "deploy; the release commits with the transition that ends the birth. Agents invokes it when a create the chain " +
     "refused, or one whose approval lapsed unsent, fails ('fails and frees its handle'); organizations when a setup " +
-    "fails for good, for the Organization's Party and its FDE's alike. The handle is cleared, the id is kept for the records that point at it. Releasing a released " +
+    "fails for good: its FDE's Party, still pending, always, and the Organization's only while it is still pending (a " +
+    "setup that fails after its company Safe was minted keeps the Organization's handle). The handle is cleared, the id " +
+    "is kept for the records that point at it. Releasing a released " +
     "Party is a no-op; an active one refuses with `WRONG_STATE`: a live Safe's handle is never freed, so a removed agent's " +
     "handle stays taken.",
   concept: concept_parties,

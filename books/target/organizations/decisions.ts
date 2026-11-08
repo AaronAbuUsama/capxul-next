@@ -1173,11 +1173,13 @@ export const decision_organizations_buy_seats = defineDecision({
         "Recommended. `org seats buy <n> --from <budget>`, and `org seats` to read the limit, what counts against it, " +
         "the seats bought and the price. A person whose Safe wears the People hat (the hat that invites, so the one who " +
         "meets the limit) pays from a budget they hold: the company Safe's money under the authority the Board gave that " +
-        "budget, checked by the chain. Payments books the rpc, flow and operations, because organizations sits below " +
-        "payments: it births one command by `payments.prepare-command`'s rules (purpose seats, route budget, one item to " +
-        "Capxul's seat Safe for n times the price, its source naming the Organization and n), and its settlement invokes " +
-        "`organizations.add-bought-seats` in the settling transaction, so the limit rises exactly when the payment " +
-        "settles; its reversal on a reorg invokes `organizations.return-bought-seats`. The price is the deployment " +
+        "budget, checked by the chain. Payments books `org seats buy`, because organizations sits below payments: it " +
+        "births one command by `payments.prepare-command`'s rules (purpose seats, route budget, owner the Organization, " +
+        "one item to Capxul's seat Safe for n times the price, its source naming only n), and its settlement invokes " +
+        "`organizations.add-bought-seats` in the settling transaction with the command's owner as the Organization, so " +
+        "the limit rises exactly when the payment settles and only for the company that paid; its reversal on a reorg " +
+        "invokes `organizations.return-bought-seats`. `org seats` reads only organizations' rows and the price, so it is " +
+        "organizations' own. The price is the deployment " +
         "setting SEAT_PRICE, the price of one seat in each stablecoin the deployment sells seats in, with Capxul's " +
         "receiving Safe beside it; while it is unset for the token named, buying is FEATURE_NOT_AVAILABLE. A bought seat " +
         "is kept for good.",
@@ -1200,16 +1202,19 @@ export const decision_organizations_buy_seats = defineDecision({
   why:
     "For Aaron: the price (SEAT_PRICE is his to set; this design chooses no number, and buying stays off until he sets " +
     "it), whether a seat is bought once or by the month, the commands' names, and who may buy (the People hat from a " +
-    "budget, or a Director by Board batch). It is a decision pack under rules.new-operations: `org.seats.buy` and " +
-    "`org.seats` cite aaron.buy-seats and are payments' to book once accepted, with claims and worlds; organizations " +
-    "has booked its half, the purchases and their two doors. Organizations cannot birth the payment: " +
+    "budget, or a Director by Board batch). It is a decision pack under rules.new-operations: `org.seats.buy` (payments') " +
+    "and `org.seats` (organizations') cite aaron.buy-seats and are booked on this recommendation, which stands until " +
+    "he answers, in the commands pass, with claims and worlds; organizations has booked the purchases and their two " +
+    "doors. Organizations cannot birth the payment: " +
     "`payments.prepare-command` is a door of a concept above it, and depending on payments would be a cycle. For the " +
     "same reason the limit can follow the payment only through a door payments invokes. Counting the seats in the " +
     "settlement's own transaction keeps payments' one settlement path (payments.one-settlement-path), which the " +
     "organizations-approval option would duplicate without a book fact, and makes 'raised once the payment settles' " +
     "exact: no seat without its settled payment, none paid for and missing, and the reversal keeps that across a reorg. " +
     "A request from Capxul would put an issuer in every purchase. A budget is the route the door already has. An agent " +
-    "never buys (agents.fde-authority). A subscription needs a lapse that lowers a limit, which nothing designs yet.",
+    "never buys (agents.fde-authority). The Organization counted is the paying command's owner, never a value the " +
+    "source carries, so one company cannot raise another's limit (the ruling: a company buys for itself). A " +
+    "subscription needs a lapse that lowers a limit, which nothing designs yet.",
   source: asmBy("books/target/shared/rulings.ts (aaron.buy-seats); books/target/payments/procedures.ts (payments.prepare-command)"),
   affects: [
     table_organizations, table_org_seat_purchases, machine_seat_purchase, event_seat_purchase_transitioned,

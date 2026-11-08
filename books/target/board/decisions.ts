@@ -662,9 +662,10 @@ export const decision_board_no_agent_directors = defineDecision({
     {
       label: "every-agent",
       text:
-        "Every agent, whoever owns it. `board.directors.seat` refuses a member whose Seat is an agent's (INVALID_INPUT, " +
-        "the code it gives any member who cannot be seated), and `board.directors.claim` refuses a caller whose Seat is " +
-        "an agent's, even if an election minted it the Director hat (ROLE_PERMISSION_DENIED).",
+        "Every agent, whoever owns it. `board.directors.seat` names a Director only by email, which no agent has, so an " +
+        "agent's `@handle` is INVALID_INPUT (the code it gives anyone who is not a member it can seat), and " +
+        "`board.directors.claim` refuses a caller whose Seat is an agent's, even if an election minted it the Director " +
+        "hat (ROLE_PERMISSION_DENIED). Officer hats are not Director seats: an agent may wear one (board.agent-officer-hats).",
     },
     { label: "organization-owned", text: "Only an agent an Organization owns, so its own FDE; a person's agent may be seated." },
     { label: "chain-only", text: "No check in Capxul: the Board decides whom it seats." },
@@ -681,4 +682,37 @@ export const decision_board_no_agent_directors = defineDecision({
     "Electing an agent through the Governor is equity's to refuse when Board elections are booked.",
   source: asmBy("docs/design/frappe/projects-and-startup.md (section 3); books/target/agents/decisions.ts (agents.fde-authority)"),
   affects: [rpc_board_directors_seat, rpc_board_directors_claim, op.operation_org_board_director_add, op.operation_org_board_claim],
+});
+
+export const decision_board_agent_officer_hats = defineDecision({
+  id: "board.agent-officer-hats",
+  title: "An agent's Seat may wear an officer hat, named by its `@handle`",
+  question:
+    "`org member grant` and `revoke` named a member by email only, and needed a claimed personal Safe, so no agent could " +
+    "be granted an officer hat. Yet agents.fde-authority and agents.fde-people-hat have the founder grant the FDE the " +
+    "Books or People hat with `org member grant`, and payroll's and the CRM's guards admit an agent whose Safe wears the " +
+    "People hat. May an agent's Seat wear an officer hat, and how is it named?",
+  options: [
+    {
+      label: "handle",
+      text:
+        "Yes. The grant's and revoke's `member` is a person's email or an agent's `@handle`, as `org member invite` names " +
+        "its grantees; an agent's Seat must be current here and its Party active (WRONG_STATE: its Safe is not live), and " +
+        "every other rule is the same: a Director proposes, the Board approves, `Hats.mintHat` to the agent's Safe, and " +
+        "ROLE_CONFLICT for Manage people when it wears a department's office hat. The FDE's grant is `org member grant " +
+        "@<its handle> --permission manage-people`.",
+    },
+    { label: "persons-only", text: "No: officer hats are for people; an agent works only with what its owner's grants and budgets give it." },
+  ],
+  chosen: "handle",
+  why:
+    "Persons-only would leave the FDE's first sitting with no way to work the CRM or import the chart, against the " +
+    "records that already plan its grant, and would make the agent clauses of payroll's and the CRM's guards dead. A " +
+    "hat is the Board's grant of authority whoever wears it, and the Board still decides each one by proposal, so an " +
+    "agent gains nothing no Director chose; only the Director hat is closed to agents (board.no-agent-directors). An " +
+    "agent has no mailbox, so a handle is its one name; `email` became `member` so the field says what it holds. " +
+    "Frozen behaviour is kept: an outsider's email is still INVALID_INPUT, a handle that names no current member is too, " +
+    "and no frozen claim grants an agent. Found in the identity review.",
+  source: asmBy("books/target/agents/decisions.ts (agents.fde-authority, agents.fde-people-hat); books/target/payroll/employees.ts (WHO); books/target/organizations/invitations.ts (handle grantees)"),
+  affects: [rpc_board_officers_grant, rpc_board_officers_revoke, op.operation_org_member_grant, op.operation_org_member_revoke],
 });

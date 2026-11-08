@@ -573,9 +573,12 @@ export const decision_parties_head_parties = defineDecision({
         "`capxul_party`, which only Capxul sets. When Capxul pushes a record naming a Party, the head's Capxul app finds " +
         "the document by that field, or creates it with the field set. A head document with no `capxul_party` (a customer " +
         "the head made, a supplier paid only by bank) is accepted with a null Party id: a head GL line against it comes " +
-        "in with `party_id` null and the head's party name as its text, and no Party is ever named from a head. A " +
-        "customer is a Party only when it is one: a person by mailbox, an agent, an Organization on Capxul or an outside " +
-        "wallet; a company not on Capxul is a private CRM entry with no Party (parties.outside-companies).",
+        "in with `party_id` null and the head's party name as its text. A head never names a company or an address and " +
+        "never chooses a Safe; the one Party a head document can lead to is a person's, by mailbox, when an app's sync " +
+        "takes in a document born there as a member would record it (a Contact's primary mailbox in contacts.head.sync, " +
+        "an Employee's `personal_email` in payroll's, each through `parties.resolve-recipient`). A customer is a Party " +
+        "only when it is one: a person by mailbox, an agent, an Organization on Capxul or an outside wallet; a company " +
+        "not on Capxul is a private CRM entry with no Party (parties.outside-companies).",
     },
     { label: "match-by-name", text: "Match a head's Customer or Supplier to a Party by its name or email when it carries no Party." },
     { label: "name-from-head", text: "Name a new Party for every head Customer and Supplier." },
@@ -586,7 +589,10 @@ export const decision_parties_head_parties = defineDecision({
     "field name across the CRM, the books and payroll lets the Capxul app look up any document the same way, and it is " +
     "the name the CRM lane chose (payroll's `capxul_party_id` on Employee becomes `capxul_party`, " +
     "organizations.frappe-app-fields). Matching by name would let a head user choose whose Safe a voucher's party is; " +
-    "naming Parties from a head would put a tenant's words in the global directory. A null Party keeps a head's own " +
+    "naming Parties from a head would put a tenant's words in the global directory. A person named by mailbox carries " +
+    "none: the mailbox fixes the Safe and the person later gives their own name, exactly as when a member records them " +
+    "in Capxul (corrected in review: the first text said no Party is ever named from a head, which contacts' and " +
+    "payroll's syncs contradict). A null Party keeps a head's own " +
     "bookkeeping whole without inventing identity. For projects this means `customer_party_id` is null for a customer " +
     "that is not on Capxul, so a project for a prospect company needs the CRM entry or the head's Customer name beside " +
     "it; projects sits below contacts and cannot read the entry, so that is the projects designer's to add.",

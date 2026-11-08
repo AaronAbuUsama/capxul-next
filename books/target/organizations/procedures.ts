@@ -53,7 +53,8 @@ export const procedure_organizations_add_bought_seats = defineProcedure({
     "Money fact: a Payment that bought seats and the seats it bought are one fact: the Organization holds them exactly " +
     "while the chain shows them paid for. Payments invokes it in the transaction that settles a Payment whose source is " +
     "a seat purchase (organizations.buy-seats), passing the Payment, its command, token, amount and settling " +
-    "transaction, the buyer and the seats its source names. Under the Organization row's lock it raises `seat_limit` by " +
+    "transaction, the buyer and the seats its source names. `org_id` is the paying command's owner, an Organization, " +
+    "never one the source names: a company buys seats only for itself. Under the Organization row's lock it raises `seat_limit` by " +
     "the seats, stamps `seat_limit_raised_by` `purchase`, and records the purchase counted (`add`), or counts a returned " +
     "one again (`add_again`). A Payment already counted is a no-op that answers the limit as it stands, so a replayed " +
     "settlement adds nothing twice. An Organization that does not exist, or seats that are not a whole number from 1 to " +

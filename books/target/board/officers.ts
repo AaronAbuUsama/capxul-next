@@ -34,7 +34,8 @@ const NullOr = Schema.NullOr;
 
 // ── shapes ──────────────────────────────────────────────────────────────────────────────────
 
-export const OfficerInput = Schema.Struct({ orgId: S, email: S, permission: Permission, note: NullOr(S) });
+/** `member` names the Seat: a person by their email, or an agent by its `@handle` (an agent has no mailbox: board.agent-officer-hats). */
+export const OfficerInput = Schema.Struct({ orgId: S, member: S, permission: Permission, note: NullOr(S) });
 export const OfficerChangeInput = Schema.Struct({ orgId: S, changeId: S });
 
 /** What `org member grant` and `revoke` answer: the change, and the proposal that carries it. */
@@ -43,7 +44,9 @@ export const OfficerChangeView = Schema.Struct({
     changeId: S,
     change: table_officer_changes.fields.fields.change,
     permission: Permission,
+    /** The member's email; null for an agent's Seat, which has none. */
     email: NullOr(S),
+    /** The member's name, or an agent's `@handle`. */
     name: NullOr(S),
     state: table_officer_changes.fields.fields.state,
   }),
@@ -64,8 +67,10 @@ export const OfficerChangeView = Schema.Struct({
 const RULES =
   "The caller must be a Director (`board.propose` refuses anyone else ROLE_PERMISSION_DENIED). The " +
   "`owner-safe-proposals` gate must be on for the Organization, and for `manage-books` the `books` gate too " +
-  "(FEATURE_NOT_AVAILABLE). The email must name a current member (INVALID_INPUT) whose personal Safe is claimed " +
-  "(WRONG_STATE: there is nothing to give the hat to). The permission is its officer hat from the Organization's " +
+  "(FEATURE_NOT_AVAILABLE). `member` must name a current member (INVALID_INPUT): a person by email, whose personal " +
+  "Safe must be claimed (WRONG_STATE: there is nothing to give the hat to), or an agent's Seat by its `@handle`, whose " +
+  "Party must be active (WRONG_STATE: its Safe is not live yet), the Organization's FDE included " +
+  "(board.agent-officer-hats). The permission is its officer hat from the Organization's " +
   "deployment: Books for `manage-books`, Invoicing for `issue-invoices`, People for `manage-people`. A change of the " +
   "same member's permission still waiting is WRONG_STATE.";
 
