@@ -5,8 +5,9 @@
 // from `personal_safe_transitioned` and `waitlist_entry_transitioned` through the outbox.
 //
 // `accounts.admit` is the architecture's one procedure that is not a money fact
-// (shared decision `procedures.accounts-admit`): an Organization's invitation and the admission it
-// carries must commit together, and accounts sits below organizations, so the outbox cannot carry it.
+// (shared decision `procedures.accounts-admit`): an Organization's invitation, or money waiting in a
+// claim escrow (accounts.money-waiting-admits), and the admission it carries must commit together, and
+// accounts sits below organizations and payments, so the outbox cannot carry it.
 
 import { Schema } from "effect";
 import { defineProcedure } from "../../../packages/book/src/index.ts";
@@ -18,17 +19,27 @@ const OLD = "packages/backend/src";
 
 export const procedure_accounts_admit = defineProcedure({
   id: "accounts.admit",
-  title: "Admit an Organization invitation's invitee to the beta",
+  title: "Admit an invitee, or someone money waits for, to the beta",
   about:
-    "Authority fact: an invitation and the admission it carries are one fact, so an invitee who holds the invitation is " +
-    "never still waiting when they come to take the Seat. Organizations invokes it in the transaction that writes the " +
-    "invitation (`org member invite`). It normalizes the email (INVALID_INPUT when it is not one), admits the mailbox " +
-    "`invitation:<org_id>` (`admit`, or `admit_unlisted` when the mailbox never joined), and moves the mailbox's referral, " +
-    "if one brought it, to `admitted`. A mailbox admitted already is left as it is and answers `admitted: false`, so " +
-    "nothing is sent twice. Notices does not send the beta welcome for an `invitation` admission: the invitation email is " +
-    "the welcome. It makes no outside call.",
+    "Authority fact: an Organization invitation, or money waiting in a claim escrow, and the admission it carries are " +
+    "one fact, so its invitee is never still waiting when they come to take the Seat, nor its recipient when they come " +
+    "to collect. Organizations invokes it in the transaction that writes the invitation (`org member invite`), `via` " +
+    "`invitation` and `ref` the Organization's id; payments invokes it in the transaction that moves a claim escrow's " +
+    "Payment to `escrowed`, `via` `escrow` and `ref` the Payment's id, with the mailbox the Payment keeps " +
+    "(accounts.money-waiting-admits). It normalizes the email (INVALID_INPUT when it is not one), admits the mailbox " +
+    "`<via>:<ref>` (`admit`, or `admit_unlisted` when the mailbox never joined), and moves the mailbox's referral, if " +
+    "one brought it, to `admitted`. A mailbox admitted already is left as it is and answers `admitted: false`, so " +
+    "nothing is sent twice. Notices sends no beta welcome for an `invitation` or `escrow` admission: the invitation " +
+    "email, or the money-waiting email, is the welcome. An admission is never undone, so money taken back later leaves " +
+    "its recipient admitted, as a cancelled invitation leaves its invitee. It makes no outside call.",
   concept: concept_accounts,
-  input: Schema.Struct({ email: Schema.String, orgId: Schema.String }),
+  input: Schema.Struct({
+    email: Schema.String,
+    /** What carries the admission: an Organization's invitation, or money waiting in a claim escrow. */
+    via: Schema.Literals(["invitation", "escrow"]),
+    /** The Organization's id for an invitation; the escrowed Payment's id for money waiting. */
+    ref: Schema.String,
+  }),
   output: Schema.Struct({ email: Schema.String, admitted: Schema.Boolean }),
   errors: [error_INVALID_INPUT],
   reads: [table_admissions, table_referrals],

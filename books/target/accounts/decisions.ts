@@ -6,7 +6,7 @@
 
 import { defineDecision } from "../../../packages/book/src/index.ts";
 import { contract_companies_house_claimer, contract_erc20, integration_service_signer } from "../shared/external.ts";
-import { concept_accounts, concept_organizations } from "../shared/foundation.ts";
+import { concept_accounts, concept_organizations, concept_payments } from "../shared/foundation.ts";
 import { error_PROFILE_NOT_FOUND, error_SMART_ACCOUNT_MISSING, error_WRONG_ENVIRONMENT } from "../shared/vocabulary.ts";
 import { rpc_accounts_admission_admit, rpc_accounts_admission_join, rpc_accounts_admission_status } from "./admission.ts";
 import {
@@ -379,8 +379,9 @@ export const decision_accounts_door = defineDecision({
     "A procedure is for a write that must commit with the invoker's (P4); reads need none, because a concept may read the " +
     "tables of what it depends on. Organizations needs 'the founder is admitted with a claimed Safe' (the two tables) and " +
     "follows no accounts event, since an invitee takes the Seat on accepting and no Seat waits; payments reads a live " +
-    "Safe from the chain. `accounts.admit` takes the invitation's Organization, answers whether it admitted, and never welcomes an " +
-    "invitee twice, as the shared ruling needs.",
+    "Safe from the chain. `accounts.admit` takes what carries the admission (an invitation's Organization, or since " +
+    "aaron.money-waiting-reminders an escrowed Payment: accounts.money-waiting-admits), answers whether it admitted, and " +
+    "never welcomes an invitee or a recipient twice, as the shared ruling needs.",
   source: by("shared decision procedures.accounts-admit; org.member.invite.yaml (acceptance 1); packages/backend/src/accounts/index.ts"),
   affects: [procedure_accounts_admit, table_personal_safes, table_admissions, concept_organizations],
 });
@@ -486,8 +487,9 @@ export const decision_accounts_worlds = defineDecision({
     "access.email-rule). The open beta is a world, not a `dev gates set` step: that command scripts only Organization " +
     "gates (devnet.scripted-gates), so the world builder seeds the PostHog fake with `beta-access` on at rollout 100 " +
     "for everyone before the sync. Only `dev fund`'s " +
-    "WRONG_ENVIRONMENT has no devnet world (`?`). No acceptance claim names a mechanism, so none was rewritten; every " +
-    "operation is `normal`, since no pilot of the spine is among them.",
+    "WRONG_ENVIRONMENT has no devnet world (`?`). No acceptance claim names a mechanism; one, `waitlist status` #2, is " +
+    "rewritten for Aaron's money-waiting ruling and also starts from devnet's person-with-money-waiting " +
+    "(accounts.money-waiting-admits). Every operation is `normal`, since no pilot of the spine is among them.",
   source: by("docs/spec/30-capxul-evals.md; ICompaniesHouseClaimer.sol (SwapRefused, EmailNotNormalized); books/frozen/operations.ts"),
   affects: [...ALL_OPERATIONS],
 });
@@ -508,4 +510,60 @@ export const decision_accounts_no_acceptance = defineDecision({
     "accept (equity.acceptance, devnet.no-acceptance). Both are operator and test tooling, and their refusals and returns are checked.",
   source: `Claude, handoff to the build, 8 November 2026; evidence: the no-acceptance gaps of the built target book`,
   affects: [concept_accounts, ops.operation_dev_fund, ops.operation_waitlist_invites_grant],
+});
+
+// ── money waiting admits its recipient (aaron.money-waiting-reminders, 8 November 2026) ─────
+
+export const decision_accounts_money_waiting_admits = defineDecision({
+  id: "accounts.money-waiting-admits",
+  title: "Money waiting in a claim escrow admits its recipient, as an invitation does",
+  question:
+    "Aaron ruled that waiting money admits its recipient to the beta as an invitation does (aaron.money-waiting-reminders): " +
+    "without it, a recipient who is not admitted cannot set up the account that collects. Accounts owns admission. How is " +
+    "a mailbox with money waiting for it in a claim escrow admitted, and what does `waitlist status` #2 now claim?",
+  options: [
+    {
+      label: "procedure-at-escrow",
+      text:
+        "Payments invokes `accounts.admit` (`via` escrow, `ref` the Payment) in the transaction that moves a claim " +
+        "escrow's Payment to `escrowed`, with the mailbox the Payment keeps; the admission is recorded (`escrow:<payment " +
+        "id>`), never undone, and notices sends no second welcome: the money-waiting email is it. `waitlist status` #2 " +
+        "names the second way in, the frozen claim first in its `was`.",
+    },
+    {
+      label: "derived-at-gate",
+      text:
+        "Nothing is recorded: the beta gate (setup, the faucet, `referral invite`, `org create`) and `waitlist status` " +
+        "read indexing's open claim escrows whose payee is the caller's email-derived Safe, and let the caller through " +
+        "while one is open.",
+    },
+    { label: "at-prepare", text: "Admit when the payment is prepared, before the payer signs and before any money waits." },
+  ],
+  chosen: "procedure-at-escrow",
+  why:
+    "The ruling says 'as an invitation does', and an invitation admits through `accounts.admit` in the transaction " +
+    "that writes it (procedures.accounts-admit): recorded, permanent, and the email that tells the person is the welcome. " +
+    "The same moment for money is when it starts to wait: EscrowCreated is indexed and payments drives `escrow`. That is " +
+    "the transition notices' money-waiting email follows, so the recipient is admitted before the email that sends " +
+    "them to set up can arrive. Payments sits above accounts and holds the mailbox (`payee_mailbox`, " +
+    "payments.claim-escrow-mailbox); accounts cannot follow payments' event (a cycle), and nothing below payments knows " +
+    "the mailbox: the escrow names only the derived Safe and parties keeps only a digest. Derived at the gate would " +
+    "need every gate, organizations' `org create` among them, to read the chain, and money taken back before the " +
+    "recipient signs in would leave them waiting again, which an invitation never does. At prepare would admit for " +
+    "money that may never be signed. The transaction stays narrow: `escrow` invokes nothing else (sys:tx-width). The " +
+    "frozen `waitlist status` #2 ('stays `waiting` until an operator admits them') kept its words while invitations " +
+    "and referrals also admitted; with money now admitting a person nobody invited, it names that way too, and the " +
+    "operator's way is unchanged. Proven from devnet's person-with-money-waiting. For the payments designer: invoke " +
+    "`accounts.admit` from `payments.lifecycle.payment`'s `escrow` step; for the shared owner, procedures.accounts-admit " +
+    "gains this second invoker.",
+  source: by("books/target/shared/rulings.ts (aaron.money-waiting-reminders); procedures.accounts-admit; payments.claim-escrow-mailbox; waitlist.status.yaml #2"),
+  affects: [
+    procedure_accounts_admit,
+    table_admissions,
+    machine_waitlist_entry,
+    event_waitlist_entry_transitioned,
+    ops.operation_waitlist_status,
+    rpc_accounts_admission_status,
+    concept_payments,
+  ],
 });

@@ -11,10 +11,12 @@
 //    refusal (the page's and its designed v4 block's) is a behaviour that is still refused: under its
 //    code where the target's error vocabulary keeps the code, unless a decision on the operation names
 //    the code; a code the vocabulary does not keep must be named by such a decision.
-// 3. New operations: a target operation that is none of the 215 is booked only with a decision on it
-//    that cites the Aaron ruling it serves (the decision is a ruling, or its words or source name an
-//    `aaron.*` id that is one), with at least one acceptance claim, and with an id and a command that
-//    collide with nothing frozen. They are counted apart, and never stand in for one of the 215.
+// 3. New operations: a target operation that is none of the 215 is booked only with a decision on it,
+//    other than rules.new-operations itself, that cites the Aaron ruling it serves (the decision is a
+//    ruling, or its words or source name an `aaron.*` id that is one), with at least one acceptance
+//    claim, with its command's words joined by dots as its id, and with an id and a command that
+//    collide with nothing: no frozen id, no export name another operation has, no frozen operation's
+//    old command. They are counted apart, and never stand in for one of the 215.
 //
 // Flags, --json shapes and wording are the target's to design and are not compared;
 // books/frozen/flags.ts is reference material. Exits 1 on a breach.
@@ -109,7 +111,7 @@ for (const o of ops) byCommand.set(o.command, [...(byCommand.get(o.command) ?? [
 for (const [command, ids] of byCommand)
   if (ids.length > 1) breaches.push(`command "${command}" is booked by ${ids.length} operations (${ids.join(", ")}); a command names one operation`);
 
-// New operations (rules.new-operations): booked only for an Aaron ruling, with a claim, colliding with nothing frozen.
+// New operations (rules.new-operations): booked only for an Aaron ruling, with a claim, colliding with nothing.
 /** Aaron's rulings: the book's `aaron.*` decisions whose source is Aaron himself. */
 const rulings = new Set(decisions.filter((d) => d.id.startsWith("aaron.") && /^Aaron\b/.test(d.source)).map((d) => d.id));
 const RULING_ID = /\baaron\.[a-z0-9]+(?:[._-][a-z0-9]+)*/g;
@@ -120,28 +122,36 @@ const cites = (d: Decision) => [
 ];
 /** The export name an operation id takes (`operation_<id, . - _ → _>`): ids that share one collide. */
 const exportName = (id: string) => `operation_${id.replace(/[._-]/g, "_")}`;
+/** A new operation's id: its command's words joined by dots, as the frozen ids are. */
+const idOf = (command: string) => command.trim().split(/\s+/).join(".");
 const frozenIds = Object.keys(frozen) as FrozenId[];
-const frozenByExport = new Map(frozenIds.map((id) => [exportName(id), id]));
+const frozenSet = new Set<string>(frozenIds);
+const byExport = new Map<string, string[]>();
+for (const id of new Set([...frozenIds, ...byId.keys()])) byExport.set(exportName(id), [...(byExport.get(exportName(id)) ?? []), id]);
 const frozenByCommand = new Map(frozenIds.map((id) => [(frozen[id] as unknown as Frozen).command, id]));
 const n = { ops: 0, claims: 0 };
 const served = new Map<string, number>();
 
 for (const [id, found] of byId) {
-  if (id in frozen) continue;
+  if (frozenSet.has(id)) continue;
   for (const o of found) {
     n.ops++;
-    const collides = frozenByExport.get(exportName(id));
-    if (collides) breaches.push(`${id}: a new operation whose id collides with the frozen ${collides} (both export ${exportName(id)})`);
+    if (id !== idOf(o.command))
+      breaches.push(`${id}: a new operation's id is its command's words joined by dots; for "${o.command}" that is ${idOf(o.command)}`);
+    const sharing = (byExport.get(exportName(id)) ?? []).filter((x) => x !== id);
+    if (sharing.length)
+      breaches.push(`${id}: a new operation whose export name ${exportName(id)} is also ${sharing.map((x) => (frozenSet.has(x) ? `the frozen ${x}'s` : `${x}'s`)).join(" and ")}`);
     const old = frozenByCommand.get(o.command);
     if (old && (byCommand.get(o.command)?.length ?? 0) === 1)
       breaches.push(`${id}: a new operation whose command "${o.command}" is the old command of ${old}`);
     const claims = o.acceptance.filter((a) => a !== null).length;
     n.claims += claims;
     if (claims === 0) breaches.push(`${id}: a new operation with no acceptance claim; it needs at least one (rules.new-operations)`);
-    const on = decisionsOn.get(id) ?? [];
+    // The rule cites rulings for every capability, so it never books an operation itself.
+    const on = (decisionsOn.get(id) ?? []).filter((d) => d.id !== "rules.new-operations");
     const rs = [...new Set(on.flatMap(cites))];
     if (on.length === 0)
-      breaches.push(`${id}: a target operation that is none of the 215, with no decision on it; a new operation needs a decision that cites the Aaron ruling it serves (rules.new-operations)`);
+      breaches.push(`${id}: a target operation that is none of the 215, with no decision on it (the rule itself does not count); a new operation needs a decision that cites the Aaron ruling it serves (rules.new-operations)`);
     else if (rs.length === 0)
       breaches.push(`${id}: a new operation whose decisions (${on.map((d) => d.id).join(", ")}) cite no Aaron ruling; name the aaron.* ruling it serves (rules.new-operations)`);
     for (const r of rs) served.set(r, (served.get(r) ?? 0) + 1);

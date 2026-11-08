@@ -174,19 +174,21 @@ an operation too, but only on these terms:
   is one of Aaron's rulings, or its words or its `source` name an `aaron.*` id that is a ruling in
   the book. Usually that decision is the concept's decision pack, in `<concept>/decisions.ts`. Which
   commands a capability gets is the pack's question, and it says "For Aaron:" in its why; its
-  recommendation stands until he answers.
+  recommendation stands until he answers. `rules.new-operations` itself never counts: listing an
+  operation in its `affects` books nothing.
 - **It has at least one acceptance claim.** Each line is `{ claim, observes }`, written for the
   target (P1). It has no frozen text, so nothing of it is compared with the old book.
 - **It collides with nothing.** Its id is its command's words joined by dots, as the frozen ids
-  are. That id is no frozen id, and does not differ from one only in its separators (both would
-  export `operation_<id>`). Its command is no other target operation's command and no frozen
-  operation's old command.
+  are (all but `referral.show`, whose command is `referral`): `crm lead add` is `crm.lead.add`.
+  That id is no frozen id, and shares its export name `operation_<id>` with no other operation,
+  frozen or new (ids that differ only in `.`, `-` or `_` share one). Its command is no other target
+  operation's command and no frozen operation's old command.
 - **It keeps every target rule.** Write it with `defineOperation` in the owning concept's
   `operations.ts`, with its own `title`, `about`, `who` and `area` (an old area where it belongs,
-  such as `payroll`, else the concept's id), and no `frozenText`. Its flow serves the CLI (A4), it
-  has a budget (P5), and each refusal is one its implementation produces, from a world. A concept
-  whose new capability is booked as an SDK-only flow adds `cli` to the flow's `surfaces` when the
-  operation is booked.
+  such as `payroll`, else the concept's id), and no `frozenText`. A flow that implements it serves
+  the CLI (A4), it has a budget (P5), and each refusal is one its implementation produces, from a
+  world. A concept whose new capability is booked as an SDK-only flow adds `cli` to the flow's
+  `surfaces` when the operation is booked.
 
 `tools/check-frozen.ts` counts new operations apart from the 215, which it still requires booked
 exactly once each, and reports the rulings they serve. A new operation never stands in for one of

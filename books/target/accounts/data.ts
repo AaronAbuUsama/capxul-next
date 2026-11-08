@@ -36,7 +36,7 @@ const Count = Schema.Int;
 
 const ENTRY_STATES = ["waiting", "admitted"] as const;
 /** How a mailbox got onto the list: it joined, or the admission that put it there. */
-const ENTRY_VIA = ["waitlist", "operator", "referral", "invitation", "reward"] as const;
+const ENTRY_VIA = ["waitlist", "operator", "referral", "invitation", "escrow", "reward"] as const;
 
 export const table_admissions = defineTable({
   id: "admissions",
@@ -44,7 +44,8 @@ export const table_admissions = defineTable({
   about:
     "One row per normalized mailbox (trimmed and lowercased, the Safe salt's rule) that asked to join the permissioned beta or was " +
     "admitted to it. Born `waiting` by `waitlist join`, or born `admitted` when an operator, a referrer's invite, an " +
-    "Organization's invitation (`accounts.admit`) or a referral reward admits a mailbox not on the list. A second join " +
+    "Organization's invitation or money waiting for it in a claim escrow (both through `accounts.admit`, " +
+    "accounts.money-waiting-admits) or a referral reward admits a mailbox not on the list. A second join " +
     "keeps `requested_at` and replaces the note only when one is given; an admission is never undone. Where a person " +
     "stands also reads access' `beta-access` gate (`open` admits nobody but lets them through), which is not stored here. " +
     "`person_id` is the signed-in person who joined, so their events reach them; null for a mailbox admitted before it " +
@@ -60,7 +61,7 @@ export const table_admissions = defineTable({
     joined_via: Schema.Literals(ENTRY_VIA),
     requested_at: Schema.NullOr(At),
     admitted_at: Schema.NullOr(At),
-    /** `operator:<label>`, `referral:<referrer email>`, `invitation:<org_id>` or `reward:<referee email>`. */
+    /** `operator:<label>`, `referral:<referrer email>`, `invitation:<org_id>`, `escrow:<payment id>` or `reward:<referee email>`. */
     admitted_by: Schema.NullOr(S),
     updated_at: At,
   }),
@@ -74,8 +75,9 @@ export const event_waitlist_entry_transitioned = defineEvent({
   id: "waitlist_entry_transitioned",
   about:
     "A mailbox joined the waitlist or was admitted. Sent by every transition of `waitlist-entry`, in its transaction, " +
-    "through the outbox. Notices sends the beta welcome from `admit` and `admit_unlisted`, except for `invitation`, whose " +
-    "invitation email is the welcome. The mailbox itself is not a property: `person_id` names the person when known.",
+    "through the outbox. Notices sends the beta welcome from `admit` and `admit_unlisted`, except for `invitation` and " +
+    "`escrow`, whose invitation or money-waiting email is the welcome. The mailbox itself is not a property: `person_id` " +
+    "names the person when known.",
   props: Schema.Struct({
     from: Schema.NullOr(Schema.Literals(ENTRY_STATES)),
     to: Schema.Literals(ENTRY_STATES),
@@ -101,7 +103,11 @@ export const machine_waitlist_entry = defineMachine({
   initial: "waiting",
   states: [
     { id: "waiting", about: "On the list, not admitted. Signing in works; setting up the Safe, the faucet and `org create` refuse." },
-    { id: "admitted", about: "Admitted by an operator, a referrer's invite, an Organization's invitation or a referral reward; never undone.", terminal: true },
+    {
+      id: "admitted",
+      about: "Admitted by an operator, a referrer's invite, an Organization's invitation, money waiting in a claim escrow or a referral reward; never undone.",
+      terminal: true,
+    },
   ],
   transitions: {
     join: {
@@ -114,7 +120,7 @@ export const machine_waitlist_entry = defineMachine({
     admit: {
       from: ["waiting"],
       to: "admitted",
-      about: "An operator's admission, a referrer's invite, an Organization's invitation, or a waiting referrer's reward.",
+      about: "An operator's admission, a referrer's invite, an Organization's invitation, money waiting in a claim escrow, or a waiting referrer's reward.",
       guard: "The entry is waiting; an admitted entry is left as it is and reported as already admitted.",
       emits: [event_waitlist_entry_transitioned],
     },

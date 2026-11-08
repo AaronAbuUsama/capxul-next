@@ -3006,16 +3006,17 @@ export const decision_rules_new_operations = defineDecision({
     {
       label: "cited-ruling",
       text:
-        "A new operation is booked only when: (1) a decision on it (its `affects` lists the operation) cites the Aaron " +
-        "ruling it serves: the decision is one of Aaron's rulings, or its own words or its source name an `aaron.*` id " +
-        "that is a ruling in the book; (2) it has at least one acceptance claim, a claim with what an eval observes (P1); " +
-        "and (3) it collides with nothing: its id is no frozen id and does not differ from one only in its separators " +
-        "(both would export `operation_<id>`), and its command is no other target operation's command and no frozen " +
-        "operation's old command. Its id is its command's words joined by dots. It is written in the owning concept's " +
-        "operations.ts with its own text (it has no frozenText, so nothing of it is compared with the old book) and keeps " +
-        "every target rule: its flow serves the CLI (A4), its budget (P5), and refusals its implementation produces, each " +
-        "from a world. tools/check-frozen.ts counts new operations apart from the 215, which it still requires booked " +
-        "exactly once each, and reports the rulings they serve.",
+        "A new operation is booked only when: (1) a decision on it other than this rule (its `affects` lists the " +
+        "operation) cites the Aaron ruling it serves: the decision is one of Aaron's rulings, or its own words or its " +
+        "source name an `aaron.*` id that is a ruling in the book; (2) it has at least one acceptance claim, a claim with " +
+        "what an eval observes (P1); and (3) it collides with nothing: its id is its command's words joined by dots, is " +
+        "no frozen id, and shares its export name `operation_<id>` with no other operation, frozen or new (ids that " +
+        "differ only in . - or _ share one); and its command is no other target operation's command and no frozen " +
+        "operation's old command. It is " +
+        "written in the owning concept's operations.ts with its own text (it has no frozenText, so nothing of it is " +
+        "compared with the old book) and keeps every target rule: its flow serves the CLI (A4), its budget (P5), and " +
+        "refusals its implementation produces, each from a world. tools/check-frozen.ts counts new operations apart from " +
+        "the 215, which it still requires booked exactly once each, and reports the rulings they serve.",
     },
     {
       label: "accepted-pack",
@@ -3046,8 +3047,11 @@ export const decision_rules_new_operations = defineDecision({
     "does (the judgments report lists the packs for him), and a new operation changes no behaviour of the 215, so the " +
     "stricter form would only hold the book back. Closed would leave the CRM, projects and Frappe HR payroll with no CLI, " +
     "though the Forward Deployed Engineer works through the CLI as every agent does (aaron.fde-agent). Any-decision would " +
-    "let in a capability no ruling asked for. This rule decides how a new operation is booked, not which: the commands " +
-    "the CRM, projects, payroll and the head get are their packs' questions, for Aaron.",
+    "let in a capability no ruling asked for. This rule never counts as the decision on a new operation: it cites rulings " +
+    "for every capability, so an operation in its affects would be booked with no pack of its own. It decides how one is " +
+    "booked, not which: the commands the CRM, projects, payroll and the head get are their packs' questions. For Aaron: " +
+    "may a new command be booked on its pack's recommendation before he answers the pack? Recommended: yes, as chosen; " +
+    "accepted-pack is the change if he wants his acceptance first.",
   source: `${RULES}; under system.frozen-behaviour and aaron.frappe-shape (aaron.projects: a decision pack); evidence: tools/check-frozen.ts; contacts.crm-capabilities, payroll.hr-surface, projects.commands, organizations.commands`,
   affects: [
     decision_system_frozen_behaviour, f.system_capxul, f.component_cli, f.component_core_sdk, f.concept_contacts,

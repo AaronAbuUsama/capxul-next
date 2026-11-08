@@ -53,6 +53,16 @@ const line = (id: FrozenId, n: number, observes: string) => {
   return { claim: a.claim, observes, was: [...a.was] };
 };
 
+/**
+ * Acceptance line n (from 1) rewritten: the new claim, what is observed, and in `was` the frozen claim first, then its
+ * old test citation. A decision on the operation says what changed.
+ */
+const rewritten = (id: FrozenId, n: number, claim: string, observes: string) => {
+  const a = (frozen[id].acceptance as unknown as readonly FrozenLine[])[n - 1];
+  if (!a) throw new Error(`${id}: no acceptance line ${n}`);
+  return { claim, observes, was: [a.claim, ...a.was] };
+};
+
 // ── worlds (decision accounts.worlds) ───────────────────────────────────────────────────────
 
 const NO_SESSION = "signed-out";
@@ -287,10 +297,13 @@ export const operation_waitlist_status = defineOperation({
       1,
       "cli: from person-on-waitlist-open-beta (on the list, never admitted, the deployment's `beta-access` gate on for everyone), `access` `open` and `admittedAt` null.",
     ),
-    line(
+    rewritten(
       "waitlist.status",
       2,
-      "cli: from person-on-waitlist with the gate closed, `access` `waiting`; after the operator's waitlist tool admits the email, `access` `admitted` with `admittedAt`.",
+      "In a closed beta a person stays `waiting` until an operator admits them, or money waits for them in a claim escrow, then gets `admitted` with `admittedAt`.",
+      "cli: from person-on-waitlist with the gate closed, `access` `waiting`; after the operator's waitlist tool admits the email, `access` `admitted` with `admittedAt`. " +
+        "From person-with-money-waiting (never on the list, the gate closed, 5 USDC waiting for the mailbox in a claim escrow), `access` `admitted` with `admittedAt` " +
+        "the instant the escrow was indexed; world: its admissions row is `escrow:<the Payment>`, and `dev mail notices --to nobody@outside.test` shows `money-waiting` and no `beta-welcome`.",
     ),
   ],
   returns: WaitlistStatus,

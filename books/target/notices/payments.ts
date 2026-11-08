@@ -4,18 +4,24 @@
 // may not go (the warning approvals leaves to payments' `come_due`, approvals.held-sends) and when it
 // failed. Any other Payment with no date sends nothing: its payer is following it, and `payment retry` is
 // offered where they are (decision notices.dated-payments). A payment to a mailbox with no account
-// tells that mailbox the money waits, and how to collect it (decision notices.claim-escrow).
+// tells that mailbox the money waits, and how to collect it (decision notices.claim-escrow); while it
+// waits, one process per escrowed Payment reminds the mailbox after 3, 10 and 30 days and tells the
+// payer at 10 and 30 that it is still uncollected, and a refund tells the mailbox the money was taken
+// back (aaron.money-waiting-reminders, decision notices.money-waiting-reminders).
 //
 // Who is the payer: a person's own Payment tells that person; an Organization's tells the principal
 // who asked for it (its command's `requested_by`), so a Board or budget payment reaches someone (old
 // M9 found no one). The payer's notices are keyed by the command, so a batch of several Payments
 // tells its payer once (old R8 sent one email per Payment). The payee's are keyed per Payment.
 
+import { budget, defineWorkflow } from "../../../packages/book/src/index.ts";
 import { table_principals } from "../access/data.ts";
 import { table_organizations } from "../organizations/data.ts";
-import { machine_payment, table_payment_commands, table_payments } from "../payments/data.ts";
-import { contract_safe } from "../shared/external.ts";
-import { DIRECTORS, PERSON, noticeWorkflow } from "./kit.ts";
+import { event_payment_transitioned, machine_payment, table_payment_commands, table_payments } from "../payments/data.ts";
+import { concept_notices } from "../shared/foundation.ts";
+import { contract_safe, integration_mail } from "../shared/external.ts";
+import { machine_notice, table_notices } from "./data.ts";
+import { DIRECTORS, PERSON, SEND_STEPS, noticeWorkflow } from "./kit.ts";
 
 const OLD = "packages/backend/src/payments/notices";
 
@@ -141,4 +147,101 @@ export const workflow_notices_payments_money_waiting = noticeWorkflow({
     },
   ],
   was: ["books/target/shared/rulings.ts (aaron.money-waiting)", "books/target/payments/decisions.ts (payments.claim-escrow-mailbox)"],
+});
+
+// ── money waiting: reminders, and a refund (aaron.money-waiting-reminders) ───────────────────
+
+const DAY_MS = 86_400_000;
+
+const n = machine_notice.t;
+
+export const workflow_notices_payments_money_reminders = defineWorkflow({
+  id: "notices.payments.money-reminders",
+  title: "Remind someone money waits for them, and tell the payer it is uncollected",
+  about:
+    "Started by `escrow`, one instance per escrowed Payment: money waits in a claim escrow with no expiry, so someone " +
+    "must be reminded (aaron.money-waiting-reminders). It keeps the instant of the `escrow` transition (the one clock's, " +
+    "from its outbox event) and waits with `Timers.until` for each of three stops: 3, 10 and 30 days after it. At each " +
+    "stop it reads the Payment again; still `escrowed`, it sends `money-waiting-reminder` to the Payment's " +
+    "`payee_mailbox` (the amount and asset, the payer, how long it has waited, how to collect, and that the payer may " +
+    "take it back until then; the 30-day one says it is the last reminder), and at 10 and 30 days `money-uncollected` " +
+    "to the payer (the payer rule of the dated notices: a person, or an Organization's requester), naming the mailbox, " +
+    "the amount, how long, and how to take it back (`payment cancel`). Its notice ids name the Payment and the stop " +
+    "(`money-waiting-reminder:<payment>:<days>`), so a resume or a warp sends each once. It ends when the Payment " +
+    "leaves `escrowed` (collected, settled, or taken back) or after the 30-day stop; the money still waits, and the " +
+    "payer has been told twice. A warp stops at each instant (devnet.warp-barrier), so a simulated month sends the " +
+    "same three reminders a real one would.",
+  concept: concept_notices,
+  priority: "normal",
+  trigger: { transition: p.escrow },
+  instance: { per: table_payments },
+  waits: [
+    {
+      name: "stop",
+      for: "timer",
+      timeoutMs: 30 * DAY_MS,
+      about: "Timers.until the next stop: 3, then 10, then 30 days after the escrow's instant, each on the one clock.",
+    },
+    {
+      name: "moved",
+      for: "signal",
+      key: [{ on: [event_payment_transitioned], props: ["payment_id"] }],
+      about: "The Payment left `escrowed`: collected and settled, or taken back (`cancel`, outcome refunded). Nothing more is sent.",
+    },
+  ],
+  steps: [
+    {
+      name: "arm",
+      about:
+        "Reads the escrowed Payment: route `claim_escrow` with a `payee_mailbox`, else it ends here. Keeps the escrow's instant and arms the 3-day stop.",
+    },
+    {
+      name: "recheck",
+      about: "At a stop: reads the Payment again; no longer `escrowed`, it ends with no notice.",
+    },
+    {
+      name: "remind",
+      about:
+        "`money-waiting-reminder` to the mailbox; at 10 and 30 days also `money-uncollected` to the payer, keyed by the command so a batch tells its payer once per stop.",
+    },
+    ...SEND_STEPS,
+    { name: "next", about: "Arms the next stop, or ends after the 30-day one." },
+  ],
+  reads: [...READS, table_notices],
+  writes: [table_notices],
+  drives: [n.send, n.hold, n.refuse],
+  invokes: [],
+  emits: [],
+  calls: [integration_mail.c.send],
+  chain: [],
+  idempotency:
+    "`money-reminders:<payment>` for the instance; each notice id names the Payment and its stop, so a rerun or a " +
+    "replayed timer finds its rows and sends nothing again.",
+  timeoutMs: 31 * DAY_MS,
+  retries: { max: 5, backoff: "exponential" },
+  compensation: "None: a reminder reports money that is still waiting; the Payment is payments' alone.",
+  budget: { ...budget("background"), excludes: ["wait.stop", "wait.moved"] },
+  was: ["books/target/shared/rulings.ts (aaron.money-waiting-reminders)", "books/target/payments/decisions.ts (payments.claim-escrow-fit, gap 2: no expiry)"],
+});
+
+export const workflow_notices_payments_money_taken_back = noticeWorkflow({
+  id: "notices.payments.money-taken-back",
+  title: "Tell someone the money that waited for them was taken back",
+  about:
+    "Follows `cancel` of a Payment that was `escrowed`: its payer (for a budget's, its holder or the Board) took the " +
+    "claim escrow back before the recipient collected, and the money is the payer's again (outcome refunded). Sends " +
+    "`money-taken-back` once to the Payment's `payee_mailbox`: who took back how much, that nothing waits for them now, " +
+    "and that they may still sign up with this address, since the money's admission to the beta stands " +
+    "(accounts.money-waiting-admits). The payer is told nothing: they asked for it. Any other cancel sends nothing here.",
+  trigger: { transition: p.cancel },
+  reads: READS,
+  steps: [
+    {
+      name: "payment",
+      about:
+        "Reads the cancelled Payment: only route `claim_escrow`, cancelled from `escrowed` with outcome refunded and a `payee_mailbox`, goes on.",
+    },
+    { name: "facts", about: "The payer's name (a person's `payer_label`, an Organization's name), the amount and asset, and the sign-up link." },
+  ],
+  was: ["books/target/shared/rulings.ts (aaron.money-waiting-reminders)"],
 });

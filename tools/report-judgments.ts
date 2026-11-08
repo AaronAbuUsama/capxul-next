@@ -30,8 +30,9 @@ const FLAGGED = [
   "agents.org-owned", "board.failed-proposal", "equity.acceptance",
   "contacts.members-write", "notices.claim-escrow", "system.size",
 ];
-/** Decisions that carry out one of Aaron's own; they cite him but need nothing from him. */
-const CARRIES_OUT = ["rules.frozen-flags-kept", "rules.frozen-flags-built-ins", "rules.new-operations"];
+/** Decisions that carry out one of Aaron's own; they cite him but need nothing from him.
+ * rules.new-operations is not one: whether a pack's recommendation may book a command before he answers is his. */
+const CARRIES_OUT = ["rules.frozen-flags-kept", "rules.frozen-flags-built-ins"];
 /** Aaron's own decisions are settled, not for his review. */
 const byAaron = (d: Decision) => /^Aaron\b/.test(d.source);
 const forAaron = (d: Decision) =>

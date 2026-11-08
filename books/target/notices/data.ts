@@ -40,6 +40,8 @@ export const TEMPLATES = [
   "account-ready",
   // organizations
   "organization-invitation",
+  "head-stalled",
+  "fde-ready",
   // budgets
   "allowance-assigned",
   "department-holder-added",
@@ -56,8 +58,11 @@ export const TEMPLATES = [
   "payment-scheduled-sent",
   "payment-scheduled-cancelled",
   "payment-scheduled-failed",
-  // payments: a claim escrow (aaron.money-waiting)
+  // payments: a claim escrow (aaron.money-waiting, aaron.money-waiting-reminders)
   "money-waiting",
+  "money-waiting-reminder",
+  "money-uncollected",
+  "money-taken-back",
   // payroll: agreements
   "agreement-offer",
   "agreement-accepted",
@@ -70,6 +75,8 @@ export const TEMPLATES = [
   "collection-refused",
   "pay-ready",
   "low-balance-alert",
+  // payroll: Frappe HR's salary slips
+  "payslip",
   // banking
   "person-verification",
   "bank-verified",
@@ -92,6 +99,8 @@ export const SUBJECTS = [
   "admission",
   "personal-safe",
   "invitation",
+  "org-setup",
+  "org-head",
   "budget-change",
   "board-change",
   "proposal",
@@ -99,6 +108,7 @@ export const SUBJECTS = [
   "payment",
   "agreement",
   "agreement-write",
+  "salary-slip",
   "verification",
   "verification-person",
   "bank-payout",

@@ -5,12 +5,21 @@
 // payees can collect) are calendar work with no single transition: processes.ts.
 //
 // The payee is a person at the mailbox the offer named (they may have no account yet: the offer
-// waits for them), or an Organization through its Directors.
+// waits for them), or an Organization through its Directors. A run's salary slip, once paid, sends
+// its employee a payslip email in place of Frappe HR's own (decision notices.payslip).
 
 import { table_principals } from "../access/data.ts";
 import { table_organizations } from "../organizations/data.ts";
 import { table_parties } from "../parties/data.ts";
-import { machine_agreement, machine_agreement_write, table_agreement_writes, table_agreements } from "../payroll/data.ts";
+import {
+  machine_agreement,
+  machine_agreement_write,
+  machine_salary_slip,
+  table_agreement_writes,
+  table_agreements,
+  table_employees,
+  table_salary_slips,
+} from "../payroll/data.ts";
 import { contract_agreements, contract_safe } from "../shared/external.ts";
 import { DIRECTORS, noticeWorkflow } from "./kit.ts";
 
@@ -81,4 +90,29 @@ export const workflow_notices_payroll_agreement_ended = noticeWorkflow({
   ],
   chain: [contract_agreements.f.availableOf, contract_safe.f.getOwners],
   was: [`${OLD}/rules/notices.ts:142`, `${OLD}/rules/sweeps.ts:58`],
+});
+
+export const workflow_notices_payroll_payslip = noticeWorkflow({
+  id: "notices.payroll.payslip",
+  title: "Send an employee their payslip once its net is paid",
+  about:
+    "Follows `settle` of a salary slip: the net of a run's slip settled to the employee (from `paying`, or from " +
+    "`escrowed` once a new hire claimed their account), at the block's time. Sends `payslip` once to the Employee's " +
+    "`personal_email` (payroll.mailbox-for-pay): the Organization, the period, gross pay, each deduction, the net and " +
+    "its token, when it was paid and the transaction, and how to read the stored payslip, whose hash the Payment " +
+    "carried. It replaces Frappe HR's `email_salary_slip_to_employee`, which a head keeps off, so an " +
+    "employee is told once whether or not a head is connected. An Employee with no personal email is told nothing. A " +
+    "slip paid by an agreement's collection (`record_collection`) sends nothing here: its `pay-received` already told " +
+    "the payee. A slip still `escrowed` is not paid: its money-waiting email told the new hire.",
+  trigger: { transition: machine_salary_slip.t.settle },
+  reads: [table_salary_slips, table_employees, table_organizations],
+  steps: [
+    { name: "slip", about: "Reads the paid slip (source `run`) and its Employee; one with no `personal_email` ends here." },
+    {
+      name: "facts",
+      about:
+        "The Organization's name, the period and its days, the earnings, deductions, gross and net with the token, `paid_at` and `tx_hash`, and the payslip's document hash.",
+    },
+  ],
+  was: ["/tmp/hrms/hrms/payroll/doctype/salary_slip/salary_slip.py (email_salary_slip)", "docs/design/frappe/payroll.md (notices)"],
 });

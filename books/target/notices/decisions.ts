@@ -8,6 +8,8 @@
 import { defineDecision } from "../../../packages/book/src/index.ts";
 import { concept_budgets, concept_devnet, concept_notices, concept_payments } from "../shared/foundation.ts";
 import { machine_payment } from "../payments/data.ts";
+import { machine_org_head, machine_org_setup } from "../organizations/data.ts";
+import { machine_salary_slip } from "../payroll/data.ts";
 import { machine_proposal } from "../board/data.ts";
 import { machine_agreement_write } from "../payroll/data.ts";
 import { integration_chain_rpc, integration_mail } from "../shared/external.ts";
@@ -25,6 +27,8 @@ import {
   workflow_notices_accounts_welcome_unlisted,
 } from "./accounts.ts";
 import {
+  workflow_notices_organizations_fde_ready,
+  workflow_notices_organizations_head_stalled,
   workflow_notices_organizations_invitation_opened,
   workflow_notices_organizations_invitation_resent,
   workflow_notices_organizations_invitation_sent,
@@ -40,6 +44,8 @@ import {
 import {
   workflow_notices_payments_cancelled,
   workflow_notices_payments_failed,
+  workflow_notices_payments_money_reminders,
+  workflow_notices_payments_money_taken_back,
   workflow_notices_payments_money_waiting,
   workflow_notices_payments_scheduled,
   workflow_notices_payments_sent,
@@ -48,6 +54,7 @@ import {
 import {
   workflow_notices_payroll_agreement_ended,
   workflow_notices_payroll_collection_refused,
+  workflow_notices_payroll_payslip,
   workflow_notices_payroll_write_landed,
 } from "./payroll.ts";
 import {
@@ -77,6 +84,8 @@ const OUTBOX = [
   workflow_notices_organizations_invitation_sent,
   workflow_notices_organizations_invitation_opened,
   workflow_notices_organizations_invitation_resent,
+  workflow_notices_organizations_fde_ready,
+  workflow_notices_organizations_head_stalled,
   workflow_notices_budgets_office_changed,
   workflow_notices_board_director_seated,
   workflow_notices_board_director_removed,
@@ -89,9 +98,11 @@ const OUTBOX = [
   workflow_notices_payments_sent,
   workflow_notices_payments_cancelled,
   workflow_notices_payments_money_waiting,
+  workflow_notices_payments_money_taken_back,
   workflow_notices_payroll_write_landed,
   workflow_notices_payroll_collection_refused,
   workflow_notices_payroll_agreement_ended,
+  workflow_notices_payroll_payslip,
   workflow_notices_banking_person_invited,
   workflow_notices_banking_verified,
   workflow_notices_banking_payout_sent,
@@ -106,6 +117,7 @@ const OUTBOX = [
 
 /** The workflows that tell an Organization through its Directors. */
 const TO_DIRECTORS = [
+  workflow_notices_organizations_head_stalled,
   workflow_notices_board_threshold_changed,
   workflow_notices_board_proposal_waiting,
   workflow_notices_payments_scheduled,
@@ -153,13 +165,15 @@ export const decision_notices_kinds = defineDecision({
     "renamed for v4's words), the five dated-payment emails (payments), eleven " +
     "agreement emails (payroll), person verification, verified and payout sent and delivered (banking), the Invoice " +
     "emails (requests). Added because a decision names them: a payout returned and an Invoice declined " +
-    "(dependencies.of-notices), a round or SAFE invitation (equity's design), and, by the money-waiting ruling, money waiting in " +
-    "a claim escrow (notices.claim-escrow). Dropped with their subjects: pay runs' " +
+    "(dependencies.of-notices), a round or SAFE invitation (equity's design), and, by the money-waiting rulings, money waiting in " +
+    "a claim escrow, its reminders and its refund (notices.claim-escrow, notices.money-waiting-reminders); by the Frappe " +
+    "redesign, a paid salary slip's payslip (notices.payslip), a stalled head and a ready FDE (notices.head-and-fde). " +
+    "Dropped with their subjects: pay runs' " +
     "pay-run-approval and pay-run-payment, approval-pending (an approval's own signer is at the page; approvals' " +
     "decision on notify), beta-waitlist (accounts.admission-paths), invoice-part-received (requests.escrow-process) and " +
     "payout-ceiling-alert (notices.agreements). The sign-in code stays access' (concepts.notices).",
   source: by(`${OLD}/integrations/mail/service.ts:58 (MailTemplate); packages/protocol/src/templates/emails/; concepts.notices; dependencies.of-notices`),
-  affects: [table_notices, ...OUTBOX, workflow_notices_payroll_daily],
+  affects: [table_notices, ...OUTBOX, workflow_notices_payroll_daily, workflow_notices_payments_money_reminders],
 });
 
 export const decision_notices_one_workflow_per_transition = defineDecision({
@@ -179,7 +193,8 @@ export const decision_notices_one_workflow_per_transition = defineDecision({
     "producer's rpcs, miss transitions its processes drive (`open` is the invitation process's, `finish` the setup's), " +
     "and make notices name rpcs of concepts that know nothing of it. Per-kind would leave transitions nobody follows " +
     "while the book claimed they were. So the kinds with several causes have one small workflow each, and the build " +
-    "links each to exactly the transition it follows: 30 outbox workflows, each of three to six steps.",
+    "links each to exactly the transition it follows: 35 outbox workflows, each of three to six steps. Two follow " +
+    "payments' `cancel` (a dated payment's, and a claim escrow taken back), each sending only for its own Payments.",
   source: by("packages/book/src/records/behaviour.ts (Trigger: one transition); P4; books/target/organizations/decisions.ts (organizations.invitation-process)"),
   affects: [
     workflow_notices_organizations_invitation_sent,
@@ -397,15 +412,16 @@ export const decision_notices_admission = defineDecision({
     {
       label: "admission-rules",
       text:
-        "Welcome on `admit` and `admit_unlisted` unless admitted `invitation:<org>`; the referrer named when admitted by " +
-        "a referral; nothing for a reward of invites; account-ready on the personal Safe's `finish`.",
+        "Welcome on `admit` and `admit_unlisted` unless admitted `invitation:<org>` or `escrow:<payment>`; the referrer " +
+        "named when admitted by a referral; nothing for a reward of invites; account-ready on the personal Safe's `finish`.",
     },
     { label: "every-admission", text: "Welcome every admission, the invitation's included." },
   ],
   chosen: "admission-rules",
   why:
     "`org member invite` admits the invitee 'with no second welcome email' (#1), and procedures.accounts-admit says the " +
-    "invitation email is the welcome. `referral invite` 'sends them the invite email': old code sent the welcome, so " +
+    "invitation email is the welcome; money waiting admits its recipient as an invitation does, and its money-waiting " +
+    "email is that welcome (accounts.money-waiting-admits). `referral invite` 'sends them the invite email': old code sent the welcome, so " +
     "the welcome names who invited them. A referrer rewarded with an invite got no email before, and still does not; " +
     "rewarded with their own admission, they get the welcome. The 'on the list' email went with the hold " +
     "(accounts.admission-paths). Account-ready moved from profiles to the Safe's setup (parties.no-process).",
@@ -668,7 +684,7 @@ export const decision_notices_priority_and_budgets = defineDecision({
     "rolls back its change, so none is critical, even after a critical operation; equity's follows equity's low " +
     "priority. The daily cron's override says why where it is set.",
   source: by("packages/book/src/budgets.ts (background); P3; P5; CONVENTIONS rule 4 (priority)"),
-  affects: [...OUTBOX, workflow_notices_delivery_retry, workflow_notices_payroll_daily],
+  affects: [...OUTBOX, workflow_notices_delivery_retry, workflow_notices_payroll_daily, workflow_notices_payments_money_reminders],
 });
 
 export const decision_notices_worlds = defineDecision({
@@ -735,10 +751,124 @@ export const decision_notices_claim_escrow = defineDecision({
     "keyed by the transition's outbox id, so a redelivered transition sends nothing twice. The mailbox comes from the " +
     "Payment (payments.claim-escrow-mailbox): parties keeps only digests and events carry no mailbox. It is observed " +
     "from payments' `person-with-funded-safe`, whose nobody@outside.test has no account; notices adds no world " +
-    "(notices.worlds). Not sent, and for Aaron with the escrow's missing expiry (payments.claim-escrow-fit, gap 2): a " +
-    "reminder to a payee who has not collected, and an email when the payer takes the money back. A gap the email " +
-    "exposes, also for Aaron: in the beta, setup refuses a mailbox not admitted (FEATURE_NOT_AVAILABLE), so the email's " +
-    "link works only once money waiting admits its payee, as an invitation does (asked of accounts).",
+    "(notices.worlds). The two questions this record once left for Aaron are ruled (aaron.money-waiting-reminders, " +
+    "8 November 2026): the reminders to a payee who has not collected, the payer's word that it is uncollected and the " +
+    "email when the payer takes the money back are notices.money-waiting-reminders; the beta's setup no longer refuses " +
+    "the email's reader, because money waiting admits its payee as an invitation does (accounts.money-waiting-admits), " +
+    "and this email is that admission's welcome.",
   source: by("books/target/shared/rulings.ts (aaron.money-waiting, Aaron's ruling of 8 November 2026); books/target/payments/decisions.ts (payments.claim-escrow-fit)"),
   affects: [concept_notices, concept_payments, machine_payment.t.escrow, workflow_notices_payments_money_waiting],
+});
+
+// ── after the Frappe redesign and the follow-up rulings (8 November 2026) ──────────────────
+
+const RULINGS = (evidence: string) => `Claude, assembly (world group), 8 November 2026; evidence: ${evidence}`;
+
+export const decision_notices_money_waiting_reminders = defineDecision({
+  id: "notices.money-waiting-reminders",
+  title: "Waiting money reminds at 3, 10 and 30 days; a refund tells the recipient",
+  question:
+    "Aaron ruled that the recipient is reminded after some days that money is waiting, the payer is told it is still " +
+    "uncollected, and the recipient is told if the payer takes it back; the days and the wording are designed here, " +
+    "book first, on the one clock (aaron.money-waiting-reminders). Which days, which words, and what runs them?",
+  options: [
+    {
+      label: "three-stops",
+      text:
+        "One notices process per escrowed Payment, on `escrow`, waiting with `Timers.until` for 3, 10 and 30 days after " +
+        "the escrow's instant. Still escrowed at a stop: `money-waiting-reminder` to the recipient at each; " +
+        "`money-uncollected` to the payer at 10 and 30. Then it ends; money left after 30 days is the payer's to take " +
+        "back. A refund (`cancel` from `escrowed`) sends `money-taken-back` to the recipient.",
+    },
+    { label: "weekly-forever", text: "Remind the recipient every 7 days, and the payer every 30, for as long as the money waits." },
+    { label: "daily-cron", text: "A daily cron over every escrowed Payment, sending on the days it falls on." },
+  ],
+  chosen: "three-stops",
+  why:
+    "Money waits in a claim escrow with no expiry (payments.claim-escrow-fit, gap 2), so the reminders must end on " +
+    "their own. Three days catches an email missed in a busy inbox; ten is when a payer should hear that nothing has " +
+    "happened and may want to send by another way; thirty is the last word to both, after which more email is noise " +
+    "and the payer can take the money back. Forever is spam to someone who never wanted the money, and a cron is a " +
+    "sweep P3 forbids; timers are what the one clock stops at, so a warp of a month sends the same three reminders, at " +
+    "the same instants, as a real month (devnet.warp-barrier); a timer never reads the wall. The process is notices': " +
+    "payments' own Payment process owns the machine and sends nothing (rules.outbox). The wording, in the templates' " +
+    "facts: reminder, '<payer> sent you <amount> <asset> <n> days ago. It is still waiting for you: sign up at <link> " +
+    "with this email address, set up your account, and sign the collection. Until you do, <payer> can take it back.' " +
+    "(the 30-day one adds 'This is our last reminder.'); uncollected, 'The <amount> <asset> you sent to <mailbox> <n> " +
+    "days ago has not been collected: they have not set up their account yet. It stays theirs to collect until you " +
+    "take it back with `capxul payment cancel <payment>`.'; taken back, '<payer> took back the <amount> <asset> that " +
+    "was waiting for you. Nothing waits for you now; you can still sign up with this email address.' The admission the " +
+    "money gave stands (accounts.money-waiting-admits). Observed from devnet's person-with-money-waiting: `dev time " +
+    "warp 3d`, then `dev mail notices --to nobody@outside.test --template money-waiting-reminder`.",
+  source: RULINGS("books/target/shared/rulings.ts (aaron.money-waiting-reminders); payments.claim-escrow-fit (gap 2); P3; devnet.warp-barrier"),
+  affects: [
+    workflow_notices_payments_money_reminders,
+    workflow_notices_payments_money_taken_back,
+    workflow_notices_payments_money_waiting,
+    machine_payment.t.escrow,
+    machine_payment.t.cancel,
+    table_notices,
+  ],
+});
+
+export const decision_notices_payslip = defineDecision({
+  id: "notices.payslip",
+  title: "A paid salary slip emails its employee a payslip, in Frappe HR's place",
+  question:
+    "Payroll asked, optionally, for a payslip email when a salary slip is paid, replacing Frappe HR's " +
+    "`email_salary_slip_to_employee`, which a head keeps off. Send it, and on which transition?",
+  options: [
+    {
+      label: "on-settle",
+      text:
+        "`payslip` on `settle` (the net settled, from paying or from escrowed after a new hire claimed), once, to the " +
+        "Employee's personal email, with the period, the lines, the net, the transaction and the payslip's hash.",
+    },
+    { label: "on-submit", text: "On `submit`, as Frappe HR does when its setting is on: the slip before it is paid." },
+    { label: "none", text: "Send nothing: employees read their slips themselves." },
+  ],
+  chosen: "on-settle",
+  why:
+    "A payslip tells a person what they were paid, so it follows the money: settled is when the net reached their Safe, " +
+    "and a new hire's escrowed net is not paid until they collect (payroll.new-hire-escrow), when this email follows " +
+    "the money-waiting one. Frappe HR emails at submit, before any payment exists, which on Capxul would tell a person " +
+    "of pay that may still be withheld or cancelled. The personal email is where pay is routed (payroll.mailbox-for-pay), " +
+    "never a work address. One notice regardless of a head, because the head keeps its own email off (payroll's Payroll " +
+    "Settings). An agreement collection's slip is told by `pay-received` already.",
+  source: RULINGS("docs/design/frappe/payroll.md (notices); hrms salary_slip.py (email_salary_slip); payroll.new-hire-escrow; payroll.mailbox-for-pay"),
+  affects: [workflow_notices_payroll_payslip, machine_salary_slip.t.settle, table_notices],
+});
+
+export const decision_notices_head_and_fde = defineDecision({
+  id: "notices.head-and-fde",
+  title: "A stalled head tells the Directors; a founder hears their FDE is ready",
+  question:
+    "Projects and start-up asked, optionally, for a notice when a head connection stalls and when an Organization's " +
+    "Forward Deployed Engineer becomes active. Which, to whom, from which transition?",
+  options: [
+    {
+      label: "both",
+      text:
+        "`head-stalled` on the head's `stall`, to the Directors and the Director who connected it, with the reason and " +
+        "the fix; `fde-ready` on the setup's `complete` when it made an FDE, to the founder.",
+    },
+    { label: "head-only", text: "Only the stalled head: the founder followed the setup and sees the FDE in `org show`." },
+    { label: "none", text: "Neither: `org show` reports both." },
+  ],
+  chosen: "both",
+  why:
+    "A stalled head stops every app's sync silently: nothing is lost, but the head goes stale until someone restores " +
+    "the site or its key, and only a Director may act on the connection, so the Directors are told, as for every " +
+    "Organization notice (notices.recipients). A recovery fixes itself and needs no email. The FDE is the founder's " +
+    "first helper, its key is on the founder's machine and it starts with no hat (agents.fde-authority), so one email " +
+    "says how to begin and what it may not do yet. The setup's `complete` is where the FDE is seated and active " +
+    "(organizations.fde-seat); notices reads organizations, not agents, so it follows that transition, and a setup " +
+    "begun `--no-fde` sends nothing.",
+  source: RULINGS("docs/design/frappe/assembly-items.md (projects-startup: notices); organizations.head-connection; organizations.fde-seat"),
+  affects: [
+    workflow_notices_organizations_head_stalled,
+    workflow_notices_organizations_fde_ready,
+    machine_org_head.t.stall,
+    machine_org_setup.t.complete,
+  ],
 });

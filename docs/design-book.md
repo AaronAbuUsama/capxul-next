@@ -57,13 +57,17 @@ design book makes the whole design something a machine can check:
 some capabilities fundamental that the old system never had: the CRM, Projects and Frappe HR
 payroll in every Organization (`aaron.frappe-shape`, `aaron.projects`). Decision
 `rules.new-operations` books such a capability as an operation on three terms:
-- a decision on it cites the Aaron ruling it serves (it names an `aaron.*` ruling);
+- a decision on it, other than the rule itself, cites the Aaron ruling it serves (it names an
+  `aaron.*` ruling);
 - it has at least one acceptance claim;
-- its id and its command collide with nothing: no frozen id, no id that would share a frozen
-  operation's export name, and no other operation's command, old or new.
+- its id is its command's words joined by dots, and its id and its command collide with nothing:
+  no frozen id, no export name another operation has, and no other operation's command, old or
+  new.
 
-Which commands a capability gets is its concept's decision pack, a question for Aaron. The 215
-are still required exactly, and a new operation never stands in for one of them.
+Which commands a capability gets is its concept's decision pack, a question for Aaron. Whether a
+pack's recommendation may book them before he answers is also his (`rules.new-operations` says
+yes, for him to confirm). The 215 are still required exactly, and a new operation never stands in
+for one of them.
 
 **The old system is a reference for behaviour, not a baseline.** Agents read its code for edge
 cases: contract reverts, money paths and permissions. They never port it, and the evals are not run
@@ -457,8 +461,9 @@ The book build does not see the frozen text beside the target's records, so
 - **Refusals.** Every frozen refusal's behaviour is still refused: under its code where the target's
   error vocabulary keeps that code, otherwise a decision names it.
 - **New operations.** A target operation that is none of the 215 is counted apart and reported
-  with the rulings it serves. Each one needs a decision on it that cites an Aaron ruling and at
-  least one acceptance claim. Its id may not collide with a frozen one, and no two operations may
-  share a command (`rules.new-operations`).
+  with the rulings it serves. Each one needs a decision on it, other than the rule itself, that
+  cites an Aaron ruling, and at least one acceptance claim. Its id is its command's words joined by
+  dots, and shares no export name with another operation. No two operations may share a command
+  (`rules.new-operations`).
 
 It does not compare flags, `--json` shapes or wording: those are the target's to design.
