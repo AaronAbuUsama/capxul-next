@@ -56,6 +56,13 @@ const following = [
 
 const MONEY_ERRORS = [error_SUPERSEDED, error_CANCELLED, error_TRANSACTION_FAILED] as const;
 
+/** `--document <file>`: documents stores the receipt's exact bytes, and payments does not read media (decision payments.document-bytes). */
+const readDocument = {
+  name: "read-document",
+  local: "build",
+  about: "With `--document <file>`, reads the file (at most 128 KB: PDF, PNG, JPEG or JSON) and passes its bytes to prepare.",
+} as const;
+
 export const flow_client_payments_pay = defineFlow({
   id: "client.payments.pay",
   title: "Send a payment and follow it",
@@ -71,6 +78,7 @@ export const flow_client_payments_pay = defineFlow({
   input: Schema.Struct({ ...SendInput.fields, as_directors: Schema.Boolean, ...Follow }),
   output: MoneyOutcome,
   steps: [
+    readDocument,
     { name: "prepare", rpc: rpc_payments_commands_prepare, about: "Births the command, its Payments, the document and the approval." },
     { name: "propose", rpc: rpc_payments_commands_propose, about: "With `--as-directors`, in place of prepare: the Board proposal." },
     {
@@ -102,6 +110,7 @@ export const flow_client_org_departments_pay = defineFlow({
   input: Schema.Struct({ org: S, department: S, to: S, amount: S, kind: SendInput.fields.kind, document: SendInput.fields.document, ...Follow }),
   output: MoneyOutcome,
   steps: [
+    readDocument,
     { name: "prepare", rpc: rpc_payments_commands_prepare, about: "Births the department's payment, its document and the approval." },
     { name: "check", local: "build", about: "Checks the route names the department's own active top budget and the asked amount and payee." },
     ...signing,
