@@ -83,7 +83,13 @@ export const decision_time_real_elapsed = defineDecision({
         "webhook signature's freshness, a vendor-issued token's expiry, a certificate. The rule for an envelope is envelope " +
         "in real time, payload on now: the Bridge stand-in signs its webhook with the real time and dates the deposit at " +
         "now. Everything a person is promised in time is on now, Capxul's own expiries included: a session, a sign-in code " +
-        "and its resend cooldown, an assistant grant, a key's grace window, a `person`, `signal` or `timer` wait.",
+        "and its resend cooldown, an assistant grant, a key's grace window, a `person`, `signal` or `timer` wait. A " +
+        "workflow's own timeoutMs bounds one run's work between its waits (waits never count, as for budgets), so it is " +
+        "real; a bound on how long an object may live in the story (an approval ends within 370 days) is not a run " +
+        "timeout but a `timer` wait on now. A vendor envelope's instant (a webhook's signed timestamp checked for " +
+        "freshness, a timestamp Capxul signs into a vendor's request) is read from `RealTime`, beside Now in " +
+        "packages/runtime/src/time/: only integration layers call it, and its value is never stored in a row or compared " +
+        "with a product time.",
     },
     {
       label: "wall-for-auth",
@@ -97,8 +103,14 @@ export const decision_time_real_elapsed = defineDecision({
     "against its own clock, so Capxul cannot move it. Capxul's own expiries are product rules, swept and transitioned by " +
     "processes that run on now (access's daily sweep expires sessions past expires_at), so keeping them on the wall " +
     "would mix two times in one rule, which is the defect ADR-0041 retrofitted. A month warped past a 30-day session " +
-    "ends it, as a month would. Effect's own Clock stays the real clock for exactly these uses (time.read-once).",
-  source: by(`${ADR} (D1 wall time); packages/backend/src/platform/clock.ts; node_modules/effect/src/internal/effect.ts (ClockImpl, spans)`),
+    "ends it, as a month would. Effect's own Clock stays the real clock for exactly these uses (time.read-once). The " +
+    "book's workflows size timeoutMs both ways today: payroll's years-long agreement process has 2 minutes (one run), " +
+    "while access (91 days), approvals (370), payments (400 and 1), requests (400), organizations (30 and 365), banking " +
+    "(90, 90 and 2) and applications (31) size it as the object's life in the story; read as real time those would never " +
+    "bound anything a warp compresses, so their owners turn each into a timer wait. An envelope check needs a real " +
+    "instant, not a duration, and without a named reader it would be a direct read the lint forbids. Revised by the " +
+    "time review, 8 November 2026.",
+  source: by(`${ADR} (D1 wall time); packages/backend/src/platform/clock.ts (wallTime for vendors); node_modules/effect/src/internal/effect.ts (ClockImpl, spans)`),
   affects: [
     f.component_backend, ...CLIENTS, x.integration_chain_rpc, x.integration_bundler, x.integration_indexer, x.integration_bridge,
     x.integration_mail, x.integration_openfort, x.integration_posthog, f.concept_access,
@@ -124,7 +136,10 @@ export const decision_time_read_once = defineDecision({
         "(a transition's `at`, a chain event's block time, a cron run's scheduled instant) and from its steps' results. A " +
         "transition's outbox event carries the instant of the transaction that made it. Capxul's ids that carry a time " +
         "(ULIDs) take it from the request's or the step's instant. Every rpc answer carries the backend's now. Effect's " +
-        "Clock is left as the real clock everywhere: spans, logs, timeouts, Schedule and sleeps keep real time.",
+        "Clock is left as the real clock everywhere: spans, logs, timeouts, Schedule and sleeps keep real time. On a " +
+        "frozen clock many requests share one instant, so no key or uniqueness rests on an instant alone: it also " +
+        "carries an id or a sequence (a ULID, which increments within one instant, so rows made at one instant keep the " +
+        "order they were made in; a round id; a request id), and every order by time has a tie-break.",
     },
     {
       label: "effect-clock",
@@ -139,7 +154,9 @@ export const decision_time_read_once = defineDecision({
     "branch differently when it resumed. In Effect 4.1.2 the tracer stamps every span's start and end with the Clock's " +
     "currentTimeNanos and loggers stamp with currentTimeMillis, so a driven Clock in every layer would date spans in the " +
     "story's time and, frozen, measure every span as zero: budgets could not be measured. Reading anywhere is what took " +
-    "317 sites to undo.",
+    "317 sites to undo. A frozen story is a run of shared instants (one world step, one eval, a stop's whole cascade), " +
+    "so a key made of an instant collides there where production would never collide: a cron's manual run, two price " +
+    "rounds scripted at one instant.",
   source: by("node_modules/effect/src/internal/effect.ts:6368 (ClockRef, ClockImpl), :6086 (span clock), :6723 (log clock); src/DateTime.ts:908; src/workflow/Workflow.ts"),
   affects: [f.component_backend, ...CLIENTS, f.system_capxul, d.decision_rules_outbox],
 });
@@ -162,7 +179,11 @@ export const decision_time_durable_timers = defineDecision({
         "the engine (a second completion is a no-op), and runs again whenever the clock changes. A cron is a row of the " +
         "runtime's cron table (its expression, its next run as an instant) on the same pump; each run starts the cron's " +
         "workflow with the execution id `cron/<name>/<instant>` and is given that scheduled instant. A run missed while " +
-        "the clock jumped runs once, then the next is computed from now. A wait's timeoutMs is on now for `person`, " +
+        "the clock jumped runs once, then the next is computed from now. A manual run (`dev jobs run`) has its own id, " +
+        "`cron/<name>/manual/<request id>`, so a second manual run at one frozen instant still runs. Every due instant " +
+        "is a whole second, rounded up (a timer's `at`, a cron's run), so a warp's stops are whole seconds. A timer " +
+        "whose wait another wake ended first (a signal that cut it short) is cancelled in the step that saw the winner, " +
+        "so it neither fires nor becomes a stop. A wait's timeoutMs is on now for `person`, " +
         "`signal` and `timer` waits (a product deadline, raced as a timer) and real for `chain` and `indexer` waits " +
         "(time.real-elapsed). DurableClock.sleep, ClusterCron and Effect.sleep are not used in workflow bodies.",
     },
@@ -180,8 +201,14 @@ export const decision_time_durable_timers = defineDecision({
     "through one code path the runtime owns and the B0 spike already proves. The pump compares a stored instant with " +
     "now, so a timer stored once never needs moving: old jobs.shift and businessDueMs go. The warp's next stop is a query " +
     "of Capxul's own table, not of an unstable module's storage. The engine-native path needs five seams in Effect's " +
-    "unstable cluster code, any of which an upgrade can move, and a cron skipped after a long warp. B0 may overturn this " +
-    "with measurements (decision record), keeping the rule that a due time is an instant on the one clock.",
+    "unstable cluster code, any of which an upgrade can move, and a cron skipped after a long warp. Read in 4.1.2, an " +
+    "engine-native sleeper does not wake when an injected clock jumps: its message is read again only on the storage " +
+    "poll (10 s) or an explicit pollStorage, and a sleep of 60 s or less is a real in-memory sleep a warp never reaches. " +
+    "A pump's deferredDone, by contrast, persists the completion and opens the local storage latch, so the instance " +
+    "resumes at once. A manual cron run keyed like a scheduled one would be swallowed by the scheduled run's id on a " +
+    "frozen clock. Whole seconds keep two stops out of one second, where both would mine at that second. B0 may " +
+    "overturn the choice with measurements (decision record), keeping the rule that a due time is an instant on the " +
+    "one clock.",
   source: by("node_modules/effect (4.1.2) src/workflow/DurableClock.ts; src/cluster/ClusterWorkflowEngine.ts:896; src/cluster/MessageStorage.ts:700,785; src/cluster/ClusterCron.ts; old platform/schedule.ts"),
   affects: [f.component_backend, f.component_postgres, d.decision_rules_process_wakeups, d.decision_rules_durable_processes],
 });
@@ -198,7 +225,10 @@ export const decision_time_clients_take_server_now = defineDecision({
         "`client.now()`, and a client renders a relative time (\"expires in 2 h\") against the answer's own now. No client " +
         "makes a product decision on time: the backend decides expiry, lateness and windows. A client sends a relative " +
         "span to whoever owns now (a warp's `6h` to the supervisor) rather than resolving it itself. On a devnet the " +
-        "SDK's devnet entry also reads the time protocol. A client's own deadlines for waiting are real time.",
+        "SDK's devnet entry also reads the time protocol. A client's own deadlines for waiting are real time. " +
+        "`client.now()` is the latest answer's now plus the real time since that answer, so it is stale after a warp " +
+        "the client did not see: a client renews a session or refreshes a token when the backend refuses it, never " +
+        "only on its own reading (an agent's 24-hour session after a two-day warp, an assistant's access token).",
     },
     { label: "offset", text: "Read the devnet's offset from the backend and add it to the client's wall clock, as ADR-0041 did." },
   ],
@@ -224,10 +254,18 @@ export const decision_time_chain_judged_deadlines = defineDecision({
       label: "head-judges",
       text:
         "Chain time is read, never computed: a fact's time is its block's timestamp (indexing's rows, chain-rpc.getBlock). " +
-        "A time that reaches the chain (a validUntil, a cliff, a period's start, a close) is a whole second, and a due " +
-        "instant for one is rounded up to the second. A timer for a deadline the chain enforces fires at now and, when the " +
-        "head has not yet reached the due second (a simulation reverts as too early), re-arms for the shortfall instead of " +
-        "failing. On a devnet head and now are equal at every settle, so the re-arm never happens there.",
+        "A time that reaches the chain (a validUntil, a cliff, a period's start, a vote's end, a close) is a whole second. " +
+        "A timer for a deadline the chain enforces is due at the first second at which the chain's own rule gives the new " +
+        "answer, read off the contract: v4 Agreements' offer expiry and Budgets' payAt change at the deadline second " +
+        "itself (`>=`), while OpenZeppelin's Governor keeps a vote Active through its deadline second, so a vote's end is " +
+        "due at voteEnd + 1; the EntryPoint's validAfter bound is read off the pinned EntryPoint the same way. When the " +
+        "timer fires it checks the head: while the head has not reached the due second (on staging it trails now), it " +
+        "re-arms for the shortfall instead of acting or failing, and it acts once Ponder has indexed that head, so a fact " +
+        "mined before the deadline (an accept in the deadline's last second) is seen before a lapse is decided. A span of " +
+        "chain-dated facts (a month's books, a budget period) is half-open, [start, end), as the v4 Calendar's periods " +
+        "are, and a process that closes one waits the same way until the head and Ponder are past its end. On a devnet " +
+        "the head is at now at every settled stop (devnet.only-miner), so with due seconds set by this rule the re-arm " +
+        "never happens there.",
     },
     { label: "trust-now", text: "Act at now and treat an early revert as a failure." },
   ],
@@ -235,9 +273,16 @@ export const decision_time_chain_judged_deadlines = defineDecision({
   why:
     "On staging now and the head's time are close but not equal: the head trails by up to a block and a host's clock can " +
     "run ahead of the sequencer's. The chain's judgment is final, so the decision that depends on it defers to it; a " +
-    "failure for a second's difference would be a defect the devnet could never show.",
-  source: by("books/target/payroll/processes.ts:43; books/target/equity/processes.ts:230; books/target/approvals/processes.ts:96 (window timer)"),
-  affects: [f.component_backend, f.component_chain, x.integration_chain_rpc, x.integration_indexer, f.concept_payroll, f.concept_equity, f.concept_approvals],
+    "failure for a second's difference would be a defect the devnet could never show. The re-arm alone is not enough: " +
+    "a lapse needs no chain call, so nothing reverts to say it is early, and a payee's accept can land in a block dated " +
+    "before the expiry after the backend has lapsed the offer. And the devnet's equality of head and now hides an " +
+    "off-by-one, not removes it: a timer due at voteEnd fires at a stop whose block is at voteEnd, where Governor.state " +
+    "still answers Active. Revised by the time review, 8 November 2026.",
+  source: by("v4 src/money/Agreements.sol:198 (>= offerExpiresAt), Budgets.sol:288 (< payAt); OZ GovernorUpgradeable.state; books/target/equity/processes.ts:403"),
+  affects: [
+    f.component_backend, f.component_chain, x.integration_chain_rpc, x.integration_indexer, f.concept_payroll, f.concept_equity,
+    f.concept_approvals, f.concept_books, f.concept_budgets,
+  ],
 });
 
 export const decision_time_drift_watch = defineDecision({
@@ -281,7 +326,9 @@ export const decision_time_no_direct_reads = defineDecision({
         "(StepTime and Timers.until only); no Effect.sleep, DurableClock.sleep, ClusterCron or Effect.timeout in a workflow " +
         "body; no Postgres now(), current_timestamp, clock_timestamp() or transaction_timestamp() in product SQL, a " +
         "predicate or a column default; in Ponder handlers only the event's block timestamp; in clients only " +
-        "client.now(). Measuring real elapsed time (Effect.timed, timeouts and Schedule in a step or a call) stays allowed.",
+        "client.now(); RealTime only in an integration layer's envelope code. Measuring real elapsed time " +
+        "(Effect.timed, timeouts and Schedule in a step or a call) stays allowed, and so does the drift watch's one " +
+        "clock_timestamp() read, which lives in packages/runtime/src/time/.",
     },
     { label: "counts", text: "Per-folder counts that only fall, as ADR-0041 D4." },
   ],
@@ -302,11 +349,13 @@ export const invariant_time_one_now = defineInvariant({
   about:
     "What time.one-clock promises, checked after every call of the devnet time protocol that returns: warp, step, " +
     "settle, start-at, freeze, resume and a snapshot restore. The harness reads the authority, the chain head (by " +
-    "eth_getBlockByNumber), the backend's now (from an rpc answer), Ponder's indexed head and every follower's " +
-    "acknowledged clock, and compares them.",
+    "eth_getBlockByNumber), the backend's now (from an rpc answer), Ponder's indexed block and every follower's " +
+    "acknowledged clock, and compares them. On a frozen clock every move ends with a block at now (devnet.only-miner), " +
+    "so the head's time is now. On a running clock the readings agree as one function of this machine's real clock " +
+    "(the clock's now plus the real time since its `realAt`), and the head may trail now, as on staging.",
   statement:
-    "After a time call returns on a devnet, the backend's now, every follower's now and Ponder's indexed head time equal " +
-    "the authority's now, and the chain head is at that second when the call mined.",
+    "After a time call returns on a frozen devnet, the backend's now and every follower's acknowledged now equal the " +
+    "authority's now, the chain head's time is that second, and Ponder has indexed the head.",
   over: [],
   check: "property",
 });
@@ -317,7 +366,9 @@ export const invariant_time_blocks_at_now = defineInvariant({
   about:
     "The supervisor is the chain's only miner (decision devnet.only-miner), so a fact's block time is the instant it " +
     "happened. Checked over every block of an eval run: its timestamp against the authority's clock events.",
-  statement: "Every block mined on a devnet has the authority's now, to the second, as its timestamp; no block is later than now.",
+  statement:
+    "Every block mined on a devnet has as its timestamp the authority's now, to the second, when it was mined; no block " +
+    "is later than now, except the blocks mined before a start-at.",
   over: [],
   check: "property",
 });
@@ -340,10 +391,11 @@ export const invariant_time_due_fires_once = defineInvariant({
   about:
     "The warp barrier (decision devnet.warp-barrier): the authority stops at each due instant in order, so a dated " +
     "payment due on day 10 of a 28-day warp runs on day 10, its transaction in a block dated day 10. Checked with " +
-    "timers and crons placed at random instants across a warp.",
+    "timers and crons placed at random instants across a warp, including timers that the work at one stop sets for a " +
+    "later instant before T, and with `jobs` false, after which no skipped cron run is run late.",
   statement:
     "When a warp or step to T returns, every durable timer due by T fired once with its step reading its due instant, " +
-    "and every hourly-or-slower cron run due by T ran once at its scheduled instant.",
+    "and, unless `jobs` was false, every hourly-or-slower cron run due by T ran once at its scheduled instant.",
   over: [],
   check: "property",
 });
@@ -374,7 +426,9 @@ export const invariant_time_frozen_deterministic = defineInvariant({
   about:
     "What a builder on top relies on for a deterministic simulated year (decision devnet.clock-modes): run the same " +
     "script twice from the same world, frozen, with a settle after each action, and compare the block timestamps, the " +
-    "rows' times and the timers' firings.",
+    "rows' times and the timers' firings. It rests on two things the run does not control: the pinned Anvil mines " +
+    "several blocks in one second, so no tick is ever needed (B0 measures it; a tick depends on how transactions " +
+    "batch, which is timing); and the script stays below the infrastructure rate limits, which run on real time.",
   statement:
     "On a frozen devnet, the same protocol calls and commands from the same world, each followed by a settle, give the " +
     "same block timestamps, row times and timer firings.",

@@ -517,7 +517,7 @@ ol.claims{margin:0;padding-left:22px}ol.claims li{margin:6px 0}
 .actions{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
 dialog{max-width:640px;width:calc(100% - 32px);border:1px solid var(--line);border-radius:10px;background:var(--surface);color:var(--fg);padding:18px}
 dialog::backdrop{background:rgba(0,0,0,.35)}
-pre.payload{background:var(--sunk);border:1px solid var(--line);border-radius:6px;padding:10px;overflow:auto;font:12px var(--mono);white-space:pre-wrap}
+pre.payload{background:var(--sunk);border:1px solid var(--line);border-radius:6px;padding:10px;overflow:auto;font:12px var(--mono);white-space:pre-wrap;overflow-wrap:anywhere}
 textarea{width:100%;min-height:70px;font:inherit;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--fg);padding:8px}
 select{font:inherit;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--fg);padding:4px 6px}
 .note{font-size:13px;color:var(--muted)}
@@ -598,10 +598,14 @@ $("h2",{},"Components"),diagram(comp.join("\n")),
 $("h2",{},"Concepts"),$("p",{class:"note"},"Each arrow is a direct dependency (transitively reduced). A concept is built after everything it depends on."),diagram(cmap.join("\n"))]}
 
 function reviewAnswer(d,answer){var dlg=document.getElementById("dlg");var opt=$("select",{},(d.full?d.full.options:[]).map(function(o){return $("option",{value:o.label,selected:o.label===d.chosen},o.label)}));var note=$("textarea",{placeholder:answer==="change"?"What you want instead, in your words":"A note (optional)"});var pre=$("pre",{class:"payload"});
-function upd(){var p={decision:d.id,answer:answer,by:"aaron",at:new Date().toISOString().slice(0,19)+"Z",seenAt:D.meta.commit};if(answer==="choose")p.option=opt.value;if(note.value)p.text=note.value;pre.textContent=JSON.stringify(p,null,2)}
+var url=$("pre",{class:"payload"});
+function upd(){var p={decision:d.id,answer:answer,seenAt:D.meta.commit};if(answer==="choose")p.option=opt.value;if(note.value)p.text=note.value;
+p.by="(the issue's author, set by GitHub)";p.at="(the issue's creation time, set by GitHub)";pre.textContent=JSON.stringify(p,null,2);
+var q={template:"review-answer.yml",title:"review: "+d.id,decision:d.id,answer:answer,seenAt:D.meta.commit};if(p.option)q.option=p.option;if(note.value)q.text=note.value;
+url.textContent="https://github.com/AaronAbuUsama/capxul-next/issues/new?"+Object.keys(q).map(function(k){return k+"="+encodeURIComponent(q[k])}).join("&")}
 opt.addEventListener("change",upd);note.addEventListener("input",upd);upd();
-dlg.replaceChildren($("h3",{},(answer==="accept"?"Accept":answer==="choose"?"Choose another option":"Change")+": "+d.id),$("p",{class:"note"},"The portal never edits a record. Your answer becomes this typed request: at D0 a prefilled GitHub issue labelled review; once the swarmD ledger runs, the resolution of the decision's matter. An agent then changes the record first (the decision, and any record the change ripples to), rebuilds the book to 0 problems and opens a pull request with a portal preview. When it merges, this page shows your answer, and the operations it held move on."),
-answer==="choose"?$("p",{},"Option ",opt):null,$("p",{},note),pre,$("p",{class:"note"},"Prototype: nothing is sent."),$("div",{class:"actions"},$("button",{class:"btn primary",onclick:function(){dlg.close()}},"Close")));dlg.showModal()}
+dlg.replaceChildren();add(dlg,[$("h3",{},(answer==="accept"?"Accept":answer==="choose"?"Choose another option":"Change")+": "+d.id),$("p",{class:"note"},"The portal never edits a record. Your answer becomes this typed request: a GitHub issue form prefilled through its URL and labelled review (until the swarmD ledger's matters can carry it). The portal fills decision, answer, option and seenAt; GitHub knows who you are and when. An agent then changes the record first (the decision, and any record the change ripples to), rebuilds the book to 0 problems and opens a pull request with a portal preview. When it merges, this page shows your answer, and the operations it held move on."),
+answer==="choose"?$("p",{},"Option ",opt):null,$("p",{},note),$("p",{class:"note"},"The answer"),pre,$("p",{class:"note"},"The issue it opens"),url,$("p",{class:"note"},"Prototype: nothing is sent."),$("div",{class:"actions"},$("button",{class:"btn primary",onclick:function(){dlg.close()}},"Close"))]);dlg.showModal()}
 function decisionCard(d){return $("div",{class:"panel"},$("div",{class:"chips"},$("span",{class:"chip warn"},"waiting"),$("code",{class:"muted"},d.id),$("span",{class:"chip"},d.home)),$("h3",{style:"margin:6px 0"},$("a",{href:"#/decision/"+d.id},d.title)),
 d.full?$("p",{class:"small",style:"margin:4px 0"},d.full.question.length>360?d.full.question.slice(0,357)+"…":d.full.question):null,
 $("p",{class:"small",style:"margin:4px 0"},$("b",{},"Chosen: "),d.chosenText),

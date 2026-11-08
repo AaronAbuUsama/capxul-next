@@ -39,7 +39,8 @@ export const decision_portal_milestone = defineDecision({
   ],
   chosen: "d0",
   why:
-    "Everything the portal shows at D0 exists today: 2,132 records, 4,752 derived evals, 627 decisions and 74 gaps. Only " +
+    "Everything the portal shows at D0 exists today (8 November 2026: 2,212 records, 4,789 derived evals, 688 decisions " +
+    "and 74 gaps). Only " +
     "verdicts wait for B2, and a stand computed without them is still true (specify, decide or build). Built at B4, the " +
     "review of the design and of the CLI surface would happen in Markdown files and terminal output, and the surface B1 " +
     "designs would first be seen as code. After B1 delays it behind work it does not need. D0 runs beside B0, so it costs " +
@@ -81,6 +82,40 @@ export const decision_portal_sitemap = defineDecision({
     "the ledger, the managers' boards and pull requests link any record or eval by rule.",
   source: by("old apps/docs CONTEXT.md (seven root sections, published-routes.txt); docs/spec/10 (eval and record ids); swarmD apps/docs layout"),
   affects: [f.system_capxul, f.component_cli, f.component_core_sdk],
+});
+
+export const decision_portal_eval_ids = defineDecision({
+  id: "portal.eval-ids",
+  title: "Every eval id is unique: one ref: eval per code, one int: eval per error",
+  question:
+    "The portal anchors each eval by its id, /eval/?id= resolves it, the status document keys verdicts by it, and the " +
+    "ledger stores the catalog under (id, commit). On the book of 8 November 2026, 4,789 derived evals have 4,759 " +
+    "distinct ids: 19 operations list one refusal code from two or three worlds (ref:org.member.grant/WRONG_STATE " +
+    "twice), and 9 integration calls map two failures to one error (int:bridge.submitVerification/PROVIDER_ERROR). " +
+    "How are the ids made unique?",
+  options: [
+    {
+      label: "one-per-code",
+      text:
+        "deriveEvals emits one ref:<operation>/<CODE> per code, whose claim names every world the operation lists for " +
+        "it (from each of them it refuses with that code, its exit code and shape, and changes nothing), and one " +
+        "int:<integration>.<call>/<ERROR> per error, whose claim covers every failure mapped to it. The grammar of " +
+        "docs/spec/30 is unchanged and no id moves. buildBook adds a problem, duplicate-eval, if two evals still share " +
+        "an id. Done book first at D0, with a test on the fixture book.",
+    },
+    { label: "numbered", text: "Keep one eval per refusal and per failure, and number the repeats: ref:<op>/<CODE>/2." },
+    { label: "world", text: "Put the world in the id: ref:<op>/<CODE>@<world>; number repeated call failures." },
+  ],
+  chosen: "one-per-code",
+  why:
+    "A duplicate id is two claims under one name: the ledger cannot store both, a verdict cannot say which it is " +
+    "about, and a link to it lands on either. One eval per code keeps spec 30's grammar (its qualifier is an error " +
+    "code) and every existing id; the harness runs each world the claim names, and a failure's detail says which. " +
+    "Numbering by list order renumbers when a refusal is added above another, which spec 30 forbids for acceptance " +
+    "lines for the same reason; a world in the id moves it whenever a world is renamed. The problem rule keeps the " +
+    "ids unique from then on.",
+  source: by("buildBook(books/target).evals: 4,789 evals, 4,759 distinct ids, 28 ids repeated; packages/book/src/evals.ts (ref:, int:); docs/spec/10 (evals keyed by id and commit); docs/spec/30 (id grammar)"),
+  affects: [f.system_capxul],
 });
 
 export const decision_portal_operation_page = defineDecision({
@@ -127,8 +162,9 @@ export const decision_portal_stand = defineDecision({
     {
       label: "own-decide",
       text:
-        "One pure function, standOf, in packages/book beside deriveEvals, used by every reader. Under an operation: what " +
-        "implements it; a flow's steps; each rpc's and procedure's reads, writes, drives, invokes, calls, contract " +
+        "One pure function, standOf, in packages/book beside deriveEvals; every other reader (the pages, swarmD's " +
+        "managers, agents) reads the stands it computed from the status document. Under an operation: what implements " +
+        "it, its errors and its refusals' errors; a flow's steps; each rpc's and procedure's reads, writes, drives, invokes, calls, contract " +
         "functions and errors; a transition's machine and its table; a call's integration; a function's contract; and, one " +
         "hop, the durable processes its own rpcs and transitions start or resume, with their own records. First match " +
         "wins: specify if it or a record under it has a problem or a gap; decide if a judgment waiting for review affects " +
@@ -143,12 +179,13 @@ export const decision_portal_stand = defineDecision({
   chosen: "own-decide",
   why:
     "Measured on the book of 8 November 2026: with any record under it, 142 of the 215 operations stand at decide, most " +
-    "held by parties.directory-tenancy (143 operations read the parties table) or agents.org-owned (103), and the " +
+    "held by parties.directory-tenancy (138 operations; 134 have the parties table under them) or agents.org-owned (102), and the " +
     "scoreboard would show little else while the build proceeds; recorded choices stand and the build follows them, so " +
     "decide must not hide build progress. With its own records, 41 stand at specify, 40 at decide and 134 at build, and " +
     "each held operation is held by a judgment about what it does. decide-last breaks the order docs/design-book.md " +
-    "states. One function in packages/book keeps the stand derived like the gaps and the evals, product-neutral, and the " +
-    "same in the portal's pages, the status job and swarmD's build template.",
+    "states. One function in packages/book keeps the stand derived like the gaps and the evals and product-neutral. It " +
+    "needs the book, so it runs where the book is (the portal target and the status job); the browser and swarmD, a " +
+    "separate product-neutral repository, read its results as data and never reimplement it.",
   source: by("tools/portal-prototype.ts over buildBook(books/target): 41 specify, 40 decide, 134 build with no verdicts; docs/design-book.md (the stand table); docs/spec/10 (roll-up)"),
   affects: [f.system_capxul],
 });
@@ -165,12 +202,13 @@ export const decision_portal_status_source = defineDecision({
       text:
         "One status document per tracked ref, status/<ref>.json: the commit it is at; each eval's current verdict there " +
         "(result, measures, evidence link), or the last verdict at an older commit, shown greyed as last seen; each " +
-        "operation's tasks, assignments and open matters; each lane's branch, pull requests and CI; the deployed commit " +
-        "of each environment. A status job writes it: until the swarmD ledger runs, from the harness's RunResult[] of " +
-        "each run at the head (B2) and the GitHub API; after, from the ledger's verdict, task, matter, ref and score " +
-        "resources. PostHog reaches it only as verdicts: the scout worker posts the live evals (L4) to the ledger, with " +
-        "the funnel's step counts as measures. Pages fetch the document when they open and compute each stand with " +
-        "standOf; no page bakes status in.",
+        "operation's tasks, assignees and open matters; each lane's branch, pull requests and CI; the deployed commit " +
+        "of each environment; and each operation's stand, which the status job computes with standOf from the book at " +
+        "that commit. A status job (a GitHub Actions workflow) writes it to R2: until the swarmD ledger runs, from the " +
+        "harness's RunResult[] of each run at the head (B2) and the GitHub API; after, from the ledger's verdicts, tasks, " +
+        "matters, work log, the project's refs and score. PostHog reaches it only as verdicts: the scout worker posts the " +
+        "live evals (L4) to the ledger, with the funnel's step counts as measures. Pages fetch the document when they open " +
+        "and show it; no page bakes status in, and without a document a page shows the stand with no verdicts.",
     },
     { label: "rebuild", text: "Rebuild and redeploy the whole site whenever any status changes, with the status baked into each page." },
     { label: "live", text: "The browser reads the ledger, GitHub and PostHog directly." },
@@ -224,9 +262,11 @@ export const decision_portal_artifact_boundary = defineDecision({
         "The portal shows the work as it bears on a record, at the status document's commit: on an operation, its task, " +
         "state, assignee and pull request; on a concept, its lane; on Build, the score. Live detail (pairs, rounds, spend, " +
         "signals, the timeline) stays on the manager's board, which the portal links to; the boards link each record and " +
-        "eval back to its portal URL (portal.sitemap). The portal reads from the ledger only: tasks (id, title, state, " +
-        "owner, labels, evals, needs), assignments (actor, role, state), matters (kind, title, options, recommendation, " +
-        "state, resolution), refs and verdicts. Their shapes are the swarm design's.",
+        "eval back to its portal URL (portal.sitemap). The status job reads from the ledger only: tasks (id, title, state, " +
+        "owner, labels, evals, needs; a task is on an operation when one of its own evals has that operation as subject); " +
+        "the work log's assigned, ended, deployed and waiver entries (spec 10 has no assignments resource and no waiver " +
+        "entry kind, which the swarm design adds); matters (kind, title, options, recommendation, state, resolution, " +
+        "task); the project's refs; verdicts; and score. Their shapes are the swarm design's.",
     },
     { label: "embed", text: "Embed the managers' boards in the portal's pages." },
   ],
@@ -253,8 +293,11 @@ export const decision_portal_review_flow = defineDecision({
       text:
         "A waiting decision's page has Accept, Choose another option and Change; every other decision has Change. An " +
         "answer is one typed request: {decision, answer: accept | choose | change, option?, text?, by, at, seenAt: the " +
-        "commit the page was built from}. Until the ledger runs it is a prefilled GitHub issue labelled review, which the " +
-        "build session takes before other work; after, it resolves the decision's matter. An agent then edits the records: " +
+        "commit the page was built from}; by and at come from the system that carries it, never from a form. Until the " +
+        "ledger runs it is a GitHub issue form prefilled through its URL and labelled review, which the build session " +
+        "takes before other work, applying only an issue whose author is the decision's reviewer; after, it resolves the " +
+        "decision's matter, once the ledger's matters name their record and carry a typed resolution (the swarm design " +
+        "adds both; until then the issue stays the way). An agent then edits the records: " +
         "accept sets the decision's review state; choose sets chosen and puts the reason first in why; change adds the new " +
         "option and chooses it. Every record the change ripples to changes with it; if the answer leaves a judgment open, " +
         "the agent raises a decision pack back instead of guessing. It rebuilds to zero problems, runs check-frozen and " +
@@ -324,7 +367,9 @@ export const decision_portal_cli_surface = defineDecision({
         "message, how many operations refuse with it) and an exit-code-by-class table; the verbs. Each table marks what a " +
         "consistent system would not have, such as one class with two exit codes or one flag name with two value types. " +
         "Until B1 the old CLI's flags show on each operation page, marked reference. Review lists what changed in the " +
-        "surface since the last accepted one, to accept like a judgment.",
+        "surface since the last accepted one, to accept like a judgment: the accepted surface is a committed snapshot, " +
+        "docs/decisions/accepted-surface.json, which the agent applying an Accept of the surface writes from the bundle " +
+        "at its seenAt commit, in the same pull request. Before the first acceptance the whole surface is listed.",
     },
     { label: "per-command", text: "Show each command's surface only on its own page." },
   ],
@@ -352,12 +397,15 @@ export const decision_portal_doc_eval = defineDecision({
         "At one commit, all hold. 1: the CLI built at that commit, asked for its machine manifest of the command (the " +
         "target's schema command with --json), shows the operation's command, its title as the summary, and exactly its " +
         "designed flags (name, short form, value type, required, default, choices, repeatable) and the global flags. 2: " +
-        "the operation's page model in the portal bundle equals a fresh generation from the record (it carries a hash of " +
-        "the record fields it renders), and the built page renders that model. 3: only the prose slots are hand-written; " +
-        "no prose file restates or overrides a generated section. 4: every example in the prose slots parses against the " +
-        "designed flags, every example --json output validates against the returns schema, and every record id the prose " +
-        "cites exists. 5: every link on the page resolves. A failure names its first disagreement. Until the CLI exists " +
-        "part 1 is not runnable and the eval is listed so; parts 2 to 5 run in the portal's own check from D0.",
+        "the page served for that commit (the preview, or the deploy of integration/build) carries, in its JSON twin and " +
+        "in its HTML, the hash of the record fields it renders that a fresh generation from the record computes, so a " +
+        "stale build or deploy fails. 3: a prose slot file holds only its named sections (Example, Notes), and names no " +
+        "error code, exit code, flag or --json field as literal text outside an example's code block: it cites them " +
+        "through components. 4: every example command parses against the designed flags (until B1 adds them, against " +
+        "the command only), every example --json output validates against the returns schema, and every record the " +
+        "prose cites exists. 5: every link on the page resolves. A failure names its first disagreement. Until the CLI " +
+        "exists part 1 is not runnable and the eval is listed so; parts 2 to 5 run in the portal's own check from D0, " +
+        "against the built output.",
     },
     { label: "help-text", text: "Diff the human --help text against the page's text." },
   ],
@@ -408,10 +456,12 @@ export const decision_portal_agent_reads = defineDecision({
     {
       label: "twins",
       text:
-        "Every page is also served as Markdown (<page>.md, for reading) and JSON (/data/<kind>/<id>.json: the page model " +
-        "with its status, for tools), with /llms.txt listing the sections. An agent cites a record by its URL and an eval " +
-        "by its anchor. An agent with the repository can run the portal target locally and read the same JSON. Agents " +
-        "never scrape HTML.",
+        "Every page is also served as Markdown (<page>.md, for reading) and JSON (/data/<kind>/<id>.json: the page model, " +
+        "for tools), with /llms.txt listing the sections. Both twins are files the portal target writes; the renderer " +
+        "copies them into the static output. Status is not in the twins: an agent reads /status/<ref>.json, which carries " +
+        "every verdict and every operation's stand at its commit. An agent cites a record by its URL and an eval by its " +
+        "anchor. An agent with the repository can run the portal target locally and read the same JSON. Agents never " +
+        "scrape HTML.",
     },
     { label: "repo-only", text: "Agents read the records in the repository and ignore the portal." },
   ],
@@ -436,10 +486,12 @@ export const decision_portal_generated_content = defineDecision({
     {
       label: "uncommitted",
       text:
-        "Rebuilt on every portal build into packages/portal/src/generated/, which is gitignored and carries the " +
-        "do-not-edit header in each file. The output is deterministic (sorted keys, no timestamps, the commit passed in), " +
-        "so two runs are byte-identical. sys:generated runs the portal target with the others and checks that it " +
-        "regenerates and the portal builds; with nothing committed there is nothing to diff.",
+        "Rebuilt on every portal build into packages/portal/.bundle/, which is gitignored: a build input like the export " +
+        "in out/, not generated code. It is not under src/generated/ (whose files are committed, carry the hashed " +
+        "do-not-edit header and are compared by generate:check and sys:generated), and it is not a generate:check " +
+        "target: JSON and Markdown carry no header, and a fresh clone has no bundle to compare. The output is " +
+        "deterministic (sorted keys, no timestamps, the commit passed in), so two runs are byte-identical, which the " +
+        "portal check holds.",
     },
     { label: "committed", text: "Committed like the product's generated code, and diffed by sys:generated." },
     { label: "import", text: "No generated content: the site imports books/target directly at build time." },
@@ -451,7 +503,7 @@ export const decision_portal_generated_content = defineDecision({
     "up refusing generated files in lane pull requests and regenerating them by bot. A page model's diff tells a " +
     "reviewer nothing the record's diff does not. Importing the book directly ties the site's bundler to the book's .ts " +
     "imports and Effect Schema; a JSON bundle keeps the renderer replaceable (portal.stack).",
-  source: by("old packages/tools docs module README (generated-diff, the book-regenerate bot, CAP-1081); decision system.layout (src/generated, sys:generated)"),
+  source: by("old packages/tools docs module README (generated-diff, the book-regenerate bot, CAP-1081); decision system.layout (src/generated, sys:generated); docs/design/tooling.md (generate:check, capxul/generated-intact)"),
   affects: [f.system_capxul, decision_system_layout],
 });
 
@@ -463,11 +515,13 @@ export const decision_portal_stack = defineDecision({
     {
       label: "fumadocs",
       text:
-        "Grade A-. Fumadocs on Next.js with output: export, as the old apps/docs and swarmD's apps/docs both are. Generated " +
-        "pages come from the bundle through a custom Fumadocs source (no generated MDX files); hand-written prose is MDX; " +
-        "search is Fumadocs' static Orama index; llms.txt and each page's Markdown twin come from its own routes; client " +
-        "components read the status document. Known to the agents from both repositories. Heavier (Next, React, " +
-        "Tailwind), and the old site had to fix the order of its type generation.",
+        "Grade A-. Fumadocs on Next.js with output: export, as the old apps/docs is (swarmD's apps/docs is Fumadocs too, " +
+        "but on OpenNext: a server on a Worker, whose middleware serves its Markdown). Generated pages come from the " +
+        "bundle through a custom Fumadocs source (no generated MDX files); hand-written prose is MDX; search is Fumadocs' " +
+        "static Orama index; the Markdown and JSON twins and llms.txt are files from the bundle, copied into the export, " +
+        "since a static export has no middleware; redirects are a _redirects file; client components read the status " +
+        "document. Known to the agents from both repositories. Heavier (Next, React, Tailwind), and the old site had to " +
+        "fix the order of its type generation.",
     },
     {
       label: "starlight",
@@ -523,8 +577,8 @@ export const decision_portal_hosting = defineDecision({
     "can also serve the status document from R2 without a second service. GitHub Pages for a private repository is " +
     "public or needs an enterprise plan, and the portal must not be public while it shows pending judgments and " +
     "internals. Preview versions let a reviewer see a book change as pages before it merges. Needed from Aaron: a " +
-    "Cloudflare API token for deploys (through the credential form, never in chat), the Access allowlist, and later the " +
-    "word to publish the developer docs.",
+    "Cloudflare API token for CI, allowed to deploy Workers and write the status bucket in R2 (through the credential " +
+    "form, never in chat), the Access allowlist, and later the word to publish the developer docs.",
   source: by("/home/user/swarmd/apps/docs/wrangler.jsonc and .github/workflows/docs.yml; swarmD STATUS.md (Deployed); old apps/docs README (Cloudflare Pages)"),
   affects: [f.system_capxul],
 });
