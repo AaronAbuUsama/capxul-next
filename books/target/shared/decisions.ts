@@ -2663,8 +2663,9 @@ export const decision_rules_frozen_flags_kept = defineDecision({
   title: "A frozen command keeps every flag the old CLI or its designed text gives it",
   question:
     "In 66 of the 75 designed operations the old CLI has, the designed (v4) text leaves out 189 flags the CLI declares, most " +
-    "often --email, --timeout-seconds and --no-wait. The designed text also lists 34 flags in 22 commands that the old CLI " +
-    "never declared, and 23 frozen commands the old CLI never had at all. Which flags are frozen?",
+    "often --email, --timeout-seconds and --no-wait. The designed text also lists 58 flags for 25 commands that the old CLI " +
+    "never declared (each on the command its synopsis part or table row names: rules.frozen-flags-designed-attribution), " +
+    "and 23 frozen commands the old CLI never had at all. Which flags are frozen?",
   options: [
     {
       label: "union",
@@ -2712,4 +2713,108 @@ export const decision_rules_frozen_flags_unlisted = defineDecision({
     "describes bare `capxul`, so what it prints is the target CLI's own design.",
   source: flagsBy("tools/freeze-flags.ts (cli-not-frozen); apps/cli/src/commands/home/command.ts; books/frozen/operations.ts (schema #4)"),
   affects: [f.component_cli],
+});
+
+export const decision_rules_frozen_flags_designed_attribution = defineDecision({
+  id: "rules.frozen-flags-designed-attribution",
+  title: "A designed flag belongs to the command its synopsis part or table row names",
+  question:
+    "One frozen page's designed (v4) block often describes its whole command family. `org round create`'s synopsis is " +
+    "`capxul org round preview|create --class … · invite <round> --investor --amount · show <round>`; `org vote list`'s " +
+    "flags table lists `--until` \"For `wait`\"; `org agreement change`'s lists `--last-day` \"For `end`\". `org vote " +
+    "create`'s table keys each row by a matter and puts that matter's flags (`--name --converts-to …`) in the meaning " +
+    "cell. On which frozen command does each designed flag count?",
+  options: [
+    {
+      label: "named",
+      text:
+        "On the frozen command its part or row names: a part names its command in full after `capxul` (or an operator " +
+        "script), or by its last words under the page's family, and `a|b` names both; a row naming \"For `x`\" is for x, " +
+        "and also limits the page's synopsis for that flag to x. When no part names the page, the first part is the " +
+        "page's own v4 spelling. A row keyed by an argument's value lists the flags in its meaning cell for the page. " +
+        "flags.ts names the other page in `designedNotInCliOnPage`.",
+    },
+    {
+      label: "page",
+      text:
+        "On the page's own command only, the whole synopsis when no part names it (what the first freeze did): `org " +
+        "round create` then lists `--investor --amount`, and `org round invite`, `org round preview` and `org safe " +
+        "invite` list nothing.",
+    },
+  ],
+  chosen: "named",
+  why:
+    "The page form put flags on the wrong commands and lost others. It gave `org vote list` the `--until` that the old " +
+    "CLI declares on `org vote wait`, gave `org agreement change` the `--last-day` designed for `end` (whose CLI flag is " +
+    "`--on`), gave `org round create` the invite's `--investor --amount`, and left `org round preview`, `org round " +
+    "invite` and `org safe invite`, which the old CLI never had, with no flags at all, though their only grammar is in " +
+    "these synopses. It also missed the 15 matter flags of `org vote create` beyond `--class --authorised`. Named, the " +
+    "designed text lists 58 flags for 25 commands that the old CLI does not declare. One part names no frozen command " +
+    "(`invites void --referee` on `waitlist invites grant`, an operator script); the generator reports it and keeps it " +
+    "nowhere.",
+  source: flagsBy("books/frozen/operations.ts (designed synopsis and flags of org.round.create, org.safe.create, org.vote.list, org.agreement.change, org.vote.create, org.department.ceiling.set); tools/freeze-flags.ts"),
+  affects: [f.component_cli],
+});
+
+export const decision_rules_frozen_flags_boolean_forms = defineDecision({
+  id: "rules.frozen-flags-boolean-forms",
+  title: "Every boolean flag's native spellings are frozen once",
+  question:
+    "Effect 4.0.0, which the old CLI pinned, parses any boolean flag in four spellings: `--x`, `--x false`, `--x=no` " +
+    "and `--no-x`, where a following word counts only when it is true, yes, on, 1, y, false, no, off, 0 or n. No CLI " +
+    "source declares them, and the printed help shows none. The old CLI's tests use them (`--json false`, `--json=no`, " +
+    "`--no-json`), and runtime/format.ts reads `--no-json` itself. Are they frozen surface, and where are they written?",
+  options: [
+    {
+      label: "once",
+      text:
+        "Frozen, written once as `booleanForms` in books/frozen/flags.ts beside the global flags. The generator stops " +
+        "if the old test that uses them is gone. Each boolean flag keeps `takesValue: false`: it needs no value.",
+    },
+    { label: "per-flag", text: "Frozen, as a `negation` field and an optional value on each of the boolean flags." },
+    { label: "omit", text: "Not frozen: library behaviour, as `--wizard` outside a terminal is (rules.frozen-flags-built-ins)." },
+  ],
+  chosen: "once",
+  why:
+    "A script types them, and the old CLI tested them, so they are spelling, not behaviour (P10 rung 1). They are the " +
+    "same for every boolean flag, so once is exact and repeating them on each flag would add nothing. A target on " +
+    "Effect 4.1.2 keeps them by default; B1 must still not turn one off (`Flag.withoutNegation`) or make a positional " +
+    "argument swallow them. One consequence for B1: a word after a boolean flag that is one of those words is its " +
+    "value, so `org director threshold --confirm 1` reads 1 as --confirm's value, not as <n>.",
+  source: flagsBy("effect@4.0.0 dist/cli/internal/parser.js (resolveFlag, consumeFlagValueWithTokens); apps/cli/src/runtime/tests/entry.test.ts:913; apps/cli/src/runtime/format.ts:86"),
+  affects: [f.component_cli],
+});
+
+// ── the surface: Aaron's decision ───────────────────────────────────────────────────────────
+
+export const decision_system_frozen_behaviour = defineDecision({
+  id: "system.frozen-behaviour",
+  title: "The freeze keeps behaviour, not spelling",
+  question:
+    "The old book's 215 operations were frozen word for word: commands, flags, `--json` shapes, refusal codes and text, with P10 " +
+    "making the frozen text win wherever it disagreed with the code. Does the rebuild keep that spelling, or only what it does?",
+  options: [
+    {
+      label: "behaviour",
+      text:
+        "Keep the behaviour, free the spelling. The 215 operations stay as the list of capabilities, and what each acceptance claim " +
+        "requires to happen stays as its evals: that is the hill. The exact flags, `--json` shapes, refusal codes and wording are no " +
+        "longer frozen; the target book designs them as one consistent system. A refusal is a behaviour (a signed-out caller is " +
+        "refused; a payment over the balance is refused), checked by its code only where the target's own error vocabulary keeps it. " +
+        "A renamed command, a rewritten claim or a retired one carries a decision.",
+    },
+    { label: "strict", text: "Keep the frozen text as the public surface word for word, as P10's first rung said." },
+    { label: "nothing", text: "Free everything, the list of operations and the acceptance claims included." },
+  ],
+  chosen: "behaviour",
+  why:
+    "Nothing outside depends on the exact CLI surface, and the old staging data is being dropped (environments.staging), so the " +
+    "strict freeze only made the rebuild copy old inconsistencies: restoring old --json shapes and refusal codes cost design work " +
+    "and bought nobody anything. What must survive is what the system does, and the acceptance claims say that. This supersedes " +
+    "the strict reading of the freeze and P10's 'the frozen text wins' for spelling; P10's rungs still decide behaviour, money and " +
+    "internals. books/frozen stays as the list of capabilities and the source of each claim, and books/frozen/flags.ts is reference " +
+    "for designing the new flags, not surface to preserve. tools/check-frozen.ts checks that every operation is booked once and " +
+    "that every acceptance claim and refusal behaviour is kept in intent, or rewritten or retired with a decision.",
+  source: "Aaron, 8 November 2026, in the build-preparation conversation",
+  affects: [f.system_capxul, f.component_cli, f.component_core_sdk, f.component_mcp_server],
 });
