@@ -16,15 +16,19 @@ import {
   error_WRONG_STATE,
 } from "../shared/vocabulary.ts";
 import * as approvals from "../approvals/procedures.ts";
-import { machine_payment, table_payment_commands, table_payments } from "./data.ts";
+import { Against } from "../books/procedures.ts";
+import * as partiesData from "../parties/data.ts";
+import { PaymentSource, machine_payment, table_payment_commands, table_payments } from "./data.ts";
 
 const OLD = "packages/backend/src/payments";
 
 const OwnerKind = Schema.Literals(["person", "organization"]);
 
-/** One payment a request or a bank payout needs: its payee already resolved to a Party and Safe, its document, if it has
- * one, already stored. An item with no document (a bank payout: banking does not depend on documents) carries a null
- * `document_id` and the zero hash, which stamps no document on chain. */
+/** One payment a request, a bank payout or a payroll run needs: its payee already resolved to a Party and Safe, its
+ * document, if it has one, already stored. An item with no document (a bank payout: banking does not depend on documents)
+ * carries a null `document_id` and the zero hash, which stamps no document on chain. The optional keys are what the
+ * money is for (payments.money-sides, payments.payroll-door): `against` for the books, `source` for a payroll slip or
+ * remittance, `fee_raw` for a rail's fee, and `payee_mailbox` for a payee who has no account yet. */
 export const PreparedItem = Schema.Struct({
   payee_party_id: Schema.String,
   payee_safe: Schema.String,
@@ -39,36 +43,46 @@ export const PreparedItem = Schema.Struct({
   document_id: Schema.NullOr(Schema.String),
   /** The stored document's hash, or `0x` and 64 zeros for an item with none. */
   document_hash: Schema.String,
+  /** What the books post it against: an account, a party, documents (books' own shape), kept on the Payment from birth. */
+  against: Schema.optionalKey(Against),
+  /** The payroll slip or remittance it pays, kept on the Payment and passed with its book fact. */
+  source: Schema.optionalKey(PaymentSource),
+  /** A rail's fee inside `amount_raw` (a bank payout's quoted `fee_amount`), in the token's units. */
+  fee_raw: Schema.optionalKey(Schema.String),
+  /** The mailbox a provisional payee's Safe derives from, trimmed and lowercased: such an item is paid into a claim escrow. */
+  payee_mailbox: Schema.optionalKey(Schema.String),
 });
 
 export const procedure_payments_prepare_command = defineProcedure({
   id: "payments.prepare-command",
   title: "Birth a Payment command another concept's money needs",
   about:
-    "Money fact: a Payment command another concept births: the request it pays or the bank payout it funds, the Payments " +
-    "that carry it and the approval that moves them commit together, or none of them do. Requests invokes it when a payer " +
-    "pays from the inbox, banking when a bank payout is quoted and accepted. It keeps every birth rule a `payment send` " +
+    "Money fact: a Payment command another concept births: the request it pays, the bank payout it funds or the payroll " +
+    "run it pays, the Payments that carry it and the approval that moves them commit together, or none of them do. " +
+    "Requests invokes it when a payer pays from the inbox, banking when a bank payout is quoted, payroll when a run is " +
+    "paid (purpose payroll, route budget). It keeps every birth rule a `payment send` " +
     "keeps: one owner and request key reach one command, and another request under a used key is refused (K1); the " +
     "funding the invoker read from the chain before its transaction (the paying Safe's balance, or the budget's `leftOf`) " +
     "must cover every item, or nothing is written (K3); each item's v4 payment id is fixed here from its job nonce, before " +
     "anyone signs. It births each Payment through `open` and opens one approval from the payer's own Safe for all of them " +
-    "(`approvals.open`), with the approval page's summary. A dated birth (`pay_at`, at least an hour ahead, else " +
-    "INVALID_INPUT) is a personal operation signed now and sent on its day (`send_after`, with what the Safe needs that " +
-    "day) or a budget's `Budgets.schedule`. `not_after` (a bank quote's expiry) caps the approval's deadline and is kept on " +
-    "the command, so neither the approval nor a later `payment retry` can move the money after it. A repeat under the same " +
+    "(`approvals.open`). A dated birth (`pay_at`, at least an hour ahead, else INVALID_INPUT) is a personal operation " +
+    "signed now and sent on its day (`send_after`) or a budget's `Budgets.schedule`. `not_after` (a bank quote's expiry) " +
+    "caps the approval's deadline and is kept on the command, so no later `payment retry` moves the money after it. A repeat under the same " +
     "key answers the command as it stands (`replayed`); with `resume`, a repeat whose Payments all lapsed (`needs_retry`) " +
     "opens one new approval for the same items and payment ids and moves them `retry`, after the same funding check, so " +
     "a retry can never pay twice; live Payments answer as they stand, and a lapsed command past `not_after` is " +
-    "WRONG_STATE. The documents are the " +
-    "invoker's, already stored, so it stores none. It answers the approval's deadline as opened (the paymaster may cut " +
-    "it shorter when it sponsors). It makes no outside call; the invoker follows `payment_transitioned` for the outcome.",
+    "WRONG_STATE. An item with `payee_mailbox` whose payee Party is still provisional (parties' directory) is a claim " +
+    "escrow (route `claim_escrow`): a personal Safe owns its own; a budget funds a budget's, and its holder or the Board " +
+    "may take it back to the budget (payments.claim-escrow-routes). A mailbox that is not ASCII is INVALID_RECIPIENT. Each " +
+    "item's `against`, `source` and `fee_raw` are kept on its Payment for its book fact. The documents come stored. It " +
+    "answers the approval's deadline as opened. It makes no outside call; the invoker follows `payment_transitioned`.",
   concept: concept_payments,
   input: Schema.Struct({
     owner_kind: OwnerKind,
     owner_id: Schema.String,
     requested_by: Schema.String,
     request_key: Schema.String,
-    purpose: Schema.Literals(["request", "bank_payout"]),
+    purpose: Schema.Literals(["request", "bank_payout", "payroll"]),
     route: Schema.Literals(["personal", "budget"]),
     payer_safe: Schema.String,
     payer_label: Schema.String,
@@ -93,7 +107,7 @@ export const procedure_payments_prepare_command = defineProcedure({
     replayed: Schema.Boolean,
   }),
   errors: [error_INVALID_INPUT, error_INVALID_RECIPIENT, error_INSUFFICIENT_BALANCE, error_PAYROLL_BUDGET_EXCEEDED, error_WRONG_STATE],
-  reads: [table_payment_commands, table_payments],
+  reads: [table_payment_commands, table_payments, partiesData.table_parties],
   writes: [table_payment_commands, table_payments],
   drives: [machine_payment.t.open, machine_payment.t.retry],
   invokes: [approvals.procedure_approvals_open],

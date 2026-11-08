@@ -19,7 +19,11 @@ note. Where one of them touches Capxul's core (the directory, the books, payroll
 for Aaron below (questions 1 and 6).
 
 Status: written 8 November 2026. The core checks in section 7 are the part that matters for the
-main line. Everything before them explains the picture they are checked against.
+main line. Everything before them explains the picture they are checked against. Later the same
+day the CRM lane recorded checks C13, C14, C15 and C27, and questions 1 and 5, as decision records
+(`parties.outside-companies`, `parties.frappe-identity`, `contacts.frappe-shape` and
+`parties.mailbox-for-life`). Their rows and questions below now point at those records. Two of them
+are for Aaron.
 
 > "The goal is we're going to build an agentic ERP that runs on stablecoins... an opinionated front
 > end to Capxul, but tailored to real business. Right now all of this is very speculative. I don't
@@ -193,12 +197,17 @@ provisional Party, by digest, with no name). A company that is not on Capxul (a 
 supplier paid by bank) has no Party of its own: an `organization` Party is a Capxul workspace born
 with its company Safe, and every Party has a `safe_address`, so such a company is at most a nameless
 `address` Party for a wallet it is paid at, and nothing if it is paid only by bank. A global CRM of
-companies needs them. That is check C13 and question 1.
+companies needs them. That is check C13 and question 1, now recorded as `parties.outside-companies`:
+such a company stays a private CRM Organization entry, with no Party, in each Organization's book
+until it is on Capxul (for Aaron).
 
 This two-layer reading is the note's, not the record's: `aaron.crm-frappe-shape` asks for the
 global directory "in Frappe CRM's shape". Frappe CRM's own records hold each business's private
 knowledge, which a global directory cannot hold (`parties.directory-tenancy`). The parties concept is
-Capxul's core, so which reading Aaron meant is part of question 1, and nothing is redesigned here.
+Capxul's core, so which reading Aaron meant is part of question 1. The CRM lane has since recorded
+this reading as `parties.frappe-identity`: each Party is the identity half of a Frappe Contact or
+CRM Organization. `contacts.frappe-shape` gives each Organization's book the other half, in Frappe
+CRM's doctypes, with or without a head.
 
 ## 3. Accounting on a Frappe fork, from first principles
 
@@ -453,9 +462,9 @@ been changed.
 | C10 | A budget can pay someone who has no account yet | **Blocks** (payroll to new hires) | `payments.claim-escrow-routes` (chosen `own-safe-or-board`: a budget spend to a mailbox with no Safe is `INVALID_RECIPIENT`); `operation payment.send` refusal `INVALID_RECIPIENT` | A new employee must claim their Capxul account before the first run, or be paid by the Board. That decision already asks Aaron the same question; question 4 adds payroll's weight. |
 | C11 | Agents can move money within on-chain limits | Fits | `org-members.kind` `human|agent`; `org-invitations.grantee_kind` `human|agent` with allowances in `offers`; `aaron.seats`; `aaron.machine-login` | An agent holding the budget's allowance runs payroll and bills without a person, bounded by the budget. |
 | C12 | Seats are enough for an ERP | Fits | `aaron.seats` (ten Seats, one agent each, plus the company's agent; `org-members.seat_use` `seat|owner-seat|organization`); payees are paid at a mailbox, Party or Safe, never by Seat (`agreements.payee_email`, `agreements.payee_party_id`, `payments.payee_safe`) | Only people and agents who move money need Seats; employees and suppliers do not. Each further ERP agent rides on its owner's Seat (one per Seat) or takes a Seat of its own; the company's own place is the FDE's (`aaron.fde-agent`). |
-| C13 | The global directory can hold companies and people not on Capxul | **Blocks** (a global CRM of companies) | `parties.kind` is `person|agent|organization|address`; every Party has `safe_address` (not null); an `organization` Party is born only with a Capxul Organization (`machine_party.t.register`); a `person` is known only by mailbox (`mailbox_digest`), and one not on Capxul is a `provisional` Party once named (`machine_party.t.name_person`); an outside wallet is a nameless `address` Party (`name_address`) | A person not on Capxul can be in the directory by mailbox; a prospect company, or a supplier paid only by bank, cannot. Question 1. |
-| C14 | The directory leaks nothing a CRM keeps private | Fits | `parties.directory-tenancy` (global, "it holds nothing private"); `parties.mailbox-digest` (a digest, never the mailbox) | Emails, phones, notes and deals stay in each business's Frappe CRM. |
-| C15 | The address book extends to a CRM | Fits with a mapping | `contacts` is per owner (`owner_kind`, `owner_id`, `party_id`, `label`, `visibility`); changing an Organization's book needs its People hat (`aaron.contacts-permissions`, `contacts/book.ts`) | Frappe CRM's Contact and Organization carry the Party id; the CRM holds the rest. The agent that syncs labels back wears the People hat. |
+| C13 | The global directory can hold companies and people not on Capxul | **Settled** by `parties.outside-companies` (for Aaron) | `parties.kind` is `person|agent|organization|address`; every Party has `safe_address` (not null); an `organization` Party is born only with a Capxul Organization (`machine_party.t.register`); a `person` is known only by mailbox (`mailbox_digest`), and one not on Capxul is a `provisional` Party once named (`machine_party.t.name_person`); an outside wallet is a nameless `address` Party (`name_address`) | People not on Capxul are in the directory by mailbox. A company joins it once it is on Capxul (its handle) or is paid at a wallet (its address). Until then each Organization keeps it as a private CRM Organization entry with no Party (`contacts.private-entries`). Naming companies before they join is the decision's `by-domain` option, which needs a domain proof first. Question 1. |
+| C14 | The directory leaks nothing a CRM keeps private | Fits, settled by `parties.frappe-identity` | `parties.directory-tenancy` (global, "it holds nothing private"); `parties.mailbox-digest` (a digest, never the mailbox); `parties.frappe-identity` (a Party holds only the identity half of a Frappe Contact or CRM Organization: its name, picture and mailbox digest) | Emails, phones, notes, leads and deals stay in each Organization's book (contacts), under Frappe's field names, and in a connected head's site. |
+| C15 | The address book extends to a CRM | Fits, settled by `contacts.frappe-shape` | One table per Frappe CRM doctype: `contacts` (Contact and CRM Organization entries, a `doctype` column, `party_id` null for a private entry), `leads`, `deals` and `deal-contacts`; changing an Organization's CRM needs its People hat (`aaron.contacts-permissions`, `contacts.crm-permission`); a connected head syncs by contacts' own process (`contacts.head-sync`) | Each Organization's CRM is in Frappe CRM's shapes from its first day, with or without a head. A head's Contact, CRM Organization, Customer, Supplier and Employee carry the Party as the Custom Field `capxul_party`. The agent that works or syncs the CRM wears the People hat. |
 | C16 | Capxul's pay agreements and Frappe HR's payroll can both exist | Fits with a mapping | `agreements` (`rate`, `period`, `release`, `terms_hash`); `payroll.scope` (runs, items and groups dropped from the baseline; listed in `SUPERSEDED` for `aaron.frappe-shape`, question 6); `Payslip` shows `gross` only (`payroll/shapes.ts`) | Agreements pay gross on chain; withheld payroll is Frappe HR's run paid by budget spends. The ERP records both (section 4). |
 | C17 | A collection can become a paid pay record | Fits with a mapping | `agreement-writes.payment_id`, `landed_at` (the block's time), `args.period_start`, `args.period_end`; `agreement_transitioned.occurred_at`; `payroll.collection-payment-id` | Each collection is one record, keyed by its payment id: a Salary Slip only for an Employee with a Salary Structure Assignment, else a Supplier's Purchase Invoice and its Payment Entry (section 4). |
 | C18 | Posting dates, periods and currency are the ledger's | Fits | `organizations` has `country` but no time zone, functional currency or fiscal year; `book-charts.template` `us-services`, `basis` `cash`; books' reports cut at "the end of `asOf`'s day" with no time zone named (`books/reports.ts`) | ERPNext owns them. Capxul's own reports should say whose day they cut at; a clarification for the books owner, not a blocker. |
@@ -467,19 +476,25 @@ been changed.
 | C24 | Money authority stays on chain | Fits | `concept budgets` ("It answers, from the chain, who may spend"); `concept approvals` ("It never decides authority: the chain does") | No Frappe role can move money; a Frappe Workflow is a business step before Capxul's approval. |
 | C25 | The ERP's businesses keep books | Fits | `book-facts`: "Only Organizations keep facts; a person's rows keep none" | A business is an Organization; a sole trader on a personal Safe is out of scope for the ERP. |
 | C26 | A payment's kind tells the ledger what it is | Fits with a mapping | `PaymentKind` `bill|one-off|reimbursement|transfer` (kinds 0 to 3) and 4 for a collection (`Budgets.sol` `KIND_COLLECTION`, `MAX_PREPARED_KIND`) | There is no salary kind; the ledger classifies by its own document, not by the kind. |
-| C27 | An employee keeps their pay after they leave | Fits with a condition | A person's Safe is a pure function of their mailbox (`concept accounts`; `parties.safe_address`); sign-in is an emailed code (`concept access`); no record moves a person to a new mailbox | Pay an employee at a mailbox they keep, never at a work address that ends with the job. Question 5. |
+| C27 | An employee keeps their pay after they leave | Fits with a condition, settled by `parties.mailbox-for-life` (for Aaron) | A person's Safe is a pure function of their mailbox (`concept accounts`; `parties.safe_address`); sign-in is an emailed code (`concept access`); `parties.mailbox-for-life`: a Party's `mailbox_digest` never changes and nothing moves it | Pay an employee at a mailbox they keep, never at a work address that ends with the job: Frappe HR's Employee `personal_email`, never `company_email`. Moving an account to a new mailbox would be a later capability, designed across access, parties and accounts. Question 5. |
 
 ### Questions this raises for Aaron
 
-1. **The directory (C13).** You ruled the directory global, a global CRM of people and companies,
-   in Frappe CRM's shape. Today it holds only identities Capxul can pay: every Party has a Safe. A
-   person not on Capxul is in it once someone names their mailbox, but a company is in it only
-   once it is a Capxul Organization. Frappe CRM's own records (leads, deals, contacts, with emails,
-   phones and notes) are each business's private knowledge, and the directory holds nothing private.
-   So this note reads your ruling as: the directory links one to one to Frappe CRM's Organization
-   and Contact by a Party id, and the private fields stay in each business's site. Is that what you
-   meant? And should the directory also name companies that are not on Capxul (a prospect, a
-   supplier paid by bank), or do those stay private in each business's CRM until they join?
+1. **The directory (C13). Recorded as `parties.frappe-identity` (the reading) and
+   `parties.outside-companies` (companies), the second for you.** You ruled the directory global,
+   a global CRM of people and companies, in Frappe CRM's shape. Today it holds only identities
+   Capxul can pay: every Party has a Safe. A person not on Capxul is in it once someone names their
+   mailbox, but a company is in it only once it is a Capxul Organization. Frappe CRM's own records
+   (leads, deals, contacts, with emails, phones and notes) are each business's private knowledge,
+   and the directory holds nothing private. So this note reads your ruling as: the directory links
+   one to one to Frappe CRM's Organization and Contact by a Party id, and the private fields stay in
+   each business's site. Is that what you meant? And should the directory also name companies that
+   are not on Capxul (a prospect, a supplier paid by bank), or do those stay private in each
+   business's CRM until they join? The records keep the reading, with one change: the private half
+   lives in each Organization's own book, in Frappe CRM's doctypes (`contacts.frappe-shape`), as
+   well as in a connected head's site. They also keep such companies private until they join.
+   Naming them earlier would mean keying them by a web domain the company later proves, which needs
+   a domain proof Capxul does not have yet.
 2. **A feed of facts a ledger can follow (C5, C6).** An outside ledger would post Capxul's money
    facts. Today they can be read only in the order money happened, which can skip a fact recorded
    late. Should the books keep each Organization's facts in the order they were recorded (a gap-free
@@ -492,9 +507,13 @@ been changed.
 4. **Paying a new hire (C10).** Must every employee claim their Capxul account before their first
    pay from a budget, or should a budget be able to pay someone who has no account yet? This is the
    question `payments.claim-escrow-routes` already asks, with payroll as the case that needs it.
-5. **A person's mailbox for life (C27).** A person's Safe and sign-in hang on one mailbox, and
-   nothing moves them to another. Is that the rule for good (so the ERP must pay at a mailbox the
-   employee keeps), or will a person be able to move their account to a new mailbox?
+5. **A person's mailbox for life (C27). Recorded as `parties.mailbox-for-life`, for you.** A
+   person's Safe and sign-in hang on one mailbox, and nothing moves them to another. Is that the
+   rule for good (so the ERP must pay at a mailbox the employee keeps), or will a person be able to
+   move their account to a new mailbox? The record chooses one mailbox for life: whoever pays
+   people pays at a mailbox the person keeps (Frappe HR's `personal_email`). Moving would be a
+   capability designed first across access, parties and accounts, with a guard against a work
+   mailbox given to someone else.
 6. **Books and payroll in Frappe's shapes (C1, C16).** Your rulings recorded earlier on
    8 November send two baseline records to be rewritten in Frappe's shapes now:
    `books.facts-without-chart` (to `aaron.books-first-principles`) and `payroll.scope` (to

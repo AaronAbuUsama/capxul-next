@@ -17,6 +17,7 @@
 import { Schema } from "effect";
 import { defineEvent, defineMachine, defineTable } from "../../../packages/book/src/index.ts";
 import { concept_payments } from "../shared/foundation.ts";
+import { Against } from "../books/procedures.ts";
 
 const OLD = "packages/backend/src/payments";
 const ASIS = "docs/as-is/archive/payments/data.ts";
@@ -61,6 +62,17 @@ export const Outcome = Schema.Literals([
   "withdrawn",
 ]);
 
+/**
+ * What another concept's money is, kept on the Payment it births so its book fact names it (payments.payroll-door):
+ * a payroll run's salary slip, or a payroll deduction's remittance, with the run and the Employee it pays.
+ */
+export const PaymentSource = Schema.Struct({
+  kind: Schema.Literals(["salary-slip", "payroll-remittance"]),
+  id: S,
+  payroll_entry_id: Null(S),
+  employee_id: Null(S),
+});
+
 // ── payment-commands ────────────────────────────────────────────────────────────────────────
 
 export const table_payment_commands = defineTable({
@@ -74,7 +86,10 @@ export const table_payment_commands = defineTable({
     "has no state of its own: where it ended is its Payments' and its approval's. It carries the approval or Board " +
     "proposal it opened (the latest, after a resume), so a repeat reports where that approval ended. `not_after` is the " +
     "last moment its money may move (a bank quote's expiry): its approval's deadline is capped at it, and `payment " +
-    "retry` refuses after it. The old document intents are the digest's document hashes.",
+    "retry` refuses after it. A payroll run's pay (`purpose` payroll) is one command per attempt. What the money is for " +
+    "in the books (`payment send --account`, a request's meaning, a payout's payee, a head's references) is kept on each " +
+    "Payment it births, from that birth, so it reaches books at settlement (payments.money-sides). The old document " +
+    "intents are the digest's document hashes.",
   concept: concept_payments,
   tenancy: "owner",
   tenantField: "owner_id",
@@ -85,7 +100,7 @@ export const table_payment_commands = defineTable({
     request_key: S,
     request_digest: S,
     route: Route,
-    purpose: Schema.Literals(["payment", "department", "reschedule", "request", "bank_payout"]),
+    purpose: Schema.Literals(["payment", "department", "reschedule", "request", "bank_payout", "payroll"]),
     requested_by: S,
     approval_id: Null(S),
     proposal_id: Null(S),
@@ -117,14 +132,16 @@ export const table_payments = defineTable({
     "a Budgets reservation, a claim escrow) and, once settled, the one PaymentSent log it consumed. Its owner is the side " +
     "that holds it: the payer when the payer is a Capxul party, otherwise the payee (an incoming Payment Capxul did not " +
     "prepare). The payee's tenant is on the row too, so a recipient reads it through the payee index and the generated " +
-    "row-level policy admits either side. Labels are the names as the payer gave them, snapshotted at birth, so no read " +
-    "reaches into parties. Dated payments are rows here with `pay_at`: the old payment-schedules table, its signed bytes " +
-    "(now approvals') and its lease are gone. A Payment born from a chain fact has the id `payment_` and the 64 hex " +
-    "digits of its v4 payment id, so a concept that read the PaymentSent (payroll's collection) names it without reading " +
-    "payments; a prepared Payment's id is `payment_` and a ULID. A claim escrow's Payment keeps `payee_mailbox`, the " +
-    "mailbox its payee Safe is derived from as the payer typed it (trimmed and lowercased), because parties keeps only a " +
-    "digest and the money-waiting email must reach it (payments.claim-escrow-mailbox); its payee tenant is filled when " +
-    "the payee collects. Status changes only through machine `payment`.",
+    "row-level policy admits either side. Labels are the names as the payer gave them, snapshotted at birth. Dated " +
+    "payments are rows here with `pay_at`. A Payment born from a chain fact has the id `payment_` and the 64 hex digits " +
+    "of its v4 payment id, so a concept that read the PaymentSent (payroll's collection) names it without reading " +
+    "payments; a prepared Payment's id is `payment_` and a ULID. A claim escrow's Payment keeps `payee_mailbox` as the " +
+    "payer typed it (trimmed and lowercased), for the money-waiting email (payments.claim-escrow-mailbox), and its payee " +
+    "tenant is filled when the payee collects; one a budget funds keeps `budget_id` and `funding_payment_id`, the id of " +
+    "the PaymentSent that funds the escrow, which settles nothing (payments.claim-escrow-routes). `against`, `source` " +
+    "and `fee_raw` go to books with its settlement (payments.money-sides). `settled_at` is the settling block's time, and " +
+    "the settled transaction, log and block are the holder's to read: a payroll run copies them onto its slips " +
+    "(payments.payroll-door). Status changes only through machine `payment`.",
   concept: concept_payments,
   tenancy: "owner",
   tenantField: "owner_id",
@@ -171,6 +188,14 @@ export const table_payments = defineTable({
     budget_id: Null(S),
     scheduled_id: Null(S),
     escrow_address: Null(S),
+    /** A budget claim escrow's funding: the payment id of the company Safe's PaymentSent to the escrow. Null otherwise. */
+    funding_payment_id: Null(S),
+    /** What the books post it against, as the command carried it at birth; null when nothing was said. */
+    against: Null(Against),
+    /** A payroll slip or remittance this Payment pays; null for every other Payment. */
+    source: Null(PaymentSource),
+    /** The part of the amount a rail keeps (a bank payout's quoted fee), in the token's units; null when none. */
+    fee_raw: Null(S),
     approval_id: Null(S),
     proposal_id: Null(S),
     cancel_approval_id: Null(S),
@@ -182,6 +207,7 @@ export const table_payments = defineTable({
     settled_log_index: Null(Int),
     settled_block_number: Null(Int),
     settled_block_hash: Null(S),
+    /** The settling block's time, epoch ms: the same instant books dates the fact at and a payroll slip copies. */
     settled_at: Null(At),
     created_at: At,
     updated_at: At,
@@ -220,6 +246,13 @@ export const table_payments = defineTable({
       unique: true,
       crossTenant: true,
       for: "Settlement: the one Payment an indexed PaymentSent's payment id settles, whoever holds it; a second birth of the same id fails here.",
+    },
+    {
+      name: "by-funding-payment-id",
+      fields: ["chain_id", "funding_payment_id"],
+      unique: true,
+      crossTenant: true,
+      for: "A budget claim escrow's funding PaymentSent: the Payment it funds, so the PaymentSent births no Payment of its own.",
     },
     {
       name: "by-settled-log",
@@ -337,7 +370,7 @@ export const machine_payment = defineMachine({
     {
       id: "escrowed",
       about:
-        "In a claim escrow for an email with no account yet: the payer can take it back until the payee collects; it has no expiry.",
+        "In a claim escrow for an email with no account yet: the payer (for a budget's, its holder or the Board) can take it back until the payee collects; it has no expiry.",
     },
     { id: "submitted", about: "Sent: its approval was sent, its Board proposal executed, or Budgets was asked to pay it; waiting for the indexed PaymentSent." },
     { id: "needs_retry", about: "Its approval ended without moving money; `payment retry` sends the same terms again under the same payment id." },
@@ -366,11 +399,12 @@ export const machine_payment = defineMachine({
       emits: sends,
     },
     escrow: {
-      from: ["prepared", "submitted"],
+      from: ["prepared", "scheduled", "due", "submitted"],
       to: "escrowed",
       about:
         "EscrowCreated with its payment id is indexed: the claim escrow holds the money and notices sends the money-waiting " +
-        "email. Also from `submitted`: its carrier answers before Ponder (payments.escrow-after-send).",
+        "email. Also from `submitted`, and for a dated one from `scheduled` or `due`: its carrier answers before Ponder " +
+        "(payments.escrow-after-send).",
       emits: sends,
     },
     submit: {
@@ -417,7 +451,7 @@ export const machine_payment = defineMachine({
       from: ["prepared", "scheduled", "due", "escrowed"],
       to: "cancelled",
       about:
-        "Its approval was declined, refused or withdrawn before signing, its proposal rejected, or its void, `Budgets.cancel` or escrow refund landed; a void cancels every Payment of its operation (K14).",
+        "Its approval was declined, refused or withdrawn before signing, its proposal rejected, or its void, `Budgets.cancel` or escrow refund landed (outcome refunded, a budget's escrow back to its budget); a void cancels every Payment of its operation (K14).",
       emits: sends,
     },
   },

@@ -2,8 +2,9 @@
 
 The **target** book is the design of the rebuilt Capxul: Effect 4 on Node with one Postgres, Ponder
 on the same Postgres, Protocol v4 only, every one of the 215 operations kept as a capability, with
-its behaviour (`system.frozen-behaviour`: the freeze keeps behaviour, not spelling). It is built with stage
-`"target"`, which turns the accepted policies into build rules (`checkTargetRules` in
+its behaviour (`system.frozen-behaviour`: the freeze keeps behaviour, not spelling), and a new
+capability booked only where an Aaron ruling asks for it (`rules.new-operations`). It is built
+with stage `"target"`, which turns the accepted policies into build rules (`checkTargetRules` in
 `packages/book/src/build.ts`). A target book with a problem does not build.
 
 Read first, in this order:
@@ -38,7 +39,7 @@ target one, and point its `was` at what it replaces.
 | a concept's rpcs, one file per area of the concept | `<concept>/<area>.ts` |
 | a concept's durable processes (workflows) | `<concept>/processes.ts` |
 | the Core SDK flows of a concept | `<concept>/flows.ts` |
-| the operation records of the frozen operations the concept owns | `<concept>/operations.ts` |
+| the operation records of the frozen operations the concept owns, and of its new ones (rule 4a) | `<concept>/operations.ts` |
 | the concept's own judgments | `<concept>/decisions.ts` |
 | the concept's module list | `<concept>/index.ts`: `export const modules = [data, procedures, …] as const;` |
 
@@ -70,7 +71,7 @@ Ids match `^[a-z][a-z0-9]*([._-][a-z0-9]+)*$`: lowercase, no camelCase. Codes ar
 | rpc | `<concept>.<area>.<verb>`: `payments.commands.prepare` | `rpc_<id, . and - → _>` |
 | workflow | `<concept>.<area>.<name>`: `payments.dated.pay-on-date` | `workflow_<id, . and - → _>` |
 | flow | the SDK method, kebab-cased, without `(orgId)`: `client.org.books.accounts.add` | `flow_<id, . and - → _>` |
-| operation | the frozen id: `payment.send` | `operation_<id, . and - → _>` |
+| operation | the frozen id: `payment.send`; a new operation: its command's words joined by dots, never a frozen id (rule 4a) | `operation_<id, . and - → _>` |
 | decision | `<concept>.<topic>`: `payments.one-settlement-path` | `decision_<id, . and - → _>` |
 | error, integration, call, contract | shared: import them | `error_<CODE>`, `integration_x.c.<call>`, `contract_x.f.<fn>`, `contract_x.e.<Event>` |
 
@@ -150,7 +151,7 @@ does until its rule lands (**review**, with the rule's name from the policy pack
   `world` (a before-and-after diff of the world snapshot).
 - On v4, the 29 lines opening "On v4", "On Protocol v4" or "On a v4" lose the opening; the two
   pre-v4-only lines are retired as `null` (P9).
-- Build every operation from the frozen text, never retyped:
+- Build every frozen operation from the frozen text, never retyped (a new one: rule 4a):
   `defineOperation({ ...frozenText("payment.send"), priority, implementedBy, acceptance, returns, refusals, errors, budget })`.
   Where the frozen record has a `designed` block, its v4 text is the best evidence of the
   intended behaviour.
@@ -162,6 +163,34 @@ does until its rule lands (**review**, with the rule's name from the policy pack
 - Priority: `low` for equity, `org.director.*`, `org.board.*`, `org.vote.*` and `vote.*`; `critical`
   for the B3 pilots' operations (`auth.login`, `auth.verify`, `account.retry`, `payment.send`);
   `normal` for the rest.
+
+### 4a. Operations beyond the 215 (`rules.new-operations`) — built (`tools/check-frozen.ts`)
+
+The 215 are the list of capabilities the rebuild keeps. A new capability, such as the CRM, projects
+and Frappe HR payroll that Aaron ruled fundamental (`aaron.frappe-shape`, `aaron.projects`), may be
+an operation too, but only on these terms:
+
+- **A decision cites the ruling it serves.** A decision on the operation (its `affects` lists it)
+  is one of Aaron's rulings, or its words or its `source` name an `aaron.*` id that is a ruling in
+  the book. Usually that decision is the concept's decision pack, in `<concept>/decisions.ts`. Which
+  commands a capability gets is the pack's question, and it says "For Aaron:" in its why; its
+  recommendation stands until he answers.
+- **It has at least one acceptance claim.** Each line is `{ claim, observes }`, written for the
+  target (P1). It has no frozen text, so nothing of it is compared with the old book.
+- **It collides with nothing.** Its id is its command's words joined by dots, as the frozen ids
+  are. That id is no frozen id, and does not differ from one only in its separators (both would
+  export `operation_<id>`). Its command is no other target operation's command and no frozen
+  operation's old command.
+- **It keeps every target rule.** Write it with `defineOperation` in the owning concept's
+  `operations.ts`, with its own `title`, `about`, `who` and `area` (an old area where it belongs,
+  such as `payroll`, else the concept's id), and no `frozenText`. Its flow serves the CLI (A4), it
+  has a budget (P5), and each refusal is one its implementation produces, from a world. A concept
+  whose new capability is booked as an SDK-only flow adds `cli` to the flow's `surfaces` when the
+  operation is booked.
+
+`tools/check-frozen.ts` counts new operations apart from the 215, which it still requires booked
+exactly once each, and reports the rulings they serve. A new operation never stands in for one of
+the 215. `OPERATION_OWNERS` lists only the 215: a new operation's owner is the concept that books it.
 
 ### 5. One durable process per long-lived object (A3, P3) — review
 
@@ -274,5 +303,7 @@ does until its rule lands (**review**, with the rule's name from the policy pack
 - Build: `node --experimental-strip-types packages/book/src/main.ts books/target/index.ts /tmp/target`.
   It must report 0 problems. Gaps are expected until every concept lands, and are never written by
   hand.
+- Frozen check: `node --experimental-strip-types tools/check-frozen.ts`. It must report 0 breaches:
+  each of the 215 booked once with its behaviour kept, and each new operation booked by rule 4a.
 - Keep prose short: `title` ≤ 80, `about` ≤ 2000, a line ≤ 300 characters. Write for a reader who
   has not seen the old system.

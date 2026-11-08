@@ -2986,3 +2986,71 @@ export const decision_rules_counterparty_reads = defineDecision({
   source: `${HANDOFF}; evidence: the adversarial review of rules.admissions-and-wait-keys (counterparty rpcs in equity, payroll and organizations)`,
   affects: [f.concept_equity, f.concept_organizations, f.concept_payroll, f.component_postgres],
 });
+
+// ── operations beyond the 215 (8 November 2026) ─────────────────────────────────────────────
+
+const RULES = "Claude, target assembly (rules), 8 November 2026";
+
+export const decision_rules_new_operations = defineDecision({
+  id: "rules.new-operations",
+  title: "A new operation is booked with a decision citing an Aaron ruling, and a claim",
+  question:
+    "system.frozen-behaviour keeps the 215 operations as the list of capabilities, and tools/check-frozen.ts refused any " +
+    "target operation that is none of them. Aaron has since ruled new capabilities fundamental: every Organization starts " +
+    "with a CRM and Projects in Frappe's shapes, and its payroll is Frappe HR's (aaron.frappe-shape, " +
+    "aaron.crm-frappe-shape, aaron.projects), and aaron.projects says their operations are new capabilities, designed " +
+    "book first with a decision pack. So the lanes booked those rpcs behind SDK-only flows (contacts.crm-capabilities, " +
+    "payroll.hr-surface) or not at all (projects.commands, organizations.commands): no CLI command could be booked. On " +
+    "what terms may the target book an operation that is none of the 215?",
+  options: [
+    {
+      label: "cited-ruling",
+      text:
+        "A new operation is booked only when: (1) a decision on it (its `affects` lists the operation) cites the Aaron " +
+        "ruling it serves: the decision is one of Aaron's rulings, or its own words or its source name an `aaron.*` id " +
+        "that is a ruling in the book; (2) it has at least one acceptance claim, a claim with what an eval observes (P1); " +
+        "and (3) it collides with nothing: its id is no frozen id and does not differ from one only in its separators " +
+        "(both would export `operation_<id>`), and its command is no other target operation's command and no frozen " +
+        "operation's old command. Its id is its command's words joined by dots. It is written in the owning concept's " +
+        "operations.ts with its own text (it has no frozenText, so nothing of it is compared with the old book) and keeps " +
+        "every target rule: its flow serves the CLI (A4), its budget (P5), and refusals its implementation produces, each " +
+        "from a world. tools/check-frozen.ts counts new operations apart from the 215, which it still requires booked " +
+        "exactly once each, and reports the rulings they serve.",
+    },
+    {
+      label: "accepted-pack",
+      text:
+        "As cited-ruling, and the decision must also be one Aaron accepted (ACCEPTED in shared/rulings.ts) or his own, " +
+        "so no new command is booked on a recommendation alone.",
+    },
+    {
+      label: "closed",
+      text: "Keep the 215 as the whole CLI: new capabilities stay SDK methods until Aaron reopens the list himself.",
+    },
+    {
+      label: "any-decision",
+      text: "Book a new operation with any decision on it, as a frozen command is renamed, with no ruling cited.",
+    },
+  ],
+  chosen: "cited-ruling",
+  why:
+    "Aaron's rulings already make these capabilities operations: aaron.projects says they are new capabilities designed " +
+    "book first with a decision pack, and aaron.frappe-shape puts CRM, Projects and Frappe HR payroll in every " +
+    "Organization from the start. system.frozen-behaviour keeps the 215 and what their claims require, and nothing in it " +
+    "closes the list. So the rule opens it exactly where a ruling does. Citing the ruling ties each new command to the " +
+    "authority that made its capability; a claim makes it an eval, not a hope, as the 215's claims are theirs; and the " +
+    "collision checks keep the 215 exact: a new id equal to a frozen one would be read as that operation, one that " +
+    "differs only in its separators would share its export name, and a reused command would be two operations to the " +
+    "CLI. The 215 are still counted and required exactly, so a new operation never stands in for a frozen one. " +
+    "Accepted-pack was weighed: a decision pack's recommendation stands until Aaron answers, as every recorded choice " +
+    "does (the judgments report lists the packs for him), and a new operation changes no behaviour of the 215, so the " +
+    "stricter form would only hold the book back. Closed would leave the CRM, projects and Frappe HR payroll with no CLI, " +
+    "though the Forward Deployed Engineer works through the CLI as every agent does (aaron.fde-agent). Any-decision would " +
+    "let in a capability no ruling asked for. This rule decides how a new operation is booked, not which: the commands " +
+    "the CRM, projects, payroll and the head get are their packs' questions, for Aaron.",
+  source: `${RULES}; under system.frozen-behaviour and aaron.frappe-shape (aaron.projects: a decision pack); evidence: tools/check-frozen.ts; contacts.crm-capabilities, payroll.hr-surface, projects.commands, organizations.commands`,
+  affects: [
+    decision_system_frozen_behaviour, f.system_capxul, f.component_cli, f.component_core_sdk, f.concept_contacts,
+    f.concept_projects, f.concept_payroll, f.concept_organizations,
+  ],
+});

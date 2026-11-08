@@ -24,13 +24,14 @@ const home = (d: Decision) => {
 };
 // The designers and the assembly flagged these for Aaron in their reports; their text need not name him.
 // The report fails if one is not a decision in the book.
+// documents.acceptance-rewrites left the list once its line was kept word for word again (W1 settled).
 const FLAGGED = [
   "payroll.scope", "payments.birth-width", "parties.directory-tenancy", "procedures.accounts-admit",
-  "documents.acceptance-rewrites", "agents.org-owned", "board.failed-proposal", "equity.acceptance",
+  "agents.org-owned", "board.failed-proposal", "equity.acceptance",
   "contacts.members-write", "notices.claim-escrow", "system.size",
 ];
 /** Decisions that carry out one of Aaron's own; they cite him but need nothing from him. */
-const CARRIES_OUT = ["rules.frozen-flags-kept", "rules.frozen-flags-built-ins"];
+const CARRIES_OUT = ["rules.frozen-flags-kept", "rules.frozen-flags-built-ins", "rules.new-operations"];
 /** Aaron's own decisions are settled, not for his review. */
 const byAaron = (d: Decision) => /^Aaron\b/.test(d.source);
 const forAaron = (d: Decision) =>

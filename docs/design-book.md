@@ -53,6 +53,18 @@ design book makes the whole design something a machine can check:
 - A refusal is a behaviour ("a signed-out caller is refused"). It is checked by its code only where
   the target's own error vocabulary keeps the code.
 
+**New capabilities.** The 215 are the capabilities the rebuild keeps, not a ceiling. Aaron ruled
+some capabilities fundamental that the old system never had: the CRM, Projects and Frappe HR
+payroll in every Organization (`aaron.frappe-shape`, `aaron.projects`). Decision
+`rules.new-operations` books such a capability as an operation on three terms:
+- a decision on it cites the Aaron ruling it serves (it names an `aaron.*` ruling);
+- it has at least one acceptance claim;
+- its id and its command collide with nothing: no frozen id, no id that would share a frozen
+  operation's export name, and no other operation's command, old or new.
+
+Which commands a capability gets is its concept's decision pack, a question for Aaron. The 215
+are still required exactly, and a new operation never stands in for one of them.
+
 **The old system is a reference for behaviour, not a baseline.** Agents read its code for edge
 cases: contract reverts, money paths and permissions. They never port it, and the evals are not run
 against it. An earlier **as-is book** described it in the same records. That book is closed and
@@ -70,9 +82,10 @@ checked as rules:
 - P8: tenant-first keys;
 - A4: a flow that implements an operation serves the CLI.
 
-P4's write boundary is a base rule, so it runs in every stage. The kept behaviour is checked by
-`tools/check-frozen.ts`. Nothing checks P3, P6 or P9 mechanically yet: reviewers hold them, and
-the build session's generators will check P6's spans.
+P4's write boundary is a base rule, so it runs in every stage. The kept behaviour, and the terms
+on which a new operation is booked, are checked by `tools/check-frozen.ts`. Nothing checks P3, P6
+or P9 mechanically yet: reviewers hold them, and the build session's generators will check P6's
+spans.
 
 **A target operation record is two layers.** First comes the old text, spread in with
 `...frozenText("payment.send")`. Then it adds the design:
@@ -84,6 +97,9 @@ the build session's generators will check P6's spans.
 A claim keeps the frozen words where they read as an outcome. A claim is rewritten where it names a
 mechanism or the old spelling, with the frozen claim kept first in its `was` and a decision on the
 operation.
+
+A new operation (`rules.new-operations`) has only the second layer. It has no frozen text, so its
+title, `about` and `who` are written for the target, and its claims are compared with nothing old.
 
 ## The pieces
 
@@ -98,7 +114,7 @@ packages/book/                 the record system; product-neutral except the tar
   test/                        21 tests, with a small fixture book (invitations)
 books/frozen/                  the old operations and their CLI flags, as reference (generated)
 books/target/
-  shared/                      the system, the components, the 22 concepts and what each may depend on,
+  shared/                      the system, the components, the 23 concepts and what each may depend on,
                                the errors, the integrations, the v4 contracts, the architecture decisions,
                                and where each old area lands
   <concept>/                   data.ts        tables, state machines and their events
@@ -123,7 +139,7 @@ drive this transition").
 
 ```mermaid
 flowchart TD
-  OP["operation: one of the 215 capabilities, a CLI command"] -->|implementedBy| FLOW["flow: one Core SDK method"]
+  OP["operation: a CLI command, one of the 215 or a new one a ruling asks for"] -->|implementedBy| FLOW["flow: one Core SDK method"]
   OP -->|implementedBy| RPC
   OP -->|refusals| ERR[error]
   FLOW -->|steps| RPC["rpc: one server endpoint"]
@@ -338,7 +354,7 @@ source has many readers:
 | The book build | every record | problems, gaps, evals | built |
 | Markdown views | every record | the summary page and concept pages, with diagrams | built |
 | Judgments report | decisions | `docs/decisions/judgments.md`, with "For Aaron" | built |
-| Frozen check | the frozen book beside the target operations | an operation not booked, or a behaviour dropped without a decision | built |
+| Frozen check | the frozen book beside the target operations | an operation not booked, a behaviour dropped without a decision, or a new operation no Aaron ruling asks for | built |
 | The docs site | operations, flows, errors, concepts, machines | the reference: a page per CLI command and SDK method, the error catalogue, the state diagrams; the `doc:<operation>` evals check it | B4 |
 | Generators | tables, rpcs, flows, operations, machines, events | migrations, schemas, the `RpcGroup`, the SDK client, the CLI wiring, the telemetry catalogue | B1 |
 | The product runtime | the generated code (see below) | the error catalogue, the transition tables, integration timeouts and retries, span names | B1 and B3 |
@@ -428,17 +444,21 @@ The `chain` tenancy for Ponder's indexed tables has since been added.
 pnpm exec tsc -p packages/book && pnpm test     # the record system and its tests
 pnpm exec tsc -p books                                           # the target and frozen books typecheck
 node --experimental-strip-types packages/book/src/main.ts books/target/index.ts /tmp/target   # 0 problems
-node --experimental-strip-types tools/check-frozen.ts       # every operation booked, every behaviour kept: 0 breaches
+node --experimental-strip-types tools/check-frozen.ts       # the 215 booked, every behaviour kept, new operations by a ruling: 0 breaches
 node --experimental-strip-types tools/report-judgments.ts > docs/decisions/judgments.md
 ```
 
 The book build does not see the frozen text beside the target's records, so
-`tools/check-frozen.ts` checks the kept behaviour separately:
+`tools/check-frozen.ts` checks the kept behaviour, and the new operations, separately:
 - **Booking.** Every one of the 215 operations is booked exactly once. A renamed command or title
   carries a decision.
 - **Acceptance.** Every acceptance claim is either kept in intent, or rewritten or retired with a
   decision. A rewritten claim keeps the frozen claim first in its `was`.
 - **Refusals.** Every frozen refusal's behaviour is still refused: under its code where the target's
   error vocabulary keeps that code, otherwise a decision names it.
+- **New operations.** A target operation that is none of the 215 is counted apart and reported
+  with the rulings it serves. Each one needs a decision on it that cites an Aaron ruling and at
+  least one acceptance claim. Its id may not collide with a frozen one, and no two operations may
+  share a command (`rules.new-operations`).
 
 It does not compare flags, `--json` shapes or wording: those are the target's to design.
