@@ -109,8 +109,10 @@ export const rpc_payments_commands_prepare = defineRpc({
     "`open` with its payment id, and the approval from the caller's Safe that carries the calls (`approvals.open`): " +
     "`approve` and `Payments.send` (kind 0) for a personal payment (`sendBatch` for several items of `--input`, all or none), " +
     "`Budgets.spend` or, dated, `Budgets.schedule` from a budget. A mailbox with no live Safe is a claim escrow (route " +
-    "`claim_escrow`, its mailbox kept): the payer's Safe owns it, the email's derived Safe is its payee, and one operation " +
-    "sends the amount to the predicted address and `EscrowFactory.deploy`; a non-ASCII mailbox, whose Safe could never be " +
+    "`claim_escrow`, its mailbox kept): the payer's Safe owns it, the email's derived Safe is its payee, its other terms " +
+    "are the token, the raw amount, the Payment's job nonce, kind 0, the document's hash and condition payee-claimed, its " +
+    "salt is the job nonce (a retry rebuilds the same address and payment id), its predicted address is kept in " +
+    "`escrow_address`, and one operation sends the amount there and `EscrowFactory.deploy`; a non-ASCII mailbox, whose Safe can never be " +
     "claimed, and a budget spend or a dated payment to a mailbox with no live Safe are INVALID_RECIPIENT " +
     "(payments.claim-escrow-routes). A personal dated payment is the same operation signed now and sent on its day. It answers the hand-over with the preview the CLI shows; " +
     "signing and following are the flow's.",
@@ -182,7 +184,8 @@ export const rpc_payments_commands_propose = defineRpc({
     "in the asset with the most left. An immediate Board payment cannot be a budget spend: the Gate refuses re-entry from " +
     "inside a Safe transaction. The calls are checked against what was asked (amount, recipient, contract) before the " +
     "proposal opens; nothing moves until enough Directors approve. An immediate payment to a mailbox with no live Safe is " +
-    "a claim escrow the company Safe owns: the batch sends the amount to the predicted address and `EscrowFactory.deploy`, " +
+    "a claim escrow the company Safe owns (route `claim_escrow`, its mailbox kept, its terms and salt as `prepare` gives " +
+    "them): the batch sends the amount to the predicted address and `EscrowFactory.deploy`, " +
     "and only a Board proposal refunds it; a dated one, or a non-ASCII mailbox, is INVALID_RECIPIENT " +
     "(payments.claim-escrow-routes). A Board payment takes no request key from the caller: its key is the proposal's own " +
     "subject.",

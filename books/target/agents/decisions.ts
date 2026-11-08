@@ -601,8 +601,8 @@ export const decision_agents_worlds = defineDecision({
         "(active, empty Safe), @paused (frozen) and @gone (removed); Sam (sam@acme.test, claimed Safe) owns @scribe. " +
         "person-with-waiting-agent-change: that world with a freeze of @ledger and an unfreeze of @paused each waiting " +
         "for Dana's approval. org-with-agent: Acme with Directors Dana and Lee (threshold 1), the proposals gate on, a " +
-        "member Max who is no Director, and @acme-bot, which Acme owns. Reused: signed-out, and accounts' " +
-        "person-unclaimed.",
+        "member Max who is no Director, and @acme-bot, which Acme owns. Reused: signed-out, accounts' " +
+        "person-unclaimed and board's org-with-proposals-gate-off (agent create's gate refusal, agents.org-own-agent).",
     },
     { label: "per-state", text: "One world per agent state." },
   ],
@@ -638,7 +638,7 @@ export const decision_agents_no_door = defineDecision({
 export const decision_agents_org_own_agent = defineDecision({
   id: "agents.org-own-agent",
   title: "An Organization owns one live agent; a second create is SEAT_LIMIT_REACHED",
-  question: "aaron.seats: 'the company may hold one agent of its own'. Where is that held, and what does a second `agent create --org` do?",
+  question: "The seats ruling: 'the company may hold one agent of its own'. Where is that held, and what does a second `agent create --org` do?",
   options: [
     {
       label: "at-create",
@@ -656,8 +656,10 @@ export const decision_agents_org_own_agent = defineDecision({
     "instead of after the Directors approve a create that would then hold nothing. A person's own agents are not limited " +
     "here: the ruling limits what a company holds, and a person's agent rides on their Seat in a company " +
     "(organizations.agent-cover). It is reached from the world `org-with-agent`, where Acme already owns @acme-bot; no " +
-    "frozen claim creates a second agent for one Organization. The agent the ruling's 'company's agent' names is the " +
-    "Organization's own, whatever it does.",
-  source: "Aaron, 8 November 2026 (aaron.seats); books/target/shared/rulings.ts; books/target/agents/data.ts (by-owner-created)",
+    "frozen claim creates a second agent for one Organization. Because it comes before the Board proposal, the gate " +
+    "refusal (FEATURE_NOT_AVAILABLE, from `board.propose`) is reached from `org-with-proposals-gate-off`, whose Acme " +
+    "owns no agent, not from `org-with-agent`. Two creates at once are serialised per Organization, so one makes the " +
+    "agent and the other is refused. The agent the ruling's 'company's agent' names is the Organization's own, whatever it does.",
+  source: by("books/target/shared/rulings.ts (aaron.seats, Aaron's ruling of 8 November 2026); books/target/agents/data.ts (by-owner-created)"),
   affects: [rpc_agents_changes_create, op.operation_agent_create, error_SEAT_LIMIT_REACHED, table_agents],
 });

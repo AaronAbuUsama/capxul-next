@@ -50,6 +50,8 @@ export const WORLDS = {
   waiting: "person-with-waiting-agent-change",
   /** Acme, with Directors Dana and Lee, a member Max who is not one, and an agent Acme owns, @acme-bot. */
   org: "org-with-agent",
+  /** Acme with Dana its one Director, no agent of its own, and the `owner-safe-proposals` gate off (board's world). */
+  gateOff: "org-with-proposals-gate-off",
 } as const;
 const W = WORLDS;
 
@@ -151,7 +153,8 @@ export const operation_agent_create = defineOperation({
     },
     {
       error: error_FEATURE_NOT_AVAILABLE,
-      given: W.org,
+      // Not W.org: Acme owns @acme-bot there, so the own-agent limit refuses first (agents.org-own-agent).
+      given: W.gateOff,
       when:
         top("agent.create", "FEATURE_NOT_AVAILABLE") +
         " In the target: the Organization's `owner-safe-proposals` gate is off (the devnet's gate switch), so it can open no Board proposal.",

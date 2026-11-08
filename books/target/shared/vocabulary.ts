@@ -126,8 +126,9 @@ export const error_SEAT_LIMIT_REACHED = defineError({
   class: "state",
   actor: "person",
   message:
-    "The Organization has used all {allowed} of its {limit}. Nothing was written. Free one (cancel an offer not yet " +
-    "accepted, remove an agent), or ask Capxul to raise the seat limit.",
+    "The Organization has no seat free, or already has its own agent. Nothing was written. Free a seat (cancel an offer " +
+    "not yet accepted, or remove an agent that takes one) or ask Capxul to raise the seat limit; an Organization keeps " +
+    "one agent of its own.",
   retryable: false,
   exit: 2,
   was: ["books/target/shared/rulings.ts (aaron.seats)"],

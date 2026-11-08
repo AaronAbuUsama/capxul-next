@@ -317,8 +317,12 @@ export const table_org_invitations = defineTable({
     grantee_safe: S,
     /** Null for an offer to an `@handle` (an agent): no email is sent. */
     grantee_mailbox: NullOr(S),
-    /** What the Seat it offers will take, reserved while the offer is live (authorizing or pending). */
-    seat_use: SeatUse,
+    /**
+     * What the Seat it offers will take, reserved while the offer is live (authorizing or pending); null when the
+     * grantee already holds an active Seat here, so the offer reserves nothing and acceptance keeps that Seat.
+     */
+    seat_use: NullOr(SeatUse),
+    /** For `owner-seat`: the owner's Seat that will cover the agent, reserved with the offer; else null. */
     covering_member_id: NullOr(S),
     offers: Schema.Array(Offer),
     offer_digest: S,
@@ -361,6 +365,11 @@ export const table_org_invitations = defineTable({
       name: "by_org_phase_seat_use",
       fields: ["org_id", "phase", "seat_use"],
       for: "The live offers that reserve a Seat (authorizing or pending), counted with the Seats held when another is offered.",
+    },
+    {
+      name: "by_org_covering_phase",
+      fields: ["org_id", "covering_member_id", "phase"],
+      for: "Whether a live offer already reserves a person's Seat as an agent's cover, so a second agent of theirs takes a seat.",
     },
     {
       name: "by_org_grantee_phase",

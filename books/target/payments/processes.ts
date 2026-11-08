@@ -45,7 +45,8 @@ export const workflow_payments_lifecycle_payment = defineWorkflow({
     "reverted, displaced or expired → `lapse`; declined, refused or withdrawn by its opener → `cancel`), its Board " +
     "proposal (executed → `submit`; failed, or replaced by another transaction at its nonce → `lapse`; rejected → " +
     "`cancel`), a budget's reservation (PaymentScheduled with its job nonce on its own budget → " +
-    "`schedule`), a claim escrow (EscrowCreated → `escrow`), and a cancel (a void that displaced the held operation, " +
+    "`schedule`), a claim escrow (EscrowCreated → `escrow`, from `prepared` or from the `submitted` its sent approval or " +
+    "executed proposal left; a carrier's answer after `escrow` moves nothing), and a cancel (a void that displaced the held operation, " +
     "ScheduleCancelled or EscrowRefunded → `cancel` for every Payment it carried, K14). A dated Payment comes due a day " +
     "ahead (`come_due`, funding read, a shortfall kept for the payer's notice); approvals sends a personal one on its day, " +
     "and for a budget's this process asks Budgets to pay it (`Budgets.execute` with the executor key, sent once and looked " +
@@ -112,7 +113,7 @@ export const workflow_payments_lifecycle_payment = defineWorkflow({
     {
       name: "escrow",
       about:
-        "On EscrowCreated with its payment id, `escrow`. An escrowed Payment has no timer: it waits for the payee's collection (its PaymentSent) or the owner's refund.",
+        "On EscrowCreated with its payment id, `escrow`, whether the carrier's send already moved it to `submitted` or not. An escrowed Payment has no timer: it waits for the payee's collection (its PaymentSent) or the owner's refund.",
     },
     { name: "come-due", about: "A day ahead: reads the paying Safe's balance (personal) and moves `come_due`, keeping a shortfall." },
     {

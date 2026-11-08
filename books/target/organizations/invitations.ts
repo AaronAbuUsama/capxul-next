@@ -98,9 +98,11 @@ export const rpc_organizations_invitations_invite = defineRpc({
     "nobody has it yet; an `@handle` must name an agent's Party; an Account must be a person principal with a mailbox; " +
     "anything else, an Organization, or an outside address is INVALID_INPUT. At most 16 offers, none twice, and none the grantee already " +
     "has live here (else INVALID_INPUT). Then the Seat it offers is counted, under the Organization row's lock so two " +
-    "offers cannot both take the last one (organizations.seat-limit): a person takes a seat; an agent whose owner (its " +
-    "Party's) holds a Seat here that covers no other agent rides on that Seat; the Organization's own agent rides on the " +
-    "Organization while no other agent it owns holds or is offered a Seat; any other agent takes a seat. Taking a seat " +
+    "offers cannot both take the last one (organizations.seat-limit): a grantee who already holds an active Seat here " +
+    "takes nothing (`seat_use` null: an offer of grants to a member is never refused for seats); a person takes a seat; " +
+    "an agent whose owner (its Party's) holds a Seat here that no other agent's Seat or live offer names as its cover " +
+    "rides on that Seat; the Organization's own agent rides on the Organization while no other agent it owns holds or " +
+    "is offered a Seat; any other agent takes a seat. Taking a seat " +
     "when the Seats that count and the live offers that reserve one already reach `seat_limit` is SEAT_LIMIT_REACHED, " +
     "nothing written. A person invitee is admitted to the beta in the same transaction (`accounts.admit`, which sends " +
     "nothing: the invitation's own email is the only one). A Seat-only offer is born pending with its seven-day expiry " +

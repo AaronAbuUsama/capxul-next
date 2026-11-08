@@ -816,7 +816,7 @@ const V4DOCS = "docs/planning/protocol-v4";
 
 export const decision_payments_claim_escrow_fit = defineDecision({
   id: "payments.claim-escrow-fit",
-  title: "The v4 claim escrow does what Aaron's ruling asks; five gaps named",
+  title: "The v4 claim escrow does what Aaron's ruling asks; six gaps named",
   question:
     "aaron.money-waiting: the escrow holds the money, only the recipient's Capxul account can unlock it once they have " +
     "one, and the sender can refund at any time before the recipient accepts. Do v4's Escrow, EscrowFactory and " +
@@ -851,7 +851,9 @@ export const decision_payments_claim_escrow_fit = defineDecision({
     "exact mailbox: an alias or a typo is another Safe; the preview and the email show it, and the payer refunds and " +
     "sends again (payments.claim-escrow-mailbox). (4) A non-ASCII mailbox can never be claimed (EmailNotNormalized), so " +
     "it is refused before signing (payments.claim-escrow-routes). (5) An escrow that opens after the payee's setup, or " +
-    "that they declined there, has no later collection path (asked of accounts). Settlement: the collection's " +
+    "that they declined there, has no later collection path in Capxul, though the contract allows one (asked of " +
+    "accounts). (6) In the beta, setup refuses a mailbox that is not admitted, so such a payee cannot collect until " +
+    "money waiting admits them as an invitation does (for Aaron; asked of accounts). Settlement: the collection's " +
     "PaymentSent comes from the escrow, its executor, so its sender term is `escrow_address`, not the payer's Safe.",
   source: by(`${V4}/money/Escrow.sol:107-197; ${V4}/money/EscrowFactory.sol:28; ${V4}/companies-house/CompaniesHouseClaimer.sol:85; ${V4DOCS}/spec/escrow.md (D11, D12)`),
   affects: [
@@ -889,7 +891,9 @@ export const decision_payments_claim_escrow_routes = defineDecision({
     "company Safe (a Board refund the spender cannot make) or the spender's own Safe (company money refunded to a " +
     "person), and the money would cross Payments twice (Budgets' PaymentSent to the escrow, then the escrow's to the " +
     "payee): two book facts for one Payment. A dated claim escrow would open on its day, perhaps after the payee's setup " +
-    "collected what waited (gap 5 of payments.claim-escrow-fit), and machine `payment` escrows only from `prepared`. No " +
+    "collected what waited (gap 5 of payments.claim-escrow-fit). The terms are fixed at prepare, so nothing is " +
+    "left to choose later: kind 0, the Payment's job nonce, condition payee-claimed, and the job nonce as the salt, so " +
+    "a retry under the same payment id rebuilds the same address. No " +
     "frozen acceptance line pays a mailbox with no account from a budget or on a date; the frozen designed text says " +
     "only that such a mailbox is paid into a claim escrow, which both kept routes do. The refusal keeps INVALID_RECIPIENT, " +
     "its message widened. Funding is a plain ERC-20 `transfer` to the predicted address, which shared/external.ts's " +
@@ -917,4 +921,32 @@ export const decision_payments_claim_escrow_mailbox = defineDecision({
     "payee Safe, now the person's, and the payee reads the Payment through the payee index.",
   source: by("books/target/parties/data.ts (mailbox_digest; it never holds a mailbox); P7; books/target/shared/rulings.ts (aaron.money-waiting)"),
   affects: [table_payments, P.escrow, workflow_payments_lifecycle_payment],
+});
+
+export const decision_payments_escrow_after_send = defineDecision({
+  id: "payments.escrow-after-send",
+  title: "A claim escrow escrows from `submitted` too: its carrier answers before Ponder",
+  question:
+    "A personal claim escrow's approval is `sent` when the bundler accepts it, and the process then drives `submit`; a " +
+    "Board one's proposal executes in the escrow's own transaction. EscrowCreated is indexed after both. If `escrow` ran " +
+    "only from `prepared`, what would a claim escrow do?",
+  options: [
+    {
+      label: "from-submitted",
+      text:
+        "`escrow` runs from `prepared` or `submitted`: whichever answer the process sees first, EscrowCreated takes the " +
+        "Payment to `escrowed`, and a carrier's answer after that moves nothing.",
+    },
+    { label: "hold-submit", text: "A claim escrow's carrier never drives `submit`; it stays `prepared` until EscrowCreated." },
+  ],
+  chosen: "from-submitted",
+  why:
+    "With `escrow` only from `prepared`, every claim escrow would stop at `submitted`: the money-waiting email, which " +
+    "follows `escrow`, would never be sent, and a refund could not `cancel` it (cancel does not run from `submitted`), " +
+    "though a collection would still settle it. Keeping `submit` means a claim escrow reads like every other sent " +
+    "payment until the chain says where the money is, and a reverted operation still lapses from `submitted`. Holding " +
+    "`submit` would give one route its own carrier rules. The refusal of a dated claim escrow does not rest on this " +
+    "(payments.claim-escrow-routes).",
+  source: by("books/target/approvals/data.ts (state sent: the bundler accepted it); books/target/board/data.ts (executed); books/target/payments/processes.ts (follow-carrier); books/target/notices/payments.ts (money-waiting follows escrow)"),
+  affects: [P.escrow, P.submit, P.cancel, workflow_payments_lifecycle_payment, machine_approval, machine_proposal],
 });

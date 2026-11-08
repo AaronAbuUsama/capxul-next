@@ -153,7 +153,7 @@ export const decision_notices_kinds = defineDecision({
     "renamed for v4's words), the five dated-payment emails (payments), eleven " +
     "agreement emails (payroll), person verification, verified and payout sent and delivered (banking), the Invoice " +
     "emails (requests). Added because a decision names them: a payout returned and an Invoice declined " +
-    "(dependencies.of-notices), a round or SAFE invitation (equity's design), and, by Aaron's ruling, money waiting in " +
+    "(dependencies.of-notices), a round or SAFE invitation (equity's design), and, by the money-waiting ruling, money waiting in " +
     "a claim escrow (notices.claim-escrow). Dropped with their subjects: pay runs' " +
     "pay-run-approval and pay-run-payment, approval-pending (an approval's own signer is at the page; approvals' " +
     "decision on notify), beta-waitlist (accounts.admission-paths), invoice-part-received (requests.escrow-process) and " +
@@ -739,6 +739,6 @@ export const decision_notices_claim_escrow = defineDecision({
     "reminder to a payee who has not collected, and an email when the payer takes the money back. A gap the email " +
     "exposes, also for Aaron: in the beta, setup refuses a mailbox not admitted (FEATURE_NOT_AVAILABLE), so the email's " +
     "link works only once money waiting admits its payee, as an invitation does (asked of accounts).",
-  source: "Aaron, 8 November 2026, in the build-preparation conversation (aaron.money-waiting); books/target/payments/decisions.ts (payments.claim-escrow-fit)",
+  source: by("books/target/shared/rulings.ts (aaron.money-waiting, Aaron's ruling of 8 November 2026); books/target/payments/decisions.ts (payments.claim-escrow-fit)"),
   affects: [concept_notices, concept_payments, machine_payment.t.escrow, workflow_notices_payments_money_waiting],
 });

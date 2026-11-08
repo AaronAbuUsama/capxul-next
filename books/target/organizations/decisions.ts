@@ -658,7 +658,9 @@ export const decision_organizations_declined_previews = defineDecision({
 
 // ── seats (Aaron's ruling aaron.seats) ──────────────────────────────────────────────────────
 
-const AARON_SEATS = "Aaron, 8 November 2026 (aaron.seats); books/target/shared/rulings.ts";
+// The ruling is Aaron's; these records are the design's reading of it, so the judgments report lists them as the
+// design's, and the ones that ask him something under "For Aaron".
+const AARON_SEATS = by("books/target/shared/rulings.ts (aaron.seats, Aaron's ruling of 8 November 2026)");
 
 export const decision_organizations_seat_limit = defineDecision({
   id: "organizations.seat-limit",
@@ -674,7 +676,8 @@ export const decision_organizations_seat_limit = defineDecision({
         "`organizations.seat_limit`, 10 at birth. A person's Seat counts one; an agent's rides on its owner's Seat here " +
         "(one per Seat) or is the Organization's own (one), and any other agent's counts one. A live offer reserves what " +
         "its Seat will take, so the check is at `org member invite`, under the Organization row's lock, and acceptance " +
-        "only takes what was reserved. A Capxul operator raises the limit with the operator's tool; it never goes down.",
+        "only takes what was reserved; an offer to someone who already holds a Seat here reserves nothing. A Capxul " +
+        "operator raises the limit with the operator's tool; it never goes down.",
     },
     { label: "count-at-accept", text: "Count only held Seats, at acceptance: offers are free, and the eleventh invitee to accept is refused." },
     { label: "flag", text: "A deployment-wide number in feature flags, the same for every Organization." },
@@ -745,7 +748,7 @@ export const decision_organizations_seat_limit_error = defineDecision({
   why:
     "A script must tell 'the Organization is full' (ask Capxul, or free a seat) from a wrong state of the thing it named, " +
     "and the budget code is about money. One code covers both limits because the remedy has the same shape; `limit` " +
-    "says which (`seats`, `own agent`). Its exit is 2, as the designed text gives the other limits (PAYROLL_BUDGET_EXCEEDED, " +
+    "says which (`seats`, `own agent`), with what is used and allowed, and the message is one plain sentence for both. Its exit is 2, as the designed text gives the other limits (PAYROLL_BUDGET_EXCEEDED, " +
     "INSUFFICIENT_BALANCE). It joins the shared vocabulary under vocabulary.shared-only. Where it surfaces: organizations' " +
     "invite rpc, so `org member invite` (budgets' operation), and agents' create with `--org` (agents.org-own-agent).",
   source: AARON_SEATS,

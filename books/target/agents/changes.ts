@@ -104,7 +104,7 @@ export const rpc_agents_changes_create = defineRpc({
     "(accounts' personal-safes, claimed; else SMART_ACCOUNT_MISSING); with `org`, the Organization that handle or id " +
     "names, of which the caller must be a Director (else, or when it names none, ROLE_PERMISSION_DENIED), whose " +
     "company Safe must be live on chain (else WRONG_STATE), and which owns no live agent yet (creating, active or " +
-    "frozen): an Organization holds one agent of its own (aaron.seats; else SEAT_LIMIT_REACHED, limit `own agent`). The agent's Safe is AgentOwner's pure `safeAddressFor(signer, " +
+    "frozen), counted under a lock on the Organization as owner (aaron.seats; else SEAT_LIMIT_REACHED `own agent`). The agent's Safe is AgentOwner's pure `safeAddressFor(signer, " +
     "owner Safe)`, computed in-process (CREATE2 over fixed inputs, no node call). Then, in one transaction: the agent's " +
     "Party (`parties.register`, kind agent; a malformed, reserved or taken handle is INVALID_INPUT and nothing is written), " +
     "the agent `creating`, its create change `waiting`, and " + CARRIER + " The carrier holds exactly one call, " +

@@ -366,10 +366,11 @@ export const machine_payment = defineMachine({
       emits: sends,
     },
     escrow: {
-      from: ["prepared"],
+      from: ["prepared", "submitted"],
       to: "escrowed",
       about:
-        "EscrowCreated with its payment id is indexed: the claim escrow holds the money for the payee, and notices sends the money-waiting email.",
+        "EscrowCreated with its payment id is indexed: the claim escrow holds the money and notices sends the money-waiting " +
+        "email. Also from `submitted`: its carrier answers before Ponder (payments.escrow-after-send).",
       emits: sends,
     },
     submit: {
