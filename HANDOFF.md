@@ -18,7 +18,9 @@ Read, in order:
 1. `docs/design-book.md`: how the book works, how its pieces fit, and how it is used end to end
    (design, generate, evaluate, the factory, the docs site).
 2. `docs/decisions/README.md`: every accepted decision (stack, durable execution, decomposition,
-   the ten policies), all accepted by Aaron on 7 November 2026.
+   the ten policies), accepted by Aaron on 7 November 2026, and his decisions of 8 November (the
+   freeze keeps behaviour, not spelling; the old system is not a baseline; the as-is book is
+   closed).
 3. `docs/spec/50-design-book.md`: the record schema; code in `packages/book`.
 4. `books/target/CONVENTIONS.md` and `docs/decisions/target-architecture.md`: the target concept
    map and the rules every target concept follows.

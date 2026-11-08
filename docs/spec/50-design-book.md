@@ -2,7 +2,8 @@
 
 The book holds the whole design, not only operations. Every part of the system is a record:
 typed, checked, linked to the records it depends on, and carrying the evals that say when it
-is done. The code is in [`packages/book`](../../packages/book), about 900 lines; its tests pass.
+is done. The code is in [`packages/book`](../../packages/book), about 1,500 lines; its tests pass. How the book
+fits into the wider system, and how it is used end to end, is in [`docs/design-book.md`](../design-book.md).
 
 This page is the schema's reading guide. The schema itself is
 `packages/book/src/records/*.ts`, written in Effect Schema, and where they differ the code wins.
@@ -10,9 +11,11 @@ This page is the schema's reading guide. The schema itself is
 ## Records are TypeScript, links are imports
 
 ```ts
-export const invitations = defineTable({ id: "invitations", concept: organizations, tenancy: "organization", fields: Schema.Struct({ … }), … });
-export const lifecycle = defineMachine({ id: "invitation", table: invitations, initial: "pending", states: [ … ], transitions: { accept: { from: ["pending"], to: "accepted", emits: [invitationAccepted] } } });
-export const accept = defineOperation({ id: "invite.accept", concept: organizations, writes: [invitations], drives: [lifecycle.t.accept], … });
+export const invitations = defineTable({ id: "invitations", concept: organizations, tenancy: "organization", tenantField: "org_id", fields: Schema.Struct({ … }), … });
+export const lifecycle = defineMachine({ id: "invitation", table: invitations, field: "status", initial: "pending", states: [ … ],
+  transitions: { accept: { from: ["pending"], to: "accepted", emits: [invitation_transitioned] } } });
+export const acceptRpc = defineRpc({ id: "organizations.invitations.accept", concept: organizations, kind: "mutation", writes: [invitations], drives: [lifecycle.t.accept], … });
+export const accept = defineOperation({ ...frozenText("invite.accept"), implementedBy: acceptRpc, acceptance: [ … ], refusals: [ … ], budget: budget("write") });
 ```
 
 - **Checks at two points.** Each `define*` validates its fields against the record's Effect
@@ -31,7 +34,7 @@ Integration (calls) under Component        Contract (functions, chain events)
 Procedure → Concept, Table, Transition, Procedure, Event, Error          (in-transaction; no outside calls)
 Rpc, Workflow → Concept, Table, Transition, Procedure, Call, Function, Event, Error
 Flow → Component (the Core SDK), Rpc, Call, Error
-Operation → Rpc or Flow (implementedBy), Error (refusals)                 (frozen: the CLI command)
+Operation → Rpc or Flow (implementedBy), Error (refusals)                 (one of the 215 capabilities)
 Journey → Operation        Invariant → Table, Machine, Workflow        Environment → Component
 Decision → any record
 ```
@@ -55,7 +58,7 @@ Because links only point down, the book has no cycles. A record never lists who 
 | `procedure` | `defineProcedure` | a concept's in-transaction entry point, listed on its door: input, output, errors, what it touches. Another concept writes this concept's tables only by invoking one |
 | `rpc` | `defineRpc` | one server endpoint (query, live, mutation, action): who, input, output, errors, what it touches (reads, writes, drives, invokes, calls, chain, emits), server spans, server budget. The generated `RpcGroup` comes from these |
 | `flow` | `defineFlow` | a Core SDK composition: its SDK method, steps (an rpc, or a local step: sign, build, encrypt, wait, poll, prompt, cache), its own errors, client-side calls, spans, client budget, and `surfaces` when a surface other than the CLI calls it (the approval page, checkout or the web app on `react`, an agent's SDK host on `sdk`) |
-| `operation` | `defineOperation` | **the frozen unit**: the CLI command and the old book's text, acceptance lines numbered (a retired line stays `null`), what `--json` returns, refusals with their `given` world, the end-to-end budget, and `implementedBy` one rpc or one flow. Everything below it may change; it may not |
+| `operation` | `defineOperation` | **one of the 215 kept capabilities**: the old book's text as its starting point, its acceptance claims numbered (a retired line stays `null`), what `--json` returns, refusals with their `given` world, the end-to-end budget, and `implementedBy` one rpc or one flow. The capability and what its acceptance claims require are kept; its command, `--json` shape and refusal codes are the target's to design, and a change carries a decision (`system.frozen-behaviour`) |
 | `workflow` | `defineWorkflow` | its trigger (after an rpc, a transition, a chain event, an indexer event or a cron), steps, what it touches, its waits (a wait on the chain or the indexer lists the chain events that end it in `events`; every wait but a timer names its `key`: each way it is woken, by its carriers (a product event, a chain event, a table's row, a signal rpc, or the instance's own call) and the properties they carry, with `reaches` for Ponder's progress passing a block), idempotency key, timeout, retries, compensation, budget |
 | `journey` | `defineJourney` | ordered steps: operation, actor, proving event |
 | `invariant` | `defineInvariant` | a statement over tables and machines; checked by property test, fuzz, reconciliation (`by` a workflow) or static check |
@@ -77,6 +80,13 @@ Because links only point down, the book has no cycles. A record never lists who 
 | `call-error-not-declared` | an rpc calls an integration whose failure maps to an error the rpc does not declare |
 | `refusal-not-produced` | an operation's refusal is an error its rpc or flow cannot produce (its own, its procedures', its steps', its calls' failures) |
 | `flow-surface` | (target) a flow that implements an operation, a CLI command, names `surfaces` without `cli` |
+| `event-not-on-transition` | (target) an rpc, workflow or procedure sends an event itself: a target event is sent by a transition (P7) |
+| `one-event-per-machine` | (target) a machine sends an event other than its own `<machine>_transitioned` (P7) |
+| `unreached-rpc` | (target) no operation, flow step, signal or trigger reaches an rpc (P2) |
+| `no-budget` | (target) an operation, rpc, flow or workflow has no budget (P5) |
+| `budget-override-why` | (target) a budget leaves its class default without saying why (P5) |
+| `tenant-key` | (target) a tenant table's key or an index does not start with its tenant column, unless the index is `crossTenant` (P8) |
+| `acceptance-claim` | (target) an acceptance line is plain text instead of `{claim, observes, was}` (P1) |
 | `admission` | a table's admission names a column it lacks (its `field`, `kindField` or `where`, or the joined table's `via` columns), limits its rows by a `where` value its column cannot hold, matches `anyone` by a column or another match by none, lets `anyone` write, neither reads nor writes, gives a kind column to a match other than `tenant`, or sits on a `global` table |
 | `chain-admits` | (target) a `chain` table has no `admits`, or one of its admissions writes: its scope is its whole policy, and only Ponder writes it |
 | `wait-key` | a wait's key routes by a property its carrier does not carry (a product event's props, a chain event's arguments or its log's `chain_id`, `contract_address`, `block_number`, `block_hash`, `tx_hash`, `log_index`, a table's columns, a signal's input, or its instance's columns when the signal reads or writes the instance's table), names an rpc that is not one of its signals or a call that is not one of its calls, waits on an event or a row of a concept its own does not depend on, or sits on a timer |
@@ -98,7 +108,7 @@ Because links only point down, the book has no cycles. A record never lists who 
 | `unhosted-component` | no environment runs it |
 | `no-acceptance` | an operation has no acceptance lines |
 | `unused-rpc`, `unused-flow`, `uninvoked-procedure` | nothing uses it: the old system's orphan rows show up here (a flow whose `surfaces` leave out the CLI is used by those surfaces, which the book does not model) |
-| `no-budget` | an operation, rpc, flow or workflow says nothing about how fast it must be |
+| `no-budget` | an operation, rpc, flow or workflow says nothing about how fast it must be (in a target book this is a problem instead) |
 | `refusal-without-world` | a refusal's `given` is `?`: no devnet world reaches it yet |
 | `unproven-step` | a journey step has no proving event |
 | `unchecked-invariant` | a reconcile check names no workflow |
@@ -144,7 +154,7 @@ It exits with 1 if the book has problems.
   hooks come later; if they are not one-to-one with live rpcs, they get their own record.
 - **Index-to-query linking.** An index names its query in words. If operations name the
   queries they use, an index nobody uses becomes a gap.
-- **Ponder.** The indexer is a component and an integration. Its indexed tables may need a
-  `source: "indexer"` tenancy, so that reads from them pass the boundary rules.
+- **Ponder.** Done: Ponder's indexed tables have the `chain` tenancy, are owned by indexing, and
+  declare read-only `admits` (rule `chain-admits`).
 - **Generated code.** Step 2 proves the records can drive code: one table migration and one
   RPC group, generated from the payments or books slice.

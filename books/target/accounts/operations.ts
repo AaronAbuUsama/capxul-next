@@ -71,7 +71,7 @@ const OFF_DEVNET = "?";
 
 export const operation_account_retry = defineOperation({
   ...frozenText("account.retry"),
-  priority: "normal",
+  priority: "critical",
   implementedBy: rpc_accounts_setup_check,
   acceptance: [
     line(
@@ -131,7 +131,7 @@ export const operation_account_show = defineOperation({
 
 export const operation_auth_login = defineOperation({
   ...frozenText("auth.login"),
-  priority: "normal",
+  priority: "critical",
   implementedBy: flow_client_auth_sign_in,
   acceptance: [
     line(
@@ -154,7 +154,7 @@ export const operation_auth_login = defineOperation({
 
 export const operation_auth_verify = defineOperation({
   ...frozenText("auth.verify"),
-  priority: "normal",
+  priority: "critical",
   implementedBy: flow_client_auth_verify_otp,
   acceptance: [
     line(

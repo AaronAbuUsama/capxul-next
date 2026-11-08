@@ -35,7 +35,8 @@ target one, and point its `was` at what it replaces.
 | where every old area lands (`OLD_AREAS`) | `shared/landings.ts` (exists) |
 | a concept's tables, state machines and each machine's event | `<concept>/data.ts` |
 | a concept's door: the procedures other concepts invoke | `<concept>/procedures.ts` |
-| a concept's rpcs and workflows, one file per area of the concept | `<concept>/<area>.ts` |
+| a concept's rpcs, one file per area of the concept | `<concept>/<area>.ts` |
+| a concept's durable processes (workflows) | `<concept>/processes.ts` |
 | the Core SDK flows of a concept | `<concept>/flows.ts` |
 | the operation records of the frozen operations the concept owns | `<concept>/operations.ts` |
 | the concept's own judgments | `<concept>/decisions.ts` |
@@ -159,7 +160,8 @@ does until its rule lands (**review**, with the rule's name from the policy pack
   refusal is a behaviour, such as "a signed-out caller is refused": keep every frozen refusal's
   behaviour, under its code where the vocabulary keeps it, or name it in a decision.
 - Priority: `low` for equity, `org.director.*`, `org.board.*`, `org.vote.*` and `vote.*`; `critical`
-  for the spine's pilots; `normal` for the rest.
+  for the B3 pilots' operations (`auth.login`, `auth.verify`, `account.retry`, `payment.send`);
+  `normal` for the rest.
 
 ### 5. One durable process per long-lived object (A3, P3) — review
 
@@ -269,7 +271,7 @@ does until its rule lands (**review**, with the rule's name from the policy pack
 
 - Typecheck: `cd /home/user/capxul-next && npx tsc -p books 2>&1 | grep "books/target/<concept>"`.
   Fix every error in your files except unresolved imports of sibling files being written now.
-- Build: `node --experimental-strip-types packages/book/src/main.ts books/target/index.ts book-out/target`.
+- Build: `node --experimental-strip-types packages/book/src/main.ts books/target/index.ts /tmp/target`.
   It must report 0 problems. Gaps are expected until every concept lands, and are never written by
   hand.
 - Keep prose short: `title` ≤ 80, `about` ≤ 2000, a line ≤ 300 characters. Write for a reader who

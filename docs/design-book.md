@@ -13,7 +13,7 @@ The design book is Capxul's design, written as data.
   Core SDK flow, a CLI operation, an error code, a durable process or a decision. A record is a
   TypeScript value. An Effect Schema checks it when it is created. It points at the records it
   depends on by importing them.
-- **The build.** A small build (`packages/book`, about 1,200 lines) reads every record and
+- **The build.** A small build (`packages/book`, about 1,500 lines) reads every record and
   produces three things:
   - **Problems:** the design contradicts itself or a policy, and the book does not build.
   - **Gaps:** the design is incomplete here.

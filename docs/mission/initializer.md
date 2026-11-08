@@ -116,7 +116,7 @@ The system is built on the decisions in `docs/decisions/README.md`:
 | | |
 |---|---|
 | Records | 2,132 in the target book: 22 concepts, 215 operations, 13 journeys, 84 tables, 47 state machines, 81 durable processes, 223 rpcs, 143 Core SDK flows, 14 procedures and 627 decision records |
-| Derived evals | 4,752, including 720 acceptance claims, 724 refusals, 13 journeys and 13 funnels, 40 row-policy clauses and 72 wake routes |
+| Derived evals | 4,752, including 720 acceptance claims, 724 refusals, 13 journeys and 13 funnels, 40 row-policy clauses and 73 wake routes |
 | Problems | 0, with the target rules on |
 | Kept behaviour | `check-frozen` reports 0 breaches. All 215 operations are booked once each. Of the 733 acceptance claims, 547 are kept word for word, and 173 rewritten and 13 retired, each with a decision. Of the 705 old refusals, 691 are still refused under their code, and 14 are named by a decision. |
 | Gaps | 74, listed below, each known and owned |
@@ -133,8 +133,8 @@ The 74 gaps, and who closes them:
 | `unwritten-table` | 1 | Devnet's `mail-messages`, which the mail sink writes, not the backend | Devnet |
 
 Open items outside the gaps, each with its owner:
-- **B0 spike:** prove wake routing by the waits' keys (`rules.process-wakeups`). 30 signal rpcs are
-  routed by their instance id and appear in no key. A signal that cuts a timer short (such as a
+- **B0 spike:** prove wake routing by the waits' keys (`rules.process-wakeups`). 30 signal links (26 distinct
+  rpcs) are routed by their instance id and appear in no key of their process. A signal that cuts a timer short (such as a
   payee's accept during an offer's expiry) cannot be keyed, because a timer takes no key. Decide in
   B0 whether timers may carry rpc-only keys.
 - **B1:**

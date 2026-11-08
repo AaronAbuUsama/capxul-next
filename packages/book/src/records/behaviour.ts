@@ -101,13 +101,13 @@ export const FlowSpec = Schema.Struct({
 export const defineFlow = make("flow")(FlowSpec);
 export type Flow = ReturnType<typeof defineFlow>;
 
-// ── operation: the frozen, user-facing unit ─────────────────────────────────────────────────
+// ── operation: one of the kept capabilities, the user-facing unit ───────────────────────────
 
 export const OperationSpec = Schema.Struct({
   ...Common,
   /** The old book's area: `payments`, `books`. Not a concept: an area is how people find it. */
   area: Schema.String,
-  /** Frozen, from the old book: `payment send`. */
+  /** The CLI command, from the old book's text unless the target renames it with a decision (system.frozen-behaviour). */
   command: Schema.String,
   priority: Priority,
   implementedBy: Schema.Union([Ref("rpc"), Ref("flow")]),

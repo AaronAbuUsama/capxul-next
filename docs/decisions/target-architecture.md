@@ -1,5 +1,12 @@
 # Target architecture
 
+> **Read with Aaron's decision of 8 November 2026** (`system.frozen-behaviour`): the freeze keeps
+> behaviour, not spelling. Where a judgment below argues from "P10 rung 1: the frozen text is
+> surface" about a command, flag, `--json` shape, refusal code or exit code, that reasoning no
+> longer binds the spelling: the target designs it, and a change carries a decision. The behaviour
+> the reasoning protected is still kept. The as-is book is closed and archived in
+> `docs/as-is/archive/`.
+
 Status: **decided by Claude, 7 and 8 November 2026 (brought up to date with the concept designs at assembly), for Aaron's review** (W1: Aaron reviews the
 data model and boundaries per concept). It rests on the accepted decisions A1 to A4 and P1 to P10
 ([README](README.md), [policy pack](policy-pack.md)). Every judgment below is a typed decision
@@ -14,7 +21,7 @@ The records it explains:
 | `books/target/shared/foundation.ts` | the system and its actors, 10 components, 22 concepts, 2 environments, `OPERATION_OWNERS` (the concept that designs each of the 215 frozen operations) and `AREA_CONCEPTS` |
 | `books/target/shared/vocabulary.ts` | the 47 error codes the target answers with (no events: each concept defines its machines' events) |
 | `books/target/shared/external.ts` | 11 integrations as Effect services, and 25 contracts: Protocol v4 and the third-party contracts its install wires |
-| `books/target/shared/decisions.ts` | 137 decision records, one per judgment, 22 of them one per concept's dependencies |
+| `books/target/shared/decisions.ts` | 149 decision records, one per judgment, 22 of them one per concept's dependencies |
 | `books/target/shared/landings.ts` | `OLD_AREAS`: each of the old concepts' 93 areas, where it lands and the decision that put it there |
 | `books/target/CONVENTIONS.md` | the folders, names and target rules every concept designer follows |
 
@@ -22,8 +29,8 @@ The book builds with stage `"target"`, which enforces the target rules:
 
 ```sh
 cd /home/user/capxul-next
-npx tsc -p books                     # the target files typecheck clean (the as-is book still has unwritten lanes)
-node --experimental-strip-types packages/book/src/main.ts books/target/index.ts book-out/target
+npx tsc -p books                     # the target and frozen books typecheck clean
+node --experimental-strip-types packages/book/src/main.ts books/target/index.ts /tmp/target
 ```
 
 The shared records alone report 0 problems. Their gaps are all of five kinds, and each closes as
