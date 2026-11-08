@@ -512,7 +512,7 @@ export const operation_org_seats_buy = defineOperation({
     {
       error: error_CLI_USAGE,
       given: SW.buyer,
-      when: "`<n>` or `--from` is missing, or `<n>` is not a number: nothing is sent.",
+      when: "`<n>` or `--from` is missing, or `<n>` is not a whole number: nothing is sent.",
     },
     {
       error: error_ROLE_PERMISSION_DENIED,
@@ -525,7 +525,7 @@ export const operation_org_seats_buy = defineOperation({
     {
       error: error_INVALID_INPUT,
       given: SW.buyer,
-      when: "`<n>` is not a whole number from 1 to 1,000, or `--from` names no budget of the Organization: nothing is written.",
+      when: "`<n>` is under 1 or over 1,000, or `--from` names no budget of the Organization: nothing is written.",
     },
     {
       error: error_FEATURE_NOT_AVAILABLE,

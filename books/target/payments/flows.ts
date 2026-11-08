@@ -270,8 +270,11 @@ export const flow_client_org_seats_buy = defineFlow({
     "CANCELLED and buys nothing. A repeat under the same `--request-key` answers where the first approval ended.",
   component: component_core_sdk,
   sdk: "client.org(orgId).seats.buy",
-  /** `--no-wait` answers the hand-over at once, as `--json` does for `payment send` (grammar G5). */
-  input: Schema.Struct({ ...BuySeatsInput.fields, ...Follow, no_wait: Schema.Boolean }),
+  /**
+   * `--no-wait` alone answers the hand-over at once (grammar G5), as `--json` does for `payment send`; here `--json` only
+   * prints, so the input has no `json` (payments.seat-hand-over).
+   */
+  input: Schema.Struct({ ...BuySeatsInput.fields, timeout_seconds: Follow.timeout_seconds, no_wait: Schema.Boolean }),
   output: Schema.Union([SeatsHandover, Followed]),
   steps: [
     { name: "prepare", rpc: rpc_payments_commands_buy_seats, about: "Births the purchase's command, its Payment, its Invoice and the approval." },
