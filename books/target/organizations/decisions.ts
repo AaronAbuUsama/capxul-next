@@ -1249,7 +1249,7 @@ export const decision_organizations_buy_seats = defineDecision({
         "[<months>] --from <budget>` (payments', chain-submit: a person Budgets.authorised admits on the budget; never " +
         "an agent). Payments books both buys, because organizations sits below payments: each births one command by " +
         "`payments.prepare-command`'s rules (route budget, owner the Organization, one item to Capxul's receiving Safe for " +
-        "n seats or months times the price, its source naming only the count), and its settlement invokes an " +
+        "n seats or months times the price, its source naming the count, never the Organization), and its settlement invokes an " +
         "organizations door in the settling transaction with the command's owner as the Organization: " +
         "`organizations.add-bought-seats` raises the limit, and `organizations.extend-fde-hosting` moves the FDE's " +
         "paid-through instant on by the months (organizations.fde-hosting); each reversal on a reorg invokes its return door. So what was bought counts exactly when the " +

@@ -298,7 +298,7 @@ export const rpc_payments_commands_buy_seats = defineRpc({
     "INSUFFICIENT_BALANCE). Nothing is written on a refusal. Then, in one transaction, by `payments.prepare-command`'s " +
     "birth rules: the request key's command (purpose `seats`, route `budget`, owner the Organization; a repeat answers " +
     "it as it stands, another request under the key is refused, K1); the purchase's Invoice from Capxul, one line of " +
-    "`seats` at the unit price (`documents.store`, subject the Payment); one Payment born through `open`, kind one-off, " +
+    "`seats` at the unit price (`documents.store`, payments.seat-invoice); one Payment born through `open`, kind one-off, " +
     "from the company Safe to the receiving Safe as an outside payee with no tenant, its source `seat-purchase` with " +
     "the command's id, the seats and the buyer's Party, its payment id fixed from the job nonce; and one approval from " +
     "the caller's own Safe whose one call is `Budgets.spend` (`approvals.open`). The price is read, never typed. It " +
