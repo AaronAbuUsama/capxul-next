@@ -25,6 +25,7 @@ import * as payroll from "./payroll/index.ts";
 import * as banking from "./banking/index.ts";
 import * as requests from "./requests/index.ts";
 import * as applications from "./applications/index.ts";
+import * as equity from "./equity/index.ts";
 import * as activity from "./activity/index.ts";
 import * as notices from "./notices/index.ts";
 import * as devnet from "./devnet/index.ts";
@@ -33,6 +34,6 @@ export const name = "Capxul target";
 export const stage = "target" as const;
 
 /** Each designed concept's modules (its <concept>/index.ts exports `modules`). Empty until the designs land. */
-const conceptModules: readonly object[] = [...access.modules, ...media.modules, ...parties.modules, ...indexing.modules, ...approvals.modules, ...accounts.modules, ...organizations.modules, ...board.modules, ...agents.modules, ...budgets.modules, ...books.modules, ...documents.modules, ...contacts.modules, ...payments.modules, ...payroll.modules, ...banking.modules, ...requests.modules, ...applications.modules, ...activity.modules, ...notices.modules, ...devnet.modules];
+const conceptModules: readonly object[] = [...access.modules, ...media.modules, ...parties.modules, ...indexing.modules, ...approvals.modules, ...accounts.modules, ...organizations.modules, ...board.modules, ...agents.modules, ...budgets.modules, ...books.modules, ...documents.modules, ...contacts.modules, ...payments.modules, ...payroll.modules, ...banking.modules, ...requests.modules, ...applications.modules, ...equity.modules, ...activity.modules, ...notices.modules, ...devnet.modules];
 
 export const records = recordsOf([...sharedModules, ...conceptModules]);

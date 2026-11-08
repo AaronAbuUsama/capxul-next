@@ -125,7 +125,7 @@ export const flow_client_org_equity_setup = defineFlow({
     "`Options.setPool`, and only then has the proposing Director sign. The CLI prints what the Board approves (the " +
     "template, the founders, the pool, the reserved matters and their vote settings) and, while it waits, the other " +
     "Director's command.",
-  was: [`${SDK}/equity.ts`, "packages/sdk/src/organizations/equity-setup.ts", "books/frozen/operations.ts (org.equity.setup, designed)"],
+  was: [`${SDK}/equity.ts`, "packages/sdk/src/organizations/equity-echo.ts", "books/frozen/operations.ts (org.equity.setup, designed)"],
   component: component_core_sdk,
   sdk: "client.org(orgId).equity.setup",
   input: sh.SetupInput,
@@ -311,7 +311,7 @@ export const flow_client_me_shares_sell = defineFlow({
     "A prepared sale with other terms is refused before anything is signed. With `--no-wait` it returns once the approval " +
     "is open (`awaiting_approval`); Capxul follows the offer to the chain either way. Once offered, the Board approves it " +
     "with `org equity transfer approve`.",
-  was: [`${SDK}/me-shares.ts`, "books/frozen/operations.ts (shares.sell)"],
+  was: [`${SDK}/shares.ts`, "books/frozen/operations.ts (shares.sell)"],
   component: component_core_sdk,
   sdk: "client.me.shares.sell",
   input: sh.SellInput,

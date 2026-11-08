@@ -1,8 +1,7 @@
 // Equity's records for the target book: its tables and machines, its (empty) door, the installs',
 // issues', grants', rounds', SAFE rounds', investors', holdings', sales', exits', votes' and writes' rpcs,
 // the durable processes, the Core SDK flows, the 38 frozen operations and equity's decisions.
-// books/target/index.ts appends `modules` to conceptModules. shapes.ts and guards.ts hold no records;
-// links.ts holds the pending links to board and documents.
+// books/target/index.ts appends `modules` to conceptModules. shapes.ts and guards.ts hold no records.
 
 import * as data from "./data.ts";
 import * as procedures from "./procedures.ts";

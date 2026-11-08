@@ -368,7 +368,7 @@ export const decision_equity_safe_close = defineDecision({
 
 export const decision_equity_vote_matters = defineDecision({
   id: "equity.vote-matters",
-  title: "Six vote matters built; the three Board-seat matters wait for the Elections record",
+  title: "Six vote matters built; the Board-seat matters wait for an Elections record",
   question:
     "`org vote create` names nine matters. `board-settings`, `elect` and `remove` call a Hats Elections clone and the " +
     "Installer's election batch, which shared/external.ts does not record, and their Directors are board's. What do they answer?",

@@ -239,7 +239,7 @@ export const machine_equity_install = defineMachine({
   states: [
     { id: "deploying", about: "Begun: Companies House's tier key sends deployEquity; nothing is proposed yet." },
     { id: "proposed", about: "The clones exist; the Board's install batch waits for the Directors." },
-    { id: "installed", about: "The batch executed: classes wired, founders' shares issued under vesting, the pool set." },
+    { id: "installed", about: "The batch executed: classes wired, founders' shares issued under vesting, the pool set.", terminal: true },
     { id: "failed", about: "The deployment or the batch reverted on chain.", terminal: true },
     { id: "abandoned", about: "The Board rejected the batch, or another transaction took its nonce.", terminal: true },
   ],
