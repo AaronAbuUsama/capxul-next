@@ -9,6 +9,7 @@ import { CONCEPTS } from "../books/target/shared/foundation.ts";
 import { recordsOf } from "../books/target/shared/index.ts";
 import { ACCEPTED, CARRIES_OUT as CARRIES_OUT_RULINGS, REOPENED, SUPERSEDED } from "../books/target/shared/rulings.ts";
 import { buildBook, keyOf, type AnyRecord } from "../packages/book/src/index.ts";
+import { frozen } from "../books/frozen/operations.ts";
 
 const [out = "explorer.json", stamp = ""] = process.argv.slice(2);
 const book = buildBook({ name, stage, records });
@@ -56,7 +57,7 @@ const data = {
   })),
   operations: ofKind("operation").map((o) => ({
     id: o.id, concept: where(o), command: o.command, title: o.title, about: one(o.about), who: one(o.who), changes: one(o.changes),
-    priority: o.priority, evals: evalCount.get(keyOf(o)) ?? 0,
+    priority: o.priority, evals: evalCount.get(keyOf(o)) ?? 0, isNew: !(o.id in frozen),
     acceptance: ((o.acceptance ?? []) as (AnyRecord | null)[]).map((a) => (a ? { claim: one(a.claim), observes: one(a.observes), rewritten: Array.isArray(a.was) && a.was.length > 0 } : null)),
     refusals: ((o.refusals ?? []) as AnyRecord[]).map((r) => ({ error: ref(r.error), given: ref(r.given), when: one(r.when) })),
     budget: (o.budget as AnyRecord | undefined)?.class ?? "",

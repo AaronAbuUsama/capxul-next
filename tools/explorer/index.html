@@ -115,7 +115,7 @@ details[open] > summary { margin-bottom: 6px; }
   const fmt = (n) => Number(n).toLocaleString("en-GB");
   const STATES = { "for-aaron": "Waiting for you", ruling: "Your ruling", accepted: "Accepted", superseded: "Superseded", settled: "Settled" };
   let B = null;
-  const ui = { dState: "for-aaron", dConcept: "", dQuery: "", cConcept: "", cQuery: "", cPriority: "", limit: 60 };
+  const ui = { dState: "for-aaron", dConcept: "", dQuery: "", cConcept: "", cQuery: "", cPriority: "", cNew: "", limit: 60 };
   try { const saved = JSON.parse(localStorage.getItem("book-ui") || "{}"); Object.assign(ui, saved, { limit: 60 }); } catch (e) {}
   const save = () => { try { localStorage.setItem("book-ui", JSON.stringify(ui)); } catch (e) {} };
   const title = (id) => B.concepts.find((c) => c.id === id)?.title ?? (id === "shared" ? "Shared" : id);
@@ -142,7 +142,7 @@ details[open] > summary { margin-bottom: 6px; }
       return `<section class="split">
         <div class="list">
           <div class="note"><p><b>${fmt(waiting)} decisions are waiting for you.</b> Each one's recommendation stands, and the build follows it, until you answer. Open <a href="#decisions">Decisions</a> to read them with their options.</p>
-          <p><b>${B.decisions.filter((d) => d.pack).length} command packs</b> propose the commands for the new capabilities: projects, the CRM, payroll in Frappe HR's shape, apps and heads, buying seats. They are decision records; the commands are not booked as operations yet. See <a href="#packs">Command packs</a>.</p></div>
+          <p><b>${fmt(B.operations.filter((o) => o.isNew).length)} new commands</b> are booked beyond the old 215, from ${B.decisions.filter((d) => d.pack).length} command packs: projects, the CRM, payroll in Frappe HR's shape, apps and the Frappe head, buying seats. See <a href="#commands">Commands</a> (filter New) and <a href="#packs">Command packs</a>.</p></div>
           <h2>Concepts, in dependency order</h2>
           <p class="lede">Each concept imports only the ones above it. Choose one to see its commands.</p>
           <div class="list">${B.concepts.map((c, i) => `<button class="item concept" data-concept="${esc(c.id)}"><header><h3>${esc(c.title)}</h3><span class="layer">${String(i + 1).padStart(2, "0")}</span></header><div class="meta"><span>${c.counts.operation} commands</span><span>${c.counts.table} tables</span><span>${c.counts.rpc} rpcs</span><span>${c.counts.decision} decisions</span></div>${c.dependsOn.length ? `<div class="id">depends on ${c.dependsOn.map(esc).join(", ")}</div>` : '<div class="id">depends on nothing</div>'}</button>`).join("")}</div>
@@ -168,17 +168,17 @@ details[open] > summary { margin-bottom: 6px; }
     },
     packs() {
       const packs = B.decisions.filter((d) => d.pack);
-      return `<div class="note"><p>A command pack is a decision record in the book: the question, its graded options and the recommended one. Under <span class="id">rules.new-operations</span> a new command is booked as an operation, with its own acceptance claims, once its pack's option is chosen. None of these commands is booked yet; booking them is the next design pass.</p></div>
+      return `<div class="note"><p>A command pack is a decision record in the book: the question, its graded options and the recommended one. Under <span class="id">rules.new-operations</span> each command a pack chooses is booked as an operation with its own acceptance claims. ${fmt(B.operations.filter((o) => o.isNew).length)} are booked so far; see them under <a href="#commands">Commands</a> with the New filter.</p></div>
         <div class="list">${packs.map(decisionCard).join("")}</div>`;
     },
     commands() {
       const q = ui.cQuery.toLowerCase();
-      const rows = B.operations.filter((o) => (!ui.cConcept || o.concept === ui.cConcept) && (!ui.cPriority || o.priority === ui.cPriority) &&
+      const rows = B.operations.filter((o) => (!ui.cConcept || o.concept === ui.cConcept) && (!ui.cPriority || o.priority === ui.cPriority) && (!ui.cNew || (ui.cNew === "new") === !!o.isNew) &&
         (!q || `${o.id} ${o.command} ${o.title} ${o.about}`.toLowerCase().includes(q)));
       return `<div class="bar"><input type="search" id="cq" placeholder="Search commands, e.g. payment send" value="${esc(ui.cQuery)}" aria-label="Search commands"><select id="cc" aria-label="Concept">${conceptOptions(ui.cConcept)}</select>
-        <select id="cp" aria-label="Priority"><option value="">Any priority</option>${["critical", "normal", "low"].map((p) => `<option${ui.cPriority === p ? " selected" : ""}>${p}</option>`).join("")}</select><span class="count">${fmt(rows.length)} of ${B.operations.length}</span></div>
+        <select id="cn" aria-label="Old or new"><option value="">Old and new</option><option value="new"${ui.cNew === "new" ? " selected" : ""}>New only</option><option value="old"${ui.cNew === "old" ? " selected" : ""}>The old 215</option></select><select id="cp" aria-label="Priority"><option value="">Any priority</option>${["critical", "normal", "low"].map((p) => `<option${ui.cPriority === p ? " selected" : ""}>${p}</option>`).join("")}</select><span class="count">${fmt(rows.length)} of ${B.operations.length}</span></div>
         <div class="list">${rows.slice(0, ui.limit).map((o) => `<article class="item">
-          <header><span class="cmd">capxul ${esc(o.command)}</span>${o.priority === "critical" ? '<span class="pill critical">critical</span>' : ""}</header>
+          <header><span class="cmd">capxul ${esc(o.command)}</span><span>${o.isNew ? '<span class="pill pack">new</span> ' : ""}${o.priority === "critical" ? '<span class="pill critical">critical</span>' : ""}</span></header>
           <h3>${esc(o.title)}</h3>
           <div class="meta"><span class="id">${esc(o.id)}</span><span>${esc(title(o.concept))}</span><span>${o.acceptance.filter(Boolean).length} claims</span><span>${o.refusals.length} refusals</span><span>${o.evals} evals</span><span>${esc(o.budget)} budget</span></div>
           <p class="q">${esc(o.about)}</p>
@@ -216,7 +216,7 @@ details[open] > summary { margin-bottom: 6px; }
     for (const b of document.querySelectorAll("[data-concept]")) b.addEventListener("click", () => { ui.cConcept = b.dataset.concept; ui.cQuery = ""; ui.limit = 60; save(); location.hash = "#commands"; });
     for (const b of document.querySelectorAll("[data-state]")) b.addEventListener("click", () => { ui.dState = b.dataset.state; ui.limit = 60; rerender(); });
     const on = (id, key, ev = "input") => { const el = $("#" + id); if (el) el.addEventListener(ev, () => { ui[key] = el.value; ui.limit = 60; rerender(ev === "input" ? id : null); }); };
-    on("dq", "dQuery"); on("dc", "dConcept", "change"); on("cq", "cQuery"); on("cc", "cConcept", "change"); on("cp", "cPriority", "change");
+    on("dq", "dQuery"); on("dc", "dConcept", "change"); on("cq", "cQuery"); on("cc", "cConcept", "change"); on("cp", "cPriority", "change"); on("cn", "cNew", "change");
     const more = $("#more"); if (more) more.addEventListener("click", () => { ui.limit += 60; rerender(); });
   };
   window.addEventListener("hashchange", () => { ui.limit = 60; route(); });
