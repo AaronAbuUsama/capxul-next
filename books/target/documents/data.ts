@@ -92,6 +92,17 @@ export const table_documents = defineTable({
     "The generated row-level policy admits the owner's tenant (`owner_kind` with `owner_id`), and a session whose Safes " +
     "include one of `participant_safes`: the Safe of the principal's own Party, or the company Safe of an Organization " +
     "where the principal holds an active Seat now.",
+  admits: [
+    {
+      match: "own-safe",
+      field: "participant_safes",
+      reads: true,
+      writes: false,
+      about:
+        "A participant reads the document: a session whose own Safes include one of `participant_safes`; only " +
+        "`documents.store`, in its invoker's transaction, writes it (documents.tenancy).",
+    },
+  ],
   fields: Schema.Struct({
     owner_id: S,
     owner_kind: OwnerKind,

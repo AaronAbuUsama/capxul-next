@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { Schema } from "effect";
-import { buildBook, defineConcept, defineContract, defineRpc, defineTable } from "../src/index.ts";
+import { argsOf, buildBook, defineConcept, defineContract, defineRpc, defineTable } from "../src/index.ts";
 import { summaryPage, conceptPage } from "../src/views.ts";
 import * as f from "./fixtures/invitations.ts";
 
@@ -143,4 +143,96 @@ test("a wait that names a chain event consumes it", () => {
   const unconsumed = b.gaps.filter((g) => g.rule === "unconsumed-chain-event").map((g) => g.record);
   assert.deepEqual(unconsumed, ["chainEvent:seats.SeatLeft"]);
   assert.deepEqual(b.problems, []);
+});
+
+test("a wait's key names what wakes it and properties that carrier carries", () => {
+  const chain = defineContract({
+    id: "seats",
+    title: "Seats",
+    about: "A test contract.",
+    functions: {},
+    events: { SeatTaken: { signature: "SeatTaken(address indexed safe, (uint256,address) seat, uint256 id)", about: "A Seat was taken." } },
+  });
+  const wait = (w: object) => ({ ...f.expire, id: "organizations.invitations.answer", trigger: { transition: f.lifecycle.t.send }, instance: { per: f.invitations }, signals: [f.acceptRpc], waits: [w] });
+  const good = wait({
+    name: "answer",
+    for: "person",
+    key: [
+      { on: [f.acceptRpc], props: ["invitation"] },
+      { on: [f.invitationSent], props: ["role"] },
+      { on: [chain.e.SeatTaken], props: ["chain_id", "safe", "seat"] },
+      { on: [f.invitations], props: ["organizationId"], reaches: "state" },
+    ],
+    about: "The invitee answers.",
+  });
+  const b = book([...f.records, chain, good]);
+  assert.deepEqual(b.problems, []);
+  assert.ok(b.evals.some((e) => e.id === "wfl:organizations.invitations.answer/wake/answer"));
+  // a key on a chain event consumes it
+  assert.ok(!b.gaps.some((g) => g.record === "chainEvent:seats.SeatTaken"));
+  for (const [bad, why] of [
+    [{ name: "answer", for: "person", key: [{ on: [f.invitationSent], props: ["invitation_id"] }], about: "x" }, "a prop its event lacks"],
+    [{ name: "answer", for: "person", key: [{ on: [f.listRpc], props: ["organization"] }], about: "x" }, "an rpc that is not a signal"],
+    [{ name: "answer", for: "person", key: [{ on: [f.mail.c.send], props: ["to"] }], about: "x" }, "a call the workflow does not make"],
+    [{ name: "answer", for: "timer", key: [{ on: [f.invitationSent], props: ["role"] }], about: "x" }, "a key on a timer"],
+    [{ name: "answer", for: "indexer", key: [{ on: [chain.e.SeatTaken], props: ["seat_id"] }], about: "x" }, "an argument the signature lacks"],
+  ] as const)
+    assert.deepEqual(rules(book([...f.records, chain, wait(bad)]).problems), ["wait-key"], why);
+});
+
+test("a target wait other than a timer names its key; the as-is book is not held to it", () => {
+  const process = { ...f.expire, id: "organizations.invitations.answer", signals: [f.acceptRpc], waits: [{ name: "answer", for: "signal", about: "x" }, { name: "lapse", for: "timer", about: "x" }] };
+  const t = buildBook({ name: "test", stage: "target", records: [...f.records, process] });
+  assert.deepEqual(t.problems.filter((p) => p.rule === "wait-without-key").map((p) => p.detail), ["wait answer (signal) names no key: what wakes it, and by which properties"]);
+  assert.ok(!book([...f.records, process]).problems.some((p) => p.rule === "wait-without-key"));
+});
+
+test("an admission is one policy clause over the table's own columns, and yields its eval", () => {
+  const admits = [
+    { match: "email", field: "email", reads: true, writes: true, about: "The invitee reads and answers their own invitation." },
+    { match: "anyone", where: { state: "pending" }, reads: true, writes: false, about: "A pending invitation is public." },
+  ] as const;
+  const invitations = defineTable({ ...f.invitations, admits });
+  const b = book([...f.records.filter((r) => r !== f.invitations), invitations]);
+  assert.deepEqual(b.problems, []);
+  const evals = b.evals.filter((e) => e.id.startsWith("tbl:invitations/admits/")).map((e) => e.id);
+  assert.deepEqual(evals, ["tbl:invitations/admits/1", "tbl:invitations/admits/2"]);
+  assert.match(b.evals.find((e) => e.id === "tbl:invitations/tenancy")?.claim ?? "", /unless an admission names it/);
+  // a join: a grant is admitted to whoever its Organization's invitation is addressed to
+  const grants = defineTable({ ...f.grants, admits: [{ match: "email", field: "organizationId", via: { table: f.invitations, on: "organizationId", field: "email" }, reads: true, writes: false, about: "x" }] });
+  assert.deepEqual(book([...f.records.filter((r) => r !== f.grants), grants]).problems, []);
+  for (const [bad, why] of [
+    [{ match: "email", field: "invitee", reads: true, writes: false, about: "x" }, "a column the table lacks"],
+    [{ match: "anyone", field: "person", reads: true, writes: false, about: "x" }, "anyone by a column"],
+    [{ match: "safe", reads: true, writes: false, about: "x" }, "a match with no column"],
+    [{ match: "email", field: "person", kindField: "role", reads: true, writes: false, about: "x" }, "a kind column off a tenant match"],
+    [{ match: "email", field: "person", where: { status: "open" }, reads: true, writes: false, about: "x" }, "a where on a column it lacks"],
+    [{ match: "email", field: "organizationId", via: { table: f.invitations, on: "organizationId", field: "mailbox" }, reads: true, writes: false, about: "x" }, "a join to a column the other table lacks"],
+  ] as const) {
+    const t = defineTable({ ...f.grants, admits: [bad] });
+    assert.deepEqual(rules(book([...f.records.filter((r) => r !== f.grants), t]).problems), ["admission"], why);
+  }
+  const global = defineTable({ ...f.grants, tenancy: "global", admits: [admits[1]] });
+  assert.ok(rules(book([...f.records.filter((r) => r !== f.grants), global]).problems).includes("admission"));
+});
+
+test("a target chain table's policy is its admissions; prose that admits with no admission is a gap", () => {
+  const chainTable = (admits?: readonly object[]) =>
+    defineTable({ ...f.grants, id: "seat-logs", tenancy: "chain", key: ["person"], indexes: [], ...(admits ? { admits } : {}) } as never);
+  const target = (t: unknown) => buildBook({ name: "test", stage: "target", records: [...f.records, t] }).problems.filter((p) => p.rule === "chain-admits").length;
+  assert.equal(target(chainTable()), 1);
+  assert.equal(target(chainTable([{ match: "safe", field: "person", reads: true, writes: false, about: "x" }])), 0);
+  assert.equal(target(chainTable([{ match: "safe", field: "person", reads: true, writes: true, about: "x" }])), 1);
+  const prose = defineTable({ ...f.invitations, scope: "The Organization's; the invitee reads their own by email." });
+  const gaps = (stage: "as-is" | "target", t: unknown) =>
+    buildBook({ name: "test", stage, records: [...f.records.filter((r) => r !== f.invitations), t] }).gaps.filter((g) => g.rule === "admission-in-prose").length;
+  assert.equal(gaps("target", prose), 1);
+  assert.equal(gaps("as-is", prose), 0);
+  assert.equal(gaps("target", defineTable({ ...prose, admits: [{ match: "email", field: "email", reads: true, writes: false, about: "x" }] })), 0);
+});
+
+test("a chain event's arguments are read from its signature, tuples and arrays included", () => {
+  assert.deepEqual(argsOf("RoundClosed(uint256 indexed roundId, Adjustment[] adjustments)"), ["roundId", "adjustments"]);
+  assert.deepEqual(argsOf("Seat((uint256,address) seat, address indexed safe)"), ["seat", "safe"]);
+  assert.deepEqual(argsOf("ProposalExecuted(uint256 proposalId)"), ["proposalId"]);
 });

@@ -125,6 +125,18 @@ export const table_payments = defineTable({
   concept: concept_payments,
   tenancy: "owner",
   tenantField: "owner_id",
+  admits: [
+    {
+      match: "tenant",
+      field: "payee_id",
+      kindField: "payee_kind",
+      reads: true,
+      writes: false,
+      about:
+        "The payee's tenant reads a Payment it receives from another owner (`by-payee-created`); only the holder's rpcs " +
+        "and payments' processes write it (payments.two-sided-tenancy).",
+    },
+  ],
   fields: Schema.Struct({
     owner_id: S,
     owner_kind: OwnerKind,

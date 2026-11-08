@@ -26,6 +26,9 @@ import { table_payments } from "../payments/data.ts";
 import { procedure_books_record_money_fact } from "../books/procedures.ts";
 import { procedure_approvals_withdraw } from "../approvals/procedures.ts";
 import { table_approvals } from "../approvals/data.ts";
+import { contract_erc20 } from "../shared/external.ts";
+import { table_bridge_events } from "./data.ts";
+import { event_payment_transitioned } from "../payments/data.ts";
 
 const B = "packages/backend/src/banking";
 const DAY = 86_400_000;
@@ -50,9 +53,27 @@ export const workflow_banking_verification_follow = defineWorkflow({
   instance: { per: table_verifications },
   signals: [rpc_banking_verification_start, rpc_banking_inbox_receive],
   waits: [
-    { name: "bridge", for: "signal", about: "Bridge's next customer event, from the webhook or the catch-up." },
-    { name: "person", for: "person", about: "The person accepts Bridge's terms or does the liveness check on Bridge's own page." },
-    { name: "people", for: "signal", about: "A business: each named person's own `verify start --invitation` or `invite accept`." },
+    {
+      name: "bridge",
+      for: "signal",
+      key: [
+        { on: [table_bridge_events], props: ["object_id"] },
+        { on: [rpc_banking_verification_start], props: ["owner_kind", "owner_id"] },
+      ],
+      about: "Bridge's next customer event, from the webhook or the catch-up.",
+    },
+    {
+      name: "person",
+      for: "person",
+      key: [{ on: [table_bridge_events], props: ["object_id"] }],
+      about: "The person accepts Bridge's terms or does the liveness check on Bridge's own page.",
+    },
+    {
+      name: "people",
+      for: "signal",
+      key: [{ on: [rpc_banking_verification_start], props: ["invitation_id"] }],
+      about: "A business: each named person's own `verify start --invitation` or `invite accept`.",
+    },
   ],
   steps: [
     { name: "read", about: "Read the customer back from Bridge (getVerification): the next step, the people's states, each currency's decision." },
@@ -112,12 +133,46 @@ export const workflow_banking_payouts_follow = defineWorkflow({
   instance: { per: table_bank_payouts },
   signals: [rpc_banking_inbox_receive, rpc_banking_payouts_resolve, rpc_banking_accounts_remove],
   waits: [
-    { name: "funded", for: "indexer", about: "Its Payment settled, cancelled or lapsed in payments; payment_transitioned, routed by the payout's Payment id, resumes it." },
+    {
+      name: "funded",
+      for: "indexer",
+      key: [
+        { on: [event_payment_transitioned], props: ["payment_id"] },
+        { on: [rpc_banking_accounts_remove], props: ["bank_account_id"] },
+      ],
+      about: "Its Payment settled, cancelled or lapsed in payments; payment_transitioned, routed by the payout's Payment id, resumes it.",
+    },
     { name: "quote-deadline", for: "timer", about: "The quote's `expires_at`; unfunded then, it ends expired." },
-    { name: "delivery", for: "signal", timeoutMs: 7 * DAY, about: "Bridge's transfer events after funding: delivered, returned, refunded, cancelled, undeliverable." },
-    { name: "late-return", for: "signal", timeoutMs: 60 * DAY, about: "After delivery, a bank's return that Bridge reports." },
-    { name: "refund", for: "indexer", timeoutMs: 14 * DAY, about: "The refund transaction Bridge names, its Transfer into the source Safe at finality." },
-    { name: "resolution", for: "person", about: "Needs attention: an operator's resolution, or Bridge's later events." },
+    {
+      name: "delivery",
+      for: "signal",
+      timeoutMs: 7 * DAY,
+      key: [{ on: [table_bridge_events], props: ["object_id"] }],
+      about: "Bridge's transfer events after funding: delivered, returned, refunded, cancelled, undeliverable.",
+    },
+    {
+      name: "late-return",
+      for: "signal",
+      timeoutMs: 60 * DAY,
+      key: [{ on: [table_bridge_events], props: ["object_id"] }],
+      about: "After delivery, a bank's return that Bridge reports.",
+    },
+    {
+      name: "refund",
+      for: "indexer",
+      timeoutMs: 14 * DAY,
+      key: [{ on: [contract_erc20.e.Transfer], props: ["chain_id", "tx_hash", "to"] }],
+      about: "The refund transaction Bridge names, its Transfer into the source Safe at finality.",
+    },
+    {
+      name: "resolution",
+      for: "person",
+      key: [
+        { on: [rpc_banking_payouts_resolve], props: ["owner_id", "payout_id"] },
+        { on: [table_bridge_events], props: ["object_id"] },
+      ],
+      about: "Needs attention: an operator's resolution, or Bridge's later events.",
+    },
   ],
   steps: [
     { name: "fund", about: "Read its Payment: settled with the quote's terms is `fund`; other terms `flag` funding_short; cancelled or lapsed `expire`." },
@@ -184,7 +239,13 @@ export const workflow_banking_deposits_credit = defineWorkflow({
   trigger: { transition: machine_bank_deposit.t.mark_arriving },
   instance: { per: table_bank_deposits },
   waits: [
-    { name: "transfer", for: "indexer", timeoutMs: 2 * DAY, about: "Ponder indexes Bridge's transaction at finality." },
+    {
+      name: "transfer",
+      for: "indexer",
+      timeoutMs: 2 * DAY,
+      key: [{ on: [contract_erc20.e.Transfer], props: ["chain_id", "tx_hash", "to"] }],
+      about: "Ponder indexes Bridge's transaction at finality.",
+    },
   ],
   steps: [
     { name: "await", about: "awaitBlock of the transaction's block, retried while Ponder lags." },

@@ -36,7 +36,13 @@ export const workflow_access_assistants_grant = defineWorkflow({
   instance: { per: table_assistant_grants },
   signals: [rpc_access_assistants_token, rpc_access_assistants_revoke],
   waits: [
-    { name: "code", for: "signal", timeoutMs: 10 * MINUTE, about: "The client's code exchange at the token route, within 10 minutes of consent." },
+    {
+      name: "code",
+      for: "signal",
+      timeoutMs: 10 * MINUTE,
+      key: [{ on: [rpc_access_assistants_token], props: ["code"] }],
+      about: "The client's code exchange at the token route, within 10 minutes of consent.",
+    },
     { name: "renewal", for: "timer", timeoutMs: 30 * DAY, about: "The refresh window: 30 days from the last refresh, cut short at 90 days from consent." },
   ],
   steps: [

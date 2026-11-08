@@ -102,9 +102,83 @@ export const buildBook = (input: { name: string; stage: "as-is" | "target"; reco
   const book = { name: input.name, stage: input.stage, records, links, linkedBy, problems, gaps: [] as Finding[], evals: [] as EvalDef[] };
   checkRules(book, problems);
   if (input.stage === "target") checkTargetRules(book, problems);
-  const gaps = deriveGaps(book);
+  const gaps = deriveGaps(book, input.stage);
   return { ...book, gaps, evals: deriveEvals(book) };
 };
+
+// ── what a schema value, a chain event or a link carries ────────────────────────────────────
+
+/** The property names an Effect Schema value holds: a Struct's fields, every member's of a union (a nullable Struct);
+ * undefined when the schema is no Struct, so a check over it is skipped rather than guessed. */
+export const propsOf = (s: unknown): Set<string> | undefined => {
+  if (!Schema.isSchema(s)) return undefined;
+  const fields = (s as { fields?: Record<string, unknown> }).fields;
+  if (fields && typeof fields === "object") return new Set(Object.keys(fields));
+  const members = (s as { members?: readonly unknown[] }).members;
+  if (!Array.isArray(members)) return undefined;
+  const out = new Set<string>();
+  let any = false;
+  for (const m of members) {
+    const p = propsOf(m);
+    if (p) { any = true; p.forEach((x) => out.add(x)); }
+  }
+  return any ? out : undefined;
+};
+
+/** The columns every indexed log carries besides its arguments, as Ponder's rows name them. */
+export const LOG_ENVELOPE = ["chain_id", "contract_address", "block_number", "block_hash", "tx_hash", "log_index"] as const;
+
+/** A chain event's argument names, read from its signature: `Transfer(address indexed from, address indexed to, uint256 value)`. */
+export const argsOf = (signature: string): string[] => {
+  const open = signature.indexOf("(");
+  const body = open < 0 ? "" : signature.slice(open + 1, signature.lastIndexOf(")"));
+  const parts: string[] = [];
+  let depth = 0;
+  let cur = "";
+  for (const ch of body) {
+    if (ch === "(") depth++;
+    if (ch === ")") depth--;
+    if (ch === "," && depth === 0) { parts.push(cur); cur = ""; } else cur += ch;
+  }
+  if (cur.trim()) parts.push(cur);
+  return parts.map((p) => p.trim().split(/\s+/).pop() ?? "").filter(Boolean);
+};
+
+/** What a wait key's carrier carries, by name; undefined when the book cannot tell (a call has no input schema). */
+const carried = (b: Draft, on: AnyRecord): Set<string> | undefined => {
+  if (on._kind === "event") return propsOf(get(b, keyOf(on))?.props);
+  if (on._kind === "table") return propsOf(get(b, keyOf(on))?.fields);
+  if (on._kind === "rpc") return propsOf(get(b, keyOf(on))?.input);
+  if (on._kind === "chainEvent") {
+    const ref = on as unknown as { contract: string; name: string };
+    const sig = (get(b, `contract:${ref.contract}`)?.events as Record<string, { signature: string }> | undefined)?.[ref.name]?.signature;
+    return sig === undefined ? undefined : new Set([...argsOf(sig), ...LOG_ENVELOPE]);
+  }
+  return undefined;
+};
+
+interface Wait {
+  readonly name: string;
+  readonly for: string;
+  readonly events?: readonly AnyRecord[];
+  readonly key?: readonly { readonly on: readonly AnyRecord[]; readonly props: readonly string[]; readonly reaches?: string }[];
+}
+interface AdmissionRecord {
+  readonly match: string;
+  readonly field?: string;
+  readonly kindField?: string;
+  readonly via?: { readonly table: AnyRecord; readonly on: string; readonly field: string; readonly kindField?: string };
+  readonly where?: Record<string, unknown>;
+  readonly reads: boolean;
+  readonly writes: boolean;
+}
+const waitsOf = (w: AnyRecord) => (w.waits ?? []) as readonly Wait[];
+const admitsOf = (t: AnyRecord) => (t.admits ?? []) as readonly AdmissionRecord[];
+
+/** Prose that says a row policy admits a party beyond the tenant: the phrasings target designers used before `admits`
+ * existed. A gap, not a problem, because it reads words (decision rules.admissions-and-wait-keys). */
+export const ADMISSION_PROSE =
+  /\bpolic(y|ies)\b[^.]*\b(admits?|exception)\b|\badmits (the|a|either|an?y?one)\b[^.]*\b(tenant|session|safe|payer|payee|holder|grantee|investor|reader)|\bsecond (row-level )?polic(y|ies)\b|\b(reads?|sees?|reaches) (only )?(their|its) own\b|\bread (it|them) by\b|\bparties\.safe_address\b|\banyone may read\b|\bevery reader may\b/i;
 
 /** Every error an rpc, flow or procedure can produce: its own, its procedures', its steps' and its calls' failures. */
 export const errorsOf = (b: Draft, key: string, seen = new Set<string>()): Set<string> => {
@@ -204,6 +278,65 @@ const checkRules = (b: Draft, problems: Finding[]) => {
   const actors = new Set(all(b, "system").flatMap((s) => (s.actors as { id: string }[]).map((a) => a.id)));
   for (const j of all(b, "journey"))
     for (const s of j.steps as { as: string }[]) if (!actors.has(s.as)) p(j, "unknown-actor", `step taken as ${s.as}, who is not a system actor`);
+
+  // a wait's key names properties its carriers carry, a signal or call it names is the workflow's own, and an event or
+  // row it waits on is its own concept's or a dependency's (the reacting concept depends on the one that changed)
+  const eventConcept = new Map<string, string>();
+  for (const m of all(b, "machine")) {
+    const owner = get(b, keyOf(m.table as AnyRecord))?.concept as AnyRecord | undefined;
+    if (owner)
+      for (const t of Object.values(m.transitions as Record<string, { emits: AnyRecord[] }>))
+        for (const e of t.emits) eventConcept.set(keyOf(e), keyOf(owner));
+  }
+  for (const w of all(b, "workflow")) {
+    const signals = new Set(ids(w.signals));
+    const calls = new Set(ids(w.calls));
+    const own = keyOf(w.concept as AnyRecord);
+    const allowed = new Set([own, ...ids(get(b, own)?.dependsOn)]);
+    const instance = (w.instance as { per?: AnyRecord } | undefined)?.per;
+    const instanceCols = instance ? propsOf(get(b, keyOf(instance))?.fields) : undefined;
+    for (const wait of waitsOf(w))
+      for (const k of wait.key ?? []) {
+        if (wait.for === "timer") p(w, "wait-key", `wait ${wait.name} is a timer, the instance's own; it takes no key`);
+        for (const on of k.on) {
+          const key = keyOf(on);
+          if (on._kind === "rpc" && !signals.has(key)) p(w, "wait-key", `wait ${wait.name} is woken by ${key}, which is not one of its signals`);
+          if (on._kind === "call" && !calls.has(key)) p(w, "wait-key", `wait ${wait.name} awaits ${key}, which is not one of its calls`);
+          const from = on._kind === "event" ? eventConcept.get(key) : on._kind === "table" ? keyOf((get(b, key)?.concept ?? { _kind: "concept", id: "" }) as AnyRecord) : undefined;
+          if (from && from !== "concept:" && !allowed.has(from)) p(w, "wait-key", `wait ${wait.name} waits on ${key} from ${from}, which its concept does not depend on`);
+          let has = carried(b, on);
+          // a signal finds its instance by its input, or by the instance's own columns it resolves from its session
+          if (has && on._kind === "rpc" && instanceCols) has = new Set([...has, ...instanceCols]);
+          if (!has) continue;
+          for (const prop of [...k.props, ...(k.reaches ? [k.reaches] : [])])
+            if (!has.has(prop)) p(w, "wait-key", `wait ${wait.name} routes by ${prop}, which ${key} does not carry`);
+        }
+      }
+  }
+
+  // an admission names columns its table has, and admits a party only where the table has a tenant to differ from
+  for (const t of all(b, "table")) {
+    const cols = propsOf(t.fields);
+    const col = (table: AnyRecord, c: string | undefined, what: string, i: number) => {
+      const has = table === t ? cols : propsOf(get(b, keyOf(table))?.fields);
+      if (c !== undefined && has && !has.has(c)) p(t, "admission", `admission ${i + 1}: ${what} ${c} is not a column of ${keyOf(table)}`);
+    };
+    admitsOf(t).forEach((a, i) => {
+      if (t.tenancy === "global") p(t, "admission", `admission ${i + 1}: a global table's rows are every tenant's already`);
+      if (a.match === "anyone" && (a.field || a.kindField || a.via)) p(t, "admission", `admission ${i + 1}: anyone is matched by no column`);
+      if (a.match !== "anyone" && !a.field) p(t, "admission", `admission ${i + 1}: ${a.match} names the column it matches`);
+      if (a.kindField && a.match !== "tenant") p(t, "admission", `admission ${i + 1}: only a tenant match has a kind column`);
+      col(t, a.field, "field", i);
+      col(t, a.kindField, "kindField", i);
+      for (const c of Object.keys(a.where ?? {})) col(t, c, "where", i);
+      if (a.via) {
+        if (a.via.kindField && a.match !== "tenant") p(t, "admission", `admission ${i + 1}: only a tenant match has a kind column`);
+        col(a.via.table, a.via.on, "via.on", i);
+        col(a.via.table, a.via.field, "via.field", i);
+        col(a.via.table, a.via.kindField, "via.kindField", i);
+      }
+    });
+  }
 };
 
 // ── target rules: what a rebuilt design must satisfy (the accepted policies) ────────────────
@@ -249,6 +382,21 @@ const checkTargetRules = (b: Draft, problems: Finding[]) => {
       if (!i.crossTenant && i.fields[0] !== field) p(t, "tenant-key", `index ${i.name} does not start with ${field}`);
   }
 
+  // P8: a chain table's policy is its admissions (the Safe columns it is scoped by); nothing but Ponder writes it.
+  for (const t of all(b, "table")) {
+    if (t.tenancy !== "chain") continue;
+    if (admitsOf(t).length === 0) p(t, "chain-admits", "a chain table names the columns its row policy admits in admits, as its scope says");
+    admitsOf(t).forEach((a, i) => {
+      if (a.writes) p(t, "chain-admits", `admission ${i + 1} writes: only Ponder writes a chain table`);
+    });
+  }
+
+  // A3: the runtime wakes a waiting instance by the key its event carries; only a timer is the instance's own.
+  for (const w of all(b, "workflow"))
+    for (const wait of waitsOf(w))
+      if (wait.for !== "timer" && !wait.key)
+        p(w, "wait-without-key", `wait ${wait.name} (${wait.for}) names no key: what wakes it, and by which properties`);
+
   // P1: a target acceptance line is a claim with what it observes.
   for (const o of all(b, "operation"))
     (o.acceptance as unknown[]).forEach((a, i) => {
@@ -258,10 +406,17 @@ const checkTargetRules = (b: Draft, problems: Finding[]) => {
 
 // ── gaps: derived, never written ────────────────────────────────────────────────────────────
 
-const deriveGaps = (b: Draft): Finding[] => {
+const deriveGaps = (b: Draft, stage: "as-is" | "target"): Finding[] => {
   const gaps: Finding[] = [];
   const g = (record: AnyRecord, rule: string, detail: string) => gaps.push({ record: keyOf(record), rule, detail });
   const by = (r: AnyRecord, field?: string) => (b.linkedBy.get(keyOf(r)) ?? []).filter((l) => !field || l.field === field);
+
+  // A target table whose prose says its policy admits someone else, with no admission recorded: the generators would
+  // make a policy that refuses that reader.
+  if (stage === "target")
+    for (const t of all(b, "table"))
+      if (t.tenancy !== "global" && !t.admits && ADMISSION_PROSE.test(`${String(t.scope ?? "")} ${String(t.about)}`))
+        g(t, "admission-in-prose", "its scope or about says the row policy admits a party beyond the tenant, but admits records none");
 
   // A chain table is written by the indexer (Ponder), which the book does not model as a writer.
   for (const t of all(b, "table")) if (t.tenancy !== "chain" && by(t, "writes").length === 0) g(t, "unwritten-table", "no operation or workflow writes it");
@@ -270,7 +425,8 @@ const deriveGaps = (b: Draft): Finding[] => {
     const reached = new Set([m.initial as string, ...Object.values(m.transitions as Record<string, { to: string }>).map((t) => t.to)]);
     for (const s of m.states as { id: string }[]) if (!reached.has(s.id)) g(m, "unreachable-state", `no transition reaches ${s.id}`);
   }
-  for (const e of all(b, "event")) if (by(e).length === 0) g(e, "unsent-event", "no transition, operation or workflow sends it");
+  // A wait that is woken by an event listens to it; it does not send it.
+  for (const e of all(b, "event")) if (by(e).filter((l) => l.field !== "waits").length === 0) g(e, "unsent-event", "no transition, operation or workflow sends it");
   for (const e of all(b, "error")) if (by(e).length === 0) g(e, "unproduced-error", "nothing produces it");
   for (const c of all(b, "call")) if (by(c, "calls").length === 0) g(c, "unused-call", "nothing calls it");
   for (const f of all(b, "function")) if (by(f, "chain").length === 0) g(f, "uncalled-function", "nothing calls it");

@@ -101,6 +101,17 @@ export const table_agreements = defineTable({
   scope:
     "org_id is the paying Organization. The payee, a person or another Organization, reads the agreements that pay its " +
     "Safe through by_payee_safe, under a second policy on payee_safe (payroll.payee-reads).",
+  admits: [
+    {
+      match: "safe",
+      field: "payee_safe",
+      reads: true,
+      writes: false,
+      about:
+        "The payee (a person, or an Organization's members) reads the agreements that pay its Safe (`by_payee_safe`); " +
+        "only the agreement's process moves the row (payroll.payee-reads).",
+    },
+  ],
   fields: Schema.Struct({
     org_id: S,
     agreement_id: S,
@@ -188,6 +199,19 @@ export const table_agreement_writes = defineTable({
   scope:
     "org_id is the paying Organization, even for the payee's own accept and collect, which the payee policy on the " +
     "agreement's payee_safe admits it to open and read (payroll.payee-reads).",
+  admits: [
+    {
+      match: "safe",
+      field: "agreement_id",
+      via: { table: table_agreements, on: "agreement_id", field: "payee_safe" },
+      where: { side: "payee" },
+      reads: true,
+      writes: true,
+      about:
+        "The agreement's payee opens and reads its own accept and collect: a payee-side write whose agreement pays a " +
+        "Safe its tenant owns (payroll.payee-reads).",
+    },
+  ],
   fields: Schema.Struct({
     org_id: S,
     write_id: S,

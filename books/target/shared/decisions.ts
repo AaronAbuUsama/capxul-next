@@ -2249,7 +2249,8 @@ export const decision_rules_process_wakeups = defineDecision({
       text:
         "The runtime. A transition's outbox event wakes each instance whose wait names it and whose key its props carry " +
         "(the opener and subject on approval_transitioned and proposal_transitioned); an indexed chain event wakes one by " +
-        "the key Ponder's row carries (chain, sender, nonce; a payment id). The book names the wait and, in its about, the key.",
+        "the key Ponder's row carries (chain, sender, nonce; a payment id). The book names the wait and, in its `key`, what " +
+        "wakes it and by which properties.",
     },
     { label: "reactor", text: "One reacting workflow per event finds the waiting instance by a table read and signals it." },
     { label: "poll", text: "Each waiting instance polls the tables it waits on." },
@@ -2261,7 +2262,9 @@ export const decision_rules_process_wakeups = defineDecision({
     "Effect Workflow resumes an instance through a durable deferred it can address, so the runtime keeps the map from an " +
     "event's key to that address, fed by the outbox relay and by Ponder's progress (integration indexer). The A2 spike " +
     "must prove both, including a transition a procedure writes in another concept's transaction (approvals.withdraw). " +
-    "The schema has no field for a wait's key yet, so its about names it.",
+    "The key is now a field of the wait (rules.admissions-and-wait-keys): each entry names its carriers (an event, a " +
+    "chain event, Ponder's row, a signal, or the instance's own call) and the properties they carry, the build checks " +
+    "each property against the carrier, and `wfl:<workflow>/wake/<wait>` is the eval the runtime must pass.",
   source: assembly("A2, A3; books/target/approvals/processes.ts (by-sender-nonce wait); payments.carrier-waits; budgets.one-process-per-change; approvals' and payments' assembly items"),
   affects: [f.component_backend, x.integration_indexer, f.concept_approvals, f.concept_payments],
 });
@@ -2494,8 +2497,8 @@ export const decision_rules_surfaces_and_wait_events = defineDecision({
     "130. A workflow per event would split an object's one writer (A3, rules.durable-processes). `surfaces` reuses the " +
     "system's vocabulary, and flow-surface keeps it from hiding a CLI flow. A wait's `events` are the logs the process " +
     "reads at finality, so the remaining unconsumed events are ones only indexing's views read or nothing uses. The " +
-    "routing key stays in the wait's `about` (rules.process-wakeups): it is the runtime's and has no record kind yet. " +
-    "Tests in packages/book/test/build.test.ts cover both.",
+    "routing key was left to the wait's `about` (rules.process-wakeups); rules.admissions-and-wait-keys later made it " +
+    "the wait's `key`. Tests in packages/book/test/build.test.ts cover both.",
   source: builder("packages/book/src/records/behaviour.ts (FlowSpec, Wait); packages/book/src/build.ts (unused-flow, unconsumed-chain-event, flow-surface); approvals', identity's, rails' and shared's assembly asks"),
   affects: [f.component_core_sdk, f.component_ponder, x.integration_indexer],
 });
@@ -2723,7 +2726,7 @@ export const decision_rules_frozen_flags_designed_attribution = defineDecision({
     "`capxul org round preview|create --class … · invite <round> --investor --amount · show <round>`; `org vote list`'s " +
     "flags table lists `--until` \"For `wait`\"; `org agreement change`'s lists `--last-day` \"For `end`\". `org vote " +
     "create`'s table keys each row by a matter and puts that matter's flags (`--name --converts-to …`) in the meaning " +
-    "cell. On which frozen command does each designed flag count?",
+    "cell. On which frozen command does flags.ts list each designed flag?",
   options: [
     {
       label: "named",
@@ -2744,7 +2747,8 @@ export const decision_rules_frozen_flags_designed_attribution = defineDecision({
   ],
   chosen: "named",
   why:
-    "The page form put flags on the wrong commands and lost others. It gave `org vote list` the `--until` that the old " +
+    "flags.ts is the reference the target designs its flags from (system.frozen-behaviour), so it has to say which " +
+    "command each designed flag was for. The page form put flags on the wrong commands and lost others. It gave `org vote list` the `--until` that the old " +
     "CLI declares on `org vote wait`, gave `org agreement change` the `--last-day` designed for `end` (whose CLI flag is " +
     "`--on`), gave `org round create` the invite's `--investor --amount`, and left `org round preview`, `org round " +
     "invite` and `org safe invite`, which the old CLI never had, with no flags at all, though their only grammar is in " +
@@ -2758,29 +2762,30 @@ export const decision_rules_frozen_flags_designed_attribution = defineDecision({
 
 export const decision_rules_frozen_flags_boolean_forms = defineDecision({
   id: "rules.frozen-flags-boolean-forms",
-  title: "Every boolean flag's native spellings are frozen once",
+  title: "The old CLI's boolean spellings are recorded once in flags.ts",
   question:
     "Effect 4.0.0, which the old CLI pinned, parses any boolean flag in four spellings: `--x`, `--x false`, `--x=no` " +
     "and `--no-x`, where a following word counts only when it is true, yes, on, 1, y, false, no, off, 0 or n. No CLI " +
     "source declares them, and the printed help shows none. The old CLI's tests use them (`--json false`, `--json=no`, " +
-    "`--no-json`), and runtime/format.ts reads `--no-json` itself. Are they frozen surface, and where are they written?",
+    "`--no-json`), and runtime/format.ts reads `--no-json` itself. Does books/frozen/flags.ts record them, and where?",
   options: [
     {
       label: "once",
       text:
-        "Frozen, written once as `booleanForms` in books/frozen/flags.ts beside the global flags. The generator stops " +
-        "if the old test that uses them is gone. Each boolean flag keeps `takesValue: false`: it needs no value.",
+        "Recorded once as `booleanForms` in books/frozen/flags.ts beside the global flags. The generator stops if the " +
+        "old test that uses them is gone. Each boolean flag keeps `takesValue: false`: it needs no value.",
     },
-    { label: "per-flag", text: "Frozen, as a `negation` field and an optional value on each of the boolean flags." },
-    { label: "omit", text: "Not frozen: library behaviour, as `--wizard` outside a terminal is (rules.frozen-flags-built-ins)." },
+    { label: "per-flag", text: "Recorded as a `negation` field and an optional value on each of the boolean flags." },
+    { label: "omit", text: "Not recorded: library behaviour, as `--wizard` outside a terminal is (rules.frozen-flags-built-ins)." },
   ],
   chosen: "once",
   why:
-    "A script types them, and the old CLI tested them, so they are spelling, not behaviour (P10 rung 1). They are the " +
-    "same for every boolean flag, so once is exact and repeating them on each flag would add nothing. A target on " +
-    "Effect 4.1.2 keeps them by default; B1 must still not turn one off (`Flag.withoutNegation`) or make a positional " +
-    "argument swallow them. One consequence for B1: a word after a boolean flag that is one of those words is its " +
-    "value, so `org director threshold --confirm 1` reads 1 as --confirm's value, not as <n>.",
+    "flags.ts is the reference the target designs its flags from, not surface to keep (system.frozen-behaviour). As " +
+    "reference it must describe the old grammar truly, and without this a boolean flag reads as taking no value, though " +
+    "the old CLI's own tests pass it one. The forms are the same for every boolean flag, so once is exact. The target " +
+    "decides its own spellings; Effect 4.1.2 gives the same four by default. One edge for its designer: a word after a " +
+    "boolean flag that is one of those words is taken as its value, so the old `org director threshold --confirm 1` " +
+    "reads 1 as --confirm's value, not as <n>.",
   source: flagsBy("effect@4.0.0 dist/cli/internal/parser.js (resolveFlag, consumeFlagValueWithTokens); apps/cli/src/runtime/tests/entry.test.ts:913; apps/cli/src/runtime/format.ts:86"),
   affects: [f.component_cli],
 });

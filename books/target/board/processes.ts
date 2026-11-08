@@ -19,6 +19,8 @@ import {
   table_officer_changes,
   table_proposal_approvals,
 } from "./data.ts";
+import { event_approval_transitioned } from "../approvals/data.ts";
+import { table_indexer_progress } from "../indexing/data.ts";
 
 const OLD = "packages/backend/src/organizations";
 const MINUTE = 60_000;
@@ -54,12 +56,14 @@ export const workflow_board_proposals_carry = defineWorkflow({
     {
       name: "directors",
       for: "person",
+      key: [{ on: [event_approval_transitioned], props: ["opener", "subject_kind", "subject_id"] }],
       about: "The Directors approve its hash from their own Safes until the approval that reaches the threshold executes it.",
     },
     {
       name: "nonce-used",
       for: "indexer",
       events: [contract_safe.e.ExecutionSuccess, contract_safe.e.ExecutionFailure],
+      key: [{ on: [table_safe_executions], props: ["chain_id", "safe_address", "safe_nonce"] }],
       about: "Ponder has indexed, at finality, the ExecutionSuccess or ExecutionFailure that used the proposal's Safe nonce.",
     },
   ],
@@ -129,11 +133,13 @@ export const workflow_board_changes_carry = defineWorkflow({
     {
       name: "signature",
       for: "person",
+      key: [{ on: [event_approval_transitioned], props: ["opener", "subject_kind", "subject_id"] }],
       about: "The actor signs their approval on the approval page (an agent with its own key), or declines it.",
     },
     {
       name: "approval",
       for: "chain",
+      key: [{ on: [event_approval_transitioned], props: ["opener", "subject_kind", "subject_id"] }],
       about: "The approval lands, reverts, expires or is displaced on chain proof, as approval_transitioned reports it, routed by opener board and the change as subject.",
     },
     {
@@ -141,6 +147,7 @@ export const workflow_board_changes_carry = defineWorkflow({
       for: "indexer",
       events: [contract_safe.e.AddedOwner, contract_safe.e.RemovedOwner, contract_safe.e.ChangedThreshold, contract_hats.e.TransferSingle],
       timeoutMs: 10 * MINUTE,
+      key: [{ on: [table_indexer_progress], props: ["chain_id"], reaches: "indexed_block" }],
       about: "Ponder has indexed the landed transaction at finality, so its Safe and Hats facts can be read.",
     },
   ],

@@ -77,6 +77,20 @@ export const table_requests = defineTable({
   concept: concept_requests,
   tenancy: "owner",
   tenantField: "owner_kind",
+  scope:
+    "The issuer's (`owner_kind` with `owner_id`); the row policy also admits the payer, by the tenant that owns " +
+    "`payer_safe` in parties' directory, to read it (requests.owner-tenancy).",
+  admits: [
+    {
+      match: "safe",
+      field: "payer_safe",
+      reads: true,
+      writes: false,
+      about:
+        "The addressed payer reads the request in its inbox (`by_payer_created`); its pay and decline are the inbox rpcs', " +
+        "which check the payer Safe is theirs, not this clause's (requests.owner-tenancy admits reads).",
+    },
+  ],
   fields: Schema.Struct({
     owner_kind: OwnerKind,
     /** The person's principal id, or the Organization's `org_<ulid>`. */

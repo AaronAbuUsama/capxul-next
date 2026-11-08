@@ -88,6 +88,17 @@ export const table_agents = defineTable({
   scope:
     "`owner_kind` with `owner_id` (a principal id or an org_id): the policy matches the session's person, or an " +
     "Organization its principal is a member of; an agent signed in with its own key sees its own row by `safe_address`.",
+  admits: [
+    {
+      match: "own-safe",
+      field: "safe_address",
+      reads: true,
+      writes: false,
+      about:
+        "The agent itself, signed in with its own key, reads its own row (`agent show`, found `by-safe`); its changes " +
+        "are its owner's rpcs' and its process's (agents.who-acts).",
+    },
+  ],
   fields: Schema.Struct({
     owner_id: S,
     owner_kind: OwnerKind,

@@ -27,6 +27,9 @@ import { procedure_documents_store } from "../documents/procedures.ts";
 import * as partiesData from "../parties/data.ts";
 import { rpc_payments_changes_cancel, rpc_payments_changes_reschedule, rpc_payments_changes_retry } from "./changes.ts";
 import { machine_movement, machine_payment, table_movements, table_payment_commands, table_payments } from "./data.ts";
+import { event_approval_transitioned } from "../approvals/data.ts";
+import { event_proposal_transitioned } from "../board/data.ts";
+import { table_indexer_progress } from "../indexing/data.ts";
 
 const OLD = "packages/backend/src/payments";
 const DAY_MS = 86_400_000;
@@ -68,22 +71,25 @@ export const workflow_payments_lifecycle_payment = defineWorkflow({
     {
       name: "carrier",
       for: "signal",
+      key: [{ on: [event_approval_transitioned, event_proposal_transitioned], props: ["opener", "subject_kind", "subject_id"] }],
       about:
         "Its approval's `approval_transitioned` or its Board proposal's `proposal_transitioned`, routed by opener payments and its command or Payment as subject; each ends on chain proof, a window or an answer.",
     },
     {
       name: "payment-sent",
       for: "indexer",
+      key: [{ on: [contract_payments.e.PaymentSent], props: ["chain_id", "paymentId"] }],
       about: "The indexed PaymentSent with its payment id at the finality depth, read with every fact of its transaction.",
     },
     {
       name: "reserved",
       for: "indexer",
       events: [contract_budgets.e.PaymentScheduled],
+      key: [{ on: [contract_budgets.e.PaymentScheduled], props: ["chain_id", "budgetId", "jobNonce"] }],
       about: "A budget's dated payment: PaymentScheduled with its job nonce on its own budget, which gives its scheduled id.",
     },
-    { name: "escrowed", for: "indexer", events: [contract_escrow.e.EscrowCreated], about: "A claim escrow: EscrowCreated with its payment id." },
-    { name: "released", for: "indexer", events: [contract_budgets.e.ScheduleCancelled, contract_escrow.e.EscrowRefunded], about: "A cancel: ScheduleCancelled of its scheduled id, or EscrowRefunded of its payment id." },
+    { name: "escrowed", for: "indexer", events: [contract_escrow.e.EscrowCreated], key: [{ on: [contract_escrow.e.EscrowCreated], props: ["chain_id", "paymentId"] }], about: "A claim escrow: EscrowCreated with its payment id." },
+    { name: "released", for: "indexer", events: [contract_budgets.e.ScheduleCancelled, contract_escrow.e.EscrowRefunded], key: [{ on: [contract_budgets.e.ScheduleCancelled], props: ["chain_id", "budgetId", "scheduledId"] }, { on: [contract_escrow.e.EscrowRefunded], props: ["chain_id", "paymentId"] }], about: "A cancel: ScheduleCancelled of its scheduled id, or EscrowRefunded of its payment id." },
     { name: "day-ahead", for: "timer", about: "A dated Payment, 24 hours before its day: `come_due` and the funding read." },
     {
       name: "pay-day",
@@ -94,9 +100,10 @@ export const workflow_payments_lifecycle_payment = defineWorkflow({
     {
       name: "confirm",
       for: "indexer",
+      key: [{ on: [table_indexer_progress], props: ["chain_id"], reaches: "indexed_block" }],
       about: "After settling: until Ponder's head is twice the finality depth past the settled block, then the facts again.",
     },
-    { name: "retry", for: "person", about: "A `needs_retry` Payment: the payer's `payment retry`, which opens a new carrier for the same terms." },
+    { name: "retry", for: "person", key: [{ on: [rpc_payments_changes_retry], props: ["payment_id"] }], about: "A `needs_retry` Payment: the payer's `payment retry`, which opens a new carrier for the same terms." },
   ],
   steps: [
     { name: "route", about: "Reads its Payment and its carrier; a chain-born Payment goes straight to the settlement." },
@@ -203,7 +210,7 @@ export const workflow_payments_movements_record = defineWorkflow({
   concept: concept_payments,
   priority: "normal",
   trigger: { chainEvent: contract_erc20.e.Transfer },
-  waits: [{ name: "confirm", for: "indexer", about: "Until Ponder's head is twice the finality depth past the Transfer's block." }],
+  waits: [{ name: "confirm", for: "indexer", key: [{ on: [table_indexer_progress], props: ["chain_id"], reaches: "indexed_block" }], about: "Until Ponder's head is twice the finality depth past the Transfer's block." }],
   steps: [
     { name: "facts", about: "Reads every fact of the Transfer's transaction at the finality depth." },
     { name: "explain", about: "Sets aside a side whose Payment explains the Transfer." },

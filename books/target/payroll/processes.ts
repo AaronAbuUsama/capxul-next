@@ -19,6 +19,8 @@ import {
   rpc_payroll_holders_withdraw,
 } from "./holders.ts";
 import { rpc_payroll_payees_accept, rpc_payroll_payees_collect } from "./payees.ts";
+import { event_approval_transitioned } from "../approvals/data.ts";
+import { event_proposal_transitioned } from "../board/data.ts";
 
 const AG = "packages/backend/src/payroll/agreements";
 
@@ -69,6 +71,22 @@ export const workflow_payroll_agreements_lifecycle = defineWorkflow({
     {
       name: "agreement-events",
       for: "chain",
+      key: [
+        { on: [contract_agreements.e.AgreementOffered], props: ["chain_id", "documentHash"] },
+        {
+          on: [
+            contract_agreements.e.AgreementAccepted,
+            contract_agreements.e.OfferWithdrawn,
+            contract_agreements.e.RateChanged,
+            contract_agreements.e.RateChangeCancelled,
+            contract_agreements.e.AgreementPaused,
+            contract_agreements.e.AgreementResumed,
+            contract_agreements.e.AgreementEnded,
+            contract_agreements.e.Collected,
+          ],
+          props: ["chain_id", "safe", "id"],
+        },
+      ],
       about:
         "AgreementOffered with the offer's terms hash, then every AgreementAccepted, OfferWithdrawn, RateChanged, " +
         "RateChangeCancelled, AgreementPaused, AgreementResumed, AgreementEnded and Collected for its Safe and id.",
@@ -76,6 +94,7 @@ export const workflow_payroll_agreements_lifecycle = defineWorkflow({
     {
       name: "write-outcome",
       for: "signal",
+      key: [{ on: [event_approval_transitioned, event_proposal_transitioned], props: ["opener", "subject_kind", "subject_id"] }],
       about:
         "The end of an awaiting write's approval (approval_transitioned with opener payroll and the write as its subject) or " +
         "Board proposal (proposal_transitioned: execute, fail, reject or replace), delivered by the outbox.",

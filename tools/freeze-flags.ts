@@ -13,7 +13,12 @@
 // Effect's own built-in global flags (--help, --version and the rest) are declared in the Effect
 // library, not in the CLI, so they are taken as the old CLI printed them: the `globalFlags` of the
 // newest `capxul schema … --json` result recorded in apps/docs/factory/proofs. The six global flags
-// the CLI declares itself are read from its source and checked against that same printed result.
+// the CLI declares itself are read from its source and checked against that same printed result. The
+// other spellings Effect's parser gives every boolean flag (`--no-json`, `--json=no`) are written once,
+// checked against the old CLI's test that uses them.
+//
+// The flags a frozen page's designed (v4) block lists go to the frozen command each synopsis part or
+// flags-table row names, which is not always the page's own (see "matching the frozen commands").
 //
 // Running it again on the same checkout writes the same file, byte for byte.
 
@@ -872,6 +877,26 @@ for (const d of declaredGlobals) {
 }
 if (globalProblems.length) throw new Fatal(`the printed global flags disagree with the source: ${globalProblems.join("; ")}`);
 
+// Every boolean flag (`takesValue: false`) is also spelled the ways Effect 4.0.0's parser takes for any
+// boolean (dist/cli/internal/parser.js: resolveFlag, consumeFlagValueWithTokens; Schema.TrueLiterals and
+// FalseLiterals): a following true or false word, `=` and a word, or `--no-` before its name, unless the
+// command declares a flag of that name itself (`--no-wait`). They are the library's, so no CLI source
+// declares them, and they are written once here (decision rules.frozen-flags-boolean-forms). The old CLI's
+// own tests use them ("uses native boolean formats": `--json false`, `--json=no`, `--no-json`); the
+// generator stops if that evidence is gone.
+const booleanEvidence = "apps/cli/src/runtime/tests/entry.test.ts";
+if (!fs.readFileSync(path.join(ROOT, booleanEvidence), "utf8").includes(`[["--json", "false"], ["--json=no"], ["--no-json"]]`))
+  throw new Fatal(`${booleanEvidence} no longer tests the native boolean forms`);
+const booleanForms = {
+  evidence: `${booleanEvidence} ("uses native boolean formats")`,
+  on: "--<name>",
+  withValue: ["--<name> <word>", "--<name>=<word>"],
+  off: "--no-<name>",
+  trueWords: ["true", "yes", "on", "1", "y"],
+  falseWords: ["false", "no", "off", "0", "n"],
+  note: "A following word is taken as the value only when it is one of these words. `--no-<name>` is the flag a command declares under that name when it has one (`--no-wait`), and false for <name> otherwise.",
+};
+
 // ── matching the frozen commands ────────────────────────────────────────────────────────────
 
 const ids = Object.keys(frozen).sort();
@@ -888,32 +913,90 @@ const notFrozen = nodes.filter((n) => !frozenCommands.has(n.path) && !(n.hasChil
 const notFrozenRunnable = nodes.filter((n) => !frozenCommands.has(n.path));
 
 // A flag the frozen designed (v4) block lists, in its flags table or its synopsis, that the CLI does
-// not declare on that command or as a global flag. A synopsis can show several commands, joined by
-// " · "; only the part for this command counts (the whole synopsis when no part names it).
-const designedOnly: { id: string; flag: string; listedIn: string }[] = [];
+// not declare on that command or as a global flag. One page's designed block can describe several
+// commands, so each flag goes to the frozen command its part or row names (decision
+// rules.frozen-flags-designed-attribution):
+// - A synopsis joins commands with " · ". A part names its command in full after `capxul` (or after an
+//   operator script such as `beta-waitlist.ts`), or by its last words under the page's own command
+//   family (`invite <round> …` on `org round create` is `org round invite`), and `a|b` names both
+//   (`preview|create`). When no part names the page's command, its first part is the page's own: a v4
+//   spelling (`org director threshold` is designed as `capxul org board threshold`). Any other part that
+//   names no frozen command is reported and kept nowhere.
+// - A flags-table row whose meaning begins "For `wait`" is for that command of the family.
+// - A row whose flag cell names no flag but an argument's value (a vote matter) lists the flags that
+//   value takes in its meaning cell; they belong to the page's command.
+const designedOnly: { id: string; flag: string; listedIn: string; page: string }[] = [];
+const unattributed: { page: string; part: string }[] = [];
 const globalNames = new Set([...declaredGlobals.map((g) => g.flag), ...builtInGlobals.map((g) => g.flag)]);
-const ownSynopsis = (synopsis: string, command: string) => {
-  const parts = synopsis.split(" · ");
-  const words = command.split(" ");
-  const heads = [command, words.slice(1).join(" ")].filter(Boolean);
-  const mine = parts.filter((p) => {
-    const rest = p.trim().split(" ").slice(1).join(" ");
-    return heads.some((h) => rest === h || rest.startsWith(h + " ") || rest.startsWith(h + "|"));
-  });
-  return (mine.length ? mine : parts).join(" ");
+const commandWord = /^[a-z][a-z0-9-]*(\|[a-z][a-z0-9-]*)*$/;
+const flagTokens = (text: string) => text.match(/(?<![\w-])--[a-z][a-z0-9-]*/g) ?? [];
+/** The frozen ids a run of words names: in full when `absolute`, else under the page command's family. */
+const namedBy = (words: readonly string[], page: readonly string[], absolute: boolean): string[] => {
+  const lead: string[] = [];
+  for (const w of words) { if (!commandWord.test(w)) break; lead.push(w); }
+  const bases = absolute ? [[]] : Array.from({ length: page.length }, (_, i) => page.slice(0, page.length - 1 - i));
+  for (const base of bases)
+    for (let k = lead.length; k > 0; k--) {
+      let paths: string[][] = [[...base]];
+      for (const w of lead.slice(0, k)) paths = paths.flatMap((p) => w.split("|").map((alt) => [...p, alt]));
+      const hit = paths.map((p) => frozenCommands.get(p.join(" "))).filter((x): x is string => x !== undefined);
+      if (hit.length) return [...new Set(hit)];
+    }
+  return [];
 };
+const partTargets = (part: string, page: readonly string[]) => {
+  const tokens = part.trim().split(/\s+/);
+  if (tokens[0] === "capxul") return namedBy(tokens.slice(1), page, true);
+  if (tokens[0] && /\.ts$/.test(tokens[0])) return namedBy(tokens.slice(1), page, false);
+  return namedBy(tokens, page, false);
+};
+const listings: { target: string; flag: string; listedIn: string; page: string }[] = [];
 for (const id of ids) {
   const f = frozenOf(id);
+  const page = f.command.split(" ");
+  // A row that says "For `set`" also limits the page's synopsis: `ceiling set|freeze|unfreeze … [--amount]`
+  // gives --amount to set alone when the table says --amount is "For `set`".
+  const onlyFor = new Map<string, string[]>();
+  for (const row of f.designed?.flags ?? []) {
+    const forWhom = /^For `([a-z][a-z0-9 |-]*)`/.exec(String((row as { meaning?: unknown }).meaning ?? ""));
+    const named = forWhom ? namedBy(forWhom[1]!.split(" "), page, false) : [];
+    const targets = named.length ? named : [id];
+    const inCell = (row.flag.match(/`(--?[a-z][a-z0-9-]*)/g) ?? []).map((t) => t.slice(1));
+    const tokens = inCell.length ? inCell : flagTokens(String((row as { meaning?: unknown }).meaning ?? ""));
+    for (const flag of tokens) if (named.length) onlyFor.set(flag, [...(onlyFor.get(flag) ?? []), ...named]);
+    for (const target of targets) for (const flag of tokens) listings.push({ target, flag, listedIn: "flags", page: id });
+  }
+  const parts = (f.designed?.synopsis ?? "").split(" · ").filter((p) => p.trim());
+  const named = parts.map((p) => partTargets(p, page));
+  const pageNamed = named.some((t) => t.includes(id));
+  parts.forEach((part, i) => {
+    const targets = i === 0 && !pageNamed ? [id] : named[i]!;
+    if (!targets.length) { if (flagTokens(part).length) unattributed.push({ page: id, part: part.trim() }); return; }
+    for (const target of targets)
+      for (const flag of flagTokens(part))
+        if (!onlyFor.has(flag) || onlyFor.get(flag)!.includes(target)) listings.push({ target, flag, listedIn: "synopsis", page: id });
+  });
+}
+for (const id of ids) {
   const entry = commands[id] as { inCli: boolean; flags?: { flag: string }[] };
   const own = new Set((entry.flags ?? []).map((x) => x.flag));
-  const listed = new Map<string, string>();
-  for (const row of f.designed?.flags ?? [])
-    for (const token of row.flag.match(/`(--?[a-z][a-z0-9-]*)/g) ?? []) listed.set(token.slice(1), "flags");
-  for (const token of ownSynopsis(f.designed?.synopsis ?? "", f.command).match(/(?<![\w-])--[a-z][a-z0-9-]*/g) ?? [])
-    if (!listed.has(token)) listed.set(token, "synopsis");
-  for (const [flag, listedIn] of listed) if (!own.has(flag) && !globalNames.has(flag)) designedOnly.push({ id, flag, listedIn });
-  const missing = designedOnly.filter((d) => d.id === id).map((d) => d.flag);
-  if (missing.length) commands[id] = { ...(commands[id] as object), designedNotInCli: missing };
+  // The command's own page first, then the other pages in id order; a flags-table listing before a synopsis one.
+  const mine = listings.filter((l) => l.target === id);
+  const ordered = [...mine.filter((l) => l.page === id), ...mine.filter((l) => l.page !== id)];
+  const seen = new Set<string>();
+  for (const l of ordered) {
+    if (seen.has(l.flag)) continue;
+    seen.add(l.flag);
+    if (!own.has(l.flag) && !globalNames.has(l.flag)) designedOnly.push({ id, flag: l.flag, listedIn: l.listedIn, page: l.page });
+  }
+  const missing = designedOnly.filter((d) => d.id === id);
+  if (!missing.length) continue;
+  const elsewhere = missing.filter((d) => d.page !== id);
+  commands[id] = {
+    ...(commands[id] as object),
+    designedNotInCli: missing.map((d) => d.flag),
+    ...(elsewhere.length ? { designedNotInCliOnPage: Object.fromEntries(elsewhere.map((d) => [d.flag, d.page])) } : {}),
+  };
 }
 
 // ── the file ────────────────────────────────────────────────────────────────────────────────
@@ -929,6 +1012,7 @@ const json = [
   `    "declared": ${rows(declaredGlobals, "    ")},`,
   `    "builtIn": ${rows(builtInGlobals, "    ")},`,
   "  },",
+  `  "booleanForms": ${entry(booleanForms, "  ")},`,
   `  "commands": {`,
   ...ids.map((id) => `    ${JSON.stringify(id)}: ${entry(commands[id] as Record<string, Val>, "    ")},`),
   "  },",
@@ -938,13 +1022,17 @@ const lines = [
   "// GENERATED by tools/freeze-flags.ts from the old CLI. Do not edit: regenerate.",
   "//   node --experimental-strip-types tools/freeze-flags.ts /home/user/factory books/frozen/flags.ts",
   "// The arguments and flags of every frozen command, as apps/cli/src declares them with Effect CLI, and",
-  "// the global flags every command takes (policy P10: the CLI's flags are frozen surface). `declared`",
-  "// global flags are read from the source (`Command.withGlobalFlags` in apps/cli/src/command.ts);",
+  "// the global flags every command takes: reference for designing the target's flags, not surface to",
+  "// preserve (decision system.frozen-behaviour). `declared` global flags are read from the source",
+  "// (`Command.withGlobalFlags` in apps/cli/src/command.ts);",
   "// `builtIn` ones are Effect's own, as the old CLI printed them in the newest recorded",
   `// \`capxul schema\` result (apps/docs/factory/proofs/${newest.file}).`,
+  "// `booleanForms` are the other spellings every boolean flag takes (Effect 4.0.0's parser).",
   "// A frozen command with `inCli: false` is one the old CLI never declared. `designedNotInCli` names",
-  "// the flags its frozen designed (v4) block lists, in its flags table or synopsis, that the old CLI",
-  "// does not declare; by P10 the designed text is the surface, so the target keeps them too.",
+  "// the flags a frozen designed (v4) block lists for the command, in a flags table or a synopsis, that",
+  "// the old CLI does not declare; they are reference too. `designedNotInCliOnPage` names the page",
+  "// that lists one when it is another command's page (`org round create`'s synopsis also shows",
+  "// `invite <round> --investor --amount`).",
   "",
   `export const frozenFlagBook = ${json} as const;`,
   "",
@@ -963,5 +1051,6 @@ console.log(`${declaredGlobals.length} declared global flags (checked against th
 console.log(`${nodes.length} CLI command paths; ${notFrozenRunnable.length} not frozen (${notFrozen.length} excluding groups that only hold frozen commands).`);
 for (const id of notInCli) console.log(`frozen-not-in-cli ${id} (${frozenOf(id).command})`);
 for (const n of notFrozen) console.log(`cli-not-frozen ${n.path}${n.unlisted ? " (unlisted)" : ""}${n.hasChildren ? " (group)" : ""} ${fileOf(n.cmd.c.at)}`);
-for (const d of designedOnly) console.log(`designed-flag-not-in-cli ${d.id} ${d.flag} (designed ${d.listedIn})`);
-console.log(`${designedOnly.length} designed flags the CLI does not declare, in ${new Set(designedOnly.map((d) => d.id)).size} commands.`);
+for (const d of designedOnly) console.log(`designed-flag-not-in-cli ${d.id} ${d.flag} (designed ${d.listedIn}${d.page === d.id ? "" : ` on ${d.page}`})`);
+for (const u of unattributed) console.log(`designed-part-not-frozen ${u.page}: ${u.part}`);
+console.log(`${designedOnly.length} designed flags the CLI does not declare, in ${new Set(designedOnly.map((d) => d.id)).size} commands; ${unattributed.length} synopsis parts with flags name no frozen command.`);

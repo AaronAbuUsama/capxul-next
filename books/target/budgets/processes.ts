@@ -19,6 +19,9 @@ import {
 } from "../organizations/data.ts";
 import { procedure_board_propose } from "../board/procedures.ts";
 import { machine_budget, machine_budget_change, table_budget_changes, table_budgets } from "./data.ts";
+import { event_approval_transitioned } from "../approvals/data.ts";
+import { event_proposal_transitioned } from "../board/data.ts";
+import { table_indexer_progress } from "../indexing/data.ts";
 
 const PAY = "packages/backend/src/payroll/departments";
 const PERM = "packages/backend/src/permissions/allowances";
@@ -57,11 +60,13 @@ export const workflow_budgets_changes_follow = defineWorkflow({
     {
       name: "carrier",
       for: "person",
+      key: [{ on: [event_approval_transitioned, event_proposal_transitioned], props: ["opener", "subject_kind", "subject_id"] }],
       about: "The Directors approve the Board proposal, or the office holder signs or declines; proposal_transitioned or approval_transitioned, routed by opener budgets and the change as subject, resumes it.",
     },
     {
       name: "executed",
       for: "chain",
+      key: [{ on: [event_approval_transitioned, event_proposal_transitioned], props: ["opener", "subject_kind", "subject_id"] }],
       about: "The carrier's transaction lands, reverts or is displaced on chain proof, as board and approvals report it (opener budgets, the change as subject).",
     },
     {
@@ -69,6 +74,7 @@ export const workflow_budgets_changes_follow = defineWorkflow({
       for: "indexer",
       events: [contract_budgets.e.BudgetCreated, contract_budgets.e.BudgetAmountSet, contract_budgets.e.BudgetClosed, contract_budgets.e.BudgetReopened, contract_hats.e.TransferSingle],
       timeoutMs: 10 * MINUTE,
+      key: [{ on: [table_indexer_progress], props: ["chain_id"], reaches: "indexed_block" }],
       about: "Ponder has indexed the executed transaction (by chain and hash) at finality, so its Budgets and Hats facts can be read.",
     },
   ],

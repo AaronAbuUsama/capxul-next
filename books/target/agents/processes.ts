@@ -17,6 +17,9 @@ import { table_approvals } from "../approvals/data.ts";
 import { table_board_proposals } from "../board/data.ts";
 import { procedure_parties_activate, procedure_parties_release } from "../parties/procedures.ts";
 import { machine_agent, machine_agent_change, table_agent_changes, table_agents } from "./data.ts";
+import { event_approval_transitioned } from "../approvals/data.ts";
+import { event_proposal_transitioned } from "../board/data.ts";
+import { table_indexer_progress } from "../indexing/data.ts";
 
 const OLD = "packages/backend/src/accounts/agents";
 const MINUTE = 60_000;
@@ -64,17 +67,20 @@ export const workflow_agents_changes_carry = defineWorkflow({
     {
       name: "carrier",
       for: "person",
+      key: [{ on: [event_approval_transitioned, event_proposal_transitioned], props: ["opener", "subject_kind", "subject_id"] }],
       about: "The owner signs or declines on the approval page, or the Directors approve or reject the proposal; the carrier's transition resumes it.",
     },
     {
       name: "executed",
       for: "chain",
+      key: [{ on: [event_approval_transitioned, event_proposal_transitioned], props: ["opener", "subject_kind", "subject_id"] }],
       about: "The carrier's transaction lands, reverts or is displaced, or its window lapses, on chain proof: approval_transitioned or proposal_transitioned, routed by opener agents and the change as subject.",
     },
     {
       name: "indexed",
       for: "indexer",
       timeoutMs: 10 * MINUTE,
+      key: [{ on: [table_indexer_progress], props: ["chain_id"], reaches: "indexed_block" }],
       about: "Ponder has the carrier's transaction (by chain and hash) at the finality depth, so its AgentOwner logs can be read together.",
     },
   ],

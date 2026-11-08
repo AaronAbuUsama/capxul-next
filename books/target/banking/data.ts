@@ -215,6 +215,18 @@ export const table_verification_people = defineTable({
   scope:
     "The owner is the Organization being verified (`owner_kind` organization, `owner_id` its org_id). The invited person " +
     "reaches only their own row, through its invitation id and their signed-in email.",
+  admits: [
+    {
+      match: "email",
+      field: "email",
+      reads: true,
+      writes: true,
+      about:
+        "The invited person, signed in with the invited email, reads their own row and submits their details (`verify " +
+        "start --invitation`, `invite accept`, found by `verification-people-by-invitation`); the one cross-tenant read " +
+        "and write in banking (banking.owner-tenancy).",
+    },
+  ],
   fields: Schema.Struct({
     owner_id: S,
     owner_kind: Schema.Literal("organization"),

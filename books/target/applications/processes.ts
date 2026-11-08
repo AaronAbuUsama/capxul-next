@@ -30,7 +30,12 @@ export const workflow_applications_keys_grace = defineWorkflow({
   signals: [rpc_applications_keys_revoke],
   waits: [
     { name: "window", for: "timer", timeoutMs: 30 * DAY, about: "Until the key's `grace_ends_at`." },
-    { name: "revoked", for: "signal", about: "The owner revoked the key during its window (applications.keys.revoke)." },
+    {
+      name: "revoked",
+      for: "signal",
+      key: [{ on: [rpc_applications_keys_revoke], props: ["keyId"] }],
+      about: "The owner revoked the key during its window (applications.keys.revoke).",
+    },
   ],
   steps: [
     { name: "wait", about: "Waits for the window to end or for a revoke, whichever comes first." },

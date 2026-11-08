@@ -72,8 +72,21 @@ export const deriveEvals = (b: Pick<Book, "records">): EvalDef[] => {
     e(`tbl:${t.id}/schema`, "L1", t, "the migration creates exactly these fields, key and indexes");
     e(`tbl:${t.id}/writers`, "L1", t, "only the operations and workflows that list it in writes change it");
     // P8: a tenant's row-level policy, proven by a second tenant who can neither read nor write the first's rows.
+    const admits = list<{ match: string; field?: string; via?: { table: AnyRecord; field: string }; where?: object; reads: boolean; writes: boolean }>(t.admits);
     if (["organization", "person", "owner"].includes(String(t.tenancy)))
-      e(`tbl:${t.id}/tenancy`, "L1", t, `a second ${String(t.tenancy)} reads and writes none of the first's rows; only a cross-tenant index's named query reads across`);
+      e(
+        `tbl:${t.id}/tenancy`,
+        "L1",
+        t,
+        `a second ${String(t.tenancy)} reads and writes none of the first's rows${admits.length ? ", unless an admission names it" : ""}; only a cross-tenant index's named query reads across`,
+      );
+    // Each admission is one policy clause: the party it names gets exactly what it grants, on exactly its rows.
+    admits.forEach((a, i) => {
+      const who = a.match === "anyone" ? "any caller" : `a session matched by ${a.match} on ${a.via ? `${a.via.table.id}.${a.via.field} (joined by ${a.field})` : a.field}`;
+      const can = [a.reads && "reads", a.writes && "writes"].filter(Boolean).join(" and ") || "touches";
+      const rows = a.where ? `the rows where ${Object.entries(a.where).map(([k, v]) => `${k} = ${String(v)}`).join(" and ")}` : "the rows it names";
+      e(`tbl:${t.id}/admits/${i + 1}`, "L1", t, `${who} ${can} ${rows}${a.writes ? "" : ", and writes none"}; a session it does not match sees none of them`);
+    });
   }
   for (const t of ofKind(b, "transition")) e(`trn:${t.id}`, "L1", t, "an eval run observes this transition, with its events");
 
@@ -87,6 +100,16 @@ export const deriveEvals = (b: Pick<Book, "records">): EvalDef[] => {
     const excluded = [...new Set([...waits, ...(budget?.excludes ?? []), "chain.confirm"])];
     if (budget)
       e(`bud:${w.id}/p95`, "L1", w, `system time p95 ≤ ${budget.p95Ms} ms from trigger to done, excluding its waits (${excluded.join(", ")})`);
+    // A wait's key is the routing the runtime must prove (rules.process-wakeups): the matching event wakes this
+    // instance and no other waiting instance of the workflow.
+    for (const wait of list<{ name: string; key?: { on: AnyRecord[]; props: string[]; reaches?: string }[] }>(w.waits))
+      if (wait.key)
+        e(
+          `wfl:${w.id}/wake/${wait.name}`,
+          "L1",
+          w,
+          `wait ${wait.name} is woken by ${wait.key.map((k) => `${k.on.map((o) => o.id).join(" or ")} by ${[...k.props, ...(k.reaches ? [`${k.reaches} reached`] : [])].join(", ")}`).join("; ")}, and one that differs wakes no other instance`,
+        );
   }
 
   for (const i of ofKind(b, "integration")) {

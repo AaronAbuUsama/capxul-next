@@ -25,6 +25,7 @@ import {
 import { table_feature_flags } from "../access/data.ts";
 import { machine_approval, table_approvals } from "./data.ts";
 import { rpc_approvals_signing_decline, rpc_approvals_signing_sign } from "./signing.ts";
+import { event_approval_transitioned } from "./data.ts";
 
 const OLD = "packages/backend/src";
 const t = machine_approval.t;
@@ -59,6 +60,10 @@ export const workflow_approvals_lifecycle_carry = defineWorkflow({
     {
       name: "signer",
       for: "person",
+      key: [
+        { on: [rpc_approvals_signing_sign, rpc_approvals_signing_decline], props: ["approvalId"] },
+        { on: [event_approval_transitioned], props: ["approval_id"] },
+      ],
       about:
         "The signer's answer: `approvals.signing.sign` or `.decline`. The opener's withdrawal also ends it (the `withdraw` " +
         "transition's event resumes the instance), and so does the window.",
@@ -80,6 +85,7 @@ export const workflow_approvals_lifecycle_carry = defineWorkflow({
       name: "chain",
       for: "indexer",
       events: [contract_entry_point.e.UserOperationEvent],
+      key: [{ on: [contract_entry_point.e.UserOperationEvent], props: ["chain_id", "sender", "nonce"] }],
       about:
         "The UserOperationEvent at its sender and nonce, indexed by Ponder at the finality depth (index by-sender-nonce " +
         "finds every approval on that nonce); a bundler receipt only says which block to wait for.",

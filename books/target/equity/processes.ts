@@ -22,9 +22,9 @@ import {
   integration_indexer,
   integration_service_signer,
 } from "../shared/external.ts";
-import { table_approvals } from "../approvals/data.ts";
+import { event_approval_transitioned, table_approvals } from "../approvals/data.ts";
 import { procedure_approvals_withdraw } from "../approvals/procedures.ts";
-import { table_chain_deployments, table_chain_logs, table_equity_positions } from "../indexing/data.ts";
+import { table_chain_deployments, table_chain_logs, table_equity_positions, table_indexer_progress } from "../indexing/data.ts";
 import {
   machine_equity_grant,
   machine_equity_install,
@@ -54,6 +54,7 @@ import { rpc_equity_sales_approve } from "./sales.ts";
 import { rpc_equity_votes_cast, rpc_equity_votes_execute } from "./votes.ts";
 import { OLD } from "./guards.ts";
 import { procedure_board_propose } from "../board/procedures.ts";
+import { event_proposal_transitioned } from "../board/data.ts";
 
 const MINUTE = 60_000;
 const w = machine_equity_write.t;
@@ -64,16 +65,24 @@ const DECIDE = [w.land, w.fail, w.abandon] as const;
 /** Reading a carrier's transaction at finality: the calls every deciding process makes. */
 const FACTS = [integration_indexer.c.awaitBlock, integration_indexer.c.factsOf] as const;
 
+/** A carrier's end, routed by opener equity and the write as subject (rules.process-wakeups). */
+const BY_CARRIER = [{ on: [event_approval_transitioned, event_proposal_transitioned], props: ["opener", "subject_kind", "subject_id"] }];
+
+/** Ponder's progress past the carrier's block, on its chain. */
+const BY_PROGRESS = [{ on: [table_indexer_progress], props: ["chain_id"], reaches: "indexed_block" }];
+
 /** How a deciding process waits on its writes' carriers; `events` are the logs its writes land on, read at finality. */
 const carrierWaits = (events: readonly ChainEventRef[]) => [
   {
     name: "carrier",
     for: "person" as const,
+    key: BY_CARRIER,
     about: "A holder signs or declines their approval, or the Directors approve or reject the Board proposal; approval_transitioned or proposal_transitioned, routed by opener equity and the write as subject, resumes it.",
   },
   {
     name: "executed",
     for: "chain" as const,
+    key: BY_CARRIER,
     about: "The carrier's operation or Safe transaction lands, reverts or is displaced, as approvals and board report it on chain proof (opener equity, the write as subject).",
   },
   {
@@ -81,6 +90,7 @@ const carrierWaits = (events: readonly ChainEventRef[]) => [
     for: "indexer" as const,
     timeoutMs: 10 * MINUTE,
     ...(events.length ? { events } : {}),
+    key: BY_PROGRESS,
     about: "Ponder has indexed the carrier's transaction (by chain and hash) at finality, so its clone events can be read (awaitBlock, then factsOf).",
   },
 ];
@@ -122,8 +132,20 @@ export const workflow_equity_installs_setup = defineWorkflow({
   trigger: { transition: machine_equity_install.t.begin },
   instance: { per: table_equity_installs },
   waits: [
-    { name: "deploy-receipt", for: "chain", about: "deployEquity's receipt, through the service signer's one send and its lookup." },
-    { name: "deployed", for: "indexer", timeoutMs: 10 * MINUTE, events: [contract_installer.e.EquityDeployed], about: "EquityDeployed for the company Safe, indexed at finality." },
+    {
+      name: "deploy-receipt",
+      for: "chain",
+      key: [{ on: [integration_service_signer.c.waitForReceipt], props: ["tx_hash"] }],
+      about: "deployEquity's receipt, through the service signer's one send and its lookup.",
+    },
+    {
+      name: "deployed",
+      for: "indexer",
+      timeoutMs: 10 * MINUTE,
+      events: [contract_installer.e.EquityDeployed],
+      key: [{ on: [contract_installer.e.EquityDeployed], props: ["chain_id", "safe"] }],
+      about: "EquityDeployed for the company Safe, indexed at finality.",
+    },
     ...carrierWaits([]),
   ],
   steps: [
@@ -371,7 +393,13 @@ export const workflow_equity_votes_lifecycle = defineWorkflow({
   signals: [rpc_equity_votes_cast, rpc_equity_votes_execute],
   waits: [
     ...carrierWaits([contract_governor.e.ProposalCreated, contract_governor.e.VoteCast, contract_governor.e.ProposalExecuted]),
-    { name: "proposal-executed", for: "chain", events: [contract_governor.e.ProposalExecuted], about: "ProposalExecuted for the vote's Governor and proposal id, from any sender." },
+    {
+      name: "proposal-executed",
+      for: "chain",
+      events: [contract_governor.e.ProposalExecuted],
+      key: [{ on: [contract_governor.e.ProposalExecuted], props: ["chain_id", "contract_address", "proposalId"] }],
+      about: "ProposalExecuted for the vote's Governor and proposal id, from any sender.",
+    },
     { name: "vote-end", for: "timer", about: "voteEnd, by the Governor's clock: when it reads whether the vote passed and may end." },
   ],
   steps: [

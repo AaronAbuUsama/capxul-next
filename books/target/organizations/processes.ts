@@ -35,6 +35,8 @@ import {
 import { procedure_approvals_open } from "../approvals/procedures.ts";
 import { procedure_parties_activate, procedure_parties_release } from "../parties/procedures.ts";
 import { table_hat_wearers, table_safe_executions } from "../indexing/data.ts";
+import { event_approval_transitioned } from "../approvals/data.ts";
+import { table_indexer_progress } from "../indexing/data.ts";
 
 const O = "packages/backend/src/organizations";
 const DAY = 86_400_000;
@@ -70,12 +72,44 @@ export const workflow_organizations_setups_set_up = defineWorkflow({
   instance: { per: table_org_setups },
   signals: [rpc_organizations_setups_resume],
   waits: [
-    { name: "safe-minted", for: "indexer", events: [contract_company_safe_minter.e.CompanySafeMinted], about: "CompanySafeMinted of the mint transaction, at the deployment's finality depth." },
-    { name: "money-deployed", for: "indexer", events: [contract_installer.e.MoneyDeployed], about: "MoneyDeployed of the deployMoney transaction, at finality." },
-    { name: "founder-signature", for: "person", about: "The founder signs the install approval on the approval page; approval_transitioned (opener organizations, the setup as subject) resumes it." },
-    { name: "install-landed", for: "chain", about: "The install approval lands, reverts or expires on chain proof; approval_transitioned (opener organizations, the setup as subject) resumes it." },
-    { name: "install-final", for: "indexer", about: "The install's facts at finality: the Gate as module and guard, the hats minted." },
-    { name: "retry", for: "signal", about: "From needs_attention, `org retry` wakes it to run its next unfinished step again." },
+    {
+      name: "safe-minted",
+      for: "indexer",
+      events: [contract_company_safe_minter.e.CompanySafeMinted],
+      key: [{ on: [contract_company_safe_minter.e.CompanySafeMinted], props: ["chain_id", "tx_hash"] }],
+      about: "CompanySafeMinted of the mint transaction, at the deployment's finality depth.",
+    },
+    {
+      name: "money-deployed",
+      for: "indexer",
+      events: [contract_installer.e.MoneyDeployed],
+      key: [{ on: [contract_installer.e.MoneyDeployed], props: ["chain_id", "tx_hash"] }],
+      about: "MoneyDeployed of the deployMoney transaction, at finality.",
+    },
+    {
+      name: "founder-signature",
+      for: "person",
+      key: [{ on: [event_approval_transitioned], props: ["opener", "subject_kind", "subject_id"] }],
+      about: "The founder signs the install approval on the approval page; approval_transitioned (opener organizations, the setup as subject) resumes it.",
+    },
+    {
+      name: "install-landed",
+      for: "chain",
+      key: [{ on: [event_approval_transitioned], props: ["opener", "subject_kind", "subject_id"] }],
+      about: "The install approval lands, reverts or expires on chain proof; approval_transitioned (opener organizations, the setup as subject) resumes it.",
+    },
+    {
+      name: "install-final",
+      for: "indexer",
+      key: [{ on: [table_indexer_progress], props: ["chain_id"], reaches: "indexed_block" }],
+      about: "The install's facts at finality: the Gate as module and guard, the hats minted.",
+    },
+    {
+      name: "retry",
+      for: "signal",
+      key: [{ on: [rpc_organizations_setups_resume], props: ["orgId"] }],
+      about: "From needs_attention, `org retry` wakes it to run its next unfinished step again.",
+    },
   ],
   steps: [
     { name: "mint", about: "Send CompanySafeMinter.mint with the company-Safe role, unless mint_tx_hash is recorded; then follow that one." },
@@ -143,10 +177,35 @@ export const workflow_organizations_invitations_follow = defineWorkflow({
   instance: { per: table_org_invitations },
   signals: [rpc_organizations_invitations_accept, rpc_organizations_invitations_decline, rpc_organizations_invitations_cancel],
   waits: [
-    { name: "grants-executed", for: "indexer", events: [contract_safe.e.ExecutionSuccess, contract_safe.e.ExecutionFailure], about: "Authorizing: the bound Safe transaction's ExecutionSuccess at finality, or its nonce taken by another." },
-    { name: "invitee", for: "person", about: "Pending: the invitee accepts or declines, or the Organization cancels." },
+    {
+      name: "grants-executed",
+      for: "indexer",
+      events: [contract_safe.e.ExecutionSuccess, contract_safe.e.ExecutionFailure],
+      key: [{ on: [table_safe_executions], props: ["chain_id", "safe_address", "safe_nonce"] }],
+      about: "Authorizing: the bound Safe transaction's ExecutionSuccess at finality, or its nonce taken by another.",
+    },
+    {
+      name: "invitee",
+      for: "person",
+      key: [
+        {
+          on: [rpc_organizations_invitations_accept, rpc_organizations_invitations_decline, rpc_organizations_invitations_cancel],
+          props: ["orgId", "invitationId"],
+        },
+      ],
+      about: "Pending: the invitee accepts or declines, or the Organization cancels.",
+    },
     { name: "expiry", for: "timer", timeoutMs: 7 * DAY, about: "Seven days after the offer opened; a resend never moves it." },
-    { name: "hats-removed", for: "indexer", events: [contract_hats.e.WearerStandingChanged, contract_hats.e.TransferSingle], about: "Revoking: the grantee's Safe wears none of the granted hats." },
+    {
+      name: "hats-removed",
+      for: "indexer",
+      events: [contract_hats.e.WearerStandingChanged, contract_hats.e.TransferSingle],
+      key: [
+        { on: [contract_hats.e.WearerStandingChanged], props: ["chain_id", "wearer"] },
+        { on: [contract_hats.e.TransferSingle], props: ["chain_id", "from"] },
+      ],
+      about: "Revoking: the grantee's Safe wears none of the granted hats.",
+    },
   ],
   steps: [
     { name: "await-grants", about: "Authorizing only: wait for the binding, then for the transaction or its nonce to pass." },

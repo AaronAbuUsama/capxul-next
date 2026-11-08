@@ -65,6 +65,16 @@ const SET_BY = {
 const scope = (columns: string) =>
   `${columns} = parties.safe_address for a Party whose (owner_kind, owner_id) is the session's tenant; a workflow (the system) reads every row.`;
 
+/** The admissions that scope (above) makes: one read-only clause per Safe column, matched through parties' directory. */
+const bySafe = (...columns: string[]) =>
+  columns.map((field) => ({
+    match: "safe" as const,
+    field,
+    reads: true,
+    writes: false,
+    about: `A session whose tenant owns the Safe in \`${field}\` (parties' directory) reads the row; only Ponder writes it (indexing.scope-by-parties).`,
+  }));
+
 const BY_TX = (table: string) => ({
   name: `${table}-by-tx`,
   fields: ["chain_id", "tx_hash", "tx_log_ordinal"],
@@ -91,6 +101,14 @@ export const table_indexer_progress = defineTable({
   concept: concept_indexing,
   tenancy: "chain",
   scope: "Not scoped: one row per chain, Ponder's own progress, which names no Safe; every reader may see it.",
+  admits: [
+    {
+      match: "anyone",
+      reads: true,
+      writes: false,
+      about: "Every reader may see Ponder's progress: it names no Safe and holds nothing private (indexing.scope-by-parties).",
+    },
+  ],
   fields: Schema.Struct({
     chain_id: Int,
     indexed_block: Int,
@@ -150,6 +168,7 @@ export const table_chain_logs = defineTable({
   concept: concept_indexing,
   tenancy: "chain",
   scope: scope("Any of `safes`"),
+  admits: bySafe("safes"),
   fields: Schema.Struct({
     ...LOG,
     contract: Schema.Literals(LOGGED_CONTRACTS),
@@ -192,6 +211,7 @@ export const table_transfers = defineTable({
   concept: concept_indexing,
   tenancy: "chain",
   scope: scope("`from_address` or `to_address`"),
+  admits: bySafe("from_address", "to_address"),
   fields: Schema.Struct({
     ...LOG,
     token: S,
@@ -232,6 +252,7 @@ export const table_chain_payments = defineTable({
   concept: concept_indexing,
   tenancy: "chain",
   scope: scope("`sender` or `recipient`"),
+  admits: bySafe("sender", "recipient"),
   fields: Schema.Struct({
     ...LOG,
     payment_id: S,
@@ -288,6 +309,7 @@ export const table_user_operations = defineTable({
   concept: concept_indexing,
   tenancy: "chain",
   scope: scope("`sender`"),
+  admits: bySafe("sender"),
   fields: Schema.Struct({
     ...LOG,
     user_op_hash: S,
@@ -338,6 +360,7 @@ export const table_safe_owners = defineTable({
   concept: concept_indexing,
   tenancy: "chain",
   scope: scope("`safe_address`, any of `owners`, or `agent_owner`"),
+  admits: bySafe("safe_address", "owners", "agent_owner"),
   fields: Schema.Struct({
     safe_address: S,
     chain_id: Int,
@@ -382,6 +405,7 @@ export const table_safe_approvals = defineTable({
   concept: concept_indexing,
   tenancy: "chain",
   scope: scope("`safe_address` or `owner`"),
+  admits: bySafe("safe_address", "owner"),
   fields: Schema.Struct({
     ...LOG,
     safe_address: S,
@@ -417,6 +441,7 @@ export const table_safe_executions = defineTable({
   concept: concept_indexing,
   tenancy: "chain",
   scope: scope("`safe_address`"),
+  admits: bySafe("safe_address"),
   fields: Schema.Struct({
     ...LOG,
     safe_address: S,
@@ -456,6 +481,7 @@ export const table_safe_balances = defineTable({
   concept: concept_indexing,
   tenancy: "chain",
   scope: scope("`address`"),
+  admits: bySafe("address"),
   fields: Schema.Struct({
     chain_id: Int,
     address: S,
@@ -484,6 +510,7 @@ export const table_chain_deployments = defineTable({
   concept: concept_indexing,
   tenancy: "chain",
   scope: scope("`company_safe` or `founder_safe`"),
+  admits: bySafe("company_safe", "founder_safe"),
   fields: Schema.Struct({
     company_safe: S,
     chain_id: Int,
@@ -532,6 +559,7 @@ export const table_chain_hats = defineTable({
   concept: concept_indexing,
   tenancy: "chain",
   scope: scope("`company_safe`"),
+  admits: bySafe("company_safe"),
   fields: Schema.Struct({
     hat_id: S,
     chain_id: Int,
@@ -582,6 +610,7 @@ export const table_hat_wearers = defineTable({
   concept: concept_indexing,
   tenancy: "chain",
   scope: scope("`wearer` or `company_safe`"),
+  admits: bySafe("wearer", "company_safe"),
   fields: Schema.Struct({
     hat_id: S,
     wearer: S,
@@ -625,6 +654,7 @@ export const table_chain_budgets = defineTable({
   concept: concept_indexing,
   tenancy: "chain",
   scope: scope("`company_safe`"),
+  admits: bySafe("company_safe"),
   fields: Schema.Struct({
     budget_id: S,
     chain_id: Int,
@@ -668,6 +698,7 @@ export const table_chain_agreements = defineTable({
   concept: concept_indexing,
   tenancy: "chain",
   scope: scope("`company_safe` or `payee`"),
+  admits: bySafe("company_safe", "payee"),
   fields: Schema.Struct({
     agreement_id: S,
     chain_id: Int,
@@ -726,6 +757,7 @@ export const table_escrows = defineTable({
   concept: concept_indexing,
   tenancy: "chain",
   scope: scope("`owner_safe` or `payee_safe`"),
+  admits: bySafe("owner_safe", "payee_safe"),
   fields: Schema.Struct({
     escrow_address: S,
     chain_id: Int,
@@ -780,6 +812,7 @@ export const table_equity_instruments = defineTable({
   concept: concept_indexing,
   tenancy: "chain",
   scope: scope("`company_safe`"),
+  admits: bySafe("company_safe"),
   fields: Schema.Struct({
     company_safe: S,
     instrument: Schema.Literals(["share_class", "priced_round", "safe_round", "sale", "share_transfer"]),
@@ -810,6 +843,7 @@ export const table_equity_positions = defineTable({
   concept: concept_indexing,
   tenancy: "chain",
   scope: scope("`holder` or `company_safe`"),
+  admits: bySafe("holder", "company_safe"),
   fields: Schema.Struct({
     company_safe: S,
     instrument: Schema.Literals(["shares", "vesting_grant", "option_grant", "round_position", "safe_note"]),

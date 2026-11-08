@@ -53,6 +53,17 @@ export const table_files = defineTable({
   concept: concept_media,
   tenancy: "person",
   tenantField: "person_id",
+  admits: [
+    {
+      match: "anyone",
+      where: { purpose: "image", state: "kept" },
+      reads: true,
+      writes: false,
+      about:
+        "The row policy's one exception: anyone, signed in or not, reads a kept image by its id (`by-id`, " +
+        "`media.files.get`); a held or expired document never (media.serving).",
+    },
+  ],
   fields: Schema.Struct({
     /** The person who uploaded it: the only person who can use it in a write. */
     person_id: Schema.String,

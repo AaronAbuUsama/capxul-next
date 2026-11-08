@@ -32,6 +32,8 @@ import {
 import { procedure_approvals_open } from "../approvals/procedures.ts";
 import { table_escrows } from "../indexing/data.ts";
 import { rpc_accounts_setup_start } from "./setup.ts";
+import { event_approval_transitioned } from "../approvals/data.ts";
+import { table_indexer_progress } from "../indexing/data.ts";
 
 const OLD = "packages/backend/src";
 const CLAIMS = `${OLD}/accounts/claims`;
@@ -62,18 +64,21 @@ export const workflow_accounts_setup_personal_safe = defineWorkflow({
       name: "claim-mined",
       for: "chain",
       timeoutMs: 60_000,
+      key: [{ on: [integration_service_signer.c.waitForReceipt], props: ["tx_hash"] }],
       about: "The claim transaction's receipt, through the service signer; past the deadline it is looked up again, never re-sent.",
     },
     {
       name: "claim-indexed",
       for: "indexer",
       timeoutMs: 10_000,
+      key: [{ on: [table_indexer_progress], props: ["chain_id"], reaches: "indexed_block" }],
       about: "Ponder has indexed the claim's block, so its CapxulSafeClaimed and the escrows that pay the Safe can be read.",
     },
     {
       name: "collection-signed",
       for: "person",
       timeoutMs: 1_800_000,
+      key: [{ on: [event_approval_transitioned], props: ["opener", "subject_kind", "subject_id"] }],
       about: "The person signs the collection approval on the approval page; a decline or the approval's lapse ends the wait.",
     },
     {
@@ -81,6 +86,10 @@ export const workflow_accounts_setup_personal_safe = defineWorkflow({
       for: "chain",
       events: [contract_escrow.e.EscrowPaid],
       timeoutMs: 600_000,
+      key: [
+        { on: [event_approval_transitioned], props: ["opener", "subject_kind", "subject_id"] },
+        { on: [contract_escrow.e.EscrowPaid], props: ["chain_id", "payeeSafe"] },
+      ],
       about: "The collection approval ends on chain proof: EscrowPaid to the Safe for each escrow it collected.",
     },
   ],

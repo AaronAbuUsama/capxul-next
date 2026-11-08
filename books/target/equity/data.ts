@@ -303,6 +303,18 @@ export const table_equity_writes = defineTable({
   scope:
     "org_id is the company, even for an investor's, grantee's, holder's or voter's own write; that person reads their own " +
     "by signer_safe (equity.holder-reads).",
+  admits: [
+    {
+      match: "safe",
+      field: "signer_safe",
+      reads: true,
+      writes: false,
+      about:
+        "The holder whose own write it is (an investor, grantee, seller, buyer or voter), by the tenant that owns " +
+        "`signer_safe` in parties' directory, reads it across companies; equity's rpcs and processes write it in the " +
+        "company's tenant (equity.holder-reads).",
+    },
+  ],
   fields: Schema.Struct({
     org_id: S,
     write_id: S,
@@ -592,6 +604,17 @@ export const table_fundraise_investments = defineTable({
   tenancy: "organization",
   tenantField: "org_id",
   scope: "org_id is the company; the investor reads their own by investor_safe (equity.holder-reads).",
+  admits: [
+    {
+      match: "safe",
+      field: "investor_safe",
+      reads: true,
+      writes: false,
+      about:
+        "The investor, by the tenant that owns `investor_safe` in parties' directory, reads it across companies; " +
+        "equity's rpcs and processes write it in the company's tenant (equity.holder-reads).",
+    },
+  ],
   fields: Schema.Struct({
     org_id: S,
     investment_id: S,
@@ -713,6 +736,17 @@ export const table_equity_grants = defineTable({
   tenancy: "organization",
   tenantField: "org_id",
   scope: "org_id is the company; the grantee reads their own by grantee_safe (equity.holder-reads).",
+  admits: [
+    {
+      match: "safe",
+      field: "grantee_safe",
+      reads: true,
+      writes: false,
+      about:
+        "The grantee, by the tenant that owns `grantee_safe` in parties' directory, reads it across companies; equity's " +
+        "rpcs and processes write it in the company's tenant (equity.holder-reads).",
+    },
+  ],
   fields: Schema.Struct({
     org_id: S,
     grant_id: S,
@@ -850,6 +884,26 @@ export const table_share_sales = defineTable({
   tenancy: "organization",
   tenantField: "org_id",
   scope: "org_id is the company; the seller and the buyer read it by seller_safe and buyer_safe (equity.holder-reads).",
+  admits: [
+    {
+      match: "safe",
+      field: "seller_safe",
+      reads: true,
+      writes: false,
+      about:
+        "The seller, by the tenant that owns `seller_safe` in parties' directory, reads it across companies; equity's " +
+        "rpcs and processes write it in the company's tenant (equity.holder-reads).",
+    },
+    {
+      match: "safe",
+      field: "buyer_safe",
+      reads: true,
+      writes: false,
+      about:
+        "The buyer, by the tenant that owns `buyer_safe` in parties' directory, reads it across companies; equity's " +
+        "rpcs and processes write it in the company's tenant (equity.holder-reads).",
+    },
+  ],
   fields: Schema.Struct({
     org_id: S,
     sale_id: S,
