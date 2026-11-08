@@ -1,5 +1,21 @@
 # Open for Aaron, 8 November 2026
 
+## His answers (sixth batch, 8 November 2026)
+
+He accepted every recommendation below that he did not mention. He changed two:
+
+- **Departments (question 2, and who can do what everywhere):** "There's a concept of departments. Look at the v4
+  contract properly. The whole purpose of the departments is that budgets belong to departments, and you can swap
+  people in and out of departments." To record as `aaron.departments`. In v4 a department is a budget in the company
+  Safe's tree with its own hat; `Budgets.authorised` admits the Safe and every wearer of the budget's hat or an
+  ancestor's. So a budget payment is the department's: whoever wears its hat when it is taken back may take it back.
+- **The FDE (question 13):** "The FDE is not hosted on their machine. It's hosted on a durable agent, hosted on a
+  durable runtime with sandboxes. We handle that for the users. They pay us for hosting it." To record as
+  `aaron.fde-hosted`, superseding `organizations.fde-at-start-up`.
+
+`tools/workflows/commands-and-escrow.js` applies both, with an audit of every authority statement in the book against
+the v4 contracts.
+
 The open decisions, numbered as they were put to Aaron (in text written for text-to-speech). Each recommendation
 stands, and the build follows it, until he answers. His answers go into `books/target/shared/rulings.ts`, book first.
 
@@ -64,3 +80,6 @@ back until it is claimed; it is a general-purpose escrow; the escrow changes, no
 | 30 | The price of an extra seat, and the stablecoin | `aaron.buy-seats`; until then buying a seat is refused |
 | 31 | A Cloudflare API token and the Access allowlist | The portal's private hosting (`portal.hosting`) |
 | 32 | Branch protection on `main` and `integration/build` | `tooling.branch-protection` |
+| 33 | The price of hosting an Organization's FDE | `aaron.fde-hosted`; a deployment setting, as the seat price |
+| 34 | The swarmd-next repository on GitHub, added to this session | Question 25, accepted; this session may not create repositories |
+| 35 | The swarm's accounts: the capxul namespace on swarmD, the GitHub App on both repositories, a room | Question 22, accepted |
