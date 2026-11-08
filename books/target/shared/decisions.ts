@@ -2503,6 +2503,65 @@ export const decision_rules_surfaces_and_wait_events = defineDecision({
   affects: [f.component_core_sdk, f.component_ponder, x.integration_indexer],
 });
 
+export const decision_rules_admissions_and_wait_keys = defineDecision({
+  id: "rules.admissions-and-wait-keys",
+  title: "Row admissions and wait keys are fields, not prose",
+  question:
+    "The build session's generators (B1) make each table's row-level policy and the runtime's map from a waking event to " +
+    "the instance waiting for it. Both lived only in prose: a table's scope or about said that a payee, an addressed " +
+    "payer, a holder by their Safe or anyone also reads it (payments, requests, documents, media, agents, banking, " +
+    "equity, payroll and every chain view), and a wait's about named its key (rules.process-wakeups). Give them fields, " +
+    "and how does a missing one show?",
+  options: [
+    {
+      label: "fields",
+      text:
+        "TableSpec gains `admits`: one entry per policy clause, with how the session is matched (`tenant`; `safe`, through " +
+        "parties' directory; `own-safe`; `email`; `anyone`), the column or a one-hop join (`via` a table and its column), " +
+        "the rows (`where`), and whether it reads and writes. A wait gains `key`: one entry per way it is woken, its " +
+        "carriers (a product event, a chain event, a table's row, a signal rpc or the instance's own call) and the " +
+        "properties they carry (`reaches` for Ponder's progress passing a block). Both optional. Rules `admission` and " +
+        "`wait-key` check them wherever present; in a target book `chain-admits` and `wait-without-key` require them; the " +
+        "gap `admission-in-prose` shows a target table whose prose admits someone with no `admits`. Each clause and each " +
+        "key yields an eval: `tbl:<table>/admits/<n>`, `wfl:<workflow>/wake/<wait>`.",
+    },
+    { label: "prose", text: "Keep the prose: B1 reads it, or writes each policy and route by hand." },
+    { label: "all-gaps", text: "The fields, with every missing one a gap." },
+    { label: "all-problems", text: "The fields, with admission prose and no `admits` a problem too." },
+  ],
+  chosen: "fields",
+  why:
+    "A policy the generator cannot see refuses a legitimate reader, or, written by hand, admits too much; a route " +
+    "written by hand is the reactor rules.process-wakeups rejected. As fields both are checked on every build and each " +
+    "becomes an eval, so B2 proves every clause and B0 the routing. A wait without a key is found by structure alone and " +
+    "leaves the generator nothing to emit, so in a target book it is a problem; a timer is the instance's own and takes " +
+    "none. Admission prose is found only by reading words (ADMISSION_PROSE in packages/book/src/build.ts), which can be " +
+    "wrong either way, so it is a gap: visible, never why the book fails to build. A chain table's scope always is its " +
+    "policy, so its admissions are a rule. The matchers are the book's own: `safe` is P8's chain-read scope " +
+    "(indexing.scope-by-parties), which requests.owner-tenancy, payroll.payee-reads and equity.holder-reads name; " +
+    "`own-safe` is documents.tenancy's principal's own Safe or a Seat's company Safe, and an agent's own row " +
+    "(agents.who-acts). `writes` is what each concept's decision grants and no more: requests' pay and decline and " +
+    "equity's holder writes are their rpcs' work, not a policy's. A key reaches several instances only where the design " +
+    "means it: every approval on one nonce, every Payment of one command, every instance whose block Ponder's progress " +
+    "passed. A cross-tenant index stays one named query, not a clause (organizations' offers, accounts' referee).",
+  source: builder("packages/book/src/records/data.ts (Admission), records/behaviour.ts (WaitKey), build.ts, evals.ts; the cold read of B1's inputs"),
+  affects: [
+    decision_rules_process_wakeups,
+    f.component_postgres,
+    f.component_backend,
+    x.integration_indexer,
+    f.concept_indexing,
+    f.concept_payments,
+    f.concept_requests,
+    f.concept_documents,
+    f.concept_media,
+    f.concept_agents,
+    f.concept_banking,
+    f.concept_equity,
+    f.concept_payroll,
+  ],
+});
+
 // ── size ────────────────────────────────────────────────────────────────────────────────────
 
 const HANDOFF = "Claude, handoff to the build, 8 November 2026";
