@@ -241,7 +241,9 @@ What happens next, on every Capxul payment route:
 
 ## What other concepts must change to match
 
-These records are outside this pass's folders. Each is listed for its owner in the pass's report.
+These records were outside the escrow pass's folders. The commands pass's build applied each one (8 November
+2026), except the rulings file, which is its owner's: `payments.claim-escrow-routes`, `budgets.claim-escrows` and
+`payments.claim-escrow-fit` still sit in SUPERSEDED there, though they now carry out `aaron.escrow-general`.
 
 - **Indexing.**
   - The `escrows` table and its indexes take the new roles: `owner` (who collects) and `sender` (where a refund goes),
@@ -264,9 +266,9 @@ These records are outside this pass's folders. Each is listed for its owner in t
   - The text of `person-with-money-waiting` ("her Safe owns") reads "her Safe sent".
 - **Payroll.** Its text says the budget's current wearers or the Board take a new hire's escrow back.
 - **Equity.** Exits builds the new terms and sets `ownerTakesSurplus`.
-- **The command grammar page.** `docs/design/new-commands.md` lists `payment claim` (payments, `client.payments.claim`)
-  in sections 1, 2 (G3, G5, G8), 4, 6 and 7. The booked operation is `account collect` (accounts,
-  `client.account.collect`, `--json` and `--timeout-seconds`, no `--request-key`).
+- **The command grammar page.** `docs/design/new-commands.md` now lists the booked `account collect` (accounts,
+  `client.account.collect`, `--json` and `--timeout-seconds`, no `--request-key`). Aaron's answer of 8 November,
+  night, spells it `payment claim`; that rename is to apply after the commands pass, book first.
 - **Shared and the goal prompt.** `packages/contracts` joins `system.layout` and B3. `component_chain` and the devnet
   name it as the source of the v4 deployment. The rulings file moves the rewritten records from SUPERSEDED to
   CARRIES_OUT.

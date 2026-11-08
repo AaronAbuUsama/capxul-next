@@ -42,6 +42,8 @@ export const TEMPLATES = [
   "organization-invitation",
   "head-stalled",
   "fde-ready",
+  "fde-hosting-due",
+  "fde-paused",
   // budgets
   "allowance-assigned",
   "department-holder-added",

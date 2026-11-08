@@ -1315,3 +1315,46 @@ export const decision_devnet_command_worlds = defineDecision({
   source: COMMANDS("organizations.command-worlds; organizations.fde-hosting; devnet.sessions-across-warps; books/target/devnet/worlds.ts"),
   affects: [...ORG_NEW_OPERATIONS, operation_org_seats_show, concept_devnet, concept_organizations],
 });
+
+// ── the worlds the commands pass's last bookings start from (8 November 2026, build pass) ─────────
+
+const BUILD_PASS = (evidence: string) => `Claude, commands pass build, 8 November 2026; evidence: ${evidence}`;
+
+export const decision_devnet_commands_pass_worlds = defineDecision({
+  id: "devnet.commands-pass-worlds",
+  title: "Nine worlds the new commands named, and three worlds rebuilt to build on v4",
+  question:
+    "The packs booked refusals and claims from worlds the catalogue did not hold (projects, `account collect`, `org seats " +
+    "buy`, `org fde pay`, the department escrow invariant), and three catalogued worlds could not be built on v4 " +
+    "(org-with-allowance and org-with-uncapped-allowance named a per-payment cap and a parent with no room; " +
+    "org-with-documents made a People-hat wearer a department's holder). What does the catalogue add and change?",
+  options: [
+    {
+      label: "add-and-rebuild",
+      text:
+        "Add org-with-projects and org-with-projects-chain-unreachable as projects.worlds lists them (with the cancelled " +
+        "task Old); person-ready-money-waiting (person-with-money-waiting after the mailbox's person set up and declined " +
+        "the collection at setup); org-with-fde-allowance-paused (org-with-fde-allowance warped 32 days); " +
+        "org-with-prices-unset (a new supervisor control, `capxul-devnet setting <NAME> --unset`, restarts the backend " +
+        "without SEAT_PRICE and FDE_HOSTING_PRICE); org-with-closed-running-costs and org-with-short-company-safe, as " +
+        "payments.seat-worlds asks; and org-with-department-escrow-swapped (a `salaries` claim escrow, then its office " +
+        "moved from Lead to Plat). Rebuild org-with-allowance as org-with-fde-allowance is built (a Board top budget " +
+        "`running-costs` with room, the allowance under it, the payout ceiling, no cap), make org-with-uncapped-allowance " +
+        "its second name, and give org-with-documents' `people` a holder of its own, Hana.",
+    },
+    { label: "gaps", text: "Leave the uncatalogued names as world gaps until a devnet pass designs them." },
+  ],
+  chosen: "add-and-rebuild",
+  why:
+    "A refusal or claim is an eval only once a world reaches it, and every one of these names a state built by commands " +
+    "alone. The allowance worlds failed the same way the first org-with-fde-allowance did: Budgets.createChildBudget " +
+    "refuses a child of a budget with no room, a per-payment cap has no v4 form, and Budgets pays out only within the " +
+    "payout ceiling. On v4 no allowance has a cap, so the uncapped world is the same snapshot. ROLE_CONFLICT keeps a " +
+    "People-hat wearer from any office, so Dana, who wears it from setup, cannot hold `people`; Dana keeps her payroll " +
+    "steps, which need the People hat. A deployment setting is not a CLI variable, so unsetting a price needs the " +
+    "supervisor to restart the backend; one world unsets both prices, because both purchases refuse the same way.",
+  source: BUILD_PASS(
+    "projects.worlds; accounts.collect-any-time; payments.seat-worlds; payments.fde-hosting-purchase; payments.escrow-department-now; budgets.role-conflict-people-hat; Budgets.sol (createChildBudget, _requireRoom)",
+  ),
+  affects: [concept_devnet, concept_organizations],
+});

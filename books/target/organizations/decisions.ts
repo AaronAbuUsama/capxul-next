@@ -1249,7 +1249,7 @@ export const decision_organizations_buy_seats = defineDecision({
         "[<months>] --from <budget>` (payments', chain-submit: a person Budgets.authorised admits on the budget; never " +
         "an agent). Payments books both buys, because organizations sits below payments: each births one command by " +
         "`payments.prepare-command`'s rules (route budget, owner the Organization, one item to Capxul's receiving Safe for " +
-        "n seats or months times the price, its source naming the count, never the Organization), and its settlement invokes an " +
+        "n seats or months times the price, its source naming the count and, for seats, the buyer, never the Organization), and its settlement invokes an " +
         "organizations door in the settling transaction with the command's owner as the Organization: " +
         "`organizations.add-bought-seats` raises the limit, and `organizations.extend-fde-hosting` moves the FDE's " +
         "paid-through instant on by the months (organizations.fde-hosting); each reversal on a reorg invokes its return door. So what was bought counts exactly when the " +
@@ -1289,8 +1289,8 @@ export const decision_organizations_buy_seats = defineDecision({
     "from Capxul would put an issuer in every purchase; a budget is the route the door already has. An agent never buys " +
     "(agents.fde-authority). The Organization counted is the paying command's owner, never a value the source carries, " +
     "so one company cannot buy for another. A seat subscription needs a lapse that lowers a limit, which nothing designs. " +
-    "This pack's `affects` cannot list payments' records (a decision imports only its concept's dependencies): payments' " +
-    "own decisions cite it and list its commands (payments.seat-purchase lists `org.seats.buy`).",
+    "This pack's `affects` cannot list payments' records (a decision imports only its concept's dependencies), so " +
+    "payments.seat-purchase and payments.fde-hosting-purchase cite it and list `org.seats.buy` and `org.fde.pay`.",
   source: asmBy("books/target/shared/rulings.ts (aaron.buy-seats); books/target/payments/procedures.ts (payments.prepare-command)"),
   affects: [
     table_organizations, table_org_seat_purchases, machine_seat_purchase, event_seat_purchase_transitioned,
@@ -1567,9 +1567,9 @@ export const decision_organizations_fde_host = defineDecision({
     "SDK, CLI and MCP surface for the backend; Capxul's own build already runs on it (swarm.superset). Booking the host " +
     "as an integration keeps every outside call named (CONVENTIONS rule 9): the setup's provision, the hosting process's " +
     "start, pause, resume and retire, and the ask's send and turn. The backend sees only the FDE key's address, as for " +
-    "every agent. For the shared designer: book component `fde-host` and integration `fde-host` in shared/foundation.ts " +
-    "and shared/external.ts, with FDE_HOST_URL and FDE_HOST_TOKEN in the environments. Until then organizations names " +
-    "the calls in its records' `about` and lists their failures in `errors`; wiring each into `calls` is the next step.",
+    "every agent. The build pass booked integration `fde-host` in shared/external.ts, with swarmD as its outside " +
+    "system and the backend hosting the service (no component of its own, as Bridge has none), FDE_HOST_URL and " +
+    "FDE_HOST_TOKEN in the environments, and wired each call into its record's `calls`.",
   source: passBy("books/target/shared/rulings.ts (aaron.fde-hosted, aaron.machine-login); /home/user/swarmd/docs/SPEC.md (B.15, B.16)"),
   affects: [
     system_capxul, table_org_fdes, workflow_organizations_fde_host, workflow_organizations_setups_set_up, rpc_organizations_fde_ask,
@@ -1617,8 +1617,9 @@ export const decision_organizations_fde_hosting = defineDecision({
     "would not expect. Pausing, not retiring, keeps what the FDE learnt and changes nothing on chain, so its authority " +
     "is as before when it resumes; months run from the payment, so a pause is never charged. The start-up month exists " +
     "because the FDE must set the Organization up before anyone can pay: at the install the company's top budget is 0 " +
-    "and no budget is funded. No price, no charge, so `org fde pay`'s FEATURE_NOT_AVAILABLE means what it says. For " +
-    "payments' booking of `org fde pay`: check a hosting that is not retired and a price set before the command is born. " +
+    "and no budget is funded. No price, no charge, so `org fde pay`'s FEATURE_NOT_AVAILABLE means what it says. " +
+    "Payments' booking (payments.fde-hosting-purchase) checks a hosting that is not retired and a price set before " +
+    "the command is born. " +
     "For Aaron (docs/design/new-commands.md section 7, question 2): paying in advance by the month stands until he " +
     "answers; the alternative is the standing agreement, an automatic monthly charge.",
   source: passBy("books/target/shared/rulings.ts (aaron.fde-hosted, aaron.test-prices, aaron.departments); payments.prepare-command"),

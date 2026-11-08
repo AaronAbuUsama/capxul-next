@@ -14,6 +14,7 @@
 // M9 found no one). The payer's notices are keyed by the command, so a batch of several Payments
 // tells its payer once (old R8 sent one email per Payment). The payee's are keyed per Payment.
 
+import { table_hat_wearers } from "../indexing/data.ts";
 import { budget, defineWorkflow } from "../../../packages/book/src/index.ts";
 import { table_principals } from "../access/data.ts";
 import { table_organizations } from "../organizations/data.ts";
@@ -37,13 +38,13 @@ const PAYEE = {
 const PAYER = {
   name: "payer",
   about:
-    "The payer: the owner, when a person; for an Organization, the principal who asked for the payment (its command's " +
-    "`requested_by`). One notice per command, listing every Payment of it on that day.",
+    "The payer: a person owner; for an Organization, the paying budget's current hat wearers (indexing), the requester " +
+    "only while still one, or a Board payment's Directors. One notice per command, listing its Payments that day.",
 } as const;
 
 const DATED_ONLY = { name: "payment", about: "Reads the Payment; one with no `pay_at` ends here with no notice." } as const;
 
-const READS = [table_payments, table_payment_commands, table_organizations, table_principals];
+const READS = [table_payments, table_payment_commands, table_organizations, table_principals, table_hat_wearers];
 
 /** The payer's notice is keyed by the command and the day, so a batch tells its payer once. */
 const BY_COMMAND =
@@ -125,11 +126,12 @@ export const workflow_notices_payments_money_waiting = noticeWorkflow({
   id: "notices.payments.money-waiting",
   title: "Tell someone with no account that money is waiting for them",
   about:
-    "Follows `escrow`: EscrowCreated with the Payment's id is indexed, so a claim escrow holds the money for a mailbox " +
-    "with no account yet (aaron.money-waiting). Sends `money-waiting` once, to the Payment's `payee_mailbox` (the " +
-    "mailbox its payee Safe is derived from), naming the amount and asset, the payer and how to collect: sign up at " +
-    "the link with this email address, set up the account, and sign the collection the setup opens; until then the " +
-    "payer may take it back. No one else is told: the payer is following the payment. Its world is payments' " +
+    "Follows `escrow`: the funding's PaymentSent is indexed (payments.escrow-on-funding), so a claim escrow holds the " +
+    "money for a mailbox (aaron.money-waiting). Sends `money-waiting` once, to the Payment's `payee_mailbox` (the " +
+    "mailbox its owner Safe is derived from), naming the amount and asset, the sender and how to collect: with no " +
+    "account yet, sign up at the link with this email address, set up the account and sign the collection the setup " +
+    "opens; with an account already set up, run `capxul account collect` or use the web app " +
+    "(accounts.collect-any-time); until then the sender may take it back. No one else is told: the sender is following the payment. Its world is payments' " +
     "`person-with-funded-safe`: Dana's signed `payment send nobody@outside.test 5`, then `dev mail notices --to " +
     "nobody@outside.test --template money-waiting` reads the delivery record and `notice_transitioned` says it went.",
   trigger: { transition: p.escrow },
@@ -165,7 +167,7 @@ export const workflow_notices_payments_money_reminders = defineWorkflow({
     "stop it reads the Payment again; still `escrowed`, it sends `money-waiting-reminder` to the Payment's " +
     "`payee_mailbox` (the amount and asset, the payer, how long it has waited, how to collect, and that the payer may " +
     "take it back until then; the 30-day one says it is the last reminder), and at 10 and 30 days `money-uncollected` " +
-    "to the payer (the payer rule of the dated notices: a person, or an Organization's requester), naming the mailbox, " +
+    "to its sender (the payer rule of the dated notices: a person, or for a budget's whoever wears its hat then), naming the mailbox, " +
     "the amount, how long, and how to take it back (`payment cancel`). Its notice ids name the Payment and the stop " +
     "(`money-waiting-reminder:<payment>:<days>`), so a resume or a warp sends each once. It ends when the Payment " +
     "leaves `escrowed` (collected, settled, or taken back) or after the 30-day stop; the money still waits, and the " +
@@ -229,8 +231,9 @@ export const workflow_notices_payments_money_taken_back = noticeWorkflow({
   id: "notices.payments.money-taken-back",
   title: "Tell someone the money that waited for them was taken back",
   about:
-    "Follows `cancel` of a Payment that was `escrowed`: its payer (for a budget's, its holder or the Board) took the " +
-    "claim escrow back before the recipient collected, and the money is the payer's again (outcome refunded). Sends " +
+    "Follows `cancel` of a Payment that was `escrowed`: its sender (for a budget's, whoever wears the budget's hat " +
+    "then, or the Board) took the claim escrow back before the recipient collected, and the money is the sender's " +
+    "again (outcome refunded). Sends " +
     "`money-taken-back` once to the Payment's `payee_mailbox`: who took back how much, that nothing waits for them now, " +
     "and that they may still sign up with this address, since the money's admission to the beta stands " +
     "(accounts.money-waiting-admits). The payer is told nothing: they asked for it. Any other cancel sends nothing here.",

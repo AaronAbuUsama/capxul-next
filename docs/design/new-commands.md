@@ -5,7 +5,9 @@ some sort of pack for this? Ideally this should be on the book; we shouldn't hav
 
 This page is the one list of every new CLI command, in one grammar. The records are the authority. Each command
 is booked as an operation record under `rules.new-operations` (CONVENTIONS rule 4a) by the concept that owns it,
-on its pack's recommendation. The five pack decisions now recommend exactly the commands listed here:
+on its pack's recommendation. All 90 are booked, each once (the commands pass's build, 8 November 2026); section 8
+lists every place the booking refined a row below, each with its decision. The five pack decisions recommend
+exactly the commands listed here:
 
 - `projects.commands`
 - `contacts.crm-capabilities`
@@ -37,7 +39,7 @@ The rulings these commands serve, all in `books/target/shared/rulings.ts`:
 | `payroll.hr-surface` | payroll | 28 | `aaron.frappe-shape` |
 | `organizations.commands` | organizations | 8 | `aaron.frappe-shape`, `aaron.frappe-head`, `aaron.fde-agent`, `aaron.fde-hosted` |
 | `organizations.buy-seats` | organizations (`org seats show`); payments (`org seats buy`, `org fde pay`) | 3 | `aaron.buy-seats`, `aaron.fde-hosted`, `aaron.test-prices` |
-| None of the five (section 6) | requests (`org timesheet bill`, pack `requests.bill-time`); payments (`payment claim`, a pack to add) | 2 | `aaron.projects`; `aaron.escrow-general` |
+| None of the five (section 6) | requests (`org timesheet bill`, pack `requests.bill-time`); accounts (`account collect`, pack `accounts.collect-any-time`) | 2 | `aaron.projects`; `aaron.escrow-general` |
 | **Total** | | **90** | |
 
 ## 2. The grammar
@@ -87,7 +89,7 @@ follows them, with no exception.
 | `get <id>` | Reads one record of a list | `payment get`, `contact get`, `org member get` | every record kind |
 | `show` | Reads a singleton, with no id | `org show`, `org board show` | head, FDE, seats, project settings |
 | A lifecycle verb | One transition of the record's state machine that a person takes, named as the machine names it | `org agreement pause\|resume`, `org department close\|reopen` | project `hold\|resume\|complete\|reopen\|cancel`; task `start\|review\|complete\|reopen\|cancel`; timesheet `submit\|cancel`; employee `suspend\|deactivate\|reinstate\|leave`; structure `cancel` |
-| A domain verb | A step with no simpler name | `bank match`, `agreement collect` | `timesheet log`, `crm lead move\|convert`, `crm deal move`, `structure assign\|unassign`, `run submit\|pay`, `payslip withhold\|release`, `contact link`, `head connect\|disconnect`, `seats buy`, `fde pay\|ask`, `payment claim`, `timesheet bill` |
+| A domain verb | A step with no simpler name | `bank match`, `agreement collect` | `timesheet log`, `crm lead move\|convert`, `crm deal move`, `structure assign\|unassign`, `run submit\|pay`, `payslip withhold\|release`, `contact link`, `head connect\|disconnect`, `seats buy`, `fde pay\|ask`, `account collect` (`payment claim` by Aaron's answer, section 6), `timesheet bill` |
 
 - An undoing verb is the 215's pair: `hide|unhide`, `freeze|unfreeze`, `add|remove`. So the new pairs are
   `hold|resume`, `complete|reopen`, `assign|unassign`, `disable|enable`, `withhold|release`, `suspend|reinstate`
@@ -133,8 +135,11 @@ follows them, with no exception.
   repeatable flags do.
 - A `change` command's flags set fields. `--clear <field>` empties one.
 - Lists take `--after <cursor>` and `--limit <n>`.
-- Money commands (`org payroll run pay`, `org seats buy`, `org fde pay`, `payment claim`) take `--request-key`,
-  `--timeout-seconds` and `--no-wait`, as `payment send` does. The approval page is their confirmation.
+- Money commands (`org payroll run pay`, `org seats buy`, `org fde pay`) take `--request-key`,
+  `--timeout-seconds` and `--no-wait`; `--no-wait` alone answers the hand-over, and `--json` only chooses how the
+  answer prints (`payments.seat-hand-over`; `payment send`'s own `--json` hands over, as the 215 have it).
+  `account collect` takes `--json` and `--timeout-seconds` and no `--request-key`, since it births no command. The
+  approval page is their confirmation.
 - A command that cannot be undone, or that hands records to an outside system, previews what it will do and asks:
   `contact link`, `org employee leave`, `org head connect` and `org head disconnect`. `--confirm` answers yes in a
   script (`vocabulary.declined-preview-cancelled`).
@@ -148,13 +153,13 @@ id is `INVALID_INPUT`, as in `payment get`.
 |---|---|
 | `NOT_AUTHENTICATED` | Signed out. |
 | `ROLE_PERMISSION_DENIED` | `--org` names an Organization the caller is not a member of, or the caller lacks the hat or role G4 names. |
-| `INVALID_INPUT` | An id or locator that names nothing the caller may read, or a bad value, naming the field. Nothing is written. |
+| `INVALID_INPUT` | An id or locator that names nothing the caller may read, a bad value naming the field, a `--limit` out of range or a cursor the list did not give, or a `change` or `set` that gives nothing. Nothing is written. |
 | `WRONG_STATE` | The record's status does not allow the step: a transition's `from` or its guard. The refusal names the status. |
-| `CLI_USAGE` | A malformed id, a missing argument, or a script without `--confirm` or `--request-key` where the command needs one. |
+| `CLI_USAGE` | A malformed id or an id of the wrong kind (a `deal_` id for a lead, as `payment get` refuses), a missing argument, or a script without `--confirm` or `--request-key` where the command needs one. |
 | `CANCELLED` | The person answers no at a preview (exit 130). Nothing is written. |
 | `FEATURE_NOT_AVAILABLE` | A price the deployment has not set (`SEAT_PRICE`, `FDE_HOSTING_PRICE`), or a token it does not sell in. |
-| Money codes | As `payment send` and `org department pay` refuse: `INSUFFICIENT_BALANCE`, `AUTHORISED_EXCEEDED`, `TOKEN_NOT_BUDGETED`. |
-| `PROVIDER_ERROR`, `PROVIDER_RESPONSE_INVALID`, `RATE_LIMITED` | The head's site or the FDE's host fails. |
+| Money codes | As `payment send` and `org department pay` refuse: `INSUFFICIENT_BALANCE`, `PAYROLL_BUDGET_EXCEEDED` (over a budget's room or the payout ceiling; `AUTHORISED_EXCEEDED` is equity's shares code), `TOKEN_NOT_BUDGETED`. |
+| `PROVIDER_ERROR`, `PROVIDER_RESPONSE_INVALID`, `RATE_LIMITED` | The head's site or the FDE's host fails, or the chain cannot answer a hat projects reads live (`projects.hat-guard`). |
 
 **G7. SDK method and implementation.**
 
@@ -171,7 +176,8 @@ id is `INVALID_INPUT`, as in `payment get`.
 - The flow id is the method, kebab-cased, without `(orgId)`.
 - Each command calls one SDK method, and each SDK method serves one command (A4, `components.cli`).
 - A method that is one rpc call is implemented by that rpc. Otherwise it is one flow in the owning concept's
-  `flows.ts`.
+  `flows.ts`. Where a concept already had a one-call SDK-only flow (the CRM's move, convert, list and get), or keeps
+  every command a flow for its React twin (payroll, `payroll.command-flows`), that flow serves the command.
 - An existing SDK-only flow that a command now calls adds `cli` to its `surfaces` and keeps its other surfaces
   (rule 4a).
 
@@ -181,10 +187,14 @@ id is `INVALID_INPUT`, as in `payment get`.
 |---|---|
 | `read` | A list, a get or a show, which reads rows only. |
 | `write` | One off-chain transaction. |
-| `chain-submit` | A command that signs an approval and follows the chain: `org payroll run pay`, `org seats buy`, `org fde pay`, `payment claim`. |
+| `chain-read` | A command whose rpc reads the chain before it answers: projects' 19 commands that read the People or Director hat live (`projects.hat-guard`). |
+| `chain-submit` | A command that signs an approval and follows the chain: `org payroll run pay`, `org seats buy`, `org fde pay`, `account collect`. |
 | `vendor` | A command that calls an outside system before it answers: `org head connect` reads the site; `org fde ask` waits on the host. |
 
-Every new command is `normal` priority. No B3 pilot runs one, and `org create` finishes without any.
+A new command is `normal` priority unless its pack's decision marks it `critical`, the loop a pilot or a start-up
+runs first: 11 of projects' (`projects.critical-commands`), 6 of the CRM's (`contacts.critical-commands`), 10 of
+payroll's (`payroll.critical-commands`) and 4 of organizations' (`org app list|add`, `org fde show|ask`;
+`organizations.command-priorities`). No B3 pilot runs one, and `org create` finishes without any.
 
 **G9. Output.**
 
@@ -201,8 +211,8 @@ Every new command is `normal` priority. No B3 pilot runs one, and `org create` f
 - Each operation has at least one claim observed through the CLI, and a refusal from a world for each code it
   produces.
 - The concept whose rpc or flow implements a command books it, even when the noun is another concept's, as the 215
-  book `org member invite` in budgets. So `org timesheet bill` is requests', and `org seats buy` and `org fde pay`
-  are payments'.
+  book `org member invite` in budgets. So `org timesheet bill` is requests', `org seats buy` and `org fde pay`
+  are payments', and `account collect` is accounts'.
 
 ## 3. Overlaps and spellings resolved across the packs
 
@@ -232,9 +242,10 @@ Every new command is `normal` priority. No B3 pilot runs one, and `org create` f
 | projects | 35 operations, each implemented by one new rpc | The rpcs named in 5.1. No flow is needed. |
 | contacts | 14 | Split `client.account.address-book.record` into `.create`, `.change` and `.link`, all over `contacts.book.record`. Split `client.org.crm.leads.save` into `.create` and `.change`, and `client.org.crm.deals.save` the same way. Add `cli` to every CRM flow. |
 | payroll | 28 | See the list below. Every payroll flow adds `cli` and keeps `react`. |
-| organizations | 9 (8 in `organizations.commands`, plus `org seats show`) | Rpcs `organizations.apps.list\|add\|remove`, `organizations.heads.connect\|show\|disconnect`, `organizations.fde.show\|ask` and `organizations.seats.show`. Flows `client.org.head.connect` and `client.org.fde.ask`. The hosting door that `org fde pay`'s settlement invokes. |
-| payments | 3 (`org seats buy`, `org fde pay`, `payment claim`) | Flows `client.org.seats.buy`, `client.org.fde.pay` and `client.payments.claim`. Each births one command through `payments.prepare-command` and opens one approval. |
-| requests | 1 (`org timesheet bill`) | Flow `client.org.timesheets.bill`, over `requests.issuing.issue`, invoking `projects.bill-time`. |
+| organizations | 9 (8 in `organizations.commands`, plus `org seats show`) | Rpcs `organizations.apps.list\|add\|remove`, `organizations.heads.connect\|show\|disconnect`, `organizations.fde.show\|ask\|turn` and `organizations.seats.show`. Flows `client.org.head.connect`, `client.org.head.disconnect` and `client.org.fde.ask`. The hosting doors `organizations.extend-fde-hosting` and `organizations.return-fde-hosting`, which `org fde pay`'s settlement and its reorg invoke. |
+| payments | 2 (`org seats buy`, `org fde pay`) | Flows `client.org.seats.buy` and `client.org.fde.pay`, over payments' own rpcs `payments.commands.buy-seats` and `payments.commands.pay-fde-hosting`, which birth one command by `payments.prepare-command`'s rules and open one approval (`payments.seat-purchase`, `payments.fde-hosting-purchase`). |
+| accounts | 1 (`account collect`) | Flow `client.account.collect`, over rpc `accounts.setup.collect` (`accounts.collect-any-time`). |
+| requests | 1 (`org timesheet bill`) | Flow `client.org.timesheets.bill`, over its own rpc `requests.issuing.bill-time`, which issues as `requests.issuing.issue` does and invokes `projects.bill-time` (`requests.bill-time`). |
 
 The payroll changes:
 
@@ -367,12 +378,12 @@ SDK methods are under `client.org(orgId)`, except `payslip`'s, which are under `
 
 | Id | Command | SDK method | Calls | Who | Budget | Behaviour |
 |---|---|---|---|---|---|---|
-| `org.app.list` | `org app list` | `client.org(orgId).apps.list` | rpc `organizations.apps.list` (new) | Member | read | The Organization's Frappe apps: native or on its head; wanted, installed or removed; and their versions. |
+| `org.app.list` | `org app list [--after] [--limit]` | `client.org(orgId).apps.list` | rpc `organizations.apps.list` (new) | Member | read | The Organization's Frappe apps, paged: native or on its head; wanted, installed or removed; and their versions. |
 | `org.app.add` | `org app add <app>` | `client.org(orgId).apps.add` | rpc `organizations.apps.add` (new) | Director or FDE | write | Wants a Frappe app beyond the fundamental ones. A connected head's host is asked to install it, and it is installed once the head shows it. An unknown app is `INVALID_INPUT`. |
 | `org.app.remove` | `org app remove <app>` | `client.org(orgId).apps.remove` | rpc `organizations.apps.remove` (new) | Director or FDE | write | No longer wants an app. A fundamental app is `WRONG_STATE`. |
 | `org.head.connect` | `org head connect <site-url> --host frappe-cloud\|self-hosted [--key-file <path>] [--team-token-file <path>] [--confirm] [--no-wait] [--timeout-seconds]` | `client.org(orgId).head.connect` | flow `client.org.head.connect` (new) over rpc `organizations.heads.connect` (new) | Director | vendor | Connects a Frappe site as the Organization's head. It reads the secrets from a prompt or a file, previews what will be shared, and follows the check until the head is connected or failing. A live head is `WRONG_STATE`. |
-| `org.head.show` | `org head show` | `client.org(orgId).head.show` | rpc `organizations.heads.show` (new) | Member | read | The head's status, site, versions, time zone and issue, and each app's sync position. Null when there is no head. |
-| `org.head.disconnect` | `org head disconnect [--confirm]` | `client.org(orgId).head.disconnect` | rpc `organizations.heads.disconnect` (new) | Director | write | After a preview, disconnects the live head. Every sync stops, and Capxul keeps every record. |
+| `org.head.show` | `org head show` | `client.org(orgId).head.show` | rpc `organizations.heads.show` (new) | Member | read | The head's status, site, versions, time zone and issue; never a secret, and no app's sync position, which is each app concept's (`organizations.head-commands`). Null when there is no head. |
+| `org.head.disconnect` | `org head disconnect [--confirm]` | `client.org(orgId).head.disconnect` | flow `client.org.head.disconnect` (new: read, preview, write) over rpc `organizations.heads.disconnect` (new) | Director | write | After a preview, disconnects the live head. Every sync stops, and Capxul keeps every record. |
 | `org.fde.show` | `org fde show` | `client.org(orgId).fde.show` | rpc `organizations.fde.show` (new) | Member | read | The Organization's hosted FDE: its handle, its state on the host, the hats it wears, the day its hosting is paid through, and `FDE_HOSTING_PRICE`. |
 | `org.fde.ask` | `org fde ask <message> [--timeout-seconds]` | `client.org(orgId).fde.ask` | flow `client.org.fde.ask` (new) over rpc `organizations.fde.ask` (new) | Director | vendor | Sends a message to the hosted FDE and prints its reply when its turn ends. Whatever it does in return, it does through its own commands, each traced. A paused FDE is `WRONG_STATE`. |
 
@@ -383,18 +394,20 @@ The prices are the deployment settings `SEAT_PRICE` and `FDE_HOSTING_PRICE`: 10 
 
 Each purchase is paid like this:
 
-1. Payments births one command through `payments.prepare-command`, from the `--from` budget to Capxul's receiving
-   Safe, with the Organization as the command's owner.
+1. Payments births one command by `payments.prepare-command`'s rules, through its own rpc
+   (`payments.commands.buy-seats`, `payments.commands.pay-fde-hosting`), from the `--from` budget to Capxul's
+   receiving Safe (`CAPXUL_RECEIVING_SAFE`), with the Organization as the command's owner and an Invoice from Capxul
+   as its document (`payments.seat-invoice`).
 2. The settlement invokes an organizations door in the same transaction: `organizations.add-bought-seats` for
-   seats, or the hosting door organizations books for the FDE. So what was bought counts exactly when the payment
+   seats, or `organizations.extend-fde-hosting` for the FDE. So what was bought counts exactly when the payment
    settles, and only for the company that paid.
 3. A reorg's reversal invokes the matching return door.
 
 | Id | Command | Owner | SDK method | Calls | Who | Budget | Behaviour |
 |---|---|---|---|---|---|---|---|
 | `org.seats.show` | `org seats show` | organizations | `client.org(orgId).seats.show` | rpc `organizations.seats.show` (new) | Member | read | The seat limit, what counts against it, the seats bought and `SEAT_PRICE`. |
-| `org.seats.buy` | `org seats buy <n> --from <budget> [--request-key] [--timeout-seconds] [--no-wait]` | payments | `client.org(orgId).seats.buy` | flow `client.org.seats.buy` (new) over a payments rpc (new) that births the command | People, and Budget on `--from`; never an agent | chain-submit | Pays n times `SEAT_PRICE` in one payment and approval. The limit rises when the payment settles, and a bought seat is kept for good. An unset price is `FEATURE_NOT_AVAILABLE`. |
-| `org.fde.pay` | `org fde pay [<months>] --from <budget> [--request-key] [--timeout-seconds] [--no-wait]` | payments | `client.org(orgId).fde.pay` | flow `client.org.fde.pay` (new) over a payments rpc (new) that births the command | Budget on `--from`; a person, never an agent | chain-submit | Pays the given number of months (one by default) times `FDE_HOSTING_PRICE`. The hosting's paid-through day moves on by that many months when the payment settles. |
+| `org.seats.buy` | `org seats buy <n> --from <budget> [--request-key] [--timeout-seconds] [--no-wait]` | payments | `client.org(orgId).seats.buy` | flow `client.org.seats.buy` (new) over rpc `payments.commands.buy-seats` (new) | People, and Budget on `--from`; never an agent or the Board | chain-submit | Pays n times `SEAT_PRICE` in one payment and approval. The limit rises when the payment settles, and a bought seat is kept for good. An unset price is `FEATURE_NOT_AVAILABLE`. |
+| `org.fde.pay` | `org fde pay [<months>] --from <budget> [--request-key] [--timeout-seconds] [--no-wait]` | payments | `client.org(orgId).fde.pay` | flow `client.org.fde.pay` (new) over rpc `payments.commands.pay-fde-hosting` (new) | Budget on `--from`; a person, never an agent (so never the FDE) or the Board | chain-submit | Pays the given number of months (one by default) times `FDE_HOSTING_PRICE`. The hosting's paid-through instant moves on by that many calendar months when the payment settles, from the later of it and the settlement, so a paused FDE is woken and its pause is not charged. No hosted FDE, or a retired one, is `WRONG_STATE`. |
 
 ## 6. Capabilities the rulings need that no pack listed
 
@@ -417,16 +430,20 @@ These were added by this pass:
 
   | Id | Command | Owner | SDK method | Calls | Who | Budget | Behaviour |
   |---|---|---|---|---|---|---|---|
-  | `payment.claim` | `payment claim [<payment>] [--request-key] [--timeout-seconds] [--no-wait]` | payments | `client.payments.claim` | flow `client.payments.claim` (new) over the escrow's claim rpc (new, named by the escrow design) | Self: the recipient whose account the escrow names as its owner | chain-submit | Collects money waiting for you in claim escrows, one or all, at any time once your account is set up. One the sender already took back is `WRONG_STATE`. |
+  | `account.collect` | `account collect [--timeout-seconds] [--json]` | accounts (area `accounts`) | `client.account.collect` | flow `client.account.collect` (new) over rpc `accounts.setup.collect` (new) | Self: the person whose own Safe owns the escrows | chain-submit | Collects, in one approval, every claim escrow your set-up Safe owns that holds its amount, at any time; answers `nothing_waiting`, `awaiting_approval` or `collected`. Money its sender took back is not offered. |
 
-  It needs its own pack decision in payments that cites `aaron.escrow-general`. That is for the escrow pass, or
-  for the builder if the escrow pass does not book it.
+  The escrow pass booked it as `account collect` under its own pack decision, `accounts.collect-any-time`, which
+  cites `aaron.escrow-general`: `claim` is already `org board claim` and setup's Companies House claim (G3), the
+  escrow's function is `collect`, and the person names no payment id, since a claim escrow's Payment has no payee
+  tenant until it is collected. Aaron's answer of 8 November, night (`docs/decisions/open-for-aaron.md`): the
+  command is `payment claim` (`payment.claim`, area `payments`), "claim" being the word of `aaron.escrow-general`.
+  The rename is to apply after this pass, book first.
 - **Billing hours** (`aaron.projects`, pack `requests.bill-time`, which is not one of the five). It is respelled by
   G1 and booked by requests.
 
   | Id | Command | Owner | SDK method | Calls | Who | Budget | Behaviour |
   |---|---|---|---|---|---|---|---|
-  | `org.timesheet.bill` | `org timesheet bill <timesheet>… [--to <payer>] [--request-key]` | requests (area `payments`) | `client.org(orgId).timesheets.bill` | flow `client.org.timesheets.bill` (new) over rpc `requests.issuing.issue`, invoking `projects.bill-time` | Invoicing | write | Issues one Invoice for the timesheets' unbilled billable logs, one line per activity, and marks those logs billed in the same write. |
+  | `org.timesheet.bill` | `org timesheet bill <timesheet>… [--to <payer>] [--request-key]` | requests (area `payments`) | `client.org(orgId).timesheets.bill` | flow `client.org.timesheets.bill` (new) over rpc `requests.issuing.bill-time` (new), invoking `projects.bill-time` | Invoicing | write | Issues one Invoice for the timesheets' unbilled billable logs, one line per activity and billing rate, in the token of the timesheets' currency (`requests.bill-time-currency`), and marks those logs billed in the same write; `request cancel` and `inbox decline` clear the marks. |
 
 These rulings were checked and need no new command:
 
@@ -441,19 +458,63 @@ These rulings were checked and need no new command:
 
 The operator's seat raise stays the operator's SDK tool.
 
-## 7. For Aaron
+## 7. For Aaron: answered
 
-Each recommendation stands until he answers.
+Aaron answered all three on 8 November 2026, night (`docs/decisions/open-for-aaron.md`, questions 36 to 38). The
+answers are to apply after this pass, book first; until then each record keeps its booked choice.
 
-1. **Who may talk to the hosted FDE** (`org fde ask`)?
-   - Recommended: a Director. The FDE acts with the hats the Board granted it, so whoever instructs it borrows
-     them.
-   - The alternative: any member, with the host passing the asker's Seat so that the FDE does for them only what
-     they may do themselves.
-2. **How is hosting paid?**
-   - Recommended: in advance, by the month, from a budget (`org fde pay <months>`). The FDE pauses when its
-     paid-through day passes.
-   - The alternative: an automatic monthly charge. That needs a standing allowance from a company budget to
-     Capxul's receiving Safe.
-3. **May a recipient claim waiting money later, by command** (`payment claim`), as well as at setup? Recommended:
-   yes, as `aaron.escrow-general` reads.
+1. **Who may talk to the hosted FDE** (`org fde ask`; `organizations.fde-commands`)? Booked: a Director. His answer:
+   anyone may, and anyone the management is speaking to; the host passes the asker's Seat, so the FDE does for
+   them only what their own hats allow. The FDE is not on the critical path.
+2. **How is hosting paid** (`organizations.fde-hosting`)? Accepted as recommended: in advance, by the month, from
+   a budget (`org fde pay [<months>]`), the FDE pausing when its paid-through instant passes.
+3. **May a recipient collect waiting money later, by command?** Yes. Booked as `account collect`
+   (`accounts.collect-any-time`); his answer spells it `payment claim`.
+
+## 8. As booked: where the records refined a row
+
+Each row above is the grammar's; where the booking refined it, the record and its decision are the authority.
+
+- **Projects** (5.1):
+  - The 19 commands that need People or Director, or Worker for someone else's time, are `chain-read`: they read the
+    hat live (`projects.hat-guard`), and refuse `PROVIDER_ERROR` while no chain node answers.
+  - `org project create|change` take `--percent <0-100>` for a project worked out by hand; `org task create|change`
+    take `--percent` for a task's own figure, printed `percentComplete`; `--progress` names only a project's method
+    (`projects.percent-by-hand`).
+  - A task's `--start` and `--end` take a day or a time (`projects.dates`).
+  - `org project member add` of a member already shared, and `remove` of one not shared, are `WRONG_STATE`, as `org
+    department holder add|remove` are (`projects.refusal-codes`).
+  - Completing, resuming or reopening follows ERPNext's rollup: a project its tasks make 100 percent completes, and
+    reopening one its tasks still complete is `WRONG_STATE`; a task under review falls overdue once its review day
+    has begun (`projects.review-day`); `org timesheet log` and `submit` check every log of the draft again
+    (`projects.draft-rechecks`); cancelling a timesheet moves a task under review back (`projects.cancel-reads-logs`).
+- **CRM** (5.2):
+  - `org crm lead list` leaves converted leads out; `--stage converted` lists them (`contacts.lead-list-like-frappe`).
+  - `org crm deal list`'s filters apply together (`contacts.deal-list-filters`).
+  - `--owner` is a member by email or an agent's @handle (`contacts.crm-verbs`).
+  - A conversion's person is the entry given, else the book's Contact that keeps the lead's mailbox, else that
+    mailbox's Party's entry (`contacts.convert-by-kept-mailbox`).
+  - `contact create` with a person whose mailbox's Party is already in the book is `INVALID_INPUT`, never merged;
+    `contact link` refuses a Party of the other kind (`contacts.book-verbs`).
+- **Payroll** (5.3):
+  - Every command is a flow, `org employee get` included (`payroll.command-flows`).
+  - The four org lists take `--after` and `--limit`; `--last-name` is optional; a component is named by its
+    abbreviation (`payroll.command-fit`).
+  - `org payroll structure unassign` is `WRONG_STATE` while a slip that is not cancelled names the assignment; a
+    component change reaches only structures made after it; `--frequency` defaults to monthly
+    (`payroll.command-details`).
+  - A repeated `disable` or `enable`, and `--amends` on a structure assignments still name, are `WRONG_STATE`.
+  - `org payroll run pay` prints `status`, `approvalId`, `approvalUrl`, `expiresAt`, the run and `next`; a run the
+    company Safe cannot cover is `INSUFFICIENT_BALANCE` (`payroll.run-pay-codes`); `--request-key` is kept on the run
+    (`payroll.run-request-key`); a declined approval returns the run to submitted (`payroll.declined-run-approval`).
+  - `org payroll structure assign --department` must be the Employee's own (`payroll.run-employees`).
+- **Apps, the head and the FDE** (5.4): `org app list` pages; `org head disconnect` is a flow; `org head connect`
+  reads the head and the apps first and takes its files in the forms `organizations.head-commands` gives; `org fde
+  ask` defaults to a 300-second deadline and ends a failed turn with `PROVIDER_ERROR`; the FDE's host is the
+  integration `fde-host` (`organizations.fde-host`).
+- **Buying from Capxul** (5.5): each purchase is payments' own rpc (`payments.seat-purchase`,
+  `payments.fde-hosting-purchase`); `--no-wait` alone hands over (`payments.seat-hand-over`); a lapsed seat
+  purchase's `payment retry` needs the People hat, a hosting payment's a person (`payments.seat-authority`).
+- **Section 6:** `account collect`, not `payment claim` (above); `org timesheet bill` is its own rpc
+  (`requests.bill-time`, `requests.bill-time-currency`).
+- **Priority:** 31 commands are `critical` by their packs' decisions (G8).

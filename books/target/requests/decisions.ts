@@ -129,14 +129,14 @@ export const decision_requests_payer_by_safe = defineDecision({
       label: "safe",
       text:
         "Resolve the payer through parties' directory: an `@handle`, or a mailbox whose person Party is active, is on Capxul; " +
-        "any other mailbox is outside and named by its email Safe (`safeAddressFor`), which owns the escrow. The inbox is " +
+        "any other mailbox is outside and named by its email Safe (`safeAddressFor`), the escrow's sender. The inbox is " +
         "keyed by the payer Safe. Requests creates no Party, and a bare address is refused as a payer.",
     },
     { label: "party", text: "Name a provisional Party for every mailbox and key the inbox by Party id." },
   ],
   chosen: "safe",
   why:
-    "A person's Safe is a pure function of their email, so the escrow's owner is the very Safe the payer gets when they " +
+    "A person's Safe is a pure function of their email, so the escrow's sender is the very Safe the payer gets when they " +
     "join: their inbox then shows the request with nothing to migrate, and the escrow's refund goes to them. Naming a " +
     "Party would need a parties procedure for a fact that is not a money fact for parties (the request already holds the " +
     "Safe). A bare address can own no email Safe and has no inbox; the frozen text refuses it for an Invoice, and the V3 " +
@@ -600,12 +600,14 @@ export const decision_requests_bill_time = defineDecision({
     {
       label: "timesheet-bill",
       text:
-        "Recommended. A new operation, `timesheet bill <timesheet…> --org <org> [--to <payer>]`, as requests' flow over " +
-        "`requests.issuing.issue`: it reads the timesheets' billable logs not yet billed, previews an Invoice to the " +
-        "project's customer with one line per activity (hours times the billing rate), keeps the hours and amount it " +
-        "asks for each log on the request (as a Sales Invoice's Timesheet rows do; the log keeps its own), and in the " +
-        "issue's transaction invokes `projects.bill-time` (`bill`) so the logs name the request. `request cancel` and `inbox decline` of " +
-        "such a request invoke it with `unbill` in their own transactions; paid keeps the marks.",
+        "Recommended. A new operation, `org timesheet bill <timesheet…> [--to <payer>] [--request-key]` (grammar G1: an " +
+        "Organization-only command begins with `org`; SDK `client.org(orgId).timesheets.bill`; who: the Invoicing hat; " +
+        "write), as requests' flow over its own rpc `requests.issuing.bill-time`, which issues as `requests.issuing.issue` " +
+        "does: it reads the timesheets' billable logs not yet billed, issues an Invoice to the project's customer with one " +
+        "line per activity and rate (hours times the billing rate), keeps the hours and amount it asks for each log on the " +
+        "request (`billed_logs`, as a Sales Invoice's Timesheet rows do; the log keeps its own), and in the issue's " +
+        "transaction invokes `projects.bill-time` (`bill`) so the logs name the request. `request cancel` and `inbox " +
+        "decline` of such a request invoke it with `unbill` in their own transactions; paid keeps the marks.",
     },
     {
       label: "issue-flag",
@@ -615,16 +617,63 @@ export const decision_requests_bill_time = defineDecision({
   ],
   chosen: "timesheet-bill",
   why:
-    "For Aaron: which command bills hours is the capability's decision pack (rules.new-operations), and the " +
-    "recommendation stands until he answers. A time Invoice is one money fact with the hours it bills " +
+    "A decision pack under rules.new-operations, accepted as recommended with the sixth batch; the commands pass booked " +
+    "it as `org.timesheet.bill`. A time Invoice is one money fact with the hours it bills " +
     "(projects.bill-time): the issue writes the request and, through projects' door, the marks, or neither, so a " +
     "second Invoice, Capxul's or a head's, can never ask for the same hours. Ending it clears them, as cancelling a " +
     "Sales Invoice unlinks its timesheets; an expired request keeps them until cancelled, as an unpaid invoice does. " +
     "A command of its own reads as ERPNext's 'Make Sales Invoice' from a timesheet and keeps `request issue` the kept " +
     "command it was; the flag would widen a frozen command's flags for one source of lines. Head-only leaves an " +
-    "Organization with no head unable to bill its time. Booking waits only on Aaron's answer and the CLI pass that " +
-    "books the new commands: the edge it needs, requests depending on projects (dependencies.of-requests), exists, " +
-    "and projects sits below requests, so it makes no cycle.",
+    "Organization with no head unable to bill its time. Its own rpc, not `requests.issuing.issue`, because the lines, " +
+    "the payer and the marks come from the timesheets, not from the caller: one call that issues and marks is the one " +
+    "transaction the money fact needs. The edge it needs, requests depending on projects (dependencies.of-requests), " +
+    "exists, and projects sits below requests, so it makes no cycle. The rpc invokes three doors (parties, documents, " +
+    "projects), one wider than sys:tx-width allows, recorded in requests.bill-time-currency.",
   source: ASSEMBLY("docs/design/frappe/projects-and-startup.md (section 2); projects.billing-and-payslips; projects.commands; aaron.projects"),
-  affects: [concept_requests, concept_projects, d.table_requests, iss.rpc_requests_issuing_issue, iss.rpc_requests_issuing_cancel, inb.rpc_requests_inbox_decline],
+  affects: [
+    concept_requests,
+    concept_projects,
+    d.table_requests,
+    iss.rpc_requests_issuing_issue,
+    iss.rpc_requests_issuing_bill_time,
+    iss.rpc_requests_issuing_cancel,
+    inb.rpc_requests_inbox_decline,
+    fl.flow_client_org_timesheets_bill,
+    op.operation_org_timesheet_bill,
+  ],
+});
+
+export const decision_requests_bill_time_currency = defineDecision({
+  id: "requests.bill-time-currency",
+  title: "Billed hours ask in the token of the timesheets' currency, never converted",
+  question:
+    "A timesheet's rates are decimal strings in the Organization's currency (projects.amounts), and a request asks an " +
+    "exact token amount. Which token does `org timesheet bill` ask in, how are the lines worked out, and may its one " +
+    "transaction invoke three doors?",
+  options: [
+    {
+      label: "currency-token",
+      text:
+        "The admitted token whose currency is the timesheets' one currency (USD is USDC, EUR is EURC, another currency " +
+        "the deployment's token for it where one is admitted); none, or timesheets in two currencies, is INVALID_INPUT " +
+        "naming the currency. One line per activity and billing rate: quantity the billing hours, unit amount the rate " +
+        "in the token's raw units, so the lines add up to the amount exactly. `billed_logs` keeps each log's hours and " +
+        "raw amount. The rpc invokes `parties.resolve-recipient` (the payer's Party, provisional for a new mailbox), " +
+        "`documents.store` and `projects.bill-time`: three procedures of three other concepts, recorded here as P4 asks " +
+        "of a wider transaction.",
+    },
+    { label: "usdc-converted", text: "Always USDC, each rate converted from the Organization's currency at the day's price." },
+    { label: "asset-flag", text: "`--asset <token>`, as `request issue` takes it, with the rates read as amounts of that token." },
+  ],
+  chosen: "currency-token",
+  why:
+    "An Invoice asks an exact amount, and its lines must add up to it (documents.store), so a converted rate would " +
+    "drift from the timesheet the hours were priced in and leave the books and the head with two figures; requests " +
+    "also reads no price. A flag would let a rate of 90 GBP be asked as 90 USDC. A currency with no admitted token " +
+    "cannot be billed until one is admitted, a deployment setting. The three doors are one money fact: the request " +
+    "keys its payer on a Party (as every request's payer is named), stores its document, and marks the hours it " +
+    "bills; split over two transactions, a crash between them would leave hours marked with no request or a request " +
+    "whose hours another invoice could take.",
+  source: ASSEMBLY("books/target/projects/decisions.ts (projects.amounts); books/target/documents/procedures.ts (InvoiceContent); rules.transaction-width; aaron.projects"),
+  affects: [iss.rpc_requests_issuing_bill_time, op.operation_org_timesheet_bill, d.table_requests],
 });

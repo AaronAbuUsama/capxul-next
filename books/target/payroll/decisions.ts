@@ -439,8 +439,8 @@ export const decision_payroll_holder_writes = defineDecision({
   id: "payroll.holder-writes",
   title: "A holder's write is an approval from their own Safe, never a proposal",
   question:
-    "dependencies.of-payroll says an agreement on a top budget is offered or changed by Board proposal. The frozen text " +
-    "says a holder write 'is not a Director proposal'. Which does payroll build, and what does it use board for?",
+    "An earlier dependencies.of-payroll said an agreement on a top budget is offered or changed by Board proposal. The " +
+    "frozen text says a holder write 'is not a Director proposal'. Which does payroll build, and what does it use board for?",
   options: [
     { label: "approval", text: "Every holder write is one approval from the holder's Safe; board serves only an Organization payee's accept and collect." },
     { label: "proposal-on-top", text: "A holder write on a top budget is a Board proposal." },
@@ -1006,7 +1006,7 @@ export const decision_payroll_slip_machine = defineDecision({
     "Frappe knows a run is paid only when its Bank Entry exists (`has_bank_entries`, true at the first entry), which " +
     "cannot say which person is paid. On Capxul each slip's net is its own Payment, so each slip has its own paid, from " +
     "chain proof at finality, and the employee sees it. Escrowed is its own state because a new hire's money has left " +
-    "the budget but is not theirs until they claim it, and may come back. A lapsed slip keeps its Payment because " +
+    "the budget but is not theirs until they collect it (at setup, or later with `account collect`), and may come back. A lapsed slip keeps its Payment because " +
     "payments keeps that Payment retryable (`needs_retry`); a new Payment beside it could pay twice, so only its own " +
     "command's resume pays it, and it cannot be withheld or cancelled meanwhile. A refunded escrow's Payment is " +
     "cancelled for good, so the slip forgets it and a later command pays it anew. Frappe's Withheld is not a flag but a " +
@@ -1117,7 +1117,7 @@ export const decision_payroll_new_hire_escrow = defineDecision({
       label: "escrow",
       text:
         "Payroll sends their net in the same command, to their mailbox's Safe; payments pays it into a claim escrow from " +
-        "the budget. The slip reads `escrowed` until they claim it, then `paid` when the escrow's payout settles; if the " +
+        "the budget. The slip reads `escrowed` until they collect it (at setup, or later with `account collect`), then `paid` when the escrow's payout settles; if the " +
         "wearer of the budget's hat or one above it, or the Board, takes it back, payments cancels that Payment (outcome refunded), the slip is " +
         "`submitted` again and still owed, and a later `runs.pay` naming it pays it under the next attempt.",
     },

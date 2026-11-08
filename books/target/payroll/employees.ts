@@ -5,7 +5,7 @@
 //
 // The person is named by mailbox, `@handle` or Party id and resolved through parties' door, so a new hire
 // with no account is a provisional Party at the Safe their mailbox derives, and pay to them waits in a
-// claim escrow until they claim it (payroll.new-hire-escrow, aaron.budget-pay-unclaimed).
+// claim escrow until they collect it, at setup or later with `account collect` (payroll.new-hire-escrow, aaron.budget-pay-unclaimed).
 
 import { Schema } from "effect";
 import { budget, defineRpc } from "../../../packages/book/src/index.ts";

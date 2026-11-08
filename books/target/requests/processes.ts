@@ -115,7 +115,7 @@ export const workflow_requests_lifecycle_request = defineWorkflow({
   compensation:
     "Nothing to undo: the escrow is the payer's money on chain until it pays out. A deploy or payout that reverts (a fee " +
     "or rebasing token, `InexactTransfer`) leaves the request paying and is tried again after an hour, at most 24 times; " +
-    "then the process waits for a signal, and the escrow's owner can refund it on chain. At its timeout an open request " +
+    "then the process waits for a signal, and the escrow's sender can refund it on chain while it is short of the amount. At its timeout an open request " +
     "with no expiry stays open, and its next signal starts the instance again.",
   budget: budget("background"),
 });

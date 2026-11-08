@@ -29,7 +29,7 @@ export const CreateDepartmentInput = Schema.Struct({
   period: Period,
   /** A top budget's token by symbol (USDC when none); refused with a parent. */
   token: NullOr(S),
-  /** The holders of its office, by email: each is minted its new office hat. */
+  /** The holders of its office, each by email or an agent's @handle: each is minted its new office hat. */
   holders: Arr(S),
 });
 
@@ -47,7 +47,7 @@ export const CreateAllowanceInput = Schema.Struct({
     recipients: NullOr(Arr(S)),
     allows: NullOr(Arr(S)),
   }),
-  /** The member who wears its hat, by email. */
+  /** The member who wears its hat, by email or an agent's @handle. */
   assignTo: NullOr(S),
 });
 
@@ -62,6 +62,7 @@ export const SetAmountInput = Schema.Struct({
 
 export const BudgetWriteInput = Schema.Struct({ ...Write, budget: BudgetRef });
 
+/** `member`: an email, or an agent already seated by its @handle (docs/design/authority.md, contradiction 6). */
 export const HolderInput = Schema.Struct({ ...Write, budget: BudgetRef, member: S });
 
 export const CeilingSetInput = Schema.Struct({
@@ -95,7 +96,7 @@ export const ChangeGetInput = Schema.Struct({ orgId: S, changeId: S });
 
 export const Token = Schema.Struct({ symbol: S, address: S, decimals: N });
 
-/** A wearer of an office hat: a member by email; a Safe Capxul cannot name shows its address and no invented name. */
+/** A wearer of an office hat: a member by email (an agent by its @handle); a Safe Capxul cannot name shows its address and no invented name. */
 export const Holder = Schema.Struct({ email: NullOr(S), safe: S });
 
 export const Office = Schema.Struct({ hat: S, holders: Arr(Holder) });

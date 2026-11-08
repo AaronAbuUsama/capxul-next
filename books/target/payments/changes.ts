@@ -55,7 +55,8 @@ export const rpc_payments_changes_retry = defineRpc({
     "WRONG_STATE), and a caller Budgets does not authorise on the budget now: any current wearer of the budget's hat " +
     "or of one above it may retry a budget payment, whoever sent it first (payments.department-authority). A seat " +
     "purchase's Payment (source `seat-purchase`) is retried only by someone who could buy it: also a person whose " +
-    "own Safe wears the People hat, read from indexing, else ROLE_PERMISSION_DENIED (payments.seat-authority). Before its " +
+    "own Safe wears the People hat, read from indexing, else ROLE_PERMISSION_DENIED (payments.seat-authority); a hosting " +
+    "payment's (source `fde-hosting`) only by a person, never an agent (payments.fde-hosting-purchase). Before its " +
     "transaction it reads the funding again (the Safe's balance, or the budget's `leftOf` and `authorised`) and that the " +
     "id is not consumed (`Payments.paid`). In one transaction it opens the carrier the first send had (an approval from " +
     "the caller's own Safe, or a Board proposal at the Safe's next nonce for a Board payment) and moves the Payment " +

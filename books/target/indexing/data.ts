@@ -158,7 +158,7 @@ export const table_chain_logs = defineTable({
     "names the record in shared/external.ts and `event` the event as that record names it; `args` are the decoded arguments " +
     "(addresses and hashes lowercase, uints as decimal strings). `safes` lists every Capxul Safe the log concerns: the " +
     "company Safe a v4 event is keyed by (for an equity clone, the company of its Installer deployment, since the clones' " +
-    "events do not name it), the Safe that emitted a Safe event, the payee or owner Safe an escrow or agent event names. A " +
+    "events do not name it), the Safe that emitted a Safe event, the owner or sender Safe an escrow event names, the Safe an agent event names. A " +
     "log is admitted when its contract is Capxul's, or its Safe, hat tree or escrow is one a Capxul event made known " +
     "(CapxulSafeClaimed, CompanySafeMinted, AgentCreated, MoneyDeployed, EscrowDeployed); Hats events of other trees are " +
     "not indexed. This is the source of the `chainEvent` triggers of every concept above and of `indexer.factsOf`; the " +
@@ -746,44 +746,51 @@ export const table_escrows = defineTable({
   id: "escrows",
   title: "Escrows: each invoice and claim escrow, its terms and whether it paid",
   about:
-    "One row per escrow the EscrowFactory deployed (EscrowDeployed, with its CREATE2 address, owner Safe, payee Safe, " +
-    "payment id and salt) and the terms its EscrowCreated names: token, amount, kind, document hash and condition " +
-    "named as the contract's constants (`invoice_amount_reached`: paid out once its balance reaches the amount; " +
-    "`payee_claimed`: the payee's Safe collects it once claimed). " +
-    "`standing` is open until EscrowPaid or EscrowRefunded. What it holds is its row in safe-balances. Accounts finds the " +
-    "claim escrows waiting for a person's Safe at its setup; requests follows an invoice escrow's checkout; books and " +
-    "payments read what an owner has in escrow.",
-  was: [`${V4}/escrow-factory/schema.ts:4`, `${V4}/escrow-factory/handlers.ts:1`],
+    "One row per general escrow the EscrowFactory deployed (EscrowDeployed: its CREATE2 address, `owner` who collects, " +
+    "`sender` where the money came from and the only address a refund pays, its `authority` and `authority_key` (a " +
+    "budget's escrow names Budgets and the budget id; zero for a personal, Board or invoice one), payment id and salt) " +
+    "and the terms its EscrowCreated names: token, amount, kind, document hash and condition, named as the contract's " +
+    "constants (`amount_reached`: paid out once its balance reaches the amount, an invoice; `owner_collects`: the " +
+    "owner collects once it can act, a claim escrow) (payments.general-escrow). `standing` is open until EscrowPaid or " +
+    "EscrowRefunded (which names who refunded, `by`). What it holds is its row in safe-balances. Accounts finds the " +
+    "claim escrows a person's Safe owns, at setup and by `account collect`; requests follows an invoice escrow's " +
+    "checkout; books and payments read what a sender has in escrow.",
+  was: [`${V4}/escrow-factory/schema.ts:4`, `${V4}/escrow-factory/handlers.ts:1`, "books/target/shared/external.ts (contract_escrow: the general escrow)"],
   concept: concept_indexing,
   tenancy: "chain",
-  scope: scope("`owner_safe` or `payee_safe`"),
-  admits: bySafe("owner_safe", "payee_safe"),
+  scope: scope("`sender` or `owner`"),
+  admits: bySafe("sender", "owner"),
   fields: Schema.Struct({
     escrow_address: S,
     chain_id: Int,
-    owner_safe: S,
-    payee_safe: S,
+    /** Where the money came from, and the only address a refund pays (v4's ownerSafe). */
+    sender: S,
+    /** Who collects (v4's payeeSafe): a mailbox's derived Safe, an issuer's Safe, a shareholder. */
+    owner: S,
+    /** The view a refund other than the sender's asks (`authorised(key, who)`): Budgets for a budget's escrow, else the zero address. */
+    authority: S,
+    authority_key: S,
     payment_id: S,
     salt: S,
     token: S,
     amount: S,
     kind: Int,
     document_hash: S,
-    condition: Schema.Literals(["invoice_amount_reached", "payee_claimed"]),
+    condition: Schema.Literals(["amount_reached", "owner_collects"]),
     standing: Schema.Literals(["open", "paid", "refunded"]),
     ...SET_BY,
   }),
   key: ["escrow_address"],
   indexes: [
     {
-      name: "escrows-by-payee",
-      fields: ["payee_safe", "condition", "standing"],
-      for: "The claim escrows waiting for a person's Safe, collected at its setup (accounts); an invoice escrow a payee awaits.",
+      name: "escrows-by-owner",
+      fields: ["owner", "condition", "standing"],
+      for: "The claim escrows a person's Safe owns, collected at its setup or by `account collect` (accounts); an invoice escrow its issuer awaits.",
     },
     {
-      name: "escrows-by-owner",
-      fields: ["owner_safe", "standing"],
-      for: "An owner's open escrows: invoices awaiting checkout, claim escrows to refund (books' reports, payments).",
+      name: "escrows-by-sender",
+      fields: ["sender", "standing"],
+      for: "A sender's open escrows: invoices awaiting checkout, claim escrows to take back (books' reports, payments).",
     },
     {
       name: "escrows-by-payment-id",

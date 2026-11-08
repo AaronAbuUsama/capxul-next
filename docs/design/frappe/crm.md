@@ -199,15 +199,19 @@ A private entry can never reach `payment send`, because its `ref` is null.
 - `contacts.leads.save`, `move`, `convert`, `list` and `get`.
 - `contacts.deals.save`, `move`, `list` and `get`.
 
-Each is one rpc behind one Core SDK method:
+Each is behind Core SDK methods that serve the CLI and the SDK (`contacts.crm-capabilities`, accepted; booked
+by the commands pass as the 14 commands of `docs/design/new-commands.md` section 5.2):
 
-- `client.account.addressBook.record`;
-- `client.org(orgId).crm.leads.*`;
-- `client.org(orgId).crm.deals.*`.
+- `client.account.addressBook.create|change|link`, three methods over the one rpc `contacts.book.record`
+  (`contacts.book-verbs`);
+- `client.org(orgId).crm.leads.create|change|move|convert|list|get`, `create` and `change` over `leads.save`
+  (`contacts.crm-verbs`);
+- `client.org(orgId).crm.deals.create|change|move|list|get`, `create` and `change` over `deals.save`.
 
-These methods serve the SDK only. The Organization's Forward Deployed Engineer uses them, wearing
-the People hat to write. A connected head does not use them; it syncs through contacts' own process
-(see below). Their CLI commands wait on a decision for Aaron (`contacts.crm-capabilities`).
+The Organization's Forward Deployed Engineer uses them, wearing the People hat to write. A connected head does not
+use them; it syncs through contacts' own process (see below). The lead list leaves converted leads out, as Frappe
+CRM's list does, and `--stage converted` lists them (`contacts.lead-list-like-frappe`); a deal list's filters apply
+together (`contacts.deal-list-filters`); `--owner` names a member by email or an agent's @handle.
 
 **Frappe's rules, kept:**
 
@@ -222,9 +226,10 @@ the People hat to write. A connected head does not use them; it syncs through co
 **Conversion** (decision `contacts.lead-conversion`) is Frappe's `convert_to_deal`, run as one
 transaction that locks the lead first. It sets three things:
 
-- **The person** is the entry given, or else the book's entry for the lead's mailbox, resolved in
-  the directory (which names a provisional Party if the mailbox is new), or else a private Contact
-  when the lead has no mailbox.
+- **The person** is the entry given, or else the book's Contact that keeps the lead's mailbox
+  (Frappe's `contact_exists`, private or not, never linked by the match), or else the entry of the
+  mailbox's Party, resolved in the directory (which names a provisional Party if the mailbox is new),
+  or else a private Contact when the lead has no mailbox (`contacts.convert-by-kept-mailbox`).
 - **The company** is the entry given, or else the book's CRM Organization whose shown name is the
   company name the lead typed (Frappe's `create_organization`), or else a new private one made from
   it. On a head a CRM Organization's name is its identity, so a conversion there lands on the same
@@ -376,9 +381,9 @@ organizations' `org-heads` carry it. Each concept syncs its own records.
    domain?
 2. **`parties.mailbox-for-life` (C27).** Is one mailbox per person for good? Or will a person be
    able to move their account to a new mailbox?
-3. **`contacts.crm-capabilities`.** Should the CRM get CLI commands now (`contact record`,
-   `crm lead …`, `crm deal …`)? That means allowing operations beyond the 215, together with the
-   projects concept. Or should it stay SDK-only until then?
+3. **`contacts.crm-capabilities`.** Answered: Aaron accepted CLI commands now (sixth batch). They are
+   booked as `contact create|change|link`, `org crm lead create|change|move|convert|list|get` and
+   `org crm deal create|change|move|list|get` (`docs/design/new-commands.md` section 5.2).
 
 ## For other lanes
 

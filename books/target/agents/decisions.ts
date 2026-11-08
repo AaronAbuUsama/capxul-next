@@ -724,7 +724,7 @@ export const decision_agents_fde_authority = defineDecision({
       text:
         "It runs on Capxul's FDE host (aaron.fde-hosted), whose runtime holds its key, and acts only through the CLI and " +
         "SDK, signed in with that key, as a member: it reads what any member reads, runs the commands any member may " +
-        "(projects' member commands), adds or removes a Frappe app (`org app add|remove`: a Director or the FDE, " +
+        "(reading projects, working tasks and keeping its own time), adds or removes a Frappe app (`org app add|remove`: a Director or the FDE, " +
         "organizations.app-commands), and whatever the hats and allowances the Board grants it allow (Books to set up the " +
         "chart, People to keep the contact book, an allowance to pay within its limit). It starts with no hat and no " +
         "allowance. It may never be a Director or wear the Shareholders' top hat, approve or execute a Board proposal, " +

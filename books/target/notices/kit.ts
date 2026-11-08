@@ -33,7 +33,12 @@ export const SEND_STEPS = [
 /** How an Organization is told, wherever a notice goes to one (decision notices.recipients). */
 export const DIRECTORS =
   "An Organization is told through its Directors: the company Safe's owners now (`Safe.getOwners` through chain-rpc), " +
-  "each to the principal at that Safe and its email; an agent Director has no mailbox and is skipped.";
+  "each to the principal at that Safe and its email (a Director is always a person: board.no-agent-directors).";
+
+/** Who is told about a budget's money besides the Directors (notices.recipients; docs/design/authority.md, contradiction 11). */
+export const WEARERS =
+  "A notice about a budget's money also goes to whoever wears that budget's hat now, read from indexing's hat-wearers " +
+  "when it is sent, each by their Seat's principal; the person who acted is told only while they still wear it.";
 
 /** How a person is told, wherever a notice goes to one by their principal (decision notices.recipients). */
 export const PERSON =

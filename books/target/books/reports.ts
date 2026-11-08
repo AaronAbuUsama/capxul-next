@@ -180,7 +180,7 @@ export const rpc_books_reports_reconcile = defineRpc({
     "For every asset the books record (Capxul's own and this Organization's added tokens), in name order: the units the " +
     "books say the company Safe holds (every money fact, priced or not), the Safe's `balanceOf` read live at the head " +
     "block, and what the Organization's open escrows hold (money that left the Safe and is not booked out until the " +
-    "escrow pays: indexing's escrows view). On v4 an agreement reserves its money inside the Safe, so it holds nothing " +
+    "escrow pays: indexing's escrows by `sender`, the company Safe). On v4 an agreement reserves its money inside the Safe, so it holds nothing " +
     "outside it (books.reconcile-held). `difference` is books less chain less held; `matches` when every asset's is 0. A " +
     "chain that does not answer is PROVIDER_ERROR.",
   was: [`${REP}/operations/reconcile.ts:7`, `${REP}/rules.ts:184`, `${OLD}/postings/rules.ts:120`, `${ROWS}/report-schema.ts:1`],

@@ -576,7 +576,8 @@ export const decision_board_people_hat_role_conflict = defineDecision({
       label: "chain-offices",
       text:
         "Refuse `manage-people` with ROLE_CONFLICT when the member's Safe wears a department's or team's office hat, read " +
-        "from indexing: a budget's hat where the budget is a top budget, or its hat's admin is its parent budget's hat.",
+        "from indexing's chain-hats: a hat whose details begin `office:`, the kind budgets writes into every hat it " +
+        "creates (`office:` for a department or team, `allowance:` for an allowance).",
     },
     { label: "any-budget-hat", text: "Refuse when the member's Safe wears any budget's hat, an allowance's included." },
     { label: "none", text: "Keep the frozen refusal list: the grant never checks the office." },
@@ -586,11 +587,12 @@ export const decision_board_people_hat_role_conflict = defineDecision({
     "P10 rung 3: this is authority, so the stricter version wins until a matter rules. The old Manage people grant " +
     "refused a department holder (permissions/guards/conflicts.ts, ADR-0040), and on v4 Manage people is this grant, so " +
     "without the check one person could hold an office and Manage allowances by asking in the other order. ROLE_CONFLICT " +
-    "is already a frozen code with that meaning. Budgets' designed creates place the hats so the chain tells them apart: " +
-    "a top department's hat and an allowance's hat sit under the Board's top hat, a team's under its parent's office hat, " +
-    "and only an allowance is a child budget with its hat under the top hat. Refusing allowance wearers too would be a " +
-    "conflict the old system never had. The refusal is reached from budgets' world org-with-budget-tree.",
-  source: by("packages/backend/src/permissions/guards/conflicts.ts:13; books/target/budgets/decisions.ts (budgets.role-conflict-people-hat); budgets/departments.ts, allowances.ts (hat placement); P10"),
+    "is already a frozen code with that meaning. The hat's place in the tree cannot tell them apart: a department " +
+    "under the install's company budget and an allowance under it both have the parent's hat as admin (authority " +
+    "contradiction 8), so budgets writes the kind into the hat's details and board reads it, with no edge between the " +
+    "two. Refusing allowance wearers too would be a conflict the old system never had. The refusal is reached from " +
+    "budgets' world org-with-budget-tree.",
+  source: by("packages/backend/src/permissions/guards/conflicts.ts:13; books/target/budgets/decisions.ts (budgets.role-conflict-people-hat); budgets/departments.ts, allowances.ts (hat details); docs/design/authority.md (8); P10"),
   affects: [rpc_board_officers_grant, op.operation_org_member_grant, error_ROLE_CONFLICT, table_chain_budgets, table_chain_hats],
 });
 

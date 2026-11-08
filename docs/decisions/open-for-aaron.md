@@ -62,8 +62,8 @@ back until it is claimed; it is a general-purpose escrow; the escrow changes, no
 
 | # | Question | Recommendation | Records |
 |---|---|---|---|
-| 1 | When a budget payment is taken back, the money returns to the company account, but the budget's allowance for that period is not restored, since Budgets is not changed. Is that acceptable? | Yes | `budgets.claim-escrows` |
-| 2 | Who may take a budget payment back? | The person who sent it, with the Board as a backstop; the money always returns to where it came from | `payments.claim-escrow-routes` |
+| 1 | When a budget payment is taken back, the money returns to the company account, but the budget's allowance for that period is not restored, since Budgets is not changed. Is that acceptable? | Yes (accepted). Booked: the general escrow's refund always pays its sender, for a budget's escrow the company Safe, and Budgets' room is untouched | `budgets.claim-escrows`, `payments.general-escrow`, `payments.claim-escrow-routes`, invariant `payments.escrow-budgets-unchanged`; `docs/design/escrow.md` |
+| 2 | Who may take a budget payment back? | Answered by `aaron.departments`: whoever wears the budget's hat, or one above it, when it is taken back, or the Board, whoever sent it; the money returns to the company Safe. Booked as the general escrow's authority term (Budgets and the budget id, read at the refund) | `payments.department-authority`, `payments.general-escrow`, `budgets.claim-escrows`, operation `payment.cancel`, invariant `payments.escrow-department-now`; `docs/design/escrow.md`, `docs/design/authority.md` (contradiction 1) |
 
 ## Capxul around Frappe
 
@@ -76,7 +76,7 @@ back until it is claimed; it is a general-purpose escrow; the escrow changes, no
 | 7 | Only the fundamental apps live in Capxul; every other Frappe app lives only on a connected head? | Yes | `organizations.apps-native-or-head` |
 | 8 | Should the directory name companies that are not on Capxul? | No: they stay private in each CRM until they join or are paid | `parties.outside-companies` |
 | 9 | Is a person's mailbox theirs for life? | Yes for now; moving a mailbox is a later capability | `parties.mailbox-for-life` |
-| 10 | Do the new capabilities get CLI commands now? | Yes, all three: projects' working set of about thirty, the app and head commands, and the CRM's contact, lead and deal commands; the CLI is how every capability is proven | `projects.commands`, `organizations.commands`, `contacts.crm-capabilities` |
+| 10 | Do the new capabilities get CLI commands now? | Yes (accepted). Booked: 90 operations beyond the 215 in one grammar, each once: projects 35, the CRM 14, payroll 28, apps, head and FDE 8, buying from Capxul 3, `org timesheet bill` and `account collect` | `docs/design/new-commands.md`; `projects.commands`, `contacts.crm-capabilities`, `payroll.hr-surface`, `organizations.commands`, `organizations.buy-seats`, `requests.bill-time`, `accounts.collect-any-time` |
 | 11 | May a new command be booked on its pack's recommendation before you answer the pack? | Yes; nothing of the 215 changes | `rules.new-operations` |
 | 12 | Projects: members work their own tasks and time; the People hat manages projects? | Yes | `projects.permissions` |
 | 13 | Where does each organization's FDE run at first? | Made in the founder's install, its key made on the founder's machine; Capxul-hosted FDEs later | `organizations.fde-at-start-up` |
@@ -111,9 +111,23 @@ back until it is claimed; it is a general-purpose escrow; the escrow changes, no
 | # | What | Why |
 |---|---|---|
 | 29 | Credits on the OpenAI organization of the key in this environment, or a key from the funded one | Every completion call returns "no credits remaining"; the 14 agent-judged evals wait for it |
-| 30 | The price of an extra seat, and the stablecoin | `aaron.buy-seats`; until then buying a seat is refused |
+| 30 | The price of an extra seat, and the stablecoin | Answered (`aaron.test-prices`): `SEAT_PRICE` 10 USDC, paid once, on the test USDC; booked as `org seats buy` |
 | 31 | A Cloudflare API token and the Access allowlist | The portal's private hosting (`portal.hosting`) |
 | 32 | Branch protection on `main` and `integration/build` | `tooling.branch-protection` |
-| 33 | The price of hosting an Organization's FDE | `aaron.fde-hosted`; a deployment setting, as the seat price |
+| 33 | The price of hosting an Organization's FDE | Answered (`aaron.test-prices`): `FDE_HOSTING_PRICE` 20 USDC a month; booked as `org fde pay` |
 | 34 | The swarmd-next repository on GitHub, added to this session | Question 25, accepted; this session may not create repositories |
 | 35 | The swarm's accounts: the capxul namespace on swarmD, the GitHub App on both repositories, a room | Question 22, accepted |
+
+## Raised by the commands pass
+
+The pass's agents raised three questions; Aaron answered all three on 8 November 2026, night (above). Each booked
+record keeps its choice until his answers are applied, book first, after this pass.
+
+| # | Question | Recommendation | His answer | Records |
+|---|---|---|---|---|
+| 36 | Who may talk to the hosted FDE (`org fde ask`)? | A Director: the FDE acts with the hats the Board granted it, so whoever instructs it borrows them | Anyone may, and anyone the management is speaking to: the host passes the asker's Seat, so the FDE does for them only what their own hats allow; the FDE is not on the critical path | `organizations.fde-commands`, `organizations.commands`, `organizations.command-priorities`, operation `org.fde.ask` |
+| 37 | How is the FDE's hosting paid? | In advance by the month from a budget (`org fde pay [<months>] --from <budget>`, 20 USDC a month), the FDE pausing when its paid-through instant passes and resuming when paid | Accepted as recommended | `organizations.fde-hosting`, `payments.fde-hosting-purchase`, operation `org.fde.pay` |
+| 38 | May a recipient collect waiting money later, by command, as well as at setup? | Yes, as `aaron.escrow-general` reads; booked as `account collect` (one approval collects every claim escrow the person's Safe owns) | Yes, spelt `payment claim` (`payment.claim`); the sender's take-back stays `payment cancel` | `accounts.collect-any-time`, operation `account.collect`; `docs/design/new-commands.md` section 6 |
+
+Also accepted that night: `payments.seat-authority` and `payments.seat-purchase`.
+

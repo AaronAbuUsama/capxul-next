@@ -208,7 +208,10 @@ export const journey_run_company = defineJourney({
     "the Director with `org board director add` (journeys.steps). Budget changes are Board proposals that land as `budget_change_transitioned`; " +
     "a new allowance or department is the budget machine's own birth. `org invite cancel` and `invite decline`, and " +
     "`org agreement withdraw`, are taken on second invitations and offers the scenario's world holds. Left out " +
-    "(journeys.steps): the eleven optional books operations and nineteen reads and changes along the way.",
+    "(journeys.steps): the eleven optional books operations and nineteen reads and changes along the way. The founder " +
+    "wears the People hat from setup, so ROLE_CONFLICT keeps them from any department or team office " +
+    "(organizations.founder-people-hat): the Directors give the offices to others, and a founder spends as the Board " +
+    "or from an allowance the Board assigns them.",
   steps: [
     step(organizations.operation_org_create, "founder", event_org_setup_transitioned),
     step(organizations.operation_org_retry, "founder", "success"),

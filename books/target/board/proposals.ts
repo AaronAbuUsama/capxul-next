@@ -185,7 +185,7 @@ export const rpc_board_proposals_approve = defineRpc({
   was: [`${OLD}/operations/request-approval.ts:42`, `${OLD}/rules.ts:128`, `${OLD}/guards.ts:92`, `${AS_IS}:669`],
   concept: concept_board,
   kind: "action",
-  who: "A Director of the Organization (an agent Director signs with its own key).",
+  who: "A Director of the Organization: a person, never an agent (board.no-agent-directors).",
   input: ProposalInput,
   output: ApprovalOpened,
   errors: [

@@ -210,7 +210,7 @@ proposes, and the threshold of Directors approves from their own Safes.
 | Collect a claim escrow | The recipient's claimed Safe | `Escrow.collect`: `msg.sender == payeeSafe`, Companies House no longer an owner | The recipient's collection approval |
 | Take back a personal claim escrow | The payer's Safe | `Escrow.refund`: `msg.sender == ownerSafe` | An approval |
 | Take back a Board claim escrow | The Board | The owner is the company Safe | A Board proposal |
-| Take back a budget's claim escrow | The budget's wearers *now*, anyone above, the Board. The money goes to the company Safe and the room is not restored | Needs the general escrow to check `Budgets.authorised(budgetId, caller)` (contradiction 1) | An approval, or a Board proposal |
+| Take back a budget's claim escrow | The budget's wearers *now*, anyone above, the Board. The money goes to the company Safe and the room is not restored | The general escrow's `refund`: its authority term is Budgets with the budget id, so `Budgets.authorised(budgetId, caller)` at the call (`payments.general-escrow`) | An approval, or a Board proposal |
 | Grant or revoke an officer hat | The Board | The Safe is admin and eligibility | A Board proposal (`board.officers.*`) |
 | Put someone in or out of a department's office | As in the swap table above | Hats admin and eligibility | `budgets.offices.*` |
 | Seat or remove a Director, set the threshold | The Shareholders' top-hat wearer: the founder's Safe, then the Governor | Hats admin of the Director hat, and the Gate's owner hat | An approval from the founder's Safe (`board.directors.*`) |
@@ -218,7 +218,7 @@ proposes, and the threshold of Directors approves from their own Safes.
 | Create, freeze, re-key, sweep or remove a person's agent | Its owner, the person | AgentOwner `onlyAgentOwner` | An approval |
 | The same for an Organization's agent (the FDE) | The Board | AgentOwner's owner is the company Safe | A Board proposal (`agents.org-owned`) |
 | Buy seats | A People-hat wearer, from a budget whose hat (or one above) their Safe wears now | `Budgets.spend` by the spender, plus Capxul's People-hat guard | `org seats buy`, an approval (`organizations.buy-seats`, accepted) |
-| Pay for the hosted FDE (`FDE_HOSTING_PRICE`, 20 USDC a month) | Not booked yet. Recommended: any budget's wearer or the Board, never the FDE itself | As a spend, a dated payment or an agreement from a budget | Organizations' design (`aaron.fde-hosted`) |
+| Pay for the hosted FDE (`FDE_HOSTING_PRICE`, 20 USDC a month) | A person whom Budgets admits on the budget now; never an agent, so never the FDE, and never the Board (its payment is its own batch) | `Budgets.spend` by the payer | `org fde pay`, an approval (`payments.fde-hosting-purchase`, `organizations.fde-hosting`, accepted) |
 
 ## Capxul's own checks, which the chain does not make
 
@@ -243,8 +243,8 @@ the chain's:
 
 ## Where the book contradicts the model
 
-Each row names the record, what it says, what the chain does, the fix, and the folder that owns the fix. Nothing
-here was changed by this audit. The fixes are listed in the audit's `forOthers`.
+Each row names the record, what it says, what the chain does, the fix, and the folder that owns the fix. The
+audit changed nothing; the commands pass applied every fix, as "Where each fix landed" below records.
 
 | # | Record(s) | The book says | The chain, and the rulings | Fix | Owner |
 |---|---|---|---|---|---|
@@ -265,6 +265,28 @@ here was changed by this audit. The fixes are listed in the audit's `forOthers`.
 | 15 | `organizations.fde-at-start-up` (superseded), `notices.head-and-fde` ("its key is on the founder's machine"), workflow `organizations.setups.set-up` (the FDE key recorded at `begin`) | The FDE's key is made on the founder's machine and never reaches Capxul. | `aaron.fde-hosted`: Capxul hosts the FDE on a durable runtime, and its key is the runtime's. Authority is unchanged: the company Safe owns it, the Board grants its hats, and it is never a Director. | Book the key as made and held by Capxul's hosted runtime. The install batch still calls `AgentOwner.create(runtime key, company Safe)`. The FDE never pays its own hosting. `FDE_HOSTING_PRICE` is paid from a budget by whoever wears its hat, or by the Board. | organizations; agents; notices |
 | 16 | `organizations.buy-seats` (accepted) | "pays from a budget they hold". | A budget is held by whoever wears its hat now. With contradiction 9, a People-hat wearer holds no office, so seats are bought from an allowance, or by the Board. | "from a budget whose hat, or one above it, their Safe wears now", with that consequence stated. | payments (books `org seats buy`); organizations |
 | 17 | rpc `payments.changes.retry` (about) | "a caller who no longer holds the authority the first send needed". | Any current wearer of the budget's hat, or one above, may retry a budget payment, whoever sent it first. | "a caller Budgets does not authorise on the budget now". | payments |
+
+### Where each fix landed (commands pass, 8 November 2026)
+
+| # | Applied in |
+|---|---|
+| 1 | The general escrow (`payments.general-escrow`, `contract_escrow` in `shared/external.ts`): a budget's escrow names Budgets and the budget id as its authority; `payments.claim-escrow-routes`, `budgets.claim-escrows`, `payments.department-authority`, rpcs `payments.commands.prepare\|propose` and `payments.changes.cancel`, and `payment.cancel`'s who. No room is restored and Budgets does not change. |
+| 2 | `payments.department-authority` and rpc `payments.commands.propose`: a Board dated payment goes on the open top budget with the most left among those no member holds (the install's, or one the Board keeps with no holder); a department pays by `--from`, and its wearers may then cancel it. |
+| 3 | rpcs `budgets.departments.create` (office hats `office:<key>`, eligibility and toggle the company Safe, mutable) and `budgets.offices.remove-holder` (`transferHat` only while the company Safe does not wear the hat, else the Board's `setHatWearerStatus`; the company Safe's place is never listed). The eligibility module is not asked of Aaron: the Board fallback keeps v4's wiring. |
+| 4 | `budgets/operations.ts`: every listed operation's who is its designed (v4) who, or the same rule where the frozen record has none (`designedWho`); `org.allowance.change`'s refusal names only a parent whose hat is the Board's top hat. |
+| 5 | `bank.pay` and `inbox.pay` take their designed who. |
+| 6 | rpcs `budgets.offices.add-holder\|remove-holder`, `budgets.departments.create` and `budgets.allowances.create`, and the budgets shapes: an email or an agent's @handle. |
+| 7 | rpc `board.proposals.approve`: "a person, never an agent". |
+| 8 | `board.people-hat-role-conflict` and rpc `board.officers.grant`: the kind is read from the hat's details (`office:` or `allowance:`), which budgets writes into every hat it creates. |
+| 9 | `organizations.founder-people-hat`, and the `run_company` journey's about. |
+| 10 | `dependencies.of-payroll` (board: an Organization payee's acceptance and collection). |
+| 11 | `notices.recipients` (chosen `directors-and-wearers`; notices now depends on indexing for hat-wearers), the agreement-accepted, payout and payer notices, and the money-uncollected and money-taken-back texts. |
+| 12 | `SIGNER_RULE` in `budgets/departments.ts`: "No wearer changes their own budget's amount, hat or state." |
+| 13 | `agents.who-acts` and the agents change rpcs' who. |
+| 14 | `budgets.removed-agent-hats`: workflow `budgets.agents.return-hats` proposes a removed agent's hats back once. |
+| 15 | `organizations.fde-at-start-up` (rewritten), the setup's `host-fde` step and the `fde-host` integration, `notices.head-and-fde` and `notices.organizations.fde-ready`, and `agents.fde`. |
+| 16 | `organizations.buy-seats`, `payments.seat-authority` and `org.seats.buy`'s who. |
+| 17 | rpc `payments.changes.retry`: any current wearer, and for a seat purchase a People-hat person, for a hosting payment a person. |
 
 What the book already gets right, so nobody rewrites it:
 

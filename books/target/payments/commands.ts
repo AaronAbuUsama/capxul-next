@@ -289,7 +289,7 @@ export const rpc_payments_commands_buy_seats = defineRpc({
     "Before its transaction it checks, in order: a session (else NOT_AUTHENTICATED); a current " +
     "Seat in the Organization held by a person, since no agent buys (else ROLE_PERMISSION_DENIED); seats a whole number " +
     "from 1 to 1,000 (else INVALID_INPUT); the caller's own Safe wearing the People hat, read from indexing (else " +
-    "ROLE_PERMISSION_DENIED); `--from` naming one of the Organization's budgets (else INVALID_INPUT); SEAT_PRICE and " +
+    "ROLE_PERMISSION_DENIED); `--from` naming one of the Organization's budgets (else INVALID_INPUT), on chain (else WRONG_STATE); SEAT_PRICE and " +
     "CAPXUL_RECEIVING_SAFE set, the price in that budget's token (else FEATURE_NOT_AVAILABLE); then from the chain, " +
     "`Budgets.authorised(budget, caller's Safe)`, true for a wearer in good standing of the budget's hat or of an " +
     "ancestor's now (else ROLE_PERMISSION_DENIED), the budget and every budget above it open (else " +
@@ -301,7 +301,7 @@ export const rpc_payments_commands_buy_seats = defineRpc({
     "`seats` at the unit price (`documents.store`, payments.seat-invoice); one Payment born through `open`, kind one-off, " +
     "from the company Safe to the receiving Safe as an outside payee with no tenant, its source `seat-purchase` with " +
     "the command's id, the seats and the buyer's Party, its payment id fixed from the job nonce; and one approval from " +
-    "the caller's own Safe whose one call is `Budgets.spend` (`approvals.open`). The price is read, never typed. It " +
+    "the caller's own Safe whose one call is `Budgets.spend` (`approvals.open`). It " +
     "answers the hand-over with the purchase.",
   concept: concept_payments,
   kind: "action",
@@ -349,5 +349,100 @@ export const rpc_payments_commands_buy_seats = defineRpc({
     "books/target/shared/rulings.ts (aaron.buy-seats, aaron.test-prices, aaron.departments)",
     "docs/design/new-commands.md (section 5.5)",
     "docs/design/authority.md (Buy seats; contradiction 16)",
+  ],
+});
+
+// ── a hosting payment for the Organization's FDE (`org fde pay`; aaron.fde-hosted, aaron.test-prices) ───────
+
+/** What `org fde pay [<months>] --from <budget>` asks for. */
+export const PayFdeInput = Schema.Struct({
+  org: S,
+  /** `[<months>]`: how many calendar months of hosting, a whole number from 1 to 12; 1 when not given. */
+  months: Schema.Int,
+  /** `--from <budget>`: the budget it spends, by an allowance's or department's name, key or id. */
+  from: S,
+  request_key: S,
+});
+
+/** The hand-over of a hosting payment: the money command's, with the months paid, at what price, and the hosting now. */
+export const FdeHostingHandover = Schema.Struct({
+  ...Handover.fields,
+  hosting: Schema.Struct({
+    months: Schema.Int,
+    /** FDE_HOSTING_PRICE as the command was born with it: one calendar month. */
+    unit_price: Schema.Struct({ amount: S, asset: S }),
+    /** The months times the unit price, the amount the one Payment moves. */
+    total: Schema.Struct({ amount: S, asset: S }),
+    /** The hosting's `paid_through` before this payment, which settlement moves on (organizations.extend-fde-hosting). */
+    paid_through: Schema.NullOr(Schema.Number),
+  }),
+});
+
+export const rpc_payments_commands_pay_fde_hosting = defineRpc({
+  id: "payments.commands.pay-fde-hosting",
+  title: "Prepare a hosting payment for the FDE: one budget payment to Capxul for n months",
+  about:
+    "Births the Organization's payment for `months` calendar months of its hosted FDE (aaron.fde-hosted) at the " +
+    "deployment's FDE_HOSTING_PRICE (20 USDC a month, aaron.test-prices), from the `--from` budget to Capxul's receiving " +
+    "Safe. Before its transaction it checks, in order: a session (else NOT_AUTHENTICATED); a current Seat in the " +
+    "Organization held by a person, since no agent pays for hosting, the FDE least of all (else ROLE_PERMISSION_DENIED); " +
+    "months a whole number from 1 to 12 (else INVALID_INPUT); the Organization's hosting row in `org-fdes`, not retired " +
+    "(none or retired is WRONG_STATE); FDE_HOSTING_PRICE and CAPXUL_RECEIVING_SAFE set, the price in the budget's token " +
+    "(else FEATURE_NOT_AVAILABLE); `--from` one of the Organization's budgets (else INVALID_INPUT), on chain (else " +
+    "WRONG_STATE); then from the chain `Budgets.authorised(budget, caller's Safe)` now (else ROLE_PERMISSION_DENIED), " +
+    "the budget and every budget above it open (else WRONG_STATE), its `leftOf` and the token's payout ceiling (Roles' " +
+    "`allowances`) each covering the total (else PAYROLL_BUDGET_EXCEEDED), and the company Safe holding it (else " +
+    "INSUFFICIENT_BALANCE). Nothing is written on a refusal. Then, in one transaction, as `payments.commands.buy-seats` " +
+    "does: the request key's command (purpose `fde_hosting`, route `budget`, owner the Organization; K1); the payment's " +
+    "Invoice from Capxul, one line 'Capxul FDE hosting', the months at the unit price (payments.fde-hosting-purchase); " +
+    "one Payment born through `open`, kind one-off, to the receiving Safe as an outside payee, its source `fde-hosting` " +
+    "with the command's id, the months and the payer's Party; and one approval from the caller's own Safe whose one " +
+    "call is `Budgets.spend`. A paused FDE may be paid: settlement wakes it.",
+  concept: concept_payments,
+  kind: "action",
+  who:
+    "A signed-in person with a Seat in the Organization whom `Budgets.authorised` admits on the `--from` budget now: " +
+    "a wearer of its hat or of a budget above it. Never an agent, so never the FDE itself.",
+  input: PayFdeInput,
+  output: FdeHostingHandover,
+  errors: [
+    error_NOT_AUTHENTICATED,
+    error_ROLE_PERMISSION_DENIED,
+    error_INVALID_INPUT,
+    error_FEATURE_NOT_AVAILABLE,
+    error_WRONG_STATE,
+    error_PAYROLL_BUDGET_EXCEEDED,
+    error_INSUFFICIENT_BALANCE,
+    ...READ_FAILURES,
+  ],
+  reads: [
+    table_payment_commands,
+    table_payments,
+    orgsData.table_organizations,
+    orgsData.table_org_members,
+    orgsData.table_org_deployments,
+    orgsData.table_org_fdes,
+    budgetsData.table_budgets,
+    table_chain_budgets,
+  ],
+  writes: [table_payment_commands, table_payments],
+  drives: [machine_payment.t.open],
+  invokes: [procedure_documents_store, approvals.procedure_approvals_open],
+  emits: [],
+  calls: [integration_chain_rpc.c.readContract],
+  chain: [
+    contract_budgets.f.budgetOf,
+    contract_budgets.f.authorised,
+    contract_budgets.f.leftOf,
+    contract_roles.f.allowances,
+    contract_erc20.f.balanceOf,
+    contract_budgets.f.spend,
+  ],
+  spans: [],
+  budget: budget("chain-read"),
+  was: [
+    "books/target/shared/rulings.ts (aaron.fde-hosted, aaron.test-prices, aaron.departments)",
+    "docs/design/new-commands.md (section 5.5)",
+    "books/target/organizations/decisions.ts (organizations.fde-hosting)",
   ],
 });

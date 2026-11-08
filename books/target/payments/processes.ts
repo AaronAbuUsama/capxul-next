@@ -25,7 +25,12 @@ import * as approvalsData from "../approvals/data.ts";
 import * as approvalsSigning from "../approvals/signing.ts";
 import * as books from "../books/procedures.ts";
 import { procedure_accounts_admit } from "../accounts/procedures.ts";
-import { procedure_organizations_add_bought_seats, procedure_organizations_return_bought_seats } from "../organizations/procedures.ts";
+import {
+  procedure_organizations_add_bought_seats,
+  procedure_organizations_extend_fde_hosting,
+  procedure_organizations_return_bought_seats,
+  procedure_organizations_return_fde_hosting,
+} from "../organizations/procedures.ts";
 import { procedure_documents_store } from "../documents/procedures.ts";
 import * as partiesData from "../parties/data.ts";
 import { rpc_payments_changes_cancel, rpc_payments_changes_reschedule, rpc_payments_changes_retry } from "./changes.ts";
@@ -159,10 +164,11 @@ export const workflow_payments_lifecycle_payment = defineWorkflow({
         "`payer_safe`); else `mismatch`. An escrow's payee tenant is its payee's Party.",
     },
     {
-      name: "count-seats",
+      name: "count-purchase",
       about:
-        "A seat purchase (source `seat-purchase`, payments.seat-purchase): `organizations.add-bought-seats` in the settle " +
-        "transaction, with the command's owner, the seats and the buyer; `organizations.return-bought-seats` in the unsettle one.",
+        "A purchase from Capxul, for the command's owner: on settle, source `seat-purchase` invokes " +
+        "`organizations.add-bought-seats`, source `fde-hosting` `organizations.extend-fde-hosting`, with the count and the " +
+        "buyer; on unsettle, `return-bought-seats` or `return-fde-hosting`.",
     },
     { name: "release", about: "On ScheduleCancelled, or EscrowRefunded with state Refunded, for it, `cancel`; a later deposit's return moves nothing." },
     { name: "confirm", about: "Twice the finality depth later, reads the facts again; gone → `unsettle` with the book fact reversed." },
@@ -177,6 +183,8 @@ export const workflow_payments_lifecycle_payment = defineWorkflow({
     procedure_accounts_admit,
     procedure_organizations_add_bought_seats,
     procedure_organizations_return_bought_seats,
+    procedure_organizations_extend_fde_hosting,
+    procedure_organizations_return_fde_hosting,
   ],
   emits: [],
   calls: [

@@ -51,10 +51,11 @@ export const rpc_budgets_allowances_create = defineRpc({
     "the budget named, or the one open top budget in that asset with that period (none or several is INVALID_INPUT); it " +
     "must be the Organization's and active, in the same asset and period (a child takes its parent's: INVALID_INPUT), open " +
     "with every budget above it and fewer than eight deep (WRONG_STATE), with the amount left to give (CHILDREN_EXCEED_" +
-    "PARENT, naming what is left), from `Budgets.budgetOf` and `leftOf` now. `assignTo` must be a current member whose " +
+    "PARENT, naming what is left), from `Budgets.budgetOf` and `leftOf` now. `assignTo` (an email, or an agent's @handle) must be a current member whose " +
     "Safe is set up (INVALID_INPUT). No other create may wait under the Board's top hat: it would take the same hat id " +
     "(WRONG_STATE, naming it). The hat id is planned from the top hat's `Hats.viewHat` `lastHatId` at the latest block. " +
-    "The calls, one Board batch: `Hats.createHat(boardTopHat, details, 1, safe, safe, true, image)`, " +
+    "The calls, one Board batch: `Hats.createHat(boardTopHat, details, 1, safe, safe, true, image)`, its details " +
+    "beginning `allowance:<key>` (board.people-hat-role-conflict), " +
     "`Budgets.createChildBudget(parent, amount, hat)` and, with `assignTo`, `Hats.mintHat(hat, memberSafe)`. " + BIRTH +
     " The allowance is born proposed (budget.propose) with no chain id; the same request key answers it active with its " +
     "id once the proposal executes.",

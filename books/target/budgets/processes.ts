@@ -13,6 +13,7 @@ import { table_principals } from "../access/data.ts";
 import { table_chain_budgets, table_hat_wearers } from "../indexing/data.ts";
 import {
   machine_org_invite,
+  machine_org_member,
   table_org_deployments,
   table_org_invitations,
   table_org_members,
@@ -142,6 +143,44 @@ export const workflow_budgets_invitations_return_grants = defineWorkflow({
   idempotency:
     "board.propose answers the proposal already carrying subject `invitation-return:<invitationId>` (`opened: false`), so a " +
     "replayed event opens nothing new.",
+  timeoutMs: 60_000,
+  retries: { max: 5, backoff: "exponential" },
+  budget: budget("background"),
+});
+
+export const workflow_budgets_agents_return_hats = defineWorkflow({
+  id: "budgets.agents.return-hats",
+  title: "Propose taking back the hats a removed agent's Safe still wears",
+  about:
+    "Triggered by an agent's Seat `remove` (AgentRemoved named its Safe; organizations.members-are-seats), through the " +
+    "outbox. A removed agent's Safe keeps every hat it wore: nobody can sign for it, yet each fills a place on its hat " +
+    "and lists it as a holder (docs/design/authority.md, contradiction 14). It reads the hats of the Organization's " +
+    "Board tree that Safe still wears (indexing's hat-wearers: department, team and allowance hats, and the officer " +
+    "hats) and opens one Board proposal of `Hats.setHatWearerStatus(hat, agentSafe, false, true)` for each, burned and " +
+    "kept in good standing as `org allowance revoke` does, with `board.propose` (opener budgets, subject " +
+    "`agent-return:<orgId>:<agentSafe>`). The proposer is the Director with the oldest current Seat; their approval " +
+    "waits on the approval page. A team hat under a department's office is burned the same way: the company Safe is " +
+    "every office hat's eligibility. Nothing is proposed when the Safe wears none. If the Directors reject it, `org " +
+    "department holder remove`, `org allowance revoke` and `org member revoke` take the hats back one at a time.",
+  was: ["docs/design/authority.md (contradiction 14)", "books/target/budgets/processes.ts (budgets.invitations.return-grants, the pattern)"],
+  concept: concept_budgets,
+  priority: "normal",
+  trigger: { transition: machine_org_member.t.remove },
+  steps: [
+    { name: "read", about: "Reads the removed Seat's Safe and the Organization's Board-tree hats it still wears (indexing's hat-wearers)." },
+    { name: "proposer", about: "The Director with the oldest current Seat." },
+    { name: "propose", about: "One transaction: the Board proposal of every hat's burn for the agent's Safe (`board.propose`)." },
+  ],
+  reads: [table_org_members, table_org_deployments, table_principals, table_hat_wearers],
+  writes: [],
+  drives: [],
+  invokes: [procedure_board_propose],
+  emits: [],
+  calls: [],
+  chain: [contract_hats.f.setHatWearerStatus],
+  idempotency:
+    "board.propose answers the proposal already carrying subject `agent-return:<orgId>:<agentSafe>` (`opened: false`), " +
+    "so a replayed event opens nothing new.",
   timeoutMs: 60_000,
   retries: { max: 5, backoff: "exponential" },
   budget: budget("background"),

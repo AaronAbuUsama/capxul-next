@@ -90,7 +90,7 @@ export const WORLDS: readonly World[] = [
   // ── the machine and one person (access, accounts) ──
   {
     name: "empty-devnet",
-    holds: "Protocol v4 deployed by Companies House, Ponder at the head, no principal, no mail, a fresh CLI home, the clock frozen at the eval epoch and unmoved.",
+    holds: "Protocol v4 deployed by Companies House from packages/contracts, with the general escrow (payments.escrow-contract-build), Ponder at the head, no principal, no mail, a fresh CLI home, the clock frozen at the eval epoch and unmoved.",
     from: null,
     steps: [supervisor("capxul-devnet up --start-at <the eval epoch> --frozen (fresh)")],
     namedBy: ["access", "devnet", "applications"],
@@ -249,15 +249,32 @@ export const WORLDS: readonly World[] = [
   {
     name: "person-with-money-waiting",
     holds:
-      "person-with-funded-safe plus 5 USDC Dana sent nobody@outside.test, waiting in a claim escrow her Safe owns (the " +
-      "Payment `escrowed`, its `money-waiting` email sent); that money admitted the mailbox, which never joined the " +
+      "person-with-funded-safe plus 5 USDC Dana sent nobody@outside.test, waiting in a claim escrow her Safe sent and " +
+      "the mailbox's derived Safe owns (the Payment `escrowed`, its `money-waiting` email sent); that money admitted the mailbox, which never joined the " +
       "waitlist, to the closed beta (`escrow:<the Payment>`), with no `beta-welcome`; nobody@outside.test signed in " +
       "and current, with no profile and no Safe set up.",
     from: "person-with-funded-safe",
     steps: [
       step("dana@acme.test", "capxul payment send nobody@outside.test 5 --json"),
-      approve("dana@acme.test", "that payment's approval (EscrowCreated is indexed: `escrowed`, and the mailbox admitted)"),
+      approve("dana@acme.test", "that payment's approval (its funding is indexed: `escrowed`, and the mailbox admitted)"),
       signIn("nobody@outside.test"),
+    ],
+    namedBy: ["accounts"],
+  },
+  {
+    name: "person-ready-money-waiting",
+    holds:
+      "person-with-money-waiting after nobody@outside.test set up her Safe and declined, at setup, the collection of " +
+      "what waited for her: her Safe set up and claimed, the 5 USDC Dana sent still in its claim escrow, which her Safe " +
+      "owns (the Payment `escrowed`); Dana may still take it back; nobody@outside.test current " +
+      "(accounts.collect-any-time).",
+    from: "person-with-money-waiting",
+    steps: [
+      step(
+        "nobody@outside.test",
+        "the web onboarding's profile (display name Nob Body); `client.account.setup` with the dev signer, until " +
+          "CapxulSafeClaimed, declining the waiting money's collection approval on its page",
+      ),
     ],
     namedBy: ["accounts"],
   },
@@ -360,6 +377,47 @@ export const WORLDS: readonly World[] = [
     namedBy: ["organizations", "payments"],
   },
   {
+    name: "org-with-fde-allowance-paused",
+    holds:
+      "org-with-fde-allowance 32 days on: the start-up month ran out unpaid, so the FDE's hosting fell due and paused on " +
+      "the stand-in host, while `capxul` keeps its 500 USDC for the new month; every person whose session the warp " +
+      "ended signed in again; Dana current (payments.fde-hosting-purchase).",
+    from: "org-with-fde-allowance",
+    steps: [anyone("capxul dev time warp 32d"), signInAgain()],
+    namedBy: ["payments"],
+  },
+  {
+    name: "org-with-prices-unset",
+    holds:
+      "org-with-fde-allowance with the backend restarted under the deployment settings SEAT_PRICE and FDE_HOSTING_PRICE " +
+      "unset: nothing can be bought from Capxul (FEATURE_NOT_AVAILABLE); Dana current.",
+    from: "org-with-fde-allowance",
+    steps: [supervisor("capxul-devnet setting SEAT_PRICE --unset; capxul-devnet setting FDE_HOSTING_PRICE --unset (the backend restarts with them)")],
+    namedBy: ["payments"],
+  },
+  {
+    name: "org-with-closed-running-costs",
+    holds: "org-with-fde-allowance with `running-costs`, the budget above `capxul`, closed by Board proposal; Dana current.",
+    from: "org-with-fde-allowance",
+    steps: [
+      step("dana@acme.test", "capxul org department close running-costs --org acme --json"),
+      approve("dana@acme.test", "its Board proposal, as the one Director"),
+    ],
+    namedBy: ["payments"],
+  },
+  {
+    name: "org-with-short-company-safe",
+    holds:
+      "org-with-fde-allowance after a Board payment of 9,995 USDC out of Acme's company Safe, which leaves it 5 USDC while " +
+      "`capxul` keeps its room; Dana current.",
+    from: "org-with-fde-allowance",
+    steps: [
+      step("dana@acme.test", "capxul payment send olga@outside.test 9995 --org acme --as-directors --json"),
+      approve("dana@acme.test", "its Board proposal, as the one Director"),
+    ],
+    namedBy: ["payments"],
+  },
+  {
     name: "org-with-fde-host-down",
     holds: "org-with-fde with the stand-in FDE host's fault switch down: every call to it fails as an unreachable host (PROVIDER_ERROR).",
     from: "org-with-fde",
@@ -378,6 +436,60 @@ export const WORLDS: readonly World[] = [
       current("dana@acme.test"),
     ],
     namedBy: ["organizations"],
+  },
+  {
+    name: "org-with-projects",
+    holds:
+      "org-with-member plus Acme's projects (projects.worlds), all made by Dana unless said: Execution's rates 40 " +
+      "costing and 90 billing, Research disabled; projects Website (External, customer Olga, shared with Sam, open), " +
+      "Retainer (on hold), Handover (completed with no tasks, worked out by hand) and Archive (cancelled), in that order; " +
+      "Website's tasks Design (working, due in 7 days), Build (open, depending on Design, due in 14), Launch (a group) " +
+      "with its open child Announce, and Spec (completed); Old, a task of no project, cancelled; Sam's submitted " +
+      "timesheet of 2 billable Execution hours on Design, his cancelled one and his draft with one Execution log on " +
+      "Design; Dana's own draft with no log; Dana's timesheet for Sam on Website, 3 billable Execution hours on no " +
+      "task, submitted and billed to Olga by `org timesheet bill`. Dana current.",
+    from: "org-with-member",
+    steps: [
+      step("dana@acme.test", "capxul org activity-type change Execution --costing-rate 40 --billing-rate 90 --org acme"),
+      step("dana@acme.test", "capxul org activity-type disable Research --org acme"),
+      step("dana@acme.test", "capxul org project create Website --type External --customer olga@outside.test --org acme --json; then `org project member add <Website> sam@acme.test`"),
+      step("dana@acme.test", "capxul org project create Retainer --org acme; then `org project hold <Retainer>`"),
+      step("dana@acme.test", "capxul org project create Handover --org acme; then `org project complete <Handover>`"),
+      step("dana@acme.test", "capxul org project create Archive --org acme; then `org project cancel <Archive>`"),
+      step(
+        "dana@acme.test",
+        "capxul org task create Design --project <Website> --end <the eval day + 7>; `org task create Build --project <Website> " +
+          "--depends-on <Design> --end <+14>`; `org task create Launch --project <Website> --group`; `org task create Announce " +
+          "--parent <Launch>`; `org task create Spec --project <Website>`; `org task complete <Spec>`",
+      ),
+      step("dana@acme.test", "capxul org task create Old --org acme; then `org task cancel <Old>`"),
+      step(
+        "sam@acme.test",
+        "capxul org timesheet create --project <Website> --org acme; `org timesheet log <it> --activity Execution --start " +
+          "<the day before, 09:00> --hours 2 --task <Design> --billable`; `org timesheet submit <it>` (Design becomes working)",
+      ),
+      step("sam@acme.test", "capxul org timesheet create --project <Website> --org acme; then `org timesheet cancel <it>`"),
+      step(
+        "sam@acme.test",
+        "capxul org timesheet create --project <Website> --org acme; then `org timesheet log <it> --activity Execution " +
+          "--start <the eval day, 09:00> --end <the eval day, 11:00> --task <Design>` (left a draft)",
+      ),
+      step("dana@acme.test", "capxul org timesheet create --org acme (her own draft, no log)"),
+      step(
+        "dana@acme.test",
+        "capxul org timesheet create --for sam@acme.test --project <Website> --org acme; `org timesheet log <it> --activity " +
+          "Execution --start <two days before, 09:00> --hours 3 --billable`; `org timesheet submit <it>`; `org timesheet " +
+          "bill <it> --to olga@outside.test --org acme`",
+      ),
+    ],
+    namedBy: ["projects", "requests"],
+  },
+  {
+    name: "org-with-projects-chain-unreachable",
+    holds: "org-with-projects with chain-rpc's fault switch failing every read, so no hat can be read live (projects.hat-guard).",
+    from: "org-with-projects",
+    steps: [fault("chain-rpc node-down")],
+    namedBy: ["projects"],
   },
   {
     name: "org-with-head-site",
@@ -431,24 +543,30 @@ export const WORLDS: readonly World[] = [
   },
   {
     name: "org-with-allowance",
-    holds: "org-with-member plus Acme funded with 10,000 USDC and a spending allowance `office` of 500 USDC a month assigned to Sam.",
+    holds:
+      "org-with-member plus Acme funded with 10,000 USDC, a USDC top budget `running-costs` of 1,000 a month (the " +
+      "Board's, no holder), a spending allowance `office` of 500 USDC a month under it assigned to Sam, and the USDC " +
+      "payout ceiling 12,000 a year (no per-payment cap, which has no v4 form).",
     from: "org-with-member",
     steps: [
       step("dana@acme.test", "capxul dev fund 10000 --asset USDC --org acme"),
-      step("dana@acme.test", "capxul org allowance create --input office.json --assign-to sam@acme.test (500 USDC a month, per-payment cap 100)"),
+      step("dana@acme.test", "capxul org department create running-costs --budget 1000/month --org acme --json"),
+      approve("dana@acme.test", "its Board proposal, as the one Director"),
+      step("dana@acme.test", "capxul org allowance create --input office.json --assign-to sam@acme.test --org acme (500 USDC a month under running-costs)"),
+      approve("dana@acme.test", "its Board proposal, as the one Director"),
+      step("dana@acme.test", "capxul org department ceiling set USDC 12000/year --org acme --json"),
       approve("dana@acme.test", "its Board proposal, as the one Director"),
     ],
     namedBy: ["organizations"],
   },
   {
     name: "org-with-uncapped-allowance",
-    holds: "org-with-member plus an allowance assigned to Sam with no per-payment cap.",
-    from: "org-with-member",
-    steps: [
-      step("dana@acme.test", "capxul dev fund 10000 --asset USDC --org acme"),
-      step("dana@acme.test", "capxul org allowance create --input open.json --assign-to sam@acme.test (500 USDC a month, no cap)"),
-      approve("dana@acme.test", "its Board proposal, as the one Director"),
-    ],
+    holds:
+      "org-with-allowance under a second name: on v4 no allowance has a per-payment cap, so Sam's `office` is uncapped " +
+      "(its 500 a month under `running-costs` is its only limit).",
+    from: "org-with-allowance",
+    steps: [],
+    sameAs: "org-with-allowance",
     namedBy: ["organizations"],
   },
   {
@@ -607,6 +725,22 @@ export const WORLDS: readonly World[] = [
       approve("plat@acme.test", "the second payment's approval (platform now has less left than the first)"),
       anyone("capxul dev time warp 2h (the first approval lapses)"),
       current("olga@outside.test"),
+    ],
+    namedBy: ["payments"],
+  },
+  {
+    name: "org-with-department-escrow-swapped",
+    holds:
+      "org-with-department plus 50 USDC `salaries` paid nobody@outside.test, waiting in a general claim escrow whose " +
+      "authority is Budgets and `salaries`' budget id, after the Board swapped `salaries`' office from Lead to Plat: Lead " +
+      "no longer wears the hat, Plat does, and the escrow is still open (payments.escrow-department-now); Plat current.",
+    from: "org-with-department",
+    steps: [
+      step("lead@acme.test", "capxul org department pay salaries nobody@outside.test 50 --org acme --json"),
+      approve("lead@acme.test", "that payment's approval (its funding is indexed: `escrowed`)"),
+      ...board("dana@acme.test", "capxul org department holder remove salaries lead@acme.test --org acme"),
+      ...board("dana@acme.test", "capxul org department holder add salaries plat@acme.test --org acme"),
+      current("plat@acme.test"),
     ],
     namedBy: ["payments"],
   },
@@ -1174,7 +1308,7 @@ export const WORLDS: readonly World[] = [
     name: "org-with-documents",
     holds:
       "Acme with Sam, who stored documents for it and was then removed, and Lee, who joined after; Olga, whom Acme paid with " +
-      "a note, and her Invoice to Acme; a salary agreement's terms; a submitted payroll run of the `people` department " +
+      "a note, and her Invoice to Acme; a salary agreement's terms, offered by Hana, `people`'s holder; a submitted payroll run of the `people` department " +
       "whose salary slip for Kai (kai@acme.test, an Employee with a Safe) has its payslip stored; a receipt file on a " +
       "Payment; a Movement's Memo from an outside Transfer to Olga; Max signed in as a stranger; Nia signed in with no " +
       "Party of her own.",
@@ -1182,9 +1316,11 @@ export const WORLDS: readonly World[] = [
     steps: [
       step("sam@acme.test", 'capxul payment send olga@outside.test 40 --org acme --from office --note "Design review" --json; approve as Sam'),
       step("olga@outside.test", 'capxul request issue @acme 120 --reference "OLGA-INV-1" --confirm'),
-      step("dana@acme.test", "capxul org department create people --budget 20000/month --holder dana@acme.test --org acme --json"),
+      ready("hana@acme.test", "Hana Sato"),
+      step("dana@acme.test", "capxul org member invite hana@acme.test --org acme; Hana accepts"),
+      step("dana@acme.test", "capxul org department create people --budget 20000/month --holder hana@acme.test --org acme --json (Hana, not Dana: Dana wears the People hat, so ROLE_CONFLICT keeps her from an office)"),
       approve("dana@acme.test", "its Board proposal, as the one Director"),
-      step("dana@acme.test", "capxul org agreement offer olga@outside.test --department people --salary 3000/month --start <today>; approve"),
+      step("hana@acme.test", "capxul org agreement offer olga@outside.test --department people --salary 3000/month --start <today> --org acme; approve as Hana"),
       ready("kai@acme.test", "Kai Moreau"),
       step(
         "dana@acme.test",

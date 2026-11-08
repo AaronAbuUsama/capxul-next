@@ -46,7 +46,8 @@ export const rpc_budgets_offices_add_holder = defineRpc({
   id: "budgets.offices.add-holder",
   title: "Prepare one more holder of a budget's office",
   about:
-    GUARD + " " + ADMIN_RULE + " The member is named by email and must be a current member whose Safe is set up " +
+    GUARD + " " + ADMIN_RULE + " The member is named by email, or an agent already seated by its @handle (as " +
+    "board.agent-officer-hats names one), and must be a current member whose Safe is set up " +
     "(INVALID_INPUT). A department's or team's office cannot go to a member who wears the People hat (ROLE_CONFLICT, " +
     "naming them); an allowance's hat can. A member whose Safe already wears the hat (`Hats.isWearerOfHat` now) is " +
     "WRONG_STATE. The calls: `Hats.changeHatMaxSupply(hat, supply + 1)` when every place on the hat is worn (its supply " +
@@ -69,14 +70,15 @@ export const rpc_budgets_offices_remove_holder = defineRpc({
   id: "budgets.offices.remove-holder",
   title: "Prepare taking one holder off a budget's office",
   about:
-    GUARD + " " + ADMIN_RULE + " The holder is named by email and found by any Seat they held, so a holder who is no " +
-    "longer a member can still be removed (INVALID_INPUT when no Seat ever had that email). A Safe that does not wear the " +
-    "hat now is WRONG_STATE. Under the Board's top hat the one call is `Hats.setHatWearerStatus(hat, holderSafe, false, " +
-    "true)`: the Safe, as the hat's eligibility, rules them ineligible in good standing, which burns the hat and lets it " +
-    "be given to them again. Under a parent's office hat, signed by that office holder, it is `Hats.transferHat(hat, " +
-    "holderSafe, companySafe)`, which hands the place back. The budget, its agreements and its other holders stay; once " +
-    "it executes the holder is refused like anyone who does not act for the budget, taking back its claim escrows " +
-    "included, and the next wearer takes them back instead (budgets.claim-escrows). " + BIRTH,
+    GUARD + " " + ADMIN_RULE + " The holder is named by email or an agent's @handle, found by any Seat they held, so " +
+    "one no longer a member can still be removed (INVALID_INPUT when no Seat ever had it). A Safe not wearing the hat " +
+    "now is WRONG_STATE. Under the Board's top hat the one call is `Hats.setHatWearerStatus(hat, holderSafe, false, " +
+    "true)`: the Safe, as eligibility, rules them out in good standing, burning the hat so it can be given again. " +
+    "Under a parent's office hat, signed by that office holder, it is `Hats.transferHat(hat, holderSafe, companySafe)` " +
+    "while the company Safe does not wear it (Hats refuses a second, AlreadyWearingHat); after that the removal is the " +
+    "Board's `setHatWearerStatus` (a Director proposes; anyone else is WRONG_STATE naming the Board). The company " +
+    "Safe's place is never listed as a holder. The budget, its agreements and other holders stay; once it executes " +
+    "the holder acts for the budget no more, its claim escrows' take-back included (budgets.claim-escrows). " + BIRTH,
   was: [`${PAY}/remove-holder.ts:1`, `${PERM}/revoke.ts:1`, "docs/as-is/archive/payroll/departments.ts:444"],
   concept: concept_budgets,
   kind: "action",

@@ -55,7 +55,8 @@ export const GUARD =
 export const SIGNER_RULE =
   "Who signs is the chain's rule: the Board (a Director proposes) for a top budget, a payout ceiling and a hat under the " +
   "Board's top hat; for a team, the caller's own Safe when `Budgets.authorised` says it acts for the parent, else the " +
-  "Board when the caller is a Director; anyone else is ROLE_PERMISSION_DENIED. Nobody acts on their own budget.";
+  "Board when the caller is a Director; anyone else is ROLE_PERMISSION_DENIED. No wearer changes their own budget's " +
+  "amount, hat or state.";
 
 /** What every write does once its rules pass. */
 export const BIRTH =
@@ -81,17 +82,18 @@ export const rpc_budgets_departments_create = defineRpc({
   id: "budgets.departments.create",
   title: "Prepare a department: a top budget, or a team inside one",
   about:
-    GUARD + " " + SIGNER_RULE + " Refused before anything is saved: a key (from the name) a live or proposed budget " +
-    "has, a create waiting under the same admin hat, or for a top budget another write waiting on its token's ceiling " +
-    "(WRONG_STATE, naming it); an amount of 0 or a week, `--token` with a parent, a parent that is not an active budget " +
-    "here or is eight deep, a holder who is not a current member with a set-up Safe (INVALID_INPUT); a holder wearing " +
-    "the People hat (ROLE_CONFLICT, naming them); an unadmitted token (TOKEN_NOT_SUPPORTED); a closed parent or one above " +
-    "it (WRONG_STATE); a parent with less left to give than the amount (`budgetOf` and `leftOf` now; " +
-    "CHILDREN_EXCEED_PARENT). The hat id is planned from its admin's `Hats.viewHat` `lastHatId` now; indexing is read " +
-    "at the head (`Indexer.head`). The calls: " +
-    "`Hats.createHat`, `Hats.mintHat` per holder, then `Budgets.createChildBudget(parent, amount, hat)`, or " +
+    GUARD + " " + SIGNER_RULE + " Refused before anything is saved: a name's key a live or proposed budget has, a " +
+    "create waiting under the same admin hat, or for a top budget a write waiting on its token's ceiling (WRONG_STATE, " +
+    "naming it); an amount of 0 or a week, `--token` with a parent, a parent not active here or eight deep, a holder " +
+    "(email or agent @handle) not a member with a set-up Safe (INVALID_INPUT); one wearing the People hat " +
+    "(ROLE_CONFLICT); an unadmitted token (TOKEN_NOT_SUPPORTED); a closed parent or one above it (WRONG_STATE); a " +
+    "parent with less left to give (`budgetOf`, `leftOf` now; CHILDREN_EXCEED_PARENT). The hat id is planned from its " +
+    "admin's `lastHatId` (`Hats.viewHat`); indexing is read at `Indexer.head`. The calls: " +
+    "`Hats.createHat(admin, \"office:<key>\", supply, companySafe, companySafe, true, image)` (eligibility and " +
+    "toggle the company Safe, mutable: the office outlives a holder), `Hats.mintHat` per holder, then " +
+    "`Budgets.createChildBudget(parent, amount, hat)`, or " +
     "`Budgets.createTopBudget(token, period, amount, hat)` with the ceiling grown by `Installer.buildSetCeiling`, or set " +
-    "up by `buildAddToken` for a token's first budget. " + BIRTH + " The budget is born proposed with no chain id.",
+    "up by `buildAddToken` for a token's first. " + BIRTH + " Born proposed, with no chain id.",
   was: [`${PAY}/operations/create.ts:1`, `${PAY}/rules.ts:64`, `${PAY}/writes.ts:108`, `${AS_IS}:350`],
   concept: concept_budgets,
   kind: "action",

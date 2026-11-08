@@ -67,16 +67,17 @@ export const Outcome = Schema.Literals([
  * What another concept's money is, kept on the Payment it births so its book fact names it (payments.payroll-door):
  * a payroll run's salary slip, or a payroll deduction's remittance, with the run and the Employee it pays. A seat
  * purchase (`org seats buy`, payments.seat-purchase) is a source too: its id is its command's, `quantity` its seats
- * and `buyer_party_id` the person who bought them, which the settlement passes to organizations' door.
+ * and `buyer_party_id` the person who bought them, which the settlement passes to organizations' door. So is a
+ * hosting payment for the Organization's FDE (`org fde pay`, payments.fde-hosting-purchase): `quantity` its months.
  */
 export const PaymentSource = Schema.Struct({
-  kind: Schema.Literals(["salary-slip", "payroll-remittance", "seat-purchase"]),
+  kind: Schema.Literals(["salary-slip", "payroll-remittance", "seat-purchase", "fde-hosting"]),
   id: S,
   payroll_entry_id: Null(S),
   employee_id: Null(S),
-  /** A seat purchase's seats, a whole number from 1 to 1,000; absent for a payroll source. */
+  /** A seat purchase's seats (1 to 1,000), or a hosting payment's months (1 to 12); absent for a payroll source. */
   quantity: Schema.optionalKey(Int),
-  /** A seat purchase's buyer, by their Party: the person who asked for it, kept when another People wearer retries it; absent for a payroll source. */
+  /** The person who asked for a seat purchase or a hosting payment, by their Party, kept when another wearer retries it; absent for a payroll source. */
   buyer_party_id: Schema.optionalKey(S),
 });
 
@@ -94,7 +95,8 @@ export const table_payment_commands = defineTable({
     "proposal it opened (the latest, after a resume), so a repeat reports where that approval ended. `not_after` is the " +
     "last moment its money may move (a bank quote's expiry): its approval's deadline is capped at it, and `payment " +
     "retry` refuses after it. A payroll run's pay (`purpose` payroll) is one command per attempt; a seat purchase " +
-    "(`purpose` seats, `org seats buy`) is one command whose one Payment pays Capxul (payments.seat-purchase). What the money is for " +
+    "(`purpose` seats, `org seats buy`) or a hosting payment (`purpose` fde_hosting, `org fde pay`) is one command whose " +
+    "one Payment pays Capxul (payments.seat-purchase, payments.fde-hosting-purchase). What the money is for " +
     "in the books (`payment send --account`, a request's meaning, a payout's payee, a head's references) is kept on each " +
     "Payment it births, from that birth, so it reaches books at settlement (payments.money-sides). The old document " +
     "intents are the digest's document hashes.",
@@ -108,7 +110,7 @@ export const table_payment_commands = defineTable({
     request_key: S,
     request_digest: S,
     route: Route,
-    purpose: Schema.Literals(["payment", "department", "reschedule", "request", "bank_payout", "payroll", "seats"]),
+    purpose: Schema.Literals(["payment", "department", "reschedule", "request", "bank_payout", "payroll", "seats", "fde_hosting"]),
     requested_by: S,
     approval_id: Null(S),
     proposal_id: Null(S),
@@ -204,7 +206,7 @@ export const table_payments = defineTable({
     against: Null(Against),
     /** What the payee's books post it against, when the payee said so first (a request's income account and invoice). */
     payee_against: Null(Against),
-    /** A payroll slip or remittance this Payment pays, or the seat purchase it pays for; null for every other Payment. */
+    /** A payroll slip or remittance this Payment pays, or the seat purchase or FDE hosting it pays for; null for every other Payment. */
     source: Null(PaymentSource),
     /** The part of the amount a rail keeps (a bank payout's quoted fee), in the token's units; null when none. */
     fee_raw: Null(S),

@@ -27,6 +27,8 @@ import {
   workflow_notices_accounts_welcome_unlisted,
 } from "./accounts.ts";
 import {
+  workflow_notices_organizations_fde_due,
+  workflow_notices_organizations_fde_paused,
   workflow_notices_organizations_fde_ready,
   workflow_notices_organizations_head_stalled,
   workflow_notices_organizations_invitation_opened,
@@ -85,6 +87,8 @@ const OUTBOX = [
   workflow_notices_organizations_invitation_opened,
   workflow_notices_organizations_invitation_resent,
   workflow_notices_organizations_fde_ready,
+  workflow_notices_organizations_fde_due,
+  workflow_notices_organizations_fde_paused,
   workflow_notices_organizations_head_stalled,
   workflow_notices_budgets_office_changed,
   workflow_notices_board_director_seated,
@@ -118,6 +122,8 @@ const OUTBOX = [
 /** The workflows that tell an Organization through its Directors. */
 const TO_DIRECTORS = [
   workflow_notices_organizations_head_stalled,
+  workflow_notices_organizations_fde_due,
+  workflow_notices_organizations_fde_paused,
   workflow_notices_board_threshold_changed,
   workflow_notices_board_proposal_waiting,
   workflow_notices_payments_scheduled,
@@ -326,26 +332,34 @@ export const decision_notices_mailbox_tenancy = defineDecision({
 
 export const decision_notices_recipients = defineDecision({
   id: "notices.recipients",
-  title: "Who a notice reaches: a mailbox, a principal's email, or the Directors",
+  title: "Who a notice reaches: a mailbox, a principal, the Directors, a budget's wearers",
   question: "Notices must turn a subject's parties into mailboxes. How, for a person, an agent and an Organization?",
   options: [
     {
-      label: "directors",
+      label: "directors-and-wearers",
       text:
         "A person at the mailbox the source row carries, else at their principal's email; an agent never (it has no " +
-        "mailbox); an Organization through its Directors, the company Safe's owners now, each to its principal's email.",
+        "mailbox); an Organization through its Directors, the company Safe's owners now, each to its principal's email. " +
+        "A notice about a budget's money (an agreement accepted, a payout, a payment sent, due or uncollected) also goes " +
+        "to whoever wears that budget's hat now, read from indexing's hat-wearers when it is sent; the person who acted " +
+        "(an offerer, a payout's maker, a payment's requester) is told only while they still wear it.",
+    },
+    {
+      label: "directors",
+      text: "An Organization through its Directors only, and the person who acted where the source row names one.",
     },
     { label: "seats", text: "An Organization through every Seat (old paid-invoice notices)." },
-    { label: "hat-wearers", text: "An Organization through whoever wears the hat that acts on the subject (old invoice payer: Directors and holders)." },
   ],
-  chosen: "directors",
+  chosen: "directors-and-wearers",
   why:
     "Parties holds only a mailbox's digest (parties.mailbox-digest), so the mailbox comes from the row that named it " +
-    "(an invitation's grantee, an offer's payee, a request's payer, a named person) or from access' principal. One rule " +
-    "for every Organization recipient replaces three old ones (Seats, Directors, Directors plus holders): the " +
-    "Directors can act on every subject a notice tells about, while every Seat would tell people with no authority. " +
-    "Who wears a budget's hat is an indexed chain fact notices cannot read (it does not depend on indexing), and the " +
-    "Directors are the company Safe's owners, which chain-rpc reads now (notices.chain-reads).",
+    "(an invitation's grantee, an offer's payee, a request's payer, a named person) or from access' principal. The " +
+    "Directors can act on every subject a notice tells about, while every Seat would tell people with no authority. A " +
+    "department's money is acted on by whoever wears its hat now, so its current wearers must hear about it, and a " +
+    "person swapped out of the hat must not keep hearing about money they can no longer act on " +
+    "(docs/design/authority.md, contradiction 11). Who wears a hat is an indexed chain fact, so notices reads " +
+    "indexing's hat-wearers (dependencies.of-notices); the Directors stay the company Safe's owners read now " +
+    "(notices.chain-reads).",
   source: by(`${OLD}/requests/receivables/reads/notices.ts:30, :89; ${OLD}/payroll/agreements/operations/sweep.ts:44; parties.mailbox-digest`),
   affects: [...TO_DIRECTORS],
 });
@@ -861,8 +875,9 @@ export const decision_notices_head_and_fde = defineDecision({
     "A stalled head stops every app's sync silently: nothing is lost, but the head goes stale until someone restores " +
     "the site or its key, and only a Director may act on the connection, so the Directors are told, as for every " +
     "Organization notice (notices.recipients). A recovery fixes itself and needs no email. The FDE is the founder's " +
-    "first helper, its key is on the founder's machine and it starts with no hat (agents.fde-authority), so one email " +
-    "says how to begin and what it may not do yet. The setup's `complete` is where the FDE is seated and active " +
+    "first helper, hosted by Capxul with its key the host's (organizations.fde-at-start-up) and no hat " +
+    "(agents.fde-authority), so one email says how to talk to it and what it may not do yet; its hosting's due and " +
+    "pause notices follow the hosting's own transitions (notices.fde-hosting). The setup's `complete` is where the FDE is seated and active " +
     "(organizations.fde-seat); notices reads organizations, not agents, so it follows that transition, and a setup " +
     "begun `--no-fde` sends nothing.",
   source: RULINGS("docs/design/frappe/assembly-items.md (projects-startup: notices); organizations.head-connection; organizations.fde-seat"),
@@ -872,4 +887,31 @@ export const decision_notices_head_and_fde = defineDecision({
     machine_org_head.t.stall,
     machine_org_setup.t.complete,
   ],
+});
+
+export const decision_notices_fde_hosting = defineDecision({
+  id: "notices.fde-hosting",
+  title: "The Directors hear a week before the FDE's hosting lapses, and when it pauses",
+  question:
+    "organizations.fde-hosting has the hosted FDE fall due seven days before its paid-through instant and pause when " +
+    "it passes unpaid, and asks notices to remind with the command to run. Which notices, to whom, from which transition?",
+  options: [
+    {
+      label: "due-and-paused",
+      text:
+        "`fde-hosting-due` on org-fde `fall_due` and `fde-paused` on `pause`, each once per episode, to the Directors, " +
+        "with the paid-through instant in the Organization's time zone, the price of a month and `capxul org fde pay " +
+        "[<months>] --from <budget>`. A resume needs no email: whoever paid followed the payment.",
+    },
+    { label: "due-only", text: "Only the reminder: a pause shows in `org fde show` and in `org fde ask`'s refusal." },
+  ],
+  chosen: "due-and-paused",
+  why:
+    "A paused FDE stops working for the Organization with nothing on chain to show it, so the people who can pay must " +
+    "hear before and when it happens. The Directors are every Organization notice's recipients (notices.recipients); " +
+    "the hosting is no budget's yet, so no wearer is told until someone pays from one. The FDE is never told to pay: " +
+    "no agent pays for its own hosting (agents.fde-authority). Following the hosting's own transitions, as head-stalled " +
+    "follows the head's, keeps the reminder on the one clock, so a warp past the instant sends both once.",
+  source: RULINGS("organizations.fde-hosting; notices.recipients; notices.head-and-fde; books/target/organizations/data.ts (machine org-fde); aaron.fde-hosted"),
+  affects: [workflow_notices_organizations_fde_due, workflow_notices_organizations_fde_paused, table_notices],
 });

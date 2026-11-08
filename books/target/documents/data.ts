@@ -85,7 +85,7 @@ export const table_documents = defineTable({
     "Movement's `<chain id>:<tx hash>:<log index>`); the envelope binds it through its origin id, so one note on two Payments is " +
     "two documents. `participants` are who may read it, as the storing concept gave them: each by Safe, with its Party and " +
     "role. An Organization participant is read by whoever holds an active Seat in it at read time, never by whoever stored " +
-    "it. `owner_kind` and `owner_id` are the tenant whose subject it is: the payer of a Payment, the issuer of a request, " +
+    "it; a payslip's, only by a member wearing its People hat or a Director (documents.payslip-readers). `owner_kind` and `owner_id` are the tenant whose subject it is: the payer of a Payment, the issuer of a request, " +
     "the offering Organization of an agreement, the paying Organization of a salary slip, the first Capxul side of a Movement. Replaces old `paymentDocuments` and " +
     "`financialDocumentLinks` (one link row per actor and subject); the Movement occurrence copy, its conflict log, the " +
     "line-item and adjustment projections and the signature column are gone (decisions).",

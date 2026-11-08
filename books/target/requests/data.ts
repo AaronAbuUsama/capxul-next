@@ -109,7 +109,7 @@ export const table_requests = defineTable({
     payer_party_id: NullOr(S),
     /** The payer's mailbox as the issuer or the buyer gave it, for the notices; null when a handle named the payer. */
     payer_email: NullOr(S),
-    /** The Safe the inbox is keyed by, and the owner of the escrow for an outside payer; null until a link names one. */
+    /** The Safe the inbox is keyed by, and the sender of the invoice escrow for an outside payer (where a refund goes); null until a link names one. */
     payer_safe: NullOr(S),
     asset_id: S,
     token_address: S,
@@ -153,6 +153,12 @@ export const table_requests = defineTable({
      * Null for a person's request, or when nothing was said: the money then posts as an unclassified payment in.
      */
     income: NullOr(Schema.Struct({ account_id: NullOr(S), sales_invoice: NullOr(S) })),
+    /**
+     * An Invoice for logged hours (`org timesheet bill`, requests.bill-time): each time log it bills, by timesheet and
+     * row, with the billing hours and the raw amount it asks for that log, as a Sales Invoice's Timesheet rows keep them;
+     * projects' door marks the logs themselves (projects.bill-time). Null for every other request.
+     */
+    billed_logs: NullOr(Schema.Array(Schema.Struct({ timesheet_id: S, idx: N, hours: S, amount_raw: S }))),
     /** The principal who paid, declined, cancelled or matched it. */
     decided_by: NullOr(S),
     decided_at: NullOr(N),

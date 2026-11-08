@@ -21,6 +21,9 @@ import { Org, PageInput, RequestPage, RequestView } from "./shapes.ts";
 import { GUARD_WAS, READER, WRITER } from "./guards.ts";
 import { procedure_documents_store } from "../documents/procedures.ts";
 import { table_payments } from "../payments/data.ts";
+import { procedure_parties_resolve_recipient } from "../parties/procedures.ts";
+import { procedure_projects_bill_time } from "../projects/procedures.ts";
+import { table_activity_types, table_projects, table_timesheet_logs, table_timesheets } from "../projects/data.ts";
 
 const R = "packages/backend/src/requests";
 const ASIS = "docs/as-is/archive/requests/receivables.ts";
@@ -56,7 +59,7 @@ export const rpc_requests_issuing_issue = defineRpc({
     "or a mailbox whose person Party is active is on Capxul (payer `capxul`, paid from its inbox); a mailbox with no active " +
     "Party is outside (payer `outside`): its email Safe is CompaniesHouseClaimer's pure `safeAddressFor`, and the request's " +
     "invoice escrow is computed as `EscrowFactory.predictAddress(terms, salt)` and `predictPaymentId` would answer (kind 1, " +
-    "condition invoice-amount-reached, the email Safe as owner, the issuer's Safe as payee, the document's hash). No payer " +
+    "condition amount-reached, the email Safe as sender, the issuer's Safe as owner, the document's hash). No payer " +
     "is a link request with no escrow. An Invoice to a bare address, or to no payer, is INVALID_INPUT; so is any payer " +
     "given as a bare address. When the payer is known it stores the request's document through `documents.store` (the " +
     "issuer and the payer as its participants) and births the request through `issue`, in one transaction. With `org`, " +
@@ -164,7 +167,9 @@ export const rpc_requests_issuing_cancel = defineRpc({
     "The issuer withdraws a request: the request this scope issued (INVALID_INPUT `request not found` otherwise, which the " +
     "CLI shows as CLI_USAGE), open or expired (WRONG_STATE when it is being paid, paid, declined or cancelled), moved " +
     "through `cancel`. It writes nothing on chain: the request's process, signalled by the transition, reads its escrow " +
-    "once more, and an escrow that already holds the amount still pays out. It moves no money.",
+    "once more, and an escrow that already holds the amount still pays out. It moves no money. An Invoice for logged " +
+    "hours (`billed_logs`) clears their marks in the same transaction, through projects' door with `unbill` " +
+    "(projects.bill-time), so the hours can be billed again.",
   was: [`${R}/receivables/operations/cancel.ts:11`, `${R}/writes/requests.ts:190`, `${ASIS}:344`, ...GUARD_WAS],
   concept: concept_requests,
   kind: "mutation",
@@ -175,7 +180,61 @@ export const rpc_requests_issuing_cancel = defineRpc({
   reads: [table_requests, ...WRITER],
   writes: [table_requests],
   drives: [machine_request.t.cancel],
-  invokes: [],
+  invokes: [procedure_projects_bill_time],
+  emits: [],
+  calls: [],
+  chain: [],
+  spans: [],
+  budget: budget("write"),
+});
+
+// ── billing logged hours (`org timesheet bill`; requests.bill-time) ─────────────────────────
+
+export const rpc_requests_issuing_bill_time = defineRpc({
+  id: "requests.issuing.bill-time",
+  title: "Issue one Invoice for timesheets' unbilled hours and mark them billed",
+  about:
+    "ERPNext's 'Make Sales Invoice' from timesheets (requests.bill-time). The guard: a member whose Safe wears the " +
+    "Organization's Invoicing hat. Each timesheet named must be the Organization's (INVALID_INPUT) and submitted or " +
+    "partly billed (WRONG_STATE for a draft, a cancelled or a wholly billed one); the logs it bills are their billable " +
+    "logs that name no sales invoice yet (none at all is WRONG_STATE). The payer is `--to` (an email, @handle or Party " +
+    "id), else the one customer Party the timesheets' projects name (none, a customer that is only a name, or several " +
+    "is INVALID_INPUT naming `--to`). The timesheets share one currency, which names the admitted token the Invoice " +
+    "asks in (USD is USDC, EUR is EURC; another currency, or two, is INVALID_INPUT): no rate is converted. The Invoice " +
+    "has one line per activity and billing rate, its quantity the billing hours and its unit amount the rate, in the " +
+    "token's raw units; the amount is their sum; the reference names the projects (1 to 120 characters). The request " +
+    "key makes it idempotent, as `request issue`. In one transaction: the payer's Party (`parties.resolve-recipient`, " +
+    "provisional for a new mailbox, as a request's payer is named), the document (`documents.store`), the request born " +
+    "through `issue` as `requests.issuing.issue` births an Invoice (an outside payer's invoice escrow included) with " +
+    "its `billed_logs`, and the marks: `projects.bill-time` with `bill` for exactly those logs and the payer's Party, " +
+    "whose WRONG_STATE (a log another invoice took first) or INVALID_INPUT (another customer's log) rolls the whole " +
+    "write back. Nothing is written on chain and no mail is sent here: notices follow `request_transitioned`.",
+  was: [
+    "/tmp/erpnext/erpnext/projects/doctype/timesheet/timesheet.py (make_sales_invoice)",
+    "/tmp/erpnext/erpnext/accounts/doctype/sales_invoice/services/timesheet_billing.py:19",
+    ...GUARD_WAS,
+  ],
+  concept: concept_requests,
+  kind: "mutation",
+  who: "A member of the Organization whose Safe wears its Invoicing hat.",
+  input: Schema.Struct({
+    org: S,
+    request_key: S,
+    /** `<timesheet>…`: one to fifty timesheet ids (`ts_…`), as `org timesheet list` prints them. */
+    timesheets: Schema.Array(S),
+    /** `--to <payer>`: an email, an `@handle` or a Party id; absent, the projects' one customer. */
+    to: opt(S),
+  }),
+  output: Schema.Struct({
+    scope: Schema.Literal("organization"),
+    direction: Schema.Literal("issued"),
+    item: RequestView,
+  }),
+  errors: [error_NOT_AUTHENTICATED, error_INVALID_INPUT, error_ROLE_PERMISSION_DENIED, error_WRONG_STATE],
+  reads: [table_requests, ...WRITER, table_timesheets, table_timesheet_logs, table_activity_types, table_projects],
+  writes: [table_requests],
+  drives: [machine_request.t.issue],
+  invokes: [procedure_parties_resolve_recipient, procedure_documents_store, procedure_projects_bill_time],
   emits: [],
   calls: [],
   chain: [],

@@ -472,3 +472,32 @@ export const decision_documents_payslip_kind = defineDecision({
   source: by("/tmp/hrms/hrms/payroll/doctype/salary_slip/salary_slip.json; docs/vision/erp.md (C8); books/target/payroll/decisions.ts (payroll.scope)"),
   affects: [table_documents, procedure_documents_store, rpc_documents_reading_render, operation_document_render],
 });
+
+export const decision_documents_payslip_readers = defineDecision({
+  id: "documents.payslip-readers",
+  title: "A payslip is its employee's and the People hat's, not every member's",
+  question:
+    "A payslip's participants are the employee's Safe and the paying company Safe, and an Organization participant is " +
+    "read by every member with an active Seat, so any member could `document render` a colleague's payslip, while " +
+    "`payslip get` never shows someone else's. Who reads a payslip's Organization side?",
+  options: [
+    {
+      label: "people-hat",
+      text:
+        "For a document of kind payslip, the Organization side is read only by a member whose own Safe wears the " +
+        "Organization's People hat now (indexing's hat-wearers, the hat id from org-deployments) or a Director; the " +
+        "employee reads it through their own Safe as before. Every other kind keeps the active-Seat rule.",
+    },
+    { label: "seat", text: "Keep the active-Seat rule for every kind." },
+    { label: "employee-only", text: "A payslip's only participant is the employee's Safe." },
+  ],
+  chosen: "people-hat",
+  why:
+    "Pay is personal: `payslip get` refuses another person's slip (payroll.command-authority), and the HR records are " +
+    "the People hat's, so a member with a Seat and no hat must not read through the document what the command refuses. " +
+    "The People hat is read when the document is read, so a wearer swapped out of the hat stops reading at once, as " +
+    "every authority in the book follows the hat now (docs/design/authority.md). Employee-only would leave the " +
+    "Organization unable to show the payslip it issued. A Director keeps reading, as for every Organization record.",
+  source: by("books/target/payroll/decisions.ts (payroll.command-authority); books/target/documents/data.ts (participants); docs/design/authority.md"),
+  affects: [rpc_documents_reading_get, rpc_documents_reading_verify, rpc_documents_reading_render, table_documents],
+});

@@ -633,6 +633,61 @@ export const integration_devnet_control = defineIntegration({
   was: ["packages/sdk/src/devnet/index.ts:5", "packages/protocol/src/devnet/control.ts:107", "packages/devnet/src/modules/guardian/standing-config.ts:20"],
 });
 
+// ── fde-host ────────────────────────────────────────────────────────────────────────────────
+
+/** A host call: one HTTPS call to Capxul's FDE host, idempotent by the agent id (and a send by its ask). */
+const HOST_CALL = { timeoutMs: 10_000, retries: { max: 3, backoff: "exponential" }, p95Ms: 2_000 } as const;
+const hostFailures = [
+  unavailable("The FDE host"),
+  { when: "The FDE host answered 429 and the retries ran out", error: error_RATE_LIMITED },
+  unusable("The FDE host"),
+] as const;
+
+export const integration_fde_host = defineIntegration({
+  id: "fde-host",
+  title: "Capxul's FDE host: each Organization's hosted Forward Deployed Engineer",
+  about:
+    "The durable runtime Capxul runs each Organization's FDE on (aaron.fde-hosted; organizations.fde-host): Capxul's " +
+    "swarmD namespace, one persistent agent per Organization keyed `fde:<orgId>`, its conversation kept durable and " +
+    "its tools run in a sandbox, behind the Effect service `FdeHost`, reached over HTTPS with the host token. The host " +
+    "makes and keeps the FDE's key: Capxul only ever learns its address, which the install batch passes to " +
+    "`AgentOwner.create` with the company Safe as owner, so the Board owns the FDE and grants its hats. Every call is " +
+    "idempotent by the agent id, a send by its ask id too, so a retried step changes nothing twice.",
+  component: component_backend,
+  system: "swarmd",
+  service: "FdeHost",
+  calls: {
+    provision: {
+      about: "Makes the Organization's FDE agent and its key, or finds them; keeps the key and answers the agent id and the key's address.",
+      ...HOST_CALL,
+      failures: [...hostFailures],
+    },
+    start: { about: "Starts the agent's runtime once the Organization's setup is ready.", ...HOST_CALL, failures: [...hostFailures] },
+    pause: { about: "Pauses it for an unpaid month: no turns, sandbox stopped, key, conversation and workspace kept.", ...HOST_CALL, failures: [...hostFailures] },
+    resume: { about: "Resumes a paused agent once its hosting is paid again.", ...HOST_CALL, failures: [...hostFailures] },
+    retire: { about: "Retires the runtime for good: the setup failed, the Board removed the agent, or its key moved off the host.", ...HOST_CALL, failures: [...hostFailures] },
+    send: {
+      about: "Posts a message to the agent with its asker (their Seat and member id), and answers the new turn's id.",
+      ...HOST_CALL,
+      failures: [...hostFailures],
+    },
+    turn: {
+      about: "A turn's status (working, ended or failed) and, once ended, its reply or its failure's reason.",
+      timeoutMs: 5_000,
+      retries: { max: 2, backoff: "exponential" },
+      p95Ms: 500,
+      failures: [...hostFailures],
+    },
+  },
+  fake:
+    "The devnet's stand-in host (devnet.fde-host-stand-in): the supervisor serves it on loopback and keeps its agents in " +
+    "devnet's `fde-host-agents`. Keys come from the agent id, each turn ends with a scripted reply as it is posted, " +
+    "`capxul-devnet fde run <org> -- <command>` runs a command as the FDE, and its fault switch has down, hold (new " +
+    "turns stay working) and clear. It runs no model and no sandbox.",
+  secrets: ["FDE_HOST_TOKEN"],
+  was: ["books/target/organizations/decisions.ts (organizations.fde-host)", "/home/user/swarmd/docs/SPEC.md (B.15, B.16, B.19)"],
+});
+
 // ── frappe-head ─────────────────────────────────────────────────────────────────────────────
 
 /** A head call is a vendor call to one Frappe site: 2 s p95, retried only where the call is idempotent by version. */
@@ -719,7 +774,7 @@ export const integration_frappe_head = defineIntegration({
     "The devnet's stand-in head (devnet.head-stand-in): the supervisor serves it on loopback, speaking the Capxul app's " +
     "methods, and keeps its state in devnet's tables: sites (`head-sites`), documents by DocType and `capxul_id` " +
     "(`head-documents`) and its scripted edits as listChanges rows that ring `organizations.heads.ring` " +
-    "(`head-changes`). It installs any app at once, follows the one clock as a follower, and has a fault switch (down, " +
+    "(`head-changes`). It installs an app at once when it stands in for a Frappe Cloud site, and answers `installApp` WRONG_STATE when self-hosted; it follows the one clock as a follower, and has a fault switch (down, " +
     "key refused, conflict on the next write, refuse the next document, replay, clear). It runs none of Frappe's validations, reports or " +
     "scheduled jobs. A head eval that needs real Frappe boots a bench with ERPNext, Frappe HR, Frappe CRM and the Capxul " +
     "app instead, also as a follower.",
@@ -1232,7 +1287,12 @@ export const contract_rounds = defineContract({
 export const contract_exits = defineContract({
   id: "exits",
   title: "Exits: sales and secondary transfers",
-  about: "One clone per company: an approved sale's waterfall, its settlement and claims (kind 8), and secondary share transfers (kind 5). The address is the implementation.",
+  about:
+    "One clone per company: an approved sale's waterfall, its settlement and claims (kind 8), and secondary share " +
+    "transfers (kind 5). A shareholder's unclaimed exit share waits in a general claim escrow whose terms its " +
+    "`_terms` builds: owner the shareholder, sender Exits, no authority, bootstrapOwner read from the factory's " +
+    "`bootstrapOwner()` (Companies House), condition owner-collects, `ownerTakesSurplus` true (payments.general-escrow; " +
+    "the one line of Exits that changes, carried in packages/contracts). The address is the implementation.",
   addresses: { [DEV]: "0x3560eab3FC06C631f0309f6f1b0F2Ac3E54d22C6" },
   functions: {
     approveSale: { signature: "approveSale(uint256 saleId, address token, uint256 proceeds, bytes32 termsHash)", about: "The Board approves a sale." },

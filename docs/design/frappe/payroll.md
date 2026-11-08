@@ -704,11 +704,14 @@ An adversarial review against Frappe's sources and payments' machine changed the
   for an Employee. Its builder needs an Employee, a structure, an assignment and a submitted run.
 - **Tooling:** in `tools/report-judgments.ts`, `FLAGGED` can drop `documents.acceptance-rewrites`.
   Its line is now kept word for word, and W1 is settled.
-- **The CLI pass:** design the payroll operations from `payroll.hr-surface`, with acceptance claims
-  and worlds:
-  - `org employee add|change|list`;
-  - `org payroll component|structure|assign|run|submit|withhold|pay|cancel|show|list`;
-  - `payslip list|show`.
+- **The CLI pass (done):** the commands pass booked the 28 operations of `payroll.hr-surface`, accepted, in the
+  grammar of `docs/design/new-commands.md` (section 5.3), with acceptance claims and worlds:
+  - `org employee add|change|get|list|suspend|deactivate|reinstate|leave`;
+  - `org payroll component add|change|list|disable|enable`;
+  - `org payroll structure create|cancel|assign|unassign|list`;
+  - `org payroll run create|submit|pay|cancel|list|get`;
+  - `org payslip withhold|release`;
+  - `payslip list|get` (with `--employer` as a filter).
 
 ## Not decided here
 

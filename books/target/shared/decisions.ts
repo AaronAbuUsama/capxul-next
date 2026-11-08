@@ -762,7 +762,7 @@ export const decision_dependencies_accounts_payments = defineDecision({
   why:
     "Payments needs whether the sender and the recipient have live Safes (pay directly, or into a claim escrow). Accounts " +
     "needed payments only for balances (now activity), sending approved operations (now approvals) and the claim escrows to " +
-    "collect at setup, which are chain facts (EscrowCreated with the person's Safe as payee). So accounts reads indexing.",
+    "collect at setup, which are chain facts (EscrowDeployed with the person's Safe as owner, payments.general-escrow). So accounts reads indexing.",
   source: by("docs/mission/findings.md (accounts-payments, 21 imports each); account.retry.yaml (designed: collects claim escrows)"),
   affects: [f.concept_accounts, f.concept_payments],
 });
@@ -1926,6 +1926,7 @@ export const decision_dependencies_of_books = dependencies(f.concept_books, {
 export const decision_dependencies_of_documents = dependencies(f.concept_documents, {
   access: "the reader of a document.",
   parties: "a document's participants are Parties, given when it is stored.",
+  indexing: "a payslip's Organization side is read only by a wearer of its People hat (documents.payslip-readers).",
   organizations: "an Organization participant's members may read its documents.",
 });
 export const decision_dependencies_of_contacts = dependencies(f.concept_contacts, {
@@ -1952,7 +1953,7 @@ export const decision_dependencies_of_payroll = dependencies(f.concept_payroll, 
   indexing: "Agreements' events drive each agreement's process.",
   approvals: "offers, changes, acceptance and collection are approvals from the actor's Safe.",
   organizations: "an agreement is an Organization's, read by its members.",
-  board: "an agreement on a top budget is offered or changed by Board proposal.",
+  board: "an Organization payee's acceptance and collection are Board proposals: the payee is the company Safe (payroll.holder-writes).",
   budgets: "an agreement pays from a budget, whose office holder or anyone above may act on it.",
   books: "a submitted run Capxul computed posts its accrual through books.record-payroll-accrual, and a cancel takes it back (dependencies.books-payroll).",
   documents: "an agreement's terms document is stored at its offer.",
@@ -2010,6 +2011,7 @@ export const decision_dependencies_of_activity = dependencies(f.concept_activity
 export const decision_dependencies_of_notices = dependencies(f.concept_notices, {
   access: "the sender address and a recipient's principal.",
   parties: "a recipient's mailbox.",
+  indexing: "who wears a budget's hat when a notice about its money is sent (notices.recipients).",
   accounts: "referral invites and admissions.",
   organizations: "invitations sent, resent and expiring.",
   board: "a proposal waiting for a Director.",
@@ -2676,7 +2678,8 @@ export const decision_system_layout = defineDecision({
       text:
         "pnpm workspaces in this repository (tooling.package-manager). One package per component: packages/runtime (the Effect services: auth, SQL, chain, " +
         "integrations, the workflow engine, tracing), packages/backend, packages/sdk (the Core SDK), packages/cli, packages/sdk-react, " +
-        "packages/mcp, packages/indexer (Ponder), packages/devnet, plus packages/generate (the generators) and packages/evals (the " +
+        "packages/mcp, packages/indexer (Ponder), packages/devnet, packages/contracts (the v4 Solidity at a pinned commit with " +
+        "the general escrow, payments.escrow-contract-build), plus packages/generate (the generators) and packages/evals (the " +
         "harness). In the backend and the SDK, src/<concept>/ mirrors books/target/<concept>/, and another concept's code is " +
         "imported only from its src/<concept>/door.ts (sys:imports). Generated files live in each package's src/generated/, each " +
         "headed 'Generated from books/target by packages/generate. Do not edit.', and line counts leave that folder out. The B0 " +

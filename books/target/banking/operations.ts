@@ -364,6 +364,8 @@ export const operation_bank_settle = defineOperation({
 
 export const operation_bank_pay = defineOperation({
   ...frozenText("bank.pay"),
+  /** The designed (v4) who: a payout is the budget's, so whoever wears its hat or one above it now (authority.md, contradiction 5). */
+  who: (frozen["bank.pay"] as { designed: { who: string } | null }).designed?.who ?? frozenText("bank.pay").who,
   priority: "normal",
   implementedBy: flow_client_banking_payouts_pay,
   acceptance: [

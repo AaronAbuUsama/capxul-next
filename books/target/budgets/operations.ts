@@ -122,6 +122,14 @@ const beta = {
 };
 const notDirector = { error: error_ROLE_PERMISSION_DENIED, given: W_TREE, when: "You are not a Director of the Organization. Nothing was signed." };
 
+/**
+ * The designed (v4) block's `who` where the frozen record has one (P10), else the same rule in its words: on v4 the
+ * office above a budget acts on it, and only top budgets, ceilings and hats under the Board's top hat are the Board's
+ * (docs/design/authority.md, contradiction 4).
+ */
+const designedWho = (id: FrozenId, otherwise?: string): string =>
+  (frozen[id] as { designed: { who: string } | null }).designed?.who ?? otherwise ?? frozenText(id).who;
+
 const WRITE = budget("chain-submit");
 const READ = budget("chain-read");
 
@@ -130,6 +138,7 @@ const READ = budget("chain-read");
 const D_CREATE = "org.department.create";
 export const operation_org_department_create = defineOperation({
   ...frozenText(D_CREATE),
+  who: designedWho(D_CREATE),
   priority: "normal",
   implementedBy: flow_client_org_departments_create,
   acceptance: [
@@ -179,6 +188,7 @@ export const operation_org_department_create = defineOperation({
 const D_SET = "org.department.budget.set";
 export const operation_org_department_budget_set = defineOperation({
   ...frozenText(D_SET),
+  who: designedWho(D_SET),
   priority: "normal",
   implementedBy: flow_client_org_departments_set_amount,
   acceptance: [
@@ -219,6 +229,7 @@ export const operation_org_department_budget_set = defineOperation({
 const D_CLOSE = "org.department.close";
 export const operation_org_department_close = defineOperation({
   ...frozenText(D_CLOSE),
+  who: designedWho(D_CLOSE),
   priority: "normal",
   implementedBy: flow_client_org_departments_close,
   acceptance: [
@@ -262,6 +273,7 @@ export const operation_org_department_close = defineOperation({
 const D_REOPEN = "org.department.reopen";
 export const operation_org_department_reopen = defineOperation({
   ...frozenText(D_REOPEN),
+  who: designedWho(D_REOPEN, "The office above the budget; for a top budget, the Board."),
   priority: "normal",
   implementedBy: flow_client_org_departments_reopen,
   acceptance: [
@@ -293,6 +305,7 @@ export const operation_org_department_reopen = defineOperation({
 const D_ADD = "org.department.holder.add";
 export const operation_org_department_holder_add = defineOperation({
   ...frozenText(D_ADD),
+  who: designedWho(D_ADD),
   priority: "normal",
   implementedBy: flow_client_org_departments_holders_add,
   acceptance: [
@@ -324,6 +337,7 @@ export const operation_org_department_holder_add = defineOperation({
 const D_REMOVE = "org.department.holder.remove";
 export const operation_org_department_holder_remove = defineOperation({
   ...frozenText(D_REMOVE),
+  who: designedWho(D_REMOVE, "The office holder above the budget, or the Board."),
   priority: "normal",
   implementedBy: flow_client_org_departments_holders_remove,
   acceptance: [
@@ -401,6 +415,7 @@ export const operation_org_department_show = defineOperation({
 const C_SET = "org.department.ceiling.set";
 export const operation_org_department_ceiling_set = defineOperation({
   ...frozenText(C_SET),
+  who: designedWho(C_SET),
   priority: "normal",
   implementedBy: flow_client_org_departments_ceiling_set,
   acceptance: [
@@ -427,6 +442,7 @@ export const operation_org_department_ceiling_set = defineOperation({
 const C_FREEZE = "org.department.ceiling.freeze";
 export const operation_org_department_ceiling_freeze = defineOperation({
   ...frozenText(C_FREEZE),
+  who: designedWho(C_FREEZE, "The Board."),
   priority: "normal",
   implementedBy: flow_client_org_departments_ceiling_freeze,
   acceptance: [
@@ -452,6 +468,7 @@ export const operation_org_department_ceiling_freeze = defineOperation({
 const C_UNFREEZE = "org.department.ceiling.unfreeze";
 export const operation_org_department_ceiling_unfreeze = defineOperation({
   ...frozenText(C_UNFREEZE),
+  who: designedWho(C_UNFREEZE, "The Board."),
   priority: "normal",
   implementedBy: flow_client_org_departments_ceiling_unfreeze,
   acceptance: [
@@ -481,6 +498,7 @@ export const operation_org_department_ceiling_unfreeze = defineOperation({
 const A_CREATE = "org.allowance.create";
 export const operation_org_allowance_create = defineOperation({
   ...frozenText(A_CREATE),
+  who: designedWho(A_CREATE),
   priority: "normal",
   implementedBy: flow_client_org_allowances_create,
   acceptance: [
@@ -522,6 +540,7 @@ export const operation_org_allowance_create = defineOperation({
 const A_CHANGE = "org.allowance.change";
 export const operation_org_allowance_change = defineOperation({
   ...frozenText(A_CHANGE),
+  who: designedWho(A_CHANGE),
   priority: "normal",
   implementedBy: flow_client_org_allowances_change,
   acceptance: [
@@ -545,7 +564,7 @@ export const operation_org_allowance_change = defineOperation({
     {
       error: error_ROLE_PERMISSION_DENIED,
       given: W_TREE,
-      when: "You do not act for the allowance's parent budget (nobody raises their own allowance), and for one under a top budget you are not a Director. Nothing was signed.",
+      when: "You do not act for the allowance's parent budget (nobody raises their own allowance), and for one whose parent's hat is the Board's top hat (the install's company budget) you are not a Director. Nothing was signed.",
     },
     {
       error: error_INVALID_INPUT,
@@ -562,6 +581,7 @@ export const operation_org_allowance_change = defineOperation({
 const A_ASSIGN = "org.allowance.assign";
 export const operation_org_allowance_assign = defineOperation({
   ...frozenText(A_ASSIGN),
+  who: designedWho(A_ASSIGN),
   priority: "normal",
   implementedBy: flow_client_org_allowances_assign,
   acceptance: [
@@ -600,6 +620,7 @@ export const operation_org_allowance_assign = defineOperation({
 const A_REVOKE = "org.allowance.revoke";
 export const operation_org_allowance_revoke = defineOperation({
   ...frozenText(A_REVOKE),
+  who: designedWho(A_REVOKE),
   priority: "normal",
   implementedBy: flow_client_org_allowances_revoke,
   acceptance: [
@@ -702,6 +723,7 @@ export const operation_org_allowance_get = defineOperation({
 const A_REPLACE = "org.allowance.replace";
 export const operation_org_allowance_replace = defineOperation({
   ...frozenText(A_REPLACE),
+  who: designedWho(A_REPLACE),
   priority: "normal",
   implementedBy: flow_client_org_allowances_replace,
   acceptance: [

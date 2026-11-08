@@ -4,6 +4,7 @@
 // banking told the payer; the return, new here, is named by the architecture (dependencies.of-notices:
 // "a payout returned").
 
+import { table_hat_wearers } from "../indexing/data.ts";
 import { table_principals } from "../access/data.ts";
 import {
   machine_bank_payout,
@@ -22,14 +23,14 @@ const OLD = "packages/backend/src";
 const V = `${OLD}/parties/verifications`;
 const PO = `${OLD}/banking/payouts`;
 
-const PAYOUT_READS = [table_bank_payouts, table_bank_accounts, table_principals];
+const PAYOUT_READS = [table_bank_payouts, table_bank_accounts, table_principals, table_hat_wearers];
 
 const PAYOUT_STEPS = [
   {
     name: "payout",
     about:
-      "Reads the payout: who made it (`created_by`), the bank amount and currency of its quote (or `delivered_amount`), " +
-      "its Payment and the saved account's last four digits.",
+      "Reads the payout: its maker (`created_by`), its quote's bank amount and currency (or `delivered_amount`), its " +
+      "Payment, the account's last four digits; for an Organization, its budget's current hat wearers (notices.recipients).",
   },
 ] as const;
 

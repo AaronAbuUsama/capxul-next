@@ -1257,7 +1257,7 @@ direction.
 
 ## 10. Open items for other owners
 
-- **packages/book (D0, before stage 1):** qualify the 28 duplicated eval ids (`ms:D0/unique`, `portal.eval-ids`).
+- **packages/book (D0, before stage 1):** qualify the duplicated eval ids, 81 after the commands pass (`ms:D0/unique`, `portal.eval-ids`: one `ref:<operation>/<CODE>` per code, naming every world the operation lists for it).
 - **The tooling design:** add `node --experimental-strip-types tools/plan-tasks.ts --check` to `pnpm book`, so a book
   change that moves the plan regenerates it in the same pull request.
 - **The portal design:** milestone acceptance is the steps' `ms:` evals, and `ok:capxul` is the only person eval

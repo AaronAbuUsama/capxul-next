@@ -237,19 +237,23 @@ UTC, and days cross in the Organization's time zone. On a devnet, the Capxul app
 - it runs Frappe's due jobs at each stop;
 - it reports only daily-or-slower jobs as its next due, following the barrier's own rule.
 
-## 5. For Aaron
+## 5. For Aaron: answered
 
-| Decision | Question |
+Aaron accepted every recommendation of this section with the sixth batch (8 November 2026), and the commands pass
+booked them in the one grammar of `docs/design/new-commands.md`:
+
+| Decision | Where it stands |
 |---|---|
-| `projects.commands` (decision pack) | Which projects commands to add: the recommended working set of about thirty, a minimal thirteen, a generic document family, or none |
-| `projects.permissions` | Members work tasks and their own time; the People hat manages projects. Or Frappe roles, a Projects hat, or every member |
-| `organizations.commands` (decision pack) | `org app list\|add\|remove`, `org head connect\|show\|disconnect`; a Director connects a head, and the FDE may add apps |
-| `organizations.apps-native-or-head` | Fundamental apps live in Capxul; every other Frappe app lives only on a head |
-| `organizations.fde-at-start-up` | Install-batch birth with the key on the founder's machine, or a Capxul-hosted FDE from day one; and whether `--no-fde` stays a founder's choice (the ruling says every Organization has an FDE) or becomes devnet-only |
-| `agents.fde-authority` | Whether the FDE starts with the officer hats |
-| `organizations.head-ownership` | The three ownership classes |
+| `projects.commands` (decision pack) | Accepted. Booked as the 35 commands of `new-commands.md` section 5.1 (`org project …`, `org task …`, `org timesheet …`, `org activity-type …`, `org project-type …`), each one rpc |
+| `projects.permissions` | Accepted. Member, People or Director, and Worker, read from the hat when the command runs (`docs/design/authority.md`) |
+| `organizations.commands` (decision pack) | Accepted for the app and head commands, booked as `org app list\|add\|remove` and `org head connect\|show\|disconnect`; `org fde show\|ask` were added for `aaron.fde-hosted` |
+| `organizations.apps-native-or-head` | Accepted |
+| `organizations.fde-at-start-up` | Superseded by `aaron.fde-hosted`: Capxul hosts the FDE and its key is the host's |
+| `agents.fde-authority` | Accepted: the FDE starts with no hat; adding a Frappe app is a Director's or the FDE's |
+| `organizations.head-ownership` | Accepted |
 
-Buying seats (`aaron.buy-seats`) is left to the follow-up rulings pass, not this lane.
+Billing hours is requests' `org timesheet bill` (`requests.bill-time`, booked). Buying seats is `org seats buy`, and
+paying the FDE's hosting `org fde pay` (`organizations.buy-seats`, booked by payments).
 
 ## 6. To reconcile with other lanes
 

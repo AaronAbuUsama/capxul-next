@@ -13,6 +13,7 @@
 import { Schema } from "effect";
 import { budget, defineRpc } from "../../../packages/book/src/index.ts";
 import { concept_organizations } from "../shared/foundation.ts";
+import { integration_fde_host } from "../shared/external.ts";
 import {
   error_INVALID_INPUT,
   error_NOT_AUTHENTICATED,
@@ -129,7 +130,7 @@ export const rpc_organizations_fde_ask = defineRpc({
   drives: [],
   invokes: [],
   emits: [],
-  calls: [],
+  calls: [integration_fde_host.c.send],
   chain: [],
   spans: [],
   budget: { ...budget("vendor"), why: "one post to the FDE host before one write; the FDE's own turn is the flow's wait, never system time" },
@@ -161,7 +162,7 @@ export const rpc_organizations_fde_turn = defineRpc({
   drives: [],
   invokes: [],
   emits: [],
-  calls: [],
+  calls: [integration_fde_host.c.turn],
   chain: [],
   spans: [],
   budget: budget("vendor"),

@@ -62,10 +62,15 @@ import {
 } from "./processes.ts";
 
 import { concept_devnet } from "../shared/foundation.ts";
-import { procedure_organizations_add_bought_seats, procedure_organizations_return_bought_seats } from "../organizations/procedures.ts";
-import { rpc_payments_commands_buy_seats } from "./commands.ts";
-import { flow_client_org_seats_buy } from "./flows.ts";
-import { operation_org_seats_buy } from "./operations.ts";
+import {
+  procedure_organizations_add_bought_seats,
+  procedure_organizations_extend_fde_hosting,
+  procedure_organizations_return_bought_seats,
+  procedure_organizations_return_fde_hosting,
+} from "../organizations/procedures.ts";
+import { rpc_payments_commands_buy_seats, rpc_payments_commands_pay_fde_hosting } from "./commands.ts";
+import { flow_client_org_fde_pay, flow_client_org_seats_buy } from "./flows.ts";
+import { operation_org_fde_pay, operation_org_seats_buy } from "./operations.ts";
 
 const CLAUDE = "Claude, payments design, 8 November 2026";
 const by = (evidence: string) => `${CLAUDE}; evidence: ${evidence}`;
@@ -1414,9 +1419,9 @@ export const decision_payments_seat_worlds = defineDecision({
         "Reuse signed-out, org-with-budgets (Pat wears People and no budget, Mia `office-costs` and no People hat, Olga " +
         "outside), org-with-agent-member (@ledger seated) and org-with-fde-allowance (Dana wears People and the allowance " +
         "`capxul`, 500 USDC a month; Acme funded; SEAT_PRICE 10 USDC). Ask devnet for three built from " +
-        "org-with-fde-allowance: org-with-seat-price-unset (the backend restarted with SEAT_PRICE unset, a supervisor " +
-        "setting), org-with-closed-running-costs (`running-costs` closed by Board proposal) and " +
-        "org-with-short-company-safe (a Board payment of 9,995 USDC out of the company Safe, leaving 5).",
+        "org-with-fde-allowance: org-with-prices-unset (the backend restarted with SEAT_PRICE and FDE_HOSTING_PRICE " +
+        "unset, a supervisor setting, shared with `org fde pay`), org-with-closed-running-costs (`running-costs` closed " +
+        "by Board proposal) and org-with-short-company-safe (a Board payment of 9,995 USDC out of the company Safe, leaving 5).",
     },
     { label: "steps-in-evals", text: "Each refusal's eval changes the setting, closes the budget or empties the Safe itself." },
   ],
@@ -1428,4 +1433,135 @@ export const decision_payments_seat_worlds = defineDecision({
     "CLI variable, so the unpriced world needs the supervisor to restart the backend with it unset.",
   source: seatsBy("books/target/devnet/worlds.ts (org-with-fde-allowance, org-with-budgets, org-with-agent-member); organizations.command-worlds"),
   affects: [operation_org_seats_buy, concept_devnet],
+});
+
+// ── `org seats buy`: what the fit review found left to the build (8 November 2026) ─────────────────
+
+const SEATS_FIT = "Claude, seats fit review, 8 November 2026";
+const seatsFitBy = (evidence: string) => `${SEATS_FIT}; evidence: ${evidence}`;
+
+export const decision_payments_seat_invoice = defineDecision({
+  id: "payments.seat-invoice",
+  title: "A seat purchase's Invoice: the company pays Capxul, one line, the command's id",
+  question:
+    "payments.seat-purchase gives the purchase an Invoice, and documents.store refuses one (INVALID_INPUT) without an " +
+    "invoice_number of 1 to 120 characters, without a reader, or with lines that do not add up to its amount. What " +
+    "does a seat purchase's Invoice say, and who reads it?",
+  options: [
+    {
+      label: "command-invoice",
+      text:
+        "Subject the Payment, owner the Organization, issued at the command's birth, on the deployment's chain. " +
+        "`invoice_number` the command's id; payer the Organization (its Party and company Safe); payee Capxul's receiving " +
+        "Safe, with no Party; amount the total in the token's raw units; `due_at` null; `note` empty; one line, " +
+        "description `Capxul seat`, quantity the seats, `unit_amount_raw` SEAT_PRICE in raw units. One participant: the " +
+        "company Safe with the Organization's Party, role payer. The preview, the approval page (titled `Buy <n> seats`, " +
+        "from the budget), `payment get` and `payment list` name the payee `Capxul`.",
+    },
+    { label: "sequence", text: "`invoice_number` from a per-deployment sequence (CX-000001), kept in a counter row payments owns." },
+    { label: "memo", text: "A Memo (basis payment), as a budget's `payment send` carries, with no lines." },
+  ],
+  chosen: "command-invoice",
+  why:
+    "The command's id is unique, is what the Payment's source names and is printed by the hand-over, so a reader finds " +
+    "the Invoice from the Payment, and a repeat under the request key answers the same document. A sequence needs a " +
+    "counter nothing books and a lock on every purchase, for a number nobody types. A Memo has no lines, so the hash " +
+    "on chain would not say what was bought, which is why payments.seat-purchase chose an Invoice. Capxul's receiving " +
+    "Safe is no Capxul tenant: as a Movement's Memo names only the Capxul sides (payments.movement-memos), the " +
+    "Organization is the one reader, and its members read it as its owner. There is no due date, because the approval " +
+    "that carries the Invoice pays it. A fixed line text keeps two purchases of the same size equal but for the " +
+    "number. The payee has no Party, so it is labelled with the deployment's name.",
+  source: seatsFitBy("books/target/documents/procedures.ts (InvoiceContent, StoreInput); payments.seat-purchase; payments.movement-memos"),
+  affects: [rpc_payments_commands_buy_seats, operation_org_seats_buy, procedure_documents_store],
+});
+
+export const decision_payments_seat_hand_over = defineDecision({
+  id: "payments.seat-hand-over",
+  title: "`org seats buy` hands over with `--no-wait`; `--json` alone follows to the end",
+  question:
+    "Payments' frozen money commands answer the hand-over at once with `--json` (the flows' Follow), while the grammar " +
+    "gives every new money command `--no-wait` (G5), as `org payroll run pay` and the 215's agreement and Board writes " +
+    "take it. Which switch makes `org seats buy` answer the hand-over, and what does `--json` alone do?",
+  options: [
+    {
+      label: "no-wait",
+      text:
+        "`--no-wait` answers the hand-over at once (the money hand-over with the purchase), with or without `--json`. " +
+        "Without it the flow signs and follows to the end, and `--json` prints the ended approval and its Payments. The " +
+        "flow's input has `no_wait` and `timeout_seconds`, and no `json`.",
+    },
+    { label: "json-hands-over", text: "As `payment send`: `--json` answers the hand-over, and `--no-wait` is the same switch for a person reading." },
+  ],
+  chosen: "no-wait",
+  why:
+    "G5 names `--no-wait` for each new money command, and `org payroll run pay`, the agreement writes and the Board " +
+    "writes return at the approval with it, so a script waits on all of them the same way. Two switches for one " +
+    "hand-over would leave the build to choose what `--json` without `--no-wait` does; with one, `--json` only " +
+    "chooses how the answer prints (G9). org.seats.buy's claims 2, 3 and 5 run `--no-wait`, and claim 1's followed " +
+    "run ends with its Payment settled. `payment send` keeps its own switch.",
+  source: seatsFitBy("docs/design/new-commands.md (G5, G9); books/target/payments/flows.ts (Follow); books/target/payroll/staged.ts (client.org.payroll.runs.pay)"),
+  affects: [flow_client_org_seats_buy, operation_org_seats_buy],
+});
+
+// ── `org fde pay`: the hosted FDE's months (8 November 2026, build pass) ─────────────────────────────
+
+const FDE_PAY = "Claude, commands pass build, 8 November 2026";
+const fdePayBy = (evidence: string) => `${FDE_PAY}; evidence: ${evidence}`;
+
+export const decision_payments_fde_hosting_purchase = defineDecision({
+  id: "payments.fde-hosting-purchase",
+  title: "`org fde pay` is payments' own birth, as `org seats buy` is: months to Capxul",
+  question:
+    "The pack organizations.buy-seats (accepted) gives payments a second command, `org fde pay [<months>] --from " +
+    "<budget>`: the hosted FDE paid a calendar month at a time, in advance, at FDE_HOSTING_PRICE (20 USDC a month), " +
+    "its months moved on by organizations' door when the payment settles (organizations.fde-hosting). How is it born, " +
+    "who pays, which worlds prove it, and is it critical?",
+  options: [
+    {
+      label: "as-seats",
+      text:
+        "Payments' own rpc `payments.commands.pay-fde-hosting` under the flow `client.org.fde.pay`, born as a seat " +
+        "purchase is: purpose `fde_hosting`, route `budget`, owner the Organization; one one-off Payment of the months " +
+        "times FDE_HOSTING_PRICE to CAPXUL_RECEIVING_SAFE as an outside payee, its source `fde-hosting` (the command's " +
+        "id, `quantity` the months 1 to 12, `buyer_party_id` the payer); an Invoice from Capxul, one line `Capxul FDE " +
+        "hosting`, the months at the unit price, numbered with the command's id (as payments.seat-invoice); one " +
+        "approval whose one call is `Budgets.spend`. Before the birth it reads organizations' `org-fdes`: none or " +
+        "retired is WRONG_STATE, a paused one may be paid. The Payment's process invokes " +
+        "`organizations.extend-fde-hosting` in the settle transaction and `organizations.return-fde-hosting` in the " +
+        "unsettle one. Who: a person Budgets.authorised admits on `--from` now; never an agent, never the Board; no " +
+        "People hat, since hosting is no seat. `--no-wait` hands over (payments.seat-hand-over). Priority normal. Worlds: " +
+        "org-with-fde-allowance, org-with-fde-allowance-paused (built here), org-with-prices-unset, " +
+        "org-with-closed-running-costs and org-with-short-company-safe, shared with `org seats buy`.",
+    },
+    { label: "agreement", text: "A standing agreement from the paying budget to Capxul's receiving Safe (organizations.fde-hosting's rejected option)." },
+    { label: "organizations-rpc", text: "Organizations opens the spend itself; it cannot, since payments.prepare-command is a door above it." },
+  ],
+  chosen: "as-seats",
+  why:
+    "The pack's chosen option names payments as the booking concept, the in-advance route and the two doors, and " +
+    "organizations.fde-hosting fixes the months and the pause. Building it as the seat purchase is built keeps one " +
+    "shape for both things a company buys from Capxul: K1 by request key, funding and authority read before the " +
+    "transaction, the payment id fixed before anyone signs, the count moved only in the settling transaction and " +
+    "back on a reorg (2 procedures from 2 concepts, rules.transaction-width). The payer needs no People hat: the " +
+    "People hat guards what fills seats, and hosting fills none; the money is the department's, so Budgets' check " +
+    "now is the whole authority (docs/design/authority.md). No agent pays, so the FDE never pays for itself. A paused " +
+    "FDE must be payable, since paying is how it wakes. The retry of a lapsed hosting payment refuses an agent caller " +
+    "for the same reason. Normal: no pilot runs it, and the start-up month is free.",
+  source: fdePayBy(
+    "books/target/shared/rulings.ts (aaron.fde-hosted, aaron.test-prices, aaron.departments); organizations.buy-seats; organizations.fde-hosting; docs/design/new-commands.md (5.5)",
+  ),
+  affects: [
+    operation_org_fde_pay,
+    flow_client_org_fde_pay,
+    rpc_payments_commands_pay_fde_hosting,
+    rpc_payments_changes_retry,
+    table_payment_commands,
+    table_payments,
+    workflow_payments_lifecycle_payment,
+    P.settle,
+    P.unsettle,
+    procedure_organizations_extend_fde_hosting,
+    procedure_organizations_return_fde_hosting,
+    concept_devnet,
+  ],
 });

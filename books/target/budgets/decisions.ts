@@ -19,7 +19,7 @@ import { rpc_budgets_changes_get } from "./changes.ts";
 import { rpc_budgets_departments_create, rpc_budgets_departments_list } from "./departments.ts";
 import { rpc_budgets_offices_add_holder, rpc_budgets_offices_remove_holder } from "./offices.ts";
 import { rpc_budgets_tree_close, rpc_budgets_tree_reopen, rpc_budgets_tree_set_amount, rpc_budgets_tree_show } from "./tree.ts";
-import { workflow_budgets_changes_follow, workflow_budgets_invitations_return_grants } from "./processes.ts";
+import { workflow_budgets_agents_return_hats, workflow_budgets_changes_follow, workflow_budgets_invitations_return_grants } from "./processes.ts";
 import { rpc_budgets_invitations_plan, rpc_budgets_invitations_propose } from "./invitations.ts";
 import {
   flow_client_org_allowances_assign,
@@ -808,4 +808,35 @@ export const decision_budgets_claim_escrows = defineDecision({
     rpc_budgets_allowances_list,
     rpc_budgets_offices_remove_holder,
   ],
+});
+
+// ── a removed agent's hats (docs/design/authority.md, contradiction 14; commands pass build) ─────────
+
+export const decision_budgets_removed_agent_hats = defineDecision({
+  id: "budgets.removed-agent-hats",
+  title: "A removed agent's hats are proposed back once, as an ended invitation's are",
+  question:
+    "AgentRemoved ends an agent's Seat (organizations.members-are-seats), but its Safe keeps its officer, office and " +
+    "allowance hats: nobody can sign for it, yet each fills a place and lists it as a holder. Who takes them back, and how?",
+  options: [
+    {
+      label: "propose-once",
+      text:
+        "Budgets follows the Seat's `remove` and opens one Board proposal burning every Board-tree hat the agent's Safe " +
+        "still wears (`setHatWearerStatus(hat, safe, false, true)`), subject `agent-return:<orgId>:<safe>`, proposed by " +
+        "the Director with the oldest current Seat, as budgets.invitation-grants-return does for an ended invitation.",
+    },
+    { label: "manual", text: "Nothing automatic: the Directors revoke each hat by its own command." },
+    { label: "board-and-budgets", text: "Board proposes the officer hats back and budgets the office and allowance hats, two proposals." },
+  ],
+  chosen: "propose-once",
+  why:
+    "A department's money is acted on by whoever wears its hat (docs/design/authority.md), and a hat nobody can sign " +
+    "for still counts against the hat's supply and shows as a holder: the department would look held while no one can " +
+    "act. One proposal keeps the Directors' approval the only step, and the company Safe, every Board-tree hat's " +
+    "eligibility, can burn officer, office, team and allowance hats alike, so one batch serves them all. Budgets owns " +
+    "it because it already reads hat-wearers and opens the invitation's return the same way; board would need a " +
+    "second follower for the same event. Manual leaves the place filled until someone notices.",
+  source: by("docs/design/authority.md (contradiction 14); budgets.invitation-grants-return; organizations.members-are-seats; Hats.setHatWearerStatus"),
+  affects: [workflow_budgets_agents_return_hats, concept_board],
 });

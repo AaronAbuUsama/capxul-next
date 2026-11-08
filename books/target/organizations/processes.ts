@@ -12,6 +12,7 @@ import {
   contract_installer,
   contract_safe,
   integration_chain_rpc,
+  integration_fde_host,
   integration_frappe_head,
   integration_indexer,
   integration_service_signer,
@@ -165,6 +166,7 @@ export const workflow_organizations_setups_set_up = defineWorkflow({
     integration_indexer.c.awaitBlock,
     integration_indexer.c.factsOf,
     integration_chain_rpc.c.readContract,
+    integration_fde_host.c.provision,
   ],
   chain: [
     contract_company_safe_minter.f.mint,
@@ -179,7 +181,8 @@ export const workflow_organizations_setups_set_up = defineWorkflow({
     "One process per Organization (`org-setup:<orgId>`). The mint and deployMoney are each sent once (the service " +
     "signer records the signed bytes before broadcast, CAP-1097); one install approval at a time; the host's provision " +
     "is keyed by the Organization's id.",
-  timeoutMs: 30 * DAY,
+  // Real time bounding one run's work between its waits (time.real-elapsed): sends, receipts and a host call with retries.
+  timeoutMs: 30 * 60_000,
   retries: { max: 5, backoff: "exponential" },
   compensation:
     "None. A minted Safe and a deployment are kept: a stalled setup resumes from them, and a second deployMoney is never " +
@@ -262,7 +265,8 @@ export const workflow_organizations_invitations_follow = defineWorkflow({
   idempotency:
     "One process per invitation (`org-invite:<orgId>:<invitationId>`); every transition is guarded by the phase it moves " +
     "from, so a replayed step changes nothing.",
-  timeoutMs: 365 * DAY,
+  // Real time bounding one run's work between its waits (time.real-elapsed); the offer's life is its timers on the one clock.
+  timeoutMs: 10 * 60_000,
   retries: { max: 5, backoff: "exponential" },
   budget: budget("background"),
 });
@@ -364,7 +368,8 @@ export const workflow_organizations_heads_watch = defineWorkflow({
     "One process per head connection (`org-head:<orgId>:<headId>`); each transition is guarded by the state it moves " +
     "from, an app already asked for is not asked for again, and a User is written by the member's `capxul_id` with its " +
     "version, so a repeated push changes nothing.",
-  timeoutMs: 3650 * DAY,
+  // Real time bounding one run's work between its waits (time.real-elapsed): a push or a read of the site with retries.
+  timeoutMs: 10 * 60_000,
   retries: { max: 5, backoff: "exponential" },
   budget: budget("background"),
 });
@@ -446,7 +451,7 @@ export const workflow_organizations_fde_host = defineWorkflow({
   ],
   invokes: [],
   emits: [],
-  calls: [],
+  calls: [integration_fde_host.c.start, integration_fde_host.c.pause, integration_fde_host.c.resume, integration_fde_host.c.retire],
   chain: [],
   idempotency:
     "One process per hosted FDE (`org-fde:<orgId>`); each transition is guarded by the state it moves from, and the " +

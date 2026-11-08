@@ -109,9 +109,9 @@ export const rpc_board_officers_grant = defineRpc({
   about:
     RULES + " A member whose Safe already wears the hat, read live (`Hats.isWearerOfHat`), is WRONG_STATE. For " +
     "`manage-people`, a member whose Safe wears a department's or team's office hat is ROLE_CONFLICT, naming them " +
-    "(decision board.people-hat-role-conflict): from indexing, a hat it wears that is a budget's hat where the budget " +
-    "is a top budget or its hat sits under its parent budget's hat; an allowance's hat (under the Board's top hat, " +
-    "with a parent budget) is no conflict. The batch: " +
+    "(decision board.people-hat-role-conflict): from indexing's chain-hats, a hat it wears whose details begin " +
+    "`office:`, which budgets writes into every department's and team's hat; an allowance's hat (`allowance:`) is no " +
+    "conflict. The batch: " +
     "`Hats.changeHatMaxSupply(hat, supply + waiting + 1)` first when every seat of the hat is worn or taken by grants " +
     "still waiting (indexing's chain-hats and this concept's waiting grants), then `Hats.mintHat(hat, memberSafe)`. " + BIRTH,
   was: [`${OLD}/operations/grant.ts:158`, `${OLD}/writes/permissions.ts:133`, "docs/as-is/archive/organizations/members.ts:1"],

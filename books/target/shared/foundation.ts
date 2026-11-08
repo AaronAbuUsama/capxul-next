@@ -344,7 +344,11 @@ export const concept_organizations = defineConcept({
     "can authorize an Organization tenant. A Seat held by an agent ends when the chain shows the agent removed " +
     "(AgentRemoved). It keeps the seat limit (ten, plus what an operator raised or the Organization bought): seats " +
     "bought are counted through its doors `organizations.add-bought-seats` and `organizations.return-bought-seats`, " +
-    "for the settlement of a seat purchase (organizations.buy-seats). It registers the Organization's Party at birth. " +
+    "for the settlement of a seat purchase (organizations.buy-seats). It owns the Organization's Frappe apps (`org app " +
+    "list|add|remove`), its head connection (`org head connect|show|disconnect`) and its hosted FDE's hosting " +
+    "(org-fdes, org-fde-payments, org-fde-asks; `org fde show|ask`), whose months move through its doors " +
+    "`organizations.extend-fde-hosting` and `organizations.return-fde-hosting` when payments settles or reverses an " +
+    "`org fde pay`. It registers the Organization's Party at birth. " +
     "Old organizations' identity, setups, lifecycles, members, roles and invitations; its Directors and proposals go to " +
     "board, its equity, rounds and votes to equity, its treasury reads to activity.",
   component: B,
@@ -396,8 +400,8 @@ export const concept_projects = defineConcept({
     "process pushes every change in order from its gap-free change log and applies the head's changes (organizations' " +
     "head-ownership rules). A task's expected end is its own process's timer on the one clock, never a daily sweep. It " +
     "moves no money: billing hours (a request) and paying them (a payslip) sit above it, and its one door, " +
-    "`projects.bill-time`, marks the hours an Invoice bills in that request's transaction. Its commands are new capabilities, " +
-    "proposed to Aaron in a decision pack (projects.commands); none is among the 215. New in the rebuild.",
+    "`projects.bill-time`, marks the hours an Invoice bills in that request's transaction. Its 35 commands are new " +
+    "operations beyond the 215, booked on its accepted pack (projects.commands). New in the rebuild.",
   component: B,
   dependsOn: [concept_access, concept_parties, concept_organizations],
 });
@@ -451,7 +455,7 @@ export const concept_documents = defineConcept({
     "transaction (`documents.store`): a hash on chain with no content behind it is a money bug. It no longer reads " +
     "payments, requests or books. Old documents.",
   component: B,
-  dependsOn: [concept_access, concept_parties, concept_organizations],
+  dependsOn: [concept_access, concept_parties, concept_indexing, concept_organizations],
   was: [`${OLD}/documents/README.md:3`],
 });
 
@@ -613,8 +617,8 @@ export const concept_notices = defineConcept({
     "devnet concept. The old notify actions of every concept and old operator's delivery records.",
   component: B,
   dependsOn: [
-    concept_access, concept_parties, concept_accounts, concept_organizations, concept_board, concept_budgets, concept_payments,
-    concept_payroll, concept_banking, concept_requests, concept_equity,
+    concept_access, concept_parties, concept_indexing, concept_accounts, concept_organizations, concept_board, concept_budgets,
+    concept_payments, concept_payroll, concept_banking, concept_requests, concept_equity,
   ],
   was: [`${OLD}/operator/README.md:3`],
 });
@@ -686,6 +690,10 @@ export const environment_devnet = defineEnvironment({
     "BRIDGE_URL",
     "OTLP_ENDPOINT",
     "DEVNET_CONTROL_SOCKET",
+    "SEAT_PRICE",
+    "FDE_HOSTING_PRICE",
+    "CAPXUL_RECEIVING_SAFE",
+    "FDE_HOST_URL",
   ],
   secrets: [
     "SESSION_SIGNING_KEY",
@@ -701,6 +709,7 @@ export const environment_devnet = defineEnvironment({
     "SHIELD_PUBLISHABLE_KEY",
     "SHIELD_SECRET_KEY",
     "SHIELD_ENCRYPTION_SHARE",
+    "FDE_HOST_TOKEN",
   ],
   deploy:
     "`capxul-devnet up` boots everything in order (Postgres, Anvil, v4 through Companies House, Ponder, alto and the mock " +
@@ -750,6 +759,10 @@ export const environment_staging = defineEnvironment({
     "BRIDGE_URL",
     "OTLP_ENDPOINT",
     "DEPLOYED_GIT_SHA",
+    "SEAT_PRICE",
+    "FDE_HOSTING_PRICE",
+    "CAPXUL_RECEIVING_SAFE",
+    "FDE_HOST_URL",
   ],
   secrets: [
     "DATABASE_URL",
@@ -770,6 +783,7 @@ export const environment_staging = defineEnvironment({
     "SHIELD_PUBLISHABLE_KEY",
     "SHIELD_SECRET_KEY",
     "SHIELD_ENCRYPTION_SHARE",
+    "FDE_HOST_TOKEN",
   ],
   deploy:
     "Chosen at the spine (Y3): one pipeline builds the backend, Ponder and MCP images from a merged commit, runs the " +

@@ -9,6 +9,7 @@
 // its employee a payslip email in place of Frappe HR's own (decision notices.payslip).
 
 import { table_principals } from "../access/data.ts";
+import { table_hat_wearers } from "../indexing/data.ts";
 import { table_organizations } from "../organizations/data.ts";
 import { table_parties } from "../parties/data.ts";
 import {
@@ -25,7 +26,7 @@ import { DIRECTORS, noticeWorkflow } from "./kit.ts";
 
 const OLD = "packages/backend/src/payroll/agreements";
 
-const READS = [table_agreements, table_agreement_writes, table_organizations, table_parties, table_principals];
+const READS = [table_agreements, table_agreement_writes, table_organizations, table_parties, table_principals, table_hat_wearers];
 
 const PAYEE = {
   name: "payee",
@@ -38,7 +39,8 @@ export const workflow_notices_payroll_write_landed = noticeWorkflow({
   about:
     "Follows `land`: a holder's or the payee's write reached the chain with its own Agreements event, once per write. " +
     "By its `change`: `offered` sends `agreement-offer` to the payee (the terms, the payer, when the offer lapses); " +
-    "`accepted` sends `agreement-accepted` to whoever offered it; `rate_changed` and `rate_change_cancelled` send " +
+    "`accepted` sends `agreement-accepted` to whoever wears the paying budget's hat now (its offerer only while they " +
+    "still do) and to the Directors; `rate_changed` and `rate_change_cancelled` send " +
     "`pay-changed` with the rate from its date; `paused` sends `agreement-paused` with what stays collectable now " +
     "(`availableOf`); `resumed` sends `agreement-resumed`, once; `ended` sends `agreement-ending` with the last day " +
     "paid; `collected` sends `pay-received` with the amount. A landed withdrawal sends nothing. A write that is only " +
@@ -49,7 +51,7 @@ export const workflow_notices_payroll_write_landed = noticeWorkflow({
     { name: "write", about: "Reads the landed write (its change and its args) and its agreement; `withdrawn` ends here." },
     { name: "chain", about: "For `paused`, what the payee can collect now: `Agreements.availableOf` through chain-rpc." },
     PAYEE,
-    { name: "offerer", about: "For `accepted`, the principal who offered it (`offered_by`) and their email." },
+    { name: "wearers", about: "For `accepted`, the paying budget's current hat wearers (indexing's hat-wearers) and the Directors; the offerer (`offered_by`) only while they still wear it." },
   ],
   chain: [contract_agreements.f.availableOf, contract_safe.f.getOwners],
   was: [`${OLD}/rules/notices.ts:178`, `${OLD}/operations/notify.ts:29`, `${OLD}/reads/notices.ts:1`],

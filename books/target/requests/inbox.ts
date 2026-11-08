@@ -25,6 +25,7 @@ import { procedure_payments_prepare_command } from "../payments/procedures.ts";
 import { table_payments } from "../payments/data.ts";
 import { table_chain_budgets } from "../indexing/data.ts";
 import { table_budgets } from "../budgets/data.ts";
+import { procedure_projects_bill_time } from "../projects/procedures.ts";
 
 const R = "packages/backend/src/requests";
 const ASIS = "docs/as-is/archive/requests/inboxes.ts";
@@ -168,7 +169,8 @@ export const rpc_requests_inbox_decline = defineRpc({
     "before anything else; for an Organization the member's Safe must wear its Invoicing hat (ROLE_PERMISSION_DENIED); the " +
     "request must be open and unexpired (WRONG_STATE: already decided). It moves through `decline`; a repeat finds it " +
     "declined and sends nothing more. A personal decline acts for the person only, whatever Organization issued it. No " +
-    "Payment is born and nothing is signed.",
+    "Payment is born and nothing is signed. A declined Invoice for logged hours (`billed_logs`) clears their marks in " +
+    "the same transaction, through projects' door with `unbill` (projects.bill-time).",
   was: [`${R}/inboxes/operations/decline.ts:11`, `${R}/writes/requests.ts:219`, `${ASIS}:306`, ...GUARD_WAS],
   concept: concept_requests,
   kind: "mutation",
@@ -179,7 +181,7 @@ export const rpc_requests_inbox_decline = defineRpc({
   reads: [table_requests, ...WRITER],
   writes: [table_requests],
   drives: [machine_request.t.decline],
-  invokes: [],
+  invokes: [procedure_projects_bill_time],
   emits: [],
   calls: [],
   chain: [],
