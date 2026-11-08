@@ -123,8 +123,9 @@ export const WHO_READ =
   "for its book. Anyone else naming that Organization is ROLE_PERMISSION_DENIED.";
 export const WHO_WRITE =
   "A signed-in person, for their own book; or, for an Organization's book, a member whose Safe wears the Organization's " +
-  "People hat (the founder does from setup). Any other member may read the book but not change it, and they and " +
-  "anyone outside are ROLE_PERMISSION_DENIED with nothing written (decision contacts.members-write).";
+  "People hat when the call is made (the founder's from setup, until the Board revokes it): the right goes with the " +
+  "hat, never with a person. Any other member may read the book but not change it, and they and anyone outside are " +
+  "ROLE_PERMISSION_DENIED with nothing written (decision contacts.members-write).";
 /** The check every write runs first, before it reads or writes anything else. */
 export const WRITE_GUARD =
   "For an Organization's book it first checks the caller's Seat wears the People hat (the deployment's people hat id, " +
@@ -246,23 +247,22 @@ export const rpc_contacts_book_record = defineRpc({
   title: "Record a person or company in a book, change its details, or link its Party",
   about:
     WRITE_GUARD +
-    "The one write behind three commands, each its own SDK method (contacts.book-verbs). With no `contactId` " +
-    "(`contact create`) it records a new entry: a `doctype` and a label (trimmed, 1 to 120 characters). A new person " +
-    "whose details give a primary mailbox is named through `parties.resolve-recipient` as `contact add` by email names " +
-    "them, and born with that Party and its PartyId as its id; if that Party already has an entry here it is " +
-    "INVALID_INPUT naming the entry, never merged. Any other new entry is private: a `contact_<ulid>` id and no Party " +
-    "(contacts.private-entries). With `contactId` and `details` (`contact change`) it never names a Party: a mailbox " +
-    "given to a private person is only a detail. With `contactId` and `link` (`contact link`) it names a private " +
-    "entry's Party once, in the same transaction: a handle, an address or a Party id, or for a person a mailbox. A link " +
-    "on an entry that has a Party, to a Party already in the book, to the book's own Party, to a locator that names " +
-    "nothing, or to a Party of the other kind (an Organization's for a person, a person's or agent's for a company) is " +
-    "INVALID_INPUT: an entry's Party never changes. `details` sets the fields given and keeps the rest (null clears " +
-    "one): a person's `email_ids` and `phone_nos` (each replaced whole, at most 10, one primary of each kind, mailboxes " +
-    "well formed; a lone one is primary), `designation` (at most 140) and `company` (an organization entry of this " +
-    "book); a company's `website` (at most 255), `industry` and `territory` (140), `no_of_employees` (Frappe's ranges), " +
-    "`annual_revenue` (a non-negative decimal, in `currency`: 3 to 10 capitals) and `company_description` (2000). A " +
-    "field of the other doctype, an id not in the book or a bad value is INVALID_INPUT naming the field, and nothing " +
-    "is written. A change to a member's entry with no row writes its curating row. Returns the entry with details.",
+    "One write for three commands (contacts.book-verbs). With no `contactId` (`contact create`) it records a new " +
+    "entry: a `doctype` and a label (trimmed, 1 to 120 characters). A new person given a primary mailbox " +
+    "is named through `parties.resolve-recipient`, as `contact add` by email names them, and born with that PartyId as " +
+    "its id; if that Party already has an entry here it is INVALID_INPUT naming it, never merged. Any other new entry " +
+    "is private, with a `contact_<ulid>` id and no Party. With `contactId` and `details` (`contact change`) it never " +
+    "names a Party: a private person's mailbox is only a detail. With `contactId` and `link` (`contact link`) it names " +
+    "a private entry's Party once: a handle, an address, a Party id, or for a person a mailbox. A link on an entry with " +
+    "a Party, or to a Party already in the book, the book's own, nobody, or one of the other kind (an Organization's " +
+    "for a person; a person's or agent's for a company) is INVALID_INPUT: an entry's Party never changes. `details` " +
+    "sets the fields given and keeps the rest: a person's `email_ids` and `phone_nos` (each replaced whole, at most " +
+    "10, one primary of each kind; a lone one is primary), `designation` (140) and `company` (an organization entry " +
+    "of this book); a company's `website` (255), `industry` and `territory` (140), `no_of_employees` (Frappe's " +
+    "ranges), `annual_revenue` (a non-negative decimal, in a `currency` of 3 to 10 capitals) and " +
+    "`company_description` (2000); null clears one. A field of the other doctype, an id not in the book or a bad " +
+    "value is INVALID_INPUT naming the field; nothing is written. A change to a member's entry with no row writes its " +
+    "curating row. Returns the entry with details.",
   concept: concept_contacts,
   kind: "mutation",
   who: WHO_WRITE,

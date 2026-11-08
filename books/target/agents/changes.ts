@@ -51,8 +51,15 @@ const AS_IS = "docs/as-is/archive/accounts/agents.ts";
 // ── what every change shares ────────────────────────────────────────────────────────────────
 
 const ACTS =
-  "A signed-in person who owns the agent, or a Director of the Organization that owns it (their own Safe is an owner " +
-  "of the company Safe). Anyone else, and an agent that does not exist, get the same ROLE_PERMISSION_DENIED.";
+  "For a person's agent, its owner, signed in, from their own Safe. For an Organization's agent (its FDE included), a " +
+  "Director proposes it and the Board's approval acts: AgentOwner answers only its owner, the company Safe " +
+  "(agents.org-owned). Anyone else, and an agent that does not exist, get the same ROLE_PERMISSION_DENIED.";
+
+/** Who may read a change: who may make it, for an Organization's agent any Director (who may propose its changes). */
+const READS =
+  "For a person's agent, its owner, signed in. For an Organization's agent, a Director of that Organization, who may " +
+  "propose its changes; the Board's approval is what acts. Anyone else, and a change that does not exist, get the same " +
+  "ROLE_PERMISSION_DENIED.";
 
 const FIND =
   "The agent is named by its `agent_` id or `@handle` (its Party, then the agent behind it, `by-party`). The caller " +
@@ -114,7 +121,9 @@ export const rpc_agents_changes_create = defineRpc({
   was: [`${CONVEX}:5`, `${OLD}/operations/create.ts:35`, `${OLD}/rules.ts:21`, `${OLD}/reads/owners.ts:15`, `${OLD}/writes/rows.ts:59`, `${OLD}/external.ts:62`, `${ROWS}:48`, AS_IS],
   concept: concept_agents,
   kind: "mutation",
-  who: "A signed-in person with a claimed personal Safe; with `org`, a Director of that Organization, which then owns the agent.",
+  who:
+    "A signed-in person with a claimed personal Safe, from their own Safe; with `org`, a Director of that Organization " +
+    "proposes it and the Board's approval creates it, and the Organization then owns the agent.",
   input: CreateInput,
   output: Prepared,
   errors: [...CHANGE_ERRORS, error_SMART_ACCOUNT_MISSING, error_SEAT_LIMIT_REACHED],
@@ -281,7 +290,7 @@ export const rpc_agents_changes_get = defineRpc({
   was: [`${CONVEX}:10`, `${OLD}/operations/get.ts:24`, `${OLD}/operations/load-change.ts:14`, `${OLD}/views.ts:9`, "packages/sdk/src/accounts/agent-changes.ts:1"],
   concept: concept_agents,
   kind: "live",
-  who: ACTS,
+  who: READS,
   input: ChangeIdInput,
   output: Followed,
   errors: [error_NOT_AUTHENTICATED, error_ROLE_PERMISSION_DENIED],

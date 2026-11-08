@@ -30,8 +30,14 @@ const Instant = Schema.DateTimeUtc;
 /** Who owns an agent: a person (their principal id) or an Organization (its org_id). */
 export const OwnerKind = Schema.Literals(["person", "organization"]);
 
-/** Where the creator's machine keeps the agent's key: a private file, or printed once for `CAPXUL_PRIVATE_KEY`. */
-export const KeyStore = Schema.Literals(["file", "env"]);
+/**
+ * Where the agent's key is kept: on its creator's machine (a private file, or printed once for `CAPXUL_PRIVATE_KEY`),
+ * or, for an Organization's hosted FDE, by Capxul's FDE host, which made it (aaron.fde-hosted, agents.fde).
+ */
+export const KeyStore = Schema.Literals(["file", "env", "host"]);
+
+/** Where a key made on the caller's machine is kept: what `agent create` and `agent key rotate` choose. */
+export const LocalKeyStore = Schema.Literals(["file", "env"]);
 
 export const AGENT_STATES = ["creating", "active", "frozen", "removed", "failed"] as const;
 export const AgentState = Schema.Literals(AGENT_STATES);
@@ -76,14 +82,16 @@ export const table_agents = defineTable({
     "handle, its name and the Safe money sent to it lands in) and its create change. `safe_address` is " +
     "AgentOwner.safeAddressFor(signer, owner's Safe), known before the Safe exists and never changed, so it is the " +
     "agent's chain key. `signer_address` is the key that signs for it now: the key it was created with, replaced only " +
-    "when a rotation lands on chain naming that new key. `key_store` is where the creator's machine said it keeps the " +
-    "key (never the key: the backend only ever sees its address); a landed rotation sets its new key's. The owner is a person (`owner_kind` person, " +
+    "when a rotation lands on chain naming that new key. `key_store` is where the key is kept, as its creator said: on " +
+    "their machine (`file`, `env`), or `host` for an Organization's hosted FDE, whose key Capxul's FDE host made and " +
+    "keeps (never the key: the backend only ever sees its address); a landed rotation sets its new key's. The owner is a person (`owner_kind` person, " +
     "`owner_id` their principal id) or an Organization (`owner_kind` organization, `owner_id` its org_id); it never " +
     "changes, because AgentOwner binds the owner's Safe at creation. Name and handle are read from the Party, the " +
     "agent's principal (its accountId) from access by its Safe, the owner's email and Safe from the owner's own rows: " +
     "the old copies of each are gone. Only agents' rpcs and its processes write it. The one live agent an Organization " +
-    "owns is its Forward Deployed Engineer (aaron.fde-agent, agents.fde): born with the Organization's setup, whose " +
-    "install batch creates it on chain, or later by `agent create --org` when the Organization has none.",
+    "owns is its Forward Deployed Engineer (aaron.fde-agent, agents.fde): born with the Organization's setup, its key made " +
+    "by Capxul's FDE host and its create in the install batch (aaron.fde-hosted), or later by `agent create --org`, a " +
+    "self-run agent of the Organization's own, when it has none.",
   concept: concept_agents,
   tenancy: "owner",
   tenantField: "owner_id",
@@ -217,8 +225,9 @@ export const machine_agent = defineMachine({
       from: [],
       to: "creating",
       about:
-        "The Organization's FDE, born when its Organization's setup begins with an FDE key: its Party is the one the setup " +
-        "registered, and its create is the setup's install batch, not a change of its own (agents.fde).",
+        "The Organization's hosted FDE, born when Capxul's FDE host has made its key for its Organization's setup (the " +
+        "hosting's `provision`): its key is the host's (`host`), its Party is the one the setup registered, and its create " +
+        "is the setup's install batch, not a change of its own (agents.fde).",
       emits: A,
     },
     activate: {
@@ -295,7 +304,7 @@ export const table_agent_changes = defineTable({
     old_signer: NullOr(S),
     /** A create's key, or a rotation's new key; null for every other kind. */
     signer: NullOr(S),
-    /** Where the creator's machine keeps a create's or a rotation's key; null for every other kind. */
+    /** Where a create's or a rotation's key is kept, as its creator said; null for every other kind. */
     key_store: NullOr(KeyStore),
     /** A sweep's recipient; null for every other kind (a removal always sweeps to the owner's Safe). */
     recipient: NullOr(Recipient),

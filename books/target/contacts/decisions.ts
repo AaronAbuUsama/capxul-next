@@ -41,26 +41,44 @@ import {
 } from "./leads.ts";
 import { rpc_contacts_deals_get, rpc_contacts_deals_list, rpc_contacts_deals_move, rpc_contacts_deals_save } from "./deals.ts";
 import {
+  flow_client_account_address_book_change,
+  flow_client_account_address_book_create,
   flow_client_account_address_book_hide,
   flow_client_account_address_book_label,
-  flow_client_account_address_book_record,
+  flow_client_account_address_book_link,
   flow_client_account_address_book_unhide,
+  flow_client_org_crm_deals_change,
+  flow_client_org_crm_deals_create,
   flow_client_org_crm_deals_get,
   flow_client_org_crm_deals_list,
   flow_client_org_crm_deals_move,
-  flow_client_org_crm_deals_save,
+  flow_client_org_crm_leads_change,
   flow_client_org_crm_leads_convert,
+  flow_client_org_crm_leads_create,
   flow_client_org_crm_leads_get,
   flow_client_org_crm_leads_list,
   flow_client_org_crm_leads_move,
-  flow_client_org_crm_leads_save,
 } from "./flows.ts";
 import {
   operation_contact_add,
+  operation_contact_change,
+  operation_contact_create,
   operation_contact_hide,
   operation_contact_label,
+  operation_contact_link,
   operation_contact_list,
   operation_contact_unhide,
+  operation_org_crm_deal_change,
+  operation_org_crm_deal_create,
+  operation_org_crm_deal_get,
+  operation_org_crm_deal_list,
+  operation_org_crm_deal_move,
+  operation_org_crm_lead_change,
+  operation_org_crm_lead_convert,
+  operation_org_crm_lead_create,
+  operation_org_crm_lead_get,
+  operation_org_crm_lead_list,
+  operation_org_crm_lead_move,
 } from "./operations.ts";
 
 const CLAUDE = "Claude, contacts design, 8 November 2026";
@@ -88,11 +106,33 @@ const CRM_WRITES = [
   rpc_contacts_book_record, rpc_contacts_leads_save, rpc_contacts_leads_move, rpc_contacts_leads_convert,
   rpc_contacts_deals_save, rpc_contacts_deals_move,
 ];
-const CRM_FLOWS = [
-  flow_client_account_address_book_record,
-  flow_client_org_crm_leads_save, flow_client_org_crm_leads_move, flow_client_org_crm_leads_convert,
-  flow_client_org_crm_leads_list, flow_client_org_crm_leads_get,
-  flow_client_org_crm_deals_save, flow_client_org_crm_deals_move, flow_client_org_crm_deals_list, flow_client_org_crm_deals_get,
+const BOOK_FLOWS = [
+  flow_client_account_address_book_create, flow_client_account_address_book_change, flow_client_account_address_book_link,
+];
+const LEAD_FLOWS = [
+  flow_client_org_crm_leads_create, flow_client_org_crm_leads_change, flow_client_org_crm_leads_move,
+  flow_client_org_crm_leads_convert, flow_client_org_crm_leads_list, flow_client_org_crm_leads_get,
+];
+const DEAL_FLOWS = [
+  flow_client_org_crm_deals_create, flow_client_org_crm_deals_change, flow_client_org_crm_deals_move,
+  flow_client_org_crm_deals_list, flow_client_org_crm_deals_get,
+];
+const CRM_FLOWS = [...BOOK_FLOWS, ...LEAD_FLOWS, ...DEAL_FLOWS];
+/** The CRM's fourteen commands, operations beyond the 215 (rules.new-operations, contacts.crm-capabilities). */
+const BOOK_OPS = [operation_contact_create, operation_contact_change, operation_contact_link];
+const LEAD_OPS = [
+  operation_org_crm_lead_create, operation_org_crm_lead_change, operation_org_crm_lead_move, operation_org_crm_lead_convert,
+  operation_org_crm_lead_list, operation_org_crm_lead_get,
+];
+const DEAL_OPS = [
+  operation_org_crm_deal_create, operation_org_crm_deal_change, operation_org_crm_deal_move, operation_org_crm_deal_list,
+  operation_org_crm_deal_get,
+];
+const CRM_OPERATIONS = [...BOOK_OPS, ...LEAD_OPS, ...DEAL_OPS];
+/** The commands an Organization's start-up and its first sale need (contacts.critical-commands). */
+const CRITICAL = [
+  operation_contact_create, operation_org_crm_lead_create, operation_org_crm_lead_list, operation_org_crm_lead_convert,
+  operation_org_crm_deal_list, operation_org_crm_deal_move,
 ];
 
 // ── data ────────────────────────────────────────────────────────────────────────────────────
@@ -543,7 +583,7 @@ export const decision_contacts_budgets = defineDecision({
     {
       label: "class-with-guided",
       text:
-        "Reads `read`, writes `write`, the CRM's included; the guided get, label, hide and unhide (flow and operation) " +
+        "Reads `read`, writes `write`, the CRM's included; the guided get, label, hide, unhide and link (flow and operation) " +
         "allow a second call in sequence: read 800/1,600 ms, write 900/1,900 ms, excluding `wait.person`.",
     },
     { label: "class-only", text: "Class defaults everywhere, the guided path included." },
@@ -557,7 +597,7 @@ export const decision_contacts_budgets = defineDecision({
   source: by("packages/book/src/budgets.ts; P5; P6 (wait.person for prompt steps)"),
   affects: [
     ...FLOWS, operation_contact_label, operation_contact_hide, operation_contact_unhide, ...READS, ...WRITES, ...CRM_RPCS,
-    ...CRM_FLOWS,
+    ...CRM_FLOWS, ...CRM_OPERATIONS,
   ],
 });
 
@@ -654,9 +694,9 @@ export const decision_contacts_private_entries = defineDecision({
       label: "private-entry",
       text:
         "An entry with no Party: `party_id` null, its own id `contact_<ulid>`, `ref` null in every read, so it cannot be " +
-        "paid or invoiced through the book until it has a Party. It is linked once: when the company is on Capxul (its " +
-        "handle), is paid at a wallet (its address), or the person's primary mailbox is given (which names them in the " +
-        "directory), and it keeps its id. Wire inputs that named an entry by `partyId` now name it by `contactId`, the same " +
+        "paid or invoiced through the book until it has a Party. It is linked once, by `contact link` (contacts.book-verbs): " +
+        "when the company is on Capxul (its handle), is paid at a wallet (its address), or the person's mailbox is " +
+        "given (which names them in the directory), and it keeps its id. Wire inputs that named an entry by `partyId` now name it by `contactId`, the same " +
         "value for every entry born from a Party.",
     },
     {
@@ -787,8 +827,8 @@ export const decision_contacts_crm_permission = defineDecision({
     "`contacts.head.sync` and are held to the same rule: applied as the member the head user's mailbox matches, only if " +
     "that member's Safe wears the People hat, else pushed back. Projects applies a head edit under the connection's " +
     "authority when no member matches; the CRM cannot, because editing the contact book is a permission by ruling " +
-    "(contacts.members-write), and because a head edit that gives a private entry a primary mailbox chooses the " +
-    "Party that money paid to the entry reaches. Revised in review: the first pass let the connection's authority apply " +
+    "(contacts.members-write), and because the book is where money paid to an entry is aimed (only `contact link`, " +
+    "in Capxul, names an entry's Party: contacts.book-verbs). Revised in review: the first pass let the connection's authority apply " +
     "an edit no member made. The head's own roles (Sales User, Sales Manager) should follow the hat, so its forms stop " +
     "other users before Capxul has to push back.",
   source: crmBy("books/target/contacts/decisions.ts (contacts.members-write); frappe crm_organization.json and contact.json permissions (Sales User, Sales Manager)"),
@@ -838,8 +878,10 @@ export const decision_contacts_crm_capabilities = defineDecision({
   ],
   chosen: "cli-now",
   why:
-    "Aaron asked on 8 November 2026 for the new commands to be designed in the book; booked under rules.new-operations " +
-    "on this recommendation, which stands until he answers. The capability serves aaron.crm-frappe-shape and " +
+    "Aaron asked on 8 November 2026 for the new commands to be designed in the book, and accepted this recommendation " +
+    "in his sixth batch; the fourteen are booked under rules.new-operations in ./operations.ts, each in this pack's " +
+    "affects, with its verbs (contacts.book-verbs, contacts.crm-verbs), its priority (contacts.critical-commands) and its " +
+    "worlds (contacts.crm-worlds) decided apart. The capability serves aaron.crm-frappe-shape and " +
     "aaron.frappe-shape: an Organization with no head works its CRM through these commands, and the FDE through the " +
     "same CLI (aaron.fde-agent). The rpcs and flows were booked SDK-first (sdk-now-cli-later); the commands now follow " +
     "the one grammar every new command keeps (docs/design/new-commands.md): `org` for what only an Organization has, " +
@@ -847,7 +889,7 @@ export const decision_contacts_crm_capabilities = defineDecision({
     "`change` for fields, `get` for one record, and one SDK method per command, so an rpc that both creates and " +
     "changes is two commands. Head-only would leave an Organization without a head with no leads or deals.",
   source: crmBy("tools/check-frozen.ts ('a target operation that is none of the 215'); books/target/shared/rulings.ts (aaron.frappe-shape, aaron.fde-agent, aaron.projects)"),
-  affects: [...CRM_RPCS, ...CRM_FLOWS, concept_contacts],
+  affects: [...CRM_OPERATIONS, ...CRM_RPCS, ...CRM_FLOWS, concept_contacts],
 });
 
 export const decision_contacts_head_sync = defineDecision({
@@ -1012,8 +1054,8 @@ export const decision_contacts_startup = defineDecision({
         "row's lock, and its members are read from Seats, never copied (contacts.members-derived). The Organization " +
         "itself is no CRM Organization: Frappe CRM's organizations are counterparties, and the Organization is ERPNext's " +
         "Company (organizations.company-shape). Existing contacts are imported in the start-up sitting one record at a " +
-        "time, through `contact add` (a person or company with a Party) and `contacts.book.record` (a private entry with " +
-        "Frappe's fields), by a People hat wearer: the founder, or the FDE once granted the hat (agents.fde-people-hat). " +
+        "time, through `contact add` (a person or company with a Party) and `contact create` (a private entry, or a person " +
+        "by mailbox, with Frappe's fields), by a People hat wearer: the founder, or the FDE once granted the hat (agents.fde-people-hat). " +
         "A head connected later receives the whole CRM from seq 1 (contacts.head.sync).",
     },
     {
@@ -1035,4 +1077,150 @@ export const decision_contacts_startup = defineDecision({
     "start-up import.",
   source: asmBy("docs/design/frappe/crm.md (FDE and organizations); docs/design/frappe/projects-and-startup.md (section 1 table); books/target/organizations/decisions.ts (organizations.startup)"),
   affects: [table_crm_settings, table_contacts, rpc_contacts_book_add, rpc_contacts_book_record, workflow_contacts_head_sync, concept_contacts],
+});
+
+// ── the CRM's commands, booked under rules.new-operations (8 November 2026) ──────────────────
+
+const COMMANDS = "Claude, CRM commands pass (contacts), 8 November 2026";
+const cmdBy = (evidence: string) => `${COMMANDS}; evidence: ${evidence}`;
+
+export const decision_contacts_book_verbs = defineDecision({
+  id: "contacts.book-verbs",
+  title: "`contact create`, `change` and `link` share one write; only `link` names a Party",
+  question:
+    "The CRM's one book write, `contacts.book.record`, records a new entry, changes its details and links its Party. The " +
+    "grammar gives each its own verb and SDK method (docs/design/new-commands.md, G3 and G7). What does each command do, " +
+    "and which of them may decide where money paid to an entry goes?",
+  options: [
+    {
+      label: "three-verbs",
+      text:
+        "`contact create <label> --type person|company` records a new entry: a person given a primary mailbox is born " +
+        "from its Party, and one whose Party already has an entry in the book is INVALID_INPUT naming it, never merged. " +
+        "`contact change <contact>` sets details only and never names a Party: a mailbox given to a private person stays " +
+        "a detail. `contact link <contact> <locator>` names a private entry's Party once, after a preview at a terminal " +
+        "(`--confirm` from a script), and refuses an entry that has one, a Party already in the book and a Party of the " +
+        "other kind (an Organization's for a person; a mailbox, a person's or an agent's for a company). The label stays " +
+        "`contact label`'s. Three flows over the one rpc, area `payments` as the frozen contact commands are.",
+    },
+    { label: "one-command", text: "`contact record`, one command over the one SDK method `client.account.addressBook.record`, as it was booked SDK-first." },
+    { label: "change-links", text: "As three-verbs, but `contact change` giving a private person a primary mailbox links it, as `contacts.book.record` first did." },
+  ],
+  chosen: "three-verbs",
+  why:
+    "G3 gives each verb one meaning and G7 one SDK method per command, so one rpc that creates, changes and links serves " +
+    "three commands, as `contact hide` and `unhide` share one machine. Linking is the one step that decides where money " +
+    "paid to an entry goes and cannot be undone, so it is its own command with a preview, as the grammar asks of every " +
+    "command that cannot be undone (vocabulary.declined-preview-cancelled). Letting `change` link by mailbox, as the " +
+    "SDK-first rpc did, would aim payments without that preview, and a head's edit of a mailbox, which the sync applies " +
+    "through the same checks, would do it from outside Capxul, where contacts.head-sync already says a head never sets " +
+    "an entry's Party. A create whose person's Party already has an entry is refused rather than merged, as a head-born " +
+    "Contact is, because a merge would overwrite details another member typed; `contact add` keeps its frozen landing " +
+    "on the existing entry. A company on Capxul is an Organization's Party or a wallet (parties.outside-companies), and " +
+    "the preview shows the locator only as typed, so the rpc holds the kinds apart. The label keeps its frozen command. " +
+    "The rulings it serves, in its source: the book is Frappe CRM's Contact and CRM Organization, and in an " +
+    "Organization's book each of these writes is the People hat's.",
+  source: cmdBy("serves aaron.crm-frappe-shape and aaron.contacts-permissions; docs/design/new-commands.md (G3, G5, G7, 5.2); contacts.head.sync; parties.outside-companies"),
+  affects: [...BOOK_OPS, ...BOOK_FLOWS, rpc_contacts_book_record],
+});
+
+export const decision_contacts_crm_verbs = defineDecision({
+  id: "contacts.crm-verbs",
+  title: "Leads and deals: create and change split one save; owners named as members",
+  question:
+    "`contacts.leads.save` and `contacts.deals.save` both capture and change, their owners were PartyIds, and `get` " +
+    "answered null for an id outside the Organization. How do the `org crm lead` and `org crm deal` commands spell these " +
+    "in the grammar's verbs and arguments?",
+  options: [
+    {
+      label: "grammar",
+      text:
+        "`create` (no id) and `change <id>` are two SDK methods and two flows over each save; `move`, `convert`, `list` " +
+        "and `get` keep their one-rpc flows, each now serving the CLI and the SDK alike. `--owner` names a member as G5 " +
+        "does, an email or an @handle (or a PartyId), which the save resolves against the Organization's active Seats. " +
+        "`get` of an id that is none of the Organization's leads or deals is INVALID_INPUT, as `payment get` is, never " +
+        "null. `org crm deal create` needs `--company`; `--contact` repeats and `--primary` names the one primary " +
+        "person. A lead's change must still leave a first name, a company name or a mailbox. `--clear <field>` empties " +
+        "a field, named by its flag.",
+    },
+    { label: "save-command", text: "One `save` command per record, creating with no id and changing with one." },
+    { label: "party-ids", text: "As grammar, but `--owner` takes only a PartyId, as the rpcs did." },
+  ],
+  chosen: "grammar",
+  why:
+    "G3: `create` makes a document with a lifecycle and `change` edits fields, never a status, so one rpc that does both " +
+    "is two commands and two methods (docs/design/new-commands.md, section 4). An owner is a member who works the record " +
+    "(Frappe's `lead_owner` and `deal_owner`), and G5 names a member by email or @handle everywhere; a PartyId alone " +
+    "would make every script look one up first. G6 has no not-found code, so `get` refuses an unknown id as `payment " +
+    "get` does, and the SDK's agents read the same refusal. A deal opened by hand names its company because Frappe CRM " +
+    "lists and links deals by it and a conversion always sets it. A change that empties every name would leave a lead " +
+    "Frappe's `set_lead_name` cannot name. Each rpc stays one transaction; only its spelling and the owner lookup " +
+    "change, which reads `parties` for a handle or a mailbox's digest. Found on the way: `contacts.deals.move` checked " +
+    "the People hat without reading its wearers, and now reads them. The FDE works the CRM through these same commands.",
+  source: cmdBy("serves aaron.crm-frappe-shape and aaron.fde-agent; docs/design/new-commands.md (G3, G5, G6, 5.2); frappe/crm@2cecd300 crm_lead.py:140, crm_deal.json"),
+  affects: [...LEAD_OPS, ...DEAL_OPS, ...LEAD_FLOWS, ...DEAL_FLOWS, rpc_contacts_leads_save, rpc_contacts_deals_save, rpc_contacts_deals_move],
+});
+
+export const decision_contacts_critical_commands = defineDecision({
+  id: "contacts.critical-commands",
+  title: "The CRM commands a start-up and its first sale need are critical",
+  question:
+    "The grammar makes every new command `normal`. Which CRM commands does an Organization need from its first day, so " +
+    "that they are `critical`?",
+  options: [
+    {
+      label: "startup-and-first-sale",
+      text:
+        "Six: `contact create`, with which the start-up sitting brings in the business's people and companies " +
+        "(contacts.startup); and `org crm lead create`, `list` and `convert` and `org crm deal list` and `move`: capture " +
+        "a prospect, see the pipeline, convert it, and win or lose the deal. The other eight are `normal`.",
+    },
+    { label: "none", text: "Every command `normal`, as the grammar page has it: no B3 pilot runs one." },
+    { label: "all", text: "Every CRM command `critical`." },
+  ],
+  chosen: "startup-and-first-sale",
+  why:
+    "The CRM is fundamental from an Organization's first day, and the FDE sets it up in the start-up sitting (the two " +
+    "rulings in its source): the business's existing contacts come in then, one `contact create` or `contact add` at " +
+    "a time (`contact add` is frozen and `normal` by rule 4). A pilot's first sale is the loop of the other five: " +
+    "capture, list, convert, list the deals, move one to won. `change`, `link`, `get` and a lead's `move` refine it, and " +
+    "`create` and `list` print every id the loop needs. None is on the B3 pilots' money path, so `critical` orders the " +
+    "build's work and the evals a pilot depends on; it changes no budget. Projects marks its first engagement the same " +
+    "way (projects.critical-commands).",
+  source: cmdBy("serves aaron.frappe-shape and aaron.fde-agent; docs/design/new-commands.md (G8); contacts.startup; CONVENTIONS rule 4 (priority)"),
+  affects: CRITICAL,
+});
+
+export const decision_contacts_crm_worlds = defineDecision({
+  id: "contacts.crm-worlds",
+  title: "The CRM's refusals start from person-with-contacts or a new org-with-crm",
+  question:
+    "Every refusal of the fourteen commands needs a world. person-with-contacts holds a person's book and Acme with Dan " +
+    "(People hat) and Rex (no hat), but no lead, deal or private person. Which worlds do the refusals and claims start from?",
+  options: [
+    {
+      label: "one-more-world",
+      text:
+        "`contact create` starts from person-with-contacts. The other thirteen start from a new world, org-with-crm, " +
+        "built from it by the commands themselves: Lou, a private person in Ada's book known by a phone number; in " +
+        "Acme's book Globex Ltd (a private company) and Kim Park (kim@globex.test, born from her mailbox, at Globex); six " +
+        "leads (Pat New, Quinn Contacted, Jo of Hooli Qualified, Max lost as Junk for Poor Fit, Kim's own Nurture with " +
+        "company `globex ltd`, and Ivy of Umbrella Corp, owned by Dan, converted into the Umbrella deal); and three " +
+        "Globex deals (a pilot in Qualification, a renewal won, an upsell lost for Pricing); Dan current. " +
+        "person-with-contacts' private company is now recorded by `contact create`.",
+    },
+    { label: "per-command", text: "A world per command." },
+    { label: "extend", text: "Add the leads, deals and private person to person-with-contacts itself." },
+  ],
+  chosen: "one-more-world",
+  why:
+    "One more snapshot reaches every remaining refusal: NOT_AUTHENTICATED with no session, ROLE_PERMISSION_DENIED as Ada " +
+    "(no Seat) or Rex (no People hat), INVALID_INPUT from bad values and foreign ids, and WRONG_STATE from Ivy's " +
+    "converted lead and Max's lost one; Kim's lead is there to show a conversion matching by mailbox and by name. " +
+    "Building it with the new commands keeps a world a black box (devnet.deterministic-worlds: steps never write a " +
+    "table) and makes the world a first proof of create, move and convert. Extending person-with-contacts would change " +
+    "what the frozen contact commands and banking's `contact get` read there. The Board's grant and revoke of the " +
+    "People hat to Rex, which the hat claims make, are steps of those evals, not of the world, so Rex starts with no hat.",
+  source: cmdBy("books/target/devnet/worlds.ts (person-with-contacts, org-with-crm); devnet.deterministic-worlds; contacts.worlds"),
+  affects: CRM_OPERATIONS,
 });

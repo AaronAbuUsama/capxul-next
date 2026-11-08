@@ -98,8 +98,9 @@ const WRITE_READS = [...READS, table_org_deployments, table_hat_wearers];
 export const WHO_CRM_READ =
   "A member of the Organization (an active Seat, a person's or an agent's). Anyone else naming it is ROLE_PERMISSION_DENIED.";
 export const WHO_CRM_WRITE =
-  "A member of the Organization whose Safe wears its People hat, as for its contact book: the founder from setup, or an " +
-  "agent of the Organization's given the hat. Any other member reads but is ROLE_PERMISSION_DENIED with nothing written.";
+  "A member of the Organization whose Safe wears its People hat when the call is made, as for its contact book, a " +
+  "person's or an agent's (the founder's from setup; the FDE's once the Board grants it): the right goes with the hat, " +
+  "never with a person. Any other member reads but is ROLE_PERMISSION_DENIED with nothing written.";
 const GUARD =
   "It first checks the caller's Seat wears the People hat (the deployment's people hat id, wearers from indexing), " +
   "else ROLE_PERMISSION_DENIED and nothing is written. Each record it changes is appended to `contact-changes` and " +

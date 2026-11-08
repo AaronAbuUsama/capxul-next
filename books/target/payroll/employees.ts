@@ -16,15 +16,24 @@ import { table_hat_wearers } from "../indexing/data.ts";
 import { table_budgets } from "../budgets/data.ts";
 import { table_parties } from "../parties/data.ts";
 import { procedure_parties_resolve_recipient } from "../parties/procedures.ts";
-import { machine_employee, table_employees, table_payroll_changes, table_payroll_settings, table_salary_slips } from "./data.ts";
-import { Employee, EmployeeChange, EmployeeInput, EmployeeListInput } from "./shapes.ts";
+import {
+  machine_employee,
+  table_employees,
+  table_payroll_changes,
+  table_payroll_settings,
+  table_salary_slips,
+  table_salary_structure_assignments,
+  table_salary_structures,
+} from "./data.ts";
+import { Assignment, Employee, EmployeeChange, EmployeeInput, EmployeeListInput, EmployeeRef } from "./shapes.ts";
 
 const FRAPPE = "/tmp/erpnext/erpnext/setup/doctype/employee";
 
 /** Who may change an Organization's payroll records: the People hat, Frappe's HR Manager (payroll.hr-authority). */
 export const WHO_HR =
   "A signed-in member of the Organization, person or agent, whose own Safe wears its People hat (Frappe's HR Manager), " +
-  "read from the deployment's `people_hat` and indexing's hat-wearers; the founder wears it from setup.";
+  "read from the deployment's `people_hat` and indexing's hat-wearers; the founder wears it from setup. The hat " +
+  "decides, never the person: an agent, the FDE included, only once the Board granted its Safe the hat.";
 
 /** The guard every payroll HR write and read runs first. */
 export const HR_GUARD =
@@ -99,6 +108,33 @@ export const rpc_payroll_employees_change = defineRpc({
   chain: [],
   spans: [],
   budget: budget("write"),
+});
+
+export const rpc_payroll_employees_get = defineRpc({
+  id: "payroll.employees.get",
+  title: "Read one Employee, with their current assignment",
+  about:
+    HR_GUARD +
+    "The Employee by `emp_` id (INVALID_INPUT for one that is not the Organization's, there being no not-found code), " +
+    "with their status, joining and relieving days, department, designation and type, whether their Party is still " +
+    "provisional (`unclaimed`), and the submitted structure assignment that pays them today: the latest on or before " +
+    "today, with the structure it names, or null when none does. It reads only.",
+  was: [`${FRAPPE}/employee.json`, "/tmp/hrms/hrms/payroll/doctype/salary_structure_assignment/salary_structure_assignment.json"],
+  concept: concept_payroll,
+  kind: "query",
+  who: WHO_HR,
+  input: EmployeeRef,
+  output: Schema.Struct({ employee: Employee, assignment: Schema.NullOr(Assignment) }),
+  errors: [error_NOT_AUTHENTICATED, error_ROLE_PERMISSION_DENIED, error_INVALID_INPUT],
+  reads: [...HR_READS, table_employees, table_parties, table_salary_structure_assignments, table_salary_structures],
+  writes: [],
+  drives: [],
+  invokes: [],
+  emits: [],
+  calls: [],
+  chain: [],
+  spans: [],
+  budget: budget("read"),
 });
 
 export const rpc_payroll_employees_list = defineRpc({

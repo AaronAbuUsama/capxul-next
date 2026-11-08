@@ -51,7 +51,7 @@ import {
 import * as op from "./operations.ts";
 
 import { workflow_agents_fde_follow_setup } from "./processes.ts";
-import { table_org_members, table_org_setups } from "../organizations/data.ts";
+import { table_org_fdes, table_org_members, table_org_setups } from "../organizations/data.ts";
 import { concept_organizations, concept_projects } from "../shared/foundation.ts";
 
 const CLAUDE = "Claude, agents design, 8 November 2026";
@@ -215,17 +215,19 @@ export const decision_agents_who_acts = defineDecision({
     {
       label: "owner-or-director",
       text:
-        "A person-owned agent: its owner. An Organization-owned agent: a Director, whose own Safe is an owner of the company " +
-        "Safe on chain (indexing's safe-owners). `agent show` also admits the agent itself. Anyone else, and a ref that " +
-        "names no agent, get the same ROLE_PERMISSION_DENIED.",
+        "A person-owned agent: its owner, from their own Safe. An Organization-owned agent: a Director, whose own Safe is " +
+        "an owner of the company Safe on chain (indexing's safe-owners), proposes each change and the Board's approval " +
+        "acts, since AgentOwner answers only the company Safe; a Director reads it. `agent show` also admits the agent " +
+        "itself. Anyone else, and a ref that names no agent, get the same ROLE_PERMISSION_DENIED.",
     },
     { label: "members", text: "Any member of the owning Organization may read and change its agents." },
   ],
   chosen: "owner-or-director",
   why:
     "AgentOwner's own check is `msg.sender == owner`: only the owner's Safe acts, and an Organization's Safe acts only " +
-    "through its Board, so the Directors are who acts for it; reading the company Safe's owners from the chain is the " +
-    "same truth board.propose checks. One refusal for not-yours and none is the frozen rule ('so a handle never tells " +
+    "through its Board, so a Director proposes and the Board acts, as one Director alone cannot unless the threshold is " +
+    "one (docs/design/authority.md); reading the company Safe's owners from the chain is the same truth board.propose " +
+    "checks. One refusal for not-yours and none is the frozen rule ('so a handle never tells " +
     "who owns it'). The agent may read itself (designed `agent show` who: 'or the agent itself'), found by its " +
     "principal's Safe. A member who is no Director reads the Organization's agents only through its Seats.",
   source: by("books/frozen/operations.ts (agent.show refusals, designed who); AgentOwner.sol onlyAgentOwner; books/target/indexing/data.ts (safe-owners)"),
@@ -674,32 +676,40 @@ const FDE_RULING = by("books/target/shared/rulings.ts (aaron.fde-agent, aaron.se
 
 export const decision_agents_fde = defineDecision({
   id: "agents.fde",
-  title: "The Organization's own agent is its FDE, born with its setup",
+  title: "The Organization's own agent is its FDE; Capxul hosts the one its setup makes",
   question:
-    "The FDE ruling: every Organization has a Forward Deployed Engineer, its own agent (the seat ruling). agents.org-own-agent " +
-    "limits an Organization to one live agent of its own. How are the two the same agent, and how is the FDE recorded?",
+    "Every Organization has a Forward Deployed Engineer, its own agent, which Capxul hosts (its key on Capxul's FDE " +
+    "host, never the founder's machine). agents.org-own-agent limits an Organization to one live agent of its own. How " +
+    "are the two the same agent, how is the FDE recorded, and what of an own agent made later with `agent create --org`?",
   options: [
     {
       label: "own-agent-is-fde",
       text:
-        "The one live agent an Organization owns is its FDE, whoever made its key. It is born with the setup when the " +
-        "founder's machine made an FDE key (organizations.fde-at-start-up): agents' `agents.fde.follow-setup` writes its " +
-        "row from the setup (`found`), and activates or fails it when the setup completes or fails, because its create is " +
-        "the install batch, not a change of its own. With `--no-fde`, or after the FDE is removed, `agent create --org` " +
-        "makes the Organization's FDE through a Board proposal, as before.",
+        "Under aaron.fde-agent and aaron.fde-hosted: the one live agent an Organization owns is its FDE. The one its " +
+        "setup makes is hosted: Capxul's FDE host makes its key (organizations.fde-at-start-up), and agents' " +
+        "`agents.fde.follow-setup`, started by the hosting's `provision`, writes its row (`found`, key store `host`) and " +
+        "activates or fails it when the setup completes or fails, because its create is the install batch, not a change " +
+        "of its own. With `--no-fde`, or after the FDE is removed, `agent create --org` makes the Organization's own " +
+        "agent through a Board proposal, as before, with its key on the Director's machine: a self-run agent, which " +
+        "pays no hosting and which `org fde show` does not show. Rotating a hosted FDE's key to one the host did not " +
+        "make takes it off the host (its hosting retires: organizations.fde-hosting).",
     },
     { label: "separate-fde", text: "The FDE is a second, special kind of agent beside the Organization's own one." },
+    { label: "host-every-own-agent", text: "`agent create --org` also asks the host for the key, so every own agent is hosted." },
   ],
   chosen: "own-agent-is-fde",
   why:
-    "The ruling names the Organization's own agent as the FDE, so a second kind would need a second limit the seat ruling " +
-    "does not give. Writing the row from the setup keeps agents the writer of its own table while organizations, which " +
-    "builds the install batch, keeps the Party and the Seat, as it does the Organization's. No change row is born: a " +
-    "change is carried by an approval or proposal agents opened, and the install is organizations'; its later freeze, " +
-    "key rotation, sweep and removal are ordinary changes by Board proposal (agents.org-owned). Every frozen claim keeps " +
-    "its world, because the worlds start Acme with `--no-fde` (organizations.startup-worlds).",
+    "The seat ruling names the Organization's own agent, and the FDE is it, so a second kind would need a second limit " +
+    "the ruling does not give. Writing the row from the hosting's `provision` keeps agents the writer of its own table, " +
+    "while organizations, which builds the install batch and asks the host, keeps the Party, the Seat and the hosting. " +
+    "Starting from `provision` rather than the setup's `begin` is needed now that the key is made after the mint, by " +
+    "the host. No change row is born: a change is carried by an approval or proposal agents opened, and the install is " +
+    "organizations'; its later freeze, key rotation, sweep and removal are ordinary changes by Board proposal " +
+    "(agents.org-owned). `agent create --org` keeps its frozen behaviour, a key made on the creating machine, so the " +
+    "hosted FDE is the setup's; hosting a later own agent needs a command no pack lists. Every frozen claim keeps its " +
+    "world, because the worlds start Acme with `--no-fde` (organizations.startup-worlds).",
   source: FDE_RULING,
-  affects: [table_agents, machine_agent, workflow_agents_fde_follow_setup, rpc_agents_changes_create, table_org_setups, op.operation_agent_create],
+  affects: [table_agents, machine_agent, workflow_agents_fde_follow_setup, rpc_agents_changes_create, table_org_setups, table_org_fdes, op.operation_agent_create],
 });
 
 export const decision_agents_fde_authority = defineDecision({
@@ -712,12 +722,15 @@ export const decision_agents_fde_authority = defineDecision({
     {
       label: "seat-and-hats",
       text:
-        "It acts only through the CLI and SDK, signed in with its own key, as a member: it reads what any member reads, " +
-        "runs the commands any member may (projects, adding a Frappe app), and whatever the hats and allowances the Board " +
-        "grants it allow (Books to set up the chart, People to keep the contact book, an allowance to pay within its " +
-        "limit). It starts with no hat and no allowance. It may never be a Director or wear the Shareholders' top hat, " +
-        "approve or execute a Board proposal, sign the company Safe, change its own key, freeze, sweep or removal, raise " +
-        "or buy seats, connect or disconnect a head, or sit in another Organization.",
+        "It runs on Capxul's FDE host (aaron.fde-hosted), whose runtime holds its key, and acts only through the CLI and " +
+        "SDK, signed in with that key, as a member: it reads what any member reads, runs the commands any member may " +
+        "(projects' member commands), adds or removes a Frappe app (`org app add|remove`: a Director or the FDE, " +
+        "organizations.app-commands), and whatever the hats and allowances the Board grants it allow (Books to set up the " +
+        "chart, People to keep the contact book, an allowance to pay within its limit). It starts with no hat and no " +
+        "allowance. It may never be a Director or wear the Shareholders' top hat, approve or execute a Board proposal, " +
+        "sign the company Safe, change its own key, freeze, sweep or removal, raise or buy seats, pay its own hosting " +
+        "(`org fde pay` needs a person), connect or disconnect a head, ask itself (`org fde ask` is a Director's), or sit " +
+        "in another Organization.",
     },
     {
       label: "officer-at-start",
@@ -727,7 +740,8 @@ export const decision_agents_fde_authority = defineDecision({
   ],
   chosen: "seat-and-hats",
   why:
-    "For Aaron: whether the FDE starts with the officer hats. Under the seats ruling it is an agent like any other, so " +
+    "Accepted by Aaron as recommended (8 November 2026, sixth batch): the FDE starts with no hat. Under the seats ruling " +
+    "it is an agent like any other, so " +
     "its authority is what the chain lets its Safe do, and every action it takes is an ordinary command with its own " +
     "trace, refusals and evals; nothing it does is invisible to the Organization. Governing (the Board, the Safe, the " +
     "seats, a head that receives all the records) stays with people. Officer hats at start would let it set up the " +
@@ -735,7 +749,9 @@ export const decision_agents_fde_authority = defineDecision({
     "grant them in one Board proposal (`org member grant`) when the FDE asks. The cost is concrete: the books' chart " +
     "comes only from `org books accounts import`, which needs the Books hat, so with no hat the FDE's first sitting " +
     "either asks the founder to run the import or to grant it Books first. The People hat alone, which the CRM needs, is " +
-    "agents.fde-people-hat.",
+    "agents.fde-people-hat. Hosted by Capxul, whatever the Board grants it is exercised by a runtime Capxul operates for " +
+    "the Organization, which the Board can freeze, re-key or remove at any time; an app's add is the Organization's " +
+    "choice, so the FDE and a Director make it and no other member does (organizations.commands).",
   source: FDE_RULING,
   affects: [table_agents, table_org_members, concept_organizations, concept_projects],
 });

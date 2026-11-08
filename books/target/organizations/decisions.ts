@@ -85,8 +85,38 @@ import {
   table_org_heads,
   table_org_seat_purchases,
 } from "./data.ts";
-import { rpc_organizations_heads_ring } from "./heads.ts";
-import { workflow_organizations_heads_watch as workflow_heads_watch } from "./processes.ts";
+import {
+  rpc_organizations_heads_connect,
+  rpc_organizations_heads_disconnect,
+  rpc_organizations_heads_ring,
+  rpc_organizations_heads_show,
+} from "./heads.ts";
+import { workflow_organizations_fde_host, workflow_organizations_heads_watch as workflow_heads_watch } from "./processes.ts";
+import { rpc_organizations_apps_add, rpc_organizations_apps_list, rpc_organizations_apps_remove } from "./apps.ts";
+import { rpc_organizations_fde_ask, rpc_organizations_fde_show, rpc_organizations_fde_turn } from "./fde.ts";
+import { rpc_organizations_seats_show } from "./members.ts";
+import { flow_client_org_fde_ask, flow_client_org_head_connect } from "./flows.ts";
+import {
+  NEW_OPERATIONS,
+  operation_org_app_add,
+  operation_org_app_list,
+  operation_org_app_remove,
+  operation_org_fde_ask,
+  operation_org_fde_show,
+  operation_org_head_connect,
+  operation_org_head_disconnect,
+  operation_org_head_show,
+  operation_org_seats_show,
+} from "./operations.ts";
+import {
+  machine_fde_payment,
+  machine_org_fde,
+  table_org_fde_asks,
+  table_org_fde_payments,
+  table_org_fdes,
+} from "./data.ts";
+import { procedure_organizations_extend_fde_hosting, procedure_organizations_return_fde_hosting } from "./procedures.ts";
+import { concept_agents, concept_devnet, concept_payments } from "../shared/foundation.ts";
 
 const CLAUDE = "Claude, organizations design, 8 November 2026";
 const by = (evidence: string) => `${CLAUDE}; evidence: ${evidence}`;
@@ -812,12 +842,13 @@ export const decision_organizations_startup = defineDecision({
       label: "begin-and-reactions",
       text:
         "`begin`, in its one transaction, writes the Company's facts on the Organization (abbreviation, currency, time zone, " +
-        "fiscal-year start, from the country as ERPNext's setup wizard does), the app list (the fundamental apps installed " +
-        "and native, any other asked-for app wanted) and, with the founder's FDE key, the FDE's Party. Each fundamental " +
+        "fiscal-year start, from the country as ERPNext's setup wizard does) and the app list (the fundamental apps " +
+        "installed and native, any other asked-for app wanted); the setup's process asks Capxul's FDE host for the FDE " +
+        "(organizations.fde-at-start-up). Each fundamental " +
         "app's concept starts itself from the setup's `begin` transition where its frozen behaviour allows: payroll its " +
         "settings, projects its settings and starting types, and the CRM needs nothing written. Books keeps facts from the first money but " +
         "makes no chart until `org books accounts import` runs (frozen: no chart until one is made), which a Books-hat " +
-        "wearer runs in the first sitting. The install batch creates the FDE on chain.",
+        "wearer runs in the first sitting, with the hosted FDE (`org fde ask`). The install batch creates the FDE on chain.",
     },
     { label: "one-big-setup", text: "The setup process creates every app's starting records itself." },
     { label: "at-ready", text: "Nothing until the setup is ready; then each app starts." },
@@ -899,44 +930,54 @@ export const decision_organizations_apps_native_or_head = defineDecision({
 
 export const decision_organizations_fde_at_start_up = defineDecision({
   id: "organizations.fde-at-start-up",
-  title: "The founder's install signature also creates the FDE, from a key made locally",
+  title: "Start-up asks Capxul's FDE host for the FDE; the install batch creates it",
   question:
-    "aaron.fde-agent: every Organization has a Forward Deployed Engineer, its own agent (aaron.seats), acting through the " +
-    "same CLI and SDK under the Organization's authority. How is it born, and where is its key?",
+    "aaron.fde-agent: every Organization has a Forward Deployed Engineer, its own agent (aaron.seats). aaron.fde-hosted: " +
+    "it is not on the founder's machine but a durable agent on a durable runtime with sandboxes, which Capxul hosts and " +
+    "the Organization pays for. How is it born at start-up, and where is its key?",
   options: [
+    {
+      label: "hosted-key",
+      text:
+        "Unless the founder passes `--no-fde`, the setup's process, once the company Safe is the founder's, asks " +
+        "Capxul's FDE host (organizations.fde-host) to provision the Organization's FDE: the host makes its key, keeps " +
+        "it with the agent's runtime and answers only its address, as the backend sees only an address for every agent. " +
+        "In one transaction the setup records it, computes the FDE's Safe, registers its Party pending and births its " +
+        "hosting (`org-fdes`). The install batch adds `AgentOwner.create(that key, the company Safe)`, so the founder's " +
+        "one signature installs the company and creates the FDE; completion seats it as the Organization's own agent, " +
+        "and the hosting's process starts it on the host. Nothing is made or kept on the founder's machine.",
+    },
     {
       label: "install-batch",
       text:
-        "`org create`'s flow makes the FDE's key on the founder's machine (as `agent create` makes a key) and passes its " +
-        "address to `begin`; the setup adds `AgentOwner.create(that key, the company Safe)` to the founder's install batch, " +
-        "so one signature installs the company and creates the FDE; the setup seats it and agents records it. `--no-fde` " +
-        "starts without one, and a Director can later make one with `agent create --org`.",
+        "The earlier choice: `org create`'s flow makes the FDE's key on the founder's machine and passes its address to " +
+        "`begin`; the install batch creates the FDE, which runs there as the FDE plugin over the CLI.",
     },
     {
       label: "board-proposal-after",
-      text: "After the setup is ready, agents opens a Board proposal to create the FDE, which the founder approves.",
-    },
-    {
-      label: "hosted-key",
-      text: "A Capxul-hosted FDE runtime makes and keeps the key, and the setup asks it for the address (a new component and integration).",
+      text: "After the setup is ready, a Board proposal creates the FDE with a key the host made.",
     },
   ],
-  chosen: "install-batch",
+  chosen: "hosted-key",
   why:
-    "For Aaron: where the FDE runs. Before the install the founder's Safe is the company Safe's only owner, so the batch " +
-    "can call AgentOwner.create from the company Safe (AgentOwner requires the owner to call) with no Board proposal: no " +
-    "`owner-safe-proposals` gate, and no proposal holding the company Safe's next nonce, which would block every Board " +
-    "proposal after it until the founder answered. The key never reaches Capxul, as with every agent. With the key on the " +
-    "founder's machine the FDE runs there, as the FDE plugin over the CLI; moving it to a Capxul-hosted runtime later is " +
-    "a key rotation by the Board (`agent key rotate --org`) to a key that runtime made, so the hosted option is not " +
-    "closed. If Aaron wants every Organization's FDE hosted by Capxul from day one, the hosted-key option needs a new " +
-    "component and an `fde-host` integration (the shared designer's). Also for Aaron: the ruling says every " +
-    "Organization has an FDE, and `--no-fde` lets a founder start without one (the eval worlds need it, " +
-    "organizations.startup-worlds); keep it as a founder's choice, or make it a devnet-only flag?",
-  source: by("/home/user/factory/packages/contracts/v4/src/agents/AgentOwner.sol:82 (msg.sender == owner); books/target/board/procedures.ts (owner-safe-proposals, next nonce)"),
+    "Superseded by aaron.fde-hosted, which answered this record's question to Aaron (where the FDE runs): Capxul hosts " +
+    "it, so its key is the host's, never the founder's machine's. The install batch still carries the create: before the " +
+    "install the founder's Safe is the company Safe's only owner, so the batch calls AgentOwner.create from the company " +
+    "Safe (AgentOwner requires the owner to call) with no Board proposal holding the company Safe's next nonce until the " +
+    "founder answered. Asking the host after the mint, not at `begin`, keeps `begin` one transaction with no outside " +
+    "call and asks only for an Organization whose company Safe is the founder's; the provision is keyed by the " +
+    "Organization's id, so a retried step answers the same key, and a host outage past its retries stalls the setup " +
+    "like any provider (`org retry` asks again). Authority is unchanged (docs/design/authority.md): the company Safe owns " +
+    "the FDE, the Board grants its hats, it starts with none (agents.fde-authority) and is never a Director; what the " +
+    "Board grants it is exercised by a runtime Capxul operates, and the Board can freeze, re-key or remove it at any " +
+    "time. `--no-fde` stays: hosting is paid (organizations.fde-hosting), so a founder may decline it, and the eval " +
+    "worlds need Organizations without one (organizations.startup-worlds). An Organization started without one gets no " +
+    "hosted FDE later, since no pack lists a command for it; `agent create --org` still makes a self-run agent of its " +
+    "own, with its key on its creator's machine and no hosting to pay (agents.fde).",
+  source: by("books/target/shared/rulings.ts (aaron.fde-hosted, aaron.fde-agent); AgentOwner.sol:82 (msg.sender == owner); books/target/board/procedures.ts"),
   affects: [
-    table_org_setups, rpc_organizations_setups_begin, workflow_organizations_setups_set_up, flow_client_onboarding_begin_organization,
-    operation_org_create, contract_agent_owner,
+    table_org_setups, table_org_fdes, machine_org_fde, rpc_organizations_setups_begin, workflow_organizations_setups_set_up,
+    flow_client_onboarding_begin_organization, operation_org_create, contract_agent_owner,
   ],
 });
 
@@ -1135,18 +1176,26 @@ export const decision_organizations_commands = defineDecision({
   ],
   chosen: "apps-and-head",
   why:
-    "For Aaron: this is a decision pack, and the recommendation stands until he answers. The FDE acts through the same " +
-    "CLI as everyone (aaron.fde-agent), so whatever it may do must be a command; an FDE-only surface would put an " +
-    "unchecked path beside the CLI. Connecting a head hands the Organization's records to an outside system, so it is a " +
-    "Director's step, not the FDE's: the FDE prepares it and a Director runs it. Adding an app is reversible and moves no " +
-    "money, so the FDE may do it; any other member may not, because a connected head's host is then asked to install " +
-    "it (agents.fde-authority's 'any member may add an app' follows this). aaron.fde-hosted adds two commands no pack " +
+    "A decision pack under rules.new-operations, which Aaron accepted as recommended (8 November 2026, sixth batch), so " +
+    "its eight commands are booked as operations beyond the 215, with their claims, refusals and worlds " +
+    "(organizations.app-commands, organizations.head-commands, organizations.fde-commands, organizations.command-worlds). " +
+    "The FDE acts through the same CLI as everyone (aaron.fde-agent), so whatever it may do must be a command; an " +
+    "FDE-only surface would put an unchecked path beside the CLI. Connecting a head hands the Organization's records to " +
+    "an outside system, so it is a Director's step, not the FDE's: the FDE prepares it and a Director runs it. Adding an " +
+    "app is reversible and moves no money, so the FDE may do it; any other member may not, because a connected head's " +
+    "host is then asked to install it (agents.fde-authority follows this). aaron.fde-hosted adds two commands no pack " +
     "listed: the FDE runs on Capxul's host, not beside the founder's CLI, so the Organization needs `org fde show` to " +
     "see it and `org fde ask` to talk to it through Capxul's own sign-in. Asking is a Director's, because the FDE acts " +
-    "with the hats the Board granted it and whoever instructs it borrows them; for Aaron: or any member, with the FDE " +
-    "acting only within the asker's hats. Buying seats and paying the hosting are organizations.buy-seats'.",
+    "with the hats the Board granted it and whoever instructs it borrows them. The start-up's four (app list and add, " +
+    "FDE show and ask) are critical (organizations.command-priorities). Buying seats and paying the hosting are " +
+    "organizations.buy-seats', and organizations books that pack's `org seats show` (organizations.seats-show).",
   source: FRAPPE_RULINGS,
-  affects: [table_org_apps, table_org_heads, machine_org_app, machine_org_head, event_org_head_transitioned, system_capxul],
+  affects: [
+    table_org_apps, table_org_heads, table_org_fdes, table_org_fde_asks, machine_org_app, machine_org_head, event_org_head_transitioned,
+    rpc_organizations_apps_list, rpc_organizations_apps_add, rpc_organizations_apps_remove, rpc_organizations_heads_connect,
+    rpc_organizations_heads_show, rpc_organizations_heads_disconnect, rpc_organizations_fde_show, rpc_organizations_fde_ask,
+    rpc_organizations_fde_turn, flow_client_org_head_connect, flow_client_org_fde_ask, ...NEW_OPERATIONS, system_capxul,
+  ],
 });
 
 export const decision_organizations_startup_worlds = defineDecision({
@@ -1195,8 +1244,8 @@ export const decision_organizations_buy_seats = defineDecision({
         "`payments.prepare-command`'s rules (route budget, owner the Organization, one item to Capxul's receiving Safe for " +
         "n seats or months times the price, its source naming only the count), and its settlement invokes an " +
         "organizations door in the settling transaction with the command's owner as the Organization: " +
-        "`organizations.add-bought-seats` raises the limit, and the hosting door moves the FDE's paid-through day on by " +
-        "the months; each reversal on a reorg invokes its return door. So what was bought counts exactly when the " +
+        "`organizations.add-bought-seats` raises the limit, and `organizations.extend-fde-hosting` moves the FDE's " +
+        "paid-through instant on by the months (organizations.fde-hosting); each reversal on a reorg invokes its return door. So what was bought counts exactly when the " +
         "payment settles and only for the company that paid. The prices are the deployment settings SEAT_PRICE (10 USDC " +
         "a seat, paid once; a bought seat is kept for good) and FDE_HOSTING_PRICE (20 USDC a month) on the test USDC " +
         "(aaron.test-prices); a price unset for the budget's token is FEATURE_NOT_AVAILABLE.",
@@ -1217,29 +1266,28 @@ export const decision_organizations_buy_seats = defineDecision({
   ],
   chosen: "payments-command",
   why:
-    "For Aaron: who may buy (the People hat with the budget's own authority, or a Director by Board batch) and the " +
-    "commands' names; the prices are set (aaron.test-prices: a seat 10 USDC once, the hosted FDE 20 USDC a month). It is " +
-    "a decision pack under rules.new-operations: `org.seats.buy` and `org.fde.pay` (payments') and `org.seats.show` " +
-    "(organizations') cite aaron.buy-seats, aaron.fde-hosted and aaron.test-prices and are booked on this " +
-    "recommendation, which stands until he answers, in the commands pass, with claims and worlds; organizations has " +
-    "booked the purchases and their two doors. The FDE's hosting is paid on the same route because aaron.fde-hosted " +
-    "makes it a second thing an Organization buys from Capxul, from a budget, in a stablecoin, counted when it " +
-    "settles; by the month, in advance, so an unpaid month pauses the FDE without lowering anything already counted. " +
-    "Organizations cannot birth the payment: " +
-    "`payments.prepare-command` is a door of a concept above it, and depending on payments would be a cycle. For the " +
-    "same reason the limit can follow the payment only through a door payments invokes. Counting the seats in the " +
-    "settlement's own transaction keeps payments' one settlement path (payments.one-settlement-path), which the " +
-    "organizations-approval option would duplicate without a book fact, and makes 'raised once the payment settles' " +
-    "exact: no seat without its settled payment, none paid for and missing, and the reversal keeps that across a reorg. " +
-    "A request from Capxul would put an issuer in every purchase. A budget is the route the door already has. An agent " +
-    "never buys (agents.fde-authority). The Organization counted is the paying command's owner, never a value the " +
-    "source carries, so one company cannot raise another's limit (the ruling: a company buys for itself). A " +
-    "subscription needs a lapse that lowers a limit, which nothing designs yet.",
+    "A decision pack under rules.new-operations, which Aaron accepted as recommended (sixth batch); the prices are set " +
+    "(aaron.test-prices: a seat 10 USDC once, the hosted FDE 20 USDC a month). `org.seats.buy` and `org.fde.pay` " +
+    "(payments') and `org.seats.show` (organizations', organizations.seats-show) serve aaron.buy-seats, aaron.fde-hosted " +
+    "and aaron.test-prices; organizations books the purchases' two doors and the hosting's two " +
+    "(`organizations.extend-fde-hosting`, `organizations.return-fde-hosting`). Since a People-hat wearer holds no " +
+    "department or team office (ROLE_CONFLICT), a buyer spends from an allowance whose hat their Safe wears now, or one " +
+    "above it: a founder who wears only the People hat first has the Board make them an allowance " +
+    "(organizations.founder-people-hat). The hosting is paid on the same route because it is a second thing an " +
+    "Organization buys from Capxul, from a budget, in a stablecoin, counted when it settles; by the month, in advance " +
+    "(organizations.fde-hosting). Organizations cannot birth the payment: `payments.prepare-command` is a door of a " +
+    "concept above it, and depending on payments would be a cycle; so what was bought follows the payment only through a " +
+    "door payments invokes. Counting it in the settlement's own transaction keeps payments' one settlement path " +
+    "(payments.one-settlement-path) and makes 'counted once the payment settles' exact, across a reorg too. A request " +
+    "from Capxul would put an issuer in every purchase; a budget is the route the door already has. An agent never buys " +
+    "(agents.fde-authority). The Organization counted is the paying command's owner, never a value the source carries, " +
+    "so one company cannot buy for another. A seat subscription needs a lapse that lowers a limit, which nothing designs.",
   source: asmBy("books/target/shared/rulings.ts (aaron.buy-seats); books/target/payments/procedures.ts (payments.prepare-command)"),
   affects: [
     table_organizations, table_org_seat_purchases, machine_seat_purchase, event_seat_purchase_transitioned,
     procedure_organizations_add_bought_seats, procedure_organizations_return_bought_seats, rpc_organizations_seats_raise,
-    system_capxul,
+    procedure_organizations_extend_fde_hosting, procedure_organizations_return_fde_hosting, table_org_fde_payments,
+    rpc_organizations_seats_show, operation_org_seats_show, system_capxul,
   ],
 });
 
@@ -1336,4 +1384,324 @@ export const decision_organizations_head_users = defineDecision({
     workflow_heads_watch, integration_frappe_head, component_frappe_app, table_org_heads, table_org_members, concept_contacts,
     concept_payroll, concept_projects, concept_books,
   ],
+});
+
+// ── the commands pass: the new commands, the hosted FDE and its hosting (8 November 2026) ────
+
+const PASS = "Claude, organizations commands pass, 8 November 2026";
+const passBy = (evidence: string) => `${PASS}; evidence: ${evidence}`;
+const ALL_NEW = [...NEW_OPERATIONS, operation_org_seats_show];
+
+export const decision_organizations_app_commands = defineDecision({
+  id: "organizations.app-commands",
+  title: "Apps: any member lists; a Director or the FDE adds and removes, from a catalogue",
+  question:
+    "How do `org app list|add|remove` behave: who may run them, which app names are accepted, and what do adding twice " +
+    "and removing a fundamental app do?",
+  options: [
+    {
+      label: "catalogue",
+      text:
+        "`org app list` for any member. `org app add|remove` for a Director (the Director hat, read from indexing) or " +
+        "the Organization's own agent, its FDE (the Seat whose use is `organization`), as aaron.frappe-shape and " +
+        "aaron.fde-agent have the FDE add apps in conversation. An app is one of HEAD_APPS, the deployment's catalogue " +
+        "of published Frappe apps a host can install; any other name, or a fundamental app, is INVALID_INPUT at add. " +
+        "Adding an app already wanted or installed answers it as it stands; a removed one is wanted again. Removing a " +
+        "fundamental app is WRONG_STATE, and one the Organization never had INVALID_INPUT. None of them calls the head: " +
+        "the head connection's process installs what is wanted.",
+    },
+    { label: "any-name", text: "Accept any well-formed Frappe app name, so a self-hosted head's own app can be added; the host's installApp refuses one it lacks." },
+    { label: "members", text: "Any member adds an app (agents.fde-authority's earlier wording)." },
+  ],
+  chosen: "catalogue",
+  why:
+    "Other apps are added at start-up or in conversation with the FDE, so the FDE must be able to add one, and so must a " +
+    "person: a Director, because a connected head's host is then asked to install it, which is the Organization's " +
+    "choice (docs/design/new-commands.md section 3). The FDE is recognised by its Seat's use, so the guard needs no read " +
+    "of agents, which sits above. A catalogue answers the same before any head exists and lets an eval refuse a name; a " +
+    "self-hosted head's own app is its owner's to install and is the head's (organizations.apps-native-or-head). Adding " +
+    "twice being one want matches `want`, a birth. A fundamental app is in every Organization from its first day, so " +
+    "removing one asks for a state none may be in: WRONG_STATE, as G6 gives a forbidden transition.",
+  source: passBy("books/target/shared/rulings.ts (aaron.frappe-shape, aaron.fde-agent); docs/design/new-commands.md (G3, G4, G6, section 5.4)"),
+  affects: [
+    rpc_organizations_apps_list, rpc_organizations_apps_add, rpc_organizations_apps_remove, operation_org_app_list,
+    operation_org_app_add, operation_org_app_remove, table_org_apps, machine_org_app,
+  ],
+});
+
+export const decision_organizations_head_commands = defineDecision({
+  id: "organizations.head-commands",
+  title: "Head: a Director connects after a preview; any member reads; no secret in a flag",
+  question: "How do `org head connect|show|disconnect` behave, and where does the site's check happen?",
+  options: [
+    {
+      label: "flow-and-rpcs",
+      text:
+        "`org head connect` (aaron.frappe-head) is a flow: it reads the key and secret, and on Frappe Cloud the team's " +
+        "token and name, from a prompt or files; previews what is shared and asks; connects in one write that seals the " +
+        "secrets and births the connection, whose process checks the site; and follows `organizations.heads.show` live " +
+        "until connected or failing, ending with the issue's code (PROVIDER_ERROR unreachable; WRONG_STATE no Capxul " +
+        "app, another time zone or currency; ROLE_PERMISSION_DENIED a refused key). `org head show` is that read, once, " +
+        "for any member: the connection's own fields and the apps, never a secret, and not each app's sync position. " +
+        "`org head disconnect` is one rpc after the CLI's preview, keeping every record. Connect and disconnect are a " +
+        "Director's (the Director hat, from indexing), never an agent's.",
+    },
+    { label: "check-in-rpc", text: "The connect rpc reads the site before it writes (an action of class vendor), refusing a bad key at once." },
+  ],
+  chosen: "flow-and-rpcs",
+  why:
+    "Connecting hands the Organization's records to an outside system, so a person who governs runs it, a Director " +
+    "(organizations.head-connection); the FDE prepares it and asks. Leaving the check to the connection's process " +
+    "keeps the rpc one transaction and the check in one place, with the same reasons and retries on the first check as " +
+    "on any later one; the flow's live follow gives the person the answer the rpc would have. Secrets in flags end up " +
+    "in shell history and process lists (G5). Each app's sync position is in its own concept's tables, which " +
+    "organizations cannot read (P4): a member reads it through that app's records. Disconnecting keeps Capxul's " +
+    "records, which is what makes connecting safe to try.",
+  source: passBy("books/target/shared/rulings.ts (aaron.frappe-head); docs/design/new-commands.md (G5, section 5.4); organizations.head-connection"),
+  affects: [
+    rpc_organizations_heads_connect, rpc_organizations_heads_show, rpc_organizations_heads_disconnect, flow_client_org_head_connect,
+    operation_org_head_connect, operation_org_head_show, operation_org_head_disconnect, table_org_heads, machine_org_head,
+  ],
+});
+
+export const decision_organizations_fde_commands = defineDecision({
+  id: "organizations.fde-commands",
+  title: "FDE: any member sees it; a Director asks it; the host keeps the conversation",
+  question:
+    "The FDE now runs on Capxul's host, not beside the founder's CLI. How does the Organization see it and talk to it, " +
+    "and who may?",
+  options: [
+    {
+      label: "show-and-ask",
+      text:
+        "Under aaron.fde-hosted and aaron.fde-agent: `org fde show` for any member, from Capxul's own rows (the hosting, " +
+        "what was paid, who last asked) and the chain's (its hats), never a call to the host. `org fde ask <message>` " +
+        "for a Director: a flow that sends the message through `organizations.fde.ask` (the host's `send`; the ask " +
+        "recorded with the asker and the message's length and hash, never its text), waits for the FDE's turn and reads " +
+        "its reply through `organizations.fde.turn`; at the deadline it stops waiting and the FDE carries on. A " +
+        "provisioned, paused, resuming or retired FDE, or none, is WRONG_STATE.",
+    },
+    { label: "any-member", text: "Any member asks, and the host passes the asker's Seat so the FDE does for them only what their own hats allow." },
+    { label: "host-surface", text: "No ask command: people talk to the FDE on the host's own surface." },
+  ],
+  chosen: "show-and-ask",
+  why:
+    "The FDE acts with the hats the Board granted its Safe, so whoever instructs it borrows them; a Director may propose " +
+    "any grant anyway, so a Director asking borrows nothing they could not get (docs/design/new-commands.md section 7, " +
+    "question 1, accepted with organizations.commands). Any member asking would need the FDE to act within each asker's " +
+    "hats, which nothing on chain enforces: its Safe holds its own hats, whoever asks. A surface on the host alone would " +
+    "put an unchecked path beside the CLI, through which the FDE must act. Recording who asked, but not what, gives the " +
+    "Organization its audit beside the FDE's traced commands without copying the host's conversation into Capxul. The " +
+    "turn is a wait, never system time, so the command's budget is its two host calls.",
+  source: passBy("books/target/shared/rulings.ts (aaron.fde-agent, aaron.fde-hosted); docs/design/new-commands.md (sections 5.4 and 7)"),
+  affects: [
+    rpc_organizations_fde_show, rpc_organizations_fde_ask, rpc_organizations_fde_turn, flow_client_org_fde_ask,
+    operation_org_fde_show, operation_org_fde_ask, table_org_fde_asks, table_org_fdes,
+  ],
+});
+
+export const decision_organizations_seats_show = defineDecision({
+  id: "organizations.seats-show",
+  title: "`org seats show`: the limit, what uses it, what was bought, and the seat price",
+  question: "A company buys more seats itself. Which command shows where it stands before it buys?",
+  options: [
+    {
+      label: "show",
+      text:
+        "`org seats show` (aaron.buy-seats), for any member, one rpc over organizations' own rows: the limit, the Seats " +
+        "that count one and the offers that reserve one, whether its own agent holds its place, the seats bought, who " +
+        "last raised it, and SEAT_PRICE (null when unset).",
+    },
+    { label: "in-org-show", text: "Add the seats to `org show`'s output." },
+  ],
+  chosen: "show",
+  why:
+    "The grammar's singleton read (G3 `show`), booked by the concept that holds the limit: organizations.buy-seats puts " +
+    "`org seats show` here and `org seats buy` in payments. `org show` is a frozen operation whose output is the " +
+    "setup's, and a new capability does not reshape it. The price is the deployment's SEAT_PRICE (10 USDC, paid once), " +
+    "so a buyer sees the cost before payments' command is born.",
+  source: passBy("books/target/shared/rulings.ts (aaron.buy-seats, aaron.test-prices); docs/design/new-commands.md (section 5.5)"),
+  affects: [rpc_organizations_seats_show, operation_org_seats_show, table_organizations, table_org_seat_purchases],
+});
+
+export const decision_organizations_fde_host = defineDecision({
+  id: "organizations.fde-host",
+  title: "Capxul's FDE host is swarmD: a component and the `fde-host` integration",
+  question:
+    "The FDE is a durable agent on a durable runtime with sandboxes, which Capxul runs for each Organization. What is " +
+    "that runtime in the book, and how does the backend reach it?",
+  options: [
+    {
+      label: "swarmd",
+      text:
+        "For aaron.fde-hosted: a component `fde-host`, Capxul's own swarmD namespace on Cloudflare (durable agents on " +
+        "pi-durable, each worker with its own sandbox): one persistent worker per Organization's FDE, keyed " +
+        "`fde:<orgId>`, whose instructions are Capxul's FDE persona and Frappe skills and whose tool is the Capxul CLI " +
+        "signed in with the FDE's key (aaron.machine-login). The backend reaches it through an integration `fde-host` " +
+        "(Effect service `FdeHost`) with calls `provision` (make the agent and its key, keep the key in the host's " +
+        "secret store, answer the key's address), `start`, `pause`, `resume`, `retire`, `send` (post a message with " +
+        "its asker; answer the turn) and `turn` (a turn's state and reply), each idempotent by the agent id. Failures " +
+        "map as other vendors': unreachable PROVIDER_ERROR, 429 RATE_LIMITED, an undecodable answer " +
+        "PROVIDER_RESPONSE_INVALID. Config FDE_HOST_URL; secret FDE_HOST_TOKEN. Its devnet fake is a stand-in host " +
+        "(devnet.fde-host-stand-in).",
+    },
+    { label: "own-containers", text: "A container per Organization on Capxul's own servers, with a scheduler Capxul writes." },
+    { label: "founder-machine", text: "Keep the FDE beside the founder's CLI, the earlier choice, which the hosting ruling rules out." },
+  ],
+  chosen: "swarmd",
+  why:
+    "swarmD is what the ruling describes: a durable agent whose conversation survives restarts in a Durable Object, a " +
+    "sandbox per worker restored from a snapshot, secrets added on the way out so they never enter the sandbox, and an " +
+    "SDK, CLI and MCP surface for the backend; Capxul's own build already runs on it (swarm.superset). Booking the host " +
+    "as an integration keeps every outside call named (CONVENTIONS rule 9): the setup's provision, the hosting process's " +
+    "start, pause, resume and retire, and the ask's send and turn. The backend sees only the FDE key's address, as for " +
+    "every agent. For the shared designer: book component `fde-host` and integration `fde-host` in shared/foundation.ts " +
+    "and shared/external.ts, with FDE_HOST_URL and FDE_HOST_TOKEN in the environments. Until then organizations names " +
+    "the calls in its records' `about` and lists their failures in `errors`; wiring each into `calls` is the next step.",
+  source: passBy("books/target/shared/rulings.ts (aaron.fde-hosted, aaron.machine-login); /home/user/swarmd/docs/SPEC.md (B.15, B.16)"),
+  affects: [
+    system_capxul, table_org_fdes, workflow_organizations_fde_host, workflow_organizations_setups_set_up, rpc_organizations_fde_ask,
+    rpc_organizations_fde_turn, concept_agents,
+  ],
+});
+
+export const decision_organizations_fde_hosting = defineDecision({
+  id: "organizations.fde-hosting",
+  title: "The FDE is paid a month ahead from a budget; an unpaid month pauses it",
+  question:
+    "The Organization pays Capxul for hosting its FDE, FDE_HOSTING_PRICE a month, a deployment setting. How is it " +
+    "charged each month through `payments.prepare-command`, and what happens when it is not paid?",
+  options: [
+    {
+      label: "in-advance",
+      text:
+        "Under aaron.fde-hosted and aaron.test-prices, in advance by the calendar month, from a budget: `org fde pay " +
+        "[<months>] --from <budget>` (payments', organizations.buy-seats) births one command through " +
+        "`payments.prepare-command` (route budget, owner the Organization, one item to Capxul's receiving Safe for the " +
+        "months times FDE_HOSTING_PRICE, its source naming only the months, 1 to 12), signed by a person Budgets.authorised " +
+        "admits on the budget. Its settlement invokes `organizations.extend-fde-hosting`, moving `paid_through` on from " +
+        "the later of `paid_through` and the settlement; a reorg's reversal invokes `organizations.return-fde-hosting`. " +
+        "The first month is the start-up's, from the setup's readiness. Each month the hosting falls due seven days " +
+        "before `paid_through`, and notices reminds the Directors with the command to run. Unpaid at `paid_through`, the " +
+        "host pauses the FDE: it takes no turn and its sandbox stops; the host keeps its key, conversation and " +
+        "workspace; nothing on chain changes; `org fde ask` is WRONG_STATE. Paying again wakes it and the host resumes " +
+        "it. A paused FDE is kept until paid or removed by the Board. With no price set, hosting is not charged.",
+    },
+    {
+      label: "standing-agreement",
+      text: "A standing agreement from a department's budget to Capxul's receiving Safe at the monthly rate, which Capxul collects and the department may end.",
+    },
+    { label: "dated-payments", text: "`org fde pay --monthly` schedules a dated payment for each month (Budgets.schedule), executed on its day by anyone." },
+    { label: "grace", text: "As in-advance, but the first month is due at once, with seven days' grace before the pause." },
+  ],
+  chosen: "in-advance",
+  why:
+    "Paying in advance through `payments.prepare-command` is the route seats already take: one settlement path, one " +
+    "book fact, counted only when the payment settles and only for the Organization that paid, and nothing for Capxul " +
+    "to collect. The payment is the department's whose budget pays: whoever wears its hat, or one above it, now " +
+    "(docs/design/authority.md); the FDE never pays for itself, as no agent buys from Capxul (G4). A standing agreement " +
+    "makes Capxul a payee that must collect, and dated payments reserve a budget's room months ahead, which a department " +
+    "would not expect. Pausing, not retiring, keeps what the FDE learnt and changes nothing on chain, so its authority " +
+    "is as before when it resumes; months run from the payment, so a pause is never charged. The start-up month exists " +
+    "because the FDE must set the Organization up before anyone can pay: at the install the company's top budget is 0 " +
+    "and no budget is funded. No price, no charge, so `org fde pay`'s FEATURE_NOT_AVAILABLE means what it says. For " +
+    "payments' booking of `org fde pay`: check a hosting that is not retired and a price set before the command is born.",
+  source: passBy("books/target/shared/rulings.ts (aaron.fde-hosted, aaron.test-prices, aaron.departments); payments.prepare-command"),
+  affects: [
+    table_org_fdes, table_org_fde_payments, machine_org_fde, machine_fde_payment, procedure_organizations_extend_fde_hosting,
+    procedure_organizations_return_fde_hosting, workflow_organizations_fde_host, operation_org_fde_show, concept_payments,
+    concept_notices,
+  ],
+});
+
+export const decision_organizations_command_priorities = defineDecision({
+  id: "organizations.command-priorities",
+  title: "The start-up's commands are critical: app list and add, FDE show and ask",
+  question:
+    "The grammar makes every new command normal; the commands pass marks the ones a pilot or a start-up needs critical. " +
+    "Which of organizations' nine?",
+  options: [
+    {
+      label: "start-up",
+      text:
+        "Four: `org fde show` and `org fde ask`, since under aaron.fde-hosted the founder reaches the FDE, which sets " +
+        "the Organization up, only through them; and `org app list` and `org app add`, since aaron.fde-agent has the FDE " +
+        "add the apps a business needs in that conversation. The head's three, `org app remove` and `org seats show` are " +
+        "normal: a head connects as a separate step (aaron.frappe-head), and a start-up has ten seats.",
+    },
+    { label: "none", text: "Every command normal, as G8 has it." },
+  ],
+  chosen: "start-up",
+  why:
+    "With the FDE on Capxul's host, `org fde ask` is how a founder's first sitting happens at all, and the start-up step " +
+    "is where the FDE adds the apps beyond the fundamental ones. Critical orders the build's work and the evals a " +
+    "start-up depends on; it changes no budget. projects.critical-commands does the same for a pilot's first engagement.",
+  source: passBy("docs/design/new-commands.md (G8); books/target/shared/rulings.ts (aaron.fde-hosted, aaron.fde-agent, aaron.frappe-head)"),
+  affects: ALL_NEW,
+});
+
+export const decision_organizations_command_worlds = defineDecision({
+  id: "organizations.command-worlds",
+  title: "Seven worlds for the new commands: a head's site, a head, a hosted FDE's states",
+  question: "Which worlds do the nine commands' claims and refusals start from?",
+  options: [
+    {
+      label: "reuse-and-six",
+      text:
+        "Reuse signed-out, two-founders (an outsider names Acme), org-ready (a Director, no head, no FDE), " +
+        "org-with-member (Sam, a member with no hat; Olga outside) and org-with-pending-invitation. Ask devnet for: " +
+        "org-with-head-site (org-with-member plus a stand-in Frappe site for Acme, up and not connected), org-with-head " +
+        "(that site connected by Dana), org-with-head-site-down (the site's fault switch down), org-with-fde (rebuilt " +
+        "for the hosted FDE of aaron.fde-hosted: its key with the stand-in host, its hosting running in its start-up " +
+        "month), org-with-fde-paused (org-with-fde warped past its paid-through instant, unpaid) and " +
+        "org-with-fde-host-down (org-with-fde with the stand-in host's fault switch down); and org-with-fde-allowance " +
+        "(org-with-fde, funded, with an allowance Dana wears), from which a hosting payment, and payments' `org fde pay` " +
+        "and `org seats buy`, start.",
+    },
+    { label: "steps-in-evals", text: "Each eval connects a site or warps the FDE itself, from org-ready or org-with-fde." },
+  ],
+  chosen: "reuse-and-six",
+  why:
+    "Each refusal needs a state no catalogued world holds: a site to connect, a live head, a hosted FDE paused or " +
+    "unreachable. Building the head worlds from org-with-member keeps Sam (no Director hat) and Olga (outside) in each, " +
+    "so the authority refusals need no world of their own. The paused world is a warp, so it proves the lapse on the " +
+    "one clock (devnet.warp-barrier). A world is shared by every claim that starts from it, so building each once is " +
+    "cheaper than repeating its steps in each eval.",
+  source: passBy("books/target/devnet/worlds.ts; devnet.head-stand-in; devnet.fde-host-stand-in; aaron.fde-hosted"),
+  affects: [...ALL_NEW, concept_devnet],
+});
+
+export const decision_organizations_founder_people_hat = defineDecision({
+  id: "organizations.founder-people-hat",
+  title: "A founder wears the People hat, so holds no department until it is revoked",
+  question:
+    "The setup mints the People hat to the founder (the founder wears Books, Invoicing and People), and a People-hat " +
+    "wearer may hold no department or team office (ROLE_CONFLICT: budgets.role-conflict-people-hat, " +
+    "board.people-hat-role-conflict). People are swapped in and out of departments by hat. What may a founder do with " +
+    "a department's money, and where is that said?",
+  options: [
+    {
+      label: "keep-and-state",
+      text:
+        "Keep both (aaron.departments), and say the consequence in the founder's journey: while the founder wears the " +
+        "People hat they are never swapped into a department or team. They pay as the Board (while the only Director, a " +
+        "Board proposal needs only their signature) or from an allowance, whose hat sits under the Board's top hat and " +
+        "is no office, and they offer agreements only from an allowance. To run a department themselves, the Board " +
+        "first grants the People hat to another member and revokes the founder's.",
+    },
+    { label: "founder-exempt", text: "Exempt the founder from ROLE_CONFLICT." },
+    { label: "no-people-at-setup", text: "The setup mints no People hat to the founder." },
+  ],
+  chosen: "keep-and-state",
+  why:
+    "The frozen behaviour holds both: org-ready's founder wears the three officer hats, and ROLE_CONFLICT is a frozen " +
+    "refusal, the separation of duties between who manages people and who spends a department's money. On v4 the " +
+    "People hat grants no money authority (offices and allowances are minted by the Board or an office above), so the " +
+    "conflict guards a product rule, not a chain power (docs/design/authority.md). A solo founder is not blocked: as the " +
+    "Board they pay, schedule and create budgets with their one signature, and an allowance gives them a budget of their " +
+    "own to spend from, which is also what `org seats buy` spends (organizations.buy-seats). Exempting the founder would " +
+    "empty the rule for the person it most often meets; minting no People hat would break the frozen worlds and leave " +
+    "nobody able to invite. So the rule stays and is said where a founder meets it.",
+  source: passBy("docs/design/authority.md (contradiction 9); budgets.role-conflict-people-hat; board.people-hat-role-conflict; aaron.departments"),
+  affects: [workflow_organizations_setups_set_up, table_org_deployments, concept_budgets, concept_board],
 });

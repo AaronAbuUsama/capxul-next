@@ -788,6 +788,10 @@ export const operation_org_fde_show = defineOperation({
       "cli: from org-ready (founded with `--no-fde`), `org fde show --json` prints null.",
     ),
     claim(
+      "A settled hosting payment moves the paid-through instant on by whole calendar months, counted once.",
+      "cli: from org-with-fde-allowance, after Dana's `org fde pay 2 --from capxul` settles, `org fde show --json` prints monthsPaid 2, lastPaidAt the settlement's time and paidThrough two calendar months after the start-up month's end; the same payment's settlement replayed changes nothing.",
+    ),
+    claim(
       "A month left unpaid pauses the FDE on the host, and nothing on chain changes.",
       "cli: from org-with-fde-paused, `status: paused` with pausedAt equal to paidThrough; read: `org member list` still lists the FDE's Seat and `agent show @acme-fde --org acme` still prints it active.",
     ),

@@ -33,6 +33,9 @@ export const rpc_payroll_structures_component = defineRpc({
   title: "Add or change a salary component",
   about:
     HR_GUARD +
+    "Without `componentId` it adds one, which needs a name, an abbreviation, a type and an `amount` or a `formula` " +
+    "(INVALID_INPUT naming what is missing); with it (the component's `sc_` id or abbreviation, INVALID_INPUT for one " +
+    "that is not the Organization's) only the fields given change, `disabled` among them. " +
     "A component has a name and an abbreviation unique in the Organization (INVALID_INPUT naming the other), a type, " +
     "and either a fixed `amount` or a `formula`, with an optional `condition`. Each is parsed: one inside the portable " +
     "subset (numbers, the arithmetic and comparison operators, `and`, `or`, `not`, `x if c else y`, the names `base`, " +
@@ -47,8 +50,10 @@ export const rpc_payroll_structures_component = defineRpc({
     "contribution's `account` under Expenses, a deduction's `account` under Liabilities, and `liabilityAccount`, under " +
     "Liabilities, only an employer contribution's (INVALID_INPUT otherwise); left out, or before the chart, they are " +
     "null and the accrual posts to the line's role's account (payroll.books-accounts). " +
-    "A change to an existing component affects only slips worked out after it, as in Frappe; the agreement component " +
-    "cannot be changed except its accounts (INVALID_INPUT).",
+    "A change reaches only structures created after it: a submitted structure keeps its own rows, as Frappe's Salary " +
+    "Detail rows keep what they copied, so no slip of a structure already made changes. A disabled component is taken " +
+    "by no new structure, and enabled again it may be. The agreement component cannot be changed except its accounts " +
+    "(INVALID_INPUT).",
   was: [`${FRAPPE}/salary_component/salary_component.json`, `${FRAPPE}/salary_component/salary_component.py`, "/tmp/hrms/hrms/payroll/utils.py:57"],
   concept: concept_payroll,
   kind: "mutation",

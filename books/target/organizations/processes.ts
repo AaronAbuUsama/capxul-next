@@ -176,9 +176,9 @@ export const workflow_organizations_setups_set_up = defineWorkflow({
     contract_agent_owner.f.safeAddressFor,
   ],
   idempotency:
-    "One process per Organization (`org-setup:<orgId>`). The mint and deployMoney are each sent once: the service signer " +
-    "records the signed bytes before broadcast and looks a lost answer up by hash (CAP-1097); one install approval at a " +
-    "time. The host's provision is keyed by the Organization's id, so asking again answers the same FDE and key.",
+    "One process per Organization (`org-setup:<orgId>`). The mint and deployMoney are each sent once (the service " +
+    "signer records the signed bytes before broadcast, CAP-1097); one install approval at a time; the host's provision " +
+    "is keyed by the Organization's id.",
   timeoutMs: 30 * DAY,
   retries: { max: 5, backoff: "exponential" },
   compensation:
@@ -448,9 +448,8 @@ export const workflow_organizations_fde_host = defineWorkflow({
   calls: [],
   chain: [],
   idempotency:
-    "One process per Organization's hosted FDE (`org-fde:<orgId>`); every transition is guarded by the state it moves " +
-    "from, and the host's start, pause, resume and retire are keyed by the host's agent id, so a replayed step asks for " +
-    "what is already so and changes nothing.",
+    "One process per hosted FDE (`org-fde:<orgId>`); each transition is guarded by the state it moves from, and the " +
+    "host's start, pause, resume and retire are keyed by its agent id, so a replayed step changes nothing.",
   timeoutMs: 3650 * DAY,
   retries: { max: 5, backoff: "exponential" },
   budget: budget("background"),

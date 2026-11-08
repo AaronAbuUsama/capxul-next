@@ -12,7 +12,7 @@ import {
   error_INVALID_INPUT,
   error_INVALID_RECIPIENT,
   error_NOT_AUTHENTICATED,
-  error_PAYER_BALANCE_TOO_LOW,
+  error_INSUFFICIENT_BALANCE,
   error_PAYROLL_BUDGET_EXCEEDED,
   error_PROVIDER_ERROR,
   error_PROVIDER_RESPONSE_INVALID,
@@ -45,15 +45,26 @@ const PayInput = Schema.Struct({
   payrollEntryId: Schema.String,
   /** Only these slips, each submitted with no live Payment (released, refunded, or lapsed); absent: every submitted slip of a submitted run. */
   salarySlipIds: Schema.optionalKey(Schema.Array(Schema.String)),
+  /** `--request-key`: asking again with the same key returns the command and approval it began, never a second. */
+  requestKey: Schema.optionalKey(Schema.String),
+});
+
+/** What `org payroll run pay` gives the SDK method: the rpc's input, and how long to follow it. */
+const PayFlowInput = Schema.Struct({
+  ...PayInput.fields,
+  /** `--timeout-seconds`: how long to follow the run before returning with it still paying. */
+  timeoutSeconds: Schema.optionalKey(Schema.Int),
+  /** `--no-wait`: return at the approval, with its link and `next`. */
+  noWait: Schema.optionalKey(Schema.Boolean),
 });
 
 export const rpc_payroll_runs_pay = defineRpc({
   id: "payroll.runs.pay",
   title: "Pay a submitted run: one payment command, one approval, every net",
   about:
-    "Whoever Budgets authorises on the run's department budget pays it: its office holder or anyone above, an agent " +
-    "whose Seat holds its allowance, or the Organization's own agent (ROLE_PERMISSION_DENIED otherwise, read from the " +
-    "chain). Which slips: with none named, every submitted slip of a `submitted` run; named, slips of a `submitted`, " +
+    "Whoever `Budgets.authorised` admits on the run's department budget now pays it: a wearer in good standing of its " +
+    "hat or of an ancestor's, person or agent (the FDE only by a hat the Board granted it), read from the chain at the " +
+    "call (ROLE_PERMISSION_DENIED otherwise). The hat decides: a holder swapped out cannot pay, the next can. Which slips: with none named, every submitted slip of a `submitted` run; named, slips of a `submitted`, " +
     "`paying` or `paid` run that are each `submitted` (WRONG_STATE otherwise). One call is one command. When the slips " +
     "hold Payments their command's approval lapsed (`needs_retry`), it resumes that command: `payments.prepare-command` " +
     "under the same key with `resume`, the same items and payment ids and one new approval, so a lapse can never pay " +
@@ -66,14 +77,17 @@ export const rpc_payroll_runs_pay = defineRpc({
     "an Employee with no account yet goes as their mailbox, which payments pays into a claim escrow from the budget " +
     "(aaron.budget-pay-unclaimed). The command carries nets only: a deduction's payee is paid outside the run " +
     "(payroll.deduction-remittance). Funding is read first: `leftOf` must cover the total (PAYROLL_BUDGET_EXCEEDED) and " +
-    "the company Safe hold it (PAYER_BALANCE_TOO_LOW). Then, in one transaction, the command is born or resumed, purpose " +
+    "the company Safe hold it (INSUFFICIENT_BALANCE, as `payment send` from a budget: payroll.run-pay-codes). The same " +
+    "`requestKey` again returns the command it began, `replayed`. Then, in one transaction, the command is born or resumed, purpose " +
     "payroll, route budget, with one approval from the caller's own Safe for every item (K1: asking twice pays once); a " +
     "submitted run moves to `paying` (payroll-entry.pay), a paid one reopens (payroll-entry.reopen), a paying one stays, " +
     "and each slip moves to `paying` (salary-slip.pay) with its payment id, command and attempt.",
   was: [`${FRAPPE}:1093`, `${FRAPPE}:1196`],
   concept: concept_payroll,
   kind: "action",
-  who: "A signed-in member, person or agent, whose own Safe Budgets authorises on the run's department budget.",
+  who:
+    "A signed-in member, person or agent, whose own Safe `Budgets.authorised` admits on the run's department budget " +
+    "now: a wearer of its hat or of the hat of a budget above it. Never the Board, which spends from no budget.",
   input: PayInput,
   output: Schema.Struct({ run: Run, approvalId: Schema.String, expiresAt: Schema.String, replayed: Schema.Boolean }),
   errors: [
@@ -83,7 +97,7 @@ export const rpc_payroll_runs_pay = defineRpc({
     error_WRONG_STATE,
     error_INVALID_RECIPIENT,
     error_PAYROLL_BUDGET_EXCEEDED,
-    error_PAYER_BALANCE_TOO_LOW,
+    error_INSUFFICIENT_BALANCE,
     error_PROVIDER_ERROR,
     error_PROVIDER_RESPONSE_INVALID,
   ],
@@ -109,7 +123,7 @@ export const workflow_payroll_runs_lifecycle = defineWorkflow({
     "(the payment id, `settled_tx_hash`, block number and `settled_at`, the block's time); `needs_retry` (the approval " +
     "lapsed unsent) moves that command's paying slips back to `submitted`, keeping their payment ids for " +
     "`runs.pay` to resume the same command, and the run back to `submitted` when nothing of it is paid or escrowed; " +
-    "`cancelled` with outcome refunded (the budget's holder or the Board took an escrow back) moves its slip back to " +
+    "`cancelled` with outcome refunded (a wearer of the budget's hat or one above it, or the Board, took an escrow back) moves its slip back to " +
     "`submitted` with its payment fields cleared, owed again; `unsettle` (a reorg) moves a paid slip back to `paying` " +
     "and a paid run with it, until it settles again. When every slip that is not withheld is paid the run is `paid` " +
     "(payroll-entry.settle). It ends when every slip of the run is paid (none withheld, released, escrowed or owed " +
@@ -158,11 +172,13 @@ export const flow_client_org_payroll_runs_pay = defineFlow({
   about:
     "Pays a submitted run as one payment command, resumes its lapsed command, or pays named released or refunded slips " +
     "under the next attempt: the caller signs one approval for every slip's net (an agent with its own key, a person on " +
-    "the approval page), and the flow follows the run until each slip is paid or escrowed.",
+    "the approval page), and the flow follows the run until each slip is paid or escrowed, or `timeoutSeconds` passes. " +
+    "With `noWait` it returns at the approval, with `capxul payment wait <approvalId>` as `next`. It serves " +
+    "`org payroll run pay`, the SDK and the web app.",
   component: component_core_sdk,
   sdk: "client.org(orgId).payroll.runs.pay",
-  input: PayInput,
-  output: Schema.Struct({ run: Run, approvalId: Schema.String }),
+  input: PayFlowInput,
+  output: Schema.Struct({ run: Run, approvalId: Schema.String, next: Schema.NullOr(Schema.Array(Schema.String)) }),
   steps: [
     { name: "prepare", rpc: rpc_payroll_runs_pay, about: "Runs payroll.runs.pay: the checks, the command and its one approval." },
     SPONSORED,
@@ -174,6 +190,6 @@ export const flow_client_org_payroll_runs_pay = defineFlow({
   errors: FLOW_ERRORS,
   calls: [],
   spans: [],
-  surfaces: ["sdk", "react"],
+  surfaces: ["cli", "sdk", "react"],
   budget: budget("chain-submit"),
 });

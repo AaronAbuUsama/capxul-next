@@ -51,7 +51,7 @@ export const rpc_payroll_runs_create = defineRpc({
     HR_GUARD +
     "The department is one of the Organization's budgets (INVALID_INPUT); the period's days are calendar days, the end " +
     "on or after the start (INVALID_INPUT). A run's Employee has a submitted assignment on or before the period's end " +
-    "whose structure pays at the run's frequency and in the department budget's token, and which mirrors no agreement: " +
+    "whose structure pays at the run's frequency (monthly unless given) and in the department budget's token, and which mirrors no agreement: " +
     "an agreement pays itself on chain, never through a run. With none named, the run takes the department's `active` " +
     "Employees that have one and lists the rest as left out; a named Employee without one, or not the department's, is " +
     "INVALID_INPUT. An Employee with a live run slip whose period overlaps is WRONG_STATE naming that run, a stricter " +

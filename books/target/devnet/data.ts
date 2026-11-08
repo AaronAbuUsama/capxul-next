@@ -1,9 +1,9 @@
 // Devnet's tables: what the integrations' devnet fakes read and write, and what the devnet tools
-// script. Nothing here exists on staging or production: the seven tables live in Postgres' own
+// script. Nothing here exists on staging or production: the eight tables live in Postgres' own
 // `devnet` schema, which only the devnet build of the backend migrates (decision devnet.own-schema),
 // so devnet-only data never enters the production schema. They sit inside the same Postgres server,
 // so a world's snapshot carries them with the concepts' tables: a restored world brings back its mail,
-// its armed faults, its scripted gates, its scripted rates and its stand-in Frappe heads (their
+// its armed faults, its scripted gates, its scripted rates, its stand-in FDE host (decision devnet.fde-host-stand-in) and its stand-in Frappe heads (their
 // documents, their own users' edits and their fault switches; decision devnet.head-stand-in).
 //
 // No table here has a lifecycle, so devnet has no state machine and sends no event (decision
@@ -278,4 +278,40 @@ export const table_head_changes = defineTable({
   key: ["site_url", "seq"],
   indexes: [],
   retention: "Kept for the world's life, with its site: it is the order listChanges replays.",
+});
+
+// ── the stand-in FDE host (devnet.fde-host-stand-in) ────────────────────────────────────────
+
+export const table_fde_host_agents = defineTable({
+  id: "fde-host-agents",
+  title: "FDE host agents: each stand-in hosted FDE, its key, state and fault switch",
+  about:
+    "The stand-in FDE host (the `fde-host` integration's devnet fake, served by the supervisor on loopback; " +
+    "organizations.fde-host) keeps one row per hosted FDE it provisioned: the agent id (`fde:<orgId>`), the devnet key " +
+    "it made for it, kept here and never returned to the backend but its address, its state (provisioned, running, " +
+    "paused, retired), and its turns as scripted replies: a message is answered at the next stop with the FDE's " +
+    "scripted reply, so an eval reads a fixed answer. `capxul-devnet fde run <org> -- <command>` runs a Capxul command " +
+    "as the FDE, signed with its key, as the hosted FDE's own tool would. `capxul-devnet fault fde-host <mode>` arms " +
+    "its switch: `down` (every call is PROVIDER_ERROR), `hold` (turns stay working until cleared) or `clear`. It joins " +
+    "the clock as a follower, idle when no turn is due. " +
+    DEVNET_ONLY,
+  was: ["organizations.fde-host", "books/target/shared/rulings.ts (aaron.fde-hosted)"],
+  concept: concept_devnet,
+  tenancy: "global",
+  fields: Schema.Struct({
+    agent_id: S,
+    org_id: S,
+    /** The devnet key it made: a fixed devnet value derived from the agent id, so a rebuilt world makes the same one. */
+    private_key: S,
+    signer_address: S,
+    state: Schema.Literals(["provisioned", "running", "paused", "retired"]),
+    /** Turns asked and not yet answered, by turn id, with the reply each will get. */
+    turns: Schema.Array(Schema.Struct({ turn_id: S, status: Schema.Literals(["working", "ended", "failed"]), reply: Schema.NullOr(S) })),
+    fault: Schema.Literals(["none", "down", "hold"]),
+    created_at: Instant,
+    updated_at: Instant,
+  }),
+  key: ["agent_id"],
+  indexes: [{ name: "by_org", fields: ["org_id"], for: "`capxul-devnet fde run <org>`: the Organization's stand-in FDE." }],
+  retention: "Kept for the world's life; a restore puts back the stand-in FDE the world had, with its key.",
 });

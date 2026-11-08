@@ -26,6 +26,7 @@ import {
   integration_posthog,
 } from "../shared/external.ts";
 import {
+  table_fde_host_agents,
   table_head_changes,
   table_head_documents,
   table_head_sites,
@@ -34,7 +35,8 @@ import {
   table_scripted_gates,
   table_scripted_prices,
 } from "./data.ts";
-import { operation_org_create } from "../organizations/operations.ts";
+import { NEW_OPERATIONS as ORG_NEW_OPERATIONS, operation_org_create, operation_org_seats_show } from "../organizations/operations.ts";
+import { concept_organizations } from "../shared/foundation.ts";
 import { rpc_organizations_heads_ring } from "../organizations/heads.ts";
 import { rpc_devnet_mail_fail, rpc_devnet_mail_list, rpc_devnet_mail_list_notices } from "./mail.ts";
 import { rpc_devnet_gates_read, rpc_devnet_gates_script } from "./gates.ts";
@@ -1231,4 +1233,73 @@ export const decision_devnet_payslip_world = defineDecision({
     "is submitted, not paid: the payslip is stored at submit.",
   source: WORLD_GROUP("documents.acceptance-rewrites; documents.payslip-kind; books/target/payroll/flows.ts (client.org.payroll.*)"),
   affects: [concept_devnet, concept_documents, concept_payroll],
+});
+
+// ── the commands pass (8 November 2026): the head's and the hosted FDE's worlds ─────────────
+
+const COMMANDS = (evidence: string) => `Claude, organizations commands pass, 8 November 2026; evidence: ${evidence}`;
+
+export const decision_devnet_fde_host_stand_in = defineDecision({
+  id: "devnet.fde-host-stand-in",
+  title: "The stand-in FDE host: devnet keys, scripted replies, on the one clock",
+  question:
+    "Every Organization's FDE now runs on Capxul's FDE host (organizations.fde-host), which makes and keeps its key. " +
+    "Evals need a host that provisions an FDE with a key a world can rebuild, answers a message with a fixed reply, " +
+    "pauses and resumes on the one clock, fails on demand, and lets an eval run a command as the FDE. What is it?",
+  options: [
+    {
+      label: "supervisor-http-table",
+      text:
+        "For aaron.fde-hosted: a supervisor-run stand-in speaking the `fde-host` integration's calls over HTTP on " +
+        "loopback, so the backend's real `FdeHost` client calls it. Its state is devnet's `fde-host-agents`: per agent " +
+        "a devnet key derived from the agent id (so a rebuilt world makes the same one), its state and its turns, each " +
+        "answered at the next stop with a scripted reply. `capxul-devnet fde run <org> -- <command>` runs a Capxul " +
+        "command as the FDE with that key, as the hosted FDE's own tool would. `capxul-devnet fault fde-host " +
+        "down|hold|clear` arms its switch. It joins the clock as a follower: idle when no turn is due.",
+    },
+    { label: "real-swarmd", text: "Run a local swarmD with a real model behind each FDE." },
+    { label: "backend-layer", text: "An `FdeHost` devnet layer inside the backend over the same table." },
+  ],
+  chosen: "supervisor-http-table",
+  why:
+    "Served over HTTP, the stand-in exercises the backend's real host client, its timeouts and its error mapping, as the " +
+    "stand-in head does (devnet.head-stand-in). A real model would make every reply, and so every eval of `org fde " +
+    "ask`, differ from run to run; a scripted reply is what a black-box eval can compare. A key derived from the agent " +
+    "id keeps worlds deterministic (devnet.deterministic-worlds), and keeping it in devnet's schema lets a world's " +
+    "snapshot carry it with the chain that knows its address. `fde run` is a supervisor control, not a Capxul command: " +
+    "it is the hosted agent acting, which no Capxul surface makes (devnet.fault-switches). Its table's writer is the " +
+    "stand-in, outside the book's records, so it shows the unwritten-table gap as the head's tables do. For the shared " +
+    "owner: the `fde-host` integration's `fake` names this stand-in.",
+  source: COMMANDS("organizations.fde-host; devnet.head-stand-in; devnet.fault-switches; aaron.fde-hosted"),
+  affects: [table_fde_host_agents, component_devnet, environment_devnet, concept_devnet],
+});
+
+export const decision_devnet_command_worlds = defineDecision({
+  id: "devnet.command-worlds",
+  title: "Six new worlds and a rebuilt org-with-fde for the head and the hosted FDE",
+  question:
+    "organizations.command-worlds asks for the worlds its nine new commands start from. Which does the catalogue add, " +
+    "and what changes in org-with-fde now that the FDE is hosted?",
+  options: [
+    {
+      label: "six-and-rebuild",
+      text:
+        "org-with-head-site (from org-with-member: `capxul-devnet head up acme`), org-with-head (Dana connects it with " +
+        "`--confirm`), org-with-head-site-down (the site's `down` switch), org-with-fde-paused (org-with-fde warped 32 " +
+        "days, past its start-up month, then the sessions the warp ended signed in again), org-with-fde-host-down " +
+        "(the stand-in host's `down` switch) and org-with-fde-allowance (funded, with an allowance `capxul` Dana " +
+        "wears beside the People hat, for `org fde pay` and `org seats buy`). org-with-fde keeps its steps, but its FDE's key is the stand-in host's " +
+        "(aaron.fde-hosted), none is on the eval machine, and its hosting runs in its start-up month.",
+    },
+    { label: "steps-in-evals", text: "No new worlds: each eval connects a site or warps the FDE itself." },
+  ],
+  chosen: "six-and-rebuild",
+  why:
+    "Each world is a state several claims and refusals share: a site to connect, a live head, a site that is down, a " +
+    "paused FDE, a host that is down, a budget a People-hat wearer may spend. The head worlds come from org-with-member so Sam (no hat) and Olga (outside) are " +
+    "in each. The paused world is reached by the one clock, as org-with-expired-invitation is, so it proves the lapse " +
+    "as the hosting's own timers make it; 32 days is past any calendar month. org-with-fde's steps did not change, " +
+    "because the founder's command did not: only where its key is made.",
+  source: COMMANDS("organizations.command-worlds; organizations.fde-hosting; devnet.sessions-across-warps; books/target/devnet/worlds.ts"),
+  affects: [...ORG_NEW_OPERATIONS, operation_org_seats_show, concept_devnet, concept_organizations],
 });

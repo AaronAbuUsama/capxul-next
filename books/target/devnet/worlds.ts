@@ -316,17 +316,50 @@ export const WORLDS: readonly World[] = [
   {
     name: "org-with-fde",
     holds:
-      "Acme ready as in org-ready, but started with its Forward Deployed Engineer: @acme-fde, an agent Acme owns, " +
-      "created by Dana's one install signature (`AgentOwner.create` from the company Safe), seated `organization` " +
-      "outside the ten seats, its Party active, wearing no hat; its key in this machine's key store under its handle; " +
-      "its `fde-ready` email sent to Dana; Dana current.",
+      "Acme ready as in org-ready, but started with its hosted Forward Deployed Engineer (aaron.fde-hosted): @acme-fde, " +
+      "an agent Acme owns, created by Dana's one install signature (`AgentOwner.create` from the company Safe) with a " +
+      "key the stand-in FDE host made and keeps (none on this machine), seated `organization` outside the ten seats, " +
+      "its Party active, wearing no hat; its hosting running on the stand-in host in its start-up month, paid through " +
+      "one calendar month after the setup was ready, at the deployment's FDE_HOSTING_PRICE of 20 USDC; its `fde-ready` " +
+      "email sent to Dana; Dana current.",
     from: "person-ready",
     steps: [
       step("dana@acme.test", 'capxul org create --name "Acme Ltd" --handle acme --country GB --confirm --json (with its FDE: no `--no-fde`)'),
-      approve("dana@acme.test", "acme's install approval, whose batch also creates the FDE"),
+      approve("dana@acme.test", "acme's install approval, whose batch also creates the FDE with the stand-in host's key"),
       step("dana@acme.test", "capxul org wait acme"),
     ],
     namedBy: ["organizations", "agents"],
+  },
+  {
+    name: "org-with-fde-paused",
+    holds:
+      "org-with-fde a day after its start-up month ran out unpaid: the hosting fell due seven days before and then " +
+      "paused on the stand-in host; @acme-fde's Safe, Seat and agent row are as before. Every person whose session " +
+      "the warp ended signed in again; Dana current.",
+    from: "org-with-fde",
+    steps: [anyone("capxul dev time warp 32d"), signInAgain()],
+    namedBy: ["organizations"],
+  },
+  {
+    name: "org-with-fde-allowance",
+    holds:
+      "org-with-fde plus Acme funded with 10,000 USDC and a spending allowance `capxul` of 500 USDC a month assigned to " +
+      "Dana, who also wears the People hat: what `org fde pay` and `org seats buy` spend from (organizations.buy-seats, " +
+      "organizations.fde-hosting); Dana current.",
+    from: "org-with-fde",
+    steps: [
+      step("dana@acme.test", "capxul dev fund 10000 --asset USDC --org acme"),
+      step("dana@acme.test", "capxul org allowance create --input capxul.json --assign-to dana@acme.test (500 USDC a month, per-payment cap 100)"),
+      approve("dana@acme.test", "its Board proposal, as the one Director"),
+    ],
+    namedBy: ["organizations", "payments"],
+  },
+  {
+    name: "org-with-fde-host-down",
+    holds: "org-with-fde with the stand-in FDE host's fault switch down: every call to it fails as an unreachable host (PROVIDER_ERROR).",
+    from: "org-with-fde",
+    steps: [fault("fde-host down")],
+    namedBy: ["organizations"],
   },
   {
     name: "org-with-member",
@@ -339,6 +372,36 @@ export const WORLDS: readonly World[] = [
       step("sam@acme.test", "capxul invite accept <sam's invitation>"),
       current("dana@acme.test"),
     ],
+    namedBy: ["organizations"],
+  },
+  {
+    name: "org-with-head-site",
+    holds:
+      "org-with-member plus a stand-in Frappe site for Acme (devnet.head-stand-in), up and not connected: its URL and " +
+      "its head user's key file are the ones `capxul-devnet head up` printed; Acme has no head; Dana current.",
+    from: "org-with-member",
+    steps: [supervisor("capxul-devnet head up acme --json (its site URL and the key file it wrote)")],
+    namedBy: ["organizations"],
+  },
+  {
+    name: "org-with-head",
+    holds:
+      "org-with-head-site with the stand-in site connected as Acme's head by Dana: connected, the members pushed as " +
+      "Users, every fundamental app's sync running; Dana current.",
+    from: "org-with-head-site",
+    steps: [
+      step(
+        "dana@acme.test",
+        "capxul org head connect <the stand-in site's URL> --org acme --host self-hosted --key-file <the key file head up wrote> --confirm --json",
+      ),
+    ],
+    namedBy: ["organizations"],
+  },
+  {
+    name: "org-with-head-site-down",
+    holds: "org-with-head-site with the stand-in site's fault switch down: it answers no call (PROVIDER_ERROR); still not connected.",
+    from: "org-with-head-site",
+    steps: [fault("frappe-head down")],
     namedBy: ["organizations"],
   },
   {
@@ -713,10 +776,40 @@ export const WORLDS: readonly World[] = [
       ready("ada@example.com", "Ada Lovell"),
       step("ada@example.com", "capxul contact add @bea --label Bea; capxul contact add vendor@example.com; capxul contact add cy@example.com; capxul contact hide cy@example.com"),
       step("ada@example.com", "capxul contact add sam.one@example.com --label Sam; capxul contact add sam.two@example.com --label Sam"),
-      step("ada@example.com", "client.account.addressBook.record in her own book: a CRM Organization `Northwind Ltd` with no link, a private `contact_` entry (contacts.private-entries)"),
+      step("ada@example.com", 'capxul contact create "Northwind Ltd" --type company: a CRM Organization with no Party, a private `contact_` entry (contacts.private-entries)'),
       current("ada@example.com"),
     ],
     namedBy: ["contacts", "banking"],
+  },
+  {
+    name: "org-with-crm",
+    holds:
+      "person-with-contacts plus Lou, a private person in Ada's book known only by +447700900123; and Acme's CRM, worked " +
+      "by Dan (its People hat): in its book Globex Ltd (a private company, globex.test, Manufacturing) and Kim Park " +
+      "(kim@globex.test, born from her mailbox's Party, Buyer at Globex); six leads, by last change: Ivy Stone " +
+      "(ivy@umbrella.test, Umbrella Corp, owner Dan) converted into the Umbrella deal, with Ivy (from her mailbox) and " +
+      "Umbrella Corp (private) as new entries; Kim's own (kim@globex.test, company `globex ltd`) Nurture; Max Doe (Max " +
+      "Co) Junk, lost for Poor Fit; Jo Marsh (jo@hooli.test, Hooli) Qualified; Quinn Hale (quinn@hale.test) Contacted; " +
+      "Pat Ray (pat@initech.test, Initech) New; and four deals, by last change: the Globex upsell (Lost, Pricing), the " +
+      "Globex renewal (Won), the Globex pilot (Qualification, Kim primary, 5000 GBP, close 2027-03-31) and the Umbrella " +
+      "deal (Qualification, Ivy primary). Rex holds its Seat with no hat; Ada holds no Seat in Acme; Dan current.",
+    from: "person-with-contacts",
+    steps: [
+      step("ada@example.com", "capxul contact create Lou --type person --phone +447700900123"),
+      current("dan@acme.test"),
+      step("dan@acme.test", 'capxul contact create "Globex Ltd" --type company --website globex.test --industry Manufacturing --org acme'),
+      step("dan@acme.test", 'capxul contact create "Kim Park" --type person --email kim@globex.test --designation Buyer --company <Globex> --org acme'),
+      step("dan@acme.test", "capxul org crm lead create --first-name Pat --last-name Ray --email pat@initech.test --company Initech --org acme"),
+      step("dan@acme.test", "capxul org crm lead create --first-name Quinn --last-name Hale --email quinn@hale.test --org acme; capxul org crm lead move <it> Contacted --org acme"),
+      step("dan@acme.test", "capxul org crm lead create --first-name Jo --last-name Marsh --email jo@hooli.test --company Hooli --org acme; capxul org crm lead move <it> Qualified --org acme"),
+      step("dan@acme.test", 'capxul org crm lead create --first-name Max --last-name Doe --company "Max Co" --org acme; capxul org crm lead move <it> Junk --reason "Poor Fit" --org acme'),
+      step("dan@acme.test", 'capxul org crm lead create --first-name Kim --last-name Park --email kim@globex.test --company "globex ltd" --org acme; capxul org crm lead move <it> Nurture --org acme'),
+      step("dan@acme.test", 'capxul org crm lead create --first-name Ivy --last-name Stone --email ivy@umbrella.test --company "Umbrella Corp" --owner dan@acme.test --org acme; capxul org crm lead convert <it> --org acme'),
+      step("dan@acme.test", "capxul org crm deal create --company <Globex> --contact <Kim> --value 5000 --currency GBP --close-by 2027-03-31 --org acme (the pilot)"),
+      step("dan@acme.test", "capxul org crm deal create --company <Globex> --contact <Kim> --org acme; capxul org crm deal move <it> Won --org acme (the renewal)"),
+      step("dan@acme.test", 'capxul org crm deal create --company <Globex> --contact <Kim> --org acme; capxul org crm deal move <it> Lost --reason Pricing --org acme (the upsell)'),
+    ],
+    namedBy: ["contacts"],
   },
 
   // ── banking ──

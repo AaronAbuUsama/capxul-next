@@ -5,7 +5,7 @@
 // token's units (`312.50`), times ISO 8601 instants in UTC.
 
 import { Schema } from "effect";
-import { AgentState, CarrierKind, ChangeKind, ChangeOutcome, ChangeState, KeyStore } from "./data.ts";
+import { AgentState, CarrierKind, ChangeKind, ChangeOutcome, ChangeState, KeyStore, LocalKeyStore } from "./data.ts";
 
 const S = Schema.String;
 const Int = Schema.Int;
@@ -23,14 +23,14 @@ export const CreateInput = Schema.Struct({
   handle: NullOr(S),
   /** The new key's address. The key itself never leaves the machine that made it. */
   signer: S,
-  keyStore: KeyStore,
+  keyStore: LocalKeyStore,
   /** `--org`: the owning Organization by handle or id; null for an agent the caller owns. */
   org: NullOr(S),
 });
 
 export const RefInput = Schema.Struct({ agent: AgentRef });
 
-export const RotateInput = Schema.Struct({ agent: AgentRef, signer: S, keyStore: KeyStore });
+export const RotateInput = Schema.Struct({ agent: AgentRef, signer: S, keyStore: LocalKeyStore });
 
 export const SweepInput = Schema.Struct({
   agent: AgentRef,

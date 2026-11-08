@@ -1331,7 +1331,7 @@ export const machine_salary_slip = defineMachine({
     refund: {
       from: ["escrowed"],
       to: "submitted",
-      about: "The budget's holder or the Board took the escrow back (payments cancels the Payment, outcome refunded); its payment fields clear and the net is owed again.",
+      about: "A wearer of the budget's hat or of one above it, or the Board, took the escrow back (payments cancels the Payment, outcome refunded); its payment fields clear and the net is owed again.",
       emits: [event_salary_slip_transitioned],
     },
     reverse: { from: ["paid"], to: "paying", about: "A reorg below finality reopened its Payment; it settles again as the next generation.", emits: [event_salary_slip_transitioned] },

@@ -28,7 +28,7 @@ import {
   error_WRONG_STATE,
 } from "../shared/vocabulary.ts";
 import { rpc_approvals_signing_get, rpc_approvals_signing_sign } from "../approvals/signing.ts";
-import { KeyStore } from "./data.ts";
+import { LocalKeyStore as KeyStore } from "./data.ts";
 import {
   rpc_agents_changes_create,
   rpc_agents_changes_freeze,

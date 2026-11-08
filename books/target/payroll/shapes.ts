@@ -264,13 +264,50 @@ export const Employee = Schema.Struct({
 
 export const EmployeeListInput = Schema.Struct({ orgId: S, department: opt(S), status: opt(EmployeeStatus) });
 
+/** `org employee get|suspend|deactivate|reinstate <employee>`: the Employee by its `emp_` id. */
+export const EmployeeRef = Schema.Struct({ orgId: S, employeeId: S });
+/** `org employee change <employee>`: its fields only, never its status (a status is a lifecycle verb). */
+export const EmployeeEdit = Schema.Struct({
+  orgId: S,
+  employeeId: S,
+  department: opt(S),
+  designation: opt(S),
+  employmentType: opt(EmploymentType),
+});
+/** `org employee leave <employee> --on <day>`: the last day worked; `confirm` true from a script (`--confirm`), with no preview. */
+export const EmployeeLeave = Schema.Struct({ orgId: S, employeeId: S, relievingDate: Day, confirm: opt(Schema.Boolean) });
+
+/** A component's fields as `org payroll component add` and `change` set them; on a change every one is optional. */
+const COMPONENT_FIELDS = {
+  description: opt(S),
+  amount: opt(Money),
+  formula: opt(S),
+  condition: opt(S),
+  dependsOnPaymentDays: opt(Schema.Boolean),
+  statisticalComponent: opt(Schema.Boolean),
+  doNotIncludeInTotal: opt(Schema.Boolean),
+  isTaxApplicable: opt(Schema.Boolean),
+  account: opt(S),
+  liabilityAccount: opt(S),
+  /** For a deduction or employer contribution: the Party its liability is owed to (`@handle`, mailbox or Party id). */
+  payee: opt(S),
+} as const;
+
+/** `org payroll component add <name> --abbr --type (--amount | --formula) …`. */
+export const ComponentAddInput = Schema.Struct({ orgId: S, name: S, abbr: S, type: ComponentType, ...COMPONENT_FIELDS });
+/** `org payroll component change <component> …`: the component by its `sc_` id or abbreviation, and the fields given. */
+export const ComponentChangeInput = Schema.Struct({ orgId: S, component: S, name: opt(S), abbr: opt(S), ...COMPONENT_FIELDS });
+/** `org payroll component disable|enable <component>`. */
+export const ComponentRef = Schema.Struct({ orgId: S, component: S });
+
 export const ComponentInput = Schema.Struct({
   orgId: S,
-  /** An existing component's id to change it; absent to add one. */
+  /** An existing component's `sc_` id or abbreviation, to change it; absent to add one. */
   componentId: opt(S),
-  name: S,
-  abbr: S,
-  type: ComponentType,
+  /** Required to add one (with `abbr`, `type`, and an `amount` or a `formula`); on a change, only the fields given change. */
+  name: opt(S),
+  abbr: opt(S),
+  type: opt(ComponentType),
   description: opt(S),
   amount: opt(Money),
   formula: opt(S),
@@ -365,6 +402,10 @@ export const Assignment = Schema.Struct({
 });
 
 export const CancelInput = Schema.Struct({ orgId: S, structureId: opt(S), assignmentId: opt(S) });
+/** `org payroll structure cancel <structure>`. */
+export const StructureRef = Schema.Struct({ orgId: S, structureId: S });
+/** `org payroll structure unassign <assignment>`. */
+export const AssignmentRef = Schema.Struct({ orgId: S, assignmentId: S });
 
 export const StructureListInput = Schema.Struct({ orgId: S, employeeId: opt(S) });
 
@@ -374,7 +415,8 @@ export const RunInput = Schema.Struct({
   startDate: Day,
   endDate: Day,
   postingDate: opt(Day),
-  payrollFrequency: Frequency,
+  /** `--frequency`; absent: monthly, the frequency a start-up's structures pay at. */
+  payrollFrequency: opt(Frequency),
   /** Only these Employees; absent: every active Employee of the department with an assignment in the run's token. */
   employees: opt(Schema.Array(S)),
   /** Days of leave without pay, per Employee, in the period. */
@@ -459,6 +501,10 @@ export const ImportInput = Schema.Struct({
 });
 
 export const WithholdInput = Schema.Struct({ orgId: S, salarySlipId: S, withhold: Schema.Boolean, reason: opt(S) });
+/** `org payslip withhold <slip> --reason <text>`. */
+export const SlipWithhold = Schema.Struct({ orgId: S, salarySlipId: S, reason: S });
+/** `org payslip release <slip>`. */
+export const SlipRef = Schema.Struct({ orgId: S, salarySlipId: S });
 
 export const RunListInput = Schema.Struct({ orgId: S, department: opt(S), status: opt(EntryStatus) });
 
@@ -474,5 +520,20 @@ export const RunRow = Schema.Struct({
   next: Null(Schema.Array(S)),
 });
 
-/** The caller's own payslips, from every Organization that pays them; one slip with `salarySlipId`. */
-export const MySlipsInput = Schema.Struct({ salarySlipId: opt(S), orgId: opt(S) });
+/**
+ * The caller's own payslips, from every Organization that pays them; one slip with `salarySlipId`. `orgId` is one
+ * payer's, from `payslip list --employer <handle>`: a filter, never `--org`, which acts for an Organization.
+ */
+export const MySlipsInput = Schema.Struct({
+  salarySlipId: opt(S),
+  orgId: opt(S),
+  /** A page of the list: the cursor the last page gave, and at most `limit` (1 to 100, 25 by default). */
+  after: opt(S),
+  limit: opt(Schema.Int),
+});
+/** `payslip list [--employer <handle>] [--after] [--limit]`. */
+export const MySlipsList = Schema.Struct({ employer: opt(S), after: opt(S), limit: opt(Schema.Int) });
+/** `payslip get <slip>`. */
+export const MySlipRef = Schema.Struct({ salarySlipId: S });
+/** One of the caller's payslips, with the Organization that pays it. */
+export const MySlip = Schema.Struct({ payer: Schema.Struct({ orgId: S, name: S }), slip: Slip });

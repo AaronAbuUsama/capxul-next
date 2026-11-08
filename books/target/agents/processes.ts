@@ -20,7 +20,7 @@ import { machine_agent, machine_agent_change, table_agent_changes, table_agents 
 import { event_approval_transitioned } from "../approvals/data.ts";
 import { event_proposal_transitioned } from "../board/data.ts";
 import { table_indexer_progress } from "../indexing/data.ts";
-import { event_org_setup_transitioned, machine_org_setup, table_org_setups } from "../organizations/data.ts";
+import { event_org_setup_transitioned, machine_org_fde, table_org_fdes, table_org_setups } from "../organizations/data.ts";
 import { table_parties } from "../parties/data.ts";
 
 const OLD = "packages/backend/src/accounts/agents";
@@ -120,19 +120,21 @@ export const workflow_agents_changes_carry = defineWorkflow({
 
 export const workflow_agents_fde_follow_setup = defineWorkflow({
   id: "agents.fde.follow-setup",
-  title: "The Organization's FDE: born with its setup, live when the install lands",
+  title: "The Organization's hosted FDE: born with its setup, live when the install lands",
   about:
-    "Started by an Organization setup's `begin`, through the outbox. When the setup recorded an FDE key (organizations." +
-    "fde-at-start-up), it writes the FDE's agent row in one transaction: owned by the Organization, its Party the one the " +
-    "setup registered (found by its predicted Safe), its key's address and where the founder's machine keeps it, created " +
-    "by the founder (`found`). Then it waits for the setup to end: `complete` means the install landed at finality with " +
-    "AgentCreated for that Safe, owner and key, so the agent is active (`activate`); `fail` means the setup will never " +
-    "install, so the agent fails (`fail`). Its Party's states are the setup's to move, and so is its Seat: the FDE is the " +
-    "Organization's own agent, seated with the founder (organizations.fde-seat). With no FDE key it does nothing. Every " +
-    "later change of the FDE is an ordinary agent change, carried by a Board proposal (agents.org-owned).",
+    "Started by the Organization's hosted FDE's `provision`, through the outbox: Capxul's FDE host has made the FDE's " +
+    "key for the setup (organizations.fde-at-start-up, aaron.fde-hosted), and organizations has recorded its address, " +
+    "its predicted Safe and its Party. In one transaction it writes the FDE's agent row: owned by the Organization, its " +
+    "Party the one the setup registered (found by its Safe), its key's address, its key kept by the host (`host`), " +
+    "created by the founder (`found`). Then it waits for the setup to end: `complete` means the install landed at " +
+    "finality with AgentCreated for that Safe, owner and key, so the agent is active (`activate`); `fail` means the " +
+    "setup will never install, so the agent fails (`fail`). Its Party's states are the setup's to move, and so is its " +
+    "Seat: the FDE is the Organization's own agent, seated with the founder (organizations.fde-seat); its hosting is " +
+    "organizations' (`organizations.fde.host`). Every later change of the FDE is an ordinary agent change, carried by " +
+    "a Board proposal (agents.org-owned).",
   concept: concept_agents,
   priority: "normal",
-  trigger: { transition: machine_org_setup.t.begin },
+  trigger: { transition: machine_org_fde.t.provision },
   instance: { per: table_agents },
   waits: [
     {
@@ -143,11 +145,11 @@ export const workflow_agents_fde_follow_setup = defineWorkflow({
     },
   ],
   steps: [
-    { name: "found", about: "Read the setup's FDE key, Safe and Party; with none, end; else write the agent row, creating." },
+    { name: "found", about: "Read the hosted FDE's key, Safe and Party from organizations; write the agent row, creating, its key the host's." },
     { name: "await-setup", about: "Wait for the setup's complete or fail." },
     { name: "settle", about: "complete: activate, checked against the install's AgentCreated; fail: fail." },
   ],
-  reads: [table_org_setups, table_parties, table_agents],
+  reads: [table_org_fdes, table_org_setups, table_parties, table_agents],
   writes: [table_agents],
   drives: [machine_agent.t.found, machine_agent.t.activate, machine_agent.t.fail],
   invokes: [],
