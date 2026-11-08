@@ -226,7 +226,7 @@ export const decision_budgets_role_conflict = defineDecision({
   title: "ROLE_CONFLICT on v4: a department's office and the People hat",
   question:
     "Old ROLE_CONFLICT kept a Manage allowances holder from holding a department. What is it on v4, and can the frozen " +
-    "ROLE_CONFLICT of `org allowance create` and `org allowance assign` (Manage allowances to a department holder) happen?",
+    "ROLE_CONFLICT of `org allowance create` and `org allowance assign` (Manage allowances and a department, one person) happen?",
   options: [
     { label: "people-hat", text: "A department's or team's office cannot go to a member who wears the People hat (Manage allowances on v4); an allowance's hat can." },
     { label: "drop", text: "Drop it: v4 has no Manage allowances allowance." },
@@ -236,12 +236,15 @@ export const decision_budgets_role_conflict = defineDecision({
     "The frozen department claims keep the separation of duties ('A member who holds Manage allowances cannot hold a " +
     "department'), and on v4 Manage people is the People hat (org.allowance.create designed, CAP-1101). Allowance wearers " +
     "were never in the old conflict: the old guard returned for every grant but Manage people (permissions/guards/" +
-    "conflicts.ts:22), and the old v4 allowance path never raised it. So `org allowance create` and `org allowance assign` " +
-    "drop their frozen ROLE_CONFLICT, which cannot happen on v4: its condition is an allowance that is Manage allowances, " +
-    "and none can exist. A create's policy is a spending budget, and one that allows anything but paying is INVALID_INPUT " +
-    "before any holder is read; an assign names a budget's `allowance_` id or key, and the People hat is no budget " +
-    "(INVALID_INPUT); `budgets.offices.add-holder` raises ROLE_CONFLICT only for a department's or team's office. Neither " +
-    "designed block lists it (P10 rung 1). No guard is loosened (P10 rung 3): the People hat is granted by board's `org " +
+    "conflicts.ts:22), and the old v4 allowance path never raised it. `org allowance create` drops its frozen " +
+    "ROLE_CONFLICT, which cannot happen on v4: its condition is a new allowance that is Manage allowances, and none can " +
+    "exist. Its policy is a spending budget (one that allows anything but paying is INVALID_INPUT before any holder is " +
+    "read), and `--assign-to` mints only the new allowance's hat, which a People hat wearer may wear; its designed block " +
+    "does not list it (P10 rung 1). `org allowance assign` keeps ROLE_CONFLICT: it names a budget as every command does, " +
+    "and shares `budgets.offices.add-holder` with `org department holder add` (budgets.one-write-per-chain-call), which " +
+    "reads the budget's kind, so a department's or team's office named to a People hat wearer is refused it (from " +
+    "org-with-budget-tree: `engineering` to Pat). The People hat itself is no budget, so naming it is INVALID_INPUT. No guard " +
+    "is loosened (P10 rung 3): the People hat is granted by board's `org " +
     "member grant`, which refuses a department's office holder ROLE_CONFLICT (board.people-hat-role-conflict), reading " +
     "the office hats from indexing's Budgets view. The allowance lines that named Manage Budgets as an allowance are cut " +
     "or retired (budgets.acceptance-pre-v4, budgets.acceptance-retired).",

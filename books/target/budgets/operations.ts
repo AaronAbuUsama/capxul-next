@@ -588,6 +588,11 @@ export const operation_org_allowance_assign = defineOperation({
       given: W_WAITING,
       when: "Another change of this allowance waits and is named, its create has not executed, or the request key names an abandoned change.",
     },
+    {
+      error: error_ROLE_CONFLICT,
+      given: W_TREE,
+      when: "The budget you named is a department's or team's office, and the member wears the People hat (Manage allowances on v4). One person cannot hold both.",
+    },
   ],
   budget: WRITE,
 });

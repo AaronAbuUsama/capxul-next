@@ -265,7 +265,12 @@ export const flow_client_org_allowances_change = defineFlow({
 export const flow_client_org_allowances_assign = defineFlow({
   id: "client.org.allowances.assign",
   title: "Give an allowance to one more member, and sign the Board proposal",
-  about: "Prepares the hat's mint to the member's Safe and accepts only a `changeHatMaxSupply` when full and the one `mintHat`.",
+  about:
+    "Prepares the hat's mint to the member's Safe and accepts only a `changeHatMaxSupply` when full and the one `mintHat`. " +
+    "It names the budget as every command does (key, `allowance_` or `dep_` id, chain id), and the shared rpc holds the " +
+    "budget to its kind's rules: a department's or team's office named here is refused to a wearer of the People hat " +
+    "with ROLE_CONFLICT, as `org department holder add` is (decisions budgets.one-write-per-chain-call, " +
+    "budgets.role-conflict-people-hat).",
   component: component_core_sdk,
   sdk: "client.org(orgId).allowances.assign",
   input: HolderInput,
