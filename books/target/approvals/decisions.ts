@@ -141,10 +141,13 @@ export const decision_approvals_sponsor_in_process = defineDecision({
     "A procedure makes no outside call and approvals is the bundler's only caller, so the opener's rpc cannot sponsor. " +
     "Some approvals are opened by workflows with no flow waiting (the founder's install batch), so an SDK step would leave " +
     "them unsponsored until a page opened. In the process it is one path for all, retried on a paymaster outage and " +
-    "durable. The simulation's refusal keeps its code (INSUFFICIENT_BALANCE, ROLE_PERMISSION_DENIED, TRANSACTION_FAILED; " +
-    "K18) in `refusal`, and each opener maps it to its own frozen refusal (board answers WRONG_STATE `execution_reverts`). " +
+    "durable. The simulation's refusal keeps the code the bundler's sponsor call maps it to (K18), in `refusal`: " +
+    "INSUFFICIENT_BALANCE, PAYROLL_BUDGET_EXCEEDED (Budgets' OverBudget, or the payout ceiling's AllowanceExceeded), " +
+    "CHILDREN_EXCEED_PARENT, AMOUNT_BELOW_USE, WRONG_STATE (BudgetIsClosed), ROLE_PERMISSION_DENIED (any other Roles, " +
+    "Budgets or Gate refusal) or TRANSACTION_FAILED (updated at assembly to integrations.sponsor-refusals, which once " +
+    "named only three). Each opener maps it to its own frozen refusal (board answers WRONG_STATE `execution_reverts`). " +
     "The cost is one workflow start on the chain-submit path, inside the operation's budget.",
-  source: `${OLD}/payments/executions/external/builds.ts:76; books/target/shared/external.ts (bundler: approvals is its only caller); K18 in docs/as-is/payments.md`,
+  source: `${OLD}/payments/executions/external/builds.ts:76; books/target/shared/external.ts (bundler.sponsor failures; integrations.sponsor-refusals); K18 in docs/as-is/payments.md`,
   affects: [workflow_approvals_lifecycle_carry, rpc_approvals_signing_get, integration_bundler, t.refuse],
 });
 
