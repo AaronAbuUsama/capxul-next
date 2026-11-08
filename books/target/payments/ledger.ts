@@ -56,7 +56,8 @@ export const rpc_payments_ledger_get = defineRpc({
   id: "payments.ledger.get",
   title: "Read one Payment",
   about:
-    "One Payment by its `payment_` id, from whichever side the caller is on: its status, route, amount, counterparty " +
+    "One Payment by its `payment_` id (a chain-born Payment's is `payment_` and its v4 payment id's 64 hex digits), " +
+    "from whichever side the caller is on: its status, route, amount, counterparty " +
     "label, payment id, receipt (the consumed PaymentSent's transaction) once settled, its execution (the approval or " +
     "proposal that carries it, how it ended and whether it needs a retry) and its document, with the `capxul document " +
     "render` command that saves it. A caller with no Account (no Party of their own) is refused `INVALID_INPUT`, and so is " +

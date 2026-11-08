@@ -41,6 +41,10 @@ import {
   operation_payment_wait,
 } from "./operations.ts";
 import { procedure_payments_prepare_command } from "./procedures.ts";
+import { event_approval_transitioned, machine_approval } from "../approvals/data.ts";
+import { procedure_approvals_withdraw } from "../approvals/procedures.ts";
+import { event_proposal_transitioned, machine_proposal } from "../board/data.ts";
+import { procedure_documents_store } from "../documents/procedures.ts";
 import {
   workflow_payments_lifecycle_payment,
   workflow_payments_movements_record,
@@ -240,8 +244,8 @@ export const decision_payments_carrier_waits = defineDecision({
     "the runtime resumes the one instance waiting on it. The signature itself is approvals' signal (approvals owns the " +
     "one send, K4); listing approvals' sign and decline rpcs as this process's signals says the person's answer is what " +
     "moves the Payment. A Board proposal's `proposal_transitioned` is followed the same way.",
-  source: by("A2, A3, P3; books/target/approvals/data.ts (event_approval_transitioned props)"),
-  affects: [workflow_payments_lifecycle_payment],
+  source: by("A2, A3, P3; books/target/approvals/data.ts (event_approval_transitioned props); books/target/board/data.ts (proposal_transitioned)"),
+  affects: [workflow_payments_lifecycle_payment, event_approval_transitioned, event_proposal_transitioned],
 });
 
 export const decision_payments_dated = defineDecision({
@@ -363,6 +367,10 @@ export const decision_payments_birth_width = defineDecision({
   options: [
     { label: "one-transaction", text: "Keep the three in the birth's transaction." },
     { label: "name-first", text: "Resolve and name the payee in an earlier transaction, then birth with two procedures." },
+    {
+      label: "read-parties",
+      text: "Read parties' table instead of invoking `parties.resolve-recipient` (parties' suggestion), leaving two procedures.",
+    },
   ],
   chosen: "one-transaction",
   why:
@@ -370,7 +378,10 @@ export const decision_payments_birth_width = defineDecision({
     "wrong Safe), the document whose hash goes on chain (a hash with no content is a money bug), and the carrier (nobody " +
     "may sign a payment Capxul has no record of). Naming first would leave named Parties for births that then failed, " +
     "and K2 says the command, its Payments and their documents are born together. The width is three procedures, at the " +
-    "rule's limit of three, from three concepts instead of two: this record is the decision P4 asks for.",
+    "rule's limit of three, from three concepts instead of two: this record is the decision P4 asks for. Reading " +
+    "parties' table cannot replace the procedure: a mailbox nobody has yet is named a provisional Party at its " +
+    "email-derived Safe in the same transaction (the claim escrow's payee), and that is a write to parties. Still " +
+    "open for the sys:tx-width reviewer's sign-off.",
   source: by(`${ASIS} (K2); P4 (sys:tx-width); books/target/parties/procedures.ts (resolve-recipient's money fact)`),
   affects: [rpc_payments_commands_prepare, rpc_payments_commands_propose],
 });
@@ -644,4 +655,148 @@ export const decision_payments_count = defineDecision({
     workflow_payments_settlement_observe,
     workflow_payments_movements_record,
   ],
+});
+
+// ── assembly: what other concepts asked of payments (8 November 2026) ──────────────────────
+
+export const decision_payments_door_inputs = defineDecision({
+  id: "payments.door-inputs",
+  title: "The door takes a date, a deadline, a resume, and items with no document",
+  question:
+    "Requests and banking asked the door for more: a dated `inbox pay` (`pay_at`), the approval's expiry in the answer, " +
+    "`inbox pay --resume` reopening a lapsed Payment under the same key, an item with no document (banking does not " +
+    "depend on documents), and a payout's Payment that cannot land, or be retried, after its quote expires. Which does " +
+    "`payments.prepare-command` take?",
+  options: [
+    {
+      label: "widen",
+      text:
+        "All five: `pay_at`, `not_after` (kept on the command; it caps the approval's deadline and `payment retry` refuses " +
+        "after it), `resume` (a repeat whose Payments all lapsed opens one new approval for the same payment ids and moves " +
+        "them `retry`), `expires_at` in the answer, and an item's `document_id` null with the zero hash.",
+    },
+    { label: "retry-rpc", text: "Keep K1 strict: a resume calls `payments.changes.retry` per Payment from the requests flow." },
+    { label: "require-document", text: "Make banking depend on documents so every item carries a stored document." },
+  ],
+  chosen: "widen",
+  why:
+    "Each is the same money fact the door already records. A dated Payment is the same birth with `send_after` or " +
+    "`Budgets.schedule`, as `payment send --on` does. A resume is a retry: same terms, same job nonce, same payment id, " +
+    "so the chain still consumes it once, and it must commit with the request staying `paying`, which a later rpc call " +
+    "could not promise; it is asked for explicitly, so K1's plain repeat still answers as it stands. `not_after` belongs " +
+    "on the command because a retry opens a new approval long after the first: only the command remembers the quote. " +
+    "The deadline answered is an upper bound, since the paymaster cuts the window when it sponsors. A payout's Payment " +
+    "has no document of its own on chain today (its Bridge transfer is the record), and the zero hash names none; a new " +
+    "edge to documents would make banking store a document nobody reads.",
+  source: by(
+    "docs/decisions/assembly-items.md (requests: pay_at, expiry, resume; banking: document, expiry); books/target/requests/inbox.ts; " +
+      "books/target/banking (payouts); K1, K3",
+  ),
+  affects: [procedure_payments_prepare_command, table_payment_commands, P.retry, rpc_payments_changes_retry],
+});
+
+export const decision_payments_withdraw_by_opener = defineDecision({
+  id: "payments.withdraw-by-opener",
+  title: "An unsigned payout's approval is withdrawn by banking; the process cancels its Payment",
+  question:
+    "Banking ends a payout before anyone signs (its bank account changed). Approvals asked openers to withdraw such an " +
+    "approval (`approvals.withdraw`). Does payments add a procedure for it, and who cancels the Payment?",
+  options: [
+    {
+      label: "opener-withdraws",
+      text:
+        "Banking, which now depends on approvals, invokes `approvals.withdraw` with the approval id the door answered, in the " +
+        "payout's own transaction; the Payment's process cancels the Payment on that approval's `withdraw` (outcome withdrawn).",
+    },
+    { label: "payments-procedure", text: "A new door procedure, `payments.withdraw-command`, that withdraws the approval and cancels the Payments." },
+  ],
+  chosen: "opener-withdraws",
+  why:
+    "P4 adds a procedure only for a money fact no existing door records. The fact here is the payout ended and its " +
+    "unsigned carrier with it, which `approvals.withdraw` already is; since dependencies.payers-sign-and-name-budgets " +
+    "banking may invoke it. The Payment's status has one writer, its process, which already follows every end of its " +
+    "approval; a withdrawn approval is one more end. If the payer signed first, `withdraw` answers `signed` and banking " +
+    "knows the payout may still land. Payments' own changes never withdraw: `payment cancel` acts only on a signed, held " +
+    "payment (frozen), and a retry opens its new approval only after the old one ended.",
+  source: by("books/target/approvals/procedures.ts (approvals.withdraw); dependencies.payers-sign-and-name-budgets; payment.cancel.yaml (about); P4"),
+  affects: [workflow_payments_lifecycle_payment, P.cancel, procedure_approvals_withdraw, machine_approval],
+});
+
+export const decision_payments_board_outcomes = defineDecision({
+  id: "payments.board-outcomes",
+  title: "A Board payment's proposal that fails or loses its nonce lapses; a rejected one cancels",
+  question:
+    "Board's proposal now ends executed, failed (ExecutionFailure: the nonce used, nothing happened), rejected or " +
+    "replaced (another transaction took its nonce). How does each move a Board payment?",
+  options: [
+    { label: "lapse-or-cancel", text: "executed → `submit`; failed or replaced → `lapse` (outcome reverted, displaced); rejected → `cancel` (outcome rejected)." },
+    { label: "all-cancel", text: "Every end but executed cancels the Payment." },
+  ],
+  chosen: "lapse-or-cancel",
+  why:
+    "A failed or replaced proposal moved no money and its terms still stand, as an approval that reverted or was " +
+    "displaced: `payment retry --as-directors` proposes the same payment id again, which the chain consumes once. A " +
+    "rejection is the Directors' answer, as a decline is a person's, so it ends the Payment. Board asked every follower " +
+    "of proposal_transitioned to treat `fail` as 'ran without effect' (board.failed-proposal).",
+  source: by("books/target/board/data.ts (machine_proposal: failed, replaced); board.failed-proposal; payment.retry.yaml"),
+  affects: [workflow_payments_lifecycle_payment, P.lapse, P.cancel, machine_proposal],
+});
+
+export const decision_payments_chain_born_ids = defineDecision({
+  id: "payments.chain-born-ids",
+  title: "A Payment born from a chain fact is named by its v4 payment id",
+  question:
+    "Payroll reports a collection's payment from its indexed PaymentSent and cannot read payments; `payment get` refuses " +
+    "an id that does not start with `payment_` (frozen #1). How does payroll name a Payment `payment get` finds?",
+  options: [
+    { label: "derived-id", text: "A chain-born Payment's id is `payment_` and the 64 hex digits of its v4 payment id; payroll prints the same." },
+    { label: "accept-hex", text: "`payment get` also takes a bare `0x` payment id." },
+    { label: "payroll-reads", text: "Payroll depends on payments and reads the Payment." },
+  ],
+  chosen: "derived-id",
+  why:
+    "Accepting `0x…` would weaken `payment get`'s frozen refusal of an id that does not start with `payment_`, and the " +
+    "map keeps payroll and payments apart (dependencies.payments-payroll: neither reads the other). The v4 payment id " +
+    "is unique per chain (the by-chain-payment-id index) and known to both sides from the same fact, so the id needs no " +
+    "lookup. Prepared Payments keep their ULID ids: nothing outside payments needs to derive them.",
+  source: by("payment.get.yaml (refusal CLI_USAGE); books/target/payroll/decisions.ts (payroll.collection-payment); dependencies.payments-payroll"),
+  affects: [table_payments, workflow_payments_settlement_observe, rpc_payments_ledger_get],
+});
+
+export const decision_payments_movement_memos = defineDecision({
+  id: "payments.movement-memos",
+  title: "A Movement stores its Memo in its own transaction",
+  question: "Documents asked payments to store each Movement's Memo, so `document verify` has one to verify. Where?",
+  options: [
+    { label: "in-record", text: "`payments.movements.record` invokes `documents.store` beside the book fact, once per Transfer." },
+    { label: "none", text: "Leave Movements without a Memo." },
+  ],
+  chosen: "in-record",
+  why:
+    "The frozen `document verify` #1 ('A standalone Movement participant can verify its exact Memo') needs it, and a " +
+    "Movement and the document that records it are one money fact (documents.movement-memos). The Memo is a pure " +
+    "function of the Transfer (basis movement, reference `<chain id>:<tx hash>:<log index>`, issued at the block time, " +
+    "the Capxul sides as participants), so a replay stores nothing new. The record transaction then invokes two " +
+    "procedures of two concepts (books, documents), within sys:tx-width.",
+  source: by("books/target/documents/decisions.ts (documents.movement-memos); document.verify.yaml #1"),
+  affects: [workflow_payments_movements_record, procedure_documents_store, table_movements],
+});
+
+export const decision_payments_document_bytes = defineDecision({
+  id: "payments.document-bytes",
+  title: "`--document` passes the receipt's bytes, not a media file id",
+  question:
+    "SendInput's document named a media file (`content_hash`, `file_id`), but `documents.store` takes a receipt's bytes " +
+    "(at most 128 KB), and neither payments nor documents depends on media. How does the file reach documents?",
+  options: [
+    { label: "bytes", text: "The SDK flow reads the file and passes its bytes, media type and name in the prepare input; prepare stores them." },
+    { label: "media-edge", text: "Payments depends on media and reads the uploaded file in its rpc." },
+  ],
+  chosen: "bytes",
+  why:
+    "The CLI already holds the file it was given, and 128 KB fits an rpc input. A media edge would add a dependency " +
+    "only to read bytes the client had a moment before, and the file's stored copy would then be documents', not " +
+    "media's. Documents keeps the bytes exactly and checks the media type.",
+  source: by("books/target/documents/procedures.ts (ReceiptContent); apps/cli/src/commands/payment/internal/send-input.ts:147"),
+  affects: [rpc_payments_commands_prepare, rpc_payments_commands_propose, flow_client_payments_pay, flow_client_org_departments_pay],
 });

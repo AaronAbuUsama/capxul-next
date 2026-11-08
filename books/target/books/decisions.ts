@@ -542,8 +542,8 @@ export const decision_books_worlds = defineDecision({
   why:
     "Each refusal is reached by one command from one of these, as one of its identities, with no other setup. " +
     "`assets list`'s INVALID_INPUT (an empty id) stays `?`: the CLI's scope refuses an empty `--org` with CLI_USAGE " +
-    "first. Reclassify line 3 needs, in org-with-chart, a row with money on both sides of a month, which depends on how " +
-    "payments references an agreement's collections.",
+    "first. Reclassify line 3 needs, in org-with-chart, a row with money on both sides of a month: a bank payout's " +
+    "Payment settled before the month's end and returned after it (books.straddling-row).",
   source: by("books/as-is/operations/books.ts (the as-is worlds after-s1 and ?); CONVENTIONS rule 9"),
   affects: [
     ops.operation_activity_annotate,
@@ -564,6 +564,35 @@ export const decision_books_worlds = defineDecision({
     ops.operation_org_books_reports_reconcile,
     ops.operation_org_books_reports_trial_balance,
   ],
+});
+
+export const decision_books_straddling_row = defineDecision({
+  id: "books.straddling-row",
+  title: "On v4 a row straddles a period when a payout settles in one and returns in the next",
+  question:
+    "Reclassify #3 refuses 'a commitment whose claims fall on both sides of the period'. On v4 each agreement collection " +
+    "is its own Payment with one money fact, so which row can have money facts in two periods, and does payments need to " +
+    "group collections by their agreement?",
+  options: [
+    {
+      label: "payout-return",
+      text:
+        "A bank payout's Payment: its settlement is one fact, and the bank's return is a second fact on the same row " +
+        "(`payout_returned`, which banking books referencing the payout's Payment). A payout settled before a month's end " +
+        "and returned after it straddles that month.",
+    },
+    { label: "collections-by-agreement", text: "Payments references each collection by its agreement, and books treats the agreement as one row." },
+    { label: "retire", text: "Retire line 3 as having no v4 case." },
+  ],
+  chosen: "payout-return",
+  why:
+    "The claim is kept word for word (P1), so it needs a real v4 row. Grouping collections would make payments know " +
+    "payroll's agreements, which the map keeps apart (dependencies.payments-payroll), and payments keeps one Payment per " +
+    "collection (payments.chain-born-ids). A payout and its return are the same row's two money facts, the shape the old " +
+    "commitment had. For the world, org-with-chart gets a payout settled on the last day of a month and returned by " +
+    "Bridge's fake after a `dev time warp` past it; banking must pass the payout's Payment as the return fact's reference.",
+  source: by("org.books.accounts.reclassify.yaml #3; books/target/banking/processes.ts (payout_returned); dependencies.payments-payroll"),
+  affects: [ops.operation_org_books_accounts_reclassify, rpc_books_accounts_reclassify, procedure_books_record_money_fact],
 });
 
 export const decision_books_dropped = defineDecision({
