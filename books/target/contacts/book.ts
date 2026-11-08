@@ -26,6 +26,7 @@ import {
 import { table_org_deployments, table_org_members } from "../organizations/data.ts";
 import { table_parties } from "../parties/data.ts";
 import { procedure_parties_resolve_recipient } from "../parties/procedures.ts";
+import { table_hat_wearers } from "../indexing/data.ts";
 
 const OLD = "packages/backend/src/parties/contacts";
 const PROTOCOL = "packages/protocol/src/parties";
@@ -99,10 +100,9 @@ const errors = [error_NOT_AUTHENTICATED, error_ROLE_PERMISSION_DENIED, error_INV
 const READS = [table_contacts, table_org_members, table_parties];
 /**
  * A write to an Organization's book also reads the People hat's id from the deployment, and whether the Seat's
- * Safe wears it from indexing's `hat-wearers`, which joins this list once contacts depends on indexing (asked of
- * shared/foundation.ts and dependencies.of-contacts; decision contacts.members-write).
+ * Safe wears it from indexing's `hat-wearers` (decision contacts.members-write).
  */
-export const WRITE_READS = [...READS, table_org_deployments];
+export const WRITE_READS = [...READS, table_org_deployments, table_hat_wearers];
 export const WHO_READ =
   "A signed-in person, for their own book; or a member of the Organization (an active Seat, a person's or an agent's), " +
   "for its book. Anyone else naming that Organization is ROLE_PERMISSION_DENIED.";

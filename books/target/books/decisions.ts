@@ -1250,7 +1250,7 @@ export const decision_books_payroll_accrual = defineDecision({
     "the books are not complete without a head (aaron.frappe-head). Cash basis would make payroll's Bank Entry on " +
     "Payroll Payable wrong and is not Frappe's shape (aaron.books-first-principles). The door passes P4's test " +
     "(rules.procedures): if the run and its accrual disagreed at a commit, money would leave the Safe against a " +
-    "liability the books never recorded. Books cannot follow payroll's events, since payroll will sit above payments " +
+    "liability the books never recorded. Books cannot follow payroll's events, since payroll sits above payments " +
     "and payments above books, so a door is the only way down. The procedure never refuses: an unfit account falls " +
     "back to its role's, and without a chart the voucher waits, as money facts do. The books' basis reads `accrual` " +
     "once one exists. Payroll now depends on books and invokes the door from `runs.submit` and `runs.cancel`, only for " +
@@ -1275,7 +1275,7 @@ const byAssembly = (evidence: string) => `${ASSEMBLY}; evidence: ${evidence}`;
 
 export const decision_books_startup = defineDecision({
   id: "books.startup",
-  title: "No books step at the setup's begin: the chart is the import, in the first sitting",
+  title: "No books step at the setup's begin: the chart is the first sitting's import",
   question:
     "organizations.startup has each fundamental app start itself from the setup's `begin`. The projects lane asked books " +
     "for a start-up there: the account tree from a template, the first Fiscal Year and the main Cost Center, reading " +
@@ -1314,7 +1314,7 @@ export const decision_books_startup = defineDecision({
     "duplicated, until the import; the copy the import takes is the Company's fixed accounting settings, which ERPNext " +
     "also fixes once there are entries. ERPNext adds the abbreviation to a document's name, never to `account_name`, " +
     "so Capxul keeps none.",
-  source: byAssembly("organizations.startup; books/frozen (org.books.accounts.import, list, review); erpnext/accounts/doctype/account/account.py (autoname)"),
+  source: byAssembly("organizations.startup; books/frozen (org.books.accounts.import, list, review); erpnext/accounts/doctype/account/account.py:107 (autoname)"),
   affects: [
     concept_books,
     rpc_books_accounts_import,
@@ -1355,7 +1355,7 @@ export const decision_books_payroll_defaults = defineDecision({
     "it cannot be archived or take sub-accounts, so a fallback is never a group; a business that wants its salaries " +
     "split adds siblings (the template already has 5100 and 5200). Payroll Payable is one account per Company, as " +
     "ERPNext's Payroll Entry defaults it, so a run's accrual and its slips' Bank Entries always meet on it.",
-  source: byAssembly("docs/design/frappe/payroll.md (For other lanes: Books); hrms payroll_entry.py:800 (accounts required); packages/protocol/src/books/model.ts:113 (5000)"),
+  source: byAssembly("docs/design/frappe/payroll.md (For other lanes: Books); hrms payroll_entry.py:408, :810 (accounts required); packages/protocol/src/books/model.ts:113 (5000)"),
   affects: [
     table_book_accounts,
     rpc_books_accounts_import,
@@ -1422,7 +1422,7 @@ export const decision_books_payroll_postings = defineDecision({
 
 export const decision_books_escrow_held = defineDecision({
   id: "books.escrow-held",
-  title: "Money waiting in a claim escrow posts nothing until the claim; no clearing account",
+  title: "Money waiting in a claim escrow posts nothing until claimed; no clearing account",
   question:
     "Payroll asked for escrow clearing entries: into a Capxul Escrow account when a new hire's net is funded into a " +
     "claim escrow, to Payroll Payable on the claim, back to the treasury on a refund. Books' rule is that money waiting " +

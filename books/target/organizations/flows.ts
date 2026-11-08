@@ -232,8 +232,9 @@ export const flow_client_operator_organizations_seats_raise = defineFlow({
   title: "The operator's tool raises an Organization's seat limit",
   about:
     "Serves the operator's tool, run with the deployment's operator key, not the CLI: no frozen operation raises a seat " +
-    "limit, and nobody in an Organization may (aaron.seats). It sends the Organization, the new limit and the " +
-    "operator's label to `organizations.seats.raise` and prints the limit and what counts against it.",
+    "limit. An Organization buys seats itself through payments (organizations.buy-seats); this is the operator's raise " +
+    "beside it (aaron.buy-seats). It sends the Organization, the new limit and the operator's label to " +
+    "`organizations.seats.raise` and prints the limit, what counts against it and the seats bought.",
   component: component_core_sdk,
   surfaces: ["sdk"],
   sdk: "client.operator.organizations.seats.raise",
@@ -244,5 +245,5 @@ export const flow_client_operator_organizations_seats_raise = defineFlow({
   calls: [],
   spans: [],
   budget: budget("write"),
-  was: ["books/target/shared/rulings.ts (aaron.seats)"],
+  was: ["books/target/shared/rulings.ts (aaron.seats, aaron.buy-seats)"],
 });

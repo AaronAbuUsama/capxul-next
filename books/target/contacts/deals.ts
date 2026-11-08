@@ -16,6 +16,7 @@ import {
 } from "../shared/vocabulary.ts";
 import { DEAL_STATUSES, DealStage, LOST_REASONS, machine_deal, table_contacts, table_deal_contacts, table_deals } from "./data.ts";
 import { table_org_deployments, table_org_members } from "../organizations/data.ts";
+import { table_hat_wearers } from "../indexing/data.ts";
 import { LOGGED, WHO_CRM_READ, WHO_CRM_WRITE } from "./leads.ts";
 
 const CRM = "github.com/frappe/crm@2cecd300:crm";
@@ -69,7 +70,7 @@ const DealFields = Schema.Struct({
 
 const READ_ERRORS = [error_NOT_AUTHENTICATED, error_ROLE_PERMISSION_DENIED, error_INVALID_INPUT];
 const READS = [table_deals, table_deal_contacts, table_org_members];
-const WRITE_READS = [...READS, table_contacts, table_org_deployments];
+const WRITE_READS = [...READS, table_contacts, table_org_deployments, table_hat_wearers];
 const GUARD =
   "It first checks the caller's Seat wears the People hat (the deployment's people hat id, wearers from indexing), " +
   "else ROLE_PERMISSION_DENIED and nothing is written. The deal it changes is appended to `contact-changes` and takes " +

@@ -85,7 +85,8 @@ export const rpc_organizations_setups_begin = defineRpc({
     "born installed and native, each app in `apps` wanted (an unknown or fundamental one is INVALID_INPUT), and each " +
     "fundamental app's concept starts itself from `begin`. With `fde`, the FDE key's address the founder's machine made " +
     "(organizations.fde-at-start-up): the FDE's Safe is computed in-process (`AgentOwner.safeAddressFor` of it and the " +
-    "company Safe) and its Party registered pending, owned by the Organization (organizations.fde-handle).",
+    "company Safe) and its Party registered pending, owned by the Organization (organizations.fde-handle): a second " +
+    "`parties.register`.",
   was: [
     `${AS_IS}:200`,
     `${SET}/operations/begin.ts:11`,

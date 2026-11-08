@@ -18,6 +18,7 @@ import { event_org_head_transitioned, machine_org_head, table_org_deployments, t
 import { table_principals } from "../access/data.ts";
 import { table_parties } from "../parties/data.ts";
 import { procedure_parties_resolve_recipient } from "../parties/procedures.ts";
+import { table_hat_wearers } from "../indexing/data.ts";
 import {
   machine_contact,
   machine_deal,
@@ -94,9 +95,9 @@ export const workflow_contacts_head_sync = defineWorkflow({
     },
     { name: "await", about: "Wait for a change here, a ring, the daily catch-up or the connection's next transition." },
   ],
-  // The People hat's id is the deployment's; its wearers are indexing's, read once contacts depends on indexing (contacts.members-write).
+  // The People hat's id is the deployment's; its wearers are indexing's (contacts.members-write).
   reads: [
-    table_org_heads, table_org_members, table_org_deployments, table_principals, table_parties, table_contact_head_syncs,
+    table_org_heads, table_org_members, table_org_deployments, table_hat_wearers, table_principals, table_parties, table_contact_head_syncs,
     table_contact_changes, table_crm_settings, ...RECORDS,
   ],
   writes: [table_contact_head_syncs, table_contact_changes, table_crm_settings, ...RECORDS],

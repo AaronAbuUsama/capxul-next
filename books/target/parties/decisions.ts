@@ -15,9 +15,12 @@ import {
   concept_parties,
   concept_payments,
   concept_payroll,
+  concept_books,
+  concept_projects,
+  component_frappe_app,
   system_capxul,
 } from "../shared/foundation.ts";
-import { contract_companies_house_claimer, contract_escrow } from "../shared/external.ts";
+import { contract_companies_house_claimer, contract_escrow, integration_frappe_head } from "../shared/external.ts";
 import {
   decision_concepts_parties,
   decision_concepts_parties_scope,
@@ -508,4 +511,76 @@ export const decision_parties_mailbox_for_life = defineDecision({
     table_parties, procedure_parties_resolve_recipient, rpc_parties_profiles_save, contract_companies_house_claimer, contract_escrow,
     concept_access, concept_accounts, concept_payroll, system_capxul,
   ],
+});
+
+// ── the assembly after the Frappe lanes (8 November 2026) ────────────────────────────────────
+
+const ASSEMBLY = "Claude, identity assembly after the Frappe lanes, 8 November 2026";
+const asmBy = (evidence: string) => `${ASSEMBLY}; evidence: ${evidence}`;
+
+export const decision_parties_fde_handles = defineDecision({
+  id: "parties.fde-handles",
+  title: "Handles ending `-fde` or starting `fde-` are kept for Organizations' FDEs",
+  question:
+    "organizations.fde-handle derives an Organization's FDE handle as `<handle>-fde`, or `fde-` and ten characters of the " +
+    "Organization's id when that is taken. Anyone can take `acme-fde` first today. Should the directory keep those forms " +
+    "for FDEs?",
+  options: [
+    {
+      label: "reserve-forms",
+      text:
+        "`parties.register` accepts a handle ending in `-fde` or starting with `fde-` only for an agent an Organization " +
+        "owns (kind agent, owner_kind organization); any other registration of one is INVALID_INPUT, as a reserved word is. " +
+        "A handle registered before this rule is not changed.",
+    },
+    { label: "first-come", text: "No reservation: the fallback `fde-<id>` keeps `org create` from failing, so a taken `-fde` handle only costs the nicer name." },
+    { label: "per-organization", text: "Reserve `<handle>-fde` only for the Organization that holds `<handle>`, by reading organizations' table." },
+  ],
+  chosen: "reserve-forms",
+  why:
+    "A person who registers `@acme-fde` for their own agent can pass it off as Acme's engineer: the handle is how people " +
+    "and other agents name an agent, and Acme's FDE acts inside Acme's records. Reserving the two forms keeps every " +
+    "handle that reads as an FDE an Organization's own agent's. Reserving per Organization would make parties read " +
+    "organizations, which sits above it; the coarse rule needs only the kind and owner the invoker already passes. An " +
+    "Organization owns one live agent (agents.org-own-agent), its FDE whoever made its key (agents.fde), so an " +
+    "Organization's agent made later by `agent create --org` may use the forms too. The rule refuses nothing a frozen " +
+    "claim registers: no world's handle has either form.",
+  source: asmBy("books/target/organizations/decisions.ts (organizations.fde-handle); books/target/agents/decisions.ts (agents.org-own-agent, agents.fde)"),
+  affects: [procedure_parties_register, table_parties, decision_parties_handles, concept_organizations, concept_agents],
+});
+
+export const decision_parties_head_parties = defineDecision({
+  id: "parties.head-parties",
+  title: "A head's Customer, Supplier and Employee meet the directory by `capxul_party`",
+  question:
+    "A voucher's party is a directory Party id (books), a deal's or contact's is too (contacts), and a project's customer " +
+    "is `customer_party_id` (projects). On a connected head these are ERPNext Customers, Suppliers and Employees. How " +
+    "does a head document find its Party, what of one with none, and is every CRM customer a Party?",
+  options: [
+    {
+      label: "custom-field",
+      text:
+        "Each of Contact, CRM Organization, Customer, Supplier and Employee carries the Party id in one Custom Field, " +
+        "`capxul_party`, which only Capxul sets. When Capxul pushes a record naming a Party, the head's Capxul app finds " +
+        "the document by that field, or creates it with the field set. A head document with no `capxul_party` (a customer " +
+        "the head made, a supplier paid only by bank) is accepted with a null Party id: a head GL line against it comes " +
+        "in with `party_id` null and the head's party name as its text, and no Party is ever named from a head. A " +
+        "customer is a Party only when it is one: a person by mailbox, an agent, an Organization on Capxul or an outside " +
+        "wallet; a company not on Capxul is a private CRM entry with no Party (parties.outside-companies).",
+    },
+    { label: "match-by-name", text: "Match a head's Customer or Supplier to a Party by its name or email when it carries no Party." },
+    { label: "name-from-head", text: "Name a new Party for every head Customer and Supplier." },
+  ],
+  chosen: "custom-field",
+  why:
+    "A Party is where money goes, so only Capxul binds one (organizations.head-ownership: identity is Capxul's). One " +
+    "field name across the CRM, the books and payroll lets the Capxul app look up any document the same way, and it is " +
+    "the name the CRM lane chose (payroll's `capxul_party_id` on Employee becomes `capxul_party`, " +
+    "organizations.frappe-app-fields). Matching by name would let a head user choose whose Safe a voucher's party is; " +
+    "naming Parties from a head would put a tenant's words in the global directory. A null Party keeps a head's own " +
+    "bookkeeping whole without inventing identity. For projects this means `customer_party_id` is null for a customer " +
+    "that is not on Capxul, so a project for a prospect company needs the CRM entry or the head's Customer name beside " +
+    "it; projects sits below contacts and cannot read the entry, so that is the projects designer's to add.",
+  source: asmBy("docs/design/frappe/accounting.md (capxul_party); docs/design/frappe/crm.md (Custom Fields); books/target/projects/data.ts (customer_party_id)"),
+  affects: [table_parties, component_frappe_app, integration_frappe_head, concept_books, concept_contacts, concept_payroll, concept_projects],
 });

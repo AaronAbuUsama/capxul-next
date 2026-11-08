@@ -32,6 +32,7 @@ import {
 import { table_org_deployments, table_org_members } from "../organizations/data.ts";
 import { table_parties } from "../parties/data.ts";
 import { procedure_parties_resolve_recipient } from "../parties/procedures.ts";
+import { table_hat_wearers } from "../indexing/data.ts";
 
 const CRM = "github.com/frappe/crm@2cecd300:crm";
 const LEAD = `${CRM}/fcrm/doctype/crm_lead`;
@@ -91,8 +92,8 @@ const LeadFields = Schema.Struct({
 const READ_ERRORS = [error_NOT_AUTHENTICATED, error_ROLE_PERMISSION_DENIED, error_INVALID_INPUT];
 const WRITE_ERRORS = [...READ_ERRORS, error_WRONG_STATE];
 const READS = [table_leads, table_org_members];
-/** A write also reads the People hat's id from the deployment, and its wearers from indexing once contacts depends on it (contacts.members-write). */
-const WRITE_READS = [...READS, table_org_deployments];
+/** A write also reads the People hat's id from the deployment, and its wearers from indexing (contacts.members-write). */
+const WRITE_READS = [...READS, table_org_deployments, table_hat_wearers];
 export const WHO_CRM_READ =
   "A member of the Organization (an active Seat, a person's or an agent's). Anyone else naming it is ROLE_PERMISSION_DENIED.";
 export const WHO_CRM_WRITE =

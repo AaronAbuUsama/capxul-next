@@ -18,7 +18,11 @@ import {
   table_org_setups,
   table_organizations,
 } from "./data.ts";
-import { procedure_organizations_bind_invitation_grants } from "./procedures.ts";
+import {
+  procedure_organizations_add_bought_seats,
+  procedure_organizations_bind_invitation_grants,
+  procedure_organizations_return_bought_seats,
+} from "./procedures.ts";
 import { rpc_organizations_setups_begin, rpc_organizations_setups_get, rpc_organizations_setups_resume } from "./setups.ts";
 import { rpc_organizations_workspaces_list, rpc_organizations_workspaces_me } from "./workspaces.ts";
 import { rpc_organizations_members_list, rpc_organizations_seats_raise } from "./members.ts";
@@ -73,10 +77,13 @@ import {
 import { contract_agent_owner, integration_frappe_head } from "../shared/external.ts";
 import {
   event_org_head_transitioned,
+  event_seat_purchase_transitioned,
   machine_org_app,
   machine_org_head,
+  machine_seat_purchase,
   table_org_apps,
   table_org_heads,
+  table_org_seat_purchases,
 } from "./data.ts";
 import { rpc_organizations_heads_ring } from "./heads.ts";
 import { workflow_organizations_heads_watch as workflow_heads_watch } from "./processes.ts";
@@ -684,44 +691,55 @@ const AARON_SEATS = by("books/target/shared/rulings.ts (aaron.seats, Aaron's rul
 
 export const decision_organizations_seat_limit = defineDecision({
   id: "organizations.seat-limit",
-  title: "Ten seats on the Organization's row; an offer reserves one; an operator raises",
+  title: "Ten seats on the row; an offer reserves one; a purchase or an operator raises it",
   question:
     "aaron.seats: a company starts with ten seats, in the beta and after; each seat may hold one agent account, and the " +
-    "company may hold one agent of its own. Where is the limit kept, what counts against it, when is it checked, and who " +
-    "raises it?",
+    "company may hold one agent of its own. aaron.buy-seats: a company may buy more seats itself, and a Capxul operator " +
+    "may still raise the limit. Where is the limit kept, what counts against it, when is it checked, and what raises it?",
   options: [
     {
-      label: "row-and-offers",
+      label: "row-offers-and-purchase",
       text:
         "`organizations.seat_limit`, 10 at birth. A person's Seat counts one; an agent's rides on its owner's Seat here " +
         "(one per Seat) or is the Organization's own (one), and any other agent's counts one. A live offer reserves what " +
         "its Seat will take, so the check is at `org member invite`, under the Organization row's lock, and acceptance " +
-        "only takes what was reserved; an offer to someone who already holds a Seat here reserves nothing. A Capxul " +
-        "operator raises the limit with the operator's tool; it never goes down.",
+        "only takes what was reserved; an offer to someone who already holds a Seat here reserves nothing. The limit " +
+        "rises when a seat purchase's Payment settles, by the seats it bought (`organizations.add-bought-seats`, invoked " +
+        "by payments' settlement; organizations.buy-seats), falls back if a reorg reopens that Payment, and a Capxul " +
+        "operator may still set it higher with the operator's tool.",
+    },
+    {
+      label: "row-and-offers",
+      text:
+        "As row-offers-and-purchase, but only a Capxul operator raises the limit, with the operator's tool; it never goes " +
+        "down. The earlier choice, before aaron.buy-seats.",
     },
     { label: "count-at-accept", text: "Count only held Seats, at acceptance: offers are free, and the eleventh invitee to accept is refused." },
     { label: "flag", text: "A deployment-wide number in feature flags, the same for every Organization." },
   ],
-  chosen: "row-and-offers",
+  chosen: "row-offers-and-purchase",
   why:
-    "Refusing at the offer tells the inviter, who can act (cancel an offer, ask for more seats), instead of an invitee " +
-    "who did nothing wrong; reserving keeps acceptance a promise the Organization can keep. The row lock makes two " +
-    "concurrent offers for the last seat one success and one SEAT_LIMIT_REACHED. A per-Organization number is what " +
-    "'raised' needs, and a flag cannot raise one company's. The founder's Seat is the first of the ten. Every frozen " +
-    "operation behaves as before: no eval world fills ten seats (the most is seven, Acme's in org-with-budget-tree), " +
-    "and no frozen claim invites past ten. Who raises it is not in the ruling: an operator alone, until pricing says " +
-    "otherwise (for Aaron: may an Organization buy more seats itself, and at what price?). Not built: lowering a limit, " +
-    "and ending a person's Seat, which no target operation does today.",
-  source: AARON_SEATS,
+    "Superseded by aaron.buy-seats, which answered this record's question to Aaron (may an Organization buy more seats " +
+    "itself?) with yes; this record now follows the ruling, and organizations.buy-seats designs the purchase. Refusing " +
+    "at the offer tells the inviter, who can act (cancel an offer, buy seats), instead of an invitee who did nothing " +
+    "wrong; reserving keeps acceptance a promise the Organization can keep. The row lock makes two concurrent offers " +
+    "for the last seat one success and one SEAT_LIMIT_REACHED, and serialises a purchase's count with them. A " +
+    "per-Organization number is what 'raised' and 'bought' need, and a flag cannot raise one company's. The founder's " +
+    "Seat is the first of the ten. Every frozen operation behaves as before: no eval world fills ten seats (the most is " +
+    "seven, Acme's in org-with-budget-tree), and no frozen claim invites past ten. A limit lowered by a reorg ends no " +
+    "Seat and no offer. Not built: lowering a limit by hand, and ending a person's Seat, which no target operation does.",
+  source: by("books/target/shared/rulings.ts (aaron.seats, aaron.buy-seats: Aaron's rulings of 8 November 2026)"),
   affects: [
     table_organizations,
     table_org_members,
     table_org_invitations,
+    table_org_seat_purchases,
     rpc_organizations_invitations_invite,
     rpc_organizations_invitations_accept,
     rpc_organizations_seats_raise,
     flow_client_operator_organizations_seats_raise,
     rpc_organizations_setups_begin,
+    procedure_organizations_add_bought_seats,
   ],
 });
 
@@ -797,7 +815,7 @@ export const decision_organizations_startup = defineDecision({
         "fiscal-year start, from the country as ERPNext's setup wizard does), the app list (the fundamental apps installed " +
         "and native, any other asked-for app wanted) and, with the founder's FDE key, the FDE's Party. Each fundamental " +
         "app's concept starts itself from the setup's `begin` transition where its frozen behaviour allows: payroll its " +
-        "settings, contacts its CRM, projects its settings and starting types. Books keeps facts from the first money but " +
+        "settings, projects its settings and starting types, and the CRM needs nothing written. Books keeps facts from the first money but " +
         "makes no chart until `org books accounts import` runs (frozen: no chart until one is made), which a Books-hat " +
         "wearer runs in the first sitting. The install batch creates the FDE on chain.",
     },
@@ -813,8 +831,8 @@ export const decision_organizations_startup = defineDecision({
     "them and a head's Company and System Settings must carry the same ones. What each app creates is each designer's: " +
     "for books, nothing at begin, since a chart comes only from the import (books' own decision, keeping the frozen " +
     "'no chart until one is made'), and the import makes the tree, the fiscal years from `fiscal_year_start` and the " +
-    "main cost centre; for payroll, Payroll Settings and the salary components; for the CRM, its statuses and the " +
-    "Organization's own CRM Organization; for projects, projects.startup.",
+    "main cost centre; for payroll, Payroll Settings and the salary components; for the CRM, nothing: its statuses " +
+    "are fixed defaults and its counter comes with its first write (contacts.startup); for projects, projects.startup.",
   source: by(`${WIZARD}/setup_wizard.py:get_setup_stages; ${WIZARD}/operations/install_fixtures.py; books/target/shared/rulings.ts (aaron.frappe-shape)`),
   affects: [
     rpc_organizations_setups_begin, table_organizations, table_org_apps, machine_org_setup, concept_books, concept_payroll,
@@ -960,8 +978,8 @@ export const decision_organizations_fde_handle = defineDecision({
   chosen: "derived",
   why:
     "`org create` must never be refused because of the FDE's name, and a founder should not have to choose one. The " +
-    "derived handle is free in practice; the fallback is unique by the id. For the parties designer: reserving the `-fde` " +
-    "suffix and the `fde-` prefix for FDEs would stop anyone else from taking an Organization's FDE handle.",
+    "derived handle is free in practice; the fallback is unique by the id. Parties keeps the `-fde` suffix and the " +
+    "`fde-` prefix for agents an Organization owns (parties.fde-handles), so nobody else can take an FDE's handle.",
   source: by("books/target/parties/procedures.ts (parties.register: handle rules)"),
   affects: [rpc_organizations_setups_begin, table_org_setups],
 });
@@ -1007,7 +1025,11 @@ export const decision_organizations_head_ownership = defineDecision({
         "Shared: the fundamental apps' business records (projects, tasks, timesheets, CRM relationship fields, the " +
         "non-money parts of the books and payroll): either side may change them, each change based on a version, and " +
         "Capxul applies a head change through its own checks; an older base or a refused change loses. The head's: every " +
-        "other app's documents and the head's customizations, which Capxul never copies.",
+        "other app's documents and the head's customizations, which Capxul never copies. A pulled edit is authorized as " +
+        "the member the head user's mailbox matches, with that member's rights and hats, never the connection's own; an " +
+        "app may be stricter, never looser. With no member matched, an app may apply only what any member may do " +
+        "(projects), or push the edit back: the CRM always does, since editing it needs the People hat by ruling " +
+        "(contacts.crm-permission). The head's roles (Sales User and Manager, HR Manager, Accounts User) follow the hats.",
     },
     { label: "capxul-all", text: "Capxul owns everything it holds; the head may only read and ask." },
     { label: "head-all", text: "Once connected, the head owns everything but money and identity, and Capxul follows it." },
@@ -1019,7 +1041,12 @@ export const decision_organizations_head_ownership = defineDecision({
     "forms every day, so a head that could not edit them would not be a head; Capxul applying them through its own " +
     "checks keeps the guards and lets an Organization disconnect its head with records it can trust. The three classes " +
     "are what each app's designer follows: projects first (projects.head-sync); books, payroll, contacts and parties " +
-    "decide which of their fields fall in each class.",
+    "decide which of their fields fall in each class. Whose authority a pulled edit runs under was asked by the CRM " +
+    "lane (identity assembly): the matched member's, because the Organization's permissions are hats worn by members, " +
+    "and a connection that edited with its own authority would let every head user do what only a hat allows. The head " +
+    "vouches for its own users: a Director who connects one trusts its administrators with the shared records, and the " +
+    "match gives an edit a member's rights, never more. Roles that follow the hats let the head's forms stop an edit " +
+    "before Capxul must push it back.",
   source: FRAPPE_RULINGS,
   affects: [integration_frappe_head, component_frappe_app, table_org_heads, concept_books, concept_payroll, concept_contacts, concept_projects],
 });
@@ -1095,7 +1122,7 @@ export const decision_organizations_commands = defineDecision({
     "CLI as everyone (aaron.fde-agent), so whatever it may do must be a command; an FDE-only surface would put an " +
     "unchecked path beside the CLI. Connecting a head hands the Organization's records to an outside system, so it is a " +
     "Director's step, not the FDE's: the FDE prepares it and a Director runs it. Adding an app is reversible and moves no " +
-    "money, so the FDE may do it. Buying seats (aaron.buy-seats) is a separate pass and not in this pack.",
+    "money, so the FDE may do it. Buying seats (aaron.buy-seats) is its own pack, organizations.buy-seats.",
   source: FRAPPE_RULINGS,
   affects: [table_org_apps, table_org_heads, machine_org_app, machine_org_head, event_org_head_transitioned, system_capxul],
 });
@@ -1118,4 +1145,104 @@ export const decision_organizations_startup_worlds = defineDecision({
     "was proved. For the devnet designer: add `--no-fde` to the Organization worlds' `org create` and add `org-with-fde`.",
   source: by("books/target/devnet/worlds.ts (org-ready, org-with-agent, org-with-proposals-gate-off); books/target/agents/operations.ts"),
   affects: [operation_org_create, flow_client_onboarding_begin_organization],
+});
+
+// ── the assembly after the Frappe lanes, and aaron.buy-seats (8 November 2026) ──────────────
+
+const ASSEMBLY = "Claude, identity assembly after the Frappe lanes, 8 November 2026";
+const asmBy = (evidence: string) => `${ASSEMBLY}; evidence: ${evidence}`;
+
+export const decision_organizations_buy_seats = defineDecision({
+  id: "organizations.buy-seats",
+  title: "Decision pack: a company buys seats from a budget; payments pays and counts them",
+  question:
+    "aaron.buy-seats: a company may buy more seats itself, paid in stablecoins from the company Safe; a Capxul operator " +
+    "may still raise the limit; the price is Aaron's to set. What is the command, who may run it, how is it paid, and " +
+    "when does the limit rise?",
+  options: [
+    {
+      label: "payments-command",
+      text:
+        "Recommended. `org seats buy <n> --from <budget>`, and `org seats` to read the limit, what counts against it, " +
+        "the seats bought and the price. A person whose Safe wears the People hat (the hat that invites, so the one who " +
+        "meets the limit) pays from a budget they hold: the company Safe's money under the authority the Board gave that " +
+        "budget, checked by the chain. Payments books the rpc, flow and operations, because organizations sits below " +
+        "payments: it births one command by `payments.prepare-command`'s rules (purpose seats, route budget, one item to " +
+        "Capxul's seat Safe for n times the price, its source naming the Organization and n), and its settlement invokes " +
+        "`organizations.add-bought-seats` in the settling transaction, so the limit rises exactly when the payment " +
+        "settles; its reversal on a reorg invokes `organizations.return-bought-seats`. The price is the deployment " +
+        "setting SEAT_PRICE, the price of one seat in each stablecoin the deployment sells seats in, with Capxul's " +
+        "receiving Safe beside it; while it is unset for the token named, buying is FEATURE_NOT_AVAILABLE. A bought seat " +
+        "is kept for good.",
+    },
+    {
+      label: "board-batch",
+      text: "As payments-command, but a Director buys and the company Safe pays by a Board proposal, which needs a board route in `payments.prepare-command`.",
+    },
+    {
+      label: "capxul-request",
+      text: "Capxul issues a request for the seats, which the Organization pays from its inbox (`inbox pay --from`); requests follows the payment and invokes organizations' door when it is paid.",
+    },
+    {
+      label: "organizations-approval",
+      text: "Organizations opens the spend approval itself and follows the indexed PaymentSent to raise the limit.",
+    },
+    { label: "subscription", text: "As payments-command, but seats are priced per month and lapse unless paid again." },
+  ],
+  chosen: "payments-command",
+  why:
+    "For Aaron: the price (SEAT_PRICE is his to set; this design chooses no number, and buying stays off until he sets " +
+    "it), whether a seat is bought once or by the month, the commands' names, and who may buy (the People hat from a " +
+    "budget, or a Director by Board batch). It is a decision pack under rules.new-operations: `org.seats.buy` and " +
+    "`org.seats` cite aaron.buy-seats and are payments' to book once accepted, with claims and worlds; organizations " +
+    "has booked its half, the purchases and their two doors. Organizations cannot birth the payment: " +
+    "`payments.prepare-command` is a door of a concept above it, and depending on payments would be a cycle. For the " +
+    "same reason the limit can follow the payment only through a door payments invokes. Counting the seats in the " +
+    "settlement's own transaction keeps payments' one settlement path (payments.one-settlement-path), which the " +
+    "organizations-approval option would duplicate without a book fact, and makes 'raised once the payment settles' " +
+    "exact: no seat without its settled payment, none paid for and missing, and the reversal keeps that across a reorg. " +
+    "A request from Capxul would put an issuer in every purchase. A budget is the route the door already has. An agent " +
+    "never buys (agents.fde-authority). A subscription needs a lapse that lowers a limit, which nothing designs yet.",
+  source: asmBy("books/target/shared/rulings.ts (aaron.buy-seats); books/target/payments/procedures.ts (payments.prepare-command)"),
+  affects: [
+    table_organizations, table_org_seat_purchases, machine_seat_purchase, event_seat_purchase_transitioned,
+    procedure_organizations_add_bought_seats, procedure_organizations_return_bought_seats, rpc_organizations_seats_raise,
+    system_capxul,
+  ],
+});
+
+export const decision_organizations_frappe_app_fields = defineDecision({
+  id: "organizations.frappe-app-fields",
+  title: "The Capxul app's Custom Fields, one Party field, and what listChanges reports",
+  question:
+    "The four Frappe lanes each asked the Capxul app for Frappe for Custom Fields and changes, under names that differ " +
+    "(the CRM's and the books' `capxul_party`, payroll's `capxul_party_id` on Employee). Which fields does the app add, " +
+    "and what must `listChanges` catch?",
+  options: [
+    {
+      label: "one-set",
+      text:
+        "`capxul_id` and `capxul_version` on every synced DocType. One Party field, `capxul_party`, on Contact, CRM " +
+        "Organization, Customer, Supplier and Employee (payroll's `capxul_party_id` takes this name); a Party in any " +
+        "other role is named by role (`capxul_payee_party` on Salary Component). `capxul_hidden` on Contact and CRM " +
+        "Organization. Each app concept's own fields by its decisions (payroll.head-sync's on Salary Structure " +
+        "Assignment, Payroll Entry and Salary Slip). The app finds or creates a document Capxul names by `capxul_party` " +
+        "(parties.head-parties) and makes the link records it names first (CRM Industry, Lead Source, Territory, " +
+        "Currency). `listChanges` reports every synced DocType (the CRM's Contact, CRM Organization, CRM Lead, CRM Deal; " +
+        "projects', payroll's and the books'), every write path (save, `db_set`, `frappe.db.set_value`), and on a " +
+        "connection's first call every document the site already holds.",
+    },
+    { label: "per-app-names", text: "Each app's lane keeps the names it chose; the app carries both Party fields on Employee." },
+  ],
+  chosen: "one-set",
+  why:
+    "The component is one app and one seam, so one name per meaning: two Party fields on Employee would let them " +
+    "disagree, and a lookup by Party must work the same for a voucher's party, a contact and an employee. Reporting " +
+    "every write path matters because Frappe CRM converts a lead with `db_set` and `set_value`, which run no `on_update`, " +
+    "so a hook on saves alone would lose a conversion; reporting what the site already holds on the first call lets a " +
+    "head connected late be adopted (contacts.head-mapping). Renaming a CRM Organization also rewrites the " +
+    "`company_name` of its Contacts, a Data field `rename_doc` does not follow. Every Seat is a User whose Contact " +
+    "carries the member's `capxul_party`. Payroll's own field list is payroll's; this records only the shared names.",
+  source: asmBy("docs/design/frappe/crm.md (head and organizations); docs/design/frappe/accounting.md (capxul_party); books/target/payroll/decisions.ts"),
+  affects: [component_frappe_app, integration_frappe_head, table_org_heads, concept_contacts, concept_payroll, concept_books, concept_projects],
 });

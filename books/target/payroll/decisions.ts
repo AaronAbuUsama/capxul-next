@@ -71,7 +71,7 @@ import {
 } from "./holders.ts";
 import { rpc_payroll_payees_accept, rpc_payroll_payees_collect, rpc_payroll_payees_list, rpc_payroll_payees_show } from "./payees.ts";
 import { rpc_payroll_writes_watch } from "./writes.ts";
-import { workflow_payroll_agreements_lifecycle, workflow_payroll_head_sync } from "./processes.ts";
+import { workflow_payroll_agreements_lifecycle, workflow_payroll_head_sync, workflow_payroll_startup_open } from "./processes.ts";
 import {
   flow_client_me_payslips,
   flow_client_org_payroll_employees_add,
@@ -483,16 +483,18 @@ export const decision_payroll_acceptance = defineDecision({
 export const decision_payroll_collection_payment = defineDecision({
   id: "payroll.collection-payment",
   title: "A collection reports its payment from the indexed PaymentSent",
-  question: "`agreement collect` returns 'the one payment the payer made', but payroll does not depend on payments. Where does it come from?",
+  question: "`agreement collect` returns 'the one payment the payer made', which payments' ledger holds. Where does payroll get it?",
   options: [
     { label: "chain-fact", text: "The write keeps the PaymentSent id, amount and window from the transaction's indexed facts; payments births its Payment from the same fact." },
     { label: "read-payments", text: "Read the Payment from payments' ledger." },
   ],
   chosen: "chain-fact",
   why:
-    "dependencies.payments-payroll keeps payments below nothing of payroll's and payroll below nothing of payments', and " +
-    "concepts.payments has payments settle every PaymentSent, a collection included. The PaymentSent id is the key both " +
-    "sides share, so `payment get` finds the Payment payroll reports without either concept reading the other.",
+    "When this was decided neither concept depended on the other. Payroll now depends on payments " +
+    "(dependencies.payments-payroll), and the choice stands: the write lands from the indexed facts in the agreement's " +
+    "own transaction, which need not wait for payments to birth the Payment, and concepts.payments has payments settle " +
+    "every PaymentSent, a collection included. The PaymentSent id is the key both sides share, so `payment get` finds " +
+    "the Payment payroll reports, and books' collection accrual names it (payroll.collection-accrual).",
   source: by("shared decisions (concepts.payments, dependencies.payments-payroll); Agreements.collect pays through Budgets.payReserved (kind 4)"),
   affects: [rpc_payroll_writes_watch, flow_client_me_agreements_collect, operation_agreement_collect, table_agreement_writes, concept_payments],
 });
@@ -994,19 +996,18 @@ export const decision_payroll_run_machine = defineDecision({
 
 export const decision_payroll_pays_through_payments = defineDecision({
   id: "payroll.pays-through-payments",
-  title: "A run pays through payments' door; its records wait for the edge",
+  title: "A run pays through payments' door, now that payroll depends on payments",
   question:
     "Capxul pays a slip's net on chain. Payroll could build the budget spends and open their approval itself, as it " +
     "does for an agreement's calls, or birth them through payments' `payments.prepare-command`, as requests and banking " +
-    "do. Which, given payroll does not depend on payments today?",
+    "do. Which, given payroll did not depend on payments when this was decided?",
   options: [
     {
       label: "payments-door",
       text:
         "Through `payments.prepare-command` (purpose payroll, route budget), then follow `payment_transitioned` for the " +
-        "settled facts. Payroll gains payments as a dependency; payments still never depends on payroll. Until the shared " +
-        "foundation adds the edge, the paying half is written in payroll/staged.ts, typechecked and not registered, and its " +
-        "transitions show as undriven gaps.",
+        "settled facts. Payroll gains payments as a dependency; payments still never depends on payroll. The paying half " +
+        "is payroll/staged.ts, staged until the shared foundation added the edge and registered since.",
     },
     { label: "own-spends", text: "Payroll builds `Budgets.spend` calls and opens their approval itself; payments births the Payments from the chain facts." },
   ],
@@ -1017,7 +1018,8 @@ export const decision_payroll_pays_through_payments = defineDecision({
     "hire, and one settlement path with its reorg reversal. Building spends in payroll would copy all of it. An agreement " +
     "collection is different because Agreements pays it, not Budgets.spend. The edge points down the concept order " +
     "(payroll sits above payments), so it makes no cycle, and dependencies.payments-payroll's rule that payments never " +
-    "depends on payroll holds. Registering staged records before the edge would break the build's boundary rules.",
+    "depends on payroll holds. Registering the staged records before the edge would have broken the build's boundary " +
+    "rules; with it they build with 0 problems and drive the run's and the slip's paying transitions.",
   source: AFTER_RULING("aaron.frappe-shape, aaron.budget-pay-unclaimed; shared/decisions.ts (concepts.payments, dependencies.payments-payroll); payments/procedures.ts"),
   affects: [concept_payroll, concept_payments, machine_payroll_entry.t.pay, machine_salary_slip.t.pay, machine_salary_slip.t.settle, rpc_payroll_runs_submit],
 });
@@ -1128,8 +1130,9 @@ export const decision_payroll_accrual = defineDecision({
         "The accrual (each earning's expense, each deduction's liability, Payroll Payable for each net, party the " +
         "Employee) is posted once, by the side that computed the run. For a run Capxul computed, books posts it through " +
         "its door `books.record-payroll-accrual`, which `runs.submit` invokes (action submit) and `runs.cancel` invokes " +
-        "(action cancel) in their own transactions once payroll depends on books (books cannot read payroll); a head " +
-        "receives it from books' feed and never posts its own. For a run its head computed, the " +
+        "(action cancel) in their own transactions (payroll depends on books; books cannot read payroll); a head " +
+        "receives it from books' feed and never posts its own. A landed collection's paid slip accrues the same way " +
+        "(action collection: payroll.collection-accrual). For a run its head computed, the " +
         "head's own `make_accrual_jv_entry` posts it, books takes it in through its sync, and taking the run in invokes " +
         "nothing. The Bank Entry is always books', from each settled Payment's money fact: the one `make_bank_entry` would " +
         "have made, per slip (Payroll Payable, party the Employee, reference the Payroll Entry, against the treasury " +
@@ -1150,7 +1153,7 @@ export const decision_payroll_accrual = defineDecision({
     "settled Payment already writes exactly one book fact, so payroll posting the Bank Entry would post it twice; a " +
     "per-slip Bank Entry is what makes each employee's payable close at its own block.",
   source: AFTER_RULING(`aaron.books-first-principles, aaron.frappe-shape; ${HRMS}/payroll_entry/payroll_entry.py:619, :1093, :1837; books.sync, books.head-vouchers`),
-  affects: [rpc_payroll_runs_submit, rpc_payroll_runs_cancel, workflow_payroll_head_sync, concept_books],
+  affects: [rpc_payroll_runs_submit, rpc_payroll_runs_cancel, workflow_payroll_head_sync, workflow_payroll_agreements_lifecycle, concept_books],
 });
 
 export const decision_payroll_head_sync = defineDecision({
@@ -1208,9 +1211,10 @@ export const decision_payroll_mailbox_for_pay = defineDecision({
   why:
     "Pay to a work mailbox would land in a Safe the person loses with the job. Frappe's Employee already separates " +
     "`personal_email` from `company_email`, so payroll keys pay on the first and never reads the second; changing an " +
-    "Employee never changes their Party or Safe.",
+    "Employee never changes their Party or Safe. The head sync resolves a head-born Employee's Party the same way, as " +
+    "the CRM lane asked (parties.mailbox-for-life), and never takes the pay mailbox from the head.",
   source: AFTER_RULING("aaron.erp-on-capxul; docs/vision/erp.md (C27); /tmp/erpnext/erpnext/setup/doctype/employee/employee.json"),
-  affects: [table_employees, rpc_payroll_employees_add, rpc_payroll_employees_change],
+  affects: [table_employees, rpc_payroll_employees_add, rpc_payroll_employees_change, workflow_payroll_head_sync],
 });
 
 export const decision_payroll_hr_authority = defineDecision({
@@ -1313,28 +1317,39 @@ export const decision_payroll_one_live_employee = defineDecision({
 
 export const decision_payroll_startup = defineDecision({
   id: "payroll.startup",
-  title: "Payroll starts with nothing to set up: its settings are the same everywhere",
+  title: "Payroll starts by writing its Payroll Settings at the setup's begin",
   question:
     "organizations.startup has each fundamental app start itself at the setup's `begin`, payroll with its Payroll " +
     "Settings and salary components. What does payroll make there?",
   options: [
     {
+      label: "settings-at-begin",
+      text:
+        "A payroll process triggered by the setup's `begin` (`payroll.startup.open`) writes the Organization's Payroll " +
+        "Settings, as Frappe HR's install sets that single's defaults: the values Capxul computes by (leave-based, " +
+        "holidays counted, no rounded total, no Frappe email) and the change counter at zero. No salary component: " +
+        "components are the Organization's own to define, and the agreement component is made at its first acceptance.",
+    },
+    {
       label: "nothing-at-begin",
       text:
-        "Nothing: Payroll Settings are the same for every Organization (leave-based, holidays counted, no rounded total, " +
-        "no Frappe email), born as the `payroll-settings` row with the Organization's first payroll write; components are " +
-        "the Organization's own to define, and the agreement component is made at its first acceptance.",
+        "The earlier choice: nothing at begin; the `payroll-settings` row is born with the Organization's first payroll " +
+        "write.",
     },
-    { label: "begin-reaction", text: "A payroll process reacts to `begin` and writes Payroll Settings and starting components." },
+    { label: "settings-and-components", text: "Write the settings and a starting set of components (basic pay, a tax deduction) at begin." },
   ],
-  chosen: "nothing-at-begin",
+  chosen: "settings-at-begin",
   why:
-    "The settings are not choices: they are what Capxul computes by and what a head must match, so a per-Organization " +
-    "step would only copy constants. Starting components would be guesses about a business's pay that its People hat " +
-    "or FDE makes better in conversation. Payroll's records still exist in Frappe's shape from the first day; they are " +
-    "empty until someone is employed.",
-  source: AFTER_RULING("aaron.frappe-shape, aaron.fde-agent; books/target/organizations/decisions.ts (organizations.startup); /tmp/hrms/hrms/payroll/doctype/payroll_settings/payroll_settings.json"),
-  affects: [table_payroll_settings, concept_payroll],
+    "Rewritten at the assembly: this record first chose nothing-at-begin, since the settings are constants. The row is " +
+    "not only constants: it holds the change log's counter, whose lock every payroll write takes (rpcs, the agreement's " +
+    "process, the head sync), so with it born at begin no writer has to birth a lock row in a race, and payroll starts " +
+    "as projects does (projects.startup) and as organizations.startup expects, in Frappe's shape from the first day. " +
+    "A writer that still finds no row (the start-up not yet run) births it, so nothing waits on the process. Starting " +
+    "components would be guesses about a business's pay that its People hat or FDE makes better in conversation, and " +
+    "Frappe HR installs none either (its `make_fixtures` has no Salary Component); organizations.startup's mention of " +
+    "salary components is answered with none.",
+  source: AFTER_RULING("aaron.frappe-shape, aaron.fde-agent; organizations.startup; /tmp/hrms/hrms/setup.py:606 (set_single_defaults); payroll_settings.json"),
+  affects: [table_payroll_settings, concept_payroll, workflow_payroll_startup_open],
 });
 
 export const decision_payroll_import_run = defineDecision({
@@ -1358,4 +1373,109 @@ export const decision_payroll_import_run = defineDecision({
     `aaron.frappe-head; ${HRMS}/salary_slip/salary_slip.py:257 (check_salary_withholding), :383 (check_existing); ${HRMS}/payroll_entry/payroll_entry.py:1837`,
   ),
   affects: [workflow_payroll_head_sync, machine_payroll_entry.t.import, machine_salary_slip.t.import, machine_salary_slip.t.import_withheld, table_payroll_entries, table_salary_slips],
+});
+
+// ── the assembly after the Frappe lanes (8 November 2026) ───────────────────────────────────
+
+const FRAPPE_ASSEMBLY = (evidence: string) => `Claude, assembly of the Frappe lanes (ledger: books and payroll), 8 November 2026; evidence: ${evidence}`;
+
+export const decision_payroll_books_accounts = defineDecision({
+  id: "payroll.books-accounts",
+  title: "Payroll's accounts are books' ids: role accounts by default, checked when given",
+  question:
+    "Payroll keeps Frappe's account links (a component's expense and liability, a run's and an assignment's Payroll " +
+    "Payable, a run's treasury) as books' account ids, and asked books for the defaults. How does payroll fill and " +
+    "check them, now that it depends on books?",
+  options: [
+    {
+      label: "roles-and-checks",
+      text:
+        "A run's and an assignment's Payroll Payable is books' `payroll_payable` account, and a run's `payment_account` " +
+        "the `safe` account of the company Safe and the run's token, each read from books' chart when the record is " +
+        "made, null before the chart. A component's `account` and `liabilityAccount` are given by code or id and must be " +
+        "an active ledger account under Expenses and one under Liabilities; left out they are null, and the accrual " +
+        "posts the line to its role's account (books.payroll-defaults). The agreement component's accounts may be set, " +
+        "so collections accrue to the expense the business chooses (contractors, say).",
+    },
+    { label: "unchecked", text: "Keep whatever account ids are given, and let books' fallback catch an unfit one." },
+  ],
+  chosen: "roles-and-checks",
+  why:
+    "Frappe HR refuses a run with no payable and a component with no account; Capxul's books never refuse an accrual, " +
+    "so payroll is where a wrong account is caught, at the command, while a person can still fix it. One Payroll " +
+    "Payable per Company keeps a run's accrual and its slips' Bank Entries on the same account, chart or no chart " +
+    "(books.payroll-postings). Payroll reads books' chart as a plain read: books sits below it.",
+  source: FRAPPE_ASSEMBLY("docs/design/frappe/payroll.md (For other lanes: Books); books.payroll-defaults; hrms payroll_entry.py:408, :810"),
+  affects: [
+    table_salary_components,
+    table_salary_structure_assignments,
+    table_payroll_entries,
+    rpc_payroll_structures_component,
+    rpc_payroll_structures_assign,
+    rpc_payroll_runs_create,
+  ],
+});
+
+export const decision_payroll_collection_accrual = defineDecision({
+  id: "payroll.collection-accrual",
+  title: "A person's landed collection accrues through books' door with its paid slip",
+  question:
+    "A landed agreement collection is paid on chain before anyone classifies it, and payments, which books its money " +
+    "fact, knows nothing of agreements, so books saw it as unclassified money out. Payroll asked for it to post as the " +
+    "agreement component's expense with party the Employee. How does that meaning reach books?",
+  options: [
+    {
+      label: "door-with-slip",
+      text:
+        "When the agreement's process records the paid slip of a collection to a person, it invokes " +
+        "`books.record-payroll-accrual` (action collection) in the same transaction: Dr the agreement component's " +
+        "expense, Cr Payroll Payable, party the Employee, naming the collection's Payment (`payment_` and its v4 id). " +
+        "Books then posts that Payment's voucher on Payroll Payable, party the Employee, so the pay and its liability " +
+        "meet as a Frappe slip's do (books.payroll-postings). A collection to an Organization payee has no slip and " +
+        "posts nothing here: its meaning is a Purchase Invoice, the head's.",
+    },
+    { label: "review", text: "Leave every collection in review for a Books-hat wearer to classify." },
+    { label: "payments-against", text: "Ask payments to give a collection's Payment an `against` at its birth from the chain fact." },
+  ],
+  chosen: "door-with-slip",
+  why:
+    "Only payroll knows a collection's Employee and its component's account, and books cannot read payroll; payments " +
+    "births the Payment from the chain fact and cannot know either. The door is already payroll's way down to books " +
+    "(payroll.accrual), and a paid slip and its expense are one money fact as a run and its accrual are: if they " +
+    "disagreed at a commit, the slip would show pay the books never expensed. Review would leave every salary paid by " +
+    "agreement unclassified. The step invokes one procedure of one concept, within sys:tx-width.",
+  source: FRAPPE_ASSEMBLY("docs/design/frappe/assembly-items.md (accounting and payroll on collections); payroll.collection-slips; books.payroll-postings"),
+  affects: [workflow_payroll_agreements_lifecycle, machine_salary_slip.t.record_collection, table_salary_slips, concept_books],
+});
+
+export const decision_payroll_timesheet_pay = defineDecision({
+  id: "payroll.timesheet-pay",
+  title: "Capxul's slips pay no timesheets yet, so projects.pay-time is deferred",
+  question:
+    "The projects lane asked: if salary slips pay timesheets, payroll should depend on projects and design with it a " +
+    "door (`projects.pay-time`, the hours a slip pays) driving `timesheet.pay`. Do Capxul's slips pay timesheets?",
+  options: [
+    {
+      label: "defer",
+      text:
+        "Not yet. Capxul computes slips from structures only; Frappe HR's timesheet-based slip " +
+        "(`salary_slip_based_on_timesheet`) is computed by a head, like leave and attendance (payroll.frappe-doctypes). " +
+        "Such a run comes in by payroll.import-run as an ordinary run, and the head's slip marks its timesheets paid " +
+        "through projects' own head sync, under its paid-once guard (projects.billing-and-payslips). Payroll does not " +
+        "depend on projects, and no door is designed until Capxul computes slips from hours.",
+    },
+    {
+      label: "pay-time-now",
+      text: "Payroll depends on projects now and designs `projects.pay-time` for a Capxul-computed slip from timesheets.",
+    },
+  ],
+  chosen: "defer",
+  why:
+    "A door nothing invokes is a gap, not a design, and projects.billing-and-payslips says the same of doors designed " +
+    "early. Hours paid twice would be money paid twice, but with no Capxul slip that pays hours there is only one " +
+    "writer of the paid mark, the head's slip through projects' sync. When a customer needs Capxul to pay by the hour, " +
+    "this record is reopened: payroll adds projects to its dependencies (projects sits below it) and the two concepts " +
+    "design `projects.pay-time` together.",
+  source: FRAPPE_ASSEMBLY("docs/design/frappe/projects-and-startup.md (For other lanes: payroll); projects.billing-and-payslips; hrms salary_slip.py:2402"),
+  affects: [concept_payroll, rpc_payroll_runs_create, workflow_payroll_head_sync],
 });

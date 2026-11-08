@@ -12,6 +12,7 @@ import { budget, defineRpc } from "../../../packages/book/src/index.ts";
 import { concept_payroll } from "../shared/foundation.ts";
 import { error_INVALID_INPUT, error_NOT_AUTHENTICATED, error_ROLE_PERMISSION_DENIED, error_TOKEN_NOT_BUDGETED } from "../shared/vocabulary.ts";
 import { table_budgets } from "../budgets/data.ts";
+import { table_book_accounts, table_book_companies } from "../books/data.ts";
 import { procedure_parties_resolve_recipient } from "../parties/procedures.ts";
 import {
   machine_salary_structure,
@@ -41,9 +42,12 @@ export const rpc_payroll_structures_component = defineRpc({
     "is INVALID_INPUT. A deduction's or employer contribution's `payee` is resolved through `parties.resolve-recipient` " +
     "(INVALID_INPUT when it names nothing): the Party its liability is owed to, which a holder or the FDE agent pays when " +
     "it falls due with an ordinary budget payment against the component's liability account, never inside a run's " +
-    "command (payroll.deduction-remittance). " +
+    "command (payroll.deduction-remittance). `account` and `liabilityAccount` are books' accounts by code or `acct_` " +
+    "id: an active ledger account of the chart under Expenses, and one under Liabilities (INVALID_INPUT otherwise); " +
+    "left out, or before the chart, they are null and the accrual posts to the line's role's account " +
+    "(payroll.books-accounts). " +
     "A change to an existing component affects only slips worked out after it, as in Frappe; the agreement component " +
-    "cannot be changed (INVALID_INPUT).",
+    "cannot be changed except its accounts (INVALID_INPUT).",
   was: [`${FRAPPE}/salary_component/salary_component.json`, `${FRAPPE}/salary_component/salary_component.py`, "/tmp/hrms/hrms/payroll/utils.py:57"],
   concept: concept_payroll,
   kind: "mutation",
@@ -51,7 +55,7 @@ export const rpc_payroll_structures_component = defineRpc({
   input: ComponentInput,
   output: Schema.Struct({ component: Component }),
   errors: [...HR_ERRORS],
-  reads: [...HR_READS, table_salary_components],
+  reads: [...HR_READS, table_salary_components, table_book_companies, table_book_accounts],
   writes: [table_salary_components, ...LOGGED],
   drives: [],
   invokes: [procedure_parties_resolve_recipient],
@@ -102,7 +106,8 @@ export const rpc_payroll_structures_assign = defineRpc({
     "or after `date_of_joining` (INVALID_INPUT). The department budget, the Employee's own unless given, must be one " +
     "of the Organization's budgets and pay in the structure's token (INVALID_INPUT, TOKEN_NOT_BUDGETED). `base` and " +
     "`variable` are amounts in that token, at its display precision. Then the assignment is born submitted " +
-    "(salary-structure-assignment.submit); from `fromDate` it supersedes any earlier one for the periods after it.",
+    "(salary-structure-assignment.submit), owed on books' Payroll Payable (null before the chart: " +
+    "payroll.books-accounts); from `fromDate` it supersedes any earlier one for the periods after it.",
   was: [`${FRAPPE}/salary_structure_assignment/salary_structure_assignment.json`, `${FRAPPE}/salary_structure_assignment/salary_structure_assignment.py`],
   concept: concept_payroll,
   kind: "mutation",
@@ -110,7 +115,7 @@ export const rpc_payroll_structures_assign = defineRpc({
   input: AssignmentInput,
   output: Schema.Struct({ assignment: Assignment }),
   errors: [...HR_ERRORS, error_TOKEN_NOT_BUDGETED],
-  reads: [...HR_READS, table_budgets, table_employees, table_salary_structures, table_salary_structure_assignments],
+  reads: [...HR_READS, table_budgets, table_employees, table_salary_structures, table_salary_structure_assignments, table_book_accounts],
   writes: [table_salary_structure_assignments, ...LOGGED],
   drives: [machine_salary_structure_assignment.t.submit],
   invokes: [],

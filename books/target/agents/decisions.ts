@@ -738,3 +738,44 @@ export const decision_agents_fde_authority = defineDecision({
   source: FDE_RULING,
   affects: [table_agents, table_org_members, concept_organizations, concept_projects],
 });
+
+// ── the assembly after the Frappe lanes (8 November 2026) ────────────────────────────────────
+
+const ASSEMBLY = "Claude, identity assembly after the Frappe lanes, 8 November 2026";
+const asmBy = (evidence: string) => `${ASSEMBLY}; evidence: ${evidence}`;
+
+export const decision_agents_fde_people_hat = defineDecision({
+  id: "agents.fde-people-hat",
+  title: "The setup grants the FDE no People hat; the founder grants it when the CRM needs it",
+  question:
+    "Only a People hat wearer edits an Organization's contact book and CRM (aaron.contacts-permissions), so the FDE " +
+    "cannot work the CRM, or import a business's contacts at start-up, without it. Does the setup grant it, or does the " +
+    "founder?",
+  options: [
+    {
+      label: "founder-grants",
+      text:
+        "The setup grants no hat (agents.fde-authority). When the FDE first needs the CRM it prepares `org member grant " +
+        "@<its handle> people` for the founder, who approves the Board proposal; while the founder is the only Director " +
+        "that is one signature. Until then the FDE reads the CRM like any member, and a People hat wearer imports.",
+    },
+    {
+      label: "install-batch",
+      text:
+        "The install batch also calls `Hats.mintHat(people, fdeSafe)`, so the founder's one signature installs the " +
+        "company, creates the FDE and lets it work the CRM from its first sitting.",
+    },
+    { label: "create-flag", text: "As install-batch, but only when the founder passes `org create --fde-people`." },
+  ],
+  chosen: "founder-grants",
+  why:
+    "For Aaron, with agents.fde-authority's question: whether the FDE starts with the People hat. The People hat is " +
+    "more than the CRM: it invites members and offers Seats, manages projects (projects.permissions), and is Frappe HR's " +
+    "HR Manager for payroll's employees, components and runs, so granting it at install gives an AI agent people and " +
+    "payroll authority no person chose. A dedicated sales permission would be the narrow grant, but none exists " +
+    "(contacts.crm-permission keeps one permission for the CRM). The cost of waiting is one Board approval the FDE " +
+    "prepares, in the same sitting as the start-up import (contacts.startup). If Aaron wants the FDE to start working " +
+    "the CRM unasked, install-batch adds one call to the batch the founder already signs and no new record.",
+  source: asmBy("docs/design/frappe/crm.md (FDE and organizations); books/target/contacts/decisions.ts (contacts.crm-permission); books/target/agents/decisions.ts (agents.fde-authority)"),
+  affects: [table_agents, table_org_members, table_org_setups, concept_organizations, concept_projects],
+});

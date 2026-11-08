@@ -274,7 +274,9 @@ export const rpc_board_directors_seat = defineRpc({
   id: "board.directors.seat",
   title: "Seat a member as a Director, from the Shareholders' top hat",
   about:
-    MEMBER + " " + TOP_HAT + " The email must name a current member (INVALID_INPUT otherwise) whose Safe is claimed " +
+    MEMBER + " " + TOP_HAT + " The email must name a current member who is a person (INVALID_INPUT otherwise: an " +
+    "agent's Seat, named by its `@handle`, is refused whoever owns the agent, the Organization's FDE above all, because " +
+    "an agent is never a Director, board.no-agent-directors) whose Safe is claimed " +
     "(indexing's safe-owners; WRONG_STATE: they have not finished signing up) and does not sign the company Safe yet " +
     "(WRONG_STATE). The calls, from the founder's Safe: `Hats.changeHatMaxSupply(director, supply + 1)` when every " +
     "Director seat is worn, `Hats.mintHat(director, memberSafe)` unless the member already wears the hat, then " +
@@ -407,7 +409,8 @@ export const rpc_board_directors_claim = defineRpc({
   title: "An elected Director claims their Board seat",
   about:
     MEMBER + " The caller's Safe must wear the Director hat, read live (ROLE_PERMISSION_DENIED: not elected, or the term " +
-    "ended), and must not sign the company Safe yet (WRONG_STATE). `--seat` names a seat group; until Board elections " +
+    "ended), its Seat must be a person's (an agent's is ROLE_PERMISSION_DENIED even if elected: board.no-agent-directors), " +
+    "and it must not sign the company Safe yet (WRONG_STATE). `--seat` names a seat group; until Board elections " +
     "define groups there is one Director hat, and any other group is INVALID_INPUT. The call, from the caller's own " +
     "Safe: `HatsSignerGate.claimSigner(directorHat)`, which makes it an owner and recomputes the threshold; never a " +
     "Board proposal. " + BIRTH,

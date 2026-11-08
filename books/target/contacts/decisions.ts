@@ -351,10 +351,9 @@ export const decision_contacts_members_write = defineDecision({
     "hats. Behaviour kept: an outsider is still ROLE_PERMISSION_DENIED, and every frozen claim's world still holds (in " +
     "`person-with-contacts` Dan, Acme's founder, writes its book); the frozen `who` is rewritten (a spelling of who, P10 " +
     "rung 1), and the designed refusal 'You cannot write to that book' now has its case: Rex, Acme's agent, holds a Seat " +
-    "and no hat. The map needs one edge: whether a Safe wears a hat is indexing's, and contacts depends only on access, " +
-    "parties and organizations, so contacts must depend on indexing too (asked of shared/foundation.ts and " +
-    "dependencies.of-contacts); until it does, the writes read the hat id from organizations' deployment and the build " +
-    "cannot see their read of the wearers.",
+    "and no hat. The map needed one edge: whether a Safe wears a hat is indexing's, so contacts depends on indexing " +
+    "(shared/foundation.ts, dependencies.of-contacts), and every write reads the hat's id from organizations' " +
+    "deployment and its wearers from indexing's `hat-wearers`.",
   source: by(`${P}/guards.ts:41 (requireWriter, requireManager); books/target/shared/rulings.ts (aaron.contacts-permissions); contact.add.yaml (designed refusals)`),
   affects: [...WRITES, ...OPERATIONS.filter((o) => o !== operation_contact_list), concept_contacts],
 });
@@ -804,8 +803,9 @@ export const decision_contacts_crm_capabilities = defineDecision({
   title: "The CRM's new capabilities are SDK methods; their CLI commands wait",
   question:
     "Recording a person or company, and capturing, moving and converting leads and deals, are new capabilities: none is " +
-    "among the 215 frozen operations, and the frozen check refuses a target operation that is not one of them. How does " +
-    "an Organization with no head work its CRM now?",
+    "among the 215 frozen operations. Rule rules.new-operations now books a new operation for an Aaron ruling, with a " +
+    "decision pack naming its commands. How does an Organization with no head work its CRM now, and how do the CRM and " +
+    "projects, which booked their new capabilities differently, become one approach?",
   options: [
     {
       label: "sdk-now-cli-later",
@@ -814,21 +814,25 @@ export const decision_contacts_crm_capabilities = defineDecision({
         "`client.org(orgId).crm.leads.*`, `.crm.deals.*`) that serves the SDK: the Organization's Forward Deployed " +
         "Engineer and any other SDK client use them (a connected head syncs through contacts' own process instead). The " +
         "CLI commands (for example `contact record`, `crm lead add`, " +
-        "`move`, `convert`, `list`, `get` and `crm deal add`, `move`, `list`, `get`) come as a decision pack, with the " +
-        "projects concept's, once new operations beyond the 215 are allowed.",
+        "`move`, `convert`, `list`, `get` and `crm deal add`, `move`, `list`, `get`) are this decision pack's " +
+        "recommendation, booked as operations by rules.new-operations in the CLI operations pass, each one call to the " +
+        "SDK method already booked. Projects follows the same shape: its rpcs and SDK methods first, then its pack's " +
+        "commands.",
     },
-    { label: "cli-now", text: "Book the CLI operations now, changing the frozen check to allow new operations." },
+    { label: "cli-now", text: "Book the CLI operations in this pass, under rules.new-operations, before Aaron answers the pack." },
     { label: "head-only", text: "No CRM capabilities in Capxul: leads and deals are worked only in a connected Frappe head." },
   ],
   chosen: "sdk-now-cli-later",
   why:
-    "This is for Aaron: whether the CRM gets CLI commands now, and their names. The data and the rules are booked either " +
-    "way, so the choice changes only the surface. A CLI operation is one of the 215 by the frozen-behaviour rule, and " +
-    "opening that list is a decision about every new capability (the projects concept has the same need), not one this " +
-    "lane makes alone. Head-only would leave an Organization without a head with no leads or deals, against the CRM " +
-    "being complete without one. SDK methods let the Forward Deployed Engineer, which acts through the same SDK as every " +
-    "agent, set up and work the CRM from the first day, and the CLI commands, when allowed, are each one call to the " +
-    "method already booked.",
+    "This is for Aaron: which CLI commands the CRM gets, and their names (aaron.crm-frappe-shape, aaron.frappe-shape). " +
+    "The data and the rules are booked either way, so the choice changes only the surface. Rules.new-operations now lets a " +
+    "new operation be booked for a ruling, so what waits is only the pack's answer, not a rule. Head-only would leave an " +
+    "Organization without a head with no leads or deals, against the CRM being complete without one. SDK methods let the " +
+    "Forward Deployed Engineer, which acts through the same SDK as every agent, set up and work the CRM from the first " +
+    "day. Reconciled with projects in the identity assembly: projects booked only its decision pack (projects.commands), " +
+    "no rpcs; the one approach for every fundamental app's new capability is rpcs and SDK-surface flows first (the " +
+    "capability exists and syncs), then the commands its pack names, booked in the CLI operations pass, each flow " +
+    "gaining `cli` when its operation is booked.",
   source: crmBy("tools/check-frozen.ts ('a target operation that is none of the 215'); books/target/shared/rulings.ts (aaron.frappe-shape, aaron.fde-agent, aaron.projects)"),
   affects: [...CRM_RPCS, ...CRM_FLOWS, concept_contacts],
 });
@@ -971,4 +975,49 @@ export const decision_contacts_head_mapping = defineDecision({
     workflow_contacts_head_sync, table_contacts, table_leads, table_deals, table_deal_contacts, table_org_members,
     table_parties, machine_lead, rpc_contacts_leads_convert,
   ],
+});
+
+// ── the assembly after the Frappe lanes (8 November 2026) ────────────────────────────────────
+
+const ASSEMBLY = "Claude, identity assembly after the Frappe lanes, 8 November 2026";
+const asmBy = (evidence: string) => `${ASSEMBLY}; evidence: ${evidence}`;
+
+export const decision_contacts_startup = defineDecision({
+  id: "contacts.startup",
+  title: "The CRM starts empty at the setup's begin; a business's contacts come in by command",
+  question:
+    "Every fundamental app starts itself from organizations' `org-setup.begin` (organizations.startup). What does the " +
+    "CRM create when an Organization begins, and how does a business's existing list of people and companies get in?",
+  options: [
+    {
+      label: "nothing-to-seed",
+      text:
+        "No start-up process: an Organization's CRM is complete at `begin` with nothing written. Its status lists are " +
+        "fixed defaults (contacts.crm-statuses), its `crm-settings` counter is inserted by its first write under that " +
+        "row's lock, and its members are read from Seats, never copied (contacts.members-derived). The Organization " +
+        "itself is no CRM Organization: Frappe CRM's organizations are counterparties, and the Organization is ERPNext's " +
+        "Company (organizations.company-shape). Existing contacts are imported in the start-up sitting one record at a " +
+        "time, through `contact add` (a person or company with a Party) and `contacts.book.record` (a private entry with " +
+        "Frappe's fields), by a People hat wearer: the founder, or the FDE once granted the hat (agents.fde-people-hat). " +
+        "A head connected later receives the whole CRM from seq 1 (contacts.head.sync).",
+    },
+    {
+      label: "startup-process",
+      text: "A workflow triggered by `org-setup.begin` that writes `crm-settings` and a CRM Organization for the Organization itself.",
+    },
+    { label: "bulk-import", text: "As nothing-to-seed, plus a bulk import rpc that takes a file of contacts in one transaction." },
+  ],
+  chosen: "nothing-to-seed",
+  why:
+    "A process whose only write would be a counter row that the first write inserts anyway is a process with nothing to " +
+    "do, and P3 keeps no process for what a transaction can do. organizations.startup had listed 'the Organization's own " +
+    "CRM Organization' for the CRM; Frappe CRM has no own-company record (its CRM Organization is a company you sell to " +
+    "or buy from), so writing one would make the Organization a counterparty of itself in its own CRM and in a head's. " +
+    "Importing through the booked writes keeps every check (the People hat, `parties.resolve-recipient` naming each " +
+    "person, the change log) on every imported record, which a bulk path would have to repeat; a bulk import is a new " +
+    "capability for the CRM's decision pack (contacts.crm-capabilities), not needed for the start-up, whose contact lists " +
+    "are small. Answers the projects and start-up lane's ask for a CRM start-up from `begin`, and the CRM lane's for the " +
+    "start-up import.",
+  source: asmBy("docs/design/frappe/crm.md (FDE and organizations); docs/design/frappe/projects-and-startup.md (section 1 table); books/target/organizations/decisions.ts (organizations.startup)"),
+  affects: [table_crm_settings, table_contacts, rpc_contacts_book_add, rpc_contacts_book_record, workflow_contacts_head_sync, concept_contacts],
 });

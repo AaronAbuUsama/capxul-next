@@ -646,3 +646,39 @@ export const decision_board_director_refusals_ask_nothing = defineDecision({
   source: BUILDER("books/target/board/flows.ts (refused); books/target/shared/decisions.ts (vocabulary.declined-preview-cancelled)"),
   affects: [flow_client_org_directors_add, flow_client_org_directors_remove, flow_client_org_directors_replace, flow_client_org_directors_set_threshold],
 });
+
+// ── the assembly after the Frappe lanes (8 November 2026) ────────────────────────────────────
+
+const ASSEMBLY = "Claude, identity assembly after the Frappe lanes, 8 November 2026";
+const asmBy = (evidence: string) => `${ASSEMBLY}; evidence: ${evidence}`;
+
+export const decision_board_no_agent_directors = defineDecision({
+  id: "board.no-agent-directors",
+  title: "An agent is never a Director: seating or claiming one is refused",
+  question:
+    "agents.fde-authority: the FDE may never be a Director. `org board director add` seats any current member, and an " +
+    "agent holds a Seat like a person. Which agents does the Board refuse, and where?",
+  options: [
+    {
+      label: "every-agent",
+      text:
+        "Every agent, whoever owns it. `board.directors.seat` refuses a member whose Seat is an agent's (INVALID_INPUT, " +
+        "the code it gives any member who cannot be seated), and `board.directors.claim` refuses a caller whose Seat is " +
+        "an agent's, even if an election minted it the Director hat (ROLE_PERMISSION_DENIED).",
+    },
+    { label: "organization-owned", text: "Only an agent an Organization owns, so its own FDE; a person's agent may be seated." },
+    { label: "chain-only", text: "No check in Capxul: the Board decides whom it seats." },
+  ],
+  chosen: "every-agent",
+  why:
+    "A Director signs the company Safe and approves every Board proposal, the authority the rulings keep with people " +
+    "(aaron.fde-agent: the FDE works under the Organization's authority, never as it). The FDE is the sharpest case, " +
+    "because its owner is the Board, so a seated FDE would be the Board controlling one of its own signers; but a " +
+    "person's agent seated as a Director would equally sign for the company with a key no person holds in the moment. " +
+    "Refusing every agent is one rule a reader can hold, and costs nothing frozen: no frozen claim seats an agent, both " +
+    "codes are already the operations' refusals for a member who cannot be seated or claim, and every world keeps its " +
+    "outcome. The chain cannot tell an agent's Safe from a person's, so Capxul checks the Seat's kind, which it holds. " +
+    "Electing an agent through the Governor is equity's to refuse when Board elections are booked.",
+  source: asmBy("docs/design/frappe/projects-and-startup.md (section 3); books/target/agents/decisions.ts (agents.fde-authority)"),
+  affects: [rpc_board_directors_seat, rpc_board_directors_claim, op.operation_org_board_director_add, op.operation_org_board_claim],
+});

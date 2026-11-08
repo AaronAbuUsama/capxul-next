@@ -4,14 +4,16 @@
 // `org member revoke`); a spending allowance is budgets'. The old area's grant, revoke,
 // permission-target, record-permission-change, advance, emit and notify rpcs go with them or with
 // the legacy pending states (decision organizations.members-are-seats). How many Seats an
-// Organization may fill is its `seat_limit` (ten at birth, aaron.seats); only a Capxul operator
-// raises it, here (decision organizations.seat-limit).
+// Organization may fill is its `seat_limit` (ten at birth, aaron.seats). The Organization buys more
+// itself, paid through payments, whose settlement counts them through this concept's door
+// (procedures.ts, organizations.buy-seats); a Capxul operator may still raise it, here
+// (decision organizations.seat-limit).
 
 import { Schema } from "effect";
 import { budget, defineRpc } from "../../../packages/book/src/index.ts";
 import { concept_organizations } from "../shared/foundation.ts";
 import { error_INVALID_INPUT, error_NOT_AUTHENTICATED, error_ROLE_PERMISSION_DENIED } from "../shared/vocabulary.ts";
-import { table_org_deployments, table_org_invitations, table_org_members, table_organizations } from "./data.ts";
+import { table_org_deployments, table_org_invitations, table_org_members, table_org_seat_purchases, table_organizations } from "./data.ts";
 import { table_principals } from "../access/data.ts";
 import { table_parties } from "../parties/data.ts";
 import { table_hat_wearers } from "../indexing/data.ts";
@@ -76,6 +78,8 @@ export const SeatsView = Schema.Struct({
   offersReserved: N,
   /** Whether the Organization's own agent holds or is offered its one place. */
   ownAgent: Schema.Boolean,
+  /** Seats the Organization bought, counted now (its settled purchases). */
+  seatsBought: N,
   raisedBy: NullOr(S),
   raisedAt: NullOr(N),
 });
@@ -88,16 +92,17 @@ export const rpc_organizations_seats_raise = defineRpc({
     "NOT_AUTHENTICATED), one transaction under the Organization row's lock. It sets `seat_limit` to the number given and " +
     "records the operator's label and the time. The limit only goes up: a number that is not a whole number above the " +
     "current limit, or an Organization that does not exist, is INVALID_INPUT and nothing changes. It answers the limit " +
-    "with what counts against it. An Organization starts with ten in the beta and after (aaron.seats); nothing else " +
-    "changes the limit, and nobody inside the Organization can.",
-  was: ["books/target/shared/rulings.ts (aaron.seats)", "books/target/accounts/admission.ts (the operator tool's pattern)"],
+    "with what counts against it and the seats bought. An Organization starts with ten in the beta and after " +
+    "(aaron.seats); besides this raise, only a settled seat purchase adds to the limit (organizations.buy-seats), and " +
+    "nobody inside the Organization sets it by hand.",
+  was: ["books/target/shared/rulings.ts (aaron.seats, aaron.buy-seats)", "books/target/accounts/admission.ts (the operator tool's pattern)"],
   concept: concept_organizations,
   kind: "mutation",
   who: "A Capxul operator with the deployment's operator key, through the operator's tool.",
   input: Schema.Struct({ orgId: S, seats: N, by: S }),
   output: SeatsView,
   errors: [error_NOT_AUTHENTICATED, error_INVALID_INPUT],
-  reads: [table_organizations, table_org_members, table_org_invitations],
+  reads: [table_organizations, table_org_members, table_org_invitations, table_org_seat_purchases],
   writes: [table_organizations],
   drives: [],
   invokes: [],

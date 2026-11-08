@@ -77,7 +77,8 @@ export const table_organizations = defineTable({
     "company Safe's address is the minter's pure `companySafeAddressFor` of the founder's Safe and the handle, so it is " +
     "known, and money can be routed to it, before Companies House mints it. The handle lives on the Party (one namespace " +
     "with agents); the logo is a media file the row points at. `seat_limit` is how many Seats it may fill: ten at birth, " +
-    "in the beta and after, raised only by a Capxul operator (organizations.seat-limit). Nothing here is a chain copy: " +
+    "in the beta and after, raised when a seat purchase's Payment settles or by a Capxul operator " +
+    "(organizations.seat-limit, organizations.buy-seats). Nothing here is a chain copy: " +
     "the Safe's owners, its threshold and its balances are read from indexing's views. It is also ERPNext's Company for " +
     "the Organization (aaron.erp-on-capxul): `abbr`, `default_currency`, `time_zone` and `fiscal_year_start` are the " +
     "Company and System Settings facts every fundamental app reads, set at birth from the country as ERPNext's setup " +
@@ -101,9 +102,13 @@ export const table_organizations = defineTable({
     safe_address: S,
     founder_party_id: S,
     founder_safe: S,
-    /** Seats it may fill: 10 at birth (aaron.seats); only `organizations.seats.raise` changes it, and only upward. */
+    /**
+     * Seats it may fill: 10 at birth (aaron.seats); a settled seat purchase adds its seats and a reorg's reversal takes
+     * them back (organizations.add-bought-seats, .return-bought-seats); an operator's raise (`organizations.seats.raise`)
+     * sets it higher. Nothing else changes it.
+     */
     seat_limit: N,
-    /** The operator label and time of the last raise; null while it has its first ten. */
+    /** Who last raised it: an operator's label, or `purchase` for a settled seat purchase; null while it has its first ten. */
     seat_limit_raised_by: NullOr(S),
     seat_limit_raised_at: NullOr(N),
     /** ERPNext Company.abbr: the suffix of the Organization's account names; 1 to 5 upper-case letters or digits. */
@@ -424,6 +429,60 @@ export const table_org_invitations = defineTable({
       fields: ["grantee_party_id", "phase", "created_at", "invitation_id"],
       crossTenant: true,
       for: "`invite list --phase`, merged per phase in page order.",
+    },
+  ],
+  retention: KEPT,
+});
+
+// ── seat purchases (aaron.buy-seats) ────────────────────────────────────────────────────────
+
+export const table_org_seat_purchases = defineTable({
+  id: "org-seat-purchases",
+  title: "Seat purchases: the seats an Organization bought, one row per settled Payment",
+  about:
+    "One row per Payment that bought seats (organizations.buy-seats). Payments births the purchase's command at the " +
+    "deployment's seat price and settles it on its terms; in the settling transaction it invokes " +
+    "`organizations.add-bought-seats`, which records the purchase here and raises the Organization's `seat_limit` by its " +
+    "seats under the Organization row's lock, so the limit rises exactly when the payment settles. A reorg below " +
+    "finality that reopens the Payment takes the seats back (`organizations.return-bought-seats`), and the same Payment " +
+    "settling again adds them again: the Organization holds bought seats exactly while the chain shows them paid for. " +
+    "The amount, token and settling transaction are copied from the settled Payment so `org show` can list what was " +
+    "bought without reading payments, which sits above; the Payment and its book fact stay payments' and books'. A " +
+    "bought seat is kept for good: nothing else frees one.",
+  concept: concept_organizations,
+  tenancy: "organization",
+  tenantField: "org_id",
+  fields: Schema.Struct({
+    org_id: S,
+    /** The settled Payment that bought them: one purchase per Payment. */
+    payment_id: S,
+    command_id: S,
+    /** How many seats it bought, 1 to 1,000. */
+    seats: N,
+    status: Schema.Literals(["counted", "returned"]),
+    chain_id: N,
+    token_address: S,
+    /** The stablecoin's symbol, as the deployment lists it (`USDC`). */
+    asset: S,
+    /** What the Payment paid, in the token's units: the seats times the price in force when its command was born. */
+    amount_raw: S,
+    /** The member who bought them (their Party). */
+    bought_by_party_id: S,
+    /** The Organization's limit once these seats were counted. */
+    limit_after: N,
+    tx_hash: S,
+    block_number: N,
+    counted_at: N,
+    returned_at: NullOr(N),
+    created_at: N,
+    updated_at: N,
+  }),
+  key: ["org_id", "payment_id"],
+  indexes: [
+    {
+      name: "by_org_counted",
+      fields: ["org_id", "counted_at", "payment_id"],
+      for: "The Organization's purchases in the order they were counted: the seats bought that the raise and `org show` report.",
     },
   ],
   retention: KEPT,
@@ -806,6 +865,51 @@ export const machine_org_invite = defineMachine({
       to: "expired",
       about: "The grantee's Safe wears none of the granted hats any more, for an offer that expired.",
       emits: [event_org_invite_transitioned],
+    },
+  },
+});
+
+export const event_seat_purchase_transitioned = defineEvent({
+  id: "seat_purchase_transitioned",
+  about:
+    "A seat purchase was counted (its Payment settled), taken back by a reorg, or counted again. A reader of the funnel " +
+    "sees how many seats were bought and when; notices may tell the buyer.",
+  props: Schema.Struct({ from: From, to: S, transition: S, org_id: S, payment_id: S, seats: N }),
+});
+
+export const machine_seat_purchase = defineMachine({
+  id: "seat-purchase",
+  title: "Seat purchase",
+  about:
+    "org-seat-purchases.status, driven only by organizations' two doors inside payments' transactions. Born counted " +
+    "when its Payment settles, which raises the limit; returned when a reorg reopens that Payment, which lowers it again; " +
+    "counted again when the Payment settles once more. Seats and live offers already past a lowered limit stay; the next " +
+    "offer is refused until the count is under it.",
+  table: table_org_seat_purchases,
+  field: "status",
+  initial: "counted",
+  states: [
+    { id: "counted", about: "Its Payment is settled: its seats are in the Organization's limit." },
+    { id: "returned", about: "A reorg took its PaymentSent away: its seats are out of the limit until the Payment settles again." },
+  ],
+  transitions: {
+    add: {
+      from: [],
+      to: "counted",
+      about: "Birth: the Payment that bought the seats settled; the limit rises by its seats.",
+      emits: [event_seat_purchase_transitioned],
+    },
+    take_back: {
+      from: ["counted"],
+      to: "returned",
+      about: "A reorg below finality reopened the Payment; the limit falls by its seats.",
+      emits: [event_seat_purchase_transitioned],
+    },
+    add_again: {
+      from: ["returned"],
+      to: "counted",
+      about: "The reopened Payment settled again; the limit rises by its seats once more.",
+      emits: [event_seat_purchase_transitioned],
     },
   },
 });
