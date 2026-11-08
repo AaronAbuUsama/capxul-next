@@ -437,27 +437,43 @@ month.
 
 ### What vending-bench can rely on for a deterministic simulated year
 
-1. Boot with `capxul-devnet up --start-at <the simulation's day 1, 00:00 UTC> --frozen`. The old
-   bridge's "next midnight on the same weekday after the devnet's own time" goes away.
-2. Then either of these:
+1. **Fix day 1 against the pinned fork, not the running devnet.** The engine's start date is
+   2026-01-05 (`world_facts.py`), which is before the pinned fork block's time. The eval epoch never
+   predates a block the fork already has [`devnet.deterministic-worlds`]. So day 1 is the first UTC
+   midnight on the engine's start weekday at or after the fork block's time. That is the old
+   bridge's `anchorAfter`, taken against a fixed instant instead of the devnet's own running time,
+   so it is the same on every run. A day 1 before the fork works only if B0 shows that Ponder and
+   the forked contracts accept local blocks older than the forked history.
+2. **Boot before day 1 and build the world on 1-second steps.** Boot with
+   `capxul-devnet up --start-at <day 0, 09:00 UTC> --frozen`. Build the business's people,
+   Organizations and Budgets with the world builder's rule of one second before each step and a
+   settle after it. Then `warp --to <day 1, 00:00>`. Otherwise the whole set-up shares day 1's
+   first instant with the engine's first moment.
+3. Then drive the story in bounded calls. Each call waits at most ten minutes (the caller's
+   patience on `timeWarp`). A year with an agent thinking at every simulated day takes hours, so
+   one year-long call cannot work.
    - **Warp per moment.** For each engine moment, `warp --to` that minute, act (deposit, collect,
      pay), then `settle`. Each warp is a barrier, so no polling is left, and no warp is ever skipped
      because a running chain got there first.
-   - **Follow.** Join as a follower whose next due is the engine's next event, and make one
-     `warp --to <day 365>`. The warp stops at each of the engine's moments. The engine acts there
-     on a standing clock and acknowledges idle.
-3. Either way, two runs of one seed see the same block timestamps, the same invoice due dates and
-   the same expiries.
+   - **Follow.** Join as a follower whose next due is the engine's next event, with an `ackTimeoutMs`
+     long enough for the agent's turn. Then call `step --limit <day 365>` in a loop, or warp a day
+     at a time. Each call stops at the engine's moments, and the engine acts there on a standing
+     clock and acknowledges idle. It needs a second thread or process: the one that calls `step`
+     blocks, while the follower's handler answers the events.
+4. Either way, two runs of one seed see the same block timestamps, the same invoice due dates and
+   the same expiries, given G4's two conditions.
 
 What it cannot rely on:
 
 - span durations, which are real time;
 - the order of its own concurrent actions that it does not settle between;
 - the random bits of ids;
-- outside services that are not followers, such as a real Bridge sandbox or Openfort.
+- outside services that are not followers, such as a real Bridge sandbox or Openfort;
+- a burst faster than the infrastructure rate limits, which run on real time.
 
 Capxul's own expiries are on now, so an agent's 30-day session ends 30 simulated days in. The
-harness signs the agent in again, or the agent uses its own key.
+harness signs the agent in again, or the agent uses its own key, whose 24-hour session the SDK
+renews on the refusal [`time.clients-take-server-now`].
 
 ## 4. What the runtime and the code must do
 
