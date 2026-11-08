@@ -34,6 +34,8 @@ export interface World {
   readonly sameAs?: string;
   /** The concepts whose refusals or acceptance lines name it. */
   readonly namedBy: readonly string[];
+  /** Environment variables every command an eval runs in this world gets (devnet.beta-world-by-variable). */
+  readonly env?: Readonly<Record<string, string>>;
 }
 
 // ── step helpers ────────────────────────────────────────────────────────────────────────────
@@ -84,9 +86,10 @@ export const WORLDS: readonly World[] = [
   { name: "cli-signed-out", holds: "No sign-in: the state of empty-devnet, under budgets' name.", from: "empty-devnet", steps: [], sameAs: "empty-devnet", namedBy: ["budgets", "board"] },
   {
     name: "cli-on-beta-environment",
-    holds: "empty-devnet with the CLI home pointed at beta, which this machine has no deployment for: every devnet command is refused before a network call.",
+    holds: "empty-devnet, with every command run under CAPXUL_ENV=beta, a deployment this machine does not have: every command that needs the network is refused CAPABILITY_UNAVAILABLE before a network call.",
     from: "empty-devnet",
-    steps: [anyone("capxul use env beta")],
+    steps: [],
+    env: { CAPXUL_ENV: "beta" },
     namedBy: ["budgets", "devnet"],
   },
   {

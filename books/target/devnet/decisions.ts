@@ -639,3 +639,25 @@ export const decision_devnet_no_acceptance = defineDecision({
     ops.operation_dev_jobs_run, ops.operation_dev_mail_list,
   ],
 });
+
+export const decision_devnet_beta_world_by_variable = defineDecision({
+  id: "devnet.beta-world-by-variable",
+  title: "The beta world selects beta by CAPXUL_ENV, not by `use env`",
+  question:
+    "cli-on-beta-environment was built with `capxul use env beta`, but access's client.use.env refuses CAPABILITY_UNAVAILABLE " +
+    "before it saves an environment this machine has no deployment for, so the world cannot be built as written. How does the " +
+    "world reach the CAPABILITY_UNAVAILABLE refusals that name it?",
+  options: [
+    { label: "variable", text: "The world sets CAPXUL_ENV=beta for every command an eval runs in it (a World's env), the way the old CLI resolves a deployment: --env, then CAPXUL_ENV, then the saved choice." },
+    { label: "flag", text: "Each refusal's eval passes --env beta itself." },
+    { label: "save-anyway", text: "Let `use env` save an environment it has no deployment for." },
+  ],
+  chosen: "variable",
+  why:
+    "The old CLI's config (apps/cli/src/runtime/config.ts) reads --env, then CAPXUL_ENV, so a variable is the surface's own " +
+    "way to point one invocation at beta without saving anything. A flag in each eval would put the world's state into every " +
+    "refusal, and saving an unusable environment would break use env's frozen CAPABILITY_UNAVAILABLE refusal. Found by the " +
+    "budgets refusal review.",
+  source: `Claude, handoff to the build, 8 November 2026; evidence: books/target/access/flows.ts (client.use.env); /home/user/factory/apps/cli/src/runtime/config.ts:199-218`,
+  affects: [concept_devnet, environment_devnet],
+});
