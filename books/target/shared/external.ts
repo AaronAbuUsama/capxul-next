@@ -17,9 +17,12 @@
 import { defineContract, defineIntegration } from "../../../packages/book/src/index.ts";
 import { component_backend, component_core_sdk } from "./foundation.ts";
 import {
+  error_AMOUNT_BELOW_USE,
   error_CANCELLED,
+  error_CHILDREN_EXCEED_PARENT,
   error_INSUFFICIENT_BALANCE,
   error_INVALID_INPUT,
+  error_PAYROLL_BUDGET_EXCEEDED,
   error_PROVIDER_ERROR,
   error_PROVIDER_RESPONSE_INVALID,
   error_RATE_LIMITED,
@@ -27,6 +30,7 @@ import {
   error_TRANSACTION_FAILED,
   error_VERIFICATION_REQUIRED,
   error_WRONG_ENVIRONMENT,
+  error_WRONG_STATE,
 } from "./vocabulary.ts";
 
 const OLD = "packages/backend/src/integrations";
@@ -111,7 +115,9 @@ export const integration_bundler = defineIntegration({
     "is its only caller: it sponsors an approval's UserOperation (stub data, gas estimate, final paymaster data with the " +
     "sponsorship window), sends it once after the owner signs, and looks it up. A send is never repeated: when its answer " +
     "is lost, the operation is looked up by hash (K4). The simulation inside sponsorship is where the chain's authority " +
-    "refusals surface before anyone signs, so they map to the caller's own codes (K18).",
+    "refusals surface before anyone signs, so they map to the codes the frozen refusals give them: a budget's shortfall " +
+    "or the payout ceiling is a budget refusal, any other Roles, Budgets or Gate refusal an authority refusal (K18, " +
+    "integrations.sponsor-refusals).",
   component: component_backend,
   system: "aa-gateway (alto behind the verifying paymaster)",
   service: "Bundler",
@@ -123,9 +129,16 @@ export const integration_bundler = defineIntegration({
       p95Ms: 1_200,
       failures: [
         unavailable("The gateway"),
-        { when: "The simulation reverts with the token's ERC20InsufficientBalance or Budgets' OverBudget", error: error_INSUFFICIENT_BALANCE },
+        { when: "The simulation reverts with the token's ERC20InsufficientBalance: the paying Safe holds too little", error: error_INSUFFICIENT_BALANCE },
         {
-          when: "The simulation reverts in Zodiac Roles (ConditionViolation, NoMembership), Budgets (NotAuthorised) or the Gate",
+          when: "The simulation reverts with Budgets' OverBudget, or a Zodiac Roles ConditionViolation whose status is AllowanceExceeded (the payout ceiling)",
+          error: error_PAYROLL_BUDGET_EXCEEDED,
+        },
+        { when: "The simulation reverts with Budgets' ChildrenExceedParent: the parent has less left to give", error: error_CHILDREN_EXCEED_PARENT },
+        { when: "The simulation reverts with Budgets' AmountBelowUse: below what the budget already uses", error: error_AMOUNT_BELOW_USE },
+        { when: "The simulation reverts with Budgets' BudgetIsClosed: the budget or one above it is closed", error: error_WRONG_STATE },
+        {
+          when: "The simulation reverts in Zodiac Roles (any other ConditionViolation, NoMembership), Budgets (NotAuthorised) or the Gate",
           error: error_ROLE_PERMISSION_DENIED,
         },
         { when: "The simulation reverts for any other reason: the chain would refuse the operation as it stands", error: error_TRANSACTION_FAILED },
@@ -1144,9 +1157,13 @@ export const contract_erc20 = defineContract({
     balanceOf: { signature: "balanceOf(address account) view returns (uint256)", about: "A Safe's balance before a send is built." },
     decimals: { signature: "decimals() view returns (uint8)", about: "A token's decimals, when the books add it." },
     symbol: { signature: "symbol() view returns (string)", about: "A token's symbol, when the books add it." },
+    mint: {
+      signature: "mint(address recipient, uint256 amount)",
+      about: "Test networks only: the synthetic test tokens' open mint, sent by the faucet key for `dev fund` and the welcome grant. Production tokens have none.",
+    },
   },
   events: {
     Transfer: { signature: "Transfer(address indexed from, address indexed to, uint256 value)", about: "Money moved: a Movement, or a Payment's own transfer." },
   },
-  was: ["packages/protocol/src/evm/test-assets.ts:21"],
+  was: ["packages/protocol/src/evm/test-assets.ts:21", "packages/contracts/src/TestMoneyToken.sol:22"],
 });

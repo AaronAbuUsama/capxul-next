@@ -240,7 +240,7 @@ export const error_PAYROLL_BUDGET_EXCEEDED = defineError({
   title: "Budget exceeded",
   class: "state",
   actor: "person",
-  message: "An offer or a raise would commit more than the budget has left this period. Nothing was signed.",
+  message: "The payment, offer or raise needs more than the budget has left this period, or more than its payout ceiling. Nothing was signed.",
   retryable: false,
   exit: 2,
   was: [`${PAYROLL}:9`],

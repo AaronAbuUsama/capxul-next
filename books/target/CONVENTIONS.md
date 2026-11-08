@@ -183,7 +183,9 @@ does until its rule lands (**review**, with the rule's name from the policy pack
   a `trigger` (rule `unreached-rpc`). An old method or row with no caller is not ported. A flow
   that serves a surface other than the CLI (the approval page, checkout, the web app, MCP) says
   which in its `about`.
-- Devnet-only rpcs live in the devnet concept, `who` starting `devnet only:`.
+- Devnet-only rpcs live in the devnet concept, `who` starting `devnet only:`, and so does every
+  devnet-only operation, even one that reads another concept's records (`dev mail notices` reads
+  notices' delivery records; decision `operations.dev-mail-notices-in-devnet`).
 
 ### 8. One SDK flow per multi-step operation; the CLI calls one SDK method (A4) — review
 
@@ -194,9 +196,10 @@ does until its rule lands (**review**, with the rule's name from the policy pack
   `local: "sign"` step, then a `local: "wait"` for the person or the chain.
 - A flow's steps may call rpcs of other concepts only through those concepts' rpcs, and its
   concept must depend on them. That is why a few operations live outside their area's concept:
-  `auth login` and `auth verify` in accounts, `org member invite` in board, `invite accept` in
-  banking (decisions `operations.*`). If your operation's flow needs a concept yours does not
-  depend on, the flow belongs higher up: say so with a decision, never add the edge yourself.
+  `auth login` and `auth verify` in accounts, `org member invite` in budgets (its grants include
+  allowances), `invite accept` and `contact get` in banking (decisions `operations.*`). If your
+  operation's flow needs a concept yours does not depend on, the flow belongs higher up: say so
+  with a decision, never add the edge yourself.
 - `spans` lists only extra local spans, named `sdk.step.*`, `call.*`, `workflow.step.*` or `wait.*`;
   the runtime derives the rest of the tree (P6).
 

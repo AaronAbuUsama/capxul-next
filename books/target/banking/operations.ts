@@ -189,7 +189,7 @@ export const operation_contact_bank_add = defineOperation({
   priority: "normal",
   implementedBy: flow_client_account_bank_accounts_add,
   acceptance: [
-    kept("contact.bank.add", 1, "world: before any verification, saving on vendor@example.com (a contact with only a name for its payee) writes one bank account `saved`, scope contact; the contact entry is unchanged; trace: no `call.bridge.*` span."),
+    kept("contact.bank.add", 1, "world: before any verification, saving on vendor@example.com, a contact added by email alone, writes one bank account `saved`, scope contact, and leaves the contact entry as it was; trace: no `call.bridge.*` span."),
     kept("contact.bank.add", 2, "cli: an account saved on Bea, a claimed person, has `recipient.onCapxul: true`."),
     rewritten(
       "contact.bank.add",
@@ -333,7 +333,7 @@ export const operation_bank_pay = defineOperation({
   priority: "normal",
   implementedBy: flow_client_banking_payouts_pay,
   acceptance: [
-    kept("bank.pay", 1, "cli: after `dev time warp` past the quote's deadline, or after the account is removed before approval, the output names `capxul bank pay` again; chain: no PaymentSent to the deposit address."),
+    kept("bank.pay", 1, "cli: after `dev time warp` past the quote's deadline, or after the account is removed before approval, the output names `capxul bank pay` again; chain: after the deadline, no PaymentSent to the deposit address."),
     kept("bank.pay", 2, "cli: the quote shows the bank amount Bridge locked and the slippage buffer as part of what leaves the Safe."),
     kept("bank.pay", 3, "cli: for a payout the Bridge stand-in returns, `bank pay` (or a later read) names the reason and the refund's transaction and Safe; chain: the refund Transfer into the Safe."),
     kept("bank.pay", 4, "cli: the same `--request-key` again succeeds with the same payout; chain: one PaymentSent; world: one payout and one Payment."),

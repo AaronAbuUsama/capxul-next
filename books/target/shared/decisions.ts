@@ -731,7 +731,7 @@ export const decision_dependencies_organizations_permissions = defineDecision({
     "Organizations needs to know whether an inviter wears the People hat, which is a chain fact (indexing) plus the hat id " +
     "in its own deployment record. Budgets and board need the company Safe, the members and the hat ids, which are " +
     "organizations'. The one place the old code went down, an invitation offering grants, becomes the invite flow's second " +
-    "step: board proposes the grants for the invitation.",
+    "step: budgets proposes the grants for the invitation through the Board (operations.member-invite-in-budgets).",
   source: by("docs/mission/findings.md (organizations-permissions, 76 and 37 imports); org.member.invite.yaml (designed)"),
   affects: [f.concept_organizations, f.concept_budgets, f.concept_board],
 });
@@ -1737,7 +1737,7 @@ export const decision_responsibilities_roles = defineDecision({
   title: "Old organizations' invitable roles list is dropped",
   question: "Old organizations listed 'the roles a member can be invited into'. What is that on v4?",
   options: [
-    { label: "drop", text: "Drop: on v4 an invitation offers the three officer hats and the Organization's allowances, which board's invite flow reads and `--preview` shows." },
+    { label: "drop", text: "Drop: on v4 an invitation offers the three officer hats and the Organization's allowances, which budgets' invite flow reads and `--preview` shows." },
     { label: "keep", text: "Keep a roles read in organizations." },
   ],
   chosen: "drop",
@@ -1951,4 +1951,207 @@ export const decision_dependencies_of_devnet = dependencies(f.concept_devnet, {
   approvals: "`dev approve` signs an approval with the dev signer.",
   organizations: "`dev gates set` for an Organization needs its membership.",
   notices: "`dev mail notices` reads notices' delivery records (operations.dev-mail-notices-in-devnet).",
+});
+
+// ── adversarial review of the architecture (8 November 2026) ────────────────────────────────
+// A third pass read the map against the frozen surface, the policies and what the first concept
+// designers could not build within it. Each record settles one change it made to the shared
+// records; operations.member-invite-in-budgets, above, was revised by the same pass.
+
+const ADVERSARIAL = "Claude, adversarial architecture review, 8 November 2026";
+const adversarial = (evidence: string) => `${ADVERSARIAL}; evidence: ${evidence}`;
+
+export const decision_operations_dev_mail_notices = defineDecision({
+  id: "operations.dev-mail-notices-in-devnet",
+  title: "`dev mail notices` is devnet's, reading notices' delivery records",
+  question: "`dev mail notices` answers only on a local devnet. May notices, a production concept, own it?",
+  options: [
+    { label: "devnet", text: "Devnet owns it and depends on notices to read the delivery records; notices owns the records and no operation." },
+    { label: "notices", text: "Notices owns it, as first decided, because the delivery records are notices'." },
+  ],
+  chosen: "devnet",
+  why:
+    "P2 gives devnet-only rpcs to the devnet concept, the devnet environment says devnet-only rpcs are the devnet " +
+    "concept's, and CONVENTIONS rule 7 says they live there. `dev mail notices` refuses WRONG_ENVIRONMENT off a local " +
+    "devnet, so in notices it would put a devnet-only rpc in a concept staging runs, the case P2's `devnet-in-production` " +
+    "rule exists to refuse. Reading another concept's table needs only the dependency, and devnet sits at the top, so " +
+    "the edge makes no cycle (dependencies.notices-top already put devnet above notices).",
+  source: adversarial("dev.mail.notices.yaml (refusals: WRONG_ENVIRONMENT); P2 (devnet concept, devnet-in-production); environment_devnet"),
+  affects: [f.concept_devnet, f.concept_notices, f.environment_devnet],
+});
+
+export const decision_operations_contact_get = defineDecision({
+  id: "operations.contact-get-in-banking",
+  title: "`contact get` is banking's flow, because it returns the contact's bank accounts",
+  question: "`contact get` returns `bankAccounts`, which banking owns, and contacts sits below banking. Which concept owns it?",
+  options: [
+    { label: "banking", text: "Banking: its flow calls contacts' read of the entry, then its own masked accounts for that Party." },
+    { label: "contacts", text: "Contacts, returning the entry without its bank accounts." },
+    { label: "contacts-up", text: "Contacts above banking (banking would lose the contact a saved account belongs to: a cycle)." },
+  ],
+  chosen: "banking",
+  why:
+    "The frozen `returns` names `bankAccounts` (P10 rung 1), and the old CLI made a second call for them. A flow composes " +
+    "only concepts its concept depends on, and banking is the one concept above contacts that owns the accounts, as " +
+    "`contact bank add` already is. The contacts designer found this and kept the record in contacts until the map moved " +
+    "it (contacts.get-bank-accounts); the entry's rpc stays contacts' for banking's flow to call.",
+  source: adversarial("contact.get.yaml (returns: bankAccounts); books/target/contacts/decisions.ts (contacts.get-bank-accounts)"),
+  affects: [f.concept_banking, f.concept_contacts],
+});
+
+export const decision_dependencies_budgets_parties = defineDecision({
+  id: "dependencies.budgets-parties",
+  title: "Budgets depends on parties",
+  question:
+    "Budgets' commands name people: `--holder <email>` 'the person or AI', `--member`, `--assign-to`, and lists that show " +
+    "who wears each hat. Budgets had no edge to parties. Is one needed?",
+  options: [
+    { label: "parties", text: "Add parties: resolve an email or an agent's `@handle` to its Party and Safe, and name a wearer's Safe." },
+    { label: "through-seats", text: "Resolve only through organizations' Seats and access' principals by email." },
+  ],
+  chosen: "parties",
+  why:
+    "A Seat carries a Party and a principal, not a mailbox or a handle. A person's email reaches their principal through " +
+    "access, but an agent is named by its `@handle`, which is parties' namespace, and a hat wearer is shown by the name " +
+    "its Safe's Party has. Every other concept that names people (board, payments, payroll, equity) already depends on " +
+    "parties. Parties sits far below budgets, so the edge makes no cycle.",
+  source: adversarial("org.department.holder.add.yaml (`<email>`: the person or AI); org.allowance.assign.yaml (`--member`); books/target/organizations/data.ts (org-members)"),
+  affects: [f.concept_budgets, f.concept_parties],
+});
+
+export const decision_dependencies_payers = defineDecision({
+  id: "dependencies.payers-sign-and-name-budgets",
+  title: "Requests and banking depend on approvals and budgets",
+  question:
+    "`inbox pay` and `bank pay` birth a Payment through payments.prepare-command, which opens its approval. Their flows " +
+    "must then let the payer sign, and `--from` names the budget an Organization pays from. Requests and banking depended " +
+    "on neither approvals nor budgets. What do they need?",
+  options: [
+    { label: "both-edges", text: "Add approvals and budgets to both: the flow reads and signs the approval, and the rpc resolves `--from` by the budget's key and checks who may spend." },
+    { label: "page-and-chain-id", text: "No edges: a person always signs on the approval page, and `--from` takes the budget's chain id read from indexing." },
+    { label: "payments-proxies", text: "Payments re-exposes the approval and resolves budget keys for its invokers." },
+  ],
+  chosen: "both-edges",
+  why:
+    "The frozen surface needs both. 'An AI with its own key signs at once': an agent payer signs in the flow (A4), which " +
+    "calls approvals' rpcs, as every other paying concept's flow does. The designed examples name budgets by key (`bank " +
+    "pay ... --from office-costs`, `inbox pay ... --from operations`) and print the budget's name and what it has left, " +
+    "which only budgets holds. The requests designer recorded both as open problems and fell back to the approval page " +
+    "and chain ids (requests.inbox-pay-approval, requests.inbox-pay-funding); a proxy in payments would duplicate approvals " +
+    "and budgets inside the ledger. Both concepts sit below payments, so neither edge makes a cycle.",
+  source: adversarial(
+    "inbox.pay.yaml, bank.pay.yaml (designed flags and examples); books/target/requests/decisions.ts; " +
+      "books/target/approvals/flows.ts ('every operation that opens an approval composes approvals' rpcs')",
+  ),
+  affects: [f.concept_requests, f.concept_banking, f.concept_approvals, f.concept_budgets],
+});
+
+export const decision_dependencies_notices_budgets = defineDecision({
+  id: "dependencies.notices-budgets",
+  title: "Notices depends on budgets, for the allowance email",
+  question: "'Once a v4 assign executes, the member is emailed the allowance at its amount now.' Notices did not depend on budgets. Who sends it?",
+  options: [
+    { label: "notices-budgets", text: "Add budgets to notices: one notice workflow follows budgets' change transition and reads the allowance." },
+    { label: "board-proposal", text: "Notices follows board's proposal_transitioned and reads nothing of budgets." },
+  ],
+  chosen: "notices-budgets",
+  why:
+    "Only budgets knows that a proposal carried an allowance assign, to whom and on which budget; a Board proposal does " +
+    "not say. Notices sends every email and depends on what it tells about (dependencies.notices-top), and budgets sits " +
+    "below it. The budgets designer asked for this edge (budgets.notices-need-budgets).",
+  source: adversarial("org.allowance.assign.yaml (acceptance 5); books/target/budgets/decisions.ts (budgets.notices-need-budgets)"),
+  affects: [f.concept_notices, f.concept_budgets],
+});
+
+export const decision_integrations_sponsor_refusals = defineDecision({
+  id: "integrations.sponsor-refusals",
+  title: "A sponsorship simulation's budget reverts answer with the budget codes",
+  question:
+    "The bundler's `sponsor` mapped Budgets' `OverBudget` to INSUFFICIENT_BALANCE and every Zodiac Roles revert to " +
+    "ROLE_PERMISSION_DENIED. Which codes do the frozen refusals give these reverts?",
+  options: [
+    {
+      label: "frozen-codes",
+      text:
+        "As the designed refusals name them: `OverBudget` and Roles' AllowanceExceeded (the payout ceiling) are " +
+        "PAYROLL_BUDGET_EXCEEDED, `BudgetIsClosed` WRONG_STATE, `ChildrenExceedParent` CHILDREN_EXCEED_PARENT, " +
+        "`AmountBelowUse` AMOUNT_BELOW_USE; Budgets' `NotAuthorised` and every other Roles or Gate revert stay " +
+        "ROLE_PERMISSION_DENIED, and a token's shortfall INSUFFICIENT_BALANCE.",
+    },
+    { label: "as-was", text: "Keep balance, authority and revert as the only three codes a simulation can answer." },
+  ],
+  chosen: "frozen-codes",
+  why:
+    "The designed refusals of `payment send`, `payment retry`, `org department pay`, `bank pay`, `inbox pay` and the " +
+    "agreement offers name the contract error beside the code: `OverBudget(id, left, requested)`; Roles " +
+    "`AllowanceExceeded` is PAYROLL_BUDGET_EXCEEDED, and `BudgetIsClosed(id)` is WRONG_STATE (P10 rung 1). Concepts read " +
+    "`leftOf` before birth (K3), so the simulation is the backstop for a race; a backstop that answers a budget shortfall " +
+    "as the Safe's balance, or the payout ceiling as a missing hat, tells the payer the wrong fix. K18 already says Roles " +
+    "refusals are authority refusals; the ceiling is the one Roles status the frozen text calls a budget refusal. " +
+    "PAYROLL_BUDGET_EXCEEDED's message now covers a spend as well as an offer or a raise.",
+  source: adversarial(
+    "payment.send.yaml, org.department.pay.yaml, bank.pay.yaml, inbox.pay.yaml (designed refusals, `contract`); " +
+      "packages/contracts/v4/src/interfaces/IBudgets.sol:105-117; docs/as-is/payments.md (K18)",
+  ),
+  affects: [x.integration_bundler, v.error_PAYROLL_BUDGET_EXCEEDED, v.error_WRONG_STATE, v.error_CHILDREN_EXCEED_PARENT, v.error_AMOUNT_BELOW_USE, x.contract_budgets, x.contract_roles],
+});
+
+export const decision_components_service_keys = defineDecision({
+  id: "components.service-keys",
+  title: "A4's 'all signing' is the actor's; Capxul's service keys sign in the backend",
+  question:
+    "A4 gives the Core SDK all signing. The frozen designed text has Capxul's own keys sign some transactions: Companies " +
+    "House's claim role and tier key, Budgets' executor, the escrow relayer and the faucet. Where do they sign?",
+  options: [
+    { label: "backend", text: "In the backend's service-signer integration: each key does one job on chain, never for a person or an agent." },
+    { label: "sdk", text: "In the Core SDK, with the service keys shipped to clients." },
+    { label: "none", text: "Drop every service-key transaction and have the actor's own Safe send each one." },
+  ],
+  chosen: "backend",
+  why:
+    "A4 is about the actor's authority: every flow and every signature a person or an agent gives is the SDK's, and the " +
+    "backend never holds their keys (integrations.openfort). The service keys are Capxul's own, held in the operator's " +
+    "store, and the designed text names them ('Companies House's claim role, held by a Capxul service key in " +
+    "Infisical'; the tier key sends `Installer.deployMoney`; Budgets' executor runs a dated payment on its day). A client " +
+    "cannot hold them, and the actor's own Safe cannot replace them: the claim exists because the person has no Safe yet, " +
+    "and a dated payment is sent when nobody is there. Each key can do only its one job on chain, and the integration " +
+    "keeps one send in flight per key (responsibilities.service-lanes).",
+  source: adversarial("A4; account.retry.yaml, org.create.yaml, payment.send.yaml (designed `signs`); integration service-signer"),
+  affects: [x.integration_service_signer, f.component_backend, f.component_core_sdk],
+});
+
+export const decision_contracts_test_token_mint = defineDecision({
+  id: "contracts.test-token-mint",
+  title: "The test tokens' open `mint` is recorded on the ERC-20 record",
+  question: "`dev fund` and the welcome grant mint test money. The ERC-20 record had no `mint`. Record it?",
+  options: [
+    { label: "mint-on-erc20", text: "Add `mint(address,uint256)` to the ERC-20 record, for the test networks' synthetic tokens only." },
+    { label: "separate-contract", text: "A separate test-token contract record." },
+  ],
+  chosen: "mint-on-erc20",
+  why:
+    "On devnet and Base Sepolia the admitted assets are Capxul's synthetic test tokens, which anyone may mint; the " +
+    "faucet key calls `mint` through the service signer. It is not a Protocol v4 contract, but neither is any ERC-20, " +
+    "and P9 is about the protocol, so the one ERC-20 record carries it with its test-only scope; production tokens have " +
+    "no such function and production refuses `dev fund`. The accounts designer left its rpc's `chain` empty waiting for " +
+    "this (accounts.faucet).",
+  source: adversarial("packages/contracts/src/TestMoneyToken.sol:22; packages/protocol/src/evm/test-assets.ts:17; books/target/accounts/decisions.ts (accounts.faucet)"),
+  affects: [x.contract_erc20, f.concept_accounts],
+});
+
+export const decision_vocabulary_doctor_exit = defineDecision({
+  id: "vocabulary.doctor-deadline-exit",
+  title: "`doctor`'s exit 124 is the command's, not NETWORK_ERROR's",
+  question: "The frozen `doctor` exits 124 with NETWORK_ERROR when its online check passes its deadline. One code has one exit (5). Which wins?",
+  options: [
+    { label: "command-exit", text: "NETWORK_ERROR keeps exit 5; `doctor` alone exits 124 on its own deadline, as its frozen notes and acceptance say." },
+    { label: "code-exit", text: "Change NETWORK_ERROR to 124 everywhere." },
+  ],
+  chosen: "command-exit",
+  why:
+    "The 124 is the timeout convention of one command (`timeout(1)`), written into `doctor`'s notes and an acceptance " +
+    "line, so it is frozen surface (P10 rung 1); every other NETWORK_ERROR exits 5 by the old exit table. Moving the " +
+    "code's exit would change every other command's. The applications designer books the override on the operation.",
+  source: adversarial("doctor.yaml (notes, acceptance: 'it exits 124 and keeps the SDK's failure'); apps/cli/src/commands/doctor/execute.ts:34"),
+  affects: [v.error_NETWORK_ERROR, f.concept_applications],
 });
