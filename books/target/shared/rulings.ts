@@ -494,3 +494,93 @@ Object.assign(SUPERSEDED as Record<string, string>, {
 
 // Seventh batch (8 November 2026): "Agreed on both. Agree with your recommendation on both."
 (ACCEPTED as string[]).push("accounts.money-waiting-admits", "requests.bill-time");
+
+// ── Aaron's eighth batch (8 November 2026, evening and night): the world, the SDK, the claim, the FDE ────────────
+const AARON_8 = "Aaron, 8 November 2026, in the build-preparation conversation (eighth batch)";
+
+export const decision_aaron_world_clock = defineDecision({
+  id: "aaron.world-clock",
+  title: "Each world is self-contained, and everything in it follows its one clock",
+  question: "What follows a world's clock, and how fast may a world run?",
+  options: [
+    {
+      label: "everything",
+      text:
+        "A devnet, a staging network or a shared world is a self-contained world whose clock is controlled, and " +
+        "everything in it follows that clock: the chain, the backend, Ponder, emails, WhatsApp, the Frappe head and the " +
+        "FDE. A shared world may run faster than real time (every real hour moves its clock four), so the clock has a " +
+        "rate beside frozen and running. Outside channels belong to the world: a devnet's mail goes to its sink, WhatsApp " +
+        "to a stand-in, and a connected head follows the world's clock.",
+    },
+    { label: "chain-only", text: "Only the chain and the backend follow the world's clock; outside channels run on real time." },
+  ],
+  chosen: "everything",
+  why:
+    "Aaron, 8 November 2026: 'The reason why we focused on the clock so much is partly for this Frappe stuff as well. " +
+    "This should be its own self-contained world: a devnet, a staging network, or a shared world where you control the " +
+    "clock, where every hour the clock moves forward four. Emails, everything should all sync up with the world clock.'",
+  source: AARON_8,
+  affects: [f.system_capxul],
+});
+
+export const decision_aaron_sdk_reaches_everything = defineDecision({
+  id: "aaron.sdk-reaches-everything",
+  title: "The Core SDK and the CLI reach every capability, native or on the head",
+  question: "Which surfaces reach every capability, including what lives only on a connected Frappe head?",
+  options: [
+    {
+      label: "sdk-and-cli",
+      text:
+        "The Core SDK and the CLI reach everything: native concepts through their own commands, and what lives only on " +
+        "a connected head through a generic document family over the SDK, with the caller's authority, logged, on the " +
+        "world's clock. The React SDK does not mirror it all; whoever needs a React screen builds it on the Core SDK.",
+    },
+    { label: "every-surface", text: "The CLI, the MCP server and the React SDK all reach everything." },
+  ],
+  chosen: "sdk-and-cli",
+  why:
+    "Aaron, 8 November 2026: 'Everything is accessible through the SDK or the CLI. You should be able to connect to " +
+    "everything from those surfaces.' Then: 'I don't think the React SDK should get everything. Draw the line at the CLI " +
+    "and the SDK. If anyone needs to implement something in React, they can. Frappe doesn't even use React.'",
+  source: AARON_8,
+  affects: [f.system_capxul],
+});
+
+export const decision_aaron_payment_claim = defineDecision({
+  id: "aaron.payment-claim",
+  title: "The recipient claims waiting money with `payment claim`; the sender cancels",
+  question: "What is the command a recipient runs to take waiting money, whenever they want?",
+  options: [
+    { label: "payment-claim", text: "`payment claim`; the sender's take-back stays `payment cancel`." },
+    { label: "account-collect", text: "`account collect`." },
+  ],
+  chosen: "payment-claim",
+  why: "Aaron, 8 November 2026: 'I don't think it should be called collect. Claim, that's fine. Payment claim sounds fine. Payment cancel is fine.'",
+  source: AARON_8,
+  affects: [f.concept_payments],
+});
+
+export const decision_aaron_fde_anyone = defineDecision({
+  id: "aaron.fde-anyone",
+  title: "Anyone in the Organization may talk to its FDE, within their own hats",
+  question: "Who may talk to an Organization's hosted FDE?",
+  options: [
+    {
+      label: "anyone",
+      text:
+        "Any member, or anyone the Organization's management works with: the host passes the asker's Seat, so the FDE " +
+        "does for them only what their own hats allow. The FDE is not on the critical path.",
+    },
+    { label: "director", text: "Only a Director." },
+  ],
+  chosen: "anyone",
+  why: "Aaron, 8 November 2026: 'I think anyone should be able to talk to the FDE, or anyone that the management is speaking to. The FDE is not on the critical path anyway.'",
+  source: AARON_8,
+  affects: [f.concept_organizations],
+});
+
+(ACCEPTED as string[]).push("organizations.fde-hosting", "payments.seat-authority", "payments.seat-purchase");
+Object.assign(SUPERSEDED as Record<string, string>, {
+  "accounts.collect-any-time": "aaron.payment-claim",
+  "organizations.fde-commands": "aaron.fde-anyone",
+});
