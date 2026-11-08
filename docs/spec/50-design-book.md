@@ -48,7 +48,7 @@ Because links only point down, the book has no cycles. A record never lists who 
 | `concept` | `defineConcept` | a domain module: its component, the concepts it may depend on, its line budget |
 | `error` | `defineError` | code, class (ADR-0039), who acts, message, whether it can be retried, CLI exit code |
 | `event` | `defineEvent` | name and its property schema |
-| `table` | `defineTable` | owner concept, tenancy (organization, person or global), fields, key, indexes (each with the query it serves), retention |
+| `table` | `defineTable` | owner concept, tenancy (organization, person, owner, global or chain), fields, key, indexes (each with the query it serves), retention, and `admits`: each party the row-level policy admits besides the tenant (for a chain table, all it admits), as one clause: how the session is matched (`tenant`, `safe` through parties' directory, `own-safe`, `email`, `anyone`), the column or a one-hop join (`via`), the rows (`where`), and whether it `reads` and `writes` |
 | `machine` | `defineMachine` | the table and its state column, the states, and transitions (from, to, guard, events); each transition can be linked as `machine.t.<name>` |
 | `integration` | `defineIntegration` | the outside system behind an Effect service: calls with timeout, retries, p95 and failures mapped to errors; the devnet fake; secret names. Each call can be linked as `integration.c.<name>` |
 | `contract` | `defineContract` | addresses, functions (`contract.f.<name>`) and chain events (`contract.e.<name>`) |
@@ -56,7 +56,7 @@ Because links only point down, the book has no cycles. A record never lists who 
 | `rpc` | `defineRpc` | one server endpoint (query, live, mutation, action): who, input, output, errors, what it touches (reads, writes, drives, invokes, calls, chain, emits), server spans, server budget. The generated `RpcGroup` comes from these |
 | `flow` | `defineFlow` | a Core SDK composition: its SDK method, steps (an rpc, or a local step: sign, build, encrypt, wait, poll, prompt, cache), its own errors, client-side calls, spans, client budget, and `surfaces` when a surface other than the CLI calls it (the approval page, checkout or the web app on `react`, an agent's SDK host on `sdk`) |
 | `operation` | `defineOperation` | **the frozen unit**: the CLI command and the old book's text, acceptance lines numbered (a retired line stays `null`), what `--json` returns, refusals with their `given` world, the end-to-end budget, and `implementedBy` one rpc or one flow. Everything below it may change; it may not |
-| `workflow` | `defineWorkflow` | its trigger (after an rpc, a transition, a chain event, an indexer event or a cron), steps, what it touches, its waits (a wait on the chain or the indexer lists the chain events that end it in `events`), idempotency key, timeout, retries, compensation, budget |
+| `workflow` | `defineWorkflow` | its trigger (after an rpc, a transition, a chain event, an indexer event or a cron), steps, what it touches, its waits (a wait on the chain or the indexer lists the chain events that end it in `events`; every wait but a timer names its `key`: each way it is woken, by its carriers (a product event, a chain event, a table's row, a signal rpc, or the instance's own call) and the properties they carry, with `reaches` for Ponder's progress passing a block), idempotency key, timeout, retries, compensation, budget |
 | `journey` | `defineJourney` | ordered steps: operation, actor, proving event |
 | `invariant` | `defineInvariant` | a statement over tables and machines; checked by property test, fuzz, reconciliation (`by` a workflow) or static check |
 | `environment` | `defineEnvironment` | which components run where, config and secret names, deploy, boot budget |
@@ -77,6 +77,10 @@ Because links only point down, the book has no cycles. A record never lists who 
 | `call-error-not-declared` | an rpc calls an integration whose failure maps to an error the rpc does not declare |
 | `refusal-not-produced` | an operation's refusal is an error its rpc or flow cannot produce (its own, its procedures', its steps', its calls' failures) |
 | `flow-surface` | (target) a flow that implements an operation, a CLI command, names `surfaces` without `cli` |
+| `admission` | a table's admission names a column it lacks (its `field`, `kindField` or `where`, or the joined table's `via` columns), matches `anyone` by a column or another match by none, gives a kind column to a match other than `tenant`, or sits on a `global` table |
+| `chain-admits` | (target) a `chain` table has no `admits`, or one of its admissions writes: its scope is its whole policy, and only Ponder writes it |
+| `wait-key` | a wait's key routes by a property its carrier does not carry (a product event's props, a chain event's arguments or its log's `chain_id`, `contract_address`, `block_number`, `block_hash`, `tx_hash`, `log_index`, a table's columns, a signal's input or its instance's columns), names an rpc that is not one of its signals or a call that is not one of its calls, waits on an event or a row of a concept its own does not depend on, or sits on a timer |
+| `wait-without-key` | (target) a wait other than a timer names no `key` |
 | `cycle` | concepts or components depend on each other in a loop |
 | `unknown-actor` | a journey step is taken by someone the system does not list |
 
@@ -87,7 +91,7 @@ Because links only point down, the book has no cycles. A record never lists who 
 | `unwritten-table` | no operation or workflow writes it |
 | `undriven-transition` | nothing drives it |
 | `unreachable-state` | no transition reaches it |
-| `unsent-event` | no transition, operation or workflow sends it |
+| `unsent-event` | no transition, operation or workflow sends it (a wait that is woken by it listens; it does not send) |
 | `unproduced-error` | no operation or integration produces it |
 | `unused-call`, `uncalled-function`, `unconsumed-chain-event` | an integration call, a contract function or a chain event that nothing uses (a chain event is used by a workflow it triggers or a wait that lists it) |
 | `empty-concept` | it owns no tables, operations or workflows |
@@ -98,6 +102,7 @@ Because links only point down, the book has no cycles. A record never lists who 
 | `refusal-without-world` | a refusal's `given` is `?`: no devnet world reaches it yet |
 | `unproven-step` | a journey step has no proving event |
 | `unchecked-invariant` | a reconcile check names no workflow |
+| `admission-in-prose` | (target) a table with no `admits` whose scope or about says its row policy admits a party beyond the tenant (`ADMISSION_PROSE` in `build.ts`: a gap, because it reads words) |
 
 ## Evals: derived from records
 
@@ -111,9 +116,12 @@ book adds evals for the other record kinds:
 | `prc:<procedure>/atomic` | procedure | its writes commit with its invoker's transaction or not at all |
 | `tbl:<table>/schema` | table | the migration creates exactly these fields, key and indexes |
 | `tbl:<table>/writers` | table | only the listed writers change it |
+| `tbl:<table>/tenancy` | table | a second tenant reads and writes none of the first's rows, unless an admission names it |
+| `tbl:<table>/admits/<n>` | table | the party admission n matches reads (and writes) exactly the rows it names, and a session it does not match sees none |
 | `trn:<machine>.<transition>` | transition | an eval run observes it, with its events |
 | `wfl:<workflow>/idempotent`, `/resume` | workflow | a second run is a no-op; a killed run resumes |
 | `bud:<workflow>/p95` | workflow | from trigger to done, within budget |
+| `wfl:<workflow>/wake/<wait>` | workflow | an event matching the wait's key wakes this instance, and one that differs wakes no other |
 | `int:<integration>/conformance` | integration | the fake and the real service pass the same suite |
 | `int:<integration>.<call>/<CODE>` | integration | each failure surfaces as its error |
 | `sys:imports/<concept>`, `sys:loc/<concept>` | concept | its imports and its line budget |
