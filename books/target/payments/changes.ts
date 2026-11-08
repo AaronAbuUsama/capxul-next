@@ -40,7 +40,7 @@ const Null = Schema.NullOr;
 export const ChangeInput = Schema.Struct({ payment_id: S, org: Null(S), as_directors: Schema.Boolean });
 
 const READ_FAILURES = [error_PROVIDER_ERROR, error_PROVIDER_RESPONSE_INVALID] as const;
-const AUTHORITY_READS = [table_payments, table_payment_commands, orgsData.table_org_members, budgetsData.table_org_budgets];
+const AUTHORITY_READS = [table_payments, table_payment_commands, orgsData.table_org_members, budgetsData.table_budgets];
 
 export const rpc_payments_changes_retry = defineRpc({
   id: "payments.changes.retry",

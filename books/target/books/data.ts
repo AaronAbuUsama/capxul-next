@@ -2,7 +2,7 @@
 // target design, not a copy of the old tables: books/as-is/books/data.ts and the old code
 // (packages/backend/src/books/tables.ts, activity/tables.ts) are what each record replaces.
 //
-// Five tables, all an Organization's except annotations (a person's or an Organization's) and
+// Six tables, all an Organization's except annotations (a person's or an Organization's) and
 // prices (the system's):
 // - book-charts       one chart per Organization (template, basis)
 // - book-accounts     the accounts of a chart, archived, never deleted
@@ -15,10 +15,10 @@
 //
 // Births are transitions with no source state (`from: []`), so a born row sends its machine's
 // event like any other change (books.births-are-transitions). Facts have no machine: they never
-// change (books.facts-append-only).
+// change (books.machines; invariant books.facts-append-only at the end of this file).
 
 import { Schema } from "effect";
-import { defineEvent, defineMachine, defineTable } from "../../../packages/book/src/index.ts";
+import { defineEvent, defineInvariant, defineMachine, defineTable } from "../../../packages/book/src/index.ts";
 import { concept_books } from "../shared/foundation.ts";
 
 const OLD = "packages/backend/src";
@@ -529,4 +529,36 @@ export const table_book_prices = defineTable({
   key: ["pair", "from_at"],
   indexes: [],
   retention: "Kept: a fact's rate stays explainable from the history it was taken from.",
+});
+
+// ── invariants over the facts ───────────────────────────────────────────────────────────────
+
+export const invariant_books_one_live_money_fact = defineInvariant({
+  id: "books.one-live-money-fact",
+  title: "One live money fact per Organization and money occurrence",
+  about:
+    "What `books.record-money-fact` and `books.reverse-money-fact` keep (K10, P4): however many writers reach the same " +
+    "money, and however often, the books count it once. Checked by a property test over random interleavings of " +
+    "settlements, replays, Movement attributions and reversals.",
+  statement: "For each Organization and money key, at most one money fact stands that no `reversed` fact cancels.",
+  over: [table_book_facts],
+  check: "property",
+});
+
+export const invariant_books_postings_balance = defineInvariant({
+  id: "books.postings-balance",
+  title: "Every fact posts balanced lines",
+  about: "The cash rules turn each money fact into lines whose debits equal their credits, so every trial balance balances at any time and in any window.",
+  statement: "For every fact, the posting rules' debits equal their credits; a chart or row fact posts nothing.",
+  over: [table_book_facts, table_book_annotations, table_book_accounts],
+  check: "property",
+});
+
+export const invariant_books_facts_append_only = defineInvariant({
+  id: "books.facts-append-only",
+  title: "Facts are never edited or deleted",
+  about: "ADR-0042 decision 2: a wrong account is a new fact, money taken back a reversal. The generated access to book-facts has inserts only.",
+  statement: "No statement updates or deletes a row of book-facts.",
+  over: [table_book_facts],
+  check: "static",
 });

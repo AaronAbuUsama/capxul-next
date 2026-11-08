@@ -1,10 +1,10 @@
 // The accounts concept's tables, its state machines and each machine's one event (target).
 //
-// Four tables, from the old system's seven (old accounts' accounts, smartAccounts,
+// Four tables, from the old system's eight (old accounts' accounts, smartAccounts,
 // welcomeFundingGrants and serviceLanes; old access' betaWaitlist, betaWaitlistWindows,
 // referralCodes and referrals, less approvals and agents, which left for their own concepts):
 //
-// - waitlist-entries: one mailbox's place in the beta (requested or admitted).
+// - admissions:       one mailbox's place in the beta (waiting or admitted).
 // - referral-codes:   one mailbox's referral code and the invites it may spend.
 // - referrals:        who brought each mailbox, and how far it came.
 // - personal-safes:   one person's Safe and its setup, the object of the setup process.
@@ -14,7 +14,7 @@
 // service-key lane (the service-signer integration), the request form's per-IP window (the form
 // is not ported) and the chain id column (one chain per deployment).
 //
-// Admission keys on the mailbox, not on a person id: an invite or an Organization's invitation
+// Admission and referrals key on the mailbox, not on a person id: an invite or an Organization's invitation
 // admits an email nobody has signed in with yet (decision `accounts.mailbox-tenancy`).
 //
 // Paths in `was` are relative to the old repository root (/home/user/factory, integration/factory).
@@ -38,9 +38,9 @@ const ENTRY_STATES = ["waiting", "admitted"] as const;
 /** How a mailbox got onto the list: it joined, or the admission that put it there. */
 const ENTRY_VIA = ["waitlist", "operator", "referral", "invitation", "reward"] as const;
 
-export const table_waitlist_entries = defineTable({
-  id: "waitlist-entries",
-  title: "Waitlist entries: one mailbox's place in the beta",
+export const table_admissions = defineTable({
+  id: "admissions",
+  title: "Admissions: one mailbox's place in the beta, waiting or admitted",
   about:
     "One row per normalized mailbox (trimmed, lowercased ASCII) that asked to join the permissioned beta or was " +
     "admitted to it. Born `waiting` by `waitlist join`, or born `admitted` when an operator, a referrer's invite, an " +
@@ -92,11 +92,11 @@ export const machine_waitlist_entry = defineMachine({
   id: "waitlist-entry",
   title: "Waitlist entry: waiting or admitted",
   about:
-    "waitlist-entries.status. A mailbox joins (`join`, a birth), and is admitted once (`admit`); a mailbox admitted " +
+    "admissions.status. A mailbox joins (`join`, a birth), and is admitted once (`admit`); a mailbox admitted " +
     "before it ever joined is born admitted (`admit_unlisted`). Every admission, whichever way it comes, also moves the " +
     "mailbox's referral to `admitted` in the same transaction. The old store had no state column (admission was " +
     "`admittedAt` set); the target names the state so every change is a transition with its event.",
-  table: table_waitlist_entries,
+  table: table_admissions,
   field: "status",
   initial: "waiting",
   states: [

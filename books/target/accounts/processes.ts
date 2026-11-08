@@ -26,9 +26,10 @@ import {
   table_personal_safes,
   table_referral_codes,
   table_referrals,
-  table_waitlist_entries,
+  table_admissions,
 } from "./data.ts";
-import { procedure_approvals_open, table_escrows } from "./links.ts";
+import { procedure_approvals_open } from "../approvals/procedures.ts";
+import { table_escrows } from "./links.ts";
 import { rpc_accounts_setup_start } from "./setup.ts";
 
 const OLD = "packages/backend/src";
@@ -156,8 +157,8 @@ export const workflow_accounts_referrals_qualify = defineWorkflow({
       about: "A waiting referrer: `admit` (or `admit_unlisted`) `reward:<friend>`, their own referral to `admitted`, and `reward` admission; else one invite within the cap and `reward` invites.",
     },
   ],
-  reads: [table_personal_safes, table_referrals, table_referral_codes, table_waitlist_entries],
-  writes: [table_referrals, table_referral_codes, table_waitlist_entries],
+  reads: [table_personal_safes, table_referrals, table_referral_codes, table_admissions],
+  writes: [table_referrals, table_referral_codes, table_admissions],
   drives: [
     machine_referral.t.qualify,
     machine_referral.t.reward,

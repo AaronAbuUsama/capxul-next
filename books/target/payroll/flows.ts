@@ -3,9 +3,9 @@
 // CLI calls exactly the flow's SDK method; the reads (agreement list and show, org agreement list)
 // are one rpc each and have no flow.
 //
-// Signing: a person signs on the approval page, which the CLI opens and which hands the signature to
-// the approval; an agent signs the approval's hash with its own key and hands it over the same way.
-// Either way approvals sends the operation once (K4). With `--no-wait` a flow returns at the approval
+// Signing composes approvals' rpcs, as approvals asks every opener to: read the approval until it is
+// sponsored, sign its digest (an agent with its own key; a person on the approval page the CLI opens),
+// give the signature to the approval, which sends it once (K4), and follow the write to its end. With `--no-wait` a flow returns at the approval
 // with the approval link and `capxul payment wait <approvalId>` as `next`.
 
 import { budget, defineFlow, type Rpc } from "../../../packages/book/src/index.ts";
@@ -21,15 +21,28 @@ import {
 } from "./holders.ts";
 import { rpc_payroll_payees_accept, rpc_payroll_payees_collect } from "./payees.ts";
 import { rpc_payroll_writes_watch } from "./writes.ts";
+import { rpc_approvals_signing_get, rpc_approvals_signing_sign } from "../approvals/signing.ts";
 import { AcceptInput, AgreementRef, ChangeInput, EndInput, Followed, HolderWriteReturns, OfferInput, PayeeRef } from "./shapes.ts";
 import { Schema } from "effect";
 
 const SDK = "packages/sdk/src/payroll";
 
+const SPONSORED = {
+  name: "sponsored",
+  rpc: rpc_approvals_signing_get,
+  about: "The write's approval, live, until approvals has sponsored it (`pending`, with its digest) or it ends.",
+} as const;
+
 const SIGN = {
   name: "sign",
   local: "sign",
-  about: "The approval's one call is signed by its owner: a person on the approval page the CLI opens, an agent with its own key.",
+  about: "An agent signs the digest with its own key; a person is handed the approval page (client.approvals.sign), which signs there.",
+} as const;
+
+const SUBMIT = {
+  name: "submit",
+  rpc: rpc_approvals_signing_sign,
+  about: "An agent's signature goes to its approval, which approvals sends once; a person's page submits its own.",
 } as const;
 
 const WAIT = {
@@ -65,7 +78,7 @@ const holderFlow = (
     sdk: `client.org(orgId).agreements.${verb}`,
     input,
     output: HolderWriteReturns,
-    steps: [{ name: "prepare", rpc, about: `Runs ${rpc.id}: the checks, the write and its approval.` }, SIGN, WAIT, FOLLOW],
+    steps: [{ name: "prepare", rpc, about: `Runs ${rpc.id}: the checks, the write and its approval.` }, SPONSORED, SIGN, SUBMIT, WAIT, FOLLOW],
     errors: FLOW_ERRORS,
     calls: [],
     spans: [],
@@ -146,7 +159,9 @@ export const flow_client_me_agreements_accept = defineFlow({
   }),
   steps: [
     { name: "prepare", rpc: rpc_payroll_payees_accept, about: "Runs payroll.payees.accept: the checks, the write and its approval or Board proposal." },
+    SPONSORED,
     SIGN,
+    SUBMIT,
     WAIT,
     FOLLOW,
   ],
@@ -177,7 +192,9 @@ export const flow_client_me_agreements_collect = defineFlow({
   }),
   steps: [
     { name: "prepare", rpc: rpc_payroll_payees_collect, about: "Runs payroll.payees.collect: nothing released ends the flow here, with nothing signed." },
+    SPONSORED,
     SIGN,
+    SUBMIT,
     WAIT,
     FOLLOW,
   ],

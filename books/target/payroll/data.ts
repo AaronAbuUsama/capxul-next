@@ -97,7 +97,7 @@ export const table_agreements = defineTable({
   tenantField: "org_id",
   scope:
     "org_id is the paying Organization. The payee, a person or another Organization, reads the agreements that pay its " +
-    "Safe through by_payee_safe, under a second read policy on payee_safe (payroll.payee-reads).",
+    "Safe through by_payee_safe, under a second policy on payee_safe (payroll.payee-reads).",
   fields: Schema.Struct({
     org_id: S,
     agreement_id: S,
@@ -181,7 +181,9 @@ export const table_agreement_writes = defineTable({
   concept: concept_payroll,
   tenancy: "organization",
   tenantField: "org_id",
-  scope: "org_id is the paying Organization, even for the payee's own accept and collect; the payee reads its writes through its agreement.",
+  scope:
+    "org_id is the paying Organization, even for the payee's own accept and collect, which the payee policy on the " +
+    "agreement's payee_safe admits it to open and read (payroll.payee-reads).",
   fields: Schema.Struct({
     org_id: S,
     write_id: S,

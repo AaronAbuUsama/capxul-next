@@ -54,7 +54,7 @@ export const decision_approvals_tenant_is_signer = defineDecision({
   ],
   chosen: "signer",
   why:
-    "Only the signer may read or answer an approval (the old code answered everyone else ROLE_PERMISSION_DENIED), and " +
+    "Only the signer may read or answer an approval (the old page rows refused everyone else), and " +
     "other Directors follow a proposal, not each other's approvals. Access gives every principal, person or agent, one " +
     "`person_id`, so one tenant column covers both. An Organization tenant would let every member see each Director's " +
     "and payer's pending signatures. Three lookups must cross tenants and say why: by id alone (the process, the " +
@@ -318,7 +318,9 @@ export const decision_approvals_signing_area = defineDecision({
     "`observe` and the SDK's polling wait one subscription. `request` is the opener's procedure now. `review` stays " +
     "because the frozen approval shape returns `reviewedAt` and the approval page has a caller for it. Recovering a key " +
     "is local CPU, so `sign` is one transaction (the old action existed only because viem's recovery failed inside a " +
-    "Convex mutation). `readSendWitness` was an e2e probe; a send count is in the trace.",
+    "Convex mutation). `readSendWitness` was an e2e probe; a send count is in the trace. Another principal's approval " +
+    "and an unknown id are one answer, INVALID_INPUT `approvalId` (the vocabulary's 'names nothing you can see', and " +
+    "`payment send`'s 'the execution is unknown'), not the old page rows' ROLE_PERMISSION_DENIED.",
   source: `${OLD}/accounts/approvals/operations/approve.ts:22; packages/protocol/src/accounts/operations.ts:162; packages/sdk/src/accounts/approvals.ts:106-239; P2`,
   affects: [rpc_approvals_signing_get, rpc_approvals_signing_review, rpc_approvals_signing_sign, rpc_approvals_signing_decline],
 });

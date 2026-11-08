@@ -20,9 +20,9 @@ import {
   machine_waitlist_entry,
   table_referral_codes,
   table_referrals,
-  table_waitlist_entries,
+  table_admissions,
 } from "./data.ts";
-import { table_feature_gates } from "./links.ts";
+import { table_feature_flags } from "../access/data.ts";
 
 const OLD = "packages/backend/src";
 const R = `${OLD}/access/referrals`;
@@ -32,7 +32,7 @@ const Int = Schema.Int;
 const noCalls = { calls: [], chain: [], spans: [] } as const;
 
 /** Where the caller stands (admitted, open or waiting): their entry, then the `beta-access` gate. */
-const STANDING = [table_waitlist_entries, table_feature_gates] as const;
+const STANDING = [table_admissions, table_feature_flags] as const;
 
 export const rpc_accounts_referrals_show = defineRpc({
   id: "accounts.referrals.show",
@@ -81,7 +81,7 @@ export const rpc_accounts_referrals_invite = defineRpc({
   output: Schema.Struct({ email: S, access: Schema.Literal("admitted"), invitesLeft: Int }),
   errors: [error_NOT_AUTHENTICATED, error_INVALID_INPUT, error_FEATURE_NOT_AVAILABLE, error_WRONG_STATE],
   reads: [...STANDING, table_referral_codes, table_referrals],
-  writes: [table_referral_codes, table_waitlist_entries, table_referrals],
+  writes: [table_referral_codes, table_admissions, table_referrals],
   drives: [
     machine_referral.t.attribute,
     machine_referral.t.admit,
@@ -143,7 +143,7 @@ export const rpc_accounts_referrals_grant_invites = defineRpc({
   input: Schema.Union([Schema.Struct({ email: S, count: Int }), Schema.Struct({ referee: S })]),
   output: Schema.Union([Schema.Struct({ email: S, invitesLeft: Int }), Schema.Struct({ referee: S, voided: Schema.Boolean })]),
   errors: [error_NOT_AUTHENTICATED, error_INVALID_INPUT],
-  reads: [table_waitlist_entries, table_referral_codes, table_referrals],
+  reads: [table_admissions, table_referral_codes, table_referrals],
   writes: [table_referral_codes, table_referrals],
   drives: [machine_referral.t.void],
   invokes: [],

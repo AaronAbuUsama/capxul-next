@@ -31,10 +31,12 @@ import {
   table_org_members,
   table_organizations,
 } from "./data.ts";
+import { table_principals } from "../access/data.ts";
 import { table_parties } from "../parties/data.ts";
-import { procedure_parties_register } from "../parties/procedures.ts";
+import { procedure_parties_resolve_recipient } from "../parties/procedures.ts";
+import { table_personal_safes } from "../accounts/data.ts";
 import { procedure_accounts_admit } from "../accounts/procedures.ts";
-import { table_hat_wearers, table_safe_executions } from "../indexing/data.ts";
+import { table_hat_wearers, table_safe_executions } from "./links.ts";
 
 const O = "packages/backend/src/organizations";
 const I = `${O}/invitations`;
@@ -56,7 +58,7 @@ export const InvitationView = Schema.Struct({
     kind: Schema.Literals(["human", "agent"]),
     handle: NullOr(S),
     accountId: NullOr(S),
-    /** Whether the grantee's Safe is claimed, so it can wear what the offer grants; null when unknown. */
+    /** Whether the grantee's personal Safe is claimed (accounts), so it can act with what the offer grants; null for an agent. */
     accountReady: NullOr(Schema.Boolean),
   }),
   phase: Phase,
@@ -90,11 +92,11 @@ export const rpc_organizations_invitations_invite = defineRpc({
   about:
     "The first step of board's `org member invite` flow, one transaction. The inviter's Seat must wear the People hat " +
     "(else ROLE_PERMISSION_DENIED; whether they are a Director is the Board proposal's to check). A request key that " +
-    "already made an offer here returns it unchanged; under another request it is INVALID_INPUT. The grantee: an email " +
-    "names a person's Party, registered as a provisional Party with its email-derived Safe when it has none " +
-    "(`parties.register`); an `@handle` must name an agent's Party; an Account must be a person whose Party has a mailbox; " +
-    "anything else, or an Organization, is INVALID_INPUT. At most 16 offers, none twice, and none the grantee already " +
-    "has live here (else INVALID_INPUT). The invitee is admitted to the beta in the same transaction (`accounts.admit`, " +
+    "already made an offer here returns it unchanged; under another request it is INVALID_INPUT. The grantee is resolved " +
+    "with `parties.resolve-recipient`: an email names a person's Party, named provisional at its email-derived Safe when " +
+    "nobody has it yet; an `@handle` must name an agent's Party; an Account must be a person principal with a mailbox; " +
+    "anything else, an Organization, or an outside address is INVALID_INPUT. At most 16 offers, none twice, and none the grantee already " +
+    "has live here (else INVALID_INPUT). A person invitee is admitted to the beta in the same transaction (`accounts.admit`, " +
     "which sends nothing: the invitation's own email is the only one). A Seat-only offer is born pending with its " +
     "seven-day expiry (`send`); one with grants is born authorizing (`send_with_grants`) and waits for board.",
   was: [`${AS_IS}:241`, `${I}/operations/invite.ts:14`, `${I}/writes/offers.ts:136`, `${I}/reads/grantees.ts:72`],
@@ -114,10 +116,10 @@ export const rpc_organizations_invitations_invite = defineRpc({
   }),
   output: InvitationView,
   errors: [error_NOT_AUTHENTICATED, error_ROLE_PERMISSION_DENIED, error_INVALID_INPUT],
-  reads: [...PEOPLE_HAT, table_organizations, table_org_invitations, table_parties],
+  reads: [...PEOPLE_HAT, table_organizations, table_org_invitations, table_parties, table_principals, table_personal_safes],
   writes: [table_org_invitations],
   drives: [machine_org_invite.t.send, machine_org_invite.t.send_with_grants],
-  invokes: [procedure_parties_register, procedure_accounts_admit],
+  invokes: [procedure_parties_resolve_recipient, procedure_accounts_admit],
   emits: [],
   calls: [],
   chain: [],
@@ -143,7 +145,7 @@ export const rpc_organizations_invitations_accept = defineRpc({
   input: Schema.Struct({ orgId: S, invitationId: S, offerDigest: S }),
   output: InvitationView,
   errors: [error_NOT_AUTHENTICATED, error_INVALID_INPUT, error_ROLE_PERMISSION_DENIED, error_WRONG_STATE],
-  reads: [table_org_invitations, table_org_members, table_organizations, table_parties],
+  reads: [table_org_invitations, table_org_members, table_organizations, table_parties, table_principals],
   writes: [table_org_invitations, table_org_members],
   drives: [machine_org_invite.t.accept, machine_org_member.t.seat],
   invokes: [],
@@ -253,7 +255,7 @@ export const rpc_organizations_invitations_list = defineRpc({
   input: Schema.Struct({ orgId: S, ...PageInput }),
   output: Page,
   errors: [error_NOT_AUTHENTICATED, error_ROLE_PERMISSION_DENIED, error_INVALID_INPUT, error_WRONG_STATE],
-  reads: [...PEOPLE_HAT, table_org_invitations, table_organizations, table_parties],
+  reads: [...PEOPLE_HAT, table_org_invitations, table_organizations, table_parties, table_personal_safes],
   writes: [],
   drives: [],
   invokes: [],
@@ -279,7 +281,7 @@ export const rpc_organizations_invitations_list_mine = defineRpc({
   input: Schema.Struct(PageInput),
   output: Page,
   errors: [error_NOT_AUTHENTICATED, error_INVALID_INPUT, error_WRONG_STATE],
-  reads: [table_org_invitations, table_organizations, table_parties],
+  reads: [table_org_invitations, table_organizations, table_parties, table_personal_safes],
   writes: [],
   drives: [],
   invokes: [],

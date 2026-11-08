@@ -106,7 +106,8 @@ export const rpc_payments_commands_prepare = defineRpc({
     "to its Party and Safe (`parties.resolve-recipient`; a mailbox with no live Safe is paid into a claim escrow), the " +
     "document of the note or `--document` (`documents.store`: its hash goes on chain), one Payment per item born through " +
     "`open` with its payment id, and the approval from the caller's Safe that carries the calls (`approvals.open`): " +
-    "`approve` and `Payments.send` (kind 0) for a personal payment, `Budgets.spend` or, dated, `Budgets.schedule` from a " +
+    "`approve` and `Payments.send` (kind 0) for a personal payment (`sendBatch` for several items of `--input`, all or none), " +
+    "`Budgets.spend` or, dated, `Budgets.schedule` from a " +
     "budget, `EscrowFactory.deploy` funded in the same operation for a claim escrow. A personal dated payment is the same " +
     "operation signed now and sent on its day (`sendAfter`, with what the Safe needs that day). It answers the hand-over " +
     "with the preview the CLI shows before signing; signing and following are the flow's.",
@@ -133,7 +134,7 @@ export const rpc_payments_commands_prepare = defineRpc({
     partiesData.table_parties,
     orgsData.table_organizations,
     orgsData.table_org_members,
-    budgetsData.table_org_budgets,
+    budgetsData.table_budgets,
   ],
   writes: [table_payment_commands, table_payments],
   drives: [machine_payment.t.open],
@@ -149,6 +150,7 @@ export const rpc_payments_commands_prepare = defineRpc({
     contract_companies_house_claimer.f.safeAddressFor,
     contract_erc20.f.approve,
     contract_payments.f.send,
+    contract_payments.f.sendBatch,
     contract_budgets.f.spend,
     contract_budgets.f.schedule,
     contract_escrow_factory.f.deploy,
@@ -197,7 +199,7 @@ export const rpc_payments_commands_propose = defineRpc({
     partiesData.table_parties,
     orgsData.table_organizations,
     orgsData.table_org_members,
-    budgetsData.table_org_budgets,
+    budgetsData.table_budgets,
   ],
   writes: [table_payment_commands, table_payments],
   drives: [machine_payment.t.open],
@@ -210,6 +212,7 @@ export const rpc_payments_commands_propose = defineRpc({
     contract_payments.f.paymentId,
     contract_erc20.f.approve,
     contract_payments.f.send,
+    contract_payments.f.sendBatch,
     contract_budgets.f.schedule,
   ],
   spans: [],

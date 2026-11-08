@@ -24,7 +24,7 @@ import { table_feature_flags } from "../access/data.ts";
 import { table_parties } from "../parties/data.ts";
 import { table_org_deployments, table_org_members, table_organizations } from "../organizations/data.ts";
 import { procedure_approvals_open } from "../approvals/procedures.ts";
-import { procedure_board_propose } from "../board/procedures.ts";
+import { procedure_board_propose } from "./links.ts";
 import { machine_agreement_write, table_agreement_writes, table_agreements } from "./data.ts";
 import { AcceptInput, Agreement, AgreementRow, NothingReleased, PayeeListInput, PayeeRef, Prepared, PreparedCollection } from "./shapes.ts";
 

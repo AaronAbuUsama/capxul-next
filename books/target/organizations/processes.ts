@@ -33,7 +33,8 @@ import {
   rpc_organizations_invitations_invite,
 } from "./invitations.ts";
 import { procedure_approvals_open } from "../approvals/procedures.ts";
-import { table_hat_wearers, table_safe_executions } from "../indexing/data.ts";
+import { procedure_parties_activate, procedure_parties_release } from "../parties/procedures.ts";
+import { table_hat_wearers, table_safe_executions } from "./links.ts";
 
 const O = "packages/backend/src/organizations";
 const DAY = 86_400_000;
@@ -44,13 +45,16 @@ export const workflow_organizations_setups_set_up = defineWorkflow({
   about:
     "The one durable process of an Organization's setup, started by its `begin`. Companies House's company-Safe role " +
     "mints the company Safe for the founder's Safe (the service signer's send, recorded before broadcast); the process " +
-    "waits for CompanySafeMinted at finality and fails the setup if its owner is not the founder's Safe. The tier key " +
+    "waits for CompanySafeMinted at finality: the founder's Safe as owner activates the Organization's Party " +
+    "(`parties.activate`, its handle now routes money), any other owner fails the setup and releases the Party " +
+    "(`parties.release`, freeing the handle). The tier key " +
     "sends `Installer.deployMoney` once (founder as the one Director, threshold 1 of 1, officers Books, Invoicing and " +
     "People); at finality MoneyDeployed names the deployment, which is written with the install approval in one " +
     "transaction (`approvals.open`: the founder's Safe calls the company Safe's `execTransaction` of `buildMoney`'s batch " +
     "for USDC, top amount 0, then `Hats.mintHat` of the three officer hats to the founder's Safe). It waits for the " +
-    "founder's signature and the approval's outcome, both told by approval_transitioned: sent moves it to processing, " +
-    "landed at finality completes it and seats the founder, and an expired, declined or reverted approval stalls it. A " +
+    "founder's signature and the approval's outcome, both told by approval_transitioned: signed moves it to processing, " +
+    "landed at finality completes it and seats the founder; refused (the paymaster's simulation of an install the " +
+    "Installer refuses), declined, expired, reverted or displaced stalls it with that reason. A " +
     "provider outage that outlasts a step's retries stalls it too. `org retry` resumes it from its last finished step. " +
     "It replaces the old observe workflow, its every-minute recovery cron and ten internal rpcs.",
   was: [
@@ -74,11 +78,11 @@ export const workflow_organizations_setups_set_up = defineWorkflow({
   ],
   steps: [
     { name: "mint", about: "Send CompanySafeMinter.mint with the company-Safe role, unless mint_tx_hash is recorded; then follow that one." },
-    { name: "confirm-mint", about: "At finality, read the mint's facts: the Safe and its owner; steps gains safe_minted, or the setup fails." },
+    { name: "confirm-mint", about: "At finality, read the mint's facts: steps gains safe_minted and the Party is activated, or the setup fails and the Party is released." },
     { name: "deploy", about: "Send Installer.deployMoney with the tier key, unless deploy_tx_hash is recorded: it mints new hats each time it runs." },
     { name: "confirm-deploy", about: "At finality, read MoneyDeployed; write the deployment; steps gains money_deployed." },
     { name: "open-install", about: "Read buildMoney's batch, open the founder's install approval at the company Safe's first nonce; request_authorization." },
-    { name: "await-founder", about: "Wait for the founder's signature; authorize once approvals sent the operation." },
+    { name: "await-founder", about: "Wait for the founder's signature; authorize once the approval is signed." },
     { name: "complete", about: "At finality, check the install's facts; steps gains installed; complete; seat the founder." },
   ],
   reads: [table_org_setups, table_organizations, table_org_deployments],
@@ -91,7 +95,7 @@ export const workflow_organizations_setups_set_up = defineWorkflow({
     machine_org_setup.t.fail,
     machine_org_member.t.seat,
   ],
-  invokes: [procedure_approvals_open],
+  invokes: [procedure_approvals_open, procedure_parties_activate, procedure_parties_release],
   emits: [],
   calls: [
     integration_service_signer.c.send,

@@ -27,11 +27,12 @@ import {
   table_org_setups,
   table_organizations,
 } from "./data.ts";
-import { table_admissions } from "../accounts/data.ts";
-import { table_files } from "../media/data.ts";
+import { table_principals } from "../access/data.ts";
+import { table_admissions, table_personal_safes } from "../accounts/data.ts";
+import { table_files } from "./links.ts";
 import { table_parties } from "../parties/data.ts";
 import { procedure_parties_register } from "../parties/procedures.ts";
-import { table_safe_approvals, table_safe_claims, table_safe_owners } from "../indexing/data.ts";
+import { table_safe_approvals, table_safe_owners } from "./links.ts";
 
 const O = "packages/backend/src/organizations";
 const SET = `${O}/setups`;
@@ -63,16 +64,16 @@ export const rpc_organizations_setups_begin = defineRpc({
   id: "organizations.setups.begin",
   title: "Create the Organization, its Party and its setup, or resume the same intent",
   about:
-    "One transaction. The founder must be admitted (accounts' admissions; else FEATURE_NOT_AVAILABLE) and their personal " +
-    "Safe claimed (indexing's CapxulSafeClaimed for the Safe on their Party; else WRONG_STATE). Bio and size are trimmed " +
+    "One transaction. The founder's mailbox must be admitted (accounts' admissions; else FEATURE_NOT_AVAILABLE) and their " +
+    "personal Safe claimed (accounts' personal Safe past `claim`; else WRONG_STATE). Bio and size are trimmed " +
     "and blank ones dropped; a bio over 280 characters, a country that is not two letters or a logo that media does not " +
     "admit as an image is INVALID_INPUT, before any write. The intent (name, handle, country, bio, size, logo) is hashed: " +
     "if the handle's Party already stands for an Organization this founder began with the same intent, that Organization " +
     "and its setup are returned unchanged; another intent is WRONG_STATE; another founder's handle is INVALID_INPUT. " +
     "Otherwise it computes the company Safe's address in-process with the minter's pure `companySafeAddressFor` (no node " +
     "call), inserts the Organization and its setup (`begin`, which starts the setup process), and registers the " +
-    "Organization's Party with the handle and that Safe (`parties.register`): a taken or malformed handle fails the whole " +
-    "transaction with INVALID_INPUT, so no Organization and no setup are left.",
+    "Organization's Party, pending, with the handle and that Safe (`parties.register`): a taken or malformed handle fails " +
+    "the whole transaction with INVALID_INPUT, so no Organization and no setup are left.",
   was: [
     `${AS_IS}:200`,
     `${SET}/operations/begin.ts:11`,
@@ -93,7 +94,7 @@ export const rpc_organizations_setups_begin = defineRpc({
   }),
   output: Schema.Struct({ orgId: S, resumed: Schema.Boolean, setup: SetupView }),
   errors: [error_NOT_AUTHENTICATED, error_FEATURE_NOT_AVAILABLE, error_INVALID_INPUT, error_WRONG_STATE],
-  reads: [table_admissions, table_parties, table_safe_claims, table_files, table_organizations, table_org_setups],
+  reads: [table_principals, table_admissions, table_personal_safes, table_parties, table_files, table_organizations, table_org_setups],
   writes: [table_organizations, table_org_setups],
   drives: [machine_org_setup.t.begin],
   invokes: [procedure_parties_register],

@@ -19,9 +19,9 @@ import {
   machine_waitlist_entry,
   table_referral_codes,
   table_referrals,
-  table_waitlist_entries,
+  table_admissions,
 } from "./data.ts";
-import { table_feature_gates } from "./links.ts";
+import { table_feature_flags } from "../access/data.ts";
 
 const OLD = "packages/backend/src";
 const W = `${OLD}/access/waitlist`;
@@ -31,7 +31,7 @@ const S = Schema.String;
 const noCalls = { calls: [], chain: [], spans: [] } as const;
 
 /** Where a mailbox stands: its entry, then the `beta-access` gate for the person. */
-const STANDING = [table_waitlist_entries, table_feature_gates] as const;
+const STANDING = [table_admissions, table_feature_flags] as const;
 
 /** What `waitlist status` answers; `waitlist join` answers its first five fields. */
 export const WaitlistStatus = Schema.Struct({
@@ -87,7 +87,7 @@ export const rpc_accounts_admission_join = defineRpc({
   output: WaitlistStatus,
   errors: [error_NOT_AUTHENTICATED, error_INVALID_INPUT],
   reads: [...STANDING, table_referrals, table_referral_codes],
-  writes: [table_waitlist_entries, table_referrals],
+  writes: [table_admissions, table_referrals],
   drives: [machine_waitlist_entry.t.join, machine_referral.t.attribute],
   invokes: [],
   emits: [],
@@ -112,8 +112,8 @@ export const rpc_accounts_admission_admit = defineRpc({
   input: Schema.Struct({ emails: Schema.Array(S), by: S }),
   output: Schema.Struct({ admitted: Schema.Array(S), already: Schema.Array(S), invalid: Schema.Array(S) }),
   errors: [error_NOT_AUTHENTICATED, error_INVALID_INPUT],
-  reads: [table_waitlist_entries, table_referrals],
-  writes: [table_waitlist_entries, table_referrals],
+  reads: [table_admissions, table_referrals],
+  writes: [table_admissions, table_referrals],
   drives: [machine_waitlist_entry.t.admit, machine_waitlist_entry.t.admit_unlisted, machine_referral.t.admit],
   invokes: [],
   emits: [],

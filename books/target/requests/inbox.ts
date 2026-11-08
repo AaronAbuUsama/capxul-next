@@ -23,7 +23,7 @@ import { GUARD_WAS, READER, WRITER } from "./guards.ts";
 import { FRESHNESS } from "./issuing.ts";
 import { procedure_payments_prepare_command } from "../payments/procedures.ts";
 import { table_payments } from "../payments/data.ts";
-import { table_chain_budgets } from "../indexing/data.ts";
+import { table_chain_budgets } from "./links.ts";
 
 const R = "packages/backend/src/requests";
 const ASIS = "books/as-is/requests/inboxes.ts";

@@ -3,9 +3,10 @@
 // open, and the signer answers with a signature or a no. Both answers are signals: they resume the
 // approval's process (./processes.ts), which owns sponsorship, the one send and the chain proof.
 //
-// Only the approval's signer reaches an approval here. Another principal, and an id that names
-// nothing, get the same ROLE_PERMISSION_DENIED (`not_the_signer`), so an id never tells whether an
-// approval exists. Row-level security scopes every read to the caller's `person_id` (P8).
+// Only the approval's signer reaches an approval here. Another principal's approval, and an id that
+// names nothing, get the same INVALID_INPUT `approvalId` (it names nothing the caller can see), so an
+// id never tells whether an approval exists. Row-level security scopes every read to the caller's
+// `person_id` (P8). Decision `approvals.signing-area`.
 
 import { Schema } from "effect";
 import { budget, defineRpc } from "../../../packages/book/src/index.ts";
@@ -14,7 +15,6 @@ import {
   error_FEATURE_NOT_AVAILABLE,
   error_INVALID_INPUT,
   error_NOT_AUTHENTICATED,
-  error_ROLE_PERMISSION_DENIED,
   error_WRONG_STATE,
 } from "../shared/vocabulary.ts";
 import { table_feature_flags } from "../access/data.ts";
@@ -61,8 +61,8 @@ export const ApprovalView = Schema.Struct({
 const ApprovalId = Schema.Struct({ approvalId: S });
 const SIGNER =
   "The approval's signer: the principal whose own Safe sends it, signed in as themselves (a person, or an agent with its " +
-  "own key; `dev approve` signs in as the person it plays). Anyone else, or an id that names nothing, gets " +
-  "ROLE_PERMISSION_DENIED.";
+  "own key; `dev approve` signs in as the person it plays). Anyone else's approval, or an id that names nothing, is " +
+  "INVALID_INPUT `approvalId`.";
 
 export const rpc_approvals_signing_get = defineRpc({
   id: "approvals.signing.get",
@@ -80,7 +80,7 @@ export const rpc_approvals_signing_get = defineRpc({
   who: SIGNER,
   input: ApprovalId,
   output: ApprovalView,
-  errors: [error_NOT_AUTHENTICATED, error_ROLE_PERMISSION_DENIED],
+  errors: [error_NOT_AUTHENTICATED, error_INVALID_INPUT],
   reads: [table_approvals],
   writes: [],
   drives: [],
@@ -105,7 +105,7 @@ export const rpc_approvals_signing_review = defineRpc({
   who: SIGNER,
   input: ApprovalId,
   output: ApprovalView,
-  errors: [error_NOT_AUTHENTICATED, error_ROLE_PERMISSION_DENIED],
+  errors: [error_NOT_AUTHENTICATED, error_INVALID_INPUT],
   reads: [table_approvals],
   writes: [table_approvals],
   drives: [],
@@ -141,7 +141,7 @@ export const rpc_approvals_signing_sign = defineRpc({
   who: SIGNER,
   input: Schema.Struct({ approvalId: S, signature: Hex }),
   output: ApprovalView,
-  errors: [error_NOT_AUTHENTICATED, error_ROLE_PERMISSION_DENIED, error_WRONG_STATE, error_INVALID_INPUT, error_FEATURE_NOT_AVAILABLE],
+  errors: [error_NOT_AUTHENTICATED, error_INVALID_INPUT, error_WRONG_STATE, error_FEATURE_NOT_AVAILABLE],
   reads: [table_approvals, table_feature_flags],
   writes: [table_approvals],
   drives: [machine_approval.t.sign],
@@ -167,7 +167,7 @@ export const rpc_approvals_signing_decline = defineRpc({
   who: SIGNER,
   input: ApprovalId,
   output: ApprovalView,
-  errors: [error_NOT_AUTHENTICATED, error_ROLE_PERMISSION_DENIED, error_WRONG_STATE],
+  errors: [error_NOT_AUTHENTICATED, error_INVALID_INPUT, error_WRONG_STATE],
   reads: [table_approvals],
   writes: [table_approvals],
   drives: [machine_approval.t.decline],

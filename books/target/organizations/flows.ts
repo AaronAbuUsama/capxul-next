@@ -10,6 +10,7 @@ import { component_core_sdk } from "../shared/foundation.ts";
 import { error_INVALID_INPUT } from "../shared/vocabulary.ts";
 import { rpc_organizations_setups_begin, rpc_organizations_setups_get, rpc_organizations_setups_resume, SetupView } from "./setups.ts";
 import { rpc_organizations_workspaces_list } from "./workspaces.ts";
+import { rpc_approvals_signing_get } from "../approvals/signing.ts";
 import { MemberView, rpc_organizations_members_list } from "./members.ts";
 import {
   InvitationView,
@@ -35,8 +36,9 @@ export const flow_client_onboarding_begin_organization = defineFlow({
   about:
     "`org create`. It begins the Organization (one write, which starts the setup process), saves its ID on this machine " +
     "at once so a stopped command resumes it by handle, and subscribes to its setup. When the setup waits for the " +
-    "founder's authorization it opens the install approval on the approval page, where the founder's own signer signs " +
-    "it, then follows the same subscription until the setup is ready or stops, within one deadline over the write and " +
+    "founder's authorization it reads the install approval (approvals') until it is sponsored and hands the founder its " +
+    "approval page in the browser, where their own signer signs it (approvals' `client.approvals.sign`), then follows " +
+    "the setup until it is ready or stops, within one deadline over the write and " +
     "its setup. At the deadline it stops waiting and the setup carries on. The CLI shows the preview and asks before it " +
     "calls this method.",
   was: [`${SDK}/profiles/organization-onboarding.ts:83`, "books/as-is/organizations/flows.ts:55"],
@@ -57,8 +59,9 @@ export const flow_client_onboarding_begin_organization = defineFlow({
     { name: "save", local: "cache", about: "Record the Organization ID and handle on this machine before anything else can fail." },
     { name: "watch", rpc: rpc_organizations_setups_get, about: "Subscribe to the setup's changes." },
     { name: "await-authorization", local: "wait", about: "While the Safe is minted and the money deployed (chain), until the install approval is open or setup stops." },
-    { name: "sign", local: "sign", about: "Open the install approval on the approval page; the founder's own signer signs the batch there." },
-    { name: "await-ready", local: "wait", about: "Follow the subscription until ready or stopped, or the deadline." },
+    { name: "approval", rpc: rpc_approvals_signing_get, about: "Read the install approval live until it is sponsored, with its page link." },
+    { name: "sign", local: "sign", about: "Hand the founder the approval page in the browser; their own Openfort signer signs the batch there." },
+    { name: "await-ready", local: "wait", about: "Follow the setup until ready or stopped, or the deadline." },
   ],
   errors: [],
   calls: [],
@@ -82,7 +85,8 @@ export const flow_client_org_setup_resume = defineFlow({
   steps: [
     { name: "watch", rpc: rpc_organizations_setups_get, about: "Subscribe to the setup; its first answer decides the next step." },
     { name: "resume", rpc: rpc_organizations_setups_resume, about: "When it needs attention or is processing: ask the process to carry on." },
-    { name: "sign", local: "sign", about: "When it waits for the founder: open the install approval on the approval page." },
+    { name: "approval", rpc: rpc_approvals_signing_get, about: "When it waits for the founder: read the install approval until it is sponsored." },
+    { name: "sign", local: "sign", about: "Hand the founder the approval page in the browser, where their own signer signs." },
     { name: "await-ready", local: "wait", about: "Follow the subscription until ready or stopped, or the deadline." },
   ],
   errors: [],

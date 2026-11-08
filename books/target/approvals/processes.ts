@@ -58,7 +58,9 @@ export const workflow_approvals_lifecycle_carry = defineWorkflow({
     {
       name: "signer",
       for: "person",
-      about: "The signer's answer: `approvals.signing.sign` or `.decline`. The opener's withdrawal and the window also end it.",
+      about:
+        "The signer's answer: `approvals.signing.sign` or `.decline`. The opener's withdrawal also ends it (the `withdraw` " +
+        "transition's event resumes the instance), and so does the window.",
     },
     { name: "day", for: "timer", about: "A signed, dated operation: until its `send_after`, the first moment its window lets it land." },
     {

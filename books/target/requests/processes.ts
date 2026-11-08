@@ -60,7 +60,7 @@ export const workflow_requests_lifecycle_request = defineWorkflow({
   waits: [
     { name: "payer", for: "person", about: "The payer pays, declines or names their email at the link, or the issuer cancels; resumed by the rpc's signal." },
     { name: "expiry", for: "timer", about: "Until `expires_at`, when the request has one; an open request then expires." },
-    { name: "escrow-funded", for: "chain", about: "A Transfer of the token into the escrow address, indexed by Ponder; each one wakes a balance read." },
+    { name: "escrow-funded", for: "indexer", about: "A Transfer of the token into the escrow address, indexed by Ponder; each one wakes a balance read." },
     { name: "payout", for: "chain", timeoutMs: 600_000, about: "The relayer's deploy and payout transactions mined, each followed to its receipt." },
     { name: "payment", for: "signal", about: "The request's Payment settled, reversed or cancelled, from the payment followers." },
   ],
@@ -75,7 +75,7 @@ export const workflow_requests_lifecycle_request = defineWorkflow({
     { name: "last-read", about: "Cancelled or expired with an escrow: once Ponder passed the ending block, one balance read; funded goes to deploy and payout." },
     { name: "end", about: "Paid, declined, or cancelled or expired with nothing to pay out: the instance ends." },
   ],
-  reads: [table_requests, table_payments],
+  reads: [table_requests],
   writes: [table_requests],
   drives: [machine_request.t.fund, machine_request.t.expire],
   invokes: [],
@@ -88,10 +88,9 @@ export const workflow_requests_lifecycle_request = defineWorkflow({
   ],
   chain: [contract_erc20.f.balanceOf, contract_escrow_factory.f.deploy, contract_escrow.f.payout],
   idempotency:
-    "One instance per request id. `fund` and `expire` are guarded by the status, so a replayed step finds the request " +
-    "moved and does nothing. Each relayer send is recorded before it is broadcast (the service signer looks a lost one up " +
-    "by hash), and `payout_tx_hash` is stored before its receipt is awaited, so a resumed run follows that transaction and " +
-    "never sends a second. The chain consumes the escrow's payment id once.",
+    "One instance per request id; `fund` and `expire` are guarded by the status. Each relayer send is recorded before it " +
+    "is broadcast and `payout_tx_hash` before its receipt is awaited, so a resumed run never sends a second payout; the " +
+    "chain consumes the escrow's payment id once.",
   timeoutMs: 400 * DAY,
   retries: { max: 5, backoff: "exponential" },
   compensation:

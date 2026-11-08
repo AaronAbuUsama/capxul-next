@@ -18,8 +18,9 @@ import {
   error_TRANSACTION_FAILED,
   error_WRONG_ENVIRONMENT,
 } from "../shared/vocabulary.ts";
-import { table_personal_safes, table_waitlist_entries } from "./data.ts";
-import { table_feature_gates, table_parties } from "./links.ts";
+import { table_personal_safes, table_admissions } from "./data.ts";
+import { table_feature_flags } from "../access/data.ts";
+import { table_parties } from "../parties/data.ts";
 
 const OLD = "packages/backend/src";
 const G = `${OLD}/accounts/grants`;
@@ -52,7 +53,7 @@ export const rpc_accounts_grants_fund = defineRpc({
     error_PROVIDER_ERROR,
     error_TRANSACTION_FAILED,
   ],
-  reads: [table_personal_safes, table_waitlist_entries, table_feature_gates, table_parties],
+  reads: [table_personal_safes, table_admissions, table_feature_flags, table_parties],
   writes: [],
   drives: [],
   invokes: [],

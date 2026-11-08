@@ -10,7 +10,7 @@ import { concept_requests } from "../shared/foundation.ts";
 import { error_INVALID_INPUT, error_RATE_LIMITED, error_WRONG_STATE } from "../shared/vocabulary.ts";
 import { machine_request, table_requests, table_service_revisions, table_services } from "./data.ts";
 import { Amount } from "./shapes.ts";
-import { procedure_documents_store } from "../documents/procedures.ts";
+import { procedure_documents_store } from "./links.ts";
 import { table_parties } from "../parties/data.ts";
 
 const R = "packages/backend/src/requests/checkouts";
@@ -85,7 +85,7 @@ export const rpc_requests_checkout_open = defineRpc({
     "purchase. A request that already names a payer, is not open, or a service that is inactive or changed revision since " +
     "the page read it, is WRONG_STATE; a quantity out of range or a malformed email is INVALID_INPUT; more than 10 starts " +
     "for one email or 100 for one service in a minute is RATE_LIMITED (retry after 60 s). Nothing is written on chain.",
-  was: [`${R}/operations/create.ts:12`, `${R}/operations/prepare-request.ts:10`, "packages/backend/src/requests/writes/purchases.ts:64", `${ASIS}:599`, `${ASIS}:764`],
+  was: [`${R}/operations/create.ts:8`, `${R}/operations/prepare-request.ts:10`, "packages/backend/src/requests/writes/purchases.ts:64", `${ASIS}:599`, `${ASIS}:764`],
   concept: concept_requests,
   kind: "mutation",
   who: "Anyone holding the link, with no sign-in: the payer names themselves by email.",

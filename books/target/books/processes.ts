@@ -48,7 +48,8 @@ export const workflow_books_assets_scan_added = defineWorkflow({
     "Every minute, for each added token: reads the chain head, then the token's Transfer logs to and from the company " +
     "Safe from its `next_block` up to the deployment's finality depth below the head, in windows of at most 2,000 blocks, " +
     "and books each as outside money (in: `deposit_received`; out: `payment_sent_outside`) under its symbol with no USD, " +
-    "keyed by the Transfer, then moves `next_block` past the windows read in full. Reading only final blocks is the " +
+    "keyed by the Transfer, whose row is the Movement `<chain>:<tx>:<log>` an annotation names, then moves `next_block` " +
+    "past the windows read in full. Reading only final blocks is the " +
     "reorganization rule, so nothing it books is reversed. Capxul never pays in an added token, so no Payment explains " +
     "one of its Transfers. A removed token is not read; one token's failure leaves the others' scans standing. Its facts " +
     "are what activity shows for an added token.",

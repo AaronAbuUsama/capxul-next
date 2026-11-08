@@ -42,7 +42,9 @@ export const SetupIssue = Schema.Struct({
     "install_refused",
     "approval_expired",
     "approval_declined",
+    "approval_displaced",
     "install_reverted",
+    "provider_answer_invalid",
   ]),
   /** The error code the step ended with (PROVIDER_ERROR, TRANSACTION_FAILED, CANCELLED…). */
   code: S,
@@ -122,7 +124,8 @@ export const table_org_setups = defineTable({
   tenantField: "org_id",
   fields: Schema.Struct({
     org_id: S,
-    founder_party_id: S,
+    /** The founder's principal: the approval's signer, and who may read and resume the setup before it is ready. */
+    founder_principal_id: S,
     /** Hash of name, handle, country, bio, size and logo as begun: the same intent resumes, another refuses. */
     intent_hash: S,
     status: Schema.Literals(["processing", "awaiting_authorization", "needs_attention", "ready", "failed"]),
@@ -141,7 +144,7 @@ export const table_org_setups = defineTable({
   indexes: [
     {
       name: "by_founder_status",
-      fields: ["founder_party_id", "status"],
+      fields: ["founder_principal_id", "status"],
       crossTenant: true,
       for: "A founder's unfinished setups: `org list`'s unfinishedSetups and `org show` without `--org` (a founder is not yet a member).",
     },
@@ -355,7 +358,8 @@ export const event_org_setup_transitioned = defineEvent({
     to: S,
     transition: S,
     org_id: S,
-    founder_party_id: S,
+    /** The founder. */
+    person_id: S,
     issue_reason: NullOr(S),
   }),
   was: [`${O}/setups/events.ts:1`],
@@ -369,7 +373,8 @@ export const machine_org_setup = defineMachine({
     "mints the company Safe and sends `deployMoney` (still processing, with `steps` recording each), opens the founder's " +
     "install approval (awaiting_authorization), follows the founder's signature and the install to the chain " +
     "(processing again), and is ready when the install landed at finality. A step that cannot finish now stops it at " +
-    "needs_attention, resumable by `org retry`; only a company Safe that is not the founder's is definitive (failed).",
+    "needs_attention, resumable by `org retry`; only a company Safe that is not the founder's, or a provider answer that " +
+    "will not change, is definitive (failed).",
   was: [`${AS_IS}:1067`, `${O}/setups/rules/policies.ts:40`],
   table: table_org_setups,
   field: "status",
@@ -379,7 +384,7 @@ export const machine_org_setup = defineMachine({
     { id: "awaiting_authorization", about: "The install batch's approval is open: the founder signs it on the approval page." },
     { id: "needs_attention", about: "A step stopped (a provider outage outlasted its retries, the approval expired or was declined, a send reverted); `org retry` resumes it." },
     { id: "ready", about: "The install landed at finality: the Gate guards the Safe, the founder is its one Director and wears the officer hats.", terminal: true },
-    { id: "failed", about: "The minted company Safe is not owned by the founder's Safe: nothing can finish this setup.", terminal: true },
+    { id: "failed", about: "Nothing can finish it: the minted company Safe is not the founder's, or a provider's answer will not change.", terminal: true },
   ],
   transitions: {
     begin: {
@@ -411,7 +416,7 @@ export const machine_org_setup = defineMachine({
     stall: {
       from: ["processing", "awaiting_authorization"],
       to: "needs_attention",
-      about: "A step stopped: its provider retries ran out, a service send reverted, or the install approval expired, was declined or reverted.",
+      about: "A step stopped: its provider retries ran out, a service send reverted, or the install approval was refused, declined, displaced, expired or reverted.",
       emits: [event_org_setup_transitioned],
     },
     resume: {
@@ -423,7 +428,7 @@ export const machine_org_setup = defineMachine({
     fail: {
       from: ["processing", "needs_attention"],
       to: "failed",
-      about: "CompanySafeMinted names an owner other than the founder's Safe.",
+      about: "CompanySafeMinted names an owner other than the founder's Safe (the Party is released), or a step's answer is PROVIDER_RESPONSE_INVALID.",
       emits: [event_org_setup_transitioned],
     },
   },

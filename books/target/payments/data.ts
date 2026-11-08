@@ -49,6 +49,7 @@ export const PaymentStatus = Schema.Literals(PAYMENT_STATUSES);
 /** Why a Payment lapsed or was cancelled: what its approval, proposal or the chain said. */
 export const Outcome = Schema.Literals([
   "declined",
+  "refused",
   "rejected",
   "expired",
   "displaced",
@@ -387,7 +388,7 @@ export const machine_payment = defineMachine({
       from: ["prepared", "scheduled", "due", "escrowed"],
       to: "cancelled",
       about:
-        "Its approval was declined, its proposal rejected, or its void, `Budgets.cancel` or escrow refund landed; a void cancels every Payment of the operation (K14).",
+        "Its approval was declined or refused before signing, its proposal rejected, or its void, `Budgets.cancel` or escrow refund landed; a void cancels every Payment of its operation (K14).",
       emits: sends,
     },
   },

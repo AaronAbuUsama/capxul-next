@@ -17,7 +17,7 @@ import {
 } from "./data.ts";
 import { SetupView } from "./setups.ts";
 import { table_parties } from "../parties/data.ts";
-import { table_chain_budgets, table_hat_wearers, table_safe_owners } from "../indexing/data.ts";
+import { table_chain_budgets, table_hat_wearers, table_safe_owners } from "./links.ts";
 
 const O = "packages/backend/src/organizations";
 const W = `${O}/workspaces`;
@@ -39,7 +39,7 @@ export const Capabilities = Schema.Struct({
 
 export const rpc_organizations_workspaces_list = defineRpc({
   id: "organizations.workspaces.list",
-  title: "The Organizations the caller can act in, and the setups they founded that are unfinished",
+  title: "The Organizations the caller can act in, and their unfinished setups",
   about:
     "One page of the caller's current Seats (by principal), one row per Organization sorted by Organization ID, each with " +
     "its handle (its Party), its company Safe, its setup state, the caller's Seat and capabilities (the hats the Seat's " +

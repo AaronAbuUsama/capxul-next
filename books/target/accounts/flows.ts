@@ -12,14 +12,13 @@ import { Schema } from "effect";
 import { budget, defineFlow } from "../../../packages/book/src/index.ts";
 import { integration_openfort } from "../shared/external.ts";
 import { component_core_sdk } from "../shared/foundation.ts";
-import { error_INVALID_INPUT, error_NOT_AUTHENTICATED, error_OTP_EXPIRED } from "../shared/vocabulary.ts";
 import { rpc_accounts_admission_admit } from "./admission.ts";
 import {
   rpc_access_sign_in_challenge,
   rpc_access_sign_in_send_code,
   rpc_access_sign_in_verify_code,
   rpc_access_sign_in_with_key,
-} from "./links.ts";
+} from "../access/sign-in.ts";
 import { rpc_accounts_setup_check, rpc_accounts_setup_lifecycle, rpc_accounts_setup_start, SetupCheck } from "./setup.ts";
 
 const CLI = "apps/cli/src";
@@ -60,7 +59,7 @@ export const flow_client_auth_sign_in = defineFlow({
     "since signing in must still succeed. An agent (`--own-key file|env`, no email): access issues a challenge, the " +
     "agent's key signs it on this machine, and access signs in as the agent whose Safe that key solely owns " +
     "(NOT_AUTHENTICATED for no agent, or a frozen one); its account is made by `agent create`, not here. It never opens a " +
-    "browser. The flow ends with the access rpcs' refusals once its own tries are spent, so it lists them as its own.",
+    "browser. Its refusals are its steps': a wrong or expired code, too many tries, an unknown or frozen agent.",
   component: component_core_sdk,
   sdk: "client.auth.signIn",
   input: Schema.Union([
@@ -72,13 +71,13 @@ export const flow_client_auth_sign_in = defineFlow({
     { name: "send-code", rpc: rpc_access_sign_in_send_code, about: "A person: access sends the code to the email, within its send cooldown." },
     { name: "code", local: "prompt", about: "Asks for the code at a terminal (three tries) or reads one from stdin; with neither, saves the waiting sign-in and stops." },
     { name: "verify", rpc: rpc_access_sign_in_verify_code, about: "Checks the code; a verified one returns the session." },
-    { name: "challenge", rpc: rpc_access_sign_in_challenge, about: "An agent: a fresh challenge for its key." },
+    { name: "challenge", rpc: rpc_access_sign_in_challenge, about: "An agent: a fresh challenge for its Safe, kept on this machine with its key." },
     { name: "sign-challenge", local: "sign", about: "The agent's own key, from its file or CAPXUL_PRIVATE_KEY, signs the challenge here." },
     { name: "key-sign-in", rpc: rpc_access_sign_in_with_key, about: "Access checks the signature against the agent's Safe owner and returns its session." },
     { name: "save", local: "cache", about: "Saves the session on this machine and makes the person or agent current." },
     { name: "setup", rpc: rpc_accounts_setup_check, about: "A person's setup: `ready`, or `setup-required` with the setup page and the argv that checks again." },
   ],
-  errors: [error_INVALID_INPUT, error_OTP_EXPIRED, error_NOT_AUTHENTICATED],
+  errors: [],
   calls: [],
   spans: [],
   budget: { ...budget("vendor"), excludes: ["sdk.step.code"] },
@@ -103,7 +102,7 @@ export const flow_client_auth_verify_otp = defineFlow({
     { name: "save", local: "cache", about: "Saves the session, makes the person current and clears the waiting sign-in." },
     { name: "setup", rpc: rpc_accounts_setup_check, about: "The setup: `ready`, or `setup-required` with the setup page; a refused setup reads `setup-required`." },
   ],
-  errors: [error_INVALID_INPUT, error_OTP_EXPIRED],
+  errors: [],
   calls: [],
   spans: [],
   budget: budget("write"),
@@ -114,8 +113,9 @@ export const flow_client_account_setup = defineFlow({
   id: "client.account.setup",
   title: "Set up the person's own Safe in the web app",
   about:
-    "Serves the web app's setup page (React SDK), not the CLI: the CLI never starts setup. It reads the embedded " +
-    "signer's address (Openfort; nothing is signed for the claim, which Companies House's claim role sends), starts or " +
+    "Serves the web app's setup page (React SDK), not the CLI: the CLI never starts setup. After the person's profile " +
+    "(parties' flow on the same page), it reads the embedded signer's address (Openfort; nothing is signed for the " +
+    "claim, which Companies House's claim role sends), starts or " +
     "resumes the setup (`accounts.setup.start`), and follows it (`accounts.setup.lifecycle`) until the Safe is claimed " +
     "or the setup fails. When claim escrows were waiting for the person, the setup opens one approval to collect them, " +
     "and the page hands the person to the approval page to sign it.",

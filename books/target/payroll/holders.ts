@@ -34,7 +34,7 @@ import { table_parties } from "../parties/data.ts";
 import { table_org_members, table_organizations } from "../organizations/data.ts";
 import { table_budgets } from "../budgets/data.ts";
 import { procedure_approvals_open } from "../approvals/procedures.ts";
-import { procedure_documents_store } from "../documents/procedures.ts";
+import { procedure_documents_store } from "./links.ts";
 import { machine_agreement, machine_agreement_write, table_agreement_writes, table_agreements } from "./data.ts";
 import { AgreementRef, AgreementRow, ChangeInput, Department, EndInput, OfferInput, OrgListInput, Prepared } from "./shapes.ts";
 import { Schema } from "effect";
@@ -43,8 +43,8 @@ const OPS = "packages/backend/src/payroll/agreements/operations";
 const AG = "packages/backend/src/payroll/agreements";
 
 const WHO_HOLDER =
-  "A signed-in person or agent whose own Safe Budgets authorises on the agreement's budget: its office holder or anyone " +
-  "above it. Authority is read from the chain (`Budgets.authorised`), never from a Capxul row.";
+  "A signed-in member of the Organization, person or agent, whose own Safe Budgets authorises on the agreement's budget: " +
+  "its office holder or anyone above it. Authority is read from the chain (`Budgets.authorised`), never from a Capxul row.";
 
 /** The errors every holder write can raise: the guard, the gate, the agreement, its state, the chain's answer. */
 const HOLDER_ERRORS = [
@@ -58,7 +58,7 @@ const HOLDER_ERRORS = [
 ] as const;
 
 const HOLDER_WRITE_ABOUT =
-  "The `payment-agreements` gate must be on for the Organization (FEATURE_NOT_AVAILABLE). The agreement must be the " +
+  "The caller must hold a Seat in the Organization (ROLE_PERMISSION_DENIED). The `payment-agreements` gate must be on for the Organization (FEATURE_NOT_AVAILABLE). The agreement must be the " +
   "Organization's (INVALID_INPUT), and the caller must have no write of their own still awaiting on it (WRONG_STATE, " +
   "naming its approval). Budgets must authorise the caller's own Safe on the agreement's budget (ROLE_PERMISSION_DENIED " +
   "for any other member, a holder the Directors removed, or the payee). Agreements' `agreementOf` answers the agreement " +
@@ -71,7 +71,7 @@ const OPEN_ABOUT =
 
 /** A holder write reads and writes the same rows. */
 const HOLDER_TOUCHES = {
-  reads: [table_feature_flags, table_agreements, table_agreement_writes, table_budgets],
+  reads: [table_org_members, table_feature_flags, table_agreements, table_agreement_writes, table_budgets],
   writes: [table_agreement_writes],
   drives: [machine_agreement_write.t.open],
   invokes: [procedure_approvals_open],
@@ -86,9 +86,11 @@ export const rpc_payroll_holders_offer = defineRpc({
   id: "payroll.holders.offer",
   title: "Prepare an offer from a department's budget",
   about:
-    "The `payment-agreements` gate must be on (FEATURE_NOT_AVAILABLE). The department is the Organization's budget named " +
+    "The caller must hold a Seat in the Organization and its `payment-agreements` gate must be on (ROLE_PERMISSION_DENIED, " +
+    "FEATURE_NOT_AVAILABLE). The department is the Organization's budget named " +
     "by key or `dep_…` id (INVALID_INPUT unknown; WRONG_STATE while it has no budget on chain yet). A budget pays in one " +
-    "token: a `--token` Capxul does not admit is TOKEN_NOT_SUPPORTED, one the budget does not pay in TOKEN_NOT_BUDGETED. " +
+    "token: a `--token` that is not one of the deployment's admitted tokens (the v4 address book) is TOKEN_NOT_SUPPORTED, " +
+    "an admitted one the budget does not pay in TOKEN_NOT_BUDGETED. " +
     "The payee is a person's email (their Party's Safe, or for a mailbox with no account the Safe Companies House's " +
     "`safeAddressFor` gives it) or an Organization's `@handle` (its Party's Safe; never an agent, the payer itself or the " +
     "caller's own Safe), else INVALID_INPUT. The terms: one kind; the release defaults by kind (a salary monthly, a stream " +
@@ -108,7 +110,7 @@ export const rpc_payroll_holders_offer = defineRpc({
   input: OfferInput,
   output: Prepared,
   errors: [...HOLDER_ERRORS, error_PAYROLL_BUDGET_EXCEEDED, error_TOKEN_NOT_BUDGETED, error_TOKEN_NOT_SUPPORTED],
-  reads: [table_feature_flags, table_organizations, table_budgets, table_parties, table_agreements],
+  reads: [table_org_members, table_feature_flags, table_organizations, table_budgets, table_parties, table_agreements],
   writes: [table_agreements, table_agreement_writes],
   drives: [machine_agreement.t.prepare, machine_agreement_write.t.open],
   invokes: [procedure_documents_store, procedure_approvals_open],

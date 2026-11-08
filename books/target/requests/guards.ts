@@ -10,7 +10,7 @@
 
 import { table_org_deployments, table_org_members, table_organizations } from "../organizations/data.ts";
 import { table_parties } from "../parties/data.ts";
-import { table_hat_wearers } from "../indexing/data.ts";
+import { table_hat_wearers } from "./links.ts";
 
 export const GUARD_WAS = ["packages/backend/src/requests/guards.ts:19", "packages/backend/src/requests/guards.ts:44"];
 

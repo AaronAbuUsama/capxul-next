@@ -1,7 +1,7 @@
 // The accounts door: the one procedure another concept invokes inside its own transaction.
 //
 // Everything else other concepts need from accounts they read (organizations, payments, agents and
-// equity depend on accounts and read `personal-safes` and `waitlist-entries` directly), or learn
+// equity depend on accounts and read `personal-safes` and `admissions` directly), or learn
 // from `personal_safe_transitioned` and `waitlist_entry_transitioned` through the outbox.
 //
 // `accounts.admit` is the architecture's one procedure that is not a money fact
@@ -12,7 +12,7 @@ import { Schema } from "effect";
 import { defineProcedure } from "../../../packages/book/src/index.ts";
 import { concept_accounts } from "../shared/foundation.ts";
 import { error_INVALID_INPUT } from "../shared/vocabulary.ts";
-import { machine_referral, machine_waitlist_entry, table_referrals, table_waitlist_entries } from "./data.ts";
+import { machine_referral, machine_waitlist_entry, table_referrals, table_admissions } from "./data.ts";
 
 const OLD = "packages/backend/src";
 
@@ -31,8 +31,8 @@ export const procedure_accounts_admit = defineProcedure({
   input: Schema.Struct({ email: Schema.String, orgId: Schema.String }),
   output: Schema.Struct({ email: Schema.String, admitted: Schema.Boolean }),
   errors: [error_INVALID_INPUT],
-  reads: [table_waitlist_entries, table_referrals],
-  writes: [table_waitlist_entries, table_referrals],
+  reads: [table_admissions, table_referrals],
+  writes: [table_admissions, table_referrals],
   drives: [machine_waitlist_entry.t.admit, machine_waitlist_entry.t.admit_unlisted, machine_referral.t.admit],
   invokes: [],
   emits: [],

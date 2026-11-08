@@ -86,8 +86,9 @@ export const table_approvals = defineTable({
   title: "Approvals: one UserOperation from a signer's own Safe",
   about:
     "One row per UserOperation Capxul carries from a person's or an agent's own Safe, from birth to chain proof. The " +
-    "opener gives the calls, the summary, its subject and its deadline (and, for a dated operation, the day it is sent, " +
-    "what it needs that day and the gate it needs); the process adds the sponsorship (the signer read from the Safe, the " +
+    "opener gives the calls, the summary, its subject, its deadline and any gate (and, for a dated operation, the day it " +
+    "is sent and what it needs that day); the sender is the signer's own Safe, from access' principals; the process adds " +
+    "the sponsorship (the signer read from the Safe, the " +
     "nonce on the approval's own key, the sponsored operation, its SafeOp digest, its UserOperation hash and window); the " +
     "signer adds the signature; the send and the chain add the rest. Calls, summary, digest and signature never change " +
     "once written. `person_id` is the principal whose key signs (a person, or an agent signing with its own key); `org_id` " +

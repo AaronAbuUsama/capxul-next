@@ -18,11 +18,13 @@ import {
   error_FEATURE_NOT_AVAILABLE,
   error_INVALID_INPUT,
   error_NOT_AUTHENTICATED,
+  error_PROFILE_NOT_FOUND,
   error_SMART_ACCOUNT_MISSING,
   error_WRONG_STATE,
 } from "../shared/vocabulary.ts";
-import { machine_personal_safe, table_personal_safes, table_waitlist_entries } from "./data.ts";
-import { procedure_parties_register, table_feature_gates } from "./links.ts";
+import { machine_personal_safe, table_admissions, table_personal_safes } from "./data.ts";
+import { table_feature_flags } from "../access/data.ts";
+import { table_profiles } from "../parties/data.ts";
 
 const OLD = "packages/backend/src/accounts";
 const SDK = "packages/sdk/src/accounts";
@@ -63,23 +65,23 @@ export const rpc_accounts_setup_start = defineRpc({
   id: "accounts.setup.start",
   title: "Start, resume or retry the person's Safe setup, from the web app",
   about:
-    "The web app's setup page calls it with the person's embedded signer. The caller must be admitted or the beta open " +
-    "to them (FEATURE_NOT_AVAILABLE while waiting). The signer must be an address, not zero and not Companies House " +
-    "(INVALID_INPUT `signer`). With no setup yet it births the row at the address the email derives (`start`) and " +
-    "registers the person's Party with that Safe (`parties.register`): the name and the Safe money to it lands in are " +
-    "one fact. A setup in progress or ready for the same signer answers as it stands; for another signer it is " +
-    "WRONG_STATE (the Safe is set up for another signer). A failed setup is retried (`retry`, attempt + 1), with this " +
-    "signer. Every start after it commits runs or resumes the setup process; nothing here touches the chain.",
+    "The web app's setup page calls it with the person's embedded signer, after the person completed their profile in " +
+    "parties (PROFILE_NOT_FOUND before). The caller must be admitted or the beta open to them (FEATURE_NOT_AVAILABLE while " +
+    "waiting). The signer must be an address, not zero and not Companies House (INVALID_INPUT `signer`). With no setup " +
+    "yet it births the row at the address the email derives (`start`), the same address the person's Party already routes " +
+    "money to, so it writes nothing in parties. A setup in progress or ready for the same signer answers as it stands; for " +
+    "another signer it is WRONG_STATE (the Safe is set up for another signer). A failed setup is retried (`retry`, attempt " +
+    "+ 1), with this signer. Every start after it commits runs or resumes the setup process; nothing here touches the chain.",
   concept: concept_accounts,
   kind: "mutation",
   who: "A signed-in person who is admitted or to whom the beta is open, for their own Safe, through the web app's setup page.",
   input: Schema.Struct({ signer: S }),
   output: Schema.Struct({ safe: S, status: Schema.Literals(["claiming", "collecting", "ready", "failed"]), attempt: Schema.Int }),
-  errors: [error_NOT_AUTHENTICATED, error_FEATURE_NOT_AVAILABLE, error_INVALID_INPUT, error_WRONG_STATE],
-  reads: [table_personal_safes, table_waitlist_entries, table_feature_gates],
+  errors: [error_NOT_AUTHENTICATED, error_PROFILE_NOT_FOUND, error_FEATURE_NOT_AVAILABLE, error_INVALID_INPUT, error_WRONG_STATE],
+  reads: [table_personal_safes, table_profiles, table_admissions, table_feature_flags],
   writes: [table_personal_safes],
   drives: [machine_personal_safe.t.start, machine_personal_safe.t.retry],
-  invokes: [procedure_parties_register],
+  invokes: [],
   emits: [],
   ...noCalls,
   budget: budget("write"),
@@ -92,16 +94,17 @@ export const rpc_accounts_setup_lifecycle = defineRpc({
   about:
     "Reads the caller's own setup and never starts or resumes it. `claiming` is setting up at step `claiming`; a claimed " +
     "Safe (`collecting` or `ready`) is ready and can transact, with `collecting` while its claim escrows are still being " +
-    "collected; `failed` shows the step and the error code with the code's message, never the revert data or a stack. No " +
-    "setup yet is SMART_ACCOUNT_MISSING (finish it with `capxul account retry`). `personId`, when given, must be the " +
-    "caller's own, else NOT_AUTHENTICATED: another person's setup is never read.",
+    "collected; `failed` shows the step and the error code with the code's message, never the revert data or a stack. A " +
+    "person with no profile in parties yet is PROFILE_NOT_FOUND, and one with a profile but no setup SMART_ACCOUNT_MISSING " +
+    "(either way `capxul account retry` gives the link). `personId`, when given, must be the caller's own, else " +
+    "NOT_AUTHENTICATED: another person's setup is never read.",
   concept: concept_accounts,
   kind: "query",
   who: "A signed-in person, for their own setup.",
   input: Schema.Struct({ personId: Schema.optionalKey(S) }),
   output: Schema.Struct({ lifecycle: SetupLifecycle }),
-  errors: [error_NOT_AUTHENTICATED, error_SMART_ACCOUNT_MISSING],
-  reads: [table_personal_safes],
+  errors: [error_NOT_AUTHENTICATED, error_PROFILE_NOT_FOUND, error_SMART_ACCOUNT_MISSING],
+  reads: [table_personal_safes, table_profiles],
   writes: [],
   drives: [],
   invokes: [],
@@ -116,7 +119,7 @@ export const rpc_accounts_setup_check = defineRpc({
   title: "Whether the signed-in person's setup is done, and where to finish it",
   about:
     "Reads the caller's own setup and starts nothing. A claimed Safe is `ready`, with the Safe, `claimed` and how many " +
-    "claim escrows the setup collected. No setup, or one still claiming, is `setup-required` with the web app's setup " +
+    "claim escrows the setup collected. No profile, no setup, or one still claiming, is `setup-required` with the web app's setup " +
     "page (`setupUrl`) and the argv that checks again (`capxul account retry`). A setup the chain refused answers with " +
     "the chain's code: SwapRefused (the Safe is already claimed by another signer) is WRONG_STATE; EmailNotNormalized " +
     "or InvalidSigner is INVALID_INPUT. The Safe's address is derived from the email, so it is named even before setup.",
@@ -126,7 +129,7 @@ export const rpc_accounts_setup_check = defineRpc({
   input: Schema.Struct({}),
   output: SetupCheck,
   errors: [error_NOT_AUTHENTICATED, error_WRONG_STATE, error_INVALID_INPUT],
-  reads: [table_personal_safes],
+  reads: [table_personal_safes, table_profiles],
   writes: [],
   drives: [],
   invokes: [],

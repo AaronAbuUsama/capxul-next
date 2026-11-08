@@ -53,17 +53,15 @@ export const GUARD =
 
 /** How a write decides who signs, from the chain: the office above the budget, else the Board. */
 export const SIGNER_RULE =
-  "Who signs is the chain's rule: a top budget, a payout ceiling and a hat under the Board's top hat are the Board's (a " +
-  "Board proposal; the caller must wear the Director hat). A team's change is signed by the caller's own Safe when " +
-  "`Budgets.authorised` says it acts for the parent (the parent's office holder or anyone above), else by the Board when " +
-  "the caller is a Director; anyone else is ROLE_PERMISSION_DENIED and nothing is saved. Nobody acts on their own budget.";
+  "Who signs is the chain's rule: the Board (a Director proposes) for a top budget, a payout ceiling and a hat under the " +
+  "Board's top hat; for a team, the caller's own Safe when `Budgets.authorised` says it acts for the parent, else the " +
+  "Board when the caller is a Director; anyone else is ROLE_PERMISSION_DENIED. Nobody acts on their own budget.";
 
 /** What every write does once its rules pass. */
 export const BIRTH =
-  "Then, in one transaction: the change is born proposed (budget-change.propose) with its terms, and `board.propose` opens " +
-  "the Board proposal with the caller's first approval, or `approvals.open` opens the caller's own approval of the calls, " +
-  "with the approval page's summary. The same request key answers the saved change as it stands; a key that names " +
-  "another change is INVALID_INPUT, one whose change was abandoned WRONG_STATE.";
+  "Then, in one transaction, the change is born proposed (budget-change.propose) with `board.propose` (the Board " +
+  "proposal and the caller's first approval) or `approvals.open` (the caller's own approval and its page summary). A " +
+  "repeated request key answers that change; a key naming another is INVALID_INPUT, an abandoned one WRONG_STATE.";
 
 /** The reads every write makes to authorize and plan. */
 export const WRITE_READS = [
@@ -83,22 +81,17 @@ export const rpc_budgets_departments_create = defineRpc({
   id: "budgets.departments.create",
   title: "Prepare a department: a top budget, or a team inside one",
   about:
-    GUARD + " " + SIGNER_RULE + " Checks, before anything is saved: the name gives a key no live budget has and no " +
-    "waiting create proposes (WRONG_STATE); the amount is above 0 and the period a month, quarter or year (a week is " +
-    "INVALID_INPUT); a top budget's token is one the deployment admits (TOKEN_NOT_SUPPORTED), and `--token` with a parent " +
-    "is INVALID_INPUT; each holder is a current member whose Safe is set up (INVALID_INPUT) and does not wear the People " +
-    "hat (ROLE_CONFLICT, naming them: one person cannot hold a budget's office and Manage allowances). A team's parent " +
-    "must be an active budget of the Organization (INVALID_INPUT), open with every budget above it (WRONG_STATE), fewer " +
-    "than eight deep (INVALID_INPUT), and have at least the amount left to give its children (`Budgets.budgetOf` and " +
-    "`leftOf` now; CHILDREN_EXCEED_PARENT says what is left). No create may wait under the same admin hat, and a top " +
-    "budget's create no other write to its token's payout ceiling (WRONG_STATE, naming that proposal). The office hat's id " +
-    "is planned from indexing's hats under the admin hat (the Board's top hat for a top budget, the parent's office hat " +
-    "for a team), with Ponder at the chain head (`Indexer.head`; PROVIDER_ERROR when it is behind). The calls: " +
-    "`Hats.createHat` of the office hat, `Hats.mintHat` to each holder's Safe, and `Budgets.createTopBudget(token, period, " +
-    "amount, hat)` with the token's payout ceiling grown to cover it (`Installer.buildSetCeiling`), or, the first time the " +
-    "token is budgeted, `Installer.buildAddToken`, which turns the token on for payouts and sets its ceiling; for a team, " +
-    "`Budgets.createChildBudget(parent, amount, hat)`. " + BIRTH + " The budget is born proposed (budget.propose) with no " +
-    "chain id: Budgets ids are one counter across companies, so none is held ahead.",
+    GUARD + " " + SIGNER_RULE + " Refused before anything is saved: a key (from the name) a live or proposed budget " +
+    "has, a create waiting under the same admin hat, or for a top budget another write waiting on its token's ceiling " +
+    "(WRONG_STATE, naming it); an amount of 0 or a week, `--token` with a parent, a parent that is not an active budget " +
+    "here or is eight deep, a holder who is not a current member with a set-up Safe (INVALID_INPUT); a holder wearing " +
+    "the People hat (ROLE_CONFLICT, naming them); an unadmitted token (TOKEN_NOT_SUPPORTED); a closed parent or one above " +
+    "it (WRONG_STATE); a parent with less left to give than the amount (`budgetOf` and `leftOf` now; " +
+    "CHILDREN_EXCEED_PARENT). The office hat's id is planned from indexing's hats under its admin (the Board's top hat, " +
+    "or the parent's office hat), with Ponder at the head (`Indexer.head`). The calls: " +
+    "`Hats.createHat`, `Hats.mintHat` per holder, then `Budgets.createChildBudget(parent, amount, hat)`, or " +
+    "`Budgets.createTopBudget(token, period, amount, hat)` with the ceiling grown by `Installer.buildSetCeiling`, or set " +
+    "up by `buildAddToken` for a token's first budget. " + BIRTH + " The budget is born proposed with no chain id.",
   was: [`${PAY}/operations/create.ts:1`, `${PAY}/rules.ts:64`, `${PAY}/writes.ts:108`, `${AS_IS}:350`],
   concept: concept_budgets,
   kind: "action",

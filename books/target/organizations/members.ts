@@ -10,8 +10,9 @@ import { budget, defineRpc } from "../../../packages/book/src/index.ts";
 import { concept_organizations } from "../shared/foundation.ts";
 import { error_INVALID_INPUT, error_NOT_AUTHENTICATED, error_ROLE_PERMISSION_DENIED } from "../shared/vocabulary.ts";
 import { table_org_deployments, table_org_invitations, table_org_members } from "./data.ts";
+import { table_principals } from "../access/data.ts";
 import { table_parties } from "../parties/data.ts";
-import { table_hat_wearers } from "../indexing/data.ts";
+import { table_hat_wearers } from "./links.ts";
 
 const O = "packages/backend/src/organizations";
 const AS_IS = "books/as-is/organizations/members.ts";
@@ -42,7 +43,7 @@ export const rpc_organizations_members_list = defineRpc({
   title: "The Organization's Seats and the people invited who have not joined",
   about:
     "One page, in join order, of the Organization's Seats, then its open invitations (authorizing or pending) as members " +
-    "with status `pending` and no Account. Each Seat shows its Party's email and name, its principal as the Account ID, " +
+    "with status `pending` and no Account. Each Seat shows its principal's email (access) and its Party's name, its principal as the Account ID, " +
     "the Safe it acts from, and the officer hats that Safe wears now (indexing's wearers, named through the deployment). " +
     "Every row has its own memberId, an invitation's being its invitation ID. Only a current member may read it (else " +
     "ROLE_PERMISSION_DENIED); a cursor from another list is INVALID_INPUT.",
@@ -53,7 +54,7 @@ export const rpc_organizations_members_list = defineRpc({
   input: Schema.Struct({ orgId: S, limit: Schema.optionalKey(N), after: Schema.optionalKey(S) }),
   output: Schema.Struct({ items: Schema.Array(MemberView), nextCursor: NullOr(S) }),
   errors: [error_NOT_AUTHENTICATED, error_ROLE_PERMISSION_DENIED, error_INVALID_INPUT],
-  reads: [table_org_members, table_org_invitations, table_org_deployments, table_parties, table_hat_wearers],
+  reads: [table_org_members, table_org_invitations, table_org_deployments, table_principals, table_parties, table_hat_wearers],
   writes: [],
   drives: [],
   invokes: [],

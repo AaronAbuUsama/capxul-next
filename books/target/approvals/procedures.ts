@@ -25,8 +25,9 @@ export const procedure_approvals_open = defineProcedure({
     "command, a Director's approval of a proposal, an agent change, a budget change) and the approval for it in the same " +
     "transaction, so nobody can sign a chain write Capxul has no record of, and no intent waits on an approval that does " +
     "not exist. It takes the signer (a principal: a person, or an agent signing with its own key), the calls in order, the " +
-    "page's summary, the opener's subject and a deadline (at most 10 minutes ahead for an operation sent at once, which " +
-    "is the paymaster's window; the end of the signed window for a dated one). A dated operation also names the day it is " +
+    "page's summary, the opener's subject and a deadline in the future (for an operation sent at once, the paymaster " +
+    "cuts it to its own window, 10 minutes on the gateway; for a dated one, the end of its signed window, three days " +
+    "after its day). A deadline already past, or no call, is INVALID_INPUT. A dated operation also names the day it is " +
     "sent (`send_after`), what it needs that day (`needs`) and, for any approval, a feature gate the send needs (`gate`). " +
     "The signer's live approval of the same subject answers as it stands (`opened: false`): asking twice answers with the " +
     "same approval. The sender is always the signer's own Safe, read from access' principals (v4 D1), never the opener's word; " +
