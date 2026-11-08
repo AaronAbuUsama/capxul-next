@@ -148,7 +148,14 @@ export const operation_payment_send = defineOperation({
       given: W.funded,
       when: "`--as-directors` without `--org`, an asset you do not hold, or both `<to> <amount>` and `--input`, or both `--on` and `--at`.",
     },
-    { error: error_INVALID_RECIPIENT, given: W.funded, when: "The address is mistyped, or the recipient is nothing at all. The refusal names it." },
+    {
+      error: error_INVALID_RECIPIENT,
+      given: W.funded,
+      when:
+        "The address is mistyped, or the recipient is nothing at all. The refusal names it. Also, for a mailbox with no " +
+        "account yet, one whose Safe could never be claimed (not ASCII), a spend from a budget or a dated payment, neither " +
+        "of which can hold a claim escrow (payments.claim-escrow-routes).",
+    },
     {
       error: error_INVALID_INPUT,
       given: W.funded,

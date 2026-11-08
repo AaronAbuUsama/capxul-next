@@ -56,6 +56,8 @@ export const TEMPLATES = [
   "payment-scheduled-sent",
   "payment-scheduled-cancelled",
   "payment-scheduled-failed",
+  // payments: a claim escrow (aaron.money-waiting)
+  "money-waiting",
   // payroll: agreements
   "agreement-offer",
   "agreement-accepted",

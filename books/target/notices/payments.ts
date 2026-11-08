@@ -1,8 +1,10 @@
-// The payments area: the emails a dated payment sends (old payments' notices, ADR-0034 ruling 6A).
+// The payments area: the emails a dated payment sends (old payments' notices, ADR-0034 ruling 6A),
+// and the money-waiting email of a claim escrow (Aaron's ruling aaron.money-waiting).
 // The payee is told when it is scheduled, sent, cancelled or failed; the payer a day ahead when it
 // may not go (the warning approvals leaves to payments' `come_due`, approvals.held-sends) and when it
-// failed. A Payment with no date sends nothing: its payer is following it, and `payment retry` is
-// offered where they are (decision notices.dated-payments).
+// failed. Any other Payment with no date sends nothing: its payer is following it, and `payment retry` is
+// offered where they are (decision notices.dated-payments). A payment to a mailbox with no account
+// tells that mailbox the money waits, and how to collect it (decision notices.claim-escrow).
 //
 // Who is the payer: a person's own Payment tells that person; an Organization's tells the principal
 // who asked for it (its command's `requested_by`), so a Board or budget payment reaches someone (old
@@ -111,4 +113,32 @@ export const workflow_notices_payments_cancelled = noticeWorkflow({
   steps: [DATED_ONLY, PAYEE],
   chain: [contract_safe.f.getOwners],
   was: [`${OLD}/rules.ts:74`],
+});
+
+export const workflow_notices_payments_money_waiting = noticeWorkflow({
+  id: "notices.payments.money-waiting",
+  title: "Tell someone with no account that money is waiting for them",
+  about:
+    "Follows `escrow`: EscrowCreated with the Payment's id is indexed, so a claim escrow holds the money for a mailbox " +
+    "with no account yet (aaron.money-waiting). Sends `money-waiting` once, to the Payment's `payee_mailbox` (the " +
+    "mailbox its payee Safe is derived from), naming the amount and asset, the payer and how to collect: sign up at " +
+    "the link with this email address, set up the account, and sign the collection the setup opens; until then the " +
+    "payer may take it back. No one else is told: the payer is following the payment. Its world is payments' " +
+    "`person-with-funded-safe`: Dana's signed `payment send nobody@outside.test 5`, then `dev mail notices --to " +
+    "nobody@outside.test --template money-waiting` reads the delivery record and `notice_transitioned` says it went.",
+  trigger: { transition: p.escrow },
+  reads: READS,
+  steps: [
+    {
+      name: "payment",
+      about:
+        "Reads the escrowed Payment: route `claim_escrow`, its `payee_mailbox`, amount, asset and escrow address; one with no mailbox ends here.",
+    },
+    {
+      name: "facts",
+      about:
+        "The payer: a person's `payer_label`, an Organization's name. The amount and asset, the escrow on the chain's explorer, and the web app's sign-up link for the mailbox.",
+    },
+  ],
+  was: ["books/target/shared/rulings.ts (aaron.money-waiting)", "books/target/payments/decisions.ts (payments.claim-escrow-mailbox)"],
 });

@@ -92,7 +92,8 @@ export const rpc_payments_changes_cancel = defineRpc({
     "can land and the void uses up the whole held operation (K14); a budget's dated payment is `Budgets.cancel` from the " +
     "caller's own Safe, which frees its reservation; a Board's dated payment (`--as-directors`) is one Board proposal of " +
     "`Budgets.cancel` per item; a claim escrow is `Escrow.refund()` from its owner, the payer's Safe or, for a company " +
-    "escrow, a Board proposal. A Payment that is no longer held (settled, collected, already cancelled) refuses before " +
+    "escrow, a Board proposal, at any time until the payee collects, even after they signed up (D12). A Payment that is " +
+    "no longer held (settled, collected, already cancelled) refuses before " +
     "anything is built, after a chain read of `Budgets.scheduledOf` or the escrow's `state` where it has one. It records " +
     "the carrier on the Payment and changes no status: the process cancels it when the chain says the void, the cancel " +
     "or the refund landed.",

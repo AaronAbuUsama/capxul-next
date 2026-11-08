@@ -104,14 +104,16 @@ export const rpc_payments_commands_prepare = defineRpc({
     "budget). A shortfall, a missing authority, a closed budget or a department whose budget id is not bound yet refuses " +
     "here, and nothing is written (K3). Then, in one transaction: the request key's command (a repeat with the same " +
     "request answers the first command as it stands; another request under the key is refused, K1), the payee resolved " +
-    "to its Party and Safe (`parties.resolve-recipient`; a mailbox with no live Safe is paid into a claim escrow), the " +
+    "to its Party and Safe (`parties.resolve-recipient`), the " +
     "document of the note, or the bytes of `--document` (`documents.store`: its hash goes on chain), one Payment per item born through " +
     "`open` with its payment id, and the approval from the caller's Safe that carries the calls (`approvals.open`): " +
     "`approve` and `Payments.send` (kind 0) for a personal payment (`sendBatch` for several items of `--input`, all or none), " +
-    "`Budgets.spend` or, dated, `Budgets.schedule` from a " +
-    "budget, `EscrowFactory.deploy` funded in the same operation for a claim escrow. A personal dated payment is the same " +
-    "operation signed now and sent on its day (`sendAfter`, with what the Safe needs that day). It answers the hand-over " +
-    "with the preview the CLI shows before signing; signing and following are the flow's.",
+    "`Budgets.spend` or, dated, `Budgets.schedule` from a budget. A mailbox with no live Safe is a claim escrow (route " +
+    "`claim_escrow`, its mailbox kept): the payer's Safe owns it, the email's derived Safe is its payee, and one operation " +
+    "sends the amount to the predicted address and `EscrowFactory.deploy`; a non-ASCII mailbox, whose Safe could never be " +
+    "claimed, and a budget spend or a dated payment to a mailbox with no live Safe are INVALID_RECIPIENT " +
+    "(payments.claim-escrow-routes). A personal dated payment is the same operation signed now and sent on its day. It answers the hand-over with the preview the CLI shows; " +
+    "signing and following are the flow's.",
   concept: concept_payments,
   kind: "action",
   who:
@@ -148,6 +150,7 @@ export const rpc_payments_commands_prepare = defineRpc({
     contract_budgets.f.authorised,
     contract_payments.f.paymentId,
     contract_escrow_factory.f.predictPaymentId,
+    contract_escrow_factory.f.predictAddress,
     contract_companies_house_claimer.f.safeAddressFor,
     contract_erc20.f.approve,
     contract_payments.f.send,
@@ -178,8 +181,11 @@ export const rpc_payments_commands_propose = defineRpc({
     "`Payments.send` (kind 0) whose executor is the company Safe, or, dated, one `Budgets.schedule` on the open top budget " +
     "in the asset with the most left. An immediate Board payment cannot be a budget spend: the Gate refuses re-entry from " +
     "inside a Safe transaction. The calls are checked against what was asked (amount, recipient, contract) before the " +
-    "proposal opens; nothing moves until enough Directors approve. A Board payment takes no request key from the caller: " +
-    "its key is the proposal's own subject.",
+    "proposal opens; nothing moves until enough Directors approve. An immediate payment to a mailbox with no live Safe is " +
+    "a claim escrow the company Safe owns: the batch sends the amount to the predicted address and `EscrowFactory.deploy`, " +
+    "and only a Board proposal refunds it; a dated one, or a non-ASCII mailbox, is INVALID_RECIPIENT " +
+    "(payments.claim-escrow-routes). A Board payment takes no request key from the caller: its key is the proposal's own " +
+    "subject.",
   concept: concept_payments,
   kind: "action",
   who: "A Director of the Organization (wears the Director hat): the proposer, whose own approval of the proposal counts first.",
@@ -211,10 +217,14 @@ export const rpc_payments_commands_propose = defineRpc({
     contract_erc20.f.balanceOf,
     contract_budgets.f.leftOf,
     contract_payments.f.paymentId,
+    contract_escrow_factory.f.predictPaymentId,
+    contract_escrow_factory.f.predictAddress,
+    contract_companies_house_claimer.f.safeAddressFor,
     contract_erc20.f.approve,
     contract_payments.f.send,
     contract_payments.f.sendBatch,
     contract_budgets.f.schedule,
+    contract_escrow_factory.f.deploy,
   ],
   spans: [],
   budget: budget("chain-read"),

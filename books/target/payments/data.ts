@@ -121,7 +121,10 @@ export const table_payments = defineTable({
     "reaches into parties. Dated payments are rows here with `pay_at`: the old payment-schedules table, its signed bytes " +
     "(now approvals') and its lease are gone. A Payment born from a chain fact has the id `payment_` and the 64 hex " +
     "digits of its v4 payment id, so a concept that read the PaymentSent (payroll's collection) names it without reading " +
-    "payments; a prepared Payment's id is `payment_` and a ULID. Status changes only through machine `payment`.",
+    "payments; a prepared Payment's id is `payment_` and a ULID. A claim escrow's Payment keeps `payee_mailbox`, the " +
+    "mailbox its payee Safe is derived from as the payer typed it (trimmed and lowercased), because parties keeps only a " +
+    "digest and the money-waiting email must reach it (payments.claim-escrow-mailbox); its payee tenant is filled when " +
+    "the payee collects. Status changes only through machine `payment`.",
   concept: concept_payments,
   tenancy: "owner",
   tenantField: "owner_id",
@@ -156,6 +159,8 @@ export const table_payments = defineTable({
     payee_id: Null(S),
     payee_safe: S,
     payee_label: S,
+    /** A claim escrow's mailbox, trimmed and lowercased; null on every other route. Read only by its holder and notices. */
+    payee_mailbox: Null(S),
     token_address: S,
     asset: S,
     decimals: Int,
@@ -329,7 +334,11 @@ export const machine_payment = defineMachine({
       id: "due",
       about: "Dated and within a day of its day: its funding was checked a day ahead and a shortfall is kept for the payer's notice.",
     },
-    { id: "escrowed", about: "In a claim escrow for an email with no account yet: the payer can take it back until the payee collects." },
+    {
+      id: "escrowed",
+      about:
+        "In a claim escrow for an email with no account yet: the payer can take it back until the payee collects; it has no expiry.",
+    },
     { id: "submitted", about: "Sent: its approval was sent, its Board proposal executed, or Budgets was asked to pay it; waiting for the indexed PaymentSent." },
     { id: "needs_retry", about: "Its approval ended without moving money; `payment retry` sends the same terms again under the same payment id." },
     { id: "settled", about: "The indexed PaymentSent matched every term and its book fact is written; a reorg below finality reopens it." },
@@ -359,7 +368,8 @@ export const machine_payment = defineMachine({
     escrow: {
       from: ["prepared"],
       to: "escrowed",
-      about: "EscrowCreated with its payment id is indexed: the claim escrow holds the money for the payee.",
+      about:
+        "EscrowCreated with its payment id is indexed: the claim escrow holds the money for the payee, and notices sends the money-waiting email.",
       emits: sends,
     },
     submit: {
@@ -373,7 +383,7 @@ export const machine_payment = defineMachine({
       to: "settled",
       about: "The indexed PaymentSent with its payment id matched every term; its book fact is written in the same transaction.",
       guard:
-        "Payments' address, chain, sender Safe, recipient, token, raw amount, kind and document hash all match (K7), and the log is no other Payment's (K9).",
+        "Payments' address, chain, sender (a claim escrow's: its escrow), recipient, token, raw amount, kind and document hash all match (K7), and the log is no other Payment's (K9).",
       emits: sends,
     },
     mismatch: {

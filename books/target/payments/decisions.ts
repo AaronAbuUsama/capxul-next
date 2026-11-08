@@ -8,8 +8,14 @@
 
 import { defineDecision } from "../../../packages/book/src/index.ts";
 import { concept_payments } from "../shared/foundation.ts";
-import { contract_payments, integration_indexer } from "../shared/external.ts";
-import { error_PAYROLL_BUDGET_EXCEEDED, error_ROLE_PERMISSION_DENIED } from "../shared/vocabulary.ts";
+import {
+  contract_companies_house_claimer,
+  contract_escrow,
+  contract_escrow_factory,
+  contract_payments,
+  integration_indexer,
+} from "../shared/external.ts";
+import { error_INVALID_RECIPIENT, error_PAYROLL_BUDGET_EXCEEDED, error_ROLE_PERMISSION_DENIED } from "../shared/vocabulary.ts";
 import { rpc_payments_changes_cancel, rpc_payments_changes_reschedule, rpc_payments_changes_retry } from "./changes.ts";
 import { rpc_payments_commands_prepare, rpc_payments_commands_propose } from "./commands.ts";
 import {
@@ -801,4 +807,114 @@ export const decision_payments_document_bytes = defineDecision({
     "media's. Documents keeps the bytes exactly and checks the media type.",
   source: by("books/target/documents/procedures.ts (ReceiptContent); apps/cli/src/commands/payment/internal/send-input.ts:147"),
   affects: [rpc_payments_commands_prepare, rpc_payments_commands_propose, flow_client_payments_pay, flow_client_org_departments_pay],
+});
+
+// ── the claim escrow, checked against Aaron's ruling (aaron.money-waiting) ──────────────────
+
+const V4 = "packages/contracts/v4/src";
+const V4DOCS = "docs/planning/protocol-v4";
+
+export const decision_payments_claim_escrow_fit = defineDecision({
+  id: "payments.claim-escrow-fit",
+  title: "The v4 claim escrow does what Aaron's ruling asks; five gaps named",
+  question:
+    "aaron.money-waiting: the escrow holds the money, only the recipient's Capxul account can unlock it once they have " +
+    "one, and the sender can refund at any time before the recipient accepts. Do v4's Escrow, EscrowFactory and " +
+    "CompaniesHouseClaimer do exactly this, and what happens at expiry?",
+  options: [
+    {
+      label: "fits",
+      text:
+        "Use the v4 contracts unchanged. At send time the payee is bound to a predicted address: the personal Safe " +
+        "CompaniesHouseClaimer derives from Companies House, the tier's namespace and the mailbox (trimmed, lowercased), " +
+        "the same Safe the person's sign-up later claims; every term is in the escrow's CREATE2 address. Only that Safe " +
+        "may `collect`, once Companies House is no longer an owner (D11, failing closed) and the escrow holds the amount; " +
+        "`payout` reverts for it. Only the owner Safe may `refund`, only to itself, while it is open, even after the " +
+        "claim (D12). No one else can move it, and it never expires.",
+    },
+    {
+      label: "change-contract",
+      text: "Change the contracts: an on-chain expiry that refunds the payer, or a claim secret in the email instead of a derived Safe.",
+    },
+  ],
+  chosen: "fits",
+  why:
+    "Read against Escrow.sol, EscrowFactory.sol and CompaniesHouseClaimer.sol, each clause holds. Binding: no email hash " +
+    "or secret, a predicted Safe whose salt is keccak256(namespace ':' mailbox). Accepting is the payee signing the " +
+    "collection approval their setup opens (accounts.setup.personal-safe); until it lands the payer may refund, and a " +
+    "refund racing a collection is decided by the chain, one or the other. A claim secret would let whoever holds the " +
+    "link collect without an account, which the ruling rules out. Expiry: none; the money waits until collected or " +
+    "refunded. Gaps: (1) the trust root: Companies House's claim role chooses the signer an email's Safe goes to, so " +
+    "'only the recipient's account' holds because Capxul claims a Safe only for the person who signed in with that " +
+    "mailbox's code, and Companies House's 2-of-3 owners could redirect an unclaimed Safe (for Aaron: accept this for " +
+    "the beta). (2) No expiry or reminder, and a payer who loses their Safe can no longer refund (for Aaron). (3) The " +
+    "exact mailbox: an alias or a typo is another Safe; the preview and the email show it, and the payer refunds and " +
+    "sends again (payments.claim-escrow-mailbox). (4) A non-ASCII mailbox can never be claimed (EmailNotNormalized), so " +
+    "it is refused before signing (payments.claim-escrow-routes). (5) An escrow that opens after the payee's setup, or " +
+    "that they declined there, has no later collection path (asked of accounts). Settlement: the collection's " +
+    "PaymentSent comes from the escrow, its executor, so its sender term is `escrow_address`, not the payer's Safe.",
+  source: by(`${V4}/money/Escrow.sol:107-197; ${V4}/money/EscrowFactory.sol:28; ${V4}/companies-house/CompaniesHouseClaimer.sol:85; ${V4DOCS}/spec/escrow.md (D11, D12)`),
+  affects: [
+    contract_escrow,
+    contract_escrow_factory,
+    contract_companies_house_claimer,
+    P.escrow,
+    P.settle,
+    workflow_payments_lifecycle_payment,
+    rpc_payments_changes_cancel,
+  ],
+});
+
+export const decision_payments_claim_escrow_routes = defineDecision({
+  id: "payments.claim-escrow-routes",
+  title: "A claim escrow is an undated payment from the payer's own Safe or the Board",
+  question: "Which payments to a mailbox with no live Safe go into a claim escrow, and which are refused?",
+  options: [
+    {
+      label: "own-safe-or-board",
+      text:
+        "A personal payment (the payer's Safe owns the escrow and refunds it) and an immediate `--as-directors` payment " +
+        "(the company Safe owns it; a Board proposal refunds it) are claim escrows: one operation sends the amount to " +
+        "the predicted address and `EscrowFactory.deploy`. A budget spend, a dated payment and a non-ASCII mailbox are " +
+        "INVALID_RECIPIENT, naming why and what to do instead.",
+    },
+    {
+      label: "every-route",
+      text: "Every route pays into a claim escrow: a budget spend pays the escrow's address through Budgets, a dated payment deploys it on its day.",
+    },
+  ],
+  chosen: "own-safe-or-board",
+  why:
+    "The ruling has the sender refund, and an escrow refunds only its owner Safe. From a budget the owner would be the " +
+    "company Safe (a Board refund the spender cannot make) or the spender's own Safe (company money refunded to a " +
+    "person), and the money would cross Payments twice (Budgets' PaymentSent to the escrow, then the escrow's to the " +
+    "payee): two book facts for one Payment. A dated claim escrow would open on its day, perhaps after the payee's setup " +
+    "collected what waited (gap 5 of payments.claim-escrow-fit), and machine `payment` escrows only from `prepared`. No " +
+    "frozen acceptance line pays a mailbox with no account from a budget or on a date; the frozen designed text says " +
+    "only that such a mailbox is paid into a claim escrow, which both kept routes do. The refusal keeps INVALID_RECIPIENT, " +
+    "its message widened. Funding is a plain ERC-20 `transfer` to the predicted address, which shared/external.ts's " +
+    "erc20 record does not list yet (asked of its owner). For Aaron: must a budget holder be able to pay someone who " +
+    "has no account yet?",
+  source: by(`${V4}/money/Escrow.sol:187 (refund to ownerSafe only); books/frozen/operations.ts (payment.send and payment.cancel, designed call and who)`),
+  affects: [rpc_payments_commands_prepare, rpc_payments_commands_propose, operation_payment_send, error_INVALID_RECIPIENT, P.escrow],
+});
+
+export const decision_payments_claim_escrow_mailbox = defineDecision({
+  id: "payments.claim-escrow-mailbox",
+  title: "A claim escrow's Payment keeps its mailbox, for the money-waiting email",
+  question: "Notices must email a claim escrow's payee, who has no account, but parties keeps only a mailbox's digest. Where is the mailbox?",
+  options: [
+    { label: "on-payment", text: "The Payment keeps `payee_mailbox` (trimmed and lowercased, as typed) on route `claim_escrow` only; its holder and notices read it." },
+    { label: "in-parties", text: "Parties keeps the mailbox on the provisional person Party." },
+    { label: "in-event", text: "The `escrow` transition's event carries the mailbox to notices." },
+  ],
+  chosen: "on-payment",
+  why:
+    "The payer typed it and holds the Payment, so the row exposes no one's data to a reader who did not have it. " +
+    "Parties' directory is global (every tenant reads it), so it keeps digests by design; an event carries ids only (P7). " +
+    "The email goes to the exact mailbox the payee Safe is derived from, so a typo shows to its owner, not to a " +
+    "stranger's lookalike. Once the payee collects, settlement fills `payee_kind` and `payee_id` from the Party at the " +
+    "payee Safe, now the person's, and the payee reads the Payment through the payee index.",
+  source: by("books/target/parties/data.ts (mailbox_digest; it never holds a mailbox); P7; books/target/shared/rulings.ts (aaron.money-waiting)"),
+  affects: [table_payments, P.escrow, workflow_payments_lifecycle_payment],
 });

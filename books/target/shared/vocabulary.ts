@@ -119,6 +119,19 @@ export const error_FEATURE_NOT_AVAILABLE = defineError({
   was: [`${CODES}:61`],
 });
 
+// aaron.seats: one code for the three limits of an Organization's Seats (decision organizations.seat-limit-error).
+export const error_SEAT_LIMIT_REACHED = defineError({
+  id: "SEAT_LIMIT_REACHED",
+  title: "No seat free",
+  class: "state",
+  actor: "person",
+  message:
+    "The Organization has no {limit} free: {used} of {allowed} are taken. Nothing was written; free one, or ask Capxul to raise the limit.",
+  retryable: false,
+  exit: 6,
+  was: ["books/target/shared/rulings.ts (aaron.seats)"],
+});
+
 export const error_CAPABILITY_UNAVAILABLE = defineError({
   id: "CAPABILITY_UNAVAILABLE",
   title: "Deployment cannot do this",
@@ -218,7 +231,9 @@ export const error_INVALID_RECIPIENT = defineError({
   title: "Recipient cannot be paid",
   class: "input",
   actor: "caller",
-  message: "The payment cannot go to this recipient: the address is zero, Payments itself or nothing at all.",
+  message:
+    "The payment cannot go to this recipient: the address is zero, Payments itself or nothing at all, or a mailbox with no " +
+    "account that this payment cannot hold in a claim escrow for.",
   retryable: false,
   exit: 2,
   was: [`${CODES}:43`, `${OPS}/payment.send.yaml`],

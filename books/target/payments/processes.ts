@@ -109,7 +109,11 @@ export const workflow_payments_lifecycle_payment = defineWorkflow({
     { name: "route", about: "Reads its Payment and its carrier; a chain-born Payment goes straight to the settlement." },
     { name: "follow-carrier", about: "Moves the Payment on each answer of its approval or Board proposal, as the about lists." },
     { name: "reserve", about: "On PaymentScheduled with its job nonce, `schedule` with the scheduled id; one on another budget is not its." },
-    { name: "escrow", about: "On EscrowCreated with its payment id, `escrow`." },
+    {
+      name: "escrow",
+      about:
+        "On EscrowCreated with its payment id, `escrow`. An escrowed Payment has no timer: it waits for the payee's collection (its PaymentSent) or the owner's refund.",
+    },
     { name: "come-due", about: "A day ahead: reads the paying Safe's balance (personal) and moves `come_due`, keeping a shortfall." },
     {
       name: "execute",
@@ -117,13 +121,16 @@ export const workflow_payments_lifecycle_payment = defineWorkflow({
     },
     {
       name: "settle",
-      about: "On its PaymentSent: compares every term; equal → `settle` with the book fact in one transaction; different → `mismatch`.",
+      about:
+        "On its PaymentSent: every term compared (a claim escrow's sender is its escrow); equal → `settle` with the book " +
+        "fact in one transaction; different → `mismatch`. A claim escrow's settlement fills its payee tenant from the Party " +
+        "at its payee Safe.",
     },
     { name: "release", about: "On ScheduleCancelled or EscrowRefunded for it, `cancel`." },
     { name: "confirm", about: "Twice the finality depth later, reads the facts again; gone → `unsettle` with the book fact reversed." },
     { name: "rest", about: "A `needs_retry` Payment rests until a retry; an ended or confirmed Payment ends the instance." },
   ],
-  reads: [table_payments, table_payment_commands, approvalsData.table_approvals],
+  reads: [table_payments, table_payment_commands, approvalsData.table_approvals, partiesData.table_parties],
   writes: [table_payments],
   drives: [p.schedule, p.come_due, p.escrow, p.submit, p.settle, p.mismatch, p.unsettle, p.lapse, p.cancel],
   invokes: [books.procedure_books_record_money_fact, books.procedure_books_reverse_money_fact],

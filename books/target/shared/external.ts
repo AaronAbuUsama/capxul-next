@@ -842,7 +842,9 @@ export const contract_escrow_factory = defineContract({
   title: "EscrowFactory: escrows at predictable addresses",
   about:
     "Deploys each escrow at a CREATE2 address known before it exists, so a payer can fund it first: an invoice escrow for " +
-    "checkout, a claim escrow for an email with no account yet.",
+    "checkout, a claim escrow for an email with no account yet. The address binds every term (owner, payee, token, amount, " +
+    "job nonce, kind, document, condition) and the chain's Payments and Companies House, so another deploy at it can only " +
+    "be the same escrow; `deploy` is idempotent and anyone may send it.",
   addresses: { [DEV]: "0x012aD00897a439A966Aa1396144b71E2f669082f" },
   functions: {
     deploy: { signature: "deploy(Terms terms, bytes32 salt) returns (address escrow)", about: "Deploys the escrow for its terms, or returns the one there." },
@@ -859,12 +861,23 @@ export const contract_escrow = defineContract({
   id: "escrow",
   title: "Escrow: one escrow's money",
   about:
-    "One contract per escrow, deployed by EscrowFactory, so it has no fixed address. It pays its payee through Payments when " +
-    "its condition is met (the invoice amount reached, or the payee's Safe claimed), and refunds its owner otherwise.",
+    "One contract per escrow, deployed by EscrowFactory, so it has no fixed address; its terms are immutable. It pays its " +
+    "payee through Payments when its condition is met (the invoice amount reached, or the payee's Safe claimed), and " +
+    "refunds its owner otherwise. A claim escrow's payee is bound at send time to a predicted address: the personal Safe " +
+    "CompaniesHouseClaimer derives from the payee's email, which Companies House owns until the person claims it. Only " +
+    "that Safe can `collect`, and only once Companies House is no longer one of its owners (D11, failing closed); only " +
+    "the owner can `refund`, and only to itself, at any time until the payee collects, even after the claim (D12); " +
+    "`payout` is refused for it. It has no expiry: it holds the money until one of the two happens (decision " +
+    "payments.claim-escrow-fit).",
   functions: {
-    payout: { signature: "payout()", about: "Pays the payee once the condition is met; anyone may call it." },
-    collect: { signature: "collect()", about: "The payee's Safe collects a claim escrow." },
-    refund: { signature: "refund()", about: "The owner takes back an escrow whose condition is not met." },
+    payout: { signature: "payout()", about: "Pays an invoice escrow's payee once it holds the amount; anyone may call it. A claim escrow refuses it." },
+    collect: { signature: "collect()", about: "The payee's Safe collects a claim escrow, once the Safe is claimed and the escrow holds the amount; no one else can." },
+    refund: {
+      signature: "refund()",
+      about:
+        "The owner takes the escrow's balance back to itself: an invoice escrow while short of the amount, a claim escrow at " +
+        "any time until it is collected; once paid or refunded it only returns a later deposit to the owner.",
+    },
     state: { signature: "state() view returns (State)", about: "Open, paid or refunded." },
   },
   events: {

@@ -40,6 +40,7 @@ import {
 import {
   workflow_notices_payments_cancelled,
   workflow_notices_payments_failed,
+  workflow_notices_payments_money_waiting,
   workflow_notices_payments_scheduled,
   workflow_notices_payments_sent,
   workflow_notices_payments_short,
@@ -87,6 +88,7 @@ const OUTBOX = [
   workflow_notices_payments_failed,
   workflow_notices_payments_sent,
   workflow_notices_payments_cancelled,
+  workflow_notices_payments_money_waiting,
   workflow_notices_payroll_write_landed,
   workflow_notices_payroll_collection_refused,
   workflow_notices_payroll_agreement_ended,
@@ -151,7 +153,8 @@ export const decision_notices_kinds = defineDecision({
     "renamed for v4's words), the five dated-payment emails (payments), eleven " +
     "agreement emails (payroll), person verification, verified and payout sent and delivered (banking), the Invoice " +
     "emails (requests). Added because a decision names them: a payout returned and an Invoice declined " +
-    "(dependencies.of-notices), a round or SAFE invitation (equity's design). Dropped with their subjects: pay runs' " +
+    "(dependencies.of-notices), a round or SAFE invitation (equity's design), and, by Aaron's ruling, money waiting in " +
+    "a claim escrow (notices.claim-escrow). Dropped with their subjects: pay runs' " +
     "pay-run-approval and pay-run-payment, approval-pending (an approval's own signer is at the page; approvals' " +
     "decision on notify), beta-waitlist (accounts.admission-paths), invoice-part-received (requests.escrow-process) and " +
     "payout-ceiling-alert (notices.agreements). The sign-in code stays access' (concepts.notices).",
@@ -446,7 +449,8 @@ export const decision_notices_dated_payments = defineDecision({
       label: "dated-only",
       text:
         "For a Payment with `pay_at`: schedule, settle and cancel tell the payee; come_due with a shortfall tells the " +
-        "payer; lapse tells both. An undated Payment sends nothing. The payer of an Organization's Payment is its " +
+        "payer; lapse tells both. Any other undated Payment sends nothing (a claim escrow's money-waiting email is " +
+        "notices.claim-escrow's). The payer of an Organization's Payment is its " +
         "command's requester, told once per command.",
     },
     { label: "every-payment", text: "Also tell the payee of every settled Payment and the payer of every lapsed one." },
@@ -710,19 +714,31 @@ export const decision_notices_failed_proposals = defineDecision({
 
 export const decision_notices_claim_escrow = defineDecision({
   id: "notices.claim-escrow",
-  title: "Money waiting in a claim escrow sends no email, as before (for Aaron)",
+  title: "Money waiting in a claim escrow sends a money-waiting email",
   question:
     "When a payment to an email with no account goes into a claim escrow (`escrowed`), the payee may never learn the " +
     "money is waiting. The old system sent nothing. Does notices tell them?",
   options: [
     { label: "none", text: "Send nothing, as the old system did; the payer tells the payee themselves." },
-    { label: "money-waiting", text: "A new `money-waiting` email on payments' `escrow`, to the mailbox, naming the amount, the payer and how to collect." },
+    {
+      label: "money-waiting",
+      text:
+        "A new `money-waiting` email on payments' `escrow`, once, to the mailbox the payee Safe is derived from, naming " +
+        "the amount, the payer and how to collect (sign up with that email, set up, sign the collection), and that the " +
+        "payer may take it back until then.",
+    },
   ],
-  chosen: "none",
+  chosen: "money-waiting",
   why:
-    "No frozen operation or acceptance line names such an email, and adding a first email to an address Capxul has no " +
-    "account for is a product choice (who may be emailed unasked, and how often), not one the design can make (W1). The " +
-    "workflow would be one more outbox follower of `escrow` if Aaron wants it; nothing in the map blocks it.",
-  source: ASSEMBLY("docs/decisions/assembly-items.md (notices: product question); payment.send.yaml (claim escrow); books/target/payments/data.ts (escrow)"),
-  affects: [concept_notices, concept_payments, machine_payment.t.escrow],
+    "Aaron's ruling (aaron.money-waiting, 8 November 2026): 'they should get a money is waiting email', so this record, " +
+    "which had chosen none for want of a product call, now follows it. It is one more outbox follower of `escrow`, " +
+    "keyed by the transition's outbox id, so a redelivered transition sends nothing twice. The mailbox comes from the " +
+    "Payment (payments.claim-escrow-mailbox): parties keeps only digests and events carry no mailbox. It is observed " +
+    "from payments' `person-with-funded-safe`, whose nobody@outside.test has no account; notices adds no world " +
+    "(notices.worlds). Not sent, and for Aaron with the escrow's missing expiry (payments.claim-escrow-fit, gap 2): a " +
+    "reminder to a payee who has not collected, and an email when the payer takes the money back. A gap the email " +
+    "exposes, also for Aaron: in the beta, setup refuses a mailbox not admitted (FEATURE_NOT_AVAILABLE), so the email's " +
+    "link works only once money waiting admits its payee, as an invitation does (asked of accounts).",
+  source: "Aaron, 8 November 2026, in the build-preparation conversation (aaron.money-waiting); books/target/payments/decisions.ts (payments.claim-escrow-fit)",
+  affects: [concept_notices, concept_payments, machine_payment.t.escrow, workflow_notices_payments_money_waiting],
 });
