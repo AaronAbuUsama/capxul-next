@@ -4416,6 +4416,42 @@
       ]
     },
     {
+      "key": "flow:client.operator.organizations.seats.raise",
+      "kind": "flow",
+      "lane": "organizations",
+      "layer": 6,
+      "parent": "lane:organizations",
+      "priority": "normal",
+      "evals": [
+        "flw:client.operator.organizations.seats.raise/budget",
+        "flw:client.operator.organizations.seats.raise/spans",
+        "rpc:organizations.seats.raise/budget",
+        "rpc:organizations.seats.raise/errors",
+        "rpc:organizations.seats.raise/spans"
+      ],
+      "record": "flow:client.operator.organizations.seats.raise",
+      "title": "Flow: client.operator.organizations.seats.raise",
+      "labels": [
+        "kind:flow",
+        "lane:organizations",
+        "layer:6"
+      ],
+      "goal": "The Core SDK flow client.operator.organizations.seats.raise (The operator's tool raises an Organization's seat limit) runs its steps as its record says, within its budget and with its spans; no operation implements it, so its surfaces call it.",
+      "needs": [
+        "door:organizations",
+        "milestone:B3"
+      ],
+      "budgetUsd": 5,
+      "checkers": [
+        "reviewer"
+      ],
+      "paths": [
+        "books/target/organizations/",
+        "packages/backend/src/organizations/",
+        "packages/sdk/src/organizations/"
+      ]
+    },
+    {
       "key": "operation:invite.decline",
       "kind": "operation",
       "lane": "organizations",
@@ -8637,6 +8673,7 @@
         "ref:agent.create/INVALID_INPUT",
         "ref:agent.create/NOT_AUTHENTICATED",
         "ref:agent.create/ROLE_PERMISSION_DENIED",
+        "ref:agent.create/SEAT_LIMIT_REACHED",
         "ref:agent.create/SMART_ACCOUNT_MISSING",
         "ret:agent.create",
         "rpc:agents.changes.create/budget",
@@ -8655,7 +8692,7 @@
         "lane:agents",
         "layer:8"
       ],
-      "goal": "`capxul agent create` does what operation agent.create promises: its 4 acceptance claims and 5 refusals hold, its --json shape, events, spans and budget pass on a devnet at the head of integration/build, and its reference page agrees with it. Gives an agent an account of its own, with you as its owner. The CLI makes the agent's key on this machine and sends only its address. You approve one call from your Safe, which deploys the agent's Safe (Safe 1.5.0) with that key as its one signer and enables the AgentOwner module, so your Safe can freeze it, replace its key, sweep it and remove it. AgentOwner is also the Safe's transaction guard and module guard, so the agent's own key can never call its Safe or delegatecall, and so it cannot switch your control off. The agent is then found by its `@handle`.",
+      "goal": "`capxul agent create` does what operation agent.create promises: its 4 acceptance claims and 6 refusals hold, its --json shape, events, spans and budget pass on a devnet at the head of integration/build, and its reference page agrees with it. Gives an agent an account of its own, with you as its owner. The CLI makes the agent's key on this machine and sends only its address. You approve one call from your Safe, which deploys the agent's Safe (Safe 1.5.0) with that key as its one signer and enables the AgentOwner module, so your Safe can freeze it, replace its key, sweep it and remove it. AgentOwner is also the Safe's transaction guard and module guard, so the agent's own key can never call its Safe or delegatecall, and so it cannot switch your control off. The agent is then found by its `@handle`.",
       "needs": [
         "door:access",
         "door:accounts",
@@ -10528,6 +10565,7 @@
         "door:board",
         "door:books",
         "door:indexing",
+        "door:parties",
         "door:payments",
         "integration:chain-rpc",
         "integration:indexer",
@@ -15686,6 +15724,44 @@
         "door:organizations",
         "door:payments",
         "integration:chain-rpc",
+        "integration:mail",
+        "milestone:B3"
+      ],
+      "labels": [
+        "kind:process",
+        "lane:notices",
+        "layer:12"
+      ],
+      "budgetUsd": 5,
+      "checkers": [
+        "reviewer"
+      ],
+      "paths": [
+        "books/target/notices/",
+        "packages/backend/src/notices/",
+        "packages/sdk/src/notices/"
+      ]
+    },
+    {
+      "key": "workflow:notices.payments.money-waiting",
+      "kind": "process",
+      "lane": "notices",
+      "layer": 12,
+      "parent": "lane:notices",
+      "priority": "normal",
+      "evals": [
+        "bud:notices.payments.money-waiting/p95",
+        "wfl:notices.payments.money-waiting/idempotent",
+        "wfl:notices.payments.money-waiting/resume"
+      ],
+      "record": "workflow:notices.payments.money-waiting",
+      "title": "Process: notices.payments.money-waiting",
+      "goal": "The durable process notices.payments.money-waiting (Tell someone with no account that money is waiting for them) runs as its record says: it resumes after a crash, each activity's side effect lands once, and every keyed wait is woken by what its key names.",
+      "needs": [
+        "door:access",
+        "door:notices",
+        "door:organizations",
+        "door:payments",
         "integration:mail",
         "milestone:B3"
       ],
