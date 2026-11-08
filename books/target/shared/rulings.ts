@@ -27,8 +27,6 @@ export const SUPERSEDED: Readonly<Record<string, string>> = {
   "portal.stack": "aaron.portal-generator",
   "contacts.members-write": "aaron.contacts-permissions",
   "notices.claim-escrow": "aaron.money-waiting",
-  "payroll.scope": "aaron.frappe-shape",
-  "books.facts-without-chart": "aaron.books-first-principles",
 };
 
 /** Judgments Aaron reopened on 8 November 2026: they are redesigned, or asked again with context. */
@@ -36,96 +34,89 @@ export const REOPENED: readonly string[] = [];
 
 export const decision_aaron_erp_on_capxul = defineDecision({
   id: "aaron.erp-on-capxul",
-  title: "Capxul sits inside an ERP on Frappe; accounting is the app to fork",
-  question: "What is the rebuild for, beyond the frozen operations, and what must its design allow?",
+  title: "The vision: an agentic ERP on stablecoins, built on Capxul; not built now",
+  question: "What is Capxul ultimately for, and how much of that is built now?",
   options: [
     {
-      label: "erp-on-capxul",
+      label: "vision-not-build",
       text:
-        "Capxul is the money, identity and governance layer of a larger system: an ERP whose applications are Frappe's. " +
-        "Accounting is the app to fork, because accounting is assumed and works a certain way in Frappe; HR, CRM and " +
-        "projects probably need no fork. Every Capxul concept that holds what a Frappe app holds keeps its data in that " +
-        "app's shape (frappe-shape). The one clock must be able to drive the rest of that system, not only Capxul.",
+        "The long-term target is an agentic ERP that runs on stablecoins: an opinionated front end to Capxul, tailored to " +
+        "real business, built on Frappe and ERPNext (forking only what must feel integrated, accounting most likely, and " +
+        "ideally nothing). Running on stablecoins is simply how it runs. All of it is speculative now. The thinking is on the " +
+        "main line, so that what is built supports the vision; the work is not. The main line now is the baseline of the new " +
+        "product (the rebuilt Capxul) and the starter kit.",
     },
-    { label: "standalone", text: "Capxul stands alone; any ERP integrates later through its public API." },
+    { label: "build-now", text: "Design and build the ERP layer alongside the baseline." },
   ],
-  chosen: "erp-on-capxul",
+  chosen: "vision-not-build",
   why:
-    "Aaron, 8 November 2026: the main application to fork is accounting, not payroll; HR, CRM and projects probably do not " +
-    "need a fork; 'this is going to be built into a larger system, larger than just Capxul and money. Hence why the time " +
-    "and the clock is important, because it's got to be able to permeate and drive other things as well.' A version of that " +
-    "system exists elsewhere and is being rebuilt from first principles; it is not the immediate task.",
+    "Aaron, 8 November 2026: 'the goal is we're going to build an agentic ERP that runs on stablecoins... an opinionated " +
+    "front end to Capxul, but tailored to real business. Right now all of this is very speculative. I want the thinking on " +
+    "this to be on the main line, making sure that whatever we build supports that longer-term vision, but I don't want that " +
+    "to be the thing that we're building right now. The main thing we're building right now is the baseline for the new " +
+    "product, and, just as important, the starter kit.' The one clock matters because the larger system will run on it too.",
   source: AARON,
-  affects: [f.system_capxul, f.concept_parties, f.concept_contacts, f.concept_books, f.concept_payroll],
+  affects: [f.system_capxul],
 });
 
 export const decision_aaron_crm_frappe_shape = defineDecision({
   id: "aaron.crm-frappe-shape",
-  title: "The global directory of people is a CRM in Frappe CRM's shape",
+  title: "The directory of people is global; its Frappe CRM shape is part of the vision",
   question: "parties.directory-tenancy made the directory of people global. What is it, and whose shape does it take?",
   options: [
     {
-      label: "global-crm-frappe",
+      label: "global-crm-vision",
       text:
-        "Yes, global: one directory of people and companies across every tenant, a global CRM, with records shaped to map " +
-        "onto Frappe CRM (its contact, organization and lead doctypes and their fields), because Capxul will fork Frappe CRM. " +
-        "A design pass maps parties' and contacts' tables onto those doctypes before B4 builds them, book first.",
+        "Yes, global: one directory of people and companies across every tenant, a global CRM. Its fit with Frappe CRM is " +
+        "thought through in the vision note; the baseline keeps its own shape unless that fit touches the core.",
     },
-    { label: "global-own-shape", text: "Global, in Capxul's own shape, with a mapping written later." },
+    { label: "global-frappe-now", text: "Global, reshaped now into Frappe CRM's doctypes." },
   ],
-  chosen: "global-crm-frappe",
-  why:
-    "Aaron, 8 November 2026: 'yes to a global directory of people... we want to have a global CRM, compatible with Frappe, " +
-    "because we're going to end up forking the Frappe CRM anyway, so we want to keep our data in that sort of shape.'",
+  chosen: "global-crm-vision",
+  why: "Aaron, 8 November 2026: yes to a global directory of people, a global CRM; the Frappe direction is the speculative vision.",
   source: AARON,
   affects: [f.concept_parties, f.concept_contacts],
 });
 
 export const decision_aaron_books_first_principles = defineDecision({
   id: "aaron.books-first-principles",
-  title: "Rethink the books from first principles, with Frappe doing the accounting",
-  question:
-    "books.facts-without-chart keeps money facts from the first money, chart or not. With Frappe doing the accounting, what " +
-    "should Capxul's books concept own?",
+  title: "Accounting on Frappe is thought through in the vision note, not redesigned now",
+  question: "With accounting likely a Frappe fork in the long run, what happens to Capxul's books concept now?",
   options: [
     {
-      label: "rethink",
+      label: "think-not-redesign",
       text:
-        "Reopen the books concept and design it again from first principles, with Frappe's accounting as the ledger of " +
-        "record: likely Capxul records each money fact once, in a shape Frappe's journal entries and chart of accounts can " +
-        "take, and leaves the chart, the periods and the reports to Frappe. The redesign is a decision pack before B4 " +
-        "builds books, book first.",
+        "The books concept keeps its design on the main line. The vision note thinks through accounting on a Frappe fork " +
+        "from first principles (what Capxul must record so a ledger can post it, and what the ledger owns). A place where the " +
+        "baseline would block that comes back to Aaron as a question before anything changes.",
     },
-    { label: "keep", text: "Keep the current books design (facts without a chart, Capxul's own chart and reports)." },
+    { label: "redesign", text: "Redesign the books now as a Capxul-native fork of Frappe's accounting." },
   ],
-  chosen: "rethink",
-  why:
-    "Aaron, 8 November 2026: 'we should think about that from first principles, the chart of accounts thing, because again, " +
-    "we're gonna use Frappe for that.'",
+  chosen: "think-not-redesign",
+  why: "Aaron, 8 November 2026: the ERP is speculative; think it through on the main line, do not build it now.",
   source: AARON,
   affects: [f.concept_books],
 });
 
 export const decision_aaron_frappe_shape = defineDecision({
   id: "aaron.frappe-shape",
-  title: "Every concept on the critical path is shaped the Frappe way",
-  question: "Which Capxul concepts take Frappe's shapes, and when is that mapped?",
+  title: "Frappe shapes are a vision check, adopted on the main line only where core",
+  question: "How far does the baseline take Frappe's shapes now?",
   options: [
     {
-      label: "critical-path-now",
+      label: "vision-check",
       text:
-        "Every concept on the critical path that holds what a Frappe app holds is mapped onto that app's doctypes before " +
-        "the build: people and companies onto Frappe CRM, the books onto the accounting app Capxul forks, pay agreements " +
-        "and payslips onto Frappe HR's payroll shapes, and so on. Payroll is shaped the Frappe way, not forked. How a payslip " +
-        "relates to on-chain pay (computed by the payroll app, paid and proven by Capxul) is designed in the same pass.",
+        "The baseline keeps its own design. A speculative vision note (docs/vision/erp.md) thinks through how the ERP on " +
+        "Frappe would sit on Capxul (people and companies, accounting, payroll and payslips from on-chain pay, projects) and " +
+        "checks the baseline does not block it. A Frappe shape is adopted on the main line only where it touches Capxul's " +
+        "core, and then as a decision Aaron takes; everything else stays speculative.",
     },
-    { label: "later", text: "Map onto Frappe when the ERP is built." },
+    { label: "map-now", text: "Map every critical-path concept onto Frappe's doctypes before the build." },
   ],
-  chosen: "critical-path-now",
+  chosen: "vision-check",
   why:
-    "Aaron, 8 November 2026: 'the books redesign is on the critical path... payroll should be shaped, all the apps should be " +
-    "shaped in the Frappe way... we should map it in the Frappe shape', and 'payslips need to be generated from on-chain data'. " +
-    "He corrected an earlier word: the fork is accounting, not payroll.",
+    "Aaron, 8 November 2026, correcting the earlier reading: the ERP and Frappe work is very speculative unless it touches the " +
+    "core parts; the thinking goes on the main line, the work does not.",
   source: AARON,
   affects: [f.concept_parties, f.concept_contacts, f.concept_books, f.concept_payroll],
 });
