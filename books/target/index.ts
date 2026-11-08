@@ -7,11 +7,14 @@
 // `...<concept>.modules` to `conceptModules`, in the dependency order of shared/foundation.ts.
 
 import { recordsOf, sharedModules } from "./shared/index.ts";
+import * as parties from "./parties/index.ts";
+import * as approvals from "./approvals/index.ts";
+import * as contacts from "./contacts/index.ts";
 
 export const name = "Capxul target";
 export const stage = "target" as const;
 
 /** Each designed concept's modules (its <concept>/index.ts exports `modules`). Empty until the designs land. */
-const conceptModules: readonly object[] = [];
+const conceptModules: readonly object[] = [...parties.modules, ...approvals.modules, ...contacts.modules];
 
 export const records = recordsOf([...sharedModules, ...conceptModules]);

@@ -23,7 +23,6 @@ const AS_IS = "books/as-is/organizations/data.ts";
 
 const S = Schema.String;
 const N = Schema.Number;
-const B = Schema.Boolean;
 const NullOr = Schema.NullOr;
 
 const KEPT = "Kept for the life of the Organization: it is the record of what the workspace is and who joined it.";
@@ -599,7 +598,3 @@ export const machine_org_invite = defineMachine({
     },
   },
 });
-
-/** Every flag the CLI reads for an Organization view is derived from these; not a record. */
-export const PHASES_OPEN = ["authorizing", "pending"] as const;
-export const UNUSED = B;
