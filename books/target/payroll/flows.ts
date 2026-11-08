@@ -32,7 +32,6 @@ import {
 import {
   rpc_payroll_runs_cancel,
   rpc_payroll_runs_create,
-  rpc_payroll_runs_import,
   rpc_payroll_runs_list,
   rpc_payroll_runs_show,
   rpc_payroll_runs_submit,
@@ -229,9 +228,10 @@ export const flow_client_me_agreements_collect = defineFlow({
 // ── Frappe HR's doctypes ────────────────────────────────────────────────────────────────────
 //
 // One flow per HR rpc, each one call. They serve the Organization's own agent (its Forward Deployed
-// Engineer, aaron.fde-agent), any agent or person on the SDK, the web app, and a connected head's Capxul
-// app, which takes in the runs its head computed. They implement no frozen operation, so they name their
-// surfaces; their CLI commands come with the payroll operations pass (payroll.hr-surface).
+// Engineer, aaron.fde-agent), any agent or person on the SDK, and the web app. A connected head never calls
+// them: payroll's own head sync pulls the head's changes and runs (payroll.head-sync). They implement no
+// frozen operation, so they name their surfaces; their CLI commands come with the payroll operations pass
+// (payroll.hr-surface).
 
 const HR_SURFACES = ["sdk", "react"] as const;
 
@@ -256,7 +256,7 @@ export const flow_client_org_payroll_employees_add = oneCall(
   "client.org(orgId).payroll.employees.add",
   rpc_payroll_employees_add,
   "Add an Employee",
-  "Adds a person, by mailbox, handle or Party, as an Employee; a new hire needs no account. For the FDE agent, the web app and the head's app.",
+  "Adds a person, by mailbox, handle or Party, as an Employee; a new hire needs no account. For the FDE agent, any agent and the web app.",
   true,
 );
 export const flow_client_org_payroll_employees_change = oneCall(
@@ -314,14 +314,6 @@ export const flow_client_org_payroll_runs_create = oneCall(
   "Draft a payroll run",
   "Drafts a department's run for a period with every slip worked out: gross, deductions and net.",
   true,
-);
-export const flow_client_org_payroll_runs_import = oneCall(
-  "client.org(orgId).payroll.runs.import",
-  rpc_payroll_runs_import,
-  "Take in a run the head computed",
-  "Used by a connected head's Capxul app: takes in a Payroll Entry Frappe HR computed and submitted, to be paid by Capxul.",
-  true,
-  ["sdk"],
 );
 export const flow_client_org_payroll_runs_submit = oneCall(
   "client.org(orgId).payroll.runs.submit",

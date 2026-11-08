@@ -281,9 +281,9 @@ export const workflow_organizations_heads_watch = defineWorkflow({
   about:
     "The one durable process of a head connection, started by its `connect`: it waits on the site for days at a time and " +
     "must survive a crash. It reads the site (`readSite`) and confirms the connection when the Capxul app is there at a " +
-    "version Capxul speaks, with its Custom Fields, the fundamental apps (ERPNext, Frappe HR, Frappe CRM) and the " +
-    "Organization's time zone; anything else stalls it with the reason (a head in another time zone would date every " +
-    "document a day wrong). Connected, it asks the head's host to install each wanted app (`installApp`; a self-hosted " +
+    "version Capxul speaks, with its Custom Fields, the fundamental apps (ERPNext, Frappe HR, Frappe CRM), the " +
+    "Organization's time zone and a Company in its currency; anything else stalls it with the reason (a head in another " +
+    "time zone would date every document a day wrong, and one in another currency would value every amount wrong). Connected, it asks the head's host to install each wanted app (`installApp`; a self-hosted " +
     "head's owner installs it) and marks it installed once readSite lists it. It checks the site again once a day by its " +
     "own timer, at once when an app is wanted, and on a ring while failing; a check that fails past its retries stalls " +
     "it, and the next good one recovers it. It ends when a Director disconnects the head. It syncs no records: each app " +

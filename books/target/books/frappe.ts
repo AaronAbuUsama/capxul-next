@@ -1,12 +1,20 @@
 // The documents the books hand a head, in ERPNext's own shapes: Account, Cost Center, Journal Entry
 // and Payment Entry, with their child rows, and the GL Entry lines each voucher posts. The feed
-// (`books.sync.feed`) returns them beside each fact, so a head's Capxul app inserts them as they come
-// and never computes Capxul's posting rules itself (books.sync). Field names are Frappe's; links
-// to accounts, cost centres and parties carry Capxul's ids, which a head's Custom Fields
-// (`capxul_account_id`, `capxul_cost_center_id`, `capxul_party_id`, `capxul_voucher_id`) resolve
-// to its own document names. Amounts are decimal strings: in USD (the Company's currency) for
-// `debit`, `credit` and every `base_` amount, in the account's currency for the `_in_account_currency`
-// ones (a Safe account's is its token: USDC, EURC).
+// (`books.sync.feed`) returns them beside each fact, and the head sync (`books.head.sync`) writes them
+// to a connected head through the `frappe-head` integration's `upsertDocs`, so the head's Capxul app
+// never computes Capxul's posting rules itself (books.sync). Field names are Frappe's; every document
+// carries Capxul's id and version as the Custom Fields `capxul_id` and `capxul_version` (component
+// frappe-app), and links to accounts, cost centres and parties carry Capxul's ids, which the app
+// resolves by the target's `capxul_id` (a party by `capxul_party`). Amounts are decimal strings: in
+// the Company's currency (USD, EUR) for `debit`, `credit` and every `base_` amount, in the account's
+// currency for the `_in_account_currency` ones (a Safe account's is its token: USDC, EURC).
+//
+// A voucher with a newer `capxul_version` replaces the one the head holds the Frappe way, never by
+// editing a submitted document (Journal Entry Account's account, party and reference are not
+// allow-on-submit) and never by Repost Accounting Ledger (under the immutable ledger it reverses the
+// rebuilt lines, dated today): the app cancels the live document, its reversal dated on the voucher's
+// own `posting_date`, and submits its amendment on the same date carrying the same `capxul_id`, or a
+// new document when the type changes between Journal and Payment Entry (books.vouchers).
 //
 // Not records: plain schemas the rpcs' outputs use. The rules that fill them are books.vouchers.
 
@@ -17,14 +25,18 @@ const S = Schema.String;
 const Int = Schema.Int;
 const NullOr = Schema.NullOr;
 
-/** Account: one node of the chart's tree. A Safe account is frozen (`freeze_account` Yes): only Capxul posts to it. */
+/** What every synced document carries: Capxul's id and the feed number of the last fact that shaped it. */
+const Synced = { capxul_id: S, capxul_version: Int };
+
+/** Account: one node of the chart's tree. A Safe account is frozen (`freeze_account` Yes): only Capxul's app user posts to it. */
 export const FrappeAccount = Schema.Struct({
   doctype: Schema.Literal("Account"),
-  capxul_account_id: S,
+  ...Synced,
   account_name: S,
   account_number: NullOr(S),
   is_group: Schema.Boolean,
-  parent_capxul_account_id: NullOr(S),
+  /** The parent's Capxul id; a type group's parent is its root. */
+  parent_account: NullOr(S),
   root_type: RootType,
   account_type: NullOr(FrappeAccountType),
   account_currency: S,
@@ -35,31 +47,32 @@ export const FrappeAccount = Schema.Struct({
 /** Cost Center: one node of the cost-centre tree. */
 export const FrappeCostCenter = Schema.Struct({
   doctype: Schema.Literal("Cost Center"),
-  capxul_cost_center_id: S,
+  ...Synced,
   cost_center_name: S,
   cost_center_number: NullOr(S),
-  parent_capxul_cost_center_id: NullOr(S),
+  /** The parent's Capxul id. */
+  parent_cost_center: NullOr(S),
   is_group: Schema.Boolean,
   disabled: Schema.Boolean,
 });
 
-/** What every Capxul voucher carries beside Frappe's fields: its id, its version and the chain's proof. */
+/** What every Capxul voucher carries beside Frappe's fields: its id, its version and, for money, the chain's proof. */
 const CapxulVoucher = {
-  /** The money fact's id: the head's unique Custom Field, so a voucher can never be inserted twice. */
-  capxul_voucher_id: S,
-  /** The seq of the last fact that shaped it (the money fact, or the latest annotation fact): a head reposts when it is newer. */
-  capxul_version: Int,
-  capxul_tx_hash: S,
-  capxul_chain_id: Int,
+  /** A money voucher's is its fact's id; a payroll accrual's its `accrual_posted` fact's id. One live document per id. */
+  ...Synced,
+  /** The chain's proof of a money voucher; null on a payroll accrual. */
+  capxul_tx_hash: NullOr(S),
+  capxul_chain_id: NullOr(Int),
   capxul_log_index: NullOr(Int),
-  capxul_block_time: Int,
+  capxul_block_time: NullOr(Int),
   posting_date: S,
-  /** The voucher of the money occurrence's previous generation, which a reorganization cancelled. */
+  /** The voucher of the money occurrence's previous generation, which a reorganization cancelled (a new id, so a new document). */
   amended_from: NullOr(S),
-  mode_of_payment: Schema.Literal("Capxul"),
-  /** Bank reconciliation has nothing to match: a Capxul voucher is cleared on its posting date. */
-  clearance_date: S,
-  /** 1 submitted; 2 cancelled by a `reversed` fact, its reversal dated `cancelled_on` (the immutable ledger). */
+  /** `Capxul` on every money voucher; null on a payroll accrual. */
+  mode_of_payment: NullOr(Schema.Literal("Capxul")),
+  /** Bank reconciliation has nothing to match: a money voucher is cleared on its posting date. Null on an accrual. */
+  clearance_date: NullOr(S),
+  /** 1 submitted; 2 cancelled by a `reversed` or `accrual_cancelled` fact, its reversal dated `cancelled_on` (the immutable ledger). */
   docstatus: Schema.Literals([1, 2]),
   cancelled_on: NullOr(S),
   /** The GL Entry lines it posts (and, cancelled, their reversal): what Capxul's own reports sum. */
@@ -74,6 +87,7 @@ export const FrappeJournalEntryAccount = Schema.Struct({
   cost_center: NullOr(S),
   project: NullOr(S),
   account_currency: S,
+  /** The block's rate, never 1 by default: the app inserts with `flags.ignore_exchange_rate`, since ERPNext refetches a rate of exactly 1. */
   exchange_rate: S,
   debit_in_account_currency: S,
   debit: S,
@@ -83,15 +97,16 @@ export const FrappeJournalEntryAccount = Schema.Struct({
   reference_name: NullOr(S),
 });
 
-/** Journal Entry: a Bank Entry for money with no party document to settle, an Opening Entry for an added token's balance. */
+/** Journal Entry: a Bank Entry for money that settles no party's document through a Payment Entry, or a payroll run's accrual. */
 export const FrappeJournalEntry = Schema.Struct({
   doctype: Schema.Literal("Journal Entry"),
   ...CapxulVoucher,
-  voucher_type: Schema.Literals(["Bank Entry", "Opening Entry"]),
-  is_opening: Schema.Literals(["No", "Yes"]),
+  voucher_type: Schema.Literals(["Bank Entry", "Journal Entry"]),
+  is_opening: Schema.Literal("No"),
   multi_currency: Schema.Boolean,
-  cheque_no: S,
-  cheque_date: S,
+  /** A Bank Entry's transaction and the block's day, which ERPNext requires on one; null on an accrual. */
+  cheque_no: NullOr(S),
+  cheque_date: NullOr(S),
   user_remark: NullOr(S),
   accounts: Schema.Array(FrappeJournalEntryAccount),
 });
@@ -118,6 +133,10 @@ export const FrappePaymentEntry = Schema.Struct({
   cost_center: NullOr(S),
   project: NullOr(S),
   references: Schema.Array(DocumentRef),
+  /**
+   * ERPNext debits every deduction (payment_entry gl_composer `add_deductions_gl_entries`): a rail's fee is a positive
+   * amount on 6500; an exchange gain on a par allocation is a negative amount on 6510, a loss a positive one.
+   */
   deductions: Schema.Array(
     Schema.Struct({ account: S, cost_center: S, amount: S, is_exchange_gain_loss: Schema.Boolean }),
   ),

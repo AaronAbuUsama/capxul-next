@@ -1,8 +1,9 @@
 // The runs area: Frappe's Payroll Entry and its Salary Slips, kept by Capxul. A People hat wearer
 // drafts a department's run for a period, which works every Employee's slip out (gross, deductions,
 // net), submits it, which fixes the slips and stores each one's payslip, withholds or releases a slip,
-// or cancels a run nothing of which was paid. A run a connected head computed arrives submitted through
-// `import`. Each is one rpc and one transaction, and none touches the chain.
+// or cancels a run nothing of which was paid. Each is one rpc and one transaction, and none touches the
+// chain. A run a connected head computed arrives submitted through payroll's head sync (IMPORT_RUN below,
+// decision payroll.import-run), never through a call the head makes.
 //
 // Paying a submitted run is one payment command with one approval for every slip's net
 // (payroll.run-one-approval), born through payments' door, and the settled facts come back from
@@ -26,8 +27,8 @@ import {
   table_salary_structure_assignments,
   table_salary_structures,
 } from "./data.ts";
-import { HR_ERRORS, HR_GUARD, HR_READS, WHO_HR } from "./employees.ts";
-import { ImportInput, Run, RunInput, RunListInput, RunRef, RunRow, WithholdInput } from "./shapes.ts";
+import { HR_ERRORS, HR_GUARD, HR_READS, LOGGED, WHO_HR } from "./employees.ts";
+import { Run, RunInput, RunListInput, RunRef, RunRow, WithholdInput } from "./shapes.ts";
 
 const FRAPPE = "/tmp/hrms/hrms/payroll/doctype";
 const e = machine_payroll_entry.t;
@@ -35,13 +36,10 @@ const s = machine_salary_slip.t;
 
 /** How Capxul works a slip out, as Frappe HR's `calculate_net_pay` does for the portable subset (payroll.portable-formulas). */
 const COMPUTE =
-  "Each slip is worked out as Frappe HR's `calculate_net_pay` does: `total_working_days` is the period's calendar days " +
-  "(Capxul's Payroll Settings count holidays as working days), `payment_days` those the Employee was employed " +
-  "(from `date_of_joining`, to `relieving_date`) less their leave without pay; each structure row in order: its " +
-  "condition, then its amount or formula over `base`, `variable`, the day counts and the rows above it, prorated by " +
-  "`payment_days` over `total_working_days` where it depends on them; `gross_pay` the earnings not statistical or " +
-  "left out of totals, then the deductions, `net_pay` gross less deductions. Amounts are exact decimals rounded half " +
-  "to even to the token's display precision (Frappe's Banker's Rounding), and `net_pay_raw` is the net in raw units.";
+  "Each slip is worked out as Frappe HR's `calculate_net_pay` does, by payroll.portable-formulas and " +
+  "payroll.money-and-rounding: working days the period's calendar days, payment days those employed less leave " +
+  "without pay; each row in order (condition, full-period amount, amount prorated where it depends on payment days); " +
+  "gross the earnings in totals, net gross less deductions, in raw units too.";
 
 export const rpc_payroll_runs_create = defineRpc({
   id: "payroll.runs.create",
@@ -49,11 +47,13 @@ export const rpc_payroll_runs_create = defineRpc({
   about:
     HR_GUARD +
     "The department is one of the Organization's budgets (INVALID_INPUT); the period's days are calendar days, the end " +
-    "on or after the start (INVALID_INPUT). Its Employees are the department's `active` ones, or those named (each the " +
-    "department's, else INVALID_INPUT), each with a submitted assignment on or before the period's end whose structure " +
-    "pays at the run's frequency and in the department budget's token, and which mirrors no agreement: an agreement pays " +
-    "itself on chain and never through a run (INVALID_INPUT naming an Employee without one). An Employee with a live " +
-    "slip whose period overlaps is WRONG_STATE naming that run, as Frappe's `check_existing`. A row whose formula or " +
+    "on or after the start (INVALID_INPUT). A run's Employee has a submitted assignment on or before the period's end " +
+    "whose structure pays at the run's frequency and in the department budget's token, and which mirrors no agreement: " +
+    "an agreement pays itself on chain, never through a run. With none named, the run takes the department's `active` " +
+    "Employees that have one and lists the rest as left out; a named Employee without one, or not the department's, is " +
+    "INVALID_INPUT. An Employee with a live run slip whose period overlaps is WRONG_STATE naming that run, a stricter " +
+    "`check_existing` than Frappe's (same dates only; collection slips are not run slips), under each Employee's row " +
+    "lock, so two runs can never both take one Employee's period. A row whose formula or " +
     "condition is not portable is INVALID_INPUT naming the component and saying the run must be computed by the " +
     "Organization's head. " +
     COMPUTE +
@@ -78,7 +78,7 @@ export const rpc_payroll_runs_create = defineRpc({
     table_payroll_entries,
     table_salary_slips,
   ],
-  writes: [table_payroll_entries, table_salary_slips],
+  writes: [table_payroll_entries, table_salary_slips, ...LOGGED],
   drives: [e.create, s.compute],
   invokes: [],
   emits: [],
@@ -92,46 +92,26 @@ const STORE_PAYSLIPS =
   "`documents.store` stores each slip's payslip (kind `payslip`, subject the slip; the payer is the company Safe and " +
   "its Organization's Party, the payee the Employee's Safe and Party), whose hash its Payment will carry on chain.";
 
-export const rpc_payroll_runs_import = defineRpc({
-  id: "payroll.runs.import",
-  title: "Take in a run the Organization's head computed and submitted",
-  about:
-    HR_GUARD +
-    "For an Organization with a connected head: the head's Capxul app sends a Payroll Entry it submitted, with its " +
-    "submitted slips, computed by Frappe HR's full engine (tax slabs, attendance, leave, regional deductions). The " +
-    "department, Employees and assignments must be the Organization's, each component named by abbreviation known " +
-    "here (INVALID_INPUT naming what is not); each slip's rows must add up to its gross, total deduction and net to the " +
-    "cent, its net not below zero (INVALID_INPUT naming the slip), and overlap no live slip of the Employee " +
-    "(WRONG_STATE). A run already taken in under the same head name answers as it stands. Capxul never works an " +
-    "imported slip out again (payroll.one-computer-per-run). Then, in one transaction, the run is born `submitted` " +
-    "(payroll-entry.import) with `computed_by` head, each slip `submitted` (salary-slip.import), and " +
-    STORE_PAYSLIPS,
-  was: [`${FRAPPE}/payroll_entry/payroll_entry.py:1837`, `${FRAPPE}/salary_slip/salary_slip.py:276`],
-  concept: concept_payroll,
-  kind: "mutation",
-  who: WHO_HR,
-  input: ImportInput,
-  output: Schema.Struct({ run: Run, replayed: Schema.Boolean }),
-  errors: [...HR_ERRORS],
-  reads: [
-    ...HR_READS,
-    table_budgets,
-    table_organizations,
-    table_employees,
-    table_salary_components,
-    table_salary_structure_assignments,
-    table_payroll_entries,
-    table_salary_slips,
-  ],
-  writes: [table_payroll_entries, table_salary_slips],
-  drives: [e.import, s.import],
-  invokes: [procedure_documents_store],
-  emits: [],
-  calls: [],
-  chain: [],
-  spans: [],
-  budget: budget("write"),
-});
+/**
+ * How payroll's head sync takes in a Payroll Entry its head computed and submitted: the chosen option of decision
+ * payroll.import-run, a step of `payroll.head.sync` (processes.ts), which pulls it with Capxul's own key; the head never
+ * writes into Capxul (organizations.head-doorbell).
+ */
+export const IMPORT_RUN =
+  "A Payroll Entry the head submitted, with its submitted slips, computed by Frappe HR's full engine (tax slabs, " +
+  "attendance, leave, regional deductions), is taken in when the head user who submitted it is a member whose Safe " +
+  "wears the People hat (else refused and reported to the head). The department, Employees and assignments must be " +
+  "the Organization's and each component known here by abbreviation; each slip's rows must add up to its gross, total " +
+  "deduction and net to the cent, its net not below zero, and it must overlap no live run slip of the Employee, checked " +
+  "under each Employee's row lock. Runs never pay agreements: a slip whose assignment mirrors an agreement, or with a " +
+  "row of the agreement component, is refused, because the agreement pays itself on chain and its collections are " +
+  "already paid slips (payroll.agreements-in-frappe-shape). A Payroll Entry already taken in (`by_head_name`, unique) " +
+  "is skipped, so a repeat never births a second run to pay. Capxul never works an imported slip out again. In one " +
+  "transaction the run is born `submitted` (payroll-entry.import) with `computed_by` head, each slip `submitted` " +
+  "(salary-slip.import), or `withheld` where the head's Salary Withholding holds it (salary-slip.import_withheld), and " +
+  STORE_PAYSLIPS +
+  " It posts no accrual: the head's own accrual Journal Entry, made when it submitted the slips, reaches books through " +
+  "books' sync, one author per voucher (payroll.accrual).";
 
 export const rpc_payroll_runs_submit = defineRpc({
   id: "payroll.runs.submit",
@@ -142,8 +122,11 @@ export const rpc_payroll_runs_submit = defineRpc({
     "since the draft is in them, and the answer shows any slip that changed. Then, in one transaction, the run moves to " +
     "`submitted` (payroll-entry.submit), each slip to `submitted` (salary-slip.submit), and " +
     STORE_PAYSLIPS +
-    " The accrual (expense up, Payroll Payable and each deduction's liability up) is books' to post from the submitted " +
-    "run (payroll.accrual).",
+    " The accrual (expense up, Payroll Payable and each deduction's liability up) is books' to post, and only books': " +
+    "Capxul computed this run, so its accrual is Capxul's voucher, which a head receives and never posts again. Books " +
+    "cannot read payroll, so this rpc invokes books' door `books.record-payroll-accrual` (action submit, the run's " +
+    "lines) in the same transaction, once payroll depends on books; until that edge exists nothing here posts it " +
+    "(payroll.accrual).",
   was: [`${FRAPPE}/payroll_entry/payroll_entry.py:372`, `${FRAPPE}/payroll_entry/payroll_entry.py:619`],
   concept: concept_payroll,
   kind: "mutation",
@@ -161,7 +144,7 @@ export const rpc_payroll_runs_submit = defineRpc({
     table_payroll_entries,
     table_salary_slips,
   ],
-  writes: [table_payroll_entries, table_salary_slips],
+  writes: [table_payroll_entries, table_salary_slips, ...LOGGED],
   drives: [e.submit, s.submit],
   invokes: [procedure_documents_store],
   emits: [],
@@ -176,9 +159,11 @@ export const rpc_payroll_runs_withhold = defineRpc({
   title: "Withhold a submitted slip from its run's payment, or release it",
   about:
     HR_GUARD +
-    "Frappe's Salary Withholding, for one slip. Withholding needs the slip `submitted` and its run `submitted`, so it " +
-    "is left out of the run's payment command; releasing needs it `withheld`, and once released it is paid on its own " +
-    "(WRONG_STATE otherwise, naming the status). `reason` is kept on the slip.",
+    "Frappe's Salary Withholding, for one slip. Withholding needs the slip `submitted` with no lapsed Payment (which " +
+    "could still be retried) and its run `submitted`, so it is left out of the run's payment command; releasing needs " +
+    "it `withheld`. A slip released before its run is paid goes with the run's command; one released after goes out " +
+    "under the next attempt when `runs.pay` names it (WRONG_STATE otherwise, naming the status). For a run its head " +
+    "computed, the head's Capxul app forwards the head's own withholding and release here. `reason` is kept on the slip.",
   was: [`${FRAPPE}/salary_withholding/salary_withholding.json`, `${FRAPPE}/payroll_entry/payroll_entry.py:1138`],
   concept: concept_payroll,
   kind: "mutation",
@@ -187,7 +172,7 @@ export const rpc_payroll_runs_withhold = defineRpc({
   output: Schema.Struct({ run: Run }),
   errors: [...HR_ERRORS],
   reads: [...HR_READS, table_payroll_entries, table_salary_slips],
-  writes: [table_salary_slips],
+  writes: [table_salary_slips, ...LOGGED],
   drives: [s.withhold, s.release],
   invokes: [],
   emits: [],
@@ -202,9 +187,13 @@ export const rpc_payroll_runs_cancel = defineRpc({
   title: "Cancel a run nothing of which was paid",
   about:
     HR_GUARD +
-    "The run must be `draft` or `submitted`, with no slip paying, escrowed or paid (WRONG_STATE naming it). Then, in " +
-    "one transaction, the run and each of its slips are `cancelled` (payroll-entry.cancel, salary-slip.cancel). The " +
-    "payslips stay stored, as every document does; books reverses a submitted run's accrual (payroll.accrual).",
+    "The run must be `draft` or `submitted`, with no slip holding a Payment: paying, escrowed, paid, or lapsed and still " +
+    "retryable (WRONG_STATE naming it). A run its head computed is cancelled on its head, where its accrual is; the " +
+    "head's Capxul app forwards that cancellation here, and a People hat wearer's own call is WRONG_STATE naming the " +
+    "head (payroll.one-computer-per-run). Then, in one transaction, the run and each of its slips are `cancelled` " +
+    "(payroll-entry.cancel, salary-slip.cancel). The payslips stay stored, as every document does; a submitted " +
+    "Capxul-computed run's accrual is cancelled through `books.record-payroll-accrual` (action cancel), once payroll " +
+    "depends on books (payroll.accrual).",
   was: [`${FRAPPE}/payroll_entry/payroll_entry.py:175`],
   concept: concept_payroll,
   kind: "mutation",
@@ -213,7 +202,7 @@ export const rpc_payroll_runs_cancel = defineRpc({
   output: Schema.Struct({ run: Run }),
   errors: [...HR_ERRORS],
   reads: [...HR_READS, table_payroll_entries, table_salary_slips],
-  writes: [table_payroll_entries, table_salary_slips],
+  writes: [table_payroll_entries, table_salary_slips, ...LOGGED],
   drives: [e.cancel, s.cancel],
   invokes: [],
   emits: [],

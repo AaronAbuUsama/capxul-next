@@ -9,7 +9,7 @@
 //   from payments, requests and deposits, and `ensureEmployedEdge` from payroll) are not ported:
 //   contacts sits below those concepts, so it cannot follow their changes either (decision
 //   contacts.relationships);
-// - a connected Frappe head writes the CRM back through the same Core SDK methods, as an agent of
-//   the Organization wearing its People hat, never through a door (decision contacts.head-sync).
+// - a connected Frappe head's changes come in through contacts' own sync process, which applies
+//   them through the CRM's own checks, never through a door (decision contacts.head-sync).
 
 export {};

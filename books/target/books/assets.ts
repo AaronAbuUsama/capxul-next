@@ -22,9 +22,10 @@ import { table_hat_wearers } from "../indexing/data.ts";
 import {
   machine_book_account,
   machine_book_asset,
+  machine_book_company,
   table_book_accounts,
   table_book_assets,
-  table_book_charts,
+  table_book_companies,
   table_book_facts,
 } from "./data.ts";
 
@@ -86,8 +87,9 @@ export const rpc_books_assets_add = defineRpc({
     "`symbol` (a bytes32 symbol read as text) and the company Safe's `balanceOf`; no code, a revert or no answer to " +
     "either is INVALID_INPUT `not_an_erc20`. Then, in one transaction that checks the caller and the token again, it " +
     "saves the token from that block (born, or added again after a removal) and books what the Safe holds then as one " +
-    "`opening_balance` fact with no USD, so the books reconcile from the first day (books.added-token-opening). With a " +
-    "chart, the token gets its Safe account. Capxul never pays in it and never prices it.",
+    "`opening_balance` fact with no USD and its feed number (the books born `open` if they had not begun), so the books " +
+    "reconcile from the first day (books.added-token-opening). With a chart, the token gets its Safe account, in its own " +
+    "currency. Capxul never pays in it and never prices it, so its facts post no voucher (books.vouchers).",
   was: [
     `${OLD}/operations/add.ts:43`,
     `${OLD}/operations/target.ts:10`,
@@ -117,11 +119,11 @@ export const rpc_books_assets_add = defineRpc({
     table_hat_wearers,
     table_organizations,
     table_book_assets,
-    table_book_charts,
+    table_book_companies,
     table_book_accounts,
   ],
-  writes: [table_book_assets, table_book_facts, table_book_accounts],
-  drives: [machine_book_asset.t.add, machine_book_asset.t.readd, machine_book_account.t.add],
+  writes: [table_book_companies, table_book_assets, table_book_facts, table_book_accounts],
+  drives: [machine_book_company.t.open, machine_book_asset.t.add, machine_book_asset.t.readd, machine_book_account.t.add],
   invokes: [],
   emits: [],
   calls: [integration_chain_rpc.c.getBlock, integration_chain_rpc.c.readContract],

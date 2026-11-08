@@ -13,7 +13,16 @@ import { Schema } from "effect";
 import { budget, defineRpc } from "../../../packages/book/src/index.ts";
 import { concept_contacts } from "../shared/foundation.ts";
 import { error_INVALID_INPUT, error_NOT_AUTHENTICATED, error_ROLE_PERMISSION_DENIED } from "../shared/vocabulary.ts";
-import { ContactEmail, ContactPhone, Doctype, EMPLOYEE_RANGES, table_contacts, machine_contact } from "./data.ts";
+import {
+  ContactEmail,
+  ContactPhone,
+  Doctype,
+  EMPLOYEE_RANGES,
+  machine_contact,
+  table_contact_changes,
+  table_contacts,
+  table_crm_settings,
+} from "./data.ts";
 import { table_org_deployments, table_org_members } from "../organizations/data.ts";
 import { table_parties } from "../parties/data.ts";
 import { procedure_parties_resolve_recipient } from "../parties/procedures.ts";
@@ -104,7 +113,10 @@ export const WHO_WRITE =
 /** The check every write runs first, before it reads or writes anything else. */
 export const WRITE_GUARD =
   "For an Organization's book it first checks the caller's Seat wears the People hat (the deployment's people hat id, " +
-  "wearers from indexing), else ROLE_PERMISSION_DENIED and nothing is written. ";
+  "wearers from indexing), else ROLE_PERMISSION_DENIED and nothing is written; a change it makes there is appended to " +
+  "`contact-changes` and becomes the entry's `version` (contacts.change-log). ";
+/** What a write to a book writes: the entry, and in an Organization's book its change and the counter. */
+const BOOK_WRITES = [table_contacts, table_contact_changes, table_crm_settings];
 
 // ── reads ───────────────────────────────────────────────────────────────────────────────────
 
@@ -196,7 +208,7 @@ export const rpc_contacts_book_add = defineRpc({
   output: Entry,
   errors,
   reads: WRITE_READS,
-  writes: [table_contacts],
+  writes: BOOK_WRITES,
   drives: [machine_contact.t.add_again],
   invokes: [procedure_parties_resolve_recipient],
   emits: [],
@@ -219,22 +231,22 @@ export const rpc_contacts_book_record = defineRpc({
   title: "Record a person or company in a book, or what the book keeps about one",
   about:
     WRITE_GUARD +
-    "In Frappe CRM's Contact and CRM Organization fields. With no `contactId` it records a new entry: `doctype` and a " +
-    "label (trimmed, 1 to 120 characters) are required. A new person whose details give a primary mailbox is named " +
+    "With no `contactId` it records a new entry, which needs a `doctype` and a label (trimmed, 1 to 120 characters). A " +
+    "new person whose details give a primary mailbox is named " +
     "through `parties.resolve-recipient` as `contact add` by email names them, so the entry is born with that Party and " +
-    "its PartyId as its id, or lands on the book's entry for that Party; any other new entry is private, with a " +
-    "`contact_<ulid>` id and no Party (decision contacts.private-entries). `link` names the Party of a private entry (a " +
-    "handle, an address, a Party id, or for a person a mailbox), resolved in the same transaction; a person's entry that " +
-    "gains a primary mailbox is linked to its Party the same way. A Party already in the book under another entry, a " +
-    "locator that names nothing, the book's own Party, or a link on an entry that has a Party is INVALID_INPUT: an " +
-    "entry's Party never changes. `details` sets the fields it gives and keeps the rest (null clears one): for a person " +
-    "`email_ids` and `phone_nos` (at most 10 each, at most one primary of each kind, the mailboxes well formed), " +
-    "`designation` (at most 140) and `company` (an organization entry of this book); for a company `website` (at most " +
-    "255), `industry` and `territory` (at most 140), `no_of_employees` (Frappe's ranges), `annual_revenue` (a " +
-    "non-negative decimal, with `currency`: 3 to 10 capitals) and `company_description` (at most 2000). A field of the " +
-    "other doctype, or any bad value, is INVALID_INPUT naming the field, and nothing is written. A new entry is born " +
-    "listed with `added_at`; a change to a member's entry with no row writes its curating row. Returns the entry with " +
-    "its details.",
+    "its PartyId as its id, or lands on the book's entry for it; any other new entry is private, with a `contact_<ulid>` " +
+    "id and no Party (decision contacts.private-entries). `link` names a private entry's Party (a handle, an address, a " +
+    "Party id, or for a person a mailbox), resolved in the same transaction, and a private person given a primary " +
+    "mailbox is linked the same way; on an entry that has a Party a mailbox is only a detail. A Party already in the book " +
+    "under another entry, a locator that names nothing, the book's own Party, or a link on an entry that has a Party is " +
+    "INVALID_INPUT: an entry's Party never changes. `details` sets the fields it gives and keeps the rest (null clears " +
+    "one): a person's `email_ids` and `phone_nos` (at most 10 each, at most one primary of each kind, mailboxes well " +
+    "formed; a lone one is primary, as Frappe makes it), `designation` (at most 140) and `company` (an organization " +
+    "entry of this book); a company's `website` (at most 255), `industry` and `territory` (at most 140), " +
+    "`no_of_employees` (Frappe's ranges), `annual_revenue` (a non-negative decimal, in `currency` if given: 3 to 10 " +
+    "capitals) and `company_description` (at most 2000). A field of the " +
+    "other doctype, or a bad value, is INVALID_INPUT naming the field; nothing is written. A new entry is born listed; a " +
+    "change to a member's entry with no row writes its curating row. Returns the entry with details.",
   concept: concept_contacts,
   kind: "mutation",
   who: WHO_WRITE,
@@ -261,7 +273,7 @@ export const rpc_contacts_book_record = defineRpc({
   output: EntryWithDetails,
   errors,
   reads: WRITE_READS,
-  writes: [table_contacts],
+  writes: BOOK_WRITES,
   drives: [],
   invokes: [procedure_parties_resolve_recipient],
   emits: [],
@@ -293,7 +305,7 @@ export const rpc_contacts_book_label = defineRpc({
   output: Entry,
   errors,
   reads: WRITE_READS,
-  writes: [table_contacts],
+  writes: BOOK_WRITES,
   drives: [],
   invokes: [],
   emits: [],
@@ -319,7 +331,7 @@ export const rpc_contacts_book_hide = defineRpc({
   output: Entry,
   errors,
   reads: WRITE_READS,
-  writes: [table_contacts],
+  writes: BOOK_WRITES,
   drives: [machine_contact.t.hide],
   invokes: [],
   emits: [],
@@ -344,7 +356,7 @@ export const rpc_contacts_book_unhide = defineRpc({
   output: Entry,
   errors,
   reads: WRITE_READS,
-  writes: [table_contacts],
+  writes: BOOK_WRITES,
   drives: [machine_contact.t.unhide],
   invokes: [],
   emits: [],

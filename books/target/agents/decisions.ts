@@ -50,6 +50,10 @@ import {
 } from "./flows.ts";
 import * as op from "./operations.ts";
 
+import { workflow_agents_fde_follow_setup } from "./processes.ts";
+import { table_org_members, table_org_setups } from "../organizations/data.ts";
+import { concept_organizations, concept_projects } from "../shared/foundation.ts";
+
 const CLAUDE = "Claude, agents design, 8 November 2026";
 const by = (evidence: string) => `${CLAUDE}; evidence: ${evidence}`;
 const OLD = "packages/backend/src/accounts/agents";
@@ -662,4 +666,75 @@ export const decision_agents_org_own_agent = defineDecision({
     "agent and the other is refused. The agent the ruling's 'company's agent' names is the Organization's own, whatever it does.",
   source: by("books/target/shared/rulings.ts (aaron.seats, Aaron's ruling of 8 November 2026); books/target/agents/data.ts (by-owner-created)"),
   affects: [rpc_agents_changes_create, op.operation_agent_create, error_SEAT_LIMIT_REACHED, table_agents],
+});
+
+// ── the Forward Deployed Engineer (Aaron's ruling aaron.fde-agent) ──────────────────────────
+
+const FDE_RULING = by("books/target/shared/rulings.ts (aaron.fde-agent, aaron.seats, aaron.machine-login); books/target/organizations/decisions.ts");
+
+export const decision_agents_fde = defineDecision({
+  id: "agents.fde",
+  title: "The Organization's own agent is its FDE, born with its setup",
+  question:
+    "The FDE ruling: every Organization has a Forward Deployed Engineer, its own agent (the seat ruling). agents.org-own-agent " +
+    "limits an Organization to one live agent of its own. How are the two the same agent, and how is the FDE recorded?",
+  options: [
+    {
+      label: "own-agent-is-fde",
+      text:
+        "The one live agent an Organization owns is its FDE, whoever made its key. It is born with the setup when the " +
+        "founder's machine made an FDE key (organizations.fde-at-start-up): agents' `agents.fde.follow-setup` writes its " +
+        "row from the setup (`found`), and activates or fails it when the setup completes or fails, because its create is " +
+        "the install batch, not a change of its own. With `--no-fde`, or after the FDE is removed, `agent create --org` " +
+        "makes the Organization's FDE through a Board proposal, as before.",
+    },
+    { label: "separate-fde", text: "The FDE is a second, special kind of agent beside the Organization's own one." },
+  ],
+  chosen: "own-agent-is-fde",
+  why:
+    "The ruling names the Organization's own agent as the FDE, so a second kind would need a second limit the seat ruling " +
+    "does not give. Writing the row from the setup keeps agents the writer of its own table while organizations, which " +
+    "builds the install batch, keeps the Party and the Seat, as it does the Organization's. No change row is born: a " +
+    "change is carried by an approval or proposal agents opened, and the install is organizations'; its later freeze, " +
+    "key rotation, sweep and removal are ordinary changes by Board proposal (agents.org-owned). Every frozen claim keeps " +
+    "its world, because the worlds start Acme with `--no-fde` (organizations.startup-worlds).",
+  source: FDE_RULING,
+  affects: [table_agents, machine_agent, workflow_agents_fde_follow_setup, rpc_agents_changes_create, table_org_setups, op.operation_agent_create],
+});
+
+export const decision_agents_fde_authority = defineDecision({
+  id: "agents.fde-authority",
+  title: "The FDE may do what its Seat and hats allow, through the CLI; never govern",
+  question:
+    "aaron.fde-agent: the FDE sets the Organization up and adds the apps it needs, acting through the same CLI and SDK " +
+    "under the Organization's authority. What may it do, and what may it never do?",
+  options: [
+    {
+      label: "seat-and-hats",
+      text:
+        "It acts only through the CLI and SDK, signed in with its own key, as a member: it reads what any member reads, " +
+        "runs the commands any member may (projects, adding a Frappe app), and whatever the hats and allowances the Board " +
+        "grants it allow (Books to set up the chart, People to keep the contact book, an allowance to pay within its " +
+        "limit). It starts with no hat and no allowance. It may never be a Director or wear the Shareholders' top hat, " +
+        "approve or execute a Board proposal, sign the company Safe, change its own key, freeze, sweep or removal, raise " +
+        "or buy seats, connect or disconnect a head, or sit in another Organization.",
+    },
+    {
+      label: "officer-at-start",
+      text: "As seat-and-hats, but the install batch also mints the Books, Invoicing and People hats to the FDE, so it can set up the books and the CRM in its first conversation.",
+    },
+    { label: "unbounded", text: "The FDE acts with the founder's authority in everything." },
+  ],
+  chosen: "seat-and-hats",
+  why:
+    "For Aaron: whether the FDE starts with the officer hats. Under the seats ruling it is an agent like any other, so " +
+    "its authority is what the chain lets its Safe do, and every action it takes is an ordinary command with its own " +
+    "trace, refusals and evals; nothing it does is invisible to the Organization. Governing (the Board, the Safe, the " +
+    "seats, a head that receives all the records) stays with people. Officer hats at start would let it set up the " +
+    "books and the CRM at once, but give an AI agent officer authority no person granted by choice; the founder can " +
+    "grant them in one Board proposal (`org member grant`) when the FDE asks. The cost is concrete: the books' chart " +
+    "comes only from `org books accounts import`, which needs the Books hat, so with no hat the FDE's first sitting " +
+    "either asks the founder to run the import or to grant it Books first.",
+  source: FDE_RULING,
+  affects: [table_agents, table_org_members, concept_organizations, concept_projects],
 });

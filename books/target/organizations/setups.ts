@@ -80,13 +80,12 @@ export const rpc_organizations_setups_begin = defineRpc({
     "Organization's Party, pending, with the handle and that Safe (`parties.register`): a taken or malformed handle fails " +
     "the whole transaction with INVALID_INPUT, so no Organization and no setup are left. Start-up (organizations.startup): " +
     "the Company's abbreviation comes from the name's initials, and its currency, time zone and fiscal-year start from " +
-    "the country unless given (a currency, zone or `MM-DD` that is not one is INVALID_INPUT); the fundamental apps are " +
-    "born installed and native, and each app named in `apps` wanted (an unknown app, or a fundamental one, is " +
-    "INVALID_INPUT); each fundamental app's concept then starts itself from `begin`. With `fde`, the key the founder's " +
-    "machine made for the Organization's FDE (organizations.fde-at-start-up): the FDE's Safe is computed in-process " +
-    "(`AgentOwner.safeAddressFor` of that key and the company Safe) and its Party registered pending in the same " +
-    "transaction, owned by the Organization, as `<handle>-fde` (the handle's first 26 characters) or, when that is " +
-    "taken, `fde-` and ten characters of the Organization's id.",
+    "the country unless given (USD for a country currency with no USD price pair; an unpriced currency, a bad zone or " +
+    "`MM-DD` is INVALID_INPUT); the fundamental apps are " +
+    "born installed and native, each app in `apps` wanted (an unknown or fundamental one is INVALID_INPUT), and each " +
+    "fundamental app's concept starts itself from `begin`. With `fde`, the FDE key's address the founder's machine made " +
+    "(organizations.fde-at-start-up): the FDE's Safe is computed in-process (`AgentOwner.safeAddressFor` of it and the " +
+    "company Safe) and its Party registered pending, owned by the Organization (organizations.fde-handle).",
   was: [
     `${AS_IS}:200`,
     `${SET}/operations/begin.ts:11`,

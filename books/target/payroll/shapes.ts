@@ -281,7 +281,7 @@ export const ComponentInput = Schema.Struct({
   isTaxApplicable: opt(Schema.Boolean),
   account: opt(S),
   liabilityAccount: opt(S),
-  /** For a deduction or employer contribution: the Party it is remitted to (`@handle`, mailbox or Party id). */
+  /** For a deduction or employer contribution: the Party its liability is owed to (`@handle`, mailbox or Party id). */
   payee: opt(S),
   disabled: opt(Schema.Boolean),
 });
@@ -428,6 +428,7 @@ export const Run = Schema.Struct({
 
 export const RunRef = Schema.Struct({ orgId: S, payrollEntryId: S });
 
+/** A Payroll Entry the head submitted, as payroll.head.sync reads it from the head's changes and takes it in (IMPORT_RUN). */
 export const ImportInput = Schema.Struct({
   orgId: S,
   /** The head's Payroll Entry `name`. */
@@ -442,6 +443,8 @@ export const ImportInput = Schema.Struct({
       headName: S,
       employeeId: S,
       assignmentId: S,
+      /** The head's Salary Withholding holds it (Frappe's Withheld): taken in withheld, never paid with the run. */
+      withheld: Schema.Boolean,
       totalWorkingDays: N,
       paymentDays: N,
       leaveWithoutPay: N,

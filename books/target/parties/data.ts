@@ -6,6 +6,13 @@
 // scopes every chain view by. It never holds a mailbox: a person is found by a digest of theirs.
 // The profile (`profiles`) is what only the person sees: their country.
 //
+// In Frappe's shapes the directory is the identity half of Frappe CRM's two party doctypes: a Party
+// is what a Contact (a person, an agent, a wallet) or a CRM Organization (a Capxul Organization)
+// stands for, and the one key a connected Frappe head's Contact, CRM Organization, Customer,
+// Supplier, Employee and User carry. What a business knows about a Party is in its own book, in the
+// same doctypes' fields (contacts). Decisions parties.frappe-identity, parties.outside-companies
+// and parties.mailbox-for-life.
+//
 // Ids: `party_<ulid>`; a person's `person_id` is access' principal id. Times are epoch milliseconds.
 // Addresses are lowercase hex strings.
 
@@ -51,7 +58,12 @@ export const table_parties = defineTable({
     "`safe_address` to scope every chain read to the Safes the caller's tenant owns (P8). One Party per mailbox, Safe and " +
     "handle: the unique indexes are the guard (a released Party gives up its handle and no longer counts for its Safe, so " +
     "a retried birth at the same predicted Safe can register again). Written only by parties' own procedures and rpcs; " +
-    "every concept that depends on parties reads it to resolve or show a counterparty, skipping released Parties.",
+    "every concept that depends on parties reads it to resolve or show a counterparty, skipping released Parties. In " +
+    "Frappe's shapes a Party is the identity behind a Contact or CRM Organization: `display_name` is the name a " +
+    "Contact (`full_name`) or CRM Organization (`organization_name`) shows when its book gives it no label of its own, " +
+    "`photo_file_id` their `image` or `organization_logo`, and `party_id` the key every Frappe record of it carries " +
+    "(parties.frappe-identity); a head never changes them. It names people whether or not they have joined, and " +
+    "companies once they are on Capxul (parties.outside-companies).",
   concept: concept_parties,
   tenancy: "global",
   fields: Schema.Struct({

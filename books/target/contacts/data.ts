@@ -9,6 +9,10 @@
 //   deals          CRM Deal
 //   deal-contacts  CRM Contacts, the deal's child table of people
 //
+// and, for a connected head, the change log every Organization-owned CRM write appends to
+// (`contact-changes`, with its counter in `crm-settings`) and each head connection's cursors
+// (`contact-head-syncs`), which the one sync process (./processes.ts) follows.
+//
 // An entry is in a book when its owner added it by hand (relationship `manual`, a row with
 // `added_at`) or, in an Organization's book, when its Party holds a Seat there (relationship
 // `member`, derived at read time from organizations' Seats, never copied). A row with no `added_at`
@@ -46,14 +50,16 @@ export const EMPLOYEE_RANGES = ["1-10", "11-50", "51-200", "201-500", "501-1000"
 
 /**
  * Frappe CRM's default lead statuses (`add_default_lead_statuses`), each with the stage its `type` names. The `lead`
- * machine runs on the stage; moving between two statuses of one stage is no transition.
+ * machine runs on the stage; moving between two statuses of one stage is no transition. Converted is of type Won there,
+ * like Qualified: a lead's `converted` stage is CRM Lead's `converted` check, not a status type, and Frappe's own
+ * conversion sets the status to Qualified (`mark_converted`).
  */
 export const LEAD_STATUSES = {
   New: "open",
   Contacted: "ongoing",
   Nurture: "ongoing",
   Qualified: "won",
-  Converted: "converted",
+  Converted: "won",
   Unqualified: "lost",
   Junk: "lost",
 } as const;
@@ -86,6 +92,7 @@ const EmployeeRange = Schema.Literals(EMPLOYEE_RANGES);
 const LeadStatus = Schema.Literals(Object.keys(LEAD_STATUSES) as [keyof typeof LEAD_STATUSES, ...(keyof typeof LEAD_STATUSES)[]]);
 const DealStatus = Schema.Literals(Object.keys(DEAL_STATUSES) as [keyof typeof DEAL_STATUSES, ...(keyof typeof DEAL_STATUSES)[]]);
 const LostReason = Schema.Literals(LOST_REASONS);
+/** A lead's stage: its status's type, or `converted` once CRM Lead's `converted` check is set. */
 export const LeadStage = Schema.Literals(["open", "ongoing", "won", "lost", "converted"]);
 export const DealStage = Schema.Literals(["open", "ongoing", "won", "lost"]);
 
@@ -93,6 +100,14 @@ export const DealStage = Schema.Literals(["open", "ongoing", "won", "lost"]);
 export const ContactEmail = Schema.Struct({ email_id: S, is_primary: Schema.Boolean });
 /** Contact Phone: one of the numbers an owner keeps for a person. */
 export const ContactPhone = Schema.Struct({ phone: S, is_primary_phone: Schema.Boolean, is_primary_mobile_no: Schema.Boolean });
+
+/** What every synced row carries for a connected head: its name there, and the version of its last change here. */
+const Synced = {
+  /** The head's name for it (a Contact's, `CRM-LEAD-2026-00001`, `CRM-DEAL-2026-00001`); null until a head has it. */
+  head_name: NullOr(S),
+  /** The `seq` of its latest change in contact-changes: the version a head's edit is based on; 0 in a person's book. */
+  version: N,
+};
 
 // ── contacts: Contact and CRM Organization ──────────────────────────────────────────────────
 
@@ -113,8 +128,8 @@ export const table_contacts = defineTable({
     "a person's `email_ids`, `phone_nos`, `designation` and `company_id` (Contact's `company_name`: the organization entry " +
     "they work for); a company's `website`, `industry`, `territory`, `no_of_employees`, `annual_revenue` with `currency`, " +
     "and `company_description`. Every mailbox and number here is one this owner typed, private to the book. `updated_at` " +
-    "is the entry's last change, which the book reports as its last activity and a head's sync pulls by. Replaces the " +
-    "`contact` edges of old parties' `partyEdges`.",
+    "is the entry's last change, which the book reports as its last activity. In an Organization's book `version` and " +
+    "`head_name` serve a connected head (contacts.change-log). Replaces the `contact` edges of old parties' `partyEdges`.",
   concept: concept_contacts,
   tenancy: "owner",
   tenantField: "owner_id",
@@ -154,6 +169,7 @@ export const table_contacts = defineTable({
     /** An ISO 4217 code or a token's symbol: 3 to 10 capitals. */
     currency: NullOr(S),
     company_description: NullOr(S),
+    ...Synced,
     created_at: N,
     updated_at: N,
   }),
@@ -164,7 +180,7 @@ export const table_contacts = defineTable({
       fields: ["owner_id", "owner_kind", "updated_at", "contact_id"],
       for:
         "contact list and the guided pickers: one book's entries, most recent change first, after the `--after` cursor, " +
-        "hidden ones left out unless `--include-hidden`; and a connected head's sync, which pulls each book's changes by it",
+        "hidden ones left out unless `--include-hidden`",
     },
     {
       name: "contacts-by-party",
@@ -179,6 +195,14 @@ export const table_contacts = defineTable({
       fields: ["owner_id", "owner_kind", "company_id", "updated_at"],
       for: "The people a book keeps at one of its organization entries, as Frappe CRM's Organization page lists them",
     },
+    {
+      name: "contacts-by-head-name",
+      fields: ["owner_id", "owner_kind", "doctype", "head_name"],
+      unique: true,
+      for:
+        "The entry a head's change names by its doctype and head name, when it carries no capxul_id yet; unique among " +
+        "rows a head has, per doctype, because a Contact and a CRM Organization may share a name there",
+    },
   ],
   retention:
     "Kept while its owner exists. No operation deletes an entry: hiding keeps it, and adding it again lists it again.",
@@ -190,6 +214,82 @@ export const table_contacts = defineTable({
     `${FRAPPE}/contact/contact.json`,
     `${CRM}/fcrm/doctype/crm_organization/crm_organization.json`,
   ],
+});
+
+// ── the change log a connected head follows ─────────────────────────────────────────────────
+
+export const table_crm_settings = defineTable({
+  id: "crm-settings",
+  title: "An Organization's CRM settings: its change counter",
+  about:
+    "One row per Organization whose CRM has changed: `next_seq`, the counter every Organization-owned CRM write takes " +
+    "its `contact-changes` seq from, under this row's lock, so seqs commit in order. The first CRM write of an " +
+    "Organization inserts it. Frappe CRM's FCRM Settings has no field Capxul keeps yet; per-Organization status, source " +
+    "and territory lists would live here (contacts.crm-statuses).",
+  concept: concept_contacts,
+  tenancy: "organization",
+  tenantField: "org_id",
+  fields: Schema.Struct({ org_id: S, next_seq: N, created_at: N, updated_at: N }),
+  key: ["org_id"],
+  indexes: [],
+  retention: "Kept while the Organization exists.",
+  was: [`${CRM}/fcrm/doctype/fcrm_settings/fcrm_settings.json`],
+});
+
+export const table_contact_changes = defineTable({
+  id: "contact-changes",
+  title: "CRM change log: every Organization-owned CRM write, in commit order",
+  about:
+    "One row per change to an Organization's CRM record (a Contact or CRM Organization entry of its book, a lead, a deal " +
+    "with its people), appended in the writing transaction with the next `seq` from `crm-settings` under its lock, so a " +
+    "later `seq` never commits before an earlier one and a reader paging by `seq` skips nothing. The changed row keeps " +
+    "that `seq` as its `version`. A connected head's sync pushes from it in order; a change that came from the head notes " +
+    "it (`origin` head), so the push only confirms its version there. It holds ids, not content: the push reads each " +
+    "record as it stands. A person's own book has no head and logs nothing (contacts.change-log).",
+  concept: concept_contacts,
+  tenancy: "organization",
+  tenantField: "org_id",
+  fields: Schema.Struct({
+    org_id: S,
+    seq: N,
+    doctype: Schema.Literals(["Contact", "CRM Organization", "CRM Lead", "CRM Deal"]),
+    doc_id: S,
+    origin: Schema.Literals(["capxul", "head"]),
+    /** The principal whose command made it, or the head user (by mailbox) whose edit was applied. */
+    by: S,
+    at: N,
+  }),
+  key: ["org_id", "seq"],
+  indexes: [],
+  retention: "Kept for good: it is the order every head of the Organization replays.",
+});
+
+export const table_contact_head_syncs = defineTable({
+  id: "contact-head-syncs",
+  title: "The CRM's sync with one head",
+  about:
+    "One row per head connection the CRM syncs with: how far it has pushed the change log (`pushed_seq`), how far it has " +
+    "read the head's own changes (`pulled_change`), when each last ran, and the conflicts and refusals it resolved (a " +
+    "head edit based on an older version, or one Capxul's checks refuse, which Capxul's version overwrote). Its process " +
+    "(`contacts.head.sync`) is the only writer.",
+  concept: concept_contacts,
+  tenancy: "organization",
+  tenantField: "org_id",
+  fields: Schema.Struct({
+    org_id: S,
+    head_id: S,
+    pushed_seq: N,
+    pulled_change: NullOr(S),
+    pushed_at: NullOr(N),
+    pulled_at: NullOr(N),
+    conflicts: N,
+    refused: N,
+    created_at: N,
+    updated_at: N,
+  }),
+  key: ["org_id", "head_id"],
+  indexes: [],
+  retention: "Kept while the Organization exists: the record of what each head was given.",
 });
 
 // ── whether an entry is listed ──────────────────────────────────────────────────────────────
@@ -259,12 +359,14 @@ export const table_leads = defineTable({
     "One row per lead in an Organization's CRM: someone the Organization may sell to, not yet a deal. It holds what " +
     "CRM Lead holds, under its field names: the person (`first_name`, `last_name`, `email`, `mobile_no`, `phone`, " +
     "`job_title`), the company as typed (`organization`, `website`, `industry`, `territory`, `no_of_employees`, " +
-    "`annual_revenue` with `currency`), where it came from (`source`), who in the Organization works it " +
-    "(`lead_owner_party_id`, a member's Party, Frappe's `lead_owner`), its `status` and the `stage` that status's type " +
-    "names, and why it was lost. A lead names no Party: it is the Organization's private note about a prospect, so its " +
-    "mailbox enters the directory only when the lead is converted and becomes a contact (decision contacts.lead-conversion). " +
-    "`deal_id` is the deal its conversion made; a converted lead is kept as it was. A lead needs a person's name, a " +
-    "company's name or a mailbox, as Frappe's `set_lead_name` requires.",
+    "`annual_revenue`, which CRM Lead keeps with no currency of its own: it is in the Organization's), where it came from " +
+    "(`source`), who in the Organization works it (`lead_owner_party_id`, a member's Party, Frappe's `lead_owner`), its " +
+    "`status` and the `stage` that status's type names, and why it was lost. A lead names no Party: it is the " +
+    "Organization's private note about a prospect, so its mailbox enters the directory only when the lead is converted " +
+    "and becomes a contact (decision contacts.lead-conversion). Stage `converted` is CRM Lead's `converted` check, with " +
+    "status Qualified as Frappe's `mark_converted` sets it; `deal_id` is the deal its conversion made (Frappe links the " +
+    "other way, by CRM Deal's `lead`), and a converted lead is kept as it was. A lead needs a person's name, a company's " +
+    "name or a mailbox, as Frappe's `set_lead_name` requires.",
   concept: concept_contacts,
   tenancy: "organization",
   tenantField: "org_id",
@@ -285,14 +387,16 @@ export const table_leads = defineTable({
     industry: NullOr(S),
     territory: NullOr(S),
     no_of_employees: NullOr(EmployeeRange),
+    /** A non-negative decimal in the Organization's currency: CRM Lead's `annual_revenue` has no currency field. */
     annual_revenue: NullOr(S),
-    currency: NullOr(S),
     /** CRM Lead Source's name. */
     source: NullOr(S),
     lead_owner_party_id: NullOr(S),
     lost_reason: NullOr(LostReason),
     lost_notes: NullOr(S),
+    /** The deal its conversion made; set exactly when the stage is `converted`. */
     deal_id: NullOr(S),
+    ...Synced,
     created_at: N,
     updated_at: N,
   }),
@@ -301,12 +405,18 @@ export const table_leads = defineTable({
     {
       name: "leads-by-activity",
       fields: ["org_id", "updated_at", "lead_id"],
-      for: "The Organization's leads, most recent change first, after a cursor; and a connected head's sync, which pulls by it",
+      for: "The Organization's leads, most recent change first, after a cursor: Frappe CRM's leads list",
     },
     {
       name: "leads-by-stage",
       fields: ["org_id", "stage", "updated_at", "lead_id"],
       for: "The leads at one stage, most recent change first: Frappe CRM's kanban and its open-leads list",
+    },
+    {
+      name: "leads-by-head-name",
+      fields: ["org_id", "head_name"],
+      unique: true,
+      for: "The lead a head's change names by its head name, when it carries no capxul_id yet",
     },
   ],
   retention: "Kept while the Organization exists: a lead that goes nowhere is lost, never deleted.",
@@ -332,18 +442,18 @@ export const machine_lead = defineMachine({
   title: "A lead's stage: Frappe CRM's lead status types",
   about:
     "A lead is born open (status New) and moves between the types of Frappe CRM's default lead statuses: ongoing " +
-    "(Contacted, Nurture), won (Qualified), lost (Unqualified, Junk), and converted, which its conversion to a deal reaches " +
-    "and nothing leaves. A status change within one stage writes `status` only. Frappe's On Hold type has no default " +
-    "status, so it is not booked (decision contacts.crm-statuses).",
+    "(Contacted, Nurture), won (Qualified, Converted), lost (Unqualified, Junk); and converted, CRM Lead's `converted` " +
+    "check, which its conversion to a deal reaches and nothing leaves. A status change within one stage writes `status` " +
+    "only. Frappe's On Hold type has no default status, so it is not booked (decision contacts.crm-statuses).",
   table: table_leads,
   field: "stage",
   initial: "open",
   states: [
     { id: "open", about: "New: captured, not yet worked." },
     { id: "ongoing", about: "Contacted or Nurture: someone is working it." },
-    { id: "won", about: "Qualified: worth a deal, not yet converted." },
+    { id: "won", about: "Qualified or Converted (both of type Won): worth a deal, not yet converted." },
     { id: "lost", about: "Unqualified or Junk, with a lost reason." },
-    { id: "converted", about: "Converted: its deal, contact and organization exist; it changes no more.", terminal: true },
+    { id: "converted", about: "CRM Lead's `converted` check, status Qualified: its deal, contact and organization exist; it changes no more.", terminal: true },
   ],
   transitions: {
     capture: {
@@ -368,7 +478,7 @@ export const machine_lead = defineMachine({
     qualify: {
       from: ["open", "ongoing", "lost"],
       to: "won",
-      about: "Moved to Qualified; a lost reason is cleared.",
+      about: "Moved to a won status (Qualified, Converted); a lost reason is cleared.",
       emits: [event_lead_transitioned],
     },
     lose: {
@@ -381,7 +491,9 @@ export const machine_lead = defineMachine({
     convert: {
       from: ["open", "ongoing", "won"],
       to: "converted",
-      about: "Converted to a deal, in the transaction that makes the deal and the contact and organization entries.",
+      about:
+        "Converted to a deal, in the transaction that makes the deal and the contact and organization entries; status " +
+        "Qualified and the `converted` check, as Frappe's `mark_converted` sets them.",
       guard: "not lost (Frappe: 'Cannot convert a lead with status' of type Lost)",
       emits: [event_lead_transitioned],
     },
@@ -425,6 +537,7 @@ export const table_deals = defineTable({
     source: NullOr(S),
     lost_reason: NullOr(LostReason),
     lost_notes: NullOr(S),
+    ...Synced,
     created_at: N,
     updated_at: N,
   }),
@@ -433,7 +546,7 @@ export const table_deals = defineTable({
     {
       name: "deals-by-activity",
       fields: ["org_id", "updated_at", "deal_id"],
-      for: "The Organization's deals, most recent change first, after a cursor; and a connected head's sync, which pulls by it",
+      for: "The Organization's deals, most recent change first, after a cursor: Frappe CRM's deals list",
     },
     {
       name: "deals-by-stage",
@@ -442,14 +555,21 @@ export const table_deals = defineTable({
     },
     {
       name: "deals-by-lead",
-      fields: ["org_id", "lead_id"],
-      unique: true,
-      for: "The one deal a lead's conversion made, so converting twice answers the same deal; unique among deals from a lead",
+      fields: ["org_id", "lead_id", "created_at"],
+      for:
+        "A lead's deals, first made first: the one its conversion made (also the lead's `deal_id`), and any more a head " +
+        "made from it, as Frappe's `convert_to_deal` does by default ('Create'); a lead the head converts takes the first",
     },
     {
       name: "deals-by-organization",
       fields: ["org_id", "organization_id", "updated_at"],
       for: "One organization entry's deals, most recent change first, as Frappe CRM's Organization page lists them",
+    },
+    {
+      name: "deals-by-head-name",
+      fields: ["org_id", "head_name"],
+      unique: true,
+      for: "The deal a head's change names by its head name, when it carries no capxul_id yet",
     },
   ],
   retention: "Kept while the Organization exists: a deal that goes nowhere is lost, never deleted.",

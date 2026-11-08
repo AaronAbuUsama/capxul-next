@@ -85,9 +85,9 @@ export const PayslipRow = Schema.Struct({ component: S, abbr: S, amount_raw: S }
  */
 export const PayslipContent = Schema.Struct({
   kind: Schema.Literal("payslip"),
-  /** The slip's `slip_` id, and its run's `pe_` id (null for an imported run's slip, which keeps the head's name). */
+  /** The slip's `slip_` id, and its run's `pe_` id: every payslip is a run's, a head's run taken in included (a collection stores none). */
   salary_slip_id: S,
-  payroll_entry_id: NullOr(S),
+  payroll_entry_id: S,
   employer: Named,
   employee: Named,
   /** 1 to 120 characters: the Employee's designation, or empty. */

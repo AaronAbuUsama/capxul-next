@@ -16,7 +16,7 @@ import {
 } from "../shared/vocabulary.ts";
 import { DEAL_STATUSES, DealStage, LOST_REASONS, machine_deal, table_contacts, table_deal_contacts, table_deals } from "./data.ts";
 import { table_org_deployments, table_org_members } from "../organizations/data.ts";
-import { WHO_CRM_READ, WHO_CRM_WRITE } from "./leads.ts";
+import { LOGGED, WHO_CRM_READ, WHO_CRM_WRITE } from "./leads.ts";
 
 const CRM = "github.com/frappe/crm@2cecd300:crm";
 const DEAL = `${CRM}/fcrm/doctype/crm_deal`;
@@ -72,7 +72,8 @@ const READS = [table_deals, table_deal_contacts, table_org_members];
 const WRITE_READS = [...READS, table_contacts, table_org_deployments];
 const GUARD =
   "It first checks the caller's Seat wears the People hat (the deployment's people hat id, wearers from indexing), " +
-  "else ROLE_PERMISSION_DENIED and nothing is written. ";
+  "else ROLE_PERMISSION_DENIED and nothing is written. The deal it changes is appended to `contact-changes` and takes " +
+  "that seq as its `version` (contacts.change-log). ";
 
 export const rpc_contacts_deals_save = defineRpc({
   id: "contacts.deals.save",
@@ -95,7 +96,7 @@ export const rpc_contacts_deals_save = defineRpc({
   output: DealView,
   errors: READ_ERRORS,
   reads: WRITE_READS,
-  writes: [table_deals, table_deal_contacts],
+  writes: [table_deals, table_deal_contacts, ...LOGGED],
   drives: [machine_deal.t.start],
   invokes: [],
   emits: [],
@@ -130,7 +131,7 @@ export const rpc_contacts_deals_move = defineRpc({
   output: DealView,
   errors: READ_ERRORS,
   reads: [...READS, table_org_deployments],
-  writes: [table_deals],
+  writes: [table_deals, ...LOGGED],
   drives: [machine_deal.t.reopen, machine_deal.t.engage, machine_deal.t.win, machine_deal.t.lose],
   invokes: [],
   emits: [],
@@ -149,7 +150,7 @@ export const rpc_contacts_deals_list = defineRpc({
     "at one `stage` (`deals-by-stage`), or one company's (`organization`, by `deals-by-organization`), or one person's " +
     "(`contact`, by `deal-contacts-by-contact`, Frappe's `get_linked_deals`). `limit` is 1 to 100 (25 when absent); " +
     "`after` is the opaque cursor the last page returned, bound to this Organization and filter: another's, or a forged " +
-    "one, is INVALID_INPUT. A connected head's sync reads its changes the same way.",
+    "one, is INVALID_INPUT.",
   concept: concept_contacts,
   kind: "query",
   who: WHO_CRM_READ,

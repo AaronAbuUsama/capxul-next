@@ -7,9 +7,10 @@
 // the caller's Safe wears the Organization's Books hat (organizations' org-deployments names the
 // hat, indexing's hat-wearers says who wears it; shared decision responsibilities.keepers).
 //
-// The chart is ERPNext's Account tree (books.chart-tree): a connected head adds, renames and
-// archives accounts by calling these same rpcs as the Organization's agent, so Capxul assigns every
-// code and id and the head's chart is a copy of Capxul's, never a second chart (books.sync). Every
+// The chart is ERPNext's Account tree (books.chart-tree): an account added, renamed or archived in a
+// connected head is pulled by books' head sync and applied through these same checks, so Capxul
+// assigns every code and id and the head's chart is a copy of Capxul's, never a second chart
+// (books.sync). Every
 // rpc that records a fact takes the Organization's next feed number (books.feed), so each writes
 // book-companies.
 
@@ -38,6 +39,7 @@ import {
   table_book_annotations,
   table_book_companies,
   table_book_cost_centers,
+  table_book_document_vouchers,
   table_book_facts,
 } from "./data.ts";
 
@@ -90,22 +92,23 @@ export const rpc_books_accounts_import = defineRpc({
     "with its Frappe account type, Capxul's 4999, 6999 and 3990, and one Safe account per asset (type Bank, in the " +
     "token's currency, frozen to all but Capxul): 1010 for the first settlement asset and the next free code for each " +
     "other asset the Organization's money facts already moved, so the money recorded before the chart posts at once " +
-    "(books.facts-without-chart). It makes the cost-centre root and Main, the Company's default, and sets the books' " +
-    "time zone (default UTC) and fiscal year start (default 01-01), fixed from then on (books.company-settings). The " +
-    "books are born `open` if they had not begun, then `import`ed. Each account and cost centre is a fact with its feed " +
-    "number. Nothing is scheduled: there is no backfill.",
+    "(books.facts-without-chart). It makes the cost-centre root and Main, the Company's default, and copies the " +
+    "Organization's currency, time zone and fiscal year start into the books, fixed from then on " +
+    "(books.company-settings); a currency Capxul cannot value (no USD price pair) is INVALID_INPUT " +
+    "`currency_not_priced`. The books are born `open` if they had not begun, then `import`ed. Each account and cost " +
+    "centre is a fact with its feed number. Nothing is scheduled: there is no backfill.",
   was: [`${OPS}/import.ts:13`, `${OLD}/accounts/writes/chart.ts:32`, `${OLD}/facts/writes/backfill.ts:86`, `${ROWS}/operations.ts:82`],
   concept: concept_books,
   kind: "mutation",
   who: KEEPER_WHO,
-  input: Schema.Struct({ orgId: S, template: S, timeZone: opt(S), fiscalYearStart: opt(S) }),
+  input: Schema.Struct({ orgId: S, template: S }),
   output: Schema.Struct({
     template: Schema.Literal("us-services"),
     added: N,
     protected: Schema.Array(S),
     safeAccounts: Schema.Array(Schema.Struct({ code: S, accountId: S, safe: S, asset: S })),
     costCenter: Schema.Struct({ costCenterId: S, name: S }),
-    currency: Schema.Literal("USD"),
+    currency: S,
     timeZone: S,
     fiscalYearStart: S,
     basis: Schema.Literal("cash"),
@@ -158,18 +161,37 @@ export const rpc_books_accounts_add = defineRpc({
   about:
     "One new active ledger account, with its `account_created` fact. A sub-account takes its parent's type and, without " +
     "a code, the next code in the parent's ten; its parent becomes a group if it was a ledger account, which needs the " +
-    "parent to hold no postings (no money fact posts to it and no annotation names it: WRONG_STATE `parent_has_postings`), " +
-    "since in ERPNext only a ledger account takes GL Entries (books.chart-tree). A top-level account sits directly under " +
+    "parent to hold no postings (no money row's voucher posts to it, no annotation names it and no document voucher has " +
+    "a line on it: WRONG_STATE `parent_has_postings`), and to have no role and no Frappe account type (WRONG_STATE " +
+    "`parent_protected`), since in ERPNext only a ledger account takes GL Entries and an account with a type or a " +
+    "Company default never becomes a group (books.chart-tree). A top-level account sits directly under " +
     "its type's group, needs a type and takes the next free hundred in its range. A given code must be free among active " +
-    "accounts and start with the type's digit.",
+    "accounts and start with the type's digit. An `accountType` must fit the root (Bank, Cash or Receivable under " +
+    "Assets for money outside Capxul, Payable under Liabilities), else INVALID_INPUT; a Safe account is only ever the " +
+    "books' own.",
   was: [`${OPS}/add.ts:13`, `${OLD}/writes.ts:91`, `${OLD}/rules.ts:1`, `${ROWS}/operations.ts:89`],
   concept: concept_books,
   kind: "mutation",
   who: KEEPER_WHO,
-  input: Schema.Struct({ orgId: S, name: S, type: opt(AccountType), under: opt(S), code: opt(S) }),
+  input: Schema.Struct({
+    orgId: S,
+    name: S,
+    type: opt(AccountType),
+    under: opt(S),
+    code: opt(S),
+    /** Frappe's account type, for a head's new account (Tax, Receivable…); none by default. */
+    accountType: opt(FrappeAccountType),
+  }),
   output: BookAccount,
   errors: [...GUARD_ERRORS, error_INVALID_INPUT, error_WRONG_STATE],
-  reads: [...KEEPER_READS, table_book_companies, table_book_accounts, table_book_annotations, table_book_facts],
+  reads: [
+    ...KEEPER_READS,
+    table_book_companies,
+    table_book_accounts,
+    table_book_annotations,
+    table_book_facts,
+    table_book_document_vouchers,
+  ],
   writes: [table_book_companies, table_book_accounts, table_book_facts],
   drives: [machine_book_account.t.add],
   invokes: [],

@@ -152,7 +152,7 @@ export const rpc_documents_reading_render = defineRpc({
     "(an integrity failure is UNKNOWN, as for `get`). An envelope's fields are laid out with the current public names of " +
     "the parties it names, read then: an Organization by its name, a person or an agent by their display name, else " +
     "their handle, else their Safe shortened; never a Party id and never a mailbox, so an employer and an employee on " +
-    "an agreement's terms read as who they are. A receipt file renders only an escaped summary (its media type, file " +
+    "a payslip or an agreement's terms read as who they are. A receipt file renders only an escaped summary (its media type, file " +
     "name and size) and none of its bytes. The document stylesheet comes with it, its font embedded, so the PDF prints " +
     "with no network. The stored bytes never change: names are layout, not content.",
   concept: concept_documents,

@@ -16,11 +16,12 @@ export const rpc_organizations_heads_ring = defineRpc({
   title: "A connected head rings: something changed there",
   about:
     "The head's doorbell route. The Capxul app for Frappe posts it after a change to a synced DocType commits, signed " +
-    "with the secret the connection gave it (HMAC over the head id and timestamp, five minutes of skew; else " +
-    "NOT_AUTHENTICATED, nothing written). It carries no data: one transaction stamps the live connection's `rung_at`, " +
-    "which wakes every app concept's sync of that head to pull the head's changes with Capxul's own key " +
-    "(organizations.head-doorbell). A forged or repeated ring only causes an extra pull. A ring for a disconnected or " +
-    "unknown head is answered the same as an accepted one and changes nothing, so it tells a caller nothing.",
+    "with the secret the connection gave it (HMAC-SHA256 over the head id and timestamp, checked with the connection's " +
+    "unsealed ring secret, five minutes of skew on the one clock). It carries no data: one transaction stamps the live " +
+    "connection's `rung_at`, which wakes every app concept's sync of that head to pull the head's changes with " +
+    "Capxul's own key (organizations.head-doorbell). A repeated ring only causes an extra pull. A ring for an unknown " +
+    "or disconnected head, or whose signature or time does not check, is NOT_AUTHENTICATED alike and writes nothing, " +
+    "so a caller cannot learn which heads exist.",
   concept: concept_organizations,
   kind: "mutation",
   who: "frappe-head: the Capxul app on a connected head, signing with its connection's ring secret; no session is involved.",

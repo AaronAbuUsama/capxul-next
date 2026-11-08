@@ -3,8 +3,8 @@
 // Organization keeps leads. Every member reads them; only a member whose Safe wears the People hat
 // changes them, as with the contact book (decision contacts.crm-permission). These are new
 // capabilities, not among the 215: the Core SDK reaches them for the Organization's agents, and
-// their CLI commands wait on a decision (contacts.crm-capabilities). Nothing here is signed and no
-// money moves.
+// their CLI commands wait on a decision (contacts.crm-capabilities); a connected head's edits come
+// in through contacts.head.sync, by the same rules. Nothing here is signed and no money moves.
 
 import { Schema } from "effect";
 import { budget, defineRpc } from "../../../packages/book/src/index.ts";
@@ -22,7 +22,9 @@ import {
   LeadStage,
   machine_deal,
   machine_lead,
+  table_contact_changes,
   table_contacts,
+  table_crm_settings,
   table_deal_contacts,
   table_deals,
   table_leads,
@@ -55,8 +57,8 @@ export const LeadView = Schema.Struct({
   industry: NullOr(S),
   territory: NullOr(S),
   no_of_employees: NullOr(Schema.Literals(EMPLOYEE_RANGES)),
+  /** In the Organization's currency: CRM Lead keeps none of its own. */
   annual_revenue: NullOr(S),
-  currency: NullOr(S),
   source: NullOr(S),
   /** The member who works it: their PartyId. */
   lead_owner: NullOr(S),
@@ -82,7 +84,6 @@ const LeadFields = Schema.Struct({
   territory: Schema.optionalKey(NullOr(S)),
   no_of_employees: Schema.optionalKey(NullOr(Schema.Literals(EMPLOYEE_RANGES))),
   annual_revenue: Schema.optionalKey(NullOr(S)),
-  currency: Schema.optionalKey(NullOr(S)),
   source: Schema.optionalKey(NullOr(S)),
   lead_owner: Schema.optionalKey(NullOr(S)),
 });
@@ -99,10 +100,13 @@ export const WHO_CRM_WRITE =
   "agent of the Organization's given the hat. Any other member reads but is ROLE_PERMISSION_DENIED with nothing written.";
 const GUARD =
   "It first checks the caller's Seat wears the People hat (the deployment's people hat id, wearers from indexing), " +
-  "else ROLE_PERMISSION_DENIED and nothing is written. ";
+  "else ROLE_PERMISSION_DENIED and nothing is written. Each record it changes is appended to `contact-changes` and " +
+  "takes that seq as its `version` (contacts.change-log). ";
+/** What a CRM write writes besides its records: the change log and its counter. */
+export const LOGGED = [table_contact_changes, table_crm_settings];
 const FIELD_RULES =
   "Each text is trimmed and at most 140 characters (a mailbox well formed and at most 254, a website at most 255), " +
-  "`annual_revenue` a non-negative decimal given with `currency` (3 to 10 capitals), `lead_owner` the PartyId of an " +
+  "`annual_revenue` a non-negative decimal in the Organization's currency (CRM Lead has no currency field), `lead_owner` the PartyId of an " +
   "active Seat of the Organization and never the lead's own mailbox (Frappe's `validate_email`); a bad value is " +
   "INVALID_INPUT naming the field, and nothing is written. ";
 
@@ -124,7 +128,7 @@ export const rpc_contacts_leads_save = defineRpc({
   output: LeadView,
   errors: WRITE_ERRORS,
   reads: WRITE_READS,
-  writes: [table_leads],
+  writes: [table_leads, ...LOGGED],
   drives: [machine_lead.t.capture],
   invokes: [],
   emits: [],
@@ -140,12 +144,12 @@ export const rpc_contacts_leads_move = defineRpc({
   title: "Move a lead to another status",
   about:
     GUARD +
-    "Sets the lead's status to one of Frappe CRM's default lead statuses other than Converted. The status's type names " +
-    "the stage: within the same stage only `status` changes, with no transition; to another stage it drives `reopen`, " +
-    "`engage`, `qualify` or `lose`. A lost status needs a `lost_reason` from Frappe's list, and `Other` also needs " +
-    "`lost_notes` (Frappe's `validate_lost_reason`), else INVALID_INPUT; moving out of lost clears them. Converted is " +
-    "reached only by `contacts.leads.convert`, so naming it is INVALID_INPUT, and a converted lead is WRONG_STATE. The " +
-    "same status again returns the lead unchanged. Returns the lead.",
+    "Sets the lead's status to one of Frappe CRM's default lead statuses. The status's type names the stage: within the " +
+    "same stage only `status` changes, with no transition; to another stage it drives `reopen`, `engage`, `qualify` or " +
+    "`lose`. Converted is a won status like Qualified, as Frappe's defaults type it; it makes no deal, which only " +
+    "`contacts.leads.convert` does. A lost status needs a `lost_reason` from Frappe's list, and `Other` also needs " +
+    "`lost_notes` (Frappe's `validate_lost_reason`), else INVALID_INPUT; moving out of lost clears them. A converted " +
+    "lead is WRONG_STATE. The same status again returns the lead unchanged. Returns the lead.",
   concept: concept_contacts,
   kind: "mutation",
   who: WHO_CRM_WRITE,
@@ -159,7 +163,7 @@ export const rpc_contacts_leads_move = defineRpc({
   output: LeadView,
   errors: WRITE_ERRORS,
   reads: WRITE_READS,
-  writes: [table_leads],
+  writes: [table_leads, ...LOGGED],
   drives: [machine_lead.t.reopen, machine_lead.t.engage, machine_lead.t.qualify, machine_lead.t.lose],
   invokes: [],
   emits: [],
@@ -176,18 +180,22 @@ export const rpc_contacts_leads_convert = defineRpc({
   about:
     GUARD +
     "Frappe CRM's `convert_to_deal`, in one transaction that locks the lead first. A lost lead is WRONG_STATE (Frappe: " +
-    "'Cannot convert a lead with status' of type Lost); a converted one answers the deal it made (`deals-by-lead`), so a " +
-    "retry never makes a second. The person: the `contact` entry given (a Contact of this book), else the lead's mailbox " +
+    "'Cannot convert a lead with status' of type Lost); a converted one answers the deal it made (its `deal_id`, read " +
+    "under the lock: Frappe's 'Return Existing'), so a retry never makes a second. The person: the `contact` entry given " +
+    "(a Contact of this book), else the lead's mailbox " +
     "resolved through `parties.resolve-recipient` (named in the directory if new, as `contact add` by email) and the " +
     "book's entry for that Party or a new one born from it, else, with no mailbox, a new private Contact; a new entry " +
     "takes the lead's name as its label and its numbers and job title as details. The company: the `organization` entry " +
-    "given (a CRM Organization of this book), else, when the lead names a company, a new private CRM Organization " +
-    "labelled with it and holding its website, industry, territory, size and revenue; a typed name never merges into an " +
-    "existing entry by itself. The person's entry takes the company when it has none. Then the deal is born (`start`): " +
+    "given (a CRM Organization of this book), else, when the lead names a company, the book's CRM Organization entry " +
+    "whose shown name is that name (trimmed, case aside, as Frappe's `create_organization` finds one by " +
+    "`organization_name`), else a new private CRM Organization labelled with it and holding its website, industry, " +
+    "territory, size and revenue (with no currency, as Frappe copies it). The person's entry takes the company when it " +
+    "has none. Then the deal is born (`start`): " +
     "status Qualification, the company, the person as its primary, the lead, its owner as `deal_owner`, its source, and " +
     "the `deal` fields given (`deal_value`, `expected_deal_value`, `currency`, `expected_closure_date`). Last the lead " +
-    "drives `convert`, status Converted, with the deal's id. A given entry that is not in this book, or of the other " +
-    "doctype, is INVALID_INPUT and nothing is written, the named Party included. Returns the lead and the deal.",
+    "drives `convert` with the deal's id, status Qualified (Frappe's `mark_converted`). A given entry not in this " +
+    "book, or of the other doctype, is INVALID_INPUT and nothing is written, the named Party included. Returns the lead " +
+    "and the deal.",
   concept: concept_contacts,
   kind: "mutation",
   who: WHO_CRM_WRITE,
@@ -206,7 +214,7 @@ export const rpc_contacts_leads_convert = defineRpc({
   output: Schema.Struct({ lead: LeadView, deal: S, contact: S, organization: NullOr(S) }),
   errors: WRITE_ERRORS,
   reads: [...WRITE_READS, table_contacts, table_deals, table_parties],
-  writes: [table_leads, table_deals, table_deal_contacts, table_contacts],
+  writes: [table_leads, table_deals, table_deal_contacts, table_contacts, ...LOGGED],
   drives: [machine_lead.t.convert, machine_deal.t.start],
   invokes: [procedure_parties_resolve_recipient],
   emits: [],
@@ -224,7 +232,7 @@ export const rpc_contacts_leads_list = defineRpc({
     "One page of the Organization's leads, newest change first (`leads-by-activity`), or only those at one `stage` " +
     "(`leads-by-stage`), as Frappe CRM's list and kanban read them. `limit` is 1 to 100 (25 when absent); `after` is the " +
     "opaque cursor the last page returned, bound to this Organization and stage: another's, or a forged one, is " +
-    "INVALID_INPUT. A connected head's sync reads its changes the same way.",
+    "INVALID_INPUT.",
   concept: concept_contacts,
   kind: "query",
   who: WHO_CRM_READ,

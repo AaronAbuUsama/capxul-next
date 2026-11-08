@@ -1,7 +1,7 @@
 // The four frozen operations documents owns (OPERATION_OWNERS): `document get`, `verify`, `render` and
 // `export`. Text comes from the frozen book through frozenText, never retyped. Every acceptance claim is
-// the frozen one word for word except `document render` #1, rewritten because the target stores no
-// payslip (decision documents.acceptance-rewrites).
+// the frozen one word for word, `document render` #1 included now that payroll stores payslips again
+// (decisions documents.acceptance-rewrites, documents.payslip-kind).
 //
 // The CLI checks both hashes before it calls anything: two 32-byte 0x hex values in any case, else
 // CLI_USAGE. Then it calls one SDK method: the rpc for `get` and `verify`, the flow for `render` and
@@ -55,12 +55,6 @@ const frozenLine = (id: FrozenId, n: number) => (frozen[id].acceptance as readon
 const kept = (id: FrozenId, n: number, observes: string) => {
   const a = frozenLine(id, n);
   return { claim: a.claim, observes, was: [...a.was] };
-};
-
-/** Acceptance line n rewritten as an outcome: the old claim and its citation move to `was`. */
-const rewritten = (id: FrozenId, n: number, claim: string, observes: string) => {
-  const a = frozenLine(id, n);
-  return { claim, observes, was: [a.claim, ...a.was] };
 };
 
 // ── document get ────────────────────────────────────────────────────────────────────────────
@@ -178,13 +172,12 @@ export const operation_document_render = defineOperation({
   priority: "normal",
   implementedBy: flow_client_payment_documents_render,
   acceptance: [
-    rewritten(
+    kept(
       "document.render",
       1,
-      "A document that names an employer and an employee (a payslip, or an agreement's terms) renders their names, not " +
-        "their Party IDs.",
-      `cli: in \`${WORLD_DOCUMENTS}\`, \`document render\` of a salary agreement's terms saves a PDF whose HTML copy ` +
-        "names the Organization by its name and the payee by their display name, and contains no `party_` id.",
+      `cli: in \`${WORLD_DOCUMENTS}\`, \`document render\` of a submitted run's payslip saves a PDF whose HTML copy ` +
+        "names the Organization by its name and the employee by their display name, and contains no `party_` id; the " +
+        "same holds for a salary agreement's terms.",
     ),
     kept(
       "document.render",

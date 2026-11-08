@@ -6,7 +6,7 @@
 
 import { budget, defineWorkflow } from "../../../packages/book/src/index.ts";
 import { concept_payroll } from "../shared/foundation.ts";
-import { contract_agreements, integration_chain_rpc, integration_indexer } from "../shared/external.ts";
+import { contract_agreements, integration_chain_rpc, integration_frappe_head, integration_indexer } from "../shared/external.ts";
 import { procedure_approvals_withdraw } from "../approvals/procedures.ts";
 import { table_approvals } from "../approvals/data.ts";
 import { table_board_proposals } from "../board/data.ts";
@@ -17,15 +17,25 @@ import {
   machine_salary_slip,
   machine_salary_structure,
   machine_salary_structure_assignment,
+  machine_payroll_entry,
   table_agreement_writes,
   table_agreements,
   table_employees,
+  table_payroll_changes,
+  table_payroll_entries,
+  table_payroll_head_syncs,
   table_salary_components,
   table_salary_slips,
   table_salary_structure_assignments,
   table_salary_structures,
 } from "./data.ts";
 import { table_parties } from "../parties/data.ts";
+import { procedure_parties_resolve_recipient } from "../parties/procedures.ts";
+import { procedure_documents_store } from "../documents/procedures.ts";
+import { table_budgets } from "../budgets/data.ts";
+import { event_org_head_transitioned, machine_org_head, table_org_deployments, table_org_heads, table_org_members, table_organizations } from "../organizations/data.ts";
+import { table_hat_wearers } from "../indexing/data.ts";
+import { LOGGED } from "./employees.ts";
 import {
   rpc_payroll_holders_change,
   rpc_payroll_holders_end,
@@ -145,8 +155,9 @@ export const workflow_payroll_agreements_lifecycle = defineWorkflow({
     {
       name: "hire-and-assign",
       about:
-        "At agreement.accept for a person payee: their Employee (by Party) or a new one hired at the block's day; the " +
-        "agreement component and structure, made at the Organization's first acceptance; an assignment from the start on the rate.",
+        "After agreement.accept commits, for a person payee: their live Employee, or one hired at the block's day " +
+        "(payroll.one-live-employee); the agreement component and structure at the first acceptance; an assignment from " +
+        "the start on the rate.",
     },
     { name: "reassign", about: "A landed RateChanged assigns the agreement structure anew from its effective day, on the new rate." },
     {
@@ -155,7 +166,12 @@ export const workflow_payroll_agreements_lifecycle = defineWorkflow({
         "A landed collection to a person records one paid salary slip (salary-slip.record_collection): its window, the " +
         "collected amount as its one earning, its payment id, transaction and block time, and the terms document.",
     },
-    { name: "let-go", about: "At agreement.finish: the Employee leaves on the last day paid when no other agreement or assignment pays them." },
+    {
+      name: "let-go",
+      about:
+        "At agreement.finish: the Employee leaves on the last day paid when nothing else pays them and the leave guard " +
+        "allows it; else they stay, for a People hat wearer to let go.",
+    },
     { name: "close", about: "Ends the instance once nothing more can happen; an ended agreement's last collection is read with availableOf." },
   ],
   reads: [
@@ -178,6 +194,7 @@ export const workflow_payroll_agreements_lifecycle = defineWorkflow({
     table_salary_structures,
     table_salary_structure_assignments,
     table_salary_slips,
+    ...LOGGED,
   ],
   drives: [
     a.offer,
@@ -209,13 +226,124 @@ export const workflow_payroll_agreements_lifecycle = defineWorkflow({
   ],
   chain: [contract_agreements.f.availableOf],
   idempotency:
-    "One instance per agreement_id. Each Agreements event applies once, by its log (block hash and log index); each write " +
-    "is decided once, by write_id; a timer fires once per agreement and date, and a status the machine has left is not entered again. " +
-    "A collection's slip is recorded once, by its write (salary-slips by_write).",
+    "One agreement_id per instance. Each Agreements event applies once, by its log (block hash, log index); each write " +
+    "is decided once, by write_id, and makes at most one slip (by_write); a timer fires once per agreement and date; a " +
+    "status the machine has left is not entered again.",
   timeoutMs: 120_000,
   retries: { max: 5, backoff: "exponential" },
   compensation:
     "None: it writes only payroll's own rows, from chain facts read at the finality depth, which Capxul never undoes. A step " +
     "that fails after its retries leaves the agreement where the last committed step put it, and the step runs again on resume.",
   budget: budget("chain-settle"),
+});
+
+// ── the head sync ───────────────────────────────────────────────────────────────────────────
+
+const DAY = 86_400_000;
+const e = machine_payroll_entry.t;
+const s = machine_salary_slip.t;
+const SYNCED = [
+  table_employees,
+  table_salary_components,
+  table_salary_structures,
+  table_salary_structure_assignments,
+  table_payroll_entries,
+  table_salary_slips,
+];
+
+export const workflow_payroll_head_sync = defineWorkflow({
+  id: "payroll.head.sync",
+  title: "Sync the Organization's payroll with its connected head",
+  about:
+    "Started when a head connection is confirmed, one instance per connection, for as long as the head is connected " +
+    "(payroll.head-sync). The head never writes into Capxul: it rings, and this process calls it with Capxul's key " +
+    "(organizations.head-doorbell). Push: it pages `payroll-changes` after `pushed_seq` and writes each changed record " +
+    "as it stands (`upsertDocs`, in seq order, by `capxul_id`, with its version): Employees, components, submitted " +
+    "structures and assignments, a submitted Payroll Entry Capxul computed (never a draft), each slip's payment facts " +
+    "(`capxul_status`, payment id, transaction, block time), and an agreement's Employee, assignment and collection " +
+    "slips, read-only there. For a Capxul run the head's Capxul app lets Frappe HR make its own draft slips, compares " +
+    "them to the cent and submits each alone only when they agree, never through Submit Salary Slip, which would post " +
+    "a second accrual (payroll.one-computer-per-run). Pull: it reads the head's changes after `pulled_change` " +
+    "(`listChanges`) and applies each as the head's user, a member matched by mailbox whose Safe wears the People hat, " +
+    "through payroll's own checks: an Employee born there is hired from its `personal_email` through " +
+    "`parties.resolve-recipient`; edits to shared fields apply; a component, structure or assignment born there is " +
+    "born here; a Salary Withholding withholds or releases; a Payroll Entry the head submitted is taken in by " +
+    "payroll.import-run; a head run's cancel cancels it here while nothing of it is paid. Money and identity are " +
+    "Capxul's (organizations.head-ownership): a head change to a Party, Safe, pay mailbox, budget, a Capxul run's " +
+    "figures, a payment fact or an agreement's records is refused and Capxul's version pushed back, as is a change on " +
+    "an older version, by a user without the People hat, or one the checks refuse. It wakes on a change here, a ring, " +
+    "and daily; while the head is failing it waits; it ends when the head is disconnected.",
+  concept: concept_payroll,
+  priority: "normal",
+  trigger: { transition: machine_org_head.t.confirm },
+  instance: { per: table_payroll_head_syncs },
+  waits: [
+    {
+      name: "capxul-change",
+      for: "signal",
+      key: [{ on: [table_payroll_changes], props: ["org_id"] }],
+      about: "A payroll record changed here: push it.",
+    },
+    {
+      name: "ring",
+      for: "signal",
+      key: [{ on: [table_org_heads], props: ["org_id", "head_id"] }],
+      about: "The head rang its doorbell (organizations.heads.ring stamped the connection): pull its changes.",
+    },
+    { name: "catch-up", for: "timer", timeoutMs: DAY, about: "A day after the last pull: pull, in case a ring was lost." },
+    {
+      name: "disconnected",
+      for: "signal",
+      key: [{ on: [event_org_head_transitioned], props: ["org_id", "head_id"] }],
+      about: "The head stopped failing, started failing, or was disconnected: carry on, wait, or end.",
+    },
+  ],
+  steps: [
+    { name: "push", about: "Page payroll-changes after pushed_seq; upsertDocs in seq order, drafts left out; record the head's names; advance pushed_seq." },
+    { name: "pull", about: "listChanges after pulled_change; apply each through payroll's checks, or push back a conflict or a refusal; advance pulled_change." },
+    { name: "import", about: "A Payroll Entry the head submitted: take it in with its slips and payslips by payroll.import-run, once by its head name." },
+    { name: "await", about: "Wait for a change here, a ring, the daily catch-up or the connection's next transition." },
+  ],
+  reads: [
+    table_org_heads,
+    table_organizations,
+    table_org_members,
+    table_org_deployments,
+    table_hat_wearers,
+    table_parties,
+    table_budgets,
+    table_payroll_head_syncs,
+    ...LOGGED,
+    ...SYNCED,
+  ],
+  writes: [table_payroll_head_syncs, ...LOGGED, ...SYNCED],
+  drives: [
+    machine_employee.t.hire,
+    machine_employee.t.suspend,
+    machine_employee.t.deactivate,
+    machine_employee.t.reinstate,
+    machine_employee.t.leave,
+    machine_salary_structure.t.submit,
+    machine_salary_structure.t.cancel,
+    machine_salary_structure_assignment.t.submit,
+    machine_salary_structure_assignment.t.cancel,
+    e.import,
+    e.cancel,
+    s.import,
+    s.import_withheld,
+    s.withhold,
+    s.release,
+    s.cancel,
+  ],
+  invokes: [procedure_parties_resolve_recipient, procedure_documents_store],
+  emits: [],
+  calls: [integration_frappe_head.c.upsertDocs, integration_frappe_head.c.listChanges],
+  chain: [],
+  idempotency:
+    "One process per head connection (`payroll-head:<orgId>:<headId>`). A push is idempotent by version (the head " +
+    "answers unchanged); a pulled change already applied is skipped by its head name and time; a head's Payroll Entry " +
+    "is taken in once, by its unique head name.",
+  timeoutMs: 3650 * DAY,
+  retries: { max: 8, backoff: "exponential" },
+  budget: budget("background"),
 });

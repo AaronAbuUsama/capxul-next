@@ -2,15 +2,16 @@
 // and loss and the balance sheet, and the reconcile of the books against what the chain says the
 // Safe holds now. The ledger is ERPNext's GL Entry lines: those of Capxul's own vouchers, derived
 // from the facts by the pure, versioned posting rules (`frappe-v1`, books.vouchers), and those of
-// the vouchers a connected head posted (book-head-vouchers), so with a head these reports equal the
-// head's (books.head-vouchers).
+// the document vouchers whose author gave their lines (book-document-vouchers: a connected head's
+// own, and a payroll run's accrual), so with a head these reports equal the head's
+// (books.head-vouchers, books.payroll-accrual).
 //
 // Posting: a voucher's Safe line moves its Safe account; its other side is the row's annotation now
 // (account, party, cost centre), else its direction's not-decided account at Main, so a
 // recategorization reposts the voucher and moves every report at once (books.account-at-posting). A
 // money fact with no USD value posts no voucher: it is counted under `unpriced` and left out of
-// every total. A chart fact posts nothing. A day is the books' time zone's (book-companies), and a
-// line counts by its posting date. The profit and loss leaves out a Period Closing Voucher's lines;
+// every total. A chart fact posts nothing. Amounts are in the Company's currency and a day is the
+// books' time zone's (book-companies, books.company-settings); a line counts by its posting date. The profit and loss leaves out a Period Closing Voucher's lines;
 // the balance sheet keeps them, so current earnings are what no closing has moved into equity yet.
 
 import { Schema } from "effect";
@@ -36,7 +37,7 @@ import {
   table_book_assets,
   table_book_companies,
   table_book_facts,
-  table_book_head_vouchers,
+  table_book_document_vouchers,
 } from "./data.ts";
 
 const OLD = "packages/backend/src/books";
@@ -58,11 +59,11 @@ const POSTED_READS = [
   table_book_accounts,
   table_book_annotations,
   table_book_facts,
-  table_book_head_vouchers,
+  table_book_document_vouchers,
 ] as const;
 
 const AccountRef = Schema.Struct({ accountId: S, code: S, name: S });
-/** `cash` while every voucher is Capxul's; `accrual` once a head has posted one (an invoice, an accrual). */
+/** `cash` while every voucher is a money voucher; `accrual` once a document voucher exists (a head's invoice or accrual, a payroll run's accrual). */
 export const Rules = Schema.Struct({ basis: Schema.Literals(["cash", "accrual"]), version: S });
 const Unpriced = Schema.Struct({ facts: Schema.Int, assets: Schema.Array(S) });
 const Section = Schema.Struct({
@@ -85,6 +86,7 @@ export const rpc_books_reports_trial_balance = defineRpc({
   input: Schema.Struct({ orgId: S, asOf: opt(N) }),
   output: Schema.Struct({
     rules: Rules,
+    currency: S,
     asOf: N,
     lines: Schema.Array(
       Schema.Struct({ account: AccountRef, type: AccountType, debit: S, credit: S, holds: NullOr(Schema.Struct({ asset: S, units: S })) }),
@@ -118,6 +120,7 @@ export const rpc_books_reports_profit_and_loss = defineRpc({
   input: Schema.Struct({ orgId: S, from: N, to: N }),
   output: Schema.Struct({
     rules: Rules,
+    currency: S,
     from: N,
     to: N,
     sections: Schema.Array(Section),
@@ -151,6 +154,7 @@ export const rpc_books_reports_balance_sheet = defineRpc({
   input: Schema.Struct({ orgId: S, asOf: opt(N) }),
   output: Schema.Struct({
     rules: Rules,
+    currency: S,
     asOf: N,
     sections: Schema.Array(Section),
     currentEarnings: S,

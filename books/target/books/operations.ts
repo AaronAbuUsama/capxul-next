@@ -12,6 +12,10 @@
 //
 // Worlds (books.worlds): org-without-chart, org-with-chart, org-with-chart-and-added-token,
 // org-with-chart-and-node-down, signed-out.
+//
+// The books are in ERPNext accounting's shape (books.frappe-shape): every claim below still holds
+// word for word on the Account tree, the vouchers and the gap-free feed; only the observations that
+// named the old chart event change (books.acceptance-rewrites).
 
 import { Schema } from "effect";
 import { budget, defineOperation, type Ref } from "../../../packages/book/src/index.ts";
@@ -94,7 +98,7 @@ const SDK = "packages/sdk/src/books";
 
 const AccountRef = Schema.Struct({ accountId: S, code: S, name: S });
 const Unpriced = Schema.Struct({ facts: Schema.Int, assets: Schema.Array(S) });
-const Rules = Schema.Struct({ basis: Schema.Literal("cash"), version: S });
+const Rules = Schema.Struct({ basis: Schema.Literals(["cash", "accrual"]), version: S });
 const Section = Schema.Struct({
   type: AccountType,
   rows: Schema.Array(Schema.Struct({ account: AccountRef, parent: NullOr(S), amount: S, total: S })),
@@ -145,19 +149,19 @@ export const operation_org_books_accounts_import = defineOperation({
       "org.books.accounts.import",
       2,
       "The import is reported once, after it commits.",
-      "trace: one book_chart_transitioned (transition import) for the import.",
+      "trace: one book_company_transitioned with transition import for the import.",
     ),
     rewrite(
       "org.books.accounts.import",
       3,
       "A second import is refused and reports nothing more.",
-      "cli: WRONG_STATE `already_set_up`; trace: no second book_chart_transitioned; world: no change.",
+      "cli: WRONG_STATE `already_set_up`; trace: no second book_company_transitioned with transition import; world: no change.",
     ),
     rewrite(
       "org.books.accounts.import",
       4,
       "A Seat without Manage books, an outsider, the books gate off and a call with no session are each refused and report nothing.",
-      "cli: ROLE_PERMISSION_DENIED, ROLE_PERMISSION_DENIED, FEATURE_NOT_AVAILABLE and NOT_AUTHENTICATED; trace: no book_chart_transitioned; world: no change.",
+      "cli: ROLE_PERMISSION_DENIED, ROLE_PERMISSION_DENIED, FEATURE_NOT_AVAILABLE and NOT_AUTHENTICATED; trace: no book_company_transitioned; world: no change.",
     ),
   ],
   returns: rpc_books_accounts_import.output,
@@ -449,7 +453,11 @@ export const operation_org_books_export_quickbooks = defineOperation({
   priority: "normal",
   implementedBy: rpc_books_exports_quickbooks,
   acceptance: [
-    keep("org.books.export.quickbooks", 1, "cli: the two files in `--out`; their rows are the chart and one balanced entry per priced money fact in the window."),
+    keep(
+      "org.books.export.quickbooks",
+      1,
+      "cli: the two files in `--out`; their rows are the chart and one balanced entry per priced money fact in the window (and per document voucher, when the world has one).",
+    ),
     keep("org.books.export.quickbooks", 2, "cli: WRONG_STATE `no_chart` before the import, then the files."),
   ],
   returns: Schema.Struct({
@@ -508,6 +516,7 @@ export const operation_org_books_reports_balance_sheet = defineOperation({
   ],
   returns: Schema.Struct({
     rules: Rules,
+    currency: S,
     asOf: N,
     sections: Schema.Array(Section),
     currentEarnings: S,
@@ -535,6 +544,7 @@ export const operation_org_books_reports_profit_and_loss = defineOperation({
   ],
   returns: Schema.Struct({
     rules: Rules,
+    currency: S,
     from: N,
     to: N,
     sections: Schema.Array(Section),

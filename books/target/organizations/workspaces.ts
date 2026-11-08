@@ -41,7 +41,8 @@ export const rpc_organizations_workspaces_list = defineRpc({
   id: "organizations.workspaces.list",
   title: "The Organizations the caller can act in, and their unfinished setups",
   about:
-    "One page of the caller's current Seats (by principal), one row per Organization sorted by Organization ID, each with " +
+    "One page of the caller's current Seats (by principal; an agent's also by its Safe, so an FDE seated before its " +
+    "first sign-in finds its Organization), one row per Organization sorted by Organization ID, each with " +
     "its handle (its Party), its company Safe, its setup state, the caller's Seat and capabilities (the hats the Seat's " +
     "Safe wears, named through the deployment). Below every page, in full, the setups the caller founded that are not " +
     "ready: an unfinished setup gives no Seat and no access to the workspace. The founder's own email shows only to the " +

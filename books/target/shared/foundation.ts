@@ -206,7 +206,8 @@ export const component_frappe_app = defineComponent({
     "with ERPNext, Frappe HR and Frappe CRM, it is the head's half of the `frappe-head` integration and the one seam, with " +
     "no fork. It adds Custom Fields (`capxul_id`, `capxul_version` on every synced DocType; the Party id on Customer, " +
     "Supplier, Contact, Employee and CRM Organization), makes the fields Capxul owns read-only and refuses edits to them " +
-    "in a `validate` hook, records every change to a synced DocType in its own change list in the same database " +
+    "in a `validate` hook, writes only the fields and child rows Capxul sends (never clearing a field or row Capxul does " +
+    "not hold), records every change to a synced DocType in its own change list in the same database " +
     "transaction, answers the whitelisted methods Capxul calls, and rings Capxul's doorbell route after a change (a signed " +
     "ping that carries no data). It holds no Capxul key: Capxul reads it and writes to it. On a devnet it follows the one clock (devnet.followers): it sets `frappe.utils.now_datetime` " +
     "to the devnet's now and runs Frappe's due scheduled jobs at each stop.",

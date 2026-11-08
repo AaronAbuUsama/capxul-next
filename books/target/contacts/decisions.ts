@@ -4,7 +4,7 @@
 
 import { defineDecision } from "../../../packages/book/src/index.ts";
 import { concept_contacts, concept_parties } from "../shared/foundation.ts";
-import { table_org_deployments, table_org_members } from "../organizations/data.ts";
+import { machine_org_head, table_org_deployments, table_org_heads, table_org_members } from "../organizations/data.ts";
 import { table_parties } from "../parties/data.ts";
 import { procedure_parties_resolve_recipient } from "../parties/procedures.ts";
 import {
@@ -14,11 +14,15 @@ import {
   machine_contact,
   machine_deal,
   machine_lead,
+  table_contact_changes,
+  table_contact_head_syncs,
   table_contacts,
+  table_crm_settings,
   table_deal_contacts,
   table_deals,
   table_leads,
 } from "./data.ts";
+import { workflow_contacts_head_sync } from "./processes.ts";
 import {
   rpc_contacts_book_add,
   rpc_contacts_book_get,
@@ -313,8 +317,9 @@ export const decision_contacts_not_in_book_code = defineDecision({
   why:
     "The frozen refusals of all three say INVALID_INPUT when 'the party is not in the book', and `contact unhide` #1 says " +
     "they refuse it, with no mode. Refusal codes are surface, so the book wins (P10 rung 1); the old CLI's terminal-only " +
-    "CLI_USAGE was a reviewer's finding, not a design. CLI_USAGE stays for what the CLI checks itself: a malformed PartyId, " +
-    "a missing ID or `--confirm` in a script, an empty `--label`.",
+    "CLI_USAGE was a reviewer's finding, not a design. CLI_USAGE stays for what the CLI checks itself: a malformed id " +
+    "(neither a PartyId nor a private entry's `contact_` id, which `contact list` now shows too), a missing ID or " +
+    "`--confirm` in a script, an empty `--label`.",
   source: by("apps/cli/src/commands/contact/internal/write.ts:40; docs/as-is/lane-reports/review-agent.json"),
   affects: [flow_client_account_address_book_label, flow_client_account_address_book_hide, flow_client_account_address_book_unhide, operation_contact_unhide],
 });
@@ -432,30 +437,33 @@ export const decision_contacts_acceptance_rewrites = defineDecision({
 
 export const decision_contacts_no_door_no_process = defineDecision({
   id: "contacts.no-door-no-process",
-  title: "Contacts has no procedures and no workflows",
+  title: "Contacts has no procedures, and one process: the head sync",
   question: "Does contacts need a door for other concepts or a durable process?",
   options: [
     {
-      label: "none",
+      label: "none-but-sync",
       text:
-        "No procedure and no workflow: concepts above read `contacts` and call its rpcs from their flows; every change is " +
-        "inside one rpc.",
+        "No procedure: concepts above read `contacts` and call its rpcs from their flows; every change to an entry, lead " +
+        "or deal is inside one rpc. One workflow, the CRM's sync with a connected head (contacts.head-sync), because it " +
+        "waits on the head for as long as the head is connected.",
     },
     {
       label: "door",
       text: "A `contacts.add-entry` procedure for banking to add a name-only contact inside its bank account save.",
     },
   ],
-  chosen: "none",
+  chosen: "none-but-sync",
   why:
     "A procedure needs a money fact (P4, rules.procedures); an entry is not one: if a saved bank account's contact entry " +
     "lagged or was missing, no money would move or be owned unaccounted for, since the account belongs to the Party, not " +
-    "the entry. So banking adds a contact through `contacts.book.add` (by the Party's id) from its own flow, and reads " +
-    "the table to find one. Short-lived rows have no process (rules.durable-processes), and membership is read, not " +
-    "copied, so nothing reacts to anything. Old parties' `recordContactEdges`, `ensureEmployedEdge` and the " +
-    "`emitRelationshipChanged` telemetry action are not ported (P2, P4, P7).",
+    "the entry; a lead or a deal is a forecast. So banking adds a contact through `contacts.book.add` (by the Party's id) " +
+    "from its own flow, and reads the table to find one. Entries, leads and deals are changed only inside an rpc and " +
+    "wait on nothing (rules.durable-processes), and membership is read, not copied, so nothing reacts to them. The head " +
+    "sync is different: it lives as long as the connection and waits on two systems, so it is a process. Old parties' " +
+    "`recordContactEdges`, `ensureEmployedEdge` and the `emitRelationshipChanged` telemetry action are not ported (P2, " +
+    "P4, P7).",
   source: by(`${P}/contacts/operations/emit-relationship-changed.ts:1; ${P}/accounts/README.md:26 (a new contact needs a name)`),
-  affects: [concept_contacts, table_contacts, table_leads, table_deals, rpc_contacts_book_add],
+  affects: [concept_contacts, table_contacts, table_leads, table_deals, rpc_contacts_book_add, workflow_contacts_head_sync],
 });
 
 export const decision_contacts_no_destinations = defineDecision({
@@ -582,4 +590,385 @@ export const decision_contacts_get_moved = defineDecision({
     "call with no list or `wait.person`) and the guided-get budget (p95 1,600 ms) pass to banking's record.",
   source: by("books/target/shared/foundation.ts (OPERATION_OWNERS contact.get); shared operations.contact-get-in-banking; A4; contact.get.yaml"),
   affects: [rpc_contacts_book_get, rpc_contacts_book_list, concept_contacts],
+});
+
+// ── the CRM in Frappe CRM's shapes (the crm lane, 8 November 2026) ───────────────────────────
+
+export const decision_contacts_frappe_shape = defineDecision({
+  id: "contacts.frappe-shape",
+  title: "Each Organization's CRM is Frappe CRM's doctypes, one table each",
+  question:
+    "Every Organization starts with a CRM, in Frappe CRM's shape, complete without a Frappe head and synced with one " +
+    "once it is connected. Frappe CRM keeps a person as a Contact (with Contact Email and Contact Phone rows), a company " +
+    "as a CRM Organization, a prospect as a CRM Lead, and a sale as a CRM Deal with its people in CRM Contacts. How does " +
+    "the contact book hold them?",
+  options: [
+    {
+      label: "doctype-tables",
+      text:
+        "One table per doctype, under Frappe's field names: `contacts` holds Contact and CRM Organization entries (a " +
+        "`doctype` column, since the frozen commands list, hide and label both alike), `leads` holds CRM Lead, `deals` " +
+        "CRM Deal and `deal-contacts` CRM Contacts. Each entry names its Party, the identity the global directory holds; " +
+        "everything the business knows about it (its mailboxes, numbers, title, company, website, industry, territory, " +
+        "size, revenue) stays in the owner's book. Statuses and lost reasons take Frappe CRM's install defaults; sources, " +
+        "industries and territories are free names (contacts.crm-statuses).",
+    },
+    {
+      label: "address-book-only",
+      text:
+        "Keep the address book as it was (a label and visibility per Party) and leave leads, deals and the business's " +
+        "fields to the Frappe head.",
+    },
+    {
+      label: "own-shape",
+      text: "A CRM in Capxul's own shape (a contact with free-form notes, an opportunity with its own stages), mapped to Frappe at the head.",
+    },
+  ],
+  chosen: "doctype-tables",
+  why:
+    "The CRM is one of the two apps every Organization starts with, and its data lives in Frappe's shapes from the first " +
+    "day whether or not a head is connected, so the address book alone is not enough: an Organization with no head would " +
+    "have no leads or deals. Taking the doctypes table for table, field for field, makes a head's sync a mapping of names " +
+    "and ids, never a transformation that could lose what one side holds, and makes Frappe's own rules the book's: a lead " +
+    "needs a name, a company or a mailbox; a lost status needs a reason; a won deal records when; one primary contact. " +
+    "Contact and CRM Organization share a table because the frozen commands treat every entry alike (one list, one id " +
+    "space, one hidden state), as Frappe CRM itself lists both beside each other; the rest are separate, as in Frappe. " +
+    "The two layers keep core check C14 fitting (the directory leaks nothing a CRM keeps private) and settle C15 (the " +
+    "address book extends to a CRM): the private half is here, the identity there. Only what the CRM needs on its own was " +
+    "taken: SLAs, communication status, products, enrichment and social links are left to the head, which can add them " +
+    "as its own fields.",
+  source: crmBy(`${CRM}/fcrm/doctype/crm_lead|crm_deal|crm_organization|crm_contacts/*.json; frappe/frappe@1a7ea577 frappe/contacts/doctype/contact/contact.json; docs/vision/erp.md (C14, C15)`),
+  affects: [
+    table_contacts, table_leads, table_deals, table_deal_contacts, machine_lead, machine_deal, rpc_contacts_book_record,
+    ...LEAD_RPCS, ...DEAL_RPCS, concept_contacts,
+  ],
+});
+
+export const decision_contacts_private_entries = defineDecision({
+  id: "contacts.private-entries",
+  title: "A company not on Capxul is a private entry until it has a Party",
+  question:
+    "The directory holds only identities Capxul can name and pay (parties.outside-companies), so a prospect company, a " +
+    "supplier paid only by bank or a person known only by phone has no Party. The CRM must still keep them. How?",
+  options: [
+    {
+      label: "private-entry",
+      text:
+        "An entry with no Party: `party_id` null, its own id `contact_<ulid>`, `ref` null in every read, so it cannot be " +
+        "paid or invoiced through the book until it has a Party. It is linked once: when the company is on Capxul (its " +
+        "handle), is paid at a wallet (its address), or the person's primary mailbox is given (which names them in the " +
+        "directory), and it keeps its id. Wire inputs that named an entry by `partyId` now name it by `contactId`, the same " +
+        "value for every entry born from a Party.",
+    },
+    {
+      label: "re-key",
+      text: "A private entry takes its Party's id as its own id when it is linked.",
+    },
+    { label: "elsewhere", text: "Keep companies without a Party out of the book, in a separate prospects table." },
+  ],
+  chosen: "private-entry",
+  why:
+    "One book of people and companies is Frappe CRM's own model and what a business expects: its prospects, its " +
+    "bank-paid suppliers and its customers sit in one list. An id that changes at linking would break every lead, deal " +
+    "and connected head that points at it, so a private entry keeps its own; every entry the frozen commands make is " +
+    "still born from a Party with the PartyId as its id, so their claims hold. A separate prospects table would be a " +
+    "second contact book with its own hide and label. A private entry never shares its Party with another entry " +
+    "(`contacts-by-party`), and a link is refused rather than merged when the Party is already in the book, so no two " +
+    "entries can disagree about where money goes.",
+  source: crmBy("books/target/parties/decisions.ts (parties.outside-companies); contact.add.yaml acceptance 1; crm frontend/src/pages/Organization.vue:490"),
+  affects: [table_contacts, rpc_contacts_book_record, rpc_contacts_book_get, rpc_contacts_book_list, rpc_contacts_book_add, procedure_parties_resolve_recipient, ...FLOWS],
+});
+
+export const decision_contacts_crm_statuses = defineDecision({
+  id: "contacts.crm-statuses",
+  title: "Lead and deal stages are Frappe's status types; statuses its defaults",
+  question:
+    "Frappe CRM's lead and deal statuses are per-site lists (CRM Lead Status, CRM Deal Status), each with a `type` from " +
+    "Open, Ongoing, On Hold, Won and Lost, a position and, for a deal, a probability. A state machine needs fixed states. " +
+    "What do the `lead` and `deal` machines run on?",
+  options: [
+    {
+      label: "types-and-defaults",
+      text:
+        "The machine runs on the status's type (`stage`): open, ongoing, won and lost; and for a lead converted, which is " +
+        "CRM Lead's `converted` check, not a type. The status names are Frappe CRM's install defaults, each mapped to its " +
+        "type (New; Contacted, Nurture; Qualified, Converted; Unqualified, Junk; and Qualification, Demo/Making, " +
+        "Proposal/Quotation, Negotiation, Ready to Close, Won, Lost with their probabilities); moving within a stage " +
+        "writes the name only. On Hold, which no default status has, is not booked. Lost reasons are Frappe's nine " +
+        "defaults. Sources, industries and territories are free names, which a head creates as its link records on sync.",
+    },
+    { label: "per-org-lists", text: "Per-Organization status tables, editable, seeded with the defaults." },
+    { label: "names-as-states", text: "Each default status name is a state." },
+  ],
+  chosen: "types-and-defaults",
+  why:
+    "Frappe's own behaviour hangs on the type, never the name: a Won type sets the deal's closed date, a Lost type needs a " +
+    "reason, a Lost lead cannot convert, and kanban columns are statuses inside types. So the type is the state and P7's " +
+    "one event per machine reports every stage change; renaming within a stage changes no state. Fixed default names " +
+    "keep an Organization without a head complete and consistent; editable lists, and On Hold, come with the first " +
+    "Organization whose head has its own statuses, mapped by type, which `contacts.head.sync` can do without changing these " +
+    "machines. Names as states would make a renamed status a migration. Conversion is its own state because nothing may " +
+    "follow it, but it is not a status: Frappe's default Converted status is of type Won, its `convert_to_deal` sets " +
+    "the status to Qualified and the `converted` check (`mark_converted`), and its leads list hides converted leads by " +
+    "that check. So the stage is converted exactly when the check is set, with status Qualified, and a person may pick " +
+    "Converted like Qualified without converting, as in Frappe. Revised in review: the first pass gave Converted its own " +
+    "type, which a head would have read as won.",
+  source: crmBy(`${CRM}/install.py:46, :97, :466 (default statuses and lost reasons); crm_lead.py:173, :546, :600 (mark_converted); crm_deal.py:98, :282`),
+  affects: [machine_lead, machine_deal, event_lead_transitioned, event_deal_transitioned, table_leads, table_deals, rpc_contacts_leads_move, rpc_contacts_deals_move],
+});
+
+export const decision_contacts_lead_conversion = defineDecision({
+  id: "contacts.lead-conversion",
+  title: "A lead converts once, naming its person in the directory then",
+  question:
+    "Frappe CRM's `convert_to_deal` makes a Contact (matched by mailbox only), a CRM Organization (matched by name) and a " +
+    "CRM Deal, and marks the lead converted. What does Capxul's conversion do, and when does a lead's mailbox enter the " +
+    "global directory?",
+  options: [
+    {
+      label: "convert-once",
+      text:
+        "One transaction that locks the lead: the person is the entry given, or the book's entry for the lead's mailbox, " +
+        "resolved through the directory (naming a provisional Party if new), or a private Contact with no mailbox; the " +
+        "company is the entry given, else the book's CRM Organization whose shown name is the lead's typed name, else a " +
+        "new private one from it; the deal is born from the lead; the lead becomes converted with the deal's id, status " +
+        "Qualified. A lost lead is WRONG_STATE; a converted one answers its deal. A lead names no Party before that.",
+    },
+    { label: "name-at-capture", text: "Resolve a lead's mailbox in the directory when the lead is captured." },
+    { label: "never-by-name", text: "Never match the lead's typed company name: the company is the entry given or a new private one." },
+  ],
+  chosen: "convert-once",
+  why:
+    "A lead is an unqualified prospect, often junk; naming every one in the global directory would fill it with digests " +
+    "of mailboxes nobody will pay. A converted lead's person is someone the business deals with, which is what a contact " +
+    "is, so the directory learns of them exactly when `contact add` would. Matching a person by mailbox is Frappe's own " +
+    "rule ('Match only on email which uniquely identifies a person') and the directory's key, so it holds across the " +
+    "Organization's book and every other. A company is matched by its name because that is Frappe's own rule " +
+    "(`create_organization`) and, on a head, a CRM Organization's name is its identity, unique on the site: a " +
+    "conversion made on the head lands on the existing company, so one made here must too, or the two sides would " +
+    "split one company in two. A deal names a company and moves no money, and the match never changes an entry's " +
+    "Party, so it cannot route a payment; a caller who means another company passes it (Frappe's " +
+    "`existing_organization`). Answering the first deal on a second conversion is Frappe's 'Return Existing', which " +
+    "makes an agent's retry safe; the lead's lock and its `deal_id` enforce it. `deals-by-lead` is not unique, because " +
+    "a head may still make a second deal from one lead (Frappe's default is 'Create'). Revised in review: the first " +
+    "pass never matched by name and made `deals-by-lead` unique, which a head's push and pull could not keep.",
+  source: crmBy(`${CRM}/fcrm/doctype/crm_lead/crm_lead.py:230, :267 (by organization_name), :335 (by email), :354, :546 ('Create' by default), :583, :600`),
+  affects: [rpc_contacts_leads_convert, machine_lead, machine_deal, table_deals, table_leads, table_contacts, procedure_parties_resolve_recipient],
+});
+
+export const decision_contacts_crm_permission = defineDecision({
+  id: "contacts.crm-permission",
+  title: "The People hat edits the whole CRM; every member reads it",
+  question:
+    "Editing an Organization's contact book needs its edit permission, the People hat (contacts.members-write). Leads " +
+    "and deals are part of the same CRM. Who may read and change them, and who may own a lead or deal?",
+  options: [
+    {
+      label: "people-hat",
+      text:
+        "The same as the book: every member reads the CRM; only a member whose Safe wears the People hat records, " +
+        "changes, moves or converts, whether in Capxul or on a connected head. A lead's or deal's owner is a member (an " +
+        "active Seat's Party).",
+    },
+    {
+      label: "sales-hat",
+      text: "A separate sales permission (Frappe's Sales User and Sales Manager), as a new hat in each Organization's tree.",
+    },
+    { label: "any-member", text: "Any member edits leads and deals; only the contact book needs the hat." },
+  ],
+  chosen: "people-hat",
+  why:
+    "The CRM is the Organization's contact book in Frappe's shape, so its edit permission is the book's, and one " +
+    "permission for one app keeps who-may-change-what one answer. The hat is already the Organization's authority " +
+    "(P9), the founder wears it from setup, and an agent given it (the Organization's own, its Forward Deployed Engineer) works the " +
+    "CRM with no new grant. A sales hat would need a hat in every Organization's tree and an officer command to grant " +
+    "it, which nothing asks for yet; it can split from the People hat later without changing a table. Letting any member " +
+    "edit leads would bring back the rule the book's own permission replaced. The owner must be a member because " +
+    "Frappe's `lead_owner` and `deal_owner` are site users who work the record. A connected head's edits arrive through " +
+    "`contacts.head.sync` and are held to the same rule: applied as the member the head user's mailbox matches, only if " +
+    "that member's Safe wears the People hat, else pushed back. Projects applies a head edit under the connection's " +
+    "authority when no member matches; the CRM cannot, because editing the contact book is a permission by ruling " +
+    "(contacts.members-write), and because a head edit that gives a private entry a primary mailbox chooses the " +
+    "Party that money paid to the entry reaches. Revised in review: the first pass let the connection's authority apply " +
+    "an edit no member made. The head's own roles (Sales User, Sales Manager) should follow the hat, so its forms stop " +
+    "other users before Capxul has to push back.",
+  source: crmBy("books/target/contacts/decisions.ts (contacts.members-write); frappe crm_organization.json and contact.json permissions (Sales User, Sales Manager)"),
+  affects: [
+    ...CRM_WRITES, rpc_contacts_leads_list, rpc_contacts_leads_get, rpc_contacts_deals_list, rpc_contacts_deals_get,
+    table_org_deployments, table_org_members, workflow_contacts_head_sync,
+  ],
+});
+
+export const decision_contacts_crm_capabilities = defineDecision({
+  id: "contacts.crm-capabilities",
+  title: "The CRM's new capabilities are SDK methods; their CLI commands wait",
+  question:
+    "Recording a person or company, and capturing, moving and converting leads and deals, are new capabilities: none is " +
+    "among the 215 frozen operations, and the frozen check refuses a target operation that is not one of them. How does " +
+    "an Organization with no head work its CRM now?",
+  options: [
+    {
+      label: "sdk-now-cli-later",
+      text:
+        "Book the rpcs now, each behind one Core SDK method (`client.account.addressBook.record`, " +
+        "`client.org(orgId).crm.leads.*`, `.crm.deals.*`) that serves the SDK: the Organization's Forward Deployed " +
+        "Engineer and any other SDK client use them (a connected head syncs through contacts' own process instead). The " +
+        "CLI commands (for example `contact record`, `crm lead add`, " +
+        "`move`, `convert`, `list`, `get` and `crm deal add`, `move`, `list`, `get`) come as a decision pack, with the " +
+        "projects concept's, once new operations beyond the 215 are allowed.",
+    },
+    { label: "cli-now", text: "Book the CLI operations now, changing the frozen check to allow new operations." },
+    { label: "head-only", text: "No CRM capabilities in Capxul: leads and deals are worked only in a connected Frappe head." },
+  ],
+  chosen: "sdk-now-cli-later",
+  why:
+    "This is for Aaron: whether the CRM gets CLI commands now, and their names. The data and the rules are booked either " +
+    "way, so the choice changes only the surface. A CLI operation is one of the 215 by the frozen-behaviour rule, and " +
+    "opening that list is a decision about every new capability (the projects concept has the same need), not one this " +
+    "lane makes alone. Head-only would leave an Organization without a head with no leads or deals, against the CRM " +
+    "being complete without one. SDK methods let the Forward Deployed Engineer, which acts through the same SDK as every " +
+    "agent, set up and work the CRM from the first day, and the CLI commands, when allowed, are each one call to the " +
+    "method already booked.",
+  source: crmBy("tools/check-frozen.ts ('a target operation that is none of the 215'); books/target/shared/rulings.ts (aaron.frappe-shape, aaron.fde-agent, aaron.projects)"),
+  affects: [...CRM_RPCS, ...CRM_FLOWS, concept_contacts],
+});
+
+export const decision_contacts_head_sync = defineDecision({
+  id: "contacts.head-sync",
+  title: "Contacts syncs its own CRM with a connected head, one process per head",
+  question:
+    "When a Frappe head is connected, its CRM and the Organization's must stay one. Who syncs the CRM's records, how, " +
+    "and what stays Capxul's alone?",
+  options: [
+    {
+      label: "own-process",
+      text:
+        "Contacts' own process, `contacts.head.sync`, as every app concept syncs its own records: started at the " +
+        "connection's `confirm`, it pushes `contact-changes` in seq order (`upsertDocs`) and pulls the head's changes " +
+        "(`listChanges`), applying each through the CRM's own checks and transitions by the version rule of " +
+        "organizations.head-ownership, as a member wearing the People hat (contacts.crm-permission); what it does not " +
+        "apply (a conflict, a refusal, a deletion) it pushes back. Each Frappe record carries its `capxul_id`, and a " +
+        "Contact or CRM Organization its `capxul_party`. An entry's Party, and so where money goes, is set only in " +
+        "Capxul. How each record meets its document on the head is contacts.head-mapping.",
+    },
+    {
+      label: "sdk-agent",
+      text: "The head's sync runs outside the backend as an agent of the Organization, reading the lists and writing through the SDK methods.",
+    },
+    { label: "head-master", text: "Once a head is connected, the head's CRM is the record and Capxul's copy follows it." },
+  ],
+  chosen: "own-process",
+  why:
+    "The connected head is one integration that each app concept follows for its own records (the `frappe-head` " +
+    "integration, organizations.head-ownership), so the CRM syncs as projects do: one ordered change log, cursors per " +
+    "connection, and a version on every record so a stale head edit never overwrites a newer Capxul one. Applying pulled " +
+    "changes through the CRM's own checks and transitions keeps Frappe's rules and the frozen claims in one place " +
+    "whoever writes, and every stage change still sends its machine's event. An outside agent would need its own " +
+    "credentials, its own cursor and a time-ordered read that can miss a late commit; a gap-free `seq` is what makes " +
+    "the push exact. Head-master would let a head repoint an entry to another Party, which would redirect payments, so " +
+    "`capxul_party` is never taken from the head: a Contact born there with a primary mailbox is named in the " +
+    "directory exactly as a recorded person is, and one whose Party already has an entry is refused, never merged, so " +
+    "one Party is one entry. Capxul never deletes a CRM record, so a head's deletion is pushed back like any refused " +
+    "edit; a refused document born in the head has no Capxul version to push, so it stays there unadopted. Statuses " +
+    "map one to one by name; a custom status the head adds is refused and pushed back until per-Organization lists " +
+    "exist (contacts.crm-statuses).",
+  source: crmBy("books/target/shared/external.ts (integration frappe-head); books/target/projects/processes.ts (projects.head.sync); organizations/data.ts (org-heads)"),
+  affects: [
+    workflow_contacts_head_sync, table_contact_head_syncs, table_contact_changes, table_contacts, table_leads, table_deals,
+    table_deal_contacts, table_org_heads, machine_org_head, table_parties, procedure_parties_resolve_recipient, concept_parties,
+  ],
+});
+
+export const decision_contacts_change_log = defineDecision({
+  id: "contacts.change-log",
+  title: "Every Organization-owned CRM write is logged in commit order",
+  question:
+    "A connected head must receive every change to an Organization's CRM, in order, exactly once, including the whole " +
+    "history when it connects late. What records the order?",
+  options: [
+    {
+      label: "seq-log",
+      text:
+        "`contact-changes`: one row per change to an Organization's book entry, lead or deal, appended in the writing " +
+        "transaction with the next `seq` from `crm-settings` under its lock; the record keeps that seq as its `version`. " +
+        "A person's own book logs nothing.",
+    },
+    { label: "updated-at", text: "Page each table by `updated_at`, as the lists do." },
+    { label: "outbox", text: "Follow the machines' events through the outbox." },
+  ],
+  chosen: "seq-log",
+  why:
+    "A time column cannot promise exactly once: a write that commits after a reader passed its time is skipped, the gap " +
+    "the vision's core check C5 finds in the books. A counter taken under one row lock commits in order, so paging by " +
+    "`seq` skips nothing, and the version it gives each record is what the head's edits are compared against. The " +
+    "outbox carries only stage changes, not a label or a phone number. The log holds ids, so it stays small and the " +
+    "push reads each record as it stands. The counter row costs one lock per CRM write, which an Organization's CRM, " +
+    "written by people and a few agents, never feels. Only Organizations have heads, so a person's book stays unlogged.",
+  source: crmBy("books/target/projects/data.ts (project-changes, the same pattern); docs/vision/erp.md (C5)"),
+  affects: [table_contact_changes, table_crm_settings, table_contacts, table_leads, table_deals, ...WRITES, ...CRM_WRITES, workflow_contacts_head_sync],
+});
+
+export const decision_contacts_head_mapping = defineDecision({
+  id: "contacts.head-mapping",
+  title: "Each CRM record meets its head document by Frappe's own rules",
+  question:
+    "The CRM's tables carry Frappe CRM's field names, but a head has rules no table shows: a CRM Organization is named " +
+    "by its `organization_name`, unique on the site, and Contact's `company_name` and CRM Deal's `organization` name it; " +
+    "Frappe makes a Contact for every User; CRM Lead's `first_name` is mandatory in its form; Frappe's own conversion " +
+    "marks a lead `converted`, sets it Qualified and makes another deal if asked again; and a site connected late may " +
+    "already hold a CRM. How does each record meet its document there?",
+  options: [
+    {
+      label: "frappe-rules",
+      text:
+        "Follow Frappe's own rules. An organization entry is pushed with its shown name (its label, else its Party's " +
+        "display name) as `organization_name`; when another document on the head holds that name, with ` - 2`, ` - 3` " +
+        "and on (the first free), as Frappe numbers a Contact's name, kept as `head_name`; a label change renames it " +
+        "there. A Contact's `first_name` is the shown name, with no last name, and Frappe names it. A pulled " +
+        "`full_name` or `organization_name` becomes the entry's label only when it differs from the name Capxul shows; " +
+        "a Party's display name is never taken from a head. A member is a User on the head with the Contact Frappe made " +
+        "for it: a deal naming a member names that Contact, found by its `capxul_party`; a member's own row (its label " +
+        "or hide) is not pushed while the member holds a Seat, and a change to a User's Contact is not pulled. A lead " +
+        "with no first name is written as Frappe's Data Import writes one (mandatory fields not enforced), the path " +
+        "`set_lead_name` serves. A converted lead is `converted` there with status Qualified; a lead the head converts " +
+        "is pulled as `convert` with the first deal whose `lead` names it, which Frappe writes first (with no such deal " +
+        "it is refused), and later deals from it are kept as deals. On a site that already holds a CRM, the first push adopts a Contact with no " +
+        "`capxul_id` whose primary mailbox is an entry's, and a CRM Organization whose name is an organization entry's " +
+        "shown name (Frappe's own keys), instead of making a second; the rest is pulled as documents born there.",
+    },
+    {
+      label: "push-as-is",
+      text:
+        "Push every record under its own label and let the head refuse what it cannot hold (a second organization of " +
+        "one name, a lead with no first name, a second Contact for a User).",
+    },
+    {
+      label: "customize-naming",
+      text: "Change CRM Organization's naming on the head to a hash with a Property Setter, so names need not be unique.",
+    },
+  ],
+  chosen: "frappe-rules",
+  why:
+    "Each rule is one the head enforces whether Capxul knows it or not. CRM Organization is named by `organization_name` " +
+    "(autoname by field), and Contact's `company_name` is a Data field holding that name, so two companies of one name " +
+    "cannot both exist there; the frozen book lets two entries share a label (`contact label` #2), so the push must " +
+    "tell them apart, and Frappe's own numbering of Contact names is the least surprising way. Renaming a CRM " +
+    "Organization does not rewrite Contacts' `company_name`, so the head's Capxul app must. Changing CRM Organization's " +
+    "naming would break Frappe CRM's pages, which show and link organizations by that name, and is a customization the " +
+    "ruling asks to avoid. Frappe makes a Contact for every User (`create_contact`), so pushing a member as another " +
+    "Contact would split one person in two, and that Contact's mailbox is the member's own, which a book never shows " +
+    "(contacts.members-derived). Frappe's `convert_to_deal` makes the deal first and then sets the lead's `converted` " +
+    "check with `db_set`, and by default makes another deal on a second conversion, so the pull takes the first and " +
+    "keeps the rest. Frappe's form needs a lead's first name, but `set_lead_name` serves imports that hold only a " +
+    "company or a mailbox, and Capxul's leads follow it. Adopting by mailbox and by name is how Frappe CRM itself " +
+    "dedupes (`contact_exists`, `create_organization`). None of this touches money: an entry's Party is still set only " +
+    "in Capxul. Added in review: the first pass said only that a sync renames fields, which left all of this to the build.",
+  source: crmBy(
+    `${CRM} crm_organization.json (autoname by field), crm_lead.json, crm_lead.py:140, :546, :600; frappe@1a7ea577 ` +
+      "user.py:1615 (create_contact), contact.py:57, document.py:2287 (db_set)",
+  ),
+  affects: [
+    workflow_contacts_head_sync, table_contacts, table_leads, table_deals, table_deal_contacts, table_org_members,
+    table_parties, machine_lead, rpc_contacts_leads_convert,
+  ],
 });

@@ -22,7 +22,7 @@ import {
   table_salary_structure_assignments,
   table_salary_structures,
 } from "./data.ts";
-import { HR_ERRORS, HR_GUARD, HR_READS, WHO_HR } from "./employees.ts";
+import { HR_ERRORS, HR_GUARD, HR_READS, LOGGED, WHO_HR } from "./employees.ts";
 import { Assignment, AssignmentInput, CancelInput, Component, ComponentInput, Structure, StructureInput, StructureListInput } from "./shapes.ts";
 
 const FRAPPE = "/tmp/hrms/hrms/payroll/doctype";
@@ -39,7 +39,9 @@ export const rpc_payroll_structures_component = defineRpc({
     "abbreviations, and Frappe's `round`, `rounded`, `floor`, `ceil`, `min`, `max`, `int` and `float`) is `portable`; " +
     "any other Python Frappe accepts is kept with `portable` false, for a run a head computes; one that does not parse " +
     "is INVALID_INPUT. A deduction's or employer contribution's `payee` is resolved through `parties.resolve-recipient` " +
-    "(INVALID_INPUT when it names nothing), and is the Party its amounts are remitted to (payroll.deduction-remittance). " +
+    "(INVALID_INPUT when it names nothing): the Party its liability is owed to, which a holder or the FDE agent pays when " +
+    "it falls due with an ordinary budget payment against the component's liability account, never inside a run's " +
+    "command (payroll.deduction-remittance). " +
     "A change to an existing component affects only slips worked out after it, as in Frappe; the agreement component " +
     "cannot be changed (INVALID_INPUT).",
   was: [`${FRAPPE}/salary_component/salary_component.json`, `${FRAPPE}/salary_component/salary_component.py`, "/tmp/hrms/hrms/payroll/utils.py:57"],
@@ -50,7 +52,7 @@ export const rpc_payroll_structures_component = defineRpc({
   output: Schema.Struct({ component: Component }),
   errors: [...HR_ERRORS],
   reads: [...HR_READS, table_salary_components],
-  writes: [table_salary_components],
+  writes: [table_salary_components, ...LOGGED],
   drives: [],
   invokes: [procedure_parties_resolve_recipient],
   emits: [],
@@ -80,7 +82,7 @@ export const rpc_payroll_structures_create = defineRpc({
   output: Schema.Struct({ structure: Structure }),
   errors: [...HR_ERRORS, error_TOKEN_NOT_BUDGETED],
   reads: [...HR_READS, table_budgets, table_salary_components, table_salary_structures, table_salary_structure_assignments],
-  writes: [table_salary_structures],
+  writes: [table_salary_structures, ...LOGGED],
   drives: [machine_salary_structure.t.submit, machine_salary_structure.t.cancel],
   invokes: [],
   emits: [],
@@ -109,7 +111,7 @@ export const rpc_payroll_structures_assign = defineRpc({
   output: Schema.Struct({ assignment: Assignment }),
   errors: [...HR_ERRORS, error_TOKEN_NOT_BUDGETED],
   reads: [...HR_READS, table_budgets, table_employees, table_salary_structures, table_salary_structure_assignments],
-  writes: [table_salary_structure_assignments],
+  writes: [table_salary_structure_assignments, ...LOGGED],
   drives: [machine_salary_structure_assignment.t.submit],
   invokes: [],
   emits: [],
@@ -135,7 +137,7 @@ export const rpc_payroll_structures_cancel = defineRpc({
   output: Schema.Struct({ structure: Schema.NullOr(Structure), assignment: Schema.NullOr(Assignment) }),
   errors: [...HR_ERRORS],
   reads: [...HR_READS, table_salary_structures, table_salary_structure_assignments, table_salary_slips],
-  writes: [table_salary_structures, table_salary_structure_assignments],
+  writes: [table_salary_structures, table_salary_structure_assignments, ...LOGGED],
   drives: [machine_salary_structure.t.cancel, machine_salary_structure_assignment.t.cancel],
   invokes: [],
   emits: [],

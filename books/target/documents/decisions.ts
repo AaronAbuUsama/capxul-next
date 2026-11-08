@@ -118,26 +118,27 @@ export const decision_documents_participants = defineDecision({
 
 export const decision_documents_kinds = defineDecision({
   id: "documents.kinds",
-  title: "Four kinds in one envelope version: Memo, Invoice, terms and receipt",
+  title: "Five kinds in one envelope version: Memo, Invoice, terms, payslip, receipt",
   question:
     "Old documents stored v3 envelopes (Memo, Invoice, Payslip, Receipt), a v4 Invoice with a note and a discount, a v5 " +
     "Money Invoice and opaque receipt files. Which does the target store?",
   options: [
     {
-      label: "four-kinds",
+      label: "five-kinds",
       text:
-        "One envelope version with three typed kinds, a Memo (a Payment's or request's, or a Movement's), an Invoice " +
-        "with its lines and note in the typed message, and the terms of an offer (an agreement, an equity offer), plus " +
-        "receipt files of at most 128 KB.",
+        "One envelope version with four typed kinds, a Memo (a Payment's or request's, or a Movement's), an Invoice " +
+        "with its lines and note in the typed message, the terms of an offer (an agreement, an equity offer) and a " +
+        "payslip (a submitted salary slip's pay, documents.payslip-kind), plus receipt files of at most 128 KB.",
     },
     { label: "as-is", text: "Keep v3, v4 and v5 envelopes and the receipt files, each with its own format." },
   ],
-  chosen: "four-kinds",
+  chosen: "five-kinds",
   why:
     "The target is a fresh v4 deployment with nothing migrated (P9 option A), so no stored v3 or v4 envelope needs " +
-    "reading and one version is enough. Payslips were payroll runs' documents, and runs are dropped (concepts.payroll): a " +
-    "v4 Agreement commits to one terms document whose hash every collection carries, and equity's grants, rounds and " +
-    "transfers commit to theirs, so 'terms' is the new kind. Money Invoices are dropped with requests' fiat invoices " +
+    "reading and one version is enough. A v4 Agreement commits to one terms document whose hash every collection " +
+    "carries, and equity's grants, rounds and transfers commit to theirs, so 'terms' is a new kind. Payslips come back " +
+    "with payroll's runs in Frappe HR's shape (payroll.scope), typed, so Capxul renders and checks " +
+    "them (documents.payslip-kind). Money Invoices are dropped with requests' fiat invoices " +
     "(requests' decisions). The Invoice's lines go into its typed message instead of a separate column checked against " +
     "a lines hash, so the two hashes are the whole integrity check. Receipt files stay: payments' `document` input is " +
     "one, and the frozen render line names an opaque receipt.",
@@ -374,29 +375,28 @@ export const decision_documents_no_org_hint = defineDecision({
 
 export const decision_documents_acceptance_rewrites = defineDecision({
   id: "documents.acceptance-rewrites",
-  title: "`document render` #1 names the target's employer document",
+  title: "`document render` #1 is kept word for word: payslips are stored again",
   question:
-    "The frozen line 'A payslip names its employer and employee, not their Party IDs.' names a document the target no " +
-    "longer stores (payroll's runs and their Payslips are dropped). Keep, retire or rewrite it?",
+    "The frozen line 'A payslip names its employer and employee, not their Party IDs.' was rewritten while the target " +
+    "stored no payslip. Payroll now stores one per submitted salary slip (documents.payslip-kind). Keep, retire or rewrite it?",
   options: [
+    { label: "keep", text: "Keep it word for word, reached by rendering a run's payslip in `org-with-documents`." },
     {
       label: "rewrite",
       text:
         "'A document that names an employer and an employee (a payslip, or an agreement's terms) renders their names, " +
-        "not their Party IDs.', the old line in `was`.",
+        "not their Party IDs.', the old line in `was`, as while no payslip was stored.",
     },
     { label: "retire", text: "Retire it as null, as P9 does for pre-v4-only lines." },
-    { label: "keep", text: "Keep it word for word, with no world able to reach it." },
   ],
-  chosen: "rewrite",
+  chosen: "keep",
   why:
-    "P1 rewrites a line only when it names a mechanism, and a payslip is not one, so this goes beyond P1 and is flagged " +
-    "for Aaron's review (W1). The line's outcome is that a reader sees who employs and who is employed, never an id; " +
-    "the target keeps that outcome on the document that now plays the payslip's part, a salary agreement's terms. The " +
-    "rewrite still passes against the old system, whose payslips render names (render.test.ts:89). Retiring it would " +
-    "lose the outcome; keeping it would leave a line no target world can reach. Every other line of the four " +
-    "operations is kept word for word: none names a mechanism.",
-  source: by("books/frozen/operations.ts (document.render acceptance 1); packages/backend/src/activity/documents/tests/render.test.ts:89; P1; books/target/payroll/decisions.ts"),
+    "The rewrite existed only because the target stored no payslip, and went beyond P1 (a payslip is not a mechanism), " +
+    "so it was flagged for review as W1. With payroll's runs back in Frappe HR's shape, every submitted salary slip has " +
+    "a typed payslip, and render lays out its employer and employee by their public names (documents.render-names). " +
+    "The frozen line now reads as an outcome a world can reach, so it is kept word for word (system.frozen-behaviour), " +
+    "and W1 is settled by it. Every other line of the four operations is kept word for word too.",
+  source: by("books/frozen/operations.ts (document.render acceptance 1); packages/backend/src/activity/documents/tests/render.test.ts:89; P1; books/target/payroll/decisions.ts (payroll.scope)"),
   affects: [operation_document_render, rpc_documents_reading_render],
 });
 
@@ -410,7 +410,7 @@ export const decision_documents_worlds = defineDecision({
       text:
         "`org-with-documents` (new): an Organization with a member who stored documents for it and was then removed and " +
         "a member who joined after; a person it paid with a note; an Invoice the person issued it; a salary agreement's " +
-        "terms; a receipt file on a Payment; a Movement's Memo from an outside Transfer to the person; a signed-in " +
+        "terms; a submitted payroll run's payslip for an Employee; a receipt file on a Payment; a Movement's Memo from an outside Transfer to the person; a signed-in " +
         "stranger; and a signed-in person with no Party of their own. `org-with-tampered-note` (new): the same with one " +
         "stored note's bytes altered after it was stored. `signed-out` (shared) for NOT_AUTHENTICATED.",
     },
@@ -441,4 +441,34 @@ export const decision_documents_render_budget = defineDecision({
     "export keep the read default: one read and, for export, one small file write.",
   source: by("apps/cli/src/platform/documents.ts:16, :41; P5"),
   affects: [flow_client_payment_documents_render, operation_document_render],
+});
+
+// ── payslips (the payroll lane of the Frappe redesign, 8 November 2026) ────────────────────
+
+export const decision_documents_payslip_kind = defineDecision({
+  id: "documents.payslip-kind",
+  title: "A payslip is a typed envelope, stored when its salary slip is submitted",
+  question:
+    "Payroll's runs are back in Frappe HR's shape (payroll.scope), and each slip's net is a Payment " +
+    "whose document hash goes on chain. Is the payslip a receipt file, or a typed kind documents builds and checks?",
+  options: [
+    {
+      label: "typed",
+      text:
+        "A fifth envelope kind, `payslip`: the slip's id and run, employer and employee by Party and Safe, the period and " +
+        "its days, the earnings, deductions and employer contributions by component, and gross, total deduction and net " +
+        "in one token, earnings less deductions equal to the net exactly. Subject kind `salary-slip`; the payer and payee " +
+        "read it. Payroll stores it when a run is submitted or taken in from a head.",
+    },
+    { label: "receipt", text: "A PDF or JSON receipt file of at most 128 KB, kept byte for byte and never interpreted." },
+  ],
+  chosen: "typed",
+  why:
+    "A receipt file is opaque: documents could not render a payslip's names (documents.render-names) or check that its " +
+    "lines make its net, and the frozen render line 'A payslip names its employer and employee' could not be reached. A " +
+    "typed envelope binds the slip to its chain (EIP-712) and to its Payment, so the employee proves what they were paid " +
+    "for, and the same rows are Frappe's Salary Detail, so a head shows the very slip. An agreement collection's slip " +
+    "stores no payslip: its collection already carries the terms document's hash (payroll.collection-slips).",
+  source: by("/tmp/hrms/hrms/payroll/doctype/salary_slip/salary_slip.json; docs/vision/erp.md (C8); books/target/payroll/decisions.ts (payroll.scope)"),
+  affects: [table_documents, procedure_documents_store, rpc_documents_reading_render, operation_document_render],
 });

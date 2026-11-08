@@ -5,6 +5,8 @@
 
 import { defineDecision } from "../../../packages/book/src/index.ts";
 import {
+  concept_access,
+  concept_accounts,
   concept_agents,
   concept_banking,
   concept_contacts,
@@ -13,8 +15,9 @@ import {
   concept_parties,
   concept_payments,
   concept_payroll,
+  system_capxul,
 } from "../shared/foundation.ts";
-import { contract_companies_house_claimer } from "../shared/external.ts";
+import { contract_companies_house_claimer, contract_escrow } from "../shared/external.ts";
 import {
   decision_concepts_parties,
   decision_concepts_parties_scope,
@@ -34,6 +37,8 @@ import { flow_client_me_profile_get, flow_client_me_profile_save } from "./flows
 
 const BY = "Claude, parties target design, 8 November 2026";
 const by = (evidence: string) => `${BY}; evidence: ${evidence}`;
+const CRM_LANE = "Claude, parties Frappe redesign (crm lane), 8 November 2026";
+const crmBy = (evidence: string) => `${CRM_LANE}; evidence: ${evidence}`;
 const OLD = "packages/backend/src";
 
 // ── data ────────────────────────────────────────────────────────────────────────────────────
@@ -363,4 +368,144 @@ export const decision_parties_no_process = defineDecision({
     "with the Safe's setup to accounts and notices, and its replaced-photo deletion to media's retention.",
   source: by("rules.durable-processes; profiles/onboardings/external.ts (account-ready mail); profiles/README.md:118"),
   affects: [concept_parties, procedure_parties_activate, procedure_parties_release],
+});
+
+// ── the directory in Frappe's shapes (the crm lane, 8 November 2026) ──────────────────────────
+
+export const decision_parties_frappe_identity = defineDecision({
+  id: "parties.frappe-identity",
+  title: "The directory is the identity half of Frappe CRM's Contact and Organization",
+  question:
+    "The directory of people and companies is to be a global CRM in Frappe CRM's shape. Frappe CRM keeps a person as a " +
+    "Contact and a company as a CRM Organization, one site per business, each holding that business's own knowledge " +
+    "(mailboxes, phones, titles, territories, revenue, deals). What does the global directory hold, and how does a " +
+    "Frappe record meet it?",
+  options: [
+    {
+      label: "identity-half",
+      text:
+        "Each Party is the global identity a Frappe Contact (kind person, agent or address) or CRM Organization (kind " +
+        "organization) stands for: its name (`display_name`, which Contact's `full_name` or CRM Organization's " +
+        "`organization_name` shows when the owner's book gives no label of its own), its picture (`photo_file_id`: " +
+        "`image`, `organization_logo`) and the key Frappe itself " +
+        "dedupes a person by, the mailbox (`mailbox_digest`). Everything else those doctypes hold is the owner's, in its " +
+        "book (contacts), in the same doctypes' fields. A connected head carries `party_id` as one Custom Field on " +
+        "Contact, CRM Organization, Customer, Supplier and Employee, and a Frappe User for each person or agent with a " +
+        "Seat.",
+    },
+    {
+      label: "global-doctypes",
+      text: "The directory itself holds Contact and CRM Organization rows with all their fields, shared by every tenant.",
+    },
+    { label: "own-shape", text: "Keep Capxul's own shape and map it only when a head is connected." },
+  ],
+  chosen: "identity-half",
+  why:
+    "The directory is global and holds nothing private (parties.directory-tenancy). Frappe's Contact and CRM " +
+    "Organization are per-site records whose fields are what one business knows: a mailbox it was given, a phone, a " +
+    "title, a territory, a revenue estimate. Global rows of them would show one tenant's knowledge to every tenant. " +
+    "Split in two, the shape holds: the directory is what any counterparty may see and what makes a person or company " +
+    "one across tenants, and each book holds the rest under Frappe's field names, so a head syncs by mapping. Frappe CRM " +
+    "matches a person by mailbox only ('Match only on email which uniquely identifies a person', `contact_exists`), " +
+    "which is the directory's key for a person, so a head's Contacts and every book's entries meet on the same Party. " +
+    "Capxul's own shape, mapped only at a head, would leave an Organization without a head outside Frappe's shapes. The " +
+    "Party's columns keep their names: a display name is a full name or an organization name by kind, and a Frappe " +
+    "Contact without a last name is complete. A Party's name is identity, Capxul's alone (organizations.head-ownership): " +
+    "what a head writes into a Contact's or CRM Organization's name is the owner's label, never the Party's " +
+    "(contacts.head-mapping). This also settles core check C14: the directory leaks nothing a CRM keeps private.",
+  source: crmBy("frappe/crm@2cecd300 crm/fcrm/doctype/crm_lead/crm_lead.py:335; frappe/frappe@1a7ea577 contacts/doctype/contact/contact.json; docs/vision/erp.md section 2, C14"),
+  affects: [table_parties, procedure_parties_resolve_recipient, decision_parties_directory_tenancy, concept_parties, concept_contacts],
+});
+
+export const decision_parties_outside_companies = defineDecision({
+  id: "parties.outside-companies",
+  title: "People not on Capxul are in the directory; companies join it with Capxul",
+  question:
+    "Core check C13: can the global directory hold people and companies who are not on Capxul? A person is named by " +
+    "their mailbox before they join: a provisional Party at the Safe their mailbox derives, where money can wait for them " +
+    "and which they claim by signing in. A company not on Capxul (a prospect, a supplier paid only by bank) has no Safe " +
+    "and nothing Capxul can verify. Should the directory name it?",
+  options: [
+    {
+      label: "payable-only",
+      text:
+        "The directory holds every identity Capxul can name and pay: people by mailbox whether or not they have joined, " +
+        "agents, Capxul Organizations and outside wallets. A company not on Capxul is not in it: each Organization keeps " +
+        "it in its CRM as a private CRM Organization entry with no Party (contacts), linked to the company's Party once " +
+        "the company is on Capxul (its handle) or is paid at a wallet (its address).",
+    },
+    {
+      label: "by-domain",
+      text:
+        "Name a company not on Capxul by its web domain: a nameless `organization` Party with no Safe, keyed by a digest " +
+        "of the domain, which the company proves when it joins (a DNS record, a new integration), so every tenant's entry " +
+        "for it links up at once.",
+    },
+    {
+      label: "shared-cards",
+      text: "Global company cards with a name, website and logo that any tenant may write, as a public CRM.",
+    },
+  ],
+  chosen: "payable-only",
+  why:
+    "This is for Aaron: it reads 'one directory of people and companies across every tenant' as people at all times and " +
+    "companies once they are on Capxul. A Party is something money can be routed to and whose owner can be proved: a " +
+    "mailbox proves itself at sign-in, a handle at its Organization's birth, an address on chain. A company not on " +
+    "Capxul has neither, so a global row for it would hold one tenant's words about it. Shared cards would show those " +
+    "words to every tenant and let anyone deface them. A company Party that the first person with a mailbox at its " +
+    "domain could claim would redirect, in every tenant's CRM, money meant for the real company to whoever claimed it, " +
+    "so domain-keyed Parties need a proof Capxul does not have yet (a DNS check is a new integration and a new trust " +
+    "root), and until then they give nothing a private entry lacks but cross-tenant dedupe. Frappe CRM keeps a company " +
+    "per site, by name. So prospects and bank-paid suppliers stay private in each Organization's CRM, and people need " +
+    "nothing new. If companies are to be named before they join, by-domain is the path, with the domain proof designed " +
+    "first and the Party machine given an unclaimed company state.",
+  source: crmBy("docs/vision/erp.md (C13, question 1); books/target/parties/data.ts (every Party has a safe_address); frappe/crm crm_organization.json (autoname by organization_name)"),
+  affects: [table_parties, machine_party, procedure_parties_resolve_recipient, procedure_parties_register, concept_parties, concept_contacts],
+});
+
+export const decision_parties_mailbox_for_life = defineDecision({
+  id: "parties.mailbox-for-life",
+  title: "A person keeps one mailbox for life; moving it is a later capability",
+  question:
+    "Core check C27: a person's Safe address derives from their mailbox (CompaniesHouseClaimer's `safeAddressFor`), they " +
+    "sign in with a code sent to it, a claim escrow waits at the Safe it derives, and the directory finds them by its " +
+    "digest. Nothing moves a person to another mailbox, so an employee paid at a work address loses it with the job. Is " +
+    "a person's mailbox theirs for life, or can they move their account to a new one?",
+  options: [
+    {
+      label: "for-life",
+      text:
+        "One mailbox per person for good: the Party's `mailbox_digest` never changes and nothing moves it. Whoever pays " +
+        "people (payroll, an ERP) pays at a mailbox the person keeps, never a work address: Frappe HR's Employee " +
+        "`personal_email`, not `company_email`. A person who wants another mailbox opens another account and moves their " +
+        "money themselves.",
+    },
+    {
+      label: "move",
+      text:
+        "A person may move their account to a new mailbox: the new one resolves to the same Party and Safe (the Safe's " +
+        "address is fixed once claimed; only its derivation used the first mailbox), sign-in moves to it, and the old " +
+        "one stops signing in but still resolves, so earlier namings and escrows reach the person. Needs access (a " +
+        "verified change of sign-in), parties (a second digest), accounts (the new mailbox's derived Safe must never be " +
+        "handed to anyone) and a guard against a work address later given to someone else.",
+    },
+    { label: "aliases", text: "Several mailboxes per Party, as Frappe Contact's `email_ids`, any of which signs in." },
+  ],
+  chosen: "for-life",
+  why:
+    "This is for Aaron: whether a person will ever be able to move their account to a new mailbox. The book already " +
+    "assumes one: access knows a person by their email, accounts derives their Safe from it, Companies House hands the " +
+    "Safe to whoever proves it (accepted as the beta's trust root), a claim escrow binds money to it, and resolution keys " +
+    "a person on its digest. Moving is possible off chain, because a claimed Safe keeps its address and its signer is " +
+    "the person's key, but each of those pieces must change together, and a work mailbox reassigned to a new employee " +
+    "would sign the newcomer in as the person who left: a security design, not a column. Aliases would make that risk " +
+    "permanent. Frappe Contact's several mailboxes stay what they are there, an owner's private notes in its book, never " +
+    "an identity. So the directory keeps one digest per person now, and the rule for anyone paying people is to pay at " +
+    "a mailbox the person keeps. If moving is wanted, it is a capability designed book first across access, parties " +
+    "and accounts, with the reassigned-mailbox guard first.",
+  source: crmBy("docs/vision/erp.md (C27, question 5); shared/external.ts companies-house-claimer, escrow; erpnext setup/doctype/employee/employee.json (personal_email, company_email)"),
+  affects: [
+    table_parties, procedure_parties_resolve_recipient, rpc_parties_profiles_save, contract_companies_house_claimer, contract_escrow,
+    concept_access, concept_accounts, concept_payroll, system_capxul,
+  ],
 });

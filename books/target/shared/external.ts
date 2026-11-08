@@ -655,7 +655,9 @@ export const integration_frappe_head = defineIntegration({
     "records syncs them itself: it pushes its changes in its own change order and pulls the head's, by the rules of " +
     "organizations.head-ownership. Dates cross in the Organization's time zone, which the head's System Settings must " +
     "share; instants cross as UTC. Nothing that moves money goes through the head: a head asks for money only through " +
-    "Capxul's commands. Installing an app is the head's host's: Frappe Cloud's site API when the head is hosted there.",
+    "Capxul's commands. Installing an app is the head's host's: Frappe Cloud's site API when the head is hosted there, " +
+    "with the Frappe Cloud team's own API token (a site's key cannot install apps), which the connection seals beside " +
+    "the site's key.",
   component: component_backend,
   system: "frappe",
   service: "FrappeHead",
@@ -663,7 +665,7 @@ export const integration_frappe_head = defineIntegration({
     readSite: {
       about:
         "The site as it stands: Frappe's version, the installed apps and their versions, the System Settings time zone, the " +
-        "Capxul app's version and whether its Custom Fields are in place, and the Company that carries the Organization's id.",
+        "Capxul app's version and its Custom Fields, and the Company carrying the Organization's id, with its currency.",
       timeoutMs: 5_000,
       retries: { max: 2, backoff: "exponential" },
       p95Ms: 2_000,
@@ -677,9 +679,9 @@ export const integration_frappe_head = defineIntegration({
     },
     upsertDocs: {
       about:
-        "Writes a batch of Capxul's documents in Capxul's change order, each found by its `capxul_id`: insert, update, submit " +
-        "or cancel, and answers each one written, unchanged (already at that version), in conflict (the head's copy changed " +
-        "since the version it was based on: not written) or refused (the head's own validation), with the head's name.",
+        "Writes documents in change order by `capxul_id` (insert, update, submit, cancel, amend), each with its version and " +
+        "the last head change Capxul read, over which it writes; answers written, unchanged, conflict (a newer head change " +
+        "Capxul has not read) or refused, with its head name.",
       timeoutMs: 15_000,
       retries: { max: 2, backoff: "exponential" },
       p95Ms: 3_000,
@@ -696,8 +698,8 @@ export const integration_frappe_head = defineIntegration({
     },
     installApp: {
       about:
-        "Asks the head's host to install a Frappe app on the site (Frappe Cloud's site API); answers when the job is queued. " +
-        "The app appears in readSite once it is installed.",
+        "Asks the head's host to install an app the site's bench group has (Frappe Cloud's site API, with the team's " +
+        "token); answers when the job is queued. The app appears in readSite once it is installed.",
       timeoutMs: 10_000,
       retries: { max: 0, backoff: "none" },
       p95Ms: 2_000,
@@ -705,7 +707,10 @@ export const integration_frappe_head = defineIntegration({
         headUnavailable,
         headRefusedKey,
         { when: "The head's host cannot install apps for Capxul (a self-hosted bench): its owner runs `bench install-app` instead", error: error_WRONG_STATE },
-        { when: "The host knows no such app, or not for the site's Frappe version", error: error_INVALID_INPUT },
+        {
+          when: "The host knows no such app, or not for the site's Frappe version, or the site's bench group lacks it (its owner adds it there first)",
+          error: error_INVALID_INPUT,
+        },
         headUnusable,
       ],
     },

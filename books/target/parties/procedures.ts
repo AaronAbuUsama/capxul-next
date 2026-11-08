@@ -123,7 +123,8 @@ export const procedure_parties_resolve_recipient = defineProcedure({
     "Money fact: the counterparty a record names and the Safe its money routes to are bound once, with the record that " +
     "first names it: one Party per mailbox, Safe and handle, so every later naming, the person's claim and every chain " +
     "view agree on whose Safe it is. For a write that keys its record on a Party id: a contact, a request's payer, an " +
-    "agreement's payee, an invitee, a sweep's destination. The locator's shape decides the lookup: `@handle` (normalized " +
+    "agreement's payee, an invitee, a sweep's destination, a CRM entry's person or company (contact add, a recorded " +
+    "entry's link, a lead's conversion). The locator's shape decides the lookup: `@handle` (normalized " +
     "as at registration), mailbox (trimmed and lowercased, then digested), 0x address (lowercased) or Party id; nothing is " +
     "scanned. A mailbox no Party holds is named `provisional` at its derived Safe, or adopts the outside Party already " +
     "there; an address no Party holds is named `outside`. It never refuses: a locator that names nothing comes back " +

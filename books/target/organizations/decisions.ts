@@ -62,6 +62,25 @@ import {
   operation_use_org,
 } from "./operations.ts";
 
+import {
+  concept_books,
+  concept_contacts,
+  concept_payroll,
+  concept_projects,
+  component_frappe_app,
+  system_capxul,
+} from "../shared/foundation.ts";
+import { contract_agent_owner, integration_frappe_head } from "../shared/external.ts";
+import {
+  event_org_head_transitioned,
+  machine_org_app,
+  machine_org_head,
+  table_org_apps,
+  table_org_heads,
+} from "./data.ts";
+import { rpc_organizations_heads_ring } from "./heads.ts";
+import { workflow_organizations_heads_watch as workflow_heads_watch } from "./processes.ts";
+
 const CLAUDE = "Claude, organizations design, 8 November 2026";
 const by = (evidence: string) => `${CLAUDE}; evidence: ${evidence}`;
 
@@ -94,7 +113,8 @@ export const decision_organizations_tables = defineDecision({
     "tokens, generation, park, unresolved counters) that a durable workflow holds itself (P3). The roles catalog and the " +
     "Roles deployment were pre-v4 shapes; on v4 the deployment's named hats replace them. Every table is tenant-first on " +
     "org_id (P8); the cross-tenant indexes are the caller's own memberships, offers and unfinished setups, an " +
-    "Organization by its Party, and Seats by an agent's Safe.",
+    "Organization by its Party, and Seats by an agent's Safe. The Frappe rulings later added two new ones, the " +
+    "Organization's apps and its head connection (organizations.startup, organizations.head-connection).",
   source: by("docs/as-is/archive/organizations/data.ts:140-1055 (19 tables); P3; P8; P9; responsibilities.keepers"),
   affects: [table_organizations, table_org_setups, table_org_deployments, table_org_members, table_org_invitations, concept_board],
 });
@@ -753,4 +773,349 @@ export const decision_organizations_seat_limit_error = defineDecision({
     "invite rpc, so `org member invite` (budgets' operation), and agents' create with `--org` (agents.org-own-agent).",
   source: AARON_SEATS,
   affects: [error_SEAT_LIMIT_REACHED, rpc_organizations_invitations_invite],
+});
+
+// ── start-up, the FDE and the Frappe head (Aaron's rulings of 8 November 2026) ──────────────
+
+const FRAPPE_RULINGS = by(
+  "books/target/shared/rulings.ts (aaron.erp-on-capxul, aaron.frappe-shape, aaron.fde-agent, aaron.frappe-head); docs/vision/erp.md",
+);
+const WIZARD = "/tmp/erpnext/erpnext/setup/setup_wizard";
+
+export const decision_organizations_startup = defineDecision({
+  id: "organizations.startup",
+  title: "Start-up: the Company's facts, the fundamental apps, their start-ups, the FDE",
+  question:
+    "The Frappe rulings: an Organization starts with all of its fundamental apps (accounting, " +
+    "payroll, CRM, projects) in Frappe's shapes, whether or not a head is connected. What does `org create`'s start-up " +
+    "step create, and who creates each part?",
+  options: [
+    {
+      label: "begin-and-reactions",
+      text:
+        "`begin`, in its one transaction, writes the Company's facts on the Organization (abbreviation, currency, time zone, " +
+        "fiscal-year start, from the country as ERPNext's setup wizard does), the app list (the fundamental apps installed " +
+        "and native, any other asked-for app wanted) and, with the founder's FDE key, the FDE's Party. Each fundamental " +
+        "app's concept starts itself from the setup's `begin` transition where its frozen behaviour allows: payroll its " +
+        "settings, contacts its CRM, projects its settings and starting types. Books keeps facts from the first money but " +
+        "makes no chart until `org books accounts import` runs (frozen: no chart until one is made), which a Books-hat " +
+        "wearer runs in the first sitting. The install batch creates the FDE on chain.",
+    },
+    { label: "one-big-setup", text: "The setup process creates every app's starting records itself." },
+    { label: "at-ready", text: "Nothing until the setup is ready; then each app starts." },
+  ],
+  chosen: "begin-and-reactions",
+  why:
+    "P4 lets organizations write only its own tables, and the apps sit above it, so each app's starting records are its " +
+    "own concept's, started from organizations' transition (the reacting concept depends on the one that changed). " +
+    "Starting at `begin` matches the rulings: the books keep facts from the first money, and money can reach the company " +
+    "Safe's predicted address before the mint. The Company's facts belong on the Organization because every app reads " +
+    "them and a head's Company and System Settings must carry the same ones. What each app creates is each designer's: " +
+    "for books, nothing at begin, since a chart comes only from the import (books' own decision, keeping the frozen " +
+    "'no chart until one is made'), and the import makes the tree, the fiscal years from `fiscal_year_start` and the " +
+    "main cost centre; for payroll, Payroll Settings and the salary components; for the CRM, its statuses and the " +
+    "Organization's own CRM Organization; for projects, projects.startup.",
+  source: by(`${WIZARD}/setup_wizard.py:get_setup_stages; ${WIZARD}/operations/install_fixtures.py; books/target/shared/rulings.ts (aaron.frappe-shape)`),
+  affects: [
+    rpc_organizations_setups_begin, table_organizations, table_org_apps, machine_org_setup, concept_books, concept_payroll,
+    concept_contacts, concept_projects,
+  ],
+});
+
+export const decision_organizations_company_shape = defineDecision({
+  id: "organizations.company-shape",
+  title: "The Organization is ERPNext's Company: abbr, currency, time zone, fiscal year",
+  question: "ERPNext's setup wizard asks for a company's country, currency, time zone, abbreviation and fiscal year. Where do they live in Capxul?",
+  options: [
+    {
+      label: "on-the-organization",
+      text:
+        "On the Organization's row: `abbr` from the name's initials (1 to 5 letters or digits), `default_currency` the " +
+        "country's (Frappe's country_info), `time_zone` the country's first, `fiscal_year_start` ERPNext's for the country " +
+        "or `01-01`; the founder may give any of them at `org create`.",
+    },
+    { label: "in-books", text: "In books' own Company table, read by everything above books." },
+  ],
+  chosen: "on-the-organization",
+  why:
+    "They are the Company's identity for every app, not accounting's alone: projects dates its tasks in the time zone and " +
+    "prices its rates in the currency, payroll's periods follow the fiscal year, and a head's System Settings carries the " +
+    "same zone. In books they would be out of reach of projects and the CRM, which sit below books. It also answers the " +
+    "vision's check C18: whose day a report cuts at is the Organization's time zone. The currency must be one Capxul can " +
+    "value (USD, or one whose USD price pair the deployment lists), because the books value every voucher in it " +
+    "(books.company-settings); a country whose currency has none starts in USD rather than with books that cannot post. " +
+    "Changing one later is not in this design: a time zone or fiscal year that moves under existing books is the books " +
+    "designer's question.",
+  source: by(`/tmp/frappe/frappe/geo/country_info.json (currency, timezones); /tmp/erpnext/erpnext/public/js/setup_wizard.js:195 (fiscal_years); docs/vision/erp.md (check C18)`),
+  affects: [table_organizations, rpc_organizations_setups_begin, concept_books, concept_projects],
+});
+
+export const decision_organizations_apps_native_or_head = defineDecision({
+  id: "organizations.apps-native-or-head",
+  title: "Fundamental apps live in Capxul; every other Frappe app lives on a head",
+  question:
+    "aaron.frappe-shape: other apps are added at start-up or through the FDE. Capxul holds the fundamental apps' records " +
+    "in their Frappe shapes. Where does an added app (Helpdesk, Stock, Manufacturing) live?",
+  options: [
+    {
+      label: "head-apps",
+      text:
+        "On a connected head only: Capxul records it in the Organization's app list as wanted, asks the head's host to " +
+        "install it once a head is connected, and never copies its documents. Its documents may name Capxul's records by " +
+        "Capxul id and ask Capxul for money only through Capxul's commands.",
+    },
+    { label: "generic-store", text: "Capxul holds every app's documents in a generic DocType store, so an added app works without a head." },
+    { label: "native-each", text: "Each added app becomes a Capxul concept in its Frappe shape, as the fundamental ones are." },
+  ],
+  chosen: "head-apps",
+  why:
+    "For Aaron. Fork as little as possible: a generic store would make Capxul a second Frappe backend that must run every " +
+    "app's controllers to be right, which is a fork in all but name; a concept per app does not scale past a few. The " +
+    "fundamental apps are native because the rulings say every Organization has them from the start, head or no head. " +
+    "So an Organization with no head can want an app but not use it, and the FDE says so and offers to connect a head. " +
+    "Is that the line Aaron means?",
+  source: FRAPPE_RULINGS,
+  affects: [table_org_apps, machine_org_app, workflow_heads_watch, integration_frappe_head, system_capxul],
+});
+
+export const decision_organizations_fde_at_start_up = defineDecision({
+  id: "organizations.fde-at-start-up",
+  title: "The founder's install signature also creates the FDE, from a key made locally",
+  question:
+    "aaron.fde-agent: every Organization has a Forward Deployed Engineer, its own agent (aaron.seats), acting through the " +
+    "same CLI and SDK under the Organization's authority. How is it born, and where is its key?",
+  options: [
+    {
+      label: "install-batch",
+      text:
+        "`org create`'s flow makes the FDE's key on the founder's machine (as `agent create` makes a key) and passes its " +
+        "address to `begin`; the setup adds `AgentOwner.create(that key, the company Safe)` to the founder's install batch, " +
+        "so one signature installs the company and creates the FDE; the setup seats it and agents records it. `--no-fde` " +
+        "starts without one, and a Director can later make one with `agent create --org`.",
+    },
+    {
+      label: "board-proposal-after",
+      text: "After the setup is ready, agents opens a Board proposal to create the FDE, which the founder approves.",
+    },
+    {
+      label: "hosted-key",
+      text: "A Capxul-hosted FDE runtime makes and keeps the key, and the setup asks it for the address (a new component and integration).",
+    },
+  ],
+  chosen: "install-batch",
+  why:
+    "For Aaron: where the FDE runs. Before the install the founder's Safe is the company Safe's only owner, so the batch " +
+    "can call AgentOwner.create from the company Safe (AgentOwner requires the owner to call) with no Board proposal: no " +
+    "`owner-safe-proposals` gate, and no proposal holding the company Safe's next nonce, which would block every Board " +
+    "proposal after it until the founder answered. The key never reaches Capxul, as with every agent. With the key on the " +
+    "founder's machine the FDE runs there, as the FDE plugin over the CLI; moving it to a Capxul-hosted runtime later is " +
+    "a key rotation by the Board (`agent key rotate --org`) to a key that runtime made, so the hosted option is not " +
+    "closed. If Aaron wants every Organization's FDE hosted by Capxul from day one, the hosted-key option needs a new " +
+    "component and an `fde-host` integration (the shared designer's). Also for Aaron: the ruling says every " +
+    "Organization has an FDE, and `--no-fde` lets a founder start without one (the eval worlds need it, " +
+    "organizations.startup-worlds); keep it as a founder's choice, or make it a devnet-only flag?",
+  source: by("/home/user/factory/packages/contracts/v4/src/agents/AgentOwner.sol:82 (msg.sender == owner); books/target/board/procedures.ts (owner-safe-proposals, next nonce)"),
+  affects: [
+    table_org_setups, rpc_organizations_setups_begin, workflow_organizations_setups_set_up, flow_client_onboarding_begin_organization,
+    operation_org_create, contract_agent_owner,
+  ],
+});
+
+export const decision_organizations_fde_seat = defineDecision({
+  id: "organizations.fde-seat",
+  title: "The setup seats the FDE before it signs in; it serves only its Organization",
+  question: "The FDE's Seat is the Organization's own agent's (seat_use organization). When is it born, and can the FDE sit in another Organization?",
+  options: [
+    {
+      label: "at-completion",
+      text:
+        "Born with the founder's when the setup completes, `seat_use` organization, its `principal_id` null for good; an " +
+        "agent's session is matched to a Seat by its Safe, by every concept's tenant guard. Another Organization's own " +
+        "agent is never offered a Seat (INVALID_INPUT at invite).",
+    },
+    { label: "by-invitation", text: "The FDE accepts an invitation like any agent." },
+  ],
+  chosen: "at-completion",
+  why:
+    "An invitation would need someone to invite the FDE and the FDE to accept before it could help, and the ruling says " +
+    "it is the Organization's from the start. A null principal is what agents already says of an agent's account before " +
+    "its first sign-in (agents.account-at-first-sign-in), and access holds one principal per Safe, so matching an agent " +
+    "by its Safe is the same guard. Nothing writes the Seat when the FDE first signs in (access, below, cannot, and a " +
+    "reaction would leave a window), so an agent's Seat is looked up by Safe, never by principal. The FDE's owner is " +
+    "its Organization's Board, which can freeze, sweep or remove it; " +
+    "seated elsewhere, another company's Board would control an agent working inside this one. Ending an FDE's Seat is " +
+    "the chain's, as for every agent (AgentRemoved).",
+  source: by("books/target/agents/decisions.ts (agents.account-at-first-sign-in); books/target/access/data.ts (principals by_safe)"),
+  affects: [table_org_members, machine_org_member, workflow_organizations_setups_set_up, rpc_organizations_invitations_invite],
+});
+
+export const decision_organizations_fde_handle = defineDecision({
+  id: "organizations.fde-handle",
+  title: "The FDE's handle is `<handle>-fde`, or `fde-` and the Organization's id",
+  question: "Every agent's Party has a handle (3 to 30 characters). What is the FDE's, and what if it is taken?",
+  options: [
+    { label: "derived", text: "`<handle>-fde`, from the Organization handle's first 26 characters; when that is taken, `fde-` and ten characters of the Organization's id. Display name `<name> FDE`." },
+    { label: "chosen", text: "The founder chooses it at `org create`." },
+  ],
+  chosen: "derived",
+  why:
+    "`org create` must never be refused because of the FDE's name, and a founder should not have to choose one. The " +
+    "derived handle is free in practice; the fallback is unique by the id. For the parties designer: reserving the `-fde` " +
+    "suffix and the `fde-` prefix for FDEs would stop anyone else from taking an Organization's FDE handle.",
+  source: by("books/target/parties/procedures.ts (parties.register: handle rules)"),
+  affects: [rpc_organizations_setups_begin, table_org_setups],
+});
+
+export const decision_organizations_head_connection = defineDecision({
+  id: "organizations.head-connection",
+  title: "A head connection is organizations' record and process; each app syncs itself",
+  question: "The head ruling: connecting a head is a separate step. What records it, and who syncs what?",
+  options: [
+    {
+      label: "connection-here-sync-per-app",
+      text:
+        "`org-heads` holds the one live connection (site, host, sealed key, what the site said) and its process checks the " +
+        "site and installs wanted apps; each app concept syncs its own records from the connection's `confirm`, through " +
+        "the `frappe-head` integration.",
+    },
+    { label: "head-concept", text: "A new head concept above every app, which syncs all of them." },
+  ],
+  chosen: "connection-here-sync-per-app",
+  why:
+    "Every app concept depends on organizations, so each can read the connection and follow its transitions; a head " +
+    "concept above them all would have to write every app's tables, which P4 forbids. One live connection at a time " +
+    "keeps one head per Organization's data. The API key is sealed under record-bound encryption bound to the row, as " +
+    "banking seals bank details, and never returned; so are the ring secret (a signature is checked with the secret, " +
+    "not its hash) and, for Frappe Cloud, the team's token its site API needs to install an app, which no site key can. Connecting is a Director's step, because it hands the Organization's " +
+    "records to an outside system (organizations.commands).",
+  source: FRAPPE_RULINGS,
+  affects: [table_org_heads, machine_org_head, workflow_heads_watch, integration_frappe_head, concept_projects],
+});
+
+export const decision_organizations_head_ownership = defineDecision({
+  id: "organizations.head-ownership",
+  title: "Money and identity are Capxul's; business records shared; the rest the head's",
+  question:
+    "aaron.frappe-head: once a head is connected, accounting, payroll, CRM and projects sync between the two, with Capxul " +
+    "the system of record for money and identity. Who owns what, field by field?",
+  options: [
+    {
+      label: "three-classes",
+      text:
+        "Capxul's: money and identity (payments and the vouchers posted from book facts, Parties' names, handles and Safes, " +
+        "Seats, hats, budgets, agreements' terms): pushed one way, read-only on the head, overwritten if they drift. " +
+        "Shared: the fundamental apps' business records (projects, tasks, timesheets, CRM relationship fields, the " +
+        "non-money parts of the books and payroll): either side may change them, each change based on a version, and " +
+        "Capxul applies a head change through its own checks; an older base or a refused change loses. The head's: every " +
+        "other app's documents and the head's customizations, which Capxul never copies.",
+    },
+    { label: "capxul-all", text: "Capxul owns everything it holds; the head may only read and ask." },
+    { label: "head-all", text: "Once connected, the head owns everything but money and identity, and Capxul follows it." },
+  ],
+  chosen: "three-classes",
+  why:
+    "For Aaron, to confirm the reading. Money and identity must never move because a head's database says so: the chain " +
+    "decides, and the head books what settled (docs/vision/erp.md). Business records are what people edit in Frappe's " +
+    "forms every day, so a head that could not edit them would not be a head; Capxul applying them through its own " +
+    "checks keeps the guards and lets an Organization disconnect its head with records it can trust. The three classes " +
+    "are what each app's designer follows: projects first (projects.head-sync); books, payroll, contacts and parties " +
+    "decide which of their fields fall in each class.",
+  source: FRAPPE_RULINGS,
+  affects: [integration_frappe_head, component_frappe_app, table_org_heads, concept_books, concept_payroll, concept_contacts, concept_projects],
+});
+
+export const decision_organizations_head_doorbell = defineDecision({
+  id: "organizations.head-doorbell",
+  title: "The head rings a doorbell with no data; Capxul pulls with its own key",
+  question: "How does Capxul learn that something changed on the head, without polling it every minute?",
+  options: [
+    { label: "doorbell", text: "The Capxul app posts a signed, data-free ring after a change commits; it wakes every app's sync, which pulls; a daily pull catches a lost ring." },
+    { label: "poll", text: "Each app's sync polls the head every minute." },
+    { label: "webhook-with-data", text: "The head posts each change with its content to Capxul." },
+  ],
+  chosen: "doorbell",
+  why:
+    "A minute-scale poll is a timer the one clock would stop at, half a million stops a simulated year " +
+    "(devnet.warp-barrier), and a load on every head. A webhook with data would make the head a writer into Capxul " +
+    "holding Capxul's trust; a ring carries nothing, so a forged one is refused and a replayed one only causes an extra " +
+    "pull, and every change still " +
+    "comes through Capxul's own read with Capxul's own key. On a devnet the stand-in head rings at the stop its scripted " +
+    "edit happens.",
+  source: by("books/target/devnet/decisions.ts (devnet.warp-barrier); books/target/banking/inbox.ts (a signed delivery route)"),
+  affects: [rpc_organizations_heads_ring, table_org_heads, workflow_heads_watch, component_frappe_app],
+});
+
+export const decision_organizations_head_clock = defineDecision({
+  id: "organizations.head-clock",
+  title: "A head runs on the one clock: Capxul's times for money, one time zone for days",
+  question: "The one clock (time.one-clock) runs the larger system too. How does a connected head follow it?",
+  options: [
+    {
+      label: "follower-and-zone",
+      text:
+        "Money's times are Capxul's (a voucher is dated at its fact's block); a head's own dates are Frappe's, read through " +
+        "frappe.utils; every instant crosses as UTC and every day in the Organization's time zone, which the head must " +
+        "share (else the connection stalls). On a devnet the Capxul app is a follower: it sets now_datetime to the clock's " +
+        "now, runs Frappe's due jobs at each stop, and reports only daily-or-slower jobs as its next due.",
+    },
+    { label: "own-clocks", text: "Each side keeps its own clock and the sync converts." },
+  ],
+  chosen: "follower-and-zone",
+  why:
+    "ERPNext reads time almost only through Frappe's helpers, and Frappe's tests already freeze them, so following the " +
+    "clock is one patch in the Capxul app, not a fork (docs/vision/erp.md section 5). A head in another zone would put a " +
+    "task's due day or a fiscal year's first day on another date. Reporting only slow jobs as stops follows the barrier's " +
+    "own rule, because Frappe's every-tick and 15-minute jobs would make a simulated year hundreds of thousands of stops; " +
+    "which of Frappe's jobs count as stops is the devnet designer's to fix with the stand-in head.",
+  source: by("books/target/shared/time.ts (time.one-clock, time.clients-take-server-now); books/target/devnet/decisions.ts (devnet.followers); docs/vision/erp.md (section 5)"),
+  affects: [component_frappe_app, integration_frappe_head, table_organizations, workflow_heads_watch],
+});
+
+export const decision_organizations_commands = defineDecision({
+  id: "organizations.commands",
+  title: "Decision pack: the app and head commands to add (new capabilities)",
+  question:
+    "Adding Frappe apps and connecting a head are new capabilities, not among the 215 (aaron.frappe-shape, " +
+    "aaron.frappe-head). Which commands does Capxul add, and who may run them?",
+  options: [
+    {
+      label: "apps-and-head",
+      text:
+        "Recommended. `org app list`; `org app add <app>` and `org app remove <app>` (a Director or the FDE); `org head " +
+        "connect <site-url> --host frappe-cloud|self-hosted` (a Director, with the head user's API key read from a prompt " +
+        "or a file, never a flag), `org head show` (any member: status, versions, each app's sync position) and `org head " +
+        "disconnect` (a Director). Each is one rpc in organizations, booked with worlds and claims when accepted.",
+    },
+    { label: "apps-only", text: "Viable. Only the app commands now; connecting a head waits for its own pack." },
+    { label: "fde-only", text: "Weak. No commands: the FDE adds apps and connects heads through a conversation surface of its own." },
+  ],
+  chosen: "apps-and-head",
+  why:
+    "For Aaron: this is a decision pack, and the recommendation stands until he answers. The FDE acts through the same " +
+    "CLI as everyone (aaron.fde-agent), so whatever it may do must be a command; an FDE-only surface would put an " +
+    "unchecked path beside the CLI. Connecting a head hands the Organization's records to an outside system, so it is a " +
+    "Director's step, not the FDE's: the FDE prepares it and a Director runs it. Adding an app is reversible and moves no " +
+    "money, so the FDE may do it. Buying seats (aaron.buy-seats) is a separate pass and not in this pack.",
+  source: FRAPPE_RULINGS,
+  affects: [table_org_apps, table_org_heads, machine_org_app, machine_org_head, event_org_head_transitioned, system_capxul],
+});
+
+export const decision_organizations_startup_worlds = defineDecision({
+  id: "organizations.startup-worlds",
+  title: "Existing worlds start Acme with `--no-fde`; a new world starts it with its FDE",
+  question:
+    "With an FDE by default, every Organization world would hold an FDE, so `agent create --org` there would meet the " +
+    "own-agent limit and `org member list` would show one more Seat. How do the frozen operations keep their worlds?",
+  options: [
+    { label: "no-fde-in-old-worlds", text: "Every existing world's `org create` passes `--no-fde`, so each holds what it says; a new world, `org-with-fde`, is `org-ready` with its FDE, for the FDE's own claims." },
+    { label: "rewrite-worlds", text: "Rewrite every Organization world around its FDE: Acme's @acme-bot becomes its FDE." },
+  ],
+  chosen: "no-fde-in-old-worlds",
+  why:
+    "The worlds are evidence for frozen claims and refusals: `org-with-proposals-gate-off` must hold no agent of Acme's " +
+    "own so `agent create --org` reaches FEATURE_NOT_AVAILABLE, and `org-with-agent` makes @acme-bot with `agent create " +
+    "--org`, which by the FDE ruling is Acme's FDE anyway. Keeping them unchanged keeps every frozen behaviour where it " +
+    "was proved. For the devnet designer: add `--no-fde` to the Organization worlds' `org create` and add `org-with-fde`.",
+  source: by("books/target/devnet/worlds.ts (org-ready, org-with-agent, org-with-proposals-gate-off); books/target/agents/operations.ts"),
+  affects: [operation_org_create, flow_client_onboarding_begin_organization],
 });

@@ -3,8 +3,8 @@
 // written in one mutation; here they are one row, written in one transaction (decision
 // concepts.books; books.annotations-one-table). For an Organization the annotation is the other side
 // of the row's voucher, in ERPNext's terms: account, party, cost centre, project and the documents
-// it pays (books.vouchers). A connected head gives a row its meaning by calling this same rpc as
-// the Organization's agent (books.sync).
+// it pays (books.vouchers). A head user's classification of a row is pulled by books' head sync and
+// applied through these same checks, with that member's rights (books.sync).
 
 import { Schema } from "effect";
 import { budget, defineRpc } from "../../../packages/book/src/index.ts";
@@ -58,8 +58,12 @@ export const rpc_books_annotations_save = defineRpc({
     "Replaces the annotation on one Payment or Movement row, in one transaction. An Organization row must be one its " +
     "books hold money for (its facts name the row), else INVALID_INPUT; it takes an active ledger account of its chart by " +
     "code or `acct_` id (no chart, an unknown code or a group: INVALID_INPUT), or a new account made inline under a " +
-    "parent (`account_created`), and optionally a party (required for a receivable or payable account, else " +
-    "INVALID_INPUT `party_required`), a cost centre of its tree, a project and the head documents it pays. The first " +
+    "parent (`account_created`), and optionally a party, a directory Party with its Frappe party type (required for a " +
+    "receivable or payable account: given none, it takes the counterparty Party the row's money fact proves, and with " +
+    "neither it is INVALID_INPUT `party_required`), a cost centre of its tree, a project and the documents it pays, each of a type its " +
+    "party may reference in ERPNext (else INVALID_INPUT), whose allocations add up to at most the row's value in the " +
+    "Company's currency, or its token amount at par when that currency is the token's peg (else INVALID_INPUT; " +
+    "books.vouchers). The first " +
     "account is an `account_assigned` fact and each change of account, party or documents after it `recategorized`, which " +
     "reposts the row's voucher in place; a row whose voucher posts on or before `closed_through` is WRONG_STATE " +
     "`period_closed`, so a closed period never changes (books.closed-periods). A suggestion goes only beside 4999 or " +

@@ -583,6 +583,8 @@ export const table_employees = defineTable({
     gender: Null(S),
     date_of_birth: Null(S),
     head_name: Null(S),
+    /** The `seq` of its last change in `payroll-changes`: the version a head sync pushes and compares (payroll.head-sync). */
+    version: N,
     created_at: N,
     updated_at: N,
   }),
@@ -592,7 +594,10 @@ export const table_employees = defineTable({
       name: "by_party",
       fields: ["org_id", "party_id"],
       unique: true,
-      for: "One Employee per person and Organization: the agreement's acceptance and `employees.add` find the one already there.",
+      for:
+        "Partial on status <> left: one live Employee per person and Organization, which the agreement's acceptance and " +
+        "`employees.add` find. A person who left and comes back is a new Employee, as in Frappe, whose duplicate check " +
+        "counts only Active ones (payroll.one-live-employee).",
     },
     {
       name: "by_department",
@@ -622,7 +627,9 @@ export const table_salary_components = defineTable({
     "(payroll.deduction-remittance). `portable` says the formula and condition are in the subset Capxul evaluates " +
     "exactly as Frappe does; a component that is not can be used only by a run its head computes " +
     "(payroll.portable-formulas). `origin` `agreement` is the one component an Organization's agreement collections " +
-    "are paid under, made when its first agreement is accepted.",
+    "are paid under, made when its first agreement is accepted: an earning with no amount, `depends_on_payment_days` " +
+    "and `is_tax_applicable` off and `remove_if_zero_valued` on, so a head never prorates, taxes or adds a zero row for " +
+    "it, and no run pays it (payroll.agreements-in-frappe-shape).",
   was: [`${FRAPPE_HR}/salary_component/salary_component.json`, `${FRAPPE_HR}/salary_component_account/salary_component_account.json`],
   concept: concept_payroll,
   tenancy: "organization",
@@ -649,6 +656,8 @@ export const table_salary_components = defineTable({
     portable: Schema.Boolean,
     origin: Schema.Literals(["capxul", "agreement", "head"]),
     head_name: Null(S),
+    /** The `seq` of its last change in `payroll-changes`: the version a head sync pushes and compares (payroll.head-sync). */
+    version: N,
     created_at: N,
     updated_at: N,
   }),
@@ -693,6 +702,8 @@ export const table_salary_structures = defineTable({
     amended_from: Null(S),
     docstatus: Schema.Literals(DOC_STATUSES),
     head_name: Null(S),
+    /** The `seq` of its last change in `payroll-changes`: the version a head sync pushes and compares (payroll.head-sync). */
+    version: N,
     created_at: N,
     updated_at: N,
   }),
@@ -737,6 +748,8 @@ export const table_salary_structure_assignments = defineTable({
     agreement_id: Null(S),
     docstatus: Schema.Literals(DOC_STATUSES),
     head_name: Null(S),
+    /** The `seq` of its last change in `payroll-changes`: the version a head sync pushes and compares (payroll.head-sync). */
+    version: N,
     created_at: N,
     updated_at: N,
   }),
@@ -765,9 +778,12 @@ export const table_payroll_entries = defineTable({
     "company Safe (`payment_account` is books' treasury account of that Safe and token). `employees` is Frappe's Payroll " +
     "Employee Detail rows: who the run covers, and whether each is withheld. `computed_by` says which side worked its " +
     "slips out: Capxul, or a connected head (payroll.one-computer-per-run). Once paying, `request_key` (`payroll:`, the " +
-    "entry's id and the attempt) is the one payment command its slips' nets go out under, with one approval " +
-    "(payroll.run-one-approval); `command_id` and `approval_id` name them. `status` moves only through machine " +
-    "`payroll-entry`.",
+    "entry's id and the attempt) is the payment command its slips' nets go out under, with one approval " +
+    "(payroll.run-one-approval); `attempt`, `request_key`, `command_id` and `approval_id` name the latest. A lapsed " +
+    "command is resumed under its own key; only slips that hold no Payment (released, or refunded from escrow) go out " +
+    "under the next attempt. Each slip keeps its own command, by which a Payment's transition finds it. `head_name` is " +
+    "the head's Payroll Entry for a run taken in, unique, so a run is taken in once; for a run Capxul made, the head's name for its copy. `status` moves only through " +
+    "machine `payroll-entry`.",
   was: [`${FRAPPE_HR}/payroll_entry/payroll_entry.json`, `${FRAPPE_HR}/payroll_employee_detail/payroll_employee_detail.json`, "packages/backend/src/payroll/tables.ts:167"],
   concept: concept_payroll,
   tenancy: "organization",
@@ -795,6 +811,8 @@ export const table_payroll_entries = defineTable({
     approval_id: Null(S),
     created_by: S,
     head_name: Null(S),
+    /** The `seq` of its last change in `payroll-changes`: the version a head sync pushes and compares (payroll.head-sync). */
+    version: N,
     created_at: N,
     updated_at: N,
   }),
@@ -811,11 +829,10 @@ export const table_payroll_entries = defineTable({
       for: "The runs a list shows by status: drafts to submit, submitted ones to pay, paying ones still waiting.",
     },
     {
-      name: "by_command",
-      fields: ["command_id"],
+      name: "by_head_name",
+      fields: ["org_id", "head_name"],
       unique: true,
-      crossTenant: true,
-      for: "A Payment's transition, which names only its command, to the run whose nets it carries.",
+      for: "A head's Payroll Entry is taken in once: the head sync finds it by its head name, and a second run to pay can never be born for it.",
     },
   ],
   retention: HR_RETAINED,
@@ -831,9 +848,11 @@ export const table_salary_slips = defineTable({
     "in one token. `source` `run` is a slip of a Payroll Entry, computed by `computed_by`; `collection` is a landed " +
     "agreement collection, born paid, with no deductions (payroll.collection-slips). `document_id` and `document_hash` " +
     "are its payslip document, whose hash a run slip's Payment carries on chain; a collection slip names the agreement's " +
-    "terms document, the hash its collection carried. Once paid it keeps the settled facts: `payment_id` (as `payment " +
-    "get` takes it), `chain_payment_id`, `tx_hash`, `block_number` and `paid_at`, the block's time. `net_pay_raw` is the " +
-    "net in the token's raw units, the amount the chain moves. `status` moves only through machine `salary-slip`.",
+    "terms document, the hash its collection carried. From its pay it keeps its Payment: `payment_id` (as `payment " +
+    "get` takes it), `command_id` and `attempt`, the run command it went out under, kept through a lapse so a retry " +
+    "resumes that same Payment and cleared when an escrow refund cancels it; once paid, the settled facts " +
+    "`chain_payment_id`, `tx_hash`, `block_number` and `paid_at`, the block's time. `net_pay_raw` is the net in the " +
+    "token's raw units, the amount the chain moves. `status` moves only through machine `salary-slip`.",
   was: [`${FRAPPE_HR}/salary_slip/salary_slip.json`, `${FRAPPE_HR}/salary_detail/salary_detail.json`, "packages/backend/src/payroll/tables.ts:167"],
   concept: concept_payroll,
   tenancy: "organization",
@@ -885,11 +904,15 @@ export const table_salary_slips = defineTable({
     status: Schema.Literals(SALARY_SLIP_STATUSES),
     withholding_reason: Null(S),
     payment_id: Null(S),
+    command_id: Null(S),
+    attempt: Null(Schema.Int),
     chain_payment_id: Null(S),
     tx_hash: Null(S),
     block_number: Null(Schema.Int),
     paid_at: Null(N),
     head_name: Null(S),
+    /** The `seq` of its last change in `payroll-changes`: the version a head sync pushes and compares (payroll.head-sync). */
+    version: N,
     created_at: N,
     updated_at: N,
   }),
@@ -924,7 +947,106 @@ export const table_salary_slips = defineTable({
       crossTenant: true,
       for: "A settled Payment, by its v4 payment id, to the one slip it paid.",
     },
+    {
+      name: "by_command",
+      fields: ["command_id", "payment_id"],
+      crossTenant: true,
+      for:
+        "A Payment's transition, which names its command and its payment id, to the slip it pays and so to its run's " +
+        "process; a run may have several commands (a resumed one, a released or refunded slip's), and each slip keeps its own.",
+    },
   ],
+  retention: HR_RETAINED,
+});
+
+// ── Payroll Settings, the change log and the head sync ──────────────────────────────────────
+//
+// A connected head is synced by payroll itself, as every concept that holds a fundamental app's records
+// syncs them (integration frappe-head, organizations.head-ownership, organizations.head-doorbell): Capxul
+// pushes its changes in order and pulls the head's, and the head only rings. The pattern is contacts' and
+// projects' (payroll.head-sync).
+
+export const table_payroll_settings = defineTable({
+  id: "payroll-settings",
+  title: "Payroll Settings: an Organization's payroll settings and its change counter",
+  about:
+    "Frappe HR's Payroll Settings, one row per Organization, born with the Organization's first payroll write. Its " +
+    "values are the same for every Organization, because they are what Capxul computes by and what a head must match: " +
+    "`payroll_based_on` leave, `include_holidays_in_total_working_days` on, `disable_rounded_total` on and " +
+    "`email_salary_slip_to_employee` off (notices sends mail). `last_seq` is the counter of `payroll-changes`: a payroll " +
+    "write takes the next number under this row's lock, so the log has no gap (payroll.startup, payroll.head-sync).",
+  was: [`${FRAPPE_HR}/payroll_settings/payroll_settings.json`],
+  concept: concept_payroll,
+  tenancy: "organization",
+  tenantField: "org_id",
+  fields: Schema.Struct({
+    org_id: S,
+    payroll_based_on: Schema.Literal("leave"),
+    include_holidays_in_total_working_days: Schema.Literal(true),
+    disable_rounded_total: Schema.Literal(true),
+    email_salary_slip_to_employee: Schema.Literal(false),
+    last_seq: N,
+    created_at: N,
+    updated_at: N,
+  }),
+  key: ["org_id"],
+  indexes: [],
+  retention: HR_RETAINED,
+});
+
+export const table_payroll_changes = defineTable({
+  id: "payroll-changes",
+  title: "Payroll change log: every write to a Frappe-shaped record, in commit order",
+  about:
+    "One row per change to an Employee, Salary Component, Salary Structure, Salary Structure Assignment, Payroll Entry " +
+    "or Salary Slip, appended in the writing transaction with the next `seq` from `payroll-settings` under its lock, so " +
+    "a later `seq` never commits before an earlier one and a reader paging by `seq` skips nothing. The changed row keeps " +
+    "that `seq` as its `version`. A connected head's sync pushes from it in order (a draft run is not pushed); a change " +
+    "that came from the head notes it (`origin` head), so the push only confirms its version there. It holds ids, not " +
+    "content: the push reads each record as it stands (payroll.head-sync).",
+  concept: concept_payroll,
+  tenancy: "organization",
+  tenantField: "org_id",
+  fields: Schema.Struct({
+    org_id: S,
+    seq: N,
+    doctype: Schema.Literals(["Employee", "Salary Component", "Salary Structure", "Salary Structure Assignment", "Payroll Entry", "Salary Slip"]),
+    doc_id: S,
+    origin: Schema.Literals(["capxul", "head"]),
+    /** The principal whose command made it, the agreement's process, or the head user (by mailbox) whose edit was applied. */
+    by: S,
+    at: N,
+  }),
+  key: ["org_id", "seq"],
+  indexes: [],
+  retention: "Kept for good: it is the order every head of the Organization replays.",
+});
+
+export const table_payroll_head_syncs = defineTable({
+  id: "payroll-head-syncs",
+  title: "Payroll's sync with one head",
+  about:
+    "One row per head connection payroll syncs with: how far it has pushed the change log (`pushed_seq`), how far it has " +
+    "read the head's own changes (`pulled_change`), when each last ran, and the conflicts and refusals it pushed back " +
+    "(a head edit based on an older version, or one payroll's checks refuse). Its process (`payroll.head.sync`) is the " +
+    "only writer.",
+  concept: concept_payroll,
+  tenancy: "organization",
+  tenantField: "org_id",
+  fields: Schema.Struct({
+    org_id: S,
+    head_id: S,
+    pushed_seq: N,
+    pulled_change: Null(S),
+    pushed_at: Null(N),
+    pulled_at: Null(N),
+    conflicts: N,
+    refused: N,
+    created_at: N,
+    updated_at: N,
+  }),
+  key: ["org_id", "head_id"],
+  indexes: [],
   retention: HR_RETAINED,
 });
 
@@ -951,7 +1073,8 @@ export const machine_employee = defineMachine({
   about:
     "Frappe's four Employee statuses. An Employee is hired `active`; a People hat wearer suspends, deactivates, " +
     "reinstates or lets them go; leaving sets `relieving_date`, after which no run pays them. An agreement's " +
-    "acceptance hires its payee when they are not yet an Employee, and its end lets them go when nothing else pays them.",
+    "acceptance hires its payee when they are not a live Employee, and its end lets them go when nothing else pays them. " +
+    "`left` is final for the record: a person who comes back is hired as a new Employee (payroll.one-live-employee).",
   table: table_employees,
   field: "status",
   initial: "active",
@@ -962,7 +1085,13 @@ export const machine_employee = defineMachine({
     { id: "left", about: "Gone from `relieving_date`; their slips and agreements' earned pay stay theirs.", terminal: true },
   ],
   transitions: {
-    hire: { from: [], to: "active", about: "Born by payroll.employees.add, or by an agreement's acceptance.", emits: [event_employee_transitioned] },
+    hire: {
+      from: [],
+      to: "active",
+      about: "Born by payroll.employees.add, or by an agreement's acceptance.",
+      guard: "The person has no live (not left) Employee in the Organization.",
+      emits: [event_employee_transitioned],
+    },
     suspend: { from: ["active"], to: "suspended", emits: [event_employee_transitioned] },
     deactivate: { from: ["active", "suspended"], to: "inactive", emits: [event_employee_transitioned] },
     reinstate: { from: ["inactive", "suspended"], to: "active", emits: [event_employee_transitioned] },
@@ -970,7 +1099,7 @@ export const machine_employee = defineMachine({
       from: ["active", "inactive", "suspended"],
       to: "left",
       about: "A People hat wearer sets the last day, or the only agreement that paid them ended.",
-      guard: "No slip of theirs is paying or escrowed.",
+      guard: "No slip of theirs is paying, escrowed or withheld, or holds a lapsed Payment.",
       emits: [event_employee_transitioned],
     },
   },
@@ -1079,13 +1208,34 @@ export const machine_payroll_entry = defineMachine({
   ],
   transitions: {
     create: { from: [], to: "draft", about: "Born by payroll.runs.create with its computed slips.", emits: [event_payroll_entry_transitioned] },
-    import: { from: [], to: "submitted", about: "A run a connected head computed and submitted, born by payroll.runs.import.", emits: [event_payroll_entry_transitioned] },
+    import: { from: [], to: "submitted", about: "A run a connected head computed and submitted, taken in by payroll's head sync (payroll.head.sync).", emits: [event_payroll_entry_transitioned] },
     submit: { from: ["draft"], to: "submitted", emits: [event_payroll_entry_transitioned] },
-    cancel: { from: ["draft", "submitted"], to: "cancelled", guard: "No slip of it is paying, escrowed or paid.", emits: [event_payroll_entry_transitioned] },
-    pay: { from: ["submitted"], to: "paying", about: "Its payment command is born, with one approval for every slip's net.", emits: [event_payroll_entry_transitioned] },
-    lapse: { from: ["paying"], to: "submitted", about: "The command's approval lapsed before anything was sent; a retry pays the same payment ids.", emits: [event_payroll_entry_transitioned] },
+    cancel: {
+      from: ["draft", "submitted"],
+      to: "cancelled",
+      guard: "No slip of it holds a Payment (paying, escrowed, paid, or lapsed and still retryable), and Capxul computed it or its head cancelled it.",
+      emits: [event_payroll_entry_transitioned],
+    },
+    pay: {
+      from: ["submitted"],
+      to: "paying",
+      about: "Its payment command is born, or its lapsed command resumed under the same key, with one approval for every slip's net.",
+      emits: [event_payroll_entry_transitioned],
+    },
+    lapse: {
+      from: ["paying"],
+      to: "submitted",
+      about: "The command's approval lapsed before anything was sent; `runs.pay` resumes that command, same key and payment ids.",
+      guard: "No slip of it is paid or escrowed: a later command's lapse returns only its own slips and leaves the run paying.",
+      emits: [event_payroll_entry_transitioned],
+    },
     settle: { from: ["paying"], to: "paid", guard: "Every slip that is not withheld is paid.", emits: [event_payroll_entry_transitioned] },
-    reopen: { from: ["paid"], to: "paying", about: "A reorg took a slip's payment back, a refunded escrow reopened one, or a released slip is paid.", emits: [event_payroll_entry_transitioned] },
+    reopen: {
+      from: ["paid"],
+      to: "paying",
+      about: "A reorg took a slip's payment back, or a released slip is paid under the next attempt.",
+      emits: [event_payroll_entry_transitioned],
+    },
   },
 });
 
@@ -1133,7 +1283,13 @@ export const machine_salary_slip = defineMachine({
   ],
   transitions: {
     compute: { from: [], to: "draft", about: "Born by payroll.runs.create.", emits: [event_salary_slip_transitioned] },
-    import: { from: [], to: "submitted", about: "A head's submitted slip, born by payroll.runs.import.", emits: [event_salary_slip_transitioned] },
+    import: { from: [], to: "submitted", about: "A head's submitted slip, taken in with its run by payroll.head.sync.", emits: [event_salary_slip_transitioned] },
+    import_withheld: {
+      from: [],
+      to: "withheld",
+      about: "A head's slip its Salary Withholding holds back (Frappe's Withheld), taken in withheld by payroll.head.sync, so it is never paid with the run.",
+      emits: [event_salary_slip_transitioned],
+    },
     record_collection: {
       from: [],
       to: "paid",
@@ -1141,14 +1297,34 @@ export const machine_salary_slip = defineMachine({
       emits: [event_salary_slip_transitioned],
     },
     submit: { from: ["draft"], to: "submitted", emits: [event_salary_slip_transitioned] },
-    withhold: { from: ["submitted"], to: "withheld", emits: [event_salary_slip_transitioned] },
+    withhold: {
+      from: ["submitted"],
+      to: "withheld",
+      guard: "It holds no lapsed Payment, which could still be retried.",
+      emits: [event_salary_slip_transitioned],
+    },
     release: { from: ["withheld"], to: "submitted", emits: [event_salary_slip_transitioned] },
     cancel: { from: ["draft", "submitted", "withheld"], to: "cancelled", about: "With its run.", emits: [event_salary_slip_transitioned] },
-    pay: { from: ["submitted"], to: "paying", about: "Its net is one item of its run's payment command.", emits: [event_salary_slip_transitioned] },
+    pay: {
+      from: ["submitted"],
+      to: "paying",
+      about: "Its net is one item of a run command: a new one under the next attempt, or its own lapsed command resumed with the same payment id.",
+      emits: [event_salary_slip_transitioned],
+    },
     escrow: { from: ["paying"], to: "escrowed", about: "Its Payment went into a claim escrow from the budget.", emits: [event_salary_slip_transitioned] },
     settle: { from: ["paying", "escrowed"], to: "paid", about: "Its Payment settled to the employee, at the block's time.", emits: [event_salary_slip_transitioned] },
-    lapse: { from: ["paying"], to: "submitted", about: "Its command's approval lapsed unsent.", emits: [event_salary_slip_transitioned] },
-    refund: { from: ["escrowed"], to: "submitted", about: "The budget's holder or the Board took the escrow back; the net is owed again.", emits: [event_salary_slip_transitioned] },
+    lapse: {
+      from: ["paying"],
+      to: "submitted",
+      about: "Its command's approval lapsed unsent: it keeps its payment id and command, so only that command's resume pays it.",
+      emits: [event_salary_slip_transitioned],
+    },
+    refund: {
+      from: ["escrowed"],
+      to: "submitted",
+      about: "The budget's holder or the Board took the escrow back (payments cancels the Payment, outcome refunded); its payment fields clear and the net is owed again.",
+      emits: [event_salary_slip_transitioned],
+    },
     reverse: { from: ["paid"], to: "paying", about: "A reorg below finality reopened its Payment; it settles again as the next generation.", emits: [event_salary_slip_transitioned] },
   },
 });

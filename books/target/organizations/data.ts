@@ -108,7 +108,11 @@ export const table_organizations = defineTable({
     seat_limit_raised_at: NullOr(N),
     /** ERPNext Company.abbr: the suffix of the Organization's account names; 1 to 5 upper-case letters or digits. */
     abbr: S,
-    /** ERPNext Company.default_currency, ISO 4217: the country's currency unless the founder chose another. */
+    /**
+     * ERPNext Company.default_currency, ISO 4217: the country's currency unless the founder chose another, and only one
+     * Capxul can value (USD, or a currency whose USD price pair the deployment lists); a country default with no pair
+     * falls back to USD, and a chosen one with none is INVALID_INPUT (books.company-settings values every voucher in it).
+     */
     default_currency: S,
     /** Frappe System Settings.time_zone, IANA: the country's first zone unless chosen; every app's calendar dates are in it. */
     time_zone: S,
@@ -153,7 +157,10 @@ export const table_org_setups = defineTable({
     org_id: S,
     /** The founder's principal: the approval's signer, and who may read and resume the setup before it is ready. */
     founder_principal_id: S,
-    /** Hash of name, handle, country, bio, size and logo as begun: the same intent resumes, another refuses. */
+    /**
+     * Hash of name, handle, country, bio, size, logo and the start-up choices (currency, time zone, fiscal-year start,
+     * apps) as begun: the same intent resumes, another refuses. The FDE key is not in it: a resume keeps the first.
+     */
     intent_hash: S,
     status: Schema.Literals(["processing", "awaiting_authorization", "needs_attention", "ready", "failed"]),
     steps: Schema.Array(SetupStep),
@@ -238,9 +245,10 @@ export const table_org_members = defineTable({
     "invitation, not a Seat. `seat_use` is what the Seat takes of the Organization's limits, as its offer reserved it: a " +
     "person's counts one of `seat_limit`; an agent's rides on its owner's Seat here (`covering_member_id`, one agent per " +
     "Seat) or is the Organization's own agent (one), and any other agent's counts one (organizations.seat-limit). The " +
-    "Organization's FDE is seated by its setup, before it has ever signed in, so its `principal_id` is null until its " +
-    "first signed challenge; an agent's session is matched to its Seat by its Safe (`by_org_safe`), which access' " +
-    "principals hold one to one (organizations.fde-seat).",
+    "Organization's FDE is seated by its setup, before it has ever signed in, so its `principal_id` stays null (nothing " +
+    "writes it when the FDE signs in); an agent's session is always matched to its Seat by its Safe (`by_org_safe`), " +
+    "which access' principals hold one to one, so every concept's tenant guard looks an agent up by Safe " +
+    "(organizations.fde-seat).",
   was: [`${T}/members.ts:10`, `${AS_IS}:391`],
   concept: concept_organizations,
   tenancy: "organization",
@@ -249,7 +257,7 @@ export const table_org_members = defineTable({
     org_id: S,
     member_id: S,
     party_id: S,
-    /** The access principal: a person, or an agent; null only for an FDE's Seat before the FDE's first sign-in. */
+    /** The access principal: a person, or an agent; null for an FDE's Seat, which is matched by its Safe. */
     principal_id: NullOr(S),
     kind: Schema.Literals(["human", "agent"]),
     safe_address: S,
@@ -479,8 +487,10 @@ export const table_org_heads = defineTable({
   about:
     "One row per connection of a Frappe head (aaron.frappe-head). An Organization is complete without one; connecting is " +
     "a separate step a Director takes (organizations.commands), and at most one connection is live at a time. It holds the " +
-    "site's URL, its host (Frappe Cloud or self-hosted), the API key and secret of the head user Capxul acts as, sealed " +
-    "under record-bound encryption and never returned, what the site last said of itself (Frappe's version, the Capxul " +
+    "site's URL, its host (Frappe Cloud or self-hosted), the API key and secret of the head user Capxul acts as and, on " +
+    "Frappe Cloud, the team's API token its site API takes to install apps, each sealed under record-bound encryption " +
+    "and never returned, the doorbell secret (sealed too, since a signature is checked with it), what the site last said " +
+    "of itself (Frappe's version, the Capxul " +
     "app's, the time zone), and its one durable process's state (`organizations.heads.watch`). The sync itself is each " +
     "app concept's own: each follows `org_head_transitioned` and keeps its own cursors, by the rules of " +
     "organizations.head-ownership. The head rings its doorbell when something changed there (`rung_at`), and Capxul then " +
@@ -495,6 +505,11 @@ export const table_org_heads = defineTable({
     host: Schema.Literals(["frappe-cloud", "self-hosted"]),
     /** `api_key:api_secret` for Frappe's token auth, sealed under RECORD_ENCRYPTION_KEY bound to this row. */
     credential_ciphertext: S,
+    /**
+     * Frappe Cloud only: the team's `api_key:api_secret` and team name its site API (install an app) takes, sealed the
+     * same way; a site's own key cannot install apps. Null for a self-hosted head, whose owner runs `bench install-app`.
+     */
+    host_credential_ciphertext: NullOr(S),
     status: Schema.Literals(["connecting", "connected", "failing", "disconnected"]),
     /** The Director who connected it, and who disconnected it. */
     connected_by: S,
@@ -503,10 +518,19 @@ export const table_org_heads = defineTable({
     capxul_app_version: NullOr(S),
     /** The site's System Settings time zone: it must be the Organization's. */
     time_zone: NullOr(S),
-    /** Why it stopped: the key refused, no Capxul app, a time zone that is not the Organization's, or the site down. */
-    issue: NullOr(Schema.Struct({ reason: Schema.Literals(["key_refused", "app_missing", "time_zone", "unreachable"]), code: S, at: N })),
-    /** The hash of the ring secret the connection gave the head's Capxul app for its doorbell. */
-    ring_secret_hash: S,
+    /**
+     * Why it stopped: the key refused, no Capxul app, a time zone or Company currency that is not the Organization's,
+     * or the site down.
+     */
+    issue: NullOr(
+      Schema.Struct({
+        reason: Schema.Literals(["key_refused", "app_missing", "time_zone", "currency", "unreachable"]),
+        code: S,
+        at: N,
+      }),
+    ),
+    /** The ring secret the connection gave the head's Capxul app, sealed like the key: the ring's HMAC is checked with it. */
+    ring_secret_ciphertext: S,
     /** When the head last rang: each ring wakes every app's sync of this head. */
     rung_at: NullOr(N),
     checked_at: NullOr(N),
@@ -518,7 +542,9 @@ export const table_org_heads = defineTable({
     {
       name: "by_org_live",
       fields: ["org_id", "status"],
-      for: "The Organization's live head (connecting, connected or failing): one at a time, and every app's sync reads it.",
+      for:
+        "The Organization's live head (connecting, connected or failing), and every app's sync reads it. One at a time: a " +
+        "connect takes the Organization row's lock and refuses WRONG_STATE while a live row exists.",
     },
   ],
   retention: KEPT,
