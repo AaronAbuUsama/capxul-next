@@ -51,7 +51,7 @@ Each record is rewritten to its ruling in the next design pass, book first.
 - **payroll.scope** is replaced by **aaron.frappe-shape**: Payroll is Frappe HR's payroll, synced, beside the v4 agreements.
 - **notices.claim-escrow** is replaced by **aaron.money-waiting**: Money waiting in a claim escrow sends a money-waiting email.
 
-## Accepted by Aaron as recommended (37)
+## Accepted by Aaron as recommended (39)
 
 - **environments.staging**: A new staging: fresh v4, nothing migrated, host chosen at the spine.
 - **procedures.accounts-admit**: One authority procedure: an invitation admits its invitee to the beta.
@@ -66,6 +66,7 @@ Each record is rewritten to its ruling in the next design pass, book first.
 - **parties.directory-tenancy**: The directory is global; a person's private profile is theirs.
 - **parties.mailbox-for-life**: A person keeps one mailbox for life; moving it is a later capability.
 - **parties.outside-companies**: People not on Capxul are in the directory; companies join it with Capxul.
+- **accounts.money-waiting-admits**: Money waiting in a claim escrow admits its recipient, as an invitation does.
 - **accounts.no-acceptance**: dev fund and the waitlist grant get no acceptance lines from the design.
 - **organizations.agent-cover**: An agent rides on its owner's Seat, one per Seat; an uncovered agent takes one.
 - **organizations.apps-native-or-head**: Fundamental apps live in Capxul; every other Frappe app lives on a head.
@@ -86,17 +87,16 @@ Each record is rewritten to its ruling in the next design pass, book first.
 - **payments.birth-width**: A send's birth invokes three procedures from three concepts.
 - **payroll.hr-surface**: Frappe HR's capabilities reach the SDK and web app now, the CLI next.
 - **payroll.one-computer-per-run**: A run is worked out where it is made; Capxul only pays a head's run.
+- **requests.bill-time**: Decision pack: bill logged hours as an Invoice, marking them in one write.
 - **equity.acceptance**: Twenty-three equity operations keep no acceptance line.
 - **devnet.no-acceptance**: The dev commands without acceptance lines get none from the design.
 - **devnet.sessions-across-warps**: After a warp past their sessions' end, a world's people sign in again.
 - **devnet.time-protocol**: The devnet's clock is a versioned HTTP protocol with a typed SDK client.
 
-## For Aaron (2)
+## For Aaron (0)
 
 Decisions flagged for Aaron's review, or whose text names a call that is his. Each recorded choice stands, and the build follows it, until he changes it; a change goes into the record first.
 
-- **accounts.money-waiting-admits**: Money waiting in a claim escrow admits its recipient, as an invitation does. Chosen: Payments invokes `accounts.admit` (`via` escrow, `ref` the Payment) in the transaction that moves a claim escrow's Payment to `escrowed`, with the mailbox the Payment keeps; the admission is recorded (`escrow:<payment id>`), never undone, and notices sends no second welcome: the money-waiting email is it. `waitlist status` #2 names the second way in, the frozen claim first in its `was`.
-- **requests.bill-time**: Decision pack: bill logged hours as an Invoice, marking them in one write. Chosen: Recommended. A new operation, `timesheet bill <timesheet…> --org <org> [--to <payer>]`, as requests' flow over `requests.issuing.issue`: it reads the timesheets' billable logs not yet billed, previews an Invoice to the project's customer with one line per activity (hours times the billing rate), keeps the hours and amount it asks for each log on the request (as a Sales Invoice's Timesheet rows do; the log keeps its own), and in the issue's transaction invokes `projects.bill-time` (`bill`) so the logs name the request. `request cancel` and `inbox decline` of such a request invoke it with `unbill` in their own transactions; paid keeps the marks.
 
 ## shared (275)
 

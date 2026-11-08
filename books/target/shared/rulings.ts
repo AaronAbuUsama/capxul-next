@@ -491,3 +491,6 @@ Object.assign(SUPERSEDED as Record<string, string>, {
   "payments.claim-escrow-fit": "aaron.escrow-general",
   "organizations.fde-at-start-up": "aaron.fde-hosted",
 });
+
+// Seventh batch (8 November 2026): "Agreed on both. Agree with your recommendation on both."
+(ACCEPTED as string[]).push("accounts.money-waiting-admits", "requests.bill-time");
