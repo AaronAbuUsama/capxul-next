@@ -1,4 +1,4 @@
-// Aaron's rulings of 8 November 2026 (his second batch of answers), as decision records with him as
+// Aaron's rulings of 8 November 2026 (his second and third batches of answers), as decision records with him as
 // the source, plus the design judgments he accepted as recommended and the ones he reopened. The
 // judgments report reads ACCEPTED and REOPENED, so an accepted judgment leaves "For Aaron".
 
@@ -19,31 +19,42 @@ export const ACCEPTED: readonly string[] = [
   "devnet.no-acceptance",
   "accounts.no-acceptance",
   "devnet.time-protocol", // accepted with his change: no support window, everyone cut over at once
+  "procedures.accounts-admit",
 ];
 
+/** Judgments an Aaron ruling replaced; the design pass rewrites each record to its ruling, book first. */
+export const SUPERSEDED: Readonly<Record<string, string>> = {
+  "portal.stack": "aaron.portal-generator",
+  "contacts.members-write": "aaron.contacts-permissions",
+  "notices.claim-escrow": "aaron.money-waiting",
+  "payroll.scope": "aaron.frappe-shape",
+  "books.facts-without-chart": "aaron.books-first-principles",
+};
+
 /** Judgments Aaron reopened on 8 November 2026: they are redesigned, or asked again with context. */
-export const REOPENED: readonly string[] = ["books.facts-without-chart", "payroll.scope"];
+export const REOPENED: readonly string[] = [];
 
 export const decision_aaron_erp_on_capxul = defineDecision({
   id: "aaron.erp-on-capxul",
-  title: "The ERP is built on top of Capxul, with Frappe as its application layer",
-  question: "What is the rebuild for, beyond the frozen operations, and what must its data model allow?",
+  title: "Capxul sits inside an ERP on Frappe; accounting is the app to fork",
+  question: "What is the rebuild for, beyond the frozen operations, and what must its design allow?",
   options: [
     {
       label: "erp-on-capxul",
       text:
-        "Capxul is the money, identity and governance layer under an ERP built on Frappe: Frappe CRM for people and " +
-        "companies, Frappe's accounting for the books, and possibly a fork of Frappe HR's payroll made Capxul-native. " +
-        "Where Capxul and Frappe hold the same things (people, companies, contacts, money facts, pay), Capxul keeps its " +
-        "data in shapes that map onto Frappe's doctypes, so the ERP reads Capxul without a translation layer of its own.",
+        "Capxul is the money, identity and governance layer of a larger system: an ERP whose applications are Frappe's. " +
+        "Accounting is the app to fork, because accounting is assumed and works a certain way in Frappe; HR, CRM and " +
+        "projects probably need no fork. Every Capxul concept that holds what a Frappe app holds keeps its data in that " +
+        "app's shape (frappe-shape). The one clock must be able to drive the rest of that system, not only Capxul.",
     },
     { label: "standalone", text: "Capxul stands alone; any ERP integrates later through its public API." },
   ],
   chosen: "erp-on-capxul",
   why:
-    "Aaron, 8 November 2026: 'the idea of how this rebuild is going to be used is, we are going to build the ERP on top of " +
-    "Capxul', with the CRM and accounting from Frappe and payroll a candidate to fork. Designing the shared shapes now costs " +
-    "little; a translation layer later is a second system to keep in step.",
+    "Aaron, 8 November 2026: the main application to fork is accounting, not payroll; HR, CRM and projects probably do not " +
+    "need a fork; 'this is going to be built into a larger system, larger than just Capxul and money. Hence why the time " +
+    "and the clock is important, because it's got to be able to permeate and drive other things as well.' A version of that " +
+    "system exists elsewhere and is being rebuilt from first principles; it is not the immediate task.",
   source: AARON,
   affects: [f.system_capxul, f.concept_parties, f.concept_contacts, f.concept_books, f.concept_payroll],
 });
@@ -95,26 +106,84 @@ export const decision_aaron_books_first_principles = defineDecision({
   affects: [f.concept_books],
 });
 
-export const decision_aaron_payroll_frappe = defineDecision({
-  id: "aaron.payroll-frappe",
-  title: "Payroll may be a fork of Frappe HR's payroll, made Capxul-native",
-  question: "How does Capxul's payroll relate to the ERP's?",
+export const decision_aaron_frappe_shape = defineDecision({
+  id: "aaron.frappe-shape",
+  title: "Every concept on the critical path is shaped the Frappe way",
+  question: "Which Capxul concepts take Frappe's shapes, and when is that mapped?",
   options: [
     {
-      label: "consider-fork",
+      label: "critical-path-now",
       text:
-        "Treat Frappe HR's payroll app as the candidate to fork and make Capxul-native (pay moving on Capxul's rails), and " +
-        "design Capxul's payroll concept so that fork can sit on it. Whether to fork is a decision pack before B4 builds " +
-        "payroll; payroll.scope is reopened with it.",
+        "Every concept on the critical path that holds what a Frappe app holds is mapped onto that app's doctypes before " +
+        "the build: people and companies onto Frappe CRM, the books onto the accounting app Capxul forks, pay agreements " +
+        "and payslips onto Frappe HR's payroll shapes, and so on. Payroll is shaped the Frappe way, not forked. How a payslip " +
+        "relates to on-chain pay (computed by the payroll app, paid and proven by Capxul) is designed in the same pass.",
     },
-    { label: "own-payroll", text: "Capxul designs its own payroll in full." },
+    { label: "later", text: "Map onto Frappe when the ERP is built." },
   ],
-  chosen: "consider-fork",
+  chosen: "critical-path-now",
   why:
-    "Aaron, 8 November 2026: payroll is 'one of the areas that we can potentially think about forking their payroll app, so " +
-    "we can make it Capxul native.'",
+    "Aaron, 8 November 2026: 'the books redesign is on the critical path... payroll should be shaped, all the apps should be " +
+    "shaped in the Frappe way... we should map it in the Frappe shape', and 'payslips need to be generated from on-chain data'. " +
+    "He corrected an earlier word: the fork is accounting, not payroll.",
   source: AARON,
-  affects: [f.concept_payroll],
+  affects: [f.concept_parties, f.concept_contacts, f.concept_books, f.concept_payroll],
+});
+
+export const decision_aaron_seats = defineDecision({
+  id: "aaron.seats",
+  title: "Ten seats per company; one agent per seat, plus the company's own",
+  question: "How many people and agents may a company have?",
+  options: [
+    {
+      label: "ten-seats",
+      text:
+        "Every company, in the beta and after, starts with ten seats. Each seat may hold one agent account, and the company " +
+        "may hold one agent of its own. Adding a seat past the limit is refused until the limit is raised.",
+    },
+    { label: "unlimited", text: "No seat limit." },
+  ],
+  chosen: "ten-seats",
+  why: "Aaron, 8 November 2026: 'when you start, you get 10 seats, and every seat can have one agent account, as well as the company's agent.'",
+  source: AARON,
+  affects: [f.concept_agents, f.concept_access],
+});
+
+export const decision_aaron_contacts_permissions = defineDecision({
+  id: "aaron.contacts-permissions",
+  title: "Editing a company's contact book needs a permission",
+  question: "Who may add, label, hide and unhide in an Organization's contact book?",
+  options: [
+    { label: "permission", text: "Only seats that hold the contact book's edit permission; every member may read it." },
+    { label: "member", text: "Any active seat, as the old book's who said." },
+  ],
+  chosen: "permission",
+  why: "Aaron, 8 November 2026: 'there should be permissions for editing the contact book. It shouldn't just be anyone can do anything.'",
+  source: AARON,
+  affects: [f.concept_contacts],
+});
+
+export const decision_aaron_money_waiting = defineDecision({
+  id: "aaron.money-waiting",
+  title: "Escrowed money sends a money-waiting email; check the escrow fits",
+  question: "When a payment goes to someone with no Capxul account yet, how do they learn of it and how do they collect it?",
+  options: [
+    {
+      label: "email-and-escrow",
+      text:
+        "Send a money-waiting email naming the amount, the payer and how to collect. The escrow contract holds the funds; " +
+        "only the recipient's Capxul account can unlock them, once they have one; the sender can refund at any time before " +
+        "the recipient accepts. The design pass checks the v4 escrow contract does exactly this.",
+    },
+    { label: "none", text: "Send nothing; the payer tells the payee." },
+  ],
+  chosen: "email-and-escrow",
+  why:
+    "Aaron, 8 November 2026: 'they should get a money is waiting email... this is what the escrow contract is for: it is " +
+    "unlockable by the recipient's Capxul; the sender can always refund before the receiver has accepted it; and then of " +
+    "course we can send emails.' Assess the contract is fit for purpose.",
+  source: AARON,
+  affects: [f.system_capxul],
 });
 
 export const decision_aaron_machine_login = defineDecision({
@@ -140,21 +209,16 @@ export const decision_aaron_machine_login = defineDecision({
   affects: [f.concept_access, f.concept_agents],
 });
 
-export const decision_aaron_portal_fumadocs = defineDecision({
-  id: "aaron.portal-fumadocs",
-  title: "Keep Fumadocs for the portal",
-  question: "The starter kit renders its portal with a small generator and no dependencies. Does Capxul's portal follow it?",
+export const decision_aaron_portal_generator = defineDecision({
+  id: "aaron.portal-generator",
+  title: "The portal is the generator's output; Fumadocs is set aside for now",
+  question: "Which renders the portal?",
   options: [
-    {
-      label: "keep-fumadocs",
-      text:
-        "Keep Fumadocs (portal.stack). How the starter kit's light generator relates to it (the same generated content " +
-        "rendered by both, or Fumadocs for the full portal and the generator for quick local views) is asked again.",
-    },
-    { label: "generator-only", text: "Use the dependency-free generator for Capxul's portal too." },
+    { label: "generator", text: "The book's own generator (as in the prototype and the starter kit) renders the portal. Fumadocs is set aside, to revisit later." },
+    { label: "fumadocs", text: "Fumadocs on a Next.js static export renders it." },
   ],
-  chosen: "keep-fumadocs",
-  why: "Aaron, 8 November 2026: agreed with the light approach, 'but we should also keep Fumadocs'.",
+  chosen: "generator",
+  why: "Aaron, 8 November 2026: 'let's forget Fumadocs for now and just run the generate; whatever we get generated from that generator, we'll stick with that for now.'",
   source: AARON,
   affects: [f.system_capxul],
 });

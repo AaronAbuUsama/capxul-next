@@ -3,7 +3,7 @@
 // Generated from the records, so it never disagrees with the book.
 
 import { records } from "../books/target/index.ts";
-import { ACCEPTED, REOPENED } from "../books/target/shared/rulings.ts";
+import { ACCEPTED, REOPENED, SUPERSEDED } from "../books/target/shared/rulings.ts";
 
 type Decision = {
   _kind: "decision"; id: string; title: string; question: string; chosen: string; why: string; source: string;
@@ -34,7 +34,7 @@ const CARRIES_OUT = ["rules.frozen-flags-kept", "rules.frozen-flags-built-ins"];
 /** Aaron's own decisions are settled, not for his review. */
 const byAaron = (d: Decision) => /^Aaron\b/.test(d.source);
 const forAaron = (d: Decision) =>
-  !byAaron(d) && !CARRIES_OUT.includes(d.id) && !ACCEPTED.includes(d.id) && (REOPENED.includes(d.id) || FLAGGED.includes(d.id) || /\baaron\b/i.test(`${d.title} ${d.question} ${d.why} ${d.chosen}`));
+  !byAaron(d) && !CARRIES_OUT.includes(d.id) && !ACCEPTED.includes(d.id) && !(d.id in SUPERSEDED) && (REOPENED.includes(d.id) || FLAGGED.includes(d.id) || /\baaron\b/i.test(`${d.title} ${d.question} ${d.why} ${d.chosen}`));
 const chosenText = (d: Decision) => d.options.find((o) => o.label === d.chosen)?.text ?? d.chosen;
 const one = (s: string) => s.replace(/\s+/g, " ").trim();
 
@@ -51,6 +51,10 @@ const his = decisions.filter(byAaron);
 const accepted = decisions.filter((d) => ACCEPTED.includes(d.id));
 out.push(`## Decided by Aaron (${his.length})`, "");
 for (const d of his) out.push(`- **${d.id}**: ${one(d.title)}. ${one(chosenText(d))}`);
+out.push("");
+const superseded = decisions.filter((d) => d.id in SUPERSEDED);
+out.push(`## Superseded by Aaron's rulings (${superseded.length})`, "", "Each record is rewritten to its ruling in the next design pass, book first.", "");
+for (const d of superseded) out.push(`- **${d.id}** is replaced by **${SUPERSEDED[d.id]}**: ${one(d.title)}.`);
 out.push("");
 out.push(`## Accepted by Aaron as recommended (${accepted.length})`, "");
 for (const d of accepted) out.push(`- **${d.id}**: ${one(d.title)}.`);
