@@ -19,14 +19,23 @@ Capxul runs on the new stack behind the **frozen surface**, which is:
 
 Done means all four of these hold:
 
-1. **Every operation passes.** Each of the 215 operations has its target record's evals passing at
-   the head of the integration branch, on a devnet: acceptance claims, returns, refusals, events,
-   spans and budget.
-2. **Every system eval passes:**
-   - import boundaries and tenant-first keys;
-   - the migration matches the table records;
-   - no rpc that nothing reaches;
-   - each concept within its line budget.
+1. **Every operation passes.** Each of the 215 operations has every eval of its target record
+   passing at the head of `integration/build`, on a devnet:
+   - acceptance claims, returns, refusals, events, spans and budget;
+   - `doc:` (its reference page, B4);
+   - `des:` (an agent judges that its text and its behaviour agree).
+
+   So do the evals of every record under it: rpcs, flows, procedures, tables, transitions,
+   workflows and integrations.
+2. **The system passes.**
+   - **The build rules hold** at every commit: boundaries, tenant-first keys, no unreached rpc,
+     budgets.
+   - **The derived system evals pass:**
+     - `sys:imports/<concept>`;
+     - `sys:generated`;
+     - `tbl:<table>/tenancy`;
+     - `sys:loc/<concept>`, once B3 sets each concept's lines;
+     - the journeys' `jrn:` and `fun:`.
 3. **The code is small.** Hand-written product code is at most 100,000 non-test, non-generated
    lines, about a quarter of the old system's 400,000. The decision is `system.size`. You set each
    concept's own line budget after the pilots, from what they measure.
@@ -46,7 +55,8 @@ The system is built on the decisions in `docs/decisions/README.md`:
 - **Where the design is.** `books/target/` is the design. Each concept folder holds:
   - its tables and state machines (`data.ts`);
   - its door, the procedures other concepts invoke (`procedures.ts`);
-  - its rpcs and durable processes, one file per area;
+  - its rpcs, one file per area;
+  - its durable processes (`processes.ts`);
   - its Core SDK flows (`flows.ts`);
   - its operation records (`operations.ts`);
   - every judgment behind it (`decisions.ts`).
@@ -69,6 +79,14 @@ The system is built on the decisions in `docs/decisions/README.md`:
       `was`;
     - every refusal is still a refusal, both the page's and those of its designed v4 block;
     - a dropped refusal is allowed only when a decision on the operation names it.
+- **Where code goes:** decision `system.layout`.
+  - npm workspaces, one package per component, plus `packages/generate` and `packages/evals`.
+  - In the backend and the SDK, `src/<concept>/` mirrors the book. Another concept is imported only
+    through its `door.ts`.
+  - Generated files live in `src/generated/` with a do-not-edit header.
+  - Lanes are branches `lane/<concept>`, merged by pull request into `integration/build`.
+    `integration/build` merges into `main` at each milestone's exit.
+  - Log each finished lane in `docs/mission/progress.md` until the swarmD ledger runs.
 - **The book changes first.** When the code needs to differ from the book:
   1. change the record and add a decision record;
   2. rebuild the book to zero problems;
@@ -76,9 +94,14 @@ The system is built on the decisions in `docs/decisions/README.md`:
 
   Code that disagrees with the book is a defect, not a design.
 - **The old system is evidence only.** It is `Xelmar-tech/infrastructure`, branch
-  `integration/factory`. The as-is book in `books/as-is/` and the reports in `docs/as-is/` say what
-  it does and what is wrong with it. Never port code from it without reading its record's keep list
-  and findings.
+  `integration/factory`, cloned at `/home/user/factory`. Before you reuse anything from it, read
+  what is known about it:
+  - `docs/mission/findings.md`: what is wrong with it.
+  - For payments, `docs/as-is/payments.md`: what to keep (K1 to K18) and the reviewed findings.
+  - For the other concepts, the as-is records in `books/as-is/<old concept>/` where they exist, and
+    the target record's `was`, which names what it replaces.
+
+  Never port code without reading these.
 
 ## Where the book stands at handoff
 
@@ -94,7 +117,7 @@ The 72 gaps, and who closes them:
 
 | Gap | Count | What it is | Who closes it |
 |---|---|---|---|
-| `no-acceptance` | 35 | Equity and devnet pages that had no acceptance lines in the old book, plus `dev.fund` and `waitlist.invites.grant` | Their returns, refusals and events are still evals. New acceptance lines need Aaron (decision `equity.acceptance`). |
+| `no-acceptance` | 35 | Pages that had no acceptance lines in the old book: 23 equity, 10 devnet, plus `dev.fund` and `waitlist.invites.grant` | Their returns, refusals and events are still evals. New lines are new public claims, so they need Aaron (decisions `equity.acceptance`, `devnet.no-acceptance` and `accounts.no-acceptance`). |
 | `unconsumed-chain-event` | 14 | Chain events that only indexing's views read, or that nothing uses yet | You, when a process or view needs them. Otherwise leave them. |
 | `uncalled-function` | 13 | Hats Elections and the Installer's calls, which wait for the board's seat groups; `budgets.setHat`; `escrow-factory.predictAddress`; `governor.castVote`; the vesting grant calls | Board and equity (low priority) |
 | `refusal-without-world` | 6 | Refusals no devnet world can reach yet: unreachable or staging-only paths, each recorded by its concept | Devnet, at B2, when it builds the worlds |
@@ -117,11 +140,11 @@ Each milestone ends with its exit check passing and its state committed.
 
 | # | Milestone | Exit |
 |---|---|---|
-| B0 | **Spike: durable execution.** Effect Workflow and Cluster on Postgres. Prove that: a process killed mid-run resumes; a signal resumes a waiting instance; a timer fires; an activity retried after a crash runs once. Also route a chain event and a `withdraw` transition, by their routing keys, to the same waiting instance (`rules.process-wakeups`; the approvals design depends on it). | All pass. Otherwise a decision record chooses the fallback (DBOS on Postgres), and the book is updated. |
-| B1 | **Generators.** From the records, generate: SQL migrations with tenant-first keys and row-level security (P8); Effect Schema types; the `RpcGroup` and the server router stubs; the Core SDK client and flow skeletons; the CLI wiring of the frozen surface; the telemetry catalogue (one `<machine>_transitioned` event per machine, plus runtime spans); the eval catalogue. Nobody edits generated files by hand. | The generated surfaces compile, and `sys:generated` passes. |
+| B0 | **Spike: durable execution** in `spikes/durable-execution/`: Effect Workflow and Cluster on Postgres, using the throwaway Postgres in `HANDOFF.md`. Prove that: a process killed mid-run resumes; a signal resumes a waiting instance; a timer fires. Prove that an activity retried after a crash has its side effect land once: activities are at least once in every engine, so prove it with an idempotency key or a claim-before-call row, as the book's design does. Then route a chain event and a `withdraw` transition, by their routing keys, to the same waiting instance (`rules.process-wakeups`; the approvals design depends on it). A stand-in table for Ponder's indexed rows is enough here. Record how the runtime learns of a new indexed row, and where the key-to-instance map lives, as decision records. | All pass, and the decisions are recorded. Otherwise a decision record chooses the fallback (DBOS on Postgres), and the book is updated. |
+| B1 | **Generators** in `packages/generate`. First, book first, map each operation's frozen flags (`books/frozen/flags.ts`) onto its flow's or rpc's input, so the CLI wiring can be generated. Add that field to the schema with a decision record, and extend `tools/check-frozen.ts` to compare flags. Then generate, from the records: SQL migrations with tenant-first keys and row-level security (P8, with each table's declared exceptions); Effect Schema types; the `RpcGroup` and the server router stubs; the Core SDK client and flow skeletons; workflow skeletons with their waits and wake registrations; the CLI wiring of the frozen surface; the error catalogue (code, class, message, exit code); each machine's transition table; integration timeouts and retries; the telemetry catalogue (one `<machine>_transitioned` event per machine, plus runtime spans); the eval catalogue. Nobody edits generated files by hand. | `packages/generate` regenerates every `src/generated/` folder with no diff (`sys:generated`); `npx tsc -b` compiles every package; the migrations apply to an empty Postgres. |
 | B2 | **Eval harness** (`docs/spec/30-capxul-evals.md`), within 2,000 lines. Its worlds are devnet snapshots: the worlds the records name, built by the devnet concept's design. It drives the real CLI as the client, uses a local OTLP collector, and outputs `RunResult[]`. Run it against the old system first: an eval that fails where the old behaviour shipped is either a bad eval or a recorded bug. | The catalogue runs end to end, and the old-system baseline is recorded. |
 | B3 | **Spine and pilots.** The devnet: anvil with the v4 contracts, Postgres, Ponder, the backend, a mock bundler and paymaster, and the mail sink. The runtime: auth, SQL, chain and integration services, the workflow engine and tracing. Then the pilot operations end to end: sign in (access), set up an Account (accounts) and send a payment (payments). From the pilots' measured lines per operation, set each concept's line budget (`system.size`). | The pilots' evals pass within budget, and the line budgets are recorded. |
-| B4 | **Concepts on the critical path.** Each concept is done when its operations' evals pass at the integration head. The order: access, accounts, organizations, parties, contacts; payments, books, requests; budgets, approvals, banking, payroll, documents, activity, notices; applications, indexing, media, devnet, agents; board and equity last. | The scoreboard is green for every operation. |
+| B4 | **Concepts on the critical path.** Each concept is done when its operations' evals pass at the integration head. Build them in dependency layers (decision `system.build-order`), each concept's door before anything that depends on it, and within each concept its critical operations first. The layers: access; media; parties; indexing; approvals; accounts; organizations; then board's proposals and door, books, documents, contacts and applications; budgets and agents; payments and payroll; banking and activity; requests; notices. Board's director and vote commands, and equity, come last. Generate the reference pages of the docs site from the records as each concept lands (its `doc:` evals). | The scoreboard is green for every operation. |
 | B5 | **New staging.** Deploy, run the suite and watch the live evals for a week. | The live evals hold. Turning off the old staging is Aaron's step. |
 
 ## How to work
