@@ -2610,7 +2610,7 @@ export const decision_system_layout = defineDecision({
     {
       label: "mirror-the-book",
       text:
-        "npm workspaces in this repository. One package per component: packages/runtime (the Effect services: auth, SQL, chain, " +
+        "pnpm workspaces in this repository (tooling.package-manager). One package per component: packages/runtime (the Effect services: auth, SQL, chain, " +
         "integrations, the workflow engine, tracing), packages/backend, packages/sdk (the Core SDK), packages/cli, packages/sdk-react, " +
         "packages/mcp, packages/indexer (Ponder), packages/devnet, plus packages/generate (the generators) and packages/evals (the " +
         "harness). In the backend and the SDK, src/<concept>/ mirrors books/target/<concept>/, and another concept's code is " +

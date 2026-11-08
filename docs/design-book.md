@@ -236,7 +236,7 @@ What the build makes of these four records:
 ## What a build does, step by step
 
 ```bash
-npx tsc -p books                                                                       # 2
+pnpm exec tsc -p books                                                                       # 2
 node --experimental-strip-types packages/book/src/main.ts books/target/index.ts /tmp/target   # 1, 3–9
 ```
 
@@ -425,8 +425,8 @@ The `chain` tenancy for Ponder's indexed tables has since been added.
 ## Commands
 
 ```bash
-npx tsc -p packages/book && npm test -w @capxul/book     # the record system and its tests
-npx tsc -p books                                           # the target and frozen books typecheck
+pnpm exec tsc -p packages/book && pnpm test     # the record system and its tests
+pnpm exec tsc -p books                                           # the target and frozen books typecheck
 node --experimental-strip-types packages/book/src/main.ts books/target/index.ts /tmp/target   # 0 problems
 node --experimental-strip-types tools/check-frozen.ts       # every operation booked, every behaviour kept: 0 breaches
 node --experimental-strip-types tools/report-judgments.ts > docs/decisions/judgments.md

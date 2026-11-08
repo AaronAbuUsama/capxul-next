@@ -32,11 +32,11 @@ Read, in order:
 
 ```bash
 git clone https://github.com/AaronAbuUsama/capxul-next /home/user/capxul-next
-cd /home/user/capxul-next && git checkout claude/infrastructure-refactor-plan-v41iue && npm install
+cd /home/user/capxul-next && git checkout claude/infrastructure-refactor-plan-v41iue && ppnpm install
 # the old system, read only, as a reference for behaviour (agents read it at this path):
 git clone --branch integration/factory --depth 1 https://github.com/Xelmar-tech/infrastructure /home/user/factory
-npx tsc -p packages/book && npm test -w @capxul/book   # 21 tests
-npx tsc -p books                                      # the books typecheck
+pnpm exec tsc -p packages/book && pnpm test   # 21 tests
+pnpm exec tsc -p books                                      # the books typecheck
 node --experimental-strip-types packages/book/src/main.ts books/target/index.ts /tmp/target
 ```
 
@@ -72,8 +72,8 @@ a timer, wake routing).
 ## Checks
 
 ```bash
-npx tsc -p packages/book && npm test -w @capxul/book
-npx tsc -p books
+pnpm exec tsc -p packages/book && pnpm test
+pnpm exec tsc -p books
 node --experimental-strip-types packages/book/src/main.ts books/target/index.ts /tmp/target   # 0 problems
 node --experimental-strip-types tools/check-frozen.ts                                           # 0 breaches: every behaviour kept
 node --experimental-strip-types tools/report-judgments.ts > docs/decisions/judgments.md        # regenerate

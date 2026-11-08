@@ -269,7 +269,7 @@ does until its rule lands (**review**, with the rule's name from the policy pack
 
 ## Check your work
 
-- Typecheck: `cd /home/user/capxul-next && npx tsc -p books 2>&1 | grep "books/target/<concept>"`.
+- Typecheck: `cd /home/user/capxul-next && pnpm exec tsc -p books 2>&1 | grep "books/target/<concept>"`.
   Fix every error in your files except unresolved imports of sibling files being written now.
 - Build: `node --experimental-strip-types packages/book/src/main.ts books/target/index.ts /tmp/target`.
   It must report 0 problems. Gaps are expected until every concept lands, and are never written by

@@ -2,9 +2,17 @@
   "name": "capxul-next",
   "private": true,
   "type": "module",
-  "workspaces": ["packages/*"],
   "scripts": {
     "check": "tsc -b packages/book",
-    "test": "npm test -w @capxul/book"
-  }
+    "test": "pnpm --filter @capxul/book test",
+    "book": "node --experimental-strip-types packages/book/src/main.ts books/target/index.ts /tmp/target",
+    "frozen": "node --experimental-strip-types tools/check-frozen.ts",
+    "judgments": "node --experimental-strip-types tools/report-judgments.ts"
+  },
+  "devDependencies": {
+    "effect": "catalog:",
+    "typescript": "catalog:",
+    "@types/node": "catalog:"
+  },
+  "packageManager": "pnpm@12.18.0"
 }

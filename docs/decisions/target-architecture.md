@@ -29,7 +29,7 @@ The book builds with stage `"target"`, which enforces the target rules:
 
 ```sh
 cd /home/user/capxul-next
-npx tsc -p books                     # the target and frozen books typecheck clean
+pnpm exec tsc -p books                     # the target and frozen books typecheck clean
 node --experimental-strip-types packages/book/src/main.ts books/target/index.ts /tmp/target
 ```
 

@@ -10,7 +10,7 @@ T0 runs before B0. The B0 spike is the first code the gates see.
 
 | # | Milestone | Exit |
 |---|---|---|
-| T0 | **Tooling** (`docs/design/tooling.md`). Pin the toolchain: Node 24.22.2, npm 12.2.2 workspaces, Vite Plus 1.5.0 (Oxlint 1.91.0, Oxfmt 0.76.0, Vitest 5.1.0), @effect/tsgo 0.67.3, TypeScript 7.0.2, gitleaks 8.30.1. Write `vite.config.ts` (lint, fmt, staged, test), the hooks, the knip, jscpd and gitleaks configs and the CI workflow, exactly as given here. Build `packages/lint` (ten `capxul/*` rules, each with good and bad fixtures) and the first target of `packages/generate` (the lint facts, from `books/target`). Format the tree once. | From a fresh clone every gate passes on the whole tree. The lint canary fires every rule on its bad fixtures and none on its good ones. The hooks refuse a bad commit and a push to `main`, within budget. CI is green on the T0 pull request. The book's counts are unchanged. The baselines are logged in `docs/mission/progress.md`. |
+| T0 | **Tooling** (`docs/design/tooling.md`). Pin the toolchain: Node 24.22.2, pnpm 12.18.0 workspaces with a version catalog, Vite Plus 1.5.0 (Oxlint 1.91.0, Oxfmt 0.76.0, Vitest 5.1.0), @effect/tsgo 0.67.3, TypeScript 7.0.2, gitleaks 8.30.1. Write `vite.config.ts` (lint, fmt, staged, test), the hooks, the knip, jscpd and gitleaks configs and the CI workflow, exactly as given here. Build `packages/lint` (ten `capxul/*` rules, each with good and bad fixtures) and the first target of `packages/generate` (the lint facts, from `books/target`). Format the tree once. | From a fresh clone every gate passes on the whole tree. The lint canary fires every rule on its bad fixtures and none on its good ones. The hooks refuse a bad commit and a push to `main`, within budget. CI is green on the T0 pull request. The book's counts are unchanged. The baselines are logged in `docs/mission/progress.md`. |
 
 ## Contents
 
@@ -69,7 +69,7 @@ and TypeScript versions it supports. The bundle must fall inside that list.
 | Tool | Version | Released | Role | Why this one |
 |---|---|---|---|---|
 | Node.js | 24.22.2 (LTS "Krypton") | 27 Oct 2026 | Runtime for everything | The old CI moved its tests to Node 24 after Node 22.23.4's type stripper crashed a CLI child (#3748). This session runs exactly 22.23.4. Node 24 is LTS until April 2028, past B5. Node 24 is this design's choice, not a tool's requirement: Vite Plus 1.5.0 accepts `^22.18.0 \|\| ^24.11.0` and npm 12.2.2 `^22.22.2 \|\| ^24.15.0` (their `engines`), and `devEngines` pins `^24.15.0`. linux-x64 tarball sha256 `48cc0e21e048790e54c0cf5749c2725005313d652651c40b7a21feb9697aaf75`. |
-| npm | 12.2.2 | 4 Nov 2026 | Package manager, workspaces | See [package manager](#the-package-manager). |
+| pnpm | 12.18.0 | 5 Nov 2026 | Package manager, workspaces, catalog | Aaron's choice; see [package manager](#the-package-manager). |
 | vite-plus | 1.5.0 | 4 Nov 2026 | The one entry: `vp lint`, `vp fmt`, `vp check`, `vp test`, `vp staged`, `vp hooks` | It bundles the versions below, so they are not separate dependencies. |
 | ↳ oxlint | 1.91.0 (bundled) | 3 Nov 2026 | Linter | Inside @effect/tsgo 0.67.3's supported 1.88.0–1.91.0. |
 | ↳ oxlint-tsgolint | 7.0.2005 (bundled) | 22 Oct 2026 | Type-aware lint and `typeCheck` | Inside the supported 7.0.2004–7.0.2005. |
@@ -84,42 +84,41 @@ and TypeScript versions it supports. The bundle must fall inside that list.
 | jscpd | 5.4.2 | 20 Oct 2026 | Duplication (CI only) | 5.4.3 is from today. |
 | gitleaks | 8.30.1 | 21 Feb 2026 | Secret scanning: staged at pre-commit, full history in CI | The latest release. Installed with `go install github.com/zricethezav/gitleaks/v8@v8.30.1`, which Go's checksum database verifies. In this session, GitHub release downloads returned 504 while proxy.golang.org answered. Go 1.24 is in the image, and the install took 32 s. |
 
-Removed from the old toolchain: lefthook (replaced by `vp hooks`), pnpm (see below), changesets
+Removed from the old toolchain: lefthook (replaced by `vp hooks`), npm (Aaron chose pnpm), changesets
 (nothing is published before B5), varlock, `@typescript/native` aliases, and a separately pinned
 `oxlint`. Vite Plus's docs say not to add `oxlint` or `@oxlint/plugins` directly, because a second
 copy drifts from the linter that loads the plugin. The plugin imports `vite-plus/lint/plugins`, and
 its tests import `vite-plus/lint/plugins-dev`.
 
 **Upgrades.** Upgrades happen as one pull request that changes the pin set together. A version
-enters the set only when it is at least 3 days old: `.npmrc` sets `min-release-age=3`, so npm
-refuses anything younger. The new set must meet the coherence rule, which `npm run workspace`
-checks. If npm refuses a pin as too young, the window is working: wait, or take the pin's
+enters the set only when it is at least 3 days old: `pnpm-workspace.yaml` sets
+`minimumReleaseAge: 4320`, so pnpm refuses anything younger. The new set must meet the coherence
+rule. If pnpm refuses a pin as too young, the window is working: wait, or take the pin's
 predecessor. Never lower the window. The window applies when a version enters the lockfile, not
-when a locked one is installed. Measured with npm 12.2.2: with a 30-day window, `npm ci` and an
-`npm install` against an up-to-date lockfile still installed the 4-day-old vite-plus 1.5.0.
+when a locked one is installed, so `pnpm install --frozen-lockfile` against an up-to-date lockfile
+installs the pinned set.
 
 ### The package manager
 
-Choice: **npm 12 workspaces** (decision `tooling.package-manager`, Aaron's to confirm).
-`system.layout` already says npm workspaces, and the four book checks use `npm test -w` and `npx`.
-pnpm with catalogs, as before, is the alternative. The case for npm:
+Choice: **pnpm 12.18.0 workspaces with a version catalog** (decision `tooling.package-manager`,
+decided by Aaron on 8 November 2026). This design first recommended npm 12; Aaron chose pnpm, and
+the rest of this page follows that choice.
 
-- **npm 12 now has the two pnpm features that mattered for supply chain.**
-  - `min-release-age`: a cooldown on new versions.
-  - The `allowScripts` policy with `strict-allow-scripts`: a dependency's install script runs only
-    when the manifest approves it, and an unreviewed one fails the install.
-- **A catalog's job is done by two things.**
-  - The dev toolchain lives in one root manifest.
-  - `npm run workspace` checks that any dependency shared by packages has one exact version.
-- **Phantom dependencies are caught.** Hoisting lets a package use a dependency it does not
-  declare. knip reports these as unlisted dependencies, and the gate holds them at zero.
-- **No pnpm-specific workarounds.** The pnpm global virtual store blocks `effect-tsgo patch`. pnpm's
-  strict layout also hides `vite-plus/lint/plugins` from a plugin file unless every holder declares
-  it (Vite Plus's lint guide warns about this).
-
-pnpm would give faster installs and strict isolation. If Aaron prefers it, the change is local:
-`pnpm-workspace.yaml` with a catalog, `minimumReleaseAge: 4320` and `onlyBuiltDependencies`. The
-rest of this page stays the same.
+- **Supply chain.** `minimumReleaseAge: 4320` refuses any version under 3 days old, and
+  `onlyBuiltDependencies` lists the only dependencies allowed to run an install script (none at T0).
+- **One version per dependency.** The catalog in `pnpm-workspace.yaml` holds each shared version
+  once; manifests say `catalog:`, and internal packages say `workspace:*`.
+- **Strict isolation.** pnpm does not hoist, so a package cannot use a dependency it does not
+  declare. The root manifest declares what root-level code (the books, the tools) imports.
+- **The two frictions, and their answers, proven on the starter kit** (a fresh clone passes
+  `pnpm install --frozen-lockfile` and the whole gate):
+  - `effect-tsgo patch` rewrites TypeScript and Oxlint in place. With `enableGlobalVirtualStore: false`
+    and `packageImportMethod: clone-or-copy`, the patched files are this checkout's own copies and
+    never the shared store's.
+  - A lint plugin file imports `vite-plus/lint/plugins`, so `packages/lint` declares `vite-plus`
+    in its own manifest.
+- **Vite Plus's aliases** (`vite` to its core, the `vitest` pin) are pnpm `overrides`, and
+  `peerDependencyRules.allowedVersions` accepts the aliased `vite` for vitest's peer range.
 
 ### Vite Plus is the one entry
 
@@ -150,18 +149,18 @@ Exactly these files, plus the plugin package (section 3) and the facts target of
   "name": "capxul-next",
   "private": true,
   "type": "module",
-  "packageManager": "npm@12.2.2",
+  "packageManager": "pnpm@12.18.0",
   "devEngines": {
     "runtime": { "name": "node", "version": "^24.15.0", "onFail": "error" },
-    "packageManager": { "name": "npm", "version": "^12.2.2", "onFail": "error" }
+    "packageManager": { "name": "pnpm", "version": "^12.18.0", "onFail": "error" }
   },
   "workspaces": ["packages/*"],
   "scripts": {
     "prepare": "effect-tsgo patch --oxlint && vp config --no-agent",
-    "book": "tsc -p packages/book && npm test -w @capxul/book && tsc -p books && node --experimental-strip-types packages/book/src/main.ts books/target/index.ts /tmp/target && node --experimental-strip-types tools/check-frozen.ts",
+    "book": "tsc -p packages/book && pnpm --filter @capxul/book test && tsc -p books && node --experimental-strip-types packages/book/src/main.ts books/target/index.ts /tmp/target && node --experimental-strip-types tools/check-frozen.ts",
     "generate": "node --experimental-strip-types packages/generate/src/main.ts",
     "generate:check": "node --experimental-strip-types packages/generate/src/main.ts --check",
-    "check": "vp check && tsc -b && npm run generate:check && npm run book && vp test run",
+    "check": "vp check && tsc -b && pnpm generate:check && pnpm book && vp test run",
     "workspace": "node --experimental-strip-types packages/lint/src/main.ts workspace",
     "loc": "node --experimental-strip-types packages/lint/src/main.ts loc"
   },
@@ -182,35 +181,52 @@ Exactly these files, plus the plugin package (section 3) and the facts target of
 }
 ```
 
-`prepare` runs on every `npm install` and `npm ci`:
+`prepare` runs on every `pnpm install` and `pnpm install --frozen-lockfile`:
 
 - `effect-tsgo patch --oxlint` patches the Oxlint binding, tsgolint and `tsc` that Vite Plus
   resolves. Measured: it patches the copy nested under `vite-plus/node_modules`.
 - `vp config --no-agent` installs the hook dispatcher without editing `CLAUDE.md` or `AGENTS.md`.
 - CI sets `VP_GIT_HOOKS=0`.
 
-`allowScripts` starts empty. T0 runs `npm approve-scripts --allow-scripts-pending` and records
-every entry it must add, each with a reason in its pull request. The expected answer is none: the
-toolchain's binaries are optional platform packages, not install scripts. Measured with npm
-12.2.2 on this manifest (with `devEngines.runtime` relaxed for this session's Node 22): it installs
-in 12 s, `prepare` patches the Oxlint binding, tsgolint and `tsc`, and `approve-scripts
---allow-scripts-pending` prints "No packages with unreviewed install scripts". `node_modules/.bin/tsc`
+`onlyBuiltDependencies` starts empty. T0 records every entry it must add, each with a reason in
+its pull request. The expected answer is none: the toolchain's binaries are optional platform
+packages, not install scripts. Measured on the starter kit with pnpm 12.18.0 and Node 24.22.2: a
+fresh install takes under 4 s, and `prepare` patches the Oxlint binding, tsgolint and `tsc`. `node_modules/.bin/tsc`
 is TypeScript 7.0.2 on every install (the alias's `tsc` does not take the link).
 
 `packages/book` drops its own `typescript` 5.9.3 and `@types/node` 22.19.1 devDependencies, so
 there is one compiler and one set of Node types: the root's 7.0.2 and 24.19.2 serve it, and
-`npm run workspace` would otherwise fail on `@types/node` at two versions. Measured: `tsc 7.0.2`
+`pnpm workspace` would otherwise fail on `@types/node` at two versions. Measured: `tsc 7.0.2`
 checks `packages/book` and `books/` clean, also under `tsconfig.base.json`'s stricter flags.
 `tools/freeze-flags.ts` changes `import ts from "typescript"` to `"typescript-5"`.
 
-### `.npmrc`, `.node-version`, `.gitignore`
+### `pnpm-workspace.yaml`, `.node-version`, `.gitignore`
 
-```ini
-# .npmrc — decisions tooling.pins and tooling.package-manager
-save-exact=true
-engine-strict=true
-min-release-age=3
-strict-allow-scripts=true
+```yaml
+# pnpm-workspace.yaml — decisions tooling.pins and tooling.package-manager
+packages:
+  - packages/*
+  - tools/*
+catalog:
+  effect: 4.1.2
+  "@effect/platform-node": 4.1.2
+  "@effect/vitest": 4.1.2
+  "@effect/tsgo": 0.67.3
+  "@types/node": 24.19.2
+  typescript: 7.0.2
+  vite-plus: 1.5.0
+overrides:
+  vite: npm:@voidzero-dev/vite-plus-core@1.5.0
+  vitest: 5.1.0
+peerDependencyRules:
+  allowedVersions:
+    vite: 1.5.0
+minimumReleaseAge: 4320
+onlyBuiltDependencies: []
+savePrefix: ""
+engineStrict: true
+enableGlobalVirtualStore: false
+packageImportMethod: clone-or-copy
 ```
 
 ```text
@@ -260,7 +276,7 @@ others by package name, through an `exports` that points at `src`. The root is a
 ```
 
 ```json
-// tsconfig.json — every package except packages/book, which `npm run book` checks
+// tsconfig.json — every package except packages/book, which `pnpm book` checks
 { "files": [], "references": [{ "path": "packages/lint" }, { "path": "packages/generate" }] }
 ```
 
@@ -277,7 +293,7 @@ Import form (decision `tooling.imports`):
   Plus troubleshooting guide), and one form keeps the import rule simple.
 
 `packages/sdk-react` adds `"lib": ["ES2023", "DOM"]`, `"types": []` and `"jsx": "react-jsx"`. A
-package joins the root `references` when it is created; `npm run workspace` fails a package other
+package joins the root `references` when it is created; `pnpm workspace` fails a package other
 than `packages/book` that is missing from them.
 
 Measured with TypeScript 7.0.2: a package that imports another by name, through an `exports` that
@@ -323,7 +339,7 @@ export default defineConfig({
     options: { typeAware: true, typeCheck: true, denyWarnings: true, reportUnusedDisableDirectives: "deny" },
     categories: { correctness: "error", suspicious: "error", perf: "error" },
     ignorePatterns: [
-      // Outside Oxlint (tooling.lint-scope): the design book and its tools are checked by `npm run book`.
+      // Outside Oxlint (tooling.lint-scope): the design book and its tools are checked by `pnpm book`.
       "books/**", "packages/book/**", "tools/**", "docs/**",
       // Throwaway spikes, linted by hand.
       "spikes/**",
@@ -509,8 +525,8 @@ done
 vp fmt --check
 vp lint
 tsc -b
-npm run --silent generate:check
-npm run --silent book
+pnpm --silent generate:check
+pnpm --silent book
 vp test run
 ```
 
@@ -621,16 +637,16 @@ jobs:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with: { persist-credentials: false }
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
-        with: { node-version-file: .node-version, cache: npm }
-      - run: npm install --global npm@12.2.2
-      - run: npm ci
+        with: { node-version-file: .node-version }
+      - run: npm install --global pnpm@12.18.0
+      - run: pnpm install --frozen-lockfile
       - run: echo "$PWD/node_modules/.bin" >> "$GITHUB_PATH"
       - name: Workspace pins and references
-        run: npm run workspace
+        run: pnpm workspace
       - name: Book (four checks)
-        run: npm run book
+        run: pnpm book
       - name: Generated files (sys:generated)
-        run: npm run generate:check
+        run: pnpm generate:check
       - name: Format
         run: vp fmt --check
       - name: Lint
@@ -644,7 +660,7 @@ jobs:
       - name: Duplication
         run: jscpd --config .jscpd.json
       - name: Lines (sys:loc, system.size)
-        run: npm run --silent loc >> "$GITHUB_STEP_SUMMARY"
+        run: pnpm --silent loc >> "$GITHUB_STEP_SUMMARY"
   secrets:
     runs-on: ubuntu-24.04
     timeout-minutes: 5
@@ -676,12 +692,12 @@ each line itself:
 curl -fsSLO https://nodejs.org/dist/v24.22.2/node-v24.22.2-linux-x64.tar.xz
 echo "48cc0e21e048790e54c0cf5749c2725005313d652651c40b7a21feb9697aaf75  node-v24.22.2-linux-x64.tar.xz" | sha256sum -c -
 tar -xJf node-v24.22.2-linux-x64.tar.xz -C /usr/local --strip-components=1 && rm node-v24.22.2-linux-x64.tar.xz
-npm install --global npm@12.2.2
+npm install --global pnpm@12.18.0
 GOBIN=/usr/local/bin go install github.com/zricethezav/gitleaks/v8@v8.30.1
-if [ -d capxul-next ]; then (cd capxul-next && npm ci); fi
+if [ -d capxul-next ]; then (cd capxul-next && pnpm install --frozen-lockfile); fi
 ```
 
-`engine-strict` and `devEngines` make npm refuse to install under the wrong Node or npm. A session
+`engineStrict` and `devEngines` make pnpm refuse to install under the wrong Node or pnpm. A session
 that skipped the setup fails at its first install, not at a confusing lint error.
 
 ## 3. The Capxul lint plugin
@@ -758,7 +774,7 @@ shown, all 223 rpc ids in three parts with their concept first, the 14 procedure
 81 workflows with 341 steps and 94 waits, and no concept with `lines` set yet.
 
 Two runs write the same bytes: keys are sorted by id, files end with a newline, and line endings
-are LF. `npm run generate:check` renders every target in memory and compares it with the file on
+are LF. `pnpm generate:check` renders every target in memory and compares it with the file on
 disk. It fails and names each file that differs.
 
 ### The rules
@@ -772,7 +788,7 @@ facts.
 | `capxul/concept-shape` | A file under `packages/backend/src/<c>/` is one of `concepts.<c>.backend`, a file inside a folder named after one of those stems (`commands/prepare.ts`), a test beside one, or `internal.ts`/`internal/` (private to `<c>`). The SDK is the same with `concepts.<c>.sdk`. `src/` holds only concept folders, `generated/`, `main.ts`/`index.ts` and, in the SDK, `platform/` (signers and transport). `door.ts` exports only the book's procedures, plus types. A new top-level folder is a tooling decision and a change to this rule. | `system.layout` (`src/<concept>/` mirrors the book, so a record and its code share a name and a place); procedures are the door (P4). Replaces the old `concept-file-shape`. | `concepts.*.backend`, `.sdk`, `.door` | good: `src/payments/commands.ts`, `src/payments/commands/prepare.ts`. bad: `src/payments/helpers.ts`, `src/paymnts/x.ts`, a `door.ts` exporting `secret` | none |
 | `capxul/workflow-body` | Inside a workflow body (the function passed to `<Name>.toLayer(…)` in `src/<c>/processes.ts` or `processes/*.ts`, where `<Name>` is the workflow's generated export), outside the arguments of a generated step call (`<Name>Steps.<step>(…)`, whose argument is the step's implementation and runs as its activity): **no** `Date`, `Math.random`, `performance`, `crypto`, `fetch`, `process`, `setTimeout`/`setInterval`/`setImmediate`; no `Clock`, `DateTime`, `Random`, `Schedule`, `DurableClock` or `ClusterCron`; no `Effect.sleep`, `delay`, `timeout*`, `retry`, `repeat`, `schedule*`, `race*`, `promise`, `tryPromise` or `callback`; nothing imported from `@capxul/runtime` (`Now` among it) or another concept's door. **Every `yield*`** is a generated step or wait of that workflow (`<Name>Steps.<step>(…)`, `<Name>Waits.<wait>(…)`, section 7), a member of `Activity`, `DurableDeferred` or `Workflow` (from `effect/workflow`), a declared error, or `Effect.all`, `forEach`, `succeed`, `fail`, `void`, `when`, `log*` or `annotateCurrentSpan` over the same. A `timer` wait is its generated wait, which calls `Timers.until` (`time.durable-timers`): a body never sleeps. **Every step and wait the book declares** for the workflow is yielded somewhere in its body. | A2 (Effect Workflow); P3; `rules.process-wakeups`; `time.durable-timers` and `time.no-direct-reads` (no `DurableClock.sleep`, `ClusterCron`, `Effect.sleep` or `Effect.timeout` in a body; no `Now` in a body, and `StepTime` inside a step). Effect Workflow re-runs a body on resume and replays recorded activity results, so anything else in the body gives a different answer on replay. Activities run at least once, which B0 proves with an idempotency key. | `workflows.*` (name, steps, waits) | good: a body that yields `PaymentsLifecyclePaymentSteps.settle(…)`, the signal wait `PaymentsLifecyclePaymentWaits.carrier(…)` and the timer wait `PaymentsLifecyclePaymentWaits.payDay(at)`, with `StepTime` read inside a step's implementation. bad: `yield* Clock.currentTimeMillis` in the body; `Effect.sleep("1 second")`; `DurableClock.sleep(…)`; `Date.now()`; `yield* helper()` imported from elsewhere; a door procedure called in the body outside a step; a declared step never run | none |
 | `capxul/span-names` | The name argument of `Effect.fn`, `Effect.withSpan`, `Effect.makeSpan`, `Effect.makeSpanScoped`, `Effect.useSpan` and `Layer.span` is a member of the generated `Spans`, never a string or template literal. Helpers that should not trace use `Effect.fnUntraced`. | P6 (the required span tree: `cli.*`, `sdk.*`, `rpc.*`, `db.tx`, `call.*`, `workflow.*`, `wait.*`, all opened by generated wrappers); an rpc's and a flow's `spans` (the book declares exactly one child span today: `sdk.step.browser-install`); evals `rpc:<id>/spans`, `flw:<id>/spans`, `spn:<op>`. A span a handler needs is added to its record first. | `spans` | good: `Effect.fn(Spans.sdk.step.browserInstall)`, `Effect.fnUntraced(…)`. bad: `Effect.fn("rpc.payments.commands.prepare")`, `` Effect.withSpan(`rpc.${id}`) `` | yes, when the literal equals a catalogue name and `Spans` is imported: rewrites it to the constant (measured in the prototype) |
-| `capxul/generated-intact` | Every file under `**/src/generated/**` starts with the header, and its `sha256` matches the rest of the file. No file outside `src/generated/` carries the header. | `system.layout` (the do-not-edit header); `sys:generated`. A hand edit is caught in the editor and at pre-commit in milliseconds; `generate:check` stays the full proof. | none (the file itself) | good: a correctly hashed file. bad: one byte changed; header missing; the header copied into `src/payments/x.ts` | none (the fix is `npm run generate`) |
+| `capxul/generated-intact` | Every file under `**/src/generated/**` starts with the header, and its `sha256` matches the rest of the file. No file outside `src/generated/` carries the header. | `system.layout` (the do-not-edit header); `sys:generated`. A hand edit is caught in the editor and at pre-commit in milliseconds; `generate:check` stays the full proof. | none (the file itself) | good: a correctly hashed file. bad: one byte changed; header missing; the header copied into `src/payments/x.ts` | none (the fix is `pnpm generate`) |
 | `capxul/no-throw` | No `throw` statement in product code (the `PRODUCT` override and the React SDK's `REACT` override; generated code included). Fail with a declared error: `return yield* new X(…)`. Make a switch exhaustive with `absurd` from `effect/Function`. In the React SDK, a misuse guard (a hook used outside its provider) takes a reasoned disable, which is counted. | The error vocabulary (`books/target/shared/vocabulary.ts`: code, class, exit code); `rpc:<id>/errors`; B1's handler type, whose error channel is the rpc's declared errors. A throw escapes both and becomes a defect. Replaces the old `no-throw-in-recipe`, widened to all product code, and the React half of the old `sdk-public-surface` (React threw only owned misuse guards). | none | good: `return yield* new NotAuthenticated({})`, `absurd(x)`. bad: `throw new Error("x")`, `throw e` in a `catch` | none |
 | `capxul/catch-keeps-cause` | A handler that fails again reads what it caught, other than through `void`. This covers `Effect.catch`, `catchIf`, `catchTag`, each handler of `catchTags`, `mapError`, the `catch` option of `Effect.try` and `tryPromise`, and a `catch (e)` clause. The handler must be written inline: a handler passed by name is refused, so the rule never reads across files. A handler that recovers to a value needs no cause. | The generated error classes carry an optional `cause`; Error Tracking needs the chain (old ADR-0023 R11, ADR-0039 L1). The old rule followed named handlers across files in 549 lines; requiring inline handlers removes that. | none | good: `Effect.mapError((cause) => new ProviderUnavailable({ cause }))`; a recovery to a value. bad: `mapError(() => new X())`; `catch: () => new X()`; `catchTag("A", handler)`; `(e) => { void e; return new X() }` | none |
 | `capxul/comments` | A debt marker (`TODO`, `FIXME`, `HACK`, `XXX`) is written `TODO(#123): …`, naming a GitHub issue of capxul-next. When the swarmD ledger runs, its task id is accepted too, by changing one constant. A disable directive (`oxlint-disable*`, `eslint-disable*`) names its rules and gives a reason after ` -- `. | Work is tracked, never left in a comment (`CLAUDE.md`: tracking work); `reportUnusedDisableDirectives` removes stale disables, and this rule makes every remaining one say why. Replaces the old `tech-debt` cross-file walk with a per-file rule, so the editor shows it. | none | good: `// TODO(#12): …`, `// oxlint-disable-next-line capxul/no-throw -- the CLI's exit`. bad: `// TODO tidy`, `// FIXME(aaron)`, a bare `// oxlint-disable-next-line`, `// eslint-disable-next-line no-console` with no reason | none |
@@ -838,9 +854,9 @@ It is never weakened by an override that nobody recorded.
 
 | Check | Command | What it fails on | Eval or decision it serves |
 |---|---|---|---|
-| Generated files | `npm run generate:check` | any `src/generated/` file (and, from B1, any migration) that differs from what the records generate | `sys:generated` |
-| Lines | `npm run loc` | Prints JSON of hand-written lines (not blank, not comment-only; not tests, fixtures or `src/generated/`) per package, and per concept summed over `packages/backend/src/<c>/` and `packages/sdk/src/<c>/`, with the count of disable directives and debt markers in the same files. The product total is `runtime`, `backend`, `sdk`, `cli`, `sdk-react`, `mcp`, `indexer` and `devnet` (`system.size`'s components; the runtime is the backend's spine it counts); `book`, `generate`, `evals` and `lint` are reported apart. It fails when the product total passes 100,000, or a concept passes its `lines`. | `system.size`, `sys:loc/<c>` |
-| Workspace | `npm run workspace` | a dependency spec that is not an exact version (`*` allowed only for `@capxul/*`); one package at two versions; `overrides.vite` or `overrides.vitest` out of step with `vite-plus`'s own dependencies (Vite Plus issue #2356: bots bump them apart); a bundled Oxlint or tsgolint outside @effect/tsgo's supported list (read from its README's `supported-components` block); a package other than `packages/book` missing from the root `tsconfig.json` references; `.node-version` outside `devEngines` | `tooling.pins`, `tooling.typescript` |
+| Generated files | `pnpm generate:check` | any `src/generated/` file (and, from B1, any migration) that differs from what the records generate | `sys:generated` |
+| Lines | `pnpm loc` | Prints JSON of hand-written lines (not blank, not comment-only; not tests, fixtures or `src/generated/`) per package, and per concept summed over `packages/backend/src/<c>/` and `packages/sdk/src/<c>/`, with the count of disable directives and debt markers in the same files. The product total is `runtime`, `backend`, `sdk`, `cli`, `sdk-react`, `mcp`, `indexer` and `devnet` (`system.size`'s components; the runtime is the backend's spine it counts); `book`, `generate`, `evals` and `lint` are reported apart. It fails when the product total passes 100,000, or a concept passes its `lines`. | `system.size`, `sys:loc/<c>` |
+| Workspace | `pnpm workspace` | a dependency spec that is not an exact version (`*` allowed only for `@capxul/*`); one package at two versions; `overrides.vite` or `overrides.vitest` out of step with `vite-plus`'s own dependencies (Vite Plus issue #2356: bots bump them apart); a bundled Oxlint or tsgolint outside @effect/tsgo's supported list (read from its README's `supported-components` block); a package other than `packages/book` missing from the root `tsconfig.json` references; `.node-version` outside `devEngines` | `tooling.pins`, `tooling.typescript` |
 | The lint canary | `vp test run packages/lint`, which runs `CAPXUL_LINT_CANARY=1 vp lint --format json` on each fixture tree | a rule that does not fire on its bad fixture, or fires on a good one, through the real `vite.config.ts` | `tooling.lint-config` |
 
 Third-party, configured only: knip (unused and unlisted dependencies, files and exports), jscpd
@@ -851,7 +867,7 @@ Third-party, configured only: knip (unused and unlisted dependencies, files and 
 | Gate | Runs | Budget | Measured on 8 November 2026 |
 |---|---|---|---|
 | pre-commit | `vp staged`: fmt and lint (type-aware, Effect, capxul) on the staged files; gitleaks on the staged diff | ≤ 5 s for a commit of up to 30 files; ≤ 15 s worst case; until B3, then re-measured and recorded | 1.4 s for 8 files (prototype); gitleaks 0.07 s on a staged fake key (measured through `vp staged`: the commit was refused in 1.1 s). Type-aware lint builds the program of each staged file's package, and `tsc 7` takes 5–7 s over `books/` (87,000 lines), so a staged file in a backend near that size may not fit 5 s: re-measure at B3. |
-| pre-push | protected-branch and HEAD checks; `vp fmt --check`, `vp lint`, `tsc -b`, `generate:check`, `npm run book` and `vp test run`, over the whole tree | ≤ 90 s until B3, then re-measured and recorded | book checks about 15 s (`tsc -p books` 4.8 s on TypeScript 7); the lint of 6 product files 1.1 s; a full-history gitleaks scan 5.9 s (CI only) |
+| pre-push | protected-branch and HEAD checks; `vp fmt --check`, `vp lint`, `tsc -b`, `generate:check`, `pnpm book` and `vp test run`, over the whole tree | ≤ 90 s until B3, then re-measured and recorded | book checks about 15 s (`tsc -p books` 4.8 s on TypeScript 7); the lint of 6 product files 1.1 s; a full-history gitleaks scan 5.9 s (CI only) |
 | CI `check` | everything in the workflow above, from a clean install | ≤ 10 min wall, install included | T0 records the first green run's step times as the baseline |
 | CI `secrets` | gitleaks over the whole history | ≤ 2 min, install included | 5.9 s scan; 32 s `go install` |
 
@@ -894,10 +910,10 @@ task graph from a hook.
 
 T0 is done when all of these were run and observed, and their output is in the T0 pull request:
 
-1. **Install.** From a fresh clone on the cloud environment above, `npm ci` installs exactly the
-   pin set and `prepare` applies the Effect patch. `npx vp --version` prints vite-plus 1.5.0,
-   oxlint 1.91.0, oxfmt 0.76.0, oxlint-tsgolint 7.0.2005 and vitest 5.1.0. `npm run workspace`
-   passes. `npm approve-scripts --allow-scripts-pending` lists nothing unreviewed.
+1. **Install.** From a fresh clone on the cloud environment above, `pnpm install --frozen-lockfile` installs exactly the
+   pin set and `prepare` applies the Effect patch. `pnpm exec vp --version` prints vite-plus 1.5.0,
+   oxlint 1.91.0, oxfmt 0.76.0, oxlint-tsgolint 7.0.2005 and vitest 5.1.0. `pnpm workspace`
+   passes. `pnpm install` reports no ignored build scripts (`onlyBuiltDependencies` is empty).
 2. **The rules.** `vp test run packages/lint` passes:
    - every `capxul/*` rule has at least one valid and one invalid RuleTester case, and the test
      enumerates the plugin's rules, so a rule without cases fails;
@@ -920,10 +936,10 @@ T0 is done when all of these were run and observed, and their output is in the T
      and with the `PRODUCT` globs written only as `packages/…/src/**`, `no-throw` and
      `global-date-in-effect` did not fire on the mirrors.
 3. **The whole tree.** After the one formatting commit, `vp fmt --check`, `vp lint` (0 findings, 0
-   warnings) and `tsc -b` pass. `npm run book` reports the same records, evals, 0 problems and
+   warnings) and `tsc -b` pass. `pnpm book` reports the same records, evals, 0 problems and
    gaps as on the commit before the formatting commit (2,213, 4,789 and 74 on 8 November, with the
    design lanes' records), and `check-frozen` 0 breaches.
-4. **Generated.** `npm run generate:check` passes. Changing one byte of `facts.ts` makes `vp lint`
+4. **Generated.** `pnpm generate:check` passes. Changing one byte of `facts.ts` makes `vp lint`
    fail with `capxul/generated-intact`, and `generate:check` name the file. Revert both.
 5. **The hooks, on a scratch branch.**
    - A commit that stages a file with `throw new Error()` in `packages/backend/src/payments/` is
@@ -1001,14 +1017,14 @@ T0 is done when all of these were run and observed, and their output is in the T
 - **Lint.** Zero findings and zero warnings. A disable names its rule and its reason, and it is
   counted. A new override needs a tooling decision.
 - **Generated code.** `generate:check` is clean. Nothing under `src/generated/` is edited by hand:
-  change the record or the generator, run `npm run generate`, and commit both.
-- **New dependencies.** An exact version, at least 3 days old (npm enforces it). The same version as
-  every other package that uses it (`npm run workspace`). Listed in the importing package's
+  change the record or the generator, run `pnpm generate`, and commit both.
+- **New dependencies.** An exact version, at least 3 days old (pnpm's `minimumReleaseAge` enforces it). The same version as
+  every other package that uses it (`pnpm workspace`). Listed in the importing package's
   manifest (knip's unlisted count stays 0). No install script unless `allowScripts` approves it
   with a decision.
 - **Tests.** Vitest's API comes from `vite-plus/test`, never `vitest`. A package that uses
   `@effect/vitest` lists `vitest` `5.1.0`, its required peer.
-- **Lines.** Each concept's lines are counted (`npm run loc`) and stay within its budget once B3
+- **Lines.** Each concept's lines are counted (`pnpm loc`) and stay within its budget once B3
   sets them.
 - **The book.** The four book checks stay green, and the book changes first.
 
@@ -1021,7 +1037,7 @@ and `tooling.branch-protection`.
 |---|---|
 | `tooling.milestone` | T0 runs before B0, with the exit above |
 | `tooling.layers` | Each policy is enforced at the cheapest layer that can enforce it fully |
-| `tooling.package-manager` | npm 12 workspaces (Aaron to confirm) |
+| `tooling.package-manager` | pnpm 12.18.0 workspaces with a version catalog (Aaron, 8 November 2026) |
 | `tooling.pins` | The pin set, the coherence rule, a 3-day release-age window, script approval |
 | `tooling.node` | Node 24.22.2 LTS |
 | `tooling.typescript` | TypeScript 7.0.2 only; independent composite projects with `tsc -b` |

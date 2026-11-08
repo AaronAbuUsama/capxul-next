@@ -85,33 +85,35 @@ export const decision_tooling_layers = defineDecision({
 
 export const decision_tooling_package_manager = defineDecision({
   id: "tooling.package-manager",
-  title: "npm 12 workspaces, not pnpm with catalogs (Aaron to confirm)",
+  title: "pnpm 12 workspaces with a catalog, not npm (Aaron)",
   question:
-    "system.layout says npm workspaces; the old system used pnpm 9 with a catalog. Which package manager does the rebuild " +
+    "system.layout said npm workspaces; the old system used pnpm 9 with a catalog. Which package manager does the rebuild " +
     "use, given parallel lanes, a published SDK and CLI, and agents that install packages unattended?",
   options: [
     {
-      label: "npm-12",
-      text:
-        "npm 12.2.2 workspaces: the dev toolchain in the root manifest, exact pins (save-exact), min-release-age=3, " +
-        "strict-allow-scripts with an allowScripts policy, engine-strict and devEngines; npm run workspace checks one exact " +
-        "version per dependency across packages; knip holds unlisted (phantom) dependencies at zero.",
-    },
-    {
       label: "pnpm-catalogs",
       text:
-        "pnpm 12 with a catalog in pnpm-workspace.yaml, minimumReleaseAge, onlyBuiltDependencies and strict isolation.",
+        "pnpm 12.18.0 workspaces with one version catalog in pnpm-workspace.yaml (packages say catalog: and workspace:*), " +
+        "overrides for the vite alias and the vitest pin, minimumReleaseAge 4320 (3 days), onlyBuiltDependencies for the " +
+        "install-script policy, engineStrict and devEngines, and packageImportMethod clone-or-copy so effect-tsgo's patch of " +
+        "TypeScript and Oxlint never reaches the shared store (enableGlobalVirtualStore off).",
+    },
+    {
+      label: "npm-12",
+      text:
+        "npm 12.2.2 workspaces: exact pins, min-release-age=3, strict-allow-scripts with an allowScripts policy, engine-strict " +
+        "and devEngines, and a workspace check for one exact version per dependency.",
     },
   ],
-  chosen: "npm-12",
+  chosen: "pnpm-catalogs",
   why:
-    "This is Aaron's to confirm. npm 12 now has the two pnpm features that mattered for supply chain: a release-age window " +
-    "and an install-script policy that fails an unreviewed script. A catalog's job is done by keeping the toolchain in one " +
-    "root manifest and checking that shared runtime dependencies have one exact version. pnpm's strict layout hides " +
-    "vite-plus/lint/plugins from a plugin file unless every holder declares it, and its global virtual store blocks " +
-    "effect-tsgo patch; npm needs neither workaround, and system.layout and the four book checks (npm test -w, npx) already " +
-    "assume npm. pnpm installs faster and isolates strictly; switching is local to the manifest and lockfile.",
-  source: by("npm 12.2.2 docs (min-release-age, allowScripts, strict-allow-scripts); Vite Plus 1.5.0 lint guide; @effect/tsgo 0.67 README; system.layout"),
+    "Aaron decided on 8 November 2026: pnpm, not npm. The tooling design had recommended npm 12 for its new release-age window " +
+    "and script policy; pnpm has both (minimumReleaseAge, onlyBuiltDependencies), keeps one version per dependency in its " +
+    "catalog instead of a check script, and isolates packages strictly. The two pnpm frictions the design found have local " +
+    "answers, both proven on the starter kit (pnpm install --frozen-lockfile and the full gate pass from a fresh clone): " +
+    "effect-tsgo's patch works with the global virtual store off and packages copied, not hard-linked; a lint plugin that " +
+    "imports vite-plus/lint/plugins declares vite-plus in its own manifest.",
+  source: "Aaron, 8 November 2026, in the build-preparation conversation",
   affects: [f.system_capxul],
 });
 
@@ -124,9 +126,9 @@ export const decision_tooling_pins = defineDecision({
       label: "coherent-window",
       text:
         "Pin exactly: vite-plus 1.5.0 (bundling oxlint 1.91.0, oxfmt 0.76.0, oxlint-tsgolint 7.0.2005, vitest 5.1.0), " +
-        "@effect/tsgo 0.67.3, typescript 7.0.2, effect 4.1.2, knip 6.44.1, jscpd 5.4.2, @types/node 24.19.2, npm 12.2.2, " +
+        "@effect/tsgo 0.67.3, typescript 7.0.2, effect 4.1.2, knip 6.44.1, jscpd 5.4.2, @types/node 24.19.2, pnpm 12.18.0, " +
         "gitleaks 8.30.1. The bundle must sit inside @effect/tsgo's supported list; overrides alias vite to vite-plus-core and " +
-        "pin vitest to the bundle. Upgrades move the set in one pull request; min-release-age=3 refuses younger versions.",
+        "pin vitest to the bundle. Upgrades move the set in one pull request; minimumReleaseAge (3 days) refuses younger versions.",
     },
     { label: "latest", text: "Take the latest of each on the day of install, with caret ranges." },
     { label: "week", text: "As coherent-window, with a 7-day window." },
@@ -135,11 +137,11 @@ export const decision_tooling_pins = defineDecision({
   why:
     "Vite Plus pins Oxlint, Oxfmt, tsgolint and Vitest exactly, and @effect/tsgo names the Oxlint, tsgolint and TypeScript " +
     "versions it supports; a pair outside that list is the failure that broke the old toolchain's patch. On 8 November " +
-    "@effect/tsgo 0.67.3 lists exactly Vite Plus 1.5.0's bundle. Without the vite alias and vitest pin, npm cannot resolve " +
+    "@effect/tsgo 0.67.3 lists exactly Vite Plus 1.5.0's bundle. Without the vite alias and vitest pin (pnpm overrides), the package manager cannot resolve " +
     "Vitest's vite (reproduced). A release-age window stops a compromised release, which is usually pulled within a day or " +
     "two, from reaching agents that install unattended; 7 days would have forced effect below the 4.1.2 the book already " +
-    "pins. Every pin here was at least 3 days old on 8 November; npm run workspace checks the coherence. The window applies " +
-    "when a version enters the lockfile: measured with npm 12.2.2, npm ci under a 30-day window still installed the locked, " +
+    "pins. Every pin here was at least 3 days old on 8 November; pnpm's catalog holds one version of each. The window applies " +
+    "when a version enters the lockfile: a frozen install under a 30-day window still installs the locked, " +
     "4-day-old vite-plus. No direct vite devDependency: with the overrides alone vp test runs (measured), and knip reports a " +
     "root vite entry as unused.",
   source: by("npm view <pkg> time (8 Nov 2026); vite-plus@1.5.0 dependencies; @effect/tsgo@0.67.3 README supported-components; reproduced ERR_MODULE_NOT_FOUND"),
@@ -160,7 +162,7 @@ export const decision_tooling_node = defineDecision({
     "The old CI moved its tests to Node 24 because Node 22.23.4's type stripper crashed a CLI child with a WASM trap (#3748), " +
     "and 22.23.4 is exactly what the cloud image runs. Node 24 is LTS until April 2028, past B5, and was proven on the old " +
     "system's CI and CLI minimum. It is this design's choice, not a tool's floor: Vite Plus 1.5.0 accepts ^22.18.0 or ^24.11.0 " +
-    "and npm 12.2.2 ^22.22.2 or ^24.15.0, and devEngines pins ^24.15.0. Node 26 became LTS eleven days ago and " +
+    "and pnpm 12.18.0 supports both, and devEngines pins ^24.15.0. Node 26 became LTS eleven days ago and " +
     "nothing of ours has run on it. engine-strict and devEngines make a session that skipped the setup fail at install.",
   source: by("/home/user/factory/.github/workflows/ci.yml (Node 24, #3748); nodejs.org/dist/index.json; vite-plus and npm engines"),
   affects: [f.system_capxul, f.component_backend, f.component_cli, f.component_mcp_server, f.component_devnet],
@@ -193,7 +195,7 @@ export const decision_tooling_typescript = defineDecision({
     "the old compiler under an alias. No paths aliases or baseUrl: tsgolint does not support baseUrl. Measured: a package " +
     "importing another by name through exports to src builds under tsc -b with no reference, and an error in either fails " +
     "it; the book also checks clean under the base's stricter flags. Left with @types/node 22.19.1, packages/book would put " +
-    "one package at two versions, which npm run workspace refuses.",
+    "one package at two versions, which pnpm's catalog prevents.",
   source: by("tsc 7.0.2 and 5.9.3 runs on books/ and packages/book; a tsc -b prototype (TS6310); Vite Plus troubleshooting guide"),
   affects: [f.system_capxul],
 });
@@ -600,7 +602,7 @@ export const decision_tooling_tests = defineDecision({
         "New packages test with Vitest 5.1.0 through vp test, importing its API from vite-plus/test (with @effect/vitest for " +
         "Effect code, whose package also lists vitest 5.1.0, its required peer); capxul/no-sentinel-tests " +
         "and vitest's no-focused, no-disabled and todo rules are errors in tests; packages/book keeps its 21 node:test " +
-        "tests, run by npm run book.",
+        "tests, run by pnpm book.",
     },
     { label: "migrate", text: "Move the book's tests to Vitest at T0." },
   ],
@@ -682,7 +684,7 @@ export const decision_tooling_hooks = defineDecision({
         "pre-commit: CI=1 vp staged (fmt and lint on staged files, gitleaks on the staged diff), at most 5 s for 30 files. " +
         "pre-push: refuse any update or deletion of main or integration/build and a ref that is not HEAD, then vp fmt " +
         "--check, vp lint, " +
-        "tsc -b, generate:check, npm run book and vp test run on the whole tree, at most 90 s until B3.",
+        "tsc -b, generate:check, pnpm book and vp test run on the whole tree, at most 90 s until B3.",
     },
     { label: "staged-only", text: "Only the staged checks; leave everything else to CI." },
     { label: "scoped", text: "Scope pre-push to the files the push changes, as the old check.sh did." },

@@ -18,8 +18,8 @@ from the build session on, the product code it describes.
 - **Every change passes these checks before it merges:**
 
   ```bash
-  npx tsc -p packages/book && npm test -w @capxul/book
-  npx tsc -p books
+  pnpm exec tsc -p packages/book && pnpm test
+  pnpm exec tsc -p books
   node --experimental-strip-types packages/book/src/main.ts books/target/index.ts /tmp/target   # 0 problems
   node --experimental-strip-types tools/check-frozen.ts                                           # 0 breaches: every behaviour kept
   ```
