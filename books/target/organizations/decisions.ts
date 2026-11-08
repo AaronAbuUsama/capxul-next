@@ -1288,7 +1288,9 @@ export const decision_organizations_buy_seats = defineDecision({
     "(payments.one-settlement-path) and makes 'counted once the payment settles' exact, across a reorg too. A request " +
     "from Capxul would put an issuer in every purchase; a budget is the route the door already has. An agent never buys " +
     "(agents.fde-authority). The Organization counted is the paying command's owner, never a value the source carries, " +
-    "so one company cannot buy for another. A seat subscription needs a lapse that lowers a limit, which nothing designs.",
+    "so one company cannot buy for another. A seat subscription needs a lapse that lowers a limit, which nothing designs. " +
+    "This pack's `affects` cannot list payments' records (a decision imports only its concept's dependencies): payments' " +
+    "own decisions cite it and list its commands (payments.seat-purchase lists `org.seats.buy`).",
   source: asmBy("books/target/shared/rulings.ts (aaron.buy-seats); books/target/payments/procedures.ts (payments.prepare-command)"),
   affects: [
     table_organizations, table_org_seat_purchases, machine_seat_purchase, event_seat_purchase_transitioned,

@@ -13,7 +13,15 @@ import { error_CANCELLED, error_SUPERSEDED, error_TRANSACTION_FAILED, error_WRON
 import * as approvalsSigning from "../approvals/signing.ts";
 import { rpc_books_annotations_save } from "../books/annotations.ts";
 import { rpc_payments_changes_cancel, rpc_payments_changes_reschedule, rpc_payments_changes_retry } from "./changes.ts";
-import { Handover, SendInput, rpc_payments_commands_prepare, rpc_payments_commands_propose } from "./commands.ts";
+import {
+  BuySeatsInput,
+  Handover,
+  SeatsHandover,
+  SendInput,
+  rpc_payments_commands_buy_seats,
+  rpc_payments_commands_prepare,
+  rpc_payments_commands_propose,
+} from "./commands.ts";
 import { Followed, PaymentView, rpc_payments_ledger_get, rpc_payments_ledger_watch } from "./ledger.ts";
 
 const SDK = "packages/sdk/src";
@@ -247,4 +255,39 @@ export const flow_client_payments_subscribe = defineFlow({
   spans: [],
   budget: budget("live-read"),
   was: ["apps/cli/src/commands/payment/subcommands/wait", `${SDK}/payments/methods.ts:44`],
+});
+
+export const flow_client_org_seats_buy = defineFlow({
+  id: "client.org.seats.buy",
+  title: "Buy seats from a budget and follow the payment",
+  about:
+    "`org seats buy <n> --from <budget>` (aaron.buy-seats): prepares the purchase (`payments.commands.buy-seats`), " +
+    "checks before anyone signs that the one call is `Budgets.spend` on the named budget paying exactly the seats times " +
+    "SEAT_PRICE to Capxul's receiving Safe under the shown payment id, then signs and follows like any payment. The " +
+    "Organization's seat limit rises in the transaction that settles the Payment, so a followed run ends with the seats " +
+    "counted; with `--no-wait` it answers the hand-over at once and `payment wait` follows it later. An approval that " +
+    "lapses answers SUPERSEDED with the `payment retry` and `payment wait` commands; one declined on the page answers " +
+    "CANCELLED and buys nothing. A repeat under the same `--request-key` answers where the first approval ended.",
+  component: component_core_sdk,
+  sdk: "client.org(orgId).seats.buy",
+  /** `--no-wait` answers the hand-over at once, as `--json` does for `payment send` (grammar G5). */
+  input: Schema.Struct({ ...BuySeatsInput.fields, ...Follow, no_wait: Schema.Boolean }),
+  output: Schema.Union([SeatsHandover, Followed]),
+  steps: [
+    { name: "prepare", rpc: rpc_payments_commands_buy_seats, about: "Births the purchase's command, its Payment, its Invoice and the approval." },
+    {
+      name: "check",
+      local: "build",
+      about:
+        "Recomputes the payment id from the preview's terms and refuses an operation whose call is anything but that one " +
+        "`Budgets.spend` of the seats times the unit price to the receiving Safe from the named budget.",
+    },
+    ...signing,
+    ...following,
+  ],
+  errors: [...MONEY_ERRORS],
+  calls: [integration_openfort.c.signDigest],
+  spans: [],
+  budget: budget("chain-submit"),
+  was: ["docs/design/new-commands.md (section 5.5)", "books/target/payments/flows.ts (client.payments.pay, the pattern)"],
 });

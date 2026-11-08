@@ -61,6 +61,12 @@ import {
   workflow_payments_settlement_observe,
 } from "./processes.ts";
 
+import { concept_devnet } from "../shared/foundation.ts";
+import { procedure_organizations_add_bought_seats, procedure_organizations_return_bought_seats } from "../organizations/procedures.ts";
+import { rpc_payments_commands_buy_seats } from "./commands.ts";
+import { flow_client_org_seats_buy } from "./flows.ts";
+import { operation_org_seats_buy } from "./operations.ts";
+
 const CLAUDE = "Claude, payments design, 8 November 2026";
 const by = (evidence: string) => `${CLAUDE}; evidence: ${evidence}`;
 const ASIS = "docs/as-is/payments.md";
@@ -1293,4 +1299,133 @@ export const decision_payments_payroll_door = defineDecision({
     "command whose Payments all lapsed, which is how payroll retries a run's approval.",
   source: by("docs/design/frappe/payroll.md (For other lanes: Payments); books/target/payroll/staged.ts (payroll.runs.pay)"),
   affects: [procedure_payments_prepare_command, table_payments, table_payment_commands, workflow_payments_lifecycle_payment],
+});
+
+// ── `org seats buy` (aaron.buy-seats, aaron.test-prices, aaron.departments; 8 November 2026) ──────────
+
+const SEATS = "Claude, seats pass, 8 November 2026";
+const seatsBy = (evidence: string) => `${SEATS}; evidence: ${evidence}`;
+
+export const decision_payments_seat_purchase = defineDecision({
+  id: "payments.seat-purchase",
+  title: "`org seats buy` is payments' own birth: one budget payment to Capxul",
+  question:
+    "aaron.buy-seats: a company buys more seats itself, from a budget, counted when the payment settles; " +
+    "aaron.test-prices: SEAT_PRICE is 10 USDC a seat, paid once. The pack organizations.buy-seats (accepted) has payments " +
+    "book `org seats buy`, since organizations sits below payments. How is the purchase born, documented, paid and " +
+    "counted, and is it a command a pilot or a start-up needs?",
+  options: [
+    {
+      label: "own-rpc",
+      text:
+        "Payments' own rpc `payments.commands.buy-seats` under the flow `client.org.seats.buy`, birthing by " +
+        "`payments.prepare-command`'s rules without invoking it: purpose `seats`, route `budget`, owner the Organization; " +
+        "one Payment, kind one-off, of the seats times SEAT_PRICE to CAPXUL_RECEIVING_SAFE as an outside payee, its " +
+        "source `seat-purchase` (the command's id, `quantity` the seats, `buyer_party_id`); an Invoice from Capxul with " +
+        "one line as its document; one approval from the buyer's Safe whose one call is `Budgets.spend`. The Payment's " +
+        "process counts the seats in the transaction that settles it (`organizations.add-bought-seats`) and takes them " +
+        "back in the one that reopens it (`organizations.return-bought-seats`).",
+    },
+    {
+      label: "send-to-capxul",
+      text:
+        "No new rpc: the flow resolves the receiving Safe and the price and runs `payment send <safe> <total> --from`, and " +
+        "organizations follows `payment_transitioned` to count the seats.",
+    },
+  ],
+  chosen: "own-rpc",
+  why:
+    "A door is for another concept's money (rules.procedures), so payments writes its own tables here and keeps the " +
+    "door's rules: one request key one command (K1), funding and authority read before the transaction (K3), the " +
+    "payment id fixed before anyone signs. send-to-capxul would make any payment of that amount to that Safe count as " +
+    "seats, and organizations cannot follow payments, which sits above it. The source names what was bought, so the " +
+    "settlement passes organizations the count and the buyer's Party (a command's `requested_by` is a principal, the " +
+    "door records a Party); the Organization counted is the command's owner, so one company never buys for another. " +
+    "Settling invokes books' and organizations' doors, 2 procedures from 2 concepts (rules.transaction-width). The " +
+    "Invoice gives the on-chain document hash a content: n seats at the unit price, adding up to the amount. The " +
+    "receiving Safe is no Capxul tenant, so its side has no book fact and no Movement; the Organization's side is " +
+    "booked as a payment sent without `--account`, classified in review (payments.money-sides). The price is read at " +
+    "birth and kept in the amount, so a price change moves no command already born. SEAT_PRICE (`<amount> <symbol>`) " +
+    "and CAPXUL_RECEIVING_SAFE are deployment settings, unset meaning nothing to buy (FEATURE_NOT_AVAILABLE). Priority " +
+    "normal: no B3 pilot runs it, and a start-up has ten seats (organizations.command-priorities). The pack " +
+    "organizations.buy-seats cannot list payments' records (a decision imports only its concept's dependencies), so " +
+    "this decision is that pack's payments half and lists the operation.",
+  source: seatsBy(
+    "books/target/shared/rulings.ts (aaron.buy-seats, aaron.test-prices); organizations.buy-seats; docs/design/new-commands.md (5.5); payments.prepare-command",
+  ),
+  affects: [
+    operation_org_seats_buy,
+    flow_client_org_seats_buy,
+    rpc_payments_commands_buy_seats,
+    table_payment_commands,
+    table_payments,
+    workflow_payments_lifecycle_payment,
+    P.settle,
+    P.unsettle,
+    procedure_organizations_add_bought_seats,
+    procedure_organizations_return_bought_seats,
+  ],
+});
+
+export const decision_payments_seat_authority = defineDecision({
+  id: "payments.seat-authority",
+  title: "A seat buyer wears the People hat and is authorised on the budget now",
+  question:
+    "aaron.departments: budgets belong to departments, and people are swapped in and out of them, so authority over a " +
+    "department's money is whoever wears its hat now. Who may run `org seats buy`, and how is it checked?",
+  options: [
+    {
+      label: "people-and-budget-now",
+      text:
+        "A person with a Seat whose own Safe wears the People hat (read from indexing) and whom Budgets.authorised admits " +
+        "on the `--from` budget, read from the chain before the birth and proved again when the approval is sponsored; " +
+        "never an agent, never the Board. A lapsed purchase's `payment retry` asks the same of its caller.",
+    },
+    { label: "budget-only", text: "Anyone Budgets.authorised admits on the budget, with no People hat: authority over the money is enough." },
+    { label: "people-any-budget", text: "Any People-hat wearer, from any budget of the Organization: the earlier 'a budget they hold'." },
+  ],
+  chosen: "people-and-budget-now",
+  why:
+    "The pack Aaron accepted puts both on the buyer: the People hat, because seats are what invitations fill and only " +
+    "its wearers invite, and the budget's authority, because the money is the department's (docs/design/authority.md, " +
+    "contradiction 16: 'from a budget whose hat, or one above it, their Safe wears now'). Read at the call, a holder " +
+    "swapped out of the hat is refused at once and the next wearer may buy, with no Capxul row to update; a hat lost " +
+    "after sponsorship reverts on chain, so nothing moves (integrations.sponsor-refusals). people-any-budget would let " +
+    "a People wearer spend a department's money, which aaron.departments rules out; budget-only would let a department " +
+    "head raise what the People officer manages. No agent buys from Capxul (agents.fde-authority, grammar G4). The " +
+    "company Safe is authorised on every budget, but a Board payment is its own batch, which cannot spend from a " +
+    "budget at once (the Gate refuses re-entry, payments.commands.propose), and a Board route was the pack's rejected " +
+    "option. `payment retry` admits any current wearer of a budget payment's hat, so a seat purchase's retry also asks " +
+    "for a person with the People hat: otherwise a lapsed purchase could be landed by an agent or a department head. " +
+    "Under ROLE_CONFLICT a People wearer holds no office, so they buy from an allowance whose hat they wear " +
+    "(organizations.founder-people-hat).",
+  source: seatsBy("docs/design/authority.md (Buy seats; contradiction 16); aaron.departments; organizations.buy-seats; Budgets.sol:373 (authorised)"),
+  affects: [operation_org_seats_buy, rpc_payments_commands_buy_seats, rpc_payments_changes_retry],
+});
+
+export const decision_payments_seat_worlds = defineDecision({
+  id: "payments.seat-worlds",
+  title: "`org seats buy` starts from org-with-fde-allowance and three worlds of it",
+  question: "Which worlds do `org seats buy`'s claims and refusals start from?",
+  options: [
+    {
+      label: "reuse-and-three",
+      text:
+        "Reuse signed-out, org-with-budgets (Pat wears People and no budget, Mia `office-costs` and no People hat, Olga " +
+        "outside), org-with-agent-member (@ledger seated) and org-with-fde-allowance (Dana wears People and the allowance " +
+        "`capxul`, 500 USDC a month; Acme funded; SEAT_PRICE 10 USDC). Ask devnet for three built from " +
+        "org-with-fde-allowance: org-with-seat-price-unset (the backend restarted with SEAT_PRICE unset, a supervisor " +
+        "setting), org-with-closed-running-costs (`running-costs` closed by Board proposal) and " +
+        "org-with-short-company-safe (a Board payment of 9,995 USDC out of the company Safe, leaving 5).",
+    },
+    { label: "steps-in-evals", text: "Each refusal's eval changes the setting, closes the budget or empties the Safe itself." },
+  ],
+  chosen: "reuse-and-three",
+  why:
+    "Each refusal needs a state no catalogued world holds: no price, a closed budget above an allowance whose wearer " +
+    "wears the People hat, and a company Safe short of one seat while the allowance has room. Building them from the " +
+    "world the organizations pass catalogued for buying keeps Dana as the one buyer. A deployment setting is not a " +
+    "CLI variable, so the unpriced world needs the supervisor to restart the backend with it unset.",
+  source: seatsBy("books/target/devnet/worlds.ts (org-with-fde-allowance, org-with-budgets, org-with-agent-member); organizations.command-worlds"),
+  affects: [operation_org_seats_buy, concept_devnet],
 });

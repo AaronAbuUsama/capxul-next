@@ -451,8 +451,8 @@ export const table_org_seat_purchases = defineTable({
     "seats under the Organization row's lock, so the limit rises exactly when the payment settles. A reorg below " +
     "finality that reopens the Payment takes the seats back (`organizations.return-bought-seats`), and the same Payment " +
     "settling again adds them again: the Organization holds bought seats exactly while the chain shows them paid for. " +
-    "The amount, token and settling transaction are copied from the settled Payment so the seats read (`org seats`, " +
-    "organizations.buy-seats) and the operator's raise can list what was bought without reading payments, which sits " +
+    "The amount, token and settling transaction are copied from the settled Payment so the seats read (`org seats " +
+    "show`, organizations.seats-show) and the operator's raise can list what was bought without reading payments, which sits " +
     "above; the Payment and its book fact stay payments' and books'. `org_id` is the paying command's owner. A " +
     "bought seat is kept for good: nothing else frees one.",
   concept: concept_organizations,
@@ -488,7 +488,7 @@ export const table_org_seat_purchases = defineTable({
     {
       name: "by_org_counted",
       fields: ["org_id", "counted_at", "payment_id"],
-      for: "The Organization's purchases in the order they were counted: the seats bought that the raise and `org show` report.",
+      for: "The Organization's purchases in the order they were counted: the seats bought that the raise and `org seats show` report.",
     },
   ],
   retention: KEPT,

@@ -19,9 +19,11 @@ import {
   contract_erc20,
   contract_escrow_factory,
   contract_payments,
+  contract_roles,
   integration_chain_rpc,
 } from "../shared/external.ts";
 import {
+  error_FEATURE_NOT_AVAILABLE,
   error_INSUFFICIENT_BALANCE,
   error_INVALID_INPUT,
   error_INVALID_RECIPIENT,
@@ -251,5 +253,101 @@ export const rpc_payments_commands_propose = defineRpc({
     `${OLD}/commands/operations/prepare-organization.ts`,
     "packages/backend/src/organizations/proposals/writes/settlements.ts:73",
     "apps/docs/factory/operations/payment.send.yaml",
+  ],
+});
+
+// ── a seat purchase (`org seats buy`; aaron.buy-seats, aaron.test-prices, aaron.departments) ─────────────
+
+/** What `org seats buy <n> --from <budget>` asks for. */
+export const BuySeatsInput = Schema.Struct({
+  org: S,
+  /** `<n>`: how many seats, a whole number from 1 to 1,000. */
+  seats: Schema.Int,
+  /** `--from <budget>`: the budget it spends, by an allowance's or department's name, key or id. */
+  from: S,
+  request_key: S,
+});
+
+/** The hand-over of a seat purchase: the money command's, with what is bought and at what price. */
+export const SeatsHandover = Schema.Struct({
+  ...Handover.fields,
+  purchase: Schema.Struct({
+    seats: Schema.Int,
+    /** SEAT_PRICE as the command was born with it: one seat, paid once. */
+    unit_price: Schema.Struct({ amount: S, asset: S }),
+    /** The seats times the unit price, the amount the one Payment moves. */
+    total: Schema.Struct({ amount: S, asset: S }),
+  }),
+});
+
+export const rpc_payments_commands_buy_seats = defineRpc({
+  id: "payments.commands.buy-seats",
+  title: "Prepare a seat purchase: one budget payment to Capxul for n seats",
+  about:
+    "Births the Organization's purchase of `seats` more seats (aaron.buy-seats) at the deployment's SEAT_PRICE, paid " +
+    "once (10 USDC, aaron.test-prices), from the `--from` budget to Capxul's receiving Safe (CAPXUL_RECEIVING_SAFE). " +
+    "Before its transaction it checks, in order: a session (else NOT_AUTHENTICATED); a current " +
+    "Seat in the Organization held by a person, since no agent buys (else ROLE_PERMISSION_DENIED); seats a whole number " +
+    "from 1 to 1,000 (else INVALID_INPUT); the caller's own Safe wearing the People hat, read from indexing (else " +
+    "ROLE_PERMISSION_DENIED); `--from` naming one of the Organization's budgets (else INVALID_INPUT); SEAT_PRICE and " +
+    "CAPXUL_RECEIVING_SAFE set, the price in that budget's token (else FEATURE_NOT_AVAILABLE); then from the chain, " +
+    "`Budgets.authorised(budget, caller's Safe)`, true for a wearer in good standing of the budget's hat or of an " +
+    "ancestor's now (else ROLE_PERMISSION_DENIED), the budget and every budget above it open (else " +
+    "WRONG_STATE), its `leftOf` and what the token's payout ceiling has left (Roles' `allowances`) " +
+    "each covering the total (else PAYROLL_BUDGET_EXCEEDED), and the company Safe holding it (else " +
+    "INSUFFICIENT_BALANCE). Nothing is written on a refusal. Then, in one transaction, by `payments.prepare-command`'s " +
+    "birth rules: the request key's command (purpose `seats`, route `budget`, owner the Organization; a repeat answers " +
+    "it as it stands, another request under the key is refused, K1); the purchase's Invoice from Capxul, one line of " +
+    "`seats` at the unit price (`documents.store`, subject the Payment); one Payment born through `open`, kind one-off, " +
+    "from the company Safe to the receiving Safe as an outside payee with no tenant, its source `seat-purchase` with " +
+    "the command's id, the seats and the buyer's Party, its payment id fixed from the job nonce; and one approval from " +
+    "the caller's own Safe whose one call is `Budgets.spend` (`approvals.open`). The price is read, never typed. It " +
+    "answers the hand-over with the purchase.",
+  concept: concept_payments,
+  kind: "action",
+  who:
+    "A signed-in person with a Seat in the Organization, whose own Safe wears its People hat and whom " +
+    "`Budgets.authorised` admits on the `--from` budget now: a wearer of its hat or of a budget above it. Never an agent.",
+  input: BuySeatsInput,
+  output: SeatsHandover,
+  errors: [
+    error_NOT_AUTHENTICATED,
+    error_ROLE_PERMISSION_DENIED,
+    error_INVALID_INPUT,
+    error_FEATURE_NOT_AVAILABLE,
+    error_WRONG_STATE,
+    error_PAYROLL_BUDGET_EXCEEDED,
+    error_INSUFFICIENT_BALANCE,
+    ...READ_FAILURES,
+  ],
+  reads: [
+    table_payment_commands,
+    table_payments,
+    orgsData.table_organizations,
+    orgsData.table_org_members,
+    orgsData.table_org_deployments,
+    table_hat_wearers,
+    budgetsData.table_budgets,
+    table_chain_budgets,
+  ],
+  writes: [table_payment_commands, table_payments],
+  drives: [machine_payment.t.open],
+  invokes: [procedure_documents_store, approvals.procedure_approvals_open],
+  emits: [],
+  calls: [integration_chain_rpc.c.readContract],
+  chain: [
+    contract_budgets.f.budgetOf,
+    contract_budgets.f.authorised,
+    contract_budgets.f.leftOf,
+    contract_roles.f.allowances,
+    contract_erc20.f.balanceOf,
+    contract_budgets.f.spend,
+  ],
+  spans: [],
+  budget: budget("chain-read"),
+  was: [
+    "books/target/shared/rulings.ts (aaron.buy-seats, aaron.test-prices, aaron.departments)",
+    "docs/design/new-commands.md (section 5.5)",
+    "docs/design/authority.md (Buy seats; contradiction 16)",
   ],
 });

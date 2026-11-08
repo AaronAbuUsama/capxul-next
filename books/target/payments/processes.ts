@@ -25,6 +25,7 @@ import * as approvalsData from "../approvals/data.ts";
 import * as approvalsSigning from "../approvals/signing.ts";
 import * as books from "../books/procedures.ts";
 import { procedure_accounts_admit } from "../accounts/procedures.ts";
+import { procedure_organizations_add_bought_seats, procedure_organizations_return_bought_seats } from "../organizations/procedures.ts";
 import { procedure_documents_store } from "../documents/procedures.ts";
 import * as partiesData from "../parties/data.ts";
 import { rpc_payments_changes_cancel, rpc_payments_changes_reschedule, rpc_payments_changes_retry } from "./changes.ts";
@@ -157,6 +158,12 @@ export const workflow_payments_lifecycle_payment = defineWorkflow({
         "fact (Safe, log index, block time, other side's Party, `fee_raw`, `against`; an escrow's payer Safe is " +
         "`payer_safe`); else `mismatch`. An escrow's payee tenant is its payee's Party.",
     },
+    {
+      name: "count-seats",
+      about:
+        "A seat purchase (source `seat-purchase`, payments.seat-purchase): `organizations.add-bought-seats` in the settle " +
+        "transaction, with the command's owner, the seats and the buyer; `organizations.return-bought-seats` in the unsettle one.",
+    },
     { name: "release", about: "On ScheduleCancelled, or EscrowRefunded with state Refunded, for it, `cancel`; a later deposit's return moves nothing." },
     { name: "confirm", about: "Twice the finality depth later, reads the facts again; gone → `unsettle` with the book fact reversed." },
     { name: "rest", about: "A `needs_retry` Payment rests until a retry; an ended or confirmed Payment ends the instance." },
@@ -164,7 +171,13 @@ export const workflow_payments_lifecycle_payment = defineWorkflow({
   reads: [table_payments, table_payment_commands, approvalsData.table_approvals, partiesData.table_parties],
   writes: [table_payments],
   drives: [p.schedule, p.come_due, p.escrow, p.submit, p.settle, p.mismatch, p.unsettle, p.lapse, p.cancel],
-  invokes: [books.procedure_books_record_money_fact, books.procedure_books_reverse_money_fact, procedure_accounts_admit],
+  invokes: [
+    books.procedure_books_record_money_fact,
+    books.procedure_books_reverse_money_fact,
+    procedure_accounts_admit,
+    procedure_organizations_add_bought_seats,
+    procedure_organizations_return_bought_seats,
+  ],
   emits: [],
   calls: [
     integration_indexer.c.factsOf,

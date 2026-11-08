@@ -1164,9 +1164,9 @@ export const decision_payroll_deduction_remittance = defineDecision({
     "a remittance schedule. Remittances also fall due on their own calendar (usually once a period for every run), " +
     "which is how the vision has them, not on payday. An ordinary budget payment already carries an account for books " +
     "and keeps its own request key, so nothing new is needed, and Frappe HR's behaviour is kept. Recording the payee " +
-    "lets whoever pays it, the FDE among them once it wears such a hat, pay it without asking whom (aaron.departments: " +
-    "authority over the money is the hat's, payroll.command-authority).",
-  source: AFTER_RULING("aaron.frappe-shape; docs/vision/erp.md (section 4, step 2); /tmp/hrms/hrms/payroll/doctype/salary_component_account; docs/design/frappe/accounting.md (payment send --account)"),
+    "lets whoever pays it, the FDE among them once it wears such a hat, pay it without asking whom (the departments " +
+    "ruling: authority over the money is the hat's, payroll.command-authority).",
+  source: AFTER_RULING("aaron.frappe-shape, aaron.departments; docs/vision/erp.md (section 4, step 2); /tmp/hrms/hrms/payroll/doctype/salary_component_account; docs/design/frappe/accounting.md (payment send --account)"),
   affects: [table_salary_components, rpc_payroll_structures_component],
 });
 
@@ -1323,7 +1323,7 @@ export const decision_payroll_hr_surface = defineDecision({
         "wears the People hat changes and reads the records; paying a run is whoever Budgets.authorised admits on its " +
         "department's budget; a payee reads their own slips. Reads are `read`, `org payroll run pay` `chain-submit`, " +
         "the rest `write`; the ten a first payroll needs are `critical` (payroll.critical-commands), the rest `normal`. " +
-        "Every list pages, and every write prints its record as `get` does (payroll.command-fit).",
+        "Every list pages, and every Employee write prints the Employee as `org employee get` does (payroll.command-fit).",
     },
   ],
   chosen: "cli-now",
@@ -1371,7 +1371,7 @@ export const decision_payroll_command_authority = defineDecision({
   ],
   chosen: "hat-not-person",
   why:
-    "aaron.departments makes a department's money its hat's, and v4's `Budgets.spend` checks exactly that at the call, so " +
+    "The departments ruling makes a department's money its hat's, and v4's `Budgets.spend` checks exactly that at the call, so " +
     "a holder swapped out between drafting and paying is refused by the chain whatever Capxul says; reading it at the " +
     "call keeps Capxul's refusal and the chain's the same. Recording pay and paying it stay apart, as Frappe splits HR " +
     "from Accounts. Because budgets.role-conflict-people-hat keeps a People-hat wearer out of every department and team " +
@@ -1506,8 +1506,8 @@ export const decision_payroll_critical_commands = defineDecision({
   ],
   chosen: "first-payroll",
   why:
-    "Payroll is in every Organization from its first day (aaron.frappe-shape), and the FDE sets an Organization up " +
-    "through the same commands (aaron.fde-agent); a start-up that pays people runs its first month with exactly these " +
+    "Payroll is in every Organization from its first day (the Frappe-shape ruling), and the FDE sets an Organization up " +
+    "through the same commands (the FDE ruling); a start-up that pays people runs its first month with exactly these " +
     "ten. As in projects.critical-commands and organizations.command-priorities, critical orders the build's work and " +
     "the evals a pilot depends on, and changes no budget. None is on the B3 pilots' money path.",
   source: COMMANDS("aaron.frappe-shape, aaron.fde-agent", "docs/design/new-commands.md (G8); projects.critical-commands; CONVENTIONS rule 4"),
@@ -1541,10 +1541,10 @@ export const decision_payroll_command_worlds = defineDecision({
     "Most of the 28 commands' claims and refusals share these states, so one build each serves them all, made only " +
     "with booked commands and `dev approve`. org-with-department gives each authority claim its actor: Pat records pay " +
     "but holds no office, Lead holds the department but not the People hat, so every People refusal and every Budget " +
-    "refusal is reached by a real member, and the swap claim moves `salaries`' office to Plat (aaron.departments). " +
-    "People with no account show that an Employee needs none and that their pay waits in a claim escrow " +
-    "(aaron.budget-pay-unclaimed).",
-  source: COMMANDS("aaron.frappe-shape, aaron.departments", "books/target/devnet/worlds.ts (org-with-department); devnet.worlds"),
+    "refusal is reached by a real member, and the swap claim moves `salaries`' office to Plat, as the departments " +
+    "ruling has it. People with no account show that an Employee needs none and that their pay waits in a claim " +
+    "escrow from the budget, as the ruling on unclaimed budget pay has it.",
+  source: COMMANDS("aaron.frappe-shape, aaron.departments, aaron.budget-pay-unclaimed", "books/target/devnet/worlds.ts (org-with-department); devnet.worlds"),
   affects: [...NEW_OPERATIONS],
 });
 
@@ -1822,7 +1822,7 @@ export const decision_payroll_declined_run_approval = defineDecision({
   why:
     "A cancelled Payment is terminal in payments, and the run's cancel needs no slip holding a Payment, so a stuck run " +
     "could be neither paid nor cancelled, while its accrual stood owed. A decline is the CANCELLED ending every payroll " +
-    "flow already gives, and under aaron.departments a refusal at sponsorship is the normal end of an approval its payer " +
+    "flow already gives, and under the departments ruling a refusal at sponsorship is the normal end of an approval its payer " +
     "lost the hat for: the department's next wearer must be able to pay the run. Clearing the payment fields keeps one " +
     "Payment per slip and attempt, so nothing pays twice.",
   source: REVIEW("aaron.departments, aaron.frappe-shape", "payments/data.ts (payment.cancel: declined, refused, withdrawn); payroll/staged.ts (payroll.runs.lifecycle); docs/design/authority.md"),
@@ -1906,7 +1906,7 @@ export const decision_payroll_run_employees = defineDecision({
     "Frappe pays a leaver's last period, and payroll's own machine says no run pays them after their relieving day, " +
     "which only means something if a run may pay them up to it. Leaving out a suspended Employee is Capxul's stricter " +
     "rule, which the worlds and the suspend command keep. One department per Employee, as Frappe has it, keeps one " +
-    "answer to which budget pays them and so whose hat may pay the run (aaron.departments).",
+    "answer to which budget pays them and so whose hat may pay the run, as the departments ruling has it.",
   source: REVIEW("aaron.frappe-shape, aaron.departments", "/tmp/hrms/hrms/payroll/doctype/payroll_entry/payroll_entry.py:1522 (status, relieving_date); salary_structure_assignment.json (department fetched)"),
   affects: [
     rpc_payroll_runs_create,
@@ -1969,7 +1969,7 @@ export const decision_payroll_command_fit = defineDecision({
     "projects' and budgets' WRONG_STATE, and an amendment cancels the structure it amends, which the cancel's own guard " +
     "refuses WRONG_STATE. A mailbox no escrow can hold would make every run that pays that Employee INVALID_RECIPIENT, " +
     "so it is refused where it is typed. Naming each flag's field leaves the build nothing to guess. None of this " +
-    "changes who may run a command or what it does with money (aaron.departments, aaron.frappe-shape).",
+    "changes who may run a command or what it does with money, which the departments ruling and payroll.command-authority settle.",
   source: FIT(
     "aaron.frappe-shape, aaron.departments",
     "docs/design/new-commands.md (G5, G6, G9, G10, 5.3); projects and organizations operations.ts (lists, disable); " +

@@ -29,6 +29,7 @@ import * as approvals from "../approvals/procedures.ts";
 import * as approvalsData from "../approvals/data.ts";
 import * as budgetsData from "../budgets/data.ts";
 import * as orgsData from "../organizations/data.ts";
+import { table_hat_wearers } from "../indexing/data.ts";
 import { Handover } from "./commands.ts";
 import { procedure_board_propose } from "../board/procedures.ts";
 import { machine_payment, table_payment_commands, table_payments } from "./data.ts";
@@ -52,7 +53,9 @@ export const rpc_payments_changes_retry = defineRpc({
     "once: a retry can never pay twice. It refuses a Payment that does not need a retry, an incoming Payment as an " +
     "Organization's retry source, a Payment whose command's `not_after` has passed (a bank payout whose quote expired: " +
     "WRONG_STATE), and a caller Budgets does not authorise on the budget now: any current wearer of the budget's hat " +
-    "or of one above it may retry a budget payment, whoever sent it first (payments.department-authority). Before its " +
+    "or of one above it may retry a budget payment, whoever sent it first (payments.department-authority). A seat " +
+    "purchase's Payment (source `seat-purchase`) is retried only by someone who could buy it: also a person whose " +
+    "own Safe wears the People hat, read from indexing, else ROLE_PERMISSION_DENIED (payments.seat-authority). Before its " +
     "transaction it reads the funding again (the Safe's balance, or the budget's `leftOf` and `authorised`) and that the " +
     "id is not consumed (`Payments.paid`). In one transaction it opens the carrier the first send had (an approval from " +
     "the caller's own Safe, or a Board proposal at the Safe's next nonce for a Board payment) and moves the Payment " +
@@ -73,7 +76,7 @@ export const rpc_payments_changes_retry = defineRpc({
     error_PAYROLL_BUDGET_EXCEEDED,
     ...READ_FAILURES,
   ],
-  reads: [...AUTHORITY_READS, approvalsData.table_approvals],
+  reads: [...AUTHORITY_READS, approvalsData.table_approvals, orgsData.table_org_deployments, table_hat_wearers],
   writes: [table_payments],
   drives: [machine_payment.t.retry],
   invokes: [approvals.procedure_approvals_open, procedure_board_propose],

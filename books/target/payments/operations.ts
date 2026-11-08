@@ -17,6 +17,7 @@ import { frozen, frozenText, type FrozenId } from "../../frozen/index.ts";
 import {
   error_CLI_DEADLINE,
   error_CLI_USAGE,
+  error_FEATURE_NOT_AVAILABLE,
   error_INSUFFICIENT_BALANCE,
   error_INVALID_INPUT,
   error_INVALID_RECIPIENT,
@@ -28,6 +29,7 @@ import {
 } from "../shared/vocabulary.ts";
 import {
   flow_client_org_departments_pay,
+  flow_client_org_seats_buy,
   flow_client_payments_cancel,
   flow_client_payments_pay,
   flow_client_payments_reschedule,
@@ -408,4 +410,149 @@ export const operation_org_department_pay = defineOperation({
   ],
   budget: budget("chain-submit"),
   was: [page("org.department.pay")],
+});
+
+// ── org seats buy: an operation beyond the 215 (rules.new-operations; aaron.buy-seats) ───────────────
+//
+// The pack organizations.buy-seats' payments command (docs/design/new-commands.md section 5.5): payments books it
+// because its flow births a payment command, and organizations sits below payments (payments.seat-purchase).
+
+/** The worlds `org seats buy` starts from (payments.seat-worlds). */
+export const SEAT_WORLDS = {
+  /** Dana wears the People hat and the allowance `capxul` (500 USDC a month under `running-costs`); Acme funded. */
+  buyer: "org-with-fde-allowance",
+  /** org-with-fde-allowance with the deployment's SEAT_PRICE unset. */
+  unpriced: "org-with-seat-price-unset",
+  /** org-with-fde-allowance with `running-costs`, the budget above `capxul`, closed. */
+  closed: "org-with-closed-running-costs",
+  /** org-with-fde-allowance after a Board payment left the company Safe 5 USDC. */
+  shortSafe: "org-with-short-company-safe",
+  /** @ledger, Dana's agent, holding a Seat in Acme. */
+  agent: "org-with-agent-member",
+} as const;
+const SW = SEAT_WORLDS;
+
+/** The purchase `--json` adds to a money command's hand-over: what is bought, at what price, in all. */
+const PurchaseJson = Schema.Struct({
+  seats: Schema.Int,
+  unitPrice: Schema.Struct({ amount: S, asset: S }),
+  total: Schema.Struct({ amount: S, asset: S }),
+});
+
+export const operation_org_seats_buy = defineOperation({
+  id: "org.seats.buy",
+  title: "Buy more seats for the Organization from a budget",
+  about:
+    "Buys `<n>` more seats for the Organization, paid once at the deployment's SEAT_PRICE (10 USDC a seat on the test " +
+    "USDC) from the budget `--from` names to Capxul, as one payment with one approval the buyer signs from their own " +
+    "Safe. The seat limit rises by the seats when the payment settles, never before, and a bought seat is kept for " +
+    "good. The buyer wears the People hat, the hat that invites and so meets the limit, and Budgets must admit their " +
+    "Safe on the budget now: a department's money is acted on by whoever wears its hat, or one above it, at that moment. Since a " +
+    "People-hat wearer holds no department or team office, that budget is usually an allowance whose hat they wear " +
+    "(organizations.founder-people-hat). `org seats show` gives the limit and the price before buying.",
+  area: "payments",
+  command: "org seats buy",
+  priority: "normal",
+  implementedBy: flow_client_org_seats_buy,
+  who:
+    "A person with a Seat in the Organization whose own Safe wears its People hat and whom Budgets.authorised admits " +
+    "on the `--from` budget now: a wearer of that budget's hat or of a budget above it, as the chain reads it at the " +
+    "call, so whoever is swapped out of the hat can no longer buy from it. Never an agent, and never the Board: a Board " +
+    "payment is the company Safe's own batch, which cannot spend from a budget at once (payments.commands.propose). A " +
+    "lapsed purchase's `payment retry` needs the same.",
+  changes:
+    "One payment command (purpose seats), its one Payment to Capxul's receiving Safe, the purchase's Invoice and one " +
+    "approval. Once the Payment settles, the Organization's seat limit rises by the seats and a counted seat purchase " +
+    "is recorded; a reorg below finality takes them back until the Payment settles again.",
+  acceptance: [
+    {
+      claim:
+        "One approval pays the seats times SEAT_PRICE from the named budget to Capxul, and the seat limit rises by them when the payment settles.",
+      observes:
+        "cli: from org-with-fde-allowance, Dana's `org seats buy 2 --from capxul --org acme` previews 2 seats at 10 USDC, 20 USDC from " +
+        "`capxul` with 500 left, signs one approval and ends with its Payment settled; read: `org seats show --org acme --json` then " +
+        "prints seatLimit 12 and seatsBought 2; chain: one UserOperation from Dana's Safe whose one call is `Budgets.spend` on " +
+        "`capxul`'s budget id of 20 USDC to CAPXUL_RECEIVING_SAFE, and one PaymentSent with the shown payment id.",
+    },
+    {
+      claim: "Nothing is counted before the payment settles: a purchase left unsigned, or declined, leaves the seat limit as it was.",
+      observes:
+        "cli: from org-with-fde-allowance, `org seats buy 1 --from capxul --org acme --no-wait --json` prints `awaiting_approval` " +
+        "with an approvalId; read: `org seats show` still prints seatLimit 10; after Dana declines that approval on the approval " +
+        "page, `payment get <its payment> --org acme` reads cancelled and seatLimit is still 10; chain: no Budgets.spend from `capxul`.",
+    },
+    {
+      claim: "Asking twice under one request key buys once.",
+      observes:
+        "cli: from org-with-fde-allowance, Dana's `org seats buy 2 --from capxul --org acme --request-key k1 --no-wait --json` run twice prints " +
+        "the same approvalId and paymentIds; read: once Dana signs it and it settles, `org seats show` prints seatLimit 12, not 14; " +
+        "world: one payment command.",
+    },
+    {
+      claim:
+        "Only a person wearing the People hat whom Budgets admits on the budget now may buy: lacking either, or being an agent, buys nothing.",
+      observes:
+        "cli: from org-with-budgets, Pat's `org seats buy 1 --from office-costs --org acme` (People hat, no hat on or above " +
+        "`office-costs`) and Mia's (wears `office-costs`, no People hat) each exit ROLE_PERMISSION_DENIED; from org-with-agent-member, " +
+        "@ledger's `org seats buy 1 --from capxul --org acme` exits ROLE_PERMISSION_DENIED before `--from` is looked up; world: " +
+        "no payment command and no approval.",
+    },
+    {
+      claim: "A purchase whose approval lapsed is retried under the same payment id and still buys once.",
+      observes:
+        "cli: from org-with-fde-allowance, after `org seats buy 1 --from capxul --org acme --no-wait` lapses unsigned (`capxul dev " +
+        "time warp 2h`), `payment retry <its payment> --org acme` signs a new approval for the same payment id; read: once it " +
+        "settles, seatLimit 11 and seatsBought 1; chain: one PaymentSent with that payment id.",
+    },
+  ],
+  returns: Schema.Union([Schema.Struct({ ...HandoverJson.fields, purchase: PurchaseJson }), EndedJson]),
+  errors: [error_CLI_USAGE],
+  refusals: [
+    { error: error_NOT_AUTHENTICATED, given: W.signedOut, when: "You are not signed in." },
+    {
+      error: error_CLI_USAGE,
+      given: SW.buyer,
+      when: "`<n>` or `--from` is missing, or `<n>` is not a number: nothing is sent.",
+    },
+    {
+      error: error_ROLE_PERMISSION_DENIED,
+      given: W.budgets,
+      when:
+        "`--org` names an Organization you hold no Seat in (Olga), your Safe does not wear the People hat (Mia), Budgets does not " +
+        "authorise your Safe on the `--from` budget now because you wear neither its hat nor one above it (Pat), or you are an agent, " +
+        "which never buys seats: nothing is written.",
+    },
+    {
+      error: error_INVALID_INPUT,
+      given: SW.buyer,
+      when: "`<n>` is not a whole number from 1 to 1,000, or `--from` names no budget of the Organization: nothing is written.",
+    },
+    {
+      error: error_FEATURE_NOT_AVAILABLE,
+      given: SW.unpriced,
+      when:
+        "The deployment sets no SEAT_PRICE or no CAPXUL_RECEIVING_SAFE, or prices seats in a token other than the budget's: nothing " +
+        "can be bought, and nothing is written.",
+    },
+    { error: error_WRONG_STATE, given: SW.closed, when: "The budget, or a budget above it, is closed (`running-costs` above `capxul`): nothing is prepared." },
+    {
+      error: error_PAYROLL_BUDGET_EXCEEDED,
+      given: SW.buyer,
+      when:
+        "`org seats buy 51 --from capxul` costs 510 USDC, more than the 500 `capxul` has left this month, or the total is over the " +
+        "token's payout ceiling: nothing is prepared or signed.",
+    },
+    {
+      error: error_INSUFFICIENT_BALANCE,
+      given: SW.shortSafe,
+      when: "The company Safe holds 5 USDC, less than the 10 one seat costs, though `capxul` has room: nothing is prepared or signed.",
+    },
+    {
+      error: error_SUPERSEDED,
+      given: SW.buyer,
+      when: "The approval expired or was displaced before it landed: nothing was bought, and the refusal names `payment retry` and `payment wait`.",
+    },
+  ],
+  budget: budget("chain-submit"),
+  was: ["docs/design/new-commands.md (section 5.5)", "books/target/shared/rulings.ts (aaron.buy-seats, aaron.test-prices)"],
 });
