@@ -59,7 +59,10 @@ export const rpc_requests_issuing_issue = defineRpc({
     "condition invoice-amount-reached, the email Safe as owner, the issuer's Safe as payee, the document's hash). No payer " +
     "is a link request with no escrow. An Invoice to a bare address, or to no payer, is INVALID_INPUT; so is any payer " +
     "given as a bare address. When the payer is known it stores the request's document through `documents.store` (the " +
-    "issuer and the payer as its participants) and births the request through `issue`, in one transaction. Nothing is " +
+    "issuer and the payer as its participants) and births the request through `issue`, in one transaction. With `org`, " +
+    "`account` (an income account of the Organization's chart, by its id as `org books accounts list` shows it) and `sales_invoice` (the head's Sales " +
+    "Invoice, when a connected head asks for the payment) are kept as the request's `income`, which its payment " +
+    "carries to the books (requests.income-meaning); either on a person's request is INVALID_INPUT. Nothing is " +
     "written on chain and no mail is sent here: notices follow `request_transitioned`.",
   was: [`${R}/receivables/operations/issue.ts:12`, `${R}/writes/requests.ts:55`, `${R}/writes/escrows.ts:20`, `${ASIS}:211`, ...GUARD_WAS],
   concept: concept_requests,
@@ -81,6 +84,10 @@ export const rpc_requests_issuing_issue = defineRpc({
         lines: opt(Schema.Array(Schema.Struct({ description: S, quantity: N, unit_amount: S }))),
       }),
     ),
+    /** With `org`: the income account its payment posts to (`--account`), kept for the books (requests.income-meaning). */
+    account: opt(S),
+    /** With `org`: the connected head's Sales Invoice this request collects, by its head name. */
+    sales_invoice: opt(S),
   }),
   output: Schema.Struct({
     scope: Schema.Literals(["person", "organization"]),

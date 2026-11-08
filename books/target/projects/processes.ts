@@ -154,6 +154,7 @@ export const workflow_projects_head_sync = defineWorkflow({
     machine_timesheet.t.pay,
     machine_timesheet.t.unpay,
     machine_timesheet.t.complete,
+    machine_timesheet.t.uncomplete,
     machine_timesheet.t.cancel,
   ],
   invokes: [],

@@ -4,18 +4,38 @@
 // dependencies.of-devnet).
 
 import { defineDecision } from "../../../packages/book/src/index.ts";
-import { component_devnet, concept_devnet, environment_devnet } from "../shared/foundation.ts";
+import {
+  component_devnet,
+  component_frappe_app,
+  concept_accounts,
+  concept_devnet,
+  concept_documents,
+  concept_notices,
+  concept_payroll,
+  environment_devnet,
+} from "../shared/foundation.ts";
 import {
   integration_bridge,
   integration_bundler,
   integration_chain_rpc,
   integration_chainlink,
   integration_devnet_control,
+  integration_frappe_head,
   integration_indexer,
   integration_mail,
   integration_posthog,
 } from "../shared/external.ts";
-import { table_mail_faults, table_mail_messages, table_scripted_gates, table_scripted_prices } from "./data.ts";
+import {
+  table_head_changes,
+  table_head_documents,
+  table_head_sites,
+  table_mail_faults,
+  table_mail_messages,
+  table_scripted_gates,
+  table_scripted_prices,
+} from "./data.ts";
+import { operation_org_create } from "../organizations/operations.ts";
+import { rpc_organizations_heads_ring } from "../organizations/heads.ts";
 import { rpc_devnet_mail_fail, rpc_devnet_mail_list, rpc_devnet_mail_list_notices } from "./mail.ts";
 import { rpc_devnet_gates_read, rpc_devnet_gates_script } from "./gates.ts";
 import { rpc_devnet_prices_script } from "./prices.ts";
@@ -42,7 +62,8 @@ import * as ops from "./operations.ts";
 const BY = "Claude, devnet concept design, 8 November 2026";
 const by = (evidence: string) => `${BY}; evidence: ${evidence}`;
 
-const TABLES = [table_mail_messages, table_mail_faults, table_scripted_gates, table_scripted_prices];
+const HEAD_TABLES = [table_head_sites, table_head_documents, table_head_changes];
+const TABLES = [table_mail_messages, table_mail_faults, table_scripted_gates, table_scripted_prices, ...HEAD_TABLES];
 const RPCS = [
   rpc_devnet_mail_list, rpc_devnet_mail_fail, rpc_devnet_mail_list_notices, rpc_devnet_gates_script, rpc_devnet_gates_read,
   rpc_devnet_prices_script, rpc_devnet_jobs_run,
@@ -91,7 +112,12 @@ export const decision_devnet_no_machines = defineDecision({
   title: "No state machine, so no event",
   question: "Does any devnet table carry a lifecycle that needs a machine and its `<machine>_transitioned` event (P7)?",
   options: [
-    { label: "none", text: "None: a message is kept once, a fault is armed and spent, a gate or rate is a value that is replaced." },
+    {
+      label: "none",
+      text:
+        "None: a message is kept once, a fault is armed and spent, a gate or rate is a value that is replaced, and a " +
+        "stand-in head's document keeps Frappe's own docstatus, which Capxul reads through the head's API, never as an event.",
+    },
     { label: "fault-machine", text: "A machine on mail faults (armed, spent, cleared) with its event." },
   ],
   chosen: "none",
@@ -1041,4 +1067,162 @@ export const decision_devnet_beta_world_by_variable = defineDecision({
     "budgets refusal review.",
   source: `Claude, handoff to the build, 8 November 2026; evidence: books/target/access/flows.ts (client.use.env); /home/user/factory/apps/cli/src/runtime/config.ts:199-218`,
   affects: [concept_devnet, environment_devnet],
+});
+
+// ── the Frappe redesign's devnet asks (assembly, 8 November 2026) ──────────────────────────
+
+const WORLD_GROUP = (evidence: string) => `Claude, assembly (world group), 8 November 2026; evidence: ${evidence}`;
+
+export const decision_devnet_head_stand_in = defineDecision({
+  id: "devnet.head-stand-in",
+  title: "The stand-in Frappe head serves HTTP from devnet's tables and follows the clock",
+  question:
+    "Every app concept syncs with a connected head through `frappe-head` (aaron.frappe-head). Evals need a head that " +
+    "keeps documents, makes its own users' edits, rings the doorbell, fails on demand and survives a world's save and " +
+    "restore, without booting Frappe. What is it, and where is its state?",
+  options: [
+    {
+      label: "supervisor-http-tables",
+      text:
+        "A supervisor-run site per Organization (`capxul-devnet head up <org>`) speaking the Capxul app's whitelisted " +
+        "methods over HTTP on loopback, so the backend's real `FrappeHead` client calls it. Its state is devnet's " +
+        "head-sites, head-documents (by DocType and capxul_id) and head-changes (its scripted user's edits, as " +
+        "listChanges rows). `capxul-devnet head edit` writes a document and its change, then rings " +
+        "`organizations.heads.ring` signed with the site's ring secret. `capxul-devnet fault frappe-head " +
+        "down|key-refused|conflict|refuse|replay|clear` arms its switch, kept on its site row. It joins the clock as a " +
+        "follower: idle when no ring is in flight, with no next due.",
+    },
+    { label: "backend-layer", text: "A `FrappeHead` devnet layer inside the backend over the same tables, as the mail fake is." },
+    { label: "in-memory", text: "An in-memory double the supervisor serves, its state saved in the world's manifest." },
+  ],
+  chosen: "supervisor-http-tables",
+  why:
+    "Served over HTTP, the stand-in exercises the backend's real head client, its timeouts, retries and error mapping " +
+    "(PROVIDER_ERROR, ROLE_PERMISSION_DENIED, RATE_LIMITED), where a backend layer would skip them; and a head's ring " +
+    "must arrive from outside, through the doorbell route a real Capxul app posts to. In Postgres' devnet schema, a " +
+    "world's snapshot carries the head with the concepts' tables, so a restored world's head holds the very documents " +
+    "its sync cursors point at (devnet.own-schema); in memory, the manifest and the database could disagree. The fault " +
+    "switch sits on the site's row, as the mail switch does, for the same reason. An edit is a supervisor control, not " +
+    "a Capxul command: it is the head's own user acting, which no Capxul surface makes (devnet.fault-switches), and a " +
+    "devnet rpc for it would be reached by no operation (P2). `conflict`, `refuse` and `replay` exist because the " +
+    "syncs' conflict, push-back and skip-what-was-applied paths are their hardest; a real bench with the Capxul app " +
+    "still serves an eval that needs Frappe's own validations. Its rows' writer is that stand-in, outside the book's " +
+    "records, so each table shows the build's unwritten-table gap, as the mail sink does. For the shared owner: " +
+    "frappe-head's `fake` text still says 'in-memory'.",
+  source: WORLD_GROUP("books/target/shared/external.ts (frappe-head fake); docs/design/frappe/projects-and-startup.md (section 4); devnet.fault-switches"),
+  affects: [...HEAD_TABLES, integration_frappe_head, rpc_organizations_heads_ring, component_devnet, component_frappe_app],
+});
+
+export const decision_devnet_head_warp_stops = defineDecision({
+  id: "devnet.head-warp-stops",
+  title: "A head's daily-or-slower Frappe jobs are warp stops; faster ones run at stops",
+  question:
+    "Frappe runs scheduled jobs (`all`, `hourly`, `hourly_long`, `daily`, `daily_long`, `weekly`, `monthly`, their " +
+    "`_long` forms and cron entries). On a devnet a head follows the one clock (organizations.head-clock). Which of its " +
+    "jobs are stops a warp must halt at, and which merely run?",
+  options: [
+    {
+      label: "daily-or-slower",
+      text:
+        "A followed bench reports as its next due only its next `daily`, `daily_long`, `weekly`, `weekly_long`, " +
+        "`monthly`, `monthly_long` run or cron entry whose period is a day or more, at the site's time zone; `all`, " +
+        "`hourly`, `hourly_long` and faster crons run once at each stop it reaches, never making one. The stand-in runs " +
+        "no Frappe job and reports no next due.",
+    },
+    { label: "hourly-or-slower", text: "As the backend's own crons: every hourly-or-slower job is a stop too." },
+    { label: "none", text: "No head job is a stop; every due job runs at whatever stop comes next." },
+  ],
+  chosen: "daily-or-slower",
+  why:
+    "A head's daily jobs are calendar work a simulation must see on the right day: ERPNext's `set_tasks_as_overdue` is " +
+    "Capxul's own timer now (projects.overdue-timer), but a head's other apps (auto-repeat invoices, subscriptions, " +
+    "leave allocation, depreciation) date documents by the day, so a warp past one must stop at it. Frappe's hourly " +
+    "and faster jobs are sweeps (email queues, project status reminders, reposts) whose result at a stop is the same " +
+    "whether they ran once or twenty-four times; as stops they would add 8,760 per simulated year per head, against " +
+    "the barrier's minutes for a year (devnet.warp-barrier), and the backend's hourly crons are its own few, not a " +
+    "whole ERP's. None would leave a dated job to run late, on whatever day the next stop fell. The stand-in has " +
+    "nothing scheduled, so a world with a stand-in head stops exactly where it would without one.",
+  source: WORLD_GROUP("organizations.head-clock; devnet.warp-barrier; frappe/hooks.py scheduler_events (erpnext, hrms)"),
+  affects: [integration_frappe_head, integration_devnet_control, component_frappe_app, component_devnet],
+});
+
+export const decision_devnet_fde_worlds = defineDecision({
+  id: "devnet.fde-worlds",
+  title: "Every catalogued Organization starts with `--no-fde`; org-with-fde has its FDE",
+  question:
+    "Since aaron.fde-agent an Organization starts with its Forward Deployed Engineer unless the founder passes " +
+    "`--no-fde` (organizations.fde-at-start-up). The catalogued worlds were saved before it. What do their `org " +
+    "create` steps run, and which world holds an FDE?",
+  options: [
+    {
+      label: "no-fde-and-one-world",
+      text:
+        "Every existing `org create` step, the `found` helper's included, passes `--no-fde`, so each world holds what " +
+        "it says (no agent of Acme's own, no extra Seat); a new world, org-with-fde, from person-ready, founds Acme " +
+        "with its FDE (@acme-fde) by the founder's one install signature.",
+    },
+    { label: "rewrite", text: "Rebuild every Organization world around its FDE and rewrite the claims that count Seats or agents." },
+  ],
+  chosen: "no-fde-and-one-world",
+  why:
+    "organizations.startup-worlds asks exactly this: the worlds are evidence for frozen claims and refusals, such as " +
+    "org-with-proposals-gate-off holding no agent of Acme's own so `agent create --org` is refused. org-with-agent " +
+    "still makes @acme-bot with `agent create --org`, which by the ruling is Acme's own agent. org-with-fde is built " +
+    "from person-ready rather than org-ready, because an FDE is born only by the install batch, never added to a " +
+    "finished setup; it serves the FDE's own claims and notices' `fde-ready`.",
+  source: WORLD_GROUP("organizations.startup-worlds; organizations.fde-at-start-up; books/target/devnet/worlds.ts (found)"),
+  affects: [operation_org_create, concept_devnet, concept_notices],
+});
+
+export const decision_devnet_money_waiting_world = defineDecision({
+  id: "devnet.money-waiting-world",
+  title: "person-with-money-waiting: a mailbox the money admitted, signed in",
+  question:
+    "Money waiting in a claim escrow admits its recipient to the beta (aaron.money-waiting-reminders, " +
+    "accounts.money-waiting-admits), and notices reminds them on the one clock. Which world proves both?",
+  options: [
+    {
+      label: "new-world",
+      text:
+        "person-with-money-waiting, from person-with-funded-safe: Dana sends nobody@outside.test 5 USDC and signs it, " +
+        "the escrow is indexed (the Payment escrowed, the mailbox admitted `escrow:<payment>`), then " +
+        "nobody@outside.test signs in. The gate stays closed and the mailbox never joins the waitlist.",
+    },
+    { label: "steps-in-the-eval", text: "Each eval sends the payment and signs in itself, from person-with-funded-safe." },
+  ],
+  chosen: "new-world",
+  why:
+    "A world is shared by the claims that start from it: `waitlist status` #2 reads `admitted` there, and notices' " +
+    "reminders are seen by warping it 3, 10 and 30 days. The builder settles after each step, so the escrow, the " +
+    "admission and the money-waiting email have all happened before the sign-in. Never joining the waitlist shows " +
+    "the admission is the money's alone (`admit_unlisted`), and a closed gate shows it is not the open beta's.",
+  source: WORLD_GROUP("accounts.money-waiting-admits; notices.money-waiting-reminders; books/target/devnet/worlds.ts (person-with-funded-safe)"),
+  affects: [concept_devnet, concept_accounts, concept_notices],
+});
+
+export const decision_devnet_payslip_world = defineDecision({
+  id: "devnet.payslip-world",
+  title: "org-with-documents also holds a submitted run's payslip, for Kai",
+  question:
+    "Payroll's runs are Frappe HR's again and every submitted slip stores a payslip (documents.payslip-kind), so " +
+    "documents keeps `document render` #1 word for word, reached in org-with-documents. What does the builder add?",
+  options: [
+    {
+      label: "kai",
+      text:
+        "Kai (kai@acme.test, ready) as an Employee of the `people` department; a Basic earning, a monthly Standard " +
+        "structure, an assignment to Kai on a 3,000 base from `people`; a run for this month, created and submitted, " +
+        "through payroll's SDK methods (its CLI commands are not booked yet).",
+    },
+    { label: "olga", text: "Make Olga, already paid and under a salary agreement there, the Employee." },
+  ],
+  chosen: "kai",
+  why:
+    "A new person keeps each of the world's readers to the one role its claims give them: Olga is the payee of a note, " +
+    "an Invoice and an agreement, Lee the member who joined after, Max the stranger, Nia the person with no Party. Kai " +
+    "has a Safe and a display name, so the rendered payslip names the employee by name, as the claim needs. The steps " +
+    "are Core SDK methods of a surface with no command yet (payroll.hr-surface), which a builder step may run. The run " +
+    "is submitted, not paid: the payslip is stored at submit.",
+  source: WORLD_GROUP("documents.acceptance-rewrites; documents.payslip-kind; books/target/payroll/flows.ts (client.org.payroll.*)"),
+  affects: [concept_devnet, concept_documents, concept_payroll],
 });

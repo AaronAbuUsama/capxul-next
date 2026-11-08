@@ -30,6 +30,7 @@ import {
   table_timesheets,
 } from "./data.ts";
 import { workflow_projects_head_sync, workflow_projects_startup_open, workflow_projects_tasks_watch_due } from "./processes.ts";
+import { procedure_projects_bill_time } from "./procedures.ts";
 
 const CLAUDE = "Claude, projects design, 8 November 2026";
 const by = (evidence: string) => `${CLAUDE}; evidence: ${evidence}`;
@@ -158,9 +159,9 @@ export const decision_projects_dependencies = defineDecision({
     "timesheets and marks them billed, and Frappe HR's salary slip marks them paid. Projects reads none of them back. " +
     "Placing it below lets the books, requests and payroll designs depend on it without a cycle; above them, books could " +
     "never tag a fact with a project. Projects needs the Organization (its Seats, its time zone and currency), parties " +
-    "(a customer's Party, a member's Party) and access (a principal), nothing else. It has no door yet: billing and " +
-    "paying hours will write a timesheet through a money-fact procedure when those commands are designed " +
-    "(projects.billing-and-payslips).",
+    "(a customer's Party, a member's Party) and access (a principal), nothing else. Its one door, `projects.bill-time`, " +
+    "is how a request marks the hours it bills (projects.bill-time); paying hours through a salary slip will be a " +
+    "second when payroll designs it (projects.billing-and-payslips).",
   source: by("/tmp/erpnext/erpnext/accounts/doctype/gl_entry/gl_entry.json (project); /tmp/hrms (salary slip timesheets); books/target/shared/foundation.ts"),
   affects: [concept_projects, concept_books, concept_requests, concept_payroll, concept_organizations, concept_parties],
 });
@@ -330,8 +331,9 @@ export const decision_projects_billing_and_payslips = defineDecision({
   why:
     "Hours billed twice are money asked twice, so the mark and the invoice must commit together, which P4 allows only " +
     "through a procedure of the concept that owns the timesheet; and the reacting concept must depend on the changed " +
-    "one, so requests and payroll sit above projects (projects.dependencies). Designing those procedures now would add " +
-    "doors nothing invokes. Two writers of one mark (a head's Sales Invoice now, a Capxul request later) would bill the " +
+    "one, so requests and payroll sit above projects (projects.dependencies). The billing door is now designed with " +
+    "requests' owner (projects.bill-time); the paying one waits until payroll pays timesheets, which its slips, worked " +
+    "out from structures rather than hours, do not yet. Two writers of one mark (a head's Sales Invoice now, a Capxul request later) would bill the " +
     "same hours twice unless the mark refuses a second; ERPNext refuses the same (`validate_time_sheets_are_submitted`: " +
     "a log that already names an invoice). For the requests and payroll designers: the fields are " +
     "timesheet-logs.sales_invoice, timesheets.per_billed, the billed totals, salary_slip and status (bill_part, bill, " +
@@ -415,4 +417,43 @@ export const decision_projects_permissions = defineDecision({
     "project.",
   source: by("/tmp/erpnext/erpnext/projects/doctype/project/project.json (permissions: Projects User, Projects Manager); books/target/shared/rulings.ts (aaron.contacts-permissions)"),
   affects: [concept_projects, table_projects, table_tasks, table_timesheets],
+});
+
+// ── billing hours: the door requests invokes (assembly, 8 November 2026) ────────────────────
+
+export const decision_projects_bill_time = defineDecision({
+  id: "projects.bill-time",
+  title: "One door marks billed hours; a request bills them in its own transaction",
+  question:
+    "The invoice-from-timesheets command (`timesheet bill`) is requests' (requests sits above projects). The hours it " +
+    "bills are projects' timesheet logs. How does an Invoice mark them billed, and clear them when it ends?",
+  options: [
+    {
+      label: "door",
+      text:
+        "`projects.bill-time`, a money-fact procedure: `bill` marks each log's `sales_invoice` and `billing_amount` " +
+        "and moves the timesheet `bill_part`, `bill` or (already paid) `complete`; `unbill` clears them and moves " +
+        "`unbill`, `bill_part` or `uncomplete`. Requests invokes it in the issue's transaction and in the cancel's or " +
+        "decline's.",
+    },
+    { label: "outbox", text: "Projects follows `request_transitioned` and marks the logs after the request commits." },
+    { label: "head-only", text: "Only a connected head bills hours; Capxul requests never name timesheets." },
+  ],
+  chosen: "door",
+  why:
+    "Hours billed twice are money asked twice: an Invoice that commits while its logs stay unmarked could be followed " +
+    "by a second Invoice, a Capxul one or a head's, for the same hours. So the mark and the Invoice are one money fact " +
+    "(rules.procedures), and only the owner's procedure may write projects' tables (P4). The outbox would leave that " +
+    "window open, and projects would have to depend on requests (a cycle). Head-only contradicts aaron.projects: an " +
+    "Organization with no head must still bill its time. The guards are ERPNext's: a log names one invoice " +
+    "(`validate_time_sheets_are_submitted`), only a submitted timesheet's billable logs are billed, a log bills no " +
+    "more than its billing hours, and Frappe HR's `set_status` decides the status (a timesheet a slip already paid " +
+    "keeps `payslip`, and completes when billed). A paid request keeps its marks; a declined or cancelled one clears " +
+    "them, as cancelling a Sales Invoice does (`unlink_sales_invoice_from_timesheets`); an expired one keeps them until " +
+    "it is cancelled. `uncomplete` is the way back for a completed timesheet whose invoice is cancelled, and `unpay` " +
+    "now also starts from completed. Every mark appends to the change log, so a head learns the hours are billed " +
+    "before it could invoice them itself. Requests cannot invoke it until requests depends on projects (shared " +
+    "foundation, asked of its owner); until then it is an uninvoked door.",
+  source: by(`erpnext/accounts/doctype/sales_invoice/services/timesheet_billing.py:19; ${DT}/timesheet/timesheet.py:141; hrms employee_timesheet.py`),
+  affects: [procedure_projects_bill_time, table_timesheet_logs, table_timesheets, machine_timesheet, concept_requests],
 });

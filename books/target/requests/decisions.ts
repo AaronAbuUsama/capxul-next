@@ -4,7 +4,7 @@
 // operations as evidence.
 
 import { defineDecision } from "../../../packages/book/src/index.ts";
-import { concept_requests } from "../shared/foundation.ts";
+import { concept_books, concept_projects, concept_requests } from "../shared/foundation.ts";
 import { contract_escrow, contract_escrow_factory, integration_indexer, integration_service_signer } from "../shared/external.ts";
 import * as d from "./data.ts";
 import * as iss from "./issuing.ts";
@@ -548,4 +548,81 @@ export const decision_requests_budget_overrides = defineDecision({
     op.operation_service_deactivate,
     op.operation_bank_match,
   ],
+});
+
+// ── after the Frappe redesign (assembly, 8 November 2026) ───────────────────────────────────
+
+const ASSEMBLY = (evidence: string) => `Claude, assembly (world group), 8 November 2026; evidence: ${evidence}`;
+
+export const decision_requests_income_meaning = defineDecision({
+  id: "requests.income-meaning",
+  title: "An Organization's request carries its income account to the books",
+  question:
+    "The accounting design asks that a paid request's side carry its meaning to books: its income account, and, when " +
+    "a head made a Sales Invoice for it, party Customer and that invoice as the reference. Payments' door now takes a " +
+    "`payee_against`. Where does a request keep its meaning, and how does it reach the books?",
+  options: [
+    {
+      label: "on-the-request",
+      text:
+        "`request issue --org` takes `account` and, from a head, `sales_invoice`; the request keeps them as `income`, and " +
+        "`inbox pay` passes them to `payments.prepare-command` as the item's `payee_against` with party Customer at the " +
+        "payer's Party. Books checks the account when it posts, and a side whose account no longer fits waits in review.",
+    },
+    { label: "annotate-later", text: "Keep nothing on the request; the Organization classifies the payment afterwards with `activity annotate`." },
+    { label: "head-only", text: "Only a head's Sales Invoice carries meaning, through its own Payment Entry." },
+  ],
+  chosen: "on-the-request",
+  why:
+    "The issuer knows what a request is for when it asks, as a Sales Invoice names its income account, so the meaning " +
+    "belongs with the request from its birth; payments keeps what the command carried and passes it with the " +
+    "settlement (payments.money-sides), so the voucher is a Payment Entry Receive against the head's Sales Invoice or a " +
+    "Bank Entry on the income account rather than an unclassified 4999 line. Requests does not depend on books, so it " +
+    "cannot check the account; books never refuses a money fact and holds a side whose account does not fit in review " +
+    "(books' door), which is the right place for that check. The Customer is the payer's Party in the directory, which " +
+    "the head finds by capxul_party. Mapping the request to the head's Sales Invoice is the head's: the Capxul app " +
+    "asks for the payment by naming its invoice, and its Payment Entry follows the fact. Two paths still carry no " +
+    "meaning: an outside payer's invoice escrow pays out as a Payment born from the chain, which payments cannot tie " +
+    "to a request, and a matched bank deposit, whose fact is banking's (`banking.match-deposit` takes no meaning yet); " +
+    "both wait in review for `activity annotate` or the head (asked of payments and banking).",
+  source: ASSEMBLY("docs/design/frappe/accounting.md (For other lanes: requests); books/target/payments/procedures.ts (payee_against)"),
+  affects: [d.table_requests, iss.rpc_requests_issuing_issue, inb.rpc_requests_inbox_pay, concept_books],
+});
+
+export const decision_requests_bill_time = defineDecision({
+  id: "requests.bill-time",
+  title: "Decision pack: bill logged hours as an Invoice, marking them in one write",
+  question:
+    "Projects' timesheets hold billable hours (aaron.projects), and the invoice-from-timesheets command is requests'. " +
+    "Which command bills them, and how do the request and the hours it bills stay one fact?",
+  options: [
+    {
+      label: "timesheet-bill",
+      text:
+        "Recommended. A new operation, `timesheet bill <timesheet…> --org <org> [--to <payer>]`, as requests' flow over " +
+        "`requests.issuing.issue`: it reads the timesheets' billable logs not yet billed, previews an Invoice to the " +
+        "project's customer with one line per activity (hours times the billing rate), and in the issue's transaction " +
+        "invokes `projects.bill-time` (`bill`) so the logs name the request. `request cancel` and `inbox decline` of " +
+        "such a request invoke it with `unbill` in their own transactions; paid keeps the marks.",
+    },
+    {
+      label: "issue-flag",
+      text: "No new command: `request issue --timesheets <ts…>` on the kept command, with the same door and the same marks.",
+    },
+    { label: "head-only", text: "None: hours are invoiced only by a connected head's Sales Invoice, which marks them through the sync." },
+  ],
+  chosen: "timesheet-bill",
+  why:
+    "For Aaron: which command bills hours is the capability's decision pack (rules.new-operations), and the " +
+    "recommendation stands until he answers. A time Invoice is one money fact with the hours it bills " +
+    "(projects.bill-time): the issue writes the request and, through projects' door, the marks, or neither, so a " +
+    "second Invoice, Capxul's or a head's, can never ask for the same hours. Ending it clears them, as cancelling a " +
+    "Sales Invoice unlinks its timesheets; an expired request keeps them until cancelled, as an unpaid invoice does. " +
+    "A command of its own reads as ERPNext's 'Make Sales Invoice' from a timesheet and keeps `request issue` the kept " +
+    "command it was; the flag would widen a frozen command's flags for one source of lines. Head-only leaves an " +
+    "Organization with no head unable to bill its time. Booking waits on two things: Aaron's answer, and an edge, " +
+    "requests depending on projects (shared foundation and dependencies.of-requests, asked of its owner), without " +
+    "which the issue may not invoke the door; projects sits below requests, so the edge makes no cycle.",
+  source: ASSEMBLY("docs/design/frappe/projects-and-startup.md (section 2); projects.billing-and-payslips; projects.commands; aaron.projects"),
+  affects: [concept_requests, concept_projects, d.table_requests, iss.rpc_requests_issuing_issue, iss.rpc_requests_issuing_cancel, inb.rpc_requests_inbox_decline],
 });

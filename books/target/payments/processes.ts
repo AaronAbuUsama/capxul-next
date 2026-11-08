@@ -123,9 +123,9 @@ export const workflow_payments_lifecycle_payment = defineWorkflow({
     {
       name: "settle",
       about:
-        "On its PaymentSent, every term compared (a claim escrow's sender is its escrow): equal → `settle` with each side's " +
-        "book fact (its Safe, log index, block time, the other Safe's Party, `fee_raw`, its `against`); else `mismatch`. A " +
-        "claim escrow's payee tenant comes from its payee Safe's Party.",
+        "On its PaymentSent, all terms compared (a claim escrow's sender is its escrow): equal → `settle` with each side's " +
+        "book fact (Safe, log index, block time, other side's Party, `fee_raw`, `against`; an escrow's payer side is " +
+        "`payer_safe`); else `mismatch`. An escrow's payee tenant is its payee Safe's Party.",
     },
     { name: "release", about: "On ScheduleCancelled or EscrowRefunded for it, `cancel`." },
     { name: "confirm", about: "Twice the finality depth later, reads the facts again; gone → `unsettle` with the book fact reversed." },

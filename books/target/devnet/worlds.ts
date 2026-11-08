@@ -66,9 +66,12 @@ const signInAgain = () =>
   anyone("the builder signs in again, by the sink's code and in sign-in order, every person whose session that warp ended; the current person stays current");
 /** Sign the open approval of `what` as `email`, with their dev signer. */
 const approve = (email: string, what: string) => anyone(`capxul dev approve --as ${email} <${what}>`);
-/** Found an Organization and finish its setup. */
+/**
+ * Found an Organization and finish its setup. Every catalogued Organization but org-with-fde starts with no Forward
+ * Deployed Engineer (`--no-fde`), so each world holds what it held before the FDE ruling (organizations.startup-worlds).
+ */
 const found = (email: string, handle: string, name: string) => [
-  step(email, `capxul org create --name "${name}" --handle ${handle} --country GB --confirm --json`),
+  step(email, `capxul org create --name "${name}" --handle ${handle} --country GB --no-fde --confirm --json`),
   approve(email, `${handle}'s install approval`),
   step(email, `capxul org wait ${handle}`),
 ];
@@ -243,20 +246,35 @@ export const WORLDS: readonly World[] = [
     ],
     namedBy: ["payments", "devnet"],
   },
+  {
+    name: "person-with-money-waiting",
+    holds:
+      "person-with-funded-safe plus 5 USDC Dana sent nobody@outside.test, waiting in a claim escrow her Safe owns (the " +
+      "Payment `escrowed`, its `money-waiting` email sent); that money admitted the mailbox, which never joined the " +
+      "waitlist, to the closed beta (`escrow:<the Payment>`), with no `beta-welcome`; nobody@outside.test signed in " +
+      "and current, with no profile and no Safe set up.",
+    from: "person-with-funded-safe",
+    steps: [
+      step("dana@acme.test", "capxul payment send nobody@outside.test 5 --json"),
+      approve("dana@acme.test", "that payment's approval (EscrowCreated is indexed: `escrowed`, and the mailbox admitted)"),
+      signIn("nobody@outside.test"),
+    ],
+    namedBy: ["accounts"],
+  },
 
   // ── Organizations' setup, members and invitations (organizations) ──
   {
     name: "org-awaiting-founder",
     holds: "Dana's Organization Acme minted, its install batch waiting for her signature.",
     from: "person-ready",
-    steps: [step("dana@acme.test", 'capxul org create --name "Acme Ltd" --handle acme --country GB --confirm --json (approval left unsigned)')],
+    steps: [step("dana@acme.test", 'capxul org create --name "Acme Ltd" --handle acme --country GB --no-fde --confirm --json (approval left unsigned)')],
     namedBy: ["organizations"],
   },
   {
     name: "org-two-unfinished-setups",
     holds: "org-awaiting-founder plus a second unfinished setup, Globex, also waiting for Dana.",
     from: "org-awaiting-founder",
-    steps: [step("dana@acme.test", 'capxul org create --name "Globex" --handle globex --country GB --confirm --json (left unsigned)')],
+    steps: [step("dana@acme.test", 'capxul org create --name "Globex" --handle globex --country GB --no-fde --confirm --json (left unsigned)')],
     namedBy: ["organizations"],
   },
   {
@@ -272,7 +290,7 @@ export const WORLDS: readonly World[] = [
     from: "person-ready",
     steps: [
       fault("service-signer refuse-send"),
-      step("dana@acme.test", 'capxul org create --name "Acme Ltd" --handle acme --country GB --confirm --json'),
+      step("dana@acme.test", 'capxul org create --name "Acme Ltd" --handle acme --country GB --no-fde --confirm --json'),
       fault("service-signer clear"),
     ],
     namedBy: ["organizations"],
@@ -283,7 +301,7 @@ export const WORLDS: readonly World[] = [
     from: "person-ready",
     steps: [
       fault("chain-rpc garbage-answers"),
-      step("dana@acme.test", 'capxul org create --name "Acme Ltd" --handle acme --country GB --confirm --json'),
+      step("dana@acme.test", 'capxul org create --name "Acme Ltd" --handle acme --country GB --no-fde --confirm --json'),
       fault("chain-rpc clear"),
     ],
     namedBy: ["organizations"],
@@ -294,6 +312,21 @@ export const WORLDS: readonly World[] = [
     from: "org-awaiting-founder",
     steps: [approve("dana@acme.test", "acme's install approval"), step("dana@acme.test", "capxul org wait acme")],
     namedBy: ["organizations", "devnet"],
+  },
+  {
+    name: "org-with-fde",
+    holds:
+      "Acme ready as in org-ready, but started with its Forward Deployed Engineer: @acme-fde, an agent Acme owns, " +
+      "created by Dana's one install signature (`AgentOwner.create` from the company Safe), seated `organization` " +
+      "outside the ten seats, its Party active, wearing no hat; its key in this machine's key store under its handle; " +
+      "its `fde-ready` email sent to Dana; Dana current.",
+    from: "person-ready",
+    steps: [
+      step("dana@acme.test", 'capxul org create --name "Acme Ltd" --handle acme --country GB --confirm --json (with its FDE: no `--no-fde`)'),
+      approve("dana@acme.test", "acme's install approval, whose batch also creates the FDE"),
+      step("dana@acme.test", "capxul org wait acme"),
+    ],
+    namedBy: ["organizations", "agents"],
   },
   {
     name: "org-with-member",
@@ -955,8 +988,10 @@ export const WORLDS: readonly World[] = [
     name: "org-with-documents",
     holds:
       "Acme with Sam, who stored documents for it and was then removed, and Lee, who joined after; Olga, whom Acme paid with " +
-      "a note, and her Invoice to Acme; a salary agreement's terms; a receipt file on a Payment; a Movement's Memo from an " +
-      "outside Transfer to Olga; Max signed in as a stranger; Nia signed in with no Party of her own.",
+      "a note, and her Invoice to Acme; a salary agreement's terms; a submitted payroll run of the `people` department " +
+      "whose salary slip for Kai (kai@acme.test, an Employee with a Safe) has its payslip stored; a receipt file on a " +
+      "Payment; a Movement's Memo from an outside Transfer to Olga; Max signed in as a stranger; Nia signed in with no " +
+      "Party of her own.",
     from: "org-with-allowance",
     steps: [
       step("sam@acme.test", 'capxul payment send olga@outside.test 40 --org acme --from office --note "Design review" --json; approve as Sam'),
@@ -964,6 +999,17 @@ export const WORLDS: readonly World[] = [
       step("dana@acme.test", "capxul org department create people --budget 20000/month --holder dana@acme.test --org acme --json"),
       approve("dana@acme.test", "its Board proposal, as the one Director"),
       step("dana@acme.test", "capxul org agreement offer olga@outside.test --department people --salary 3000/month --start <today>; approve"),
+      ready("kai@acme.test", "Kai Moreau"),
+      step(
+        "dana@acme.test",
+        "client.org(acme).payroll.employees.add kai@acme.test in `people`; .structures.component Basic (an earning of a " +
+          "fixed amount); .structures.create Standard (monthly, Basic); .structures.assign Standard to Kai from this " +
+          "month's first day, base 3000 USDC, paid from `people`",
+      ),
+      step(
+        "dana@acme.test",
+        "client.org(acme).payroll.runs.create for `people`, this month; .runs.submit: Kai's slip is submitted and its payslip stored (documents.payslip-kind)",
+      ),
       step("dana@acme.test", "capxul activity annotate <the payment to Olga> --receipt receipt.pdf --org acme"),
       supervisor('capxul-devnet chain transfer 15 USDC to olga\'s Safe with Memo "Refund 0042" from an Anvil account'),
       step("dana@acme.test", "capxul org member revoke sam@acme.test --org acme (Sam's Seat removed; approved)"),

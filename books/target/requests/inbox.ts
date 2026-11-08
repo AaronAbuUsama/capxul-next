@@ -108,7 +108,9 @@ export const rpc_requests_inbox_pay = defineRpc({
     "key (`operations`; budgets' table gives its chain id, and a chain id is taken as it is), from indexing's chain " +
     "budgets, whose office hat, or one above it, the member's Safe wears (else ROLE_PERMISSION_DENIED), and its " +
     "`Budgets.leftOf`. Then, in one transaction: `payments.prepare-command` (purpose request, route personal or budget, " +
-    "one item to the issuer's Safe, kind 1, the request's document, `pay_at`) births the Payment and its approval, " +
+    "one item to the issuer's Safe, kind 1, the request's document, `pay_at`, and for an Organization's request its " +
+    "`payee_against`: the request's income account, party Customer at the payer's Party and the head's Sales Invoice " +
+    "as the reference, requests.income-meaning) births the Payment and its approval, " +
     "refusing short funding (INSUFFICIENT_BALANCE, or PAYROLL_BUDGET_EXCEEDED for a budget), and the request moves " +
     "through `pay` with the Payment and its v4 payment id. It answers `awaiting_approval` with the approval, its deadline " +
     "as the door answered it, and the `payment wait` command; nothing is signed or sent here.",

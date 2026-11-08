@@ -70,7 +70,8 @@ export const table_requests = defineTable({
     "pure `safeAddressFor`), which owns the request's invoice escrow at the address `EscrowFactory.predictAddress(terms, " +
     "salt)` fixes; a link request names no payer until one names their email at the link. `chain_payment_id` is the " +
     "v4 payment id that pays it (from `payments.prepare-command`, or the escrow's `predictPaymentId`), `payment_id` the " +
-    "Payment payments holds for it, `deposit_id` the bank deposit matched to it. `escrow_received_raw` is what the request's own process last read the escrow to hold. Replaces old " +
+    "Payment payments holds for it, `deposit_id` the bank deposit matched to it. `escrow_received_raw` is what the request's own process last read the escrow to hold. " +
+    "`income` is what an Organization's books post its payment against (requests.income-meaning). Replaces old " +
     "paymentRequests and offerCheckouts; old invoiceCheckoutPayments, the receipt, consumption and verification columns, " +
     "the link token, Money Invoices and every pre-v4 envelope and settlement column are dropped (decisions).",
   was: [`${T}:13`, `${T}:112`, `${AS_IS}:62`, `${AS_IS}:219`],
@@ -146,6 +147,12 @@ export const table_requests = defineTable({
     /** The payer's request key for the live inbox attempt: the same key resumes it, a fresh one waits until it ends. */
     pay_key: NullOr(S),
     deposit_id: NullOr(S),
+    /**
+     * An Organization's request: what its books post the payment against once it is paid (requests.income-meaning):
+     * the income account the issuer chose, and the head's Sales Invoice when a connected head asked for the payment.
+     * Null for a person's request, or when nothing was said: the money then posts as an unclassified payment in.
+     */
+    income: NullOr(Schema.Struct({ account_id: NullOr(S), sales_invoice: NullOr(S) })),
     /** The principal who paid, declined, cancelled or matched it. */
     decided_by: NullOr(S),
     decided_at: NullOr(N),

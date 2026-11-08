@@ -297,8 +297,9 @@ export const table_timesheets = defineTable({
     "totals with the share billed, its currency and rate to the Organization's, a note, the salary slip that paid it and " +
     "the timesheet it amends. Its status follows Frappe HR's `set_status`: from docstatus (draft, submitted, cancelled), " +
     "then billed or partially billed by the share billed, payslip once a salary slip names it (whatever is billed), and " +
-    "completed when both its own sales-invoice link and a salary slip are set. Billing and paying it are not this " +
-    "concept's (projects.billing-and-payslips).",
+    "completed when both its own sales-invoice link and a salary slip are set. A request that bills its hours marks " +
+    "them through this concept's door, `projects.bill-time`, in its own transaction; paying them is a salary slip's " +
+    "(projects.billing-and-payslips).",
   was: [
     `${FRAPPE}/timesheet/timesheet.json`,
     `${FRAPPE}/timesheet/timesheet.py:141`,
@@ -370,9 +371,11 @@ export const table_timesheet_logs = defineTable({
   about:
     "Frappe's Timesheet Detail rows of a timesheet, in order: activity type, from and to, hours and expected hours, " +
     "whether the work is completed, the project and task it was for, whether it is billable, the billing hours, rate and " +
-    "amount, the costing rate and amount, and the sales invoice that billed it. A log is written only with its timesheet, " +
-    "in the same transaction. A submitted timesheet's logs never change except `sales_invoice`, Frappe's one field " +
-    "allowed on submit: a log is billed once, and its link is cleared only when that invoice is cancelled.",
+    "amount, the costing rate and amount, and the sales invoice that billed it: a request's id when Capxul billed it " +
+    "(`projects.bill-time`), or the head's Sales Invoice name when a head did. A log is written with its timesheet, in " +
+    "the same transaction, or by that door. A submitted timesheet's logs never change except `sales_invoice` and the " +
+    "`billing_amount` the invoice asked, Frappe's fields allowed on submit: a log is billed once, and its link is " +
+    "cleared only when that invoice is cancelled or declined.",
   was: [
     `${FRAPPE}/timesheet_detail/timesheet_detail.json`,
     "/tmp/erpnext/erpnext/accounts/doctype/sales_invoice/services/timesheet_billing.py:19",
@@ -681,7 +684,7 @@ export const machine_timesheet = defineMachine({
       emits: [event_timesheet_transitioned],
     },
     unpay: {
-      from: ["payslip"],
+      from: ["payslip", "completed"],
       to: "submitted",
       about:
         "The salary slip that paid it was cancelled; when part or all of it is billed, bill_part or bill follows in the " +
@@ -692,6 +695,12 @@ export const machine_timesheet = defineMachine({
       from: ["payslip"],
       to: "completed",
       about: "Its own sales-invoice link is set while a salary slip names it (Frappe HR's set_status).",
+      emits: [event_timesheet_transitioned],
+    },
+    uncomplete: {
+      from: ["completed"],
+      to: "payslip",
+      about: "The invoice that completed it was cancelled or declined: its link leaves it, and the salary slip still names it.",
       emits: [event_timesheet_transitioned],
     },
     cancel: {
