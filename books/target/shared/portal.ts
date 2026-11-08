@@ -331,9 +331,10 @@ export const decision_portal_cli_surface = defineDecision({
   chosen: "surface-page",
   why:
     "Consistency is a property of the whole surface, invisible one page at a time. The prototype's exit-code-by-class " +
-    "table already raises the kind of question this page exists for: CANCELLED exits 130 (the shell's interrupt code) " +
-    "while the other input-class errors exit 2; deliberate or not, it is a call the surface makes once, for every " +
-    "command. Accepting the surface as a diff since the last accepted one keeps each later review small.",
+    "table already raises the kind of question this page exists for: in the 47 errors of 8 November 2026, input-class " +
+    "errors exit 2, 6 or 130 (CANCELLED, the shell's interrupt code) and state-class errors exit 2, 5 or 6. Deliberate or " +
+    "not, each is a call the surface makes once, for every command. Accepting the surface as a diff since the last " +
+    "accepted one keeps each later review small.",
   source: by("decision system.frozen-behaviour; books/frozen/flags.ts (reference); the prototype's #/cli page over the target's 47 errors"),
   affects: [f.component_cli, decision_system_frozen_behaviour],
 });
