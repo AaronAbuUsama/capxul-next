@@ -1244,7 +1244,7 @@ export const decision_payroll_hr_authority = defineDecision({
 
 export const decision_payroll_hr_surface = defineDecision({
   id: "payroll.hr-surface",
-  title: "Frappe HR's capabilities reach the SDK and web app now, the CLI next",
+  title: "Frappe HR's capabilities reach the CLI now, beside the SDK and web app",
   question: "The HR rpcs are new capabilities, not among the 215. Which surfaces reach them, and when do they get CLI commands?",
   options: [
     {
@@ -1256,13 +1256,33 @@ export const decision_payroll_hr_surface = defineDecision({
         "cancel|show|list`, `payslip list|show`) are designed with acceptance claims in the payroll operations pass, from " +
         "docs/design/frappe/payroll.md.",
     },
-    { label: "cli-now", text: "Book the CLI operations now, with acceptance claims and worlds." },
+    {
+      label: "cli-now",
+      text:
+        "Recommended: book now, with acceptance claims and worlds, exactly the 28 commands of " +
+        "docs/design/new-commands.md (section 5.3), in its one grammar; each calls one SDK method, whose flow keeps " +
+        "`react` and adds `cli`: `org employee add|change|get|list|suspend|deactivate|reinstate|leave` " +
+        "(`client.org(orgId).employees.*`; the four status verbs are the Employee machine's, over " +
+        "`payroll.employees.change`; `get` is a new rpc); `org payroll component add|change|list|disable|enable` (over " +
+        "`payroll.structures.component` and `.list`); `org payroll structure create|cancel|assign|unassign|list` " +
+        "(`unassign` cancels an assignment, over `payroll.structures.cancel`); `org payroll run " +
+        "create|submit|pay|cancel|list|get` (`get` over `payroll.runs.show`); `org payslip withhold|release` (over " +
+        "`payroll.runs.withhold`); and the payee's own `payslip list|get` (`client.me.payslips.*` over " +
+        "`payroll.slips.mine`, filtered by `--employer`, never `--org`). Who (payroll.hr-authority): a member whose Safe " +
+        "wears the People hat changes and reads the records; paying a run is whoever Budgets.authorised admits on its " +
+        "department's budget; a payee reads their own slips. Reads are `read`, `org payroll run pay` `chain-submit`, " +
+        "the rest `write`, all `normal`.",
+    },
   ],
-  chosen: "sdk-now",
+  chosen: "cli-now",
   why:
-    "The design of the data, the computation and the money path is what the ruling asks for first; the CLI spelling " +
-    "follows it and is the target's to design. Every rpc is reached now (P2), and each flow takes its class default " +
-    "budget: write for a change, read for a list, chain-submit for paying.",
+    "Aaron asked on 8 November 2026 for the new commands to be designed in the book; booked under rules.new-operations " +
+    "on this recommendation, which stands until he answers. The capability serves aaron.frappe-shape (payroll in " +
+    "Frappe HR's shape in every Organization), and the FDE works it through the same CLI (aaron.fde-agent). The rpcs " +
+    "and flows came first (sdk-now); the commands now follow the one grammar every new command keeps " +
+    "(docs/design/new-commands.md): nouns then verbs, a status step as its own verb, `get` for one record, and one SDK " +
+    "method per command, so a flow that served two steps is two commands. Every rpc stays reached (P2), and each flow " +
+    "keeps its class default budget.",
   source: AFTER_RULING("aaron.frappe-shape, aaron.fde-agent, aaron.projects (new capabilities designed book first)"),
   affects: [...HR_FLOWS, ...HR_RPCS, rpc_payroll_slips_mine],
 });

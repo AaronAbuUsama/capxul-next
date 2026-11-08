@@ -353,12 +353,17 @@ export const decision_projects_commands = defineDecision({
     {
       label: "working-set",
       text:
-        "Recommended. About thirty commands, each `--org`, one SDK method each under `client.org(orgId).projects`: " +
-        "`project create|list|show|update`, `project hold|resume|complete|reopen|cancel`, `project users add|remove`; " +
-        "`task create|list|show|update` (parent, depends-on, dates, expected hours, weight, priority, milestone), " +
-        "`task start|review|complete|reopen|cancel`; `timesheet create|log|show|list|submit|cancel` (a log is activity, " +
-        "from, to, task, billable); `activity-type add|list|disable`; `project-type add|list`; `project settings show|set`. " +
-        "Each is one rpc in projects, with a world, claims and evals booked when accepted.",
+        "Recommended: exactly the 35 commands of docs/design/new-commands.md (section 5.1), in its one grammar. Each acts " +
+        "for the Organization `--org` names (else `use org`'s), is one rpc in projects (`projects.<area>.<verb>`) and one " +
+        "SDK method named by its words under `client.org(orgId)`: `org project create|list|get|change|hold|resume|" +
+        "complete|reopen|cancel`; `org project member add|remove`; `org project settings show|set`; `org task create|list|" +
+        "get|change|start|review|complete|reopen|cancel` (parent, depends-on, dates, expected hours, weight, priority, " +
+        "milestone; review takes `--by <day>`); `org timesheet create|log|get|list|submit|cancel` (a log is activity, " +
+        "start, end or hours, task, project, billable, completed); `org activity-type add|change|list|disable|enable`; " +
+        "`org project-type add|list`. Who (projects.permissions): any member reads, and creates and works tasks; a worker " +
+        "keeps their own timesheets; the People hat or a Director manages projects, their members, types, rates, " +
+        "settings and anyone else's time. Reads are `read`, the rest `write`, all `normal`. Billing hours is requests' " +
+        "`org timesheet bill` (requests.bill-time).",
     },
     {
       label: "minimal",
@@ -383,8 +388,10 @@ export const decision_projects_commands = defineDecision({
     "Projects forms let a user do with the nine DocTypes the concept holds, so an Organization with no head can run its " +
     "projects, and the FDE does the same through the CLI. Minimal would leave a headless Organization unable to hold or " +
     "reopen a project or share it. Generic documents read like Frappe's API, which suits agents, but give people no " +
-    "help and no per-command refusals. Head-only contradicts the ruling that projects are present from the start. Later, " +
-    "not in this pack: `timesheet bill` (an invoice from billable hours, requests' flow) and templates.",
+    "help and no per-command refusals. Head-only contradicts the ruling that projects are present from the start. Aaron " +
+    "accepted the working set and asked on 8 November 2026 for the commands to be designed in the book, so its list " +
+    "is now docs/design/new-commands.md's, in the one grammar of every new command. Not in this pack: `org timesheet " +
+    "bill` (requests.bill-time, requests' flow) and templates.",
   source: by(`${DT} (the forms of Project, Task and Timesheet); books/target/shared/rulings.ts (aaron.projects, aaron.fde-agent)`),
   affects: [concept_projects, ...TABLES, machine_project, machine_task, machine_timesheet],
 });

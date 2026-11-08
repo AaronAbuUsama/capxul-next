@@ -3064,3 +3064,55 @@ export const decision_rules_new_operations = defineDecision({
     f.concept_projects, f.concept_payroll, f.concept_organizations,
   ],
 });
+
+const AUTHORITY = "Claude, authority audit, 8 November 2026";
+
+export const decision_rules_department_authority = defineDecision({
+  id: "rules.department-authority",
+  title: "Money authority is the hat a Safe wears now: a budget is its department's",
+  question:
+    "Who holds authority over a budget's money: the department the budget belongs to, a person, or the Directors? " +
+    "How do the book's who-lines, refusals, processes and notices state it?",
+  options: [
+    {
+      label: "hat-now",
+      text:
+        "A department is a budget in the company Safe's tree with its own office hat. Authority over its money is " +
+        "`Budgets.authorised` at the call: the company Safe, or a wearer in good standing of the budget's hat or an " +
+        "ancestor's (Agreements asks the same). Changing a budget is for the office above: the Safe for a top budget, " +
+        "`authorised(parent)` for a child, never its own hat. People are swapped in and out by Hats: the hat's admin mints " +
+        "(the Board for a hat under its top hat, a department's holder for its teams), the company Safe as eligibility " +
+        "rules out. Every office hat is made with the company Safe as eligibility and toggle, mutable, never a person's " +
+        "Safe. What the department set running (offers, agreements, dated payments, teams, escrows it funded) stays its " +
+        "own: the next wearer acts on it and the last one is refused. A budget's claim escrow is taken back by whoever " +
+        "`authorised` admits at the reclaim, the money returning to the company Safe. Who-lines say 'the wearer of the " +
+        "budget's hat or of one above it', never the person who sent, offered or holds an allowance. Seats, the officer " +
+        "hats and ROLE_CONFLICT are Capxul's own guards, stated as such; they never replace the chain's check.",
+    },
+    { label: "person", text: "Authority over a budget's money follows the person who holds it, offered from it or sent from it." },
+    { label: "directors", text: "Every action on a budget is a Board proposal by a Director, as the pre-v4 who-lines say." },
+  ],
+  chosen: "hat-now",
+  why:
+    "It is the departments ruling, and it is what the v4 contracts do. Budgets asks Hats at every call " +
+    "(`authorised`: the Safe, or the hat of the budget or of any budget above it), so a holder taken out of the hat is " +
+    "refused at once and the next wearer is admitted, with no Capxul row involved. Agreements never reads Hats and " +
+    "defers to that answer, so an agreement belongs to its budget, not to whoever offered it. 'Person' would hand a " +
+    "departed holder power the chain no longer gives them (a reclaim from their own Safe), or strand the department's " +
+    "money when they leave. 'Directors' is wrong both ways: a department's or team's office acts without the Board " +
+    "(`createChildBudget`, `spend`, `schedule`, `offer`, `setAmount` on a child), and the Board cannot spend from a " +
+    "budget at all, because the Gate refuses a payout started inside a Safe transaction; the Board pays by its own " +
+    "batch. Office hats with the company Safe as eligibility and toggle outlive their holders; one whose eligibility " +
+    "is a person's Safe would leave that person able to rule wearers out after they left. The officer hats, Seats and " +
+    "ROLE_CONFLICT authorise nothing on chain: they are Capxul's guards over its own records and its product rules, " +
+    "kept as such. docs/design/authority.md sets out the model, a table of every money action and the check that " +
+    "allows it, and seventeen places the book contradicts it, each with its fix and owner.",
+  source:
+    `${AUTHORITY}; under aaron.departments and aaron.escrow-general; evidence: v4 Budgets.sol:373 (authorised), :442 ` +
+    "(_requireManager), :146, :179; Agreements.sol:279; InstallerMoney.sol:132; spec/budgets.md, spec/board.md",
+  affects: [
+    f.concept_budgets, f.concept_payments, f.concept_payroll, f.concept_board, f.concept_organizations,
+    f.concept_agents, f.concept_banking, f.concept_requests, f.concept_notices,
+    x.contract_budgets, x.contract_agreements, x.contract_hats, x.contract_escrow,
+  ],
+});

@@ -1117,10 +1117,18 @@ export const decision_organizations_commands = defineDecision({
     {
       label: "apps-and-head",
       text:
-        "Recommended. `org app list`; `org app add <app>` and `org app remove <app>` (a Director or the FDE); `org head " +
-        "connect <site-url> --host frappe-cloud|self-hosted` (a Director, with the head user's API key read from a prompt " +
-        "or a file, never a flag), `org head show` (any member: status, versions, each app's sync position) and `org head " +
-        "disconnect` (a Director). Each is one rpc in organizations, booked with worlds and claims when accepted.",
+        "Recommended: exactly the 8 commands of docs/design/new-commands.md (section 5.4), in its one grammar, each one " +
+        "SDK method under `client.org(orgId)` and one rpc in organizations (`organizations.<area>.<verb>`): `org app list` " +
+        "(any member, read); `org app add <app>` and `org app remove <app>` (a Director, or the Organization's own agent, " +
+        "its FDE; write; a fundamental app is never removed); `org head connect <site-url> --host frappe-cloud|self-hosted` " +
+        "(a Director; vendor: a flow reads the head user's API key, and on Frappe Cloud the team's token, from a prompt " +
+        "or a file, never a flag, previews what is shared, and follows the check to connected or failing), `org head " +
+        "show` (any member, read: status, versions, time zone, issue, each app's sync position) and `org head disconnect` " +
+        "(a Director, write, after a preview); and, for the hosted FDE (aaron.fde-hosted), `org fde show` (any member, " +
+        "read: its state on the host, its hats, the day its hosting is paid through and FDE_HOSTING_PRICE) and `org fde " +
+        "ask <message>` (a Director, vendor: a flow sends the message to the host and prints the FDE's reply when its turn " +
+        "ends). Paying for the hosting, `org fde pay`, is organizations.buy-seats', since payments books it as it books " +
+        "`org seats buy`.",
     },
     { label: "apps-only", text: "Viable. Only the app commands now; connecting a head waits for its own pack." },
     { label: "fde-only", text: "Weak. No commands: the FDE adds apps and connects heads through a conversation surface of its own." },
@@ -1131,7 +1139,12 @@ export const decision_organizations_commands = defineDecision({
     "CLI as everyone (aaron.fde-agent), so whatever it may do must be a command; an FDE-only surface would put an " +
     "unchecked path beside the CLI. Connecting a head hands the Organization's records to an outside system, so it is a " +
     "Director's step, not the FDE's: the FDE prepares it and a Director runs it. Adding an app is reversible and moves no " +
-    "money, so the FDE may do it. Buying seats (aaron.buy-seats) is its own pack, organizations.buy-seats.",
+    "money, so the FDE may do it; any other member may not, because a connected head's host is then asked to install " +
+    "it (agents.fde-authority's 'any member may add an app' follows this). aaron.fde-hosted adds two commands no pack " +
+    "listed: the FDE runs on Capxul's host, not beside the founder's CLI, so the Organization needs `org fde show` to " +
+    "see it and `org fde ask` to talk to it through Capxul's own sign-in. Asking is a Director's, because the FDE acts " +
+    "with the hats the Board granted it and whoever instructs it borrows them; for Aaron: or any member, with the FDE " +
+    "acting only within the asker's hats. Buying seats and paying the hosting are organizations.buy-seats'.",
   source: FRAPPE_RULINGS,
   affects: [table_org_apps, table_org_heads, machine_org_app, machine_org_head, event_org_head_transitioned, system_capxul],
 });
@@ -1163,7 +1176,7 @@ const asmBy = (evidence: string) => `${ASSEMBLY}; evidence: ${evidence}`;
 
 export const decision_organizations_buy_seats = defineDecision({
   id: "organizations.buy-seats",
-  title: "Decision pack: a company buys seats from a budget; payments pays and counts them",
+  title: "Decision pack: a company buys seats and its FDE's hosting from a budget",
   question:
     "aaron.buy-seats: a company may buy more seats itself, paid in stablecoins from the company Safe; a Capxul operator " +
     "may still raise the limit; the price is Aaron's to set. What is the command, who may run it, how is it paid, and " +
@@ -1172,19 +1185,21 @@ export const decision_organizations_buy_seats = defineDecision({
     {
       label: "payments-command",
       text:
-        "Recommended. `org seats buy <n> --from <budget>`, and `org seats` to read the limit, what counts against it, " +
-        "the seats bought and the price. A person whose Safe wears the People hat (the hat that invites, so the one who " +
-        "meets the limit) pays from a budget they hold: the company Safe's money under the authority the Board gave that " +
-        "budget, checked by the chain. Payments books `org seats buy`, because organizations sits below payments: it " +
-        "births one command by `payments.prepare-command`'s rules (purpose seats, route budget, owner the Organization, " +
-        "one item to Capxul's seat Safe for n times the price, its source naming only n), and its settlement invokes " +
-        "`organizations.add-bought-seats` in the settling transaction with the command's owner as the Organization, so " +
-        "the limit rises exactly when the payment settles and only for the company that paid; its reversal on a reorg " +
-        "invokes `organizations.return-bought-seats`. `org seats` reads only organizations' rows and the price, so it is " +
-        "organizations' own. The price is the deployment " +
-        "setting SEAT_PRICE, the price of one seat in each stablecoin the deployment sells seats in, with Capxul's " +
-        "receiving Safe beside it; while it is unset for the budget's token, buying is FEATURE_NOT_AVAILABLE. A bought seat " +
-        "is kept for good.",
+        "Recommended: exactly the 3 commands of docs/design/new-commands.md (section 5.5), in its one grammar: `org seats " +
+        "show` (organizations', any member, read: the limit, what counts against it, the seats bought and SEAT_PRICE); " +
+        "`org seats buy <n> --from <budget>` (payments', chain-submit: a person whose Safe wears the People hat, the hat " +
+        "that invites and so meets the limit, and whom Budgets.authorised admits on the budget, its department's hat or " +
+        "an ancestor's, as the chain reads it; never an agent); and, for the hosted FDE (aaron.fde-hosted), `org fde pay " +
+        "[<months>] --from <budget>` (payments', chain-submit: a person Budgets.authorised admits on the budget; never " +
+        "an agent). Payments books both buys, because organizations sits below payments: each births one command by " +
+        "`payments.prepare-command`'s rules (route budget, owner the Organization, one item to Capxul's receiving Safe for " +
+        "n seats or months times the price, its source naming only the count), and its settlement invokes an " +
+        "organizations door in the settling transaction with the command's owner as the Organization: " +
+        "`organizations.add-bought-seats` raises the limit, and the hosting door moves the FDE's paid-through day on by " +
+        "the months; each reversal on a reorg invokes its return door. So what was bought counts exactly when the " +
+        "payment settles and only for the company that paid. The prices are the deployment settings SEAT_PRICE (10 USDC " +
+        "a seat, paid once; a bought seat is kept for good) and FDE_HOSTING_PRICE (20 USDC a month) on the test USDC " +
+        "(aaron.test-prices); a price unset for the budget's token is FEATURE_NOT_AVAILABLE.",
     },
     {
       label: "board-batch",
@@ -1202,12 +1217,15 @@ export const decision_organizations_buy_seats = defineDecision({
   ],
   chosen: "payments-command",
   why:
-    "For Aaron: the price (SEAT_PRICE is his to set; this design chooses no number, and buying stays off until he sets " +
-    "it), whether a seat is bought once or by the month, the commands' names, and who may buy (the People hat from a " +
-    "budget, or a Director by Board batch). It is a decision pack under rules.new-operations: `org.seats.buy` (payments') " +
-    "and `org.seats` (organizations') cite aaron.buy-seats and are booked on this recommendation, which stands until " +
-    "he answers, in the commands pass, with claims and worlds; organizations has booked the purchases and their two " +
-    "doors. Organizations cannot birth the payment: " +
+    "For Aaron: who may buy (the People hat with the budget's own authority, or a Director by Board batch) and the " +
+    "commands' names; the prices are set (aaron.test-prices: a seat 10 USDC once, the hosted FDE 20 USDC a month). It is " +
+    "a decision pack under rules.new-operations: `org.seats.buy` and `org.fde.pay` (payments') and `org.seats.show` " +
+    "(organizations') cite aaron.buy-seats, aaron.fde-hosted and aaron.test-prices and are booked on this " +
+    "recommendation, which stands until he answers, in the commands pass, with claims and worlds; organizations has " +
+    "booked the purchases and their two doors. The FDE's hosting is paid on the same route because aaron.fde-hosted " +
+    "makes it a second thing an Organization buys from Capxul, from a budget, in a stablecoin, counted when it " +
+    "settles; by the month, in advance, so an unpaid month pauses the FDE without lowering anything already counted. " +
+    "Organizations cannot birth the payment: " +
     "`payments.prepare-command` is a door of a concept above it, and depending on payments would be a cycle. For the " +
     "same reason the limit can follow the payment only through a door payments invokes. Counting the seats in the " +
     "settlement's own transaction keeps payments' one settlement path (payments.one-settlement-path), which the " +

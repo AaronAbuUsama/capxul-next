@@ -800,7 +800,7 @@ export const decision_contacts_crm_permission = defineDecision({
 
 export const decision_contacts_crm_capabilities = defineDecision({
   id: "contacts.crm-capabilities",
-  title: "The CRM's new capabilities are SDK methods; their CLI commands wait",
+  title: "The CRM's new capabilities get their CLI commands now, in one grammar",
   question:
     "Recording a person or company, and capturing, moving and converting leads and deals, are new capabilities: none is " +
     "among the 215 frozen operations. Rule rules.new-operations now books a new operation for an Aaron ruling, with a " +
@@ -819,20 +819,33 @@ export const decision_contacts_crm_capabilities = defineDecision({
         "SDK method already booked. Projects follows the same shape: its rpcs and SDK methods first, then its pack's " +
         "commands.",
     },
-    { label: "cli-now", text: "Book the CLI operations in this pass, under rules.new-operations, before Aaron answers the pack." },
+    {
+      label: "cli-now",
+      text:
+        "Recommended: book now, under rules.new-operations, exactly the 14 commands of docs/design/new-commands.md " +
+        "(section 5.2), in its one grammar, each calling one SDK method that keeps its other surfaces and adds `cli`: " +
+        "`contact create <label> --type person|company`, `contact change <contact>` and `contact link <contact> " +
+        "<locator>` (the caller's own book, or with `--org` the Organization's; three flows " +
+        "`client.account.addressBook.create|change|link` over `contacts.book.record`, which records, changes and links; " +
+        "`link` previews and asks, since it chooses where money paid to the entry goes); `org crm lead " +
+        "create|change|move|convert|list|get` (`client.org(orgId).crm.leads.*`; create and change are two flows over " +
+        "`contacts.leads.save`); and `org crm deal create|change|move|list|get` (`client.org(orgId).crm.deals.*`; create " +
+        "and change over `contacts.deals.save`). Who (contacts.crm-permission): every member reads the CRM; only a member " +
+        "whose Safe wears the People hat records, changes, moves or converts, the FDE once granted it; a person's own " +
+        "book is theirs. Reads are `read`, the rest `write`, all `normal`.",
+    },
     { label: "head-only", text: "No CRM capabilities in Capxul: leads and deals are worked only in a connected Frappe head." },
   ],
-  chosen: "sdk-now-cli-later",
+  chosen: "cli-now",
   why:
-    "This is for Aaron: which CLI commands the CRM gets, and their names (aaron.crm-frappe-shape, aaron.frappe-shape). " +
-    "The data and the rules are booked either way, so the choice changes only the surface. Rules.new-operations now lets a " +
-    "new operation be booked for a ruling, so what waits is only the pack's answer, not a rule. Head-only would leave an " +
-    "Organization without a head with no leads or deals, against the CRM being complete without one. SDK methods let the " +
-    "Forward Deployed Engineer, which acts through the same SDK as every agent, set up and work the CRM from the first " +
-    "day. Reconciled with projects in the identity assembly: projects booked only its decision pack (projects.commands), " +
-    "no rpcs; the one approach for every fundamental app's new capability is rpcs and SDK-surface flows first (the " +
-    "capability exists and syncs), then the commands its pack names, booked in the CLI operations pass, each flow " +
-    "gaining `cli` when its operation is booked.",
+    "Aaron asked on 8 November 2026 for the new commands to be designed in the book; booked under rules.new-operations " +
+    "on this recommendation, which stands until he answers. The capability serves aaron.crm-frappe-shape and " +
+    "aaron.frappe-shape: an Organization with no head works its CRM through these commands, and the FDE through the " +
+    "same CLI (aaron.fde-agent). The rpcs and flows were booked SDK-first (sdk-now-cli-later); the commands now follow " +
+    "the one grammar every new command keeps (docs/design/new-commands.md): `org` for what only an Organization has, " +
+    "`create` for a document with a lifecycle (a lead, a deal, a new book entry; `add` keeps `contact add`'s meaning), " +
+    "`change` for fields, `get` for one record, and one SDK method per command, so an rpc that both creates and " +
+    "changes is two commands. Head-only would leave an Organization without a head with no leads or deals.",
   source: crmBy("tools/check-frozen.ts ('a target operation that is none of the 215'); books/target/shared/rulings.ts (aaron.frappe-shape, aaron.fde-agent, aaron.projects)"),
   affects: [...CRM_RPCS, ...CRM_FLOWS, concept_contacts],
 });
