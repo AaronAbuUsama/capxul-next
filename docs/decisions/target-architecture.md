@@ -1,6 +1,6 @@
 # Target architecture
 
-Status: **decided by Claude, 7 and 8 November 2026, for Aaron's review** (W1: Aaron reviews the
+Status: **decided by Claude, 7 and 8 November 2026 (brought up to date with the concept designs at assembly), for Aaron's review** (W1: Aaron reviews the
 data model and boundaries per concept). It rests on the accepted decisions A1 to A4 and P1 to P10
 ([README](README.md), [policy pack](policy-pack.md)). Every judgment below is a typed decision
 record in [`books/target/shared/decisions.ts`](../../books/target/shared/decisions.ts), linked to
@@ -13,8 +13,8 @@ The records it explains:
 |---|---|
 | `books/target/shared/foundation.ts` | the system and its actors, 10 components, 22 concepts, 2 environments, `OPERATION_OWNERS` (the concept that designs each of the 215 frozen operations) and `AREA_CONCEPTS` |
 | `books/target/shared/vocabulary.ts` | the 47 error codes the target answers with (no events: each concept defines its machines' events) |
-| `books/target/shared/external.ts` | 11 integrations as Effect services, and 24 contracts: Protocol v4 and the third-party contracts its install wires |
-| `books/target/shared/decisions.ts` | 125 decision records, one per judgment, 22 of them one per concept's dependencies |
+| `books/target/shared/external.ts` | 11 integrations as Effect services, and 25 contracts: Protocol v4 and the third-party contracts its install wires |
+| `books/target/shared/decisions.ts` | 136 decision records, one per judgment, 22 of them one per concept's dependencies |
 | `books/target/shared/landings.ts` | `OLD_AREAS`: each of the old concepts' 93 areas, where it lands and the decision that put it there |
 | `books/target/CONVENTIONS.md` | the folders, names and target rules every concept designer follows |
 
@@ -111,7 +111,7 @@ dependency always points from the concept that reacts to the concept that change
 
 | # | Target concept | Owns | Absorbs (old concepts) | Depends on | Ops |
 |---|---|---|---|---|---|
-| 1 | **access** | Principals (a person by email, an agent by its Safe), sessions, sign-in codes and agent key challenges, the CLI's client grants, MCP OAuth grants, feature gates; the commands that touch only this machine | access | nothing | 10 |
+| 1 | **access** | Principals (a person by email, an agent by its Safe), sessions, sign-in codes and agent key challenges, MCP OAuth grants (assistant grants), feature gates; the commands that touch only this machine | access | nothing | 10 |
 | 2 | **media** | Stored files (logos, photos, identity documents) and the rules that admit them | media | access | 0 |
 | 3 | **parties** | The directory: one Party per person, agent, Organization or outside address, with its handle, Safe and owner; profiles; destinations; recipient resolution. Procedure `parties.register` | parties, profiles | access, media | 0 |
 | 4 | **indexing** | Ponder's tables as Safe-scoped views: every chain fact the product reads. No workflow | indexing, permissions | parties | 0 |
@@ -128,7 +128,7 @@ dependency always points from the concept that reacts to the concept that change
 | 15 | **payroll** | v4 Agreements: salaries, streams and retainers from a budget | payroll | access, parties, indexing, approvals, organizations, board, budgets, documents | 11 |
 | 16 | **banking** | Bridge: KYC and KYB, bank details, deposits, saved bank accounts, payouts, the webhook inbox, the `invite accept` and `contact get` flows. Procedure `banking.match-deposit` | banking, parties | access, media, parties, indexing, approvals, organizations, budgets, books, contacts, payments | 12 |
 | 17 | **requests** | Requests and invoices, the payer's inbox, fixed-price services, link checkout, deposit matching | requests | access, parties, indexing, approvals, organizations, budgets, documents, payments, banking | 14 |
-| 18 | **applications** | Bootstrap, the deployment's health, registered applications, keys and origins, consent, quickstart keys | applications, operator | access, indexing, organizations | 6 |
+| 18 | **applications** | Bootstrap and its origin token, the deployment's health, registered applications, keys and origins, quickstart keys | applications, operator | access, indexing, organizations | 6 |
 | 19 | **equity** | Share classes, cap table, vesting, options, rounds and SAFEs, exits, shareholder votes (low priority) | organizations | access, parties, indexing, approvals, accounts, organizations, board, documents | 38 |
 | 20 | **activity** | The money read model for whoever you act as: the feed, balances, `address` | accounts, activity, organizations | access, parties, indexing, organizations, budgets, books, documents, payments | 6 |
 | 21 | **notices** | Every email after a change, one workflow per notice kind, with delivery records; no frozen operation | operator, payments | access, parties, accounts, organizations, board, budgets, payments, payroll, banking, requests, equity | 0 |
@@ -254,29 +254,34 @@ hold to, and why:
 - **Budgets:** the class defaults of `packages/book/src/budgets.ts`, with a one-line `why` on any
   override (P5).
 - **Tenancy:** every tenant table leads its key and every index with its tenant column; no tenancy
-  by join; chain tables are Ponder's, read through parties' directory of Safes (P8,
-  `concepts.parties-scope`).
+  by join; a `global` table has no tenant, holds nothing private and is written only through its
+  own concept (`rules.global-tenancy`); chain tables are Ponder's, read through parties' directory
+  of Safes (P8, `concepts.parties-scope`).
 - **Acceptance:** each frozen line becomes `{claim, observes, was}`, rewritten only where it names
   a mechanism no black box sees (P1).
 - **Time:** an rpc is one transaction; each long-lived object is one durable process that owns its
-  machine (A3). The list is `rules.durable-processes`: an approval, a payment command, a dated
-  payment, a Board proposal, an Organization's setup, a personal Safe's setup, an agreement, a
-  request, an invitation, a bank payout, a verification, an agent change and a round. Only P3's
-  crons survive.
+  machine (A3). The list is `rules.durable-processes`: an approval, a Payment (one process for its
+  command and its date), a Board proposal, an Organization's setup, a personal Safe's setup, an
+  agreement, a request, an invitation, a bank payout, a verification, an agent change and a round,
+  and the objects designers added (an assistant grant, an identity document, a budget change, an
+  equity install, grant, sale and vote). The runtime wakes a waiting process by the key its event
+  carries (`rules.process-wakeups`). Only P3's crons survive.
 - **Writes across concepts:** a procedure only for one money fact (`rules.procedures`): eight are
   named, plus one authority fact, `accounts.admit` (`procedures.accounts-admit`). Everything else
   that follows another concept's change is a workflow in the reacting concept, triggered by the
-  other's transition.
+  other's transition. `sys:tx-width` counts what one run of an rpc invokes itself; a wider one
+  needs a decision (`rules.transaction-width`).
 - **No unreached rpc** (P2), and **one SDK flow per multi-step operation, the CLI calling one SDK
   method** (A4).
 - **Shared records:** every error code is in `vocabulary.ts`; every outside call and contract
-  function is in `external.ts`.
+  function is in `external.ts`. A "no" to a terminal preview is CANCELLED everywhere
+  (`vocabulary.declined-preview-cancelled`).
 
 ## Integrations and contracts
 
 | Integration | Effect service | Host | Calls (timeout per attempt, retries) |
 |---|---|---|---|
-| Bridge: verification, bank details, deposits and payouts (`bridge`) | `Bridge` | backend | submitVerification (10 s, 2), getVerification (10 s, 2), openBankDetails (10 s, 2), setDepositToken (10 s, 2), addBankAccount (10 s, 2), removeBankAccount (10 s, 2), quotePayout (10 s, 2), listEvents (10 s, 2) |
+| Bridge: verification, bank details, deposits and payouts (`bridge`) | `Bridge` | backend | submitVerification (10 s, 2), getVerification (10 s, 2), openBankDetails (10 s, 2), readBankDetails (10 s, 2), setDepositToken (10 s, 2), addBankAccount (10 s, 2), quotePayout (10 s, 2), listEvents (10 s, 2) |
 | Bundler and paymaster: sponsor, send, follow (`bundler`) | `Bundler` | backend | sponsor (4 s, 1), send (5 s, 0), lookup (2 s, 2) |
 | Chain JSON-RPC: Base nodes (`chain-rpc`) | `ChainRpc` | backend | readContract (1.5 s, 2), getCode (1.5 s, 2), getBlock (1.5 s, 2), getTransactionReceipt (1.5 s, 2), getLogs (5 s, 2) |
 | Chainlink price feeds (`chainlink`) | `Prices` | backend | usdRate (1.5 s, 2) |
@@ -295,7 +300,7 @@ the old 30 s per attempt is gone (`integrations.timeouts`). A call that moves mo
 Ponder's progress is a call (`integrations.indexer`). PostHog is reached only through the
 connector gateway, and nothing waits on it (`integrations.posthog`).
 
-Contracts (P9: v4 only, devnet addresses until staging's fresh deployment): `agent-owner`, `agreements`, `budgets`, `captable`, `companies-house-claimer`, `company-safe-minter`, `entry-point`, `erc20`, `escrow`, `escrow-factory`, `exits`, `governor`, `hats`, `hats-signer-gate`, `installer`, `multi-send-call-only`, `options`, `payments`, `roles`, `rounds`, `safe`, `safe-4337-module`, `share-class`, `vesting`. Each
+Contracts (P9: v4 only, devnet addresses until staging's fresh deployment): `agent-owner`, `agreements`, `budgets`, `captable`, `companies-house-claimer`, `company-safe-minter`, `entry-point`, `erc20`, `escrow`, `escrow-factory`, `exits`, `governor`, `hats`, `hats-elections`, `hats-signer-gate`, `installer`, `multi-send-call-only`, `options`, `payments`, `roles`, `rounds`, `safe`, `safe-4337-module`, `share-class`, `vesting`. Each
 records the functions the frozen designed text calls or reads and the events a concept must follow
 (`contracts.functions`).
 
@@ -322,6 +327,42 @@ a new allowance again), banking books `contact get`, devnet books `dev mail noti
 banking may now call approvals' and budgets' rpcs, and approvals' process answers a budget revert
 with the budget codes.
 
+## What the assembly changed in the shared records (8 November 2026)
+
+When the 22 concept designs were assembled, their designers had listed what they needed from the
+shared records, or where the shared records no longer said what their designs do
+([assembly-items.md](assembly-items.md)). Each change is a decision record:
+
+| Change | Why | Record |
+|---|---|---|
+| Access no longer names the device flow's client grants; applications owns no consent; the backend has no JWKS route; MCP_EXCHANGE_SECRET leaves both environments | Access dropped the device flow and applications the consent table (P2); tokens are found by their hash in the request's transaction | `concepts.no-device-flow-or-consent` |
+| The list of long-lived objects matches the designs: one process per Payment, plus an assistant grant, an identity document, a budget change and equity's install, grant, sale and vote | The designers added or merged objects under their own decisions | `rules.durable-processes` (rewritten in place) |
+| `sys:tx-width` counts what one run of an rpc invokes itself (its widest branch); a door's nested invocations count against the door | An invoker cannot change what a door does; counting it would split money facts | `rules.transaction-width` |
+| The runtime wakes a waiting process by the key its event carries (opener and subject; chain, sender, nonce) | Approvals, payments, budgets, payroll and equity wait on other concepts' events; the A2 spike must prove the delivery | `rules.process-wakeups` |
+| A `global` table is written only through its own concept, not only by "the system" | Parties' directory is global and written at a person's request; its tenancy stays flagged for Aaron | `rules.global-tenancy` |
+| A "no" to a terminal preview is CANCELLED (exit 130) in every command | The frozen book is silent; the old CLI said CLI_USAGE (exit 2); contacts chose CANCELLED and asked for one rule | `vocabulary.declined-preview-cancelled` |
+| chain-rpc serves every read of the chain as it is now, not only reads before a write | Notices reads Directors and live figures when it sends; shows read live views | `integrations.chain-rpc-live-reads` |
+| Bridge gains `readBankDetails`; no payout cancel; `removeBankAccount` goes | `bank settle` keeps its frozen lines (read before the write, nothing written on an unusable answer); the old client never removed an account at Bridge | `integrations.bridge-bank-details-read` |
+| Hats gains `viewHat` (not `getNextId`, which v4 does not call) | Budgets plans a new hat's id from the chain head | `contracts.hats-view-hat` |
+| Hats Elections and the Installer's `deployElections` and `buildElections` are recorded | The designed `board-settings`, `elect` and `remove` votes call them through the Governor | `contracts.hats-elections` |
+| Twelve equity events are recorded (OptionsAccepted, the SAFE and priced-round events, RoundCancelled, SaleApproved, TransferOffered, TransferApproved, Vesting's Granted and Revoked) | Equity's processes follow them | `contracts.equity-events` |
+| No checkpoint reads for `org cap-table --at` | The designed call says `--at` is not built yet; ERC20Votes checkpoints votes, not holdings | `contracts.no-checkpoint-reads` |
+
+Two designers also edited `external.ts` themselves, under their own decisions: devnet gave the
+`devnet-control` calls the refusals the frozen pages name (`snapshotSave` WRONG_STATE for a taken
+name and INVALID_INPUT for a bad one, `snapshotRestore` WRONG_STATE for a world saved with other
+backend code, `clockStartAt` INVALID_INPUT for a date not earlier and WRONG_STATE once the clocks
+moved) and had the Chainlink fake answer the frozen default rates (`devnet.control-refusals`,
+`devnet.scripted-prices`); equity added 14 view and call functions to its contracts
+(`equity.contract-functions`). Smaller alignments: the Bridge fake says the sandbox sends a
+sandbox deposit's test tokens itself (`banking.sandbox-deposits`), the QuickBooks export's landing
+says the CLI writes the files (`books.export-files-by-cli`), and the backend's about names the
+bootstrap's origin token (`applications.origin-token`).
+
+Declined: Bridge's `cancelPayout` (no frozen line needs it; a changed account withdraws the
+unsigned approval), Hats' `getNextId` (not in v4's IHats, and it closes no race `viewHat` leaves
+open), and Escrow's `InvoicePaymentCompleted` (nothing reads the surplus it reports).
+
 ## For Aaron
 
 The records settle everything under the accepted decisions. Three judgments go furthest beyond
@@ -338,6 +379,11 @@ them and are the ones to look at first:
 3. **`operations.invite-accept-in-banking`.** `invite accept` routes a business verification
    invitation (`inv_kyb_`) to banking and every other one to organizations, so its one flow sits in
    banking. The Organization invitation's rpcs and state stay organizations'.
+
+Two readings from the assembly are worth a glance too: `vocabulary.declined-preview-cancelled`
+(a "no" at a terminal preview now exits 130 with CANCELLED, where the old CLI exited 2), and
+`rules.transaction-width` (a door's nested procedures do not count against its invoker, so only
+payments' prepare and propose are wider than the rule, under `payments.birth-width`).
 
 ## Every judgment
 
@@ -372,7 +418,7 @@ concept follow in the next section.
 
 ### Concepts: merges, splits, renames
 
-- **Access keeps sign-in and sessions and moves to the bottom** (`concepts.access`). *Chosen:* Principals, sessions, sign-in, client grants and gates; the waitlist, referrals, consent and the indexer scope leave it. *Why:* Every concept asks access who is calling, so it must depend on nothing. The old imports were for what moves out: the indexer read scope needed the person's and Organization's Safes (now row-level security), the waitlist's earned invites needed live Safes (now accounts, from the chain), and consent needed applications (now applications'). An agent signs in by key; that is proved on chain (`AgentOwner.agentOf` and the Safe's owners through chain-rpc), so access needs no agents table. Feature gates stay: 39 frozen refusals in 30 operations of six areas name FEATURE_NOT_AVAILABLE, so they sit below everything; a gate for an Organization keys on its id as a value. The commands that sign in and then report the account's setup are accounts' flows (operations.sign-in-in-accounts). *Not chosen:* *as-is*: Keep access as it was, importing accounts, applications, organizations, parties and profiles.
+- **Access keeps sign-in and sessions and moves to the bottom** (`concepts.access`). *Chosen:* Principals, sessions, sign-in, assistant grants and gates; the waitlist, referrals, consent and the indexer scope leave it. *Why:* Every concept asks access who is calling, so it must depend on nothing. The old imports were for what moves out: the indexer read scope needed the person's and Organization's Safes (now row-level security), the waitlist's earned invites needed live Safes (now accounts, from the chain), and consent needed applications (now applications'). An agent signs in by key; that is proved on chain (`AgentOwner.agentOf` and the Safe's owners through chain-rpc), so access needs no agents table. Feature gates stay: 39 frozen refusals in 30 operations of six areas name FEATURE_NOT_AVAILABLE, so they sit below everything; a gate for an Organization keys on its id as a value. The commands that sign in and then report the account's setup are accounts' flows (operations.sign-in-in-accounts). The device flow's native client grants are not ported (concepts.no-device-flow-or-consent). *Not chosen:* *as-is*: Keep access as it was, importing accounts, applications, organizations, parties and profiles.
 
 - **Accounts keeps the personal Safe and gains admission** (`concepts.accounts`). *Chosen:* Accounts owns admission (waitlist, referrals), the personal Safe's setup and test-network grants. *Why:* A referrer earns an invite when the person they referred gets a live Safe, so referrals need Safe claims: in access that would put access above accounts and break the bottom. Counting claims from the chain (CapxulSafeClaimed) lets accounts own both without a loop. Admission and the Safe's setup are one journey (join, be admitted, set up your Safe), so a separate concept would be a boundary inside one flow. Approvals, agents and balance reads leave for their own concepts. *Not chosen:* *admission-concept*: A separate admission concept for the waitlist and referrals. *access*: Keep the waitlist and referrals in access.
 
@@ -380,7 +426,7 @@ concept follow in the next section.
 
 - **New concept: agents, split from accounts** (`concepts.agents`). *Chosen:* Agents is its own concept above the Board, because an Organization can own an agent. *Why:* With `--org` a Director makes the Organization the agent's owner, and every later change is then a Board proposal, so agents must depend on board. Accounts must sit below organizations (a founder must be admitted and set up first). Both cannot hold in one concept. AgentOwner is also its own v4 contract with its own lifecycle. *Not chosen:* *keep*: Keep agents in accounts.
 
-- **Applications stays separate, above organizations, with consent and health** (`concepts.applications`). *Chosen:* Applications above organizations, owning apps, keys, origins, bootstrap, consent, quickstart keys and health. *Why:* An Organization's publishable key needs the Invoicing hat ('For an Organization, a member who holds issue invoices'), so applications must sit above organizations; access must sit below everything. Merging them would make a loop. Consent is a person's grant to an application, so it is the application's record. `doctor --online` checks the deployment and the app key, which is what bootstrap already describes, so health lives here. *Not chosen:* *merge-access*: Merge applications into access.
+- **Applications stays separate, above organizations, with health** (`concepts.applications`). *Chosen:* Applications above organizations, owning apps, keys, origins, bootstrap, quickstart keys and health; no consent table. *Why:* An Organization's publishable key needs the Invoicing hat ('For an Organization, a member who holds issue invoices'), so applications must sit above organizations; access must sit below everything. Merging them would make a loop. A person's consent to an application would be the application's record, but nothing in the target writes one: its only writer was the device flow (concepts.no-device-flow-or-consent). `doctor --online` checks the deployment and the app key, which is what bootstrap already describes, so health lives here. *Not chosen:* *merge-access*: Merge applications into access.
 
 - **New concept: approvals, every UserOperation from a person's own Safe** (`concepts.approvals`). *Chosen:* One low concept owns every approval and its one send, opened by the concept that prepares it. *Why:* v4 D1 makes every action a UserOperation from a personal Safe: payments, hat grants, Board approvals, agent changes, budget spends, agreements, equity. The old system spread this over payments' `moneyExecutions` (read at 19 sites by its neighbours), accounts' approvals and lanes, and borrowed executions, and that sharing was one of the import loops. One concept gives one approval page, one `dev approve`, one sponsorship and send path that keeps K4 (one send per signed operation) and K6 (only chain proof ends an attempt), and one place for `bud:` on chain-submit. It is 'approvals' because that is the product's word: 'opens your approval in the browser'. *Not chosen:* *per-concept*: Each concept keeps its own executions (payments, permissions, accounts, organizations), as the old code did. *platform*: A shared library outside the book, with each concept owning its rows.
 
@@ -411,6 +457,8 @@ concept follow in the next section.
 - **22 target concepts in one dependency order** (`concepts.map`). *Chosen:* 22 concepts in this order: access, media, parties, indexing, approvals, accounts, organizations, board, agents, budgets, books, documents, contacts, payments, payroll, banking, requests, applications, equity, activity, notices, devnet. *Why:* 15 of the 17 old concepts formed one import loop, and the loop ran through real responsibilities in the wrong place: permissions inside organizations' authority, executions inside payments, Directors inside organizations, waitlist credit inside access. v4 itself splits them: Budgets, Agreements, Hats and the Signer Gate, AgentOwner and the equity clones are separate contracts with separate authority. Each target concept owns one of those nouns, and its dependencies point only at concepts it must read or invoke. Merging into fewer concepts would break the line budgets (`sys:loc`) and hide ownership (P4 option C's objection). The new ones are small and each has a decision below. *Not chosen:* *keep-17*: Keep the 17 old concepts and cut the loop by moving imports. *fewer*: Merge into about 8 large concepts (identity, organizations, money, books, equity, devnet...).
 
 - **Media stays, and owners point at files** (`concepts.media`). *Chosen:* Keep media as the file store at the bottom; logos, photos and verification documents point at media's files. *Why:* Three concepts use files (parties' photos, organizations' logos, banking's identity documents), so a file store under all of them is simpler than three copies. The old media imported organizations, permissions and profiles to bind an image to its owner; inverting the link removes all three edges. *Not chosen:* *merge*: Merge media into parties (photos) and organizations (logos).
+
+- **Access keeps assistant grants only; applications keeps no consent** (`concepts.no-device-flow-or-consent`). *Chosen:* Align them: access owns sessions, sign-in, assistant grants and gates; applications owns no consent; the backend serves no JWKS and admits a browser origin by the bootstrap's origin token; MCP_EXCHANGE_SECRET leaves both environments. *Why:* The shared records are what every designer reads first, and a map that names records no concept builds misleads them. Both drops follow P2: no client starts a device request (the CLI keeps its v1 grant records only to delete them), and the consent table's one writer was the device flow's accept. Access finds an opaque session or assistant token by its hash in the request's own transaction (access.sessions, access.assistants), so nothing needs a JWKS, and the MCP server passes the person's token through the Core SDK with no exchange. The daily client-grant sweep P3 keeps is access' daily sweep of sessions, codes and ended assistant grants. The origin token is applications.origin-token's. *Not chosen:* *keep*: Keep the shared wording and let the concept decisions override it.
 
 - **New concept: notices, every email after a change** (`concepts.notices`). *Chosen:* One notices concept at the top: one workflow per notice kind, triggered by the source concept's transition. *Why:* P3 makes each notification an after-commit workflow fed by the outbox, one per notice kind. Putting them in one concept gives one place for templates, recipients and delivery records (which `dev mail notices` reads), and keeps every money concept free of mail. It sits at the top because it reads the facts of the concepts it tells about. The sign-in code stays in access: sending it is the operation itself, not a notice after one. *Not chosen:* *each-concept*: Each concept sends its own email from an outbox workflow.
 
@@ -500,15 +548,23 @@ concept follow in the next section.
 
 ### Rules every concept designer follows
 
-- **Which objects are long-lived and get one durable process each** (`rules.durable-processes`). *Chosen:* An approval, a payment command, a dated payment, a Board proposal, an Organization's setup, a personal Safe's setup, an agreement, a request, an invitation, a bank payout, a verification, an agent change, and a round (equity). *Why:* Each waits on something outside a request (a signature, the chain, a date, a person, Bridge) and must survive a crash: P3's test holds for each, and A3 says the process owns its machine. Short-lived rows (a contact, a book account, an annotation) change only inside rpcs and have no process. The concept designer may add objects, never drop one of these without a decision. *Not chosen:* *workflows-only*: Only what P3's three-part test calls a workflow, with no instance per object.
+- **Which objects are long-lived and get one durable process each** (`rules.durable-processes`). *Chosen:* An approval, a Payment (one process for its command and its date: payments.one-process-per-payment), a Board proposal, an Organization's setup, a personal Safe's setup, an agreement, a request, an invitation, a bank payout, a verification, an agent change and a round (equity). Added by their designers: an assistant grant (access.assistant-grant-process), an identity document (media.document-process), a budget change (budgets.one-process-per-change), and an equity install, grant, sale and vote (equity.processes). *Why:* Each waits on something outside a request (a signature, the chain, a date, a person, Bridge) and must survive a crash: P3's test holds for each, and A3 says the process owns its machine. Short-lived rows (a contact, a book account, an annotation) change only inside rpcs and have no process. The concept designer may add objects, never drop one of these without a decision. The list was brought up to date with the designs on 8 November 2026: payments folded the payment command's and the dated payment's processes into one per Payment, with its own decision, and four designers added objects that wait on a person, the chain or a date. *Not chosen:* *workflows-only*: Only what P3's three-part test calls a workflow, with no instance per object.
+
+- **A global table has no tenant and is written only through its own concept** (`rules.global-tenancy`). *Chosen:* `global`: no tenant column; every row may be read by every tenant and holds nothing private; written only by the owning concept's own procedures, rpcs and workflows, never directly by a tenant. Prices, flags and the directory of Parties. *Why:* Row-level security keeps a tenant's rows from other tenants; a global row belongs to none, so what matters is who writes it and that nothing private is in it. Every target write goes through its concept's records anyway (P4), so 'only the system' and 'only the owning concept' differ only in whether a caller's request may cause the write. The directory's tenancy stays flagged for Aaron's data-model review (W1) in parties.directory-tenancy; this record only stops the conventions contradicting it. *Not chosen:* *system-only*: Only the system writes a global table; the directory needs another tenancy.
 
 - **The outbox and the telemetry relay are runtime, not booked records** (`rules.outbox`). *Chosen:* The runtime writes each transition's event to an outbox row in its transaction; one generic relay delivers them; a reaction is a workflow triggered by the transition. *Why:* P3 and P7 make telemetry the runtime's job ('telemetry is never a workflow') and every reaction a workflow whose trigger is the transition. Booking the outbox in a concept would make every concept depend on it, and the generic relay has no domain behaviour to specify. *Not chosen:* *booked*: Book an outbox table and a relay workflow in some concept.
 
 - **A procedure only for one money fact, read narrowly** (`rules.procedures`). *Chosen:* A fact about money moved, reserved, routed or owned: a Payment and its book fact or document; a chain write and the approval or proposal that carries it; a name and the Safe it routes money to; a deposit and the request it paid; a Payment command another concept births. Everything else goes through the outbox. *Why:* The test is P4's: if the two writes disagreed at a commit, could money move, or be owned, that Capxul's records do not account for? An approval opened without its intent would let a person sign a money movement with no Payment; a proposal without its intent would execute a budget nobody recorded; a handle bound to the wrong Safe misroutes payments. A notice, a projection or telemetry can lag and be rebuilt, so it never qualifies. Each procedure's `about` names its fact, and the build's `notice-in-transaction` rule, when it lands, refuses one that is only a notice. One authority fact is admitted beside them, `accounts.admit` (procedures.accounts-admit), because neither a procedure for money nor the outbox can carry it. *Not chosen:* *payments-only*: Only payments and books writing together. *any-atomic*: Any write the caller wants atomic.
 
+- **The runtime wakes a waiting process by the key its event carries** (`rules.process-wakeups`). *Chosen:* The runtime. A transition's outbox event wakes each instance whose wait names it and whose key its props carry (the opener and subject on approval_transitioned and proposal_transitioned); an indexed chain event wakes one by the key Ponder's row carries (chain, sender, nonce; a payment id). The book names the wait and, in its about, the key. *Why:* A3 makes each long-lived object one process that owns its machine, and a wait is its own span, never system time. A reactor per event would add a workflow for every wait, and a poll spends system time and lags by its interval. Effect Workflow resumes an instance through a durable deferred it can address, so the runtime keeps the map from an event's key to that address, fed by the outbox relay and by Ponder's progress (integration indexer). The A2 spike must prove both, including a transition a procedure writes in another concept's transaction (approvals.withdraw). The schema has no field for a wait's key yet, so its about names it. *Not chosen:* *reactor*: One reacting workflow per event finds the waiting instance by a table read and signals it. *poll*: Each waiting instance polls the tables it waits on.
+
+- **sys:tx-width counts the procedures an rpc invokes itself** (`rules.transaction-width`). *Chosen:* Count what one run of the rpc or workflow invokes itself; where its branches invoke different doors (approvals.open for a person, board.propose for an Organization), its widest branch. A procedure's own invocations count against that procedure, held to the same limit. A wider transaction needs the invoking concept's decision record. *Why:* The rule bounds what one concept couples into its transaction, and an invoker cannot change what a door does inside: board.propose always opens its first approval. Counting that against every proposer (budgets, payroll, payments, agents, equity) would push each to split one money fact over two transactions, which P4 exists to prevent. The door is bounded on its own (board.propose: one procedure of one concept). An rpc's `invokes` lists every branch's doors, so agents' create and sweep list three concepts but run two (agents.transaction-width). P4 allows a wider one with a decision record: payments.birth-width is that record for payments' prepare and propose (parties, documents, and approvals or board). Equity's Board-matter prepares are within the rule. *Not chosen:* *nested*: Count every procedure the transaction runs, nested ones included.
+
 ### Error vocabulary: kept, added, dropped
 
 - **Use ADR-0039's auth and permission classes; one class per code** (`vocabulary.classes`). *Chosen:* NOT_AUTHENTICATED is auth; ROLE_PERMISSION_DENIED and BELOW_THRESHOLD are permission; by-mode codes get one class and carry the mode in details. *Why:* The book's error record has one class, and ADR-0039's classes include auth and permission, which say who acts better than `input` and `state` did. A failure mode (timeout, refused, revert) is a detail of one occurrence, not of the code, so it travels in `details.mode` and in the span's attributes (P6). *Not chosen:* *as-is*: Keep the old classes, with by-mode resolved at run time.
+
+- **Declining a terminal preview ends CANCELLED in every command** (`vocabulary.declined-preview-cancelled`). *Chosen:* A 'no' to a terminal preview ends CANCELLED (exit 130) and writes nothing, in every command; a script without `--confirm` stays CLI_USAGE, as the frozen mistakes say. *Why:* The frozen book is silent (P10 rung 5: the code is evidence), and one CLI must answer one way. A 'no' is the person's choice, not a usage mistake, and CANCELLED already says the command stopped before it finished and nothing was sent, as a declined approval ends (vocabulary.drop-signer-rejected). Scripts pass `--confirm` and never see the question, so no script's exit changes. A command whose approval page is its confirmation refuses `--confirm` and has no terminal question to decline. *Not chosen:* *per-concept*: Each concept chooses. *usage*: CLI_USAGE, as the old `confirmWrite` did.
 
 - **`doctor`'s exit 124 is the command's, not NETWORK_ERROR's** (`vocabulary.doctor-deadline-exit`). *Chosen:* NETWORK_ERROR keeps exit 5; `doctor` alone exits 124 on its own deadline, as its frozen notes and acceptance say. *Why:* The 124 is the timeout convention of one command (`timeout(1)`), written into `doctor`'s notes and an acceptance line, so it is frozen surface (P10 rung 1); every other NETWORK_ERROR exits 5 by the old exit table. Moving the code's exit would change every other command's. The applications designer books the override on the operation. *Not chosen:* *code-exit*: Change NETWORK_ERROR to 124 everywhere.
 
@@ -542,6 +598,10 @@ concept follow in the next section.
 
 ### Integrations
 
+- **Bridge gains a read of one virtual account; no payout cancel, no remove** (`integrations.bridge-bank-details-read`). *Chosen:* Add `readBankDetails` (one virtual account: status, deposit token, details), as the old client's readVirtualAccount; add no cancel; drop `removeBankAccount`. *Why:* A frozen claim is never weakened: `bank settle` #4 is an outcome a black box sees (the Bridge fake records no update when the first answer is unusable), and without a read the target can only promise less. The old settle read the account, checked it, wrote, then read it back (settle.ts:39-46); the read has the shape of getVerification and takes the same numbers and failures. A cancel is not needed: no frozen line asks for one, an unfunded transfer lapses at Bridge, and `bank pay`'s 'nothing is sent' for a changed account is kept by withdrawing the unsigned approval (banking now depends on approvals), not by a call to Bridge. `removeBankAccount` goes: the old client never deleted an external account at Bridge, and removing a saved account calls Bridge no more than it did (banking.not-ported). *Not chosen:* *read-and-cancel*: Add the read and a `cancelPayout` for an unfunded transfer. *none*: Add neither, and keep banking's rewrites.
+
+- **chain-rpc serves every read of the chain as it is now** (`integrations.chain-rpc-live-reads`). *Chosen:* Yes: any view whose answer is the chain's state now, which Ponder holds late or not at all, read when a concept needs it as of now: before a write, for a show a person waits on, or when a notice is sent. *Why:* A fact that happened is Ponder's, read through indexing's views; state as of now (a budget's left, what an agreement has released, a balance, a Safe's owners) is a view call, which is what chain-rpc answers within its node-read timeout and p95. Notices has no indexing edge and should not gain one for a recipient list (dependencies.notices-top). What stays: chain-rpc never replaces an indexed fact (a settlement, a claim) and scans history only for books' added-token window. *Not chosen:* *pre-write-only*: Keep chain-rpc to reads before a write; every other read through indexing's views.
+
 - **The indexer is a service for what depends on Ponder's progress** (`integrations.indexer`). *Chosen:* Plain indexed reads are table reads; head, awaitBlock and factsOf are calls, because Ponder may lag, reindex or be rebuilt. *Why:* A read that needs a fact Ponder has not indexed yet must wait for it or fail with a code, not answer with nothing (the old system answered 'pending' forever when the indexer was down, old R2). Making those reads calls gives them a timeout, a failure mapping and a `call.indexer.*` span (P6), so a lagging Ponder is visible in every trace that waits on it. *Not chosen:* *tables-only*: No integration: everything is a table read.
 
 - **Openfort is the person's signer in the Core SDK; agents sign locally** (`integrations.openfort`). *Chosen:* The Core SDK's Signer service: Openfort in a browser, the agent's own key or a dev signer locally; only Openfort is an integration. *Why:* A4 gives all signing to the Core SDK, and the v4 design keeps the person's key out of Capxul's hands. An agent's key is on the agent's machine (`CAPXUL_PRIVATE_KEY` or a file). Only Openfort is an outside system with failures to map. *Not chosen:* *backend-signer*: The backend signs for people with a custodial key.
@@ -558,11 +618,19 @@ concept follow in the next section.
 
 - **Addresses: the devnet deployment now, staging when it is deployed** (`contracts.addresses`). *Chosen:* The devnet deployment from the v4 address book; staging's after the fresh deployment; none for per-company proxies and per-escrow contracts. *Why:* v4 is deployed only on the devnet today, and P9 gives the new staging a fresh deployment with nothing migrated, so old staging's addresses (V2 and V3) must not appear. A Safe, a company's Roles and Gate, and each escrow are proxies with one address each, so their records carry none; the clone contracts carry their implementation's. *Not chosen:* *old-staging*: Reuse old staging's addresses.
 
+- **The equity events that equity's processes follow are recorded** (`contracts.equity-events`). *Chosen:* Add Options' OptionsAccepted; Rounds' SafeRoundCreated, SafeInvited, SafeSigned, Invited, Allocated and RoundCancelled; Exits' SaleApproved, TransferOffered and TransferApproved; Vesting's Granted and Revoked. *Why:* contracts.functions records every event a concept must follow, and equity/processes.ts and equity/data.ts name these; Ponder indexes them for indexing's views either way. Recorded, equity can trigger on or name them by record, and the unconsumed-chain-event gap shows exactly which it still follows only in words. Escrow's InvoicePaymentCompleted is not added: nothing reads the surplus it reports (indexing's report). *Not chosen:* *prose*: Leave them named only in the processes' prose.
+
 - **Record the functions the designed calls name, and the events concepts follow** (`contracts.functions`). *Chosen:* Every function a frozen designed `call` names, the views a write must read first, and every event a concept must follow. *Why:* The build reports a function nothing calls and an event nothing consumes as gaps, so recording only what the product uses makes those gaps meaningful: each one left after the concept designs is either a missing design or a contract function the product does not need. Admin and wiring functions (configure, setAgreements, setUp) belong to the install, which the Installer's batches build. A call one contract makes to another inside a call the product makes (Budgets.commit inside Agreements.offer, Budgets.payReserved inside Agreements.collect, Captable.forcedTransfer inside Exits.buy, Captable.setConversionPrice inside Rounds.close) is the callee's business and is left out. The designed text's `Budgets.setOffice` is v4's `setHat` (IBudgets.sol:203), recorded under that name. *Not chosen:* *full-abi*: The full ABI of each contract.
+
+- **Hats Elections and the Installer's election calls are recorded** (`contracts.hats-elections`). *Chosen:* Record the Elections clone (elect, recall, setNextTerm, startNextTerm, currentTermEnd, nextTermEnd) and the Installer's deployElections, buildElections and ElectionsDeployed. *Why:* P10: a designed block is the specification, and the shared records should not be what keeps a designed matter unbuilt; equity.vote-matters names this record as one of its two blockers. The calls are v4's: IHatsElectionEligibility and InstallerElections are in packages/contracts/v4, and the Governor's allowed targets include the predicted Elections clone. The other blocker, board's seat groups and terms, is board's design; until it lands the three matters keep NOT_IMPLEMENTED, and equity builds them once it does. *Not chosen:* *wait*: Leave it out until board designs seat groups; the three matters answer NOT_IMPLEMENTED.
+
+- **Hats' `viewHat` is recorded; `getNextId` is not** (`contracts.hats-view-hat`). *Chosen:* Record `viewHat`, which v4's IHats declares: a hat's supply, modules, `lastHatId` and whether it is active. *Why:* The contract records hold what v4 calls (contracts.v4-set): v4's IHats lists viewHat and not getNextId, and the Installer itself reads viewHat. The next child's id is the admin's id with `lastHatId + 1` at the child's level, so viewHat at the chain head gives what getNextId would. Neither closes the race the budgets designer names (a hat made under the same admin between proposal and execution); v4 has no guard, and budgets applies a change only on its indexed effect with the planned hat (budgets.one-process-per-change), so a shifted id never reads as applied. *Not chosen:* *get-next-id*: Record `getNextId(admin)` from the deployed Hats contract. *none*: Record neither; plan from indexing alone.
+
+- **No checkpoint reads for `org cap-table --at` yet** (`contracts.no-checkpoint-reads`). *Chosen:* Record none: the designed call says `--at` is not built yet, so it answers NOT_IMPLEMENTED. *Why:* The frozen designed `call` says '`--at` (checkpoints) is not built yet', so NOT_IMPLEMENTED is the frozen surface, not a weakening. ERC20Votes keeps checkpoints of votes, not balances: a holder who delegated shows no votes, so a past vote count is not a past holding, and only the company Safe's balance has its own checkpoint (safeBalanceAt). A past cap table reads better from indexing's history of the classes' Transfers; when `--at` is designed, equity and indexing choose. *Not chosen:* *votes*: Record ShareClass getPastVotes, getPastTotalSupply and safeBalanceAt.
 
 - **The test tokens' open `mint` is recorded on the ERC-20 record** (`contracts.test-token-mint`). *Chosen:* Add `mint(address,uint256)` to the ERC-20 record, for the test networks' synthetic tokens only. *Why:* On devnet and Base Sepolia the admitted assets are Capxul's synthetic test tokens, which anyone may mint; the faucet key calls `mint` through the service signer. It is not a Protocol v4 contract, but neither is any ERC-20, and P9 is about the protocol, so the one ERC-20 record carries it with its test-only scope; production tokens have no such function and production refuses `dev fund`. The accounts designer left its rpc's `chain` empty waiting for this (accounts.faucet). *Not chosen:* *separate-contract*: A separate test-token contract record.
 
-- **The v4 contracts plus the third-party contracts v4 wires** (`contracts.v4-set`). *Chosen:* The 15 v4 address-book contracts (Escrow and its factory counted separately) and the third-party contracts the v4 install wires and the product calls: Safe, Safe4337Module, MultiSendCallOnly, EntryPoint v0.7, Roles 2.1, Hats, the Hats Signer Gate v2 and ERC-20. *Why:* P9 drops V2, V3, CapxulEscrow, PayrollDepartments and the rest. The third-party contracts are not pre-v4: v4's architecture lists Hats, the Signer Gate and Roles as its authority group, and every approval goes through the EntryPoint and the Safe module. Without them the book could not name the calls the designed text makes (approveHash, mintHat, claimSignerFor). Hats Elections and the libraries are left out: no frozen operation calls them directly. *Not chosen:* *capxul-only*: Only Capxul's own v4 contracts.
+- **The v4 contracts plus the third-party contracts v4 wires** (`contracts.v4-set`). *Chosen:* The 15 v4 address-book contracts (Escrow and its factory counted separately) and the third-party contracts the v4 install wires and the product calls: Safe, Safe4337Module, MultiSendCallOnly, EntryPoint v0.7, Roles 2.1, Hats, the Hats Signer Gate v2, Hats Elections and ERC-20. *Why:* P9 drops V2, V3, CapxulEscrow, PayrollDepartments and the rest. The third-party contracts are not pre-v4: v4's architecture lists Hats, the Signer Gate and Roles as its authority group, and every approval goes through the EntryPoint and the Safe module. Without them the book could not name the calls the designed text makes (approveHash, mintHat, claimSignerFor). The libraries are left out: no frozen operation calls them. Hats Elections was left out at first and is in since the assembly (contracts.hats-elections): the designed shareholder votes call it through the Governor. *Not chosen:* *capxul-only*: Only Capxul's own v4 contracts.
 
 ### Environments
 
@@ -745,7 +813,7 @@ One record per concept (`dependencies.of-<concept>`). The reasons are typed agai
 
 | Depends on | Because |
 |---|---|
-| access | consent is a person's grant, and a person owns their own keys. |
+| access | the caller of every rpc: a person owns their own applications and keys. |
 | indexing | the Invoicing hat's wearers may manage an Organization's keys. |
 | organizations | an Organization's applications, and its Invoicing hat id. |
 

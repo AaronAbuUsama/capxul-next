@@ -106,6 +106,7 @@ export const WRITE_FAILURES = [
   "rejected",
   "replaced",
   "subject_ended",
+  "execution_failed",
 ] as const;
 
 /** One founder at the install, as planned and as the batch issues their shares under vesting. */
@@ -402,7 +403,8 @@ export const machine_equity_write = defineMachine({
   about:
     "Born `awaiting` with the approval or Board proposal that carries it. Only chain proof lands or fails it: it lands " +
     "when its carrier's transaction holds its own clone event (Issued, OptionsGranted, VoteCast, TransferOffered...), and " +
-    "fails when that transaction reverted or ran without it. It is abandoned when its approval ended unsent (refused, " +
+    "fails when that transaction reverted or ran without it, or its Board proposal ran and failed (board's `fail`: " +
+    "`execution_failed`). It is abandoned when its approval ended unsent (refused, " +
     "declined, expired, displaced, withdrawn), its proposal was rejected or replaced, or its object ended first. Its " +
     "deciding process moves it, in the same transaction as the move it makes on its object.",
   was: [`${OLD}/equity/writes/landed.ts:30`, `${OLD}/votes/writes.ts:1`, `${AS_IS}:1452`, `${AS_IS}:1501`, `${AS_IS}:1522`],
@@ -412,7 +414,7 @@ export const machine_equity_write = defineMachine({
   states: [
     { id: "awaiting", about: "Its approval or Board proposal is open, or its operation is on its way; nothing is decided." },
     { id: "landed", about: "Its transaction carried its own clone event: the change happened.", terminal: true },
-    { id: "failed", about: "Its transaction reverted, or ran without its event because another write beat it.", terminal: true },
+    { id: "failed", about: "Its transaction reverted, ran without its event because another write beat it, or was a Board proposal that ran and failed.", terminal: true },
     { id: "abandoned", about: "Its carrier ended without running, or its object ended first.", terminal: true },
   ],
   transitions: {
@@ -432,7 +434,7 @@ export const machine_equity_write = defineMachine({
     fail: {
       from: ["awaiting"],
       to: "failed",
-      about: "Its operation reverted, or its transaction landed without its own event.",
+      about: "Its operation reverted, its transaction landed without its own event, or its Board proposal ended `failed`.",
       emits: EW,
     },
     abandon: {

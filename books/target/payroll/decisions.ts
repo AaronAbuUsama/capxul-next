@@ -618,3 +618,23 @@ export const decision_payroll_carrier_endings = defineDecision({
   source: ASSEMBLY("books/target/board/decisions.ts (board.failed-proposal); books/target/approvals/decisions.ts (approvals.machine); assembly-items.md (approvals, board)"),
   affects: [machine_agreement_write, table_agreement_writes, workflow_payroll_agreements_lifecycle, machine_proposal.t.fail, ...WRITE_FLOWS, error_CANCELLED, error_WRONG_STATE, error_TRANSACTION_FAILED],
 });
+
+export const decision_payroll_collection_payment_id = defineDecision({
+  id: "payroll.collection-payment-id",
+  title: "A collection prints its Payment's id the way `payment get` takes it",
+  question:
+    "Payments names a Payment born from a chain fact `payment_` and the 64 hex digits of its v4 payment id " +
+    "(payments.chain-born-ids), because `payment get` refuses an id that does not start with `payment_`. What does a " +
+    "collection's `paymentId` print?",
+  options: [
+    { label: "derived", text: "The same derived id, built from the PaymentSent's payment id: no read of payments." },
+    { label: "raw", text: "The PaymentSent's raw `0x` payment id." },
+  ],
+  chosen: "derived",
+  why:
+    "`agreement collect` returns 'the one payment the payer made', and a person follows it with `payment get`; the raw " +
+    "id would be refused there. The id is a pure function of the indexed fact both concepts read, so payroll still never " +
+    "reads payments (dependencies.payments-payroll).",
+  source: ASSEMBLY("books/target/payments/decisions.ts (payments.chain-born-ids); payment.get.yaml (refusal CLI_USAGE); agreement.collect.yaml (returns)"),
+  affects: [rpc_payroll_writes_watch, flow_client_me_agreements_collect, operation_agreement_collect],
+});

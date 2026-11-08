@@ -159,6 +159,7 @@ export const NothingReleased = Schema.Struct({
 
 /** The one payment a collection made: the indexed PaymentSent that payments settles. */
 export const CollectionPayment = Schema.Struct({
+  /** `payment_` and the 64 hex digits of the v4 payment id the collection's PaymentSent names (payments.chain-born-ids). */
   paymentId: S,
   amount: S,
   token: S,

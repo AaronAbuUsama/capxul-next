@@ -119,6 +119,16 @@ export const WORLDS: readonly World[] = [
     namedBy: ["accounts", "organizations"],
   },
   {
+    name: "person-on-waitlist-open-beta",
+    holds: "person-on-waitlist with the deployment's `beta-access` gate on for everyone (rollout 100), never admitted.",
+    from: "person-on-waitlist",
+    steps: [
+      supervisor("capxul-devnet gates seed beta-access on --rollout 100 (the PostHog fake's person gate, which `dev gates set` cannot script)"),
+      anyone("capxul dev jobs run (its gates sync brings the seeded gate into access' flags)"),
+    ],
+    namedBy: ["accounts"],
+  },
+  {
     name: "person-admitted-no-profile",
     holds: "Dana admitted by the operator, with no profile yet.",
     from: "person-on-waitlist",
@@ -1023,6 +1033,184 @@ export const WORLDS: readonly World[] = [
       supervisor("capxul-devnet chain transfer 5,001 transfers of 0.01 USDC from Anvil accounts to dana's Safe, in batches"),
     ],
     namedBy: ["activity"],
+  },
+
+  // ── equity (equity.worlds; devnet.equity-worlds) ──
+  {
+    name: "org-without-equity",
+    holds:
+      "Initech, a v4 company with no equity yet: founders Nia and Omar both Directors (2 of 2), Ray a member who is not a " +
+      "Director, all with ready Safes; outsider Olga and investors Ivan and Jo signed in with ready, funded Safes; Nia current.",
+    from: "empty-devnet",
+    steps: [
+      ...["nia", "omar", "ray"].map((n) => ready(`${n}@initech.test`, n)),
+      ready("olga@outside.test", "Olga Berg"),
+      ready("ivan@invest.test", "Ivan Petrov"),
+      ready("jo@invest.test", "Jo Lind"),
+      ...found("nia@initech.test", "initech", "Initech Ltd"),
+      ...["omar", "ray"].map((n) =>
+        step("nia@initech.test", `capxul org member invite ${n}@initech.test --org initech; then ${n} runs \`capxul invite accept\``),
+      ),
+      step("nia@initech.test", "capxul org board director add omar@initech.test --org initech --json"),
+      approve("nia@initech.test", "its Board proposal, as the one Director"),
+      step("omar@initech.test", "capxul org board claim --org initech"),
+      step("nia@initech.test", "capxul org board threshold 2 --org initech --json"),
+      approve("nia@initech.test", "its Board proposal, as Director"),
+      ...["ivan@invest.test", "jo@invest.test"].map((e) => step(e, "capxul dev fund 50000 --asset USDC")),
+      current("nia@initech.test"),
+    ],
+    namedBy: ["equity"],
+  },
+  {
+    name: "org-with-equity-off",
+    holds: "org-without-equity with Initech's `equity` gate turned off.",
+    from: "org-without-equity",
+    steps: [step("nia@initech.test", "capxul dev gates set equity off --org initech")],
+    namedBy: ["equity"],
+  },
+  {
+    name: "org-with-equity-deploy-held",
+    holds: "org-without-equity with the co-founders setup begun: deployEquity sent and its receipt held by the service signer's fault switch.",
+    from: "org-without-equity",
+    steps: [
+      fault("service-signer hold-receipt"),
+      step(
+        "nia@initech.test",
+        "capxul org equity setup --template co-founders --authorised 10000000 --founder nia@initech.test:4000000 " +
+          "--founder omar@initech.test:4000000 --pool 1000000 --org initech --json (returns while the deployment waits)",
+      ),
+    ],
+    namedBy: ["equity"],
+  },
+  {
+    name: "org-with-equity",
+    holds:
+      "org-without-equity with the co-founders template installed: Common (10,000,000 authorised), Nia and Omar 4,000,000 " +
+      "each vesting 48 months with a 12-month cliff, a 1,000,000 pool, the Governor set up; Nia current.",
+    from: "org-without-equity",
+    steps: [
+      step(
+        "nia@initech.test",
+        "capxul org equity setup --template co-founders --authorised 10000000 --founder nia@initech.test:4000000 " +
+          "--founder omar@initech.test:4000000 --pool 1000000 --org initech --confirm --json",
+      ),
+      approve("nia@initech.test", "the install batch's Board proposal, as Director"),
+      approve("omar@initech.test", "the install batch's Board proposal, as Director"),
+      step("nia@initech.test", "capxul org wait initech (until the cap table reads Common, both founders and the pool)"),
+      current("nia@initech.test"),
+    ],
+    namedBy: ["equity"],
+  },
+  {
+    name: "org-with-option-offered",
+    holds: "org-with-equity with an option grant of 10,000 shares offered to Ray and not yet accepted.",
+    from: "org-with-equity",
+    steps: [
+      step("nia@initech.test", "capxul org options grant --to ray@initech.test --shares 10000 --strike 0.10 --org initech --json"),
+      approve("nia@initech.test", "its Board proposal, as Director"),
+      approve("omar@initech.test", "its Board proposal, as Director"),
+    ],
+    namedBy: ["equity"],
+  },
+  {
+    name: "org-with-option-active",
+    holds: "org-with-option-offered with Ray's grant accepted, the clock past its 12-month cliff, and 1,000 shares exercised.",
+    from: "org-with-option-offered",
+    steps: [
+      step("ray@initech.test", "capxul shares accept <ray's grant> --json"),
+      approve("ray@initech.test", "the acceptance"),
+      anyone("capxul dev time warp 400d"),
+      step("ray@initech.test", "capxul dev fund 500 --asset USDC; capxul shares exercise <ray's grant> --shares 1000 --json"),
+      approve("ray@initech.test", "the exercise"),
+      current("nia@initech.test"),
+    ],
+    namedBy: ["equity"],
+  },
+  {
+    name: "org-with-round-open",
+    holds:
+      "org-with-equity with Series Seed preferred created by an executed vote and a priced round open on it: Ivan invited " +
+      "and committed, Jo invited and not committed.",
+    from: "org-with-equity",
+    steps: [
+      step("nia@initech.test", "capxul org vote create create-class --name seed-preferred --org initech --json; cast for as Nia and Omar; capxul dev time warp past the vote's close"),
+      step("nia@initech.test", "capxul org vote execute <the class vote> --org initech"),
+      step("nia@initech.test", "capxul org round create --class seed-preferred --pre-money 4000000 --raise 1000000 --approved-by <the class vote> --org initech --json"),
+      approve("nia@initech.test", "its Board proposal, as Director"),
+      approve("omar@initech.test", "its Board proposal, as Director"),
+      step("nia@initech.test", "capxul org round invite <round> --investor ivan@invest.test --amount 25000; the same for jo@invest.test --amount 15000"),
+      step("ivan@invest.test", "capxul invest commit <round> --amount 25000 --json"),
+      approve("ivan@invest.test", "the commitment"),
+      current("nia@initech.test"),
+    ],
+    namedBy: ["equity"],
+  },
+  {
+    name: "org-with-round-allocated",
+    holds: "org-with-round-open with Jo committed too, the round allocated, Ivan paid and Jo not.",
+    from: "org-with-round-open",
+    steps: [
+      step("jo@invest.test", "capxul invest commit <round> --amount 15000 --json"),
+      approve("jo@invest.test", "the commitment"),
+      step("nia@initech.test", "capxul org round allocate <round> --org initech --json"),
+      approve("nia@initech.test", "its Board proposal, as Director"),
+      approve("omar@initech.test", "its Board proposal, as Director"),
+      step("ivan@invest.test", "capxul invest pay <round> --json"),
+      approve("ivan@invest.test", "the payment"),
+      current("nia@initech.test"),
+    ],
+    namedBy: ["equity"],
+  },
+  {
+    name: "org-with-safe-round",
+    holds: "org-with-equity with a post-money SAFE round open and Ivan invited, and a closed SAFE round beside it.",
+    from: "org-with-equity",
+    steps: [
+      step("nia@initech.test", "capxul org safe create --kind post-money --cap 8000000 --raise 500000 --closes <90 days on> --terms safe.md --org initech --json; approve as Nia and Omar"),
+      step("nia@initech.test", "capxul org safe close <that round> --org initech; approve as Nia and Omar"),
+      step("nia@initech.test", "capxul org safe create --kind post-money --cap 10000000 --raise 750000 --closes <90 days on> --terms safe.md --org initech --json; approve as Nia and Omar"),
+      step("nia@initech.test", "capxul org safe invite <the open round> --investor ivan@invest.test --amount 20000 --org initech"),
+      current("nia@initech.test"),
+    ],
+    namedBy: ["equity"],
+  },
+  {
+    name: "org-with-sale-offered",
+    holds: "org-with-equity past the founders' cliff with Omar's sale of 100,000 shares to Olga offered and waiting for the Board, and Nia's sale of 50,000 to Ivan already approved.",
+    from: "org-with-equity",
+    steps: [
+      anyone("capxul dev time warp 400d"),
+      step("nia@initech.test", "capxul shares sell --org initech --to ivan@invest.test --shares 50000 --price 0.50 --json; approve as Nia"),
+      step("nia@initech.test", "capxul org equity transfer approve <nia's transfer> --org initech --json; approve as Nia and Omar"),
+      step("omar@initech.test", "capxul shares sell --org initech --to olga@outside.test --shares 100000 --price 0.50 --json; approve as Omar"),
+      current("nia@initech.test"),
+    ],
+    namedBy: ["equity"],
+  },
+  {
+    name: "org-with-votes",
+    holds:
+      "org-with-equity with shareholder votes in every standing: pending, active, defeated, succeeded, executed, and one " +
+      "whose proposer's approval lapsed unsigned.",
+    from: "org-with-equity",
+    steps: [
+      step("nia@initech.test", "capxul org vote create <a matter> --org initech --json for each standing, approved as Nia; cast as Nia and Omar so they end defeated, succeeded and executed (`capxul dev time warp` past each close, then `org vote execute`)"),
+      step("nia@initech.test", "capxul org vote create <a matter> --org initech --json (active: cast once, its close ahead)"),
+      step("nia@initech.test", "capxul org vote create <a matter> --org initech --json (pending: its voting delay not yet passed)"),
+      step("omar@initech.test", "capxul org vote create <a matter> --org initech --json, left unsigned until `capxul dev time warp` lapses its approval"),
+      current("nia@initech.test"),
+    ],
+    namedBy: ["equity"],
+  },
+  {
+    name: "org-with-exit-approved",
+    holds: "org-with-sale-offered with an approve-sale vote for Omar's sale executed and Olga, the buyer, not yet paid.",
+    from: "org-with-sale-offered",
+    steps: [
+      step("nia@initech.test", "capxul org vote create approve-sale --transfer <omar's transfer> --org initech --json; cast for as Nia and Omar; capxul dev time warp past its close"),
+      step("nia@initech.test", "capxul org vote execute <the sale vote> --org initech"),
+    ],
+    namedBy: ["equity"],
   },
 ];
 

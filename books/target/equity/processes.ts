@@ -108,7 +108,7 @@ export const workflow_equity_installs_setup = defineWorkflow({
     "opens it through `board.propose` as the Director who began it, with the install's write (`equity_set_up`) and each " +
     "founder's vesting grant born `proposed` with its own write on the same proposal (equity-grant.propose), and moves " +
     "the install to `proposed`. (3) It decides the install's write when the proposal ends: landed is `installed`, a " +
-    "failed batch `failed`, a rejected or replaced one `abandoned`. `buildEquity`'s founder calls (the Shareholders' " +
+    "failed batch `failed` (reverted, or a proposal board ended `failed`: batch_reverted), a rejected or replaced one `abandoned`. `buildEquity`'s founder calls (the Shareholders' " +
     "tree to the Governor) are not sent yet, as the designed text says. Replaces old organizations' setup action, its " +
     "record-landed mutation and the deployment it re-read on every equity answer.",
   was: [`${OLD}/equity/operations/setup.ts`, `${OLD}/equity/operations/record.ts`, `${OLD}/equity/writes/landed.ts:30`, "books/as-is/organizations/equity.ts:222"],

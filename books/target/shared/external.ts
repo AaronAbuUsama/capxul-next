@@ -269,11 +269,6 @@ export const integration_bridge = defineIntegration({
       ...BRIDGE_CALL,
       failures: [...bridgeFailures, { when: "Bridge rejected the account fields", error: error_INVALID_INPUT }],
     },
-    removeBankAccount: {
-      about: "Deletes a saved external bank account.",
-      ...BRIDGE_CALL,
-      failures: [...bridgeFailures],
-    },
     quotePayout: {
       about: "Creates a payout transfer to a saved bank account and returns its deposit address, token and amounts for the quote.",
       ...BRIDGE_CALL,

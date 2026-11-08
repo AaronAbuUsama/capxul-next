@@ -59,8 +59,8 @@ export const rpc_equity_votes_propose = defineRpc({
     "`create-class` (`Captable.createClass`), `authorise` (`Captable.setAuthorised` on the class its name finds; a class " +
     "the company does not have is INVALID_INPUT naming the ones it has), `transfer-rule` (`setTransferRule`), " +
     "`freeze-class` (`freeze`), `approve-round` (`Rounds.consent`, on the class's Governor) and `approve-sale` " +
-    "(`Exits.approveSale`). The Board-seat matters (`board-settings`, `elect`, `remove`) are NOT_IMPLEMENTED until the " +
-    "Elections clone is recorded (equity.vote-matters). Every target must be on the Governor's allowed list " +
+    "(`Exits.approveSale`). The Board-seat matters (`board-settings`, `elect`, `remove`) are NOT_IMPLEMENTED until " +
+    "board defines seat groups (equity.vote-matters). Every target must be on the Governor's allowed list " +
     "(`isAllowedTarget`, RESERVED_MATTER: the matter is the Board's). The caller's votes now (`getVotes`) must reach " +
     "the proposal threshold (`proposalThreshold`), else BELOW_THRESHOLD before anything is signed. The terms document, " +
     "when given, is stored through `documents.store`. The description names the vote, and the proposal id is " +

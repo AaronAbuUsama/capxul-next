@@ -493,7 +493,8 @@ export const decision_devnet_fault_switches = defineDecision({
       label: "supervisor",
       text:
         "`capxul-devnet fault <switch> <mode>` arms the devnet layers' switches (chain-rpc node-down and garbage-answers, " +
-        "bridge fail-all, indexer hold <n>, service-signer refuse-send, bundler hold-receipt, documents tamper) and " +
+        "bridge fail-all, indexer hold <n>, service-signer refuse-send and hold-receipt, bundler hold-receipt, documents " +
+        "tamper) and " +
         "`capxul-devnet clock hold`, `chain` and `bridge` make what no Capxul surface makes (a still backend clock, a Safe " +
         "transaction or a Hats ruling outside Capxul, an outside transfer, a token, Bridge deposits). The armed switches " +
         "are in the world's manifest and re-armed on restore. The mail switch is `dev mail fail`, in Postgres.",
@@ -533,4 +534,59 @@ export const decision_devnet_own_refusal_worlds = defineDecision({
     "the CLI home). Save's WRONG_STATE saves under `empty-devnet`, a name that exists.",
   source: by("access.worlds (a step after the restore); every devnet operation's refusals"),
   affects: OPERATIONS,
+});
+
+// ── assembly (8 November 2026) ──────────────────────────────────────────────────────────────
+
+const ASSEMBLY = (evidence: string) => `Claude, target assembly (rails-and-reads), 8 November 2026; evidence: ${evidence}`;
+
+export const decision_devnet_equity_worlds = defineDecision({
+  id: "devnet.equity-worlds",
+  title: "Equity's twelve worlds join the catalog on their own company, Initech",
+  question:
+    "Equity landed after the catalog: `worldGaps` named eleven worlds its refusals start from, and equity.worlds names a " +
+    "twelfth (the held deployment). Which cast are they built on, and how is a held deployment made?",
+  options: [
+    {
+      label: "own-company",
+      text:
+        "A fresh Initech (founders Nia and Omar, 2 of 2; Ray a member who is no Director; outsider Olga; investors Ivan " +
+        "and Jo), then each step of equity's life as a chain of worlds from org-without-equity. The held deployment arms " +
+        "a new `service-signer hold-receipt` switch before `org equity setup`.",
+    },
+    { label: "acme", text: "Build them on Acme's org-with-two-directors." },
+  ],
+  chosen: "own-company",
+  why:
+    "equity.worlds asks for two founders who are both Directors, a member who is not one and an outsider, all with ready " +
+    "Safes; Acme's two-Director world has a member who never finished signing up, and its budget tree would make every " +
+    "equity build pay for the money worlds. Investors need funded Safes of their own for commitments and SAFEs. " +
+    "`deployEquity` is sent by Capxul's service key, not the bundler, so its receipt hold is the service signer's " +
+    "switch (devnet.fault-switches). Every refusal's `given` now names a catalogued world (`worldGaps` is empty).",
+  source: ASSEMBLY("books/target/equity/operations.ts (WORLDS); equity.worlds; worldGaps(records) over the assembled book"),
+  affects: [concept_devnet, component_devnet],
+});
+
+export const decision_devnet_open_beta_world = defineDecision({
+  id: "devnet.open-beta-world",
+  title: "The open beta is a world the supervisor seeds, not a `dev gates set` step",
+  question:
+    "accounts' `waitlist status` #1 starts from person-on-waitlist-open-beta (the `beta-access` gate on for everyone), " +
+    "which the catalog lacked, and `dev gates set` scripts only Organization gates. How is it built?",
+  options: [
+    {
+      label: "supervisor-seed",
+      text:
+        "From person-on-waitlist: the supervisor seeds the PostHog fake's person gate `beta-access` at rollout 100, then " +
+        "`dev jobs run` syncs it into access' flags through the one production path.",
+    },
+    { label: "widen-command", text: "Let `dev gates set` take a person gate without `--org`." },
+  ],
+  chosen: "supervisor-seed",
+  why:
+    "The frozen `dev gates set` refuses a missing `--org` with CLI_USAGE, so widening it would change a frozen refusal " +
+    "(P10 rung 1). A supervisor control seeds what no Capxul surface makes, as the fault switches and chain actions do, " +
+    "and the sync job keeps access' flags written only by access.",
+  source: ASSEMBLY("books/target/accounts/decisions.ts (accounts.worlds); devnet.scripted-gates; dev.gates.set.yaml (refusal CLI_USAGE)"),
+  affects: [concept_devnet, table_scripted_gates, ops.operation_dev_gates_set],
 });

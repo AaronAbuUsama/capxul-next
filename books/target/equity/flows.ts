@@ -38,8 +38,12 @@ const SDK = "packages/sdk/src/organizations";
 /** A write's client time: the prepare rpc, the check and the reads; a person's wait and chain confirmation never count. */
 const WRITE_BUDGET = { ...budget("chain-submit"), excludes: ["wait.person", "chain.confirm"] };
 
-/** A declined approval ends the flow CANCELLED; a write the chain refused or another write beat, TRANSACTION_FAILED. */
-const FLOW_ERRORS = [error_CANCELLED, error_TRANSACTION_FAILED];
+/**
+ * How the write's carrier ended, as the frozen codes (approvals.machine; equity.failed-proposals): a declined approval
+ * ends the flow CANCELLED; one that expired unsent, WRONG_STATE; a write the chain refused, another write beat, or a
+ * Board proposal that ran and failed, TRANSACTION_FAILED.
+ */
+const FLOW_ERRORS = [error_CANCELLED, error_WRONG_STATE, error_TRANSACTION_FAILED];
 
 const SIGNING = (calls: string) =>
   [

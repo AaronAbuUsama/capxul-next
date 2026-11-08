@@ -368,19 +368,21 @@ export const decision_equity_safe_close = defineDecision({
 
 export const decision_equity_vote_matters = defineDecision({
   id: "equity.vote-matters",
-  title: "Six vote matters built; the Board-seat matters wait for an Elections record",
+  title: "Six vote matters built; the Board-seat matters wait for board's seat groups",
   question:
     "`org vote create` names nine matters. `board-settings`, `elect` and `remove` call a Hats Elections clone and the " +
-    "Installer's election batch, which shared/external.ts does not record, and their Directors are board's. What do they answer?",
+    "Installer's election batch (recorded since: contracts.hats-elections), and their seat groups and terms are board's, " +
+    "which board has not designed (`org board claim --seat` names none yet). What do they answer?",
   options: [
-    { label: "six", text: "Build the six whose calls are equity clones; the Board-seat three answer NOT_IMPLEMENTED until Elections is recorded." },
-    { label: "record-elections", text: "Record the Elections clone and the Installer's election calls in shared/external.ts now." },
+    { label: "six", text: "Build the six whose calls are equity clones; the Board-seat three answer NOT_IMPLEMENTED until board designs seat groups." },
+    { label: "build-nine", text: "Build all nine now on the recorded Elections calls, choosing seat groups and terms in equity." },
   ],
   chosen: "six",
   why:
     "NOT_IMPLEMENTED is the code a frozen command answers until it is built (vocabulary.keep-unnamed), and the Board-seat " +
-    "matters belong with board's seat design (`org board claim`), which is not landed. Recording a third-party contract " +
-    "for them is a change to the shared records that board should make with its own design.",
+    "matters belong with board's seat design (`org board claim`), whose seat groups are still null (CAP-1153). The shared " +
+    "records now hold the Elections calls (contracts.hats-elections), so that blocker is gone; choosing seat groups and " +
+    "terms in equity would design board's seats from outside board, so equity builds the three once board defines them.",
   source: by("books/frozen/operations.ts (org.vote.create designed flags W5-W8); packages/contracts/v4/src/authority/InstallerElections.sol"),
   affects: [votes.rpc_equity_votes_propose, error_NOT_IMPLEMENTED],
 });
@@ -541,4 +543,63 @@ export const decision_equity_dropped = defineDecision({
     "runtime's, and approvals owns every UserOperation's send (concepts.approvals).",
   source: by(`books/as-is/organizations/equity.ts; books/as-is/organizations/votes.ts; books/as-is/organizations/rounds.ts; P2; P3; P7`),
   affects: [concept_equity, rpc_equity_writes_watch, ...HOLDER_RPCS],
+});
+
+// ── assembly (8 November 2026) ──────────────────────────────────────────────────────────────
+
+const ASSEMBLY = (evidence: string) => `Claude, target assembly (rails-and-reads), 8 November 2026; evidence: ${evidence}`;
+
+export const decision_equity_failed_proposals = defineDecision({
+  id: "equity.failed-proposals",
+  title: "A Board proposal that ran and failed fails the equity write it carried",
+  question:
+    "Board added a `failed` proposal (the company Safe ran it and its call failed; board.failed-proposal) and asked every " +
+    "follower of proposal_transitioned to read it as 'ran without effect'. What does an equity write, and an install's " +
+    "batch, become?",
+  options: [
+    {
+      label: "fail",
+      text:
+        "The write fails with `execution_failed`, as a reverted operation does; an install whose batch's proposal failed " +
+        "ends `failed` (batch_reverted). Rejected and replaced proposals still abandon.",
+    },
+    { label: "abandon", text: "Abandon the write, as for a rejected or replaced proposal." },
+  ],
+  chosen: "fail",
+  why:
+    "Abandoned says nothing reached the chain, and a failed proposal used its nonce: the company Safe ran it. The " +
+    "install machine already calls a batch that ran without effect `failed`, and its failure literal `batch_reverted` " +
+    "is the same outcome, so no new install state is needed. The write keeps the cause apart so a show can say the Board " +
+    "ran it and it failed. The write flows answer each carrier's end with approvals.machine's codes: declined CANCELLED, " +
+    "expired unsent WRONG_STATE, refused, beaten or failed TRANSACTION_FAILED.",
+  source: ASSEMBLY("books/target/board/decisions.ts (board.failed-proposal); books/target/board/data.ts (machine_proposal: fail); approvals.machine"),
+  affects: [data.machine_equity_write, data.table_equity_writes, data.machine_equity_install, processes.workflow_equity_installs_setup, processes.workflow_equity_writes_follow, flows.flow_client_org_equity_setup],
+});
+
+export const decision_equity_assembly_rulings = defineDecision({
+  id: "equity.assembly-rulings",
+  title: "What equity takes from the shared assembly: tx-width, events, checkpoints",
+  question:
+    "Equity's report left four items with the shared records: its Board-matter prepares' transaction width, 12 events " +
+    "its processes name in prose, the Elections record, and checkpoint reads for `org cap-table --at`. The shared pass " +
+    "ruled on each. Does equity change?",
+  options: [
+    {
+      label: "follow-rulings",
+      text:
+        "No record changes but the vote matters' text: the prepares are within sys:tx-width (rules.transaction-width counts " +
+        "direct invocations: documents and board); the events are recorded (contracts.equity-events) and equity's processes " +
+        "keep following them through their waits and factsOf; `--at` stays NOT_IMPLEMENTED (contracts.no-checkpoint-reads); " +
+        "the Board-seat matters wait for board (equity.vote-matters).",
+    },
+    { label: "trigger-on-events", text: "Make each recorded event a workflow trigger of its own." },
+  ],
+  chosen: "follow-rulings",
+  why:
+    "A3 gives each long-lived object one process that waits on its chain events; a workflow per event would split the " +
+    "object's one writer into many. The build's unconsumed-chain-event gap counts only triggers, and the schema's waits " +
+    "carry no reference to a chain event, so those gaps stay until a wait can name its event. The frozen `org cap-table` " +
+    "designed call says `--at` is not built yet, so NOT_IMPLEMENTED is its frozen answer.",
+  source: ASSEMBLY("books/target/shared/decisions.ts (rules.transaction-width, contracts.equity-events, contracts.hats-elections, contracts.no-checkpoint-reads)"),
+  affects: [concept_equity, votes.rpc_equity_votes_propose, holdings.rpc_equity_holdings_cap_table, procedure_board_propose, procedure_documents_store],
 });

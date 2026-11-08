@@ -14,8 +14,9 @@ export const rpc_payroll_writes_watch = defineRpc({
   about:
     "A live query over one write and its agreement: it pushes each change until the write is landed, failed or " +
     "abandoned, then ends. The agreement is as payroll holds it (its status and terms; the chain's live figures are left " +
-    "null, as the prepare rpc already answered them). A landed collection carries its one payment: the PaymentSent id " +
-    "payments settles, the amount, the window it covers and the transaction. An unknown write is INVALID_INPUT; one the " +
+    "null, as the prepare rpc already answered them). A landed collection carries its one payment: its id as `payment " +
+    "get` finds it (`payment_` and the 64 hex digits of the v4 payment id its PaymentSent names, payments.chain-born-ids), " +
+    "the amount, the window it covers and the transaction. An unknown write is INVALID_INPUT; one the " +
     "caller neither prepared nor may read (a member of the paying Organization, or the payee) is ROLE_PERMISSION_DENIED.",
   was: ["packages/backend/src/payroll/agreements/views/agreements.ts", "packages/sdk/src/payroll"],
   concept: concept_payroll,

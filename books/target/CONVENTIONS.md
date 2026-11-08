@@ -110,7 +110,9 @@ does until its rule lands (**review**, with the rule's name from the policy pack
 
 - Every table names its `tenancy`: `organization` (column `org_id`), `person` (`person_id`),
   `owner` (`owner_kind`, `owner_id`, for a row a person or an Organization can own), `global`
-  (written only by the system: prices, flags) or `chain`.
+  (no tenant column: every tenant may read every row, nothing private is in it, and only the owning
+  concept's own procedures, rpcs and workflows write it: prices, flags, the directory of Parties;
+  decision `rules.global-tenancy`) or `chain`.
 - An `organization`, `person` or `owner` table names its `tenantField`, and its `key` and every
   index start with it (rule `tenant-key`). An index that must look across tenants (by a hash, by an
   address) says `crossTenant: true` and its `for` says why.
@@ -148,13 +150,20 @@ does until its rule lands (**review**, with the rule's name from the policy pack
 - A long-lived business object is one workflow instance that owns its machine:
   `instance: { per: table_x }`, the rpcs that resume it in `signals`, what it waits on in `waits`
   (each wait is its own span and never system time), and its `idempotency` key. Decision
-  `rules.durable-processes` lists the objects that must have one: an approval, a payment command,
-  a dated payment, a Board proposal, an Organization's setup, a personal Safe's setup, an agreement,
-  a request, an invitation, a bank payout, a verification, an agent change and a round.
+  `rules.durable-processes` lists the objects that must have one: an approval, a Payment (one
+  process for its command and its date), a Board proposal, an Organization's setup, a personal
+  Safe's setup, an agreement, a request, an invitation, a bank payout, a verification, an agent
+  change and a round; and, added by their designers, an assistant grant, an identity document, a
+  budget change, and an equity install, grant, sale and vote.
+- A wait on another concept's transition or on a chain event names, in its `about`, the key the
+  runtime wakes the instance by: the opener and subject on `approval_transitioned` and
+  `proposal_transitioned`, or the key Ponder's row carries (chain, sender, nonce; a payment id).
+  The runtime routes the event to the waiting instance (decision `rules.process-wakeups`).
 - A workflow's trigger is a transition (the outbox), a chain event (`contract_x.e.<Event>`, from
   Ponder), a timer of its own, or a cron. Only P3's crons survive: Bridge catch-up, Chainlink
-  prices, feature flags, the daily client-grant sweep, the daily agreement notices and books'
-  added-token scan. Everything the old system swept for is a process's own timer or a chain event.
+  prices, feature flags, the daily client-grant sweep (now access' daily sweep of sessions, codes
+  and assistant grants), the daily agreement notices and books' added-token scan. Everything the
+  old system swept for is a process's own timer or a chain event.
 - A workflow triggered `{ after: rpc }` says in its `about` why it cannot be a step: it must
   survive a crash, wait, or retry over seconds or more (review: `workflow-trigger`).
 
@@ -175,7 +184,11 @@ does until its rule lands (**review**, with the rule's name from the policy pack
   that may lag) is a workflow in the reacting concept, triggered by the other concept's
   transition. The reacting concept depends on the one that changed, never the reverse.
 - A transaction invokes at most 3 procedures from at most 2 other concepts (review:
-  `sys:tx-width`).
+  `sys:tx-width`). Count what one run of the rpc or workflow invokes itself (its widest branch,
+  where a person's branch opens an approval and an Organization's a proposal); a door's own
+  invocations (`board.propose` opening `approvals.open`) count against the door. A wider
+  transaction needs a decision record in the invoking concept, as `payments.birth-width` is
+  (decision `rules.transaction-width`).
 
 ### 7. No unreached rpc (P2) — built
 
@@ -210,6 +223,10 @@ does until its rule lands (**review**, with the rule's name from the policy pack
   every call it makes (rule `call-error-not-declared`). An operation's refusals must be errors its
   implementation can produce (rule `refusal-not-produced`); `CLI_USAGE` and the CLI's own codes go
   in the operation's `errors`.
+- A person who answers no to a terminal preview ends the command with `CANCELLED` (exit 130) and
+  nothing is written; a script without `--confirm` is `CLI_USAGE` (decision
+  `vocabulary.declined-preview-cancelled`). The flow whose `local: "prompt"` step asks lists
+  `CANCELLED` in its `errors`.
 - Outside calls name `integration_x.c.<call>` in `calls`; contract calls an rpc builds or sends
   name `contract_x.f.<fn>` in `chain`. A call or function you need that is not in
   `shared/external.ts` is a change to that file, with a decision.

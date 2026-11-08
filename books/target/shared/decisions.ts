@@ -2217,8 +2217,9 @@ export const decision_rules_transaction_width = defineDecision({
     {
       label: "direct",
       text:
-        "Count the rpc's or workflow's own `invokes`. A procedure's own invocations count against that procedure, which is " +
-        "held to the same limit; a wider transaction needs the invoking concept's decision record.",
+        "Count what one run of the rpc or workflow invokes itself; where its branches invoke different doors (approvals.open " +
+        "for a person, board.propose for an Organization), its widest branch. A procedure's own invocations count against " +
+        "that procedure, held to the same limit. A wider transaction needs the invoking concept's decision record.",
     },
     { label: "nested", text: "Count every procedure the transaction runs, nested ones included." },
   ],
@@ -2227,9 +2228,10 @@ export const decision_rules_transaction_width = defineDecision({
     "The rule bounds what one concept couples into its transaction, and an invoker cannot change what a door does inside: " +
     "board.propose always opens its first approval. Counting that against every proposer (budgets, payroll, payments, " +
     "agents, equity) would push each to split one money fact over two transactions, which P4 exists to prevent. The door " +
-    "is bounded on its own (board.propose: one procedure of one concept), and `invokes` is what the eval reads. P4 allows " +
-    "a wider one with a decision record: payments.birth-width is that record for payments' prepare and propose (parties, " +
-    "documents, and approvals or board). agents.transaction-width and equity's Board-matter prepares are within the rule.",
+    "is bounded on its own (board.propose: one procedure of one concept). An rpc's `invokes` lists every branch's doors, " +
+    "so agents' create and sweep list three concepts but run two (agents.transaction-width). P4 allows a wider one with " +
+    "a decision record: payments.birth-width is that record for payments' prepare and propose (parties, documents, and " +
+    "approvals or board). Equity's Board-matter prepares are within the rule.",
   source: assembly("docs/decisions/policy-pack.md (P4: sys:tx-width, 'a wider one needs a decision record'); agents.transaction-width; payments.birth-width; parties.resolve-recipient"),
   affects: [f.concept_payments, f.concept_agents, f.concept_equity, f.concept_board, f.concept_approvals],
 });
@@ -2345,12 +2347,17 @@ export const decision_integrations_chain_rpc_live_reads = defineDecision({
 
 export const decision_integrations_bridge_bank_details_read = defineDecision({
   id: "integrations.bridge-bank-details-read",
-  title: "Bridge gains a read of one virtual account; no payout cancel",
+  title: "Bridge gains a read of one virtual account; no payout cancel, no remove",
   question:
     "Bridge had no read of one virtual account, so banking rewrote `bank settle` #1-#4 and could not keep 'It writes " +
-    "nothing to Bridge when Bridge's answer is unusable'. It also has no cancel for an unfunded transfer. Add either?",
+    "nothing to Bridge when Bridge's answer is unusable'. It has no cancel for an unfunded transfer, and a remove nothing calls. Change which?",
   options: [
-    { label: "read", text: "Add `readBankDetails` (one virtual account: status, deposit token, details), as the old client's readVirtualAccount; no cancel." },
+    {
+      label: "read",
+      text:
+        "Add `readBankDetails` (one virtual account: status, deposit token, details), as the old client's readVirtualAccount; " +
+        "add no cancel; drop `removeBankAccount`.",
+    },
     { label: "read-and-cancel", text: "Add the read and a `cancelPayout` for an unfunded transfer." },
     { label: "none", text: "Add neither, and keep banking's rewrites." },
   ],
@@ -2361,8 +2368,9 @@ export const decision_integrations_bridge_bank_details_read = defineDecision({
     "account, checked it, wrote, then read it back (settle.ts:39-46); the read has the shape of getVerification and takes " +
     "the same numbers and failures. A cancel is not needed: no frozen line asks for one, an unfunded transfer lapses at " +
     "Bridge, and `bank pay`'s 'nothing is sent' for a changed account is kept by withdrawing the unsigned approval " +
-    "(banking now depends on approvals), not by a call to Bridge.",
-  source: assembly("packages/backend/src/banking/bank-details/external.ts:34, 154; bank-details/operations/settle.ts:39-46; frozen bank.settle and bank.pay; banking.acceptance-rewrites, banking.processes"),
+    "(banking now depends on approvals), not by a call to Bridge. `removeBankAccount` goes: the old client never deleted " +
+    "an external account at Bridge, and removing a saved account calls Bridge no more than it did (banking.not-ported).",
+  source: assembly("packages/backend/src/banking/bank-details/external.ts:34, 154; bank-details/operations/settle.ts:39-46; integrations/bridge/service.ts (no delete); frozen bank.settle, bank.pay; banking.not-ported"),
   affects: [x.integration_bridge, f.concept_banking],
 });
 
