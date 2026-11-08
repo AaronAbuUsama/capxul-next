@@ -931,58 +931,113 @@ export const contract_agreements = defineContract({
   was: [`${V4}/interfaces/IAgreements.sol:37`, `${ADDR}:48`],
 });
 
+/**
+ * The general escrow's terms (aaron.escrow-general; decision payments.general-escrow). Every term is in the CREATE2 init
+ * code, so an address names exactly one set of terms. `owner`: who collects, the recipient's account, which may not
+ * exist yet. `sender`: where the money came from, the only address a refund pays. `authority` and `authorityKey`: zero,
+ * or a view `authorised(uint256 key, address who) returns (bool)` that admits other callers to refund for the sender (v4
+ * Budgets and a budget id). `bootstrapOwner`: zero, or an address the owner must no longer list among its owners before
+ * it can collect (Companies House, for an email's Safe). `condition`: 0 the owner's claim stands in the terms and anyone
+ * pays it out once the amount is held (an invoice); 1 the owner collects when it chooses. `ownerTakesSurplus`: a
+ * collection's surplus goes to the owner, not back to the sender.
+ */
+const ESCROW_TERMS =
+  "Terms(address owner, address sender, address authority, uint256 authorityKey, address bootstrapOwner, address token, uint256 amount, bytes32 jobNonce, uint16 kind, bytes32 documentHash, uint8 condition, bool ownerTakesSurplus)";
+
 export const contract_escrow_factory = defineContract({
   id: "escrow-factory",
-  title: "EscrowFactory: escrows at predictable addresses",
+  title: "EscrowFactory: the general escrow at its counterfactual address",
   about:
-    "Deploys each escrow at a CREATE2 address known before it exists, so a payer can fund it first: an invoice escrow for " +
-    "checkout, a claim escrow for an email with no account yet. The address binds every term (owner, payee, token, amount, " +
-    "job nonce, kind, document, condition) and the chain's Payments and Companies House, so another deploy at it can only " +
-    "be the same escrow; `deploy` is idempotent and anyone may send it.",
-  addresses: { [DEV]: "0x012aD00897a439A966Aa1396144b71E2f669082f" },
+    "Deploys each escrow at the CREATE2 address of its terms and salt, known before it exists, so the money is sent " +
+    "there first and the escrow deployed after, by anyone, in the same batch or later (`deploy` is idempotent and moves " +
+    "no money). The init code binds every term (" + ESCROW_TERMS + ") and the factory's Payments, so another deploy at " +
+    "that address can only be the same escrow. It is v4's factory with the general escrow's terms: Companies House is " +
+    "no longer a constructor argument but the `bootstrapOwner` term (decision payments.general-escrow). The build writes " +
+    "and deploys it with its escrow (payments.escrow-contract-build); the devnet address is recorded once it is deployed.",
   functions: {
-    deploy: { signature: "deploy(Terms terms, bytes32 salt) returns (address escrow)", about: "Deploys the escrow for its terms, or returns the one there." },
-    predictAddress: { signature: "predictAddress(Terms terms, bytes32 salt) view returns (address)", about: "The escrow's address before it exists." },
-    predictPaymentId: { signature: "predictPaymentId(Terms terms, bytes32 salt) view returns (bytes32)", about: "The payment id its payout will carry." },
+    deploy: {
+      signature: "deploy(Terms terms, bytes32 salt) returns (address escrow)",
+      about: "Deploys the escrow for its terms at its predicted address, or returns the one there. Anyone may send it, before or after the money arrives.",
+    },
+    predictAddress: { signature: "predictAddress(Terms terms, bytes32 salt) view returns (address)", about: "The escrow's address before it exists: where the money is sent." },
+    predictPaymentId: {
+      signature: "predictPaymentId(Terms terms, bytes32 salt) view returns (bytes32)",
+      about: "The Payments id its one payment to the owner will carry (executor the escrow for an owner-collects escrow), known before anyone signs.",
+    },
   },
   events: {
-    EscrowDeployed: { signature: "EscrowDeployed(address indexed escrow, address indexed ownerSafe, address indexed payeeSafe, bytes32 paymentId, bytes32 salt)", about: "An escrow exists." },
+    EscrowDeployed: {
+      signature: "EscrowDeployed(address indexed escrow, address indexed owner, address indexed sender, bytes32 paymentId, bytes32 salt)",
+      about: "An escrow exists at its counterfactual address: what makes it, and the money already in it, known to indexing.",
+    },
   },
-  was: [`${V4}/interfaces/IEscrowFactory.sol:11`, `${ADDR}:49`],
+  was: [`${V4}/interfaces/IEscrowFactory.sol:11`, `${V4}/money/EscrowFactory.sol:28`, `${ADDR}:49`],
 });
 
 export const contract_escrow = defineContract({
   id: "escrow",
-  title: "Escrow: one escrow's money",
+  title: "Escrow: the general escrow, owner collects and sender takes back",
   about:
-    "One contract per escrow, deployed by EscrowFactory, so it has no fixed address; its terms are immutable. It pays its " +
-    "payee through Payments when its condition is met (the invoice amount reached, or the payee's Safe claimed), and " +
-    "refunds its owner otherwise. A claim escrow's payee is bound at send time to a predicted address: the personal Safe " +
-    "CompaniesHouseClaimer derives from the payee's email, which Companies House owns until the person claims it. Only " +
-    "that Safe can `collect`, and only once Companies House is no longer one of its owners (D11, failing closed); only " +
-    "the owner can `refund`, and only to itself, at any time until the payee collects, even after the claim (D12); " +
-    "`payout` is refused for it. It has no expiry: it holds the money until one of the two happens (decision " +
-    "payments.claim-escrow-fit).",
+    "One contract per escrow at its counterfactual address (EscrowFactory), its terms immutable and public. It holds " +
+    "one payment of `amount` of `token` for its `owner`, the recipient's account, which may not exist yet: for a " +
+    "mailbox with no account, the Safe CompaniesHouseClaimer derives from it. Two ways out, and only two: the owner " +
+    "collects, and the money goes to the owner through Payments (its PaymentSent, sender the escrow, settles the " +
+    "Payment); or it is taken back, and the money goes to `sender`, where it came from. The owner may collect whenever " +
+    "it chooses once it can act: it calls itself, and where `bootstrapOwner` is named it no longer lists that address " +
+    "among its owners (D11, failing closed). The sender may take it back at any time until it is collected, even after " +
+    "the owner can act (D12): the sender itself, or any caller the `authority` term admits for `authorityKey` at the " +
+    "call, so a department's escrow (authority Budgets, key the budget id) is taken back by whoever " +
+    "`Budgets.authorised` admits then, its hat's wearers or those above and the company Safe, while the money still " +
+    "returns to the company Safe. An amount-reached escrow (an invoice) carries its owner's claim in its terms: anyone " +
+    "pays it out once it holds the amount, and from then it cannot be taken back. No expiry. What changed from v4: " +
+    "roles named for what they do (v4's `ownerSafe` is `sender`, `payeeSafe` is `owner`), the authority term, the " +
+    "bootstrap owner as a term, the exit-claim lookup replaced by `ownerTakesSurplus`, `canRefund`, and `by` on " +
+    "EscrowRefunded. Payments, Budgets and every other contract stay as v4 has them (decision payments.general-escrow).",
   functions: {
-    payout: { signature: "payout()", about: "Pays an invoice escrow's payee once it holds the amount; anyone may call it. A claim escrow refuses it." },
-    collect: { signature: "collect()", about: "The payee's Safe collects a claim escrow, once the Safe is claimed and the escrow holds the amount; no one else can." },
+    collect: {
+      signature: "collect()",
+      about:
+        "Owner-collects escrow: only the owner, once it can act and the escrow is open and holds the amount. Pays exactly " +
+        "`amount` to the owner through Payments, the escrow its executor; any surplus to the sender, or to the owner with " +
+        "`ownerTakesSurplus`.",
+    },
+    payout: {
+      signature: "payout()",
+      about: "Amount-reached escrow only: anyone pays the owner once it holds the amount, the surplus to the sender. An owner-collects escrow refuses it.",
+    },
     refund: {
       signature: "refund()",
       about:
-        "The owner takes the escrow's balance back to itself: an invoice escrow while short of the amount, a claim escrow at " +
-        "any time until it is collected; once paid or refunded it only returns a later deposit to the owner.",
+        "Takes the money back to the sender, whoever calls: the sender, or a caller the authority admits for its key now " +
+        "(a revert or malformed answer refuses). While open: owner-collects until collected; amount-reached while short. " +
+        "Once closed, it returns a later deposit.",
     },
-    state: { signature: "state() view returns (State)", about: "Open, paid or refunded." },
+    canRefund: {
+      signature: "canRefund(address who) view returns (bool)",
+      about: "Whether `who` may take it back now: the sender, or the authority's answer for its key, read the way `refund` reads it.",
+    },
+    conditionMet: {
+      signature: "conditionMet() view returns (bool)",
+      about: "Whether it would pay its owner now: an owner-collects escrow whose owner can act, or an amount-reached one holding the amount.",
+    },
+    state: { signature: "state() view returns (State)", about: "Open, Paid (collected or paid out) or Refunded (taken back)." },
   },
   events: {
     EscrowCreated: {
-      signature: "EscrowCreated(address indexed ownerSafe, address indexed payeeSafe, bytes32 indexed paymentId, address token, uint256 amount, uint16 kind, bytes32 documentHash, uint8 condition)",
-      about: "An escrow's terms.",
+      signature:
+        "EscrowCreated(address indexed owner, address indexed sender, bytes32 indexed paymentId, address token, uint256 amount, uint16 kind, bytes32 documentHash, uint8 condition, address authority, uint256 authorityKey)",
+      about: "An escrow's terms, emitted when it is deployed: who collects, where a refund goes, and who else may take it back.",
     },
-    EscrowPaid: { signature: "EscrowPaid(address indexed ownerSafe, address indexed payeeSafe, bytes32 indexed paymentId, uint256 amount)", about: "Paid out." },
-    EscrowRefunded: { signature: "EscrowRefunded(address indexed ownerSafe, bytes32 indexed paymentId, uint256 amount, State state)", about: "Refunded." },
+    EscrowPaid: {
+      signature: "EscrowPaid(address indexed owner, address indexed sender, bytes32 indexed paymentId, uint256 amount)",
+      about: "Collected by its owner, or paid out to it: beside the PaymentSent with the same payment id.",
+    },
+    EscrowRefunded: {
+      signature: "EscrowRefunded(address indexed sender, address indexed by, bytes32 indexed paymentId, uint256 amount, State state)",
+      about: "Taken back to its sender by `by` (state Refunded), or a later deposit returned (state Paid or Refunded, unchanged).",
+    },
   },
-  was: [`${V4}/interfaces/IEscrow.sol:30`],
+  was: [`${V4}/interfaces/IEscrow.sol:30`, `${V4}/money/Escrow.sol:107-197`, "docs/planning/protocol-v4/spec/escrow.md"],
 });
 
 export const contract_agent_owner = defineContract({
