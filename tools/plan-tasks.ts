@@ -27,6 +27,7 @@ import { readFileSync, writeFileSync } from "node:fs";
 import { name, records, stage } from "../books/target/index.ts";
 import { CONCEPTS } from "../books/target/shared/foundation.ts";
 import { recordsOf } from "../books/target/shared/index.ts";
+import { WORLDS } from "../books/target/devnet/worlds.ts";
 import { buildBook, keyOf, type AnyRecord, type EvalDef } from "../packages/book/src/index.ts";
 
 const OUT = "docs/mission/tasks.json";
@@ -283,8 +284,8 @@ const MILESTONES: Milestone[] = [
         exit: [["ms:B3/sandbox", "At an integration head newer than its golden snapshot, the devnet boots in a swarmD sandbox in at most 2 minutes and one L1 eval runs in at most 10 seconds, or a decision records the fallback: one long-lived devnet host, a world restored per pair under a lock."],
           ["ms:B3/scope", "With SWARMD_TASK_PATHS set, the project's gate fails on a change outside the task's paths, or to packages/book or packages/evals from a lane task, and admits the regenerated outputs only when generate:check and plan-tasks --check pass."]] },
       { key: "B3.pilots", title: "B3 The pilots pass", paths: [], needs: [],
-        goal: "Sign in, set up an Account and send a payment pass every eval of their tasks at the integration head, within budget.",
-        exit: [["ms:B3/pilots", "Every eval of the pilot tasks passes at the integration head in one run, within its budget."]] },
+        goal: "Sign in, set up an Account and send a payment, and the devnet commands the world builder runs, pass every eval of their tasks at the integration head that a buildable world allows, within budget.",
+        exit: [["ms:B3/pilots", "In one run at the integration head, every eval of the pilot closure passes within its budget, except those whose world's steps run an operation not built yet, which read unverifiable and name that world."]] },
       { key: "B3.size", title: "B3 Each concept's line budget", paths: ["books/target/shared/", "books/target/"], needs: ["step:B3.pilots"],
         goal: "Each concept's line budget is set in its record from the pilots' measured lines per operation, and sys:loc evals check it.",
         exit: [["ms:B3/size", "Every concept record carries its line budget from the pilots' measurement (system.size), and sys:loc/<concept> is in the catalogue."]] },
@@ -435,8 +436,22 @@ for (const o of ops) {
   const impl = linksFrom(keyOf(o), "implementedBy")[0]!;
   implementers.set(impl, [...(implementers.get(impl) ?? []), keyOf(o)]);
 }
-/** Pilots: the book's critical operations, and the web app's setup flow, which starts an Account's setup (accounts.setup-in-web-app). */
-const PILOTS = [...ops.filter((o) => o.priority === "critical").map(keyOf), "flow:client.account.setup"];
+/** The devnet commands the world builder's steps run (dev approve, dev time warp, dev fund, …): system.build-order builds
+ * "devnet's own dev commands alongside the harness", and no world, so no pilot refusal or claim that starts from one, can
+ * be built without them. Read from the worlds' steps, so a new step command joins the pilots by itself. */
+const worldCommands = new Set([
+  // the builder's own: restore `from`, run the steps, then `dev snapshot save <name> --replace` (books/target/devnet/worlds.ts)
+  "dev snapshot save",
+  "dev snapshot restore",
+  ...WORLDS.flatMap((w) => w.steps.flatMap((s) => [...s.run.matchAll(/capxul (dev [a-z-]+(?: [a-z-]+)?)/g)].map((m) => m[1]!))),
+]);
+/** Each world command's operation: the one whose command is its longest prefix ("dev time warp 2h" is dev.time.warp). */
+const commandOf = (c: string) =>
+  ops.filter((o) => c === String(o.command) || c.startsWith(`${String(o.command)} `)).sort((a, b) => String(b.command).length - String(a.command).length)[0];
+const WORLD_OPS = [...new Set([...worldCommands].map(commandOf).filter((o) => o !== undefined).map((o) => keyOf(o!)))].sort();
+/** Pilots: the book's critical operations, the web app's setup flow, which starts an Account's setup
+ * (accounts.setup-in-web-app), and the world builder's devnet commands. */
+const PILOTS = [...ops.filter((o) => o.priority === "critical").map(keyOf), "flow:client.account.setup", ...WORLD_OPS];
 const helperFlows = flows.filter((f) => !implementers.has(keyOf(f)));
 const stepRpcs = (flowKey: string) => linksFrom(flowKey, "steps");
 const rpcsOfTask = (key: string): string[] => {
@@ -542,6 +557,8 @@ for (const o of ops) if (!tasks.has(keyOf(o))) failures.push(`operation ${o.id} 
 for (const [from, to] of need) for (const k of to) if (!tasks.has(k)) failures.push(`${from} needs ${k}, which is no task`);
 for (const t of tasks.values())
   if (!t.evals.length && ![...tasks.values()].some((c) => c.parent === t.key)) failures.push(`${t.key} has no eval and no child: it would read done at once`);
+// The runner lists each exit line as a catalogue check, whose claim swarmD's ledger holds to 300 characters.
+for (const t of tasks.values()) for (const e of t.exit ?? []) if (e.claim.length > 300) failures.push(`${e.id}: its claim is ${e.claim.length} characters; a check's claim is at most 300`);
 // A task is never scheduled before its lane's layer. One that needs a later layer's task (notices' equity processes
 // read equity's tables) is scheduled in that later layer, in its own lane, and only a layer that system.build-order puts
 // last may pull a task later like this; any other need on a later layer is against the build order (swarm.layers).
@@ -629,6 +646,7 @@ const counts = {
   milestoneEvals: [...owned.keys()].filter((id) => !evalsById.has(id)).length,
   needs: out.reduce((n, t) => n + t.needs.length, 0),
   budgetUsd: out.reduce((n, t) => n + (isWorking(t) ? t.budgetUsd : 0), 0),
+  worldPilots: WORLD_OPS.length,
   frontierAfterB3: frontierAfterB3.length,
   frontierLanesAfterB3: new Set(frontierAfterB3.map((t) => t.lane)).size,
   bookRecords: book.records.size,

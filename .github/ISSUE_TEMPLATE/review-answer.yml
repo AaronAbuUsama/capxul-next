@@ -37,6 +37,13 @@ body:
       placeholder: "two-transactions"
     validations:
       required: false
+  - type: textarea
+    id: text
+    attributes:
+      label: "Text"
+      description: "ReviewAnswer.text: for change, what you want instead; otherwise an optional note. At most 1,000 characters. If it leaves a judgment open, the build comes back with a decision pack rather than guess."
+    validations:
+      required: false
   - type: input
     id: seenAt
     attributes:
@@ -45,10 +52,3 @@ body:
       placeholder: "a1b2c3d4e5f60718293a4b5c6d7e8f9012345678"
     validations:
       required: true
-  - type: textarea
-    id: text
-    attributes:
-      label: "Text"
-      description: "ReviewAnswer.text: for change, what you want instead; otherwise an optional note. At most 1,000 characters. If it leaves a judgment open, the build comes back with a decision pack rather than guess."
-    validations:
-      required: false

@@ -24,19 +24,6 @@ body:
       default: 0
     validations:
       required: true
-  - type: dropdown
-    id: bring
-    attributes:
-      label: "Bring"
-      description: "Matter.bring (SD-10): which of the goal prompt's four kinds; not brought for a risk or commitment."
-      options:
-        - "decision"
-        - "flagged"
-        - "irreversible"
-        - "owner-only"
-        - "not brought"
-    validations:
-      required: true
   - type: textarea
     id: body
     attributes:
@@ -226,6 +213,19 @@ body:
       label: "Meanwhile"
       description: "Matter.default (SD-10): what stands until it is answered. A decision: the recommendation, and the build continues. A question: '<task key> waits; nothing else does.'"
       placeholder: "sonnet stands; the build continues."
+    validations:
+      required: true
+  - type: dropdown
+    id: bring
+    attributes:
+      label: "Bring"
+      description: "Matter.bring (SD-10): which of the goal prompt's four kinds; not brought for a risk or commitment."
+      options:
+        - "decision"
+        - "flagged"
+        - "irreversible"
+        - "owner-only"
+        - "not brought"
     validations:
       required: true
   - type: textarea

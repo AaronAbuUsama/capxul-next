@@ -723,7 +723,7 @@
       "key": "step:B3.pilots",
       "kind": "step",
       "title": "B3 The pilots pass",
-      "goal": "Sign in, set up an Account and send a payment pass every eval of their tasks at the integration head, within budget.",
+      "goal": "Sign in, set up an Account and send a payment, and the devnet commands the world builder runs, pass every eval of their tasks at the integration head that a buildable world allows, within budget.",
       "parent": "milestone:B3",
       "priority": "critical",
       "evals": [
@@ -737,18 +737,28 @@
         "operation:account.retry",
         "operation:auth.login",
         "operation:auth.verify",
+        "operation:dev.approve",
+        "operation:dev.fund",
+        "operation:dev.gates.set",
+        "operation:dev.jobs.run",
+        "operation:dev.key",
+        "operation:dev.mail.list",
+        "operation:dev.snapshot.restore",
+        "operation:dev.snapshot.save",
+        "operation:dev.time.warp",
         "operation:payment.send",
         "rpc:access.sign-in.challenge",
         "rpc:access.sign-in.send-code",
         "rpc:access.sign-in.verify-code",
         "rpc:access.sign-in.with-key",
         "rpc:approvals.signing.get",
-        "rpc:approvals.signing.sign"
+        "rpc:approvals.signing.sign",
+        "rpc:organizations.workspaces.list"
       ],
       "exit": [
         {
           "id": "ms:B3/pilots",
-          "claim": "Every eval of the pilot tasks passes at the integration head in one run, within its budget."
+          "claim": "In one run at the integration head, every eval of the pilot closure passes within its budget, except those whose world's steps run an operation not built yet, which read unverifiable and name that world."
         }
       ],
       "labels": [
@@ -1435,12 +1445,14 @@
       "title": "Integration: devnet-control, The devnet supervisor's control protocol: the cloc…",
       "goal": "The devnet-control integration is an Effect service with its fake, and every call keeps its timeout, retries and error mapping as the record says.",
       "needs": [
-        "milestone:B3"
+        "milestone:B2",
+        "step:B3.spine"
       ],
       "labels": [
         "kind:integration",
         "lane:integrations",
-        "layer:-1"
+        "layer:-1",
+        "pilot-closure"
       ],
       "budgetUsd": 5,
       "checkers": [
@@ -3786,7 +3798,9 @@
         "area:devnet",
         "kind:operation",
         "lane:accounts",
-        "layer:5"
+        "layer:5",
+        "pilot",
+        "pilot-closure"
       ],
       "goal": "`capxul dev fund` does what operation dev.fund promises: its 0 acceptance claims and 5 refusals hold, its --json shape, events, spans and budget pass on a devnet at the head of integration/build, and its reference page agrees with it. Adds test money to your own Safe from the deployment's faucet. With `--org <handle>` it funds that Organization's Safe instead. Use it to have money to try payments with.",
       "needs": [
@@ -3794,7 +3808,8 @@
         "door:accounts",
         "door:parties",
         "integration:service-signer",
-        "milestone:B3"
+        "milestone:B2",
+        "step:B3.spine"
       ],
       "budgetUsd": 5,
       "checkers": [
@@ -4378,14 +4393,17 @@
       "labels": [
         "kind:rpc",
         "lane:organizations",
-        "layer:6"
+        "layer:6",
+        "pilot",
+        "pilot-closure"
       ],
       "goal": "The server endpoint organizations.workspaces.list (The Organizations the caller can act in, and their unfinished setups) answers as its record says: its declared errors only, its spans and its budget. Other lanes reach it: operation:dev.gates.set, operation:org.list, operation:org.show, operation:org.wait.",
       "needs": [
         "door:indexing",
         "door:organizations",
         "door:parties",
-        "milestone:B3"
+        "milestone:B2",
+        "step:B3.spine"
       ],
       "budgetUsd": 5,
       "checkers": [
@@ -5144,12 +5162,14 @@
       "title": "Door: applications tables, machines and procedures",
       "goal": "The applications concept's tables, state machines and door procedures exist as its records say: tenant-first keys and row-level security, only declared transitions, one event per machine, each procedure atomic.",
       "needs": [
-        "milestone:B3"
+        "milestone:B2",
+        "step:B3.spine"
       ],
       "labels": [
         "kind:door",
         "lane:applications",
-        "layer:7"
+        "layer:7",
+        "pilot-closure"
       ],
       "budgetUsd": 5,
       "checkers": [
@@ -5262,12 +5282,15 @@
         "area:devnet",
         "kind:operation",
         "lane:applications",
-        "layer:7"
+        "layer:7",
+        "pilot",
+        "pilot-closure"
       ],
       "goal": "`capxul dev key` does what operation dev.key promises: its 4 acceptance claims and 4 refusals hold, its --json shape, events, spans and budget pass on a devnet at the head of integration/build, and its reference page agrees with it. Gets a test publishable key for an app on this machine and writes it to `.env.local` in the current folder. Use `--print` to print the key instead. No sign-in is needed.",
       "needs": [
         "door:applications",
-        "milestone:B3"
+        "milestone:B2",
+        "step:B3.spine"
       ],
       "budgetUsd": 5,
       "checkers": [
@@ -16201,12 +16224,14 @@
       "title": "Door: devnet tables, machines and procedures",
       "goal": "The devnet concept's tables, state machines and door procedures exist as its records say: tenant-first keys and row-level security, only declared transitions, one event per machine, each procedure atomic.",
       "needs": [
-        "milestone:B3"
+        "milestone:B2",
+        "step:B3.spine"
       ],
       "labels": [
         "kind:door",
         "lane:devnet",
-        "layer:13"
+        "layer:13",
+        "pilot-closure"
       ],
       "budgetUsd": 5,
       "checkers": [
@@ -16452,16 +16477,19 @@
         "area:devnet",
         "kind:operation",
         "lane:devnet",
-        "layer:13"
+        "layer:13",
+        "pilot",
+        "pilot-closure"
       ],
       "goal": "`capxul dev approve` does what operation dev.approve promises: its 0 acceptance claims and 2 refusals hold, its --json shape, events, spans and budget pass on a devnet at the head of integration/build, and its reference page agrees with it. Signs an open approval as another person, with that person's dev signer, as the approval page would. Use it to play every Director or payer in a story from one terminal.",
       "needs": [
         "door:devnet",
-        "milestone:B3",
+        "milestone:B2",
         "rpc:access.sign-in.send-code",
         "rpc:access.sign-in.verify-code",
         "rpc:approvals.signing.get",
-        "rpc:approvals.signing.sign"
+        "rpc:approvals.signing.sign",
+        "step:B3.spine"
       ],
       "budgetUsd": 5,
       "checkers": [
@@ -16509,15 +16537,18 @@
         "area:devnet",
         "kind:operation",
         "lane:devnet",
-        "layer:13"
+        "layer:13",
+        "pilot",
+        "pilot-closure"
       ],
       "goal": "`capxul dev gates set` does what operation dev.gates.set promises: its 0 acceptance claims and 4 refusals hold, its --json shape, events, spans and budget pass on a devnet at the head of integration/build, and its reference page agrees with it. Turns a feature gate on or off for the Organization you name with `--org`. On a devnet, gates come from the devnet's own table.",
       "needs": [
         "door:access",
         "door:devnet",
         "door:organizations",
-        "milestone:B3",
-        "rpc:organizations.workspaces.list"
+        "milestone:B2",
+        "rpc:organizations.workspaces.list",
+        "step:B3.spine"
       ],
       "budgetUsd": 5,
       "checkers": [
@@ -16552,12 +16583,15 @@
         "area:devnet",
         "kind:operation",
         "lane:devnet",
-        "layer:13"
+        "layer:13",
+        "pilot",
+        "pilot-closure"
       ],
       "goal": "`capxul dev jobs run` does what operation dev.jobs.run promises: its 0 acceptance claims and 2 refusals hold, its --json shape, events, spans and budget pass on a devnet at the head of integration/build, and its reference page agrees with it. Runs each backend job once, now, and reports which succeeded. Use it when you want work that runs on a schedule to happen without moving the clocks.",
       "needs": [
-        "milestone:B3",
-        "operation:dev.gates.set"
+        "milestone:B2",
+        "operation:dev.gates.set",
+        "step:B3.spine"
       ],
       "budgetUsd": 5,
       "checkers": [
@@ -16638,12 +16672,15 @@
         "area:devnet",
         "kind:operation",
         "lane:devnet",
-        "layer:13"
+        "layer:13",
+        "pilot",
+        "pilot-closure"
       ],
       "goal": "`capxul dev mail list` does what operation dev.mail.list promises: its 0 acceptance claims and 1 refusals hold, its --json shape, events, spans and budget pass on a devnet at the head of integration/build, and its reference page agrees with it. Shows the mail Capxul sent on the devnet, newest first. Nothing leaves the machine: the devnet keeps it in a mail sink. Use `--to` to see one person's mail, such as an invite or a sign-in code.",
       "needs": [
-        "milestone:B3",
-        "operation:dev.approve"
+        "milestone:B2",
+        "operation:dev.approve",
+        "step:B3.spine"
       ],
       "budgetUsd": 5,
       "checkers": [
@@ -16815,12 +16852,15 @@
         "area:devnet",
         "kind:operation",
         "lane:devnet",
-        "layer:13"
+        "layer:13",
+        "pilot",
+        "pilot-closure"
       ],
       "goal": "`capxul dev snapshot restore` does what operation dev.snapshot.restore promises: its 1 acceptance claims and 3 refusals hold, its --json shape, events, spans and budget pass on a devnet at the head of integration/build, and its reference page agrees with it. Puts the devnet back to a saved snapshot: the chain, the backend data and the indexer. Use it to go back in the story, since warps only move forward.",
       "needs": [
         "integration:devnet-control",
-        "milestone:B3"
+        "milestone:B2",
+        "step:B3.spine"
       ],
       "budgetUsd": 5,
       "checkers": [
@@ -16858,12 +16898,15 @@
         "area:devnet",
         "kind:operation",
         "lane:devnet",
-        "layer:13"
+        "layer:13",
+        "pilot",
+        "pilot-closure"
       ],
       "goal": "`capxul dev snapshot save` does what operation dev.snapshot.save promises: its 0 acceptance claims and 3 refusals hold, its --json shape, events, spans and budget pass on a devnet at the head of integration/build, and its reference page agrees with it. Saves the whole devnet world under a name: the chain, the backend data and, when it runs, the indexer. Restore it later to go back to this point. Use it after each step of a story you want to replay.",
       "needs": [
         "integration:devnet-control",
-        "milestone:B3"
+        "milestone:B2",
+        "step:B3.spine"
       ],
       "budgetUsd": 5,
       "checkers": [
@@ -16984,12 +17027,15 @@
         "area:devnet",
         "kind:operation",
         "lane:devnet",
-        "layer:13"
+        "layer:13",
+        "pilot",
+        "pilot-closure"
       ],
       "goal": "`capxul dev time warp` does what operation dev.time.warp promises: its 0 acceptance claims and 2 refusals hold, its --json shape, events, spans and budget pass on a devnet at the head of integration/build, and its reference page agrees with it. Moves the chain and backend clocks forward together, by a duration such as `6h` or `28d`, or to a date with `--to`. After the move it runs the backend jobs that fell due. Use it to reach the next payday, claim or due date without waiting.",
       "needs": [
         "integration:devnet-control",
-        "milestone:B3"
+        "milestone:B2",
+        "step:B3.spine"
       ],
       "budgetUsd": 5,
       "checkers": [

@@ -24,11 +24,13 @@ capxul                       Capxul rebuilt                       evals: ok:capx
 │  ├─ workflow:payments.…    each durable process                 wfl:, bud:
 │  └─ operation:payment.send each of the 215 operations           acc:, ret:, ref:, evt:, spn:, bud:, doc:, des:, flw:, rpc:
 ├─ lane:integrations         the 11 integrations                  int:
-└─ lane:journeys             the 13 journeys                      jrn:, fun:
+└─ lane:journeys             the 13 journeys (watch tasks)        jrn:, fun:
 ```
 
-438 tasks on the book of 8 November 2026: 405 working tasks at $5 each. The operation is the unit (`swarm.task-unit`).
-Labels come from the plan: `kind:`, `lane:`, `layer:`, `area:`, `money`, `pilot`, `pilot-closure`, `after:`.
+438 tasks on the book of 8 November 2026. 405 are working tasks: 390 get a pair at $5 (across all their pairs), and 15
+are watch tasks with no paths (the journeys, B3.pilots, B5.week), never paired and done by their evals
+(`swarm.watch-tasks`). The operation is the unit (`swarm.task-unit`). Labels come from the plan: `kind:`, `lane:`,
+`layer:`, `area:`, `money`, `pilot`, `pilot-closure`, `after:`, `watch`.
 Priority is the record's own; milestones and steps are critical; equity and board's director and vote commands are low
 (`system.build-order`).
 
@@ -56,17 +58,20 @@ once the app is connected.
 | `diagnoser` | diagnoser | anthropic/claude-sonnet-5-5 | 1 | read-only | none | a diagnosis |
 | `researcher` | none | anthropic/claude-haiku-5-5 (cheap) | 1 | read-only | none | an answer, a recommendation, sources |
 
-The manager runs on claude-haiku-5-5. At most 4 pairs in flight and 6 agents at once, one task per lane
-(`swarm.pacing`). There is no verifier: the engine runs the machine evals in the sandbox. The models are
+The manager runs on claude-haiku-5-5. At most 4 pairs in flight and 6 agents at once, one task per lane; at stage 0, 2
+pairs, since there the subscription's usage window is the limit (`swarm.pacing`). There is no verifier: the engine runs the machine evals in the sandbox. The models are
 `swarm.checker-family`, Aaron's to fund; the recommendation stands until he answers.
 
 ## The pair
 
 Every task with checkers is a pair (swarm.md section 6): the builder makes, the reviewer checks (and the adversary on
-the seven money lanes and B0.once), the engine runs the gate and the machine evals. Limits: 5 rounds (the round signal
+the seven money lanes and B0.once), the engine runs the gate and the machine evals. A merged task is never paired
+again unless an eval fails at the head, and the tasks after it start at its merge; a stopped task waits for its cause,
+then gets one more pair within what is left of its budget (`swarm.merged-tasks`). Limits: 5 rounds (the round signal
 at 3), $5 a task (the budget signal at half), a fresh maker and a delta review each round, stalled after 30 minutes
 (`swarm.pair-limits`). Only the manager merges, in code, when every checker approves, no machine eval failed and the
-required CI is green; unverifiable evals are listed under After merge (`swarm.merge`).
+required CI is green; unverifiable evals are listed under After merge (`swarm.merge`). No sandbox may push
+`integration/build` or `main` (SD-28; until it lands, branch protection, which needs GitHub Pro: `swarm.accounts`).
 
 ## Connectors, secrets and egress
 
@@ -104,10 +109,11 @@ agent produces (the pull request, the handback, the check, the diagnosis, a matt
 
 1. **The dry run** (swarmD post-mortem O1): one Capxul task end to end on the deployed swarm, on the cheap tier, with
    today's API (swarm-templates.md 10.4).
-2. **Stage 1's entry** (swarm.md 1.2): swarmD's planned pieces built and passing their docs' acceptance lines, the
-   needed briefs SD-1, SD-4, SD-5, SD-6, SD-14 and SD-15, and spec 20's S3: one task with 5 evals converging with no
-   person, 5 runs of 5.
-3. **The pilots** (B3): the pilot closure's 33 tasks done on `integration/build`, each with its timeline of
+2. **Stage 1's entry** (swarm.md 1.2): swarmD's planned pieces built and passing their docs' acceptance lines; the
+   needed briefs without which the master cannot run (SD-2, SD-3, SD-4, SD-21, SD-22, SD-26, SD-27, SD-28) and those
+   for safe running (SD-1, SD-5, SD-6, SD-14, SD-15); and spec 20's S3: one task with 5 evals converging with no person,
+   5 runs of 5.
+3. **The pilots** (B3): the pilot closure's 46 tasks merged on `integration/build`, their evals passing except those whose world is not buildable yet, each with its timeline of
    assignments, rounds and cost, the board live, and no person acting except to answer matters.
 
 ## What the swarm design replaced

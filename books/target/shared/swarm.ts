@@ -203,9 +203,9 @@ export const decision_swarm_pacing = defineDecision({
     "and losing what each agent had not written when the window closed; so stage 0 runs 2 pairs. At stage 1 the limits are " +
     "money and the providers': the anthropic key's rate limits, and the gateway, which is a CLIProxy over a subscription " +
     "with its own window, whose exhaustion is a provider signal that pauses the makers. The retro's healthy task took 16 " +
-    "active minutes and $0.77, a long one 11 minutes a round: 4 pairs keep about 6 agents busy. After B3 the frontier is 92 " +
+    "active minutes and $0.77, a long one 11 minutes a round: 4 pairs keep about 6 agents busy. After B3 the frontier is 104 " +
     "tasks over 22 lanes, so one task per lane costs no parallelism and keeps lane branches free of conflicts.",
-  source: by(`HANDOFF.md (lessons that save usage); ${RETRO} (per mission, per ticket); ${SWARMD} docs/planning/sitrep-2026-11-08.md (gateway: CLIProxy); tools/plan-tasks.ts (frontierAfterB3 92, 22 lanes)`),
+  source: by(`HANDOFF.md (lessons that save usage); ${RETRO} (per mission, per ticket); ${SWARMD} docs/planning/sitrep-2026-11-08.md (gateway: CLIProxy); tools/plan-tasks.ts (frontierAfterB3 104, 22 lanes)`),
   affects: [f.system_capxul, decision_system_layout],
 });
 
@@ -364,25 +364,32 @@ export const decision_swarm_layers = defineDecision({
 
 export const decision_swarm_pilots = defineDecision({
   id: "swarm.pilots",
-  title: "The pilots are the critical operations and the setup flow, built in B3",
+  title: "Pilots: the critical operations, the setup flow, the world builder's commands",
   question: "Which tasks are B3's pilots, and what may run before B3 is done?",
   options: [
     {
       label: "critical-closure",
       text:
-        "The pilots are the book's critical operations (auth.login, auth.verify, account.retry, payment.send) and the web app's " +
-        "setup flow client.account.setup, which starts an Account's setup (accounts.setup-in-web-app). Their closure, every " +
-        "task they need, needs only the spine and the harness; every other lane task needs the whole of B3, including the " +
-        "concepts' line budgets. On this book the closure is 33 tasks.",
+        "The pilots are the book's critical operations (auth.login, auth.verify, account.retry, payment.send), the web app's " +
+        "setup flow client.account.setup, which starts an Account's setup (accounts.setup-in-web-app), and the devnet " +
+        "commands the world builder runs (read by plan-tasks from the worlds' steps, plus the builder's own snapshot save " +
+        "and restore: 9 on this book). Their closure, every task they need, needs only the spine and the harness; every " +
+        "other lane task needs the whole of B3, including the concepts' line budgets. On this book the closure is 46 tasks. " +
+        "A pilot eval whose world's steps run an operation not built yet reads unverifiable, naming the world, and " +
+        "ms:B3/pilots excepts it; worlds are not needs.",
     },
     { label: "three-ops", text: "Three operations named by hand, everything else after B3." },
+    { label: "world-needs", text: "Make every world a refusal starts from a need, so the pilots' every eval can pass in B3." },
   ],
   chosen: "critical-closure",
   why:
     "The goal prompt names sign in, set up an Account and send a payment; the book marks exactly those critical. The pilots " +
     "cannot pass without their doors, processes and integrations, so the closure is the real pilot, and the line budgets " +
-    "measured on it are set before the other 400 tasks start.",
-  source: by("docs/mission/initializer.md (B3); books/target accounts.setup-in-web-app; docs/mission/tasks.json (pilot-closure)"),
+    "measured on it are set before the other tasks start. Without the dev commands no world can be built at all, and " +
+    "system.build-order puts devnet's own dev commands alongside the harness; as devnet's layer they would wait for B4's " +
+    "layer 13. payment.send's refusals start from org-with-budgets, whose steps create departments: making worlds needs " +
+    "would pull organizations' and budgets' operations, most of B4, into B3.",
+  source: by("docs/mission/initializer.md (B3); system.build-order; books/target/devnet/worlds.ts (steps, the builder); tools/plan-tasks.ts (WORLD_OPS, pilot-closure)"),
   affects: [decision_system_size],
 });
 
@@ -465,7 +472,7 @@ export const decision_swarm_merge = defineDecision({
     "every sandbox reaches github.com through an egress that adds the App's installation token, which can write every " +
     "branch, so without branch protection a builder's git push to integration/build is a merge outside the gate, the " +
     "retro's failure by another door. SD-28 closes it in the egress.",
-  source: by(`${RETRO} (D7, what did not work 2); ${SWARMD} docs/planning/sitrep-2026-11-08.md (#85); concepts/the-record.mdx (release gate); how-to/connect-github.mdx (the egress adds the token, git push works); packages/server/src/modules/sandbox/service.ts (the egress adds the header, no ref check)`),
+  source: by(`${RETRO} (D7); ${SWARMD} sitrep-2026-11-08.md (#85); the-record.mdx (release gate); connect-github.mdx (git push works); server sandbox/service.ts (no ref check)`),
   affects: [decision_system_layout],
 });
 
@@ -520,7 +527,7 @@ export const decision_swarm_scope = defineDecision({
     "every book-first change, which must regenerate src/generated/ and tasks.json, and would leave indexing's and devnet's " +
     "code out of their own lanes. A failed gate costs no round, so a scope that refuses needed work loops until the budget " +
     "signal.",
-  source: by("/home/user/factory apps/factory/src/ticket.ts (files, outOfScope, graders); docs/mission/initializer.md (How to work); system.layout (packages/indexer, packages/devnet, src/generated/); books/target/shared/foundation.ts (concept_indexing: Ponder alone writes them); docs/design/tooling.md (the check gate)"),
+  source: by("/home/user/factory apps/factory/src/ticket.ts (files, graders); system.layout (indexer, devnet, src/generated/); concept_indexing (Ponder writes it); docs/design/tooling.md (check)"),
   affects: [decision_system_layout],
 });
 
@@ -574,7 +581,7 @@ export const decision_swarm_watch_tasks = defineDecision({
 
 export const decision_swarm_merged_tasks = defineDecision({
   id: "swarm.merged-tasks",
-  title: "After a merge or a stop, a task leaves the frontier; dependents start at its merge",
+  title: "After a merge or a stop a task leaves the frontier; dependents start at merge",
   question:
     "In swarmD's roll-up a task is done only when every own check passes, or is unverifiable and waived by a person at " +
     "that version; until then it reads open, and every task that needs it reads blocked. A merged operation task with an " +
@@ -601,7 +608,7 @@ export const decision_swarm_merged_tasks = defineDecision({
     "lanes exist: as swarmD's roll-up stands, its task is re-paired for nothing and the lanes after it wait on a person, " +
     "the bottleneck matters-dont-block removes. A stopped task re-paired at once is #46 again with a fresh $5. Holding " +
     "merges for every world serializes the build behind devnet, layer 13 of 14.",
-  source: by(`${SWARMD} apps/docs/content/docs/reference/ledger.md (roll-up: done, blocked); how-to/run-a-pair.mdx (waive, or leave the task open); books/target/devnet/worlds.ts (steps are capxul commands; a world saved with other code refuses to restore); ${RETRO} (#46)`),
+  source: by(`${SWARMD} reference/ledger.md (roll-up); how-to/run-a-pair.mdx (waive, or leave open); books/target/devnet/worlds.ts (steps are capxul commands); ${RETRO} (#46)`),
   affects: [f.system_capxul],
 });
 

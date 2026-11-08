@@ -12,14 +12,14 @@ The files that carry the templates:
 |---|---|
 | this page | every template, its schema, who fills it and where it lands; the team as swarmD declares it |
 | [`.github/pull_request_template.md`](../../.github/pull_request_template.md) | the task's pull request: the Handback (section 3.3) |
-| [`.github/ISSUE_TEMPLATE/`](../../.github/ISSUE_TEMPLATE/) | the review answer, the decision pack, the defect, and one task card per working kind (sections 7 and 8) |
+| [`.github/ISSUE_TEMPLATE/`](../../.github/ISSUE_TEMPLATE/) | the review answer, the decision pack, the defect, and one task card per kind that gets a pair (sections 7 and 8) |
 | [`.claude/agents/`](../../.claude/agents/) | the six roles as Claude Code profiles for stage 0 (section 11) |
 | [`docs/spec/40-capxul-team.md`](../spec/40-capxul-team.md) | the team in short, and what this design replaced |
 
 Every judgment here is a decision record in [`books/target/shared/swarm.ts`](../../books/target/shared/swarm.ts)
 (section 13). The swarmD pieces each template relies on are marked **built**, **planned** (in swarmD's docs, which since
-swarmD #91 are its specification) or **needed** (in neither: a brief, SD-1 to SD-20 in swarm.md section 7 and SD-21 to
-SD-25 in section 12 here). Where swarmD's docs and its code differ, the template follows the docs and says what runs
+swarmD #91 are its specification) or **needed** (in neither: a brief, SD-1 to SD-20 and SD-26 to SD-28 in swarm.md section 7, and
+SD-21 to SD-25 in section 12 here). Where swarmD's docs and its code differ, the template follows the docs and says what runs
 today.
 
 ## Contents
@@ -82,6 +82,8 @@ These hold for every artifact below (`swarm.templates`).
 | 8 | Check | reviewer, adversary | `PairMessage` check 4.5, `Finding` 4.7 | 4.1 to 4.3 | json block | `check` tool |
 | 9 | Agent verdict (`des:`) | reviewer | `Verdict` 4.7 | 4.4 | json block, PR comment | `check.verdicts` (SD-21) |
 | 10 | Question | any worker | `PairMessage` question | 5 | json block | `ask` tool |
+| 10a | Progress | any worker | the `progress` tool's `{ now, done, next }` | 5.1 | none: Mission Control writes the status card | `progress` tool |
+| 10b | The master's answer to a question | master | `decide` continue, until SD-25 a thread post | 5.2 | the `ANSWER` comment on the pull request | a `post` in the task's thread |
 | 11 | Diagnosis | diagnoser | `Diagnosis` 4.8 | 6.1 | json block | the role's result |
 | 12 | Research answer | researcher | its own result | 6.2 | json block | `report ready` result |
 | 13 | Decide | master | `DecideAction` 4.8 | 7.1 | PR comment, card | `decide` tool |
@@ -90,7 +92,8 @@ These hold for every artifact below (`swarm.templates`).
 | 16 | Review answer | the reviewer of a decision, on the portal | `ReviewAnswer` (portal.md) | 7.4, `review-answer.yml` | a GitHub issue | a GitHub issue; later a matter (SD-23) |
 | 17 | Review task | master | `TaskDef` 4.2, kind review | 8.2, `task-review.yml` | a task card | a ledger task |
 | 18 | Defect task | master; a person | `TaskDef` 4.2, kind defect | 8.1, `defect.yml` | a task card | a ledger task |
-| 19 | Task card | Mission Control | `TaskDef` 4.2 and `TaskBrief` 4.3 | 8.3, `task-<kind>.yml` | a GitHub issue | none: the ledger task and its room thread |
+| 19 | Task card | Mission Control | `TaskDef` 4.2 and `TaskBrief` 4.3 | 8.3, `task-<kind>.yml` | a GitHub issue, for a task that gets a pair | none: the ledger task and its room thread |
+| 19a | A split's children | master (`decide` split) | `TaskDef` 4.2, key `<parent key>/split-<n>` | 8.4 | task cards | ledger tasks opened by the split |
 | 20 | Status card | Mission Control; the chat template | `PairView` 4.10 | 9.1 | the card's first comment | the task's thread |
 | 21 | Mirror comments | Mission Control; code (SD-13) | `PairMessage`, `Signal`, the gate, the merge | 9.2 | the pull request | the pull request |
 | 22 | The board | swarmD (code) | `ManagerState` 4.10 | 9.3 | — | the artifact (web, Slack, Pi) |
@@ -346,7 +349,7 @@ Milestone: `milestone:B3` · every exit eval passes at integration/build `a1b2c3
 4,102 pass · 31 fail · 18 unverifiable · 643 unknown · 0 error (run at 2026-11-24T14:02:00Z)
 
 ## The milestone
-Tasks done: 33 of 33 · spend $61.20 of $165.00 · rounds: median 1, 90th percentile 3
+Tasks done: 46 of 46 · spend $61.20 of $230.00 · rounds: median 1, 90th percentile 3
 
 ## Unverifiable, listed and not blocking
 - `acc:payment.send/9`: … 
@@ -450,7 +453,10 @@ Unverifiable only when the code it needs is not built yet.
 ```
 
 The reviewer posts it in its check's `verdicts` (SD-21), as `{ check, result, detail }`; code adds `by` (the reviewer's
-actor), `version`, `at` and the evidence (`kind: "review"`, the check's text as the blob). It counts at the head after
+actor), `version`, `at` and the evidence (`kind: "review"`, the check's text as the blob). The release gate needs it at the
+version that merges, so the reviewer posts it in every check it approves. From round 2 it judges only the delta against
+its own earlier `des:` of this pair, and reads the whole operation again only when the delta touches a claim, a refusal
+or the `--json` shape, so `des:` does not undo the delta review. It counts at the head after
 the merge until a commit changes one of its task's paths (SD-22, `swarm.agent-verdicts`). `ok:capxul` is Aaron's and
 has no template here: he signs it on the board.
 
@@ -472,7 +478,33 @@ and the run ends; in today's API it is `report blocked` with `attention: { quest
 
 Ask only about a real fork the brief, the book and the decisions do not settle. The master answers from the book or the
 ledger, or assigns the researcher; it raises a matter only for the four kinds. Until the `decide` answer reaches the
-worker (SD-25), the master's answer is a `post` in the task's thread, which reaches the asking worker as steering.
+worker (SD-25), the master's answer is a `post` in the task's thread, which reaches the asking worker as steering, in the
+form of 5.2.
+
+### 5.1 Progress
+
+A worker's `progress` call (stage 1; planned) updates its status card's `Now` and `Next` lines and appends a `progress`
+entry. Each field is one line of at most 200 characters, the entry summary's limit: `now` what it is doing, with the
+file or eval; `done` what it finished since the last call, with the evals its own run passed, or `_none_`; `next` its
+next step. It calls `progress` at most once per 10 minutes of work and never to report done. At stage 0 a subagent has no
+such call; Mission Control writes the status card from each returned message.
+
+```json
+{ "now": "mapping the balance shortfall in packages/backend/src/payments/commands.ts", "done": "ref:payment.send/INSUFFICIENT_BALANCE passes in my run", "next": "run the task's evals, then submit" }
+```
+
+### 5.2 The master's answer to a question
+
+One post in the task's thread (stage 1) or comment on the pull request (stage 0), marker first:
+
+```text
+ANSWER · <P-n> · capxul/master · to <assignment or builder#n>
+<the chosen option, or the answer in one or two sentences>. Because: <the book record, decision id or ledger entry it
+rests on>. <If a researcher answered: Source: <its sources>.>
+```
+
+It answers only the question asked, names the option by its words when the question had options, and never widens the
+task: something outside the task's paths is a defect (8.1).
 
 ## 6. The diagnosis and the research answer
 
@@ -615,10 +647,10 @@ its URL (portal.md, "Where it goes"). Its fields are the portal's `ReviewAnswer`
 | `decision` | `decision`: the decision id, or `surface` | the portal |
 | `answer` | `accept`, `choose` or `change` | the portal |
 | `option` | `option`: an existing option's label (`choose`) | the portal |
-| `seenAt` | `seenAt`: the commit the page was built from | the portal |
 | `text` | `text`: what he wants instead (`change`), or a note | the reviewer, at most 1,000 characters |
 | (the issue's author) | `by` | GitHub |
 | (the issue's creation) | `at` | GitHub |
+| `seenAt` | `seenAt`: the commit the page was built from | the portal |
 
 The title is `review: <decision>`; the labels `review` and `swarmd` (the `swarmd` label addresses the master through the
 GitHub source, built). The master applies an issue only when its author is the decision's reviewer (`review.by`, mapped
@@ -628,8 +660,8 @@ and waits. Once swarmD's matters carry a subject and a typed resolution (SD-23),
 ## 8. Tasks opened outside the plan, and task cards
 
 Only two kinds of task are opened by hand, both by the master (`swarm.task-tree`): a **defect** and a **review** task.
-Their keys and evals are fixed (`swarm.hand-tasks`), so the plan's reconcile can tell them from derived tasks and never
-drops them.
+A split's children (8.4) are opened by the split itself. Their keys and evals are fixed (`swarm.hand-tasks`), so the
+plan's reconcile can tell them from derived tasks and never drops them.
 
 ### 8.1 Defect
 
@@ -687,9 +719,10 @@ holds the status card (9.1) as its first comment (`swarm.task-cards`). It is clo
 
 There is one form per working kind, each rendering `TaskDef` (4.2) and `TaskBrief` (4.3) field for field:
 [`task-step.yml`](../../.github/ISSUE_TEMPLATE/task-step.yml), `task-integration.yml`, `task-door.yml`,
-`task-process.yml`, `task-rpc.yml`, `task-flow.yml`, `task-operation.yml`, `task-journey.yml`, plus `task-review.yml`
-(8.2) and `defect.yml` (8.1). The root, the milestones and the lanes have none: they are done by roll-up and never get a
-pair. The card's title is `[<key>] <title>`; its labels are `task`, `kind:<kind>` and the `TaskDef`'s own labels.
+`task-process.yml`, `task-rpc.yml`, `task-flow.yml`, `task-operation.yml`, plus `task-review.yml` (8.2) and
+`defect.yml` (8.1). The root, the milestones and the lanes have none: they are done by roll-up and never get a pair. Nor
+do the 15 watch tasks (label `watch`: the journeys, `step:B3.pilots`, `step:B5.week`), which have no paths and are done
+by their evals (`swarm.watch-tasks`); a journey that fails becomes a defect in the lane its diagnosis names. The card's title is `[<key>] <title>`; its labels are `task`, `kind:<kind>` and the `TaskDef`'s own labels.
 
 | Form field (id) | `TaskDef` / `TaskBrief` | Rendered as |
 |---|---|---|
@@ -711,6 +744,27 @@ pair. The card's title is `[<key>] <title>`; its labels are `task`, `kind:<kind>
 | `decisions` | `brief.decisions` | one decision id per line |
 | `outOfScope` | `brief.outOfScope` | one per line |
 | `context` | `brief.context` | the text, at most 4,000 characters |
+
+### 8.4 A split's children
+
+`decide { kind: "split" }` (7.1) opens the children; swarmD drops the parent's own checks onto them and keeps the parent
+open until they pass (reference/pairs.md). Their `TaskDef` fields (`swarm.hand-tasks`):
+
+| Field | For a split child |
+|---|---|
+| `key` | `<parent key>/split-<n>`, `n` from 1 in the order of the split's `tasks` |
+| `kind`, `lane`, `layer`, `paths`, `checkers`, `record` | the parent's |
+| `title`, `goal` | the split's `title` and `goal` for it, at most 80 and 1,000 characters |
+| `parent` | the parent's key |
+| `priority` | the parent's |
+| `evals` | its part of the parent's evals: every parent eval in exactly one child, none added |
+| `needs` | the parent's needs; a later child may need an earlier one when its evals build on it |
+| `labels` | the parent's, plus `from:split` |
+| `budgetUsd` | what is left of the parent's budget, divided evenly, in cents |
+| `brief.context` | first line `Split of <parent key> at <7 hex>: <the diagnosis's cause, one line>` |
+
+The reconcile keeps the parent's evals on its children and never restores them from the plan; when the book changes the
+parent's evals, the new ones go to the last child.
 
 ## 9. What code renders: status card, mirror comments, board, room
 
@@ -755,7 +809,8 @@ can: there each checker posts its own CHECK comment from its result, in this sam
 | `DECIDE <action> · <P-n> · capxul/master` | the action's note, reason or children | `decide` |
 | `DIAGNOSIS <kind> · <P-n> · <actor>` | cause, ripple, options, recommendation | the diagnosis |
 | `MERGED · integration/build <7 hex> · <P-n> · <rounds> rounds · $<cost>` | the evals' final counts; unverifiable listed | the merge |
-| `STOPPED · <P-n> · <reason>` | "the task stays open" | `stop` |
+| `STOPPED · <P-n> · <reason>` | "the task stays open, off the frontier until <its cause> is done" | `stop` |
+| `ANSWER · <P-n> · capxul/master · to <assignment>` | the answer (5.2) | the master, until SD-25 |
 
 ### 9.3 The board (the master's artifact)
 
@@ -854,6 +909,8 @@ Mission Control creates them once at T0 (`gh label create`); an issue form appli
 | `kind:<kind>` | step, integration, door, process, rpc, flow, operation, journey, review, defect |
 | `lane:<lane>`, `layer:<n>`, `area:<area>`, `money`, `pilot`, `pilot-closure`, `after:<lane>`, `builds-on-events:<lane>` | copied from the `TaskDef`'s labels |
 | `from:finding`, `from:red-head`, `from:person`, `book-change` | a defect's origin |
+| `watch` | a task with no paths: never paired, done by its evals (copied from the `TaskDef`) |
+| `from:split` | a child of a split (8.4) |
 | `matter`, `matter:decision`, `matter:question`, `matter:risk`, `matter:commitment` | a matter (stage 0) |
 | `bring:decision`, `bring:flagged`, `bring:irreversible`, `bring:owner-only` | which of the four kinds |
 | `review` | a review answer from the portal (portal.md) |
@@ -920,6 +977,9 @@ export default sandbox({
     "registry.npmjs.org": {},
     "github.com": { basic: { user: "x-access-token", secret: "GITHUB_TOKEN" } },   // the App's token, both repositories (swarm.accounts)
   },
+  // `basic` is built in code (packages/agent define/types.ts); the docs show only `bearer`, which git over HTTPS refuses.
+  // The token can write every branch: SD-28 (needed) holds a maker's push to its task's branch and gives the read-only
+  // sandboxes no write credential. Until then, nothing but the prompts keeps a push off integration/build (swarm.md 2.3).
 });
 ```
 
@@ -1150,7 +1210,7 @@ export const check = object({
 /** The diagnoser's input at stage 0 and in today's API; its role's input at stage 1. */
 export const diagnoserInput = object({
   task: object({ id: text("K-n, or the key"), key: text("the plan's key"), title: text("title", 80), goal: text("goal", 1000), brief }, ["key", "title", "goal", "brief"]),
-  pair: object({ id: text("P-n"), round: count("round"), state: text("PairState"), spentUsd: { type: "number", minimum: 0 }, budgetUsd: { type: "number", minimum: 0 } }, ["round", "state", "spentUsd", "budgetUsd"]),
+  pair: object({ id: text("P-n"), round: count("round"), state: oneOf(["making", "gating", "checking", "converged", "signalled", "diagnosing", "merged", "stopped"], "PairState"), spentUsd: { type: "number", minimum: 0 }, budgetUsd: { type: "number", minimum: 0 } }, ["round", "state", "spentUsd", "budgetUsd"]),
   signal: object({
     kind: oneOf(["regression", "defect_in_fix", "round", "budget", "stalled", "provider", "question", "sandbox", "head_regression"], "Signal.kind"),
     finding: text("F-n"), check: text("eval id"), round: count("round"), spentUsd: { type: "number" }, budgetUsd: { type: "number" },
@@ -1215,11 +1275,15 @@ export default defineRouter({
     { name: "pr-checks", when: "CI says a pull request the builder opened was opened or updated: check it with the reviewer, and the adversary on a money task.", mode: "auto", sources: ["api"], limits: { acceptsPerDay: 48, maxOpen: 6 } },
   ],
   connectors: {
-    github: ["issues.get", "issues.listComments", "issues.createComment", "issues.addLabels", "pulls.get", "pulls.list", "pulls.listFiles", "pulls.merge", "checks.listForRef", "repos.getContent"],
+    github: ["issues.get", "issues.listComments", "issues.createComment", "issues.addLabels", "pulls.get", "pulls.list", "pulls.listFiles", "checks.listForRef", "repos.getContent"],
   },
   icon: ":building_construction:",
 });
 ```
+
+The dry run's router holds no `pulls.merge`. Today a router can merge only by its model's judgment, which is the retro's
+D7 failure: it merged on a condition that ignored unverifiable lines. So the dry run ends at a converged pull request,
+and Mission Control merges it through the release gate (swarm.md section 6), as at stage 0.
 
 ```ts
 // .swarmd/today/builder.ts (built: reference/worker)
@@ -1299,7 +1363,9 @@ verdicts do.
 - Work on your branch, inside the task's paths. Book first: if the code must differ from the record, change the record
   in its concept's folder with a decision record, rebuild the book to 0 problems, regenerate tasks.json, then the code.
 - Never change packages/evals, packages/book, src/generated/ by hand, or another concept's records. Never weaken,
-  skip or retire an eval. Read the old system for behaviour; never port it.
+  skip or retire an eval. Read the old system for behaviour; never port it. Regenerate src/generated/ and tasks.json
+  with their generators after a record changes; those are the only files outside your paths you may change.
+- Push only your task's branch. Never push integration/build or main, change a pull request's base, or merge.
 - Run the gates (npm run --silent check) and your evals (run_evals) before you submit. Address every open finding, or
   dispute it in your note with why.
 - At your first submit open the task's pull request (pulls.create, base integration/build) with the body of
@@ -1394,14 +1460,14 @@ has. Another family arrives at stage 1 (`swarm.checker-family`).
 
 ## 12. Briefs for swarmD this page adds
 
-In neither swarmD's docs nor its code; each is written for swarmD's orchestrator to file, beside SD-1 to SD-20.
+In neither swarmD's docs nor its code; each is written for swarmD's orchestrator to file, beside SD-1 to SD-20 and SD-26 to SD-28 (swarm.md section 7).
 
 | # | Brief | Acceptance |
 |---|---|---|
 | SD-21 | **A checker posts its agent verdicts through its check.** `check` gains `verdicts: { check, result, detail }[]` for the agent checks the checker is the named checker of; the engine posts each as `verdict.post` under the checker's actor, with the check's text as `review` evidence. Today no worker tool posts an agent verdict, though the ledger says only the named checker may. | A reviewer's check with a `des:` verdict appends that verdict by the reviewer's actor; a `des:` verdict in the adversary's check, or one for a machine check, is refused |
 | SD-22 | **Agent and person verdicts carry across merges.** At a merge, each agent and person verdict at the converged version is carried to the merge commit, and it stays current at later heads of the target until a commit changes a path of its task's (`brief.paths`), or its check's definition changes in the catalogue. Today a verdict counts only at the exact head, so after a squash merge, or any later merge, every agent check is `unknown` and no task with one is ever `done`. | After a merge, `des:x` reads pass at the new head; after a later merge touching only another lane's paths, still pass; after a commit to its task's paths, `unknown` |
 | SD-23 | **A matter names its subject and takes a typed resolution.** `Matter.subject` (`"decision:<id>"`, so the portal and the applier find it) and `resolution.answer` (the portal's `ReviewAnswer`: `answer`, `option`, `text`, `seenAt`), where `matter.resolve` takes only text today (portal.md, "What other designs provide"). | A decision matter resolved with `{ answer: "choose", option: "opus" }` reads back typed, and `matters?subject=decision:x` finds it |
-| SD-24 | **A fresh maker gets the pair's branch and pull request.** `MakerInput` gains `branch` and `pr`, and the pull request's thread binding moves from each maker's ticket to the next, so a person's comment on the pull request reaches the current maker and its merge ends the pair, not a superseded ticket. | In a two-round pair, round 2's maker updates the same pull request, and a comment there after round 2 starts reaches round 2's maker |
+| SD-24 | **A fresh maker gets the pair's branch and pull request.** `MakerInput` gains `branch` and `pr`, `CheckerInput` gains `pr` and the round's submit `note`, and the pull request's thread binding moves from each maker's ticket to the next, so a person's comment on the pull request reaches the current maker and its merge ends the pair, not a superseded ticket. | In a two-round pair, round 2's maker updates the same pull request, and a comment there after round 2 starts reaches round 2's maker |
 | SD-25 | **`decide` can answer a question.** `continue` takes an optional `note` (at most 600 characters) that reaches the asking assignment as its answer, so a worker's `question` to the manager is answered in the pair, not only by a post in the thread. | A question signal answered with `continue` and a note resumes the worker with the note as its input |
 
 ## 13. The decisions
@@ -1411,8 +1477,8 @@ All in [`books/target/shared/swarm.ts`](../../books/target/shared/swarm.ts), sec
 | Id | Choice |
 |---|---|
 | `swarm.templates` | Every artifact has one template, field for field its schema; bodies render fixed headings; a worker's answer is one json block; workers ask the manager, never a person |
-| `swarm.task-cards` | One issue form per working kind; at stage 0 Mission Control opens a card per task in flight, at stage 1 none; people open only review answers, decision packs and defects |
-| `swarm.hand-tasks` | Defects are `defect:<lane>/<slug>` with existing failing or threatened evals; review tasks `review:<decision>` with `dec:<decision>/review`; a finding with no eval opens nothing |
+| `swarm.task-cards` | One issue form per kind that gets a pair (no journey card: journeys are watch tasks); at stage 0 Mission Control opens a card per task in flight, at stage 1 none; people open only review answers, decision packs and defects |
+| `swarm.hand-tasks` | Defects are `defect:<lane>/<slug>` with existing failing or threatened evals; review tasks `review:<decision>` with `dec:<decision>/review`; a split's children `<parent key>/split-<n>`, every parent eval in one child; a finding with no eval opens nothing |
 | `swarm.pr-mirror` | The builder writes the pull request body; every other event is a marked comment posted by code (Mission Control at stage 0) |
 | `swarm.agent-verdicts` | The reviewer posts `des:` through its check (SD-21), and it counts at the head until its task's paths change (SD-22) |
 | `swarm.stage0-profiles` | At stage 0 the roles run as Claude Code profiles with the swarmD prompts: opus maker, sonnet checkers and diagnoser, haiku researcher |
@@ -1430,5 +1496,5 @@ All in [`books/target/shared/swarm.ts`](../../books/target/shared/swarm.ts), sec
 - **B2 (`packages/evals`, spec 30):** the runner's `list` prints `des:` with `check: { checker: "reviewer", rubric }`,
   the rubric of 4.4.
 - **T0 (the tooling design):** create the labels of 9.6 once, beside branch protection.
-- **swarmD's orchestrator:** the briefs SD-21 to SD-25, beside SD-1 to SD-20. swarmD's software-factory domain page still
+- **swarmD's orchestrator:** the briefs SD-21 to SD-25, beside SD-1 to SD-20 and SD-26 to SD-28. swarmD's software-factory domain page still
   shows four managers, a designer and a legacy baseline; spec 40 now says what replaced them.

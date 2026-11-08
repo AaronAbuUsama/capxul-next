@@ -76,7 +76,7 @@ until B5, when it reads PostHog for the live evals (`swarm.workers`).
 
 **Pacing** (`swarm.pacing`). At stage 1, at most **4 pairs in flight** and **6 worker assignments running at once**,
 plus the master. A pair runs its maker and its checkers in turn; a money pair's two checkers run together. **One task in
-flight per lane.** B3 starts at 2 pairs (its pilot closure is 33 tasks, 13 of them ready at once) and goes to 4 when two
+flight per lane.** B3 starts at 2 pairs (its pilot closure is 46 tasks, 16 of them ready at once) and goes to 4 when two
 pairs in a row converge within budget. **At stage 0, at most 2 pairs** (3 agents). The numbers behind it:
 
 - Sixteen agents at once spent a five-hour usage window in about 36 minutes. So the window holds about 576
@@ -90,7 +90,7 @@ pairs in a row converge within budget. **At stage 0, at most 2 pairs** (3 agents
 - A simulation of the lane tasks (45 minutes an operation or process, 60 a door, 30 the rest, no failed rounds): 2 pairs
   finish in about 148 hours of wall-clock time, 4 pairs in about 88, 4 pairs with two per lane in about 76, 6 pairs in
   about 68. One task per lane costs about 14% against two, and keeps two pairs off one concept's folder. Once B3 is done
-  the frontier is 92 tasks over 22 lanes (`plan-tasks` prints `frontierAfterB3`), so 4 slots never starve.
+  the frontier is 104 tasks over 22 lanes (`plan-tasks` prints `frontierAfterB3`), so 4 slots never starve.
 - swarmD caps concurrency per worker (built), not across a manager (needed, SD-1). Until SD-1, the per-worker caps
   above bound the worst case at 12, and the master's pacing rule keeps it at 6.
 - At stage 1 the limits are money ($5 a task, the envelope) and the providers'. Anthropic's are rate limits: a 429
@@ -136,7 +136,9 @@ Control**) runs the same loop by hand with the same schemas (`swarm.stages`):
   `catalog.sync` accepts; `ms:B3/sandbox` passes or its fallback is decided; the gate holds a task to its paths
   (`ms:B3/scope`); `.swarmd/` holds the project config, the team and the skills (`docs/design/swarm-templates.md`).
 - **A dry run** (swarmD post-mortem O1): one Capxul task end to end on the deployed swarm, on the cheap tier, before the
-  first real lane.
+  first real lane. Its router holds no `pulls.merge`: today a router merges only by its model's judgment, the retro's
+  D7 failure, so Mission Control merges the converged pull request through the gate. It also measures how many makers
+  the gateway's window carries.
 
 ### 1.3 Stage 2: lane managers, and the evidence to move
 
@@ -399,6 +401,9 @@ hours red, your own spend against your pairs': the evidence swarm.nested-entry r
 | **Connectors**: GitHub events and 1,015 REST operations, App token, PR binding | Every pull request, CI read, the merge | built and live | `STATUS.md` T13a, T13b; `proofs/t13b-*` |
 | GitHub check suites on pull request heads | CI as part of the gate | needed (SD-5) | only default-branch suites are read (`reference/sources.md`) |
 | Merge base allowlist on a grant | Keeps the master's merges to two bases | planned as issue #85, not yet in the docs | `sitrep-2026-11-08.md` |
+| A sandbox's git push held to its task's branch | Keeps a builder's `git push` off `integration/build` and `main`; no write credential for the read-only roles | needed (SD-28): the egress adds the App's token to every github.com request, with no ref check | `how-to/connect-github` ("`git push` works"); `packages/server/src/modules/sandbox/service.ts` |
+| A pair's end wakes the manager | Fills a freed slot at once | needed (SD-26): `build` attends `requests`, `sweep`, `signals`, and no signal fires on a merge | `reference/templates.md`, `reference/pairs.md` |
+| A need met at merge, and waivers that carry | A merged task with `unverifiable` evals unblocks its dependents | needed (SD-27): `blocked` while a needed task is not `done`, and `done` needs a waiver at that version | `reference/ledger.md` (roll-up) |
 | **MCP connectors** (PostHog) | The scout at B5 | planned | `concepts/connectors` |
 | **Skills** on definitions | Repository knowledge | planned in the docs; nothing passes them to Pi yet | `reference/worker.md`; SD-16 |
 | **Models**: providers, tiers, a model per assignment | Strong makers, other-family checkers, cheap manager | built (strings); `models.ts` planned | `STATUS.md` models |
@@ -447,9 +452,15 @@ they differ (section 4.11 lists how).
   milestone's exit. No worker holds `pulls.merge`. A production deploy is Aaron's.
 - **What enforces it.** Branch protection on `main` and `integration/build` is Aaron's step (`tooling.branch-protection`),
   but on swarmD's private repository GitHub refused both rulesets and classic protection without GitHub Pro (sitrep,
-  #85), and `capxul-next` is private under the same account. If the plan stays as it is, nothing in GitHub requires CI
-  before a merge: SD-5 (the release gate requires the CI checks) and #85 (the grant's base allowlist) are then the only
-  code that does (`swarm.accounts`).
+  #85), and `capxul-next` is private under the same account. Without it, GitHub requires nothing before a merge.
+  SD-5 (the release gate requires the CI checks) and #85 (the grant's base allowlist) guard only the connector's merge
+  call. Every sandbox reaches github.com through an egress that adds the App's installation token, and that token can
+  write every branch. So a builder's `git push origin HEAD:integration/build` is a merge outside the gate: the retro's
+  "the builder merged its own PR" by another door. SD-28 closes it in the egress: a maker pushes only its task's branch,
+  and the read-only roles get no write credential. Until both exist, the protection is the builder's prompt and the
+  `pre-push` hook, which `--no-verify` skips. So `swarm.accounts` recommends GitHub Pro, and SD-28 is a stage 1 entry
+  criterion. The master also checks every move of `integration/build` against its own merges, and treats any other move
+  as a red head.
 
 ### 2.4 The design book, the plan and the portal
 
@@ -475,13 +486,14 @@ export default defineProject({
   repo: "github:AaronAbuUsama/capxul-next",
   refs: { integration: "integration/build", main: "main" },
   runner: {
-    gate: "npm run --silent check",                                       // T0's gates: vp check, tsc -b, generate:check, book, tests
+    gate: "npm run --silent check && node --experimental-strip-types tools/check-scope.ts",   // T0's gates, then the task's paths (SD-4; ms:B3/scope)
     list: "npm run --silent eval -- list --json",                         // the book's evals and the ms: evals (B2)
     run: "npm run --silent eval -- run --json --out $EVIDENCE_DIR -- {ids}",
     setup: "npm run --silent devnet -- up --snapshot base",               // from B3
   },
   release: { merge: { into: "integration/build" }, deploy: { signoff: "@maintainers" } },   // promote: SD-18
   waive: ["aaron"],
+  roles: { maintainer: ["aaron"] },                                       // the software domain's role; ok:capxul's decider
   connectors: [github({ repo: "AaronAbuUsama/capxul-next" }), mcp("posthog", { url: "https://mcp.posthog.com/mcp", secret: "POSTHOG_API_KEY" })],
 });
 
@@ -548,7 +560,7 @@ Timeline
 | Lanes by layer | Per lane: tasks by state, done of all, the score at the head, the stands of its operations, spend against the lane budget, its pair in flight | `score?group=label:lane&ref=integration`, `tasks?label=lane:<c>`, stands from `label:stand` (from D0's `standOf`, written by plan-tasks), `log` cost sums | planned (`scoreboard`, `tree`); budget column needed (SD-9) |
 | Pairs in flight | Pair, task key, lane, round, state, spend against budget, checkers, last signal | `pairs?state=live` | planned (`pairs`) |
 | Blocked, and why | Each blocked task with its reason: a need not done, a question matter, an unanswered signal, a provider, a merge freeze | `tasks?state=blocked` with the reason | needed (SD-8) |
-| Frontier | Open working tasks (with checkers) whose needs are done, in the order the loop takes them | `tasks?state=open&owner=capxul/master`, less `kind:root`, `kind:milestone` and `kind:lane` | planned (`tasks` group state); the order needed (SD-9) |
+| Frontier | Open working tasks with checkers whose needs have merged, less the merged and the stopped-waiting ones, in the order the loop takes them | `tasks?state=open&owner=capxul/master`, less `kind:root`, `kind:milestone`, `kind:lane` and `watch`, less tasks with a `merged` entry and no eval failing at the head, less stopped tasks whose cause is open | planned (`tasks` group state); needs met at merge (SD-27); the order needed (SD-9) |
 | Matters waiting for a person | Open matters, kind, which of the four kinds, age | `matters?state=open` | planned (`matters`); `bring` needed (SD-10) |
 | Spend | Against the envelope; committed in flight; today; the manager's own; each provider's status | `log` cost sums; `pairs` spend; provider status (brief 09) | needed: `budget` section (SD-9) |
 | Timeline | The last entries | `log?limit=50` | planned (`timeline`) |
@@ -582,13 +594,17 @@ type Version =
 
 ### 4.2 TaskDef: one entry of `docs/mission/tasks.json`
 
-Written by `tools/plan-tasks.ts`; nobody edits it.
+Written by `tools/plan-tasks.ts`; nobody edits it. The file is `{ about, regenerated, layers, tasks: TaskDef[] }`.
+`regenerated` lists the outputs every task may change, but only to what the generators write (`docs/mission/tasks.json`
+and `packages/*/src/generated/`). The file holds no counts over the book: the script prints them. So two lanes that
+change different tasks never conflict in it, and their merge is what the script writes at the merged head.
 
 ```ts
 type TaskKind =
   | "root" | "milestone" | "step" | "lane"                                   // structure
   | "integration" | "door" | "process" | "rpc" | "flow" | "operation" | "journey"   // records of the book
   | "review" | "defect";                                                     // opened by the master, never derived
+                                                                             // (a split's children keep their parent's kind)
 interface TaskDef {
   key: string;          // stable for life. A record's own key ("operation:payment.send", "workflow:payments.lifecycle.payment",
                         // "rpc:access.sign-in.challenge", "integration:chain-rpc", "journey:get_paid"), or "door:<concept>",
@@ -602,12 +618,14 @@ interface TaskDef {
   priority: "critical" | "normal" | "low";     // the record's own priority; milestones and steps critical
   evals: CheckId[];     // done: the book's eval ids (each owned by exactly one task), or ms: ids for steps
   needs: string[];      // keys, derived from the links (section 5)
-  labels: string[];     // kind:, lane:, layer:, area:<old area>, money, pilot, pilot-closure, after:<lane>, builds-on-events:<concept>
-  budgetUsd: number;    // 5 (the retro's D6)
-  checkers: ("reviewer" | "adversary")[];      // the adversary on the money lanes and B0.once
-  paths: string[];      // what the maker may change (swarm.scope)
+  labels: string[];     // kind:, lane:, layer:, area:<old area>, money, pilot, pilot-closure, after:<lane>, builds-on-events:<concept>,
+                        // watch (no paths: never paired), from:split
+  budgetUsd: number;    // 5 (the retro's D6), across every pair the task gets; 0 for a watch task
+  checkers: ("reviewer" | "adversary")[];      // the adversary on the money lanes and B0.once; none on a watch task
+  paths: string[];      // what the maker may change (swarm.scope), besides the file's `regenerated` outputs
   record?: string;      // the record it builds
-  exit?: { id: CheckId; claim: string }[];     // a step's ms: evals with their claims, for the runner's catalogue
+  exit?: { id: CheckId; claim: string }[];     // a step's ms: evals with their claims (≤ 300, checked), for the runner's
+                                               // catalogue: B2 lists each as a machine check at level system, subject the step
 }
 ```
 
@@ -648,10 +666,10 @@ interface TaskBrief {                       // needed (SD-3): run-a-pair's task 
 | `checks` | `TaskDef.evals`. The ledger refuses an id the catalogue at the target head lacks, so the catalogue lists the ms: evals too (B2) |
 | `target` | `integration` (the ref named `integration/build` in the project config) |
 | `owner` | `capxul/master`; a lane manager at stage 2 |
-| `needs` | The ledger ids of `TaskDef.needs` |
+| `needs` | The ledger ids of `TaskDef.needs`, each `until: "merged"` (SD-27) |
 | `labels` | `TaskDef.labels` plus `key:<key>` |
 | `brief` | `record` and `paths` from `TaskDef`; `decisions` from the decision records that affect the record; `context` the portal's page link and the record's `was` |
-| `budgetUsd` | `TaskDef.budgetUsd` |
+| `budgetUsd` | `TaskDef.budgetUsd`, for the task across all its pairs; a pair starts with what is left |
 | `createdBy`, `createdAt` | The master, when it reconciles |
 
 **A task runs as tickets.** Each agent assignment of a task is one swarmD ticket (built), as the docs' "From today's
@@ -731,12 +749,14 @@ The four exchanges Aaron named map onto swarmD's messages:
 ```ts
 /** What a maker gets each round (swarmD's maker role input, planned), with Capxul's brief (needed, SD-3). */
 interface MakerInput {
-  task: { id: TaskId; title: string; goal: string; target: string; brief?: TaskBrief };
+  task: { id: TaskId; key: string; title: string; goal: string; target: string; brief?: TaskBrief };   // key: its key: label
   checks: { id: CheckId; claim: string; decider: "machine" | "agent" | "person"; lastSeen?: Result }[];
   openFindings: Finding[];
   handover?: string;                        // the last maker's, from round 2
   revise?: { reason: "gate_failed" | "changes" | "regression" | "decided"; detail: string };   // needed (SD-20): why this round
   round: number;
+  branch: string;                           // needed (SD-24): lane/<concept>, ms/<step> or review/<decision>
+  pr?: number;                              // needed (SD-24): the task's pull request, from round 2
 }
 /** What a checker gets (swarmD's checker role input, planned). */
 interface CheckerInput {
@@ -744,7 +764,9 @@ interface CheckerInput {
   diff: { from?: Version; to: Version };    // from: the version it last checked (delta review)
   openFindings: Finding[];
   verdicts: { check: CheckId; result: Result; detail?: string }[];
-  task: { id: TaskId; goal: string; checks: CheckId[]; brief?: TaskBrief };
+  task: { id: TaskId; key: string; goal: string; checks: CheckId[]; brief?: TaskBrief };
+  pr?: number;                              // needed (SD-24): the task's pull request
+  note?: string;                            // needed (SD-24): the round's submit note, ≤ 600
 }
 ```
 
@@ -936,7 +958,7 @@ interface PairView {
 | `lanes` | `score?group=label:lane&ref=integration`; `tasks?label=lane:<c>`; stands from `label:stand` |
 | `pairs` | `pairs?state=live` |
 | `blocked` | `tasks?state=blocked` with SD-8's reason |
-| `frontier` | `tasks?state=open&owner=capxul/master`, ordered as the loop's step 3; `unblocks` from the plan's needs |
+| `frontier` | `tasks?state=open&owner=capxul/master` with checkers, less merged and stopped-waiting tasks (`swarm.merged-tasks`), ordered as the loop's step 3; `unblocks` from the plan's needs |
 | `matters` | `matters?state=open` |
 | `spend` | `log` cost sums over the root; the envelope from `swarm.spend-envelope`; provider status from brief 09 |
 | `pacing` | `pairs?state=live`; running assignments; the caps (`swarm.pacing`, SD-1) |
@@ -981,7 +1003,7 @@ record's concept from the concept folder that exports it, and derives the tree:
 | **operation** `operation:<id>` | each of the 215 | its own evals; its flow's `flw:`; the `rpc:` evals of the rpcs only its lane reaches that no earlier task of the lane owns | the owners of its rpcs; the doors its rpcs read, write and invoke; their integrations; every process of its own or an earlier layer they start or wake (directly or through the transitions they drive); the first operation of a flow it shares |
 | **rpc** `rpc:<id>` | an rpc another lane reaches, or no operation does | its `rpc:` evals | as an operation's rpc needs |
 | **flow** `flow:<id>` | a helper flow no operation implements | its `flw:` evals | the owners of its step rpcs; its integrations |
-| **journey** `journey:<id>` | each of the 13 | `jrn:`, `fun:` | its steps' operation tasks |
+| **journey** `journey:<id>` | each of the 13; a watch task | `jrn:`, `fun:` | its steps' operation tasks |
 
 **The rules** (each a decision):
 
@@ -999,33 +1021,48 @@ record's concept from the concept folder that exports it, and derives the tree:
   layer, and moves a task that needs the last layer into it (`after:equity`: notices' equity round invitation, which
   reads equity's rounds).
 - **The pilots** (`swarm.pilots`): the critical operations (`auth.login`, `auth.verify`, `account.retry`,
-  `payment.send`) and the setup flow `client.account.setup`. Their closure needs only `step:B3.spine` and
-  `milestone:B2`; every other lane task needs `milestone:B3`, so the line budgets are set before the other lanes start.
+  `payment.send`), the setup flow `client.account.setup`, and the devnet commands the world builder runs, read from the
+  worlds' steps and the builder's own snapshot save and restore. Those are `dev approve`, `dev fund`, `dev gates set`,
+  `dev jobs run`, `dev key`, `dev mail list`, `dev snapshot save`, `dev snapshot restore` and `dev time warp`.
+  `system.build-order` builds devnet's own dev commands alongside the harness, and no world can be built without them.
+  Their closure needs only `step:B3.spine` and `milestone:B2`. Every other lane task needs `milestone:B3`, so the line
+  budgets are set before the other lanes start.
+- **Worlds are not needs.** A refusal's world can run operations of later layers (`payment.send`'s `org-with-budgets`
+  runs `org department create`). Its eval reads `unverifiable`, naming the world, until those operations exist. It does
+  not block its task's merge or the tasks after it (`swarm.merged-tasks`), and `ms:B3/pilots` excepts it. Making each
+  world a need would pull most of B4 into the pilots.
 - **No cycles.** The script checks the needs with each parent waiting on its children.
+- **Watch tasks** (`swarm.watch-tasks`): a working task with evals but no paths (the 13 journeys, `step:B3.pilots`,
+  `step:B5.week`) has the label `watch`, no checkers and no budget. It is never paired and is done when its evals pass.
+- **Paths** (`swarm.scope`): a lane task's are its book folder and `src/<concept>/` in the backend and the SDK. Indexing
+  also gets `packages/indexer/` and devnet `packages/devnet/`. Every task may also change the file's `regenerated`
+  outputs, to what the generators write.
 
-**Counts on the book of 8 November 2026** (2,251 records, 4,794 evals, 0 problems):
+**Counts on the book of 8 November 2026** (2,259 records, 4,794 evals, 0 problems; the script prints them):
 
 | | |
 |---|---|
 | Tasks | 438: the root, 8 milestones, 28 steps, 24 lanes, 11 integrations, 22 doors, 81 processes, 215 operations, 17 rpcs, 18 helper flows, 13 journeys |
-| Evals | 4,764 distinct book eval ids, each owned once, plus 37 `ms:` evals and `ok:capxul` |
-| Needs | 2,394 |
-| The pilot closure | 33 tasks; 13 are ready when the spine and the harness are |
-| The frontier when B3 is done | 25 tasks across many lanes |
-| The longest chain of needs | 8 tasks: door:access → door:approvals → approvals' carry process → its decline rpc → the payment lifecycle → payment.send → payment.retry → journey pay_someone |
+| Evals | 4,764 distinct book eval ids, each owned once and each in the build's `evals.json`, plus 38 `ms:` evals (listed by B2's runner from the steps' `exit`) and `ok:capxul` |
+| Needs | 2,417 |
+| The pilot closure | 46 tasks; 16 are ready when the spine and the harness are. It includes the 9 devnet commands the world builder runs |
+| The frontier when B3 is done | 104 tasks over 22 lanes (68 operations, 13 processes, 10 flows, 9 doors, 4 integrations) |
+| The longest chain of needs | 8 tasks, among them door:access → door:approvals → door:board → board's proposal carry process → org.allowance.assign → org.allowance.change → org.department.budget.set → journey run_company |
 | Money tasks (two checkers) | 114 |
 | Operation tasks' evals | median 16, at most 38 (`payment.send`) |
-| Budget ceiling | $2,025 over 405 working tasks at $5 |
+| Working tasks | 405: 390 paired at $5, and 15 watch tasks |
+| Budget ceiling | $1,950 over the 390 paired tasks |
 
 **One defect the script reports.** The book derives 28 eval ids twice: 19 refusals with the same code under two worlds
 (`ref:org.member.grant/WRONG_STATE`, from two different worlds) and 9 integration errors listed twice
 (`int:bridge.submitVerification/PROVIDER_ERROR`). swarmD's `catalog.sync` refuses a catalogue with a duplicate id, so
-`packages/book`'s derivation must qualify them before stage 1. It is tracked as `ms:B2/unique`, and the script prints a
-warning until it is fixed.
+`packages/book`'s derivation must qualify them before stage 1. D0 owns the fix (the goal prompt's D0 and the portal's
+`portal.eval-ids`: one `ref:` eval per operation and code, one `int:` eval per call and error, and the problem
+`duplicate-eval`). It is tracked as `ms:D0/unique`, and the script prints a warning until it is fixed.
 
-**How the plan is used.** At stage 0 Mission Control works through it by hand. At stage 1 the master reconciles the
-ledger from it at every move of `integration/build` (loop step 2), until SD-2 makes that code. The portal reads it
-until the ledger runs. When D0 adds `standOf` to `packages/book`, the script adds each operation's `stand:<stand>`
+**How the plan is used.** At stage 0 Mission Control works through it by hand. At stage 1 the ledger reconciles its
+tasks from it at every move of `integration/build`, in code (SD-2, a stage 1 entry criterion: no model can reconcile a
+700 KB file on each wake). The portal reads it until the ledger runs. When D0 adds `standOf` to `packages/book`, the script adds each operation's `stand:<stand>`
 label.
 
 ## 6. The pair protocol, its limits, and escalation
@@ -1036,10 +1073,11 @@ label.
    paths, the open findings, the last handover.
 2. **Make.** The builder works in its sandbox on `lane/<concept>`, runs evals itself if it wants (`run_evals`; the
    verdicts post themselves), pushes, opens the pull request at its first submit, and calls `submit`.
-3. **Gate (L0).** The engine runs `runner.gate` at the version (T0's gates), with the task's paths and evals (SD-4): a
-   change outside the paths, to `packages/evals` or `packages/book` from a lane task, or a catalogue that lost one of the
-   task's evals, fails it. A failed gate, or a red required CI check (SD-5), goes straight back to the same maker, and no
-   round is counted.
+3. **Gate (L0).** The engine runs `runner.gate` at the version (T0's gates, then `tools/check-scope.ts`), with the
+   task's paths and evals (SD-4). The gate fails on a change outside the paths (the regenerated outputs aside, when they
+   equal the generators' output), on a change to `packages/evals` or `packages/book` from a lane task, and on a
+   catalogue that lost one of the task's evals. A failed gate, or a red required CI check (SD-5), goes straight back to
+   the same maker, and no round is counted. The money still is: the budget signal bounds a gate that keeps failing.
 4. **Run the evals.** The sandbox runs the task's machine evals at the version and posts the verdicts.
 5. **Check.** The reviewer (and on money tasks the adversary, at the same time) gets the version, the diff (the delta
    from round 2), the open findings and the verdicts, and answers with `check`.
@@ -1051,11 +1089,13 @@ label.
 | Limit | Value | The retro's evidence |
 |---|---|---|
 | Rounds | 5 at most; the `round` signal at 3 | #46: 4 rounds, blocking findings 5, 2, 1, 2, never converging; nothing stopped it (D1) |
-| Money | $5 a task; the `budget` signal at $2.50; at $5 the pair stops spending until `decide` | #46 reached $4.92 (D6) |
+| Money | $5 a task across all its pairs; the `budget` signal at $2.50; at $5 the pair stops spending until `decide` | #46 reached $4.92 (D6) |
+| Re-pairing | A stopped task leaves the frontier until its cause is done, then gets one more pair with what is left of its budget; a second stop is a spending matter. A merged task is never re-paired unless an eval fails at the head (`swarm.merged-tasks`) | Without it, a stop puts the task straight back on the frontier with a fresh $5: #46 again |
+| Watch tasks | A task with no paths gets no pair (`swarm.watch-tasks`) | A maker who may change nothing loops on its gate until the budget signal |
 | Builder context | A fresh maker each round, from a handover | #46's builder was 65% of its cost; one step re-sent 130k tokens by round 4 (D5) |
 | Reviewer cost | A delta review from round 2; the adversary only on money tasks, and only the money-path files the delta touches in full | Reviewers were 34% of #46; each round re-read 2,900 lines (D5) |
-| Who merges | Only the master, in code, through the gate; no worker holds `pulls.merge` | The builder merged its own PR; then the router merged by prompt, on a condition that ignored unverifiable lines (D7) |
-| Unverifiable evals | Listed under After merge; they do not block | #71 could never merge itself (D7) |
+| Who merges | Only the master, in code, through the gate; no worker holds `pulls.merge`; no sandbox can push `integration/build` or `main` (SD-28) | The builder merged its own PR; then the router merged by prompt, on a condition that ignored unverifiable lines (D7) |
+| Unverifiable evals | Listed under After merge; they block neither the merge nor the tasks after it (SD-27); the ones left at B4's end go to the waive list in one matter | #71 could never merge itself (D7) |
 | Dead sandboxes | A sandbox that fails to boot twice is a `sandbox` signal that pauses the pair's spend (SD-14); golden snapshots built at `up` (planned) | T-4 and T-5 spent 3 hours on dead sandboxes before 10 minutes of work |
 | Silent outages | A provider error pauses every pair on it and raises one alert (brief 09); a failed run is never `idle` (SD-15); a watchdog outside the swarm (SD-17) | The credit ran out and nothing said so for 30 minutes |
 | Scope | A task never grows: findings outside its paths become defect tasks | #46 was several missions in one; scope was added by comment |
@@ -1070,7 +1110,7 @@ The master answers every signal with one `decide`, by this table (`swarm.signals
 | `round` (3, and each after) | `diagnose` | **execution:** `fresh_maker` with the diagnosis as the note, on the strong model. **plan:** `split` into children if the task's evals divide along the diagnosis; otherwise open a book change task in the owning lane and `stop` the pair with the reason. **environment:** fix it if code can (a fresh sandbox); otherwise a matter, owner-only |
 | `regression`, `defect_in_fix` | `diagnose` | as above |
 | `budget` at half | `diagnose` | as above |
-| `budget` at all of it | `split` along the diagnosis, or `stop` with the reason | a stopped task stays open on the frontier for a fresh pair after its cause is fixed |
+| `budget` at all of it | `split` along the diagnosis, or `stop` with the reason | a stopped task leaves the frontier until its cause is done, then gets one more pair with what is left; a second stop is a spending matter |
 | `stalled` | read the sandbox and the assignment | `continue`, or `fresh_maker` |
 | `provider` | nothing: code paused it | the pairs resume on the first good call |
 | `sandbox` (SD-14) | nothing for two failures; then `diagnose` | environment |
@@ -1080,7 +1120,8 @@ The master answers every signal with one `decide`, by this table (`swarm.signals
 ### 6.4 Stop and escalation
 
 **The master stops a pair** when the decision table says so, when its task is dropped by the plan, when Aaron says
-`stop` in its thread, or at `maxRounds`. A stopped pair's task stays open; nothing is lost but the pair.
+`stop` in its thread, or at `maxRounds`. A stopped pair's task stays open but off the frontier until its cause is done
+(`swarm.merged-tasks`); nothing is lost but the pair, and its spend counts against the task's $5.
 
 **What goes to Aaron, as a matter, and nothing else** (`swarm.escalation`):
 
@@ -1121,12 +1162,18 @@ its code. Each names its acceptance.
 | SD-18 | **Release kinds with their own gates.** `release.promote: { into: "main", requires: <task> }` beside `merge`, and the grant's merge base allowlist (#85) written into the connectors page. | Promotion is refused while the milestone task is not done; a merge into another base is refused by the connector |
 | SD-19 | **A ticket names its task and assignment.** `Ticket.task` and `Ticket.assignment` in `@swarmd/protocol`. | A ticket read names its task |
 | SD-20 | **A typed handover and round reason.** `handover { done, left, decisions, where }` instead of free text, and `MakerInput.revise.reason`. | A handover with an empty `left` and a non-final round is refused |
+| SD-26 | **A pair's end wakes its manager.** `attends: "pairs"` on `build` and `lead`: a pair that merged, stopped, or converged with its merge refused wakes the manager's model once, with the pair's summary and the slots now free. Today `build` attends `requests`, `sweep` and `signals`; no signal fires on a merge, and the sweep lists only tasks waiting on a person or without progress, so a freed slot waits for the next unrelated wake. | After a merge, the manager's model is woken within one engine step and its next `pair_start` follows; a stop does the same |
+| SD-27 | **A need met at merge, and waivers that carry.** A `needs` entry may say `{ task, until: "merged" }`: met when the needed task's last pair merged and none of its checks fails or errors at the target head (`unverifiable` and `unknown` allowed). And a waiver carries to later heads, as SD-22 carries a verdict, until a commit changes its task's paths. Today a task is `blocked` while a needed task is not `done`, and `done` needs every `unverifiable` check waived by a person at that very version. | A task merged with one `unverifiable` check unblocks a dependent that needs it until merged, and still reads not done; a waived check reads waived at the next head, and unknown after a commit to its task's paths |
+| SD-28 | **A sandbox pushes only its task's branch.** The egress gateway refuses a `git-receive-pack` to github.com that updates any ref other than the assignment's branch (the pair's branch for a maker), naming the ref; a read-only sandbox's egress to github.com carries no write credential. Today the egress adds the App's installation token to every github.com request, with no ref check, so every sandbox can push every branch. | A maker's `git push origin HEAD:integration/build` is refused at the egress, naming the ref, and its push to its own branch succeeds; a checker's push of any ref is refused |
 
 **Planned pieces the design relies on**, which swarmD's docs already describe and must land for stage 1: the manager and
 `build` template, the ledger, `defineProject` and the runner contract, `run_evals`, the release gate, the pair engine with
 signals, `decide` and diagnosis, per-task budgets, the provider pause, merge base allowlists (#85, an issue), the
 artifact, the policy file with hooks, skills, MCP connectors (B5 only), prebuilt sandboxes, and, for stage 2 only, the
 `lead` template and `manages`.
+
+SD-21 to SD-25 are in `docs/design/swarm-templates.md` section 12. Of all 28, stage 1 cannot start without SD-2, SD-3,
+SD-4, SD-21, SD-22, SD-26, SD-27 and SD-28, and should not without SD-1, SD-5, SD-6, SD-14 and SD-15 (section 1.2).
 
 ## 8. What this changes in the goal prompt
 
@@ -1141,7 +1188,9 @@ The goal prompt's **How to work** bullets this design replaces or adds:
 - **Replaces "Pair a maker with a checker …":** every task is a pair. The builder makes; the reviewer checks on another
   model family and posts the `des:` verdicts; on the seven money lanes and B0.once the adversary checks too. The engine
   runs the machine evals. A reviewer never weakens an eval, and the gate refuses a change that removes one.
-- **Replaces "Pace the usage":** at most 4 pairs in flight (6 agents at once), one task per lane; start B3 at 2.
+- **Replaces "Pace the usage":** on swarmD at most 4 pairs in flight (6 agents at once), one task per lane; start B3 at 2.
+  Before swarmD (stage 0), at most 2 pairs: the subscription's window holds about 2 agents' worth of five hours, so
+  more at once only spends it sooner and cuts agents off mid-task.
 - **Adds:** only the manager merges, through the release gate: every checker approves, no machine eval failed, the
   required CI checks are green; unverifiable evals are listed under After merge. `integration/build` goes into `main`
   at each milestone's exit.
@@ -1149,6 +1198,9 @@ The goal prompt's **How to work** bullets this design replaces or adds:
   `swarm.spend-envelope`; ask at 75%.
 - **Adds:** a red `integration/build` freezes merges until a fix, or a revert after one round, lands.
 - **Adds:** a finding outside a task's paths is a defect task in the owning lane; a task never grows.
+- **Adds:** a task with no paths (the journeys, B3.pilots, B5.week) is watched, never paired. A merged task is never
+  re-paired unless an eval fails at the head, and the tasks after it start at its merge. A stopped task waits for its
+  cause, then gets one more pair within what is left of its $5.
 - **Adds:** review answers from the portal are taken before any other work.
 - **Keeps:** the scoreboard is the hill, now the master's board at the integration head; prove by running.
 
@@ -1169,20 +1221,22 @@ stands until he answers: `swarm.checker-family`, `swarm.spend-envelope`, `swarm.
 | `swarm.master-prompt` | The goal prompt whole, then the operating skeleton |
 | `swarm.workers` | Builder, reviewer, adversary, diagnoser, researcher; no verifier, designer or scout until B5 |
 | `swarm.money` | The adversary on every task of the seven money lanes, and B0.once |
-| `swarm.pacing` | At most 4 pairs in flight, 6 agents, one task per lane |
+| `swarm.pacing` | At most 4 pairs in flight, 6 agents, one task per lane; 2 pairs at stage 0 |
 | `swarm.task-tree` | Derived from the book by `tools/plan-tasks.ts`; reconciled into the ledger |
 | `swarm.task-unit` | The operation is the unit; split only on a signal |
 | `swarm.rpc-ownership` | An rpc belongs to the first task of its own lane; a shared one is its own task |
 | `swarm.process-order` | Door, then process, then what starts it; a later layer's reacting process waits instead |
 | `swarm.events-not-needs` | Events are never needs; a later layer's table is |
 | `swarm.layers` | Layers from the concept map, equity last, checked; they order, they do not gate |
-| `swarm.pilots` | The critical operations and the setup flow; their closure builds in B3 |
+| `swarm.pilots` | The critical operations, the setup flow and the world builder's devnet commands; their closure builds in B3 |
 | `swarm.milestone-evals` | Exit lines as `ms:` evals; `ok:capxul` the only person eval |
 | `swarm.branches` | `lane/<concept>` carries one task at a time into `integration/build` |
 | `swarm.merge` | Only the manager merges, through the release gate (D7); promotion to `main` at a milestone's exit |
 | `swarm.head-red` | A red integration head freezes merges until a fix or a revert |
-| `swarm.scope` | A task changes only its paths, and never an eval |
+| `swarm.scope` | A task changes only its paths and the regenerated outputs, and never an eval |
 | `swarm.findings` | A finding outside a task's paths is a defect task in its own lane |
+| `swarm.watch-tasks` | A task with evals but no paths is watched, never paired |
+| `swarm.merged-tasks` | After a merge or a stop a task leaves the frontier; dependents start at its merge |
 | `swarm.pair-limits` | 5 rounds, $5, a fresh maker and a delta review each round |
 | `swarm.signals` | A default decision per signal; diagnose before spending more |
 | `swarm.handback` | swarmD's submit and handover, in fixed parts |
@@ -1192,7 +1246,7 @@ stands until he answers: `swarm.checker-family`, `swarm.spend-envelope`, `swarm.
 | `swarm.escalation` | Only the goal prompt's four kinds reach Aaron, as decision packs |
 | `swarm.matters-dont-block` | A decision matter's recommendation stands; only questions block |
 | `swarm.review-answers` | A review answer is a task taken before any other |
-| `swarm.budget` | $5 a task, a lane's budget the sum, one envelope; no daily ceiling |
+| `swarm.budget` | $5 a task across all its pairs, a lane's budget the sum, one envelope; no daily ceiling |
 | `swarm.sandbox` | One golden sandbox with the repository, the old system and a devnet snapshot |
 | `swarm.skills` | Repository knowledge in skills, passed through to Pi |
 | `swarm.superset` | **For Aaron:** skills now, pi-durable's other sections later |
@@ -1202,7 +1256,7 @@ stands until he answers: `swarm.checker-family`, `swarm.spend-envelope`, `swarm.
 
 ## 10. Open items for other owners
 
-- **packages/book (the build, before stage 1):** qualify the 28 duplicated eval ids (`ms:B2/unique`).
+- **packages/book (D0, before stage 1):** qualify the 28 duplicated eval ids (`ms:D0/unique`, `portal.eval-ids`).
 - **The tooling design:** add `node --experimental-strip-types tools/plan-tasks.ts --check` to `npm run book`, so a book
   change that moves the plan regenerates it in the same pull request.
 - **The portal design:** milestone acceptance is the steps' `ms:` evals, and `ok:capxul` is the only person eval
