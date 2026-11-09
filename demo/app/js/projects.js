@@ -1332,7 +1332,7 @@ function timesheetPage(ts) {
   const emp = cx.person(ts.employee);
   const drafts = draftInvoicesOf(ts.name);
   const logCols = [
-    { key: 'activity', label: 'Activity type' }, { key: 'fromTime', label: 'From time', type: 'datetime', render: (l) => fmt.datetime(l.fromTime).replace(/^\d+ \w+ \d{4}, /, (x) => x) },
+    { key: 'activity', label: 'Activity type' }, { key: 'fromTime', label: 'From time', type: 'datetime', render: (l) => fmt.datetime(l.fromTime) },
     { key: 'hours', label: 'Hrs', type: 'float', dp: 2 }, { key: 'project', label: 'Project', opt: true, render: (l) => (l.project ? cx.link(l.project, 'project', l.project) : '—') },
     { key: 'billable', label: 'Is billable', render: (l) => (l.billable ? cx.icon('check') : '') }, { key: 'task', label: 'Task', opt: true, render: (l) => (l.task ? h('span', taskLink(l.task), l.completed ? h('span.muted', ' · completed') : null) : '—') },
     { key: 'billingRate', label: 'Billing rate', type: 'currency', currency: cur, opt: true }, { key: 'billingAmount', label: 'Billing amount', type: 'currency', currency: cur },
@@ -1396,3 +1396,226 @@ cx.route('timesheet', (ctx) => {
   if (!ts) return cx.page({ title: 'Not found', workspace: 'projects', body: cx.empty('No such timesheet.', cx.btn('All timesheets', { href: ['timesheets'] })) });
   return timesheetPage(ts);
 }, { workspace: 'projects', title: 'Timesheet' });
+
+/* =====================================================================================================
+   Setup: activity types, project types, the projects options
+   ===================================================================================================== */
+
+for (const a of P.activityTypes) if (a.disabled == null) a.disabled = a.name === 'Execution' ? 1 : 0;
+const lastUsed = (name) => LOGS.reduce((m, l) => (l.activity === name && l.date > m ? l.date : m), '');
+const usedCount = (name) => LOGS.filter((l) => l.activity === name).length;
+function newActivityTypeModal() {
+  const m = { name: '', costing: 50, billing: 100 };
+  formModal({ title: 'New activity type', model: m, needs: PM, submit: 'Add', who: 'whoever wears the People hat, or a Director',
+    fields: [{ label: 'Activity type', key: 'name', reqd: true, wide: true, placeholder: 'Workshops' }, { label: 'Default costing rate', key: 'costing', type: 'currency' }, { label: 'Default billing rate', key: 'billing', type: 'currency' }],
+    cmd: (x) => `capxul org projects activity-type add ${q(x.name || '<name>')} --costing-rate ${x.costing || 0} --billing-rate ${x.billing || 0}`,
+    check: (x) => (P.activityTypes.some((a) => a.name.toLowerCase() === x.name.toLowerCase()) ? `${x.name} exists already.` : null),
+    onSubmit: (x, close, cmd) => { P.activityTypes.push({ name: x.name, costing: +x.costing || 0, billing: +x.billing || 0, added: TODAY, disabled: 0 }); close(); cx.toast(`Added ${x.name}`, { tone: 'success', cmd }); cx.go('activity-type', x.name); } });
+}
+cx.route('activity-types', () => cx.page({
+  title: 'Activity types', workspace: 'projects', crumbs: [{ label: 'Projects', route: 'projects-home' }],
+  sub: 'The kinds of work time is logged against, with their default hourly rates. A project may bill an activity at its own rate.',
+  actions: [cx.btn('Add activity type', { kind: 'primary', icon: 'plus', needs: PM, cmd: 'capxul org projects activity-type add <name> --costing-rate … --billing-rate …', onClick: () => newActivityTypeModal() })],
+  fde: 'The activity types',
+  body: cx.listView({
+    key: 'pj-at', rows: () => P.activityTypes, id: (a) => a.name, showId: false, selectable: false,
+    titleCol: { key: 'name', label: 'Activity type' },
+    status: (a) => (a.disabled ? cx.pill('Disabled', 'gray') : cx.pill('Enabled', 'blue')),
+    columns: [{ key: 'costing', label: 'Default costing rate', type: 'currency', currency: 'GBP', keep: true }, { key: 'billing', label: 'Default billing rate', type: 'currency', currency: 'GBP' }, { key: 'used', label: 'Time logs', get: (a) => usedCount(a.name), type: 'int' }, { key: 'last', label: 'Last used', get: (a) => lastUsed(a.name) || null, type: 'date' }],
+    sort: { options: [{ key: 'name', label: 'Activity type' }, { key: 'used', label: 'Time logs', get: (a) => usedCount(a.name) }], default: { key: 'used', dir: 'desc' } },
+    href: (a) => ['activity-type', a.name],
+    cmd: { cli: 'capxul org projects activity-type list', sdk: 'client.org(orgId).projects.activityTypes.list()', filters: false },
+    noun: 'activity type',
+  }),
+}), { workspace: 'projects', title: 'Activity types' });
+cx.route('activity-type', (ctx) => {
+  const a = cx.find(P.activityTypes, 'name', ctx.id);
+  if (!a) return cx.page({ title: 'Not found', workspace: 'projects', body: cx.empty('No such activity type.', cx.btn('All activity types', { href: ['activity-types'] })) });
+  const draft = { costing: a.costing, billing: a.billing };
+  const canPM = cx.allowed(PM).ok;
+  const cmdFor = () => `capxul org projects activity-type change ${q(a.name)}${+draft.costing !== a.costing ? ' --costing-rate ' + draft.costing : ''}${+draft.billing !== a.billing ? ' --billing-rate ' + draft.billing : ''}`;
+  const save = cx.btn('Save', { kind: 'primary', needs: PM, onClick: () => { const cmd = cmdFor(); a.costing = +draft.costing || 0; a.billing = +draft.billing || 0; cx.toast(`${a.name}: new logs take these rates; logs already made keep theirs`, { tone: 'success', cmd }); cx.refresh(); } });
+  save.hidden = true;
+  const byProject = new Map();
+  for (const l of LOGS) if (l.activity === a.name && l.billable) { const k = `${l.project}|${l.billingRate}`; const o = byProject.get(k) || { project: l.project, rate: l.billingRate, hours: 0, last: '' }; o.hours += l.hours; if (l.date > o.last) o.last = l.date; byProject.set(k, o); }
+  const toggle = a.disabled
+    ? cx.btn('Enable', { needs: PM, cmd: `capxul org projects activity-type enable ${q(a.name)}`, onClick: () => { a.disabled = 0; cx.toast(`${a.name} takes logs again`, { tone: 'success', cmd: `capxul org projects activity-type enable ${q(a.name)}` }); cx.refresh(); } })
+    : cx.btn('Disable', { needs: PM, cmd: `capxul org projects activity-type disable ${q(a.name)}`, onClick: () => { a.disabled = 1; cx.toast(`${a.name} takes no new logs`, { tone: 'success', cmd: `capxul org projects activity-type disable ${q(a.name)}` }); cx.refresh(); } });
+  return cx.page({
+    title: a.name, workspace: 'projects', crumbs: [{ label: 'Projects', route: 'projects-home' }, { label: 'Activity types', route: 'activity-types' }],
+    status: a.disabled ? cx.pill('Disabled', 'gray', { lg: true }) : cx.pill('Enabled', 'blue', { lg: true }),
+    sub: `${fmt.int(usedCount(a.name))} time logs${lastUsed(a.name) ? ' · last used ' + fmt.date(lastUsed(a.name)) : ' · never used'}`,
+    actions: [save, toggle],
+    cmd: { cli: 'capxul org projects activity-type list', note: `Changes run capxul org projects activity-type change ${a.name}.` },
+    fde: `The activity type ${a.name}`,
+    body: cx.formView({ doc: draft, editable: canPM, onChange: () => { save.hidden = false; cx.showAction(cmdFor(), 'Save', { pin: true }); }, sections: [
+      { columns: [[{ label: 'Activity type', value: a.name, readOnly: true, reqd: true }, { label: 'Default costing rate', key: 'costing', type: 'currency', currency: 'GBP' }], [{ label: 'Default billing rate', key: 'billing', type: 'currency', currency: 'GBP' }, { label: 'Disabled', value: a.disabled ? 1 : 0, readOnly: true, type: 'check' }]] },
+      { label: 'Billing rates on the logs, by project', desc: 'A project bills at its agreed rate; the default applies where none is set.', table: cx.grid({ numbered: false, rows: [...byProject.values()].sort((x, y) => y.last.localeCompare(x.last)), empty: 'No billable time logged yet', columns: [{ key: 'project', label: 'Project', render: (r) => projLink(r.project, `${r.project} · ${projName(r.project)}`) }, { key: 'rate', label: 'Billing rate', render: (r) => money(r.rate, projCurrency(PROJ.get(r.project))) }, { key: 'hours', label: 'Hours', type: 'float', dp: 1 }, { key: 'last', label: 'Last logged', type: 'date', opt: true }] }) },
+    ], side: { id: a.name, title: a.name, cmd: `capxul org projects activity-type change ${q(a.name)} --billing-rate …`, created: { by: 'kwame', at: (a.added || '2025-05-01') + 'T10:00:00Z' } } }),
+  });
+}, { workspace: 'projects', title: 'Activity type' });
+
+cx.route('project-types', () => {
+  const DESC = { Internal: 'Work for Harbourline itself, not billed', External: 'Work for a customer', Other: 'Studio tooling, research and anything else' };
+  return cx.page({
+    title: 'Project types', workspace: 'projects', crumbs: [{ label: 'Projects', route: 'projects-home' }],
+    actions: [cx.btn('Add project type', { kind: 'primary', icon: 'plus', needs: PM, cmd: 'capxul org projects project-type add <name> --description …', onClick: () => {
+      const m = { name: '', description: '' };
+      formModal({ title: 'New project type', model: m, cols: 1, needs: PM, submit: 'Add', who: 'whoever wears the People hat, or a Director', fields: [{ label: 'Project type', key: 'name', reqd: true, placeholder: 'Retainer' }, { label: 'Description', key: 'description', type: 'textarea', placeholder: 'Monthly support after launch' }],
+        cmd: (x) => `capxul org projects project-type add ${q(x.name || '<name>')}${x.description ? ' --description ' + q(x.description) : ''}`,
+        check: (x) => (P.projectTypes.some((t) => t.name.toLowerCase() === x.name.toLowerCase()) ? `${x.name} exists already.` : null),
+        onSubmit: (x, close, cmd) => { P.projectTypes.push({ name: x.name, description: x.description || null }); close(); cx.toast(`Added ${x.name}`, { tone: 'success', cmd }); cx.refresh(); } });
+    } })],
+    cmd: { cli: 'capxul org projects project-type list', sdk: 'client.org(orgId).projects.projectTypes.list()' },
+    fde: 'The project types',
+    body: cx.card({ flush: true, body: cx.grid({ numbered: true, rows: P.projectTypes, columns: [{ key: 'name', label: 'Project type', render: (t) => h('b', t.name) }, { key: 'description', label: 'Description', render: (t) => t.description || DESC[t.name] || '' }, { key: 'n', label: 'Projects', align: 'right', render: (t) => h('a', { href: cx.href('projects'), onclick: (e) => { e.preventDefault(); cx.go('projects', null, { list: { filters: { projectType: t.name } } }); } }, String(P.projects.filter((p) => p.projectType === t.name).length)) }] }) }),
+  });
+}, { workspace: 'projects', title: 'Project types' });
+
+cx.route('projects-config', () => {
+  const S = P.settings;
+  const draft = { ...S };
+  const canPM = cx.allowed(PM).ok;
+  const flags = () => [['allowUserOverlap', '--allow-user-overlap'], ['allowEmployeeOverlap', '--allow-employee-overlap'], ['fetchTimesheets', '--fetch-timesheets']].filter(([k]) => !!draft[k] !== !!S[k]).map(([k, f]) => (draft[k] ? f : f.replace('--', '--no-')));
+  const save = cx.btn('Save', { kind: 'primary', needs: PM, onClick: () => { const cmd = `capxul org projects settings set ${flags().join(' ')}`; Object.assign(S, { allowUserOverlap: !!draft.allowUserOverlap, allowEmployeeOverlap: !!draft.allowEmployeeOverlap, fetchTimesheets: !!draft.fetchTimesheets }); cx.toast('Projects options saved', { tone: 'success', cmd }); cx.refresh(); } });
+  save.hidden = true;
+  return cx.page({
+    title: 'Projects options', workspace: 'projects', crumbs: [{ label: 'Projects', route: 'projects-home' }],
+    actions: [save],
+    cmd: { cli: 'capxul org projects settings show', sdk: 'client.org(orgId).projects.settings.show()' },
+    fde: 'The projects options',
+    body: cx.formView({ doc: draft, editable: canPM, onChange: () => { const f = flags(); save.hidden = !f.length; if (f.length) cx.showAction(`capxul org projects settings set ${f.join(' ')}`, 'Save', { pin: true }); }, sections: [
+      { label: 'Timesheets', cols: 1, fields: [
+        { label: 'Allow overlapping time for one user', key: 'allowUserOverlap', type: 'check', checkLabel: 'One user may log time that overlaps', help: 'Off: a log may not overlap another of the same user.' },
+        { label: 'Allow overlapping time for one employee', key: 'allowEmployeeOverlap', type: 'check', checkLabel: 'One employee may log time that overlaps', help: 'Off: a log may not overlap another of the same employee.' },
+        { label: 'Fetch timesheets in an invoice', key: 'fetchTimesheets', type: 'check', checkLabel: 'A new invoice for a project fetches its unbilled time', help: 'Billing hours from a timesheet does this whatever this says.' },
+      ] },
+    ], side: { id: 'Projects options', title: 'Projects options', cmd: 'capxul org projects settings set --no-allow-user-overlap' } }),
+  });
+}, { workspace: 'projects', title: 'Projects options' });
+
+/* =====================================================================================================
+   Reports
+   ===================================================================================================== */
+
+const projOptions = (blank = 'All projects') => [['', blank], ...P.projects.map((p) => [p.name, `${p.name} · ${p.projectName}`])];
+cx.route('project-summary', () => cx.page({
+  title: 'Project summary', workspace: 'projects', crumbs: [{ label: 'Projects', route: 'projects-home' }, { label: 'Reports' }],
+  fde: 'The Project summary report',
+  body: cx.reportView({
+    key: 'pj-summary',
+    filters: [{ key: 'status', label: 'Status', type: 'select', options: [['', 'Any status'], 'Open', 'On hold', 'Completed', 'Cancelled'], value: 'Open' }, { key: 'type', label: 'Project type', type: 'select', options: [['', 'Any type'], ...P.projectTypes.map((t) => t.name)], value: '' }],
+    run: (v) => {
+      const list = P.projects.filter((p) => (!v.status || p.status === v.status) && (!v.type || p.projectType === v.type));
+      const rows = list.map((p) => { const ts = tasksOf(p.name).filter((t) => !t.isGroup); return { id: p.name, project: p.name, projectName: p.projectName, type: p.projectType, status: p.status, total: ts.length, completed: ts.filter((t) => t.status === 'Completed').length, overdue: ts.filter((t) => t.status === 'Overdue').length, completion: p.percentComplete, start: p.expectedStart, end: p.expectedEnd }; });
+      return {
+        columns: [{ key: 'project', label: 'Project', href: (r) => ['project', r.project] }, { key: 'projectName', label: 'Project name', width: '200px' }, { key: 'type', label: 'Type' }, { key: 'status', label: 'Status', type: 'status' }, { key: 'total', label: 'Total tasks', type: 'int' }, { key: 'completed', label: 'Tasks completed', type: 'int' }, { key: 'overdue', label: 'Tasks overdue', type: 'int', render: (r) => (r.overdue ? h('span.pj-delay', String(r.overdue)) : '0') }, { key: 'completion', label: 'Completion', type: 'percent' }, { key: 'start', label: 'Start date', type: 'date' }, { key: 'end', label: 'End date', type: 'date' }],
+        rows, totals: false,
+        summary: [{ label: 'Average completion', value: rows.length ? fmt.num(sum(rows, (r) => r.completion) / rows.length, 1) + '%' : '—' }, { label: 'Total tasks', value: fmt.int(sum(rows, (r) => r.total)) }, { label: 'Completed tasks', value: fmt.int(sum(rows, (r) => r.completed)) }, { label: 'Overdue tasks', value: fmt.int(sum(rows, (r) => r.overdue)) }],
+        chart: rows.length ? cx.chart.bar({ labels: rows.map((r) => r.projectName), height: 220, format: (v) => fmt.int(v), series: [{ name: 'Overdue', values: rows.map((r) => r.overdue), color: 'neg' }, { name: 'Completed', values: rows.map((r) => r.completed), color: '2' }, { name: 'Total tasks', values: rows.map((r) => r.total), color: '1' }] }) : null,
+        chartTitle: 'Tasks by project',
+      };
+    },
+    cmd: (v) => ({ cli: [`capxul org projects list${v.status ? ' --status ' + lc(v.status) : ''}${v.type ? ' --type ' + v.type : ''}`, `capxul org report run project-summary${v.status ? ' --filter status=' + q(v.status) : ''}${v.type ? ' --filter project_type=' + v.type : ''}`], note: 'Each project\'s totals and percent come with the list.' }),
+  }),
+}), { workspace: 'projects', title: 'Project summary' });
+
+const lastMonth = (() => { const d = new Date(TODAY + 'T00:00:00Z'); d.setUTCDate(1); d.setUTCMonth(d.getUTCMonth() - 1); const ym = d.toISOString().slice(0, 7); return { from: ym + '-01', to: monthEnd(ym) }; })();
+function billingSummary() {
+  return cx.reportView({
+    key: 'pj-billing',
+    filters: [
+      { key: 'employee', label: 'Employee', type: 'select', options: [['', 'Everyone'], ...uniq(P.timesheets.map((t) => t.employee)).map((id) => [id, cx.name(id)])], value: '' },
+      { key: 'project', label: 'Project', type: 'select', options: projOptions(), value: '' },
+      { key: 'from', label: 'From date', type: 'date', value: lastMonth.from }, { key: 'to', label: 'To date', type: 'date', value: lastMonth.to },
+      { key: 'groupBy', label: 'Group by', type: 'select', options: [['project', 'Project'], ['employee', 'Employee'], ['date', 'Start date']], value: 'project' },
+      { key: 'drafts', label: 'Include timesheets in draft', type: 'check', value: false },
+    ],
+    run: (v) => {
+      const logs = LOGS.filter((l) => { const t = TSM.get(l.timesheet); if (!t || t.status === 'Cancelled' || (!v.drafts && t.status === 'Draft')) return false; return l.date >= (v.from || '0000') && l.date <= (v.to || '9999') && (!v.project || l.project === v.project) && (!v.employee || t.employee === v.employee); });
+      const keyOf = (l) => (v.groupBy === 'employee' ? TSM.get(l.timesheet).employee : v.groupBy === 'date' ? TSM.get(l.timesheet).startDate : l.project || '(no project)');
+      const groups = new Map();
+      for (const l of logs) { const k = keyOf(l); if (!groups.has(k)) groups.set(k, new Map()); const g = groups.get(k); const sk = l.timesheet + '|' + (v.groupBy === 'project' ? '' : l.project); const o = g.get(sk) || { ts: l.timesheet, project: l.project, working: 0, billing: 0, amount: 0, invoices: new Set() }; o.working += l.hours; if (l.billable) { o.billing += l.hours; o.amount += l.billingAmount; } if (l.invoice) o.invoices.add(l.invoice); g.set(sk, o); }
+      const rows = [];
+      const totals = new Map();
+      const keys = [...groups.keys()].sort((a, b) => (v.groupBy === 'date' ? String(b).localeCompare(String(a)) : String(a).localeCompare(String(b))));
+      for (const k of keys) {
+        const kids = [...groups.get(k).values()].sort((a, b) => a.ts.localeCompare(b.ts));
+        const cur = v.groupBy === 'project' ? projCurrency(PROJ.get(k)) : null;
+        const label = v.groupBy === 'project' ? `${k} · ${projName(k)}` : v.groupBy === 'employee' ? cx.name(k) : fmt.date(k);
+        const gsum = { working: r2(sum(kids, (x) => x.working)), billing: r2(sum(kids, (x) => x.billing)) };
+        const curs = uniq(kids.map((x) => projCurrency(PROJ.get(x.project))));
+        rows.push({ id: 'g-' + k, indent: 0, group: true, date: label, working: gsum.working, billing: gsum.billing, amount: curs.length === 1 ? r2(sum(kids, (x) => x.amount)) : null, currency: curs[0] || 'GBP', invoiceText: curs.length > 1 ? curs.map((c) => money(sum(kids.filter((x) => projCurrency(PROJ.get(x.project)) === c), (x) => x.amount), c)).join(' + ') : '' });
+        for (const x of kids) {
+          const t = TSM.get(x.ts); const c = projCurrency(PROJ.get(x.project));
+          totals.set(c, (totals.get(c) || 0) + x.amount);
+          rows.push({ id: x.ts + x.project, indent: 1, date: fmt.date(t.startDate), project: x.project, empId: cx.person(t.employee)?.employee, empName: cx.name(t.employee), timesheet: x.ts, working: r2(x.working), billing: r2(x.billing), amount: r2(x.amount), currency: c, invoiceText: x.billing ? (x.invoices.size ? [...x.invoices].join(', ') : 'Not billed') : '' });
+        }
+      }
+      const totalWorking = r2(sum(logs, (l) => l.hours)), totalBilling = r2(sum(logs.filter((l) => l.billable), (l) => l.hours));
+      const unb = v.project ? unbilledOf(v.project).filter((l) => l.date >= v.from && l.date <= v.to) : [];
+      return {
+        columns: [{ key: 'date', label: v.groupBy === 'date' ? 'Start date' : 'Date', width: '170px' }, { key: 'project', label: 'Project', href: (r) => (r.project ? ['project', r.project] : null) }, { key: 'empId', label: 'Employee ID' }, { key: 'empName', label: 'Employee name' }, { key: 'timesheet', label: 'Timesheet', href: (r) => (r.timesheet ? ['timesheet', r.timesheet] : null) }, { key: 'working', label: 'Working hours', type: 'float', dp: 1 }, { key: 'billing', label: 'Billing hours', type: 'float', dp: 1 }, { key: 'amount', label: 'Billing amount', type: 'currency' }, { key: 'invoiceText', label: 'Invoice', render: (r) => (r.invoiceText === 'Not billed' ? h('span', { style: 'color:var(--t-orange)' }, 'Not billed') : r.invoiceText && !r.group ? h('span', r.invoiceText.split(', ').map((n, i) => [i ? ', ' : '', D.books.salesInvoices.some((s0) => s0.name === n) ? cx.link(n, 'sales-invoice', n) : n])) : r.invoiceText || '') }],
+        rows, totals: false,
+        summary: [{ label: 'Total working hours', value: fmt.num(totalWorking, 1) }, { label: 'Total billing hours', value: fmt.num(totalBilling, 1) }, ...[...totals.entries()].map(([c, a]) => ({ label: `Total billing amount (${c})`, value: money(a, c) }))],
+        message: unb.length ? `${fmt.num(sum(unb, (l) => l.hours), 1)} billable hours of ${projName(v.project)} in this range are not on an invoice yet.` : null, messageTone: 'warning',
+        empty: 'No time logged in this range.',
+      };
+    },
+    related: [cx.btn('Bill the unbilled time', { icon: 'file', needs: 'Invoicing', cmd: 'capxul org projects timesheet bill <timesheet>… --to <mailbox>', onClick: () => {
+      const st = cx.current.name; const projVal = document.querySelector('#rv-pj-billing-project')?.value;
+      const from = document.querySelector('#rv-pj-billing-from')?.value || lastMonth.from, to = document.querySelector('#rv-pj-billing-to')?.value || lastMonth.to;
+      const projName0 = projVal || unbilledByProject()[0]?.p.name;
+      if (!projName0) { cx.toast('Nothing waits to be billed.', { tone: 'info' }); return; }
+      const names = uniq(unbilledOf(projName0).filter((l) => l.date >= from && l.date <= to).map((l) => l.timesheet));
+      if (!names.length) { cx.toast(`No unbilled time on ${projName(projName0)} from ${fmt.date(from)} to ${fmt.date(to)}.`, { tone: 'info' }); return; }
+      billModal(names, projName0);
+    } })],
+    cmd: (v) => ({ cli: [`capxul org projects timesheet list${v.project ? ' --project ' + v.project : ''}${v.employee ? ' --for ' + emailOf(v.employee) : ''} --status ${v.drafts ? 'any' : 'submitted'}`, `capxul org report run timesheet-billing-summary --filter from_date=${v.from} --filter to_date=${v.to} --filter group_by=${v.groupBy}${v.project ? ' --filter project=' + v.project : ''}`], note: 'The rows are the time logs of those timesheets; a dollar project shows its amounts in dollars.' }),
+    columnFilters: false,
+  });
+}
+const billingPage = () => cx.page({ title: 'Project billing summary', workspace: 'projects', crumbs: [{ label: 'Projects', route: 'projects-home' }, { label: 'Reports' }], sub: 'The timesheet billing summary, grouped by project, employee or start date. Last month by default.', fde: 'The Project billing summary report', body: billingSummary() });
+cx.route('timesheet-billing', billingPage, { workspace: 'projects', title: 'Project billing summary' });
+cx.route('project-billing', billingPage, { workspace: 'projects', title: 'Project billing summary' });
+
+cx.route('daily-timesheets', () => cx.page({
+  title: 'Daily timesheet summary', workspace: 'projects', crumbs: [{ label: 'Projects', route: 'projects-home' }, { label: 'Reports' }],
+  fde: 'The Daily timesheet summary report',
+  body: cx.reportView({
+    key: 'pj-daily',
+    filters: [{ key: 'from', label: 'From date', type: 'date', value: TODAY }, { key: 'to', label: 'To date', type: 'date', value: TODAY }],
+    run: (v) => {
+      logIndex();
+      const rows = LOGS.filter((l) => l.date >= v.from && l.date <= v.to && TSM.get(l.timesheet) && TSM.get(l.timesheet).status !== 'Cancelled').sort((a, b) => String(a.fromTime).localeCompare(String(b.fromTime))).map((l) => { const t = TSM.get(l.timesheet); return { id: l.timesheet + l.idx, timesheet: l.timesheet, emp: cx.person(t.employee)?.employee, empName: cx.name(t.employee), from: l.fromTime, to: toTime(l), hours: l.hours, activity: l.activity, task: l.task, taskName: TASK.get(l.task)?.subject || '', project: l.project, status: tsInfo(t).status }; });
+      return {
+        columns: [{ key: 'timesheet', label: 'Timesheet', href: (r) => ['timesheet', r.timesheet] }, { key: 'emp', label: 'Employee' }, { key: 'empName', label: 'Employee name' }, { key: 'from', label: 'From datetime', type: 'datetime' }, { key: 'to', label: 'To datetime', type: 'datetime' }, { key: 'hours', label: 'Hours', type: 'float', dp: 2 }, { key: 'activity', label: 'Activity type' }, { key: 'taskName', label: 'Task', href: (r) => (r.task ? ['task', r.task] : null) }, { key: 'project', label: 'Project', href: (r) => (r.project ? ['project', r.project] : null) }, { key: 'status', label: 'Status', render: (r) => tsPill(r.status) }],
+        rows, totals: true,
+        summary: [{ label: 'Hours', value: fmt.num(sum(rows, (r) => r.hours), 1) }, { label: 'People', value: fmt.int(uniq(rows.map((r) => r.empName)).length) }, { label: 'Time logs', value: fmt.int(rows.length) }],
+        empty: 'No time logged on these days.',
+      };
+    },
+    cmd: (v) => ({ cli: ['capxul org projects timesheet list --status submitted', `capxul org report run daily-timesheet-summary --filter from_date=${v.from} --filter to_date=${v.to}`], note: 'The day\'s logs are read from each timesheet: the list has no date filter.' }),
+  }),
+}), { workspace: 'projects', title: 'Daily timesheet summary' });
+
+cx.route('delayed-tasks', () => cx.page({
+  title: 'Delayed tasks summary', workspace: 'projects', crumbs: [{ label: 'Projects', route: 'projects-home' }, { label: 'Reports' }],
+  fde: 'The Delayed tasks summary report',
+  body: cx.reportView({
+    key: 'pj-delayed',
+    filters: [{ key: 'project', label: 'Project', type: 'select', options: projOptions(), value: '' }, { key: 'from', label: 'From date', type: 'date', value: addDays(TODAY, -120) }, { key: 'to', label: 'To date', type: 'date', value: addDays(TODAY, 30) }, { key: 'priority', label: 'Priority', type: 'select', options: [['', 'Any priority'], 'Low', 'Medium', 'High', 'Urgent'], value: '' }, { key: 'status', label: 'Status', type: 'select', options: [['', 'Any status'], 'Open', 'Working', 'Pending Review', 'Overdue', 'Completed'], value: '' }],
+    run: (v) => {
+      const list = P.tasks.filter((t) => !t.isGroup && t.status !== 'Cancelled' && t.expEnd && t.expEnd >= v.from && t.expEnd <= v.to && (!v.project || t.project === v.project) && (!v.priority || t.priority === v.priority) && (!v.status || t.status === v.status));
+      const rows = list.map((t) => { const end = t.status === 'Completed' ? t.completedOn : null; const delay = end ? daysBetween(t.expEnd, end) : t.expEnd < TODAY ? daysBetween(t.expEnd, TODAY) : 0; return { id: t.name, task: t.name, subject: t.subject, project: t.project, status: t.status, priority: t.priority, progress: t.status === 'Completed' ? 100 : t.progress || 0, start: t.expStart, end: t.expEnd, actualEnd: end, delay: Math.max(0, delay) }; }).sort((a, b) => b.delay - a.delay || String(a.end).localeCompare(String(b.end)));
+      const late = rows.filter((r) => r.delay > 0).length, ok = rows.length - late;
+      const bar = rows.length ? h('div', { style: 'display:grid;gap:6px' }, h('div.pj-ontrack', ok ? h('div', { style: { width: (ok / rows.length * 100) + '%', background: 'var(--t-green)' } }, `On track ${ok}`) : null, late ? h('div', { style: { width: (late / rows.length * 100) + '%', background: 'var(--t-red)' } }, `Delayed ${late}`) : null), h('div.muted', { style: 'font-size:12.5px' }, `${fmt.pct(late / rows.length, 0)} of these tasks ended, or are running, after their expected end.`)) : null;
+      return {
+        columns: [{ key: 'task', label: 'Task', href: (r) => ['task', r.task] }, { key: 'subject', label: 'Subject', width: '200px' }, { key: 'project', label: 'Project', href: (r) => ['project', r.project] }, { key: 'status', label: 'Status', render: (r) => taskPill(r.status) }, { key: 'priority', label: 'Priority' }, { key: 'progress', label: 'Progress (%)', type: 'int' }, { key: 'start', label: 'Expected start date', type: 'date' }, { key: 'end', label: 'Expected end date', type: 'date' }, { key: 'actualEnd', label: 'Actual end date', type: 'date' }, { key: 'delay', label: 'Delay (in days)', type: 'int', render: (r) => (r.delay ? h('span.pj-delay', String(r.delay)) : '0') }],
+        rows, totals: false, chart: bar, chartTitle: 'On track and delayed',
+        empty: 'No tasks end in this range.',
+      };
+    },
+    cmd: (v) => ({ cli: [`capxul org projects task list${v.project ? ' --project ' + v.project : ''} --status ${v.status ? lc(v.status) : 'overdue'}`, `capxul org report run delayed-tasks-summary --filter from_date=${v.from} --filter to_date=${v.to}${v.project ? ' --filter project=' + v.project : ''}`] }),
+  }),
+}), { workspace: 'projects', title: 'Delayed tasks summary' });
