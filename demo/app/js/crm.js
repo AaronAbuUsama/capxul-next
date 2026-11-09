@@ -612,6 +612,15 @@ cx.workspace({
     { label: 'Notes', route: 'crm-notes' },
     { label: 'Tasks', route: 'crm-tasks', match: ['crm-tasks-kanban'] },
     { label: 'Call logs', route: 'call-logs' },
+    { section: 'Lead generation', items: [
+      { label: 'Funnel', route: 'crm-funnel' },
+      { label: 'Ideal customer', route: 'crm-icp' },
+      { label: 'Prospects', route: 'prospects', match: ['prospect'] },
+      { label: 'Outreach', route: 'sequences', match: ['sequence'] },
+      { label: 'Inbound', route: 'crm-inbound' },
+      { label: 'Nurture', route: 'nurture' },
+      { label: 'Campaigns', route: 'campaigns', match: ['campaign'] },
+    ] },
     { section: 'Reports', items: [{ label: 'Lead sources', route: 'crm-sources' }] },
   ],
 });
@@ -1208,6 +1217,8 @@ function leadSide(l, ctx) {
     sideSec('Routing', [
       h('div.crm-f', h('div.crm-f-l', 'Arrived by'), h('div.crm-f-v', channelTag(qualOf(l).channel))),
       h('div.crm-f', h('div.crm-f-l', 'Arrived'), h('div.crm-f-v', fmt.datetime(qualOf(l).arrival))),
+      h('div.crm-f', h('div.crm-f-l', 'First touch'), h('div.crm-f-v', srcNode(firstTouchOf(l)))),
+      lastTouchOf(l).ref || lastTouchOf(l).route ? h('div.crm-f', h('div.crm-f-l', lastTouchOf(l).ref ? 'Introduced by' : 'Came in through'), h('div.crm-f-v', srcNode(lastTouchOf(l)))) : null,
       F('source', 'Source', { type: 'select', options: SOURCES }),
       F('owner', 'Lead owner', { type: 'select', options: ownerOpts, display: (v) => (v ? cx.personChip(v, { link: false }) : null), text: (v) => cx.name(v) }),
       h('div.crm-f', h('div.crm-f-l', 'Why them'), h('div.crm-f-v', uc1(qualOf(l).routeWhy))),
@@ -2228,7 +2239,7 @@ function crmDashboard() {
   return cx.page({
     title: 'Dashboard', workspace: 'crm', crumbs: [{ label: 'CRM', route: 'crm' }],
     sub: `${fmt.date(from)} to ${fmt.date(TODAY)}${user ? ' · ' + cx.name(user) : ''} · amounts in pounds; a dollar deal counts at the day's rate`,
-    actions: [cx.btn('Lead sources', { icon: 'report', href: ['crm-sources'] }), cx.btn('Pipeline', { icon: 'kanban', kind: 'primary', href: ['pipeline'] })],
+    actions: [cx.btn('Funnel', { icon: 'report', href: ['crm-funnel'] }), cx.btn('Lead sources', { icon: 'report', href: ['crm-sources'] }), cx.btn('Pipeline', { icon: 'kanban', kind: 'primary', href: ['pipeline'] })],
     fde: `The CRM dashboard, ${RANGES.find(([k]) => k === range)[1].toLowerCase()}`,
     body: [
       h('div.crm-dash-bar', h('label', 'Range', rangeSel), h('label', 'Sales user', userSel)),
@@ -2242,6 +2253,1145 @@ function crmDashboard() {
 }
 cx.route('crm', () => crmDashboard(), { workspace: 'crm', title: 'CRM' });
 
+/* =====================================================================================================
+   Lead generation. The ideal customer profile Harbourline set with the FDE; prospect lists the sales agent
+   builds against it from public sources, each prospect with why it fits; outreach sequences whose every batch
+   a person approves before it is sent, with replies captured on the record; inbound capture (the website form,
+   events, referrals); nurture for leads that are not ready; campaigns and their results; the funnel by month and
+   attribution down to won revenue. Everything is derived from the CRM's own records and these few definitions.
+   ===================================================================================================== */
+
+const LG_NEED = { any: ['People', 'Growth', 'Director'] };
+const ICP_NEED = { any: ['Director', 'Growth'] };
+const atOn = (day, hh, key) => `${dayOf(day)}T${String(hh).padStart(2, '0')}:${String((hashOf(String(key)) % 50) + 5).padStart(2, '0')}:00Z`;
+const clamp = (n, a, b) => Math.max(a, Math.min(b, n));
+const monthOf = (d) => dayOf(d).slice(0, 7);
+const tbl = (head, rows, o = {}) => h('div.tbl-scroll', h('table.tbl', { class: o.cls }, h('thead', h('tr', head.map((c) => h('th', { class: c.num ? 'num' : c.opt ? 'opt' : null }, c.label)))),
+  h('tbody', rows.length ? rows : h('tr', h('td', { colspan: head.length, class: 'muted' }, o.empty || 'Nothing yet')))));
+const td = (v, o = {}) => h('td', { class: [o.num && 'num', o.opt && 'opt', o.wrap && 'wrap'].filter(Boolean).join(' ') || null }, v ?? h('span.faint', '—'));
+const pctOr = (a, b) => (b ? fmt.pct(a / b, 0) : '—');
+const daysTxt = (d) => (d == null ? '—' : d < 1 ? 'under a day' : `${fmt.num(d, d < 10 ? 1 : 0)} days`);
+
+/* ---------- the ideal customer profile ---------- */
+
+const ICP = {
+  version: 3, setAt: '2026-01-20T11:00:00Z', setWith: ['maya', 'samw', 'leo'], reviewedAt: '2026-10-02T15:00:00Z',
+  sectors: [
+    { ind: 'Real Estate', label: 'Housing associations and landlords', tier: 'Core' },
+    { ind: 'Health Care', label: 'Health care groups and clinics', tier: 'Core' },
+    { ind: 'Food', label: 'Food and drink brands', tier: 'Core' },
+    { ind: 'Retail', label: 'Retail brands', tier: 'Core' },
+    { ind: 'Education', label: 'School trusts and colleges', tier: 'Adjacent' },
+    { ind: 'Energy', label: 'Energy and utilities', tier: 'Adjacent' },
+    { ind: 'Transportation', label: 'Transport operators', tier: 'Adjacent' },
+    { ind: 'Hospitality', label: 'Hotels and hospitality groups', tier: 'Adjacent' },
+    { ind: 'Software', label: 'Software companies', tier: 'Referral only' },
+  ],
+  sizes: [['1-10', 'Not a fit'], ['11-50', 'With a funding round or a named budget'], ['51-200', 'Core'], ['201-500', 'Core'], ['501-1000', 'Core'], ['1001-5000', 'Through a referral']],
+  regions: [['London and the South East', 'Core'], ['Rest of England', 'Core'], ['Scotland and Wales', 'Good'], ['Outside the UK', 'Through a referral']],
+  minProject: 25000,
+  signals: [
+    { key: 'tender', label: 'A published tender for digital work', weight: 25, source: 'Find a Tender, Contracts Finder' },
+    { key: 'funding', label: 'A funding round in the last six months', weight: 20, source: 'Companies House share allotments, trade press' },
+    { key: 'office', label: 'New sites, offices or clinics opening', weight: 15, source: 'Press releases, company websites' },
+    { key: 'planning', label: 'A planning application for a new school, shop or site', weight: 15, source: 'Local planning portals' },
+    { key: 'hiring', label: 'Hiring for a digital, product or ecommerce role', weight: 15, source: 'Job boards, careers pages' },
+    { key: 'leader', label: 'A new chief executive or digital director', weight: 10, source: 'Press, company websites' },
+  ],
+  exclude: ['Clients with an open deal: their owner looks after them', 'Studios and agencies selling their services to Harbourline', 'Anyone who asked not to be contacted', 'Gambling, tobacco and crypto'],
+  history: [],
+};
+{
+  const small = C.leads.filter((l) => l.employees === '1-10' && dayOf(l.createdAt) < '2026-10-02');
+  const smallWon = small.filter((l) => C.deals.some((d) => d.lead === l.name && d.status === 'Won')).length;
+  ICP.history = [
+    { v: 1, at: '2026-01-20T11:00:00Z', by: ['maya', 'samw', 'leo'], text: 'First version, set with the FDE from eight months of won and lost deals: four core sectors, 51 to 1,000 staff, England first.' },
+    { v: 2, at: '2026-05-12T14:20:00Z', by: ['leo'], text: 'Added school trusts as an adjacent sector after Mosaic Learning, and hiring for a digital role as a signal.' },
+    { v: 3, at: '2026-10-02T15:00:00Z', by: ['maya', 'leo'], text: `Dropped teams under 10 staff (${fmt.plural(small.length, 'lead')} since May 2025, ${smallWon ? smallWon + ' bought' : 'none bought'}) and set a first project of £25,000 or more.` },
+  ];
+}
+const TIER_PTS = { Core: 32, Adjacent: 22, 'Referral only': 6 };
+const TIER_TONE = { Core: 'green', Adjacent: 'blue', 'Referral only': 'yellow', Good: 'blue', 'Through a referral': 'yellow', 'Not a fit': 'gray', 'With a funding round or a named budget': 'yellow' };
+const TIERS = ['Core', 'Adjacent', 'Referral only', 'Not a fit'];
+const sectorOf = (ind) => ICP.sectors.find((s) => s.ind === ind) || null;
+const sizeTier = (e) => ICP.sizes.find((s) => s[0] === e)?.[1] || 'Not known';
+const regionTier = (r) => ICP.regions.find((x) => x[0] === r)?.[1] || 'Good';
+const CITIES = {
+  'London and the South East': ['London', 'Brighton', 'Reading', 'Guildford', 'Canterbury', 'Oxford', 'Maidstone', 'Southampton', 'Milton Keynes'],
+  'Rest of England': ['Manchester', 'Leeds', 'Bristol', 'Birmingham', 'Nottingham', 'Sheffield', 'Norwich', 'York', 'Exeter', 'Leicester', 'Newcastle', 'Derby', 'Plymouth'],
+  'Scotland and Wales': ['Edinburgh', 'Glasgow', 'Cardiff', 'Swansea', 'Aberdeen', 'Dundee'],
+};
+const regionOf = (city, terr) => Object.keys(CITIES).find((r) => CITIES[r].includes(city)) || (terr && terr !== 'United Kingdom' ? 'Outside the UK' : 'Rest of England');
+const cityPick = (key) => { const x = hashOf(key + 'c') % 100; return pick(key + 'cc', CITIES[x < 45 ? 'London and the South East' : x < 88 ? 'Rest of England' : 'Scotland and Wales']); };
+/** How well a prospect fits the profile, and why, against the profile as it stands now. */
+function fitOf(p) {
+  const sec = sectorOf(p.ind), tier = sec?.tier || 'Not listed';
+  const sz = sizeTier(p.employees), rt = regionTier(p.region);
+  const sig = ICP.signals.find((s) => s.key === p.signal.key);
+  const age = daysBetween(p.signal.at, p.listedAt);
+  const like = WON_LIKE.get(p.ind);
+  const sizePts = sz === 'Core' ? ({ '51-200': 16, '201-500': 21, '501-1000': 19 }[p.employees] || 18) : sz.startsWith('With') ? (p.signal.key === 'funding' ? 15 : 7) : sz.startsWith('Through') ? 5 : 0;
+  const fresh = age <= 14 ? 1 : age <= 30 ? 0.8 : age <= 60 ? 0.6 : 0.4;
+  const score = clamp(Math.round((TIER_PTS[tier] || 0) + sizePts + ({ Core: 11, Good: 7 }[rt] || 2) + (sig?.weight || 8) * fresh + (like ? 3 : 0) + (p.email ? 4 : 0)), 5, 97);
+  const art = tier === 'Core' ? 'a core sector' : tier === 'Adjacent' ? 'an adjacent sector' : tier === 'Referral only' ? 'only through a referral' : tier === 'Not a fit' ? 'not a sector Harbourline looks for' : 'not in the profile';
+  return { score, tier, reasons: [
+    `${sec ? sec.label : p.ind}: ${art}${like ? `; like ${like}` : ''}`,
+    `${uc1(SIZE_WORD[p.employees] || 'size unknown')}: ${sz === 'Core' ? 'the size Harbourline does best' : lc1(sz)}`,
+    `${p.city}: ${lc1(p.region)}${rt === 'Core' ? ', a core area' : ''}`,
+    `${p.signal.text} (${p.signal.source}, ${fmt.date(p.signal.at)})`,
+  ] };
+}
+
+/* ---------- campaigns: letters, events, paid posts (outreach sequences join them below) ---------- */
+
+const CAMPAIGNS = [
+  { id: 'CMP-2025-01', name: 'Spring studio letter 2025', type: 'Newsletter', start: '2025-05-02', end: '2025-06-30', owner: 'maya', reached: 640, clicks: 71, about: 'Three recent projects and a short note on accessible booking flows.' },
+  { id: 'CMP-2025-02', name: 'Retail and Hospitality Design Show, Olympia', type: 'Event', format: 'Stand', start: '2025-06-19', end: '2025-06-20', owner: 'maya', place: 'Olympia, London', reached: 212, capture: 'Badge scans, uploaded the next morning', cost: 6400 },
+  { id: 'CMP-2025-03', name: 'Field operations posts on LinkedIn', type: 'Paid social', start: '2025-08-25', end: '2025-10-15', owner: 'samw', reached: 18400, clicks: 236, cost: 2400, about: 'Sponsored posts on route planning and field-service tools, aimed at operations directors.' },
+  { id: 'CMP-2025-04', name: 'Open studio, Hoxton Design Week', type: 'Event', format: 'Own event', start: '2025-09-04', owner: 'maya', place: 'Harbourline studio, Hoxton', reached: 58, capture: 'Sign-in sheet', cost: 1200 },
+  { id: 'CMP-2025-05', name: 'Autumn studio letter 2025', type: 'Newsletter', start: '2025-09-30', end: '2025-12-15', owner: 'samw', reached: 780, clicks: 64, about: 'The Northstar loyalty app, and what changes when a service goes self-serve.' },
+  { id: 'CMP-2026-01', name: 'Digital on a budget: a breakfast talk', type: 'Event', format: 'Own event', start: '2026-01-06', owner: 'leo', place: 'Harbourline studio, Hoxton', reached: 41, capture: 'Sign-in sheet', cost: 900 },
+  { id: 'CMP-2026-02', name: 'Winter studio letter 2026', type: 'Newsletter', start: '2026-01-08', end: '2026-03-31', owner: 'leo', reached: 920, clicks: 58, about: 'Fernhill Energy\'s customer app, one year on.' },
+  { id: 'CMP-2026-03', name: 'Leisure and Venues Expo, Birmingham', type: 'Event', format: 'Stand', start: '2026-02-12', end: '2026-02-13', owner: 'leo', place: 'NEC, Birmingham', reached: 164, capture: 'Badge scans, uploaded the next morning', cost: 4800 },
+  { id: 'CMP-2026-04', name: 'Spring studio letter 2026: the Larkspur app', type: 'Newsletter', start: '2026-04-28', end: '2026-07-15', owner: 'leo', reached: 1040, clicks: 92, about: 'How Larkspur Coffee moved its loyalty scheme into one app.' },
+  { id: 'CMP-2026-05', name: 'Summer open studio', type: 'Event', format: 'Own event', start: '2026-07-23', owner: 'maya', place: 'Harbourline studio, Hoxton', reached: 64, capture: 'Sign-in sheet', cost: 1500 },
+  { id: 'CMP-2026-06', name: 'Autumn studio letter 2026: Pennant Rail', type: 'Newsletter', start: '2026-09-10', end: '2026-11-30', owner: 'leo', reached: 1180, clicks: 104, about: 'Pennant Rail\'s passenger information service, and three things we learnt.' },
+  { id: 'CMP-2026-07', name: 'Design for housing and care: a breakfast talk', type: 'Event', format: 'Own event', start: '2026-10-08', owner: 'samw', place: 'Harbourline studio, Hoxton', reached: 37, capture: 'Sign-in sheet', cost: 850 },
+  { id: 'CMP-2026-08', name: 'Makers and Independents Fair, Spitalfields', type: 'Event', format: 'Stand', start: '2026-10-30', end: '2026-10-31', owner: 'samw', place: 'Old Spitalfields Market, London', reached: 96, capture: 'Badge scans, uploaded the next morning', cost: 2200 },
+  { id: 'CMP-2026-09', name: 'Accessible public services: a breakfast talk', type: 'Event', format: 'Own event', start: '2026-11-26', owner: 'maya', place: 'Harbourline studio, Hoxton', capture: 'Invitations and replies', cost: 950, upcoming: true, about: 'Two short talks on services people can use the first time: housing repairs and school admissions. Thirty seats.' },
+];
+const CAMP = new Map(CAMPAIGNS.map((c) => [c.id, c]));
+/** The campaign a lead came in through: the event it was met at, or the letter or post it answered. */
+const CAMP_OF = new Map();
+/** Website-form leads who first clicked through from a studio letter. */
+const NEWS_FIRST = new Map();
+for (const l of C.leads) {
+  const q = qualOf(l), d = dayOf(q.arrival);
+  if (q.channel === 'Event') {
+    const ev = CAMPAIGNS.filter((c) => c.type === 'Event' && !c.upcoming && c.start <= d && daysBetween(c.start, d) <= 30).sort((a, b) => b.start.localeCompare(a.start))[0];
+    if (ev) CAMP_OF.set(l.name, ev);
+  } else if (q.channel === 'Campaign') {
+    const c = CAMPAIGNS.filter((c) => c.type !== 'Event' && c.start <= d && (c.end || c.start) >= d).sort((a, b) => b.start.localeCompare(a.start))[0]
+      || CAMPAIGNS.filter((c) => c.type === 'Newsletter' && c.start <= d).sort((a, b) => b.start.localeCompare(a.start))[0];
+    if (c) CAMP_OF.set(l.name, c);
+  } else if (q.channel === 'Website form' && hashOf(l.name + 'nl') % 4 === 0) {
+    const c = CAMPAIGNS.find((c) => c.type === 'Newsletter' && c.start <= d && c.end >= d);
+    if (c) NEWS_FIRST.set(l.name, c);
+  }
+}
+/** Who introduced each referral: a client's contact, or a partner studio. */
+const PARTNERS = [{ name: 'Kiln Developers', what: 'a development partner' }, { name: 'Northbank Brand Partners', what: 'a brand agency Harbourline works with' }, { name: 'Fieldwork Research', what: 'a user research partner' }];
+const REFERRAL = new Map();
+for (const l of C.leads) {
+  if (qualOf(l).channel !== 'Referral') continue;
+  const d = dayOf(qualOf(l).arrival);
+  const cands = C.deals.filter((x) => x.status === 'Won' && x.closedDate && x.closedDate < d && x.company && x.company !== l.company && companyName(x.company) !== l.org).map((x) => ({ deal: x, c: primaryOf(x) })).filter((x) => x.c);
+  if (cands.length && hashOf(l.name + 'rf') % 4) { const x = cands[hashOf(l.name + 'rc') % cands.length]; REFERRAL.set(l.name, { kind: 'Client', who: x.c.name, contact: x.c.id, company: x.deal.company, org: companyName(x.deal.company) }); }
+  else { const p = pick(l.name + 'rp', PARTNERS); REFERRAL.set(l.name, { kind: 'Partner', who: p.name, org: p.name, what: p.what }); }
+}
+
+/* ---------- prospect lists and their outreach sequences ---------- */
+
+const LISTS = [
+  { id: 'PL-2026-01', name: 'Food and drink brands after a funding round', ind: 'Food', signal: 'funding', builtAt: '2026-01-26', owner: 'samw', n: 34, batch: 9, sizes: ['11-50', '51-200', '201-500'], pain: 'the website and the online shop usually have to grow up quickly', idea: 'a shop that a two-person team can run without a developer' },
+  { id: 'PL-2026-02', name: 'Retail brands hiring for ecommerce', ind: 'Retail', signal: 'hiring', builtAt: '2026-03-16', owner: 'samw', n: 38, batch: 10, sizes: ['11-50', '51-200', '201-500'], pain: 'the new person usually inherits a shop that is hard to change', idea: 'a 90-day plan the new hire can own from their first week' },
+  { id: 'PL-2026-03', name: 'Health care groups opening new clinics', ind: 'Health Care', signal: 'office', builtAt: '2026-04-06', owner: 'leo', n: 44, batch: 11, sizes: ['51-200', '201-500', '501-1000'], pain: 'booking and patient information tend to split across the sites', idea: 'one booking flow for every clinic, with each site\'s own hours' },
+  { id: 'PL-2026-04', name: 'School trusts with a new school in planning', ind: 'Education', signal: 'planning', builtAt: '2026-04-20', owner: 'leo', n: 36, batch: 9, sizes: ['51-200', '201-500', '501-1000'], pain: 'parents and staff need one place for admissions, news and forms', idea: 'one admissions journey across every school in the trust' },
+  { id: 'PL-2026-05', name: 'Food and drink brands opening shops', ind: 'Food', signal: 'planning', builtAt: '2026-05-11', owner: 'samw', n: 30, batch: 10, sizes: ['11-50', '51-200', '201-500'], pain: 'click-and-collect and the brand\'s own site tend to need a rethink', idea: 'click-and-collect that works the day the shop opens' },
+  { id: 'PL-2026-06', name: 'School trusts hiring a digital lead', ind: 'Education', signal: 'hiring', builtAt: '2026-09-21', owner: 'leo', n: 41, batch: 7, sizes: ['51-200', '201-500', '501-1000'], pain: 'the first job is usually to tidy up a dozen school websites', idea: 'one design system for every school site in the trust', event: 'CMP-2026-09', interested: 1 },
+  { id: 'PL-2026-07', name: 'Housing associations with a repairs or tenant services tender', ind: 'Real Estate', signal: 'tender', builtAt: '2026-10-19', owner: 'samw', n: 52, batch: 12, sizes: ['51-200', '201-500', '501-1000'], pain: 'tenants judge the whole service by how easy it is to report a repair', idea: 'reporting a repair in under two minutes, from a phone, with a photo', event: 'CMP-2026-09', interested: 2 },
+  { id: 'PL-2026-08', name: 'Health care groups hiring digital product roles', ind: 'Health Care', signal: 'hiring', builtAt: '2026-11-06', owner: 'leo', n: 14, sizes: ['51-200', '201-500', '501-1000'], pending: true },
+];
+const LIST = new Map(LISTS.map((L) => [L.id, L]));
+const FIRSTS = ['Hannah', 'James', 'Aisha', 'Tom', 'Callum', 'Sophie', 'Daniel', 'Fatima', 'Owen', 'Rachel', 'Marcus', 'Chloe', 'Imran', 'Laura', 'Gareth', 'Niamh', 'Ben', 'Yasmin', 'Rhys', 'Claire', 'Joe', 'Eleanor', 'Kwesi', 'Megan', 'Lucy', 'Adam', 'Sana', 'Fraser', 'Holly', 'Nathan', 'Zainab', 'Euan', 'Kate', 'Simon', 'Dev', 'Alice', 'Connor', 'Bethan', 'Martha', 'Kofi'];
+const LASTS = ['Carter', 'Hughes', 'Patel', 'Morris', 'Begum', 'Reid', 'Walsh', 'Khan', 'Price', 'Doyle', 'Fletcher', 'Lloyd', 'Campbell', 'Turner', 'Bennett', 'Murray', 'Okoro', 'Evans', 'Gill', 'Hart', 'Lewis', 'Mason', 'Noor', 'Parry', 'Quinn', 'Rowe', 'Stewart', 'Tait', 'Vaughan', 'Wood', 'Young', 'Malik', 'Sinclair', 'Hale', 'Dunn', 'Iqbal', 'Jarvis', 'Kerr'];
+const ORG_POOL = {
+  Food: [['Hearth', 'Saltbox', 'Greyfriars', 'Kiln Lane', 'Bramley', 'Fenland', 'Quince', 'Ember', 'Hopwood', 'Red Kite', 'Cobble', 'Wildacre', 'Juniper', 'Blackthorn', 'Seven Hills', 'Honeycomb', 'Millstone', 'Wheatsheaf', 'Old Dairy', 'Foxhole', 'Sorrel', 'Pebble', 'Marram', 'Tidemill', 'Larkhill', 'Coldharbour', 'Rookery', 'Damson', 'Gorse', 'Hazelbrook', 'Nettlebed', 'Orchard Row', 'Pantile', 'Quarry Lane', 'Rushmere', 'Sloe', 'Tollgate', 'Underhill', 'Wychwood', 'Yarrow'], ['Coffee Roasters', 'Bakery', 'Gin', 'Brewing', 'Kitchen', 'Foods', 'Chocolate', 'Cider', 'Tea', 'Creamery']],
+  Retail: [['Fellside', 'Northlight', 'Stonebridge', 'Ashlar', 'Moss & Fern', 'Tamsin', 'Hollins', 'Cardew', 'Brackenridge', 'Selby', 'Linwood', 'Penhallow', 'Arkwright', 'Grove Street', 'Thornfield', 'Bellmont', 'Maple & Tide', 'Wren & Weave', 'Harbour & Hide', 'Calloway', 'Alder & Ash', 'Birchfield', 'Cobalt Lane', 'Dovecote', 'Elm & Iron', 'Fairhaven', 'Glenrock', 'Hatherley', 'Inglewood', 'Kestrel Row', 'Lowther', 'Merrow', 'Netherby', 'Oxley', 'Priory Lane', 'Redgrave', 'Saltire', 'Trevose', 'Upton & Vale', 'Warwick Row'], ['Outdoor', 'Homeware', 'Knitwear', 'Footwear', 'Cycles', 'Books', 'Interiors', 'Ceramics', 'Supply', 'Workwear']],
+  'Health Care': [['Elmwood', 'Westbrook', 'Northgate', 'Cedar', 'Linnet', 'Ashgrove', 'Meadowbank', 'Kingsway', 'Brookside', 'Hillcrest', 'Thornbury', 'Fairfield', 'Greenway', 'Parkside', 'Lindley', 'Beacon', 'Southdown', 'Harlow Vale', 'Wyndham', 'Rosewood', 'Abbeyfield', 'Bridgeway', 'Castlegate', 'Dalton', 'Eastleigh', 'Foxley', 'Glebe', 'Holmwood', 'Ivydene', 'Juniper Lane', 'Kenmore', 'Langley', 'Millbrook', 'Newlands', 'Oakfield', 'Pinewood', 'Queensway', 'Ravenscroft', 'Sandown', 'Tarnside', 'Upland', 'Valley Road', 'Wellington', 'Yewtree', 'Ashby Road', 'Belmont'], ['Dental Group', 'Physio', 'Health Partnership', 'Clinics', 'Eye Care', 'Care Group', 'Medical Group', 'Hearing Centres', 'Vets', 'Pharmacy Group']],
+  Education: [['Thames Valley', 'Wessex', 'Broadland', 'Peak', 'Mercia', 'Forest', 'Coastal', 'Severn', 'Northern Star', 'Endeavour', 'Oak Hill', 'Riverside', 'Pathways', 'Unity', 'Horizon', 'Compass', 'Beacon Hill', 'Kite', 'Lighthouse', 'Chalk Hills', 'Fenway', 'Bridgewater', 'Aspire', 'Brook Valley', 'Cathedral', 'Dales', 'East Anglia', 'Flying High', 'Greenfields', 'Harmony', 'Ignite', 'Keystone', 'Lakeside', 'Marlborough', 'Nova', 'Orchard Hill', 'Pioneer', 'Quest', 'Rosemary', 'Summit', 'Tamworth', 'Uplands', 'Vale of York', 'Weald and Downs', 'Yorkshire Dales', 'Arden Valley', 'Brightstar'], ['Academy Trust', 'Learning Trust', 'Schools Partnership', 'Education Trust', 'Multi-Academy Trust']],
+  'Real Estate': [['Thameside', 'Weald', 'Medway', 'Chiltern', 'Severn Vale', 'Pennine', 'Kennet', 'Tamar', 'Solent', 'Cotswold', 'Marches', 'Wyvern', 'Brookmere', 'Calder Valley', 'Ouse Valley', 'Downland', 'Rother', 'Avonside', 'Lune Valley', 'Trent and Dove', 'Wansbeck', 'Exe Valley', 'Mendip', 'Fylde', 'Aire Valley', 'Blackwater', 'Cheviot', 'Derwent', 'Eden Valley', 'Fenland', 'Gower', 'Humber', 'Irwell', 'Kingsbridge', 'Lea Valley', 'Malvern', 'Nene Valley', 'Orwell', 'Purbeck', 'Quantock', 'Ribble', 'Stour Valley', 'Teme', 'Ure', 'Wear Valley', 'Wolds', 'Arun', 'Bure', 'Colne', 'Dart', 'Erewash', 'Frome', 'Glen', 'Hamble', 'Itchen', 'Kent Coast'], ['Housing', 'Homes', 'Housing Association', 'Housing Group', 'Homes Trust']],
+};
+const DOMAIN = { 'Real Estate': '.org.uk', Education: '.org.uk', 'Health Care': '.co.uk', Food: '.co.uk', Retail: '.co.uk' };
+const HIRE_ROLE = { Food: 'Head of Ecommerce', Retail: 'Head of Ecommerce', 'Health Care': 'Head of Digital Product', Education: 'Trust Digital Lead', 'Real Estate': 'Head of Digital Services' };
+const usedOrg = new Set([...C.companies.map((c) => c.name), ...C.leads.map((l) => l.org)].filter(Boolean).map((s) => s.toLowerCase()));
+const usedPre = new Map();
+function orgName(L, i) {
+  const [pre, suf] = ORG_POOL[L.ind];
+  const taken = usedPre.get(L.id) || usedPre.set(L.id, new Set()).get(L.id);
+  for (let k = 0; k < 800; k++) {
+    const a = pre[hashOf(`${L.id}${i}a${k}`) % pre.length];
+    if (taken.has(a) && k < 400) continue;
+    const nm = `${a} ${suf[hashOf(`${L.id}${i}b${k}`) % suf.length]}`;
+    if (!usedOrg.has(nm.toLowerCase())) { usedOrg.add(nm.toLowerCase()); taken.add(a); return nm; }
+  }
+  return `${pre[i % pre.length]} ${suf[i % suf.length]}`;
+}
+function contactRole(L, key) {
+  if (L.signal === 'funding') return pick(key + 'r', ['Founder', 'Chief Executive', 'Managing Director']);
+  if (L.signal === 'hiring') return pick(key + 'r', L.ind === 'Education' ? ['Chief Operating Officer', 'Chief Executive'] : ['Marketing Director', 'Chief Operating Officer', 'Chief Executive']);
+  if (L.signal === 'tender') return pick(key + 'r', ['Head of Customer Services', 'Director of Housing Services', 'Digital Transformation Lead']);
+  if (L.signal === 'planning') return L.ind === 'Education' ? pick(key + 'r', ['Chief Operating Officer', 'Chief Executive']) : 'Managing Director';
+  return pick(key + 'r', ['Operations Director', 'Chief Executive', 'Head of Patient Services']);
+}
+function sigFor(L, key, city) {
+  const x = hashOf(key + 'sig');
+  const at = addDays(L.builtAt, -(3 + (x % 48)));
+  let text, thing, source;
+  switch (L.signal) {
+    case 'funding': { const amt = [1.2, 1.8, 2.5, 3.2, 4.5, 6][x % 6]; text = `Raised £${amt}m in a ${amt < 3 ? 'seed round' : 'Series A round'}`; thing = 'round'; source = x % 2 ? 'Companies House: new shares allotted' : 'Trade press'; break; }
+    case 'hiring': thing = HIRE_ROLE[L.ind]; text = `Hiring a ${thing}`; source = pick(key + 'js', ['Job boards', 'Their careers page']); break;
+    case 'office': { const n = 1 + (x % 3); thing = n === 1 ? 'new clinic' : 'new clinics'; text = `Opening ${n === 1 ? 'a new clinic' : n + ' new clinics'} in and around ${city}`; source = 'Press release'; break; }
+    case 'planning': thing = L.ind === 'Education' ? pick(key + 'pl', ['primary school', 'secondary school', 'sixth-form centre']) : 'shop and café'; text = `Planning application for a new ${thing} in ${city}`; source = `${city} planning portal`; break;
+    default: thing = pick(key + 'td', ['repairs reporting service', 'tenant portal', 'customer contact service', 'tenant app']); text = `Tender for a ${thing}, closing ${fmt.date(addDays(L.builtAt, 21 + (x % 30)))}`; source = 'Find a Tender'; break;
+  }
+  return { key: L.signal, text, thing, source, at };
+}
+/** The five steps of a list's sequence; each renders for one prospect. */
+const STEP_DAYS = [0, 3, 7, 12, 18];
+function stepsOf(L) {
+  const like = WON_LIKE.get(L.ind);
+  const me = cx.firstName(L.owner);
+  const ev = L.event ? CAMP.get(L.event) : null;
+  const subj0 = (p) => ({ funding: 'Congratulations on the round', hiring: `Your ${p.signal.thing} role`, office: `The ${p.signal.thing} in ${p.city}`, planning: `The new ${p.signal.thing} in ${p.city}`, tender: `Your ${p.signal.thing} tender` }[L.signal]);
+  const hook = (p) => ({ funding: `I saw that ${p.org} has just raised new money. Congratulations.`, hiring: `I saw that ${p.org} is hiring a ${p.signal.thing}.`, office: `I saw that ${p.org} is opening ${p.signal.thing} in and around ${p.city}.`, planning: `I saw the planning application for ${p.org}'s new ${p.signal.thing} in ${p.city}.`, tender: `I saw ${p.org}'s tender for a ${p.signal.thing}.` }[L.signal]);
+  return [
+    { kind: 'email', label: 'First email', subject: subj0, body: (p) => `Hi ${p.first},\n\n${hook(p)} When that happens, ${L.pain}. We're Harbourline, a design and engineering studio in Hoxton${like ? `; we did this for ${like}` : ''}.\n\nWould 20 minutes next week be useful? I'll bring two examples.\n\n${me}` },
+    { kind: 'linkedin', label: 'LinkedIn note', subject: () => 'Connection request', body: (p) => `Hi ${p.first}, I run new work at Harbourline, a studio in Hoxton. ${hook(p)} Happy to connect and swap notes.` },
+    { kind: 'email', label: 'Follow-up with a case study', subject: (p) => `Re: ${subj0(p)}`, body: (p) => `Hi ${p.first},\n\nIn case it's useful, here is how we approached ${like ? `this for ${like}` : 'something similar for a client'}: two pages, no sign-up.\n\n${me}` },
+    ev ? { kind: 'event', label: 'Invitation', event: ev.id, subject: () => `An invitation: ${ev.name}, ${fmt.day(ev.start)}`, body: (p) => `Hi ${p.first},\n\nWe're hosting a breakfast at the studio in Hoxton on ${fmt.dateLong(ev.start)}. ${ev.about} Would you like to come?\n\n${me}` }
+      : { kind: 'email', label: 'One idea for them', subject: (p) => `One idea for ${p.org}`, body: (p) => `Hi ${p.first},\n\nOne idea we keep coming back to: ${L.idea}. Happy to sketch it for ${p.org} if that's useful.\n\n${me}` },
+    { kind: 'email', label: 'Last note', subject: (p) => `Re: ${subj0(p)}`, body: (p) => `Hi ${p.first},\n\nI won't keep writing. If this comes up later in the year, I'd be glad to help.\n\n${me}` },
+  ].map((s, i) => ({ ...s, step: i, day: STEP_DAYS[i] }));
+}
+const REPLY_TONE = { Interested: 'green', 'Wrote in': 'green', 'Not now': 'blue', 'Not interested': 'gray', 'Wrong person': 'yellow', Unsubscribe: 'red', 'Out of office': 'muted', Bounced: 'red' };
+function replyText(p) {
+  const r = p.reply, me = cx.firstName(p.owner);
+  switch (r.cls) {
+    case 'Interested': return `Thanks ${me}, good timing. We're working through exactly this at the moment. Could we talk next week? Tuesday or Wednesday morning suits me.\n\n${p.first}`;
+    case 'Not now': return `Thanks for this. Not for us this year: our budget is set until ${fmt.month(r.until)}. Do get back in touch then.\n\n${p.first}`;
+    case 'Not interested': return `Thanks, but we have this covered with our current agency.\n\n${p.first}`;
+    case 'Wrong person': return `I'm not the right person for this. ${r.colleague} looks after it; I've copied them in.`;
+    case 'Unsubscribe': return 'Please take me off your list.';
+    case 'Out of office': return `I'm out of the office until ${fmt.date(r.until)} with limited access to email.`;
+    case 'Bounced': return 'The address no longer exists.';
+    default: return '';
+  }
+}
+
+const PROSPECTS = [];
+const PROS = new Map();
+const PROS_OF_LEAD = new Map();
+const SEQS = [];
+const SEQ = new Map();
+const NOT_FIT = ['Part of a larger group that buys centrally', 'Already on a long contract with another studio', 'The signal turned out to be an old story', 'Smaller than it looked: under 10 staff'];
+{
+  let n = 0;
+  const mapped = new Set();
+  const openAt = (d, day) => dayOf(d.createdAt) < day && (!d.closedDate || d.closedDate > day);
+  for (const L of LISTS) {
+    if (!L.pending) { L.seq = 'SEQ-' + L.id.slice(3); L.seqName = 'Outreach: ' + lc1(L.name); }
+    const from = addDays(L.builtAt, 3), to = addDays(L.builtAt, 45);
+    const leads = L.pending ? [] : C.leads.filter((l) => !mapped.has(l.name) && l.industry === L.ind && ['Email', 'Campaign', 'Website'].includes(l.source) && l.status !== 'Junk' && L.sizes.includes(l.employees)
+      && dayOf(qualOf(l).arrival) >= from && dayOf(qualOf(l).arrival) <= to
+      && !C.deals.some((d) => (d.company === l.company || companyName(d.company) === l.org) && openAt(d, L.builtAt))).slice(0, 3);
+    leads.forEach((l) => mapped.add(l.name));
+    const items = [];
+    for (let i = 0; i < L.n - leads.length; i++) {
+      const key = `${L.id}:${i}`, city = cityPick(key), org = orgName(L, i);
+      const first = pick(key + 'f', FIRSTS), last = pick(key + 'l', LASTS);
+      const dom = org.toLowerCase().replace(/&/g, 'and').replace(/[^a-z0-9]+/g, '') + DOMAIN[L.ind];
+      items.push({ key, org, ind: L.ind, employees: pick(key + 'e', L.sizes), city, region: regionOf(city), website: dom, first, last, role: contactRole(L, key), email: `${first.toLowerCase()}.${last.toLowerCase()}@${dom}`, signal: sigFor(L, key, city) });
+    }
+    for (const l of leads) {
+      const co = COMPANY.get(l.company);
+      const city = co?.address ? co.address.split(',')[0] : cityPick(l.name);
+      items.splice(hashOf(l.name) % (items.length + 1), 0, { key: l.name, org: l.org, ind: l.industry, employees: l.employees, city, region: regionOf(city, l.territory), website: l.website, first: l.firstName, last: l.lastName, role: l.jobTitle || contactRole(L, l.name), email: l.email, signal: sigFor(L, l.name, city), lead: l.name });
+    }
+    // clients the agent left out: their owner looks after them
+    const ex = C.companies.filter((co) => co.industry === L.ind && C.deals.some((d) => d.company === co.id && dayOf(d.createdAt) < L.builtAt)).slice(0, 3).map((co) => {
+      const ds = C.deals.filter((d) => d.company === co.id && dayOf(d.createdAt) < L.builtAt).sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt)));
+      const open = ds.find((d) => openAt(d, L.builtAt)), won = ds.find((d) => d.status === 'Won' && d.closedDate <= L.builtAt);
+      const city = co.address ? co.address.split(',')[0] : cityPick(co.id);
+      return { key: co.id, org: co.name, company: co.id, ind: co.industry, employees: co.employees, city, region: regionOf(city, co.territory), website: co.website, first: '', last: '', role: '', email: '', signal: sigFor(L, co.id, city), excluded: open ? `An open deal with ${cx.name(open.owner)}` : won ? `A client since ${fmt.date(won.closedDate)}; ${cx.name(won.owner)} looks after them` : `Talked to in ${fmt.month(ds[0].createdAt)}; ${cx.name(ds[0].owner)} decides`, deal: (open || won || ds[0]).name };
+    });
+    let k = 0;
+    const listed = [];
+    for (const p of [...items, ...ex]) {
+      Object.assign(p, { id: `PRS-2026-${String(++n).padStart(5, '0')}`, list: L.id, seq: L.seq || null, owner: L.owner, listedAt: atOn(L.builtAt, 7, p.key), name: [p.first, p.last].filter(Boolean).join(' '), listName: L.name, touches: [] });
+      listed.push(p);
+      if (p.excluded) { p.status = 'Excluded'; continue; }
+      if (L.pending) { p.status = 'Waiting for approval'; continue; }
+      if (!p.lead && hashOf(p.key + 'nf') % 100 < 6) { p.status = 'Not a fit'; p.whyNot = pick(p.key + 'wn', NOT_FIT); continue; }
+      let enrol = addDays(L.builtAt, 1 + 7 * Math.floor(k / L.batch) + (k % 2)); k++;
+      const lead = p.lead ? C.leads.find((l) => l.name === p.lead) : null;
+      if (lead) { const back = addDays(dayOf(qualOf(lead).arrival), -(9 + (hashOf(p.key) % 6))); enrol = back < addDays(L.builtAt, 1) ? addDays(L.builtAt, 1) : back < enrol ? back : enrol; }
+      p.enrolAt = enrol;
+      p.touches = STEP_DAYS.map((d, s) => ({ step: s, at: atOn(addDays(enrol, d), s === 1 ? 12 : 8, p.key + s), state: 'Scheduled' }));
+      let stopAt = null;
+      if (lead) { p.reply = { cls: 'Wrote in', at: qualOf(lead).arrival, via: qualOf(lead).channel }; stopAt = p.reply.at; }
+      else {
+        const sent = p.touches.filter((t) => t.at < NOW0);
+        const x = hashOf(p.key + 'o') % 100;
+        const cls = x < 3 ? 'Bounced' : x < 7 ? 'Unsubscribe' : x < 14 ? 'Not now' : x < 18 ? 'Not interested' : x < 21 ? 'Wrong person' : x < 24 ? 'Out of office' : null;
+        if (cls && sent.length) {
+          const t = cls === 'Bounced' ? p.touches[0] : sent[hashOf(p.key + 'r') % sent.length];
+          const at = cls === 'Bounced' ? isoPlus(t.at, 3) : isoPlus(t.at, 60 * (5 + (hashOf(p.key + 'ra') % 40)));
+          if (at < NOW0) {
+            p.reply = { cls, at, step: t.step, via: t.step === 1 ? 'LinkedIn' : 'Email' };
+            if (cls === 'Not now') { p.reply.until = addDays(dayOf(at), 100 + (hashOf(p.key) % 80)); if (p.reply.until < TODAY) p.checkedBack = atOn(p.reply.until, 9, p.key + 'cb'); }
+            if (cls === 'Out of office') p.reply.until = addDays(dayOf(at), 5 + (hashOf(p.key) % 9));
+            if (cls === 'Wrong person') { const f = pick(p.key + 'wf', FIRSTS), ln = pick(p.key + 'wl', LASTS); p.reply.colleague = `${f} ${ln}`; p.contactWas = p.name; p.first = f; p.last = ln; p.name = `${f} ${ln}`; p.email = `${f.toLowerCase()}.${ln.toLowerCase()}@${p.website}`; p.role = pick(p.key + 'wr', ['Head of Digital', 'Digital Programme Manager', 'Head of Marketing']); }
+            if (['Bounced', 'Unsubscribe', 'Not now', 'Not interested'].includes(cls)) stopAt = at;
+            if (cls === 'Out of office') { const shift = Math.max(0, daysBetween(at, p.reply.until)); for (const tt of p.touches) if (tt.at > at) tt.at = isoPlus(tt.at, shift * 1440); }
+          }
+        }
+      }
+      for (const t of p.touches) {
+        if (stopAt && t.at > stopAt) t.state = 'Stopped';
+        else if (t.at < NOW0) { t.state = 'Sent'; t.approvedBy = L.owner; t.approvedAt = isoPlus(t.at, -(25 + (hashOf(p.key + t.step) % 200))); }
+        else t.state = dayOf(t.at) <= addDays(TODAY, 1) ? 'Waiting for approval' : 'Scheduled';
+      }
+    }
+    // live lists: the latest interested replies, waiting for their owner to make them leads
+    if (L.interested) {
+      const cands = listed.filter((p) => p.touches.length && !p.reply && p.touches.filter((t) => t.state === 'Sent').length >= 2).sort((a, b) => hashOf(a.key + 'i') - hashOf(b.key + 'i')).slice(0, L.interested);
+      cands.forEach((p, i) => {
+        const last = p.touches.filter((t) => t.state === 'Sent').at(-1);
+        let at = isoPlus(last.at, 60 * (18 + i * 5)); if (at >= NOW0) at = isoPlus(NOW0, -(70 + i * 140));
+        p.reply = { cls: 'Interested', at, step: last.step, via: last.step === 1 ? 'LinkedIn' : 'Email' };
+        for (const t of p.touches) if (t.at > at) t.state = 'Stopped';
+      });
+    }
+    for (const p of listed) {
+      if (p.status) continue;
+      const r = p.reply?.cls;
+      p.status = p.lead ? 'Lead' : r === 'Interested' ? 'Replied' : r === 'Bounced' ? 'Bounced' : r === 'Unsubscribe' ? 'Do not contact' : r === 'Not now' ? (p.checkedBack ? 'Closed' : 'Nurture') : r === 'Not interested' ? 'Closed'
+        : p.touches.some((t) => ['Waiting for approval', 'Scheduled', 'Approved'].includes(t.state)) ? 'In sequence' : 'No reply';
+      if (p.lead) PROS_OF_LEAD.set(p.lead, p);
+    }
+    for (const p of listed) { PROSPECTS.push(p); PROS.set(p.id, p); }
+    if (!L.pending) { const S = { id: L.seq, name: L.seqName, list: L, owner: L.owner, steps: stepsOf(L) }; SEQS.push(S); SEQ.set(S.id, S); }
+  }
+}
+const prosOf = (L) => PROSPECTS.filter((p) => p.list === L.id);
+const SIGNAL_WORD = { tender: 'Tenders', funding: 'Funding rounds', office: 'New sites', planning: 'Planning applications', hiring: 'Job ads', leader: 'New leaders' };
+const excerpt = (t, n = 90) => { const x = String(t || '').replace(/\s+/g, ' ').trim(); if (x.length <= n) return x; const cut = x.slice(0, n); return cut.slice(0, cut.lastIndexOf(' ')) + '…'; };
+const lgTitle = (name, route, id, square) => h('span.crm-name.lg-ttl', extAvatar(name, { size: 'sm', square }), h('a', { href: cx.href(route, id) }, name));
+const enrolled = (ps) => ps.filter((p) => p.touches.length);
+const seqStatus = (S) => (prosOf(S.list).some((p) => p.status === 'In sequence' || p.status === 'Replied') ? 'Live' : 'Finished');
+const P_TONE = { 'Approved for outreach': 'teal', 'In sequence': 'blue', Replied: 'green', Lead: 'teal', Nurture: 'blue', 'No reply': 'gray', Closed: 'gray', Bounced: 'orange', 'Do not contact': 'red', 'Not a fit': 'gray', Excluded: 'muted', 'Waiting for approval': 'yellow' };
+const pStatus = (p) => cx.pill(p.status, P_TONE[p.status] || 'gray');
+const fitPill = (p) => scorePill(fitOf(p).score);
+const nextTouch = (p) => p.touches.find((t) => ['Waiting for approval', 'Approved', 'Scheduled'].includes(t.state)) || null;
+
+/* the outreach before a lead wrote in, on the lead's own timeline */
+for (const p of PROSPECTS) {
+  if (!p.lead) continue;
+  const S = SEQ.get(p.seq);
+  for (const t of p.touches) {
+    if (t.state !== 'Sent' || S.steps[t.step].kind !== 'email') continue;
+    const st = S.steps[t.step];
+    indexTl({ id: `lg_${p.id}_${t.step}`, kind: 'email', direction: 'out', from: memberEmail(p.owner), fromName: cx.name(p.owner), to: [p.email].filter(Boolean), cc: [], subject: st.subject(p), body: st.body(p), attachments: [], at: t.at, by: p.owner, draftedBy: AGENT, loggedBy: AGENT, recordName: p.lead, recordType: 'Lead', derived: true, outreach: p.seq });
+  }
+}
+
+/* ---------- where a lead came from: first and last touch ---------- */
+
+const ATTR_GROUPS = ['Outreach', 'Events', 'Newsletters', 'Paid social', 'Referrals', 'Website', 'Direct', 'Existing clients'];
+function lastTouchOf(l) {
+  const q = qualOf(l), c = CAMP_OF.get(l.name);
+  switch (q.channel) {
+    case 'Event': return c ? { group: 'Events', label: c.name, route: 'campaign', id: c.id } : { group: 'Events', label: 'Other events' };
+    case 'Campaign': return c ? { group: c.type === 'Paid social' ? 'Paid social' : 'Newsletters', label: c.name, route: 'campaign', id: c.id } : { group: 'Newsletters', label: 'Other letters' };
+    case 'Referral': { const r = REFERRAL.get(l.name); return { group: 'Referrals', label: r?.kind === 'Partner' ? 'From partners' : 'From clients', ref: r }; }
+    case 'Website form': return { group: 'Website', label: 'Website form' };
+    case 'WhatsApp': return { group: 'Website', label: 'WhatsApp from the website' };
+    case 'Existing client': return { group: 'Existing clients', label: 'More work from clients' };
+    default: return { group: 'Direct', label: 'Email to the studio' };
+  }
+}
+function firstTouchOf(l) {
+  const p = PROS_OF_LEAD.get(l.name);
+  if (p && SEQ.get(p.seq)) { const S = SEQ.get(p.seq); return { group: 'Outreach', label: S.name, route: 'sequence', id: S.id }; }
+  const n = NEWS_FIRST.get(l.name);
+  if (n) return { group: 'Newsletters', label: n.name, route: 'campaign', id: n.id };
+  return lastTouchOf(l);
+}
+const srcNode = (s) => (s.route ? cx.link(s.label, s.route, s.id) : s.ref ? h('span', s.ref.contact ? cx.link(s.ref.who, 'contact', s.ref.contact) : s.ref.who, h('span.muted', ` · ${s.ref.kind === 'Client' ? s.ref.org : s.ref.what}`)) : h('span', s.label));
+const leadDeal = (l) => C.deals.find((d) => d.name === (l.deal || l.convertedTo)) || C.deals.find((d) => d.lead === l.name) || null;
+const dealGbp = (d) => toGbp(d.dealValue, d.currency, d.closedDate || d.createdAt);
+/** A set of leads' results: qualified, deals, won and what was won. */
+function resultsOf(leads) {
+  const q = leads.filter((l) => qualOf(l).qualifiedAt || l.converted);
+  const deals = leads.map(leadDeal).filter(Boolean);
+  const won = deals.filter((d) => d.status === 'Won');
+  return { leads: leads.length, qualified: q.length, deals: deals.length, won: won.length, wonValue: sum(won, dealGbp), open: deals.filter(isOpenDeal).length, openValue: sum(deals.filter(isOpenDeal), (d) => toGbp(d.dealValue, d.currency)) };
+}
+
+/* ---------- the funnel: when each record reached each stage ---------- */
+
+const LATER_PROP = ['Proposal/Quotation', 'Negotiation', 'Ready to Close', 'Won'];
+function proposalAt(d) {
+  const it = itemsOf(d).find((i) => (i.kind === 'changed' && i.field === 'Status' && LATER_PROP.includes(i.to)) || (i.kind === 'changes' && i.changes.some((c) => c[0] === 'Status' && LATER_PROP.includes(c[2]))));
+  if (it) return it.at;
+  if (!LATER_PROP.includes(d.status)) return null;
+  return d.status === 'Won' && d.closedDate ? isoPlus(d.createdAt, Math.round((Date.parse(d.closedDate + 'T12:00:00Z') - Date.parse(d.createdAt)) / 120000)) : d.createdAt;
+}
+const daysOf = (a, b) => (a && b ? (Date.parse(b.length === 10 ? b + 'T12:00:00Z' : b) - Date.parse(a.length === 10 ? a + 'T12:00:00Z' : a)) / 86400000 : null);
+const FPERIODS = [['ytd', 'This year'], ['6', 'Last 6 months'], ['12', 'Last 12 months'], ['all', 'Since May 2025']];
+function periodMonths(k) {
+  const to = monthOf(TODAY);
+  if (k === 'ytd') return monthsBetween('2026-01', to);
+  if (k === 'all') return monthsBetween('2025-05', to);
+  const all = monthsBetween('2025-01', to);
+  return all.slice(-(+k));
+}
+function funnelData(months) {
+  const inM = (at) => at && months.includes(monthOf(at));
+  const pros = enrolled(PROSPECTS).filter((p) => inM(p.enrolAt));
+  const leads = C.leads.filter((l) => l.status !== 'Junk' && inM(qualOf(l).arrival));
+  const quals = C.leads.filter((l) => inM(qualOf(l).qualifiedAt));
+  const props = C.deals.filter((d) => inM(proposalAt(d)));
+  const won = C.deals.filter((d) => d.status === 'Won' && inM(d.closedDate));
+  const dealOfL = (l) => leadDeal(l);
+  return {
+    pros, leads, quals, props, won,
+    conv: [
+      { n: pros.filter((p) => p.lead).length, of: pros.length, open: pros.filter((p) => ['In sequence', 'Replied'].includes(p.status)).length, t: median(pros.filter((p) => p.lead).map((p) => daysOf(p.enrolAt, qualOf(C.leads.find((l) => l.name === p.lead)).arrival))) },
+      { n: leads.filter((l) => qualOf(l).qualifiedAt).length, of: leads.length, open: leads.filter((l) => !qualOf(l).qualifiedAt && !l.converted && stageOf('lead', l.status) !== 'lost').length, t: median(leads.map((l) => qualOf(l).qualifyHours).filter((x) => x != null).map((x) => x / 24)) },
+      { n: quals.filter((l) => { const d = dealOfL(l); return d && proposalAt(d); }).length, of: quals.length, open: quals.filter((l) => { const d = dealOfL(l); return !d ? !isLost('lead', l.status) : !proposalAt(d) && isOpenDeal(d); }).length, t: median(quals.map((l) => { const d = dealOfL(l); return d && proposalAt(d) ? daysOf(qualOf(l).qualifiedAt, proposalAt(d)) : null; })) },
+      { n: props.filter((d) => d.status === 'Won').length, of: props.length, open: props.filter(isOpenDeal).length, t: median(props.filter((d) => d.status === 'Won').map((d) => daysOf(proposalAt(d), d.closedDate))) },
+    ],
+  };
+}
+
+/* ---------- nurture ---------- */
+
+const TRACKS = [
+  { id: 'date', name: 'Check back on a date', cadence: 'Once, on the date they gave', what: 'A personal note from the owner, on the month they named.' },
+  { id: 'cases', name: 'Sector case studies', cadence: 'Every six weeks', what: 'A short case study from their own sector, sent by their owner.' },
+  { id: 'letter', name: 'Studio letter', cadence: 'Every quarter', what: 'The studio letter: recent work and one idea. The next one goes on 8 Dec.' },
+];
+const NEXT_LETTER = '2026-12-08';
+const MONTHS_FULL = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+const nextMonthStart = (name) => { const m = MONTHS_FULL.indexOf(name) + 1; if (!m) return null; const y = m >= +TODAY.slice(5, 7) ? 2026 : 2027; return `${y}-${String(m).padStart(2, '0')}-0${2 + (hashOf(name) % 5)}`; };
+const NURTURE_SIG = [
+  (k) => ({ text: `Posted a job for a ${pick(k, ['Head of Digital', 'Digital Product Manager', 'Ecommerce Manager'])}`, source: 'Job boards' }),
+  (k) => ({ text: `Announced a new site in ${cityPick(k)}`, source: 'Press release' }),
+  (k) => ({ text: 'A new chief executive started this month', source: 'Their website' }),
+];
+/** Everyone in nurture: leads in Nurture, and prospects who said "not now". */
+function nurtureRows() {
+  const out = [];
+  for (const l of C.leads.filter((x) => x.status === 'Nurture' && !x.converted)) {
+    const q = qualOf(l), text = textOf(rawItems(l.name));
+    const board = /Budget depends on the board in (\w+)/.exec(text);
+    const track = board ? 'date' : hashOf(l.name + 'tr') % 2 ? 'cases' : 'letter';
+    const last = lastTouch(l)?.at || q.arrival;
+    const next = track === 'date' ? nextMonthStart(board[1]) : track === 'cases' ? (() => { let d = addDays(dayOf(last), 42); while (d < TODAY) d = addDays(d, 42); return d; })() : NEXT_LETTER;
+    const sig = hashOf(l.name + 'ns') % 3 === 0 ? { ...pick(l.name + 'sg', NURTURE_SIG)(l.name), at: addDays(TODAY, -(2 + (hashOf(l.name) % 12))) } : null;
+    out.push({ kind: 'lead', rec: l, id: l.name, name: leadName(l), org: l.org, owner: l.owner, why: board ? `Budget waits on the board in ${board[1]}` : q.budget.level === 2 ? `Budget ${lc1(q.budget.text)}` : `Not ready yet: ${lc1(q.timing.text)}`, track, last, next, sig, route: ['lead', l.name] });
+  }
+  for (const p of PROSPECTS.filter((x) => x.status === 'Nurture')) {
+    out.push({ kind: 'prospect', rec: p, id: p.id, name: p.name, org: p.org, owner: p.owner, why: `Said not now: budget set until ${fmt.month(p.reply.until)}`, track: 'date', last: p.reply.at, next: p.reply.until, sig: null, route: ['prospect', p.id] });
+  }
+  return out.sort((a, b) => String(a.next).localeCompare(String(b.next)));
+}
+const cameBack = () => C.timeline.filter((i) => (i.kind === 'changed' && i.field === 'Status' && i.from === 'Nurture' && !['Unqualified', 'Junk'].includes(i.to)) || (i.kind === 'changes' && i.changes.some((c) => c[0] === 'Status' && c[1] === 'Nurture' && !['Unqualified', 'Junk'].includes(c[2]))));
+
+/* ---------- actions: approving a batch, making a lead from a reply ---------- */
+
+function approveTouches(list, label) {
+  const now = NOW();
+  for (const { p, t } of list) { t.state = t.at <= now ? 'Sent' : 'Approved'; t.approvedBy = cx.meId(); t.approvedAt = now; }
+  const first = list.map((x) => x.t.at).sort()[0];
+  cx.toast(`Approved ${fmt.plural(list.length, label)}: ${first <= now ? 'sent now' : `they go out ${dayOf(first) === TODAY ? 'today' : 'tomorrow'} at ${fmt.time(first)}`} (mock-up: nothing is sent)`, { tone: 'success' });
+  cx.refresh();
+}
+function leadFromProspect(p) {
+  if (p.lead) { cx.go('lead', p.lead); return; }
+  const S = SEQ.get(p.seq);
+  const name = nextName(`CRM-LEAD-${TODAY.slice(0, 4)}-`, C.leads.map((l) => l.name));
+  const at = NOW();
+  const l = { createdAt: at, company: null, org: p.org, contact: null, status: 'New', converted: false, owner: p.owner, source: 'Campaign', deal: null, name, firstName: p.first, lastName: p.last, email: p.email, mobile: null, jobTitle: p.role, website: p.website, territory: 'United Kingdom', industry: p.ind, employees: p.employees, modifiedAt: at };
+  C.leads.push(l);
+  for (const t of p.touches) if (t.state === 'Sent' && S.steps[t.step].kind === 'email') { const st = S.steps[t.step]; indexTl({ id: `lg_${p.id}_${t.step}`, kind: 'email', direction: 'out', from: memberEmail(p.owner), fromName: cx.name(p.owner), to: [p.email], cc: [], subject: st.subject(p), body: st.body(p), attachments: [], at: t.at, by: p.owner, draftedBy: AGENT, loggedBy: AGENT, recordName: name, recordType: 'Lead', derived: true, outreach: p.seq }); }
+  const st = S.steps[p.reply.step];
+  addItem(name, 'Lead', { kind: 'email', direction: 'in', from: p.email, fromName: p.name, to: [memberEmail(p.owner)], cc: [], subject: `Re: ${st.subject(p).replace(/^Re: /, '')}`, body: replyText(p), attachments: [], at: p.reply.at, by: null, loggedBy: AGENT });
+  addItem(name, 'Lead', { kind: 'creation', text: `${cx.name(cx.meId())} created this lead`, source: 'Campaign', at });
+  deriveLeadItems(l);
+  p.lead = name; p.status = 'Lead'; PROS_OF_LEAD.set(name, p);
+  cx.toast(`Created ${name} for ${p.name} at ${p.org}, owned by ${cx.name(p.owner)}`, { tone: 'success', action: { label: 'Open', onClick: () => cx.go('lead', name) } });
+  cx.refresh();
+}
+function markProspect(p, status, why) {
+  p.status = status; if (why) p.whyNot = why;
+  for (const t of p.touches) if (['Waiting for approval', 'Scheduled', 'Approved'].includes(t.state)) t.state = 'Stopped';
+  cx.toast(`${p.org}: ${status === 'Do not contact' ? 'on the do-not-contact list; nothing more goes to them' : lc1(status)}`, { tone: 'success' });
+  cx.refresh();
+}
+
+/* ---------- parts ---------- */
+
+const touchIcon = { email: 'mail', linkedin: 'link', event: 'calendar' };
+const T_TONE = { Sent: 'green', Approved: 'teal', 'Waiting for approval': 'yellow', Scheduled: 'muted', Stopped: 'gray' };
+function touchLine(p, t) {
+  const who = cx.name(t.approvedBy || p.owner);
+  switch (t.state) {
+    case 'Sent': return `Drafted by the sales agent; approved by ${who}${t.approvedAt ? ' on ' + fmt.date(t.approvedAt) : ''}${SEQ.get(p.seq)?.steps[t.step].kind === 'linkedin' ? `, and sent from ${cx.firstName(p.owner)}'s own profile` : ''}`;
+    case 'Approved': return `Approved by ${who}; goes out ${fmt.datetime(t.at)}`;
+    case 'Waiting for approval': return `Drafted by the sales agent; waiting for ${cx.name(p.owner)} to approve`;
+    case 'Scheduled': return `Drafted on the day and sent to ${cx.name(p.owner)} to approve first`;
+    default: return 'Not sent: the sequence stopped';
+  }
+}
+function touchRow(p, t) {
+  const S = SEQ.get(p.seq), st = S.steps[t.step];
+  const body = h('div.crm-mail-body.clamp', st.body(p));
+  const more = h('button.crm-more', { type: 'button', onclick: () => { const c = body.classList.toggle('clamp'); more.textContent = c ? 'Show more' : 'Show less'; } }, 'Show more');
+  const card = h('div.crm-card', { style: t.state === 'Stopped' ? 'opacity:.6' : null },
+    h('div.crm-mail-head', h('b', `Step ${t.step + 1} · ${st.label}`), cx.pill(t.state, T_TONE[t.state]), h('span.grow'), h('span.crm-when', { title: fmt.datetime(t.at) }, `Day ${st.day} · ${fmt.datetime(t.at)}`)),
+    st.kind === 'linkedin' ? null : h('div.crm-mail-to', 'To ', p.name ? `${p.name} <${p.email}>` : '—'),
+    st.kind === 'linkedin' ? null : h('div.crm-mail-subj', st.subject(p)),
+    body, more,
+    h('div.crm-logged', agentAvatar(), h('span', touchLine(p, t))));
+  return actRow(cx.icon(touchIcon[st.kind]), null, card, { ic: st.kind === 'linkedin' ? 'k-call' : 'k-email' });
+}
+function replyRow(p) {
+  const r = p.reply;
+  if (r.cls === 'Wrote in') {
+    return actRow(cx.icon('in'), [h('b', p.name), `wrote in by ${lc1(r.via === 'Website form' ? 'the website form' : r.via)}`, when(r.at)],
+      h('div.crm-card', h('div.crm-call-h', cx.pill('Became a lead', 'teal'), cx.link(p.lead, 'lead', p.lead)), h('div.crm-logged', agentAvatar(), h('span', 'Matched to this prospect by the sales agent; the outreach stopped'))), { ic: 'k-whatsapp' });
+  }
+  const card = h('div.crm-card',
+    h('div.crm-mail-head', h('b', r.cls === 'Bounced' ? 'Mail delivery' : p.name), h('span.muted', { style: 'font-size:12px' }, r.cls === 'Bounced' ? '' : `<${p.email}>`), h('span.grow'), cx.pill(r.cls, REPLY_TONE[r.cls])),
+    h('div.crm-mail-body', replyText(p)),
+    h('div.crm-logged', agentAvatar(), h('span', `Logged by the sales agent from ${r.via === 'LinkedIn' ? `${cx.firstName(p.owner)}'s LinkedIn messages` : 'the sales mailbox'}; sorted as ${r.cls}${r.cls === 'Not now' ? `, with a check back in ${fmt.month(r.until)}` : r.cls === 'Out of office' ? `; the next steps moved to after ${fmt.date(r.until)}` : r.cls === 'Unsubscribe' ? '; added to the do-not-contact list' : r.cls === 'Wrong person' ? `; ${r.colleague} is now the contact` : ''}`)));
+  return actRow(cx.icon('in'), [h('b', r.cls === 'Bounced' ? 'The first email' : p.contactWas || p.name), r.cls === 'Bounced' ? 'bounced' : `replied ${r.via === 'LinkedIn' ? 'on LinkedIn' : 'by email'}`, when(r.at)], card, { ic: r.cls === 'Interested' ? 'k-whatsapp' : 'k-email' });
+}
+const lgCrumbs = (label, route) => [{ label: 'CRM', route: 'crm' }, ...(label ? [{ label, route }] : [])];
+const statCards = (cards) => h('div.ncards', cards.map((c) => cx.numberCard(c)));
+const listCard = (L) => {
+  const ps = prosOf(L), en = enrolled(ps);
+  const S = SEQ.get(L.seq);
+  const st = L.pending ? 'Waiting for approval' : seqStatus(S);
+  return h('a.lg-list', { href: cx.href('prospects'), onclick: (e) => { e.preventDefault(); cx.go('prospects', null, { list: { filters: { listName: L.name }, tab: 'All' } }); } },
+    h('div.crm-call-h', cx.pill(st, st === 'Live' ? 'blue' : st === 'Finished' ? 'gray' : 'yellow'), h('span.grow'), h('span.crm-when', `Built ${fmt.date(L.builtAt)}`)),
+    h('h4', L.name),
+    h('div.m', h('span', fmt.plural(ps.filter((p) => p.status !== 'Excluded').length, 'prospect')), h('span', `${fmt.int(en.length)} reached`), h('span', fmt.plural(ps.filter((p) => p.reply && !['Bounced', 'Out of office', 'Wrote in'].includes(p.reply.cls)).length, 'reply', 'replies')), h('span', fmt.plural(ps.filter((p) => p.lead).length, 'lead'))),
+    h('div.crm-call-h', cx.personChip(L.owner, { link: false }), h('span.grow'), h('span.crm-tst.muted', { style: 'font-size:12px' }, cx.icon('eye', { size: 12 }), SIGNAL_WORD[L.signal])));
+};
+
+/* ---------- the pages ---------- */
+
+function icpPage() {
+  const decided = (ind) => C.deals.filter((d) => d.industry === ind && ['Won', 'Lost'].includes(d.status));
+  const secRows = ICP.sectors.map((s) => {
+    const leads = C.leads.filter((l) => l.industry === s.ind && l.status !== 'Junk');
+    const r = resultsOf(leads);
+    const dec = decided(s.ind), won = dec.filter((d) => d.status === 'Won');
+    return h('tr', td(h('b', s.label)), td(cx.pill(s.tier, TIER_TONE[s.tier])), td(fmt.int(leads.length), { num: true }), td(fmt.int(r.qualified), { num: true, opt: true }), td(fmt.int(won.length), { num: true }), td(fmt.gbp(sum(won, dealGbp), 0), { num: true }), td(dec.length ? fmt.pct(won.length / dec.length, 0) : '—', { num: true, opt: true }));
+  });
+  const fits = (l) => ['Core', 'Adjacent'].includes(sectorOf(l.industry)?.tier) && !['1-10', '11-50'].includes(l.employees) && !!l.employees;
+  const real = C.leads.filter((l) => l.status !== 'Junk');
+  const cmp = [['Fit the profile', real.filter(fits)], ['Do not fit', real.filter((l) => !fits(l))]].map(([label, ls]) => { const r = resultsOf(ls); return h('tr', td(h('b', label)), td(fmt.int(r.leads), { num: true }), td(pctOr(r.qualified, r.leads), { num: true }), td(fmt.int(r.won), { num: true }), td(fmt.gbp(r.wonValue, 0), { num: true }), td(r.leads ? fmt.gbp(r.wonValue / r.leads, 0) : '—', { num: true, opt: true })); });
+  const sigRows = ICP.signals.map((s) => {
+    const ps = enrolled(PROSPECTS).filter((p) => p.signal.key === s.key);
+    const rep = ps.filter((p) => p.reply && !['Bounced', 'Out of office'].includes(p.reply.cls));
+    return h('tr', td(h('b', s.label)), td(String(s.weight), { num: true }), td(s.source, { opt: true, wrap: true }), td(fmt.int(ps.length), { num: true }), td(pctOr(rep.length, ps.length), { num: true }), td(fmt.int(ps.filter((p) => p.lead).length), { num: true }));
+  });
+  return cx.page({
+    title: 'Ideal customer profile', workspace: 'crm', crumbs: lgCrumbs(),
+    status: [cx.pill(`Version ${ICP.version}`, 'info')],
+    sub: `Set with the FDE on ${fmt.date(ICP.setAt)} by ${namesList(ICP.setWith)}; last reviewed ${fmt.date(ICP.reviewedAt)}. The sales agent builds prospect lists against it and scores each prospect's fit.`,
+    actions: [cx.btn('Review with the FDE', { icon: 'fde', onClick: () => cx.fde.open({ ask: 'Review our ideal customer profile with me: what does our won work say we should change?', context: 'The ideal customer profile in the CRM' }) }), cx.btn('Edit', { kind: 'primary', icon: 'edit', needs: ICP_NEED, onClick: icpEdit })],
+    fde: `The ideal customer profile, version ${ICP.version}`,
+    body: [
+      cx.card({ title: 'Sectors', body: [h('p.muted', { style: 'font-size:12.5px;margin-bottom:8px' }, 'Each sector\'s record since May 2025: leads, qualified, deals won and the win rate of deals decided.'),
+        tbl([{ label: 'Sector' }, { label: 'In the profile' }, { label: 'Leads', num: true }, { label: 'Qualified', num: true, opt: true }, { label: 'Won', num: true }, { label: 'Won value', num: true }, { label: 'Win rate', num: true, opt: true }], secRows)] }),
+      h('div.grid.c2',
+        cx.card({ title: 'Size and place', body: [
+          h('div.crm-msec', { style: 'padding-top:0' }, 'Size'), cx.kv(ICP.sizes.map(([k, t]) => [uc1(SIZE_WORD[k] || k), cx.pill(t, TIER_TONE[t] || 'gray')])),
+          h('div.crm-msec', 'Place'), cx.kv(ICP.regions.map(([k, t]) => [k, cx.pill(t, TIER_TONE[t] || 'gray')])),
+          h('div.crm-msec', 'Budget'), cx.kv([['First project', `${fmt.gbp(ICP.minProject, 0)} or more`]])] }),
+        cx.card({ title: 'Leave out', body: h('ul.lg-reasons', ICP.exclude.map((x) => h('li', x))) })),
+      cx.card({ title: 'Signals', body: [h('p.muted', { style: 'font-size:12.5px;margin-bottom:8px' }, 'What tells the agent an organisation may need Harbourline now, where it looks, and how prospects with each signal answered.'),
+        tbl([{ label: 'Signal' }, { label: 'Weight', num: true }, { label: 'Where the agent looks', opt: true }, { label: 'Prospects', num: true }, { label: 'Replied', num: true }, { label: 'Leads', num: true }], sigRows)] }),
+      cx.card({ title: 'Does the profile predict?', body: [h('p.muted', { style: 'font-size:12.5px;margin-bottom:8px' }, 'Every lead since May 2025, split by whether it is in a sector of the profile with 51 staff or more.'),
+        tbl([{ label: '' }, { label: 'Leads', num: true }, { label: 'Qualified', num: true }, { label: 'Won', num: true }, { label: 'Won value', num: true }, { label: 'Per lead', num: true, opt: true }], cmp)] }),
+      cx.card({ title: 'Changes', body: cx.timeline(ICP.history.map((x) => ({ at: x.at, who: x.by[0], kind: 'change', text: `made version ${x.v}${x.by.length > 1 ? ` with ${namesList(x.by.slice(1))}` : ''}: ${lc1(x.text)}` }))) }),
+    ],
+  });
+}
+function icpEdit() {
+  const m = {};
+  ICP.sectors.forEach((s, i) => { m['s' + i] = s.tier; });
+  ICP.signals.forEach((s, i) => { m['g' + i] = s.weight; });
+  m.minProject = ICP.minProject;
+  formModal({ title: 'Edit the ideal customer profile', model: m, needs: ICP_NEED, submit: 'Save', wide: true,
+    intro: 'The agent scores every prospect against this, and builds new lists from it. Saving makes a new version.',
+    fields: [{ section: 'Sectors' }, ...ICP.sectors.map((s, i) => ({ label: s.label, key: 's' + i, type: 'select', options: TIERS })),
+      { section: 'Signal weights' }, ...ICP.signals.map((s, i) => ({ label: s.label, key: 'g' + i, type: 'int' })),
+      { section: 'Budget' }, { label: 'First project of at least (£)', key: 'minProject', type: 'int' }],
+    onSubmit: (x, close) => {
+      const ch = [];
+      ICP.sectors.forEach((s, i) => { if (x['s' + i] !== s.tier) { ch.push(`${s.label} ${lc1(s.tier)} to ${lc1(x['s' + i])}`); s.tier = x['s' + i]; } });
+      ICP.signals.forEach((s, i) => { const w = +x['g' + i] || 0; if (w !== s.weight) { ch.push(`${lc1(s.label)} weighs ${w}`); s.weight = w; } });
+      if (+x.minProject && +x.minProject !== ICP.minProject) { ch.push(`first project ${fmt.gbp(+x.minProject, 0)} or more`); ICP.minProject = +x.minProject; }
+      close();
+      if (!ch.length) { cx.toast('Nothing changed', { tone: 'info' }); return; }
+      ICP.version++; ICP.reviewedAt = NOW();
+      ICP.history.push({ v: ICP.version, at: NOW(), by: [cx.meId()], text: uc1(ch.join('; ')) + '.' });
+      cx.toast(`Saved version ${ICP.version}. Fit scores follow it.`, { tone: 'success' });
+      cx.refresh();
+    } });
+}
+
+function prospectsPage(ctx) {
+  const lists = h('div.lg-lists', LISTS.slice().reverse().map(listCard));
+  const list = cx.listView({
+    key: 'lg-prospects', rows: () => PROSPECTS, id: (r) => r.id,
+    titleCol: { key: 'org', label: 'Organisation', render: (r) => lgTitle(r.org, 'prospect', r.id, true), sub: (r) => r.signal.text },
+    status: (r) => pStatus(r),
+    columns: [
+      { key: 'fit', label: 'Fit', get: (r) => fitOf(r).score, render: fitPill, keep: true },
+      { key: 'place', label: 'Place', get: (r) => r.city },
+      { key: 'next', label: 'Next touch', get: (r) => nextTouch(r)?.at || '', render: (r) => { const t = nextTouch(r); return t ? h('span.crm-tst', { title: fmt.datetime(t.at) }, cx.icon(touchIcon[SEQ.get(r.seq)?.steps[t.step].kind] || 'mail', { size: 13 }), `Step ${t.step + 1} · ${fmt.day(t.at)}`) : h('span.faint', '—'); } },
+      { key: 'owner', label: 'Owner', type: 'person' },
+    ],
+    filters: [{ key: 'org', label: 'Organisation' }, { key: 'listName', label: 'List', type: 'select', options: LISTS.map((L) => L.name) }, { key: 'status', label: 'Status', type: 'select', options: Object.keys(P_TONE) }, { key: 'owner', label: 'Owner', type: 'person', options: () => uniq(LISTS.map((L) => L.owner)) }],
+    tabs: [
+      { label: 'All', filter: (r) => r.status !== 'Excluded' },
+      { label: 'In sequence', filter: (r) => r.status === 'In sequence' },
+      { label: 'Replied', filter: (r) => !!r.reply && !['Bounced', 'Out of office'].includes(r.reply.cls) },
+      { label: 'Became leads', filter: (r) => !!r.lead },
+      { label: 'Waiting for approval', filter: (r) => r.status === 'Waiting for approval' },
+      { label: 'Left out', filter: (r) => ['Excluded', 'Not a fit', 'Do not contact', 'Bounced'].includes(r.status) },
+    ],
+    sort: { options: [{ key: 'listed', label: 'Listed', get: (r) => r.listedAt }, { key: 'fit', label: 'Fit', get: (r) => fitOf(r).score }, { key: 'org', label: 'Organisation' }], default: { key: 'listed', dir: 'desc' } },
+    groupBy: [{ key: 'status', label: 'Status' }, { key: 'listName', label: 'List' }, { key: 'region', label: 'Region' }],
+    href: (r) => ['prospect', r.id],
+    bulk: [{ label: 'Not a fit', icon: 'x', needs: LG_NEED, onClick: (rows) => { rows.forEach((p) => { p.status = 'Not a fit'; p.whyNot = 'Taken off by hand'; p.touches.forEach((t) => { if (['Waiting for approval', 'Scheduled', 'Approved'].includes(t.state)) t.state = 'Stopped'; }); }); cx.toast(`${fmt.plural(rows.length, 'prospect')} taken off their lists`, { tone: 'success' }); cx.refresh(); } }],
+    noun: 'prospect', showId: false, empty: 'No prospects match.',
+  });
+  return cx.page({ title: 'Prospects', workspace: 'crm', crumbs: lgCrumbs(),
+    sub: 'Organisations the sales agent found in public sources that fit the ideal customer profile. A person approves each list before any outreach starts.',
+    actions: [cx.btn('Ideal customer', { icon: 'user', href: ['crm-icp'] }), cx.btn('Outreach', { icon: 'send', kind: 'primary', href: ['sequences'] })],
+    fde: 'The prospect lists in the CRM', body: [lists, list] });
+}
+
+function prospectPage(p) {
+  const L = LIST.get(p.list), S = SEQ.get(p.seq);
+  const f = fitOf(p);
+  const tone = scoreTone(f.score);
+  const actions = [
+    p.lead ? cx.btn('Open the lead', { kind: 'primary', icon: 'right', href: ['lead', p.lead] })
+      : p.reply?.cls === 'Interested' ? cx.btn('Make a lead', { kind: 'primary', icon: 'plus', needs: LG_NEED, onClick: () => leadFromProspect(p) }) : null,
+    p.touches.length || p.status === 'Waiting for approval' ? cx.menu(null, [
+      { label: 'Not a fit', icon: 'x', needs: LG_NEED, onClick: () => markProspect(p, 'Not a fit', 'Taken off by hand') },
+      { label: 'Do not contact', icon: 'lock', needs: LG_NEED, danger: true, onClick: async () => { if (await cx.confirm({ title: `Never contact ${p.org} again?`, body: 'They leave every list and sequence, and the agent will not list them again.', confirmLabel: 'Do not contact', danger: true })) markProspect(p, 'Do not contact'); } },
+    ]) : null,
+  ];
+  const fitCard = cx.card({ title: 'Why it fits', body: [
+    h('div.crm-score', h('b', String(f.score)), h('div', { style: 'display:grid;gap:4px;min-width:0' }, h('div.bar', h('i', { style: `width:${f.score}%;background:var(--t-${tone})` })), h('span.muted', { style: 'font-size:12px' }, `Fit out of 100, against version ${ICP.version} of the profile`))),
+    h('ul.lg-reasons', f.reasons.map((r) => h('li', r))),
+    p.excluded ? h('div.crm-reason', h('b', 'Left out: '), p.excluded, '. ', p.deal ? cx.link('Open the deal', 'deal', p.deal) : null) : null,
+    p.status === 'Not a fit' ? h('div.crm-reason', h('b', 'Not a fit: '), p.whyNot) : null,
+    h('div.crm-logged', agentAvatar(), h('span', `Found and enriched by the sales agent on ${fmt.date(p.listedAt)}: size and place from Companies House, the contact from their website`)),
+  ] });
+  const acts = [];
+  if (p.touches.length) for (const t of p.touches) { acts.push({ at: t.at, n: touchRow(p, t) }); }
+  if (p.reply) acts.push({ at: p.reply.at, n: replyRow(p) });
+  if (p.checkedBack) acts.push({ at: p.checkedBack, n: actRow(cx.icon('mail'), [h('b', cx.name(p.owner)), 'checked back, as they asked', when(p.checkedBack)], h('div.crm-card', h('div.crm-mail-body', `Hi ${p.first},\n\nYou asked me to get back in touch about now. Is this a better time to talk?\n\n${cx.firstName(p.owner)}`), h('div.crm-logged', agentAvatar(), h('span', `Drafted by the sales agent on the date they gave; approved by ${cx.name(p.owner)}. No answer in three weeks, so the prospect is closed.`))), { ic: 'k-email' }) });
+  acts.sort((a, b) => String(a.at).localeCompare(String(b.at)));
+  const outCard = cx.card({ title: S ? 'Outreach' : 'Outreach', actions: S ? cx.btn('Open the sequence', { sm: true, kind: 'ghost', href: ['sequence', S.id] }) : null,
+    body: acts.length ? h('div.crm-acts', acts.map((a) => a.n)) : cx.empty(p.status === 'Waiting for approval' ? `Nothing is sent until ${cx.name(L.owner)} approves the list.` : p.excluded ? 'No outreach: Harbourline already knows them.' : 'No outreach: taken off the list before anything went.') });
+  const side = h('aside.crm-side',
+    idBtn(p.id),
+    h('div.crm-head', h('div.crm-head-top', extAvatar(p.org, { size: 'xl', square: true }), h('div', { style: 'min-width:0' }, h('h2', p.org), h('div.muted', [sectorOf(p.ind)?.label || p.ind, p.city].filter(Boolean).join(' · '))))),
+    sideSec('Organisation', [cx.kv([['Website', p.website], ['Size', SIZE_WORD[p.employees] || p.employees], ['Place', `${p.city}, ${p.region}`], ['Signal', p.signal.text], ['Found in', `${p.signal.source}, ${fmt.date(p.signal.at)}`]])], { key: 'pr-org' }),
+    p.name ? sideSec('Contact', [cx.kv([['Name', p.name], ['Role', p.role], ['Email', p.email], p.contactWas ? ['Before', `${p.contactWas}, who passed it on`] : null])], { key: 'pr-contact' }) : null,
+    sideSec('List', [cx.kv([['List', L.name], ['Owner', cx.personChip(p.owner, { link: false })], ['Sequence', S ? cx.link(S.name, 'sequence', S.id) : 'Not started'], ['Status', pStatus(p)], p.lead ? ['Lead', cx.link(p.lead, 'lead', p.lead)] : null])], { key: 'pr-list' }));
+  return cx.page({ title: p.org, workspace: 'crm', crumbs: lgCrumbs('Prospects', 'prospects'), status: [pStatus(p)],
+    sub: `${p.id} · ${L.name} · fit ${f.score}`, actions,
+    fde: `Prospect ${p.id}: ${p.org}, ${p.status}, on the list "${L.name}"`,
+    body: h('div.crm-rec', h('div', { style: 'display:grid;gap:14px;min-width:0' }, fitCard, outCard), side) });
+}
+
+function seqTotals(S) {
+  const ps = prosOf(S.list), en = enrolled(ps);
+  const touches = en.flatMap((p) => p.touches.map((t) => ({ p, t })));
+  const replies = en.filter((p) => p.reply && !['Bounced', 'Out of office', 'Wrote in'].includes(p.reply.cls));
+  const leads = ps.filter((p) => p.lead).map((p) => C.leads.find((l) => l.name === p.lead)).filter(Boolean);
+  return { ps, en, touches, sent: touches.filter((x) => x.t.state === 'Sent'), waiting: touches.filter((x) => x.t.state === 'Waiting for approval'), replies, interested: en.filter((p) => p.reply && ['Interested', 'Wrote in'].includes(p.reply.cls)), leads, res: resultsOf(leads) };
+}
+function sequencesPage() {
+  const rows = SEQS.slice().reverse().map((S) => {
+    const x = seqTotals(S), st = seqStatus(S);
+    return h('tr', td(h('a', { href: cx.href('sequence', S.id) }, S.name)), td(cx.pill(st, st === 'Live' ? 'blue' : 'gray')), td(cx.personChip(S.owner, { link: false }), { opt: true }), td(fmt.int(x.en.length), { num: true }), td(fmt.int(x.sent.length), { num: true, opt: true }), td(pctOr(x.replies.length, x.en.length), { num: true }), td(fmt.int(x.leads.length), { num: true }), td(x.res.wonValue ? fmt.gbp(x.res.wonValue, 0) : x.res.open ? h('span.muted', `${fmt.gbp(x.res.openValue, 0)} open`) : '—', { num: true }), td(x.waiting.length ? cx.pill(`${x.waiting.length} to approve`, 'yellow') : '', { opt: true }));
+  });
+  const all = SEQS.map(seqTotals);
+  const en = sum(all, (x) => x.en.length), rep = sum(all, (x) => x.replies.length);
+  return cx.page({ title: 'Outreach', workspace: 'crm', crumbs: lgCrumbs(),
+    sub: 'Sequences of emails, LinkedIn notes and invitations to prospects. The sales agent drafts each message; its owner approves every batch before it is sent, and any reply stops the sequence.',
+    actions: [cx.btn('Prospects', { icon: 'list', href: ['prospects'] }), cx.btn('Waiting for you', { kind: 'primary', icon: 'check', onClick: () => cx.agentWork?.open?.('for') })],
+    fde: 'The outreach sequences in the CRM',
+    body: [
+      statCards([
+        { label: 'Prospects reached', value: fmt.int(en), sub: `${SEQS.length} sequences since January` },
+        { label: 'Reply rate', value: pctOr(rep, en), sub: `${fmt.int(rep)} replies, any kind` },
+        { label: 'Leads', value: fmt.int(sum(all, (x) => x.leads.length)), sub: `${fmt.int(sum(all, (x) => x.res.qualified))} qualified` },
+        { label: 'Won', value: fmt.gbp(sum(all, (x) => x.res.wonValue), 0), sub: `plus ${fmt.gbp(sum(all, (x) => x.res.openValue), 0)} in open deals` },
+        { label: 'Waiting for approval', value: fmt.int(sum(all, (x) => x.waiting.length)), sub: 'messages drafted for their owners' },
+      ]),
+      cx.card({ title: 'Sequences', flush: true, body: tbl([{ label: 'Sequence' }, { label: 'Status' }, { label: 'Owner', opt: true }, { label: 'Reached', num: true }, { label: 'Sent', num: true, opt: true }, { label: 'Replied', num: true }, { label: 'Leads', num: true }, { label: 'Won', num: true }, { label: '', opt: true }], rows) }),
+    ] });
+}
+function sequencePage(S) {
+  const x = seqTotals(S), L = S.list, st = seqStatus(S);
+  const preview = x.en.find((p) => p.name && !p.lead) || x.en[0];
+  const stepRows = S.steps.map((s) => {
+    const at = x.touches.filter((y) => y.t.step === s.step);
+    const n = (state) => at.filter((y) => y.t.state === state).length;
+    const rep = x.en.filter((p) => p.reply && p.reply.step === s.step && !['Bounced', 'Out of office'].includes(p.reply.cls)).length;
+    const body = h('div.crm-mail-body', { hidden: true, style: 'margin-top:6px' }, preview ? `${s.kind === 'linkedin' ? '' : 'Subject: ' + s.subject(preview) + '\n\n'}${s.body(preview)}` : '');
+    const tog = h('button.crm-more', { type: 'button', onclick: () => { body.hidden = !body.hidden; tog.textContent = body.hidden ? `Show it, as drafted for ${preview?.org}` : 'Hide'; } }, `Show it, as drafted for ${preview?.org}`);
+    return h('div.lg-step', h('div.lg-day', `Day ${s.day}`), h('div', { style: 'min-width:0;display:grid;gap:4px' },
+      h('div.crm-call-h', cx.icon(touchIcon[s.kind], { size: 14 }), h('b', s.label), s.kind === 'linkedin' ? h('span.muted', { style: 'font-size:12px' }, `from ${cx.firstName(S.owner)}'s profile`) : s.kind === 'event' ? cx.link(CAMP.get(s.event).name, 'campaign', s.event) : null),
+      h('div.m.muted', { style: 'font-size:12px;display:flex;flex-wrap:wrap;gap:2px 12px' }, h('span', `${n('Sent')} sent`), n('Waiting for approval') ? h('span', `${n('Waiting for approval')} waiting for approval`) : null, n('Approved') ? h('span', `${n('Approved')} approved`) : null, n('Scheduled') ? h('span', `${n('Scheduled')} scheduled`) : null, h('span', `${n('Stopped')} stopped`), h('span', `${rep} ${rep === 1 ? 'reply' : 'replies'}`)),
+      preview ? tog : null, body));
+  });
+  const replies = x.en.filter((p) => p.reply && p.reply.cls !== 'Bounced').sort((a, b) => String(b.reply.at).localeCompare(String(a.reply.at)));
+  const repList = replies.length ? h('div.crm-list', replies.map((p) => h('a.crm-row', { href: cx.href('prospect', p.id) },
+    extAvatar(p.org, { size: 'sm', square: true }),
+    h('div', { style: 'display:grid;gap:2px;min-width:0' }, h('span.t', `${p.contactWas || p.name} · ${p.org}`), h('span.m', h('span', excerpt(replyText(p))))),
+    h('div.r', cx.pill(p.reply.cls === 'Wrote in' ? 'Became a lead' : p.reply.cls, REPLY_TONE[p.reply.cls]), h('span', { title: fmt.datetime(p.reply.at) }, fmt.ago(p.reply.at)))))) : cx.empty('No replies yet');
+  const list = cx.listView({ key: 'lg-seq-' + S.id, strip: false, rows: () => x.en, id: (r) => r.id, pageSize: 20,
+    titleCol: { key: 'org', label: 'Prospect', render: (r) => lgTitle(r.org, 'prospect', r.id, true), sub: (r) => r.name },
+    status: pStatus,
+    columns: [{ key: 'fit', label: 'Fit', get: (r) => fitOf(r).score, render: fitPill, keep: true }, { key: 'done', label: 'Steps sent', get: (r) => r.touches.filter((t) => t.state === 'Sent').length, render: (r) => `${r.touches.filter((t) => t.state === 'Sent').length} of 5` }, { key: 'next', label: 'Next touch', get: (r) => nextTouch(r)?.at || '', render: (r) => { const t = nextTouch(r); return t ? `Step ${t.step + 1} · ${fmt.day(t.at)}` : h('span.faint', '—'); } }],
+    filters: [{ key: 'org', label: 'Prospect' }, { key: 'status', label: 'Status', type: 'select' }],
+    href: (r) => ['prospect', r.id], noun: 'prospect', showId: false, empty: 'Nobody in this sequence yet.' });
+  return cx.page({ title: S.name, workspace: 'crm', crumbs: lgCrumbs('Outreach', 'sequences'), status: [cx.pill(st, st === 'Live' ? 'blue' : 'gray', { lg: true })],
+    sub: `${S.id} · ${fmt.plural(x.en.length, 'prospect')} from "${L.name}" · owner ${cx.name(S.owner)}`,
+    actions: [x.waiting.length ? cx.btn(`Approve ${x.waiting.length} waiting`, { kind: 'primary', icon: 'check', onClick: () => cx.agentWork?.open?.('for') }) : null, cx.btn('The prospects', { icon: 'list', onClick: () => cx.go('prospects', null, { list: { filters: { listName: L.name }, tab: 'All' } }) })],
+    fde: `The outreach sequence ${S.name}`,
+    body: [
+      statCards([
+        { label: 'Reached', value: fmt.int(x.en.length), sub: `${fmt.plural(x.sent.length, 'message')} sent` },
+        { label: 'Replied', value: pctOr(x.replies.length, x.en.length), sub: `${fmt.int(x.replies.length)} replies, ${fmt.int(x.interested.length)} interested` },
+        { label: 'Leads', value: fmt.int(x.leads.length), sub: `${fmt.int(x.res.qualified)} qualified, ${fmt.int(x.res.deals)} deals` },
+        { label: 'Won', value: fmt.gbp(x.res.wonValue, 0), sub: x.res.open ? `${fmt.gbp(x.res.openValue, 0)} in open deals` : fmt.plural(x.res.won, 'deal') },
+      ]),
+      h('div.grid.side',
+        cx.card({ title: 'Steps', body: h('div.lg-steps', stepRows) }),
+        cx.card({ title: 'How it sends', body: cx.kv([
+          ['Approval', `${cx.name(S.owner)} approves each batch before it goes`],
+          ['Sends from', `${cx.firstName(S.owner)}'s mailbox; LinkedIn notes from ${cx.firstName(S.owner)}'s own profile`],
+          ['Stops when', 'They reply, the email bounces, or they ask to stop'],
+          ['Out of office', 'Waits until they are back'],
+          ['Pace', `Up to ${L.batch} new prospects a week`],
+          ['Started', fmt.date(addDays(L.builtAt, 1))],
+        ]) })),
+      cx.card({ title: 'Replies', body: repList }),
+      cx.card({ title: 'Prospects in this sequence', body: list }),
+    ] });
+}
+
+function inboundPage() {
+  const web = C.leads.filter((l) => ['Website form', 'WhatsApp'].includes(qualOf(l).channel)).sort((a, b) => String(qualOf(b).arrival).localeCompare(String(qualOf(a).arrival)));
+  const since = addDays(TODAY, -89);
+  const web90 = web.filter((l) => dayOf(qualOf(l).arrival) >= since);
+  const PAGES = ['Contact page', 'A case study', 'Services pages', 'The home page'];
+  const pageOf = (l) => pick(l.name + 'pg', PAGES);
+  const webTab = () => h('div', { style: 'display:grid;gap:14px;min-width:0' },
+    statCards([
+      { label: 'Enquiries, last 90 days', value: fmt.int(web90.length), sub: `${fmt.int(web90.filter((l) => l.status === 'Junk').length)} filtered as spam` },
+      { label: 'Qualified', value: pctOr(resultsOf(web.filter((l) => l.status !== 'Junk')).qualified, web.filter((l) => l.status !== 'Junk').length), sub: 'of real enquiries since May 2025' },
+      { label: 'First reply', value: durHuman(median(web90.map((l) => qualOf(l).firstReplyHours))), sub: 'median, after it arrived' },
+      { label: 'Won from the form', value: fmt.gbp(resultsOf(web).wonValue, 0), sub: 'since May 2025' },
+    ]),
+    h('div.grid.c2',
+      cx.card({ title: 'The form', body: cx.kv([
+        ['Where', 'harbourline.studio/contact, and the end of every case study'],
+        ['Asks for', 'Name, email, organisation, what they need, a budget range, when they need it, how they heard of Harbourline'],
+        ['Becomes', 'A lead in the CRM within minutes, scored and routed to an owner'],
+        ['Spam', 'Sales pitches and link offers are marked Junk, not deleted'],
+        ['WhatsApp', 'The number on the contact page; messages become leads the same way'],
+      ]) }),
+      cx.card({ title: 'Where they filled it in', body: cx.chart.hbar({ items: PAGES.map((pg, i) => ({ label: pg, value: web90.filter((l) => pageOf(l) === pg).length, color: String(i + 1) })), format: (v) => fmt.int(v) }) })),
+    cx.card({ title: 'Latest enquiries', body: h('div.crm-list', web.slice(0, 10).map((l) => { const q = qualOf(l); return h('a.crm-row', { href: cx.href('lead', l.name) }, extAvatar(leadName(l), { size: 'sm' }),
+      h('div', { style: 'display:grid;gap:2px;min-width:0' }, h('span.t', `${leadName(l)}${l.org ? ' · ' + l.org : ''}`), h('span.m', channelTag(q.channel), h('span', pageOf(l)), h('span', q.need.level ? q.need.text : 'Need not clear yet'))),
+      h('div.r', l.status === 'Junk' ? cx.pill('Spam', 'gray') : scorePill(q.score), h('span', { title: fmt.datetime(q.arrival) }, fmt.ago(q.arrival)))); })) }));
+  const events = CAMPAIGNS.filter((c) => c.type === 'Event').slice().reverse();
+  const evTab = () => {
+    const rows = events.map((c) => {
+      const ls = [...CAMP_OF.entries()].filter(([, v]) => v === c).map(([k]) => C.leads.find((l) => l.name === k));
+      const r = resultsOf(ls.filter((l) => l.status !== 'Junk'));
+      return h('tr', td(h('a', { href: cx.href('campaign', c.id) }, c.name)), td(fmt.date(c.start)), td(c.format, { opt: true }), td(c.upcoming ? h('span.muted', `${invitesOf(c).length} invited`) : fmt.int(c.reached), { num: true }), td(c.upcoming ? '—' : fmt.int(ls.length), { num: true }), td(c.upcoming ? '—' : fmt.int(r.qualified), { num: true, opt: true }), td(r.wonValue ? fmt.gbp(r.wonValue, 0) : '—', { num: true }), td(fmt.gbp(c.cost, 0), { num: true, opt: true }));
+    });
+    return h('div', { style: 'display:grid;gap:14px;min-width:0' },
+      h('p.muted', { style: 'font-size:12.5px' }, 'Stands at fairs and Harbourline\'s own breakfasts and open studios. Badge scans and sign-in sheets come in the next morning; each person becomes a lead, scored like any other.'),
+      cx.card({ title: 'Events', flush: true, body: tbl([{ label: 'Event' }, { label: 'Date' }, { label: 'Format', opt: true }, { label: 'People met', num: true }, { label: 'Leads', num: true }, { label: 'Qualified', num: true, opt: true }, { label: 'Won', num: true }, { label: 'Cost', num: true, opt: true }], rows) }));
+  };
+  const refs = C.leads.filter((l) => REFERRAL.has(l.name)).sort((a, b) => String(qualOf(b).arrival).localeCompare(String(qualOf(a).arrival)));
+  const refTab = () => {
+    const by = new Map();
+    for (const l of refs) { const r = REFERRAL.get(l.name); const k = r.who; const e = by.get(k) || { r, n: 0, won: 0 }; e.n++; const d = leadDeal(l); if (d?.status === 'Won') e.won += dealGbp(d); by.set(k, e); }
+    const top = [...by.values()].sort((a, b) => b.won - a.won || b.n - a.n).slice(0, 8);
+    return h('div', { style: 'display:grid;gap:14px;min-width:0' },
+      statCards([
+        { label: 'Referrals', value: fmt.int(refs.length), sub: 'since May 2025' },
+        { label: 'From clients', value: fmt.int(refs.filter((l) => REFERRAL.get(l.name).kind === 'Client').length), sub: `${fmt.int(refs.filter((l) => REFERRAL.get(l.name).kind === 'Partner').length)} from partners` },
+        { label: 'Qualified', value: pctOr(resultsOf(refs).qualified, refs.length), sub: 'the best rate of any source' },
+        { label: 'Won', value: fmt.gbp(resultsOf(refs).wonValue, 0), sub: fmt.plural(resultsOf(refs).won, 'deal') },
+      ]),
+      h('div.grid.c2',
+        cx.card({ title: 'Who refers', body: cx.chart.hbar({ items: top.map((e) => ({ label: e.r.kind === 'Client' ? `${e.r.who}, ${e.r.org}` : e.r.who, value: e.n, color: e.r.kind === 'Client' ? '1' : '3', href: e.r.contact ? ['contact', e.r.contact] : null })), format: (v) => fmt.int(v) }) }),
+        cx.card({ title: 'Latest referrals', body: h('div.crm-list', refs.slice(0, 8).map((l) => { const r = REFERRAL.get(l.name); const d = leadDeal(l); return h('a.crm-row', { href: cx.href('lead', l.name) }, extAvatar(l.org || leadName(l), { size: 'sm', square: true }),
+          h('div', { style: 'display:grid;gap:2px;min-width:0' }, h('span.t', l.org || leadName(l)), h('span.m', h('span', `From ${r.who}${r.kind === 'Client' ? ', ' + r.org : ''}`))),
+          h('div.r', d ? stDot('deal', d.status) : stDot('lead', l.status), h('span', fmt.ago(qualOf(l).arrival)))); })) })));
+  };
+  return cx.page({ title: 'Inbound', workspace: 'crm', crumbs: lgCrumbs(),
+    sub: 'Leads who came to Harbourline: through the website form, at events, and by introduction.',
+    actions: [cx.btn('Lead sources', { icon: 'report', href: ['crm-sources'] })],
+    fde: 'Inbound lead capture in the CRM',
+    body: cx.tabs([{ label: 'Website form', count: web90.length, render: webTab }, { label: 'Events', count: events.length, render: evTab }, { label: 'Referrals', count: refs.length, render: refTab }], { key: 'lg-inbound' }) });
+}
+/** Invitations to an upcoming event: the invitation step of the sequences that point at it. */
+function invitesOf(c) {
+  const out = [];
+  for (const S of SEQS) { const st = S.steps.find((s) => s.event === c.id); if (!st) continue; for (const p of enrolled(prosOf(S.list))) { const t = p.touches[st.step]; if (t && ['Sent', 'Approved', 'Waiting for approval'].includes(t.state)) out.push({ p, t, rsvp: t.state !== 'Sent' ? 'Not sent yet' : hashOf(p.id + 'rsvp') % 100 < 22 ? 'Coming' : hashOf(p.id + 'rsvp') % 100 < 35 ? 'Cannot make it' : 'No answer yet' }); } }
+  return out;
+}
+
+function nurturePage() {
+  const rows = nurtureRows();
+  const back = PROSPECTS.filter((p) => p.checkedBack && dayOf(p.checkedBack) >= addDays(TODAY, -364)).length + cameBack().filter((i) => dayOf(i.at) >= addDays(TODAY, -364)).length;
+  const thisMonth = rows.filter((r) => monthOf(r.next) <= monthOf(TODAY));
+  const trackName = (id) => TRACKS.find((t) => t.id === id)?.name;
+  const list = cx.listView({ key: 'lg-nurture', strip: false, rows: () => rows, id: (r) => r.id,
+    titleCol: { key: 'name', label: 'Who', render: (r) => lgTitle(r.name || r.org, r.route[0], r.route[1]), sub: (r) => r.org },
+    status: (r) => (r.sig ? cx.pill('A new signal', 'green') : cx.pill(r.kind === 'lead' ? 'Lead' : 'Prospect', r.kind === 'lead' ? 'blue' : 'muted')),
+    columns: [
+      { key: 'why', label: 'Why not now', render: (r) => h('span.crm-next', r.why) },
+      { key: 'track', label: 'Track', get: (r) => trackName(r.track) },
+      { key: 'next', label: 'Next touch', type: 'date', keep: true },
+      { key: 'sig', label: 'Since then', get: (r) => r.sig?.text || '', render: (r) => (r.sig ? h('span.crm-next', `${r.sig.text} (${r.sig.source}, ${fmt.day(r.sig.at)})`) : h('span.faint', '—')) },
+      { key: 'owner', label: 'Owner', type: 'person' },
+    ],
+    filters: [{ key: 'name', label: 'Who' }, { key: 'track', label: 'Track', type: 'select', options: TRACKS.map((t) => t.name), get: (r) => trackName(r.track) }, { key: 'owner', label: 'Owner', type: 'person', options: () => uniq(rows.map((r) => r.owner)) }],
+    tabs: [{ label: 'All' }, { label: 'A new signal', filter: (r) => !!r.sig }, { label: 'Due this month', filter: (r) => monthOf(r.next) <= monthOf(TODAY) }],
+    sort: { options: [{ key: 'next', label: 'Next touch' }, { key: 'name', label: 'Who' }], default: { key: 'next', dir: 'asc' } },
+    href: (r) => r.route, noun: 'record', showId: false, empty: 'Nobody in nurture.' });
+  return cx.page({ title: 'Nurture', workspace: 'crm', crumbs: lgCrumbs(),
+    sub: 'Leads and prospects who are not ready yet. Each stays in touch on a track until they are, and the sales agent watches for signs that the time has come.',
+    fde: 'Nurture in the CRM',
+    body: [
+      statCards([
+        { label: 'In nurture', value: fmt.int(rows.length), sub: `${fmt.int(rows.filter((r) => r.kind === 'lead').length)} leads, ${fmt.int(rows.filter((r) => r.kind === 'prospect').length)} prospects` },
+        { label: 'A new signal', value: fmt.int(rows.filter((r) => r.sig).length), sub: 'may be ready to talk' },
+        { label: 'Due this month', value: fmt.int(thisMonth.length), sub: 'touches to send' },
+        { label: 'Checked back', value: fmt.int(back), sub: 'on the date they gave, last 12 months' },
+      ]),
+      h('div.grid.c3', TRACKS.map((t) => cx.card({ title: t.name, body: [h('div.crm-next', t.what), cx.kv([['Cadence', t.cadence], ['In it now', fmt.int(rows.filter((r) => r.track === t.id).length)]])] }))),
+      cx.card({ title: 'Everyone in nurture', body: list }),
+    ] });
+}
+
+/** Every campaign and sequence as one row with its results. */
+function campaignRows() {
+  const leadsOfCamp = (c) => C.leads.filter((l) => CAMP_OF.get(l.name) === c || NEWS_FIRST.get(l.name) === c);
+  const rows = CAMPAIGNS.map((c) => { const ls = leadsOfCamp(c).filter((l) => l.status !== 'Junk'); const r = resultsOf(ls); return { id: c.id, c, name: c.name, type: c.type, start: c.start, end: c.end || c.start, owner: c.owner, reached: c.upcoming ? invitesOf(c).length : c.reached, leads: ls.length, junk: leadsOfCamp(c).length - ls.length, ...r, cost: c.cost || 0, route: ['campaign', c.id], status: c.upcoming ? 'Upcoming' : (c.end || c.start) >= TODAY ? 'Running' : 'Finished' }; });
+  for (const S of SEQS) { const x = seqTotals(S); const last = x.touches.map((y) => y.t.at).sort().at(-1); rows.push({ id: S.id, name: S.name, type: 'Outreach', start: addDays(S.list.builtAt, 1), end: dayOf(last || S.list.builtAt), owner: S.owner, reached: x.en.length, leads: x.leads.length, junk: 0, ...x.res, cost: 0, route: ['sequence', S.id], status: seqStatus(S) === 'Live' ? 'Running' : 'Finished' }); }
+  return rows;
+}
+const C_TONE = { Running: 'blue', Upcoming: 'yellow', Finished: 'gray' };
+function campaignsPage() {
+  const rows = campaignRows();
+  const types = ['Outreach', 'Event', 'Newsletter', 'Paid social'];
+  const list = cx.listView({ key: 'lg-campaigns', rows: () => rows, id: (r) => r.id,
+    titleCol: { key: 'name', label: 'Campaign', render: (r) => h('a', { href: cx.href(r.route[0], r.route[1]) }, r.name), sub: (r) => `${r.type} · ${fmt.date(r.start)}${r.end !== r.start ? ' to ' + fmt.date(r.end) : ''}` },
+    status: (r) => cx.pill(r.status, C_TONE[r.status]),
+    columns: [
+      { key: 'reached', label: 'Reached', type: 'int' },
+      { key: 'leads', label: 'Leads', type: 'int', keep: true },
+      { key: 'qualified', label: 'Qualified', type: 'int' },
+      { key: 'won', label: 'Won', type: 'int' },
+      { key: 'cost', label: 'Cost', type: 'currency', render: (r) => (r.cost ? fmt.gbp(r.cost, 0) : h('span.faint', 'Staff time')) },
+      { key: 'owner', label: 'Owner', type: 'person' },
+    ],
+    right: { key: 'wonValue', label: 'Won value', type: 'currency' },
+    filters: [{ key: 'name', label: 'Campaign' }, { key: 'type', label: 'Type', type: 'select', options: types }, { key: 'owner', label: 'Owner', type: 'person', options: () => uniq(rows.map((r) => r.owner)) }],
+    tabs: [{ label: 'All' }, ...types.map((t) => ({ label: t === 'Outreach' ? 'Outreach' : t === 'Event' ? 'Events' : t === 'Newsletter' ? 'Letters' : t, filter: (r) => r.type === t })), { label: 'Running', filter: (r) => r.status !== 'Finished' }],
+    sort: { options: [{ key: 'start', label: 'Started' }, { key: 'wonValue', label: 'Won value' }, { key: 'leads', label: 'Leads' }], default: { key: 'start', dir: 'desc' } },
+    groupBy: [{ key: 'type', label: 'Type' }, { key: 'owner', label: 'Owner', type: 'person' }],
+    href: (r) => r.route, noun: 'campaign', showId: false, empty: 'No campaigns match.' });
+  const byType = types.map((t, i) => ({ label: t === 'Event' ? 'Events' : t === 'Newsletter' ? 'Studio letters' : t, value: sum(rows.filter((r) => r.type === t), (r) => r.wonValue), color: String(i + 1) }));
+  const spent = sum(rows, (r) => r.cost), wonV = sum(rows, (r) => r.wonValue);
+  return cx.page({ title: 'Campaigns', workspace: 'crm', crumbs: lgCrumbs(),
+    sub: 'Outreach sequences, events, studio letters and paid posts, each with what it brought in.',
+    actions: [cx.btn('Funnel', { icon: 'report', href: ['crm-funnel'] })],
+    fde: 'Campaigns and their results in the CRM',
+    body: [
+      statCards([
+        { label: 'Campaigns', value: fmt.int(rows.length), sub: `${fmt.int(rows.filter((r) => r.status !== 'Finished').length)} running or upcoming` },
+        { label: 'Leads', value: fmt.int(sum(rows, (r) => r.leads)), sub: `${fmt.int(sum(rows, (r) => r.qualified))} qualified` },
+        { label: 'Won', value: fmt.gbp(wonV, 0), sub: fmt.plural(sum(rows, (r) => r.won), 'deal') },
+        { label: 'Spent', value: fmt.gbp(spent, 0), sub: spent ? `${fmt.num(wonV / spent, 1)}× back in won work` : 'staff time only' },
+      ]),
+      h('div.grid.c2', cx.card({ title: 'Won value by kind of campaign', body: cx.chart.hbar({ items: byType, format: (v) => fmt.compact(v, 'GBP') }) }),
+        cx.card({ title: 'Leads by kind of campaign', body: cx.chart.hbar({ items: types.map((t, i) => ({ label: t === 'Event' ? 'Events' : t === 'Newsletter' ? 'Studio letters' : t, value: sum(rows.filter((r) => r.type === t), (r) => r.leads), color: String(i + 1) })), format: (v) => fmt.int(v) }) })),
+      list,
+    ] });
+}
+function campaignPage(c) {
+  const ls = C.leads.filter((l) => CAMP_OF.get(l.name) === c || NEWS_FIRST.get(l.name) === c).sort((a, b) => String(qualOf(b).arrival).localeCompare(String(qualOf(a).arrival)));
+  const real = ls.filter((l) => l.status !== 'Junk');
+  const r = resultsOf(real);
+  const status = c.upcoming ? 'Upcoming' : (c.end || c.start) >= TODAY ? 'Running' : 'Finished';
+  const inv = c.upcoming ? invitesOf(c) : [];
+  const leadList = ls.length ? h('div.crm-list', ls.map((l) => { const q = qualOf(l), d = leadDeal(l); return h('a.crm-row', { href: cx.href('lead', l.name) }, extAvatar(leadName(l), { size: 'sm' }),
+    h('div', { style: 'display:grid;gap:2px;min-width:0' }, h('span.t', `${leadName(l)}${l.org ? ' · ' + l.org : ''}`), h('span.m', NEWS_FIRST.get(l.name) === c ? h('span', 'Clicked through, then used the website form') : h('span', q.channel), h('span', `→ ${cx.name(l.owner)}`))),
+    h('div.r', l.status === 'Junk' ? cx.pill('Spam', 'gray') : d ? stDot('deal', d.status) : stDot('lead', l.status), d?.status === 'Won' ? h('span', fmt.gbp(dealGbp(d), 0)) : h('span', fmt.ago(q.arrival)))); })) : cx.empty(c.upcoming ? 'Leads come after the event.' : 'No leads from this one.');
+  const invCard = c.upcoming ? cx.card({ title: 'Invitations', body: [
+    statCards([{ label: 'Invited', value: fmt.int(inv.filter((x) => x.t.state === 'Sent').length), sub: 'through outreach so far' }, { label: 'Coming', value: fmt.int(inv.filter((x) => x.rsvp === 'Coming').length), sub: `of 30 seats` }, { label: 'To approve', value: fmt.int(inv.filter((x) => x.t.state === 'Waiting for approval').length), sub: 'invitations drafted' }]),
+    h('p.muted', { style: 'font-size:12.5px;margin:10px 0 2px' }, 'Sent as a step of the school trust and housing sequences, each batch approved by its owner. Answers are logged as they come in.'),
+    h('div.crm-list', inv.filter((x) => x.t.state === 'Sent').sort((a, b) => (a.rsvp === 'Coming' ? 0 : 1) - (b.rsvp === 'Coming' ? 0 : 1) || String(b.t.at).localeCompare(String(a.t.at))).slice(0, 15).map((x) => h('a.crm-row', { href: cx.href('prospect', x.p.id) }, extAvatar(x.p.org, { size: 'sm', square: true }), h('div', { style: 'display:grid;gap:2px;min-width:0' }, h('span.t', `${x.p.name} · ${x.p.org}`), h('span.m', h('span', `Invited ${fmt.day(x.t.at)}`))), h('div.r', cx.pill(x.rsvp, x.rsvp === 'Coming' ? 'green' : x.rsvp === 'Cannot make it' ? 'gray' : 'muted'))))),
+  ] }) : null;
+  return cx.page({ title: c.name, workspace: 'crm', crumbs: lgCrumbs('Campaigns', 'campaigns'), status: [cx.pill(status, C_TONE[status], { lg: true })],
+    sub: `${c.id} · ${c.type}${c.format ? ' · ' + c.format : ''} · ${fmt.date(c.start)}${c.end && c.end !== c.start ? ' to ' + fmt.date(c.end) : ''} · owner ${cx.name(c.owner)}`,
+    actions: [cx.btn('All campaigns', { icon: 'list', href: ['campaigns'] })],
+    fde: `The campaign ${c.name}`,
+    body: [
+      c.upcoming ? null : statCards([
+        { label: c.type === 'Event' ? 'People met' : c.type === 'Paid social' ? 'Seen by' : 'Sent to', value: fmt.int(c.reached), sub: c.clicks ? `${fmt.int(c.clicks)} clicked through` : c.capture || '' },
+        { label: 'Leads', value: fmt.int(real.length), sub: ls.length - real.length ? `${ls.length - real.length} more filtered as spam` : 'no spam' },
+        { label: 'Qualified', value: fmt.int(r.qualified), sub: `${fmt.int(r.deals)} became deals` },
+        { label: 'Won', value: fmt.gbp(r.wonValue, 0), sub: c.cost ? `${fmt.gbp(c.cost, 0)} spent${r.wonValue ? `, ${fmt.num(r.wonValue / c.cost, 1)}× back` : ''}` : 'staff time only' },
+      ]),
+      h('div.grid.side',
+        invCard || cx.card({ title: 'Leads', body: leadList }),
+        cx.card({ title: 'Details', body: cx.kv([['Type', c.type], c.format ? ['Format', c.format] : null, c.place ? ['Where', c.place] : null, ['When', `${fmt.date(c.start)}${c.end && c.end !== c.start ? ' to ' + fmt.date(c.end) : ''}`], ['Owner', cx.personChip(c.owner, { link: false })], c.capture ? ['Leads captured by', c.capture] : null, c.about ? ['About', c.about] : null, ['Cost', c.cost ? fmt.gbp(c.cost, 0) : 'Staff time only']]) })),
+    ] });
+}
+
+function funnelPage() {
+  const st = cx.store.get('crm-funnel', { period: 'ytd' });
+  const period = FPERIODS.some(([k]) => k === st.period) ? st.period : 'ytd';
+  const months = periodMonths(period);
+  const F = funnelData(months);
+  const wonV = sum(F.won, dealGbp);
+  const stages = [
+    { label: 'Prospects', n: F.pros.length, sub: 'reached by outreach' },
+    { label: 'Leads', n: F.leads.length, sub: 'in, not counting spam' },
+    { label: 'Qualified', n: F.quals.length, sub: 'by a person' },
+    { label: 'Proposal', n: F.props.length, sub: 'sent a proposal' },
+    { label: 'Won', n: F.won.length, sub: fmt.gbp(wonV, 0) },
+  ];
+  const max = Math.max(1, ...stages.map((s) => s.n));
+  const convLine = (c, i) => h('div.lg-conv', h('b', pctOr(c.n, c.of)), h('span', `${i === 0 ? 'of prospects reached became leads' : 'moved on'}: ${c.n} of ${c.of}`), c.open ? h('span.muted', `${c.open} still open`) : null, h('span.muted', `median ${daysTxt(c.t)} to move on`));
+  const funnel = h('div.lg-funnel', stages.map((s, i) => [
+    i ? convLine(F.conv[i - 1], i - 1) : null,
+    h('div.lg-stage', h('div.lg-stage-l', s.label), h('div.lg-bar', h('i', { style: `width:${Math.max(1.5, (s.n / max) * 100)}%;background:var(--chart-${i === 4 ? 1 : 2})` })), h('div.lg-stage-n', fmt.int(s.n), h('small', s.sub))),
+  ]));
+  const inM = (at, m) => at && monthOf(at) === m;
+  const mRows = months.map((m) => {
+    const won = C.deals.filter((d) => d.status === 'Won' && inM(d.closedDate, m));
+    const leads = C.leads.filter((l) => l.status !== 'Junk' && inM(qualOf(l).arrival, m));
+    return { m, pros: enrolled(PROSPECTS).filter((p) => inM(p.enrolAt, m)).length, leads: leads.length, fromPros: leads.filter((l) => PROS_OF_LEAD.has(l.name)).length, quals: C.leads.filter((l) => inM(qualOf(l).qualifiedAt, m)).length, props: C.deals.filter((d) => inM(proposalAt(d), m)).length, won: won.length, wonV: sum(won, dealGbp) };
+  });
+  const chart = cx.chart.bar({ labels: months.map(monthLabel), height: 220, format: (v) => fmt.int(v),
+    series: [{ name: 'Leads', values: mRows.map((r) => r.leads), color: '2' }, { name: 'Qualified', values: mRows.map((r) => r.quals), color: '3' }, { name: 'Proposal', values: mRows.map((r) => r.props), color: '4' }, { name: 'Won', values: mRows.map((r) => r.won), color: 'pos' }] });
+  const table = tbl([{ label: 'Month' }, { label: 'Prospects', num: true }, { label: 'Leads', num: true }, { label: 'From outreach', num: true, opt: true }, { label: 'Qualified', num: true }, { label: 'Proposal', num: true }, { label: 'Won', num: true }, { label: 'Won value', num: true }],
+    mRows.slice().reverse().map((r) => h('tr', td(fmt.month(r.m)), td(r.pros ? fmt.int(r.pros) : '—', { num: true }), td(fmt.int(r.leads), { num: true }), td(r.fromPros ? fmt.int(r.fromPros) : '—', { num: true, opt: true }), td(fmt.int(r.quals), { num: true }), td(fmt.int(r.props), { num: true }), td(fmt.int(r.won), { num: true }), td(r.wonV ? fmt.gbp(r.wonV, 0) : '—', { num: true }))));
+  // in each stage now, and for how long
+  const nowRows = [
+    ['Prospects', PROSPECTS.filter((p) => p.status === 'In sequence'), (p) => p.enrolAt, 'prospects'],
+    ['Leads', C.leads.filter((l) => !l.converted && ['open', 'ongoing'].includes(stageOf('lead', l.status))), (l) => qualOf(l).arrival, 'leads'],
+    ['Qualified', C.deals.filter((d) => isOpenDeal(d) && !proposalAt(d)), (d) => d.createdAt, 'deals'],
+    ['Proposal', C.deals.filter((d) => isOpenDeal(d) && proposalAt(d)), (d) => proposalAt(d), 'pipeline'],
+  ].map(([label, recs, at, route], i) => h('tr', td(h('a', { href: cx.href(route) }, label)), td(fmt.int(recs.length), { num: true }), td(daysTxt(median(recs.map((r) => daysOf(at(r), NOW0)))), { num: true }), td(daysTxt(F.conv[i].t), { num: true }), td(pctOr(F.conv[i].n, F.conv[i].of), { num: true, opt: true })));
+  const periodSel = h('select.ctl', { 'aria-label': 'Period', onchange: (e) => { cx.store.set('crm-funnel', { period: e.target.value }); cx.refresh(); } }, FPERIODS.map(([k, l]) => h('option', { value: k, selected: k === period }, l)));
+  return cx.page({ title: 'Funnel', workspace: 'crm', crumbs: lgCrumbs(),
+    sub: `${fmt.month(months[0])} to ${fmt.month(months.at(-1))} · each stage counts what reached it in the period; each step's rate follows those records on`,
+    actions: [cx.btn('Campaigns', { icon: 'send', href: ['campaigns'] }), cx.btn('Lead sources', { icon: 'report', href: ['crm-sources'] })],
+    fde: `The CRM funnel, ${FPERIODS.find(([k]) => k === period)[1].toLowerCase()}`,
+    body: [
+      h('div.crm-dash-bar', h('label', 'Period', periodSel)),
+      h('div.grid.c2',
+        cx.card({ title: 'From prospect to won', body: funnel }),
+        cx.card({ title: 'By month', body: chart })),
+      cx.card({ title: 'Time in each stage', flush: true, body: tbl([{ label: 'Stage' }, { label: 'In it now', num: true }, { label: 'For (median)', num: true }, { label: 'To move on (median)', num: true }, { label: 'Move on', num: true, opt: true }], nowRows) }),
+      cx.card({ title: 'Month by month', flush: true, body: table }),
+      attributionReport(),
+    ] });
+}
+function attributionReport() {
+  return cx.reportView({
+    key: 'lg-attribution',
+    filters: [{ key: 'model', label: 'Credit', type: 'select', options: [['first', 'First touch'], ['last', 'Last touch']], value: 'first' }, { key: 'period', label: 'Leads in', type: 'select', options: PERIODS, value: 'all' }],
+    run: (v) => {
+      const leads = C.leads.filter((l) => l.status !== 'Junk' && (v.period === 'all' || dayOf(qualOf(l).arrival) >= addDays(TODAY, -(+v.period - 1))));
+      const of = v.model === 'last' ? lastTouchOf : firstTouchOf;
+      const groups = new Map(ATTR_GROUPS.map((g) => [g, new Map()]));
+      for (const l of leads) { const s = of(l); const g = groups.get(s.group) || groups.get('Direct'); const e = g.get(s.label) || { s, leads: [] }; e.leads.push(l); g.set(s.label, e); }
+      const costOf = (s) => (s.route === 'campaign' ? CAMP.get(s.id)?.cost || 0 : 0);
+      const all = resultsOf(leads);
+      const row = (label, ls, indent, extra = {}) => { const r = resultsOf(ls); return { source: label, indent, leads: r.leads, qualified: r.qualified, deals: r.deals, won: r.won, wonValue: r.wonValue, share: all.wonValue ? fmt.pct(r.wonValue / all.wonValue, 0) : '—', perLead: r.leads ? r.wonValue / r.leads : 0, ...extra }; };
+      const rows = [];
+      for (const g of ATTR_GROUPS) {
+        const m = groups.get(g); if (!m.size) continue;
+        const ls = [...m.values()].flatMap((e) => e.leads);
+        rows.push(row(g, ls, 0, { group: true, cost: sum([...m.values()], (e) => costOf(e.s)) || null }));
+        for (const e of [...m.values()].sort((a, b) => resultsOf(b.leads).wonValue - resultsOf(a.leads).wonValue || b.leads.length - a.leads.length)) rows.push(row(e.s.label, e.leads, 1, { id: e.s.label, cost: costOf(e.s) || null, link: e.s.route ? [e.s.route, e.s.id] : null }));
+      }
+      const top = rows.filter((r) => r.indent === 0).sort((a, b) => b.wonValue - a.wonValue);
+      return {
+        summary: [
+          { label: 'Leads', value: fmt.int(all.leads) }, { label: 'Won', value: fmt.gbp(all.wonValue, 0), sub: fmt.plural(all.won, 'deal') },
+          { label: 'Biggest source', value: top[0]?.source || '—', sub: top[0] ? fmt.gbp(top[0].wonValue, 0) : '' },
+          { label: 'From outreach', value: fmt.gbp(rows.find((r) => r.source === 'Outreach' && r.indent === 0)?.wonValue || 0, 0), sub: v.model === 'first' ? 'credited to the first touch' : 'credited to the last touch' },
+        ],
+        columns: [
+          { key: 'source', label: 'Source', width: '260px', href: (r) => r.link || null },
+          { key: 'leads', label: 'Leads', type: 'int' }, { key: 'qualified', label: 'Qualified', type: 'int' }, { key: 'deals', label: 'Deals', type: 'int' }, { key: 'won', label: 'Won', type: 'int' },
+          { key: 'wonValue', label: 'Won value', type: 'currency' }, { key: 'share', label: 'Share' }, { key: 'perLead', label: 'Won per lead', type: 'currency' }, { key: 'cost', label: 'Cost', type: 'currency' },
+        ],
+        rows, totals: { source: 'All sources', leads: all.leads, qualified: all.qualified, deals: all.deals, won: all.won, wonValue: all.wonValue, share: '100%', perLead: all.leads ? all.wonValue / all.leads : 0, cost: sum(CAMPAIGNS, (c) => c.cost || 0) },
+        chartTitle: 'Won value by source',
+        chart: cx.chart.hbar({ items: top.filter((r) => r.wonValue).map((r, i) => ({ label: r.source, value: r.wonValue, color: String((i % 6) + 1) })), format: (x) => fmt.compact(x, 'GBP') }),
+      };
+    },
+    footnote: 'First touch credits what first put Harbourline in front of them: an outreach email or a studio letter, even if they later used the website form. Last touch credits how they finally got in touch. Won value is in pounds at the day\'s rate.',
+  });
+}
+
+/* ---------- routes and search ---------- */
+
+cx.route('crm-funnel', () => funnelPage(), { workspace: 'crm', title: 'Funnel' });
+cx.route('crm-icp', () => icpPage(), { workspace: 'crm', title: 'Ideal customer profile' });
+cx.route('prospects', (ctx) => prospectsPage(ctx), { workspace: 'crm', title: 'Prospects' });
+cx.route('prospect', (ctx) => { const p = cx.find(PROSPECTS, 'id', ctx.id); return p ? prospectPage(p) : notFound('prospect', 'prospects', 'Prospects'); }, { workspace: 'crm', title: 'Prospect' });
+cx.route('sequences', () => sequencesPage(), { workspace: 'crm', title: 'Outreach' });
+cx.route('sequence', (ctx) => { const S = cx.find(SEQS, 'id', ctx.id); return S ? sequencePage(S) : notFound('sequence', 'sequences', 'Outreach'); }, { workspace: 'crm', title: 'Outreach sequence' });
+cx.route('crm-inbound', () => inboundPage(), { workspace: 'crm', title: 'Inbound' });
+cx.route('nurture', () => nurturePage(), { workspace: 'crm', title: 'Nurture' });
+cx.route('campaigns', () => campaignsPage(), { workspace: 'crm', title: 'Campaigns' });
+cx.route('campaign', (ctx) => { const c = cx.find(CAMPAIGNS, 'id', ctx.id); return c ? campaignPage(c) : notFound('campaign', 'campaigns', 'Campaigns'); }, { workspace: 'crm', title: 'Campaign' });
+cx.search.add((qq, limit) => {
+  const t = qq.toLowerCase(), out = [];
+  const take = (arr, f) => { let n = 0; for (const x of arr) { if (n >= limit) break; const r = f(x); if (r) { out.push(r); n++; } } };
+  take(PROSPECTS, (p) => (`${p.org} ${p.name} ${p.id}`.toLowerCase().includes(t) ? { kind: 'CRM prospects', label: p.org, sub: `${p.id} · ${p.status} · fit ${fitOf(p).score}`, route: 'prospect', id: p.id, icon: 'crm' } : null));
+  take([...SEQS.map((S) => ({ label: S.name, sub: `${S.id} · outreach`, route: 'sequence', id: S.id })), ...CAMPAIGNS.map((c) => ({ label: c.name, sub: `${c.id} · ${c.type}`, route: 'campaign', id: c.id }))], (x) => (x.label.toLowerCase().includes(t) ? { kind: 'CRM campaigns', ...x, icon: 'send' } : null));
+  return out;
+});
+
+/* ---------- what the sales agent proposes and did for lead generation, in the assistant panel ---------- */
+
+function registerLeadGenWork() {
+  if (typeof cx.agentWork?.add !== 'function') return;
+  const put = (o) => { try { cx.agentWork.add({ agent: AGENT_NAME, module: 'crm', ...o }); } catch (e) { console.warn('agentWork.add', e); } };
+  const since = addDays(TODAY, -6);
+  // batches waiting for approval, one per sequence and step
+  for (const S of SEQS) {
+    const x = seqTotals(S);
+    const by = new Map();
+    for (const y of x.waiting) { const k = y.t.step; (by.get(k) || by.set(k, []).get(k)).push(y); }
+    for (const [step, list] of by) {
+      const st = S.steps[step];
+      const noun = st.kind === 'linkedin' ? 'LinkedIn note' : st.kind === 'event' ? 'invitation' : 'email';
+      const first = list.map((y) => y.t.at).sort()[0];
+      put({ key: `lg-batch-${S.id}-${step}`, kind: 'proposal', who: S.owner, needs: LG_NEED, at: isoPlus(NOW0, -(30 + step * 17)),
+        title: `Approve ${fmt.plural(list.length, noun)}: step ${step + 1} of ${lc1(S.name)}`,
+        detail: `${st.label}, due ${dayOf(first) === TODAY ? 'today' : 'tomorrow'} from ${st.kind === 'linkedin' ? 'your profile' : 'your mailbox'}. Each is written for its prospect; nothing goes until you approve.`,
+        steps: [...list.slice(0, 5).map((y) => `${y.p.name}, ${y.p.org}: "${st.subject(y.p)}"`), list.length > 5 ? `and ${list.length - 5} more` : null].filter(Boolean),
+        route: ['sequence', S.id], approveLabel: 'Approve and send', onApprove: () => approveTouches(list, noun) });
+    }
+    // interested replies, to become leads
+    for (const p of x.en.filter((pp) => pp.reply?.cls === 'Interested' && !pp.lead)) {
+      put({ key: `lg-lead-${p.id}`, kind: 'proposal', who: p.owner, needs: LG_NEED, at: isoPlus(p.reply.at, 4),
+        title: `Make a lead: ${p.name} at ${p.org} replied "interested"`,
+        detail: `Fit ${fitOf(p).score}: ${p.signal.text.toLowerCase()}. They asked to talk next week. The outreach has stopped; the lead goes to you with the thread on its timeline.`,
+        route: ['prospect', p.id], approveLabel: 'Make the lead', result: `Made a lead for ${p.name} at ${p.org}`, onApprove: () => leadFromProspect(p) });
+    }
+    for (const p of x.en.filter((pp) => pp.reply && dayOf(pp.reply.at) >= since)) {
+      if (p.reply.cls === 'Interested') continue;
+      put({ key: `lg-reply-${p.id}`, kind: 'done', who: p.owner, at: isoPlus(p.reply.at, 2),
+        title: `Logged a reply from ${p.contactWas || p.name}, ${p.org}: ${lc1(p.reply.cls === 'Wrote in' ? 'became a lead' : p.reply.cls)}`,
+        detail: p.reply.cls === 'Not now' ? `Moved to nurture, to check back in ${fmt.month(p.reply.until)}.` : p.reply.cls === 'Out of office' ? `Held the next steps until ${fmt.date(p.reply.until)}.` : p.reply.cls === 'Unsubscribe' ? 'Added to the do-not-contact list; nothing more goes to them.' : p.reply.cls === 'Wrong person' ? `${p.reply.colleague} is now the contact; the next steps go to them.` : p.reply.cls === 'Bounced' ? 'Stopped the sequence for them.' : 'Stopped the sequence for them.',
+        route: ['prospect', p.id] });
+    }
+  }
+  // lists: one waiting for approval, and the ones built lately
+  for (const L of LISTS) {
+    const ps = prosOf(L);
+    if (L.pending) put({ key: `lg-list-${L.id}`, kind: 'proposal', who: L.owner, needs: LG_NEED, at: atOn(L.builtAt, 9, L.id),
+      title: `Start outreach to ${fmt.plural(ps.filter((p) => !p.excluded).length, 'prospect')}: ${lc1(L.name)}`,
+      detail: `Built from job boards and careers pages against the profile; each has a named contact and why it fits. The sequence is five steps over 18 days, and each batch comes to you before it goes.`,
+      steps: ps.slice().sort((a, b) => fitOf(b).score - fitOf(a).score).slice(0, 4).map((p) => `${p.org} (fit ${fitOf(p).score}): ${p.signal.text}`),
+      route: ['prospects'], approveLabel: 'Approve the list', result: `Approved the list "${L.name}"`,
+      onApprove: () => { L.pending = false; ps.filter((p) => !p.excluded).forEach((p) => { p.status = 'Approved for outreach'; }); cx.toast(`Approved "${L.name}": the first emails come to you for approval tomorrow (mock-up: nothing is sent)`, { tone: 'success' }); cx.refresh(); } });
+    if (dayOf(L.builtAt) >= addDays(TODAY, -13)) put({ key: `lg-built-${L.id}`, kind: 'done', who: L.owner, at: atOn(L.builtAt, 8, L.id),
+      title: `Built a prospect list: ${fmt.plural(ps.filter((p) => !p.excluded).length, 'organisation')}, ${lc1(L.name)}`,
+      detail: `From ${ICP.signals.find((s) => s.key === L.signal).source}; enriched each with size, place and a named contact.${ps.some((p) => p.excluded) ? ` Left out ${namesList(ps.filter((p) => p.excluded).map((p) => p.org))}: Harbourline already works with them.` : ''}`,
+      route: ['prospects'] });
+  }
+  // nurture: leads showing a new signal, with a check-in drafted for their owner
+  for (const r of nurtureRows().filter((x) => x.sig && x.kind === 'lead')) {
+    const l = r.rec, em = l.email;
+    if (!em) continue;
+    const d = { to: em, subject: `Checking in, ${l.org || leadName(l)}`, body: `Hi ${l.firstName || 'there'},\n\nI saw that you ${lc1(r.sig.text.replace(/^Posted/, 'have posted').replace(/^Announced/, 'have announced'))}. Congratulations. When we last spoke the timing wasn't right; if it is now, I'd be glad to pick up where we left off.\n\n${cx.firstName(l.owner)}` };
+    put({ key: `lg-nurture-${l.name}`, kind: 'proposal', who: l.owner, at: atOn(r.sig.at, 9, l.name),
+      title: `${l.org || leadName(l)} may be ready to talk again`,
+      detail: `${r.sig.text} (${r.sig.source}, ${fmt.date(r.sig.at)}). In nurture since: ${lc1(r.why)}. Draft to ${em}: "${d.body.split('\n').filter(Boolean).slice(1, -1).join(' ')}"`,
+      route: ['lead', l.name], approveLabel: 'Send it', result: `Sent the check-in to ${leadName(l)}`, onApprove: () => sendDraft('lead', l, d) });
+  }
+  // the profile: a change the record supports, for the people who own it
+  const edu = sectorOf('Education');
+  if (edu && edu.tier !== 'Core') {
+    const en = enrolled(PROSPECTS), eduEn = en.filter((p) => p.ind === 'Education');
+    const rr = (ps) => ps.filter((p) => p.reply && ['Interested', 'Wrote in', 'Not now'].includes(p.reply.cls)).length / (ps.length || 1);
+    put({ key: 'lg-icp-education', kind: 'proposal', who: ['maya', 'leo'], needs: ICP_NEED, at: '2026-11-06T16:10:00Z',
+      title: 'Make school trusts a core sector in the ideal customer profile',
+      detail: `Trusts answer outreach well: ${fmt.pct(rr(eduEn), 0)} replied with interest or a "not now", against ${fmt.pct(rr(en.filter((p) => p.ind !== 'Education')), 0)} elsewhere. Brightwater Schools Trust and Pinecrest Academy Trust came from it. It would score them higher and put them in more lists.`,
+      route: ['crm-icp'], approveLabel: 'Make it core', result: 'Made school trusts a core sector',
+      onApprove: () => { edu.tier = 'Core'; ICP.version++; ICP.reviewedAt = NOW(); ICP.history.push({ v: ICP.version, at: NOW(), by: [cx.meId()], text: 'Made school trusts a core sector, on the outreach replies.' }); cx.toast(`Saved version ${ICP.version} of the profile: school trusts are core`, { tone: 'success' }); cx.refresh(); } });
+  }
+  // inbound: events and referrals this fortnight
+  for (const c of CAMPAIGNS.filter((x) => x.type === 'Event' && !x.upcoming && x.start >= addDays(TODAY, -13))) {
+    const ls = C.leads.filter((l) => CAMP_OF.get(l.name) === c);
+    if (ls.length) put({ key: `lg-event-${c.id}`, kind: 'done', who: c.owner, at: atOn(addDays(c.end || c.start, 3), 9, c.id), title: `Scored ${fmt.plural(ls.length, 'lead')} from ${c.name}`, detail: `${namesList(ls.map((l) => l.org || leadName(l)))}, from the badge scans; each routed to an owner.`, route: ['campaign', c.id] });
+  }
+}
+
+cx.style('crm-leadgen', `
+.lg-funnel { display: grid; gap: 4px; min-width: 0; }
+.lg-stage { display: grid; grid-template-columns: 84px minmax(0, 1fr) 112px; gap: 10px; align-items: center; min-width: 0; }
+.lg-stage-l { font-weight: 600; font-size: 13px; }
+.lg-bar { height: 26px; background: var(--sunk); border-radius: 4px; overflow: hidden; min-width: 0; }
+.lg-bar i { display: block; height: 100%; border-radius: 4px; }
+.lg-stage-n { font: 600 15px/1.15 var(--font-ui); text-align: right; white-space: nowrap; min-width: 0; }
+.lg-stage-n small { display: block; font-weight: 400; color: var(--muted); font-size: 11.5px; }
+.lg-conv { display: flex; flex-wrap: wrap; gap: 2px 10px; padding: 2px 0 2px 94px; font-size: 12px; color: var(--fg-2); min-width: 0; }
+@media (max-width: 560px) { .lg-stage { grid-template-columns: 70px minmax(0, 1fr) 92px; } .lg-conv { padding-left: 0; } }
+.lg-lists { display: grid; gap: 10px; grid-template-columns: repeat(auto-fill, minmax(min(260px, 100%), 1fr)); min-width: 0; }
+.lg-list { display: grid; gap: 6px; align-content: start; padding: 12px; border: 1px solid var(--line); border-radius: var(--r-lg); background: var(--surface); color: inherit; text-decoration: none; min-width: 0; }
+.lg-list:hover { border-color: var(--line-2); }
+.lg-list h4 { font: 600 13.5px/1.35 var(--font-ui); overflow-wrap: anywhere; }
+.lg-list .m { display: flex; flex-wrap: wrap; gap: 2px 10px; font-size: 12px; color: var(--muted); }
+.lg-reasons { margin: 8px 0; padding-left: 18px; display: grid; gap: 4px; font-size: 13px; color: var(--fg-2); overflow-wrap: anywhere; }
+.lg-steps { display: grid; min-width: 0; }
+.lg-step { display: grid; grid-template-columns: 50px minmax(0, 1fr); gap: 10px; align-items: start; padding: 10px 0; border-bottom: 1px solid var(--line); min-width: 0; }
+.lg-step:first-child { padding-top: 0; }
+.lg-step:last-child { border-bottom: 0; }
+.lg-day { font: 600 12px/1.3 var(--font-ui); color: var(--muted); padding-top: 2px; }
+.lg-ttl { min-width: 190px; }
+@media (max-width: 700px) { .lg-ttl { min-width: 130px; } }
+`);
+
 cx.on('route', () => QUAL.clear());
 cx.native = Object.assign(cx.native || {}, { crmQualification: (name) => { const l = C.leads.find((x) => x.name === name); return l ? qualOf(l) : null; }, crmStale: (name) => { const d = C.deals.find((x) => x.name === name); return d ? staleOf(d) : null; } });
 registerAgentWork();
+registerLeadGenWork();

@@ -1,0 +1,52 @@
+export const meta = {
+  name: 'design-swarm',
+  description: 'Design how the build runs on swarmD: roles, connections, the manager\'s view, the schemas, task derivation from the book, and every template; then an adversarial review',
+  phases: [{ title: 'Model' }, { title: 'Templates' }, { title: 'Review' }],
+}
+const COMMON = `Repository: /home/user/capxul-next (branch claude/infrastructure-refactor-plan-v41iue). It PREPARES the Capxul rebuild; no product code is written here. Read first: docs/design-book.md (how the design book works), docs/mission/initializer.md (the goal prompt: B0-B5 and How to work), HANDOFF.md, CLAUDE.md, and in books/target/shared/decisions.ts the decisions system.layout, system.build-order, system.size, system.frozen-behaviour. The swarm specs written so far: docs/spec/00-overview.md, 10-swarmd-ledger.md, 20-swarmd-managers-and-pairs.md, 40-capxul-team.md.
+swarmD, READ ONLY, is at /home/user/swarmd. IMPORTANT (Aaron, 8 November 2026): swarmD is not finished building, and by the time the Capxul build rolls out on it, swarmD will be what its DOCS describe, not necessarily what its code does today. So design against BOTH, with the docs as the target:
+- the target (what swarmD will be): its documentation site apps/docs/content/docs/ (concepts/: routers-and-workers, how-work-flows, rules, connectors and planned.mdx; how-to/: define-a-team, write-a-mission-brief, review-and-merge, drive-from-code, connect-github, choose-models; reference/: protocol, tickets, router, worker, tools, control-plane, client, cli, configuration), docs/SPEC.md, docs/planning/ (swarm-retro-2026-11-06.md with its decisions D1-D9 and the nine briefs in swarm-retro-briefs/, orchestrator-handoff.md, pi-dx-redesign.md), and this repository's own swarmD specs docs/spec/10-swarmd-ledger.md and 20-swarmd-managers-and-pairs.md;
+- the present (what exists today): STATUS.md, packages/protocol/src/modules/tickets (README, internal/schemas.ts in pi-schema, types.ts), packages/agent (defineWorker, defineRouter) with examples/api-team, and the proven GitHub PR flow in packages/server/proofs/t13b-*.
+Where the docs and the code differ, the docs win: design to the docs, and for every piece of swarmD the design relies on, say whether it is built today, planned in the docs, or needed but in neither (that last kind becomes a brief). The old system's agent workflow, read only: /home/user/factory/docs/agents/ (work-contract.md, issue-tracker.md), .claude/agents/, .github/pull_request_template.md, .github/ISSUE_TEMPLATE/, and apps/factory (README, src: tickets, gate, grade, handback, lanes).
+Checks: npx tsc -p books; node --experimental-strip-types packages/book/src/main.ts books/target/index.ts /tmp/swarm (0 problems). Other agents are designing the tooling and the portal in parallel in other files; do not touch them. Never edit /home/user/swarmd: where swarmD itself must change, write it down as a brief. Do not commit.`
+const OUT = { type: 'object', properties: {
+  files: { type: 'array', items: { type: 'string' } },
+  decisions: { type: 'array', items: { type: 'string' } },
+  swarmdBriefs: { type: 'array', items: { type: 'string' }, description: 'changes swarmD itself needs, each one line' },
+  howToWork: { type: 'array', items: { type: 'string' }, description: 'the goal prompt\'s How to work bullets this design replaces or adds' },
+  forAaron: { type: 'array', items: { type: 'string' } },
+  counts: { type: 'object', additionalProperties: { type: 'integer' } },
+  buildProblems: { type: 'integer' }, notes: { type: 'string' } },
+  required: ['files', 'decisions', 'swarmdBriefs', 'howToWork', 'forAaron', 'counts', 'buildProblems', 'notes'] }
+const REV = { type: 'object', properties: {
+  refuted: { type: 'array', items: { type: 'object', properties: { what: { type: 'string' }, evidence: { type: 'string' }, fixed: { type: 'boolean' } }, required: ['what', 'evidence', 'fixed'] } },
+  upheld: { type: 'array', items: { type: 'string' } }, buildProblems: { type: 'integer' }, notes: { type: 'string' } },
+  required: ['refuted', 'upheld', 'buildProblems', 'notes'] }
+
+phase('Model')
+const model = await agent(`${COMMON}
+
+You own: docs/design/swarm.md, books/target/shared/swarm.ts (defineDecision records, ids swarm.<topic>; use the by() helper there), and tools/plan-tasks.ts with its output docs/mission/tasks.json.
+YOUR TASK: DESIGN THE SWARM'S OPERATING MODEL, so the build runs on swarmD without freestyling. Aaron: "we also need to design out the agents and the swarm itself... how do all these things connect? How do the pairs connect? What does the manager see? What is the manager's schema? What is the task schema?"
+Write docs/design/swarm.md with:
+(1) Roles and topology: who exists (the coordinator, a lane manager per concept lane or per build-order layer, pairs of maker and checker, the adversarial reviewer for money concepts, specialist workers if any, Aaron), what each owns, sees and may do, and how many run at once (usage pacing: the retro's numbers and the goal prompt's 4 to 6).
+(2) How everything connects: swarmD's primitives as its docs define them (namespace, router or manager, workers, tickets and their stages and reports, sandboxes, mandates, attention, rules, connectors, mission briefs), each marked built, planned or needed; the ledger as specced in 10 (what is built and what is not: be exact); GitHub (lane/<concept> branches, pull requests into integration/build, CI checks, who merges, after the retro's D7), the design book (tasks come from records), and the portal (the human view; another agent designs it).
+(3) What the manager sees: its artifact, laid out exactly (its lane's tasks by stand, pairs in flight and their round, blocked items and why, matters waiting for Aaron, spend against budget, CI), and the query or data each part reads.
+(4) The schemas, written as TypeScript type blocks aligned with swarmD's documented protocol (reference/protocol, reference/tickets, the planned features) and spec 10's types, noting where today's pi-schema in packages/protocol differs: Task (and how it maps onto a swarmD ticket), Assignment, Pair and its typed messages (submit, verdict, revise, escalate), Handback, Verdict, Matter (a decision pack: question, two to four graded options, recommendation), ManagerState and the lane's budget. For each field: where its value comes from. List the swarmD protocol changes this needs as briefs.
+(5) Task derivation: write tools/plan-tasks.ts (node --experimental-strip-types, imports books/target/index.ts) that derives the task tree from the book and writes docs/mission/tasks.json: the milestone tasks (T0 tooling, D0 portal, B0 spike, B1 generators, B2 harness, B3 spine and pilots, B5 staging), one lane per concept in system.build-order's layers, inside each lane a task for the concept's door (its tables, machines and procedures: their tbl, trn and prc evals), one per durable process (its wfl evals) and one per operation (done = its eval ids), with depends derived from the links (an operation on its flow's rpcs, on the procedures they invoke, on those concepts' door tasks) and never against the layers. Print counts; it must run clean and the graph must have no cycle.
+(6) The pair protocol and its limits, informed by the retro (review rounds, cost, dead sandboxes, who merges), and the stop and escalation rules (what goes to Aaron, as a Matter).
+Record each judgment in books/target/shared/swarm.ts. Build to 0 problems.`, { label: 'design:swarm-model', phase: 'Model', schema: OUT })
+
+phase('Templates')
+const templates = await agent(`${COMMON}
+
+The swarm's operating model is in docs/design/swarm.md (read it fully first); its designer's report: ${JSON.stringify(model)}
+You own: .github/pull_request_template.md; .github/ISSUE_TEMPLATE/ (config.yml and one form per kind of task the model defines, plus a defect and a decision pack); .claude/agents/ (one Claude Code agent profile per role the model defines, each with frontmatter name, description and tools, and a body that says exactly what the role reads, does, may not do, and returns, in the model's schemas); docs/design/swarm-templates.md (the handback, verdict and decision-pack formats, the manager's artifact template as swarmD would render it, and the swarmD team definition for Capxul: each manager and worker as swarmD's defineWorker or defineRouter would declare it, with its prompt skeleton, tools, model tier, concurrency and output schema, aligned with swarmD's how-to/define-a-team and reference/router and worker docs, and with /home/user/swarmd/examples/api-team and packages/agent for today's API); and docs/spec/40-capxul-team.md (bring it in line with the model, or mark what the new design replaces).
+YOUR TASK: WRITE EVERY TEMPLATE, so no agent output is freestyled: every artifact an agent produces (a PR, a handback, a verdict, a matter, an issue) has its template here, matching the model's schemas field for field. Keep the work contract's spirit (book first; prove by running; a reviewer never weakens an eval). Build to 0 problems (you may add decisions to books/target/shared/swarm.ts, ids swarm.<topic>).`, { label: 'design:swarm-templates', phase: 'Templates', schema: OUT })
+
+phase('Review')
+const review = await agent(`${COMMON}
+
+You are the ADVERSARIAL REVIEWER of the swarm design: docs/design/swarm.md, docs/design/swarm-templates.md, books/target/shared/swarm.ts, tools/plan-tasks.ts, docs/mission/tasks.json, .github/pull_request_template.md, .github/ISSUE_TEMPLATE/, .claude/agents/, docs/spec/40-capxul-team.md. Reports: model ${JSON.stringify(model)} templates ${JSON.stringify(templates)}
+Try to refute it: does every schema fit swarmD's documented protocol (its docs win over today's code), with each piece marked built, planned or needed, and each needed piece listed as a brief? Does the design repeat any failure the retro names (unbounded review rounds, the builder merging, paying for dead sandboxes, reviewers costing a third)? Does each template match its schema field for field? Does tools/plan-tasks.ts run, give every one of the 215 operations exactly one task, keep depends acyclic and consistent with system.build-order, and put each task's done as real eval ids from the build's evals.json? Is anything an agent produces still freestyle? Is the concurrency realistic for the usage limits? Fix what you refute in those files, keep the build at 0 problems, and report.`, { label: 'review:swarm', phase: 'Review', schema: REV })
+return { model, templates, review }

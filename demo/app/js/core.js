@@ -2673,68 +2673,65 @@ cx.stubPage = (o) => cx.workspacePage({
 
 const landSaltmarsh = () => { const d = (D.money.deposits || []).find((x) => x.id === 'bdep_arriving'); if (d?.status === 'Arriving') cx.native?.creditDeposit?.(d); return d; };
 const TOURS = [
-  { id: 'bridge', n: 1, title: 'A customer pays through Bridge', icon: 'bank',
-    blurb: "Saltmarsh pays an invoice by bank transfer. Bridge turns the pounds into USDC in the Treasury; Capxul matches it to the invoice by its reference and books it.",
+  { id: 'enquiry', n: 1, title: 'A website enquiry becomes a client', icon: 'crm',
+    blurb: "Bellwether Labs filled in the website form. The sales agent qualified it, logged every touchpoint and drafted the follow-ups; Zara, its owner, won the deal.",
+    steps: [
+      { title: 'The enquiry', as: 'samw', route: 'lead', id: 'CRM-LEAD-2026-00052',
+        text: "Isabel Lee wrote in through the website on 3 August. The sales agent created the lead, enriched the organisation (size, sector, website), scored it 83 against Harbourline's ideal customer with its reason, and routed it to Zara, next in the rotation for website enquiries." },
+      { title: 'Every touchpoint', as: 'samw', route: 'deal', id: 'CRM-DEAL-2026-00018',
+        text: "From the first reply to the signed proposal, every email from the sales mailbox, every WhatsApp message, every call with its summary and every meeting from Zara's calendar is on the timeline. The sales agent logged them; nobody copied anything in." },
+      { title: 'A follow-up to approve', as: 'samw', route: 'lead', id: 'CRM-LEAD-2026-00070', panel: 'for', focus: 'Victoria Wren',
+        text: "Today's version: Victoria Wren at Bramble Pet Insurance came in through the website and has not replied for a week. The sales agent drafted Sam's follow-up; it waits for him in the assistant. He reads it and presses Send it, or not." },
+      { title: 'Won', as: 'samw', route: 'deal', id: 'CRM-DEAL-2026-00018',
+        text: 'The deal was won on 25 September: a $12,000 design review. Winning is a person\'s call; the agent only kept the record straight and nudged when it went quiet.' },
+      { title: 'A client', as: 'samw', route: 'company', id: 'bellwether',
+        text: 'Bellwether Labs is a customer now: its deal, its contacts, and invoice ACC-SINV-2026-00049, paid in USDC from its own Safe on 23 October.' },
+    ] },
+  { id: 'project', n: 2, title: 'The won deal becomes a project', icon: 'projects',
+    blurb: "Saltmarsh Distillery's online shop was won on 28 October. The project agent drafted the plan, Priya accepted it, and timesheets and the first invoice followed.",
+    steps: [
+      { title: 'Won', as: 'samw', route: 'deal', id: 'CRM-DEAL-2026-00021',
+        text: "Saltmarsh's online shop, £38,000 for a fixed fee, was won on 28 October after a referral, a discovery call and a proposal, each on the timeline." },
+      { title: 'The plan', as: 'priya', route: 'project', id: 'PROJ-0010', state: { tab: 'Plan' },
+        text: 'That afternoon the project agent drafted the plan from the signed proposal: phases and tasks, who does each from availability, skills and leave, and the budget in hours and money. Priya, who leads it, accepted it on 30 October and the project opened.' },
+      { title: 'The next plan waits', as: 'ravi', route: 'deal', id: 'CRM-DEAL-2026-00023', panel: 'for', focus: 'Plan for Fernhill',
+        text: "Fernhill's v3 retainer is ready to close, and its plan already waits for Ravi in the assistant. He accepts it or asks for changes; the project opens when the deal is won." },
+      { title: 'Timesheets', as: 'priya', route: 'timesheets', id: 'PROJ-0010',
+        text: "The team started on 2 November. Their timesheets fill from their calendars against the plan's tasks, and each person confirms their own week." },
+      { title: 'The first invoice', as: 'maya', route: 'sales-invoice', id: 'ACC-SINV-2026-00052',
+        text: 'The 30% deposit, £11,400 plus VAT, went out on 30 October. Maya, who wears Invoicing, checked it and sent it. Walkthrough 4 follows Saltmarsh paying it.' },
+    ] },
+  { id: 'starter', n: 3, title: "A new starter's first week", icon: 'hr',
+    blurb: "Owen Grady joins Engineering on 4 January. The people agent runs his onboarding; Kwame signs the contract and Tom plans his first week. Then how Hannah Cole's went.",
+    steps: [
+      { title: 'Onboarding', as: 'kwame', route: 'onboarding',
+        text: 'Every new starter, from the offer to the end of probation. The people agent prepares each step; people sign, order and decide.' },
+      { title: "Owen's checklist", as: 'kwame', route: 'onboarding-plan', id: 'owen',
+        text: 'The agent drafted his offer and contract from the templates, collected his right-to-work documents, asked Rosa to order his laptop and set his probation dates. Each line says who did it, or who it waits for.' },
+      { title: 'Kwame signs the contract', as: 'kwame', route: 'hr-letter', id: 'HR-LET-2026-0020', panel: 'for', focus: "Sign Owen Grady's contract",
+        text: "Kwame wears People. He reads the contract the agent drafted from Owen's signed offer and signs it; it goes to Owen to countersign." },
+      { title: 'His employee record', as: 'kwame', route: 'employee-new', state: { fill: 'owen' },
+        text: "The people agent prepared the employee form from Owen's signed offer. Kwame checks it and saves it." },
+      { title: 'His first week', as: 'tom', route: 'onboarding-plan', id: 'owen', panel: 'for', focus: "Owen Grady's first week",
+        text: "Tom manages Owen. The agent drafted the first week from the Engineering template: set-up and the studio tour, pairing with Ellis, a codebase walkthrough and a first small ticket. Tom approves it or changes it." },
+      { title: "How Hannah's went", as: 'kwame', route: 'onboarding-plan', id: 'hannah',
+        text: 'Hannah Cole started on 12 October: handbook read, induction, Nest pension enrolment and probation check-ins set, each with who did it. Her one-month check-in moves because Priya is on leave that day.' },
+    ] },
+  { id: 'bridge', n: 4, title: 'A customer pays through Bridge', icon: 'bank',
+    blurb: 'Saltmarsh pays its deposit invoice by bank transfer. Bridge turns the pounds into USDC in the Treasury, and Capxul matches it to the invoice by its reference and books it.',
     steps: [
       { title: 'The invoice', as: 'maya', route: 'sales-invoice', id: 'ACC-SINV-2026-00052',
         text: 'Saltmarsh Distillery owes £13,680.00 on ACC-SINV-2026-00052. It quotes reference RF31 HL26 0052, and "How to pay" gives Harbourline\'s pound account at Bridge. The pill beside Unpaid says a payment is on its way.' },
       { title: 'The deposit', as: 'maya', route: 'deposit', id: 'bdep_arriving',
         text: 'Saltmarsh paid by Faster Payments this morning. Bridge has the pounds and is converting them to USDC. In a few seconds it lands in the Treasury (or press Check with Bridge), matched to the invoice by its reference.' },
-      { title: 'Reconciled', as: 'maya', route: 'sales-invoice', id: 'ACC-SINV-2026-00052', state: { tab: 'Payments' }, before: landSaltmarsh,
+      { title: 'Matched automatically', as: 'maya', route: 'sales-invoice', id: 'ACC-SINV-2026-00052', state: { tab: 'Payments' }, before: landSaltmarsh,
         text: 'The invoice is Paid. Its payments list the entry Capxul booked against it. Nobody keyed anything: the reference did the matching.' },
       { title: 'The payment entry', as: 'maya', before: landSaltmarsh, resolve: () => { const d = landSaltmarsh(); return d?.voucher ? ['payment-entry', d.voucher] : ['payment-entries']; },
-        text: 'Receive, from Saltmarsh: the USDC at its pounds into 1010 Treasury, Bridge\'s conversion fees to bank charges, and the receivable cleared against ACC-SINV-2026-00052.' },
+        text: "Received from Saltmarsh: the USDC at its pounds into 1010 Treasury, Bridge's conversion fee to bank charges, and the receivable cleared against ACC-SINV-2026-00052." },
       { title: 'The Treasury', as: 'maya', route: 'treasury', state: { tab: 'Statement' },
-        text: 'The Treasury Safe\'s statement shows the USDC arriving, with its transaction on Base. The Safe and the books agree to the cent.' },
+        text: "The Treasury Safe's statement shows the USDC arriving, with its transaction on Base. The Safe and the books agree to the cent." },
       { title: 'Every Bridge deposit', as: 'maya', route: 'bank', state: { tab: 'Deposits' },
         text: 'All the deposits Bridge has turned into USDC: matched by reference, matched by hand, or waiting for Books to review.' },
-    ] },
-  { id: 'payroll', n: 2, title: 'Month-end payroll in one batch', icon: 'payroll',
-    blurb: 'October went out on 30 October in one approval, every payslip with its own proof. Then November: Isla, who wears People, prepares it; Maya, who wears the Harbourline hat, pays it.',
-    steps: [
-      { title: "October's run", as: 'maya', route: 'payroll-run', id: 'HR-PRUN-2026-00010', state: { tab: 'Accounting and payment' },
-        text: 'HR-PRUN-2026-00010: one approval by Maya, one payment on Base per payslip, each with its document hash. Hannah Cole had no account yet, so hers waited for her in money waiting until she claimed it.' },
-      { title: 'One payslip, its proof', as: 'maya', route: 'payslip', id: 'Sal Slip/HR-EMP-00003/00018', state: { tab: 'Payment' },
-        text: "Ellis Hart's October pay went to his bank through Bridge. Press Verify: the page re-hashes the payment advice, which commits to the payslip's lines, and checks it against the hash on chain." },
-      { title: 'Isla prepares November', as: 'isla', route: 'payroll-run-new',
-        text: 'Isla wears People. She creates the run for November and submits the payslips. She cannot pay them: paying takes the Harbourline hat.' },
-      { title: 'Maya pays everyone at once', as: 'maya',
-        resolve: () => { const r = D.payroll.runs.find((x) => x.status === 'Submitted'); return r ? ['payroll-run', r.name, { tab: 'Accounting and payment' }] : ['payroll-runs']; },
-        check: () => D.payroll.runs.some((x) => ['Submitted', 'Paid'].includes(x.status) && x.startDate === '2026-11-01'), unmet: "November's run is not submitted yet: go back a step and let Isla create and submit it.",
-        text: 'On the submitted run Maya presses Pay: one passkey approval sends every payslip, each payment with its own proof. A payslip that is withheld stays out of the batch.' },
-      { title: 'The salary register', as: 'maya', route: 'salary-register',
-        text: 'Every payslip with what it paid, how it was paid, and its proof.' },
-    ] },
-  { id: 'hire', n: 3, title: 'The FDE drafts a new hire', icon: 'fde',
-    blurb: "Maya tells the FDE that Owen Grady joins on 4 January. It drafts her two steps as founder, and People's three for Kwame, acting only with each person's permissions.",
-    steps: [
-      { title: 'Maya asks the FDE', as: 'maya', route: 'home', ask: 'Owen Grady joins on 4 January as a Senior Software Engineer. What do I need to do?',
-        text: "The FDE reads the invitation, Engineering's budget and the options pool. It drafts Maya's steps for her to run and People's steps for Kwame. Press Review and approve on hers." },
-      { title: "Engineering's budget", as: 'maya', route: 'department', id: 'engineering', state: { tab: 'Changes' },
-        check: () => (D.departments.find((d) => d.id === 'engineering')?.changes || []).some((c) => /Owen/.test(c.note || '')), unmet: "Maya has not run her draft yet: go back a step and press Review and approve.",
-        text: "Engineering's changes show the raise for Q1, signed with Maya's passkey as Harbourline, the hat above Engineering." },
-      { title: "Owen's options", as: 'maya', route: 'proposals',
-        text: 'The grant is a Board proposal. Maya approved it as she proposed it; Tom or Ruth makes it final.' },
-      { title: 'Kwame adds the employee', as: 'kwame', route: 'employee-new', state: { fill: 'owen' },
-        text: "Kwame wears People. The FDE's draft opens the employee form filled from Owen's offer. Maya could not do this herself: People cannot be worn with a department's hat." },
-      { title: 'His seat', as: 'kwame', route: 'seats',
-        text: "Owen's invitation went out on 3 November. When he accepts, he gets his own Safe and his own agent." },
-    ] },
-  { id: 'swap', n: 4, title: "A department's budget, a new person in its hat", icon: 'departments',
-    blurb: "Delivery's budget belongs to Delivery, not to a person. Maya swaps Ravi in for Grace: the money, its payments and what Delivery set running stay with Delivery.",
-    steps: [
-      { title: 'Departments', as: 'maya', route: 'departments',
-        text: "Each department has a quarterly budget in USDC. Whoever wears its hat now spends it and decides its people's leave and claims." },
-      { title: "Delivery's budget", as: 'maya', route: 'department', id: 'delivery', state: { tab: 'Overview' },
-        text: 'Spent, handed down, committed and left this quarter, and who can act on it now.' },
-      { title: 'Swap the hat', as: 'maya', route: 'department', id: 'delivery', state: { tab: 'Holders' },
-        text: 'Maya wears Harbourline, the hat above Delivery. Under Holders she adds Ravi Shah, then removes Grace Adeyemi: one passkey approval each.' },
-      { title: 'Ravi can pay from it', as: 'ravi', route: 'send-money',
-        check: () => cx.holders('delivery').includes('ravi'), unmet: 'Ravi does not wear the Delivery hat yet: go back a step and add him.',
-        text: "Viewing as Ravi: Pay from now offers Delivery's budget, and its leave and claims come to him." },
-      { title: 'Grace no longer can', as: 'grace', route: 'department', id: 'delivery', state: { tab: 'Holders' },
-        check: () => !cx.holders('delivery').includes('grace'), unmet: 'Grace still wears the Delivery hat: go back two steps and remove her.',
-        text: "Viewing as Grace: Delivery's controls are locked, with the reason. Her past approvals stay on the record." },
     ] },
 ];
 let tour = null;
@@ -2749,6 +2746,12 @@ function tourGo(i) {
   cx.panel.close();
   cx.go(route, id, state);
   if (st.ask) setTimeout(() => cx.fde.open({ ask: st.ask }), 350);
+  else if (st.panel) setTimeout(() => {
+    assistOpen(st.panel);
+    if (!st.focus) return;
+    const card = [...document.querySelectorAll('.panel.assist .ap-item')].find((el) => el.querySelector('h3')?.textContent.includes(st.focus));
+    if (card) { card.scrollIntoView({ block: 'center' }); card.style.boxShadow = '0 0 0 2px var(--accent)'; }
+  }, 350);
 }
 cx.tours = {
   list: () => TOURS,
@@ -2793,6 +2796,15 @@ function directoryCard() {
   return cx.card({ title: 'Everything in Capxul', body: h('div.wsdir', cols) });
 }
 
+/** Where Harbourline's setup stands, from fde.js: live since, and what is not used yet. */
+function setupLine() {
+  const st = cx.fde.status?.();
+  if (!st || !cx.hasSeat()) return null;
+  return h('div.ask-setup', { style: 'display:flex;flex-wrap:wrap;gap:6px 12px;align-items:center;font-size:12.5px;border-top:1px solid var(--line);padding-top:10px' },
+    h('span', cx.icon('check', { size: 13 }), ` Setup done: live since ${fmt.date(st.liveSince)}`),
+    st.unused && routes.has('fde-unused') ? h('a', { href: '#fde-unused' }, `${fmt.plural(st.unused, 'feature')} not used yet`) : null,
+    routes.has('fde') ? h('a', { href: '#fde' }, 'How we set up') : null);
+}
 function greeting() { const hh = +london(D.meta.now).hh; return hh < 12 ? 'Good morning' : hh < 18 ? 'Good afternoon' : 'Good evening'; }
 function homePage() {
   const me = cx.me();
@@ -2804,7 +2816,8 @@ function homePage() {
   const askCard = cx.card({ title: 'Ask the FDE', body: h('div.ask',
     h('form', { onsubmit: (e) => { e.preventDefault(); const v = e.target.querySelector('input').value.trim(); if (v) cx.fde.open({ ask: v }); } }, h('input.finput', { id: 'home-ask', placeholder: 'Ask anything about Harbourline', 'aria-label': 'Ask the FDE' }), h('button.btn.primary', { type: 'submit' }, cx.icon('send'), h('span', 'Ask'))),
     h('div.suggest', cx.fde.suggestions.map((sg) => h('button', { type: 'button', onclick: () => cx.fde.open({ ask: sg }) }, sg))),
-    h('p.muted', { style: 'font-size:12.5px' }, "Harbourline's FDE sets Capxul up with you and shows you what you are not using yet. It acts only with your permissions.")) });
+    h('p.muted', { style: 'font-size:12.5px' }, "Harbourline's FDE sets Capxul up with you and shows you what you are not using yet. It acts only with your permissions."),
+    setupLine()) });
   if (!seat) {
     const mine = (D.notices || []).filter((n) => n.to === meId);
     return cx.page({ title: '', hero: hello, fde: 'Home',
@@ -2864,7 +2877,9 @@ function homePage() {
   const vote = (D.equity?.votes || []).find((v) => v.closes >= cx.today && !/executed|lapsed|failed|closed/i.test(v.status || ''));
   if (vote) coming.push({ day: vote.closes, text: h('span', `Vote ${vote.id} closes`, h('span.muted', ` · ${vote.title}`)), pill: cx.pill('Voting', 'orange'), href: routes.has('vote') ? cx.href('vote', vote.id) : null });
   const fh = D.fde?.hosting;
-  if (fh?.due) coming.push({ day: fh.due, text: h('span', `FDE hosting due`, h('span.muted', ` · ${fmt.usdc(fh.price)} a month, paid through ${fmt.date(fh.paidThrough)}`)), pill: cx.pill('Due', 'orange'), href: routes.has('fde') ? '#fde' : null });
+  if (fh?.due) coming.push({ day: fh.due, text: h('span', `FDE hosting due`, h('span.muted', ` · ${fmt.usdc(fh.price)} a month, paid through ${fmt.date(fh.paidThrough)}`)), pill: cx.pill('Due', 'orange'), href: routes.has('fde-hosting') ? '#fde-hosting' : routes.has('fde') ? '#fde' : null });
+  const next = cx.fde.status?.()?.next;
+  if (next && next.who.includes(meId)) coming.push({ day: next.day, text: h('span', `Training: ${next.title}`, h('span.muted', ` · ${next.time}, ${next.mins} minutes with the FDE`)), pill: cx.pill('You', 'blue'), href: routes.has('fde-training') ? '#fde-training' : null });
   const inv = (D.seats.invitations || []).find((x) => x.status === 'Pending');
   if (inv) coming.push({ day: inv.expires, text: h('span', `Invitation to ${inv.email} expires`, h('span.muted', inv.note ? ` · ${inv.note}` : '')), pill: cx.pill('Pending'), href: routes.has('seats') ? '#seats' : null });
   const lastRun = D.payroll.runs.at(-1);
