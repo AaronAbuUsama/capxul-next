@@ -656,3 +656,7 @@ Object.assign(SUPERSEDED as Record<string, string>, { "devnet.shared-world": "aa
   "payroll.hr-self-rules",
   "requests.bill-time-in-projects",
 );
+
+// "The number was not the issue ... it's the logical groupings" (9 November 2026): HR's commands accepted; the
+// surface pass grouped them.
+(ACCEPTED as string[]).push("payroll.hr-commands");
