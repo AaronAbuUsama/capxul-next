@@ -100,6 +100,7 @@ details[open] > summary { margin-bottom: 6px; }
       <a href="#overview">Overview</a>
       <a href="#decisions">Decisions</a>
       <a href="#packs">Command packs</a>
+      <a href="#surface">Surface</a>
       <a href="#commands">Commands</a>
       <a href="#concepts">Concepts</a>
       <a href="#gaps">Gaps</a>
@@ -189,6 +190,16 @@ details[open] > summary { margin-bottom: 6px; }
           </details></article>`).join("") || '<p class="empty">No command matches.</p>'}</div>
         ${rows.length > ui.limit ? `<button class="chip more" id="more">Show ${fmt(Math.min(60, rows.length - ui.limit))} more</button>` : ""}`;
     },
+    surface() {
+      const groupOf = (c) => { const w = c.split(" "); return (w[0] === "org" || w[0] === "dev") && w.length > 1 ? `${w[0]} ${w[1]}` : w[0]; };
+      const groups = {};
+      for (const o of B.operations) (groups[groupOf(o.command)] ||= []).push(o);
+      const order = Object.entries(groups).sort((a, b) => b[1].length - a[1].length);
+      const nNew = B.operations.filter((o) => o.isNew).length;
+      return `<div class="note"><p>The whole CLI as the book has it: ${fmt(B.operations.length)} commands (${fmt(B.operations.length - nNew)} kept from the old system, ${fmt(nNew)} new) in ${order.length} groups, largest first. A new command is tagged. Choose a command to open it.</p></div>
+        <div class="grid">${order.map(([g, os]) => `<article class="item"><header><span class="cmd">${esc(g)}</span><span class="count">${os.length}${os.some((o) => o.isNew) ? ` · ${os.filter((o) => o.isNew).length} new` : ""}</span></header>
+          <ul class="claims" style="list-style:none;padding-left:0">${os.sort((a, b) => a.command.localeCompare(b.command)).map((o) => `<li><a href="#commands" data-cmd="${esc(o.command)}" class="id" style="color:var(--ink)">${esc(o.command.split(" ").slice(g.split(" ").length).join(" ") || o.command)}</a>${o.isNew ? ' <span class="pill pack">new</span>' : ""} <span class="obs" style="display:inline">${esc(o.title)}</span></li>`).join("")}</ul></article>`).join("")}</div>`;
+    },
     concepts() {
       return `<div class="grid">${B.concepts.map((c, i) => `<button class="item concept" data-concept="${esc(c.id)}"><header><h3>${esc(c.title)}</h3><span class="layer">${String(i + 1).padStart(2, "0")}</span></header>
         <p class="why">${esc(c.about)}</p>
@@ -213,6 +224,7 @@ details[open] > summary { margin-bottom: 6px; }
   };
   const rerender = (keepFocus) => { save(); const name = (location.hash || "#overview").slice(1); $("#view").innerHTML = (views[name] || views.overview)(); bind(name); if (keepFocus) { const el = $("#" + keepFocus); if (el) { el.focus(); const v = el.value; el.value = ""; el.value = v; } } };
   const bind = (view) => {
+    for (const a of document.querySelectorAll("[data-cmd]")) a.addEventListener("click", () => { ui.cQuery = a.dataset.cmd; ui.cConcept = ""; ui.cNew = ""; ui.limit = 60; save(); });
     for (const b of document.querySelectorAll("[data-concept]")) b.addEventListener("click", () => { ui.cConcept = b.dataset.concept; ui.cQuery = ""; ui.limit = 60; save(); location.hash = "#commands"; });
     for (const b of document.querySelectorAll("[data-state]")) b.addEventListener("click", () => { ui.dState = b.dataset.state; ui.limit = 60; rerender(); });
     const on = (id, key, ev = "input") => { const el = $("#" + id); if (el) el.addEventListener(ev, () => { ui[key] = el.value; ui.limit = 60; rerender(ev === "input" ? id : null); }); };
