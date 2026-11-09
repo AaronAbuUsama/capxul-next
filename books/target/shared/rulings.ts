@@ -639,3 +639,20 @@ export const decision_aaron_seasons = defineDecision({
   "contacts.attachments-later", "payroll.hr-approvers",
 );
 Object.assign(SUPERSEDED as Record<string, string>, { "devnet.shared-world": "aaron.seasons" });
+
+// The world and surface passes' decisions that carry out Aaron's rulings and ask him nothing.
+(CARRIES_OUT as string[]).push(
+  "organizations.head-fit",
+  "organizations.head-group",
+  "organizations.reach-holes",
+  "projects.claims-thickened",
+  "projects.surface-fit",
+  "contacts.whatsapp-show-claims",
+  "payments.claim-retry",
+  "payments.department-pay-sdk",
+  "payments.fde-pay-retry",
+  "payroll.claims-thickened",
+  "payroll.surface-fit",
+  "payroll.hr-self-rules",
+  "requests.bill-time-in-projects",
+);
