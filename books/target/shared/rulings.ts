@@ -584,3 +584,28 @@ Object.assign(SUPERSEDED as Record<string, string>, {
   "accounts.collect-any-time": "aaron.payment-claim",
   "organizations.fde-commands": "aaron.fde-anyone",
 });
+
+// The world pass's decisions that carry out the eighth batch: they cite Aaron and ask him nothing.
+(CARRIES_OUT as string[]).push(
+  "time.world-channels",
+  "organizations.command-priorities",
+  "organizations.doc-log",
+  "organizations.fde-guests",
+  "contacts.conversations-head-sync",
+  "contacts.conversations-on-the-world-clock",
+  "contacts.crm-mailbox",
+  "contacts.crm-permission",
+  "contacts.timeline",
+  "contacts.whatsapp-connect",
+  "contacts.whatsapp-window",
+  "payments.claim-command",
+  "payroll.hr-head-sync",
+  "payroll.hr-rpc-methods",
+  "payroll.hr-scope",
+  "payroll.hr-world-clock",
+  "payroll.shift-types",
+  "devnet.fde-host-follows-world",
+  "devnet.follow-at-a-rate",
+  "devnet.head-follows-world",
+  "devnet.whatsapp-stand-in",
+);
