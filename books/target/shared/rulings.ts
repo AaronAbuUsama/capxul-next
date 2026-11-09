@@ -609,3 +609,33 @@ Object.assign(SUPERSEDED as Record<string, string>, {
   "devnet.head-follows-world",
   "devnet.whatsapp-stand-in",
 );
+
+// ── Aaron's ninth batch (9 November 2026): the world pass's questions, and seasons ──────────────────────────────
+const AARON_9 = "Aaron, 9 November 2026, in the build-preparation conversation (ninth batch)";
+
+export const decision_aaron_seasons = defineDecision({
+  id: "aaron.seasons",
+  title: "A shared world runs in seasons, like a game: time jumps, then a reset",
+  question: "How does a shared world's time move, and how does it end?",
+  options: [
+    {
+      label: "seasons",
+      text:
+        "A shared world runs in seasons, like a game. A season starts from a known world, runs its clock at a rate, " +
+        "jumps time on a schedule, and ends in a reset, after which the next season starts. Players join a season.",
+    },
+    { label: "open-ended", text: "A shared world runs for as long as its owner keeps it, and only the owner moves its clock." },
+  ],
+  chosen: "seasons",
+  why: "Aaron, 9 November 2026: 'Agreed with all, but we need a shared world that gets time jumps and resets, as part of a season, like a game sort of thing.'",
+  source: AARON_9,
+  affects: [f.system_capxul],
+});
+
+// He accepted the world pass's questions, except the shared world (seasons above) and HR's commands (asked again).
+(ACCEPTED as string[]).push(
+  "devnet.clock-rate", "time.worlds", "organizations.doc-family", "organizations.doc-reach",
+  "organizations.fde-for-the-asker", "contacts.conversation-commands", "contacts.timeline-money",
+  "contacts.attachments-later", "payroll.hr-approvers",
+);
+Object.assign(SUPERSEDED as Record<string, string>, { "devnet.shared-world": "aaron.seasons" });
