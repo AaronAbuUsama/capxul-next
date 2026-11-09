@@ -86,6 +86,7 @@ cx.style('money', `
 .mx-bar i.hd { background: var(--chart-2); }
 .mx-bar i.cm { background: repeating-linear-gradient(135deg, var(--chart-3) 0 3px, transparent 3px 6px); }
 .mx-tree td.dname { white-space: nowrap; }
+.mx-tree td .person > span:last-child { white-space: nowrap; }
 .mx-tree td.dname .pad { display: inline-block; }
 .mx-tree td.dname a { font-weight: 600; }
 .mx-tree tr.allow td.dname a { font-weight: 500; }
@@ -1402,7 +1403,7 @@ cx.route('departments', (ctx) => {
     const holders = d.holders.filter((x) => x.from <= (day || cx.today) && (!x.to || x.to > (day || cx.today))).map((x) => x.who);
     const may = mayAct(d.id);
     rows.push(h('tr', { class: lvl ? '' : 'group' },
-      h('td.dname', h('span.pad', { style: { width: lvl * 18 + 'px' } }), lvl ? h('span.faint', '└ ') : null, h('a', { href: cx.href('department', d.id) }, d.name), h('span.kind', lvl ? 'team' : 'top')),
+      h('td.dname', h('span.pad', { style: { width: lvl * 18 + 'px' } }), lvl ? h('span.faint', '└ ') : null, h('a', { href: cx.href('department', d.id) }, d.name), h('span.kind', lvl ? 'team' : 'top'), d.status !== 'Active' ? [' ', cx.pill(d.status, 'muted')] : null),
       h('td.wrap', holders.length ? h('div.chips', holders.map((w) => cx.personChip(w))) : h('span.faint', 'nobody')),
       h('td.num', b ? fmt.num(b.amount, 2) : '—'),
       h('td.num.opt', b ? fmt.num(b.teamsAndAllowances || 0, 2) : '—'),
@@ -1410,8 +1411,6 @@ cx.route('departments', (ctx) => {
       h('td.num.opt', b ? fmt.num(b.committed || 0, 2) : '—'),
       h('td.num', b ? h('b', fmt.num(b.left, 2)) : '—'),
       h('td.opt', b ? bar(b.amount, b.spent, b.teamsAndAllowances || 0, b.committed || 0) : null),
-      h('td.opt', b ? fmt.date(addDays(b.to, 1)) : ''),
-      h('td', cx.pill(d.status, d.status === 'Active' ? 'green' : 'muted')),
       h('td', cx.menu(null, [
         { label: `Pay from ${d.name}`, icon: 'send', needs: () => may.ok || may.reason, cmd: `capxul org department pay ${d.id} --to <who> --amount <n> ${ORG}`, onClick: () => cx.go('send-money', null, { from: d.id }) },
         { label: 'New team under it', icon: 'plus', needs: () => may.ok || cx.wears('Director') || may.reason, cmd: `capxul org department create <name> --parent ${d.id} --budget <n>/quarter --holder <email> ${ORG}`, onClick: () => newDepartment(d.id) },
@@ -1425,7 +1424,7 @@ cx.route('departments', (ctx) => {
       const startM = a.created.slice(0, 7) > (b?.from || '').slice(0, 7) ? a.created.slice(0, 7) : (b?.from || '').slice(0, 7);
       const monthsIn = b ? Math.max(0, (Number(b.to.slice(0, 4)) - Number(startM.slice(0, 4))) * 12 + Number(b.to.slice(5, 7)) - Number(startM.slice(5, 7)) + 1) : 0;
       const amt = a.monthly * monthsIn, sp = m.reduce((s, x) => s + x.spent, 0);
-      rows.push(h('tr.allow', h('td.dname', h('span.pad', { style: { width: (lvl + 1) * 18 + 'px' } }), h('span.faint', '└ '), h('a', { href: cx.href('allowance', a.id) }, a.name), h('span.kind', `allowance · ${fmt.num(a.monthly, 0)}/month`)), h('td.wrap', h('div.chips', cx.holders(a.id).map((w) => cx.personChip(w)))), h('td.num', amt ? fmt.num(amt, 2) : '—'), h('td.num.opt', ''), h('td.num', fmt.num(sp, 2)), h('td.num.opt', ''), h('td.num', fmt.num(amt - sp, 2)), h('td.opt', amt ? bar(amt, sp) : null), h('td.opt', fmt.date(addDays(cx.today.slice(0, 8) + '01', 31).slice(0, 8) + '01')), h('td', cx.pill('Active', 'green')), h('td')));
+      rows.push(h('tr.allow', h('td.dname', h('span.pad', { style: { width: (lvl + 1) * 18 + 'px' } }), h('span.faint', '└ '), h('a', { href: cx.href('allowance', a.id) }, a.name), h('span.kind', `allowance · ${fmt.num(a.monthly, 0)}/month`)), h('td.wrap', h('div.chips', cx.holders(a.id).map((w) => cx.personChip(w)))), h('td.num', amt ? fmt.num(amt, 2) : '—'), h('td.num.opt', ''), h('td.num', fmt.num(sp, 2)), h('td.num.opt', ''), h('td.num', fmt.num(amt - sp, 2)), h('td.opt', amt ? bar(amt, sp) : null), h('td')));
     }
     for (const k of kids(d.id)) walk(k, lvl + 1);
   };
@@ -1434,11 +1433,11 @@ cx.route('departments', (ctx) => {
   const sel = h('select.ctl', { 'aria-label': 'Quarter', onchange: (e) => { cx.store.set('dept-q', e.target.value); cx.go('departments', null, { quarter: e.target.value }); } }, QUARTERS.map((x) => h('option', { value: x, selected: x === qq }, `${qLabel(x)}${x === QUARTERS.at(-1) ? ' (now)' : ''}`)));
   const ppl = (D.seats.members || []).filter((m) => m.kind === 'Person' && peopleHat(m.id)).map((m) => cx.name(m.id));
   return cx.page({
-    title: 'Departments', sub: h('span', 'Quarter ', sel, top ? ` · ${fmt.date(top.from)} to ${fmt.date(top.to)} (UTC) · USDC` : ''),
+    title: 'Departments', sub: h('span', 'Quarter ', sel, top ? ` · ${fmt.date(top.from)} to ${fmt.date(top.to)} (UTC) · USDC · refills ${fmt.date(addDays(top.to, 1))}` : ''),
     actions: [cx.btn('Payout ceilings', { icon: 'shield', href: ['payout-ceilings'], cmd: `capxul org department ceiling set --token USDC ${ORG}` }), cx.btn('New department', { kind: 'primary', icon: 'plus', needs: () => cx.wears('Director') || payableBudgets().some((b) => !isAllowance(b)) || 'The Board makes a top department; a holder makes a team under theirs.', cmd: `capxul org department create <name> --budget <n>/quarter --holder <email> ${ORG}`, onClick: () => newDepartment(null) })],
     cmd: { cli: `capxul org department list ${ORG}`, sdk: 'client.org(orgId).departments.list()', json: D.departments.map((d) => { const b = budgetQ(d, qq); return { id: d.id, name: d.name, parent: d.parent, holders: d.holders.filter((x) => !x.to).map((x) => x.who), amount: b?.amount, spent: b?.spent, committed: b?.committed, left: b?.left }; }) },
     body: [
-      cx.card({ flush: true, body: h('div.tbl-scroll', h('table.tbl.mx-tree', h('thead', h('tr', h('th', 'Department'), h('th', 'Holders'), h('th.num', 'Budget'), h('th.num.opt', 'Handed down'), h('th.num', 'Spent'), h('th.num.opt', 'Committed'), h('th.num', 'Left'), h('th.opt', ''), h('th.opt', 'Refills'), h('th', 'Status'), h('th', ''))), h('tbody', rows))) }),
+      cx.card({ flush: true, body: h('div.tbl-scroll', h('table.tbl.mx-tree', h('thead', h('tr', h('th', 'Department'), h('th', 'Holders'), h('th.num', 'Budget'), h('th.num.opt', 'Handed down'), h('th.num', 'Spent'), h('th.num.opt', 'Committed'), h('th.num', 'Left'), h('th.opt', ''), h('th', ''))), h('tbody', rows))) }),
       h('div.legend', h('span', h('i', { style: 'background:var(--chart-1)' }), 'Spent'), h('span', h('i', { style: 'background:var(--chart-2)' }), 'Handed down to teams and allowances'), h('span', h('i', { style: 'background:var(--chart-3)' }), 'Committed (agreements, dated payments)'), h('span', h('i', { style: 'background:var(--t-orange)' }), 'Above 85%')),
       cx.banner(h('span', 'Budgets belong to departments. Whoever wears a department\'s hat now acts for its money; a swap moves the authority at once. A team\'s budget is carved from its parent\'s. ', ppl.length ? `${ppl.join(', ')} wear${ppl.length === 1 ? 's' : ''} People, so cannot hold a department or team while they do.` : ''), { tone: 'info' }),
     ],

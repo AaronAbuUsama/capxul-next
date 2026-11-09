@@ -75,7 +75,7 @@ function treasuryFlows(from, to) {
   let inn = 0, out = 0;
   for (const r of cx.rows('activity')) {
     const d = String(r.at).slice(0, 10);
-    if (d < from || d > to || r.safe !== 'Treasury' || r.direction === 'Between your Safes' || ['investment', 'transfer'].includes(purpose.get(r.payment))) continue;
+    if (d < from || d > to || r.safe !== 'Treasury' || r.direction === 'Between your Safes' || purpose.get(r.payment) === 'investment') continue;
     if (r.amount > 0) inn += r.amount; else out -= r.amount;
   }
   return { inn, out };
@@ -97,7 +97,7 @@ const intents = [
     const burn = (out - inn) / 3;
     const cash = T.balance + R.balance;
     const months = burn > 0 ? Math.floor(cash / burn) : null;
-    return { text: `Cash is ${fmt.usdc(cash)} across the two Safes (about ${fmt.gbp(r2(cash * RATE))}) plus ${fmt.gbp(bank?.balance || 0)} in Barclays. Over August to October, ${fmt.usdc(out / 3)} a month left the Treasury and ${fmt.usdc(inn / 3)} a month came in from customers, so the net burn is about ${fmt.usdc(burn)} a month. ${months ? `On that pace the money lasts ${months} months.` : 'More came in than went out.'} The seed money sits in the Reserve Safe and only moves to the Treasury by Board proposal.`,
+    return { text: `Cash is ${fmt.usdc(cash)} across the two Safes (about ${fmt.gbp(r2(cash * RATE))}) plus ${fmt.gbp(bank?.balance || 0)} in Barclays. Over August to October, ${fmt.usdc(out / 3)} a month left the Treasury (suppliers, payroll and top-ups of Barclays) and ${fmt.usdc(inn / 3)} a month came in from customers, so the net burn is about ${fmt.usdc(burn)} a month. ${months ? `On that pace the money lasts ${months} months.` : 'More came in than went out.'} The seed money sits in the Reserve Safe and only moves to the Treasury by Board proposal.`,
       lookedAt: [{ command: `capxul balance ${ORG}`, result: `Treasury ${fmt.usdc(T.balance)}; Reserve Safe ${fmt.usdc(R.balance)}` }, { command: 'capxul org doc get bank-account "Barclays Business"', result: `Barclays ${fmt.gbp(bank?.balance || 0)} per books` }, { command: `capxul activity summary ${ORG} --from 2026-08-01 --to 2026-10-31`, result: `Out ${fmt.usdc(out)}, in ${fmt.usdc(inn)} over three months` }],
       links: [{ label: 'Open Money', route: 'money' }, { label: 'Treasury statement', route: 'treasury' }] };
   } },

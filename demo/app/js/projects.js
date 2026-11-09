@@ -261,6 +261,7 @@ cx.style('projects', `
 .pj-g-scroll text { font: 11px var(--font-ui); fill: var(--muted); }
 .pj-g-bar { cursor: grab; }
 .pj-g-bar.dragging { cursor: grabbing; opacity: .85; }
+.pj-g-scroll g:focus:not(:focus-visible) { outline: none; }
 .pj-pop { position: absolute; z-index: 5; width: min(290px, calc(100% - 16px)); background: var(--surface); border: 1px solid var(--line-2); border-radius: var(--r-lg); box-shadow: var(--shadow); padding: 12px; display: grid; gap: 8px; font-size: 13px; }
 .pj-pop h4 { font: 600 14px/1.3 var(--font-ui); }
 .pj-legend { display: flex; flex-wrap: wrap; gap: 6px 14px; padding: 8px 12px; border-top: 1px solid var(--line); font-size: 12px; color: var(--muted); }
@@ -939,9 +940,10 @@ function ganttView(project, rows, o) {
       h('h4', t.subject),
       cx.kv([['Project', projLink(t.project, projName(t.project))], ['Expected', `${fmt.date(t.expStart)} to ${fmt.date(t.expEnd)}`], ['Status', taskPill(t.status)], t.isGroup ? null : ['Progress', `${t.status === 'Completed' ? 100 : t.progress || 0}% · ${fmt.hours(tt.hours)} logged`], ['Assigned to', (t.assignees || []).length ? t.assignees.map(cx.name).join(', ') : 'Nobody'], (t.dependsOn || []).length ? ['Depends on', t.dependsOn.map((d) => TASK.get(d)?.subject || d).join(', ')] : null]),
       h('div', { style: 'display:flex;gap:6px' }, cx.btn('Open the task', { sm: true, kind: 'primary', href: ['task', t.name] }), cx.btn('Close', { sm: true, onClick: () => pop.remove() })));
-    pop.style.left = Math.max(8, Math.min(r.width - 300, b.left - r.left)) + 'px';
-    pop.style.top = (b.bottom - r.top + 6) + 'px';
+    pop.style.left = Math.max(8, Math.min(r.width - 300, b.left - r.left + 40)) + 'px';
     root.appendChild(pop);
+    const below = b.bottom - r.top + 6;
+    pop.style.top = (below + pop.offsetHeight > r.height - 8 ? Math.max(8, b.top - r.top - pop.offsetHeight - 6) : below) + 'px';
     setTimeout(() => document.addEventListener('pointerdown', function off(e) { if (!pop.contains(e.target)) { pop.remove(); document.removeEventListener('pointerdown', off); } }), 0);
   }
   root.redraw = draw;

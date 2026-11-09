@@ -379,7 +379,7 @@ function exitPreview() {
     const perCommon = commonShares ? commonPool / commonShares : 0;
     const payout = (r) => (converts ? r.asConverted * perCommon : r.seed ? Math.min(P, pref) * (r.seed / seedShares) + r.common * perCommon : r.asConverted * perCommon);
     cx.fill(out, h('div', { style: 'display:grid;gap:10px' },
-      cx.kv([['Seed Preferred', converts ? `converts to Common: ${fmt.usd ? '' : ''}${fmt.num(convertEach, 4)} USDC a share beats its 1x preference (${fmt.num(prefPerSeed, 4)})` : `takes its 1x preference: ${fmt.usdc(Math.min(P, pref))}`], ['Per Common share', fmt.usdc(perCommon, 4)]]),
+      cx.kv([['Seed Preferred', converts ? `converts to Common: ${fmt.num(convertEach, 4)} USDC a share beats its 1x preference (${fmt.num(prefPerSeed, 4)})` : `takes its 1x preference: ${fmt.usdc(Math.min(P, pref))}`], ['Per Common share', fmt.usdc(perCommon, 4)]]),
       h('div.tbl-scroll', h('table.tbl', h('thead', h('tr', h('th', 'Holder'), h('th.num', 'Shares'), h('th.num', 'Proceeds'))), h('tbody', shares.map((r) => h('tr', h('td', r.name), h('td.num', fmt.int(r.asConverted)), h('td.num', fmt.usdc(payout(r))))))))));
   };
   run();
@@ -686,7 +686,7 @@ function agentAction(a, verb) {
     if (verb === 'Freeze') a.state = 'Frozen'; if (verb === 'Unfreeze') a.state = 'Active'; if (verb === 'Remove') a.state = 'Removed'; if (verb === 'Sweep') a.holds = 0; if (verb === 'Rotate key') a.signer = cx.randHex(20);
     const mm = S.members.find((x) => x.id === a.handle); if (mm && verb === 'Remove') mm.status = 'Removed';
     addEvent(`${a.handle}: ${what}`, { type: 'agent', id: a.handle }, 'Agents');
-    cx.toast(`${a.handle}: ${what.toLowerCase()}.`, { tone: 'success', cmd }); cx.refresh();
+    cx.toast(`${a.handle}: ${what}.`, { tone: 'success', cmd }); cx.refresh();
   };
 }
 function createAgent() {

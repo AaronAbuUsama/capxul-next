@@ -746,7 +746,7 @@ function whatsappPane(ctx) {
   if (!ctx.mobile) return h('div', thread, h('div.crm-wa-box', h('p.muted', 'Add a mobile number to send WhatsApp messages.')));
   const lastIn = [...msgs].reverse().find((x) => x.direction === 'in');
   const open = lastIn && Date.parse(NOW()) - Date.parse(lastIn.at) < 86400000;
-  const first = (ctx.personName || ctx.name || '').split(' ')[0];
+  const first = ctx.firstName || (ctx.personName || ctx.name || '').split(' ')[0];
   const m = { text: '', template: WA_TEMPLATES[0].name };
   const cmd = () => (open ? `capxul org crm whatsapp send ${ctx.rec.name} --text ${q(m.text || '…')} --confirm` : `capxul org crm whatsapp send ${ctx.rec.name} --template ${m.template} --param ${q(first)} --confirm`);
   const cmdBox = h('div');
@@ -1026,7 +1026,7 @@ function notFound(what, route, label) {
 function recordPage(kind, rec) {
   const isLead = kind === 'lead';
   const prim = isLead ? null : primaryOf(rec);
-  const ctx = { kind, rec, name: recTitle(rec), personName: isLead ? leadName(rec) : prim?.name, toEmail: isLead ? rec.email : prim?.email, mobile: isLead ? rec.mobile : prim?.mobile };
+  const ctx = { kind, rec, name: recTitle(rec), personName: isLead ? leadName(rec) : prim?.name, firstName: isLead ? rec.firstName : prim?.firstName, toEmail: isLead ? rec.email : prim?.email, mobile: isLead ? rec.mobile : prim?.mobile };
   const cn = counts(itemsOf(rec));
   const tasks = recTasks(rec), notes = recNotes(rec);
   const c1 = composer(ctx), c2 = composer(ctx);
@@ -1141,9 +1141,9 @@ cx.route('deal', (ctx) => { const d = cx.find(C.deals, 'name', ctx.id); return d
 /** A record's page context from its name (for actions started from a list). */
 function ctxFor(name) {
   const l = C.leads.find((x) => x.name === name);
-  if (l) return { kind: 'lead', rec: l, name: leadName(l), personName: leadName(l), toEmail: l.email, mobile: l.mobile };
+  if (l) return { kind: 'lead', rec: l, name: leadName(l), personName: leadName(l), firstName: l.firstName, toEmail: l.email, mobile: l.mobile };
   const d = C.deals.find((x) => x.name === name);
-  if (d) { const p = primaryOf(d); return { kind: 'deal', rec: d, name: dealTitle(d), personName: p?.name, toEmail: p?.email, mobile: p?.mobile }; }
+  if (d) { const p = primaryOf(d); return { kind: 'deal', rec: d, name: dealTitle(d), personName: p?.name, firstName: p?.firstName, toEmail: p?.email, mobile: p?.mobile }; }
   return null;
 }
 /** Choose the lead or deal first, then run next(ctx). */
