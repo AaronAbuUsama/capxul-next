@@ -7,7 +7,7 @@ can restart in another account or session from what is committed.
 | Step | State | Outputs |
 |---|---|---|
 | Research | done 2026-11-09 | `research/*.md`: accounting.md, hr-payroll.md, crm-projects.md,<br>capxul-native.md (`/home/user/capxul-next/demo/research/`) |
-| Data | not started | `data/generate.mjs`, `data/validate.mjs`, `app/data.json` |
+| Data | done 2026-11-09 | `data/generate.mjs` (+ `data/gen/*.mjs`), `data/validate.mjs` (23 of 23 pass),<br>`data/README.md` (the shape of the data), `app/data.json` (8.3 MB, deterministic).<br>Harbourline Studio Ltd, a design and engineering studio in Hoxton, runs on Capxul from 1 May 2025 to 9 Nov 2026 (10:45).<br>27 employees (14 at the start, 25 today), a Stockholm contractor, 6 departments with quarterly USDC budgets, 14 of 20 seats in use. |
 | Shell | not started | `app/index.html`, `app/js/core.js`, `app/js/README.md` |
 | Modules | not started | `app/js/{accounting,hr,payroll,crm,projects,money,governance,fde}.js` |
 | Integrate | not started | the routes wired, the walkthroughs |
