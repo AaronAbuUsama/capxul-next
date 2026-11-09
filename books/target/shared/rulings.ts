@@ -660,3 +660,35 @@ Object.assign(SUPERSEDED as Record<string, string>, { "devnet.shared-world": "aa
 // "The number was not the issue ... it's the logical groupings" (9 November 2026): HR's commands accepted; the
 // surface pass grouped them.
 (ACCEPTED as string[]).push("payroll.hr-commands");
+
+// ── Aaron's tenth batch (9 November 2026): Frappe is the business system, for real ─────────────────────────────
+const AARON_10 = "Aaron, 9 November 2026, in the build-preparation conversation (tenth batch)";
+
+export const decision_aaron_frappe_native = defineDecision({
+  id: "aaron.frappe-native",
+  title: "Frappe is every Organization's business system; Capxul owns money and identity",
+  question: "Does Capxul rebuild Frappe's apps in Frappe's shape, or is a real Frappe site every Organization's business system?",
+  options: [
+    {
+      label: "frappe-native",
+      text:
+        "Every Organization gets a real Frappe site from the start, hosted by Capxul (on Capxul's own servers first, " +
+        "for full control of the world clock). Frappe keeps the business records with its own code: accounts, " +
+        "invoices, CRM, projects, HR, payroll's calculation, stock, selling and buying. Capxul keeps identity, agents " +
+        "and seats, Safes, departments and budgets, payments and escrow on chain, governance and equity, and the world " +
+        "clock. One Capxul app inside Frappe joins them: every movement of money goes through Capxul, and Frappe never " +
+        "marks money moved until the chain says so. The Core SDK and the CLI reach all of it. The redesign starts from " +
+        "how a payment works in both systems, and says whether the contracts change.",
+    },
+    { label: "frappe-shaped", text: "Rebuild Frappe's fundamental apps natively in Frappe's shape, with an optional head (aaron.frappe-head)." },
+  ],
+  chosen: "frappe-native",
+  why:
+    "Aaron, 9 November 2026: 'I think we should just do the whole thing. We said no Frappe before, just make it Frappe " +
+    "shaped, but we've gone too far down this path now. We might as well just do it properly.' Then, on the plan: 'I " +
+    "agree with all, but we should think about this deeper. Some of the contracts may have to change. How do we sync " +
+    "between a Capxul payment event and a Frappe payment event? Our events may be naive and may not fully fit the " +
+    "shape. If we were building this from scratch, how do we do that?' It replaces aaron.frappe-head's optional head.",
+  source: AARON_10,
+  affects: [f.system_capxul],
+});
