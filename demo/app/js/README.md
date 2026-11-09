@@ -483,7 +483,9 @@ const r = await cx.approval({
 
 The sheet shows "Approve with passkey", then "Touch your passkey", "Sending…" and "Done · on chain in block …"
 with the transaction. Update `cx.data` with the result (a new payment with `cx.newId('payment')`, its status, the
-invoice's outstanding) and `cx.refresh()`.
+invoice's outstanding) and `cx.refresh()`. When one approval leads straight into another (a budget change, then a
+Board proposal), pass `autoClose: 1200` to the first: its sheet closes itself after showing Done and the promise
+resolves once it has, so two sheets never stack. The result's `at` is the story's clock (`cx.now`).
 
 **The FDE's draft.** A risky action the FDE prepared for one person:
 

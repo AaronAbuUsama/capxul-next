@@ -251,7 +251,9 @@ export const fmt = {
     if (!v) return '';
     const t = String(v).length <= 10 ? Date.parse(v + 'T12:00:00Z') : Date.parse(v);
     let diff = (cx.now.getTime() - t) / 1000;
+    // Things done in this session are stamped a little after the story's clock; within the hour they read "now".
     const fut = diff < 0; diff = Math.abs(diff);
+    if (fut && diff < 3600 && String(v).length > 10) return 'now';
     const out = diff < 60 ? 'now' : diff < 3600 ? Math.floor(diff / 60) + ' m' : diff < 86400 ? Math.floor(diff / 3600) + ' h'
       : diff < 86400 * 7 ? Math.floor(diff / 86400) + ' d' : diff < 86400 * 35 ? Math.floor(diff / 604800) + ' w'
       : diff < 86400 * 365 ? Math.floor(diff / (86400 * 30.4)) + ' mo' : Math.floor(diff / (86400 * 365)) + ' y';
@@ -1988,7 +1990,10 @@ cx.panel = {
     cx.panel.close();
     const body = h('div.panel-body', o.body || null);
     const el = h('aside.panel', { class: { wide: o.wide }, role: 'complementary', 'aria-label': o.title },
-      h('header.panel-head', h('div.grow', h('h2', o.title || ''), o.sub ? h('small', o.sub) : null), o.actions || null, h('button.iconbtn', { type: 'button', 'aria-label': 'Close the panel', onclick: () => cx.panel.close() }, cx.icon('x'))),
+      h('header.panel-head', h('div.grow', h('h2', o.title || ''), o.sub ? h('small', o.sub) : null), o.actions || null,
+        // during a walkthrough the panel can cover the step bar (a phone), so it carries the next step itself
+        tour && tour.i < tour.t.steps.length - 1 ? h('button.btn.sm.tour-next', { type: 'button', title: 'The walkthrough\'s next step', onclick: () => tourGo(tour.i + 1) }, 'Next step', cx.icon('right')) : null,
+        h('button.iconbtn', { type: 'button', 'aria-label': 'Close the panel', onclick: () => cx.panel.close() }, cx.icon('x'))),
       body);
     document.getElementById('app').appendChild(el);
     panelState = { el, body, onClose: o.onClose, key: o.key };
@@ -2051,7 +2056,7 @@ cx.newId = (prefix) => { const A = '0123456789ABCDEFGHJKMNPQRSTVWXYZ'; let t = '
 
 /**
  * The hand-over: every write that moves money or authority ends at an approval from the signer's own Safe.
- * await cx.approval({ title, from, to, amount, gbp, asset, rows, warnings, signer, hat, deadline, cmd, next, board })
+ * await cx.approval({ title, from, to, amount, gbp, asset, rows, warnings, signer, hat, deadline, cmd, next, board, autoClose })
  *   rows: [{ to, amount, rail, note }] for a batch; board: { proposal, nonce, have, need, approvedBy: [ids] }
  * Resolves { status: 'done', tx, block, at } | { status: 'approved', remaining } (Board) | { status: 'declined' }.
  * The viewer must be the signer (or, for the Board, a Director); otherwise the sheet says who must approve.
@@ -2111,7 +2116,9 @@ cx.approval = (o) => new Promise((resolve) => {
           wait.classList.add('done');
           fill(wait, h('div.ring', cx.icon('check', { size: 26 })), h('b', `Done · on chain in block ${fmt.int(block)}`), h('span', cx.tx(tx)));
           m.el.querySelector('.modal-foot').replaceChildren(cx.btn('Done', { kind: 'primary', onClick: () => m.close() }));
-          finish({ status: 'done', tx, block, at });
+          // autoClose: the sheet closes itself (a step in a chain of approvals), and the promise resolves once it has
+          if (o.autoClose) setTimeout(() => { finish({ status: 'done', tx, block, at }); m.close(); }, o.autoClose);
+          else finish({ status: 'done', tx, block, at });
         }
       }, 900);
     }, 750);
@@ -2266,7 +2273,11 @@ cx.fde = {
         [].concat(t.draft || [], t.drafts || []).map((d) => cx.draft(d)),
         t.links?.length ? h('div.chips', t.links.map((l) => h('a.btn.sm', { href: cx.href(l.route, l.id) }, l.label))) : null)));
       if (!fdeTurns.length) convo.appendChild(h('div', { style: 'display:grid;gap:8px' }, h('p.muted', 'Ask about anything on this screen or in the company. Try:'), h('div.suggest', cx.fde.suggestions.map((sg) => h('button', { type: 'button', onclick: () => ask(sg) }, sg)))));
-      panel.body.scrollTop = panel.body.scrollHeight;
+      // show the newest answer from its start (a long answer with drafts is read top down), else the bottom
+      const turns = convo.querySelectorAll('.chat-turn');
+      const last = turns[turns.length - 1], prevQ = turns[turns.length - 2];
+      const top = (el) => el.getBoundingClientRect().top - panel.body.getBoundingClientRect().top + panel.body.scrollTop;
+      panel.body.scrollTop = last && last.classList.contains('fde') && prevQ ? Math.max(0, top(prevQ) - 8) : panel.body.scrollHeight;
     };
     async function ask(q) {
       q = String(q || '').trim(); if (!q) return;

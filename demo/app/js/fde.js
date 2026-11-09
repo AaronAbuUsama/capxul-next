@@ -256,6 +256,7 @@ const intents = [
 /* ---------- HR, payroll, CRM and projects: the asks the module pages send, answered over the live data ---------- */
 
 const MONTH_IX = { january: 0, february: 1, march: 2, april: 3, may: 4, june: 5, july: 6, august: 7, september: 8, october: 9, november: 10, december: 11, jan: 0, feb: 1, mar: 2, apr: 3, jun: 5, jul: 6, aug: 7, sep: 8, sept: 8, oct: 9, nov: 10, dec: 11 };
+const longMonth = (d) => ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'][+String(d).slice(5, 7) - 1];
 const ymd = (y, m, d) => `${y}-${String(m + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
 /** "21 to 24 December", "21-24 Dec", "from 3 to 5 March": the first range of days in a sentence, in the year ahead. */
 function dayRange(q) {
@@ -302,7 +303,7 @@ const moreIntents = [
     const eng = cx.budgetOn('engineering');
     const sp = D.board.proposals.find((p) => p.id === 'sp_0194');
     const founder = harbourlineHolder();
-    const people = firstPeople(me);
+    const people = isPeople(me) ? me.id : peopleWearers().includes(inv?.sentBy) ? inv.sentBy : firstPeople(me);
     const monthly = 6250, quarter = r2(monthly * 3 * 1.18 / RATE);
     const newBudget = Math.ceil((eng.amount + quarter) / 1000) * 1000;
     const pool = D.equity.pool, granted = D.equity.grants.filter((g) => g.status === 'Active').reduce((s, g) => s + g.shares, 0);
@@ -321,7 +322,7 @@ const moreIntents = [
       cmd: [`capxul org department budget set engineering --budget ${newBudget}/quarter --from 2027-01-01 --note "Owen Grady joins 4 Jan" ${ORG}`, `capxul org options grant --to ${owen.email} --shares 40000 --strike 0.25 --agreement option-agreement.pdf --vest 4y --cliff 1y --start 2027-01-04 ${ORG}`],
       runLabel: 'Review and approve',
       onRun: async () => {
-        const r = await cx.approval({ title: "Raise Engineering's budget", from: 'Harbourline (the hat above Engineering)', to: 'Engineering', amount: newBudget, asset: 'USDC', signer: founder, hat: 'Harbourline', warnings: [`${fmt.usdc(eng.amount, 0)} → ${fmt.usdc(newBudget, 0)} a quarter from 1 January 2027`, 'Owen Grady joins on 4 January 2027'], cmd: `capxul org department budget set engineering --budget ${newBudget}/quarter --from 2027-01-01 ${ORG}` });
+        const r = await cx.approval({ title: "Raise Engineering's budget", from: 'Harbourline (the hat above Engineering)', to: 'Engineering', amount: newBudget, asset: 'USDC', signer: founder, hat: 'Harbourline', warnings: [`${fmt.usdc(eng.amount, 0)} → ${fmt.usdc(newBudget, 0)} a quarter from 1 January 2027`, 'Owen Grady joins on 4 January 2027', 'Next: the Board proposal for his options'], autoClose: 1300, cmd: `capxul org department budget set engineering --budget ${newBudget}/quarter --from 2027-01-01 ${ORG}` });
         if (r.status !== 'done') return;
         const dept = D.departments.find((d) => d.id === 'engineering');
         (dept.changes ||= []).push({ when: cx.today, kind: 'Set amount', terms: `${fmt.num(eng.amount, 2)} → ${fmt.num(newBudget, 2)} USDC a quarter from Q1 2027`, signedBy: founder, signedAs: 'Harbourline (office above)', state: 'Scheduled', from: eng.amount, to: newBudget, note: 'Owen Grady joins 4 Jan' });
@@ -366,23 +367,25 @@ const moreIntents = [
     const runs = D.payroll.runs.filter((r) => r.status !== 'Cancelled');
     const want = Object.keys(MONTH_IX).find((m) => m.length > 3 && q.includes(m));
     const last = runs.at(-1);
-    const named = want ? runs.find((r) => +r.startDate.slice(5, 7) - 1 === MONTH_IX[want] && r.startDate.slice(0, 4) === (MONTH_IX[want] > 10 ? '2025' : '2026')) || runs.find((r) => +r.startDate.slice(5, 7) - 1 === MONTH_IX[want]) : null;
+    // the named month's run in the last eleven months; an older one means the month is still to come
+    const named0 = want ? runs.filter((r) => +r.startDate.slice(5, 7) - 1 === MONTH_IX[want]).at(-1) : null;
+    const named = named0 && named0.startDate >= addDays(cx.today, -330) ? named0 : null;
     const founder = harbourlineHolder();
     const people = firstPeople(me);
     if (named && named.status === 'Paid') {
       const { slips, net } = runPay(named);
       const waiting = M.escrows.filter((e) => e.from === 'harbourline' && e.fundedAt.slice(0, 10) === named.postingDate);
-      return { text: `${fmt.month(named.startDate)}'s payroll is done: ${named.name}, ${fmt.plural(slips.length, 'payslip')}, ${fmt.gbp(net)} net, paid on ${fmt.date(named.postingDate)} in one approval by ${cx.name(founder)}. Each payslip's payment carries its own document hash.${waiting.length ? ` ${waiting.map((e) => `${e.email}'s ${fmt.usdc(e.amount)} went to money waiting${e.claimedAt ? ` and was claimed on ${fmt.date(e.claimedAt)}` : ''}`).join('; ')}.` : ''} The next one is ${fmt.month(addDays(named.endDate, 1))}'s, paid on Monday 30 November.`,
+      return { text: `${longMonth(named.startDate)}'s payroll is done: ${named.name}, ${fmt.plural(slips.length, 'payslip')}, ${fmt.gbp(net)} net, paid on ${fmt.date(named.postingDate)} in one approval by ${cx.name(founder)}. Each payslip's payment carries its own document hash.${waiting.length ? ` ${waiting.map((e) => `${e.email}'s ${fmt.usdc(e.amount)} went to money waiting${e.claimedAt ? ` and was claimed on ${fmt.date(e.claimedAt)}` : ''}`).join('; ')}.` : ''} The next one is ${longMonth(addDays(named.endDate, 1))}'s, paid on Monday 30 November.`,
         lookedAt: [{ command: `capxul org payroll run get ${named.name} ${ORG}`, result: `Paid ${fmt.date(named.postingDate)} · ${slips.length} payslips · ${fmt.gbp(net)} net` }],
         links: [{ label: `Open ${named.name}`, route: 'payroll-run', id: named.name }, { label: 'Payroll runs', route: 'payroll-runs' }] };
     }
     const open = runs.find((r) => ['Draft', 'Submitted'].includes(r.status));
     const start = addDays(last.endDate, 1);
     const drafts = [];
-    if (!open || open.status === 'Draft') drafts.push({ for: people, by: FDE_HANDLE, at: stamp(), title: `Create and submit ${fmt.month(start)}'s payroll`, why: `${D.people.filter((p) => p.status === 'Active').length} active employees. People creates the run and checks the payslips; submitting locks them for payment.`, steps: ['Create the run for the month', 'Check the payslips (withhold any that are not ready)', 'Submit the payslips'], cmd: [`capxul org payroll run create harbourline --start ${start} --end ${addDays(addDays(start, 32).slice(0, 8) + '01', -1)}`, `capxul org payroll run submit <run>`], runLabel: 'Open the new run', onRun: () => cx.go(open ? 'payroll-run' : 'payroll-run-new', open?.name) });
-    drafts.push({ for: founder, by: FDE_HANDLE, at: stamp(), title: `Pay ${open?.status === 'Submitted' ? open.name : `${fmt.month(start)}'s payslips`} in one approval`, why: `Paid from Harbourline's budget, so whoever wears the Harbourline hat approves: one passkey for every payslip, each payment with its own proof. Someone with no account gets theirs as money waiting.`, cmd: `capxul org payroll run pay ${open?.status === 'Submitted' ? open.name : '<run>'} ${ORG}`, runLabel: open?.status === 'Submitted' ? 'Open the run to pay' : 'Open Payroll', onRun: () => cx.go(open?.status === 'Submitted' ? 'payroll-run' : 'payroll-runs', open?.status === 'Submitted' ? open.name : null) });
+    if (!open || open.status === 'Draft') drafts.push({ for: people, by: FDE_HANDLE, at: stamp(), title: `Create and submit ${longMonth(start)}'s payroll`, why: `${D.people.filter((p) => p.status === 'Active').length} active employees. People creates the run and checks the payslips; submitting locks them for payment.`, steps: ['Create the run for the month', 'Check the payslips (withhold any that are not ready)', 'Submit the payslips'], cmd: [`capxul org payroll run create harbourline --start ${start} --end ${addDays(addDays(start, 32).slice(0, 8) + '01', -1)}`, `capxul org payroll run submit <run>`], runLabel: 'Open the new run', onRun: () => cx.go(open ? 'payroll-run' : 'payroll-run-new', open?.name) });
+    drafts.push({ for: founder, by: FDE_HANDLE, at: stamp(), title: `Pay ${open?.status === 'Submitted' ? open.name : `${longMonth(start)}'s payslips`} in one approval`, why: `Paid from Harbourline's budget, so whoever wears the Harbourline hat approves: one passkey for every payslip, each payment with its own proof. Someone with no account gets theirs as money waiting.`, cmd: `capxul org payroll run pay ${open?.status === 'Submitted' ? open.name : '<run>'} ${ORG}`, runLabel: open?.status === 'Submitted' ? 'Open the run to pay' : 'Open Payroll', onRun: () => cx.go(open?.status === 'Submitted' ? 'payroll-run' : 'payroll-runs', open?.status === 'Submitted' ? open.name : null) });
     const mine = drafts.filter((d) => d.for === me.id);
-    return { text: `${mine.length ? '' : `I can't run payroll as you: People creates and submits the run, and the Harbourline hat pays it; you wear ${hatsLine(me)}. `}${fmt.month(start)}'s payroll is ${open ? `${open.name}, ${open.status.toLowerCase()}` : 'not created yet'}. Last month's ${last.name} paid ${fmt.gbp(runPay(last).net)} net to ${runPay(last).slips.length} people on ${fmt.date(last.postingDate)}. I've drafted ${drafts.map((d) => `"${d.title}" for ${d.for === me.id ? 'you' : cx.name(d.for)}`).join(' and ')}.`,
+    return { text: `${mine.length ? '' : `I can't run payroll as you: People creates and submits the run, and the Harbourline hat pays it; you wear ${hatsLine(me)}. `}${longMonth(start)}'s payroll is ${open ? `${open.name}, ${open.status.toLowerCase()}` : 'not created yet'}. Last month's ${last.name} paid ${fmt.gbp(runPay(last).net)} net to ${runPay(last).slips.length} people on ${fmt.date(last.postingDate)}. I've drafted ${drafts.map((d) => `"${d.title}" for ${d.for === me.id ? 'you' : cx.name(d.for)}`).join(' and ')}.`,
       lookedAt: [{ command: `capxul org payroll run list ${ORG}`, result: `${runs.length} runs; last ${last.name} ${last.status}` }, { command: `capxul org department show harbourline ${ORG}`, result: `pays payroll; hat: ${cx.holders('harbourline').map(cx.name).join(', ')}` }],
       drafts: [...mine, ...drafts.filter((d) => d.for !== me.id)],
       links: [{ label: 'Payroll', route: 'payroll' }] };
@@ -419,7 +422,7 @@ const moreIntents = [
     const C = D.crm;
     const cur = cx.current;
     const onRec = ['lead', 'deal'].includes(cur?.name) ? (cur.name === 'lead' ? cx.find(C.leads, 'name', cur.id) : cx.find(C.deals, 'name', cur.id)) : null;
-    const lead = onRec || C.leads.find((l) => !l.converted && (q.includes(String(l.org || '').toLowerCase().split(' ')[0]) || q.includes(String(l.firstName || '').toLowerCase()))) || C.leads.filter((l) => !l.converted && l.status !== 'Junk').at(-1);
+    const lead = onRec || [...C.leads].reverse().find((l) => !l.converted && (q.includes(String(l.org || '').toLowerCase().split(' ')[0]) || q.includes(String(l.firstName || '').toLowerCase()))) || C.leads.filter((l) => !l.converted && l.status !== 'Junk').at(-1);
     const kind = onRec && cur.name === 'deal' ? 'deal' : 'lead';
     const title = kind === 'lead' ? `${lead.firstName} ${lead.lastName}${lead.org ? ' at ' + lead.org : ''}` : lead.title;
     const minutes = +(q.match(/(\d+)\s*(min|minute)/)?.[1] || 20);

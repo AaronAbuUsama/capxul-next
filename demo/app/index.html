@@ -714,7 +714,7 @@ textarea.finput { height: auto; min-height: 72px; padding: 7px 9px; resize: vert
 .looked { display: grid; gap: 4px; padding: 8px 10px; border-left: 2px solid var(--accent); background: var(--surface-2); font-size: 12px; }
 .looked code { color: var(--fg-2); overflow-wrap: anywhere; }
 .looked span { color: var(--muted); }
-.chat-form { display: grid; gap: 8px; position: sticky; bottom: 0; background: var(--surface); padding-top: 6px; }
+.chat-form { display: grid; gap: 8px; position: sticky; bottom: -14px; background: var(--surface); padding: 6px 0 14px; margin-bottom: -14px; box-shadow: 0 -1px 0 var(--line); }   /* covers the panel's bottom padding too */
 .chat-form textarea { min-height: 60px; }
 .suggest { display: flex; flex-wrap: wrap; gap: 6px; }
 .suggest button { border: 1px solid var(--line); background: var(--surface); border-radius: 14px; padding: 4px 10px; font-size: 12.5px; cursor: pointer; color: var(--fg-2); text-align: left; }
@@ -777,13 +777,12 @@ a.position-cell:hover { background: var(--hover); text-decoration: none; }
 }
 
 /* ---------- walkthroughs ---------- */
-.tour-bar { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 10px 14px; align-items: center; padding: 10px 14px; border: 1px solid var(--accent); border-radius: var(--r-lg); background: var(--accent-soft); color: var(--fg); min-width: 0; }
+.tour-bar { display: grid; grid-template-columns: minmax(0, 1fr); gap: 6px; padding: 10px 14px 12px; border: 1px solid var(--accent); border-left-width: 4px; border-radius: var(--r-lg); background: var(--accent-soft); color: var(--fg); min-width: 0; }
 .tour-bar .tour-step { font: 600 11.5px/1.2 var(--font-ui); letter-spacing: .06em; text-transform: uppercase; color: var(--accent); white-space: nowrap; }
-.tour-bar .tour-text { min-width: 0; display: grid; gap: 2px; }
+.tour-bar .tour-text { min-width: 0; display: grid; gap: 2px; max-width: 72ch; }
 .tour-bar .tour-text b { font-weight: 600; }
 .tour-bar .tour-text span { font-size: 13px; color: var(--fg-2); }
-.tour-bar .tour-nav { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
-@media (max-width: 640px) { .tour-bar { grid-template-columns: minmax(0, 1fr); } .tour-bar .tour-nav { justify-content: flex-start; } }
+.tour-bar .tour-nav { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-start; margin-top: 4px; }   /* on the left: the FDE panel can cover the right */
 .tours { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0; }
 @media (max-width: 760px) { .tours { grid-template-columns: minmax(0, 1fr); } }
 .tour { display: grid; gap: 8px; align-content: start; padding: 14px; box-shadow: 1px 0 0 var(--line), 0 1px 0 var(--line); min-width: 0; }
@@ -792,6 +791,7 @@ a.position-cell:hover { background: var(--hover); text-decoration: none; }
 .tour p { font-size: 13px; color: var(--fg-2); }
 .tour ol { margin: 0; padding-left: 18px; display: grid; gap: 2px; font-size: 12.5px; color: var(--muted); }
 .tour .tour-go { justify-self: start; }
+@media (max-width: 640px) { .tour ol { display: none; } }
 .wsdir { columns: 5 180px; column-gap: 24px; }
 .wsdir-ws { display: grid; gap: 6px; align-content: start; min-width: 0; break-inside: avoid; margin-bottom: 18px; }
 .wsdir-head { display: flex; align-items: center; gap: 7px; font-weight: 600; color: var(--fg); }
