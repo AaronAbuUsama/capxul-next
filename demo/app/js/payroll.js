@@ -1,7 +1,7 @@
 // Payroll: salary components, structures and assignments, payroll runs month by month (paid in one batch, each
 // payslip with its proof), payslips and their printed view, the salary register, and the employee's own payslips.
 import { cx, h } from './core.js';
-import { repView, emp, empName, empNo, empLink, round2, sum, addDays, eachDay, monthEnd, leaveDetails, makePayment, paymentOf, paidToLong, hatHolders, wearersOf, namesList, nextName, seatGate, appFrame, nowIso } from './hr.js';
+import { notEmployee, repView, emp, empName, empNo, empLink, round2, sum, addDays, eachDay, monthEnd, leaveDetails, makePayment, paymentOf, paidToLong, hatHolders, wearersOf, namesList, nextName, seatGate, appFrame, nowIso } from './hr.js';
 
 const D = cx.data;
 const fmt = cx.fmt;
@@ -110,7 +110,7 @@ cx.style('payroll', `
    ===================================================================================================== */
 
 cx.route('payroll', () => {
-  if (!cx.hasSeat()) return mySlipsPage();
+  if (!cx.hasSeat()) return notEmployee('My payslips') || mySlipsPage();
   const runs = P.runs.filter((r) => r.status !== 'Cancelled');
   const paid = runs.filter((r) => r.status === 'Paid');
   const last = paid.at(-1);
@@ -402,7 +402,7 @@ async function payRun(run, only) {
     const e = emp(s.employee);
     if (!s.contentHash) s.contentHash = await cx.hashOf({ name: s.name, employee: e.employee, netPay: s.netPay });
     const at = new Date(Date.parse(r.at) + i * 37000).toISOString();
-    const p = await makePayment({ empId: e.id, gbp: s.netPay, purpose: 'payroll', budget: run.department, doctype: 'Salary Slip', doc: s.name, date: s.postingDate, content: s.contentHash, lines: [{ idx: 1, description: `Net pay ${s.startDate} to ${s.endDate}`, amount: Math.round(s.netPay * 100), taxes: [] }], approval, at, tx: i === 0 ? r.tx : cx.randHex(32), block: r.block + i * 18, hat: cx.deptName(run.department), batch: { id: run.batch, label: `Payroll ${monthOf(run)}`, index: run.slips.indexOf(s.name) + 1, count } });
+    const p = await makePayment({ empId: e.id, gbp: s.netPay, purpose: 'payroll', budget: run.department, docKind: 'Salary Slip', doc: s.name, date: s.postingDate, content: s.contentHash, lines: [{ idx: 1, description: `Net pay ${s.startDate} to ${s.endDate}`, amount: Math.round(s.netPay * 100), taxes: [] }], approval, at, tx: i === 0 ? r.tx : cx.randHex(32), block: r.block + i * 18, hat: cx.deptName(run.department), batch: { id: run.batch, label: `Payroll ${monthOf(run)}`, index: run.slips.indexOf(s.name) + 1, count } });
     const waiting = e.noAccountUntil && e.noAccountUntil > cx.today;
     s.paymentInfo = { payment: p.id, status: 'Settled', outcome: waiting ? 'Waiting' : null, amountSent: p.amount, fee: p.fee, rate: p.rate, paidTo: waiting ? `Money waiting for ${e.payMailbox}` : e.salaryMode === 'Bank' ? `Bank through Bridge (${e.bank.name} ·· ${e.bank.account.slice(-4)})` : 'Capxul Safe', documentHash: p.proof.documentHash, tx: p.proof.tx, block: p.proof.block, settledAt: p.settledAt, escrow: waiting ? { status: 'Open', fundedAt: p.settledAt, claimedAt: null } : null, batchIndex: run.slips.indexOf(s.name) + 1, batchCount: count };
     s.status = waiting ? 'Escrowed' : 'Paid';
@@ -783,7 +783,7 @@ function mySlipsPage() {
     cmd: { cli: 'capxul payroll payslip list', sdk: 'client.me.payroll.payslips.list()', who: `${me.name}, from every employer; no seat needed` },
     body: appFrame('me-payslips', box) });
 }
-cx.route('me-payslips', () => mySlipsPage(), { workspace: 'hr', title: 'My payslips' });
+cx.route('me-payslips', () => notEmployee('My payslips') || mySlipsPage(), { workspace: 'hr', title: 'My payslips' });
 cx.route('me-payslip', (ctx) => {
   const s = cx.find(P.slips, 'name', ctx.id);
   if (!s || s.employee !== cx.meId()) return cx.page({ title: 'Payslip', crumbs: [{ label: 'My HR', route: 'me' }], body: cx.empty(s ? 'This is not your payslip. You see your own from My HR.' : 'No such payslip') });

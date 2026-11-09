@@ -123,7 +123,7 @@ const projectLink = (id) => (!id ? h('span.faint', '—') : cx.hasRoute('project
 const ccDept = (cc) => B.costCenters.find((c) => c.name === cc)?.department || null;
 
 const VROUTE = { 'Sales Invoice': 'sales-invoice', 'Purchase Invoice': 'purchase-invoice', 'Payment Entry': 'payment-entry', 'Journal Entry': 'journal-entry', 'Period Closing Voucher': 'period-closing-voucher', 'Expense Claim': 'expense-claim', 'Employee Advance': 'advance', 'Salary Slip': 'payslip', 'Payroll Entry': 'payroll-run' };
-function docTypeOf(name) {
+function recordTypeOf(name) {
   const n = String(name || '');
   if (n.startsWith('ACC-SINV')) return 'Sales Invoice';
   if (n.startsWith('ACC-PINV')) return 'Purchase Invoice';
@@ -138,10 +138,10 @@ function docTypeOf(name) {
 }
 function vLink(name, type) {
   if (!name) return h('span.faint', '—');
-  const r = VROUTE[type || docTypeOf(name)];
+  const r = VROUTE[type || recordTypeOf(name)];
   return r && cx.hasRoute(r) ? cx.link(name, r, name) : h('span', name);
 }
-const vHref = (name) => { const r = VROUTE[docTypeOf(name)]; return r ? [r, name] : null; };
+const vHref = (name) => { const r = VROUTE[recordTypeOf(name)]; return r ? [r, name] : null; };
 
 const VIA = { Barclays: 'Bank', Bridge: 'Bridge', 'Bridge payout': 'Bridge', Capxul: 'Capxul', 'Pay link': 'Capxul', 'Money waiting': 'Capxul' };
 const viaOf = (ch) => VIA[ch] || ch || null;
@@ -192,6 +192,8 @@ const needInvoicing = 'Invoicing';
 const noDownload = (cmd) => cx.toast('This is the command Capxul would run. The mock-up makes no downloads.', { cmd });
 const firstSeen = new Set();
 const firstVisit = (key) => { if (firstSeen.has(key)) return false; firstSeen.add(key); return true; };
+/** A list opens on All the first time; a link that carries filters opens on All with them. */
+const listInit = (key) => { const s = cx.current.state?.list; if (s) { firstSeen.add(key); return { ...s, tab: s.tab ?? 'All' }; } return firstVisit(key) ? { tab: 'All' } : undefined; };
 const sum = (arr, f) => arr.reduce((a, x) => a + (+(typeof f === 'function' ? f(x) : x[f]) || 0), 0);
 const drcr = (n, cur = 'GBP') => (near0(n) ? fmt.money(0, cur) : fmt.money(Math.abs(n), cur) + (n > 0 ? ' Dr' : ' Cr'));
 
@@ -468,8 +470,13 @@ cx.route('books', () => {
   const arAge = ageBuckets(sOpen, TODAY, siGbp), apAge = ageBuckets(pOpen, TODAY, piGbp);
   const toRec = unreconciledBank().length;
   const plCmd = `capxul org books reports profit-and-loss --from ${fy.start} --to ${monthEnd(full[full.length - 1])}`;
+  const chase = openSi().filter((i) => i.dueDate < TODAY).sort((a, b) => b.outstanding * (b.conversionRate || 1) - a.outstanding * (a.conversionRate || 1))[0];
+  const chaseDraft = chase ? cx.draft({ for: 'maya', by: '@harbourline-fde', at: TODAY + 'T08:30:00Z', title: `Send ${chase.customerName} a payment reminder for ${chase.name}`,
+    why: `${fmt.money(chase.outstanding, chase.currency)} of ${fmt.money(chase.grandTotal, chase.currency)} is ${daysBetween(chase.dueDate, TODAY)} days past its due date (${fmt.date(chase.dueDate)}).${chase.payments?.length ? ` The first ${fmt.money(chase.payments[0].amount, chase.currency)} arrived through ${viaOf(chase.payments[0].channel)} on ${fmt.date(chase.payments[0].date)}.` : ''} Maya wears the Invoicing hat, so the reminder is hers to send.`,
+    steps: [`A level-1 reminder to ${customerEmail(chase)}`, `The pay link and the bank details, quoting ${chase.rfReference}`, 'Look again in seven days'],
+    cmd: [`capxul org doc create dunning --from sales-invoice ${chase.name}`, requestCmd(chase)], needs: needInvoicing, runLabel: 'Review and send', onRun: () => dunning(chase) }) : null;
   return cx.workspacePage({
-    title: 'Books', workspace: 'books',
+    title: 'Books', workspace: 'books', body: chaseDraft, order: ['cards', 'body', 'charts', 'shortcuts', 'quick', 'links'],
     sub: `Fiscal year ${fy.name} · closed through ${fmt.date(CLOSED_THROUGH)} · GBP`,
     cmd: { cli: plCmd, sdk: `client.org(orgId).books.reports.profitAndLoss({ from: "${fy.start}", to: "${monthEnd(full[full.length - 1])}" })`, who: 'anyone with a seat', json: { from: fy.start, to: monthEnd(full[full.length - 1]), income: r2(sum(pl, 'inc')), expense: r2(sum(pl, 'exp')), profit: r2(sum(pl, 'net')), currency: 'GBP' } },
     fde: `Books home: fiscal year ${fy.name} to date`,
@@ -811,7 +818,7 @@ cx.route('sales-invoices', () => {
   ];
   const list = cx.listView({
     key: 'ac-sinv', rows: () => B.salesInvoices, noun: 'sales invoice', id: (r) => r.name,
-    initial: firstVisit('ac-sinv') ? { tab: 'All' } : undefined,
+    initial: listInit('ac-sinv'),
     titleCol: { key: 'customerName', label: 'Customer', sub: (r) => r.items?.[0]?.description },
     status: (r) => pills(invStatus(r), siFlight(r)),
     columns: [
@@ -929,7 +936,7 @@ async function postSalesInvoice(inv) {
   inv.rfReference = inv.rfReference || rfRef(inv.name);
   inv.outstanding = inv.isReturn ? 0 : inv.grandTotal;
   inv.paidAmount = 0; inv.voucher = inv.name; inv.debitTo = '1200';
-  inv.contentHash = await cx.hashOf({ doctype: 'Sales Invoice', name: inv.name, customer: inv.customer, currency: inv.currency, items: inv.items.map((i) => ({ idx: i.idx, description: i.description, qty: i.qty, rate: i.rate, amount: i.amount })), taxes: inv.taxes, grandTotal: inv.grandTotal });
+  inv.contentHash = await cx.hashOf({ record: 'Sales Invoice', name: inv.name, customer: inv.customer, currency: inv.currency, items: inv.items.map((i) => ({ idx: i.idx, description: i.description, qty: i.qty, rate: i.rate, amount: i.amount })), taxes: inv.taxes, grandTotal: inv.grandTotal });
   postVoucher({ name: inv.name, type: 'Sales Invoice', entryType: null, paymentType: null, date: inv.postingDate, title: inv.customerName, total: inv.baseGrandTotal, party: inv.customer, partyType: 'Customer', payment: null, closing: false }, siGlLines(inv));
   if (inv.isReturn && inv.returnAgainst) {
     const orig = B.salesInvoices.find((x) => x.name === inv.returnAgainst);
@@ -1146,7 +1153,7 @@ function siPage(inv) {
   const grandBox = h('div', { style: 'min-width:0' });
   const drawTax = () => {
     cx.fill(taxBox, cx.grid({ columns: [
-      { key: 'type', label: 'Type' }, { key: 'account', label: 'Account head', render: (r) => accLabel(r.account) }, { key: 'rate', label: 'Tax rate', type: 'percent' },
+      { key: 'type', label: 'Type' }, { key: 'account', label: 'Tax account', render: (r) => accLabel(r.account) }, { key: 'rate', label: 'Tax rate', type: 'percent' },
       { key: 'taxAmount', label: 'Amount', type: 'currency', currency: inv.currency }, { key: 'total', label: 'Total', type: 'currency', currency: inv.currency },
     ], rows: inv.taxes || [], empty: inv.taxNote || 'No taxes' }), cx.section({ cols: 2, fields: [{ label: `Total taxes and charges (${inv.currency})`, value: inv.totalTaxes, type: 'currency', currency: inv.currency }, inv.taxNote ? { label: 'Tax note', value: inv.taxNote } : { label: 'Tax category', value: 'UK VAT' }] }, { doc: inv }));
     cx.fill(grandBox, cx.section({ columns: [[
@@ -1333,7 +1340,7 @@ cx.route('purchase-invoices', () => {
   ];
   const list = cx.listView({
     key: 'ac-pinv', rows: () => B.purchaseInvoices, noun: 'purchase invoice', id: (r) => r.name,
-    initial: firstVisit('ac-pinv') ? { tab: 'All' } : undefined,
+    initial: listInit('ac-pinv'),
     titleCol: { key: 'supplierName', label: 'Supplier', sub: (r) => r.items?.[0]?.description },
     status: (r) => pills(invStatus(r), piFlight(r)),
     columns: [
@@ -1423,7 +1430,7 @@ async function postPurchaseInvoice(pi) {
   const cmd = `capxul org doc submit purchase-invoice ${pi.name}`;
   if (!(await cx.confirm({ title: `Post ${pi.name}?`, body: `${pi.supplierName} · ${pi.billNo} · ${fmt.money(pi.grandTotal, pi.currency)}, paid from ${cx.deptName(pi.department)}’s budget. Posting books it to the ledger; paying it is a separate step.`, cmd, who: 'whoever wears the Books hat, or a Director', confirmLabel: 'Post' }))) return;
   pi.docstatus = 1; pi.submittedAt = NOW(); pi.submittedBy = cx.meId(); pi.outstanding = pi.grandTotal; pi.paidAmount = 0; pi.voucher = pi.name;
-  pi.contentHash = await cx.hashOf({ doctype: 'Purchase Invoice', name: pi.name, supplier: pi.supplier, billNo: pi.billNo, currency: pi.currency, items: pi.items.map((i) => ({ idx: i.idx, description: i.description, qty: i.qty, rate: i.rate, amount: i.amount })), taxes: pi.taxes, grandTotal: pi.grandTotal });
+  pi.contentHash = await cx.hashOf({ record: 'Purchase Invoice', name: pi.name, supplier: pi.supplier, billNo: pi.billNo, currency: pi.currency, items: pi.items.map((i) => ({ idx: i.idx, description: i.description, qty: i.qty, rate: i.rate, amount: i.amount })), taxes: pi.taxes, grandTotal: pi.grandTotal });
   postVoucher({ name: pi.name, type: 'Purchase Invoice', entryType: null, paymentType: null, date: pi.postingDate, title: pi.supplierName, total: pi.baseGrandTotal, party: pi.supplier, partyType: 'Supplier', payment: null, closing: false }, piGlLines(pi));
   cx.refresh();
   cx.toast(`Posted ${pi.name}: ${fmt.money(pi.grandTotal, pi.currency)} from ${pi.supplierName}`, { tone: 'success', cmd, action: { label: 'Pay', onClick: () => payBill([pi]) } });
@@ -1683,7 +1690,7 @@ function piPage(pi) {
   const taxBox = h('div', { style: 'min-width:0;display:grid;gap:12px' });
   const draw = () => {
     cx.fill(totalsBox, cx.section({ cols: 3, fields: [{ label: 'Total quantity', value: sum(pi.items, 'qty'), type: 'float', dp: 1 }, { label: `Total (${pi.currency})`, value: pi.netTotal, type: 'currency', currency: pi.currency }, { label: `Net total (${pi.currency})`, value: pi.netTotal, type: 'currency', currency: pi.currency }] }, { doc: pi }));
-    cx.fill(taxBox, cx.grid({ columns: [{ key: 'type', label: 'Type', get: () => 'On Net Total' }, { key: 'account', label: 'Account head', render: (r) => accLabel(r.account) }, { key: 'rate', label: 'Tax rate', type: 'percent' }, { key: 'taxAmount', label: 'Amount', type: 'currency', currency: pi.currency }, { key: 'addDeduct', label: 'Add or deduct', get: () => 'Add', opt: true }], rows: pi.taxes || [], empty: pi.currency === 'GBP' ? 'No VAT on this bill' : 'No UK VAT: a supplier outside the UK' }),
+    cx.fill(taxBox, cx.grid({ columns: [{ key: 'type', label: 'Type', get: () => 'On Net Total' }, { key: 'account', label: 'Tax account', render: (r) => accLabel(r.account) }, { key: 'rate', label: 'Tax rate', type: 'percent' }, { key: 'taxAmount', label: 'Amount', type: 'currency', currency: pi.currency }, { key: 'addDeduct', label: 'Add or deduct', get: () => 'Add', opt: true }], rows: pi.taxes || [], empty: pi.currency === 'GBP' ? 'No VAT on this bill' : 'No UK VAT: a supplier outside the UK' }),
       cx.section({ cols: 3, fields: [{ label: `Taxes and charges added (${pi.currency})`, value: pi.totalTaxes, type: 'currency', currency: pi.currency }, { label: `Taxes and charges deducted (${pi.currency})`, value: 0, type: 'currency', currency: pi.currency }, { label: `Total taxes and charges (${pi.currency})`, value: pi.totalTaxes, type: 'currency', currency: pi.currency }] }, { doc: pi }),
       cx.section({ label: 'Totals', columns: [[{ label: 'Grand total', render: () => h('b', { style: 'font-size:15px' }, fmt.money(pi.grandTotal, pi.currency)) }, { label: 'In words', value: inWords(pi.grandTotal, pi.currency) }], [{ label: 'Rounding adjustment', value: 0, type: 'currency', currency: pi.currency }, { label: 'Rounded total', value: pi.grandTotal, type: 'currency', currency: pi.currency }]] }, { doc: pi }));
   };
@@ -1872,7 +1879,7 @@ cx.route('payment-entries', () => {
   ];
   const list = cx.listView({
     key: 'ac-pe', rows: peRows, noun: 'payment entry', nouns: 'payment entries', id: (v) => v.name,
-    initial: firstVisit('ac-pe') ? { tab: 'All' } : undefined,
+    initial: listInit('ac-pe'),
     titleCol: { key: 'title', label: 'Title', sub: (v) => { const i = peInfo(v); return v.paymentType === 'Internal Transfer' ? `${accLabel(i.from?.account)} → ${accLabel(i.to?.account)}` : i.refs.length ? i.refs.map((l) => l.against).join(', ') : v.paymentType === 'Receive' ? 'Unallocated' : ''; } },
     status: (v) => pills(peStatus(v), peFlight(v, peInfo(v))),
     columns: [
@@ -2072,7 +2079,7 @@ function pePage(v) {
     status: pills(st, flight, true),
     sub: `${v.name} · ${v.paymentType} · ${fmt.date(v.date)} · ${fmt.gbp(v.total)}${i.fromCur === 'USDC' ? ` · ${fmt.usdc(i.paidAcc)}` : i.toCur === 'USDC' ? ` · ${fmt.usdc(i.recvAcc)}` : ''}`,
     cmd: { cli: [`capxul org doc get payment-entry ${v.name}`, ...(chain ? [`capxul payment get ${i.p.id}`] : [])], kind: 'family', sdk: `client.org(orgId).docs.get("payment-entry", "${v.name}")`, who: 'anyone with a seat',
-      json: { name: v.name, payment_type: v.paymentType, posting_date: v.date, party: i.party ? partyName(i.partyType, i.party) : null, paid_amount: i.paidAcc, paid_from_account_currency: i.fromCur, base_paid_amount: i.paidGbp, reference_no: chain ? i.p.id : v.reference || null, clearance_date: i.clearance, references: refRows.map((r) => ({ reference_doctype: r.type, reference_name: r.name, allocated_amount: r.allocated })) } },
+      json: { name: v.name, payment_type: v.paymentType, posting_date: v.date, party: i.party ? partyName(i.partyType, i.party) : null, paid_amount: i.paidAcc, paid_from_account_currency: i.fromCur, base_paid_amount: i.paidGbp, reference_no: chain ? i.p.id : v.reference || null, clearance_date: i.clearance, references: refRows.map((r) => ({ reference_type: r.type, reference_name: r.name, allocated_amount: r.allocated })) } },
     banner: chain ? cx.banner(`Booked by Capxul from the chain: read-only. ${i.unallocated > 0.005 ? 'It is not allocated to an invoice yet: classify it.' : 'Its only edit is Classify.'}`, { tone: i.unallocated > 0.005 ? 'warning' : 'info' }) : v.cancelled ? cx.banner('This entry is cancelled. Its ledger lines are reversed.', { tone: 'warning' }) : null,
     fde: `Payment entry ${v.name}: ${v.title}, ${fmt.gbp(v.total)}`,
     actions, body: form,
@@ -2120,7 +2127,7 @@ cx.route('journal-entries', () => {
   ];
   const list = cx.listView({
     key: 'ac-je', rows: jeRows, noun: 'journal entry', nouns: 'journal entries', id: (v) => v.name,
-    initial: firstVisit('ac-je') ? { tab: 'All' } : undefined,
+    initial: listInit('ac-je'),
     titleCol: { key: 'title', label: 'Title', sub: (v) => (v.payment ? 'With a Capxul payment' : null) },
     status: (v) => { const s = jeStatus(v); return cx.pill(s, s === 'Draft' || s === 'Cancelled' || s === 'Not saved' ? null : 'blue'); },
     columns: [
@@ -2342,10 +2349,11 @@ cx.route('general-ledger', () => cx.page({
         const op = openOf(pred);
         let bal = op.d - op.c, abal = op.ad - op.ac, td = 0, tc = 0, tad = 0, tac = 0;
         if (label) rows.push({ id: 'h:' + label, account: label, group: true });
+        if (near0(bal)) bal = 0;
         rows.push({ id: 'o:' + label, date: null, account: 'Opening', debit: op.d - op.c > 0 ? op.d - op.c : 0, credit: op.d - op.c < 0 ? op.c - op.d : 0, balance: bal, accBal: usdc ? abal : null, bold: true });
-        for (const r of list) { bal += r.debit - r.credit; abal += (r.accDebit || 0) - (r.accCredit || 0); td += r.debit; tc += r.credit; tad += r.accDebit || 0; tac += r.accCredit || 0; if (rows.length < MAX) rows.push({ ...decorate(r), balance: r2(bal), accBal: usdc ? abal : null }); }
+        for (const r of list) { bal += r.debit - r.credit; abal += (r.accDebit || 0) - (r.accCredit || 0); td += r.debit; tc += r.credit; tad += r.accDebit || 0; tac += r.accCredit || 0; if (rows.length < MAX) rows.push({ ...decorate(r), balance: near0(bal) ? 0 : r2(bal), accBal: usdc ? abal : null }); }
         rows.push({ id: 't:' + label, account: 'Total', debit: td, credit: tc, accDebit: usdc ? tad : null, accCredit: usdc ? tac : null, bold: true });
-        rows.push({ id: 'c:' + label, account: 'Closing (Opening + Total)', debit: (op.d - op.c > 0 ? op.d - op.c : 0) + td, credit: (op.d - op.c < 0 ? op.c - op.d : 0) + tc, balance: r2(bal), accBal: usdc ? abal : null, bold: true });
+        rows.push({ id: 'c:' + label, account: 'Closing (Opening + Total)', debit: (op.d - op.c > 0 ? op.d - op.c : 0) + td, credit: (op.d - op.c < 0 ? op.c - op.d : 0) + tc, balance: near0(bal) ? 0 : r2(bal), accBal: usdc ? abal : null, bold: true });
       };
       if (v.groupBy === 'account') { const by = new Map(); for (const r of lines) addTo(by, r.account, r); for (const [code, list] of [...by.entries()].sort()) block(accLabel(code), list, (r) => r.account === code); }
       else if (v.groupBy === 'party') { const by = new Map(); for (const r of lines) addTo(by, r.party ? `${r.partyType}|${r.party}` : '|', r); for (const [k, list] of [...by.entries()].sort()) { const [t, id] = k.split('|'); block(id ? `${t}: ${partyName(t, id)}` : 'No party', list, (r) => (r.party || '') === id); } }
@@ -2888,7 +2896,7 @@ function barclaysView() {
     const unc = B.bankTransactions.filter((t) => t.status !== 'Reconciled' && t.date <= bankState.to);
     const books = balAt('1050', bankState.to);
     return h('div', { style: 'display:grid;gap:12px;padding:4px 0' },
-      cx.grid({ columns: [{ key: 'date', label: 'Posting date', type: 'date' }, { key: 'type', label: 'Payment document type', get: (t) => docTypeOf(t.voucher) }, { key: 'voucher', label: 'Payment entry', render: (t) => vLink(t.voucher) }, { key: 'debit', label: 'Debit', type: 'currency', currency: 'GBP', get: (t) => t.deposit || 0 }, { key: 'credit', label: 'Credit', type: 'currency', currency: 'GBP', get: (t) => t.withdrawal || 0 }, { key: 'reference', label: 'Reference no', opt: true }, { key: 'status', label: 'Status', render: (t) => cx.pill(t.status === 'Not on statement yet' ? 'Pending' : t.status) }], rows: unc, totals: ['debit', 'credit'], empty: 'Everything is cleared.' }),
+      cx.grid({ columns: [{ key: 'date', label: 'Posting date', type: 'date' }, { key: 'type', label: 'Payment document type', get: (t) => recordTypeOf(t.voucher) }, { key: 'voucher', label: 'Payment entry', render: (t) => vLink(t.voucher) }, { key: 'debit', label: 'Debit', type: 'currency', currency: 'GBP', get: (t) => t.deposit || 0 }, { key: 'credit', label: 'Credit', type: 'currency', currency: 'GBP', get: (t) => t.withdrawal || 0 }, { key: 'reference', label: 'Reference no', opt: true }, { key: 'status', label: 'Status', render: (t) => cx.pill(t.status === 'Not on statement yet' ? 'Pending' : t.status) }], rows: unc, totals: ['debit', 'credit'], empty: 'Everything is cleared.' }),
       h('div.ac-sum',
         h('div.row', h('span', `Bank statement balance as per general ledger, ${fmt.date(bankState.to)}`), h('span.num', fmt.gbp(books))),
         h('div.row', h('span', 'Outstanding payments and deposits to clear'), h('span.num', fmt.gbp(-sum(unc, amtOf)))),
@@ -2904,7 +2912,7 @@ function barclaysView() {
     filters: [{ key: 'name', label: 'ID' }, { key: 'status', label: 'Status', type: 'select' }, { key: 'date', label: 'Month', type: 'month' }],
     tabs: [{ label: 'All' }, { label: 'Unreconciled', filter: (t) => t.status !== 'Reconciled' }, { label: 'Reconciled', filter: (t) => t.status === 'Reconciled' }],
     sort: { options: [{ key: 'date', label: 'Date' }, { key: 'name', label: 'ID' }], default: { key: 'name', dir: 'desc' } },
-    onOpen: (t) => { if (t.voucher) cx.go(VROUTE[docTypeOf(t.voucher)] || 'payment-entry', t.voucher); },
+    onOpen: (t) => { if (t.voucher) cx.go(VROUTE[recordTypeOf(t.voucher)] || 'payment-entry', t.voucher); },
     setsCommand: false,
   });
   const clearance = () => {
@@ -3120,7 +3128,7 @@ cx.route('money-facts', () => {
     filters: [{ key: 'kind', label: 'Kind', type: 'select' }, { key: 'party', label: 'Party' }, { key: 'at', label: 'Month', type: 'month', flag: '--since' }],
     sort: { options: [{ key: 'seq', label: 'Seq' }, { key: 'usd', label: 'Amount' }], default: { key: 'seq', dir: 'desc' } },
     groupBy: [{ key: 'kind', label: 'Kind' }],
-    onOpen: (r) => (r.voucher ? cx.go(VROUTE[docTypeOf(r.voucher)] || 'payment-entry', r.voucher) : cx.hasRoute('payment') ? cx.go('payment', r.id) : null),
+    onOpen: (r) => (r.voucher ? cx.go(VROUTE[recordTypeOf(r.voucher)] || 'payment-entry', r.voucher) : cx.hasRoute('payment') ? cx.go('payment', r.id) : null),
     cmd: (st) => ({ cli: `capxul org books facts list${st.filters.kind ? ` --kind ${st.filters.kind}` : ''} --since ${st.filters.at ? st.filters.at + '-01' : TODAY.slice(0, 7) + '-01'}`, sdk: 'client.org(orgId).books.facts.list({ since })', who: 'anyone with a seat' }),
     showId: false,
   });

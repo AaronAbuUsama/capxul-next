@@ -114,7 +114,7 @@ const voucherNames = () => [...D.money.payments.map((p) => p.voucher), ...(D.boo
 export const payeeOf = (id) => D.money.payments.find((p) => p.payee?.id === id && p.payee.party)?.payee || null;
 /**
  * Make a settled payment from the Treasury to an employee for one document, with its advice and document hash (really
- * hashed, so Verify passes). o: { empId, gbp, purpose, budget, doctype, doc, date, content, lines, approval, at, tx, block, hat, batch }
+ * hashed, so Verify passes). o: { empId, gbp, purpose, budget, docKind, doc, date, content, lines, approval, at, tx, block, hat, batch }
  */
 export async function makePayment(o) {
   const e = emp(o.empId);
@@ -131,7 +131,7 @@ export async function makePayment(o) {
     payee: { party, account: bank ? 'bridge:' + e.bank.account.slice(-4) : e.safe },
     token: 'USDC', amount: String(Math.round(amount * 1e6)),
     cash: { currency: 'GBP', decimals: 2, amount: Math.round(o.gbp * 100), rate },
-    allocations: [{ doctype: o.doctype, doc: o.doc, currency: 'GBP', number: o.doc, date: o.date, content: o.content, allocated: Math.round(o.gbp * 100), lines: o.lines }],
+    allocations: [{ doctype: o.docKind, doc: o.doc, currency: 'GBP', number: o.doc, date: o.date, content: o.content, allocated: Math.round(o.gbp * 100), lines: o.lines }],
     adjustments: fee ? [{ kind: 'fee', by: 'Bridge', amount: String(Math.round(fee * 1e6)) }] : [],
     onAccount: 0, memo: '', refundOf: '0x0',
     route: { kind: 'department', budget: o.budget, payAt: 0, ...(bank ? { payout: { bankAmount: Math.round(o.gbp * 100), currency: 'GBP', rail: 'Faster Payments' } } : {}) },
@@ -305,7 +305,7 @@ const quarterOf = (d) => { const [y, m] = d.split('-').map(Number); const q = Ma
 const onLeaveOn = (d) => H.leaveApplications.filter((l) => l.status === 'Approved' && l.fromDate <= d && l.toDate >= d);
 
 cx.route('hr', () => {
-  if (!cx.hasSeat()) return mePage();
+  if (!cx.hasSeat()) return notEmployee('My HR') || mePage();
   const [qs, qe] = quarterOf(cx.today);
   const act = active();
   const byDept = D.departments.map((d) => ({ d, n: act.filter((p) => p.department === d.id).length })).filter((x) => x.n);
@@ -1009,6 +1009,7 @@ export function leaveApplyForm(onDone) {
 }
 
 cx.route('leave-new', () => {
+  const ne = notEmployee('New leave application'); if (ne) return ne;
   const form = leaveApplyForm((l) => cx.go('leave', l.name));
   return cx.page({ title: 'New leave application', crumbs: [{ label: 'HR', route: 'hr' }, { label: 'Leave', route: cx.hasSeat() ? 'leaves' : 'me-leave' }], status: [{ text: 'Not saved', tone: 'orange' }],
     actions: [cx.btn('Submit', { kind: 'primary', cmd: 'capxul hr leave apply --type … --start … --end …', onClick: () => form.submit() })],
@@ -1264,6 +1265,7 @@ cx.route('checkin', (ctx) => {
 /** The check-in sheet: the world's clock stamps the time; it shows no map. */
 export function checkinSheet(after) {
   const me = cx.me();
+  if (!me.employee) { cx.toast(`${me.name} is not an employee: there is nothing to check in to.`, { tone: 'info' }); return; }
   const last = checkins().filter((c) => c.employee === me.id).sort((a, b) => a.time.localeCompare(b.time)).at(-1);
   const isIn = !last || last.logType === 'OUT' || !last.time.startsWith(cx.today);
   const log = isIn ? 'IN' : 'OUT';
@@ -1448,7 +1450,7 @@ async function payClaim(c) {
   const content = await cx.hashOf({ name: c.name, employee: e.employee, expenses: c.expenses, taxes: c.taxes, grandTotal: c.grandTotal, receipts: c.receipts });
   c.contentHash = content;
   const lines = [...c.expenses.map((x) => ({ idx: x.idx, description: x.description, amount: Math.round(x.sanctionedAmount * 100), taxes: [] })), ...(c.totalTaxesAndCharges ? [{ idx: c.expenses.length + 1, description: 'VAT on receipts', amount: 0, taxes: [{ name: 'VAT', bps: 2000, amount: Math.round(c.totalTaxesAndCharges * 100) }] }] : [])];
-  const p = await makePayment({ empId: e.id, gbp: c.grandTotal, purpose: 'claim', budget: c.department, doctype: 'Expense Claim', doc: c.name, date: c.postingDate, content, lines, approval: cx.newId('approval'), at: r.at, tx: r.tx, block: r.block, hat: dec.hat });
+  const p = await makePayment({ empId: e.id, gbp: c.grandTotal, purpose: 'claim', budget: c.department, docKind: 'Expense Claim', doc: c.name, date: c.postingDate, content, lines, approval: cx.newId('approval'), at: r.at, tx: r.tx, block: r.block, hat: dec.hat });
   c.status = 'Paid'; c.totalAmountReimbursed = c.grandTotal;
   c.paymentInfo = { payment: p.id, documentHash: p.proof.documentHash, tx: p.proof.tx, block: p.proof.block, settledAt: p.settledAt, amountSent: p.amount, fee: p.fee, route: e.salaryMode === 'Bank' ? 'Bank through Bridge' : 'Capxul Safe' };
   cx.toast(`Paid ${e.name} ${fmt.gbp(c.grandTotal)}. The proof is on the claim.`, { cmd: `capxul org hr expense-claim pay ${c.name}` });
@@ -1523,6 +1525,7 @@ cx.route('expense-claim', (ctx) => {
 }, { workspace: 'hr', title: 'Expense claim' });
 
 cx.route('expense-claim-new', () => {
+  const ne = notEmployee('New expense claim'); if (ne) return ne;
   const me = cx.me();
   const c = { employee: me.id, department: me.department, postingDate: cx.today, project: null, expenses: [{ idx: 1, expenseDate: cx.today, expenseClaimType: 'Travel', description: '', amount: 0, sanctionedAmount: 0 }], taxes: [{ account: '2102', rate: null, amount: 0, description: 'VAT on receipts' }], totalClaimedAmount: 0, totalSanctionedAmount: 0, totalTaxesAndCharges: 0, grandTotal: 0, totalAdvanceAmount: 0, totalAmountReimbursed: 0, receipts: [], status: 'Draft', approvalStatus: 'Draft', currency: 'GBP', name: '(new)' };
   const host = h('div');
@@ -1580,7 +1583,7 @@ async function payAdvance(a) {
   const r = await cx.approval({ title: `Pay ${e.name}'s advance`, from: `Harbourline Treasury · ${fmt.addr(D.company.treasury)} · ${cx.deptName(a.department)} budget`, to: paidToLong(e), amount: round2(a.advanceAmount / rate), gbp: a.advanceAmount, rate, signer: cx.meId(), hat: dec.hat, warnings: ['Paying an advance approves it. The unspent part comes back by claim, return or the next payslip.'], cmd: `capxul org hr advance pay ${a.name}`, next: 'capxul payment wait approval_…' });
   if (r.status !== 'done') return;
   const content = await cx.hashOf({ name: a.name, employee: e.employee, purpose: a.purpose, advanceAmount: a.advanceAmount });
-  const p = await makePayment({ empId: e.id, gbp: a.advanceAmount, purpose: 'advance', budget: a.department, doctype: 'Employee Advance', doc: a.name, date: a.postingDate, content, lines: [{ idx: 1, description: a.purpose, amount: Math.round(a.advanceAmount * 100), taxes: [] }], approval: cx.newId('approval'), at: r.at, tx: r.tx, block: r.block, hat: dec.hat });
+  const p = await makePayment({ empId: e.id, gbp: a.advanceAmount, purpose: 'advance', budget: a.department, docKind: 'Employee Advance', doc: a.name, date: a.postingDate, content, lines: [{ idx: 1, description: a.purpose, amount: Math.round(a.advanceAmount * 100), taxes: [] }], approval: cx.newId('approval'), at: r.at, tx: r.tx, block: r.block, hat: dec.hat });
   a.status = 'Paid'; a.paidAmount = a.advanceAmount; a.pendingAmount = a.advanceAmount; a.decidedBy = cx.meId(); a.decidedHat = dec.hat; a.waitingFor = null;
   a.paymentInfo = { payment: p.id, documentHash: p.proof.documentHash, tx: p.proof.tx, settledAt: p.settledAt, amountSent: p.amount };
   dropApproval(a.name);
@@ -1653,10 +1656,12 @@ function advanceFields() {
   return node;
 }
 export function advanceRequest() {
+  if (!cx.me().employee) { cx.toast(`${cx.me().name} is not an employee of Harbourline.`, { tone: 'info' }); return; }
   const f = advanceFields();
   cx.modal({ title: 'Request an advance', body: f, actions: [{ label: 'Cancel' }, { label: 'Request', primary: true, cmd: 'capxul hr advance request --amount … --purpose "…"', onClick: (close) => { const n = f.submit(); if (n) { close(); cx.go('advance', n); } } }] });
 }
 cx.route('advance-new', () => {
+  const ne = notEmployee('New advance'); if (ne) return ne;
   const f = advanceFields();
   return cx.page({ title: 'New advance', crumbs: [{ label: 'HR', route: 'hr' }, { label: 'Advances', route: cx.hasSeat() ? 'advances' : 'me-expenses' }], status: [{ text: 'Not saved', tone: 'orange' }],
     actions: [cx.btn('Request', { kind: 'primary', cmd: 'capxul hr advance request --amount … --purpose "…"', onClick: () => { const n = f.submit(); if (n) cx.go('advance', n); } })],
@@ -1693,6 +1698,8 @@ export function appFrame(tab, body, o = {}) {
     h('div.hr-app-body', body),
     h('nav.hr-tabbar', { 'aria-label': 'My HR' }, tabs.map(([r, l, i]) => h('a', { href: cx.href(r), class: { on: r === tab }, 'aria-current': r === tab ? 'page' : null }, cx.icon(i, { size: 18 }), l))));
 }
+/** My HR is for employees; a guest Director with a seat has none of it. */
+export const notEmployee = (title) => (cx.me()?.employee ? null : cx.page({ title, crumbs: [{ label: 'HR', route: 'hr' }], cmd: { cli: 'capxul hr leave list', note: 'Your own side of HR lists your records at every employer.' }, body: cx.card({ body: cx.empty(`${cx.me().name} is not an employee of Harbourline, so there is no leave, attendance, claim or payslip of theirs here.`) }) }));
 const myPage = (title, tab, body, cmd, extra = {}) => cx.page({ title, crumbs: [{ label: 'HR', route: 'hr' }, { label: 'My HR', route: 'me' }], workspace: tab === 'me-payslips' ? 'payroll' : 'hr', cmd, fde: `${cx.me().name}'s own ${title.toLowerCase()}`, ...extra, body: appFrame(tab, body, extra) });
 const panel = (title, kids, right) => h('section.hr-panel', h('h3', h('span.grow', title), right || null), kids);
 
@@ -1746,10 +1753,11 @@ function mePage() {
   ];
   return myPage('My HR', 'me', body, { cli: 'capxul hr leave list', sdk: 'client.me.hr.leaves.list()', who: `${me.name}, for themselves; no seat needed`, note: 'Your own side of HR: the same records without org, at every employer.' });
 }
-cx.route('me', () => mePage(), { workspace: 'hr', title: 'My HR' });
+cx.route('me', () => notEmployee('My HR') || mePage(), { workspace: 'hr', title: 'My HR' });
 
 const ATT_CODE = { Present: 'P', 'Work From Home': 'WFH', Absent: 'A', 'On Leave': 'L', 'Half Day': 'HD' };
 cx.route('me-attendance', (ctx) => {
+  const ne = notEmployee('My attendance'); if (ne) return ne;
   const me = cx.me();
   let ym = ctx.state?.month || cx.today.slice(0, 7);
   const box = h('div');
@@ -1781,6 +1789,7 @@ function gauge(label, avail, total) {
   return h('div.hr-gauge', svg, h('b', `${fmt.num(avail, 1)} / ${fmt.num(total, 1)}`), h('small', `${label} balance`));
 }
 cx.route('me-leave', () => {
+  const ne = notEmployee('My leave'); if (ne) return ne;
   const me = cx.me();
   const ld = leaveDetails(me.id);
   const recent = H.leaveApplications.filter((l) => l.employee === me.id).sort((a, b) => b.fromDate.localeCompare(a.fromDate)).slice(0, 6);
@@ -1794,6 +1803,7 @@ cx.route('me-leave', () => {
 }, { workspace: 'hr', title: 'My leave' });
 
 cx.route('me-expenses', () => {
+  const ne = notEmployee('My expenses'); if (ne) return ne;
   const me = cx.me();
   const claims = H.expenseClaims.filter((c) => c.employee === me.id).sort((a, b) => b.postingDate.localeCompare(a.postingDate));
   const adv = H.advances.filter((a) => a.employee === me.id);
