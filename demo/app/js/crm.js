@@ -124,11 +124,316 @@ function companyModified(co) {
 function capxulOf(c) {
   if (!c) return { word: 'Private', tone: 'gray', line: 'Not linked. Link to pay.' };
   if (c.onCapxul && c.handle) return { word: c.handle, tone: 'green', line: `On Capxul as ${c.handle}.` };
-  if (c.email) return { word: 'By mailbox', tone: 'blue', line: 'Known by mailbox. Can be paid; the money waits in escrow until they claim it with payment claim.' };
+  if (c.email) return { word: 'By mailbox', tone: 'blue', line: 'Known by mailbox. Can be paid; the money waits in escrow until they claim it.' };
   return { word: 'Private', tone: 'gray', line: 'Not linked. Link to pay.' };
 }
 const companyCapxul = (co) => (co?.onCapxul ? { word: co.handle, tone: 'green' } : { word: 'Private', tone: 'gray' });
-const counts = (items) => ({ email: items.filter((i) => i.kind === 'email').length, note: items.filter((i) => i.kind === 'note').length, task: items.filter((i) => i.kind === 'task').length, call: items.filter((i) => i.kind === 'call').length, whatsapp: items.filter((i) => i.kind === 'whatsapp').length });
+const counts = (items) => ({ email: items.filter((i) => i.kind === 'email').length, note: items.filter((i) => i.kind === 'note').length, task: items.filter((i) => i.kind === 'task').length, call: items.filter((i) => i.kind === 'call').length, whatsapp: items.filter((i) => i.kind === 'whatsapp').length, meeting: items.filter((i) => i.kind === 'meeting').length });
+
+/* =====================================================================================================
+   The sales agent. It brings leads in and moves them along: it logs every email and WhatsApp message from the
+   shared mailbox and number, creates leads from the website form, email and WhatsApp, scores each one (fit,
+   budget, timing, need), enriches the organisation, routes it to an owner, logs meetings from the owners'
+   calendars, drafts follow-ups and proposes meetings for the owner to approve, and flags deals that have gone
+   quiet. People decide, send and sell. Everything here is derived from each record's own history.
+   ===================================================================================================== */
+
+const AGENT = '@harbourline-sales';
+const AGENT_NAME = 'Sales agent';
+const agentAvatar = (size) => h('span.avatar.agent.t-teal', { class: size, title: AGENT_NAME, 'aria-hidden': 'true' }, 'SA');
+const agentChip = () => h('span.person', agentAvatar('sm'), h('span', AGENT_NAME));
+const isAgent = (id) => id === AGENT;
+const whoChip = (id) => (isAgent(id) ? agentChip() : cx.personChip(id, { link: false }));
+const whoName = (id) => (isAgent(id) ? 'the sales agent' : cx.name(id));
+const hashOf = (t) => { let x = 2166136261; for (const c of String(t)) { x ^= c.charCodeAt(0); x = Math.imul(x, 16777619) >>> 0; } return x; };
+const pick = (key, arr) => arr[hashOf(key) % arr.length];
+const isoPlus = (iso, mins) => new Date(Date.parse(iso) + mins * 60000).toISOString().replace(/\.\d{3}Z$/, 'Z');
+const hoursBetween = (a, b) => (Date.parse(b) - Date.parse(a)) / 3600000;
+const NOW0 = cx.now.toISOString().replace(/\.\d{3}Z$/, 'Z');
+const TOUCH = new Set(['email', 'whatsapp', 'call', 'meeting']);
+const lc1 = (t) => (t ? t[0].toLowerCase() + t.slice(1) : t);
+const yours = (t) => String(t || '').replace(/\bour\b/g, 'your').replace(/\bOur\b/g, 'Your');
+const uc1 = (t) => (t ? t[0].toUpperCase() + t.slice(1) : t);
+const durHuman = (hrs) => (hrs == null ? '—' : hrs < 1 ? `${Math.max(1, Math.round(hrs * 60))} min` : hrs < 48 ? `${Math.round(hrs)} h` : hrs < 240 ? `${fmt.num(hrs / 24, 1)} days` : `${Math.round(hrs / 24)} days`);
+
+/** How a lead reached Harbourline. */
+const CHANNELS = ['Website form', 'Email', 'WhatsApp', 'Referral', 'Event', 'Campaign', 'Existing client'];
+const CHANNEL_OF = { Website: 'Website form', Email: 'Email', Reference: 'Referral', Exhibition: 'Event', Campaign: 'Campaign', 'Existing Customer': 'Existing client' };
+const CHANNEL_ICON = { 'Website form': 'globe', Email: 'mail', WhatsApp: 'message', Referral: 'user', Event: 'calendar', Campaign: 'send', 'Existing client': 'crm' };
+const channelTag = (ch) => h('span.crm-tst', cx.icon(CHANNEL_ICON[ch] || 'crm', { size: 13 }), ch);
+
+/** Industries Harbourline has won work in, with one client each, for "like Copperleaf". */
+const WON_LIKE = new Map();
+for (const d of C.deals) if (d.status === 'Won' && d.industry && !WON_LIKE.has(d.industry)) WON_LIKE.set(d.industry, companyName(d.company));
+/** What each owner tends to look after, for routing. */
+const OWNER_IND = new Map();
+for (const l of C.leads) { if (!l.owner || !l.industry) continue; const m = OWNER_IND.get(l.owner) || new Map(); m.set(l.industry, (m.get(l.industry) || 0) + 1); OWNER_IND.set(l.owner, m); }
+const topInd = (owner) => [...(OWNER_IND.get(owner) || new Map()).entries()].sort((a, b) => b[1] - a[1]).slice(0, 3).map(([k]) => k);
+const SIZE_WORD = { '1-10': 'under 10 staff', '11-50': '11 to 50 staff', '51-200': '51 to 200 staff', '201-500': '201 to 500 staff', '501-1000': '501 to 1,000 staff', '1001-5000': 'over 1,000 staff', '1000+': 'over 1,000 staff' };
+const JUNK_WHY = ['A services pitch to Harbourline, not a buyer', 'A link-building offer, not a buyer', 'An outsourcing pitch sent to many studios'];
+const UNQ_WHY = ['The budget is too small for the scope', 'They want a fixed price for an open brief', 'They need it live within a month', 'They want a freelancer, not a studio'];
+
+/** The lead's own history, oldest first (raw, without the derived items). */
+const rawItems = (name) => (TL.get(name) || []).filter((i) => !i.derived).sort((a, b) => String(a.at).localeCompare(String(b.at)));
+const textOf = (items) => items.map((i) => [i.body, i.content, i.note].filter(Boolean).join(' ')).join(' ');
+
+/** Budget, timing and need as the agent reads them from the conversation so far. */
+function readBudget(text) {
+  let m = /Budget around £(\d+)k/.exec(text);
+  if (m) return +m[1] >= 25 ? { level: 3, text: `About £${m[1]}k` } : { level: 1, text: `About £${m[1]}k, small for the scope` };
+  if (/Budget signed off/.test(text)) return { level: 3, text: 'Signed off for this year' };
+  m = /Budget depends on the board in (\w+)/.exec(text);
+  if (m) return { level: 2, text: `Waits on the board in ${m[1]}` };
+  if (/Budget not fixed/.test(text)) return { level: 2, text: 'Not fixed yet' };
+  return { level: 0, text: 'Not known yet' };
+}
+function readTiming(text) {
+  if (/Decision by the end of the quarter/.test(text)) return { level: 3, text: 'Deciding this quarter' };
+  const m = /Peak is (\w+)/.exec(text);
+  if (m) return { level: 3, text: `Must be ready before their ${m[1]} peak` };
+  if (/next week or two|time next week|this week/.test(text)) return { level: 2, text: 'Talking to studios now' };
+  return { level: 0, text: 'No date yet' };
+}
+function readNeed(l, items) {
+  const em = items.find((i) => i.kind === 'email' && i.subject);
+  if (em) {
+    let t = em.subject.replace(/^(re|fwd?):\s*/i, '');
+    if (l.org && t.endsWith(' for ' + l.org)) t = t.slice(0, -(' for ' + l.org).length);
+    return t;
+  }
+  const n = items.find((i) => i.kind === 'note' && /looking at|interested in/i.test(i.content || ''));
+  const m = n && /(?:looking at|interested in)\s+([^.]+)/i.exec(n.content);
+  return m ? uc1(m[1]) : null;
+}
+
+/**
+ * The agent's view of every lead: channel, arrival, qualification (fit, budget, timing, need, score, reason),
+ * enrichment, routing, first reply and time to qualify. Recomputed when a record changes (cx.refresh).
+ */
+const QUAL = new Map();
+function qualify(l) {
+  const items = rawItems(l.name);
+  const firstIn = items.find((i) => (i.kind === 'email' || i.kind === 'whatsapp') && i.direction === 'in');
+  const creation = items.find((i) => i.kind === 'creation');
+  let channel = CHANNEL_OF[l.source] || 'Email';
+  if (channel === 'Website form' && l.mobile && hashOf(l.name) % 4 === 0) channel = 'WhatsApp';
+  const captured = !!firstIn && firstIn.at <= (creation?.at || '9999') && channel !== 'Event';
+  const arrival = captured ? (channel === 'WhatsApp' ? isoPlus(firstIn.at, -22) : firstIn.at) : creation?.at || l.createdAt;
+  const scoredAt = isoPlus(arrival, 2 + (hashOf(l.name) % 3));
+  const text = textOf(items);
+  const need = readNeed(l, items);
+  const budget = readBudget(text), timing = readTiming(text);
+  const like = WON_LIKE.get(l.industry);
+  const sizeOk = l.employees && l.employees !== '1-10';
+  const fitLevel = like && sizeOk ? 3 : like || sizeOk ? 2 : 1;
+  const fit = { level: fitLevel, text: like ? `${l.industry}, like ${like}` : l.industry ? `${l.industry} is new to Harbourline` : 'Sector unknown' };
+  if (l.employees) fit.text += `; ${SIZE_WORD[l.employees] || l.employees}`;
+  const needQ = { level: need ? 3 : 1, text: need || 'Not clear yet' };
+  let score = 8 + fitLevel * 9 + budget.level * 7 + timing.level * 6 + (need ? 15 : 4) + (hashOf(l.name + 's') % 6);
+  let reason = `${need ? uc1(need) + '. ' : ''}${fit.text}. Budget ${lc1(budget.text)}; ${lc1(timing.text)}.`;
+  const junk = l.status === 'Junk';
+  if (junk) {
+    score = 3 + (hashOf(l.name) % 9);
+    reason = pick(l.name, JUNK_WHY) + '.';
+    fit.level = 1; fit.text = 'Not a buyer'; budget.level = 0; budget.text = 'None'; timing.level = 0; timing.text = 'None'; needQ.level = 0; needQ.text = 'None';
+  } else if (l.status === 'Unqualified') {
+    score = Math.min(score, 26 + (hashOf(l.name) % 18));
+    reason = `${pick(l.name, UNQ_WHY)}. ${fit.text}.`;
+  } else if (l.status === 'Qualified' || l.converted) score = Math.max(score, 70 + (hashOf(l.name) % 18));
+  score = Math.max(1, Math.min(97, Math.round(score)));
+  const updated = items.find((i) => i.kind === 'call' && i.status === 'Completed') || items.find((i) => i.kind === 'note' && /Budget|Decision|Peak/.test(i.content || ''));
+  // routing
+  const creator = creation?.by || l.owner;
+  const tops = topInd(l.owner);
+  const routeWhy = captured
+    ? (l.industry && tops.includes(l.industry) ? `${cx.firstName(l.owner)} looks after ${l.industry}` : `next in the rotation for ${channel === 'WhatsApp' ? 'WhatsApp' : lc1(channel)} enquiries`)
+    : creator === l.owner ? `${cx.firstName(l.owner)} brought it in` : `${cx.firstName(creator)} brought it in; ${cx.firstName(l.owner)} looks after ${l.industry || 'it'}`;
+  // the first reply and the time to qualify
+  const firstOut = items.find((i) => i.at > arrival && ((i.kind === 'email' || i.kind === 'whatsapp') && i.direction === 'out' || i.kind === 'call'));
+  const qItem = items.find((i) => (i.kind === 'changed' && i.field === 'Status' && i.to === 'Qualified') || (i.kind === 'changes' && i.changes.some((c) => c[0] === 'Status' && c[2] === 'Qualified')) || i.kind === 'converted');
+  const q = {
+    channel, captured, arrival, scoredAt, score, reason, fit, budget, timing, need: needQ,
+    updatedAt: updated && updated.at > scoredAt ? updated.at : null,
+    routeWhy, creator,
+    firstReplyAt: firstOut?.at || null, firstReplyHours: firstOut ? hoursBetween(arrival, firstOut.at) : null,
+    qualifiedAt: qItem?.at || null, qualifyHours: qItem ? hoursBetween(arrival, qItem.at) : null,
+    firstIn,
+  };
+  QUAL.set(l.name, q);
+  return q;
+}
+const qualOf = (l) => QUAL.get(l.name) || qualify(l);
+const scoreTone = (s) => (s >= 70 ? 'green' : s >= 45 ? 'yellow' : s >= 20 ? 'orange' : 'gray');
+const scorePill = (s) => cx.pill(String(s), scoreTone(s));
+const LEVEL = [['Unknown', 'gray'], ['Weak', 'red'], ['Partial', 'yellow'], ['Strong', 'green']];
+
+/** Timeline items the agent adds: the lead it created, its score and routing, the WhatsApp that started it. */
+const FREE_MAIL = /@(gmail|googlemail|hotmail|outlook|yahoo|icloud|me|live|btinternet|proton)\./i;
+function deriveLeadItems(l) {
+  if (!l.website && l.email && !FREE_MAIL.test(l.email) && l.status !== 'Junk') l.website = l.email.split('@')[1];
+  const q = qualOf(l);
+  const creation = q.captured ? rawItems(l.name).find((i) => i.kind === 'creation') : null;
+  if (creation && creation.at > q.arrival) { creation.at = isoPlus(q.arrival, 1); TL.get(l.name).sort((a, b) => String(a.at).localeCompare(String(b.at))); }
+  const out = [];
+  if (q.channel === 'WhatsApp' && q.firstIn) {
+    const first = l.firstName || 'them';
+    out.push({ kind: 'whatsapp', direction: 'in', from: l.mobile, fromName: leadName(l), text: `Hi, is this Harbourline? We're ${l.org || 'a small team'} and we're looking at ${lc1(q.need.text === 'Not clear yet' ? 'a new project' : q.need.text)}. Can someone get back to me? ${first}`, at: q.arrival, loggedBy: AGENT });
+  }
+  out.push({ kind: 'agent', act: 'qualified', at: q.scoredAt, lead: l.name, captured: q.captured, loggedBy: AGENT });
+  for (const it of out) { it.id = `agent_${l.name}_${it.kind}`; it.recordName = l.name; it.recordType = 'Lead'; it.derived = true; indexTl(it); }
+}
+
+/** Meetings the agent logged from the owners' calendars, and the ones booked ahead. */
+const MEET_LOC = ['Video call', 'At their office', 'Harbourline studio, Hoxton'];
+function deriveDealItems(d) {
+  const items = [...(d.lead ? rawItems(d.lead) : []), ...rawItems(d.name)];
+  const prim = primaryOf(d);
+  const others = (d.contacts || []).map((c) => contactName(c.contact)).filter(Boolean);
+  const people = [cx.name(d.owner), ...others.slice(0, 2)];
+  const mk = (it) => Object.assign(it, { id: `agent_${d.name}_${it.title.replace(/\W+/g, '-')}`, recordName: d.name, recordType: 'Deal', kind: 'meeting', derived: true, loggedBy: AGENT, by: d.owner });
+  const add = (it) => { indexTl(mk(it)); return it; };
+  const moved = (to) => items.find((i) => (i.kind === 'changed' && i.field === 'Status' && i.to === to) || (i.kind === 'changes' && i.changes.some((c) => c[0] === 'Status' && c[2] === to)));
+  const slot = (iso, back) => { const t = new Date(Date.parse(iso) - back * 3600000); t.setUTCMinutes(0, 0, 0); t.setUTCHours(t.getUTCHours() < 9 ? 9 : t.getUTCHours() > 16 ? 15 : t.getUTCHours()); return t.toISOString().replace(/\.\d{3}Z$/, 'Z'); };
+  const demo = moved('Demo/Making');
+  if (demo) add({ title: 'Discovery workshop', at: slot(demo.at, 26), minutes: 90, location: pick(d.name + 'w', MEET_LOC), attendees: people,
+    notes: `Walked ${prim?.firstName || 'them'} through two similar projects, then through their brief for the ${lc1(d.subject)}. Agreed: Harbourline sends a scoped proposal${d.owner ? `; ${cx.firstName(d.owner)} writes it` : ''}.` });
+  const neg = moved('Negotiation');
+  if (neg) add({ title: 'Proposal walkthrough', at: slot(neg.at, 4), minutes: 60, location: pick(d.name + 'n', MEET_LOC), attendees: people,
+    notes: `Went through the proposal line by line. ${prim?.firstName || 'They'} asked to phase the work and to see the support terms. Next: a revised plan and the contract.` });
+  // booked ahead: a next step that names a call and a date
+  const m = /(\d{1,2}) Nov/.exec(d.nextStep || '');
+  if (m && !['Won', 'Lost'].includes(d.status) && /call/i.test(d.nextStep)) {
+    const at = `2026-11-${String(m[1]).padStart(2, '0')}T${/with/i.test(d.nextStep) ? '10' : '14'}:00:00Z`;
+    const booked = /with/i.test(d.nextStep);
+    const it = mk({ title: d.nextStep.replace(/,?\s*(on\s+)?\d{1,2} Nov.*$/, '').trim(), at, minutes: 45, location: 'Video call', attendees: people, booked, upcoming: true, bookedAt: isoPlus(NOW0, -60 * 24 * 3 - 47),
+      notes: booked ? 'Booked by the sales agent once ' + cx.firstName(d.owner) + ' approved: the first slot free in both calendars.' : null });
+    if (booked) indexTl(it); else PROPOSED_MEETINGS.set(d.name, it);
+  }
+}
+const PROPOSED_MEETINGS = new Map();
+
+/** Who put an item on the timeline, and who drafted an outgoing email. */
+function loggedBy(it) {
+  if (it.loggedBy) return it.loggedBy;
+  if (it.kind === 'email' || it.kind === 'whatsapp') return AGENT;
+  if (it.kind === 'creation' && it.recordType === 'Lead') { const l = C.leads.find((x) => x.name === it.recordName); return l && qualOf(l).captured ? AGENT : it.by; }
+  return it.by || null;
+}
+const draftedBy = (it) => (it.draftedBy !== undefined ? it.draftedBy : it.kind === 'email' && it.direction === 'out' && it.at >= '2026-03-01' && hashOf(it.id) % 3 !== 0 ? AGENT : null);
+
+/** The last touchpoint on a record (emails, WhatsApp, calls, meetings; not future meetings). */
+function lastTouch(rec) {
+  const now = NOW();
+  let best = null;
+  for (const it of itemsOf(rec)) if (TOUCH.has(it.kind) && it.at <= now && !it.upcoming && (!best || it.at > best.at)) best = it;
+  return best;
+}
+const STALE_DAYS = 14;
+const isOpenDeal = (d) => ['open', 'ongoing'].includes(stageOf('deal', d.status));
+function staleOf(d) {
+  if (!isOpenDeal(d)) return null;
+  const t = lastTouch(d);
+  const days = t ? daysBetween(t.at, TODAY) : daysBetween(d.createdAt, TODAY);
+  return days > STALE_DAYS ? days : null;
+}
+const TOUCH_WORD = { email: 'Email', whatsapp: 'WhatsApp', call: 'Call', meeting: 'Meeting' };
+const touchCell = (rec) => { const t = lastTouch(rec); return t ? h('span.crm-tst', { title: fmt.datetime(t.at) }, cx.icon({ email: 'mail', whatsapp: 'message', call: 'phone', meeting: 'calendar' }[t.kind], { size: 13 }), `${TOUCH_WORD[t.kind]} · ${fmt.ago(t.at)}`) : h('span.faint', 'No touch yet'); };
+const staleTag = (d) => { const n = staleOf(d); return n ? cx.pill(`Stale · ${n} d`, 'orange') : null; };
+
+for (const l of C.leads) deriveLeadItems(l);
+for (const d of C.deals) deriveDealItems(d);
+
+/* ---------- what the agent proposes and what it did, for the assistant panel ---------- */
+
+const DAYNAME = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+const dayName = (d) => DAYNAME[new Date(dayOf(d) + 'T12:00:00Z').getUTCDay()];
+function draftReply(l, q) {
+  const first = l.firstName || 'there';
+  const me = cx.firstName(l.owner);
+  const like = WON_LIKE.get(l.industry);
+  return `Hi ${first},\n\nThanks for getting in touch about ${q.need.level ? yours(lc1(q.need.text)) : 'your project'}.${like ? ` We did something close for ${like} last year and I'd be glad to show you.` : ''}\n\nWould 30 minutes on ${dayName(addDays(TODAY, 2))} or ${dayName(addDays(TODAY, 3))} work? I'll send a short deck of similar work before we talk.\n\n${me}`;
+}
+function draftNudge(name, first, me, topic) {
+  return `Hi ${first},\n\nI wanted to check in on ${topic}. Is there anything you need from us before you decide, or a good time to talk this week?\n\n${me}`;
+}
+/** Send a drafted email once its owner approves it in the assistant panel. */
+function sendDraft(kind, rec, d) {
+  addItem(rec.name, recType(kind), { kind: 'email', direction: 'out', from: memberEmail(rec.owner), fromName: cx.name(rec.owner), to: [d.to], cc: [], subject: d.subject, body: d.body, attachments: [], draftedBy: AGENT, by: rec.owner });
+  if (kind === 'lead' && rec.status === 'New') { rec.status = 'Contacted'; addChanges('lead', rec, [['Status', 'New', 'Contacted']]); }
+  rec.modifiedAt = NOW();
+  cx.toast(`Sent to ${d.to} (mock-up: nothing is sent)`, { tone: 'success' });
+  cx.refresh();
+}
+function bookMeeting(d, it) {
+  PROPOSED_MEETINGS.delete(d.name);
+  const m = { ...it, proposed: false, booked: true, bookedAt: NOW(), notes: 'Booked by the sales agent once ' + cx.firstName(d.owner) + ' approved: the invite went to ' + (it.attendees.slice(1).join(' and ') || 'them') + '.' };
+  indexTl(m);
+  cx.toast(`${it.title} booked for ${fmt.datetime(it.at)} (mock-up: no invite is sent)`, { tone: 'success' });
+  cx.refresh();
+}
+function registerAgentWork() {
+  const add = cx.agentWork?.add;
+  if (typeof add !== 'function') return;
+  const put = (o) => { try { cx.agentWork.add({ agent: AGENT_NAME, module: 'crm', ...o }); } catch (e) { console.warn('agentWork.add', e); } };
+  const quote = (d) => ` Draft to ${d.to}: "${d.body.split('\n').filter(Boolean).slice(1, -1).join(' ')}"`;
+  const nowIso = NOW0;
+  // replies drafted for new leads nobody has answered yet
+  for (const l of C.leads) {
+    if (l.converted || stageOf('lead', l.status) === 'lost') continue;
+    const q = qualOf(l);
+    const items = rawItems(l.name);
+    const lastIn = [...items].reverse().find((i) => (i.kind === 'email' || i.kind === 'whatsapp') && i.direction === 'in');
+    const lastOut = [...items].reverse().find((i) => ((i.kind === 'email' || i.kind === 'whatsapp') && i.direction === 'out') || i.kind === 'call');
+    if (l.status === 'New' && lastIn && (!lastOut || lastOut.at < lastIn.at) && l.email) {
+      const d = { to: l.email, subject: `Re: ${lastIn.subject || q.need.text}`, body: draftReply(l, q) };
+      put({ key: `crm-reply-${l.name}`, kind: 'proposal', who: l.owner, at: isoPlus(q.scoredAt, 1), title: `Reply to ${leadName(l)}${l.org ? ' at ' + l.org : ''}`,
+        detail: `Score ${q.score}: ${q.reason}` + quote(d), result: `Sent the reply to ${leadName(l)}`,
+        route: ['lead', l.name], approveLabel: 'Send it', onApprove: () => sendDraft('lead', l, d) });
+    } else if (l.status === 'Contacted' && lastOut && (!lastIn || lastIn.at < lastOut.at) && daysBetween(lastOut.at, TODAY) >= 7 && l.email) {
+      const d = { to: l.email, subject: `Re: ${q.need.text}`, body: draftNudge(l.name, l.firstName || 'there', cx.firstName(l.owner), q.need.level ? yours(lc1(q.need.text)) : 'your project') };
+      put({ key: `crm-nudge-${l.name}`, kind: 'proposal', who: l.owner, at: isoPlus(nowIso, -90 - (hashOf(l.name) % 120)), title: `Follow up with ${leadName(l)}${l.org ? ' at ' + l.org : ''}`,
+        detail: `No reply since ${fmt.date(lastOut.at)}.` + quote(d), result: `Sent the follow-up to ${leadName(l)}`,
+        route: ['lead', l.name], approveLabel: 'Send it', onApprove: () => sendDraft('lead', l, d) });
+    }
+  }
+  // deals: nudges for quiet ones, meetings to book
+  for (const d of C.deals) {
+    if (!isOpenDeal(d)) continue;
+    const p = primaryOf(d);
+    const stale = staleOf(d);
+    const meet = PROPOSED_MEETINGS.get(d.name);
+    if (meet) put({ key: `crm-meet-${d.name}`, kind: 'proposal', who: d.owner, at: isoPlus(nowIso, -40), title: `Book "${meet.title}" with ${p?.name || dealTitle(d)}`,
+      detail: `${fmt.datetime(meet.at)}, ${meet.minutes} min, video call: the first slot free in ${cx.firstName(d.owner)}'s and ${p?.firstName ? p.firstName + "'s" : 'their'} calendars. The invite is drafted.`,
+      route: ['deal', d.name], approveLabel: 'Book it', result: `Booked "${meet.title}" with ${p?.name || dealTitle(d)}`, onApprove: () => bookMeeting(d, meet) });
+    if (stale && p?.email) {
+      const dd = { to: p.email, subject: `Re: ${d.subject}`, body: draftNudge(d.name, p.firstName || 'there', cx.firstName(d.owner), `the ${yours(lc1(d.subject))}`) };
+      put({ key: `crm-stale-${d.name}`, kind: 'proposal', who: d.owner, at: isoPlus(nowIso, -150), title: `${dealTitle(d)} has gone quiet`,
+        detail: `No touch for ${stale} days in ${d.status}. Next step: ${d.nextStep || 'none set'}.` + quote(dd), result: `Sent the check-in to ${p.name}`,
+        route: ['deal', d.name], approveLabel: 'Send it', onApprove: () => sendDraft('deal', d, dd) });
+    }
+  }
+  // done: the last seven days
+  const since = addDays(TODAY, -6);
+  for (const l of C.leads) {
+    const q = qualOf(l);
+    if (dayOf(q.scoredAt) < since) continue;
+    put({ key: `crm-q-${l.name}`, kind: 'done', who: l.owner, at: q.scoredAt,
+      title: `${q.captured ? 'Created and qualified' : 'Qualified'} ${leadName(l)}${l.org ? ', ' + l.org : ''}: score ${q.score}`,
+      detail: `${q.channel}. ${q.reason} Routed to ${cx.name(l.owner)}: ${q.routeWhy}.`, route: ['lead', l.name] });
+  }
+  const logged = new Map();
+  for (const it of C.timeline) if ((it.kind === 'email' || it.kind === 'whatsapp') && dayOf(it.at) >= since && it.at <= nowIso) { const k = dayOf(it.at); const e = logged.get(k) || { email: 0, whatsapp: 0, recs: new Set() }; e[it.kind]++; e.recs.add(it.recordName); logged.set(k, e); }
+  for (const [day, e] of logged) {
+    put({ key: `crm-log-${day}`, kind: 'done', who: null, at: `${day}T18:00:00Z` < nowIso ? `${day}T18:00:00Z` : nowIso,
+      title: `Logged ${[e.email ? fmt.plural(e.email, 'email') : null, e.whatsapp ? fmt.plural(e.whatsapp, 'WhatsApp message') : null].filter(Boolean).join(' and ')} on ${fmt.plural(e.recs.size, 'record')}`,
+      detail: 'From the shared sales mailbox and WhatsApp number, each on its record\'s timeline.', route: ['crm'] });
+  }
+  for (const d of C.deals) for (const it of TL.get(d.name) || []) if (it.kind === 'meeting' && it.upcoming && it.booked) {
+    put({ key: `crm-booked-${d.name}`, kind: 'done', who: d.owner, at: it.bookedAt, title: `Booked "${it.title}" for ${fmt.datetime(it.at)}`, detail: `${dealTitle(d)}. The first slot free in both calendars.`, route: ['deal', d.name] });
+  }
+  const staleN = C.deals.filter(staleOf).length;
+  if (staleN) put({ key: 'crm-stale-scan', kind: 'done', who: null, at: `${TODAY}T07:00:00Z`, title: `Flagged ${fmt.plural(staleN, 'deal')} with no touch for over two weeks`, detail: 'Marked Stale in the deal list, with a check-in drafted for each owner.', route: ['deals'] });
+}
 
 /* =====================================================================================================
    Styles (tokens only)
@@ -262,6 +567,31 @@ button.crm-f-v:hover { background: var(--hover); border-color: var(--line); }
 .crm-pipe i { display: block; height: 100%; background: var(--accent); }
 .crm-sel { display: inline-flex; align-items: center; gap: 6px; }
 .crm-dash > .wide { grid-column: 1 / -1; } /* its own cards, not chart cards */
+.crm-logged { display: flex; align-items: flex-start; gap: 6px; font-size: 11.5px; line-height: 16px; color: var(--muted); min-width: 0; }
+.crm-logged > span { min-width: 0; overflow-wrap: anywhere; }
+.crm-logged .avatar { width: 16px; height: 16px; font-size: 7.5px; }
+.crm-score { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 8px; align-items: center; }
+.crm-score b { font: 600 20px/1 var(--font-ui); font-stretch: var(--wide); }
+.crm-score .bar { height: 6px; border-radius: 3px; background: var(--sunk); overflow: hidden; }
+.crm-score .bar i { display: block; height: 100%; }
+.crm-qual { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 14px; }
+@media (max-width: 520px) { .crm-qual { grid-template-columns: minmax(0, 1fr); } }
+.crm-qual > div { display: grid; gap: 2px; min-width: 0; }
+.crm-qual small { color: var(--muted); font-size: 11.5px; }
+.crm-qual span { overflow-wrap: anywhere; }
+.crm-reason { color: var(--fg-2); overflow-wrap: anywhere; }
+.crm-meet-h { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; }
+.crm-meet-h .grow { flex: 1; }
+.crm-list { display: grid; }
+.crm-row { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 9px 2px; border-bottom: 1px solid var(--line); color: inherit; text-decoration: none; min-width: 0; }
+.crm-row:last-child { border-bottom: 0; }
+.crm-row:hover { background: var(--hover); }
+.crm-row .t { font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.crm-row .m { display: flex; flex-wrap: wrap; gap: 2px 10px; font-size: 12px; color: var(--muted); min-width: 0; }
+.crm-row .r { display: grid; justify-items: end; gap: 3px; font-size: 12px; color: var(--muted); }
+.crm-next { font-size: 12.5px; color: var(--fg-2); overflow-wrap: anywhere; }
+.kb-meta.crm-kbm .crm-next { white-space: normal; }
+.crm-colsum { font-size: 12px; color: var(--muted); }
 `);
 
 /* =====================================================================================================
@@ -275,13 +605,14 @@ cx.workspace({
   nav: [
     { label: 'Dashboard', route: 'crm' },
     { label: 'Leads', route: 'leads', match: ['lead', 'leads-kanban', 'leads-grouped'] },
+    { label: 'Pipeline', route: 'pipeline' },
     { label: 'Deals', route: 'deals', match: ['deal', 'deals-kanban', 'deals-grouped'] },
     { label: 'Contacts', route: 'contacts', match: ['contact'] },
     { label: 'Companies', route: 'companies', match: ['company'] },
     { label: 'Notes', route: 'crm-notes' },
     { label: 'Tasks', route: 'crm-tasks', match: ['crm-tasks-kanban'] },
     { label: 'Call logs', route: 'call-logs' },
-    { section: 'Public views', items: [{ label: 'Pipeline', route: 'pipeline' }] },
+    { section: 'Reports', items: [{ label: 'Lead sources', route: 'crm-sources' }] },
   ],
 });
 
@@ -301,39 +632,28 @@ cx.search.add((qq, limit) => {
    Shared parts: the form modal, the lost reason, moving a record, timeline items
    ===================================================================================================== */
 
-/** The command block, as lines. */
-function cmdBlock(spec) {
-  const lines = [].concat(spec?.cli || spec || []).filter(Boolean);
-  return lines.length ? h('div.confirm-cmd', lines.map((l, i) => [i ? '\n' : '', h('span.p', '$ '), l])) : null;
-}
 /**
- * A dialog of fields with a live command: formModal({ title, model, fields, cols, submit, needs, cmd(model), who,
- * check(model) → error text, onSubmit(model, close), wide, intro }).
+ * A dialog of fields: formModal({ title, model, fields, cols, submit, needs, check(model) → error text,
+ * onSubmit(model, close), wide, intro }).
  */
 function formModal(o) {
   const m = o.model;
-  const cmdBox = h('div');
-  const drawCmd = () => { const spec = o.cmd?.(m); cx.fill(cmdBox, cmdBlock(spec)); if (spec) cx.showAction(spec, o.title); };
   const mk = (f) => {
     if (!f) return null;
     if (f instanceof Node) return f;
     if (f.section) return h('div.crm-msec', f.section);
     if (f.node) return h('div.field', { class: { wide: f.wide } }, h('label', f.label), f.node);
-    return cx.field({ ...f, model: m, edit: !f.readOnly, onChange: (v, k) => { f.onChange?.(v, m); drawCmd(); } });
+    return cx.field({ ...f, model: m, edit: !f.readOnly, onChange: (v) => { f.onChange?.(v, m); } });
   };
   const body = h('div', { style: 'display:grid;gap:14px' },
     o.intro ? (o.intro instanceof Node ? o.intro : h('p.muted', { style: 'font-size:13px' }, o.intro)) : null,
-    h('div.fields', { style: { '--cols': o.cols || 2 } }, o.fields.map(mk)),
-    cmdBox,
-    o.who ? h('div.muted', { style: 'font-size:12.5px' }, 'Who may run it: ' + o.who) : null);
-  drawCmd();
+    h('div.fields', { style: { '--cols': o.cols || 2 } }, o.fields.map(mk)));
   const md = cx.modal({
     title: o.title, wide: o.wide, body,
-    onClose: () => cx.clearAction(),
     actions: [cx.btn('Cancel', { onClick: () => md.close() }), cx.btn(o.submit || 'Save', { kind: 'primary', needs: o.needs, onClick: async () => {
       for (const f of o.fields) if (f && f.reqd && !f.readOnly && f.key && (m[f.key] == null || m[f.key] === '')) { cx.toast(`${f.label} is required.`, { tone: 'warning' }); return; }
       const err = o.check?.(m); if (err) { cx.toast(err, { tone: 'warning' }); return; }
-      await o.onSubmit(m, () => md.close(), o.cmd?.(m));
+      await o.onSubmit(m, () => md.close());
     } })],
   });
   return md;
@@ -344,16 +664,12 @@ function askLostReason(kind, rec, to) {
   return new Promise((resolve) => {
     const m = { reason: '', notes: '' };
     let done = false;
-    const cmd = () => `capxul org crm ${kind} move ${rec.name} ${q(to)} --reason ${q(m.reason || '<reason>')}${m.notes ? ` --notes ${q(m.notes)}` : ''}`;
-    const box = h('div');
-    const draw = () => cx.fill(box, cmdBlock(cmd()));
     const md = cx.modal({
       title: 'Lost reason',
       body: h('div', { style: 'display:grid;gap:12px' },
         h('p.crm-lost', `Please provide a reason for marking this ${kind} as lost.`),
-        cx.field({ label: 'Lost reason', key: 'reason', model: m, edit: true, reqd: true, type: 'select', options: [['', 'Choose a reason'], ...C.lostReasons], onChange: draw }),
-        cx.field({ label: 'Lost notes', key: 'notes', model: m, edit: true, type: 'textarea', placeholder: 'Add more details about why it was lost', onChange: draw }),
-        box),
+        cx.field({ label: 'Lost reason', key: 'reason', model: m, edit: true, reqd: true, type: 'select', options: [['', 'Choose a reason'], ...C.lostReasons] }),
+        cx.field({ label: 'Lost notes', key: 'notes', model: m, edit: true, type: 'textarea', placeholder: 'Add more details about why it was lost' })),
       onClose: () => { if (!done) resolve(null); },
       actions: [cx.btn('Cancel', { onClick: () => md.close() }), cx.btn('Save', { kind: 'primary', onClick: () => {
         if (!m.reason) { cx.toast('Choose a lost reason.', { tone: 'warning' }); return; }
@@ -361,7 +677,6 @@ function askLostReason(kind, rec, to) {
         done = true; md.close(); resolve({ reason: m.reason, notes: m.notes.trim() });
       } })],
     });
-    draw();
   });
 }
 
@@ -388,7 +703,6 @@ async function moveRecord(kind, rec, to) {
   if (!allow.ok) { cx.toast(allow.reason, { tone: 'warning' }); return false; }
   let lost = null;
   if (isLost(kind, to)) { lost = await askLostReason(kind, rec, to); if (!lost) return false; }
-  const cmd = `capxul org crm ${kind} move ${rec.name} ${q(to)}${lost ? ` --reason ${q(lost.reason)}${lost.notes ? ` --notes ${q(lost.notes)}` : ''}` : ''}`;
   const changes = [['Status', from, to]];
   rec.status = to;
   if (kind === 'deal') {
@@ -398,11 +712,10 @@ async function moveRecord(kind, rec, to) {
   }
   if (lost) { rec.lostReason = lost.reason; rec.lostNotes = lost.notes || null; changes.push(['Lost Reason', null, lost.reason]); }
   addChanges(kind, rec, changes);
-  cx.showAction(cmd, 'Move', { pin: true });
-  cx.toast(`${recTitle(rec)} moved to ${to}`, { tone: 'success', cmd });
+  cx.toast(`${recTitle(rec)} moved to ${to}`, { tone: 'success' });
   return true;
 }
-/** Log a call on a lead or deal without the form: what the FDE's draft runs for a People wearer. */
+/** Log a call on a lead or deal without the form (other modules use it through cx.native). */
 function logCallFor(kind, rec, o = {}) {
   const allow = cx.allowed(NEED);
   if (!allow.ok) { cx.toast(allow.reason, { tone: 'warning' }); return null; }
@@ -418,18 +731,30 @@ function logCallFor(kind, rec, o = {}) {
 cx.native = Object.assign(cx.native || {}, { crmLogCall: logCallFor, crmMove: moveRecord });
 /** The People hat's wearers, in a sentence, for locked controls. */
 const lockLine = () => `Changes to the CRM need the People hat. ${namesList(peopleWearers())} ${peopleWearers().length === 1 ? 'wears' : 'wear'} it now.`;
-/** For a member without the People hat: a quiet line and the FDE's offer to draft the change for a wearer. */
+/** For a member without the People hat: a quiet line saying who can change it. */
 function readOnlyBanner(what) {
   if (cx.allowed(NEED).ok) return null;
   const forId = peopleWearers()[0];
-  return cx.banner(h('span', `You can read ${what}. ${lockLine()}`), { tone: 'info', icon: 'lock', action: cx.btn('Ask the FDE to draft it', { sm: true, icon: 'fde', onClick: () => cx.fde.open({ ask: `I want to change ${what}. Draft the command for ${cx.name(forId)}, who wears the People hat.` }) }) });
+  return cx.banner(h('span', `You can read ${what}. ${lockLine()}`), { tone: 'info', icon: 'lock' });
 }
 
 /* =====================================================================================================
    The activity timeline (oldest first, as the CRM shows it; a toggle turns it round)
    ===================================================================================================== */
 
-const EMPTY = { email: 'No emails found', call: 'No call history', note: 'No notes found', task: 'No tasks found', whatsapp: 'No WhatsApp messages found' };
+const EMPTY = { email: 'No emails found', call: 'No call history', note: 'No notes found', task: 'No tasks found', whatsapp: 'No WhatsApp messages found', meeting: 'No meetings yet' };
+/** The quiet line under a touchpoint: who put it on the timeline (and who drafted it). */
+function loggedLine(it) {
+  const by = loggedBy(it);
+  const dr = draftedBy(it);
+  if (!by && !dr) return null;
+  const where = isAgent(by) && it.kind === 'email' ? ' from the sales mailbox' : isAgent(by) && it.kind === 'whatsapp' ? " from Harbourline's WhatsApp number" : isAgent(by) && it.kind === 'meeting' ? ' from ' + cx.firstName(it.by) + "'s calendar" : '';
+  const text = dr
+    ? `Drafted by the sales agent, approved and sent by ${cx.name(it.by || recOwner(it.recordName)) || 'its owner'}${by ? `; logged${where}` : ''}`
+    : `Logged by ${whoName(by)}${where}`;
+  return h('div.crm-logged', dr || isAgent(by) ? agentAvatar() : cx.avatar(by), h('span', text));
+}
+const recOwner = (name) => (C.leads.find((x) => x.name === name) || C.deals.find((x) => x.name === name))?.owner;
 const lineText = (it) => { const n = cx.name(it.by); const t = it.text || ''; return n && t.startsWith(n) ? t.slice(n.length).trimStart() : t; };
 const durText = (sec) => { if (!sec) return '0s'; const hh = Math.floor(sec / 3600), mm = Math.floor((sec % 3600) / 60), ss = sec % 60; return hh ? `${hh}h ${mm}m` : `${mm}m ${ss}s`; };
 function actRow(icon, line, card, o = {}) {
@@ -453,9 +778,10 @@ function emailCard(it, ctx) {
     h('div.crm-mail-subj', it.subject || '(no subject)'),
     body, more,
     it.attachments?.length ? h('div.chips', it.attachments.map((a) => h('span.crm-att', cx.icon('file', { size: 13 }), h('span', a.name), a.size ? h('small', a.size) : null))) : null,
+    loggedLine(it),
     ctx?.compose ? h('div.crm-mail-foot',
-      cx.btn('Reply', { sm: true, icon: 'send', needs: NEED, cmd: `capxul org crm email send ${ctx.rec.name} --in-reply-to ${it.id} --body-file reply.md --confirm`, onClick: () => ctx.compose.open({ replyTo: it }) }),
-      cx.btn('Reply all', { sm: true, needs: NEED, cmd: `capxul org crm email send ${ctx.rec.name} --in-reply-to ${it.id} --body-file reply.md${(it.cc || []).map((c) => ' --cc ' + c).join('')} --confirm`, onClick: () => ctx.compose.open({ replyTo: it, all: true }) })) : null);
+      cx.btn('Reply', { sm: true, icon: 'send', needs: NEED, onClick: () => ctx.compose.open({ replyTo: it }) }),
+      cx.btn('Reply all', { sm: true, needs: NEED, onClick: () => ctx.compose.open({ replyTo: it, all: true }) })) : null);
   return actRow(out && it.by ? cx.avatar(it.by) : extAvatar(name), null, card, { ic: 'k-email' });
 }
 function callCard(it, ctx) {
@@ -465,7 +791,8 @@ function callCard(it, ctx) {
   const card = h('div.crm-card.click', { onclick: () => callModal(c) },
     h('div.crm-call-h', cx.icon(outb ? 'out' : 'in', { size: 14 }), h('b', outb ? 'Outbound call' : 'Inbound call'), cx.pill(c.status), h('span.grow'), h('span.crm-badge', fmt.date(c.at)), h('span.crm-badge', durText(c.duration))),
     h('div.crm-call-who', extAvatar(c.caller, { size: 'sm' }), c.caller, cx.icon('right', { size: 12 }), extAvatar(c.receiver, { size: 'sm' }), c.receiver),
-    c.note ? h('div', { style: 'color:var(--fg-2);white-space:pre-wrap;overflow-wrap:anywhere' }, c.note) : null);
+    c.note ? h('div', { style: 'color:var(--fg-2);white-space:pre-wrap;overflow-wrap:anywhere' }, c.note) : null,
+    h('div.crm-logged', cx.avatar(c.by || it.by), h('span', `Logged by ${cx.name(c.by || it.by)}, with a short summary`)));
   const line = [h('b', c.caller), outb ? 'has made a call' : 'has reached out', when(c.at)];
   return actRow(cx.icon('phone'), line, card, { ic: missed ? 'k-missed' : 'k-call' });
 }
@@ -488,7 +815,7 @@ function waBubble(it) {
 function waRow(it) {
   const out = it.direction === 'out';
   const line = out ? [h('b', it.by ? cx.name(it.by) : 'Harbourline'), 'sent a WhatsApp message', when(it.at)] : [h('b', it.fromName || it.from), 'sent a WhatsApp message', when(it.at)];
-  return actRow(cx.icon('message'), line, h('div.crm-wa', waBubble(it)), { ic: 'k-whatsapp' });
+  return actRow(cx.icon('message'), line, h('div.crm-wa', waBubble(it), loggedLine(it)), { ic: 'k-whatsapp' });
 }
 function moneyCard(it, ctx) {
   const p = PAYMENT.get(it.payment);
@@ -514,13 +841,12 @@ function moneyCard(it, ctx) {
 function takeBackBtn(esc, p) {
   const dept = esc.from;
   const signer = cx.holds(dept) ? cx.meId() : cx.holders(dept).find((x) => !String(x).startsWith('@')) || cx.meId();
-  const cmd = `capxul payment cancel ${p?.proof?.paymentId || esc.payment} --org harbourline`;
-  return cx.btn('Take it back', { sm: true, kind: 'danger', icon: 'swap', needs: { dept }, cmd, onClick: async () => {
-    const r = await cx.approval({ title: `Take back ${fmt.usdc(esc.amount)} from ${esc.email}`, from: `Escrow ${fmt.addr(esc.escrowAddress)}`, to: `${cx.deptName(dept)} budget · Harbourline Treasury`, amount: esc.amount, asset: 'USDC', gbp: p?.gbp, rate: p?.rate, signer, hat: cx.deptName(dept), cmd, next: `capxul payment wait ${esc.payment}`, warnings: ['Nobody has claimed it yet. Once it is back, the claim link stops working.'] });
+  return cx.btn('Take it back', { sm: true, kind: 'danger', icon: 'swap', needs: { dept }, onClick: async () => {
+    const r = await cx.approval({ title: `Take back ${fmt.usdc(esc.amount)} from ${esc.email}`, from: `Escrow ${fmt.addr(esc.escrowAddress)}`, to: `${cx.deptName(dept)} budget · Harbourline Treasury`, amount: esc.amount, asset: 'USDC', gbp: p?.gbp, rate: p?.rate, signer, hat: cx.deptName(dept), warnings: ['Nobody has claimed it yet. Once it is back, the claim link stops working.'] });
     if (r.status !== 'done') return;
     esc.status = 'Taken back'; esc.takenBackAt = r.at; esc.takenBackBy = cx.meId(); esc.takeBackTx = r.tx;
     if (p) p.status = 'Taken back';
-    cx.toast(`${fmt.usdc(esc.amount)} is back in the ${cx.deptName(dept)} budget`, { tone: 'success', cmd });
+    cx.toast(`${fmt.usdc(esc.amount)} is back in the ${cx.deptName(dept)} budget`, { tone: 'success' });
     cx.refresh();
   } });
 }
@@ -531,11 +857,50 @@ function changesRow(it, kind) {
   const btn = h('button.crm-more', { type: 'button', onclick: () => { list.hidden = !list.hidden; btn.textContent = list.hidden ? `Show +${n} changes from ${name}` : `Hide the ${n} changes`; } }, `Show +${n} changes from ${name}`);
   return actRow(null, [btn, when(it.at)], list, { ic: 'k-dot' });
 }
+/** The agent's qualification of a lead, as it stands: score, the four checks, the organisation and the owner. */
+function qualCard(l, o = {}) {
+  const q = qualOf(l);
+  const tone = scoreTone(q.score);
+  const lvl = (x) => { if (!x.level) return h('span', cx.dot(x.text, 'gray')); const [w, t] = LEVEL[x.level]; return h('span', cx.dot(w, t), ' ', h('span.muted', x.text)); };
+  return h('div.crm-card', { style: o.flat ? 'border:0;padding:0' : null },
+    h('div.crm-score', h('b', String(q.score)), h('div', { style: 'display:grid;gap:4px;min-width:0' }, h('div.bar', h('i', { style: `width:${q.score}%;background:var(--t-${tone})` })), h('span.muted', { style: 'font-size:12px' }, 'Score out of 100'))),
+    h('div.crm-reason', q.reason),
+    h('div.crm-qual',
+      h('div', h('small', 'Fit'), lvl(q.fit)), h('div', h('small', 'Budget'), lvl(q.budget)),
+      h('div', h('small', 'Timing'), lvl(q.timing)), h('div', h('small', 'Need'), lvl(q.need))),
+    o.org === false ? null : h('div.crm-qual',
+      h('div', h('small', 'Organisation'), h('span', [l.org, l.employees ? SIZE_WORD[l.employees] || l.employees : null, l.industry].filter(Boolean).join(' · ') || '—')),
+      h('div', h('small', 'Website'), h('span', l.website || '—')),
+      h('div', h('small', 'Arrived by'), channelTag(q.channel)),
+      h('div', h('small', 'Routed to'), h('span', l.owner ? cx.personChip(l.owner, { link: false }) : '—', h('span.muted', { style: 'font-size:12px' }, ' · ' + q.routeWhy)))),
+    h('div.crm-logged', agentAvatar(), h('span', `Scored by the sales agent ${durHuman(hoursBetween(q.arrival, q.scoredAt))} after it arrived${q.updatedAt ? `; updated after the conversation on ${fmt.date(q.updatedAt)}` : ''}`)));
+}
+function meetingCard(it) {
+  const end = isoPlus(it.at, it.minutes || 60);
+  const card = h('div.crm-card',
+    h('div.crm-meet-h', cx.icon('calendar', { size: 14 }), h('b', { style: 'overflow-wrap:anywhere' }, it.title), it.upcoming ? cx.pill(it.booked ? 'Booked' : 'Proposed', it.booked ? 'info' : 'muted') : null, h('span.grow'), h('span.crm-badge', `${fmt.day(it.at)}, ${fmt.time(it.at)} to ${fmt.time(end)}`), h('span.crm-badge', `${it.minutes || 60} min`)),
+    h('div.crm-call-who', cx.icon('globe', { size: 12 }), it.location, h('span', '·'), (it.attendees || []).join(', ')),
+    it.notes ? h('div', { style: 'color:var(--fg-2);white-space:pre-wrap;overflow-wrap:anywhere' }, it.notes) : null,
+    loggedLine(it));
+  return actRow(cx.icon('calendar'), [h('b', cx.name(it.by)), it.upcoming ? 'has a meeting booked' : 'had a meeting', when(it.at)], card, { ic: 'k-call' });
+}
 function actItem(it, ctx) {
   const kind = it.recordType === 'Lead' ? 'lead' : 'deal';
   const who = it.by ? h('b', cx.name(it.by)) : null;
   switch (it.kind) {
-    case 'creation': return actRow(cx.icon(kind === 'lead' ? 'user' : 'crm'), [who, lineText(it), it.source ? h('span.muted', `· source ${it.source}`) : null, when(it.at)]);
+    case 'creation': {
+      const by = loggedBy(it);
+      if (kind === 'lead' && isAgent(by)) { const l = C.leads.find((x) => x.name === it.recordName); const q = l && qualOf(l); return actRow(agentAvatar(), [h('b', AGENT_NAME), `created this lead from ${q?.channel === 'Website form' ? 'the website form' : q?.channel === 'WhatsApp' ? 'a WhatsApp message' : q?.channel === 'Campaign' ? 'a reply to the campaign' : q?.channel === 'Referral' ? 'an introduction by email' : 'an email'}`, when(it.at)]); }
+      return actRow(cx.icon(kind === 'lead' ? 'user' : 'crm'), [who, lineText(it), it.source ? h('span.muted', `· source ${it.source}`) : null, when(it.at)]);
+    }
+    case 'agent': {
+      const l = C.leads.find((x) => x.name === it.recordName); if (!l) return null;
+      const q = qualOf(l);
+      return actRow(agentAvatar(), [h('b', AGENT_NAME), 'scored this lead and routed it', when(it.at)], h('div.crm-card',
+        h('div.crm-call-h', scorePill(q.score), h('span.crm-reason', { style: 'flex:1;min-width:0' }, q.reason)),
+        h('div.crm-call-who', h('span', [l.employees ? SIZE_WORD[l.employees] : null, l.industry, l.website].filter(Boolean).join(' · ') || 'Organisation not found'), h('span', '·'), h('span', 'routed to'), l.owner ? cx.personChip(l.owner, { link: false }) : '—', h('span', `(${q.routeWhy})`))));
+    }
+    case 'meeting': return meetingCard(it);
     case 'converted': return actRow(cx.icon('swap'), [who, ctx?.kind === 'lead' ? ['converted this lead to ', cx.link(it.deal, 'deal', it.deal)] : 'converted the lead to this deal', when(it.at)], null, { ic: 'k-task' });
     case 'changed': return actRow(null, it.from == null || it.from === '' ? [who, 'added', h('b', it.field), 'as', valNode(kind, it.field, it.to), when(it.at)] : [who, 'changed', h('b', it.field), 'from', valNode(kind, it.field, it.from), 'to', valNode(kind, it.field, it.to), when(it.at)], null, { ic: 'k-dot' });
     case 'changes': return changesRow(it, kind);
@@ -565,7 +930,7 @@ const orderBtn = () => { const desc = cx.store.get('crm-order', 'asc') === 'desc
 function composer(ctx) {
   const root = h('div.crm-compose');
   const closed = () => cx.fill(root, h('div.crm-btnrow',
-    cx.btn('Reply', { icon: 'mail', needs: NEED, cmd: `capxul org crm email send ${ctx.rec.name} --subject "…" --body-file reply.md --confirm`, onClick: () => api.open({}) }),
+    cx.btn('Reply', { icon: 'mail', needs: NEED, onClick: () => api.open({}) }),
     h('span.muted', { style: 'font-size:12.5px' }, ctx.toEmail ? `Emails go from the CRM mailbox to ${ctx.toEmail} and land on this timeline.` : 'This record has no email address yet.')));
   const api = {
     el: root,
@@ -578,27 +943,22 @@ function composer(ctx) {
         cc: o.all && replyTo?.cc?.length ? replyTo.cc.join(', ') : '',
         subject: last ? (/^re:/i.test(last.subject) ? last.subject : 'Re: ' + last.subject) : '', body: '',
       };
-      const cmd = () => `capxul org crm email send ${ctx.rec.name} ${replyTo ? `--in-reply-to ${replyTo.id}` : `--subject ${q(m.subject || '…')}`} --body-file reply.md${m.to && m.to !== ctx.toEmail ? ` --to ${m.to}` : ''}${m.cc ? m.cc.split(/[,\s]+/).filter(Boolean).map((c) => ' --cc ' + c).join('') : ''} --confirm`;
-      const cmdBox = h('div');
-      const draw = () => { cx.fill(cmdBox, cmdBlock(cmd())); cx.showAction(cmd(), 'Send an email', { pin: true }); };
-      const f = (spec) => cx.field({ ...spec, model: m, edit: true, onChange: draw });
+      const f = (spec) => cx.field({ ...spec, model: m, edit: true });
       cx.fill(root,
         h('div', { style: 'display:flex;align-items:center;gap:8px' }, h('b', replyTo ? 'Reply' : 'New email'), h('span.muted', { style: 'font-size:12.5px' }, `from ${cx.me().name} <${memberEmail(cx.meId())}>`)),
         h('div.row2', f({ label: 'To', key: 'to' }), f({ label: 'Cc', key: 'cc', placeholder: 'Optional' })),
         f({ label: 'Subject', key: 'subject' }),
         f({ label: 'Message', key: 'body', type: 'textarea', rows: 6, placeholder: 'Write your email' }),
-        cmdBox,
         h('div.crm-btnrow', cx.btn('Send', { kind: 'primary', icon: 'send', needs: NEED, onClick: () => {
           if (!m.to || !m.body.trim()) { cx.toast('Add who it goes to and a message.', { tone: 'warning' }); return; }
           if (!m.subject.trim()) { cx.toast('Add a subject.', { tone: 'warning' }); return; }
-          sendPreview({ title: 'Send this email?', rows: [['From', `${cx.me().name} at Harbourline <${memberEmail(cx.meId())}>`], ['To', m.to], m.cc ? ['Cc', m.cc] : null, ['Subject', m.subject]], body: m.body, cmd: cmd(), onSend: () => {
+          sendPreview({ title: 'Send this email?', rows: [['From', `${cx.me().name} at Harbourline <${memberEmail(cx.meId())}>`], ['To', m.to], m.cc ? ['Cc', m.cc] : null, ['Subject', m.subject]], body: m.body, onSend: () => {
             addItem(ctx.rec.name, recType(ctx.kind), { kind: 'email', direction: 'out', from: memberEmail(cx.meId()), fromName: cx.me().name, to: [m.to], cc: m.cc ? m.cc.split(/[,\s]+/).filter(Boolean) : [], subject: m.subject, body: m.body, attachments: [], inReplyTo: replyTo?.id || null });
             ctx.rec.modifiedAt = NOW();
-            cx.toast(`Email sent to ${m.to}`, { tone: 'success', cmd: cmd() });
+            cx.toast(`Sent to ${m.to} (mock-up: nothing is sent)`, { tone: 'success' });
             cx.refresh();
           } });
-        } }), cx.btn('Discard', { kind: 'ghost', onClick: () => { cx.clearAction(); closed(); } }), h('span.grow'), h('span.muted', { style: 'font-size:12px' }, 'You answer a preview before it goes.')));
-      draw();
+        } }), cx.btn('Discard', { kind: 'ghost', onClick: () => closed() }), h('span.grow'), h('span.muted', { style: 'font-size:12px' }, 'You answer a preview before it goes.')));
       root.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
       setTimeout(() => root.querySelector('textarea')?.focus(), 60);
     },
@@ -606,13 +966,12 @@ function composer(ctx) {
   closed();
   return api;
 }
-/** The preview a send answers (the command ends in --confirm). */
+/** The preview a send answers before it goes. */
 function sendPreview(o) {
   const md = cx.modal({ title: o.title, body: h('div', { style: 'display:grid;gap:12px' },
     h('div.sheet', o.rows.filter(Boolean).map(([k, v]) => h('div.sheet-row', h('span', k), h('span', v)))),
     o.body ? h('div.crm-card', h('div.crm-mail-body', o.body)) : null,
-    cmdBlock(o.cmd),
-    h('p.muted', { style: 'font-size:12.5px' }, 'The FDE can draft a send, but only you can answer its preview.')),
+    h('p.muted', { style: 'font-size:12.5px' }, 'Nothing goes until you press Send.')),
   actions: [cx.btn('Back', { onClick: () => md.close() }), cx.btn('Send', { kind: 'primary', icon: 'send', onClick: () => { md.close(); o.onSend(); } })] });
 }
 function callModal(c) {
@@ -625,8 +984,7 @@ function callModal(c) {
       ['Started', fmt.datetime(c.at)], ['Telephony medium', 'Manual'],
       rec ? ['Record', cx.link(recLabel(rec), recRoute(rec), rec)] : null,
     ]),
-    c.note ? h('div.crm-card', h('b', 'Note'), h('div', { style: 'white-space:pre-wrap;color:var(--fg-2)' }, c.note)) : null,
-    cmdBlock(`capxul org crm timeline ${rec} --kind call`)), actions: [{ label: 'Close', primary: true }] });
+    c.note ? h('div.crm-card', h('b', 'Summary'), h('div', { style: 'white-space:pre-wrap;color:var(--fg-2)' }, c.note)) : null), actions: [{ label: 'Close', primary: true }] });
 }
 function numberOf(personName, rec) {
   const ct = C.contacts.find((c) => c.name === personName); if (ct?.mobile) return ct.mobile;
@@ -637,7 +995,7 @@ function logCallModal(ctx) {
   const m = { type: 'Outgoing', status: 'Completed', number: ctx.mobile || '', start: `${TODAY}T10:30`, minutes: 15, note: '' };
   const startInput = h('input.finput', { type: 'datetime-local', value: m.start, oninput: (e) => { m.start = e.target.value; } });
   formModal({
-    title: 'Log a call', model: m, needs: NEED, submit: 'Log the call', who: 'whoever wears the People hat',
+    title: 'Log a call', model: m, needs: NEED, submit: 'Log the call', 
     intro: 'Capxul has no telephony: a call you made or took on your phone is logged by hand.',
     fields: [
       { label: 'Type', key: 'type', type: 'select', options: ['Outgoing', 'Incoming'] },
@@ -647,15 +1005,14 @@ function logCallModal(ctx) {
       { label: 'Duration (minutes)', key: 'minutes', type: 'int' },
       { label: 'Note', key: 'note', type: 'textarea', wide: true, placeholder: 'What was said' },
     ],
-    cmd: (x) => `capxul org crm call log ${ctx.rec.name} --type ${x.type.toLowerCase()} --status ${x.status.toLowerCase().replace(/ /g, '-')}${x.number ? ` --number ${q(x.number)}` : ''} --start ${x.start} --duration ${Math.round((+x.minutes || 0) * 60)}${x.note ? ` --note ${q(x.note)}` : ''}`,
-    onSubmit: (x, close, cmd) => {
+    onSubmit: (x, close) => {
       const me = cx.me().name, other = ctx.personName || ctx.name;
       const at = new Date(x.start + ':00Z').toISOString().replace(/\.\d{3}Z$/, 'Z');
       const name = nextName('CALL-', C.calls.map((c) => c.name));
       const rec = { name, type: x.type, status: x.status, duration: x.status === 'Completed' ? Math.round((+x.minutes || 0) * 60) : 0, caller: x.type === 'Outgoing' ? me : other, receiver: x.type === 'Outgoing' ? other : me, note: x.note || null, at, by: cx.meId(), reference: ctx.rec.name, referenceType: recType(ctx.kind) };
       C.calls.push(rec);
       addItem(ctx.rec.name, recType(ctx.kind), { kind: 'call', call: name, type: rec.type, status: rec.status, duration: rec.duration, caller: rec.caller, receiver: rec.receiver, note: rec.note, at });
-      close(); cx.toast('Call logged', { tone: 'success', cmd }); cx.refresh();
+      close(); cx.toast('Call logged', { tone: 'success' }); cx.refresh();
     },
   });
 }
@@ -668,10 +1025,9 @@ function noteModal(ctx, note, shown) {
   const m = { title: n?.title || '', content: n?.content || '' };
   const recName = ctx?.rec?.name || n?.reference;
   formModal({
-    title: note ? 'Edit note' : 'New note', model: m, cols: 1, needs: NEED, submit: note ? 'Update' : 'Create', who: 'whoever wears the People hat',
+    title: note ? 'Edit note' : 'New note', model: m, cols: 1, needs: NEED, submit: note ? 'Update' : 'Create', 
     fields: [{ label: 'Title', key: 'title', reqd: true, placeholder: 'Call with John Doe' }, { label: 'Content', key: 'content', type: 'textarea', rows: 7, placeholder: 'Took a call with John Doe and discussed the new project.' }],
-    cmd: (x) => (note ? `capxul org crm note change ${note.name} --title ${q(x.title)} --content ${q(x.content)}` : `capxul org crm note add ${recName} ${q(x.title || '<title>')}${x.content ? ` --content ${q(x.content)}` : ''}`),
-    onSubmit: (x, close, cmd) => {
+    onSubmit: (x, close) => {
       if (note) {
         const it = C.timeline.find((t) => t.kind === 'note' && (t.note === note.name || (t.recordName === note.reference && t.at === note.at && t.title === note.title)));
         note.title = x.title; note.content = x.content; if (it) { it.title = x.title; it.content = x.content; }
@@ -682,7 +1038,7 @@ function noteModal(ctx, note, shown) {
         C.notes.push({ name, title: x.title, content: x.content, by: cx.meId(), at, reference: recName, referenceType: kind === 'lead' ? 'Lead' : 'Deal' });
         addItem(recName, kind === 'lead' ? 'Lead' : 'Deal', { kind: 'note', note: name, title: x.title, content: x.content, at });
       }
-      close(); cx.toast(note ? 'Note updated' : 'Note added', { tone: 'success', cmd }); cx.refresh();
+      close(); cx.toast(note ? 'Note updated' : 'Note added', { tone: 'success' }); cx.refresh();
     },
   });
 }
@@ -703,25 +1059,12 @@ function taskModal(ctx, task, preset = {}) {
     { label: 'Due date', node: dueInput(m) },
     { label: 'Priority', key: 'priority', type: 'select', options: PRIORITIES, readOnly: !!t && !canEdit },
   ];
-  const cmd = (x) => {
-    if (!t) return `capxul org crm task create ${x.reference || '<record>'} ${q(x.title || '<title>')} --assigned-to ${memberEmail(x.assignedTo)}${x.due ? ` --due ${x.due}` : ''} --priority ${x.priority.toLowerCase()} --status ${x.status.toLowerCase()}${x.description ? ` --description ${q(x.description)}` : ''}`;
-    const lines = [];
-    const flags = [];
-    if (x.title !== t.title) flags.push(`--title ${q(x.title)}`);
-    if (x.assignedTo !== t.assignedTo) flags.push(`--assigned-to ${memberEmail(x.assignedTo)}`);
-    if ((x.due || '') !== (t.due ? t.due.slice(0, 16) : '')) flags.push(x.due ? `--due ${x.due}` : '--clear due');
-    if (x.priority !== t.priority) flags.push(`--priority ${x.priority.toLowerCase()}`);
-    if (x.description !== (t.description || '')) flags.push(`--description ${q(x.description)}`);
-    if (flags.length) lines.push(`capxul org crm task change ${t.name} ${flags.join(' ')}`);
-    if (x.status !== t.status) lines.push(`capxul org crm task move ${t.name} ${q(x.status)}`);
-    return lines.length ? lines : [`capxul org crm task change ${t.name}`];
-  };
   formModal({
-    title: t ? t.title : 'New task', model: m, needs: t ? (canMove || canEdit ? null : NEED) : NEED, submit: t ? 'Update' : 'Create', who: t ? 'whoever wears the People hat; the assignee moves their own task' : 'whoever wears the People hat',
+    title: t ? t.title : 'New task', model: m, needs: t ? (canMove || canEdit ? null : NEED) : NEED, submit: t ? 'Update' : 'Create', 
     intro: t ? h('div.muted', { style: 'font-size:12.5px' }, `${t.name} · on `, cx.link(recLabel(t.reference), recRoute(t.reference), t.reference), ` · added by ${cx.name(t.by)} ${fmt.agoLong(t.at)}`) : null,
-    fields, cmd,
+    fields,
     check: (x) => (!t && !x.reference ? 'Choose the lead or deal this task is for.' : null),
-    onSubmit: (x, close, spec) => {
+    onSubmit: (x, close) => {
       if (!t) {
         const name = nextName('CRM-TASK-', C.tasks.map((y) => y.name));
         const at = NOW();
@@ -733,7 +1076,7 @@ function taskModal(ctx, task, preset = {}) {
         if (x.status !== t.status) { t.status = x.status; if (x.status === 'Done') t.doneAt = NOW(); }
         t.modifiedAt = NOW();
       }
-      close(); cx.toast(t ? 'Task updated' : 'Task created', { tone: 'success', cmd: [].concat(spec)[0] }); cx.refresh();
+      close(); cx.toast(t ? 'Task updated' : 'Task created', { tone: 'success'}); cx.refresh();
     },
   });
 }
@@ -760,24 +1103,19 @@ function whatsappPane(ctx) {
   const open = lastIn && Date.parse(NOW()) - Date.parse(lastIn.at) < 86400000;
   const first = ctx.firstName || (ctx.personName || ctx.name || '').split(' ')[0];
   const m = { text: '', template: WA_TEMPLATES[0].name };
-  const cmd = () => (open ? `capxul org crm whatsapp send ${ctx.rec.name} --text ${q(m.text || '…')} --confirm` : `capxul org crm whatsapp send ${ctx.rec.name} --template ${m.template} --param ${q(first)} --confirm`);
-  const cmdBox = h('div');
-  const draw = () => cx.fill(cmdBox, cmdBlock(cmd()));
   const box = h('div.crm-wa-box',
     open ? null : cx.banner(`The last message from ${first || 'them'} is more than 24 hours old, so WhatsApp only takes an approved template now.`, { tone: 'info' }),
-    open ? cx.field({ label: 'Message', key: 'text', model: m, edit: true, type: 'textarea', rows: 2, placeholder: 'Type your message', onChange: draw })
-      : cx.field({ label: 'Template', key: 'template', model: m, edit: true, type: 'select', options: WA_TEMPLATES.map((t) => [t.name, `${t.name}: ${t.text(first)}`]), onChange: draw }),
-    cmdBox,
+    open ? cx.field({ label: 'Message', key: 'text', model: m, edit: true, type: 'textarea', rows: 2, placeholder: 'Type your message' })
+      : cx.field({ label: 'Template', key: 'template', model: m, edit: true, type: 'select', options: WA_TEMPLATES.map((t) => [t.name, `${t.name}: ${t.text(first)}`]) }),
     h('div.crm-btnrow', h('span.muted', { style: 'font-size:12.5px' }, `To ${ctx.mobile}, from Harbourline's WhatsApp number`), h('span.grow'),
       cx.btn('Send', { kind: 'primary', icon: 'send', needs: NEED, onClick: () => {
         const text = open ? m.text.trim() : WA_TEMPLATES.find((t) => t.name === m.template).text(first);
         if (!text) { cx.toast('Type a message first.', { tone: 'warning' }); return; }
-        sendPreview({ title: 'Send this WhatsApp message?', rows: [['To', ctx.mobile], ['From', "Harbourline's WhatsApp number"], open ? null : ['Template', m.template]], body: text, cmd: cmd(), onSend: () => {
+        sendPreview({ title: 'Send this WhatsApp message?', rows: [['To', ctx.mobile], ['From', "Harbourline's WhatsApp number"], open ? null : ['Template', m.template]], body: text, onSend: () => {
           addItem(ctx.rec.name, recType(ctx.kind), { kind: 'whatsapp', direction: 'out', from: 'Harbourline', to: ctx.mobile, text, template: open ? null : m.template, status: 'sent' });
-          cx.toast('WhatsApp message sent', { tone: 'success', cmd: cmd() }); cx.refresh();
+          cx.toast(`Sent to ${ctx.mobile} (mock-up: nothing is sent)`, { tone: 'success' }); cx.refresh();
         } });
       } })));
-  draw();
   return h('div', thread, box);
 }
 
@@ -798,7 +1136,7 @@ const ownerOpts = () => members().map((id) => [id, cx.name(id)]);
 
 /**
  * One field of the side panel. Click to edit (People hat); Enter or leaving the field saves it at once, with its
- * command, and the change lands on the timeline. d: { label, get, set, display, type, options, cmd(v), text(v), noTimeline }
+ * and the change lands on the timeline. d: { label, get, set, display, type, options, text(v), noTimeline }
  */
 function sideField(d, o) {
   const canEdit = !d.readOnly && cx.allowed(NEED).ok;
@@ -814,23 +1152,21 @@ function sideField(d, o) {
     if (d.type === 'select') input = h('select.finput', { 'aria-label': d.label }, [['', '—'], ...(typeof d.options === 'function' ? d.options() : d.options)].map((op) => { const [a, b] = Array.isArray(op) ? op : [op, op]; return h('option', { value: a, selected: String(a) === String(v ?? '') }, b); }));
     else input = h('input.finput', { 'aria-label': d.label, type: d.type === 'date' ? 'date' : d.type === 'number' ? 'number' : 'text', step: d.type === 'number' ? 'any' : null, value: v ?? '' });
     const read = () => (d.type === 'number' ? (input.value === '' ? null : +input.value) : input.value.trim());
-    const pin = () => cx.showAction(d.cmd(read() ?? ''), `Change ${d.label}`, { pin: true });
     let done = false;
     const commit = () => {
       if (done) return; done = true;
       const nv = read();
-      if (String(nv ?? '') === String(v ?? '')) { wrap.replaceChild(val, input); cx.clearAction(); return; }
+      if (String(nv ?? '') === String(v ?? '')) { wrap.replaceChild(val, input); return; }
       d.set(nv);
       if (!d.noTimeline) addChanges(o.kind, o.rec, [[d.field || d.label, v == null || v === '' ? null : (d.text ? d.text(v) : String(v)), nv == null || nv === '' ? '—' : (d.text ? d.text(nv) : String(nv))]]);
-      cx.toast(`${d.label} saved`, { tone: 'success', cmd: d.cmd(nv ?? '') });
+      cx.toast(`${d.label} saved`, { tone: 'success'});
       cx.refresh();
     };
-    input.addEventListener('input', pin);
-    input.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); commit(); } else if (e.key === 'Escape') { e.stopPropagation(); done = true; wrap.replaceChild(val, input); cx.clearAction(); } });
+    input.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); commit(); } else if (e.key === 'Escape') { e.stopPropagation(); done = true; wrap.replaceChild(val, input); } });
     if (d.type === 'select' || d.type === 'date') input.addEventListener('change', commit);
     input.addEventListener('blur', commit);
     wrap.replaceChild(input, val);
-    input.focus(); pin();
+    input.focus();
   });
   return wrap;
 }
@@ -847,12 +1183,12 @@ function quickBtns(ctx, site) {
   return [
     cx.btn('', { icon: 'mail', title: 'Send an email', needs: NEED, sm: true, onClick: () => ctx.openEmail?.() }),
     site ? cx.btn('', { icon: 'globe', title: 'Go to website', sm: true, onClick: () => cx.toast(`Opens https://${site} in a new tab. The mock-up stays on this page.`, { tone: 'info' }) }) : null,
-    cx.btn('', { icon: 'file', title: 'Attach a file', sm: true, onClick: () => cx.toast('Capxul names attachments on emails; it does not keep files in this version.', { tone: 'info' }) }),
+    cx.btn('', { icon: 'file', title: 'Attach a file', sm: true, onClick: () => cx.toast('Attachments travel on emails in this mock-up.', { tone: 'info' }) }),
   ];
 }
 function leadSide(l, ctx) {
   const o = { kind: 'lead', rec: l };
-  const F = (key, label, x = {}) => sideField({ label, get: () => l[key], set: (v) => { l[key] = v; }, cmd: (v) => `capxul org crm lead change ${l.name} ${LEAD_FLAG[key]} ${flagVal(key, v)}`, ...x }, o);
+  const F = (key, label, x = {}) => sideField({ label, get: () => l[key], set: (v) => { l[key] = v; }, ...x }, o);
   const ct = CONTACT.get(l.contact);
   const cap = l.converted && ct ? capxulOf(ct)
     : { line: 'A lead. Capxul names this person in its directory only once the lead is converted; until then Harbourline cannot pay them.' };
@@ -860,18 +1196,25 @@ function leadSide(l, ctx) {
     idBtn(l.name),
     h('div.crm-head', h('div.crm-head-top', extAvatar(leadName(l), { size: 'xl' }), h('div', { style: 'min-width:0' }, h('h2', leadName(l)), h('div.muted', [l.jobTitle, l.org].filter(Boolean).join(' at ')))),
       h('div.crm-quick', quickBtns(ctx, l.website))),
-    sideSec('Details', [
+    sideSec('Qualification', [qualCard(l, { flat: true, org: false })], { key: 'lead-qual' }),
+    sideSec('Organisation', [
       F('org', 'Company', { display: (v) => (v && l.company && COMPANY.has(l.company) ? cx.link(v, 'company', l.company) : v) }),
       F('website', 'Website'),
+      F('industry', 'Sector', { type: 'select', options: INDUSTRIES }),
+      F('employees', 'Size', { type: 'select', options: EMPLOYEES, display: (v) => (v ? SIZE_WORD[v] || v : null) }),
       F('territory', 'Territory', { type: 'select', options: TERRITORIES }),
-      F('industry', 'Industry', { type: 'select', options: INDUSTRIES }),
-      F('jobTitle', 'Job title'),
+      h('div.crm-logged', { style: 'padding:2px 4px 4px' }, agentAvatar(), h('span', `Enriched by the sales agent from the website and Companies House, ${fmt.date(qualOf(l).scoredAt)}`)),
+    ], { key: 'lead-org' }),
+    sideSec('Routing', [
+      h('div.crm-f', h('div.crm-f-l', 'Arrived by'), h('div.crm-f-v', channelTag(qualOf(l).channel))),
+      h('div.crm-f', h('div.crm-f-l', 'Arrived'), h('div.crm-f-v', fmt.datetime(qualOf(l).arrival))),
       F('source', 'Source', { type: 'select', options: SOURCES }),
       F('owner', 'Lead owner', { type: 'select', options: ownerOpts, display: (v) => (v ? cx.personChip(v, { link: false }) : null), text: (v) => cx.name(v) }),
-      F('employees', 'No. of employees', { type: 'select', options: EMPLOYEES }),
-    ], { key: 'lead-details' }),
+      h('div.crm-f', h('div.crm-f-l', 'Why them'), h('div.crm-f-v', uc1(qualOf(l).routeWhy))),
+      h('div.crm-f', h('div.crm-f-l', 'First reply'), h('div.crm-f-v', qualOf(l).firstReplyAt ? `${durHuman(qualOf(l).firstReplyHours)} after it arrived` : h('span.faint', 'Not yet'))),
+    ], { key: 'lead-routing' }),
     sideSec('Person', [
-      F('firstName', 'First name'), F('lastName', 'Last name'), F('email', 'Email'), F('mobile', 'Mobile no.'),
+      F('firstName', 'First name'), F('lastName', 'Last name'), F('jobTitle', 'Job title'), F('email', 'Email'), F('mobile', 'Mobile no.'),
       h('div.crm-f-cap', h('b', 'Capxul'), h('span', cap.line), l.converted && ct ? cx.link(`Open ${ct.name}`, 'contact', ct.id) : null),
     ], { key: 'lead-person' }),
     l.lostReason ? sideSec('Lost details', [sideField({ label: 'Lost reason', get: () => l.lostReason, readOnly: true }, o), sideField({ label: 'Lost notes', get: () => l.lostNotes, readOnly: true }, o)]) : null);
@@ -888,8 +1231,8 @@ function contactBlock(d, entry) {
   return h('div.crm-pc',
     h('div.crm-pc-h', tog, entry.primary ? cx.pill('Primary', 'green') : null,
       cx.menu(null, [
-        { label: 'Set as primary contact', icon: 'check', needs: NEED, disabled: entry.primary, cmd: `capxul org crm deal change ${d.name} --primary ${c.id}`, onClick: () => { const old = primaryOf(d); d.contacts.forEach((x) => { x.primary = x.contact === c.id; }); addChanges('deal', d, [['Primary Contact', old?.name || null, c.name]]); cx.toast(`${c.name} is the primary contact`, { tone: 'success', cmd: `capxul org crm deal change ${d.name} --primary ${c.id}` }); cx.refresh(); } },
-        { label: 'Remove', icon: 'x', danger: true, needs: NEED, disabled: d.contacts.length < 2, reason: 'A deal keeps at least one contact.', cmd: `capxul org crm deal change ${d.name} --clear contact:${c.id}`, onClick: () => { d.contacts = d.contacts.filter((x) => x.contact !== c.id); if (!d.contacts.some((x) => x.primary)) d.contacts[0].primary = true; addChanges('deal', d, [['Contacts', c.name, '—']]); cx.toast(`${c.name} removed from the deal`, { tone: 'success', cmd: `capxul org crm deal change ${d.name} --clear contact:${c.id}` }); cx.refresh(); } },
+        { label: 'Set as primary contact', icon: 'check', needs: NEED, disabled: entry.primary, onClick: () => { const old = primaryOf(d); d.contacts.forEach((x) => { x.primary = x.contact === c.id; }); addChanges('deal', d, [['Primary Contact', old?.name || null, c.name]]); cx.toast(`${c.name} is the primary contact`, { tone: 'success'}); cx.refresh(); } },
+        { label: 'Remove', icon: 'x', danger: true, needs: NEED, disabled: d.contacts.length < 2, reason: 'A deal keeps at least one contact.', onClick: () => { d.contacts = d.contacts.filter((x) => x.contact !== c.id); if (!d.contacts.some((x) => x.primary)) d.contacts[0].primary = true; addChanges('deal', d, [['Contacts', c.name, '—']]); cx.toast(`${c.name} removed from the deal`, { tone: 'success'}); cx.refresh(); } },
       ], { sm: true, kind: 'ghost' }),
       h('a.btn.sm.ghost', { href: cx.href('contact', c.id), title: `Open ${c.name}`, 'aria-label': `Open ${c.name}` }, cx.icon('right'))),
     body);
@@ -898,21 +1241,27 @@ function addContactModal(d) {
   const m = { contact: '' };
   const here = contactsOfCompany(d.company).filter((c) => !d.contacts.some((x) => x.contact === c.id));
   const others = C.contacts.filter((c) => c.company !== d.company && !d.contacts.some((x) => x.contact === c.id));
-  formModal({ title: 'Add a contact to the deal', model: m, cols: 1, needs: NEED, submit: 'Add', who: 'whoever wears the People hat',
+  formModal({ title: 'Add a contact to the deal', model: m, cols: 1, needs: NEED, submit: 'Add', 
     fields: [{ label: 'Contact', key: 'contact', type: 'select', reqd: true, options: [['', 'Search contacts'], ...here.map((c) => [c.id, `${c.name} · ${companyName(d.company)}`]), ...others.map((c) => [c.id, `${c.name}${c.company ? ' · ' + companyName(c.company) : ''}`])] }],
-    cmd: (x) => `capxul org crm deal change ${d.name} --contact ${x.contact || '<contact>'}`,
-    onSubmit: (x, close, cmd) => { d.contacts.push({ contact: x.contact, primary: !d.contacts.length }); addChanges('deal', d, [['Contacts', null, contactName(x.contact)]]); close(); cx.toast(`${contactName(x.contact)} added to the deal`, { tone: 'success', cmd }); cx.refresh(); } });
+    onSubmit: (x, close) => { d.contacts.push({ contact: x.contact, primary: !d.contacts.length }); addChanges('deal', d, [['Contacts', null, contactName(x.contact)]]); close(); cx.toast(`${contactName(x.contact)} added to the deal`, { tone: 'success' }); cx.refresh(); } });
 }
 function dealSide(d, ctx) {
   const o = { kind: 'deal', rec: d };
   const co = COMPANY.get(d.company) || { name: d.title, id: d.company };
-  const F = (key, label, x = {}) => sideField({ label, get: () => d[key], set: (v) => { d[key] = v; }, cmd: (v) => `capxul org crm deal change ${d.name} ${DEAL_FLAG[key]} ${flagVal(key, v)}`, ...x }, o);
-  const CO = (key, label, x = {}) => sideField({ label, get: () => co[key], set: (v) => { co[key] = v; }, noTimeline: true, cmd: (v) => `capxul contact change ${co.id} ${CO_FLAG[key]} ${q(v)} --org harbourline`, ...x }, o);
+  const F = (key, label, x = {}) => sideField({ label, get: () => d[key], set: (v) => { d[key] = v; }, ...x }, o);
+  const CO = (key, label, x = {}) => sideField({ label, get: () => co[key], set: (v) => { co[key] = v; }, noTimeline: true, ...x }, o);
   const money = (v) => (v == null || v === '' ? null : fmt.money(v, d.currency, 2));
   return h('aside.crm-side',
     idBtn(d.name),
     h('div.crm-head', h('div.crm-head-top', extAvatar(co.name, { size: 'xl', square: true }), h('div', { style: 'min-width:0' }, h('h2', COMPANY.has(co.id) ? cx.link(co.name, 'company', co.id) : co.name), h('div.muted', co.onCapxul ? `${co.handle} · Safe ${fmt.addr(co.safe)}` : (co.website || '')))),
       h('div.crm-quick', quickBtns(ctx, co.website))),
+    sideSec('Progress', [
+      h('div.crm-f', h('div.crm-f-l', 'Stage'), h('div.crm-f-v', stDot('deal', d.status), ' ', staleTag(d))),
+      F('owner', 'Deal owner', { type: 'select', options: ownerOpts, display: (v) => (v ? cx.personChip(v, { link: false }) : null), text: (v) => cx.name(v) }),
+      h('div.crm-f', h('div.crm-f-l', 'Last touch'), h('div.crm-f-v', touchCell(d))),
+      F('nextStep', 'Next step'),
+      h('div.crm-f', h('div.crm-f-l', 'Next meeting'), h('div.crm-f-v', (() => { const m = itemsOf(d).find((i) => i.kind === 'meeting' && i.upcoming && i.at > NOW()); return m ? `${m.title}, ${fmt.datetime(m.at)}` : h('span.faint', 'None booked'); })())),
+    ], { key: 'deal-progress' }),
     sideSec('Contacts', d.contacts.map((e) => contactBlock(d, e)), { key: 'deal-contacts', count: d.contacts.length, add: cx.btn('', { sm: true, kind: 'ghost', icon: 'plus', title: 'Add a contact', needs: NEED, onClick: () => addContactModal(d) }) }),
     sideSec('Forecasted sales', [
       F('expectedClosureDate', 'Expected closure date', { type: 'date', display: (v) => (v ? fmt.date(v) : null), text: (v) => (v ? fmt.date(v) : '') }),
@@ -929,8 +1278,6 @@ function dealSide(d, ctx) {
       CO('territory', 'Territory', { type: 'select', options: TERRITORIES }),
       CO('annualRevenue', 'Annual revenue', { type: 'number', display: (v) => (v == null ? null : fmt.money(v, co.currency || 'GBP', 2)) }),
       F('closedDate', 'Closed date', { readOnly: true, display: (v) => (v ? fmt.date(v) : null) }),
-      F('nextStep', 'Next step'),
-      F('owner', 'Deal owner', { type: 'select', options: ownerOpts, display: (v) => (v ? cx.personChip(v, { link: false }) : null), text: (v) => cx.name(v) }),
     ], { key: 'deal-company' }),
     isLost('deal', d.status) ? sideSec('Lost details', [F('lostReason', 'Lost reason', { readOnly: true }), F('lostNotes', 'Lost notes', { readOnly: true })], { key: 'deal-lost' }) : null);
 }
@@ -945,18 +1292,16 @@ function dataTab(kind, rec) {
   const co = kind === 'deal' ? COMPANY.get(rec.company) || {} : COMPANY.get(rec.company) || null;
   const FLAGS = kind === 'lead' ? LEAD_FLAG : DEAL_FLAG;
   const changed = () => Object.keys(FLAGS).filter((k) => String(draft[k] ?? '') !== String(rec[k] ?? ''));
-  const cmdFor = () => { const ks = changed(); return `capxul org crm ${kind} change ${rec.name}${ks.length ? ' ' + ks.map((k) => `${FLAGS[k]} ${flagVal(k, draft[k])}`).join(' ') : ''}`; };
   const notSaved = cx.pill('Not saved', 'orange'); notSaved.hidden = true;
   const saveBtn = cx.btn('Save', { kind: 'primary', sm: true, needs: NEED, onClick: () => {
     const ks = changed(); if (!ks.length) return;
-    const cmd = cmdFor();
     const LABEL = { firstName: 'First Name', lastName: 'Last Name', email: 'Email', mobile: 'Mobile No.', jobTitle: 'Job Title', org: 'Organization', website: 'Website', industry: 'Industry', territory: 'Territory', employees: 'No. of Employees', source: 'Source', owner: kind === 'lead' ? 'Lead Owner' : 'Deal Owner', probability: 'Probability', dealValue: 'Deal Value', expectedDealValue: 'Expected Deal Value', currency: 'Currency', expectedClosureDate: 'Expected Closure Date', nextStep: 'Next Step' };
     addChanges(kind, rec, ks.map((k) => [LABEL[k] || k, rec[k] == null || rec[k] === '' ? null : k === 'owner' ? cx.name(rec[k]) : String(rec[k]), k === 'owner' ? cx.name(draft[k]) : String(draft[k] ?? '—')]));
     for (const k of ks) rec[k] = ['probability', 'dealValue', 'expectedDealValue'].includes(k) && draft[k] != null && draft[k] !== '' ? +draft[k] : draft[k];
-    cx.toast('Saved', { tone: 'success', cmd }); cx.refresh();
+    cx.toast('Saved', { tone: 'success' }); cx.refresh();
   } });
   saveBtn.hidden = true;
-  const onChange = () => { const n = changed().length; saveBtn.hidden = !n; notSaved.hidden = !n; if (n) cx.showAction(cmdFor(), 'Save', { pin: true }); };
+  const onChange = () => { const n = changed().length; saveBtn.hidden = !n; notSaved.hidden = !n; };
   const owner = { label: kind === 'lead' ? 'Lead owner' : 'Deal owner', key: 'owner', type: 'select', options: ownerOpts(), render: (x) => cx.personChip(x.owner, { link: false }) };
   const ro = (label, value, x = {}) => ({ label, value: value ?? '', readOnly: true, ...x });
   let secs;
@@ -980,7 +1325,7 @@ function dataTab(kind, rec) {
   }
   const body = h('div', secs.map((sec) => cx.section(sec, { doc: draft, editable: canEdit, onChange })));
   return h('div', h('div.crm-tabhead', h('h3', 'Data'), notSaved, saveBtn),
-    kind === 'deal' ? h('p.muted', { style: 'font-size:12.5px;padding:0 14px' }, "The company's own fields change on the company, with capxul contact change.") : null,
+    kind === 'deal' ? h('p.muted', { style: 'font-size:12.5px;padding:0 14px' }, "The company's own fields change on the company's page.") : null,
     body);
 }
 
@@ -999,13 +1344,12 @@ function taskRows(tasks, ctx) {
 }
 function taskMoveMenu(t) {
   const need = () => cx.wears('People') || t.assignedTo === cx.meId() || `Moving a task needs the People hat, or to be its assignee. ${namesList(peopleWearers())} wear People; ${cx.name(t.assignedTo)} is the assignee.`;
-  return cx.menu(t.status, TASK_ST.map((st) => ({ label: h('span.crm-tst', taskIcon(st), st), on: st === t.status, needs: need, cmd: `capxul org crm task move ${t.name} ${q(st)}`, onClick: () => moveTask(t, st) })), { sm: true, kind: 'ghost' });
+  return cx.menu(t.status, TASK_ST.map((st) => ({ label: h('span.crm-tst', taskIcon(st), st), on: st === t.status, needs: need, onClick: () => moveTask(t, st) })), { sm: true, kind: 'ghost' });
 }
 function moveTask(t, st) {
   if (t.status === st) return true;
-  const cmd = `capxul org crm task move ${t.name} ${q(st)}`;
   t.status = st; t.modifiedAt = NOW(); if (st === 'Done') t.doneAt = NOW();
-  cx.toast(`${t.title}: ${st}`, { tone: 'success', cmd }); cx.showAction(cmd, 'Move the task', { pin: true });
+  cx.toast(`${t.title}: ${st}`, { tone: 'success' });
   cx.refresh();
   return true;
 }
@@ -1020,15 +1364,15 @@ function noteTile(n, ctx, withRecord) {
     h('footer', cx.avatar(n.by, { size: 'sm' }), h('span', cx.name(n.by)), h('span.grow'), h('span', { title: fmt.datetime(n.at) }, fmt.ago(n.at))));
 }
 function statusMenu(kind, rec) {
-  return cx.menu(stDot(kind, rec.status), ST[kind].map((st) => ({ label: stDot(kind, st.name), on: st.name === rec.status, needs: NEED, cmd: `capxul org crm ${kind} move ${rec.name} ${q(st.name)}${st.type === 'Lost' ? ' --reason "…"' : ''}`, onClick: async () => { if (await moveRecord(kind, rec, st.name)) cx.refresh(); } })));
+  return cx.menu(stDot(kind, rec.status), ST[kind].map((st) => ({ label: stDot(kind, st.name), on: st.name === rec.status, needs: NEED, onClick: async () => { if (await moveRecord(kind, rec, st.name)) cx.refresh(); } })));
 }
 function ownerMenu(kind, rec) {
   const label = h('span.crm-sel', rec.owner ? cx.avatar(rec.owner, { size: 'sm' }) : cx.icon('user'), rec.owner ? cx.name(rec.owner) : 'Assign to');
-  return cx.menu(label, [{ heading: kind === 'lead' ? 'Lead owner' : 'Deal owner' }, ...members().map((id) => ({ label: cx.name(id), on: id === rec.owner, needs: NEED, cmd: `capxul org crm ${kind} change ${rec.name} --owner ${memberEmail(id)}`, onClick: () => {
+  return cx.menu(label, [{ heading: kind === 'lead' ? 'Lead owner' : 'Deal owner' }, ...members().map((id) => ({ label: cx.name(id), on: id === rec.owner, needs: NEED, onClick: () => {
     if (id === rec.owner) return;
     const old = rec.owner; rec.owner = id;
     addChanges(kind, rec, [[kind === 'lead' ? 'Lead Owner' : 'Deal Owner', old ? cx.name(old) : null, cx.name(id)]]);
-    cx.toast(`${cx.name(id)} owns ${recTitle(rec)} now`, { tone: 'success', cmd: `capxul org crm ${kind} change ${rec.name} --owner ${memberEmail(id)}` });
+    cx.toast(`${cx.name(id)} owns ${recTitle(rec)} now`, { tone: 'success'});
     cx.refresh();
   } }))], { kind: 'ghost' });
 }
@@ -1047,17 +1391,18 @@ function recordPage(kind, rec) {
   ctx.openEmail = () => { tabsEl?.show(0); c1.open({}); };
   const pane = (title, actions, body, foot) => h('div', h('div.crm-tabhead', h('h3', title), actions), h('div.crm-tabbody', body), foot || null);
   const newMenu = cx.menu('New', [
-    { label: 'Email', icon: 'mail', needs: NEED, cmd: `capxul org crm email send ${rec.name} --subject "…" --body-file email.md --confirm`, onClick: () => c1.open({}) },
-    { label: 'Log a call', icon: 'phone', needs: NEED, cmd: `capxul org crm call log ${rec.name} --type outgoing --status completed --start ${TODAY}T10:30`, onClick: () => logCallModal(ctx) },
-    { label: 'Note', icon: 'note', needs: NEED, cmd: `capxul org crm note add ${rec.name} "<title>" --content "…"`, onClick: () => noteModal(ctx, null) },
-    { label: 'Task', icon: 'task', needs: NEED, cmd: `capxul org crm task create ${rec.name} "<title>" --assigned-to ${memberEmail(cx.meId())}`, onClick: () => taskModal(ctx, null) },
-    { label: 'WhatsApp message', icon: 'message', needs: NEED, cmd: `capxul org crm whatsapp send ${rec.name} --text "…" --confirm`, onClick: () => tabsEl?.show(6) },
+    { label: 'Email', icon: 'mail', needs: NEED, onClick: () => c1.open({}) },
+    { label: 'Log a call', icon: 'phone', needs: NEED, onClick: () => logCallModal(ctx) },
+    { label: 'Note', icon: 'note', needs: NEED, onClick: () => noteModal(ctx, null) },
+    { label: 'Task', icon: 'task', needs: NEED, onClick: () => taskModal(ctx, null) },
+    { label: 'WhatsApp message', icon: 'message', needs: NEED, onClick: () => tabsEl?.show(tabs.findIndex((t) => t.label === 'WhatsApp')) },
   ], { sm: true, icon: 'plus' });
   const tabs = [
     { label: 'Activity', render: () => pane('Activity', [orderBtn(), newMenu], activityList(rec, null, ctx1), c1.el) },
     { label: 'Emails', count: cn.email, render: () => pane('Emails', [orderBtn(), cx.btn('New email', { sm: true, icon: 'mail', needs: NEED, onClick: () => c2.open({}) })], activityList(rec, 'email', ctx2), c2.el) },
     { label: 'Data', render: () => dataTab(kind, rec) },
     { label: 'Calls', count: cn.call, render: () => pane('Calls', cx.btn('Log a call', { sm: true, icon: 'phone', needs: NEED, onClick: () => logCallModal(ctx) }), activityList(rec, 'call', ctx)) },
+    { label: 'Meetings', count: cn.meeting, render: () => pane('Meetings', h('span.muted', { style: 'font-size:12.5px' }, 'From the owners\' calendars'), activityList(rec, 'meeting', ctx)) },
     { label: 'Tasks', count: tasks.length, render: () => pane('Tasks', cx.btn('New task', { sm: true, icon: 'task', needs: NEED, onClick: () => taskModal(ctx, null) }), taskRows(tasks, ctx)) },
     { label: 'Notes', count: notes.length, render: () => pane('Notes', cx.btn('New note', { sm: true, icon: 'note', needs: NEED, onClick: () => noteModal(ctx, null) }), noteGrid(notes, ctx)) },
     { label: 'WhatsApp', count: cn.whatsapp, render: () => h('div', h('div.crm-tabhead', h('h3', 'WhatsApp'), h('span.muted', { style: 'font-size:12.5px' }, ctx.mobile || '')), whatsappPane(ctx)) },
@@ -1068,19 +1413,19 @@ function recordPage(kind, rec) {
   const actions = [
     ownerMenu(kind, rec),
     statusMenu(kind, rec),
-    isLead ? (rec.converted ? cx.btn('Open the deal', { kind: 'primary', icon: 'right', href: ['deal', rec.deal || rec.convertedTo] }) : cx.btn('Convert to deal', { kind: 'primary', icon: 'swap', needs: convertNeed, cmd: `capxul org crm lead convert ${rec.name}`, onClick: () => convertModal(rec) })) : null,
+    isLead ? (rec.converted ? cx.btn('Open the deal', { kind: 'primary', icon: 'right', href: ['deal', rec.deal || rec.convertedTo] }) : cx.btn('Convert to deal', { kind: 'primary', icon: 'swap', needs: convertNeed, onClick: () => convertModal(rec) })) : null,
   ];
   const banner = readOnlyBanner(`this ${kind}`)
     || (isLead && rec.converted ? cx.banner(h('span', 'Converted to ', cx.link(rec.deal || rec.convertedTo, 'deal', rec.deal || rec.convertedTo), '. A converted lead leaves the Leads list, as the CRM does.'), { tone: 'info' }) : null)
     || (rec.lostReason ? cx.banner(`Lost: ${rec.lostReason}${rec.lostNotes ? `. ${rec.lostNotes}` : ''}`, { tone: 'warning' }) : null);
+  const q = isLead ? qualOf(rec) : null;
   const sub = isLead
-    ? `${rec.name}${rec.org ? ' · ' + rec.org : ''} · ${rec.source || 'no source'} · created ${fmt.agoLong(rec.createdAt)}`
+    ? `${rec.org ? rec.org + ' · ' : ''}${q.channel} · arrived ${fmt.agoLong(q.arrival)} · score ${q.score} · ${rec.name}`
     : `${rec.name} · ${rec.subject} · ${fmt.money(rec.dealValue, rec.currency)}${rec.status !== 'Won' && rec.status !== 'Lost' ? ` · ${rec.probability}% · closes ${fmt.date(rec.expectedClosureDate)}` : rec.closedDate ? ` · closed ${fmt.date(rec.closedDate)}` : ''}`;
   return cx.page({
-    title: recTitle(rec), workspace: 'crm', status: isLead && rec.converted ? cx.pill('Converted', 'teal', { lg: true }) : null,
+    title: recTitle(rec), workspace: 'crm', status: isLead ? (rec.converted ? cx.pill('Converted', 'teal', { lg: true }) : null) : staleTag(rec),
     crumbs: [{ label: 'CRM', route: 'crm' }, { label: isLead ? 'Leads' : 'Deals', route: isLead ? 'leads' : 'deals' }],
     sub, actions, banner,
-    cmd: { cli: [`capxul org crm ${kind} get ${rec.name}`, `capxul org crm timeline ${rec.name}`], sdk: [`client.org(orgId).crm.${kind}s.get("${rec.name}")`, `client.org(orgId).crm.timeline("${rec.name}")`].join('\n') },
     fde: isLead ? `Lead ${rec.name}: ${leadName(rec)}${rec.org ? ' of ' + rec.org : ''}, status ${rec.status}, owned by ${cx.name(rec.owner)}` : `Deal ${rec.name}: ${rec.title}, ${rec.status}, ${fmt.money(rec.dealValue, rec.currency)} at ${rec.probability}%, owned by ${cx.name(rec.owner)}`,
     body: h('div.crm-rec', h('div.crm-main', tabsEl), isLead ? leadSide(rec, ctx) : dealSide(rec, ctx)),
   });
@@ -1093,7 +1438,7 @@ function convertModal(l) {
   const ct = l.contact ? CONTACT.get(l.contact) : C.contacts.find((c) => c.email && c.email === l.email) || null;
   const m = { existingCompany: co ? 1 : 0, company: co?.id || '', existingContact: ct ? 1 : 0, contact: ct?.id || '', value: '', currency: co?.currency === 'USD' ? 'USD' : 'GBP', closeBy: addDays(TODAY, 60) };
   formModal({
-    title: 'Convert to deal', model: m, needs: NEED, submit: 'Convert', who: 'whoever wears the People hat',
+    title: 'Convert to deal', model: m, needs: NEED, submit: 'Convert', 
     intro: `${leadName(l)}${l.org ? ' of ' + l.org : ''} becomes a deal in Qualification. Its activity moves with it.`,
     fields: [
       { section: 'Company' },
@@ -1107,9 +1452,8 @@ function convertModal(l) {
       { label: 'Currency', key: 'currency', type: 'select', options: ['GBP', 'USD', 'EUR'] },
       { label: 'Expected closure date', key: 'closeBy', type: 'date', reqd: true },
     ],
-    cmd: (x) => `capxul org crm lead convert ${l.name}${x.existingCompany && x.company ? ` --company ${x.company}` : ''}${x.existingContact && x.contact ? ` --contact ${x.contact}` : ''}${x.value ? ` --value ${x.value} --expected-value ${x.value}` : ''} --currency ${x.currency} --close-by ${x.closeBy}`,
     check: (x) => (x.existingCompany && !x.company ? 'Please select an existing company' : x.existingContact && !x.contact ? 'Please select an existing contact' : null),
-    onSubmit: (x, close, cmd) => {
+    onSubmit: (x, close) => {
       let companyId = x.existingCompany ? x.company : null;
       if (!companyId) {
         const found = C.companies.find((c) => c.name === l.org);
@@ -1141,7 +1485,7 @@ function convertModal(l) {
       if (from !== 'Qualified') { l.status = 'Qualified'; addChanges('lead', l, [['Status', from, 'Qualified']]); }
       addItem(l.name, 'Lead', { kind: 'converted', deal: name, text: `${cx.name(cx.meId())} converted the lead to this deal` });
       close();
-      cx.toast(`Converted to ${name}`, { tone: 'success', cmd });
+      cx.toast(`Converted to ${name}`, { tone: 'success' });
       cx.go('deal', name);
     },
   });
@@ -1174,6 +1518,7 @@ const viewBar = (views, ...left) => h('div.crm-views', ...left, h('span.grow'), 
 const kbCounts = (rec) => { const c = counts(itemsOf(rec)); const t = recTasks(rec).length; return h('div.crm-kb-counts', h('span', { title: 'Emails' }, cx.icon('mail'), c.email), h('span', { title: 'Notes' }, cx.icon('note'), c.note), h('span', { title: 'Tasks' }, cx.icon('task'), t), h('span', { title: 'Calls' }, cx.icon('phone'), c.call)); };
 const LEAD_TABS = [
   { label: 'All', filter: (r) => !r.converted },
+  { label: 'This week', filter: (r) => !r.converted && dayOf(qualOf(r).arrival) >= addDays(TODAY, -6) },
   { label: 'New', stage: 'open', filter: (r) => !r.converted && stageOf('lead', r.status) === 'open' },
   { label: 'Ongoing', stage: 'ongoing', filter: (r) => !r.converted && stageOf('lead', r.status) === 'ongoing' },
   { label: 'Lost', stage: 'lost', filter: (r) => !r.converted && stageOf('lead', r.status) === 'lost' },
@@ -1183,25 +1528,17 @@ const DEAL_TABS = [
   { label: 'All' },
   { label: 'Open', stage: 'open', filter: (r) => stageOf('deal', r.status) === 'open' },
   { label: 'Ongoing', stage: 'ongoing', filter: (r) => stageOf('deal', r.status) === 'ongoing' },
+  { label: 'Stale', filter: (r) => !!staleOf(r) },
   { label: 'Won', stage: 'won', filter: (r) => r.status === 'Won' },
   { label: 'Lost', stage: 'lost', filter: (r) => r.status === 'Lost' },
 ];
-function listCmd(kind, tabs) {
-  return (st) => {
-    const stage = st.filters.status ? stageOf(kind, st.filters.status) : tabs[st.tab]?.stage;
-    const extra = Object.entries(st.filters).filter(([k, v]) => v && k !== 'status').map(([k]) => k);
-    return { cli: `capxul org crm ${kind} list${stage ? ' --stage ' + stage : ''}`, sdk: `client.org(orgId).crm.${kind}s.list(${stage ? `{ stage: "${stage}" }` : ''})`,
-      note: st.filters.status || extra.length || st.conds.length ? 'The other filters narrow the list on this screen.' : null };
-  };
-}
 function bulkStatus(kind, rows) {
   const m = { status: ST[kind][1].name, reason: '', notes: '' };
   const lostNow = () => isLost(kind, m.status);
-  formModal({ title: `Change the status of ${fmt.plural(rows.length, kind)}`, model: m, needs: NEED, submit: 'Update', who: 'whoever wears the People hat',
+  formModal({ title: `Change the status of ${fmt.plural(rows.length, kind)}`, model: m, needs: NEED, submit: 'Update',
     fields: [{ label: 'Status', key: 'status', type: 'select', options: ST[kind].map((x) => x.name) }, { label: 'Lost reason (for a lost status)', key: 'reason', type: 'select', options: [['', '—'], ...C.lostReasons] }, { label: 'Lost notes', key: 'notes', type: 'textarea', wide: true }],
-    cmd: (x) => rows.slice(0, 4).map((r) => `capxul org crm ${kind} move ${r.name} ${q(x.status)}${lostNow() ? ` --reason ${q(x.reason || '…')}${x.notes ? ` --notes ${q(x.notes)}` : ''}` : ''}`).concat(rows.length > 4 ? [`# and ${rows.length - 4} more`] : []),
     check: (x) => (lostNow() && !x.reason ? 'A lost status needs a reason.' : lostNow() && x.reason === 'Other' && !x.notes.trim() ? 'Other needs lost notes.' : null),
-    onSubmit: (x, close, cmd) => {
+    onSubmit: (x, close) => {
       for (const r of rows) {
         if (r.status === x.status) continue;
         const ch = [['Status', r.status, x.status]]; r.status = x.status;
@@ -1209,27 +1546,31 @@ function bulkStatus(kind, rows) {
         if (lostNow()) { r.lostReason = x.reason; r.lostNotes = x.notes || null; ch.push(['Lost Reason', null, x.reason]); }
         addChanges(kind, r, ch);
       }
-      close(); cx.toast(`${fmt.plural(rows.length, kind)} moved to ${x.status}`, { tone: 'success', cmd: [].concat(cmd)[0] }); cx.refresh();
+      close(); cx.toast(`${fmt.plural(rows.length, kind)} moved to ${x.status}`, { tone: 'success'}); cx.refresh();
     } });
 }
 function bulkOwner(kind, rows) {
   const m = { owner: cx.meId() };
-  formModal({ title: `Assign ${fmt.plural(rows.length, kind)}`, model: m, cols: 1, needs: NEED, submit: 'Assign', who: 'whoever wears the People hat',
+  formModal({ title: `Assign ${fmt.plural(rows.length, kind)}`, model: m, cols: 1, needs: NEED, submit: 'Assign', 
     fields: [{ label: kind === 'lead' ? 'Lead owner' : 'Deal owner', key: 'owner', type: 'select', options: ownerOpts() }],
-    cmd: (x) => rows.slice(0, 4).map((r) => `capxul org crm ${kind} change ${r.name} --owner ${memberEmail(x.owner)}`).concat(rows.length > 4 ? [`# and ${rows.length - 4} more`] : []),
-    onSubmit: (x, close, cmd) => { for (const r of rows) if (r.owner !== x.owner) { addChanges(kind, r, [[kind === 'lead' ? 'Lead Owner' : 'Deal Owner', r.owner ? cx.name(r.owner) : null, cx.name(x.owner)]]); r.owner = x.owner; } close(); cx.toast(`${fmt.plural(rows.length, kind)} assigned to ${cx.name(x.owner)}`, { tone: 'success', cmd: [].concat(cmd)[0] }); cx.refresh(); } });
+    onSubmit: (x, close) => { for (const r of rows) if (r.owner !== x.owner) { addChanges(kind, r, [[kind === 'lead' ? 'Lead Owner' : 'Deal Owner', r.owner ? cx.name(r.owner) : null, cx.name(x.owner)]]); r.owner = x.owner; } close(); cx.toast(`${fmt.plural(rows.length, kind)} assigned to ${cx.name(x.owner)}`, { tone: 'success'}); cx.refresh(); } });
 }
 function leadsList() {
   return cx.listView({
     key: 'crm-leads', rows: () => C.leads, id: (r) => r.name,
-    titleCol: { key: 'fullName', label: 'Full name', get: leadName, render: (r) => h('span.crm-name', extAvatar(leadName(r), { size: 'sm' }), h('a', { href: cx.href('lead', r.name) }, leadName(r))) },
+    titleCol: { key: 'fullName', label: 'Full name', get: leadName, render: (r) => h('span.crm-name', extAvatar(leadName(r), { size: 'sm' }), h('a', { href: cx.href('lead', r.name) }, leadName(r))), sub: (r) => (qualOf(r).need.level ? qualOf(r).need.text : '') },
     status: (r) => stDot('lead', r.status),
-    columns: [{ key: 'org', label: 'Company' }, { key: 'email', label: 'Email' }, { key: 'mobile', label: 'Mobile no.' }, { key: 'owner', label: 'Assigned to', type: 'person' }],
+    columns: [
+      { key: 'org', label: 'Company' },
+      { key: 'channel', label: 'Arrived by', get: (r) => qualOf(r).channel, render: (r) => channelTag(qualOf(r).channel) },
+      { key: 'score', label: 'Score', get: (r) => qualOf(r).score, render: (r) => scorePill(qualOf(r).score), keep: true },
+      { key: 'owner', label: 'Assigned to', type: 'person' },
+    ],
     modified: modifiedOf,
-    filters: [{ key: 'fullName', label: 'Full name' }, { key: 'email', label: 'Email' }, { key: 'org', label: 'Company' }, { key: 'status', label: 'Status', type: 'select', options: ST.lead.map((x) => x.name) }, { key: 'source', label: 'Source', type: 'select' }],
+    filters: [{ key: 'fullName', label: 'Full name' }, { key: 'org', label: 'Company' }, { key: 'status', label: 'Status', type: 'select', options: ST.lead.map((x) => x.name) }, { key: 'channel', label: 'Arrived by', type: 'select', options: CHANNELS }, { key: 'owner', label: 'Assigned to', type: 'person', options: () => uniq(C.leads.map((l) => l.owner)) }],
     tabs: LEAD_TABS,
-    sort: { options: [{ key: 'modified', label: 'Last modified', get: modifiedOf }, { key: 'createdAt', label: 'Created on' }, { key: 'fullName', label: 'Full name', get: leadName }], default: { key: 'modified', dir: 'desc' } },
-    groupBy: [{ key: 'status', label: 'Status' }, { key: 'owner', label: 'Lead owner', type: 'person' }, { key: 'source', label: 'Source' }, { key: 'territory', label: 'Territory' }],
+    sort: { options: [{ key: 'modified', label: 'Last modified', get: modifiedOf }, { key: 'arrived', label: 'Arrived', get: (r) => qualOf(r).arrival }, { key: 'score', label: 'Score', get: (r) => qualOf(r).score }, { key: 'fullName', label: 'Full name', get: leadName }], default: { key: 'modified', dir: 'desc' } },
+    groupBy: [{ key: 'status', label: 'Status' }, { key: 'channel', label: 'Arrived by', get: (r) => qualOf(r).channel }, { key: 'owner', label: 'Lead owner', type: 'person' }, { key: 'industry', label: 'Sector' }],
     href: (r) => ['lead', r.name],
     bulk: [
       { label: 'Change status', icon: 'edit', needs: NEED, onClick: (rows) => bulkStatus('lead', rows) },
@@ -1237,36 +1578,176 @@ function leadsList() {
       { label: 'Convert to deal', icon: 'swap', needs: NEED, onClick: (rows) => (rows.length === 1 ? (isLost('lead', rows[0].status) || rows[0].converted ? cx.toast(rows[0].converted ? 'That lead is converted already.' : 'Cannot convert a lost lead to deal', { tone: 'warning' }) : convertModal(rows[0])) : cx.toast('Convert one lead at a time: the dialog chooses its company and contact.', { tone: 'info' })) },
     ],
     views: viewList('leads', 'leads'),
-    cmd: listCmd('lead', LEAD_TABS),
     noun: 'lead', idLabel: 'ID', empty: 'No leads match.',
   });
 }
 const dealCompanyCell = (r) => h('span.crm-name', extAvatar(companyName(r.company) || r.title, { size: 'sm', square: true }), h('a', { href: cx.href('deal', r.name) }, dealTitle(r)));
-function dealsList(pipeline) {
-  const cols = pipeline
-    ? [{ key: 'dealValue', label: 'Deal value', type: 'currency', keep: true }, { key: 'probability', label: 'Probability', render: (r) => h('span.crm-tst', h('span.crm-pipe', h('i', { style: { width: (r.probability || 0) + '%' } })), (r.probability ?? 0) + '%') }, { key: 'expectedClosureDate', label: 'Expected closure', type: 'date' }, { key: 'owner', label: 'Deal owner', type: 'person' }]
-    : [{ key: 'revenue', label: 'Annual revenue', get: (r) => COMPANY.get(r.company)?.annualRevenue, render: (r) => { const co = COMPANY.get(r.company); return co?.annualRevenue != null ? fmt.money(co.annualRevenue, co.currency || 'GBP', 2) : h('span.faint', '—'); }, align: 'right' },
-      { key: 'email', label: 'Email', get: (r) => primaryOf(r)?.email }, { key: 'mobile', label: 'Mobile no.', get: (r) => primaryOf(r)?.mobile }, { key: 'owner', label: 'Assigned to', type: 'person' }];
+function dealsList() {
   return cx.listView({
-    key: pipeline ? 'crm-pipeline' : 'crm-deals', rows: () => (pipeline ? C.deals.filter((d) => ['open', 'ongoing'].includes(stageOf('deal', d.status))) : C.deals), id: (r) => r.name,
+    key: 'crm-deals', rows: () => C.deals, id: (r) => r.name,
     titleCol: { key: 'companyName', label: 'Company', get: dealTitle, render: dealCompanyCell, sub: (r) => r.subject },
-    status: (r) => stDot('deal', r.status),
-    columns: cols, modified: modifiedOf,
+    status: (r) => { const t = staleTag(r); return t ? h('span.crm-tst', stDot('deal', r.status), t) : stDot('deal', r.status); },
+    columns: [
+      { key: 'dealValue', label: 'Deal value', type: 'currency', keep: true },
+      { key: 'touch', label: 'Last touch', get: (r) => lastTouch(r)?.at || '', render: touchCell },
+      { key: 'nextStep', label: 'Next step', render: (r) => (r.nextStep ? h('span.crm-next', r.nextStep) : h('span.faint', '—')) },
+      { key: 'owner', label: 'Deal owner', type: 'person' },
+    ],
+    modified: modifiedOf,
     filters: [{ key: 'companyName', label: 'Company' }, { key: 'status', label: 'Status', type: 'select', options: ST.deal.map((x) => x.name) }, { key: 'owner', label: 'Deal owner', type: 'person', options: () => uniq(C.deals.map((d) => d.owner)) }, { key: 'source', label: 'Source', type: 'select' }],
-    tabs: pipeline ? null : DEAL_TABS,
-    sort: { options: [{ key: 'modified', label: 'Last modified', get: modifiedOf }, { key: 'expectedClosureDate', label: 'Expected closure' }, { key: 'value', label: 'Deal value (in pounds)', get: (r) => toGbp(r.dealValue, r.currency) }, { key: 'createdAt', label: 'Created on' }], default: pipeline ? { key: 'expectedClosureDate', dir: 'asc' } : { key: 'modified', dir: 'desc' } },
-    groupBy: [{ key: 'status', label: 'Status' }, { key: 'owner', label: 'Deal owner', type: 'person' }, { key: 'territory', label: 'Territory' }, { key: 'source', label: 'Source' }],
+    tabs: DEAL_TABS,
+    sort: { options: [{ key: 'modified', label: 'Last modified', get: modifiedOf }, { key: 'touch', label: 'Last touch', get: (r) => lastTouch(r)?.at || '' }, { key: 'expectedClosureDate', label: 'Expected closure' }, { key: 'value', label: 'Deal value (in pounds)', get: (r) => toGbp(r.dealValue, r.currency) }, { key: 'createdAt', label: 'Created on' }], default: { key: 'modified', dir: 'desc' } },
+    groupBy: [{ key: 'status', label: 'Status' }, { key: 'owner', label: 'Deal owner', type: 'person' }, { key: 'source', label: 'Source' }],
     href: (r) => ['deal', r.name],
     bulk: [{ label: 'Change status', icon: 'edit', needs: NEED, onClick: (rows) => bulkStatus('deal', rows) }, { label: 'Assign to', icon: 'user', needs: NEED, onClick: (rows) => bulkOwner('deal', rows) }],
-    views: pipeline ? null : viewList('deals', 'deals'),
-    cmd: pipeline ? { cli: 'capxul org crm deal list --stage ongoing', sdk: 'client.org(orgId).crm.deals.list({ stage: "ongoing" })', filters: false, note: 'Pipeline is a public view: Qualification to Ready to Close, soonest closing first.' } : listCmd('deal', DEAL_TABS),
+    views: viewList('deals', 'deals'),
     noun: 'deal', idLabel: 'ID', empty: 'No deals match.',
   });
+}
+/** The pipeline board: the deals in play by stage, with each stage's value, and what won lately. */
+function pipelineBoard() {
+  const recentWon = addDays(TODAY, -60);
+  const rows = C.deals.filter((d) => isOpenDeal(d) || (d.status === 'Won' && (d.closedDate || '') >= recentWon));
+  const gbpOf = (d) => toGbp(d.dealValue, d.currency);
+  const cols = ST.deal.filter((st) => st.type !== 'Lost').map((st) => {
+    const items = rows.filter((r) => r.status === st.name).sort((a, b) => String(a.expectedClosureDate || '').localeCompare(String(b.expectedClosureDate || '')));
+    return { key: st.name, label: `${st.name === 'Won' ? 'Won, last 60 days' : st.name} · ${fmt.compact(sum(items, gbpOf), 'GBP')}`, color: st.color, items };
+  });
+  const open = rows.filter(isOpenDeal);
+  const weighted = sum(open, (d) => gbpOf(d) * (d.probability || 0) / 100);
+  const stale = open.filter(staleOf).length;
+  const card = (d) => {
+    const p = primaryOf(d);
+    return [
+      h('div.kb-title', h('span.crm-name', extAvatar(companyName(d.company), { size: 'sm', square: true }), h('span', dealTitle(d)))),
+      h('div.kb-meta.crm-kbm',
+        h('span', d.subject),
+        h('span', { style: 'color:var(--fg);font-weight:600' }, d.dealValue != null ? fmt.money(d.dealValue, d.currency, 0) : '—', h('span.muted', { style: 'font-weight:400' }, ` · ${d.probability ?? 0}%${d.status !== 'Won' && d.expectedClosureDate ? ' · closes ' + fmt.day(d.expectedClosureDate) : ''}`)),
+        d.status === 'Won' ? h('span', `Won ${fmt.date(d.closedDate)}`) : touchCell(d),
+        d.nextStep && d.status !== 'Won' ? h('span.crm-next', h('b', 'Next: '), d.nextStep) : null,
+        p ? h('span', p.name) : null),
+      h('div.crm-call-h', d.owner ? cx.personChip(d.owner, { link: false }) : null, h('span.grow'), staleTag(d)),
+    ];
+  };
+  return h('div', { style: 'display:grid;gap:12px;min-width:0' },
+    h('div.ncards', [
+      cx.numberCard({ label: 'In play', value: fmt.int(open.length), sub: fmt.gbp(sum(open, gbpOf)) + ' of deal value', href: ['deals'] }),
+      cx.numberCard({ label: 'Weighted', value: fmt.gbp(weighted), sub: 'value × each stage\'s probability' }),
+      cx.numberCard({ label: 'Stale', value: fmt.int(stale), sub: `no touch for over two weeks`, href: ['deals'] }),
+      cx.numberCard({ label: 'Won, last 60 days', value: fmt.int(rows.filter((d) => d.status === 'Won').length), sub: fmt.gbp(sum(rows.filter((d) => d.status === 'Won'), (d) => toGbp(d.dealValue, d.currency, d.closedDate))) }),
+    ]),
+    h('div.crm-views', h('span.muted', { style: 'font-size:12.5px' }, cx.allowed(NEED).ok ? 'Drag a deal to move it on. Won records the closed date; Lost asks why.' : lockLine())),
+    cx.kanban({ key: 'crm-pipeline-kb', id: (r) => r.name, limit: 12, columns: cols, card,
+      onMove: (d, to) => moveRecord('deal', d, to),
+      onOpen: (d) => cx.go('deal', d.name) }));
+}
+
+/* ---------- the sources report ---------- */
+
+const median = (arr) => { const a = arr.filter((x) => x != null && isFinite(x)).sort((x, y) => x - y); if (!a.length) return null; const m = Math.floor(a.length / 2); return a.length % 2 ? a[m] : (a[m - 1] + a[m]) / 2; };
+const PERIODS = [['90', 'Last 90 days'], ['180', 'Last 6 months'], ['365', 'Last 12 months'], ['all', 'Since 1 May 2025']];
+function sourcesPage() {
+  const dealOfLead = (l) => C.deals.find((d) => d.name === (l.deal || l.convertedTo)) || null;
+  const leadsIn = (period) => (period === 'all' ? C.leads : C.leads.filter((l) => dayOf(qualOf(l).arrival) >= addDays(TODAY, -(+period - 1))));
+  const report = cx.reportView({
+    key: 'crm-sources',
+    filters: [{ key: 'period', label: 'Period', type: 'select', options: PERIODS, value: '180' }],
+    run: (v) => {
+      const leads = leadsIn(v.period);
+      const by = new Map(CHANNELS.map((c) => [c, []]));
+      for (const l of leads) by.get(qualOf(l).channel)?.push(l);
+      const rowOf = (label, ls) => {
+        const qualified = ls.filter((l) => l.converted || l.status === 'Qualified');
+        const deals = ls.map(dealOfLead).filter(Boolean);
+        const won = deals.filter((d) => d.status === 'Won');
+        return {
+          channel: label, leads: ls.length, score: ls.length ? Math.round(avg(ls.map((l) => qualOf(l).score))) : null,
+          qualified: qualified.length, qualRate: ls.length ? qualified.length / ls.length : null,
+          deals: deals.length, won: won.length, wonValue: sum(won, (d) => toGbp(d.dealValue, d.currency, d.closedDate)),
+          reply: median(ls.map((l) => qualOf(l).firstReplyHours)), qualify: median(qualified.map((l) => qualOf(l).qualifyHours)),
+        };
+      };
+      const rows = CHANNELS.map((c) => rowOf(c, by.get(c))).filter((r) => r.leads);
+      const all = rowOf('All channels', leads);
+      const dur = (x) => (x == null ? '—' : durHuman(x));
+      return {
+        summary: [
+          { label: 'Leads in', value: fmt.int(all.leads) },
+          { label: 'Qualified', value: all.qualRate == null ? '—' : fmt.pct(all.qualRate, 0), sub: `${fmt.int(all.qualified)} of ${fmt.int(all.leads)}` },
+          { label: 'Scored by the agent', value: dur(median(leads.map((l) => hoursBetween(qualOf(l).arrival, qualOf(l).scoredAt)))), sub: 'median, after arrival' },
+          { label: 'First reply', value: dur(all.reply), sub: 'median, after arrival' },
+          { label: 'Time to qualify', value: dur(all.qualify), sub: 'median, arrival to Qualified' },
+          { label: 'Won', value: fmt.gbp(all.wonValue), sub: fmt.plural(all.won, 'deal') },
+        ],
+        columns: [
+          { key: 'channel', label: 'Arrived by', width: '150px' },
+          { key: 'leads', label: 'Leads', type: 'int' },
+          { key: 'score', label: 'Avg. score', type: 'int' },
+          { key: 'qualified', label: 'Qualified', type: 'int' },
+          { key: 'qualPct', label: 'Qualified %' },
+          { key: 'deals', label: 'Deals', type: 'int' },
+          { key: 'won', label: 'Won', type: 'int' },
+          { key: 'wonValue', label: 'Won value', type: 'currency' },
+          { key: 'replyT', label: 'First reply' },
+          { key: 'qualifyT', label: 'Time to qualify' },
+        ],
+        rows: rows.map((r) => ({ ...r, qualPct: r.qualRate == null ? '—' : fmt.pct(r.qualRate, 0), replyT: dur(r.reply), qualifyT: dur(r.qualify) })),
+        totals: { channel: 'All channels', leads: all.leads, score: all.score, qualified: all.qualified, qualPct: all.qualRate == null ? '—' : fmt.pct(all.qualRate, 0), deals: all.deals, won: all.won, wonValue: all.wonValue, replyT: dur(all.reply), qualifyT: dur(all.qualify) },
+        chartTitle: 'Leads by how they arrived',
+        chart: cx.chart.bar({ labels: rows.map((r) => r.channel), stacked: true, height: 220, format: (x) => fmt.int(x),
+          series: [{ name: 'Qualified', values: rows.map((r) => r.qualified), color: 'pos' }, { name: 'Not qualified', values: rows.map((r) => r.leads - r.qualified), color: 'muted' }] }),
+      };
+    },
+    footnote: 'A lead counts in the period it arrived. Qualified means a person marked it Qualified or converted it to a deal; the agent only scores.',
+  });
+  // conversion by stage, over the same leads (all time, so late stages have had time to happen)
+  const leads = C.leads;
+  const reached = (l, names) => l.converted || names.includes(l.status) || rawItems(l.name).some((i) => (i.kind === 'changed' && i.field === 'Status' && names.includes(i.to)) || (i.kind === 'changes' && i.changes.some((c) => c[0] === 'Status' && names.includes(c[2]))));
+  const deals = C.deals.filter((d) => d.lead);
+  const dealReached = (d, names) => names.includes(d.status) || itemsOf(d).some((i) => (i.kind === 'changed' && i.field === 'Status' && names.includes(i.to)) || (i.kind === 'changes' && i.changes.some((c) => c[0] === 'Status' && names.includes(c[2]))));
+  const later = (from) => ST.deal.slice(ST.deal.findIndex((s) => s.name === from)).filter((s) => s.type !== 'Lost').map((s) => s.name);
+  const stages = [
+    ['Arrived', leads.length],
+    ['Contacted', leads.filter((l) => reached(l, ['Contacted', 'Nurture', 'Qualified'])).length],
+    ['Qualified', leads.filter((l) => reached(l, ['Qualified'])).length],
+    ['Deal', deals.length],
+    ['Proposal', deals.filter((d) => dealReached(d, later('Proposal/Quotation'))).length],
+    ['Negotiation', deals.filter((d) => dealReached(d, later('Negotiation'))).length],
+    ['Won', deals.filter((d) => d.status === 'Won').length],
+  ];
+  const conv = cx.card({ title: 'Conversion by stage', body: [
+    h('p.muted', { style: 'font-size:12.5px;margin-bottom:8px' }, 'Every lead since May 2025, and how far it got. Each bar shows the share of the stage before it.'),
+    cx.chart.hbar({ items: stages.map(([label, value], i) => ({ label: i ? `${label} · ${fmt.pct(value / (stages[i - 1][1] || 1), 0)}` : label, value, color: i === stages.length - 1 ? 'pos' : '2' })), format: (x) => fmt.int(x) }),
+  ] });
+  return cx.page({ title: 'Lead sources', workspace: 'crm', crumbs: [{ label: 'CRM', route: 'crm' }],
+    sub: 'Where leads come from, how fast they get an answer, and how many turn into work.',
+    fde: 'The lead sources report in the CRM',
+    body: [report, conv] });
+}
+cx.route('crm-sources', () => sourcesPage(), { workspace: 'crm', title: 'Lead sources' });
+
+/* ---------- every touchpoint with a person or a company, across their leads and deals ---------- */
+
+function touchpointsFor(recs, match) {
+  const seen = new Set();
+  const out = [];
+  for (const r of recs) for (const it of itemsOf(r)) {
+    if (seen.has(it.id) || !(TOUCH.has(it.kind) || it.kind === 'agent')) continue;
+    if (match && !match(it)) continue;
+    seen.add(it.id); out.push(it);
+  }
+  return out.sort((a, b) => String(b.at).localeCompare(String(a.at)));
+}
+function touchpointList(items) {
+  if (!items.length) return cx.empty('No touchpoints yet');
+  return h('div.crm-acts', items.map((it) => h('div', { style: 'display:grid;gap:2px;min-width:0' },
+    actItem(it, null),
+    h('div.crm-logged', { style: 'padding-left:40px;margin-top:-4px' }, 'on ', cx.link(recLabel(it.recordName), recRoute(it.recordName), it.recordName)))));
 }
 function newLeadModal(preset = {}) {
   const m = { firstName: '', lastName: '', email: '', mobile: '', jobTitle: '', org: '', website: '', revenue: '', territory: 'United Kingdom', employees: '', industry: '', source: 'Website', status: preset.status || 'New', owner: members().includes(cx.meId()) ? cx.meId() : members()[0] };
   formModal({
-    title: 'New lead', model: m, needs: NEED, submit: 'Create', who: 'whoever wears the People hat',
+    title: 'New lead', model: m, needs: NEED, submit: 'Create', 
     fields: [
       { section: 'Person' }, { label: 'First name', key: 'firstName', placeholder: 'Rohan' }, { label: 'Last name', key: 'lastName', placeholder: 'Mehta' },
       { label: 'Email', key: 'email', placeholder: 'rohan@parcelpoint.io' }, { label: 'Mobile no.', key: 'mobile', placeholder: '+44 7700 900634' }, { label: 'Job title', key: 'jobTitle', placeholder: 'CTO' },
@@ -1276,27 +1757,24 @@ function newLeadModal(preset = {}) {
       { section: 'Lead' }, { label: 'Status', key: 'status', type: 'select', options: ST.lead.map((x) => x.name) }, { label: 'Source', key: 'source', type: 'select', options: SOURCES },
       { label: 'Lead owner', key: 'owner', type: 'select', options: ownerOpts() },
     ],
-    cmd: (x) => {
-      const f = [['--first-name', x.firstName], ['--last-name', x.lastName], ['--email', x.email], ['--mobile', x.mobile], ['--job-title', x.jobTitle], ['--company', x.org], ['--website', x.website], ['--industry', x.industry], ['--territory', x.territory], ['--employees', x.employees], ['--revenue', x.revenue], ['--source', x.source], ['--owner', memberEmail(x.owner)]].filter(([, v]) => v !== '' && v != null).map(([k, v]) => `${k} ${q(v)}`);
-      return [`capxul org crm lead create ${f.join(' ')}`, x.status !== 'New' ? `capxul org crm lead move <new lead> ${q(x.status)}` : null].filter(Boolean);
-    },
     check: (x) => (!x.firstName && !x.org && !x.email ? 'A lead needs a first name, a company name or an email.' : isLost('lead', x.status) ? 'A new lead starts in an open status; move it to a lost one from its page, with the reason.' : null),
-    onSubmit: (x, close, cmd) => {
+    onSubmit: (x, close) => {
       const name = nextName(`CRM-LEAD-${TODAY.slice(0, 4)}-`, C.leads.map((l) => l.name));
       const co = C.companies.find((c) => x.org && c.name.toLowerCase() === x.org.toLowerCase());
       const at = NOW();
       const l = { createdAt: at, company: co?.id || null, org: x.org || null, contact: null, status: 'New', converted: false, owner: x.owner, source: x.source, deal: null, name, firstName: x.firstName, lastName: x.lastName, email: x.email || null, mobile: x.mobile || null, jobTitle: x.jobTitle || null, website: x.website || null, territory: x.territory, industry: x.industry || null, employees: x.employees || null, modifiedAt: at };
       C.leads.push(l);
       addItem(name, 'Lead', { kind: 'creation', text: `${cx.name(cx.meId())} created this lead`, source: x.source, at });
+      deriveLeadItems(l);
       if (x.status !== 'New') { l.status = x.status; addChanges('lead', l, [['Status', 'New', x.status]]); }
-      close(); cx.toast(`Created ${name}`, { tone: 'success', cmd: [].concat(cmd)[0] }); cx.go('lead', name);
+      close(); cx.toast(`Created ${name}`, { tone: 'success'}); cx.go('lead', name);
     },
   });
 }
 function newDealModal(preset = {}) {
   const m = { existingCompany: 1, company: preset.company || '', newCompany: '', website: '', industry: '', territory: 'United Kingdom', existingContact: 1, contact: preset.contact || '', firstName: '', lastName: '', email: '', mobile: '', status: preset.status || 'Qualification', owner: members().includes(cx.meId()) ? cx.meId() : members()[0], value: '', currency: 'GBP', closeBy: addDays(TODAY, 60), nextStep: '', source: 'Existing Customer' };
   formModal({
-    title: 'New deal', model: m, needs: NEED, submit: 'Create', who: 'whoever wears the People hat', wide: true,
+    title: 'New deal', model: m, needs: NEED, submit: 'Create', wide: true,
     fields: [
       { section: 'Company' }, { label: 'Choose existing', key: 'existingCompany', type: 'check', checkLabel: 'A company already in the book' },
       { label: 'Company', key: 'company', type: 'select', options: [['', 'Choose a company'], ...C.companies.map((c) => [c.id, c.name])] },
@@ -1310,18 +1788,8 @@ function newDealModal(preset = {}) {
       { label: 'Expected closure date', key: 'closeBy', type: 'date' }, { label: 'Source', key: 'source', type: 'select', options: SOURCES },
       { label: 'Next step', key: 'nextStep', wide: true, placeholder: 'Scope call on Thursday' },
     ],
-    cmd: (x) => {
-      const lines = [];
-      const coRef = x.existingCompany && x.company ? x.company : '<new company>';
-      if (!(x.existingCompany && x.company)) lines.push(`capxul contact create ${q(x.newCompany || '<name>')} --type company${x.website ? ' --website ' + q(x.website) : ''}${x.industry ? ' --industry ' + q(x.industry) : ''} --territory ${q(x.territory)} --org harbourline`);
-      const ctRef = x.existingContact && x.contact ? x.contact : (x.firstName || x.email ? '<new contact>' : null);
-      if (!(x.existingContact && x.contact) && (x.firstName || x.email)) lines.push(`capxul contact create ${q([x.firstName, x.lastName].filter(Boolean).join(' ') || x.email)} --type person${x.email ? ' --email ' + x.email : ''}${x.mobile ? ' --phone ' + q(x.mobile) : ''} --company ${coRef} --org harbourline`);
-      lines.push(`capxul org crm deal create --company ${coRef}${ctRef ? ` --contact ${ctRef} --primary ${ctRef}` : ''} --owner ${memberEmail(x.owner)}${x.value ? ` --value ${x.value} --expected-value ${x.value}` : ''} --currency ${x.currency} --close-by ${x.closeBy}${x.nextStep ? ' --next-step ' + q(x.nextStep) : ''} --source ${q(x.source)}`);
-      if (x.status !== 'Qualification') lines.push(`capxul org crm deal move <new deal> ${q(x.status)}`);
-      return lines;
-    },
     check: (x) => (x.existingCompany && !x.company && !x.newCompany ? 'Please select an existing company, or name a new one.' : !x.existingCompany && !x.newCompany ? 'Name the new company.' : null),
-    onSubmit: (x, close, cmd) => {
+    onSubmit: (x, close) => {
       let coId = x.existingCompany && x.company ? x.company : null;
       if (!coId) { coId = cx.slug(x.newCompany).toLowerCase(); if (!COMPANY.has(coId)) { const rec = { id: coId, name: x.newCompany, website: x.website || null, industry: x.industry || null, territory: x.territory, employees: null, annualRevenue: null, currency: x.currency, description: null, onCapxul: false, handle: null, safe: null, isCustomer: false }; C.companies.push(rec); COMPANY.set(coId, rec); } }
       let ctId = x.existingContact && x.contact ? x.contact : null;
@@ -1333,7 +1801,7 @@ function newDealModal(preset = {}) {
       C.deals.push(d);
       addItem(name, 'Deal', { kind: 'creation', text: `${cx.name(cx.meId())} created this deal`, at });
       if (x.status !== 'Qualification') { d.status = x.status; d.probability = stOf('deal', x.status).probability; addChanges('deal', d, [['Status', 'Qualification', x.status]]); }
-      close(); cx.toast(`Created ${name}`, { tone: 'success', cmd: [].concat(cmd).at(-1) }); cx.go('deal', name);
+      close(); cx.toast(`Created ${name}`, { tone: 'success'}); cx.go('deal', name);
     },
   });
 }
@@ -1363,7 +1831,7 @@ function groupedView(o) {
   return h('div', { style: 'display:grid;gap:10px;min-width:0' }, viewBar(o.views, h('label.crm-sel', { style: 'font-size:13px;color:var(--muted)' }, 'Group by', sel)), box);
 }
 function leadsPage(view) {
-  const create = cx.btn('Create', { kind: 'primary', icon: 'plus', needs: NEED, cmd: 'capxul org crm lead create --first-name … --company …', onClick: () => newLeadModal() });
+  const create = cx.btn('Create', { kind: 'primary', icon: 'plus', needs: NEED, onClick: () => newLeadModal() });
   let body;
   if (view === 'list') body = leadsList();
   else if (view === 'kanban') {
@@ -1371,46 +1839,42 @@ function leadsPage(view) {
     body = h('div', { style: 'display:grid;gap:10px;min-width:0' }, viewBar(viewList('leads', 'leads-kanban'), h('span.muted', { style: 'font-size:12.5px' }, cx.allowed(NEED).ok ? 'Drag a card to change its status.' : lockLine())),
       cx.kanban({ key: 'crm-leads-kb', id: (r) => r.name, limit: 15,
         columns: ST.lead.map((st) => ({ key: st.name, label: st.name, color: st.color, items: rows.filter((r) => r.status === st.name) })),
-        card: (l) => [h('div.kb-title', h('span.crm-name', extAvatar(leadName(l), { size: 'sm' }), h('span', leadName(l)))), h('div.kb-meta.crm-kbm', l.org ? h('span', l.org) : null, l.email ? h('span', l.email) : null, l.mobile ? h('span', l.mobile) : null), h('div.crm-call-h', l.owner ? cx.personChip(l.owner, { link: false }) : null, h('span.grow'), h('span.crm-when', { title: fmt.datetime(modifiedOf(l)) }, fmt.ago(modifiedOf(l)))), kbCounts(l)],
+        card: (l) => [h('div.kb-title', h('span.crm-name', extAvatar(leadName(l), { size: 'sm' }), h('span', leadName(l)))), h('div.kb-meta.crm-kbm', l.org ? h('span', l.org) : null, qualOf(l).need.level ? h('span', qualOf(l).need.text) : null, h('span.crm-tst', channelTag(qualOf(l).channel), scorePill(qualOf(l).score))), h('div.crm-call-h', l.owner ? cx.personChip(l.owner, { link: false }) : null, h('span.grow'), h('span.crm-when', { title: fmt.datetime(modifiedOf(l)) }, fmt.ago(modifiedOf(l)))), kbCounts(l)],
         onMove: (l, to) => moveRecord('lead', l, to),
         onOpen: (l) => cx.go('lead', l.name),
         colMenu: (col) => [{ label: 'New lead here', icon: 'plus', needs: NEED, onClick: () => newLeadModal({ status: col.key }) }] }));
-    cx.setCommand({ cli: 'capxul org crm lead list', sdk: 'client.org(orgId).crm.leads.list()', note: 'A drag runs capxul org crm lead move.' });
   } else {
     body = groupedView({ key: 'leads', kind: 'lead', noun: 'lead', views: viewList('leads', 'leads-grouped'), rows: () => C.leads.filter((l) => !l.converted), titleLabel: 'Full name',
       title: (l) => h('span.crm-name', extAvatar(leadName(l), { size: 'sm' }), h('a', { href: cx.href('lead', l.name) }, leadName(l))),
       fields: [{ key: 'status', label: 'Status', order: ST.lead.map((x) => x.name) }, { key: 'source', label: 'Source' }, { key: 'owner', label: 'Lead owner', type: 'person' }, { key: 'territory', label: 'Territory' }, { key: 'industry', label: 'Industry' }],
       columns: [{ label: 'Company', render: (l) => l.org || '' }, { label: 'Status', render: (l) => stDot('lead', l.status) }, { label: 'Email', opt: true, render: (l) => l.email || '' }, { label: 'Assigned to', opt: true, render: (l) => (l.owner ? cx.personChip(l.owner, { link: false }) : '') }, { label: 'Last modified', opt: true, render: (l) => h('span.ago', fmt.ago(modifiedOf(l))) }],
       href: (l) => ['lead', l.name] });
-    cx.setCommand({ cli: 'capxul org crm lead list', sdk: 'client.org(orgId).crm.leads.list()', note: 'Group by is drawn on this screen from the list.' });
   }
   return cx.page({ title: 'Leads', workspace: 'crm', crumbs: [{ label: 'CRM', route: 'crm' }], actions: [create], body, fde: 'The Leads list in the CRM' });
 }
 function dealsPage(view) {
-  const create = cx.btn('Create', { kind: 'primary', icon: 'plus', needs: NEED, cmd: 'capxul org crm deal create --company … --owner …', onClick: () => newDealModal() });
+  const create = cx.btn('Create', { kind: 'primary', icon: 'plus', needs: NEED, onClick: () => newDealModal() });
   let body;
   const gbpSum = (list) => fmt.compact(sum(list, (d) => toGbp(d.dealValue, d.currency)), 'GBP');
-  if (view === 'list') body = dealsList(false);
-  else if (view === 'pipeline') body = dealsList(true);
+  if (view === 'list') body = dealsList();
+  else if (view === 'pipeline') body = pipelineBoard();
   else if (view === 'kanban') {
     const rows = [...C.deals].sort((a, b) => String(modifiedOf(b)).localeCompare(String(modifiedOf(a))));
     body = h('div', { style: 'display:grid;gap:10px;min-width:0' }, viewBar(viewList('deals', 'deals-kanban'), h('span.muted', { style: 'font-size:12.5px' }, cx.allowed(NEED).ok ? 'Drag a card to change its status. Won records the closed date; Lost asks why.' : lockLine())),
       cx.kanban({ key: 'crm-deals-kb', id: (r) => r.name, limit: 12,
         columns: ST.deal.map((st) => ({ key: st.name, label: st.name, color: st.color, items: rows.filter((r) => r.status === st.name) })),
-        card: (d) => { const p = primaryOf(d); return [h('div.kb-title', h('span.crm-name', extAvatar(companyName(d.company), { size: 'sm', square: true }), h('span', dealTitle(d)))), h('div.kb-meta.crm-kbm', h('span', d.subject), h('span', { style: 'color:var(--fg);font-weight:600' }, d.dealValue != null ? fmt.money(d.dealValue, d.currency, 0) : '—', h('span.muted', { style: 'font-weight:400' }, ` · ${d.probability ?? 0}%`)), p?.email ? h('span', p.email) : null), h('div.crm-call-h', d.owner ? cx.personChip(d.owner, { link: false }) : null, h('span.grow'), h('span.crm-when', fmt.ago(modifiedOf(d)))), kbCounts(d)]; },
+        card: (d) => { const p = primaryOf(d); return [h('div.kb-title', h('span.crm-name', extAvatar(companyName(d.company), { size: 'sm', square: true }), h('span', dealTitle(d)))), h('div.kb-meta.crm-kbm', h('span', d.subject), h('span', { style: 'color:var(--fg);font-weight:600' }, d.dealValue != null ? fmt.money(d.dealValue, d.currency, 0) : '—', h('span.muted', { style: 'font-weight:400' }, ` · ${d.probability ?? 0}%`)), isOpenDeal(d) ? touchCell(d) : null, d.nextStep && isOpenDeal(d) ? h('span.crm-next', h('b', 'Next: '), d.nextStep) : null), h('div.crm-call-h', d.owner ? cx.personChip(d.owner, { link: false }) : null, h('span.grow'), staleTag(d) || h('span.crm-when', fmt.ago(modifiedOf(d)))), kbCounts(d)]; },
         onMove: (d, to) => moveRecord('deal', d, to),
         onOpen: (d) => cx.go('deal', d.name),
         colMenu: (col) => [{ label: 'New deal here', icon: 'plus', needs: NEED, onClick: () => newDealModal({ status: col.key }) }] }));
-    cx.setCommand({ cli: 'capxul org crm deal list', sdk: 'client.org(orgId).crm.deals.list()', note: 'A drag runs capxul org crm deal move.' });
   } else {
     body = groupedView({ key: 'deals', kind: 'deal', noun: 'deal', views: viewList('deals', 'deals-grouped'), rows: () => C.deals, titleLabel: 'Company', sum: (list) => gbpSum(list),
       title: dealCompanyCell,
       fields: [{ key: 'status', label: 'Status', order: ST.deal.map((x) => x.name) }, { key: 'owner', label: 'Deal owner', type: 'person' }, { key: 'source', label: 'Source' }, { key: 'territory', label: 'Territory' }, { key: 'industry', label: 'Industry' }],
       columns: [{ label: 'Deal value', num: true, render: (d) => (d.dealValue != null ? fmt.money(d.dealValue, d.currency, 0) : '') }, { label: 'Status', render: (d) => stDot('deal', d.status) }, { label: 'Deal owner', opt: true, render: (d) => (d.owner ? cx.personChip(d.owner, { link: false }) : '') }, { label: 'Last modified', opt: true, render: (d) => h('span.ago', fmt.ago(modifiedOf(d))) }],
       href: (d) => ['deal', d.name] });
-    cx.setCommand({ cli: 'capxul org crm deal list', sdk: 'client.org(orgId).crm.deals.list()', note: 'Group by is drawn on this screen from the list.' });
   }
-  return cx.page({ title: view === 'pipeline' ? 'Pipeline' : 'Deals', workspace: 'crm', crumbs: view === 'pipeline' ? [{ label: 'CRM', route: 'crm' }, { label: 'Deals', route: 'deals' }] : [{ label: 'CRM', route: 'crm' }], sub: view === 'pipeline' ? 'A public view: the deals still in play, soonest closing first.' : null, actions: [create], body, fde: view === 'pipeline' ? 'The Pipeline view of open deals' : 'The Deals list in the CRM' });
+  return cx.page({ title: view === 'pipeline' ? 'Pipeline' : 'Deals', workspace: 'crm', crumbs: view === 'pipeline' ? [{ label: 'CRM', route: 'crm' }, { label: 'Deals', route: 'deals' }] : [{ label: 'CRM', route: 'crm' }], sub: view === 'pipeline' ? 'The deals in play by stage, with what each stage is worth, and what won in the last 60 days.' : null, actions: [create], body, fde: view === 'pipeline' ? 'The Pipeline view of open deals' : 'The Deals list in the CRM' });
 }
 cx.route('leads', () => leadsPage('list'), { workspace: 'crm', title: 'Leads' });
 cx.route('leads-kanban', () => leadsPage('kanban'), { workspace: 'crm', title: 'Leads' });
@@ -1427,44 +1891,41 @@ cx.route('pipeline', () => dealsPage('pipeline'), { workspace: 'crm', title: 'Pi
 const escrowsFor = (email) => (email ? D.money.escrows.filter((e) => e.email && e.email.toLowerCase() === email.toLowerCase()) : []);
 function newContactModal(preset = {}) {
   const m = { firstName: '', lastName: '', email: '', mobile: '', company: preset.company || '', designation: '' };
-  formModal({ title: 'New contact', model: m, needs: NEED, submit: 'Create', who: 'whoever wears the People hat',
+  formModal({ title: 'New contact', model: m, needs: NEED, submit: 'Create', 
     fields: [{ label: 'First name', key: 'firstName', reqd: true }, { label: 'Last name', key: 'lastName' }, { label: 'Email', key: 'email' }, { label: 'Mobile no.', key: 'mobile' },
       { label: 'Company', key: 'company', type: 'select', options: [['', '—'], ...C.companies.map((c) => [c.id, c.name])] }, { label: 'Designation', key: 'designation' }],
-    cmd: (x) => `capxul contact create ${q([x.firstName, x.lastName].filter(Boolean).join(' ') || '<name>')} --type person${x.email ? ' --email ' + x.email : ''}${x.mobile ? ' --phone ' + q(x.mobile) : ''}${x.designation ? ' --designation ' + q(x.designation) : ''}${x.company ? ' --company ' + x.company : ''} --org harbourline`,
-    onSubmit: (x, close, cmd) => {
+    onSubmit: (x, close) => {
       const name = [x.firstName, x.lastName].filter(Boolean).join(' ');
       let id = cx.slug(name).toLowerCase(); if (CONTACT.has(id)) id += '-' + (C.contacts.length + 1);
       const rec = { id, firstName: x.firstName, lastName: x.lastName, name, company: x.company || null, designation: x.designation || null, email: x.email || null, mobile: x.mobile || null, onCapxul: false, handle: null, primary: false, createdAt: NOW() };
       C.contacts.push(rec); CONTACT.set(id, rec);
-      close(); cx.toast(`${name} added to Harbourline's contacts`, { tone: 'success', cmd }); cx.go('contact', id);
+      close(); cx.toast(`${name} added to Harbourline's contacts`, { tone: 'success' }); cx.go('contact', id);
     } });
 }
 function newCompanyModal() {
   const m = { name: '', website: '', description: '', revenue: '', currency: 'GBP', territory: 'United Kingdom', employees: '', industry: '' };
-  formModal({ title: 'New company', model: m, needs: NEED, submit: 'Create', who: 'whoever wears the People hat',
+  formModal({ title: 'New company', model: m, needs: NEED, submit: 'Create', 
     fields: [{ label: 'Company name', key: 'name', reqd: true, wide: true }, { label: 'Website', key: 'website' }, { label: 'Annual revenue', key: 'revenue', type: 'float' }, { label: 'Currency', key: 'currency', type: 'select', options: ['GBP', 'USD', 'EUR'] },
       { label: 'Territory', key: 'territory', type: 'select', options: TERRITORIES }, { label: 'No. of employees', key: 'employees', type: 'select', options: [['', '—'], ...EMPLOYEES] }, { label: 'Industry', key: 'industry', type: 'select', options: [['', '—'], ...INDUSTRIES] },
       { label: 'Company description', key: 'description', type: 'textarea', wide: true }],
-    cmd: (x) => `capxul contact create ${q(x.name || '<name>')} --type company${x.website ? ' --website ' + q(x.website) : ''}${x.industry ? ' --industry ' + q(x.industry) : ''} --territory ${q(x.territory)}${x.employees ? ' --employees ' + x.employees : ''}${x.revenue ? ` --revenue ${x.revenue} --currency ${x.currency}` : ''}${x.description ? ' --description ' + q(x.description) : ''} --org harbourline`,
-    onSubmit: (x, close, cmd) => {
+    onSubmit: (x, close) => {
       let id = cx.slug(x.name).toLowerCase(); if (COMPANY.has(id)) id += '-2';
       const rec = { id, name: x.name, website: x.website || null, industry: x.industry || null, territory: x.territory, employees: x.employees || null, annualRevenue: x.revenue ? +x.revenue : null, currency: x.currency, description: x.description || null, onCapxul: false, handle: null, safe: null, isCustomer: false };
       C.companies.push(rec); COMPANY.set(id, rec);
-      close(); cx.toast(`${x.name} added`, { tone: 'success', cmd }); cx.go('company', id);
+      close(); cx.toast(`${x.name} added`, { tone: 'success' }); cx.go('company', id);
     } });
 }
 function linkModal(rec, isCompany) {
   const m = { to: rec.email || '' };
-  formModal({ title: `Link ${rec.name} to pay`, model: m, cols: 1, needs: NEED, submit: 'Preview the link', who: 'whoever wears the People hat',
+  formModal({ title: `Link ${rec.name} to pay`, model: m, cols: 1, needs: NEED, submit: 'Preview the link', 
     intro: 'A private entry has no Party: money cannot reach it. Name the mailbox, handle or address it belongs to. Capxul shows who that is before it links, and links once.',
     fields: [{ label: 'Email, @handle or 0x address', key: 'to', reqd: true }],
-    cmd: (x) => `capxul contact link ${rec.id} ${x.to || '<email|@handle|0x…>'} --confirm --org harbourline`,
-    onSubmit: (x, close, cmd) => {
+    onSubmit: (x, close) => {
       close();
-      sendPreview({ title: `Link ${rec.name}?`, rows: [['Entry', rec.name], ['Links to', x.to], ['After', /^@|^0x/.test(x.to) ? 'Payments go straight to that Party.' : 'Payments go to that mailbox; until its owner joins Capxul, money waits in escrow for them to claim.']], cmd, onSend: () => {
+      sendPreview({ title: `Link ${rec.name}?`, rows: [['Entry', rec.name], ['Links to', x.to], ['After', /^@|^0x/.test(x.to) ? 'Payments go straight to them.' : 'Payments go to that mailbox; until its owner joins Capxul, money waits in escrow for them to claim.']], onSend: () => {
         if (/^@/.test(x.to)) { rec.handle = x.to; rec.onCapxul = true; } else if (/^0x/.test(x.to)) { rec.safe = x.to; rec.onCapxul = true; rec.handle = rec.handle || fmt.addr(x.to); } else rec.email = x.to;
         rec.linked = x.to;
-        cx.toast(`${rec.name} is linked: ${x.to}`, { tone: 'success', cmd }); cx.refresh();
+        cx.toast(`${rec.name} is linked: ${x.to}`, { tone: 'success' }); cx.refresh();
       } });
     } });
 }
@@ -1490,15 +1951,22 @@ function contactCapxul(c) {
     c.onCapxul && c.handle ? h('span', `On Capxul as ${c.handle}.${c.safe ? ` Pays to their Safe ${fmt.addr(c.safe)}.` : ' Paid to their Safe.'}`) : h('span', cap.line),
     open.map((e) => { const p = PAYMENT.get(e.payment); return h('div', { style: 'display:grid;gap:6px;margin-top:4px' }, h('span', h('b', fmt.usdc(e.amount)), ` sent from ${cx.deptName(e.from)} by ${cx.name(e.sentBy)}, waiting for ${c.firstName || c.name} to claim it since ${fmt.date(e.fundedAt)}.`), h('div.crm-btnrow', takeBackBtn(e, p), p && cx.hasRoute('payment') ? cx.btn('Open the payment', { sm: true, href: ['payment', p.id] }) : null)); }),
     esc.filter((e) => e.status !== 'Open').map((e) => h('span.muted', `${fmt.usdc(e.amount)} ${e.status === 'Claimed' ? 'claimed ' + fmt.date(e.claimedAt) : 'taken back ' + fmt.date(e.takenBackAt)}.`)),
-    !c.onCapxul && !c.email ? h('div', cx.btn('Link to pay', { sm: true, icon: 'link', needs: NEED, cmd: `capxul contact link ${c.id} <email|@handle|0x…> --confirm --org harbourline`, onClick: () => linkModal(c) })) : null);
+    !c.onCapxul && !c.email ? h('div', cx.btn('Link to pay', { sm: true, icon: 'link', needs: NEED, onClick: () => linkModal(c) })) : null);
 }
 function contactPage(c) {
   const o = { kind: 'contact', rec: c };
-  const F = (key, label, x = {}) => sideField({ label, get: () => c[key], set: (v) => { c[key] = v; if (key === 'firstName' || key === 'lastName') c.name = [c.firstName, c.lastName].filter(Boolean).join(' '); }, noTimeline: true, cmd: (v) => `capxul contact change ${c.id} ${{ firstName: '--first-name', lastName: '--last-name', email: '--email', mobile: '--phone', designation: '--designation', company: '--company' }[key]} ${q(v)} --org harbourline`, ...x }, o);
+  const F = (key, label, x = {}) => sideField({ label, get: () => c[key], set: (v) => { c[key] = v; if (key === 'firstName' || key === 'lastName') c.name = [c.firstName, c.lastName].filter(Boolean).join(' '); }, noTimeline: true, ...x }, o);
   const deals = dealsOfContact(c.id);
   const money = (TL.get(c.id) || []).filter((i) => i.kind === 'money');
   const leads = leadsOfContact(c.id);
+  const mail = (x) => x && c.email && String(x).toLowerCase() === c.email.toLowerCase();
+  const theirs = (it) => { const l = C.leads.find((x) => x.name === it.recordName); const d = C.deals.find((x) => x.name === it.recordName); return (l && l.contact === c.id) || (d && primaryOf(d)?.id === c.id); };
+  const touches = touchpointsFor([...leads, ...deals], (it) => (it.kind === 'email' ? [it.from, ...(it.to || []), ...(it.cc || [])].some(mail) || (!c.email && theirs(it))
+    : it.kind === 'meeting' ? (it.attendees || []).includes(c.name)
+    : it.kind === 'call' ? [callRec(it).caller, callRec(it).receiver].includes(c.name) || theirs(it)
+    : theirs(it)));
   const tabs = [
+    { label: 'Activity', count: touches.length, render: () => h('div', { style: 'padding:14px' }, touchpointList(touches)) },
     { label: 'Deals', count: deals.length, render: () => h('div', { style: 'padding:14px' }, dealsTable(deals)) },
     leads.length ? { label: 'Leads', count: leads.length, render: () => h('div', { style: 'padding:14px' }, cx.grid({ numbered: false, rows: leads, rowHref: (l) => ['lead', l.name], columns: [{ key: 'name', label: 'Lead', render: (l) => cx.link(l.name, 'lead', l.name) }, { key: 'status', label: 'Status', render: (l) => stDot('lead', l.status) }, { key: 'source', label: 'Source' }, { key: 'createdAt', label: 'Created', type: 'date' }] })) } : null,
     money.length ? { label: 'Money', count: money.length, render: () => h('div', { style: 'padding:14px' }, moneyList(money)) } : null,
@@ -1511,18 +1979,18 @@ function contactPage(c) {
   return cx.page({
     title: c.name, workspace: 'crm', crumbs: [{ label: 'CRM', route: 'crm' }, { label: 'Contacts', route: 'contacts' }],
     sub: [c.designation, companyName(c.company), c.email].filter(Boolean).join(' · '),
-    actions: [cx.btn('New deal', { kind: 'primary', icon: 'plus', needs: NEED, cmd: `capxul org crm deal create --company ${c.company || '<company>'} --contact ${c.id} --primary ${c.id}`, onClick: () => newDealModal({ company: c.company || '', contact: c.id }) })],
+    actions: [cx.btn('New deal', { kind: 'primary', icon: 'plus', needs: NEED, onClick: () => newDealModal({ company: c.company || '', contact: c.id }) })],
     banner: readOnlyBanner('this contact'),
-    cmd: { cli: `capxul contact get ${c.id} --org harbourline`, sdk: `client.account.addressBook.get("${c.id}", { org: "harbourline" })` },
     fde: `Contact ${c.name}${c.company ? ' at ' + companyName(c.company) : ''}`,
     body: h('div.crm-rec.left', side, h('div.crm-main', cx.tabs(tabs, { key: 'crm-contact' }))),
   });
 }
 function companyPage(co) {
   const o = { kind: 'company', rec: co };
-  const F = (key, label, x = {}) => sideField({ label, get: () => co[key], set: (v) => { co[key] = v; }, noTimeline: true, cmd: (v) => `capxul contact change ${co.id} ${CO_FLAG[key] || '--' + key} ${q(v)} --org harbourline`, ...x }, o);
+  const F = (key, label, x = {}) => sideField({ label, get: () => co[key], set: (v) => { co[key] = v; }, noTimeline: true, ...x }, o);
   const deals = dealsOfCompany(co.id);
   const people = contactsOfCompany(co.id);
+  const touches = touchpointsFor([...C.leads.filter((l) => l.company === co.id || (!l.company && l.org === co.name)), ...deals]);
   const money = C.timeline.filter((i) => i.kind === 'money' && i.company === co.id);
   const paid = money.filter((i) => i.direction === 'in');
   const projects = (D.projects?.projects || []).filter((p) => p.customer === co.id);
@@ -1530,6 +1998,7 @@ function companyPage(co) {
     ? h('div.crm-f-cap', h('div', { style: 'display:flex;gap:6px;align-items:center;flex-wrap:wrap' }, h('b', 'Capxul'), cx.pill(co.handle, 'green')), h('span', `A Capxul Organization, ${co.handle}. Pays to its company Safe ${fmt.addr(co.safe)}.`), paid.length ? h('span', `Paid since ${fmt.month(dayOf(paid[0].at).slice(0, 7))}: `, h('b', fmt.usdc(sum(paid, (i) => i.amount))), `, ${fmt.plural(paid.length, 'invoice')}.`) : null)
     : h('div.crm-f-cap', h('div', { style: 'display:flex;gap:6px;align-items:center;flex-wrap:wrap' }, h('b', 'Capxul'), cx.pill('Private', 'gray')), h('span', 'Private: not on Capxul. Its people can be paid by mailbox.'), paid.length ? h('span', `It has paid ${fmt.plural(paid.length, 'invoice')} on chain from a link: `, h('b', fmt.usdc(sum(paid, (i) => i.amount))), '.') : null);
   const tabs = [
+    { label: 'Activity', count: touches.length, render: () => h('div', { style: 'padding:14px' }, touchpointList(touches)) },
     { label: 'Deals', count: deals.length, render: () => h('div', { style: 'padding:14px' }, dealsTable(deals)) },
     { label: 'Contacts', count: people.length, render: () => h('div', { style: 'padding:14px' }, cx.grid({ numbered: false, rows: people, empty: 'No contacts yet.', rowHref: (c) => ['contact', c.id], columns: [
       { key: 'name', label: 'Name', render: (c) => h('span.crm-name', extAvatar(c.name, { size: 'sm' }), cx.link(c.name, 'contact', c.id)) }, { key: 'email', label: 'Email' }, { key: 'mobile', label: 'Phone', opt: true },
@@ -1547,16 +2016,15 @@ function companyPage(co) {
   return cx.page({
     title: co.name, workspace: 'crm', crumbs: [{ label: 'CRM', route: 'crm' }, { label: 'Companies', route: 'companies' }],
     sub: [co.industry, co.territory, co.onCapxul ? co.handle : null].filter(Boolean).join(' · '),
-    actions: [cx.btn('Add contact', { icon: 'user', needs: NEED, cmd: `capxul contact create "<name>" --type person --company ${co.id} --org harbourline`, onClick: () => newContactModal({ company: co.id }) }), cx.btn('New deal', { kind: 'primary', icon: 'plus', needs: NEED, cmd: `capxul org crm deal create --company ${co.id}`, onClick: () => newDealModal({ company: co.id }) })],
+    actions: [cx.btn('Add contact', { icon: 'user', needs: NEED, onClick: () => newContactModal({ company: co.id }) }), cx.btn('New deal', { kind: 'primary', icon: 'plus', needs: NEED, onClick: () => newDealModal({ company: co.id }) })],
     banner: readOnlyBanner('this company'),
-    cmd: { cli: [`capxul contact get ${co.id} --org harbourline`, `capxul org crm deal list --company ${co.id}`] },
     fde: `Company ${co.name}${co.onCapxul ? ' (' + co.handle + ' on Capxul)' : ''}`,
     body: h('div.crm-rec.left', side, h('div.crm-main', cx.tabs(tabs, { key: 'crm-company' }))),
   });
 }
 cx.route('contacts', () => cx.page({
   title: 'Contacts', workspace: 'crm', crumbs: [{ label: 'CRM', route: 'crm' }],
-  actions: [cx.btn('Create', { kind: 'primary', icon: 'plus', needs: NEED, cmd: 'capxul contact create "<name>" --type person --org harbourline', onClick: () => newContactModal() })],
+  actions: [cx.btn('Create', { kind: 'primary', icon: 'plus', needs: NEED, onClick: () => newContactModal() })],
   fde: 'The contacts in Harbourline\'s CRM',
   body: cx.listView({
     key: 'crm-contacts', rows: () => C.contacts, id: (r) => r.id, showId: false,
@@ -1567,14 +2035,13 @@ cx.route('contacts', () => cx.page({
     sort: { options: [{ key: 'modified', label: 'Last modified', get: (r) => contactModified(r) || '' }, { key: 'name', label: 'Name' }], default: { key: 'modified', dir: 'desc' } },
     groupBy: [{ key: 'companyName', label: 'Company', get: (r) => companyName(r.company) }, { key: 'capxul', label: 'Capxul', get: (r) => capxulOf(r).word }],
     href: (r) => ['contact', r.id],
-    cmd: { cli: 'capxul contact list --org harbourline', sdk: 'client.account.addressBook.list({ org: "harbourline" })', filters: false },
     noun: 'contact',
   }),
 }), { workspace: 'crm', title: 'Contacts' });
 cx.route('contact', (ctx) => { const c = cx.find(C.contacts, 'id', ctx.id); return c ? contactPage(c) : notFound('contact', 'contacts', 'Contacts'); }, { workspace: 'crm', title: 'Contact' });
 cx.route('companies', () => cx.page({
   title: 'Companies', workspace: 'crm', crumbs: [{ label: 'CRM', route: 'crm' }],
-  actions: [cx.btn('Create', { kind: 'primary', icon: 'plus', needs: NEED, cmd: 'capxul contact create "<name>" --type company --org harbourline', onClick: () => newCompanyModal() })],
+  actions: [cx.btn('Create', { kind: 'primary', icon: 'plus', needs: NEED, onClick: () => newCompanyModal() })],
   fde: 'The companies in Harbourline\'s CRM',
   body: cx.listView({
     key: 'crm-companies', rows: () => C.companies, id: (r) => r.id, showId: false,
@@ -1585,7 +2052,6 @@ cx.route('companies', () => cx.page({
     sort: { options: [{ key: 'modified', label: 'Last modified', get: (r) => companyModified(r) || '' }, { key: 'name', label: 'Company' }, { key: 'annualRevenue', label: 'Annual revenue' }], default: { key: 'modified', dir: 'desc' } },
     groupBy: [{ key: 'industry', label: 'Industry' }, { key: 'territory', label: 'Territory' }],
     href: (r) => ['company', r.id],
-    cmd: { cli: 'capxul contact list --org harbourline', sdk: 'client.account.addressBook.list({ org: "harbourline" })', filters: false, note: 'Companies are the book\'s entries of --type company.' },
     noun: 'company', nouns: 'companies',
   }),
 }), { workspace: 'crm', title: 'Companies' });
@@ -1610,8 +2076,7 @@ cx.route('crm-notes', () => {
     h('select.ctl', { 'aria-label': 'Author', onchange: (e) => { notesState.by = e.target.value; draw(); } }, h('option', { value: '' }, 'Anyone'), uniq(C.notes.map((n) => n.by)).map((id) => h('option', { value: id, selected: id === notesState.by }, cx.name(id)))));
   draw();
   return cx.page({ title: 'Notes', workspace: 'crm', crumbs: [{ label: 'CRM', route: 'crm' }],
-    actions: [cx.btn('Create', { kind: 'primary', icon: 'plus', needs: NEED, cmd: 'capxul org crm note add <record> "<title>" --content "…"', onClick: () => pickRecord('New note: which lead or deal?', (ctx) => noteModal(ctx, null)) })],
-    cmd: { cli: 'capxul org crm timeline <record> --kind note', note: 'Notes have no list of their own: each lead\'s and deal\'s timeline holds its notes. A note is never removed.' },
+    actions: [cx.btn('Create', { kind: 'primary', icon: 'plus', needs: NEED, onClick: () => pickRecord('New note: which lead or deal?', (ctx) => noteModal(ctx, null)) })],
     fde: 'Every note in the CRM', body: [bar, grid] });
 }, { workspace: 'crm', title: 'Notes' });
 
@@ -1638,7 +2103,6 @@ function crmTasksPage(kanban) {
       groupBy: [{ key: 'assignedTo', label: 'Assigned to', type: 'person' }, { key: 'priority', label: 'Priority' }],
       onOpen: (r) => taskModal(ctxFor(r.reference), r),
       views,
-      cmd: (st) => { const stages = TASK_TABS[st.tab]?.stage || []; const who = st.filters.assignedTo; return { cli: `capxul org crm task list${stages.map((x) => ' --stage ' + x).join('')}${who ? ' --assigned-to ' + memberEmail(who) : ''}`, sdk: `client.org(orgId).crm.tasks.list(${stages.length || who ? `{ ${[stages.length ? `stage: ${JSON.stringify(stages)}` : null, who ? `assignedTo: "${memberEmail(who)}"` : null].filter(Boolean).join(', ')} }` : ''})` }; },
       noun: 'task', showId: true,
     });
   } else {
@@ -1649,12 +2113,11 @@ function crmTasksPage(kanban) {
       cx.kanban({ key: 'crm-tasks-kb', id: (r) => r.name, limit: 12,
         columns: TASK_ST.map((st) => ({ key: st, label: st, color: TASK_COLOR[st], items: rows.filter((t) => t.status === st) })),
         card: (t) => [h('div.kb-title', h('span.crm-name', taskIcon(t.status), h('span', t.title))), t.description ? h('div.kb-meta.crm-kbm', h('span', t.description)) : null, h('div.kb-meta.crm-kbm', h('span', 'on ', recLabel(t.reference))), h('div.crm-call-h', prio(t.priority), h('span.grow'), t.due ? h('span.crm-when', fmt.date(t.due)) : null), t.assignedTo ? cx.personChip(t.assignedTo, { link: false }) : null],
-        onMove: (t, to) => { const ok = taskMoveNeed(t)(); if (ok !== true) { cx.toast(ok, { tone: 'warning' }); return false; } const cmd = `capxul org crm task move ${t.name} ${q(to)}`; t.status = to; t.modifiedAt = NOW(); cx.toast(`${t.title}: ${to}`, { tone: 'success', cmd }); cx.showAction(cmd, 'Move the task', { pin: true }); return true; },
+        onMove: (t, to) => { const ok = taskMoveNeed(t)(); if (ok !== true) { cx.toast(ok, { tone: 'warning' }); return false; } t.status = to; t.modifiedAt = NOW(); cx.toast(`${t.title}: ${to}`, { tone: 'success' }); return true; },
         onOpen: (t) => taskModal(ctxFor(t.reference), t) }));
-    cx.setCommand({ cli: `capxul org crm task list${who ? ' --assigned-to ' + memberEmail(who) : ''}`, note: 'A drag runs capxul org crm task move. The assignee may move their own task.' });
   }
   return cx.page({ title: 'Tasks', workspace: 'crm', crumbs: [{ label: 'CRM', route: 'crm' }], sub: 'The CRM\'s own tasks, on leads and deals. Project tasks live in Projects.',
-    actions: [cx.btn('Create', { kind: 'primary', icon: 'plus', needs: NEED, cmd: 'capxul org crm task create <record> "<title>"', onClick: () => taskModal(null, null) })],
+    actions: [cx.btn('Create', { kind: 'primary', icon: 'plus', needs: NEED, onClick: () => taskModal(null, null) })],
     fde: 'The CRM tasks', body });
 }
 cx.route('crm-tasks', () => crmTasksPage(false), { workspace: 'crm', title: 'Tasks' });
@@ -1664,7 +2127,7 @@ const callFrom = (c) => (c.type === 'Outgoing' ? HL_PHONE : numberOf(c.caller, c
 const callTo = (c) => (c.type === 'Outgoing' ? numberOf(c.receiver, c.reference) : HL_PHONE);
 cx.route('call-logs', () => cx.page({
   title: 'Call logs', workspace: 'crm', crumbs: [{ label: 'CRM', route: 'crm' }],
-  actions: [cx.btn('Log a call', { kind: 'primary', icon: 'phone', needs: NEED, cmd: 'capxul org crm call log <record> --type outgoing --status completed', onClick: () => pickRecord('Log a call: which lead or deal?', (ctx) => logCallModal(ctx)) })],
+  actions: [cx.btn('Log a call', { kind: 'primary', icon: 'phone', needs: NEED, onClick: () => pickRecord('Log a call: which lead or deal?', (ctx) => logCallModal(ctx)) })],
   fde: 'The CRM call logs',
   body: cx.listView({
     key: 'crm-calls', rows: () => C.calls, id: (r) => r.name,
@@ -1676,7 +2139,6 @@ cx.route('call-logs', () => cx.page({
     sort: { options: [{ key: 'at', label: 'Created on' }, { key: 'duration', label: 'Duration' }], default: { key: 'at', dir: 'desc' } },
     groupBy: [{ key: 'caller', label: 'Caller' }, { key: 'status', label: 'Status' }],
     onOpen: (r) => callModal(r),
-    cmd: { cli: 'capxul org crm timeline <record> --kind call', filters: false, note: 'Call logs have no list of their own: each record\'s timeline holds its calls. Every log is manual; Capxul has no telephony.' },
     noun: 'call', showId: false,
   }),
 }), { workspace: 'crm', title: 'Call logs' });
@@ -1702,70 +2164,84 @@ function crmDashboard() {
   const own = (r) => !user || r.owner === user;
   const inR = (d, a, b) => !!d && dayOf(d) >= a && dayOf(d) <= b;
   const leads = C.leads.filter(own), deals = C.deals.filter(own);
-  const leadsIn = (a, b) => leads.filter((l) => inR(l.createdAt, a, b));
+  const leadsIn = (a, b) => leads.filter((l) => inR(qualOf(l).arrival, a, b));
   const dealsIn = (a, b) => deals.filter((d) => inR(d.createdAt, a, b));
   const wonIn = (a, b) => deals.filter((d) => d.status === 'Won' && inR(d.closedDate, a, b));
   const gbp = (d) => toGbp(d.dealValue, d.currency, d.closedDate || d.createdAt);
-  const ongoing = deals.filter((d) => ['open', 'ongoing'].includes(stageOf('deal', d.status)));
+  const ongoing = deals.filter(isOpenDeal);
   const won = wonIn(from, TODAY), wonBefore = wonIn(pFrom, pTo);
-  const leadTimes = won.filter((d) => d.lead).map((d) => { const l = C.leads.find((x) => x.name === d.lead); return l ? daysBetween(l.createdAt, d.closedDate) : null; }).filter((x) => x != null);
-  const dealTimes = won.map((d) => daysBetween(d.createdAt, d.closedDate));
-  const paid = C.timeline.filter((i) => i.kind === 'money' && i.direction === 'in' && inR(i.at, from, TODAY));
+  const arrived = leadsIn(from, TODAY);
+  const replyH = median(arrived.map((l) => qualOf(l).firstReplyHours));
+  const replyBefore = median(leadsIn(pFrom, pTo).map((l) => qualOf(l).firstReplyHours));
+  const stale = ongoing.filter(staleOf);
+  const weighted = sum(ongoing, (d) => toGbp(d.dealValue, d.currency) * (d.probability || 0) / 100);
   const cards = [
-    { label: 'Total leads', value: fmt.int(leadsIn(from, TODAY).length), sub: RANGES.find(([k]) => k === range)[1].toLowerCase(), delta: pctDelta(leadsIn(from, TODAY).length, leadsIn(pFrom, pTo).length, noun), href: ['leads'], cmd: 'capxul org crm lead list' },
-    { label: 'Avg. time to close a lead', value: leadTimes.length ? `${Math.round(avg(leadTimes))} days` : '—', sub: 'lead created to deal won', cmd: 'capxul org crm deal list --stage won' },
-    { label: 'Ongoing deals', value: fmt.int(ongoing.length), sub: 'not yet won or lost', href: ['pipeline'], cmd: 'capxul org crm deal list --stage ongoing' },
-    { label: 'Won deals', value: fmt.int(won.length), sub: won.length ? won.map((d) => companyName(d.company)).slice(0, 2).join(', ') + (won.length > 2 ? '…' : '') : 'none in the range', delta: pctDelta(won.length, wonBefore.length, noun), href: ['deals'], cmd: 'capxul org crm deal list --stage won' },
-    { label: 'Avg. won deal value', value: won.length ? fmt.gbp(avg(won.map(gbp))) : '—', sub: 'in pounds', cmd: 'capxul org crm deal list --stage won' },
-    { label: 'Avg. deal value', value: [...ongoing, ...won].length ? fmt.gbp(avg([...ongoing, ...won].map(gbp))) : '—', sub: 'ongoing and won', cmd: 'capxul org crm deal list --stage ongoing' },
-    { label: 'Avg. time to close a deal', value: dealTimes.length ? `${Math.round(avg(dealTimes))} days` : '—', sub: 'deal created to won', cmd: 'capxul org crm deal list --stage won' },
-    { label: 'Paid on chain', value: fmt.usdc(sum(paid, (i) => i.amount)), sub: paid.length ? `${fmt.plural(paid.length, 'payment')} from customers on Capxul, each with its proof` : 'no customer paid on chain in the range', cmd: 'capxul org crm timeline <deal> --kind money' },
+    { label: 'Leads in', value: fmt.int(arrived.length), sub: RANGES.find(([k]) => k === range)[1].toLowerCase(), delta: pctDelta(arrived.length, leadsIn(pFrom, pTo).length, noun), href: ['leads'] },
+    { label: 'Scored 60 or more', value: fmt.int(arrived.filter((l) => qualOf(l).score >= 60).length), sub: 'by the sales agent, on arrival', href: ['leads'] },
+    { label: 'First reply', value: replyH == null ? '—' : durHuman(replyH), sub: 'median, after a lead arrives', delta: replyH != null && replyBefore != null ? { text: `${durHuman(replyBefore)} in the ${noun} before`, good: replyH <= replyBefore } : null, href: ['crm-sources'] },
+    { label: 'Pipeline', value: fmt.gbp(weighted), sub: `weighted, ${fmt.plural(ongoing.length, 'deal')} in play`, href: ['pipeline'] },
+    { label: 'Stale deals', value: fmt.int(stale.length), sub: `no touch for over two weeks`, href: ['deals'] },
+    { label: 'Won', value: fmt.gbp(sum(won, gbp)), sub: won.length ? fmt.plural(won.length, 'deal') + ': ' + won.map((d) => companyName(d.company)).slice(0, 2).join(', ') + (won.length > 2 ? '…' : '') : 'none in the range', delta: pctDelta(won.length, wonBefore.length, noun), href: ['deals'] },
   ];
+  // the latest arrivals and the deals in play, as lists
+  const inbound = [...leads].filter((l) => !l.converted || dayOf(qualOf(l).arrival) >= addDays(TODAY, -14)).sort((a, b) => String(qualOf(b).arrival).localeCompare(String(qualOf(a).arrival))).slice(0, 8);
+  const inboundList = h('div.crm-list', inbound.map((l) => { const q = qualOf(l); return h('a.crm-row', { href: cx.href('lead', l.name) },
+    extAvatar(leadName(l), { size: 'sm' }),
+    h('div', { style: 'display:grid;gap:2px;min-width:0' }, h('span.t', `${leadName(l)}${l.org ? ' · ' + l.org : ''}`), h('span.m', channelTag(q.channel), h('span', q.need.level ? q.need.text : 'Need not clear yet'), h('span', '→ ' + cx.name(l.owner)))),
+    h('div.r', scorePill(q.score), h('span', { title: fmt.datetime(q.arrival) }, fmt.ago(q.arrival)))); }));
+  const inPlay = [...ongoing].sort((a, b) => (staleOf(b) || 0) - (staleOf(a) || 0) || String(a.expectedClosureDate).localeCompare(String(b.expectedClosureDate)));
+  const playList = inPlay.length ? h('div.crm-list', inPlay.map((d) => h('a.crm-row', { href: cx.href('deal', d.name) },
+    extAvatar(companyName(d.company), { size: 'sm', square: true }),
+    h('div', { style: 'display:grid;gap:2px;min-width:0' }, h('span.t', dealTitle(d)), h('span.m', stDot('deal', d.status), touchCell(d), d.nextStep ? h('span', 'Next: ' + d.nextStep) : null)),
+    h('div.r', h('span', { style: 'color:var(--fg);font-weight:600' }, fmt.money(d.dealValue, d.currency, 0)), staleTag(d) || h('span', cx.name(d.owner)))))) : cx.empty('No deals in play');
   // charts
   const daily = n <= 90;
   const buckets = daily ? Array.from({ length: n }, (_, i) => addDays(from, i)) : monthsBetween(monthKey(from), monthKey(TODAY));
   const bucketOf = (d) => (daily ? dayOf(d) : monthKey(d));
   const countBy = (arr, get) => { const m = new Map(buckets.map((b) => [b, 0])); for (const x of arr) { const k = bucketOf(get(x)); if (m.has(k)) m.set(k, m.get(k) + 1); } return buckets.map((b) => m.get(b)); };
   const trend = cx.chart.line({ labels: buckets.map((b) => (daily ? fmt.day(b) : monthLabel(b))), height: 220, format: (v) => fmt.int(v),
-    series: [{ name: 'Leads', values: countBy(leadsIn(from, TODAY), (l) => l.createdAt), color: '2' }, { name: 'Deals', values: countBy(dealsIn(from, TODAY), (d) => d.createdAt), color: '3' }, { name: 'Won deals', values: countBy(won, (d) => d.closedDate), color: 'pos' }] });
+    series: [{ name: 'Leads in', values: countBy(arrived, (l) => qualOf(l).arrival), color: '2' }, { name: 'Deals', values: countBy(dealsIn(from, TODAY), (d) => d.createdAt), color: '3' }, { name: 'Won deals', values: countBy(won, (d) => d.closedDate), color: 'pos' }] });
   const fMonths = monthsBetween(monthKey(range === 'all' ? '2025-05-01' : addDays(TODAY, -Math.max(n, 90))), monthKey(addDays(TODAY, 100)));
-  const forecast = fMonths.map((ym) => sum(ongoing.filter((d) => monthKey(d.expectedClosureDate) === ym), (d) => toGbp(d.expectedDealValue ?? d.dealValue, d.currency) * (d.probability || 0) / 100));
+  const forecast = fMonths.map((ym) => sum(ongoing.filter((d) => monthKey(d.expectedClosureDate) === ym), (d) => toGbp(d.dealValue, d.currency) * (d.probability || 0) / 100));
   const actual = fMonths.map((ym) => sum(deals.filter((d) => d.status === 'Won' && monthKey(d.closedDate) === ym), gbp));
   const fc = cx.chart.bar({ labels: fMonths.map(monthLabel), height: 220, format: (v) => fmt.compact(v, 'GBP'), tipFormat: (v) => fmt.gbp(v),
     series: [{ name: 'Forecasted', values: forecast, color: '3' }, { name: 'Actual (won)', values: actual, color: '1' }] });
-  const leadsR = range === 'all' ? leads : leadsIn(from, TODAY);
-  const dealsR = range === 'all' ? deals : dealsIn(from, TODAY);
-  const funnel = cx.chart.hbar({ items: [{ label: 'Leads', value: leadsR.length, color: '2', href: ['leads'] }, { label: 'Deals', value: dealsR.length, color: '3', href: ['deals'] }, { label: 'Won', value: (range === 'all' ? deals.filter((d) => d.status === 'Won') : won).length, color: 'pos' }], format: (v) => fmt.int(v) });
-  const byStage = cx.chart.donut({ items: ST.deal.filter((x) => ['Open', 'Ongoing'].includes(x.type)).map((x) => ({ label: x.name, value: ongoing.filter((d) => d.status === x.name).length, color: x.color })).filter((x) => x.value), center: String(ongoing.length), format: (v) => fmt.int(v) });
   const tally = (arr, get) => { const m = new Map(); for (const x of arr) { const k = get(x) || 'Not set'; m.set(k, (m.get(k) || 0) + 1); } return [...m.entries()].sort((a, b) => b[1] - a[1]); };
   const PAL = ['1', '2', '3', '4', '5', '6'];
+  const leadsR = range === 'all' ? leads : arrived;
+  const dealsR = range === 'all' ? deals : dealsIn(from, TODAY);
   const donutOf = (pairs) => (pairs.length ? cx.chart.donut({ items: pairs.map(([label, value], i) => ({ label, value, color: PAL[i % 6] })), center: fmt.int(sum(pairs, (p) => p[1])), format: (v) => fmt.int(v) }) : cx.empty('Nothing in this range'));
-  const hbarOf = (pairs, color, route) => (pairs.length ? cx.chart.hbar({ items: pairs.map(([label, value]) => ({ label, value, color })), format: (v) => fmt.int(v) }) : cx.empty('Nothing in this range'));
-  const lostR = dealsR.filter((d) => d.status === 'Lost');
+  const hbarOf = (pairs, color) => (pairs.length ? cx.chart.hbar({ items: pairs.map(([label, value]) => ({ label, value, color })), format: (v) => fmt.int(v) }) : cx.empty('Nothing in this range'));
+  const byStage = ongoing.length ? cx.chart.donut({ items: ST.deal.filter((x) => ['Open', 'Ongoing'].includes(x.type)).map((x) => ({ label: x.name, value: ongoing.filter((d) => d.status === x.name).length, color: x.color })).filter((x) => x.value), center: String(ongoing.length), format: (v) => fmt.int(v) }) : cx.empty('No ongoing deals');
+  const scoreBands = [['70 to 100', (s) => s >= 70], ['45 to 69', (s) => s >= 45 && s < 70], ['20 to 44', (s) => s >= 20 && s < 45], ['Under 20', (s) => s < 20]];
   const charts = [
-    { title: 'Sales trend', sub: 'Leads, deals and wins, by ' + (daily ? 'day' : 'month'), node: trend, wide: true, cmd: 'capxul org crm lead list · capxul org crm deal list' },
-    { title: 'Forecasted revenue', sub: 'Expected value × probability, by expected closure month, against what was won', node: fc, wide: true, cmd: 'capxul org crm deal list --stage ongoing' },
-    { title: 'Funnel conversion', sub: 'Lead to deal to won', node: funnel, cmd: 'capxul org crm lead list --stage converted' },
-    { title: 'Deals by stage', sub: 'The pipeline now', node: ongoing.length ? byStage : cx.empty('No ongoing deals'), cmd: 'capxul org crm deal list --stage ongoing' },
-    { title: 'Leads by source', node: donutOf(tally(leadsR, (l) => l.source)), cmd: 'capxul org crm lead list' },
-    { title: 'Deals by source', node: donutOf(tally(dealsR, (d) => d.source)), cmd: 'capxul org crm deal list' },
-    { title: 'Deals by territory', node: hbarOf(tally(dealsR, (d) => d.territory), '2'), cmd: 'capxul org crm deal list' },
-    { title: 'Deals by salesperson', node: hbarOf(tally(dealsR, (d) => cx.name(d.owner)), '1'), cmd: 'capxul org crm deal list' },
-    { title: 'Lost deal reasons', sub: 'Why deals were lost', node: hbarOf(tally(lostR, (d) => d.lostReason), 'neg'), cmd: 'capxul org crm deal list --stage lost' },
+    { title: 'Sales trend', sub: 'Leads in, deals and wins, by ' + (daily ? 'day' : 'month'), node: trend, wide: true },
+    { title: 'Leads by how they arrived', node: donutOf(tally(leadsR, (l) => qualOf(l).channel)), href: ['crm-sources'] },
+    { title: 'Leads by score', sub: 'The sales agent\'s score on arrival', node: hbarOf(scoreBands.map(([label, f]) => [label, leadsR.filter((l) => f(qualOf(l).score)).length]).filter((p) => p[1]), '2') },
+    { title: 'Forecasted revenue', sub: 'Deal value × probability, by expected closure month, against what was won', node: fc, wide: true },
+    { title: 'Deals by stage', sub: 'The pipeline now', node: byStage },
+    { title: 'Deals by salesperson', node: hbarOf(tally(dealsR, (d) => cx.name(d.owner)), '1') },
+    { title: 'Lost deal reasons', sub: 'Why deals were lost', node: hbarOf(tally(dealsR.filter((d) => d.status === 'Lost'), (d) => d.lostReason), 'neg') },
   ];
   const rangeSel = h('select.ctl', { 'aria-label': 'Range', onchange: (e) => { cx.store.set('crm-dash', { range: e.target.value, user }); cx.refresh(); } }, RANGES.map(([k, l]) => h('option', { value: k, selected: k === range }, l)));
   const userSel = h('select.ctl', { 'aria-label': 'Sales user', onchange: (e) => { cx.store.set('crm-dash', { range, user: e.target.value }); cx.refresh(); } }, h('option', { value: '' }, 'All sales users'), uniq([...C.deals, ...C.leads].map((r) => r.owner)).map((id) => h('option', { value: id, selected: id === user }, cx.name(id))));
   return cx.page({
     title: 'Dashboard', workspace: 'crm', crumbs: [{ label: 'CRM', route: 'crm' }],
     sub: `${fmt.date(from)} to ${fmt.date(TODAY)}${user ? ' · ' + cx.name(user) : ''} · amounts in pounds; a dollar deal counts at the day's rate`,
-    actions: [cx.btn('Refresh', { icon: 'refresh', onClick: () => cx.refresh() })],
-    cmd: { cli: ['capxul org crm deal list --stage ongoing', 'capxul org crm lead list --stage open'], note: 'The dashboard has no command of its own: its cards count these lists.' },
+    actions: [cx.btn('Lead sources', { icon: 'report', href: ['crm-sources'] }), cx.btn('Pipeline', { icon: 'kanban', kind: 'primary', href: ['pipeline'] })],
     fde: `The CRM dashboard, ${RANGES.find(([k]) => k === range)[1].toLowerCase()}`,
     body: [
       h('div.crm-dash-bar', h('label', 'Range', rangeSel), h('label', 'Sales user', userSel)),
       h('div.ncards', cards.map((c) => cx.numberCard(c))),
-      h('div.grid.c2.crm-dash', charts.map((c) => cx.card({ class: 'chart-card' + (c.wide ? ' wide' : ''), title: c.title, cmd: c.cmd, body: [c.sub ? h('p.muted', { style: 'font-size:12.5px;margin-bottom:8px' }, c.sub) : null, c.node] }))),
+      h('div.grid.c2.crm-dash',
+        cx.card({ title: 'Latest leads', actions: cx.btn('All leads', { sm: true, kind: 'ghost', href: ['leads'] }), body: inboundList }),
+        cx.card({ title: 'Deals in play', actions: cx.btn('Pipeline', { sm: true, kind: 'ghost', href: ['pipeline'] }), body: playList }),
+        charts.map((c) => cx.card({ class: 'chart-card' + (c.wide ? ' wide' : ''), title: c.title, actions: c.href ? cx.btn('Open', { sm: true, kind: 'ghost', href: c.href }) : null, body: [c.sub ? h('p.muted', { style: 'font-size:12.5px;margin-bottom:8px' }, c.sub) : null, c.node] }))),
     ],
   });
 }
 cx.route('crm', () => crmDashboard(), { workspace: 'crm', title: 'CRM' });
+
+cx.on('route', () => QUAL.clear());
+cx.native = Object.assign(cx.native || {}, { crmQualification: (name) => { const l = C.leads.find((x) => x.name === name); return l ? qualOf(l) : null; }, crmStale: (name) => { const d = C.deals.find((x) => x.name === name); return d ? staleOf(d) : null; } });
+registerAgentWork();

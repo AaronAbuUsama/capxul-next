@@ -1,6 +1,6 @@
 # The shell's API, for module builders
 
-`core.js` is Capxul's shell: the frame (sidebar, top bar, command strip), the router, and the shared components
+`core.js` is Capxul's shell: the frame (sidebar, top bar, assistant panel), the router, and the shared components
 every module uses. A module is one ES module in this folder. It imports the shell and registers its workspaces and
 routes at its top level:
 
@@ -19,11 +19,12 @@ To see every component drawn from Harbourline's data, open the page and run this
 working example of every call below.
 
 Contents: [Rules](#rules) · [Workspaces and routes](#workspaces-and-routes) · [Page](#the-page) ·
-[Command strip](#the-command-strip) · [Data helpers](#data-helpers) · [Who is signed in](#who-is-signed-in) ·
+[Commands are data](#commands-are-data) · [Data helpers](#data-helpers) · [Who is signed in](#who-is-signed-in) ·
 [Formatting](#formatting) · [Small parts](#small-parts) · [Workspace page](#workspace-page) ·
 [List view](#list-view) · [Form view](#form-view) · [Report view](#report-view) · [Tree view](#tree-view) ·
 [Kanban](#kanban) · [Charts](#charts) · [Confirmation, modal, panel, toast](#confirmation-modal-panel-toast) ·
-[Money: approval, draft, proof](#money-approval-draft-proof) · [The FDE](#the-fde) · [Search](#search) ·
+[Money: approval, proof](#money-approval-proof) · [Agent work and the assistant](#agent-work-and-the-assistant) ·
+[The FDE](#the-fde) · [Search](#search) ·
 [Events](#events) · [Hooks between modules](#hooks-between-modules-cxnative) · [Walkthroughs](#walkthroughs) ·
 [CSS classes](#css-classes) · [Checking your module](#checking-your-module)
 
@@ -31,18 +32,24 @@ Contents: [Rules](#rules) · [Workspaces and routes](#workspaces-and-routes) · 
 
 - **Words.** No screen, label, toast, empty state or tooltip says Frappe, ERPNext, head, DocType or Desk. Keep
   them out of your code comments too: the source ships with the page. Use the research pages' Capxul labels.
+- **No commands on screen.** No user is expected to run a command; commands are the AI's side. Never draw a
+  `$ capxul …` line, a command block, "Copy the command", an SDK or `--json` button, or "Who may run it". You may still
+  pass `cmd` to `cx.page`, `cx.btn`, menus, lists and reports: the shell keeps it as data (see
+  [Commands are data](#commands-are-data)) and draws nothing. A toast says what happened or would happen, with the
+  mock-up's caveat: "Sent to Georgia Spencer (mock-up: nothing is sent)".
+- **No agent call-outs on a page.** What an agent did or proposes lives in one place, the assistant panel
+  ([Agent work and the assistant](#agent-work-and-the-assistant)). A page shows agent work only where it is part of
+  the record itself: a timeline entry "Logged by the sales agent", a lead's score and its reason, a status "Matched
+  automatically". Never a dashed "Drafted by …" box or a banner.
 - **Structure.** Keep each record's real tabs, sections, field order, list columns, filters, statuses and actions,
   as the research pages describe them, under Capxul's names.
-- **Every screen and action shows its command.** Pass `cmd` to `cx.page` (or to the list or report view), and
-  `cmd` to every `cx.btn` and menu item that does something. Spellings come from `docs/design/command-surface.md` and
-  the research pages (`org doc …` for records, `org report run …` for reports with no native command).
 - **Money moves only through an approval.** A write that moves money or authority ends in `cx.approval` (the
   signer's passkey, or Directors for a Board proposal), never in a plain toast. Every settled on-chain payment shows
   `cx.proof`.
 - **Authority by hat.** Gate actions with `needs` (a hat, or `{ dept }` for a department's hat or one above it).
   A control the viewer may not use stays visible, locked, with the reason.
 - **No browser dialogs, no print, no downloads.** Use `cx.confirm`, `cx.modal`, `cx.toast`. Export, Print and PDF
-  show their command and a toast.
+  show a toast saying what would happen ("Exported as a spreadsheet (mock-up: nothing is downloaded)").
 - **Colours.** Only the tokens in `index.html` (`var(--accent)`, `var(--t-green)`, …). If your module needs CSS,
   add it with `cx.style('your-module', css)` and use tokens only. Dark mode then follows.
 - **Width.** Everything must work at 400px wide with no horizontal page scroll. Wide tables go inside
@@ -119,7 +126,7 @@ cx.page({
   status: ['Unpaid', cx.pill('Payment in transit', 'info')],   // words become pills; Nodes pass through
   sub: 'ACC-SINV-2026-00050 · 30 Oct 2026',                    // a line under the title (text or Node)
   actions: [cx.menu('View', [...]), cx.menu('Create', [...], { kind: 'primary' }), cx.btn('Cancel', {...})],
-  cmd: { cli: 'capxul org doc get sales-invoice ACC-SINV-2026-00050', kind: 'family' },
+  cmd: { cli: 'capxul org doc get sales-invoice ACC-SINV-2026-00050' },  // kept as data, never drawn
   banner: cx.banner('Post this invoice to make it final', { tone: 'info' }),
   fde: 'Sales invoice ACC-SINV-2026-00050 to Larkspur Coffee Co.',  // what the FDE is told you are looking at
   hero: null,          // a Node that replaces the standard head (Home uses it)
@@ -128,37 +135,26 @@ cx.page({
 cx.setStatus(cx.pill('Paid', null, { lg: true }));   // replace the status pills after an action
 ```
 
-The page is: crumbs, title with status pills and actions, the command strip, the banner, the body (a grid with
-14px gaps). Use one page per route.
+The page is: crumbs, title with status pills and actions, the banner, the body (a grid with 14px gaps). Use one page
+per route.
 
-## The command strip
+## Commands are data
 
-A dark band under every page head. It shows the screen's command, a Copy button, an SDK toggle and a `--json`
-toggle when you give `json`. Hovering an action shows its command there ("Action · Post"); clicking pins it until
-the next screen or the ×.
+Nothing draws a command. The shell keeps the screen's command and the last action's as data, for the AI's side of the
+story (a later step may show it there), and `cx.command()` reads it. These calls stay so modules keep working; none of
+them draws anything:
 
-A command spec is a string, a list of strings, or:
+- `cx.setCommand(spec)` keeps the screen's command (`cx.page({ cmd })` does it for you; a list or report view with
+  `cmd` keeps it with the filters as flags).
+- `cx.showAction(spec, label, { pin })`, `cx.clearAction()`, `cx.unpreview()` keep or clear an action's command.
+- `cx.btn`, menu items, `cx.card`, number cards, `cx.confirm`, `cx.approval`, `cx.modal` actions and `cx.toast`
+  accept `cmd` (and `who`, `next`) and ignore them on screen.
+- `cx.sdkOf(cli)` still derives the SDK call by the G7 rule, for that later story.
 
-```js
-{
-  cli: 'capxul org doc list sales-invoice --filter status=Unpaid',   // or a list of lines; 'capxul ' is added if missing
-  sdk: 'client.org(orgId).docs.list("sales-invoice", { filter: "status=Unpaid" })', // optional; derived if omitted
-  json: { status: 'awaiting_approval', approvalId: '…' },   // optional: the --json answer, filled with the screen's values
-  who: 'whoever wears the Invoicing hat',                    // optional: "Who may run it"
-  kind: 'proposed',                                          // optional: 'proposed' marks a command the book only proposes
-  note: 'Home has no single command; each card shows its own.',
-}
-```
+A command spec is a string, a list of strings, or `{ cli, sdk, json, who, kind, note }`.
 
-- `cx.setCommand(spec)` sets the screen's command (`cx.page({ cmd })` does it for you).
-- `cx.showAction(spec, label, { pin })` shows an action's command; `cx.clearAction()` returns to the screen's.
-  A custom control previews on `mouseenter` with `cx.showAction(spec, label)` and clears on `mouseleave` with
-  `cx.unpreview()` (a pinned command stays).
-- `cx.sdkOf(cli)` derives the SDK call by the G7 rule (`org` → `client.org(orgId)`, groups are namespaces, nouns
-  plural camelCase, the verb last, flags become an options object, `--org` is dropped). It knows the frozen names
-  (`payment send` → `client.payments.pay`, `balance` → `client.accounts.read`, `bank pay` →
-  `client.approvals.prepare`, …). Pass `sdk` yourself whenever the research page names the method.
-- A list or report view that has `cmd` sets the strip itself, with the filters as flags; leave `cmd` off its page.
+The page's stylesheet hides `.strip`, `.card-cmd`, `.confirm-cmd`, `.looked code` and `.draft` everywhere, as a
+safety net. Do not rely on it: draw no command at all.
 
 ## Data helpers
 
@@ -310,7 +306,7 @@ cx.listView({
 
 - `defaultTab` (an index or a tab's label) is the tab the list opens on the first time, and when a link carries
   filters but no tab. Navigation state (`cx.go(route, id, { list: { filters, tab } })`) wins over `initial`.
-- `strip: false` keeps a secondary list (inside a card or a tab) from taking over the page's command strip.
+- `strip: false` keeps a secondary list (inside a card or a tab) from replacing the page's command (kept as data).
 
 Column `type`: `currency` (with `currency`, else the row's `currency`, else GBP), `usdc`, `int`, `float`, `number`,
 `percent`, `date`, `datetime`, `status`, `dot` (with `color(r)`), `person`, `check`, `ago`, or text. `get(r)`
@@ -336,7 +332,7 @@ const form = cx.formView({
     { label: 'Payments', render: () => node },
   ],
   connections: [{ group: 'Payment', items: [{ label: 'Payment entry', count: 1, route: 'payment-entry', id }] }], // adds the Connections tab
-  side: { id: 'ACC-SINV-2026-00050', title: 'Larkspur Coffee Co.', cmd: 'capxul org doc get sales-invoice …',
+  side: { id: 'ACC-SINV-2026-00050', title: 'Larkspur Coffee Co.',
           assigned: ['maya'], attachments: ['po-4471.pdf'], tags: ['retainer'],
           created: { by: 'maya', at: iso }, modified: { by: 'kwame', at: iso }, extra: node },
   timeline: { items: [{ at, who, kind, text, body, sub, href }], comment: true },   // "Activity" under the sheet
@@ -388,7 +384,7 @@ cx.reportView({
 ```
 
 Rows with `indent` make a tree with chevrons and Collapse all; `group`, `bold` and `total` rows are bold. The
-Actions menu has Pick columns, Export (shows the command with `--format csv`) and Refresh. `run` may return a
+Actions menu has Pick columns, Export (a toast: nothing is downloaded) and Refresh. `run` may return a
 Promise. The node has `.rerun()`.
 
 ## Tree view
@@ -446,7 +442,6 @@ amber above `warnAt` (a department above 85% of its budget).
 
 ```js
 if (await cx.confirm({ title: 'Cancel ACC-SINV-2026-00050?', body: 'It stays in the books as cancelled.',
-                       cmd: 'capxul org doc cancel sales-invoice ACC-SINV-2026-00050', who: 'whoever wears the Invoicing hat',
                        confirmLabel: 'Cancel the invoice', cancelLabel: 'Back', danger: true })) { … }
 
 const m = cx.modal({ title, body, wide, onClose, actions: [{ label: 'Save', primary: true, cmd, needs, onClick: (close) => close() }] });
@@ -455,13 +450,14 @@ m.close();
 const p = cx.panel.open({ title, sub, body, wide, actions, onClose, key });  // one panel at a time, on the right
 p.setBody(node); cx.panel.close(); cx.panel.isOpen('fde');
 
-cx.toast('Posted ACC-SINV-2026-00084', { tone: 'success'|'info'|'warning'|'danger', cmd: 'capxul org doc submit …', action: { label: 'Undo', onClick }, ms });
+cx.toast('Posted ACC-SINV-2026-00084', { tone: 'success'|'info'|'warning'|'danger', action: { label: 'Undo', onClick }, ms });
 ```
 
-The confirmation is a card at the top of the page body with the command and who may run it; Escape or Back
-answers false. Escape closes the top modal, then a popover, then the drawer, then the panel.
+The confirmation is a card at the top of the page body; Escape or Back answers false. A toast says what happened, or
+what would happen in the real product with the caveat in brackets: "Sent to Georgia Spencer (mock-up: nothing is
+sent)". The shell rewrites older toasts that pointed at a command, but write new ones plainly. Escape closes the top modal, then a popover, then the drawer, then the panel.
 
-## Money: approval, draft, proof
+## Money: approval, proof
 
 **The hand-over.** Every write that moves money or authority ends here:
 
@@ -474,8 +470,6 @@ const r = await cx.approval({
   warnings: ['The address is new to you'],
   signer: 'tom', hat: 'Engineering',      // only the signer can approve; anyone else is told who must
   deadline: 'Expires in 14:52',
-  cmd: 'capxul org department pay engineering --to accounts@kestrelcloud.co.uk --amount 2051',
-  next: 'capxul payment wait approval_01JC…',
   board: { proposal: 'sp_0195', nonce: 31, have: 0, need: 2, approvedBy: [] },   // instead of signer, for the Board
 });
 // r.status: 'done' (with tx, block, at), 'approved' (a Board proposal still short of approvals, with remaining), 'declined'
@@ -487,15 +481,10 @@ invoice's outstanding) and `cx.refresh()`. When one approval leads straight into
 Board proposal), pass `autoClose: 1200` to the first: its sheet closes itself after showing Done and the promise
 resolves once it has, so two sheets never stack. The result's `at` is the story's clock (`cx.now`).
 
-**The FDE's draft.** A risky action the FDE prepared for one person:
-
-```js
-cx.draft({ for: 'maya', by: '@harbourline-fde', at: iso, title: 'Add Owen Grady as an employee from 4 January 2027',
-           why: '…', steps: ['…'], cmd: ['capxul org hr employee create --input owen.json', '…'], needs, runLabel: 'Run',
-           onRun: () => cx.approval({...}), extra: node })
-```
-
-Only `for` can press Run; anyone else sees "Only Maya Okafor can run this".
+**Drafts.** `cx.draft(spec)` no longer draws the dashed "Drafted by" box: it registers the spec in the assistant
+panel as a proposal for `spec.for` and returns an empty node, so older calls keep working
+(`{ for, by, at, title, why, steps, needs, runLabel, onRun }` map to `who, agent, at, title, detail, steps, needs,
+approveLabel, onApprove`). New code calls `cx.agentWork.add` directly, at load time.
 
 **The proof.** On every record that moved money:
 
@@ -509,36 +498,93 @@ await cx.hashOf(obj); cx.canonical(obj);   // the document-hash recipe
 payment ID, document hash, transaction and block, log, settled through, finality, the pounds, the batch line, the
 voucher, and "What it pays" (each allocation with its lines and VAT, linked to its record). **Verify** really
 re-hashes the advice with SubtleCrypto and checks it names this payment, the token and amount, each document's
-version, and the allocations' sums; **Raw** shows the advice; **Save as PDF** shows its command. A payment with no
+version, and the allocations' sums; **Raw** shows the advice; **Save as PDF** shows a toast. A payment with no
 proof (a bank deposit, an unsettled payment) shows a muted line instead.
+
+## Agent work and the assistant
+
+The top bar's **Assistant** button (a sparkle and a count of what waits for the viewer) opens one right-hand panel with
+three tabs:
+
+- **For you**: proposals waiting for the signed-in person, newest first, each with **Approve** (or its own label),
+  **Open** (the record) and **Not now**. Proposals for other people sit under "waiting for others".
+- **Done by agents**: what the agents did, grouped Today, This week and Earlier; seat holders see everyone's, with a
+  "Yours" filter; a viewer with no seat sees only their own.
+- **Ask the FDE**: the conversation (see [The FDE](#the-fde)).
+
+Modules feed it through one registry. Add at your module's top level (so the panel is full before anyone opens a
+page), or when something happens:
+
+```js
+cx.agentWork.add({
+  kind: 'proposal',                 // or 'done'
+  who: 'leo',                       // the person it is for (an id, an HR-EMP-… or a list); leave out for every seat holder
+  agent: 'Sales agent',             // a plain name, or a handle such as '@harbourline-fde'
+  title: 'Reply to Amelia Grant at Wexford Museums Trust',
+  detail: 'Score 82: a named budget and a date. Drafted for Leo to approve.',
+  steps: ['To amelia.grant@wexfordmuseums.org', 'Subject: Re: accessibility audit'],   // optional lines
+  route: 'lead', id: 'CRM-LEAD-2025-00001',  // or route: ['lead', id], '#lead--…', or a data ref { type, id }
+  at: '2026-11-09T08:40:00Z',
+  // proposals only:
+  approveLabel: 'Send it',          // default 'Approve'
+  result: 'Sent the reply to Amelia Grant',   // the toast and the Done entry ("… (mock-up: nothing is sent)")
+  onApprove: (item) => …,           // optional: do it for real in the mock-up; return false (or { status: 'declined' }) to keep it open
+  needs: 'People',                  // optional: a cx.allowed need on top of being `who`
+  key: 'crm-reply-CRM-LEAD-2025-00001',  // optional: adding the same key again replaces the item and keeps its state
+});
+```
+
+- Approving needs the viewer to be `who` (and to pass `needs`). It marks the item approved, adds a Done entry
+  "Approved by …", and, when there is no `onApprove`, shows the `result` toast.
+- `cx.agentWork.list({ kind, who, state })`, `.forYou(id)`, `.count(id)`, `.approve(item)`, `.dismiss(item)`,
+  `.open('for'|'done'|'ask')` and `.card(item)` (a proposal's card, for a conversation of your own).
+- An Open link only appears when its route exists. The panel redraws itself when items change.
+
+**What the agents do, realistically.** People pay bills, chase payment and run payroll; agents do not. Register work
+like this:
+
+- CRM (the sales agent): qualify inbound leads with a score and its reason, enrich the organisation, route to an owner,
+  draft first replies and follow-ups for the owner to approve, book meetings, flag deals that have gone quiet, and log
+  every touchpoint (emails, WhatsApp, calls with summaries, meetings) on the record's timeline.
+- HR (routine, not skilled): onboarding checklists, right-to-work checks and document expiry, leave requests checked
+  against policy and balances, policy questions, probation and return-to-work reminders, offboarding, expense receipts
+  checked against policy, collecting payroll changes before the run.
+- Books (quiet chores): match bank lines, attach receipts, draft the VAT return for a person to file.
+- The FDE: setting Capxul up and getting the most out of it (imports from Xero and spreadsheets, connecting the bank and
+  Bridge, payroll and HMRC setup, departments and budgets, inviting people, importing the CRM, what is not used yet,
+  training), not day-to-day operations.
 
 ## The FDE
 
-The top bar's "Ask the FDE" (and Home's box) opens the FDE in the side panel, told what the viewer is looking at
-(`cx.page({ fde })`, else the crumbs and title). The shell draws the conversation; `fde.js` supplies the brain:
+The FDE, Harbourline's forward deployed engineer, sets Capxul up with the company and helps it get the most out of it.
+The assistant's **Ask the FDE** tab is its conversation; Home's box and `cx.fde.open()` open that tab, told what the
+viewer is looking at (`cx.page({ fde })`, else the crumbs and title). The shell draws the conversation; `fde.js`
+supplies the brain:
 
 ```js
 cx.fde.answer = async (question, { context, me, history }) => ({
-  text: 'Engineering has spent 23,578.44 …',
-  lookedAt: [{ command: 'capxul org department show engineering --org harbourline', result: '65,000.00 USDC this quarter …' }],
-  draft: { for: me.id, title: '…', cmd: '…', onRun: () => … },     // optional: a cx.draft spec
+  text: 'You import from Xero in three steps …',
+  lookedAt: [{ result: 'Xero: 1,204 contacts, 18 months of invoices' }],   // shown as plain results, never commands
+  draft: { for: me.id, title: '…', why: '…', steps: ['…'], onRun: () => … },   // optional: a proposal (cx.draft spec)
   links: [{ label: 'Open Engineering', route: 'department', id: 'engineering' }],
 });
 cx.fde.suggestions = ['…', '…', '…'];
-cx.fde.mount = (panel, { context, ask }) => { panel.setBody(myOwnChat) };   // optional: take the whole panel over
-cx.fde.open({ ask: 'How much runway do we have?', context });          // open it from anywhere
+cx.fde.mount = (panel, { context, ask }) => { panel.setBody(myOwnChat) };   // optional: take the tab over
+cx.fde.open({ ask: 'What are we not using yet?', context });               // open it from anywhere
 ```
 
-The FDE acts only with the asker's permissions: answer within `cx.me()`'s hats and draft anything risky.
-
-An answer may carry several drafts, `drafts: [specA, specB]`, for instance one for the asker and one for whoever
-must run the other half; each shows who can run it.
+The FDE acts only with the asker's permissions. A draft in an answer shows as a proposal card in the conversation and
+is also registered under **For you** for its `for` person; an answer may carry several, `drafts: [specA, specB]`, for
+instance one for the asker and one for whoever must do the other half.
 
 ## Search
 
 The top bar searches workspaces, nav pages, people, customers, suppliers and departments; the modules add invoices,
 payment and journal entries, accounts, leads, deals, contacts, companies, CRM tasks, projects, project tasks and
-timesheets. Add your records:
+timesheets. Results group by `kind` in this order: pages, people, customers, CRM deals, leads, contacts and companies,
+projects, sales and purchase invoices, suppliers, departments, then every other kind. Each kind lists its closest
+matches first (six of the first kinds, three of the rest), and a record two providers find (the same route and id)
+shows once. Use those kind names for your records. Add yours:
 
 ```js
 cx.search.add((q, limit) => D.books.salesInvoices
@@ -546,7 +592,7 @@ cx.search.add((q, limit) => D.books.salesInvoices
   .slice(0, limit).map((i) => ({ kind: 'Sales invoices', label: `${i.name} · ${i.customerName}`, sub: fmt.gbp(i.grandTotal), route: 'sales-invoice', id: i.name, icon: 'file' })));
 ```
 
-Results group by `kind`, six each. `/` or Ctrl+K focuses the search.
+`/` or Ctrl+K focuses the search.
 
 ## Events
 
@@ -587,7 +633,7 @@ Use these before writing your own: `.grid` with `.c2`, `.c3`, `.c4`, `.side` (ma
 `.pill` with `.t-gray|blue|green|orange|yellow|red|purple|teal|escrow|muted`; `.dot`; `.tag`; `.hat`; `.chips`;
 `.muted`, `.faint`, `.pos`, `.neg`, `.mono`, `.num`; `.fields` (`--cols`) with `.field` and `.fval`; `.finput`,
 `.ctl`; `.empty`; `.banner`; `.kb-title`, `.kb-meta` inside kanban cards; `.raw` for preformatted JSON;
-`.confirm-cmd` for a command block. `[hidden]` always hides (it beats the display of `.btn`, `.pill`, grids and flex
+the assistant's `.ap-item` (a proposal card) and `.ap-feed` / `.ap-done` (a feed row). `[hidden]` always hides (it beats the display of `.btn`, `.pill`, grids and flex
 boxes); `.chart-card.wide` spans its grid (a workspace chart with `wide: true`).
 
 Tokens: `--bg`, `--surface`, `--surface-2`, `--sunk`, `--hover`, `--line`, `--line-2`, `--fg`, `--fg-2`, `--muted`,

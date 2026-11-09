@@ -246,7 +246,7 @@ export const fmt = {
   time: (iso) => { if (!iso) return ''; const p = london(iso); return `${p.hh}:${p.mm}`; },
   /** 2026-11-05 14:03:09 UTC */
   utc: (iso) => (iso ? String(iso).replace('T', ' ').replace(/\.\d+Z$|Z$/, '') + ' UTC' : ''),
-  /** The desk's short "7 m", "3 h", "2 d", "1 w" against today's clock */
+  /** The short "7 m", "3 h", "2 d", "1 w" against today's clock */
   ago: (v) => {
     if (!v) return '';
     const t = String(v).length <= 10 ? Date.parse(v + 'T12:00:00Z') : Date.parse(v);
@@ -481,7 +481,7 @@ cx.workspaces = () => [...workspaces.values()];
 /**
  * cx.route(name, handler, meta) registers a screen. name: letters, digits, single hyphens.
  * handler(ctx) returns a Node (usually cx.page(...)) or a Promise of one. ctx = { name, id, state, meta }.
- * meta: { workspace, title, cmd } (cmd is the default for the command strip).
+ * meta: { workspace, title, cmd } (cmd is the screen's default command, kept as data).
  */
 cx.route = (name, handler, meta = {}) => {
   if (!/^[a-z0-9]+(-[a-z0-9]+)*$/.test(name) || RESERVED.has(name) || name.startsWith('comment-')) throw new Error(`route name not allowed: ${name}`);
@@ -553,8 +553,8 @@ async function render(opts = {}) {
   }
   if (seq !== renderSeq) return;
   if (!(node instanceof Node)) node = cx.page({ title: String(node ?? '') });
-  if (!node.querySelector?.('.strip') && !node.classList?.contains('strip')) {
-    const wrap = h('div.page', strip.el);
+  if (!node.classList?.contains('page') && !node.querySelector?.('.page')) {
+    const wrap = h('div.page');
     wrap.appendChild(node);
     node = wrap;
   }
@@ -581,7 +581,7 @@ function navRoutes(nav) {
 }
 
 /* =====================================================================================================
-   The command strip
+   Commands, kept as data (the AI's side; nothing renders them)
    ===================================================================================================== */
 
 const KNOWN_SDK = [
@@ -668,61 +668,25 @@ function normCmd(spec) {
   const sdk = spec.sdk ? [].concat(spec.sdk) : lines.map(cx.sdkOf);
   return { ...spec, lines, sdkLines: sdk };
 }
+// The command behind the screen and its last action, kept as data only: no user runs commands (that is the AI's
+// side), so nothing here is drawn on a page. cx.command() reads it, for the AI story and for the FDE's context.
 const strip = (() => {
-  const el = h('div.strip', { role: 'region', 'aria-label': 'Command for this screen' });
-  let screen = null, action = null, actionLabel = '', pinned = false, mode = 'cli', showJson = false, timer = 0;
-  function cur() { return action || screen; }
-  function draw() {
-    const c = cur();
-    el.classList.toggle('action', !!action);
-    fill(el);
-    const tag = h('span.strip-tag', action ? `Action · ${actionLabel}` : 'Command');
-    const pre = h('pre.strip-cmd');
-    if (!c || !c.lines.length) {
-      pre.appendChild(h('span.fl', c?.note || 'This screen has no command of its own.'));
-    } else if (mode === 'sdk') {
-      c.sdkLines.forEach((l, i) => { if (i) pre.appendChild(document.createTextNode('\n')); pre.appendChild(h('span.p', '› ')); pre.appendChild(document.createTextNode(l)); });
-    } else {
-      c.lines.forEach((l, i) => {
-        if (i) pre.appendChild(document.createTextNode('\n'));
-        pre.appendChild(h('span.p', '$ '));
-        for (const [j, t] of l.split(/(\s--[a-z-]+)/).entries()) pre.appendChild(j % 2 ? h('span.fl', t) : document.createTextNode(t));
-      });
-    }
-    const tools = h('div.strip-tools');
-    if (c && c.lines.length) {
-      tools.append(
-        h('button.strip-btn', { type: 'button', onclick: () => copyText(mode === 'sdk' ? c.sdkLines.join('\n') : c.lines.join('\n'), pre) }, 'Copy'),
-        h('button.strip-btn', { type: 'button', 'aria-pressed': String(mode === 'sdk'), onclick: () => { mode = mode === 'sdk' ? 'cli' : 'sdk'; draw(); } }, 'SDK'),
-      );
-      if (c.json !== undefined) tools.appendChild(h('button.strip-btn', { type: 'button', 'aria-pressed': String(showJson), onclick: () => { showJson = !showJson; draw(); } }, '--json'));
-    }
-    if (action) tools.appendChild(h('button.strip-btn', { type: 'button', title: "Back to the screen's command", onclick: () => { pinned = false; action = null; draw(); } }, '×'));
-    el.append(h('div.strip-row', tag, pre, tools));
-    const meta = [];
-    if (c?.who) meta.push(h('span', 'Who may run it: ', h('b', c.who)));
-    if (c?.kind === 'proposed') meta.push(h('span.strip-kind', 'proposed command'));
-    if (c?.note && c.lines.length) meta.push(h('span', c.note));
-    if (meta.length) el.appendChild(h('div.strip-meta', meta));
-    if (showJson && c?.json !== undefined) el.appendChild(h('pre.strip-json', typeof c.json === 'string' ? c.json : JSON.stringify(c.json, null, 2)));
-  }
+  let screen = null, action = null, actionLabel = '', pinned = false;
   return {
-    el,
-    reset(spec) { screen = normCmd(spec); action = null; pinned = false; showJson = false; draw(); },
-    screen(spec) { screen = normCmd(spec); if (!pinned) action = null; draw(); },
-    preview(spec, label) { if (pinned) return; clearTimeout(timer); action = normCmd(spec); actionLabel = label || 'Action'; draw(); },
-    unpreview() { if (pinned) return; clearTimeout(timer); timer = setTimeout(() => { if (!pinned && !el.matches(':hover')) { action = null; draw(); } }, 1400); },
-    pin(spec, label) { clearTimeout(timer); action = normCmd(spec); actionLabel = label || 'Action'; pinned = true; draw(); },
-    unpin() { pinned = false; action = null; draw(); },
-    get() { return cur(); },
+    reset(spec) { screen = normCmd(spec); action = null; pinned = false; },
+    screen(spec) { screen = normCmd(spec); if (!pinned) action = null; },
+    preview() {},
+    unpreview() {},
+    pin(spec, label) { action = normCmd(spec); actionLabel = label || 'Action'; pinned = true; },
+    unpin() { pinned = false; action = null; },
+    get() { return action ? { ...action, label: actionLabel } : screen; },
   };
 })();
-/** Set the screen's command: a string, a list of strings, or { cli, sdk, json, who, kind, note }. */
+/** Keep the screen's command as data (never drawn): a string, a list of strings, or { cli, sdk, json, who, kind, note }. */
 cx.setCommand = (spec) => strip.screen(spec);
-/** Show an action's command on the strip; pin keeps it until cx.clearAction() or the next screen. */
+/** Keep an action's command as data (never drawn); pin keeps it until cx.clearAction() or the next screen. */
 cx.showAction = (spec, label, o = {}) => (o.pin ? strip.pin(spec, label) : strip.preview(spec, label));
 cx.clearAction = () => strip.unpin();
-/** Clear a hover preview (shown with cx.showAction) after the pointer leaves; a pinned command stays. */
 cx.unpreview = () => strip.unpreview();
 cx.command = () => strip.get();
 
@@ -742,7 +706,7 @@ cx.copy = copyText;
 
 /**
  * cx.btn(label, { kind: 'primary'|'danger'|'ghost', icon, onClick, cmd, needs, disabled, reason, sm, caret, title, href })
- * cmd: the action's command (shown on the strip on hover and on click). needs: see cx.allowed.
+ * cmd: the action's command, kept as data (never shown). needs: see cx.allowed.
  */
 cx.btn = (label, o = {}) => {
   const allow = cx.allowed(o.needs);
@@ -756,12 +720,6 @@ cx.btn = (label, o = {}) => {
     id: o.id, 'aria-disabled': off ? 'true' : null,
     title: off && reason ? reason : o.title || null,
   }, off && !o.disabled ? cx.icon('lock') : o.icon ? cx.icon(o.icon) : null, label ? h('span', label) : null, o.caret ? cx.icon('down', { class: 'caret' }) : null);
-  if (o.cmd) {
-    el.addEventListener('mouseenter', () => strip.preview(o.cmd, label || o.title));
-    el.addEventListener('focus', () => strip.preview(o.cmd, label || o.title));
-    el.addEventListener('mouseleave', () => strip.unpreview());
-    el.addEventListener('blur', () => strip.unpreview());
-  }
   el.addEventListener('click', (e) => {
     if (off) { e.preventDefault(); if (reason) toast(reason, { tone: 'warning' }); return; }
     if (o.cmd && !o.href) strip.pin(o.cmd, label || o.title);
@@ -798,7 +756,7 @@ cx.popover = (trigger, content, o = {}) => {
   return api;
 };
 /**
- * cx.menu(label, items, { kind, icon, align, sm }) — a dropdown button (the desk's "Actions ▾", "Create ▾", "…").
+ * cx.menu(label, items, { kind, icon, align, sm }) — a dropdown button ("Actions ▾", "Create ▾", "…").
  * items: [{ label, onClick, cmd, needs, danger, href: [route, id], hint, icon } | { divider: true } | { heading: 'Text' }]
  */
 cx.menu = (label, items, o = {}) => {
@@ -820,7 +778,6 @@ function menuItems(items, p) {
       href: it.href ? (Array.isArray(it.href) ? cx.href(it.href[0], it.href[1]) : it.href) : null,
       'aria-disabled': off ? 'true' : null, title: off ? (it.reason || allow.reason) : null,
     }, off ? cx.icon('lock') : it.icon ? cx.icon(it.icon) : null, h('span.grow', h('span.ttl', it.label), it.sub ? h('span.sub', it.sub) : null), it.hint ? h('small', it.hint) : null);
-    if (it.cmd) { el.addEventListener('mouseenter', () => strip.preview(it.cmd, it.label)); el.addEventListener('mouseleave', () => strip.unpreview()); }
     el.addEventListener('click', (e) => {
       if (off) { e.preventDefault(); toast(it.reason || allow.reason, { tone: 'warning' }); return; }
       p.close();
@@ -925,8 +882,8 @@ cx.addr = (a, o) => cx.hashChip(a, { kind: 'address', ...o });
 cx.tx = (t, o) => cx.hashChip(t, { kind: 'tx', ...o });
 /** Label/value pairs as a definition list: cx.kv([['From', node], ['To', 'text']]). */
 cx.kv = (pairs) => h('dl.kv', pairs.filter(Boolean).flatMap(([k, v]) => [h('dt', k), h('dd', v ?? h('span.faint', '—'))]));
-/** A card: { title, actions, cmd, body, foot, flush, class }. */
-cx.card = (o = {}) => h('section.card', { class: o.class }, o.title || o.actions ? h('header.card-head', o.title ? h('h2', o.title) : null, o.actions || null, o.cmd ? h('div.card-cmd', '$ ' + [].concat(o.cmd).join('  ·  ')) : null) : null,
+/** A card: { title, actions, body, foot, flush, class } (a cmd is accepted and not shown). */
+cx.card = (o = {}) => h('section.card', { class: o.class }, o.title || o.actions ? h('header.card-head', o.title ? h('h2', o.title) : null, o.actions || null) : null,
   o.body !== undefined ? h('div.card-body', { class: { flush: o.flush } }, o.body) : null, o.foot ? h('footer.card-foot', o.foot) : null);
 cx.empty = (text, action) => h('div.empty', h('div', text), action || null);
 cx.banner = (text, o = {}) => h('div.banner', { class: o.tone }, o.icon !== false ? cx.icon(o.icon || (o.tone === 'warning' || o.tone === 'danger' ? 'alert' : o.tone === 'escrow' ? 'hourglass' : 'info')) : null, h('div.grow', text), o.action || null);
@@ -938,8 +895,8 @@ cx.banner = (text, o = {}) => h('div.banner', { class: o.tone }, o.icon !== fals
 /**
  * cx.page({ title, crumbs, status, sub, actions, cmd, banner, body, fde, workspace, hero })
  * crumbs: [{ label, route, id }] (default: the workspace); status: a pill Node, a status word or { text, tone }.
- * actions: Nodes (cx.btn, cx.menu). cmd: the screen's command. fde: what the FDE is told you are looking at.
- * hero: a Node that replaces the standard head (the strip still follows it).
+ * actions: Nodes (cx.btn, cx.menu). cmd: the screen's command, kept as data (never shown). fde: what the FDE is told
+ * you are looking at. hero: a Node that replaces the standard head.
  */
 cx.page = (o = {}) => {
   if (o.cmd !== undefined) strip.screen(o.cmd);
@@ -953,7 +910,7 @@ cx.page = (o = {}) => {
       h('div.page-title', h('h1', o.title || ''), h('span', { 'data-status': '' }, statuses)),
       o.sub ? h('div.page-sub', o.sub) : null),
     o.actions ? h('div.page-actions', o.actions) : null);
-  return h('div.page', head, strip.el, o.banner || null, h('div.page-body', o.body ?? null));
+  return h('div.page', head, o.banner || null, h('div.page-body', o.body ?? null));
 };
 /** Replace the page's status pills (e.g. after an action): cx.setStatus(cx.pill('Paid')). */
 cx.setStatus = (...pills) => { const slot = document.querySelector('.page-title [data-status]'); if (slot) fill(slot, ...pills); };
@@ -1211,12 +1168,11 @@ cx.niceTicks = niceTicks;
 /** A number card: { label, value, sub, delta: { text, good }, href: [route, id], spark: [values], color, cmd } */
 cx.numberCard = (o) => {
   const tag = o.href ? 'a.ncard' : 'div.ncard';
-  const el = h(tag, { href: o.href ? (Array.isArray(o.href) ? cx.href(o.href[0], o.href[1]) : o.href) : null, title: o.cmd ? '$ ' + o.cmd : null },
+  const el = h(tag, { href: o.href ? (Array.isArray(o.href) ? cx.href(o.href[0], o.href[1]) : o.href) : null },
     h('div.ncard-label', o.label), h('div.ncard-value', o.value instanceof Node ? o.value : String(o.value ?? '')),
     o.sub ? h('div.ncard-sub', o.sub) : null,
     o.delta ? h('div.ncard-delta', { class: o.delta.good === true ? 'good' : o.delta.good === false ? 'bad' : null }, o.delta.text) : null,
     o.spark ? chart.spark(o.spark, { color: o.color }) : null);
-  if (o.cmd) { el.addEventListener('mouseenter', () => strip.preview(o.cmd, o.label)); el.addEventListener('mouseleave', () => strip.unpreview()); }
   return el;
 };
 /**
@@ -1380,10 +1336,9 @@ function connectionsOf(groups) {
     h('div', { style: 'display:grid;gap:6px' }, g.items.map((it) => h('a.shortcut', { href: it.route ? cx.href(it.route, it.id) : '#' + cx.current.name, style: 'padding:7px 10px' }, h('span.lbl', it.label), h('span.cnt.t-gray', String(it.count ?? 0))))))));
 }
 function formSide(sd) {
-  const sec = (title, kids, add) => h('div.side-sec', h('h4', title), kids, add ? h('button.add', { type: 'button', onclick: () => toast(`${add} is a record change; the command is on the strip.`) }, cx.icon('plus', { size: 12 }), add) : null);
+  const sec = (title, kids, add) => h('div.side-sec', h('h4', title), kids, add ? h('button.add', { type: 'button', onclick: () => toast(`${add}: the mock-up changes nothing.`, { tone: 'info' }) }, cx.icon('plus', { size: 12 }), add) : null);
   return h('aside.form-side', cx.card({ body: [
     sd.id ? h('div', { style: 'display:grid;gap:4px' }, h('div', { style: 'font-weight:600;overflow-wrap:anywhere' }, sd.title || ''), h('div', cx.hashChip(sd.id, { kind: 'id' }))) : null,
-    sd.cmd ? h('div', { style: 'font:11.5px/1.5 var(--font-mono);color:var(--muted);overflow-wrap:anywhere;padding:7px 8px;background:var(--surface-2);border-radius:4px' }, '$ ' + sd.cmd) : null,
     sd.assigned ? sec('Assigned to', sd.assigned.length ? h('div.chips', sd.assigned.map((id) => cx.personChip(id))) : h('div.faint', 'Nobody'), 'Assign') : null,
     sd.attachments ? sec('Attachments', sd.attachments.length ? h('div', { style: 'display:grid;gap:3px' }, sd.attachments.map((a) => h('span', { style: 'display:flex;gap:6px;align-items:center' }, cx.icon('file', { size: 13 }), a))) : h('div.faint', 'None'), 'Attach a file') : null,
     sd.tags ? sec('Tags', sd.tags.length ? h('div.chips', sd.tags.map(cx.tag)) : h('div.faint', 'None'), 'Add a tag') : null,
@@ -1545,8 +1500,8 @@ function cellOf(c, r) {
 }
 const isNumType = (c) => ['currency', 'usdc', 'int', 'float', 'number', 'percent'].includes(c?.type) || c?.align === 'right';
 /**
- * cx.listView(o) — the desk's list: saved filter tabs, standard filters, Filter builder, sort, group-by counts,
- * checkboxes and bulk actions, paging (20 · 100 · 500), and the command strip following the filters.
+ * cx.listView(o) — the record list: saved filter tabs, standard filters, Filter builder, sort, group-by counts,
+ * checkboxes and bulk actions, paging (20 · 100 · 500), and the screen's command (data) following the filters.
  * See README.md for every option.
  */
 cx.listView = (o) => {
@@ -1760,7 +1715,7 @@ function parseColFilter(q) {
  * cx.reportView({ key, title, filters, run, cmd, related, columnFilters, totals, footnote })
  * filters: [{ key, label, type: 'date'|'month'|'select'|'text'|'check', options, value }]
  * run(values) → { columns, rows, totals, chart, summary, message }   (rows may carry indent, group, bold, total)
- * cmd(values) → the command for the strip.
+ * cmd(values) → the screen's command, kept as data.
  */
 cx.reportView = (o) => {
   const key = o.key || cx.current.name;
@@ -1788,7 +1743,7 @@ cx.reportView = (o) => {
   const exportCmd = () => { const c = normCmd(typeof o.cmd === 'function' ? o.cmd(st.values, result) : o.cmd); return c?.lines.length ? c.lines[0] + ' --format csv' : null; };
   bar.append(h('span.grow'), ...(o.related || []), cx.menu('Actions', () => [
     { label: 'Pick columns', icon: 'report', onClick: pick },
-    { label: 'Export', icon: 'file', cmd: exportCmd(), onClick: () => toast('This is the command Capxul would run. The mock-up makes no downloads.', { cmd: exportCmd() }) },
+    { label: 'Export', icon: 'file', cmd: exportCmd(), onClick: () => toast('Exported as a spreadsheet (mock-up: nothing is downloaded)', { tone: 'info' }) },
     { label: 'Refresh', icon: 'refresh', onClick: () => run() },
   ]));
   function run() {
@@ -2006,28 +1961,47 @@ cx.panel = {
   current: () => panelState?.api || null,
 };
 
-/** cx.toast(text, { tone: 'success'|'info'|'warning'|'danger', cmd, action: { label, onClick }, ms }) */
+// A toast says what happened (or would happen), never a command. Older wording that pointed at a command is
+// rewritten here, so every module's toasts read right at once.
+function plainWords(text) {
+  if (typeof text !== 'string' || !/command|on the strip|--json|\bSDK\b/i.test(text)) return text;
+  let t = text
+    .replace(/:\s*this is the command Capxul would run\.?/gi, '')
+    .replace(/this is the command Capxul would run\.?\s*/gi, 'Done. ')
+    .replace(/Export shows its command\.?\s*/gi, 'Exported. ')
+    .replace(/\bis two commands\b/gi, 'takes two steps')
+    .replace(/\bcommands\b(?=,? run by)/gi, 'steps');
+  const kept = [];
+  for (const sentence of t.split(/(?<=[.!?])\s+/)) {
+    if (!/command|on the strip|--json|\bSDK\b/i.test(sentence)) { kept.push(sentence); continue; }
+    const head = sentence.split(/:\s/)[0];
+    if (head !== sentence && !/command|strip/i.test(head)) kept.push(head.replace(/[.\s]*$/, '.'));
+  }
+  t = kept.join(' ').replace(/\.?\s*The mock-up makes no downloads\./g, ' (mock-up: nothing is downloaded).').trim();
+  return t || 'Done (mock-up: nothing is sent).';
+}
+/** cx.toast(text, { tone: 'success'|'info'|'warning'|'danger', action: { label, onClick }, ms }). Say what happened; a cmd is ignored. */
 function toast(text, o = {}) {
   const box = document.querySelector('.toasts');
   if (!box) return;
+  text = plainWords(text);
   const icon = o.tone === 'warning' ? 'alert' : o.tone === 'danger' ? 'alert' : o.tone === 'info' ? 'info' : 'check';
   const el = h('div.toast', { role: 'status', class: o.tone },
-    cx.icon(icon), h('div', h('div', text), o.cmd ? h('code', '$ ' + [].concat(o.cmd)[0]) : null),
+    cx.icon(icon), h('div', h('div', text)),
     o.action ? h('button', { type: 'button', onclick: () => { el.remove(); o.action.onClick(); } }, o.action.label) : h('button', { type: 'button', 'aria-label': 'Dismiss', onclick: () => el.remove() }, cx.icon('x', { size: 14 })));
   box.appendChild(el);
   while (box.children.length > 4) box.firstChild.remove();
-  setTimeout(() => el.remove(), o.ms || (o.cmd ? 7000 : 4200));
+  setTimeout(() => el.remove(), o.ms || 4800);
 }
 cx.toast = toast;
 
 /**
  * The confirmation step, built into the page (no browser dialogs).
- * await cx.confirm({ title, body, cmd, who, confirmLabel, cancelLabel, danger }) → true or false
+ * await cx.confirm({ title, body, confirmLabel, cancelLabel, danger }) → true or false (a cmd or who is accepted and not shown)
  */
 cx.confirm = (o) => new Promise((resolve) => {
   const host = view.querySelector('.page-body') || view;
   if (o.cmd) strip.pin(o.cmd, o.title);
-  const spec = normCmd(o.cmd);
   let done = false;
   const finish = (v) => { if (done) return; done = true; card.remove(); document.removeEventListener('keydown', onKey); if (o.cmd) strip.unpin(); resolve(v); };
   const onKey = (e) => { if (e.key === 'Escape') finish(false); };
@@ -2035,8 +2009,6 @@ cx.confirm = (o) => new Promise((resolve) => {
     h('div.confirm-body',
       h('h3', o.title),
       o.body ? (o.body instanceof Node ? o.body : h('p', o.body)) : null,
-      spec?.lines.length ? h('div.confirm-cmd', spec.lines.map((l, i) => [i ? '\n' : '', h('span.p', '$ '), l])) : null,
-      o.who ? h('div.muted', { style: 'font-size:12.5px' }, 'Who may run it: ' + o.who) : null,
       h('div.confirm-actions', cx.btn(o.confirmLabel || 'Confirm', { kind: o.danger ? 'danger primary' : 'primary', onClick: () => finish(true) }), cx.btn(o.cancelLabel || 'Back', { onClick: () => finish(false) }))));
   host.prepend(card);
   document.addEventListener('keydown', onKey);
@@ -2067,7 +2039,6 @@ cx.approval = (o) => new Promise((resolve) => {
   const isBoard = !!o.board;
   const mayApprove = isBoard ? cx.wears('Director') && !(o.board.approvedBy || []).includes(meId) : signerId === meId;
   if (o.cmd) strip.pin(o.cmd, o.title);
-  const spec = normCmd(o.cmd);
   const asset = o.asset || 'USDC';
   const signer = cx.person(signerId);
   const rows = [
@@ -2083,8 +2054,6 @@ cx.approval = (o) => new Promise((resolve) => {
   const body = h('div', { style: 'display:grid;gap:12px' },
     h('div.sheet', rows.map(([k, v]) => h('div.sheet-row', h('span', k), h('span', v)))),
     o.warnings?.length ? h('div.warnings', o.warnings.map((w) => h('div.warn', cx.icon('alert'), h('span', w)))) : null,
-    spec?.lines.length ? h('div.confirm-cmd', spec.lines.map((l, i) => [i ? '\n' : '', h('span.p', '$ '), l])) : null,
-    o.next ? h('div.muted', { style: 'font-size:12.5px' }, 'Follow it: ', h('code', o.next)) : null,
     !mayApprove ? cx.banner(isBoard ? (cx.wears('Director') ? 'You have approved this proposal already.' : `Only Directors approve Board proposals: ${D.board.directors.map((x) => cx.name(x.who || x.id || x)).join(', ')}.`) : `Only ${cx.name(signerId)} can approve this, from their own Safe. Capxul never signs for anyone.`, { tone: 'warning' }) : null);
   let settled = false;
   const finish = (res) => { if (settled) return; settled = true; strip.unpin(); resolve(res); };
@@ -2126,25 +2095,18 @@ cx.approval = (o) => new Promise((resolve) => {
 });
 
 /**
- * The FDE's draft of a risky action, for one person to run: cx.draft({ for, by, title, why, steps, cmd, needs, onRun })
- * Only `for` (the asker) can run it; anyone else sees who can. onRun usually opens cx.approval.
+ * cx.draft(spec) draws nothing on the page: agent work lives in the assistant panel. It registers the spec there as a
+ * proposal for `for` (see cx.agentWork) and returns an empty node, so older calls keep working.
+ * spec: { for, by, at, title, why, steps, needs, runLabel, onRun, route, id, key }
  */
 cx.draft = (o) => {
-  const forId = o.for || meId;
-  const mine = forId === meId;
-  const spec = normCmd(o.cmd);
-  return h('section.draft',
-    h('header.draft-head', cx.icon('fde', { size: 14 }), h('span', 'Drafted by ', h('b', o.by ? cx.name(o.by) : "Harbourline's FDE"), ' for ', h('b', cx.name(forId)), ' to run'), o.at ? h('span', '· ' + fmt.agoLong(o.at)) : null),
-    h('div.draft-body',
-      h('h3', o.title),
-      o.why ? h('p', { style: 'font-size:13.5px;color:var(--fg-2)' }, o.why) : null,
-      o.steps?.length ? h('ol.draft-steps', o.steps.map((x) => h('li', x))) : null,
-      spec?.lines.length ? h('div.confirm-cmd', spec.lines.map((l, i) => [i ? '\n' : '', h('span.p', '$ '), l])) : null,
-      h('div.confirm-actions',
-        cx.btn(o.runLabel || 'Run', { kind: 'primary', icon: 'terminal', cmd: o.cmd, needs: o.needs, disabled: !mine, reason: `Only ${cx.name(forId)} can run this. The FDE acts only with the asker's permissions.`, onClick: () => o.onRun?.() }),
-        cx.btn('Copy the command', { onClick: () => copyText(spec?.lines.join('\n') || '') }),
-        o.extra || null)));
+  cx.agentWork.add(draftItem(o));
+  return document.createDocumentFragment();
 };
+function draftItem(o) {
+  return { key: o.key, who: o.for || meId, agent: o.by || D.fde?.hosting?.handle || '@harbourline-fde', at: o.at, title: o.title, detail: o.why, steps: o.steps,
+    needs: o.needs, approveLabel: o.runLabel, onApprove: o.onRun, result: o.result, route: o.route || (o.id ? undefined : cx.current?.name), id: o.id ?? (o.route ? undefined : cx.current?.id), kind: 'proposal' };
+}
 
 function canonical(v) {
   if (v === null || typeof v !== 'object') return JSON.stringify(v);
@@ -2226,7 +2188,7 @@ cx.proof = (p, o = {}) => {
   });
   const adj = (a.adjustments || []).map((x) => h('div.alloc-line', h('span', `Adjustment: ${x.reason || x.kind || ''} ${x.party ? '· ' + x.party : ''}`), h('span.num', x.amount != null ? fmt.money(x.amount / (x.decimals ? 10 ** x.decimals : 1e6), x.token || a.token || 'USDC') : '')));
   return h('section.proof',
-    h('header.proof-head', h('h3', cx.icon('shield'), h('span', o.title || 'Proof', h('small', o.subtitle || 'What this payment pays, committed on chain'))), h('div.proof-tools', verifyBtn, cx.btn('Raw', { onClick: () => { rawEl.hidden = !rawEl.hidden; } }), cx.btn('Save as PDF', { cmd: `capxul document render --document-hash ${pr.documentHash}${firstContent ? ` --content-hash ${firstContent}` : ''}`, onClick: () => toast('This is the command Capxul would run. The mock-up makes no downloads.') }))),
+    h('header.proof-head', h('h3', cx.icon('shield'), h('span', o.title || 'Proof', h('small', o.subtitle || 'What this payment pays, committed on chain'))), h('div.proof-tools', verifyBtn, cx.btn('Raw', { onClick: () => { rawEl.hidden = !rawEl.hidden; } }), cx.btn('Save as PDF', { cmd: `capxul document render --document-hash ${pr.documentHash}${firstContent ? ` --content-hash ${firstContent}` : ''}`, onClick: () => toast('Saved the proof as a PDF (mock-up: nothing is downloaded).', { tone: 'info' }) }))),
     h('div.proof-body',
       cx.kv([
         ['Network', `${pr.network || 'Base'} · chain ID ${pr.chainId || 8453}`],
@@ -2241,64 +2203,224 @@ cx.proof = (p, o = {}) => {
         o.booked || p.voucher || p.books ? ['Booked', cx.hasRoute('payment-entry') ? cx.link(o.booked || p.voucher || p.books, 'payment-entry', o.booked || p.voucher || p.books) : (o.booked || p.voucher || p.books)] : null,
       ]),
       allocs.length ? h('div', { style: 'display:grid;gap:8px' }, h('div', { style: 'font-weight:600;font-size:13px' }, 'What it pays'), allocs, adj.length ? h('div.alloc', adj) : null, a.memo ? h('div.muted', 'Memo: ' + a.memo) : null) : null,
-      checksEl, rawEl,
-      h('div.confirm-cmd', h('span.p', '$ '), verifyCmd)));
+      checksEl, rawEl));
 };
 
 /* =====================================================================================================
-   The FDE (the shell's panel; fde.js supplies the answers or takes the panel over)
+   Agent work: what Harbourline's agents did and what they propose, kept in one place, the assistant panel.
+   Pages never show an agent's call-out; a record may still say "Logged by the sales agent" in its own timeline.
    ===================================================================================================== */
+
+const agentItems = [];
+let agentSeq = 0, agentTimer = 0;
+const personKey = (x) => cx.person(x)?.id || x;
+const byNewest = (a, b) => String(b.at).localeCompare(String(a.at));
+function itemHref(it) {
+  let r = it.route, id = it.id;
+  if (!r) return null;
+  if (typeof r === 'object' && !Array.isArray(r)) return cx.refHref(r);
+  if (Array.isArray(r)) [r, id] = r;
+  if (typeof r === 'string' && r.startsWith('#')) { const raw = r.slice(1); const i = raw.indexOf('--'); id = i < 0 ? null : raw.slice(i + 2); r = i < 0 ? raw : raw.slice(0, i); }
+  return routes.has(r) ? cx.href(r, id) : null;
+}
+const isFor = (it, id = meId) => (it.who.length ? it.who.includes(id) : cx.hasSeat(id));
+/**
+ * cx.agentWork: the registry the assistant panel reads. Modules add at their top level (or when something happens):
+ *   cx.agentWork.add({ who, agent, title, detail, route, id, kind: 'proposal'|'done', at, steps, result, onApprove, approveLabel, needs, key })
+ * who: the person (or people) it is for; agent: an agent handle ('@harbourline-fde') or a plain name ('Sales agent');
+ * route: a route name (with id), [route, id], '#hash' or a data ref { type, id }. Adding the same key (default: kind,
+ * who and title) again replaces the item and keeps whether it was approved. Returns the stored item.
+ */
+cx.agentWork = {
+  add(o) {
+    if (!o || !o.title) return null;
+    const kind = o.kind === 'done' ? 'done' : 'proposal';
+    const who = [].concat(o.who ?? []).filter(Boolean).map(personKey);
+    const key = o.key || `${kind}|${who.join(',')}|${o.title}`;
+    const prev = agentItems.find((x) => x.key === key);
+    const item = Object.assign(prev || { uid: ++agentSeq }, o, { kind, who, key, agent: o.agent || D.fde?.hosting?.handle || 'Agent', at: o.at || prev?.at || cx.now.toISOString(),
+      state: prev?.state || o.state || (kind === 'proposal' ? 'open' : 'done') });
+    if (!prev) agentItems.push(item);
+    agentChanged();
+    return item;
+  },
+  /** Every item, newest first; filter by { kind, who, state }. */
+  list(f = {}) { return agentItems.filter((x) => (!f.kind || x.kind === f.kind) && (!f.state || x.state === f.state) && (!f.who || x.who.includes(personKey(f.who)))).sort(byNewest); },
+  /** Proposals waiting for a person (default: the viewer). */
+  forYou(id = meId) { return agentItems.filter((x) => x.kind === 'proposal' && x.state === 'open' && isFor(x, id)).sort(byNewest); },
+  count(id = meId) { return cx.agentWork.forYou(id).length; },
+  approve: (it) => approveItem(typeof it === 'object' ? it : agentItems.find((x) => x.uid === it || x.key === it)),
+  dismiss(it) { it = typeof it === 'object' ? it : agentItems.find((x) => x.uid === it || x.key === it); if (it) { it.state = 'dismissed'; agentChanged(); } },
+  /** Open the assistant panel on a tab: 'for', 'done' or 'ask'. */
+  open: (tab) => assistOpen(tab),
+  /** A proposal's card, for a module that shows one inside its own conversation. */
+  card: (it) => proposalCard(it),
+};
+function agentChanged() {
+  updateAssistBadge();
+  if (agentTimer) return;
+  agentTimer = setTimeout(() => { agentTimer = 0; updateAssistBadge(); if (assist.panel && assist.tab !== 'ask') assistDraw({ keepScroll: true }); }, 0);
+}
+function agentLabel(a) { const p = cx.person(a); return p ? (p.label || p.name) : String(a || 'Agent'); }
+function agentAvatar(a) { const av = cx.avatar(a, { size: 'sm' }); av.classList.add('agent'); return av; }
+async function approveItem(it) {
+  if (!it || it.state !== 'open') return;
+  if (!isFor(it)) { toast(`Only ${it.who.map(cx.name).join(' or ')} can approve this.`, { tone: 'warning' }); return; }
+  const allow = cx.allowed(it.needs);
+  if (!allow.ok) { toast(allow.reason, { tone: 'warning' }); return; }
+  let res;
+  if (it.onApprove) { try { res = await it.onApprove(it); } catch (e) { console.error('approving failed', e); toast('That did not go through.', { tone: 'danger' }); return; } }
+  if (res === false || res?.status === 'declined') return;
+  it.state = 'approved'; it.approvedBy = meId; it.approvedAt = cx.now.toISOString();
+  cx.agentWork.add({ kind: 'done', key: 'done|' + it.key, who: it.who, agent: it.agent, title: it.result || it.title, detail: `Approved by ${cx.name(meId)}`, route: it.route, id: it.id, at: it.approvedAt });
+  if (!it.onApprove) toast(`${it.result || 'Approved: ' + it.title} (mock-up: nothing is sent)`, { tone: 'success' });
+}
+function proposalCard(it) {
+  if (!it) return null;
+  const href = itemHref(it);
+  const mine = isFor(it);
+  const allow = cx.allowed(it.needs);
+  const card = h('article.ap-item', { class: { handled: it.state !== 'open' } },
+    h('header.ap-by', agentAvatar(it.agent), h('span', h('b', agentLabel(it.agent)), ` · ${fmt.agoLong(it.at)}`),
+      it.state === 'approved' ? cx.pill(`Approved${it.approvedBy && it.approvedBy !== meId ? ' by ' + cx.firstName(it.approvedBy) : ''}`, 'green') : it.state === 'dismissed' ? cx.pill('Not now', 'muted') : null),
+    h('h3', it.title),
+    it.detail ? h('p', it.detail) : null,
+    it.steps?.length ? h('ol.ap-steps', it.steps.map((x) => h('li', x))) : null,
+    !mine && it.who.length ? h('div.ap-for', `For ${it.who.map(cx.name).join(' or ')}`) : null,
+    it.state === 'open' || href ? h('div.ap-actions',
+      it.state === 'open' ? cx.btn(it.approveLabel || 'Approve', { kind: 'primary', sm: true, icon: 'check', disabled: !mine || !allow.ok, reason: !mine ? `Only ${it.who.map(cx.name).join(' or ')} can approve this.` : allow.reason, onClick: async () => { await approveItem(it); card.replaceWith(proposalCard(it)); } }) : null,
+      href ? h('a.btn.sm', { href, onclick: () => { if (innerWidth < 760) cx.panel.close(); } }, 'Open') : null,
+      it.state === 'open' && mine ? cx.btn('Not now', { kind: 'ghost', sm: true, onClick: () => { cx.agentWork.dismiss(it); card.replaceWith(proposalCard(it)); } }) : null) : null);
+  return card;
+}
+function doneRow(it) {
+  const href = itemHref(it);
+  return h('li.ap-done', agentAvatar(it.agent),
+    h('div', { style: 'min-width:0' },
+      href ? h('a', { href, onclick: () => { if (innerWidth < 760) cx.panel.close(); } }, it.title) : h('span', it.title),
+      it.detail ? h('div.ap-sub', it.detail) : null,
+      h('div.ap-meta', agentLabel(it.agent), it.who.length && !it.who.includes(meId) ? ` · for ${it.who.map(cx.firstName).join(', ')}` : '')),
+    h('span.ago', { title: fmt.datetime(it.at) }, fmt.ago(it.at)));
+}
+
+/* =====================================================================================================
+   The assistant panel: For you, Done by agents, and the FDE (fde.js supplies the answers or takes its tab over)
+   ===================================================================================================== */
+
+const assist = { panel: null, tab: store.get('assist-tab', 'for'), filter: 'all', context: null };
+let assistBtn = null, assistCount = null;
+function updateAssistBadge() {
+  if (!assistBtn || !D) return;
+  const n = cx.agentWork.count();
+  assistCount.textContent = n ? String(n) : '';
+  assistCount.hidden = !n;
+  assistBtn.setAttribute('aria-label', `Assistant${n ? `, ${n} waiting for you` : ''}`);
+}
+function assistOpen(tab, o = {}) {
+  if (tab) { assist.tab = tab; store.set('assist-tab', tab); }
+  assist.context = o.context || cx.fde.context || 'Home';
+  if (!cx.panel.isOpen('assistant')) {
+    assist.panel = cx.panel.open({ key: 'assistant', title: 'Assistant', sub: `What Harbourline's agents did and propose for ${cx.me().name}`, onClose: () => { assist.panel = null; assistBtn?.setAttribute('aria-expanded', 'false'); } });
+    assist.panel.el.classList.add('assist');
+    assistBtn?.setAttribute('aria-expanded', 'true');
+  }
+  assistDraw(o);
+}
+function assistDraw(o = {}) {
+  const p = assist.panel; if (!p) return;
+  const n = cx.agentWork.count();
+  const tabs = [['for', 'For you', n], ['done', 'Done by agents', 0], ['ask', 'Ask the FDE', 0]];
+  const bar = h('div.ap-tabs', { role: 'tablist', 'aria-label': 'Assistant' }, tabs.map(([k, label, c]) => h('button.ap-tab', { type: 'button', role: 'tab', 'aria-selected': String(assist.tab === k), onclick: () => { if (assist.tab === k) return; assist.tab = k; store.set('assist-tab', k); assistDraw(); } }, label, c ? h('span.ap-count', String(c)) : null)));
+  const host = h('div.ap-view', { role: 'tabpanel' });
+  const keep = o.keepScroll ? p.body.scrollTop : 0;
+  p.setBody(bar, host);
+  p.body.scrollTop = keep;
+  if (assist.tab === 'done') fill(host, doneView());
+  else if (assist.tab === 'ask') fdeView(host, o);
+  else fill(host, forYouView());
+}
+function forYouView() {
+  const mine = cx.agentWork.forYou();
+  const others = cx.hasSeat() ? agentItems.filter((x) => x.kind === 'proposal' && x.state === 'open' && x.who.length && !x.who.includes(meId)).sort(byNewest) : [];
+  return [
+    h('p.ap-intro', mine.length ? `${fmt.plural(mine.length, 'proposal')} from the agents ${mine.length === 1 ? 'waits' : 'wait'} for you. Nothing happens until you approve it.` : 'Nothing waits for you. When an agent prepares something for you to approve, it appears here.'),
+    mine.map(proposalCard),
+    others.length ? h('details.ap-others', h('summary', `${fmt.plural(others.length, 'proposal')} waiting for others`), h('ul.ap-feed', others.map((it) => h('li.ap-done', agentAvatar(it.agent), h('div', { style: 'min-width:0' }, itemHref(it) ? h('a', { href: itemHref(it) }, it.title) : h('span', it.title), h('div.ap-meta', `For ${it.who.map(cx.name).join(' or ')} · ${agentLabel(it.agent)}`)), h('span.ago', fmt.ago(it.at)))))) : null,
+  ];
+}
+function doneView() {
+  const seat = cx.hasSeat();
+  let items = agentItems.filter((x) => x.kind === 'done' && (seat || x.who.includes(meId)));
+  const yours = items.filter((x) => x.who.includes(meId));
+  if (assist.filter === 'mine') items = yours;
+  items.sort(byNewest);
+  const t0 = Date.parse(cx.today + 'T00:00:00Z');
+  const groups = [['Today', []], ['This week', []], ['Earlier', []]];
+  for (const it of items) {
+    const d = ymd(it.at); const day = Date.UTC(d.y, d.m - 1, d.d);
+    groups[day >= t0 ? 0 : day > t0 - 7 * 86400000 ? 1 : 2][1].push(it);
+  }
+  const chip = (k, label, n) => h('button', { type: 'button', 'aria-pressed': String(assist.filter === k), onclick: () => { assist.filter = k; assistDraw(); } }, `${label} · ${n}`);
+  return [
+    seat ? h('div.ap-filter', chip('all', 'Everyone', agentItems.filter((x) => x.kind === 'done').length), chip('mine', 'Yours', yours.length)) : null,
+    items.length ? groups.filter(([, xs]) => xs.length).map(([label, xs]) => h('section.ap-group', h('h3', label), h('ul.ap-feed', xs.slice(0, 40).map(doneRow))))
+      : h('p.ap-intro', assist.filter === 'mine' ? 'The agents have done nothing for you yet this week.' : 'Nothing done by the agents yet.'),
+  ];
+}
 
 const fdeTurns = [];
 cx.fde = {
   context: null,
-  /** fde.js sets this: async (question, { context, me, history }) → { text, lookedAt: [{ command, result }], draft: cx.draft spec, links: [{ label, route, id }] } */
+  /** fde.js sets this: async (question, { context, me, history }) → { text, lookedAt: [{ result }], draft: cx.draft spec, links: [{ label, route, id }] } */
   answer: null,
-  /** fde.js may set this to own the whole panel: (panelApi, { context, ask }) → void */
+  /** fde.js may set this to own the FDE's tab: (panelApi, { context, ask }) → void; panelApi.setBody fills the tab */
   mount: null,
-  suggestions: ["What's due this week?", 'How much runway do we have?', "Who hasn't submitted timesheets?"],
-  /** Open the FDE's panel, optionally asking a question straight away. */
-  open(o = {}) {
-    const context = o.context || cx.fde.context || 'Home';
-    const panel = cx.panel.open({ key: 'fde', title: 'Ask the FDE', sub: `Harbourline's Forward Deployed Engineer, hosted by Capxul. It acts only with your permissions, as ${cx.me().name}.` });
-    if (cx.fde.mount) { try { cx.fde.mount(panel, { context, ask: o.ask }); return; } catch (e) { console.error('fde.mount failed', e); } }
-    const convo = h('div.chat');
-    const ta = h('textarea.finput', { id: 'fde-ask', rows: 3, placeholder: 'Ask anything about Harbourline', 'aria-label': 'Ask the FDE' });
-    const form = h('form.chat-form', { onsubmit: (e) => { e.preventDefault(); ask(ta.value); ta.value = ''; } },
-      ta, h('div', { style: 'display:flex;gap:8px;align-items:center' }, h('button.btn.primary', { type: 'submit' }, cx.icon('send'), 'Ask'), h('span.muted', { style: 'font-size:12px' }, 'It drafts risky actions for you to run.')));
-    const drawTurns = () => {
-      fill(convo, ...fdeTurns.map((t) => h('div.chat-turn', { class: t.role },
-        t.role === 'fde' && t.lookedAt?.length ? h('div.looked', h('span', 'What I looked at'), t.lookedAt.map((x) => h('div', h('code', '$ ' + x.command), x.result ? h('div', h('span', x.result)) : null))) : null,
-        h('div.bubble', t.text),
-        [].concat(t.draft || [], t.drafts || []).map((d) => cx.draft(d)),
-        t.links?.length ? h('div.chips', t.links.map((l) => h('a.btn.sm', { href: cx.href(l.route, l.id) }, l.label))) : null)));
-      if (!fdeTurns.length) convo.appendChild(h('div', { style: 'display:grid;gap:8px' }, h('p.muted', 'Ask about anything on this screen or in the company. Try:'), h('div.suggest', cx.fde.suggestions.map((sg) => h('button', { type: 'button', onclick: () => ask(sg) }, sg)))));
-      // show the newest answer from its start (a long answer with drafts is read top down), else the bottom
-      const turns = convo.querySelectorAll('.chat-turn');
-      const last = turns[turns.length - 1], prevQ = turns[turns.length - 2];
-      const top = (el) => el.getBoundingClientRect().top - panel.body.getBoundingClientRect().top + panel.body.scrollTop;
-      panel.body.scrollTop = last && last.classList.contains('fde') && prevQ ? Math.max(0, top(prevQ) - 8) : panel.body.scrollHeight;
-    };
-    async function ask(q) {
-      q = String(q || '').trim(); if (!q) return;
-      const screenCmd = strip.get();
-      strip.pin(`capxul org fde ask ${JSON.stringify(q)} --org harbourline`, 'Ask the FDE');
-      fdeTurns.push({ role: 'user', text: q });
-      fdeTurns.push({ role: 'fde', text: '…' });
-      drawTurns();
-      let ans;
-      try { ans = cx.fde.answer ? await cx.fde.answer(q, { context, me: cx.me(), history: fdeTurns }) : null; } catch (e) { console.error('fde.answer failed', e); }
-      if (!ans) {
-        ans = { text: `I read "${context}" with your permissions. Here is the command behind this screen, so you can run it yourself.`, lookedAt: screenCmd?.lines?.length ? [{ command: screenCmd.lines[0], result: 'read' }] : [] };
-      }
-      fdeTurns[fdeTurns.length - 1] = { role: 'fde', ...ans };
-      drawTurns();
-    }
-    panel.setBody(h('div', { style: 'display:grid;gap:10px' }, h('div.tag', { style: 'height:auto;padding:4px 8px;white-space:normal' }, 'You are looking at: ' + context), convo), form);
-    drawTurns();
-    if (o.ask) ask(o.ask); else setTimeout(() => ta.focus(), 30);
-  },
+  suggestions: ['What are we not using yet?', 'How far along is our setup?', 'Show me how approvals work'],
+  /** Open the assistant on the FDE's tab, optionally asking a question straight away. */
+  open(o = {}) { assistOpen('ask', o); },
 };
+function fdeView(host, o = {}) {
+  const context = o.context || assist.context || cx.fde.context || 'Home';
+  const panel = { el: assist.panel.el, body: assist.panel.body, close: () => cx.panel.close(), setBody: (...kids) => fill(host, ...kids) };
+  if (cx.fde.mount) { try { cx.fde.mount(panel, { context, ask: o.ask }); return; } catch (e) { console.error('fde.mount failed', e); } }
+  const convo = h('div.chat');
+  const ta = h('textarea.finput', { id: 'fde-ask', rows: 3, placeholder: 'Ask about setting up Capxul, or anything in Harbourline', 'aria-label': 'Ask the FDE' });
+  const form = h('form.chat-form', { onsubmit: (e) => { e.preventDefault(); ask(ta.value); ta.value = ''; } },
+    ta, h('div', { style: 'display:flex;gap:8px;align-items:center' }, h('button.btn.primary', { type: 'submit' }, cx.icon('send'), 'Ask'), h('span.muted', { style: 'font-size:12px' }, 'Anything it prepares waits for your approval.')));
+  const drawTurns = () => {
+    fill(convo, ...fdeTurns.map((t) => {
+      const seen = (t.lookedAt || []).map((x) => x.label || x.result).filter((x) => x && x !== 'read');
+      const link = t.links?.find((l) => routes.has(l.route));
+      const drafts = [].concat(t.draft || [], t.drafts || []).map((d) => cx.agentWork.add(draftItem({ ...d, key: d.key || `fde|${d.for || meId}|${d.title}`, route: d.route || link?.route, id: d.route ? d.id : link?.id })));
+      return h('div.chat-turn', { class: t.role },
+        t.role === 'fde' && seen.length ? h('div.looked', h('span', 'What I looked at'), seen.map((x) => h('div', x))) : null,
+        h('div.bubble', t.text === '…' ? h('span.muted', 'Working…') : t.text),
+        drafts.map(proposalCard),
+        t.links?.length ? h('div.chips', t.links.filter((l) => routes.has(l.route)).map((l) => h('a.btn.sm', { href: cx.href(l.route, l.id) }, l.label))) : null);
+    }));
+    if (!fdeTurns.length) convo.appendChild(h('div', { style: 'display:grid;gap:8px' }, h('p.muted', "Harbourline's FDE sets Capxul up with you and helps you get the most out of it: importing from your old tools, connecting the bank, inviting people, and what you are not using yet. Try:"), h('div.suggest', cx.fde.suggestions.map((sg) => h('button', { type: 'button', onclick: () => ask(sg) }, sg)))));
+    // show the newest answer from its start (a long answer is read top down), else the bottom
+    const turns = convo.querySelectorAll('.chat-turn');
+    const last = turns[turns.length - 1], prevQ = turns[turns.length - 2];
+    const top = (el) => el.getBoundingClientRect().top - panel.body.getBoundingClientRect().top + panel.body.scrollTop;
+    panel.body.scrollTop = last && last.classList.contains('fde') && prevQ ? Math.max(0, top(prevQ) - 8) : panel.body.scrollHeight;
+  };
+  async function ask(q) {
+    q = String(q || '').trim(); if (!q) return;
+    strip.pin(`capxul org fde ask ${JSON.stringify(q)} --org harbourline`, 'Ask the FDE');
+    fdeTurns.push({ role: 'user', text: q });
+    fdeTurns.push({ role: 'fde', text: '…' });
+    drawTurns();
+    let ans;
+    try { ans = cx.fde.answer ? await cx.fde.answer(q, { context, me: cx.me(), history: fdeTurns }) : null; } catch (e) { console.error('fde.answer failed', e); }
+    if (!ans) ans = { text: `I looked at "${context}" with your permissions, but I can't answer that here yet. Try one of the suggestions, or ask me about setting up Capxul.` };
+    fdeTurns[fdeTurns.length - 1] = { role: 'fde', ...ans };
+    if (assist.tab === 'ask' && host.isConnected) drawTurns();
+  }
+  fill(host, h('div', { style: 'display:grid;gap:10px' }, h('div.tag', { style: 'height:auto;padding:4px 8px;white-space:normal' }, 'You are looking at: ' + context), convo), form);
+  drawTurns();
+  if (o.ask) ask(o.ask); else setTimeout(() => ta.focus(), 30);
+}
 
 /* =====================================================================================================
    Search
@@ -2328,6 +2450,34 @@ function coreSearch(q) {
     out.push({ kind: 'Suppliers', label: sp.name, sub: [sp.group, fmt.plural(bills.length, 'bill'), bills[0] ? `latest ${bills[0].name}` : null].filter(Boolean).join(' · '), route: bills[0] ? 'purchase-invoice' : 'purchase-invoices', id: bills[0]?.name || null, icon: 'file' });
   }
   for (const d of [...D.departments, ...D.allowances]) if (d.name.toLowerCase().includes(t)) out.push({ kind: 'Departments', label: cx.deptName(d.id), sub: 'Hat: ' + cx.holders(d.id).map(cx.name).join(', '), route: D.allowances.includes(d) ? 'allowance' : 'department', id: d.id, icon: 'departments' });
+  return out;
+}
+
+// The records people look for first come first: people, customers, deals, projects and invoices. A record found by
+// two providers shows once (its first, higher-ranked kind), and each kind lists its closest matches first.
+const SEARCH_FIRST = ['Workspaces', 'Pages', 'People', 'Customers', 'CRM deals', 'CRM leads', 'CRM contacts', 'CRM companies', 'Projects',
+  'Sales invoices', 'Purchase invoices', 'Suppliers', 'Departments', 'Employees', 'Payroll runs', 'Payslips', 'Expense claims', 'Leave'];
+function rankSearch(q, core, providers) {
+  const all = [...core];
+  for (const fn of providers) { try { all.push(...(fn(q, 8) || [])); } catch (e) { console.error('search provider failed', e); } }
+  const t = q.toLowerCase();
+  const score = (r) => { const l = String(r.label || '').toLowerCase(); return l === t ? 0 : l.startsWith(t) || l.includes(' ' + t) ? 1 : l.includes(t) ? 2 : 3; };
+  const kinds = [...new Set(all.map((r) => r.kind))];
+  const rank = (k) => { const i = SEARCH_FIRST.indexOf(k); return i < 0 ? SEARCH_FIRST.length : i; };
+  kinds.sort((a, b) => rank(a) - rank(b));
+  const seen = new Set(), out = [];
+  for (const k of kinds) {
+    const rs = all.filter((r) => r.kind === k).map((r, i) => ({ r, i, sc: score(r) })).sort((a, b) => a.sc - b.sc || a.i - b.i).map((x) => x.r);
+    let n = 0;
+    const cap = rank(k) < SEARCH_FIRST.length ? 6 : 3;
+    for (const r of rs) {
+      const href = r.route ? cx.href(r.route, r.id) : null;
+      if (href && seen.has(href)) continue;
+      if (href) seen.add(href);
+      out.push(r);
+      if (++n >= cap) break;
+    }
+  }
   return out;
 }
 
@@ -2390,11 +2540,9 @@ function renderTopbar() {
   const runSearch = () => {
     const q = input.value.trim();
     if (q.length < 2) { results.hidden = true; return; }
-    list = coreSearch(q);
-    for (const fn of searchProviders) { try { list.push(...(fn(q, 8) || [])); } catch (e) { console.error('search provider failed', e); } }
+    list = rankSearch(q, coreSearch(q), searchProviders);
     const groups = new Map();
-    for (const r of list) { if (!groups.has(r.kind)) groups.set(r.kind, []); if (groups.get(r.kind).length < 6) groups.get(r.kind).push(r); }
-    list = [...groups.values()].flat();
+    for (const r of list) { if (!groups.has(r.kind)) groups.set(r.kind, []); groups.get(r.kind).push(r); }
     active = 0;
     fill(results, ...(list.length ? [...groups.entries()].flatMap(([k, rs]) => [h('div.pop-label', k), ...rs.map((r) => {
       const i = list.indexOf(r);
@@ -2432,8 +2580,11 @@ function renderTopbar() {
       routes.has('notices') ? h('a.pop-item', { href: '#notices', onclick: () => p.close() }, cx.icon('list'), h('span.grow', 'All notices')) : null,
     ];
   }, { align: 'right' });
-  // FDE
-  const fdeBtn = h('button.tb-fde', { type: 'button', title: 'Ask the FDE', onclick: () => cx.fde.open() }, cx.icon('fde'), h('span', 'Ask the FDE'));
+  // the assistant: what the agents did and propose for you, and the FDE
+  assistCount = h('span.tb-count', { hidden: true });
+  assistBtn = h('button.tb-assist', { type: 'button', title: "What Harbourline's agents did and propose for you, and the FDE", 'aria-haspopup': 'dialog', 'aria-expanded': String(cx.panel.isOpen('assistant')),
+    onclick: () => (cx.panel.isOpen('assistant') ? cx.panel.close() : assistOpen()) }, cx.icon('fde'), h('span.tb-assist-label', 'Assistant'), assistCount);
+  updateAssistBadge();
   // person
   const meBtn = h('button.tb-me', { type: 'button', 'aria-label': `Signed in as ${me.name}. Switch who you are viewing as` }, cx.avatar(meId), h('span.tb-me-text', h('b', me.name), h('small', me.designation || me.role || '')));
   const ps = cx.personas();
@@ -2446,7 +2597,7 @@ function renderTopbar() {
     h('div.pop-label', 'View as'),
     ...menuItems([...ps.seat, ...ps.noSeat].map((id, i) => ({ label: cx.name(id), sub: [(cx.person(id).hats || []).join(', ') || 'No hat', ps.noSeat.includes(id) ? 'no seat' : null].filter(Boolean).join(' · '), on: id === meId, icon: id === meId ? 'check' : 'user', onClick: () => cx.setMe(id) })), p),
   ], { align: 'right' });
-  fill(topbar, menuBtn, brand, comp.wrap, sWrap, h('span.tb-spacer'), today, bell.wrap, fdeBtn, meMenu.wrap);
+  fill(topbar, menuBtn, brand, comp.wrap, sWrap, h('span.tb-spacer'), today, bell.wrap, assistBtn, meMenu.wrap);
 }
 function renderSidebar() {
   if (!frameReady) return;
@@ -2639,7 +2790,7 @@ function directoryCard() {
   const cols = groups.flatMap((g) => g.ids.map((id) => workspaces.get(id)).filter((ws) => ws && ws.id !== 'home' && (seat || ws.seatless)))
     .map((ws) => h('div.wsdir-ws', h('a.wsdir-head', { href: cx.href(ws.route) }, cx.icon(ws.icon, { size: 15 }), ws.label),
       h('ul', flat(ws.nav || []).filter((it) => it.route !== ws.route || it.id).map((it) => h('li', cx.link(it.label, it.route, it.id))))));
-  return cx.card({ title: 'Everything in Capxul', cmd: 'capxul --help', body: h('div.wsdir', cols) });
+  return cx.card({ title: 'Everything in Capxul', body: h('div.wsdir', cols) });
 }
 
 function greeting() { const hh = +london(D.meta.now).hh; return hh < 12 ? 'Good morning' : hh < 18 ? 'Good afternoon' : 'Good evening'; }
@@ -2650,25 +2801,24 @@ function homePage() {
   const hello = h('div.home-hello',
     h('div', { style: 'display:grid;gap:4px' }, h('h1', `${greeting()}, ${me.firstName || me.first || me.name}`), h('p', `${D.company.name} · ${D.meta.counts?.activeEmployees ?? 25} people · day ${fmt.int(daysOn)} on Capxul`)),
     h('p.when', fmt.dateLong(cx.today), h('br'), h('span.faint', `${fmt.time(D.meta.now)} in London`)));
-  const homeCmd = { cli: ['capxul balance --org harbourline', 'capxul org department list', 'capxul payment list --org harbourline --scheduled', 'capxul activity list --limit 5'], note: 'Home has no single command; each card shows its own.' };
-  const askCard = cx.card({ title: 'Ask the FDE', cmd: 'capxul org fde ask "…" --org harbourline', body: h('div.ask',
+  const askCard = cx.card({ title: 'Ask the FDE', body: h('div.ask',
     h('form', { onsubmit: (e) => { e.preventDefault(); const v = e.target.querySelector('input').value.trim(); if (v) cx.fde.open({ ask: v }); } }, h('input.finput', { id: 'home-ask', placeholder: 'Ask anything about Harbourline', 'aria-label': 'Ask the FDE' }), h('button.btn.primary', { type: 'submit' }, cx.icon('send'), h('span', 'Ask'))),
     h('div.suggest', cx.fde.suggestions.map((sg) => h('button', { type: 'button', onclick: () => cx.fde.open({ ask: sg }) }, sg))),
-    h('p.muted', { style: 'font-size:12.5px' }, `Anyone can ask. The FDE acts only with your permissions and drafts risky actions for you to run.`)) });
+    h('p.muted', { style: 'font-size:12.5px' }, "Harbourline's FDE sets Capxul up with you and shows you what you are not using yet. It acts only with your permissions.")) });
   if (!seat) {
     const mine = (D.notices || []).filter((n) => n.to === meId);
-    return cx.page({ title: '', hero: hello, cmd: { cli: ['capxul payroll payslip list', 'capxul hr leave balance', 'capxul payment claim'], note: 'Without a seat you see your own records.' }, fde: 'Home',
+    return cx.page({ title: '', hero: hello, fde: 'Home',
       body: [cx.banner(`${me.name} has no seat at Harbourline, so Capxul shows only ${me.firstName}'s own records.`, { tone: 'info' }),
         h('div.grid.c2', cx.card({ title: 'Your notices', body: mine.length ? h('ul.feed', mine.slice(0, 6).map((n) => h('li', cx.icon('bell'), h('span', n.text), h('span.ago', fmt.ago(n.at))))) : h('p.muted', 'No notices.'), flush: !!mine.length }), askCard), directoryCard()] });
   }
   // waiting for you
   const waits = (D.approvals?.waiting || []).filter((a) => (a.waitsFor || []).includes(meId));
   const allWaits = D.approvals?.waiting || [];
-  const waitCard = cx.card({ title: h('span', 'Waiting for you ', h('span.muted', { style: 'font-weight:400' }, `· ${waits.length}`)), actions: routes.has('approvals') ? h('a.btn.sm', { href: '#approvals' }, `All ${allWaits.length} waiting`) : null, cmd: 'capxul org proposal list --status waiting · capxul org hr leave list --status open', flush: true,
+  const waitCard = cx.card({ title: h('span', 'Waiting for you ', h('span.muted', { style: 'font-weight:400' }, `· ${waits.length}`)), actions: routes.has('approvals') ? h('a.btn.sm', { href: '#approvals' }, `All ${allWaits.length} waiting`) : null, flush: true,
     body: waits.length ? h('ul.wait-list', waits.slice(0, 5).map((a) => {
       const href = cx.refHref(a.ref);
       return h('li', cx.pill(a.kind === 'Board' ? 'Board' : a.kind, a.kind === 'Money' ? 'escrow' : a.kind === 'Board' ? 'purple' : 'blue'),
-        h('div', { style: 'min-width:0' }, h('div.what', href ? h('a', { href }, a.what) : a.what), h('div.why', `${a.amount ? a.amount + ' · ' : ''}from ${cx.name(a.openedBy)} · ${fmt.agoLong(a.openedAt)} · ${a.because}`), a.command ? h('code', '$ ' + a.command) : null),
+        h('div', { style: 'min-width:0' }, h('div.what', href ? h('a', { href }, a.what) : a.what), h('div.why', `${a.amount ? a.amount + ' · ' : ''}from ${cx.name(a.openedBy)} · ${fmt.agoLong(a.openedAt)} · ${a.because}`)),
         href ? h('a.btn.sm', { href }, 'Open') : null);
     })) : h('div.empty', 'Nothing waits for you.') });
   // money position
@@ -2686,7 +2836,7 @@ function homePage() {
   }
   const months = [...monthly.keys()].sort().slice(-12);
   const flow = chart.bar({ labels: months.map((m) => fmt.monthShort(m)), series: [{ name: 'In', values: months.map((m) => monthly.get(m).in), color: 'pos' }, { name: 'Out', values: months.map((m) => monthly.get(m).out), color: 'neg' }], format: (v) => fmt.compact(v), tipFormat: (v) => fmt.usdc(v), height: 190, title: 'Treasury in and out by month' });
-  const moneyCard = cx.card({ title: 'Money', cmd: 'capxul balance --org harbourline', actions: routes.has('money') ? h('a.btn.sm', { href: '#money' }, 'Open Money') : null, flush: true, body: [
+  const moneyCard = cx.card({ title: 'Money', actions: routes.has('money') ? h('a.btn.sm', { href: '#money' }, 'Open Money') : null, flush: true, body: [
     h('div.position',
       pos('Treasury', 'money', fmt.num(sf.treasury.balance, 2), 'USDC', `${fmt.gbp(sf.treasury.gbp)} · ${fmt.num(sf.treasury.available, 2)} available`, routes.has('treasury') ? '#treasury' : null),
       pos('Reserve Safe', 'shield', fmt.num(sf.reserve.balance, 2), 'USDC', `${fmt.gbp(sf.reserve.gbp)} · moves by Board proposal`, routes.has('reserve') ? '#reserve' : null),
@@ -2706,7 +2856,7 @@ function homePage() {
       h('div.top', h('b', d.name), h('small', holder.length ? `${holder.map(cx.name).join(', ')} wears the hat` : ''), h('span.grow'), h('small', `${fmt.usdc(b.left)} left`)),
       chart.meter({ total: b.amount, parts, warnAt: 0.85, format: (v) => fmt.num(v, 0), legend: false }));
   }).filter(Boolean);
-  const deptCard = cx.card({ title: `Departments · ${q ? q.quarter.replace('-', ' ') : ''}`, cmd: 'capxul org department list', actions: routes.has('departments') ? h('a.btn.sm', { href: '#departments' }, 'All departments') : null,
+  const deptCard = cx.card({ title: `Departments · ${q ? q.quarter.replace('-', ' ') : ''}`, actions: routes.has('departments') ? h('a.btn.sm', { href: '#departments' }, 'All departments') : null,
     body: h('div', { style: 'display:grid;gap:12px' }, h('div.legend', { style: 'margin:0' }, h('span', h('i', { style: 'background:var(--chart-1)' }), 'Spent'), h('span', h('i', { style: 'background:var(--chart-2)' }), 'Handed down to departments'), h('span', h('i', { style: 'background:var(--chart-3)' }), 'Committed'), h('span', h('i', { style: 'background:var(--t-orange)' }), 'Above 85%')), h('div.dept-rows', depts)) });
   // coming up
   const coming = [];
@@ -2724,19 +2874,26 @@ function homePage() {
     coming.push({ day, text: h('span', `Payroll for ${fmt.month(day)}`, h('span.muted', ` · last month ${fmt.gbp(lastRun.totals.net)} net to ${lastRun.totals.employees} people`)), pill: cx.pill('Scheduled', 'blue'), href: routes.has('payroll') ? '#payroll' : null });
   }
   coming.sort((a, b) => a.day.localeCompare(b.day));
-  const comingCard = cx.card({ title: 'Coming up', cmd: 'capxul payment list --org harbourline --scheduled', flush: true, body: h('ul.coming', coming.slice(0, 7).map((c) => {
+  const comingCard = cx.card({ title: 'Coming up', flush: true, body: h('ul.coming', coming.slice(0, 7).map((c) => {
     const p = ymd(c.day);
     return h('li', h('span.cal', h('b', String(p.d)), h('small', MONTHS[p.m - 1])), h('div', { style: 'min-width:0' }, c.href ? h('a', { href: c.href, style: 'color:inherit' }, c.text) : c.text), c.pill);
   })) });
   // latest activity
   const EV_ICON = { Money: 'money', People: 'hr', Payroll: 'payroll', Projects: 'projects', Agents: 'fde', Board: 'board', Equity: 'board', CRM: 'crm', Books: 'books', Departments: 'departments', Seats: 'seats' };
-  const feedCard = cx.card({ title: 'Latest activity', cmd: 'capxul activity list --limit 5', actions: routes.has('activity') ? h('a.btn.sm', { href: '#activity' }, 'All activity') : null, flush: true, body: h('ul.feed', (D.events || []).slice(0, 6).map((e) => {
+  const feedCard = cx.card({ title: 'Latest activity', actions: routes.has('activity') ? h('a.btn.sm', { href: '#activity' }, 'All activity') : null, flush: true, body: h('ul.feed', (D.events || []).slice(0, 6).map((e) => {
     const href = cx.refHref(e.ref);
     return h('li', e.who ? cx.avatar(e.who, { size: 'sm' }) : h('span.avatar.sm.t-gray', cx.icon(EV_ICON[e.kind] || 'activity', { size: 12 })), h('div', { style: 'min-width:0' }, href ? h('a', { href, style: 'color:inherit' }, e.text) : e.text, h('div.muted', { style: 'font-size:12px' }, e.kind)), h('span.ago', { title: fmt.datetime(e.at) }, fmt.ago(e.at)));
   })) });
-  return cx.page({ title: '', hero: hello, cmd: homeCmd, fde: 'Home',
+  return cx.page({ title: '', hero: hello, fde: 'Home',
     body: [toursCard(), h('div.grid.side.home-cols', h('div.grid', waitCard, moneyCard, deptCard), h('div.grid', askCard, comingCard, feedCard)), directoryCard()] });
 }
+
+cx.on('persona', () => {
+  if (!assist.panel) return;
+  const sub = assist.panel.el.querySelector('.panel-head small');
+  if (sub) sub.textContent = `What Harbourline's agents did and propose for ${cx.me().name}`;
+  assistDraw();
+});
 
 cx.workspace({ id: 'home', label: 'Home', icon: 'home', route: 'home', nav: [], seatless: true });
 cx.route('home', () => homePage(), { workspace: 'home', title: 'Home' });
