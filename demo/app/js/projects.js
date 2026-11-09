@@ -237,8 +237,10 @@ cx.style('projects', `
 .pj-prof b { font-size: 16px; font-variant-numeric: tabular-nums; }
 .pj-heat { overflow-x: auto; padding-bottom: 4px; }
 .pj-heat svg { display: block; }
-.pj-tool { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.pj-tool { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; min-width: 0; }
 .pj-tool .grow { flex: 1; }
+.pj-tool > * { min-width: 0; max-width: 100%; }
+.pj-tool select.ctl { text-overflow: ellipsis; }
 .pj-seg { display: inline-flex; }
 .pj-seg button { height: 30px; padding: 0 11px; border: 1px solid var(--line); background: var(--surface); color: var(--fg-2); cursor: pointer; font-size: 13px; }
 .pj-seg button + button { margin-left: -1px; }
@@ -286,6 +288,7 @@ cx.style('projects', `
 .pj-sum { display: grid; gap: 2px; font-size: 12.5px; color: var(--muted); }
 .pj-delay { color: var(--neg); font-weight: 600; }
 .pj-ontrack { height: 26px; display: flex; border-radius: var(--r); overflow: hidden; font-size: 12px; font-weight: 600; color: var(--surface); }
+.btn[hidden], .pill[hidden] { display: none !important; }
 .pj-ontrack div { display: flex; align-items: center; padding: 0 10px; min-width: 0; white-space: nowrap; overflow: hidden; }
 `);
 
@@ -747,7 +750,7 @@ const taskViews = (active, pid) => [{ label: 'List', route: 'tasks', icon: 'list
 const viewBar = (views, ...left) => h('div.pj-tool', ...left, h('span.grow'), h('div.btn-group', views.map((v) => h('a.btn', { href: cx.href(v.route, v.id), class: { primary: v.active }, 'aria-current': v.active ? 'page' : null }, cx.icon(v.icon), h('span', v.label)))));
 const openProjects = () => P.projects.filter((p) => ['Open', 'On hold'].includes(p.status));
 function projectSelect(route, current, allLabel) {
-  return h('select.ctl', { 'aria-label': 'Project', style: 'width:auto;max-width:100%', onchange: (e) => cx.go(route, e.target.value || null) },
+  return h('select.ctl', { 'aria-label': 'Project', style: 'width:auto;max-width:100%;min-width:0;flex:0 1 auto', onchange: (e) => cx.go(route, e.target.value || null) },
     allLabel ? h('option', { value: '' }, allLabel) : null,
     P.projects.slice().sort((a, b) => (a.status === 'Open' ? 0 : 1) - (b.status === 'Open' ? 0 : 1) || b.name.localeCompare(a.name)).map((p) => h('option', { value: p.name, selected: p.name === current }, `${p.name} · ${p.projectName}${p.status !== 'Open' ? ' (' + p.status + ')' : ''}`)));
 }
@@ -894,9 +897,9 @@ function ganttView(project, rows, o) {
     const scroll = h('div.pj-g-scroll', svg);
     const legend = h('div.pj-legend', TASK_STATUSES.map((st) => h('span', h('i', { style: { background: TASK_FILL[st] } }), st)), h('span', h('i', { style: { background: 'var(--fg-2)', height: '5px' } }), 'Group'), h('span', h('i', { style: { background: 'var(--chart-6)', width: '9px', height: '9px', transform: 'rotate(45deg)', borderRadius: '1px' } }), 'Milestone'), h('span', h('i', { style: { background: 'var(--neg)', width: '2px' } }), 'Today'), h('span', cx.allowed(MEMBER).ok ? 'Drag a bar to move its dates.' : ''));
     cx.fill(root, h('div.pj-g-body', labels, scroll), legend);
-    const target = prevScroll != null && keepScroll ? prevScroll : Math.max(0, tx - 160);
     keepScroll = true;
-    requestAnimationFrame(() => { scroll.scrollLeft = target; });
+    const restore = prevScroll;
+    requestAnimationFrame(() => { scroll.scrollLeft = restore != null ? restore : Math.max(0, tx - Math.min(160, scroll.clientWidth * 0.3)); });
   };
   function bindBar(g, t, ppd) {
     let start = null, moved = 0;
@@ -1350,7 +1353,7 @@ function timesheetPage(ts) {
           [{ label: 'Series', value: ts.name, readOnly: true, type: 'mono' }, { label: 'Customer', value: ts.customer, readOnly: true, render: () => custLink(ts.customer) }, cur !== 'GBP' ? { label: 'Currency', value: cur, readOnly: true } : null, cur !== 'GBP' ? { label: 'Exchange rate', value: `1 ${cur} = £${cx.rate(ts.startDate)}`, readOnly: true } : null, { label: 'Invoice', value: info.invoices.join(', '), readOnly: true, render: () => (info.invoices.length ? h('span', info.invoices.map((n, i) => [i ? ', ' : '', cx.link(n, 'sales-invoice', n)])) : h('span.faint', '—')) }].filter(Boolean),
           [{ label: 'Status', value: info.status, readOnly: true, render: () => tsPill(info.status) }, { label: 'Project', value: ts.project, readOnly: true, render: () => (ts.project ? projLink(ts.project, `${ts.project} · ${projName(ts.project)}`) : h('span.faint', 'Several')) }, { label: 'User', value: emailOf(ts.employee), readOnly: true }, { label: 'Start date', value: ts.startDate, readOnly: true, type: 'date' }, { label: 'End date', value: ts.endDate, readOnly: true, type: 'date' }]] },
         { label: 'Employee detail', columns: [[{ label: 'Employee', value: emp?.employee, readOnly: true, render: () => (cx.hasRoute('employee') ? cx.link(emp?.employee || ts.employee, 'employee', emp?.employee) : h('span', emp?.employee || '')) }, { label: 'Department', value: cx.deptName(ts.department || emp?.department), readOnly: true }], [{ label: 'Employee name', value: cx.name(ts.employee), readOnly: true }, ts.loggedBy && ts.loggedBy !== ts.employee ? { label: 'Logged by', value: ts.loggedBy, readOnly: true, type: 'person', help: cx.hasSeat(ts.employee) ? null : `${cx.firstName(ts.employee)} has no seat, so whoever wears People keeps their time.` } : null].filter(Boolean)] },
-        { label: 'Time sheets', node: h('div', grid, removable) },
+        { label: 'Time sheets', node: h('div', { style: 'min-width:0;display:grid' }, grid, removable) },
         { cols: 2, fields: [{ label: 'Total working hours', value: info.hours, readOnly: true, type: 'float', dp: 2 }] },
       ] },
       { label: 'Billing', sections: [
