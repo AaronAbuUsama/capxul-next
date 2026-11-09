@@ -2209,11 +2209,18 @@ export const decision_organizations_head_claims = defineDecision({
     "amending one cancelled document twice (Frappe would name both amendments `-1`). For the devnet designer: the " +
     "stand-in head's metas need Job Opening not submittable (hrms@8816102: no is_submittable) and Training Event " +
     "Employee a child table of Training Event (istable), Project in module Projects, and its daily check to fail " +
-    "while its fault switch is down.",
-  source: surfaceBy("heads.ts, docs.ts, fde.ts, organizations.heads.watch; devnet worlds.ts; hrms@8816102 job_opening, training_event(_employee); frappe naming.py"),
+    "while its fault switch is down. Truth review, 9 November 2026: two more for devnet. The stand-in names an amendment of an " +
+    "amendment by Frappe's Amend Counter (`Old induction-1` amended is `Old induction-2`, frappe@1a7ea57 naming.py " +
+    "`_set_amended_name`), not `<name>-1` again. The world's Training Events carry hrms' mandatory fields (event_status, " +
+    "type, location, start_time before end_time, introduction: training_event.json, `validate_period`), since the " +
+    "submit and amend claims submit them through the family, which checks them. Here: the per-app versions `org head " +
+    "show` prints are the head connection's process's `check` step's, now booked there. `org head show`'s failing " +
+    "claim reads the stall's issue `at`, which the stall records, rather than `checkedAt`; the amend retry reads the " +
+    "one document amended from `Old induction`.",
+  source: surfaceBy("heads.ts, docs.ts, fde.ts, organizations.heads.watch; devnet worlds.ts; hrms@8816102 job_opening, training_event(_employee); frappe@1a7ea57 naming.py, document.py"),
   affects: [
     operation_org_head_show, operation_org_head_doc_submit, operation_org_head_doc_amend, operation_org_head_doctype_list,
-    operation_org_fde_guest_list, concept_devnet,
+    operation_org_fde_guest_list, workflow_heads_watch, concept_devnet,
   ],
 });
 
@@ -2259,4 +2266,55 @@ export const decision_organizations_reach_holes = defineDecision({
     "answers question 52.",
   source: surfaceBy("erpnext@6b946b0 hooks.py and the seven DocTypes named; frappe@1a7ea577 auto_email_report; command-surface.md 7.6; organizations.doc-reach"),
   affects: [...DOC_RPCS, ...DOC_OPERATIONS, component_frappe_app, integration_frappe_head, concept_payroll],
+});
+
+export const decision_organizations_head_fit = defineDecision({
+  id: "organizations.head-fit",
+  title: "A refusal names the record's group and both sides; the FDE reads as its asker",
+  question:
+    "Fit review of the surface pass (9 November 2026; Aaron: 'It's the logical groupings'). After the rename, the " +
+    "commands the family's refusals name still followed the old nouns' pairing, not the tree's groups: the Payroll " +
+    "module named `org payroll` and `org hr employee`, Projects three of its group's records, and two HR rows only one " +
+    "side. The org-apps index said `org show` lists the installed apps, and `org fde guest list`'s first claim promised " +
+    "the order and the paging its two new claims prove, while its about never named `--status`. And the who of every " +
+    "member read (`org head show`, `org head app list`, `org fde show`, `org fde guest list`, `org seats show`) said " +
+    "'the FDE included', though the hosted FDE never acts as itself. What should each say?",
+  options: [
+    {
+      label: "by-group",
+      text:
+        "Each pointer names the record's group, with the person's side where one has it, as surface.hr-group places HR. " +
+        "Payroll module: `org payroll` and `payroll`, and `org hr advance settle` for an advance's Additional Salary. " +
+        "Projects module: `org projects`, with its `member`, `settings`, `task`, `timesheet`, `activity-type` and " +
+        "`project-type`. Leave Allocation adds `hr leave balance`; Employee Checkin names `hr attendance checkin` and " +
+        "`list`. `org head doctype list`'s claim names both sides of Leave Application and Expense Claim, as the refusal " +
+        "does. The index names `org head show`. The guest list's first claim says what its evidence shows (the note and " +
+        "who named them), and its about names `--status active|removed` and the paging. A member read's who says the " +
+        "hosted FDE reads only as the member who asked it, and a self-run own agent as itself.",
+    },
+    { label: "as-renamed", text: "Keep the pointers as the rename left them: the old pairs with the new words." },
+  ],
+  chosen: "by-group",
+  why:
+    "Employee is ERPNext Setup's (erpnext@6b946b0 employee.json: module Setup), not the Payroll module's, and has its " +
+    "own NATIVE_DOCTYPES row naming `org hr employee`. Naming it for the Payroll module sent a Frappe reader asking " +
+    "after Salary Slip or Employee Incentive to HR, and left out the person's side (`payroll payslip`, `payroll " +
+    "agreement`), while every two-sided HR row names both. The one Payroll-module DocType a command outside the " +
+    "payroll group writes is an advance's Additional Salary (payroll.advance-recovery). Projects is one group now, so " +
+    "all of it is under " +
+    "`org projects`, Activity Type and Project Type included. `hr leave balance` reads Leave Allocations, and `hr " +
+    "attendance list` prints your check-ins (payroll's operations). `org show` runs client.org.setup.get, which never " +
+    "reads org-apps; `org head show` and `org head app list` do. A claim's title is what its evidence proves, so the " +
+    "title no longer repeats what claims 2 and 3 prove. docs/design/authority.md: 'A call with no live token is " +
+    "refused, so the hosted FDE never acts as itself', which MEMBER_GUARD already does; only the who said otherwise. " +
+    "Text only: no rpc, guard, refusal code or behaviour changes.",
+  source: surfaceBy(
+    "command-surface.md 3, 4; erpnext@6b946b0 setup/doctype/employee/employee.json; hrms@8816102 payroll/doctype; " +
+      "payroll operations hr.leave.balance, hr.attendance.list; organizations flows client.org.setup.get; organizations.fde-guests.list",
+  ),
+  affects: [
+    ...DOC_RPCS, operation_org_head_doctype_list, operation_org_fde_guest_list, table_org_apps, operation_org_head_show,
+    operation_org_head_app_list, operation_org_fde_show, operation_org_seats_show, rpc_organizations_apps_list,
+    rpc_organizations_seats_show, concept_payroll, concept_projects,
+  ],
 });

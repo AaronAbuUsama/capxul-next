@@ -6,8 +6,9 @@
 // its armed faults, its scripted gates, its scripted rates, its stand-in FDE host (decision devnet.fde-host-stand-in), its stand-in Frappe heads (their
 // documents, their own users' edits and their fault switches; decision devnet.head-stand-in) and its
 // stand-in WhatsApp (its numbers and every message; decision devnet.whatsapp-stand-in). A shared
-// world (decision devnet.shared-world) runs the devnet build, so it has these tables too: its mail
-// and its WhatsApp never leave it (aaron.world-clock, time.world-channels).
+// world (decisions devnet.seasons, devnet.season-players) runs the devnet build, so it has these tables
+// too: its mail and its WhatsApp never leave it (aaron.world-clock, time.world-channels), and a season's
+// reset, a restore, brings them back as its reset world holds them (decision devnet.season-reset).
 //
 // No table here has a lifecycle, so devnet has no state machine and sends no event (decision
 // devnet.no-machines). Notices' delivery records are notices' (`dev mail notices` reads them there);

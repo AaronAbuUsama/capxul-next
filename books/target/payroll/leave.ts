@@ -97,6 +97,12 @@ export const WHO_LEAVE_APPROVER =
   "Employee names) or of a budget above it, or the People hat (Frappe's HR Manager), read from indexing's " +
   "hat-wearers; never the applicant themselves (HR Settings' `prevent_self_leave_approval`). An Employee with no " +
   "department is decided by the People hat.";
+/** Who reads the Organization's leave applications: the People hat all, a department's hat its own and those below (payroll.hr-approvers). */
+export const WHO_LEAVE_READER =
+  "A signed-in member whose Safe wears the People hat, for every Employee's applications; or the hat of a department " +
+  "or of a budget above it, for that department's and those of the budgets below it, the wearer's own among them, " +
+  "read from indexing's hat-wearers. Reading is not deciding: a wearer lists their own application, which only " +
+  "another approver decides.";
 const APPROVER_GUARD =
   "The caller must hold an active Seat whose Safe wears the Employee's department's hat, a hat above it in the budget " +
   "tree, or the People hat (ROLE_PERMISSION_DENIED otherwise), and must not be the applicant (ROLE_PERMISSION_DENIED: " +
@@ -565,7 +571,7 @@ export const rpc_payroll_leave_reject = defineRpc({
 
 export const rpc_payroll_leave_list = defineRpc({
   id: "payroll.leave.list",
-  title: "List the leave applications the caller may decide",
+  title: "List the Organization's leave applications the caller may read",
   about:
     "The caller must hold an active Seat whose Safe wears the People hat, which lists every Employee's, or a " +
     "department's hat, which lists the Employees of that department and those below it (ROLE_PERMISSION_DENIED for " +
@@ -574,7 +580,7 @@ export const rpc_payroll_leave_list = defineRpc({
   was: [`${HR}/leave_application/leave_application.json`],
   concept: concept_payroll,
   kind: "query",
-  who: WHO_LEAVE_APPROVER,
+  who: WHO_LEAVE_READER,
   input: OrgLeaveListInput,
   output: LeavePage,
   errors: [...READ_ERRORS],

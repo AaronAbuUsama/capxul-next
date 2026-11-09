@@ -766,7 +766,7 @@ export const operation_org_head_show = defineOperation({
     ),
     claim(
       "A head that stops answering shows failing, with the reason, once its daily check has failed, and connected again once a check succeeds.",
-      "cli: from org-with-head-down, after `dev time warp 1d` (the connection's daily check, failing past its retries), `org head show --json` prints `status: failing` with issue `unreachable` and `checkedAt` the warped day; after `capxul-devnet fault frappe-head clear` and another `dev time warp 1d`, it prints `status: connected`.",
+      "cli: from org-with-head-down, after `dev time warp 1d` (the connection's daily check, failing past its retries), `org head show --json` prints `status: failing` with issue `unreachable` at the warped day (the stall records the issue's `at`); after `capxul-devnet fault frappe-head clear` and another `dev time warp 1d`, it prints `status: connected`.",
     ),
     claim(
       "When the head last rang is shown on the world's clock.",
@@ -1050,7 +1050,10 @@ export const operation_org_fde_guest_remove = defineOperation({
 export const operation_org_fde_guest_list = defineOperation({
   id: "org.fde.guest.list",
   title: "List the outside people who may talk to the Organization's FDE",
-  about: "Lists the Organization's guests, active ones first, each with who they are, who named them and when, and when they were removed.",
+  about:
+    "Lists the Organization's guests, the active ones first (newest named first), then the removed ones, or only one " +
+    "kind with `--status active|removed`: each with who they are, the note, who named them and when, and when they were " +
+    "removed. Paged with `--limit` and `--after`.",
   area: AREA,
   command: "org fde guest list",
   priority: "normal",
@@ -1059,7 +1062,7 @@ export const operation_org_fde_guest_list = defineOperation({
   changes: NOTHING_READ,
   acceptance: [
     claim(
-      "Any member lists the guests, active first, paged as every list is.",
+      "Any member lists the guests, each with the note and who named them.",
       "cli: from org-with-fde-guest, Sam's `org fde guest list --org acme --json` lists Olga `status: active` with the note and namedBy Dana's member id, and `nextCursor: null`.",
     ),
     claim(
@@ -1404,7 +1407,7 @@ export const operation_org_head_doc_amend = defineOperation({
     ),
     claim(
       "A retried amend makes one amendment.",
-      "trace: from org-with-head-docs with the stand-in head holding its first answer back (`capxul-devnet fault frappe-head drop-answer`), the amend's first attempt is logged refused PROVIDER_ERROR, the SDK's retry repeats the call id and the head answers the draft it made; read: `org head doc list \"Training Event\" --org acme` lists `Old induction-1` once and no `Old induction-2`, and `org head doc-call list` prints the amend once, done, with `completedAt`.",
+      "trace: from org-with-head-docs with the stand-in head holding its first answer back (`capxul-devnet fault frappe-head drop-answer`), the amend's first attempt is logged refused PROVIDER_ERROR, the SDK's retry repeats the call id and the head answers the draft it made; cli: the command prints the draft `Old induction-1` with `amendedFrom: Old induction`; read: `org head doc list \"Training Event\" --filter \"amended_from=Old induction\" --org acme` lists one document, `Old induction-1`, and `org head doc-call list` prints the amend once, done, with `completedAt`.",
     ),
   ],
   returns: rpc_organizations_docs_amend.output,
@@ -1510,7 +1513,7 @@ export const operation_org_head_doctype_list = defineOperation({
   acceptance: [
     claim(
       "A member sees which head DocTypes the family reaches, and with `--all` why the rest are not.",
-      "cli: from org-with-head-docs, `org head doctype list --app hrms --org acme --json` lists Job Opening, Job Applicant and Training Event `reach: reachable` and no Leave Application; with `--all` it lists Leave Application `reach: native` naming `hr leave` and Expense Claim `native`, and `--app erpnext --all` lists Stock Entry `reach: money`.",
+      "cli: from org-with-head-docs, `org head doctype list --app hrms --org acme --json` lists Job Opening, Job Applicant and Training Event `reach: reachable` and no Leave Application; with `--all` it also lists Leave Application `reach: native` naming `hr leave` and `org hr leave`, and Expense Claim `reach: native` naming `hr expense-claim` and `org hr expense-claim`; `--app erpnext --all` lists Stock Entry `reach: money`.",
     ),
     claim(
       "`--module` narrows it, and a native module's DocType names that module's commands.",

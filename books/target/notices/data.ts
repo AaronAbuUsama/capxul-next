@@ -80,6 +80,17 @@ export const TEMPLATES = [
   "low-balance-alert",
   // payroll: Frappe HR's salary slips
   "payslip",
+  // payroll: Frappe HR's leave, expense claims and advances (notices.hr)
+  "leave-waiting",
+  "leave-approved",
+  "leave-rejected",
+  "expense-claim-waiting",
+  "expense-claim-approved",
+  "expense-claim-rejected",
+  "expense-claim-paid",
+  "advance-waiting",
+  "advance-rejected",
+  "advance-paid",
   // banking
   "person-verification",
   "bank-verified",
@@ -112,6 +123,9 @@ export const SUBJECTS = [
   "agreement",
   "agreement-write",
   "salary-slip",
+  "leave-application",
+  "expense-claim",
+  "employee-advance",
   "verification",
   "verification-person",
   "bank-payout",

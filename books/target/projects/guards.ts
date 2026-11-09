@@ -1,8 +1,9 @@
 // Who may run each projects command, in the terms of docs/design/new-commands.md (G4) and the
 // authority model in docs/design/authority.md: a Seat, a hat or the Board, never a named person.
 //
-// - Member: any active Seat of the Organization, a person's or an agent's (the FDE included). Every
-//   read, every task command, and a worker's own time.
+// - Member: any active Seat of the Organization, a person's or an agent's. The hosted FDE acts only as
+//   the member who asked it, and a self-run own agent as itself (rules.fde-acts-for-asker). Every read,
+//   every task command, and a worker's own time.
 // - People or Director: a member whose own Safe wears the Organization's People hat, or the Director
 //   hat. Managing projects, their members, settings, types and rates, and anyone else's time.
 //
@@ -26,17 +27,22 @@ import { table_parties } from "../parties/data.ts";
 import { table_project_changes, table_project_settings } from "./data.ts";
 
 export const WHO_MEMBER =
-  "Any member of the Organization: an active Seat, a person's or an agent's (the FDE included). Anyone else naming it " +
-  "is ROLE_PERMISSION_DENIED.";
+  "Any member of the Organization: an active Seat, a person's or an agent's. The hosted FDE acts only as the member " +
+  "who asked it, and a self-run own agent as itself (rules.fde-acts-for-asker). Anyone else naming it is " +
+  "ROLE_PERMISSION_DENIED.";
 
 export const WHO_MANAGER =
   "People or Director: a member whose own Safe wears the Organization's People hat, or the Director hat, as the chain " +
-  "reads it when the command runs. Authority is the hat's, never a person's: whoever the Board swaps into the hat may " +
-  "act, whoever it swaps out may not, and an agent (the FDE included) may only if the Board granted its Safe the hat.";
+  "reads it when the command runs. Authority is the hat's, never a person's: whoever is swapped into the hat may act " +
+  "and whoever is swapped out may not, the People hat by the Board and the Director hat by the Shareholders' top hat " +
+  "(the founder's Safe, then the Governor). A self-run own agent may only once the Board granted its Safe the People " +
+  "hat, since no agent is a Director (board.no-agent-directors); the hosted FDE only as the member who asked it, with " +
+  "their hats (rules.fde-acts-for-asker).";
 
 export const WHO_WORKER =
-  "The timesheet's own worker, for their own time: any member, an agent included. For anyone else's time, People or " +
-  "Director: a member whose own Safe wears the People hat or the Director hat, as the chain reads it when the command runs.";
+  "The timesheet's own worker, for their own time: any member, a self-run own agent included; the hosted FDE only as " +
+  "the member who asked it, for their time (rules.fde-acts-for-asker). For anyone else's time, People or Director: a " +
+  "member whose own Safe wears the People hat or the Director hat, as the chain reads it when the command runs.";
 
 /** The tenant guard every command runs first. */
 export const MEMBER_GUARD =

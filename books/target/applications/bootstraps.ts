@@ -40,7 +40,7 @@ export const Envelope = Schema.Struct({
   /** What the Openfort embedded signer needs in a browser. */
   signer: Schema.Struct({ openfortPublishableKey: S, shieldPublishableKey: S }),
   /**
-   * The backend build the deployment runs: `devnet` on a local devnet and on a shared world (devnet.shared-world), so
+   * The backend build the deployment runs: `devnet` on a local devnet and on a shared world (devnet.season-players), so
    * the CLI's devnet scope admits `dev` commands there; `release` on staging and production, where it refuses them.
    */
   build: Schema.Literals(["devnet", "release"]),

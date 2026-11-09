@@ -345,7 +345,12 @@ export const workflow_organizations_heads_watch = defineWorkflow({
     },
   ],
   steps: [
-    { name: "check", about: "readSite; confirm, stall or recover; record Frappe's and the Capxul app's versions and the time zone." },
+    {
+      name: "check",
+      about:
+        "readSite; confirm, stall or recover; record Frappe's and the Capxul app's versions and the time zone, and each " +
+        "of the Organization's apps' version as the site lists it (org-apps.version, the fundamental apps' included).",
+    },
     { name: "install-wanted", about: "Connected: on a Frappe Cloud head, installApp for each wanted app not yet asked for, then readSite again; on any head, install each wanted app readSite lists." },
     {
       name: "users",

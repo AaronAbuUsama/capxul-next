@@ -734,7 +734,7 @@ export const table_chain_agreements = defineTable({
     {
       name: "chain-agreements-by-company",
       fields: ["company_safe", "standing"],
-      for: "An Organization's agreements: `payroll agreement list` for the payer.",
+      for: "An Organization's agreements: `org payroll agreement list` for the payer.",
     },
   ],
   retention: PROJECTION,

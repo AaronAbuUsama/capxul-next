@@ -206,7 +206,8 @@ export const flow_client_use_env = defineFlow({
     "CAPABILITY_UNAVAILABLE, and production without `acceptExperimental` is EXPERIMENTAL_NOT_ACCEPTED, both before " +
     "anything is saved. Then saves it as this machine's default. Later commands choose `--env`, then `CAPXUL_ENV`, then " +
     "`CAPXUL_BOOTSTRAP_URL` (beside it `CAPXUL_WORLD_GRANT` names a shared world's grant file, which the SDK then sends " +
-    "as the bearer of every request to that world's gateway: devnet.shared-world), then this saved choice.",
+    "as the bearer of every request to that world's gateway, admitted while a season it plays runs: devnet.season-players), " +
+    "then this saved choice.",
   was: [`${CLI}/commands/use/subcommands/env/execute.ts:7`, `${CLI}/runtime/environment.ts:1`],
   component: component_core_sdk,
   sdk: "client.use.env",

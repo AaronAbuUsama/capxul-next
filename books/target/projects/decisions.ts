@@ -450,7 +450,8 @@ export const decision_projects_commands = defineDecision({
     "not after it (projects.review-day). A fit review then aligned the booking with the 215: `--percent` is the one " +
     "flag for a typed percent and `--progress` only a project's method; a member shared twice or removed unshared is " +
     "WRONG_STATE, as `org department holder add|remove` refuse it; and a change that gives nothing is INVALID_INPUT " +
-    "(projects.refusal-codes). Not in this pack: `org projects timesheet bill` (requests.bill-time, requests' flow) and templates.",
+    "(projects.refusal-codes). Not in this pack: `org projects timesheet bill` (requests.bill-time) and templates. " +
+    "Accepted as five nouns of `org`; spelt as the command tree has them since (projects.surface-moves).",
   source: by(
     `${DT} (the forms of Project, Task and Timesheet); books/target/shared/rulings.ts (aaron.projects, aaron.frappe-shape, ` +
       "aaron.fde-agent); docs/design/new-commands.md (section 5.1)",
@@ -742,7 +743,7 @@ export const decision_projects_bill_time = defineDecision({
   id: "projects.bill-time",
   title: "One door marks billed hours; a request bills them in its own transaction",
   question:
-    "The invoice-from-timesheets command (`timesheet bill`) is requests' (requests sits above projects). The hours it " +
+    "The invoice-from-timesheets command (`org projects timesheet bill`) is requests' (requests sits above projects). The hours it " +
     "bills are projects' timesheet logs. How does an Invoice mark them billed, and clear them when it ends?",
   options: [
     {
@@ -974,6 +975,9 @@ export const decision_projects_task_dates = defineDecision({
 
 // ── the command tree (surface pass, 9 November 2026) ────────────────────────────────────────
 
+/** Who decided this section's records, and when: the frappe-apps owner in the surface pass. */
+const surfaceBy = (evidence: string) => `Claude, surface pass (frappe-apps), 9 November 2026; evidence: ${evidence}`;
+
 export const decision_projects_surface_moves = defineDecision({
   id: "projects.surface-moves",
   title: "The projects commands take the tree's words: `org projects …`",
@@ -1006,6 +1010,110 @@ export const decision_projects_surface_moves = defineDecision({
     "(`client.org(orgId).projects.tasks.create`). Requests' `org timesheet bill` moves with them, to `org projects " +
     "timesheet bill`, in requests. For Aaron, as part of question 50 (surface.tree): the recommendation stands until he " +
     "answers, and if he keeps the booked nouns the words move back with no change of behaviour.",
-  source: by("books/target/shared/surface.ts (surface.tree, surface.projects-group); docs/design/command-surface.md sections 4, 5.2 and 9; aaron.projects"),
+  source: surfaceBy("books/target/shared/surface.ts (surface.tree, surface.projects-group); docs/design/command-surface.md sections 4, 5.2 and 9; aaron.projects"),
   affects: [...OPERATIONS],
+});
+
+/** The commands booked with one claim, which projects.claims-thickened gave the rest of theirs. */
+const THICKENED: readonly string[] = [
+  "org.projects.activity-type.add",
+  "org.projects.activity-type.change",
+  "org.projects.activity-type.disable",
+  "org.projects.activity-type.enable",
+  "org.projects.activity-type.list",
+  "org.projects.project-type.add",
+  "org.projects.project-type.list",
+  "org.projects.cancel",
+  "org.projects.get",
+  "org.projects.hold",
+  "org.projects.member.remove",
+  "org.projects.reopen",
+  "org.projects.resume",
+  "org.projects.settings.set",
+  "org.projects.settings.show",
+  "org.projects.task.cancel",
+  "org.projects.task.get",
+  "org.projects.task.list",
+  "org.projects.task.reopen",
+  "org.projects.task.review",
+  "org.projects.task.start",
+  "org.projects.timesheet.cancel",
+  "org.projects.timesheet.get",
+  "org.projects.timesheet.list",
+];
+
+export const decision_projects_claims_thickened = defineDecision({
+  id: "projects.claims-thickened",
+  title: "Projects commands claim their success, change, answer and retry",
+  question:
+    "Twenty-four of the 35 commands were booked with one acceptance claim each, so their evals checked one path. Which " +
+    "claims does each gain, and from what?",
+  options: [
+    {
+      label: "from-the-booking",
+      text:
+        "Each gains the claims its booked behaviour already has, written so the CLI observes them from a named world " +
+        "(org-ready, org-with-member, org-with-projects): what a write changes (its status and `version`, its one " +
+        "transition event), what a read answers in the states the world holds (a project worked out by hand, a task of " +
+        "no project, a cancelled timesheet, a page and its cursor) and that it writes nothing, and what running a step " +
+        "again does: WRONG_STATE naming the status it is already in, with an empty diff. No claim adds a behaviour: each " +
+        "follows from the rpc, machine, shape or decision that books it.",
+    },
+    { label: "one-each", text: "Keep one claim each; the refusals cover the rest." },
+  ],
+  chosen: "from-the-booking",
+  why:
+    "A claim is the eval the build is held to (rules.new-operations, aaron.projects): with one each, a command that " +
+    "reopened an open project, lost a task's percent on reopening or let a cancelled task fall overdue would pass. " +
+    "Each new claim is read off the record that already decides it, for example the project machine's `from` states " +
+    "(a repeated hold or resume is WRONG_STATE), the roll-up that completes an open project at 100 (a resumed or " +
+    "cancelled-last-task project completes), the task timer that only open, working and pending-review tasks arm, and " +
+    "projects.draft-rechecks (a draft is checked against the settings when it is submitted). Refusals stay refusals; " +
+    "a claim names one only to show a retry changes nothing. A truth review (9 November 2026) worded the claim on " +
+    "Handover as what it observes: a project completed with no tasks reads as worked out by hand, at 100 " +
+    "(`projects.projects.complete`).",
+  source: surfaceBy(
+    "books/target/projects/data.ts (machines project, task, timesheet); projects.ts, tasks.ts, timesheets.ts, " +
+      "activity-types.ts, project-types.ts, members.ts, settings.ts; projects.worlds; aaron.projects",
+  ),
+  affects: OPERATIONS.filter((o) => THICKENED.includes(o.id)),
+});
+
+export const decision_projects_surface_fit = defineDecision({
+  id: "projects.surface-fit",
+  title: "Who in projects reads as authority.md has it: the FDE acts as its asker",
+  question:
+    "Fit review of the surface pass (9 November 2026; Aaron: 'It's the logical groupings'). The who of every projects " +
+    "command and rpc came from three texts in guards.ts. WHO_MEMBER and the header counted 'the FDE included' as a " +
+    "member; WHO_MANAGER said 'an agent (the FDE included) may only if the Board granted its Safe the hat' and that " +
+    "'whoever the Board swaps into the hat may act', the Director hat included; WHO_WORKER said 'an agent included'. " +
+    "docs/design/authority.md: the hosted FDE never acts as itself, the hats the Board grants its own Safe go unused " +
+    "while Capxul hosts it, only the Shareholders' top-hat wearer seats Directors, and no agent is a Director. " +
+    "projects.permissions' own why already says 'the hosted FDE does what its asker may'. What should the three say?",
+  options: [
+    {
+      label: "as-authority",
+      text:
+        "Member: an active Seat, a person's or an agent's; the hosted FDE only as the member who asked it, a self-run own " +
+        "agent as itself (rules.fde-acts-for-asker). People or Director: the People hat swapped by the Board, the " +
+        "Director hat by the Shareholders' top hat (the founder's Safe, then the Governor); a self-run own agent only " +
+        "once the Board grants its Safe the People hat, never as a Director (board.no-agent-directors); the hosted FDE " +
+        "only as its asker, with their hats. Worker: their own time, a self-run own agent included; the hosted FDE only " +
+        "as its asker, for their time.",
+    },
+    { label: "as-booked", text: "Keep the texts: the tenant guard resolves the hosted FDE to its asker whatever they say." },
+  ],
+  chosen: "as-authority",
+  why:
+    "The guard already does what authority.md says (MEMBER_GUARD resolves an act-for call to its asker, and the hat " +
+    "guard reads the asker's Safe), so only the who misled: a builder or the FDE reading it would grant the FDE's own " +
+    "Safe the People hat to let it manage projects, which changes nothing while it is hosted, and would think the " +
+    "Board seats Directors. organizations.head-fit made the same correction for the member reads of the head, the FDE " +
+    "and seats, and payroll.surface-fit for `org payroll run pay`; the contact book and the CRM already said it " +
+    "(organizations.fde-for-the-asker). Text only: no rpc, guard, refusal or claim changes.",
+  source: surfaceBy(
+    "docs/design/authority.md (the two hat trees; agents and the FDE); rules.fde-acts-for-asker; board.no-agent-directors; " +
+      "projects.permissions; books/target/projects/guards.ts",
+  ),
+  affects: [...OPERATIONS, ...HAT_RPCS, decision_projects_permissions],
 });

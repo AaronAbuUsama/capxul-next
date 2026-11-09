@@ -71,6 +71,7 @@ import { rpc_payroll_payees_list, rpc_payroll_payees_show } from "./payees.ts";
 import { Agreement, AgreementRow, CollectionPayment, Department, HolderWriteReturns, Status } from "./shapes.ts";
 import {
   WHO_LEAVE_APPROVER,
+  WHO_LEAVE_READER,
   WHO_MEMBER,
   WHO_SELF_HR,
   rpc_payroll_holidays_add,
@@ -752,8 +753,9 @@ const WHO_BUDGET =
   "A signed-in member of the Organization, person or agent, whose own Safe `Budgets.authorised` admits on the run's " +
   "department budget when it pays: a wearer in good standing of that budget's hat or of the hat of any budget above it, " +
   "as the chain reads it then. Authority follows the hat, never the person who drafted the run or paid it before: " +
-  "someone swapped out of the department can no longer pay its runs, and whoever wears its hat next can. An agent, the " +
-  "FDE included, pays only through a hat its Safe was granted, by the Board or by an office above. Never the Board " +
+  "someone swapped out of the department can no longer pay its runs, and whoever wears its hat next can. A self-run " +
+  "own agent pays only through a hat its Safe was granted, by the Board or by an office above; the hosted FDE only as " +
+  "the member who asked it, handing the approval to their Safe to sign (rules.fde-acts-for-asker). Never the Board " +
   "itself, which spends from no budget.";
 
 const WHO_SELF =
@@ -1141,6 +1143,17 @@ export const operation_org_payroll_component_change = defineOperation({
         "prints the new formula; `org payroll structure list` still shows Standard's PEN row at `base * 0.05`, and a run of " +
         "`salaries` for this month still deducts 200.00 from Sam.",
     ),
+    hrClaim(
+      "Only the fields given change; the component keeps its abbreviation, type and the rest.",
+      "cli: from org-with-employees, Pat's `org payroll component change PEN --formula \"base * 0.06\" --org acme " +
+        "--json` prints Pension with abbreviation PEN, type deduction and `disabled: false`, as before; read: `org " +
+        "payroll component list` agrees.",
+    ),
+    hrClaim(
+      "A structure created after the change takes the new formula.",
+      "cli: from org-with-employees, after that change, Pat's `org payroll structure create Senior --frequency " +
+        "monthly --token USDC --earning B --deduction PEN --org acme --json` prints its PEN row at `base * 0.06`.",
+    ),
   ],
   returns: flow_client_org_payroll_components_change.output,
   errors: HR_ERRORS_CLI,
@@ -1168,6 +1181,12 @@ export const operation_org_payroll_component_list = defineOperation({
         "`base`, `portable: true`) and Pension (PEN, deduction, formula `base * 0.05`), then Bonus (BON, earning, 250.00, " +
         "`disabled: true`), with `nextCursor: null`; `--limit 2` lists Basic and Pension and a `nextCursor`, and `--after " +
         "<it>` Bonus alone.",
+    ),
+    hrClaim(
+      "A component disabled since moves after the enabled ones, the disabled ordered by type and then name; reading writes nothing.",
+      "cli: from org-with-employees, after Pat's `org payroll component disable PEN`, `org payroll component list " +
+        "--org acme --json` lists Basic first and, after it, Bonus and Pension, each `disabled: true`, by type and then " +
+        "name as the enabled ones are; world: the list's diff is empty.",
     ),
   ],
   returns: flow_client_org_payroll_components_list.output,
@@ -1420,6 +1439,11 @@ export const operation_org_payroll_structure_list = defineOperation({
         "with no assignment, then Standard with its assignments to Ana (3500.00), Noor (3000.00) and Sam (4000.00), and " +
         "`nextCursor: null`; `--employee <Sam>` lists Standard with Sam's assignment alone; `--limit 1` lists Contractors " +
         "and a `nextCursor`.",
+    ),
+    hrClaim(
+      "A cancelled structure leaves the list; reading writes nothing.",
+      "cli: from org-with-employees, after Pat's `org payroll structure cancel <Contractors>`, `org payroll structure " +
+        "list --org acme --json` lists Standard alone, with its three assignments; world: the list's diff is empty.",
     ),
   ],
   returns: flow_client_org_payroll_structures_list.output,
@@ -1682,6 +1706,11 @@ export const operation_org_payroll_run_list = defineOperation({
         "(paying), with `nextCursor: null`; `--status draft` lists this month's alone; `--limit 1` lists this month's and " +
         "a `nextCursor`.",
     ),
+    hrClaim(
+      "`--department` and `--status` filter; reading writes nothing.",
+      "cli: from org-with-payroll-runs, Pat's `org payroll run list --department salaries --org acme --json` lists " +
+        "all three runs, and `--status submitted` last month's alone; world: the diff is empty.",
+    ),
   ],
   returns: flow_client_org_payroll_runs_list.output,
   errors: HR_ERRORS_CLI,
@@ -1708,6 +1737,17 @@ export const operation_org_payroll_run_get = defineOperation({
       "cli: from org-with-payroll-runs, Pat's `org payroll run get <the first run> --org acme --json` shows Sam's slip `paid` " +
         "with its payment id, transaction, block and paid-at time, and Noor's `escrowed`, each with B and PEN rows; chain: " +
         "that transaction holds the PaymentSent of 3800 USDC to Sam's Safe.",
+    ),
+    hrClaim(
+      "A draft run reads with its slips worked out and nothing paid.",
+      "cli: from org-with-payroll-runs, Pat's `org payroll run get <this month's run> --org acme --json` shows " +
+        "`status: draft`, Sam's and Noor's slips with their B and PEN rows, a net total of 6650.00, and no payment on " +
+        "either slip.",
+    ),
+    hrClaim(
+      "A withheld slip reads withheld with its reason; reading writes nothing.",
+      "cli: from org-with-payroll-runs, Pat's `org payroll run get <last month's run> --org acme --json` shows Noor's " +
+        "slip `withheld` with its `withholdingReason` and Sam's `submitted`; world: the diff is empty.",
     ),
   ],
   returns: flow_client_org_payroll_runs_get.output,
@@ -2017,6 +2057,17 @@ export const operation_org_hr_holiday_remove = defineOperation({
         "`totalHolidays` one fewer; Sam's `hr leave apply --type \"Annual Leave\" --start <Founders' Day> --end <Founders' Day> " +
         "--json` then prints `days: 1`.",
     ),
+    claim(
+      "The day leaves its year's list, and removing it again is refused and changes nothing.",
+      "cli: from org-with-leave, after Pat's `org hr holiday remove <Founders' Day> --org acme`, Sam's `org hr " +
+        "holiday list --org acme` no longer lists it; the same remove again exits INVALID_INPUT naming the day; world: " +
+        "that refusal's diff is empty.",
+    ),
+    claim(
+      "A weekly off removed is a working day from then on.",
+      "cli: from org-with-leave, after Pat's `org hr holiday remove <next week's Saturday> --org acme`, Sam's `hr " +
+        "leave apply --type \"Annual Leave\" --start <that Saturday> --end <that Saturday> --json` prints `days: 1`.",
+    ),
   ],
   returns: rpc_payroll_holidays_remove.output,
   errors: CLI,
@@ -2040,6 +2091,12 @@ export const operation_org_hr_holiday_list = defineOperation({
       "cli: from org-with-leave, Sam's `org hr holiday list --org acme --json` prints this year's list: every Saturday and " +
         "Sunday `weeklyOff: true` and Founders' Day `weeklyOff: false`; `--year <next year>` prints no holidays and " +
         "`holidayListId: null`.",
+    ),
+    claim(
+      "A holiday added shows in its year's list at once, in date order; reading writes nothing.",
+      "cli: from org-with-leave, after Pat's `org hr holiday add <a weekday next month other than Founders' Day> " +
+        "--description Retreat --org acme`, Sam's `org hr holiday list --org acme --json` lists Retreat between the " +
+        "days before and after it; world: the list's diff is empty.",
     ),
   ],
   returns: rpc_payroll_holidays_list.output,
@@ -2136,6 +2193,12 @@ export const operation_org_hr_leave_type_list = defineOperation({
       "Any member reads the leave types and their rules.",
       "cli: from org-with-leave, Sam's `org hr leave-type list --org acme --json` lists Annual Leave (25 days, carried up to " +
         "5), Sick Leave (10 days) and Unpaid Leave (`withoutPay: true`), with `nextCursor: null`.",
+    ),
+    claim(
+      "A page holds at most `--limit` types, by name; reading writes nothing.",
+      "cli: from org-with-leave, Sam's `org hr leave-type list --limit 1 --org acme --json` lists Annual Leave and a " +
+        "`nextCursor`; `--after <it>` lists Sick Leave and Unpaid Leave with `nextCursor: null`; world: the diff is " +
+        "empty.",
     ),
   ],
   returns: rpc_payroll_leave_types_list.output,
@@ -2239,6 +2302,16 @@ export const operation_org_hr_leave_balance = defineOperation({
       "cli: from org-with-leave, Pat's `org hr leave balance <Sam> --org acme --json` prints Annual Leave allocated 20, " +
         "taken 0, pending 2, balance 20; Sick Leave 10, 0, 0, 10; and Unpaid Leave taken 1 with `withoutPay: true`.",
     ),
+    claim(
+      "An approved application moves its days from pending to taken.",
+      "cli: from org-with-leave, after Lead's `org hr leave approve <Sam's open leave>`, Pat's `org hr leave balance " +
+        "<Sam> --org acme --json` prints Annual Leave allocated 20, taken 2, pending 0, balance 18.",
+    ),
+    claim(
+      "`--on` reads another day: with no allocation covering it, only the unpaid types show; reading writes nothing.",
+      "cli: from org-with-leave, Pat's `org hr leave balance <Sam> --on <a day next year> --org acme --json` lists " +
+        "Unpaid Leave alone; world: the diff is empty.",
+    ),
   ],
   returns: rpc_payroll_leave_balance.output,
   errors: CLI,
@@ -2309,6 +2382,16 @@ export const operation_hr_leave_list = defineOperation({
         "`decidedBy: lead@acme.test`, each `employer: acme`, and not Lead's; `--status open` lists the first alone, and " +
         "`--employer acme` keeps both, as a filter.",
     ),
+    claim(
+      "A decided application stays listed, with who decided it.",
+      "cli: from org-with-leave, after Lead's `org hr leave reject <Sam's open leave> --reason \"Release week\"`, Sam's " +
+        "`hr leave list --status rejected --json` lists it with `decidedBy: lead@acme.test`.",
+    ),
+    claim(
+      "A page holds at most `--limit` applications; reading writes nothing.",
+      "cli: from org-with-leave, Sam's `hr leave list --limit 1 --json` lists one application and a `nextCursor`, and " +
+        "`--after <it>` the other with `nextCursor: null`; world: the diff is empty.",
+    ),
   ],
   returns: rpc_payroll_leave_mine.output,
   errors: CLI,
@@ -2361,9 +2444,19 @@ export const operation_hr_leave_balance = defineOperation({
   changes: NOTHING,
   acceptance: [
     claim(
-      "An Employee reads their own balances, with no Seat or hat needed.",
+      "An Employee reads their own balances with no hat, as the People hat reads them.",
       "cli: from org-with-leave, Sam's `hr leave balance --employer acme --json` prints Annual Leave 20 left with 2 pending, " +
         "Sick Leave 10 left and Unpaid Leave taken 1, as Pat's `org hr leave balance <Sam>` does.",
+    ),
+    claim(
+      "With one employer `--employer` may be left out, and an approval shows in the balance at once.",
+      "cli: from org-with-leave, Sam's `hr leave balance --json` prints the same as with `--employer acme`; after " +
+        "Lead's `org hr leave approve <Sam's open leave>`, it prints Annual Leave taken 2, pending 0, balance 18.",
+    ),
+    claim(
+      "`--on` a day no allocation covers shows only the unpaid types; reading writes nothing.",
+      "cli: from org-with-leave, Sam's `hr leave balance --on <a day next year> --json` lists Unpaid Leave alone; " +
+        "world: the diff is empty.",
     ),
   ],
   returns: rpc_payroll_leave_my_balance.output,
@@ -2438,6 +2531,16 @@ export const operation_org_hr_leave_reject = defineOperation({
         "prints `status: rejected` with the reason; read: Sam's `hr leave balance` shows Annual Leave pending 0 and balance 20, " +
         "and `hr attendance list` no mark next week.",
     ),
+    claim(
+      "The People hat rejects too, and the rejection is recorded once.",
+      "cli: from org-with-leave, Pat's `org hr leave reject <Lead's leave> --reason \"Cover needed\" --org acme --json` " +
+        "prints `status: rejected` with Pat as `decidedBy`; trace: one leave_application_transitioned open → rejected.",
+    ),
+    claim(
+      "Rejecting a decided application again is refused and changes nothing.",
+      "cli: from org-with-leave, after Lead's `org hr leave reject <Sam's open leave>`, the same command again exits " +
+        "WRONG_STATE naming `rejected`; world: that refusal's diff is empty.",
+    ),
   ],
   returns: rpc_payroll_leave_reject.output,
   errors: CLI,
@@ -2453,7 +2556,7 @@ export const operation_org_hr_leave_reject = defineOperation({
 
 export const operation_org_hr_leave_list = defineOperation({
   id: "org.hr.leave.list",
-  title: "List the leave applications you may decide",
+  title: "List the Organization's leave applications",
   about:
     "Lists leave applications, newest first: every Employee's for the People hat, a department's and those below it " +
     "for its hat. `--status`, `--employee`, `--department` and a day range filter.",
@@ -2461,11 +2564,11 @@ export const operation_org_hr_leave_list = defineOperation({
   command: "org hr leave list",
   priority: "normal",
   implementedBy: rpc_payroll_leave_list,
-  who: WHO_LEAVE_APPROVER,
+  who: WHO_LEAVE_READER,
   changes: NOTHING,
   acceptance: [
     claim(
-      "Each approver lists what they may decide.",
+      "Each hat lists its department's applications, the wearer's own among them, as the People hat does.",
       "cli: from org-with-leave, Lead's `org hr leave list --status open --org acme --json` lists Sam's open leave and Lead's " +
         "own, as Pat's does; Plat's lists none, `platform` employing nobody.",
     ),
@@ -2538,6 +2641,12 @@ export const operation_org_hr_shift_type_list = defineOperation({
       "cli: from org-with-attendance, Sam's `org hr shift-type list --org acme --json` lists Day, 09:00 to 17:00, auto " +
         "attendance on, with Sam's active assignment.",
     ),
+    claim(
+      "An ended assignment is no longer shown; reading writes nothing.",
+      "cli: from org-with-attendance, after Pat's `org hr shift-type unassign <Sam's assignment>`, Sam's `org hr " +
+        "shift-type list --org acme --json` lists Day with no active assignment and `nextCursor: null`; world: the " +
+        "list's diff is empty.",
+    ),
   ],
   returns: rpc_payroll_shift_types_list.output,
   errors: CLI,
@@ -2595,6 +2704,18 @@ export const operation_org_hr_shift_type_unassign = defineOperation({
       "An unassigned shift marks no later day.",
       "cli: from org-with-attendance, Pat's `org hr shift-type unassign <Sam's assignment> --org acme --json` prints `status: " +
         "inactive`; read: after the clock passes the next working day's 18:00, `org hr attendance list --employee <Sam>` lists no mark for that day.",
+    ),
+    claim(
+      "Days already marked keep their attendance, and ending it again is refused.",
+      "cli: from org-with-attendance, after Pat's `org hr shift-type unassign <Sam's assignment>`, `org hr attendance " +
+        "list --employee <Sam> --start <the first shift day> --end <the second> --org acme` still lists both days his " +
+        "check-ins marked; the same unassign again exits WRONG_STATE naming `inactive`; trace: one " +
+        "shift_assignment_transitioned active → inactive.",
+    ),
+    claim(
+      "Once it ends, the Employee can be given a shift again.",
+      "cli: from org-with-attendance, after that unassign, Pat's `org hr shift-type assign Day <Sam> --start " +
+        "<tomorrow> --org acme --json` prints an active assignment.",
     ),
   ],
   returns: rpc_payroll_shift_types_unassign.output,
@@ -2658,6 +2779,12 @@ export const operation_hr_attendance_list = defineOperation({
         "named, as the shift days may fall in the next month) lists exactly three marks: <the second shift day> `absent` " +
         "with late entry and 2.33 working hours, <the first shift day> `present` with 8.08, and his unpaid day `on_leave` " +
         "of Unpaid Leave; and his four check-ins, each naming the attendance it marked.",
+    ),
+    claim(
+      "`--employer` keeps one employer's days, and a page holds at most `--limit` days; reading writes nothing.",
+      "cli: from org-with-attendance, Sam's `hr attendance list --start <his unpaid day> --end <today> --employer " +
+        "acme --limit 2 --json` lists the two shift days and a `nextCursor`, and `--after <it>` his unpaid day with " +
+        "`nextCursor: null`; world: the diff is empty.",
     ),
   ],
   returns: rpc_payroll_attendance_mine.output,
@@ -2749,6 +2876,16 @@ export const operation_org_hr_attendance_list = defineOperation({
       "cli: from org-with-leave, Pat's `org hr attendance list --start <this month's first day> --end <today> --org acme " +
         "--json` lists Sam's unpaid day `on_leave` (source `leave`) and Noor's absent day (source `mark`); `--status absent` lists Noor's alone.",
     ),
+    claim(
+      "A day nobody marked is not listed, though it counts present; `--employee` keeps one Employee's days.",
+      "cli: from org-with-leave, Pat's `org hr attendance list --start <this month's first day> --end <today> " +
+        "--status present --org acme --json` lists nothing; `--employee <Noor>` lists her absent day alone.",
+    ),
+    claim(
+      "A cancelled mark leaves the list; reading writes nothing.",
+      "cli: from org-with-leave, after Pat's `org hr attendance cancel <Noor's absence>`, the same list no longer " +
+        "shows Noor's day; world: the list's diff is empty.",
+    ),
   ],
   returns: rpc_payroll_attendance_list.output,
   errors: CLI,
@@ -2775,6 +2912,11 @@ export const operation_org_hr_expense_type_add = defineOperation({
         "acme --json` prints an `ect_` type with `account: null`; `org hr expense-type add Hotel --account 9999` exits " +
         "INVALID_INPUT naming the account; world: one type added.",
     ),
+    claim(
+      "A name already used is refused, so adding the same type again changes nothing.",
+      "cli: from org-with-employees, after Pat's `org hr expense-type add Travel --org acme`, the same command again " +
+        "exits WRONG_STATE naming Travel; world: that refusal's diff is empty.",
+    ),
   ],
   returns: rpc_payroll_expense_types_add.output,
   errors: CLI,
@@ -2796,7 +2938,15 @@ export const operation_org_hr_expense_type_list = defineOperation({
   implementedBy: rpc_payroll_expense_types_list,
   who: WHO_MEMBER,
   changes: NOTHING,
-  acceptance: [claim("Any member reads the expense claim types.", "cli: from org-with-expenses, Sam's `org hr expense-type list --org acme --json` lists Meals and Travel, each `account: null`.")],
+  acceptance: [
+    claim("Any member reads the expense claim types.", "cli: from org-with-expenses, Sam's `org hr expense-type list --org acme --json` lists Meals and Travel, each `account: null`."),
+    claim(
+      "Types list by name, one added since among them, a page at a time; reading writes nothing.",
+      "cli: from org-with-expenses, after Pat's `org hr expense-type add Hotel`, Sam's `org hr expense-type list " +
+        "--org acme --json` lists Hotel, Meals and Travel in that order with `nextCursor: null`, and `--limit 1` lists " +
+        "Hotel and a `nextCursor`; world: the list's diff is empty.",
+    ),
+  ],
   returns: rpc_payroll_expense_types_list.output,
   errors: CLI,
   refusals: memberOnly(W_EXP),
@@ -2857,6 +3007,17 @@ export const operation_hr_expense_claim_list = defineOperation({
       "cli: from org-with-expenses, Sam's `hr expense-claim list --json` lists <C1> open, <C2> approved and <C3> paid with a " +
         "`paymentId`, and not Lead's <C4>; `--status open` lists <C1> alone.",
     ),
+    claim(
+      "A page holds at most `--limit` claims, and `--employer` keeps one employer's; reading writes nothing.",
+      "cli: from org-with-expenses, Sam's `hr expense-claim list --limit 2 --json` lists two of <C1>, <C2> and <C3> " +
+        "and a `nextCursor`, `--after <it>` the third with `nextCursor: null`, and `--employer acme` all three; world: " +
+        "the diff is empty.",
+    ),
+    claim(
+      "A claim the department cancelled stays listed with its status.",
+      "cli: from org-with-expenses, after Lead's `org hr expense-claim cancel <C2>`, Sam's `hr expense-claim list " +
+        "--status cancelled --json` lists <C2>.",
+    ),
   ],
   returns: rpc_payroll_expense_claims_mine.output,
   errors: CLI,
@@ -2880,6 +3041,11 @@ export const operation_hr_expense_claim_get = defineOperation({
       "cli: from org-with-expenses, Sam's `hr expense-claim get <C3> --json` prints Travel 300.00, <A1> 200.00 advanced, " +
         "`grandTotal: 100.00`, `status: paid`, a `paymentId` and `txHash`; read: `payment get <that id>` shows it settled to Sam's Safe.",
     ),
+    claim(
+      "An open claim reads with its receipt and no payment; reading writes nothing.",
+      "cli: from org-with-expenses, Sam's `hr expense-claim get <C1> --json` prints Travel 120.00, the receipt " +
+        "taxi.pdf, `status: open` and no payment; world: the diff is empty.",
+    ),
   ],
   returns: rpc_payroll_expense_claims_mine_get.output,
   errors: CLI,
@@ -2902,6 +3068,12 @@ export const operation_hr_expense_claim_cancel = defineOperation({
       "An open claim is cancelled by its claimant; a decided one is not.",
       "cli: from org-with-expenses, Sam's `hr expense-claim cancel <C1> --json` prints `status: cancelled`; `hr expense-claim " +
         "cancel <C2>` exits WRONG_STATE naming `approved`.",
+    ),
+    claim(
+      "A cancelled claim stays listed on both sides, and cancelling it again is refused.",
+      "cli: from org-with-expenses, after Sam's `hr expense-claim cancel <C1>`, his `hr expense-claim list --status " +
+        "cancelled` and Lead's `org hr expense-claim list --status cancelled --org acme` each list <C1>; the same " +
+        "cancel again exits WRONG_STATE naming `cancelled`; trace: one expense_claim_transitioned open → cancelled.",
     ),
   ],
   returns: rpc_payroll_expense_claims_withdraw.output,
@@ -2992,6 +3164,19 @@ export const operation_org_hr_expense_claim_reject = defineOperation({
       "cli: from org-with-expenses, Lead's `org hr expense-claim reject <C1> --reason \"Personal trip\" --org acme --json` " +
         "prints `status: rejected` with the reason; Sam's `hr expense-claim list --status rejected` lists it with the reason; world: no books fact.",
     ),
+    claim(
+      "An advance the rejected claim named is free for another claim.",
+      "cli: from org-with-expenses, after Sam's `hr expense-claim create --type Travel --amount 180 --advance <A2>` " +
+        "and Lead's `org hr expense-claim reject <it> --reason Duplicate --org acme`, Sam's `hr advance list` shows " +
+        "<A2> `unclaimed: 150.00`, and Sam's second `hr expense-claim create --type Travel --amount 180 --advance <A2>` " +
+        "prints `advanced: 150.00`.",
+    ),
+    claim(
+      "A rejection is decided once.",
+      "cli: from org-with-expenses, after Lead's `org hr expense-claim reject <C1> --reason \"Personal trip\"`, the " +
+        "same command again exits WRONG_STATE naming `rejected`; world: that refusal's diff is empty; trace: one " +
+        "expense_claim_transitioned open → rejected in all.",
+    ),
   ],
   returns: rpc_payroll_expense_claims_reject.output,
   errors: CLI,
@@ -3080,6 +3265,17 @@ export const operation_org_hr_expense_claim_cancel = defineOperation({
         "read: Dana's `org books facts list` shows one `accrual_cancelled` fact naming it; Lead's `org hr expense-claim " +
         "cancel <C3>` exits WRONG_STATE naming `paid`.",
     ),
+    claim(
+      "A cancellation is done once, with one books fact.",
+      "cli: from org-with-expenses, after Lead's `org hr expense-claim cancel <C2> --org acme`, the same command " +
+        "again exits WRONG_STATE naming `cancelled`; read: Dana's `org books facts list` still shows one " +
+        "`accrual_cancelled` fact naming <C2>; trace: one expense_claim_transitioned approved → cancelled.",
+    ),
+    claim(
+      "Its claimant sees it cancelled, and nothing is paid.",
+      "cli: from org-with-expenses, after that cancel, Sam's `hr expense-claim get <C2> --json` prints `status: " +
+        "cancelled` and no payment; chain: no transaction for it.",
+    ),
   ],
   returns: rpc_payroll_expense_claims_cancel.output,
   errors: CLI,
@@ -3114,6 +3310,11 @@ export const operation_org_hr_expense_claim_list = defineOperation({
       "cli: from org-with-expenses, Lead's `org hr expense-claim list --org acme --json` lists <C1> to <C4>, `salaries`'; " +
         "Pat's lists the same; Plat's lists none; `--status approved` lists <C2> alone.",
     ),
+    claim(
+      "`--employee` keeps one Employee's claims, a page at a time; reading writes nothing.",
+      "cli: from org-with-expenses, Lead's `org hr expense-claim list --employee <Sam> --org acme --json` lists <C1>, " +
+        "<C2> and <C3> and not <C4>; `--limit 2` lists two and a `nextCursor`; world: the diff is empty.",
+    ),
   ],
   returns: rpc_payroll_expense_claims_list.output,
   errors: CLI,
@@ -3136,6 +3337,11 @@ export const operation_org_hr_expense_claim_get = defineOperation({
       "The department's hat reads a claim with its receipt; another department's does not.",
       "cli: from org-with-expenses, Lead's `org hr expense-claim get <C1> --org acme --json` prints Travel 120.00, the " +
         "receipt taxi.pdf and `status: open`; Plat's exits INVALID_INPUT, as a claim he may not read.",
+    ),
+    claim(
+      "The People hat reads every claim, and a paid one with what settled it; reading writes nothing.",
+      "cli: from org-with-expenses, Pat's `org hr expense-claim get <C3> --org acme --json` prints `status: paid`, " +
+        "<A1> 200.00 advanced, `grandTotal: 100.00` and its `paymentId`; world: the diff is empty.",
     ),
   ],
   returns: rpc_payroll_expense_claims_get.output,
@@ -3165,6 +3371,16 @@ export const operation_hr_advance_request = defineOperation({
       "cli: from org-with-expenses, Sam's `hr advance request --amount 250 --purpose \"Trade fair\" --json` prints an `adv_` " +
         "advance, `status: requested`, `department: salaries`, `amount: 250.00`; trace: one employee_advance_transitioned to requested.",
     ),
+    claim(
+      "The department's hat sees the request at once, to pay or reject it; another department's does not.",
+      "cli: from org-with-expenses, after Sam's `hr advance request --amount 250 --purpose \"Trade fair\"`, Lead's `org " +
+        "hr advance list --status requested --org acme` lists it beside <A3>, and Plat's lists neither.",
+    ),
+    claim(
+      "Nothing is paid until the department pays it.",
+      "cli: from org-with-expenses, after that request, Sam's `hr advance list --status requested --json` shows it " +
+        "with nothing paid; chain: no transaction for it.",
+    ),
   ],
   returns: rpc_payroll_advances_request.output,
   errors: CLI,
@@ -3188,6 +3404,16 @@ export const operation_hr_advance_list = defineOperation({
       "cli: from org-with-expenses, Sam's `hr advance list --json` lists <A3> requested 500.00, <A2> paid with `unclaimed: " +
         "150.00`, and <A1> claimed, `unclaimed: 0.00`.",
     ),
+    claim(
+      "A recovery set on an advance shows with it.",
+      "cli: from org-with-expenses, after Pat's `org hr advance settle <A2> --confirm --org acme`, Sam's `hr advance " +
+        "list --json` shows <A2> with a `recovery` of 150.00 and its payroll day.",
+    ),
+    claim(
+      "A page holds at most `--limit` advances, and `--status` filters; reading writes nothing.",
+      "cli: from org-with-expenses, Sam's `hr advance list --limit 2 --json` lists two and a `nextCursor`, and " +
+        "`--after <it>` the third with `nextCursor: null`; `--status paid` lists <A2> alone; world: the diff is empty.",
+    ),
   ],
   returns: rpc_payroll_advances_mine.output,
   errors: CLI,
@@ -3209,6 +3435,12 @@ export const operation_hr_advance_cancel = defineOperation({
     claim(
       "A requested advance is cancelled by its Employee; a paid one is not.",
       "cli: from org-with-expenses, Sam's `hr advance cancel <A3> --json` prints `status: cancelled`; `hr advance cancel <A2>` exits WRONG_STATE naming `paid`.",
+    ),
+    claim(
+      "A cancelled request stays listed, pays nothing, and is not cancelled again.",
+      "cli: from org-with-expenses, after Sam's `hr advance cancel <A3>`, Lead's `org hr advance list --status " +
+        "cancelled --org acme` lists <A3> with nothing paid; the same cancel again exits WRONG_STATE naming " +
+        "`cancelled`; trace: one employee_advance_transitioned requested → cancelled.",
     ),
   ],
   returns: rpc_payroll_advances_withdraw.output,
@@ -3287,6 +3519,13 @@ export const operation_org_hr_advance_reject = defineOperation({
       "cli: from org-with-expenses, Lead's `org hr advance reject <A3> --reason \"Use the company card\" --org acme --json` " +
         "prints `status: rejected` with the reason; Sam's `hr advance list` lists it so.",
     ),
+    claim(
+      "A rejection pays nothing and is decided once.",
+      "cli: from org-with-expenses, after Lead's `org hr advance reject <A3> --reason \"Use the company card\"`, his " +
+        "`org hr advance get <A3> --org acme --json` shows `status: rejected`, that `rejectionReason` and `paymentId: null`; the same " +
+        "reject again exits WRONG_STATE naming `rejected`; chain: no transaction; trace: one " +
+        "employee_advance_transitioned requested → rejected.",
+    ),
   ],
   returns: rpc_payroll_advances_reject.output,
   errors: CLI,
@@ -3312,7 +3551,7 @@ export const operation_org_hr_advance_settle = defineOperation({
   command: "org hr advance settle",
   priority: "normal",
   implementedBy: flow_client_org_hr_advances_settle,
-  who: WHO_HR,
+  who: `${WHO_HR} Never the hosted FDE for its asker: the preview is the member's own.`,
   changes: "One Additional Salary (and, the first time, the advance recovery component); the advance marked to be repaid from salary.",
   acceptance: [
     claim(
@@ -3361,6 +3600,12 @@ export const operation_org_hr_advance_list = defineOperation({
       "cli: from org-with-expenses, Lead's `org hr advance list --org acme --json` lists <A1> claimed, <A2> paid and <A3> " +
         "requested; `--status requested` lists <A3> alone; Plat's lists none.",
     ),
+    claim(
+      "The People hat lists every advance; `--employee` and pages narrow it; reading writes nothing.",
+      "cli: from org-with-expenses, Pat's `org hr advance list --org acme --json` lists <A1>, <A2> and <A3>; " +
+        "`--employee <Sam> --limit 2` lists two and a `nextCursor`, and `--after <it>` the third; world: the diff is " +
+        "empty.",
+    ),
   ],
   returns: rpc_payroll_advances_list.output,
   errors: CLI,
@@ -3383,6 +3628,16 @@ export const operation_org_hr_advance_get = defineOperation({
       "An advance reads with what settled it.",
       "cli: from org-with-expenses, Lead's `org hr advance get <A1> --org acme --json` prints `paid: 200.00`, `claimed: " +
         "200.00`, `status: claimed` and its `paymentId`.",
+    ),
+    claim(
+      "The People hat reads every advance, and a paid one shows what is left unclaimed; reading writes nothing.",
+      "cli: from org-with-expenses, Pat's `org hr advance get <A2> --org acme --json` prints `status: paid`, " +
+        "`unclaimed: 150.00` and `recovery: null`; world: the diff is empty.",
+    ),
+    claim(
+      "A recovery shows once the advance is settled.",
+      "cli: from org-with-expenses, after Pat's `org hr advance settle <A2> --confirm`, Lead's `org hr advance get " +
+        "<A2> --org acme --json` shows its `recovery` of 150.00 with its payroll day.",
     ),
   ],
   returns: rpc_payroll_advances_get.output,

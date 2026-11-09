@@ -2118,3 +2118,29 @@ export const decision_contacts_whatsapp_staging_numbers = defineDecision({
   source: "Claude, world pass build, 9 November 2026; evidence: time.world-channels; contacts.whatsapp-connect; Meta's test business number (registered recipients only)",
   affects: [rpc_contacts_whatsapp_connect, environment_staging, integration_whatsapp],
 });
+
+export const decision_contacts_whatsapp_show_claims = defineDecision({
+  id: "contacts.whatsapp-show-claims",
+  title: "`org crm whatsapp show` also claims what it shows after a disconnect",
+  question:
+    "`org crm whatsapp show` was booked with one claim: the live number, or null when none was ever connected. What " +
+    "else does its behaviour already decide that its evals should hold it to?",
+  options: [
+    {
+      label: "after-disconnect",
+      text:
+        "A second claim, from org-with-conversations: after a disconnect it shows the last number as disconnected, after " +
+        "another connect the new account, active, and a show writes nothing. It follows from contacts.whatsapp.show " +
+        "(the live account, else the last one disconnected, else null) and adds no behaviour.",
+    },
+    { label: "one", text: "Keep the one claim." },
+  ],
+  chosen: "after-disconnect",
+  why:
+    "With one claim an implementation that answered null after a disconnect, or kept showing the old number after a " +
+    "new connect, would pass, though the rpc books both (aaron.crm-frappe-shape). The world and commands are the ones " +
+    "`org crm whatsapp disconnect` and `connect` already claim.",
+  source: "Claude, surface pass (frappe-apps), 9 November 2026; evidence: books/target/contacts/whatsapp.ts " +
+    "(contacts.whatsapp.show); aaron.crm-frappe-shape",
+  affects: [operation_org_crm_whatsapp_show],
+});

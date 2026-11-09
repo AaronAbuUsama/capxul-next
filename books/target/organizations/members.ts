@@ -133,7 +133,9 @@ export const rpc_organizations_seats_show = defineRpc({
   was: ["books/target/shared/rulings.ts (aaron.buy-seats, aaron.test-prices)"],
   concept: concept_organizations,
   kind: "query",
-  who: "Any member of the Organization: an active Seat, a person's or an agent's (the FDE included).",
+  who:
+    "Any member of the Organization: an active Seat, a person's or an agent's. The hosted FDE reads only as the member " +
+    "who asked it (aaron.fde-anyone), never as itself; a self-run own agent reads as itself.",
   input: Schema.Struct({ orgId: S }),
   output: SeatsShowView,
   errors: [error_NOT_AUTHENTICATED, error_ROLE_PERMISSION_DENIED],

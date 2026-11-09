@@ -245,7 +245,7 @@ export const operation_org_projects_get = defineOperation({
         "`status: on_hold` and its fields; world: the diff is empty, and a second `org projects get` prints the same `version`.",
     ),
     claim(
-      "A project worked out by hand shows the percent it was given, whatever its tasks.",
+      "A project completed with no tasks reads as worked out by hand, at 100 percent.",
       "read: in org-with-projects, `org projects get <Handover>` shows `status: completed`, `progress: manual`, a percent " +
         "complete of 100 and no tasks.",
     ),

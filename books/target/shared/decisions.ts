@@ -3142,8 +3142,8 @@ export const decision_rules_fde_acts_for_asker = defineDecision({
         "token, or none, is ROLE_PERMISSION_DENIED: the hosted FDE never resolves to its own Seat, so only a self-run " +
         "own agent (`agent create --org`) acts as itself. Under such a session the Core SDK's signing steps hand the " +
         "approval over to the asker (the `--no-wait` hand-over, or `--json` for the payment family) instead of signing. " +
-        "An rpc behind a preview (G5: `contact link`, `org employee leave`, `org head connect|disconnect`, `org doc " +
-        "remove`, `org advance settle`, the CRM's sends and WhatsApp connect and disconnect) refuses an act-for call " +
+        "An rpc behind a preview (G5: `contact link`, `org hr employee leave`, `org head connect|disconnect`, `org head " +
+        "doc remove`, `org hr advance settle`, the CRM's sends and WhatsApp connect and disconnect) refuses an act-for call " +
         "ROLE_PERMISSION_DENIED, since the preview is the asker's own to answer.",
     },
     { label: "own-seat", text: "The FDE calls as its own Seat, with hats the Board grants it, whoever asked." },

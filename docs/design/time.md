@@ -7,7 +7,9 @@ deadlines, vendor envelopes, lifecycle timeouts and the vending-bench year). Ext
 world. Revised the same evening after a truth review against Frappe's sources and Meta's Cloud API: the head's hooks
 (how every process takes the clock, its jobs between stops, its own email and the direct host-clock reads), a due
 report's lead in real time, a remote follower's error at high rates, follower grants and the WhatsApp stand-in's
-number read and window. Records:
+number read and window. Extended on 9 November 2026 for `aaron.seasons` (section 8): a shared world's time runs in
+seasons that start from a known world, run at a rate, jump on a real-time schedule and end in a reset, with the
+`dev season` commands, players, the reset a player sees, and followers that save and restore their own state. Records:
 `books/target/shared/time.ts` (the rules and the invariants), `books/target/devnet/` (the time
 authority, its protocol and its flows) and the `devnet-control` integration in
 `books/target/shared/external.ts`. Every judgment below is a decision record; its id is given in
@@ -352,9 +354,10 @@ The clock runs or stands still [`devnet.clock-modes`]:
 | `POST /v1/time/freeze` | Holds now at the next whole second, never back | `devnet.time.freeze` |
 | `POST /v1/time/resume` | Lets now run on at the clock's rate, through the running stops | `devnet.time.resume` |
 | `POST /v1/time/rate {rate}` | Sets the rate a running clock runs at, 1 to 60 (section 7.2) | `devnet.time.set` (`dev time set --rate`) |
-| `GET /v1/time/events?after=<version>` | Server-sent events for each clock change (`warp`, `stop`, `step`, `tick`, `settle`, `freeze`, `resume`, `rate`, `run`, `due`, `start-at`, `restore`, `up`), each with its version, now, `realAt`, mode, rate, `stopAt` and world | `devnet.time.watch` |
-| `POST /v1/followers {name, ackTimeoutMs}`, then `GET /v1/followers/<id>/events`, `POST /v1/followers/<id>/ack {version, idle, nextDue}` and, between events, `POST /v1/followers/<id>/due {nextDue}` | Joins as a follower that the barrier and the running stops wait for | `devnet.time.follow` |
+| `GET /v1/time/events?after=<version>` | Server-sent events for each clock change (`warp`, `stop`, `step`, `tick`, `settle`, `freeze`, `resume`, `rate`, `run`, `due`, `start-at`, `save`, `restore`, `up`), each with its version, now, `realAt`, mode, rate, `stopAt`, world and season, and on a `save` or `restore` the world's name | `devnet.time.watch` |
+| `POST /v1/followers {name, ackTimeoutMs, stateful?}`, then `GET /v1/followers/<id>/events`, `POST /v1/followers/<id>/ack {version, idle, nextDue}` and, between events, `POST /v1/followers/<id>/due {nextDue}` | Joins as a follower that the barrier and the running stops wait for | `devnet.time.follow` |
 | `POST /v1/mail {message}` | Keeps an email a connected bench's Email Queue sends in the mail sink, dated at now, on the head's follower grant (section 7.5) | none: the Capxul Frappe app's mail hook |
+| `/v1/seasons…` | A shared world's seasons: eleven requests (section 8.9) | `devnet.seasons.*` (`dev season …`) |
 
 Every answer's clock also carries `realNow`, the authority's real time as it answered, from which a follower on
 another machine measures its offset (section 7.4).
@@ -366,7 +369,7 @@ another machine measures its offset (section 7.4).
 - `WRONG_STATE`: a start-at once the clock has moved, a follower name already in use, or a move
   (a rate change included) while another move runs.
 - `ROLE_PERMISSION_DENIED`: in a shared world, a joiner's grant asking to move the clock, follow it,
-  or save or restore the world, or a follower grant asking to move it (section 7.6).
+  save or restore the world, or change a season, or a follower grant asking to move it (sections 7.6 and 8.3).
 - `WORK_DIED`: a stop that did not settle within its limit (60 s of real time by default). It
   names the stop and the busy followers.
 - `WRONG_ENVIRONMENT`: the client finds no handoff file.
@@ -385,6 +388,8 @@ on itself. It acknowledges busy instead.
 - **An outside program joins the same way.** Its happenings then become stops of the warp. During
   its stop the clock stands still, so it acts at exactly that instant.
 - **A follower that misses an acknowledgement** fails the barrier and is dropped.
+- **A follower that keeps world state** outside the chain and Postgres (a real bench, the world's FDE namespace) joins
+  `stateful` and saves and restores that state with every world (section 8.6).
 - **The backend's follower channel is the runtime's, not an rpc.** This follows the precedent of
   `rules.outbox`. An rpc that only the supervisor called would be unreached (P2).
 
@@ -639,7 +644,8 @@ Decisions:
 - `time.chain-judged-deadlines`;
 - `time.drift-watch`;
 - `time.no-direct-reads`;
-- `time.worlds` and `time.world-channels`, for `aaron.world-clock` (section 7).
+- `time.worlds` and `time.world-channels`, for `aaron.world-clock` (section 7);
+- `time.seasons`, for `aaron.seasons` (section 8).
 
 Invariants, each giving an L3 eval `inv:<id>`:
 
@@ -655,6 +661,8 @@ Invariants, each giving an L3 eval `inv:<id>`:
 | `time.rate-ceiling` | property | On a running devnet at rate r, now advances by at most r seconds a real second, and stands still only at a stop. |
 | `time.running-stops` | property | On a running devnet, every due instant known at least one real second of running ahead is a stop at which the chain head reaches that second and, when the stop settles within its limit, every durable timer due then fires once, its step reading its due instant. |
 | `time.world-channels` | property | On a devnet or a shared world every email and WhatsApp message sent, a connected head's own email included, is in its sink or stand-in at the world's now; on staging no email goes to an address outside the deployment's mailboxes. |
+| `time.season-schedule` | property | A planned season with a start, unless cancelled first, starts once at or after that instant; each warp of a running season runs once at or after its instant, as a barrier, or is recorded skipped, failed, cut or removed; the season ends once at or after its real end, no warp of it run after. |
+| `time.season-reset` | property | When a season ends, `<name>-end` holds the world as it stood when the end began, and the world equals its reset world (chain, Postgres, Ponder, every stateful follower) frozen at its now under a new epoch, with no session, message or balance of the season left in it. |
 
 ### The devnet concept: `books/target/devnet/`
 
@@ -833,7 +841,7 @@ lines.
 | World | Its clock | Who controls it | Its channels |
 |---|---|---|---|
 | Devnet | The supervisor's: frozen, or running at a rate | Whoever runs it, on one machine | All stand-ins: nothing leaves the machine |
-| Shared world | A devnet's supervisor on a host: frozen, or running at a rate | Its owner alone | All stand-ins: nothing leaves the world |
+| Shared world | A devnet's supervisor on a host: frozen, or running at a rate, in seasons (section 8) | Its owner alone | All stand-ins: nothing leaves the world |
 | Staging | Its hosts' clock (NTP), rate 1, never moved | No one: Base Sepolia's time is the sequencer's | The real services, held to the world's own parties |
 | Production | Its hosts' clock | No one | The real services |
 
@@ -1053,6 +1061,9 @@ Capxul's now when it lands. "I will check the invoice in three days" fires three
 
 ### 7.6 The shared world [`devnet.shared-world`, environment `shared-world`]
 
+Superseded on 9 November 2026 by `aaron.seasons`: a shared world's time runs in seasons, and a joiner uses it only
+while a season they play runs (section 8). The grants, what is shared and how the world is reached, below, still hold.
+
 A shared world is a devnet's whole stack (the supervisor, its chain, Postgres, Ponder, the stand-ins and the
 backend's devnet build) on a host its owner chooses, behind the world's gateway at its own HTTPS address. It is
 started with `capxul-devnet up --shared <name> --public <host> [--rate <n>] [--frozen]`.
@@ -1119,6 +1130,298 @@ world on the eval machine, its gateway on loopback, with every command run as a 
 - **`docs/design/new-commands.md`:** `dev time set`, section 5.6, its pack in sections 1 and 4, and the G4 term
   World owner.
 
+## 8. Seasons [`aaron.seasons`; `devnet.seasons`, `time.seasons`]
+
+> "Agreed with all, but we need a shared world that gets time jumps and resets, as part of a season, like a game
+> sort of thing." (Aaron, 9 November 2026, `aaron.seasons`)
+
+A shared world's time runs in seasons, like a game: a season starts from a known world, runs its clock at a rate,
+jumps time on a schedule and ends in a reset, after which the next season starts. This supersedes 7.6's open-ended
+shared world (`devnet.shared-world`). 7.6's grants, what is shared and how the world is reached still hold; what
+changes is who may use the world when (8.3).
+
+### 8.1 What a season is [`devnet.seasons`]
+
+A season is a record the world's supervisor keeps on the world's host, outside the world's snapshots, beside the
+grants. No restore changes it, so it survives the restores that start and end it.
+
+| Field | What it holds |
+|---|---|
+| `name` | Lowercase letters, digits and hyphens, up to 36 characters, never reused, so that `<name>-end` is a world's name. |
+| `from` | The saved world it starts from (`--snapshot`): a known world. |
+| `reset` | The saved world its end restores: its own `from` unless another is named, typically the next season's start. |
+| `rate` | The world seconds per real second its clock runs at from its start, 1 to 60 (`devnet.clock-rate`). |
+| `startAt` | The real instant it starts itself, or none: then its owner starts it with `dev season start`. |
+| `endAt` | The real instant it ends itself. Every season ends. |
+| `warps` | Its jumps: each a warp of the clock at a real instant, by a span or to a world date (8.4). |
+| `players` | The emails that play it, each holding a world grant (8.3). |
+| `state` | `planned`, `running`, `ended` (it ran, and its world was kept and reset), or `cancelled` (taken back before it ran), with when it started and ended and the world epoch it ran in. |
+| `final` | Once a running season has ended: `<name>-end`, the world saved as it stood (8.5). |
+
+Its start, end and jumps are **real times**, because players plan their days around them. That relates world time to
+real time once, as the rate does. No product decision reads it: inside the world everything reads now, and a jump is
+a warp, so what falls due on the way runs at its own instant (`time.seasons`).
+
+```mermaid
+stateDiagram-v2
+  [*] --> planned: dev season create
+  planned --> running: dev season start, or its real start
+  running --> ended: dev season end, or its real end (keep, then reset)
+  planned --> cancelled: dev season cancel, or its real end before it starts (the world is not touched)
+```
+
+- **One at a time.** At most one season runs. A planned season's window may not overlap another's (`INVALID_INPUT`,
+  naming it). Starting a season while another runs is `WRONG_STATE`.
+- **The clock names it.** The clock read and every clock event carry `season`: the season running in this world
+  epoch, or null.
+- **The owner's own controls stay** for an unscheduled move: `dev time warp`, `dev time set --rate`, and the SDK's
+  freeze and resume. A restore (`dev snapshot restore`) or a start-at while a season runs is `WRONG_STATE`: end the
+  season first, since either would replace or rewind its world under its players.
+- **A local devnet** may run seasons too. It has no grants, so no players: everyone on its machine is its owner.
+
+### 8.2 The commands
+
+Eleven commands under `dev season`, in the grammar of `new-commands.md` section 2: a season's own verbs on the group, and
+G2's second noun for what a season keeps (`warp`, `player`). Each is an operation beyond the 215, booked under
+`rules.new-operations` for `aaron.seasons` (`books/target/devnet/operations.ts`). Its SDK method is its words
+(`dev season warp add` is `devnet.seasons.warps.add`).
+
+| Command | What it does | Who |
+|---|---|---|
+| `dev season create <name> --snapshot <world> --end <when> [--start <when>] [--rate <n>] [--reset <world>] [--player <email>]… [--warp <when>=<span\|date>]…` | Plans a season. Nothing in the world moves. | World owner |
+| `dev season change <name> [--start <when>] [--end <when>] [--rate <n>] [--reset <world>]` | Changes its fields: all four while it is planned, the end and the reset while it runs (a running clock's rate is `dev time set`'s). | World owner |
+| `dev season start <name> [--confirm]` | Starts it now, as its real start would (8.5). Previews and asks. | World owner |
+| `dev season end <name> [--confirm]` | Ends a running season now, as its real end would: keeps its world, then resets (8.5). Previews and asks. A planned season is refused, naming `cancel`. | World owner |
+| `dev season cancel <name>` | Takes back a planned season: it never runs, and nothing in the world changes. A running season is refused, naming `end`. | World owner |
+| `dev season show` | The current season (running, else the next planned, else the last ended), whether you play it, its next warp and the clock. | Anyone in the world, between seasons too |
+| `dev season list [--after <cursor>] [--limit <n>]` | Every season, a page at a time, with its worlds, rate, window, players, and what each warp did. | Anyone in the world |
+| `dev season warp add <season> (<span> \| --to <date>) --at <when> [--every <span>]` | Schedules a jump; with `--every`, one each real interval until the season ends, at most 500. | World owner |
+| `dev season warp remove <season> <warp>` | Takes a jump out before it runs. It stays listed as `removed`. | World owner |
+| `dev season player add <season> <email>` | Lets a grantee play it, at once if it runs. | World owner |
+| `dev season player remove <season> <email>` | Stops them playing, at once. What they made stays in the world. | World owner |
+
+`<when>` is an ISO 8601 instant with its zone, or `+<span>` (`+2h`, `+28d`) from now, in real time, which the
+supervisor resolves against its own real clock. "World owner" is G4's term: on a local devnet anyone on the machine,
+in a shared world the holder of the owner grant.
+
+Why these words:
+
+- **A jump is a warp.** G3 has no `jump`, and a season's jump is exactly `dev time warp`'s barrier, so
+  `dev season warp add` reads as a warp scheduled. A jump now is `dev time warp`.
+- **`start`, `end` and `cancel`** are the season's lifecycle verbs, as in `verify start`, `org payroll agreement end`
+  and `payment cancel`. A planned season is cancelled, not ended, as the 215 withdraw an offered agreement rather than
+  end it: G3 gives each verb one meaning, so `end` always resets the world, and a script that meant to drop a planned
+  season that has since started is refused rather than resetting it. Cancel changes nothing in the world, so, like
+  `payment cancel`, it does not preview.
+- **`list` is paged** as every list is (G5, G9): `--limit` from 1 to 100, 20 unless given, and `--after` the cursor
+  a page gave. A world that runs a season a week gathers dozens a year.
+- **`show`** reads the world's one current season, a singleton (G3); `list` reads them all.
+- **The flags keep G5.** The starting world is `--snapshot`, the CLI's word for a saved world, since `--from` names
+  only a budget. A scheduled warp takes its span, or `--to <date>`, as `dev time warp` does, since `--by` is a review
+  date.
+- **`start` and `end` preview and ask** (G5), since nothing undoes either. `--confirm` answers yes in a script;
+  a script without it is `CLI_USAGE`, and a person's no is `CANCELLED`.
+
+Refusals (G6): `INVALID_INPUT` for a bad value or a name nothing has; `WRONG_STATE` when the season's state does not
+allow the step (a name used before, starting a running season, ending a planned one, cancelling a running one,
+changing an ended or cancelled one); `ROLE_PERMISSION_DENIED` for a joiner's grant on any season command but `show`
+and `list`; `WRONG_ENVIRONMENT` off a devnet. Each is booked from a world (8.8).
+
+**For Aaron:** the eleven commands, that a season's times are real times, that seasons never overlap, and that only the
+people its owner names play it (`devnet.seasons`). The recommendation stands until he answers.
+
+### 8.3 Players [`devnet.season-players`]
+
+- **The grants are 7.6's.** The owner grant. A joiner's grant, made for an email (`capxul-devnet world grant <email>`)
+  and handed over outside the world, carrying only its holder's own dev signers' keys. A follower grant, for a real
+  bench or the world's FDE namespace. All stay on the host outside the snapshots; `world revoke` ends one.
+- **A player** is a joiner whose email the owner adds to a season (`--player`, `dev season player add`).
+- **The gateway admits a joiner's backend calls**, and the two mail reads scoped to their mailboxes, only while a
+  season they play runs and the world is not moving:
+  - between seasons: `WRONG_STATE`, naming the next season and its start;
+  - in a season they do not play: `ROLE_PERMISSION_DENIED`;
+  - while the world moves (a jump, the owner's warp, a season's start or end): `WRONG_STATE`, naming the move (8.4).
+- **The supervisor's reads answer every grant at any time:** `dev time`, the clock's watch, `dev season show` and
+  `list`. That is how a player learns when to come back.
+- **Removing a player** closes the gateway to them at once. What they made stays in the world, and their grant stays
+  for the seasons they still play.
+- Inside the world a player signs only as themselves, and their authority is their hats', as anywhere
+  (`authority.md`).
+
+A game's players are its season's: someone who played the last season need not be in the next. Admitting by season
+at the gateway keeps each grant one file, made once. Between seasons the world is the reset world waiting for the next
+start, which restores its starting world anyway, so a joiner's writes there would be lost.
+
+### 8.4 Jumps [`devnet.season-jumps`]
+
+A jump is a warp (`devnet.warp-barrier`) that the supervisor runs at a real instant.
+
+- **At its instant**, if the season runs, the supervisor warps by the span or to the date. It is a barrier through
+  every due instant on the way, so a month's dated payments settle, its notices are sent and its periods close on
+  their own days. The clock keeps its mode and its rate.
+- **One move at a time.** A jump that falls due while another move runs (the owner's warp; a running stop is not a
+  move) runs when that move ends. Its `ranAt` says when.
+- **Outcomes.** `done`; `skipped` when its target is not later than now; `failed` when a stop does not settle within
+  its limit, as a warp fails, naming the stop and the busy followers, with the clock at the last settled stop and the
+  season running on; `cut` when the season's end stops it at its next settled stop; `removed`.
+- **People during a jump.** A barrier settles only in a round where nothing was mined and no follower was busy, so
+  people acting during it would keep a busy shared world from ever settling its own jumps. While the world moves,
+  the gateway refuses a joiner's backend call `WRONG_STATE`, naming the move. The supervisor's reads answer. A
+  month's jump takes seconds; holding the calls instead would leave a client waiting minutes for a year's.
+- **A supervisor that was down** when jumps fell due runs each once, late and in order, when it returns, unless the
+  season's end has come too: then they are skipped and the season ends.
+- **Sessions.** A jump ends sessions as any warp does (`devnet.sessions-across-warps`). One of 30 days or more ends
+  every person's, so a player signs in again by the code the sink holds; one of a day or more ends every agent's,
+  which its SDK renews by signing its challenge again.
+
+### 8.5 The start, the end and the reset [`devnet.season-reset`]
+
+**Start** (`dev season start`, or at its real start):
+
+1. The supervisor restores `from`: the chain, Postgres (every schema, the devnet tables with the stand-ins' state
+   included), Ponder's checkpoint and the clock, frozen at that world's now while it works, under a new world epoch.
+   Every stateful follower restores its own state (8.6).
+2. It sets the clock's rate to the season's and lets it run.
+3. It arms the season's jumps and end on its real clock.
+4. The gateway admits the season's players.
+
+**End** (`dev season end`, or at its real end) of a running season:
+
+1. The gateway stops admitting the season's players.
+2. A jump in progress stops at its next settled stop (`cut`); the jumps still scheduled are `skipped`.
+3. The clock freezes.
+4. The world is saved as `<name>-end`, its last state, every stateful follower saving its own.
+5. The season's reset world is restored, frozen at its now under a new world epoch, every stateful follower restoring
+   its own. It stays so until the next season starts.
+
+A planned season is not ended but cancelled (`dev season cancel`), which touches nothing; so is one whose real end
+comes before it starts.
+
+**What a player finds after a reset.** One rule gives all of it: the reset world comes back whole.
+
+| | After the reset |
+|---|---|
+| Sessions | Gone: the world holds only the sessions it was saved with. The CLI home on the player's own machine holds a token the world does not know, so once a season they play runs, their first command is `NOT_AUTHENTICATED` and they sign in again with the code the sink holds for them. An agent signs its challenge again, if the world holds it. |
+| Mail | The reset world's sink. The season's mail is gone from it, kept only in `<name>-end`, which only the owner restores. A player's `dev mail list` shows what the reset world held for them, then the next season's mail. |
+| Money | The reset world's: every balance, Safe, payment, escrow, budget and bank deposit. The chain, Postgres, Ponder and the stand-ins' tables come back together. Nothing real ever moved: the chain is the world's own Anvil, and Bridge is its stand-in. |
+| Everything else they made | Their Organizations, contacts, CRM records, HR records and head documents: the reset world's. |
+| Their grant | Kept: it is on the host, outside the snapshots. |
+| Their CLI home | Kept, on their own machine. A saved `use org` that names an Organization the new world lacks is refused until they choose again. |
+| The clock | The reset world's now, frozen, under a new epoch, `season` null, until the next season starts. A watcher sees `restore`. |
+
+A season's earnings cannot carry into the next: carrying a player's money would be a second, invented ledger beside
+the chain's. Signing in again is what `devnet.sessions-across-warps` already has a world's people do after a long
+warp.
+
+### 8.6 Followers that keep world state [`devnet.stateful-followers`]
+
+A world's snapshot holds the chain, Postgres and Ponder. A real Frappe bench following the world keeps its site's
+database on its own host, and the world's FDE namespace keeps its agents' conversations, memory and timers on the FDE
+host. Left alone, a restore (so every season's start and reset) would leave them in another world's state: a bench
+answering the document family with last season's documents, an FDE remembering conversations that never happened.
+
+- Such a follower joins **`stateful`** (`devnet.followers`; the SDK's `devnet.time.follow` takes `stateful`).
+- When a world is saved, the authority sends a **`save`** event naming it. Each stateful follower saves its own state
+  under that name before it acknowledges: a bench with `bench --site <site> backup --with-files`, which the Capxul app
+  keeps under the world's name; the FDE namespace with swarmD's own save of its agents. The world's manifest lists
+  them (`Snapshot.followers`).
+- When a world is restored, with the clock frozen at its now, a **`restore`** event names it. Each stateful follower
+  restores its own state from that name before it acknowledges, and the backend and Ponder start only after.
+- A restore while a stateful follower is joined that the world's manifest lacks is `WRONG_STATE` before anything
+  changes, naming it. A world never comes back half restored.
+- A stateful follower that joins later is told the world it must hold, and restores it before it follows.
+- The stand-ins need none of this: their state is in devnet's tables, inside every snapshot.
+
+### 8.7 Every channel on the season's clock [`time.seasons`, `time.world-channels`]
+
+Everything in the world follows its one clock (7.5), and a season is that clock's schedule. Each channel, at a jump
+and at the reset:
+
+| Channel | During a season | At a jump | At the reset |
+|---|---|---|---|
+| The chain, the backend, its timers and crons, Ponder | Follow the clock at the season's rate, with the running stops (7.3) | Stop at every due instant: each block, timer and calendar cron at its own second | Restored with the reset world |
+| Mail | The sink, dated at now; players read their own mailboxes | Each notice due on the way is sent on its day | The sink is the reset world's; the season's mail is kept in `<name>-end` |
+| WhatsApp | The stand-in, dated at now, its 24-hour window judged on now | Redeliveries fire at their instants; a jump past a window closes it | Restored (devnet tables) |
+| The stand-in head | Follows (devnet tables) | Its daily jobs on their days | Restored (devnet tables) |
+| A real Frappe bench | Follows by the Capxul app's hooks (7.5) | Its due Scheduled Job Types at each stop (`devnet.head-warp-stops`) | Restores its own backup of the reset world (8.6) |
+| The FDE | The stand-in host (devnet tables), or the world's namespace following the clock | Each agent's timer starts its turn at its instant | The namespace restores its agents as the reset world held them (8.6) |
+| Bridge, bundler and paymaster, Chainlink, PostHog | Stand-ins and fakes that follow (`devnet.stand-ins-follow`) | At their instants | Their scripted state restored (devnet tables) |
+| A simulation following the clock | Its own happenings are stops | Stops at its own next due | Sees `restore` with the new epoch; restores its own state if it joined stateful |
+| A player's own machine | Their CLI home and their grant | Their calls refused while the world moves; after a jump of 30 days or more their session has ended and they sign in again (8.4) | Kept; their sessions are unknown to the new world (8.5) |
+
+Nothing a season sends leaves the world, and nothing it sent survives its reset except in the world its end keeps.
+
+### 8.8 Worlds [`devnet.season-worlds`]
+
+Four worlds join the catalogue (`books/target/devnet/worlds.ts`):
+
+| World | Holds |
+|---|---|
+| `shared-world-owner` | `shared-world-joiner` with commands run as the owner, and Dana granted too; no season. |
+| `season-planned` | s1 planned: from `person-with-funded-safe` (Dana with 1,000 USDC), rate 4, ending two real hours on, w1 a 30-day jump an hour on, Dana its player. |
+| `season-running` | s1 started; Dana signed in from her own CLI home and paid Sam 5 USDC (995 left). |
+| `season-ended` | s1 ended: `s1-end` saved, the world reset to `person-with-funded-safe`, frozen; Dana's own CLI home still holds her s1 session. |
+
+- **Built each time.** Grants and seasons live outside the snapshots, and a season's real times are right only just
+  after they are made, so each is built by its steps on a fresh shared world on the eval machine every time an eval
+  uses it.
+- **The eval machine's seed and a copy of its store.** The shared world runs with the eval machine's seed, so each
+  person's dev signer is the one their catalogued Safe was set up with. It serves a copy of the eval machine's store,
+  made fresh with the world and thrown away with it: every catalogued world is saved in it, and nothing a season saves
+  there reaches another eval (an `s1-end` left behind would refuse the next `dev season create s1`).
+- **Players' own homes.** A player's command runs from that player's own CLI home, which the harness keeps outside
+  the snapshots as their machine would be. That is what makes a reset's `NOT_AUTHENTICATED` observable.
+- **The only running worlds.** `devnet.deterministic-worlds` freezes every other world; a season is the clock running
+  on a real schedule, so these claims say "about" where real seconds count.
+
+### 8.9 The protocol [`devnet.season-protocol`]
+
+Eleven requests of `capxul.devnet/1`, each a call of `devnet-control`:
+
+| Request | Call | Grants |
+|---|---|---|
+| `GET /v1/seasons?after=&limit=` | `seasonList` (a page and the next cursor) | Every grant |
+| `GET /v1/seasons/current` | `seasonCurrent` | Every grant |
+| `POST /v1/seasons` | `seasonCreate` | Owner |
+| `POST /v1/seasons/<name>/change` | `seasonChange` | Owner |
+| `POST /v1/seasons/<name>/start` (`check` answers what it would do and changes nothing) | `seasonStart` | Owner |
+| `POST /v1/seasons/<name>/end` (`check` likewise) | `seasonEnd` | Owner |
+| `POST /v1/seasons/<name>/cancel` | `seasonCancel` | Owner |
+| `POST /v1/seasons/<name>/warps` | `seasonWarpAdd` | Owner |
+| `POST /v1/seasons/<name>/warps/<id>/remove` | `seasonWarpRemove` | Owner |
+| `POST /v1/seasons/<name>/players` | `seasonPlayerAdd` | Owner |
+| `POST /v1/seasons/<name>/players/<email>/remove` | `seasonPlayerRemove` | Owner |
+
+- Their failures are `INVALID_INPUT`, `WRONG_STATE` and `ROLE_PERMISSION_DENIED` as each season flow says, beside
+  the protocol's own (`WRONG_ENVIRONMENT`, `PROVIDER_ERROR`).
+- Start and end are barriers the size of a restore (p95 10 s); the rest are clock calls.
+- The clock read and every clock event carry `season`. The events gain `save`, and `snapshot` names the world on a
+  `save` or a `restore`. `Follower` gains `stateful`; `Snapshot` gains `followers` and `season`.
+- **The calls.** `devnet-control` (`books/target/shared/external.ts`) lists the eleven calls. Until it did, each season
+  flow kept `calls` empty and listed the supervisor's answers in its own `errors`. The surface pass's build added the
+  calls on 9 November 2026, and each flow now names its call. A flow's own errors are only what the SDK refuses before
+  any call (`devnet.season-protocol`).
+
+### 8.10 Records changed
+
+- **`books/target/shared/time.ts`:** `time.seasons`; invariants `time.season-schedule` and `time.season-reset`;
+  `time.worlds`, `time.world-channels` and `time.monotonic` name the seasons.
+- **`books/target/devnet/`:**
+  - `flows.ts`: the shapes `Season`, `SeasonState`, `SeasonWarp` and `SeasonWarpState`; eleven flows
+    `devnet.seasons.*`; `season` in `Clock` and `ClockEvent`, `save` and `snapshot` in `ClockEvent`, `stateful` in
+    `Follower`, `followers` and `season` in `Snapshot`; `devnet.time.follow` takes `stateful`; the snapshot flows
+    save and restore stateful followers' state.
+  - `operations.ts`: the eleven `dev season` operations.
+  - `worlds.ts`: `shared-world-owner`, `season-planned`, `season-running` and `season-ended`; `shared-world-joiner`
+    says no season runs there.
+  - `decisions.ts`: new `devnet.seasons` (for Aaron), `devnet.season-players`, `devnet.season-jumps`,
+    `devnet.season-reset`, `devnet.stateful-followers`, `devnet.season-protocol` and `devnet.season-worlds`; revised
+    in place `devnet.supervisor-owns-time-and-worlds`, `devnet.followers`, `devnet.time-protocol`,
+    `devnet.devnet-only-rpcs`, `devnet.clock-rate`, `devnet.own-refusal-worlds` and `devnet.budgets`;
+    `devnet.shared-world` says it is superseded.
+  - `mail.ts`, `data.ts`: a joiner reads its own mail only while a season it plays runs; a reset restores the
+    devnet tables.
+
 ## Open points for the owners of other files
 
 - **The bundler and paymaster prose.** `component_bundler_paymaster` and `environment_devnet` (in
@@ -1170,3 +1473,23 @@ world on the eval machine, its gateway on loopback, with every command run as a 
     devnet build, and the SDK sends the joiner's grant with every request (`devnet.shared-world`).
   - **`docs/design/new-commands.md` totals:** section 5.6 adds one command; the counts in its opening and
     section 1 are the assembly's to recount once this batch's other commands land.
+- **The seasons' asks** (section 8), each for the owner of another file:
+  - **`devnet-control`** (`external.ts`): the eleven season calls of 8.9, each with its failures; `ROLE_PERMISSION_DENIED`
+    for a joiner on all but `seasonList` and `seasonCurrent`; `snapshotRestore` and `timeStartAt` refuse
+    `WRONG_STATE` while a season runs, and `snapshotRestore` when a joined stateful follower is missing from the
+    world's manifest; `snapshotSave` and `snapshotRestore` ask stateful followers to save and restore; `timeFollow`
+    takes `stateful`; `timeRead` and `timeWatch` carry `season`. Then the eleven season flows name their calls and drop
+    the answers those calls' failures carry (`devnet.season-protocol`).
+  - **The command surface** (`shared/surface.ts`, `command-surface.md`): the eleven `dev season` commands as rows of
+    the devnet group, which grows from 16 to 27 commands, 391 in all; `new-commands.md` gains a section for them and
+    names a season's `start`, `end` and `cancel` among G3's lifecycle verbs.
+  - **`environment_shared_world`** (`foundation.ts`): its time runs in seasons, and a joiner uses it only while a
+    season they play runs (`devnet.season-players`).
+  - **The Frappe app and `frappe-head`** (`foundation.ts`, `external.ts`): `bench --site <site> capxul follow` joins
+    stateful and answers `save` and `restore` with Frappe's own backup and restore (`devnet.stateful-followers`).
+  - **`fde-host` and the swarm design:** a world's namespace joins stateful; swarmD must save and restore a
+    namespace's agents under a world's name, beside its timers on an outside clock.
+  - **Access and applications:** prose that names `devnet.shared-world` (`access/flows.ts`,
+    `applications/bootstraps.ts`) now names `devnet.season-players`; the CLI treats a session the world no longer
+    knows as signed out, as it already does (`time.seasons`).
+

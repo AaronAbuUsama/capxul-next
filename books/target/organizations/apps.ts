@@ -63,7 +63,8 @@ export const WHO_DIRECTOR_OR_FDE =
   "Seat's, never a named person's.";
 
 export const WHO_MEMBER =
-  "Any member of the Organization: an active Seat, a person's or an agent's (the FDE included).";
+  "Any member of the Organization: an active Seat, a person's or an agent's. The hosted FDE reads only as the member " +
+  "who asked it (aaron.fde-anyone), never as itself; a self-run own agent reads as itself.";
 
 export const rpc_organizations_apps_list = defineRpc({
   id: "organizations.apps.list",

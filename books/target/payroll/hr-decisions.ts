@@ -223,8 +223,8 @@ export const decision_payroll_hr_commands = defineDecision({
     "kind is the DocType's kebab-case name (`leave-type`, `shift-type`, `expense-type` for Expense Claim Type, " +
     "`expense-claim`), as `activity-type` and `project-type` are, or a common word, as G2 names Salary Slip `payslip` " +
     "(`leave` for Leave Application, with its allocations under it as a structure's assignments are under `org payroll " +
-    "structure`, and `advance` for Employee Advance); the 215 use none of these words. The Employee's own records have " +
-    "no prefix and take `--employer`, as `payroll payslip list` does (G1); a lifecycle verb names its machine's transition, so a " +
+    "structure`, and `advance` for Employee Advance); the 215 use none of these words. The Employee's own records begin " +
+    "with `hr`, not `org`, and take `--employer`, as `payroll payslip list` does (G1); a lifecycle verb names its machine's transition, so a " +
     "leave is born by `apply` and an advance by `request`, as the 215's `org payroll agreement offer` and `request issue` are " +
     "born by their own verbs; `balance` reads a view by its noun, as the 215's `balance` does and `org crm timeline` " +
     "reads its record's (contacts.conversation-spelling). Claiming sends at once: a claim's lines and receipts are " +
@@ -687,4 +687,47 @@ export const decision_payroll_hr_notices = defineDecision({
   why: "Every notice is notices' (payroll.notices-elsewhere), from a transition's one event (P7); the events carry what it needs to find the department's hat wearers.",
   source: by("aaron.frappe-shape", "payroll.notices-elsewhere; rules.outbox"),
   affects: [machine_leave_application, machine_expense_claim, machine_employee_advance, operation_hr_leave_apply, operation_hr_expense_claim_create, operation_org_hr_leave_approve, operation_org_hr_expense_claim_approve],
+});
+
+export const decision_payroll_hr_head_documents = defineDecision({
+  id: "payroll.hr-head-documents",
+  title: "Head HR documents that write native records: synced, or refused",
+  question:
+    "Six HR DocTypes stay on the head (payroll.hr-scope) yet write native records when submitted (hrms@8816102): " +
+    "Attendance Request makes Attendance, Shift Request a Shift Assignment, Compensatory Leave Request and Leave Policy " +
+    "Assignment make or change Leave Allocations, Leave Adjustment writes only Leave Ledger Entries, and Overtime Slip " +
+    "makes an Additional Salary. The document family reaches all six (command-surface.md 7.6). Does it refuse them, or " +
+    "does the head sync take in what they write?",
+  options: [
+    {
+      label: "sync-and-refuse-ledger",
+      text:
+        "The sync takes in what four of them write, and the family refuses the one whose effect Capxul does not hold. " +
+        "Attendance Request, Shift Request, Compensatory Leave Request and Leave Policy Assignment stay reached: only HR " +
+        "User or HR Manager may submit them, which through the family only the People hat gives (organizations.head-users), " +
+        "so the Attendance, Shift Assignment and Leave Allocations they write are the People hat's edits, which the sync " +
+        "pulls (payroll.hr-head-sync). Leave Adjustment is refused by name (NATIVE_DOCTYPES), naming `org hr leave " +
+        "allocate` and `unallocate`: it writes only the head's leave ledger, which Capxul does not keep (a balance is " +
+        "allocations less leave taken), so nothing could take it in. Overtime Slip stays reached: no hat gives the roles " +
+        "that submit it, and one submitted in the head's own desk makes an Additional Salary, so that period's run is the " +
+        "head's (payroll.one-computer-per-run).",
+    },
+    { label: "refuse-all", text: "Refuse all six by name, naming the native HR commands." },
+    { label: "drafts-only", text: "Reach all six, but refuse their submit and cancel through the family." },
+  ],
+  chosen: "sync-and-refuse-ledger",
+  why:
+    "The hole was a head writing a native record the sync does not take in. For four of the six it cannot happen through " +
+    "the family: Frappe HR's own permissions let only HR User and HR Manager submit them, and only the People hat gives " +
+    "a member's head User HR Manager, so what they write arrives as People's edits, which the pull already takes in. " +
+    "Leave Adjustment's only effect is ledger entries, outside every native table, so the only safe answer is to refuse " +
+    "it and point to the native allocation commands. Overtime Slip's submit needs HR User or Leave Approver, which no " +
+    "hat gives, and the desk's own was already decided by one computer per run. refuse-all would take away recruitment's " +
+    "neighbours (requests, policies) that reach nothing native but through People; drafts-only would leave submit, the " +
+    "point of the document, out of reach.",
+  source:
+    "Claude, surface pass build, 9 November 2026; evidence: hrms@8816102 attendance_request, shift_request, " +
+    "compensatory_leave_request, leave_policy_assignment, leave_adjustment (on_submit), overtime_slip .json permissions; " +
+    "organizations.head-users",
+  affects: [concept_payroll, workflow_payroll_head_sync, table_leave_allocations, table_attendances, table_shift_assignments],
 });

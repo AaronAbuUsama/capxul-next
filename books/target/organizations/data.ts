@@ -541,7 +541,7 @@ export const table_org_apps = defineTable({
     {
       name: "by_org_status",
       fields: ["org_id", "status", "app"],
-      for: "The wanted apps a newly connected head is asked to install, and the installed apps `org show` lists.",
+      for: "The wanted apps a newly connected head is asked to install, and the installed apps `org head show` lists.",
     },
   ],
   retention: KEPT,
@@ -883,7 +883,7 @@ export const table_org_fde_asks = defineTable({
  * (organizations.doc-reach). Each concept that holds another DocType natively adds it here, book first. The HR rows are
  * exactly payroll.hr-scope's native ones, with the commands payroll.hr-commands booked (Leave Policy, Leave Period,
  * compensatory leave, Attendance Request and Shift Request stay on the head, reached through the family; Leave
- * Encashment is money); the WhatsApp rows are the DocTypes of Frappe's WhatsApp app (github.com/frappe/whatsapp, module
+ * Encashment is money), and Leave Adjustment, which writes only the head's leave ledger (payroll.hr-head-documents); the WhatsApp rows are the DocTypes of Frappe's WhatsApp app (github.com/frappe/whatsapp, module
  * WhatsApp) that contacts holds (contacts.conversations-shape). Communication is in Frappe's core module, native anyway,
  * and is listed so that its refusal names the CRM's email commands, which hold it, rather than core's none.
  */
@@ -899,11 +899,12 @@ export const NATIVE_DOCTYPES = [
   { doctype: "Holiday List", concept: "payroll", commands: "`org hr holiday`" },
   { doctype: "HR Settings", concept: "payroll", commands: "none: Capxul fixes its values (payroll's `hr-settings`)" },
   { doctype: "Leave Type", concept: "payroll", commands: "`org hr leave-type`" },
-  { doctype: "Leave Allocation", concept: "payroll", commands: "`org hr leave allocate`, `unallocate` and `balance`" },
+  { doctype: "Leave Allocation", concept: "payroll", commands: "`org hr leave allocate`, `unallocate` and `balance`, and `hr leave balance`" },
+  { doctype: "Leave Adjustment", concept: "payroll", commands: "`org hr leave allocate` and `unallocate` (it writes only the leave ledger, which Capxul does not keep)" },
   { doctype: "Leave Application", concept: "payroll", commands: "`hr leave` and `org hr leave`" },
   { doctype: "Shift Type", concept: "payroll", commands: "`org hr shift-type`" },
   { doctype: "Shift Assignment", concept: "payroll", commands: "`org hr shift-type assign` and `unassign`" },
-  { doctype: "Employee Checkin", concept: "payroll", commands: "`hr attendance checkin`" },
+  { doctype: "Employee Checkin", concept: "payroll", commands: "`hr attendance checkin` and `list`" },
   { doctype: "Attendance", concept: "payroll", commands: "`hr attendance list` and `org hr attendance`" },
   { doctype: "Expense Claim Type", concept: "payroll", commands: "`org hr expense-type`" },
   { doctype: "Expense Claim", concept: "payroll", commands: "`hr expense-claim` and `org hr expense-claim`" },
@@ -915,13 +916,15 @@ export const NATIVE_DOCTYPES = [
 
 /**
  * What a refusal of a native module's DocType names, by module folder (FUNDAMENTAL_APPS): the head's Capxul app answers
- * the module, which only the head knows for each DocType, and Capxul names these commands (organizations.doc-reach).
+ * the module, which only the head knows for each DocType, and Capxul names these commands (organizations.doc-reach):
+ * the module's group, with the person's side where one has it, as NATIVE_DOCTYPES' HR rows name both sides
+ * (organizations.head-fit).
  */
 export const NATIVE_MODULE_COMMANDS = {
   core: "none: Frappe's core (Users, roles, files, comments, messages) is identity and channels, which are Capxul's",
   accounts: "`org books`",
-  projects: "`org projects`, `org projects task` and `org projects timesheet`",
-  payroll: "`org payroll` and `org hr employee`",
+  projects: "`org projects`, with its `member`, `settings`, `task`, `timesheet`, `activity-type` and `project-type`",
+  payroll: "`org payroll` and `payroll` (an advance's Additional Salary: `org hr advance settle`)",
   fcrm: "`org crm` and `contact`",
 } as const;
 

@@ -204,7 +204,7 @@ export const component_frappe_app = defineComponent({
   title: "Capxul app for Frappe",
   about:
     "The Frappe app Capxul publishes for a connected head (aaron.frappe-head): on the Organization's site with ERPNext, " +
-    "Frappe HR and Frappe CRM, it is the head's half of the `frappe-head` integration and the one seam, with " +
+    "Frappe HR and Frappe CRM, it is the head's half of the `frappe-head` integration, with " +
     "no fork. Its Custom Fields (organizations.frappe-app-fields): `capxul_id` and `capxul_version` on every synced " +
     "DocType; `capxul_party` on Contact, CRM Organization, Customer, Supplier, Employee and a member's User, by which it " +
     "finds or creates the document Capxul names; `capxul_hidden` on Contact and CRM Organization; and each app " +
@@ -213,15 +213,16 @@ export const component_frappe_app = defineComponent({
     "appends a change row in the writing transaction from each synced document's `on_change`, and before answering " +
     "`listChanges` one for each document whose `modified` is later than its last row's (catching " +
     "`frappe.db.set_value`); `listChanges` covers every synced DocType, at first with all the site holds. It " +
-    "answers the whitelisted methods Capxul calls and rings Capxul's doorbell (`organizations.heads.ring`), a signed " +
-    "ping with no data, and holds no Capxul key. The document family's `docRead` and `docWrite` " +
+    "answers the whitelisted methods Capxul calls and rings Capxul's doorbell (`organizations.heads.ring`) " +
+    "and holds no Capxul key. The document family's `docRead` and `docWrite` " +
     "(organizations.doc-family) run each call as the matched User (`frappe.set_user`), once that User's Capxul-held " +
     "roles match those the member's hats give at the call; they refuse native-module, money (ledger hooks, " +
     "repost_allowed_doctypes, MONEY_MODULES, LEDGER_UNHOOKED) and child-table DocTypes with a reason, refuse a direct " +
     "submit or cancel under an active Workflow, tell a Workflow's refusals apart, and keep applied call ids a day. In " +
-    "a world it follows the world's clock (devnet.head-follows-world): now_datetime's code reads the cached clock " +
-    "event, deciding host-clock reads are rebound, `bench capxul follow` runs due Scheduled Job Types at each stop, " +
-    "and override_email_send keeps the head's mail in the world.",
+    "a world it follows the world's clock (devnet.head-follows-world): now_datetime reads the cached clock event, " +
+    "deciding host-clock reads are rebound, `bench capxul follow` runs due Scheduled Job Types at each stop and joins " +
+    "stateful (devnet.stateful-followers), and override_email_send keeps " +
+    "the head's mail in the world.",
   runtime: "python (Frappe Framework v15)",
   exposes: ["http"],
   dependsOn: [],
@@ -345,13 +346,13 @@ export const concept_organizations = defineConcept({
     "can authorize an Organization tenant. A Seat held by an agent ends when the chain shows the agent removed " +
     "(AgentRemoved). It keeps the seat limit (ten, plus what an operator raised or the Organization bought): seats " +
     "bought are counted through its doors `organizations.add-bought-seats` and `organizations.return-bought-seats`, " +
-    "for the settlement of a seat purchase (organizations.buy-seats). It owns the Organization's Frappe apps (`org app " +
-    "list|add|remove`), its head connection (`org head connect|show|disconnect`) and its hosted FDE's hosting " +
+    "for the settlement of a seat purchase (organizations.buy-seats). It owns the Organization's Frappe apps (`org head " +
+    "app list|add|remove`), its head connection (`org head connect|show|disconnect`) and its hosted FDE's hosting " +
     "(org-fdes, org-fde-payments, org-fde-asks; `org fde show|ask`), whose months move through its doors " +
     "`organizations.extend-fde-hosting` and `organizations.return-fde-hosting` when payments settles or reverses an " +
     "`org fde pay`; any member, or a guest the management names (org-fde-guests; `org fde guest add|remove|list`), " +
     "may ask its FDE, which acts only as its asker (aaron.fde-anyone). Its " +
-    "document family (`org doc`, `org doctype`, `org doc-call`; org-doc-calls) reaches what lives only on the head, as " +
+    "document family (`org head doc`, `org head doctype`, `org head doc-call`; org-doc-calls) reaches what lives only on the head, as " +
     "the member's own head User (aaron.sdk-reaches-everything). It registers the Organization's Party at birth. " +
     "Old organizations' identity, setups, lifecycles, members, roles and invitations; its Directors and proposals go to " +
     "board, its equity, rounds and votes to equity, its treasury reads to activity.",
@@ -620,7 +621,8 @@ export const concept_notices = defineConcept({
     "Every email Capxul sends after a change: one workflow per notice kind, triggered by a transition of the concept it " +
     "tells about (an invitation sent, a request issued or paid, a dated payment due or failed, an agreement offered, an " +
     "allowance assigned, a proposal waiting for a Director, a referral invite, a round invitation, money waiting in a " +
-    "claim escrow with its reminders and its taking back, a payslip, a stalled head, a ready FDE), with templates, " +
+    "claim escrow with its reminders and its taking back, a payslip, a leave, expense claim or advance waiting or " +
+    "decided, a stalled head, a ready FDE), with templates, " +
     "recipients and delivery records (sent, retrying, failed). No other concept sends mail, except access' sign-in code, " +
     "which is the operation itself, and contacts' CRM conversations, which are their own command's (notices.mail-channel). It owns no frozen operation: `dev mail notices` reads its delivery records from the " +
     "devnet concept. The old notify actions of every concept and old operator's delivery records.",
@@ -828,8 +830,11 @@ export const environment_shared_world = defineEnvironment({
   about:
     "A devnet's whole stack run on a host for several people, so one story can be shared (aaron.world-clock; decision " +
     "devnet.shared-world): one chain, one backend, one clock (frozen, or running at a rate: up to four world hours each " +
-    "real hour at rate 4), one mail sink and one set of stand-ins. Its owner starts it and controls its clock; anyone else " +
-    "joins only by a grant the owner makes for their email, over HTTPS at the world's address. Self-contained: everything " +
+    "real hour at rate 4), one mail sink and one set of stand-ins. Its time runs in seasons, like a game (aaron.seasons; " +
+    "decision devnet.seasons): each starts from a saved world, runs at a rate, warps on a real schedule and ends in a " +
+    "reset. Its owner starts it, controls its clock and plans its seasons; anyone else joins only by a grant the owner " +
+    "makes for their email, over HTTPS at the world's address, and is admitted only while a season they play runs " +
+    "(devnet.season-players). Self-contained: everything " +
     "in it follows its clock, and nothing it sends leaves it (time.world-channels). It runs the devnet build of the " +
     "backend, so devnet-only rpcs answer here too, behind the world's gateway, each by the grant's role.",
   runs: [

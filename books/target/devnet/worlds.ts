@@ -89,13 +89,15 @@ const board = (proposer: string, command: string) => [
 
 /** The head documents org-with-head-docs holds, made by the stand-in head's own Administrator (organizations.doc-worlds). */
 const headEdit = (doc: string) => supervisor(`capxul-devnet head edit acme ${doc} --as Administrator`);
+/** A Training Event's mandatory fields as hrms@8816102 gives them (training_event.json), its end after its start (validate_period). */
+const TRAINING = 'event_status=Scheduled type=Seminar location="Acme office" start_time="<the world\'s today> 09:00" end_time="<the world\'s today> 17:00" introduction="Induction for new starters"';
 const HEAD_DOCS: readonly WorldStep[] = [
   headEdit("Designation new designation_name=Accountant"),
   headEdit('"Job Opening" new job_title=Bookkeeper designation=Accountant company="Acme Ltd" status=Open (named HR-OPN-2026-0001 by its series)'),
   headEdit('"Job Opening" new job_title="Office Manager" designation=Accountant company="Acme Ltd" status=Open (HR-OPN-2026-0002, a second later)'),
-  headEdit('"Training Event" new event_name="Onboarding week" (a draft)'),
-  headEdit('"Training Event" new event_name="Safety training" employees=\'[{"employee_name":"Sam Okafor"}]\' --submit'),
-  headEdit('"Training Event" new event_name="Old induction" --submit; then `head edit acme "Training Event" "Old induction" --cancel`'),
+  headEdit(`"Training Event" new event_name="Onboarding week" ${TRAINING} (a draft)`),
+  headEdit(`"Training Event" new event_name="Safety training" ${TRAINING} employees='[{"employee_name":"Sam Okafor"}]' --submit`),
+  headEdit(`"Training Event" new event_name="Old induction" ${TRAINING} --submit; then \`head edit acme "Training Event" "Old induction" --cancel\``),
   headEdit(
     'Workflow new workflow_name="Applicant Review" document_type="Job Applicant" is_active=1 workflow_state_field=workflow_state ' +
       "states=<Open, Shortlisted, Rejected, Accepted, each at docstatus 0> transitions=<Open to Shortlisted by Shortlist, Open " +
@@ -128,13 +130,19 @@ export const WORLDS: readonly World[] = [
   {
     name: "shared-world-joiner",
     holds:
-      "empty-devnet served as a shared world on the eval machine, its gateway on loopback (devnet.shared-world), with " +
+      "empty-devnet served as a shared world on the eval machine, its gateway on loopback (devnet.season-players), with " +
       "every command run as a joiner, Ana (ana@acme.test), through the gateway with her grant alone; the builder keeps " +
-      "the owner's. The clock is frozen at the eval epoch at rate 1. A joiner's move, follow, save or restore of the " +
-      "clock is ROLE_PERMISSION_DENIED; reads and watches answer.",
+      "the owner's. The clock is frozen at the eval epoch at rate 1, and no season runs, so the gateway refuses Ana's " +
+      "calls to the backend WRONG_STATE. A joiner's move, follow, save or restore of the clock, and every season command " +
+      "but `dev season show` and `list`, is ROLE_PERMISSION_DENIED; the supervisor's reads and watches answer. The " +
+      "world runs with the eval machine's seed, so each person's dev signer is the one their catalogued Safe was set up " +
+      "with, and its store is a copy of the eval machine's, made fresh with the world and thrown away with it, so every " +
+      "catalogued world is saved in it and nothing a season saves there (`s1-end`) reaches another eval. Grants and " +
+      "seasons live on the world's host outside its snapshots, so this world, and each built from it, is built by its " +
+      "steps every time an eval uses it (devnet.season-worlds).",
     from: null,
     steps: [
-      supervisor("capxul-devnet up --shared eval --public localhost --start-at <the eval epoch> --frozen (fresh)"),
+      supervisor("capxul-devnet up --shared eval --public localhost --start-at <the eval epoch> --frozen (fresh, with the eval machine's seed and a fresh copy of its store)"),
       supervisor("capxul-devnet world grant ana@acme.test (it writes Ana's grant file, which every command of this world carries)"),
     ],
     env: { CAPXUL_BOOTSTRAP_URL: "<the world's gateway on loopback>", CAPXUL_WORLD_GRANT: "<Ana's grant file>" },
@@ -1664,12 +1672,14 @@ export const WORLDS: readonly World[] = [
       "organizations.doc-worlds): a Designation `Accountant`; Job Openings HR-OPN-2026-0001 (`Bookkeeper`) and " +
       "HR-OPN-2026-0002 (`Office Manager`), both Open, designation Accountant, company Acme Ltd, -0002 made a second " +
       "after -0001 so their `modified` differ; Training Events `Onboarding week` (draft), `Safety training` (submitted, " +
-      "one employee row, Sam Okafor) and `Old induction` (cancelled); an active Workflow `Applicant Review` on Job " +
+      "one employee row, Sam Okafor) and `Old induction` (cancelled), each with hrms' mandatory fields (Scheduled, a " +
+      "Seminar at the Acme office, 09:00 to 17:00 on the world's day, an introduction); an active Workflow `Applicant Review` on Job " +
       "Applicant (Open to Shortlisted by Shortlist or to Rejected by Reject, Shortlisted to Accepted by Accept, every " +
       "transition allowed to HR Manager); and a Job Applicant named, as Frappe HR names one, by its email, " +
       "kim@applicants.test, in state Open. Dana's head User holds HR Manager (the People hat, organizations.head-users); " +
-      "Sam's holds no HR role. The stand-in's fixture metas put Project in ERPNext's projects module and its ledger hooks " +
-      "name Stock Entry. Dana current.",
+      "Sam's holds no HR role. The stand-in's fixture metas put Project in ERPNext's projects module, make Job Opening " +
+      "not submittable and Training Event submittable with its child table Training Event Employee, and its ledger " +
+      "hooks name Stock Entry. Dana current.",
     from: "org-with-head",
     steps: HEAD_DOCS,
     namedBy: ["organizations"],
@@ -1879,6 +1889,67 @@ export const WORLDS: readonly World[] = [
     steps: [fault("chain-rpc node-down"), current("lead@acme.test")],
     namedBy: ["payroll"],
   },
+  // ── seasons: a shared world's seasons (aaron.seasons; devnet.seasons, devnet.season-worlds) ──
+  // Last in the catalog: each names catalogued worlds (person-with-funded-safe, person-ready) as a season's start, so
+  // every other world is built and saved before them.
+  // Each is built by its steps on a fresh shared world every time an eval uses it, since its grants and seasons live
+  // outside the snapshots, and a running season runs on real time, so these are the catalog's only worlds whose clock
+  // runs. A player's command runs from that player's own CLI home, which the harness keeps outside the world's
+  // snapshots as their own machine would be; the owner's runs from the eval machine's.
+  {
+    name: "shared-world-owner",
+    holds:
+      "shared-world-joiner with every command run as the world's owner (the builder's owner grant), and a second joiner, " +
+      "Dana (dana@acme.test), granted too; no season, the clock frozen at the eval epoch at rate 1. A claim that runs a " +
+      "command as Ana or Dana runs it with her grant file from her own CLI home.",
+    from: "shared-world-joiner",
+    steps: [supervisor("capxul-devnet world grant dana@acme.test (her grant file, kept for the commands a claim runs as Dana)")],
+    env: { CAPXUL_BOOTSTRAP_URL: "<the world's gateway on loopback>", CAPXUL_WORLD_GRANT: "<the owner's grant file>" },
+    namedBy: ["devnet"],
+  },
+  {
+    name: "season-planned",
+    holds:
+      "shared-world-owner with season s1 planned by the owner: from person-with-funded-safe (Dana ready with 1,000 USDC " +
+      "in her Safe, Sam ready), reset to the same world, rate 4, ending two real hours after it was made, one warp w1 " +
+      "of 30 days an hour after it was made, and Dana its one player. The world itself is unchanged: frozen at the eval " +
+      "epoch at rate 1, no season running, so the gateway refuses Dana's and Ana's backend calls WRONG_STATE.",
+    from: "shared-world-owner",
+    steps: [anyone("capxul dev season create s1 --snapshot person-with-funded-safe --rate 4 --end +2h --warp +1h=30d --player dana@acme.test")],
+    env: { CAPXUL_BOOTSTRAP_URL: "<the world's gateway on loopback>", CAPXUL_WORLD_GRANT: "<the owner's grant file>" },
+    namedBy: ["devnet"],
+  },
+  {
+    name: "season-running",
+    holds:
+      "season-planned after the owner started s1: the world is person-with-funded-safe's under a new epoch, its clock " +
+      "running at rate 4 and naming s1, w1 still scheduled. Dana signed in from her own CLI home and paid Sam 5 USDC, " +
+      "settled, so her Safe holds 995 USDC; her season's mail (the sign-in code, the payment's notices) is in the sink. " +
+      "Ana holds a grant but does not play s1.",
+    from: "season-planned",
+    steps: [
+      anyone("capxul dev season start s1 --confirm"),
+      step(
+        "dana@acme.test",
+        "from her own CLI home, with her grant: capxul auth login dana@acme.test; capxul auth verify <the code `capxul dev mail list --to dana@acme.test` shows>",
+      ),
+      step("dana@acme.test", "capxul payment send sam@acme.test 5 --json; capxul dev approve --as dana@acme.test <its approval>; until it is settled"),
+    ],
+    env: { CAPXUL_BOOTSTRAP_URL: "<the world's gateway on loopback>", CAPXUL_WORLD_GRANT: "<the owner's grant file>" },
+    namedBy: ["devnet"],
+  },
+  {
+    name: "season-ended",
+    holds:
+      "season-running after the owner ended s1: s1 ended, its last state (Dana's 995 USDC and her payment to Sam) saved " +
+      "as the world s1-end, and the world reset to person-with-funded-safe, frozen at its now under a new epoch, with no " +
+      "season running. Dana's own CLI home still holds her s1 session, which this world does not know, and the sink " +
+      "holds none of s1's mail.",
+    from: "season-running",
+    steps: [anyone("capxul dev season end s1 --confirm")],
+    env: { CAPXUL_BOOTSTRAP_URL: "<the world's gateway on loopback>", CAPXUL_WORLD_GRANT: "<the owner's grant file>" },
+    namedBy: ["devnet"],
+  },
 ];
 
 // ── the names devnet's own refusals use ─────────────────────────────────────────────────────
@@ -1889,6 +1960,10 @@ export const W = {
   signedIn: "person-signed-in",
   offDevnet: "cli-on-beta-environment",
   sharedJoiner: "shared-world-joiner",
+  sharedOwner: "shared-world-owner",
+  seasonPlanned: "season-planned",
+  seasonRunning: "season-running",
+  seasonEnded: "season-ended",
   orgReady: "org-ready",
   history: "person-with-payment-history",
   bridgeDown: "bridge-unreachable",

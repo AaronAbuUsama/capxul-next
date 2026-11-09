@@ -72,7 +72,13 @@ import {
 } from "./holders.ts";
 import { rpc_payroll_payees_accept, rpc_payroll_payees_collect, rpc_payroll_payees_list, rpc_payroll_payees_show } from "./payees.ts";
 import { rpc_payroll_writes_watch } from "./writes.ts";
-import { flow_client_org_hr_advances_pay, flow_client_org_hr_advances_settle, flow_client_org_hr_expense_claims_pay } from "./expenses.ts";
+import {
+  flow_client_org_hr_advances_pay,
+  flow_client_org_hr_advances_settle,
+  flow_client_org_hr_expense_claims_pay,
+  rpc_payroll_advances_settle,
+} from "./expenses.ts";
+import { rpc_payroll_leave_list } from "./leave.ts";
 import { workflow_payroll_agreements_lifecycle, workflow_payroll_head_sync, workflow_payroll_startup_open } from "./processes.ts";
 import {
   flow_client_me_payroll_payslips_get,
@@ -1310,8 +1316,8 @@ export const decision_payroll_hr_surface = defineDecision({
       text:
         "One SDK flow per rpc, on the SDK and the web app (the FDE agent, any agent, people; a head is synced by " +
         "payroll's own process, never through them); their " +
-        "CLI commands (`org hr employee add|change|list`, `org payroll component|structure|assign|run|submit|withhold|pay|" +
-        "cancel|show|list`, `payroll payslip list|show`) are designed with acceptance claims in the payroll operations pass, from " +
+        "CLI commands (`org employee add|change|list`, `org payroll component|structure|assign|run|submit|withhold|pay|" +
+        "cancel|show|list`, `payslip list|show`) are designed with acceptance claims in the payroll operations pass, from " +
         "docs/design/frappe/payroll.md.",
     },
     {
@@ -1348,7 +1354,10 @@ export const decision_payroll_hr_surface = defineDecision({
     "decision: a declined run approval leaves the run owed (payroll.declined-run-approval), the run keeps the caller's " +
     "request key (payroll.run-request-key), a component's flags are off unless given (payroll.component-defaults), a " +
     "run takes its department's Employees and its leavers' last period (payroll.run-employees), and the commands keep " +
-    "the grammar's lists, outputs and codes as the 215 and the other packs do (payroll.command-fit).",
+    "the grammar's lists, outputs and codes as the 215 and the other packs do (payroll.command-fit). He accepted the " +
+    "Employee commands as `org employee …` and the payslips as `payslip …` and `org payslip …`; the command tree since " +
+    "spells them `org hr employee …`, `payroll payslip …` and `org payroll payslip …`, with nothing else changed " +
+    "(payroll.surface-moves).",
   source: AFTER_RULING("aaron.frappe-shape, aaron.fde-agent, aaron.projects (new capabilities designed book first)"),
   affects: [...NEW_OPERATIONS, ...HR_FLOWS, ...HR_RPCS, rpc_payroll_slips_mine, rpc_payroll_runs_pay],
 });
@@ -1945,7 +1954,7 @@ export const decision_payroll_command_fit = defineDecision({
       label: "grammar",
       text:
         "(1) Every list pages and prints `items` and `nextCursor`; a cursor it did not give is INVALID_INPUT, as `org " +
-        "app list` and `org projects activity-type list` do: `org hr employee list` and `org payroll run list` page in their rpc, and " +
+        "head app list` and `org projects activity-type list` do: `org hr employee list` and `org payroll run list` page in their rpc, and " +
         "`org payroll component list` and `org payroll structure list`, short catalogs, in their method over one read; " +
         "structures list by name, each with the assignments that name it. (2) Every Employee write prints the Employee as " +
         "`org hr employee get` does, with today's assignment. (3) `org payroll run pay` prints as `payment send` and the " +
@@ -2008,6 +2017,9 @@ export const decision_payroll_command_fit = defineDecision({
 
 // ── the command tree (surface pass, 9 November 2026) ────────────────────────────────────────
 
+/** Who decided this section's records, and when: the frappe-apps owner in the surface pass. */
+const surfaceBy = (evidence: string) => `Claude, surface pass (frappe-apps), 9 November 2026; evidence: ${evidence}`;
+
 /** The commands the tree moved: HR's into `hr` and `org hr`, the payslips and the 215's agreements into `payroll` and `org payroll`. */
 const SURFACE_MOVED = [...OPERATIONS, ...NEW_OPERATIONS, ...HR_OPERATIONS].filter((o) =>
   /^(org hr|hr|org payroll payslip|payroll payslip|org payroll agreement|payroll agreement) /.test(o.command),
@@ -2052,7 +2064,7 @@ export const decision_payroll_surface_moves = defineDecision({
     "commands an rpc implements alone change no record but their operation. HR stays in this concept (surface.hr-concept, " +
     "payroll.hr-in-payroll). For Aaron, as part of question 50 (surface.tree): the recommendation stands until he " +
     "answers, and if he keeps the booked nouns the words move back with no change of behaviour.",
-  source: by(
+  source: surfaceBy(
     "books/target/shared/surface.ts (surface.tree, surface.hr-group, surface.payroll-group); docs/design/command-surface.md " +
       "sections 3, 4, 5 and 9; aaron.frappe-shape",
   ),
@@ -2063,5 +2075,125 @@ export const decision_payroll_surface_moves = defineDecision({
     flow_client_org_hr_expense_claims_pay,
     flow_client_org_hr_advances_pay,
     flow_client_org_hr_advances_settle,
+  ],
+});
+
+/** The HR and payroll commands booked with one claim, which payroll.claims-thickened gave the rest of theirs. */
+const THICKENED: readonly string[] = [
+  "org.payroll.component.change", "org.payroll.component.list", "org.payroll.run.get", "org.payroll.run.list",
+  "org.payroll.structure.list", "org.hr.holiday.list", "org.hr.holiday.remove", "org.hr.leave-type.list",
+  "org.hr.leave.balance", "org.hr.leave.reject", "hr.leave.balance", "hr.leave.list", "org.hr.shift-type.list",
+  "org.hr.shift-type.unassign", "hr.attendance.list", "org.hr.attendance.list", "org.hr.expense-type.add",
+  "org.hr.expense-type.list", "hr.expense-claim.list", "hr.expense-claim.get", "hr.expense-claim.cancel",
+  "org.hr.expense-claim.list", "org.hr.expense-claim.get", "org.hr.expense-claim.reject", "org.hr.expense-claim.cancel",
+  "hr.advance.request", "hr.advance.list", "hr.advance.cancel", "org.hr.advance.reject", "org.hr.advance.get",
+  "org.hr.advance.list",
+];
+
+export const decision_payroll_claims_thickened = defineDecision({
+  id: "payroll.claims-thickened",
+  title: "HR and payroll commands claim their success, change, answer and retry",
+  question:
+    "Thirty-one of the HR and payroll commands beyond the 215 were booked with one acceptance claim each, so their " +
+    "evals checked one path. Which claims does each gain, and from what?",
+  options: [
+    {
+      label: "from-the-booking",
+      text:
+        "Each gains the claims its booked behaviour already has, observed through the CLI from a named world " +
+        "(org-with-employees, org-with-payroll-runs, org-with-leave, org-with-attendance, org-with-expenses): what a write " +
+        "changes and the one transition it sends; what a read answers in the other states the world holds (a draft or " +
+        "withheld run, an unpaid type's balance on a day no allocation covers, a recovery once an advance is settled), " +
+        "its filters and pages, and that it writes nothing; and what running a decision again does: WRONG_STATE naming " +
+        "the status it is already in, with an empty diff. No claim adds a behaviour.",
+    },
+    { label: "one-each", text: "Keep one claim each; the refusals cover the rest." },
+  ],
+  chosen: "from-the-booking",
+  why:
+    "A claim is the eval the build is held to (rules.new-operations, aaron.frappe-shape): with one each, a command " +
+    "that decided a claim twice, booked a second accrual cancellation, or kept a reserved advance after its claim was " +
+    "rejected would pass. Each new claim is read off the record that already decides it: the rpc's guard on the " +
+    "status it moves from (a second reject, cancel or unassign is WRONG_STATE), its shape's fields (`unclaimed`, " +
+    "`recovery`, `rejectionReason`, `withholdingReason`), the leave balance rule (allocated less taken, only unpaid " +
+    "types on a day no allocation covers), the reader guards (the People hat reads every claim and advance, a " +
+    "department's hat its own) and every list's page (payroll.command-fit). Refusals stay refusals; a claim names one " +
+    "only to show a retry changes nothing. A truth review (9 November 2026) set three observations by their records: " +
+    "disabled components list by type and then name (Bonus before Pension), as `org payroll component list`'s flow " +
+    "orders them; a second claim takes 150.00 of an advance only when it asks at least that (ALLOCATE); and a holiday " +
+    "added must be a day that is not one already (`payroll.holidays.add`). A fit review then took out four claims " +
+    "that only repeated another claim's evidence and titled three by what they show (payroll.surface-fit).",
+  source: surfaceBy(
+    "books/target/payroll/hr-shapes.ts (Advance); leave.ts (BALANCE, the guards); expenses.ts; attendance.ts; runs.ts; " +
+      "structures.ts; payroll.hr-worlds; payroll.command-worlds; aaron.frappe-shape",
+  ),
+  affects: [...NEW_OPERATIONS, ...HR_OPERATIONS].filter((o) => THICKENED.includes(o.id)),
+});
+
+/** The commands the fit review changed: a who, a preview's guard, a reader's who, or a claim that repeated another's evidence. */
+const FIT_REVIEWED: readonly string[] = [
+  "org.payroll.run.pay", "org.hr.advance.settle", "org.hr.leave.list", "org.payroll.run.list", "org.hr.leave-type.list",
+  "org.payroll.component.list", "org.payroll.component.change", "org.hr.expense-type.add", "org.hr.shift-type.list",
+  "hr.leave.balance",
+];
+
+export const decision_payroll_surface_fit = defineDecision({
+  id: "payroll.surface-fit",
+  title: "Who reads as authority.md has it, and no claim repeats another",
+  question:
+    "Fit review of the surface pass (9 November 2026; Aaron: 'It's the logical groupings'). Five things did not fit. " +
+    "`org payroll run pay`'s who said an agent, 'the FDE included, pays only through a hat its Safe was granted', " +
+    "beside WHO_HR, which already said the hosted FDE acts only as its asker. `org hr advance settle` previews (G5), " +
+    "yet neither it nor payroll.advances.settle refused a hosted FDE's act-for call, as rules.fde-acts-for-asker names " +
+    "it for and `org hr employee leave` does. `org hr leave list` took the deciders' who ('never the applicant') and " +
+    "the title 'the leave applications you may decide', though its own claim shows Lead listing his own application, " +
+    "which only another decides. Four thickened claims only repeated evidence another claim already holds, and three " +
+    "claim titles promised what their evidence did not show (`hr leave balance`'s first said 'with no Seat', though no " +
+    "world has an Employee with an account and no Seat). And payroll.hr-surface's rejected sdk-now option, which " +
+    "is history, had been respelt into a command that never was (`payroll payslip list|show`). What should each say?",
+  options: [
+    {
+      label: "aligned",
+      text:
+        "Run pay's who: a self-run own agent pays through a hat its Safe was granted; the hosted FDE only as the member " +
+        "who asked it, handing the approval to their Safe. Settle's who and rpc refuse a hosted FDE's act-for call " +
+        "(ROLE_PERMISSION_DENIED), as `org hr employee leave` does. The leave list takes a reader's who, WHO_LEAVE_READER " +
+        "(the People hat every application, a department's hat its own and those below, the wearer's own among them), " +
+        "and the title 'List the Organization's leave applications', as `org hr expense-claim list` is. Take out the " +
+        "third claims of `org payroll run list`, `org hr leave-type list`, `org payroll component list` and `org hr " +
+        "expense-type add`; trim `org payroll component change`'s third to the new structure; title `org payroll " +
+        "component list`'s second, `org hr shift-type list`'s second and `hr leave balance`'s first by their evidence " +
+        "(the Seat a self command does not need stays in its who, WHO_SELF_HR). Restore the sdk-now option's " +
+        "words (`org employee add|change|list`, `payslip list|show`).",
+    },
+    { label: "as-is", text: "Leave them: the guards already resolve the hosted FDE to its asker." },
+  ],
+  chosen: "aligned",
+  why:
+    "docs/design/authority.md: 'A call with no live token is refused, so the hosted FDE never acts as itself, and the " +
+    "hats the Board grants its own Safe go unused while Capxul hosts it'; and 'a command that previews is the asker's " +
+    "own to answer, so its rpc refuses the FDE's call'. rules.fde-acts-for-asker lists the advance's settle among those " +
+    "rpcs. payroll.hr-approvers already decides who reads leave: 'Lists read by the People hat (all) or a department's " +
+    "hat (its own and below)'; 'nobody decides their own' is a decider's rule, not a reader's. A claim is an eval the " +
+    "build is held to, so one whose evidence another claim of the same command already holds, or that only reads back " +
+    "another command's success, tests nothing new: run list's first claim already shows a submitted run's next step; " +
+    "leave-type change and component add already show their own change; expense-type list's two claims show an added " +
+    "type to any member. A claim's title is what its evidence proves (organizations.head-fit). Every command keeps at " +
+    "least two claims. payroll.command-authority, payroll.run-one-approval and payroll.deduction-remittance predate " +
+    "aaron.fde-hosted and say the FDE acts with its own Safe's hats; they are read through rules.fde-acts-for-asker: a " +
+    "self-run own agent does, and the hosted FDE acts as its asker. Text only, but for settle's act-for refusal, which " +
+    "rules.fde-acts-for-asker already decided.",
+  source: surfaceBy(
+    "docs/design/authority.md (agents and the FDE); rules.fde-acts-for-asker; payroll.hr-approvers; organizations.head-fit; " +
+      "payroll operations, leave.ts, expenses.ts",
+  ),
+  affects: [
+    ...[...NEW_OPERATIONS, ...HR_OPERATIONS].filter((o) => FIT_REVIEWED.includes(o.id)),
+    rpc_payroll_advances_settle,
+    rpc_payroll_leave_list,
+    decision_payroll_hr_surface,
+    decision_payroll_command_authority,
+    decision_payroll_run_one_approval,
+    decision_payroll_deduction_remittance,
   ],
 });

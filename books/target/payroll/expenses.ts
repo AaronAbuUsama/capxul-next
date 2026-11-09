@@ -618,7 +618,9 @@ export const rpc_payroll_advances_settle = defineRpc({
     "not by payment days, not taxable, removed when zero); one Additional Salary deducts the unclaimed amount, its " +
     "payroll date the first day after the Employee's latest submitted slip (today if none is later), so the next run " +
     "takes it; and the advance is marked to be repaid from salary. Nothing moves now: the advance is `returned` (or " +
-    "`partly_claimed_and_returned`) when the slip that takes it is submitted (payroll.advance-recovery). It answers the advance.",
+    "`partly_claimed_and_returned`) when the slip that takes it is submitted (payroll.advance-recovery). It refuses a " +
+    "hosted FDE's act-for call (ROLE_PERMISSION_DENIED): `org hr advance settle` previews, and the preview is the " +
+    "asker's own to answer (rules.fde-acts-for-asker). It answers the advance.",
   was: [`${EA}:309`, "/tmp/hrms/hrms/payroll/doctype/additional_salary/additional_salary.py:262"],
   concept: concept_payroll,
   kind: "mutation",

@@ -207,7 +207,7 @@ export const journey_run_company = defineJourney({
     "proves it, as `account retry` does in get_started. The old `org director add` refuses on v4, so the founder seats " +
     "the Director with `org board director add` (journeys.steps). Budget changes are Board proposals that land as `budget_change_transitioned`; " +
     "a new allowance or department is the budget machine's own birth. `org invite cancel` and `invite decline`, and " +
-    "`org agreement withdraw`, are taken on second invitations and offers the scenario's world holds. Left out " +
+    "`org payroll agreement withdraw`, are taken on second invitations and offers the scenario's world holds. Left out " +
     "(journeys.steps): the eleven optional books operations and nineteen reads and changes along the way. The founder " +
     "wears the People hat from setup, so ROLE_CONFLICT keeps them from any department or team office " +
     "(organizations.founder-people-hat): the Directors give the offices to others, and a founder spends as the Board " +

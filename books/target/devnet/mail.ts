@@ -4,8 +4,8 @@
 // which serves only loopback, so "anyone on the machine that runs the local devnet" is every caller
 // that reaches them (decision devnet.devnet-only-rpcs). A shared world runs the same build behind its
 // gateway, which admits a request only with a world grant: there the owner reads every message, and a
-// joiner only the mail to the mailboxes its grant names, so the world's mail stays inside it and its
-// people still read their own sign-in codes (decision devnet.shared-world).
+// joiner, while a season they play runs, only the mail to the mailboxes its grant names, so the world's
+// mail stays inside it and its players still read their own sign-in codes (decision devnet.season-players).
 
 import { Schema } from "effect";
 import { budget, defineRpc } from "../../../packages/book/src/index.ts";
@@ -39,10 +39,10 @@ export const MailFault = Schema.Struct({ to: NullOr(S), remaining: Int });
 
 const ON_THE_MACHINE =
   "devnet only: anyone on the machine that runs the local devnet; no sign-in. In a shared world, its owner's grant.";
-/** The mail reads: in a shared world a joiner reads only its own mailboxes' mail (decision devnet.shared-world). */
+/** The mail reads: in a shared world a player reads only its own mailboxes' mail (decision devnet.season-players). */
 const MAIL_READER =
-  "devnet only: anyone on the machine that runs the local devnet; no sign-in. In a shared world, its owner's grant, or a " +
-  "joiner's for the mailboxes the grant names.";
+  "devnet only: anyone on the machine that runs the local devnet; no sign-in. In a shared world, its owner's grant, or, " +
+  "while a season they play runs, a joiner's for the mailboxes the grant names.";
 
 export const rpc_devnet_mail_list = defineRpc({
   id: "devnet.mail.list",

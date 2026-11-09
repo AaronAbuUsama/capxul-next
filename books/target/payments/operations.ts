@@ -654,6 +654,14 @@ export const operation_org_fde_pay = defineOperation({
         "ROLE_PERMISSION_DENIED before `--from` is looked up; world: no payment " +
         "command and no approval.",
     },
+    {
+      claim: "Asking twice under one request key pays once.",
+      observes:
+        "cli: from org-with-fde-allowance, Dana's `org fde pay 1 --from capxul --org acme --request-key k1 --no-wait --json` run " +
+        "twice prints the same approvalId and paymentIds; read: once Dana signs it and it settles, `org fde show --org acme " +
+        "--json` prints monthsPaid 1, not 2, and paidThrough one calendar month after the start-up month's end; world: one " +
+        "payment command.",
+    },
   ],
   returns: Schema.Union([Schema.Struct({ ...HandoverJson.fields, hosting: HostingJson }), EndedJson]),
   errors: [error_CLI_USAGE],

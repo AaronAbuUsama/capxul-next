@@ -1649,7 +1649,77 @@ export const decision_payments_claim_retry = defineDecision({
     "Money is collected once, and a person who ran the command, lost the page and ran it again must not sign twice or be " +
     "offered money already collected. That is booked behaviour (the rpc's live approval and the escrow reading paid), " +
     "so it gets an eval rather than living only in prose. Nothing new is designed: no flag, no answer and no refusal " +
-    "changes, and the claim reuses the waiting world of claim 1 (aaron.payment-claim).",
-  source: claimBy("books/target/accounts/setup.ts (accounts.setup.collect: 'asking twice signs once'); books/target/payments/flows.ts (client.payments.claim); aaron.payment-claim"),
+    "changes, and the claim reuses the waiting world of claim 1 (aaron.payment-claim). It holds on any world's clock: " +
+    "the eval world is restored on a frozen clock (devnet.deterministic-worlds), so nothing lapses between the runs; on a " +
+    "season's running clock the approval lapses at its deadline on the world's now (time.real-elapsed), after which the " +
+    "collection no longer waits and the next `payment claim` opens a new approval for the same escrows; and a season's " +
+    "reset restores its starting world, where the escrows wait again (aaron.seasons).",
+  source:
+    "Claude, money group, surface pass, 9 November 2026; evidence: accounts.setup.collect ('asking twice signs once'); " +
+    "client.payments.claim; approvals.open (a live approval of the same subject); aaron.payment-claim",
   affects: [operation_payment_claim],
+});
+
+// ── the command surface's fit review (9 November 2026) ─────────────────────────────────────────
+
+const FIT = (evidence: string) => `Claude, money group, surface pass fit review, 9 November 2026; evidence: ${evidence}`;
+
+export const decision_payments_fde_pay_retry = defineDecision({
+  id: "payments.fde-pay-retry",
+  title: "`org fde pay` observes what asking again does, as `org seats buy` does",
+  question:
+    "`org fde pay` came from the commands pass with four claims, and none says what asking again does, though its flow " +
+    "answers a repeat under the same `--request-key` where the first approval ended (K1), and every other new money " +
+    "command that takes `--request-key` observes it. Does it get that claim?",
+  options: [
+    {
+      label: "retry-claim",
+      text:
+        "A fifth claim: asked twice under one request key with `--no-wait --json`, it answers the same approval and " +
+        "Payment, and once signed and settled the hosting has moved by its months once. Observed from " +
+        "org-with-fde-allowance by the CLI, `org fde show` and the world (one payment command).",
+    },
+    { label: "four", text: "Keep the four claims; the repeat stays a sentence in the flow's `about`." },
+  ],
+  chosen: "retry-claim",
+  why:
+    "A hosting payment is money paid to Capxul, and a person who lost the reply and ran the command again must not pay " +
+    "a month twice. That is booked behaviour (payments.commands.pay-fde-hosting births under the request key's command, " +
+    "and a repeat answers it as it stands; client.org.fde.pay), and the other new money commands that take " +
+    "`--request-key` already observe it (`org seats buy` claim 3, `org payroll run pay`, `org hr expense-claim pay`), so " +
+    "this was the one such money path whose retry no eval would catch. payments.claim-retry gave `payment claim` its fourth " +
+    "claim for the same reason. Nothing new is designed: no flag, answer or refusal changes, and the claim reuses claim " +
+    "1's world. A lapsed approval's retry stays `payment retry`'s, which this command's SUPERSEDED refusal names. It " +
+    "holds on any world's clock: the eval world is restored on a frozen clock (devnet.deterministic-worlds); on a " +
+    "season's running clock the repeat still answers the first command, never a second payment; and a reset restores " +
+    "the unpaid world (aaron.seasons).",
+  source: FIT("client.org.fde.pay ('A repeat under the same --request-key answers where the first approval ended'); payments.commands.pay-fde-hosting (K1); org.seats.buy claim 3; aaron.fde-hosted"),
+  affects: [operation_org_fde_pay],
+});
+
+export const decision_payments_department_pay_sdk = defineDecision({
+  id: "payments.department-pay-sdk",
+  title: "`org department pay`'s SDK method is `client.org(orgId).departments.pay`",
+  question:
+    "The flow behind `org department pay` named its SDK method `client.org.departments.pay`, the only Organization " +
+    "method in the book without `(orgId)`. The frozen record's is `client.org(orgId).departments.pay`, and the tree's SDK " +
+    "rule (grammar G7; docs/design/command-surface.md section 2) makes `org` `client.org(orgId)`. Which is it?",
+  options: [
+    {
+      label: "org-id",
+      text:
+        "`client.org(orgId).departments.pay`, as the frozen record has it, beside budgets' " +
+        "`client.org(orgId).departments.create|close|reopen` and every other Organization method. The flow keeps its id " +
+        "`client.org.departments.pay` (the method kebab-cased, without `(orgId)`), its input and its steps, so no eval id moves.",
+    },
+    { label: "as-booked", text: "Keep `client.org.departments.pay`." },
+  ],
+  chosen: "org-id",
+  why:
+    "Aaron asked that everything be programmatic and reachable from Capxul's tooling in logical groups (question 48), and " +
+    "the SDK reaches the Organization one way: `client.org(orgId)`, then the group, the noun and the verb. One department " +
+    "method off that path is a hole in the programmatic surface, not a design: the frozen record has `(orgId)`, and the " +
+    "target's flow lost it in transcription. Nothing else about `org department pay` changes.",
+  source: FIT("books/frozen/operations.ts (org.department.pay: sdk client.org(orgId).departments.pay); budgets/flows.ts; docs/design/new-commands.md (G7)"),
+  affects: [flow_client_org_departments_pay, operation_org_department_pay],
 });

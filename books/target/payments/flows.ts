@@ -139,7 +139,7 @@ export const flow_client_org_departments_pay = defineFlow({
     "route is checked before anyone signs: it must name the department's own active top budget, and another budget, an " +
     "unknown one or a proposed department is closed unsent. Then it signs and follows like any payment.",
   component: component_core_sdk,
-  sdk: "client.org.departments.pay",
+  sdk: "client.org(orgId).departments.pay",
   input: Schema.Struct({ org: S, department: S, to: S, amount: S, kind: SendInput.fields.kind, document: SendInput.fields.document, ...Follow }),
   output: MoneyOutcome,
   steps: [

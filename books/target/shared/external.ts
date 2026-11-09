@@ -651,11 +651,17 @@ const busy = {
   when: "Another move of the clock (a warp, step, settle, start-at, freeze, resume or rate change) is running; the refusal names it",
   error: error_WRONG_STATE,
 } as const;
-/** In a shared world only its owner moves the clock or saves and restores the world; only the owner or a follower grant follows it (decision devnet.shared-world). */
+/** In a shared world only its owner moves the clock, saves and restores the world and plans and runs its seasons; only the owner or a follower grant follows it (decisions devnet.shared-world, devnet.season-players). */
 const ownerOnly = {
-  when: "In a shared world the grant may not do this: only the owner's grant moves the clock and saves or restores the world, and only the owner's or a follower grant follows it",
+  when: "In a shared world the grant may not do this: only the owner's grant moves the clock, saves or restores the world and creates, changes, starts, ends or cancels a season or changes its warps or players, and only the owner's or a follower grant follows it",
   error: error_ROLE_PERMISSION_DENIED,
 } as const;
+/** A season call that names no season, or gives a time, world or player the supervisor cannot use (decision devnet.seasons). */
+const seasonInput = (when: string) => ({ when, error: error_INVALID_INPUT }) as const;
+/** A season call on a season in the wrong state for it (decision devnet.seasons). */
+const seasonState = (when: string) => ({ when, error: error_WRONG_STATE }) as const;
+/** A season's start or end restores a world, so it is sized like snapshotRestore (decision devnet.season-protocol). */
+const SEASON_BARRIER = { timeoutMs: 60_000, ...CONTROL, p95Ms: 10_000 } as const;
 /** A clock call is local and immediate: one read or one state change of the time authority. */
 const CLOCK_CALL = { timeoutMs: 2_000, ...CONTROL, p95Ms: 100 } as const;
 /** A barrier call waits for every follower to settle at every stop, so a month takes seconds and a year minutes; a
@@ -675,14 +681,21 @@ export const integration_devnet_control = defineIntegration({
     "follower the barrier and the running stops wait for. Its world part saves, lists and restores named worlds (the " +
     "chain, Postgres and Ponder together, with the clock). The Core SDK's Node-only devnet entry is its typed client, " +
     "behind the Effect service `DevnetControl`; the CLI's `dev time` and `dev snapshot` commands and the supervisor's " +
-    "own `capxul-devnet time` commands are thin clients of it, and an outside program may speak the HTTP directly. Only " +
-    "devnet records use it.",
+    "own `capxul-devnet time` commands are thin clients of it, and an outside program may speak the HTTP directly. Its " +
+    "season part plans and runs a shared world's seasons (aaron.seasons; decisions devnet.seasons and " +
+    "devnet.season-protocol): each starts from a saved world, runs at a rate, warps on a real schedule, admits only its " +
+    "players, and ends in a reset; the CLI's `dev season` commands are its thin clients. A follower that keeps world " +
+    "state (a real bench, the FDE namespace) joins stateful and saves and restores its own state with every world " +
+    "(decision devnet.stateful-followers). Only devnet records use it.",
   component: component_core_sdk,
   system: "capxul-devnet supervisor",
   service: "DevnetControl",
   calls: {
     snapshotSave: {
-      about: "Saves the whole world under a name, with its clock and the backend code it was saved with; `replace` replaces a world of that name.",
+      about:
+        "Saves the whole world under a name, with its clock and the backend code it was saved with; `replace` replaces a " +
+        "world of that name. On the `save` event each stateful follower saves its own state under the name before it " +
+        "acknowledges, and the manifest lists them (devnet.stateful-followers).",
       timeoutMs: 60_000,
       ...CONTROL,
       p95Ms: 10_000,
@@ -694,7 +707,10 @@ export const integration_devnet_control = defineIntegration({
       ],
     },
     snapshotRestore: {
-      about: "Restores a named world, its clock frozen at the world's now during the restore, then in the mode and at the rate it was saved with.",
+      about:
+        "Restores a named world, its clock frozen at the world's now meanwhile, then in its saved mode and rate. On the " +
+        "`restore` event each stateful follower restores its own state before it acknowledges, and the backend and Ponder " +
+        "start only after (devnet.stateful-followers).",
       timeoutMs: 60_000,
       ...CONTROL,
       p95Ms: 10_000,
@@ -702,15 +718,19 @@ export const integration_devnet_control = defineIntegration({
         ...controlFailures,
         { when: "No world has that name; the refusal lists the worlds saved here", error: error_INVALID_INPUT },
         { when: "The world was saved with other backend code, so its data may not match it", error: error_WRONG_STATE },
+        {
+          when: "A stateful follower joined now is missing from the world's manifest (the refusal names it), or a season is running: only its end replaces its world (decision devnet.season-reset)",
+          error: error_WRONG_STATE,
+        },
         ownerOnly,
       ],
     },
     snapshotList: { about: "The saved worlds, newest first.", timeoutMs: 2_000, ...CONTROL, p95Ms: 100, failures: [...controlFailures] },
     timeRead: {
       about:
-        "GET /v1/time: the clock (now and its realAt, mode, rate, next stop, version, world epoch, whether it moved, and " +
-        "the authority's real time as it answered), the chain head, the backend's now, Ponder's position, each " +
-        "follower's acknowledged version and next due instant, and whether they agree.",
+        "GET /v1/time: the clock (now and realAt, mode, rate, next stop, version, world epoch, whether it moved, the " +
+        "authority's real time), the season running or null, the chain head, the backend's now, Ponder's position, each " +
+        "follower's acknowledged version and next due, and whether they agree.",
       ...CLOCK_CALL,
       failures: [...controlFailures],
     },
@@ -745,6 +765,7 @@ export const integration_devnet_control = defineIntegration({
         ...controlFailures,
         { when: "The date is not earlier than now", error: error_INVALID_INPUT },
         { when: "The clock already moved: the world is not fresh, or another move of the clock is running", error: error_WRONG_STATE },
+        { when: "A season is running: its world's story started at its own start (decision devnet.season-reset)", error: error_WRONG_STATE },
         unsettled,
         ownerOnly,
       ],
@@ -774,17 +795,135 @@ export const integration_devnet_control = defineIntegration({
     timeWatch: {
       about:
         "GET /v1/time/events: the clock's events as server-sent events, each with its version, now and realAt, mode, rate, " +
-        "next stop, world and reason. Any grant may watch.",
+        "next stop, world, season and reason; a `save` or `restore` names its world. Any grant may watch.",
       ...CLOCK_CALL,
       failures: [...controlFailures],
     },
     timeFollow: {
       about:
-        "POST /v1/followers, then its event stream, its acknowledgements and its due reports (POST " +
-        "/v1/followers/<id>/due between events): a follower the barrier and the running stops wait for, idle or busy, " +
-        "with its own next due instant, which the clock then stops at.",
+        "POST /v1/followers, its event stream, acknowledgements and due reports (POST /v1/followers/<id>/due): a " +
+        "follower the barrier and running stops wait for, with its own next due. `stateful` joins one that keeps world " +
+        "state: it gets `save` and `restore` events (devnet.stateful-followers).",
       ...CLOCK_CALL,
       failures: [...controlFailures, { when: "A follower of that name is already following", error: error_WRONG_STATE }, ownerOnly],
+    },
+    seasonList: {
+      about:
+        "GET /v1/seasons?after=&limit=: a page of every season of this world, the running one first, then the planned by " +
+        "start, then the ended and cancelled, newest first, and the next cursor. Any grant may read it.",
+      ...CLOCK_CALL,
+      failures: [...controlFailures, seasonInput("The cursor is not one this list gave")],
+    },
+    seasonCurrent: {
+      about:
+        "GET /v1/seasons/current: the season running, else the next planned, else the last ended, else none; whether " +
+        "the caller plays it, its next scheduled warp, and the clock. Any grant may read it, between seasons too.",
+      ...CLOCK_CALL,
+      failures: [...controlFailures],
+    },
+    seasonCreate: {
+      about:
+        "POST /v1/seasons: keeps a planned season, its starting and reset worlds, rate, real window, warps and players; " +
+        "nothing in the world moves.",
+      ...CLOCK_CALL,
+      failures: [
+        ...controlFailures,
+        seasonInput(
+          "A starting or reset world that is not saved here (the refusal lists them), an end not later than the start or now, a start not later than now, a warp outside the window, a window that overlaps another planned or running season (naming it), or a player who holds no world grant here",
+        ),
+        seasonState("A season has had that name, or `<name>-end` is a saved world"),
+        ownerOnly,
+      ],
+    },
+    seasonChange: {
+      about: "POST /v1/seasons/<name>/change: a season's start, end, rate or reset world.",
+      ...CLOCK_CALL,
+      failures: [
+        ...controlFailures,
+        seasonInput("No season has that name, the end is not later than now or the start, the window overlaps another season's, or the reset names no saved world"),
+        seasonState("The season has ended or was cancelled, or it runs and the change gives a start or a rate"),
+        ownerOnly,
+      ],
+    },
+    seasonStart: {
+      about:
+        "POST /v1/seasons/<name>/start: with `check`, answers what starting would do and changes nothing; without it, " +
+        "restores the season's starting world (every stateful follower restoring its own), runs the clock at its rate, " +
+        "arms its warps and end on the real clock and admits its players.",
+      ...SEASON_BARRIER,
+      failures: [
+        ...controlFailures,
+        seasonInput("No season has that name"),
+        seasonState(
+          "The season is running, ended or cancelled, another season runs, its end has passed, or its starting world was saved with other backend code or lacks a stateful follower joined now; the refusal names which",
+        ),
+        ownerOnly,
+      ],
+    },
+    seasonEnd: {
+      about:
+        "POST /v1/seasons/<name>/end: with `check`, answers what ending would do and changes nothing; without it, stops " +
+        "admitting its players, cuts a warp in progress at its next settled stop, freezes the clock, saves `<name>-end` and " +
+        "restores the season's reset world, frozen, under a new world epoch.",
+      ...SEASON_BARRIER,
+      failures: [
+        ...controlFailures,
+        seasonInput("No season has that name"),
+        seasonState("The season is not running; a planned one's refusal names `dev season cancel`"),
+        ownerOnly,
+      ],
+    },
+    seasonCancel: {
+      about: "POST /v1/seasons/<name>/cancel: takes back a planned season before it runs; nothing in the world changes.",
+      ...CLOCK_CALL,
+      failures: [
+        ...controlFailures,
+        seasonInput("No season has that name"),
+        seasonState("The season is not planned; a running one's refusal names `dev season end`"),
+        ownerOnly,
+      ],
+    },
+    seasonWarpAdd: {
+      about:
+        "POST /v1/seasons/<name>/warps: schedules a warp of the world's clock, by a span or to a world date, at a real " +
+        "instant, or one each `every` until the season's end, at most 500.",
+      ...CLOCK_CALL,
+      failures: [
+        ...controlFailures,
+        seasonInput("No season has that name, or the real instant is not later than now or outside the season's window"),
+        seasonState("The season has ended or was cancelled"),
+        ownerOnly,
+      ],
+    },
+    seasonWarpRemove: {
+      about: "POST /v1/seasons/<name>/warps/<warp>/remove: takes a scheduled warp out before it runs; it stays in the schedule as removed.",
+      ...CLOCK_CALL,
+      failures: [
+        ...controlFailures,
+        seasonInput("No season or warp has that name"),
+        seasonState("The warp has run, failed, been skipped or removed, or the season has ended or was cancelled"),
+        ownerOnly,
+      ],
+    },
+    seasonPlayerAdd: {
+      about: "POST /v1/seasons/<name>/players: lets a person who holds a world grant play the season; while it runs, the gateway admits them at once.",
+      ...CLOCK_CALL,
+      failures: [
+        ...controlFailures,
+        seasonInput("No season has that name, or the email holds no world grant here (the refusal names `capxul-devnet world grant`)"),
+        seasonState("The season has ended or was cancelled"),
+        ownerOnly,
+      ],
+    },
+    seasonPlayerRemove: {
+      about: "POST /v1/seasons/<name>/players/<email>/remove: stops a person playing the season; while it runs, the gateway refuses their next call.",
+      ...CLOCK_CALL,
+      failures: [
+        ...controlFailures,
+        seasonInput("No season has that name, or the email does not play it"),
+        seasonState("The season has ended or was cancelled"),
+        ownerOnly,
+      ],
     },
   },
   fake: "None: it exists only on a devnet machine or a shared world's host. Its conformance suite is the protocol's own, run against the supervisor.",
@@ -850,7 +989,8 @@ export const integration_fde_host = defineIntegration({
     "devnet's `fde-host-agents`. Keys come from the agent id, each turn ends with a scripted reply as it is posted, " +
     "`capxul-devnet fde run <org> --ask <askId> -- <command>` runs a command as the FDE under that open ask's act-for " +
     "token (devnet.world-pass-worlds), and its fault switch has down, hold (new turns stay working) and clear. It runs " +
-    "no model and no sandbox.",
+    "no model and no sandbox. The real host's namespace for a world follows it stateful: swarmD saves and restores the " +
+    "namespace's agents under the world's name, beside its timers on the world's clock (devnet.stateful-followers).",
   secrets: ["FDE_HOST_TOKEN"],
   was: ["books/target/organizations/decisions.ts (organizations.fde-host)", "/home/user/swarmd/docs/SPEC.md (B.15, B.16, B.19)"],
 });
@@ -993,7 +1133,8 @@ export const integration_frappe_head = defineIntegration({
     "reads that decide something are rebound; `bench --site <site> capxul follow` runs the due Scheduled Job Types at " +
     "each stop and enqueues them every world minute between; override_email_send hands the head's own email to the " +
     "supervisor's `POST /v1/mail`, held to MAIL_ALLOWED_RECIPIENTS on staging; a bench following a shared world does so " +
-    "over HTTPS with a follower grant.",
+    "over HTTPS with a follower grant. It follows stateful, answering a world's `save` and `restore` with Frappe's own " +
+    "backup and restore, so a season's start and reset bring its site back with the world (devnet.stateful-followers).",
   secrets: [],
   was: ["docs/vision/erp.md (sections 1, 5 and 7)"],
 });

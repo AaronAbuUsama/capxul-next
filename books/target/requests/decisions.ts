@@ -710,7 +710,9 @@ export const decision_requests_bill_time_in_projects = defineDecision({
     "above projects, so nothing in the design moves. Flat would leave the only timesheet verb outside its group. " +
     "`request bill` would be a person's command with no `org` for an Organization-only write (grammar G1), and would " +
     "split a timesheet's verbs over two words. Nothing about the behaviour changes: billing still issues one Invoice and " +
-    "marks its hours in one write, under the Invoicing hat (aaron.projects).",
+    "marks its hours in one write, under the Invoicing hat (aaron.projects). The move follows the tree, which is for " +
+    "Aaron with the rest of the 119 moves (surface.tree, as projects.surface-moves says of the timesheet's other six): if he " +
+    "keeps the booked nouns, this command returns to `org timesheet bill` with them, and nothing else changes.",
   source: SURFACE("docs/design/command-surface.md (sections 4 and 9); books/target/shared/surface.ts (surface.projects-group, surface.tree); aaron.projects"),
   affects: [fl.flow_client_org_projects_timesheets_bill, op.operation_org_projects_timesheet_bill],
 });

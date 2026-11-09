@@ -1,6 +1,6 @@
 // Payroll's Core SDK flows (A4). The agreement writes: one per write command, each preparing its write
 // with one payroll rpc, having its one call signed, waiting for the person and the chain, and following
-// the write to its end; the agreement reads (agreement list and show, org payroll agreement list) are one rpc
+// the write to its end; the agreement reads (payroll agreement list and show, org payroll agreement list) are one rpc
 // each and have no flow. Then Frappe HR's: one SDK method per HR command (below).
 //
 // Signing composes approvals' rpcs, as approvals asks every opener to: read the approval until it is
