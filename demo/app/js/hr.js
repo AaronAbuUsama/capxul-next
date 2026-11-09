@@ -173,15 +173,24 @@ const mineToDecide = () => [...openLeave().filter((l) => leaveDecision(l).ok), .
 function registerHr() {
   const my = [
     { label: 'My HR', route: 'me' },
+    { label: 'Ask HR', route: 'me-ask', match: ['hr-request'] },
     { label: 'My attendance', route: 'me-attendance' },
     { label: 'My leave', route: 'me-leave' },
     { label: 'My expenses', route: 'me-expenses' },
     { label: 'My payslips', route: 'me-payslips', match: ['me-payslip'] },
+    { label: 'Handbook', route: 'handbook' },
   ];
   const nav = cx.hasSeat() ? [
     { label: 'Home', route: 'hr' },
+    { label: 'HR inbox', route: 'hr-inbox', match: ['hr-request'], badge: () => REQ.filter((r) => r.status === 'With a person' && canSeeReq(r)).length || null },
     { label: 'Employees', route: 'employees', match: ['employee', 'employee-new'] },
     { label: 'Organisation chart', route: 'org-chart' },
+    { section: 'Joiners and leavers', items: [
+      { label: 'Onboarding', route: 'onboarding', match: ['onboarding-plan'] },
+      { label: 'Offboarding', route: 'offboarding', match: ['offboarding-plan'] },
+      { label: 'Right to work', route: 'right-to-work' },
+      { label: 'Probation and reviews', route: 'reviews' },
+    ] },
     { section: 'Leave', items: [
       { label: 'Leave home', route: 'leave-home' },
       { label: 'Leave', route: 'leaves', match: ['leave', 'leave-new'], badge: () => openLeave().length || null },
@@ -189,6 +198,7 @@ function registerHr() {
       { label: 'Leave allocations', route: 'leave-allocations', match: ['leave-allocation'] },
       { label: 'Leave balance', route: 'leave-balance' },
       { label: 'Leave balance summary', route: 'leave-balance-summary' },
+      { label: 'Sickness and return to work', route: 'sickness' },
     ] },
     { section: 'Attendance', collapsed: true, items: [
       { label: 'Attendance home', route: 'attendance-home' },
@@ -204,6 +214,10 @@ function registerHr() {
       { label: 'Advances', route: 'advances', match: ['advance', 'advance-new'] },
       { label: 'Unpaid expense claims', route: 'unpaid-claims' },
     ] },
+    { section: 'Policies and letters', collapsed: true, items: [
+      { label: 'Handbook and policies', route: 'handbook' },
+      { label: 'HR letters', route: 'hr-letters', match: ['hr-letter'] },
+    ] },
     { section: 'Setup', collapsed: true, items: [
       { label: 'Departments', route: 'hr-departments', match: ['hr-department'] },
       { label: 'Designations', route: 'designations', match: ['designation'] },
@@ -212,7 +226,7 @@ function registerHr() {
       { label: 'Expense types', route: 'expense-types', match: ['expense-type'] },
       { label: 'HR configuration', route: 'hr-config' },
     ] },
-    { section: 'My HR', collapsed: true, items: my },
+    { section: 'My HR', collapsed: true, items: my.filter((x) => x.route !== 'handbook') },
   ] : my;
   cx.workspace({ id: 'hr', label: 'HR', icon: 'hr', route: 'hr', seatless: true, nav, badge: () => (cx.hasSeat() ? mineToDecide().length || null : null) });
 }
@@ -316,6 +330,12 @@ cx.route('hr', () => {
   const outWeek = H.leaveApplications.filter((l) => l.status === 'Approved' && l.fromDate <= weekEnd && l.toDate >= cx.today);
   const headcount = [];
   for (let m = '2025-05'; m <= cx.today.slice(0, 7); m = addDays(m + '-01', 32).slice(0, 7)) headcount.push([m, D.people.filter((p) => p.dateOfJoining <= monthEnd(m) && (!p.relievingDate || p.relievingDate >= monthEnd(m))).length]);
+  const withPerson = REQ.filter((r) => r.status === 'With a person');
+  const weekAgo = addDays(cx.today, -7);
+  const thisWeek = REQ.filter((r) => r.thread[0].at.slice(0, 10) > weekAgo);
+  const rtwDue = rtwRows().filter((r) => ['red', 'orange'].includes(rtwStatus(r).tone));
+  const revDue = reviewRows().filter((r) => r.state !== 'Done' && r.kind !== 'Annual review' && r.due <= addDays(cx.today, 60));
+  const starting = STARTERS.filter((x) => x.start > cx.today);
   return cx.workspacePage({
     title: 'HR', workspace: 'hr',
     cmd: { cli: 'capxul org hr employee list', who: 'anyone with a seat reads; People keeps the records', json: { count: act.length, active: act.length } },
@@ -325,25 +345,35 @@ cx.route('hr', () => {
       { label: 'Employees joining (this quarter)', value: fmt.int(joined.length), sub: joined.map((p) => p.name).join(', ') || 'Nobody', href: ['employees'], cmd: `capxul org hr employee list --joined-after ${qs}` },
       { label: 'Employees relieving (this quarter)', value: fmt.int(relieved.length), sub: relieved.map((p) => p.name).join(', ') || 'Nobody', cmd: 'capxul org hr employee list --status left' },
       { label: 'On leave today', value: fmt.int(out.length), sub: out.map((l) => empName(l.employee)).join(', ') || 'Nobody', href: ['leave-calendar'], cmd: `capxul org hr leave list --status approved --on ${cx.today}` },
+      { label: 'HR inbox (last 7 days)', value: fmt.int(thisWeek.length), sub: `${thisWeek.filter((r) => r.status !== 'With a person').length} answered by the people agent · ${withPerson.length} with a person`, href: ['hr-inbox'] },
+      { label: 'Starting soon', value: fmt.int(starting.length), sub: starting.map((x) => `${starterName(x)}, ${fmt.day(x.start)}`).join(', ') || 'Nobody', href: starting.length ? ['onboarding-plan', starting[0].id] : ['onboarding'] },
+      { label: 'Right to work to follow up', value: fmt.int(rtwDue.length), sub: rtwDue.map((r) => `${r.name.split(' ')[0]}: ${rtwStatus(r).text.toLowerCase()}`).join(' · ') || 'Nothing due', href: ['right-to-work'] },
+      { label: 'Probation reviews (60 days)', value: fmt.int(revDue.length), sub: revDue.slice(0, 3).map((r) => `${r.name.split(' ')[0]} ${fmt.day(r.due)}`).join(' · ') || 'None due', href: ['reviews'] },
     ],
     charts: [
       { title: 'Department wise employee count', cmd: 'capxul org hr employee list --status active --group-by department', node: cx.chart.donut({ items: byDept.map((x, i) => ({ label: x.d.name, value: x.n, color: String((i % 6) + 1) })), center: String(act.length), format: (v) => fmt.int(v) }) },
       { title: 'Headcount, month by month', node: cx.chart.line({ labels: headcount.map((x) => fmt.monthShort(x[0]) + (x[0].endsWith('-01') ? ' ' + x[0].slice(2, 4) : '')), series: [{ name: 'Employees', values: headcount.map((x) => x[1]) }], area: true, format: (v) => fmt.int(v) }) },
     ],
     shortcuts: [
+      { label: 'HR inbox', route: 'hr-inbox', count: withPerson.length, tone: 'orange', icon: 'message' },
       { label: 'Employees', route: 'employees', count: act.length, icon: 'user' },
+      { label: 'Onboarding', route: 'onboarding', count: STARTERS.filter((x) => starterStage(x) !== 'Complete').length, icon: 'plus' },
       { label: 'Leave waiting for a decision', route: 'leaves', count: openLeave().length, tone: 'orange', icon: 'calendar' },
       { label: 'Expense claims to approve', route: 'expense-claims', count: H.expenseClaims.filter((c) => c.status === 'Open').length, tone: 'orange', icon: 'file' },
       { label: 'Checked in today', route: 'checkins', count: checkins().filter((c) => c.time.startsWith(cx.today) && c.logType === 'IN').length, icon: 'clock' },
+      { label: 'Handbook and policies', route: 'handbook', count: POLICIES.length, icon: 'file' },
       { label: 'Payroll', route: 'payroll', icon: 'payroll' },
       { label: 'My HR', route: 'me', icon: 'hr' },
     ],
     quick: [
+      { title: 'HR inbox', items: [...REQ].sort((a, b) => b.thread.at(-1).at.localeCompare(a.thread.at(-1).at)).slice(0, 6).map((r) => ({ label: `${reqFrom(r)} · ${r.subject}`, sub: `${r.topic} · ${reqStatus(r)}`, right: fmt.ago(r.thread.at(-1).at), route: 'hr-request', id: r.id })) },
       { title: 'Out this week', cmd: `capxul org hr leave list --status approved --start ${cx.today} --end ${weekEnd}`, items: outWeek.length ? outWeek.map((l) => ({ label: `${empName(l.employee)} · ${l.leaveType}`, sub: `${fmt.day(l.fromDate)}${l.toDate !== l.fromDate ? ' to ' + fmt.day(l.toDate) : ''} · ${fmt.num(l.totalLeaveDays, 1)} d`, route: 'leave', id: l.name })) : [{ label: 'Nobody is out this week' }] },
       { title: 'Recent joiners', items: [...D.people].sort((a, b) => b.dateOfJoining.localeCompare(a.dateOfJoining)).slice(0, 5).map((p) => ({ label: p.name, sub: `${p.designation} · ${cx.deptName(p.department)}`, right: fmt.date(p.dateOfJoining), route: 'employee', id: p.employee })) },
     ],
     links: [
       { title: 'Employees', items: [{ label: 'Employee', route: 'employees', count: D.people.length }, { label: 'Organisation chart', route: 'org-chart' }, { label: 'Departments', route: 'hr-departments' }, { label: 'Designations', route: 'designations', count: H.designations.length }] },
+      { title: 'Joiners and leavers', items: [{ label: 'Onboarding', route: 'onboarding', count: STARTERS.length }, { label: 'Offboarding', route: 'offboarding', count: LEAVERS.length }, { label: 'Right to work', route: 'right-to-work' }, { label: 'Probation and reviews', route: 'reviews' }] },
+      { title: 'Requests and records', items: [{ label: 'HR inbox', route: 'hr-inbox', count: REQ.length }, { label: 'HR letters', route: 'hr-letters', count: LETTERS.length }, { label: 'Handbook and policies', route: 'handbook', count: POLICIES.length }, { label: 'Sickness and return to work', route: 'sickness', kind: 'report' }] },
       { title: 'Leave', items: [{ label: 'Leave', route: 'leaves', count: H.leaveApplications.length }, { label: 'Leave allocation', route: 'leave-allocations' }, { label: 'Holidays', route: 'holidays' }, { label: 'Leave type', route: 'leave-types' }, { label: 'Leave balance', route: 'leave-balance', kind: 'report' }] },
       { title: 'Attendance', items: [{ label: 'Attendance', route: 'attendance' }, { label: 'Check-in', route: 'checkins' }, { label: 'Shift type', route: 'shift-types' }, { label: 'Monthly attendance sheet', route: 'attendance-sheet', kind: 'report' }] },
       { title: 'Expenses', items: [{ label: 'Expense claim', route: 'expense-claims', count: H.expenseClaims.length }, { label: 'Advance', route: 'advances', count: H.advances.length }, { label: 'Expense type', route: 'expense-types' }, { label: 'Unpaid expense claims', route: 'unpaid-claims', kind: 'report' }] },
@@ -381,11 +411,11 @@ cx.route('employees', (ctx) => {
     sort: { options: [{ key: 'dateOfJoining', label: 'Date of joining' }, { key: 'name', label: 'Full name' }, { key: 'employee', label: 'ID', get: (r) => r.employee }], default: { key: 'dateOfJoining', dir: 'desc' } },
     groupBy: [{ key: 'department', label: 'Department', get: (r) => cx.deptName(r.department) }, { key: 'designation', label: 'Designation' }, { key: 'employmentType', label: 'Employment type' }, { key: 'status', label: 'Status' }],
     href: (r) => ['employee', r.employee],
-    bulk: [{ label: 'Export', cmd: 'capxul org hr employee list --json', onClick: (rows) => cx.toast(`${rows.length} employees: this is the command Capxul would run. The mock-up makes no downloads.`, { cmd: 'capxul org hr employee list --json' }) }],
+    bulk: [{ label: 'Export', cmd: 'capxul org hr employee list --json', onClick: (rows) => cx.toast(`Exported ${rows.length} employees as a spreadsheet (mock-up: nothing is downloaded)`, { tone: 'info' }) }],
     views: [{ label: 'List', route: 'employees', active: true, icon: 'list' }, { label: 'Organisation chart', route: 'org-chart', icon: 'tree' }],
     cmd: { cli: 'capxul org hr employee list', sdk: 'client.org(orgId).hr.employees.list()', who: 'anyone with a seat' },
   });
-  return cx.page({ title: 'Employees', actions: [cx.menu(null, [{ label: 'Organisation chart', href: ['org-chart'], icon: 'tree' }, { label: 'Departments', href: ['hr-departments'] }, { label: 'Export', icon: 'file', cmd: 'capxul org hr employee list --json', onClick: () => cx.toast('This is the command Capxul would run. The mock-up makes no downloads.') }]), cx.btn('Add employee', { kind: 'primary', icon: 'plus', href: ['employee-new'], cmd: 'capxul org hr employee add <email> --first-name … --last-name … --joined …' })], body: list });
+  return cx.page({ title: 'Employees', actions: [cx.menu(null, [{ label: 'Organisation chart', href: ['org-chart'], icon: 'tree' }, { label: 'Departments', href: ['hr-departments'] }, { label: 'Export', icon: 'file', cmd: 'capxul org hr employee list --json', onClick: () => cx.toast('Exported the employee list as a spreadsheet (mock-up: nothing is downloaded)', { tone: 'info' }) }]), cx.btn('Add employee', { kind: 'primary', icon: 'plus', href: ['employee-new'], cmd: 'capxul org hr employee add <email> --first-name … --last-name … --joined …' })], body: list });
 }, { workspace: 'hr', title: 'Employees' });
 
 cx.route('org-chart', () => {
@@ -580,9 +610,9 @@ cx.route('employee', (ctx) => {
         cx.hasSeat(e.id) ? h('li', `Seat: freed on ${fmt.date(on)}; Harbourline uses ${D.seats.used} of ${D.seats.limit}.`) : null,
         (e.hats || []).length ? h('li', `Hats: ${e.hats.join(', ')} come off; the hat above names who wears them next.`) : null,
         h('li', 'Open claims and advances are settled before the final payslip.')),
-      h('p.muted', { style: 'font-size:12.5px' }, 'Final once confirmed. The FDE can draft this for whoever wears People.'));
+      h('p.muted', { style: 'font-size:12.5px' }, 'Final once confirmed. The offboarding checklist opens with each step and its owner.'));
     if (!(await cx.confirm({ title: `${e.name} leaves the company`, body: preview, cmd: [`capxul org hr employee leave ${e.employee} --on ${on} --preview`, `capxul org hr employee leave ${e.employee} --on ${on} --confirm`], who: `whoever wears People (${peopleHat()})`, confirmLabel: 'Confirm the leaving date', danger: true }))) return;
-    e.relievingDate = on; cx.toast(`${e.name} leaves on ${fmt.date(on)}. Status becomes Left on that day.`, { cmd: `capxul org hr employee leave ${e.employee} --on ${on} --confirm` }); cx.refresh();
+    e.relievingDate = on; startOffboarding(e, on); cx.toast(`${e.name} leaves on ${fmt.date(on)}. Status becomes Left on that day; the offboarding checklist is open.`, { tone: 'success', action: { label: 'Open it', onClick: () => cx.go('offboarding-plan', e.employee) } }); cx.refresh();
   }
   const save = () => {
     const keys = Object.keys(changes);
@@ -616,7 +646,7 @@ cx.route('employee-new', (ctx) => {
   const draft = { firstName: '', middleName: '', lastName: '', gender: '', dateOfBirth: '', dateOfJoining: '', status: 'Active', employee: '(given on save)', company: D.company.name, department: 'engineering', employmentType: 'Full-time', designation: 'Senior Software Engineer', reportsTo: 'tom', companyEmail: '', personalEmail: '', payMailbox: '', salaryMode: 'Capxul Safe', salaryCurrency: 'GBP', holidayList: 'Holidays 2027', defaultShift: 'Studio Day', hats: [], name: '' };
   const host = h('div');
   const draw = () => cx.fill(host, employeeForm(draft, { editable: true, isNew: true }));
-  const fillOwen = () => { Object.assign(draft, { firstName: 'Owen', lastName: 'Grady', gender: 'Male', dateOfJoining: '2027-01-04', personalEmail: owen.email, payMailbox: owen.email, companyEmail: 'owen@harbourline.studio', designation: 'Senior Software Engineer', department: 'engineering', reportsTo: 'tom' }); draw(); cx.toast('Filled from the FDE\'s draft for Owen Grady'); };
+  const fillOwen = () => { Object.assign(draft, { firstName: 'Owen', lastName: 'Grady', gender: 'Male', dateOfJoining: '2027-01-04', personalEmail: owen.email, payMailbox: owen.email, companyEmail: 'owen@harbourline.studio', designation: 'Senior Software Engineer', department: 'engineering', reportsTo: 'tom' }); draw(); cx.toast('Filled from Owen Grady\'s signed offer'); };
   draw();
   if (ctx.state?.fill === 'owen') fillOwen();
   const cmdOf = () => `capxul org hr employee add ${draft.payMailbox || draft.personalEmail || '<email>'} --first-name ${draft.firstName || '…'} --last-name ${draft.lastName || '…'} --joined ${draft.dateOfJoining || '…'} --department ${draft.department} --designation "${draft.designation}" --type ${String(draft.employmentType).toLowerCase()}`;
@@ -629,9 +659,8 @@ cx.route('employee-new', (ctx) => {
   };
   return cx.page({
     title: 'New employee', crumbs: [{ label: 'HR', route: 'hr' }, { label: 'Employees', route: 'employees' }], status: [{ text: 'Not saved', tone: 'orange' }],
-    actions: [cx.btn('Save', { kind: 'primary', needs: 'People', cmd: 'capxul org hr employee add <email> --first-name … --last-name … --joined …', onClick: save })],
+    actions: [cx.btn('Fill from Owen Grady\'s offer', { icon: 'file', onClick: fillOwen }), cx.btn('Save', { kind: 'primary', needs: 'People', cmd: 'capxul org hr employee add <email> --first-name … --last-name … --joined …', onClick: save })],
     cmd: { cli: 'capxul org hr employee add <email> --first-name … --last-name … --joined … --department … --designation … --type full-time', sdk: 'client.org(orgId).hr.employees.add({ email, firstName, lastName, joined, department, designation, type })', who: `whoever wears People (${peopleHat()})`, note: 'An employee needs no seat. Offer one separately with org member invite.' },
-    banner: cx.banner(h('span', 'The FDE drafted ', h('b', 'Owen Grady'), ' (Senior Software Engineer, joins 4 January 2027) from his signed offer.'), { tone: 'info', action: cx.btn('Fill from the draft', { sm: true, onClick: fillOwen }) }),
     body: host,
   });
 }, { workspace: 'hr', title: 'New employee' });
@@ -649,7 +678,7 @@ cx.route('hr-departments', () => {
   };
   return cx.page({ title: 'Departments', crumbs: [{ label: 'HR', route: 'hr' }],
     cmd: { cli: 'capxul org department list', sdk: 'client.org(orgId).departments.list()', who: 'anyone with a seat', note: 'A department is a budget with a hat. HR reads its people; the budget lives in Departments.' },
-    actions: [cx.btn('New department', { kind: 'primary', icon: 'plus', needs: { dept: 'harbourline' }, cmd: 'capxul org department create <name> --under harbourline --budget <amount> --holder <safe>', onClick: () => cx.toast('A new department is a budget under Harbourline: the command is on the strip.', { cmd: 'capxul org department create <name> --under harbourline --budget <amount> --holder <safe>' }) })],
+    actions: [cx.btn('New department', { kind: 'primary', icon: 'plus', needs: { dept: 'harbourline' }, cmd: 'capxul org department create <name> --under harbourline --budget <amount> --holder <safe>', onClick: () => (cx.hasRoute('departments') ? cx.go('departments') : cx.toast('A new department is a budget under Harbourline, made in Departments (mock-up: nothing is created)', { tone: 'info' })) })],
     body: cx.treeView({ key: 'hr-departments', depth: 2, roots: D.departments.filter((d) => !d.parent).map(node),
       toolbar: (n) => [cx.btn('Open', { sm: true, href: ['hr-department', n.id] }), cx.btn('Employees', { sm: true, onClick: () => cx.go('employees', null, { list: { filters: { department: n.id, status: 'Active' } } }) }), cx.hasRoute('department') ? cx.btn('Budget and hat', { sm: true, href: ['department', n.id], cmd: `capxul org department show ${n.id}` }) : null] }) });
 }, { workspace: 'hr', title: 'Departments' });
@@ -665,7 +694,7 @@ cx.route('hr-department', (ctx) => {
   const doc = { name: d.name, parent: d.parent ? cx.deptName(d.parent) : null, isGroup: D.departments.some((x) => x.parent === d.id) ? 1 : 0, disabled: 0, costCenter: d.costCenter, company: D.company.name };
   return cx.page({
     title: d.name, crumbs: [{ label: 'HR', route: 'hr' }, { label: 'Departments', route: 'hr-departments' }], status: ['Enabled'],
-    actions: [cx.hasRoute('department') ? cx.btn('Budget and hat', { href: ['department', d.id], icon: 'departments', cmd: `capxul org department show ${d.id}` }) : null, cx.btn('Swap the hat', { needs: d.parent ? { dept: d.parent } : 'Director', cmd: [`capxul org department holder add ${d.id} <safe>`, `capxul org department holder remove ${d.id} <safe>`], onClick: () => cx.toast(`Swapping who wears ${d.name} is two commands, run by the hat above it.`, { cmd: `capxul org department holder add ${d.id} <safe>` }) })],
+    actions: [cx.hasRoute('department') ? cx.btn('Budget and hat', { href: ['department', d.id], icon: 'departments', cmd: `capxul org department show ${d.id}` }) : null, cx.btn('Swap the hat', { needs: d.parent ? { dept: d.parent } : 'Director', cmd: [`capxul org department holder add ${d.id} <safe>`, `capxul org department holder remove ${d.id} <safe>`], onClick: () => (cx.hasRoute('department') ? cx.go('department', d.id) : cx.toast(`Whoever wears the hat above ${d.name} swaps who wears it (mock-up: nothing changes)`, { tone: 'info' })) })],
     cmd: { cli: `capxul org department show ${d.id}`, sdk: `client.org(orgId).departments.get("${d.id}")`, who: 'anyone with a seat' },
     body: cx.formView({ doc, tabs: [{ label: 'Details', sections: [
       { columns: [[field('Department', 'name', { reqd: true }), field('Parent department', 'parent', { type: 'link', href: d.parent ? ['hr-department', d.parent] : null }), field('Company', 'company', { readOnly: true })], [field('Is group', 'isGroup', { type: 'check' }), field('Disabled', 'disabled', { type: 'check' }), field('Payroll cost centre', 'costCenter')]] },
@@ -693,7 +722,7 @@ cx.route('designations', () => {
   function addDesignation() {
     const m = { name: '', description: '' };
     const md = cx.modal({ title: 'New designation', body: h('div.fields', { style: '--cols:1' }, cx.field({ label: 'Designation', key: 'name', model: m, edit: true, reqd: true }), cx.field({ label: 'Description', key: 'description', model: m, edit: true, type: 'textarea' })),
-      actions: [{ label: 'Cancel' }, { label: 'Save', primary: true, onClick: (close) => { if (!m.name.trim()) { cx.toast('Give it a name', { tone: 'warning' }); return; } H.designations.push({ name: m.name.trim(), description: m.description }); close(); cx.toast(`Added ${m.name.trim()}. Give it to someone with --designation.`, { cmd: `capxul org hr employee change <employee> --designation "${m.name.trim()}"` }); cx.refresh(); } }] });
+      actions: [{ label: 'Cancel' }, { label: 'Save', primary: true, onClick: (close) => { if (!m.name.trim()) { cx.toast('Give it a name', { tone: 'warning' }); return; } H.designations.push({ name: m.name.trim(), description: m.description }); close(); cx.toast(`Added ${m.name.trim()}. Set it on an employee's record.`, { tone: 'success' }); cx.refresh(); } }] });
     return md;
   }
 }, { workspace: 'hr', title: 'Designations' });
@@ -938,6 +967,12 @@ cx.route('leave', (ctx) => {
     actions.push(cx.btn('Cancel', { kind: 'danger', cmd: `capxul hr leave cancel ${l.name}`, onClick: async () => { if (await cx.confirm({ title: 'Cancel approved leave?', body: `Your days from ${fmt.date(l.fromDate)} go back to your balance.`, cmd: `capxul hr leave cancel ${l.name}`, danger: true, confirmLabel: 'Cancel the leave' })) { l.status = 'Cancelled'; cx.toast('Cancelled; the days are back in your balance', { cmd: `capxul hr leave cancel ${l.name}` }); cx.refresh(); } } }));
   }
   const tl = [{ at: l.postingDate + 'T12:00:00Z', who: l.employee, kind: 'created', text: `applied for ${fmt.num(l.totalLeaveDays, 1)} days of ${l.leaveType}` }];
+  const checked = l.postingDate >= PA_SINCE && l.status !== 'Cancelled';
+  const checks = checked ? leaveChecks(l) : [];
+  if (checked) tl.push({ at: l.postingDate + 'T12:01:00Z', who: PA, kind: 'task', text: l.leaveType === 'Sick Leave' ? 'recorded the absence and sent the return-to-work form' : `checked it against the policy, the balance and team cover${checks.some((c) => !c.ok) ? ': ' + checks.filter((c) => !c.ok).map((c) => c.label.toLowerCase()).join(', ') + ' to look at' : ': in order'}` });
+  const rtwF = rtwFormOf(l);
+  if (rtwF?.filled) tl.push({ at: rtwF.filled, who: l.employee, kind: 'note', text: 'filled in the return-to-work form', body: rtwF.reason || '' });
+  if (rtwF?.chat) tl.push({ at: rtwF.chat.at, who: rtwF.chat.by, kind: 'call', text: 'held the return-to-work chat' });
   if (l.decidedBy) tl.push({ at: (l.decidedAt || l.postingDate) + 'T15:00:00Z', who: l.decidedBy, kind: l.status === 'Approved' ? 'approval' : 'cancelled', text: `${l.status === 'Approved' ? 'approved' : 'rejected'} this as ${l.decidedHat}`, body: l.rejectionReason || (l.status === 'Approved' ? `${e.firstName}'s days are marked On Leave.` : '') });
   if (l.status === 'Cancelled') tl.push({ at: l.postingDate + 'T16:00:00Z', who: l.employee, kind: 'cancelled', text: 'withdrew this application' });
   return cx.page({
@@ -951,8 +986,16 @@ cx.route('leave', (ctx) => {
       { label: 'Allocated leaves', node: leaveTable(balance) },
       { columns: [[field('Employee', 'emp', { type: 'link', href: ['employee', e.employee], reqd: true }), field('Employee name', 'employeeName')], [field('Leave type', 'leaveType', { type: 'link', href: ['leave-type', l.leaveType], reqd: true }), field('Department', 'department')]] },
       { label: 'Dates and reason', columns: [[field('From date', 'fromDate', { type: 'date', reqd: true }), field('To date', 'toDate', { type: 'date', reqd: true }), field('Half day', 'halfDayCheck', { type: 'check' }), l.halfDay ? field('Half day date', 'halfDayDate', { type: 'date' }) : null, field('Total leave days', 'totalLeaveDays', { type: 'float', dp: 1, readOnly: true })].filter(Boolean), [field('Reason', 'reason', { type: 'textarea' }), field('Leave balance before application', 'balanceBefore', { type: 'float', dp: 1, readOnly: true })]] },
+      checked && l.leaveType !== 'Sick Leave' ? { label: 'Checks', node: checksNode(checks, { by: `Checked by the people agent on ${fmt.date(l.postingDate)}. ${l.status === 'Open' ? `The decision is ${namesList(decidersOf(l))}'s.` : l.decidedBy ? `Decided by ${cx.name(l.decidedBy)}.` : ''}` }) } : null,
+      rtwF ? { label: 'Return to work', node: rtwF.state === 'Off now' ? h('p.muted', { style: 'margin:0;font-size:13px' }, `Back on ${fmt.date(rtwF.back)}. The return-to-work form goes to ${e.firstName} that morning.`) : h('div', { style: 'display:grid;gap:10px' }, checksNode(checks), cx.kv([
+        ['Back at work', fmt.date(rtwF.back)],
+        ['Form sent by', rtwF.sent === PA ? agentChip() : cx.personChip(rtwF.sent)],
+        ['Form filled in', h('span', `${fmt.datetime(rtwF.filled)}${rtwF.reason ? ' · ' + rtwF.reason : ''}`)],
+        ['Chat with the manager', rtwF.chat ? h('span', cx.personChip(rtwF.chat.by), h('span.muted', ` · ${fmt.datetime(rtwF.chat.at)}`)) : h('span', cx.pill(`Waiting for ${cx.firstName(rtwF.mgr)}`, 'orange'))],
+        ['Absences in 6 months', `${spellsIn6(l.employee, l.fromDate)} of the 3 that start a wellbeing check-in`],
+      ])) } : null,
       { label: 'Approval', columns: [[field('Decided by', 'decided', { readOnly: true }), field('Follow via email', 'followEmail', { type: 'check' })], [field('Posting date', 'postingDate', { type: 'date', reqd: true }), field('Status', 'status', { type: 'status', reqd: true })]] },
-    ] }], connections: [{ group: 'Attendance', items: [{ label: 'Attendance', count: attendance().filter((x) => x.leaveApplication === l.name).length, route: 'attendance', id: e.employee }] }],
+    ].filter(Boolean) }], connections: [{ group: 'Attendance', items: [{ label: 'Attendance', count: attendance().filter((x) => x.leaveApplication === l.name).length, route: 'attendance', id: e.employee }] }],
     side: { id: l.name, title: e.name, cmd: `capxul org hr leave balance ${e.employee}`, assigned: l.waitingFor ? [l.waitingFor.who] : [], created: { by: l.employee, at: l.postingDate }, modified: { by: l.decidedBy || l.employee, at: l.decidedAt || l.postingDate } },
     timeline: { items: tl } }),
   });
@@ -965,13 +1008,12 @@ export function leaveApplyForm(onDone, pre = {}) {
   const m = { leaveType: types[0]?.leaveType || 'Annual Leave', fromDate: addDays(cx.today, 14), toDate: addDays(cx.today, 15), halfDay: 0, reason: '', ...pre };
   const out = h('div', { style: 'display:grid;gap:12px' });
   const dept = me.department;
-  const balEl = h('div.fval.num'); const daysEl = h('div.fval.num'); const cmdEl = h('div.confirm-cmd');
+  const balEl = h('div.fval.num'); const daysEl = h('div.fval.num');
   const update = () => {
     const days = m.fromDate && m.toDate && m.toDate >= m.fromDate ? workingDaysIn(m.fromDate, m.toDate).length - (m.halfDay ? 0.5 : 0) : 0;
     const bal = leaveDetails(me.id).find((x) => x.leaveType === m.leaveType);
     cx.fill(balEl, bal ? fmt.num(bal.available, 1) : '—');
     cx.fill(daysEl, fmt.num(days, 1));
-    cx.fill(cmdEl, h('span.p', '$ '), `capxul hr leave apply --type "${m.leaveType}" --start ${m.fromDate} --end ${m.toDate}${m.halfDay ? ' --half-day ' + m.toDate : ''}${m.reason ? ` --reason "${m.reason}"` : ''}`);
   };
   const ro = (label, el, help) => h('div.field', h('div.flabel', label), el, help ? h('div.fhelp', help) : null);
   cx.fill(out,
@@ -983,8 +1025,7 @@ export function leaveApplyForm(onDone, pre = {}) {
       cx.field({ label: 'Half day', key: 'halfDay', model: m, edit: true, type: 'check', checkLabel: 'The last day is a half day', onChange: update }),
       ro('Total leave days', daysEl, 'Weekends and bank holidays are not counted.'),
       cx.field({ label: 'Reason', key: 'reason', model: m, edit: true, type: 'textarea', wide: true, placeholder: 'Family in Leeds before Christmas', onChange: update }),
-      cx.field({ label: 'Decided by', wide: true, value: `the ${cx.deptName(dept)} hat (${namesList(hatHolders(dept))}) or one above it, or People` })),
-    cmdEl);
+      cx.field({ label: 'Decided by', wide: true, value: `the ${cx.deptName(dept)} hat (${namesList(hatHolders(dept))}) or one above it, or People. The people agent checks it against the policy, your balance and team cover first.` })));
   update();
   const submit = () => {
     const days = workingDaysIn(m.fromDate, m.toDate).length - (m.halfDay ? 0.5 : 0);
@@ -1464,7 +1505,7 @@ function claimForm(c, o = {}) {
   const pay = paymentOf(c.paymentInfo?.payment);
   const adv = H.advances.filter((a) => a.employee === c.employee && a.claimedAmount > 0 && a.project && a.project === c.project);
   const decidedLine = c.decidedBy ? `${cx.name(c.decidedBy)}, who wears the ${c.decidedHat} hat` : c.waitingFor ? `Waiting for ${cx.deptName(c.department)}'s budget: ${cx.name(c.waitingFor.who)} (${c.waitingFor.hat}) or a hat above it` : `${cx.deptName(c.department)}'s budget`;
-  const doc = { ...c, emp: e.employee, employeeName: e.name, deptName: cx.deptName(c.department), company: D.company.name, decided: decidedLine, payable: '2210 · Expense Claims Payable', exchangeRate: 1, projectName: c.project ? (D.projects.projects.find((p) => p.name === c.project)?.projectName || c.project) : null, costCenter: cx.dept(c.department)?.costCenter };
+  const doc = { ...c, approvalStatus: c.status === 'Open' ? 'Pending' : c.approvalStatus, emp: e.employee, employeeName: e.name, deptName: cx.deptName(c.department), company: D.company.name, decided: decidedLine, payable: '2210 · Expense Claims Payable', exchangeRate: 1, projectName: c.project ? (D.projects.projects.find((p) => p.name === c.project)?.projectName || c.project) : null, costCenter: cx.dept(c.department)?.costCenter };
   const editable = !!o.editable;
   const totalsBox = h('div');
   const drawTotals = () => cx.fill(totalsBox, h('div.fields', { style: '--cols:3' }, [['Total sanctioned amount', c.totalSanctionedAmount], ['Total advance amount', c.totalAdvanceAmount], ['Grand total', c.grandTotal, true], ['Total claimed amount', c.totalClaimedAmount], ['Total taxes and charges', c.totalTaxesAndCharges], ['Total amount reimbursed', c.totalAmountReimbursed]].map(([l, v, b]) => cx.field({ label: l, type: 'currency', value: v, render: b ? () => h('b', fmt.gbp(v)) : null }))));
@@ -1479,6 +1520,7 @@ function claimForm(c, o = {}) {
       { label: 'Currency', collapsible: true, collapsed: true, cols: 2, fields: [field('Currency', 'currency', { readOnly: true }), field('Exchange rate', 'exchangeRate', { type: 'float', readOnly: true })] },
       { label: 'Expenses', table: { columns: [{ key: 'expenseDate', label: 'Expense date', type: 'date', edit: true }, { key: 'expenseClaimType', label: 'Expense claim type', type: 'select', options: H.expenseClaimTypes.map((t) => t.name), edit: true }, { key: 'description', label: 'Description', edit: true }, { key: 'amount', label: 'Amount', type: 'currency', edit: true }, { key: 'sanctionedAmount', label: 'Sanctioned amount', type: 'currency', opt: true }], rows: c.expenses, totals: ['amount', 'sanctionedAmount'], onChange: onLines, addLabel: 'Add row', title: 'Expense' } },
       { label: 'Receipts', desc: 'Each receipt is stored as a document with its hash; the payment commits to them.', node: h('div', { style: 'display:grid;gap:6px' }, receiptsBox, o.addReceipt ? h('div', cx.btn('Attach a receipt', { sm: true, icon: 'plus', onClick: () => { o.addReceipt(); drawReceipts(); } })) : null) },
+      !editable && c.postingDate >= PA_SINCE && !['Draft', 'Cancelled'].includes(c.status) ? { label: 'Receipt check', node: checksNode(claimChecks(c), { by: `Checked against the expense policy by the people agent on ${fmt.date(c.postingDate)}. ${c.status === 'Open' ? `${cx.deptName(c.department)}'s hat decides.` : c.decidedBy ? `Decided by ${cx.name(c.decidedBy)}.` : ''}` }) } : null,
       { label: 'Taxes and charges', collapsible: true, collapsed: !c.taxes.length, table: { columns: [{ key: 'account', label: 'Account', get: (r) => acctName(r.account) }, { key: 'rate', label: 'Rate', type: 'percent' }, { key: 'amount', label: 'Amount', type: 'currency', edit: true }, { key: 'description', label: 'Description' }], rows: c.taxes, totals: ['amount'], onChange: onTaxes } },
       { label: 'Advance payments', collapsible: true, collapsed: !adv.length, table: { columns: [{ key: 'name', label: 'Employee advance', render: (r) => cx.link(r.name, 'advance', r.name) }, { key: 'postingDate', label: 'Posting date', type: 'date' }, { key: 'paidAmount', label: 'Advance paid', type: 'currency' }, { key: 'pendingAmount', label: 'Unclaimed amount', type: 'currency' }], rows: adv, empty: 'No advances to claim against' } },
       { label: 'Totals', node: totalsBox },
@@ -1750,8 +1792,9 @@ function mePage() {
   const body = [
     h('p.hr-hello', `${hh < 12 ? 'Good morning' : hh < 18 ? 'Good afternoon' : 'Good evening'}, ${me.firstName}`),
     panel('Check in', h('div', { style: 'display:flex;gap:12px;align-items:center;flex-wrap:wrap' }, h('div.grow', { style: 'flex:1;min-width:0' }, h('div', { style: 'font-weight:600' }, last ? `${last.logType === 'IN' ? 'Checked in' : 'Checked out'} at ${fmt.time(last.time)}${last.time.startsWith(cx.today) ? '' : ' on ' + fmt.day(last.time)}` : 'No check-ins yet'), h('div', { style: 'font-size:12.5px' }, cx.link('View list', 'checkins', me.employee))), cx.btn(inNow ? 'Check out' : 'Check in', { kind: 'primary', icon: inNow ? 'out' : 'in', cmd: `capxul hr attendance checkin --log ${inNow ? 'out' : 'in'}`, onClick: () => checkinSheet() }))),
-    panel('Quick links', h('div.hr-quick', h('a', { href: cx.href('leave-new') }, cx.icon('calendar'), 'Request leave'), h('a', { href: cx.href('expense-claim-new') }, cx.icon('file'), 'Claim an expense'), h('button', { type: 'button', onclick: () => advanceRequest() }, cx.icon('bank'), 'Request an advance'), h('a', { href: cx.href('me-payslips') }, cx.icon('payroll'), 'View payslips'))),
+    panel('Quick links', h('div.hr-quick', h('a', { href: cx.href('leave-new') }, cx.icon('calendar'), 'Request leave'), h('a', { href: cx.href('expense-claim-new') }, cx.icon('file'), 'Claim an expense'), h('button', { type: 'button', onclick: () => advanceRequest() }, cx.icon('bank'), 'Request an advance'), h('a', { href: cx.href('me-payslips') }, cx.icon('payroll'), 'View payslips'), h('a', { href: cx.href('me-ask') }, cx.icon('message'), 'Ask HR'), h('a', { href: cx.href('handbook') }, cx.icon('file'), 'Handbook'))),
     panel('Requests', reqBox),
+    (() => { const qs = REQ.filter((r) => r.from === me.id).sort((a, b) => b.thread.at(-1).at.localeCompare(a.thread.at(-1).at)).slice(0, 3); return qs.length ? panel('Your questions to HR', qs.map((r) => h('a.hr-row.click', { href: cx.href('hr-request', r.id), style: 'text-decoration:none;color:inherit' }, h('div.grow', h('div.t', r.subject), h('div.s', r.thread.at(-1).text.length > 90 ? r.thread.at(-1).text.slice(0, 88) + '…' : r.thread.at(-1).text)), cx.pill(reqStatus(r), reqTone(r)))), h('a', { href: cx.href('me-ask'), style: 'font-size:12.5px' }, 'Ask another question')) : null; })(),
   ];
   return myPage('My HR', 'me', body, { cli: 'capxul hr leave list', sdk: 'client.me.hr.leaves.list()', who: `${me.name}, for themselves; no seat needed`, note: 'Your own side of HR: the same records without org, at every employer.' });
 }
@@ -1818,6 +1861,906 @@ cx.route('me-expenses', () => {
     panel('Employee advance balance', [adv.length ? adv.map((a) => h('a.hr-row.click', { href: cx.href('advance', a.name), style: 'text-decoration:none;color:inherit' }, h('div.grow', h('div.t', a.purpose), h('div.s', `${fmt.date(a.postingDate)} · unclaimed ${fmt.gbp(a.pendingAmount)}`)), h('b.num', fmt.gbp(a.advanceAmount)), cx.pill(a.status, ADV_TONE[a.status]))) : h('div.muted', 'No advances'), cx.btn('Request an advance', { sm: true, icon: 'plus', cmd: 'capxul hr advance request --amount … --purpose "…"', onClick: () => advanceRequest() })]),
   ], { cli: 'capxul hr expense-claim list', sdk: 'client.me.hr.expenseClaims.list()', who: `${me.name}, for themselves` });
 }, { workspace: 'hr', title: 'My expenses' });
+
+/* =====================================================================================================
+   The HR desk. Harbourline's people agent does the routine HR work: it answers staff questions from the
+   handbook and their own records, runs onboarding and offboarding checklists, tracks right to work, checks
+   leave and expense claims against policy, and drafts letters. People decide and sign. What it proposes goes
+   to the assistant panel; what it did shows on the records as who did it.
+   ===================================================================================================== */
+
+export const PEOPLE_AGENT = 'People agent';
+const PA = PEOPLE_AGENT;
+const PA_SINCE = '2026-01-12';
+const LEAD = 'kwame';
+export const agentAvatar = (size = 'sm') => h('span.avatar.agent.t-purple', { class: size, title: PA, 'aria-hidden': 'true' }, 'PA');
+export const agentChip = () => h('span.person', agentAvatar(), h('span', PA));
+const byChip = (who) => (who === PA ? agentChip() : who && cx.person(who) ? cx.personChip(who) : who ? h('span', who) : h('span.faint', '—'));
+const whoName = (who) => (who === PA ? PA : cx.person(who) ? cx.name(who) : String(who || ''));
+const isoAt = (d, t = '09:00') => `${d}T${t}:00Z`;
+const plusMin = (iso, m) => new Date(Date.parse(iso) + m * 60000).toISOString();
+const daysBetween = (a, b) => Math.round((Date.parse(b.slice(0, 10) + 'T00:00:00Z') - Date.parse(a.slice(0, 10) + 'T00:00:00Z')) / 86400000);
+const seesAllHr = () => cx.wears('People') || cx.wears('Director');
+const put = (o) => { try { return cx.agentWork?.add?.({ agent: PA, module: 'hr', ...o }) || null; } catch (e) { console.warn('agentWork.add', e); return null; } };
+const annualOf = (id) => leaveDetails(id).find((x) => x.leaveType === 'Annual Leave');
+const pendingOf = (id, type = 'Annual Leave') => H.leaveApplications.filter((l) => l.employee === id && l.leaveType === type && l.status === 'Open');
+const salaryOf = (id) => [...D.payroll.assignments].filter((a) => a.employee === id).sort((a, b) => b.fromDate.localeCompare(a.fromDate))[0] || null;
+const lastSlip = (id) => D.payroll.slips.filter((s) => s.employee === id && !['Draft', 'Cancelled'].includes(s.status)).sort((a, b) => b.startDate.localeCompare(a.startDate))[0] || null;
+const onLeaveNow = (id, d = cx.today) => H.leaveApplications.find((l) => l.employee === id && l.status === 'Approved' && l.fromDate <= d && l.toDate >= d) || null;
+const dayName = (d) => `${fmt.weekday(d)} ${fmt.date(d)}`;
+const nextWorkday = (d) => { let x = addDays(d, 1); while (holidayOn(x)) x = addDays(x, 1); return x; };
+const workdayFrom = (d) => (holidayOn(d) ? nextWorkday(d) : d);
+const addMonths = (d, n) => { const [y, m, dd] = d.split('-').map(Number); const t = new Date(Date.UTC(y, m - 1 + n, 1)); const last = new Date(Date.UTC(t.getUTCFullYear(), t.getUTCMonth() + 1, 0)).getUTCDate(); t.setUTCDate(Math.min(dd, last)); return t.toISOString().slice(0, 10); };
+
+cx.style('hr-desk', `
+.hd-thread { display: grid; gap: 12px; }
+.hd-msg { display: grid; gap: 4px; max-width: 640px; min-width: 0; }
+.hd-msg.out { justify-self: end; }
+.hd-msg .by { display: flex; gap: 6px; align-items: center; font-size: 12px; color: var(--muted); min-width: 0; flex-wrap: wrap; }
+.hd-msg .by b { color: var(--fg-2); font-weight: 600; }
+.hd-msg .tx { padding: 9px 12px; border-radius: 10px 10px 10px 2px; background: var(--surface-2); border: 1px solid var(--line); font-size: 13.5px; line-height: 1.5; white-space: pre-wrap; overflow-wrap: anywhere; }
+.hd-msg.out .tx { background: var(--accent-soft); border-color: transparent; border-radius: 10px 10px 2px 10px; }
+.hd-checks { display: grid; gap: 0; }
+.hd-check { display: grid; grid-template-columns: 20px minmax(0, 1fr); gap: 8px; padding: 8px 0; border-top: 1px solid var(--line); font-size: 13px; }
+.hd-check:first-child { border-top: 0; }
+.hd-check .ic { color: var(--pos); padding-top: 1px; }
+.hd-check.warn .ic { color: var(--t-orange); }
+.hd-check b { font-weight: 600; }
+.hd-check .d { color: var(--muted); font-size: 12.5px; }
+.hd-by { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; font-size: 12.5px; color: var(--muted); margin-bottom: 4px; }
+.hd-phase td { background: var(--surface-2); font-weight: 600; font-size: 12px; color: var(--muted); text-transform: none; }
+.hd-who { display: grid; gap: 2px; min-width: 0; }
+.hd-who small { color: var(--muted); font-size: 11.5px; }
+.hd-policy { border-top: 1px solid var(--line); }
+.hd-policy:first-child { border-top: 0; }
+.hd-policy > summary { display: flex; gap: 10px; align-items: center; padding: 11px 2px; cursor: pointer; list-style: none; min-width: 0; }
+.hd-policy > summary::-webkit-details-marker { display: none; }
+.hd-policy > summary .t { font-weight: 600; font-size: 13.5px; flex: 1; min-width: 0; }
+.hd-policy > summary .s { font-size: 12px; color: var(--muted); }
+.hd-policy dl { margin: 0 0 12px; display: grid; gap: 8px; padding: 0 2px; }
+.hd-policy dt { font-weight: 600; font-size: 12.5px; }
+.hd-policy dd { margin: 0; font-size: 13px; color: var(--fg-2); line-height: 1.5; }
+.hd-letter { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 24px; display: grid; gap: 12px; font-size: 13.5px; line-height: 1.6; max-width: 720px; min-width: 0; overflow-wrap: anywhere; }
+.hd-letter .hd-lh { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; border-bottom: 1px solid var(--line); padding-bottom: 10px; font-size: 12.5px; color: var(--muted); }
+.hd-letter .hd-lh b { color: var(--fg); font: 600 15px/1.3 var(--font-ui); font-stretch: var(--wide); }
+.hd-letter p { margin: 0; white-space: pre-wrap; }
+.hd-sign { border-top: 1px dashed var(--line-2); padding-top: 10px; font-size: 12.5px; color: var(--muted); }
+.hd-ask textarea { min-height: 70px; }
+@media (max-width: 520px) { .hd-letter { padding: 14px; } }
+.hd-sm { display: none; }
+@media (max-width: 700px) { .hd-sm { display: block; margin-top: 4px; } .hd-lg { display: none; } }
+`);
+
+/* ---------- the handbook ---------- */
+
+export const POLICIES = [
+  { id: 'annual-leave', title: 'Annual leave', version: '3.1', reviewed: '2026-01-05', by: LEAD, sections: [
+    ['Entitlement', '25 days a year plus bank holidays, January to December. Part-time staff get the same, pro rata.'],
+    ['Booking', 'Ask in Capxul at least twice as many days ahead as you want to take. A single day or half day needs a day\'s notice. Your manager, or People, decides.'],
+    ['Team cover', 'No more than half of a team off on the same working day. Requests are decided in the order they come in.'],
+    ['Carrying over', 'Up to 5 unused days carry into the next year by themselves on 1 January. Anything above 5 is lost, unless People agrees that work stopped you taking it.'],
+    ['Longest break', 'Up to 15 working days in a row. Longer needs your manager and People.'],
+  ] },
+  { id: 'sickness', title: 'Sickness absence', version: '2.0', reviewed: '2026-01-05', by: LEAD, sections: [
+    ['Telling us', 'Tell your manager before 10:00 on your first day off, by phone or message.'],
+    ['Self-certifying', 'Up to 7 calendar days you certify yourself in Capxul. From day 8 we need a fit note from your GP.'],
+    ['Pay', 'Ten working days a year at full pay, then statutory sick pay.'],
+    ['Coming back', 'After every absence: a two-minute return-to-work form, then a short chat with your manager in your first week back.'],
+    ['Wellbeing check-in', 'Three separate absences in six months lead to a supportive check-in with your manager. It is never a warning.'],
+  ] },
+  { id: 'parental', title: 'Parental leave', version: '2.1', reviewed: '2026-02-16', by: LEAD, sections: [
+    ['Birth or adoption', '26 weeks at full pay, then statutory pay to 39 weeks, and up to 52 weeks off in all.'],
+    ['Partners', 'Two weeks at full pay, taken within eight weeks of the birth or placement.'],
+    ['Telling us', 'Tell People by the 15th week before the due date, with your MATB1 form or matching certificate.'],
+    ['Keeping in touch', 'Up to 10 paid keeping-in-touch days, only if you want them.'],
+  ] },
+  { id: 'expenses', title: 'Expenses', version: '4.0', reviewed: '2026-04-01', by: 'nadia', sections: [
+    ['Receipts', 'Every line needs a receipt. A VAT receipt lets Harbourline reclaim the VAT.'],
+    ['Travel', 'Standard class rail and public transport. A taxi when there is no sensible alternative, after 21:00, or when carrying kit.'],
+    ['Hotels and food', 'Up to £150 a night for a hotel outside London. Up to £25 a day for food when travelling for work.'],
+    ['Software and equipment', 'Software up to £100 and equipment up to £500 on your own card. Above that, your department\'s hat agrees first.'],
+    ['Timing', 'Claim within 60 days. Approved claims are paid from your department\'s budget, not through payroll.'],
+  ] },
+  { id: 'working-abroad', title: 'Working from abroad', version: '1.2', reviewed: '2026-03-02', by: LEAD, sections: [
+    ['How much', 'Up to 20 working days a year from abroad, with your manager\'s agreement.'],
+    ['Checks first', 'People checks right to work, tax and insurance for the country before you go. Longer stays are agreed with People and a Director.'],
+  ] },
+  { id: 'learning', title: 'Learning budget', version: '1.1', reviewed: '2026-04-01', by: LEAD, sections: [
+    ['Amount', '£750 each from April to March, for courses, conferences and books.'],
+    ['Asking', 'Your manager agrees it before you book. Book through Harbourline, or pay and claim it as an expense.'],
+  ] },
+  { id: 'probation', title: 'Probation', version: '1.3', reviewed: '2026-01-05', by: LEAD, sections: [
+    ['Length', 'Six months, with check-ins with your manager after one month and three months.'],
+    ['Review', 'A review before the six months end. It can be extended once, by up to three months, with the reasons in writing.'],
+  ] },
+  { id: 'pay-and-pension', title: 'Pay and pension', version: '2.2', reviewed: '2026-04-01', by: LEAD, sections: [
+    ['Pay day', 'The last working day of the month, to your Capxul Safe or your bank. Your payslip is in My HR the same day.'],
+    ['Pension', 'Nest. You pay 5% of your basic salary and Harbourline pays 3%. You can opt out once you are enrolled.'],
+    ['Bank details', 'You change where your pay goes yourself, in My HR, confirmed with your passkey. People is told of every change.'],
+    ['Letters', 'Employment and salary confirmations, for a mortgage or a landlord, are signed by People, usually within two working days.'],
+  ] },
+  { id: 'studio', title: 'Studio rules', version: '1.4', reviewed: '2026-06-01', by: 'rosa', sections: [
+    ['Hours', 'The Hoxton studio is open 08:00 to 20:00 on weekdays.'],
+    ['Dogs', 'Dogs are welcome on Fridays if nobody on the floor has an allergy. Ask in the studio channel the day before.'],
+    ['Equipment', 'A laptop and a monitor from day one, returned when you leave, and a one-off £250 home-office allowance.'],
+  ] },
+  { id: 'conduct', title: 'Conduct, grievances and discipline', version: '2.0', reviewed: '2026-01-05', by: 'maya', sections: [
+    ['Who handles it', 'A person always handles a grievance, a complaint or a disciplinary matter: People and a Director. The people agent does not answer them; it passes them straight to People.'],
+    ['Dignity at work', 'Harassment and bullying are never acceptable. Raise anything with your manager, People or any Director.'],
+  ] },
+];
+const policy = (id) => POLICIES.find((p) => p.id === id);
+const policyLink = (id) => { const p = policy(id); return p ? h('a', { href: cx.href('handbook', id) }, p.title) : null; };
+
+/* ---------- letters (drafted from templates, signed by a person) ---------- */
+
+const LETTERS = [];
+const letter = (o) => { LETTERS.push(o); return o; };
+const benSalary = salaryOf('ben');
+letter({ id: 'HR-LET-2026-0021', to: 'ben', kind: 'Employment confirmation', template: 'Employment confirmation (mortgage or rental)', draftedBy: PA, draftedAt: '2026-11-06T10:16:00Z', signer: LEAD, status: 'Waiting for signature', req: 'HR-REQ-2026-0146',
+  body: () => `To whom it may concern,\n\nThis letter confirms that Ben Okoro has been employed by ${D.company.name} since ${fmt.dateLong(emp('ben').dateOfJoining).split(' ').slice(1).join(' ')} as a ${emp('ben').designation}, on a permanent, full-time contract.\n\nHis basic salary is ${fmt.gbp(benSalary?.annualGross || 0)} a year, paid monthly. He has passed his probation, and no notice has been given on either side.\n\nYours faithfully,` });
+letter({ id: 'HR-LET-2026-0020', to: 'owen', kind: 'Employment contract', template: 'Employment contract (permanent, Engineering)', draftedBy: PA, draftedAt: '2026-11-03T11:40:00Z', signer: LEAD, status: 'Waiting for signature',
+  body: () => `Employment contract between ${D.company.name} and Owen Grady.\n\nJob title: Senior Software Engineer, Engineering, reporting to Tom Ashworth.\nStart date: Monday 4 January 2027. Probation: six months.\nSalary: £75,000 a year, paid monthly on the last working day.\nHours: 37.5 a week, Monday to Friday. Place of work: the Hoxton studio, with hybrid working.\nHoliday: 25 days plus bank holidays. Notice: one month during probation, then three months.\nPension: Nest, 5% employee and 3% employer.\n\nThe rest follows Harbourline's standard terms and the handbook.` });
+letter({ id: 'HR-LET-2026-0019', to: 'owen', kind: 'Offer letter', template: 'Offer letter (permanent)', draftedBy: PA, draftedAt: '2026-10-27T15:05:00Z', signer: LEAD, signedAt: '2026-10-28T09:30:00Z', sentAt: '2026-10-28T09:31:00Z', status: 'Accepted', acceptedAt: '2026-10-30T19:12:00Z',
+  body: () => 'Dear Owen,\n\nWe are delighted to offer you the role of Senior Software Engineer at Harbourline Studio, starting on Monday 4 January 2027, at £75,000 a year.\n\nThe offer depends on a right-to-work check and two references. Please accept it in Capxul by 6 November.\n\nWith best wishes,' });
+letter({ id: 'HR-LET-2026-0018', to: 'meilin', kind: 'Probation outcome', template: 'Probation passed', draftedBy: PA, draftedAt: '2026-11-04T15:20:00Z', signer: 'priya', signedAt: '2026-11-04T16:02:00Z', sentAt: '2026-11-04T16:03:00Z', status: 'Sent',
+  body: () => 'Dear Mei Lin,\n\nI am pleased to confirm that you have passed your probation, with effect from 5 November 2026. Your notice period is now three months.\n\nThank you for a strong first six months.\n\nBest wishes,' });
+letter({ id: 'HR-LET-2026-0017', to: 'tomas', kind: 'Probation outcome', template: 'Probation passed', draftedBy: PA, draftedAt: '2026-10-06T14:00:00Z', signer: 'tom', signedAt: '2026-10-06T16:40:00Z', sentAt: '2026-10-06T16:41:00Z', status: 'Sent',
+  body: () => 'Dear Tomás,\n\nI am pleased to confirm that you have passed your probation, with effect from 7 October 2026. Your notice period is now three months.\n\nBest wishes,' });
+letter({ id: 'HR-LET-2026-0016', to: 'hannah', kind: 'Employment contract', template: 'Employment contract (permanent, Design)', draftedBy: PA, draftedAt: '2026-09-14T10:10:00Z', signer: LEAD, signedAt: '2026-09-15T09:12:00Z', sentAt: '2026-09-15T09:13:00Z', status: 'Signed by both', acceptedAt: '2026-09-16T20:05:00Z',
+  body: () => `Employment contract between ${D.company.name} and Hannah Cole.\n\nJob title: Junior Designer, Design, reporting to Priya Raman.\nStart date: Monday 12 October 2026. Probation: six months.\nSalary: £33,600 a year, paid monthly on the last working day.\n\nThe rest follows Harbourline's standard terms and the handbook.` });
+letter({ id: 'HR-LET-2026-0015', to: 'hannah', kind: 'Offer letter', template: 'Offer letter (permanent)', draftedBy: PA, draftedAt: '2026-09-07T16:30:00Z', signer: LEAD, signedAt: '2026-09-08T09:05:00Z', sentAt: '2026-09-08T09:06:00Z', status: 'Accepted', acceptedAt: '2026-09-09T12:40:00Z',
+  body: () => 'Dear Hannah,\n\nWe are delighted to offer you the role of Junior Designer at Harbourline Studio, starting on Monday 12 October 2026, at £33,600 a year.\n\nWith best wishes,' });
+letter({ id: 'HR-LET-2026-0012', to: 'zara', kind: 'Employment contract', template: 'Employment contract (permanent, Growth)', draftedBy: PA, draftedAt: '2026-06-09T11:00:00Z', signer: LEAD, signedAt: '2026-06-10T10:00:00Z', sentAt: '2026-06-10T10:01:00Z', status: 'Signed by both', acceptedAt: '2026-06-11T08:30:00Z',
+  body: () => `Employment contract between ${D.company.name} and Zara Ahmed.\n\nJob title: Account Manager, Growth, reporting to Leo Brennan.\nStart date: Monday 6 July 2026. Probation: six months.\nSalary: £45,600 a year.` });
+letter({ id: 'HR-LET-2026-0009', to: 'callum', kind: 'Employment contract', template: 'Employment contract (permanent, Engineering)', draftedBy: PA, draftedAt: '2026-05-05T10:00:00Z', signer: LEAD, signedAt: '2026-05-06T09:20:00Z', sentAt: '2026-05-06T09:21:00Z', status: 'Signed by both', acceptedAt: '2026-05-06T18:02:00Z',
+  body: () => `Employment contract between ${D.company.name} and Callum Burke.\n\nJob title: Senior Software Engineer, Engineering, reporting to Tom Ashworth.\nStart date: Monday 1 June 2026. Probation: six months.\nSalary: £52,800 a year.` });
+letter({ id: 'HR-LET-2026-0004', to: 'daniel', kind: 'Reference', template: 'Reference (factual)', draftedBy: PA, draftedAt: '2026-04-02T09:24:00Z', signer: 'priya', signedAt: '2026-04-03T11:15:00Z', sentAt: '2026-04-03T11:16:00Z', status: 'Sent', req: 'HR-REQ-2026-0061', addressee: 'People team, Pentagram',
+  body: () => 'To the People team at Pentagram,\n\nDaniel Price was employed by Harbourline Studio Ltd as a Product Designer from 3 November 2025 to 31 March 2026. He left of his own accord.\n\nIn line with our policy, this reference confirms dates and job title only.\n\nYours faithfully,' });
+letter({ id: 'HR-LET-2026-0003', to: 'daniel', kind: 'Resignation acknowledgement', template: 'Resignation acknowledged', draftedBy: PA, draftedAt: '2026-02-27T14:10:00Z', signer: LEAD, signedAt: '2026-02-27T16:00:00Z', sentAt: '2026-02-27T16:01:00Z', status: 'Sent',
+  body: () => 'Dear Daniel,\n\nThank you for your letter of 27 February. Your last day will be Tuesday 31 March 2026, after one month\'s notice. Your final pay, with any holiday owed, comes in March\'s payroll.\n\nThank you for your work with us, and best wishes for what comes next.' });
+letter({ id: 'HR-LET-2026-0002', to: 'all', kind: 'Salary change', template: 'Annual pay review', draftedBy: PA, draftedAt: '2026-03-18T10:00:00Z', signer: 'maya', signedAt: '2026-03-20T12:00:00Z', sentAt: '2026-03-20T12:05:00Z', status: 'Sent', addressee: 'Everyone on a UK salary (21 letters)',
+  body: () => 'Dear colleague,\n\nFollowing the annual pay review, your basic salary from 1 April 2026 is set out below and on your salary structure in Capxul. Your other terms are unchanged.\n\nThank you for this year.\n\nMaya' });
+letter({ id: 'HR-LET-2025-0011', to: 'oliver', kind: 'Reference', template: 'Reference (factual)', draftedBy: LEAD, draftedAt: '2025-09-03T10:00:00Z', signer: LEAD, signedAt: '2025-09-03T10:30:00Z', sentAt: '2025-09-03T10:31:00Z', status: 'Sent', addressee: 'Sparkline Labs, Bristol',
+  body: () => 'To Sparkline Labs,\n\nOliver Grant was employed by Harbourline Studio Ltd as a Front-end Engineer from 4 November 2024 to 29 August 2025.\n\nYours faithfully,' });
+const letterTo = (l) => (l.addressee || (l.to === 'all' ? 'Everyone' : cx.name(l.to)));
+const letterTone = { 'Waiting for signature': 'orange', 'Sent for countersignature': 'blue', Accepted: 'green', 'Signed by both': 'green', Sent: 'green', Draft: 'gray' };
+
+/* ---------- the HR inbox: staff questions and requests ---------- */
+
+const REQ = [];
+const req = (o) => { const r = { links: [], cites: [], ...o }; REQ.push(r); return r; };
+const ask = (who, at, text) => ({ who, at, text });
+const reqTone = (r) => (r.status === 'Answered' ? 'green' : r.status === 'Done' ? 'gray' : 'orange');
+const reqStatus = (r) => (r.status === 'With a person' ? `With ${cx.firstName(r.routedTo)}` : r.status);
+
+(() => {
+  const e = annualOf('ellis'); const ep = sum(pendingOf('ellis'), (l) => l.totalLeaveDays);
+  req({ id: 'HR-REQ-2026-0148', from: 'ellis', channel: 'Chat', topic: 'Leave', subject: 'How many days of leave do I have left?', status: 'Answered', cites: ['annual-leave'], links: pendingOf('ellis').map((l) => ({ label: `${l.name} · ${fmt.day(l.fromDate)} to ${fmt.day(l.toDate)}`, route: 'leave', id: l.name })),
+    thread: [ask('ellis', '2026-11-09T08:12:00Z', 'Hi, how many days of annual leave do I have left this year? Trying to plan December.'),
+      ask(PA, '2026-11-09T08:12:40Z', `You have ${fmt.num(e?.available ?? 0, 1)} days of annual leave left this year, out of ${fmt.num(e?.totalAllocated ?? 25, 1)}.${ep ? ` The ${fmt.num(ep, 1)} days you asked for, 21 to 24 December, are waiting for Tom; once he approves them you will have ${fmt.num((e?.available ?? 0) - ep, 1)} left.` : ''} Up to 5 unused days carry into 2027 by themselves.`)] });
+  const c = annualOf('chloe'); const cl = round2((c?.available ?? 0) - sum(pendingOf('chloe'), (l) => l.totalLeaveDays));
+  req({ id: 'HR-REQ-2026-0147', from: 'chloe', channel: 'Email', topic: 'Leave', subject: 'Can I carry over 3 days?', status: 'Answered', cites: ['annual-leave'],
+    thread: [ask('chloe', '2026-11-08T19:40:00Z', 'Can I carry over 3 days of holiday into next year?'),
+      ask(PA, '2026-11-08T19:40:50Z', cl >= 3 ? `Yes. Up to 5 unused days carry into 2027 by themselves on 1 January, so you do not need to ask. You have ${fmt.num(cl, 1)} days left after the leave already booked${cl > 5 ? `, so 5 would carry; book the other ${fmt.num(cl - 5, 1)} before 31 December or they are lost` : `, so all of them would carry`}.` : `Up to 5 unused days carry into 2027 by themselves, but you have ${fmt.num(cl, 1)} days left after the leave already booked, so that is all that would carry.`)] });
+  req({ id: 'HR-REQ-2026-0146', from: 'ben', channel: 'Email', topic: 'Letter', subject: 'Letter for my mortgage', status: 'With a person', routedTo: LEAD, cites: ['pay-and-pension'], letter: 'HR-LET-2026-0021', links: [{ label: 'HR-LET-2026-0021 · employment confirmation', route: 'hr-letter', id: 'HR-LET-2026-0021' }],
+    thread: [ask('ben', '2026-11-06T10:14:00Z', 'I need a letter confirming my employment and salary for a mortgage application with Nationwide. Can you help?'),
+      ask(PA, '2026-11-06T10:16:00Z', `I have drafted the letter from the employment confirmation template: your job title, your start date (3 June 2024), a permanent full-time contract and your basic salary of ${fmt.gbp(benSalary?.annualGross || 0)} a year. Kwame signs letters for Harbourline. It is with him now, and the signed letter will be here, usually within two working days.`)] });
+  const js = leaveDetails('jamal').find((x) => x.leaveType === 'Sick Leave');
+  req({ id: 'HR-REQ-2026-0145', from: 'jamal', channel: 'Chat', topic: 'Sickness', subject: 'Back after two days off sick', status: 'Answered', cites: ['sickness'], links: [{ label: 'HR-LAP-2026-00213 · sick leave', route: 'leave', id: 'HR-LAP-2026-00213' }],
+    thread: [ask('jamal', '2026-11-05T08:31:00Z', 'Back today after two days off sick. Do I need to fill anything in?'),
+      ask(PA, '2026-11-05T08:32:00Z', `Welcome back. Two days are self-certified, so no fit note is needed. I have put a short return-to-work form in My HR, and Tom will have a quick chat with you this week. Both days are paid sick leave: you have ${fmt.num(js?.available ?? 0, 1)} of 10 days left this year.`),
+      ask('jamal', '2026-11-05T09:02:00Z', 'Done, form filled in. Thanks.')] });
+  req({ id: 'HR-REQ-2026-0144', from: 'meilin', channel: 'Email', topic: 'Right to work', subject: 'My visa runs out in January', status: 'With a person', routedTo: LEAD, cites: [], proposal: false, links: [{ label: 'Right to work', route: 'right-to-work' }],
+    thread: [ask('meilin', '2026-11-04T13:05:00Z', 'My visa runs out at the end of January. What do I need to do?'),
+      ask(PA, '2026-11-04T13:07:00Z', 'Your Skilled Worker visa ends on 31 January 2027. To stay on, Harbourline assigns you a new Certificate of Sponsorship and you apply to the Home Office before the 31st. I have asked Kwame, who looks after our sponsor licence, to assign it. I will send you the list of what to upload as soon as he has.')] });
+  req({ id: 'HR-REQ-2026-0143', from: 'grace', channel: 'Chat', topic: 'Parental leave', subject: 'Parental leave pay', status: 'Answered', cites: ['parental'], links: [{ label: 'HR-LAP-2026-00217 · parental leave', route: 'leave', id: 'HR-LAP-2026-00217' }],
+    thread: [ask('grace', '2026-11-06T16:20:00Z', 'What is our parental leave pay, and do I need to tell payroll myself?'),
+      ask(PA, '2026-11-06T16:21:00Z', 'Twenty-six weeks at full pay, then statutory pay up to 39 weeks. Your request for 1 December to 26 February is waiting for Maya. Once it is approved it goes into December\'s payroll changes by itself, so there is nothing to tell payroll. Please upload your MATB1 form when you have it.')] });
+  req({ id: 'HR-REQ-2026-0142', from: 'zara', channel: 'Chat', topic: 'Probation', subject: 'When is my probation review?', status: 'Answered', cites: ['probation'], links: [{ label: 'Probation and reviews', route: 'reviews' }],
+    thread: [ask('zara', '2026-11-03T11:48:00Z', 'When is my probation review?'),
+      ask(PA, '2026-11-03T11:48:30Z', `Your six-month review is on ${dayName('2027-01-06')} with Leo. You will get a short self-review form on 16 December, and Leo gets a reminder to book the time.`)] });
+  req({ id: 'HR-REQ-2026-0141', from: 'tomas', channel: 'Chat', topic: 'Pay', subject: 'Changing where my pay goes', status: 'Answered', cites: ['pay-and-pension'],
+    thread: [ask('tomas', '2026-11-02T09:15:00Z', 'I have switched banks. How do I change where my pay goes?'),
+      ask(PA, '2026-11-02T09:15:40Z', 'You change it yourself in My HR, under Salary. It is confirmed with your passkey, and People is told. Change it before 20 November and November\'s pay goes to the new account.')] });
+  req({ id: 'HR-REQ-2026-0140', from: 'hannah', channel: 'Chat', topic: 'Expenses', subject: 'Claiming for a hub and a cable', status: 'Answered', cites: ['expenses'], links: [{ label: 'HR-EXP-2026-00032 · draft claim', route: 'expense-claim', id: 'HR-EXP-2026-00032' }],
+    thread: [ask('hannah', '2026-11-05T14:02:00Z', 'Where do I claim for the USB-C hub and monitor cable I bought?'),
+      ask(PA, '2026-11-05T14:02:40Z', 'Your claim is already started: HR-EXP-2026-00032 is saved as a draft, with its receipt. It is within the equipment limit of £500, so submit it and Priya decides.')] });
+  req({ id: 'HR-REQ-2026-0139', from: 'josh', channel: 'Chat', topic: 'Working abroad', subject: 'Two weeks from Lisbon in January', status: 'With a person', routedTo: 'tom', cites: ['working-abroad'],
+    thread: [ask('josh', '2026-11-04T17:30:00Z', 'Could I work from Lisbon for two weeks in January, 11 to 22 Jan?'),
+      ask(PA, '2026-11-04T17:31:00Z', 'Working from abroad is fine for up to 20 working days a year with your manager\'s agreement. I have checked the rest: ten working days in Portugal raise no right-to-work or tax question, and you have not worked abroad this year. Tom decides; I have sent him the request.')] });
+  const lb = annualOf('lena');
+  req({ id: 'HR-REQ-2026-0138', from: 'lena', channel: 'Chat', topic: 'Leave', subject: 'Thursday 12 November off', status: 'Answered', cites: ['annual-leave'], links: [{ label: 'HR-LAP-2026-00200 · 12 Nov', route: 'leave', id: 'HR-LAP-2026-00200' }],
+    thread: [ask('lena', '2026-10-29T15:02:00Z', 'I asked for Thursday 12 November off. Will it be decided in time?'),
+      ask(PA, '2026-10-29T15:02:40Z', `It is waiting for Priya. Nobody else in Design is off that day, and you have ${fmt.num(lb?.available ?? 0, 1)} days of annual leave left, so it meets the policy.`),
+      ask(PA, '2026-11-09T07:30:00Z', 'Priya is on leave until 13 November, so I have also passed your request to People, so it is not held up.')] });
+  req({ id: 'HR-REQ-2026-0137', from: 'freya', channel: 'Chat', topic: 'Studio', subject: 'Bringing my dog in', status: 'Answered', cites: ['studio'],
+    thread: [ask('freya', '2026-10-30T10:10:00Z', 'Can I bring my dog in on Fridays?'),
+      ask(PA, '2026-10-30T10:10:30Z', 'Yes: dogs are welcome on Fridays, as long as nobody on the floor has an allergy. Ask in the studio channel the day before.')] });
+  const cs = lastSlip('callum'); const pen = cs?.deductions?.find((x) => x.abbr === 'PEN')?.amount; const erpen = cs?.employerContributions?.find((x) => x.abbr === 'ERPEN')?.amount;
+  req({ id: 'HR-REQ-2026-0136', from: 'callum', channel: 'Chat', topic: 'Pension', subject: 'Where is my pension?', status: 'Answered', cites: ['pay-and-pension'],
+    thread: [ask('callum', '2026-10-28T12:40:00Z', 'How do I see my pension? Who is it with?'),
+      ask(PA, '2026-10-28T12:41:00Z', `Harbourline's pension is with Nest. You pay 5% of your basic salary and Harbourline pays 3%: ${pen ? fmt.gbp(pen) : '5%'} and ${erpen ? fmt.gbp(erpen) : '3%'} on your latest payslip. Your statement is in your Nest account; your Nest ID is on the welcome letter Nest sent you in June.`)] });
+  req({ id: 'HR-REQ-2026-0135', from: 'amira', channel: 'Email', topic: 'Learning', subject: 'A design conference in March', status: 'With a person', routedTo: 'priya', cites: ['learning'],
+    thread: [ask('amira', '2026-10-27T09:55:00Z', 'Can I go to a design conference in Bristol in March? The ticket is £249 plus the train.'),
+      ask(PA, '2026-10-27T09:56:00Z', 'It fits the learning budget: £750 a year each, and you have used none of yours since April. Priya agrees it first, so I have sent her the request with the dates and the cost. Once she does, book it and claim the ticket and train as an expense.')] });
+  req({ id: 'HR-REQ-2026-0061', from: null, fromName: 'People team, Pentagram', about: 'daniel', channel: 'Email', topic: 'Reference', subject: 'Reference for Daniel Price', status: 'Done', routedTo: 'priya', cites: [], letter: 'HR-LET-2026-0004', links: [{ label: 'HR-LET-2026-0004 · reference', route: 'hr-letter', id: 'HR-LET-2026-0004' }],
+    thread: [ask('People team, Pentagram', '2026-04-02T09:20:00Z', 'Could you confirm Daniel Price\'s dates of employment and job title? He starts with us on 13 April.'),
+      ask(PA, '2026-04-02T09:24:00Z', 'Drafted a factual reference with his dates and job title, as Harbourline\'s policy allows, and passed it to Priya, his manager, to sign.'),
+      ask('priya', '2026-04-03T11:15:00Z', 'Signed and sent.')] });
+})();
+const reqFrom = (r) => (r.from ? cx.name(r.from) : r.fromName);
+const canSeeReq = (r) => seesAllHr() || r.from === cx.meId() || r.routedTo === cx.meId();
+const answeredAt = (r) => r.thread.find((m) => m.who === PA)?.at || r.thread[0].at;
+function closeRequest(r, by, text) {
+  r.status = 'Done';
+  r.thread.push(ask(by, nowIso(), text));
+}
+
+/* ---------- joiners: onboarding run end to end per new starter ---------- */
+
+const STARTERS = [
+  { id: 'owen', start: '2027-01-04', manager: 'tom', buddy: 'ellis', dept: 'engineering', role: 'Senior Software Engineer', offer: 'HR-LET-2026-0019', contract: 'HR-LET-2026-0020', laptop: 'MacBook Pro 14" and a 27" monitor', accounts: 'Google Workspace, Slack, GitHub, Linear and Capxul' },
+  { id: 'hannah', start: '2026-10-12', manager: 'priya', buddy: 'amira', dept: 'design', role: 'Junior Designer', offer: 'HR-LET-2026-0015', contract: 'HR-LET-2026-0016', laptop: 'MacBook Air 15" and a 27" monitor', accounts: 'Google Workspace, Slack, Figma and Capxul' },
+  { id: 'zara', start: '2026-07-06', manager: 'leo', buddy: 'samw', dept: 'growth', role: 'Account Manager', contract: 'HR-LET-2026-0012', laptop: 'MacBook Air 13"', accounts: 'Google Workspace, Slack, the CRM and Capxul' },
+  { id: 'callum', start: '2026-06-01', manager: 'tom', buddy: 'jamal', dept: 'engineering', role: 'Senior Software Engineer', contract: 'HR-LET-2026-0009', laptop: 'MacBook Pro 14" and a 27" monitor', accounts: 'Google Workspace, Slack, GitHub, Linear and Capxul' },
+  { id: 'meilin', start: '2026-05-05', manager: 'priya', buddy: 'lena', dept: 'design', role: 'Product Designer', laptop: 'MacBook Pro 14"', accounts: 'Google Workspace, Slack, Figma and Capxul' },
+];
+const starterName = (s) => cx.name(s.id);
+const probationOf = (s) => ({ one: workdayFrom(addMonths(s.start, 1)), three: workdayFrom(addMonths(s.start, 3)), review: workdayFrom(addMonths(s.start, 6)) });
+// Moves the people agent proposes and a person accepts (kept in memory, like every change in the mock-up)
+const MOVED = { hannahOneMonth: null, callumReview: null, owenWeek: null };
+
+/** The onboarding checklist for one starter: each line says who did it (or who it waits for) and when. */
+function onboardingItems(s) {
+  const e = emp(s.id); const first = cx.firstName(s.id); const mgr = s.manager;
+  const pr = probationOf(s); const t = cx.today; const before = (d) => d <= t;
+  const done = (by, at, extra = {}) => ({ state: 'Done', by, at, ...extra });
+  const wait = (owner, note, extra = {}) => ({ state: 'Waiting', owner, note, ...extra });
+  const todo = (owner, due, note) => ({ state: due && due > t ? 'Scheduled' : 'To do', owner, due, note });
+  const pre = (n) => addDays(s.start, -n);
+  const owen = s.id === 'owen';
+  const ctr = LETTERS.find((l) => l.id === s.contract);
+  const items = [
+    ['Offer and contract', 'Offer letter drafted from the template', s.offer ? done(PA, LETTERS.find((l) => l.id === s.offer)?.draftedAt || isoAt(pre(40))) : done(PA, isoAt(pre(45), '15:00')), { doc: s.offer }],
+    ['Offer and contract', 'Offer signed and sent', done(LEAD, s.offer ? LETTERS.find((l) => l.id === s.offer)?.signedAt : isoAt(pre(44), '09:30'))],
+    ['Offer and contract', 'Offer accepted', done(s.id, s.offer ? LETTERS.find((l) => l.id === s.offer)?.acceptedAt : isoAt(pre(42), '18:00'))],
+    ['Offer and contract', 'Contract drafted from the template', done(PA, ctr?.draftedAt || isoAt(pre(38), '10:00')), { doc: s.contract }],
+    ['Offer and contract', 'Contract signed by Harbourline and by ' + first, ctr && ctr.status === 'Waiting for signature' ? wait(LEAD, `Drafted ${fmt.date(ctr.draftedAt)}; waits for Kwame's signature, then ${first}'s`, { doc: s.contract }) : ctr && !ctr.acceptedAt ? wait(s.id, `Kwame signed ${fmt.date(ctr.signedAt)}; sent to ${first} to countersign`, { doc: s.contract }) : done(LEAD, ctr?.signedAt || isoAt(pre(37), '09:20'), { note: `${first} signed ${fmt.date(ctr?.acceptedAt || isoAt(pre(37)))}`, doc: s.contract })],
+    ['Before day one', 'Right-to-work check', owen ? done(LEAD, '2026-11-04T10:20:00Z', { prep: PA, prepAt: '2026-11-03T12:05:00Z', note: 'British passport, checked through a certified identity provider' }) : done(LEAD, isoAt(pre(20), '10:20'), { prep: PA, note: rtwOf(e)?.doc })],
+    ['Before day one', 'Employee record in Capxul', owen ? wait(LEAD, 'Prepared from the signed offer; Kwame saves it', { action: 'employee-new' }) : done(LEAD, isoAt(pre(14), '11:00'), { prep: PA, note: e?.employee })],
+    ['Before day one', 'Bank or Safe details, and the HMRC starter checklist', owen ? wait('owen', 'Form sent 3 Nov; bank details in, P45 to follow when he leaves his current job') : done(s.id, isoAt(pre(12), '19:30'), { prep: PA, note: e?.salaryMode === 'Bank' ? 'Paid to a bank through Bridge' : 'Paid to a Capxul Safe' })],
+    ['Before day one', 'Equipment ordered', done('rosa', owen ? '2026-11-05T11:10:00Z' : isoAt(pre(10), '11:10'), { prep: PA, note: s.laptop })],
+    ['Before day one', 'Accounts set up', owen ? todo('nadia', '2026-12-21', `${s.accounts}; the people agent sends Nadia the list on 21 Dec`) : done('nadia', isoAt(pre(2), '15:00'), { prep: PA, note: s.accounts })],
+    ['Before day one', 'First-week plan', owen ? (MOVED.owenWeek ? done('tom', MOVED.owenWeek, { prep: PA }) : wait('tom', 'Drafted from the Engineering template on 6 Nov; waits for Tom')) : done(mgr, isoAt(pre(5), '16:00'), { prep: PA })],
+    ['Before day one', 'Buddy chosen', done(mgr, owen ? '2026-11-06T09:40:00Z' : isoAt(pre(7), '09:40'), { note: cx.name(s.buddy) })],
+    ['Before day one', 'Added to payroll', owen ? todo('isla', '2026-12-01', 'In the payroll changes for January, for People to review') : done('isla', isoAt(monthEnd(s.start.slice(0, 7)).slice(0, 8) + '20', '10:00'), { prep: PA, note: `First pay ${fmt.month(s.start.slice(0, 7))}, prorated from ${fmt.day(s.start)}` })],
+    ['First weeks', 'Handbook read and acknowledged', before(s.start) ? done(s.id, isoAt(addDays(s.start, 1), '12:30')) : todo(s.id, s.start)],
+    ['First weeks', 'Health and safety induction', before(s.start) ? done('rosa', isoAt(s.start, '10:00')) : todo('rosa', s.start)],
+    ['First weeks', 'Pension enrolment (Nest)', before(s.start) ? done(PA, isoAt(addDays(s.start, 3), '09:00'), { note: 'Assessed as eligible; enrolled from the first payday' }) : todo(PA, s.start, 'Assessed on the first day')],
+    ['First weeks', 'Probation dates set, with reminders', before(addDays(s.start, -1)) || owen ? done(PA, owen ? '2026-11-03T12:10:00Z' : isoAt(addDays(s.start, -1), '17:00'), { note: `Check-ins ${fmt.day(pr.one)} and ${fmt.day(pr.three)}; review by ${fmt.date(pr.review)}` }) : todo(PA, s.start)],
+    ['Probation', 'One-month check-in', checkIn(s, 'one', pr.one)],
+    ['Probation', 'Three-month check-in', checkIn(s, 'three', pr.three)],
+    ['Probation', 'Probation review', checkIn(s, 'review', pr.review)],
+  ];
+  return items.map(([phase, task, st, extra]) => ({ phase, task, ...st, ...(extra || {}) }));
+}
+function checkIn(s, which, due) {
+  const t = cx.today;
+  if (s.id === 'hannah' && which === 'one') return MOVED.hannahOneMonth ? { state: 'Scheduled', owner: s.manager, due: MOVED.hannahOneMonth, note: 'Moved by Priya: she is on leave on the 12th' } : { state: 'To do', owner: s.manager, due, note: 'Priya is on leave that day; the people agent proposed Monday 16 November' };
+  if (s.id === 'callum' && which === 'review') return MOVED.callumReview ? { state: 'Scheduled', owner: s.manager, due: MOVED.callumReview, note: 'Booked by Tom: 30 minutes, with the review form' } : { state: 'To do', owner: s.manager, due, note: 'Due 1 December; the people agent has the form ready' };
+  if (s.id === 'meilin' && which === 'review') return { state: 'Done', by: s.manager, at: '2026-11-04T15:00:00Z', note: 'Passed', doc: 'HR-LET-2026-0018' };
+  if (due <= t) return { state: 'Done', by: s.manager, at: isoAt(due, '14:00') };
+  return { state: 'Scheduled', owner: s.manager, due, note: 'Reminder to ' + cx.firstName(s.manager) + ' a week before' };
+}
+const starterStage = (s) => { const items = onboardingItems(s); const open = items.filter((i) => i.state !== 'Done'); if (s.start > cx.today) return 'Before day one'; if (!open.length) return 'Complete'; return open.every((i) => i.phase === 'Probation') ? 'In probation' : 'First weeks'; };
+const stageTone = { 'Before day one': 'blue', 'First weeks': 'orange', 'In probation': 'purple', Complete: 'green' };
+
+/* ---------- leavers: offboarding ---------- */
+
+const LEAVERS = [
+  { id: 'daniel', resigned: '2026-02-27', last: '2026-03-31', manager: 'priya', reason: 'Moving to a larger studio', holidayOwed: 2.5 },
+  { id: 'oliver', resigned: '2025-07-25', last: '2025-08-29', manager: 'tom', reason: 'Moving to Bristol to be near family', holidayOwed: 4 },
+];
+function offboardingItems(l) {
+  const e = emp(l.id); const first = cx.firstName(l.id);
+  const agentOn = l.resigned >= PA_SINCE;
+  const prep = agentOn ? PA : null;
+  const done = (by, at, extra = {}) => ({ state: by ? 'Done' : 'To do', by, at, ...extra });
+  if (l.items) return l.items;
+  const lastRun = D.payroll.runs.find((r) => r.startDate <= l.last && r.endDate >= l.last);
+  return [
+    { phase: 'Notice', task: 'Resignation acknowledged in writing', ...done(LEAD, isoAt(l.resigned, '16:00'), { prep, doc: agentOn ? 'HR-LET-2026-0003' : null }) },
+    { phase: 'Notice', task: 'Last day confirmed', ...done(l.manager, isoAt(l.resigned, '17:00'), { note: fmt.date(l.last) }) },
+    { phase: 'Notice', task: 'Holiday owed worked out', ...done('isla', isoAt(addDays(l.last, -14), '10:00'), { prep, note: `${fmt.num(l.holidayOwed, 1)} days, paid with the final pay` }) },
+    { phase: 'Final pay', task: 'Final pay in the last payroll run', ...done('isla', lastRun?.submittedAt || isoAt(addDays(l.last, -3), '10:00'), { note: lastRun ? `${lastRun.name}, prorated to ${fmt.day(l.last)}` : null }) },
+    { phase: 'Final pay', task: 'P45 issued', ...done('isla', isoAt(addDays(l.last, 3), '11:00'), { prep }) },
+    { phase: 'Hand-back', task: 'Equipment returned', ...done('rosa', isoAt(l.last, '16:00')) },
+    { phase: 'Hand-back', task: 'Accounts closed and files handed over', ...done('nadia', isoAt(l.last, '18:00')) },
+    { phase: 'Hand-back', task: 'Seat freed and hats taken off', ...done(LEAD, isoAt(l.last, '18:10'), { note: cx.hasSeat(l.id) ? 'Seat freed' : 'No seat or hat' }) },
+    { phase: 'Leaving', task: 'Exit interview', ...done(LEAD, isoAt(e?.exit?.interview || l.last, '15:00'), { note: e?.exit?.reason || l.reason }) },
+    { phase: 'Leaving', task: 'Reference on request', ...done(l.id === 'daniel' ? 'priya' : LEAD, l.id === 'daniel' ? '2026-04-03T11:15:00Z' : '2025-09-03T10:30:00Z', { prep, doc: l.id === 'daniel' ? 'HR-LET-2026-0004' : 'HR-LET-2025-0011' }) },
+  ];
+}
+/** Start offboarding someone who is leaving: the people agent lays out the checklist; people do it. */
+export function startOffboarding(e, last) {
+  if (LEAVERS.some((x) => x.id === e.id)) return;
+  const first = cx.firstName(e.id);
+  const mgr = e.reportsTo || 'maya';
+  const ann = annualOf(e.id);
+  const items = [
+    { phase: 'Notice', task: 'Resignation acknowledged in writing', state: 'Waiting', owner: LEAD, note: 'Letter drafted from the template; waits for Kwame\'s signature' },
+    { phase: 'Notice', task: 'Last day confirmed', state: 'Done', by: cx.meId(), at: nowIso(), note: fmt.date(last) },
+    { phase: 'Notice', task: 'Holiday owed worked out', state: 'Waiting', owner: 'isla', prep: PA, note: `${fmt.num(ann?.available ?? 0, 1)} days left now; to be prorated to ${fmt.day(last)}` },
+    { phase: 'Final pay', task: 'Final pay in the last payroll run', state: 'To do', owner: 'isla', note: `In the payroll changes for ${fmt.month(last.slice(0, 7))}` },
+    { phase: 'Final pay', task: 'P45 issued', state: 'To do', owner: 'isla' },
+    { phase: 'Hand-back', task: 'Equipment returned', state: 'To do', owner: 'rosa', due: last },
+    { phase: 'Hand-back', task: 'Accounts closed and files handed over', state: 'To do', owner: 'nadia', due: last },
+    { phase: 'Hand-back', task: 'Seat freed and hats taken off', state: 'To do', owner: LEAD, due: last },
+    { phase: 'Leaving', task: 'Exit interview', state: 'To do', owner: LEAD, note: `Booked for the week before ${fmt.day(last)}` },
+  ];
+  LEAVERS.unshift({ id: e.id, resigned: cx.today, last, manager: mgr, items, live: true });
+  put({ kind: 'done', who: LEAD, at: nowIso(), title: `Opened the offboarding checklist for ${e.name}`, detail: `Last day ${fmt.date(last)}. Nine steps, each with its owner.`, route: ['offboarding-plan', e.employee] });
+  put({ kind: 'proposal', key: `hr-resign-ack-${e.id}`, who: LEAD, needs: 'People', at: nowIso(), title: `Sign ${first}'s resignation acknowledgement`, detail: `Drafted from the template: last day ${fmt.date(last)}, final pay and holiday owed in ${fmt.month(last.slice(0, 7))}'s payroll.`, approveLabel: 'Sign and send', result: `Signed and sent ${first}'s resignation acknowledgement`, route: ['offboarding-plan', e.employee],
+    onApprove: () => { const it = items[0]; Object.assign(it, { state: 'Done', by: cx.meId(), at: nowIso() }); cx.toast(`Signed and sent to ${first} (mock-up: nothing is sent)`, { tone: 'success' }); cx.refresh(); } });
+}
+
+/* ---------- right to work ---------- */
+
+const RTW_SPECIAL = {
+  lena: { doc: 'EU Settlement Scheme: settled status', how: 'Online check with a share code' },
+  freya: { doc: 'EU Settlement Scheme: settled status', how: 'Online check with a share code' },
+  tomas: { doc: 'EU Settlement Scheme: pre-settled status', how: 'Online check with a share code', expires: '2027-04-06', follow: '2027-03-06' },
+  meilin: { doc: 'Skilled Worker visa, sponsored by Harbourline', how: 'Online check with a share code', expires: '2027-01-31', follow: '2027-01-31' },
+  callum: { doc: 'Irish passport', how: 'Document check, copy kept' },
+  sofia: { doc: 'Not needed: works from Stockholm under a pay agreement', how: '—', na: true },
+};
+function rtwOf(e) {
+  if (!e) return null;
+  const sp = RTW_SPECIAL[e.id] || {};
+  const at = e.dateOfJoining < D.company.onCapxulSince ? D.company.onCapxulSince : addDays(e.dateOfJoining, -20);
+  const viaAgent = e.dateOfJoining >= PA_SINCE;
+  const r = { id: e.id, employee: e.employee, name: e.name, doc: sp.doc || 'British passport', how: sp.how || (viaAgent ? 'Identity check through a certified provider' : 'Document check, copy kept'), checkedAt: e.dateOfJoining < D.company.onCapxulSince ? e.dateOfJoining : at, checkedBy: e.dateOfJoining < D.company.onCapxulSince ? 'samw' : viaAgent ? LEAD : keeperOn(at), prep: viaAgent ? PA : null, expires: sp.expires || null, follow: sp.follow || null, na: !!sp.na, moved: e.dateOfJoining < D.company.onCapxulSince };
+  if (e.id === 'meilin' && RTW_DONE.meilin) Object.assign(r, { note: `Certificate of Sponsorship assigned ${fmt.date(RTW_DONE.meilin)}; Mei Lin applies before 31 Jan` });
+  return r;
+}
+const RTW_DONE = { meilin: null };
+const rtwRows = () => [...active().map(rtwOf), { id: 'owen', employee: null, name: 'Owen Grady', doc: 'British passport', how: 'Identity check through a certified provider', checkedAt: '2026-11-04', checkedBy: LEAD, prep: PA, expires: null, follow: null, starter: true }];
+const rtwStatus = (r) => {
+  if (r.na) return { text: 'Not needed', tone: 'gray' };
+  if (r.follow && RTW_DONE[r.id]) return { text: 'In hand', tone: 'blue' };
+  if (r.expires && daysBetween(cx.today, r.expires) <= 90) return { text: `Expires in ${daysBetween(cx.today, r.expires)} days`, tone: 'red' };
+  if (r.follow && daysBetween(cx.today, r.follow) <= 180) return { text: 'Follow-up check due', tone: 'orange' };
+  if (r.starter) return { text: 'Checked before start', tone: 'green' };
+  return { text: r.expires ? 'Valid' : 'No expiry', tone: 'green' };
+};
+
+/* ---------- leave: what the people agent checks before a person decides ---------- */
+
+export function leaveChecks(l) {
+  const e = emp(l.employee); if (!e) return [];
+  const lt = H.leaveTypes.find((t) => t.name === l.leaveType);
+  const out = [];
+  const days = workingDaysIn(l.fromDate, l.toDate);
+  if (l.leaveType === 'Sick Leave') {
+    const cal = daysBetween(l.fromDate, l.toDate) + 1;
+    const sb = leaveDetails(l.employee, l.fromDate).find((x) => x.leaveType === 'Sick Leave');
+    out.push({ ok: cal <= 7, label: cal <= 7 ? 'Self-certified' : 'Fit note needed', detail: cal <= 7 ? `${cal} calendar day${cal === 1 ? '' : 's'}: no fit note needed` : `${cal} calendar days: a fit note from day 8` });
+    if (sb) out.push({ ok: sb.available >= 0, label: 'Paid sick leave', detail: `${fmt.num(sb.available, 1)} of ${fmt.num(sb.totalAllocated, 1)} days left this year after this` });
+    return out;
+  }
+  if (lt && !lt.lwp) {
+    const b = leaveDetails(l.employee, l.fromDate).find((x) => x.leaveType === l.leaveType);
+    const others = sum(H.leaveApplications.filter((x) => x !== l && x.employee === l.employee && x.leaveType === l.leaveType && x.status === 'Open' && b && x.fromDate >= b.alloc.fromDate && x.fromDate <= b.alloc.toDate), (x) => x.totalLeaveDays);
+    const before = b ? round2(b.available + (l.status === 'Approved' ? l.totalLeaveDays : 0)) : 0;
+    const after = round2(before - l.totalLeaveDays - others);
+    out.push({ ok: !!b && after >= 0, label: 'Balance', detail: b ? `${fmt.num(before, 1)} days of ${l.leaveType.toLowerCase()} left${others ? `, ${fmt.num(others, 1)} more asked for` : ''}; ${fmt.num(Math.max(after, 0), 1)} left after this` : `No ${l.leaveType.toLowerCase()} allocated` });
+  }
+  if (l.leaveType === 'Annual Leave') {
+    const ahead = daysBetween(l.postingDate, l.fromDate);
+    const need = l.totalLeaveDays <= 1 ? 1 : Math.ceil(2 * l.totalLeaveDays);
+    out.push({ ok: ahead >= need, label: 'Notice', detail: `Asked ${ahead} day${ahead === 1 ? '' : 's'} ahead; the policy asks for ${need}` });
+  }
+  if (lt) out.push({ ok: l.totalLeaveDays <= lt.maxConsecutive, label: 'Length', detail: `${fmt.num(l.totalLeaveDays, 1)} working day${l.totalLeaveDays === 1 ? '' : 's'}; up to ${lt.maxConsecutive} in a row` });
+  if (l.leaveType === 'Parental Leave') { out.push({ ok: true, label: 'Pay', detail: 'Full pay for the first 26 weeks: it goes into the payroll changes for each month it covers, once approved' }); return out; }
+  const team = active().filter((p) => p.department === e.department && p.employmentType !== 'Contract');
+  let worst = { d: null, out: [] };
+  for (const d of days) {
+    const outD = H.leaveApplications.filter((x) => x !== l && x.employee !== l.employee && ['Approved', 'Open'].includes(x.status) && x.fromDate <= d && x.toDate >= d && emp(x.employee)?.department === e.department);
+    if (outD.length > worst.out.length) worst = { d, out: outD };
+  }
+  const offCount = worst.out.length + 1;
+  const okCover = offCount <= Math.max(1, Math.floor(team.length / 2));
+  out.push({ ok: okCover, label: 'Team cover', detail: worst.d ? `${offCount} of ${team.length} in ${cx.deptName(e.department)} off on ${fmt.day(worst.d)} with this (${namesList([...new Set(worst.out.map((x) => x.employee))].map((x) => x))}${worst.out.some((x) => x.status === 'Open') ? ', some still asking' : ''})` : `Nobody else in ${cx.deptName(e.department)} is off then` });
+  const hols = eachDay(l.fromDate, l.toDate).filter((d) => { const ho = holidayOn(d); return ho && !ho.weeklyOff; });
+  if (hols.length) out.push({ ok: true, label: 'Bank holidays', detail: `${hols.map((d) => holidayOn(d).description).join(', ')} not counted` });
+  return out;
+}
+function checksNode(checks, o = {}) {
+  return h('div', { style: 'display:grid;gap:4px' },
+    o.by ? h('div.hd-by', agentAvatar(), h('span', o.by)) : null,
+    h('div.hd-checks', checks.map((c) => h('div.hd-check', { class: { warn: !c.ok } }, h('span.ic', cx.icon(c.ok ? 'check' : 'alert', { size: 15 })), h('div', h('b', c.label), h('div.d', c.detail))))));
+}
+const decidersOf = (l) => { const w = l.waitingFor?.who; if (!w) return wearersOf('People'); const away = onLeaveNow(w); return away ? [w, LEAD].filter((x) => x !== l.employee) : [w]; };
+
+/* ---------- expense claims: receipts checked against the expense policy ---------- */
+
+const LIMITS = { Food: 25, Accommodation: 150, Software: 100, Equipment: 500 };
+export function claimChecks(c) {
+  const out = [];
+  const lines = c.expenses || [];
+  out.push({ ok: (c.receipts || []).length >= lines.length, label: 'Receipts', detail: `${(c.receipts || []).length} receipt${(c.receipts || []).length === 1 ? '' : 's'} for ${lines.length} line${lines.length === 1 ? '' : 's'}${(c.receipts || []).length >= lines.length ? ', each matched by date and amount' : ': a receipt is missing'}` });
+  for (const x of lines) {
+    const lim = LIMITS[x.expenseClaimType];
+    if (lim) out.push({ ok: x.amount <= lim, label: x.expenseClaimType, detail: `${fmt.gbp(x.amount)} · ${x.description}. ${x.amount <= lim ? `Within the ${fmt.gbp(lim, 0)} limit` : `Over the ${fmt.gbp(lim, 0)} limit: ${x.expenseClaimType === 'Software' || x.expenseClaimType === 'Equipment' ? `the policy asks for ${cx.deptName(c.department)}'s agreement first; none is on record` : 'the decider can sanction less'}`}` });
+    else if (x.expenseClaimType === 'Travel') out.push({ ok: true, label: 'Travel', detail: `${fmt.gbp(x.amount)} · ${x.description}. ${/taxi/i.test(x.description) ? 'A taxi to a client: allowed when carrying kit or with no sensible alternative' : 'Standard class or public transport'}` });
+    else if (x.expenseClaimType === 'Events') out.push({ ok: true, label: 'Events', detail: `${fmt.gbp(x.amount)} · ${x.description}. From the learning budget` });
+  }
+  const oldest = lines.map((x) => x.expenseDate).sort()[0];
+  if (oldest) { const age = daysBetween(oldest, c.postingDate); out.push({ ok: age <= 60, label: 'Timing', detail: age ? `Claimed ${age} day${age === 1 ? '' : 's'} after the first expense; the policy allows 60` : 'Claimed the same day; the policy allows 60 days' }); }
+  if (c.totalTaxesAndCharges) out.push({ ok: true, label: 'VAT', detail: `${fmt.gbp(c.totalTaxesAndCharges)} on a VAT receipt: Harbourline reclaims it` });
+  return out;
+}
+function quickApproveClaim(c) {
+  const dec = budgetDecision(c);
+  if (!dec.ok) { cx.toast(dec.reason, { tone: 'warning' }); return false; }
+  for (const x of c.expenses) x.sanctionedAmount = x.amount;
+  c.totalSanctionedAmount = round2(sum(c.expenses, (x) => x.sanctionedAmount));
+  c.grandTotal = round2(c.totalSanctionedAmount + c.totalTaxesAndCharges);
+  c.status = 'Unpaid'; c.approvalStatus = 'Approved'; c.decidedBy = cx.meId(); c.decidedHat = dec.hat; c.approvedAt = cx.today; c.waitingFor = null;
+  dropApproval(c.name);
+  cx.toast(`Approved ${empName(c.employee)}'s claim: ${fmt.gbp(c.grandTotal)} to pay from ${cx.deptName(c.department)}'s budget`, { tone: 'success' });
+  cx.refresh();
+  return true;
+}
+
+/* ---------- sickness and return to work ---------- */
+
+const RTW_FORMS = {
+  'HR-LAP-2026-00213': { filled: '2026-11-05T09:01:00Z', reason: 'A bad cold', chat: null },
+  'HR-LAP-2026-00195': { filled: '2026-10-29T09:20:00Z', reason: 'Migraine', chat: { by: 'maya', at: '2026-10-29T15:00:00Z' } },
+  'HR-LAP-2026-00194': { filled: '2026-10-27T09:10:00Z', reason: 'Stomach bug', chat: { by: 'priya', at: '2026-10-27T16:30:00Z' } },
+  'HR-LAP-2026-00190': { filled: '2026-10-26T09:05:00Z', reason: 'Food poisoning', chat: { by: 'tom', at: '2026-10-26T14:00:00Z' } },
+};
+function rtwFormOf(l) {
+  if (l.leaveType !== 'Sick Leave' || l.status === 'Cancelled') return null;
+  const back = nextWorkday(l.toDate);
+  if (back > cx.today) return { back, state: 'Off now' };
+  const f = RTW_FORMS[l.name];
+  const mgr = emp(l.employee)?.reportsTo || 'maya';
+  if (f) return { back, mgr, sent: l.postingDate >= PA_SINCE ? PA : LEAD, ...f, state: f.chat ? 'Done' : 'Chat to hold' };
+  return { back, mgr, sent: l.fromDate >= PA_SINCE ? PA : LEAD, filled: isoAt(back, '09:15'), reason: null, chat: { by: mgr, at: isoAt(back, '15:00') }, state: 'Done' };
+}
+const spellsIn6 = (id, d = cx.today) => H.leaveApplications.filter((l) => l.employee === id && l.leaveType === 'Sick Leave' && l.status === 'Approved' && l.fromDate > addDays(d, -183) && l.fromDate <= d).length;
+
+/* ---------- reviews: probation and the annual review ---------- */
+
+function reviewRows() {
+  const rows = [];
+  for (const s of STARTERS) {
+    const pr = probationOf(s);
+    for (const [k, label] of [['one', 'One-month check-in'], ['three', 'Three-month check-in'], ['review', 'Probation review']]) {
+      const st = checkIn(s, k, pr[k]);
+      rows.push({ id: `${s.id}-${k}`, who: s.id, name: starterName(s), kind: label, reviewer: s.manager, due: st.due || pr[k], state: st.state, by: st.by, at: st.at, note: st.note, starter: s });
+    }
+  }
+  for (const p of active().filter((p) => p.reportsTo && p.employmentType !== 'Contract' && addDays(p.dateOfJoining, 182) <= '2027-01-31')) {
+    rows.push({ id: `${p.id}-annual`, who: p.id, name: p.name, kind: 'Annual review', reviewer: p.reportsTo, due: '2027-01-29', state: 'Scheduled', note: 'Self-review form opens 1 December' });
+  }
+  return rows;
+}
+
+/* =====================================================================================================
+   Routes
+   ===================================================================================================== */
+
+const deskCrumbs = [{ label: 'HR', route: 'hr' }];
+const stateTone = { Done: 'green', Waiting: 'orange', 'To do': 'orange', Scheduled: 'blue', 'Chat to hold': 'orange', 'Off now': 'gray' };
+const statePill = (it) => cx.pill(it.state, stateTone[it.state] || 'gray');
+function whoCell(it) {
+  if (it.state === 'Done') return h('div.hd-who', byChip(it.by), it.prep && it.prep !== it.by ? h('small', `Prepared by the ${it.prep === PA ? 'people agent' : cx.name(it.prep)}`) : null);
+  return h('div.hd-who', byChip(it.owner), it.prep && it.prep !== it.owner ? h('small', `Prepared by the ${it.prep === PA ? 'people agent' : cx.name(it.prep)}`) : null);
+}
+function checklistTable(items, o = {}) {
+  const phases = [...new Set(items.map((i) => i.phase))];
+  const docLink = (id) => (id && LETTERS.find((l) => l.id === id) ? cx.link(id, 'hr-letter', id) : null);
+  return h('div.tbl-scroll', h('table.tbl', h('thead', h('tr', h('th', 'Step'), h('th', 'Who'), h('th.opt', 'When'), h('th.hd-lg', 'Status'))),
+    h('tbody', phases.flatMap((ph) => [h('tr.hd-phase', h('td', { colspan: 4 }, ph)), ...items.filter((i) => i.phase === ph).map((it) => h('tr',
+      h('td.wrap', h('div', { style: 'font-weight:600' }, it.task), it.note ? h('div.muted', { style: 'font-size:12.5px' }, it.note) : null, it.doc ? h('div', { style: 'font-size:12.5px' }, docLink(it.doc)) : null,
+        it.action === 'employee-new' && it.state !== 'Done' ? h('div', { style: 'margin-top:4px' }, cx.btn('Create the employee record', { sm: true, needs: 'People', onClick: () => cx.go('employee-new', null, { fill: 'owen' }) })) : null,
+        o.mark && ['Waiting', 'To do'].includes(it.state) && !it.action && it.owner && it.owner !== PA && cx.person(it.owner)?.kind === 'employee' && (cx.meId() === it.owner || cx.wears('People')) ? h('div', { style: 'margin-top:4px' }, cx.btn('Mark done', { sm: true, onClick: () => { Object.assign(it, { state: 'Done', by: cx.meId(), at: nowIso() }); o.mark(it); cx.toast(`${it.task}: done`, { tone: 'success' }); cx.refresh(); } })) : null),
+      h('td', whoCell(it), h('div.hd-sm', statePill(it))),
+      h('td.opt', { style: 'white-space:nowrap' }, it.state === 'Done' ? fmt.date(it.at) : it.due ? fmt.date(it.due) : '—'),
+      h('td.hd-lg', statePill(it))))]))));
+}
+function progressMeter(items) {
+  const n = items.filter((i) => i.state === 'Done').length;
+  return h('div', { style: 'display:grid;gap:6px' }, cx.chart.meter({ total: items.length, parts: [{ label: 'Done', value: n, color: 'pos' }], format: (v) => fmt.int(v) + ' steps', legend: false }),
+    h('div.muted', { style: 'font-size:12.5px' }, `${n} of ${items.length} steps done · ${items.filter((i) => i.state === 'Done' && (i.by === PA || i.prep === PA)).length} done or prepared by the people agent`));
+}
+
+/* ---------- HR inbox ---------- */
+
+cx.route('hr-inbox', () => {
+  if (!cx.hasSeat()) return askPage();
+  const rows = () => REQ.filter(canSeeReq);
+  const all = seesAllHr();
+  const list = cx.listView({
+    key: 'hr-inbox', rows, id: (r) => r.id, noun: 'request',
+    titleCol: { key: 'subject', label: 'Request', render: (r) => h('div', { style: 'display:flex;gap:8px;align-items:center;min-width:0' }, r.from ? cx.avatar(r.from, { size: 'sm' }) : cx.avatar(r.fromName, { size: 'sm' }), h('div', { style: 'min-width:0' }, h('a', { href: cx.href('hr-request', r.id), style: 'font-weight:600' }, r.subject), h('div.muted', { style: 'font-size:12px' }, `${reqFrom(r)}${r.about ? ' about ' + cx.name(r.about) : ''} · ${r.channel}`))) },
+    status: (r) => ({ text: reqStatus(r), tone: reqTone(r) }),
+    columns: [
+      { key: 'topic', label: 'Topic' },
+      { key: 'handled', label: 'Handled by', render: (r) => h('span', { style: 'display:inline-flex;gap:6px;align-items:center;flex-wrap:wrap' }, agentChip(), r.routedTo ? h('span.muted', `then ${cx.firstName(r.routedTo)}`) : null), get: (r) => (r.routedTo ? `People agent, then ${cx.name(r.routedTo)}` : PA) },
+    ],
+    right: { key: 'at', label: 'Received', type: 'datetime', get: (r) => r.thread[0].at },
+    modified: (r) => r.thread.at(-1).at,
+    filters: [{ key: 'subject', label: 'Request' }, { key: 'topic', label: 'Topic', type: 'select' }, { key: 'status', label: 'Status', type: 'select', options: ['Answered', 'With a person', 'Done'] }],
+    tabs: [{ label: 'All' }, { label: 'With a person', filter: (r) => r.status === 'With a person' }, { label: 'Answered', filter: (r) => r.status === 'Answered' }, { label: 'Done', filter: (r) => r.status === 'Done' }],
+    sort: { options: [{ key: 'at', label: 'Received', get: (r) => r.thread[0].at }], default: { key: 'at', dir: 'desc' } },
+    groupBy: [{ key: 'topic', label: 'Topic' }, { key: 'status', label: 'Status' }],
+    href: (r) => ['hr-request', r.id], showId: false,
+  });
+  const open = REQ.filter((r) => r.status === 'With a person');
+  return cx.page({ title: 'HR inbox', crumbs: deskCrumbs,
+    sub: all ? `Questions and requests from Harbourline's people. The people agent answers from the handbook and each person's own records, and passes anything that needs a decision or a signature to a person: ${open.length} with a person now.` : 'The requests you sent, and the ones passed to you.',
+    actions: [cx.btn('Handbook', { icon: 'file', href: ['handbook'] }), cx.btn('Ask HR', { kind: 'primary', icon: 'message', href: ['me-ask'] })],
+    fde: 'The HR inbox',
+    body: list });
+}, { workspace: 'hr', title: 'HR inbox' });
+
+function threadNode(r) {
+  return h('div.hd-thread', r.thread.map((m) => {
+    const mine = m.who === r.from || (!r.from && m.who === r.fromName);
+    return h('div.hd-msg', { class: { out: !mine } },
+      h('div.by', m.who === PA ? agentAvatar() : cx.person(m.who) ? cx.avatar(m.who, { size: 'sm' }) : null, h('b', whoName(m.who)), h('span', `· ${fmt.datetime(m.at)}`)),
+      h('div.tx', m.text));
+  }));
+}
+cx.route('hr-request', (ctx) => {
+  const r = cx.find(REQ, 'id', ctx.id);
+  if (!r) return cx.page({ title: 'Not found', crumbs: deskCrumbs, body: cx.empty('No such request') });
+  if (!canSeeReq(r)) return cx.page({ title: 'HR request', crumbs: deskCrumbs, body: cx.card({ body: cx.empty('This request is between the person who sent it and People.') }) });
+  const me = cx.meId();
+  const mayAct = r.status === 'With a person' && (r.routedTo === me || cx.wears('People'));
+  const reply = () => {
+    const m = { text: '' };
+    cx.modal({ title: `Reply to ${reqFrom(r)}`, body: cx.field({ label: 'Reply', key: 'text', model: m, edit: true, type: 'textarea', placeholder: 'Agreed. Enjoy Lisbon.' }),
+      actions: [{ label: 'Back' }, { label: 'Send and close', primary: true, onClick: (close) => { if (!m.text.trim()) { cx.toast('Write a reply first', { tone: 'warning' }); return; } closeRequest(r, me, m.text.trim()); close(); cx.toast(`Sent to ${reqFrom(r)} (mock-up: nothing is sent)`, { tone: 'success' }); cx.refresh(); } }] });
+  };
+  return cx.page({
+    title: r.subject, crumbs: [...deskCrumbs, { label: cx.hasSeat() ? 'HR inbox' : 'Ask HR', route: cx.hasSeat() ? 'hr-inbox' : 'me-ask' }],
+    status: [{ text: reqStatus(r), tone: reqTone(r) }],
+    sub: `${r.id} · ${reqFrom(r)} · ${r.channel} · ${fmt.datetime(r.thread[0].at)}`,
+    actions: mayAct ? [cx.btn('Reply', { kind: 'primary', icon: 'send', onClick: reply })] : [],
+    fde: `HR request ${r.id}: ${r.subject}`,
+    body: h('div.grid.side',
+      cx.card({ title: 'Conversation', body: threadNode(r) }),
+      h('div', { style: 'display:grid;gap:14px;align-content:start;min-width:0' },
+        cx.card({ title: 'Request', body: cx.kv([
+          ['From', r.from ? cx.personChip(r.from) : r.fromName], r.about ? ['About', cx.personChip(r.about)] : null, ['Topic', r.topic], ['Channel', r.channel],
+          ['Answered', h('span', { style: 'display:grid;gap:2px' }, agentChip(), h('span.muted', { style: 'font-size:12px' }, fmt.datetime(answeredAt(r))))],
+          r.routedTo ? [r.status === 'Done' ? 'Closed by' : 'Passed to', cx.personChip(r.routedTo)] : null,
+        ]) }),
+        r.cites.length ? cx.card({ title: 'Answered from', body: h('div', { style: 'display:grid;gap:6px' }, r.cites.map((c) => h('div', policyLink(c), h('span.muted', ` · version ${policy(c)?.version}`)))) }) : null,
+        r.links.length ? cx.card({ title: 'Records', body: h('div', { style: 'display:grid;gap:6px' }, r.links.map((l) => (l.route && cx.hasRoute(l.route) ? h('a', { href: cx.href(l.route, l.id) }, l.label) : h('span', l.label)))) }) : null)),
+  });
+}, { workspace: 'hr', title: 'HR request', seatless: true });
+
+/* ---------- Ask HR: the employee's side ---------- */
+
+/** The people agent's first answer to a question typed in My HR: from the handbook and the asker's own records. */
+function answerFor(me, q) {
+  const s = q.toLowerCase();
+  const ann = annualOf(me.id);
+  const mgr = me.reportsTo || 'maya';
+  if (/griev|complain|harass|bull(y|ied)|disciplin|discriminat/.test(s)) return { topic: 'Conduct', status: 'With a person', routedTo: LEAD, cites: ['conduct'], text: 'Thank you for telling us. A person handles this, not me: I have passed your message to Kwame in People, unread by anyone else, and he will contact you today.' };
+  if (/carry|roll ?over/.test(s)) { const left = round2((ann?.available ?? 0) - sum(pendingOf(me.id), (l) => l.totalLeaveDays)); return { topic: 'Leave', status: 'Answered', cites: ['annual-leave'], text: `Up to 5 unused days carry into next year by themselves on 1 January. You have ${fmt.num(left, 1)} days left after the leave already booked, so ${fmt.num(Math.min(5, Math.max(left, 0)), 1)} would carry${left > 5 ? `; book the other ${fmt.num(left - 5, 1)} before 31 December` : ''}.` }; }
+  if (/how many|left|balance|remaining|days (do|have)/.test(s) && /leave|holiday|day/.test(s)) { const pend = sum(pendingOf(me.id), (l) => l.totalLeaveDays); return { topic: 'Leave', status: 'Answered', cites: ['annual-leave'], text: `You have ${fmt.num(ann?.available ?? 0, 1)} days of annual leave left this year, out of ${fmt.num(ann?.totalAllocated ?? 0, 1)}.${pend ? ` ${fmt.num(pend, 1)} more are waiting for a decision.` : ''}` }; }
+  if (/letter|mortgage|landlord|rent|reference|proof of (employment|income)/.test(s)) {
+    const id = nextName('HR-LET-2026-', LETTERS.map((l) => l.id), 4);
+    const sal = salaryOf(me.id);
+    letter({ id, to: me.id, kind: 'Employment confirmation', template: 'Employment confirmation (mortgage or rental)', draftedBy: PA, draftedAt: nowIso(), signer: LEAD, status: 'Waiting for signature',
+      body: () => `To whom it may concern,\n\nThis letter confirms that ${me.name} has been employed by ${D.company.name} since ${fmt.date(me.dateOfJoining)} as a ${me.designation}, on a permanent, ${me.employmentType.toLowerCase()} contract.${sal ? `\n\nTheir basic salary is ${fmt.gbp(sal.annualGross)} a year, paid monthly.` : ''}\n\nYours faithfully,` });
+    return { topic: 'Letter', status: 'With a person', routedTo: LEAD, cites: ['pay-and-pension'], letter: id, links: [{ label: `${id} · employment confirmation`, route: 'hr-letter', id }], text: `I have drafted an employment confirmation letter from the template, with your job title, start date and salary. Kwame signs letters for Harbourline; it is with him now, usually back within two working days.` };
+  }
+  if (/sick|ill\b|unwell|doctor|fit note/.test(s)) { const sb = leaveDetails(me.id).find((x) => x.leaveType === 'Sick Leave'); return { topic: 'Sickness', status: 'Answered', cites: ['sickness'], text: `Tell ${cx.firstName(mgr)} before 10:00 on your first day off. Up to 7 calendar days you certify yourself; from day 8 we need a fit note. You have ${fmt.num(sb?.available ?? 0, 1)} days of full-pay sick leave left this year. When you are back there is a two-minute return-to-work form here.` }; }
+  if (/expense|receipt|claim|reimburs/.test(s)) return { topic: 'Expenses', status: 'Answered', cites: ['expenses'], links: [{ label: 'New expense claim', route: 'expense-claim-new' }], text: `Claim it in My HR, under Expenses, with a photo of the receipt, within 60 days. Software up to £100 and equipment up to £500 need no agreement first. ${cx.deptName(me.department)}'s hat decides, and it is paid from ${cx.deptName(me.department)}'s budget.` };
+  if (/pension|nest/.test(s)) return { topic: 'Pension', status: 'Answered', cites: ['pay-and-pension'], text: 'Harbourline\'s pension is with Nest: you pay 5% of your basic salary and Harbourline pays 3%. Your statement is in your Nest account.' };
+  if (/pay ?day|payslip|paid|salary|bank/.test(s)) return { topic: 'Pay', status: 'Answered', cites: ['pay-and-pension'], links: [{ label: 'My payslips', route: 'me-payslips' }], text: 'Pay day is the last working day of the month; November\'s is Monday 30 November. Your payslip is in My HR the same day. You change where your pay goes yourself, under Salary, confirmed with your passkey.' };
+  if (/parental|maternity|paternity|baby|adopt/.test(s)) return { topic: 'Parental leave', status: 'Answered', cites: ['parental'], text: 'Twenty-six weeks at full pay, then statutory pay to 39 weeks; partners get two weeks at full pay. Tell People by the 15th week before the due date, with your MATB1 form. Congratulations, if that is the news.' };
+  if (/abroad|remote|work from|overseas/.test(s)) return { topic: 'Working abroad', status: 'With a person', routedTo: mgr, cites: ['working-abroad'], text: `Up to 20 working days a year from abroad, with your manager's agreement. People checks right to work and tax for the country first. I have passed your request to ${cx.firstName(mgr)}, who decides.` };
+  if (/course|conference|training|learning|book/.test(s)) return { topic: 'Learning', status: 'With a person', routedTo: mgr, cites: ['learning'], text: `The learning budget is £750 each from April to March. ${cx.firstName(mgr)} agrees it before you book; I have passed your request on.` };
+  if (/probation|review|appraisal/.test(s)) { const st = STARTERS.find((x) => x.id === me.id); return { topic: 'Probation', status: 'Answered', cites: ['probation'], text: st ? `Your probation review is due by ${fmt.date(probationOf(st).review)}, with ${cx.firstName(st.manager)}.` : 'You have passed probation. Annual reviews are at the end of January; the self-review form opens on 1 December.' }; }
+  if (/dog|studio|office hours|open/.test(s)) return { topic: 'Studio', status: 'Answered', cites: ['studio'], text: 'The studio is open 08:00 to 20:00 on weekdays. Dogs are welcome on Fridays if nobody on the floor has an allergy.' };
+  return { topic: 'Other', status: 'With a person', routedTo: LEAD, cites: [], text: 'The handbook does not cover that, so I have passed it to Kwame in People, who will reply here.' };
+}
+function askHr(me, q) {
+  const a = answerFor(me, q);
+  const id = nextName('HR-REQ-2026-', REQ.map((r) => r.id), 4);
+  const at0 = nowIso();
+  const r = req({ id, from: me.id, channel: 'My HR', topic: a.topic, subject: q.length > 70 ? q.slice(0, 67) + '…' : q, status: a.status, routedTo: a.routedTo, cites: a.cites || [], links: a.links || [], letter: a.letter,
+    thread: [ask(me.id, at0, q), ask(PA, plusMin(at0, 1), a.text)] });
+  put({ kind: 'done', who: me.id, at: plusMin(at0, 1), title: `${a.status === 'Answered' ? 'Answered' : 'Passed on'} ${me.firstName}'s question: ${r.subject}`, detail: a.status === 'Answered' ? `From the handbook${a.cites?.length ? ': ' + policy(a.cites[0])?.title : ''}` : `To ${cx.name(a.routedTo)}`, route: ['hr-request', id] });
+  if (a.routedTo) registerRouted(r);
+  return r;
+}
+function askPage() {
+  const ne = notEmployee('Ask HR'); if (ne) return ne;
+  const me = cx.me();
+  const mine = REQ.filter((r) => r.from === me.id).sort((a, b) => b.thread[0].at.localeCompare(a.thread[0].at));
+  const m = { q: '' };
+  const ta = h('textarea.finput', { rows: 3, placeholder: 'How many days of leave do I have left?', 'aria-label': 'Your question', oninput: (e) => { m.q = e.target.value; } });
+  const form = h('form.hd-ask', { style: 'display:grid;gap:8px', onsubmit: (e) => { e.preventDefault(); const q = m.q.trim(); if (!q) { cx.toast('Type a question first', { tone: 'warning' }); return; } const r = askHr(me, q); cx.go('hr-request', r.id); } },
+    ta, h('div', { style: 'display:flex;gap:8px;align-items:center;flex-wrap:wrap' }, h('button.btn.primary', { type: 'submit' }, cx.icon('send'), 'Ask'), h('span.muted', { style: 'font-size:12px' }, 'Answered from the handbook and your own records. Anything that needs a decision goes to a person.')));
+  const sugg = ['How many days of leave do I have left?', 'Can I carry over days into next year?', 'I need a letter for my mortgage', 'When is pay day?'];
+  return myPage('Ask HR', 'me', [
+    panel('Ask HR', [form, h('div.chips', sugg.map((x) => h('button.btn.sm', { type: 'button', onclick: () => { ta.value = x; m.q = x; ta.focus(); } }, x)))]),
+    panel('Your questions', mine.length ? mine.map((r) => h('a.hr-row.click', { href: cx.href('hr-request', r.id), style: 'text-decoration:none;color:inherit' }, h('div.grow', h('div.t', r.subject), h('div.s', `${fmt.datetime(r.thread[0].at)} · ${r.thread.at(-1).who === PA ? 'Answered by the people agent' : whoName(r.thread.at(-1).who)}`)), cx.pill(reqStatus(r), reqTone(r)))) : h('div.muted', { style: 'font-size:13px' }, 'Nothing asked yet.')),
+    panel('Handbook', h('div', { style: 'display:grid;gap:4px' }, POLICIES.slice(0, 6).map((p) => h('a', { href: cx.href('handbook', p.id) }, p.title)), h('a', { href: cx.href('handbook') }, 'All policies'))),
+  ], null);
+}
+cx.route('me-ask', () => askPage(), { workspace: 'hr', title: 'Ask HR' });
+
+/* ---------- handbook ---------- */
+
+cx.route('handbook', (ctx) => {
+  const open = ctx.id || null;
+  const count = (id) => REQ.filter((r) => r.cites.includes(id)).length;
+  const acks = active().filter((p) => p.employmentType !== 'Contract').length;
+  if (open) requestAnimationFrame(() => document.getElementById('policy-' + open)?.scrollIntoView({ block: 'start' }));
+  return cx.page({ title: 'Handbook and policies', crumbs: deskCrumbs,
+    sub: `${POLICIES.length} policies, kept by People. The people agent answers staff questions from these words and says which policy it used.`,
+    actions: cx.hasSeat() ? [cx.btn('HR inbox', { icon: 'message', href: ['hr-inbox'] }), cx.btn('Edit a policy', { needs: 'People', onClick: () => cx.toast('Policies are edited by People and re-acknowledged by everyone (mock-up: nothing changes)', { tone: 'info' }) })] : [cx.btn('Ask HR', { kind: 'primary', icon: 'message', href: ['me-ask'] })],
+    fde: 'The handbook',
+    body: h('div.grid.side',
+      cx.card({ title: 'Policies', body: h('div', POLICIES.map((p) => h('details.hd-policy', { id: 'policy-' + p.id, open: open && cx.slug(p.id) === open ? true : null },
+        h('summary', cx.icon('file', { size: 15 }), h('span.t', p.title), h('span.s', `v${p.version} · ${fmt.date(p.reviewed)}`)),
+        h('dl', p.sections.flatMap(([k, v]) => [h('dt', k), h('dd', v)]), h('dt', 'Kept by'), h('dd', `${cx.name(p.by)} · reviewed ${fmt.date(p.reviewed)} · acknowledged by ${acks} of ${acks}`))))) }),
+      h('div', { style: 'display:grid;gap:14px;align-content:start;min-width:0' },
+        cx.card({ title: 'Questions answered from it', body: h('div', { style: 'display:grid;gap:0' }, POLICIES.filter((p) => count(p.id)).map((p) => h('div.hr-row', h('div.grow', h('a', { href: cx.href('handbook', p.id) }, p.title)), h('span.pill.t-gray', String(count(p.id)))))) }),
+        cx.hasSeat() ? cx.card({ title: 'Letter templates', body: h('div', { style: 'display:grid;gap:4px;font-size:13px' }, [...new Set(LETTERS.map((l) => l.template))].sort().map((t) => h('div', t))) }) : null)),
+  });
+}, { workspace: 'hr', title: 'Handbook', seatless: true });
+
+/* ---------- letters ---------- */
+
+cx.route('hr-letters', () => {
+  const g = seatGate('HR letters'); if (g) return g;
+  return cx.page({ title: 'HR letters', crumbs: deskCrumbs, sub: 'Drafted from templates, signed by a person, kept on the employee\'s record.',
+    body: cx.listView({ key: 'hr-letters', rows: () => LETTERS, id: (r) => r.id, noun: 'letter',
+      titleCol: { key: 'kind', label: 'Letter', sub: (r) => r.template },
+      status: (r) => ({ text: r.status, tone: letterTone[r.status] || 'gray' }),
+      columns: [{ key: 'to', label: 'To', get: (r) => letterTo(r), render: (r) => (cx.person(r.to) ? cx.personChip(r.to) : h('span', letterTo(r))) }, { key: 'drafted', label: 'Prepared by', render: (r) => byChip(r.draftedBy), get: (r) => whoName(r.draftedBy) }, { key: 'signer', label: 'Signed by', render: (r) => (r.signedAt ? cx.personChip(r.signer) : h('span.muted', `waits for ${cx.firstName(r.signer)}`)), get: (r) => cx.name(r.signer) }],
+      right: { key: 'draftedAt', label: 'Drafted', type: 'date' }, modified: (r) => r.sentAt || r.draftedAt,
+      filters: [{ key: 'kind', label: 'Letter', type: 'select' }, { key: 'status', label: 'Status', type: 'select' }],
+      tabs: [{ label: 'All' }, { label: 'Waiting for a signature', filter: (r) => r.status === 'Waiting for signature' }],
+      sort: { options: [{ key: 'draftedAt', label: 'Drafted' }], default: { key: 'draftedAt', dir: 'desc' } },
+      href: (r) => ['hr-letter', r.id], showId: true }) });
+}, { workspace: 'hr', title: 'HR letters' });
+
+function signLetter(l) {
+  if (cx.meId() !== l.signer && !cx.wears('People')) { cx.toast(`${cx.name(l.signer)} or People signs this letter.`, { tone: 'warning' }); return false; }
+  l.signedAt = nowIso(); l.sentAt = l.signedAt; l.status = l.kind === 'Employment contract' ? 'Sent for countersignature' : 'Sent'; l.signer = cx.meId();
+  const r = REQ.find((x) => x.letter === l.id && x.status === 'With a person');
+  if (r) closeRequest(r, cx.meId(), `Signed. The letter is attached here and in your documents.`);
+  cx.toast(`Signed and sent to ${letterTo(l)} (mock-up: nothing is sent)`, { tone: 'success' });
+  cx.refresh();
+  return true;
+}
+cx.route('hr-letter', (ctx) => {
+  const l = cx.find(LETTERS, 'id', ctx.id);
+  if (!l) return cx.page({ title: 'Not found', crumbs: deskCrumbs, body: cx.empty('No such letter') });
+  if (!cx.hasSeat() && l.to !== cx.meId()) return seatGate('HR letter');
+  const signerName = cx.person(l.signer) ? cx.name(l.signer) : l.signer;
+  const signerRole = emp(l.signer)?.designation || '';
+  return cx.page({ title: `${l.kind}: ${letterTo(l)}`, crumbs: [...deskCrumbs, { label: 'HR letters', route: cx.hasSeat() ? 'hr-letters' : 'me' }],
+    status: [{ text: l.status, tone: letterTone[l.status] || 'blue' }], sub: `${l.id} · ${l.template}`,
+    actions: [l.status === 'Waiting for signature' ? cx.btn('Sign and send', { kind: 'primary', icon: 'check', needs: () => (cx.meId() === l.signer || cx.wears('People') ? true : `${cx.name(l.signer)} or People signs this letter.`), onClick: () => signLetter(l) }) : null, cx.btn('Save as PDF', { icon: 'file', onClick: () => cx.toast('Saved as a PDF (mock-up: nothing is downloaded)', { tone: 'info' }) })],
+    fde: `HR letter ${l.id}`,
+    body: h('div.grid.side',
+      h('div.hd-letter', h('div.hd-lh', h('b', D.company.name), h('span', `${D.company.address}`)), h('div.muted', { style: 'font-size:12.5px' }, fmt.dateLong(l.signedAt || l.draftedAt)), h('p', l.body()),
+        h('div.hd-sign', l.signedAt ? `Signed by ${signerName}${signerRole ? ', ' + signerRole : ''}, ${fmt.datetime(l.signedAt)}` : `To be signed by ${signerName}${signerRole ? ', ' + signerRole : ''}`)),
+      cx.card({ title: 'Record', body: cx.kv([
+        ['To', cx.person(l.to) ? cx.personChip(l.to) : letterTo(l)], ['Template', l.template],
+        ['Prepared by', h('span', { style: 'display:grid;gap:2px' }, byChip(l.draftedBy), h('span.muted', { style: 'font-size:12px' }, fmt.datetime(l.draftedAt)))],
+        ['Signed by', l.signedAt ? h('span', { style: 'display:grid;gap:2px' }, cx.personChip(l.signer), h('span.muted', { style: 'font-size:12px' }, fmt.datetime(l.signedAt))) : h('span.muted', `Waits for ${cx.name(l.signer)}`)],
+        l.acceptedAt ? ['Accepted', fmt.datetime(l.acceptedAt)] : null,
+        l.req ? ['Request', cx.link(l.req, 'hr-request', l.req)] : null,
+        ['Kept on', cx.person(l.to) && emp(l.to) ? cx.link(`${emp(l.to).name}'s record`, 'employee', emp(l.to).employee) : 'Harbourline\'s HR records'],
+      ]) })),
+  });
+}, { workspace: 'hr', title: 'HR letter', seatless: true });
+
+/* ---------- onboarding ---------- */
+
+cx.route('onboarding', () => {
+  const g = seatGate('Onboarding'); if (g) return g;
+  const rows = STARTERS.map((s) => { const items = onboardingItems(s); return { s, id: s.id, name: starterName(s), role: s.role, dept: cx.deptName(s.dept), start: s.start, manager: s.manager, stage: starterStage(s), done: items.filter((i) => i.state === 'Done').length, total: items.length, next: items.find((i) => i.state !== 'Done') }; });
+  return cx.page({ title: 'Onboarding', crumbs: deskCrumbs, sub: 'Every new starter\'s steps, from the offer to the end of probation. The people agent prepares; people sign, order and decide.',
+    actions: [cx.btn('HR letters', { icon: 'file', href: ['hr-letters'] })],
+    body: cx.listView({ key: 'onboarding', rows: () => rows, id: (r) => r.id, noun: 'starter', showId: false,
+      titleCol: { key: 'name', label: 'Starter', sub: (r) => `${r.role} · ${r.dept}` },
+      status: (r) => ({ text: r.stage, tone: stageTone[r.stage] }),
+      columns: [{ key: 'manager', label: 'Manager', type: 'person' }, { key: 'progress', label: 'Steps done', get: (r) => r.done, render: (r) => h('span', `${r.done} of ${r.total}`) }, { key: 'next', label: 'Next step', get: (r) => r.next?.task || '', render: (r) => (r.next ? h('span', r.next.task, h('span.muted', ` · ${r.next.state === 'Waiting' ? 'waits for ' + cx.firstName(r.next.owner) : r.next.due ? fmt.day(r.next.due) : cx.firstName(r.next.owner)}`)) : h('span.faint', 'None')) }],
+      right: { key: 'start', label: 'Start date', type: 'date' },
+      tabs: [{ label: 'All' }, { label: 'Not complete', filter: (r) => r.stage !== 'Complete' }],
+      sort: { options: [{ key: 'start', label: 'Start date' }], default: { key: 'start', dir: 'desc' } },
+      href: (r) => ['onboarding-plan', r.id] }) });
+}, { workspace: 'hr', title: 'Onboarding' });
+
+cx.route('onboarding-plan', (ctx) => {
+  const g = seatGate('Onboarding'); if (g) return g;
+  const s = STARTERS.find((x) => cx.slug(x.id) === ctx.id || (emp(x.id)?.employee && cx.slug(emp(x.id).employee) === ctx.id));
+  if (!s) return cx.page({ title: 'Not found', crumbs: [...deskCrumbs, { label: 'Onboarding', route: 'onboarding' }], body: cx.empty('No onboarding plan for that person') });
+  const items = onboardingItems(s); const pr = probationOf(s); const e = emp(s.id);
+  const stage = starterStage(s);
+  const docs = LETTERS.filter((l) => l.to === s.id);
+  const tl = items.filter((i) => i.state === 'Done').map((i) => ({ at: i.at, kind: i.by === PA ? 'task' : 'approval', text: h('span', h('b', whoName(i.by)), `: ${i.task}`), body: i.note || '' }));
+  return cx.page({ title: starterName(s), crumbs: [...deskCrumbs, { label: 'Onboarding', route: 'onboarding' }], status: [{ text: stage, tone: stageTone[stage] }],
+    sub: `${s.role} · ${cx.deptName(s.dept)} · ${s.start > cx.today ? 'starts' : 'started'} ${dayName(s.start)} · manager ${cx.name(s.manager)} · buddy ${cx.name(s.buddy)}`,
+    actions: [e ? cx.btn('Employee record', { icon: 'user', href: ['employee', e.employee] }) : cx.btn('Create the employee record', { kind: 'primary', icon: 'plus', needs: 'People', onClick: () => cx.go('employee-new', null, { fill: 'owen' }) })],
+    fde: `Onboarding for ${starterName(s)}`,
+    body: h('div.grid.side',
+      cx.card({ title: 'Checklist', body: h('div', { style: 'display:grid;gap:12px' }, progressMeter(items), checklistTable(items, { mark: () => {} })) }),
+      h('div', { style: 'display:grid;gap:14px;align-content:start;min-width:0' },
+        cx.card({ title: 'Dates', body: cx.kv([['Start', fmt.date(s.start)], ['One-month check-in', fmt.date(s.id === 'hannah' && MOVED.hannahOneMonth ? MOVED.hannahOneMonth : pr.one)], ['Three-month check-in', fmt.date(pr.three)], ['Probation review', fmt.date(s.id === 'callum' && MOVED.callumReview ? MOVED.callumReview : pr.review)]]) }),
+        docs.length ? cx.card({ title: 'Letters', body: h('div', { style: 'display:grid;gap:6px' }, docs.map((l) => h('div', cx.link(l.kind, 'hr-letter', l.id), h('span.muted', ` · ${l.status}`)))) }) : null,
+        cx.card({ title: 'Activity', body: cx.timeline(tl) }))),
+  });
+}, { workspace: 'hr', title: 'Onboarding plan' });
+
+/* ---------- offboarding ---------- */
+
+cx.route('offboarding', () => {
+  const g = seatGate('Offboarding'); if (g) return g;
+  const rows = LEAVERS.map((l) => { const items = offboardingItems(l); const n = items.filter((i) => i.state === 'Done').length; return { l, id: l.id, name: cx.name(l.id), last: l.last, resigned: l.resigned, manager: l.manager, done: n, total: items.length, stage: n === items.length ? 'Complete' : 'Leaving' }; });
+  const pick = () => {
+    const m = { who: '', last: addDays(cx.today, 31) };
+    cx.modal({ title: 'Start offboarding', body: h('div.fields', { style: '--cols:1' }, cx.field({ label: 'Who is leaving', key: 'who', model: m, edit: true, type: 'select', options: [['', 'Choose someone'], ...active().filter((p) => p.employmentType !== 'Contract').map((p) => [p.id, p.name])] }), cx.field({ label: 'Last day', key: 'last', model: m, edit: true, type: 'date' })),
+      actions: [{ label: 'Back' }, { label: 'Start', primary: true, onClick: (close) => { if (!m.who) { cx.toast('Choose who is leaving', { tone: 'warning' }); return; } const e = emp(m.who); e.relievingDate = m.last; startOffboarding(e, m.last); close(); cx.toast(`Offboarding started for ${e.name}`, { tone: 'success' }); cx.go('offboarding-plan', e.employee); } }] });
+  };
+  return cx.page({ title: 'Offboarding', crumbs: deskCrumbs, sub: 'Everyone who has left or is leaving, with each step and who did it.',
+    actions: [cx.btn('Start offboarding', { kind: 'primary', icon: 'plus', needs: 'People', onClick: pick })],
+    body: cx.listView({ key: 'offboarding', rows: () => rows, id: (r) => r.id, noun: 'leaver', showId: false,
+      titleCol: { key: 'name', label: 'Leaver', sub: (r) => `${emp(r.id)?.designation} · ${cx.deptName(emp(r.id)?.department)}` },
+      status: (r) => ({ text: r.stage, tone: r.stage === 'Complete' ? 'green' : 'orange' }),
+      columns: [{ key: 'resigned', label: 'Resigned', type: 'date' }, { key: 'manager', label: 'Manager', type: 'person' }, { key: 'progress', label: 'Steps done', get: (r) => r.done, render: (r) => h('span', `${r.done} of ${r.total}`) }],
+      right: { key: 'last', label: 'Last day', type: 'date' }, empty: 'Nobody has left yet.',
+      sort: { options: [{ key: 'last', label: 'Last day' }], default: { key: 'last', dir: 'desc' } },
+      href: (r) => ['offboarding-plan', emp(r.id)?.employee || r.id] }) });
+}, { workspace: 'hr', title: 'Offboarding' });
+
+cx.route('offboarding-plan', (ctx) => {
+  const g = seatGate('Offboarding'); if (g) return g;
+  const l = LEAVERS.find((x) => cx.slug(x.id) === ctx.id || cx.slug(emp(x.id)?.employee || '') === ctx.id);
+  if (!l) return cx.page({ title: 'Not found', crumbs: [...deskCrumbs, { label: 'Offboarding', route: 'offboarding' }], body: cx.empty('No offboarding for that person') });
+  const e = emp(l.id); const items = offboardingItems(l);
+  const n = items.filter((i) => i.state === 'Done').length;
+  const tl = items.filter((i) => i.state === 'Done').map((i) => ({ at: i.at, kind: 'approval', text: h('span', h('b', whoName(i.by)), `: ${i.task}`), body: [i.prep === PA && i.by !== PA ? 'Prepared by the people agent. ' : '', i.note || ''].join('') }));
+  return cx.page({ title: e.name, crumbs: [...deskCrumbs, { label: 'Offboarding', route: 'offboarding' }], status: [{ text: n === items.length ? 'Complete' : 'Leaving', tone: n === items.length ? 'green' : 'orange' }],
+    sub: `${e.designation} · ${cx.deptName(e.department)} · resigned ${fmt.date(l.resigned)} · last day ${fmt.date(l.last)}`,
+    actions: [cx.btn('Employee record', { icon: 'user', href: ['employee', e.employee] })],
+    fde: `Offboarding for ${e.name}`,
+    body: h('div.grid.side',
+      cx.card({ title: 'Checklist', body: h('div', { style: 'display:grid;gap:12px' }, progressMeter(items), checklistTable(items, { mark: () => {} })) }),
+      h('div', { style: 'display:grid;gap:14px;align-content:start;min-width:0' },
+        cx.card({ title: 'Leaving', body: cx.kv([['Resigned', fmt.date(l.resigned)], ['Last day', fmt.date(l.last)], ['Reason', e.exit?.reason || l.reason || '—'], ['New workplace', e.exit?.newWorkplace || '—']]) }),
+        cx.card({ title: 'Activity', body: cx.timeline(tl) }))),
+  });
+}, { workspace: 'hr', title: 'Offboarding' });
+
+/* ---------- right to work ---------- */
+
+cx.route('right-to-work', () => {
+  const g = seatGate('Right to work'); if (g) return g;
+  return cx.page({ title: 'Right to work', crumbs: deskCrumbs, sub: 'Every employee\'s right-to-work check, and the follow-ups that visas and pre-settled status need. The people agent tracks the dates and gathers documents; People signs off each check.',
+    body: cx.listView({ key: 'right-to-work', rows: rtwRows, id: (r) => r.id, noun: 'person', showId: false,
+      titleCol: { key: 'name', label: 'Employee', sub: (r) => r.doc, render: (r) => (r.employee ? cx.link(r.name, 'employee', r.employee) : h('span', r.name, h('span.muted', ' · starts 4 Jan'))) },
+      status: rtwStatus,
+      columns: [{ key: 'how', label: 'Check' }, { key: 'checkedAt', label: 'Checked', type: 'date' }, { key: 'checkedBy', label: 'Signed off by', render: (r) => (r.na ? h('span.faint', '—') : h('div.hd-who', cx.personChip(r.checkedBy), r.prep ? h('small', 'Prepared by the people agent') : r.moved ? h('small', 'Moved from the old records') : null)), get: (r) => cx.name(r.checkedBy) }, { key: 'follow', label: 'Follow-up', type: 'date', get: (r) => r.follow || r.expires || '' }],
+      right: { key: 'expires', label: 'Expires', get: (r) => r.expires || '', render: (r) => (r.expires ? fmt.date(r.expires) : h('span.faint', 'No expiry')) },
+      tabs: [{ label: 'All' }, { label: 'To follow up', filter: (r) => !!(r.follow || r.expires) }],
+      sort: { options: [{ key: 'name', label: 'Name' }, { key: 'follow', label: 'Follow-up', get: (r) => r.follow || r.expires || '9999' }], default: { key: 'follow', dir: 'asc' } } }) });
+}, { workspace: 'hr', title: 'Right to work' });
+
+/* ---------- sickness and return to work ---------- */
+
+cx.route('sickness', () => {
+  const g = seatGate('Sickness and return to work'); if (g) return g;
+  const rows = () => H.leaveApplications.filter((l) => l.leaveType === 'Sick Leave' && l.status === 'Approved').map((l) => ({ ...l, f: rtwFormOf(l), spells: spellsIn6(l.employee, l.fromDate) }));
+  return cx.page({ title: 'Sickness and return to work', crumbs: [...deskCrumbs, { label: 'Leave', route: 'leave-home' }],
+    sub: 'Each absence, its return-to-work form and the chat with the manager. The people agent sends the form and reminds the manager; the manager holds the chat.',
+    body: cx.listView({ key: 'sickness', rows, id: (r) => r.name, noun: 'absence',
+      titleCol: { key: 'employee', label: 'Employee', get: (r) => empName(r.employee), sub: (r) => (r.f?.reason ? `${r.f.reason}` : `${fmt.num(r.totalLeaveDays, 1)} day${r.totalLeaveDays === 1 ? '' : 's'}`) },
+      status: (r) => ({ text: r.f?.state === 'Chat to hold' ? `Chat with ${cx.firstName(r.f.mgr)}` : r.f?.state || 'Done', tone: r.f?.state === 'Chat to hold' ? 'orange' : r.f?.state === 'Off now' ? 'gray' : 'green' }),
+      columns: [{ key: 'fromDate', label: 'From', type: 'date', keep: true }, { key: 'toDate', label: 'To', type: 'date' }, { key: 'back', label: 'Back', get: (r) => r.f?.back || '', type: 'date' }, { key: 'form', label: 'Return-to-work form', get: (r) => (r.f?.filled ? fmt.date(r.f.filled) : ''), render: (r) => (r.f?.filled ? h('span', `Filled ${fmt.day(r.f.filled)}`) : h('span.faint', '—')) }, { key: 'spells', label: 'Absences in 6 months', type: 'int' }],
+      right: { key: 'totalLeaveDays', label: 'Days', type: 'float', dp: 1 },
+      filters: [EMP_FILTER, { key: 'fromDate', label: 'Month', type: 'month' }],
+      tabs: [{ label: 'All' }, { label: 'Chat to hold', filter: (r) => r.f?.state === 'Chat to hold' }, { label: 'This year', filter: (r) => r.fromDate >= '2026-01-01' }],
+      sort: { options: [{ key: 'fromDate', label: 'From' }], default: { key: 'fromDate', dir: 'desc' } },
+      href: (r) => ['leave', r.name] }) });
+}, { workspace: 'hr', title: 'Sickness and return to work' });
+
+/* ---------- probation and reviews ---------- */
+
+cx.route('reviews', () => {
+  const g = seatGate('Probation and reviews'); if (g) return g;
+  return cx.page({ title: 'Probation and reviews', crumbs: deskCrumbs, sub: 'Probation check-ins and reviews for new starters, and January\'s annual reviews. The people agent schedules them and reminds the reviewer; the reviewer holds them.',
+    body: cx.listView({ key: 'reviews', rows: reviewRows, id: (r) => r.id, noun: 'review', showId: false,
+      titleCol: { key: 'name', label: 'Employee', sub: (r) => r.kind },
+      status: (r) => ({ text: r.state, tone: stateTone[r.state] || 'gray' }),
+      columns: [{ key: 'kind', label: 'Review' }, { key: 'reviewer', label: 'Reviewer', type: 'person' }, { key: 'note', label: 'Note', render: (r) => (r.note ? h('span.muted', r.note) : '') }],
+      right: { key: 'due', label: 'Due', type: 'date' },
+      filters: [{ key: 'kind', label: 'Review', type: 'select' }, { key: 'reviewer', label: 'Reviewer', type: 'person' }],
+      tabs: [{ label: 'Coming up', filter: (r) => r.state !== 'Done' && r.kind !== 'Annual review' }, { label: 'Annual reviews', filter: (r) => r.kind === 'Annual review' }, { label: 'Done', filter: (r) => r.state === 'Done' }, { label: 'All' }],
+      sort: { options: [{ key: 'due', label: 'Due' }], default: { key: 'due', dir: 'asc' } },
+      href: (r) => (r.starter ? ['onboarding-plan', r.starter.id] : ['employee', emp(r.who)?.employee]) }) });
+}, { workspace: 'hr', title: 'Probation and reviews' });
+
+/* =====================================================================================================
+   What the people agent did and proposes, registered once for the assistant panel
+   ===================================================================================================== */
+
+function registerRouted(r) {
+  if (r.proposal === false) return;
+  const first = r.from ? cx.firstName(r.from) : r.fromName;
+  if (r.letter) {
+    const l = LETTERS.find((x) => x.id === r.letter);
+    put({ kind: 'proposal', key: `hr-letter-${l.id}`, who: l.signer, needs: 'People', at: l.draftedAt, title: `Sign ${first}'s ${l.kind.toLowerCase()} letter`, detail: `Drafted from the template "${l.template}" for ${first}'s request: ${r.subject.toLowerCase()}.`, approveLabel: 'Sign and send', result: `Signed and sent ${first}'s letter`, route: ['hr-letter', l.id], onApprove: () => signLetter(l) });
+    return;
+  }
+  put({ kind: 'proposal', key: `hr-req-${r.id}`, who: r.routedTo, at: answeredAt(r), title: `${first}: ${r.subject}`, detail: r.thread.find((m) => m.who === PA)?.text, approveLabel: r.topic === 'Working abroad' || r.topic === 'Learning' ? 'Agree' : 'Mark answered', result: `Answered ${first}`, route: ['hr-request', r.id],
+    onApprove: () => { closeRequest(r, cx.meId(), r.topic === 'Working abroad' || r.topic === 'Learning' ? `Agreed. ${r.topic === 'Learning' ? 'Book it and claim it as an expense.' : 'Enjoy it, and keep your usual hours.'}` : 'Answered in person.'); cx.toast(`Told ${first} (mock-up: nothing is sent)`, { tone: 'success' }); cx.refresh(); } });
+}
+
+(function registerPeopleAgentWork() {
+  // the inbox: what it answered, what it passed on
+  for (const r of REQ) {
+    if (r.from) put({ kind: 'done', key: `hr-ans-${r.id}`, who: r.from, at: answeredAt(r), title: `${r.status === 'Answered' ? 'Answered' : 'Took'} ${cx.firstName(r.from)}'s question: ${r.subject}`, detail: r.cites.length ? `From the handbook: ${policy(r.cites[0])?.title}` : 'From their records', route: ['hr-request', r.id] });
+    if (r.status === 'With a person') registerRouted(r);
+  }
+  // onboarding
+  put({ kind: 'proposal', key: 'hr-owen-contract', who: LEAD, needs: 'People', at: '2026-11-03T11:40:00Z', title: 'Sign Owen Grady\'s contract', detail: 'Drafted from the Engineering contract template with the terms of his signed offer: Senior Software Engineer from 4 January 2027, £75,000 a year, six months\' probation. Once you sign, it goes to Owen to countersign.', approveLabel: 'Sign and send', result: 'Signed Owen Grady\'s contract and sent it to him', route: ['hr-letter', 'HR-LET-2026-0020'], onApprove: () => signLetter(LETTERS.find((l) => l.id === 'HR-LET-2026-0020')) });
+  put({ kind: 'proposal', key: 'hr-owen-week', who: 'tom', at: '2026-11-06T09:30:00Z', title: 'Owen Grady\'s first week', detail: 'Drafted from the Engineering template: Monday set-up and the studio tour with Rosa, pairing with Ellis (his buddy) on Tuesday and Wednesday, the Larkspur codebase walkthrough on Thursday, and a first small ticket by Friday.', steps: ['Mon 4 Jan: laptop, accounts, studio tour, lunch with the team', 'Tue 5 to Wed 6: pairing with Ellis', 'Thu 7: Larkspur ordering app walkthrough', 'Fri 8: first ticket, end-of-week chat with Tom'], approveLabel: 'Approve the plan', result: 'Approved Owen Grady\'s first-week plan', route: ['onboarding-plan', 'owen'],
+    onApprove: () => { MOVED.owenWeek = nowIso(); cx.refresh(); } });
+  put({ kind: 'done', key: 'hr-owen-rtw', who: LEAD, at: '2026-11-03T12:05:00Z', title: 'Collected Owen Grady\'s right-to-work documents', detail: 'Identity check through a certified provider, ready for Kwame to sign off', route: ['onboarding-plan', 'owen'] });
+  put({ kind: 'done', key: 'hr-owen-kit', who: 'rosa', at: '2026-11-04T09:15:00Z', title: 'Asked Rosa to order Owen Grady\'s laptop and monitor', detail: 'MacBook Pro 14" and a 27" monitor, to arrive before 4 January', route: ['onboarding-plan', 'owen'] });
+  put({ kind: 'done', key: 'hr-owen-dates', who: 'tom', at: '2026-11-03T12:10:00Z', title: 'Set Owen Grady\'s probation dates', detail: (() => { const pr = probationOf(STARTERS[0]); return `Check-ins ${fmt.day(pr.one)} and ${fmt.day(pr.three)} 2027; review by ${fmt.date(pr.review)}, each with a reminder to Tom`; })(), route: ['onboarding-plan', 'owen'] });
+  if (onLeaveNow('priya')) put({ kind: 'proposal', key: 'hr-hannah-onemonth', who: 'priya', at: '2026-11-09T07:30:00Z', title: 'Move Hannah Cole\'s one-month check-in to Monday 16 November', detail: 'It is due on Thursday 12 November, but you are on leave until the 13th. Monday 16 November at 10:00 is free for you both.', approveLabel: 'Move it', result: 'Moved Hannah Cole\'s one-month check-in to Monday 16 November', route: ['onboarding-plan', 'hannah'], onApprove: () => { MOVED.hannahOneMonth = '2026-11-16'; cx.refresh(); } });
+  put({ kind: 'proposal', key: 'hr-callum-review', who: 'tom', at: '2026-11-09T07:35:00Z', title: 'Book Callum Burke\'s probation review before 1 December', detail: 'His six months end on 1 December. Thursday 26 November at 14:00 is free for you both; the review form is ready, with his one- and three-month notes.', approveLabel: 'Book it', result: 'Booked Callum Burke\'s probation review for Thursday 26 November', route: ['onboarding-plan', 'callum'], onApprove: () => { MOVED.callumReview = '2026-11-26'; cx.refresh(); } });
+  put({ kind: 'done', key: 'hr-hannah-pension', who: 'hannah', at: '2026-10-15T09:00:00Z', title: 'Enrolled Hannah Cole in Nest from her first payday', detail: 'Assessed as eligible; she can opt out', route: ['onboarding-plan', 'hannah'] });
+  // right to work
+  put({ kind: 'proposal', key: 'hr-rtw-meilin', who: LEAD, needs: 'People', at: '2026-11-04T13:07:00Z', title: 'Assign Mei Lin Zhou a new Certificate of Sponsorship', detail: 'Her Skilled Worker visa ends on 31 January 2027, so she must apply to extend it before then. Her job, salary and hours are unchanged; the details are filled in, ready for you to assign in the Home Office sponsor service.', approveLabel: 'Mark it assigned', result: 'Assigned Mei Lin Zhou\'s Certificate of Sponsorship', route: ['right-to-work'],
+    onApprove: () => { RTW_DONE.meilin = cx.today; const r = REQ.find((x) => x.id === 'HR-REQ-2026-0144'); if (r && r.status !== 'Done') closeRequest(r, cx.meId(), 'Your certificate is assigned. The list of what to upload with your application is in My HR; apply before 31 January.'); cx.refresh(); } });
+  put({ kind: 'done', key: 'hr-rtw-tomas', who: LEAD, at: '2026-11-02T07:00:00Z', title: 'Set Tomás Reyes\'s right-to-work follow-up for 6 March 2027', detail: 'Pre-settled status: a follow-up online check a month before 6 April', route: ['right-to-work'] });
+  // sickness
+  put({ kind: 'done', key: 'hr-rtw-jamal', who: 'jamal', at: '2026-11-05T08:32:00Z', title: 'Sent Jamal Osei the return-to-work form', detail: 'Two days self-certified; he filled it in at 09:01', route: ['leave', 'HR-LAP-2026-00213'] });
+  put({ kind: 'proposal', key: 'hr-rtw-chat-jamal', who: 'tom', at: '2026-11-05T09:05:00Z', title: 'Return-to-work chat with Jamal Osei', detail: 'Jamal was off sick on 3 and 4 November ("a bad cold") and filled in his form on the 5th. A ten-minute chat this week is all the policy asks. His second absence in six months, so no wellbeing check-in is due.', approveLabel: 'Mark it held', result: 'Held the return-to-work chat with Jamal Osei', route: ['leave', 'HR-LAP-2026-00213'],
+    onApprove: () => { RTW_FORMS['HR-LAP-2026-00213'].chat = { by: cx.meId(), at: nowIso() }; cx.refresh(); } });
+  // leave requests: checked, the decision a person's
+  for (const l of H.leaveApplications.filter((x) => x.status === 'Open')) {
+    const e = emp(l.employee); if (!e) continue;
+    const checks = leaveChecks(l); const flags = checks.filter((c) => !c.ok);
+    const who = decidersOf(l);
+    const dates = `${fmt.day(l.fromDate)}${l.toDate !== l.fromDate ? ' to ' + fmt.day(l.toDate) : ''}`;
+    put({ kind: 'done', key: `hr-leavecheck-${l.name}`, who, at: isoAt(l.postingDate, '12:01'), title: `Checked ${e.firstName}'s ${l.leaveType.toLowerCase()} request against the policy, the balance and team cover`, detail: flags.length ? flags.map((c) => `${c.label}: ${c.detail}`).join('. ') : 'Everything in order', route: ['leave', l.name] });
+    put({ kind: 'proposal', key: `hr-leave-${l.name}`, who, at: isoAt(l.postingDate, '12:02'), title: `${e.name}: ${l.leaveType.toLowerCase()}, ${dates}`,
+      detail: `${flags.length ? flags.map((c) => `${c.label}: ${c.detail}.`).join(' ') + ` ${checks.filter((c) => c.ok).map((c) => c.label.toLowerCase()).join(', ')}: fine.` : `It meets the policy: ${checks.map((c) => c.label.toLowerCase()).join(', ')} checked. ${checks.find((c) => c.label === 'Balance')?.detail || ''}.`}${who.length > 1 ? ` ${cx.firstName(who[0])} is ${onLeaveNow(who[0])?.toDate > cx.today ? `on leave until ${fmt.day(onLeaveNow(who[0]).toDate)}` : 'off today'}, so People can decide it too.` : ''}`.replace(/^(\w)/, (m) => m.toUpperCase()).replace(/ (\w)([^.]*: fine\.)/, (m, a, b) => ' ' + a.toUpperCase() + b),
+      approveLabel: 'Approve leave', result: `Approved ${e.firstName}'s leave`, route: ['leave', l.name],
+      onApprove: async () => { if (l.status !== 'Open') return false; const ok = await decideLeave(l, true); if (ok) cx.refresh(); return ok; } });
+  }
+  // expense claims: receipts checked against the policy
+  for (const c of H.expenseClaims.filter((x) => x.status === 'Open')) {
+    const e = emp(c.employee); const checks = claimChecks(c); const flags = checks.filter((x) => !x.ok);
+    const w = c.waitingFor?.who || hatHolders(c.department)[0];
+    const who = onLeaveNow(w) ? [w, ...hatHolders('harbourline')].filter((x) => x !== c.employee) : [w];
+    put({ kind: 'done', key: `hr-claimcheck-${c.name}`, who, at: isoAt(c.postingDate, '10:05'), title: `Checked ${e.firstName}'s receipts against the expense policy`, detail: flags.length ? flags.map((x) => x.detail).join('. ') : `${c.receipts.length} receipts, every line within policy`, route: ['expense-claim', c.name] });
+    put({ kind: 'proposal', key: `hr-claim-${c.name}`, who, at: isoAt(c.postingDate, '10:06'), title: `${e.name}'s expense claim, ${fmt.gbp(c.grandTotal)}`,
+      detail: `${flags.length ? flags.map((x) => x.detail).join('. ') + '.' : `Receipts checked: ${c.receipts.length} for ${c.expenses.length} line${c.expenses.length === 1 ? '' : 's'}, all within policy.`}${who.length > 1 ? ` ${cx.firstName(w)} is on leave, so ${namesList(who.slice(1))} can decide it too.` : ''} Approving it leaves it to be paid from ${cx.deptName(c.department)}'s budget.`,
+      approveLabel: 'Approve claim', result: `Approved ${e.firstName}'s claim`, route: ['expense-claim', c.name], onApprove: () => (c.status === 'Open' ? quickApproveClaim(c) : false) });
+  }
+})();
 
 /* =====================================================================================================
    Search

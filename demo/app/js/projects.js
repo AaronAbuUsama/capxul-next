@@ -1,6 +1,9 @@
-// Projects: the workspace; projects (list and form with overview, costing and billing); tasks (list, kanban, a Gantt
-// drawn to scale, tree, form); timesheets, and billing their hours into an invoice; activity types and project types;
-// the options; the reports (project summary, project billing summary, daily timesheet summary, delayed tasks).
+// Projects: the workspace; the portfolio (health, budget, margin, next milestone) and resources (who is on what,
+// utilisation, leave); projects (list and form with overview, plan, timeline, costing and billing); tasks (list,
+// kanban, a Gantt drawn to scale, tree, form); timesheets, and billing their hours into an invoice; activity types and
+// project types; the options; the reports. The project agent coordinates and people decide: it drafts plans from won
+// deals, suggests who takes a task, suggests timesheet rows from calendars, drafts the weekly client update, flags
+// overruns and slipping milestones, and gathers billable hours into a draft invoice, all through the assistant panel.
 // Any member works tasks and keeps their own time; People or a Director manage projects; Invoicing bills hours.
 import { cx, h, s } from './core.js';
 
@@ -162,7 +165,7 @@ function askReviewDay(t) {
     const m = { by: addDays(TODAY, 3) };
     let done = false;
     const md = cx.modal({ title: `Send "${t.subject}" for review`, onClose: () => { if (!done) resolve(null); },
-      body: h('div', { style: 'display:grid;gap:12px' }, h('p.muted', { style: 'font-size:13px' }, 'It falls Overdue if nobody reviews it by that day.'), cx.field({ label: 'Review by', key: 'by', model: m, edit: true, type: 'date', reqd: true }), h('div.confirm-cmd', h('span.p', '$ '), `capxul org projects task review ${t.name} --by …`)),
+      body: h('div', { style: 'display:grid;gap:12px' }, h('p.muted', { style: 'font-size:13px' }, 'It falls Overdue if nobody reviews it by that day.'), cx.field({ label: 'Review by', key: 'by', model: m, edit: true, type: 'date', reqd: true })),
       actions: [cx.btn('Back', { onClick: () => md.close() }), cx.btn('Send for review', { kind: 'primary', onClick: () => { if (!m.by) return; done = true; md.close(); resolve(m.by); } })] });
   });
 }
@@ -205,10 +208,191 @@ async function taskMove(t, to, o = {}) {
   if (t.parent) recalcGroup(t.parent);
   const p = PROJ.get(t.project); if (p) recalcProject(p);
   cx.showAction(cmd, to, { pin: true });
-  cx.toast(`${t.subject}: ${to}`, { tone: 'success', cmd });
+  if (!o.quiet) cx.toast(`${t.subject}: ${to}`, { tone: 'success', cmd });
   if (o.refresh) cx.refresh();
   return true;
 }
+
+/* =====================================================================================================
+   The project agent: Harbourline's project coordinator. It drafts a plan from a won deal's proposal, suggests who
+   takes a task from availability, skills and leave, suggests timesheet rows from each person's calendar, drafts the
+   weekly client update, watches budget and milestones, and gathers billable hours into a draft invoice. People
+   decide: each suggestion waits in the assistant panel for the person it is for, and the records say what it did.
+   ===================================================================================================== */
+
+const AGENT = 'Project agent';
+/** Who leads each project: the person the agent drafts plans, updates and flags for. */
+const LEADS = { 'PROJ-0001': 'isla', 'PROJ-0002': 'tom', 'PROJ-0003': 'priya', 'PROJ-0004': 'lena', 'PROJ-0005': 'grace', 'PROJ-0006': 'tom', 'PROJ-0007': 'isla', 'PROJ-0008': 'leo', 'PROJ-0009': 'ravi', 'PROJ-0010': 'priya', 'PROJ-0011': 'isla', 'PROJ-0012': 'priya', 'PROJ-0013': 'tom' };
+const leadOf = (p) => (p ? p.lead || LEADS[p.name] || cx.holders(p.department).find((x) => !String(x).startsWith('@')) || p.createdBy || null : null);
+/** What each person is known for, beside the hours their timesheets show by activity. */
+const SKILLS = { ellis: ['iOS', 'React Native', 'APIs'], jamal: ['Android', 'React Native'], josh: ['React', 'Design systems'], ben: ['Back end', 'Support'], callum: ['Payments', 'React Native'], tomas: ['React Native', 'Front end'], sofia: ['Design engineering', 'Docs'], tom: ['Architecture', 'Tooling'], lena: ['Product design', 'Research'], amira: ['Product design', 'Design tokens'], chloe: ['User research', 'Workshops'], freya: ['Motion', 'Brand'], meilin: ['Product design', 'E-commerce'], hannah: ['Visual design'], priya: ['Design direction', 'Accessibility'], isla: ['Project management'], ravi: ['Delivery', 'Retainers'], grace: ['Delivery', 'Service design'] };
+
+/* ---------- working days, leave and capacity ---------- */
+
+const HOLIDAYS = new Set((D.hr?.holidayLists || []).flatMap((l) => (l.holidays || []).filter((x) => !x.weeklyOff).map((x) => x.date)));
+const isWorkday = (d) => { const w = weekday(d); return w !== 0 && w !== 6 && !HOLIDAYS.has(d); };
+const workdays = (a, b) => { const out = []; if (!a || !b) return out; for (let d = a; d <= b; d = addDays(d, 1)) if (isWorkday(d)) out.push(d); return out; };
+const nextWorkday = (d) => { let x = addDays(d, 1); while (!isWorkday(x)) x = addDays(x, 1); return x; };
+const wdBetween = (a, b) => (!a || !b || a === b ? 0 : b > a ? workdays(addDays(a, 1), b).length : -workdays(addDays(b, 1), a).length);
+const mondayOf = (d) => { let x = d; while (weekday(x) !== 1) x = addDays(x, -1); return x; };
+const WEEK0 = mondayOf(TODAY);
+const LEAVES = (D.hr?.leaveApplications || []).filter((a) => ['Approved', 'Open'].includes(a.status));
+const leaveOn = (id, d) => LEAVES.find((a) => a.employee === id && a.fromDate <= d && d <= a.toDate) || null;
+const leavesOf = (id, from, to) => LEAVES.filter((a) => a.employee === id && a.toDate >= from && a.fromDate <= to).sort((a, b) => a.fromDate.localeCompare(b.fromDate));
+const spanText = (a, b) => (a === b ? fmt.day(a) : a.slice(0, 7) === b.slice(0, 7) ? `${+a.slice(8)}–${fmt.day(b)}` : `${fmt.day(a)} to ${fmt.day(b)}`);
+const leaveText = (a) => `${a.leaveType === 'Annual Leave' ? 'off' : a.leaveType.toLowerCase()} ${a.leaveType === 'Annual Leave' ? spanText(a.fromDate, a.toDate) : 'from ' + fmt.day(a.fromDate)}${a.status === 'Open' ? ' (requested)' : ''}`;
+const DAY_H = 7.5;
+/** The share of a day a person gives to project tasks: leads, managers and directors spend half theirs running things. */
+const focusOf = (id) => (/Lead|Director|Founder|Manager/.test(cx.person(id)?.designation || '') ? 0.5 : 1);
+const capOn = (id, d) => (isWorkday(d) && !leaveOn(id, d) ? DAY_H * focusOf(id) : 0);
+const TEAM = () => D.people.filter((x) => x.status === 'Active' && (SKILLS[x.id] || P.tasks.some((t) => (t.assignees || []).includes(x.id)))).map((x) => x.id);
+
+/* ---------- what is left, and when it lands ---------- */
+
+/** Hours a task still needs: its estimate's rest, or, when it runs over, the rest at the rate it has burned so far. */
+function remainingOf(t) {
+  if (t.isGroup || !isOpenTask(t)) return 0;
+  const p = Math.min(0.99, (t.progress || 0) / 100), est = +t.expectedTime || 0, act = taskTotals(t).hours;
+  return r2(Math.max(0, p > 0 && act > est * p ? (act * (1 - p)) / p : est * (1 - p)));
+}
+const planPace = (t) => (+t.expectedTime || 0) / Math.max(1, workdays(t.expStart, t.expEnd).length);
+/** Each task's forecast end: after what it depends on, at its planned pace, within its people's capacity and leave. */
+function forecastAll() {
+  const memo = new Map();
+  const of = (t) => {
+    if (!t) return null;
+    if (memo.has(t.name)) return memo.get(t.name) || { end: t.expEnd, slip: 0 };
+    memo.set(t.name, null);
+    let res;
+    if (!isOpenTask(t)) res = { end: t.completedOn || t.expEnd, slip: 0, done: true };
+    else if (t.isGroup) {
+      const kids = P.tasks.filter((k) => k.parent === t.name).map(of).filter(Boolean);
+      const end = kids.reduce((m, k) => (k.end > m ? k.end : m), t.expEnd || TODAY);
+      res = { end, slip: Math.max(0, wdBetween(t.expEnd, end)) };
+    } else {
+      let start = !t.expStart || t.expStart < TODAY ? TODAY : t.expStart, after = null;
+      for (const dn of t.dependsOn || []) { const f = of(TASK.get(dn)); if (f && !f.done && f.end >= start) { start = nextWorkday(f.end); after = dn; } }
+      while (!isWorkday(start)) start = addDays(start, 1);
+      const who = t.assignees || [];
+      const pace = planPace(t) || DAY_H;
+      let left = remainingOf(t), d = start, last = start, guard = 0, short = 0;
+      while (left > 0.01 && guard++ < 500) {
+        if (isWorkday(d)) { const avail = who.length ? sum(who, (id) => capOn(id, d)) : pace; const per = Math.min(pace, avail); if (per < pace) short++; if (per > 0) { left -= per; last = d; } }
+        d = addDays(d, 1);
+      }
+      res = { end: last, slip: wdBetween(t.expEnd || last, last), after, short, left: remainingOf(t) };
+    }
+    memo.set(t.name, res);
+    return res;
+  };
+  for (const t of P.tasks) of(t);
+  return { get: (n) => memo.get(n) || null, of };
+}
+/** Why a task lands late: follow what it waits on to the task that holds it up. */
+function slipCause(t, FC, depth = 0) {
+  const f = FC.get(t.name); if (!f || depth > 6) return '';
+  if (f.after) return slipCause(TASK.get(f.after), FC, depth + 1) || `${TASK.get(f.after)?.subject} finishes ${fmt.day(FC.get(f.after)?.end)}`;
+  if (depth === 0) return f.short ? `${namesList(t.assignees || [])} ${(t.assignees || []).length > 1 ? 'have' : 'has'} less time than it needs` : '';
+  const who = t.assignees || [];
+  const from = t.expStart > TODAY ? t.expStart : TODAY;
+  const off = who.map((id) => { const ls = leavesOf(id, from, f.end); return ls.length ? `${cx.firstName(id)} ${ls.map((a, i) => (i ? leaveText(a).replace(/^off /, '') : leaveText(a))).join(', ')}` : null; }).filter(Boolean);
+  if (t.status === 'Overdue') return `${t.subject} is late`;
+  if (f.short && who.some((id) => focusOf(id) < 1)) return `${t.subject} at ${namesList(who)}'s availability (half their time goes on running things${off.length ? ', ' + off.join(', ') : ''})`;
+  if (f.short) return `${t.subject}: ${off.length ? off.join(', ') : 'less time than it needs'}`;
+  if (taskTotals(t).hours > (+t.expectedTime || 0) * ((t.progress || 0) / 100) && (t.progress || 0) > 0) return `${t.subject} is running over its estimate`;
+  return `${t.subject} finishes ${fmt.day(f.end)}`;
+}
+
+/* ---------- a project's numbers and health ---------- */
+
+const byEnd = (a, b) => String(a.expEnd).localeCompare(String(b.expEnd));
+const gbpRate = (p) => (projCurrency(p) === 'GBP' ? 1 : cx.rate(TODAY));
+/** Work done, budget, hours, margin, milestones: what the health and the portfolio read. */
+function metricsOf(p, FC = forecastAll()) {
+  const all = tasksOf(p.name).filter((t) => !t.isGroup && t.status !== 'Cancelled');
+  const planHours = r2(sum(all, (t) => t.expectedTime));
+  const done = planHours ? sum(all, (t) => (+t.expectedTime || 0) * (t.status === 'Completed' ? 1 : Math.min(1, (t.progress || 0) / 100))) / planHours : (p.percentComplete || 0) / 100;
+  const tot = projTotals(p);
+  const cost = r2(tot.cost + tot.purchase), budget = +p.estimatedCost || 0;
+  const rate = gbpRate(p);
+  const billedGbp = r2(tot.billed * rate), contractGbp = r2((tot.sales || 0) * rate);
+  const margin = r2(billedGbp - cost);
+  const stale = all.filter((t) => isOpenTask(t) && (t.progress || 0) >= 95 && t.expEnd && daysBetween(t.expEnd, TODAY) > 30);
+  const milestones = all.filter((t) => t.isMilestone && isOpenTask(t)).sort(byEnd).map((t) => ({ t, f: FC.get(t.name), slip: Math.max(0, FC.get(t.name)?.slip || 0) }));
+  const overdue = all.filter((t) => t.status === 'Overdue' && !stale.includes(t));
+  const overrun = all.filter((t) => isOpenTask(t) && t.status !== 'Overdue' && !stale.includes(t) && +t.expectedTime > 0 && (t.progress || 0) > 0 && taskTotals(t).hours > t.expectedTime * Math.max(0.3, (t.progress || 0) / 100) * 1.25);
+  const nextMs = milestones[0] || null;
+  const nextPhase = !nextMs ? tasksOf(p.name).filter((t) => t.isGroup && isOpenTask(t)).sort(byEnd)[0] || all.filter((t) => isOpenTask(t) && !stale.includes(t)).sort(byEnd)[0] || null : null;
+  return { all, planHours, done, tot, hours: tot.hours, cost, budget, used: budget ? cost / budget : null, costForecast: done > 0.02 ? cost / done : null, hoursForecast: done > 0.02 ? tot.hours / done : null, billedGbp, contractGbp, margin, marginPct: billedGbp ? margin / billedGbp : null, billed: p.billing && p.billing !== 'none', stale, milestones, overdue, overrun, nextMs, nextPhase };
+}
+const HEALTH_TONE = { 0: 'green', 1: 'orange', 2: 'red' };
+const HEALTH_WORD = { 0: 'On track', 1: 'At risk', 2: 'Off track' };
+/** The project's health, with the reasons the agent flags. Checked every morning at 07:00 and whenever the plan moves. */
+function healthOf(p, FC = forecastAll()) {
+  if (p.status === 'Completed') return { level: -1, label: p.actualEnd && p.expectedEnd && p.actualEnd > addDays(p.expectedEnd, 7) ? 'Delivered late' : 'Delivered', tone: 'green', reasons: [], notes: [] };
+  if (p.status === 'Cancelled') return { level: -1, label: 'Cancelled', tone: 'gray', reasons: [], notes: [] };
+  if (p.status === 'On hold') return { level: -1, label: 'On hold', tone: 'blue', reasons: [], notes: [`On hold since ${fmt.date(p.holdSince)}: nothing is checked until it resumes.`] };
+  const m = metricsOf(p, FC);
+  const reasons = [], notes = [];
+  let level = 0;
+  const flag = (lvl, text, href) => { reasons.push({ lvl, text, href }); level = Math.max(level, lvl); };
+  const pc = (x) => fmt.pct(x, 0);
+  if (m.budget) {
+    if (m.cost > m.budget) flag(2, `Cost ${money(m.cost, 'GBP', 0)} is over the ${money(m.budget, 'GBP', 0)} budget`);
+    else if (m.done >= 0.25 && m.costForecast > m.budget * 1.1) flag(m.costForecast > m.budget * 1.25 ? 2 : 1, `Cost heads for ${money(m.costForecast, 'GBP', 0)} against a ${money(m.budget, 'GBP', 0)} budget: ${pc(m.used)} spent for ${pc(m.done)} of the work`);
+    else if (m.done < 0.25 && m.used > m.done + 0.2) flag(1, `${pc(m.used)} of the ${money(m.budget, 'GBP', 0)} budget is spent for ${pc(m.done)} of the work`);
+  }
+  if (m.planHours && m.done >= 0.25 && m.hoursForecast > m.planHours * 1.2) flag(m.hoursForecast > m.planHours * 1.5 && m.billed ? 2 : 1, `${fmt.int(m.hours)} h logged against the plan's ${fmt.int(m.planHours)} h, with ${pc(m.done)} of the work done`);
+  for (const ms of m.milestones) if (ms.slip > 3) { const why = slipCause(ms.t, FC); flag(ms.slip > 10 ? 2 : 1, `${ms.t.subject} looks ${fmt.plural(ms.slip, 'working day')} late: ${fmt.date(ms.f.end)} against ${fmt.date(ms.t.expEnd)}${why ? '. Held up by ' + why : ''}`, ['task', ms.t.name]); }
+  for (const t of m.overdue) { const h0 = taskTotals(t).hours; flag(1, `${t.subject} is ${fmt.plural(Math.max(1, wdBetween(t.expEnd, TODAY)), 'working day')} late${h0 > (t.expectedTime || 0) ? `, ${fmt.int(h0)} h logged of ${fmt.int(t.expectedTime)} h estimated` : ''}`, ['task', t.name]); }
+  for (const t of m.overrun) flag(1, `${t.subject} has used ${fmt.int(taskTotals(t).hours)} h of ${fmt.int(t.expectedTime)} h at ${t.progress || 0}% done`, ['task', t.name]);
+  if (m.stale.length) notes.push(`${fmt.plural(m.stale.length, 'task')} left at 95% or more for over a month: ${m.stale.map((t) => t.subject).join(', ')}.`);
+  return { level, label: HEALTH_WORD[level], tone: HEALTH_TONE[level], reasons, notes, m };
+}
+const healthPill = (hl, o) => cx.pill(hl.label, hl.tone, o);
+const CHECKED_AT = `${TODAY}T07:00:00Z`;
+
+/* ---------- who is free: bookings from open tasks ---------- */
+
+const isStale = (t) => isOpenTask(t) && (t.progress || 0) >= 95 && t.expEnd && daysBetween(t.expEnd, TODAY) > 30;
+/** Hours booked per person per working day: the rest of each open task's estimate, spread over its remaining dates. */
+function bookings() {
+  const m = new Map();
+  for (const t of P.tasks) {
+    if (t.isGroup || !isOpenTask(t) || isStale(t) || !(t.assignees || []).length || PROJ.get(t.project)?.status !== 'Open') continue;
+    const r = r2((+t.expectedTime || 0) * (1 - Math.min(1, (t.progress || 0) / 100))); if (r <= 0) continue;
+    const from = !t.expStart || t.expStart < TODAY ? TODAY : t.expStart;
+    let days = workdays(from, t.expEnd && t.expEnd >= from ? t.expEnd : from);
+    if (days.length < 10 && (!t.expEnd || t.expEnd < TODAY)) days = workdays(from, addDays(from, 13));
+    if (!days.length) continue;
+    const per = r / days.length / t.assignees.length;
+    for (const id of t.assignees) { let pm = m.get(id); if (!pm) m.set(id, (pm = new Map())); for (const d of days) pm.set(d, (pm.get(d) || 0) + per); }
+  }
+  return m;
+}
+/** Free hours for project work between two dates, after leave and what is booked. */
+function freeHours(id, from, to, B = bookings(), skip = null) {
+  let free = 0;
+  for (const d of workdays(from, to)) { const cap = capOn(id, d); if (!cap) continue; let b = B.get(id)?.get(d) || 0; if (skip) b -= skip(d); free += Math.max(0, cap - b); }
+  return r2(free);
+}
+const ACT_OF = (id) => { const by = new Map(); for (const l of LOGS) { const t = TSM.get(l.timesheet); if (t?.employee === id) by.set(l.activity, (by.get(l.activity) || 0) + l.hours); } return [...by.entries()].sort((a, b) => b[1] - a[1]); };
+const ACTS = new Map();
+const actsOf = (id) => { if (!ACTS.has(id)) ACTS.set(id, ACT_OF(id)); return ACTS.get(id); };
+const mainActivity = (id) => actsOf(id).find(([a]) => !['Communication', 'Research'].includes(a))?.[0] || actsOf(id)[0]?.[0] || '';
+/** Who should take a task: people whose work matches, ranked by the hours they have free in its dates. */
+function suggestAssignee(o) {
+  const B = bookings();
+  const want = o.activity || (o.like ? mainActivity(o.like) : null);
+  const words = String(o.subject || '').toLowerCase();
+  return TEAM().filter((id) => !(o.exclude || []).includes(id) && focusOf(id) === 1).map((id) => {
+    const fit = (want && mainActivity(id) === want ? 2 : 0) + (SKILLS[id] || []).filter((s0) => words.includes(s0.toLowerCase().split(' ')[0])).length + ((o.members || (o.project && PROJ.get(o.project)?.members) || []).includes(id) ? 1 : 0);
+    const free = freeHours(id, o.from, o.to, B);
+    const off = leavesOf(id, o.from, o.to);
+    return { id, fit, free, off, score: fit * 40 + Math.min(free, o.hours || 80) + free / 100 };
+  }).filter((x) => x.fit >= 2).sort((a, b) => b.score - a.score);
+}
+const offText = (id, from, to) => leavesOf(id, from, to).map((a, i) => (i ? leaveText(a).replace(/^off /, '') : leaveText(a))).join(', ');
 
 /* =====================================================================================================
    Styles (tokens only)
@@ -218,7 +402,8 @@ cx.style('projects', `
 .pj-bar { display: inline-flex; align-items: center; gap: 8px; min-width: 0; }
 .pj-bar .trk { width: 72px; height: 6px; border-radius: 3px; background: var(--sunk); overflow: hidden; flex: none; }
 .pj-bar .trk i { display: block; height: 100%; background: var(--accent); }
-.pj-bar.warn .trk i { background: var(--t-orange); }
+.pj-bar.pj-warn .trk i { background: var(--t-orange); }
+.pj-port .lv-cell-title { min-width: 190px; }
 .pj-stats { display: grid; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(min(200px, 100%), 1fr)); }
 .pj-ov { display: grid; gap: 14px; padding: 16px; min-width: 0; }
 .pj-ov-head { display: flex; flex-wrap: wrap; gap: 6px 16px; align-items: baseline; font-size: 13.5px; }
@@ -290,6 +475,33 @@ cx.style('projects', `
 .pj-delay { color: var(--neg); font-weight: 600; }
 .pj-ontrack { height: 26px; display: flex; border-radius: var(--r); overflow: hidden; font-size: 12px; font-weight: 600; color: var(--surface); }
 .pj-ontrack div { display: flex; align-items: center; padding: 0 10px; min-width: 0; white-space: nowrap; overflow: hidden; }
+.pj-hl { display: grid; gap: 0; }
+.pj-hl > a, .pj-hl > div { display: grid; grid-template-columns: 10px minmax(0, 1fr); gap: 10px; align-items: start; padding: 8px 2px; border-bottom: 1px solid var(--line); color: var(--fg); text-decoration: none; font-size: 13px; line-height: 1.45; }
+.pj-hl > a:hover { background: var(--hover); }
+.pj-hl > :last-child { border-bottom: 0; }
+.pj-hl i { width: 8px; height: 8px; border-radius: 50%; margin-top: 5px; background: currentColor; }
+.pj-hl .note { color: var(--muted); }
+.pj-hhead { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; padding-bottom: 6px; }
+.pj-hhead .muted { font-size: 12.5px; }
+.pj-src { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; color: var(--muted); white-space: nowrap; }
+.pj-src .ic { width: 13px; height: 13px; }
+.pj-note { font-size: 12.5px; color: var(--muted); line-height: 1.45; }
+.pj-cell { display: inline-block; min-width: 50px; padding: 3px 6px; border-radius: 4px; text-align: center; font-size: 12px; font-variant-numeric: tabular-nums; }
+.pj-cell.l0 { background: var(--sunk); color: var(--muted); }
+.pj-cell.l1 { background: var(--t-green-bg); color: var(--t-green); }
+.pj-cell.l2 { background: var(--t-yellow-bg); color: var(--t-yellow); }
+.pj-cell.l3 { background: var(--t-red-bg); color: var(--t-red); }
+.pj-cell.off { background: var(--t-purple-bg); color: var(--t-purple); }
+.pj-mini { display: inline-flex; height: 8px; width: 120px; border-radius: 4px; overflow: hidden; background: var(--sunk); vertical-align: middle; }
+.pj-mini i { display: block; height: 100%; }
+.pj-chips { display: flex; flex-wrap: wrap; gap: 4px; }
+.pj-upd { display: grid; gap: 0; }
+.pj-upd details { border-bottom: 1px solid var(--line); }
+.pj-upd details:last-child { border-bottom: 0; }
+.pj-upd summary { display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: center; padding: 9px 2px; cursor: pointer; font-size: 13px; }
+.pj-upd summary b { font-weight: 600; }
+.pj-upd .body { padding: 2px 2px 12px 18px; display: grid; gap: 6px; font-size: 13px; line-height: 1.5; }
+.pj-plan-head { display: grid; gap: 4px; font-size: 13px; line-height: 1.5; }
 `);
 
 /* =====================================================================================================
@@ -302,7 +514,9 @@ cx.workspace({
   badge: () => myOpenTasks() || null,
   nav: [
     { label: 'Home', route: 'projects-home' },
+    { label: 'Portfolio', route: 'projects-portfolio' },
     { label: 'Projects', route: 'projects', match: ['project'] },
+    { label: 'Resources', route: 'project-resources' },
     { label: 'Tasks', route: 'tasks', match: ['task', 'tasks-kanban', 'tasks-gantt', 'tasks-tree'] },
     { label: 'Timesheets', route: 'timesheets', match: ['timesheet'] },
     { section: 'Reports', items: [
@@ -339,36 +553,58 @@ function unbilledByProject() {
   for (const l of unbilledOf(null)) { const p = PROJ.get(l.project); if (!p) continue; const o = m.get(p.name) || { p, hours: 0, amount: 0 }; o.hours += l.hours; o.amount += l.billingAmount; m.set(p.name, o); }
   return [...m.values()].sort((a, b) => b.amount - a.amount);
 }
+/** Hours logged by a person between two dates, against what they could have worked (leave and bank holidays out). */
+function utilOf(id, from, to) {
+  const out = { hours: 0, billable: 0, byProject: new Map() };
+  for (const l of LOGS) {
+    if (l.date < from || l.date > to) continue;
+    const t = TSM.get(l.timesheet); if (!t || t.employee !== id || t.status === 'Cancelled') continue;
+    out.hours += l.hours; if (l.billable) out.billable += l.hours;
+    out.byProject.set(l.project || '', (out.byProject.get(l.project || '') || 0) + l.hours);
+  }
+  out.cap = workdays(from, to).filter((d) => !leaveOn(id, d)).length * DAY_H;
+  out.util = out.cap ? out.hours / out.cap : 0; out.billUtil = out.cap ? out.billable / out.cap : 0;
+  return out;
+}
+const LAST4 = { from: addDays(WEEK0, -28), to: addDays(WEEK0, -3) };
 cx.route('projects-home', () => {
   const open = P.projects.filter((p) => p.status === 'Open');
   const nonDone = P.tasks.filter((t) => ['Open', 'Working', 'Overdue'].includes(t.status) && !t.isGroup);
-  const qHours = sum(P.timesheets.filter((t) => t.status !== 'Draft' && t.status !== 'Cancelled' && t.startDate >= QSTART), (t) => tsInfo(t).hours);
   const unb = unbilledByProject();
-  const summary = open.map((p) => { const ts = tasksOf(p.name).filter((t) => !t.isGroup); return { p, total: ts.length, done: ts.filter((t) => t.status === 'Completed').length, overdue: ts.filter((t) => t.status === 'Overdue').length }; });
+  const FC = forecastAll();
+  const hs = open.map((p) => ({ p, hl: healthOf(p, FC) }));
+  const off = hs.filter((x) => x.hl.level === 2), risk = hs.filter((x) => x.hl.level === 1);
+  const team = TEAM();
+  const u = team.map((id) => utilOf(id, LAST4.from, LAST4.to));
+  const cap = sum(u, (x) => x.cap), logged = sum(u, (x) => x.hours), billable = sum(u, (x) => x.billable);
   const mine = P.tasks.filter((t) => (t.assignees || []).includes(cx.meId()) && isOpenTask(t) && !t.isGroup).sort((a, b) => String(a.expEnd).localeCompare(String(b.expEnd)));
+  const attention = hs.filter((x) => x.hl.reasons.length).sort((a, b) => b.hl.level - a.hl.level).flatMap((x) => x.hl.reasons.filter((r) => r.lvl >= 1).slice(0, 2).map((r) => ({ label: r.text, sub: `${x.p.projectName} · ${x.hl.label}`, route: r.href ? r.href[0] : 'project', id: r.href ? r.href[1] : x.p.name })));
+  const ext = open.filter((p) => p.projectType === 'External' || p.estimatedCost);
   return cx.workspacePage({
     title: 'Projects', workspace: 'projects',
-    cmd: { cli: 'capxul org projects list --status open', sdk: 'client.org(orgId).projects.list({ status: "open" })' },
-    actions: [cx.btn('Project', { icon: 'plus', kind: 'primary', needs: PM, cmd: 'capxul org projects create "<name>" --type External', onClick: () => newProjectModal() })],
+    actions: [cx.btn('Portfolio', { icon: 'chart', href: ['projects-portfolio'] }), cx.btn('Project', { icon: 'plus', kind: 'primary', needs: PM, onClick: () => newProjectModal() })],
     cards: [
-      { label: 'Open projects', value: fmt.int(open.length), sub: `${P.projects.filter((p) => p.status === 'On hold').length} on hold`, href: ['projects'], cmd: 'capxul org projects list --status open' },
-      { label: 'Non completed tasks', value: fmt.int(nonDone.length), sub: `${nonDone.filter((t) => t.status === 'Overdue').length} overdue`, href: ['tasks'], cmd: 'capxul org projects task list --status open' },
-      { label: 'Timesheet working hours', value: fmt.num(qHours, 1), sub: `submitted since ${fmt.date(QSTART)}`, href: ['timesheets'], cmd: 'capxul org projects timesheet list --status submitted' },
-      { label: 'Unbilled time', value: unb.length ? unb.map((u) => fmt.compact(u.amount, projCurrency(u.p))).join(' + ') : '—', sub: unb.length ? `${fmt.num(sum(unb, (u) => u.hours), 1)} billable hours on submitted timesheets` : 'every billable hour is invoiced', href: ['timesheet-billing'], cmd: 'capxul org projects timesheet list --status submitted' },
+      { label: 'Open projects', value: fmt.int(open.length), sub: `${off.length} off track · ${risk.length} at risk · ${P.projects.filter((p) => p.status === 'On hold').length} on hold`, href: ['projects-portfolio'] },
+      { label: 'Billable time', value: fmt.pct(cap ? billable / cap : 0, 0), sub: `of working hours in the last four weeks; ${fmt.pct(cap ? logged / cap : 0, 0)} logged in all`, href: ['project-resources'] },
+      { label: 'Non completed tasks', value: fmt.int(nonDone.length), sub: `${nonDone.filter((t) => t.status === 'Overdue').length} overdue`, href: ['tasks'] },
+      { label: 'Unbilled time', value: unb.length ? unb.map((x) => fmt.compact(x.amount, projCurrency(x.p))).join(' + ') : '—', sub: unb.length ? `${fmt.num(sum(unb, (x) => x.hours), 1)} billable hours on submitted timesheets` : 'every billable hour is invoiced', href: ['timesheet-billing'] },
     ],
-    charts: [{ title: 'Project summary', cmd: 'capxul org projects list --status open', wide: true, node: cx.chart.bar({ labels: summary.map((x) => x.p.projectName), height: 230, format: (v) => fmt.int(v), series: [{ name: 'Overdue', values: summary.map((x) => x.overdue), color: 'neg' }, { name: 'Completed', values: summary.map((x) => x.done), color: '2' }, { name: 'Total tasks', values: summary.map((x) => x.total), color: '1' }], onClick: (i) => cx.go('project', summary[i]?.p.name) }) }],
+    charts: [{ title: 'Budget used against work done', wide: true, node: cx.chart.bar({ labels: ext.map((p) => p.projectName), height: 230, format: (v) => v + '%', tipFormat: (v) => v + '%', series: [{ name: 'Work done', values: ext.map((p) => Math.round(metricsOf(p, FC).done * 100)), color: '1' }, { name: 'Budget used', values: ext.map((p) => Math.round((metricsOf(p, FC).used || 0) * 100)), color: '3' }], onClick: (i) => cx.go('project', ext[i]?.name) }) }],
     shortcuts: [
-      { label: 'Project', route: 'projects', count: open.length, tone: 'orange', icon: 'projects' },
+      { label: 'Portfolio', route: 'projects-portfolio', count: off.length + risk.length || null, tone: 'orange', icon: 'chart' },
+      { label: 'Resources', route: 'project-resources', icon: 'user' },
       { label: 'Task', route: 'tasks', count: nonDone.length, tone: 'orange', icon: 'task' },
       { label: 'Timesheet', route: 'timesheets', count: P.timesheets.filter((t) => t.status === 'Draft').length, tone: 'red', icon: 'clock' },
       { label: 'Gantt chart', route: 'tasks-gantt', icon: 'chart' },
       { label: 'Project billing summary', route: 'timesheet-billing', icon: 'report' },
     ],
     quick: [
-      { title: 'Unbilled time by project', cmd: 'capxul org projects timesheet list --status submitted', items: unb.length ? unb.map((u) => ({ label: u.p.projectName, sub: `${u.p.name} · ${fmt.num(u.hours, 1)} h · ${custName(u.p.customer)}`, right: money(u.amount, projCurrency(u.p)), route: 'project', id: u.p.name })) : [{ label: 'Nothing waits to be billed' }] },
-      { title: `${cx.firstName(cx.meId())}'s open tasks`, cmd: 'capxul org projects task list --status open', items: mine.length ? mine.slice(0, 7).map((t) => ({ label: t.subject, sub: `${projName(t.project)} · ${t.status}`, right: t.expEnd ? fmt.day(t.expEnd) : '', route: 'task', id: t.name })) : [{ label: 'No open tasks assigned to you' }] },
+      { title: 'Needs attention', items: attention.length ? attention.slice(0, 7) : [{ label: 'Every open project is on track' }] },
+      { title: 'Unbilled time by project', items: unb.length ? unb.map((x) => ({ label: x.p.projectName, sub: `${x.p.name} · ${fmt.num(x.hours, 1)} h · ${custName(x.p.customer)}`, right: money(x.amount, projCurrency(x.p)), route: 'project', id: x.p.name })) : [{ label: 'Nothing waits to be billed' }] },
+      { title: `${cx.firstName(cx.meId())}'s open tasks`, items: mine.length ? mine.slice(0, 7).map((t) => ({ label: t.subject, sub: `${projName(t.project)} · ${t.status}`, right: t.expEnd ? fmt.day(t.expEnd) : '', route: 'task', id: t.name })) : [{ label: 'No open tasks assigned to you' }] },
     ],
     links: [
+      { title: 'Views', items: [{ label: 'Portfolio', route: 'projects-portfolio', count: P.projects.length }, { label: 'Resources', route: 'project-resources', count: team.length }, { label: 'Gantt chart', route: 'tasks-gantt' }, { label: 'Task status board', route: 'tasks-kanban' }] },
       { title: 'Reports', items: [{ label: 'Project summary', route: 'project-summary', kind: 'report' }, { label: 'Project billing summary', route: 'timesheet-billing', kind: 'report' }, { label: 'Daily timesheet summary', route: 'daily-timesheets', kind: 'report' }, { label: 'Delayed tasks summary', route: 'delayed-tasks', kind: 'report' }] },
       { title: 'Setup', items: [{ label: 'Activity types', route: 'activity-types', count: P.activityTypes.length }, { label: 'Project types', route: 'project-types', count: P.projectTypes.length }, { label: 'Projects options', route: 'projects-config' }] },
     ],
@@ -377,13 +613,119 @@ cx.route('projects-home', () => {
 }, { workspace: 'projects', title: 'Projects' });
 
 /* =====================================================================================================
+   Portfolio and resources
+   ===================================================================================================== */
+
+const budgetBar = (m) => {
+  if (!m.budget) return h('span.faint', 'No budget');
+  const used = m.used || 0, warn = used > m.done + 0.15;
+  return h('span.pj-bar', { class: { 'pj-warn': warn }, title: `${money(m.cost, 'GBP', 0)} of ${money(m.budget, 'GBP', 0)} · ${fmt.pct(m.done, 0)} of the work done` }, h('span.trk', h('i', { style: { width: Math.min(100, used * 100) + '%' } })), h('span.num', fmt.pct(used, 0)));
+};
+const marginCell = (p, m) => (!m.billed ? h('span.faint', 'Not billed') : h('span', { style: `color:var(${m.margin >= 0 ? '--pos' : '--neg'})` }, money(m.margin, 'GBP', 0), m.marginPct != null ? h('span.muted', ` · ${fmt.pct(m.marginPct, 0)}`) : null));
+const msCell = (p, m) => {
+  if (['Completed', 'Cancelled'].includes(p.status)) return h('span.muted', p.actualEnd ? `Ended ${fmt.date(p.actualEnd)}` : p.status);
+  const x = m.nextMs; if (!x) return m.nextPhase ? h('span', m.nextPhase.subject, h('span.muted', ` · ${fmt.day(m.nextPhase.expEnd)}`)) : h('span.faint', '—');
+  return h('span', { title: x.slip > 3 ? `Forecast ${fmt.date(x.f.end)}` : '' }, cx.link(x.t.subject, 'task', x.t.name), h('span.muted', ` · ${fmt.day(x.t.expEnd)}`), x.slip > 3 ? h('span', { style: 'color:var(--neg);font-weight:600' }, ` · +${x.slip} d`) : null);
+};
+const HEALTH_ORDER = { 'Off track': 0, 'At risk': 1, 'On track': 2, 'On hold': 3, Delivered: 4, 'Delivered late': 4, Cancelled: 5 };
+cx.route('projects-portfolio', () => {
+  const FC = forecastAll();
+  const rows = P.projects.map((p) => { const hl = healthOf(p, FC); return { p, hl, m: hl.m || metricsOf(p, FC) }; });
+  const live = rows.filter((r) => ['Open', 'On hold'].includes(r.p.status));
+  const contract = sum(live, (r) => r.m.contractGbp), billed = sum(live, (r) => r.m.billedGbp);
+  const margin = sum(rows.filter((r) => r.m.billed), (r) => r.m.margin), billedAll = sum(rows.filter((r) => r.m.billed), (r) => r.m.billedGbp);
+  return cx.page({
+    title: 'Portfolio', workspace: 'projects', crumbs: [{ label: 'Projects', route: 'projects-home' }],
+    sub: `Every project's health, budget, margin and next milestone. The project agent checks them each morning at 07:00 and whenever a plan moves.`,
+    actions: [cx.btn('Resources', { icon: 'user', href: ['project-resources'] }), cx.btn('Add project', { kind: 'primary', icon: 'plus', needs: PM, onClick: () => newProjectModal() })],
+    fde: 'The projects portfolio',
+    body: [
+      h('div.ncards', cx.numberCard({ label: 'Running', value: fmt.int(live.length), sub: `${live.filter((r) => r.hl.level === 2).length} off track · ${live.filter((r) => r.hl.level === 1).length} at risk` }),
+        cx.numberCard({ label: 'Contract value running', value: fmt.compact(contract, 'GBP'), sub: `${fmt.compact(billed, 'GBP')} billed so far (${fmt.pct(contract ? billed / contract : 0, 0)})` }),
+        cx.numberCard({ label: 'Margin to date', value: money(margin, 'GBP', 0), sub: `${fmt.pct(billedAll ? margin / billedAll : 0, 0)} of everything billed, after labour and purchases`, color: margin >= 0 ? null : 'neg' }),
+        cx.numberCard({ label: 'Delivered', value: fmt.int(rows.filter((r) => r.p.status === 'Completed').length), sub: `${rows.filter((r) => r.hl.label === 'Delivered late').length} more than a week late` })),
+      h('div.pj-port', cx.listView({
+        key: 'pj-portfolio', rows: () => rows, id: (r) => r.p.name, showId: false, selectable: false, strip: false,
+        titleCol: { key: 'name', label: 'Project', get: (r) => r.p.projectName, sub: (r) => `${r.p.customer ? custName(r.p.customer) : r.p.projectType} · ${['Completed', 'Cancelled'].includes(r.p.status) ? 'ended ' + fmt.date(r.p.actualEnd || r.p.expectedEnd) : 'ends ' + fmt.date(r.p.expectedEnd)}` },
+        status: (r) => healthPill(r.hl),
+        columns: [
+          { key: 'lead', label: 'Lead', get: (r) => leadOf(r.p), type: 'person' },
+          { key: 'done', label: 'Work done', get: (r) => Math.round(r.m.done * 100), render: (r) => pctBar(r.p.status === 'Completed' ? 100 : r.m.done * 100) },
+          { key: 'used', label: 'Budget used', get: (r) => Math.round((r.m.used || 0) * 100), render: (r) => budgetBar(r.m), keep: true },
+          { key: 'margin', label: 'Margin to date', get: (r) => (r.m.billed ? r.m.margin : null), render: (r) => marginCell(r.p, r.m) },
+          { key: 'ms', label: 'Next milestone', get: (r) => r.m.nextMs?.t.expEnd || '', render: (r) => msCell(r.p, r.m) },
+        ],
+        filters: [{ key: 'health', label: 'Health', type: 'select', get: (r) => r.hl.label, options: ['Off track', 'At risk', 'On track', 'On hold', 'Delivered', 'Delivered late'] }, { key: 'lead', label: 'Lead', type: 'person', get: (r) => leadOf(r.p), options: () => uniq(P.projects.map(leadOf)) }],
+        tabs: [{ label: 'Running', filter: (r) => ['Open', 'On hold'].includes(r.p.status) }, { label: 'Delivered', filter: (r) => r.p.status === 'Completed' }, { label: 'All' }],
+        sort: { options: [{ key: 'health', label: 'Health', get: (r) => HEALTH_ORDER[r.hl.label] ?? 9 }, { key: 'end', label: 'Expected end', get: (r) => r.p.expectedEnd }, { key: 'used', label: 'Budget used', get: (r) => r.m.used || 0 }], default: { key: 'health', dir: 'asc' } },
+        groupBy: [{ key: 'health', label: 'Health', get: (r) => r.hl.label }, { key: 'lead', label: 'Lead', type: 'person', get: (r) => leadOf(r.p) }],
+        href: (r) => ['project', r.p.name],
+        noun: 'project', empty: 'No projects match.',
+      })),
+    ],
+  });
+}, { workspace: 'projects', title: 'Portfolio' });
+
+const WEEKS_AHEAD = 6;
+cx.route('project-resources', () => {
+  const B = bookings();
+  const team = TEAM();
+  const weeks = Array.from({ length: WEEKS_AHEAD }, (_, i) => addDays(WEEK0, i * 7));
+  const rows = team.map((id) => {
+    const u = utilOf(id, LAST4.from, LAST4.to);
+    const on = uniq(P.tasks.filter((t) => isOpenTask(t) && !t.isGroup && (t.assignees || []).includes(id)).map((t) => t.project));
+    const wk = weeks.map((w) => {
+      const days = workdays(w, addDays(w, 4));
+      const offD = days.filter((d) => leaveOn(id, d)).length;
+      const cap = sum(days, (d) => capOn(id, d));
+      const booked = sum(days, (d) => B.get(id)?.get(d) || 0);
+      return { w, offD, cap, booked, pct: cap ? booked / cap : null, days: days.length };
+    });
+    return { id, u, on, wk, lv: leavesOf(id, TODAY, addDays(WEEK0, WEEKS_AHEAD * 7)) };
+  });
+  const cell = (x) => {
+    if (!x.days) return h('span.pj-cell.l0', 'Holiday');
+    if (x.offD >= x.days) return h('span.pj-cell.off', { title: 'On leave all week' }, 'Off');
+    const v = x.pct || 0, cls = v < 0.5 ? 'l0' : v <= 0.9 ? 'l1' : v <= 1.1 ? 'l2' : 'l3';
+    return h('span', { class: `pj-cell ${cls}`, title: `${fmt.hours(r2(x.booked))} booked of ${fmt.hours(r2(x.cap))} for project tasks${x.offD ? `; ${fmt.plural(x.offD, 'day')} off` : ''}` }, fmt.pct(v, 0), x.offD ? h('span', { style: 'display:block;font-size:10.5px;color:var(--t-purple)' }, `${x.offD} d off`) : null);
+  };
+  const projColor = new Map(P.projects.filter((p) => ['Open', 'On hold'].includes(p.status)).map((p, i) => [p.name, `var(--chart-${(i % 6) + 1})`]));
+  const split = (u) => h('span.pj-mini', { title: [...u.byProject.entries()].map(([k, v]) => `${projName(k) || 'No project'}: ${fmt.hours(r2(v))}`).join('\n') }, [...u.byProject.entries()].sort((a, b) => b[1] - a[1]).map(([k, v]) => h('i', { style: { width: (u.cap ? Math.min(100, (v / u.cap) * 100) : 0) + '%', background: projColor.get(k) || 'var(--faint)' } })));
+  const avgU = sum(rows, (r) => r.u.hours) / Math.max(1, sum(rows, (r) => r.u.cap));
+  const avgB = sum(rows, (r) => r.u.billable) / Math.max(1, sum(rows, (r) => r.u.cap));
+  const offSoon = rows.filter((r) => r.lv.length);
+  const tbl = h('div.tbl-scroll', h('table.tbl.pj-res',
+    h('thead', h('tr', h('th', 'Person'), h('th.opt', 'Skills'), h('th', 'Last four weeks'), h('th.opt', 'On'), weeks.map((w) => h('th', { style: 'text-align:center' }, `w/c ${fmt.day(w)}`)))),
+    h('tbody', rows.map((r) => h('tr',
+      h('td', cx.personChip(r.id), h('div.muted', { style: 'font-size:12px' }, cx.person(r.id)?.designation || '')),
+      h('td.opt.wrap', { style: 'min-width:150px' }, h('div.pj-chips', [mainActivity(r.id), ...(SKILLS[r.id] || [])].filter(Boolean).slice(0, 3).map((x) => cx.tag(x)))),
+      h('td', h('div', { style: 'display:grid;gap:4px' }, split(r.u), h('span.muted', { style: 'font-size:12px' }, `${fmt.pct(r.u.util, 0)} logged · ${fmt.pct(r.u.billUtil, 0)} billable`))),
+      h('td.opt.wrap', { style: 'min-width:140px' }, r.on.length ? h('div.pj-chips', r.on.map((pn) => cx.link(projName(pn), 'project', pn))) : h('span.faint', 'No open tasks')),
+      r.wk.map((x) => h('td', { style: 'text-align:center' }, cell(x))))))));
+  return cx.page({
+    title: 'Resources', workspace: 'projects', crumbs: [{ label: 'Projects', route: 'projects-home' }],
+    sub: 'Who is on what, how much of their time went on project work, and what is booked for the next six weeks. Leave comes from HR; bank holidays from the holiday list.',
+    actions: [cx.btn('Portfolio', { icon: 'chart', href: ['projects-portfolio'] })],
+    fde: 'The resource view: who is on what',
+    body: [
+      h('div.ncards', cx.numberCard({ label: 'People on projects', value: fmt.int(rows.length), sub: `${rows.filter((r) => r.on.length).length} with open tasks` }),
+        cx.numberCard({ label: 'Logged', value: fmt.pct(avgU, 0), sub: `of working hours, ${fmt.date(LAST4.from)} to ${fmt.date(LAST4.to)}` }),
+        cx.numberCard({ label: 'Billable', value: fmt.pct(avgB, 0), sub: 'of working hours, on client projects' }),
+        cx.numberCard({ label: 'Leave in the next six weeks', value: fmt.int(offSoon.length), sub: (() => { const long = LEAVES.filter((a) => a.leaveType !== 'Annual Leave' && a.leaveType !== 'Sick Leave' && a.toDate >= TODAY && a.fromDate <= addDays(WEEK0, WEEKS_AHEAD * 7)).sort((a, b) => a.fromDate.localeCompare(b.fromDate))[0]; return long ? `people off, including ${cx.name(long.employee)}: ${leaveText(long)}` : offSoon.length ? 'people with leave booked or asked for' : 'Nobody is off'; })() })),
+      cx.card({ title: 'Who is on what', flush: true, body: tbl, foot: h('div.pj-legend', { style: 'border:0;padding:0' }, h('span', h('i', { style: { background: 'var(--t-green-bg)' } }), 'Booked 50 to 90%'), h('span', h('i', { style: { background: 'var(--t-yellow-bg)' } }), '90 to 110%'), h('span', h('i', { style: { background: 'var(--t-red-bg)' } }), 'Over 110%'), h('span', h('i', { style: { background: 'var(--t-purple-bg)' } }), 'On leave'), h('span', 'Booked hours are what is left of each open task, spread over its dates. Leads and managers give half their day to tasks.')) }),
+      offSoon.length ? cx.card({ title: 'Leave in the next six weeks', body: h('div.pj-hl', offSoon.map((r) => { const hit = uniq(r.lv.flatMap((a) => P.tasks.filter((t) => isOpenTask(t) && !t.isGroup && !isStale(t) && (t.assignees || []).includes(r.id) && t.expEnd >= a.fromDate && t.expStart <= a.toDate).map((t) => t.subject))); const asked = r.lv.some((a) => a.status === 'Open'); return h('div', h('i', { style: `color:var(--t-${asked ? 'orange' : 'purple'})` }), h('span', h('b', cx.name(r.id)), ` ${r.lv.map((a, i) => (i ? leaveText(a).replace(/^off /, '') : leaveText(a))).join(', ')}`, hit.length ? h('span.muted', ` · overlaps ${hit.slice(0, 3).join(', ')}`) : null)); })) }) : null,
+    ],
+  });
+}, { workspace: 'projects', title: 'Resources' });
+
+/* =====================================================================================================
    Projects: the list, a new project, the project's verbs
    ===================================================================================================== */
 
-const pctBar = (v, warn) => h('span.pj-bar', { class: { warn } }, h('span.trk', h('i', { style: { width: Math.max(0, Math.min(100, v || 0)) + '%' } })), h('span.num', `${Math.round(v || 0)}%`));
+const pctBar = (v, warn) => h('span.pj-bar', { class: { 'pj-warn': warn } }, h('span.trk', h('i', { style: { width: Math.max(0, Math.min(100, v || 0)) + '%' } })), h('span.num', `${Math.round(v || 0)}%`));
 const deptOpts = () => D.departments.map((d) => [d.id, d.name]);
 const lc = (v) => String(v).toLowerCase().replace(/ /g, '-');
-cx.route('projects', (ctx) => cx.page({
+cx.route('projects', (ctx) => { const FC = forecastAll(); return cx.page({
   title: 'Projects', workspace: 'projects', crumbs: [{ label: 'Projects', route: 'projects-home' }],
   actions: [cx.btn('Add project', { kind: 'primary', icon: 'plus', needs: PM, cmd: 'capxul org projects create "<name>" --type External --start … --end …', onClick: () => newProjectModal() })],
   fde: 'The list of projects',
@@ -391,7 +733,7 @@ cx.route('projects', (ctx) => cx.page({
     key: 'pj-projects', rows: () => P.projects, id: (p) => p.name,
     titleCol: { key: 'projectName', label: 'Project name', sub: (p) => (p.customer ? custName(p.customer) : `${p.projectType} · ${cx.deptName(p.department)}`) },
     status: (p) => projPill(p),
-    columns: [{ key: 'projectType', label: 'Project type' }, { key: 'percentComplete', label: '% completed', render: (p) => pctBar(p.percentComplete), keep: true }, { key: 'expectedStart', label: 'Expected start', type: 'date' }, { key: 'expectedEnd', label: 'Expected end', type: 'date' }, { key: 'estimatedCost', label: 'Estimated cost', type: 'currency', currency: 'GBP' }, { key: 'customerName', label: 'Customer', get: (p) => custName(p.customer) }],
+    columns: [{ key: 'health', label: 'Health', get: (p) => healthOf(p, FC).label, render: (p) => { const hl = healthOf(p, FC); return hl.level >= 0 ? healthPill(hl) : h('span.faint', '—'); } }, { key: 'lead', label: 'Lead', get: (p) => leadOf(p), type: 'person' }, { key: 'projectType', label: 'Project type' }, { key: 'percentComplete', label: '% completed', render: (p) => pctBar(p.percentComplete), keep: true }, { key: 'expectedStart', label: 'Expected start', type: 'date' }, { key: 'expectedEnd', label: 'Expected end', type: 'date' }, { key: 'estimatedCost', label: 'Estimated cost', type: 'currency', currency: 'GBP' }, { key: 'customerName', label: 'Customer', get: (p) => custName(p.customer) }],
     filters: [{ key: 'name', label: 'ID' }, { key: 'status', label: 'Status', type: 'select', options: ['Open', 'On hold', 'Completed', 'Cancelled'], default: 'Open' }, { key: 'projectType', label: 'Project type', type: 'select', options: () => P.projectTypes.map((t) => t.name) }, { key: 'priority', label: 'Priority', type: 'select', options: ['Low', 'Medium', 'High'] }, { key: 'customer', label: 'Customer', type: 'select', options: () => uniq(P.projects.map((p) => p.customer)).map((id) => [id, custName(id)]) }],
     sort: { options: [{ key: 'expectedStart', label: 'Expected start' }, { key: 'expectedEnd', label: 'Expected end' }, { key: 'percentComplete', label: '% completed' }, { key: 'name', label: 'ID' }], default: { key: 'expectedStart', dir: 'desc' } },
     groupBy: [{ key: 'status', label: 'Status' }, { key: 'projectType', label: 'Project type' }, { key: 'department', label: 'Department', format: (v) => cx.deptName(v) }, { key: 'priority', label: 'Priority' }],
@@ -399,14 +741,12 @@ cx.route('projects', (ctx) => cx.page({
     cmd: (st) => { const f = st.filters; const parts = [f.status ? `--status ${lc(f.status)}` : null, f.projectType ? `--type ${q(f.projectType)}` : null, f.customer ? `--customer ${q(custName(f.customer))}` : null].filter(Boolean); return { cli: `capxul org projects list${parts.length ? ' ' + parts.join(' ') : ''}`, sdk: `client.org(orgId).projects.list(${parts.length ? `{ ${[f.status ? `status: "${lc(f.status)}"` : null, f.projectType ? `type: "${f.projectType}"` : null, f.customer ? `customer: "${custName(f.customer)}"` : null].filter(Boolean).join(', ')} }` : ''})` }; },
     noun: 'project',
   }),
-}), { workspace: 'projects', title: 'Projects' });
+}); }, { workspace: 'projects', title: 'Projects' });
 
-/** A dialog of fields with a live command (the same shape the CRM uses). */
+/** A dialog of fields (the same shape the CRM uses). Its command is kept as data for the AI's side; nothing draws it. */
 function formModal(o) {
   const m = o.model;
-  const cmdBox = h('div');
-  const lines = (spec) => [].concat(spec?.cli || spec || []).filter(Boolean);
-  const drawCmd = () => { const spec = o.cmd?.(m); const ls = lines(spec); cx.fill(cmdBox, ls.length ? h('div.confirm-cmd', ls.map((l, i) => [i ? '\n' : '', h('span.p', '$ '), l])) : null); if (ls.length) cx.showAction(spec, o.title); };
+  const drawCmd = () => {};
   const mk = (f) => {
     if (!f) return null;
     if (f instanceof Node) return f;
@@ -417,9 +757,7 @@ function formModal(o) {
   const body = h('div', { style: 'display:grid;gap:14px' },
     o.intro ? (o.intro instanceof Node ? o.intro : h('p.muted', { style: 'font-size:13px' }, o.intro)) : null,
     h('div.fields', { style: { '--cols': o.cols || 2 } }, o.fields.map(mk)),
-    o.extra || null, cmdBox,
-    o.who ? h('div.muted', { style: 'font-size:12.5px' }, 'Who may run it: ' + o.who) : null);
-  drawCmd();
+    o.extra || null);
   const md = cx.modal({ title: o.title, wide: o.wide, body, onClose: () => cx.clearAction(),
     actions: [cx.btn('Cancel', { onClick: () => md.close() }), cx.btn(o.submit || 'Save', { kind: 'primary', needs: o.needs, onClick: async () => {
       for (const f of o.fields) if (f && f.reqd && !f.readOnly && f.key && (m[f.key] == null || m[f.key] === '')) { cx.toast(`${f.label} is required.`, { tone: 'warning' }); return; }
@@ -471,7 +809,7 @@ async function projectVerb(p, verb) {
    ===================================================================================================== */
 
 const weeksBetween = (a, b) => { const out = []; for (let d = a; d <= b; d = addDays(d, 7)) out.push(d); if (out.at(-1) !== b) out.push(b); return out; };
-function overviewTab(p) {
+function overviewTab(p, FC = forecastAll()) {
   const all = tasksOf(p.name);
   const tasks = all.filter((t) => !t.isGroup);
   if (!tasks.length) return h('div.pj-ov', cx.empty('No tasks yet', cx.btn('New task', { kind: 'primary', icon: 'plus', needs: MEMBER, onClick: () => newTaskModal({ project: p.name }) })));
@@ -512,7 +850,7 @@ function overviewTab(p) {
   const need = reasons.filter((r) => (seen.has(r.t.name) ? false : seen.add(r.t.name))).slice(0, 10);
   const byWho = new Map(); for (const t of open) { const ks = (t.assignees || []).length ? t.assignees : ['']; for (const k of ks) byWho.set(k, (byWho.get(k) || 0) + 1); }
   const whoBars = cx.chart.hbar({ items: [...byWho.entries()].sort((a, b) => b[1] - a[1]).map(([k, v]) => ({ label: k ? cx.name(k) : 'Unassigned', value: v, color: k ? '2' : 'muted' })), format: (v) => fmt.int(v) });
-  return h('div.pj-ov', head, stats,
+  return h('div.pj-ov', head, healthCard(p, FC), stats,
     h('div.grid.c2', cx.card({ class: 'chart-card', title: 'Planned vs completed', body: pvc }), cx.card({ class: 'chart-card', title: 'Tasks by status', body: byStatus })),
     h('div.grid.c2',
       cx.card({ title: 'Needs attention', body: need.length ? h('div.pj-need', need.map((r) => h('a', { href: cx.href('task', r.t.name) }, h('span.why', { style: `color:var(--t-${r.tone})` }, r.why), h('span.ttl', r.t.subject, (r.t.assignees || []).length ? h('span.muted', ` · ${r.t.assignees.map(cx.name).join(', ')}`) : null), h('span.meta', r.meta)))) : cx.empty('Nothing needs attention') }),
@@ -612,7 +950,7 @@ function taskQuickDialog(t) {
   const tt = taskTotals(t);
   const md = formModal({ title: t.subject, model: m, needs: MEMBER, submit: 'Save', who: 'any member',
     intro: h('div', { style: 'display:flex;gap:8px;flex-wrap:wrap;align-items:center' }, taskPill(t.status), h('span.muted', { style: 'font-size:12.5px' }, `${t.name} · ${projName(t.project)} · ${t.actualStart ? 'started ' + fmt.date(t.actualStart) : 'not started'} · ${fmt.hours(tt.hours)} logged`), avatars(t.assignees)),
-    fields: [{ label: 'Subject', key: 'subject', reqd: true, wide: true }, { label: 'Priority', key: 'priority', type: 'select', options: ['Low', 'Medium', 'High', 'Urgent'] }, { label: 'Expected time (hours)', key: 'expectedTime', type: 'float' }, { label: 'Expected start', key: 'expStart', type: 'date' }, { label: 'Expected end', key: 'expEnd', type: 'date' }, { label: 'Description', key: 'description', type: 'textarea', wide: true, help: 'Not a flag of the command yet: kept on the task.' }],
+    fields: [{ label: 'Subject', key: 'subject', reqd: true, wide: true }, { label: 'Priority', key: 'priority', type: 'select', options: ['Low', 'Medium', 'High', 'Urgent'] }, { label: 'Expected time (hours)', key: 'expectedTime', type: 'float' }, { label: 'Expected start', key: 'expStart', type: 'date' }, { label: 'Expected end', key: 'expEnd', type: 'date' }, { label: 'Description', key: 'description', type: 'textarea', wide: true }],
     extra: h('div', cx.btn('Open the full form', { sm: true, icon: 'right', onClick: () => { md.close(); cx.go('task', t.name); } })),
     cmd: (x) => taskChangeCmd(t, x),
     onSubmit: (x, close, cmd) => { applyTaskChange(t, x); close(); cx.toast(`${t.subject} saved`, { tone: 'success', cmd: [].concat(cmd)[0] }); cx.refresh(); } });
@@ -643,14 +981,167 @@ function applyTaskChange(t, x) {
 }
 function projectTimeline(p) {
   const items = [];
-  if (p.createdAt || p.actualStart) items.push({ at: p.createdAt || p.actualStart + 'T09:00:00Z', who: p.createdBy || cx.holders(p.department)[0], kind: 'created', text: 'created this project' });
-  for (const x of p.history || []) items.push({ at: x.at, who: x.who, kind: x.kind === 'status' ? 'status' : 'change', text: x.text });
-  for (const n of p.salesInvoices || []) { const i = D.books.salesInvoices.find((x) => x.name === n); if (i) items.push({ at: (i.submittedAt || i.postingDate + 'T17:00:00Z'), who: i.submittedBy || i.createdBy || null, kind: 'link', text: `invoiced ${fmt.money(i.grandTotal, i.currency)}: ${i.name}`, href: ['sales-invoice', i.name] }); }
+  const plan = planOf(p);
+  if (p.createdAt || p.actualStart) items.push({ at: p.createdAt || p.actualStart + 'T09:00:00Z', who: p.createdBy || plan.acceptedBy || cx.holders(p.department)[0], kind: 'created', text: plan.byAgent ? 'opened this project from the accepted plan' : 'created this project' });
+  if (plan.byAgent) {
+    items.push({ at: plan.draftedAt, who: AGENT, kind: 'note', text: 'drafted the plan from the signed proposal', sub: plan.deal ? `${plan.deal.subject}, won ${fmt.date(plan.deal.closedDate)}` : null, body: `${fmt.plural(plan.taskCount, 'task')} in ${fmt.plural(plan.phases, 'phase')}, ${fmt.int(plan.hours)} h, for ${cx.name(plan.acceptedBy)} to accept.`, href: plan.deal && cx.hasRoute('deal') ? ['deal', plan.deal.name] : null });
+    if (plan.acceptedAt) items.push({ at: plan.acceptedAt, who: plan.acceptedBy, kind: 'approval', text: 'accepted the plan' });
+  }
+  for (const x of p.history || []) items.push({ at: x.at, who: x.who, kind: ['status', 'email', 'note', 'approval'].includes(x.kind) ? x.kind : 'change', text: x.text, sub: x.sub || null, body: x.body || null });
+  for (const u of updatesOf(p).filter((x) => x.status === 'Sent' && !x.live)) items.push({ at: u.sentAt, who: u.sentBy, kind: 'email', text: `sent the weekly update to ${u.toName}`, sub: `Week of ${spanText(u.week, addDays(u.week, 4))}`, body: 'Drafted by the project agent from the week’s progress.' });
+  for (const n of p.salesInvoices || []) { const i = D.books.salesInvoices.find((x) => x.name === n); if (i) items.push({ at: (i.submittedAt || i.postingDate + 'T17:00:00Z'), who: i.submittedBy || i.createdBy || null, kind: 'link', text: `invoiced ${fmt.money(i.grandTotal, i.currency)}: ${i.name}`, href: ['sales-invoice', i.name], body: i.kind === 'timesheets' && i.postingDate >= PLAN_SINCE ? 'Billable hours gathered into a draft by the project agent.' : null }); }
   for (const t of tasksOf(p.name).filter((x) => x.completedOn && !x.isGroup)) items.push({ at: t.completedOn + 'T16:00:00Z', who: t.completedBy || (t.assignees || [])[0], kind: 'task', text: `completed ${t.subject}`, href: ['task', t.name] });
-  return items.sort((a, b) => String(b.at).localeCompare(String(a.at))).slice(0, 14);
+  const hl = healthOf(p);
+  if (hl.level >= 1) items.push({ at: CHECKED_AT, who: AGENT, kind: 'status', text: `flagged the project ${hl.label.toLowerCase()}`, body: hl.reasons.filter((r) => r.lvl >= 1).slice(0, 3).map((r) => r.text).join('. ') + '.' });
+  return items.filter((x) => x.at).sort((a, b) => String(b.at).localeCompare(String(a.at))).slice(0, 24);
+}
+
+/* ---------- the plan a won deal becomes ---------- */
+
+const DEAL_OF = new Map();
+for (const d of D.crm?.deals || []) if (d.project && d.status === 'Won') DEAL_OF.set(d.project, d);
+const PLAN_SINCE = '2026-02-01';
+/** A project's plan: drafted by the project agent from the signed proposal (deals won since the agent started), else made by hand. */
+function planOf(p) {
+  if (p.plan) return p.plan;
+  const lead = leadOf(p);
+  const tasks = tasksOf(p.name).filter((t) => !t.createdAt);
+  const base = { lead, taskCount: tasks.filter((t) => !t.isGroup).length, phases: tasks.filter((t) => t.isGroup).length, hours: r2(sum(tasks.filter((t) => !t.isGroup), (t) => t.expectedTime)) };
+  const d = DEAL_OF.get(p.name);
+  if (!d || !d.closedDate || d.closedDate < PLAN_SINCE) return { ...base, byAgent: false };
+  let acc = nextWorkday(nextWorkday(d.closedDate)); if (acc >= p.expectedStart) acc = nextWorkday(d.closedDate);
+  return { ...base, byAgent: true, deal: d, draftedAt: `${d.closedDate}T${d.closedDate === '2026-10-28' ? '15:10' : '16:20'}:00Z`, acceptedAt: `${acc}T10:05:00Z`, acceptedBy: lead, contract: d.dealValue, currency: d.currency || 'GBP' };
+}
+function planTab(p, FC) {
+  const plan = planOf(p);
+  const m = metricsOf(p, FC);
+  const cur = projCurrency(p);
+  const contract = plan.contract ?? p.totalSalesAmount;
+  const BILL = { tm: 'time and materials, billed monthly in arrears', retainer: 'a retainer, invoiced monthly', fixed: 'a fixed price, invoiced in stages', none: 'not billed' };
+  const head = h('div.pj-plan-head',
+    plan.byAgent
+      ? h('div', 'Drafted by the project agent from the signed proposal on ', cx.hasRoute('deal') ? cx.link(plan.deal.subject, 'deal', plan.deal.name) : h('b', plan.deal.subject), ` (won ${fmt.date(plan.deal.closedDate)}), and accepted by `, h('b', cx.name(plan.acceptedBy)), ` on ${fmt.date(plan.acceptedAt)}.`)
+      : h('div', `Planned by hand when the project was set up${p.createdBy ? ' by ' + cx.name(p.createdBy) : ''}.`),
+    h('div.muted', `Led by ${cx.name(plan.lead)}. Budget in hours is what the plan's tasks estimate; budget in money is the estimated cost.`));
+  const phases = tasksOf(p.name).filter((t) => t.isGroup).sort((a, b) => String(a.expStart).localeCompare(String(b.expStart)));
+  const loose = tasksOf(p.name).filter((t) => !t.isGroup && !t.parent);
+  const rowsOf = (kids) => ({ hours: sum(kids, (k) => k.expectedTime), logged: sum(kids, (k) => taskTotals(k).hours), done: sum(kids, (k) => k.expectedTime) ? sum(kids, (k) => (k.expectedTime || 0) * (k.status === 'Completed' ? 1 : (k.progress || 0) / 100)) / sum(kids, (k) => k.expectedTime) : 0 });
+  const prow = [...phases.map((g) => { const kids = P.tasks.filter((k) => k.parent === g.name && !k.isGroup && k.status !== 'Cancelled'); return { t: g, ...rowsOf(kids), f: FC.get(g.name) }; }), ...(loose.length ? [{ t: { name: '', subject: phases.length ? 'Other tasks' : 'Tasks', expStart: loose.reduce((x, k) => (k.expStart < x ? k.expStart : x), loose[0].expStart), expEnd: loose.reduce((x, k) => (k.expEnd > x ? k.expEnd : x), loose[0].expEnd) }, ...rowsOf(loose.filter((k) => k.status !== 'Cancelled')), f: null }] : [])];
+  const ms = tasksOf(p.name).filter((t) => t.isMilestone).sort(byEnd);
+  return h('div', { style: 'display:grid;gap:0' },
+    h('section.section', h('div.section-head', h('h3', 'Plan')), head),
+    cx.section({ label: 'Budget', columns: [
+      [{ label: 'Contract', value: contract, readOnly: true, render: () => h('span', contract ? money(contract, plan.currency || cur, 0) : '—', h('span.muted', ` · ${BILL[p.billing] || '—'}`)) }, { label: 'Budget in money (estimated cost)', value: m.budget, type: 'currency', currency: 'GBP', readOnly: true }, { label: 'Cost to date', value: m.cost, readOnly: true, render: () => h('span', money(m.cost, 'GBP', 0), m.budget ? h('span.muted', ` · ${fmt.pct(m.used, 0)} of budget`) : null) }],
+      [{ label: 'Budget in hours (the tasks’ estimates)', value: m.planHours, type: 'float', dp: 1, readOnly: true }, { label: 'Hours logged', value: m.hours, readOnly: true, render: () => h('span', fmt.hours(m.hours), m.planHours ? h('span.muted', ` · ${fmt.pct(m.hours / m.planHours, 0)} of the plan`) : null) }, { label: 'Work done', value: m.done, readOnly: true, render: () => pctBar(p.status === 'Completed' ? 100 : m.done * 100) }]] }),
+    cx.section({ label: `Phases (${prow.length})`, table: cx.grid({ numbered: false, rows: prow, empty: 'No phases', rowHref: (r) => (r.t.name ? ['task', r.t.name] : null), columns: [
+      { key: 'phase', label: 'Phase', render: (r) => (r.t.name ? cx.link(r.t.subject, 'task', r.t.name) : r.t.subject) },
+      { key: 'dates', label: 'Planned', opt: true, render: (r) => `${fmt.day(r.t.expStart)} to ${fmt.date(r.t.expEnd)}` },
+      { key: 'hours', label: 'Plan hours', render: (r) => fmt.int(r.hours) }, { key: 'logged', label: 'Logged', render: (r) => h('span', { style: r.logged > r.hours * 1.1 && r.hours ? 'color:var(--neg)' : null }, fmt.int(r.logged)) },
+      { key: 'done', label: 'Done', render: (r) => pctBar(r.done * 100) },
+      { key: 'fc', label: 'Forecast end', opt: true, render: (r) => (r.f && !r.f.done && r.f.slip > 3 ? h('span', { style: 'color:var(--neg)' }, `${fmt.date(r.f.end)} (+${r.f.slip} d)`) : r.f ? fmt.date(r.f.end) : '') }] }) }),
+    cx.section({ label: `Milestones (${ms.length})`, table: cx.grid({ numbered: false, rows: ms, empty: 'No milestones in this plan', rowHref: (t) => ['task', t.name], columns: [
+      { key: 'subject', label: 'Milestone', render: (t) => cx.link(t.subject, 'task', t.name) }, { key: 'expEnd', label: 'Planned', type: 'date' },
+      { key: 'fc', label: 'Forecast', render: (t) => { const f = FC.get(t.name); if (!isOpenTask(t)) return h('span.muted', `Met ${fmt.date(t.completedOn || t.expEnd)}`); return f && f.slip > 3 ? h('span', { style: 'color:var(--neg);font-weight:600' }, `${fmt.date(f.end)} · ${f.slip} working days late`) : h('span', { style: 'color:var(--pos)' }, 'On time'); } },
+      { key: 'who', label: 'Owner', opt: true, render: (t) => avatars(t.assignees) }] }) }));
+}
+
+/* ---------- the weekly client update ---------- */
+
+const UPDATE_PROJECTS = ['PROJ-0011', 'PROJ-0012', 'PROJ-0010'];
+const UPD = new Map();
+function contactOf(p) {
+  const d = DEAL_OF.get(p.name);
+  const c = d?.contacts?.find((x) => x.primary) || d?.contacts?.[0];
+  const ct = c && (D.crm?.contacts || []).find((x) => x.id === c.contact);
+  return ct ? { name: ct.name, first: ct.firstName || ct.name.split(' ')[0], email: ct.email } : null;
+}
+/** The week's progress in the client's words: hours, what closed, what is next, and what to watch. */
+function weekLines(p, mon, FC) {
+  const fri = addDays(mon, 4);
+  const logs = (logIndex().byProject.get(p.name) || []).filter((l) => l.date >= mon && l.date <= fri && liveTs(l.timesheet));
+  const hours = r2(sum(logs, (l) => l.hours)), people = uniq(logs.map((l) => TSM.get(l.timesheet)?.employee));
+  const byTask = new Map(); for (const l of logs) if (l.task) byTask.set(l.task, (byTask.get(l.task) || 0) + l.hours);
+  const top = [...byTask.entries()].filter(([n]) => TASK.get(n)?.project === p.name).sort((a, b) => b[1] - a[1]).slice(0, 2).map(([n, h0]) => `${TASK.get(n)?.subject} (${fmt.hours(r2(h0))})`);
+  const closed = tasksOf(p.name).filter((t) => !t.isGroup && t.completedOn && t.completedOn >= mon && t.completedOn <= fri);
+  const nm = addDays(mon, 7), nf = addDays(mon, 11);
+  const next = tasksOf(p.name).filter((t) => !t.isGroup && isOpenTask(t) && t.expStart <= nf && t.expEnd >= nm && !((t.progress || 0) >= 95 && daysBetween(t.expEnd, TODAY) > 30)).sort(byEnd).slice(0, 3);
+  const lines = [`This week: ${fmt.hours(hours)} from ${fmt.plural(people.length, 'person', 'people')}${top.length ? ', most on ' + top.join(' and ') : ''}.`,
+    closed.length ? `Done: ${closed.map((t) => t.subject).join(', ')}.` : 'Done: nothing closed this week; the work above carries on.',
+    next.length ? `Next week: ${next.map((t) => `${t.subject} (due ${fmt.day(t.expEnd)})`).join(', ')}.` : null];
+  if (FC && mon === addDays(WEEK0, -7)) {
+    const late = tasksOf(p.name).filter((t) => !t.isGroup && t.status === 'Overdue' && t.expEnd >= addDays(TODAY, -30));
+    for (const t of late) { const f = FC.get(t.name); if (f) lines.push(`Watching: ${t.subject} ran past ${fmt.day(t.expEnd)}; we now expect it by ${fmt.day(f.end)}.`); }
+  }
+  return lines.filter(Boolean);
+}
+function updatesOf(p) {
+  if (UPD.has(p.name)) return UPD.get(p.name);
+  const list = [];
+  const c = contactOf(p);
+  if (UPDATE_PROJECTS.includes(p.name) && c && p.status === 'Open') {
+    const lead = leadOf(p);
+    const last = addDays(WEEK0, -7);
+    let wk = mondayOf(p.expectedStart > addDays(WEEK0, -28) ? p.expectedStart : addDays(WEEK0, -28));
+    for (let i = 0; wk <= last; wk = addDays(wk, 7), i++) {
+      const fri = addDays(wk, 4);
+      const draft = p.name === 'PROJ-0011' && wk === last;
+      list.push({ project: p.name, week: wk, status: draft ? 'Draft' : 'Sent', draftedAt: `${fri}T15:00:00Z`, sentAt: draft ? null : `${fri}T16:${String(12 + i * 7).padStart(2, '0')}:00Z`, sentBy: draft ? null : lead, to: c.email, toName: c.name, first: c.first, subject: `${p.projectName}: the week of ${spanText(wk, fri)}`, lines: null });
+    }
+  }
+  UPD.set(p.name, list);
+  return list;
+}
+const updateLines = (p, u, FC) => (u.lines ||= weekLines(p, u.week, FC || forecastAll()));
+function sendUpdate(p, u) {
+  if (u.status === 'Sent') return;
+  u.status = 'Sent'; u.sentAt = NOW(); u.sentBy = cx.meId(); u.live = true;
+  (p.history ||= []).push({ at: u.sentAt, who: cx.meId(), kind: 'email', text: `sent the weekly update to ${u.toName}`, sub: `Week of ${spanText(u.week, addDays(u.week, 4))}`, body: 'Drafted by the project agent from the week’s progress.' });
+  cx.toast(`Sent to ${u.toName} (mock-up: nothing is sent)`, { tone: 'success' });
+  cx.refresh();
+}
+function updatesCard(p, FC) {
+  const list = updatesOf(p).slice().reverse();
+  if (!list.length) return null;
+  return cx.card({ title: 'Weekly client updates', body: h('div.pj-upd', list.map((u, i) => h('details', { open: i === 0 ? true : null },
+    h('summary', h('b', `Week of ${spanText(u.week, addDays(u.week, 4))}`), u.status === 'Draft' ? cx.pill('Draft', 'orange') : cx.pill('Sent', 'green'), h('span.muted', u.status === 'Draft' ? `drafted by the project agent for ${cx.firstName(leadOf(p))} to send` : `to ${u.toName} by ${cx.firstName(u.sentBy)}, ${fmt.datetime(u.sentAt)} · drafted by the project agent`)),
+    h('div.body', h('div.muted', `To ${u.to} · ${u.subject}`), h('div', `Hi ${u.first},`), updateLines(p, u, FC).map((l) => h('div', l)), h('div', cx.firstName(leadOf(p))),
+      u.status === 'Draft' ? h('div', cx.btn('Send it', { sm: true, kind: 'primary', icon: 'send', needs: () => (cx.meId() === leadOf(p) ? true : `${cx.name(leadOf(p))} leads this project and sends its updates.`), onClick: () => { const it = cx.agentWork?.list({ kind: 'proposal' }).find((x) => x.key === `pj-update-${p.name}-${u.week}`); if (it) cx.agentWork.approve(it); else sendUpdate(p, u); } })) : null)))) });
+}
+
+/* ---------- the health card and the project's timeline tab ---------- */
+
+function healthCard(p, FC) {
+  const hl = healthOf(p, FC);
+  if (hl.level < 0 && !hl.notes.length) return null;
+  const rows = [...hl.reasons.sort((a, b) => b.lvl - a.lvl).map((r) => h(r.href ? 'a' : 'div', { href: r.href ? cx.href(r.href[0], r.href[1]) : null }, h('i', { style: `color:var(--t-${HEALTH_TONE[r.lvl]})` }), h('span', r.text))),
+    ...hl.notes.map((n) => h('div', h('i', { style: 'color:var(--faint)' }), h('span.note', n)))];
+  return cx.card({ title: 'Health', body: h('div', h('div.pj-hhead', healthPill(hl, { lg: true }), h('span.muted', hl.level >= 0 ? `Checked by the project agent today at ${fmt.time(CHECKED_AT)}: budget, hours, milestones and late tasks.` : '')),
+    rows.length ? h('div.pj-hl', rows) : h('p.muted', { style: 'font-size:13px' }, 'Nothing to flag: the budget, the hours and every milestone are where the plan put them.')) });
+}
+function timelineTab(p, FC) {
+  const all = tasksOf(p.name);
+  const groups = all.filter((t) => t.isGroup).sort((a, b) => String(a.expStart).localeCompare(String(b.expStart)));
+  const rows = [];
+  for (const g of groups) {
+    const kids = all.filter((k) => k.parent === g.name && !k.isGroup);
+    const W = sum(kids, (k) => k.expectedTime) || 1;
+    rows.push({ id: g.name, label: g.subject, start: g.expStart, end: g.expEnd, progress: sum(kids, (k) => (k.expectedTime || 0) * (k.status === 'Completed' ? 1 : (k.progress || 0) / 100)) / W, color: '1', href: ['task', g.name] });
+    for (const k of kids.filter((x) => x.isMilestone)) rows.push({ id: k.name, label: `◆ ${k.subject}`, start: k.expStart, end: k.expEnd, progress: k.status === 'Completed' ? 1 : (k.progress || 0) / 100, color: '6', href: ['task', k.name], deps: k.dependsOn, sub: FC.get(k.name)?.slip > 3 ? `Forecast ${fmt.date(FC.get(k.name).end)}` : null });
+  }
+  for (const k of all.filter((x) => !x.isGroup && !x.parent).sort(byEnd)) rows.push({ id: k.name, label: k.subject, start: k.expStart, end: k.expEnd, progress: k.status === 'Completed' ? 1 : (k.progress || 0) / 100, color: k.isMilestone ? '6' : '2', href: ['task', k.name] });
+  const dated = rows.filter((r) => r.start && r.end);
+  const chart = dated.length ? cx.chart.gantt({ rows: dated, today: TODAY, title: `Phases and milestones of ${p.projectName}` }) : cx.empty('No dated phases yet');
+  const FCm = metricsOf(p, FC).milestones;
+  return h('div', { style: 'display:grid;gap:14px;padding:16px;min-width:0' },
+    cx.card({ class: 'chart-card', title: 'Phases and milestones', actions: cx.btn('Gantt chart', { sm: true, icon: 'chart', href: ['tasks-gantt', p.name] }), body: h('div', { style: 'display:grid;gap:8px' }, chart, FCm.some((x) => x.slip > 3) ? h('p.pj-note', FCm.filter((x) => x.slip > 3).map((x) => `${x.t.subject}: forecast ${fmt.date(x.f.end)}, ${x.slip} working days after ${fmt.date(x.t.expEnd)}.`).join(' ')) : null) }),
+    updatesCard(p, FC),
+    h('p.pj-note', 'The project’s history, from the plan to the last update, is under Activity below.'));
 }
 function projectPage(p) {
   const canPM = cx.allowed(PM).ok;
+  const FC = forecastAll();
+  const hl = healthOf(p, FC);
+  const lead = leadOf(p);
   const draft = { ...p };
   const cur = projCurrency(p);
   const tot = projTotals(p);
@@ -676,7 +1167,9 @@ function projectPage(p) {
   const form = cx.formView({
     doc: draft, editable: canPM, tabKey: 'pj-project', onChange,
     tabs: [
-      { label: 'Overview', render: () => overviewTab(p) },
+      { label: 'Overview', render: () => overviewTab(p, FC) },
+      { label: 'Plan', render: () => planTab(p, FC) },
+      { label: 'Timeline', render: () => timelineTab(p, FC) },
       { label: 'Details', sections: [
         { columns: [
           [{ label: 'Project name', key: 'projectName', reqd: true }, { label: 'Status', value: p.status, readOnly: true, type: 'status', render: () => projPill(p) }, { label: 'Project type', key: 'projectType', type: 'select', options: P.projectTypes.map((t) => t.name) }, { label: '% complete method', key: 'percentCompleteMethod', type: 'select', options: ['Manual', 'Task Completion', 'Task Progress', 'Task Weight'] }],
@@ -703,11 +1196,13 @@ function projectPage(p) {
     ],
     side: { id: p.name, title: p.projectName, cmd: `capxul org projects get ${p.name}`,
       extra: h('div', { style: 'display:grid;gap:10px' },
+        lead ? h('div.side-sec', h('h4', 'Lead'), cx.personChip(lead)) : null,
+        hl.level >= 0 ? h('div.side-sec', h('h4', 'Health'), healthPill(hl), h('div.muted', { style: 'margin-top:4px;font-size:12.5px' }, hl.reasons.length ? fmt.plural(hl.reasons.length, 'flag') + ' from the project agent' : 'Nothing flagged')) : null,
         h('div.side-sec', h('h4', 'Department'), h('div', cx.hat(cx.deptName(p.department)), h('div.muted', { style: 'margin-top:4px' }, holders.length ? `Worn by ${namesList(holders)}` : 'Nobody wears it'))),
         h('div.side-sec', h('h4', `Members (${(p.members || []).length})`), h('div.chips', (p.members || []).slice(0, 12).map((id) => cx.avatar(id)))),
         p.customer ? h('div.side-sec', h('h4', 'Customer'), custLink(p.customer)) : null,
         unb.length ? h('div.side-sec', h('h4', 'Not yet invoiced'), h('div', h('b', money(sum(unb, (l) => l.billingAmount), cur)), h('span.muted', ` · ${fmt.num(sum(unb, (l) => l.hours), 1)} h`))) : null),
-      created: { by: p.createdBy || holders[0], at: p.createdAt || (p.actualStart || p.expectedStart) + 'T09:00:00Z' }, modified: p.modifiedAt ? { by: p.modifiedBy, at: p.modifiedAt } : null },
+      created: { by: p.createdBy || (planOf(p).byAgent ? planOf(p).acceptedBy : holders[0]), at: p.createdAt || (p.actualStart || p.expectedStart) + 'T09:00:00Z' }, modified: p.modifiedAt ? { by: p.modifiedBy, at: p.modifiedAt } : null },
     timeline: { items: projectTimeline(p), comment: false },
   });
   const verbs = [
@@ -721,14 +1216,14 @@ function projectPage(p) {
   ];
   const actions = [
     saveBtn,
-    cx.menu('View', [{ label: 'Gantt chart', icon: 'chart', href: ['tasks-gantt', p.name] }, { label: 'Kanban board', icon: 'kanban', href: ['tasks-kanban', p.name] }, { label: 'Task tree', icon: 'tree', href: ['tasks-tree', p.name] }, { label: 'Timesheets', icon: 'clock', href: ['timesheets', p.name] }, { label: 'Billing summary', icon: 'report', onClick: () => cx.go('timesheet-billing', null, { report: { project: p.name, groupBy: 'project' } }) }]),
+    cx.menu('View', [{ label: 'Portfolio', icon: 'chart', href: ['projects-portfolio'] }, { label: 'Resources', icon: 'user', href: ['project-resources'] }, { divider: true }, { label: 'Gantt chart', icon: 'chart', href: ['tasks-gantt', p.name] }, { label: 'Kanban board', icon: 'kanban', href: ['tasks-kanban', p.name] }, { label: 'Task tree', icon: 'tree', href: ['tasks-tree', p.name] }, { label: 'Timesheets', icon: 'clock', href: ['timesheets', p.name] }, { label: 'Billing summary', icon: 'report', onClick: () => cx.go('timesheet-billing', null, { report: { project: p.name, groupBy: 'project' } }) }]),
     cx.menu('Actions', verbs),
     unb.length && p.customer ? cx.btn('Bill hours', { kind: 'primary', icon: 'file', needs: 'Invoicing', cmd: `capxul org projects timesheet bill ${uniq(unb.map((l) => l.timesheet)).slice(0, 3).join(' ')}${uniq(unb.map((l) => l.timesheet)).length > 3 ? ' …' : ''} --to ${accountsEmail(p.customer)}`, onClick: () => billModal(uniq(unb.map((l) => l.timesheet)), p.name) }) : null,
   ];
   return cx.page({
     title: p.projectName, workspace: 'projects', crumbs: [{ label: 'Projects', route: 'projects-home' }, { label: 'Projects', route: 'projects' }],
-    status: projPill(p, { lg: true }),
-    sub: `${p.name} · ${p.projectType}${p.customer ? ' · ' + custName(p.customer) : ''} · ${cx.deptName(p.department)}${p.status === 'On hold' && p.holdSince ? ' · on hold since ' + fmt.date(p.holdSince) : ''}`,
+    status: [projPill(p, { lg: true }), hl.level >= 0 ? healthPill(hl, { lg: true }) : null].filter(Boolean),
+    sub: `${p.name} · ${p.projectType}${p.customer ? ' · ' + custName(p.customer) : ''} · ${cx.deptName(p.department)}${lead ? ' · led by ' + cx.name(lead) : ''}${p.status === 'On hold' && p.holdSince ? ' · on hold since ' + fmt.date(p.holdSince) : ''}`,
     actions,
     banner: !canPM ? cx.banner(`Any member adds and works tasks here. ${pmLine()}`, { tone: 'info', icon: 'lock' }) : null,
     cmd: { cli: `capxul org projects get ${p.name}`, sdk: `client.org(orgId).projects.get("${p.name}")` },
@@ -1006,7 +1501,9 @@ function createTask(x) {
   return t;
 }
 function newTaskModal(pre = {}) {
-  const m = { subject: '', project: pre.project || 'PROJ-0011', parent: pre.parent || '', isGroup: 0, priority: 'Medium', expStart: TODAY, expEnd: addDays(TODAY, 14), expectedTime: 16, weight: 1, isMilestone: 0, dependsOn: '' };
+  const proj0 = pre.project || 'PROJ-0011';
+  const best = suggestAssignee({ activity: DEPT_ACT[PROJ.get(proj0)?.department] || 'Engineering', project: proj0, from: TODAY, to: addDays(TODAY, 14), hours: 16 })[0];
+  const m = { subject: '', project: proj0, parent: pre.parent || '', isGroup: 0, priority: 'Medium', expStart: TODAY, expEnd: addDays(TODAY, 14), expectedTime: 16, weight: 1, isMilestone: 0, dependsOn: '', who: best?.id || '' };
   formModal({ title: 'New task', model: m, needs: MEMBER, submit: 'Create', who: 'any member', wide: true,
     fields: [
       { label: 'Subject', key: 'subject', reqd: true, wide: true, placeholder: 'Order history screen' },
@@ -1016,10 +1513,63 @@ function newTaskModal(pre = {}) {
       { label: 'Expected start date', key: 'expStart', type: 'date' }, { label: 'Expected end date', key: 'expEnd', type: 'date' },
       { label: 'Expected time (in hours)', key: 'expectedTime', type: 'float' }, { label: 'Depends on', key: 'dependsOn', type: 'select', options: [['', '—'], ...P.tasks.filter((t) => !t.isGroup && isOpenTask(t)).map((t) => [t.name, `${t.subject} · ${t.project}`])] },
       { label: 'Is group', key: 'isGroup', type: 'check', checkLabel: 'Holds other tasks' }, { label: 'Is milestone', key: 'isMilestone', type: 'check', checkLabel: 'A milestone' },
+      { label: 'Assigned to', key: 'who', type: 'select', wide: true, options: [['', 'Nobody yet'], ...TEAM().map((id) => [id, `${cx.name(id)} · ${cx.person(id)?.designation || ''}`])], help: best ? `The project agent suggests ${cx.name(best.id)} for the next two weeks: ${whyText(best, TODAY, addDays(TODAY, 14))}.` : null },
     ],
     cmd: (x) => `capxul org projects task create ${q(x.subject || '<subject>')} --project ${x.project}${x.parent ? ' --parent ' + x.parent : ''}${x.isGroup ? ' --group' : ''}${x.dependsOn ? ' --depends-on ' + x.dependsOn : ''} --start ${x.expStart} --end ${x.expEnd}${x.expectedTime ? ' --hours ' + x.expectedTime : ''} --priority ${x.priority.toLowerCase()}${x.weight ? ' --weight ' + x.weight : ''}${x.isMilestone ? ' --milestone' : ''}`,
     check: (x) => (x.expEnd < x.expStart ? 'The expected end comes before the start.' : x.parent && TASK.get(x.parent)?.project !== x.project ? 'The parent task is in another project.' : x.dependsOn && TASK.get(x.dependsOn)?.project !== x.project ? 'A dependency must be in the same project.' : null),
-    onSubmit: (x, close, cmd) => { const t = createTask(x); close(); cx.toast(`Created ${t.name}: ${t.subject}`, { tone: 'success', cmd }); if (pre.stay) cx.refresh(); else cx.go('task', t.name); } });
+    onSubmit: (x, close, cmd) => { const t = createTask(x); if (x.who) { t.assignees = [x.who]; t.assignNote = best && x.who === best.id ? { why: whyText(best, TODAY, addDays(TODAY, 14)), acceptedBy: cx.meId(), at: NOW() } : null; } close(); cx.toast(`Created ${t.name}: ${t.subject}`, { tone: 'success', cmd }); if (pre.stay) cx.refresh(); else cx.go('task', t.name); } });
+}
+
+/* ---------- who works a task: the agent's suggestion, and the change ---------- */
+
+const DEPT_ACT = { design: 'Design', engineering: 'Engineering', delivery: 'Engineering', growth: 'Design', operations: 'Planning' };
+function activityOfTask(t) {
+  const by = new Map(); for (const l of logIndex().byTask.get(t.name) || []) by.set(l.activity, (by.get(l.activity) || 0) + l.hours);
+  const top = [...by.entries()].filter(([a]) => !['Communication', 'Research'].includes(a)).sort((a, b) => b[1] - a[1])[0]?.[0];
+  return top || ((t.assignees || [])[0] && mainActivity(t.assignees[0])) || DEPT_ACT[t.department || PROJ.get(t.project)?.department] || 'Engineering';
+}
+const skillText = (id) => [mainActivity(id), ...(SKILLS[id] || [])].filter(Boolean).slice(0, 3).join(', ').toLowerCase();
+/** Why the agent picked someone: what they do, what they have free, and their leave in the task's dates. */
+function whyText(x, from, to) {
+  const did = P.tasks.filter((k) => k.status === 'Completed' && (k.assignees || []).includes(x.id)).sort((a, b) => String(b.completedOn).localeCompare(String(a.completedOn)))[0];
+  return `${skillText(x.id)}${did ? `, built ${did.subject}` : ''}; ${fmt.int(x.free)} h free ${spanText(from, to)}${x.off.length ? ' (' + x.off.map(leaveText).join(', ') + ')' : ''}`;
+}
+function assignNoteOf(t) {
+  if (t.assignNote !== undefined) return t.assignNote;
+  const p = PROJ.get(t.project); const plan = p ? planOf(p) : null;
+  if (!plan?.byAgent || t.createdAt || t.isGroup || !(t.assignees || []).length) return null;
+  return { why: t.assignees.map((id) => `${cx.firstName(id)}: ${skillText(id)}`).join('; '), withPlan: true, acceptedBy: plan.acceptedBy, at: plan.acceptedAt };
+}
+const assignNoteEl = (t) => { const n = assignNoteOf(t); return n ? h('p.pj-note', `Suggested by the project agent${n.withPlan ? ' with the plan' : ''} from availability and skills (${n.why}), accepted by ${cx.name(n.acceptedBy)} on ${fmt.date(n.at)}.`) : null; };
+function forecastText(t, FC) {
+  const f = FC.get(t.name); if (!f) return h('span.faint', '—');
+  if (f.slip <= 0) return h('span', fmt.date(f.end), h('span', { style: 'color:var(--pos)' }, ' · on time'));
+  const why = slipCause(t, FC);
+  return h('span', h('span', { style: 'color:var(--neg);font-weight:600' }, `${fmt.date(f.end)} · ${fmt.plural(f.slip, 'working day')} late`), why ? h('span.muted', ` · ${why}`) : null);
+}
+function reassign(t, to, o = {}) {
+  const was = (t.assignees || []).slice();
+  if (!to || (was.length === 1 && was[0] === to)) return false;
+  t.assignees = [to];
+  t.assignNote = o.note ? { ...o.note, acceptedBy: cx.meId(), at: NOW() } : null;
+  noteOn(t, `assigned it to ${cx.name(to)}${was.length ? ' instead of ' + namesList(was) : ''}${o.note ? ', as the project agent suggested' : ''}`, 'change');
+  const p = PROJ.get(t.project); if (p && !(p.members || []).includes(to)) (p.members ||= []).push(to);
+  cx.toast(`${t.subject}: assigned to ${cx.name(to)}`, { tone: 'success' });
+  cx.refresh();
+  return true;
+}
+function assignModal(t) {
+  const from = t.expStart > TODAY ? t.expStart : TODAY, to = t.expEnd >= from ? t.expEnd : addDays(from, 14);
+  const B = bookings();
+  const sug = suggestAssignee({ subject: t.subject, activity: activityOfTask(t), project: t.project, from, to, hours: remainingOf(t) || t.expectedTime });
+  const best = sug[0];
+  const m = { who: best?.id || (t.assignees || [])[0] || '' };
+  const opts = TEAM().map((id) => [id, `${cx.name(id)} · ${fmt.int(freeHours(id, from, to, B))} h free${offText(id, from, to) ? ' · ' + offText(id, from, to) : ''}`]);
+  formModal({ title: `Who works on "${t.subject}"`, model: m, cols: 1, needs: MEMBER, submit: 'Assign',
+    intro: h('div', { style: 'display:grid;gap:6px' }, h('p.muted', { style: 'font-size:13px' }, `${fmt.hours(remainingOf(t))} left, ${spanText(from, to)}. Free hours count leave from HR and what each person is already booked on.`),
+      best ? h('p', { style: 'font-size:13px' }, h('b', `The project agent suggests ${cx.name(best.id)}`), `: ${whyText(best, from, to)}.`) : null),
+    fields: [{ label: 'Assigned to', key: 'who', type: 'select', options: opts }],
+    onSubmit: (x, close) => { close(); reassign(t, x.who, best && x.who === best.id ? { note: { why: whyText(best, from, to) } } : {}); } });
 }
 
 /* =====================================================================================================
@@ -1039,6 +1589,8 @@ function taskTimeline(t) {
 function taskPage(t) {
   const p = PROJ.get(t.project);
   const canEdit = cx.allowed(MEMBER).ok;
+  const FC = forecastAll();
+  const fc = FC.get(t.name);
   const draft = { subject: t.subject, priority: t.priority, expStart: t.expStart, expEnd: t.expEnd, expectedTime: t.expectedTime, weight: t.weight, isMilestone: t.isMilestone ? 1 : 0, description: t.description || '', dependsOn: (t.dependsOn || []).join(', ') };
   const tt = taskTotals(t);
   const cur = projCurrency(p);
@@ -1060,9 +1612,9 @@ function taskPage(t) {
         t.status === 'Completed' ? { columns: [[{ label: 'Completed by', value: t.completedBy, readOnly: true, type: 'person' }], [{ label: 'Completed on', value: t.completedOn, readOnly: true, type: 'date' }]] } : null,
         { label: 'Timeline', collapsible: true, columns: [
           [{ label: 'Expected start date', key: 'expStart', type: 'date' }, { label: 'Expected time (in hours)', key: 'expectedTime', type: 'float' }],
-          [{ label: 'Expected end date', key: 'expEnd', type: 'date' }, { label: '% progress', value: t.status === 'Completed' ? 100 : t.progress, readOnly: true, render: () => pctBar(t.status === 'Completed' ? 100 : t.progress), help: 'From the work done; no flag sets it yet.' }, { label: 'Is milestone', key: 'isMilestone', type: 'check', checkLabel: 'A milestone' }]] },
+          [{ label: 'Expected end date', key: 'expEnd', type: 'date' }, { label: '% progress', value: t.status === 'Completed' ? 100 : t.progress, readOnly: true, render: () => pctBar(t.status === 'Completed' ? 100 : t.progress), help: 'From the work logged against it.' }, { label: 'Is milestone', key: 'isMilestone', type: 'check', checkLabel: 'A milestone' }, isOpenTask(t) && !t.isGroup ? { label: 'Forecast end', value: fc?.end, readOnly: true, render: () => forecastText(t, FC), help: 'Worked out by the project agent from what is left, what it waits on, and its people’s time and leave.' } : null].filter(Boolean)] },
         { label: 'Details', cols: 1, fields: [{ label: 'Task description', key: 'description', type: 'textarea', placeholder: 'What this task covers' }] },
-        { label: 'Assigned to', node: h('div', { style: 'display:grid;gap:6px' }, (t.assignees || []).length ? h('div.chips', t.assignees.map((id) => cx.personChip(id))) : h('span.faint', 'Nobody yet'), h('p.muted', { style: 'font-size:12.5px' }, 'Assignment has no command yet, so it is shown here and not changed.')) },
+        { label: 'Assigned to', actions: !t.isGroup && isOpenTask(t) ? cx.btn((t.assignees || []).length ? 'Change' : 'Assign', { sm: true, icon: 'user', needs: MEMBER, onClick: () => assignModal(t) }) : null, node: h('div', { style: 'display:grid;gap:6px' }, (t.assignees || []).length ? h('div.chips', t.assignees.map((id) => cx.personChip(id))) : h('span.faint', 'Nobody yet'), assignNoteEl(t)) },
       ].filter(Boolean) },
       { label: 'Dependencies', sections: [
         { label: 'Dependent tasks', desc: 'This task completes only after these.', table: cx.grid({ numbered: true, rows: deps, empty: 'No dependencies', rowHref: (d) => ['task', d.name], columns: [{ key: 'name', label: 'Task', render: (d) => cx.link(d.name, 'task', d.name) }, { key: 'subject', label: 'Subject' }, { key: 'status', label: 'Status', render: (d) => taskPill(d.status) }] }) },
@@ -1249,6 +1801,7 @@ async function submitTimesheet(ts) {
   const cmd = `capxul org projects timesheet submit ${ts.name}`;
   if (!(await cx.confirm({ title: `Submit ${ts.name}?`, body: `${fmt.hours(info.hours)} for ${cx.name(ts.employee)}. Its rates lock, and its hours roll into its tasks and projects.`, cmd, who: `${cx.name(ts.employee)}, or People or a Director`, confirmLabel: 'Submit' }))) return;
   ts.status = 'Submitted'; ts.submittedAt = NOW(); ts.submittedBy = cx.meId();
+  if (info.logs.some((l) => l.fromCalendar && !l.confirmed)) { for (const l of info.logs) if (l.fromCalendar) l.confirmed = 1; settle(`pj-cal-${ts.name}`, `${cx.name(ts.employee)} confirmed the calendar rows on ${ts.name}`); }
   for (const l of info.logs) { const t = TASK.get(l.task); if (t && !t.actualStart) t.actualStart = l.date; if (t && l.completed && isOpenTask(t)) await taskMove(t, 'Completed', { confirmed: true }); }
   cx.toast(`Submitted ${ts.name}`, { tone: 'success', cmd }); cx.refresh();
 }
@@ -1296,7 +1849,7 @@ function billModal(tsNames, onlyProject) {
   const tsList = uniq(logs.map((l) => l.timesheet));
   const m = { to: accountsEmail(p.customer) };
   const onChain = D.crm?.companies?.find((c) => c.id === p.customer)?.onCapxul;
-  formModal({ title: `Create invoice: ${custName(p.customer)}`, model: m, cols: 1, needs: 'Invoicing', submit: 'Create invoice', who: 'whoever wears the Invoicing hat', wide: true,
+  formModal({ title: `Create invoice: ${custName(p.customer)}`, model: m, cols: 1, needs: 'Invoicing', submit: 'Create invoice', wide: true,
     intro: h('div', { style: 'display:grid;gap:10px' },
       cx.kv([['Project', projLink(p.name, `${p.name} · ${p.projectName}`)], ['Time', `${fmt.date(from)} to ${fmt.date(to)} · ${fmt.plural(tsList.length, 'timesheet')} · ${fmt.hours(r2(sum(logs, (l) => l.hours)))} billable`], ['Currency', cur]]),
       cx.grid({ numbered: true, rows: lines, totals: ['hours', 'amount'], columns: [{ key: 'activity', label: 'Activity' }, { key: 'hours', label: 'Hours', type: 'float', dp: 1 }, { key: 'rate', label: 'Rate', type: 'currency', currency: cur }, { key: 'amount', label: 'Amount', type: 'currency', currency: cur }] }),
@@ -1316,12 +1869,13 @@ function billModal(tsNames, onlyProject) {
       const inv = { customer: p.customer, customerName: cust?.name || custName(p.customer), postingDate: TODAY, dueDate: addDays(TODAY, cust?.terms || 30), currency: cur, conversionRate: rate, isOpening: false, originalDate: null, project: p.name, costCenter: cc, items, timesheets: [...byTsAct.values()], payments: [],
         taxes: cur === 'GBP' ? [{ type: 'On Net Total', account: '2101', rate: 20, taxAmount: vat, total, description: 'VAT 20%' }] : [], taxNote: cur === 'GBP' ? null : 'Outside the scope of UK VAT (services to a business outside the UK)',
         totalQty: r2(sum(items, (i) => i.qty)), netTotal: net, totalTaxes: vat, grandTotal: total, baseNetTotal: r2(net * rate), baseTotalTaxes: r2(vat * rate), baseGrandTotal: r2(total * rate), inWords: inWords(total, cur), outstanding: total,
-        docstatus: 0, name, createdBy: cx.meId(), createdAt: NOW(), kind: 'timesheets', remarks: `Billed from ${fmt.plural(tsList.length, 'timesheet')} by capxul org projects timesheet bill`, requestSent: null, paymentTerms: `Net ${cust?.terms || 30}`, billTo: x.to };
+        docstatus: 0, name, createdBy: cx.meId(), createdAt: NOW(), kind: 'timesheets', remarks: `Billed from ${fmt.plural(tsList.length, 'timesheet')} of ${p.projectName}`, requestSent: null, paymentTerms: `Net ${cust?.terms || 30}`, billTo: x.to };
       D.books.salesInvoices.push(inv);
       (p.salesInvoices ||= []).push(name);
       (p.history ||= []).push({ at: NOW(), who: cx.meId(), kind: 'change', text: `billed ${fmt.hours(r2(sum(logs, (l) => l.hours)))} into ${name}` });
       close();
-      // The command makes and posts the invoice in one write, through the Books hook; without it the invoice stays a draft.
+      settle(`pj-bill-${p.name}`, `Sent ${name} to ${custName(p.customer)}: ${money(total, cur)}`);
+      // Creating the invoice posts it in one write, through the Books hook; without it the invoice stays a draft.
       const post = cx.native?.postSalesInvoice;
       if (post) {
         Promise.resolve(post(inv)).then(() => {
@@ -1352,6 +1906,8 @@ function timesheetPage(ts) {
     { key: 'costingRate', label: 'Costing rate', type: 'currency', currency: 'GBP', opt: true }, { key: 'costing', label: 'Costing amount', type: 'currency', currency: 'GBP', get: (l) => r2(l.hours * l.costingRate), opt: true },
     { key: 'invoice', label: 'Invoice', opt: true, render: (l) => (l.invoice ? cx.link(l.invoice, 'sales-invoice', l.invoice) : '') },
   ];
+  if (info.logs.some((l) => l.fromCalendar)) logCols.splice(2, 0, { key: 'event', label: 'From the calendar', render: (l) => (l.fromCalendar ? h('span.pj-src', { title: l.confirmed ? 'Confirmed' : 'Suggested from the calendar, waiting to be confirmed' }, cx.icon('calendar'), l.event, l.confirmed ? null : h('span', { style: 'color:var(--t-orange);font-weight:600' }, ' · to confirm')) : '') });
+  const toConfirm = info.logs.filter((l) => l.fromCalendar && !l.confirmed);
   const rowForm = [{ label: 'Activity type', key: 'activity' }, { label: 'From time', key: 'fromTime', type: 'datetime' }, { label: 'To time', key: 'to', render: (l) => fmt.datetime(toTime(l)) }, { label: 'Hrs', key: 'hours', type: 'float' }, { label: 'Project', key: 'project' }, { label: 'Task', key: 'task', render: (l) => taskLink(l.task) }, { label: 'Is billable', key: 'billable', type: 'check' }, { label: 'Completed', key: 'completed', type: 'check' }, { label: 'Billing hours', key: 'bh', render: (l) => fmt.num(l.billable ? l.hours : 0, 2) }, { label: 'Billing rate', key: 'billingRate', type: 'currency', currency: cur }, { label: 'Billing amount', key: 'billingAmount', type: 'currency', currency: cur }, { label: 'Costing rate', key: 'costingRate', type: 'currency', currency: 'GBP' }, { label: 'Invoice', key: 'invoice' }, { label: 'Description', key: 'note', type: 'textarea' }];
   const grid = cx.grid({ numbered: true, rows: info.logs, rowForm, title: 'Time log', totals: ['hours', 'billingAmount', 'costing'], empty: draft ? 'No time yet. Add a row, or start the timer.' : 'No time logs', columns: logCols });
   const removable = draft && mayKeep ? h('div', { style: 'display:flex;gap:6px;flex-wrap:wrap;margin-top:8px' }, cx.btn('Add a row', { sm: true, icon: 'plus', needs: keeper(ts), cmd: `capxul org projects timesheet log ${ts.name} --activity … --start … --hours …`, onClick: () => addLogModal(ts) }), info.logs.length ? cx.menu('Remove a row', info.logs.map((l, i) => ({ label: `${i + 1} · ${l.activity} · ${fmt.date(l.date)} · ${fmt.hours(l.hours)}`, onClick: () => { const k = LOGS.indexOf(l); if (k >= 0) LOGS.splice(k, 1); reindex(); cx.toast('Row removed from the draft', { tone: 'info' }); cx.refresh(); } })), { sm: true, kind: 'ghost' }) : null) : null;
@@ -1381,10 +1937,12 @@ function timesheetPage(ts) {
       ...info.invoices.map((n) => { const i = D.books.salesInvoices.find((x) => x.name === n); return { at: i?.submittedAt || (i?.postingDate || ts.endDate) + 'T17:00:00Z', who: i?.submittedBy || i?.createdBy || null, kind: 'link', text: `billed on ${n}`, href: ['sales-invoice', n] }; }),
       ...drafts.map((i) => ({ at: i.createdAt, who: i.createdBy, kind: 'link', text: `put on draft invoice ${i.name}`, href: ['sales-invoice', i.name] })),
       ts.cancelledAt ? { at: ts.cancelledAt, who: cx.meId(), kind: 'cancelled', text: 'cancelled this timesheet' } : null,
+      ...calendarTimeline(ts, info),
     ].filter(Boolean), comment: false },
   });
   const actions = [];
   if (draft) {
+    if (toConfirm.length) actions.push(cx.btn(`Confirm ${fmt.plural(toConfirm.length, 'calendar row')}`, { icon: 'calendar', needs: keeper(ts), onClick: () => confirmCalendar(ts) }));
     actions.push(TIMERS.has(ts.name) ? null : cx.btn(info.logs.length ? 'Resume timer' : 'Start timer', { icon: 'clock', needs: keeper(ts), onClick: () => startTimerModal(ts) }));
     actions.push(cx.btn('Add a row', { icon: 'plus', needs: keeper(ts), onClick: () => addLogModal(ts) }));
     actions.push(cx.btn('Submit', { kind: 'primary', icon: 'check', needs: keeper(ts), cmd: `capxul org projects timesheet submit ${ts.name}`, onClick: () => submitTimesheet(ts) }));
@@ -1660,3 +2218,268 @@ function logWeekFor(employee, project, entries) {
   return ts;
 }
 cx.native = Object.assign(cx.native || {}, { billTimesheets: billModal, logWeekFor });
+
+/* =====================================================================================================
+   The project agent's work: what it proposes to each person, and what it did. Registered once, at load; each
+   item links to its record. Accepting from a page instead of the panel settles the panel's item too.
+   ===================================================================================================== */
+
+/** Mark the panel's proposal done when the person did the thing from the record itself. */
+function settle(key, title) {
+  const it = cx.agentWork?.list?.({ kind: 'proposal' }).find((x) => x.key === key && x.state === 'open');
+  if (!it) return;
+  it.state = 'approved'; it.approvedBy = cx.meId(); it.approvedAt = NOW();
+  cx.agentWork.add({ kind: 'done', key: 'done|' + it.key, who: it.who, agent: it.agent, title: title || it.result || it.title, detail: `Approved by ${cx.name(cx.meId())}`, route: it.route, id: it.id, at: it.approvedAt });
+}
+const put = (o) => { try { return cx.agentWork?.add?.({ agent: AGENT, module: 'projects', ...o }) || null; } catch (e) { console.warn('agentWork.add', e); return null; } };
+
+/* ---------- timesheet rows from calendars ---------- */
+
+const shortName = (p) => (p ? p.projectName.split(' ')[0] : 'Studio');
+function eventOf(l) {
+  const p = PROJ.get(l.project), t = TASK.get(l.task);
+  if (l.activity === 'Planning') return l.hours <= 0.5 ? `${shortName(p)} stand-up` : `${shortName(p)} planning`;
+  if (l.activity === 'Communication') return `Call with ${contactOf(p || {})?.first || 'the client'}`;
+  if (l.activity === 'Research') return `${t?.subject || shortName(p)}: research`;
+  return `Focus: ${t?.subject || p?.projectName || l.activity}`;
+}
+/** This week's drafts of people with a seat (their calendar is connected through their account) are suggested rows. */
+const calTimesheets = () => P.timesheets.filter((t) => t.status === 'Draft' && t.startDate >= WEEK0 && cx.hasSeat(t.employee) && tsLogs(t.name).length);
+function markCalendarRows() { for (const ts of calTimesheets()) for (const l of tsLogs(ts.name)) if (l.fromCalendar == null) { l.fromCalendar = 1; l.confirmed = 0; l.event = eventOf(l); } }
+function confirmCalendar(ts) {
+  const rows = tsLogs(ts.name).filter((l) => l.fromCalendar && !l.confirmed);
+  if (!rows.length) return;
+  const ok = keeper(ts)(); if (ok !== true) { cx.toast(ok, { tone: 'warning' }); return false; }
+  for (const l of rows) l.confirmed = 1;
+  (ts.history ||= []).push({ at: NOW(), who: cx.meId(), kind: 'approval', text: `confirmed ${fmt.plural(rows.length, 'row')} from the calendar (${fmt.hours(r2(sum(rows, (l) => l.hours)))})` });
+  settle(`pj-cal-${ts.name}`, `${cx.name(cx.meId())} confirmed ${fmt.hours(r2(sum(rows, (l) => l.hours)))} from the calendar on ${ts.name}`);
+  cx.toast(`Confirmed ${fmt.hours(r2(sum(rows, (l) => l.hours)))} on ${ts.name}`, { tone: 'success' });
+  cx.refresh();
+}
+function calendarTimeline(ts, info) {
+  const out = [];
+  const cal = info.logs.filter((l) => l.fromCalendar);
+  if (cal.length) out.push({ at: cal.reduce((m, l) => (l.fromTime < m ? l.fromTime : m), cal[0].fromTime).replace(/T(\d\d):(\d\d)/, (x, hh) => `T${hh}:59`), who: AGENT, kind: 'note', text: `suggested ${fmt.plural(cal.length, 'row')} from ${cx.firstName(ts.employee)}'s calendar`, body: cal.map((l) => `${fmt.time(l.fromTime)} ${l.event}`).join(' · ') });
+  else if (ts.startDate >= '2026-10-05' && ts.loggedBy === ts.employee && cx.hasSeat(ts.employee) && ts.status !== 'Draft') out.push({ at: `${addDays(ts.startDate, 4)}T15:30:00Z`, who: AGENT, kind: 'note', text: `suggested the week's rows from ${cx.firstName(ts.employee)}'s calendar`, body: `${cx.firstName(ts.employee)} checked them and submitted.` });
+  for (const x of ts.history || []) out.push({ at: x.at, who: x.who, kind: x.kind, text: x.text });
+  return out;
+}
+
+/* ---------- a plan from a won deal ---------- */
+
+const PLANNED = new Map();
+const FV3 = 'CRM-DEAL-2026-00023';
+const custShort = (id) => custName(id).split(' ')[0];
+/** Draft the plan a deal becomes: phases, tasks, people by availability and skills (leave included), budget in hours and money. */
+function draftPlanFromDeal(d, exclude = []) {
+  const prev = P.projects.filter((p) => p.customer === d.company).sort((a, b) => String(b.expectedStart).localeCompare(String(a.expectedStart)))[0];
+  const retainer = /retainer|care plan|support/i.test(d.subject);
+  const dept = prev?.department || (/design|brand|ux|review|audit/i.test(d.subject) ? 'design' : 'delivery');
+  let start = d.name === FV3 ? '2026-12-01' : mondayOf(addDays(d.closedDate && d.closedDate > TODAY ? d.closedDate : TODAY, 21));
+  while (!isWorkday(start)) start = addDays(start, 1);
+  const prevLead = prev ? leadOf(prev) : null;
+  const prevOff = prevLead ? LEAVES.find((a) => a.employee === prevLead && a.toDate >= start && a.fromDate <= addDays(start, 60) && a.leaveType !== 'Annual Leave') : null;
+  const lead = prevLead && !prevOff && !exclude.includes(prevLead) ? prevLead : retainer ? 'ravi' : 'isla';
+  const leadWhy = prevOff ? `${cx.name(prevLead)} led ${prev.projectName}, but ${cx.firstName(prevLead)} is on ${prevOff.leaveType.toLowerCase()} from ${fmt.date(prevOff.fromDate)}${prevOff.status === 'Open' ? ' (requested)' : ''}, so ${cx.name(lead)}, who ${lead === 'ravi' ? 'runs the Aldermoor retainer' : 'manages Harbourline’s projects'}, leads it` : prevLead === lead ? `${cx.name(lead)}, who led ${prev.projectName}` : `${cx.name(lead)}`;
+  const client = (D.crm?.contacts || []).find((c) => c.id === (d.contacts?.find((y) => y.primary) || d.contacts?.[0])?.contact)?.name || 'the client';
+  const value = +d.dealValue || 0, rate = d.currency === 'USD' ? cx.rate(TODAY) : 1;
+  const tasks = [];
+  const T = (o) => tasks.push(o);
+  let hoursYear, end;
+  const monthly = (ym) => `Monthly support: ${MONTHS_LONG[+ym.slice(5, 7) - 1]} ${ym.slice(0, 4)}`;
+  if (retainer) {
+    const months = [0, 1, 2].map((i) => { const x = new Date(start + 'T00:00:00Z'); x.setUTCMonth(x.getUTCMonth() + i, 1); return x.toISOString().slice(0, 7); });
+    const sup = suggestAssignee({ subject: 'support', activity: 'Engineering', members: prev?.members, from: start, to: monthEnd(months[0]), hours: 60, exclude: [lead, ...exclude] }).slice(0, 2);
+    const [a, b] = sup.length ? sup : [{ id: 'ben', fit: 0, free: 0, off: [] }];
+    T({ group: 'Set-up', subject: 'Handover from v2 and access', who: [lead], hours: 30, from: start, to: addDays(start, 3), act: 'Planning' });
+    T({ group: 'Set-up', subject: 'Support runbook and response times', who: [a.id], hours: 24, from: addDays(start, 6), to: addDays(start, 10), act: 'Engineering' });
+    T({ group: 'Set-up', subject: 'Upgrade to the current app framework', who: [(b || a).id], hours: 60, from: start, to: addDays(start, 17), act: 'Engineering' });
+    for (const ym of months) T({ group: 'Support', subject: monthly(ym), who: uniq([a.id, (b || a).id]), hours: 40, from: ym === months[0] ? start : ym + '-01', to: monthEnd(ym), act: 'Engineering' });
+    const q = monthEnd(months[2]); let qd = q; while (!isWorkday(qd)) qd = addDays(qd, -1);
+    T({ group: 'Support', subject: `Quarterly review with ${client}`, who: [lead], hours: 4, from: addDays(qd, -4), to: qd, act: 'Communication', milestone: true });
+    hoursYear = 30 + 24 + 60 + 12 * 40 + 4 * 4; end = addDays(start, 364);
+    const people = sup.length ? sup : [a];
+    return finish({ people, why: people.map((x) => `${cx.name(x.id)}: ${whyText(x, start, monthEnd(months[0]))}`) });
+  }
+  const hours = Math.max(80, Math.round((value * rate) / 2.8 / 48 / 10) * 10);
+  const phases = dept === 'design' ? [['Discovery', 0.2, 'Research'], ['Design', 0.5, 'Design'], ['Launch', 0.3, 'Design']] : [['Discovery', 0.15, 'Research'], ['Design', 0.3, 'Design'], ['Build', 0.4, 'Engineering'], ['Launch', 0.15, 'Engineering']];
+  let cur = start; const why = [], people = [];
+  for (const [ph, share, act] of phases) {
+    const hh = Math.round((hours * share) / 2.5) * 2.5, days = Math.max(5, Math.ceil(hh / 2 / DAY_H));
+    let to = cur; for (let i = 1; i < days; i++) to = nextWorkday(to);
+    const best = suggestAssignee({ subject: ph, activity: act === 'Research' ? 'Design' : act, members: prev?.members, from: cur, to, hours: hh, exclude: [...exclude, ...people.map((x) => x.id)] })[0];
+    const who = best ? [best.id] : [lead];
+    if (best) { people.push(best); why.push(`${cx.name(best.id)} (${ph}): ${whyText(best, cur, to)}`); }
+    T({ group: ph, subject: ph === 'Launch' ? `Launch ${d.subject.toLowerCase()}` : `${ph}: ${d.subject.toLowerCase()}`, who, hours: hh, from: cur, to, act, milestone: ph === 'Launch' });
+    cur = nextWorkday(to);
+  }
+  hoursYear = hours; end = tasks.at(-1).to;
+  return finish({ people, why });
+  function finish(x) {
+    const cost = Math.round((hoursYear * 48) / 500) * 500;
+    const plan = { deal: d, lead, leadWhy, retainer, dept, start, end, tasks, hours: hoursYear, cost, contract: value, currency: d.currency || 'GBP', margin: value * rate ? (value * rate - cost) / (value * rate) : 0, people: x.people, why: x.why, draftedAt: `${TODAY}T07:20:00Z`, prev };
+    PLANNED.set(d.name, plan);
+    return plan;
+  }
+}
+/** Open the project the accepted plan describes: its tasks, people and budget; link the deal to it. */
+function openProjectFromPlan(pl) {
+  const d = pl.deal;
+  if (d.project) return PROJ.get(d.project);
+  const name = nextName('PROJ-', P.projects.map((p) => p.name), 4);
+  const proj = { name, projectName: `${custShort(d.company)} ${d.subject.charAt(0).toLowerCase()}${d.subject.slice(1)}`, status: 'Open', projectType: 'External', customer: d.company, department: pl.dept, priority: 'Medium', percentCompleteMethod: 'Task Completion', expectedStart: pl.start, expectedEnd: pl.end, estimatedCost: pl.cost, costCenter: cx.deptName(pl.dept), billing: pl.retainer ? 'retainer' : 'tm', members: uniq([pl.lead, ...pl.tasks.flatMap((t) => t.who)]), notes: null, holdSince: null, percentComplete: 0, actualStart: null, actualEnd: null, actualTime: 0, totalCostingAmount: 0, totalBillableAmount: 0, currency: pl.currency === 'USD' ? 'USD' : 'GBP', totalBilledAmount: 0, totalSalesAmount: pl.contract, totalPurchaseCost: 0, grossMargin: 0, grossMarginPercent: 0, salesInvoices: [], timesheetCount: 0, taskCount: 0, createdAt: NOW(), createdBy: pl.acceptedBy, lead: pl.lead, history: [] };
+  P.projects.push(proj); PROJ.set(name, proj); BASE.set(name, { cost: 0, billable: 0, billed: 0, hours: 0 });
+  const groups = new Map();
+  for (const g of uniq(pl.tasks.map((t) => t.group))) {
+    const kids = pl.tasks.filter((t) => t.group === g);
+    groups.set(g, createTask({ subject: g, project: name, isGroup: 1, expStart: kids.reduce((m, t) => (t.from < m ? t.from : m), kids[0].from), expEnd: kids.reduce((m, t) => (t.to > m ? t.to : m), kids[0].to) }));
+  }
+  for (const x of pl.tasks) {
+    const t = createTask({ subject: x.subject, project: name, parent: groups.get(x.group)?.name, expStart: x.from, expEnd: x.to, expectedTime: x.hours, isMilestone: x.milestone ? 1 : 0 });
+    t.assignees = x.who.slice(); t.assignNote = { why: x.who.map((id) => `${cx.firstName(id)}: ${skillText(id)}`).join('; '), withPlan: true, acceptedBy: pl.acceptedBy, at: pl.acceptedAt };
+  }
+  proj.plan = { byAgent: true, deal: d, draftedAt: pl.draftedAt, acceptedAt: pl.acceptedAt, acceptedBy: pl.acceptedBy, contract: pl.contract, currency: pl.currency, lead: pl.lead, taskCount: pl.tasks.length, phases: groups.size, hours: r2(sum(pl.tasks, (t) => t.hours)) };
+  d.project = name; DEAL_OF.set(name, d);
+  put({ key: `pj-opened-${name}`, kind: 'done', who: pl.lead, at: NOW(), title: `Opened ${name}, ${proj.projectName}, from the accepted plan`, detail: `${d.subject} is won. ${fmt.plural(pl.tasks.length, 'task')} with their people, ${fmt.int(pl.hours)} h and ${money(pl.cost, 'GBP', 0)} budgeted.`, route: ['project', name] });
+  return proj;
+}
+function acceptPlan(pl) {
+  pl.accepted = true; pl.acceptedBy = cx.meId(); pl.acceptedAt = NOW();
+  if (pl.deal.status === 'Won') { const proj = openProjectFromPlan(pl); cx.toast(`Plan accepted: ${proj.name}, ${proj.projectName}, is open`, { tone: 'success' }); cx.refresh(); return; }
+  cx.toast(`Plan accepted. The project opens when ${cx.firstName(pl.deal.owner)} marks the deal Won (mock-up: move the deal to Won in the CRM).`, { tone: 'success', ms: 9000 });
+}
+function proposePlan(d, exclude = []) {
+  const pl = draftPlanFromDeal(d, exclude);
+  const won = d.status === 'Won';
+  const cust = custName(d.company);
+  const c = (D.crm?.contacts || []).find((x) => x.id === (d.contacts?.find((y) => y.primary) || d.contacts?.[0])?.contact);
+  const lastEmail = (D.crm?.timeline || []).filter((i) => i.recordName === d.name && i.kind === 'email' && i.direction !== 'in').at(-1);
+  const steps = [
+    ...uniq(pl.tasks.map((t) => t.group)).map((g) => { const ks = pl.tasks.filter((t) => t.group === g); return `${g}, ${spanText(ks[0].from, ks.reduce((m, t) => (t.to > m ? t.to : m), ks[0].to))}: ${ks.slice(0, 3).map((t) => `${t.subject} (${t.who.map(cx.firstName).join(' and ')}, ${fmt.int(t.hours)} h)`).join('; ')}${ks.length > 3 ? `; and ${ks.length - 3} more` : ''}`; }),
+    `Lead: ${pl.leadWhy}.`,
+    ...pl.why.map((w) => `${w}.`),
+    `Budget: ${fmt.int(pl.hours)} h${pl.retainer ? ' over the year' : ''}, ${money(pl.cost, 'GBP', 0)} of cost against ${money(pl.contract, pl.currency, 0)}, a ${fmt.pct(pl.margin, 0)} margin.`,
+  ];
+  return put({ key: `pj-plan-${d.name}`, kind: 'proposal', who: pl.lead, at: pl.draftedAt,
+    title: `Plan for ${cust}: ${d.subject}`,
+    detail: won ? `${d.subject} is won. Drafted from the signed proposal${lastEmail ? ` sent ${fmt.date(lastEmail.at)}` : ''}; accept it and the project opens with these tasks and people.`
+      : `Drafted from the proposal ${c ? c.name : cust} agreed (the deal is ${d.status}${d.nextStep ? '; ' + d.nextStep.charAt(0).toLowerCase() + d.nextStep.slice(1) : ''}), so the team is held from ${fmt.date(pl.start)}. Accept it and the project opens the day the deal is won.`,
+    steps, approveLabel: 'Accept the plan', result: `Plan for ${cust} accepted`, route: cx.hasRoute('deal') ? ['deal', d.name] : null,
+    onApprove: () => acceptPlan(pl) });
+}
+/** Deals won in this session become plans; an accepted plan opens its project once its deal is won. */
+function checkWonDeals() {
+  let opened = null;
+  for (const d of D.crm?.deals || []) {
+    if (d.status !== 'Won' || d.project) continue;
+    const pl = PLANNED.get(d.name);
+    if (pl?.accepted) { opened = openProjectFromPlan(pl); continue; }
+    if (pl) continue;
+    if (d.closedDate && d.closedDate < addDays(TODAY, -14)) continue;
+    proposePlan(d);
+  }
+  if (opened) { cx.toast(`${opened.projectName} is open: ${opened.name}, from the plan ${cx.firstName(opened.plan.acceptedBy)} accepted`, { tone: 'success' }); cx.refresh(); }
+}
+
+/* ---------- everything the agent proposes and did, at load ---------- */
+
+function registerProjectAgent() {
+  if (typeof cx.agentWork?.add !== 'function') return;
+  markCalendarRows();
+  const FC = forecastAll();
+  const open = P.projects.filter((p) => p.status === 'Open');
+  const taken = [];
+  // 1. tasks that will run late at their person's availability: a better-placed person, for the lead to accept
+  for (const t of P.tasks) {
+    if (t.isGroup || !isOpenTask(t) || t.status !== 'Open' || !(t.assignees || []).length || t.expStart > addDays(TODAY, 30)) continue;
+    const f = FC.get(t.name); if (!f || f.slip <= 5 || !f.short || f.after) continue;
+    const p = PROJ.get(t.project); const lead = leadOf(p); if (!lead || p.status !== 'Open') continue;
+    const from = t.expStart > TODAY ? t.expStart : TODAY;
+    const best = suggestAssignee({ subject: t.subject, activity: activityOfTask(t), project: t.project, from, to: t.expEnd, hours: remainingOf(t), exclude: [...t.assignees, ...taken] })[0];
+    if (!best || best.free < remainingOf(t) * 0.75) continue;
+    const was = t.assignees.slice();
+    const dependents = P.tasks.filter((x) => (x.dependsOn || []).includes(t.name) && x.isMilestone);
+    t.assignees = []; const B0 = bookings();
+    t.assignees = [best.id]; const FC2 = forecastAll(); t.assignees = was;
+    if (wdBetween(FC2.get(t.name)?.end, f.end) < 5) continue;
+    const why = whyText(best, from, t.expEnd);
+    const cur = was.map((id) => `${cx.name(id)}: ${cx.person(id)?.designation || ''}${focusOf(id) < 1 ? ', half the day goes on running things' : ''}; ${fmt.int(freeHours(id, from, t.expEnd, B0))} h free for it${offText(id, from, t.expEnd) ? ' (' + offText(id, from, t.expEnd) + ')' : ''}`);
+    taken.push(best.id);
+    put({ key: `pj-assign-${t.name}`, kind: 'proposal', who: lead, needs: MEMBER, at: CHECKED_AT.replace('07:00', '07:05'),
+      title: `Give ${t.subject} to ${cx.name(best.id)}`,
+      detail: `${p.projectName}: at ${namesList(was)}'s pace it ends ${fmt.date(f.end)}, ${fmt.plural(f.slip, 'working day')} after ${fmt.date(t.expEnd)}${dependents.length ? ` and holds up ${dependents.map((x) => x.subject).join(', ')}` : ''}. With ${cx.firstName(best.id)}, who can start on ${fmt.date(from)}, it ends ${fmt.date(FC2.get(t.name)?.end)}.`,
+      steps: [...cur, `${cx.name(best.id)}: ${why}`, ...dependents.filter((x) => FC.get(x.name)?.end !== FC2.get(x.name)?.end).map((x) => `${x.subject}: forecast moves from ${fmt.date(FC.get(x.name)?.end)} to ${fmt.date(FC2.get(x.name)?.end)}`)],
+      approveLabel: `Give it to ${cx.firstName(best.id)}`, result: `Assigned ${t.subject} to ${cx.name(best.id)}`, route: ['task', t.name],
+      onApprove: () => { reassign(t, best.id, { note: { why } }); } });
+  }
+  // 2. the won deal's plan (and its follow-ups when deals are won during the session)
+  const fv3 = (D.crm?.deals || []).find((d) => d.name === FV3 && !d.project && ['Ready to Close', 'Won'].includes(d.status));
+  if (fv3) proposePlan(fv3, taken);
+  cx.on?.('route', () => { try { checkWonDeals(); } catch (e) { console.error(e); } });
+  // the Saltmarsh plan: drafted from the signed proposal and accepted
+  for (const p of P.projects) {
+    const pl = planOf(p);
+    if (!pl.byAgent || pl.draftedAt < addDays(TODAY, -45)) continue;
+    put({ key: `pj-plan-done-${p.name}`, kind: 'done', who: pl.acceptedBy, at: pl.draftedAt, title: `Drafted the ${p.projectName} plan from the signed proposal`, detail: `${fmt.plural(pl.taskCount, 'task')} in ${fmt.plural(pl.phases, 'phase')}, ${fmt.int(pl.hours)} h, ${p.billing === 'fixed' ? 'a fixed ' : ''}${money(pl.contract, pl.currency, 0)}. Accepted by ${cx.name(pl.acceptedBy)} on ${fmt.date(pl.acceptedAt)}.`, route: ['project', p.name] });
+  }
+  // 3. timesheet rows suggested from calendars, for each person to confirm
+  for (const ts of calTimesheets()) {
+    const rows = tsLogs(ts.name).filter((l) => l.fromCalendar && !l.confirmed); if (!rows.length) continue;
+    put({ key: `pj-cal-${ts.name}`, kind: 'proposal', who: ts.employee, at: `${TODAY}T10:30:00Z`,
+      title: `Confirm this morning's time: ${fmt.hours(r2(sum(rows, (l) => l.hours)))} from your calendar`,
+      detail: `${ts.name}. Matched from your calendar to your projects' tasks; confirm them and they stay on your timesheet. Nothing is submitted until you submit the week.`,
+      steps: rows.map((l) => `${fmt.time(l.fromTime)} to ${fmt.time(toTime(l))} · ${l.event} · ${projName(l.project)}${l.billable ? ' · billable' : ''}`),
+      approveLabel: 'Confirm', result: `Confirmed the calendar rows on ${ts.name}`, route: ['timesheet', ts.name], onApprove: () => confirmCalendar(ts) });
+  }
+  const lastFri = addDays(WEEK0, -3);
+  const selfKept = uniq(P.timesheets.filter((t) => t.startDate === addDays(WEEK0, -7) && t.loggedBy === t.employee && cx.hasSeat(t.employee)).map((t) => t.employee));
+  if (selfKept.length) put({ key: 'pj-cal-lastweek', kind: 'done', who: null, at: `${lastFri}T15:30:00Z`, title: `Suggested last week's timesheets from ${fmt.plural(selfKept.length, 'calendar')}`, detail: `${namesList(selfKept)} checked their rows and submitted. Isla keeps the time of people without a seat.`, route: ['timesheets'] });
+  // 4. the weekly client update, drafted from the week's progress for the lead to send
+  for (const p of open) for (const u of updatesOf(p)) {
+    if (u.week !== addDays(WEEK0, -7)) continue;
+    const lines = updateLines(p, u, FC);
+    if (u.status === 'Draft') put({ key: `pj-update-${p.name}-${u.week}`, kind: 'proposal', who: leadOf(p), at: u.draftedAt,
+      title: `Send ${u.toName} the weekly update on ${p.projectName}`, detail: `To ${u.to}. Drafted from the week of ${spanText(u.week, addDays(u.week, 4))}: the hours, what closed, what is next and what to watch.`,
+      steps: lines, approveLabel: 'Send it', result: `Sent the weekly update to ${u.toName}`, route: ['project', p.name], onApprove: () => sendUpdate(p, u) });
+    else put({ key: `pj-update-done-${p.name}-${u.week}`, kind: 'done', who: leadOf(p), at: u.draftedAt, title: `Drafted the weekly update on ${p.projectName} for ${u.toName}`, detail: `${cx.name(u.sentBy)} sent it on ${fmt.datetime(u.sentAt)}.`, route: ['project', p.name] });
+  }
+  // 5. health: overruns and slipping milestones, flagged to each lead this morning
+  for (const p of open) {
+    const hl = healthOf(p, FC); if (hl.level < 1) continue;
+    put({ key: `pj-health-${p.name}`, kind: 'done', who: leadOf(p), at: CHECKED_AT, title: `Flagged ${p.projectName} ${hl.label.toLowerCase()}`, detail: hl.reasons.filter((r) => r.lvl >= 1).sort((a, b) => b.lvl - a.lvl).slice(0, 2).map((r) => r.text).join('. ') + '.', route: ['project', p.name] });
+  }
+  // tasks long past their end at 95% or more: a new end date, or closing them, for the lead
+  for (const p of open) {
+    const st = metricsOf(p, FC).stale; if (!st.length) continue;
+    const recent = st.filter((t) => (logIndex().byTask.get(t.name) || []).some((l) => l.date >= addDays(WEEK0, -14)));
+    const end = addDays(WEEK0, 11);
+    const reopen = recent.length === st.length && !st.some((t) => /^Monthly support/.test(t.subject));
+    put({ key: `pj-stale-${p.name}`, kind: 'proposal', who: leadOf(p), needs: MEMBER, at: CHECKED_AT.replace('07:00', '07:10'),
+      title: reopen ? `Give ${fmt.plural(st.length, 'task')} on ${p.projectName} a real end date` : st.length === 1 ? `Close ${st[0].subject}, left at ${st[0].progress}%` : `Close ${fmt.plural(st.length, 'task')} on ${p.projectName} left at 95%`,
+      detail: reopen ? `${st.length === 1 ? 'It has' : 'They have'} sat at 95% or more since ${fmt.date(st.reduce((m, t) => (t.expEnd < m ? t.expEnd : m), st[0].expEnd))} and still take time each week, so the plan shows them months late. Moving their end to ${fmt.date(end)} makes the forecast honest.` : `${st.length === 1 ? 'It has' : 'They have'} sat at 95% or more since ${fmt.date(st[0].expEnd)}. Closing ${st.length === 1 ? 'it' : 'them'} makes the plan and its health honest${recent.length ? '; time logged to them recently stays where it is' : ''}.`,
+      steps: st.map((t) => `${t.subject}: ${t.progress}% since ${fmt.date(t.expEnd)}, ${fmt.int(taskTotals(t).hours)} h logged`),
+      approveLabel: reopen ? `Move them to ${fmt.day(end)}` : st.length === 1 ? 'Close it' : 'Close them', result: reopen ? `Moved ${fmt.plural(st.length, 'task')} on ${p.projectName} to end ${fmt.date(end)}` : `Closed ${fmt.plural(st.length, 'task')} on ${p.projectName}`, route: ['project', p.name],
+      onApprove: async () => { for (const t of st) { if (reopen) applyTaskChange(t, { subject: t.subject, priority: t.priority, expStart: t.expStart, expEnd: end, expectedTime: t.expectedTime }); else await taskMove(t, 'Completed', { confirmed: true, quiet: true }); } cx.toast(reopen ? `${fmt.plural(st.length, 'task')} now end ${fmt.date(end)}` : `${fmt.plural(st.length, 'task')} closed`, { tone: 'success' }); cx.refresh(); } });
+  }
+  // 6. billable hours gathered into a draft invoice, for whoever sends that customer's invoices
+  const inv = wearers('Invoicing');
+  for (const x of unbilledByProject()) {
+    const p = x.p, cur = projCurrency(p);
+    const last = D.books.salesInvoices.filter((i) => i.project === p.name && i.kind === 'timesheets').sort((a, b) => a.postingDate.localeCompare(b.postingDate)).at(-1);
+    const who = last && inv.includes(last.createdBy) ? last.createdBy : inv[0];
+    const logs = unbilledOf(p.name), names = uniq(logs.map((l) => l.timesheet));
+    const acts = new Map(); for (const l of logs) acts.set(l.activity, (acts.get(l.activity) || 0) + l.hours);
+    const from = logs.reduce((m, l) => (l.date < m ? l.date : m), logs[0].date), to = logs.reduce((m, l) => (l.date > m ? l.date : m), logs[0].date);
+    put({ key: `pj-bill-${p.name}`, kind: 'proposal', who, needs: 'Invoicing', at: `${TODAY}T07:15:00Z`,
+      title: `Invoice ${custName(p.customer)}: ${fmt.hours(r2(x.hours))} from ${spanText(from, to)}`,
+      detail: `${p.projectName}. Billable hours from ${fmt.plural(names.length, 'submitted timesheet')}, gathered into a draft: ${money(x.amount, cur)} before ${cur === 'GBP' ? 'VAT' : 'any tax'}. ${custName(p.customer)} is billed monthly in arrears; send it now, or it keeps gathering until ${fmt.date(monthEnd(TODAY.slice(0, 7)))}.`,
+      steps: [...[...acts.entries()].sort((a, b) => b[1] - a[1]).map(([a, hh]) => `${a}: ${fmt.hours(r2(hh))}`), last ? `Last invoice: ${last.name}, ${fmt.date(last.postingDate)}` : null].filter(Boolean),
+      approveLabel: 'Review the draft', result: `Sent the invoice to ${custName(p.customer)}`, route: ['project', p.name],
+      onApprove: () => { billModal(names, p.name); return false; } });
+  }
+  for (const i of D.books.salesInvoices.filter((y) => y.kind === 'timesheets' && y.postingDate >= addDays(TODAY, -45))) {
+    const hrs = sum(i.items || [], (it) => it.qty || 0);
+    put({ key: `pj-billed-${i.name}`, kind: 'done', who: i.createdBy, at: `${i.postingDate}T08:00:00Z`, title: `Gathered ${MONTHS_LONG[+i.postingDate.slice(5, 7) - 1]}'s billable hours for ${i.customerName} into a draft`, detail: `${fmt.hours(r2(hrs))}, ${money(i.grandTotal, i.currency)}. ${cx.name(i.createdBy)} checked it and sent it as ${i.name}.`, route: ['sales-invoice', i.name] });
+  }
+}
+registerProjectAgent();

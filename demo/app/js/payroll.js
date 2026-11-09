@@ -1,7 +1,7 @@
 // Payroll: salary components, structures and assignments, payroll runs month by month (paid in one batch, each
 // payslip with its proof), payslips and their printed view, the salary register, and the employee's own payslips.
 import { cx, h } from './core.js';
-import { notEmployee, repView, emp, empName, empNo, empLink, round2, sum, addDays, eachDay, monthEnd, leaveDetails, makePayment, paymentOf, paidToLong, hatHolders, wearersOf, namesList, nextName, seatGate, appFrame, nowIso } from './hr.js';
+import { notEmployee, repView, emp, empName, empNo, empLink, round2, sum, addDays, eachDay, monthEnd, leaveDetails, makePayment, paymentOf, paidToLong, hatHolders, wearersOf, namesList, nextName, seatGate, appFrame, nowIso, workingDaysIn, PEOPLE_AGENT, agentChip } from './hr.js';
 
 const D = cx.data;
 const fmt = cx.fmt;
@@ -38,12 +38,67 @@ const component = (abbr) => P.components.find((c) => c.abbr === abbr);
 const acctName = (code) => { const a = D.books.accounts.find((x) => x.code === code); return a ? `${a.code} · ${a.name}` : code || ''; };
 
 /* =====================================================================================================
+   The month's payroll changes. People prepare and pay the run. The people agent only collects what changed in
+   HR (starters, leavers, salary changes, unpaid and sick leave, advances to recover) into one list a person reviews.
+   ===================================================================================================== */
+
+const longMonth = (ym) => fmt.dateLong(`${ym}-01`).split(' ').slice(2).join(' ');
+const CH_MONTH = addDays(P.runs.filter((r) => r.status === 'Paid').at(-1).endDate, 1).slice(0, 7);
+const CH_AT = `${cx.today}T07:30:00Z`;
+const REVIEWED = new Map();
+const assignOf = (id, on) => [...P.assignments].filter((a) => a.employee === id && a.fromDate <= on).sort((a, b) => b.fromDate.localeCompare(a.fromDate))[0] || null;
+const slipIn = (id, ym) => P.slips.find((s) => s.employee === id && s.startDate.startsWith(ym) && s.status !== 'Cancelled') || null;
+const dates = (a, b) => `${fmt.day(a)}${b !== a ? ' to ' + fmt.day(b) : ''}`;
+/** What changed in HR that the month's payroll must reflect, from the records as they stand. */
+function payrollChanges(ym) {
+  const start = `${ym}-01`, end = monthEnd(ym);
+  const prevYm = addDays(start, -1).slice(0, 7);
+  const items = [], checked = [], coming = [];
+  const add = (o) => items.push({ key: `${ym}|${o.kind}|${o.who}|${o.ref?.id || ''}`, ...o });
+  const staff = D.people.filter((p) => p.employmentType !== 'Contract');
+  const starters = staff.filter((p) => p.dateOfJoining >= start && p.dateOfJoining <= end);
+  for (const p of starters) add({ kind: 'New starter', who: p.id, what: `Joins ${fmt.date(p.dateOfJoining)}; the first pay is prorated from that day`, effect: null, ref: { label: 'Onboarding', route: 'onboarding-plan', id: p.id } });
+  for (const p of staff.filter((x) => x.dateOfJoining.slice(0, 7) === prevYm && !x.dateOfJoining.endsWith('-01'))) {
+    const a = assignOf(p.id, end); const prev = slipIn(p.id, prevYm);
+    if (a && prev) add({ kind: 'First full month', who: p.id, what: `${longMonth(prevYm).split(' ')[0]} was paid from ${fmt.day(p.dateOfJoining)} (${fmt.gbp(prev.grossPay)} gross); ${longMonth(ym).split(' ')[0]} is a full month at ${fmt.gbp(a.base)}`, effect: round2(a.base - prev.grossPay), ref: { label: prev.name, route: 'payslip', id: prev.name } });
+  }
+  const leavers = D.people.filter((p) => p.relievingDate && p.relievingDate >= start && p.relievingDate <= end);
+  for (const p of leavers) add({ kind: 'Leaver', who: p.id, what: `Last day ${fmt.date(p.relievingDate)}: final pay prorated to that day, with any holiday owed`, effect: null, ref: { label: 'Offboarding', route: 'offboarding-plan', id: p.employee } });
+  const raises = P.assignments.filter((a) => a.fromDate >= start && a.fromDate <= end && assignOf(a.employee, addDays(start, -1)));
+  for (const a of raises) { const was = assignOf(a.employee, addDays(start, -1)); add({ kind: 'Salary change', who: a.employee, what: `Basic salary ${fmt.gbp(was.base)} to ${fmt.gbp(a.base)} a month from ${fmt.date(a.fromDate)}`, effect: round2(a.base - was.base), ref: { label: a.name, route: 'structure-assignment', id: a.name } }); }
+  const unpaid = D.hr.leaveApplications.filter((l) => l.leaveType === 'Unpaid Leave' && ['Approved', 'Open'].includes(l.status) && l.fromDate <= end && l.toDate >= start);
+  for (const l of unpaid) { const a = assignOf(l.employee, end); const days = workingDaysIn(l.fromDate < start ? start : l.fromDate, l.toDate > end ? end : l.toDate).length; const daily = a ? round2(a.base / workingDaysIn(start, end).length) : 0; add({ kind: 'Unpaid leave', who: l.employee, what: `${fmt.plural(days, 'day')} without pay, ${dates(l.fromDate, l.toDate)}${l.status === 'Open' ? ' (not decided yet)' : ''}`, effect: -round2(days * daily), ref: { label: l.name, route: 'leave', id: l.name } }); }
+  const sick = D.hr.leaveApplications.filter((l) => l.leaveType === 'Sick Leave' && l.status === 'Approved' && l.fromDate >= start && l.fromDate <= end);
+  for (const l of sick) { const b = leaveDetails(l.employee, l.fromDate).find((x) => x.leaveType === 'Sick Leave'); const over = b && b.available < 0; add({ kind: 'Sick leave', who: l.employee, what: `${fmt.plural(l.totalLeaveDays, 'day')} off sick, ${dates(l.fromDate, l.toDate)}: ${over ? `beyond the ten days at full pay, so statutory sick pay applies` : `paid sick leave, ${fmt.num(b?.available ?? 0, 1)} of 10 days left this year; no change to pay`}`, effect: over ? null : 0, ref: { label: l.name, route: 'leave', id: l.name } }); }
+  const adv = D.hr.advances.filter((a) => a.settleBySalary?.month === ym);
+  for (const a of adv) add({ kind: 'Advance recovery', who: a.employee, what: `${fmt.gbp(a.settleBySalary.amount)} of advance ${a.name} comes off the payslip`, effect: -a.settleBySalary.amount, ref: { label: a.name, route: 'advance', id: a.name } });
+  if (!starters.length) checked.push('New starters: nobody joins this month');
+  if (!leavers.length) checked.push('Leavers: nobody leaves this month');
+  if (!raises.length) checked.push('Salary changes: none from this month');
+  if (!unpaid.length) checked.push('Unpaid leave: none in the month');
+  if (!adv.length) checked.push('Advances to recover from pay: none');
+  checked.push('Expense claims: paid from each department\'s budget, not through payroll');
+  const after = monthEnd(addDays(end, 1).slice(0, 7));
+  for (const l of D.hr.leaveApplications.filter((x) => x.leaveType === 'Parental Leave' && ['Approved', 'Open'].includes(x.status) && x.fromDate > end && x.fromDate <= after)) coming.push({ who: l.employee, what: `Parental leave from ${fmt.date(l.fromDate)}: full pay for the first 26 weeks${l.status === 'Open' ? ', once it is approved' : ''}`, ref: { label: l.name, route: 'leave', id: l.name } });
+  for (const o of D.others.filter((x) => /joins/i.test(x.role || ''))) coming.push({ who: o.id, what: o.role.replace(/^.*\(joins (.*)\)$/, 'Joins $1: in that month\'s changes as a new starter'), ref: { label: 'Onboarding', route: 'onboarding-plan', id: o.id } });
+  return { ym, items, checked, coming };
+}
+const changesToReview = () => payrollChanges(CH_MONTH).items.filter((i) => !REVIEWED.has(i.key)).length;
+function markReviewed(items) {
+  if (!cx.wears('People')) { cx.toast(cx.allowed('People').reason, { tone: 'warning' }); return false; }
+  for (const i of items) if (!REVIEWED.has(i.key)) REVIEWED.set(i.key, { by: cx.meId(), at: nowIso() });
+  cx.refresh();
+  return true;
+}
+
+/* =====================================================================================================
    Workspace and navigation
    ===================================================================================================== */
 
 function registerPayroll() {
   const nav = cx.hasSeat() ? [
     { label: 'Home', route: 'payroll' },
+    { label: `Changes for ${longMonth(CH_MONTH).split(' ')[0]}`, route: 'payroll-changes', badge: () => changesToReview() || null },
     { label: 'Payroll runs', route: 'payroll-runs', match: ['payroll-run', 'payroll-run-new'] },
     { label: 'Payslips', route: 'payslips', match: ['payslip', 'payslip-print'] },
     { label: 'Salary structure assignments', route: 'structure-assignments', match: ['structure-assignment'] },
@@ -69,7 +124,6 @@ cx.style('payroll', `
 .pr-step.now .no { background: var(--accent); color: var(--accent-fg); border-color: transparent; }
 .pr-step .tt { font: 600 13.5px/1.3 var(--font-ui); }
 .pr-step .who { font-size: 12px; color: var(--muted); }
-.pr-step .cmd { font: 11px/1.45 var(--font-mono); color: var(--muted); overflow-wrap: anywhere; }
 .pr-step .act { margin-top: 2px; }
 @media (max-width: 900px) { .pr-steps { grid-template-columns: repeat(2, minmax(0, 1fr)); } .pr-step:nth-child(3) { border-left: 0; } .pr-step:nth-child(n+3) { border-top: 1px solid var(--line); } }
 @media (max-width: 520px) { .pr-steps { grid-template-columns: minmax(0, 1fr); } .pr-step { border-left: 0; border-top: 1px solid var(--line); } .pr-step:first-child { border-top: 0; } }
@@ -102,6 +156,8 @@ cx.style('payroll', `
 .slip-foot .mono { color: var(--fg-2); }
 @media (max-width: 640px) { .slip-paper { padding: 16px; } .slip-kv, .slip-ledgers { grid-template-columns: minmax(0, 1fr); } .slip-att { grid-template-columns: repeat(3, minmax(0, 1fr)); } .slip-att div:nth-child(4) { border-left: 0; } .slip-att div:nth-child(n+4) { border-top: 1px solid var(--line); } .slip-meta { text-align: left; } }
 .pr-pay-row { cursor: pointer; }
+.pr-sm { display: none; }
+@media (max-width: 700px) { .pr-sm { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-top: 6px; } .pr-lg { display: none; } }
 .pr-pay-row.on td { background: var(--accent-soft); }
 `);
 
@@ -128,6 +184,7 @@ cx.route('payroll', () => {
       { label: 'Total outgoing salary (last month)', value: fmt.gbp(t.net), sub: `${monthOf(last)} · ${t.employees} payslips`, delta: prev ? { text: `${t.net >= prev.totals.net ? '+' : ''}${fmt.pct((t.net - prev.totals.net) / prev.totals.net)} on ${monthOf(prev)}`, good: null } : null, href: ['payroll-run', last.name], spark: paid.map((r) => r.totals.net) },
       { label: 'Total salary structures', value: fmt.int(P.structures.length), sub: `${P.structures.filter((s) => s.isActive === 'Yes').length} active`, href: ['salary-structures'] },
       { label: 'Waiting to be claimed', value: fmt.gbp(sum(escrowOpen, (s) => s.netPay)), sub: escrowOpen.length ? `${fmt.plural(escrowOpen.length, 'payslip')} in money waiting` : lastClaim ? `Nobody: ${empName(lastClaim.employee)} claimed the last on ${fmt.day(lastClaim.paymentInfo.escrow.claimedAt)}` : 'Nobody', href: ['payslips'] },
+      (() => { const ch = payrollChanges(CH_MONTH); const n = changesToReview(); return { label: `Changes for ${longMonth(CH_MONTH).split(' ')[0]}`, value: fmt.int(ch.items.length), sub: n ? `${n} to review · collected from HR records by the people agent` : 'Reviewed', href: ['payroll-changes'] }; })(),
       { label: 'Owed to HMRC for October', value: fmt.gbp(t.hmrc), sub: `PAYE ${fmt.gbp(t.paye)} · NI ${fmt.gbp(t.ni + t.erni)} · due 22 Nov`, cmd: `capxul org payroll run get ${last.name}` },
     ],
     charts: [
@@ -135,6 +192,7 @@ cx.route('payroll', () => {
       { title: `Where ${monthOf(last)}'s pay went`, node: cx.chart.donut({ items: [{ label: 'Net pay to employees', value: t.net, color: '1' }, { label: 'HM Revenue and Customs', value: t.hmrc, color: '3' }, { label: 'Nest Pensions', value: t.pensions, color: '4' }], center: fmt.compact(t.net + t.hmrc + t.pensions, 'GBP'), format: (v) => fmt.gbp(v, 0) }) },
     ],
     shortcuts: [
+      { label: `Changes for ${longMonth(CH_MONTH).split(' ')[0]}`, route: 'payroll-changes', count: changesToReview(), tone: 'orange', icon: 'list' },
       { label: 'Payroll runs', route: 'payroll-runs', count: runs.length, icon: 'payroll' },
       { label: 'Payslips', route: 'payslips', count: P.slips.length, icon: 'file' },
       { label: 'Salary register', route: 'salary-register', icon: 'report' },
@@ -151,6 +209,49 @@ cx.route('payroll', () => {
     ],
   });
 }, { workspace: 'payroll', title: 'Payroll' });
+
+cx.route('payroll-changes', () => {
+  const g = seatGate('Payroll changes', 'payroll'); if (g) return g;
+  const ch = payrollChanges(CH_MONTH);
+  const open = ch.items.filter((i) => !REVIEWED.has(i.key));
+  const run = P.runs.find((r) => r.startDate.startsWith(CH_MONTH) && r.status !== 'Cancelled');
+  const effect = (i) => (i.effect == null ? h('span.muted', 'Worked out in the run') : i.effect === 0 ? h('span.muted', 'No change') : h('b.num', { style: `color:var(${i.effect > 0 ? '--pos' : '--neg'})` }, `${i.effect > 0 ? '+' : ''}${fmt.gbp(i.effect)}`));
+  const refLink = (r) => (r && cx.hasRoute(r.route) ? cx.link(r.label, r.route, r.id) : r ? h('span', r.label) : null);
+  const table = ch.items.length ? h('div.tbl-scroll', h('table.tbl', h('thead', h('tr', h('th', 'Change'), h('th.pr-lg', 'Employee'), h('th.wrap', 'What changes'), h('th.num.opt', 'Gross pay'), h('th.pr-lg', 'Reviewed'))),
+    h('tbody', ch.items.map((i) => { const rv = REVIEWED.get(i.key); const state = () => (rv ? h('span', { style: 'display:grid;gap:2px' }, cx.pill('Reviewed', 'green'), h('span.muted', { style: 'font-size:11.5px' }, `${cx.firstName(rv.by)}, ${fmt.day(rv.at)}`)) : cx.btn('Mark reviewed', { sm: true, needs: 'People', onClick: () => markReviewed([i]) })); return h('tr',
+      h('td', h('b', i.kind), h('div.pr-sm', cx.personChip(i.who))), h('td.pr-lg', cx.personChip(i.who)),
+      h('td.wrap', h('div', i.what), i.ref ? h('div', { style: 'font-size:12.5px' }, refLink(i.ref)) : null, h('div.pr-sm', effect(i), state())),
+      h('td.num.opt', effect(i)),
+      h('td.pr-lg', state())); })))) : cx.empty('Nothing changed in HR this month.');
+  return cx.page({
+    title: `Changes for ${longMonth(CH_MONTH)}`, crumbs: [{ label: 'Payroll', route: 'payroll' }],
+    status: [open.length ? { text: `${open.length} to review`, tone: 'orange' } : { text: 'Reviewed', tone: 'green' }],
+    sub: h('span', { style: 'display:inline-flex;gap:6px;align-items:center;flex-wrap:wrap' }, 'Collected from HR records by', agentChip(), `on ${fmt.datetime(CH_AT)}. People reviews them before creating the run; nothing here changes pay by itself.`),
+    actions: [
+      open.length ? cx.btn('Mark all reviewed', { needs: 'People', icon: 'check', onClick: () => markReviewed(ch.items) }) : null,
+      run ? cx.btn(`Open ${longMonth(CH_MONTH).split(' ')[0]}'s run`, { kind: 'primary', href: ['payroll-run', run.name] }) : cx.btn(`New payroll run: ${longMonth(CH_MONTH).split(' ')[0]}`, { kind: 'primary', icon: 'plus', href: ['payroll-run-new'] }),
+    ],
+    fde: `Payroll changes for ${longMonth(CH_MONTH)}`,
+    body: h('div.grid.side',
+      cx.card({ title: 'Changes', body: table }),
+      h('div', { style: 'display:grid;gap:14px;align-content:start;min-width:0' },
+        cx.card({ title: 'Checked, nothing to change', body: h('div', { style: 'display:grid;gap:6px;font-size:13px' }, ch.checked.map((t) => h('div', { style: 'display:flex;gap:6px;align-items:start' }, h('span', { style: 'color:var(--pos)' }, cx.icon('check', { size: 14 })), h('span', t)))) }),
+        ch.coming.length ? cx.card({ title: 'Coming up', body: h('div', { style: 'display:grid;gap:8px;font-size:13px' }, ch.coming.map((c) => h('div', h('b', cx.name(c.who)), h('div.muted', c.what), c.ref ? h('div', { style: 'font-size:12.5px' }, refLink(c.ref)) : null))) }) : null)),
+  });
+}, { workspace: 'payroll', title: 'Payroll changes' });
+
+(function registerPayrollChanges() {
+  const ch = payrollChanges(CH_MONTH);
+  const mo = longMonth(CH_MONTH).split(' ')[0];
+  const reviewer = wearersOf('People').includes('isla') ? 'isla' : wearersOf('People')[0];
+  const summary = ch.items.map((i) => `${cx.name(i.who)}: ${i.kind.toLowerCase()}${i.effect ? ` (${i.effect > 0 ? '+' : ''}${fmt.gbp(i.effect)} gross)` : i.effect === 0 ? ' (no change to pay)' : ''}`).join('; ');
+  try {
+    cx.agentWork?.add?.({ kind: 'done', agent: PEOPLE_AGENT, key: `payroll-changes-done-${CH_MONTH}`, who: reviewer, at: CH_AT, title: `Collected ${mo}'s payroll changes from HR records`, detail: `${fmt.plural(ch.items.length, 'change')}; ${ch.checked.length} checks with nothing to change`, route: ['payroll-changes'] });
+    cx.agentWork?.add?.({ kind: 'proposal', agent: PEOPLE_AGENT, key: `payroll-changes-${CH_MONTH}`, who: reviewer, needs: 'People', at: CH_AT, title: `Review the payroll changes for ${mo}`,
+      detail: `${summary}. ${ch.coming.length ? `Coming up: ${ch.coming.map((c) => `${cx.name(c.who)} (${c.what.split(':')[0].toLowerCase()})`).join(', ')}. ` : ''}You create and submit the run; ${namesList(hatHolders('harbourline'))} pays it.`,
+      approveLabel: 'Mark reviewed', result: `Reviewed ${mo}'s payroll changes`, route: ['payroll-changes'], onApprove: () => markReviewed(payrollChanges(CH_MONTH).items) });
+  } catch (e) { console.warn('agentWork.add', e); }
+})();
 
 /* =====================================================================================================
    Salary components, structures, assignments
@@ -335,7 +436,6 @@ function stepStrip(steps) {
   return h('div.pr-steps', steps.map((s, i) => h('div.pr-step', { class: { done: s.state === 'done', now: s.state === 'now' } },
     h('div', { style: 'display:flex;gap:8px;align-items:center' }, h('span.no', s.state === 'done' ? cx.icon('check', { size: 13 }) : String(i + 1)), h('span.tt', s.title)),
     h('div.who', s.who), s.when ? h('div.who', s.when) : null,
-    h('div.cmd', '$ ' + s.cmd),
     s.action ? h('div.act', s.action) : null)));
 }
 const viewAs = (id, why) => (cx.meId() === id ? null : cx.btn(`View as ${cx.name(id)}`, { sm: true, icon: 'user', title: why, onClick: () => cx.setMe(id) }));
@@ -444,7 +544,7 @@ function runPaymentSection(run) {
       ['Approval', first?.approval ? h('span.mono', first.approval) : '—'],
       ['Paid', `${slips.length} of ${run.slips.length} payslips · ${fmt.usdc(sum(slips, (s) => s.paymentInfo.amountSent))} from the Treasury for ${fmt.gbp(sum(slips, (s) => s.netPay))}`],
       ['Bridge fees', fmt.usdc(sum(slips, (s) => s.paymentInfo.fee || 0))],
-      escrowed.length ? ['Money waiting', h('div', { style: 'display:grid;gap:4px' }, escrowed.map((s) => { const e = emp(s.employee); const es = s.paymentInfo.escrow; return h('span', `${e.name}: ${fmt.gbp(s.netPay)} sent to ${e.payMailbox} on ${fmt.datetime(es.fundedAt)}. `, es.status === 'Claimed' ? h('b', `Claimed ${fmt.datetime(es.claimedAt)}.`) : h('span', 'Waiting to be claimed; you can take it back with ', h('code', `capxul payment cancel ${s.paymentInfo.payment}`), ' until it is.')); }))] : null,
+      escrowed.length ? ['Money waiting', h('div', { style: 'display:grid;gap:4px' }, escrowed.map((s) => { const e = emp(s.employee); const es = s.paymentInfo.escrow; return h('span', `${e.name}: ${fmt.gbp(s.netPay)} sent to ${e.payMailbox} on ${fmt.datetime(es.fundedAt)}. `, es.status === 'Claimed' ? h('b', `Claimed ${fmt.datetime(es.claimedAt)}.`) : h('span', 'Waiting to be claimed; the payer can take it back from the payslip until it is.')); }))] : null,
     ]),
     h('div.tbl-scroll', h('table.tbl', h('thead', h('tr', h('th', 'Payslip'), h('th.num', 'Net pay'), h('th.num.opt', 'Sent'), h('th.opt', 'Paid to'), h('th.opt', 'Transaction'), h('th', 'Status'))), tbody)),
     h('div.muted', { style: 'font-size:12.5px' }, 'One approval paid the batch; each payslip is its own payment with its own proof. Pick a row to see it.'),
@@ -559,8 +659,9 @@ cx.route('payroll-run-new', () => {
       { label: 'Overview', sections: [
         { columns: [[field('Posting date', 'postingDate', { type: 'date', reqd: true }), field('Company', 'x1', { value: D.company.name, readOnly: true })], [field('Currency', 'currency', { readOnly: true }), field('Paid from', 'x2', { value: 'Harbourline Treasury · USDC', readOnly: true }), field('Payroll payable account', 'x3', { value: acctName('2200'), readOnly: true })]] },
         { columns: [[field('Payroll frequency', 'payrollFrequency', { readOnly: true })], [field('Start date', 'startDate', { type: 'date', reqd: true }), field('End date', 'endDate', { type: 'date', reqd: true })]] },
-      ] },
-      { label: 'Employees', sections: [{ label: 'Filter employees', fields: [field('Department', 'department', { type: 'select', options: D.departments.map((d) => [d.id, d.name + (d.id === 'harbourline' ? ' (everyone)' : '')]) }), field('Validate attendance', 'validate', { type: 'check' })] }, { node: preview }] },
+        start.startsWith(CH_MONTH) ? { label: `Changes for ${longMonth(CH_MONTH)}`, node: (() => { const ch = payrollChanges(CH_MONTH); const n = changesToReview(); return h('div', { style: 'display:grid;gap:6px;font-size:13px' }, h('div', `${fmt.plural(ch.items.length, 'change')} collected from HR records: ${ch.items.map((i) => `${cx.name(i.who)} (${i.kind.toLowerCase()})`).join(', ') || 'none'}.`), h('div', n ? cx.pill(`${n} not reviewed yet`, 'orange') : cx.pill('Reviewed', 'green'), ' ', cx.link('Open the changes', 'payroll-changes'))); })() } : null,
+      ].filter(Boolean) },
+      { label: 'Employees', sections: [{ label: 'Filter employees', fields: [field('Department', 'department', { type: 'select', options: D.departments.map((d) => [d.id, d.name + (d.id === 'harbourline' ? ' (everyone)' : '')]) }), field('Validate attendance', 'validate', { type: 'check' })] }, { node: preview },] },
     ], onChange: () => { drawPreview(); cx.setCommand({ cli: cmdOf() }); } })) });
 }, { workspace: 'payroll', title: 'New payroll run' });
 
@@ -582,7 +683,7 @@ cx.route('payslips', (ctx) => {
       tabs: [{ label: 'All' }, { label: 'October 2026', filter: (r) => r.startDate.startsWith('2026-10') }, { label: 'Pay agreements', filter: (r) => !!r.agreement }, { label: 'Withheld or waiting', filter: (r) => !!r.withheld || !!r.paymentInfo?.escrow || r.status === 'Withheld' }],
       sort: { options: [{ key: 'postingDate', label: 'Posting date' }, { key: 'netPay', label: 'Net pay' }], default: { key: 'postingDate', dir: 'desc' } },
       groupBy: [{ key: 'dept', label: 'Department', get: (r) => cx.deptName(r.department) }, { key: 'salaryStructure', label: 'Salary structure' }, { key: 'payrollEntry', label: 'Payroll run' }],
-      href: (r) => ['payslip', r.name], bulk: [{ label: 'Export', cmd: 'capxul org payroll run get <run> --json', onClick: (rows) => cx.toast(`${rows.length} payslips: this is the command Capxul would run. The mock-up makes no downloads.`) }],
+      href: (r) => ['payslip', r.name], bulk: [{ label: 'Export', cmd: 'capxul org payroll run get <run> --json', onClick: (rows) => cx.toast(`Exported ${rows.length} payslips as a spreadsheet (mock-up: nothing is downloaded)`, { tone: 'info' }) }],
       cmd: { cli: 'capxul org payroll run get HR-PRUN-2026-00010', note: 'The organisation reads payslips through their run; each employee reads their own with payroll payslip list.' } }) });
 }, { workspace: 'payroll', title: 'Payslips' });
 
@@ -674,7 +775,7 @@ cx.route('payslip', (ctx) => {
           field('Status', 'x1', { render: () => cx.pill(outcome, SLIP_TONE[outcome]) }), field('Paid to', 'paidToText'),
           field('Amount sent', 'x2', { render: () => (pi ? h('span', cur === 'USDC' ? `${fmt.usdc(pi.amountSent)} from ${cx.deptName(agr?.budget || s.department)}'s budget` : pi.paidTo.startsWith('Bank') ? `The bank received ${fmt.gbp(s.netPay)}; the Safe sent ${fmt.usdc(pi.amountSent)} at Bridge's quote (1 USDC = £${pi.rate}); Bridge's fee ${fmt.usdc(pi.fee)}` : `${fmt.usdc(pi.amountSent)} at 1 USDC = £${pi.rate}`) : h('span.faint', 'Not paid yet')) }),
           field('Payment', 'x3', { render: () => (pi ? h('span', cx.hasRoute('payment') ? cx.link(pi.payment, 'payment', pi.payment) : h('span.mono', pi.payment), pi.batchCount ? h('span.muted', ` · item ${pi.batchIndex} of ${pi.batchCount} in ${s.payrollEntry}`) : agr ? h('span.muted', ' · a collection under the pay agreement') : s.withheld ? h('span.muted', ' · paid on its own after release') : null) : h('span.faint', '—')) }),
-          pi?.escrow ? field('Money waiting', 'x4', { wide: true, render: () => h('span', `Sent to ${e.payMailbox} on ${fmt.datetime(pi.escrow.fundedAt)}. `, pi.escrow.claimedAt ? h('b', `Claimed ${fmt.datetime(pi.escrow.claimedAt)}.`) : h('span', 'Waiting; take it back with ', h('code', `capxul payment cancel ${pi.payment}`))) }) : null,
+          pi?.escrow ? field('Money waiting', 'x4', { wide: true, render: () => h('span', `Sent to ${e.payMailbox} on ${fmt.datetime(pi.escrow.fundedAt)}. `, pi.escrow.claimedAt ? h('b', `Claimed ${fmt.datetime(pi.escrow.claimedAt)}.`) : h('span', 'Waiting to be claimed. The payer can take it back with Take it back, above, until it is.')) }) : null,
         ].filter(Boolean) },
         { label: 'Proof', node: p ? cx.proof(p, { subtitle: 'This payslip\'s hash, carried on chain by its payment' }) : cx.proof({ proof: null }, { none: s.status === 'Withheld' ? 'No proof: the payslip is withheld and unpaid.' : 'No proof yet: the payslip is not paid.' }) },
       ] },
@@ -691,7 +792,7 @@ cx.route('payslip-print', (ctx) => {
   if (!cx.hasSeat() && s.employee !== cx.meId()) return seatGate('Payslip', 'payroll');
   const renderCmd = `capxul document render --content-hash ${s.contentHash}${s.paymentInfo ? ` --document-hash ${s.paymentInfo.documentHash}` : ''}`;
   return cx.page({ title: `Payslip · ${empName(s.employee)}`, crumbs: [{ label: 'Payroll', route: 'payroll' }, { label: 'Payslips', route: 'payslips' }, { label: s.name, route: 'payslip', id: s.name }],
-    actions: [cx.btn('Back to the payslip', { icon: 'left', href: ['payslip', s.name] }), cx.btn('Save as PDF', { icon: 'file', cmd: renderCmd, onClick: () => cx.toast('This is the command Capxul would run. The mock-up makes no downloads.', { cmd: renderCmd }) })],
+    actions: [cx.btn('Back to the payslip', { icon: 'left', href: ['payslip', s.name] }), cx.btn('Save as PDF', { icon: 'file', cmd: renderCmd, onClick: () => cx.toast('Saved as a PDF (mock-up: nothing is downloaded)', { tone: 'info' }) })],
     cmd: { cli: renderCmd, sdk: `client.paymentDocuments.render({ contentHash: "${s.contentHash}" })`, who: 'the employee, and anyone with a seat', note: 'A payslip names its employer and its employee.' },
     body: slipPaper(s) });
 }, { workspace: 'payroll', title: 'Payslip' });
