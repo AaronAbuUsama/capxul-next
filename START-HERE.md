@@ -1,5 +1,8 @@
 # START HERE
 
+> Read [GROUNDING.md](GROUNDING.md) first: what we are building and why (the strategy, Aaron 9 Nov). This file is how.
+
+
 Written on 9 November 2026 at the end of a long session. It captures what was decided in conversation with Aaron that is **not yet anywhere else in this repository**. Where this file disagrees with `HANDOFF.md`, `CLAUDE.md`, `docs/mission/*` or the book, **this file wins** until the book is re-cut to match it.
 
 ## 1. The goal
