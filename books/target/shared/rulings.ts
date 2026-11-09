@@ -692,3 +692,49 @@ export const decision_aaron_frappe_native = defineDecision({
   source: AARON_10,
   affects: [f.system_capxul],
 });
+
+export const decision_aaron_one_product = defineDecision({
+  id: "aaron.one-product",
+  title: "To every user and agent it is all Capxul; Frappe is invisible",
+  question: "Do users and agents ever see Frappe, or a 'head', by name?",
+  options: [
+    {
+      label: "all-capxul",
+      text:
+        "No. From the user's perspective and every agent's, there is no Frappe: it is all Capxul, one thing. Frappe is " +
+        "re-skinned; the CLI, the SDK and every name, command, message and error say Capxul. The CLI and SDK reach " +
+        "everything, Capxul's and Frappe's alike.",
+    },
+    { label: "visible", text: "Users see Frappe as a connected system with its own name." },
+  ],
+  chosen: "all-capxul",
+  why: "Aaron, 9 November 2026: 'From the user's perspective there is no Frappe, it's all Capxul. We're re-skinning Frappe and it's just one thing from their perspective, and from the agents' or anyone else's who is using it.'",
+  source: AARON_10,
+  affects: [f.system_capxul],
+});
+
+export const decision_aaron_other_accounts = defineDecision({
+  id: "aaron.other-accounts",
+  title: "Companies may keep other accounts; Safes and Bridge are the default path",
+  question: "Must every payment go through Capxul's Safes?",
+  options: [
+    {
+      label: "other-accounts",
+      text:
+        "No. A company may keep other accounts, as companies normally do, recorded and reconciled in its books in the " +
+        "usual way. Capxul's Safes are the default and preferred path, with Stripe Bridge at the edge: fiat coming in " +
+        "is converted to stablecoin and deposited in the Safe, and paying someone in fiat goes out through Bridge, " +
+        "stablecoin to fiat. That is how Capxul is paid and the core of the product: stablecoin payments made simple.",
+    },
+    { label: "safes-only", text: "Every payment goes through a Capxul Safe." },
+  ],
+  chosen: "other-accounts",
+  why:
+    "Aaron, 9 November 2026: 'I'm not sure we should force every single payment through Capxul. We should have room for " +
+    "people to bring other accounts; it's normal to have more than one account in your company. We use Stripe Bridge: " +
+    "funds get converted at the edge into stablecoin and deposited in the Safe, and when someone needs to pay, it goes " +
+    "through Bridge again into fiat. We want people to go through Bridge, because that's how we get paid.' He also " +
+    "noted that a payment already encodes the invoice lines and possibly tax as a document hash on chain.",
+  source: AARON_10,
+  affects: [f.concept_payments, f.concept_banking],
+});
