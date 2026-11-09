@@ -1,5 +1,8 @@
 # CLAUDE.md
 
+> **9 November 2026: read [START-HERE.md](START-HERE.md) first.** The direction changed: capxul-next becomes the rebuild of Capxul Core, Frappe-native, coordinated through the ledger portal with Aaron in the loop (no swarmD). Where this file disagrees with START-HERE.md, START-HERE.md wins.
+
+
 This repository holds the Capxul rebuild: a typed design book (`books/target`, `packages/book`) and,
 from the build session on, the product code it describes.
 
