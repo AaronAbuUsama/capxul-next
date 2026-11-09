@@ -953,3 +953,62 @@ export const decision_notices_mail_channel = defineDecision({
   source: "Claude, CRM conversations pass (crm-conversations), 8 November 2026; evidence: aaron.world-clock; contacts.crm-mailbox; time.world-channels; notices.first-attempt",
   affects: [integration_mail, table_notices, concept_notices],
 });
+
+// ── HR (the surface pass's build, 9 November 2026): the notices payroll.hr-notices promised ─────────
+
+import {
+  workflow_notices_hr_advance_paid,
+  workflow_notices_hr_advance_rejected,
+  workflow_notices_hr_advance_waiting,
+  workflow_notices_hr_expense_claim_approved,
+  workflow_notices_hr_expense_claim_covered,
+  workflow_notices_hr_expense_claim_paid,
+  workflow_notices_hr_expense_claim_rejected,
+  workflow_notices_hr_expense_claim_waiting,
+  workflow_notices_hr_leave_approved,
+  workflow_notices_hr_leave_rejected,
+  workflow_notices_hr_leave_waiting,
+} from "./hr.ts";
+
+export const decision_notices_hr = defineDecision({
+  id: "notices.hr",
+  title: "Leave, expense claims and advances tell their deciders and their Employee",
+  question:
+    "payroll.hr-notices chose that notices tells a leave's, claim's or advance's approvers when it opens and its " +
+    "Employee how it was decided, from each machine's one event, and the three events say so; but no workflow or " +
+    "template followed them, so nobody was told. Which transitions send what, to whom?",
+  options: [
+    {
+      label: "open-and-decided",
+      text:
+        "Eleven workflows, one per transition that tells someone. Opened (leave `apply`, claim `create`, advance " +
+        "`request`): `leave-waiting`, `expense-claim-waiting`, `advance-waiting` to its deciders, never the applicant: a " +
+        "leave's are the wearers of the Employee's department's hat now, or the People hat's when that has none; a " +
+        "claim's or advance's whoever wears the department budget's hat now (payroll.hr-approvers). Decided or paid, to " +
+        "the Employee's `personal_email`: leave `approve` and `reject` (`leave-approved`, `leave-rejected`); claim " +
+        "`approve` (`expense-claim-approved`), `approve_covered` and `settle` (`expense-claim-paid`, once per claim) and " +
+        "`reject` (`expense-claim-rejected`); advance `reject` (`advance-rejected`) and `settle` (`advance-paid`, once per " +
+        "advance). A withdrawal, a lapse, a reorg and a recovery tell no one: the Employee or the decider did it, or it " +
+        "is bookkeeping.",
+    },
+    { label: "decided-only", text: "Tell only the Employee how it was decided; deciders read `org hr … list`." },
+    { label: "none", text: "Send nothing; a head's own Frappe HR notifications tell people." },
+  ],
+  chosen: "open-and-decided",
+  why:
+    "A leave or a claim waits on a person, so the person who decides must hear it waits, as a proposal tells its " +
+    "Directors (notices.kinds); the Employee must hear the answer wherever they asked, here or on a head, and Frappe " +
+    "HR's own notifications are the head's channel, which a world keeps in the world and which knows nothing of " +
+    "Capxul's hats. The personal email is where pay goes (payroll.mailbox-for-pay), so the Employee needs no account. " +
+    "Paid notices are keyed by the record, as the payslip is, so a reorg's second settle tells no one twice.",
+  source:
+    "Claude, surface pass build, 9 November 2026; evidence: payroll.hr-notices; payroll.hr-approvers; " +
+    "payroll.mailbox-for-pay; hrms leave_application.py (notify_leave_approver, notify_employee); the money fit review",
+  affects: [
+    concept_notices, table_notices, workflow_notices_hr_leave_waiting, workflow_notices_hr_leave_approved,
+    workflow_notices_hr_leave_rejected, workflow_notices_hr_expense_claim_waiting, workflow_notices_hr_expense_claim_approved,
+    workflow_notices_hr_expense_claim_covered, workflow_notices_hr_expense_claim_rejected,
+    workflow_notices_hr_expense_claim_paid, workflow_notices_hr_advance_waiting, workflow_notices_hr_advance_rejected,
+    workflow_notices_hr_advance_paid,
+  ],
+});

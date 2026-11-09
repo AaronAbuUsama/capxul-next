@@ -59,15 +59,18 @@ import {
   rpc_payroll_expense_claims_approve,
   rpc_payroll_expense_claims_cancel,
   rpc_payroll_expense_claims_create,
+  rpc_payroll_expense_claims_get,
   rpc_payroll_expense_claims_mine,
   rpc_payroll_expense_claims_mine_get,
   rpc_payroll_expense_claims_pay,
   rpc_payroll_expense_claims_reject,
   rpc_payroll_expense_claims_withdraw,
   rpc_payroll_expense_types_add,
+  rpc_payroll_expense_types_mine,
   workflow_payroll_advances_payment,
   workflow_payroll_expense_claims_payment,
 } from "./expenses.ts";
+import { rpc_payroll_holidays_mine, rpc_payroll_leave_types_mine } from "./leave.ts";
 import { rpc_payroll_runs_cancel, rpc_payroll_runs_create, rpc_payroll_runs_submit } from "./runs.ts";
 import { workflow_payroll_head_sync, workflow_payroll_startup_open } from "./processes.ts";
 import { operation_org_payroll_run_create } from "./operations.ts";
@@ -76,7 +79,10 @@ import {
   HR_OPERATIONS,
   operation_hr_attendance_checkin,
   operation_hr_expense_claim_create,
+  operation_hr_expense_type_list,
+  operation_hr_holiday_list,
   operation_hr_leave_apply,
+  operation_hr_leave_type_list,
   operation_org_hr_advance_pay,
   operation_org_hr_advance_settle,
   operation_org_hr_expense_claim_approve,
@@ -730,4 +736,73 @@ export const decision_payroll_hr_head_documents = defineDecision({
     "compensatory_leave_request, leave_policy_assignment, leave_adjustment (on_submit), overtime_slip .json permissions; " +
     "organizations.head-users",
   affects: [concept_payroll, workflow_payroll_head_sync, table_leave_allocations, table_attendances, table_shift_assignments],
+});
+
+export const decision_payroll_receipt_hashes = defineDecision({
+  id: "payroll.receipt-hashes",
+  title: "An expense claim answers each receipt's hash pair, so tooling can read it",
+  question:
+    "`hr expense-claim get` and `org hr expense-claim get` answered each receipt as {documentId, filename}, but " +
+    "`document get`, `export` and `render` read a document only by its hash pair (`--document-hash`, " +
+    "`--content-hash`), and no command reads one by id. A stored receipt was readable from no tool, though Frappe HR " +
+    "shows an Expense Claim's attachments. How is it read?",
+  options: [
+    {
+      label: "hash-pair",
+      text:
+        "The claim keeps the hash pair `documents.store` already answers (`document_hash`, `content_hash`) on each receipt " +
+        "row, and both claim reads answer `documentHash` and `contentHash` beside `documentId`. The claimant and the " +
+        "claim's readers then read it with `document get|export --document-hash --content-hash`, which documents already " +
+        "admits for a receipt's readers. Documents needs no change.",
+    },
+    { label: "by-id", text: "Add `document get --id` to documents." },
+  ],
+  chosen: "hash-pair",
+  why:
+    "Every document is read by its hash pair (documents' reading), and the store call already returns it, so answering " +
+    "it costs one field and no new command. A receipt's hashes are on no chain and only the claim read answers them, " +
+    "and that read is the claimant's own or the People or department hat's, so nobody gains a way to a receipt the " +
+    "claim read does not already give (unlike a payslip, whose hash its Payment puts on chain).",
+  source:
+    "Claude, surface pass build, 9 November 2026; evidence: documents/reading.ts (HashPair); documents/procedures.ts " +
+    "(Stored); payroll/hr-shapes.ts (Claim.receipts); the money fit review",
+  affects: [table_expense_claims, rpc_payroll_expense_claims_create, rpc_payroll_expense_claims_mine_get, rpc_payroll_expense_claims_get],
+});
+
+export const decision_payroll_hr_self_rules = defineDecision({
+  id: "payroll.hr-self-rules",
+  title: "An Employee reads their employer's holidays, leave types and expense types",
+  question:
+    "payroll.hr-self admits an Employee, with or without a Seat, to read their employer's holidays, leave types, shift " +
+    "types and expense types 'to apply and claim', but the only commands that read them are `org hr … list`, which " +
+    "need a Seat and `--org`. So an Employee with no Seat can run `hr expense-claim create --type Travel` but cannot " +
+    "list the types, or the holidays a leave does not count. Which person-side reads are booked?",
+  options: [
+    {
+      label: "three-reads",
+      text:
+        "`hr holiday list [--employer] [--year]`, `hr leave-type list [--employer] [--after] [--limit]` and `hr " +
+        "expense-type list [--employer] [--after] [--limit]`, each a self rpc over the same rows (payroll.holidays.mine, " +
+        "payroll.leave-types.mine, payroll.expense-types.mine) behind the self guard, answering what the member list " +
+        "answers. SDK: `client.me.hr.holidays.list`, `client.me.hr.leaveTypes.list`, `client.me.hr.expenseTypes.list`. " +
+        "No `hr shift-type list`: the member list answers who works each shift, which is not an Employee's to read, and " +
+        "an Employee's own shift shows in their attendance.",
+    },
+    { label: "four-reads", text: "The same, and `hr shift-type list`, with its assignments cut to the caller's own." },
+    { label: "member-lists", text: "Let `org hr … list` admit an Employee of the Organization with no Seat." },
+  ],
+  chosen: "three-reads",
+  why:
+    "Applying and claiming are an Employee's own, so the rules they apply under must be readable on the same side, " +
+    "without a Seat (aaron.frappe-shape: Frappe HR's Employee role reads Holiday List, Leave Type and Expense Claim " +
+    "Type), and from the SDK (aaron.sdk-reaches-everything). member-lists breaks G1, where `--org` is refused from a " +
+    "non-member. A shift type matters to an Employee only as their own assignment, so its list stays the " +
+    "Organization's. The three sit in the HR group of the tree (surface.hr-group), part of question 50.",
+  source:
+    "Claude, surface pass build, 9 November 2026, for aaron.frappe-shape and aaron.sdk-reaches-everything; evidence: " +
+    "payroll.hr-self; hrms holiday_list, leave_type, expense_claim_type .json (Employee read); the frappe-apps fit review",
+  affects: [
+    concept_payroll, rpc_payroll_holidays_mine, rpc_payroll_leave_types_mine, rpc_payroll_expense_types_mine,
+    operation_hr_holiday_list, operation_hr_leave_type_list, operation_hr_expense_type_list,
+  ],
 });

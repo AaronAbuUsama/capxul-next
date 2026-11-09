@@ -35,6 +35,8 @@ import {
   HolidayAddInput,
   HolidayList,
   HolidayListInput,
+  MyHolidayListInput,
+  MyLeaveTypeListInput,
   HolidayRemoveInput,
   Leave,
   LeavePage,
@@ -196,6 +198,34 @@ export const rpc_payroll_holidays_list = defineRpc({
   spans: [],
   budget: budget("read"),
 });
+/** The self read of the employer's rules (payroll.hr-self-rules): what an Employee needs to apply and claim, no Seat needed. */
+const SELF_RULES = "The same rows `org hr` lists for its members, read for the Employee's own employer, as payroll.hr-self's row admission already admits. ";
+
+export const rpc_payroll_holidays_mine = defineRpc({
+  id: "payroll.holidays.mine",
+  title: "Your employer's holidays for a year",
+  about:
+    SELF_GUARD + SELF_RULES +
+    "The holidays of one year's list (this year in the employer's time zone unless `year` is given), in date order, " +
+    "weekly offs marked; a year with no list answers no holidays and a null list. It reads only.",
+  was: ["/tmp/erpnext/erpnext/setup/doctype/holiday_list/holiday_list.json"],
+  concept: concept_payroll,
+  kind: "query",
+  who: WHO_SELF_HR,
+  input: MyHolidayListInput,
+  output: HolidayList,
+  errors: [error_NOT_AUTHENTICATED, error_INVALID_INPUT],
+  reads: [...SELF_READS, table_holiday_lists],
+  writes: [],
+  drives: [],
+  invokes: [],
+  emits: [],
+  calls: [],
+  chain: [],
+  spans: [],
+  budget: budget("read"),
+});
+
 
 // ── leave types ─────────────────────────────────────────────────────────────────────────────
 
@@ -283,6 +313,28 @@ export const rpc_payroll_leave_types_list = defineRpc({
   spans: [],
   budget: budget("read"),
 });
+export const rpc_payroll_leave_types_mine = defineRpc({
+  id: "payroll.leave-types.mine",
+  title: "Your employer's leave types",
+  about: SELF_GUARD + SELF_RULES + "The leave types by name, each with its rules. A page at a time. It reads only.",
+  was: [`${HR}/leave_type/leave_type.json`],
+  concept: concept_payroll,
+  kind: "query",
+  who: WHO_SELF_HR,
+  input: MyLeaveTypeListInput,
+  output: LeaveTypePage,
+  errors: [error_NOT_AUTHENTICATED, error_INVALID_INPUT],
+  reads: [...SELF_READS, table_leave_types],
+  writes: [],
+  drives: [],
+  invokes: [],
+  emits: [],
+  calls: [],
+  chain: [],
+  spans: [],
+  budget: budget("read"),
+});
+
 
 // ── allocations and balances ────────────────────────────────────────────────────────────────
 

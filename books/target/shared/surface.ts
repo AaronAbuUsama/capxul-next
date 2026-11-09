@@ -300,6 +300,10 @@ export const SURFACE: readonly { id: string; now: string; next: string; group: S
   { id: "org.shift-type.assign", now: "org shift-type assign", next: "org hr shift-type assign", group: "hr" },
   { id: "org.shift-type.list", now: "org shift-type list", next: "org hr shift-type list", group: "hr" },
   { id: "org.shift-type.unassign", now: "org shift-type unassign", next: "org hr shift-type unassign", group: "hr" },
+  // Person-side reads of the employer's rules (payroll.hr-self-rules), booked after the tree was designed.
+  { id: "hr.expense-type.list", now: "hr expense-type list", next: "hr expense-type list", group: "hr" },
+  { id: "hr.holiday.list", now: "hr holiday list", next: "hr holiday list", group: "hr" },
+  { id: "hr.leave-type.list", now: "hr leave-type list", next: "hr leave-type list", group: "hr" },
   // payroll
   { id: "org.agreement.change", now: "org agreement change", next: "org payroll agreement change", group: "payroll" },
   { id: "org.agreement.end", now: "org agreement end", next: "org payroll agreement end", group: "payroll" },

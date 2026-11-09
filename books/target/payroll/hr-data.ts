@@ -772,7 +772,8 @@ export const table_expense_claims = defineTable({
   about:
     "One Expense Claim: the Employee, their department (`department`, the budget that pays it, and `budget_id`) when " +
     "they claimed, `posting_date`, its `expenses` rows (Expense Claim Detail: day, type, description, amount and " +
-    "sanctioned amount), its `receipts` (each stored as a receipt document, subject the claim), and the `advances` it " +
+    "sanctioned amount), its `receipts` (each stored as a receipt document, subject the claim, with the hash pair `documents.store` " +
+    "answered), and the `advances` it " +
     "settles (Expense Claim Advance: each a paid advance of the claimant's and what this claim takes of it). " +
     "`total_claimed_amount`, `total_sanctioned_amount`, `total_advance_amount` and `grand_total` (sanctioned less " +
     "advances: what is paid) are in its department budget's token, `grand_total_raw` in raw units. `approval_status` " +
@@ -805,7 +806,7 @@ export const table_expense_claims = defineTable({
     posting_date: Day,
     ...Token,
     expenses: Schema.Array(ExpenseRow),
-    receipts: Schema.Array(Schema.Struct({ document_id: S, document_hash: S, filename: Null(S) })),
+    receipts: Schema.Array(Schema.Struct({ document_id: S, document_hash: S, content_hash: S, filename: Null(S) })),
     advances: Schema.Array(AdvanceRow),
     total_claimed_amount: Money,
     total_sanctioned_amount: Money,

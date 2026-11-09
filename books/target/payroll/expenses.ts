@@ -75,6 +75,7 @@ import {
   ExpenseType,
   ExpenseTypeAddInput,
   ExpenseTypeListInput,
+  MyExpenseTypeListInput,
   ExpenseTypePage,
   MyAdvanceListInput,
   MyAdvanceRef,
@@ -170,6 +171,31 @@ export const rpc_payroll_expense_types_list = defineRpc({
   spans: [],
   budget: budget("read"),
 });
+export const rpc_payroll_expense_types_mine = defineRpc({
+  id: "payroll.expense-types.mine",
+  title: "Your employer's expense claim types",
+  about:
+    SELF_GUARD +
+    "The same rows `org hr expense-type list` lists for members, read for the Employee's own employer (payroll.hr-self-" +
+    "rules): the expense claim types by name, each with its account. A page at a time. It reads only.",
+  was: [`${HR}/expense_claim_type/expense_claim_type.json`],
+  concept: concept_payroll,
+  kind: "query",
+  who: WHO_SELF_HR,
+  input: MyExpenseTypeListInput,
+  output: ExpenseTypePage,
+  errors: [error_NOT_AUTHENTICATED, error_INVALID_INPUT],
+  reads: [...SELF_READS, table_expense_claim_types],
+  writes: [],
+  drives: [],
+  invokes: [],
+  emits: [],
+  calls: [],
+  chain: [],
+  spans: [],
+  budget: budget("read"),
+});
+
 
 // ── the claimant's side ─────────────────────────────────────────────────────────────────────
 

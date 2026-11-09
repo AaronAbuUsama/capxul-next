@@ -76,6 +76,7 @@ import {
   WHO_SELF_HR,
   rpc_payroll_holidays_add,
   rpc_payroll_holidays_list,
+  rpc_payroll_holidays_mine,
   rpc_payroll_holidays_remove,
   rpc_payroll_leave_allocate,
   rpc_payroll_leave_apply,
@@ -89,6 +90,7 @@ import {
   rpc_payroll_leave_types_add,
   rpc_payroll_leave_types_change,
   rpc_payroll_leave_types_list,
+  rpc_payroll_leave_types_mine,
   rpc_payroll_leave_unallocate,
 } from "./leave.ts";
 import {
@@ -125,6 +127,7 @@ import {
   rpc_payroll_expense_claims_withdraw,
   rpc_payroll_expense_types_add,
   rpc_payroll_expense_types_list,
+  rpc_payroll_expense_types_mine,
 } from "./expenses.ts";
 
 type Claim = { claim: string; observes: string; was: string[] };
@@ -2104,6 +2107,36 @@ export const operation_org_hr_holiday_list = defineOperation({
   refusals: memberOnly(W_LEAVE),
   budget: budget("read"),
 });
+export const operation_hr_holiday_list = defineOperation({
+  id: "hr.holiday.list",
+  title: "List your employer's holidays",
+  about:
+    "Lists one year's holidays of your employer (this year's unless `--year`), weekly offs marked: the days a leave " +
+    "does not count. For an Employee, with or without a Seat (payroll.hr-self-rules).",
+  area: AREA,
+  command: "hr holiday list",
+  priority: "normal",
+  implementedBy: rpc_payroll_holidays_mine,
+  who: WHO_SELF_HR,
+  changes: NOTHING,
+  acceptance: [
+    claim(
+      "An Employee reads their employer's holidays as a member reads them.",
+      "cli: from org-with-leave, Sam's `hr holiday list --employer acme --json` prints the same list as his `org hr " +
+        "holiday list --org acme --json`: every Saturday and Sunday `weeklyOff: true` and Founders' Day `weeklyOff: false`.",
+    ),
+    claim(
+      "With one employer `--employer` may be left out, and `--year` a year with no list answers none; reading writes nothing.",
+      "cli: from org-with-leave, Sam's `hr holiday list --json` prints the same as with `--employer acme`, and `--year " +
+        "<next year>` prints no holidays and `holidayListId: null`; world: the diff is empty.",
+    ),
+  ],
+  returns: rpc_payroll_holidays_mine.output,
+  errors: CLI,
+  refusals: selfOnly(W_LEAVE),
+  budget: budget("read"),
+});
+
 
 // ── leave types ─────────────────────────────────────────────────────────────────────────────
 
@@ -2206,6 +2239,36 @@ export const operation_org_hr_leave_type_list = defineOperation({
   refusals: [...memberOnly(W_LEAVE), invalid("`--after` is a cursor this list did not give: nothing is listed.", W_LEAVE)],
   budget: budget("read"),
 });
+export const operation_hr_leave_type_list = defineOperation({
+  id: "hr.leave-type.list",
+  title: "List your employer's leave types",
+  about:
+    "Lists your employer's leave types and their rules, to choose one for `hr leave apply`. For an Employee, with or " +
+    "without a Seat (payroll.hr-self-rules).",
+  area: AREA,
+  command: "hr leave-type list",
+  priority: "normal",
+  implementedBy: rpc_payroll_leave_types_mine,
+  who: WHO_SELF_HR,
+  changes: NOTHING,
+  acceptance: [
+    claim(
+      "An Employee reads their employer's leave types and rules.",
+      "cli: from org-with-leave, Sam's `hr leave-type list --employer acme --json` lists Annual Leave (25 days, carried " +
+        "up to 5), Sick Leave (10 days) and Unpaid Leave (`withoutPay: true`), with `nextCursor: null`.",
+    ),
+    claim(
+      "A page holds at most `--limit` types, by name; reading writes nothing.",
+      "cli: from org-with-leave, Sam's `hr leave-type list --limit 1 --json` lists Annual Leave and a `nextCursor`; " +
+        "`--after <it>` lists Sick Leave and Unpaid Leave with `nextCursor: null`; world: the diff is empty.",
+    ),
+  ],
+  returns: rpc_payroll_leave_types_mine.output,
+  errors: CLI,
+  refusals: [...selfOnly(W_LEAVE), invalid("`--after` is a cursor this list did not give: nothing is listed.", W_LEAVE)],
+  budget: budget("read"),
+});
+
 
 // ── allocations and balances ────────────────────────────────────────────────────────────────
 
@@ -2952,6 +3015,37 @@ export const operation_org_hr_expense_type_list = defineOperation({
   refusals: memberOnly(W_EXP),
   budget: budget("read"),
 });
+export const operation_hr_expense_type_list = defineOperation({
+  id: "hr.expense-type.list",
+  title: "List your employer's expense claim types",
+  about:
+    "Lists your employer's expense claim types, to choose one for `hr expense-claim create --type`. For an Employee, " +
+    "with or without a Seat (payroll.hr-self-rules).",
+  area: AREA,
+  command: "hr expense-type list",
+  priority: "normal",
+  implementedBy: rpc_payroll_expense_types_mine,
+  who: WHO_SELF_HR,
+  changes: NOTHING,
+  acceptance: [
+    claim(
+      "An Employee reads the types they may claim under.",
+      "cli: from org-with-expenses, Sam's `hr expense-type list --employer acme --json` lists Meals and Travel, each " +
+        "`account: null`, with `nextCursor: null`.",
+    ),
+    claim(
+      "A type added since is listed at once, by name, a page at a time; reading writes nothing.",
+      "cli: from org-with-expenses, after Pat's `org hr expense-type add Hotel --org acme`, Sam's `hr expense-type list " +
+        "--limit 1 --json` lists Hotel and a `nextCursor`, and `--after <it>` lists Meals and Travel; world: the list's " +
+        "diff is empty.",
+    ),
+  ],
+  returns: rpc_payroll_expense_types_mine.output,
+  errors: CLI,
+  refusals: selfOnly(W_EXP),
+  budget: budget("read"),
+});
+
 
 // ── the claimant's expense claims ───────────────────────────────────────────────────────────
 
@@ -3651,9 +3745,11 @@ export const HR_OPERATIONS = [
   operation_org_hr_holiday_add,
   operation_org_hr_holiday_remove,
   operation_org_hr_holiday_list,
+  operation_hr_holiday_list,
   operation_org_hr_leave_type_add,
   operation_org_hr_leave_type_change,
   operation_org_hr_leave_type_list,
+  operation_hr_leave_type_list,
   operation_org_hr_leave_allocate,
   operation_org_hr_leave_unallocate,
   operation_org_hr_leave_balance,
@@ -3675,6 +3771,7 @@ export const HR_OPERATIONS = [
   operation_org_hr_attendance_list,
   operation_org_hr_expense_type_add,
   operation_org_hr_expense_type_list,
+  operation_hr_expense_type_list,
   operation_hr_expense_claim_create,
   operation_hr_expense_claim_list,
   operation_hr_expense_claim_get,

@@ -38,6 +38,8 @@ export const HolidayAddInput = Schema.Struct({
 });
 export const HolidayRemoveInput = Schema.Struct({ orgId: S, day: Day });
 export const HolidayListInput = Schema.Struct({ orgId: S, year: opt(Schema.Int) });
+/** `hr holiday list [--employer <handle>] [--year <yyyy>]`: your employer's holidays (payroll.hr-self-rules). */
+export const MyHolidayListInput = Schema.Struct({ ...Employer, year: opt(Schema.Int) });
 export const Holiday = Schema.Struct({ day: Day, description: S, weeklyOff: B, halfDay: B });
 export const HolidayList = Schema.Struct({
   holidayListId: Null(S),
@@ -65,6 +67,8 @@ const LeaveTypeFlags = {
 export const LeaveTypeAddInput = Schema.Struct({ orgId: S, name: S, ...LeaveTypeFlags });
 export const LeaveTypeChangeInput = Schema.Struct({ orgId: S, leaveType: S, ...LeaveTypeFlags, clear: opt(Schema.Array(S)) });
 export const LeaveTypeListInput = Schema.Struct({ orgId: S, ...PAGE });
+/** `hr leave-type list [--employer <handle>]`: your employer's leave types (payroll.hr-self-rules). */
+export const MyLeaveTypeListInput = Schema.Struct({ ...Employer, ...PAGE });
 export const LeaveType = Schema.Struct({
   leaveTypeId: S,
   name: S,
@@ -272,6 +276,8 @@ export const AttendancePage = page(Attendance);
 export const ExpenseTypeAddInput = Schema.Struct({ orgId: S, name: S, account: opt(S), description: opt(S) });
 export const ExpenseType = Schema.Struct({ expenseClaimTypeId: S, name: S, description: Null(S), account: Null(S) });
 export const ExpenseTypeListInput = Schema.Struct({ orgId: S, ...PAGE });
+/** `hr expense-type list [--employer <handle>]`: your employer's expense claim types (payroll.hr-self-rules). */
+export const MyExpenseTypeListInput = Schema.Struct({ ...Employer, ...PAGE });
 export const ExpenseTypePage = page(ExpenseType);
 
 /** One line as `--type --amount [--on] [--description]` gives it, or one row of `--file`'s `expenses`. */
@@ -299,7 +305,8 @@ export const Claim = Schema.Struct({
   postingDate: Day,
   token: S,
   lines: Schema.Array(ClaimLine),
-  receipts: Schema.Array(Schema.Struct({ documentId: S, filename: Null(S) })),
+  /** Each receipt's hash pair, which `document get|export|render --document-hash --content-hash` reads it by (payroll.receipt-hashes). */
+  receipts: Schema.Array(Schema.Struct({ documentId: S, documentHash: S, contentHash: S, filename: Null(S) })),
   advances: Schema.Array(Schema.Struct({ employeeAdvanceId: S, allocated: Money })),
   claimed: Money,
   sanctioned: Money,
