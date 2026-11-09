@@ -600,8 +600,8 @@ export const decision_requests_bill_time = defineDecision({
     {
       label: "timesheet-bill",
       text:
-        "Recommended. A new operation, `org timesheet bill <timesheet…> [--to <payer>] [--request-key]` (grammar G1: an " +
-        "Organization-only command begins with `org`; SDK `client.org(orgId).timesheets.bill`; who: the Invoicing hat; " +
+        "Recommended. A new operation, `org projects timesheet bill <timesheet…> [--to <payer>] [--request-key]` (grammar G1: an " +
+        "Organization-only command begins with `org`; SDK `client.org(orgId).projects.timesheets.bill`; who: the Invoicing hat; " +
         "write), as requests' flow over its own rpc `requests.issuing.bill-time`, which issues as `requests.issuing.issue` " +
         "does: it reads the timesheets' billable logs not yet billed, issues an Invoice to the project's customer with one " +
         "line per activity and rate (hours times the billing rate), keeps the hours and amount it asks for each log on the " +
@@ -618,7 +618,8 @@ export const decision_requests_bill_time = defineDecision({
   chosen: "timesheet-bill",
   why:
     "A decision pack under rules.new-operations, accepted as recommended with the sixth batch; the commands pass booked " +
-    "it as `org.timesheet.bill`. A time Invoice is one money fact with the hours it bills " +
+    "it as `org.timesheet.bill`, and the command surface moved it into the projects group as " +
+    "`org.projects.timesheet.bill` (requests.bill-time-in-projects). A time Invoice is one money fact with the hours it bills " +
     "(projects.bill-time): the issue writes the request and, through projects' door, the marks, or neither, so a " +
     "second Invoice, Capxul's or a head's, can never ask for the same hours. Ending it clears them, as cancelling a " +
     "Sales Invoice unlinks its timesheets; an expired request keeps them until cancelled, as an unpaid invoice does. " +
@@ -638,8 +639,8 @@ export const decision_requests_bill_time = defineDecision({
     iss.rpc_requests_issuing_bill_time,
     iss.rpc_requests_issuing_cancel,
     inb.rpc_requests_inbox_decline,
-    fl.flow_client_org_timesheets_bill,
-    op.operation_org_timesheet_bill,
+    fl.flow_client_org_projects_timesheets_bill,
+    op.operation_org_projects_timesheet_bill,
   ],
 });
 
@@ -648,7 +649,7 @@ export const decision_requests_bill_time_currency = defineDecision({
   title: "Billed hours ask in the token of the timesheets' currency, never converted",
   question:
     "A timesheet's rates are decimal strings in the Organization's currency (projects.amounts), and a request asks an " +
-    "exact token amount. Which token does `org timesheet bill` ask in, how are the lines worked out, and may its one " +
+    "exact token amount. Which token does `org projects timesheet bill` ask in, how are the lines worked out, and may its one " +
     "transaction invoke three doors?",
   options: [
     {
@@ -675,5 +676,41 @@ export const decision_requests_bill_time_currency = defineDecision({
     "bills; split over two transactions, a crash between them would leave hours marked with no request or a request " +
     "whose hours another invoice could take.",
   source: ASSEMBLY("books/target/projects/decisions.ts (projects.amounts); books/target/documents/procedures.ts (InvoiceContent); rules.transaction-width; aaron.projects"),
-  affects: [iss.rpc_requests_issuing_bill_time, op.operation_org_timesheet_bill, d.table_requests],
+  affects: [iss.rpc_requests_issuing_bill_time, op.operation_org_projects_timesheet_bill, d.table_requests],
+});
+
+// ── the command surface (docs/design/command-surface.md; surface.projects-group) ─────────────────────────────
+
+const SURFACE = (evidence: string) =>
+  `Claude, money group, applying the command surface, 9 November 2026, on Aaron's answer to question 48; evidence: ${evidence}`;
+
+export const decision_requests_bill_time_in_projects = defineDecision({
+  id: "requests.bill-time-in-projects",
+  title: "Billing hours sits in the projects group: `org projects timesheet bill`",
+  question:
+    "The command surface puts every timesheet command under `org projects timesheet` (surface.projects-group). Billing " +
+    "hours is requests' operation, not projects'. Does its command move with the timesheet's, and does its owner change?",
+  options: [
+    {
+      label: "projects-group",
+      text:
+        "Move the words only. `org timesheet bill` becomes `org projects timesheet bill`, so the new operation's id becomes " +
+        "`org.projects.timesheet.bill` (rules.new-operations: its words joined by dots) and its SDK method " +
+        "`client.org(orgId).projects.timesheets.bill`, flow `client.org.projects.timesheets.bill`. Requests keeps the " +
+        "operation, its flow and its rpc `requests.issuing.bill-time`; its claims, refusals, worlds and `--json` stay.",
+    },
+    { label: "flat", text: "Keep `org timesheet bill` while the timesheet's other six commands move under `org projects`." },
+    { label: "request-word", text: "Spell it under requests' own word, `request bill <timesheet…>`, beside `request issue`." },
+  ],
+  chosen: "projects-group",
+  why:
+    "A person finds billing where they find the timesheet: beside `org projects timesheet submit`, as ERPNext's 'Make " +
+    "Sales Invoice' sits on the Timesheet itself. A group is a word in the tree, not a concept: the operation stays " +
+    "requests' because an Invoice is a request and its marks one money fact (requests.bill-time), and requests sits " +
+    "above projects, so nothing in the design moves. Flat would leave the only timesheet verb outside its group. " +
+    "`request bill` would be a person's command with no `org` for an Organization-only write (grammar G1), and would " +
+    "split a timesheet's verbs over two words. Nothing about the behaviour changes: billing still issues one Invoice and " +
+    "marks its hours in one write, under the Invoicing hat (aaron.projects).",
+  source: SURFACE("docs/design/command-surface.md (sections 4 and 9); books/target/shared/surface.ts (surface.projects-group, surface.tree); aaron.projects"),
+  affects: [fl.flow_client_org_projects_timesheets_bill, op.operation_org_projects_timesheet_bill],
 });

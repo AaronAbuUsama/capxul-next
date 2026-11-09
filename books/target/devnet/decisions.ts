@@ -1262,7 +1262,7 @@ export const decision_devnet_payslip_world = defineDecision({
       text:
         "Kai (kai@acme.test, ready) as an Employee of the `people` department; a Basic earning, a monthly Standard " +
         "structure, an assignment to Kai on a 3,000 base from `people`; a run for this month, created and submitted, " +
-        "with payroll's commands (`org employee add`, `org payroll component add`, `org payroll structure " +
+        "with payroll's commands (`org hr employee add`, `org payroll component add`, `org payroll structure " +
         "create|assign`, `org payroll run create|submit`).",
     },
     { label: "olga", text: "Make Olga, already paid and under a salary agreement there, the Employee." },

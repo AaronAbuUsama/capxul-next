@@ -36,18 +36,18 @@ import { procedure_projects_bill_time } from "./procedures.ts";
 import {
   CRITICAL,
   OPERATIONS,
-  operation_org_project_change,
-  operation_org_project_complete,
-  operation_org_project_create,
-  operation_org_project_reopen,
-  operation_org_project_resume,
-  operation_org_project_settings_set,
-  operation_org_task_change,
-  operation_org_task_create,
-  operation_org_task_review,
-  operation_org_timesheet_cancel,
-  operation_org_timesheet_log,
-  operation_org_timesheet_submit,
+  operation_org_projects_change,
+  operation_org_projects_complete,
+  operation_org_projects_create,
+  operation_org_projects_reopen,
+  operation_org_projects_resume,
+  operation_org_projects_settings_set,
+  operation_org_projects_task_change,
+  operation_org_projects_task_create,
+  operation_org_projects_task_review,
+  operation_org_projects_timesheet_cancel,
+  operation_org_projects_timesheet_log,
+  operation_org_projects_timesheet_submit,
 } from "./operations.ts";
 import { rpc_projects_tasks_change, rpc_projects_tasks_create, rpc_projects_tasks_review } from "./tasks.ts";
 import {
@@ -406,14 +406,14 @@ export const decision_projects_commands = defineDecision({
       text:
         "Recommended: exactly the 35 commands of docs/design/new-commands.md (section 5.1), in its one grammar. Each acts " +
         "for the Organization `--org` names (else `use org`'s), is one rpc in projects (`projects.<area>.<verb>`) and one " +
-        "SDK method named by its words under `client.org(orgId)`: `org project create|list|get|change|hold|resume|" +
-        "complete|reopen|cancel`; `org project member add|remove`; `org project settings show|set`; `org task create|list|" +
+        "SDK method named by its words under `client.org(orgId)`: `org projects create|list|get|change|hold|resume|" +
+        "complete|reopen|cancel`; `org projects member add|remove`; `org projects settings show|set`; `org projects task create|list|" +
         "get|change|start|review|complete|reopen|cancel` (parent, depends-on, dates, expected hours, weight, priority, " +
-        "milestone; review takes `--by <day>`); `org timesheet create|log|get|list|submit|cancel` (a log is activity, " +
-        "start, end or hours, task, project, billable, completed); `org activity-type add|change|list|disable|enable`; " +
-        "`org project-type add|list`. Who (projects.permissions): any member reads, and creates and works tasks; a worker " +
+        "milestone; review takes `--by <day>`); `org projects timesheet create|log|get|list|submit|cancel` (a log is activity, " +
+        "start, end or hours, task, project, billable, completed); `org projects activity-type add|change|list|disable|enable`; " +
+        "`org projects project-type add|list`. Who (projects.permissions): any member reads, and creates and works tasks; a worker " +
         "keeps their own timesheets; the People hat or a Director manages projects, their members, types, rates, " +
-        "settings and anyone else's time. Billing hours is requests' `org timesheet bill` (requests.bill-time).",
+        "settings and anyone else's time. Billing hours is requests' `org projects timesheet bill` (requests.bill-time).",
     },
     {
       label: "minimal",
@@ -444,13 +444,13 @@ export const decision_projects_commands = defineDecision({
     "differ from the grammar page and each has its decision: the People-or-Director commands read the hat live and so " +
     "take `chain-read` (projects.hat-guard); the commands a pilot's first engagement runs are `critical` " +
     "(projects.critical-commands); and every refusal starts from a world, two of them asked of devnet (projects.worlds). " +
-    "Review found two more, each a decision: `org project create|change` and `org task create|change` take `--percent`, " +
+    "Review found two more, each a decision: `org projects create|change` and `org projects task create|change` take `--percent`, " +
     "without which Frappe's Manual, Task Progress and Task Weight methods could not work " +
     "(projects.percent-by-hand); and a pending review falls overdue when its review day comes, as ERPNext's job has it, " +
     "not after it (projects.review-day). A fit review then aligned the booking with the 215: `--percent` is the one " +
     "flag for a typed percent and `--progress` only a project's method; a member shared twice or removed unshared is " +
     "WRONG_STATE, as `org department holder add|remove` refuse it; and a change that gives nothing is INVALID_INPUT " +
-    "(projects.refusal-codes). Not in this pack: `org timesheet bill` (requests.bill-time, requests' flow) and templates.",
+    "(projects.refusal-codes). Not in this pack: `org projects timesheet bill` (requests.bill-time, requests' flow) and templates.",
   source: by(
     `${DT} (the forms of Project, Task and Timesheet); books/target/shared/rulings.ts (aaron.projects, aaron.frappe-shape, ` +
       "aaron.fde-agent); docs/design/new-commands.md (section 5.1)",
@@ -572,8 +572,8 @@ export const decision_projects_critical_commands = defineDecision({
     {
       label: "first-engagement",
       text:
-        "Eleven: `org project create|list|get`, `org task create|list|complete`, and `org timesheet create|log|submit|" +
-        "list|get`: plan the work, do it, log the time and submit it, so `org timesheet bill` can invoice it. Every other " +
+        "Eleven: `org projects create|list|get`, `org projects task create|list|complete`, and `org projects timesheet create|log|submit|" +
+        "list|get`: plan the work, do it, log the time and submit it, so `org projects timesheet bill` can invoice it. Every other " +
         "command is `normal`.",
     },
     { label: "none", text: "Every command `normal`, as the grammar page has it: no B3 pilot runs one." },
@@ -607,7 +607,7 @@ export const decision_projects_worlds = defineDecision({
         "project, cancelled; Execution's rates 40 costing and 90 billing, and " +
         "Research disabled; Sam's draft with one Execution log on Design, his submitted timesheet with two billable " +
         "hours of Execution on Design, and his cancelled one; Dana's own draft with no log; and Dana's timesheet for " +
-        "Sam on Website, with a billable Execution log on no task, submitted and billed to Olga by `org timesheet bill`. And org-with-projects-chain-unreachable: the same, with chain-rpc's fault switch " +
+        "Sam on Website, with a billable Execution log on no task, submitted and billed to Olga by `org projects timesheet bill`. And org-with-projects-chain-unreachable: the same, with chain-rpc's fault switch " +
         "failing every read.",
     },
     { label: "unknown", text: "Leave `given` as `?` until devnet designs projects worlds: each refusal a gap." },
@@ -618,7 +618,7 @@ export const decision_projects_worlds = defineDecision({
     "completed task, a project on hold, a billed timesheet. One world holds them all, so a refusal names which record " +
     "and an eval switches only who is signed in. It is built from org-with-member, which already gives the three " +
     "people the guards tell apart (Dana with the People and Director hats, Sam with a Seat and no hat, Olga outside), " +
-    "by the commands booked here and requests' `org timesheet bill`, never a table write (devnet.worlds). The hat " +
+    "by the commands booked here and requests' `org projects timesheet bill`, never a table write (devnet.worlds). The hat " +
     "guard's PROVIDER_ERROR needs a record and a failing chain at once, so its world is the same snapshot with the " +
     "fault switch armed, as org-with-chart-and-node-down is. A refusal that needs no record starts from a catalogued " +
     "world. Devnet owns the catalogue, so both worlds are asked of it, with these contents.",
@@ -636,7 +636,7 @@ export const decision_projects_named_people = defineDecision({
     {
       label: "read-only",
       text:
-        "A member (`org project member add`, `--member`) is an email or an agent's @handle, resolved through parties' " +
+        "A member (`org projects member add`, `--member`) is an email or an agent's @handle, resolved through parties' " +
         "directory to a Party holding an active Seat. A worker (`--for`) is any Party locator, resolved read-only: an " +
         "employee or contractor with no Seat is a worker once they are a Party. A customer is a Party locator, or any " +
         "other text as a name (projects.customer-name). `--employee` is a name, kept as Frappe's link is. A locator " +
@@ -663,7 +663,7 @@ export const decision_projects_named_people = defineDecision({
 export const decision_projects_settings_here = defineDecision({
   id: "projects.settings-here",
   title: "Projects Settings are Capxul's checks, not a record a head receives",
-  question: "The change log carries Activity Types, Project Types, Projects, Tasks and Timesheets. Does `org project settings set` reach a connected head?",
+  question: "The change log carries Activity Types, Project Types, Projects, Tasks and Timesheets. Does `org projects settings set` reach a connected head?",
   options: [
     { label: "here", text: "No: the settings are the checks Capxul runs on every change, a head's included, so they stay here and append no change." },
     { label: "pushed", text: "Add Projects Settings to the change log and push it to the head's single." },
@@ -703,12 +703,12 @@ export const decision_projects_refusal_codes = defineDecision({
     "The grammar gives WRONG_STATE to a transition's `from` or its guard, and INVALID_INPUT to a value that names " +
     "something unfit (a disabled activity type is its own example), so a caller tells 'this record cannot move' from " +
     "'fix this argument'. A task's own dependency guard is WRONG_STATE because it is the task's machine; a log naming " +
-    "a cancelled task is a bad argument to the timesheet. The grammar models `org project member` on `org department " +
+    "a cancelled task is a bad argument to the timesheet. The grammar models `org projects member` on `org department " +
     "holder` (G2), and the 215 refuse a holder added twice or removed when absent with WRONG_STATE, as they do a hat " +
     "granted twice (`org member grant`) and a department closed twice: so a share, a remove, a disable or an enable " +
     "that would change nothing is WRONG_STATE, and a script learns its picture was wrong. `contact add` returning an " +
     "entry already there is a book's lookup by Party, not a list of people in an office. A change with nothing to " +
-    "change is a bad argument, as `org activity-type change` with no rate is (fit review, 8 November 2026).",
+    "change is a bad argument, as `org projects activity-type change` with no rate is (fit review, 8 November 2026).",
   source: booked(`docs/design/new-commands.md (G2, G6); org.department.holder.add|remove; ${DT}: timesheet.py:81, task.py:183 and :249, timesheet_detail.py:128; aaron.frappe-shape`),
   affects: [...OPERATIONS],
 });
@@ -828,8 +828,8 @@ export const decision_projects_percent_by_hand = defineDecision({
     {
       label: "as-erpnext",
       text:
-        "As ERPNext's `update_percent_complete`: `--percent` (0 to 100) on `org project create|change` for a manual " +
-        "project only, and `--percent` (0 to 100, Frappe's Task `progress`, printed as `percentComplete`) on `org task " +
+        "As ERPNext's `update_percent_complete`: `--percent` (0 to 100) on `org projects create|change` for a manual " +
+        "project only, and `--percent` (0 to 100, Frappe's Task `progress`, printed as `percentComplete`) on `org projects task " +
         "create|change`. Completing a project with no tasks makes " +
         "it manual at 100, and a manual project's status moves only by hand. Resuming or reopening a project whose tasks " +
         "make it 100 completes it in the same write; reopening a completed one its tasks still complete is WRONG_STATE.",
@@ -856,8 +856,8 @@ export const decision_projects_percent_by_hand = defineDecision({
   affects: [
     rpc_projects_projects_create, rpc_projects_projects_change, rpc_projects_projects_complete, rpc_projects_projects_reopen,
     rpc_projects_projects_resume, rpc_projects_tasks_create, rpc_projects_tasks_change, machine_project, table_projects,
-    table_tasks, operation_org_project_create, operation_org_project_change, operation_org_project_complete,
-    operation_org_project_reopen, operation_org_project_resume, operation_org_task_create, operation_org_task_change,
+    table_tasks, operation_org_projects_create, operation_org_projects_change, operation_org_projects_complete,
+    operation_org_projects_reopen, operation_org_projects_resume, operation_org_projects_task_create, operation_org_projects_task_change,
   ],
 });
 
@@ -867,12 +867,12 @@ export const decision_projects_draft_rechecks = defineDecision({
   question:
     "ERPNext checks every time log of a draft Timesheet each time it is saved (an activity type not disabled, a task " +
     "not cancelled, no overlap the settings forbid), and Frappe refuses any Timesheet without a time log. As booked, " +
-    "`org timesheet log` and `submit` checked only the new log, and the head sync pushed a draft with none. What holds?",
+    "`org projects timesheet log` and `submit` checked only the new log, and the head sync pushed a draft with none. What holds?",
   options: [
     {
       label: "every-save",
       text:
-        "`org timesheet log` and `org timesheet submit` check every log of the draft again (INVALID_INPUT naming the " +
+        "`org projects timesheet log` and `org projects timesheet submit` check every log of the draft again (INVALID_INPUT naming the " +
         "row); a submitted timesheet's logs are not checked again. The head sync holds back a timesheet with no log " +
         "until it has one, and never pushes one cancelled before its first log.",
     },
@@ -883,7 +883,7 @@ export const decision_projects_draft_rechecks = defineDecision({
     "A draft Capxul lets through that ERPNext would refuse cannot reach a head: its push fails `validate_time_logs`, " +
     "`validate_tasks_not_cancelled` or the mandatory `time_logs` table, and its hours would be submitted here on a type " +
     "the Organization had disabled or a task it had cancelled. Checking on each save is what ERPNext does, and costs " +
-    "one read of a draft's few logs. Holding back an empty draft keeps the grammar's two steps (`org timesheet create`, " +
+    "one read of a draft's few logs. Holding back an empty draft keeps the grammar's two steps (`org projects timesheet create`, " +
     "then `log`) while a head only ever sees a Timesheet it can save. The Projects Settings follow the same rule: a " +
     "draft's logs meet the settings in force when it is next saved.",
   source: reviewed(
@@ -892,7 +892,7 @@ export const decision_projects_draft_rechecks = defineDecision({
   ),
   affects: [
     rpc_projects_timesheets_create, rpc_projects_timesheets_log, rpc_projects_timesheets_submit, rpc_projects_settings_set,
-    workflow_projects_head_sync, operation_org_timesheet_log, operation_org_timesheet_submit, operation_org_project_settings_set,
+    workflow_projects_head_sync, operation_org_projects_timesheet_log, operation_org_projects_timesheet_submit, operation_org_projects_settings_set,
   ],
 });
 
@@ -915,7 +915,7 @@ export const decision_projects_review_day = defineDecision({
     "for the expected end, overdue once its day has ended (`is_overdue`). The acceptance claim holds either way; the " +
     "grammar row's 'after that day' is asked to change.",
   source: reviewed(`${DT}/task/task.py:532 (set_tasks_as_overdue), :483 (is_overdue); erpnext/hooks.py:552 (daily); aaron.frappe-head`),
-  affects: [rpc_projects_tasks_review, workflow_projects_tasks_watch_due, machine_task, operation_org_task_review],
+  affects: [rpc_projects_tasks_review, workflow_projects_tasks_watch_due, machine_task, operation_org_projects_task_review],
 });
 
 export const decision_projects_cancel_reads_logs = defineDecision({
@@ -940,7 +940,7 @@ export const decision_projects_cancel_reads_logs = defineDecision({
     "pending would also disagree with a connected head, which recomputes the task when the cancel reaches it. Overdue " +
     "is the one exception the task machine already makes, because the timer is the overdue rule here.",
   source: reviewed(`${DT}/timesheet/timesheet.py:324 (get_task_status), :186 (update_task_and_project); aaron.frappe-shape`),
-  affects: [rpc_projects_timesheets_cancel, machine_task, operation_org_timesheet_cancel],
+  affects: [rpc_projects_timesheets_cancel, machine_task, operation_org_projects_timesheet_cancel],
 });
 
 export const decision_projects_task_dates = defineDecision({
@@ -969,5 +969,43 @@ export const decision_projects_task_dates = defineDecision({
     "start; a connected head does it on the push and the sync brings the new dates back, and without a head the " +
     "dates stay as typed.",
   source: reviewed(`${DT}/task/task.py:132 (validate_parent_project_dates), :168 (report_date_conflict), :111, :392; aaron.frappe-shape`),
-  affects: [rpc_projects_tasks_create, rpc_projects_tasks_change, operation_org_task_create, operation_org_task_change],
+  affects: [rpc_projects_tasks_create, rpc_projects_tasks_change, operation_org_projects_task_create, operation_org_projects_task_change],
+});
+
+// ── the command tree (surface pass, 9 November 2026) ────────────────────────────────────────
+
+export const decision_projects_surface_moves = defineDecision({
+  id: "projects.surface-moves",
+  title: "The projects commands take the tree's words: `org projects …`",
+  question:
+    "The command surface groups ERPNext's Projects module under one word (surface.projects-group). The 35 commands of " +
+    "projects.commands were booked under five nouns of `org`. How do they read now, and what are their ids?",
+  options: [
+    {
+      label: "tree",
+      text:
+        "As the tree spells them. `org project create|list|get|change|hold|resume|complete|reopen|cancel` becomes `org " +
+        "projects create|…|cancel`; `org project member add|remove` and `org project settings show|set` become `org projects " +
+        "member …` and `org projects settings …`; `org task …`, `org timesheet …`, `org activity-type …` and `org " +
+        "project-type …` become `org projects task …`, `org projects timesheet …`, `org projects activity-type …` and `org " +
+        "projects project-type …`. Each id is its new words joined by dots (`org.task.create` is `org.projects.task.create`), " +
+        "as rules.new-operations requires, and each export name follows.",
+    },
+    { label: "as-booked", text: "Keep the five nouns of `org` as booked, and leave projects outside the tree." },
+  ],
+  chosen: "tree",
+  why:
+    "Aaron, 9 November 2026: everything Frappe can do must be reachable from Capxul's tooling, and what matters is the " +
+    "logical groupings. The tree (surface.tree, surface.projects-group) gives each Frappe app one group word, so a person " +
+    "or the FDE finds a project's tasks, time and types where ERPNext's Projects workspace keeps them. The move is " +
+    "spelling only: every claim, refusal, world, rpc, budget and authority of the 35 is as it was (aaron.projects, " +
+    "projects.permissions), and each claim and refusal that quoted a command quotes the new words, here and in the " +
+    "shapes and decisions that name them. Each command is still one rpc of this concept, so no flow changes; the SDK " +
+    "method follows the words (G7): the Project's own, its members and its settings keep `client.org(orgId).projects.*`, " +
+    "and the task, timesheet, activity-type and project-type methods gain `.projects` " +
+    "(`client.org(orgId).projects.tasks.create`). Requests' `org timesheet bill` moves with them, to `org projects " +
+    "timesheet bill`, in requests. For Aaron, as part of question 50 (surface.tree): the recommendation stands until he " +
+    "answers, and if he keeps the booked nouns the words move back with no change of behaviour.",
+  source: by("books/target/shared/surface.ts (surface.tree, surface.projects-group); docs/design/command-surface.md sections 4, 5.2 and 9; aaron.projects"),
+  affects: [...OPERATIONS],
 });

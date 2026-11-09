@@ -486,38 +486,38 @@ export const WORLDS: readonly World[] = [
       "with its open child Announce, and Spec (completed); Old, a task of no project, cancelled; Sam's submitted " +
       "timesheet of 2 billable Execution hours on Design, his cancelled one and his draft with one Execution log on " +
       "Design; Dana's own draft with no log; Dana's timesheet for Sam on Website, 3 billable Execution hours on no " +
-      "task, submitted and billed to Olga by `org timesheet bill`. Dana current.",
+      "task, submitted and billed to Olga by `org projects timesheet bill`. Dana current.",
     from: "org-with-member",
     steps: [
-      step("dana@acme.test", "capxul org activity-type change Execution --costing-rate 40 --billing-rate 90 --org acme"),
-      step("dana@acme.test", "capxul org activity-type disable Research --org acme"),
-      step("dana@acme.test", "capxul org project create Website --type External --customer olga@outside.test --org acme --json; then `org project member add <Website> sam@acme.test`"),
-      step("dana@acme.test", "capxul org project create Retainer --org acme; then `org project hold <Retainer>`"),
-      step("dana@acme.test", "capxul org project create Handover --org acme; then `org project complete <Handover>`"),
-      step("dana@acme.test", "capxul org project create Archive --org acme; then `org project cancel <Archive>`"),
+      step("dana@acme.test", "capxul org projects activity-type change Execution --costing-rate 40 --billing-rate 90 --org acme"),
+      step("dana@acme.test", "capxul org projects activity-type disable Research --org acme"),
+      step("dana@acme.test", "capxul org projects create Website --type External --customer olga@outside.test --org acme --json; then `org projects member add <Website> sam@acme.test`"),
+      step("dana@acme.test", "capxul org projects create Retainer --org acme; then `org projects hold <Retainer>`"),
+      step("dana@acme.test", "capxul org projects create Handover --org acme; then `org projects complete <Handover>`"),
+      step("dana@acme.test", "capxul org projects create Archive --org acme; then `org projects cancel <Archive>`"),
       step(
         "dana@acme.test",
-        "capxul org task create Design --project <Website> --end <the eval day + 7>; `org task create Build --project <Website> " +
-          "--depends-on <Design> --end <+14>`; `org task create Launch --project <Website> --group`; `org task create Announce " +
-          "--parent <Launch>`; `org task create Spec --project <Website>`; `org task complete <Spec>`",
+        "capxul org projects task create Design --project <Website> --end <the eval day + 7>; `org projects task create Build --project <Website> " +
+          "--depends-on <Design> --end <+14>`; `org projects task create Launch --project <Website> --group`; `org projects task create Announce " +
+          "--parent <Launch>`; `org projects task create Spec --project <Website>`; `org projects task complete <Spec>`",
       ),
-      step("dana@acme.test", "capxul org task create Old --org acme; then `org task cancel <Old>`"),
+      step("dana@acme.test", "capxul org projects task create Old --org acme; then `org projects task cancel <Old>`"),
       step(
         "sam@acme.test",
-        "capxul org timesheet create --project <Website> --org acme; `org timesheet log <it> --activity Execution --start " +
-          "<the day before, 09:00> --hours 2 --task <Design> --billable`; `org timesheet submit <it>` (Design becomes working)",
+        "capxul org projects timesheet create --project <Website> --org acme; `org projects timesheet log <it> --activity Execution --start " +
+          "<the day before, 09:00> --hours 2 --task <Design> --billable`; `org projects timesheet submit <it>` (Design becomes working)",
       ),
-      step("sam@acme.test", "capxul org timesheet create --project <Website> --org acme; then `org timesheet cancel <it>`"),
+      step("sam@acme.test", "capxul org projects timesheet create --project <Website> --org acme; then `org projects timesheet cancel <it>`"),
       step(
         "sam@acme.test",
-        "capxul org timesheet create --project <Website> --org acme; then `org timesheet log <it> --activity Execution " +
+        "capxul org projects timesheet create --project <Website> --org acme; then `org projects timesheet log <it> --activity Execution " +
           "--start <the eval day, 09:00> --end <the eval day, 11:00> --task <Design>` (left a draft)",
       ),
-      step("dana@acme.test", "capxul org timesheet create --org acme (her own draft, no log)"),
+      step("dana@acme.test", "capxul org projects timesheet create --org acme (her own draft, no log)"),
       step(
         "dana@acme.test",
-        "capxul org timesheet create --for sam@acme.test --project <Website> --org acme; `org timesheet log <it> --activity " +
-          "Execution --start <two days before, 09:00> --hours 3 --billable`; `org timesheet submit <it>`; `org timesheet " +
+        "capxul org projects timesheet create --for sam@acme.test --project <Website> --org acme; `org projects timesheet log <it> --activity " +
+          "Execution --start <two days before, 09:00> --hours 3 --billable`; `org projects timesheet submit <it>`; `org projects timesheet " +
           "bill <it> --to olga@outside.test --org acme`",
       ),
     ],
@@ -801,9 +801,9 @@ export const WORLDS: readonly World[] = [
     from: "org-with-department",
     steps: [
       ...found("olga@outside.test", "northwind", "Northwind"),
-      step("lead@acme.test", "capxul org agreement offer sam@acme.test --department salaries --salary 15000/month --start <today>"),
+      step("lead@acme.test", "capxul org payroll agreement offer sam@acme.test --department salaries --salary 15000/month --start <today>"),
       approve("lead@acme.test", "the offer"),
-      step("sam@acme.test", "capxul agreement accept <it>"),
+      step("sam@acme.test", "capxul payroll agreement accept <it>"),
       approve("sam@acme.test", "the acceptance"),
       step("lead@acme.test", "three more offers to plat@, pat@ and eli@, each accepted; then pause one, end one with notice, end one now (each approved)"),
       step("lead@acme.test", "an offer to dana@ left to lapse, an offer to mia@ withdrawn, then the open offers to mia@acme.test and @northwind"),
@@ -849,8 +849,8 @@ export const WORLDS: readonly World[] = [
     holds: "org-with-agreements with Sam's collection and Lead's pause of another agreement each opened and unsigned.",
     from: "org-with-agreements",
     steps: [
-      step("sam@acme.test", "capxul agreement collect <sam's agreement> --no-wait"),
-      step("lead@acme.test", "capxul org agreement pause <plat's agreement> --no-wait"),
+      step("sam@acme.test", "capxul payroll agreement collect <sam's agreement> --no-wait"),
+      step("lead@acme.test", "capxul org payroll agreement pause <plat's agreement> --no-wait"),
       current("sam@acme.test"),
     ],
     namedBy: ["payroll"],
@@ -873,10 +873,10 @@ export const WORLDS: readonly World[] = [
       current("pat@acme.test"),
       step(
         "pat@acme.test",
-        "capxul org employee add sam@acme.test --first-name Sam --last-name Okafor --joined <the first day of the month three months back> --department salaries --designation Engineer --org acme; " +
+        "capxul org hr employee add sam@acme.test --first-name Sam --last-name Okafor --joined <the first day of the month three months back> --department salaries --designation Engineer --org acme; " +
           "the same for noor@acme.test (Noor Haddad), ana@acme.test (Ana Ruiz) and leo@acme.test (Leo Brandt)",
       ),
-      step("pat@acme.test", "capxul org employee suspend <Ana> --org acme; capxul org employee leave <Leo> --on <the last day of that month> --confirm --org acme"),
+      step("pat@acme.test", "capxul org hr employee suspend <Ana> --org acme; capxul org hr employee leave <Leo> --on <the last day of that month> --confirm --org acme"),
       step(
         "pat@acme.test",
         'capxul org payroll component add Basic --abbr B --type earning --formula base --payment-days --org acme; ' +
@@ -909,7 +909,7 @@ export const WORLDS: readonly World[] = [
       step("lead@acme.test", "capxul org payroll run pay <the first run> --org acme --no-wait"),
       approve("lead@acme.test", "the first run's approval"),
       step("pat@acme.test", "capxul org payroll run create salaries --start <last month's first day> --end <its last day> --org acme; capxul org payroll run submit <it> --org acme"),
-      step("pat@acme.test", 'capxul org payslip withhold <Noor\'s slip of the second run> --reason "Awaiting signed contract" --org acme'),
+      step("pat@acme.test", 'capxul org payroll payslip withhold <Noor\'s slip of the second run> --reason "Awaiting signed contract" --org acme'),
       step("pat@acme.test", "capxul org payroll run create salaries --start <this month's first day> --end <its last day> --org acme (left a draft)"),
       current("pat@acme.test"),
     ],
@@ -1359,11 +1359,11 @@ export const WORLDS: readonly World[] = [
       step("dana@acme.test", "capxul org member invite hana@acme.test --org acme; Hana accepts"),
       step("dana@acme.test", "capxul org department create people --budget 20000/month --holder hana@acme.test --org acme --json (Hana, not Dana: Dana wears the People hat, so ROLE_CONFLICT keeps her from an office)"),
       approve("dana@acme.test", "its Board proposal, as the one Director"),
-      step("hana@acme.test", "capxul org agreement offer olga@outside.test --department people --salary 3000/month --start <today> --org acme; approve as Hana"),
+      step("hana@acme.test", "capxul org payroll agreement offer olga@outside.test --department people --salary 3000/month --start <today> --org acme; approve as Hana"),
       ready("kai@acme.test", "Kai Moreau"),
       step(
         "dana@acme.test",
-        "capxul org employee add kai@acme.test --first-name Kai --last-name Moreau --joined <this month's first day> --department people --org acme; " +
+        "capxul org hr employee add kai@acme.test --first-name Kai --last-name Moreau --joined <this month's first day> --department people --org acme; " +
           "capxul org payroll component add Basic --abbr B --type earning --amount 3000 --org acme; " +
           "capxul org payroll structure create Standard --frequency monthly --token USDC --earning B --org acme; " +
           "capxul org payroll structure assign <Standard> <Kai> --start <this month's first day> --base 3000 --org acme",
@@ -1775,24 +1775,24 @@ export const WORLDS: readonly World[] = [
       anyone("capxul dev time warp <to 09:00 on the next day that is the third working day of a month or later, from January to November; no warp when today is one>"),
       signInAgain(),
       current("pat@acme.test"),
-      step("pat@acme.test", "capxul org holiday add --weekly saturday --year <this year> --org acme; capxul org holiday add --weekly sunday --year <this year> --org acme"),
-      step("pat@acme.test", 'capxul org holiday add <the first Wednesday of next month> --description "Founders\' Day" --org acme'),
+      step("pat@acme.test", "capxul org hr holiday add --weekly saturday --year <this year> --org acme; capxul org hr holiday add --weekly sunday --year <this year> --org acme"),
+      step("pat@acme.test", 'capxul org hr holiday add <the first Wednesday of next month> --description "Founders\' Day" --org acme'),
       step(
         "pat@acme.test",
-        'capxul org leave-type add "Annual Leave" --max-days 25 --carry-forward --max-carry 5 --org acme; ' +
-          'capxul org leave-type add "Sick Leave" --max-days 10 --org acme; capxul org leave-type add "Unpaid Leave" --without-pay --org acme',
+        'capxul org hr leave-type add "Annual Leave" --max-days 25 --carry-forward --max-carry 5 --org acme; ' +
+          'capxul org hr leave-type add "Sick Leave" --max-days 10 --org acme; capxul org hr leave-type add "Unpaid Leave" --without-pay --org acme',
       ),
       step(
         "pat@acme.test",
-        'capxul org leave allocate <Sam> --type "Annual Leave" --days 20 --start <1 January this year> --end <31 December> --org acme; ' +
+        'capxul org hr leave allocate <Sam> --type "Annual Leave" --days 20 --start <1 January this year> --end <31 December> --org acme; ' +
           'the same for Sam\'s "Sick Leave" 10 and Noor\'s "Annual Leave" 20',
       ),
-      step("pat@acme.test", "capxul org employee add lead@acme.test --first-name Lead --joined <the first day of the month three months back> --department salaries --designation Manager --org acme"),
-      step("sam@acme.test", 'capxul leave apply --type "Annual Leave" --start <next Monday> --end <next Tuesday> (left open: Sam\'s open leave)'),
-      step("sam@acme.test", 'capxul leave apply --type "Unpaid Leave" --start <an earlier working day this month> --end <the same day> (Sam\'s unpaid day)'),
-      step("lead@acme.test", "capxul org leave approve <Sam's unpaid day> --org acme"),
-      step("lead@acme.test", 'capxul leave apply --type "Unpaid Leave" --start <a working day next month> --end <the same day> --employer acme (left open: Lead\'s leave)'),
-      step("pat@acme.test", "capxul org attendance mark <Noor> --on <another earlier working day this month> --status absent --org acme (Noor's absent day)"),
+      step("pat@acme.test", "capxul org hr employee add lead@acme.test --first-name Lead --joined <the first day of the month three months back> --department salaries --designation Manager --org acme"),
+      step("sam@acme.test", 'capxul hr leave apply --type "Annual Leave" --start <next Monday> --end <next Tuesday> (left open: Sam\'s open leave)'),
+      step("sam@acme.test", 'capxul hr leave apply --type "Unpaid Leave" --start <an earlier working day this month> --end <the same day> (Sam\'s unpaid day)'),
+      step("lead@acme.test", "capxul org hr leave approve <Sam's unpaid day> --org acme"),
+      step("lead@acme.test", 'capxul hr leave apply --type "Unpaid Leave" --start <a working day next month> --end <the same day> --employer acme (left open: Lead\'s leave)'),
+      step("pat@acme.test", "capxul org hr attendance mark <Noor> --on <another earlier working day this month> --status absent --org acme (Noor's absent day)"),
       current("pat@acme.test"),
     ],
     namedBy: ["payroll"],
@@ -1807,17 +1807,17 @@ export const WORLDS: readonly World[] = [
       "first shift day, so the build day is not marked. Sam current.",
     from: "org-with-leave",
     steps: [
-      step("pat@acme.test", "capxul org shift-type add Day --start 09:00 --end 17:00 --auto-attendance --half-day-below 6 --absent-below 4 --late-grace 15 --org acme"),
-      step("pat@acme.test", "capxul org shift-type assign Day <Sam> --start <the next working day> --org acme"),
+      step("pat@acme.test", "capxul org hr shift-type add Day --start 09:00 --end 17:00 --auto-attendance --half-day-below 6 --absent-below 4 --late-grace 15 --org acme"),
+      step("pat@acme.test", "capxul org hr shift-type assign Day <Sam> --start <the next working day> --org acme"),
       anyone("capxul dev time warp <to 09:05 on that working day>"),
-      step("sam@acme.test", "capxul attendance checkin --log in"),
+      step("sam@acme.test", "capxul hr attendance checkin --log in"),
       anyone("capxul dev time warp <to 17:10 that day>"),
-      step("sam@acme.test", "capxul attendance checkin --log out"),
+      step("sam@acme.test", "capxul hr attendance checkin --log out"),
       anyone("capxul dev time warp <to 18:01 that day> (the shift's process marks the day present)"),
       anyone("capxul dev time warp <to 09:40 on the next working day>"),
-      step("sam@acme.test", "capxul attendance checkin --log in"),
+      step("sam@acme.test", "capxul hr attendance checkin --log in"),
       anyone("capxul dev time warp <to 12:00 that day>"),
-      step("sam@acme.test", "capxul attendance checkin --log out"),
+      step("sam@acme.test", "capxul hr attendance checkin --log out"),
       anyone("capxul dev time warp <to 18:01 that day> (marked absent with late entry)"),
       anyone("capxul dev time warp <to 08:50 on the following working day>"),
       current("sam@acme.test"),
@@ -1834,22 +1834,22 @@ export const WORLDS: readonly World[] = [
       "C4 (Meals 30, open). `salaries` has 59,550 USDC left this month. Lead current.",
     from: "org-with-employees",
     steps: [
-      step("pat@acme.test", "capxul org expense-type add Travel --org acme; capxul org expense-type add Meals --org acme"),
-      step("pat@acme.test", "capxul org employee add lead@acme.test --first-name Lead --joined <the first day of the month three months back> --department salaries --designation Manager --org acme"),
-      step("sam@acme.test", 'capxul advance request --amount 200 --purpose "Conference travel" (A1)'),
-      step("lead@acme.test", "capxul org advance pay <A1> --org acme --no-wait"),
+      step("pat@acme.test", "capxul org hr expense-type add Travel --org acme; capxul org hr expense-type add Meals --org acme"),
+      step("pat@acme.test", "capxul org hr employee add lead@acme.test --first-name Lead --joined <the first day of the month three months back> --department salaries --designation Manager --org acme"),
+      step("sam@acme.test", 'capxul hr advance request --amount 200 --purpose "Conference travel" (A1)'),
+      step("lead@acme.test", "capxul org hr advance pay <A1> --org acme --no-wait"),
       approve("lead@acme.test", "A1's payment approval"),
-      step("sam@acme.test", 'capxul advance request --amount 150 --purpose "Client visit" (A2)'),
-      step("lead@acme.test", "capxul org advance pay <A2> --org acme --no-wait"),
+      step("sam@acme.test", 'capxul hr advance request --amount 150 --purpose "Client visit" (A2)'),
+      step("lead@acme.test", "capxul org hr advance pay <A2> --org acme --no-wait"),
       approve("lead@acme.test", "A2's payment approval"),
-      step("sam@acme.test", "capxul advance request --amount 500 --purpose Equipment (A3, left requested)"),
-      step("sam@acme.test", "capxul expense-claim create --type Travel --amount 300 --on <yesterday> --advance <A1> (C3)"),
-      step("lead@acme.test", "capxul org expense-claim approve <C3> --org acme; capxul org expense-claim pay <C3> --org acme --no-wait"),
+      step("sam@acme.test", "capxul hr advance request --amount 500 --purpose Equipment (A3, left requested)"),
+      step("sam@acme.test", "capxul hr expense-claim create --type Travel --amount 300 --on <yesterday> --advance <A1> (C3)"),
+      step("lead@acme.test", "capxul org hr expense-claim approve <C3> --org acme; capxul org hr expense-claim pay <C3> --org acme --no-wait"),
       approve("lead@acme.test", "C3's payment approval (100 USDC)"),
-      step("sam@acme.test", "capxul expense-claim create --type Meals --amount 45 (C2)"),
-      step("lead@acme.test", "capxul org expense-claim approve <C2> --org acme (left unpaid)"),
-      step("sam@acme.test", "capxul expense-claim create --type Travel --amount 120 --description Taxi --receipt taxi.pdf (C1, left open)"),
-      step("lead@acme.test", "capxul expense-claim create --type Meals --amount 30 --employer acme (C4, left open)"),
+      step("sam@acme.test", "capxul hr expense-claim create --type Meals --amount 45 (C2)"),
+      step("lead@acme.test", "capxul org hr expense-claim approve <C2> --org acme (left unpaid)"),
+      step("sam@acme.test", "capxul hr expense-claim create --type Travel --amount 120 --description Taxi --receipt taxi.pdf (C1, left open)"),
+      step("lead@acme.test", "capxul hr expense-claim create --type Meals --amount 30 --employer acme (C4, left open)"),
       current("lead@acme.test"),
     ],
     namedBy: ["payroll"],

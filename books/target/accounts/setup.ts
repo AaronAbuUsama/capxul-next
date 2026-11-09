@@ -158,7 +158,7 @@ export const WaitingEscrow = Schema.Struct({
 });
 
 /**
- * What `payment claim` answers, as `agreement collect` answers `nothing_released`: `nothing_waiting` (nothing opened),
+ * What `payment claim` answers, as `payroll agreement collect` answers `nothing_released`: `nothing_waiting` (nothing opened),
  * `awaiting_approval` (the hand-over: with `--json`, or `--timeout-seconds` passed before the approval ended) or
  * `collected` (the approval's operation landed: each listed escrow paid the Safe).
  */

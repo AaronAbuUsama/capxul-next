@@ -3,7 +3,7 @@
 // such as an employee or a contractor with no Seat (projects.permissions). A worker keeps their own
 // timesheets with no hat; acting on another's reads the caller's hat live (projects.hat-guard).
 // Submitting rolls the hours into the tasks and the project, and cancelling takes them out again
-// (projects.derived). Billing hours is requests' (`org timesheet bill`, through projects.bill-time),
+// (projects.derived). Billing hours is requests' (`org projects timesheet bill`, through projects.bill-time),
 // and paying them is a salary slip's (projects.billing-and-payslips).
 
 import { Schema } from "effect";

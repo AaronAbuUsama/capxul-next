@@ -38,7 +38,7 @@ const N = Schema.Number;
 const Null = Schema.NullOr;
 const opt = Schema.optionalKey;
 
-/** The nine statuses `--status` takes (agreement list, org agreement list): surface, kept by name. */
+/** The nine statuses `--status` takes (payroll agreement list, org payroll agreement list): surface, kept by name. */
 export const AGREEMENT_STATUSES = [
   "prepared",
   "offered",
@@ -161,18 +161,18 @@ export const table_agreements = defineTable({
     {
       name: "by_status",
       fields: ["org_id", "status", "created_at"],
-      for: "An Organization's agreements in the statuses a list shows, oldest first (org agreement list, with or without `--status`).",
+      for: "An Organization's agreements in the statuses a list shows, oldest first (org payroll agreement list, with or without `--status`).",
     },
     {
       name: "by_budget",
       fields: ["org_id", "budget_ref", "created_at"],
-      for: "One department's agreements (org agreement list `--department`), and its open ones before an offer (at most 64).",
+      for: "One department's agreements (org payroll agreement list `--department`), and its open ones before an offer (at most 64).",
     },
     {
       name: "by_payee_safe",
       fields: ["payee_safe", "created_at"],
       crossTenant: true,
-      for: "The agreements that pay one Safe, from every Organization, newest first: agreement list and show, for a person or with `--org`.",
+      for: "The agreements that pay one Safe, from every Organization, newest first: `payroll agreement list` and `show`, for a person or with `--org`.",
     },
     {
       name: "by_terms_hash",
@@ -652,7 +652,7 @@ export const table_salary_components = defineTable({
     "are paid under, made when its first agreement is accepted: an earning with no amount, `depends_on_payment_days` " +
     "and `is_tax_applicable` off and `remove_if_zero_valued` on, so a head never prorates, taxes or adds a zero row for " +
     "it, and no run pays it (payroll.agreements-in-frappe-shape). `origin` `advance` is the one deduction an advance's " +
-    "recovery is taken under, made at the first `org advance settle`: Advance Recovery, no amount, not by payment " +
+    "recovery is taken under, made at the first `org hr advance settle`: Advance Recovery, no amount, not by payment " +
     "days, not taxable, removed when zero, its account books' Employee Advances (payroll.advance-recovery).",
   was: [`${FRAPPE_HR}/salary_component/salary_component.json`, `${FRAPPE_HR}/salary_component_account/salary_component_account.json`],
   concept: concept_payroll,

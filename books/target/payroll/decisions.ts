@@ -72,18 +72,19 @@ import {
 } from "./holders.ts";
 import { rpc_payroll_payees_accept, rpc_payroll_payees_collect, rpc_payroll_payees_list, rpc_payroll_payees_show } from "./payees.ts";
 import { rpc_payroll_writes_watch } from "./writes.ts";
+import { flow_client_org_hr_advances_pay, flow_client_org_hr_advances_settle, flow_client_org_hr_expense_claims_pay } from "./expenses.ts";
 import { workflow_payroll_agreements_lifecycle, workflow_payroll_head_sync, workflow_payroll_startup_open } from "./processes.ts";
 import {
-  flow_client_me_payslips_get,
-  flow_client_me_payslips_list,
-  flow_client_org_employees_add,
-  flow_client_org_employees_change,
-  flow_client_org_employees_deactivate,
-  flow_client_org_employees_get,
-  flow_client_org_employees_leave,
-  flow_client_org_employees_list,
-  flow_client_org_employees_reinstate,
-  flow_client_org_employees_suspend,
+  flow_client_me_payroll_payslips_get,
+  flow_client_me_payroll_payslips_list,
+  flow_client_org_hr_employees_add,
+  flow_client_org_hr_employees_change,
+  flow_client_org_hr_employees_deactivate,
+  flow_client_org_hr_employees_get,
+  flow_client_org_hr_employees_leave,
+  flow_client_org_hr_employees_list,
+  flow_client_org_hr_employees_reinstate,
+  flow_client_org_hr_employees_suspend,
   flow_client_org_payroll_components_add,
   flow_client_org_payroll_components_change,
   flow_client_org_payroll_components_disable,
@@ -99,16 +100,16 @@ import {
   flow_client_org_payroll_structures_create,
   flow_client_org_payroll_structures_list,
   flow_client_org_payroll_structures_unassign,
-  flow_client_org_payslips_release,
-  flow_client_org_payslips_withhold,
-  flow_client_me_agreements_accept,
-  flow_client_me_agreements_collect,
-  flow_client_org_agreements_change,
-  flow_client_org_agreements_end,
-  flow_client_org_agreements_offer,
-  flow_client_org_agreements_pause,
-  flow_client_org_agreements_resume,
-  flow_client_org_agreements_withdraw,
+  flow_client_org_payroll_payslips_release,
+  flow_client_org_payroll_payslips_withhold,
+  flow_client_me_payroll_agreements_accept,
+  flow_client_me_payroll_agreements_collect,
+  flow_client_org_payroll_agreements_change,
+  flow_client_org_payroll_agreements_end,
+  flow_client_org_payroll_agreements_offer,
+  flow_client_org_payroll_agreements_pause,
+  flow_client_org_payroll_agreements_resume,
+  flow_client_org_payroll_agreements_withdraw,
 } from "./flows.ts";
 import {
   operation_agreement_accept,
@@ -123,12 +124,13 @@ import {
   operation_org_agreement_resume,
   operation_org_agreement_withdraw,
   CRITICAL_OPERATIONS,
+  HR_OPERATIONS,
   NEW_OPERATIONS,
-  operation_org_employee_add,
-  operation_org_employee_change,
-  operation_org_employee_leave,
-  operation_org_employee_list,
-  operation_org_employee_suspend,
+  operation_org_hr_employee_add,
+  operation_org_hr_employee_change,
+  operation_org_hr_employee_leave,
+  operation_org_hr_employee_list,
+  operation_org_hr_employee_suspend,
   operation_org_payroll_component_add,
   operation_org_payroll_component_change,
   operation_org_payroll_component_disable,
@@ -141,8 +143,8 @@ import {
   operation_org_payroll_structure_create,
   operation_org_payroll_structure_list,
   operation_org_payroll_structure_unassign,
-  operation_payslip_get,
-  operation_payslip_list,
+  operation_payroll_payslip_get,
+  operation_payroll_payslip_list,
 } from "./operations.ts";
 
 const by = (evidence: string) => `Claude, payroll target design, 8 November 2026; evidence: ${evidence}`;
@@ -159,14 +161,14 @@ const HOLDER_RPCS = [
   rpc_payroll_holders_end,
 ];
 const WRITE_FLOWS = [
-  flow_client_org_agreements_offer,
-  flow_client_org_agreements_withdraw,
-  flow_client_org_agreements_change,
-  flow_client_org_agreements_pause,
-  flow_client_org_agreements_resume,
-  flow_client_org_agreements_end,
-  flow_client_me_agreements_accept,
-  flow_client_me_agreements_collect,
+  flow_client_org_payroll_agreements_offer,
+  flow_client_org_payroll_agreements_withdraw,
+  flow_client_org_payroll_agreements_change,
+  flow_client_org_payroll_agreements_pause,
+  flow_client_org_payroll_agreements_resume,
+  flow_client_org_payroll_agreements_end,
+  flow_client_me_payroll_agreements_accept,
+  flow_client_me_payroll_agreements_collect,
 ];
 const OPERATIONS = [
   operation_agreement_accept,
@@ -517,7 +519,7 @@ export const decision_payroll_acceptance = defineDecision({
 export const decision_payroll_collection_payment = defineDecision({
   id: "payroll.collection-payment",
   title: "A collection reports its payment from the indexed PaymentSent",
-  question: "`agreement collect` returns 'the one payment the payer made', which payments' ledger holds. Where does payroll get it?",
+  question: "`payroll agreement collect` returns 'the one payment the payer made', which payments' ledger holds. Where does payroll get it?",
   options: [
     { label: "chain-fact", text: "The write keeps the PaymentSent id, amount and window from the transaction's indexed facts; payments births its Payment from the same fact." },
     { label: "read-payments", text: "Read the Payment from payments' ledger." },
@@ -530,7 +532,7 @@ export const decision_payroll_collection_payment = defineDecision({
     "every PaymentSent, a collection included. The PaymentSent id is the key both sides share, so `payment get` finds " +
     "the Payment payroll reports, and books' collection accrual names it (payroll.collection-accrual).",
   source: by("shared decisions (concepts.payments, dependencies.payments-payroll); Agreements.collect pays through Budgets.payReserved (kind 4)"),
-  affects: [rpc_payroll_writes_watch, flow_client_me_agreements_collect, operation_agreement_collect, table_agreement_writes, concept_payments],
+  affects: [rpc_payroll_writes_watch, flow_client_me_payroll_agreements_collect, operation_agreement_collect, table_agreement_writes, concept_payments],
 });
 
 export const decision_payroll_live_reads = defineDecision({
@@ -580,16 +582,19 @@ export const decision_payroll_flows = defineDecision({
       label: "flows-for-writes",
       text:
         "Each write is a flow (prepare, approvals' sponsored read, sign, submit, wait, follow); each read is one rpc. " +
-        "Names follow the designed `method` where one exists (`client.me.agreements.collect`).",
+        "Names follow the designed `method` where one exists (`client.me.agreements.collect`), under the group the command tree " +
+        "puts them in (`client.me.payroll.agreements.collect`, surface.payroll-group).",
     },
     { label: "rpc-only", text: "Every command one rpc, with the CLI doing the signing and following." },
   ],
   chosen: "flows-for-writes",
   why:
     "A4: the SDK owns signing and the CLI calls one method; a write composes a prepare, a signature and two waits, so it " +
-    "is a flow, and approvals asks every opener's flow to compose its signing rpcs. The frozen sdk of `agreement collect` " +
+    "is a flow, and approvals asks every opener's flow to compose its signing rpcs. The frozen sdk of `payroll agreement collect` " +
     "is `client.agreements.collect` but its designed method is `client.me.agreements.collect`, and the designed text wins " +
-    "(P10), so both payee writes sit under `client.me`. The reads keep their frozen methods.",
+    "(P10), so both payee writes sit under `client.me`. The reads keep their frozen methods. The command tree then put every " +
+    "agreement command in the payroll group (surface.payroll-group), so each method gains `.payroll` as its command gains " +
+    "`payroll`: `client.me.payroll.agreements.collect`, `client.org(orgId).payroll.agreements.offer`.",
   source: by("books/frozen (sdk and designed.method of the payroll operations); approvals/flows.ts; A4; P10"),
   affects: [...WRITE_FLOWS, rpc_payroll_holders_list, rpc_payroll_payees_list, rpc_payroll_payees_show],
 });
@@ -709,7 +714,7 @@ export const decision_payroll_carrier_endings = defineDecision({
   chosen: "fail-and-map",
   why:
     "A failed proposal used its nonce on chain; abandoned means nothing reached the chain, which would read wrongly in " +
-    "`agreement show`. Board asks openers to read `fail` as 'ran without effect', which is exactly a failed write. The " +
+    "`payroll agreement show`. Board asks openers to read `fail` as 'ran without effect', which is exactly a failed write. The " +
     "codes are the mapping of decision approvals.machine: expired is WRONG_STATE, declined is CANCELLED (contacts.decline-is-cancelled).",
   source: ASSEMBLY("books/target/board/decisions.ts (board.failed-proposal); books/target/approvals/decisions.ts (approvals.machine); assembly-items.md (approvals, board)"),
   affects: [machine_agreement_write, table_agreement_writes, workflow_payroll_agreements_lifecycle, machine_proposal.t.fail, ...WRITE_FLOWS, error_CANCELLED, error_WRONG_STATE, error_TRANSACTION_FAILED],
@@ -728,11 +733,11 @@ export const decision_payroll_collection_payment_id = defineDecision({
   ],
   chosen: "derived",
   why:
-    "`agreement collect` returns 'the one payment the payer made', and a person follows it with `payment get`; the raw " +
+    "`payroll agreement collect` returns 'the one payment the payer made', and a person follows it with `payment get`; the raw " +
     "id would be refused there. The id is a pure function of the indexed fact both concepts read, so payroll still never " +
     "reads payments (dependencies.payments-payroll).",
   source: ASSEMBLY("books/target/payments/decisions.ts (payments.chain-born-ids); payment.get.yaml (refusal CLI_USAGE); agreement.collect.yaml (returns)"),
-  affects: [rpc_payroll_writes_watch, flow_client_me_agreements_collect, operation_agreement_collect],
+  affects: [rpc_payroll_writes_watch, flow_client_me_payroll_agreements_collect, operation_agreement_collect],
 });
 
 // ── Frappe HR's payroll (the payroll lane of the Frappe redesign) ───────────────────────────
@@ -764,14 +769,14 @@ const HR_TABLES = [
 ];
 /** One SDK method per HR command (payroll.hr-surface, payroll.command-flows), in the pack's order. */
 const HR_FLOWS = [
-  flow_client_org_employees_add,
-  flow_client_org_employees_change,
-  flow_client_org_employees_get,
-  flow_client_org_employees_list,
-  flow_client_org_employees_suspend,
-  flow_client_org_employees_deactivate,
-  flow_client_org_employees_reinstate,
-  flow_client_org_employees_leave,
+  flow_client_org_hr_employees_add,
+  flow_client_org_hr_employees_change,
+  flow_client_org_hr_employees_get,
+  flow_client_org_hr_employees_list,
+  flow_client_org_hr_employees_suspend,
+  flow_client_org_hr_employees_deactivate,
+  flow_client_org_hr_employees_reinstate,
+  flow_client_org_hr_employees_leave,
   flow_client_org_payroll_components_add,
   flow_client_org_payroll_components_change,
   flow_client_org_payroll_components_list,
@@ -788,10 +793,10 @@ const HR_FLOWS = [
   flow_client_org_payroll_runs_cancel,
   flow_client_org_payroll_runs_list,
   flow_client_org_payroll_runs_get,
-  flow_client_org_payslips_withhold,
-  flow_client_org_payslips_release,
-  flow_client_me_payslips_list,
-  flow_client_me_payslips_get,
+  flow_client_org_payroll_payslips_withhold,
+  flow_client_org_payroll_payslips_release,
+  flow_client_me_payroll_payslips_list,
+  flow_client_me_payroll_payslips_get,
 ];
 const HRMS = "/tmp/hrms/hrms/payroll/doctype";
 
@@ -1305,8 +1310,8 @@ export const decision_payroll_hr_surface = defineDecision({
       text:
         "One SDK flow per rpc, on the SDK and the web app (the FDE agent, any agent, people; a head is synced by " +
         "payroll's own process, never through them); their " +
-        "CLI commands (`org employee add|change|list`, `org payroll component|structure|assign|run|submit|withhold|pay|" +
-        "cancel|show|list`, `payslip list|show`) are designed with acceptance claims in the payroll operations pass, from " +
+        "CLI commands (`org hr employee add|change|list`, `org payroll component|structure|assign|run|submit|withhold|pay|" +
+        "cancel|show|list`, `payroll payslip list|show`) are designed with acceptance claims in the payroll operations pass, from " +
         "docs/design/frappe/payroll.md.",
     },
     {
@@ -1314,18 +1319,18 @@ export const decision_payroll_hr_surface = defineDecision({
       text:
         "Recommended: book now, with acceptance claims and worlds, exactly the 28 commands of " +
         "docs/design/new-commands.md (section 5.3), in its one grammar; each calls one SDK method, whose flow keeps " +
-        "`react` and adds `cli`: `org employee add|change|get|list|suspend|deactivate|reinstate|leave` " +
-        "(`client.org(orgId).employees.*`; the four status verbs are the Employee machine's, over " +
+        "`react` and adds `cli`: `org hr employee add|change|get|list|suspend|deactivate|reinstate|leave` " +
+        "(`client.org(orgId).hr.employees.*`; the four status verbs are the Employee machine's, over " +
         "`payroll.employees.change`; `get` is a new rpc); `org payroll component add|change|list|disable|enable` (over " +
         "`payroll.structures.component` and `.list`); `org payroll structure create|cancel|assign|unassign|list` " +
         "(`unassign` cancels an assignment, over `payroll.structures.cancel`); `org payroll run " +
-        "create|submit|pay|cancel|list|get` (`get` over `payroll.runs.show`); `org payslip withhold|release` (over " +
-        "`payroll.runs.withhold`); and the payee's own `payslip list|get` (`client.me.payslips.*` over " +
+        "create|submit|pay|cancel|list|get` (`get` over `payroll.runs.show`); `org payroll payslip withhold|release` (over " +
+        "`payroll.runs.withhold`); and the payee's own `payroll payslip list|get` (`client.me.payroll.payslips.*` over " +
         "`payroll.slips.mine`, filtered by `--employer`, never `--org`). Who (payroll.hr-authority): a member whose Safe " +
         "wears the People hat changes and reads the records; paying a run is whoever Budgets.authorised admits on its " +
         "department's budget; a payee reads their own slips. Reads are `read`, `org payroll run pay` `chain-submit`, " +
         "the rest `write`; the ten a first payroll needs are `critical` (payroll.critical-commands), the rest `normal`. " +
-        "Every list pages, and every Employee write prints the Employee as `org employee get` does (payroll.command-fit).",
+        "Every list pages, and every Employee write prints the Employee as `org hr employee get` does (payroll.command-fit).",
     },
   ],
   chosen: "cli-now",
@@ -1366,7 +1371,7 @@ export const decision_payroll_command_authority = defineDecision({
         "The People hat changes and reads the HR records (Employees, components, structures, assignments, runs, " +
         "withholding), as Frappe's HR Manager. `org payroll run pay` is whoever `Budgets.authorised` admits on the run's " +
         "department budget when it pays, read on chain then: a wearer of its hat or of an ancestor's, never the person who " +
-        "drafted the run, paid it before or is named on it. `payslip list|get` is the payee's own Safe. An agent, the FDE " +
+        "drafted the run, paid it before or is named on it. `payroll payslip list|get` is the payee's own Safe. An agent, the FDE " +
         "included, acts only with the hats its Safe wears. The Board pays no run: it spends from no budget.",
     },
     { label: "person", text: "Whoever drafted a run, or whom Capxul records as the department's holder, pays it." },
@@ -1391,14 +1396,14 @@ export const decision_payroll_command_flows = defineDecision({
   id: "payroll.command-flows",
   title: "One SDK method per HR command, each a flow, the reads included",
   question:
-    "The grammar (G7) implements a method that is one rpc call by that rpc, and lists `org employee get` over a new rpc. " +
+    "The grammar (G7) implements a method that is one rpc call by that rpc, and lists `org hr employee get` over a new rpc. " +
     "Payroll's HR rpcs already had one flow each, on the SDK and the web app. How are the 28 commands implemented?",
   options: [
     {
       label: "flows",
       text:
         "Every command is one flow under `client.org(orgId)` or `client.me`, on the CLI, the SDK and the web app, each one " +
-        "call of one payroll rpc except `org employee leave`, which reads, previews and writes, and `org payroll run pay`, " +
+        "call of one payroll rpc except `org hr employee leave`, which reads, previews and writes, and `org payroll run pay`, " +
         "which signs its approval and follows the chain. Where one rpc serves " +
         "several verbs each verb is its own flow fixing its part of the input: `employees.suspend|deactivate|reinstate|" +
         "leave` over `payroll.employees.change`; `payroll.components.add|change|disable|enable` over " +
@@ -1408,7 +1413,7 @@ export const decision_payroll_command_flows = defineDecision({
         "`.get`, `payroll.runs.withhold` to `payslips.withhold`, `me.payslips` to `me.payslips.list`; " +
         "`payroll.structures.component` is gone.",
     },
-    { label: "rpc-reads", text: "As G7 reads: `org employee get` implemented by its new rpc directly, every other command by its flow." },
+    { label: "rpc-reads", text: "As G7 reads: `org hr employee get` implemented by its new rpc directly, every other command by its flow." },
   ],
   chosen: "flows",
   why:
@@ -1418,7 +1423,7 @@ export const decision_payroll_command_flows = defineDecision({
     "no longer carries a status, so a status moves only by its lifecycle verb (G3). The leave flow's preview is G5's: " +
     "a decline is CANCELLED and a script without `--confirm` CLI_USAGE (vocabulary.declined-preview-cancelled).",
   source: COMMANDS("aaron.frappe-shape, aaron.fde-agent", "docs/design/new-commands.md (G3, G5, G7, section 4)"),
-  affects: [...HR_FLOWS, rpc_payroll_employees_get, operation_org_employee_leave],
+  affects: [...HR_FLOWS, rpc_payroll_employees_get, operation_org_hr_employee_leave],
 });
 
 export const decision_payroll_command_details = defineDecision({
@@ -1435,7 +1440,7 @@ export const decision_payroll_command_details = defineDecision({
         "that is not cancelled names the assignment, as the assignment machine's guard has it; a later assignment " +
         "supersedes it instead. (2) `org payroll component change` reaches only structures made after it, since a " +
         "structure keeps the rows it copied; `disable` and `enable` set `disabled` through the same rpc, which on a change " +
-        "now takes only the fields given. (3) `org payroll run create` defaults `--frequency` to monthly. (4) `payslip " +
+        "now takes only the fields given. (3) `org payroll run create` defaults `--frequency` to monthly. (4) `payroll payslip " +
         "list` pages (`--after`, `--limit`, `nextCursor`), and `--employer` is a handle the rpc reads as the payer. (5) " +
         "`org payroll run pay` takes `--request-key`: the same key again returns the same command and approval; " +
         "`--timeout-seconds` and `--no-wait` are its flow's.",
@@ -1454,7 +1459,7 @@ export const decision_payroll_command_details = defineDecision({
     operation_org_payroll_structure_unassign,
     operation_org_payroll_component_change,
     operation_org_payroll_run_create,
-    operation_payslip_list,
+    operation_payroll_payslip_list,
     operation_org_payroll_run_pay,
     rpc_payroll_structures_cancel,
     rpc_payroll_structures_component,
@@ -1483,7 +1488,7 @@ export const decision_payroll_run_pay_codes = defineDecision({
   why:
     "Paying a run is a payment from a budget, the chain path of `payment send --from`, made by whoever acts for the " +
     "department, not by a payee collecting; PAYER_BALANCE_TOO_LOW's message speaks of a collection. The frozen " +
-    "`agreement collect` keeps its own code.",
+    "`payroll agreement collect` keeps its own code.",
   source: COMMANDS("aaron.departments, aaron.frappe-shape", "docs/design/new-commands.md (G6); the frozen refusals of payment.send, org.department.pay, agreement.collect"),
   affects: [rpc_payroll_runs_pay, operation_org_payroll_run_pay],
 });
@@ -1498,10 +1503,10 @@ export const decision_payroll_critical_commands = defineDecision({
     {
       label: "first-payroll",
       text:
-        "Ten: `org employee add|list`, `org payroll component add`, `org payroll structure create|assign`, `org payroll " +
-        "run create|submit|pay|get`, and `payslip list`: hire, define the pay, assign it, draft, submit and pay the first " +
+        "Ten: `org hr employee add|list`, `org payroll component add`, `org payroll structure create|assign`, `org payroll " +
+        "run create|submit|pay|get`, and `payroll payslip list`: hire, define the pay, assign it, draft, submit and pay the first " +
         "month, check it, and let the Employee see it. The rest (field changes, status verbs, leaving, component upkeep, " +
-        "cancelling, unassigning, withholding, the lists of structures and runs, `payslip get`) refine that loop.",
+        "cancelling, unassigning, withholding, the lists of structures and runs, `payroll payslip get`) refine that loop.",
     },
     { label: "none", text: "Every command normal, as G8 has it." },
     { label: "all", text: "Every payroll command critical." },
@@ -1917,9 +1922,9 @@ export const decision_payroll_run_employees = defineDecision({
     table_employees,
     operation_org_payroll_run_create,
     operation_org_payroll_structure_assign,
-    operation_org_employee_suspend,
-    operation_org_employee_leave,
-    operation_org_employee_change,
+    operation_org_hr_employee_suspend,
+    operation_org_hr_employee_leave,
+    operation_org_hr_employee_change,
   ],
 });
 
@@ -1940,17 +1945,17 @@ export const decision_payroll_command_fit = defineDecision({
       label: "grammar",
       text:
         "(1) Every list pages and prints `items` and `nextCursor`; a cursor it did not give is INVALID_INPUT, as `org " +
-        "app list` and `org activity-type list` do: `org employee list` and `org payroll run list` page in their rpc, and " +
+        "app list` and `org projects activity-type list` do: `org hr employee list` and `org payroll run list` page in their rpc, and " +
         "`org payroll component list` and `org payroll structure list`, short catalogs, in their method over one read; " +
         "structures list by name, each with the assignments that name it. (2) Every Employee write prints the Employee as " +
-        "`org employee get` does, with today's assignment. (3) `org payroll run pay` prints as `payment send` and the " +
+        "`org hr employee get` does, with today's assignment. (3) `org payroll run pay` prints as `payment send` and the " +
         "agreement writes do: `status` (`awaiting_approval` at the hand-over, else the run's), `approvalId`, " +
         "`approvalUrl`, `expiresAt`, the run and `next`. (4) Disabling a disabled component, or enabling an enabled one, " +
-        "is WRONG_STATE, as a second `org activity-type disable` and a frozen token's freeze are. (5) `--amends` naming a " +
+        "is WRONG_STATE, as a second `org projects activity-type disable` and a frozen token's freeze are. (5) `--amends` naming a " +
         "structure an assignment still names, or one already cancelled, is WRONG_STATE, as cancelling it is; " +
-        "INVALID_INPUT stays for one that names nothing. (6) `org employee leave` from a script without `--confirm` is a " +
+        "INVALID_INPUT stays for one that names nothing. (6) `org hr employee leave` from a script without `--confirm` is a " +
         "CLI_USAGE refusal from a world, and `org payroll run pay` refuses PROVIDER_ERROR when the chain cannot be read, " +
-        "from org-with-payroll-runs-chain-unreachable, as the department commands do. (7) `org employee add` takes a " +
+        "from org-with-payroll-runs-chain-unreachable, as the department commands do. (7) `org hr employee add` takes a " +
         "Party as G5 names one (a Safe's 0x address too), refuses a mailbox no claim escrow could hold (not ASCII) as " +
         "INVALID_INPUT, and takes `--last-name` as optional, as Frappe's `last_name` is, where the row shows it bare. " +
         "(8) Each flag that is not its field's name is named on its input shape.",
@@ -1958,7 +1963,7 @@ export const decision_payroll_command_fit = defineDecision({
     {
       label: "rows",
       text:
-        "Keep the booking as section 5.3's rows read: only `payslip list` pages, each write prints its rpc's answer, and " +
+        "Keep the booking as section 5.3's rows read: only `payroll payslip list` pages, each write prints its rpc's answer, and " +
         "each case keeps the code it was first booked with.",
     },
   ],
@@ -1978,10 +1983,10 @@ export const decision_payroll_command_fit = defineDecision({
       "payments/operations.ts (MoneyJson)",
   ),
   affects: [
-    operation_org_employee_add,
-    operation_org_employee_change,
-    operation_org_employee_list,
-    operation_org_employee_leave,
+    operation_org_hr_employee_add,
+    operation_org_hr_employee_change,
+    operation_org_hr_employee_list,
+    operation_org_hr_employee_leave,
     operation_org_payroll_component_list,
     operation_org_payroll_component_disable,
     operation_org_payroll_component_enable,
@@ -1998,5 +2003,65 @@ export const decision_payroll_command_fit = defineDecision({
     flow_client_org_payroll_components_list,
     flow_client_org_payroll_structures_list,
     flow_client_org_payroll_runs_pay,
+  ],
+});
+
+// ── the command tree (surface pass, 9 November 2026) ────────────────────────────────────────
+
+/** The commands the tree moved: HR's into `hr` and `org hr`, the payslips and the 215's agreements into `payroll` and `org payroll`. */
+const SURFACE_MOVED = [...OPERATIONS, ...NEW_OPERATIONS, ...HR_OPERATIONS].filter((o) =>
+  /^(org hr|hr|org payroll payslip|payroll payslip|org payroll agreement|payroll agreement) /.test(o.command),
+);
+
+export const decision_payroll_surface_moves = defineDecision({
+  id: "payroll.surface-moves",
+  title: "HR commands take `hr` and `org hr`; payslips and agreements take `payroll`",
+  question:
+    "The command surface makes HR and Payroll each one group, with your side under the bare word and the " +
+    "Organization's under `org` (surface.hr-group, surface.payroll-group). This concept booked HR's 53 commands under " +
+    "twelve nouns, the payslips as `payslip` and `org payslip`, and keeps the 215's eleven agreement commands. How do " +
+    "they read now, and what are their ids and SDK methods?",
+  options: [
+    {
+      label: "tree",
+      text:
+        "As the tree spells them. HR: `org employee|holiday|leave-type|leave|shift-type|attendance|expense-type|" +
+        "expense-claim|advance …` become `org hr employee …` and so on, and the Employee's own `leave apply|list|cancel|" +
+        "balance`, `attendance checkin|list`, `expense-claim create|list|get|cancel` and `advance request|list|cancel` become " +
+        "`hr leave …`, `hr attendance …`, `hr expense-claim …` and `hr advance …`. Payslips: `payslip list|get` become " +
+        "`payroll payslip list|get`, `org payslip withhold|release` become `org payroll payslip withhold|release`. The 215's " +
+        "agreement accept, agreement collect, agreement list and agreement show become `payroll agreement accept|collect|" +
+        "list|show`, and org agreement offer, org agreement change, org agreement pause, org agreement resume, org " +
+        "agreement end, org agreement withdraw and org agreement list become `org payroll agreement …`. A new command's id " +
+        "is its new words joined by dots (`leave.apply` is `hr.leave.apply`); a frozen one keeps its id.",
+    },
+    { label: "as-booked", text: "Keep the booked nouns, and leave HR and the agreements outside the tree." },
+  ],
+  chosen: "tree",
+  why:
+    "Aaron, 9 November 2026: everything Frappe can do must be reachable from Capxul's tooling, and what matters is the " +
+    "logical groupings, so Frappe HR's HR module and its Payroll module each take one group word, where a Frappe user " +
+    "looks for them (aaron.frappe-shape). The move is spelling only (system.frozen-behaviour): each command's claims, " +
+    "refusals, worlds, rpcs, budgets and authority are as they were (payroll.hr-commands, payroll.hr-surface, " +
+    "payroll.hr-approvers), and every claim, refusal, shape and decision here that quoted a command quotes the new " +
+    "words. The eleven agreement commands keep their ids, claims and refusals; their command is the tree's, and the " +
+    "frozen about, notes and mistakes quote the tree's words wherever they named an agreement command. Each flow's id " +
+    "follows its SDK method (G7): `client.org.employees.*` is `client.org.hr.employees.*`, " +
+    "`client.org.expense-claims.pay` and `client.org.advances.pay|settle` gain `.hr`, `client.me.payslips.*` and " +
+    "`client.org.payslips.*` gain `.payroll`, and so do `client.me.agreements.*` and `client.org.agreements.*`; the " +
+    "commands an rpc implements alone change no record but their operation. HR stays in this concept (surface.hr-concept, " +
+    "payroll.hr-in-payroll). For Aaron, as part of question 50 (surface.tree): the recommendation stands until he " +
+    "answers, and if he keeps the booked nouns the words move back with no change of behaviour.",
+  source: by(
+    "books/target/shared/surface.ts (surface.tree, surface.hr-group, surface.payroll-group); docs/design/command-surface.md " +
+      "sections 3, 4, 5 and 9; aaron.frappe-shape",
+  ),
+  affects: [
+    ...SURFACE_MOVED,
+    ...WRITE_FLOWS,
+    ...HR_FLOWS.filter((f) => /^client\.(org\.hr|me\.payroll\.payslips|org\.payroll\.payslips)\./.test(f.id)),
+    flow_client_org_hr_expense_claims_pay,
+    flow_client_org_hr_advances_pay,
+    flow_client_org_hr_advances_settle,
   ],
 });

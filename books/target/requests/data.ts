@@ -154,7 +154,7 @@ export const table_requests = defineTable({
      */
     income: NullOr(Schema.Struct({ account_id: NullOr(S), sales_invoice: NullOr(S) })),
     /**
-     * An Invoice for logged hours (`org timesheet bill`, requests.bill-time): each time log it bills, by timesheet and
+     * An Invoice for logged hours (`org projects timesheet bill`, requests.bill-time): each time log it bills, by timesheet and
      * row, with the billing hours and the raw amount it asks for that log, as a Sales Invoice's Timesheet rows keep them;
      * projects' door marks the logs themselves (projects.bill-time). Null for every other request.
      */

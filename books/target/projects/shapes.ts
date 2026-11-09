@@ -42,7 +42,7 @@ export const PercentMethod = Schema.Literals(["manual", "task-completion", "task
 export const TaskStatus = Schema.Literals(["open", "working", "pending_review", "overdue", "template", "completed", "cancelled"]);
 export const TimesheetStatus = Schema.Literals(["draft", "submitted", "partially_billed", "billed", "payslip", "completed", "cancelled"]);
 
-/** The fields `org project create` sets and `org project change` changes. */
+/** The fields `org projects create` sets and `org projects change` changes. */
 export const ProjectFields = {
   name: Opt(S),
   type: Opt(S),
@@ -76,7 +76,7 @@ export const ProjectSummary = Schema.Struct({
   updatedAt: N,
 });
 
-/** One project, as `org project get` prints it. */
+/** One project, as `org projects get` prints it. */
 export const Project = Schema.Struct({
   ...ProjectSummary.fields,
   progress: PercentMethod,
@@ -100,7 +100,7 @@ export const Project = Schema.Struct({
   createdBy: S,
 });
 
-/** The fields `org task create` sets and `org task change` changes. */
+/** The fields `org projects task create` sets and `org projects task change` changes. */
 export const TaskFields = {
   subject: Opt(S),
   project: Opt(S),
@@ -136,7 +136,7 @@ export const TaskSummary = Schema.Struct({
   updatedAt: N,
 });
 
-/** One task, as `org task get` prints it. */
+/** One task, as `org projects task get` prints it. */
 export const Task = Schema.Struct({
   ...TaskSummary.fields,
   isGroup: B,
@@ -197,7 +197,7 @@ export const TimesheetSummary = Schema.Struct({
   updatedAt: N,
 });
 
-/** One timesheet, as `org timesheet get` prints it. */
+/** One timesheet, as `org projects timesheet get` prints it. */
 export const Timesheet = Schema.Struct({
   ...TimesheetSummary.fields,
   /** The worker's Employee name, kept as given or as the head names it. */
@@ -219,7 +219,7 @@ export const Timesheet = Schema.Struct({
   createdAt: N,
 });
 
-/** One time log as `org timesheet log` takes it. */
+/** One time log as `org projects timesheet log` takes it. */
 export const LogInput = Schema.Struct({
   activity: S,
   start: N,
@@ -243,7 +243,7 @@ export const ActivityType = Schema.Struct({
 
 export const ProjectType = Schema.Struct({ name: S, description: NullOr(S), updatedAt: N });
 
-/** Projects Settings, as `org project settings show` prints it. */
+/** Projects Settings, as `org projects settings show` prints it. */
 export const Settings = Schema.Struct({
   /** Frappe's `ignore_user_time_overlap`: one worker's logs may overlap. */
   allowUserOverlap: B,

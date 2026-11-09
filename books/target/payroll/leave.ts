@@ -66,7 +66,7 @@ export const MEMBER_GUARD = "The caller must hold an active Seat in the Organiza
 export const WHO_SELF_HR =
   "A signed-in person whose Party is a live (not left) Employee: for a write or a balance, of the Organization " +
   "`--employer` names, or of the one Organization that employs them when it is not given; for a list, of every " +
-  "Organization that employs them, `--employer` keeping one, as `payslip list` (G1); for a command on one of their " +
+  "Organization that employs them, `--employer` keeping one, as `payroll payslip list` (G1); for a command on one of their " +
   "records, of that record's employer. An Employee needs no Seat. Never an agent as itself: " +
   "Frappe's Employee is a person, and the hosted FDE acts here only for the person who asked it, as them " +
   "(aaron.fde-anyone, organizations.fde-for-the-asker).";
@@ -75,10 +75,10 @@ export const SELF_GUARD =
   "The caller must be signed in (NOT_AUTHENTICATED), a person whose Party is a live Employee of the employer named by " +
   "`--employer`, or of their only employer when absent (INVALID_INPUT for a handle that names no Organization " +
   "employing them, an agent, or several employers and none named); nothing is read or written otherwise. ";
-/** The guard every self list runs first: every employer's rows, as `payslip list` holds every payer's (G1). */
+/** The guard every self list runs first: every employer's rows, as `payroll payslip list` holds every payer's (G1). */
 export const SELF_LIST_GUARD =
   "The caller must be signed in (NOT_AUTHENTICATED) and a person (INVALID_INPUT for an agent). The list holds their " +
-  "rows from every Organization where they are a live Employee, each naming its employer, as `payslip list` holds " +
+  "rows from every Organization where they are a live Employee, each naming its employer, as `payroll payslip list` holds " +
   "every payer's (G1: `--employer` is a filter); `--employer` keeps one employer's (INVALID_INPUT for a handle that " +
   "names no Organization employing them); nothing is read otherwise. ";
 /** The guard every self command on one record runs first: the record's id names its employer (G5). */

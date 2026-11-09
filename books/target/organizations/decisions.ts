@@ -99,9 +99,9 @@ import { flow_client_org_fde_ask, flow_client_org_head_connect, flow_client_org_
 import {
   NEW_OPERATIONS,
   operation_org_fde_turn_get,
-  operation_org_app_add,
-  operation_org_app_list,
-  operation_org_app_remove,
+  operation_org_head_app_add,
+  operation_org_head_app_list,
+  operation_org_head_app_remove,
   operation_org_fde_ask,
   operation_org_fde_show,
   operation_org_head_connect,
@@ -1161,8 +1161,8 @@ export const decision_organizations_commands = defineDecision({
       text:
         "Recommended: exactly the 8 commands of docs/design/new-commands.md (section 5.4), in its one grammar, each one " +
         "SDK method under `client.org(orgId)` over one rpc in organizations (`organizations.<area>.<verb>`), a flow where it " +
-        "prompts or waits: `org app list` " +
-        "(any member, read); `org app add <app>` and `org app remove <app>` (a Director, or the Organization's own agent, " +
+        "prompts or waits: `org head app list` " +
+        "(any member, read); `org head app add <app>` and `org head app remove <app>` (a Director, or the Organization's own agent, " +
         "its FDE; write; a fundamental app is never removed); `org head connect <site-url> --host frappe-cloud|self-hosted` " +
         "(a Director; vendor: a flow reads the head user's API key, and on Frappe Cloud the team's token, from a prompt " +
         "or a file, never a flag, previews what is shared, and follows the check to connected or failing), `org head " +
@@ -1408,13 +1408,13 @@ export const decision_organizations_app_commands = defineDecision({
   id: "organizations.app-commands",
   title: "Apps: any member lists; a Director or the FDE adds and removes, from a catalogue",
   question:
-    "How do `org app list|add|remove` behave: who may run them, which app names are accepted, and what do adding twice " +
+    "How do `org head app list|add|remove` behave: who may run them, which app names are accepted, and what do adding twice " +
     "and removing a fundamental app do?",
   options: [
     {
       label: "catalogue",
       text:
-        "`org app list` for any member. `org app add|remove` for a Director (the Director hat, read from indexing) or " +
+        "`org head app list` for any member. `org head app add|remove` for a Director (the Director hat, read from indexing) or " +
         "the Organization's own agent acting as itself (the Seat whose use is `organization`, a self-run one), as " +
         "aaron.frappe-shape and aaron.fde-agent have the FDE add apps in conversation; the hosted FDE never acts as " +
         "itself but as its asker (aaron.fde-anyone), so it adds one for a Director who asks. An app is one of HEAD_APPS, the deployment's catalogue " +
@@ -1437,8 +1437,8 @@ export const decision_organizations_app_commands = defineDecision({
     "removing one asks for a state none may be in: WRONG_STATE, as G6 gives a forbidden transition.",
   source: passBy("books/target/shared/rulings.ts (aaron.frappe-shape, aaron.fde-agent); docs/design/new-commands.md (G3, G4, G6, section 5.4)"),
   affects: [
-    rpc_organizations_apps_list, rpc_organizations_apps_add, rpc_organizations_apps_remove, operation_org_app_list,
-    operation_org_app_add, operation_org_app_remove, table_org_apps, machine_org_app,
+    rpc_organizations_apps_list, rpc_organizations_apps_add, rpc_organizations_apps_remove, operation_org_head_app_list,
+    operation_org_head_app_add, operation_org_head_app_remove, table_org_apps, machine_org_app,
   ],
 });
 
@@ -1470,7 +1470,7 @@ export const decision_organizations_head_commands = defineDecision({
     "in shell history and process lists (G5). Each app's sync position is in its own concept's tables, which " +
     "organizations cannot read (P4): a member reads it through that app's records. Disconnecting keeps Capxul's " +
     "records, which is what makes connecting safe to try. A preview is a prompt the SDK method asks, and the CLI calls " +
-    "one method (A4), so both head writes that preview are flows, as `contact link` and `org employee leave` are.",
+    "one method (A4), so both head writes that preview are flows, as `contact link` and `org hr employee leave` are.",
   source: passBy("books/target/shared/rulings.ts (aaron.frappe-head); docs/design/new-commands.md (G5, section 5.4); organizations.head-connection"),
   affects: [
     rpc_organizations_heads_connect, rpc_organizations_heads_show, rpc_organizations_heads_disconnect, flow_client_org_head_connect,
@@ -1655,16 +1655,16 @@ export const decision_organizations_command_priorities = defineDecision({
       label: "start-up",
       text:
         "Four: `org fde show` and `org fde ask`, since under aaron.fde-hosted the founder reaches the FDE, which sets " +
-        "the Organization up, only through them; and `org app list` and `org app add`, since aaron.fde-agent has the FDE " +
-        "add the apps a business needs in that conversation. The head's three, `org app remove` and `org seats show` are " +
+        "the Organization up, only through them; and `org head app list` and `org head app add`, since aaron.fde-agent has the FDE " +
+        "add the apps a business needs in that conversation. The head's three, `org head app remove` and `org seats show` are " +
         "normal: a head connects as a separate step (aaron.frappe-head), and a start-up has ten seats.",
     },
     {
       label: "start-up-without-fde",
       text:
-        "Two: `org app list` and `org app add`, since a start-up adds the apps its business needs beyond the " +
+        "Two: `org head app list` and `org head app add`, since a start-up adds the apps its business needs beyond the " +
         "fundamental ones, a Director directly or through the FDE. `org fde show` and `org fde ask` are normal, with the " +
-        "head's three, `org app remove` and `org seats show`.",
+        "head's three, `org head app remove` and `org seats show`.",
     },
     { label: "none", text: "Every command normal, as G8 has it." },
   ],
@@ -1673,7 +1673,7 @@ export const decision_organizations_command_priorities = defineDecision({
     "Aaron's ruling aaron.fde-anyone (8 November 2026, night, question 36, which named this record): 'The FDE is not " +
     "on the critical path anyway.' So start-up's premise, that `org fde ask` is how a founder's first sitting happens " +
     "at all, no longer holds, and the FDE's two commands are normal: nothing a pilot or a start-up needs waits on them. " +
-    "A start-up still adds the apps beyond the fundamental ones, so `org app list|add` stay critical. Critical orders " +
+    "A start-up still adds the apps beyond the fundamental ones, so `org head app list|add` stay critical. Critical orders " +
     "the build's work and the evals a start-up depends on; it changes no budget. projects.critical-commands does the " +
     "same for a pilot's first engagement.",
   source: passBy("docs/design/new-commands.md (G8); books/target/shared/rulings.ts (aaron.fde-anyone, aaron.fde-hosted, aaron.fde-agent, aaron.frappe-head)"),
@@ -1772,14 +1772,16 @@ import {
   rpc_organizations_doctypes_get,
   rpc_organizations_doctypes_list,
 } from "./docs.ts";
-import { flow_client_org_docs_remove } from "./flows.ts";
+import { flow_client_org_head_docs_remove } from "./flows.ts";
 import {
   DOC_OPERATIONS,
   FDE_ANYONE_OPERATIONS,
-  operation_org_doc_call_list,
-  operation_org_doc_remove,
-  operation_org_doctype_get,
-  operation_org_doctype_list,
+  operation_org_head_doc_amend,
+  operation_org_head_doc_call_list,
+  operation_org_head_doc_remove,
+  operation_org_head_doc_submit,
+  operation_org_head_doctype_get,
+  operation_org_head_doctype_list,
   operation_org_fde_guest_add,
   operation_org_fde_guest_list,
   operation_org_fde_guest_remove,
@@ -1896,20 +1898,20 @@ export const decision_organizations_doc_family = defineDecision({
   question:
     "aaron.sdk-reaches-everything: the Core SDK and the CLI reach every capability, and what lives only on a connected " +
     "head is reached 'through a generic document family over the SDK (`org doc list|get|create|change|submit|cancel " +
-    "<DocType>`), with the caller's authority, logged, on the world clock'. Which commands, and what does Frappe's own " +
-    "REST API need that those six lack?",
+    "<DocType>`), with the caller's authority, logged, on the world clock' (spelt `org head doc` since " +
+    "organizations.head-group). Which commands, and what does Frappe's own REST API need that those six lack?",
   options: [
     {
       label: "six-and-what-frappe-needs",
       text:
         "Recommended: twelve commands in the one grammar (docs/design/new-commands.md section 5.7), each one SDK " +
         "method under `client.org(orgId)` over one rpc in organizations (`organizations.docs.*`, `organizations." +
-        "doctypes.*`, `organizations.doc-calls.list`): the six ruled, `org doc list|get|create|change|submit|cancel " +
-        "<DocType>`; three Frappe's documents need, `org doc amend` (a cancelled document's correction), `org doc apply " +
-        "<action>` (a Workflow's step, since a DocType under a Workflow moves only by its actions) and `org doc " +
+        "doctypes.*`, `organizations.doc-calls.list`): the six ruled, `org head doc list|get|create|change|submit|cancel " +
+        "<DocType>`; three Frappe's documents need, `org head doc amend` (a cancelled document's correction), `org head doc apply " +
+        "<action>` (a Workflow's step, since a DocType under a Workflow moves only by its actions) and `org head doc " +
         "remove` (Frappe's Delete, for a draft or a document that is never submitted: a flow that previews); two that " +
-        "say what can be reached, `org doctype list|get` (Frappe's meta: fields, child tables, Workflow, the member's " +
-        "rights, and why a DocType is not reached); and `org doc-call list`, the log. Left out: a count (a list pages), " +
+        "say what can be reached, `org head doctype list|get` (Frappe's meta: fields, child tables, Workflow, the member's " +
+        "rights, and why a DocType is not reached); and `org head doc-call list`, the log. Left out: a count (a list pages), " +
         "copy (create and amend cover it), bulk writes (each document is its own authorised, logged call), whitelisted " +
         "methods (they write any DocType, a native or a money one, around the family's guard; a head capability that " +
         "needs one is designed as its own command), and files and comments (Frappe's core module is native).",
@@ -1925,18 +1927,18 @@ export const decision_organizations_doc_family = defineDecision({
     "self-approval rule the head's approvals are made of, and a draft made in error can only be deleted, since Frappe " +
     "cancels only what was submitted. Frappe's desk offers a Workflow's document only its actions, but its server does " +
     "not refuse a direct submit or cancel: validate_workflow checks only a changed state, and set_workflow_state_on_action " +
-    "then sets the state the Workflow gives that docstatus, so the Capxul app refuses `org doc submit` and `cancel` " +
+    "then sets the state the Workflow gives that docstatus, so the Capxul app refuses `org head doc submit` and `cancel` " +
     "under an active Workflow itself, as the desk does, and `apply` is the only way through. An agent or a program " +
     "using the SDK must also learn what a DocType takes before it writes, which " +
     "is Frappe's meta. A REST proxy would hand the head's whole API, its methods included, to every caller around the " +
     "guards the ruling asks for. Every family command is `vendor` (G8: it calls the head before it answers), " +
     "`normal` priority (no pilot and no start-up runs one), area `organizations`, implemented by its rpc except " +
-    "`org doc remove`, a flow because it previews (G5). The React SDK does not mirror the family: it is the Core SDK's " +
+    "`org head doc remove`, a flow because it previews (G5). The React SDK does not mirror the family: it is the Core SDK's " +
     "and the CLI's (the ruling draws the line there). The head's two methods, `docRead` and `docWrite`, are the " +
     "`frappe-head` integration's (shared/external.ts) and the Capxul app's to serve (component frappe-app).",
   source: worldBy("books/target/shared/rulings.ts (aaron.sdk-reaches-everything, aaron.frappe-head); /tmp/frappe/frappe/api/v2.py; /tmp/frappe/frappe/model/workflow.py"),
   affects: [
-    ...DOC_RPCS, rpc_organizations_doc_calls_list, flow_client_org_docs_remove, table_org_doc_calls, ...DOC_OPERATIONS,
+    ...DOC_RPCS, rpc_organizations_doc_calls_list, flow_client_org_head_docs_remove, table_org_doc_calls, ...DOC_OPERATIONS,
     integration_frappe_head, component_frappe_app, system_capxul,
   ],
 });
@@ -2054,7 +2056,7 @@ export const decision_organizations_doc_log = defineDecision({
         "and repeats it on a retry: a logged id answers as logged, and the Capxul app answers a write it already applied " +
         "under that id as the first time. A call the head did not answer (PROVIDER_ERROR, RATE_LIMITED) is logged " +
         "refused but is the one row that may change, once: a retry under its id calls the head again, and the row " +
-        "records what the head then answers, with `completed_at`. `org doc-call list`: a Director reads every call, any " +
+        "records what the head then answers, with `completed_at`. `org head doc-call list`: a Director reads every call, any " +
         "other member their own.",
     },
     { label: "writes-only", text: "Log only writes; reads appear in traces." },
@@ -2075,7 +2077,7 @@ export const decision_organizations_doc_log = defineDecision({
     "what was done with their own authority. `at` is the world's now (aaron.world-clock), and the head stamps its own " +
     "documents with its now, which follows the same clock (organizations.head-clock).",
   source: worldBy("books/target/shared/rulings.ts (aaron.sdk-reaches-everything, aaron.world-clock); organizations.fde-commands (the ask is logged after the host answers)"),
-  affects: [table_org_doc_calls, rpc_organizations_doc_calls_list, operation_org_doc_call_list, ...DOC_RPCS, component_core_sdk, component_frappe_app],
+  affects: [table_org_doc_calls, rpc_organizations_doc_calls_list, operation_org_head_doc_call_list, ...DOC_RPCS, component_core_sdk, component_frappe_app],
 });
 
 export const decision_organizations_doc_worlds = defineDecision({
@@ -2125,4 +2127,136 @@ export const decision_organizations_doc_worlds = defineDecision({
       "frappe workflow.py (get_transitions); document.py (check_if_latest)",
   ),
   affects: [...DOC_OPERATIONS, ...FDE_ANYONE_OPERATIONS, operation_org_fde_ask, concept_devnet],
+});
+
+// ── the command surface (surface.tree, surface.head-group; Aaron, 9 November 2026) ──────────────────────────────
+
+const SURFACE_PASS = "Claude, surface pass, 9 November 2026 (question 48)";
+const surfaceBy = (evidence: string) => `${SURFACE_PASS}; evidence: ${evidence}`;
+
+/** The fifteen commands surface.head-group moves under `org head`. */
+const HEAD_GROUP_OPERATIONS = [operation_org_head_app_list, operation_org_head_app_add, operation_org_head_app_remove, ...DOC_OPERATIONS];
+
+export const decision_organizations_head_group = defineDecision({
+  id: "organizations.head-group",
+  title: "The head's apps, documents, DocTypes and call log are spelt under `org head`",
+  question:
+    "Aaron, 9 November 2026: 'The number was not the issue. We need everything you can do on Frappe to be programmatic " +
+    "and accessible from our tooling. It's the logical groupings.' surface.head-group puts the Frappe site's commands " +
+    "in one group, `org head`. How does organizations apply it to the fifteen commands it booked under `org app`, " +
+    "`org doc`, `org doctype` and `org doc-call`?",
+  options: [
+    {
+      label: "spelling-only",
+      text:
+        "Rename each command, its id and its export to the tree's words, its SDK method and flow with them, and change " +
+        "no behaviour, claim or refusal but the commands they quote. `org app list|add|remove` becomes `org head app " +
+        "list|add|remove` (ids org.head.app.*); `org doc list|get|create|change|submit|cancel|amend|apply|remove` " +
+        "becomes `org head doc …` (org.head.doc.*); `org doctype list|get` becomes `org head doctype list|get` " +
+        "(org.head.doctype.*); `org doc-call list` becomes `org head doc-call list` (org.head.doc-call.list). Every SDK " +
+        "method gains `.head` (`client.org(orgId).head.apps.list`, `.head.docs.get`, `.head.doctypes.list`, " +
+        "`.head.docCalls.list`), so the flow client.org.docs.remove becomes client.org.head.docs.remove. The commands " +
+        "a refusal names follow the tree as well: NATIVE_DOCTYPES and NATIVE_MODULE_COMMANDS now name `org hr " +
+        "employee`, `hr leave` and `org hr leave`, `org projects`, `org projects task` and `org projects timesheet`, and " +
+        "the rest of HR's and payroll's new words.",
+    },
+    { label: "alias", text: "Book the tree's spelling beside the old one, both answering." },
+    { label: "as-booked", text: "Keep the four nouns as booked (surface.head-group's own as-booked option)." },
+  ],
+  chosen: "spelling-only",
+  why:
+    "All fifteen are operations beyond the 215 (rules.new-operations), so each id is its command's words and moves " +
+    "with them, and no command of the 215 is renamed. An alias gives one capability two commands, which rule 4a " +
+    "forbids (a command is no other operation's). The rpcs keep their ids (`organizations.docs.*`), which name the " +
+    "concept's area, not a command. Where a decision quotes Aaron or a question as it was asked, the quotation keeps " +
+    "its words. What reaches what does not change: organizations.doc-reach stays as accepted until Aaron answers " +
+    "question 52 (surface.frappe-reach). The commands still serve aaron.frappe-head (apps) and " +
+    "aaron.sdk-reaches-everything (the document family).",
+  source: surfaceBy("surface.tree; surface.head-group; docs/design/command-surface.md 4, 5.2, 9; aaron.frappe-head; aaron.sdk-reaches-everything"),
+  affects: [...HEAD_GROUP_OPERATIONS, flow_client_org_head_docs_remove, table_org_doc_calls, component_core_sdk],
+});
+
+export const decision_organizations_head_claims = defineDecision({
+  id: "organizations.head-claims",
+  title: "Each head command claims what it really does: its answer, its writes, a retry",
+  question:
+    "Five of organizations' commands beyond the 215 carried one acceptance claim each: `org head show`, `org head doc " +
+    "submit`, `org head doc amend`, `org head doctype list` and `org fde guest list`. Which further claims does each " +
+    "behaviour already booked have, observable through the CLI from a catalogued world?",
+  options: [
+    {
+      label: "what-the-rpc-does",
+      text:
+        "Claim what each one's rpc already books, and nothing else. `org head show`: the apps as the head runs them; it " +
+        "reads only Capxul's rows, so it answers while the head is down; failing at the daily check that fails and " +
+        "connected at the next good one (organizations.heads.watch's `stall` and `recover`); `rungAt` on the world's " +
+        "clock (organizations.heads.ring). `org head doc submit`: the head User and the world's clock in its log row; a " +
+        "DocType that is never submitted refused; a retry under the same call id submits once (organizations.doc-log). " +
+        "`org head doc amend`: the amendment is a draft to submit, the original stays cancelled; an amendment's " +
+        "amendment is `-2`; a retry amends once. `org head doctype list`: `--module`, and a native module naming its " +
+        "commands; no child table; paging by name; the call logged. `org fde guest list`: removed guests after active, " +
+        "`--status`, paging, no write.",
+    },
+    { label: "one-each", text: "Keep one claim each: the success path is enough for a read or a single write." },
+  ],
+  chosen: "what-the-rpc-does",
+  why:
+    "A claim is an eval, and one claim leaves the rest of a command's booked behaviour untested: what it answers, what " +
+    "it changes and what a retry does. Each added claim restates a sentence of its rpc's or process's about, from a " +
+    "world the catalog holds (org-with-head, org-with-head-down, org-with-head-docs, org-with-fde-guest) and never an " +
+    "invented behaviour. Two were left out as unsure: a submit under an active Workflow (the world's only Workflow " +
+    "runs on Job Applicant, which Frappe HR does not submit, so the refusal it would meet first is not booked), and " +
+    "amending one cancelled document twice (Frappe would name both amendments `-1`). For the devnet designer: the " +
+    "stand-in head's metas need Job Opening not submittable (hrms@8816102: no is_submittable) and Training Event " +
+    "Employee a child table of Training Event (istable), Project in module Projects, and its daily check to fail " +
+    "while its fault switch is down.",
+  source: surfaceBy("heads.ts, docs.ts, fde.ts, organizations.heads.watch; devnet worlds.ts; hrms@8816102 job_opening, training_event(_employee); frappe naming.py"),
+  affects: [
+    operation_org_head_show, operation_org_head_doc_submit, operation_org_head_doc_amend, operation_org_head_doctype_list,
+    operation_org_fde_guest_list, concept_devnet,
+  ],
+});
+
+export const decision_organizations_reach_holes = defineDecision({
+  id: "organizations.reach-holes",
+  title: "Four holes in the family's guard, closed by its own accepted tests",
+  question:
+    "Reading every DocType of erpnext@6b946b0, hrms@8816102 and crm@2cecd30 against organizations.doc-reach " +
+    "(docs/design/command-surface.md section 7.6) found what the accepted guard reaches though its own tests say it " +
+    "should not, or leaves unclear: Transaction Deletion Record, which deletes every transaction of a Company and is " +
+    "in no hook; SMS Center, Email Digest, Newsletter and Auto Email Report, which exist to send through the head's own " +
+    "mail or SMS; a child table a hook lists under a parent it does not (Material Request Item, Request for Quotation " +
+    "Item, Asset Movement Item); and Frappe HR documents that write native HR records on submit. Which does " +
+    "organizations close, and how, while Aaron's question 52 is open?",
+  options: [
+    {
+      label: "by-the-accepted-tests",
+      text:
+        "Close each by the test organizations.doc-reach already applies, and change nothing else. Transaction Deletion " +
+        "Record joins LEDGER_UNHOOKED: it rewrites the ledger though no hook says so, as Repost Item Valuation does. The " +
+        "four senders join HEAD_MACHINERY, which already refuses what sends through a channel of the head's own " +
+        "(Notification). A hooked child makes no money of its parent: the parent is judged by its own listing, and the " +
+        "child is reached only through it, so Material Request, Request for Quotation and Asset Movement stay reached. " +
+        "The HR documents are payroll's to answer (refuse them, or have payroll.hr-head-sync take in what they write): " +
+        "NATIVE_DOCTYPES gains them only when payroll asks.",
+    },
+    { label: "parent-as-money", text: "As by-the-accepted-tests, but a hooked child makes its parent money too." },
+    { label: "wait", text: "Change nothing until Aaron answers question 52." },
+  ],
+  chosen: "by-the-accepted-tests",
+  why:
+    "Each fix applies the accepted rule to a DocType it missed, and the rule itself says a lane that finds another " +
+    "unhooked writer of the ledger adds it. Transaction Deletion Record, submitted, deletes the Company's GL and stock " +
+    "entries with its transactions, which is re-posting the ledger at its widest; under question 52's recommendation it " +
+    "is refused as moving money too, so either answer refuses it. The senders are the channel case Notification " +
+    "already is, and a world's channels are its own (aaron.world-clock, time.world-channels). The parents post nothing " +
+    "(read in erpnext@6b946b0: Material Request updates requested quantities, Request for Quotation emails its " +
+    "suppliers through the head's mail, which a world keeps in its sink, and Asset Movement sets an Asset's location " +
+    "and custodian); `accounting_dimension_doctypes` lists their items because the items carry dimension fields that " +
+    "post only when a listed document takes them up. parent-as-money would refuse three documents that move no money, " +
+    "against the 9 November ruling; waiting would leave a Company's ledger deletable through the family. " +
+    "surface.frappe-reach's wider narrowing is not applied here: organizations.doc-reach stays as accepted until Aaron " +
+    "answers question 52.",
+  source: surfaceBy("erpnext@6b946b0 hooks.py and the seven DocTypes named; frappe@1a7ea577 auto_email_report; command-surface.md 7.6; organizations.doc-reach"),
+  affects: [...DOC_RPCS, ...DOC_OPERATIONS, component_frappe_app, integration_frappe_head, concept_payroll],
 });

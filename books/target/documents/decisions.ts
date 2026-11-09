@@ -479,7 +479,7 @@ export const decision_documents_payslip_readers = defineDecision({
   question:
     "A payslip's participants are the employee's Safe and the paying company Safe, and an Organization participant is " +
     "read by every member with an active Seat, so any member could `document render` a colleague's payslip, while " +
-    "`payslip get` never shows someone else's. Who reads a payslip's Organization side?",
+    "`payroll payslip get` never shows someone else's. Who reads a payslip's Organization side?",
   options: [
     {
       label: "people-hat",
@@ -493,7 +493,7 @@ export const decision_documents_payslip_readers = defineDecision({
   ],
   chosen: "people-hat",
   why:
-    "Pay is personal: `payslip get` refuses another person's slip (payroll.command-authority), and the HR records are " +
+    "Pay is personal: `payroll payslip get` refuses another person's slip (payroll.command-authority), and the HR records are " +
     "the People hat's, so a member with a Seat and no hat must not read through the document what the command refuses. " +
     "The People hat is read when the document is read, so a wearer swapped out of the hat stops reading at once, as " +
     "every authority in the book follows the hat now (docs/design/authority.md). Employee-only would leave the " +

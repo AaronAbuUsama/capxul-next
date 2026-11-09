@@ -890,24 +890,24 @@ export const table_org_fde_asks = defineTable({
 export const NATIVE_DOCTYPES = [
   { doctype: "Company", concept: "organizations", commands: "`org show`" },
   { doctype: "Department", concept: "budgets", commands: "`org department`" },
-  { doctype: "Employee", concept: "payroll", commands: "`org employee`" },
+  { doctype: "Employee", concept: "payroll", commands: "`org hr employee`" },
   { doctype: "Customer", concept: "parties", commands: "`contact` (the Organization's book)" },
   { doctype: "Supplier", concept: "parties", commands: "`contact` (the Organization's book)" },
   { doctype: "Contact", concept: "contacts", commands: "`contact`" },
   { doctype: "Address", concept: "contacts", commands: "`contact`" },
   { doctype: "Currency", concept: "books", commands: "`org books assets`" },
-  { doctype: "Holiday List", concept: "payroll", commands: "`org holiday`" },
+  { doctype: "Holiday List", concept: "payroll", commands: "`org hr holiday`" },
   { doctype: "HR Settings", concept: "payroll", commands: "none: Capxul fixes its values (payroll's `hr-settings`)" },
-  { doctype: "Leave Type", concept: "payroll", commands: "`org leave-type`" },
-  { doctype: "Leave Allocation", concept: "payroll", commands: "`org leave allocate`, `unallocate` and `balance`" },
-  { doctype: "Leave Application", concept: "payroll", commands: "`leave` and `org leave`" },
-  { doctype: "Shift Type", concept: "payroll", commands: "`org shift-type`" },
-  { doctype: "Shift Assignment", concept: "payroll", commands: "`org shift-type assign` and `unassign`" },
-  { doctype: "Employee Checkin", concept: "payroll", commands: "`attendance checkin`" },
-  { doctype: "Attendance", concept: "payroll", commands: "`attendance list` and `org attendance`" },
-  { doctype: "Expense Claim Type", concept: "payroll", commands: "`org expense-type`" },
-  { doctype: "Expense Claim", concept: "payroll", commands: "`expense-claim` and `org expense-claim`" },
-  { doctype: "Employee Advance", concept: "payroll", commands: "`advance` and `org advance`" },
+  { doctype: "Leave Type", concept: "payroll", commands: "`org hr leave-type`" },
+  { doctype: "Leave Allocation", concept: "payroll", commands: "`org hr leave allocate`, `unallocate` and `balance`" },
+  { doctype: "Leave Application", concept: "payroll", commands: "`hr leave` and `org hr leave`" },
+  { doctype: "Shift Type", concept: "payroll", commands: "`org hr shift-type`" },
+  { doctype: "Shift Assignment", concept: "payroll", commands: "`org hr shift-type assign` and `unassign`" },
+  { doctype: "Employee Checkin", concept: "payroll", commands: "`hr attendance checkin`" },
+  { doctype: "Attendance", concept: "payroll", commands: "`hr attendance list` and `org hr attendance`" },
+  { doctype: "Expense Claim Type", concept: "payroll", commands: "`org hr expense-type`" },
+  { doctype: "Expense Claim", concept: "payroll", commands: "`hr expense-claim` and `org hr expense-claim`" },
+  { doctype: "Employee Advance", concept: "payroll", commands: "`hr advance` and `org hr advance`" },
   { doctype: "WA Account", concept: "contacts", commands: "`org crm whatsapp connect`, `show` and `disconnect`" },
   { doctype: "WA Message", concept: "contacts", commands: "`org crm whatsapp send` and `org crm timeline`" },
   { doctype: "Communication", concept: "contacts", commands: "`org crm email send` and `org crm timeline`" },
@@ -920,8 +920,8 @@ export const NATIVE_DOCTYPES = [
 export const NATIVE_MODULE_COMMANDS = {
   core: "none: Frappe's core (Users, roles, files, comments, messages) is identity and channels, which are Capxul's",
   accounts: "`org books`",
-  projects: "`org project`, `org task` and `org timesheet`",
-  payroll: "`org payroll` and `org employee`",
+  projects: "`org projects`, `org projects task` and `org projects timesheet`",
+  payroll: "`org payroll` and `org hr employee`",
   fcrm: "`org crm` and `contact`",
 } as const;
 
@@ -934,19 +934,26 @@ export const NATIVE_MODULE_COMMANDS = {
  * world's channels, around the family's guard (organizations.doc-reach). Checked against Frappe develop
  * (github.com/frappe/frappe@1a7ea577): custom (Client Script, Custom Field, Property Setter, Customize Form), workflow
  * (Workflow), email (Notification, Email Account, Email Domain), website (Web Form, Website Script), desk (System
- * Console, Bulk Update), automation (Auto Repeat) and integrations (the rest).
+ * Console, Bulk Update), automation (Auto Repeat) and integrations (the rest). The last four, added by
+ * organizations.reach-holes, exist to send through the head's own mail or SMS: Frappe's Auto Email Report (email) and
+ * Newsletter (Frappe's email module up to v15, its own app since), and ERPNext's Email Digest (setup) and SMS Center
+ * (selling), read in erpnext@6b946b0.
  */
 export const HEAD_MACHINERY = [
   "Client Script", "Custom Field", "Property Setter", "Customize Form", "Workflow", "Notification", "System Console",
   "Bulk Update", "Webhook", "OAuth Client", "OAuth Bearer Token", "Social Login Key", "LDAP Settings", "Connected App",
   "Token Cache", "Email Account", "Email Domain", "Web Form", "Website Script", "Auto Repeat",
+  "Auto Email Report", "Newsletter", "Email Digest", "SMS Center",
 ] as const;
 
 /**
  * The hooks by which the head's installed apps declare the DocTypes that post to the ledger, close with a period, take
  * advance payments, reconcile with a bank, keep an audit trail or may have their ledger reposted (merged across apps, as
  * `frappe.get_hooks` merges them): the Capxul app refuses any DocType they list, and its child tables, as money
- * (organizations.doc-reach). They list most of what posts, not all: see LEDGER_UNHOOKED and MONEY_MODULES.
+ * (organizations.doc-reach). They list most of what posts, not all: see LEDGER_UNHOOKED and MONEY_MODULES. A child table
+ * they list under a parent they do not (Material Request Item, Request for Quotation Item, Asset Movement Item) makes no
+ * money of its parent: the parent is judged by its own listing, and the child, as every child table, is reached only
+ * through it (organizations.reach-holes).
  */
 export const LEDGER_HOOKS = [
   "accounting_dimension_doctypes", "period_closing_doctypes", "advance_payment_receivable_doctypes",
@@ -957,9 +964,11 @@ export const LEDGER_HOOKS = [
  * DocTypes outside the native modules that post or re-post the head's ledger though no hook lists them, refused as money
  * by name before any call (organizations.doc-reach): ERPNext's Repost Item Valuation (stock module; an Accounts Manager,
  * which the Books hat gives, may create and submit one, and its repost rewrites the stock and general ledger entries of
- * the vouchers it names, `repost_gl_entries`). A lane that finds another adds it here, book first.
+ * the vouchers it names, `repost_gl_entries`), and ERPNext's Transaction Deletion Record (setup module; submitted, it
+ * deletes every transaction of a Company, its ledger entries with them; organizations.reach-holes). A lane that finds
+ * another adds it here, book first.
  */
-export const LEDGER_UNHOOKED = ["Repost Item Valuation"] as const;
+export const LEDGER_UNHOOKED = ["Repost Item Valuation", "Transaction Deletion Record"] as const;
 
 /**
  * Modules of an app Capxul can ask a head to install (HEAD_APPS) whose every DocType counts as money, which the Capxul app
@@ -980,7 +989,7 @@ export const table_org_doc_calls = defineTable({
   title: "Document calls: every call the document family made to the head, and for whom",
   about:
     "The document family's log (aaron.sdk-reaches-everything: 'with the caller's authority, logged, on the world's " +
-    "clock'; organizations.doc-log). One row per call an `org doc` or `org doctype` command made, read or write, " +
+    "clock'; organizations.doc-log). One row per call an `org head doc` or `org head doctype` command made, read or write, " +
     "written in one transaction once the head has answered, or once Capxul refused before any call: whose authority it " +
     "ran with (the member's Seat; for the hosted FDE, its asker's, with the ask), the head User it ran as, the verb, " +
     "the DocType and the document's name, the outcome (done, or the refusal's code and reason), and the head's " +
@@ -1033,17 +1042,17 @@ export const table_org_doc_calls = defineTable({
     {
       name: "by_org_at",
       fields: ["org_id", "at", "call_id"],
-      for: "`org doc-call list`, newest first, for a Director.",
+      for: "`org head doc-call list`, newest first, for a Director.",
     },
     {
       name: "by_org_member",
       fields: ["org_id", "member_id", "at", "call_id"],
-      for: "`org doc-call list` for a member other than a Director: the calls made with their own authority, the FDE's for them included.",
+      for: "`org head doc-call list` for a member other than a Director: the calls made with their own authority, the FDE's for them included.",
     },
     {
       name: "by_org_document",
       fields: ["org_id", "doctype", "name", "at"],
-      for: "`org doc-call list --doctype --name`: every call that touched one document.",
+      for: "`org head doc-call list --doctype --name`: every call that touched one document.",
     },
   ],
   retention: KEPT,

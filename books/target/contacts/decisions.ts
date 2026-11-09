@@ -1387,7 +1387,7 @@ export const decision_contacts_deal_list_filters = defineDecision({
   why:
     "Refuted in review (fit): the grammar's row gives the three flags side by side with no exclusion, and every list " +
     "of the 215 and of the other packs combines its filters (`activity list` its status, kind, direction and dates; " +
-    "`org project list` its status, type, customer and member), as Frappe CRM's deals list combines its filters. A " +
+    "`org projects list` its status, type, customer and member), as Frappe CRM's deals list combines its filters. A " +
     "pilot's question is often one company's open deals. A CLI_USAGE for a pair would be a refusal no other list has. " +
     "No table or index changes: one person's or one company's deals are few, so a row check after the narrowest " +
     "index stays within the read budget.",
@@ -1820,7 +1820,7 @@ export const decision_contacts_task_verbs = defineDecision({
     "two, on its status menu and its board. The brief named `org crm task create|done`. How are the moves spelt?",
   options: [
     { label: "move", text: "`org crm task move <task> <status>`, as `org crm lead move` and `org crm deal move` move theirs." },
-    { label: "lifecycle", text: "`org crm task start|complete|cancel|reopen`, as projects' `org task` does." },
+    { label: "lifecycle", text: "`org crm task start|complete|cancel|reopen`, as projects' `org projects task` does." },
     { label: "done", text: "`org crm task done <task>`, and the others by `change --status`." },
   ],
   chosen: "move",
@@ -2062,7 +2062,7 @@ export const decision_contacts_conversation_spelling = defineDecision({
       label: "grammar",
       text:
         "A reply is `--in-reply-to <id>` on both sends (Frappe's Communication `in_reply_to`, the header it sets); a " +
-        "note's title is `org crm note add <record> <title>`, as `org crm task create <record> <title>` and `org task " +
+        "note's title is `org crm note add <record> <title>`, as `org crm task create <record> <title>` and `org projects task " +
         "create <subject>`; a task's member is `--assigned-to <member>` on create, change and list, the field it prints; " +
         "`org crm task change` takes `--title`; a task's due time is `--due`, CRM Task's `due_date`, an instant, beside " +
         "G5's `--by` and `--close-by`; `org crm timeline <record>` is a view read by its noun, its method " +
@@ -2075,7 +2075,7 @@ export const decision_contacts_conversation_spelling = defineDecision({
   why:
     "G5 makes `<email>` a mailbox, and `--reply-to` is the Reply-To header the send itself sets (`git send-email` " +
     "keeps `--in-reply-to` for the thread and `--reply-to` for the address), so `--reply-to <email>` would be read as " +
-    "an address. A record's required name is its argument across the grammar (`org project create <name>`, `org task " +
+    "an address. A record's required name is its argument across the grammar (`org projects create <name>`, `org projects task " +
     "create <subject>`, `contact create <label>`), and Frappe requires both a note's and a task's title. One field " +
     "gets one flag, named as it prints, as `org crm deal list --company` repeats create's; and create's title being " +
     "an argument, change needs `--title` or a task could not be renamed. A due time is not a period's end, which G5 " +

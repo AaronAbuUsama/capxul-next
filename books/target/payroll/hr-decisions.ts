@@ -47,9 +47,9 @@ import {
   workflow_payroll_attendance_auto,
 } from "./attendance.ts";
 import {
-  flow_client_org_advances_pay,
-  flow_client_org_advances_settle,
-  flow_client_org_expense_claims_pay,
+  flow_client_org_hr_advances_pay,
+  flow_client_org_hr_advances_settle,
+  flow_client_org_hr_expense_claims_pay,
   rpc_payroll_advances_mine,
   rpc_payroll_advances_pay,
   rpc_payroll_advances_reject,
@@ -74,14 +74,14 @@ import { operation_org_payroll_run_create } from "./operations.ts";
 import {
   HR_CRITICAL,
   HR_OPERATIONS,
-  operation_attendance_checkin,
-  operation_expense_claim_create,
-  operation_leave_apply,
-  operation_org_advance_pay,
-  operation_org_advance_settle,
-  operation_org_expense_claim_approve,
-  operation_org_expense_claim_pay,
-  operation_org_leave_approve,
+  operation_hr_attendance_checkin,
+  operation_hr_expense_claim_create,
+  operation_hr_leave_apply,
+  operation_org_hr_advance_pay,
+  operation_org_hr_advance_settle,
+  operation_org_hr_expense_claim_approve,
+  operation_org_hr_expense_claim_pay,
+  operation_org_hr_leave_approve,
 } from "./operations.ts";
 
 const HRMS = "/tmp/hrms/hrms/hr/doctype";
@@ -202,12 +202,12 @@ export const decision_payroll_hr_commands = defineDecision({
     {
       label: "forty-five",
       text:
-        "Recommended, booked now: `org holiday add|remove|list`; `org leave-type add|change|list`; `org leave " +
-        "allocate|unallocate|balance|approve|reject|list`; the Employee's own `leave apply|list|cancel|balance`; `org " +
-        "shift-type add|list|assign|unassign`; the Employee's own `attendance checkin|list`; `org attendance " +
-        "mark|cancel|list`; `org expense-type add|list`; the Employee's own `expense-claim create|list|get|cancel`; `org " +
-        "expense-claim approve|reject|pay|cancel|list|get`; the Employee's own `advance request|list|cancel`; and `org " +
-        "advance pay|reject|settle|list|get`. Section 5.9 of new-commands.md lists each with its SDK method, who, budget " +
+        "Recommended, booked now: `org hr holiday add|remove|list`; `org hr leave-type add|change|list`; `org hr leave " +
+        "allocate|unallocate|balance|approve|reject|list`; the Employee's own `hr leave apply|list|cancel|balance`; `org " +
+        "hr shift-type add|list|assign|unassign`; the Employee's own `hr attendance checkin|list`; `org hr attendance " +
+        "mark|cancel|list`; `org hr expense-type add|list`; the Employee's own `hr expense-claim create|list|get|cancel`; `org " +
+        "hr expense-claim approve|reject|pay|cancel|list|get`; the Employee's own `hr advance request|list|cancel`; and `org " +
+        "hr advance pay|reject|settle|list|get`. Section 5.9 of new-commands.md lists each with its SDK method, who, budget " +
         "and behaviour.",
     },
     {
@@ -224,8 +224,8 @@ export const decision_payroll_hr_commands = defineDecision({
     "`expense-claim`), as `activity-type` and `project-type` are, or a common word, as G2 names Salary Slip `payslip` " +
     "(`leave` for Leave Application, with its allocations under it as a structure's assignments are under `org payroll " +
     "structure`, and `advance` for Employee Advance); the 215 use none of these words. The Employee's own records have " +
-    "no prefix and take `--employer`, as `payslip list` does (G1); a lifecycle verb names its machine's transition, so a " +
-    "leave is born by `apply` and an advance by `request`, as the 215's `org agreement offer` and `request issue` are " +
+    "no prefix and take `--employer`, as `payroll payslip list` does (G1); a lifecycle verb names its machine's transition, so a " +
+    "leave is born by `apply` and an advance by `request`, as the 215's `org payroll agreement offer` and `request issue` are " +
     "born by their own verbs; `balance` reads a view by its noun, as the 215's `balance` does and `org crm timeline` " +
     "reads its record's (contacts.conversation-spelling). Claiming sends at once: a claim's lines and receipts are " +
     "given whole, so a draft step would only delay " +
@@ -249,7 +249,7 @@ export const decision_payroll_hr_command_shape = defineDecision({
         "settled it. Shift types and expense claim types are added, never changed: attendance and claims keep the hours " +
         "and accounts they were decided by, and different ones are a new type (payroll.shift-types, payroll.expense-types). " +
         "Nobody applies for leave for another: an Employee with no account has their days marked by the People hat with " +
-        "`org attendance mark --status on_leave --leave-type`, which docks pay the same way.",
+        "`org hr attendance mark --status on_leave --leave-type`, which docks pay the same way.",
     },
     { label: "full-grid", text: "Every verb of G3 on every record kind." },
   ],
@@ -273,10 +273,10 @@ export const decision_payroll_hr_rpc_methods = defineDecision({
     {
       label: "rpc-unless-composed",
       text:
-        "Each HR command is implemented by its one rpc, its SDK method that rpc's (G7); `org expense-claim pay` and `org " +
-        "advance pay` sign and wait, so each is one flow (`client.org.expense-claims.pay`, `client.org.advances.pay`) on " +
-        "the CLI and the SDK; `org advance settle` previews and asks, since no command takes its deduction back (G5), so " +
-        "it is one flow too (`client.org.advances.settle`: read, prompt, settle). The 28 payroll commands keep their " +
+        "Each HR command is implemented by its one rpc, its SDK method that rpc's (G7); `org hr expense-claim pay` and `org " +
+        "hr advance pay` sign and wait, so each is one flow (`client.org.hr.expense-claims.pay`, `client.org.hr.advances.pay`) on " +
+        "the CLI and the SDK; `org hr advance settle` previews and asks, since no command takes its deduction back (G5), so " +
+        "it is one flow too (`client.org.hr.advances.settle`: read, prompt, settle). The 28 payroll commands keep their " +
         "flows, which already serve the web app.",
     },
     { label: "flows", text: "One flow per HR command, each one call, on the CLI, the SDK and the web app." },
@@ -288,7 +288,7 @@ export const decision_payroll_hr_rpc_methods = defineDecision({
     "default and are half the records. The flows of the 28 stay: they are booked, serve `react`, and changing them would " +
     "move 28 SDK methods for nothing.",
   source: by("aaron.sdk-reaches-everything", "docs/design/new-commands.md (G7); payroll.command-flows"),
-  affects: [...HR_OPERATIONS, flow_client_org_expense_claims_pay, flow_client_org_advances_pay, flow_client_org_advances_settle],
+  affects: [...HR_OPERATIONS, flow_client_org_hr_expense_claims_pay, flow_client_org_hr_advances_pay, flow_client_org_hr_advances_settle],
 });
 
 export const decision_payroll_attendance_based = defineDecision({
@@ -378,7 +378,7 @@ export const decision_payroll_hr_self = defineDecision({
       text:
         "No prefix, and `--employer <handle>`, never `--org`, which means acting for an Organization, which an Employee " +
         "is not (G1). A write or a balance acts at the employer it names (absent: the one Organization where the caller " +
-        "is a live Employee); a list holds every employer's rows and `--employer` filters, exactly as `payslip list " +
+        "is a live Employee); a list holds every employer's rows and `--employer` filters, exactly as `payroll payslip list " +
         "--employer` (G1); a command on one record takes the employer from its id (G5). The caller is a " +
         "signed-in person whose Party is the Employee's; an agent never is. Each HR row of one Employee carries " +
         "`employee_safe`, their Employee's `payee_safe`, which the row policy admits them by; the Organization's own " +
@@ -391,7 +391,7 @@ export const decision_payroll_hr_self = defineDecision({
     "Frappe HR's self-service is the Employee's, not a desk user's: leave and claims are the employee's own documents " +
     "(`validate_employee_scope`). Keying the row policy on the Safe pay already goes to (payroll.mailbox-for-pay) means " +
     "the same person reads their payslips and their leave by one admission, from every employer, and nothing is " +
-    "admitted by a Seat they do not hold. A name that matches no employer is INVALID_INPUT, as `payslip list " +
+    "admitted by a Seat they do not hold. A name that matches no employer is INVALID_INPUT, as `payroll payslip list " +
     "--employer` refuses one. An Employee acts for themselves, as a payee accepting an agreement does, so " +
     "docs/design/authority.md's Seat-first rule, for acting for an Organization with its hats, does not reach them; " +
     "every decision on their records is still a Seat's and a hat's (payroll.hr-approvers).",
@@ -435,12 +435,12 @@ export const decision_payroll_hr_money = defineDecision({
     rpc_payroll_advances_pay,
     workflow_payroll_expense_claims_payment,
     workflow_payroll_advances_payment,
-    flow_client_org_expense_claims_pay,
-    flow_client_org_advances_pay,
+    flow_client_org_hr_expense_claims_pay,
+    flow_client_org_hr_advances_pay,
     machine_expense_claim,
     machine_employee_advance,
-    operation_org_expense_claim_pay,
-    operation_org_advance_pay,
+    operation_org_hr_expense_claim_pay,
+    operation_org_hr_advance_pay,
   ],
 });
 
@@ -452,11 +452,11 @@ export const decision_payroll_advance_recovery = defineDecision({
     {
       label: "salary",
       text:
-        "`org advance settle` makes one Additional Salary deducting the unclaimed amount under the Organization's advance " +
+        "`org hr advance settle` makes one Additional Salary deducting the unclaimed amount under the Organization's advance " +
         "recovery component, its payroll date the first day after the Employee's latest submitted slip, as Frappe's " +
         "`create_return_through_additional_salary`; the next run takes it as a deduction row, its accrual credits Employee " +
         "Advances (`add_advance_deduction_entry`), and the advance is returned when that slip is submitted, paid again if " +
-        "the run is cancelled. No command takes the deduction back, so `org advance settle` previews it and asks (G5).",
+        "the run is cancelled. No command takes the deduction back, so `org hr advance settle` previews it and asks (G5).",
     },
     { label: "transfer", text: "The Employee sends the money back to the company Safe, recorded as Frappe's return Journal Entry." },
   ],
@@ -472,12 +472,12 @@ export const decision_payroll_advance_recovery = defineDecision({
     table_additional_salaries,
     table_salary_components,
     rpc_payroll_advances_settle,
-    flow_client_org_advances_settle,
+    flow_client_org_hr_advances_settle,
     rpc_payroll_runs_create,
     rpc_payroll_runs_submit,
     rpc_payroll_runs_cancel,
     machine_employee_advance,
-    operation_org_advance_settle,
+    operation_org_hr_advance_settle,
   ],
 });
 
@@ -563,7 +563,7 @@ export const decision_payroll_hr_world_clock = defineDecision({
     "refusing one ahead of the world's now keeps no check-in in the world's future, and the pull's People-hat user is " +
     "the authority it arrives under, as every pulled change's is (payroll.head-sync).",
   source: by("aaron.world-clock", `${HRMS}/employee_checkin/employee_checkin.json (time); docs/design/time.md`),
-  affects: [table_employee_checkins, rpc_payroll_attendance_checkin, workflow_payroll_attendance_auto, workflow_payroll_head_sync, operation_attendance_checkin],
+  affects: [table_employee_checkins, rpc_payroll_attendance_checkin, workflow_payroll_attendance_auto, workflow_payroll_head_sync, operation_hr_attendance_checkin],
 });
 
 export const decision_payroll_expense_types = defineDecision({
@@ -577,7 +577,7 @@ export const decision_payroll_expense_types = defineDecision({
         "Added with an optional books expense account, never changed; a claim records the account each line was approved " +
         "with. Null posts to books' default expense account, chosen by books when the accrual is recorded.",
     },
-    { label: "changeable", text: "`org expense-type change`, the account changing for claims approved after." },
+    { label: "changeable", text: "`org hr expense-type change`, the account changing for claims approved after." },
   ],
   chosen: "add-only",
   why:
@@ -654,8 +654,8 @@ export const decision_payroll_hr_critical = defineDecision({
     {
       label: "seven",
       text:
-        "`org leave-type add`, `org leave allocate`, `leave apply`, `org leave approve`, `expense-claim create`, `org " +
-        "expense-claim approve` and `org expense-claim pay`: define leave, give it, take it and decide it; claim, decide " +
+        "`org hr leave-type add`, `org hr leave allocate`, `hr leave apply`, `org hr leave approve`, `hr expense-claim create`, `org " +
+        "hr expense-claim approve` and `org hr expense-claim pay`: define leave, give it, take it and decide it; claim, decide " +
         "and pay an expense. The rest normal.",
     },
     { label: "none", text: "Every HR command normal." },
@@ -686,5 +686,5 @@ export const decision_payroll_hr_notices = defineDecision({
   chosen: "notices",
   why: "Every notice is notices' (payroll.notices-elsewhere), from a transition's one event (P7); the events carry what it needs to find the department's hat wearers.",
   source: by("aaron.frappe-shape", "payroll.notices-elsewhere; rules.outbox"),
-  affects: [machine_leave_application, machine_expense_claim, machine_employee_advance, operation_leave_apply, operation_expense_claim_create, operation_org_leave_approve, operation_org_expense_claim_approve],
+  affects: [machine_leave_application, machine_expense_claim, machine_employee_advance, operation_hr_leave_apply, operation_hr_expense_claim_create, operation_org_hr_leave_approve, operation_org_hr_expense_claim_approve],
 });

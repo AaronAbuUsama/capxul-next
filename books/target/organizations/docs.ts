@@ -1,7 +1,7 @@
 // The document family (aaron.sdk-reaches-everything): the Core SDK and the CLI reach what lives only
 // on a connected Frappe head (recruitment, appraisal, training, onboarding, a Helpdesk ticket, any
-// other app's documents) through one generic family, `org doc list|get|create|change|submit|cancel|
-// amend|apply|remove <DocType>` and `org doctype list|get`, each one SDK method over one rpc here
+// other app's documents) through one generic family, `org head doc list|get|create|change|submit|cancel|
+// amend|apply|remove <DocType>` and `org head doctype list|get`, each one SDK method over one rpc here
 // (organizations.doc-family). Every call goes through Capxul's backend to the head's Capxul app and
 // runs there as the member's own head User, found by mailbox, so the head's permissions decide
 // (organizations.doc-authority); it never reaches a DocType a native concept owns or one that is
@@ -57,30 +57,30 @@ const Fields = Schema.Record(S, Schema.Unknown);
 /** What the caller's head User may do to a document, as Frappe's permissions answer for them. */
 const DocPermissions = Schema.Struct({ read: B, write: B, submit: B, cancel: B, amend: B, remove: B });
 
-/** One document as `org doc get` prints it, and every write prints it after the change. */
+/** One document as `org head doc get` prints it, and every write prints it after the change. */
 export const DocView = Schema.Struct({
   doctype: S,
-  /** The head's name for it: the id every other `org doc` command takes. Capxul has no id of its own for it. */
+  /** The head's name for it: the id every other `org head doc` command takes. Capxul has no id of its own for it. */
   name: S,
   /** Frappe's docstatus (0 draft, 1 submitted, 2 cancelled), and the same in words. */
   docstatus: N,
   status: Schema.Literals(["draft", "submitted", "cancelled"]),
   /** Its Workflow's state, when its DocType has an active Workflow; else null. */
   workflowState: NullOr(S),
-  /** The head User who made it, and the head's stamps: `modified` is what `org doc change --modified` checks against. */
+  /** The head User who made it, and the head's stamps: `modified` is what `org head doc change --modified` checks against. */
   owner: S,
   creation: S,
   modified: S,
   amendedFrom: NullOr(S),
   fields: Fields,
-  /** The Workflow actions the caller's head User may take now (`org doc apply`). */
+  /** The Workflow actions the caller's head User may take now (`org head doc apply`). */
   actions: Schema.Array(S),
   permissions: DocPermissions,
-  /** The call that read or wrote it, as `org doc-call list` prints it. */
+  /** The call that read or wrote it, as `org head doc-call list` prints it. */
   callId: S,
 });
 
-/** One row of `org doc list`: the name, the stamps, and the fields asked for (by default the DocType's list-view fields). */
+/** One row of `org head doc list`: the name, the stamps, and the fields asked for (by default the DocType's list-view fields). */
 const DocSummary = Schema.Struct({ doctype: S, name: S, docstatus: N, modified: S, fields: Fields });
 
 /** Why the family does or does not reach a DocType (organizations.doc-reach). */
@@ -93,7 +93,7 @@ const DoctypeSummary = Schema.Struct({
   submittable: B,
   single: B,
   reach: Reach,
-  /** For a native DocType, the commands that reach it instead (`org employee`); else null. */
+  /** For a native DocType, the commands that reach it instead (`org hr employee`); else null. */
   commands: NullOr(S),
 });
 
@@ -108,7 +108,7 @@ const DocField = Schema.Struct({
   allowOnSubmit: B,
 });
 
-/** A DocType as `org doctype get` prints it. */
+/** A DocType as `org head doctype get` prints it. */
 export const DoctypeView = Schema.Struct({
   ...DoctypeSummary.fields,
   /** Its naming rule, as Frappe's `autoname` gives it, and its title field. */
@@ -129,7 +129,7 @@ export const DoctypeView = Schema.Struct({
   callId: S,
 });
 
-/** One logged call as `org doc-call list` prints it. */
+/** One logged call as `org head doc-call list` prints it. */
 export const DocCallView = Schema.Struct({
   callId: S,
   verb: DocVerb,
@@ -323,7 +323,7 @@ export const rpc_organizations_docs_cancel = familyRpc({
   title: "Cancel a submitted head document",
   about:
     `${HEAD_GUARD} ${REACH_GUARD} It cancels the document through \`docWrite\` (Frappe's \`cancel\`): a submitted ` +
-    "document becomes cancelled for good, its `on_cancel` running on the head; it is kept, and `org doc amend` makes " +
+    "document becomes cancelled for good, its `on_cancel` running on the head; it is kept, and `org head doc amend` makes " +
     "its correction. A draft, one already cancelled, one under an active Workflow (refused by the Capxul app, as a " +
     "submit is), or one that submitted documents still link to (Frappe names them), is WRONG_STATE. " +
     `${WRITE_ONCE} ${AS_USER} ${CLOCK} ${LOGGED}`,

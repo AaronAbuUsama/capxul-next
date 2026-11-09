@@ -353,17 +353,17 @@ export const flow_client_org_fde_ask = defineFlow({
 
 // ── the document family (organizations.doc-family) ─────────────────────────────────────────
 
-export const flow_client_org_docs_remove = defineFlow({
-  id: "client.org.docs.remove",
+export const flow_client_org_head_docs_remove = defineFlow({
+  id: "client.org.head.docs.remove",
   title: "Delete a head document after a preview",
   about:
-    "`org doc remove` (organizations.doc-family, aaron.sdk-reaches-everything). Deleting a head document cannot be " +
+    "`org head doc remove` (organizations.doc-family, aaron.sdk-reaches-everything). Deleting a head document cannot be " +
     "undone from Capxul, so it reads the document first (one logged read: a name the head lacks, or one the member may " +
     "not read, ends there), shows its DocType, name, title and status and that it cannot be undone, and asks; no is " +
     "CANCELLED and nothing is deleted, and `--confirm` answers yes in a script, which without it is the CLI's usage " +
     "refusal (vocabulary.declined-preview-cancelled). Then it deletes it in one call, with the same call id on a retry.",
   component: component_core_sdk,
-  sdk: "client.org(orgId).docs.remove",
+  sdk: "client.org(orgId).head.docs.remove",
   input: Schema.Struct({ orgId: S, doctype: S, name: S, confirm: Schema.optionalKey(Schema.Boolean) }),
   output: rpc_organizations_docs_remove.output,
   steps: [

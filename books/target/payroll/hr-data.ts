@@ -82,7 +82,7 @@ export const table_holiday_lists = defineTable({
     "One Holiday List per Organization and calendar year, `<Company> <year>` from 1 January to 31 December, the " +
     "Company's default for that year: its `holidays` rows (Frappe's Holiday child table, embedded), each a day, its " +
     "description, whether it is a weekly off and whether it is a half day, and `total_holidays`. Born by the first " +
-    "`org holiday add` of a day in that year, and changed only by `org holiday add` and `remove` (or a People hat's edit " +
+    "`org hr holiday add` of a day in that year, and changed only by `org hr holiday add` and `remove` (or a People hat's edit " +
     "on a connected head). A day in no list is a working day. With Payroll Settings counting holidays as working days, " +
     "holidays never lower a slip's working days: they decide which days a leave counts and which an absence docks " +
     "(payroll.attendance-based). One list for every Employee: Frappe's per-Employee lists and Holiday List Assignments " +
@@ -127,7 +127,7 @@ export const table_leave_types = defineTable({
     "`include_holiday` (holidays inside a leave count as leave days) and `allow_negative` (taken beyond the balance). " +
     "Frappe's earned, compensatory, optional and encashable leave are a head's: Capxul's commands leave those flags off, " +
     "and a type born on a head with them is kept as the head sends it, its allocations then made there " +
-    "(payroll.hr-scope). Changed by `org leave-type change`; an application already decided keeps its days.",
+    "(payroll.hr-scope). Changed by `org hr leave-type change`; an application already decided keeps its days.",
   was: [`${HR}/leave_type/leave_type.json`],
   concept: concept_payroll,
   tenancy: "organization",
@@ -218,8 +218,8 @@ export const table_leave_applications = defineTable({
   about:
     "One Leave Application: the Employee, the leave type, `from_date` to `to_date`, `half_day` with `half_day_date`, " +
     "`total_leave_days` (the days in the range, less holidays unless the type includes them, less half a day for a " +
-    "half day), `description`, `posting_date`, and `status`. The Employee applies (`leave apply`) and cancels " +
-    "(`leave cancel`); a wearer of their department's hat or one above it, or of the People hat, approves or rejects, " +
+    "half day), `description`, `posting_date`, and `status`. The Employee applies (`hr leave apply`) and cancels " +
+    "(`hr leave cancel`); a wearer of their department's hat or one above it, or of the People hat, approves or rejects, " +
     "never the applicant (payroll.hr-approvers). `leave_approver` is the principal who decided and `decided_at` when. " +
     "Approving marks each leave day's attendance `on_leave` (a half day `half_day`), so an unpaid type's days dock the " +
     "slip that covers them (payroll.attendance-based). `department` is the Employee's when they applied. `status` moves " +
@@ -276,7 +276,7 @@ export const table_leave_applications = defineTable({
       name: "by_employee_safe",
       fields: ["employee_safe", "from_date"],
       crossTenant: true,
-      for: "A person's own applications, from every Organization that employs them: `leave list`.",
+      for: "A person's own applications, from every Organization that employs them: `hr leave list`.",
     },
   ],
   retention: KEPT,
@@ -528,7 +528,7 @@ export const table_employee_checkins = defineTable({
       name: "by_employee_safe",
       fields: ["employee_safe", "time"],
       crossTenant: true,
-      for: "A person's own check-ins, from every Organization that employs them: `attendance list`.",
+      for: "A person's own check-ins, from every Organization that employs them: `hr attendance list`.",
     },
   ],
   retention: KEPT,
@@ -606,7 +606,7 @@ export const table_attendances = defineTable({
     {
       name: "by_date",
       fields: ["org_id", "attendance_date", "status"],
-      for: "The Organization's attendance by day and status: `org attendance list`.",
+      for: "The Organization's attendance by day and status: `org hr attendance list`.",
     },
     {
       name: "by_leave",
@@ -617,7 +617,7 @@ export const table_attendances = defineTable({
       name: "by_employee_safe",
       fields: ["employee_safe", "attendance_date"],
       crossTenant: true,
-      for: "A person's own attendance, from every Organization that employs them: `attendance list`.",
+      for: "A person's own attendance, from every Organization that employs them: `hr attendance list`.",
     },
   ],
   retention: KEPT,
@@ -828,7 +828,7 @@ export const table_expense_claims = defineTable({
   indexes: [
     { name: "by_status", fields: ["org_id", "status", "posting_date"], for: "The claims waiting for a decision or a payment, and the Organization's list by status." },
     { name: "by_department", fields: ["org_id", "department", "posting_date"], for: "A department's claims: what its hat wearers list, approve and pay." },
-    { name: "by_employee_safe", fields: ["employee_safe", "posting_date"], crossTenant: true, for: "A person's own claims, from every Organization that employs them: `expense-claim list`." },
+    { name: "by_employee_safe", fields: ["employee_safe", "posting_date"], crossTenant: true, for: "A person's own claims, from every Organization that employs them: `hr expense-claim list`." },
     { name: "by_command", fields: ["command_id", "payment_id"], crossTenant: true, for: "A Payment's transition, by its command and payment id, to the claim it pays and so to its process." },
   ],
   retention: KEPT,
@@ -855,7 +855,7 @@ export const table_employee_advances = defineTable({
     "their approved expense claims), `return_amount` (recovered from their salary) and the status those make. The " +
     "Employee requests it; whoever wears the department's hat or one above it pays it, which approves it, or rejects " +
     "it, never the requester (payroll.hr-approvers), as one payment command from the budget through payments' door " +
-    "(payroll.hr-money). `org advance settle` recovers what no claim took from the Employee's next salary, as Frappe's " +
+    "(payroll.hr-money). `org hr advance settle` recovers what no claim took from the Employee's next salary, as Frappe's " +
     "`repay_unclaimed_amount_from_salary` does, by an Additional Salary (payroll.advance-recovery). `advance_account` " +
     "is books' Employee Advances account, null for its role's. `status` moves only through machine `employee-advance`.",
   was: [`${HR}/employee_advance/employee_advance.json`, `${HR}/employee_advance/employee_advance.py:160`],
@@ -901,7 +901,7 @@ export const table_employee_advances = defineTable({
   indexes: [
     { name: "by_status", fields: ["org_id", "status", "posting_date"], for: "The advances waiting to be paid, and the Organization's list by status." },
     { name: "by_employee", fields: ["org_id", "employee_id", "status"], for: "An Employee's paid advances a claim may take, and those to recover." },
-    { name: "by_employee_safe", fields: ["employee_safe", "posting_date"], crossTenant: true, for: "A person's own advances, from every Organization that employs them: `advance list`." },
+    { name: "by_employee_safe", fields: ["employee_safe", "posting_date"], crossTenant: true, for: "A person's own advances, from every Organization that employs them: `hr advance list`." },
     { name: "by_command", fields: ["command_id", "payment_id"], crossTenant: true, for: "A Payment's transition, by its command and payment id, to the advance it pays and so to its process." },
   ],
   retention: KEPT,

@@ -222,7 +222,7 @@ const EntryStatus = Schema.Literals(["draft", "submitted", "paying", "paid", "ca
 const Money = S;
 
 /**
- * `org employee add <person> --first-name --joined <day> [--last-name] [--department] [--designation] [--type]`.
+ * `org hr employee add <person> --first-name --joined <day> [--last-name] [--department] [--designation] [--type]`.
  * The CLI's flags name these fields: `--joined` is `dateOfJoining`, `--type` is `employmentType`; `--last-name` is
  * optional, as Frappe's `last_name` is (payroll.command-fit).
  */
@@ -267,12 +267,12 @@ export const Employee = Schema.Struct({
   headName: Null(S),
 });
 
-/** `org employee list [--department] [--status] [--after] [--limit]`: one page, as every list (payroll.command-fit). */
+/** `org hr employee list [--department] [--status] [--after] [--limit]`: one page, as every list (payroll.command-fit). */
 export const EmployeeListInput = Schema.Struct({ orgId: S, department: opt(S), status: opt(EmployeeStatus), after: opt(S), limit: opt(Schema.Int) });
 
-/** `org employee get|suspend|deactivate|reinstate <employee>`: the Employee by its `emp_` id. */
+/** `org hr employee get|suspend|deactivate|reinstate <employee>`: the Employee by its `emp_` id. */
 export const EmployeeRef = Schema.Struct({ orgId: S, employeeId: S });
-/** `org employee change <employee> [--department] [--designation] [--type]`: its fields only, never its status (a
+/** `org hr employee change <employee> [--department] [--designation] [--type]`: its fields only, never its status (a
  * status is a lifecycle verb); `--type` is `employmentType`. */
 export const EmployeeEdit = Schema.Struct({
   orgId: S,
@@ -281,7 +281,7 @@ export const EmployeeEdit = Schema.Struct({
   designation: opt(S),
   employmentType: opt(EmploymentType),
 });
-/** `org employee leave <employee> --on <day>`: the last day worked; `confirm` true from a script (`--confirm`), with no preview. */
+/** `org hr employee leave <employee> --on <day>`: the last day worked; `confirm` true from a script (`--confirm`), with no preview. */
 export const EmployeeLeave = Schema.Struct({ orgId: S, employeeId: S, relievingDate: Day, confirm: opt(Schema.Boolean) });
 
 /** A component's fields as `org payroll component add` and `change` set them; on a change every one is optional.
@@ -419,7 +419,7 @@ export const Assignment = Schema.Struct({
   docstatus: Schema.Literals(["submitted", "cancelled"]),
 });
 
-/** One Employee as `org employee get` prints it, and every Employee write after its change (G9): the record and the
+/** One Employee as `org hr employee get` prints it, and every Employee write after its change (G9): the record and the
  * submitted assignment that pays them today, or null (payroll.command-fit). */
 export const EmployeeView = Schema.Struct({ employee: Employee, assignment: Null(Assignment) });
 
@@ -488,7 +488,7 @@ export const Slip = Schema.Struct({
   netPay: Money,
   currency: S,
   status: SlipStatus,
-  /** Frappe's Salary Withholding reason while it is withheld (`org payslip withhold --reason`); null otherwise. */
+  /** Frappe's Salary Withholding reason while it is withheld (`org payroll payslip withhold --reason`); null otherwise. */
   withholdingReason: Null(S),
   document: Null(Schema.Struct({ documentId: S, hash: S })),
   /** Once paid: the settled facts that came back from the chain. */
@@ -545,9 +545,9 @@ export const ImportInput = Schema.Struct({
 });
 
 export const WithholdInput = Schema.Struct({ orgId: S, salarySlipId: S, withhold: Schema.Boolean, reason: opt(S) });
-/** `org payslip withhold <slip> --reason <text>`. */
+/** `org payroll payslip withhold <slip> --reason <text>`. */
 export const SlipWithhold = Schema.Struct({ orgId: S, salarySlipId: S, reason: S });
-/** `org payslip release <slip>`. */
+/** `org payroll payslip release <slip>`. */
 export const SlipRef = Schema.Struct({ orgId: S, salarySlipId: S });
 
 /** `org payroll run list [--department] [--status] [--after] [--limit]`: one page, as every list (payroll.command-fit). */
@@ -567,7 +567,7 @@ export const RunRow = Schema.Struct({
 
 /**
  * The caller's own payslips, from every Organization that pays them; one slip with `salarySlipId`. `orgId` is one
- * payer's, from `payslip list --employer <handle>`: a filter, never `--org`, which acts for an Organization.
+ * payer's, from `payroll payslip list --employer <handle>`: a filter, never `--org`, which acts for an Organization.
  */
 export const MySlipsInput = Schema.Struct({
   salarySlipId: opt(S),
@@ -576,9 +576,9 @@ export const MySlipsInput = Schema.Struct({
   after: opt(S),
   limit: opt(Schema.Int),
 });
-/** `payslip list [--employer <handle>] [--after] [--limit]`. */
+/** `payroll payslip list [--employer <handle>] [--after] [--limit]`. */
 export const MySlipsList = Schema.Struct({ employer: opt(S), after: opt(S), limit: opt(Schema.Int) });
-/** `payslip get <slip>`. */
+/** `payroll payslip get <slip>`. */
 export const MySlipRef = Schema.Struct({ salarySlipId: S });
 /** One of the caller's payslips, with the Organization that pays it. */
 export const MySlip = Schema.Struct({ payer: Schema.Struct({ orgId: S, name: S }), slip: Slip });

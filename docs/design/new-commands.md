@@ -15,6 +15,12 @@ row below, each with its decision. The pack decisions recommend exactly the comm
 - the world pass (Aaron's eighth batch): `organizations.fde-guests`, `organizations.doc-family`,
   `contacts.conversation-commands`, `payroll.hr-commands`, `devnet.clock-rate` and `payments.claim-command`.
 
+**Grouped, 9 November 2026** (`surface.tree`, on Aaron's answer to question 48: "It's the logical groupings"). Every
+command, the 215's and these, now sits in one tree of thirteen logical groups:
+[`command-surface.md`](command-surface.md). Section 2 below is that tree's grammar. Sections 5 and 6 still give each
+command as its pack booked it; command-surface.md gives each one's grouped spelling, which its owner applies, book
+first, and these rows then take.
+
 Nothing here changes the 215. A new operation never stands in for one of them, and the grammar is checked
 against them: no id, export name or command below collides with a frozen operation or its old command
 (`tools/check-frozen.ts`, 9 November 2026: 165 new operations, 0 collisions, 0 breaches).
@@ -63,60 +69,67 @@ follows them, with no exception.
 
 - A command on an Organization's records only begins with `org`. It acts for the Organization named by
   `--org <handle>`, or else the one `use org` chose, as every `org` command of the 215 does. Projects, the CRM's
-  leads and deals, payroll, apps, the head, seats and the FDE are only an Organization's, so their commands begin
-  with `org`.
-- A command on the caller's own records, across every Organization, has no prefix: `payslip list`, as
-  `agreement list`.
+  leads and deals, HR's and payroll's Organization side, the head (its apps and documents), seats and the FDE are only
+  an Organization's, so their commands begin with `org`.
+- A command on the caller's own records, across every Organization, has no `org`: `payroll payslip list`, as
+  `payroll agreement list`. Where the records are a group's (G2), it begins with the group's word.
 - A command on a book that is either a person's or an Organization's has no prefix and takes `--org` for the
   Organization's: `contact create`, as `contact add`.
 - `--org` always means "act for this Organization". It is never a filter. A filter by Organization is its own
-  flag: `payslip list --employer <handle>`.
-- An Employee's own HR records (5.9) are the caller's own, so their commands have no prefix and never take `--org`:
-  a list holds every employer's and `--employer` filters, as `payslip list`; a command on one record takes the
-  employer from its id; and a write or a balance with no record yet (`leave apply`, `leave balance`, `attendance
-  checkin`, `expense-claim create`, `advance request`) acts at the employer `--employer` names, absent their only one
-  (`payroll.hr-self`).
+  flag: `payroll payslip list --employer <handle>`.
+- An Employee's own HR records (5.9) are the caller's own, so their commands begin with `hr`, the group's word without
+  `org`, and never take `--org`: a list holds every employer's and `--employer` filters, as `payroll payslip list`; a
+  command on one record takes the employer from its id; and a write or a balance with no record yet (`hr leave apply`,
+  `hr leave balance`, `hr attendance checkin`, `hr expense-claim create`, `hr advance request`) acts at the employer
+  `--employer` names, absent their only one (`payroll.hr-self`). The Organization's side of the same records is
+  `org hr` (`org hr leave approve`): the same noun, with `org` the only difference (`surface.hr-group`).
 
-**G2. Nouns.**
+**G2. Groups and nouns** (`surface.tree`; [`command-surface.md`](command-surface.md)).
 
-- A record kind is one singular, kebab-case noun, standing directly under `org`, as the 215's do (`org department`,
-  `org member`, `org allowance`). It is named as Frappe names the DocType: `org project`, `org task`,
-  `org timesheet`, `org activity-type`, `org project-type`, `org employee`, `org payslip` (Salary Slip).
-- An app's word goes first only where the bare noun would not say what it is, as the 215's `org books accounts`
-  does:
-  - `org crm lead` and `org crm deal`: Frappe names these DocTypes "CRM Lead" and "CRM Deal", and "lead" and "deal"
-    alone read as verbs.
-  - `org payroll component`, `org payroll structure` and `org payroll run`: "component", "structure" and "run"
-    alone name nothing.
-- A record that belongs to another is a second noun, as `org department holder add` is: `org project member`,
-  `org project settings`.
+- Where a Frappe app holds the records, a command names the app's group first, one word, as the 215's `org books`
+  does: `org books` (ERPNext's Accounting), `org hr` (Frappe HR's HR module), `org payroll` (its Payroll module, with
+  pay agreements), `org crm` (Frappe CRM), `org projects` (ERPNext's Projects) and `org head` (the Frappe site: its
+  apps, DocTypes, documents and call log). A person's own side of a group takes the same word without `org`: `hr`,
+  `payroll`.
+- Capxul's native areas keep the 215's nouns, directly under `org` or at the top (`org department`, `org member`,
+  `org round`, `payment`, `bank`), which already say what they are. `capxul --help` groups them in sections.
+- Under a group, a record kind is one singular, kebab-case noun, named as Frappe names the DocType:
+  `org projects task`, `org projects timesheet`, `org projects activity-type`, `org hr employee`, `org hr leave-type`,
+  `org hr expense-claim`, `org head doctype`; or a common word where G2 allows one: `payslip` (Salary Slip), `leave`,
+  `advance`, `doc`.
+- A group whose first record is the module's own takes that record's verbs directly, as `org` takes the
+  Organization's (`org create`, `org list`, `org show`): `org projects create` makes a Project, so no command reads
+  "projects project" (`surface.projects-group`).
+- A record that belongs to another is a second noun, as `org department holder add` is: `org projects member`
+  (Project User), `org fde guest`.
 - A singleton the Organization has exactly one of keeps its own name, plural if that is its name, as `org books`
-  is: `org head`, `org fde`, `org seats`.
+  is: `org head`, `org fde`, `org seats`, `org projects settings`.
+- No command has more than four words before its arguments, the 215's longest (`org books accounts add`).
 
 **G3. Verbs.** Verbs come from a closed set, each with one meaning, and each is a verb the 215 already use.
 `update` and `show <id>` are not used.
 
 | Verb | Means | As in the 215 | New uses |
 |---|---|---|---|
-| `create` | Makes a new working document that has a lifecycle of its own | `org department create`, `service create` | project, task, timesheet, CRM lead and deal, payroll structure and run, a book entry (`contact create`), a head document (`org doc create`) |
-| `add` / `remove` | Puts a person, an app or a named setting into a list the Organization keeps, or takes it out | `contact add`, `org department holder add\|remove` | employee, project member, activity type, project type, salary component, app, FDE guest, holiday, leave type, shift type, expense type, CRM note (`org crm note add`); and `org doc remove` (below) |
-| `change` | Edits a record's fields, never its status | `org agreement change`, `org allowance change` | every record with fields |
-| `set` | Sets a singleton's values | `org department budget set` | `org project settings set`, `dev time set` (the clock's rate) |
+| `create` | Makes a new working document that has a lifecycle of its own | `org department create`, `service create` | project, task, timesheet, CRM lead and deal, payroll structure and run, a book entry (`contact create`), a head document (`org head doc create`) |
+| `add` / `remove` | Puts a person, an app or a named setting into a list the Organization keeps, or takes it out | `contact add`, `org department holder add\|remove` | employee, project member, activity type, project type, salary component, app, FDE guest, holiday, leave type, shift type, expense type, CRM note (`org crm note add`); and `org head doc remove` (below) |
+| `change` | Edits a record's fields, never its status | `org payroll agreement change`, `org allowance change` | every record with fields |
+| `set` | Sets a singleton's values | `org department budget set` | `org projects settings set`, `dev time set` (the clock's rate) |
 | `list` | Lists, paged with `--after`, newest change first unless stated | `payment list`, `org member list` | every record kind |
 | `get <id>` | Reads one record of a list | `payment get`, `contact get`, `org member get` | every record kind |
 | `show` | Reads a singleton, with no id | `org show`, `org board show` | head, FDE, seats, project settings |
-| A lifecycle verb | One transition of the record's state machine that a person takes, named as the machine names it | `org agreement pause\|resume`, `org department close\|reopen`, `org proposal approve\|reject`, `request issue` | project `hold\|resume\|complete\|reopen\|cancel`; task `start\|review\|complete\|reopen\|cancel`; timesheet `submit\|cancel`; employee `suspend\|deactivate\|reinstate\|leave`; structure `cancel`; head document `submit\|cancel` (Frappe's docstatus); leave `apply` (its birth), `approve\|reject\|cancel`; expense claim `approve\|reject\|cancel`; advance `request` (its birth), `reject\|cancel`; attendance `cancel` |
-| A domain verb | A step with no simpler name | `bank match`, `agreement collect`, `org round allocate` | `timesheet log`, `crm lead move\|convert`, `crm deal move`, `structure assign\|unassign`, `run submit\|pay`, `payslip withhold\|release`, `contact link`, `head connect\|disconnect`, `seats buy`, `fde pay\|ask`, `payment claim` (`aaron.payment-claim`), `timesheet bill`, `doc amend` (a cancelled document's correction) and `doc apply` (a Workflow's action); the CRM's `email\|whatsapp send`, `whatsapp connect\|disconnect`, `task move` and `call log`; HR's `leave allocate\|unallocate`, `shift-type assign\|unassign`, `attendance checkin\|mark`, `expense-claim pay`, `advance pay\|settle` |
+| A lifecycle verb | One transition of the record's state machine that a person takes, named as the machine names it | `org payroll agreement pause\|resume`, `org department close\|reopen`, `org proposal approve\|reject`, `request issue` | project `hold\|resume\|complete\|reopen\|cancel`; task `start\|review\|complete\|reopen\|cancel`; timesheet `submit\|cancel`; employee `suspend\|deactivate\|reinstate\|leave`; structure `cancel`; head document `submit\|cancel` (Frappe's docstatus); leave `apply` (its birth), `approve\|reject\|cancel`; expense claim `approve\|reject\|cancel`; advance `request` (its birth), `reject\|cancel`; attendance `cancel` |
+| A domain verb | A step with no simpler name | `bank match`, `payroll agreement collect`, `org round allocate` | `timesheet log`, `crm lead move\|convert`, `crm deal move`, `structure assign\|unassign`, `run submit\|pay`, `payslip withhold\|release`, `contact link`, `head connect\|disconnect`, `seats buy`, `fde pay\|ask`, `payment claim` (`aaron.payment-claim`), `timesheet bill`, `doc amend` (a cancelled document's correction) and `doc apply` (a Workflow's action); the CRM's `email\|whatsapp send`, `whatsapp connect\|disconnect`, `task move` and `call log`; HR's `leave allocate\|unallocate`, `shift-type assign\|unassign`, `attendance checkin\|mark`, `expense-claim pay`, `advance pay\|settle` |
 
 - An undoing verb is the 215's pair: `hide|unhide`, `freeze|unfreeze`, `add|remove`. So the new pairs are
   `hold|resume`, `complete|reopen`, `assign|unassign`, `disable|enable`, `withhold|release`, `suspend|reinstate`
   and `connect|disconnect`.
 - `claim` takes up what is held for you: a Board seat (`org board claim`), a Safe at setup, or the money waiting in
   its claim escrow (`payment claim`, `aaron.payment-claim`). `collect` is a payee taking money released to them
-  (`agreement collect`), and stays the escrow's own function, so `payment claim` still answers `collected`.
+  (`payroll agreement collect`), and stays the escrow's own function, so `payment claim` still answers `collected`.
 - A command whose rpc both creates and changes gets one command per verb. Each is its own SDK method over the one
   rpc, as `contact hide` and `contact unhide` are.
-- `org doc remove` is Frappe's Delete of a head document. The 215 have no `delete`: `remove` is their word for taking
+- `org head doc remove` is Frappe's Delete of a head document. The 215 have no `delete`: `remove` is their word for taking
   a record away (`bank accounts remove`; `agent remove`, which has no undo), and since this cannot be undone from
   Capxul it previews (G5).
 
@@ -149,7 +162,7 @@ follows them, with no exception.
 **G5. Arguments and flags.**
 
 - The record a command acts on is a positional argument: its Capxul id, as `list` prints it. A head document, of
-  which Capxul keeps no copy, is `<DocType> <name>`, Frappe's names, as `org doc list` prints them (5.7).
+  which Capxul keeps no copy, is `<DocType> <name>`, Frappe's names, as `org head doc list` prints them (5.7).
 - A member is an email, or an agent's `@handle`, as in `org member grant`.
 - A Party is an email, an `@handle`, a `0x` address or a Party id, as in `contact add`. Examples are a customer,
   a person to employ, or the Party a contact links to.
@@ -159,7 +172,7 @@ follows them, with no exception.
 - Times:
   - A day is `--on <YYYY-MM-DD>`, a day in the Organization's time zone.
   - A period's bounds are `--start` and `--end`: days for a document's dates, ISO 8601 instants for a time log,
-    and `HH:MM` in the Organization's time zone for a shift's daily hours (`org shift-type add`, `payroll.shift-types`).
+    and `HH:MM` in the Organization's time zone for a shift's daily hours (`org hr shift-type add`, `payroll.shift-types`).
   - A review date is `--by <day>`. A forecast close is `--close-by <day>`. A CRM task's due time is `--due <time|day>`
     (CRM Task's `due_date`, `contacts.conversation-spelling`).
 - Amounts are decimal strings: in the Company's currency for projects and the CRM, and in the structure's token
@@ -174,8 +187,8 @@ follows them, with no exception.
   `payment claim` takes `--json` and `--timeout-seconds` and no `--request-key`, since it births no command. The
   approval page is their confirmation.
 - A command that cannot be undone, or that hands records to an outside system, previews what it will do and asks:
-  `contact link`, `org employee leave`, `org head connect`, `org head disconnect`, `org doc remove` and `org advance
-  settle` (a salary deduction no command takes back, `payroll.advance-recovery`). `--confirm` answers yes in a script
+  `contact link`, `org hr employee leave`, `org head connect`, `org head disconnect`, `org head doc remove` and
+  `org hr advance settle` (a salary deduction no command takes back, `payroll.advance-recovery`). `--confirm` answers yes in a script
   (`vocabulary.declined-preview-cancelled`).
 - A secret is never a flag. `org head connect` reads the head user's API key and secret, and on Frappe Cloud the
   team's token, from a prompt or from `--key-file` and `--team-token-file`.
@@ -199,12 +212,15 @@ id is `INVALID_INPUT`, as in `payment get`.
 
 - The SDK method is the command's words:
   - `org` becomes `client.org(orgId)`;
+  - a group's word is a namespace, as written (`crm`, `hr`, `payroll`, `projects`, `head`, `books`);
   - each noun becomes its plural, in camelCase;
   - the verb comes last, in camelCase.
 
-  So `org crm lead create` is `client.org(orgId).crm.leads.create` and `org activity-type add` is
-  `client.org(orgId).activityTypes.add`.
-- A caller's own records sit under `client.me` (`client.me.payslips.list`).
+  So `org crm lead create` is `client.org(orgId).crm.leads.create`, `org projects activity-type add` is
+  `client.org(orgId).projects.activityTypes.add`, `org projects create` is `client.org(orgId).projects.create`,
+  `org hr leave approve` is `client.org(orgId).hr.leaves.approve` and `org head doc get` is
+  `client.org(orgId).head.docs.get`.
+- A caller's own records sit under `client.me` (`client.me.payroll.payslips.list`, `client.me.hr.leaves.apply`).
 - A book is `client.account.addressBook`, as the 215's contact commands are.
 - Payments are `client.payments`.
 - The flow id is the method, kebab-cased, without `(orgId)`.
@@ -223,11 +239,11 @@ id is `INVALID_INPUT`, as in `payment get`.
 | `write` | One off-chain transaction. |
 | `chain-read` | A command whose rpc reads the chain before it answers: projects' 19 commands that read the People or Director hat live (`projects.hat-guard`). |
 | `chain-submit` | A command that signs an approval and follows the chain: `org payroll run pay`, `org seats buy`, `org fde pay`, `payment claim`. |
-| `vendor` | A command that calls an outside system before it answers: `org head connect` reads the site; `org fde ask` and `org fde turn get` wait on the host; every `org doc` and `org doctype` command calls the head. |
+| `vendor` | A command that calls an outside system before it answers: `org head connect` reads the site; `org fde ask` and `org fde turn get` wait on the host; every `org head doc` and `org head doctype` command calls the head. |
 
 A new command is `normal` priority unless its pack's decision marks it `critical`, the loop a pilot or a start-up
 runs first: 11 of projects' (`projects.critical-commands`), 6 of the CRM's (`contacts.critical-commands`), 10 of
-payroll's (`payroll.critical-commands`), 7 of HR's (`payroll.hr-critical`) and 2 of organizations' (`org app list|add`; not the FDE's, which "is not on
+payroll's (`payroll.critical-commands`), 7 of HR's (`payroll.hr-critical`) and 2 of organizations' (`org head app list|add`; not the FDE's, which "is not on
 the critical path", `aaron.fde-anyone`; `organizations.command-priorities`). No B3 pilot runs one, and `org create` finishes without any.
 
 **G9. Output.**
@@ -245,7 +261,7 @@ the critical path", `aaron.fde-anyone`; `organizations.command-priorities`). No 
 - Each operation has at least one claim observed through the CLI, and a refusal from a world for each code it
   produces.
 - The concept whose rpc or flow implements a command books it, even when the noun is another concept's, as the 215
-  book `org member invite` in budgets. So `org timesheet bill` is requests', and `org seats buy`, `org fde pay`
+  book `org member invite` in budgets. So `org projects timesheet bill` is requests', and `org seats buy`, `org fde pay`
   and `payment claim` are payments' (`payment claim`'s flow calls accounts' rpc `accounts.setup.collect`).
 
 ## 3. Overlaps and spellings resolved across the packs
@@ -297,6 +313,9 @@ The payroll changes:
 - Rename `client.me.payslips` to `client.me.payslips.list`, and add `.get`, over `payroll.slips.mine`.
 
 ## 5. The commands
+
+These tables give each command as its pack booked it. Its grouped spelling (`surface.tree`) is in
+[`command-surface.md`](command-surface.md), sections 5 and 6; once its owner applies it, the row here takes it.
 
 Each table gives:
 

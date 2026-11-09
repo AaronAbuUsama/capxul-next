@@ -789,17 +789,17 @@ const PRINTS =
   "`awaiting_approval` with the approval's id, page and expiry and `capxul payment wait <approvalId>` as `next`; " +
   "followed, `status` is the record's. A declined approval ends it CANCELLED, owed again.";
 
-export const flow_client_org_expense_claims_pay = defineFlow({
-  id: "client.org.expense-claims.pay",
+export const flow_client_org_hr_expense_claims_pay = defineFlow({
+  id: "client.org.hr.expense-claims.pay",
   title: "Pay an approved expense claim, then follow it",
   about:
     "Pays an approved claim as one payment command from its department's budget, or resumes its lapsed command. The " +
     "caller signs one approval (an agent with its own key, a person on the approval page), and the flow follows the " +
     "claim until it is paid, or `timeoutSeconds` passes. " +
     PRINTS +
-    " It serves `org expense-claim pay` and the SDK.",
+    " It serves `org hr expense-claim pay` and the SDK.",
   component: component_core_sdk,
-  sdk: "client.org(orgId).expenseClaims.pay",
+  sdk: "client.org(orgId).hr.expenseClaims.pay",
   input: ClaimPayFlowInput,
   output: moneyOutcome(Claim, ClaimStatus),
   steps: [
@@ -817,17 +817,17 @@ export const flow_client_org_expense_claims_pay = defineFlow({
   budget: budget("chain-submit"),
 });
 
-export const flow_client_org_advances_pay = defineFlow({
-  id: "client.org.advances.pay",
+export const flow_client_org_hr_advances_pay = defineFlow({
+  id: "client.org.hr.advances.pay",
   title: "Pay a requested advance, then follow it",
   about:
     "Approves and pays a requested advance as one payment command from its department's budget, or resumes its lapsed " +
     "command. The caller signs one approval, and the flow follows the advance until it is paid, or `timeoutSeconds` " +
     "passes. " +
     PRINTS +
-    " It serves `org advance pay` and the SDK.",
+    " It serves `org hr advance pay` and the SDK.",
   component: component_core_sdk,
-  sdk: "client.org(orgId).advances.pay",
+  sdk: "client.org(orgId).hr.advances.pay",
   input: AdvancePayFlowInput,
   output: moneyOutcome(Advance, AdvanceStatus),
   steps: [
@@ -845,18 +845,18 @@ export const flow_client_org_advances_pay = defineFlow({
   budget: budget("chain-submit"),
 });
 
-export const flow_client_org_advances_settle = defineFlow({
-  id: "client.org.advances.settle",
+export const flow_client_org_hr_advances_settle = defineFlow({
+  id: "client.org.hr.advances.settle",
   title: "Recover what is left of an advance from salary, after a preview",
   about:
-    "`org advance settle`: what no claim took of a paid advance is deducted from the Employee's next payslip by an " +
+    "`org hr advance settle`: what no claim took of a paid advance is deducted from the Employee's next payslip by an " +
     "Additional Salary, which no command takes back (payroll.advance-recovery), so it previews and asks, as G5 has " +
     "every command that cannot be undone. At a terminal it first shows the Employee and the unclaimed amount their " +
     "next payslip will lose, and asks; a decline ends it CANCELLED with nothing written, and `confirm` (`--confirm`) " +
     "answers yes in a script, which without it is the CLI's CLI_USAGE (vocabulary.declined-preview-cancelled). It " +
     "serves the command and the SDK.",
   component: component_core_sdk,
-  sdk: "client.org(orgId).advances.settle",
+  sdk: "client.org(orgId).hr.advances.settle",
   input: AdvanceSettleFlowInput,
   output: Advance,
   steps: [

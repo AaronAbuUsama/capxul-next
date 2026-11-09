@@ -1615,7 +1615,7 @@ export const decision_payments_claim_command = defineDecision({
     "WRONG_STATE or INVALID_INPUT as `account retry` refuses), " +
     "and it is the same collection setup opens at the claim. The verb keeps one meaning (G3): to claim is to take up " +
     "what is held for you, a Board seat (`org board claim`), a Safe at setup, or the money waiting in its escrow; " +
-    "`collect` stays the payee taking released money (`agreement collect`) and the escrow's function, which is why the " +
+    "`collect` stays the payee taking released money (`payroll agreement collect`) and the escrow's function, which is why the " +
     "answer still reads `collected`. The line is the CLI and the Core SDK (aaron.sdk-reaches-everything): no React " +
     "twin and no web screen is booked, and a web screen, where one is wanted, builds on this Core SDK method. Its worlds are accounts' and devnet's (CLAIM_WORLDS: " +
     `${Object.values(CLAIM_WORLDS).join(", ")}, and signed-out). Its id and command collide with no frozen or new ` +
@@ -1625,4 +1625,31 @@ export const decision_payments_claim_command = defineDecision({
       "docs/decisions/open-for-aaron.md (question 38); docs/design/new-commands.md (G3, G7, G10, section 6)",
   ),
   affects: [operation_payment_claim, flow_client_payments_claim, rpc_accounts_setup_collect, concept_payments],
+});
+
+export const decision_payments_claim_retry = defineDecision({
+  id: "payments.claim-retry",
+  title: "A retried `payment claim` answers the same approval, then nothing waiting",
+  question:
+    "`payment claim` came over from `account collect` with three claims: the collection, nothing waiting and a " +
+    "take-back. Its rpc already answers a live approval as it stands (accounts.setup.collect), and its flow answers the " +
+    "hand-over again when run again. Is that retry a claim of its own, and what does it say?",
+  options: [
+    {
+      label: "retry-claim",
+      text:
+        "A fourth claim: asked twice while the collection waits, it answers the same approval and the same escrows; asked " +
+        "after it landed, `nothing_waiting`. Observed from person-ready-money-waiting by the CLI, the chain (one " +
+        "PaymentSent per escrow) and the world (one approval).",
+    },
+    { label: "three", text: "Keep the three claims; the retry stays a sentence in the flow's and the rpc's `about`." },
+  ],
+  chosen: "retry-claim",
+  why:
+    "Money is collected once, and a person who ran the command, lost the page and ran it again must not sign twice or be " +
+    "offered money already collected. That is booked behaviour (the rpc's live approval and the escrow reading paid), " +
+    "so it gets an eval rather than living only in prose. Nothing new is designed: no flag, no answer and no refusal " +
+    "changes, and the claim reuses the waiting world of claim 1 (aaron.payment-claim).",
+  source: claimBy("books/target/accounts/setup.ts (accounts.setup.collect: 'asking twice signs once'); books/target/payments/flows.ts (client.payments.claim); aaron.payment-claim"),
+  affects: [operation_payment_claim],
 });

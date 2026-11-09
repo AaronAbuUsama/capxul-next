@@ -188,7 +188,7 @@ export const rpc_requests_issuing_cancel = defineRpc({
   budget: budget("write"),
 });
 
-// ── billing logged hours (`org timesheet bill`; requests.bill-time) ─────────────────────────
+// ── billing logged hours (`org projects timesheet bill`; requests.bill-time) ─────────────────────────
 
 export const rpc_requests_issuing_bill_time = defineRpc({
   id: "requests.issuing.bill-time",
@@ -220,7 +220,7 @@ export const rpc_requests_issuing_bill_time = defineRpc({
   input: Schema.Struct({
     org: S,
     request_key: S,
-    /** `<timesheet>…`: one to fifty timesheet ids (`ts_…`), as `org timesheet list` prints them. */
+    /** `<timesheet>…`: one to fifty timesheet ids (`ts_…`), as `org projects timesheet list` prints them. */
     timesheets: Schema.Array(S),
     /** `--to <payer>`: an email, an `@handle` or a Party id; absent, the projects' one customer. */
     to: opt(S),

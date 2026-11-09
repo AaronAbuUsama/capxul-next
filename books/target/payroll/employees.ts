@@ -96,7 +96,7 @@ export const rpc_payroll_employees_change = defineRpc({
     "otherwise, naming the status it is in): `suspended`, `inactive`, back to `active`, or `left` with " +
     "`relievingDate`, the last day worked, on or after `date_of_joining` (INVALID_INPUT). Leaving is refused while a " +
     "slip of theirs is paying or escrowed (WRONG_STATE); a withheld slip stays owed after they leave. A move to `left` " +
-    "refuses a hosted FDE's act-for call (ROLE_PERMISSION_DENIED): `org employee leave` previews, and the preview is " +
+    "refuses a hosted FDE's act-for call (ROLE_PERMISSION_DENIED): `org hr employee leave` previews, and the preview is " +
     "the asker's own to answer (rules.fde-acts-for-asker). Their Party, Safe and mailbox never change here: pay follows " +
     "the person, not the record (payroll.mailbox-for-pay). It answers the Employee as `payroll.employees.get` does, " +
     "with the assignment that pays them today (payroll.command-fit).",

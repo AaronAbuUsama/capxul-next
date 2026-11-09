@@ -275,7 +275,7 @@ export const decision_parties_resolve_recipient = defineDecision({
     "payer could point at a Party nothing holds. An rpc step would be reached only from other concepts' flows and would " +
     "leave a named Party behind every refused record. The frozen refusals for a locator that names nothing differ by " +
     "command (INVALID_RECIPIENT on `payment send`, INVALID_INPUT on `contact add`, `agent sweep`, `org member invite`, " +
-    "`org agreement offer`), so the procedure answers and the invoker refuses in its own words; old E8, where nothing " +
+    "`org payroll agreement offer`), so the procedure answers and the invoker refuses in its own words; old E8, where nothing " +
     "raised INVALID_RECIPIENT, is then the payments rpc's own error. A transaction that only shows or checks a " +
     "counterparty (a feed, an inbox, a payment's prepare, which already invokes approvals and documents and must stay " +
     "within sys:tx-width) reads `parties` and invokes nothing.",

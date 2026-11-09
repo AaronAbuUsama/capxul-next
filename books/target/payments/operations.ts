@@ -768,6 +768,12 @@ export const operation_payment_claim = defineOperation({
       observes:
         `From ${CW.waiting} after Dana's \`payment cancel\` of her 5 USDC landed: cli: run without \`--json\` while the person signs, \`escrows\` lists only Sam's 3 USDC and the one approval collects only it; chain: its one PaymentSent names the person's Safe as recipient, and Dana's escrow reads refunded.`,
     },
+    {
+      claim:
+        "Asking again while the collection waits answers the same approval, and asking once it has landed finds nothing waiting: the money is collected once.",
+      observes:
+        `From ${CW.waiting}: cli: \`payment claim --json\` run twice prints \`awaiting_approval\` with the same \`approval_id\` and the same \`escrows\` both times; once the person signs it with \`dev approve\` and it lands, a third \`payment claim\` exits 0 with \`status\` \`nothing_waiting\`; chain: one PaymentSent per escrow; world: one approval.`,
+    },
   ],
   returns: Collection,
   errors: [error_CLI_USAGE],

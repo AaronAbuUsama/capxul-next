@@ -520,7 +520,7 @@ export const decision_notices_agreements = defineDecision({
   ],
   chosen: "writes-and-end",
   why:
-    "The frozen lines are about writes: 'a landed resume tells the payee once; a prepared one tells no one' (`org " +
+    "The frozen lines are about writes: 'a landed resume tells the payee once; a prepared one tells no one' (`org payroll " +
     "agreement resume` #2) and 'a landed withdrawal sends the payee no email' (`withdraw` #2). A write lands once, so " +
     "its outbox id makes one email; a rate change, a cancelled lowering and a collection move no status, so status " +
     "alone would miss them. The end is the process's timer now (payroll.one-process), so it sends agreement-ended and " +

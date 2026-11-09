@@ -619,7 +619,7 @@ export const decision_accounts_collect_any_time = defineDecision({
     "It supersedes account-collect, which this record booked first and recommended over the grammar page's spelling " +
     "because in the 215 `claim` takes up a Safe or a seat (`org board claim`, setup's claim) and G3 gives a verb one " +
     "meaning. His words name only the command; this record now reads `claim` as taking up what is held for you, the " +
-    "money in its escrow among it, while `collect` stays the payee taking released money (`agreement collect`) and the escrow's function. Only " +
+    "money in its escrow among it, while `collect` stays the payee taking released money (`payroll agreement collect`) and the escrow's function. Only " +
     "the spelling moves: 'whenever they want' still needs a command, not a moment, so the owner chooses when, and an " +
     "approval is opened only when asked and never lapses unasked. This concept keeps the rpc, the same step as setup's " +
     "collection: it reads the person's own setup and the escrows that pay their Safe from indexing " +
@@ -629,7 +629,7 @@ export const decision_accounts_collect_any_time = defineDecision({
     "this rpc, since payments depends on accounts. It still takes no payment id (G5): before collection a " +
     "claim escrow's Payment has no payee tenant, so the person can neither list nor get it, which rules out " +
     "payment-claim-each. It takes `--json` and `--timeout-seconds` and no `--request-key`: it births no command, and " +
-    "asking again answers the live approval, as `agreement collect` takes none. Its refusals are the 215's for the " +
+    "asking again answers the live approval, as `payroll agreement collect` takes none. Its refusals are the 215's for the " +
     "same cases: SMART_ACCOUNT_MISSING with no Safe (dev fund), a refused setup's WRONG_STATE or INVALID_INPUT " +
     "(account retry), and payment send's SUPERSEDED, CANCELLED and TRANSACTION_FAILED.",
   source: by(

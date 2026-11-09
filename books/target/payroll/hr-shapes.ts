@@ -27,7 +27,7 @@ const Employer = { employer: opt(S) } as const;
 
 // ── holidays ────────────────────────────────────────────────────────────────────────────────
 
-/** `org holiday add (<day> | --weekly <weekday> --year <yyyy>) [--description <text>] [--half-day]`. */
+/** `org hr holiday add (<day> | --weekly <weekday> --year <yyyy>) [--description <text>] [--half-day]`. */
 export const HolidayAddInput = Schema.Struct({
   orgId: S,
   day: opt(Day),
@@ -49,7 +49,7 @@ export const HolidayList = Schema.Struct({
 
 // ── leave types and allocations ─────────────────────────────────────────────────────────────
 
-/** The flags `org leave-type add` and `change` take: `--max-days`, `--applicable-after`, `--max-continuous`, `--carry-forward`, `--max-carry`, `--without-pay`, `--partly-paid <fraction>`, `--include-holidays`, `--allow-negative`. */
+/** The flags `org hr leave-type add` and `change` take: `--max-days`, `--applicable-after`, `--max-continuous`, `--carry-forward`, `--max-carry`, `--without-pay`, `--partly-paid <fraction>`, `--include-holidays`, `--allow-negative`. */
 const LeaveTypeFlags = {
   maxDays: opt(N),
   applicableAfter: opt(Schema.Int),
@@ -82,7 +82,7 @@ export const LeaveType = Schema.Struct({
 });
 export const LeaveTypePage = page(LeaveType);
 
-/** `org leave allocate <employee> --type <leave-type> --days <n> --start <day> --end <day> [--carry-forward] [--description]`. */
+/** `org hr leave allocate <employee> --type <leave-type> --days <n> --start <day> --end <day> [--carry-forward] [--description]`. */
 export const AllocateInput = Schema.Struct({
   orgId: S,
   employeeId: S,
@@ -127,7 +127,7 @@ export const Balance = Schema.Struct({ employeeId: S, employeeName: S, employer:
 
 // ── leave applications ──────────────────────────────────────────────────────────────────────
 
-/** `leave apply --type <leave-type> --start <day> --end <day> [--half-day [--half-day-on <day>]] [--reason <text>] [--employer <handle>]`. */
+/** `hr leave apply --type <leave-type> --start <day> --end <day> [--half-day [--half-day-on <day>]] [--reason <text>] [--employer <handle>]`. */
 export const ApplyInput = Schema.Struct({
   ...Employer,
   leaveType: S,
@@ -177,7 +177,7 @@ export const LeavePage = page(Leave);
 
 // ── shifts, check-ins and attendance ────────────────────────────────────────────────────────
 
-/** `org shift-type add <name> --start <HH:MM> --end <HH:MM> [--auto-attendance] [--half-day-below <hours>] [--absent-below <hours>] [--late-grace <minutes>] [--early-grace <minutes>]`. */
+/** `org hr shift-type add <name> --start <HH:MM> --end <HH:MM> [--auto-attendance] [--half-day-below <hours>] [--absent-below <hours>] [--late-grace <minutes>] [--early-grace <minutes>]`. */
 export const ShiftTypeAddInput = Schema.Struct({
   orgId: S,
   name: S,
@@ -204,7 +204,7 @@ export const ShiftType = Schema.Struct({
 });
 export const ShiftTypeListInput = Schema.Struct({ orgId: S, ...PAGE });
 export const ShiftTypePage = page(ShiftType);
-/** `org shift-type assign <shift-type> <employee> --start <day> [--end <day>]`. */
+/** `org hr shift-type assign <shift-type> <employee> --start <day> [--end <day>]`. */
 export const ShiftAssignInput = Schema.Struct({ orgId: S, shiftType: S, employeeId: S, startDate: Day, endDate: opt(Day) });
 export const ShiftAssignmentRef = Schema.Struct({ orgId: S, shiftAssignmentId: S });
 export const ShiftAssignment = Schema.Struct({
@@ -218,7 +218,7 @@ export const ShiftAssignment = Schema.Struct({
   status: Schema.Literals(["active", "inactive"]),
 });
 
-/** `attendance checkin [--log in|out] [--employer <handle>]`. */
+/** `hr attendance checkin [--log in|out] [--employer <handle>]`. */
 export const CheckinInput = Schema.Struct({ ...Employer, log: opt(Schema.Literals(["in", "out"])) });
 export const Checkin = Schema.Struct({
   checkinId: S,
@@ -251,9 +251,9 @@ export const Attendance = Schema.Struct({
   docstatus: Schema.Literals(["submitted", "cancelled"]),
 });
 export const MyAttendanceInput = Schema.Struct({ ...Employer, startDate: opt(Day), endDate: opt(Day), ...PAGE });
-/** What `attendance list` prints: a page of the caller's own marks, and their check-ins in the same days. */
+/** What `hr attendance list` prints: a page of the caller's own marks, and their check-ins in the same days. */
 export const MyAttendancePage = Schema.Struct({ items: Schema.Array(Attendance), checkins: Schema.Array(Checkin), nextCursor: Null(S) });
-/** `org attendance mark <employee> --on <day> --status present|absent|half_day|work_from_home|on_leave [--leave-type <type>]`: the status as it prints, as `org project list --status on_hold`. */
+/** `org hr attendance mark <employee> --on <day> --status present|absent|half_day|work_from_home|on_leave [--leave-type <type>]`: the status as it prints, as `org projects list --status on_hold`. */
 export const MarkInput = Schema.Struct({ orgId: S, employeeId: S, on: Day, status: AttendanceStatus, leaveType: opt(S) });
 export const AttendanceRef = Schema.Struct({ orgId: S, attendanceId: S });
 export const OrgAttendanceListInput = Schema.Struct({
@@ -277,7 +277,7 @@ export const ExpenseTypePage = page(ExpenseType);
 /** One line as `--type --amount [--on] [--description]` gives it, or one row of `--file`'s `expenses`. */
 export const ExpenseLineInput = Schema.Struct({ type: S, amount: Money, on: opt(Day), description: opt(S) });
 /**
- * `expense-claim create (--type <expense-type> --amount <a> [--on <day>] [--description <text>] | --file <path>)
+ * `hr expense-claim create (--type <expense-type> --amount <a> [--on <day>] [--description <text>] | --file <path>)
  * [--receipt <path>]… [--advance <advance>]… [--remark <text>] [--employer <handle>]`: the CLI reads `--file` and each
  * `--receipt` and passes their contents.
  */
@@ -319,7 +319,7 @@ export const ClaimPage = page(Claim);
 export const MyClaimRef = Schema.Struct({ ...Employer, expenseClaimId: S });
 export const MyClaimListInput = Schema.Struct({ ...Employer, status: opt(ClaimStatus), ...PAGE });
 export const ClaimRef = Schema.Struct({ orgId: S, expenseClaimId: S });
-/** `org expense-claim approve <claim> [--sanction <line>=<amount>]…`: absent, each line sanctioned at its amount. */
+/** `org hr expense-claim approve <claim> [--sanction <line>=<amount>]…`: absent, each line sanctioned at its amount. */
 export const ClaimApproveInput = Schema.Struct({
   orgId: S,
   expenseClaimId: S,
@@ -327,13 +327,13 @@ export const ClaimApproveInput = Schema.Struct({
 });
 export const ClaimRejectInput = Schema.Struct({ orgId: S, expenseClaimId: S, reason: S });
 export const OrgClaimListInput = Schema.Struct({ orgId: S, employeeId: opt(S), department: opt(S), status: opt(ClaimStatus), ...PAGE });
-/** `org expense-claim pay <claim> [--request-key <key>]`, and the flow's `--timeout-seconds` and `--no-wait`. */
+/** `org hr expense-claim pay <claim> [--request-key <key>]`, and the flow's `--timeout-seconds` and `--no-wait`. */
 export const ClaimPayInput = Schema.Struct({ orgId: S, expenseClaimId: S, requestKey: opt(S) });
 export const ClaimPayFlowInput = Schema.Struct({ ...ClaimPayInput.fields, timeoutSeconds: opt(Schema.Int), noWait: opt(B) });
 
 // ── advances ────────────────────────────────────────────────────────────────────────────────
 
-/** `advance request --amount <a> --purpose <text> [--employer <handle>]`. */
+/** `hr advance request --amount <a> --purpose <text> [--employer <handle>]`. */
 export const AdvanceRequestInput = Schema.Struct({ ...Employer, amount: Money, purpose: S });
 export const AdvanceStatus = Schema.Literals(ADVANCE_STATUSES);
 export const Advance = Schema.Struct({
@@ -364,7 +364,7 @@ export const AdvancePage = page(Advance);
 export const MyAdvanceRef = Schema.Struct({ ...Employer, employeeAdvanceId: S });
 export const MyAdvanceListInput = Schema.Struct({ ...Employer, status: opt(AdvanceStatus), ...PAGE });
 export const AdvanceRef = Schema.Struct({ orgId: S, employeeAdvanceId: S });
-/** `org advance settle <advance> [--confirm]`: `confirm` true from a script (`--confirm`), with no preview (G5). */
+/** `org hr advance settle <advance> [--confirm]`: `confirm` true from a script (`--confirm`), with no preview (G5). */
 export const AdvanceSettleFlowInput = Schema.Struct({ orgId: S, employeeAdvanceId: S, confirm: opt(B) });
 export const AdvanceRejectInput = Schema.Struct({ orgId: S, employeeAdvanceId: S, reason: S });
 export const OrgAdvanceListInput = Schema.Struct({ orgId: S, employeeId: opt(S), department: opt(S), status: opt(AdvanceStatus), ...PAGE });

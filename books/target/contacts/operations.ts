@@ -1385,6 +1385,12 @@ export const operation_org_crm_whatsapp_show = defineOperation({
       "read: as Rex in org-with-conversations, `org crm whatsapp show --org acme` prints `status: active`, " +
         "+447700900100 and its `webhook_url`, and no token, secret or verify token; in org-with-crm it prints null.",
     ),
+    claim(
+      "After a disconnect it shows the last number as disconnected, until another is connected; reading writes nothing.",
+      "read: in org-with-conversations, after `org crm whatsapp disconnect --org acme --confirm`, `org crm whatsapp show " +
+        "--org acme` prints +447700900100 with `status: disconnected`; after `org crm whatsapp connect --key-file " +
+        "acme-whatsapp.json --org acme --confirm`, it prints the new `wa_` account, active; world: each show's diff is empty.",
+    ),
   ],
   returns: Schema.NullOr(WhatsAppAccount),
   errors: [error_CLI_USAGE],

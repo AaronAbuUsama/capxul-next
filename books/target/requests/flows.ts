@@ -341,18 +341,18 @@ export const flow_client_checkouts_pay = defineFlow({
   budget: PREVIEW_WRITE,
 });
 
-export const flow_client_org_timesheets_bill = defineFlow({
-  id: "client.org.timesheets.bill",
+export const flow_client_org_projects_timesheets_bill = defineFlow({
+  id: "client.org.projects.timesheets.bill",
   title: "Bill timesheets' unbilled hours as one Invoice, recovering an uncertain reply",
   about:
-    "`org timesheet bill <timesheet>… [--to <payer>]` (requests.bill-time): one request key for the call (`--request-key`, " +
+    "`org projects timesheet bill <timesheet>… [--to <payer>]` (requests.bill-time): one request key for the call (`--request-key`, " +
     "else one the flow makes), then `requests.issuing.bill-time`, which issues the Invoice and marks the logs it bills in " +
     "one write. When the reply is lost after sending, it reads the issued list in the same session and returns the " +
     "request that carries its key instead of billing again; none found is the original error. It asks nothing: the " +
     "hours were submitted, and `request cancel` clears the marks.",
   was: ["docs/design/new-commands.md (section 6)", "books/target/requests/flows.ts (client.account.requests.issue, the pattern)"],
   component: component_core_sdk,
-  sdk: "client.org(orgId).timesheets.bill",
+  sdk: "client.org(orgId).projects.timesheets.bill",
   input: Schema.Struct({ org: S, timesheets: Schema.Array(S), to: opt(S), request_key: opt(S) }),
   output: rpc_requests_issuing_bill_time.output,
   steps: [

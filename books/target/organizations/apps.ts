@@ -1,7 +1,7 @@
 // The apps area: which Frappe apps an Organization runs (aaron.frappe-shape). The fundamental apps
 // are born installed and native with the Organization; every other app lives only on a connected
 // head (organizations.apps-native-or-head), wanted until the head shows it installed. These rpcs
-// serve `org app list|add|remove` (organizations.commands, organizations.app-commands); installing
+// serve `org head app list|add|remove` (organizations.commands, organizations.app-commands); installing
 // a wanted app on the head is the head connection's process (processes.ts).
 //
 // Who may: any member reads the list; a Director, or the Organization's own agent acting as itself
@@ -28,7 +28,7 @@ const N = Schema.Number;
 const NullOr = Schema.NullOr;
 const RULING = "books/target/shared/rulings.ts (aaron.frappe-shape, aaron.frappe-head); organizations.app-commands";
 
-/** One app as `org app list` prints it, and `org app add|remove` print it after the change. */
+/** One app as `org head app list` prints it, and `org head app add|remove` print it after the change. */
 export const AppView = Schema.Struct({
   app: S,
   /** True for a fundamental app, whose records Capxul holds natively. */
@@ -49,7 +49,7 @@ export const MEMBER_GUARD =
   "FDE, only with an act-for token, its open ask's asker's, organizations.fde-for-the-asker): none, or an " +
   "Organization that does not exist, is ROLE_PERMISSION_DENIED alike and nothing is read or written.";
 
-/** The Director-or-FDE guard of `org app add|remove`. */
+/** The Director-or-FDE guard of `org head app add|remove`. */
 const DIRECTOR_OR_FDE_GUARD =
   `${MEMBER_GUARD} Then the Seat must be the Organization's own agent's (\`seat_use\` organization) acting as itself, ` +
   "which only a self-run one does, or its Safe must wear the Director hat in good standing (indexing's wearers of the " +
