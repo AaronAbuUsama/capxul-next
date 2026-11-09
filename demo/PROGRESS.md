@@ -9,7 +9,7 @@ can restart in another account or session from what is committed.
 | Research | done 2026-11-09 | `research/*.md`: accounting.md, hr-payroll.md, crm-projects.md,<br>capxul-native.md (`/home/user/capxul-next/demo/research/`) |
 | Data | done 2026-11-09 | `data/generate.mjs` (+ `data/gen/*.mjs`), `data/validate.mjs` (23 of 23 pass),<br>`data/README.md` (the shape of the data), `app/data.json` (8.3 MB, deterministic).<br>Harbourline Studio Ltd, a design and engineering studio in Hoxton, runs on Capxul from 1 May 2025 to 9 Nov 2026 (10:45).<br>27 employees (14 at the start, 25 today), a Stockholm contractor, 6 departments with quarterly USDC budgets, 14 of 20 seats in use. |
 | Shell | done 2026-11-09 | `app/index.html` (tokens, light and dark, all component styles), `app/js/core.js` (frame, router, components),<br>`app/js/README.md` (the component API), `app/js/gallery.js` (every component on real data; not loaded by the app),<br>stub `app/js/{money,governance,fde,accounting,hr,payroll,crm,projects}.js` that the module builders replace.<br>Checked in Chromium at 1280 and 400, light and dark: no console errors, no horizontal page scroll. |
-| Modules | not started | `app/js/{accounting,hr,payroll,crm,projects,money,governance,fde}.js` |
+| Modules | done 2026-11-09 | `app/js/{accounting,hr,payroll,crm,projects,money,governance,fde}.js`<br>29 routes, 64 routes, 37 routes, 35 routes |
 | Integrate | not started | the routes wired, the walkthroughs |
 | Critique | not started | `critiques.md` |
 | Fix | not started | |

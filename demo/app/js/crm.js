@@ -374,7 +374,7 @@ function addItem(recName, recordType, item) {
   return it;
 }
 const recType = (kind) => (kind === 'lead' ? 'Lead' : kind === 'deal' ? 'Deal' : 'Contact');
-/** Field changes as Frappe writes them: one line, or "Show +3 changes". */
+/** Field changes as the CRM writes them: one line, or "Show +3 changes". */
 function addChanges(kind, rec, changes) {
   if (!changes.length) return;
   const me = cx.name(cx.meId());
@@ -501,7 +501,7 @@ function moneyCard(it, ctx) {
 /** Take back money waiting in escrow, until it is claimed: whoever wears the budget's hat now approves. */
 function takeBackBtn(esc, p) {
   const dept = esc.from;
-  const signer = cx.holders(dept).find((x) => !String(x).startsWith('@')) || cx.meId();
+  const signer = cx.holds(dept) ? cx.meId() : cx.holders(dept).find((x) => !String(x).startsWith('@')) || cx.meId();
   const cmd = `capxul payment cancel ${p?.proof?.paymentId || esc.payment} --org harbourline`;
   return cx.btn('Take it back', { sm: true, kind: 'danger', icon: 'swap', needs: { dept }, cmd, onClick: async () => {
     const r = await cx.approval({ title: `Take back ${fmt.usdc(esc.amount)} from ${esc.email}`, from: `Escrow ${fmt.addr(esc.escrowAddress)}`, to: `${cx.deptName(dept)} budget · Harbourline Treasury`, amount: esc.amount, asset: 'USDC', gbp: p?.gbp, rate: p?.rate, signer, hat: cx.deptName(dept), cmd, next: `capxul payment wait ${esc.payment}`, warnings: ['Nobody has claimed it yet. Once it is back, the claim link stops working.'] });
@@ -1549,7 +1549,7 @@ cx.route('contacts', () => cx.page({
   body: cx.listView({
     key: 'crm-contacts', rows: () => C.contacts, id: (r) => r.id, showId: false,
     titleCol: { key: 'name', label: 'Name', render: (r) => h('span.crm-name', extAvatar(r.name, { size: 'sm' }), h('a', { href: cx.href('contact', r.id) }, r.name)), sub: (r) => r.designation || '' },
-    columns: [{ key: 'email', label: 'Email' }, { key: 'mobile', label: 'Phone' }, { key: 'companyName', label: 'Company', get: (r) => companyName(r.company) }, { key: 'capxul', label: 'Capxul', get: (r) => capxulOf(r).word, render: (r) => cx.pill(capxulOf(r).word, capxulOf(r).tone), keep: true }],
+    columns: [{ key: 'email', label: 'Email' }, { key: 'mobile', label: 'Phone' }, { key: 'capxul', label: 'Capxul', get: (r) => capxulOf(r).word, render: (r) => cx.pill(capxulOf(r).word, capxulOf(r).tone), keep: true }, { key: 'companyName', label: 'Company', get: (r) => companyName(r.company) }],
     modified: contactModified,
     filters: [{ key: 'name', label: 'Name' }, { key: 'email', label: 'Email' }, { key: 'companyName', label: 'Company', type: 'select' }, { key: 'capxul', label: 'Capxul', type: 'select', options: ['By mailbox', 'Private', ...uniq(C.contacts.filter((c) => c.handle).map((c) => c.handle))] }],
     sort: { options: [{ key: 'modified', label: 'Last modified', get: (r) => contactModified(r) || '' }, { key: 'name', label: 'Name' }], default: { key: 'modified', dir: 'desc' } },
