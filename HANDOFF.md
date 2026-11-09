@@ -61,12 +61,14 @@ The prompts in `tools/workflows/` use the absolute paths `/home/user/capxul-next
 | 2 | As-is book of the old system | closed: the reviewed payments lane (`docs/as-is/payments.md`, K1 to K18), `docs/mission/findings.md` and the lane reports are kept; the unfinished lanes are archived in `docs/as-is/archive/`, outside every typecheck |
 | 3 | Target architecture: concept map (23 concepts, no cycles), components, kept errors, integrations, v4 contracts, decisions | done: `books/target/shared/` and `docs/decisions/target-architecture.md` |
 | 4 | Target design of each concept | done: all 23 concepts, each with its decisions (projects came with the Frappe redesign) |
-| 5 | Target book assembled and built with the target rules | done: 2,637 records, 0 problems, 5,224 evals, 878 decisions; 13 journeys; the row-policy admissions and wait keys the generators need; `tools/check-frozen.ts` 0 breaches (every operation booked once, every behaviour kept, none beyond the 215 yet); 83 known gaps, each owned (listed in the goal prompt) |
+| 5 | Target book assembled and built with the target rules | done: 3,255 records, 0 problems, 8,027 evals, 1,005 decisions; 13 journeys; the row-policy admissions and wait keys the generators need; `tools/check-frozen.ts` 0 breaches (every operation booked once, every behaviour kept, 165 operations beyond the 215, each serving an Aaron ruling); 79 known gaps, each owned (listed in the goal prompt) |
 | 6 | The goal prompt | done: `docs/mission/initializer.md` |
 | 7 | Design lanes for the build's own machinery | done: tooling (`docs/design/tooling.md`), the portal (`portal.md`), the swarm (`swarm.md`, `swarm-templates.md`, `.claude/agents/`, `.github/` templates, `tools/plan-tasks.ts` and `docs/mission/tasks.json`) and the one clock (`time.md`) |
 | 8 | Aaron's rulings of 8 November 2026 | recorded in `books/target/shared/rulings.ts` and applied: seats, contact permissions, money-waiting email and reminders, machine login, the portal generator, claim trust, budget payments to someone with no account, buying seats |
 | 9 | The Frappe redesign | done: books in ERPNext accounting's shapes, payroll in Frappe HR's, the CRM in Frappe CRM's, a new projects concept, organization start-up with its FDE agent, and the head integration (`docs/design/frappe/`); the cross-concept assembly in `docs/design/frappe/assembly-items.md` |
 | 10 | The hill-climbing starter kit | built and verified from a fresh clone; kept as `kit/hillclimb-kit.bundle` (`kit/README.md`). The build starts from it |
+| 11 | The new commands and the general escrow (Aaron's sixth and seventh batches) | done: one grammar for every command beyond the 215 (`docs/design/new-commands.md`), 90 booked under `rules.new-operations`; the general escrow (`docs/design/escrow.md`); authority by department (`docs/design/authority.md`) |
+| 12 | The world pass (Aaron's eighth batch, 9 November 2026) | done: the world clock's rate and world-owned channels (`dev time set --rate`, the shared world, `docs/design/time.md` section 7); the document family over the Core SDK and the CLI (`org doc`, `org doctype`, `org doc-call`); the CRM's conversations (email, WhatsApp, calls, notes and tasks on one timeline); HR in payroll (holidays, leave, shifts and attendance, expense claims and advances); `payment claim`; anyone may ask the FDE, which acts as its asker. 165 commands beyond the 215 in all; open questions 39 to 49 in `docs/decisions/open-for-aaron.md` |
 
 This work **prepares** the rebuild; it does not run it. No product code is written here. To start
 the build, open a session on this repository and give it `docs/mission/initializer.md` as its goal.
@@ -108,6 +110,11 @@ Later scripts:
   adversarial reviewer.
 - `frappe-assembly.js`: the Frappe lanes' cross-concept items and the follow-up rulings, by owning
   group, then a builder.
+- `commands-and-escrow.js`: the one grammar, the authority audit, the general escrow and the five
+  command packs, each a designer with two reviewers, then a builder.
+- `world-pass.js`: Aaron's eighth batch (the world clock, the document family, the CRM's
+  conversations, HR, `payment claim`, the FDE for anyone), a designer and two reviewers per lane, then
+  a builder.
 - `build-hillclimb-kit*.js`, `kit-swarm-dx.js` and `kit-provable-evals.js`: the starter kit.
 
 The as-is scripts (`book-as-is-*.js`, `book-payments-assemble.js`) are kept as history. They

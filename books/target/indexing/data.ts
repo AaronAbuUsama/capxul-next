@@ -753,7 +753,7 @@ export const table_escrows = defineTable({
     "constants (`amount_reached`: paid out once its balance reaches the amount, an invoice; `owner_collects`: the " +
     "owner collects once it can act, a claim escrow) (payments.general-escrow). `standing` is open until EscrowPaid or " +
     "EscrowRefunded (which names who refunded, `by`). What it holds is its row in safe-balances. Accounts finds the " +
-    "claim escrows a person's Safe owns, at setup and by `account collect`; requests follows an invoice escrow's " +
+    "claim escrows a person's Safe owns, at setup and by `payment claim`; requests follows an invoice escrow's " +
     "checkout; books and payments read what a sender has in escrow.",
   was: [`${V4}/escrow-factory/schema.ts:4`, `${V4}/escrow-factory/handlers.ts:1`, "books/target/shared/external.ts (contract_escrow: the general escrow)"],
   concept: concept_indexing,
@@ -785,7 +785,7 @@ export const table_escrows = defineTable({
     {
       name: "escrows-by-owner",
       fields: ["owner", "condition", "standing"],
-      for: "The claim escrows a person's Safe owns, collected at its setup or by `account collect` (accounts); an invoice escrow its issuer awaits.",
+      for: "The claim escrows a person's Safe owns, collected at its setup or by `payment claim` (payments, over accounts' rpc); an invoice escrow its issuer awaits.",
     },
     {
       name: "escrows-by-sender",

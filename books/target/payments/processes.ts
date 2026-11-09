@@ -144,7 +144,7 @@ export const workflow_payments_lifecycle_payment = defineWorkflow({
     {
       name: "deploy",
       about:
-        "Waits for EscrowCreated, so the escrow is known to indexing (`account collect` and setup find it only then). " +
+        "Waits for EscrowCreated, so the escrow is known to indexing (`payment claim` and setup find it only then). " +
         "Every route's funder deploys it in the funding's own batch except a budget's dated one, which `execute` deploys. " +
         "Moves no status.",
     },

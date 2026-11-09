@@ -187,31 +187,33 @@ const AccrualLine = PayrollLine;
 
 export const procedure_books_record_payroll_accrual = defineProcedure({
   id: "books.record-payroll-accrual",
-  title: "Record or cancel a payroll accrual: a run's, or a collection slip's",
+  title: "Record or cancel an accrual: a run's, a collection slip's, an expense claim's",
   about:
-    "Money fact: a submitted payroll run owes each employee's net and each withheld deduction until its Payments settle " +
-    "them, and a landed agreement collection's paid slip is pay the books must expense; the books post that liability " +
-    "or expense in payroll's own transaction, so no payroll Payment is booked against a payable nothing credited, and " +
-    "cancelling a run takes it back (books.payroll-accrual). `submit` records an `accrual_posted` fact with the next " +
-    "feed number (source the run) and a `payroll` Journal Entry whose id is the fact's: each earning's and employer " +
-    "contribution's expense debited, each deduction's and employer contribution's liability credited, each net on " +
-    "Payroll Payable credited, party the Employee and reference the Payroll Entry. `collection` does the same for one " +
-    "collection slip (source the agreement): the agreement component's expense against Payroll Payable, party the " +
-    "Employee, naming the Payment that paid it, which then posts on that payable (books.payroll-postings); if that " +
-    "Payment's row is in a closed period it writes nothing. The lines come in the run's token; books fixes each " +
-    "account (a missing, archived, group or wrong-root one to its role's: books.payroll-defaults) and each value in " +
-    "the Company's currency once charted, at the record or the import, and dates the voucher on the Company's day: " +
-    "the run's `posting_date`, or for a collection the block's day, moved to the first open day when closed " +
-    "(books.payroll-lines). A run or slip with a standing accrual writes nothing. `cancel` records `accrual_cancelled` " +
-    "naming the run's and cancels the voucher on the day of `at`; a run with no standing accrual writes nothing. A " +
-    "head-computed run never reaches this door: its accrual is the head's own voucher. It never refuses and makes no " +
-    "outside call.",
+    "Money fact: a submitted payroll run owes each net and withheld deduction until its Payments settle them, a landed " +
+    "agreement collection's paid slip is pay to expense, and an approved expense claim is owed to its Employee; the " +
+    "books post it in payroll's own transaction, so no payroll Payment is booked against a payable nothing credited, " +
+    "and a cancel takes it back (books.payroll-accrual). `submit` records an `accrual_posted` fact with the next feed " +
+    "number (source the run) and a `payroll` Journal Entry whose id is the fact's: each earning's and employer " +
+    "contribution's expense debited, each deduction's and contribution's liability credited, each net on Payroll " +
+    "Payable credited, party the Employee and reference the Payroll Entry; a run's advance-recovery deduction credits " +
+    "Employee Advances. `collection` does the same for one collection slip (source the agreement), naming the Payment " +
+    "that paid it (books.payroll-postings); a Payment's row in a closed period writes nothing. `expense_claim` " +
+    "(payroll.hr-money) debits each line's sanctioned amount to its type's account (null: the default expense " +
+    "account), credits each advance taken to Employee Advances (reference the Employee Advance) and the grand total to " +
+    "the payable (reference the Expense Claim), party the Employee, on the approval's day. Books fixes each account (a " +
+    "missing, archived, group or wrong-root one to its role's: books.payroll-defaults) and each value in the Company's " +
+    "currency once charted, and dates the voucher on the Company's day: the run's `posting_date`, or the block's day, " +
+    "moved to the first open day when closed (books.payroll-lines). One with a standing accrual writes nothing. " +
+    "`cancel` and `expense_claim_cancel` record `accrual_cancelled` and cancel the voucher on the day of `at`. A " +
+    "head-computed run never reaches this door. It never refuses and makes no outside call.",
   concept: concept_books,
   input: Schema.Struct({
     org_id: S,
-    action: Schema.Literals(["submit", "cancel", "collection"]),
-    /** `submit` and `cancel`: the run (its Payroll Entry id); null for `collection`. */
+    action: Schema.Literals(["submit", "cancel", "collection", "expense_claim", "expense_claim_cancel"]),
+    /** `submit` and `cancel`: the run (its Payroll Entry id); null for `collection` and an expense claim's. */
     run_id: NullOr(S),
+    /** `expense_claim` and `expense_claim_cancel`: the claim (its Expense Claim id); absent otherwise. */
+    expense_claim_id: Schema.optionalKey(S),
     /** `collection` only: the paid slip, its agreement, the Payment (`payment_<id>`) the collection is, and its block's time. */
     collection: NullOr(Schema.Struct({ salary_slip_id: S, agreement_id: S, payment_id: S, block_time: N })),
     /** The run's token, as a money side names its asset. */

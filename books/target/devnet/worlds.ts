@@ -2,8 +2,10 @@
 // line starts from, what it holds, and the builder script that makes it (decision devnet.worlds).
 //
 // A world is one supervisor snapshot of the chain, Postgres (every schema, with the durable
-// workflows' state), Ponder's checkpoint, the clock (its now and mode), the armed fault switches and
-// the eval machine's CLI home, saved together under its name. The supervisor's world builder
+// workflows' state), Ponder's checkpoint, the clock (its now, mode and rate), the armed fault switches
+// and the eval machine's CLI home, saved together under its name. Every eval world is built and
+// restored frozen at rate 1; a rate matters only once a clock runs (decision devnet.clock-rate), so an
+// eval that runs one sets it itself. The supervisor's world builder
 // (`capxul-devnet world build [<name>…]`, in packages/devnet) makes each one the same way: restore
 // `from` (or boot a fresh devnet at the eval epoch when `from` is null), run `steps` in order, then
 // `dev snapshot save <name> --replace`. It builds on a frozen clock, so a world's every time is a
@@ -15,7 +17,8 @@
 // stays current (decision devnet.sessions-across-warps); the worlds that warp past 30 days say so. A
 // step is a black-box action: a `capxul` command, a Core SDK method of a surface with no command
 // (the web onboarding, the operator's waitlist tool), or a supervisor control (a fault switch, a
-// chain action no Capxul surface makes). Steps never write a table: sign-in codes come from the mail
+// chain action no Capxul surface makes, an outside party's WhatsApp message: decision
+// devnet.whatsapp-stand-in). Steps never write a table: sign-in codes come from the mail
 // sink and every signature from `dev approve` with the person's dev signer. A `sameAs` world is the
 // same snapshot saved under a second name. Worlds are rebuilt in dependency order whenever the
 // backend code changes, since a world saved with other code refuses to restore (WRONG_STATE).
@@ -84,13 +87,30 @@ const board = (proposer: string, command: string) => [
   approve("eli@acme.test", "its Board proposal, as Director"),
 ];
 
+/** The head documents org-with-head-docs holds, made by the stand-in head's own Administrator (organizations.doc-worlds). */
+const headEdit = (doc: string) => supervisor(`capxul-devnet head edit acme ${doc} --as Administrator`);
+const HEAD_DOCS: readonly WorldStep[] = [
+  headEdit("Designation new designation_name=Accountant"),
+  headEdit('"Job Opening" new job_title=Bookkeeper designation=Accountant company="Acme Ltd" status=Open (named HR-OPN-2026-0001 by its series)'),
+  headEdit('"Job Opening" new job_title="Office Manager" designation=Accountant company="Acme Ltd" status=Open (HR-OPN-2026-0002, a second later)'),
+  headEdit('"Training Event" new event_name="Onboarding week" (a draft)'),
+  headEdit('"Training Event" new event_name="Safety training" employees=\'[{"employee_name":"Sam Okafor"}]\' --submit'),
+  headEdit('"Training Event" new event_name="Old induction" --submit; then `head edit acme "Training Event" "Old induction" --cancel`'),
+  headEdit(
+    'Workflow new workflow_name="Applicant Review" document_type="Job Applicant" is_active=1 workflow_state_field=workflow_state ' +
+      "states=<Open, Shortlisted, Rejected, Accepted, each at docstatus 0> transitions=<Open to Shortlisted by Shortlist, Open " +
+      "to Rejected by Reject, Shortlisted to Accepted by Accept, each allowed to HR Manager>",
+  ),
+  headEdit('"Job Applicant" new applicant_name="Kim Lee" email_id=kim@applicants.test job_title=HR-OPN-2026-0001 (named kim@applicants.test, in state Open)'),
+];
+
 // ── the catalog ─────────────────────────────────────────────────────────────────────────────
 
 export const WORLDS: readonly World[] = [
   // ── the machine and one person (access, accounts) ──
   {
     name: "empty-devnet",
-    holds: "Protocol v4 deployed by Companies House from packages/contracts, with the general escrow (payments.escrow-contract-build), Ponder at the head, no principal, no mail, a fresh CLI home, the clock frozen at the eval epoch and unmoved.",
+    holds: "Protocol v4 deployed by Companies House from packages/contracts, with the general escrow (payments.escrow-contract-build), Ponder at the head, no principal, no mail, a fresh CLI home, the clock frozen at the eval epoch at rate 1 and unmoved.",
     from: null,
     steps: [supervisor("capxul-devnet up --start-at <the eval epoch> --frozen (fresh)")],
     namedBy: ["access", "devnet", "applications"],
@@ -104,6 +124,21 @@ export const WORLDS: readonly World[] = [
     steps: [],
     env: { CAPXUL_ENV: "beta" },
     namedBy: ["budgets", "devnet"],
+  },
+  {
+    name: "shared-world-joiner",
+    holds:
+      "empty-devnet served as a shared world on the eval machine, its gateway on loopback (devnet.shared-world), with " +
+      "every command run as a joiner, Ana (ana@acme.test), through the gateway with her grant alone; the builder keeps " +
+      "the owner's. The clock is frozen at the eval epoch at rate 1. A joiner's move, follow, save or restore of the " +
+      "clock is ROLE_PERMISSION_DENIED; reads and watches answer.",
+    from: null,
+    steps: [
+      supervisor("capxul-devnet up --shared eval --public localhost --start-at <the eval epoch> --frozen (fresh)"),
+      supervisor("capxul-devnet world grant ana@acme.test (it writes Ana's grant file, which every command of this world carries)"),
+    ],
+    env: { CAPXUL_BOOTSTRAP_URL: "<the world's gateway on loopback>", CAPXUL_WORLD_GRANT: "<Ana's grant file>" },
+    namedBy: ["devnet"],
   },
   {
     name: "person-signed-in",
@@ -259,24 +294,28 @@ export const WORLDS: readonly World[] = [
       approve("dana@acme.test", "that payment's approval (its funding is indexed: `escrowed`, and the mailbox admitted)"),
       signIn("nobody@outside.test"),
     ],
-    namedBy: ["accounts"],
+    namedBy: ["accounts", "payments"],
   },
   {
     name: "person-ready-money-waiting",
     holds:
-      "person-with-money-waiting after nobody@outside.test set up her Safe and declined, at setup, the collection of " +
-      "what waited for her: her Safe set up and claimed, the 5 USDC Dana sent still in its claim escrow, which her Safe " +
-      "owns (the Payment `escrowed`); Dana may still take it back; nobody@outside.test current " +
-      "(accounts.collect-any-time).",
+      "person-with-money-waiting plus 3 USDC Sam sent nobody@outside.test before her setup, in a claim escrow of its own, " +
+      "after which she set up her Safe and declined, at setup, the collection of what waited for her: her Safe set up " +
+      "and claimed, Dana's 5 USDC and Sam's 3 USDC each still in its claim escrow, which her Safe owns (both Payments " +
+      "`escrowed`), so one collection takes two escrows and a take-back of one leaves the other; Dana and Sam may each " +
+      "still take theirs back; nobody@outside.test current (accounts.collect-any-time, payments.claim-command).",
     from: "person-with-money-waiting",
     steps: [
+      step("sam@acme.test", "capxul dev fund 10; capxul payment send nobody@outside.test 3 --json"),
+      approve("sam@acme.test", "that payment's approval (its funding is indexed: `escrowed`)"),
+      current("nobody@outside.test"),
       step(
         "nobody@outside.test",
         "the web onboarding's profile (display name Nob Body); `client.account.setup` with the dev signer, until " +
-          "CapxulSafeClaimed, declining the waiting money's collection approval on its page",
+          "CapxulSafeClaimed, declining the waiting money's collection approval, which names both escrows, on its page",
       ),
     ],
-    namedBy: ["accounts"],
+    namedBy: ["accounts", "payments"],
   },
 
   // ── Organizations' setup, members and invitations (organizations) ──
@@ -1616,6 +1655,230 @@ export const WORLDS: readonly World[] = [
     ],
     namedBy: ["equity"],
   },
+
+  // ── the world pass (devnet.world-pass-worlds): the head's documents, anyone asking the FDE ──
+  {
+    name: "org-with-head-docs",
+    holds:
+      "org-with-head plus documents its stand-in head's own Administrator made (head edits, the head's own users' work, " +
+      "organizations.doc-worlds): a Designation `Accountant`; Job Openings HR-OPN-2026-0001 (`Bookkeeper`) and " +
+      "HR-OPN-2026-0002 (`Office Manager`), both Open, designation Accountant, company Acme Ltd, -0002 made a second " +
+      "after -0001 so their `modified` differ; Training Events `Onboarding week` (draft), `Safety training` (submitted, " +
+      "one employee row, Sam Okafor) and `Old induction` (cancelled); an active Workflow `Applicant Review` on Job " +
+      "Applicant (Open to Shortlisted by Shortlist or to Rejected by Reject, Shortlisted to Accepted by Accept, every " +
+      "transition allowed to HR Manager); and a Job Applicant named, as Frappe HR names one, by its email, " +
+      "kim@applicants.test, in state Open. Dana's head User holds HR Manager (the People hat, organizations.head-users); " +
+      "Sam's holds no HR role. The stand-in's fixture metas put Project in ERPNext's projects module and its ledger hooks " +
+      "name Stock Entry. Dana current.",
+    from: "org-with-head",
+    steps: HEAD_DOCS,
+    namedBy: ["organizations"],
+  },
+  {
+    name: "org-with-head-down",
+    holds:
+      "org-with-head with the stand-in head's fault switch down: every call to it fails as an unreachable host " +
+      "(PROVIDER_ERROR), while Capxul still reads the head connected until its next daily check; Dana current.",
+    from: "org-with-head",
+    steps: [fault("frappe-head down")],
+    namedBy: ["organizations"],
+  },
+  {
+    name: "org-with-fde-member",
+    holds:
+      "org-with-fde plus Sam's Seat with no hat, and Olga (olga@outside.test) ready and outside Acme, as org-with-member " +
+      "adds them to org-ready; Dana current.",
+    from: "org-with-fde",
+    steps: [
+      ready("sam@acme.test", "Sam Okafor"),
+      ready("olga@outside.test", "Olga Berg"),
+      step("dana@acme.test", "capxul org member invite sam@acme.test --org acme --json"),
+      step("sam@acme.test", "capxul invite accept <sam's invitation>"),
+      current("dana@acme.test"),
+    ],
+    namedBy: ["organizations"],
+  },
+  {
+    name: "org-with-fde-guest",
+    holds:
+      "org-with-fde-member with Olga named a guest of Acme's FDE by Dana (note `Our accountant`), so admitted to the beta " +
+      "by it and sent its guest-named email; Olga holds no Seat; Dana current.",
+    from: "org-with-fde-member",
+    steps: [step("dana@acme.test", 'capxul org fde guest add olga@outside.test --note "Our accountant" --org acme --json')],
+    namedBy: ["organizations"],
+  },
+  {
+    name: "org-with-fde-head-docs",
+    holds:
+      "org-with-fde-member with a stand-in Frappe Cloud site connected as Acme's head by Dana, holding the documents " +
+      "org-with-head-docs holds (its Designation, Job Openings, Training Events, Workflow and Job Applicant); Dana current.",
+    from: "org-with-fde-member",
+    steps: [
+      supervisor("capxul-devnet head up acme --frappe-cloud --json (its site URL, and the key file and team token file it wrote)"),
+      step(
+        "dana@acme.test",
+        "capxul org head connect <the stand-in site's URL> --org acme --host frappe-cloud --key-file <the key file head up wrote> --team-token-file <the team token file it wrote> --confirm --json",
+      ),
+      ...HEAD_DOCS,
+    ],
+    namedBy: ["organizations"],
+  },
+
+  // ── the world pass: the CRM's conversations (contacts.conversation-worlds) ──
+  {
+    name: "org-with-conversations",
+    holds:
+      "org-with-crm plus its conversations: Kim's number +447700900789 and Ivy's +447700900444; Acme's stand-in WhatsApp " +
+      "number +447700900100 connected by Dan (key file acme-whatsapp.json) and pointed at the route connect printed; the " +
+      "Globex pilot's `Pilot proposal` emailed to Kim from acme@crm.devnet.test and her reply `Re: Pilot proposal` " +
+      "threaded onto it by Message-ID; Nia Bloom's `Deliveries` email, which made her a lead with source Email; Kim's " +
+      "WhatsApp `Is the pilot still on?` and Dan's `Yes, from 6 January.` inside the window; the pilot's note `Budget` " +
+      "and task `Send the contract` (assigned to Rex, due 2027-01-06, Backlog); an outgoing completed call with Kim of " +
+      "600 seconds; and 40 USDC from Acme's company Safe waiting for kim@globex.test in a claim escrow. Every item at its " +
+      "own instant. Rex holds his Seat with no hat; Dan current.",
+    from: "org-with-crm",
+    steps: [
+      step("dan@acme.test", "capxul contact change <Kim> --phone +447700900789 --org acme; capxul contact change <Ivy> --phone +447700900444 --org acme"),
+      supervisor("capxul-devnet whatsapp number add acme (number +447700900100; key file acme-whatsapp.json)"),
+      step("dan@acme.test", "capxul org crm whatsapp connect --key-file acme-whatsapp.json --org acme --confirm --json (its webhook URL)"),
+      supervisor("capxul-devnet whatsapp number webhook +447700900100 <the webhook URL connect printed>"),
+      step("dan@acme.test", 'capxul org crm email send <the Globex pilot> --subject "Pilot proposal" --body "Here is our proposal for the pilot." --org acme --confirm'),
+      supervisor(
+        'capxul-devnet mail receive --to acme@crm.devnet.test --from kim@globex.test --subject "Re: Pilot proposal" --in-reply-to <that email\'s Message-ID> "Looks good. Can we start in January?"',
+      ),
+      supervisor('capxul-devnet mail receive --to acme@crm.devnet.test --from "Nia Bloom <nia@bakers.test>" --subject Deliveries "Do you deliver to Leeds?"'),
+      supervisor('capxul-devnet whatsapp receive +447700900100 --from +447700900789 "Is the pilot still on?"'),
+      step("dan@acme.test", 'capxul org crm whatsapp send <Kim> --text "Yes, from 6 January." --org acme --confirm'),
+      step("dan@acme.test", 'capxul org crm note add <the Globex pilot> Budget --content "Kim has 5000 GBP approved." --org acme'),
+      step("dan@acme.test", 'capxul org crm task create <the Globex pilot> "Send the contract" --assigned-to @rex --due 2027-01-06 --org acme'),
+      step("dan@acme.test", 'capxul org crm call log <Kim> --type outgoing --status completed --duration 600 --note "Agreed the January start." --org acme'),
+      step("dan@acme.test", "capxul dev fund 1000 --asset USDC --org acme; capxul payment send kim@globex.test 40 --org acme --as-directors --json"),
+      approve("dan@acme.test", "its Board proposal, as the one Director (40 USDC to a claim escrow for kim@globex.test)"),
+    ],
+    namedBy: ["contacts"],
+  },
+
+  // ── the world pass: HR (payroll.hr-worlds) ──
+  {
+    name: "org-with-leave",
+    holds:
+      "org-with-employees on the third working day of a month or later, from January to November, so next month is in " +
+      "this year: this year's Holiday List with every Saturday and Sunday as weekly offs and Founders' Day on the first " +
+      "Wednesday of next month; leave types Annual Leave (25 days at most, carried forward up to 5), Sick Leave (10) and " +
+      "Unpaid Leave (without pay); this year's allocations, Sam Annual 20 and Sick 10, Noor Annual 20; Lead an Employee " +
+      "of `salaries` with no assignment; Sam's Annual Leave next Monday to Tuesday, open; Sam's Unpaid Leave on an " +
+      "earlier working day this month, approved by Lead, so marked on_leave; Lead's own Unpaid Leave on a working day " +
+      "next month, open; Noor marked absent on another earlier working day this month. Every session a warp ended was " +
+      "signed in again; Pat current.",
+    from: "org-with-employees",
+    steps: [
+      anyone("capxul dev time warp <to 09:00 on the next day that is the third working day of a month or later, from January to November; no warp when today is one>"),
+      signInAgain(),
+      current("pat@acme.test"),
+      step("pat@acme.test", "capxul org holiday add --weekly saturday --year <this year> --org acme; capxul org holiday add --weekly sunday --year <this year> --org acme"),
+      step("pat@acme.test", 'capxul org holiday add <the first Wednesday of next month> --description "Founders\' Day" --org acme'),
+      step(
+        "pat@acme.test",
+        'capxul org leave-type add "Annual Leave" --max-days 25 --carry-forward --max-carry 5 --org acme; ' +
+          'capxul org leave-type add "Sick Leave" --max-days 10 --org acme; capxul org leave-type add "Unpaid Leave" --without-pay --org acme',
+      ),
+      step(
+        "pat@acme.test",
+        'capxul org leave allocate <Sam> --type "Annual Leave" --days 20 --start <1 January this year> --end <31 December> --org acme; ' +
+          'the same for Sam\'s "Sick Leave" 10 and Noor\'s "Annual Leave" 20',
+      ),
+      step("pat@acme.test", "capxul org employee add lead@acme.test --first-name Lead --joined <the first day of the month three months back> --department salaries --designation Manager --org acme"),
+      step("sam@acme.test", 'capxul leave apply --type "Annual Leave" --start <next Monday> --end <next Tuesday> (left open: Sam\'s open leave)'),
+      step("sam@acme.test", 'capxul leave apply --type "Unpaid Leave" --start <an earlier working day this month> --end <the same day> (Sam\'s unpaid day)'),
+      step("lead@acme.test", "capxul org leave approve <Sam's unpaid day> --org acme"),
+      step("lead@acme.test", 'capxul leave apply --type "Unpaid Leave" --start <a working day next month> --end <the same day> --employer acme (left open: Lead\'s leave)'),
+      step("pat@acme.test", "capxul org attendance mark <Noor> --on <another earlier working day this month> --status absent --org acme (Noor's absent day)"),
+      current("pat@acme.test"),
+    ],
+    namedBy: ["payroll"],
+  },
+  {
+    name: "org-with-attendance",
+    holds:
+      "org-with-leave plus the Day shift (09:00 to 17:00, auto attendance, half day below 6 hours, absent below 4, 15 " +
+      "minutes' late grace) assigned to Sam from the next working day; on that day Sam checked in at 09:05 and out at " +
+      "17:10, marked present (8.08 hours); on the working day after, in at 09:40 and out at 12:00, marked absent with late " +
+      "entry (2.33 hours); now 08:50 on the following working day, before its shift. The assignment's start day is its " +
+      "first shift day, so the build day is not marked. Sam current.",
+    from: "org-with-leave",
+    steps: [
+      step("pat@acme.test", "capxul org shift-type add Day --start 09:00 --end 17:00 --auto-attendance --half-day-below 6 --absent-below 4 --late-grace 15 --org acme"),
+      step("pat@acme.test", "capxul org shift-type assign Day <Sam> --start <the next working day> --org acme"),
+      anyone("capxul dev time warp <to 09:05 on that working day>"),
+      step("sam@acme.test", "capxul attendance checkin --log in"),
+      anyone("capxul dev time warp <to 17:10 that day>"),
+      step("sam@acme.test", "capxul attendance checkin --log out"),
+      anyone("capxul dev time warp <to 18:01 that day> (the shift's process marks the day present)"),
+      anyone("capxul dev time warp <to 09:40 on the next working day>"),
+      step("sam@acme.test", "capxul attendance checkin --log in"),
+      anyone("capxul dev time warp <to 12:00 that day>"),
+      step("sam@acme.test", "capxul attendance checkin --log out"),
+      anyone("capxul dev time warp <to 18:01 that day> (marked absent with late entry)"),
+      anyone("capxul dev time warp <to 08:50 on the following working day>"),
+      current("sam@acme.test"),
+    ],
+    namedBy: ["payroll"],
+  },
+  {
+    name: "org-with-expenses",
+    holds:
+      "org-with-employees plus expense types Travel and Meals and Lead an Employee of `salaries`; Sam's advances A1 " +
+      "(200, `Conference travel`, paid by Lead and claimed), A2 (150, `Client visit`, paid by Lead) and A3 (500, " +
+      "`Equipment`, requested); Sam's claims C3 (Travel 300, yesterday, taking A1: approved and paid by Lead, 100 paid), " +
+      "C2 (Meals 45, approved by Lead, unpaid) and C1 (Travel 120, `Taxi`, receipt taxi.pdf, open); and Lead's own claim " +
+      "C4 (Meals 30, open). `salaries` has 59,550 USDC left this month. Lead current.",
+    from: "org-with-employees",
+    steps: [
+      step("pat@acme.test", "capxul org expense-type add Travel --org acme; capxul org expense-type add Meals --org acme"),
+      step("pat@acme.test", "capxul org employee add lead@acme.test --first-name Lead --joined <the first day of the month three months back> --department salaries --designation Manager --org acme"),
+      step("sam@acme.test", 'capxul advance request --amount 200 --purpose "Conference travel" (A1)'),
+      step("lead@acme.test", "capxul org advance pay <A1> --org acme --no-wait"),
+      approve("lead@acme.test", "A1's payment approval"),
+      step("sam@acme.test", 'capxul advance request --amount 150 --purpose "Client visit" (A2)'),
+      step("lead@acme.test", "capxul org advance pay <A2> --org acme --no-wait"),
+      approve("lead@acme.test", "A2's payment approval"),
+      step("sam@acme.test", "capxul advance request --amount 500 --purpose Equipment (A3, left requested)"),
+      step("sam@acme.test", "capxul expense-claim create --type Travel --amount 300 --on <yesterday> --advance <A1> (C3)"),
+      step("lead@acme.test", "capxul org expense-claim approve <C3> --org acme; capxul org expense-claim pay <C3> --org acme --no-wait"),
+      approve("lead@acme.test", "C3's payment approval (100 USDC)"),
+      step("sam@acme.test", "capxul expense-claim create --type Meals --amount 45 (C2)"),
+      step("lead@acme.test", "capxul org expense-claim approve <C2> --org acme (left unpaid)"),
+      step("sam@acme.test", "capxul expense-claim create --type Travel --amount 120 --description Taxi --receipt taxi.pdf (C1, left open)"),
+      step("lead@acme.test", "capxul expense-claim create --type Meals --amount 30 --employer acme (C4, left open)"),
+      current("lead@acme.test"),
+    ],
+    namedBy: ["payroll"],
+  },
+  {
+    name: "org-with-expenses-budget-used",
+    holds: "org-with-expenses with `salaries` spent to 30 USDC left this month, less than C2's 45 and A3's 500; Lead current.",
+    from: "org-with-expenses",
+    steps: [
+      step("lead@acme.test", "capxul payment send olga@outside.test 59520 --org acme --from salaries --json"),
+      approve("lead@acme.test", "that payment's approval"),
+      current("lead@acme.test"),
+    ],
+    namedBy: ["payroll"],
+  },
+  {
+    name: "org-with-expenses-short-safe",
+    holds: "org-with-expenses with the company Safe holding 40 USDC, less than A3's 500, while `salaries` has room; Lead current.",
+    from: "org-with-expenses",
+    steps: [...board("dana@acme.test", "capxul payment send olga@outside.test <all but 40 USDC> --org acme --as-directors"), current("lead@acme.test")],
+    namedBy: ["payroll"],
+  },
+  {
+    name: "org-with-expenses-chain-unreachable",
+    holds: "org-with-expenses with the backend's chain node failing every read (chain-rpc's fault switch); Lead current.",
+    from: "org-with-expenses",
+    steps: [fault("chain-rpc node-down"), current("lead@acme.test")],
+    namedBy: ["payroll"],
+  },
 ];
 
 // ── the names devnet's own refusals use ─────────────────────────────────────────────────────
@@ -1625,6 +1888,7 @@ export const W = {
   signedOut: "signed-out",
   signedIn: "person-signed-in",
   offDevnet: "cli-on-beta-environment",
+  sharedJoiner: "shared-world-joiner",
   orgReady: "org-ready",
   history: "person-with-payment-history",
   bridgeDown: "bridge-unreachable",

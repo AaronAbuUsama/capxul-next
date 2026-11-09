@@ -265,7 +265,10 @@ export const rpc_contacts_book_record = defineRpc({
     "curating row. Returns the entry with details.",
   concept: concept_contacts,
   kind: "mutation",
-  who: WHO_WRITE,
+  who:
+    WHO_WRITE +
+    " A link (`contact link`) is never the hosted FDE's act-for call, ROLE_PERMISSION_DENIED with nothing written: its " +
+    "preview is the asker's own (organizations.fde-for-the-asker).",
   input: Schema.Struct({
     book: Book,
     contactId: Schema.optionalKey(S),

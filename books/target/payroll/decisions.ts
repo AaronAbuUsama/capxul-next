@@ -818,9 +818,11 @@ export const decision_payroll_frappe_doctypes = defineDecision({
     "head reads it field for field: the sync renames nothing. Child tables are embedded because no reader queries a row " +
     "alone. Writing submitted documents at once keeps Frappe's rule that a submitted document is amended, never edited, " +
     "without a draft lifecycle for structures nobody reviews in Capxul. The rest (Income Tax Slab, Payroll Period, " +
-    "benefits, gratuity, leave, attendance, timesheets) are a head's: a run that needs them is computed there " +
-    "(payroll.one-computer-per-run). Additional Salary stays a head's own: a collection is pushed as its own slip, " +
-    "never as one, which Frappe would fold into the next slip (payroll.agreements-in-frappe-shape).",
+    "benefits, gratuity, timesheets) are a head's: a run that needs them is computed there " +
+    "(payroll.one-computer-per-run). Leave and attendance were here too until payroll came to mean HR: the HR that " +
+    "changes pay or moves money is native now (payroll.hr-scope). Additional Salary stays a head's own but for an " +
+    "advance's recovery (payroll.advance-recovery): a collection is pushed as its own slip, never as one, which Frappe " +
+    "would fold into the next slip (payroll.agreements-in-frappe-shape).",
   source: AFTER_RULING(`aaron.frappe-shape, aaron.erp-on-capxul; ${HRMS} (salary_slip, payroll_entry, salary_structure_assignment JSON)`),
   affects: [...HR_TABLES, concept_payroll],
 });
@@ -1006,7 +1008,7 @@ export const decision_payroll_slip_machine = defineDecision({
     "Frappe knows a run is paid only when its Bank Entry exists (`has_bank_entries`, true at the first entry), which " +
     "cannot say which person is paid. On Capxul each slip's net is its own Payment, so each slip has its own paid, from " +
     "chain proof at finality, and the employee sees it. Escrowed is its own state because a new hire's money has left " +
-    "the budget but is not theirs until they collect it (at setup, or later with `account collect`), and may come back. A lapsed slip keeps its Payment because " +
+    "the budget but is not theirs until they collect it (at setup, or later with `payment claim`), and may come back. A lapsed slip keeps its Payment because " +
     "payments keeps that Payment retryable (`needs_retry`); a new Payment beside it could pay twice, so only its own " +
     "command's resume pays it, and it cannot be withheld or cancelled meanwhile. A refunded escrow's Payment is " +
     "cancelled for good, so the slip forgets it and a later command pays it anew. Frappe's Withheld is not a flag but a " +
@@ -1117,7 +1119,7 @@ export const decision_payroll_new_hire_escrow = defineDecision({
       label: "escrow",
       text:
         "Payroll sends their net in the same command, to their mailbox's Safe; payments pays it into a claim escrow from " +
-        "the budget. The slip reads `escrowed` until they collect it (at setup, or later with `account collect`), then `paid` when the escrow's payout settles; if the " +
+        "the budget. The slip reads `escrowed` until they collect it (at setup, or later with `payment claim`), then `paid` when the escrow's payout settles; if the " +
         "wearer of the budget's hat or one above it, or the Board, takes it back, payments cancels that Payment (outcome refunded), the slip is " +
         "`submitted` again and still owed, and a later `runs.pay` naming it pays it under the next attempt.",
     },

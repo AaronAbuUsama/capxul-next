@@ -19,25 +19,26 @@ const OLD = "packages/backend/src";
 
 export const procedure_accounts_admit = defineProcedure({
   id: "accounts.admit",
-  title: "Admit an invitee, or someone money waits for, to the beta",
+  title: "Admit an invitee, someone money waits for, or an FDE's guest, to the beta",
   about:
-    "Authority fact: an Organization invitation, or money waiting in a claim escrow, and the admission it carries are " +
-    "one fact, so its invitee is never still waiting when they come to take the Seat, nor its recipient when they come " +
-    "to collect. Organizations invokes it in the transaction that writes the invitation (`org member invite`), `via` " +
+    "Authority fact: an Organization invitation, money waiting in a claim escrow, or an Organization naming a guest of " +
+    "its FDE, and the admission it carries are one fact, so its invitee is never still waiting when they come to take " +
+    "the Seat, nor its recipient when they come to claim, nor its guest when they come to ask. Organizations invokes it in the transaction that writes the invitation (`org member invite`), `via` " +
     "`invitation` and `ref` the Organization's id; payments invokes it in the transaction that moves a claim escrow's " +
     "Payment to `escrowed`, `via` `escrow` and `ref` the Payment's id, with the mailbox the Payment keeps " +
-    "(accounts.money-waiting-admits). It normalizes the email (INVALID_INPUT when it is not one), admits the mailbox " +
+    "(accounts.money-waiting-admits); organizations invokes it when it names an FDE guest (`org fde guest add`), `via` " +
+    "`fde-guest` and `ref` the Organization's id (organizations.fde-guests). It normalizes the email (INVALID_INPUT when it is not one), admits the mailbox " +
     "`<via>:<ref>` (`admit`, or `admit_unlisted` when the mailbox never joined), and moves the mailbox's referral, if " +
     "one brought it, to `admitted`. A mailbox admitted already is left as it is and answers `admitted: false`, so " +
-    "nothing is sent twice. Notices sends no beta welcome for an `invitation` or `escrow` admission: the invitation " +
-    "email, or the money-waiting email, is the welcome. An admission is never undone, so money taken back later leaves " +
+    "nothing is sent twice. Notices sends no beta welcome for any of the three: the invitation email, the " +
+    "money-waiting email or the guest-named email is the welcome. An admission is never undone, so money taken back later leaves " +
     "its recipient admitted, as a cancelled invitation leaves its invitee. It makes no outside call.",
   concept: concept_accounts,
   input: Schema.Struct({
     email: Schema.String,
-    /** What carries the admission: an Organization's invitation, or money waiting in a claim escrow. */
-    via: Schema.Literals(["invitation", "escrow"]),
-    /** The Organization's id for an invitation; the escrowed Payment's id for money waiting. */
+    /** What carries the admission: an Organization's invitation, money waiting in a claim escrow, or an FDE guest named. */
+    via: Schema.Literals(["invitation", "escrow", "fde-guest"]),
+    /** The Organization's id for an invitation or a guest; the escrowed Payment's id for money waiting. */
     ref: Schema.String,
   }),
   output: Schema.Struct({ email: Schema.String, admitted: Schema.Boolean }),

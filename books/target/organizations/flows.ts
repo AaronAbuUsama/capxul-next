@@ -9,7 +9,8 @@ import { budget, defineFlow } from "../../../packages/book/src/index.ts";
 import { component_core_sdk } from "../shared/foundation.ts";
 import { error_CANCELLED, error_INVALID_INPUT, error_PROVIDER_ERROR, error_ROLE_PERMISSION_DENIED, error_WRONG_STATE } from "../shared/vocabulary.ts";
 import { HeadView, rpc_organizations_heads_connect, rpc_organizations_heads_disconnect, rpc_organizations_heads_show } from "./heads.ts";
-import { rpc_organizations_fde_ask, rpc_organizations_fde_turn } from "./fde.ts";
+import { rpc_organizations_fde_ask, rpc_organizations_fde_turn, TurnView } from "./fde.ts";
+import { rpc_organizations_docs_get, rpc_organizations_docs_remove } from "./docs.ts";
 import { rpc_organizations_apps_list } from "./apps.ts";
 import { rpc_organizations_setups_begin, rpc_organizations_setups_get, rpc_organizations_setups_resume, SetupView } from "./setups.ts";
 import { rpc_organizations_workspaces_list } from "./workspaces.ts";
@@ -323,25 +324,24 @@ export const flow_client_org_fde_ask = defineFlow({
   id: "client.org.fde.ask",
   title: "Ask the hosted FDE something, and print its reply when its turn ends",
   about:
-    "`org fde ask` (organizations.fde-commands, aaron.fde-hosted). It sends the message to the Organization's hosted FDE " +
-    "through Capxul (one call, which records who asked), then waits for the FDE's turn, reading it from the host every " +
-    "few seconds, until it ends with the FDE's reply, fails with the host's reason, or the deadline passes (300 seconds " +
-    "by default, 1 to 3,600). A turn the host answers failed ends PROVIDER_ERROR with the host's reason, as a head " +
-    "connection that fails ends with its issue's code; the ask stays recorded. At the deadline it stops waiting " +
-    "(CLI_DEADLINE) and prints the turn's id; the FDE carries on, and what it does it does through its own commands, " +
-    "each traced. The FDE's turn is a wait, never system time.",
+    "`org fde ask` (organizations.fde-commands, aaron.fde-hosted, aaron.fde-anyone), for any member or a guest the " +
+    "management named. It sends the message to the Organization's hosted FDE through Capxul (one call, which records " +
+    "who asked and gives the FDE an act-for token for that turn: whatever the FDE does, it does as the asker), then " +
+    "waits for the FDE's turn, reading it from the host every few seconds, until it ends with the FDE's reply, fails " +
+    "with the host's reason, or the deadline passes (300 seconds by default, 1 to 3,600). A turn the host answers " +
+    "failed ends PROVIDER_ERROR with the host's reason; the ask stays recorded. At the deadline it stops waiting " +
+    "(CLI_DEADLINE) and prints the ask's id and the turn's, which `org fde turn get` reads later; the FDE carries on, " +
+    "and the ask stays open for it until a read finds the turn ended (or FDE_ASK_HOURS pass). A turn read ended here " +
+    "closes the ask at once, so on a devnet, whose stand-in host ends a turn as it is posted, an eval that runs the " +
+    "FDE's commands under an ask holds the turn first (`capxul-devnet fault fde-host hold`). When the FDE " +
+    "needs the asker's signature it hands the approval to the asker, who signs it on the approval page. The FDE's turn " +
+    "is a wait, never system time.",
   component: component_core_sdk,
   sdk: "client.org(orgId).fde.ask",
   input: Schema.Struct({ orgId: S, message: S, ...AskDeadline }),
-  output: Schema.Struct({
-    askId: S,
-    turnId: S,
-    status: Schema.Literals(["working", "ended", "failed"]),
-    reply: NullOr(S),
-    reason: NullOr(S),
-  }),
+  output: TurnView,
   steps: [
-    { name: "send", rpc: rpc_organizations_fde_ask, about: "Post the message to the FDE's conversation and record the ask." },
+    { name: "send", rpc: rpc_organizations_fde_ask, about: "Post the message to the FDE's conversation, with its act-for token, and record the ask." },
     { name: "await-turn", local: "wait", about: "Until the FDE's turn ends or fails, or the deadline." },
     { name: "turn", rpc: rpc_organizations_fde_turn, about: "Read the turn from the host, every few seconds while it works, and its reply once it ends." },
   ],
@@ -349,4 +349,30 @@ export const flow_client_org_fde_ask = defineFlow({
   calls: [],
   spans: [],
   budget: { ...budget("vendor"), excludes: ["wait.await-turn"] },
+});
+
+// ── the document family (organizations.doc-family) ─────────────────────────────────────────
+
+export const flow_client_org_docs_remove = defineFlow({
+  id: "client.org.docs.remove",
+  title: "Delete a head document after a preview",
+  about:
+    "`org doc remove` (organizations.doc-family, aaron.sdk-reaches-everything). Deleting a head document cannot be " +
+    "undone from Capxul, so it reads the document first (one logged read: a name the head lacks, or one the member may " +
+    "not read, ends there), shows its DocType, name, title and status and that it cannot be undone, and asks; no is " +
+    "CANCELLED and nothing is deleted, and `--confirm` answers yes in a script, which without it is the CLI's usage " +
+    "refusal (vocabulary.declined-preview-cancelled). Then it deletes it in one call, with the same call id on a retry.",
+  component: component_core_sdk,
+  sdk: "client.org(orgId).docs.remove",
+  input: Schema.Struct({ orgId: S, doctype: S, name: S, confirm: Schema.optionalKey(Schema.Boolean) }),
+  output: rpc_organizations_docs_remove.output,
+  steps: [
+    { name: "read", rpc: rpc_organizations_docs_get, about: "Read the document once, for the preview." },
+    { name: "confirm", local: "prompt", about: "Only at a terminal without `confirm`: show what is deleted and ask; no is CANCELLED." },
+    { name: "remove", rpc: rpc_organizations_docs_remove, about: "Delete it on the head, as the member's own User." },
+  ],
+  errors: [error_CANCELLED],
+  calls: [],
+  spans: [],
+  budget: { ...budget("vendor"), why: "one read and one write of the head, each followed by its log write" },
 });

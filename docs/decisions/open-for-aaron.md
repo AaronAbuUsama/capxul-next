@@ -25,7 +25,7 @@ the v4 contracts.
 The open decisions, numbered as they were put to Aaron (in text written for text-to-speech). Each recommendation
 stands, and the build follows it, until he answers. His answers go into `books/target/shared/rulings.ts`, book first.
 
-## His direction of 8 November 2026, evening (to record after the commands pass)
+## His direction of 8 November 2026, evening (recorded in the eighth batch; applied in the world pass, 9 November 2026)
 
 - **One world, one clock, for everything** (`aaron.world-clock`): a devnet, a staging network or a shared world is a
   self-contained world whose clock is controlled, and everything in it follows that clock: the chain, the backend,
@@ -43,7 +43,7 @@ stands, and the build follows it, until he answers. His answers go into `books/t
   or move money; recruitment, appraisal, training and onboarding on the head, reached through the generic family.
   Recommended: designed next.
 
-## His answers, 8 November 2026, night (to apply after the commands pass)
+## His answers, 8 November 2026, night (applied in the world pass, 9 November 2026)
 
 - **The recipient's command is `payment claim`**, not `account collect` (rename `account.collect` to `payment.claim`;
   "claim" is the word of `aaron.escrow-general`). The sender's take-back stays `payment cancel`.
@@ -76,11 +76,11 @@ back until it is claimed; it is a general-purpose escrow; the escrow changes, no
 | 7 | Only the fundamental apps live in Capxul; every other Frappe app lives only on a connected head? | Yes | `organizations.apps-native-or-head` |
 | 8 | Should the directory name companies that are not on Capxul? | No: they stay private in each CRM until they join or are paid | `parties.outside-companies` |
 | 9 | Is a person's mailbox theirs for life? | Yes for now; moving a mailbox is a later capability | `parties.mailbox-for-life` |
-| 10 | Do the new capabilities get CLI commands now? | Yes (accepted). Booked: 90 operations beyond the 215 in one grammar, each once: projects 35, the CRM 14, payroll 28, apps, head and FDE 8, buying from Capxul 3, `org timesheet bill` and `account collect` | `docs/design/new-commands.md`; `projects.commands`, `contacts.crm-capabilities`, `payroll.hr-surface`, `organizations.commands`, `organizations.buy-seats`, `requests.bill-time`, `accounts.collect-any-time` |
+| 10 | Do the new capabilities get CLI commands now? | Yes (accepted). Booked: 90 operations beyond the 215 in one grammar, each once: projects 35, the CRM 14, payroll 28, apps, head and FDE 8, buying from Capxul 3, `org timesheet bill` and `account collect` (now `payment claim`); with the world pass, 165 (questions 39 to 49) | `docs/design/new-commands.md`; `projects.commands`, `contacts.crm-capabilities`, `payroll.hr-surface`, `organizations.commands`, `organizations.buy-seats`, `requests.bill-time`, `accounts.collect-any-time` |
 | 11 | May a new command be booked on its pack's recommendation before you answer the pack? | Yes; nothing of the 215 changes | `rules.new-operations` |
 | 12 | Projects: members work their own tasks and time; the People hat manages projects? | Yes | `projects.permissions` |
-| 13 | Where does each organization's FDE run at first? | Made in the founder's install, its key made on the founder's machine; Capxul-hosted FDEs later | `organizations.fde-at-start-up` |
-| 14 | Does the FDE start with any hats? | None; the founder grants hats, the People hat included, when needed | `agents.fde-authority`, `agents.fde-people-hat` |
+| 13 | Where does each organization's FDE run at first? | Made in the founder's install, its key made on the founder's machine; Capxul-hosted FDEs later. Superseded by `aaron.fde-hosted`: Capxul hosts every FDE | `organizations.fde-at-start-up` |
+| 14 | Does the FDE start with any hats? | None; the founder grants hats, the People hat included, when needed. Since `aaron.fde-anyone` the hosted FDE needs none: it acts with its asker's hats | `agents.fde-authority`, `agents.fde-people-hat` |
 | 15 | Is no agent ever a Director, or only an organization's own agents? | No agent at all | `board.no-agent-directors` |
 
 ## The build
@@ -125,9 +125,33 @@ record keeps its choice until his answers are applied, book first, after this pa
 
 | # | Question | Recommendation | His answer | Records |
 |---|---|---|---|---|
-| 36 | Who may talk to the hosted FDE (`org fde ask`)? | A Director: the FDE acts with the hats the Board granted it, so whoever instructs it borrows them | Anyone may, and anyone the management is speaking to: the host passes the asker's Seat, so the FDE does for them only what their own hats allow; the FDE is not on the critical path | `organizations.fde-commands`, `organizations.commands`, `organizations.command-priorities`, operation `org.fde.ask` |
+| 36 | Who may talk to the hosted FDE (`org fde ask`)? | A Director: the FDE acts with the hats the Board granted it, so whoever instructs it borrows them | Anyone may, and anyone the management is speaking to: the host passes the asker's Seat, so the FDE does for them only what their own hats allow; the FDE is not on the critical path | `organizations.fde-commands`, `organizations.commands`, `organizations.command-priorities`, operation `org.fde.ask`; applied in the world pass (`organizations.fde-for-the-asker`, `organizations.fde-guests`, `rules.fde-acts-for-asker`) |
 | 37 | How is the FDE's hosting paid? | In advance by the month from a budget (`org fde pay [<months>] --from <budget>`, 20 USDC a month), the FDE pausing when its paid-through instant passes and resuming when paid | Accepted as recommended | `organizations.fde-hosting`, `payments.fde-hosting-purchase`, operation `org.fde.pay` |
-| 38 | May a recipient collect waiting money later, by command, as well as at setup? | Yes, as `aaron.escrow-general` reads; booked as `account collect` (one approval collects every claim escrow the person's Safe owns) | Yes, spelt `payment claim` (`payment.claim`); the sender's take-back stays `payment cancel` | `accounts.collect-any-time`, operation `account.collect`; `docs/design/new-commands.md` section 6 |
+| 38 | May a recipient collect waiting money later, by command, as well as at setup? | Yes, as `aaron.escrow-general` reads; booked as `account collect` (one approval collects every claim escrow the person's Safe owns) | Yes, spelt `payment claim` (`payment.claim`); the sender's take-back stays `payment cancel` | `accounts.collect-any-time`, operation `payment.claim` (was `account.collect`), `payments.claim-command`; `docs/design/new-commands.md` section 6. Applied in the world pass |
 
 Also accepted that night: `payments.seat-authority` and `payments.seat-purchase`.
 
+## Raised by the world pass (9 November 2026)
+
+The world pass (`tools/workflows/world-pass.js`) carried out the eighth batch: `aaron.world-clock`,
+`aaron.sdk-reaches-everything`, `aaron.payment-claim`, `aaron.fde-anyone`, and the evening answers (the CRM tracks
+every conversation; payroll means HR). It booked 75 new operations, 165 beyond the 215 in all. Its records raise these
+questions; each recommendation stands, and the build follows it, until he answers.
+
+| # | Question | Recommendation | Records |
+|---|---|---|---|
+| 39 | Is a world's clock rate set by one new command, `dev time set --rate <n>`, a whole number from 1 to 60 world seconds a real second? | Yes. Above 60 the real-time machinery dominates and a warp is the tool; a world where people sign in by emailed code runs at 5 or less, since a five-minute code lasts 5/rate real minutes | `devnet.clock-rate`, operation `dev.time.set` |
+| 40 | Who may join a shared world? | Only people its owner grants, each grant file handed over outside the world (never by its mail), carrying the joiner's own dev-signer keys; only the owner moves, follows, saves or restores the clock | `devnet.shared-world`, environment `shared-world` |
+| 41 | Your ruling lists "a staging network" among the worlds whose clock is controlled. Does staging's clock move? | No: staging stays on Base Sepolia's real clock at rate 1, never moved, since the sequencer's time is not Capxul's; it stays self-contained by its channels (mail to MAIL_ALLOWED_RECIPIENTS, WhatsApp only from the test numbers WHATSAPP_ALLOWED_NUMBERS lists). A controlled world others share is a shared world | `time.worlds`, `time.world-channels`, `contacts.whatsapp-staging-numbers` |
+| 42 | The document family: your six commands, plus `org doc amend` (a cancelled document's correction), `org doc apply <action>` (a Workflow step), `org doc remove` (delete after a preview), `org doctype list\|get` and `org doc-call list` (the log)? | All twelve. Left out on purpose: count, copy, bulk writes, whitelisted methods, files and comments | `organizations.doc-family`, section 5.7 of `docs/design/new-commands.md` |
+| 43 | Do stock, selling, buying and asset documents on the head (Stock Entry, Delivery Note, Sales and Purchase Orders, Asset), which ERPNext's ledger hooks list, count as money? | Yes: the family refuses them, and people work them in the head's own desk while books copies their vouchers. The alternatives: read them and keep drafts, refusing only submit; or read them only | `organizations.doc-reach` |
+| 44 | Your "anyone may talk to the FDE" is read as: the hosted FDE acts only as the person who asked, with their Seat and hats; every signature goes to the asker; a preview (head connect or disconnect, deleting a head document, contact link, an employee's leaving, the CRM's sends and WhatsApp connect) is the asker's to answer, so the FDE drafts and the member runs it; hats the Board grants the FDE's own Safe go unused while Capxul hosts it. Is that right? | Yes | `organizations.fde-for-the-asker`, `agents.fde-authority`, `rules.fde-acts-for-asker` |
+| 45 | The CRM's conversations: `org crm timeline`; `org crm email send`; `org crm whatsapp connect\|disconnect\|show\|send`; `org crm note add\|change`; `org crm task create\|change\|move\|list`; `org crm call log` (13), a task's status moved by `move` as leads and deals are? | As booked | `contacts.conversation-commands`, section 5.8 |
+| 46 | Which money does a contact's timeline show? | What the chain proves between the Organization and the record's Party: payments either way, claim escrows and paid invoices, read from indexing; a request not yet paid does not show, since contacts sits below requests. To show unpaid requests the command moves to activity | `contacts.timeline-money` |
+| 47 | Email attachments and WhatsApp media? | Named but not kept, and sends carry none, until contacts depends on media in a later pass | `contacts.attachments-later` |
+| 48 | HR: the 45 commands of section 5.9 (holidays, leave types, allocations and applications, shifts, check-ins and attendance, expense types, claims and advances)? | As booked; HR is part of payroll, not a concept of its own | `payroll.hr-commands`, `payroll.hr-in-payroll`, section 5.9 |
+| 49 | Nobody approves their own expense claim or advance, so a department's only hat wearer waits for someone else to wear that hat or one above it. Should the Board decide those instead? | No: keep refusing; a sole holder who spends for the department pays it as a department payment | `payroll.hr-approvers` |
+
+To record in `books/target/shared/rulings.ts` (its owner's, not the pass's): "payroll means HR" as a ruling of its own
+(for example `aaron.payroll-means-hr`), which the `payroll.hr-*` decisions would then cite; and the CARRIES_OUT and
+SUPERSEDED entries the pass's records ask for (see its build report).

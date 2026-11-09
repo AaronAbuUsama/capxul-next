@@ -1,5 +1,7 @@
 // The eleven frozen operations payroll owns (OPERATION_OWNERS: area payroll), each built from its
-// frozen text, and then, at the end of the file, Frappe HR's 28 commands beyond the 215 (payroll.hr-surface). Acceptance lines keep their claim word for word (P1), except the lines opening "On
+// frozen text, and then, at the end of the file, Frappe HR's 28 commands beyond the 215 (payroll.hr-surface) and
+// the 45 HR commands after them (payroll.hr-commands; rules.new-operations books them here). Acceptance lines keep
+// their claim word for word (P1), except the lines opening "On
 // v4", which lose the opening (P9), and one line that named the old read-time settling, rewritten as
 // an outcome (payroll.acceptance). "Reports" in a claim is read as decision payroll.reports says.
 //
@@ -67,6 +69,62 @@ import { WHO_HR } from "./employees.ts";
 import { rpc_payroll_holders_list } from "./holders.ts";
 import { rpc_payroll_payees_list, rpc_payroll_payees_show } from "./payees.ts";
 import { Agreement, AgreementRow, CollectionPayment, Department, HolderWriteReturns, Status } from "./shapes.ts";
+import {
+  WHO_LEAVE_APPROVER,
+  WHO_MEMBER,
+  WHO_SELF_HR,
+  rpc_payroll_holidays_add,
+  rpc_payroll_holidays_list,
+  rpc_payroll_holidays_remove,
+  rpc_payroll_leave_allocate,
+  rpc_payroll_leave_apply,
+  rpc_payroll_leave_approve,
+  rpc_payroll_leave_balance,
+  rpc_payroll_leave_cancel,
+  rpc_payroll_leave_list,
+  rpc_payroll_leave_mine,
+  rpc_payroll_leave_my_balance,
+  rpc_payroll_leave_reject,
+  rpc_payroll_leave_types_add,
+  rpc_payroll_leave_types_change,
+  rpc_payroll_leave_types_list,
+  rpc_payroll_leave_unallocate,
+} from "./leave.ts";
+import {
+  rpc_payroll_attendance_cancel,
+  rpc_payroll_attendance_checkin,
+  rpc_payroll_attendance_list,
+  rpc_payroll_attendance_mark,
+  rpc_payroll_attendance_mine,
+  rpc_payroll_shift_types_add,
+  rpc_payroll_shift_types_assign,
+  rpc_payroll_shift_types_list,
+  rpc_payroll_shift_types_unassign,
+} from "./attendance.ts";
+import {
+  WHO_DEPARTMENT,
+  WHO_EXPENSE_READER,
+  flow_client_org_advances_pay,
+  flow_client_org_advances_settle,
+  flow_client_org_expense_claims_pay,
+  rpc_payroll_advances_get,
+  rpc_payroll_advances_list,
+  rpc_payroll_advances_mine,
+  rpc_payroll_advances_reject,
+  rpc_payroll_advances_request,
+  rpc_payroll_advances_withdraw,
+  rpc_payroll_expense_claims_approve,
+  rpc_payroll_expense_claims_cancel,
+  rpc_payroll_expense_claims_create,
+  rpc_payroll_expense_claims_get,
+  rpc_payroll_expense_claims_list,
+  rpc_payroll_expense_claims_mine,
+  rpc_payroll_expense_claims_mine_get,
+  rpc_payroll_expense_claims_reject,
+  rpc_payroll_expense_claims_withdraw,
+  rpc_payroll_expense_types_add,
+  rpc_payroll_expense_types_list,
+} from "./expenses.ts";
 
 type Claim = { claim: string; observes: string; was: string[] };
 type FrozenLine = { readonly claim: string; readonly was: readonly string[] };
@@ -963,7 +1021,7 @@ export const operation_org_employee_leave = defineOperation({
   command: "org employee leave",
   priority: "normal",
   implementedBy: flow_client_org_employees_leave,
-  who: WHO_HR,
+  who: `${WHO_HR} Never the hosted FDE for its asker: the preview is the member's own.`,
   changes: "The Employee's status, to left, with their relieving day; no run pays them after it.",
   acceptance: [
     hrClaim(
@@ -1360,8 +1418,9 @@ export const operation_org_payroll_run_create = defineOperation({
   about:
     "Drafts a department's payroll run for a period, as Frappe HR's Payroll Entry: one slip for each of its Employees " +
     "with a structure assignment who is active, or who left on or after the period's first day, or for those named, " +
-    "each worked out from that assignment (gross, deductions, net), prorated by the days employed and any leave " +
-    "without pay. An inactive or suspended Employee is left out (payroll.run-employees). Nothing is owed until it is " +
+    "each worked out from that assignment (gross, deductions, net), prorated by the days employed and by the period's " +
+    "attendance: approved unpaid leave and days marked absent, unmarked days counting present (payroll.attendance-based). " +
+    "An advance being recovered is deducted. An inactive or suspended Employee is left out (payroll.run-employees). Nothing is owed until it is " +
     "submitted. An Employee's period is in at most one live run. A structure whose formulas Capxul cannot work out " +
     "is run by a connected head instead.",
   area: HR_AREA,
@@ -1379,9 +1438,11 @@ export const operation_org_payroll_run_create = defineOperation({
         "draft and one salary_slip_transitioned to draft per slip.",
     ),
     hrClaim(
-      "Leave without pay prorates a slip by its payment days.",
-      "cli: from org-with-employees, the same command with `--unpaid <Sam>=3` gives Sam's slip three fewer payment days " +
-        "than the month has, B at 4000.00 times its payment days over its days, rounded half to even, PEN 200.00, and the net the difference.",
+      "Approved unpaid leave and days marked absent prorate a slip by its payment days.",
+      "cli: from org-with-leave (Sam's approved Unpaid Leave day this month, Noor marked absent one day), Pat's `org " +
+        "payroll run create salaries --start <this month's first day> --end <its last day> --org acme --json` gives Sam's " +
+        "slip one payment day fewer than the month has with `leaveWithoutPay: 1`, and Noor's one fewer with `absentDays: " +
+        "1`; each B at its base times its payment days over the month's days, rounded half to even, PEN unprorated, and the net the difference.",
     ),
     hrClaim(
       "A leaver's last period is paid to their relieving day, and no later period is.",
@@ -1808,3 +1869,1553 @@ export const NEW_OPERATIONS = [
 
 /** The commands an Organization's first payroll needs (payroll.critical-commands). */
 export const CRITICAL_OPERATIONS = NEW_OPERATIONS.filter((o) => o.priority === "critical");
+
+// ── Frappe HR's HR commands beyond the 215 (rules.new-operations, CONVENTIONS rule 4a), on the pack decision ─────
+// payroll.hr-commands: holidays, leave, shifts and attendance, expense claims and advances (hr-data.ts). Each id is its
+// command's words joined by dots, area `payroll`, and each calls one SDK method (payroll.hr-rpc-methods): the rpc
+// itself, or for the two that sign and wait and the one that previews, a flow (expenses.ts). Who runs each is a hat or
+// the caller's own Party, never a named person (payroll.hr-approvers): the People hat keeps the HR records; the
+// Employee applies, checks in, claims and asks for an advance, member or not (payroll.hr-self); a department's hat, or
+// one above it, decides and pays its Employees' claims and advances (aaron.departments) and, with the People hat,
+// decides their leave. Every refusal starts from a catalogued world (payroll.hr-worlds). The helpers W_HR,
+// noPeopleHat, unknownId and peopleOnly above serve these too.
+
+const AREA = "payroll";
+const claim = (c: string, observes: string) => ({ claim: c, observes });
+const NOTHING = "Nothing: it only reads.";
+const CLI = [error_CLI_USAGE];
+
+// ── the worlds (payroll.hr-worlds), each built with booked commands on org-with-employees ───────
+
+/**
+ * org-with-employees plus holidays, leave types, allocations, Sam's open and approved leave, Lead's own open leave, Noor's
+ * absence; built in a month from January to November, so next month and this year's allocations share the year.
+ */
+const W_LEAVE = "org-with-leave";
+/** org-with-leave plus the Day shift assigned to Sam from the next working day, his check-ins on two working days, and the marks they made. */
+const W_ATTEND = "org-with-attendance";
+/** org-with-employees plus expense types, Sam's claims (open, approved, paid) and advances (paid and claimed, paid, requested), and Lead's own open claim. */
+const W_EXP = "org-with-expenses";
+/** org-with-expenses with `salaries` spent to 30 USDC left this month. */
+const W_EXP_BUDGET = "org-with-expenses-budget-used";
+/** org-with-expenses with the company Safe holding 40 USDC. */
+const W_EXP_SHORT = "org-with-expenses-short-safe";
+/** org-with-expenses with the backend's chain node failing every read. */
+const W_EXP_CHAIN = "org-with-expenses-chain-unreachable";
+
+// ── refusals every family shares ────────────────────────────────────────────────────────────
+
+const signedOut = { error: error_NOT_AUTHENTICATED, given: "signed-out", when: "No one is signed in on this machine: nothing is read or written." };
+const outsider = (given: string) => ({
+  error: error_ROLE_PERMISSION_DENIED,
+  given,
+  when: "Olga, signed in and holding no Seat in Acme, names it with `--org`: refused as an Organization that does not exist is; nothing is read or written.",
+});
+const invalid = (when: string, given: string) => ({ error: error_INVALID_INPUT, given, when });
+const wrong = (when: string, given: string) => ({ error: error_WRONG_STATE, given, when });
+const memberOnly = (given: string) => [signedOut, outsider(given)];
+/** A self command named for an Organization that does not employ the caller. */
+const notEmployee = (given: string, more = "") =>
+  invalid(
+    `Mia, a member of Acme but none of its Employees, or Olga, outside it, runs it with \`--employer acme\`: the handle names no Organization employing them${more}, and nothing is read or written.`,
+    given,
+  );
+const suspended = (what: string, given: string) =>
+  wrong(`After Pat's \`org employee suspend <Sam>\`, Sam ${what}: the refusal names his status, suspended, and nothing is written.`, given);
+const selfOnly = (given: string, more = "") => [signedOut, notEmployee(given, more)];
+/** The department's refusals: the People hat and another department's hat are not this one's. */
+const notDepartment = (what: string, given: string) => ({
+  error: error_ROLE_PERMISSION_DENIED,
+  given,
+  when:
+    `Pat, who wears the People hat, or Plat, who wears \`platform\`'s office hat, ${what}: Budgets authorises neither on ` +
+    "`salaries`, which pays Sam, so nothing is read on chain past that check or written.",
+});
+const chainDown = (what: string) => ({
+  error: error_PROVIDER_ERROR,
+  given: W_EXP_CHAIN,
+  when: `The chain cannot be read, so whether Budgets authorises Lead on \`salaries\` is unknown: ${what}, as the department commands refuse a chain they cannot read.`,
+});
+const departmentOnly = (what: string, given: string) => [signedOut, outsider(given), notDepartment(what, given)];
+
+// ── holidays ────────────────────────────────────────────────────────────────────────────────
+
+export const operation_org_holiday_add = defineOperation({
+  id: "org.holiday.add",
+  title: "Add a holiday, or a year's weekly offs",
+  about:
+    "Adds a holiday to the Organization's Holiday List for its year, or every Saturday or Sunday (any weekday) of a " +
+    "year as weekly offs, as Frappe's Holiday List does. A day off counts no leave, and is never marked absent. " +
+    "Payroll counts holidays as working days, so a holiday never lowers pay by itself.",
+  area: AREA,
+  command: "org holiday add",
+  priority: "normal",
+  implementedBy: rpc_payroll_holidays_add,
+  who: WHO_HR,
+  changes: "The year's Holiday List, born with its first holiday, and its line in payroll's change log.",
+  acceptance: [
+    claim(
+      "A holiday is added to its year's list, which is born with it.",
+      "cli: from org-with-employees, Pat's `org holiday add <a weekday this year> --description \"Founders' Day\" --org acme " +
+        "--json` prints the list `Acme Ltd <year>` holding that day with `weeklyOff: false` and `totalHolidays: 1`; world: one Holiday List added.",
+    ),
+    claim(
+      "A weekday is added as a weekly off on every day of the year it falls on, once.",
+      "cli: from org-with-employees, Pat's `org holiday add --weekly sunday --year <this year> --org acme --json` prints " +
+        "every Sunday of the year `weeklyOff: true`; run again, it adds none and prints the same list; world: one Holiday List added.",
+    ),
+    claim(
+      "A day already a holiday is not added again.",
+      "cli: from org-with-leave, Pat's `org holiday add <Founders' Day> --description Again --org acme` exits WRONG_STATE naming the day; world: no diff.",
+    ),
+  ],
+  returns: rpc_payroll_holidays_add.output,
+  errors: CLI,
+  refusals: [
+    ...peopleOnly("adds a holiday", W_HR),
+    invalid("Neither a day nor `--weekly` is given, or both are, or a day comes with no `--description`: the refusal names the flag, and nothing is written.", W_HR),
+    wrong("Founders' Day is already a holiday of this year's list: the refusal names it, and nothing is written.", W_LEAVE),
+  ],
+  budget: budget("write"),
+});
+
+export const operation_org_holiday_remove = defineOperation({
+  id: "org.holiday.remove",
+  title: "Remove a holiday",
+  about: "Removes one day from its year's Holiday List, so it is a working day from then on. Leave already decided keeps the days it counted.",
+  area: AREA,
+  command: "org holiday remove",
+  priority: "normal",
+  implementedBy: rpc_payroll_holidays_remove,
+  who: WHO_HR,
+  changes: "The year's Holiday List, less the day, and its line in payroll's change log.",
+  acceptance: [
+    claim(
+      "A holiday is removed, and leave over it then counts the day.",
+      "cli: from org-with-leave, Pat's `org holiday remove <Founders' Day> --org acme --json` prints the list without it and " +
+        "`totalHolidays` one fewer; Sam's `leave apply --type \"Annual Leave\" --start <Founders' Day> --end <Founders' Day> " +
+        "--json` then prints `days: 1`.",
+    ),
+  ],
+  returns: rpc_payroll_holidays_remove.output,
+  errors: CLI,
+  refusals: [...peopleOnly("removes a holiday", W_LEAVE), invalid("The day is no holiday of its year's list: the refusal names the day, and nothing is written.", W_LEAVE)],
+  budget: budget("write"),
+});
+
+export const operation_org_holiday_list = defineOperation({
+  id: "org.holiday.list",
+  title: "List the Organization's holidays",
+  about: "Lists one year's holidays (this year's unless `--year` names another), weekly offs marked, for any member.",
+  area: AREA,
+  command: "org holiday list",
+  priority: "normal",
+  implementedBy: rpc_payroll_holidays_list,
+  who: WHO_MEMBER,
+  changes: NOTHING,
+  acceptance: [
+    claim(
+      "Any member reads the year's holidays, weekly offs marked.",
+      "cli: from org-with-leave, Sam's `org holiday list --org acme --json` prints this year's list: every Saturday and " +
+        "Sunday `weeklyOff: true` and Founders' Day `weeklyOff: false`; `--year <next year>` prints no holidays and " +
+        "`holidayListId: null`.",
+    ),
+  ],
+  returns: rpc_payroll_holidays_list.output,
+  errors: CLI,
+  refusals: memberOnly(W_LEAVE),
+  budget: budget("read"),
+});
+
+// ── leave types ─────────────────────────────────────────────────────────────────────────────
+
+export const operation_org_leave_type_add = defineOperation({
+  id: "org.leave-type.add",
+  title: "Add a leave type",
+  about:
+    "Adds a kind of leave with its rules, as Frappe's Leave Type: the most days one allocation gives, how long after " +
+    "joining it may be taken, the longest stretch, whether unused days carry forward and how many, whether it is " +
+    "unpaid or partly paid (its days then dock pay), whether holidays inside it count, and whether it may go below " +
+    "zero. Earned, compensatory, optional and encashable leave stay on a connected head.",
+  area: AREA,
+  command: "org leave-type add",
+  priority: "critical",
+  implementedBy: rpc_payroll_leave_types_add,
+  who: WHO_HR,
+  changes: "One Leave Type, and its line in payroll's change log.",
+  acceptance: [
+    claim(
+      "A leave type is added with the rules given, every other off.",
+      "cli: from org-with-employees, Pat's `org leave-type add \"Annual Leave\" --max-days 25 --carry-forward --max-carry 5 " +
+        "--org acme --json` prints an `lvt_` type with `maxDays: 25`, `carryForward: true`, `maxCarry: 5`, `withoutPay: " +
+        "false`, `includeHolidays: false` and `allowNegative: false`.",
+    ),
+    claim(
+      "An unpaid type is never also partly paid or carried forward.",
+      "cli: from org-with-employees, Pat's `org leave-type add Unpaid --without-pay --carry-forward --org acme` exits " +
+        "INVALID_INPUT naming `--carry-forward`; world: no diff.",
+    ),
+  ],
+  returns: rpc_payroll_leave_types_add.output,
+  errors: CLI,
+  refusals: [
+    ...peopleOnly("adds a leave type", W_HR),
+    invalid("`--partly-paid 1.5`, `--max-days 0`, or an unpaid type that is also partly paid or carried forward: the refusal names the flag, and nothing is written.", W_HR),
+    wrong("Acme already has a leave type named Annual Leave: the refusal names it, and nothing is written.", W_LEAVE),
+  ],
+  budget: budget("write"),
+});
+
+export const operation_org_leave_type_change = defineOperation({
+  id: "org.leave-type.change",
+  title: "Change a leave type's rules",
+  about:
+    "Changes a leave type's rules and keeps the rest; `--clear` empties a limit or turns a flag off. Applications " +
+    "already decided keep their days, and a type with approved leave is never turned paid or unpaid.",
+  area: AREA,
+  command: "org leave-type change",
+  priority: "normal",
+  implementedBy: rpc_payroll_leave_types_change,
+  who: WHO_HR,
+  changes: "The type's rules given, and its line in payroll's change log.",
+  acceptance: [
+    claim(
+      "A change sets the rules given and keeps the rest.",
+      "cli: from org-with-leave, Pat's `org leave-type change \"Annual Leave\" --max-days 30 --org acme --json` prints " +
+        "`maxDays: 30` with `carryForward: true` and `maxCarry: 5` as before.",
+    ),
+    claim(
+      "A type with approved leave is not turned paid.",
+      "cli: from org-with-leave, Pat's `org leave-type change \"Unpaid Leave\" --clear without-pay --org acme` exits " +
+        "WRONG_STATE naming Sam's approved unpaid day; world: no diff.",
+    ),
+  ],
+  returns: rpc_payroll_leave_types_change.output,
+  errors: CLI,
+  refusals: [
+    ...peopleOnly("changes Annual Leave", W_LEAVE),
+    invalid("The type is none of Acme's (`Holiday Leave`), or nothing is given to change: nothing is written.", W_LEAVE),
+    wrong("Unpaid Leave has approved leave (Sam's unpaid day), so it cannot be turned paid: the refusal names it, and nothing is written.", W_LEAVE),
+  ],
+  budget: budget("write"),
+});
+
+export const operation_org_leave_type_list = defineOperation({
+  id: "org.leave-type.list",
+  title: "List the Organization's leave types",
+  about: "Lists the leave types and their rules, for any member.",
+  area: AREA,
+  command: "org leave-type list",
+  priority: "normal",
+  implementedBy: rpc_payroll_leave_types_list,
+  who: WHO_MEMBER,
+  changes: NOTHING,
+  acceptance: [
+    claim(
+      "Any member reads the leave types and their rules.",
+      "cli: from org-with-leave, Sam's `org leave-type list --org acme --json` lists Annual Leave (25 days, carried up to " +
+        "5), Sick Leave (10 days) and Unpaid Leave (`withoutPay: true`), with `nextCursor: null`.",
+    ),
+  ],
+  returns: rpc_payroll_leave_types_list.output,
+  errors: CLI,
+  refusals: [...memberOnly(W_LEAVE), invalid("`--after` is a cursor this list did not give: nothing is listed.", W_LEAVE)],
+  budget: budget("read"),
+});
+
+// ── allocations and balances ────────────────────────────────────────────────────────────────
+
+export const operation_org_leave_allocate = defineOperation({
+  id: "org.leave.allocate",
+  title: "Allocate leave to an Employee for a period",
+  about:
+    "Gives an Employee days of a paid leave type for a period, as Frappe's Leave Allocation; with `--carry-forward`, " +
+    "the days left of their previous allocation of a carry-forward type come too, up to its maximum. Two allocations of " +
+    "one type never overlap, and unpaid leave needs none.",
+  area: AREA,
+  command: "org leave allocate",
+  priority: "critical",
+  implementedBy: rpc_payroll_leave_allocate,
+  who: WHO_HR,
+  changes: "One Leave Allocation, and its line in payroll's change log.",
+  acceptance: [
+    claim(
+      "Days of a leave type are allocated for a period, and show in the balance.",
+      "cli: from org-with-leave, Pat's `org leave allocate <Noor> --type \"Sick Leave\" --days 10 --start <this year's " +
+        "first day> --end <its last day> --org acme --json` prints an `lal_` allocation with `totalDays: 10`; read: `org " +
+        "leave balance <Noor>` then shows Sick Leave with 10 left; trace: one leave_allocation_transitioned to submitted.",
+    ),
+    claim(
+      "Unused days are carried forward, up to the type's maximum.",
+      "cli: from org-with-leave, Pat's `org leave allocate <Sam> --type \"Annual Leave\" --days 20 --start <next year's " +
+        "first day> --end <its last day> --carry-forward --org acme --json` prints `carriedDays: 5` and `totalDays: 25`.",
+    ),
+    claim(
+      "Two allocations of one type never overlap.",
+      "cli: from org-with-leave, Pat's `org leave allocate <Sam> --type \"Annual Leave\" --days 5 --start <today> --end " +
+        "<today> --org acme` exits WRONG_STATE naming his allocation for this year; world: no diff.",
+    ),
+  ],
+  returns: rpc_payroll_leave_allocate.output,
+  errors: CLI,
+  refusals: [
+    ...peopleOnly("allocates Annual Leave to Noor", W_LEAVE),
+    invalid(
+      "The type is Unpaid Leave, which needs no allocation, or 11 days of Sick Leave (most 10), or the end is before the " +
+        "start, or the Employee or type is none of Acme's: the refusal names the field, and nothing is written.",
+      W_LEAVE,
+    ),
+    wrong("Sam already has Annual Leave for this year, or Leo has left: the refusal names the allocation or the status, and nothing is written.", W_LEAVE),
+  ],
+  budget: budget("write"),
+});
+
+export const operation_org_leave_unallocate = defineOperation({
+  id: "org.leave.unallocate",
+  title: "Cancel a leave allocation",
+  about: "Cancels a mistaken allocation, while no approved leave draws on it: approved days never lose the allocation behind them (stricter than Frappe, which refuses only lowering it below the leave taken).",
+  area: AREA,
+  command: "org leave unallocate",
+  priority: "normal",
+  implementedBy: rpc_payroll_leave_unallocate,
+  who: WHO_HR,
+  changes: "The allocation, cancelled, and its line in payroll's change log.",
+  acceptance: [
+    claim(
+      "An allocation no approved leave draws on is cancelled, and leaves the balance.",
+      "cli: from org-with-leave, Pat's `org leave unallocate <Noor's Annual Leave allocation> --org acme --json` prints " +
+        "`status: cancelled`; read: `org leave balance <Noor>` no longer lists Annual Leave.",
+    ),
+    claim(
+      "An allocation approved leave draws on stays.",
+      "cli: from org-with-leave, after Lead's `org leave approve <Sam's open leave>`, Pat's `org leave unallocate <Sam's " +
+        "Annual Leave allocation> --org acme` exits WRONG_STATE naming that application; world: no diff after the approval.",
+    ),
+  ],
+  returns: rpc_payroll_leave_unallocate.output,
+  errors: CLI,
+  refusals: [
+    ...peopleOnly("cancels Noor's allocation", W_LEAVE),
+    unknownId("leave allocations", "lal_", W_LEAVE),
+    wrong("The allocation is already cancelled, or approved leave draws on it: the refusal names the status or the application, and nothing is written.", W_LEAVE),
+  ],
+  budget: budget("write"),
+});
+
+export const operation_org_leave_balance = defineOperation({
+  id: "org.leave.balance",
+  title: "Read an Employee's leave balances",
+  about: "Reads an Employee's balance of each leave type on a day (today unless `--on`): what was allocated, taken and asked for, and what is left.",
+  area: AREA,
+  command: "org leave balance",
+  priority: "normal",
+  implementedBy: rpc_payroll_leave_balance,
+  who: WHO_HR,
+  changes: NOTHING,
+  acceptance: [
+    claim(
+      "Each type's balance reads as allocated less taken, with open applications pending.",
+      "cli: from org-with-leave, Pat's `org leave balance <Sam> --org acme --json` prints Annual Leave allocated 20, " +
+        "taken 0, pending 2, balance 20; Sick Leave 10, 0, 0, 10; and Unpaid Leave taken 1 with `withoutPay: true`.",
+    ),
+  ],
+  returns: rpc_payroll_leave_balance.output,
+  errors: CLI,
+  refusals: [...peopleOnly("reads Sam's balances", W_LEAVE), unknownId("Employees", "emp_", W_LEAVE)],
+  budget: budget("read"),
+});
+
+// ── the Employee's leave ────────────────────────────────────────────────────────────────────
+
+export const operation_leave_apply = defineOperation({
+  id: "leave.apply",
+  title: "Apply for leave",
+  about:
+    "Applies for leave of a type for a range of days, or half a day, with the employer `--employer` names (the only " +
+    "one, when there is one). Holidays inside it are not counted unless the type counts them. A paid type needs an " +
+    "allocation whose balance covers it; an unpaid type needs none, and its days dock pay once approved. The " +
+    "Employee's department's hat, or the People hat, decides it. An Employee needs no Seat in the Organization.",
+  area: AREA,
+  command: "leave apply",
+  priority: "critical",
+  implementedBy: rpc_payroll_leave_apply,
+  who: WHO_SELF_HR,
+  changes: "One open Leave Application, and its line in payroll's change log.",
+  acceptance: [
+    claim(
+      "An Employee applies for leave, its days counted without the weekly offs inside it.",
+      "cli: from org-with-leave, Sam's `leave apply --type \"Annual Leave\" --start <the Friday three weeks from now> --end <the Monday after> " +
+        "--reason Wedding --json` prints an `lap_` application, `employer: acme`, `status: open`, `days: 2` and " +
+        "`balanceAfter: 16`; trace: one leave_application_transitioned to open.",
+    ),
+    claim(
+      "Paid leave beyond the balance is refused; unpaid leave is not.",
+      "cli: from org-with-leave, Sam's `leave apply --type \"Sick Leave\" --start <the second Monday of next month> --end " +
+        "<the Friday two weeks later>` (15 working days of this year, after Founders' Day and his open leave, no holiday " +
+        "among them) exits INVALID_INPUT naming his balance of 10; the same days of Unpaid Leave print `status: open`, " +
+        "`days: 15`.",
+    ),
+    claim(
+      "Leave never overlaps the Employee's other open or approved leave.",
+      "cli: from org-with-leave, Sam's `leave apply --type \"Sick Leave\" --start <next Monday> --end <next Monday>` exits " +
+        "WRONG_STATE naming his open Annual Leave; world: no diff.",
+    ),
+  ],
+  returns: rpc_payroll_leave_apply.output,
+  errors: CLI,
+  refusals: [
+    ...selfOnly(W_LEAVE, ", or the type, the range or the balance is refused, naming the field"),
+    wrong("Sam's open Annual Leave already covers next Monday: the refusal names it, and nothing is written.", W_LEAVE),
+    suspended("applies for leave", W_LEAVE),
+  ],
+  budget: budget("write"),
+});
+
+export const operation_leave_list = defineOperation({
+  id: "leave.list",
+  title: "List your own leave applications",
+  about: "Lists your leave applications, from every employer unless `--employer` keeps one, newest first, each with its employer, type, days, status, who decided it, and the balance after it.",
+  area: AREA,
+  command: "leave list",
+  priority: "normal",
+  implementedBy: rpc_payroll_leave_mine,
+  who: WHO_SELF_HR,
+  changes: NOTHING,
+  acceptance: [
+    claim(
+      "An Employee lists their own applications from every employer, `--status` and `--employer` filtering.",
+      "cli: from org-with-leave, Sam's `leave list --json` lists his open Annual Leave and his approved Unpaid Leave with " +
+        "`decidedBy: lead@acme.test`, each `employer: acme`, and not Lead's; `--status open` lists the first alone, and " +
+        "`--employer acme` keeps both, as a filter.",
+    ),
+  ],
+  returns: rpc_payroll_leave_mine.output,
+  errors: CLI,
+  refusals: selfOnly(W_LEAVE, ", or `--after` is a cursor this list did not give"),
+  budget: budget("read"),
+});
+
+export const operation_leave_cancel = defineOperation({
+  id: "leave.cancel",
+  title: "Cancel your own leave",
+  about:
+    "Cancels your open or approved leave application. An approved leave's marked days are unmarked again and its days " +
+    "return to the balance. Unpaid leave a submitted payslip already counted is not cancelled: that pay is fixed.",
+  area: AREA,
+  command: "leave cancel",
+  priority: "normal",
+  implementedBy: rpc_payroll_leave_cancel,
+  who: WHO_SELF_HR,
+  changes: "The application, cancelled; an approved one's attendance marks cancelled; its lines in payroll's change log.",
+  acceptance: [
+    claim(
+      "An Employee cancels their own open leave, and its days are back in the balance.",
+      "cli: from org-with-leave, Sam's `leave cancel <Sam's open leave> --json` prints `status: cancelled`; read: `leave balance` shows Annual Leave pending 0.",
+    ),
+    claim(
+      "Cancelling approved leave unmarks its days, but never under a submitted payslip.",
+      "cli: from org-with-leave, Sam's `leave cancel <Sam's unpaid day> --json` prints `status: cancelled` and `attendance " +
+        "list` shows that day's mark cancelled; from org-with-leave again, after Pat's `org payroll run create salaries " +
+        "--start <this month's first day> --end <its last day>` and `org payroll run submit <it>`, it exits WRONG_STATE naming Sam's slip.",
+    ),
+  ],
+  returns: rpc_payroll_leave_cancel.output,
+  errors: CLI,
+  refusals: [
+    ...selfOnly(W_LEAVE, ", or Sam names Lead's application, which is not his"),
+    wrong("Sam's leave is already cancelled, or a submitted payslip counts his unpaid day: the refusal names the status or the slip, and nothing is written.", W_LEAVE),
+  ],
+  budget: budget("write"),
+});
+
+export const operation_leave_balance = defineOperation({
+  id: "leave.balance",
+  title: "Read your own leave balances",
+  about: "Reads your balance of each leave type with an employer on a day (today unless `--on`): allocated, taken, pending and left.",
+  area: AREA,
+  command: "leave balance",
+  priority: "normal",
+  implementedBy: rpc_payroll_leave_my_balance,
+  who: WHO_SELF_HR,
+  changes: NOTHING,
+  acceptance: [
+    claim(
+      "An Employee reads their own balances, with no Seat or hat needed.",
+      "cli: from org-with-leave, Sam's `leave balance --employer acme --json` prints Annual Leave 20 left with 2 pending, " +
+        "Sick Leave 10 left and Unpaid Leave taken 1, as Pat's `org leave balance <Sam>` does.",
+    ),
+  ],
+  returns: rpc_payroll_leave_my_balance.output,
+  errors: CLI,
+  refusals: selfOnly(W_LEAVE),
+  budget: budget("read"),
+});
+
+// ── deciding leave ──────────────────────────────────────────────────────────────────────────
+
+const notApprover = (what: string) => ({
+  error: error_ROLE_PERMISSION_DENIED,
+  given: W_LEAVE,
+  when:
+    `Plat, whose Safe wears \`platform\`'s office hat and not \`salaries\`' or one above it nor the People hat, ${what}; ` +
+    "or Lead decides his own application: self-approval is refused, and nothing is written.",
+});
+
+export const operation_org_leave_approve = defineOperation({
+  id: "org.leave.approve",
+  title: "Approve a leave application",
+  about:
+    "Approves an open leave application, its checks run again on what stands now, and marks each of its leave days in " +
+    "attendance, so an unpaid type's days dock the payslip that covers them. Whoever wears the Employee's department's " +
+    "hat or one above it, or the People hat, approves; nobody approves their own.",
+  area: AREA,
+  command: "org leave approve",
+  priority: "critical",
+  implementedBy: rpc_payroll_leave_approve,
+  who: WHO_LEAVE_APPROVER,
+  changes: "The application, approved; one attendance mark per leave day; their lines in payroll's change log.",
+  acceptance: [
+    claim(
+      "The department's hat approves a leave, and each of its days is marked on leave.",
+      "cli: from org-with-leave, Lead's `org leave approve <Sam's open leave> --org acme --json` prints `status: approved`, " +
+        "`decidedBy: lead@acme.test` and `balanceAfter: 18`; read: Pat's `org attendance list --employee <Sam> --start <next " +
+        "Monday> --end <next Tuesday>` lists two `on_leave` days of Annual Leave, source `leave`; trace: one " +
+        "leave_application_transitioned open → approved and two attendance_transitioned to submitted.",
+    ),
+    claim(
+      "The People hat approves too; nobody approves their own leave, and another department's hat does not.",
+      "cli: from org-with-leave, Lead's `org leave approve <Lead's leave>` and Plat's `org leave approve <Sam's open " +
+        "leave>` each exit ROLE_PERMISSION_DENIED, and Pat's `org leave approve <Lead's leave> --json` prints `status: approved`.",
+    ),
+  ],
+  returns: rpc_payroll_leave_approve.output,
+  errors: CLI,
+  refusals: [
+    signedOut,
+    outsider(W_LEAVE),
+    notApprover("approves Sam's open leave"),
+    unknownId("leave applications", "lap_", W_LEAVE),
+    wrong("Sam's unpaid day is already approved: the refusal names `approved`, and nothing is written.", W_LEAVE),
+  ],
+  budget: budget("write"),
+});
+
+export const operation_org_leave_reject = defineOperation({
+  id: "org.leave.reject",
+  title: "Reject a leave application",
+  about: "Rejects an open leave application, with a reason if given; nothing is taken from the balance and no day is marked. The same hats as approving decide.",
+  area: AREA,
+  command: "org leave reject",
+  priority: "normal",
+  implementedBy: rpc_payroll_leave_reject,
+  who: WHO_LEAVE_APPROVER,
+  changes: "The application, rejected, and its line in payroll's change log.",
+  acceptance: [
+    claim(
+      "A rejected application takes nothing and marks nothing.",
+      "cli: from org-with-leave, Lead's `org leave reject <Sam's open leave> --reason \"Release week\" --org acme --json` " +
+        "prints `status: rejected` with the reason; read: Sam's `leave balance` shows Annual Leave pending 0 and balance 20, " +
+        "and `attendance list` no mark next week.",
+    ),
+  ],
+  returns: rpc_payroll_leave_reject.output,
+  errors: CLI,
+  refusals: [
+    signedOut,
+    outsider(W_LEAVE),
+    notApprover("rejects Sam's open leave"),
+    unknownId("leave applications", "lap_", W_LEAVE),
+    wrong("Sam's unpaid day is already approved: the refusal names `approved`, and nothing is written.", W_LEAVE),
+  ],
+  budget: budget("write"),
+});
+
+export const operation_org_leave_list = defineOperation({
+  id: "org.leave.list",
+  title: "List the leave applications you may decide",
+  about:
+    "Lists leave applications, newest first: every Employee's for the People hat, a department's and those below it " +
+    "for its hat. `--status`, `--employee`, `--department` and a day range filter.",
+  area: AREA,
+  command: "org leave list",
+  priority: "normal",
+  implementedBy: rpc_payroll_leave_list,
+  who: WHO_LEAVE_APPROVER,
+  changes: NOTHING,
+  acceptance: [
+    claim(
+      "Each approver lists what they may decide.",
+      "cli: from org-with-leave, Lead's `org leave list --status open --org acme --json` lists Sam's open leave and Lead's " +
+        "own, as Pat's does; Plat's lists none, `platform` employing nobody.",
+    ),
+    claim(
+      "A member with neither hat lists nothing.",
+      "cli: from org-with-leave, Sam's `org leave list --org acme` exits ROLE_PERMISSION_DENIED; world: no diff.",
+    ),
+  ],
+  returns: rpc_payroll_leave_list.output,
+  errors: CLI,
+  refusals: [
+    signedOut,
+    outsider(W_LEAVE),
+    { error: error_ROLE_PERMISSION_DENIED, given: W_LEAVE, when: "Sam, a member wearing neither the People hat nor any department's, lists leave: nothing is read." },
+    invalid("`--department` names none of Acme's budgets, or `--after` is a cursor this list did not give: nothing is listed.", W_LEAVE),
+  ],
+  budget: budget("read"),
+});
+
+// ── shifts ──────────────────────────────────────────────────────────────────────────────────
+
+export const operation_org_shift_type_add = defineOperation({
+  id: "org.shift-type.add",
+  title: "Add a shift type",
+  about:
+    "Adds working hours attendance is marked by, as Frappe's Shift Type: its start and end, and with " +
+    "`--auto-attendance` the hours below which a day is a half day or absent and the minutes of grace before an entry " +
+    "is late or an exit early. Different hours later are a new type.",
+  area: AREA,
+  command: "org shift-type add",
+  priority: "normal",
+  implementedBy: rpc_payroll_shift_types_add,
+  who: WHO_HR,
+  changes: "One Shift Type, and its line in payroll's change log.",
+  acceptance: [
+    claim(
+      "A shift type is added with its hours and thresholds.",
+      "cli: from org-with-leave, Pat's `org shift-type add Day --start 09:00 --end 17:00 --auto-attendance --half-day-below " +
+        "6 --absent-below 4 --late-grace 15 --org acme --json` prints an `sht_` type with those values and `assigned: []`.",
+    ),
+    claim(
+      "Hours that do not make a shift are refused.",
+      "cli: from org-with-leave, Pat's `org shift-type add Night --start 22:00 --end 06:00` and `org shift-type add Odd " +
+        "--start 09:00 --end 17:00 --auto-attendance --half-day-below 3 --absent-below 4` each exit INVALID_INPUT naming the flag; world: no diff.",
+    ),
+  ],
+  returns: rpc_payroll_shift_types_add.output,
+  errors: CLI,
+  refusals: [
+    ...peopleOnly("adds a shift type", W_LEAVE),
+    invalid("The end is not after the start, or the absent threshold is above the half-day one: the refusal names the flag, and nothing is written.", W_LEAVE),
+    wrong("Acme already has a shift type named Day: the refusal names it, and nothing is written.", W_ATTEND),
+  ],
+  budget: budget("write"),
+});
+
+export const operation_org_shift_type_list = defineOperation({
+  id: "org.shift-type.list",
+  title: "List the Organization's shift types",
+  about: "Lists the shift types with their hours and thresholds, and who works each now, for any member.",
+  area: AREA,
+  command: "org shift-type list",
+  priority: "normal",
+  implementedBy: rpc_payroll_shift_types_list,
+  who: WHO_MEMBER,
+  changes: NOTHING,
+  acceptance: [
+    claim(
+      "Any member reads the shift types and who works them.",
+      "cli: from org-with-attendance, Sam's `org shift-type list --org acme --json` lists Day, 09:00 to 17:00, auto " +
+        "attendance on, with Sam's active assignment.",
+    ),
+  ],
+  returns: rpc_payroll_shift_types_list.output,
+  errors: CLI,
+  refusals: memberOnly(W_ATTEND),
+  budget: budget("read"),
+});
+
+export const operation_org_shift_type_assign = defineOperation({
+  id: "org.shift-type.assign",
+  title: "Assign a shift type to an Employee",
+  about:
+    "Assigns a shift type to an Employee from a day, until an end day if given, as Frappe's Shift Assignment. From " +
+    "then on, each day the shift ends, Capxul marks their attendance from their check-ins. One shift a day.",
+  area: AREA,
+  command: "org shift-type assign",
+  priority: "normal",
+  implementedBy: rpc_payroll_shift_types_assign,
+  who: WHO_HR,
+  changes: "One active Shift Assignment, which starts its marking process, and its line in payroll's change log.",
+  acceptance: [
+    claim(
+      "A shift is assigned from a day, and its days are marked from check-ins.",
+      "cli: from org-with-leave, after Pat adds Day as above, `org shift-type assign Day <Noor> --start <the next working " +
+        "day> --org acme --json` prints an active `sha_` assignment; trace: one shift_assignment_transitioned to active; " +
+        "read: after the clock passes that day's 18:00 with no check-in of Noor's, `org attendance list --employee <Noor>` " +
+        "lists that day absent, source `checkins`.",
+    ),
+    claim(
+      "An Employee works one shift a day.",
+      "cli: from org-with-attendance, Pat's `org shift-type assign Day <Sam> --start <tomorrow>` exits WRONG_STATE naming his active assignment; world: no diff.",
+    ),
+  ],
+  returns: rpc_payroll_shift_types_assign.output,
+  errors: CLI,
+  refusals: [
+    ...peopleOnly("assigns Day to Sam", W_ATTEND),
+    invalid("The shift type or Employee is none of Acme's, or the end is before the start: nothing is written.", W_ATTEND),
+    wrong("Sam already works Day on those days, or Leo has left: the refusal names the assignment or the status, and nothing is written.", W_ATTEND),
+  ],
+  budget: budget("write"),
+});
+
+export const operation_org_shift_type_unassign = defineOperation({
+  id: "org.shift-type.unassign",
+  title: "End a shift assignment",
+  about: "Ends an active shift assignment: no later day is marked by it, and days already marked keep their attendance.",
+  area: AREA,
+  command: "org shift-type unassign",
+  priority: "normal",
+  implementedBy: rpc_payroll_shift_types_unassign,
+  who: WHO_HR,
+  changes: "The assignment, inactive, which ends its process, and its line in payroll's change log.",
+  acceptance: [
+    claim(
+      "An unassigned shift marks no later day.",
+      "cli: from org-with-attendance, Pat's `org shift-type unassign <Sam's assignment> --org acme --json` prints `status: " +
+        "inactive`; read: after the clock passes the next working day's 18:00, `org attendance list --employee <Sam>` lists no mark for that day.",
+    ),
+  ],
+  returns: rpc_payroll_shift_types_unassign.output,
+  errors: CLI,
+  refusals: [
+    ...peopleOnly("ends Sam's assignment", W_ATTEND),
+    unknownId("shift assignments", "sha_", W_ATTEND),
+    wrong("The assignment is already inactive: the refusal names its status, and nothing is written.", W_ATTEND),
+  ],
+  budget: budget("write"),
+});
+
+// ── check-ins and attendance ────────────────────────────────────────────────────────────────
+
+export const operation_attendance_checkin = defineOperation({
+  id: "attendance.checkin",
+  title: "Check in or out",
+  about:
+    "Checks you in or out with your employer at the world's clock, never a time you give or your device's: a devnet's " +
+    "or a shared world's own clock where it runs. When your shift for the day ends, Capxul marks the day from your " +
+    "check-ins: present, half day or absent by the hours worked between your first check-in and last check-out.",
+  area: AREA,
+  command: "attendance checkin",
+  priority: "normal",
+  implementedBy: rpc_payroll_attendance_checkin,
+  who: WHO_SELF_HR,
+  changes: "One Employee Checkin, and its line in payroll's change log.",
+  acceptance: [
+    claim(
+      "A check-in is stamped with the world's clock.",
+      "cli: from org-with-attendance, Sam's `attendance checkin --log in --json` prints a `chk_` check-in whose `time` is " +
+        "`dev time`'s now and `shiftType: Day`; after `capxul dev time warp 1h`, `attendance checkin --log out` prints a time an hour later.",
+    ),
+    claim(
+      "When the shift is over, the day is marked by the hours between the first check-in and the last check-out.",
+      "cli: from org-with-attendance, Sam checks in at 09:05 and out at 13:30 (`dev time warp` between); read: after the " +
+        "clock passes 18:00, Sam's `attendance list --json` lists the day `half_day` with `workingHours: 4.42`, source " +
+        "`checkins`, and both check-ins naming its attendance; trace: one attendance_transitioned to submitted.",
+    ),
+  ],
+  returns: rpc_payroll_attendance_checkin.output,
+  errors: CLI,
+  refusals: [...selfOnly(W_ATTEND), suspended("checks in", W_ATTEND)],
+  budget: budget("write"),
+});
+
+export const operation_attendance_list = defineOperation({
+  id: "attendance.list",
+  title: "List your own attendance and check-ins",
+  about: "Lists your attendance in a day range (this month unless given), from every employer unless `--employer` keeps one, newest first, and your check-ins on those days.",
+  area: AREA,
+  command: "attendance list",
+  priority: "normal",
+  implementedBy: rpc_payroll_attendance_mine,
+  who: WHO_SELF_HR,
+  changes: NOTHING,
+  acceptance: [
+    claim(
+      "An Employee reads their own days as marked, and the check-ins that marked them.",
+      "cli: from org-with-attendance, Sam's `attendance list --start <his unpaid day> --end <today> --json` (the range " +
+        "named, as the shift days may fall in the next month) lists exactly three marks: <the second shift day> `absent` " +
+        "with late entry and 2.33 working hours, <the first shift day> `present` with 8.08, and his unpaid day `on_leave` " +
+        "of Unpaid Leave; and his four check-ins, each naming the attendance it marked.",
+    ),
+  ],
+  returns: rpc_payroll_attendance_mine.output,
+  errors: CLI,
+  refusals: selfOnly(W_ATTEND, ", or `--after` is a cursor this list did not give"),
+  budget: budget("read"),
+});
+
+export const operation_org_attendance_mark = defineOperation({
+  id: "org.attendance.mark",
+  title: "Mark an Employee's attendance for a day",
+  about:
+    "Marks an Employee present, absent, on leave of a type, half day or working from home on a day, as Frappe's " +
+    "Attendance. Payroll is based on attendance with unmarked days counted present, so an absent day, or an unpaid " +
+    "leave's, docks the payslip that covers it. A day is marked once: cancel a mark to mark it again.",
+  area: AREA,
+  command: "org attendance mark",
+  priority: "normal",
+  implementedBy: rpc_payroll_attendance_mark,
+  who: WHO_HR,
+  changes: "One Attendance, and its line in payroll's change log.",
+  acceptance: [
+    claim(
+      "An absent day marked docks the payslip that covers it.",
+      "cli: from org-with-leave, Pat's `org attendance mark <Sam> --on <a working day this month, not his unpaid day> --status absent --org " +
+        "acme --json` prints a submitted `att_` attendance, `absent`, source `mark`; Pat's `org payroll run create salaries " +
+        "--start <this month's first day> --end <its last day> --json` then gives Sam's slip two fewer payment days than " +
+        "the month (`leaveWithoutPay: 1`, `absentDays: 1`).",
+    ),
+    claim(
+      "A day is marked once.",
+      "cli: from org-with-leave, Pat's `org attendance mark <Noor> --on <Noor's absent day> --status present` exits WRONG_STATE naming her absence; world: no diff.",
+    ),
+  ],
+  returns: rpc_payroll_attendance_mark.output,
+  errors: CLI,
+  refusals: [
+    ...peopleOnly("marks Sam absent", W_LEAVE),
+    invalid("`--status on_leave` with no `--leave-type`, a day before the Employee joined, or an Employee none of Acme's: the refusal names the field, and nothing is written.", W_LEAVE),
+    wrong("Noor's absent day is already marked: the refusal names its attendance, and nothing is written.", W_LEAVE),
+  ],
+  budget: budget("write"),
+});
+
+export const operation_org_attendance_cancel = defineOperation({
+  id: "org.attendance.cancel",
+  title: "Cancel a day's attendance",
+  about: "Cancels a wrong mark, so the day is unmarked (counted present) and may be marked again. A day an approved leave marked is unmarked by cancelling that leave.",
+  area: AREA,
+  command: "org attendance cancel",
+  priority: "normal",
+  implementedBy: rpc_payroll_attendance_cancel,
+  who: WHO_HR,
+  changes: "The attendance, cancelled, and its line in payroll's change log.",
+  acceptance: [
+    claim(
+      "A cancelled mark no longer docks pay.",
+      "cli: from org-with-leave, Pat's `org attendance cancel <Noor's absence> --org acme --json` prints `docstatus: " +
+        "cancelled`; this month's `org payroll run create salaries` then pays Noor every day of the month.",
+    ),
+    claim(
+      "A leave's mark is cancelled only with its leave.",
+      "cli: from org-with-leave, Pat's `org attendance cancel <Sam's unpaid day's mark>` exits WRONG_STATE naming his leave; world: no diff.",
+    ),
+  ],
+  returns: rpc_payroll_attendance_cancel.output,
+  errors: CLI,
+  refusals: [
+    ...peopleOnly("cancels Noor's absence", W_LEAVE),
+    unknownId("attendance", "att_", W_LEAVE),
+    wrong("The mark is already cancelled, or an approved leave made it: the refusal names the status or the leave, and nothing is written.", W_LEAVE),
+  ],
+  budget: budget("write"),
+});
+
+export const operation_org_attendance_list = defineOperation({
+  id: "org.attendance.list",
+  title: "List the Organization's attendance",
+  about: "Lists the marked days, newest first; `--employee`, `--department`, `--status` and a day range filter. Unmarked days count present and are not listed.",
+  area: AREA,
+  command: "org attendance list",
+  priority: "normal",
+  implementedBy: rpc_payroll_attendance_list,
+  who: WHO_HR,
+  changes: NOTHING,
+  acceptance: [
+    claim(
+      "The People hat lists the marked days, by whom or what each was marked.",
+      "cli: from org-with-leave, Pat's `org attendance list --start <this month's first day> --end <today> --org acme " +
+        "--json` lists Sam's unpaid day `on_leave` (source `leave`) and Noor's absent day (source `mark`); `--status absent` lists Noor's alone.",
+    ),
+  ],
+  returns: rpc_payroll_attendance_list.output,
+  errors: CLI,
+  refusals: [...peopleOnly("lists Acme's attendance", W_LEAVE), invalid("`--employee` names none of Acme's Employees, or `--after` is a cursor this list did not give: nothing is listed.", W_LEAVE)],
+  budget: budget("read"),
+});
+
+// ── expense claim types ─────────────────────────────────────────────────────────────────────
+
+export const operation_org_expense_type_add = defineOperation({
+  id: "org.expense-type.add",
+  title: "Add an expense claim type",
+  about: "Adds a kind of expense an Employee may claim, as Frappe's Expense Claim Type, with the books expense account its claims post to, or books' default.",
+  area: AREA,
+  command: "org expense-type add",
+  priority: "normal",
+  implementedBy: rpc_payroll_expense_types_add,
+  who: WHO_HR,
+  changes: "One Expense Claim Type, and its line in payroll's change log.",
+  acceptance: [
+    claim(
+      "An expense claim type is added, with books' default account unless one is named.",
+      "cli: from org-with-employees, Pat's `org expense-type add Travel --description \"Trains, taxis and flights\" --org " +
+        "acme --json` prints an `ect_` type with `account: null`; `org expense-type add Hotel --account 9999` exits " +
+        "INVALID_INPUT naming the account; world: one type added.",
+    ),
+  ],
+  returns: rpc_payroll_expense_types_add.output,
+  errors: CLI,
+  refusals: [
+    ...peopleOnly("adds an expense claim type", W_HR),
+    invalid("`--account` names no ledger expense account of Acme's books: the refusal names it, and nothing is written.", W_HR),
+    wrong("Acme already has an expense claim type named Travel: the refusal names it, and nothing is written.", W_EXP),
+  ],
+  budget: budget("write"),
+});
+
+export const operation_org_expense_type_list = defineOperation({
+  id: "org.expense-type.list",
+  title: "List the Organization's expense claim types",
+  about: "Lists the expense claim types and their accounts, for any member.",
+  area: AREA,
+  command: "org expense-type list",
+  priority: "normal",
+  implementedBy: rpc_payroll_expense_types_list,
+  who: WHO_MEMBER,
+  changes: NOTHING,
+  acceptance: [claim("Any member reads the expense claim types.", "cli: from org-with-expenses, Sam's `org expense-type list --org acme --json` lists Meals and Travel, each `account: null`.")],
+  returns: rpc_payroll_expense_types_list.output,
+  errors: CLI,
+  refusals: memberOnly(W_EXP),
+  budget: budget("read"),
+});
+
+// ── the claimant's expense claims ───────────────────────────────────────────────────────────
+
+export const operation_expense_claim_create = defineOperation({
+  id: "expense-claim.create",
+  title: "Claim back an expense",
+  about:
+    "Claims back what you spent for your employer: one line by flags, or many from `--file`, each a type, an amount " +
+    "in your department budget's token, a day and a description, with receipts attached and any paid advance of yours " +
+    "to settle against it. It opens for whoever wears your department's hat to decide; you may cancel it until then. " +
+    "An Employee needs no Seat in the Organization.",
+  area: AREA,
+  command: "expense-claim create",
+  priority: "critical",
+  implementedBy: rpc_payroll_expense_claims_create,
+  who: WHO_SELF_HR,
+  changes: "One open Expense Claim, each receipt stored as a document, and its line in payroll's change log.",
+  acceptance: [
+    claim(
+      "An Employee claims an expense with its receipt, open for their department to decide.",
+      "cli: from org-with-expenses, Sam's `expense-claim create --type Travel --amount 64.50 --on <yesterday> --description " +
+        "\"Airport taxi\" --receipt taxi.pdf --employer acme --json` prints an `exp_` claim, `status: open`, `department: " +
+        "salaries`, `grandTotal: 64.50` and one receipt; trace: one expense_claim_transitioned to open; world: one receipt document stored.",
+    ),
+    claim(
+      "A claim settles against the claimant's paid advance, never for more than its total.",
+      "cli: from org-with-expenses, Sam's `expense-claim create --type Travel --amount 180 --advance <A2> --json` prints " +
+        "`advanced: 150.00` and `grandTotal: 30.00`; naming <A1>, which his paid claim took in full, exits INVALID_INPUT naming it.",
+    ),
+  ],
+  returns: rpc_payroll_expense_claims_create.output,
+  errors: CLI,
+  refusals: [
+    ...selfOnly(W_EXP, ", or a line's type (`Hotel`), amount (0) or day (tomorrow), an advance, or a receipt over 128 KB is refused, naming it"),
+    suspended("claims an expense", W_EXP),
+  ],
+  budget: budget("write"),
+});
+
+export const operation_expense_claim_list = defineOperation({
+  id: "expense-claim.list",
+  title: "List your own expense claims",
+  about: "Lists your expense claims, from every employer unless `--employer` keeps one, newest first, each with its lines, totals, status, who decided it and, once paid, its payment.",
+  area: AREA,
+  command: "expense-claim list",
+  priority: "normal",
+  implementedBy: rpc_payroll_expense_claims_mine,
+  who: WHO_SELF_HR,
+  changes: NOTHING,
+  acceptance: [
+    claim(
+      "An Employee lists their own claims, `--status` filtering.",
+      "cli: from org-with-expenses, Sam's `expense-claim list --json` lists <C1> open, <C2> approved and <C3> paid with a " +
+        "`paymentId`, and not Lead's <C4>; `--status open` lists <C1> alone.",
+    ),
+  ],
+  returns: rpc_payroll_expense_claims_mine.output,
+  errors: CLI,
+  refusals: selfOnly(W_EXP, ", or `--after` is a cursor this list did not give"),
+  budget: budget("read"),
+});
+
+export const operation_expense_claim_get = defineOperation({
+  id: "expense-claim.get",
+  title: "Read one of your expense claims",
+  about: "Reads one of your expense claims: its lines, receipts, the advances it settled, its totals, who decided it and, once paid, its payment.",
+  area: AREA,
+  command: "expense-claim get",
+  priority: "normal",
+  implementedBy: rpc_payroll_expense_claims_mine_get,
+  who: WHO_SELF_HR,
+  changes: NOTHING,
+  acceptance: [
+    claim(
+      "A paid claim reads with what settled it and the payment that paid the rest.",
+      "cli: from org-with-expenses, Sam's `expense-claim get <C3> --json` prints Travel 300.00, <A1> 200.00 advanced, " +
+        "`grandTotal: 100.00`, `status: paid`, a `paymentId` and `txHash`; read: `payment get <that id>` shows it settled to Sam's Safe.",
+    ),
+  ],
+  returns: rpc_payroll_expense_claims_mine_get.output,
+  errors: CLI,
+  refusals: selfOnly(W_EXP, ", or Sam names Lead's claim <C4>, which is not his"),
+  budget: budget("read"),
+});
+
+export const operation_expense_claim_cancel = defineOperation({
+  id: "expense-claim.cancel",
+  title: "Cancel your own open expense claim",
+  about: "Cancels your expense claim while it is still open; once decided it is the department's.",
+  area: AREA,
+  command: "expense-claim cancel",
+  priority: "normal",
+  implementedBy: rpc_payroll_expense_claims_withdraw,
+  who: WHO_SELF_HR,
+  changes: "The claim, cancelled, and its line in payroll's change log.",
+  acceptance: [
+    claim(
+      "An open claim is cancelled by its claimant; a decided one is not.",
+      "cli: from org-with-expenses, Sam's `expense-claim cancel <C1> --json` prints `status: cancelled`; `expense-claim " +
+        "cancel <C2>` exits WRONG_STATE naming `approved`.",
+    ),
+  ],
+  returns: rpc_payroll_expense_claims_withdraw.output,
+  errors: CLI,
+  refusals: [
+    ...selfOnly(W_EXP, ", or Sam names Lead's claim <C4>"),
+    wrong("Sam's claim <C2> is already approved: the refusal names its status, and nothing is written.", W_EXP),
+  ],
+  budget: budget("write"),
+});
+
+// ── the department's expense claims ─────────────────────────────────────────────────────────
+
+const selfApproval = (what: string) => ({
+  error: error_ROLE_PERMISSION_DENIED,
+  given: W_EXP,
+  when: `Lead, who wears \`salaries\`' office hat and is an Employee of it, ${what} his own: self-approval is refused, and nothing is written.`,
+});
+
+/** An advance of the decider's own: Lead is an Employee of `salaries` as well as its office holder. */
+const selfAdvance = (what: string) => ({
+  error: error_ROLE_PERMISSION_DENIED,
+  given: W_EXP,
+  when:
+    "After Lead, an Employee of `salaries` as well as its office holder, asks for his own advance (`advance request " +
+    "--amount 50 --purpose Books`), he " + what + " it: nobody decides their own, and nothing is prepared or written.",
+});
+
+export const operation_org_expense_claim_approve = defineOperation({
+  id: "org.expense-claim.approve",
+  title: "Approve an expense claim",
+  about:
+    "Approves an open expense claim, sanctioning each line at its amount or at less (`--sanction <line>=<amount>`), " +
+    "and posts what is owed to the books: each line's expense against the claimant's payable, less what their advances " +
+    "settle. A claim its advances cover in full is paid at once. Whoever wears the claim's department's hat, or one " +
+    "above it, as the chain reads it then, approves; never the claimant.",
+  area: AREA,
+  command: "org expense-claim approve",
+  priority: "critical",
+  implementedBy: rpc_payroll_expense_claims_approve,
+  who: WHO_DEPARTMENT,
+  changes: "The claim, approved (or paid when its advances cover it); its advances' claimed amounts; its accrual posted through books.",
+  acceptance: [
+    claim(
+      "The department's hat approves a claim, and what is owed is posted.",
+      "cli: from org-with-expenses, Lead's `org expense-claim approve <C1> --sanction 1=100 --org acme --json` prints " +
+        "`status: approved`, `sanctioned: 100.00`, `grandTotal: 100.00` and `decidedBy: lead@acme.test`; read: Dana's `org " +
+        "books facts list --org acme` shows one more `accrual_posted` fact naming the Expense Claim; trace: one " +
+        "expense_claim_transitioned open → approved.",
+    ),
+    claim(
+      "Nobody approves their own claim, and neither the People hat nor another department's does.",
+      "cli: from org-with-expenses, Lead's `org expense-claim approve <C4>`, and Pat's and Plat's `org expense-claim " +
+        "approve <C1>`, each exit ROLE_PERMISSION_DENIED; world: no diff.",
+    ),
+    claim(
+      "A claim its advances cover is paid at its approval.",
+      "cli: from org-with-expenses, after Sam's `expense-claim create --type Meals --amount 120 --advance <A2>`, Lead's " +
+        "`org expense-claim approve <it> --json` prints `status: paid` and `grandTotal: 0.00`; read: `org advance get <A2>` " +
+        "shows `claimed: 120.00`, `unclaimed: 30.00`, still `paid`; chain: no Budgets.spend.",
+    ),
+  ],
+  returns: rpc_payroll_expense_claims_approve.output,
+  errors: CLI,
+  refusals: [
+    ...departmentOnly("approves Sam's claim <C1>", W_EXP),
+    selfApproval("approves <C4>,"),
+    invalid("The claim is none of Acme's, or `--sanction 1=200` is above the line's 120.00: the refusal names the line, and nothing is written.", W_EXP),
+    wrong("<C2> is already approved: the refusal names its status, and nothing is written.", W_EXP),
+    chainDown("nothing is written"),
+  ],
+  budget: budget("chain-read"),
+});
+
+export const operation_org_expense_claim_reject = defineOperation({
+  id: "org.expense-claim.reject",
+  title: "Reject an expense claim",
+  about: "Rejects an open expense claim with a reason; nothing is owed, and any advance it named is free for another claim. The same hat as approving decides.",
+  area: AREA,
+  command: "org expense-claim reject",
+  priority: "normal",
+  implementedBy: rpc_payroll_expense_claims_reject,
+  who: WHO_DEPARTMENT,
+  changes: "The claim, rejected, and its line in payroll's change log.",
+  acceptance: [
+    claim(
+      "A rejected claim is owed nothing, and its claimant sees why.",
+      "cli: from org-with-expenses, Lead's `org expense-claim reject <C1> --reason \"Personal trip\" --org acme --json` " +
+        "prints `status: rejected` with the reason; Sam's `expense-claim list --status rejected` lists it with the reason; world: no books fact.",
+    ),
+  ],
+  returns: rpc_payroll_expense_claims_reject.output,
+  errors: CLI,
+  refusals: [
+    ...departmentOnly("rejects <C1>", W_EXP),
+    selfApproval("rejects <C4>,"),
+    invalid("No `--reason` is given, or the claim is none of Acme's: nothing is written.", W_EXP),
+    wrong("<C3> is paid: the refusal names its status, and nothing is written.", W_EXP),
+    chainDown("nothing is written"),
+  ],
+  budget: budget("chain-read"),
+});
+
+export const operation_org_expense_claim_pay = defineOperation({
+  id: "org.expense-claim.pay",
+  title: "Pay an approved expense claim",
+  about:
+    "Pays an approved claim's grand total to its claimant from its department's budget, as one payment command with " +
+    "one approval, which the caller signs from their own Safe. A lapsed approval resumes the same command, so a claim " +
+    "is never paid twice; a declined one leaves it owed. Paying is the department's: whoever wears its hat, or one " +
+    "above it, when the payment is made; never the claimant.",
+  area: AREA,
+  command: "org expense-claim pay",
+  priority: "critical",
+  implementedBy: flow_client_org_expense_claims_pay,
+  who: WHO_DEPARTMENT,
+  changes: "One payment command from the department's budget and its one approval; the claim paying, then paid with the settled facts.",
+  acceptance: [
+    claim(
+      "One approval pays an approved claim from the department's budget to its claimant.",
+      "cli: from org-with-expenses, Lead's `org expense-claim pay <C2> --org acme --json` signs one approval and prints " +
+        "`status: paid` with the claim's `paymentId` and `txHash`; chain: one UserOperation from Lead's Safe whose " +
+        "Budgets.spend from `salaries` pays 45 USDC to Sam's Safe; trace: expense_claim_transitioned approved → paying and paying → paid.",
+    ),
+    claim(
+      "Whoever wears the department's hat when it pays may pay, never the one swapped out.",
+      "cli: from org-with-expenses, Pat's `org expense-claim pay <C2>` exits ROLE_PERMISSION_DENIED; after the Board moves " +
+        "`salaries`' office from Lead to Plat (`org department holder remove salaries lead@acme.test`, then `holder add " +
+        "salaries plat@acme.test`, both Directors approving), Lead's exits ROLE_PERMISSION_DENIED and Plat's pays it.",
+    ),
+    claim(
+      "Asking twice pays once, and a lapsed approval resumes the same command.",
+      "cli: from org-with-expenses, Lead's `org expense-claim pay <C2> --request-key k1 --no-wait --json` prints `status: " +
+        "awaiting_approval` and an `approvalId`; the same again prints the same `approvalId`; after it lapses unsigned " +
+        "(`capxul dev time warp 2h`) the claim reads `approved`, and Lead's next pay opens a new approval on the same " +
+        "payment command; world: one payment command for the claim.",
+    ),
+    claim(
+      "A declined approval sends nothing and leaves the claim owed.",
+      "cli: from org-with-expenses, Lead declines the approval of `org expense-claim pay <C2>` on the approval page: exit " +
+        "130, CANCELLED; read: `org expense-claim get <C2>` shows `approved` with no payment; chain: no Budgets.spend.",
+    ),
+  ],
+  returns: flow_client_org_expense_claims_pay.output,
+  errors: CLI,
+  refusals: [
+    signedOut,
+    outsider(W_EXP),
+    notDepartment("pays <C2>", W_EXP),
+    invalid("The claim is none of Acme's: nothing is prepared.", W_EXP),
+    wrong("<C1> is open, not approved: the refusal names its status, and nothing is prepared.", W_EXP),
+    { error: error_PAYROLL_BUDGET_EXCEEDED, given: W_EXP_BUDGET, when: "`salaries` has 30 USDC left this month, less than <C2>'s 45: nothing is prepared or signed." },
+    { error: error_INSUFFICIENT_BALANCE, given: W_EXP_SHORT, when: "The company Safe holds 40 USDC, less than <C2>'s 45, though `salaries` has room: nothing is prepared or signed." },
+    chainDown("nothing is prepared or signed"),
+    { error: error_CANCELLED, given: W_EXP, when: "Lead declines the claim's approval on the approval page: nothing is sent, its Payment is cancelled, and the claim is approved and owed again." },
+  ],
+  budget: budget("chain-submit"),
+});
+
+export const operation_org_expense_claim_cancel = defineOperation({
+  id: "org.expense-claim.cancel",
+  title: "Cancel an approved expense claim before it is paid",
+  about:
+    "Cancels an approved claim nothing of which is paid or on its way: its accrual is cancelled in the books and any " +
+    "advance it settled is unclaimed again. The department's hat cancels it.",
+  area: AREA,
+  command: "org expense-claim cancel",
+  priority: "normal",
+  implementedBy: rpc_payroll_expense_claims_cancel,
+  who: WHO_DEPARTMENT,
+  changes: "The claim, cancelled; its advances unclaimed; its accrual cancelled through books.",
+  acceptance: [
+    claim(
+      "An approved claim is cancelled with its accrual; a paid one is not.",
+      "cli: from org-with-expenses, Lead's `org expense-claim cancel <C2> --org acme --json` prints `status: cancelled`; " +
+        "read: Dana's `org books facts list` shows one `accrual_cancelled` fact naming it; Lead's `org expense-claim " +
+        "cancel <C3>` exits WRONG_STATE naming `paid`.",
+    ),
+  ],
+  returns: rpc_payroll_expense_claims_cancel.output,
+  errors: CLI,
+  refusals: [
+    ...departmentOnly("cancels <C2>", W_EXP),
+    invalid("The claim is none of Acme's: nothing is written.", W_EXP),
+    wrong("<C3> is paid, or <C1> is still open: the refusal names its status, and nothing is written.", W_EXP),
+    chainDown("nothing is written"),
+  ],
+  budget: budget("chain-read"),
+});
+
+const readerRefusals = (given: string) => [
+  signedOut,
+  outsider(given),
+  { error: error_ROLE_PERMISSION_DENIED, given, when: "Sam, a member wearing neither the People hat nor any department's, reads them: nothing is read." },
+];
+
+export const operation_org_expense_claim_list = defineOperation({
+  id: "org.expense-claim.list",
+  title: "List the Organization's expense claims",
+  about: "Lists expense claims newest first: every one for the People hat, a department's and those below it for its hat. `--status`, `--employee` and `--department` filter.",
+  area: AREA,
+  command: "org expense-claim list",
+  priority: "normal",
+  implementedBy: rpc_payroll_expense_claims_list,
+  who: WHO_EXPENSE_READER,
+  changes: NOTHING,
+  acceptance: [
+    claim(
+      "Each hat lists the claims it may read.",
+      "cli: from org-with-expenses, Lead's `org expense-claim list --org acme --json` lists <C1> to <C4>, `salaries`'; " +
+        "Pat's lists the same; Plat's lists none; `--status approved` lists <C2> alone.",
+    ),
+  ],
+  returns: rpc_payroll_expense_claims_list.output,
+  errors: CLI,
+  refusals: [...readerRefusals(W_EXP), invalid("`--department` names none of Acme's budgets, or `--after` is a cursor this list did not give: nothing is listed.", W_EXP)],
+  budget: budget("read"),
+});
+
+export const operation_org_expense_claim_get = defineOperation({
+  id: "org.expense-claim.get",
+  title: "Read one of the Organization's expense claims",
+  about: "Reads one expense claim with its lines, receipts, the advances it settles, its totals, who decided it and, once sent, its payment.",
+  area: AREA,
+  command: "org expense-claim get",
+  priority: "normal",
+  implementedBy: rpc_payroll_expense_claims_get,
+  who: WHO_EXPENSE_READER,
+  changes: NOTHING,
+  acceptance: [
+    claim(
+      "The department's hat reads a claim with its receipt; another department's does not.",
+      "cli: from org-with-expenses, Lead's `org expense-claim get <C1> --org acme --json` prints Travel 120.00, the " +
+        "receipt taxi.pdf and `status: open`; Plat's exits INVALID_INPUT, as a claim he may not read.",
+    ),
+  ],
+  returns: rpc_payroll_expense_claims_get.output,
+  errors: CLI,
+  refusals: [...readerRefusals(W_EXP), invalid("Plat names <C1>, `salaries`', which his `platform` hat does not reach: nothing is read.", W_EXP)],
+  budget: budget("read"),
+});
+
+// ── the Employee's advances ─────────────────────────────────────────────────────────────────
+
+export const operation_advance_request = defineOperation({
+  id: "advance.request",
+  title: "Ask for an advance",
+  about:
+    "Asks your employer for money ahead, for a purpose, in your department budget's token, as Frappe's Employee " +
+    "Advance. Whoever wears your department's hat pays it, which approves it, or rejects it. What your expense claims " +
+    "do not settle of it is later recovered from your salary.",
+  area: AREA,
+  command: "advance request",
+  priority: "normal",
+  implementedBy: rpc_payroll_advances_request,
+  who: WHO_SELF_HR,
+  changes: "One requested Employee Advance, and its line in payroll's change log.",
+  acceptance: [
+    claim(
+      "An Employee asks for an advance from their department.",
+      "cli: from org-with-expenses, Sam's `advance request --amount 250 --purpose \"Trade fair\" --json` prints an `adv_` " +
+        "advance, `status: requested`, `department: salaries`, `amount: 250.00`; trace: one employee_advance_transitioned to requested.",
+    ),
+  ],
+  returns: rpc_payroll_advances_request.output,
+  errors: CLI,
+  refusals: [...selfOnly(W_EXP, ", or the amount is 0 or the purpose empty"), suspended("asks for an advance", W_EXP)],
+  budget: budget("write"),
+});
+
+export const operation_advance_list = defineOperation({
+  id: "advance.list",
+  title: "List your own advances",
+  about: "Lists your advances, from every employer unless `--employer` keeps one, newest first, each with what was paid, claimed and recovered, what is left, and any recovery set for your next payslip.",
+  area: AREA,
+  command: "advance list",
+  priority: "normal",
+  implementedBy: rpc_payroll_advances_mine,
+  who: WHO_SELF_HR,
+  changes: NOTHING,
+  acceptance: [
+    claim(
+      "An Employee lists their own advances and what is left of each.",
+      "cli: from org-with-expenses, Sam's `advance list --json` lists <A3> requested 500.00, <A2> paid with `unclaimed: " +
+        "150.00`, and <A1> claimed, `unclaimed: 0.00`.",
+    ),
+  ],
+  returns: rpc_payroll_advances_mine.output,
+  errors: CLI,
+  refusals: selfOnly(W_EXP, ", or `--after` is a cursor this list did not give"),
+  budget: budget("read"),
+});
+
+export const operation_advance_cancel = defineOperation({
+  id: "advance.cancel",
+  title: "Cancel your own advance request",
+  about: "Cancels your advance request while nothing of it is paid or on its way.",
+  area: AREA,
+  command: "advance cancel",
+  priority: "normal",
+  implementedBy: rpc_payroll_advances_withdraw,
+  who: WHO_SELF_HR,
+  changes: "The advance, cancelled, and its line in payroll's change log.",
+  acceptance: [
+    claim(
+      "A requested advance is cancelled by its Employee; a paid one is not.",
+      "cli: from org-with-expenses, Sam's `advance cancel <A3> --json` prints `status: cancelled`; `advance cancel <A2>` exits WRONG_STATE naming `paid`.",
+    ),
+  ],
+  returns: rpc_payroll_advances_withdraw.output,
+  errors: CLI,
+  refusals: [...selfOnly(W_EXP), wrong("<A2> is paid: the refusal names its status, and nothing is written.", W_EXP)],
+  budget: budget("write"),
+});
+
+// ── the department's advances ───────────────────────────────────────────────────────────────
+
+export const operation_org_advance_pay = defineOperation({
+  id: "org.advance.pay",
+  title: "Pay a requested advance",
+  about:
+    "Approves and pays a requested advance to its Employee from their department's budget, as one payment command " +
+    "with one approval, which the caller signs from their own Safe. A lapsed approval resumes the same command; a " +
+    "declined one leaves it requested. Whoever wears the department's hat, or one above it, when it is paid; never the " +
+    "Employee it is for.",
+  area: AREA,
+  command: "org advance pay",
+  priority: "normal",
+  implementedBy: flow_client_org_advances_pay,
+  who: WHO_DEPARTMENT,
+  changes: "One payment command from the department's budget and its one approval; the advance paying, then paid with the settled facts.",
+  acceptance: [
+    claim(
+      "Paying an advance approves it, with one approval from the department's budget.",
+      "cli: from org-with-expenses, Lead's `org advance pay <A3> --org acme --json` signs one approval and prints `status: " +
+        "paid`, `paid: 500.00` and a `paymentId`; chain: one Budgets.spend from `salaries` of 500 USDC to Sam's Safe; " +
+        "trace: employee_advance_transitioned requested → paying and paying → paid.",
+    ),
+    claim(
+      "Whoever wears the department's hat when it pays may pay; nobody pays their own.",
+      "cli: from org-with-expenses, Pat's `org advance pay <A3>` exits ROLE_PERMISSION_DENIED; after the Board moves " +
+        "`salaries`' office from Lead to Plat, Lead's exits ROLE_PERMISSION_DENIED and Plat's pays it; from " +
+        "org-with-expenses again, after Lead's own `advance request --amount 50 --purpose Books`, his `org advance pay " +
+        "<it>` exits ROLE_PERMISSION_DENIED; world: no Budgets.spend for it.",
+    ),
+    claim(
+      "A lapsed approval resumes the same command, never a second.",
+      "cli: from org-with-expenses, Lead's `org advance pay <A3> --no-wait --json` prints `status: awaiting_approval`; after " +
+        "it lapses unsigned (`capxul dev time warp 2h`) the advance reads `requested`, and Lead's next pay opens a new " +
+        "approval on the same payment command; world: one payment command for the advance.",
+    ),
+  ],
+  returns: flow_client_org_advances_pay.output,
+  errors: CLI,
+  refusals: [
+    signedOut,
+    outsider(W_EXP),
+    notDepartment("pays <A3>", W_EXP),
+    selfAdvance("pays"),
+    invalid("The advance is none of Acme's: nothing is prepared.", W_EXP),
+    wrong("<A2> is already paid: the refusal names its status, and nothing is prepared.", W_EXP),
+    { error: error_PAYROLL_BUDGET_EXCEEDED, given: W_EXP_BUDGET, when: "`salaries` has 30 USDC left this month, less than <A3>'s 500: nothing is prepared or signed." },
+    { error: error_INSUFFICIENT_BALANCE, given: W_EXP_SHORT, when: "The company Safe holds 40 USDC, less than <A3>'s 500: nothing is prepared or signed." },
+    chainDown("nothing is prepared or signed"),
+    { error: error_CANCELLED, given: W_EXP, when: "Lead declines the advance's approval on the approval page: nothing is sent, and the advance is requested again." },
+  ],
+  budget: budget("chain-submit"),
+});
+
+export const operation_org_advance_reject = defineOperation({
+  id: "org.advance.reject",
+  title: "Reject an advance request",
+  about: "Rejects a requested advance with a reason; nothing is paid. The same hat as paying decides.",
+  area: AREA,
+  command: "org advance reject",
+  priority: "normal",
+  implementedBy: rpc_payroll_advances_reject,
+  who: WHO_DEPARTMENT,
+  changes: "The advance, rejected, and its line in payroll's change log.",
+  acceptance: [
+    claim(
+      "A rejected advance pays nothing, and its Employee sees why.",
+      "cli: from org-with-expenses, Lead's `org advance reject <A3> --reason \"Use the company card\" --org acme --json` " +
+        "prints `status: rejected` with the reason; Sam's `advance list` lists it so.",
+    ),
+  ],
+  returns: rpc_payroll_advances_reject.output,
+  errors: CLI,
+  refusals: [
+    ...departmentOnly("rejects <A3>", W_EXP),
+    selfAdvance("rejects"),
+    invalid("No `--reason` is given, or the advance is none of Acme's: nothing is written.", W_EXP),
+    wrong("<A2> is paid: the refusal names its status, and nothing is written.", W_EXP),
+    chainDown("nothing is written"),
+  ],
+  budget: budget("chain-read"),
+});
+
+export const operation_org_advance_settle = defineOperation({
+  id: "org.advance.settle",
+  title: "Recover what is left of an advance from salary",
+  about:
+    "Settles a paid advance by recovering what no expense claim took of it from the Employee's next payslip, as " +
+    "Frappe's `repay_unclaimed_amount_from_salary`: an Additional Salary deduction their next run takes. Nothing moves " +
+    "now; the advance is returned when that payslip is submitted. No command takes the deduction back, so it first " +
+    "previews the Employee and the amount and asks; `--confirm` answers yes in a script. Recording pay is the People hat's.",
+  area: AREA,
+  command: "org advance settle",
+  priority: "normal",
+  implementedBy: flow_client_org_advances_settle,
+  who: WHO_HR,
+  changes: "One Additional Salary (and, the first time, the advance recovery component); the advance marked to be repaid from salary.",
+  acceptance: [
+    claim(
+      "What no claim took of an advance is deducted from the Employee's next payslip, and returns the advance.",
+      "cli: from org-with-expenses, Pat's `org advance settle <A2> --confirm --org acme --json` prints a `recovery` of 150.00 dated " +
+        "today and `status: paid`; Pat's `org payroll run create salaries --start <this month's first day> --end <its " +
+        "last day> --json` then shows Sam's slip with an ADVREC deduction of 150.00 and `netPay: 3650.00`; after `org " +
+        "payroll run submit <it>`, `org advance get <A2>` shows `returned: 150.00` and `status: returned`; trace: one employee_advance_transitioned paid → returned.",
+    ),
+    claim(
+      "An advance is recovered once, and one fully claimed has nothing to recover.",
+      "cli: from org-with-expenses, after Pat settles <A2>, `org advance settle <A2> --confirm` again exits WRONG_STATE naming its " +
+        "recovery, and `org advance settle <A1> --confirm` exits WRONG_STATE naming `claimed`; world: one Additional Salary in all.",
+    ),
+    claim(
+      "Answering no at the preview deducts nothing, and a script must say `--confirm`.",
+      "cli: from org-with-expenses, at a terminal Pat answers no to the preview of `org advance settle <A2>`, which names " +
+        "Sam and 150.00 from his next payslip: exit 130, CANCELLED; with no terminal and no `--confirm`: CLI_USAGE; world: no diff after either.",
+    ),
+  ],
+  returns: flow_client_org_advances_settle.output,
+  errors: CLI,
+  refusals: [
+    ...peopleOnly("settles <A2>", W_EXP),
+    unknownId("advances", "adv_", W_EXP),
+    wrong("<A1> is claimed in full, or <A3> is not yet paid: the refusal names its status, and nothing is written.", W_EXP),
+    { error: error_CANCELLED, given: W_EXP, when: "At a terminal, Pat answers no to the preview of settling <A2>: nothing is written." },
+    { error: error_CLI_USAGE, given: W_EXP, when: "A script with no terminal and no `--confirm` settles <A2>: refused before any call, and nothing is written." },
+  ],
+  budget: budget("write"),
+});
+
+export const operation_org_advance_list = defineOperation({
+  id: "org.advance.list",
+  title: "List the Organization's advances",
+  about: "Lists advances newest first: every one for the People hat, a department's and those below it for its hat. `--status`, `--employee` and `--department` filter.",
+  area: AREA,
+  command: "org advance list",
+  priority: "normal",
+  implementedBy: rpc_payroll_advances_list,
+  who: WHO_EXPENSE_READER,
+  changes: NOTHING,
+  acceptance: [
+    claim(
+      "Each hat lists the advances it may read.",
+      "cli: from org-with-expenses, Lead's `org advance list --org acme --json` lists <A1> claimed, <A2> paid and <A3> " +
+        "requested; `--status requested` lists <A3> alone; Plat's lists none.",
+    ),
+  ],
+  returns: rpc_payroll_advances_list.output,
+  errors: CLI,
+  refusals: [...readerRefusals(W_EXP), invalid("`--employee` names none of Acme's Employees, or `--after` is a cursor this list did not give: nothing is listed.", W_EXP)],
+  budget: budget("read"),
+});
+
+export const operation_org_advance_get = defineOperation({
+  id: "org.advance.get",
+  title: "Read one of the Organization's advances",
+  about: "Reads one advance: what was paid, claimed and recovered, the claims that settled it, its recovery and, once sent, its payment.",
+  area: AREA,
+  command: "org advance get",
+  priority: "normal",
+  implementedBy: rpc_payroll_advances_get,
+  who: WHO_EXPENSE_READER,
+  changes: NOTHING,
+  acceptance: [
+    claim(
+      "An advance reads with what settled it.",
+      "cli: from org-with-expenses, Lead's `org advance get <A1> --org acme --json` prints `paid: 200.00`, `claimed: " +
+        "200.00`, `status: claimed` and its `paymentId`.",
+    ),
+  ],
+  returns: rpc_payroll_advances_get.output,
+  errors: CLI,
+  refusals: [...readerRefusals(W_EXP), invalid("Plat names <A1>, `salaries`', which his `platform` hat does not reach: nothing is read.", W_EXP)],
+  budget: budget("read"),
+});
+
+/** Every HR operation of the pack payroll.hr-commands. */
+export const HR_OPERATIONS = [
+  operation_org_holiday_add,
+  operation_org_holiday_remove,
+  operation_org_holiday_list,
+  operation_org_leave_type_add,
+  operation_org_leave_type_change,
+  operation_org_leave_type_list,
+  operation_org_leave_allocate,
+  operation_org_leave_unallocate,
+  operation_org_leave_balance,
+  operation_leave_apply,
+  operation_leave_list,
+  operation_leave_cancel,
+  operation_leave_balance,
+  operation_org_leave_approve,
+  operation_org_leave_reject,
+  operation_org_leave_list,
+  operation_org_shift_type_add,
+  operation_org_shift_type_list,
+  operation_org_shift_type_assign,
+  operation_org_shift_type_unassign,
+  operation_attendance_checkin,
+  operation_attendance_list,
+  operation_org_attendance_mark,
+  operation_org_attendance_cancel,
+  operation_org_attendance_list,
+  operation_org_expense_type_add,
+  operation_org_expense_type_list,
+  operation_expense_claim_create,
+  operation_expense_claim_list,
+  operation_expense_claim_get,
+  operation_expense_claim_cancel,
+  operation_org_expense_claim_approve,
+  operation_org_expense_claim_reject,
+  operation_org_expense_claim_pay,
+  operation_org_expense_claim_cancel,
+  operation_org_expense_claim_list,
+  operation_org_expense_claim_get,
+  operation_advance_request,
+  operation_advance_list,
+  operation_advance_cancel,
+  operation_org_advance_pay,
+  operation_org_advance_reject,
+  operation_org_advance_settle,
+  operation_org_advance_list,
+  operation_org_advance_get,
+];
+export const HR_CRITICAL = HR_OPERATIONS.filter((o) => o.priority === "critical");

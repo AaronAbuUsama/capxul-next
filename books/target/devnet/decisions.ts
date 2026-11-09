@@ -13,6 +13,7 @@ import {
   concept_notices,
   concept_payroll,
   environment_devnet,
+  environment_shared_world,
 } from "../shared/foundation.ts";
 import {
   integration_bridge,
@@ -20,6 +21,7 @@ import {
   integration_chain_rpc,
   integration_chainlink,
   integration_devnet_control,
+  integration_fde_host,
   integration_frappe_head,
   integration_indexer,
   integration_mail,
@@ -34,6 +36,8 @@ import {
   table_mail_messages,
   table_scripted_gates,
   table_scripted_prices,
+  table_whatsapp_messages,
+  table_whatsapp_numbers,
 } from "./data.ts";
 import { NEW_OPERATIONS as ORG_NEW_OPERATIONS, operation_org_create, operation_org_seats_show } from "../organizations/operations.ts";
 import { concept_organizations } from "../shared/foundation.ts";
@@ -52,6 +56,7 @@ import {
   flow_devnet_time_follow,
   flow_devnet_time_freeze,
   flow_devnet_time_resume,
+  flow_devnet_time_set,
   flow_devnet_time_settle,
   flow_devnet_time_show,
   flow_devnet_time_start_at,
@@ -65,17 +70,20 @@ const BY = "Claude, devnet concept design, 8 November 2026";
 const by = (evidence: string) => `${BY}; evidence: ${evidence}`;
 
 const HEAD_TABLES = [table_head_sites, table_head_documents, table_head_changes];
-const TABLES = [table_mail_messages, table_mail_faults, table_scripted_gates, table_scripted_prices, ...HEAD_TABLES];
+const WHATSAPP_TABLES = [table_whatsapp_numbers, table_whatsapp_messages];
+const TABLES = [
+  table_mail_messages, table_mail_faults, table_scripted_gates, table_scripted_prices, ...HEAD_TABLES, ...WHATSAPP_TABLES,
+];
 const RPCS = [
   rpc_devnet_mail_list, rpc_devnet_mail_fail, rpc_devnet_mail_list_notices, rpc_devnet_gates_script, rpc_devnet_gates_read,
   rpc_devnet_prices_script, rpc_devnet_jobs_run,
 ];
 const TIME_FLOWS = [
-  flow_devnet_time_show, flow_devnet_time_warp, flow_devnet_time_start_at, flow_devnet_time_freeze, flow_devnet_time_resume,
-  flow_devnet_time_step, flow_devnet_time_settle, flow_devnet_time_watch, flow_devnet_time_follow,
+  flow_devnet_time_show, flow_devnet_time_warp, flow_devnet_time_start_at, flow_devnet_time_set, flow_devnet_time_freeze,
+  flow_devnet_time_resume, flow_devnet_time_step, flow_devnet_time_settle, flow_devnet_time_watch, flow_devnet_time_follow,
 ];
 const SUPERVISOR_FLOWS = [...TIME_FLOWS, flow_devnet_snapshots_list, flow_devnet_snapshots_save, flow_devnet_snapshots_restore];
-const TIME_OPS = [ops.operation_dev_time, ops.operation_dev_time_warp, ops.operation_dev_time_start_at];
+const TIME_OPS = [ops.operation_dev_time, ops.operation_dev_time_warp, ops.operation_dev_time_start_at, ops.operation_dev_time_set];
 /** The time design's own evidence (docs/design/time.md). */
 const TIME = (evidence: string) => `Claude, time design, 8 November 2026; evidence: ${evidence}`;
 const OLD_WORLD = "/home/user/factory packages/devnet/src/modules/world";
@@ -84,7 +92,7 @@ const OPERATIONS = [
   ops.operation_dev_time, ops.operation_dev_time_warp, ops.operation_dev_time_start_at, ops.operation_dev_snapshot_save,
   ops.operation_dev_snapshot_list, ops.operation_dev_snapshot_restore, ops.operation_dev_prices_set, ops.operation_dev_gates_set,
   ops.operation_dev_approve, ops.operation_dev_jobs_run, ops.operation_dev_mail_list, ops.operation_dev_mail_fail,
-  ops.operation_dev_mail_notices,
+  ops.operation_dev_mail_notices, ops.operation_dev_time_set,
 ];
 
 // ── data ────────────────────────────────────────────────────────────────────────────────────
@@ -140,7 +148,15 @@ export const decision_devnet_mail_sink = defineDecision({
       label: "fake-layer",
       text:
         "The `mail` integration's devnet layer writes `mail-messages` and spends `mail-faults` inside its `send`; a spent " +
-        "fault fails the send as Resend unavailable (PROVIDER_ERROR), which a notice's workflow retries.",
+        "fault fails the send as Resend unavailable (PROVIDER_ERROR), which a notice's workflow retries. The sink keeps " +
+        "both directions, as the integration's fake says: each message with its sender's name, its Reply-To and its " +
+        "threading headers (Message-ID, In-Reply-To, References), as a CRM mailbox sends them. `capxul-devnet mail " +
+        "receive --to <mailbox> [--cc <mailbox>]… [--bcc <mailbox>]… --from <address|\"Name <address>\"> --subject " +
+        "<subject> [--in-reply-to <Message-ID>] [--references <Message-ID>]… <text>` keeps an inbound email at the " +
+        "world's now, with a Message-ID of its own, and posts its signed `email.received` event, its `received_for` " +
+        "naming each CRM mailbox it was sent to, a BCC'd one included, to the CRM's mail route as Resend does (signed with the devnet's RESEND_WEBHOOK_SECRET, " +
+        "its envelope on real time); `getReceived` reads it back from the sink. `dev mail list` and `dev approve` read " +
+        "only the mail sent.",
     },
     { label: "record-rpc", text: "Keep old operator's record mutation as a devnet rpc the transport calls." },
   ],
@@ -151,8 +167,11 @@ export const decision_devnet_mail_sink = defineDecision({
     "workflow (P2's unreached-rpc) and would put a network hop inside every send. The schema has no link from an " +
     "integration's fake to a table, so the build shows `mail-messages` as unwritten: an expected gap. PROVIDER_ERROR is " +
     "retryable, so `dev mail fail` shows a notice retry, which is its purpose; a send keeps the first message per " +
-    "idempotency key, as Resend does.",
-  source: by("docs/as-is/archive/operator/outboxes.ts:25-58 (record); packages/backend/src/integrations/mail/service.ts:171; shared external.ts (mail fake)"),
+    "idempotency key, as Resend does. The CRM's mail, which stays in its world (time.world-channels), needs both " +
+    "directions on a devnet: its claims read a sent message's From name, Reply-To and Message-ID in the sink and make " +
+    "a reply by `mail receive` (contacts.conversation-worlds), which is the outside party acting, so it is a supervisor " +
+    "control (devnet.fault-switches). The frozen `dev mail list` reads sent mail, so it keeps reading only that.",
+  source: by("docs/as-is/archive/operator/outboxes.ts:25-58 (record); packages/backend/src/integrations/mail/service.ts:171; shared external.ts (mail fake); contacts/operations.ts (CRM email claims)"),
   affects: [table_mail_messages, table_mail_faults, rpc_devnet_mail_list, rpc_devnet_mail_fail, integration_mail, ops.operation_dev_mail_fail],
 });
 
@@ -184,9 +203,11 @@ export const decision_devnet_devnet_only_rpcs = defineDecision({
     {
       label: "devnet-build",
       text:
-        "The devnet concept's rpcs are in the RpcGroup only of the devnet build, whose backend listens on loopback; each " +
-        "`who` begins `devnet only:`. WRONG_ENVIRONMENT comes from the CLI's devnet scope (before any network call) and " +
-        "from the supervisor's socket being absent.",
+        "The devnet concept's rpcs are in the RpcGroup only of the devnet build, whose backend listens on loopback, or, " +
+        "in a shared world, only behind the world's gateway, which admits a request only with a world grant, refuses a " +
+        "joiner's call to any devnet rpc but the two mail reads with ROLE_PERMISSION_DENIED before the backend, and " +
+        "hands those reads the grant's mailboxes (devnet.shared-world); each `who` begins `devnet only:`. WRONG_ENVIRONMENT comes from the " +
+        "CLI's devnet scope (before any network call) and from the supervisor's socket being absent.",
     },
     { label: "runtime-gate", text: "Mount them everywhere and refuse WRONG_ENVIRONMENT in each rpc off a devnet." },
   ],
@@ -292,7 +313,8 @@ export const decision_devnet_supervisor_owns_time_and_worlds = defineDecision({
     {
       label: "authority",
       text:
-        "The supervisor's time authority holds the devnet's one clock: now, its mode (running or frozen), a version that " +
+        "The supervisor's time authority holds the devnet's one clock: now, its mode (running or frozen), its rate and " +
+        "next stop (devnet.clock-rate, devnet.running-stops), a version that " +
         "rises with every change, the world's epoch and whether the story has begun. Its now is the chain's block time: " +
         "the supervisor is the chain's only miner and mines every block at now (devnet.only-miner). Everything else " +
         "follows it through the time protocol (devnet.time-protocol) as a follower (devnet.followers): the backend's " +
@@ -331,7 +353,10 @@ export const decision_devnet_only_miner = defineDecision({
         "estimate at `pending` sees now as block.timestamp. On a frozen clock every move ends with the head at now: a " +
         "stop of a warp or step, a start-at, a freeze that moved now and a restore each end by mining an empty block at " +
         "now when nothing else was mined at that second, so `latest` reads now and chain-rpc reads at `latest` on every " +
-        "environment, with no devnet branch. A stop's cascade (a timer's transaction, then the one its indexed fact " +
+        "environment, with no devnet branch. A stop opens with the head at its second: when the head is earlier, the " +
+        "authority mines an empty block at the stop's instant before it sends the stop event, so a timer for a deadline " +
+        "the chain enforces finds the head at its due second (time.chain-judged-deadlines) and waits inside the stop only " +
+        "for Ponder; a running clock's stops do the same (devnet.running-stops). A stop's cascade (a timer's transaction, then the one its indexed fact " +
         "wakes, then the empty blocks of devnet.mine-to-depth) mines several blocks in one second, which the pinned " +
         "Anvil must accept (B0 measures it). If it does not, the authority ticks now forward one second before such a " +
         "block (a `tick` event to every follower), which keeps time forward but carries a stop's later work past its " +
@@ -350,7 +375,9 @@ export const decision_devnet_only_miner = defineDecision({
     "block.timestamp read the past at `latest` (Agreements' released pay, Budgets' period, Governor.state), and reading " +
     "at `pending` only on a devnet is a branch staging never runs. The tick cannot be the quiet fallback it looked: how " +
     "many ticks a stop takes depends on how its transactions happen to batch, which is timing, not the story. Revised " +
-    "by the time review, 8 November 2026.",
+    "by the time review, 8 November 2026. Revised again by the world-clock pass, 8 November 2026: a stop that mined its " +
+    "head block only at its end left a chain-judged timer, which fires as the stop opens, a block short of its second, " +
+    "so it re-armed past its own instant; on a quiet running devnet nothing mined at all, so it re-armed for ever.",
   source: TIME(`${OLD_WORLD}/README.md (Anvil's clock moves with the wall); ${OLD_WORLD}/service.ts:240-270, :493`),
   affects: [component_devnet, environment_devnet, integration_chain_rpc, flow_devnet_time_warp, flow_devnet_time_start_at, flow_devnet_time_step],
 });
@@ -394,10 +421,11 @@ export const decision_devnet_clock_modes = defineDecision({
     {
       label: "both",
       text:
-        "Both, as the clock's mode. Running: now runs on at the real rate from where it was last set, which `capxul-devnet " +
+        "Both, as the clock's mode. Running: now runs on at the clock's rate (one by default, devnet.clock-rate) from " +
+        "where it was last set, standing at each due instant on the way (devnet.running-stops), which `capxul-devnet " +
         "up` starts with for a person at the keyboard (a code expires, a timer fires on its own). Frozen: now moves only " +
         "by a warp, a step, a start-at, a restore or a tick, which the eval devnet, the world builder and any simulation " +
-        "use. freeze and resume switch modes without moving now back. A warp keeps the mode.",
+        "use. freeze and resume switch modes without moving now back. A warp keeps the mode and the rate.",
     },
     { label: "running-only", text: "Always running, with warps on top, as the old devnet was." },
     { label: "frozen-only", text: "Always frozen: time moves only by calls." },
@@ -438,9 +466,10 @@ export const decision_devnet_warp_barrier = defineDecision({
         "crons and moves each skipped cron's next run past T, so none runs late; timers still fire. A stop that does not " +
         "settle within its limit (60 s of real time by default) fails the warp WORK_DIED, naming the stop and the busy " +
         "followers, and the clock stays at the last settled stop. One move at a time: a warp, step, settle, start-at, " +
-        "freeze or resume while another runs is WRONG_STATE; reads and watches always answer. A warp whose caller goes " +
+        "freeze, resume or rate change while another runs is WRONG_STATE; reads and watches always answer. A warp whose caller goes " +
         "away stops at its next settled stop. On a running clock the warp holds now at each stop and lets it run on from " +
-        "T. Step is one stop; settle is a stop at now.",
+        "T at its rate; between moves a running clock stops at the same due instants (devnet.running-stops). Step is one " +
+        "stop; settle is a stop at now.",
     },
     { label: "jump", text: "Jump to T, mine one block there, then run everything that fell due at T, as before." },
   ],
@@ -473,10 +502,14 @@ export const decision_devnet_time_protocol = defineDecision({
       text:
         "`capxul.devnet/1`, HTTP JSON served by the supervisor on loopback with the bearer token from its owner-only " +
         "handoff file, and on its owner-only Unix socket: GET /v1/time; POST /v1/time/warp, /step, /settle, /start-at, " +
-        "/freeze and /resume; GET /v1/time/events (server-sent events); POST /v1/followers with its events and acks. " +
+        "/freeze, /resume and /rate (devnet.clock-rate); GET /v1/time/events (server-sent events); POST /v1/followers " +
+        "with its events, acks and due reports. " +
         "It answers only a loopback Host and no cross-origin request, so a web page on the same machine cannot drive it. " +
-        "Every clock it answers carries `realAt`, this machine's real time when now held that value, so a running " +
-        "clock's now is now + (real time - realAt) for every reader. One move runs at a time (devnet.warp-barrier). " +
+        "A shared world serves the same requests over HTTPS at its own address, a world grant as the bearer token, each " +
+        "answered by the grant's role (devnet.shared-world). Every clock it answers carries `realAt`, the authority's " +
+        "real time when now held that value, `rate` and `stopAt`, so a running clock's now is min(stopAt, now + rate × " +
+        "(real time - realAt)) for every reader, and `realNow`, from which a reader on another machine measures its " +
+        "offset (devnet.follow-at-a-rate). One move runs at a time (devnet.warp-barrier). " +
         "Errors are the target's codes in one JSON shape. Every answer names the protocol and its version. There is no " +
         "support window and no parallel version: a change to the protocol fixes every client in the same change and cuts " +
         "everyone over at once (Aaron, 8 November 2026). The Core SDK's devnet entry is the typed client, its types generated from the protocol's " +
@@ -512,10 +545,11 @@ export const decision_devnet_followers = defineDecision({
         "delivered; and its wake router has consumed every row up to the block Ponder has indexed), Ponder (through " +
         "the supervisor: idle when its indexed block is the head), the bundler stand-in (idle when its mempool is empty " +
         "and no bundle is in flight), the paymaster stand-in, the Bridge stand-in (its scheduled answers are its next " +
-        "due), and each stand-in Frappe head (idle when no ring it sent is unanswered, with no next due: " +
-        "devnet.head-stand-in). An armed fault switch's held state counts as idle (a held receipt, an indexer hold). An outside program " +
-        "joins the same way, so a simulation's own happenings become stops. Running, a follower computes now as the " +
-        "event's now plus the real time since its `realAt` (one machine, one real clock). A follower that misses an " +
+        "due), each stand-in Frappe head (idle when no ring it sent is unanswered, with no next due: " +
+        "devnet.head-stand-in) and the stand-in WhatsApp (idle once every webhook it posted is answered, its earliest " +
+        "redelivery its next due: devnet.whatsapp-stand-in). An armed fault switch's held state counts as idle (a held receipt, an indexer hold). An outside program " +
+        "joins the same way, so a simulation's own happenings become stops. Running, a follower computes now from the " +
+        "event's now, realAt, rate and next stop (devnet.follow-at-a-rate). A follower that misses an " +
         "acknowledgement fails the barrier and is dropped. The backend's follower channel is the runtime's, not an rpc.",
     },
     { label: "poll", text: "Each component reads the supervisor's clock on every use, and the warp polls each one's state." },
@@ -639,7 +673,9 @@ export const decision_devnet_stand_ins_follow = defineDecision({
         "can be given that time, else a Capxul bundler stand-in does (B3 records which); the Bridge stand-in dates every " +
         "event and object at now, schedules its own answers at instants (its next due) and signs its webhooks with the " +
         "real time; the mail sink, the Chainlink and PostHog fakes are backend layers and read Now; chain-rpc reads at " +
-        "`latest` as on staging, which on a frozen devnet is a block at now (devnet.only-miner).",
+        "`latest` as on staging, which on a frozen devnet is a block at now (devnet.only-miner); the stand-in WhatsApp " +
+        "dates every message and webhook at now (devnet.whatsapp-stand-in); a head and the FDE host follow as their own " +
+        "decisions say (devnet.head-follows-world, devnet.fde-host-follows-world).",
     },
     { label: "max-of-both", text: "Sign from the later of the chain's time and the wall, as the old mock paymaster did." },
   ],
@@ -650,7 +686,10 @@ export const decision_devnet_stand_ins_follow = defineDecision({
     "staging. A webhook's signature is an envelope the backend checks against real time (time.real-elapsed), while the " +
     "deposit it reports happened at now.",
   source: TIME(`${OLD_WORLD}/README.md (the mock paymaster signs from the later of the chain's clock and the wall; alto checks its wall clock); ${OLD_WORLD}/../stand-ins/time.ts`),
-  affects: [integration_bundler, integration_bridge, integration_mail, integration_chainlink, integration_posthog, integration_chain_rpc, integration_indexer, component_devnet, environment_devnet],
+  affects: [
+    integration_bundler, integration_bridge, integration_mail, integration_chainlink, integration_posthog, integration_chain_rpc,
+    integration_indexer, component_devnet, environment_devnet, environment_shared_world, table_whatsapp_messages,
+  ],
 });
 
 export const decision_devnet_control_refusals = defineDecision({
@@ -797,7 +836,8 @@ export const decision_devnet_budgets = defineDecision({
     {
       label: "defaults",
       text:
-        "read for the clock, list and mail reads; write for the scripts, the fail switch, freeze and resume; background " +
+        "read for the clock, list and mail reads; write for the scripts, the fail switch, freeze, resume and `dev time " +
+        "set`; background " +
         "for jobs run, warp, step, settle, save and restore; live-read for watch and follow; chain-settle for start-at; " +
         "vendor for approve and gates set; chain-read for prices set.",
     },
@@ -909,7 +949,8 @@ export const decision_devnet_fault_switches = defineDecision({
         "frozen mode (devnet.clock-modes), not a switch. The armed switches " +
         "are in the world's manifest and re-armed on restore. The mail switch is `dev mail fail`, in Postgres, and so " +
         "is the stand-in Frappe head's (`fault frappe-head down|key-refused|conflict|refuse|replay|clear`, on its site " +
-        "row: devnet.head-stand-in).",
+        "row: devnet.head-stand-in), and the stand-in WhatsApp's (`fault whatsapp down|refuse|clear`, on its number's " +
+        "row: devnet.whatsapp-stand-in).",
     },
     { label: "devnet-rpcs", text: "A devnet rpc per switch." },
   ],
@@ -932,7 +973,8 @@ export const decision_devnet_own_refusal_worlds = defineDecision({
     {
       label: "reuse",
       text:
-        "None new. WRONG_ENVIRONMENT: cli-on-beta-environment. Time, snapshots and mail: empty-devnet; start-at's " +
+        "One new, for the shared world: `dev time set`'s ROLE_PERMISSION_DENIED starts from shared-world-joiner " +
+        "(devnet.shared-world). WRONG_ENVIRONMENT: cli-on-beta-environment. Time, snapshots and mail: empty-devnet; start-at's " +
         "WRONG_STATE: org-with-expired-invitation (built with a warp). Gates: org-ready. Prices: person-signed-in. Approve: " +
         "person-with-payment-history (its expired approval). Jobs' WORK_DIED: bridge-unreachable. Not signed in: signed-out.",
     },
@@ -1324,7 +1366,8 @@ export const decision_devnet_commands_pass_worlds = defineDecision({
   id: "devnet.commands-pass-worlds",
   title: "Nine worlds the new commands named, and three worlds rebuilt to build on v4",
   question:
-    "The packs booked refusals and claims from worlds the catalogue did not hold (projects, `account collect`, `org seats " +
+    "The packs booked refusals and claims from worlds the catalogue did not hold (projects, `account collect`, now " +
+    "`payment claim`, `org seats " +
     "buy`, `org fde pay`, the department escrow invariant), and three catalogued worlds could not be built on v4 " +
     "(org-with-allowance and org-with-uncapped-allowance named a per-payment cap and a parent with no room; " +
     "org-with-documents made a People-hat wearer a department's holder). What does the catalogue add and change?",
@@ -1357,4 +1400,412 @@ export const decision_devnet_commands_pass_worlds = defineDecision({
     "projects.worlds; accounts.collect-any-time; payments.seat-worlds; payments.fde-hosting-purchase; payments.escrow-department-now; budgets.role-conflict-people-hat; Budgets.sol (createChildBudget, _requireRoom)",
   ),
   affects: [concept_devnet, concept_organizations],
+});
+
+// ── the world clock (aaron.world-clock, 8 November 2026) ────────────────────────────────────
+
+const WORLD_CLOCK = (evidence: string) => `Claude, world-clock design, 8 November 2026; evidence: ${evidence}`;
+
+export const decision_devnet_clock_rate = defineDecision({
+  id: "devnet.clock-rate",
+  title: "A running clock has a rate, world seconds per real second, set by `dev time set`",
+  question:
+    "aaron.world-clock: a shared world may run faster than real time (every real hour moves its clock four), so the " +
+    "clock gains a rate beside frozen and running. How is the rate set and changed, what bounds it, and what keeps it?",
+  options: [
+    {
+      label: "rate",
+      text:
+        "The clock carries `rate`, the seconds of world time that pass in each real second while it runs: a whole number " +
+        "from 1 to 60, 1 at `up` unless `capxul-devnet up --rate <n>`. The protocol sets it with `POST /v1/time/rate " +
+        "{rate}` (devnet-control's timeRate); its CLI command is `dev time set --rate <n>` (operation dev.time.set, SDK " +
+        "method devnet.time.set) and the supervisor's own client, which mirrors `dev time`'s verbs, is `capxul-devnet " +
+        "time set --rate <n>`. A change takes effect " +
+        "at once: the authority reads now at the change and sends a `rate` event (a new version, now, realAt and the " +
+        "rate), so every follower runs on at the new rate from the same instant; nothing moves back and nothing is mined. " +
+        "A real hour at rate r moves the world at most r hours, less the moments it stands at stops " +
+        "(devnet.running-stops). It is a move: while a warp, step, settle, start-at, freeze or resume runs it is WRONG_STATE, " +
+        "a race no saved world holds, so it is not a booked refusal, as the frozen `dev time` commands' is not. A frozen clock " +
+        "keeps its rate for when it runs again; freeze, resume and every warp keep it; a saved world keeps its rate with " +
+        "its now and mode, and a restore sets it. `dev time` shows it. In a shared world only its owner sets it: a " +
+        "joiner's call is ROLE_PERMISSION_DENIED (world shared-world-joiner). A rate " +
+        "never changes a warp: a warp moves as far as it is told, at the barrier's pace.",
+    },
+    { label: "fast-mode", text: "A third mode, `fast`, beside frozen and running, at a fixed multiple." },
+    { label: "timed-warps", text: "No standing rate: a program warps an hour every quarter of an hour." },
+  ],
+  chosen: "rate",
+  why:
+    "Aaron's ruling aaron.world-clock asks for a world whose clock moves four hours each real hour, beside the frozen " +
+    "and running modes. A rate is the one number a running clock lacked: running at rate 1 is the running clock as it " +
+    "was, so the modes stay two and every reader computes now one way. A fixed fast mode could not be four for one " +
+    "world and ten for another; timed warps would jump, which is what the barrier replaced, and leave the head behind " +
+    "between them. The bound protects what still runs on real time (time.real-elapsed): at 60 a Ponder poll of 100 ms " +
+    "is six world seconds and a vendor's 2 s p95 two world minutes; past it the story stops reading as time passing, " +
+    "and a faster story is a warp, which is a barrier. A rate also shortens in real time everything a person is " +
+    "promised on now: at rate 4 a sign-in code's five minutes last 75 real seconds, so a world whose people sign in by " +
+    "emailed codes runs at 5 or less. That is its owner's choice, not a refusal. For Aaron: the command (`dev time set " +
+    "--rate <n>`, one operation beyond the 215 under rules.new-operations) and the bound of 60. The recommendation " +
+    "stands until he answers.",
+  source: WORLD_CLOCK("books/target/shared/rulings.ts (aaron.world-clock); books/target/access/decisions.ts (a code lasts five minutes); docs/design/new-commands.md (G3 `set`)"),
+  affects: [
+    flow_devnet_time_set, ops.operation_dev_time_set, flow_devnet_time_show, flow_devnet_time_resume, flow_devnet_time_freeze,
+    flow_devnet_snapshots_save, flow_devnet_snapshots_restore, integration_devnet_control, component_devnet, environment_devnet,
+    environment_shared_world,
+  ],
+});
+
+export const decision_devnet_running_stops = defineDecision({
+  id: "devnet.running-stops",
+  title: "A running clock stops at every due instant it knows, at its rate's pace",
+  question:
+    "On a running devnet nothing is mined while nothing is pending, so the head trails now, and a timer for a deadline " +
+    "the chain enforces re-arms until the head reaches its second (time.chain-judged-deadlines), which on a quiet " +
+    "running devnet never happens. A timer fires on the pump's next poll with its step reading a now past its due " +
+    "instant, later the faster the clock runs, and a follower computing now between events can run past an instant the " +
+    "authority is about to stop at. How does a running clock, at any rate, keep due work on its instants?",
+  options: [
+    {
+      label: "paced-stops",
+      text:
+        "A running clock moves through the same stops a warp does, at its rate's pace. Every clock event carries " +
+        "`stopAt`, the next stop: the earliest next due any follower reported (the backend's earliest unfired timer or " +
+        "next calendar cron run, a head's next daily job, a simulation's next happening), and every follower caps now at " +
+        "it (devnet.follow-at-a-rate). When now reaches stopAt the clock stands there (a `stop` event): the head is mined " +
+        "to that second, the backend fires what is due, pending transactions and the depth blocks are mined there, and " +
+        "settle rounds run, for at most the running stop's limit (5 s of real time by default). Then the clock runs on " +
+        "from that instant at its rate (a `run` event naming the next stopAt and, if the limit cut the stop short, the " +
+        "followers still busy). A follower that learns of an earlier due between stops reports it at once (`POST " +
+        "/v1/followers/<id>/due`) and the authority lowers stopAt with a `due` event. An instant less than one real " +
+        "second of running ahead (rate world seconds) is too close to announce before a follower's now could pass it, " +
+        "so the authority stops one real second of running ahead instead: the backend's pump fires that timer when now " +
+        "reaches it, and the stop brings the head past its second, so a chain-judged timer that re-armed acts there. " +
+        "The rate is so a ceiling: now never runs faster, and loses each stop's settle time. The minute-scale syncs run " +
+        "on their own schedule on now and are never stops.",
+    },
+    { label: "free-running", text: "Let a running clock run free at its rate: timers fire on the pump's poll and the head trails, as on staging." },
+    { label: "interval-blocks", text: "Mine an empty block every few seconds of world time so the head keeps up." },
+  ],
+  chosen: "paced-stops",
+  why:
+    "A world at a rate is a story people and simulations rely on as on a frozen one: a dated payment due at 09:00 " +
+    "should settle in a block dated 09:00 with its book fact dated then, whether a warp or the rate brought the clock " +
+    "there. Free running makes the lateness grow with the rate (a 250 ms poll is a world second at rate 4) and leaves " +
+    "the chain-judged re-arm waiting on a head that never moves, a defect the running devnet had at rate 1 too. " +
+    "Interval blocks would mine 43,200 blocks a world day at one every two seconds, each one Ponder indexes and every " +
+    "snapshot carries, and still would not put the head at a due second. stopAt in every event lets a follower compute " +
+    "now without overrunning a stop, so none ever reads back (time.monotonic), provided a lowered stopAt reaches it " +
+    "before its now does: a lead of one world second is 17 ms of real time at rate 60, less than an event's delivery " +
+    "to a remote follower, so the lead is a real second of running, whatever the rate. The limit keeps a busy world moving: in " +
+    "a shared world people act while the clock stands, and a stop that waited for a quiet round could hold for good; a " +
+    "running world is not deterministic anyway (time.frozen-deterministic is the frozen clock's). A cut-short stop is " +
+    "reported, never a failure, because no caller waits on it.",
+  source: WORLD_CLOCK("books/target/shared/time.ts (time.chain-judged-deadlines: the re-arm); devnet.only-miner (automine off); devnet.warp-barrier"),
+  affects: [
+    flow_devnet_time_resume, flow_devnet_time_set, flow_devnet_time_follow, flow_devnet_time_watch, integration_devnet_control,
+    integration_chain_rpc, component_devnet, environment_devnet, environment_shared_world,
+  ],
+});
+
+export const decision_devnet_follow_at_a_rate = defineDecision({
+  id: "devnet.follow-at-a-rate",
+  title: "At a rate, a follower computes now from the event, capped at the next stop",
+  question:
+    "With a rate, a follower's now between events is the event's now plus the rate times the real time since. A " +
+    "follower may also be on another machine (a shared world's real head, its FDE host), whose real clock is not the " +
+    "authority's, and some followers are actors that think for real seconds. How does every follower compute one now, " +
+    "never past a stop and never backward, and when does it acknowledge?",
+  options: [
+    {
+      label: "capped-formula",
+      text:
+        "Every clock event and answer carries now, realAt, mode, rate and stopAt. Frozen, now is `now`. Running, now is " +
+        "min(stopAt, now + rate × (t − realAt)), t being the follower's real time on the authority's real clock; a stop's " +
+        "event has stopAt equal to now, so the clock stands. A follower on the authority's machine reads that clock. One " +
+        "elsewhere measures its offset: every answer carries `realNow`, the authority's real time as it answered, and the " +
+        "follower takes the offset from a `GET /v1/time` round trip at join and every minute, as NTP does; it never reads " +
+        "a now earlier than one it read, holding at the last until the computed now passes it. A follower reports a due " +
+        "instant earlier than its last as soon as it learns of it (`POST /v1/followers/<id>/due`), not only in an " +
+        "acknowledgement. Machinery (the backend, Ponder, a head's jobs, the stand-ins) acknowledges a stop idle when its " +
+        "work is done; an actor (a hosted FDE, a simulation's agent) acknowledges once it has taken the stop's work, not " +
+        "when its thinking ends. A simulation that needs its agent's whole turn at one instant runs the clock frozen and " +
+        "steps it, as vending-bench does.",
+    },
+    { label: "receipt", text: "Each follower times now from its own receipt of each event." },
+  ],
+  chosen: "capped-formula",
+  why:
+    "One function of one real clock is what makes every reader agree without a round trip per read; with a rate the " +
+    "function needs the rate, and with running stops it needs the cap, else a follower would compute a now past the " +
+    "instant the authority is about to stand at and then read an earlier one there (time.monotonic). Timing from " +
+    "receipt makes a remote follower trail by the delivery time times the rate: 100 ms is 0.4 world seconds at rate 4, " +
+    "enough for a head's document to be dated before the block whose fact it records. A measured offset's error is " +
+    "half a round trip times the rate: 0.2 world seconds at rate 4 over a 100 ms round trip, but 3 at rate 60. The " +
+    "cap keeps it from carrying a follower past a stop and the hold from reading back; between stops a remote " +
+    "follower's dates differ from the authority's by it, so a world with a remote follower runs at a rate that keeps " +
+    "it under a world second (20 or less at a 100 ms round trip), its owner's choice, as with sign-in codes. A world that waited for every " +
+    "FDE's turn would hold everyone's clock for a model's minutes; the FDE is not on the critical path (aaron.fde-anyone).",
+  source: WORLD_CLOCK("devnet.followers; devnet.time-protocol (realAt); books/target/shared/rulings.ts (aaron.fde-anyone); /home/user/factory packages/vending-bench/src/bridge.ts:99"),
+  affects: [flow_devnet_time_follow, flow_devnet_time_watch, integration_devnet_control, component_devnet, component_frappe_app, integration_fde_host],
+});
+
+export const decision_devnet_whatsapp_stand_in = defineDecision({
+  id: "devnet.whatsapp-stand-in",
+  title: "The stand-in WhatsApp: Meta's Cloud API on devnet's tables, on the world's clock",
+  question:
+    "aaron.world-clock sends a world's WhatsApp to a stand-in, and the CRM tracks every WhatsApp conversation (Aaron's " +
+    "evening answer). Capxul and Frappe's WhatsApp app both speak Meta's WhatsApp Cloud API. What is the stand-in, where " +
+    "is its state, and how does it follow the clock?",
+  options: [
+    {
+      label: "cloud-api-stand-in",
+      text:
+        "For aaron.world-clock: a supervisor-run imitation of the Cloud API at the deployment's WHATSAPP_API_URL, which a " +
+        "head's WA Settings take as `whatsapp_api_url`, so neither side forks. It serves every route Capxul and Frappe's " +
+        "WhatsApp app call: messages and media sent, an inbound one marked read; the account's templates listed, made, " +
+        "read, changed and deleted; the app's subscription to the account (`subscribed_apps`, which Capxul's connect " +
+        "makes); and the number read (display number, verified name, quality rating). Its state is devnet's " +
+        "whatsapp-numbers and whatsapp-messages. `capxul-devnet whatsapp number add <org> [--webhook <url>]` makes a " +
+        "number, the next from +447700900100 up, and writes `<org>-whatsapp.json` (number id, business id, token, app " +
+        "secret, verify token) in the working directory; `whatsapp number webhook <number> <url>` points it at a route " +
+        "after the GET handshake, as Meta checks a callback; `whatsapp number remove <number>` deletes it. Each account " +
+        "holds Meta's sample template `hello_world` (en_US, approved) and every template made through it, approved at " +
+        "once. A send is answered with its wamid and followed at once by its `sent` and `delivered` webhooks. It judges " +
+        "Meta's rules on the world's now: a free-form message to a number that has not written in 24 hours is refused " +
+        "131047, an unknown template 132001. `whatsapp receive <number> --from <E.164> [--name <profile name>] <text>` " +
+        "posts an inbound message and `whatsapp read <wamid>` a `read` status, signed with the app secret as Meta signs. " +
+        "A webhook not answered 200 is redelivered on the world's clock after 1, 5 and 30 minutes, then every 6 hours " +
+        "for 7 days. Nothing reaches a real phone. `capxul-devnet fault whatsapp down|refuse|clear` arms its switch. It " +
+        "follows the clock: idle once every webhook it posted is answered, whatever the answer; its earliest " +
+        "redelivery is its next due.",
+    },
+    { label: "meta-test-number", text: "Use Meta's own test business number and its registered recipients on a devnet." },
+    { label: "backend-layer", text: "A WhatsApp devnet layer inside the backend, as the mail fake is." },
+  ],
+  chosen: "cloud-api-stand-in",
+  why:
+    "Meta's test number sends real messages to real phones on Meta's clock, which a world at a rate or a frozen eval " +
+    "cannot follow. Served over HTTP in Meta's shape, the stand-in exercises Capxul's real WhatsApp client and lets a " +
+    "real head's WhatsApp app use the same stand-in by one setting, as the stand-in head and FDE host do " +
+    "(devnet.head-stand-in, devnet.fde-host-stand-in); a backend layer would skip the client and leave a head no way " +
+    "in. Judging the 24-hour window itself, on the world's now, lets an eval see Meta's own refusal mapped " +
+    "(contacts.whatsapp-window) without arming a fault, and a warp past the window close it at once. In the devnet schema, a world's snapshot carries its conversations with the CRM's rows that point at them " +
+    "(devnet.own-schema). Both statuses at once keep a frozen eval free of a stop it would wait for; `read` is a " +
+    "person's act, so it is a control, and an inbound message is the outside party acting, which no Capxul surface " +
+    "makes (devnet.fault-switches). The routes are the ones both clients call (frappe/whatsapp api/whatsapp.py: " +
+    "messages, media, message_templates, a template by id, subscribed_apps) and the integration's readNumber, so " +
+    "neither connect fails on a devnet. `hello_world` is what a Meta test number holds, so a first template send needs " +
+    "no template made first. The number, the key file's name and the webhook control are fixed because the CRM's " +
+    "claims read them (contacts.conversation-worlds: +447700900100, `acme-whatsapp.json`) and its connect prints the " +
+    "route only after the number exists. Redelivery is the integration's promise (Meta redelivers for 7 days); on the " +
+    "world's clock with its next due, a refused route (a disconnected account) never holds a stop, as an unanswered " +
+    "webhook counted busy would, and a warp of a week sees every retry. Its tables' writer is the stand-in, outside " +
+    "the book's records, so each shows the unwritten-table gap. For the CRM's owner: the WhatsApp integration's `fake` " +
+    "names this stand-in.",
+  source: WORLD_CLOCK("aaron.world-clock; frappe/whatsapp wa_settings (whatsapp_api_url), api/whatsapp.py:89-126, webhook.py:117-146 (profile name); shared external.ts (whatsapp: readNumber, subscribeApp, fake)"),
+  affects: [...WHATSAPP_TABLES, component_devnet, environment_devnet, environment_shared_world, component_frappe_app],
+});
+
+export const decision_devnet_head_follows_world = defineDecision({
+  id: "devnet.head-follows-world",
+  title: "A head follows its world's clock through the Capxul app's hooks, no fork",
+  question:
+    "aaron.world-clock: a connected Frappe head follows the world's clock. Frappe, ERPNext, Frappe HR and Frappe CRM " +
+    "read time through Frappe's now_datetime (about 700 calls outside tests, with Frappe's now, nowdate, today, " +
+    "getdate() and get_datetime(), which call it); 88 modules of those apps and the WhatsApp app import that function " +
+    "by name (develop, 8 November 2026); Frappe's scheduler enqueues a Scheduled Job Type once its next execution is " +
+    "not after now_datetime(); its Email Queue sends every head email over the site's own SMTP account; and a few " +
+    "modules read the host's clock directly. How does the Capxul app make a head's now, its jobs and its mail the " +
+    "world's, on a devnet and across a network, without forking Frappe?",
+  options: [
+    {
+      label: "code-hook",
+      text:
+        "When its site config names a world (`capxul_world`: the protocol's address and a follower grant, or a devnet's " +
+        "handoff file), the Capxul app does five things (docs/design/time.md 7.5). (1) It replaces the code of " +
+        "frappe.utils.data.now_datetime, so every module that imported it reads the world's now in the site's zone, by " +
+        "the protocol's formula from the clock event cached in Redis (read once per request or job, else at a " +
+        "context's first read; with none cached a request answers 503). The module making the replacement is imported " +
+        "in every process through the app's before_request, before_job and override_doctype_class (Scheduled Job Type) " +
+        "hooks, since Frappe outside developer mode reads hooks from its cache and never imports hooks.py itself. (2) " +
+        "The modules whose own host-clock reads decide something (the CRM's deal status log, ERPNext's stock freeze by " +
+        "days, its service-level agreement's user time and bulk-transaction log, Frappe HR's interview reminder, " +
+        "Frappe's unreplied-email notice and session end) get their datetime and date names rebound to world-clock " +
+        "stand-ins; reads that protect or measure stay real; B3 scans the pinned apps so each direct read is rebound " +
+        "or named real. (3) `bench --site <site> capxul follow` joins as `head:<site>`, writes each event to the cache, " +
+        "enqueues the Scheduled Job Types due at each stop and waits for them, acknowledging with its next " +
+        "daily-or-slower job as its next due (devnet.head-warp-stops), and between stops enqueues the due ones every " +
+        "world minute, since Frappe's scheduler wakes every 240 real seconds; is_event_due and the job's id keep each " +
+        "run to one. (4) Its override_email_send hook hands every email the Email Queue sends to the supervisor " +
+        "(`POST /v1/mail`, on the follower grant), which keeps it in the mail sink at the world's now; nothing reaches " +
+        "SMTP. (5) Off a world the clock part is not installed; on staging the mail hook sends only to " +
+        "MAIL_ALLOWED_RECIPIENTS and raises for any other address.",
+    },
+    { label: "freezegun", text: "Start freezegun's freeze_time at the world's now around every request and job." },
+    { label: "fork", text: "Patch frappe/utils/data.py in a Capxul fork of Frappe." },
+  ],
+  chosen: "code-hook",
+  why:
+    "Replacing one function's code reaches every binding of it, the imports by name included, so one seam moves most " +
+    "of the head's dates, and aaron.erp-on-capxul asks for no fork. Rebinding the module attribute alone would miss " +
+    "every module that imported the name first. Frappe's own tests move time with freezegun " +
+    "(frappe/tests/classes/context_managers.py), but freezegun scans every loaded module on each start and freezes " +
+    "time.time and the monotonic clock, which Frappe's Redis locks, RQ and its scheduler heartbeat need real, and it " +
+    "has no rate; the rebinding in (2) is freezegun's technique kept to the few modules that decide on the host's " +
+    "clock. A patch applied only in hooks.py would leave a worker or the scheduler on the host's clock, because Frappe " +
+    "reads app hooks from its cache (frappe/__init__.py get_hooks) and imports a hook's own module only when it calls " +
+    "it. One cache read per request or job is the head's RequestTime: no network call per date. Waiting for the due " +
+    "jobs at a stop lets a warp see a head's daily work on its day, and the follower's world-minute enqueue keeps a " +
+    "head's faster jobs on their cadence at any rate. A head's own email (ERPNext's and Frappe HR's notifications, " +
+    "its auto email reports) would otherwise leave the world over SMTP, dated at the world's now; the CRM's own " +
+    "conversations never go through the head (contacts.conversations-head-sync). A real bench in a shared world " +
+    "follows over HTTPS with a follower grant, its offset measured as any remote follower's. The stand-in head " +
+    "already follows (devnet.head-stand-in). For component frappe-app's owner: its text should say this.",
+  source: WORLD_CLOCK(
+    "frappe@1a7ea577 utils/data.py:373, scheduler.py:44, __init__.py:1050, model/document.py:170, email_queue.py:248; direct reads listed in docs/design/time.md 7.5",
+  ),
+  affects: [component_frappe_app, integration_frappe_head, integration_mail, table_mail_messages, component_devnet, environment_devnet, environment_shared_world],
+});
+
+export const decision_devnet_fde_host_follows_world = defineDecision({
+  id: "devnet.fde-host-follows-world",
+  title: "A world's hosted FDEs run on its clock: their timers are its instants",
+  question:
+    "aaron.world-clock: the FDE follows the world's clock. A hosted FDE (organizations.fde-host) is a durable agent on " +
+    "swarmD whose runtime keeps timers of its own (a follow-up it promised, a wake-up, a turn's deadline) on " +
+    "Cloudflare's real clock. On a devnet the stand-in host keeps none. In a shared world, how do a world's FDEs keep " +
+    "their times on its clock?",
+  options: [
+    {
+      label: "world-namespace",
+      text:
+        "A world that hosts real FDEs (a shared world; a devnet's evals keep the stand-in) has its own namespace on the " +
+        "FDE host, which FDE_HOST_URL names, and that namespace joins the world's clock as one follower, `fde-host`, " +
+        "over the protocol with a follower grant. Each agent's timer is kept as an instant on the world's now; the " +
+        "namespace reports the earliest as its next due, and at a stop fires each one due by starting its turn, then " +
+        "acknowledges idle once those turns are taken (an actor's acknowledgement, devnet.follow-at-a-rate). A turn runs " +
+        "in real time: what the FDE does through Capxul is dated by Capxul's now when it lands " +
+        "(time.clients-take-server-now), and its sandbox's and model calls' timeouts stay real (time.real-elapsed). The " +
+        "stand-in host stays as it is: no timer, always idle, a reply as each turn is posted. Staging's and production's " +
+        "FDEs run on the host's real clock.",
+    },
+    { label: "shared-namespace", text: "One FDE namespace for every world, each agent converting its own timers." },
+  ],
+  chosen: "world-namespace",
+  why:
+    "A durable agent's timers are its promises in the story: 'I will check the invoice in three days' must fire three " +
+    "world days later, which at rate 4 is 18 real hours, not 72. A namespace per world gives its agents one clock and " +
+    "one follower that reports their earliest instant, as the backend reports its timers; a shared namespace would mix " +
+    "clocks in one runtime. Acknowledging once the turns are taken keeps a model's thinking out of the world's barrier, " +
+    "since the FDE is not on the critical path (aaron.fde-anyone). For the FDE host's owners (organizations.fde-host " +
+    "and the swarm design): swarmD's agent timers must take an instant on an outside clock and a follower that fires " +
+    "them, a requirement on swarmD.",
+  source: WORLD_CLOCK("organizations.fde-host; books/target/shared/external.ts (fde-host); devnet.fde-host-stand-in; aaron.fde-anyone"),
+  affects: [integration_fde_host, table_fde_host_agents, component_devnet, environment_shared_world],
+});
+
+export const decision_devnet_shared_world = defineDecision({
+  id: "devnet.shared-world",
+  title: "A shared world: a hosted devnet its owner's grantees join, on one clock",
+  question:
+    "aaron.world-clock names a shared world beside a devnet and staging: self-contained, its clock controlled, possibly " +
+    "at a rate. Who may join one, what is shared, and how is it reached?",
+  options: [
+    {
+      label: "owner-grants",
+      text:
+        "A shared world is a devnet's whole stack on a host the owner chooses, behind the world's gateway at its own " +
+        "HTTPS address (environment shared-world). Its owner, who started it (`capxul-devnet up --shared <name>`), holds the owner grant: they move " +
+        "the clock and set its rate, save and restore the world, arm faults, script gates and prices, play people (`dev " +
+        "approve`) and admit followers. Anyone else joins only by a grant the owner makes for their email " +
+        "(`capxul-devnet world grant <email>`): a file the owner hands over outside the world, never by the world's " +
+        "mail. It names its holder's mailboxes and carries their dev signers' keys, never the seed, so a joiner signs as " +
+        "themselves only (`dev approve --as` anyone else finds no signer: WRONG_ENVIRONMENT, as with no handoff), reads " +
+        "only their own mail and notices in the sink, may watch the clock but not follow or move it " +
+        "(ROLE_PERMISSION_DENIED), and otherwise uses Capxul as on staging. A follower grant (`world grant --follower " +
+        "<name>`, for a real bench or the world's FDE namespace) follows the clock under that name and never moves it. " +
+        "`world revoke <email|name>` ends a grant at the gateway. The grants and WORLD_GRANT_KEY stay on the host outside " +
+        "the snapshots, so a restore changes no one's access. The gateway refuses a joiner's owner-only devnet call " +
+        "(devnet.devnet-only-rpcs), as the supervisor does its own. Shared: one chain, backend, clock and " +
+        "rate, mail sink and stand-in WhatsApp, the heads and the FDE namespace. Nothing leaves it: no real email, " +
+        "message or Base Sepolia transaction, and Bridge runs only as its local stand-in. A joiner's CLI reaches it by " +
+        "CAPXUL_BOOTSTRAP_URL, with CAPXUL_WORLD_GRANT naming its grant file, which the SDK sends with every request; " +
+        "the CLI's devnet scope admits a shared world as the devnet build it is (staging and production stay refused). " +
+        "Its CLI home stays on its own machine, outside the snapshots: after a restore a joiner signs in again.",
+    },
+    { label: "open", text: "Anyone with the world's address may join and sign in." },
+    { label: "second-staging", text: "Run the shared world as a second staging on Base Sepolia, with the real clock." },
+  ],
+  chosen: "owner-grants",
+  why:
+    "A world whose clock one person controls is shared by trust: its people see time jump when the owner warps, and a " +
+    "joiner who could follow it could hold every stop for everyone, so moving and following are the owner's. Grants " +
+    "by email keep the world closed, as the beta is, and let its people read their sign-in codes from the sink while " +
+    "no mail leaves it. Handing each joiner only their own derived keys keeps `dev approve` the owner's. Grants kept " +
+    "outside the snapshots keep a restore from re-admitting a revoked joiner, and the gateway's refusal keeps the " +
+    "devnet-only rpcs as they are, each `who` naming the owner's grant. The world's people sign with the keys their " +
+    "grant carries, and their authority in Capxul is their hats', as anywhere (docs/design/authority.md). An open world " +
+    "would let anyone read the sink; Base Sepolia's clock is no one's to control, so a shared world needs its own " +
+    "chain. For Aaron: who may join a shared world. The recommendation: only people its owner grants by email, the " +
+    "owner alone moving its clock; it stands until he answers.",
+  source: WORLD_CLOCK("aaron.world-clock; devnet.approve-as (dev signers from the seed and the email); books/target/access/flows.ts (CAPXUL_BOOTSTRAP_URL); devnet.devnet-only-rpcs"),
+  affects: [
+    environment_shared_world, component_devnet, integration_devnet_control, concept_devnet, rpc_devnet_mail_list,
+    rpc_devnet_mail_list_notices, flow_devnet_approve, flow_devnet_time_set, flow_devnet_time_follow, ops.operation_dev_time_set,
+  ],
+});
+
+// ── the world pass's build (9 November 2026): its worlds and what the stand-ins serve for them ─────
+
+import { concept_contacts, concept_payments } from "../shared/foundation.ts";
+
+const WORLD_PASS = (evidence: string) => `Claude, world pass build, 9 November 2026; evidence: ${evidence}`;
+
+export const decision_devnet_world_pass_worlds = defineDecision({
+  id: "devnet.world-pass-worlds",
+  title: "Twelve worlds for the world pass, and what the stand-ins serve for them",
+  question:
+    "The world pass booked claims and refusals from twelve worlds the catalogue did not hold (organizations.doc-worlds, " +
+    "contacts.conversation-worlds, payroll.hr-worlds); its document family reaches a head the stand-in did not serve; " +
+    "its FDE acts only under an ask's act-for token; and `payment claim`'s world held one escrow, so one approval " +
+    "collecting several could not be told from one per escrow. What does devnet add?",
+  options: [
+    {
+      label: "catalogue-and-stand-ins",
+      text:
+        "Twelve worlds, each built with booked commands and supervisor controls: org-with-head-docs, org-with-head-down, " +
+        "org-with-fde-member, org-with-fde-guest and org-with-fde-head-docs (organizations); org-with-conversations " +
+        "(contacts); org-with-leave, org-with-attendance, org-with-expenses and its budget-used, short-safe and " +
+        "chain-unreachable variants (payroll). person-ready-money-waiting gains Sam's 3 USDC escrow before the setup. The " +
+        "stand-in head serves `docRead` and `docWrite` over head-documents: Frappe's docstatus rules (submit a draft, " +
+        "cancel a submitted one, amend a cancelled one as `<name>-1`, never delete a submitted one), fixture metas for " +
+        "the DocTypes the claims name (Designation, Job Opening, Job Applicant, Training Event, Employee, Project in " +
+        "ERPNext's projects module, Stock Entry), their role permissions and mandatory fields as the pinned apps' JSON " +
+        "gives them, an active Workflow's transitions and roles, ERPNext's ledger hooks, and its applied call ids " +
+        "(head-sites.applied_calls, a world day), with a `drop-answer` fault; `head edit` addresses a head-born " +
+        "document by its head name. The stand-in host keeps each turn's ask and act-for token, and `capxul-devnet fde " +
+        "run <org> [--ask <askId>] -- <command>` sends that token with `--ask`, none without. `mail receive` takes " +
+        "`--cc`, `--bcc` and `--references`, its event's `received_for` naming each CRM mailbox among them.",
+    },
+    { label: "in-eval", text: "Each eval builds its state from the nearest catalogued world." },
+  ],
+  chosen: "catalogue-and-stand-ins",
+  why:
+    "Each concept's world decision says what its claims need, and a refusal whose world nobody builds cannot be run: " +
+    "worldGaps listed 238 refusals in these twelve. Built with the commands and the stand-ins' controls, each world " +
+    "stays a black box (devnet.deterministic-worlds): a head document, an inbound email or message, a check-in at a " +
+    "time, is someone acting outside Capxul's commands, so it is a supervisor control or the person's own command. The " +
+    "stand-in head answers the family as Frappe would for its fixtures only, so a claim that needs Frappe's own " +
+    "validations boots a real bench (devnet.head-stand-in). The host keeps a turn's token after the turn ends so an eval " +
+    "sees Capxul's `ended_at`, not the host, end what an ask allows; without `--ask` the FDE acts as itself, which every " +
+    "guard refuses, as `org fde pay`'s claim needs. Sam's second escrow makes `payment claim`'s one approval and its " +
+    "take-back claim discriminating. org-with-leave warps to the third working day of a month or later, January to " +
+    "November, since the eval epoch fixes no month, so its claims' next-month days stay in the year their holidays " +
+    "and allocations cover.",
+  source: WORLD_PASS("organizations.doc-worlds; contacts.conversation-worlds; payroll.hr-worlds; payments.claim-command; devnet.head-stand-in; devnet.fde-host-stand-in; devnet.mail-sink"),
+  affects: [
+    concept_devnet, concept_organizations, concept_contacts, concept_payroll, concept_payments, table_head_sites,
+    table_head_documents, table_head_changes, table_fde_host_agents, table_mail_messages, integration_frappe_head,
+    integration_fde_host, component_devnet,
+  ],
 });

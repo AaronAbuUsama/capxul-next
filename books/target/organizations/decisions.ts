@@ -98,6 +98,7 @@ import { rpc_organizations_seats_show } from "./members.ts";
 import { flow_client_org_fde_ask, flow_client_org_head_connect, flow_client_org_head_disconnect } from "./flows.ts";
 import {
   NEW_OPERATIONS,
+  operation_org_fde_turn_get,
   operation_org_app_add,
   operation_org_app_list,
   operation_org_app_remove,
@@ -968,9 +969,9 @@ export const decision_organizations_fde_at_start_up = defineDecision({
     "call and asks only for an Organization whose company Safe is the founder's; the provision is keyed by the " +
     "Organization's id, so a retried step answers the same key, and a host outage past its retries stalls the setup " +
     "like any provider (`org retry` asks again). Authority is unchanged (docs/design/authority.md): the company Safe owns " +
-    "the FDE, the Board grants its hats, it starts with none (agents.fde-authority) and is never a Director; what the " +
-    "Board grants it is exercised by a runtime Capxul operates, and the Board can freeze, re-key or remove it at any " +
-    "time. `--no-fde` stays: hosting is paid (organizations.fde-hosting), so a founder may decline it, and the eval " +
+    "the FDE, it starts with no hat (agents.fde-authority) and is never a Director, and hosted it acts only as each " +
+    "turn's asker (organizations.fde-for-the-asker); it is a runtime Capxul operates, and the Board can freeze, re-key " +
+    "or remove it at any time. `--no-fde` stays: hosting is paid (organizations.fde-hosting), so a founder may decline it, and the eval " +
     "worlds need Organizations without one (organizations.startup-worlds). An Organization started without one gets no " +
     "hosted FDE later, since no pack lists a command for it; `agent create --org` still makes a self-run agent of its " +
     "own, with its key on its creator's machine and no hosting to pay (agents.fde).",
@@ -1168,8 +1169,8 @@ export const decision_organizations_commands = defineDecision({
         "show` (any member, read: status, versions, time zone, issue and the apps as the head runs them; each app's sync " +
         "position is that app concept's) and `org head disconnect` (a Director, write: a flow previews, then one rpc); and, for the hosted FDE (aaron.fde-hosted), `org fde show` (any member, " +
         "read: its state on the host, its hats, the day its hosting is paid through and FDE_HOSTING_PRICE) and `org fde " +
-        "ask <message>` (a Director, vendor: a flow sends the message to the host and prints the FDE's reply when its turn " +
-        "ends). Paying for the hosting, `org fde pay`, is organizations.buy-seats', since payments books it as it books " +
+        "ask <message>` (any member, or a guest the management names, by aaron.fde-anyone; vendor: a flow sends the " +
+        "message to the host and prints the FDE's reply when its turn ends; the FDE acts as the asker). Paying for the hosting, `org fde pay`, is organizations.buy-seats', since payments books it as it books " +
         "`org seats buy`.",
     },
     { label: "apps-only", text: "Viable. Only the app commands now; connecting a head waits for its own pack." },
@@ -1189,9 +1190,10 @@ export const decision_organizations_commands = defineDecision({
     "app is reversible and moves no money, so the FDE may do it; any other member may not, because a connected head's " +
     "host is then asked to install it (agents.fde-authority follows this). aaron.fde-hosted adds two commands no pack " +
     "listed: the FDE runs on Capxul's host, not beside the founder's CLI, so the Organization needs `org fde show` to " +
-    "see it and `org fde ask` to talk to it through Capxul's own sign-in. Asking is a Director's, because the FDE acts " +
-    "with the hats the Board granted it and whoever instructs it borrows them. The start-up's four (app list and add, " +
-    "FDE show and ask) are critical (organizations.command-priorities). Buying seats and paying the hosting are " +
+    "see it and `org fde ask` to talk to it through Capxul's own sign-in. Asking was a Director's until aaron.fde-anyone " +
+    "let any member, or a guest the management names, ask, the FDE acting as the asker (organizations.fde-commands, " +
+    "organizations.fde-for-the-asker). The start-up's two (app list and add) are critical, and the FDE's two are " +
+    "not, since it is not on the critical path (organizations.command-priorities). Buying seats and paying the hosting are " +
     "organizations.buy-seats', and organizations books that pack's `org seats show` (organizations.seats-show).",
   source: by(
     "books/target/shared/rulings.ts (aaron.erp-on-capxul, aaron.frappe-shape, aaron.frappe-head, aaron.fde-agent, aaron.fde-hosted); docs/design/new-commands.md (section 5.4); docs/decisions/open-for-aaron.md (question 10)",
@@ -1366,7 +1368,8 @@ export const decision_organizations_head_users = defineDecision({
         "an agent has none, and an agent works through the CLI and SDK; a record naming an agent member names no User " +
         "there. A User's roles are what its member's hats give, as Has Role rows Capxul holds: the People hat Sales User, " +
         "Sales Manager, HR Manager and Projects Manager; the Books hat Accounts User and Accounts Manager; the Invoicing " +
-        "hat Accounts User; every member Projects User. A role whose hat is gone is taken away at the next push; one a " +
+        "hat Accounts User; every member Projects User. A role whose hat is gone is taken away at the next push, or " +
+        "sooner at the member's next document-family call, which sets them first (organizations.doc-authority); one a " +
         "head administrator gives by hand is the head's and authorizes nothing in Capxul. Frappe makes the User's " +
         "Contact after the User commits (`create_contact`, enqueued), or finds the one that already holds its email, " +
         "and the Capxul app copies the User's `capxul_party` onto it: the same Party a person's entry by that " +
@@ -1412,8 +1415,9 @@ export const decision_organizations_app_commands = defineDecision({
       label: "catalogue",
       text:
         "`org app list` for any member. `org app add|remove` for a Director (the Director hat, read from indexing) or " +
-        "the Organization's own agent, its FDE (the Seat whose use is `organization`), as aaron.frappe-shape and " +
-        "aaron.fde-agent have the FDE add apps in conversation. An app is one of HEAD_APPS, the deployment's catalogue " +
+        "the Organization's own agent acting as itself (the Seat whose use is `organization`, a self-run one), as " +
+        "aaron.frappe-shape and aaron.fde-agent have the FDE add apps in conversation; the hosted FDE never acts as " +
+        "itself but as its asker (aaron.fde-anyone), so it adds one for a Director who asks. An app is one of HEAD_APPS, the deployment's catalogue " +
         "of published Frappe apps a host can install; any other name, or a fundamental app, is INVALID_INPUT at add. " +
         "Adding an app already wanted or installed answers it as it stands; a removed one is wanted again. Removing a " +
         "fundamental app is WRONG_STATE, and one the Organization never had INVALID_INPUT. None of them calls the head: " +
@@ -1477,9 +1481,9 @@ export const decision_organizations_head_commands = defineDecision({
 
 export const decision_organizations_fde_commands = defineDecision({
   id: "organizations.fde-commands",
-  title: "FDE: any member sees it; a Director asks it; the host keeps the conversation",
+  title: "FDE: any member or named guest asks it, and it acts as the asker",
   question:
-    "The FDE now runs on Capxul's host, not beside the founder's CLI. How does the Organization see it and talk to it, " +
+    "The FDE runs on Capxul's host, not beside the founder's CLI. How does the Organization see it and talk to it, " +
     "and who may?",
   options: [
     {
@@ -1492,23 +1496,33 @@ export const decision_organizations_fde_commands = defineDecision({
         "its reply through `organizations.fde.turn`; at the deadline it stops waiting and the FDE carries on. A " +
         "provisioned, paused, resuming or retired FDE, or none, is WRONG_STATE.",
     },
-    { label: "any-member", text: "Any member asks, and the host passes the asker's Seat so the FDE does for them only what their own hats allow." },
+    {
+      label: "any-member",
+      text:
+        "Any member asks, or anyone the Organization's management works with, as a guest it names (`org fde guest " +
+        "add|remove|list`); the host passes the asker's Seat, so the FDE does for them only what their own hats allow " +
+        "(organizations.fde-for-the-asker). `org fde show` as before; `org fde ask` as show-and-ask's flow, for any " +
+        "member or guest; `org fde turn get <turn>` reads a turn its asker stopped waiting for.",
+    },
     { label: "host-surface", text: "No ask command: people talk to the FDE on the host's own surface." },
   ],
-  chosen: "show-and-ask",
+  chosen: "any-member",
   why:
-    "The FDE acts with the hats the Board granted its Safe, so whoever instructs it borrows them; a Director may propose " +
-    "any grant anyway, so a Director asking borrows nothing they could not get. For Aaron (docs/design/new-commands.md " +
-    "section 7, question 1, which his sixth batch did not cover: the FDE commands came after it): who may ask the " +
-    "hosted FDE; a Director stands until he answers. Any member asking would need the FDE to act within each asker's " +
-    "hats, which nothing on chain enforces: its Safe holds its own hats, whoever asks. A surface on the host alone would " +
-    "put an unchecked path beside the CLI, through which the FDE must act. Recording who asked, but not what, gives the " +
-    "Organization its audit beside the FDE's traced commands without copying the host's conversation into Capxul. The " +
-    "turn is a wait, never system time, so the command's budget is its two host calls.",
-  source: passBy("books/target/shared/rulings.ts (aaron.fde-agent, aaron.fde-hosted); docs/design/new-commands.md (sections 5.4 and 7)"),
+    "Aaron's ruling aaron.fde-anyone (8 November 2026, night; docs/decisions/open-for-aaron.md question 36): 'I think " +
+    "anyone should be able to talk to the FDE, or anyone that the management is speaking to. The FDE is not on the " +
+    "critical path anyway.' It supersedes show-and-ask, the Director-only booking, whose reason was that the FDE acted " +
+    "with the hats the Board granted its own Safe, so whoever instructed it borrowed them; the ruling removes that " +
+    "reason, because the host passes the asker's Seat and the FDE acts as the asker (organizations.fde-for-the-asker): " +
+    "a member borrows nothing, and a write that needs a signature is the asker's own to sign. Who the management works " +
+    "with is a list it keeps, since Capxul cannot know it otherwise (organizations.fde-guests). A surface on the host " +
+    "alone would still put an unchecked path beside the CLI, through which the FDE must act. Recording who asked, but " +
+    "not what, gives the Organization its audit beside each traced command without copying the host's conversation " +
+    "into Capxul. A turn's reply may hold what only its asker may see, so only its asker reads it. The turn is a wait, " +
+    "never system time, so the command's budget is its two host calls.",
+  source: passBy("books/target/shared/rulings.ts (aaron.fde-agent, aaron.fde-hosted, aaron.fde-anyone); docs/decisions/open-for-aaron.md (question 36)"),
   affects: [
     rpc_organizations_fde_show, rpc_organizations_fde_ask, rpc_organizations_fde_turn, flow_client_org_fde_ask,
-    operation_org_fde_show, operation_org_fde_ask, table_org_fde_asks, table_org_fdes,
+    operation_org_fde_show, operation_org_fde_ask, operation_org_fde_turn_get, table_org_fde_asks, table_org_fdes,
   ],
 });
 
@@ -1632,7 +1646,7 @@ export const decision_organizations_fde_hosting = defineDecision({
 
 export const decision_organizations_command_priorities = defineDecision({
   id: "organizations.command-priorities",
-  title: "The start-up's commands are critical: app list and add, FDE show and ask",
+  title: "The start-up's commands are critical: app list and add; the FDE's are not",
   question:
     "The grammar makes every new command normal; the commands pass marks the ones a pilot or a start-up needs critical. " +
     "Which of organizations' nine?",
@@ -1645,14 +1659,24 @@ export const decision_organizations_command_priorities = defineDecision({
         "add the apps a business needs in that conversation. The head's three, `org app remove` and `org seats show` are " +
         "normal: a head connects as a separate step (aaron.frappe-head), and a start-up has ten seats.",
     },
+    {
+      label: "start-up-without-fde",
+      text:
+        "Two: `org app list` and `org app add`, since a start-up adds the apps its business needs beyond the " +
+        "fundamental ones, a Director directly or through the FDE. `org fde show` and `org fde ask` are normal, with the " +
+        "head's three, `org app remove` and `org seats show`.",
+    },
     { label: "none", text: "Every command normal, as G8 has it." },
   ],
-  chosen: "start-up",
+  chosen: "start-up-without-fde",
   why:
-    "With the FDE on Capxul's host, `org fde ask` is how a founder's first sitting happens at all, and the start-up step " +
-    "is where the FDE adds the apps beyond the fundamental ones. Critical orders the build's work and the evals a " +
-    "start-up depends on; it changes no budget. projects.critical-commands does the same for a pilot's first engagement.",
-  source: passBy("docs/design/new-commands.md (G8); books/target/shared/rulings.ts (aaron.fde-hosted, aaron.fde-agent, aaron.frappe-head)"),
+    "Aaron's ruling aaron.fde-anyone (8 November 2026, night, question 36, which named this record): 'The FDE is not " +
+    "on the critical path anyway.' So start-up's premise, that `org fde ask` is how a founder's first sitting happens " +
+    "at all, no longer holds, and the FDE's two commands are normal: nothing a pilot or a start-up needs waits on them. " +
+    "A start-up still adds the apps beyond the fundamental ones, so `org app list|add` stay critical. Critical orders " +
+    "the build's work and the evals a start-up depends on; it changes no budget. projects.critical-commands does the " +
+    "same for a pilot's first engagement.",
+  source: passBy("docs/design/new-commands.md (G8); books/target/shared/rulings.ts (aaron.fde-anyone, aaron.fde-hosted, aaron.fde-agent, aaron.frappe-head)"),
   affects: ALL_NEW,
 });
 
@@ -1720,4 +1744,385 @@ export const decision_organizations_founder_people_hat = defineDecision({
     "nobody able to invite. So the rule stays and is said where a founder meets it.",
   source: passBy("docs/design/authority.md (contradiction 9); budgets.role-conflict-people-hat; board.people-hat-role-conflict; aaron.departments"),
   affects: [workflow_organizations_setups_set_up, table_org_deployments, concept_budgets, concept_board],
+});
+
+// ── the world pass: anyone talks to the FDE, and the document family (8 November 2026) ──────
+
+import {
+  machine_fde_guest,
+  table_org_doc_calls,
+  table_org_fde_guests,
+} from "./data.ts";
+import {
+  rpc_organizations_fde_guests_add,
+  rpc_organizations_fde_guests_list,
+  rpc_organizations_fde_guests_remove,
+} from "./fde.ts";
+import {
+  rpc_organizations_doc_calls_list,
+  rpc_organizations_docs_amend,
+  rpc_organizations_docs_apply,
+  rpc_organizations_docs_cancel,
+  rpc_organizations_docs_change,
+  rpc_organizations_docs_create,
+  rpc_organizations_docs_get,
+  rpc_organizations_docs_list,
+  rpc_organizations_docs_remove,
+  rpc_organizations_docs_submit,
+  rpc_organizations_doctypes_get,
+  rpc_organizations_doctypes_list,
+} from "./docs.ts";
+import { flow_client_org_docs_remove } from "./flows.ts";
+import {
+  DOC_OPERATIONS,
+  FDE_ANYONE_OPERATIONS,
+  operation_org_doc_call_list,
+  operation_org_doc_remove,
+  operation_org_doctype_get,
+  operation_org_doctype_list,
+  operation_org_fde_guest_add,
+  operation_org_fde_guest_list,
+  operation_org_fde_guest_remove,
+} from "./operations.ts";
+import { procedure_accounts_admit } from "../accounts/procedures.ts";
+import { procedure_parties_resolve_recipient } from "../parties/procedures.ts";
+import { component_core_sdk, concept_accounts, concept_approvals } from "../shared/foundation.ts";
+import { integration_fde_host as integration_fde_host_ } from "../shared/external.ts";
+
+const WORLD = "Claude, organizations world pass (doc-family lane), 8 November 2026";
+const worldBy = (evidence: string) => `${WORLD}; evidence: ${evidence}`;
+const DOC_RPCS = [
+  rpc_organizations_docs_list, rpc_organizations_docs_get, rpc_organizations_docs_create, rpc_organizations_docs_change,
+  rpc_organizations_docs_submit, rpc_organizations_docs_cancel, rpc_organizations_docs_amend, rpc_organizations_docs_apply,
+  rpc_organizations_docs_remove, rpc_organizations_doctypes_list, rpc_organizations_doctypes_get,
+];
+
+export const decision_organizations_fde_for_the_asker = defineDecision({
+  id: "organizations.fde-for-the-asker",
+  title: "The hosted FDE acts as its asker: their Seat and hats, their signature",
+  question:
+    "aaron.fde-anyone: 'the host passes the asker's Seat, so the FDE does for them only what their own hats allow'. The " +
+    "FDE signs in with its own key and its Safe wears its own hats. How does a call it makes for an asker carry the " +
+    "asker's authority, and what signs?",
+  options: [
+    {
+      label: "act-as-asker",
+      text:
+        "Each ask mints a fresh act-for token; Capxul keeps its hash on the ask (`org-fde-asks`) and the host gives the " +
+        "token to the FDE's CLI for that turn only (on swarmD, added as a header on the way out, never inside the " +
+        "sandbox). A call the FDE makes with it is the asker's: the tenant guard every concept runs first (organizations' " +
+        "Seat lookup) answers the asker's Seat, Safe and hats in place of the FDE's, while the ask is open: its asker " +
+        "still a member (or an active guest), its turn not read ended, and the world's now before `expires_at` " +
+        "(FDE_ASK_HOURS). Otherwise, or with no token, the FDE's call is ROLE_PERMISSION_DENIED: the hosted FDE never " +
+        "acts as itself. A write that needs a signature opens its approval for the asker's own Safe, and the FDE's SDK, " +
+        "holding no key of the asker's, hands it over (the `--no-wait` answer, or `--json`'s for the payment family) for the asker to sign on the approval " +
+        "page. A command that previews and asks (G5) is the asker's own to answer, so its rpc refuses an act-for call " +
+        "(ROLE_PERMISSION_DENIED). Every span carries the FDE as actor and the asker; records are written as the asker's.",
+    },
+    {
+      label: "intersection",
+      text:
+        "The FDE acts as itself, signing with its own Safe, and every guard also checks the asker: it may do only what " +
+        "both its own hats and the asker's allow.",
+    },
+    { label: "own-hats", text: "The FDE acts with its own Seat and hats, whoever asks (the Director-only booking's premise)." },
+  ],
+  chosen: "act-as-asker",
+  why:
+    "The ruling's words: the host passes the asker's Seat, and the FDE does only what the asker's hats allow. Acting as " +
+    "the asker is exactly that, with nothing for any concept's guard to learn, because the Seat lookup every guard " +
+    "already runs is organizations' and answers the asker. The chain enforces it too: what moves money is signed by " +
+    "the asker's own Safe, so the FDE's key can never spend a hat the asker lacks, which was the objection to letting " +
+    "any member ask (the FDE's Safe holds its own hats, whoever asks). Intersection would make the FDE useless until " +
+    "the Board grants it every hat any asker might use, and then needs every guard rewritten to check two Seats. A " +
+    "short-lived token per ask, hashed in Capxul and held by the host only for the turn, limits what a leaked token " +
+    "could do to one asker for hours on the world's clock, and removal of a guest or the end of a Seat ends it at " +
+    "once. So the hosted FDE needs no hat of its own (agents.fde-authority). For Aaron, to confirm the reading: the " +
+    "FDE then never acts with hats the Board granted its Safe, and every signature is the asker's. For the shared " +
+    "designer: the tenant layer's resolution of an act-for token belongs in the shared rules, and the Core SDK's " +
+    "signing steps hand over under an act-for session.",
+  source: worldBy("books/target/shared/rulings.ts (aaron.fde-anyone, aaron.departments); docs/design/authority.md (Agents and the FDE); access.assistants (the person signs every approval)"),
+  affects: [
+    table_org_fde_asks, rpc_organizations_fde_ask, rpc_organizations_fde_turn, flow_client_org_fde_ask, operation_org_fde_ask,
+    table_org_members, integration_fde_host_, component_core_sdk, concept_approvals, concept_agents,
+  ],
+});
+
+export const decision_organizations_fde_guests = defineDecision({
+  id: "organizations.fde-guests",
+  title: "Guests: People or a Director names the outside people who may talk to the FDE",
+  question:
+    "aaron.fde-anyone lets 'anyone that the management is speaking to' talk to the FDE. Capxul cannot know who that is. " +
+    "Who says, how is an outside person reached, and what may the FDE do for them?",
+  options: [
+    {
+      label: "named-guests",
+      text:
+        "A list the management keeps: `org fde guest add <email|@handle> [--note]`, `org fde guest remove` and `org fde " +
+        "guest list` (organizations' `org-fde-guests`, one row per person, with its machine). People or a Director " +
+        "names a person (never a member, an agent or an Organization), resolved as an invitee is (`parties.resolve-" +
+        "recipient`) and admitted to the beta in the same transaction (`accounts.admit`, via fde-guest) so they can sign " +
+        "in; notices tells them how to ask. A guest asks with `org fde ask --org <handle>`; holding no Seat, the FDE " +
+        "acting for them reaches only what their own Party is admitted to. Removing a guest ends their asks at once. " +
+        "`org fde turn get` lets any asker read a turn later.",
+    },
+    { label: "any-party", text: "Anyone the Organization has a record with (a contact, a payee, a payer) may ask, with no list." },
+    { label: "members-only", text: "Only members ask; outside people talk to the management, who ask for them." },
+  ],
+  chosen: "named-guests",
+  why:
+    "The ruling names two groups: any member, and anyone the management is speaking to. The second is the management's " +
+    "to say, so it names them; inferring it from records would let anyone who was once paid run the Organization's " +
+    "hosted agent, which it pays for. Management is People or a Director: the People hat already decides who comes " +
+    "into the Organization (invitations, Seats), and Directors govern. A guest is a person because a turn is a " +
+    "conversation with someone who signs in, and an agent or Organization has its own way in. Admitting a guest to the " +
+    "beta in the naming transaction is the invitation's own reason (procedures.accounts-admit): a named guest who " +
+    "could not sign in would be named for nothing. The FDE does for a guest only what the guest may do, because the " +
+    "ruling says 'only what their own hats allow' and a guest wears none here; a guest's own dealings with the " +
+    "Organization are already theirs to read through the admissions (rules.counterparty-reads). Reading a turn later " +
+    "closes a gap the ask's deadline left: until now a reply after the deadline could not be read at all. For the " +
+    "accounts and shared designers: `accounts.admit` gains `via` fde-guest; for notices, a guest-named email.",
+  source: worldBy("books/target/shared/rulings.ts (aaron.fde-anyone); organizations.invitation-process; procedures.accounts-admit"),
+  affects: [
+    table_org_fde_guests, machine_fde_guest, rpc_organizations_fde_guests_add, rpc_organizations_fde_guests_remove,
+    rpc_organizations_fde_guests_list, operation_org_fde_guest_add, operation_org_fde_guest_remove, operation_org_fde_guest_list,
+    ...FDE_ANYONE_OPERATIONS, procedure_accounts_admit, procedure_parties_resolve_recipient, concept_accounts, concept_notices,
+  ],
+});
+
+export const decision_organizations_doc_family = defineDecision({
+  id: "organizations.doc-family",
+  title: "Decision pack: the document family that reaches what lives only on the head",
+  question:
+    "aaron.sdk-reaches-everything: the Core SDK and the CLI reach every capability, and what lives only on a connected " +
+    "head is reached 'through a generic document family over the SDK (`org doc list|get|create|change|submit|cancel " +
+    "<DocType>`), with the caller's authority, logged, on the world clock'. Which commands, and what does Frappe's own " +
+    "REST API need that those six lack?",
+  options: [
+    {
+      label: "six-and-what-frappe-needs",
+      text:
+        "Recommended: twelve commands in the one grammar (docs/design/new-commands.md section 5.7), each one SDK " +
+        "method under `client.org(orgId)` over one rpc in organizations (`organizations.docs.*`, `organizations." +
+        "doctypes.*`, `organizations.doc-calls.list`): the six ruled, `org doc list|get|create|change|submit|cancel " +
+        "<DocType>`; three Frappe's documents need, `org doc amend` (a cancelled document's correction), `org doc apply " +
+        "<action>` (a Workflow's step, since a DocType under a Workflow moves only by its actions) and `org doc " +
+        "remove` (Frappe's Delete, for a draft or a document that is never submitted: a flow that previews); two that " +
+        "say what can be reached, `org doctype list|get` (Frappe's meta: fields, child tables, Workflow, the member's " +
+        "rights, and why a DocType is not reached); and `org doc-call list`, the log. Left out: a count (a list pages), " +
+        "copy (create and amend cover it), bulk writes (each document is its own authorised, logged call), whitelisted " +
+        "methods (they write any DocType, a native or a money one, around the family's guard; a head capability that " +
+        "needs one is designed as its own command), and files and comments (Frappe's core module is native).",
+    },
+    { label: "six-only", text: "Exactly the six commands of the ruling." },
+    { label: "rest-proxy", text: "One command that passes any path and body to the head's REST API." },
+  ],
+  chosen: "six-and-what-frappe-needs",
+  why:
+    "A pack under rules.new-operations, serving aaron.sdk-reaches-everything; For Aaron: the twelve stand until he " +
+    "answers. The six alone cannot finish what Frappe starts: a cancelled document is corrected only by Amend, a " +
+    "DocType with an active Workflow moves through its actions, whose transitions carry the roles, conditions and " +
+    "self-approval rule the head's approvals are made of, and a draft made in error can only be deleted, since Frappe " +
+    "cancels only what was submitted. Frappe's desk offers a Workflow's document only its actions, but its server does " +
+    "not refuse a direct submit or cancel: validate_workflow checks only a changed state, and set_workflow_state_on_action " +
+    "then sets the state the Workflow gives that docstatus, so the Capxul app refuses `org doc submit` and `cancel` " +
+    "under an active Workflow itself, as the desk does, and `apply` is the only way through. An agent or a program " +
+    "using the SDK must also learn what a DocType takes before it writes, which " +
+    "is Frappe's meta. A REST proxy would hand the head's whole API, its methods included, to every caller around the " +
+    "guards the ruling asks for. Every family command is `vendor` (G8: it calls the head before it answers), " +
+    "`normal` priority (no pilot and no start-up runs one), area `organizations`, implemented by its rpc except " +
+    "`org doc remove`, a flow because it previews (G5). The React SDK does not mirror the family: it is the Core SDK's " +
+    "and the CLI's (the ruling draws the line there). The head's two methods, `docRead` and `docWrite`, are the " +
+    "`frappe-head` integration's (shared/external.ts) and the Capxul app's to serve (component frappe-app).",
+  source: worldBy("books/target/shared/rulings.ts (aaron.sdk-reaches-everything, aaron.frappe-head); /tmp/frappe/frappe/api/v2.py; /tmp/frappe/frappe/model/workflow.py"),
+  affects: [
+    ...DOC_RPCS, rpc_organizations_doc_calls_list, flow_client_org_docs_remove, table_org_doc_calls, ...DOC_OPERATIONS,
+    integration_frappe_head, component_frappe_app, system_capxul,
+  ],
+});
+
+export const decision_organizations_doc_reach = defineDecision({
+  id: "organizations.doc-reach",
+  title: "The family never reaches a native DocType, money, or the head's machinery",
+  question:
+    "The ruling refuses the family 'for any DocType a native concept owns (those have their own commands) and for money " +
+    "(Capxul is the system of record)'. Which DocTypes are those, and who decides, Capxul or the head?",
+  options: [
+    {
+      label: "lists-and-hooks",
+      text:
+        "Four refusals, all INVALID_INPUT with the reason. Native: every DocType of a native app's modules (`org-apps`' " +
+        "`modules`: Frappe's core, ERPNext's accounts and projects, Frappe HR's payroll, Frappe CRM's FCRM), naming " +
+        "that module's commands (NATIVE_MODULE_COMMANDS), and each DocType a native concept holds elsewhere " +
+        "(NATIVE_DOCTYPES: Company, Department, Employee, Customer, Supplier, Contact, Address, Currency, payroll.hr-" +
+        "scope's native HR DocTypes and HR Settings, the WhatsApp app's WA Account and WA Message, and the CRM's email, " +
+        "Communication), naming the " +
+        "commands that reach it. Money: any DocType the head's installed apps list in LEDGER_HOOKS " +
+        "(`accounting_dimension_doctypes`, `period_closing_doctypes`, the advance-payment, bank-reconciliation, " +
+        "audit-trail and repost-allowed lists, merged as frappe.get_hooks merges them) and their child tables; the " +
+        "DocTypes that post or re-post the ledger though no hook lists them (LEDGER_UNHOOKED: ERPNext's Repost Item " +
+        "Valuation); and every DocType of a money module (MONEY_MODULES: Frappe Lending's Loan Management). Machinery: " +
+        "HEAD_MACHINERY, what changes who may do what on the head or what a DocType is, runs code there, moves data in " +
+        "bulk, lets someone with no User write, holds sign-in or outside credentials, or sends through the head's own " +
+        "channels. Child tables: reached only through their parent. Capxul refuses the named lists before any call; the " +
+        "Capxul app refuses by module and hooks, which only the head knows.",
+    },
+    { label: "allowlist", text: "Reach only a list of head-only DocTypes Capxul names (recruitment, appraisal, training, onboarding)." },
+    { label: "drafts-of-money", text: "As lists-and-hooks, but let money DocTypes be read and kept as drafts, refusing only their submit." },
+  ],
+  chosen: "lists-and-hooks",
+  why:
+    "Native is a fact of Capxul's book, so Capxul's own list says it, before the head is called; a module's DocTypes " +
+    "change with each Frappe release, so the app reads them from the head's meta. Money cannot be listed once: an app " +
+    "installed later brings its own, and the apps declare most of what posts in these hooks (ERPNext's Stock Entry, " +
+    "Delivery Note, Purchase Receipt, Landed Cost Voucher and Asset; the Sales and Purchase Orders that take advances; " +
+    "Frappe HR's Expense Claim, Payroll Entry, Leave Encashment and Gratuity), so the rule follows the apps. Not all, " +
+    "as reading every posting controller showed: ERPNext's Repost Item Valuation, which the Books hat's Accounts " +
+    "Manager may submit, rewrites past vouchers' ledger entries, and Frappe Lending (in HEAD_APPS) posts from Loan " +
+    "Accrual Repost, Loan Repayment Repost, Loan Transfer and Process Loan Accounting, listed in none of its hooks; so " +
+    "Capxul names the first, takes Loan Management as money whole, and a lane that finds another adds it. An " +
+    "allowlist fails 'everything' the day a customer installs Helpdesk. The machinery is refused " +
+    "because identity is Capxul's (organizations.head-ownership) and each item reaches native or money records, or " +
+    "the world's channels (aaron.world-clock), around the guard: a Custom Field, Property Setter or Workflow changes " +
+    "how a native DocType behaves, a Notification sends and sets fields on any document, a Web Form lets someone with " +
+    "no User write, and the rest run code, move data in bulk or hold sign-in and credentials; Frappe's core module " +
+    "(Server Script, User, Role, Data Import) is native anyway. For Aaron: " +
+    "stock, selling and buying documents post to the ledger, so they are money here and are worked in the head's own " +
+    "desk (books copies their vouchers, books.head-vouchers); drafts-of-money would let the SDK prepare them. " +
+    "NATIVE_DOCTYPES' HR rows are payroll.hr-scope's, and its WhatsApp rows the real app's WA Account and WA Message.",
+  source: worldBy(
+    "erpnext and hrms hooks.py; erpnext stock/repost_item_valuation; frappe/lending hooks.py, loan_management; " +
+      "frappe@1a7ea577 custom, workflow, email, website; frappe/whatsapp WA Account; payroll.hr-scope",
+  ),
+  affects: [...DOC_RPCS, table_org_apps, integration_frappe_head, component_frappe_app, concept_books, concept_payroll, concept_contacts, concept_projects],
+});
+
+export const decision_organizations_doc_authority = defineDecision({
+  id: "organizations.doc-authority",
+  title: "A family call runs on the head as the member's own User; the head decides",
+  question:
+    "The ruling: 'the caller's authority mapped (a member's hats to the head's roles; a head user matched by mailbox)'. " +
+    "As whom does a family call run on the head, and whose rules decide it?",
+  options: [
+    {
+      label: "as-own-user",
+      text:
+        "Capxul's backend calls the Capxul app with the connection's key, the member's mailbox and member id, and the " +
+        "roles the member's hats give at that moment (indexing's wearers, read at the call, mapped as " +
+        "organizations.head-users maps them); the app finds the enabled User carrying that `capxul_id` at that mailbox " +
+        "(pushed by organizations.head-users), first brings that User's Capxul-held roles to that set where they differ, " +
+        "as the next push would, and runs the call as that User (`frappe.set_user`), so Frappe's own role permissions, " +
+        "user permissions, permission query conditions, field levels and validations decide, as in its desk. A missing " +
+        "or disabled User is ROLE_PERMISSION_DENIED. Only a person member has a User: an agent's own call is refused, and " +
+        "the hosted FDE acts as its asker's User (organizations.fde-for-the-asker). A guest has no Seat and is refused.",
+    },
+    { label: "connection-user", text: "Every call runs as the connection's own head user, and Capxul checks the member's hats itself." },
+    { label: "hats-only", text: "Capxul maps each DocType to a hat and checks it; the head is called as the connection's user." },
+  ],
+  chosen: "as-own-user",
+  why:
+    "These documents are the head's (organizations.head-ownership: every other app's documents are the head's), so the " +
+    "head's own rules are the authority over them, and running as the member's User applies exactly those rules with " +
+    "nothing copied into Capxul. The roles that User holds are the hats' (People gives HR Manager, which Frappe HR's " +
+    "recruitment, training and onboarding DocTypes grant nearly everything; an Appraisal's cancel and amend are HR " +
+    "User's alone, and a Workflow's actions only its transitions' roles, which Frappe never inherits from another), " +
+    "plus any the head's administrator gave it, " +
+    "which the head trusts for its own documents; they still never authorise a pulled edit of Capxul's records. The " +
+    "hats' roles are set at each call because authority follows the hat at that moment (docs/design/authority.md: a " +
+    "person swapped out loses it), and the push alone runs up to a day behind a hat, which a pulled edit survives " +
+    "(Capxul judges it again) but a family call would not (the head alone decides it). Running " +
+    "as the connection's user would give every member the connection's rights, and a Capxul map of every DocType of " +
+    "every app to a hat would be a second permission model that drifts from the head's. Matching by mailbox and member " +
+    "id keeps a head administrator's User of the same email from standing in for a member. Agents have no User because " +
+    "Frappe keys a User by email (organizations.head-users); an agent works through native commands.",
+  source: worldBy("/tmp/frappe/frappe/client.py; /tmp/hrms/hrms/hr/doctype/job_opening/job_opening.json (HR User, HR Manager); organizations.head-users"),
+  affects: [...DOC_RPCS, integration_frappe_head, component_frappe_app, table_org_members],
+});
+
+export const decision_organizations_doc_log = defineDecision({
+  id: "organizations.doc-log",
+  title: "Every family call is logged once, by its call id, on the world's clock",
+  question: "The ruling says the family is 'logged'. What is logged, when, who reads it, and how does a retry stay one call?",
+  options: [
+    {
+      label: "every-call",
+      text:
+        "`org-doc-calls`: one row per call, read or write, done or refused, written in one transaction after the head " +
+        "answers or Capxul refuses: whose authority (the member, or the FDE's asker with the ask), the head User, the " +
+        "verb, the DocType and name, the outcome and code, field and filter names but never values, the count, the " +
+        "head's `modified` and docstatus after a write, and `at`, the world's now. The SDK method makes the call id once " +
+        "and repeats it on a retry: a logged id answers as logged, and the Capxul app answers a write it already applied " +
+        "under that id as the first time. A call the head did not answer (PROVIDER_ERROR, RATE_LIMITED) is logged " +
+        "refused but is the one row that may change, once: a retry under its id calls the head again, and the row " +
+        "records what the head then answers, with `completed_at`. `org doc-call list`: a Director reads every call, any " +
+        "other member their own.",
+    },
+    { label: "writes-only", text: "Log only writes; reads appear in traces." },
+    { label: "head-versions", text: "Log nothing in Capxul: Frappe's Version and Activity Log already record changes." },
+  ],
+  chosen: "every-call",
+  why:
+    "Reads are logged too because the hosted FDE now reads for anyone (aaron.fde-anyone), and an Organization must be " +
+    "able to see what was read from its HR records and for whom; Frappe's Version records changes, not reads, and " +
+    "lives on a head that may be disconnected. Names but never values keep Capxul from copying the head's documents " +
+    "(organizations.head-ownership). One call id per invocation makes a create after a lost answer one document, " +
+    "which Frappe's insert alone is not. Logging after the answer, as the FDE's ask does, keeps each rpc to one " +
+    "transaction; a crash between the head's write and the log leaves the write unlogged until the SDK's retry, " +
+    "which the app answers from its record of the call id. A lost answer is the same case seen from the other side: " +
+    "the head may have applied the write, so a PROVIDER_ERROR row that answered every retry as logged would record a " +
+    "write as refused for good and leave the SDK's retry unable to learn the document it made; completing that one " +
+    "row keeps the log true and the write once. A Director governs, so reads every call; anyone else sees " +
+    "what was done with their own authority. `at` is the world's now (aaron.world-clock), and the head stamps its own " +
+    "documents with its now, which follows the same clock (organizations.head-clock).",
+  source: worldBy("books/target/shared/rulings.ts (aaron.sdk-reaches-everything, aaron.world-clock); organizations.fde-commands (the ask is logged after the host answers)"),
+  affects: [table_org_doc_calls, rpc_organizations_doc_calls_list, operation_org_doc_call_list, ...DOC_RPCS, component_core_sdk, component_frappe_app],
+});
+
+export const decision_organizations_doc_worlds = defineDecision({
+  id: "organizations.doc-worlds",
+  title: "Worlds for the family and for anyone asking the FDE: head documents, guests",
+  question: "Which worlds do the document family's and the FDE commands' claims and refusals start from?",
+  options: [
+    {
+      label: "reuse-and-five",
+      text:
+        "Reuse signed-out, org-with-member (no head), org-with-head, org-with-fde, org-with-fde-paused, " +
+        "org-with-fde-host-down and org-with-fde-allowance. Ask devnet for five: org-with-head-docs (org-with-head plus, " +
+        "on the stand-in head, a Designation Accountant; Job Openings HR-OPN-2026-0001 and -0002, both Open, -0002 made " +
+        "a second after -0001 so their `modified` differ; Training Events `Onboarding week` (draft), `Safety training` " +
+        "(submitted, with an employee row) and `Old induction` (cancelled); a Job Applicant named, as Frappe HR names " +
+        "one, by its email, kim@applicants.test, under a Workflow `Applicant Review`, Open to Shortlisted (Shortlist) or " +
+        "Rejected (Reject), Shortlisted to Accepted (Accept), its transitions allowed to HR Manager, the role the People " +
+        "hat gives Dana's User (organizations.head-users), not HR User, which no hat gives; Sam's User with no HR " +
+        "role; the meta's modules, Project in ERPNext's projects; ERPNext's ledger hooks naming Stock Entry), " +
+        "org-with-head-down (org-with-head with the stand-in head's " +
+        "fault switch down), org-with-fde-member (org-with-fde plus Sam's Seat with no hat and Olga ready outside) and " +
+        "org-with-fde-guest (org-with-fde-member with Olga named a guest by Dana, note `Our accountant`), and " +
+        "org-with-fde-head-docs (org-with-fde-member with the stand-in head connected by Dana and holding " +
+        "org-with-head-docs' documents).",
+    },
+    { label: "real-bench", text: "Run every family claim against a real bench with Frappe HR, booted as a follower." },
+  ],
+  chosen: "reuse-and-five",
+  why:
+    "Each refusal needs a state no catalogued world holds: head documents in each docstatus and a Workflow, a head " +
+    "that stops answering after it connected, an FDE with a member who wears no hat, and a named guest. The stand-in " +
+    "head must then answer `docRead` and `docWrite` for its documents: Frappe's docstatus rules (submit a draft, " +
+    "cancel a submitted one, amend a cancelled one, never delete a submitted one), the fixture DocTypes' role " +
+    "permissions, their mandatory fields, the Workflow's transitions, the ledger hooks, and a call id it already " +
+    "applied. A real bench (devnet.head-stand-in's escape hatch) stays for a claim that needs Frappe's own validations; " +
+    "none of these does. Two facts of the real systems shape the claims. The stand-in host ends a turn as it is " +
+    "posted, and an ask closes once its turn is read ended, which `org fde ask` does before it returns; so a claim " +
+    "that runs the FDE's commands under an ask holds turns first (`capxul-devnet fault fde-host hold`) and asks with " +
+    "`--timeout-seconds 1`, whose CLI_DEADLINE answer gives the ask's id and leaves it open, then runs them with " +
+    "`capxul-devnet fde run <org> --ask <askId> --`, which devnet adds to its stand-in host. And the head stamps " +
+    "`modified` with the world's now, so on a frozen clock two writes at one instant share a stamp and Frappe's " +
+    "timestamp check cannot tell them apart: the `--modified` claim warps between the two writes. For the devnet " +
+    "designer: these worlds, the stand-in head's family methods and its `drop-answer` fault (the first answer held " +
+    "back once, after the write), and `fde run --ask`.",
+  source: worldBy(
+    "devnet worlds.ts; devnet.head-stand-in; devnet.fde-host-stand-in; hrms job_applicant.py (autoname); " +
+      "frappe workflow.py (get_transitions); document.py (check_if_latest)",
+  ),
+  affects: [...DOC_OPERATIONS, ...FDE_ANYONE_OPERATIONS, operation_org_fde_ask, concept_devnet],
 });

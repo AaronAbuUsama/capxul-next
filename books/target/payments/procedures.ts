@@ -62,7 +62,8 @@ export const procedure_payments_prepare_command = defineProcedure({
   about:
     "Money fact: a Payment command another concept births (the request it pays, the bank payout it funds, the payroll " +
     "run it pays): the command, its Payments and the approval that moves them commit together, or none do. Requests " +
-    "invokes it from the inbox, banking for a bank payout, payroll for a run (purpose payroll, route budget). It keeps " +
+    "invokes it from the inbox, banking for a bank payout, payroll for a run, a claim or an advance (purpose payroll, " +
+    "route budget). It keeps " +
     "every birth rule of `payment send`: one owner and request key reach one command, another request under a used key " +
     "is refused (K1); the funding the invoker read before its transaction (the Safe's balance, or the budget's " +
     "`leftOf`) must cover every item, or nothing is written (K3); each item's v4 payment id is fixed here, before anyone " +

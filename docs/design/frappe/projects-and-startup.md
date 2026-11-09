@@ -161,6 +161,18 @@ officer hats to it. The cost of no hat is concrete: the books' chart comes only 
 `org books accounts import`, which needs the Books hat, so in its first sitting the FDE asks the
 founder to run the import or to grant it Books.
 
+**Since the world pass (9 November 2026)** the table above describes a self-run own agent only.
+Under `aaron.fde-hosted` Capxul hosts the FDE (`fde-host`), and under `aaron.fde-anyone` any member,
+or a guest the People hat or a Director names (`org fde guest add|remove|list`), may ask it
+(`org fde ask`, `org fde turn get`). The hosted FDE acts only as its asker: each ask mints an
+act-for token, every tenant guard resolves the FDE's call to the asker's Seat and hats, a call with
+no live token is refused, every signature it prepares is handed to the asker, and a command that
+previews is the asker's own to answer (`organizations.fde-for-the-asker`, `agents.fde-authority`,
+`rules.fde-acts-for-asker`). So it needs no hat: the import above is the asker's, done by the FDE
+when a Books-hat wearer asks it. On a connected head it reaches what lives only there through the
+document family (`org doc …`, `org doctype …`, `org doc-call list`), as the asker's own head User
+(`organizations.doc-family`, `organizations.doc-authority`).
+
 **Worlds** (`organizations.startup-worlds`). Every existing world starts Acme with `--no-fde`, so
 each world still holds what it says it holds. For example, `org-with-proposals-gate-off` keeps no
 agent of Acme's own. In `org-with-agent`, @acme-bot is made with `agent create --org`, which by
@@ -249,7 +261,8 @@ booked them in the one grammar of `docs/design/new-commands.md`:
 | `organizations.commands` (decision pack) | Accepted for the app and head commands, booked as `org app list\|add\|remove` and `org head connect\|show\|disconnect`; `org fde show\|ask` were added for `aaron.fde-hosted` |
 | `organizations.apps-native-or-head` | Accepted |
 | `organizations.fde-at-start-up` | Superseded by `aaron.fde-hosted`: Capxul hosts the FDE and its key is the host's |
-| `agents.fde-authority` | Accepted: the FDE starts with no hat; adding a Frappe app is a Director's or the FDE's |
+| `agents.fde-authority` | Accepted, then rewritten for `aaron.fde-anyone` in the world pass: the hosted FDE acts as its asker (`as-the-asker`); adding a Frappe app is a Director's, or the FDE's for a Director who asks |
+| `organizations.fde-commands` | Rewritten for `aaron.fde-anyone`: any member or a named guest may ask (`organizations.fde-guests`); the FDE's commands are not critical (`organizations.command-priorities`) |
 | `organizations.head-ownership` | Accepted |
 
 Billing hours is requests' `org timesheet bill` (`requests.bill-time`, booked). Buying seats is `org seats buy`, and

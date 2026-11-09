@@ -649,8 +649,9 @@ export const operation_org_fde_pay = defineOperation({
       observes:
         "cli: from org-with-fde-allowance, after the Board revokes Dana's `capxul` (`org allowance revoke capxul --member " +
         "dana@acme.test --org acme`, approved by Dana as the one Director), Dana's `org fde pay --from capxul --org acme` exits " +
-        "ROLE_PERMISSION_DENIED; the FDE's own `org fde pay --from capxul --org acme`, run through the stand-in host " +
-        "(`capxul-devnet fde run acme --`), exits ROLE_PERMISSION_DENIED before `--from` is looked up; world: no payment " +
+        "ROLE_PERMISSION_DENIED; the FDE's own `org fde pay --from capxul --org acme`, run through the stand-in host with no " +
+        "ask (`capxul-devnet fde run acme --`, so it carries no act-for token and acts as itself), exits " +
+        "ROLE_PERMISSION_DENIED before `--from` is looked up; world: no payment " +
         "command and no approval.",
     },
   ],
@@ -709,4 +710,106 @@ export const operation_org_fde_pay = defineOperation({
   ],
   budget: budget("chain-submit"),
   was: ["docs/design/new-commands.md (section 5.5)", "books/target/shared/rulings.ts (aaron.fde-hosted, aaron.test-prices)"],
+});
+
+// ── payment claim: an operation beyond the 215 (rules.new-operations; aaron.payment-claim) ───────────────
+//
+// The recipient's claim of the money waiting for them in claim escrows, whenever they choose (aaron.escrow-general),
+// spelled as Aaron ruled (aaron.payment-claim): booked first by accounts as `account collect`, it keeps every claim,
+// refusal, world, its `--json` answer and the rpc it calls, accounts' `accounts.setup.collect`
+// (accounts.collect-any-time, payments.claim-command). The sender's take-back stays `payment cancel`.
+
+import { error_CANCELLED, error_SMART_ACCOUNT_MISSING, error_TRANSACTION_FAILED } from "../shared/vocabulary.ts";
+import { Collection } from "../accounts/setup.ts";
+import { flow_client_payments_claim } from "./flows.ts";
+
+/** The worlds `payment claim` starts from: accounts' and devnet's snapshots (accounts.worlds, payments.claim-command). */
+export const CLAIM_WORLDS = {
+  /** A person whose Safe is set up, with a claim escrow it owns still uncollected (devnet's, declined at setup). */
+  waiting: "person-ready-money-waiting",
+  /** Money waits for a mailbox whose person has signed in but not set up. */
+  notSetUp: "person-with-money-waiting",
+  /** A person whose Safe is set up, with nothing waiting. */
+  ready: "person-ready",
+  /** The Safe's setup refused: another signer already holds it (SwapRefused). */
+  otherSigner: "setup-refused-other-signer",
+  /** The Safe's setup refused: the mailbox's local part is not ASCII (EmailNotNormalized). */
+  nonAscii: "setup-refused-non-ascii-email",
+} as const;
+const CW = CLAIM_WORLDS;
+
+export const operation_payment_claim = defineOperation({
+  id: "payment.claim",
+  title: "Claim the money waiting for you",
+  about:
+    "Claims into your own Safe every payment waiting for you in a claim escrow: money someone sent your email before " +
+    "you had an account and that you did not collect at setup, or a dated payment that reached its escrow after you set " +
+    "up. One approval from your Safe collects them all; you sign it on the approval page. Until you claim it, the sender " +
+    "may still take the money back with `payment cancel` (for an Organization's payment, whoever wears the paying " +
+    "budget's hat or one above it then, or its Board). Nothing waiting: it says so and opens nothing.",
+  who: "A signed-in person whose own Safe is set up, for the payments waiting for that Safe.",
+  area: "payments",
+  command: "payment claim",
+  priority: "normal",
+  implementedBy: flow_client_payments_claim,
+  acceptance: [
+    {
+      claim:
+        "A person whose Safe is set up collects, in one approval, every claim escrow their Safe owns that holds its amount, and each of those payments then reads settled for its payer and for them.",
+      observes:
+        `From ${CW.waiting}: cli: run without \`--json\` (which hands over at once) while the person signs with \`dev approve\`, it ends \`status\` \`collected\`, listing each escrow with its sender's name; chain: one UserOperation from the person's Safe calls \`collect\` on each open escrow, and one PaymentSent per escrow with the escrow as sender and the Safe as recipient; read: the payer's \`payment get\` reads settled, and the person's own \`payment list\` now holds it, settled (its payee tenant filled at the collection); world: each escrow reads paid.`,
+    },
+    {
+      claim: "With nothing waiting for the person's Safe, nothing is opened and the command says so.",
+      observes: `cli: from ${CW.ready}, exit 0 with \`status\` \`nothing_waiting\`, an empty \`escrows\` list and no \`approval_id\`; world: the before-and-after diff holds no approval.`,
+    },
+    {
+      claim: "Money its sender took back is not offered, and a collection pays only the person's own Safe.",
+      observes:
+        `From ${CW.waiting} after Dana's \`payment cancel\` of her 5 USDC landed: cli: run without \`--json\` while the person signs, \`escrows\` lists only Sam's 3 USDC and the one approval collects only it; chain: its one PaymentSent names the person's Safe as recipient, and Dana's escrow reads refunded.`,
+    },
+  ],
+  returns: Collection,
+  errors: [error_CLI_USAGE],
+  refusals: [
+    { error: error_NOT_AUTHENTICATED, given: W.signedOut, when: "You are not signed in." },
+    {
+      error: error_SMART_ACCOUNT_MISSING,
+      given: CW.notSetUp,
+      when: "Your Safe is not set up yet. Setting it up collects what waits for you; `capxul account retry` gives the link.",
+    },
+    {
+      error: error_WRONG_STATE,
+      given: CW.otherSigner,
+      when: "Your Safe's setup was refused because another signer already holds it, as `account retry` reports: nothing is opened.",
+    },
+    {
+      error: error_INVALID_INPUT,
+      given: CW.nonAscii,
+      when: "Your Safe's setup was refused for your email or signer, as `account retry` reports: nothing is opened.",
+    },
+    {
+      error: error_CANCELLED,
+      given: CW.waiting,
+      when: "You declined the collection on the approval page (exit 130): nothing moved, and the money still waits for you.",
+    },
+    {
+      error: error_SUPERSEDED,
+      given: CW.waiting,
+      when: "The collection's approval lapsed before it landed: nothing moved; `capxul payment claim` again opens a new one.",
+    },
+    {
+      error: error_TRANSACTION_FAILED,
+      given: CW.waiting,
+      when:
+        "The sender's take-back of one escrow landed after the collection's approval opened and before the collection " +
+        "did: the chain refused the whole collection and nothing moved; `capxul payment claim` again collects what still " +
+        "waits.",
+    },
+  ],
+  budget: budget("chain-submit"),
+  was: [
+    "apps/docs/factory/operations/account.retry.yaml (designed: Escrow.collect() at setup)",
+    "books/target/accounts/operations.ts (account.collect, respelled by aaron.payment-claim)",
+  ],
 });

@@ -51,7 +51,7 @@ import {
 import * as op from "./operations.ts";
 
 import { workflow_agents_fde_follow_setup } from "./processes.ts";
-import { table_org_fdes, table_org_members, table_org_setups } from "../organizations/data.ts";
+import { table_org_fde_asks, table_org_fdes, table_org_members, table_org_setups } from "../organizations/data.ts";
 import { concept_organizations, concept_projects } from "../shared/foundation.ts";
 
 const CLAUDE = "Claude, agents design, 8 November 2026";
@@ -714,7 +714,7 @@ export const decision_agents_fde = defineDecision({
 
 export const decision_agents_fde_authority = defineDecision({
   id: "agents.fde-authority",
-  title: "The FDE may do what its Seat and hats allow, through the CLI; never govern",
+  title: "The hosted FDE acts only as its asker, through the CLI; it never governs",
   question:
     "aaron.fde-agent: the FDE sets the Organization up and adds the apps it needs, acting through the same CLI and SDK " +
     "under the Organization's authority. What may it do, and what may it never do?",
@@ -733,27 +733,38 @@ export const decision_agents_fde_authority = defineDecision({
         "in another Organization.",
     },
     {
+      label: "as-the-asker",
+      text:
+        "As seat-and-hats in what it never does, but under aaron.fde-anyone the hosted FDE acts only within a turn and " +
+        "only as that turn's asker (organizations.fde-for-the-asker): every call it makes is the asker's, with their " +
+        "Seat and hats, so it does for each asker exactly what they may do themselves, and for a guest only what a " +
+        "counterparty may. It holds no authority of its own: it starts with no hat and needs none, and hats the Board " +
+        "grants its Safe are not used while it is hosted. It never signs for anyone: an approval it prepares opens for " +
+        "the asker's own Safe, which the asker signs. It never answers a preview for the asker (the head's connection, a " +
+        "contact's link, an employee's leaving, a head document's deletion): the asker runs that command. A self-run " +
+        "own agent (`agent create --org`, or the FDE after its key left the host) acts as itself with its own hats.",
+    },
+    {
       label: "officer-at-start",
       text: "As seat-and-hats, but the install batch also mints the Books, Invoicing and People hats to the FDE, so it can set up the books and the CRM in its first conversation.",
     },
     { label: "unbounded", text: "The FDE acts with the founder's authority in everything." },
   ],
-  chosen: "seat-and-hats",
+  chosen: "as-the-asker",
   why:
-    "Accepted by Aaron as recommended (8 November 2026, sixth batch): the FDE starts with no hat. Under the seats ruling " +
-    "it is an agent like any other, so " +
-    "its authority is what the chain lets its Safe do, and every action it takes is an ordinary command with its own " +
-    "trace, refusals and evals; nothing it does is invisible to the Organization. Governing (the Board, the Safe, the " +
-    "seats, a head that receives all the records) stays with people. Officer hats at start would let it set up the " +
-    "books and the CRM at once, but give an AI agent officer authority no person granted by choice; the founder can " +
-    "grant them in one Board proposal (`org member grant`) when the FDE asks. The cost is concrete: the books' chart " +
-    "comes only from `org books accounts import`, which needs the Books hat, so with no hat the FDE's first sitting " +
-    "either asks the founder to run the import or to grant it Books first. The People hat alone, which the CRM needs, is " +
-    "agents.fde-people-hat. Hosted by Capxul, whatever the Board grants it is exercised by a runtime Capxul operates for " +
-    "the Organization, which the Board can freeze, re-key or remove at any time; an app's add is the Organization's " +
-    "choice, so the FDE and a Director make it and no other member does (organizations.commands).",
+    "Accepted by Aaron as recommended (8 November 2026, sixth batch): the FDE starts with no hat. His later ruling " +
+    "aaron.fde-anyone (the eighth batch: 'the host passes the asker's Seat, so the FDE does for them only what their " +
+    "own hats allow') moves its authority from its own Safe to each asker, so this record now books that: the FDE " +
+    "starts with no hat and, hosted, needs none, which is what seat-and-hats' one cost was (the founder had to grant " +
+    "Books or People before the FDE could set up the chart or the CRM; now it does so as the founder who asks). What " +
+    "it never does is unchanged, and each item now holds by itself: a Director's commands, a Board approval, a seat " +
+    "purchase or a hosting payment need the asker's own signature, which the FDE never makes; a preview is the asker's " +
+    "to answer. Every action is an ordinary command with its own trace, refusals and evals, the trace naming the FDE " +
+    "and its asker, so nothing it does is invisible to the Organization. Hosted by Capxul, it is a runtime Capxul " +
+    "operates for the Organization, which the Board can freeze, re-key or remove at any time; an app's add is the " +
+    "Organization's choice, so it adds one only for a Director who asks.",
   source: FDE_RULING,
-  affects: [table_agents, table_org_members, concept_organizations, concept_projects],
+  affects: [table_agents, table_org_members, table_org_fde_asks, concept_organizations, concept_projects],
 });
 
 // ── the assembly after the Frappe lanes (8 November 2026) ────────────────────────────────────
@@ -763,7 +774,7 @@ const asmBy = (evidence: string) => `${ASSEMBLY}; evidence: ${evidence}`;
 
 export const decision_agents_fde_people_hat = defineDecision({
   id: "agents.fde-people-hat",
-  title: "The setup grants the FDE no People hat; the founder grants it when needed",
+  title: "The setup grants the FDE no People hat; hosted, it works the CRM as its asker",
   question:
     "Only a People hat wearer edits an Organization's contact book and CRM (aaron.contacts-permissions), so the FDE " +
     "cannot work the CRM, or import a business's contacts at start-up, without it. Does the setup grant it, or does the " +
@@ -775,7 +786,9 @@ export const decision_agents_fde_people_hat = defineDecision({
         "The setup grants no hat (agents.fde-authority). When the FDE first needs the CRM it asks the founder to run `org " +
         "member grant @<its handle> --permission manage-people` (an agent named by its handle: board.agent-officer-hats), " +
         "whose Board proposal, while the founder is the only Director, needs that one signature. Until then the FDE " +
-        "reads the CRM like any member, and a People hat wearer imports.",
+        "reads the CRM like any member, and a People hat wearer imports. Under aaron.fde-anyone no grant is needed: " +
+        "the hosted FDE works the CRM as an asker who wears the People hat (the founder, at start-up), and reads it as " +
+        "any other asker (organizations.fde-for-the-asker); a grant is only ever a self-run own agent's.",
     },
     {
       label: "install-batch",
@@ -787,13 +800,12 @@ export const decision_agents_fde_people_hat = defineDecision({
   ],
   chosen: "founder-grants",
   why:
-    "For Aaron, with agents.fde-authority's question: whether the FDE starts with the People hat. The People hat is " +
-    "more than the CRM: it invites members and offers Seats, manages projects (projects.permissions), and is Frappe HR's " +
-    "HR Manager for payroll's employees, components and runs, so granting it at install gives an AI agent people and " +
-    "payroll authority no person chose. A dedicated sales permission would be the narrow grant, but none exists " +
-    "(contacts.crm-permission keeps one permission for the CRM). The cost of waiting is one Board approval the FDE " +
-    "asks the founder for, in the same sitting as the start-up import (contacts.startup). If Aaron wants the FDE to start working " +
-    "the CRM unasked, install-batch adds one call to the batch the founder already signs and no new record.",
-  source: asmBy("docs/design/frappe/crm.md (FDE and organizations); books/target/contacts/decisions.ts (contacts.crm-permission); books/target/agents/decisions.ts (agents.fde-authority)"),
+    "Accepted by Aaron as recommended (sixth batch): the setup grants no People hat. The People hat is more than the " +
+    "CRM: it invites members and offers Seats, manages projects (projects.permissions), and is Frappe HR's HR Manager " +
+    "for payroll's employees, components and runs, so granting it at install gives an AI agent people and payroll " +
+    "authority no person chose. aaron.fde-anyone removes the cost of waiting: the hosted FDE acts as its asker, so in " +
+    "the start-up sitting it imports the founder's contacts as the founder, who wears the People hat, with no Board " +
+    "approval at all (contacts.startup).",
+  source: asmBy("docs/design/frappe/crm.md (FDE and organizations); books/target/contacts/decisions.ts (contacts.crm-permission); books/target/shared/rulings.ts (aaron.fde-anyone)"),
   affects: [table_agents, table_org_members, table_org_setups, concept_organizations, concept_projects],
 });

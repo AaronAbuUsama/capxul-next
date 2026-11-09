@@ -156,11 +156,13 @@ the head creates as link records when it syncs.
 - SLAs, response times and communication status;
 - products and totals (ERPNext Items);
 - domain enrichment and social links;
-- lead score and temperature;
-- notes, tasks and call logs (FCRM Note, CRM Task, CRM Call Log).
+- lead score and temperature.
 
-The last are activities on a lead or deal. They are the obvious next addition when a business works
-its CRM without a head, as a `crm-activities` table in Frappe's shape.
+Notes, tasks and call logs (FCRM Note, CRM Task, CRM Call Log), email (Communication) and WhatsApp
+(the WhatsApp app's WA Account and WA Message) were left out here at first. Aaron's evening answer
+of 8 November 2026 (the CRM tracks every conversation) brought them in: the world pass booked them
+in contacts, one timeline per contact, lead and deal (`contacts.conversations-shape`,
+`contacts.conversation-commands`, section 5.8 of `docs/design/new-commands.md`).
 
 ## Behaviour
 
@@ -477,7 +479,6 @@ An adversarial review read the lane against Frappe's sources and changed these r
 
 ## Not decided here
 
-- Notes, tasks and call logs on leads and deals (FCRM Note, CRM Task, CRM Call Log).
 - Per-Organization status, source, industry and territory lists, and On Hold.
 - A domain proof for companies (only if C13 changes).
 - Moving a person's account to a new mailbox (only if C27 changes).

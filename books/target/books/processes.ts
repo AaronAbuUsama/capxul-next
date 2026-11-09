@@ -220,7 +220,7 @@ export const workflow_books_head_sync = defineWorkflow({
   idempotency:
     "One process per head connection (`books-head:<orgId>:<headId>`). A push is idempotent by `capxul_version` (the head " +
     "answers unchanged), and a pulled change already applied is skipped by its head name and `modified`.",
-  timeoutMs: 3650 * DAY,
+  timeoutMs: 60_000,
   retries: { max: 8, backoff: "exponential" },
   budget: budget("background"),
 });

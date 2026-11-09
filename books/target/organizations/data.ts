@@ -668,7 +668,7 @@ export const table_org_fdes = defineTable({
     resumed_at: NullOr(N),
     retired_at: NullOr(N),
     retire_reason: NullOr(Schema.Literals(["setup_failed", "agent_removed", "key_moved"])),
-    /** The last time a Director asked it something (`org fde ask`), and who. */
+    /** The last time anyone asked it something (`org fde ask`), and who: a member's id, or a guest's. */
     last_asked_at: NullOr(N),
     last_asked_by: NullOr(S),
     created_at: N,
@@ -739,36 +739,311 @@ export const table_org_fde_payments = defineTable({
   retention: KEPT,
 });
 
-export const table_org_fde_asks = defineTable({
-  id: "org-fde-asks",
-  title: "FDE asks: who instructed the hosted FDE, and when",
+/** How long an ask lets the hosted FDE act for its asker, at most, on the world's clock (organizations.fde-for-the-asker). */
+export const FDE_ASK_HOURS = 4;
+
+export const table_org_fde_guests = defineTable({
+  id: "org-fde-guests",
+  title: "FDE guests: outside people the management names to talk to its FDE",
   about:
-    "One row per message a Director sent the hosted FDE (`org fde ask`, organizations.fde-commands), written in the ask's " +
-    "own transaction once the host has taken the message and answered the turn's id (a host that does not answer " +
-    "leaves no row). The FDE acts with the hats the Board granted its Safe, so " +
-    "whoever instructs it borrows them; this log says who did, and when, beside the FDE's own commands, each traced. It " +
-    "keeps the host's turn id, the asker and the message's length and SHA-256, never the message, which is the host's " +
-    "conversation. Nothing changes a row: it has no lifecycle.",
+    "One row per person outside the Organization whom its management (People or Director) names as someone it works " +
+    "with, so they may talk to its hosted FDE (aaron.fde-anyone; organizations.fde-guests): a customer, a supplier, an " +
+    "accountant, someone it may hire. A guest holds no Seat and wears none of the Organization's hats, so the FDE does " +
+    "for them only what their own Party may do here: read what a counterparty is admitted to (their own Payments and " +
+    "requests with the Organization), never a member's records. Named by email or a person's @handle, resolved to a " +
+    "person's Party (one named by email nobody has yet is born provisional at its email-derived Safe, as an invitee's " +
+    "is) and admitted to the beta so they can sign in. A member, an agent or an Organization is never a guest. Removing " +
+    "a guest ends their asks at once; naming them again makes the same row active again. `email` is the mailbox the " +
+    "guest signs in with, kept so their own asks can be read back to them.",
   concept: concept_organizations,
   tenancy: "organization",
   tenantField: "org_id",
+  admits: [
+    {
+      match: "email",
+      field: "email",
+      reads: true,
+      writes: false,
+      about: "The guest reads their own row, signed in with its mailbox: the guard of `org fde ask --org` (organizations.fde-guests).",
+    },
+  ],
+  fields: Schema.Struct({
+    org_id: S,
+    /** `gst_` and a ULID. */
+    guest_id: S,
+    party_id: S,
+    email: S,
+    /** Who they are to the Organization, in the namer's words (up to 200 characters); null when not given. */
+    note: NullOr(S),
+    status: Schema.Literals(["active", "removed"]),
+    /** The member who named them last, and who removed them. */
+    named_by_member_id: S,
+    removed_by_member_id: NullOr(S),
+    named_at: N,
+    removed_at: NullOr(N),
+    updated_at: N,
+  }),
+  key: ["org_id", "guest_id"],
+  indexes: [
+    {
+      name: "by_org_party",
+      fields: ["org_id", "party_id"],
+      unique: true,
+      for: "Whether a Party is a guest here: the ask guard, and a second `org fde guest add` that names the same person again.",
+    },
+    {
+      name: "by_org_status",
+      fields: ["org_id", "status", "named_at", "guest_id"],
+      for: "`org fde guest list`: the active guests, newest named first, then the removed ones.",
+    },
+  ],
+  retention: KEPT,
+});
+
+export const table_org_fde_asks = defineTable({
+  id: "org-fde-asks",
+  title: "FDE asks: who asked the hosted FDE what, and for how long it acts for them",
+  about:
+    "One row per message someone sent the hosted FDE (`org fde ask`; aaron.fde-anyone, organizations.fde-commands): any " +
+    "member, or a guest the management named. Written in the ask's own transaction once the host has taken the message " +
+    "and answered the turn's id (a host that does not answer leaves no row). An ask is also what the FDE acts with: it " +
+    "carries the hash of a fresh act-for token that the host gives the FDE's CLI for that turn only, and while the ask " +
+    "is open (until its turn ends, at most FDE_ASK_HOURS on the world's clock) every call the FDE makes with it is the " +
+    "asker's: the tenant guard every concept runs finds the asker's Seat, Safe and hats, never the FDE's own, and a " +
+    "write that needs a signature opens its approval for the asker's own Safe (organizations.fde-for-the-asker). A " +
+    "guest's ask finds no Seat. It keeps the host's turn id, the asker and the message's length and SHA-256, never the " +
+    "message, which is the host's conversation. `ended_at` is stamped once, when Capxul reads the turn ended or failed; " +
+    "nothing else changes a row.",
+  concept: concept_organizations,
+  tenancy: "organization",
+  tenantField: "org_id",
+  admits: [
+    {
+      match: "email",
+      field: "asker_guest_id",
+      via: { table: table_org_fde_guests, on: "guest_id", field: "email" },
+      reads: true,
+      writes: false,
+      about: "A guest reads their own asks, matched through their guest row's mailbox: `org fde ask` and `org fde turn get` (organizations.fde-guests).",
+    },
+  ],
   fields: Schema.Struct({
     org_id: S,
     /** `ask_` and a ULID. */
     ask_id: S,
     /** The host's id for the FDE's turn that answers it. */
     host_turn_id: S,
-    asked_by_member_id: S,
+    asker_kind: Schema.Literals(["member", "guest"]),
+    /** The asker's Seat for a member; null for a guest. */
+    asker_member_id: NullOr(S),
+    /** The guest row for a guest; null for a member. */
+    asker_guest_id: NullOr(S),
+    asker_party_id: S,
+    /** The asker's access principal, a person's or an agent's, as they signed in to ask; the tenant guard resolves the act-for call to it. */
+    asker_principal_id: S,
+    /** SHA-256 of the act-for token; the token itself is only ever the host's, for this turn. */
+    token_hash: S,
     message_chars: N,
     message_sha256: S,
     asked_at: N,
+    /** `asked_at` plus FDE_ASK_HOURS: no call acts for the asker after it, whatever the turn does. */
+    expires_at: N,
+    /** When Capxul read the turn ended or failed: no call acts for the asker after it. */
+    ended_at: NullOr(N),
   }),
   key: ["org_id", "ask_id"],
   indexes: [
     {
       name: "by_org_asked",
       fields: ["org_id", "asked_at", "ask_id"],
-      for: "The Organization's asks, newest first: who instructed its FDE last, as `org fde show` prints it.",
+      for: "The Organization's asks, newest first: who asked its FDE last, as `org fde show` prints it.",
+    },
+    {
+      name: "by_org_turn",
+      fields: ["org_id", "host_turn_id"],
+      unique: true,
+      for: "`org fde turn get` and the ask flow's poll find the ask a turn id names, and check its asker.",
+    },
+    {
+      name: "by_token",
+      fields: ["token_hash"],
+      unique: true,
+      crossTenant: true,
+      for: "The tenant guard resolves a call the hosted FDE makes with an act-for token to its open ask, and so to its asker.",
+    },
+  ],
+  retention: KEPT,
+});
+
+// ── the document family (aaron.sdk-reaches-everything): what it may reach, and its log ───────
+
+/**
+ * The DocTypes a native concept holds outside its app's native modules (FUNDAMENTAL_APPS' `modules`, whose every DocType
+ * is native too): the document family refuses each by name, before any call, naming the commands that reach it
+ * (organizations.doc-reach). Each concept that holds another DocType natively adds it here, book first. The HR rows are
+ * exactly payroll.hr-scope's native ones, with the commands payroll.hr-commands booked (Leave Policy, Leave Period,
+ * compensatory leave, Attendance Request and Shift Request stay on the head, reached through the family; Leave
+ * Encashment is money); the WhatsApp rows are the DocTypes of Frappe's WhatsApp app (github.com/frappe/whatsapp, module
+ * WhatsApp) that contacts holds (contacts.conversations-shape). Communication is in Frappe's core module, native anyway,
+ * and is listed so that its refusal names the CRM's email commands, which hold it, rather than core's none.
+ */
+export const NATIVE_DOCTYPES = [
+  { doctype: "Company", concept: "organizations", commands: "`org show`" },
+  { doctype: "Department", concept: "budgets", commands: "`org department`" },
+  { doctype: "Employee", concept: "payroll", commands: "`org employee`" },
+  { doctype: "Customer", concept: "parties", commands: "`contact` (the Organization's book)" },
+  { doctype: "Supplier", concept: "parties", commands: "`contact` (the Organization's book)" },
+  { doctype: "Contact", concept: "contacts", commands: "`contact`" },
+  { doctype: "Address", concept: "contacts", commands: "`contact`" },
+  { doctype: "Currency", concept: "books", commands: "`org books assets`" },
+  { doctype: "Holiday List", concept: "payroll", commands: "`org holiday`" },
+  { doctype: "HR Settings", concept: "payroll", commands: "none: Capxul fixes its values (payroll's `hr-settings`)" },
+  { doctype: "Leave Type", concept: "payroll", commands: "`org leave-type`" },
+  { doctype: "Leave Allocation", concept: "payroll", commands: "`org leave allocate`, `unallocate` and `balance`" },
+  { doctype: "Leave Application", concept: "payroll", commands: "`leave` and `org leave`" },
+  { doctype: "Shift Type", concept: "payroll", commands: "`org shift-type`" },
+  { doctype: "Shift Assignment", concept: "payroll", commands: "`org shift-type assign` and `unassign`" },
+  { doctype: "Employee Checkin", concept: "payroll", commands: "`attendance checkin`" },
+  { doctype: "Attendance", concept: "payroll", commands: "`attendance list` and `org attendance`" },
+  { doctype: "Expense Claim Type", concept: "payroll", commands: "`org expense-type`" },
+  { doctype: "Expense Claim", concept: "payroll", commands: "`expense-claim` and `org expense-claim`" },
+  { doctype: "Employee Advance", concept: "payroll", commands: "`advance` and `org advance`" },
+  { doctype: "WA Account", concept: "contacts", commands: "`org crm whatsapp connect`, `show` and `disconnect`" },
+  { doctype: "WA Message", concept: "contacts", commands: "`org crm whatsapp send` and `org crm timeline`" },
+  { doctype: "Communication", concept: "contacts", commands: "`org crm email send` and `org crm timeline`" },
+] as const;
+
+/**
+ * What a refusal of a native module's DocType names, by module folder (FUNDAMENTAL_APPS): the head's Capxul app answers
+ * the module, which only the head knows for each DocType, and Capxul names these commands (organizations.doc-reach).
+ */
+export const NATIVE_MODULE_COMMANDS = {
+  core: "none: Frappe's core (Users, roles, files, comments, messages) is identity and channels, which are Capxul's",
+  accounts: "`org books`",
+  projects: "`org project`, `org task` and `org timesheet`",
+  payroll: "`org payroll` and `org employee`",
+  fcrm: "`org crm` and `contact`",
+} as const;
+
+/**
+ * The head's own machinery outside Frappe's core module (which is native): DocTypes that change who may do what on the
+ * head or what a DocType is (its fields, properties and Workflow), run code there, move data in or out in bulk, let
+ * someone with no User write through a web form, hold the head's sign-in or outside credentials, or send through a
+ * channel of the head's own (a Notification also sets a field on whatever document it fires for). The family refuses
+ * each by name, before any call, because identity is Capxul's and each would reach native or money records, or the
+ * world's channels, around the family's guard (organizations.doc-reach). Checked against Frappe develop
+ * (github.com/frappe/frappe@1a7ea577): custom (Client Script, Custom Field, Property Setter, Customize Form), workflow
+ * (Workflow), email (Notification, Email Account, Email Domain), website (Web Form, Website Script), desk (System
+ * Console, Bulk Update), automation (Auto Repeat) and integrations (the rest).
+ */
+export const HEAD_MACHINERY = [
+  "Client Script", "Custom Field", "Property Setter", "Customize Form", "Workflow", "Notification", "System Console",
+  "Bulk Update", "Webhook", "OAuth Client", "OAuth Bearer Token", "Social Login Key", "LDAP Settings", "Connected App",
+  "Token Cache", "Email Account", "Email Domain", "Web Form", "Website Script", "Auto Repeat",
+] as const;
+
+/**
+ * The hooks by which the head's installed apps declare the DocTypes that post to the ledger, close with a period, take
+ * advance payments, reconcile with a bank, keep an audit trail or may have their ledger reposted (merged across apps, as
+ * `frappe.get_hooks` merges them): the Capxul app refuses any DocType they list, and its child tables, as money
+ * (organizations.doc-reach). They list most of what posts, not all: see LEDGER_UNHOOKED and MONEY_MODULES.
+ */
+export const LEDGER_HOOKS = [
+  "accounting_dimension_doctypes", "period_closing_doctypes", "advance_payment_receivable_doctypes",
+  "advance_payment_payable_doctypes", "bank_reconciliation_doctypes", "audit_trail_doctypes", "repost_allowed_doctypes",
+] as const;
+
+/**
+ * DocTypes outside the native modules that post or re-post the head's ledger though no hook lists them, refused as money
+ * by name before any call (organizations.doc-reach): ERPNext's Repost Item Valuation (stock module; an Accounts Manager,
+ * which the Books hat gives, may create and submit one, and its repost rewrites the stock and general ledger entries of
+ * the vouchers it names, `repost_gl_entries`). A lane that finds another adds it here, book first.
+ */
+export const LEDGER_UNHOOKED = ["Repost Item Valuation"] as const;
+
+/**
+ * Modules of an app Capxul can ask a head to install (HEAD_APPS) whose every DocType counts as money, which the Capxul app
+ * refuses by module as it refuses a native module's (organizations.doc-reach): Frappe Lending's Loan Management, whose
+ * loans, disbursements, repayments, accruals, transfers and their reposting and processing documents post the loan
+ * ledger, several of them (Loan Accrual Repost, Loan Repayment Repost, Loan Transfer, Process Loan Accounting) listed in
+ * none of its hooks.
+ */
+export const MONEY_MODULES = [{ app: "lending", modules: ["loan_management"] }] as const;
+
+/** The verbs the document family's calls take, as `org-doc-calls` records them. */
+export const DocVerb = Schema.Literals([
+  "list", "get", "create", "change", "submit", "cancel", "amend", "apply", "remove", "doctypes", "doctype",
+]);
+
+export const table_org_doc_calls = defineTable({
+  id: "org-doc-calls",
+  title: "Document calls: every call the document family made to the head, and for whom",
+  about:
+    "The document family's log (aaron.sdk-reaches-everything: 'with the caller's authority, logged, on the world's " +
+    "clock'; organizations.doc-log). One row per call an `org doc` or `org doctype` command made, read or write, " +
+    "written in one transaction once the head has answered, or once Capxul refused before any call: whose authority it " +
+    "ran with (the member's Seat; for the hosted FDE, its asker's, with the ask), the head User it ran as, the verb, " +
+    "the DocType and the document's name, the outcome (done, or the refusal's code and reason), and the head's " +
+    "`modified` and docstatus after a write. It keeps the names of the fields a write set, the filters a list used and " +
+    "how many documents it answered, never a value: the documents are the head's, and Capxul copies none " +
+    "(organizations.head-ownership). The SDK method gives each invocation one call id and repeats it on a retry, so a " +
+    "call is logged once and a write is applied once: a row already under that id answers as recorded, and the Capxul " +
+    "app answers a write it already applied under that id as it did the first time. The one exception is a call the " +
+    "head did not answer (PROVIDER_ERROR or RATE_LIMITED), which may have been applied there all the same: its row is " +
+    "logged refused, and a retry under the same id calls the head again and completes that row, once, with what the " +
+    "head then answers (organizations.doc-log). `at` is the world's now when the row was written, and `completed_at` " +
+    "when a retry completed it. No other row ever changes.",
+  concept: concept_organizations,
+  tenancy: "organization",
+  tenantField: "org_id",
+  fields: Schema.Struct({
+    org_id: S,
+    /** `dcall_` and a ULID, made once by the SDK method and kept on every retry. */
+    call_id: S,
+    /** The live head it went to; null when refused before any head was found. */
+    head_id: NullOr(S),
+    verb: DocVerb,
+    /** Null for `doctypes`. */
+    doctype: NullOr(S),
+    /** The document's name on the head: given, or the one a create or an amend made; null for a list. */
+    name: NullOr(S),
+    /** Whose authority it ran with: the caller's Seat, or for the hosted FDE its asker's. */
+    member_id: S,
+    /** The ask the hosted FDE made it under; null when a member called themselves. */
+    ask_id: NullOr(S),
+    /** The head User it ran as, by mailbox; null when refused before the head. */
+    head_user: NullOr(S),
+    outcome: Schema.Literals(["done", "refused"]),
+    /** The refusal's code (INVALID_INPUT, ROLE_PERMISSION_DENIED, WRONG_STATE, PROVIDER_ERROR...) and the head's reason. */
+    code: NullOr(S),
+    reason: NullOr(S),
+    /** The fields a create or change set, and the filters a list used: names only. */
+    field_names: Schema.Array(S),
+    /** How many documents a list or `doctypes` answered. */
+    count: NullOr(N),
+    /** After a write: the head's `modified` stamp and the document's docstatus (0 draft, 1 submitted, 2 cancelled). */
+    head_modified: NullOr(S),
+    docstatus: NullOr(N),
+    at: N,
+    /** When a retry under the same id completed a row the head had not answered; null otherwise. */
+    completed_at: NullOr(N),
+  }),
+  key: ["org_id", "call_id"],
+  indexes: [
+    {
+      name: "by_org_at",
+      fields: ["org_id", "at", "call_id"],
+      for: "`org doc-call list`, newest first, for a Director.",
+    },
+    {
+      name: "by_org_member",
+      fields: ["org_id", "member_id", "at", "call_id"],
+      for: "`org doc-call list` for a member other than a Director: the calls made with their own authority, the FDE's for them included.",
+    },
+    {
+      name: "by_org_document",
+      fields: ["org_id", "doctype", "name", "at"],
+      for: "`org doc-call list --doctype --name`: every call that touched one document.",
     },
   ],
   retention: KEPT,
@@ -1234,7 +1509,7 @@ export const machine_org_fde = defineMachine({
   initial: "provisioned",
   states: [
     { id: "provisioned", about: "The host made the FDE's key; it waits for the install to create it on chain and the setup to be ready." },
-    { id: "running", about: "Running on the host: it answers `org fde ask` and works through its own commands." },
+    { id: "running", about: "Running on the host: it answers `org fde ask`, and acts for each asker through the CLI as that asker." },
     { id: "due", about: "Running, with its hosting paid through a day less than seven days ahead: the Directors are reminded." },
     { id: "paused", about: "Its hosting lapsed unpaid: the host keeps its key, conversation and workspace, and it takes no turn." },
     { id: "resuming", about: "Paid again: waiting for the host to resume it." },
@@ -1327,5 +1602,34 @@ export const machine_fde_payment = defineMachine({
       about: "The reopened Payment settled again; `paid_through` moves on by its months once more.",
       emits: [event_fde_payment_transitioned],
     },
+  },
+});
+
+export const event_fde_guest_transitioned = defineEvent({
+  id: "fde_guest_transitioned",
+  about:
+    "The management named an outside person as a guest who may talk to its hosted FDE, removed them, or named them " +
+    "again (aaron.fde-anyone). Notices tells a newly named guest how to sign in and ask.",
+  props: Schema.Struct({ from: From, to: S, transition: S, org_id: S, guest_id: S, party_id: S }),
+});
+
+export const machine_fde_guest = defineMachine({
+  id: "fde-guest",
+  title: "FDE guest",
+  about:
+    "org-fde-guests.status. Born active when the management names a person (`org fde guest add`); removed when it " +
+    "stops working with them (`org fde guest remove`), which ends every ask of theirs at once; active again when named " +
+    "again, on the same row.",
+  table: table_org_fde_guests,
+  field: "status",
+  initial: "active",
+  states: [
+    { id: "active", about: "They may talk to the FDE, which does for them only what their own Party may do here." },
+    { id: "removed", about: "They may not; their open asks act for them no longer." },
+  ],
+  transitions: {
+    name: { from: [], to: "active", about: "Birth: People or a Director names them.", emits: [event_fde_guest_transitioned] },
+    remove: { from: ["active"], to: "removed", about: "People or a Director removes them.", emits: [event_fde_guest_transitioned] },
+    name_again: { from: ["removed"], to: "active", about: "Named again.", emits: [event_fde_guest_transitioned] },
   },
 });

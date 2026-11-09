@@ -31,6 +31,26 @@ import {
   table_salary_structures,
 } from "./data.ts";
 import { table_parties } from "../parties/data.ts";
+import {
+  machine_attendance,
+  machine_employee_advance,
+  machine_leave_allocation,
+  machine_leave_application,
+  machine_shift_assignment,
+  table_additional_salaries,
+  table_attendances,
+  table_employee_advances,
+  table_employee_checkins,
+  table_expense_claim_types,
+  table_expense_claims,
+  table_holiday_lists,
+  table_hr_settings,
+  table_leave_allocations,
+  table_leave_applications,
+  table_leave_types,
+  table_shift_assignments,
+  table_shift_types,
+} from "./hr-data.ts";
 import { procedure_parties_resolve_recipient } from "../parties/procedures.ts";
 import { procedure_documents_store } from "../documents/procedures.ts";
 import { procedure_books_record_payroll_accrual } from "../books/procedures.ts";
@@ -253,12 +273,13 @@ export const workflow_payroll_agreements_lifecycle = defineWorkflow({
 
 export const workflow_payroll_startup_open = defineWorkflow({
   id: "payroll.startup.open",
-  title: "Start the Organization's payroll: its Payroll Settings",
+  title: "Start the Organization's payroll: its Payroll and HR Settings",
   about:
     "Started by an Organization setup's `begin`, through the outbox: payroll is a fundamental app, in Frappe HR's shape " +
     "from the first day whether or not a head is ever connected (aaron.frappe-shape, payroll.startup). In one " +
-    "transaction it writes the Organization's Payroll Settings, as Frappe HR's install writes that single " +
-    "(`set_single_defaults`), but with the values Capxul computes by and a head must match (leave-based, holidays " +
+    "transaction it writes the Organization's Payroll Settings and HR Settings, as Frappe HR's install writes those " +
+    "singles (`set_single_defaults`), but with the values Capxul computes by and a head must match (attendance-based, " +
+    "unmarked days present, self-approval refused, holidays " +
     "counted as working days, no rounded total, no Frappe email, accounting by Employee) and the change counter at " +
     "zero, so every payroll write finds its lock row. It makes no salary component: Frappe HR installs none outside " +
     "its India setup, and a business's pay is its own to define; " +
@@ -267,9 +288,9 @@ export const workflow_payroll_startup_open = defineWorkflow({
   concept: concept_payroll,
   priority: "normal",
   trigger: { transition: machine_org_setup.t.begin },
-  steps: [{ name: "settings", about: "Write the Payroll Settings with last_seq zero, unless the Organization already has them." }],
-  reads: [table_payroll_settings],
-  writes: [table_payroll_settings],
+  steps: [{ name: "settings", about: "Write the Payroll Settings with last_seq zero and the HR Settings, unless the Organization already has them." }],
+  reads: [table_payroll_settings, table_hr_settings],
+  writes: [table_payroll_settings, table_hr_settings],
   drives: [],
   invokes: [],
   emits: [],
@@ -294,6 +315,20 @@ const SYNCED = [
   table_salary_structure_assignments,
   table_payroll_entries,
   table_salary_slips,
+  // the HR that changes pay or moves money (payroll.hr-head-sync)
+  table_holiday_lists,
+  table_leave_types,
+  table_leave_allocations,
+  table_leave_applications,
+  table_shift_types,
+  table_shift_assignments,
+  table_employee_checkins,
+  table_attendances,
+  table_expense_claim_types,
+  table_expense_claims,
+  table_employee_advances,
+  table_additional_salaries,
+  table_hr_settings,
 ];
 
 export const workflow_payroll_head_sync = defineWorkflow({
@@ -316,8 +351,9 @@ export const workflow_payroll_head_sync = defineWorkflow({
     "payroll.import-run; a head run's cancel cancels it here while nothing of it is paid. Money and identity are " +
     "Capxul's (organizations.head-ownership): a head change to a Party, Safe, pay mailbox, budget, a Capxul run's " +
     "figures, a payment fact or an agreement's records is refused and Capxul's version pushed back, as is a change on " +
-    "an older version, by a user without the People hat, or one the checks refuse. It wakes on a change here, a ring, " +
-    "and daily; while the head is failing it waits; it ends when the head is disconnected.",
+    "an older version, by a user without the People hat, or one the checks refuse; HR, as payroll.hr-head-sync. " +
+    "It wakes on a change here, a ring, and daily; while the head is failing it " +
+    "waits; it ends when the head is disconnected.",
   concept: concept_payroll,
   priority: "normal",
   trigger: { transition: machine_org_head.t.confirm },
@@ -384,6 +420,18 @@ export const workflow_payroll_head_sync = defineWorkflow({
     s.withhold,
     s.release,
     s.cancel,
+    machine_leave_allocation.t.allocate,
+    machine_leave_allocation.t.cancel,
+    machine_leave_application.t.apply,
+    machine_leave_application.t.approve,
+    machine_leave_application.t.reject,
+    machine_leave_application.t.cancel,
+    machine_attendance.t.mark,
+    machine_attendance.t.cancel,
+    machine_shift_assignment.t.assign,
+    machine_shift_assignment.t.unassign,
+    machine_employee_advance.t.recover,
+    machine_employee_advance.t.recover_partly,
   ],
   invokes: [procedure_parties_resolve_recipient, procedure_documents_store],
   emits: [],
@@ -393,7 +441,7 @@ export const workflow_payroll_head_sync = defineWorkflow({
     "One process per head connection (`payroll-head:<orgId>:<headId>`). A push is idempotent by version (the head " +
     "answers unchanged); a pulled change already applied is skipped by its head name and time; a head's Payroll Entry " +
     "is taken in once, by its unique head name.",
-  timeoutMs: 3650 * DAY,
+  timeoutMs: 60_000,
   retries: { max: 8, backoff: "exponential" },
   budget: budget("background"),
 });

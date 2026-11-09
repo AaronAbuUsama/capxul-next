@@ -23,6 +23,7 @@ import {
   error_CLI_USAGE,
   error_INVALID_INPUT,
   error_NOT_AUTHENTICATED,
+  error_PROVIDER_ERROR,
   error_ROLE_PERMISSION_DENIED,
   error_WRONG_STATE,
 } from "../shared/vocabulary.ts";
@@ -34,6 +35,10 @@ import {
   rpc_contacts_book_list,
 } from "./book.ts";
 import { LeadView, rpc_contacts_leads_convert, rpc_contacts_leads_list } from "./leads.ts";
+import { CallItem, EmailItem, NoteItem, TimelinePage, WhatsAppItem, rpc_contacts_timeline_list } from "./timeline.ts";
+import { WhatsAppAccount, rpc_contacts_whatsapp_connect, rpc_contacts_whatsapp_show } from "./whatsapp.ts";
+import { TaskView, rpc_contacts_tasks_list, rpc_contacts_tasks_move } from "./tasks.ts";
+import { rpc_contacts_calls_log } from "./calls.ts";
 import { DealView, rpc_contacts_deals_list } from "./deals.ts";
 import {
   flow_client_account_address_book_change,
@@ -53,6 +58,14 @@ import {
   flow_client_org_crm_leads_get,
   flow_client_org_crm_leads_list,
   flow_client_org_crm_leads_move,
+  flow_client_org_crm_emails_send,
+  flow_client_org_crm_notes_add,
+  flow_client_org_crm_notes_change,
+  flow_client_org_crm_tasks_change,
+  flow_client_org_crm_tasks_create,
+  flow_client_org_crm_whatsapp_connect,
+  flow_client_org_crm_whatsapp_disconnect,
+  flow_client_org_crm_whatsapp_send,
 } from "./flows.ts";
 
 const CLI = "apps/cli/src/commands/contact";
@@ -356,6 +369,20 @@ const denied = (given: string, what: string): Refusal => ({
     `its Safe wears no People hat, and ${what}: nothing is written. The right is the hat's: once the Board grants Rex's Safe the ` +
     "hat the same command succeeds, and once it revokes it, it is refused again.",
 });
+/**
+ * A previewing write's one ROLE_PERMISSION_DENIED: denied's cases, and the hosted FDE's act-for call under its asker's
+ * open ask, which the rpc refuses because the preview is the asker's own (organizations.fde-for-the-asker).
+ */
+const deniedPreview = (given: string, what: string): Refusal => {
+  const d = denied(given, what);
+  return {
+    ...d,
+    when:
+      `${d.when} So is the hosted FDE's run of it while Dan's \`org fde ask\` is open (the stand-in host holding the ` +
+      "turn, `capxul-devnet fault fde-host hold`): the preview is Dan's own to answer, so nothing is sent or written " +
+      "(organizations.fde-for-the-asker).",
+  };
+};
 const invalid = (given: string, when: string): Refusal => ({ error: error_INVALID_INPUT, given, when });
 const wrong = (when: string): Refusal => ({ error: error_WRONG_STATE, given: CRM_WORLD, when });
 
@@ -366,8 +393,12 @@ const WHO_BOOK_WRITE =
   "with the hat, never with a person (contacts.members-write).";
 const WHO_CRM_WRITE_OP =
   "A member of the Organization whose Safe wears its People hat when the command runs, a person's Seat or an agent's " +
-  "(the FDE once the Board grants it the hat). The right goes with the hat, never with a person: the Board swaps members " +
-  "in and out by granting and revoking it (contacts.crm-permission).";
+  "(the hosted FDE only as its asker, with the asker's hat: organizations.fde-for-the-asker). The right goes with the " +
+  "hat, never with a person: the Board swaps members in and out by granting and revoking it (contacts.crm-permission).";
+/** A command that previews and asks (G5) is the asker's own to answer (organizations.fde-for-the-asker). */
+const NOT_FOR_ASKER =
+  " Never the hosted FDE for its asker: the preview is the member's own to answer (organizations.fde-for-the-asker).";
+const WHO_CRM_PREVIEW_OP = WHO_CRM_WRITE_OP + NOT_FOR_ASKER;
 const WHO_CRM_READ_OP = "Any member of the Organization: an active Seat, a person's or an agent's.";
 
 const PAGE_NOTES = ["It shows 25 at a time by default; `--limit` takes 1 to 100.", "When there are more, `nextCursor` is the `--after` value for the next page."];
@@ -508,7 +539,7 @@ export const operation_contact_link = defineOperation({
   command: "contact link",
   priority: "normal",
   implementedBy: flow_client_account_address_book_link,
-  who: WHO_BOOK_WRITE,
+  who: WHO_BOOK_WRITE + NOT_FOR_ASKER,
   changes:
     "The entry's Party, once and for good. A mailbox or address no Party holds yet is named in the directory. " + LOGGED,
   acceptance: [
@@ -539,7 +570,7 @@ export const operation_contact_link = defineOperation({
   errors: [error_CLI_USAGE],
   refusals: [
     signedOut(CRM_WORLD),
-    denied(CRM_WORLD, "links an entry of Acme's book"),
+    deniedPreview(CRM_WORLD, "links an entry of Acme's book"),
     invalid(
       CRM_WORLD,
       "An id not in the book; an entry that already has a Party; a locator that names nothing, the book's own Party, a " +
@@ -1060,4 +1091,674 @@ export const operation_org_crm_deal_get = defineOperation({
     invalid(CRM_WORLD, "The id is a well-formed `deal_` id that names none of Acme's deals: there is no not-found code, and nothing is read."),
   ],
   budget: budget("read"),
+});
+
+// ═══ The CRM's conversations: thirteen more operations beyond the 215 ═════════════════════════
+//
+// Booked under rules.new-operations on the pack contacts.conversation-commands, which serves
+// aaron.crm-frappe-shape, aaron.world-clock and aaron.sdk-reaches-everything and carries out Aaron's
+// evening answer (the CRM tracks every conversation). They are docs/design/new-commands.md section
+// 5.8, in its one grammar; each calls one SDK method: a flow (./flows.ts) where it previews or shares
+// its rpc with another method, else its one rpc (G7). Every member reads; only a member whose Safe
+// wears the People hat writes, and a task's assignee also moves their own (contacts.crm-permission,
+// contacts.task-assignee); a command that previews is never the hosted FDE's for its asker
+// (organizations.fde-for-the-asker). Every channel is the world's: on a devnet mail
+// goes to the sink and WhatsApp to the stand-in, each dated at the world's now (aaron.world-clock).
+// Refusals start from org-with-crm or org-with-conversations (contacts.conversation-worlds).
+
+/** org-with-crm plus Acme's conversations: its WhatsApp number, a thread on the Globex pilot, Nia's emailed lead (contacts.conversation-worlds). */
+export const TALK_WORLD = "org-with-conversations";
+const MAILBOX = "acme@crm.devnet.test";
+const wrongIn = (given: string, when: string): Refusal => ({ error: error_WRONG_STATE, given, when });
+const cancelled = (given: string, what: string): Refusal => ({
+  error: error_CANCELLED,
+  given,
+  when: `At a terminal, Dan answers no to the preview of ${what}: nothing is sent or written.`,
+});
+const noConfirm = (given: string): Refusal => ({
+  error: error_CLI_USAGE,
+  given,
+  when: "A script runs it without `--confirm`: nothing is read, sent or written.",
+});
+const CONVERTED =
+  "`<Ivy's lead>` is converted: the refusal names the Umbrella deal, which carries its conversations on, and nothing is written.";
+
+// ── org crm timeline ────────────────────────────────────────────────────────────────────────
+
+export const operation_org_crm_timeline = defineOperation({
+  id: "org.crm.timeline",
+  title: "Read a contact's, lead's or deal's timeline",
+  about:
+    "Shows one record's timeline, newest first, as Frappe CRM's activity timeline does: every email sent or received " +
+    "about it or with its people, every WhatsApp message with its number, the calls logged, the notes and tasks, when " +
+    "it was created, and the money the chain shows between the Organization and the record's Party (payments either " +
+    "way, money waiting for them in a claim escrow, and an invoice they pay through its escrow). A deal's timeline " +
+    "includes its lead's. Name the record by its id as `contact " +
+    "list`, `org crm lead list` or `org crm deal list` prints it. `--kind` keeps only some kinds.",
+  area: CRM_AREA,
+  command: "org crm timeline",
+  priority: "normal",
+  implementedBy: rpc_contacts_timeline_list,
+  who: WHO_CRM_READ_OP,
+  changes: NOTHING_READ,
+  notes: PAGE_NOTES,
+  acceptance: [
+    claim(
+      "A deal's timeline gathers what was said about it newest first, each item as it stands, every time the world's.",
+      "read: as Rex (a Seat, no hat) in org-with-conversations, `org crm timeline <the Globex pilot> --org acme` prints, " +
+        "newest first, the task `Send the contract` (Backlog), the note `Budget`, Kim's `Re: Pilot proposal` (received, " +
+        "`in_reply_to` the sent email's id), the sent `Pilot proposal` and the deal's `record` (created); each `at` is the " +
+        "devnet clock's time of its world step.",
+    ),
+    claim(
+      "A contact's timeline shows every email with their kept mailbox, every WhatsApp message with their number, the calls logged with them and the money the chain shows with their Party.",
+      "read: `org crm timeline <Kim> --org acme` prints, newest first by `at`, the money item (out, `via: claim-escrow`, " +
+        "40 USDC in raw units, `standing: open`), the call (Outgoing, Completed, 600 seconds ending at its step's " +
+        "time, its note's id) with that note at the same `at`, Dan's WhatsApp `Yes, from 6 January.`, Kim's `Is the " +
+        "pilot still on?`, her reply, the sent email and her entry's `record` (created); " +
+        "chain: the escrow's EscrowCreated names Acme's company Safe as sender and Kim's Safe as owner.",
+    ),
+    claim(
+      "A lead's timeline shows the email that made it, and a record with no Party shows no money.",
+      "read: `org crm timeline <Nia's lead> --org acme` prints her `Deliveries` email (received) and the lead's `record` " +
+        "(created) and no money item; `org crm timeline <Globex Ltd>` (a private company) prints no money item.",
+    ),
+    claim(
+      "`--kind` keeps only the kinds given, and a page continues from its cursor.",
+      "read: `org crm timeline <Kim> --kind whatsapp --org acme` prints only the two WhatsApp messages; `--limit 2` prints " +
+        "two items and a `nextCursor`, and `--after` it prints the rest, none twice.",
+    ),
+  ],
+  returns: TimelinePage,
+  errors: [error_CLI_USAGE],
+  refusals: [
+    signedOut(TALK_WORLD),
+    outsider(TALK_WORLD),
+    invalid(
+      TALK_WORLD,
+      "A well-formed `deal_`, `lead_`, `party_` or `contact_` id that names nothing in Acme's CRM, a `--kind` outside " +
+        "email, whatsapp, call, note, task, money and record, a cursor this timeline did not give, or a `--limit` " +
+        "outside 1 to 100: nothing is read.",
+    ),
+  ],
+  budget: budget("read"),
+});
+
+// ── org crm email send ──────────────────────────────────────────────────────────────────────
+
+export const operation_org_crm_email_send = defineOperation({
+  id: "org.crm.email.send",
+  title: "Send an email about a contact, lead or deal",
+  about:
+    "Sends an email from the Organization's CRM mailbox, `<handle>@<CRM mail domain>`, about one record: to the " +
+    "record's own mailbox (a person's primary one, a lead's, a deal's primary person's) unless `--to` names others, " +
+    "with `--cc` and `--bcc`. It goes in your name at the Organization, and replies come back to the mailbox and land " +
+    "on the same record's timeline, threaded by the email they answer. `--in-reply-to` answers an email on the timeline, named by its id. " +
+    "Mail from someone the CRM does not know becomes a new lead. An email cannot be taken back, so at a terminal it " +
+    "shows what it will send and asks; `--confirm` answers yes from a script.",
+  area: CRM_AREA,
+  command: "org crm email send",
+  priority: "normal",
+  implementedBy: flow_client_org_crm_emails_send,
+  who: WHO_CRM_PREVIEW_OP,
+  changes: "One email, sent from the CRM mailbox, on the record's timeline and the CRM's change log.",
+  acceptance: [
+    claim(
+      "An email about a record goes from the Organization's CRM mailbox to the record's own mailbox, dated by the world's clock, and stays in the world.",
+      `cli: in org-with-crm, \`org crm email send <the Globex pilot> --subject "Pilot proposal" --body "Here is our proposal." --org acme --confirm\` ` +
+        `prints a \`comm_\` id, \`direction: sent\`, \`from: ${MAILBOX}\`, \`to: [kim@globex.test]\` and \`delivery_status: sent\`; world: ` +
+        `the mail sink holds one message to kim@globex.test from \`Dan Cole at Acme Ltd <${MAILBOX}>\`, Reply-To ${MAILBOX}, ` +
+        "Message-ID `<that id>@crm.devnet.test`, dated at the devnet clock's now, and nothing reached Resend; read: " +
+        "`org crm timeline <the Globex pilot>` and `<Kim>` list it.",
+    ),
+    claim(
+      "A reply threads back onto the same record by the email it answers, whatever its subject.",
+      `world: \`capxul-devnet mail receive --to ${MAILBOX} --from kim@globex.test --subject "Other" --in-reply-to <its Message-ID> Yes\`, ` +
+        "then settling; read: `org crm timeline <the Globex pilot>` shows the reply, received, `in_reply_to` the sent " +
+        "email's id; trace: one `inbound_mail_transitioned` (thread) and one `communication_transitioned` (receive).",
+    ),
+    claim(
+      "Mail from someone the CRM does not know becomes a new lead, and mail from a kept mailbox lands on its contact.",
+      `world: \`capxul-devnet mail receive --to ${MAILBOX} --from "Oli Grant <oli@new.test>" --subject Hello Hi\` and ` +
+        "`--from kim@globex.test --subject Thanks Thanks`, then settling; read: `org crm lead list --org acme` lists a " +
+        "lead Oli Grant, oli@new.test, `source: Email`, whose timeline shows the email, and Kim's timeline shows `Thanks`.",
+    ),
+    claim(
+      "A send whose answer is lost and is retried sends once.",
+      "trace: a run whose first answer the eval drops makes two `contacts.mail.send` calls under one send key, and both " +
+        "print the same `comm_` id; world: the mail sink holds one message and the timeline one email.",
+    ),
+    claim(
+      "Only a member whose Safe wears the People hat sends, and every member reads what was sent.",
+      "cli: Rex's `org crm email send <Kim> --subject Hi --body Hi --org acme --confirm` is ROLE_PERMISSION_DENIED and the " +
+        "sink holds nothing new; read: Rex's `org crm timeline <the Globex pilot>` shows Dan's emails; cli: " + HAT_FOLLOWS,
+    ),
+  ],
+  returns: EmailItem,
+  errors: [error_CLI_USAGE],
+  refusals: [
+    signedOut(CRM_WORLD),
+    deniedPreview(CRM_WORLD, "sends an email from Acme's CRM"),
+    invalid(
+      CRM_WORLD,
+      "A record none of Acme's CRM's; no `--to` for a record with no mailbox (Globex Ltd, a company); a malformed mailbox " +
+        "or more than 50 in all; a blank subject or body; or an `--in-reply-to` that is no email on the record's timeline: " +
+        "nothing is sent or written.",
+    ),
+    wrong(`\`org crm email send <Ivy's lead> --subject Hi --body Hi --org acme --confirm\`: ${CONVERTED}`),
+    {
+      error: error_PROVIDER_ERROR,
+      given: CRM_WORLD,
+      when: "After `dev mail fail --next 1`, the sink refuses the send as Resend down would: nothing is written, and the same command then sends.",
+    },
+    cancelled(CRM_WORLD, "an email to Kim"),
+    noConfirm(CRM_WORLD),
+  ],
+  budget: budget("vendor"),
+});
+
+// ── org crm whatsapp connect, disconnect, show, send ────────────────────────────────────────
+
+export const operation_org_crm_whatsapp_connect = defineOperation({
+  id: "org.crm.whatsapp.connect",
+  title: "Connect the Organization's WhatsApp Business number",
+  about:
+    "Connects the Organization's own WhatsApp Business number, on Meta's WhatsApp Business Cloud API, to its CRM. It " +
+    "reads the number's ids and its access token, app secret and verify token from `--key-file` or asks for each (a " +
+    "secret is never a flag), checks the number with Meta, subscribes your Meta app to the number's WhatsApp Business " +
+    "Account (without which Meta sends it no webhooks), and prints the webhook URL and verify token to set as your " +
+    "app's callback; from then on messages to and from the number land on your contacts' timelines. An Organization has one " +
+    "number at a time. At a terminal it shows what it will connect and asks; `--confirm` answers yes from a script.",
+  area: CRM_AREA,
+  command: "org crm whatsapp connect",
+  priority: "normal",
+  implementedBy: flow_client_org_crm_whatsapp_connect,
+  who: WHO_CRM_PREVIEW_OP,
+  changes: "The Organization's WhatsApp account, active, with its secrets sealed. Nothing is sent.",
+  acceptance: [
+    claim(
+      "A number is connected once Meta answers for it, and the command prints the webhook to set in Meta and never a secret.",
+      "cli: in org-with-crm, after `capxul-devnet whatsapp number add acme`, `org crm whatsapp connect --key-file " +
+        "acme-whatsapp.json --org acme --confirm` prints a `wa_` id, `status: active`, `display_number: +447700900100`, a " +
+        "`webhook_url` ending `/v1/whatsapp/<that id>` and the verify token, and no output carries the access token or " +
+        "the app secret; read: `org crm whatsapp show --org acme` prints the account without the verify token.",
+    ),
+    claim(
+      "Its route takes only what Meta signs with the number's app secret.",
+      "world: in org-with-conversations, `capxul-devnet whatsapp receive +447700900100 --from +447700900789 Hi`, then " +
+        "settling: `org crm timeline <Kim>` shows it; a post to the route with a signature of another secret is refused " +
+        "(NOT_AUTHENTICATED) and the diff is empty.",
+    ),
+    claim(
+      "An Organization has one live number at a time.",
+      "cli: in org-with-conversations, `org crm whatsapp connect --key-file acme-whatsapp.json --org acme --confirm` is " +
+        "WRONG_STATE naming the live account; world: the diff is empty.",
+    ),
+    claim(
+      "Only a member whose Safe wears the People hat connects one.",
+      "cli: in org-with-crm, Rex's `org crm whatsapp connect --key-file acme-whatsapp.json --org acme --confirm` is " +
+        "ROLE_PERMISSION_DENIED; " + HAT_FOLLOWS,
+    ),
+  ],
+  returns: rpc_contacts_whatsapp_connect.output,
+  errors: [error_CLI_USAGE],
+  refusals: [
+    signedOut(CRM_WORLD),
+    deniedPreview(CRM_WORLD, "connects a number to Acme's CRM"),
+    invalid(
+      CRM_WORLD,
+      "A key file whose token the stand-in refuses (401), whose phone id names no number it serves, or a field not of " +
+        "its form (an id that is not digits, an empty secret): the refusal names the field, and nothing is written.",
+    ),
+    wrongIn(TALK_WORLD, "Acme's number is already connected: the refusal names the live account, and nothing is written."),
+    {
+      error: error_PROVIDER_ERROR,
+      given: CRM_WORLD,
+      when: "With `capxul-devnet fault whatsapp down` armed, Meta's stand-in cannot be read: nothing is written.",
+    },
+    cancelled(CRM_WORLD, "connecting Acme's number"),
+    noConfirm(CRM_WORLD),
+  ],
+  budget: budget("vendor"),
+});
+
+export const operation_org_crm_whatsapp_disconnect = defineOperation({
+  id: "org.crm.whatsapp.disconnect",
+  title: "Disconnect the Organization's WhatsApp number",
+  about:
+    "Disconnects the Organization's WhatsApp number from its CRM: nothing more is sent from it, and Meta's deliveries " +
+    "for it are refused. Every message stays on its records' timelines. Connecting a number again starts afresh. At a " +
+    "terminal it shows the number and asks; `--confirm` answers yes from a script.",
+  area: CRM_AREA,
+  command: "org crm whatsapp disconnect",
+  priority: "normal",
+  implementedBy: flow_client_org_crm_whatsapp_disconnect,
+  who: WHO_CRM_PREVIEW_OP,
+  changes: "The account, disconnected for good, its secrets erased. Its messages are kept.",
+  acceptance: [
+    claim(
+      "Disconnecting stops every send and every delivery, and keeps every message.",
+      "cli: in org-with-conversations, `org crm whatsapp disconnect --org acme --confirm` prints `status: " +
+        "disconnected`, then `org crm whatsapp send <Kim> --text Hi --org acme --confirm` is WRONG_STATE; world: " +
+        "`capxul-devnet whatsapp receive +447700900100 --from +447700900789 Hi` is refused at the route and stores " +
+        "nothing; read: `org crm timeline <Kim> --kind whatsapp` still shows both messages.",
+    ),
+    claim(
+      "Connecting again makes a new account.",
+      "cli: `org crm whatsapp connect --key-file acme-whatsapp.json --org acme --confirm` then prints another `wa_` id, " +
+        "`status: active`.",
+    ),
+    claim(
+      "At a terminal it shows the number before it writes, and a decline changes nothing.",
+      "cli: at a terminal, `org crm whatsapp disconnect --org acme` shows +447700900100 and asks; answering no is " +
+        "CANCELLED (exit 130); world: the diff is empty.",
+    ),
+  ],
+  returns: WhatsAppAccount,
+  errors: [error_CLI_USAGE],
+  refusals: [
+    signedOut(TALK_WORLD),
+    deniedPreview(TALK_WORLD, "disconnects Acme's number"),
+    wrong("No number is connected to Acme's CRM: nothing is written."),
+    cancelled(TALK_WORLD, "disconnecting Acme's number"),
+    noConfirm(TALK_WORLD),
+  ],
+  budget: guidedWrite,
+});
+
+export const operation_org_crm_whatsapp_show = defineOperation({
+  id: "org.crm.whatsapp.show",
+  title: "Show the Organization's WhatsApp number",
+  about:
+    "Shows the WhatsApp number connected to the Organization's CRM: its status (active, failing while Meta refuses it, " +
+    "or disconnected), the number and its verified name, the webhook URL to set in Meta, who connected it and when, " +
+    "and its last check. Never a token, a secret or the verify token. Null when none was ever connected.",
+  area: CRM_AREA,
+  command: "org crm whatsapp show",
+  priority: "normal",
+  implementedBy: rpc_contacts_whatsapp_show,
+  who: WHO_CRM_READ_OP,
+  changes: NOTHING_READ,
+  acceptance: [
+    claim(
+      "Every member reads the connected number, its status and its webhook, never a secret; with none it prints null.",
+      "read: as Rex in org-with-conversations, `org crm whatsapp show --org acme` prints `status: active`, " +
+        "+447700900100 and its `webhook_url`, and no token, secret or verify token; in org-with-crm it prints null.",
+    ),
+  ],
+  returns: Schema.NullOr(WhatsAppAccount),
+  errors: [error_CLI_USAGE],
+  refusals: [signedOut(TALK_WORLD), outsider(TALK_WORLD)],
+  budget: budget("read"),
+});
+
+export const operation_org_crm_whatsapp_send = defineOperation({
+  id: "org.crm.whatsapp.send",
+  title: "Send a WhatsApp message about a contact, lead or deal",
+  about:
+    "Sends a WhatsApp message from the Organization's connected number about one record: to the record's own number (a " +
+    "person's primary mobile or phone, a lead's, a deal's primary person's) unless `--to` names one. A free-form " +
+    "`--text` goes only within 24 hours of the last message that number sent you, as WhatsApp allows; outside that " +
+    "window send an approved `--template`. `--in-reply-to` answers a message on the timeline. The message, its replies " +
+    "and its delivery land on the record's timeline. A " +
+    "message cannot be taken back, so at a terminal it shows what it will send and asks; `--confirm` answers yes from a " +
+    "script.",
+  area: CRM_AREA,
+  command: "org crm whatsapp send",
+  priority: "normal",
+  implementedBy: flow_client_org_crm_whatsapp_send,
+  who: WHO_CRM_PREVIEW_OP,
+  changes: "One WhatsApp message, sent from the connected number, on the record's timeline and the CRM's change log.",
+  acceptance: [
+    claim(
+      "Inside the window a text goes to the record's own number and its delivery shows on the timeline, on the world's clock.",
+      "cli: in org-with-conversations, `org crm whatsapp send <Kim> --text \"See you then.\" --org acme --confirm` prints " +
+        "a `wam_` id, `direction: sent`, `counterpart: +447700900789`, `status: sent`; world: the stand-in holds it from " +
+        "+447700900100 at the devnet clock's now and its delivered status follows; read: `org crm timeline <Kim> --kind " +
+        "whatsapp` shows it `delivered`.",
+    ),
+    claim(
+      "Outside the 24-hour window, counted on the world's clock, a text is refused and a template goes.",
+      "cli: `org crm whatsapp send <Ivy> --text Hi --org acme --confirm` (Ivy never wrote) is WRONG_STATE naming the " +
+        "window and `--template hello_world --language en_US` (Meta's sample template, approved in en_US only) instead " +
+        "sends; after `dev time warp 25h`, Kim's text is WRONG_STATE too; " +
+        "world: each refusal's diff is empty.",
+    ),
+    claim(
+      "A message from a number the CRM does not know becomes a new lead; one from a contact's number lands on that contact.",
+      "world: `capxul-devnet whatsapp receive +447700900100 --from +447700900555 --name Sol Hello`, then settling; read: " +
+        "`org crm lead list --org acme` lists a lead Sol, `mobile_no: +447700900555`, `source: WhatsApp`, whose timeline " +
+        "shows the message; Kim's message of the world is on Kim's timeline.",
+    ),
+    claim(
+      "Only a member whose Safe wears the People hat sends.",
+      "cli: Rex's `org crm whatsapp send <Kim> --text Hi --org acme --confirm` is ROLE_PERMISSION_DENIED and the stand-in " +
+        "holds nothing new; " + HAT_FOLLOWS,
+    ),
+  ],
+  returns: WhatsAppItem,
+  errors: [error_CLI_USAGE],
+  refusals: [
+    signedOut(TALK_WORLD),
+    deniedPreview(TALK_WORLD, "sends from Acme's number"),
+    invalid(
+      TALK_WORLD,
+      "A record none of Acme's CRM's; no `--to` for a record with no number (Globex Ltd); both `--text` and `--template`, " +
+        "or neither; a text over 4,096 characters; a number not in E.164: nothing is sent or written.",
+    ),
+    wrongIn(TALK_WORLD, "A text to Ivy, who never wrote to Acme's number, is outside the 24-hour window: nothing is sent. (In org-with-crm no number is connected, the same code.)"),
+    {
+      error: error_PROVIDER_ERROR,
+      given: TALK_WORLD,
+      when: "With `capxul-devnet fault whatsapp down` armed, the send fails: nothing is written.",
+    },
+    cancelled(TALK_WORLD, "a message to Kim"),
+    noConfirm(TALK_WORLD),
+  ],
+  budget: budget("vendor"),
+});
+
+// ── org crm note add, change ────────────────────────────────────────────────────────────────
+
+export const operation_org_crm_note_add = defineOperation({
+  id: "org.crm.note.add",
+  title: "Add a note on a contact, lead or deal",
+  about:
+    "Adds a note on one record of the Organization's CRM, a contact, a lead or a deal, named by its id: its title, " +
+    "which a note needs, as the second argument, and its text with `--content`. It shows on the record's timeline. A " +
+    "converted lead takes no new note: write on its deal.",
+  area: CRM_AREA,
+  command: "org crm note add",
+  priority: "normal",
+  implementedBy: flow_client_org_crm_notes_add,
+  who: WHO_CRM_WRITE_OP,
+  changes: "One note, on the record's timeline and the CRM's change log.",
+  acceptance: [
+    claim(
+      "A note is added on a record and its timeline shows it first.",
+      "cli: in org-with-crm, `org crm note add <the Globex pilot> Budget --content \"5000 GBP approved.\" --org " +
+        "acme` prints a `note_` id, that title and content and `by` Dan's Party; read: `org crm timeline <the Globex " +
+        "pilot>` lists it first.",
+    ),
+    claim(
+      "A note needs a title, and a converted lead takes none.",
+      "cli: `org crm note add <the Globex pilot> \"\" --org acme` is INVALID_INPUT naming `title`; `org crm note " +
+        "add <Ivy's lead> X --org acme` is WRONG_STATE naming the Umbrella deal; world: each diff is empty.",
+    ),
+    claim(
+      "Only a member whose Safe wears the People hat adds one.",
+      "cli: Rex's `org crm note add <the Globex pilot> X --org acme` is ROLE_PERMISSION_DENIED; " + HAT_FOLLOWS,
+    ),
+  ],
+  returns: NoteItem,
+  errors: [error_CLI_USAGE],
+  refusals: [
+    signedOut(CRM_WORLD),
+    denied(CRM_WORLD, "adds a note in Acme's CRM"),
+    invalid(CRM_WORLD, "A record none of Acme's CRM's, a blank or 141-character title, or content over 10,000 characters: nothing is written."),
+    wrong(`\`org crm note add <Ivy's lead> X --org acme\`: ${CONVERTED}`),
+  ],
+  budget: budget("write"),
+});
+
+export const operation_org_crm_note_change = defineOperation({
+  id: "org.crm.note.change",
+  title: "Change a note's title or text",
+  about:
+    "Changes the title or text of one note, named by its id: what is given replaces what was there, `--clear content` " +
+    "empties the text, and the rest stays. The note keeps its place on the timeline. A note is never deleted.",
+  area: CRM_AREA,
+  command: "org crm note change",
+  priority: "normal",
+  implementedBy: flow_client_org_crm_notes_change,
+  who: WHO_CRM_WRITE_OP,
+  changes: "The note's title or text, and its entry in the CRM's change log.",
+  acceptance: [
+    claim(
+      "Only what is given changes, and the note keeps its place on the timeline.",
+      "cli: in org-with-conversations, `org crm note change <the Budget note> --content \"5500 GBP approved.\" --org " +
+        "acme` prints the new text with its title and `at` as they were and a later `changedAt`; read: `org crm timeline " +
+        "<the Globex pilot>` shows it in the same place.",
+    ),
+    claim(
+      "A change that gives nothing is refused.",
+      "cli: `org crm note change <the Budget note> --org acme` is INVALID_INPUT; world: the diff is empty.",
+    ),
+    claim(
+      "Only a member whose Safe wears the People hat changes one.",
+      "cli: Rex's `org crm note change <the Budget note> --title X --org acme` is ROLE_PERMISSION_DENIED; " + HAT_FOLLOWS,
+    ),
+  ],
+  returns: NoteItem,
+  errors: [error_CLI_USAGE],
+  refusals: [
+    signedOut(TALK_WORLD),
+    denied(TALK_WORLD, "changes a note in Acme's CRM"),
+    invalid(TALK_WORLD, "A note id none of Acme's, a blank title, or no flag at all: nothing is written."),
+  ],
+  budget: budget("write"),
+});
+
+// ── org crm task create, change, move, list ─────────────────────────────────────────────────
+
+export const operation_org_crm_task_create = defineOperation({
+  id: "org.crm.task.create",
+  title: "Make a task on a contact, lead or deal",
+  about:
+    "Makes a task on one record of the Organization's CRM, as Frappe CRM's tasks are: a title, a description, a " +
+    "priority (low, medium, high), a start day and a due time (`--due` takes an instant, or a day, meaning its end in " +
+    "the Organization's time zone), and the member it is assigned to (`--assigned-to`, an email or an agent's @handle). It " +
+    "starts in Backlog, or Todo with `--status todo`. It shows on the record's timeline and in `org crm task list`.",
+  area: CRM_AREA,
+  command: "org crm task create",
+  priority: "normal",
+  implementedBy: flow_client_org_crm_tasks_create,
+  who: WHO_CRM_WRITE_OP,
+  changes: "One task, Backlog or Todo, on the record's timeline and the CRM's change log.",
+  acceptance: [
+    claim(
+      "A task is made on a record in Backlog, and the task list and the record's timeline show it.",
+      "cli: in org-with-crm, `org crm task create <the Globex pilot> \"Send the contract\" --assigned-to @rex --due " +
+        "2027-01-06 --priority high --org acme` prints a `ctask_` id, `status: Backlog`, `priority: High`, " +
+        "`assigned_to` Rex's Party and `due` the end of 6 January 2027 in Acme's time zone; read: `org crm task list " +
+        "--org acme` and `org crm timeline <the Globex pilot>` list it; trace: one `crm_task_transitioned` (create).",
+    ),
+    claim(
+      "Its assignee is a member, by email or an agent's @handle.",
+      "cli: `--assigned-to ada@example.com` (no Seat in Acme) is INVALID_INPUT naming `assigned_to`; world: the diff is empty.",
+    ),
+    claim(
+      "Only a member whose Safe wears the People hat makes one.",
+      "cli: Rex's `org crm task create <the Globex pilot> X --org acme` is ROLE_PERMISSION_DENIED; " + HAT_FOLLOWS,
+    ),
+  ],
+  returns: TaskView,
+  errors: [error_CLI_USAGE],
+  refusals: [
+    signedOut(CRM_WORLD),
+    denied(CRM_WORLD, "makes a task in Acme's CRM"),
+    invalid(
+      CRM_WORLD,
+      "A record none of Acme's CRM's; a blank or 141-character title; a `--due` that is no instant or day; an `--assigned-to` " +
+        "with no Seat in Acme; a `--status` other than backlog or todo: the refusal names the field, and nothing is written.",
+    ),
+    wrong(`\`org crm task create <Ivy's lead> X --org acme\`: ${CONVERTED}`),
+  ],
+  budget: budget("write"),
+});
+
+export const operation_org_crm_task_change = defineOperation({
+  id: "org.crm.task.change",
+  title: "Change a task's fields",
+  about:
+    "Changes the fields of one task, named by its id: `--title` (which create takes as its argument) and create's " +
+    "other flags each replace the stored value, `--clear` empties one, and the rest stay. Its status moves only with " +
+    "`org crm task move`.",
+  area: CRM_AREA,
+  command: "org crm task change",
+  priority: "normal",
+  implementedBy: flow_client_org_crm_tasks_change,
+  who: WHO_CRM_WRITE_OP,
+  changes: "The task's fields, and its entry in the CRM's change log.",
+  acceptance: [
+    claim(
+      "Only the fields given change, and its status stays.",
+      "cli: in org-with-conversations, `org crm task change <Send the contract> --due 2027-01-13 --clear description " +
+        "--org acme` prints the new `due`, `description: null` and `status: Backlog`, the rest as it was.",
+    ),
+    claim(
+      "A change that gives nothing is refused.",
+      "cli: `org crm task change <Send the contract> --org acme` is INVALID_INPUT; world: the diff is empty.",
+    ),
+    claim(
+      "Its assignee moves it but does not change it: only the People hat changes a task.",
+      "cli: Rex's `org crm task change <Send the contract> --priority low --org acme` is ROLE_PERMISSION_DENIED; " + HAT_FOLLOWS,
+    ),
+  ],
+  returns: TaskView,
+  errors: [error_CLI_USAGE],
+  refusals: [
+    signedOut(TALK_WORLD),
+    denied(TALK_WORLD, "changes a task in Acme's CRM"),
+    invalid(TALK_WORLD, "A task id none of Acme's, a bad value as for `org crm task create`, or no flag at all: nothing is written."),
+  ],
+  budget: budget("write"),
+});
+
+export const operation_org_crm_task_move = defineOperation({
+  id: "org.crm.task.move",
+  title: "Move a task to another status",
+  about:
+    "Moves one task to one of Frappe CRM's task statuses: Backlog, Todo, In Progress, Done or Canceled. Done records " +
+    "when. Any status may follow any, as on Frappe CRM's task board. The member a task is assigned to may move it " +
+    "themselves.",
+  area: CRM_AREA,
+  command: "org crm task move",
+  priority: "normal",
+  implementedBy: rpc_contacts_tasks_move,
+  who:
+    "A member of the Organization whose Safe wears its People hat when the command runs, or the task's assignee for " +
+    "their own task, a person's Seat or an agent's (contacts.task-assignee).",
+  changes: "The task's status, and its entry in the CRM's change log.",
+  acceptance: [
+    claim(
+      "A task moves through CRM Task's statuses, and Done records when, on the world's clock.",
+      "cli: in org-with-conversations, `org crm task move <Send the contract> \"In Progress\" --org acme` prints " +
+        "`status: In Progress`; `move <it> Done` prints `completedAt` the devnet clock's now; `move <it> Todo` prints " +
+        "it open again; trace: `crm_task_transitioned` start, complete and reopen.",
+    ),
+    claim(
+      "Its assignee moves their own task without the People hat, and no one else's.",
+      "cli: as Rex (no hat), `org crm task move <Send the contract> \"In Progress\" --org acme` succeeds; after Dan's " +
+        "`org crm task create <Kim> Call --assigned-to dan@acme.test --org acme`, Rex's move of that task is " +
+        "ROLE_PERMISSION_DENIED; world: that refusal's diff is empty.",
+    ),
+    claim(
+      "The same status again changes nothing.",
+      "cli: `org crm task move <Send the contract> \"In Progress\" --org acme` twice prints the same task and `updatedAt`; " +
+        "trace: one `crm_task_transitioned` (start), not two; a move within one stage (Backlog to Todo) sends none.",
+    ),
+  ],
+  returns: TaskView,
+  errors: [error_CLI_USAGE],
+  refusals: [
+    signedOut(TALK_WORLD),
+    {
+      error: error_ROLE_PERMISSION_DENIED,
+      given: TALK_WORLD,
+      when:
+        "Ada, signed in, names Acme with `--org`, where she holds no Seat; or Rex, with no People hat, moves a task " +
+        "assigned to someone else: nothing is written.",
+    },
+    invalid(TALK_WORLD, "A task id none of Acme's, or a status that is none of CRM Task's five: nothing is written."),
+  ],
+  budget: budget("write"),
+});
+
+export const operation_org_crm_task_list = defineOperation({
+  id: "org.crm.task.list",
+  title: "List the Organization's CRM tasks",
+  about:
+    "Lists the CRM's tasks, as Frappe CRM's Tasks page does: those not done or cancelled, soonest due first, tasks " +
+    "with no due time after. `--stage` (open, working, done, cancelled) lists others, `--assigned-to` one member's, and " +
+    "`--record` one record's; filters apply together.",
+  area: CRM_AREA,
+  command: "org crm task list",
+  priority: "normal",
+  implementedBy: rpc_contacts_tasks_list,
+  who: WHO_CRM_READ_OP,
+  changes: NOTHING_READ,
+  notes: PAGE_NOTES,
+  acceptance: [
+    claim(
+      "Every member lists the CRM's open and working tasks, soonest due first.",
+      "read: as Rex in org-with-conversations, `org crm task list --org acme` prints `Send the contract` with its record, " +
+        "status and due time; after `org crm task move <it> Done`, it is listed only with `--stage done`.",
+    ),
+    claim(
+      "Filters apply together.",
+      "read: `org crm task list --assigned-to @rex --record <the Globex pilot> --org acme` prints `Send the contract`, and " +
+        "`--assigned-to dan@acme.test` prints none.",
+    ),
+  ],
+  returns: rpc_contacts_tasks_list.output,
+  errors: [error_CLI_USAGE],
+  refusals: [
+    signedOut(TALK_WORLD),
+    outsider(TALK_WORLD),
+    invalid(TALK_WORLD, "A cursor this list did not give, a `--limit` outside 1 to 100, or an `--assigned-to` or `--record` not in Acme's CRM: nothing is listed."),
+  ],
+  budget: budget("read"),
+});
+
+// ── org crm call log ────────────────────────────────────────────────────────────────────────
+
+export const operation_org_crm_call_log = defineOperation({
+  id: "org.crm.call.log",
+  title: "Log a call with a contact, lead or deal",
+  about:
+    "Logs a call you made or took about one record, as Frappe CRM's call log does: its direction (`--type incoming` " +
+    "or `outgoing`), its outcome (`--status completed`, `no-answer`, `busy`, `failed` or `canceled`), the other " +
+    "party's number (the record's own when not given), how long it took (`--duration` in seconds, or `--end`) and when " +
+    "it started (with no `--start`, it ended just now), with an optional `--note`. A call is over when it is logged, " +
+    "so it ends no later than now. It shows on the record's timeline when it is logged.",
+  area: CRM_AREA,
+  command: "org crm call log",
+  priority: "normal",
+  implementedBy: rpc_contacts_calls_log,
+  who: WHO_CRM_WRITE_OP,
+  changes: "One call log and its note, on the record's timeline and the CRM's change log.",
+  acceptance: [
+    claim(
+      "A call is logged on a record with its note, and the record's timeline shows it.",
+      "cli: in org-with-conversations, `org crm call log <Kim> --type outgoing --status completed --duration 300 --note " +
+        "\"Talked about the start date.\" --org acme` prints a `call_` id, `type: Outgoing`, `status: Completed`, " +
+        "`counterpart: +447700900789`, `member` Dan's Party, `duration: 300` and `note` a `note_` id; read: `org crm " +
+        "timeline <Kim>` lists the call and its note.",
+    ),
+    claim(
+      "A call is over when it is logged: it ends no later than the world's now, and takes a duration or an end, not both.",
+      "cli: with no `--start`, `--duration 300` prints `end` the devnet clock's now and `start` 300 seconds before; " +
+        "`--start 2099-01-01T00:00:00Z` is INVALID_INPUT naming `start`, a `--start` 60 seconds ago with `--duration " +
+        "600` INVALID_INPUT naming `duration`, and `--duration 60 --end <a time>` INVALID_INPUT; world: each refusal's " +
+        "diff is empty.",
+    ),
+    claim(
+      "Only a member whose Safe wears the People hat logs one.",
+      "cli: Rex's `org crm call log <Kim> --type incoming --status no-answer --org acme` is ROLE_PERMISSION_DENIED; " + HAT_FOLLOWS,
+    ),
+  ],
+  returns: CallItem,
+  errors: [error_CLI_USAGE],
+  refusals: [
+    signedOut(TALK_WORLD),
+    denied(TALK_WORLD, "logs a call in Acme's CRM"),
+    invalid(
+      TALK_WORLD,
+      "A record none of Acme's CRM's; a start or an end after the world's now; both `--duration` and `--end`; a " +
+        "duration over a day or below 0; a number not in E.164: the refusal names the field, and nothing is written.",
+    ),
+    wrongIn(TALK_WORLD, `\`org crm call log <Ivy's lead> --type outgoing --status busy --org acme\`: ${CONVERTED}`),
+  ],
+  budget: budget("write"),
 });

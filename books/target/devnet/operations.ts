@@ -1,6 +1,8 @@
 // The target operation records of the 13 frozen operations devnet owns (OPERATION_OWNERS): `dev
 // approve`, `dev gates set`, `dev jobs run`, the three mail commands, `dev prices set`, the three
 // snapshot commands and the three time commands. `dev fund` is accounts' and `dev key` applications'.
+// One new operation beyond the 215 (rules.new-operations): `dev time set`, the clock's rate, for
+// aaron.world-clock (decision devnet.clock-rate, which cites it).
 //
 // Each spreads its frozen text (frozenText) and keeps its acceptance word for word: no frozen devnet
 // claim names a mechanism, so none is rewritten, and ten of the thirteen have no acceptance line at
@@ -17,6 +19,7 @@ import {
   error_FEATURE_NOT_AVAILABLE,
   error_INVALID_INPUT,
   error_NOT_AUTHENTICATED,
+  error_ROLE_PERMISSION_DENIED,
   error_WORK_DIED,
   error_WRONG_ENVIRONMENT,
   error_WRONG_STATE,
@@ -28,6 +31,7 @@ import {
   flow_devnet_snapshots_list,
   flow_devnet_snapshots_restore,
   flow_devnet_snapshots_save,
+  flow_devnet_time_set,
   flow_devnet_time_show,
   flow_devnet_time_start_at,
   flow_devnet_time_warp,
@@ -97,6 +101,74 @@ export const operation_dev_time_start_at = defineOperation({
   ],
   budget: budget("chain-settle"),
   was: [page("dev.time.start-at"), `${CLI}/command.ts:103`, "docs/as-is/archive/operations/devnet.ts:355"],
+});
+
+// ── the clock's rate: new, for aaron.world-clock (decision devnet.clock-rate) ───────────────
+
+export const operation_dev_time_set = defineOperation({
+  id: "dev.time.set",
+  title: "Set how fast the devnet's clock runs",
+  about:
+    "Sets the rate of the devnet's one clock: how many seconds of world time pass in each real second while it runs, a " +
+    "whole number from 1 to 60. At 4, a real hour moves the world up to four hours, less the moments the clock stands " +
+    "at each due instant on the way: the chain's blocks, the backend's timers and crons, the mail sink's dates, the " +
+    "stand-ins and a connected head all follow it. A frozen clock stays frozen and runs at the rate when it resumes. Warps " +
+    "are unchanged: a warp moves the clock as far as it is told, whatever the rate.",
+  area: "devnet",
+  command: "dev time set",
+  priority: "normal",
+  implementedBy: flow_devnet_time_set,
+  who: "Devnet only: anyone on the machine that runs the local devnet, with no sign-in; in a shared world, its owner.",
+  changes: "The clock's rate, from now on. Nothing moves back, nothing is mined and no row changes.",
+  acceptance: [
+    {
+      claim: "A frozen clock keeps a rate it is given and stays where it is; a warp still moves it exactly as far as asked.",
+      observes:
+        "cli: from empty-devnet, `dev time set --rate 4 --json` prints the clock with `rate: 4`, `mode: frozen` and the " +
+        "same now as before. read: `dev time` shows rate 4 and the eval epoch; after `dev time warp 1h`, now is one hour " +
+        "later and the chain head is at it.",
+    },
+    {
+      claim: "A running clock at rate four moves four seconds of world time for each real second, and every block is mined at the world's now.",
+      observes:
+        "read: from empty-devnet, after `dev time set --rate 4` and the SDK's `devnet.time.resume`, two `dev time` reads " +
+        "about ten real seconds apart, with nothing due between them, show now advanced by four times the difference " +
+        "of their `realNow`, within one second, with `agree` true. chain: every block mined between them has the " +
+        "authority's now as its time.",
+    },
+    {
+      claim: "A running clock at a rate stands at each due instant it was told of before running on, and the chain head reaches that second.",
+      observes:
+        "read: from empty-devnet, at rate 4 and resumed, an outside follower (the SDK's `devnet.time.follow`) that reports " +
+        "its next due 60 world seconds ahead gets a `stop` event about 15 real seconds later whose now is that instant, " +
+        "and reads it unchanged until it acknowledges idle within the running stop's limit (5 real seconds); then a " +
+        "`run` event with nothing unsettled. chain: a block is dated that second.",
+    },
+    {
+      claim: "A rate outside the range is refused and nothing changes.",
+      observes:
+        "cli: `dev time set --rate 0`, `--rate 61` and `--rate 2.5` exit with INVALID_INPUT naming the range 1 to 60, and " +
+        "`dev time set` with no `--rate` exits INVALID_INPUT. world: the clock's rate and mode are as before.",
+    },
+    {
+      claim: "In a shared world only its owner sets the rate; a joiner may still read the clock.",
+      observes:
+        "cli: in shared-world-joiner, `dev time set --rate 4` exits ROLE_PERMISSION_DENIED and `dev time` prints the " +
+        "clock at rate 1. world: the clock's rate and mode are as before.",
+    },
+  ],
+  returns: flow_devnet_time_set.output,
+  errors: [error_WRONG_ENVIRONMENT],
+  refusals: [
+    { error: error_INVALID_INPUT, given: W.empty, when: "`--rate` is missing, or is not a whole number from 1 to 60. The refusal names the range, and nothing changes." },
+    { error: error_WRONG_ENVIRONMENT, given: W.offDevnet, when: "You are not on a local devnet or a shared world. Every other environment refuses it before any network call." },
+    {
+      error: error_ROLE_PERMISSION_DENIED,
+      given: W.sharedJoiner,
+      when: "In a shared world you hold a joiner's grant: only the world's owner sets the rate (devnet.shared-world). Nothing changes.",
+    },
+  ],
+  budget: budget("write"),
 });
 
 // ── saved worlds ────────────────────────────────────────────────────────────────────────────

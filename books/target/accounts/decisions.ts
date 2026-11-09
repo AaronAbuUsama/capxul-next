@@ -22,7 +22,6 @@ import {
   table_admissions,
 } from "./data.ts";
 import {
-  flow_client_account_collect,
   flow_client_account_setup,
   flow_client_auth_sign_in,
   flow_client_auth_verify_otp,
@@ -190,7 +189,7 @@ export const decision_accounts_setup_process = defineDecision({
     "instance is the lock, and the service signer's recorded send is CAP-1097's never-twice rule, so the lock, lane and " +
     "store mutations go. Only chain proof moves it to `claim` (the claim's CapxulSafeClaimed, or the Safe already owned " +
     "by exactly this signer), and only the chain's refusal or a send that never left fails it. Ready does not wait on the " +
-    "collection: the Safe is the person's at the claim, the escrows stay theirs to collect later (`account collect`) or " +
+    "collection: the Safe is the person's at the claim, the escrows stay theirs to claim later (`payment claim`) or " +
     "their sender's to take back (D12), and holding sign-in at `setup-required` for an unsigned approval would block everything else.",
   source: by("docs/as-is/archive/accounts/claims.ts; packages/backend/src/accounts/claims/operations/claim.ts:34; account.retry.yaml (designed call)"),
   affects: [workflow_accounts_setup_personal_safe, machine_personal_safe, table_personal_safes, event_personal_safe_transitioned],
@@ -571,11 +570,11 @@ export const decision_accounts_money_waiting_admits = defineDecision({
   ],
 });
 
-// ── the owner collects whenever it chooses (aaron.escrow-general, 8 November 2026) ─────────────
+// ── the owner claims whenever it chooses (aaron.escrow-general; spelled by aaron.payment-claim, 8 November 2026) ──
 
 export const decision_accounts_collect_any_time = defineDecision({
   id: "accounts.collect-any-time",
-  title: "`account collect`: the owner collects its claim escrows whenever it chooses",
+  title: "`payment claim`: the owner claims its claim escrows whenever it chooses",
   question:
     "aaron.escrow-general: the escrow's owner 'can claim that money whenever they want'. Setup collects what waits at " +
     "the claim, but nothing collected an escrow that opens after setup (a dated payment paid after the payee signed up), " +
@@ -584,18 +583,26 @@ export const decision_accounts_collect_any_time = defineDecision({
     {
       label: "account-collect",
       text:
-        "A new operation, `account collect` (id `account.collect`, rules.new-operations). Its rpc reads indexing's open " +
-        "owner-collects escrows whose owner is the caller's set-up Safe and that hold their amount, and opens one approval " +
-        "from that Safe calling `collect` on each, which the person signs on the approval page. Nothing waiting answers " +
-        "`nothing_waiting` and opens nothing; a landed collection answers `collected`. The web app offers the same " +
-        "through the React twin, and setup keeps its own collection at the claim.",
+        "A new operation, `account collect` (id `account.collect`, rules.new-operations), booked here first. Its rpc " +
+        "reads indexing's open owner-collects escrows whose owner is the caller's set-up Safe and that hold their " +
+        "amount, and opens one approval from that Safe calling `collect` on each, which the person signs on the " +
+        "approval page. Nothing waiting answers `nothing_waiting` and opens nothing; a landed collection answers " +
+        "`collected`. Setup keeps its own collection at the claim.",
     },
     {
       label: "payment-claim",
       text:
-        "As docs/design/new-commands.md section 6 lists it: `payment claim [<payment>]` (id `payment.claim`), booked by " +
-        "payments as `client.payments.claim` with `--request-key`, one escrow or all, and WRONG_STATE for one its " +
-        "sender already took back.",
+        "As aaron.payment-claim rules: the same capability as account-collect, spelled `payment claim` (id " +
+        "`payment.claim`, area payments, SDK `client.payments.claim`), booked by payments over this concept's rpc " +
+        "`accounts.setup.collect` (payments.claim-command). One approval collects every escrow waiting for the Safe; " +
+        "no payment id, no `--request-key`; the same answers, refusals and worlds. The sender's take-back stays " +
+        "`payment cancel`.",
+    },
+    {
+      label: "payment-claim-each",
+      text:
+        "As docs/design/new-commands.md section 6 first listed it: `payment claim [<payment>]`, with `--request-key`, " +
+        "one escrow or all, and WRONG_STATE for one its sender already took back.",
     },
     {
       label: "auto-approval",
@@ -605,31 +612,29 @@ export const decision_accounts_collect_any_time = defineDecision({
     },
     { label: "setup-again", text: "Run the setup process again on demand: setup is one process per Safe and ends at ready." },
   ],
-  chosen: "account-collect",
+  chosen: "payment-claim",
   why:
-    "'Whenever they want' needs a command, not a moment: the owner chooses when, and an approval is opened only when " +
-    "asked, so it never lapses unasked. Accounts already reads the escrows that pay a Safe and opens setup's collection " +
-    "(dependencies.accounts-payments), so the later collection is the same step behind its own rpc. It writes no row of " +
-    "accounts, and approvals.open answers the live approval of the same subject, so asking twice signs once. Each " +
-    "collection's PaymentSent settles its Payment for the payer and the person, as at setup. Only escrows holding their " +
-    "amount are offered, so none is signed into a revert. It is spelled by the grammar's rules, not as its page lists " +
-    "it: in the 215 `collect` is a payee taking money owed (`agreement collect`) and `claim` is taking up a Safe or a " +
-    "seat (`org board claim`, setup's claim), and G3 gives a verb one meaning; the escrow's function is `collect`. Its " +
-    "noun is the person's account, the singleton `account retry` and `account show` act on (G2; area accounts, SDK " +
-    "client.account). It takes no payment id (G5): before collection a claim escrow's Payment has no payee tenant, so " +
-    "the person can neither list nor get it. Accounts' rpc implements it, so accounts books it (G10). It takes `--json` " +
-    "and `--timeout-seconds` as payment send's flow does, and no `--request-key`: it births no command, and asking " +
-    "again answers the live approval, as `agreement collect` takes none. Its refusals are the 215's for the same " +
-    "cases: SMART_ACCOUNT_MISSING with no Safe (dev fund), a refused setup's WRONG_STATE or INVALID_INPUT (account " +
-    "retry), and payment send's SUPERSEDED, CANCELLED and TRANSACTION_FAILED. Its id collides with no frozen or new " +
-    "operation. For Aaron: which commands a capability gets is a pack question (rules.new-operations); this recommends " +
-    "`account collect` over the page's `payment claim` (its question 3 asks the same) and books it now.",
-  source: by("aaron.escrow-general; rules.new-operations; payments.claim-escrow-fit; docs/design/new-commands.md (G2, G3, G5, G10, section 6); books/target/accounts/processes.ts"),
-  affects: [
-    ops.operation_account_collect,
-    flow_client_account_collect,
-    rpc_accounts_setup_collect,
-    workflow_accounts_setup_personal_safe,
-    contract_escrow,
-  ],
+    "Aaron's ruling aaron.payment-claim (8 November 2026, night; docs/decisions/open-for-aaron.md question 38): 'I " +
+    "don't think it should be called collect. Claim, that's fine. Payment claim sounds fine. Payment cancel is fine.' " +
+    "It supersedes account-collect, which this record booked first and recommended over the grammar page's spelling " +
+    "because in the 215 `claim` takes up a Safe or a seat (`org board claim`, setup's claim) and G3 gives a verb one " +
+    "meaning. His words name only the command; this record now reads `claim` as taking up what is held for you, the " +
+    "money in its escrow among it, while `collect` stays the payee taking released money (`agreement collect`) and the escrow's function. Only " +
+    "the spelling moves: 'whenever they want' still needs a command, not a moment, so the owner chooses when, and an " +
+    "approval is opened only when asked and never lapses unasked. This concept keeps the rpc, the same step as setup's " +
+    "collection: it reads the person's own setup and the escrows that pay their Safe from indexing " +
+    "(dependencies.accounts-payments), writes no row of accounts, and approvals.open answers the live approval of the " +
+    "same subject, so asking twice signs once. Each collection's PaymentSent settles its Payment for both sides, as at " +
+    "setup. The command's noun is now the money's, so payments books it (payments.claim-command), its flow calling " +
+    "this rpc, since payments depends on accounts. It still takes no payment id (G5): before collection a " +
+    "claim escrow's Payment has no payee tenant, so the person can neither list nor get it, which rules out " +
+    "payment-claim-each. It takes `--json` and `--timeout-seconds` and no `--request-key`: it births no command, and " +
+    "asking again answers the live approval, as `agreement collect` takes none. Its refusals are the 215's for the " +
+    "same cases: SMART_ACCOUNT_MISSING with no Safe (dev fund), a refused setup's WRONG_STATE or INVALID_INPUT " +
+    "(account retry), and payment send's SUPERSEDED, CANCELLED and TRANSACTION_FAILED.",
+  source: by(
+    "aaron.payment-claim; aaron.escrow-general; payments.claim-command; docs/decisions/open-for-aaron.md (question 38); " +
+      "docs/design/new-commands.md (G3, G5, G10, section 6); books/target/accounts/processes.ts",
+  ),
+  affects: [rpc_accounts_setup_collect, workflow_accounts_setup_personal_safe, contract_escrow, concept_payments],
 });

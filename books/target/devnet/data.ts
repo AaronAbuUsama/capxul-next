@@ -3,8 +3,11 @@
 // `devnet` schema, which only the devnet build of the backend migrates (decision devnet.own-schema),
 // so devnet-only data never enters the production schema. They sit inside the same Postgres server,
 // so a world's snapshot carries them with the concepts' tables: a restored world brings back its mail,
-// its armed faults, its scripted gates, its scripted rates, its stand-in FDE host (decision devnet.fde-host-stand-in) and its stand-in Frappe heads (their
-// documents, their own users' edits and their fault switches; decision devnet.head-stand-in).
+// its armed faults, its scripted gates, its scripted rates, its stand-in FDE host (decision devnet.fde-host-stand-in), its stand-in Frappe heads (their
+// documents, their own users' edits and their fault switches; decision devnet.head-stand-in) and its
+// stand-in WhatsApp (its numbers and every message; decision devnet.whatsapp-stand-in). A shared
+// world (decision devnet.shared-world) runs the devnet build, so it has these tables too: its mail
+// and its WhatsApp never leave it (aaron.world-clock, time.world-channels).
 //
 // No table here has a lifecycle, so devnet has no state machine and sends no event (decision
 // devnet.no-machines). Notices' delivery records are notices' (`dev mail notices` reads them there);
@@ -28,7 +31,7 @@ const DEVNET_ONLY = "Devnet only: in the `devnet` schema, which staging and prod
 
 export const table_mail_messages = defineTable({
   id: "mail-messages",
-  title: "Mail messages: every email Capxul sent on this devnet",
+  title: "Mail messages: every email Capxul sent or received on this devnet",
   about:
     "The mail sink. On a devnet the `mail` integration's fake keeps each message here instead of sending it: a notice's " +
     "email, an invitation, a sign-in code (access sends that inside its own rpc). One row per accepted send: the address " +
@@ -36,6 +39,12 @@ export const table_mail_messages = defineTable({
     "sent. A send that repeats an idempotency key keeps the first message and answers its id, as Resend does. A send that " +
     "an armed fault refuses keeps nothing. `dev mail list` reads it, and so does `dev approve`, for the sign-in code of the " +
     "person it plays; evals read invitation links and codes here. The HTML body is not kept: the text carries every link. " +
+    "A connected bench's own email comes here too: the Capxul app's mail hook hands each message its Email Queue sends " +
+    "to the supervisor, which keeps it with template `head:<site>` and the queue row and recipient as its idempotency " +
+    "key (devnet.head-follows-world). The sink holds both directions (devnet.mail-sink): a CRM mailbox's send keeps " +
+    "its From name, Reply-To and threading headers, and `capxul-devnet mail receive` keeps an inbound email (`in`) at " +
+    "the world's now with a Message-ID of its own, then posts its signed `email.received` event to the CRM's mail " +
+    "route, its `received_for` naming each CRM mailbox among --to, --cc and --bcc; the fake's getReceived reads it here. `dev mail list` and `dev approve` read only `out`. " +
     DEVNET_ONLY,
   was: [`${ASIS}:50`, `${OP}/tables.ts:21`, `${OP}/outboxes/writes.ts:58`, "packages/backend/src/integrations/mail/service.ts:171"],
   concept: concept_devnet,
@@ -43,8 +52,16 @@ export const table_mail_messages = defineTable({
   fields: Schema.Struct({
     /** `mail_` and a ULID of the backend time it was sent. */
     mail_id: S,
+    /** `out`: a message Capxul sent; `in`: one `capxul-devnet mail receive` delivered to a CRM mailbox. */
+    direction: Schema.Literals(["out", "in"]),
     to: S,
+    /** The sender as the message carries it, with its name: `Dan Cole at Acme Ltd <acme@crm.devnet.test>`. */
     from: S,
+    reply_to: Schema.NullOr(S),
+    /** The message's own Message-ID header: the sender's (a CRM mailbox gives Capxul's), else one the sink makes. */
+    message_id: S,
+    in_reply_to: Schema.NullOr(S),
+    references: Schema.Array(S),
     subject: S,
     template: S,
     text: S,
@@ -182,7 +199,10 @@ export const table_head_sites = defineTable({
     "call is PROVIDER_ERROR), `key-refused` (401: ROLE_PERMISSION_DENIED), `conflict` (the next `upsertDocs` answers " +
     "its first document in conflict, as a head user's edit Capxul had not read would), `refuse` (the next document is " +
     "refused, as a Frappe validation would), `replay` (the next `listChanges` answers again from an earlier cursor, as " +
-    "a head that lost its place would), or `clear`. `last_change` is the site's change counter. " +
+    "a head that lost its place would), `drop-answer` (the next family write is applied, then its answer held back " +
+    "once, as a lost reply would be), or `clear`. It answers the document family's `docRead` and `docWrite` over its " +
+    "head-documents with Frappe's docstatus rules and its fixture metas (devnet.world-pass-worlds), keeping each applied " +
+    "call id and its answer in `applied_calls` for a day of the world's clock. `last_change` is the site's change counter. " +
     DEVNET_ONLY,
   was: ["books/target/shared/external.ts (frappe-head fake)", "docs/design/frappe/projects-and-startup.md (section 4)"],
   concept: concept_devnet,
@@ -202,7 +222,9 @@ export const table_head_sites = defineTable({
     time_zone: S,
     company_currency: S,
     installed_apps: Schema.Array(S),
-    fault: Schema.Literals(["none", "down", "key-refused", "conflict", "refuse", "replay"]),
+    fault: Schema.Literals(["none", "down", "key-refused", "conflict", "refuse", "replay", "drop-answer"]),
+    /** The document family's applied call ids and the answer each got, kept a world day: a retry answers the same. */
+    applied_calls: Schema.Array(Schema.Struct({ call_id: S, answer: Schema.Unknown, at: Instant })),
     last_change: Int,
     created_at: Instant,
     updated_at: Instant,
@@ -258,7 +280,7 @@ export const table_head_changes = defineTable({
     `${HEAD} records each edit its scripted user makes as one row, in the site's change order: the DocType, the head ` +
     "name and `capxul_id`, what was done (insert, update, submit, cancel, amend), the fields it set, the Capxul " +
     "version it was based on (an older one makes a conflict Capxul resolves), the head user (a mailbox, matched to a " +
-    "member or not) and the instant on the one clock. `capxul-devnet head edit <org> <doctype> <capxul_id or new> " +
+    "member or not) and the instant on the one clock. `capxul-devnet head edit <org> <doctype> <capxul_id, head name or new> " +
     "[field=value…] [--submit|--cancel|--amend] [--as <mailbox>] [--based-on <version>]` writes the document and its " +
     "row in one transaction, then rings the site's doorbell (`organizations.heads.ring`, signed with its ring secret), " +
     "as the Capxul app does after a change commits; `--no-ring` leaves the ring out, for the daily catch-up. " +
@@ -296,8 +318,11 @@ export const table_fde_host_agents = defineTable({
     "it made for it, kept here and never returned to the backend but its address, its state (provisioned, running, " +
     "paused, retired), and its turns as scripted replies: a message's turn ends as it is posted, with the FDE's " +
     "scripted reply, so the first `turn` read finds it ended and an eval reads a fixed answer on a frozen clock, with " +
-    "no stop to wait for. `capxul-devnet fde run <org> -- <command>` runs a Capxul command as the FDE, signed with its " +
-    "key, as the hosted FDE's own tool would. `capxul-devnet fault fde-host <mode>` arms its switch: `down` (every call " +
+    "no stop to wait for. Each turn keeps the asker and the act-for token its `send` carried. `capxul-devnet fde run <org> " +
+    "[--ask <askId>] -- <command>` runs a Capxul command as the FDE, signed with its key, as the hosted FDE's own tool " +
+    "would: with `--ask`, under that ask's turn's act-for token, which the stand-in keeps after the turn ends so an eval " +
+    "sees Capxul, not the host, stop honouring it; without, with no token, so the FDE acts as itself and every guard " +
+    "refuses it (devnet.world-pass-worlds). `capxul-devnet fault fde-host <mode>` arms its switch: `down` (every call " +
     "is PROVIDER_ERROR), `hold` (new turns stay working until cleared, then end with their reply) or `clear`. It joins " +
     "the clock as a follower with no next due, idle always (a held turn counts as idle, as every armed hold does). " +
     DEVNET_ONLY,
@@ -312,7 +337,16 @@ export const table_fde_host_agents = defineTable({
     signer_address: S,
     state: Schema.Literals(["provisioned", "running", "paused", "retired"]),
     /** Turns asked, by turn id: ended with its reply at once, or working while `hold` is armed. */
-    turns: Schema.Array(Schema.Struct({ turn_id: S, status: Schema.Literals(["working", "ended", "failed"]), reply: Schema.NullOr(S) })),
+    turns: Schema.Array(
+      Schema.Struct({
+        turn_id: S,
+        status: Schema.Literals(["working", "ended", "failed"]),
+        reply: Schema.NullOr(S),
+        /** The ask the turn answers and its act-for token, as `send` carried them (devnet keys only). */
+        ask_id: Schema.NullOr(S),
+        act_for_token: Schema.NullOr(S),
+      }),
+    ),
     fault: Schema.Literals(["none", "down", "hold"]),
     created_at: Instant,
     updated_at: Instant,
@@ -320,4 +354,107 @@ export const table_fde_host_agents = defineTable({
   key: ["agent_id"],
   indexes: [{ name: "by_org", fields: ["org_id"], for: "`capxul-devnet fde run <org>`: the Organization's stand-in FDE." }],
   retention: "Kept for the world's life; a restore puts back the stand-in FDE the world had, with its key.",
+});
+
+// ── the stand-in WhatsApp (devnet.whatsapp-stand-in) ────────────────────────────────────────
+
+const WHATSAPP =
+  "The stand-in WhatsApp (an imitation of Meta's WhatsApp Cloud API, served by the supervisor on loopback, or behind a " +
+  "shared world's gateway)";
+
+export const table_whatsapp_numbers = defineTable({
+  id: "whatsapp-numbers",
+  title: "WhatsApp numbers: each business number the stand-in serves, and its fault switch",
+  about:
+    `${WHATSAPP} keeps one row per business number it serves: Meta's phone number id, the number shown (E.164), the ` +
+    "business account, the Organization it was made for, the access token it accepts and the app secret it signs its " +
+    "webhooks with (devnet values, kept as given), the webhook it posts to (Capxul's own route, or a connected head's " +
+    "WhatsApp app at `whatsapp.whatsapp.webhook.handler`, whichever the world points it at) and its fault switch. " +
+    "`capxul-devnet whatsapp number add <org> [--webhook <url>]` makes one, the next number from +447700900100 up, and " +
+    "writes its key file, `<org>-whatsapp.json` in the working directory (number id, business id, token, app secret, " +
+    "verify token), in the form a Capxul command or a head's WA Settings reads; `whatsapp number webhook <number> " +
+    "<url>` points it at a route after the GET handshake. Each number's account holds Meta's sample template " +
+    "`hello_world` (en_US, approved) and every template made through it. The stand-in's address is " +
+    "the deployment's WHATSAPP_API_URL, which Frappe's WhatsApp app takes as its `whatsapp_api_url`. `capxul-devnet " +
+    "fault whatsapp <mode>` arms the switch: `down` (every call is PROVIDER_ERROR), `refuse` (the next send is refused " +
+    "as Meta refuses a number outside its window) or `clear`. " +
+    DEVNET_ONLY,
+  concept: concept_devnet,
+  tenancy: "global",
+  fields: Schema.Struct({
+    phone_number_id: S,
+    display_number: S,
+    business_account_id: S,
+    org_id: Schema.NullOr(S),
+    access_token: S,
+    app_secret: S,
+    verify_token: S,
+    webhook_url: Schema.NullOr(S),
+    /** Whether an app subscribed to the business account (`subscribed_apps`); webhooks are posted only once one has. */
+    app_subscribed: Schema.Boolean,
+    /** The business account's message templates: `hello_world` (en_US) from the start, then each one made, approved at once. */
+    templates: Schema.Array(
+      Schema.Struct({
+        template_id: S,
+        name: S,
+        language: S,
+        category: S,
+        status: Schema.Literals(["APPROVED"]),
+        components: Schema.Array(Schema.Record(S, Schema.Unknown)),
+      }),
+    ),
+    fault: Schema.Literals(["none", "down", "refuse"]),
+    created_at: Instant,
+    updated_at: Instant,
+  }),
+  key: ["phone_number_id"],
+  indexes: [{ name: "by_org", fields: ["org_id", "phone_number_id"], for: "`capxul-devnet whatsapp` commands that name an Organization: its numbers." }],
+  retention: "Kept for the world's life; `capxul-devnet whatsapp number remove` deletes a number and its messages.",
+});
+
+export const table_whatsapp_messages = defineTable({
+  id: "whatsapp-messages",
+  title: "WhatsApp messages: every message the stand-in carried, either way, on the clock",
+  about:
+    `${WHATSAPP} keeps every message, so nothing reaches a real phone: one sent to its messages route (text, template, ` +
+    "media or interactive, as the Cloud API takes it), answered with its `wamid` and followed at once by its `sent` and " +
+    "`delivered` status webhooks; and one received, which `capxul-devnet whatsapp receive <number> --from <E.164> " +
+    "[--name <profile name>] <text>` posts to the number's webhook as Meta does, signed with its app secret, the name " +
+    "as the webhook's contact profile. `capxul-devnet whatsapp read " +
+    "<wamid>` posts a `read` status. Every time is the world's now, and so is each webhook's `timestamp` (the payload " +
+    "on now; Meta's signature carries no time). A webhook its route does not answer 200 is kept with its attempts and " +
+    "redelivered on the world's clock after 1, 5 and 30 minutes, then every 6 hours for 7 days; the earliest is the " +
+    "stand-in's next due. A send an armed fault refuses keeps nothing. Evals read a message's " +
+    "text and status here, as they read the mail sink. " +
+    DEVNET_ONLY,
+  concept: concept_devnet,
+  tenancy: "global",
+  fields: Schema.Struct({
+    /** `wamid.` and a ULID of the instant it was sent or received. */
+    wamid: S,
+    phone_number_id: S,
+    direction: Schema.Literals(["out", "in"]),
+    /** The other party's number, E.164. */
+    counterpart: S,
+    kind: Schema.Literals(["text", "template", "media", "interactive"]),
+    /** The message object as the Cloud API carries it. */
+    body: Schema.Record(S, Schema.Unknown),
+    status: Schema.Literals(["sent", "delivered", "read", "received"]),
+    sent_at: Instant,
+    status_at: Instant,
+    /** This message's webhooks (the message itself, or a status) its route has not yet answered 200, each with its tries and next try. */
+    undelivered: Schema.Array(
+      Schema.Struct({ webhook: Schema.Literals(["message", "sent", "delivered", "read"]), attempts: Schema.Int, next_at: Instant }),
+    ),
+  }),
+  key: ["wamid"],
+  indexes: [
+    { name: "by_number_sent_at", fields: ["phone_number_id", "sent_at"], for: "A number's messages, newest first, as an eval or the stand-in's read lists them." },
+    {
+      name: "by_counterpart",
+      fields: ["phone_number_id", "counterpart", "sent_at"],
+      for: "One conversation: a number's messages with one counterpart, in order.",
+    },
+  ],
+  retention: "Kept for the world's life; a restore puts back the messages the world had when it was saved.",
 });

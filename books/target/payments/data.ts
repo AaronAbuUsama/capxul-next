@@ -71,8 +71,10 @@ export const Outcome = Schema.Literals([
  * hosting payment for the Organization's FDE (`org fde pay`, payments.fde-hosting-purchase): `quantity` its months.
  */
 export const PaymentSource = Schema.Struct({
-  kind: Schema.Literals(["salary-slip", "payroll-remittance", "seat-purchase", "fde-hosting"]),
+  /** `expense-claim` and `employee-advance`: payroll's HR money (payroll.hr-money), paid from the department's budget to the Employee. */
+  kind: Schema.Literals(["salary-slip", "payroll-remittance", "expense-claim", "employee-advance", "seat-purchase", "fde-hosting"]),
   id: S,
+  /** The run a slip or remittance belongs to; null for an expense claim, an advance and a purchase. */
   payroll_entry_id: Null(S),
   employee_id: Null(S),
   /** A seat purchase's seats (1 to 1,000), or a hosting payment's months (1 to 12); absent for a payroll source. */
@@ -551,7 +553,7 @@ export const invariant_payments_escrow_owner_any_time = defineInvariant({
   title: "The owner collects whenever it chooses, and nobody else can",
   about:
     "G4 and G5: an owner-collects escrow has no expiry; its owner collects once it can act (it has code and no longer " +
-    "lists the bootstrap owner among its owners, read failing closed), at setup or later with `account collect`. " +
+    "lists the bootstrap owner among its owners, read failing closed), at setup or later with `payment claim`. " +
     ESCROW_EVIDENCE + ".",
   statement:
     "While open and holding its amount, `collect` from the owner succeeds once the owner can act, at any time; from any other caller, or while Companies House is still among the owner's owners, it reverts and moves nothing.",

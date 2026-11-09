@@ -203,24 +203,25 @@ export const component_frappe_app = defineComponent({
   id: "frappe-app",
   title: "Capxul app for Frappe",
   about:
-    "The Frappe app Capxul publishes for a connected head (aaron.frappe-head): installed on the Organization's Frappe site " +
-    "with ERPNext, Frappe HR and Frappe CRM, it is the head's half of the `frappe-head` integration and the one seam, with " +
+    "The Frappe app Capxul publishes for a connected head (aaron.frappe-head): on the Organization's site with ERPNext, " +
+    "Frappe HR and Frappe CRM, it is the head's half of the `frappe-head` integration and the one seam, with " +
     "no fork. Its Custom Fields (organizations.frappe-app-fields): `capxul_id` and `capxul_version` on every synced " +
-    "DocType; `capxul_party`, the directory Party id, on Contact, CRM Organization, Customer, Supplier, Employee and a " +
-    "member's User, by which it finds or creates the document Capxul names; `capxul_hidden` on Contact and CRM " +
-    "Organization; and each app concept's own fields (payroll's on Salary Component, Salary Structure Assignment, " +
-    "Payroll Entry and Salary Slip). It makes the fields Capxul owns read-only and refuses edits to them in a `validate` " +
-    "hook, writes only the fields and child rows Capxul sends (never clearing one it does not hold), makes the link " +
-    "records a document names first, and copies a User's `capxul_party` onto the Contact Frappe makes or finds for it. It appends " +
-    "a row to its own change list, in the writing transaction, from each synced document's `on_change` event (a save, " +
-    "submit, cancel or `db_set`), and before answering `listChanges` adds a row for each document whose `modified` is " +
-    "later than its last row's, which catches `frappe.db.set_value`; a row names the document, read as it stands when " +
-    "listed. `listChanges` covers every synced DocType (the CRM's Contact, CRM Organization, CRM Lead and CRM Deal; " +
-    "projects', payroll's and the books'), the first time with every document the site already holds. It answers the " +
-    "whitelisted methods Capxul calls and rings Capxul's doorbell route (`organizations.heads.ring`) after a change: a " +
-    "signed ping that carries no data. It holds no Capxul key: Capxul reads it and writes to it. On a devnet it follows " +
-    "the one clock (devnet.followers): it sets `frappe.utils.now_datetime` to the devnet's now and runs Frappe's due " +
-    "scheduled jobs at each stop.",
+    "DocType; `capxul_party` on Contact, CRM Organization, Customer, Supplier, Employee and a member's User, by which it " +
+    "finds or creates the document Capxul names; `capxul_hidden` on Contact and CRM Organization; and each app " +
+    "concept's own. It makes Capxul's fields read-only (a `validate` hook), writes only the fields and rows Capxul " +
+    "sends, makes the link records a document names first, and copies a User's `capxul_party` onto its Contact. It " +
+    "appends a change row in the writing transaction from each synced document's `on_change`, and before answering " +
+    "`listChanges` one for each document whose `modified` is later than its last row's (catching " +
+    "`frappe.db.set_value`); `listChanges` covers every synced DocType, at first with all the site holds. It " +
+    "answers the whitelisted methods Capxul calls and rings Capxul's doorbell (`organizations.heads.ring`), a signed " +
+    "ping with no data, and holds no Capxul key. The document family's `docRead` and `docWrite` " +
+    "(organizations.doc-family) run each call as the matched User (`frappe.set_user`), once that User's Capxul-held " +
+    "roles match those the member's hats give at the call; they refuse native-module, money (ledger hooks, " +
+    "repost_allowed_doctypes, MONEY_MODULES, LEDGER_UNHOOKED) and child-table DocTypes with a reason, refuse a direct " +
+    "submit or cancel under an active Workflow, tell a Workflow's refusals apart, and keep applied call ids a day. In " +
+    "a world it follows the world's clock (devnet.head-follows-world): now_datetime's code reads the cached clock " +
+    "event, deciding host-clock reads are rebound, `bench capxul follow` runs due Scheduled Job Types at each stop, " +
+    "and override_email_send keeps the head's mail in the world.",
   runtime: "python (Frappe Framework v15)",
   exposes: ["http"],
   dependsOn: [],
@@ -348,7 +349,10 @@ export const concept_organizations = defineConcept({
     "list|add|remove`), its head connection (`org head connect|show|disconnect`) and its hosted FDE's hosting " +
     "(org-fdes, org-fde-payments, org-fde-asks; `org fde show|ask`), whose months move through its doors " +
     "`organizations.extend-fde-hosting` and `organizations.return-fde-hosting` when payments settles or reverses an " +
-    "`org fde pay`. It registers the Organization's Party at birth. " +
+    "`org fde pay`; any member, or a guest the management names (org-fde-guests; `org fde guest add|remove|list`), " +
+    "may ask its FDE, which acts only as its asker (aaron.fde-anyone). Its " +
+    "document family (`org doc`, `org doctype`, `org doc-call`; org-doc-calls) reaches what lives only on the head, as " +
+    "the member's own head User (aaron.sdk-reaches-everything). It registers the Organization's Party at birth. " +
     "Old organizations' identity, setups, lifecycles, members, roles and invitations; its Directors and proposals go to " +
     "board, its equity, rounds and votes to equity, its treasury reads to activity.",
   component: B,
@@ -465,7 +469,9 @@ export const concept_contacts = defineConcept({
   about:
     "The address book of whoever you act as, a person or an Organization: contacts by handle, email, address or Party, their " +
     "labels, and hide and unhide; and each Organization's CRM in Frappe CRM's shapes (aaron.crm-frappe-shape): contacts and " +
-    "organizations (with or without a Party), leads and deals, synced with a connected head. It sits above organizations " +
+    "organizations (with or without a Party), leads and deals, synced with a connected head, and their conversations on one " +
+    "timeline per record: email through the Organization's CRM mailbox, WhatsApp on its own number, calls, notes and " +
+    "tasks (contacts.conversations-shape). It sits above organizations " +
     "because an Organization's book needs its membership, and reads indexing because only the People hat's wearers edit " +
     "an Organization's book and CRM (contacts.members-write). A contact's bank accounts are banking's, so `contact get`, " +
     "which returns them, is banking's flow over this concept's read. Split from old parties.",
@@ -501,7 +507,10 @@ export const concept_payroll = defineConcept({
   about:
     "Frappe HR's payroll beside the v4 Agreements (payroll.scope, aaron.frappe-shape): Employees, Salary Components, " +
     "Salary Structures and their Assignments, Payroll Entries (runs) and Salary Slips, worked out by Capxul without a " +
-    "head and synced with a Frappe HR head once one is connected. A submitted run Capxul computed posts its accrual " +
+    "head and synced with a Frappe HR head once one is connected; and the HR that changes pay or moves money " +
+    "(payroll.hr-in-payroll): holidays, leave, shifts, check-ins and attendance, which feed a slip's payment days, and " +
+    "expense claims and advances, paid from a department's budget through `payments.prepare-command`. A submitted run " +
+    "Capxul computed posts its accrual " +
     "through books' `books.record-payroll-accrual`, and is paid as one payment command through " +
     "`payments.prepare-command` (purpose payroll), its slips following `payment_transitioned` to settled; neither payments " +
     "nor books depends on payroll. Pay agreements: salaries, streams and retainers offered from a budget, accepted by " +
@@ -613,7 +622,7 @@ export const concept_notices = defineConcept({
     "allowance assigned, a proposal waiting for a Director, a referral invite, a round invitation, money waiting in a " +
     "claim escrow with its reminders and its taking back, a payslip, a stalled head, a ready FDE), with templates, " +
     "recipients and delivery records (sent, retrying, failed). No other concept sends mail, except access' sign-in code, " +
-    "which is the operation itself. It owns no frozen operation: `dev mail notices` reads its delivery records from the " +
+    "which is the operation itself, and contacts' CRM conversations, which are their own command's (notices.mail-channel). It owns no frozen operation: `dev mail notices` reads its delivery records from the " +
     "devnet concept. The old notify actions of every concept and old operator's delivery records.",
   component: B,
   dependsOn: [
@@ -655,20 +664,27 @@ export const environment_devnet = defineEnvironment({
   title: "Devnet",
   about:
     "The whole stack on one machine from one command, for development and every machine eval. One per machine, on fixed " +
-    "loopback ports. Worlds are the supervisor's named snapshots of the chain, Postgres (both schemas) and Ponder together, " +
-    "restored in seconds. Devnet-only rpcs (the devnet concept) answer only here. Fakes: the mock paymaster, the mail sink, " +
-    "scripted prices and gates, Bridge's sandbox or a local stand-in.",
+    "loopback ports. A self-contained world (aaron.world-clock): one clock, the supervisor's, frozen or running at a rate " +
+    "(one to sixty world seconds a real second, decision devnet.clock-rate), which the chain, the backend, Ponder, the " +
+    "stand-ins and a connected head all follow, and nothing it sends leaves the machine (time.world-channels). Worlds are " +
+    "the supervisor's named snapshots of the chain, Postgres (both schemas) and Ponder together, with the clock, restored " +
+    "in seconds. Devnet-only rpcs (the devnet concept) answer only here and in a shared world. Fakes: the mock paymaster, " +
+    "the mail sink, the stand-in WhatsApp, the stand-in head and FDE host, scripted prices and gates, Bridge's sandbox or " +
+    "a local stand-in.",
   runs: [
     { component: component_chain, on: "Anvil forking Base Sepolia (84532) at a pinned block, 127.0.0.1:8545; Companies House deploys and verifies every v4 contract at `up`." },
     { component: component_postgres, on: "A real Postgres server from a pinned binary, on loopback, with the `app` and `ponder` schemas and row-level security on." },
-    { component: component_ponder, on: "Ponder on the same Postgres, polling the Anvil node every 500 ms." },
+    { component: component_ponder, on: "Ponder on the same Postgres, polling the Anvil node every 100 ms or subscribed to new heads, so a stop never waits half a second a block." },
     { component: component_bundler_paymaster, on: "alto on 127.0.0.1:4337 behind the mock paymaster on 127.0.0.1:4338, which sponsors every operation." },
     { component: component_backend, on: "The backend as one Node process on loopback, with the devnet integration layers (fakes) and devnet-only rpcs." },
     { component: component_core_sdk, on: "Inside the CLI, the MCP server and a local browser app on the same machine; its devnet entry reaches the supervisor." },
     { component: component_react_sdk, on: "A local browser app, for the approval page and browser-mode evals." },
     { component: component_cli, on: "On the same machine after `capxul use env devnet`, with the devnet's fixed test identities." },
     { component: component_mcp_server, on: "A local MCP server on loopback, for assistant evals." },
-    { component: component_devnet, on: "The supervisor process and its owner-only control socket; `capxul-devnet up`, `reset`, `down`." },
+    {
+      component: component_devnet,
+      on: "The supervisor: its time authority, capxul.devnet/1 on loopback with an owner-only handoff file beside its owner-only socket; `capxul-devnet up [--rate <n>]`, `reset`, `down`.",
+    },
     {
       component: component_frappe_app,
       on: "Imitated by the stand-in head (the `frappe-head` integration's fake); a head eval installs it on a local Frappe bench that follows the clock.",
@@ -694,6 +710,8 @@ export const environment_devnet = defineEnvironment({
     "FDE_HOSTING_PRICE",
     "CAPXUL_RECEIVING_SAFE",
     "FDE_HOST_URL",
+    "WHATSAPP_API_URL",
+    "CRM_MAIL_DOMAIN",
   ],
   secrets: [
     "SESSION_SIGNING_KEY",
@@ -710,10 +728,12 @@ export const environment_devnet = defineEnvironment({
     "SHIELD_SECRET_KEY",
     "SHIELD_ENCRYPTION_SHARE",
     "FDE_HOST_TOKEN",
+    "RESEND_WEBHOOK_SECRET",
   ],
   deploy:
     "`capxul-devnet up` boots everything in order (Postgres, Anvil, v4 through Companies House, Ponder, alto and the mock " +
-    "paymaster, the backend) and prints the environment for the CLI; `--json` for agents. `capxul-devnet world save|restore " +
+    "paymaster, the stand-ins, the backend) with the clock running at rate 1, or `--frozen`, `--rate <n>` and `--start-at " +
+    "<date>`, and prints the environment for the CLI; `--json` for agents. `capxul-devnet world save|restore " +
     "<name>` snapshots the chain, Postgres and Ponder's state together. The keys are fixed devnet values the supervisor " +
     "writes, funded on Anvil at boot; Bridge's sandbox key comes from the operator's store when a banking eval needs it, " +
     "otherwise the local Bridge stand-in runs. No Docker. Boot from a golden snapshot within 2 minutes (spec 40).",
@@ -728,7 +748,10 @@ export const environment_staging = defineEnvironment({
     "The new standing tier: merged code together on Base Sepolia, allowed to break, measured by the `live:*` evals. A fresh " +
     "Protocol v4 deployment through Companies House; nothing is migrated from old staging (P9), which keeps running until " +
     "Aaron turns it off. The host is chosen at the spine (Y3). It runs the backend, one managed Postgres with Ponder on it, " +
-    "the AA gateway and the MCP server; the CLI and the SDKs are published packages.",
+    "the AA gateway and the MCP server; the CLI and the SDKs are published packages. A world on the real clock (time.worlds): " +
+    "now is its hosts' clock, at rate 1, never moved, because Base Sepolia's time is not Capxul's. It is self-contained by " +
+    "its channels (time.world-channels): its mail goes only to the mailboxes MAIL_ALLOWED_RECIPIENTS lists, its WhatsApp " +
+    "only from the test numbers WHATSAPP_ALLOWED_NUMBERS lists to their registered recipients, and its FDEs and heads run on their hosts' clocks.",
   runs: [
     { component: component_chain, on: "Base Sepolia (84532), through the configured node list, with a fresh v4 deployment." },
     { component: component_postgres, on: "One managed Postgres on the spine's host, `app` and `ponder` schemas, row-level security on, point-in-time recovery." },
@@ -763,6 +786,10 @@ export const environment_staging = defineEnvironment({
     "FDE_HOSTING_PRICE",
     "CAPXUL_RECEIVING_SAFE",
     "FDE_HOST_URL",
+    "WHATSAPP_API_URL",
+    "MAIL_ALLOWED_RECIPIENTS",
+    "WHATSAPP_ALLOWED_NUMBERS",
+    "CRM_MAIL_DOMAIN",
   ],
   secrets: [
     "DATABASE_URL",
@@ -778,6 +805,7 @@ export const environment_staging = defineEnvironment({
     "BRIDGE_API_KEY",
     "BRIDGE_WEBHOOK_PUBLIC_KEY",
     "RESEND_API_KEY",
+    "RESEND_WEBHOOK_SECRET",
     "CONNECTOR_GATEWAY_TOKEN",
     "OPENFORT_PUBLISHABLE_KEY",
     "SHIELD_PUBLISHABLE_KEY",
@@ -792,6 +820,90 @@ export const environment_staging = defineEnvironment({
     "entry is committed before the first deploy. Secrets come from the operator's store at deploy; the PostHog key stays " +
     "in the connector gateway.",
   was: ["docs/runbooks/environments.md:3", "docs/decisions/README.md"],
+});
+
+export const environment_shared_world = defineEnvironment({
+  id: "shared-world",
+  title: "Shared world",
+  about:
+    "A devnet's whole stack run on a host for several people, so one story can be shared (aaron.world-clock; decision " +
+    "devnet.shared-world): one chain, one backend, one clock (frozen, or running at a rate: up to four world hours each " +
+    "real hour at rate 4), one mail sink and one set of stand-ins. Its owner starts it and controls its clock; anyone else " +
+    "joins only by a grant the owner makes for their email, over HTTPS at the world's address. Self-contained: everything " +
+    "in it follows its clock, and nothing it sends leaves it (time.world-channels). It runs the devnet build of the " +
+    "backend, so devnet-only rpcs answer here too, behind the world's gateway, each by the grant's role.",
+  runs: [
+    { component: component_chain, on: "Anvil forking Base Sepolia (84532) at a pinned block on the world's host, mined only by its supervisor at the world's now; reached only through the gateway." },
+    { component: component_postgres, on: "A real Postgres server on the world's host, with the `app`, `ponder` and `devnet` schemas and row-level security on." },
+    { component: component_ponder, on: "Ponder on the same Postgres, polling the world's Anvil every 100 ms or subscribed to new heads." },
+    { component: component_bundler_paymaster, on: "The devnet's bundler stand-in behind the mock paymaster, on the world's host, both following its clock." },
+    { component: component_backend, on: "The devnet build of the backend on the world's host, behind the world's gateway (HTTPS), which admits a request only with a world grant." },
+    { component: component_core_sdk, on: "Inside each joiner's CLI and MCP server, pointed at the world by CAPXUL_BOOTSTRAP_URL and carrying the joiner's grant." },
+    { component: component_react_sdk, on: "The world's web app, served behind its gateway, for the approval page and browser use." },
+    { component: component_cli, on: "On each joiner's machine, with CAPXUL_BOOTSTRAP_URL set to the world's address and CAPXUL_WORLD_GRANT to the joiner's grant file; its CLI home stays there." },
+    { component: component_mcp_server, on: "An MCP server on the world's host, behind the gateway." },
+    {
+      component: component_devnet,
+      on: "The world's supervisor: its time authority and capxul.devnet/1 over HTTPS at the world's address, each request answered by its grant's role.",
+    },
+    {
+      component: component_frappe_app,
+      on: "Imitated by the stand-in head, or installed on a real Frappe bench that follows the world's clock over HTTPS with a follower grant.",
+    },
+  ],
+  config: [
+    "CAPXUL_ENV",
+    "DATABASE_URL",
+    "CHAIN_ID",
+    "BASE_SEPOLIA_RPC_URLS",
+    "BUNDLER_RPC_URL",
+    "PROTOCOL_V4_DEPLOYMENT",
+    "COMPANIES_HOUSE_NAMESPACE",
+    "PONDER_SCHEMA",
+    "PONDER_START_BLOCK",
+    "SITE_URL",
+    "TRUSTED_ORIGINS",
+    "SENDER_EMAIL",
+    "BRIDGE_URL",
+    "OTLP_ENDPOINT",
+    "DEVNET_CONTROL_SOCKET",
+    "SEAT_PRICE",
+    "FDE_HOSTING_PRICE",
+    "CAPXUL_RECEIVING_SAFE",
+    "FDE_HOST_URL",
+    "WHATSAPP_API_URL",
+    "WORLD_URL",
+    "CRM_MAIL_DOMAIN",
+  ],
+  secrets: [
+    "SESSION_SIGNING_KEY",
+    "RECORD_ENCRYPTION_KEY",
+    "COMPANIES_HOUSE_CLAIM_KEY",
+    "COMPANIES_HOUSE_TIER_KEY",
+    "BUDGETS_EXECUTOR_KEY",
+    "ESCROW_RELAYER_KEY",
+    "FAUCET_KEY",
+    "BRIDGE_API_KEY",
+    "BRIDGE_WEBHOOK_PUBLIC_KEY",
+    "OPENFORT_PUBLISHABLE_KEY",
+    "SHIELD_PUBLISHABLE_KEY",
+    "SHIELD_SECRET_KEY",
+    "SHIELD_ENCRYPTION_SHARE",
+    "FDE_HOST_TOKEN",
+    "WORLD_GRANT_KEY",
+    "RESEND_WEBHOOK_SECRET",
+  ],
+  deploy:
+    "`capxul-devnet up --shared <name> --public <host> [--rate <n>] [--frozen]` on the world's host boots the devnet's " +
+    "stack as `up` does, then serves the world's gateway at the host's HTTPS address, writes the owner's grant and prints " +
+    "the world's bootstrap address. `capxul-devnet world grant <email>` writes a joiner's grant file (its holder, its " +
+    "mailboxes and their dev signers' keys, never the seed), which the owner hands over outside the world, `world " +
+    "grant --follower <name>` a follower's, and `world revoke <email|name>` ends one at the gateway. Worlds are saved " +
+    "and restored as on a devnet; the grants stay on the host outside the snapshots, so a restore changes no one's " +
+    "access. The keys are devnet values the supervisor writes; WORLD_GRANT_KEY signs the grants. Bridge runs only as the local stand-in, never Bridge's " +
+    "sandbox, which keeps its own real clock outside the world. The host is the owner's to choose; nothing in staging or " +
+    "production depends on it.",
+  bootMs: 120_000,
 });
 
 // ── which concept designs each frozen operation ─────────────────────────────────────────────

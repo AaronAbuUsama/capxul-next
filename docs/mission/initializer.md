@@ -59,7 +59,9 @@ The system is built on the decisions in `docs/decisions/README.md`:
 - the Core SDK owning every flow and all signing;
 - the CLI calling one SDK method per command;
 - one clock for the whole system, block time included, driven from outside on a devnet
-  (`docs/design/time.md`).
+  (`docs/design/time.md`): each world's clock is frozen or running at a rate of 1 to 60 world seconds a
+  real second (`dev time set --rate`, `devnet.clock-rate`), and every outside channel is its world's
+  (mail, WhatsApp, a connected head, the FDE's host: `aaron.world-clock`, `time.world-channels`, section 7).
 
 ## Capxul is designed around Frappe
 
@@ -75,24 +77,36 @@ Aaron's rulings of 8 November 2026 (`books/target/shared/rulings.ts`) put Frappe
     Payment and GL Entries, fed by a gap-free per-organization feed of facts
     (`docs/design/frappe/accounting.md`);
   - payroll, in Frappe HR's shapes, with each payslip carrying its on-chain proof
-    (`docs/design/frappe/payroll.md`);
+    (`docs/design/frappe/payroll.md`), and the HR that changes pay or moves money: holidays, leave,
+    shifts, check-ins and attendance feeding payment days, expense claims and advances paid from a
+    department's budget (`payroll.hr-in-payroll`, `docs/design/new-commands.md` section 5.9);
   - contacts, the CRM in Frappe CRM's shapes: contacts, organizations, leads and deals
-    (`docs/design/frappe/crm.md`);
+    (`docs/design/frappe/crm.md`), with every conversation on one timeline per record: email through
+    the Organization's CRM mailbox, WhatsApp on its own number, calls, notes and tasks
+    (`contacts.conversations-shape`, section 5.8);
   - projects, a new concept: projects, tasks and timesheets (`docs/design/frappe/projects-and-startup.md`).
 
   Accounting and payroll sync with a head at the bare minimum. Other Frappe apps are added at
   start-up or later by the organization's FDE.
 - **Every organization has a Forward Deployed Engineer**, an AI agent the organization owns. It is
-  created at start-up and acts through the same CLI and SDK as every other agent (`aaron.fde-agent`).
-  It starts with no hat and is never a Director (`agents.fde-authority`).
+  created at start-up, hosted by Capxul (`aaron.fde-hosted`), and acts through the same CLI and SDK as
+  every other agent (`aaron.fde-agent`). Any member, or a guest the management names, may ask it, and
+  it acts only as its asker, with their Seat and hats, handing every signature to them
+  (`aaron.fde-anyone`, `organizations.fde-for-the-asker`, `rules.fde-acts-for-asker`). It wears no hat
+  and is never a Director (`agents.fde-authority`).
 - **The head itself is a separate build.** This build makes Capxul head-ready: its tables, its
   change feed, its doorbell route and its sync. It proves them against the devnet's head stand-in.
+  What lives only on a head is reached through the document family over the Core SDK and the CLI
+  (`org doc`, `org doctype`, `org doc-call`), as the member's own head User, never a native or a money
+  DocType (`aaron.sdk-reaches-everything`, `organizations.doc-family`, section 5.7).
 - **Where it leads.** Capxul sits inside a larger agentic ERP on stablecoins (`docs/vision/erp.md`),
   and the one clock must drive all of it.
 
-New capabilities beyond the 215 (the CRM, projects, Frappe-shaped payroll) are booked under the
-rule `rules.new-operations`: a new operation carries a decision citing the ruling it serves, and
-acceptance claims of its own.
+New capabilities beyond the 215 are booked under the rule `rules.new-operations`: a new operation
+carries a decision citing the ruling it serves, and acceptance claims of its own. 165 are booked, each
+listed once in `docs/design/new-commands.md`: projects 35; the CRM 14 and its conversations 13;
+payroll 28 and HR 45; apps, the head and the FDE 8, the FDE's guests and turns 4 and the document family
+12; buying from Capxul 3; `org timesheet bill`, `payment claim` and `dev time set`.
 
 ## Start from the kit
 
@@ -175,13 +189,13 @@ template's copy.
 
 | | |
 |---|---|
-| Records | 2,637 in the target book: 23 concepts, 215 operations (none yet beyond them), 13 journeys, 118 tables, 61 state machines, 97 durable processes, 252 rpcs, 177 Core SDK flows, 18 procedures and 878 decision records |
-| Derived evals | 5,224, including 720 acceptance claims, 726 refusals, 13 journeys and 13 funnels, 41 row-policy clauses and 94 wake routes |
+| Records | 3,255 in the target book: 23 concepts, 380 operations (the 215 and 165 beyond them), 13 journeys, 147 tables, 75 state machines, 108 durable processes, 375 rpcs, 213 Core SDK flows, 20 procedures and 1,005 decision records |
+| Derived evals | 8,027, including 1,074 acceptance claims, 1,489 refusals, 13 journeys and 13 funnels, 56 row-policy clauses and 104 wake routes |
 | Problems | 0, with the target rules on |
-| Kept behaviour | `check-frozen` reports 0 breaches. All 215 operations are booked once each, and none beyond them yet. Of the 733 acceptance claims, 547 are kept word for word, and 173 rewritten and 13 retired, each with a decision. Of the 705 old refusals, 691 are still refused under their code, and 14 are named by a decision. |
-| Gaps | 83, listed below, each known and owned |
+| Kept behaviour | `check-frozen` reports 0 breaches. All 215 operations are booked once each. Of the 733 acceptance claims, 547 are kept word for word, and 173 rewritten and 13 retired, each with a decision. Of the 705 old refusals, 691 are still refused under their code, and 14 are named by a decision. Its line on the new: "165 operations beyond the 215, with 354 acceptance claims", each serving an Aaron ruling. |
+| Gaps | 79, listed below, each known and owned |
 
-The 83 gaps, and who closes them:
+The 79 gaps, and who closes them:
 
 | Gap | Count | What it is | Who closes it |
 |---|---|---|---|
@@ -190,9 +204,10 @@ The 83 gaps, and who closes them:
 | `uncalled-function` | 12 | Hats Elections and the Installer's calls, which wait for the board's seat groups; `budgets.setHat`; `governor.castVote`; the vesting grant calls | Board and equity (low priority) |
 | `refusal-without-world` | 8 | Refusals no devnet world can reach yet: `dev.fund` WRONG_ENVIRONMENT, `invite.list` and `org.invite.list` WRONG_STATE, `org.books.assets.list`, `address` and `balance` INVALID_INPUT, and `org.round.create` and `org.round.close` CONSENT_MISSING. Each is recorded by its concept. | Devnet, at B2, when it builds the worlds |
 | `unused-call` | 3 | PostHog capture and telemetry export (the outbox relay, `rules.outbox`), and `chain-rpc.getTransactionReceipt` | The runtime, at B3 |
-| `unwritten-table` | 4 | Devnet's `mail-messages`, which the mail sink writes, and `head-sites`, `head-documents` and `head-changes`, which the stand-in head writes (`devnet.head-stand-in`), not the backend | Devnet |
-| `undriven-transition` | 4 | `org-app.remove`, `org-app.want_again`, `org-head.connect` and `org-head.disconnect`: the app and head commands of the pack `organizations.commands` | The new commands' pass (`rules.new-operations`) |
-| `uninvoked-procedure` | 3 | `organizations.add-bought-seats` and `organizations.return-bought-seats`, which a seat purchase's settlement invokes (`organizations.buy-seats`), and `projects.bill-time`, which `timesheet bill` invokes (`requests.bill-time`) | The new commands' pass: payments books `org seats buy`, requests books `timesheet bill` |
+| `unwritten-table` | 7 | Devnet's tables that its stand-ins write, not the backend: `mail-messages` (the mail sink), `head-sites`, `head-documents` and `head-changes` (the stand-in head, `devnet.head-stand-in`), `fde-host-agents` (the stand-in FDE host) and `whatsapp-numbers` and `whatsapp-messages` (the stand-in WhatsApp, `devnet.whatsapp-stand-in`) | Devnet |
+
+The commands pass closed the 4 `undriven-transition` and 3 `uninvoked-procedure` gaps by booking the app, head,
+seat and billing commands.
 
 Open items outside the gaps, each with its owner:
 - **B0 spike:** prove wake routing by the waits' keys (`rules.process-wakeups`). 30 signal links (26 distinct
@@ -227,7 +242,7 @@ Each milestone ends with its exit check passing and its state committed. T0 come
 | B0 | **Spike: durable execution** in `spikes/durable-execution/`: Effect Workflow and Cluster on Postgres, using the throwaway Postgres in `HANDOFF.md`. Prove that: a process killed mid-run resumes; a signal resumes a waiting instance; a timer fires. Prove that an activity retried after a crash has its side effect land once: activities are at least once in every engine, so prove it with an idempotency key or a claim-before-call row, as the book's design does. Then route a chain event and a `withdraw` transition, by their routing keys, to the same waiting instance (`rules.process-wakeups`; the approvals design depends on it). A stand-in table for Ponder's indexed rows is enough here. Record how the runtime learns of a new indexed row, and where the key-to-instance map lives, as decision records. Also prove the time behaviour of `docs/design/time.md` §6: a router timer (`Timers.until`) fires once at its due instant, also across a kill; with a frozen clock nothing fires, and setting now past three timers fires them in due order; a body that branched on a step's `StepTime` takes the same branch on replay; a cron row runs once per stop; idle detection works for the warp barrier; measure the engine-native timer path and record the choice; and check the pinned Anvil's timestamp rules. | All pass, and the decisions are recorded. Otherwise a decision record chooses the fallback (DBOS on Postgres), and the book is updated. |
 | B1 | **Generators** in `packages/generate`. First, book first, design each operation's CLI flags in the book: add the field to the operation schema with a decision record, then design the flags as one consistent system (names, short forms, shared flags such as `--org` and `--json`) and map each onto its flow's or rpc's input. `books/frozen/flags.ts` is reference only. Then generate, from the records: SQL migrations with tenant-first keys and row-level security (P8, with each table's declared exceptions); Effect Schema types; the `RpcGroup` and the server router stubs; the Core SDK client and flow skeletons; workflow skeletons with their waits and wake registrations; the CLI wiring from each operation's designed command and flags; the error catalogue (code, class, message, exit code); each machine's transition table; integration timeouts and retries; the telemetry catalogue (one `<machine>_transitioned` event per machine, plus runtime spans); the eval catalogue. The clock layer too (`docs/design/time.md` §6): `RequestTime` per rpc in the router, `StepTime` per step and `Timers.until` per timer wait in the workflow skeletons, the cron table rows, and `now` on every answer. Nobody edits generated files by hand. | `packages/generate` regenerates every `src/generated/` folder with no diff (`sys:generated`); `npx tsc -b` compiles every package; the migrations apply to an empty Postgres. |
 | B2 | **Eval harness** (`docs/spec/30-capxul-evals.md`), within 2,000 lines, started from the kit's `packages/evals`. Its worlds are devnet snapshots: the worlds the records name, built by the devnet concept's design. It drives the real CLI as the client, uses a local OTLP collector, and outputs `RunResult[]`. The eval devnet boots at the eval epoch with its clock frozen; the world builder warps and settles around each step, and the harness never sleeps for product time (`docs/design/time.md`). The old system is not a baseline: when an eval's intent is unclear, read the old code for the behaviour. | The catalogue runs end to end against the spine as it grows, and every eval id in `evals.json` has a runner or is listed as not yet runnable. |
-| B3 | **Spine and pilots.** The devnet: its time authority and the public `capxul.devnet/1` time protocol, grown from the kit's `dev-time/1` (`docs/design/time.md` §3: the supervisor is the only miner, running and frozen modes, the warp barrier, followers, an SDK client, and `capxul dev time` as a thin client), anvil with the v4 contracts built from `packages/contracts` (v4's Solidity at a pinned commit, plus the general escrow and Exits' terms builder: `payments.escrow-contract-build`), Postgres, Ponder, the backend, a mock bundler and paymaster, and the mail sink. The runtime: auth, SQL, chain and integration services, the workflow engine and tracing. Then the pilot operations end to end, copying the shape of the kit's ledger: sign in (access), set up an Account (accounts) and send a payment (payments), the operations the book marks critical. Delete the kit's ledger once the pilots pass. From the pilots' measured lines per operation, set each concept's line budget (`system.size`). | The pilots' evals pass within budget, and the line budgets are recorded. |
+| B3 | **Spine and pilots.** The devnet: its time authority and the public `capxul.devnet/1` time protocol, grown from the kit's `dev-time/1` (`docs/design/time.md` §3: the supervisor is the only miner, running and frozen modes, the warp barrier, followers, an SDK client, and `capxul dev time` as a thin client), anvil with the v4 contracts built from `packages/contracts` (v4's Solidity at a pinned commit, plus the general escrow and Exits' terms builder: `payments.escrow-contract-build`), Postgres, Ponder, the backend, a mock bundler and paymaster, the mail sink, and the stand-ins for the Frappe head, the FDE host and WhatsApp; the clock's rate and its running stops (`devnet.clock-rate`, `devnet.running-stops`). The runtime: auth, SQL, chain and integration services, the workflow engine and tracing. Then the pilot operations end to end, copying the shape of the kit's ledger: sign in (access), set up an Account (accounts) and send a payment (payments), the operations the book marks critical. Delete the kit's ledger once the pilots pass. From the pilots' measured lines per operation, set each concept's line budget (`system.size`). | The pilots' evals pass within budget, and the line budgets are recorded. |
 | B4 | **Concepts on the critical path.** Each concept is done when its operations' evals pass at the integration head. Build them in dependency layers (decision `system.build-order`), each concept's door before anything that depends on it, and within each concept its critical operations first. The layers: access; media; parties; indexing; approvals; accounts; organizations; then board's proposals and door, documents, contacts, applications and projects; budgets, agents and books; payments; payroll, banking and activity; requests; notices. Board's director and vote commands, and equity, come last. Make each operation's `doc:` eval pass on the portal, which exists from D0. | The scoreboard is green for every operation. |
 | B5 | **New staging.** Deploy, run the suite and watch the live evals for a week, with the drift watch on (`time.drift-watch`: chain lag and host skew alerts). | The live evals hold. Turning off the old staging is Aaron's step. |
 
@@ -284,16 +299,20 @@ operating text, given in full under "How you run the build" below.
   recommendation.
 - **The judgments flagged for him.** `docs/decisions/judgments.md` lists them under "For Aaron",
   after the rulings he has made ("Decided by Aaron"), the records his rulings superseded and the
-  recommendations he accepted. At handoff they are:
-  - the new staging (`environments.staging`);
-  - global tables (`rules.global-tenancy`);
-  - the size budget (`system.size`);
-  - branch protection (`tooling.branch-protection`);
-  - the swarm's accounts (`swarm.accounts`);
-  - the old board plumbing not ported (`board.dropped`);
-  - the Board's `failed` status (`board.failed-proposal`);
-  - `document render`'s rewritten claim (`documents.acceptance-rewrites`);
-  - the payment birth's transaction width (`payments.birth-width`).
+  recommendations he accepted. At handoff the questions are the world pass's, numbered 39 to 49 in
+  `docs/decisions/open-for-aaron.md`:
+  - the clock's rate and its command (`devnet.clock-rate`);
+  - who may join a shared world (`devnet.shared-world`);
+  - staging on the real clock (`time.worlds`);
+  - the document family's twelve commands (`organizations.doc-family`) and what counts as money
+    (`organizations.doc-reach`);
+  - the hosted FDE acting as its asker (`organizations.fde-for-the-asker`);
+  - the CRM's conversation commands (`contacts.conversation-commands`), the money on a timeline
+    (`contacts.timeline-money`) and attachments later (`contacts.attachments-later`);
+  - HR's 45 commands (`payroll.hr-commands`) and a department's sole hat wearer (`payroll.hr-approvers`).
+
+  The rest of that list carries out his eighth batch and asks him nothing; it leaves the list once
+  `books/target/shared/rulings.ts` names it in `CARRIES_OUT`.
 
   Each recorded choice stands, and you build to it, until he changes it. His change goes into the
   record first.

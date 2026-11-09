@@ -1607,3 +1607,39 @@ export const decision_books_head_setup = defineDecision({
   source: byAssembly(`accounting.md (the head connection); erpnext/setup/doctype/company/company.py:927, company.json; ${ERP}/accounts_settings/accounts_settings.json; hrms/setup.py:171`),
   affects: [workflow_books_head_sync, component_frappe_app, table_book_accounts, table_book_cost_centers, table_book_companies],
 });
+
+// ── the world pass's build (9 November 2026): payroll's HR money (payroll.hr-money) ─────────
+
+export const decision_books_hr_money = defineDecision({
+  id: "books.hr-money",
+  title: "An expense claim accrues at approval; claims and advances post as Frappe HR's do",
+  question:
+    "Payroll now pays expense claims and employee advances from a department's budget (payroll.hr-money). How do they " +
+    "reach the books, which read neither payroll nor payments?",
+  options: [
+    {
+      label: "door-and-against",
+      text:
+        "Approving a claim invokes `books.record-payroll-accrual` (action `expense_claim`): each line's sanctioned " +
+        "amount debited to its Expense Claim Type's account (null: the default expense account), each advance it takes " +
+        "credited to Employee Advances (a receivable, Frappe's default_employee_advance_account, line role `advance`, " +
+        "reference the Employee Advance), and the grand total credited to the payable, party the Employee, reference the " +
+        "Expense Claim, on the approval's day, with its `accrual_posted` fact; cancelling it (`expense_claim_cancel`) " +
+        "records `accrual_cancelled`. A settled Payment posts by the `against` payroll gives its item: a claim's, Dr the " +
+        "payable (reference the Expense Claim) and Cr the paying Safe's account; an advance's, Dr Employee Advances " +
+        "(reference the Employee Advance) and Cr the Safe's account. A run's advance-recovery deduction credits Employee " +
+        "Advances (reference the Employee Advance).",
+    },
+    { label: "review", text: "Every HR payment waits in review for a Books-hat wearer, as unclassified money does." },
+  ],
+  chosen: "door-and-against",
+  why:
+    "It is how Frappe HR posts them: an Expense Claim's make_gl_entries debits each expense and credits the payable, " +
+    "less the advances it allocates, and an Employee Advance's payment debits the advance account; so a head that " +
+    "connects later rebuilds the same ledger. The accrual and its claim are one money fact in payroll's transaction, " +
+    "as a run's are (books.payroll-accrual), and the settlement already names its source through `against` " +
+    "(books.payroll-postings), so books learns no HR table. Review would leave every claim unbooked until someone " +
+    "classified it, which Frappe never asks.",
+  source: "Claude, world pass build, 9 November 2026; evidence: payroll.hr-money; hrms expense_claim.py (make_gl_entries); employee_advance.py; payroll_entry.py:481 (add_advance_deduction_entry)",
+  affects: [procedure_books_record_payroll_accrual, concept_books],
+});

@@ -170,7 +170,7 @@ export const workflow_projects_head_sync = defineWorkflow({
   idempotency:
     "One process per head connection (`projects-head:<orgId>:<headId>`). A push is idempotent by version (the head " +
     "answers unchanged); a pulled change already applied, or one leaving every field Capxul holds as it was, is skipped.",
-  timeoutMs: 3650 * DAY,
+  timeoutMs: 60_000,
   retries: { max: 8, backoff: "exponential" },
   budget: budget("background"),
 });
@@ -217,7 +217,7 @@ export const workflow_projects_tasks_watch_due = defineWorkflow({
   calls: [],
   chain: [],
   idempotency: "One process per task (`task-due:<orgId>:<taskId>`); the transition is guarded by the status it moves from.",
-  timeoutMs: 3650 * DAY,
+  timeoutMs: 60_000,
   retries: { max: 5, backoff: "exponential" },
   budget: budget("background"),
   was: ["/tmp/erpnext/erpnext/projects/doctype/task/task.py:532", "/tmp/erpnext/erpnext/hooks.py:552"],

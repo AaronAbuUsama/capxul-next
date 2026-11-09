@@ -2,7 +2,8 @@
 // a person's own Safe is set up. Both follow accounts' transitions through the outbox; accounts sends
 // no mail (accounts.door, accounts.admission-paths). An admission that an Organization's invitation
 // carried sends no welcome: the invitation email is the welcome (procedures.accounts-admit); nor does
-// one that waiting money carried: the money-waiting email is (accounts.money-waiting-admits). The old
+// one that waiting money carried: the money-waiting email is (accounts.money-waiting-admits); nor does
+// one an FDE guest's naming carried: the guest-named email is (organizations.fde-guests). The old
 // "you're on the list" email is not ported with the hold that sent it (accounts.admission-paths).
 
 import { table_principals } from "../access/data.ts";
@@ -19,8 +20,8 @@ const WELCOME_STEPS = [
   {
     name: "admission",
     about:
-      "Reads the admission: its mailbox and who admitted it. One admitted `invitation:<org>` or `escrow:<payment>` stops " +
-      "here with no notice; `operator`, `referral` and `reward` go on.",
+      "Reads the admission: its mailbox and who admitted it. One admitted `invitation:<org>`, `escrow:<payment>` or " +
+      "`fde-guest:<org>` stops here with no notice; `operator`, `referral` and `reward` go on.",
   },
   {
     name: "facts",
@@ -35,7 +36,8 @@ const WELCOME_ABOUT =
   "invited them; an operator's admission and a waiting referrer's reward send it without a name. An admission an " +
   "Organization's invitation carried sends nothing (its invitation email is the welcome, and `org member invite` " +
   "admits 'with no second welcome email'), and neither does one that money waiting in a claim escrow carried: the " +
-  "money-waiting email is its welcome (accounts.money-waiting-admits). A referral rewarded with an invite sends " +
+  "money-waiting email is its welcome (accounts.money-waiting-admits), nor one an FDE guest's naming carried, whose " +
+  "guest-named email is (organizations.fde-guests). A referral rewarded with an invite sends " +
   "nothing, as before.";
 
 export const workflow_notices_accounts_welcome = noticeWorkflow({

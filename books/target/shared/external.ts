@@ -298,30 +298,160 @@ export const integration_bridge = defineIntegration({
 
 export const integration_mail = defineIntegration({
   id: "mail",
-  title: "Email through Resend",
+  title: "Email through Resend, out and in",
   about:
-    "Transactional email, behind the Effect service `Mail`. Notices' workflows send every notice, and retry durably (three " +
-    "tries, a minute then four apart); access sends the sign-in code inside its own rpc. The call itself never retries: a " +
-    "retry belongs to the workflow, which records each attempt.",
+    "Email, behind the Effect service `Mail`, both ways. Out: notices' workflows send every notice from SENDER_EMAIL and " +
+    "retry durably (three tries, a minute then four apart); access sends the sign-in code inside its own rpc; and each " +
+    "Organization's CRM sends its conversations from its own CRM mailbox, `<handle>@<CRM_MAIL_DOMAIN>`, with Capxul's " +
+    "own Message-ID so replies thread (contacts.crm-mailbox). The send call itself never retries: a retry belongs to " +
+    "its caller, under the same idempotency key. In: CRM_MAIL_DOMAIN's mail is received by Resend, which posts a signed " +
+    "event (Svix: id, timestamp and signature headers, checked with RESEND_WEBHOOK_SECRET against real time, " +
+    "time.real-elapsed) to the CRM's mail route for each email received (`email.received`: its id, the addresses on " +
+    "the domain it was received for, a BCC'd one included, and its headers' metadata, never its body), and for each " +
+    "sent email's delivery, bounce or complaint; the CRM then reads the received email by its id (`getReceived`). In " +
+    "its world (time.world-channels): " +
+    "on a devnet and in a shared world nothing reaches Resend, and the fake below holds both directions; on staging " +
+    "Resend sends only to the mailboxes MAIL_ALLOWED_RECIPIENTS lists (any other recipient is refused before the call, " +
+    "as Resend refuses one: INVALID_INPUT) and receives only for staging's CRM_MAIL_DOMAIN; production's is real.",
   component: component_backend,
   system: "resend",
   service: "Mail",
   calls: {
     send: {
-      about: "Sends one message to one recipient with an idempotency key from the notice; returns the provider's message id.",
+      about:
+        "Sends one message from the address given (SENDER_EMAIL, or a CRM mailbox with the sender's name) to its " +
+        "recipients, with its Reply-To and threading headers (Message-ID, In-Reply-To, References), under the caller's " +
+        "idempotency key; returns the provider's message id.",
       timeoutMs: 10_000,
       retries: { max: 0, backoff: "none" },
       p95Ms: 2_000,
       failures: [
         unavailable("Resend"),
-        { when: "Resend refused the recipient address", error: error_INVALID_INPUT },
+        { when: "Resend refused a recipient address, or staging's MAIL_ALLOWED_RECIPIENTS does not list it", error: error_INVALID_INPUT },
         { when: "Resend answered 429", error: error_RATE_LIMITED },
       ],
     },
+    getReceived: {
+      about:
+        "Reads one email Resend received, by the id its event named: from, to, cc, subject, Date, Message-ID, " +
+        "In-Reply-To and References, the text and HTML bodies, and each attachment's name, type and size.",
+      timeoutMs: 5_000,
+      retries: { max: 2, backoff: "exponential" },
+      p95Ms: 1_500,
+      failures: [
+        unavailable("Resend"),
+        { when: "Resend holds no received email of that id (an event Resend did not sign, or one deleted since)", error: error_INVALID_INPUT },
+        { when: "Resend answered 429 and the retries ran out", error: error_RATE_LIMITED },
+        unusable("Resend"),
+      ],
+    },
   },
-  fake: "The devnet's mail sink (devnet's tables): every message is kept and nothing is sent; `dev mail fail` makes the next sends refuse.",
-  secrets: ["RESEND_API_KEY"],
-  was: [`${OLD}/mail/service.ts:125`, `${OLD}/mail/notices.ts:17`],
+  fake:
+    "The devnet's mail sink (devnet's tables), on a devnet and in a shared world: every message sent is kept and nothing " +
+    "is sent; `dev mail fail` makes the next sends refuse. In: `capxul-devnet mail receive` keeps an inbound email in the " +
+    "sink, dated at the world's now, and posts its signed event to the CRM's mail route as Resend does; `getReceived` " +
+    "reads it from the sink, its `received_for` naming every CRM mailbox it was received for, a BCC'd one included. " +
+    "A connected real head's own email (its notifications and reports) reaches the sink through the supervisor's " +
+    "`POST /v1/mail` on its follower grant, as a sent message (devnet.head-follows-world). Delivery events: a sink send " +
+    "is followed at once by its delivered event, unless a fault makes it bounce. It runs no spam filter and renders " +
+    "nothing.",
+  secrets: ["RESEND_API_KEY", "RESEND_WEBHOOK_SECRET"],
+  was: [`${OLD}/mail/service.ts:125`, `${OLD}/mail/notices.ts:17`, "github.com/frappe/frappe@1a7ea577:frappe/email/receive.py:697"],
+});
+
+// ── whatsapp ────────────────────────────────────────────────────────────────────────────────
+
+/** A Cloud API call on one Organization's own number, with the access token its WA account seals. */
+const metaUnavailable = unavailable("Meta's Cloud API");
+const metaThrottled = { when: "Meta answered 429 or its rate-limit codes (4, 80007, 130429) and the retries ran out", error: error_RATE_LIMITED } as const;
+const metaUnusable = unusable("Meta's Cloud API");
+
+export const integration_whatsapp = defineIntegration({
+  id: "whatsapp",
+  title: "WhatsApp through Meta's WhatsApp Business Cloud API",
+  about:
+    "WhatsApp for each Organization's CRM, behind the Effect service `WhatsApp`, on Meta's WhatsApp Business Cloud API " +
+    "(graph.facebook.com, version v23.0, as Frappe's WhatsApp app calls it) at the deployment's WHATSAPP_API_URL. An " +
+    "Organization connects its own Business number (aaron.world-clock; contacts.whatsapp-connect): every call carries " +
+    "that number's phone number id and the access token its WA account seals, so no deployment secret is Meta's. Out: " +
+    "a call per message. In: once the app is subscribed to the number's WhatsApp Business Account, Meta posts signed " +
+    "webhooks (X-Hub-Signature-256, the HMAC of the body with the account's app secret) to the callback set for that " +
+    "app, the CRM's route for the account, for each message received and each status of one sent (sent, delivered, " +
+    "read, failed), and redelivers one not answered 200 for up to 7 days; the GET handshake answers `hub.challenge` " +
+    "for the account's verify token. In its " +
+    "world (time.world-channels): on a devnet and in a shared world WHATSAPP_API_URL is the stand-in WhatsApp, and " +
+    "nothing reaches Meta or a phone; on staging Meta's test number, which sends only to the recipients registered with " +
+    "it (any other is refused: INVALID_INPUT); production's is real.",
+  component: component_backend,
+  system: "meta",
+  service: "WhatsApp",
+  calls: {
+    readNumber: {
+      about:
+        "Reads the account's number as Meta holds it (display number, verified name, quality rating) with its token: " +
+        "proof that the token reaches the number, at connect and in the account's daily check.",
+      timeoutMs: 5_000,
+      retries: { max: 2, backoff: "exponential" },
+      p95Ms: 1_500,
+      failures: [
+        metaUnavailable,
+        { when: "Meta refused the access token (401, code 190) or the number id names no number it reaches (code 100)", error: error_INVALID_INPUT },
+        metaThrottled,
+        metaUnusable,
+      ],
+    },
+    subscribeApp: {
+      about:
+        "Subscribes the token's app to the account's WhatsApp Business Account (`POST /<business_id>/subscribed_apps`, " +
+        "as the WhatsApp app's `subscribe_webhook` does), without which Meta sends that account's webhooks to no app; " +
+        "idempotent, at connect.",
+      timeoutMs: 5_000,
+      retries: { max: 2, backoff: "exponential" },
+      p95Ms: 1_500,
+      failures: [
+        metaUnavailable,
+        { when: "Meta refused the token (401, code 190; or code 200, a token without whatsapp_business_management) or the business id (code 100)", error: error_INVALID_INPUT },
+        metaThrottled,
+        metaUnusable,
+      ],
+    },
+    sendMessage: {
+      about:
+        "Sends one message from the account's number to one E.164 number (a text, a reply with its context, or an " +
+        "approved template with its language and parameters); answers its wamid. Meta takes no idempotency key.",
+      timeoutMs: 10_000,
+      retries: { max: 0, backoff: "none" },
+      p95Ms: 2_000,
+      failures: [
+        metaUnavailable,
+        { when: "Outside the 24-hour customer service window a free-form message is refused (code 131047): a template must go", error: error_WRONG_STATE },
+        { when: "Meta refused the account's token (401, code 190): the account must be connected again", error: error_WRONG_STATE },
+        {
+          when: "Meta refused the recipient (131026, 131030: not on WhatsApp, or not a registered test recipient) or the template (132000, 132001)",
+          error: error_INVALID_INPUT,
+        },
+        metaThrottled,
+        metaUnusable,
+      ],
+    },
+  },
+  fake:
+    "The devnet's stand-in WhatsApp (devnet.whatsapp-stand-in), on a devnet and in a shared world: the supervisor " +
+    "serves the Cloud API's routes at WHATSAPP_API_URL on devnet's whatsapp-numbers and whatsapp-messages; " +
+    "`capxul-devnet whatsapp number add <org>` makes a number and the key file `org crm whatsapp connect` reads; a send " +
+    "is answered with its wamid and followed at once by its sent and delivered webhooks, `whatsapp receive` posts an " +
+    "inbound message and `whatsapp read` a read status, each signed with the number's app secret and dated at the " +
+    "world's now, and redelivered while the route does not answer 200, as Meta does; it takes the app's subscription " +
+    "to the number's business account and serves `readNumber`; it judges Meta's rules on the world's now, so a " +
+    "free-form send outside the 24-hour window is refused 131047 and a template it does not hold 132001; its fault " +
+    "switch has down, refuse (the next send, as outside the window) and clear. It holds Meta's sample template " +
+    "`hello_world` (en_US) for every number, approved at once, renders no template and holds no media.",
+  secrets: [],
+  was: [
+    "github.com/frappe/whatsapp@59bf368:whatsapp/whatsapp/api/whatsapp.py:10",
+    "github.com/frappe/whatsapp@59bf368:whatsapp/whatsapp/webhook.py:30",
+    "github.com/frappe/whatsapp@59bf368:whatsapp/whatsapp/doctype/wa_account/wa_account.py:144",
+  ],
 });
 
 // ── openfort (the person's signer, in the Core SDK) ─────────────────────────────────────────
@@ -505,7 +635,8 @@ export const integration_service_signer = defineIntegration({
 const CONTROL = { retries: { max: 0, backoff: "none" } } as const;
 const controlFailures = [
   {
-    when: "This machine runs no devnet: there is no control handoff (the supervisor's address and token), or it is not this user's",
+    when:
+      "This machine runs no devnet (no control handoff: the supervisor's address and token, or not this user's), or a shared world's address was given no grant, or a revoked one",
     error: error_WRONG_ENVIRONMENT,
   },
   { when: "The supervisor did not answer in time", error: error_PROVIDER_ERROR },
@@ -517,8 +648,13 @@ const unsettled = {
 } as const;
 /** One move of the clock runs at a time (decision devnet.warp-barrier); reads and watches always answer. */
 const busy = {
-  when: "Another move of the clock (a warp, step, settle, start-at, freeze or resume) is running; the refusal names it",
+  when: "Another move of the clock (a warp, step, settle, start-at, freeze, resume or rate change) is running; the refusal names it",
   error: error_WRONG_STATE,
+} as const;
+/** In a shared world only its owner moves the clock or saves and restores the world; only the owner or a follower grant follows it (decision devnet.shared-world). */
+const ownerOnly = {
+  when: "In a shared world the grant may not do this: only the owner's grant moves the clock and saves or restores the world, and only the owner's or a follower grant follows it",
+  error: error_ROLE_PERMISSION_DENIED,
 } as const;
 /** A clock call is local and immediate: one read or one state change of the time authority. */
 const CLOCK_CALL = { timeoutMs: 2_000, ...CONTROL, p95Ms: 100 } as const;
@@ -532,12 +668,15 @@ export const integration_devnet_control = defineIntegration({
   about:
     "The devnet supervisor's public control protocol, `capxul.devnet/1`: HTTP JSON on loopback, with the bearer token " +
     "the supervisor writes to an owner-only handoff file, and the same requests on its owner-only Unix socket without " +
-    "one. Its time part is the one clock's interface for people building on Capxul (decision devnet.time-protocol): read " +
-    "now, start the story at a date, warp, step, settle, freeze and resume, watch the clock's events and follow it as a " +
-    "follower the barrier waits for. Its world part saves, lists and restores named worlds (the chain, Postgres and " +
-    "Ponder together, with the clock). The Core SDK's Node-only devnet entry is its typed client, behind the Effect " +
-    "service `DevnetControl`; the CLI's `dev time` and `dev snapshot` commands and the supervisor's own `capxul-devnet " +
-    "time` commands are thin clients of it, and an outside program may speak the HTTP directly. Only devnet records use it.",
+    "one; for a shared world, HTTPS at the world's address with a world grant as the bearer token, answered by the " +
+    "grant's role (decision devnet.shared-world). Its time part is the one clock's interface for people building on " +
+    "Capxul (decision devnet.time-protocol): read now, start the story at a date, warp, step, settle, freeze and resume, " +
+    "set the rate a running clock runs at (decision devnet.clock-rate), watch the clock's events and follow it as a " +
+    "follower the barrier and the running stops wait for. Its world part saves, lists and restores named worlds (the " +
+    "chain, Postgres and Ponder together, with the clock). The Core SDK's Node-only devnet entry is its typed client, " +
+    "behind the Effect service `DevnetControl`; the CLI's `dev time` and `dev snapshot` commands and the supervisor's " +
+    "own `capxul-devnet time` commands are thin clients of it, and an outside program may speak the HTTP directly. Only " +
+    "devnet records use it.",
   component: component_core_sdk,
   system: "capxul-devnet supervisor",
   service: "DevnetControl",
@@ -551,10 +690,11 @@ export const integration_devnet_control = defineIntegration({
         ...controlFailures,
         { when: "A world has that name and `replace` was not asked", error: error_WRONG_STATE },
         { when: "The name is not lowercase letters, digits and hyphens, up to 40 characters", error: error_INVALID_INPUT },
+        ownerOnly,
       ],
     },
     snapshotRestore: {
-      about: "Restores a named world, its clock frozen at the world's now during the restore, then in the mode it was saved in.",
+      about: "Restores a named world, its clock frozen at the world's now during the restore, then in the mode and at the rate it was saved with.",
       timeoutMs: 60_000,
       ...CONTROL,
       p95Ms: 10_000,
@@ -562,15 +702,30 @@ export const integration_devnet_control = defineIntegration({
         ...controlFailures,
         { when: "No world has that name; the refusal lists the worlds saved here", error: error_INVALID_INPUT },
         { when: "The world was saved with other backend code, so its data may not match it", error: error_WRONG_STATE },
+        ownerOnly,
       ],
     },
     snapshotList: { about: "The saved worlds, newest first.", timeoutMs: 2_000, ...CONTROL, p95Ms: 100, failures: [...controlFailures] },
     timeRead: {
       about:
-        "GET /v1/time: the clock (now and its realAt, mode, version, world epoch, whether it moved), the chain head, the " +
-        "backend's now, Ponder's position, each follower's acknowledged version and next due instant, and whether they agree.",
+        "GET /v1/time: the clock (now and its realAt, mode, rate, next stop, version, world epoch, whether it moved, and " +
+        "the authority's real time as it answered), the chain head, the backend's now, Ponder's position, each " +
+        "follower's acknowledged version and next due instant, and whether they agree.",
       ...CLOCK_CALL,
       failures: [...controlFailures],
+    },
+    timeRate: {
+      about:
+        "POST /v1/time/rate {rate}: sets the seconds of world time that pass in each real second while the clock runs, a " +
+        "whole number from 1 to 60. A running clock runs on at it from now; a frozen one keeps it for when it runs. It " +
+        "moves nothing back and mines nothing (decision devnet.clock-rate).",
+      ...CLOCK_CALL,
+      failures: [
+        ...controlFailures,
+        { when: "The rate is not a whole number from 1 to 60; the refusal names the range", error: error_INVALID_INPUT },
+        busy,
+        ownerOnly,
+      ],
     },
     timeWarp: {
       about:
@@ -579,7 +734,7 @@ export const integration_devnet_control = defineIntegration({
         "caller goes away stops at its next settled stop.",
       ...BARRIER,
       p95Ms: 5_000,
-      failures: [...controlFailures, { when: "The target is not later than now", error: error_INVALID_INPUT }, busy, unsettled],
+      failures: [...controlFailures, { when: "The target is not later than now", error: error_INVALID_INPUT }, busy, unsettled, ownerOnly],
     },
     timeStartAt: {
       about: "POST /v1/time/start-at: sets a fresh world's story at an earlier instant, mines a block there and settles.",
@@ -591,44 +746,48 @@ export const integration_devnet_control = defineIntegration({
         { when: "The date is not earlier than now", error: error_INVALID_INPUT },
         { when: "The clock already moved: the world is not fresh, or another move of the clock is running", error: error_WRONG_STATE },
         unsettled,
+        ownerOnly,
       ],
     },
     timeStep: {
       about: "POST /v1/time/step: moves now to the next instant anything is due (a timer, a cron run, a follower's next due), not past a limit, and settles.",
       ...BARRIER,
       p95Ms: 3_000,
-      failures: [...controlFailures, { when: "The limit is not later than now", error: error_INVALID_INPUT }, busy, unsettled],
+      failures: [...controlFailures, { when: "The limit is not later than now", error: error_INVALID_INPUT }, busy, unsettled, ownerOnly],
     },
     timeSettle: {
       about: "POST /v1/time/settle: waits until everything due at now has run and every follower is idle, without moving now.",
       ...BARRIER,
       p95Ms: 2_000,
-      failures: [...controlFailures, busy, unsettled],
+      failures: [...controlFailures, busy, unsettled, ownerOnly],
     },
     timeFreeze: {
-      about: "POST /v1/time/freeze: holds now still, at the next whole second, until a warp, step or resume moves it.",
+      about: "POST /v1/time/freeze: holds now still, at the next whole second, until a warp, step or resume moves it; the rate is kept.",
       ...CLOCK_CALL,
-      failures: [...controlFailures, busy],
+      failures: [...controlFailures, busy, ownerOnly],
     },
     timeResume: {
-      about: "POST /v1/time/resume: lets now run on from where it stands, at the real rate.",
+      about: "POST /v1/time/resume: lets now run on from where it stands, at the clock's rate, through the running stops.",
       ...CLOCK_CALL,
-      failures: [...controlFailures, busy],
+      failures: [...controlFailures, busy, ownerOnly],
     },
     timeWatch: {
-      about: "GET /v1/time/events: the clock's events as server-sent events, each with its version, now and realAt, mode, world and reason.",
+      about:
+        "GET /v1/time/events: the clock's events as server-sent events, each with its version, now and realAt, mode, rate, " +
+        "next stop, world and reason. Any grant may watch.",
       ...CLOCK_CALL,
       failures: [...controlFailures],
     },
     timeFollow: {
       about:
-        "POST /v1/followers, then its event stream and its acknowledgements: a follower the barrier waits for at every " +
-        "stop, idle or busy, with its own next due instant, which the warp then stops at.",
+        "POST /v1/followers, then its event stream, its acknowledgements and its due reports (POST " +
+        "/v1/followers/<id>/due between events): a follower the barrier and the running stops wait for, idle or busy, " +
+        "with its own next due instant, which the clock then stops at.",
       ...CLOCK_CALL,
-      failures: [...controlFailures, { when: "A follower of that name is already following", error: error_WRONG_STATE }],
+      failures: [...controlFailures, { when: "A follower of that name is already following", error: error_WRONG_STATE }, ownerOnly],
     },
   },
-  fake: "None: it exists only on a devnet machine. Its conformance suite is the protocol's own, run against the supervisor.",
+  fake: "None: it exists only on a devnet machine or a shared world's host. Its conformance suite is the protocol's own, run against the supervisor.",
   secrets: [],
   was: ["packages/sdk/src/devnet/index.ts:5", "packages/protocol/src/devnet/control.ts:107", "packages/devnet/src/modules/guardian/standing-config.ts:20"],
 });
@@ -651,8 +810,12 @@ export const integration_fde_host = defineIntegration({
     "swarmD namespace, one persistent agent per Organization keyed `fde:<orgId>`, its conversation kept durable and " +
     "its tools run in a sandbox, behind the Effect service `FdeHost`, reached over HTTPS with the host token. The host " +
     "makes and keeps the FDE's key: Capxul only ever learns its address, which the install batch passes to " +
-    "`AgentOwner.create` with the company Safe as owner, so the Board owns the FDE and grants its hats. Every call is " +
-    "idempotent by the agent id, a send by its ask id too, so a retried step changes nothing twice.",
+    "`AgentOwner.create` with the company Safe as owner, so the Board owns the FDE. Hosted, it acts only as the asker " +
+    "of its turn (organizations.fde-for-the-asker): each send carries an act-for token the host gives the FDE's CLI for " +
+    "that turn alone. Every call is idempotent by the agent id, a send by its ask id too, so a retried step changes " +
+    "nothing twice. Its agents' timers are instants on the world's clock: a world that hosts real FDEs gets its own " +
+    "namespace, which follows that world's clock as one follower and fires them at its stops " +
+    "(devnet.fde-host-follows-world, time.world-channels).",
   component: component_backend,
   system: "swarmd",
   service: "FdeHost",
@@ -667,7 +830,10 @@ export const integration_fde_host = defineIntegration({
     resume: { about: "Resumes a paused agent once its hosting is paid again.", ...HOST_CALL, failures: [...hostFailures] },
     retire: { about: "Retires the runtime for good: the setup failed, the Board removed the agent, or its key moved off the host.", ...HOST_CALL, failures: [...hostFailures] },
     send: {
-      about: "Posts a message to the agent with its asker (their Seat and member id), and answers the new turn's id.",
+      about:
+        "Posts a message with its asker (a member id and Seat, or a guest id with their Party) and a fresh act-for token, " +
+        "which the host gives the FDE's CLI for that turn only, as an egress header, never in the sandbox, and drops " +
+        "when the turn ends; answers the new turn's id.",
       ...HOST_CALL,
       failures: [...hostFailures],
     },
@@ -682,8 +848,9 @@ export const integration_fde_host = defineIntegration({
   fake:
     "The devnet's stand-in host (devnet.fde-host-stand-in): the supervisor serves it on loopback and keeps its agents in " +
     "devnet's `fde-host-agents`. Keys come from the agent id, each turn ends with a scripted reply as it is posted, " +
-    "`capxul-devnet fde run <org> -- <command>` runs a command as the FDE, and its fault switch has down, hold (new " +
-    "turns stay working) and clear. It runs no model and no sandbox.",
+    "`capxul-devnet fde run <org> --ask <askId> -- <command>` runs a command as the FDE under that open ask's act-for " +
+    "token (devnet.world-pass-worlds), and its fault switch has down, hold (new turns stay working) and clear. It runs " +
+    "no model and no sandbox.",
   secrets: ["FDE_HOST_TOKEN"],
   was: ["books/target/organizations/decisions.ts (organizations.fde-host)", "/home/user/swarmd/docs/SPEC.md (B.15, B.16, B.19)"],
 });
@@ -709,10 +876,18 @@ export const integration_frappe_head = defineIntegration({
     "Capxul depends on one versioned contract, not on ERPNext's internals. Each concept that holds a fundamental app's " +
     "records syncs them itself: it pushes its changes in its own change order and pulls the head's, by the rules of " +
     "organizations.head-ownership. Dates cross in the Organization's time zone, which the head's System Settings must " +
-    "share; instants cross as UTC. Nothing that moves money goes through the head: a head asks for money only through " +
+    "share; instants cross as UTC, and the head's own now is the world's (organizations.head-clock, " +
+    "devnet.head-follows-world). Nothing that moves money goes through the head: a head asks for money only through " +
     "Capxul's commands. Installing an app is the head's host's: Frappe Cloud's site API when the head is hosted there, " +
     "with the Frappe Cloud team's own API token (a site's key cannot install apps), which the connection seals beside " +
-    "the site's key.",
+    "the site's key. The document family (organizations.doc-family) reaches the rest of the head through `docRead` and " +
+    "`docWrite`: each names the member's mailbox, member id, the roles their hats give at that call and org-apps' " +
+    "native modules; the Capxul app brings that User's Capxul-held roles to the set given and runs the call as the " +
+    "User under Frappe's permissions; it refuses a native module's DocType (naming the module), money (ledger hooks, " +
+    "repost_allowed_doctypes, MONEY_MODULES, LEDGER_UNHOOKED) and child tables (organizations.doc-reach); under an " +
+    "active Workflow it refuses a direct submit or cancel itself, since Frappe's server would let one skip the " +
+    "transitions, and tells apart a state allowing no action, a role the User lacks, a condition that refuses and a " +
+    "self-approval; and it keeps each applied call id and its answer for a day.",
   component: component_backend,
   system: "frappe",
   service: "FrappeHead",
@@ -769,15 +944,56 @@ export const integration_frappe_head = defineIntegration({
         headUnusable,
       ],
     },
+    docRead: {
+      about:
+        "The document family's reads (list, get, doctypes, doctype), by call id, run on the head as the member's own " +
+        "User (mailbox, member id and the roles their hats give now). Refusals (native, money, child, not permitted, a " +
+        "bad name or field) come back as answers with a reason, never as failures.",
+      timeoutMs: 5_000,
+      retries: { max: 2, backoff: "exponential" },
+      p95Ms: 2_000,
+      failures: [
+        headUnavailable,
+        headRefusedKey,
+        { when: "The site's Capxul app is older than the document family's methods (its method is missing)", error: error_WRONG_STATE },
+        headThrottled,
+        headUnusable,
+      ],
+    },
+    docWrite: {
+      about:
+        "The document family's writes (insert, save, submit, cancel, amend, a Workflow action, delete) as `docRead` runs " +
+        "them, idempotent by the call id: a retry answers what the first did, and completes a call Capxul logged " +
+        "refused because the head never answered (organizations.doc-log).",
+      timeoutMs: 10_000,
+      retries: { max: 2, backoff: "exponential" },
+      p95Ms: 2_500,
+      failures: [
+        headUnavailable,
+        headRefusedKey,
+        { when: "The site's Capxul app is older than the document family's methods (its method is missing)", error: error_WRONG_STATE },
+        headThrottled,
+        headUnusable,
+      ],
+    },
   },
   fake:
     "The devnet's stand-in head (devnet.head-stand-in): the supervisor serves it on loopback, speaking the Capxul app's " +
     "methods, and keeps its state in devnet's tables: sites (`head-sites`), documents by DocType and `capxul_id` " +
     "(`head-documents`) and its scripted edits as listChanges rows that ring `organizations.heads.ring` " +
-    "(`head-changes`). It installs an app at once when it stands in for a Frappe Cloud site, and answers `installApp` WRONG_STATE when self-hosted; it follows the one clock as a follower, and has a fault switch (down, " +
-    "key refused, conflict on the next write, refuse the next document, replay, clear). It runs none of Frappe's validations, reports or " +
-    "scheduled jobs. A head eval that needs real Frappe boots a bench with ERPNext, Frappe HR, Frappe CRM and the Capxul " +
-    "app instead, also as a follower.",
+    "(`head-changes`). It installs an app at once when it stands in for a Frappe Cloud site, and answers `installApp` " +
+    "WRONG_STATE when self-hosted; it serves `docRead` and `docWrite` over its documents with Frappe's docstatus rules, " +
+    "its fixture DocTypes' metas, role permissions and mandatory fields, their Workflows, the ledger hooks and the call " +
+    "ids it applied (devnet.world-pass-worlds); it follows the world's clock as a follower, and has a fault switch " +
+    "(down, key refused, conflict on the next write, refuse the next document, replay, drop-answer, clear). It runs none " +
+    "of Frappe's other validations, reports or scheduled jobs. A head eval that needs real Frappe boots a bench with " +
+    "ERPNext, Frappe HR, Frappe CRM and the Capxul app instead, which follows the world's clock through the app's hook " +
+    "(devnet.head-follows-world): Frappe's now_datetime has its code replaced, imported through before_request, " +
+    "before_job and an override of Scheduled Job Type, reading the world's clock event cached in Redis; the host-clock " +
+    "reads that decide something are rebound; `bench --site <site> capxul follow` runs the due Scheduled Job Types at " +
+    "each stop and enqueues them every world minute between; override_email_send hands the head's own email to the " +
+    "supervisor's `POST /v1/mail`, held to MAIL_ALLOWED_RECIPIENTS on staging; a bench following a shared world does so " +
+    "over HTTPS with a follower grant.",
   secrets: [],
   was: ["docs/vision/erp.md (sections 1, 5 and 7)"],
 });

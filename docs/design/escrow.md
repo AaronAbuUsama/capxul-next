@@ -33,7 +33,9 @@ The records are:
   `payments.escrow-on-funding`, `payments.department-authority` and `payments.escrow-contract-build` in
   `books/target/payments/decisions.ts`;
 - `budgets.claim-escrows` in `books/target/budgets/decisions.ts`;
-- `accounts.collect-any-time` in `books/target/accounts/decisions.ts`, which books `account collect`;
+- `accounts.collect-any-time` in `books/target/accounts/decisions.ts`, the owner's later collection, spelled
+  `payment claim` by `aaron.payment-claim`, and `payments.claim-command` in `books/target/payments/decisions.ts`,
+  which books `payment claim` over accounts' rpc `accounts.setup.collect`;
 - the six `payments.escrow-*` invariants in `books/target/payments/data.ts`.
 
 The sources, all read only, are in `/home/user/factory`:
@@ -154,10 +156,10 @@ Each property is checked twice:
 | G1 | **Counterfactual.** `predictAddress` is the address `deploy` returns. A second deploy returns the same escrow. Changing any term or the salt changes the address. | factory trees `deploy`, `predictAddress`, `predictPaymentId`; S3 | `inv:payments.escrow-counterfactual` |
 | G2 | **Fundable first.** Money sent to the address before `deploy` is the escrow's once it is deployed. Deploying moves nothing. A failed deploy strands nothing. | tree `deploy` (funded before) | `inv:payments.escrow-counterfactual`; `wfl:payments.lifecycle.payment/wake/escrowed` and `/wake/deployed` |
 | G3 | **Two ways out.** The token leaves only to the owner (`collect` or `payout`, plus a surplus with `ownerTakesSurplus`) or to the sender (`refund`, or a surplus). | invariant handler: every transfer's recipient is the owner or the sender (S4) | `inv:payments.escrow-two-ways-out` |
-| G4 | **The owner collects at any time.** While open and holding `amount`, the owner's `collect` succeeds once it can act, with no deadline. Any other caller is refused (`NotOwner`). | tree `collect`; no expiry leaf | `inv:payments.escrow-owner-any-time`; `acc:account.collect/1` |
+| G4 | **The owner collects at any time.** While open and holding `amount`, the owner's `collect` succeeds once it can act, with no deadline. Any other caller is refused (`NotOwner`). | tree `collect`; no expiry leaf | `inv:payments.escrow-owner-any-time`; `acc:payment.claim/1` |
 | G5 | **Can act, failing closed.** With a bootstrap owner set, `collect` reverts until the owner has code and answers `isOwner(bootstrapOwner)` with exactly `false`. | `collect` leaves for D11: no code, revert, 64 bytes, a word of 2 | `inv:payments.escrow-owner-any-time` |
 | G6 | **The sender takes it back until it is collected.** While an owner-collects escrow is open, `refund` by the sender, or by a caller the authority admits at that block, pays the sender the whole balance. That includes after the owner can act. Any other caller, or an authority that reverts or answers malformed, is refused. | tree `refund` (D12 leaf; authority true, false, revert, 64 bytes, a word of 2) | `inv:payments.escrow-sender-until-collected`; `ref:payment.cancel/ROLE_PERMISSION_DENIED`; `trn:payment.cancel` |
-| G7 | **One end.** At most one of `collect`, `payout` and the first state-changing `refund` succeeds. After `Paid` or `Refunded`, `collect` and `payout` revert, and `refund` moves only later deposits. | S1 | `inv:payments.escrow-two-ways-out`; `acc:account.collect/3`; `acc:payment.cancel/1`; `ref:payment.cancel/WRONG_STATE` |
+| G7 | **One end.** At most one of `collect`, `payout` and the first state-changing `refund` succeeds. After `Paid` or `Refunded`, `collect` and `payout` revert, and `refund` moves only later deposits. | S1 | `inv:payments.escrow-two-ways-out`; `acc:payment.claim/3`; `acc:payment.cancel/1`; `ref:payment.cancel/WRONG_STATE` |
 | G8 | **Empty after every call.** Each of `collect`, `payout` and `refund` leaves the escrow none of its token. | S2 | |
 | G9 | **A department's escrow follows its hat.** With authority Budgets and a budget id, a caller other than the sender may refund exactly when `Budgets.authorised(budgetId, caller)` holds at that block. A holder taken out of the hat is refused at once and the next wearer admitted, with no Capxul write in between. The money goes to the company Safe. | fork test against v4 Budgets and Hats | `inv:payments.escrow-department-now`; `acc:payment.retry/3` (the same rule for a retry) |
 | G10 | **Budgets is unchanged.** A budget's claim escrow is funded by `Budgets.spend`, or by `Budgets.schedule` paid by `execute`, to its address. Its refund leaves every budget's spent and `leftOf` as they were. The money's return shows only in the company Safe's balance. | fork test: `leftOf` before and after a refund | `inv:payments.escrow-budgets-unchanged` |
@@ -202,7 +204,7 @@ What happens next, on every Capxul payment route:
    email and its reminders, from the `escrow` transition. Every funder deploys the escrow in the funding's own batch,
    except for a budget's dated payment, whose funding the executor key sends: the process deploys that one with the
    relayer key as soon as the execute's receipt is in, with no wait (`payments.escrow-on-funding`). Until EscrowCreated
-   is indexed, setup and `account collect` cannot find the escrow, so the deploy never waits. The funding's
+   is indexed, setup and `payment claim` cannot find the escrow, so the deploy never waits. The funding's
    PaymentSent settles nothing and births no Payment (`payments.settlement.observe`), and books posts nothing while
    the money waits.
 2. **Collected at sign-up.** The person sets up their Safe. Companies House's claim role makes their signer its only
@@ -210,8 +212,9 @@ What happens next, on every Capxul payment route:
    that hold their amount. It opens one approval from the Safe calling `collect()` on each. The collection's
    PaymentSent (sender the escrow, recipient the Safe) settles the Payment for both sides, and books records it then.
 3. **Collected later.** An escrow that opens after setup (a dated payment paid after the person signed up), or one
-   the person declined or left at setup, is collected whenever they choose with `account collect`
-   (`accounts.collect-any-time`). It reads the same escrows and opens the same approval.
+   the person declined or left at setup, is claimed whenever they choose with `payment claim`
+   (`aaron.payment-claim`; `accounts.collect-any-time`, `payments.claim-command`). It reads the same escrows and
+   opens the same approval, through accounts' rpc `accounts.setup.collect`.
 4. **Taken back.** `payment cancel` prepares the refund by route (`payments.changes.cancel`). It reads `canRefund`.
    While the escrow has no code it reads the same rule from the terms: the caller is the sender, or `Budgets.authorised`
    admits it for a budget's. So a caller who may not is ROLE_PERMISSION_DENIED before anything is built. If the
@@ -255,7 +258,8 @@ These records were outside the escrow pass's folders. The commands pass's build 
     `safe-balances` counts money sent to an escrow's address before EscrowDeployed made it known.
 - **Notices.**
   - The money-waiting email follows `escrow`, which now fires on the funding's PaymentSent, not EscrowCreated.
-  - A mailbox whose person already has an account is told to run `capxul account collect`.
+  - A mailbox whose person already has an account is told to run `capxul payment claim` (it still names `capxul
+    account collect` until notices applies `aaron.payment-claim`).
   - The payer's notices about a department's escrow go to the budget's current wearers.
 - **Requests.** The invoice escrow's terms use the new roles: sender the payer's email Safe, owner the issuer's or the
   company Safe, condition amount-reached, no authority, no bootstrap owner. `payout()` is unchanged.
@@ -266,9 +270,9 @@ These records were outside the escrow pass's folders. The commands pass's build 
   - The text of `person-with-money-waiting` ("her Safe owns") reads "her Safe sent".
 - **Payroll.** Its text says the budget's current wearers or the Board take a new hire's escrow back.
 - **Equity.** Exits builds the new terms and sets `ownerTakesSurplus`.
-- **The command grammar page.** `docs/design/new-commands.md` now lists the booked `account collect` (accounts,
-  `client.account.collect`, `--json` and `--timeout-seconds`, no `--request-key`). Aaron's answer of 8 November,
-  night, spells it `payment claim`; that rename is to apply after the commands pass, book first.
+- **The command grammar page.** `docs/design/new-commands.md` lists the booked `payment claim` (payments,
+  `client.payments.claim`, `--json` and `--timeout-seconds`, no `--request-key`), spelled as Aaron ruled on 8
+  November, night (`aaron.payment-claim`); the world pass renamed `account collect` to it, book first.
 - **Shared and the goal prompt.** `packages/contracts` joins `system.layout` and B3. `component_chain` and the devnet
   name it as the source of the v4 deployment. The rulings file moves the rewritten records from SUPERSEDED to
   CARRIES_OUT.
@@ -279,9 +283,8 @@ These records were outside the escrow pass's folders. The commands pass's build 
   the beta (`aaron.claim-trust`).
 - **A frozen agent.** An agent that sent a payment cannot take its escrow back while it is frozen. The recipient can
   still collect.
-- **Which commands.** `account collect` is a new operation booked on its pack's recommendation. Which commands a
-  capability gets is Aaron's (`accounts.collect-any-time`, "For Aaron"). It is the capability
-  `docs/design/new-commands.md` lists as `payment claim` (section 6, question 3), respelled by that page's own rules:
-  `collect` is the 215's verb for a payee taking money owed (`agreement collect`) while `claim` takes up a Safe or a
-  seat (G3); the noun is the person's account, as in `account retry` (G2); it takes no payment id, since a waiting
-  Payment has no payee tenant (G5); and accounts' rpc implements it (G10).
+- **Which commands.** Answered: Aaron spelled the recipient's command `payment claim` (`aaron.payment-claim`), and
+  the sender's take-back stays `payment cancel`. `accounts.collect-any-time` now chooses it, and payments books it
+  (`payments.claim-command`): its noun is the money's (G2, G10), its flow `client.payments.claim` calls accounts'
+  rpc, and `claim` reads as taking up what is held for you (G3). It still takes no payment id, since a waiting
+  Payment has no payee tenant (G5), and keeps every claim, refusal and world of `account collect`.

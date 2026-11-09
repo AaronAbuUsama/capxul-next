@@ -2,7 +2,10 @@
 // the machine on a devnet: the `mail` integration's devnet fake keeps every message in the sink
 // (./data.ts) and spends the armed faults. These rpcs exist only in the devnet build of the backend,
 // which serves only loopback, so "anyone on the machine that runs the local devnet" is every caller
-// that reaches them (decision devnet.devnet-only-rpcs).
+// that reaches them (decision devnet.devnet-only-rpcs). A shared world runs the same build behind its
+// gateway, which admits a request only with a world grant: there the owner reads every message, and a
+// joiner only the mail to the mailboxes its grant names, so the world's mail stays inside it and its
+// people still read their own sign-in codes (decision devnet.shared-world).
 
 import { Schema } from "effect";
 import { budget, defineRpc } from "../../../packages/book/src/index.ts";
@@ -34,21 +37,28 @@ export const MailMessage = Schema.Struct({
 /** An armed fault: the address (`null` for any) and how many sends it still fails. */
 export const MailFault = Schema.Struct({ to: NullOr(S), remaining: Int });
 
-const ON_THE_MACHINE = "devnet only: anyone on the machine that runs the local devnet; no sign-in.";
+const ON_THE_MACHINE =
+  "devnet only: anyone on the machine that runs the local devnet; no sign-in. In a shared world, its owner's grant.";
+/** The mail reads: in a shared world a joiner reads only its own mailboxes' mail (decision devnet.shared-world). */
+const MAIL_READER =
+  "devnet only: anyone on the machine that runs the local devnet; no sign-in. In a shared world, its owner's grant, or a " +
+  "joiner's for the mailboxes the grant names.";
 
 export const rpc_devnet_mail_list = defineRpc({
   id: "devnet.mail.list",
   title: "The mail Capxul sent on this devnet, newest first",
   about:
-    "Reads the mail sink, newest first, 200 at most: to one address (trimmed and lowercased) with `to`, else to anyone. " +
+    "Reads the mail sink's sent mail (`out`; an inbound email `capxul-devnet mail receive` made is not listed), newest " +
+    "first, 200 at most: to one address (trimmed and lowercased) with `to`, else to anyone. " +
     "`template` and `limit` narrow it further inside the query, before the 200 are taken, so a filter never misses an " +
     "older match; `dev approve` asks for the newest `sign-in-code` message to the person it plays. Sign-in codes are shown " +
     "as sent: on a devnet the sink is how a developer, an eval or `dev approve` signs in. A `to` that is not an address " +
-    "is INVALID_INPUT.",
+    "is INVALID_INPUT. In a shared world a joiner's list holds only the mail to its own mailboxes, and a `to` outside " +
+    "them is INVALID_INPUT, as an address that names nothing the caller may read.",
   was: [`${ASIS}/outboxes.ts:60`, `${OP}/outboxes/operations/list.ts:11`, `${OP}/outboxes/reads.ts:11`],
   concept: concept_devnet,
   kind: "query",
-  who: ON_THE_MACHINE,
+  who: MAIL_READER,
   input: Schema.Struct({
     to: Schema.optionalKey(S),
     template: Schema.optionalKey(S),
@@ -122,7 +132,7 @@ export const rpc_devnet_mail_list_notices = defineRpc({
   was: [`${ASIS}/notices.ts:57`, `${OP}/notices/operations/list.ts:14`, `${OP}/notices/reads.ts:26`],
   concept: concept_devnet,
   kind: "query",
-  who: ON_THE_MACHINE,
+  who: MAIL_READER,
   input: Schema.Struct({ to: Schema.optionalKey(S), template: Schema.optionalKey(S) }),
   output: Schema.Struct({ to: NullOr(S), template: NullOr(S), notices: Schema.Array(NoticeDelivery) }),
   errors: [error_INVALID_INPUT],

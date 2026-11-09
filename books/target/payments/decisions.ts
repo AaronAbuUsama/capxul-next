@@ -936,7 +936,7 @@ export const decision_payments_claim_escrow_fit = defineDecision({
     "deployed in the same batch or, for a budget's dated one, by the escrow relayer once funded (payments.escrow-on-funding). " +
     "Only the recipient: the owner is the Safe derived from Companies House, the tier's namespace and the mailbox " +
     "(trimmed, lowercased), the Safe the person's sign-up claims; `collect` answers only it, once Companies House is not " +
-    "among its owners. Whenever: no expiry, at setup or later with `account collect` (accounts.collect-any-time). The " +
+    "among its owners. Whenever: no expiry, at setup or later with `payment claim` (accounts.collect-any-time). The " +
     "sender until then: the payer's Safe; the company Safe, so the Board, for a Board one; for a department's, whoever " +
     "Budgets.authorised admits on the funding budget at the refund, the money returning to the company Safe. A refund " +
     "racing a collection is decided by the chain, one or the other, and a refund after the owner can act still works " +
@@ -1017,8 +1017,8 @@ export const decision_payments_claim_escrow_routes = defineDecision({
     "answered: the refund adds to the Safe's balance, not to the budget's period, and the budget keeps showing the " +
     "spend as spent. The Board's dated payment sits on a top budget no member holds, so only the Board may cancel or " +
     "take it back while that holds (payments.department-authority). The terms are fixed at prepare, so a " +
-    "retry rebuilds the same escrow. A dated escrow opens on its day; a payee who set up before then collects with " +
-    "`account collect`. Payroll's new hire is the budget route through the door, item by item. No frozen claim " +
+    "retry rebuilds the same escrow. A dated escrow opens on its day; a payee who set up before then claims it with " +
+    "`payment claim`. Payroll's new hire is the budget route through the door, item by item. No frozen claim " +
     "changes; INVALID_RECIPIENT stays only for a non-ASCII mailbox.",
   source: by(
     `aaron.escrow-general; aaron.departments; aaron.budget-pay-unclaimed; ${V4}/money/Budgets.sol:206 (spend), :235 (schedule), :283 (execute); docs/decisions/open-for-aaron.md (question 1)`,
@@ -1065,7 +1065,7 @@ export const decision_payments_escrow_on_funding = defineDecision({
     "Money waiting is what the email, the reminders and the admission are about, and the funding's PaymentSent is that " +
     "fact on every route: a personal or Board `Payments.send`, a budget spend, or a dated execute. EscrowCreated only " +
     "says that code exists, which anyone can cause before the money arrives. The deploy is still needed. Indexing admits " +
-    "an escrow's own logs, and accounts finds it (at setup or with `account collect`), only once EscrowDeployed makes it " +
+    "an escrow's own logs, and accounts finds it (at setup or for `payment claim`), only once EscrowDeployed makes it " +
     "known (indexing.admission); the Transfers that fund it are indexed from the first. A refund or a collection needs " +
     "code. So every funding is followed by a deploy: in the same batch where the funder signs one (personal, Board, a " +
     "budget spend), else by the Payment's own process with the escrow relayer key as soon as the execute's receipt is " +
@@ -1564,4 +1564,65 @@ export const decision_payments_fde_hosting_purchase = defineDecision({
     procedure_organizations_return_fde_hosting,
     concept_devnet,
   ],
+});
+
+// ── `payment claim` (aaron.payment-claim, 8 November 2026, night) ────────────────────────────────────
+
+import { CLAIM_WORLDS, operation_payment_claim } from "./operations.ts";
+import { flow_client_payments_claim } from "./flows.ts";
+import { rpc_accounts_setup_collect } from "../accounts/setup.ts";
+
+const CLAIM = "Claude, world pass (claim), 8 November 2026";
+const claimBy = (evidence: string) => `${CLAIM}; evidence: ${evidence}`;
+
+export const decision_payments_claim_command = defineDecision({
+  id: "payments.claim-command",
+  title: "`payment claim` is payments' command, over accounts' collection rpc",
+  question:
+    "Aaron ruled (aaron.payment-claim) that the recipient takes the money waiting for them with `payment claim`, not " +
+    "`account collect`, and that the sender's take-back stays `payment cancel`. Which concept books the command, and " +
+    "what else of `account collect` changes?",
+  options: [
+    {
+      label: "payments-flow",
+      text:
+        "Payments books `payment claim` (id `payment.claim`, area payments, SDK `client.payments.claim`): its flow, in " +
+        "payments' flows, calls accounts' rpc `accounts.setup.collect` and approvals' signing read, as `account " +
+        "collect`'s did. Every claim, refusal and world, the `--json` answer (`nothing_waiting`, `awaiting_approval`, " +
+        "`collected`), the flags (`--json`, `--timeout-seconds`, no `--request-key`, no payment id) and the budget are " +
+        "kept; `account collect` and `client.account.collect` are gone.",
+    },
+    {
+      label: "accounts-flow",
+      text: "Accounts keeps the flow and the operation, respelled `payment claim` with the SDK method `client.payments.claim`.",
+    },
+    {
+      label: "payments-rpc",
+      text:
+        "Payments also takes the rpc: it reads the person's setup and indexing's escrows itself and opens the approval " +
+        "from the person's Safe.",
+    },
+  ],
+  chosen: "payments-flow",
+  why:
+    "The ruling renames the command, so only its spelling moves. Its noun is the money's, `payment`, as for `payment " +
+    "cancel`, the sender's side of the same escrow, so its area is payments (G10) and its SDK method is under " +
+    "`client.payments` (G7). The concept whose flow implements a command books it (G10), and every other " +
+    "`client.payments` method is payments' own (its flows, and its rpcs for `payment get` and `payment list`), so the " +
+    "flow is payments' rather than one method of that namespace sitting in accounts. Payments depends on accounts and accounts never on payments (dependencies.accounts-payments), " +
+    "so payments' flow may call accounts' rpc. The rpc stays accounts' (the ruling renames only the command): it answers from the " +
+    "person's own setup, which is accounts' to read out (SMART_ACCOUNT_MISSING before setup, a refused setup's " +
+    "WRONG_STATE or INVALID_INPUT as `account retry` refuses), " +
+    "and it is the same collection setup opens at the claim. The verb keeps one meaning (G3): to claim is to take up " +
+    "what is held for you, a Board seat (`org board claim`), a Safe at setup, or the money waiting in its escrow; " +
+    "`collect` stays the payee taking released money (`agreement collect`) and the escrow's function, which is why the " +
+    "answer still reads `collected`. The line is the CLI and the Core SDK (aaron.sdk-reaches-everything): no React " +
+    "twin and no web screen is booked, and a web screen, where one is wanted, builds on this Core SDK method. Its worlds are accounts' and devnet's (CLAIM_WORLDS: " +
+    `${Object.values(CLAIM_WORLDS).join(", ")}, and signed-out). Its id and command collide with no frozen or new ` +
+    "operation; `payment cancel` is unchanged.",
+  source: claimBy(
+    "aaron.payment-claim; aaron.escrow-general; aaron.sdk-reaches-everything; accounts.collect-any-time; " +
+      "docs/decisions/open-for-aaron.md (question 38); docs/design/new-commands.md (G3, G7, G10, section 6)",
+  ),
+  affects: [operation_payment_claim, flow_client_payments_claim, rpc_accounts_setup_collect, concept_payments],
 });

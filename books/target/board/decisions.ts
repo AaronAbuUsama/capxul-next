@@ -701,15 +701,16 @@ export const decision_board_agent_officer_hats = defineDecision({
         "Yes. The grant's and revoke's `member` is a person's email or an agent's `@handle`, as `org member invite` names " +
         "its grantees; an agent's Seat must be current here and its Party active (WRONG_STATE: its Safe is not live), and " +
         "every other rule is the same: a Director proposes, the Board approves, `Hats.mintHat` to the agent's Safe, and " +
-        "ROLE_CONFLICT for Manage people when it wears a department's office hat. The FDE's grant is `org member grant " +
-        "@<its handle> --permission manage-people`.",
+        "ROLE_CONFLICT for Manage people when it wears a department's office hat. A self-run own agent's grant is `org " +
+        "member grant @<its handle> --permission manage-people`; the hosted FDE needs none, since it acts as its asker " +
+        "with the asker's hats (aaron.fde-anyone, agents.fde-people-hat).",
     },
     { label: "persons-only", text: "No: officer hats are for people; an agent works only with what its owner's grants and budgets give it." },
   ],
   chosen: "handle",
   why:
-    "Persons-only would leave the FDE's first sitting with no way to work the CRM or import the chart, against the " +
-    "records that already plan its grant, and would make the agent clauses of payroll's and the CRM's guards dead. A " +
+    "Persons-only would leave a self-run agent no way to work the CRM or import the chart, and would make the agent " +
+    "clauses of payroll's and the CRM's guards dead; the hosted FDE no longer needs a grant (agents.fde-people-hat). A " +
     "hat is the Board's grant of authority whoever wears it, and the Board still decides each one by proposal, so an " +
     "agent gains nothing no Director chose; only the Director hat is closed to agents (board.no-agent-directors). An " +
     "agent has no mailbox, so a handle is its one name; `email` became `member` so the field says what it holds. " +

@@ -539,8 +539,10 @@ export const SlipRow = Schema.Struct({
   additional_amount: S,
   statistical_component: Schema.Boolean,
   do_not_include_in_total: Schema.Boolean,
-  /** `structure`: the assignment's structure; `collection`: an agreement collection, pushed to a head as its own slip, never an Additional Salary. */
-  source: Schema.Literals(["structure", "collection"]),
+  /** `structure`: the assignment's structure; `collection`: an agreement collection, pushed to a head as its own slip, never an Additional Salary; `additional`: an Additional Salary, an advance's recovery (payroll.advance-recovery). */
+  source: Schema.Literals(["structure", "collection", "additional"]),
+  /** The Additional Salary a row of source `additional` takes, as Frappe's Salary Detail names it. */
+  additional_salary: opt(S),
 });
 
 /** The token a structure, an assignment, a run and a slip are in: Frappe's `currency` is its symbol. */
@@ -565,6 +567,20 @@ export const table_employees = defineTable({
   concept: concept_payroll,
   tenancy: "organization",
   tenantField: "org_id",
+  scope:
+    "org_id is the employing Organization. The Employee reads their own record, member or not, through payee_safe, " +
+    "which the HR self commands find them by (payroll.hr-self).",
+  admits: [
+    {
+      match: "safe",
+      field: "payee_safe",
+      reads: true,
+      writes: false,
+      about:
+        "The Employee reads their own Employee by their own Safe, for the self commands (leave, check-ins, claims, " +
+        "advances); only payroll's rpcs and processes write it (payroll.hr-self).",
+    },
+  ],
   fields: Schema.Struct({
     org_id: S,
     employee_id: S,
@@ -635,7 +651,9 @@ export const table_salary_components = defineTable({
     "(payroll.portable-formulas). `origin` `agreement` is the one component an Organization's agreement collections " +
     "are paid under, made when its first agreement is accepted: an earning with no amount, `depends_on_payment_days` " +
     "and `is_tax_applicable` off and `remove_if_zero_valued` on, so a head never prorates, taxes or adds a zero row for " +
-    "it, and no run pays it (payroll.agreements-in-frappe-shape).",
+    "it, and no run pays it (payroll.agreements-in-frappe-shape). `origin` `advance` is the one deduction an advance's " +
+    "recovery is taken under, made at the first `org advance settle`: Advance Recovery, no amount, not by payment " +
+    "days, not taxable, removed when zero, its account books' Employee Advances (payroll.advance-recovery).",
   was: [`${FRAPPE_HR}/salary_component/salary_component.json`, `${FRAPPE_HR}/salary_component_account/salary_component_account.json`],
   concept: concept_payroll,
   tenancy: "organization",
@@ -660,7 +678,7 @@ export const table_salary_components = defineTable({
     accounts: Schema.Struct({ account: Null(S), liability_account: Null(S) }),
     payee_party_id: Null(S),
     portable: Schema.Boolean,
-    origin: Schema.Literals(["capxul", "agreement", "head"]),
+    origin: Schema.Literals(["capxul", "agreement", "advance", "head"]),
     head_name: Null(S),
     /** The `seq` of its last change in `payroll-changes`: the version a head sync pushes and compares (payroll.head-sync). */
     version: N,
@@ -857,7 +875,8 @@ export const table_salary_slips = defineTable({
   title: "Salary slips: one person's pay for one period",
   about:
     "One Salary Slip in Frappe's shape: the Employee, the period (`start_date`, `end_date`, `posting_date`), " +
-    "`total_working_days`, `payment_days` and `leave_without_pay`, the Salary Detail rows (`earnings`, `deductions`, " +
+    "`total_working_days`, `payment_days`, `leave_without_pay` and `absent_days` (from the period's attendance: " +
+    "payroll.attendance-based), the Salary Detail rows (`earnings`, `deductions`, " +
     "`employer_contributions`), `gross_pay`, `total_deduction` and `net_pay` (gross less deductions, never below zero), " +
     "in one token. `source` `run` is a slip of a Payroll Entry, computed by `computed_by`; `collection` is a landed " +
     "agreement collection, born paid, with no deductions (payroll.collection-slips). `document_id` and `document_hash` " +
@@ -905,6 +924,8 @@ export const table_salary_slips = defineTable({
     total_working_days: N,
     payment_days: N,
     leave_without_pay: N,
+    /** Frappe's `absent_days`: days marked absent in the period, which payroll based on attendance takes off payment days (payroll.attendance-based). */
+    absent_days: N,
     earnings: Schema.Array(SlipRow),
     deductions: Schema.Array(SlipRow),
     employer_contributions: Schema.Array(SlipRow),
@@ -987,7 +1008,8 @@ export const table_payroll_settings = defineTable({
     "Frappe HR's Payroll Settings, one row per Organization, born by payroll's start-up at the setup's begin " +
     "(payroll.startup.open); a payroll write that finds none (the start-up not yet run) births it. Its " +
     "values are the same for every Organization, because they are what Capxul computes by and what a head must match: " +
-    "`payroll_based_on` leave, `include_holidays_in_total_working_days` on, `disable_rounded_total` on, " +
+    "`payroll_based_on` attendance with `consider_unmarked_attendance_as` present, half a day's wage for a half day and " +
+    "marked attendance on holidays not counted (payroll.attendance-based), `include_holidays_in_total_working_days` on, `disable_rounded_total` on, " +
     "`email_salary_slip_to_employee` off (notices sends mail) and `process_payroll_accounting_entry_based_on_employee` " +
     "on, so every accrual and Bank Entry carries each Employee as the party on Payroll Payable " +
     "(payroll.employee-wise-accounting). `last_seq` is the counter of `payroll-changes`: a payroll " +
@@ -998,7 +1020,10 @@ export const table_payroll_settings = defineTable({
   tenantField: "org_id",
   fields: Schema.Struct({
     org_id: S,
-    payroll_based_on: Schema.Literal("leave"),
+    payroll_based_on: Schema.Literal("attendance"),
+    consider_unmarked_attendance_as: Schema.Literal("present"),
+    daily_wages_fraction_for_half_day: Schema.Literal(0.5),
+    consider_marked_attendance_on_holidays: Schema.Literal(false),
     include_holidays_in_total_working_days: Schema.Literal(true),
     disable_rounded_total: Schema.Literal(true),
     email_salary_slip_to_employee: Schema.Literal(false),
@@ -1016,8 +1041,8 @@ export const table_payroll_changes = defineTable({
   id: "payroll-changes",
   title: "Payroll change log: every write to a Frappe-shaped record, in commit order",
   about:
-    "One row per change to an Employee, Salary Component, Salary Structure, Salary Structure Assignment, Payroll Entry " +
-    "or Salary Slip, appended in the writing transaction with the next `seq` from `payroll-settings` under its lock, so " +
+    "One row per change to an Employee, Salary Component, Salary Structure, Salary Structure Assignment, Payroll Entry, " +
+    "Salary Slip, or one of the HR DocTypes of hr-data.ts, appended in the writing transaction with the next `seq` from `payroll-settings` under its lock, so " +
     "a later `seq` never commits before an earlier one and a reader paging by `seq` skips nothing. The changed row keeps " +
     "that `seq` as its `version`. A connected head's sync pushes from it in order (a draft run is not pushed); a change " +
     "that came from the head notes it (`origin` head), so the push only confirms its version there. It holds ids, not " +
@@ -1028,7 +1053,28 @@ export const table_payroll_changes = defineTable({
   fields: Schema.Struct({
     org_id: S,
     seq: N,
-    doctype: Schema.Literals(["Employee", "Salary Component", "Salary Structure", "Salary Structure Assignment", "Payroll Entry", "Salary Slip"]),
+    doctype: Schema.Literals([
+      "Employee",
+      "Salary Component",
+      "Salary Structure",
+      "Salary Structure Assignment",
+      "Payroll Entry",
+      "Salary Slip",
+      // the HR that changes pay or moves money (hr-data.ts; payroll.hr-head-sync)
+      "Holiday List",
+      "Leave Type",
+      "Leave Allocation",
+      "Leave Application",
+      "Shift Type",
+      "Shift Assignment",
+      "Employee Checkin",
+      "Attendance",
+      "Expense Claim Type",
+      "Expense Claim",
+      "Employee Advance",
+      "Additional Salary",
+      "HR Settings",
+    ]),
     doc_id: S,
     origin: Schema.Literals(["capxul", "head"]),
     /** The principal whose command made it, the agreement's process, or the head user (by mailbox) whose edit was applied. */

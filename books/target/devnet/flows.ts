@@ -6,9 +6,12 @@
 // the supervisor's public control protocol, and no backend rpc. The schema's local step kinds have no
 // "outside call", so each supervisor call is a `cache` step (this machine's devnet state), or a `poll`
 // step for an event stream, and the flow's `calls` names it (decision devnet.supervisor-steps). Three
-// clock flows implement the frozen `dev time` commands; six more are the protocol's other verbs, for
-// people building on Capxul (surface `sdk`; the supervisor's `capxul-devnet time` commands are thin
-// clients of the same protocol). The other three flows compose backend rpcs: `dev approve` signs in as
+// clock flows implement the frozen `dev time` commands, and one the new `dev time set`, which sets the
+// rate a running clock runs at (decision devnet.clock-rate, for aaron.world-clock); six more are the
+// protocol's other verbs, for people building on Capxul (surface `sdk`; the supervisor's
+// `capxul-devnet time` commands are thin clients of the same protocol). In a shared world the same
+// flows speak to the world's supervisor over HTTPS with the caller's world grant (decision
+// devnet.shared-world). The other three flows compose backend rpcs: `dev approve` signs in as
 // the person it plays and signs as the approval page would; `dev gates set` and `dev prices set`
 // script a value and run the one sync that makes it apply. `dev jobs run` and the three mail commands
 // are one rpc each, so they have no flow.
@@ -38,16 +41,24 @@ const control = integration_devnet_control.c;
 
 // ── shapes the supervisor answers ───────────────────────────────────────────────────────────
 
-/** Whether now runs on at the real rate from where it was set, or stands still until it is moved. */
+/** Whether now runs on at the clock's rate from where it was set, or stands still until it is moved. */
 export const ClockMode = Schema.Literals(["running", "frozen"]);
+/** Seconds of world time in each real second while the clock runs: a whole number from 1 to 60 (decision devnet.clock-rate). */
+export const ClockRate = Schema.Int;
 /** The one clock, as the time authority holds it (decision devnet.supervisor-owns-time-and-worlds). */
 export const Clock = Schema.Struct({
   /** `capxul.devnet/1.<minor>`: the protocol version that answered. */
   protocol: S,
   now: Instant,
-  /** This machine's real time when now held that value: running, now is `now` plus the real time since `realAt`. */
+  /** The authority's real time when now held that value: running, now is `now` plus `rate` times the real time since `realAt`, up to `stopAt`. */
   realAt: Instant,
   mode: ClockMode,
+  /** World seconds per real second while running; a frozen clock keeps it for when it runs (decision devnet.clock-rate). */
+  rate: ClockRate,
+  /** Running: the next stop, the instant now stands at until the next event (decision devnet.running-stops); null when nothing is due. */
+  stopAt: Schema.NullOr(Instant),
+  /** The authority's real time as it answered, from which a follower on another machine measures its offset (decision devnet.follow-at-a-rate). */
+  realNow: Instant,
   /** Increases with every change of the clock; a follower acknowledges it. */
   version: Schema.Int,
   /** The world's epoch: a new one at `up` and at every restore, so a subscriber tells a restore from a move. */
@@ -67,8 +78,16 @@ export const ClockEvent = Schema.Struct({
   now: Instant,
   realAt: Instant,
   mode: ClockMode,
+  rate: ClockRate,
+  stopAt: Schema.NullOr(Instant),
   world: S,
-  reason: Schema.Literals(["warp", "stop", "step", "tick", "settle", "freeze", "resume", "start-at", "restore", "up"]),
+  /**
+   * `rate`: the rate changed; `run`: a running clock runs on from a stop (with the followers a cut-short stop left busy);
+   * `due`: an earlier due instant became the next stop (decisions devnet.clock-rate and devnet.running-stops).
+   */
+  reason: Schema.Literals(["warp", "stop", "step", "tick", "settle", "freeze", "resume", "rate", "run", "due", "start-at", "restore", "up"]),
+  /** On a `run` after a stop its limit cut short: the followers still busy; else empty. */
+  unsettled: Schema.Array(S),
 });
 /** What a move of the clock did: where it went, the stops on the way, what fell due and ran, and where everything stands. */
 const Moved = Schema.Struct({
@@ -82,7 +101,7 @@ const Moved = Schema.Struct({
   clock: Clock,
 });
 /** A saved world, as `dev snapshot list` and `save` print it. */
-export const Snapshot = Schema.Struct({ name: S, at: Instant, mode: ClockMode, savedAt: Instant, code: S });
+export const Snapshot = Schema.Struct({ name: S, at: Instant, mode: ClockMode, rate: ClockRate, savedAt: Instant, code: S });
 
 const SUPERVISOR_ERRORS = "The supervisor's own refusals are the `devnet-control` call's failures.";
 const BARRIER =
@@ -96,8 +115,9 @@ export const flow_devnet_time_show = defineFlow({
   id: "devnet.time.show",
   title: "Read the devnet's one clock, the chain head and how far Ponder has indexed",
   about:
-    "`dev time`. One read of the time authority: the clock (now, running or frozen, its version and world), the chain " +
-    "head's block and time, the backend's now, Ponder's position, each follower, and whether they agree: every follower " +
+    "`dev time`. One read of the time authority: the clock (now, running or frozen, its rate and next stop, its version " +
+    "and world), the chain head's block and time, the backend's now, Ponder's position, each follower, and whether they " +
+    "agree: every follower " +
     "has taken the clock's current version and no block is later than now. With no devnet on this machine, the call is " +
     "refused WRONG_ENVIRONMENT before anything reaches the network. " + SUPERVISOR_ERRORS,
   was: [`${SDK}:260`, `${WORLD}:367`, `${CONTROL}:107`],
@@ -129,7 +149,8 @@ export const flow_devnet_time_warp = defineFlow({
     "returns when the chain has a block at the target, the backend reads it and Ponder has indexed it. `jobs` false " +
     "skips the crons that fell due, and they stay skipped (their next runs move past the target); every durable timer " +
     "due still fires, because it is due. A cron that fails does not undo the warp: the answer names it. The clock " +
-    "keeps its mode: a frozen clock stays frozen at the target. " + SUPERVISOR_ERRORS,
+    "keeps its mode and its rate: a frozen clock stays frozen at the target, and a running one runs on from it at its " +
+    "rate. " + SUPERVISOR_ERRORS,
   was: [`${SDK}:261`, `${SDK}:267`, `${WORLD}:465`, `${WORLD}:518`, `${CONTROL}:134`],
   component: component_core_sdk,
   sdk: "devnet.time.warp",
@@ -168,6 +189,35 @@ export const flow_devnet_time_start_at = defineFlow({
   budget: budget("chain-settle"),
 });
 
+// ── the clock's rate: the new `dev time set` (aaron.world-clock) ────────────────────────────
+
+const RATE_RULE = "a whole number from 1 to 60";
+
+export const flow_devnet_time_set = defineFlow({
+  id: "devnet.time.set",
+  title: "Set how fast the devnet's clock runs: world seconds per real second",
+  about:
+    `\`dev time set --rate <n>\`. The SDK refuses a missing \`--rate\`, or one that is not ${RATE_RULE}, ` +
+    "INVALID_INPUT before any call (a `set` that gives nothing, the new commands' grammar's G6). The supervisor reads now at the change " +
+    "and sends every follower a `rate` event, so all of them run on at the new rate from the same instant: four is " +
+    "up to four hours of world time each real hour, less the moments the clock stands at stops. A running clock speeds up or slows down from now, through the same " +
+    "running stops (decision devnet.running-stops); a frozen clock stays frozen, keeps the rate and runs at it when " +
+    "it resumes. Nothing moves back and nothing is mined. It answers the clock. A move of the clock already running " +
+    "is WRONG_STATE; in a shared world only its owner sets the rate (decision devnet.clock-rate). " + SUPERVISOR_ERRORS,
+  component: component_core_sdk,
+  sdk: "devnet.time.set",
+  input: Schema.Struct({ rate: Schema.optionalKey(ClockRate) }),
+  output: Clock,
+  steps: [
+    { name: "rate", local: "build", about: `The rate, ${RATE_RULE}; missing or outside the range is INVALID_INPUT.` },
+    { name: "set", local: "cache", about: "devnet-control timeRate: the new rate from now, for every follower." },
+  ],
+  errors: [error_INVALID_INPUT],
+  calls: [control.timeRate],
+  spans: [],
+  budget: budget("write"),
+});
+
 // ── the clock: the protocol's other verbs, for people building on Capxul ────────────────────
 
 const SDK_ONLY =
@@ -179,8 +229,8 @@ export const flow_devnet_time_freeze = defineFlow({
   title: "Hold the devnet's clock still until it is moved",
   about:
     "Holds now at the next whole second (never back), for every follower, until a warp, step or resume moves it, so a " +
-    "program's own steps happen at instants it chooses (decision devnet.clock-modes). Freezing a frozen clock changes " +
-    "nothing. " + SDK_ONLY,
+    "program's own steps happen at instants it chooses (decision devnet.clock-modes). The rate is kept for the next " +
+    "resume. Freezing a frozen clock changes nothing. " + SDK_ONLY,
   was: [`${WORLD}:240`],
   component: component_core_sdk,
   sdk: "devnet.time.freeze",
@@ -196,8 +246,11 @@ export const flow_devnet_time_freeze = defineFlow({
 
 export const flow_devnet_time_resume = defineFlow({
   id: "devnet.time.resume",
-  title: "Let the devnet's clock run on at the real rate",
-  about: "Lets now run on from where it stands, at the real rate, for every follower. Resuming a running clock changes nothing. " + SDK_ONLY,
+  title: "Let the devnet's clock run on at its rate",
+  about:
+    "Lets now run on from where it stands, at the clock's rate (one by default; `dev time set --rate`), for every " +
+    "follower, stopping at each due instant on the way (decision devnet.running-stops). Resuming a running clock " +
+    "changes nothing. " + SDK_ONLY,
   was: [`${WORLD}:240`],
   component: component_core_sdk,
   sdk: "devnet.time.resume",
@@ -258,8 +311,9 @@ export const flow_devnet_time_watch = defineFlow({
   id: "devnet.time.watch",
   title: "Follow the devnet clock's changes as they happen",
   about:
-    "A stream of the clock's events: each warp, stop, step, tick, freeze, resume, start-at and restore, with its version, " +
-    "now, mode and world. It only reads: the barrier does not wait for a watcher (follow for that). " + SDK_ONLY,
+    "A stream of the clock's events: each warp, stop, step, tick, freeze, resume, rate change, run, due, start-at and " +
+    "restore, with its version, now, realAt, mode, rate, next stop and world. It only reads: the barrier does not wait " +
+    "for a watcher (follow for that), and in a shared world any grant may watch. " + SDK_ONLY,
   was: [`${CONTROL}:107`],
   component: component_core_sdk,
   sdk: "devnet.time.watch",
@@ -281,9 +335,11 @@ export const flow_devnet_time_follow = defineFlow({
     "gets the clock event with now standing still, does its own work at that instant (a simulated customer's deposit, " +
     "a stand-in's scheduled answer), and returns whether it is idle and its own next due instant (later than now, or " +
     "none); the SDK acknowledges it, and the warp stops at that instant too. The handler may call Capxul (the CLI, the " +
-    "SDK, its own transactions, which the supervisor mines at now) but not move the clock: one move runs at a time. A " +
-    "follower that does not acknowledge in time fails the barrier (WORK_DIED, naming it) and is dropped (decision " +
-    "devnet.followers). " + SDK_ONLY,
+    "SDK, its own transactions, which the supervisor mines at now) but not move the clock: one move runs at a time. " +
+    "Between events it reports a new earlier due instant at once, so a running clock stops there too, and it computes " +
+    "now as min(stopAt, now + rate × real time since realAt) (decision devnet.follow-at-a-rate). A follower that does " +
+    "not acknowledge in time fails the barrier (WORK_DIED, naming it) and is dropped (decision devnet.followers). In a " +
+    "shared world only the owner's grant may follow. " + SDK_ONLY,
   was: [`${WORLD}:292`, "/home/user/factory packages/vending-bench/src/bridge.ts:99"],
   component: component_core_sdk,
   sdk: "devnet.time.follow",
@@ -293,6 +349,7 @@ export const flow_devnet_time_follow = defineFlow({
     { name: "join", local: "cache", about: "devnet-control timeFollow: join under the name." },
     { name: "events", local: "poll", about: "The follower's clock events, one per stop and change." },
     { name: "ack", local: "cache", about: "After the handler: the version taken, idle or busy, and the next due instant." },
+    { name: "due", local: "cache", about: "Between events: a new earlier due instant, reported at once." },
   ],
   errors: [],
   calls: [control.timeFollow],
@@ -334,7 +391,7 @@ export const flow_devnet_snapshots_save = defineFlow({
     `\`dev snapshot save\`. The SDK refuses a name that is not ${NAME_RULE} (INVALID_INPUT) before any call. The ` +
     "supervisor refuses a name already saved unless `replace` (WRONG_STATE), then saves the chain's state, Postgres (the " +
     "concepts' `app` schema, Ponder's `ponder` schema and devnet's own, with the durable workflows' state), Ponder's " +
-    "checkpoint, the world's clock (its now and mode) and its armed fault switches, and the eval machine's CLI home, together, with the " +
+    "checkpoint, the world's clock (its now, mode and rate) and its armed fault switches, and the eval machine's CLI home, together, with the " +
     "backend code it runs. The devnet itself is unchanged. " + SUPERVISOR_ERRORS,
   was: [`${SDK}:281`, `${WORLD}:580`, `${WORLD}:614`, `${CONTROL}:150`],
   component: component_core_sdk,
@@ -358,8 +415,8 @@ export const flow_devnet_snapshots_restore = defineFlow({
     `\`dev snapshot restore\`. The SDK refuses a name that is not ${NAME_RULE} (INVALID_INPUT). The supervisor refuses ` +
     "a name it has not saved (INVALID_INPUT, listing the worlds) and a world saved with other backend code (WRONG_STATE: " +
     "replay its builder instead), then stops the backend and Ponder, replaces the chain's state, Postgres and Ponder's " +
-    "checkpoint with the world's, sets the clock to the world's now (frozen while it works, then the world's mode, under " +
-    "a new world epoch), re-arms its fault switches, restores the CLI home, and starts them again; the durable processes " +
+    "checkpoint with the world's, sets the clock to the world's now (frozen while it works, then the world's mode and " +
+    "rate, under a new world epoch), re-arms its fault switches, restores the CLI home, and starts them again; the durable processes " +
     "resume from their stored state, each timer due at the instant it was stored with, so none needs moving. " +
     "It answers the world's time and how long it took. " + SUPERVISOR_ERRORS,
   was: [`${SDK}:285`, `${WORLD}:677`, `${WORLD}:767`, `${CONTROL}:169`],

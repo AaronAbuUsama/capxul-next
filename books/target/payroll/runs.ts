@@ -31,6 +31,14 @@ import {
   table_salary_structures,
 } from "./data.ts";
 import { HR_ERRORS, HR_GUARD, HR_READS, LOGGED, WHO_HR } from "./employees.ts";
+import {
+  machine_employee_advance,
+  table_additional_salaries,
+  table_attendances,
+  table_employee_advances,
+  table_holiday_lists,
+  table_leave_types,
+} from "./hr-data.ts";
 import { Run, RunInput, RunListInput, RunRef, RunRow, WithholdInput } from "./shapes.ts";
 
 const FRAPPE = "/tmp/hrms/hrms/payroll/doctype";
@@ -39,10 +47,10 @@ const s = machine_salary_slip.t;
 
 /** How Capxul works a slip out, as Frappe HR's `calculate_net_pay` does for the portable subset (payroll.portable-formulas). */
 const COMPUTE =
-  "Each slip is worked out as Frappe HR's `calculate_net_pay` does, by payroll.portable-formulas and " +
-  "payroll.money-and-rounding: working days the period's calendar days, payment days those employed less leave " +
-  "without pay; each row in order (condition, full-period amount, amount prorated where it depends on payment days); " +
-  "gross the earnings in totals, net gross less deductions, in raw units too.";
+  "Each slip is worked out as Frappe HR's `calculate_net_pay` does (payroll.portable-formulas, " +
+  "payroll.money-and-rounding): payment days those employed less the attendance's unpaid leave and absences " +
+  "(payroll.attendance-based); each row in order, prorated where it depends on payment days, then any advance " +
+  "recovery its period holds (payroll.advance-recovery); net gross less deductions, in raw units too.";
 
 export const rpc_payroll_runs_create = defineRpc({
   id: "payroll.runs.create",
@@ -82,6 +90,10 @@ export const rpc_payroll_runs_create = defineRpc({
     table_payroll_entries,
     table_salary_slips,
     table_book_accounts,
+    table_attendances,
+    table_leave_types,
+    table_holiday_lists,
+    table_additional_salaries,
   ],
   writes: [table_payroll_entries, table_salary_slips, ...LOGGED],
   drives: [e.create, s.compute],
@@ -133,8 +145,11 @@ export const rpc_payroll_runs_submit = defineRpc({
     "(action submit, the run's lines in its token, which books values in the Company's currency: each earning's and " +
     "employer contribution's expense, each deduction's and employer contribution's liability, each net on the run's " +
     "Payroll Payable with party the Employee and reference the Payroll Entry; a null account is the line's role's: " +
-    "payroll.accrual, books.payroll-lines).",
-  was: [`${FRAPPE}/payroll_entry/payroll_entry.py:372`, `${FRAPPE}/payroll_entry/payroll_entry.py:619`],
+    "payroll.accrual, books.payroll-lines). A slip's advance recovery row is credited to Employee Advances, party the " +
+    "Employee and reference the Employee Advance, as Frappe's `add_advance_deduction_entry` does, and that advance is " +
+    "then `returned`, or `partly_claimed_and_returned` when a claim took part of it (employee-advance.recover, " +
+    "recover_partly; payroll.advance-recovery).",
+  was: [`${FRAPPE}/payroll_entry/payroll_entry.py:372`, `${FRAPPE}/payroll_entry/payroll_entry.py:619`, `${FRAPPE}/payroll_entry/payroll_entry.py:481`],
   concept: concept_payroll,
   kind: "mutation",
   who: WHO_HR,
@@ -150,9 +165,14 @@ export const rpc_payroll_runs_submit = defineRpc({
     table_salary_structure_assignments,
     table_payroll_entries,
     table_salary_slips,
+    table_attendances,
+    table_leave_types,
+    table_holiday_lists,
+    table_additional_salaries,
+    table_employee_advances,
   ],
-  writes: [table_payroll_entries, table_salary_slips, ...LOGGED],
-  drives: [e.submit, s.submit],
+  writes: [table_payroll_entries, table_salary_slips, table_employee_advances, ...LOGGED],
+  drives: [e.submit, s.submit, machine_employee_advance.t.recover, machine_employee_advance.t.recover_partly],
   invokes: [procedure_documents_store, procedure_books_record_payroll_accrual],
   emits: [],
   calls: [],
@@ -201,7 +221,8 @@ export const rpc_payroll_runs_cancel = defineRpc({
     "(payroll.one-computer-per-run). Then, in one transaction, the run and each of its slips are `cancelled` " +
     "(payroll-entry.cancel, salary-slip.cancel). The payslips stay stored, as every document does; a submitted run's " +
     "accrual is cancelled in the same transaction through `books.record-payroll-accrual` (action cancel), which writes " +
-    "nothing for a draft (payroll.accrual).",
+    "nothing for a draft (payroll.accrual). An advance a submitted slip of it recovered is `paid` again, its Additional " +
+    "Salary free for the next run (employee-advance.unrecover; payroll.advance-recovery).",
   was: [`${FRAPPE}/payroll_entry/payroll_entry.py:175`],
   concept: concept_payroll,
   kind: "mutation",
@@ -209,9 +230,9 @@ export const rpc_payroll_runs_cancel = defineRpc({
   input: RunRef,
   output: Schema.Struct({ run: Run }),
   errors: [...HR_ERRORS],
-  reads: [...HR_READS, table_payroll_entries, table_salary_slips],
-  writes: [table_payroll_entries, table_salary_slips, ...LOGGED],
-  drives: [e.cancel, s.cancel],
+  reads: [...HR_READS, table_payroll_entries, table_salary_slips, table_additional_salaries, table_employee_advances],
+  writes: [table_payroll_entries, table_salary_slips, table_employee_advances, ...LOGGED],
+  drives: [e.cancel, s.cancel, machine_employee_advance.t.unrecover],
   invokes: [procedure_books_record_payroll_accrual],
   emits: [],
   calls: [],

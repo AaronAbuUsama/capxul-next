@@ -45,11 +45,13 @@ export const HeadView = Schema.Struct({
 
 const DIRECTOR_GUARD =
   `${MEMBER_GUARD} Then the Seat's Safe must wear the Director hat in good standing (indexing's wearers of the ` +
-  "deployment's Director hat): anyone else, an agent included, is ROLE_PERMISSION_DENIED and nothing is written.";
+  "deployment's Director hat): anyone else, an agent included, is ROLE_PERMISSION_DENIED and nothing is written; so is " +
+  "the hosted FDE's call for a Director, since the preview is the Director's own (organizations.fde-for-the-asker).";
 
 const WHO_DIRECTOR =
   "A Director of the Organization: a member whose own Safe wears the Director hat, as indexing reads the chain. Never " +
-  "an agent (board.no-agent-directors), so never the FDE, which prepares a connection and asks a Director to run it.";
+  "an agent (board.no-agent-directors), and never the hosted FDE acting for a Director, since the preview is the " +
+  "Director's own: the FDE prepares a connection and asks a Director to run it.";
 
 export const rpc_organizations_heads_ring = defineRpc({
   id: "organizations.heads.ring",

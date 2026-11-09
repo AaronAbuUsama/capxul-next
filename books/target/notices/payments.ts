@@ -130,8 +130,8 @@ export const workflow_notices_payments_money_waiting = noticeWorkflow({
     "money for a mailbox (aaron.money-waiting). Sends `money-waiting` once, to the Payment's `payee_mailbox` (the " +
     "mailbox its owner Safe is derived from), naming the amount and asset, the sender and how to collect: with no " +
     "account yet, sign up at the link with this email address, set up the account and sign the collection the setup " +
-    "opens; with an account already set up, run `capxul account collect` or use the web app " +
-    "(accounts.collect-any-time); until then the sender may take it back. No one else is told: the sender is following the payment. Its world is payments' " +
+    "opens; with an account already set up, run `capxul payment claim` " +
+    "(aaron.payment-claim, payments.claim-command); until then the sender may take it back. No one else is told: the sender is following the payment. Its world is payments' " +
     "`person-with-funded-safe`: Dana's signed `payment send nobody@outside.test 5`, then `dev mail notices --to " +
     "nobody@outside.test --template money-waiting` reads the delivery record and `notice_transitioned` says it went.",
   trigger: { transition: p.escrow },

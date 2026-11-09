@@ -36,7 +36,7 @@ const Count = Schema.Int;
 
 const ENTRY_STATES = ["waiting", "admitted"] as const;
 /** How a mailbox got onto the list: it joined, or the admission that put it there. */
-const ENTRY_VIA = ["waitlist", "operator", "referral", "invitation", "escrow", "reward"] as const;
+const ENTRY_VIA = ["waitlist", "operator", "referral", "invitation", "escrow", "fde-guest", "reward"] as const;
 
 export const table_admissions = defineTable({
   id: "admissions",
@@ -44,8 +44,8 @@ export const table_admissions = defineTable({
   about:
     "One row per normalized mailbox (trimmed and lowercased, the Safe salt's rule) that asked to join the permissioned beta or was " +
     "admitted to it. Born `waiting` by `waitlist join`, or born `admitted` when an operator, a referrer's invite, an " +
-    "Organization's invitation or money waiting for it in a claim escrow (both through `accounts.admit`, " +
-    "accounts.money-waiting-admits) or a referral reward admits a mailbox not on the list. A second join " +
+    "Organization's invitation, money waiting for it in a claim escrow or an Organization naming it a guest of its FDE " +
+    "(all through `accounts.admit`; accounts.money-waiting-admits, organizations.fde-guests) or a referral reward admits a mailbox not on the list. A second join " +
     "keeps `requested_at` and replaces the note only when one is given; an admission is never undone. Where a person " +
     "stands also reads access' `beta-access` gate (`open` admits nobody but lets them through), which is not stored here. " +
     "`person_id` is the signed-in person who joined, so their events reach them; null for a mailbox admitted before it " +
@@ -61,7 +61,7 @@ export const table_admissions = defineTable({
     joined_via: Schema.Literals(ENTRY_VIA),
     requested_at: Schema.NullOr(At),
     admitted_at: Schema.NullOr(At),
-    /** `operator:<label>`, `referral:<referrer email>`, `invitation:<org_id>`, `escrow:<payment id>` or `reward:<referee email>`. */
+    /** `operator:<label>`, `referral:<referrer email>`, `invitation:<org_id>`, `escrow:<payment id>`, `fde-guest:<org_id>` or `reward:<referee email>`. */
     admitted_by: Schema.NullOr(S),
     updated_at: At,
   }),
@@ -75,8 +75,8 @@ export const event_waitlist_entry_transitioned = defineEvent({
   id: "waitlist_entry_transitioned",
   about:
     "A mailbox joined the waitlist or was admitted. Sent by every transition of `waitlist-entry`, in its transaction, " +
-    "through the outbox. Notices sends the beta welcome from `admit` and `admit_unlisted`, except for `invitation` and " +
-    "`escrow`, whose invitation or money-waiting email is the welcome. The mailbox itself is not a property: `person_id` " +
+    "through the outbox. Notices sends the beta welcome from `admit` and `admit_unlisted`, except for `invitation`, " +
+    "`escrow` and `fde-guest`, whose invitation, money-waiting or guest-named email is the welcome. The mailbox itself is not a property: `person_id` " +
     "names the person when known.",
   props: Schema.Struct({
     from: Schema.NullOr(Schema.Literals(ENTRY_STATES)),
@@ -371,7 +371,7 @@ export const machine_personal_safe = defineMachine({
     "(a birth) and `retry` come from the web app's setup start; `claim`, `fail` and `finish` from the process. `claim` " +
     "needs chain proof: the claim's CapxulSafeClaimed for this Safe and signer, or the Safe already owned by exactly this " +
     "signer. Only the claim can fail; a collection the person declines or lets lapse still finishes, and the escrows stay " +
-    "theirs to collect later (`account collect`) or their sender's to take back. The old row had no state column (deployedAt, claimLockId and claimedAt " +
+    "theirs to claim later (`payment claim`) or their sender's to take back. The old row had no state column (deployedAt, claimLockId and claimedAt " +
     "stood for it) and a ten-minute claim lock; the process's single instance replaces the lock.",
   table: table_personal_safes,
   field: "status",

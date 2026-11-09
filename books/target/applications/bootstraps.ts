@@ -39,6 +39,11 @@ export const Envelope = Schema.Struct({
   companiesHouseNamespace: S,
   /** What the Openfort embedded signer needs in a browser. */
   signer: Schema.Struct({ openfortPublishableKey: S, shieldPublishableKey: S }),
+  /**
+   * The backend build the deployment runs: `devnet` on a local devnet and on a shared world (devnet.shared-world), so
+   * the CLI's devnet scope admits `dev` commands there; `release` on staging and production, where it refuses them.
+   */
+  build: Schema.Literals(["devnet", "release"]),
   /** Where the SDK exports its spans (OTLP over HTTP), or null when this deployment collects none. */
   traces: Null(S),
   /**
@@ -61,7 +66,8 @@ export const rpc_applications_bootstraps_resolve = defineRpc({
     "key's application's origins now (a quickstart key: its one origin), else NOT_AUTHENTICATED `origin-not-allowed`, " +
     "whose `next` is the `key create --app … --origin …` that would add it. It stamps the owned key's last use when the " +
     "stamp is a minute old or more (one conditional update, so a busy key costs one write a minute), then answers the " +
-    "envelope from the deployment's settings, with an origin token for the admitted origin. Replaces the old route, " +
+    "envelope from the deployment's settings, with an origin token for the admitted origin and the build it runs " +
+    "(`devnet` on a devnet or a shared world). Replaces the old route, " +
     "which counted every call on the key row and answered a session token nothing checked.",
   concept: concept_applications,
   kind: "mutation",

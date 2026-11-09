@@ -440,9 +440,9 @@ export const StructurePageInput = Schema.Struct({ orgId: S, employeeId: opt(S), 
 /** One submitted structure as `org payroll structure list` prints it: its rows and the assignments that name it. */
 export const StructureListed = Schema.Struct({ ...Structure.fields, assignments: Schema.Array(Assignment) });
 
-/** `org payroll run create <department> --start --end [--posting] [--frequency] [--employee <employee>]…
- * [--unpaid <employee>=<days>]…`: `--start` and `--end` are `startDate` and `endDate`, `--posting` `postingDate`, each
- * `--employee` one of `employees`, each `--unpaid` one of `leaveWithoutPay`. */
+/** `org payroll run create <department> --start --end [--posting] [--frequency] [--employee <employee>]…`: `--start`
+ * and `--end` are `startDate` and `endDate`, `--posting` `postingDate`, each `--employee` one of `employees`. Leave
+ * without pay and absences come from the period's attendance, never a flag (payroll.attendance-based). */
 export const RunInput = Schema.Struct({
   orgId: S,
   department: S,
@@ -453,11 +453,16 @@ export const RunInput = Schema.Struct({
   payrollFrequency: opt(Frequency),
   /** Only these Employees; absent: every Employee of the department with an assignment in the run's token, active or in their last period (payroll.run-employees). */
   employees: opt(Schema.Array(S)),
-  /** Days of leave without pay, per Employee, in the period. */
-  leaveWithoutPay: opt(Schema.Array(Schema.Struct({ employeeId: S, days: N }))),
 });
 
-export const SlipRowOut = Schema.Struct({ abbr: S, component: S, amount: Money, defaultAmount: Money, source: Schema.Literals(["structure", "collection"]) });
+export const SlipRowOut = Schema.Struct({
+  abbr: S,
+  component: S,
+  amount: Money,
+  defaultAmount: Money,
+  /** `additional`: an Additional Salary's row, an advance's recovery (payroll.advance-recovery). */
+  source: Schema.Literals(["structure", "collection", "additional"]),
+});
 
 export const Slip = Schema.Struct({
   salarySlipId: S,
@@ -472,6 +477,9 @@ export const Slip = Schema.Struct({
   postingDate: Day,
   totalWorkingDays: N,
   paymentDays: N,
+  /** Days of unpaid leave, and days marked absent, the period's attendance took off its payment days (payroll.attendance-based). */
+  leaveWithoutPay: N,
+  absentDays: N,
   earnings: Schema.Array(SlipRowOut),
   deductions: Schema.Array(SlipRowOut),
   employerContributions: Schema.Array(SlipRowOut),

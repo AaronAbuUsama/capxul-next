@@ -333,3 +333,50 @@ export const flow_client_org_fde_pay = defineFlow({
   budget: budget("chain-submit"),
   was: ["docs/design/new-commands.md (section 5.5)", "books/target/payments/flows.ts (client.org.seats.buy, the pattern)"],
 });
+
+// ── payment claim (aaron.payment-claim; decision payments.claim-command) ─────────────────────────────
+//
+// The recipient's claim of the money waiting for them in claim escrows. The command is payments' (the money's noun,
+// `client.payments`), the collection accounts' rpc: payments depends on accounts, never the reverse.
+
+import { Collection, rpc_accounts_setup_collect } from "../accounts/setup.ts";
+
+export const flow_client_payments_claim = defineFlow({
+  id: "client.payments.claim",
+  title: "Claim the money waiting for the person in claim escrows",
+  about:
+    "`payment claim`: opens the approval that collects every claim escrow the person's Safe owns and that holds its " +
+    "amount (accounts' `accounts.setup.collect`, which reads the person's own setup and indexing's escrows), then the " +
+    "person signs it on the approval page the CLI opens and the flow waits until it ends, answering `collected` once its " +
+    "operation lands. With nothing waiting it answers `nothing_waiting` at once and opens nothing; with `--json`, or " +
+    "when `--timeout-seconds` passes first, it answers the hand-over (`awaiting_approval`), and running it again answers " +
+    "the same live approval; as after every payment hand-over, `payment wait` with its `approval_id` follows that " +
+    "approval to its end (approvals.signing.get). As payment send's flow: an approval that lapses before it lands answers " +
+    "SUPERSEDED (run it again), one declined on the page CANCELLED, one whose sponsorship the chain's simulation refused " +
+    "its code, and one the chain refused after signing (an escrow taken back meanwhile) TRANSACTION_FAILED. No React " +
+    "twin or web screen is booked; one that is wanted builds on this Core SDK method (aaron.sdk-reaches-everything; " +
+    "payments.claim-command).",
+  component: component_core_sdk,
+  sdk: "client.payments.claim",
+  input: Schema.Struct({ json: Schema.Boolean, timeout_seconds: Null(Schema.Int) }),
+  output: Collection,
+  steps: [
+    { name: "collect", rpc: rpc_accounts_setup_collect, about: "What waits for the Safe, and the approval that collects it; none ends the flow." },
+    {
+      name: "sponsored",
+      rpc: approvalsSigning.rpc_approvals_signing_get,
+      about: "Follows the approval until it is sponsored, or refused with the chain's code.",
+    },
+    { name: "sign", local: "sign", about: "The person signs on the approval page the CLI opens (Openfort in a browser)." },
+    { name: "approval", local: "wait", about: "Waits until the approval ends: sent, declined, expired or refused, or `--timeout-seconds`." },
+  ],
+  errors: [error_SUPERSEDED, error_CANCELLED, error_TRANSACTION_FAILED],
+  calls: [integration_openfort.c.signDigest],
+  spans: [],
+  budget: budget("chain-submit"),
+  was: [
+    "books/target/accounts/flows.ts (client.account.collect, respelled by aaron.payment-claim)",
+    `${SDK}/accounts/approvals.ts:106`,
+    `${SDK}/accounts/account-setup.ts:86`,
+  ],
+});

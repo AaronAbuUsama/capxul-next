@@ -20,7 +20,7 @@
 import { Schema } from "effect";
 import { budget, defineFlow, type Rpc } from "../../../packages/book/src/index.ts";
 import { component_core_sdk } from "../shared/foundation.ts";
-import { error_CANCELLED, error_INVALID_INPUT } from "../shared/vocabulary.ts";
+import { error_CANCELLED, error_INVALID_INPUT, error_WRONG_STATE } from "../shared/vocabulary.ts";
 import { Doctype } from "./data.ts";
 import {
   Book,
@@ -44,6 +44,17 @@ import {
   rpc_contacts_deals_move,
   rpc_contacts_deals_save,
 } from "./deals.ts";
+import { EmailItem, WhatsAppItem, NoteItem } from "./timeline.ts";
+import { rpc_contacts_mail_send } from "./mail.ts";
+import {
+  WhatsAppAccount,
+  rpc_contacts_whatsapp_connect,
+  rpc_contacts_whatsapp_disconnect,
+  rpc_contacts_whatsapp_send,
+  rpc_contacts_whatsapp_show,
+} from "./whatsapp.ts";
+import { NoteFields, rpc_contacts_notes_save } from "./notes.ts";
+import { TaskFields, TaskView, rpc_contacts_tasks_save } from "./tasks.ts";
 import {
   LeadFields,
   LeadView,
@@ -172,8 +183,8 @@ export const flow_client_account_address_book_unhide = defineFlow({
 const CRM_SURFACES = ["cli", "sdk"] as const;
 /** Every CRM method serves its command and the SDK alike (rules.new-operations, contacts.crm-capabilities). */
 const serves = (command: string) =>
-  `Serves \`${command}\` and the SDK alike: the Organization's agents (its Forward Deployed Engineer first, wearing ` +
-  "the People hat to write) call the same method (contacts.crm-capabilities).";
+  `Serves \`${command}\` and the SDK alike: the Organization's agents call the same method, its hosted Forward ` +
+  "Deployed Engineer first, as its asker with the asker's hats (contacts.crm-capabilities, organizations.fde-for-the-asker).";
 const S = Schema.String;
 
 /** One SDK method that is one call to one CRM rpc. */
@@ -411,3 +422,197 @@ export const flow_client_org_crm_deals_get = crm({
   errors: [error_INVALID_INPUT],
   was: [`${CRM}/fcrm/doctype/crm_deal/crm_deal.json`],
 });
+
+// ── conversations: email, WhatsApp, notes and tasks ─────────────────────────────────────────
+//
+// One SDK method per command (decision contacts.conversation-commands). A send previews at a terminal
+// and asks, since an email or a message cannot be taken back, and so do connecting and disconnecting
+// WhatsApp, which hand the Organization's conversations to Meta or stop them (G5; decision
+// contacts.sends-preview); `--confirm` answers yes from a script, and the hosted FDE never answers
+// for its asker (organizations.fde-for-the-asker). A send makes its send key once per invocation and
+// repeats it on a retry, so a retried call sends once. Adding and changing a note, and making and
+// changing a task, are two methods over one save rpc each, one call apiece. The timeline, `whatsapp
+// show`, a task's move and list, and a call's log are each one rpc call, so each is implemented by its
+// rpc and has no flow here (G7).
+
+/** A preview flow: a person's wait at a terminal, then one vendor call. */
+const vendorWithPreview = { ...budget("vendor"), excludes: ["wait.person"] };
+const writeWithPreview = guidedWrite;
+const sendKey = {
+  name: "key",
+  local: "build",
+  about: "Makes the send key once per invocation; a retried call repeats it, so the rpc sends once.",
+} as const;
+const confirmSend = (what: string) =>
+  ({
+    name: "confirm",
+    local: "prompt",
+    about: `Only at a terminal: shows ${what}, and asks; a decline is CANCELLED and sends nothing. \`--confirm\` skips it.`,
+  }) as const;
+
+export const flow_client_org_crm_emails_send = defineFlow({
+  id: "client.org.crm.emails.send",
+  title: "Send an email about a record, with a preview at a terminal",
+  about:
+    "At a terminal it shows the record, the recipients as typed (else the record's own mailbox, which the rpc " +
+    "resolves), the subject and the text's first lines, and asks; then, or straight away with `--confirm`, the one " +
+    "send, `contacts.mail.send`, under the send key it made. A script without `--confirm` is the CLI's CLI_USAGE. " +
+    serves("org crm email send"),
+  component: component_core_sdk,
+  surfaces: CRM_SURFACES,
+  sdk: "client.org(orgId).crm.emails.send",
+  input: Schema.Struct({
+    orgId: S,
+    record: S,
+    subject: Schema.optionalKey(S),
+    text: S,
+    to: Schema.optionalKey(Schema.Array(S)),
+    cc: Schema.optionalKey(Schema.Array(S)),
+    bcc: Schema.optionalKey(Schema.Array(S)),
+    inReplyTo: Schema.optionalKey(S),
+    confirm: Schema.optionalKey(Schema.Boolean),
+  }),
+  output: EmailItem,
+  steps: [sendKey, confirmSend("the record, the recipients, the subject and the first lines"), { name: "send", rpc: rpc_contacts_mail_send, about: "The one send." }],
+  errors: [error_CANCELLED],
+  calls: [],
+  spans: [],
+  budget: vendorWithPreview,
+  was: [`${CRM}/api/email.py:1`],
+});
+
+export const flow_client_org_crm_whatsapp_connect = defineFlow({
+  id: "client.org.crm.whatsapp.connect",
+  title: "Connect a WhatsApp Business number, with a preview at a terminal",
+  about:
+    "Takes the number's Meta ids, access token, app secret and verify token from the key file, or asks for each at " +
+    "a terminal (a secret is never a flag); at a terminal it shows the number id and business account, that the " +
+    "Organization's CRM will send and receive WhatsApp through Meta on it, and asks; then, or with `--confirm`, the " +
+    "one write, `contacts.whatsapp.connect` (which also subscribes the Meta app to the number's business account), " +
+    "and prints the webhook URL and verify token to set as the app's callback. " +
+    serves("org crm whatsapp connect"),
+  component: component_core_sdk,
+  surfaces: CRM_SURFACES,
+  sdk: "client.org(orgId).crm.whatsapp.connect",
+  input: Schema.Struct({ ...rpc_contacts_whatsapp_connect.input.fields, confirm: Schema.optionalKey(Schema.Boolean) }),
+  output: rpc_contacts_whatsapp_connect.output,
+  steps: [
+    { name: "secrets", local: "prompt", about: "Only at a terminal and without `--key-file`: asks for each id and secret, never echoing a secret." },
+    confirmSend("the number id, the business account and that the CRM's WhatsApp will go through Meta on it"),
+    { name: "connect", rpc: rpc_contacts_whatsapp_connect, about: "The one write, after Meta answered for the number." },
+  ],
+  errors: [error_CANCELLED],
+  calls: [],
+  spans: [],
+  budget: vendorWithPreview,
+  was: ["github.com/frappe/whatsapp@59bf368:whatsapp/whatsapp/doctype/wa_account/wa_account.json"],
+});
+
+export const flow_client_org_crm_whatsapp_disconnect = defineFlow({
+  id: "client.org.crm.whatsapp.disconnect",
+  title: "Disconnect the WhatsApp number, with a preview at a terminal",
+  about:
+    "At a terminal it reads the live account (none ends with WRONG_STATE before any write), shows its number and " +
+    "that nothing more will be sent or received on it, and asks; then, or with `--confirm`, the one write, " +
+    "`contacts.whatsapp.disconnect`. " +
+    serves("org crm whatsapp disconnect"),
+  component: component_core_sdk,
+  surfaces: CRM_SURFACES,
+  sdk: "client.org(orgId).crm.whatsapp.disconnect",
+  input: Schema.Struct({ orgId: S, confirm: Schema.optionalKey(Schema.Boolean) }),
+  output: WhatsAppAccount,
+  steps: [
+    { name: "current", rpc: rpc_contacts_whatsapp_show, about: "Only at a terminal: the account; none live is WRONG_STATE before any write." },
+    confirmSend("the number and that nothing more will be sent or received on it"),
+    { name: "disconnect", rpc: rpc_contacts_whatsapp_disconnect, about: "The one write." },
+  ],
+  errors: [error_CANCELLED, error_WRONG_STATE],
+  calls: [],
+  spans: [],
+  budget: writeWithPreview,
+  was: ["github.com/frappe/whatsapp@59bf368:whatsapp/whatsapp/doctype/wa_account/wa_account.json"],
+});
+
+export const flow_client_org_crm_whatsapp_send = defineFlow({
+  id: "client.org.crm.whatsapp.send",
+  title: "Send a WhatsApp message about a record, with a preview at a terminal",
+  about:
+    "At a terminal it shows the record, the number as typed (else the record's own, which the rpc resolves) and the " +
+    "text or template, and asks; then, or with `--confirm`, the one send, `contacts.whatsapp.send`, under the send key " +
+    "it made. A script without `--confirm` is the CLI's CLI_USAGE. " +
+    serves("org crm whatsapp send"),
+  component: component_core_sdk,
+  surfaces: CRM_SURFACES,
+  sdk: "client.org(orgId).crm.whatsapp.send",
+  input: Schema.Struct({
+    orgId: S,
+    record: S,
+    text: Schema.optionalKey(S),
+    template: Schema.optionalKey(
+      Schema.Struct({ name: S, language: Schema.optionalKey(S), params: Schema.optionalKey(Schema.Array(S)) }),
+    ),
+    to: Schema.optionalKey(S),
+    inReplyTo: Schema.optionalKey(S),
+    confirm: Schema.optionalKey(Schema.Boolean),
+  }),
+  output: WhatsAppItem,
+  steps: [sendKey, confirmSend("the record, the number and the text or template"), { name: "send", rpc: rpc_contacts_whatsapp_send, about: "The one send." }],
+  errors: [error_CANCELLED],
+  calls: [],
+  spans: [],
+  budget: vendorWithPreview,
+  was: ["github.com/frappe/whatsapp@59bf368:whatsapp/whatsapp/doctype/wa_message/wa_message.py:200"],
+});
+
+export const flow_client_org_crm_notes_add = crm({
+  id: "client.org.crm.notes.add",
+  title: "Add a note on a record",
+  about: "Frappe CRM's Notes tab: `contacts.notes.save` with no note, a new note on the record.",
+  command: "org crm note add",
+  sdk: "client.org(orgId).crm.notes.add",
+  rpc: rpc_contacts_notes_save,
+  input: Schema.Struct({ orgId: S, record: S, fields: NoteFields }),
+  output: NoteItem,
+  read: false,
+  was: [`${CRM}/fcrm/doctype/fcrm_note/fcrm_note.json`],
+});
+
+export const flow_client_org_crm_notes_change = crm({
+  id: "client.org.crm.notes.change",
+  title: "Change a note's title or content",
+  about: "Frappe CRM's note editor: `contacts.notes.save` with the note's id.",
+  command: "org crm note change",
+  sdk: "client.org(orgId).crm.notes.change",
+  rpc: rpc_contacts_notes_save,
+  input: Schema.Struct({ orgId: S, note: S, fields: NoteFields }),
+  output: NoteItem,
+  read: false,
+  was: [`${CRM}/fcrm/doctype/fcrm_note/fcrm_note.json`],
+});
+
+export const flow_client_org_crm_tasks_create = crm({
+  id: "client.org.crm.tasks.create",
+  title: "Make a task on a record",
+  about: "Frappe CRM's new task form: `contacts.tasks.save` with no task, Backlog or Todo.",
+  command: "org crm task create",
+  sdk: "client.org(orgId).crm.tasks.create",
+  rpc: rpc_contacts_tasks_save,
+  input: Schema.Struct({ orgId: S, record: S, status: Schema.optionalKey(Schema.Literals(["Backlog", "Todo"])), fields: TaskFields }),
+  output: TaskView,
+  read: false,
+  was: [`${CRM}/fcrm/doctype/crm_task/crm_task.json`],
+});
+
+export const flow_client_org_crm_tasks_change = crm({
+  id: "client.org.crm.tasks.change",
+  title: "Change a task's fields",
+  about: "Frappe CRM's task form on a saved task: `contacts.tasks.save` with the task's id; its status moves only by `move`.",
+  command: "org crm task change",
+  sdk: "client.org(orgId).crm.tasks.change",
+  rpc: rpc_contacts_tasks_save,
+  input: Schema.Struct({ orgId: S, task: S, fields: TaskFields }),
+  output: TaskView,
+  read: false,
+  was: [`${CRM}/fcrm/doctype/crm_task/crm_task.json`],
+});
+

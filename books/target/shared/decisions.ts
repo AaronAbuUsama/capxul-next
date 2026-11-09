@@ -1589,7 +1589,9 @@ export const decision_procedures_accounts_admit = defineDecision({
     "parties, below accounts) moves to the Safe's setup, which already refuses a waiting person. Aaron accepted it. A " +
     "second invoker came with the ruling that waiting money admits its recipient as an invitation does: payments' " +
     "`escrow` step invokes it for a claim escrow's mailbox (`via` escrow; accounts.money-waiting-admits), for the same " +
-    "reason, since accounts sits below payments too.",
+    "reason, since accounts sits below payments too. A third came with aaron.fde-anyone: organizations' " +
+    "`org fde guest add` invokes it for the guest it names (`via` fde-guest; organizations.fde-guests), so the guest " +
+    "can sign in to ask.",
   source: reviewed("org.member.invite.yaml (acceptance), org.create.yaml ('a founder on the beta waitlist is refused'); access/waitlist/guards.ts:49; P4"),
   affects: [f.concept_accounts, f.concept_organizations, f.concept_parties, f.concept_payments, decision_rules_procedures],
 });
@@ -3117,5 +3119,46 @@ export const decision_rules_department_authority = defineDecision({
     f.concept_budgets, f.concept_payments, f.concept_payroll, f.concept_board, f.concept_organizations,
     f.concept_agents, f.concept_banking, f.concept_requests, f.concept_notices,
     x.contract_budgets, x.contract_agreements, x.contract_hats, x.contract_escrow,
+  ],
+});
+
+// ── the world pass's build (9 November 2026): the hosted FDE acts as its asker everywhere ───
+
+export const decision_rules_fde_acts_for_asker = defineDecision({
+  id: "rules.fde-acts-for-asker",
+  title: "Every tenant guard resolves the hosted FDE to its open ask's asker, or refuses",
+  question:
+    "The eighth batch's ruling that anyone may ask the hosted FDE, which does for them only what their own hats allow, " +
+    "is applied in organizations (organizations.fde-for-the-asker). Every concept's rpcs authorise a caller through " +
+    "organizations' tenant guard. How does that guard, and the Core SDK, treat a call the hosted FDE makes?",
+  options: [
+    {
+      label: "asker-or-nothing",
+      text:
+        "A hosted FDE call carries the act-for token its turn's ask minted (the FDE host passes it as an egress header). " +
+        "The tenant guard every concept runs (organizations' MEMBER_GUARD and the guards built on it) resolves such a " +
+        "call to the open ask's asker by the token's hash (`org-fde-asks.by_token`): their Seat and hats for a member, " +
+        "their Party alone for a guest; the call is the asker's, logged with the ask. An expired, ended or unknown " +
+        "token, or none, is ROLE_PERMISSION_DENIED: the hosted FDE never resolves to its own Seat, so only a self-run " +
+        "own agent (`agent create --org`) acts as itself. Under such a session the Core SDK's signing steps hand the " +
+        "approval over to the asker (the `--no-wait` hand-over, or `--json` for the payment family) instead of signing. " +
+        "An rpc behind a preview (G5: `contact link`, `org employee leave`, `org head connect|disconnect`, `org doc " +
+        "remove`, `org advance settle`, the CRM's sends and WhatsApp connect and disconnect) refuses an act-for call " +
+        "ROLE_PERMISSION_DENIED, since the preview is the asker's own to answer.",
+    },
+    { label: "own-seat", text: "The FDE calls as its own Seat, with hats the Board grants it, whoever asked." },
+  ],
+  chosen: "asker-or-nothing",
+  why:
+    "Resolving the call in the one guard every concept already runs applies the ruling everywhere at once, with no " +
+    "concept checking two Seats; refusing a call with no live token keeps an FDE that nobody asked from acting at all, " +
+    "and refusing a preview's rpc keeps the asker's own answer theirs. Handing over instead of signing keeps every " +
+    "signature the asker's Safe's, as authority.md requires. Its own Seat with granted hats would let anyone who may ask " +
+    "act with hats they do not wear. organizations.fde-for-the-asker is the concept's record of the same choice; this " +
+    "states it for every concept's guard.",
+  source: "Claude, world pass build, 9 November 2026; under aaron.fde-anyone; evidence: organizations.fde-for-the-asker; books/target/organizations/apps.ts (MEMBER_GUARD); docs/design/new-commands.md (G4, G5)",
+  affects: [
+    f.concept_organizations, f.concept_agents, f.concept_contacts, f.concept_payroll, f.concept_payments,
+    f.concept_projects, f.concept_budgets, f.component_core_sdk, x.integration_fde_host,
   ],
 });

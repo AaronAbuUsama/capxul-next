@@ -5,7 +5,7 @@
 //
 // The person is named by mailbox, `@handle` or Party id and resolved through parties' door, so a new hire
 // with no account is a provisional Party at the Safe their mailbox derives, and pay to them waits in a
-// claim escrow until they collect it, at setup or later with `account collect` (payroll.new-hire-escrow, aaron.budget-pay-unclaimed).
+// claim escrow until they collect it, at setup or later with `payment claim` (payroll.new-hire-escrow, aaron.budget-pay-unclaimed).
 
 import { Schema } from "effect";
 import { budget, defineRpc } from "../../../packages/book/src/index.ts";
@@ -33,7 +33,8 @@ const FRAPPE = "/tmp/erpnext/erpnext/setup/doctype/employee";
 export const WHO_HR =
   "A signed-in member of the Organization, person or agent, whose own Safe wears its People hat (Frappe's HR Manager), " +
   "read from the deployment's `people_hat` and indexing's hat-wearers; the founder wears it from setup. The hat " +
-  "decides, never the person: an agent, the FDE included, only once the Board granted its Safe the hat.";
+  "decides, never the person: a self-run agent only once the Board granted its Safe the hat; the hosted FDE only as " +
+  "an asker who wears it (rules.fde-acts-for-asker).";
 
 /** The guard every payroll HR write and read runs first. */
 export const HR_GUARD =
@@ -94,7 +95,9 @@ export const rpc_payroll_employees_change = defineRpc({
     "The Employee must be the Organization's (INVALID_INPUT). `status` moves as machine employee allows (WRONG_STATE " +
     "otherwise, naming the status it is in): `suspended`, `inactive`, back to `active`, or `left` with " +
     "`relievingDate`, the last day worked, on or after `date_of_joining` (INVALID_INPUT). Leaving is refused while a " +
-    "slip of theirs is paying or escrowed (WRONG_STATE); a withheld slip stays owed after they leave. Their Party, Safe and mailbox never change here: pay follows " +
+    "slip of theirs is paying or escrowed (WRONG_STATE); a withheld slip stays owed after they leave. A move to `left` " +
+    "refuses a hosted FDE's act-for call (ROLE_PERMISSION_DENIED): `org employee leave` previews, and the preview is " +
+    "the asker's own to answer (rules.fde-acts-for-asker). Their Party, Safe and mailbox never change here: pay follows " +
     "the person, not the record (payroll.mailbox-for-pay). It answers the Employee as `payroll.employees.get` does, " +
     "with the assignment that pays them today (payroll.command-fit).",
   was: [`${FRAPPE}/employee.py`],

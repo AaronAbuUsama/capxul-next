@@ -93,14 +93,24 @@ export const PayrollLine = Schema.Struct({
    * (its liability), the run's Payroll Payable; null for its role's (books.payroll-defaults).
    */
   account_id: NullOr(S),
-  /** What the line is, so a missing or unfit account falls back: `expense` to `salaries` (5000), the others to Payroll Payable. */
-  role: Schema.Literals(["expense", "liability", "payable"]),
+  /**
+   * What the line is, so a missing or unfit account falls back: `expense` to `salaries` (5000), or for an expense
+   * claim's line to books' default expense account; `advance` to Employee Advances (Frappe's
+   * default_employee_advance_account, a receivable); the others to Payroll Payable.
+   */
+  role: Schema.Literals(["expense", "liability", "payable", "advance"]),
   party_type: NullOr(PartyType),
   party_id: NullOr(S),
   cost_center_id: NullOr(S),
   project: NullOr(S),
-  /** A net's payable line names its Payroll Entry, as Frappe HR's does; every other line names none. */
-  reference: NullOr(Schema.Struct({ reference_doctype: Schema.Literal("Payroll Entry"), reference_name: S })),
+  /**
+   * A net's payable line names its Payroll Entry, as Frappe HR's does; an expense claim's payable line names the Expense
+   * Claim, and an advance line (a claim's advance taken, a run's advance recovery) the Employee Advance; every other
+   * line names none.
+   */
+  reference: NullOr(
+    Schema.Struct({ reference_doctype: Schema.Literals(["Payroll Entry", "Expense Claim", "Employee Advance"]), reference_name: S }),
+  ),
   /** In the run's token, at its display precision, as the slip's rows are. */
   debit: S,
   credit: S,

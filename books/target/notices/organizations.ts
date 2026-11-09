@@ -9,10 +9,12 @@
 
 import { table_principals } from "../access/data.ts";
 import {
+  machine_fde_guest,
   machine_org_fde,
   machine_org_head,
   machine_org_invite,
   machine_org_setup,
+  table_org_fde_guests,
   table_org_fdes,
   table_org_heads,
   table_org_invitations,
@@ -88,8 +90,9 @@ export const workflow_notices_organizations_fde_ready = noticeWorkflow({
   about:
     "Follows `complete` of an Organization's setup: the install landed, the founder and the Forward Deployed Engineer " +
     "are seated and the FDE's Party is active (organizations.fde-seat). Sends `fde-ready` once to the founder: the " +
-    "Organization, the FDE's handle, that it acts only through the CLI and SDK as a member with no hat until the Board " +
-    "grants one (agents.fde-authority), that Capxul hosts it and its key is the host's, never on the founder's machine " +
+    "Organization, the FDE's handle, that anyone of the Organization may ask it, and any guest the management names " +
+    "(`org fde guest add`), that it acts only as the person who asks, with their own Seat and hats, so it needs no hat " +
+    "and every signature stays the asker's (aaron.fde-anyone, organizations.fde-for-the-asker), that Capxul hosts it and its key is the host's, never on the founder's machine " +
     "(aaron.fde-hosted, organizations.fde-at-start-up), its start-up month and how to talk to it (`capxul org fde ask`). " +
     "A setup that began with `--no-fde` holds no FDE and sends nothing. The founder's own Seat needs no email: they " +
     "followed the setup to its end.",
@@ -158,4 +161,42 @@ export const workflow_notices_organizations_fde_paused = noticeWorkflow({
   ],
   chain: [contract_safe.f.getOwners],
   was: ["books/target/shared/rulings.ts (aaron.fde-hosted)", "books/target/organizations/decisions.ts (organizations.fde-hosting)"],
+});
+
+// ── the FDE's guests (aaron.fde-anyone; organizations.fde-guests) ───────────────────────────
+
+const GUEST_STEPS = [
+  { name: "guest", about: "Reads the guest: their Party's mailbox (none for a person known only by @handle and no email: no notice), who named them and the note." },
+  {
+    name: "facts",
+    about:
+      "The Organization's name and handle, who named them, the note, how to sign in with this mailbox (`capxul auth " +
+      "login <email>`, then the emailed code) and the line to ask: `capxul org fde ask <message> --org <handle>`.",
+  },
+] as const;
+
+const GUEST_ABOUT =
+  "Sends `fde-guest-named` once to the guest's mailbox: the Organization that named them, by whom, the note, that " +
+  "they are admitted to the beta (`accounts.admit` via fde-guest, so this is their welcome), how to sign in and how " +
+  "to ask its FDE, which does for them only what an outside party may (organizations.fde-for-the-asker). A removal " +
+  "sends nothing.";
+
+export const workflow_notices_organizations_fde_guest_named = noticeWorkflow({
+  id: "notices.organizations.fde-guest-named",
+  title: "Tell an outside person they may ask an Organization's FDE",
+  about: `Follows \`name\`: People or a Director named an outside person a guest of the FDE. ${GUEST_ABOUT}`,
+  trigger: { transition: machine_fde_guest.t.name },
+  reads: [table_org_fde_guests, table_organizations, table_parties, table_principals],
+  steps: GUEST_STEPS,
+  was: ["books/target/shared/rulings.ts (aaron.fde-anyone)", "books/target/organizations/decisions.ts (organizations.fde-guests)"],
+});
+
+export const workflow_notices_organizations_fde_guest_named_again = noticeWorkflow({
+  id: "notices.organizations.fde-guest-named-again",
+  title: "Tell a removed guest they may ask an Organization's FDE again",
+  about: `Follows \`name_again\`: a removed guest is named again. ${GUEST_ABOUT}`,
+  trigger: { transition: machine_fde_guest.t.name_again },
+  reads: [table_org_fde_guests, table_organizations, table_parties, table_principals],
+  steps: GUEST_STEPS,
+  was: ["books/target/shared/rulings.ts (aaron.fde-anyone)", "books/target/organizations/decisions.ts (organizations.fde-guests)"],
 });

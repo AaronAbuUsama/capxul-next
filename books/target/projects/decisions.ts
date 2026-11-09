@@ -491,8 +491,8 @@ export const decision_projects_permissions = defineDecision({
     "(docs/design/authority.md, aaron.departments), authority is a hat's, never a person's: a project's creator, its " +
     "members and its customer gain no right over it, and the Board swaps a member in or out of managing projects by " +
     "granting or revoking the People hat, which takes effect at their next command. An agent is a member like any " +
-    "other, so the FDE works tasks and its own time from its Seat and manages only once the Board grants its Safe the " +
-    "People hat (agents.fde-authority). Frappe roles would give Capxul a second permission model beside hats. A " +
+    "other, so a self-run agent works tasks and its own time from its Seat and manages only once the Board grants its " +
+    "Safe the People hat, and the hosted FDE does what its asker may (agents.fde-authority). Frappe roles would give Capxul a second permission model beside hats. A " +
     "Projects hat changes the Installer, a v4 contract. A department's hat cannot manage its projects: projects sits " +
     "below budgets, and a project's `department` is a head's name, not a budget. Any member would let one Seat cancel " +
     "every project.",

@@ -11,8 +11,9 @@
 // Two reads, because the two commands answer differently (decision `accounts.setup-reads`):
 // `account show` shows a failed setup as a lifecycle, `account retry` refuses with the chain's code.
 //
-// One write the CLI does start: `account collect` opens the approval that collects, whenever the person chooses, the
-// claim escrows their Safe owns (decision `accounts.collect-any-time`, under aaron.escrow-general).
+// One write the CLI does start: `payment claim`, payments' command, calls `accounts.setup.collect`, which opens the
+// approval that collects, whenever the person chooses, the claim escrows their Safe owns (decisions
+// `accounts.collect-any-time` and `payments.claim-command`, under aaron.escrow-general and aaron.payment-claim).
 
 import { Schema } from "effect";
 import { budget, defineRpc } from "../../../packages/book/src/index.ts";
@@ -145,7 +146,7 @@ export const rpc_accounts_setup_check = defineRpc({
   was: [`${OLD}/safes/operations/load-by-auth-user-id.ts:11`, "apps/cli/src/auth/profile-report.ts:18", "apps/docs/factory/operations/account.retry.yaml"],
 });
 
-/** One claim escrow the caller's Safe owns, as `account collect` lists it. */
+/** One claim escrow the caller's Safe owns, as `payment claim` lists it. */
 export const WaitingEscrow = Schema.Struct({
   escrow: S,
   asset: S,
@@ -157,7 +158,7 @@ export const WaitingEscrow = Schema.Struct({
 });
 
 /**
- * What `account collect` answers, as `agreement collect` answers `nothing_released`: `nothing_waiting` (nothing opened),
+ * What `payment claim` answers, as `agreement collect` answers `nothing_released`: `nothing_waiting` (nothing opened),
  * `awaiting_approval` (the hand-over: with `--json`, or `--timeout-seconds` passed before the approval ended) or
  * `collected` (the approval's operation landed: each listed escrow paid the Safe).
  */
@@ -175,7 +176,7 @@ export const rpc_accounts_setup_collect = defineRpc({
   title: "Open the approval that collects the claim escrows the person's Safe owns",
   about:
     "The general escrow's owner collects whenever it chooses (aaron.escrow-general): this is that choice, any time after " +
-    "setup. It reads the caller's own setup: not started, still claiming, or failed in a way a new start retries is " +
+    "setup, which `payment claim` makes (payments' flow `client.payments.claim`, aaron.payment-claim). It reads the caller's own setup: not started, still claiming, or failed in a way a new start retries is " +
     "SMART_ACCOUNT_MISSING; one the chain refused answers as `account retry` does (SwapRefused, the Safe claimed by " +
     "another signer, WRONG_STATE; EmailNotNormalized or InvalidSigner INVALID_INPUT). Then indexing's open " +
     "owner-collects escrows whose owner is that Safe and whose balance in safe-balances holds their amount, so one " +

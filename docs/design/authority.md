@@ -145,10 +145,18 @@ the Organization's own agent (`aaron.seats`, `organizations.agent-cover`).
   for it, but each one still fills a place on its hat.
 - **The FDE.** The FDE is the Organization's own agent: AgentOwner's owner is the company Safe, so every change to it
   is a Board proposal (`agents.org-owned`). Under `aaron.fde-hosted` Capxul runs it, as a durable agent with sandboxes,
-  and Capxul's runtime holds its key. Its authority is exactly the hats the Board grants its Safe: it starts with none
-  (`agents.fde-authority`), and it is never a Director (`board.no-agent-directors`). Anything the Board grants the FDE
-  is exercised by a runtime Capxul operates for the Organization, and the Board can freeze, re-key or remove it at any
-  time.
+  and Capxul's runtime holds its key. It is never a Director (`board.no-agent-directors`), and the Board can freeze,
+  re-key or remove it at any time.
+- **The hosted FDE acts as its asker** (`aaron.fde-anyone`; `organizations.fde-for-the-asker`,
+  `rules.fde-acts-for-asker`). Any member, or a guest the People hat or a Director names (`org fde guest add`), may
+  ask it. Each ask mints an act-for token, which the host hands the FDE's CLI for that turn alone, and every tenant
+  guard resolves a call that carries it to the ask's asker: their Seat and hats for a member, their Party alone for a
+  guest. A call with no live token is refused, so the hosted FDE never acts as itself, and the hats the Board grants
+  its own Safe go unused while Capxul hosts it (`agents.fde-authority`, `agents.fde-people-hat`). Every signature it
+  prepares is the asker's to make, from their own Safe (it hands the approval over), and a command that previews is
+  the asker's own to answer, so its rpc refuses the FDE's call. On the head, the document family runs as the asker's
+  own head User (`organizations.doc-authority`). Only a self-run own agent (`agent create --org`) acts with its own
+  Safe's hats.
 
 ### Payees and escrows
 
@@ -240,6 +248,12 @@ the chain's:
   proposals (`payroll.holder-writes`), though the chain would admit the company Safe.
 - **No agent Directors.** An agent is never a Director (`board.no-agent-directors`). The chain cannot tell an agent's
   Safe from a person's, so Capxul checks the Seat's kind.
+- **The hosted FDE as its asker.** The act-for token and the asker it resolves to are Capxul's own check
+  (`rules.fde-acts-for-asker`). On chain the asker's own Safe signs whatever the FDE prepares, so the chain's check is
+  the asker's hats, as for any of their own calls.
+- **The head's permissions.** The document family is judged by the head's own roles for the member's User, which
+  Capxul brings to what the member's hats give at each call (`organizations.doc-authority`). Money never goes through
+  the head (`organizations.doc-reach`).
 
 ## Where the book contradicts the model
 

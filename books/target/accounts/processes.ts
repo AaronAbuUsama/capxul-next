@@ -55,7 +55,7 @@ export const workflow_accounts_setup_personal_safe = defineWorkflow({
     "opens one approval from the person's own Safe, sponsored by the paymaster, calling `Escrow.collect()` on each; the " +
     "web app hands the person to the approval page to sign it. When that approval has ended (collected, declined or " +
     "lapsed) it drives `finish` with what was paid to the Safe. Ready never waits on the collection: an escrow left " +
-    "stays the Safe's to collect whenever it chooses (`account collect`) and its sender's to take back until then.",
+    "stays the Safe's to claim whenever it chooses (`payment claim`) and its sender's to take back until then.",
   concept: concept_accounts,
   priority: "normal",
   trigger: { after: rpc_accounts_setup_start },

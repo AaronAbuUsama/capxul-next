@@ -38,9 +38,29 @@ import { MemberView, rpc_organizations_members_list } from "./members.ts";
 import { SetupView } from "./setups.ts";
 import { rpc_organizations_apps_add, rpc_organizations_apps_list, rpc_organizations_apps_remove, WHO_DIRECTOR_OR_FDE, WHO_MEMBER } from "./apps.ts";
 import { rpc_organizations_heads_show } from "./heads.ts";
-import { rpc_organizations_fde_show } from "./fde.ts";
+import {
+  rpc_organizations_fde_guests_add,
+  rpc_organizations_fde_guests_list,
+  rpc_organizations_fde_guests_remove,
+  rpc_organizations_fde_show,
+  rpc_organizations_fde_turn,
+} from "./fde.ts";
+import {
+  rpc_organizations_doc_calls_list,
+  rpc_organizations_docs_amend,
+  rpc_organizations_docs_apply,
+  rpc_organizations_docs_cancel,
+  rpc_organizations_docs_change,
+  rpc_organizations_docs_create,
+  rpc_organizations_docs_get,
+  rpc_organizations_docs_list,
+  rpc_organizations_docs_submit,
+  rpc_organizations_doctypes_get,
+  rpc_organizations_doctypes_list,
+  WHO_HEAD_USER,
+} from "./docs.ts";
 import { rpc_organizations_seats_show } from "./members.ts";
-import { flow_client_org_fde_ask, flow_client_org_head_connect, flow_client_org_head_disconnect } from "./flows.ts";
+import { flow_client_org_docs_remove, flow_client_org_fde_ask, flow_client_org_head_connect, flow_client_org_head_disconnect } from "./flows.ts";
 import { error_PROVIDER_ERROR } from "../shared/vocabulary.ts";
 import {
   InvitationView,
@@ -501,7 +521,8 @@ export const operation_org_invite_resend = defineOperation({
 // org`'s), its id is its command's words joined by dots, and it is one SDK method under
 // `client.org(orgId)`. Who may run each is a Seat or a hat, never a named person
 // (docs/design/authority.md). The commands an Organization's start-up needs are `critical`
-// (organizations.command-priorities). Every refusal starts from a catalogued world
+// (organizations.command-priorities): `org app list|add`, not the FDE's, which is not on the
+// critical path (aaron.fde-anyone). Every refusal starts from a catalogued world
 // (organizations.command-worlds).
 
 const AREA = "organizations";
@@ -583,7 +604,7 @@ export const operation_org_app_add = defineOperation({
     "to install it, and on a self-hosted head its owner installs it with bench; either way it is listed installed once " +
     "the head shows it. Adding an app already wanted, or installed on the head, changes nothing; a fundamental app is " +
     "always installed and is refused. " +
-    "A Director runs it, or the Organization's FDE in conversation with its people.",
+    "A Director runs it, or the Organization's FDE for a Director who asks it in conversation.",
   area: AREA,
   command: "org app add",
   priority: "critical",
@@ -596,8 +617,8 @@ export const operation_org_app_add = defineOperation({
       "cli: from org-ready, `org app add helpdesk --json` prints helpdesk `status: wanted` and addedBy Dana's member id; the same command again prints the same; read: `org app list` lists helpdesk once; world: one row added in all.",
     ),
     claim(
-      "The Organization's own FDE may add an app; a member without the Director hat may not.",
-      "cli: from org-with-fde, the FDE's own `org app add helpdesk --org acme --json`, run with its key through the stand-in host (`capxul-devnet fde run acme --`), prints it wanted with addedBy the FDE's member id; from org-with-member, Sam's `org app add helpdesk` exits ROLE_PERMISSION_DENIED and the world does not change.",
+      "The hosted FDE adds an app for a Director who asks it; a member without the Director hat may not, nor the FDE for them.",
+      "cli: from org-with-fde with the stand-in host holding turns, after Dana's `org fde ask … --timeout-seconds 1` (CLI_DEADLINE, her ask open), the FDE's `org app add helpdesk --org acme --json` under it (`capxul-devnet fde run acme --ask <Dana's askId> --`) prints it wanted with addedBy Dana's member id; from org-with-member, Sam's `org app add helpdesk` exits ROLE_PERMISSION_DENIED and the world does not change.",
     ),
     claim(
       "With a head connected, an added app is installed on the head and listed installed with the head's version.",
@@ -656,7 +677,8 @@ export const operation_org_app_remove = defineOperation({
 
 const WHO_DIRECTOR =
   "A Director of the Organization: a member whose own Safe wears the Director hat, as indexing reads the chain. Never " +
-  "an agent, so never the FDE, which may prepare it and ask a Director to run it.";
+  "an agent, and never the hosted FDE for a Director (the preview is the Director's own): it may prepare it and ask a " +
+  "Director to run it.";
 
 export const operation_org_head_connect = defineOperation({
   id: "org.head.connect",
@@ -776,24 +798,44 @@ export const operation_org_head_disconnect = defineOperation({
   budget: budget("write"),
 });
 
-// ── the hosted FDE (organizations.fde-commands; aaron.fde-agent, aaron.fde-hosted) ──────────
+// ── the hosted FDE (organizations.fde-commands; aaron.fde-agent, aaron.fde-hosted, aaron.fde-anyone) ──
+
+const W_FDE_MEMBER = "org-with-fde-member";
+const W_FDE_GUEST = "org-with-fde-guest";
+const W_FDE_ALLOWANCE = "org-with-fde-allowance";
 
 const WHO_ASKER =
-  "A Director of the Organization: a member whose own Safe wears the Director hat, as indexing reads the chain. The " +
-  "FDE acts with the hats the Board granted its Safe, so whoever instructs it borrows them. Never an agent, so the " +
-  "FDE never asks itself.";
+  "Any member of the Organization, a person or an agent, or a guest its management named (`org fde guest add`): " +
+  "aaron.fde-anyone. The FDE then acts as the asker, so it does for them only what their own Seat and hats allow; a " +
+  "guest, with no Seat, is allowed only what a counterparty is admitted to. The FDE never asks itself.";
+
+const WHO_MANAGEMENT =
+  "People or Director: a member whose own Safe wears the People hat or the Director hat, as indexing reads the chain " +
+  "(the Organization's management, which names the outside people it works with).";
+
+/** Olga is outside Acme: no Seat and, in these worlds, no guest row. */
+const notAsker = (given: string) => ({
+  error: error_ROLE_PERMISSION_DENIED,
+  given,
+  when: "Olga, signed in and neither a member nor a guest of Acme, names it with `--org`: refused as an Organization that does not exist is, and nothing is sent or written.",
+});
+const notManagement = (what: string) => ({
+  error: error_ROLE_PERMISSION_DENIED,
+  given: W_FDE_MEMBER,
+  when: `Sam, a member of Acme whose Safe wears neither the People nor the Director hat, ${what}: nothing is written.`,
+});
 
 export const operation_org_fde_show = defineOperation({
   id: "org.fde.show",
   title: "Show the Organization's hosted FDE and what its hosting costs",
   about:
     "Shows the Organization's Forward Deployed Engineer, which Capxul hosts: its handle and Safe, whether it is running, " +
-    "due, paused or resuming on the host, the hats the Board granted it, the instant its hosting is paid to and the day " +
-    "it falls due, the price of a month (FDE_HOSTING_PRICE), what has been paid, and who last asked it something. Null " +
-    "for an Organization started without one.",
+    "due, paused or resuming on the host, the hats its Safe wears (it acts with each asker's, not these), the instant " +
+    "its hosting is paid to and the day it falls due, the price of a month (FDE_HOSTING_PRICE), what has been paid, and " +
+    "who last asked it something. Null for an Organization started without one.",
   area: AREA,
   command: "org fde show",
-  priority: "critical",
+  priority: "normal",
   implementedBy: rpc_organizations_fde_show,
   who: WHO_MEMBER,
   changes: NOTHING_READ,
@@ -826,20 +868,39 @@ export const operation_org_fde_ask = defineOperation({
   title: "Ask the Organization's hosted FDE something",
   about:
     "Sends a message to the Organization's Forward Deployed Engineer on Capxul's host, and prints its reply when its " +
-    "turn ends. The FDE acts with the hats the Board granted it, so only a Director instructs it. Whatever it does in " +
-    "return it does through its own commands, signed with its own key and each traced. At the deadline " +
-    "(`--timeout-seconds`, 300 by default) the command stops waiting and prints the turn's id, and the FDE carries on. " +
-    "A paused FDE takes no message until its hosting is paid (`org fde pay`).",
+    "turn ends. Any member may ask, and so may a guest the Organization's management named. The FDE then works as the " +
+    "asker: it does for them only what their own hats allow, and anything that needs a signature comes to the asker to " +
+    "approve. At the deadline (`--timeout-seconds`, 300 by default) the command stops waiting and prints the turn's id " +
+    "(`org fde turn get` reads it later), and the FDE carries on. A guest names the Organization with `--org`. A paused " +
+    "FDE takes no message until its hosting is paid (`org fde pay`).",
   area: AREA,
   command: "org fde ask",
-  priority: "critical",
+  priority: "normal",
   implementedBy: flow_client_org_fde_ask,
   who: WHO_ASKER,
-  changes: "One ask recorded (who asked, and when; never the message), and one turn of the FDE on the host.",
+  changes:
+    "One ask recorded (who asked, when, and until when the FDE may act for them; never the message), and one turn of " +
+    "the FDE on the host, whose every call is the asker's.",
   acceptance: [
     claim(
-      "A Director's message reaches the hosted FDE, and the command prints its reply when the turn ends.",
-      "cli: from org-with-fde, `org fde ask \"What do you need from me first?\" --json` prints `status: ended` and the stand-in FDE's reply; read: `org fde show` prints lastAskedBy Dana's member id.",
+      "Any member's message reaches the hosted FDE, and the command prints its reply when the turn ends.",
+      "cli: from org-with-fde-member, Sam's (a member with no hat) `org fde ask \"What do you need from me first?\" --org acme --json` prints `status: ended` and the stand-in FDE's reply; read: `org fde show` prints lastAskedBy Sam's member id.",
+    ),
+    claim(
+      "The FDE does for the asker only what the asker's own hats allow.",
+      "cli: from org-with-fde-member with the stand-in host holding turns (`capxul-devnet fault fde-host hold`), Sam's and then Dana's `org fde ask \"Add the helpdesk\" --timeout-seconds 1` each exit CLI_DEADLINE with their askId, their asks open; the FDE's `org app add helpdesk` under Sam's ask (`capxul-devnet fde run acme --ask <Sam's askId> -- org app add helpdesk --org acme`) exits ROLE_PERMISSION_DENIED; under Dana's it prints helpdesk wanted with addedBy Dana's member id; trace: each call's span names the FDE as actor and its asker.",
+    ),
+    claim(
+      "What needs a signature, the FDE hands to the asker; it never signs for them.",
+      "cli: from org-with-fde-allowance with turns held, under Dana's open ask the FDE's `payment send` of 5 USDC to olga@outside.test `--from capxul --json` answers the hand-over, an approval whose signer is Dana's own Safe (she holds `capxul`); chain: nothing moves until Dana approves it (`dev approve <it> --as dana@acme.test`), then one Payment settles from `capxul`, once.",
+    ),
+    claim(
+      "A guest the management named may ask, and the FDE reads nothing of the Organization's for them.",
+      "cli: from org-with-fde-guest, Olga's `org fde ask \"Where is my invoice?\" --org acme --json` prints the reply; with turns held, under the ask she then makes (`--timeout-seconds 1`, open), the FDE's `org member list --org acme` exits ROLE_PERMISSION_DENIED.",
+    ),
+    claim(
+      "An ask stops acting for its asker once its turn has ended.",
+      "cli: from org-with-fde-member with turns held, under Sam's open ask the FDE's `org head show --org acme` prints null (Acme has no head); after `capxul-devnet fault fde-host clear` and Sam's `org fde turn get` reads the turn ended, the same exits ROLE_PERMISSION_DENIED; world: no write.",
     ),
     claim(
       "The FDE's turn is a wait: at the deadline the command stops waiting, and the FDE carries on.",
@@ -854,7 +915,7 @@ export const operation_org_fde_ask = defineOperation({
   errors: [error_CLI_USAGE, error_CLI_DEADLINE],
   refusals: [
     signedOut,
-    notDirector(W_MEMBER, "asks the FDE"),
+    notAsker(W_FDE_MEMBER),
     { error: error_INVALID_INPUT, given: W_FDE, when: "The message is empty or longer than 8,000 characters: nothing is sent." },
     {
       error: error_WRONG_STATE,
@@ -864,6 +925,140 @@ export const operation_org_fde_ask = defineOperation({
     { error: error_PROVIDER_ERROR, given: W_FDE_HOST_DOWN, when: "The FDE host does not answer: nothing is recorded, and asking again later sends the message." },
   ],
   budget: budget("vendor"),
+});
+
+export const operation_org_fde_turn_get = defineOperation({
+  id: "org.fde.turn.get",
+  title: "Read one of your turns with the hosted FDE, and its reply",
+  about:
+    "Reads a turn the hosted FDE took for a message you sent: still working, ended with its reply, or failed with the " +
+    "host's reason. Use it after `org fde ask` stopped waiting at its deadline. Only the asker reads a turn: the reply " +
+    "may hold what only they may see.",
+  area: AREA,
+  command: "org fde turn get",
+  priority: "normal",
+  implementedBy: rpc_organizations_fde_turn,
+  who: "The turn's own asker: the member or the guest who sent its message.",
+  changes: "Nothing but a stamp: once read ended or failed, the ask acts for its asker no longer.",
+  acceptance: [
+    claim(
+      "A turn the ask stopped waiting for is read later: working, then ended with the reply.",
+      "cli: from org-with-fde with the stand-in host holding turns, after `org fde ask \"Hi\" --timeout-seconds 1` exits CLI_DEADLINE with a turn id, `org fde turn get <it> --json` prints `status: working`; after `capxul-devnet fault fde-host clear`, it prints `status: ended` and the stand-in's reply.",
+    ),
+    claim(
+      "Only its asker reads a turn.",
+      "cli: from org-with-fde-member, after Dana's ask, Sam's `org fde turn get <Dana's turn> --org acme` exits INVALID_INPUT and prints nothing of it.",
+    ),
+  ],
+  returns: rpc_organizations_fde_turn.output,
+  errors: [error_CLI_USAGE],
+  refusals: [
+    signedOut,
+    notAsker(W_FDE_MEMBER),
+    { error: error_INVALID_INPUT, given: W_FDE_MEMBER, when: "The turn is not one the caller asked here (another member's, or a made-up id): nothing is read." },
+  ],
+  budget: budget("vendor"),
+});
+
+export const operation_org_fde_guest_add = defineOperation({
+  id: "org.fde.guest.add",
+  title: "Let an outside person the Organization works with talk to its FDE",
+  about:
+    "Names someone outside the Organization whom it works with (a customer, a supplier, an accountant, someone it may " +
+    "hire) as a guest who may talk to its hosted FDE, by email or a person's @handle, with an optional note of who they " +
+    "are. A guest holds no Seat and no hat, so the FDE does for them only what they may do themselves: see their own " +
+    "dealings with the Organization, never its members' records. Someone not yet on Capxul is admitted so they can " +
+    "sign in, and is told how to ask. Naming someone twice changes nothing.",
+  area: AREA,
+  command: "org fde guest add",
+  priority: "normal",
+  implementedBy: rpc_organizations_fde_guests_add,
+  who: WHO_MANAGEMENT,
+  changes: "One guest row, active, with who named them; a mailbox new to Capxul is named a provisional Party and admitted to the beta.",
+  acceptance: [
+    claim(
+      "A Director names an outside person a guest; naming them twice is one guest.",
+      "cli: from org-with-fde-member, Dana's `org fde guest add olga@outside.test --note \"Our accountant\" --org acme --json` prints Olga `status: active`, namedBy Dana's member id and the note; the same command again prints the same; read: `org fde guest list` lists Olga once.",
+    ),
+    claim(
+      "Someone not yet on Capxul is named by email, and can then sign in and ask.",
+      "cli: from org-with-fde-member, `org fde guest add newcomer@outside.test --org acme` prints an active guest; then newcomer@outside.test signs in (`auth login`, `auth verify`) and `org fde ask \"Hello\" --org acme` prints the FDE's reply.",
+    ),
+  ],
+  returns: rpc_organizations_fde_guests_add.output,
+  errors: [error_CLI_USAGE],
+  refusals: [
+    signedOut,
+    notManagement("names a guest"),
+    {
+      error: error_INVALID_INPUT,
+      given: W_FDE_MEMBER,
+      when: "The person is a member here (sam@acme.test), an agent's or an Organization's @handle, a malformed email, or the note is longer than 200 characters: the refusal names it and nothing is written.",
+    },
+  ],
+  budget: budget("write"),
+});
+
+export const operation_org_fde_guest_remove = defineOperation({
+  id: "org.fde.guest.remove",
+  title: "Stop an outside person talking to the Organization's FDE",
+  about:
+    "Removes a guest: from then on they may not ask the FDE, and the FDE no longer acts for them on anything they asked " +
+    "before. Their past asks stay recorded. Naming them again lets them ask again.",
+  area: AREA,
+  command: "org fde guest remove",
+  priority: "normal",
+  implementedBy: rpc_organizations_fde_guests_remove,
+  who: WHO_MANAGEMENT,
+  changes: "The guest row moves to removed, with who removed them.",
+  acceptance: [
+    claim(
+      "A removed guest can no longer ask, and naming them again lets them ask again.",
+      "cli: from org-with-fde-guest, Dana's `org fde guest remove olga@outside.test --org acme --json` prints `status: removed`; Olga's `org fde ask \"Hi\" --org acme` then exits ROLE_PERMISSION_DENIED; after `org fde guest add olga@outside.test`, her ask prints the reply.",
+    ),
+    claim(
+      "An ask a guest made before removal acts for them no more.",
+      "cli: from org-with-fde-guest with turns held, Olga asks (`--timeout-seconds 1`: CLI_DEADLINE, her ask open); under that ask the FDE's `payment list --json` prints Olga's own payments (a guest's own records, which her ask allows); after Dana removes her, the same exits ROLE_PERMISSION_DENIED. (`org fde show` would be refused before the removal too: a guest has no Seat.)",
+    ),
+  ],
+  returns: rpc_organizations_fde_guests_remove.output,
+  errors: [error_CLI_USAGE],
+  refusals: [
+    signedOut,
+    notManagement("removes a guest"),
+    { error: error_INVALID_INPUT, given: W_FDE_MEMBER, when: "The email, @handle or id names no guest of Acme: nothing is written." },
+  ],
+  budget: budget("write"),
+});
+
+export const operation_org_fde_guest_list = defineOperation({
+  id: "org.fde.guest.list",
+  title: "List the outside people who may talk to the Organization's FDE",
+  about: "Lists the Organization's guests, active ones first, each with who they are, who named them and when, and when they were removed.",
+  area: AREA,
+  command: "org fde guest list",
+  priority: "normal",
+  implementedBy: rpc_organizations_fde_guests_list,
+  who: WHO_MEMBER,
+  changes: NOTHING_READ,
+  acceptance: [
+    claim(
+      "Any member lists the guests, active first, paged as every list is.",
+      "cli: from org-with-fde-guest, Sam's `org fde guest list --org acme --json` lists Olga `status: active` with the note and namedBy Dana's member id, and `nextCursor: null`.",
+    ),
+  ],
+  returns: rpc_organizations_fde_guests_list.output,
+  errors: [error_CLI_USAGE],
+  refusals: [
+    signedOut,
+    {
+      error: error_ROLE_PERMISSION_DENIED,
+      given: W_FDE_GUEST,
+      when: "Olga, a guest and no member, lists Acme's guests: a guest only asks; nothing is read.",
+    },
+    { error: error_INVALID_INPUT, given: W_FDE_GUEST, when: "`--limit` is outside 1 to 100, or `--after` is a cursor this list did not issue: nothing is read." },
+  ],
+  budget: budget("read"),
 });
 
 // ── seats (organizations.seats-show; aaron.buy-seats) ───────────────────────────────────────
@@ -897,8 +1092,474 @@ export const operation_org_seats_show = defineOperation({
   budget: budget("read"),
 });
 
+// ── the document family (organizations.doc-family; aaron.sdk-reaches-everything) ────────────
+
+const W_HEAD_DOCS = "org-with-head-docs";
+const W_HEAD_DOWN = "org-with-head-down";
+
+/** The refusals every document command shares, each from a catalogued world (organizations.doc-worlds). */
+const docRefusals = (command: string) => [
+  signedOut,
+  outsider(W_HEAD),
+  {
+    error: error_WRONG_STATE,
+    given: W_MEMBER,
+    when: "Acme has no connected head (none, or one still connecting or failing): the refusal names its status, and the head is not called.",
+  },
+  {
+    error: error_INVALID_INPUT,
+    given: W_HEAD_DOCS,
+    when: `${command} names a DocType Capxul names itself: a native concept's (\`Employee\`, naming \`org employee\`), the head's machinery (\`Webhook\`) or unhooked money (\`Repost Item Valuation\`): the head is not called.`,
+  },
+  {
+    error: error_INVALID_INPUT,
+    given: W_HEAD_DOCS,
+    when: `${command} names a native module's DocType (\`Project\`, naming \`org project\`), money (\`Stock Entry\`, which ERPNext's hooks list as posting to the ledger), a child table, or a DocType the head does not have: the head's Capxul app refuses it with its reason.`,
+  },
+  { error: error_PROVIDER_ERROR, given: W_HEAD_DOWN, when: "The head does not answer: nothing is written there, and the refused call is logged." },
+];
+const notPermitted = (what: string) => ({
+  error: error_ROLE_PERMISSION_DENIED,
+  given: W_HEAD_DOCS,
+  when: `Sam, whose head User has no HR role (his Safe wears no People hat), ${what}: the head refuses it, nothing is written there, and the call is logged refused.`,
+});
+const unknownDoc = { error: error_INVALID_INPUT, given: W_HEAD_DOCS, when: "The name is one the head does not have (`HR-OPN-2026-9999`): nothing is read or written." };
+const DOC_ERRORS = [error_CLI_USAGE];
+const DOC_AREA = AREA;
+
+export const operation_org_doc_list = defineOperation({
+  id: "org.doc.list",
+  title: "List documents of a DocType on the Organization's head",
+  about:
+    "Lists the documents of one DocType that lives only on the connected head, such as `Job Opening` or `Appraisal`, " +
+    "as your own User on the head may see them: newest change first, with each one's name, status and list fields. " +
+    "`--filter <field><op><value>` (repeatable, all applying together; the operator is the longest of `=`, `!=`, `>`, " +
+    "`>=`, `<`, `<=`, `~` like and `!~` not like after the field's name, and `%` in the value is like's wildcard), " +
+    "`--field` (repeatable) and `--order-by` shape it. What a native concept holds (projects, the CRM, payroll and HR's " +
+    "leave and expenses, the books) has its own commands, and money is never read here.",
+  area: DOC_AREA,
+  command: "org doc list",
+  priority: "normal",
+  implementedBy: rpc_organizations_docs_list,
+  who: WHO_HEAD_USER,
+  changes: "Nothing on the head: the call is logged (`org doc-call list`).",
+  acceptance: [
+    claim(
+      "A member lists a head-only DocType's documents as their own head User sees them, newest change first.",
+      "cli: from org-with-head-docs, Dana's `org doc list \"Job Opening\" --org acme --json` prints HR-OPN-2026-0002 then HR-OPN-2026-0001 (the world changed -0002 a second later), each with docstatus 0 and its `modified`; Sam's exits ROLE_PERMISSION_DENIED, since his head User may not read Job Openings.",
+    ),
+    claim(
+      "Filters apply together, and the list pages as every list does.",
+      "cli: from org-with-head-docs, `org doc list \"Job Opening\" --filter status=Open --limit 1 --json` prints one opening and a `nextCursor`; `--after <it>` prints the other open one and `nextCursor: null`.",
+    ),
+    claim(
+      "A DocType a native concept owns is refused, naming its own commands: by Capxul before any call when Capxul names it, by the head's Capxul app when its module is native.",
+      "cli: from org-with-head-docs, `org doc list Employee --org acme` exits INVALID_INPUT naming `org employee`, with no frappe-head span in its trace; `org doc list Project` exits INVALID_INPUT naming `org project`, refused by the head's Capxul app; read: `org doc-call list` shows both calls refused.",
+    ),
+    claim(
+      "Every call is logged with whose authority it ran.",
+      "read: from org-with-head-docs, after Dana's list, `org doc-call list --org acme --json` prints one call: verb list, Job Opening, Dana's member id, head user dana@acme.test, outcome done, count 2, `at` the world's now.",
+    ),
+  ],
+  returns: rpc_organizations_docs_list.output,
+  errors: DOC_ERRORS,
+  refusals: [...docRefusals("The list"), notPermitted("lists Job Openings")],
+  budget: budget("vendor"),
+});
+
+export const operation_org_doc_get = defineOperation({
+  id: "org.doc.get",
+  title: "Show one document on the Organization's head",
+  about:
+    "Shows one head document by its DocType and its name on the head: every field your head User may read, its child " +
+    "rows, whether it is a draft, submitted or cancelled, its Workflow state and the actions you may take, and what you " +
+    "may do to it (change, submit, cancel, amend, remove). `--field` (repeatable) prints only those fields.",
+  area: DOC_AREA,
+  command: "org doc get",
+  priority: "normal",
+  implementedBy: rpc_organizations_docs_get,
+  who: WHO_HEAD_USER,
+  changes: "Nothing on the head: the call is logged.",
+  acceptance: [
+    claim(
+      "A member reads one document with its child rows, its status, and what they may do to it.",
+      "cli: from org-with-head-docs, Dana's `org doc get \"Training Event\" \"Safety training\" --org acme --json` prints docstatus 1, `status: submitted`, its `employees` rows, `permissions.cancel: true` and `permissions.remove: false`.",
+    ),
+    claim(
+      "Under a Workflow, the actions the member may take are listed.",
+      "cli: from org-with-head-docs, Dana's `org doc get \"Job Applicant\" kim@applicants.test --json` (Frappe HR names a Job Applicant by its email) prints `workflowState: Open` and `actions: [Shortlist, Reject]`, the actions her head User's HR Manager role may take.",
+    ),
+  ],
+  returns: rpc_organizations_docs_get.output,
+  errors: DOC_ERRORS,
+  refusals: [...docRefusals("The read"), unknownDoc],
+  budget: budget("vendor"),
+});
+
+export const operation_org_doc_create = defineOperation({
+  id: "org.doc.create",
+  title: "Create a document on the Organization's head",
+  about:
+    "Creates a document of a DocType that lives only on the head, as your own User there, with `--set <field>=<value>` " +
+    "(repeatable; the value sent as text, for the head to read as its field's type) and `--file <path>` (a JSON object " +
+    "of fields with their types, child tables as arrays of rows); with both, each `--set` overrides the file's field " +
+    "of that name. The head names it, " +
+    "fills its defaults and runs its own checks; a submittable one is made a draft. It is the head's document: Capxul " +
+    "keeps no copy of it, only the call in its log.",
+  area: DOC_AREA,
+  command: "org doc create",
+  priority: "normal",
+  implementedBy: rpc_organizations_docs_create,
+  who: WHO_HEAD_USER,
+  changes: "One document on the head, made by the member's head User; one call logged.",
+  acceptance: [
+    claim(
+      "A member creates a head document as their own head User, and Capxul keeps only the call.",
+      "cli: from org-with-head-docs, Dana's `org doc create \"Job Opening\" --set job_title=Bookkeeper --set designation=Accountant --set company=\"Acme Ltd\" --org acme --json` prints a draft named HR-OPN-2026-0003 owned by dana@acme.test; read: `org doc get` prints it; world: no Capxul table changes but `org-doc-calls`.",
+    ),
+    claim(
+      "The head's own checks refuse a document they would refuse in its desk, and nothing is made.",
+      "cli: from org-with-head-docs, the same without `--set job_title` exits INVALID_INPUT naming the field; read: `org doc list \"Job Opening\"` still prints two; `org doc-call list` shows the call refused with the head's message.",
+    ),
+    claim(
+      "It is made on the world's clock.",
+      "cli: from org-with-head-docs after `dev time warp 3d`, Dana's create prints `creation` on the warped day; read: `org doc-call list` prints `at` the warped instant.",
+    ),
+    claim(
+      "A retried create makes one document.",
+      "trace: from org-with-head-docs with the stand-in head holding its first answer back (`capxul-devnet fault frappe-head drop-answer`), the first attempt is logged refused PROVIDER_ERROR, the SDK's retry repeats the call id, the head answers the document it made, and that row is completed; read: `org doc list \"Job Opening\"` prints three, not four, and `org doc-call list` prints the create once, done, with `completedAt`.",
+    ),
+  ],
+  returns: rpc_organizations_docs_create.output,
+  errors: DOC_ERRORS,
+  refusals: [
+    ...docRefusals("The create"),
+    notPermitted("creates a Job Opening"),
+    { error: error_INVALID_INPUT, given: W_HEAD_DOCS, when: "A mandatory field is missing, a link names nothing, or `--file` is not a JSON object of fields: the refusal names it and nothing is made." },
+  ],
+  budget: budget("vendor"),
+});
+
+export const operation_org_doc_change = defineOperation({
+  id: "org.doc.change",
+  title: "Change a document on the Organization's head",
+  about:
+    "Changes a head document's fields with `--set`, `--file` or `--clear <field>` (repeatable; as create takes them, " +
+    "a `--set` over the file's field and a field both set and cleared CLI_USAGE), keeping the rest. Its " +
+    "status never changes here: `org doc submit`, `cancel` and `apply` do that. A submitted document takes only the " +
+    "fields its DocType lets change after submission. `--modified <stamp>`, from `org doc get`, refuses the change if " +
+    "someone changed the document since.",
+  area: DOC_AREA,
+  command: "org doc change",
+  priority: "normal",
+  implementedBy: rpc_organizations_docs_change,
+  who: WHO_HEAD_USER,
+  changes: "The document's fields on the head; one call logged with the field names.",
+  acceptance: [
+    claim(
+      "A member changes the fields given and keeps the rest.",
+      "cli: from org-with-head-docs, Dana's `org doc change \"Job Opening\" HR-OPN-2026-0001 --set planned_vacancies=2 --org acme --json` prints `planned_vacancies: 2` and the same job title; read: `org doc-call list` names the field, not its value.",
+    ),
+    claim(
+      "A change based on an older read is refused, and nothing is written.",
+      "cli: from org-with-head-docs, Dana reads HR-OPN-2026-0001's `modified` (`org doc get`), and after `dev time warp 90s` changes it (`--set planned_vacancies=2`); then `org doc change \"Job Opening\" HR-OPN-2026-0001 --modified <the stamp first read> --set planned_vacancies=3` exits WRONG_STATE; read: `org doc get` prints planned_vacancies 2. The warp is needed: the head stamps with the world's now, so on a frozen clock both changes would carry one stamp.",
+    ),
+  ],
+  returns: rpc_organizations_docs_change.output,
+  errors: DOC_ERRORS,
+  refusals: [
+    ...docRefusals("The change"),
+    notPermitted("changes a Job Opening"),
+    unknownDoc,
+    { error: error_WRONG_STATE, given: W_HEAD_DOCS, when: "The document is cancelled, or submitted and the field is not one it allows after submission, or it changed since `--modified`: nothing is written." },
+  ],
+  budget: budget("vendor"),
+});
+
+export const operation_org_doc_submit = defineOperation({
+  id: "org.doc.submit",
+  title: "Submit a draft document on the Organization's head",
+  about:
+    "Submits a draft of a submittable DocType on the head, such as a Training Event or an Appraisal, as your own User " +
+    "there: it becomes submitted and its fields are fixed, as Frappe's Submit does. A DocType under a Workflow moves by " +
+    "`org doc apply` instead.",
+  area: DOC_AREA,
+  command: "org doc submit",
+  priority: "normal",
+  implementedBy: rpc_organizations_docs_submit,
+  who: WHO_HEAD_USER,
+  changes: "The document's docstatus on the head becomes submitted; one call logged.",
+  acceptance: [
+    claim(
+      "A draft is submitted, and submitting it again is refused.",
+      "cli: from org-with-head-docs, Dana's `org doc submit \"Training Event\" \"Onboarding week\" --org acme --json` prints docstatus 1, `status: submitted`; the same again exits WRONG_STATE naming submitted.",
+    ),
+  ],
+  returns: rpc_organizations_docs_submit.output,
+  errors: DOC_ERRORS,
+  refusals: [
+    ...docRefusals("The submit"),
+    notPermitted("submits a Training Event"),
+    unknownDoc,
+    { error: error_WRONG_STATE, given: W_HEAD_DOCS, when: "The document is already submitted or cancelled, or its DocType is under an active Workflow: nothing is written." },
+  ],
+  budget: budget("vendor"),
+});
+
+export const operation_org_doc_cancel = defineOperation({
+  id: "org.doc.cancel",
+  title: "Cancel a submitted document on the Organization's head",
+  about:
+    "Cancels a submitted head document, as Frappe's Cancel does: it is kept, cancelled for good, and `org doc amend` " +
+    "makes its correction. A document that submitted documents still link to cannot be cancelled until they are, and " +
+    "one under a Workflow moves only by `org doc apply`.",
+  area: DOC_AREA,
+  command: "org doc cancel",
+  priority: "normal",
+  implementedBy: rpc_organizations_docs_cancel,
+  who: WHO_HEAD_USER,
+  changes: "The document's docstatus on the head becomes cancelled; one call logged.",
+  acceptance: [
+    claim(
+      "A submitted document is cancelled and kept.",
+      "cli: from org-with-head-docs, Dana's `org doc cancel \"Training Event\" \"Safety training\" --org acme --json` prints docstatus 2, `status: cancelled`; read: `org doc get` still prints it.",
+    ),
+    claim(
+      "A draft cannot be cancelled.",
+      "cli: from org-with-head-docs, `org doc cancel \"Training Event\" \"Onboarding week\"` exits WRONG_STATE naming draft; world: no diff on the head.",
+    ),
+  ],
+  returns: rpc_organizations_docs_cancel.output,
+  errors: DOC_ERRORS,
+  refusals: [
+    ...docRefusals("The cancel"),
+    notPermitted("cancels a Training Event"),
+    unknownDoc,
+    { error: error_WRONG_STATE, given: W_HEAD_DOCS, when: "The document is a draft or already cancelled, under an active Workflow, or still linked from a submitted document: nothing is written." },
+  ],
+  budget: budget("vendor"),
+});
+
+export const operation_org_doc_amend = defineOperation({
+  id: "org.doc.amend",
+  title: "Amend a cancelled document on the Organization's head",
+  about:
+    "Makes the correction of a cancelled head document, as Frappe's Amend does: a new draft copied from it, whose " +
+    "`amended_from` names it and whose name, by Frappe's default, is the old one with `-1` (an amendment's amendment " +
+    "`-2`). Change and submit the draft as any other.",
+  area: DOC_AREA,
+  command: "org doc amend",
+  priority: "normal",
+  implementedBy: rpc_organizations_docs_amend,
+  who: WHO_HEAD_USER,
+  changes: "One new draft on the head; one call logged.",
+  acceptance: [
+    claim(
+      "A cancelled document is amended into a new draft that names it.",
+      "cli: from org-with-head-docs, Dana's `org doc amend \"Training Event\" \"Old induction\" --org acme --json` prints a draft named `Old induction-1` with `amendedFrom: Old induction`; amending a submitted one exits WRONG_STATE.",
+    ),
+  ],
+  returns: rpc_organizations_docs_amend.output,
+  errors: DOC_ERRORS,
+  refusals: [
+    ...docRefusals("The amend"),
+    notPermitted("amends a Training Event"),
+    unknownDoc,
+    { error: error_WRONG_STATE, given: W_HEAD_DOCS, when: "The document is not cancelled: nothing is made." },
+  ],
+  budget: budget("vendor"),
+});
+
+export const operation_org_doc_apply = defineOperation({
+  id: "org.doc.apply",
+  title: "Take a Workflow action on a document on the Organization's head",
+  about:
+    "Takes one action of the Workflow a head DocType runs under (such as Shortlist or Reject on a Job Applicant), as " +
+    "your own User there: the document moves to the action's next state, submitting or cancelling it when that state " +
+    "says so. `org doc get` lists the actions you may take.",
+  area: DOC_AREA,
+  command: "org doc apply",
+  priority: "normal",
+  implementedBy: rpc_organizations_docs_apply,
+  who: WHO_HEAD_USER,
+  changes: "The document's Workflow state on the head, and its docstatus where the next state sets one; one call logged.",
+  acceptance: [
+    claim(
+      "An action moves the document to its next state.",
+      "cli: from org-with-head-docs, Dana's `org doc apply \"Job Applicant\" kim@applicants.test Shortlist --org acme --json` prints `workflowState: Shortlisted` and its next actions.",
+    ),
+    claim(
+      "An action the document's state does not offer is refused.",
+      "cli: from org-with-head-docs, `org doc apply \"Job Applicant\" kim@applicants.test Accept` while it is Open exits WRONG_STATE naming Open; world: no diff on the head.",
+    ),
+  ],
+  returns: rpc_organizations_docs_apply.output,
+  errors: DOC_ERRORS,
+  refusals: [
+    ...docRefusals("The action"),
+    notPermitted("shortlists a Job Applicant"),
+    unknownDoc,
+    { error: error_WRONG_STATE, given: W_HEAD_DOCS, when: "The action is not one the document's current state offers: the refusal names the state and nothing is written." },
+  ],
+  budget: budget("vendor"),
+});
+
+export const operation_org_doc_remove = defineOperation({
+  id: "org.doc.remove",
+  title: "Delete a document on the Organization's head",
+  about:
+    "Deletes a head document that is not submitted (a draft, a cancelled one, or one of a DocType that is never " +
+    "submitted), as Frappe's Delete does, after a preview, since it cannot be undone from Capxul; `--confirm` answers " +
+    "yes in a script. A submitted document is cancelled, never deleted.",
+  area: DOC_AREA,
+  command: "org doc remove",
+  priority: "normal",
+  implementedBy: flow_client_org_docs_remove,
+  who: `${WHO_HEAD_USER} Never the hosted FDE for its asker: the preview is the member's own (organizations.fde-for-the-asker).`,
+  changes: "The document is deleted on the head (which keeps its own Deleted Document record); two calls logged, the read and the delete.",
+  acceptance: [
+    claim(
+      "A draft is deleted after a preview.",
+      "cli: from org-with-head-docs, Dana's `org doc remove \"Training Event\" \"Onboarding week\" --confirm --org acme --json` prints `removed: true`; read: `org doc get` of it then exits INVALID_INPUT.",
+    ),
+    claim(
+      "A submitted document is never deleted, and declining the preview deletes nothing.",
+      "cli: from org-with-head-docs, removing \"Safety training\" exits WRONG_STATE; answering no at the preview for \"Onboarding week\" exits CANCELLED; world: no diff on the head after either.",
+    ),
+  ],
+  returns: flow_client_org_docs_remove.output,
+  errors: [error_CLI_USAGE],
+  refusals: [
+    ...docRefusals("The delete"),
+    notPermitted("deletes a Training Event"),
+    unknownDoc,
+    { error: error_WRONG_STATE, given: W_HEAD_DOCS, when: "The document is submitted, or a document that is not cancelled still links to it: nothing is deleted." },
+    { error: error_CANCELLED, given: W_HEAD_DOCS, when: "Dana answers no at the preview: nothing is deleted." },
+    {
+      error: error_ROLE_PERMISSION_DENIED,
+      given: "org-with-fde-head-docs",
+      when: "The hosted FDE runs it under Dana's open ask (the stand-in host holding her turn, `capxul-devnet fault fde-host hold`): the preview is Dana's own to answer (organizations.fde-for-the-asker), and nothing is deleted.",
+    },
+    { error: error_CLI_USAGE, given: W_HEAD_DOCS, when: "A script runs it without `--confirm`: nothing is read or deleted." },
+  ],
+  budget: budget("vendor"),
+});
+
+export const operation_org_doctype_list = defineOperation({
+  id: "org.doctype.list",
+  title: "List the head's DocTypes that the document family reaches",
+  about:
+    "Lists the DocTypes of the apps on the connected head that `org doc` reaches, by name, with each one's app and " +
+    "module and whether it is submitted. `--all` lists every other one too, with why it is not reached: a native one " +
+    "names the commands that reach it, a money one is Capxul's, and the head's machinery is never reached. `--app` and " +
+    "`--module` narrow it.",
+  area: DOC_AREA,
+  command: "org doctype list",
+  priority: "normal",
+  implementedBy: rpc_organizations_doctypes_list,
+  who: WHO_HEAD_USER,
+  changes: "Nothing on the head: the call is logged.",
+  acceptance: [
+    claim(
+      "A member sees which head DocTypes the family reaches, and with `--all` why the rest are not.",
+      "cli: from org-with-head-docs, `org doctype list --app hrms --org acme --json` lists Job Opening, Job Applicant and Training Event `reach: reachable` and no Leave Application; with `--all` it lists Leave Application `reach: native` naming `leave` and Expense Claim `native`, and `--app erpnext --all` lists Stock Entry `reach: money`.",
+    ),
+  ],
+  returns: rpc_organizations_doctypes_list.output,
+  errors: DOC_ERRORS,
+  refusals: [
+    signedOut,
+    outsider(W_HEAD),
+    { error: error_WRONG_STATE, given: W_MEMBER, when: "Acme has no connected head: the head is not called." },
+    { error: error_INVALID_INPUT, given: W_HEAD_DOCS, when: "`--app` or `--module` names none the head has, or `--limit` or `--after` is not one this list takes: nothing is read." },
+    { error: error_PROVIDER_ERROR, given: W_HEAD_DOWN, when: "The head does not answer." },
+  ],
+  budget: budget("vendor"),
+});
+
+export const operation_org_doctype_get = defineOperation({
+  id: "org.doctype.get",
+  title: "Show one of the head's DocTypes: its fields, Workflow and your rights",
+  about:
+    "Shows one DocType on the connected head: its fields and child tables with their types and which are mandatory, " +
+    "whether it is submitted, its Workflow's states and actions, what your head User may do with it, and whether " +
+    "`org doc` reaches it or which commands do. Use it to know what `org doc create --set` takes.",
+  area: DOC_AREA,
+  command: "org doctype get",
+  priority: "normal",
+  implementedBy: rpc_organizations_doctypes_get,
+  who: WHO_HEAD_USER,
+  changes: "Nothing on the head: the call is logged.",
+  acceptance: [
+    claim(
+      "A member reads a DocType's fields, child tables, Workflow and their own rights on it.",
+      "cli: from org-with-head-docs, Dana's `org doctype get \"Job Opening\" --org acme --json` prints `reach: reachable`, job_title, company and designation `required: true`, and `permissions.create: true`; Sam's prints `permissions.create: false`.",
+    ),
+    claim(
+      "A native DocType is described, with the commands that reach it.",
+      "cli: from org-with-head-docs, `org doctype get Employee --json` prints `reach: native` and `commands` naming `org employee`.",
+    ),
+  ],
+  returns: rpc_organizations_doctypes_get.output,
+  errors: DOC_ERRORS,
+  refusals: [
+    signedOut,
+    outsider(W_HEAD),
+    { error: error_WRONG_STATE, given: W_MEMBER, when: "Acme has no connected head: the head is not called." },
+    { error: error_INVALID_INPUT, given: W_HEAD_DOCS, when: "The head has no DocType of that name: nothing is read." },
+    { error: error_PROVIDER_ERROR, given: W_HEAD_DOWN, when: "The head does not answer." },
+  ],
+  budget: budget("vendor"),
+});
+
+export const operation_org_doc_call_list = defineOperation({
+  id: "org.doc-call.list",
+  title: "List the document family's calls to the head: who, what and when",
+  about:
+    "Lists the calls `org doc` and `org doctype` made to the head, newest first: whose authority each ran with (a " +
+    "member's, or the FDE's for the member who asked it), the head User, what it did to which document, and whether it " +
+    "was done or refused and why; never a field's value. A Director sees every call; any other member sees the calls " +
+    "made with their own authority. `--doctype`, `--name` and, for a Director, `--member` narrow it.",
+  area: DOC_AREA,
+  command: "org doc-call list",
+  priority: "normal",
+  implementedBy: rpc_organizations_doc_calls_list,
+  who: "Any member: a Director reads every call; anyone else the calls made with their own authority (organizations.doc-log).",
+  changes: NOTHING_READ,
+  acceptance: [
+    claim(
+      "A Director sees every call; another member sees only their own.",
+      "cli: from org-with-head-docs, after Dana's and Sam's `org doc list \"Job Opening\"`, Dana's `org doc-call list --org acme --json` prints both calls, Sam's refused; Sam's prints only his own.",
+    ),
+    claim(
+      "A call the FDE made for a member is logged under that member, with the ask.",
+      "cli: from org-with-fde-head-docs with turns held, after Dana's `org fde ask … --timeout-seconds 1` (CLI_DEADLINE, her ask open), the FDE's `org doc list \"Job Opening\"` under her ask (`capxul-devnet fde run acme --ask <it> --`) is printed by `org doc-call list` with memberId Dana's, her askId and head user dana@acme.test.",
+    ),
+  ],
+  returns: rpc_organizations_doc_calls_list.output,
+  errors: [error_CLI_USAGE],
+  refusals: [
+    signedOut,
+    outsider(W_HEAD),
+    { error: error_INVALID_INPUT, given: W_HEAD_DOCS, when: "`--name` without `--doctype`, `--member` from someone who is not a Director or naming no member, or a bad `--limit` or `--after`: nothing is read." },
+  ],
+  budget: budget("read"),
+});
+
 /** The eight operations of the pack organizations.commands, for its `affects`; `org seats show` is organizations.buy-seats'. */
 export const NEW_OPERATIONS = [
   operation_org_app_list, operation_org_app_add, operation_org_app_remove, operation_org_head_connect, operation_org_head_show,
   operation_org_head_disconnect, operation_org_fde_show, operation_org_fde_ask,
+];
+
+/** The FDE commands aaron.fde-anyone adds: reading a turn later, and the guests the management names (organizations.fde-guests). */
+export const FDE_ANYONE_OPERATIONS = [
+  operation_org_fde_turn_get, operation_org_fde_guest_add, operation_org_fde_guest_remove, operation_org_fde_guest_list,
+];
+
+/** The document family's twelve operations, the pack organizations.doc-family's. */
+export const DOC_OPERATIONS = [
+  operation_org_doc_list, operation_org_doc_get, operation_org_doc_create, operation_org_doc_change, operation_org_doc_submit,
+  operation_org_doc_cancel, operation_org_doc_amend, operation_org_doc_apply, operation_org_doc_remove,
+  operation_org_doctype_list, operation_org_doctype_get, operation_org_doc_call_list,
 ];

@@ -6,6 +6,10 @@
 // time authority, its protocol, the warp barrier, the followers) are in ../devnet/; these are the
 // rules every concept, component and client follows, and the invariants whose evals check them.
 // Shared records link only to shared records, so the devnet records are named here in prose.
+//
+// Each world is self-contained (aaron.world-clock): a devnet, a shared world and staging each have one
+// clock that everything in it follows, a devnet's and a shared world's controlled and possibly running
+// at a rate, and every outside channel belongs to its world (time.worlds, time.world-channels).
 
 import { defineDecision, defineInvariant } from "../../../packages/book/src/index.ts";
 import * as f from "./foundation.ts";
@@ -62,7 +66,8 @@ export const decision_time_one_clock = defineDecision({
   source: "Aaron, 8 November 2026, in the build-preparation conversation; designed in docs/design/time.md",
   affects: [
     f.system_capxul, f.component_chain, f.component_backend, f.component_ponder, f.component_bundler_paymaster, f.component_devnet,
-    ...CLIENTS, f.environment_devnet, f.environment_staging, x.integration_devnet_control, x.integration_chain_rpc,
+    ...CLIENTS, f.environment_devnet, f.environment_staging, f.environment_shared_world, x.integration_devnet_control,
+    x.integration_chain_rpc,
   ],
 });
 
@@ -341,6 +346,95 @@ export const decision_time_no_direct_reads = defineDecision({
   affects: [f.system_capxul, f.component_backend, f.component_ponder, f.component_postgres, ...CLIENTS, f.component_devnet],
 });
 
+// ── worlds (aaron.world-clock) ─────────────────────────────────────────────────────────────
+
+const WORLD = (evidence: string) => `Claude, world-clock design, 8 November 2026; evidence: ${evidence}`;
+
+export const decision_time_worlds = defineDecision({
+  id: "time.worlds",
+  title: "Every world is self-contained with one clock: a devnet, a shared world, staging",
+  question:
+    "aaron.world-clock: a devnet, a staging network or a shared world is a self-contained world whose clock is " +
+    "controlled, and everything in it follows that clock; a shared world may run faster than real time. Which worlds " +
+    "does Capxul have, whose clock does each run on, and what may control it?",
+  options: [
+    {
+      label: "three-worlds",
+      text:
+        "Three worlds besides production, each with one clock that everything in it follows, and each holding its " +
+        "outside channels inside it (time.world-channels). A devnet: one machine, its clock the supervisor's, frozen or " +
+        "running at a rate of 1 to 60 world seconds a real second, moved by warps and steps (the devnet's decisions " +
+        "devnet.clock-rate and devnet.running-stops). A shared world: a devnet's stack hosted for several people, its " +
+        "clock controlled the same way by its owner alone (devnet.shared-world). Staging: Base Sepolia, whose blocks " +
+        "carry the sequencer's time, so its now is its hosts' clock (NTP), running at rate 1 and never moved; it is " +
+        "self-contained by its channels and its parties, not by its clock. Production is the real world: real channels " +
+        "and the hosts' clock. A world that must be both controlled and shared runs as a shared world, not as staging.",
+    },
+    {
+      label: "controlled-staging",
+      text: "Give staging a chain of its own (a hosted Anvil) so its clock can be controlled and run at a rate too.",
+    },
+  ],
+  chosen: "three-worlds",
+  why:
+    "A clock is controlled only where Capxul mines the chain: one clock makes block time now (time.one-clock), and on " +
+    "Base Sepolia neither the sequencer's time nor its pace is Capxul's, so a warp or a rate there would put now away " +
+    "from the chain's time, the two clocks the one-clock design removed. Staging exists to run the real integrations on " +
+    "a public testnet, measured by the live evals; a staging on its own chain would be a shared world with real vendors " +
+    "and would no longer test the testnet. For Aaron: the ruling lists a staging network among the worlds whose clock " +
+    "is controlled. The recommendation is that staging keeps Base Sepolia and the real clock, self-contained by its " +
+    "channels, and that a controlled world others share is a shared world; it stands until he answers.",
+  source: WORLD("books/target/shared/rulings.ts (aaron.world-clock); books/target/shared/foundation.ts (environments); docs/design/time.md section 7"),
+  affects: [f.system_capxul, f.environment_devnet, f.environment_staging, f.environment_shared_world, f.component_devnet],
+});
+
+export const decision_time_world_channels = defineDecision({
+  id: "time.world-channels",
+  title: "Every outside channel belongs to its world and follows its clock",
+  question:
+    "aaron.world-clock: emails, WhatsApp, the Frappe head and the FDE follow the world's clock, and a world's outside " +
+    "channels are its own (a devnet's mail goes to its sink, WhatsApp to a stand-in, a connected head follows the " +
+    "clock). Which channels does each world hold, and how does each stay inside it?",
+  options: [
+    {
+      label: "world-owns-channels",
+      text:
+        "A channel is a stand-in inside the world that follows its clock, or, on staging, the real service held to the " +
+        "world's own parties. Mail: on a devnet and a shared world the sink, so none leaves, a shared world's joiner " +
+        "reading only its own mailboxes; on staging Resend, but only to the mailboxes MAIL_ALLOWED_RECIPIENTS lists " +
+        "(domains and addresses), a send to any other address refused before Resend as Resend refuses a recipient " +
+        "(INVALID_INPUT), so the notice records the failure. A head's own email (ERPNext's and Frappe HR's notifications) " +
+        "goes the same way: to the sink on a devnet and a shared world, and on staging only to those mailboxes, " +
+        "through the Capxul app's mail hook. WhatsApp: a stand-in of Meta's Cloud API on a devnet and a shared world; " +
+        "on staging only a Meta test number, which sends only to the recipients registered with it, so staging's " +
+        "connect admits no other number. The Frappe head: a follower of the world's clock on a devnet and a shared " +
+        "world, through the Capxul app's hooks; on staging a site on its host's clock. The FDE host: the stand-in on a devnet, the world's own namespace following " +
+        "its clock in a shared world, the host's clock on staging. Bridge, the bundler and paymaster, Chainlink and " +
+        "PostHog: the stand-ins and fakes already follow; Bridge's sandbox, which a banking eval may use on a devnet, " +
+        "does not, so such an eval never relies on Bridge's own times, and a shared world uses only the stand-in. Every message is dated at the world's now; a vendor's envelope " +
+        "stays real (time.real-elapsed). Production's channels are the real ones. The devnet's decisions say how: " +
+        "devnet.shared-world, devnet.whatsapp-stand-in, devnet.head-follows-world, devnet.fde-host-follows-world and " +
+        "devnet.stand-ins-follow.",
+    },
+    { label: "real-channels", text: "Send a world's mail and messages through the real services, dated by the world's clock." },
+  ],
+  chosen: "world-owns-channels",
+  why:
+    "A world's story is one story only if what it says to people happens inside it: an email dated next March from a " +
+    "world at rate 4, sent to a real inbox, is a false message in the real world, and a code that went to a real inbox " +
+    "could not be read by the eval that needs it. Holding each channel in its world keeps every date in it on one clock " +
+    "and every party one of its own. Staging cannot keep Resend or Meta in a sink without ceasing to test them, so it " +
+    "holds their recipients instead; Meta's own test number already sends only to registered recipients. For the owners " +
+    "of the mail, frappe-head and fde-host integrations, and of the WhatsApp integration the CRM books: each one's text " +
+    "says how it stays in its world.",
+  source: WORLD("aaron.world-clock; docs/decisions/open-for-aaron.md (the CRM tracks every conversation); books/target/shared/external.ts (mail, frappe-head, fde-host)"),
+  affects: [
+    x.integration_mail, x.integration_frappe_head, x.integration_fde_host, x.integration_bridge, x.integration_bundler,
+    x.integration_chainlink, x.integration_posthog, f.environment_devnet, f.environment_staging, f.environment_shared_world,
+    f.component_frappe_app,
+  ],
+});
+
 // ── invariants: each is an eval (inv:<id>) ──────────────────────────────────────────────────
 
 export const invariant_time_one_now = defineInvariant({
@@ -351,8 +445,9 @@ export const invariant_time_one_now = defineInvariant({
     "settle, start-at, freeze, resume and a snapshot restore. The harness reads the authority, the chain head (by " +
     "eth_getBlockByNumber), the backend's now (from an rpc answer), Ponder's indexed block and every follower's " +
     "acknowledged clock, and compares them. On a frozen clock every move ends with a block at now (devnet.only-miner), " +
-    "so the head's time is now. On a running clock the readings agree as one function of this machine's real clock " +
-    "(the clock's now plus the real time since its `realAt`), and the head may trail now, as on staging.",
+    "so the head's time is now. On a running clock the readings agree as one function of the authority's real clock " +
+    "(the clock's now plus its rate times the real time since its `realAt`, never past its next stop), and between " +
+    "stops the head may trail now, as on staging.",
   statement:
     "After a time call returns on a frozen devnet, the backend's now and every follower's acknowledged now equal the " +
     "authority's now, the chain head's time is that second, and Ponder has indexed the head.",
@@ -378,8 +473,9 @@ export const invariant_time_monotonic = defineInvariant({
   title: "Within a world, now never goes back",
   about:
     "A fuzz over random interleavings of warps, steps, freezes, resumes, product commands and settles: every now any " +
-    "component reads, and every row time it writes, is not earlier than one read before. A start-at on a fresh world " +
-    "and a restore (which replaces the world and changes its epoch) are the only exceptions.",
+    "component reads, and every row time it writes, is not earlier than one read before, with rate changes, running " +
+    "stops and followers on other machines in the mix (each follower caps now at the next stop and never reads back). " +
+    "A start-at on a fresh world and a restore (which replaces the world and changes its epoch) are the only exceptions.",
   statement: "Within one world epoch, no component reads a now earlier than any now read before it.",
   over: [],
   check: "fuzz",
@@ -432,6 +528,52 @@ export const invariant_time_frozen_deterministic = defineInvariant({
   statement:
     "On a frozen devnet, the same protocol calls and commands from the same world, each followed by a settle, give the " +
     "same block timestamps, row times and timer firings.",
+  over: [],
+  check: "property",
+});
+
+export const invariant_time_rate_ceiling = defineInvariant({
+  id: "time.rate-ceiling",
+  title: "A running clock never runs faster than its rate",
+  about:
+    "What a rate promises (devnet.clock-rate): reading the authority and every follower at random real moments on a " +
+    "running devnet at rate r, with rate changes and outside followers' due reports in the mix, between two readings Δ " +
+    "real seconds apart with no move between them now advanced by at most r·Δ, rounded to the second, and by exactly " +
+    "r·(Δ − s), s being the real seconds the clock stood at stops in between.",
+  statement: "On a running devnet at rate r, now advances by at most r seconds a real second, and stands still only at a stop.",
+  over: [],
+  check: "property",
+});
+
+export const invariant_time_running_stops = defineInvariant({
+  id: "time.running-stops",
+  title: "A running clock stops at every due instant it knew of",
+  about:
+    "The running stops (devnet.running-stops), at rates 1, 4 and 60: timers, crons and followers' next dues placed at " +
+    "random instants a few world seconds to minutes ahead. A due instant reported at least one real second of running " +
+    "(r world seconds) before now reached it is a stop: a block is dated that second before the backend fires what is " +
+    "due, and, at a stop that settles within its limit, each timer's step reads its due instant. One reported later " +
+    "makes a stop one real second of running after the report, at which the head is past it. No follower reads a now " +
+    "later than a stop's instant before that stop.",
+  statement:
+    "On a running devnet, every due instant known at least one real second of running ahead is a stop at which the " +
+    "chain head reaches that second and, when the stop settles within its limit, every durable timer due then fires " +
+    "once, its step reading its due instant.",
+  over: [],
+  check: "property",
+});
+
+export const invariant_time_world_channels = defineInvariant({
+  id: "time.world-channels",
+  title: "Nothing a world sends leaves it",
+  about:
+    "time.world-channels, checked over every eval run and, on staging, over the mail integration's spans: every email " +
+    "and WhatsApp message a devnet or shared world sends, a connected head's own email included, is in its mail sink " +
+    "or its stand-in WhatsApp, dated at the world's now, and no call reached Resend, Meta or SMTP; on staging no email " +
+    "went to an address outside MAIL_ALLOWED_RECIPIENTS.",
+  statement:
+    "On a devnet or a shared world every email and WhatsApp message sent is in its sink or stand-in at the world's now; " +
+    "on staging no email goes to an address outside the deployment's mailboxes.",
   over: [],
   check: "property",
 });

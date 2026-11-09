@@ -5,19 +5,19 @@ some sort of pack for this? Ideally this should be on the book; we shouldn't hav
 
 This page is the one list of every new CLI command, in one grammar. The records are the authority. Each command
 is booked as an operation record under `rules.new-operations` (CONVENTIONS rule 4a) by the concept that owns it,
-on its pack's recommendation. All 90 are booked, each once (the commands pass's build, 8 November 2026); section 8
-lists every place the booking refined a row below, each with its decision. The five pack decisions recommend
-exactly the commands listed here:
+on its pack's recommendation. All 165 are booked, each once and each listed here once (the commands pass's build,
+8 November 2026, and the world pass's build, 9 November 2026); section 8 lists every place the booking refined a
+row below, each with its decision. The pack decisions recommend exactly the commands listed here:
 
-- `projects.commands`
-- `contacts.crm-capabilities`
-- `payroll.hr-surface`
-- `organizations.commands`
-- `organizations.buy-seats`
+- the commands pass: `projects.commands`, `contacts.crm-capabilities`, `payroll.hr-surface`,
+  `organizations.commands` and `organizations.buy-seats`, with `requests.bill-time` and `accounts.collect-any-time`
+  (section 6);
+- the world pass (Aaron's eighth batch): `organizations.fde-guests`, `organizations.doc-family`,
+  `contacts.conversation-commands`, `payroll.hr-commands`, `devnet.clock-rate` and `payments.claim-command`.
 
 Nothing here changes the 215. A new operation never stands in for one of them, and the grammar is checked
-against them: no id, export name or command below collides with a frozen operation or its old command (checked
-with a script on 8 November 2026: 90 commands, 0 collisions).
+against them: no id, export name or command below collides with a frozen operation or its old command
+(`tools/check-frozen.ts`, 9 November 2026: 165 new operations, 0 collisions, 0 breaches).
 
 The rulings these commands serve, all in `books/target/shared/rulings.ts`:
 
@@ -27,8 +27,15 @@ The rulings these commands serve, all in `books/target/shared/rulings.ts`:
 - `aaron.fde-agent` and `aaron.fde-hosted`: every Organization has an FDE, hosted by Capxul and paid for.
 - `aaron.buy-seats` and `aaron.test-prices`: a company buys seats; the prices are 10 USDC a seat and 20 USDC a
   month for the FDE.
-- `aaron.escrow-general`: the recipient claims whenever they want.
+- `aaron.escrow-general`: the recipient claims whenever they want; `aaron.payment-claim`: with `payment claim`,
+  while the sender's take-back stays `payment cancel`.
 - `aaron.departments`: who may spend.
+- `aaron.fde-anyone`: anyone of the Organization, and anyone its management names, may ask the FDE, which acts
+  only as its asker.
+- `aaron.sdk-reaches-everything`: the Core SDK and the CLI reach everything, a head's own documents included; the
+  React SDK does not mirror them.
+- `aaron.world-clock`: every world's clock may run at a rate, and every channel (mail, WhatsApp, the head, the
+  FDE's host) is its world's.
 
 ## 1. The packs at a glance
 
@@ -38,9 +45,14 @@ The rulings these commands serve, all in `books/target/shared/rulings.ts`:
 | `contacts.crm-capabilities` | contacts | 14 | `aaron.crm-frappe-shape`, `aaron.frappe-shape` |
 | `payroll.hr-surface` | payroll | 28 | `aaron.frappe-shape` |
 | `organizations.commands` | organizations | 8 | `aaron.frappe-shape`, `aaron.frappe-head`, `aaron.fde-agent`, `aaron.fde-hosted` |
+| `organizations.fde-guests` | organizations (section 5.4: `org fde turn get`, `org fde guest add\|remove\|list`) | 4 | `aaron.fde-anyone` |
+| `organizations.doc-family` | organizations (section 5.7) | 12 | `aaron.sdk-reaches-everything` |
+| `contacts.conversation-commands` | contacts (section 5.8) | 13 | `aaron.crm-frappe-shape`, `aaron.sdk-reaches-everything`, `aaron.world-clock` |
+| `payroll.hr-commands` | payroll (section 5.9: holidays, leave, shifts and attendance, expense claims, advances) | 45 | `aaron.frappe-shape`, `aaron.sdk-reaches-everything`, `aaron.departments`, `aaron.world-clock` |
 | `organizations.buy-seats` | organizations (`org seats show`); payments (`org seats buy`, `org fde pay`) | 3 | `aaron.buy-seats`, `aaron.fde-hosted`, `aaron.test-prices` |
-| None of the five (section 6) | requests (`org timesheet bill`, pack `requests.bill-time`); accounts (`account collect`, pack `accounts.collect-any-time`) | 2 | `aaron.projects`; `aaron.escrow-general` |
-| **Total** | | **90** | |
+| `devnet.clock-rate` | devnet (section 5.6: `dev time set`) | 1 | `aaron.world-clock` |
+| None of the five (section 6) | requests (`org timesheet bill`, pack `requests.bill-time`); payments (`payment claim`, packs `accounts.collect-any-time` and `payments.claim-command`) | 2 | `aaron.projects`; `aaron.escrow-general`, `aaron.payment-claim` |
+| **Total** | | **165** | |
 
 ## 2. The grammar
 
@@ -59,6 +71,11 @@ follows them, with no exception.
   Organization's: `contact create`, as `contact add`.
 - `--org` always means "act for this Organization". It is never a filter. A filter by Organization is its own
   flag: `payslip list --employer <handle>`.
+- An Employee's own HR records (5.9) are the caller's own, so their commands have no prefix and never take `--org`:
+  a list holds every employer's and `--employer` filters, as `payslip list`; a command on one record takes the
+  employer from its id; and a write or a balance with no record yet (`leave apply`, `leave balance`, `attendance
+  checkin`, `expense-claim create`, `advance request`) acts at the employer `--employer` names, absent their only one
+  (`payroll.hr-self`).
 
 **G2. Nouns.**
 
@@ -81,21 +98,27 @@ follows them, with no exception.
 
 | Verb | Means | As in the 215 | New uses |
 |---|---|---|---|
-| `create` | Makes a new working document that has a lifecycle of its own | `org department create`, `service create` | project, task, timesheet, CRM lead and deal, payroll structure and run, a book entry (`contact create`) |
-| `add` / `remove` | Puts a person, an app or a named setting into a list the Organization keeps, or takes it out | `contact add`, `org department holder add\|remove` | employee, project member, activity type, project type, salary component, app |
+| `create` | Makes a new working document that has a lifecycle of its own | `org department create`, `service create` | project, task, timesheet, CRM lead and deal, payroll structure and run, a book entry (`contact create`), a head document (`org doc create`) |
+| `add` / `remove` | Puts a person, an app or a named setting into a list the Organization keeps, or takes it out | `contact add`, `org department holder add\|remove` | employee, project member, activity type, project type, salary component, app, FDE guest, holiday, leave type, shift type, expense type, CRM note (`org crm note add`); and `org doc remove` (below) |
 | `change` | Edits a record's fields, never its status | `org agreement change`, `org allowance change` | every record with fields |
-| `set` | Sets a singleton's values | `org department budget set` | `org project settings set` |
+| `set` | Sets a singleton's values | `org department budget set` | `org project settings set`, `dev time set` (the clock's rate) |
 | `list` | Lists, paged with `--after`, newest change first unless stated | `payment list`, `org member list` | every record kind |
 | `get <id>` | Reads one record of a list | `payment get`, `contact get`, `org member get` | every record kind |
 | `show` | Reads a singleton, with no id | `org show`, `org board show` | head, FDE, seats, project settings |
-| A lifecycle verb | One transition of the record's state machine that a person takes, named as the machine names it | `org agreement pause\|resume`, `org department close\|reopen` | project `hold\|resume\|complete\|reopen\|cancel`; task `start\|review\|complete\|reopen\|cancel`; timesheet `submit\|cancel`; employee `suspend\|deactivate\|reinstate\|leave`; structure `cancel` |
-| A domain verb | A step with no simpler name | `bank match`, `agreement collect` | `timesheet log`, `crm lead move\|convert`, `crm deal move`, `structure assign\|unassign`, `run submit\|pay`, `payslip withhold\|release`, `contact link`, `head connect\|disconnect`, `seats buy`, `fde pay\|ask`, `account collect` (`payment claim` by Aaron's answer, section 6), `timesheet bill` |
+| A lifecycle verb | One transition of the record's state machine that a person takes, named as the machine names it | `org agreement pause\|resume`, `org department close\|reopen`, `org proposal approve\|reject`, `request issue` | project `hold\|resume\|complete\|reopen\|cancel`; task `start\|review\|complete\|reopen\|cancel`; timesheet `submit\|cancel`; employee `suspend\|deactivate\|reinstate\|leave`; structure `cancel`; head document `submit\|cancel` (Frappe's docstatus); leave `apply` (its birth), `approve\|reject\|cancel`; expense claim `approve\|reject\|cancel`; advance `request` (its birth), `reject\|cancel`; attendance `cancel` |
+| A domain verb | A step with no simpler name | `bank match`, `agreement collect`, `org round allocate` | `timesheet log`, `crm lead move\|convert`, `crm deal move`, `structure assign\|unassign`, `run submit\|pay`, `payslip withhold\|release`, `contact link`, `head connect\|disconnect`, `seats buy`, `fde pay\|ask`, `payment claim` (`aaron.payment-claim`), `timesheet bill`, `doc amend` (a cancelled document's correction) and `doc apply` (a Workflow's action); the CRM's `email\|whatsapp send`, `whatsapp connect\|disconnect`, `task move` and `call log`; HR's `leave allocate\|unallocate`, `shift-type assign\|unassign`, `attendance checkin\|mark`, `expense-claim pay`, `advance pay\|settle` |
 
 - An undoing verb is the 215's pair: `hide|unhide`, `freeze|unfreeze`, `add|remove`. So the new pairs are
   `hold|resume`, `complete|reopen`, `assign|unassign`, `disable|enable`, `withhold|release`, `suspend|reinstate`
   and `connect|disconnect`.
+- `claim` takes up what is held for you: a Board seat (`org board claim`), a Safe at setup, or the money waiting in
+  its claim escrow (`payment claim`, `aaron.payment-claim`). `collect` is a payee taking money released to them
+  (`agreement collect`), and stays the escrow's own function, so `payment claim` still answers `collected`.
 - A command whose rpc both creates and changes gets one command per verb. Each is its own SDK method over the one
   rpc, as `contact hide` and `contact unhide` are.
+- `org doc remove` is Frappe's Delete of a head document. The 215 have no `delete`: `remove` is their word for taking
+  a record away (`bank accounts remove`; `agent remove`, which has no undo), and since this cannot be undone from
+  Capxul it previews (G5).
 
 **G4. Who.** Who may run a command is always a hat, a Seat or the Board, never a named person
 (`aaron.departments`). The terms used in section 5:
@@ -107,18 +130,26 @@ follows them, with no exception.
 | People or Director | People, or a Director of the Organization (`projects.permissions`). |
 | Invoicing | A member whose Safe wears the Invoicing hat (`issue-invoices`). |
 | Director | A Director of the Organization, an owner of the company Safe. Never an agent (`board.no-agent-directors`). |
-| Director or FDE | A Director, or the Organization's own agent: its FDE, the Seat whose use is `organization`. |
+| Director or FDE | A Director, or the Organization's own agent acting as itself, the Seat whose use is `organization` (only a self-run one acts as itself). The hosted FDE acts as its asker (below), so for it this is a Director who asks. |
+| Asker | Any member, or a guest the management (People or Director) named with `org fde guest add` (`aaron.fde-anyone`, `organizations.fde-guests`). |
+| Head User | A person member, acting on a connected head as their own User there, matched by mailbox and member id, with the roles their hats give at that moment; the head's own permissions decide (`organizations.doc-authority`). An agent has no head User. |
 | Budget | Whoever `Budgets.authorised` admits on the budget the command spends: a wearer in good standing of its department's hat or of an ancestor's, as the chain reads it at that moment. The company Safe acts only through the Board. Authority follows the hat, so a person swapped out of a department loses it. |
 | Self | The signed-in person or agent, for its own records only. |
 | Worker | A timesheet's own worker, for their own time; People or Director, for anyone else's. |
+| World owner | A devnet command's: on a local devnet, anyone on the machine that runs it; in a shared world, the holder of its owner grant (`devnet.shared-world`). A joiner's grant is refused `ROLE_PERMISSION_DENIED`. |
 
 - An agent is a member like any other and acts with the hats its Safe wears.
-- The FDE starts with no hat (`agents.fde-authority`).
-- No agent buys seats or pays for hosting: `org seats buy` and `org fde pay` need a person.
+- The FDE starts with no hat (`agents.fde-authority`), and hosted it needs none: it acts only as the asker of its turn,
+  with the asker's Seat and hats, and every signature it prepares is the asker's to make
+  (`organizations.fde-for-the-asker`). A command that previews and asks is the asker's own to answer: its rpc refuses
+  the FDE's call.
+- No agent buys seats or pays for hosting: `org seats buy` and `org fde pay` need a person. The hosted FDE prepares one
+  only as a person who asks, whose own Safe signs it.
 
 **G5. Arguments and flags.**
 
-- The record a command acts on is a positional argument: its Capxul id, as `list` prints it.
+- The record a command acts on is a positional argument: its Capxul id, as `list` prints it. A head document, of
+  which Capxul keeps no copy, is `<DocType> <name>`, Frappe's names, as `org doc list` prints them (5.7).
 - A member is an email, or an agent's `@handle`, as in `org member grant`.
 - A Party is an email, an `@handle`, a `0x` address or a Party id, as in `contact add`. Examples are a customer,
   a person to employ, or the Party a contact links to.
@@ -127,8 +158,10 @@ follows them, with no exception.
   allowance's name or id, as in `payment send --from` and `org department pay`.
 - Times:
   - A day is `--on <YYYY-MM-DD>`, a day in the Organization's time zone.
-  - A period's bounds are `--start` and `--end`: days for a document's dates, ISO 8601 instants for a time log.
-  - A review date is `--by <day>`. A forecast close is `--close-by <day>`.
+  - A period's bounds are `--start` and `--end`: days for a document's dates, ISO 8601 instants for a time log,
+    and `HH:MM` in the Organization's time zone for a shift's daily hours (`org shift-type add`, `payroll.shift-types`).
+  - A review date is `--by <day>`. A forecast close is `--close-by <day>`. A CRM task's due time is `--due <time|day>`
+    (CRM Task's `due_date`, `contacts.conversation-spelling`).
 - Amounts are decimal strings: in the Company's currency for projects and the CRM, and in the structure's token
   for payroll.
 - A repeatable flag takes one value each time (`--depends-on <task> --depends-on <task>`), as the 215's
@@ -138,11 +171,12 @@ follows them, with no exception.
 - Money commands (`org payroll run pay`, `org seats buy`, `org fde pay`) take `--request-key`,
   `--timeout-seconds` and `--no-wait`; `--no-wait` alone answers the hand-over, and `--json` only chooses how the
   answer prints (`payments.seat-hand-over`; `payment send`'s own `--json` hands over, as the 215 have it).
-  `account collect` takes `--json` and `--timeout-seconds` and no `--request-key`, since it births no command. The
+  `payment claim` takes `--json` and `--timeout-seconds` and no `--request-key`, since it births no command. The
   approval page is their confirmation.
 - A command that cannot be undone, or that hands records to an outside system, previews what it will do and asks:
-  `contact link`, `org employee leave`, `org head connect` and `org head disconnect`. `--confirm` answers yes in a
-  script (`vocabulary.declined-preview-cancelled`).
+  `contact link`, `org employee leave`, `org head connect`, `org head disconnect`, `org doc remove` and `org advance
+  settle` (a salary deduction no command takes back, `payroll.advance-recovery`). `--confirm` answers yes in a script
+  (`vocabulary.declined-preview-cancelled`).
 - A secret is never a flag. `org head connect` reads the head user's API key and secret, and on Frappe Cloud the
   team's token, from a prompt or from `--key-file` and `--team-token-file`.
 
@@ -188,13 +222,13 @@ id is `INVALID_INPUT`, as in `payment get`.
 | `read` | A list, a get or a show, which reads rows only. |
 | `write` | One off-chain transaction. |
 | `chain-read` | A command whose rpc reads the chain before it answers: projects' 19 commands that read the People or Director hat live (`projects.hat-guard`). |
-| `chain-submit` | A command that signs an approval and follows the chain: `org payroll run pay`, `org seats buy`, `org fde pay`, `account collect`. |
-| `vendor` | A command that calls an outside system before it answers: `org head connect` reads the site; `org fde ask` waits on the host. |
+| `chain-submit` | A command that signs an approval and follows the chain: `org payroll run pay`, `org seats buy`, `org fde pay`, `payment claim`. |
+| `vendor` | A command that calls an outside system before it answers: `org head connect` reads the site; `org fde ask` and `org fde turn get` wait on the host; every `org doc` and `org doctype` command calls the head. |
 
 A new command is `normal` priority unless its pack's decision marks it `critical`, the loop a pilot or a start-up
 runs first: 11 of projects' (`projects.critical-commands`), 6 of the CRM's (`contacts.critical-commands`), 10 of
-payroll's (`payroll.critical-commands`) and 4 of organizations' (`org app list|add`, `org fde show|ask`;
-`organizations.command-priorities`). No B3 pilot runs one, and `org create` finishes without any.
+payroll's (`payroll.critical-commands`), 7 of HR's (`payroll.hr-critical`) and 2 of organizations' (`org app list|add`; not the FDE's, which "is not on
+the critical path", `aaron.fde-anyone`; `organizations.command-priorities`). No B3 pilot runs one, and `org create` finishes without any.
 
 **G9. Output.**
 
@@ -211,8 +245,8 @@ payroll's (`payroll.critical-commands`) and 4 of organizations' (`org app list|a
 - Each operation has at least one claim observed through the CLI, and a refusal from a world for each code it
   produces.
 - The concept whose rpc or flow implements a command books it, even when the noun is another concept's, as the 215
-  book `org member invite` in budgets. So `org timesheet bill` is requests', `org seats buy` and `org fde pay`
-  are payments', and `account collect` is accounts'.
+  book `org member invite` in budgets. So `org timesheet bill` is requests', and `org seats buy`, `org fde pay`
+  and `payment claim` are payments' (`payment claim`'s flow calls accounts' rpc `accounts.setup.collect`).
 
 ## 3. Overlaps and spellings resolved across the packs
 
@@ -240,11 +274,12 @@ payroll's (`payroll.critical-commands`) and 4 of organizations' (`org app list|a
 | Concept | Books | SDK and rpc changes |
 |---|---|---|
 | projects | 35 operations, each implemented by one new rpc | The rpcs named in 5.1. No flow is needed. |
-| contacts | 14 | Split `client.account.address-book.record` into `.create`, `.change` and `.link`, all over `contacts.book.record`. Split `client.org.crm.leads.save` into `.create` and `.change`, and `client.org.crm.deals.save` the same way. Add `cli` to every CRM flow. |
-| payroll | 28 | See the list below. Every payroll flow adds `cli` and keeps `react`. |
-| organizations | 9 (8 in `organizations.commands`, plus `org seats show`) | Rpcs `organizations.apps.list\|add\|remove`, `organizations.heads.connect\|show\|disconnect`, `organizations.fde.show\|ask\|turn` and `organizations.seats.show`. Flows `client.org.head.connect`, `client.org.head.disconnect` and `client.org.fde.ask`. The hosting doors `organizations.extend-fde-hosting` and `organizations.return-fde-hosting`, which `org fde pay`'s settlement and its reorg invoke. |
-| payments | 2 (`org seats buy`, `org fde pay`) | Flows `client.org.seats.buy` and `client.org.fde.pay`, over payments' own rpcs `payments.commands.buy-seats` and `payments.commands.pay-fde-hosting`, which birth one command by `payments.prepare-command`'s rules and open one approval (`payments.seat-purchase`, `payments.fde-hosting-purchase`). |
-| accounts | 1 (`account collect`) | Flow `client.account.collect`, over rpc `accounts.setup.collect` (`accounts.collect-any-time`). |
+| contacts | 14 | Split `client.account.address-book.record` into `.create`, `.change` and `.link`, all over `contacts.book.record`. Split `client.org.crm.leads.save` into `.create` and `.change`, and `client.org.crm.deals.save` the same way. Add `cli` to every CRM flow. For 5.8 (13 more): flows `client.org.crm.emails.send`, `.whatsapp.connect\|disconnect\|send`, `.notes.add\|change` and `.tasks.create\|change` (previews, or two methods over one save rpc), and `.timeline`, `.whatsapp.show`, `.tasks.move\|list` and `.calls.log` each implemented by its one rpc (G7), over new rpcs `contacts.timeline.list`, `contacts.mail.send`, `contacts.whatsapp.connect\|disconnect\|show\|send`, `contacts.notes.save`, `contacts.tasks.save\|move\|list` and `contacts.calls.log`; the webhooks `contacts.mail.receive` and `contacts.whatsapp.receive`; the processes `contacts.mail.thread` and `contacts.whatsapp.account`. |
+| payroll | 28, and 45 HR commands in 5.9 | See the list below. Every payroll flow adds `cli` and keeps `react`. The HR commands are each their own new rpc (`payroll.hr-rpc-methods`), but `org expense-claim pay`, `org advance pay` and `org advance settle`, flows `client.org.expense-claims.pay`, `client.org.advances.pay` and `client.org.advances.settle` (a preview); their payments are followed by the processes `payroll.expense-claims.payment` and `payroll.advances.payment`, and each shift assignment marks attendance by `payroll.attendance.auto`. |
+| organizations | 25 (8 in `organizations.commands`, `org seats show`, 4 in `organizations.fde-guests`, 12 in `organizations.doc-family`) | Rpcs `organizations.apps.list\|add\|remove`, `organizations.heads.connect\|show\|disconnect`, `organizations.fde.show\|ask\|turn` and `organizations.seats.show`. Flows `client.org.head.connect`, `client.org.head.disconnect` and `client.org.fde.ask`. The hosting doors `organizations.extend-fde-hosting` and `organizations.return-fde-hosting`, which `org fde pay`'s settlement and its reorg invoke. For the world pass: rpcs `organizations.fde-guests.add\|remove\|list`, `organizations.docs.list\|get\|create\|change\|submit\|cancel\|amend\|apply\|remove`, `organizations.doctypes.list\|get` and `organizations.doc-calls.list`; flow `client.org.docs.remove`; `org fde turn get` over `organizations.fde.turn`. |
+| payments | 3 (`org seats buy`, `org fde pay`, `payment claim`) | Flows `client.org.seats.buy` and `client.org.fde.pay`, over payments' own rpcs `payments.commands.buy-seats` and `payments.commands.pay-fde-hosting`, which birth one command by `payments.prepare-command`'s rules and open one approval (`payments.seat-purchase`, `payments.fde-hosting-purchase`). Flow `client.payments.claim`, over accounts' rpc `accounts.setup.collect` (`payments.claim-command`). |
+| accounts | 0 | Its rpc `accounts.setup.collect` serves `payment claim` (`accounts.collect-any-time`); `account collect` and `client.account.collect` are gone (`aaron.payment-claim`). |
+| devnet | 1 (`dev time set`) | Flow `devnet.time.set` in the Core SDK's devnet entry, over the supervisor's protocol call `timeRate` (`POST /v1/time/rate`, new in `devnet-control`); no backend rpc (`devnet.clock-rate`). |
 | requests | 1 (`org timesheet bill`) | Flow `client.org.timesheets.bill`, over its own rpc `requests.issuing.bill-time`, which issues as `requests.issuing.issue` does and invokes `projects.bill-time` (`requests.bill-time`). |
 
 The payroll changes:
@@ -363,7 +398,7 @@ SDK methods are under `client.org(orgId)`, except `payslip`'s, which are under `
 | `org.payroll.structure.assign` | `org payroll structure assign <structure> <employee> --start <day> --base <amount> [--variable <amount>] [--department] [--payable-account <code>]` | `.payroll.structures.assign` | flow `client.org.payroll.structures.assign` over rpc `payroll.structures.assign` | People | write | Assigns a structure to an Employee from that day, on a base. |
 | `org.payroll.structure.unassign` | `org payroll structure unassign <assignment>` | `.payroll.structures.unassign` | flow (new) over rpc `payroll.structures.cancel` | People | write | Cancels an assignment. Runs already submitted keep their slips. |
 | `org.payroll.structure.list` | `org payroll structure list [--employee <employee>]` | `.payroll.structures.list` | flow `client.org.payroll.structures.list` over rpc `payroll.structures.list` | People | read | The structures and their assignments. |
-| `org.payroll.run.create` | `org payroll run create <department> --start <day> --end <day> [--posting <day>] [--frequency] [--employee <employee>]… [--unpaid <employee>=<days>]…` | `.payroll.runs.create` | flow `client.org.payroll.runs.create` over rpc `payroll.runs.create` | People | write | Drafts the department's run for the period, each slip worked out from the Employee's assignment. |
+| `org.payroll.run.create` | `org payroll run create <department> --start <day> --end <day> [--posting <day>] [--frequency] [--employee <employee>]…` | `.payroll.runs.create` | flow `client.org.payroll.runs.create` over rpc `payroll.runs.create` | People | write | Drafts the department's run for the period, each slip worked out from the Employee's assignment. |
 | `org.payroll.run.submit` | `org payroll run submit <run>` | `.payroll.runs.submit` | flow `client.org.payroll.runs.submit` over rpc `payroll.runs.submit` | People | write | Draft becomes submitted: its slips are fixed and owed, each payslip is stored and the accrual is posted. |
 | `org.payroll.run.pay` | `org payroll run pay <run> [--slip <slip>]… [--request-key] [--timeout-seconds] [--no-wait]` | `.payroll.runs.pay` | flow `client.org.payroll.runs.pay` | Budget (the run's department budget) | chain-submit | Pays every unpaid submitted slip as one payment command with one approval. A lapsed approval resumes the same command. |
 | `org.payroll.run.cancel` | `org payroll run cancel <run>` | `.payroll.runs.cancel` | flow `client.org.payroll.runs.cancel` over rpc `payroll.runs.cancel` | People | write | Cancels a run. `WRONG_STATE` once anything of it is paid. |
@@ -385,7 +420,11 @@ SDK methods are under `client.org(orgId)`, except `payslip`'s, which are under `
 | `org.head.show` | `org head show` | `client.org(orgId).head.show` | rpc `organizations.heads.show` (new) | Member | read | The head's status, site, versions, time zone and issue; never a secret, and no app's sync position, which is each app concept's (`organizations.head-commands`). Null when there is no head. |
 | `org.head.disconnect` | `org head disconnect [--confirm]` | `client.org(orgId).head.disconnect` | flow `client.org.head.disconnect` (new: read, preview, write) over rpc `organizations.heads.disconnect` (new) | Director | write | After a preview, disconnects the live head. Every sync stops, and Capxul keeps every record. |
 | `org.fde.show` | `org fde show` | `client.org(orgId).fde.show` | rpc `organizations.fde.show` (new) | Member | read | The Organization's hosted FDE: its handle, its state on the host, the hats it wears, the day its hosting is paid through, and `FDE_HOSTING_PRICE`. |
-| `org.fde.ask` | `org fde ask <message> [--timeout-seconds]` | `client.org(orgId).fde.ask` | flow `client.org.fde.ask` (new) over rpc `organizations.fde.ask` (new) | Director | vendor | Sends a message to the hosted FDE and prints its reply when its turn ends. Whatever it does in return, it does through its own commands, each traced. A paused FDE is `WRONG_STATE`. |
+| `org.fde.ask` | `org fde ask <message> [--timeout-seconds]` | `client.org(orgId).fde.ask` | flow `client.org.fde.ask` (new) over rpc `organizations.fde.ask` (new) | Asker | vendor | Sends a message to the hosted FDE and prints its reply when its turn ends. Whatever it does in return, it does through its own commands, each traced. A paused FDE is `WRONG_STATE`. The FDE acts as the asker: it does for them only what their own Seat and hats allow, and hands any signature to them (`organizations.fde-for-the-asker`). |
+| `org.fde.turn.get` | `org fde turn get <turn>` | `client.org(orgId).fde.turns.get` | rpc `organizations.fde.turn` | The turn's asker | vendor | A turn the asker sent: working, ended with its reply, or failed. Any other turn is `INVALID_INPUT`. Reading it ended ends what the ask lets the FDE do. |
+| `org.fde.guest.add` | `org fde guest add <email\|@handle> [--note <text>]` | `client.org(orgId).fde.guests.add` | rpc `organizations.fde-guests.add` (new) | People or Director | write | Names an outside person the Organization works with as a guest who may ask its FDE; admits them to the beta. A member, an agent or an Organization is `INVALID_INPUT`. Naming twice is one guest. |
+| `org.fde.guest.remove` | `org fde guest remove <email\|@handle\|guest>` | `client.org(orgId).fde.guests.remove` | rpc `organizations.fde-guests.remove` (new) | People or Director | write | The guest may not ask again, and their open asks act for them no more. |
+| `org.fde.guest.list` | `org fde guest list [--status active\|removed] [--after] [--limit]` | `client.org(orgId).fde.guests.list` | rpc `organizations.fde-guests.list` (new) | Member | read | The guests, active first, with who named them. |
 
 ### 5.5 What an Organization buys from Capxul (`organizations.buy-seats`)
 
@@ -409,6 +448,179 @@ Each purchase is paid like this:
 | `org.seats.buy` | `org seats buy <n> --from <budget> [--request-key] [--timeout-seconds] [--no-wait]` | payments | `client.org(orgId).seats.buy` | flow `client.org.seats.buy` (new) over rpc `payments.commands.buy-seats` (new) | People, and Budget on `--from`; never an agent or the Board | chain-submit | Pays n times `SEAT_PRICE` in one payment and approval. The limit rises when the payment settles, and a bought seat is kept for good. An unset price is `FEATURE_NOT_AVAILABLE`. |
 | `org.fde.pay` | `org fde pay [<months>] --from <budget> [--request-key] [--timeout-seconds] [--no-wait]` | payments | `client.org(orgId).fde.pay` | flow `client.org.fde.pay` (new) over rpc `payments.commands.pay-fde-hosting` (new) | Budget on `--from`; a person, never an agent (so never the FDE) or the Board | chain-submit | Pays the given number of months (one by default) times `FDE_HOSTING_PRICE`. The hosting's paid-through instant moves on by that many calendar months when the payment settles, from the later of it and the settlement, so a paused FDE is woken and its pause is not charged. No hosted FDE, or a retired one, is `WRONG_STATE`. |
 
+### 5.6 The devnet's clock rate (`devnet.clock-rate`), owned by devnet, area `devnet`
+
+For `aaron.world-clock`: a world's clock may run faster than real time, so it gains a rate beside frozen and running
+(`docs/design/time.md` section 7). The command follows the 215's devnet spelling (`dev prices set`, `dev gates
+set`): G3's `set` on a singleton, the clock, which `dev time` already shows, with the value as a flag (G5), as
+`org department budget set --budget` takes its own. The SDK method is the devnet entry's, as `dev time warp` is
+`devnet.time.warp` (G7). The supervisor's own thin client spells it the same way, `capxul-devnet time set --rate <n>`,
+and its other controls (`capxul-devnet whatsapp …`, `mail receive`, `world grant`) are eval and hosting tools, not
+operations, as its fault switches are (`devnet.fault-switches`).
+
+| Id | Command | SDK method | Calls | Who | Budget | Behaviour |
+|---|---|---|---|---|---|---|
+| `dev.time.set` | `dev time set --rate <n>` | `devnet.time.set` | flow `devnet.time.set` (new) over devnet-control's `timeRate` (`POST /v1/time/rate`, new) | World owner | write | Sets the seconds of world time in each real second while the clock runs, a whole number from 1 to 60, from now on, for every follower. A frozen clock stays frozen and keeps the rate for when it resumes. Warps are unchanged. A missing `--rate`, or one outside the range, is `INVALID_INPUT` (G6); off a devnet or a shared world, `WRONG_ENVIRONMENT`; a joiner's grant in a shared world, `ROLE_PERMISSION_DENIED` (world `shared-world-joiner`). A move already running is `WRONG_STATE`, a race no saved world holds, so, as for the frozen `dev time` commands, it is not a booked refusal. |
+
+### 5.7 The document family (`organizations.doc-family`), owned by organizations, area `organizations`
+
+For `aaron.sdk-reaches-everything`: what lives only on a connected head (recruitment, appraisal, training,
+onboarding, any other app's documents) is reached through one generic family over the Core SDK and the CLI, not the
+React SDK. Each command is one SDK method over one rpc, which Capxul's backend sends to the head's Capxul app
+(`frappe-head`'s `docRead` and `docWrite`, idempotent by the call id the SDK method makes once per invocation). It runs
+there as the member's own head User, with the roles the member's hats give at that call, so the head's permissions
+decide (`organizations.doc-authority`); it never
+reaches a DocType a native concept owns (refused with the commands that reach it), money (any DocType the head's apps'
+ledger hooks list, the few that post though no hook lists them, such as ERPNext's Repost Item Valuation, and Frappe
+Lending's Loan Management whole) or the head's machinery (`organizations.doc-reach`); and every call, read or write,
+done or refused, is logged on the world's clock (`organizations.doc-log`). `<DocType>` is Frappe's name (`"Job Opening"`), and
+a document is named by its head name, since Capxul keeps no copy. `--set <field>=<value>` (repeatable, the value sent
+as text for the head to read as its field's type) and `--file <path>` (a JSON object of typed fields, child tables as
+arrays of rows) give fields; each `--set` overrides the file's field of that name. The refusals of every row follow G6: no
+connected head `WRONG_STATE`; a native, money or machinery DocType, or a name, field or value the head refuses,
+`INVALID_INPUT`; what the head's permissions refuse `ROLE_PERMISSION_DENIED`; a step its docstatus or Workflow
+forbids `WRONG_STATE`; the head down `PROVIDER_ERROR`.
+
+| Id | Command | SDK method | Calls | Who | Budget | Behaviour |
+|---|---|---|---|---|---|---|
+| `org.doc.list` | `org doc list <DocType> [--filter <field><op><value>]… [--field <field>]… [--order-by <field>] [--asc] [--after] [--limit]` | `client.org(orgId).docs.list` | rpc `organizations.docs.list` (new) | Head User | vendor | One page of the DocType's documents the User may see, newest change first; filters apply together, the operator the longest of `=`, `!=`, `>`, `>=`, `<`, `<=`, `~` (like) and `!~` (not like) after the field's name. |
+| `org.doc.get` | `org doc get <DocType> <name> [--field <field>]…` | `client.org(orgId).docs.get` | rpc `organizations.docs.get` (new) | Head User | vendor | One document: its fields and child rows, docstatus, Workflow state and the actions the User may take, and what they may do to it. |
+| `org.doc.create` | `org doc create <DocType> [--set <field>=<value>]… [--file <path>]` | `client.org(orgId).docs.create` | rpc `organizations.docs.create` (new) | Head User | vendor | Inserts a document (a draft when submittable), named by the head; Frappe's validations run. |
+| `org.doc.change` | `org doc change <DocType> <name> [--set …]… [--file <path>] [--clear <field>]… [--modified <stamp>]` | `client.org(orgId).docs.change` | rpc `organizations.docs.change` (new) | Head User | vendor | Sets fields and keeps the rest, never the docstatus; a submitted document takes only its allow-on-submit fields; `--modified` refuses a change based on an older read. |
+| `org.doc.submit` | `org doc submit <DocType> <name>` | `client.org(orgId).docs.submit` | rpc `organizations.docs.submit` (new) | Head User | vendor | A draft of a submittable DocType becomes submitted. Under an active Workflow, `WRONG_STATE`: use `apply` (Capxul's refusal; Frappe's server would let it skip the Workflow). |
+| `org.doc.cancel` | `org doc cancel <DocType> <name>` | `client.org(orgId).docs.cancel` | rpc `organizations.docs.cancel` (new) | Head User | vendor | A submitted document becomes cancelled, and is kept. |
+| `org.doc.amend` | `org doc amend <DocType> <name>` | `client.org(orgId).docs.amend` | rpc `organizations.docs.amend` (new) | Head User | vendor | A cancelled document's correction: a new draft (by Frappe's default `<name>-1`) whose `amended_from` names it. |
+| `org.doc.apply` | `org doc apply <DocType> <name> <action>` | `client.org(orgId).docs.apply` | rpc `organizations.docs.apply` (new) | Head User | vendor | One Workflow action: the next state, submitting or cancelling where it says so. |
+| `org.doc.remove` | `org doc remove <DocType> <name> [--confirm]` | `client.org(orgId).docs.remove` | flow `client.org.docs.remove` (new: read, preview, delete) over rpcs `organizations.docs.get` and `organizations.docs.remove` (new) | Head User; never the FDE for them | vendor | Deletes a document that is not submitted, after a preview. A submitted one is `WRONG_STATE`. |
+| `org.doctype.list` | `org doctype list [--app] [--module] [--all] [--after] [--limit]` | `client.org(orgId).doctypes.list` | rpc `organizations.doctypes.list` (new) | Head User | vendor | The head's DocTypes the family reaches; `--all` adds the rest, each with why not (native, naming its commands; money; machinery). |
+| `org.doctype.get` | `org doctype get <DocType>` | `client.org(orgId).doctypes.get` | rpc `organizations.doctypes.get` (new) | Head User | vendor | One DocType's fields, child tables, Workflow, the User's rights on it, and whether the family reaches it. |
+| `org.doc-call.list` | `org doc-call list [--doctype] [--name] [--member] [--after] [--limit]` | `client.org(orgId).docCalls.list` | rpc `organizations.doc-calls.list` (new) | Member: a Director every call, anyone else their own | read | The family's log, newest first: whose authority (the FDE's calls under its asker), the head User, the verb, the document, the outcome; never a value. |
+
+Left out on purpose (`organizations.doc-family`): a count (a list pages), copy (create and amend cover it), bulk
+writes (each document is its own authorised, logged call), whitelisted methods (they write any DocType around the
+guard; a head capability that needs one gets its own command), and files and comments (Frappe's core module is native).
+
+### 5.8 The CRM's conversations (`contacts.conversation-commands`), owned by contacts, area `contacts`
+
+For Aaron's evening answer (the CRM tracks every conversation), `aaron.crm-frappe-shape`, `aaron.sdk-reaches-everything`
+and `aaron.world-clock`: email, WhatsApp, calls, notes and tasks on one timeline per contact, lead and deal, in Frappe
+CRM's shapes (Communication, the WhatsApp app's WA Account and WA Message, CRM Call Log, FCRM Note, CRM Task), threaded
+onto the right record, on the world's clock with each channel the world's. A `<record>` is a contact entry's id
+(`party_`, `contact_`), a `lead_` or a `deal_` id; a converted lead takes no new conversation (`WRONG_STATE` naming its
+deal). Email goes in and out through the Organization's CRM mailbox, `<handle>@<CRM_MAIL_DOMAIN>`
+(`contacts.crm-mailbox`), on the `mail` integration notices uses, with its inbound half added: a reply threads back by
+Message-ID, and mail from someone unknown makes a lead (`contacts.mail-threading`). WhatsApp goes through Meta's
+WhatsApp Business Cloud API on the Organization's own number (`contacts.whatsapp-connect`); a free-form text only in
+the 24-hour window, counted on the world's clock (`contacts.whatsapp-window`). The timeline also shows the money the
+chain proves between the Organization and the record's Party (`contacts.timeline-money`, for Aaron). SDK methods are
+under `client.org(orgId).crm`. The refusals follow G6; a send to the provider that fails is `PROVIDER_ERROR` or
+`RATE_LIMITED`, and the sends and WhatsApp's connect and disconnect preview and take `--confirm`, so their rpcs refuse
+the hosted FDE's call for its asker (G4, `contacts.sends-preview`).
+
+| Id | Command | SDK method | Calls | Who | Budget | Behaviour |
+|---|---|---|---|---|---|---|
+| `org.crm.timeline` | `org crm timeline <record> [--kind email\|whatsapp\|call\|note\|task\|money\|record]… [--after] [--limit]` | `.timeline` | rpc `contacts.timeline.list` (new) | Member | read | The record's emails, messages, calls, notes and tasks, its birth and the chain's money with its Party, newest first; a deal's includes its lead's. A view, so read by its noun, as `org cap-table` is (`contacts.conversation-commands`). |
+| `org.crm.email.send` | `org crm email send <record> (--subject <text> \| --in-reply-to <communication>) (--body <text> \| --body-file <path>) [--to <mailbox>]… [--cc <mailbox>]… [--bcc <mailbox>]… [--confirm]` | `.emails.send` | flow (new: key, preview, send) over rpc `contacts.mail.send` (new) | People; never the FDE for them | vendor | From `<member> at <Organization>` at the CRM mailbox to the record's own mailbox unless `--to`; once Resend took it, on the timeline. A retry under the same send key sends once. |
+| `org.crm.whatsapp.connect` | `org crm whatsapp connect [--key-file <path>] [--confirm]` | `.whatsapp.connect` | flow (new: secrets, preview, connect) over rpc `contacts.whatsapp.connect` (new) | People; never the FDE for them | vendor | Checks the number with Meta, subscribes the Meta app to the number's WhatsApp Business Account (else Meta sends it no webhook), seals its secrets and prints the webhook URL and verify token to set as the app's callback. A live number is `WRONG_STATE`. |
+| `org.crm.whatsapp.disconnect` | `org crm whatsapp disconnect [--confirm]` | `.whatsapp.disconnect` | flow (new: read, preview, write) over rpc `contacts.whatsapp.disconnect` (new) | People; never the FDE for them | write | Stops every send and delivery; keeps every message. None live is `WRONG_STATE`. |
+| `org.crm.whatsapp.show` | `org crm whatsapp show` | `.whatsapp.show` | rpc `contacts.whatsapp.show` (new) | Member | read | The number, its status, webhook URL and last check; never a secret. Null when none. |
+| `org.crm.whatsapp.send` | `org crm whatsapp send <record> (--text <message> \| --template <name> [--language <code>] [--param <value>]…) [--to <E.164>] [--in-reply-to <message>] [--confirm]` | `.whatsapp.send` | flow (new: key, preview, send) over rpc `contacts.whatsapp.send` (new) | People; never the FDE for them | vendor | To the record's own number unless `--to`; a text outside the window is `WRONG_STATE`, a template goes. No number connected, or one failing, is `WRONG_STATE`. |
+| `org.crm.note.add` | `org crm note add <record> <title> [--content <text>]` | `.notes.add` | flow (new) over rpc `contacts.notes.save` (new) | People | write | An FCRM Note on the record's timeline. |
+| `org.crm.note.change` | `org crm note change <note> [--title] [--content] [--clear content]` | `.notes.change` | flow (new) over rpc `contacts.notes.save` | People | write | Changes a note; it keeps its place. A note is never removed (`contacts.notes-kept`). |
+| `org.crm.task.create` | `org crm task create <record> <title> [--assigned-to <member>] [--due <time\|day>] [--start <day>] [--priority low\|medium\|high] [--status backlog\|todo] [--description <text>]` | `.tasks.create` | flow (new) over rpc `contacts.tasks.save` (new) | People | write | A CRM Task, Backlog unless Todo. |
+| `org.crm.task.change` | `org crm task change <task> [--title <text>] [create's other flags but --status] [--clear <field>]` | `.tasks.change` | flow (new) over rpc `contacts.tasks.save` | People | write | Changes its fields; its status moves only by `move`. |
+| `org.crm.task.move` | `org crm task move <task> <Backlog\|Todo\|"In Progress"\|Done\|Canceled>` | `.tasks.move` | rpc `contacts.tasks.move` (new) | People, or the task's assignee for their own (`contacts.task-assignee`) | write | Any status from any, as `org crm lead move` moves a lead; Done records when (`contacts.task-verbs`). |
+| `org.crm.task.list` | `org crm task list [--stage open\|working\|done\|cancelled]… [--assigned-to <member>] [--record <record>] [--after] [--limit]` | `.tasks.list` | rpc `contacts.tasks.list` (new) | Member | read | Open and working tasks, soonest due first; filters together. |
+| `org.crm.call.log` | `org crm call log <record> --type incoming\|outgoing --status completed\|no-answer\|busy\|failed\|canceled [--number <E.164>] [--start <time>] [--duration <seconds> \| --end <time>] [--note <text>]` | `.calls.log` | rpc `contacts.calls.log` (new) | People | write | A manual CRM Call Log of a call that is over (it ends no later than now; with no `--start`, just now), on the timeline when logged, with its note as an FCRM Note (`contacts.call-logs`). |
+
+Not booked: attachments (named, not kept: `contacts.attachments-later`, for Aaron), pinning a note, telephony, and
+field-change history on the timeline (`contacts.timeline`). Inbound email and WhatsApp have no command: they are the
+providers' signed webhooks, and on a devnet the world's controls (`capxul-devnet mail receive`, `whatsapp receive`).
+
+### 5.9 HR (`payroll.hr-commands`), owned by payroll, area `payroll`
+
+For Aaron's evening answer (payroll means HR): the HR that changes pay or moves money is native, in Frappe HR's shapes
+(Holiday List, Leave Type, Leave Allocation, Leave Application, Shift Type, Shift Assignment, Employee Checkin,
+Attendance, Expense Claim Type, Expense Claim, Employee Advance, an advance's Additional Salary, HR Settings;
+`payroll.hr-scope`), part of the payroll concept (`payroll.hr-in-payroll`); recruitment, appraisal, training,
+onboarding and the leave machinery off the path to a slip stay on the head, reached through 5.7. Payroll is based on
+attendance with unmarked days present (`payroll.attendance-based`): an approved leave marks its days, so an unpaid
+type's days and every absent day dock the slip that covers them, and `org payroll run create` loses `--unpaid`.
+
+- **Who** (`payroll.hr-approvers`): People keeps the records. The Employee's own commands have no prefix and take
+  `--employer <handle>`: a write or a balance acts at that employer (absent: their one employer), a list holds every
+  employer's and `--employer` filters, as `payslip list`, and a command on one record takes its employer from its id
+  (G1); an Employee needs no Seat (`payroll.hr-self`). Leave is decided by a wearer of the Employee's department's hat or one above it, or People.
+  Claims and advances are decided and paid by Budget on the department's budget, read on chain. Nobody decides their
+  own. Lists of claims and advances: People all, a department's hat its own and below.
+- **Money** (`payroll.hr-money`): approving a claim posts its accrual through `books.record-payroll-accrual`; paying a
+  claim or an advance is one command through `payments.prepare-command` from the department's budget, one approval,
+  resumed when lapsed, followed to paid. An unclaimed advance is recovered from the next slip
+  (`payroll.advance-recovery`).
+- **Time** (`payroll.hr-world-clock`): a check-in is stamped by the world's clock (a head device's, pulled by the head
+  sync, keeps the head's time and is refused when later than the world's now); each shift assignment's process marks
+  its days on it, from its start day.
+
+SDK methods are under `client.org(orgId)`, except the Employee's own, under `client.me`. Each command is its rpc,
+except the two that pay and `org advance settle`, which previews (`payroll.hr-rpc-methods`).
+
+| Id | Command | SDK method | Calls | Who | Budget | Behaviour |
+|---|---|---|---|---|---|---|
+| `org.holiday.add` | `org holiday add (<day> --description <text> \| --weekly <weekday> [--year <yyyy>]) [--half-day]` | `.holidays.add` | rpc `payroll.holidays.add` | People | write | A holiday, or every such weekday of a year as weekly offs, in that year's Holiday List, born with its first. A day already a holiday is `WRONG_STATE`. |
+| `org.holiday.remove` | `org holiday remove <day>` | `.holidays.remove` | rpc `payroll.holidays.remove` | People | write | The day is a working day again; decided leave keeps its days. |
+| `org.holiday.list` | `org holiday list [--year <yyyy>]` | `.holidays.list` | rpc `payroll.holidays.list` | Member | read | One year's holidays, weekly offs marked. |
+| `org.leave-type.add` | `org leave-type add <name> [--max-days <n>] [--applicable-after <days>] [--max-continuous <days>] [--carry-forward [--max-carry <n>]] [--without-pay \| --partly-paid <fraction>] [--include-holidays] [--allow-negative]` | `.leaveTypes.add` | rpc `payroll.leave-types.add` | People | write | A Leave Type; every rule off unless given. Earned, compensatory, optional and encashable leave are the head's. |
+| `org.leave-type.change` | `org leave-type change <type> [add's flags] [--clear <field>]…` | `.leaveTypes.change` | rpc `payroll.leave-types.change` | People | write | Sets the rules given. Turning a type with approved leave paid or unpaid is `WRONG_STATE`. |
+| `org.leave-type.list` | `org leave-type list [--after] [--limit]` | `.leaveTypes.list` | rpc `payroll.leave-types.list` | Member | read | The leave types and their rules. |
+| `org.leave.allocate` | `org leave allocate <employee> --type <type> --days <n> --start <day> --end <day> [--carry-forward] [--description <text>]` | `.leaves.allocate` | rpc `payroll.leave.allocate` | People | write | A Leave Allocation; carried days up to the type's maximum. An overlapping one of the type is `WRONG_STATE`; an unpaid type needs none (`INVALID_INPUT`). |
+| `org.leave.unallocate` | `org leave unallocate <allocation>` | `.leaves.unallocate` | rpc `payroll.leave.unallocate` | People | write | Cancels an allocation no approved leave draws on. |
+| `org.leave.balance` | `org leave balance <employee> [--on <day>]` | `.leaves.balance` | rpc `payroll.leave.balance` | People | read | Each type's allocated, taken, pending and left. |
+| `org.leave.approve` | `org leave approve <application>` | `.leaves.approve` | rpc `payroll.leave.approve` | The Employee's department's hat or one above, or People; never oneself | write | The checks again, then approved, each leave day marked `on_leave` (a half day `half_day`). |
+| `org.leave.reject` | `org leave reject <application> [--reason <text>]` | `.leaves.reject` | rpc `payroll.leave.reject` | As approve | write | Rejected; nothing taken or marked. |
+| `org.leave.list` | `org leave list [--employee] [--department] [--status open\|approved\|rejected\|cancelled] [--start] [--end] [--after] [--limit]` | `.leaves.list` | rpc `payroll.leave.list` | People, or a department's hat for its own and below | read | Applications, newest first. |
+| `leave.apply` | `leave apply --type <type> --start <day> --end <day> [--half-day [--half-day-on <day>]] [--reason <text>] [--employer <handle>]` | `client.me.leaves.apply` | rpc `payroll.leave.apply` | Self (the Employee) | write | An open application; days less holidays unless the type counts them; a paid type within its balance; no overlap. |
+| `leave.list` | `leave list [--employer] [--status] [--after] [--limit]` | `client.me.leaves.list` | rpc `payroll.leave.mine` | Self | read | Your applications from every employer (`--employer` filters), with who decided and the balance after. |
+| `leave.cancel` | `leave cancel <application> [--employer]` | `client.me.leaves.cancel` | rpc `payroll.leave.cancel` | Self | write | Open or approved to cancelled, its marks cancelled; unpaid leave a submitted slip counted is `WRONG_STATE`. |
+| `leave.balance` | `leave balance [--employer] [--on <day>]` | `client.me.leaves.balance` | rpc `payroll.leave.my-balance` | Self | read | Your balances. |
+| `org.shift-type.add` | `org shift-type add <name> --start <HH:MM> --end <HH:MM> [--auto-attendance] [--half-day-below <hours>] [--absent-below <hours>] [--late-grace <minutes>] [--early-grace <minutes>]` | `.shiftTypes.add` | rpc `payroll.shift-types.add` | People | write | A day Shift Type; added, never changed (`payroll.shift-types`). |
+| `org.shift-type.list` | `org shift-type list [--after] [--limit]` | `.shiftTypes.list` | rpc `payroll.shift-types.list` | Member | read | Shift types and who works each now. |
+| `org.shift-type.assign` | `org shift-type assign <type> <employee> --start <day> [--end <day>]` | `.shiftTypes.assign` | rpc `payroll.shift-types.assign` | People | write | A Shift Assignment, whose process marks each day from check-ins when its shift ends. One a day. |
+| `org.shift-type.unassign` | `org shift-type unassign <assignment>` | `.shiftTypes.unassign` | rpc `payroll.shift-types.unassign` | People | write | No later day is marked by it. |
+| `attendance.checkin` | `attendance checkin [--log in\|out] [--employer]` | `client.me.attendances.checkin` | rpc `payroll.attendance.checkin` | Self | write | A check-in at the world's clock, in the shift whose window holds now. |
+| `attendance.list` | `attendance list [--employer] [--start] [--end] [--after] [--limit]` | `client.me.attendances.list` | rpc `payroll.attendance.mine` | Self | read | Your marked days and check-ins, from every employer (`--employer` filters). |
+| `org.attendance.mark` | `org attendance mark <employee> --on <day> --status present\|absent\|half_day\|work_from_home\|on_leave [--leave-type <type>]` | `.attendances.mark` | rpc `payroll.attendance.mark` | People | write | One mark; a day already marked is `WRONG_STATE`. |
+| `org.attendance.cancel` | `org attendance cancel <attendance>` | `.attendances.cancel` | rpc `payroll.attendance.cancel` | People | write | The day unmarked; a leave's mark goes only with its leave. |
+| `org.attendance.list` | `org attendance list [--employee] [--department] [--status] [--start] [--end] [--after] [--limit]` | `.attendances.list` | rpc `payroll.attendance.list` | People | read | Marked days, newest first. |
+| `org.expense-type.add` | `org expense-type add <name> [--account <code>] [--description <text>]` | `.expenseTypes.add` | rpc `payroll.expense-types.add` | People | write | An Expense Claim Type; null account is books' default (`payroll.expense-types`). |
+| `org.expense-type.list` | `org expense-type list [--after] [--limit]` | `.expenseTypes.list` | rpc `payroll.expense-types.list` | Member | read | The types and their accounts. |
+| `expense-claim.create` | `expense-claim create (--type <type> --amount <a> [--on <day>] [--description <text>] \| --file <path>) [--receipt <path>]… [--advance <advance>]… [--remark <text>] [--employer]` | `client.me.expenseClaims.create` | rpc `payroll.expense-claims.create` | Self | write | An open claim in the department budget's token, its receipts stored, settling against named paid advances. |
+| `expense-claim.list` | `expense-claim list [--employer] [--status] [--after] [--limit]` | `client.me.expenseClaims.list` | rpc `payroll.expense-claims.mine` | Self | read | Your claims, from every employer (`--employer` filters). |
+| `expense-claim.get` | `expense-claim get <claim> [--employer]` | `client.me.expenseClaims.get` | rpc `payroll.expense-claims.mine-get` | Self | read | One of your claims, with its payment. |
+| `expense-claim.cancel` | `expense-claim cancel <claim> [--employer]` | `client.me.expenseClaims.cancel` | rpc `payroll.expense-claims.withdraw` | Self | write | An open claim cancelled; a decided one is `WRONG_STATE`. |
+| `org.expense-claim.approve` | `org expense-claim approve <claim> [--sanction <line>=<amount>]…` | `.expenseClaims.approve` | rpc `payroll.expense-claims.approve` | Budget on the department's; never oneself | chain-read | Approved and its accrual posted; paid at once when its advances cover it. |
+| `org.expense-claim.reject` | `org expense-claim reject <claim> --reason <text>` | `.expenseClaims.reject` | rpc `payroll.expense-claims.reject` | As approve | chain-read | Rejected; nothing owed. |
+| `org.expense-claim.pay` | `org expense-claim pay <claim> [--request-key] [--timeout-seconds] [--no-wait]` | `.expenseClaims.pay` | flow `client.org.expense-claims.pay` over rpc `payroll.expense-claims.pay` | Budget on the department's; never oneself | chain-submit | The grand total as one payment command and approval; a lapsed approval resumes the same command. |
+| `org.expense-claim.cancel` | `org expense-claim cancel <claim>` | `.expenseClaims.cancel` | rpc `payroll.expense-claims.cancel` | As approve | chain-read | An approved, unsent claim cancelled, its accrual and advances' claims reversed. |
+| `org.expense-claim.list` | `org expense-claim list [--employee] [--department] [--status] [--after] [--limit]` | `.expenseClaims.list` | rpc `payroll.expense-claims.list` | People, or a department's hat | read | Claims, newest first. |
+| `org.expense-claim.get` | `org expense-claim get <claim>` | `.expenseClaims.get` | rpc `payroll.expense-claims.get` | People, or a department's hat | read | One claim with its receipts and payment. |
+| `advance.request` | `advance request --amount <a> --purpose <text> [--employer]` | `client.me.advances.request` | rpc `payroll.advances.request` | Self | write | A requested Employee Advance. |
+| `advance.list` | `advance list [--employer] [--status] [--after] [--limit]` | `client.me.advances.list` | rpc `payroll.advances.mine` | Self | read | Your advances and what is left of each, from every employer (`--employer` filters). |
+| `advance.cancel` | `advance cancel <advance> [--employer]` | `client.me.advances.cancel` | rpc `payroll.advances.withdraw` | Self | write | A requested advance cancelled. |
+| `org.advance.pay` | `org advance pay <advance> [--request-key] [--timeout-seconds] [--no-wait]` | `.advances.pay` | flow `client.org.advances.pay` over rpc `payroll.advances.pay` | Budget on the department's; never oneself | chain-submit | Approves and pays it as one payment command and approval. |
+| `org.advance.reject` | `org advance reject <advance> --reason <text>` | `.advances.reject` | rpc `payroll.advances.reject` | As pay | chain-read | Rejected; nothing paid. |
+| `org.advance.settle` | `org advance settle <advance> [--confirm]` | `.advances.settle` | flow `client.org.advances.settle` (read, preview, settle) over rpc `payroll.advances.settle` | People | write | After a preview (G5: no command takes the deduction back), what no claim took is deducted from the next slip by an Additional Salary; returned when that slip is submitted. |
+| `org.advance.list` | `org advance list [--employee] [--department] [--status] [--after] [--limit]` | `.advances.list` | rpc `payroll.advances.list` | People, or a department's hat | read | Advances, newest first. |
+| `org.advance.get` | `org advance get <advance>` | `.advances.get` | rpc `payroll.advances.get` | People, or a department's hat | read | One advance, what settled it and its payment. |
+
+Spelt against the brief (`payroll.hr-commands`): a record kind is its DocType's kebab name (`leave-type`, `shift-type`,
+`expense-type` for Expense Claim Type, `expense-claim`), or a common word, as G2 names Salary Slip `payslip`
+(`leave`, its allocations under it as assignments are under `org payroll structure`, and `advance`; the 215 use none
+of the three); a leave is born by `apply` and an advance by `request`, their machines' births, as `org agreement
+offer` and `request issue` are; `balance` reads a view by its noun, as the 215's `balance`; claiming sends at once,
+Frappe's Submit being the approver's; paying an advance approves it. Left out on
+purpose (`payroll.hr-command-shape`): a `get` where the list prints the whole record, `change` on shift and expense
+types, and leave applied for another (the People hat marks such a day instead).
+
 ## 6. Capabilities the rulings need that no pack listed
 
 These were added by this pass:
@@ -430,14 +642,17 @@ These were added by this pass:
 
   | Id | Command | Owner | SDK method | Calls | Who | Budget | Behaviour |
   |---|---|---|---|---|---|---|---|
-  | `account.collect` | `account collect [--timeout-seconds] [--json]` | accounts (area `accounts`) | `client.account.collect` | flow `client.account.collect` (new) over rpc `accounts.setup.collect` (new) | Self: the person whose own Safe owns the escrows | chain-submit | Collects, in one approval, every claim escrow your set-up Safe owns that holds its amount, at any time; answers `nothing_waiting`, `awaiting_approval` or `collected`. Money its sender took back is not offered. |
+  | `payment.claim` | `payment claim [--timeout-seconds] [--json]` | payments (area `payments`) | `client.payments.claim` | flow `client.payments.claim` (new) over accounts' rpc `accounts.setup.collect` (new) | Self: the person whose own Safe owns the escrows | chain-submit | Collects, in one approval, every claim escrow your set-up Safe owns that holds its amount, at any time; answers `nothing_waiting`, `awaiting_approval` or `collected`. Money its sender took back is not offered. |
 
   The escrow pass booked it as `account collect` under its own pack decision, `accounts.collect-any-time`, which
-  cites `aaron.escrow-general`: `claim` is already `org board claim` and setup's Companies House claim (G3), the
-  escrow's function is `collect`, and the person names no payment id, since a claim escrow's Payment has no payee
-  tenant until it is collected. Aaron's answer of 8 November, night (`docs/decisions/open-for-aaron.md`): the
-  command is `payment claim` (`payment.claim`, area `payments`), "claim" being the word of `aaron.escrow-general`.
-  The rename is to apply after this pass, book first.
+  cites `aaron.escrow-general`, reading `claim` as already `org board claim` and setup's Companies House claim
+  (G3). Aaron's answer of 8 November, night (`aaron.payment-claim`, `docs/decisions/open-for-aaron.md` question
+  38): the command is `payment claim` (`payment.claim`, area `payments`), "claim" being the word of
+  `aaron.escrow-general`; the sender's take-back stays `payment cancel`. The world pass applied it, book first:
+  `accounts.collect-any-time` now chooses it, and payments books the command (`payments.claim-command`) with every
+  claim, refusal, world and flag of `account collect`, its flow calling accounts' unchanged rpc. The person still
+  names no payment id, since a claim escrow's Payment has no payee tenant until it is collected, and the answer
+  still reads `collected`, the escrow's own word (G3).
 - **Billing hours** (`aaron.projects`, pack `requests.bill-time`, which is not one of the five). It is respelled by
   G1 and booked by requests.
 
@@ -465,11 +680,15 @@ answers are to apply after this pass, book first; until then each record keeps i
 
 1. **Who may talk to the hosted FDE** (`org fde ask`; `organizations.fde-commands`)? Booked: a Director. His answer:
    anyone may, and anyone the management is speaking to; the host passes the asker's Seat, so the FDE does for
-   them only what their own hats allow. The FDE is not on the critical path.
+   them only what their own hats allow. The FDE is not on the critical path. Applied in the world pass
+   (`aaron.fde-anyone`): `org fde ask` is any member's or a named guest's, the FDE acts as the asker
+   (`organizations.fde-for-the-asker`), and `org fde guest add|remove|list` and `org fde turn get` are booked
+   (`organizations.fde-guests`).
 2. **How is hosting paid** (`organizations.fde-hosting`)? Accepted as recommended: in advance, by the month, from
    a budget (`org fde pay [<months>]`), the FDE pausing when its paid-through instant passes.
-3. **May a recipient collect waiting money later, by command?** Yes. Booked as `account collect`
-   (`accounts.collect-any-time`); his answer spells it `payment claim`.
+3. **May a recipient collect waiting money later, by command?** Yes. Booked first as `account collect`
+   (`accounts.collect-any-time`); his answer spells it `payment claim` (`aaron.payment-claim`). Applied in the world
+   pass: payments books `payment claim` over accounts' rpc (`payments.claim-command`).
 
 ## 8. As booked: where the records refined a row
 
@@ -496,6 +715,20 @@ Each row above is the grammar's; where the booking refined it, the record and it
     mailbox's Party's entry (`contacts.convert-by-kept-mailbox`).
   - `contact create` with a person whose mailbox's Party is already in the book is `INVALID_INPUT`, never merged;
     `contact link` refuses a Party of the other kind (`contacts.book-verbs`).
+  - `contact link`'s rpc refuses the hosted FDE's call for its asker, as every command that previews does (G4,
+    `contacts.sends-preview`).
+- **CRM conversations** (5.8):
+  - `org crm timeline <record>` is a view read by its noun, as `org cap-table` and `activity events` are; its method is
+    `client.org(orgId).crm.timeline` (`contacts.conversation-spelling`).
+  - A reply is `--in-reply-to <id>` on both sends (Frappe's `in_reply_to`), since G5's `<email>` is a mailbox and
+    `--reply-to` is the Reply-To header; a note's title is its second argument, as a task's is; a task's member is
+    `--assigned-to` on create, change and list; `org crm task change` takes `--title`; a task's due time is `--due`
+    (CRM Task's `due_date`), beside `--by` and `--close-by` (`contacts.conversation-spelling`).
+  - A CRM task moves with `move`, as leads and deals do (`contacts.task-verbs`), and its assignee may move their own
+    without the People hat (`contacts.task-assignee`).
+  - The sends and WhatsApp's connect and disconnect preview, so their rpcs refuse the hosted FDE's call for its asker:
+    the FDE drafts and the member sends (`contacts.sends-preview`).
+  - Five are one rpc each and have no flow (G7): the timeline, `whatsapp show`, `task move`, `task list` and `call log`.
 - **Payroll** (5.3):
   - Every command is a flow, `org employee get` included (`payroll.command-flows`).
   - The four org lists take `--after` and `--limit`; `--last-name` is optional; a component is named by its
@@ -515,6 +748,17 @@ Each row above is the grammar's; where the booking refined it, the record and it
 - **Buying from Capxul** (5.5): each purchase is payments' own rpc (`payments.seat-purchase`,
   `payments.fde-hosting-purchase`); `--no-wait` alone hands over (`payments.seat-hand-over`); a lapsed seat
   purchase's `payment retry` needs the People hat, a hosting payment's a person (`payments.seat-authority`).
-- **Section 6:** `account collect`, not `payment claim` (above); `org timesheet bill` is its own rpc
+- **Section 6:** `payment claim`, as Aaron spelled it, takes no payment id and no `--request-key`, and is payments'
+  flow over accounts' rpc (`accounts.collect-any-time`, `payments.claim-command`); `org timesheet bill` is its own rpc
   (`requests.bill-time`, `requests.bill-time-currency`).
-- **Priority:** 31 commands are `critical` by their packs' decisions (G8).
+- **The document family** (5.7): every call carries the roles the member's hats give at that call
+  (`organizations.doc-authority`); `--filter` takes `=`, `!=`, `>`, `>=`, `<`, `<=`, `~` and `!~`; `--set` values are
+  text the head reads as its field's type, and override `--file`'s fields of that name; the money refusal follows the
+  ledger hooks, `repost_allowed_doctypes`, Repost Item Valuation and Frappe Lending's Loan Management
+  (`organizations.doc-reach`); a retry under the same call id completes a call the head never answered
+  (`organizations.doc-log`).
+- **HR** (5.9): an Employee's own lists cover every employer and `--employer` filters (`payroll.hr-self`); `org advance
+  settle` previews (`payroll.advance-recovery`); a check-in from a head's device keeps the head's time, refused when
+  later than the world's now (`payroll.hr-world-clock`).
+- **Priority:** 36 commands are `critical` by their packs' decisions (G8): 11 of projects', 6 of the CRM's, 10 of
+  payroll's, 7 of HR's and 2 of organizations'.

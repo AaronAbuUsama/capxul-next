@@ -915,3 +915,41 @@ export const decision_notices_fde_hosting = defineDecision({
   source: RULINGS("organizations.fde-hosting; notices.recipients; notices.head-and-fde; books/target/organizations/data.ts (machine org-fde); aaron.fde-hosted"),
   affects: [workflow_notices_organizations_fde_due, workflow_notices_organizations_fde_paused, table_notices],
 });
+
+// ── the mail channel, shared with the CRM's conversations (8 November 2026) ─────────────────
+
+export const decision_notices_mail_channel = defineDecision({
+  id: "notices.mail-channel",
+  title: "Notices and the CRM share one mail integration; a CRM email is never a notice",
+  question:
+    "The CRM now sends and receives email through each Organization's CRM mailbox (contacts.crm-mailbox), on the mail " +
+    "integration notices already uses, with an inbound half added. Notices was the one concept that sends mail after " +
+    "a change. How do the two share the channel, and what stays notices' alone?",
+  options: [
+    {
+      label: "one-channel-two-owners",
+      text:
+        "One `Mail` service for both. A notice goes from SENDER_EMAIL with no Reply-To a person reads, keeps its " +
+        "delivery record, retries in its workflow and counts as sent once the provider takes it, as before; a reply to " +
+        "a notice reaches no CRM mailbox, and a notice's delivery events are ignored by the CRM's route. A CRM email is " +
+        "the CRM's own record, a Communication sent from the Organization's CRM mailbox by a person's command or " +
+        "received on it, with no notices row and no template. Both stay in their world (time.world-channels): on a " +
+        "devnet and in a shared world every message, either way, is in the sink, dated at the world's now; on staging " +
+        "only MAIL_ALLOWED_RECIPIENTS are written to.",
+    },
+    { label: "crm-as-notice", text: "Send the CRM's emails as notices, with their own templates and delivery records." },
+    { label: "two-integrations", text: "A second mail integration for the CRM, apart from notices'." },
+  ],
+  chosen: "one-channel-two-owners",
+  why:
+    "A notice tells a person about a change in their own words of Capxul's; a CRM email is a person writing to a " +
+    "customer, threaded by its Message-ID onto a record. Making it a notice would give it a template it does not have " +
+    "and a recipient tenancy (the mailbox) that would put an Organization's conversation in the customer's records. " +
+    "Two integrations would mean two providers or two configurations of one, and two ways for a world's mail to " +
+    "leave it. One service keeps one fake, one sink and one staging allow-list for every mail the system sends. " +
+    "Notices' retry, delivery record and refused-address rules are unchanged; only the send call now also takes a " +
+    "From, a Reply-To and threading headers, which notices leaves at its defaults. For the shared owner: concept " +
+    "notices' about still says no other concept sends mail but access; contacts now sends the CRM's conversations.",
+  source: "Claude, CRM conversations pass (crm-conversations), 8 November 2026; evidence: aaron.world-clock; contacts.crm-mailbox; time.world-channels; notices.first-attempt",
+  affects: [integration_mail, table_notices, concept_notices],
+});

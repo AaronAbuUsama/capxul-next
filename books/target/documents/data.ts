@@ -49,6 +49,8 @@ export const SUBJECT_KINDS = [
   "request",
   "agreement",
   "salary-slip",
+  "expense-claim",
+  "employee-advance",
   "grant",
   "round",
   "commitment",
