@@ -6,7 +6,7 @@ can restart in another account or session from what is committed.
 
 | Step | State | Outputs |
 |---|---|---|
-| Research | not started | `research/*.md` |
+| Research | done 2026-11-09 | `research/*.md`: accounting.md, hr-payroll.md, crm-projects.md,<br>capxul-native.md (`/home/user/capxul-next/demo/research/`) |
 | Data | not started | `data/generate.mjs`, `data/validate.mjs`, `app/data.json` |
 | Shell | not started | `app/index.html`, `app/js/core.js`, `app/js/README.md` |
 | Modules | not started | `app/js/{accounting,hr,payroll,crm,projects,money,governance,fde}.js` |
