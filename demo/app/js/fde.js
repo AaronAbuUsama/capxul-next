@@ -253,13 +253,308 @@ const intents = [
     return { text: `In ${fmt.month(m.month)} Harbourline invoiced ${fmt.gbp(m.income)} and spent ${fmt.gbp(m.expense)}, a profit of ${fmt.gbp(m.profit)}.`, lookedAt: [{ command: `capxul org books reports profit-and-loss --from ${m.from} --to ${m.to}`, result: `income ${fmt.gbp(m.income)}, expense ${fmt.gbp(m.expense)}` }], links: [{ label: 'Profit and loss', route: 'profit-and-loss' }] };
   } },
 ];
+/* ---------- HR, payroll, CRM and projects: the asks the module pages send, answered over the live data ---------- */
+
+const MONTH_IX = { january: 0, february: 1, march: 2, april: 3, may: 4, june: 5, july: 6, august: 7, september: 8, october: 9, november: 10, december: 11, jan: 0, feb: 1, mar: 2, apr: 3, jun: 5, jul: 6, aug: 7, sep: 8, sept: 8, oct: 9, nov: 10, dec: 11 };
+const ymd = (y, m, d) => `${y}-${String(m + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+/** "21 to 24 December", "21-24 Dec", "from 3 to 5 March": the first range of days in a sentence, in the year ahead. */
+function dayRange(q) {
+  const m = q.match(/(\d{1,2})(?:st|nd|rd|th)?\s*(?:to|-|–|until|till)\s*(\d{1,2})(?:st|nd|rd|th)?\s+([a-z]+)/) || q.match(/(\d{1,2})(?:st|nd|rd|th)?\s+([a-z]+)\s*(?:to|-|–|until|till)\s*(\d{1,2})(?:st|nd|rd|th)?\s+([a-z]+)/);
+  if (!m) return null;
+  let d1, d2, m1, m2;
+  if (m.length === 4) { d1 = +m[1]; d2 = +m[2]; m1 = m2 = MONTH_IX[m[3]]; } else { d1 = +m[1]; m1 = MONTH_IX[m[2]]; d2 = +m[3]; m2 = MONTH_IX[m[4]]; }
+  if (m1 == null || m2 == null) return null;
+  const y = +cx.today.slice(0, 4);
+  let from = ymd(y, m1, d1), to = ymd(y, m2, d2);
+  if (from < cx.today) { from = ymd(y + 1, m1, d1); to = ymd(y + 1, m2, d2); }
+  if (to < from) to = ymd(+from.slice(0, 4) + 1, m2, d2);
+  return { from, to };
+}
+function holidayOn(day) {
+  for (const l of D.hr.holidayLists) for (const x of l.holidays) if (x.date === day) return x;
+  return null;
+}
+function workingDays(from, to) {
+  const out = [];
+  for (let d = from; d <= to; d = addDays(d, 1)) { const wd = new Date(d + 'T00:00:00Z').getUTCDay(); if (wd !== 0 && wd !== 6 && !holidayOn(d)) out.push(d); }
+  return out;
+}
+const peopleWearers = () => D.people.filter((p) => p.status === 'Active' && (p.hats || []).includes('People')).map((p) => p.id);
+const firstPeople = (me) => ((me.hats || []).includes('People') ? me.id : peopleWearers()[0]);
+const harbourlineHolder = () => cx.holders('harbourline').find((x) => !String(x).startsWith('@')) || 'maya';
+const isPeople = (me) => (me.hats || []).includes('People');
+function leaveLeft(id, type) {
+  const emp = cx.person(id)?.employee;
+  const a = D.hr.leaveAllocations.find((x) => (x.employee === id || x.employee === emp) && x.leaveType === type && x.fromDate <= cx.today && x.toDate >= cx.today);
+  if (!a) return null;
+  const used = D.hr.leaveApplications.filter((x) => (x.employee === id || x.employee === emp) && x.leaveType === type && ['Approved', 'Open'].includes(x.status) && x.fromDate >= a.fromDate && x.toDate <= a.toDate).reduce((s, x) => s + x.totalLeaveDays, 0);
+  return { allocated: a.totalLeavesAllocated, left: r2(a.totalLeavesAllocated - used), to: a.toDate };
+}
+const nameIn = (q) => D.people.find((p) => q.includes(p.name.toLowerCase())) || D.people.find((p) => new RegExp(`\\b${p.firstName.toLowerCase()}('s)?\\b`).test(q));
+const runPay = (run) => { const slips = D.payroll.slips.filter((s) => s.payrollEntry === run.name); return { slips, net: r2(slips.reduce((s, x) => s + x.netPay, 0)) }; };
+
+const moreIntents = [
+  // a new hire: the founder's steps, and People's steps drafted for whoever wears People
+  { test: (q) => /\b(hire|hiring|new starter|onboard|joins|joining|starts on|starting on|start on)\b/.test(q) && !/\bhannah\b/.test(q), run: (q, me) => {
+    if (!cx.hasSeat()) return noSeat(me);
+    const owen = D.others.find((o) => o.id === 'owen');
+    const inv = D.seats.invitations.find((i) => i.email === owen.email);
+    const eng = cx.budgetOn('engineering');
+    const sp = D.board.proposals.find((p) => p.id === 'sp_0194');
+    const founder = harbourlineHolder();
+    const people = firstPeople(me);
+    const monthly = 6250, quarter = r2(monthly * 3 * 1.18 / RATE);
+    const newBudget = Math.ceil((eng.amount + quarter) / 1000) * 1000;
+    const pool = D.equity.pool, granted = D.equity.grants.filter((g) => g.status === 'Active').reduce((s, g) => s + g.shares, 0);
+    const looked = [
+      { command: `capxul org invite list ${ORG}`, result: inv ? `${owen.email}: ${inv.status}, sent ${fmt.day(inv.sentAt)} by ${cx.firstName(inv.sentBy)}, expires ${fmt.day(inv.expires)}` : 'no invitation' },
+      { command: `capxul org department show engineering ${ORG}`, result: `${fmt.usdc(eng.amount)} a quarter; ${fmt.usdc(eng.left)} left this quarter` },
+      { command: `capxul org options show ${ORG}`, result: `${fmt.int(pool.reserved - granted)} options left in the pool` },
+      sp ? { command: `capxul org proposal get ${sp.id} ${ORG}`, result: `${sp.title}: ${sp.approvals.length} of ${sp.threshold}` } : null,
+    ].filter(Boolean);
+    const founderDraft = { for: founder, by: FDE_HANDLE, at: stamp(), title: `Owen Grady's hire: the founder's two steps`,
+      why: `Owen joins Engineering as a Senior Software Engineer on Monday 4 January 2027, on ${fmt.gbp(monthly * 12, 0)} a year. His pay comes out of Engineering's budget, and his options need the Board.`,
+      steps: [
+        `Raise Engineering's budget from ${fmt.usdc(eng.amount, 0)} to ${fmt.usdc(newBudget, 0)} a quarter from Q1 2027, for his salary and employer costs. You wear Harbourline, the hat above Engineering, so it is your passkey.`,
+        `Offer him 40,000 options at 0.25 USDC, vesting over 4 years with a 1-year cliff from 4 January 2027. It is a Board proposal: you approve it first, then Tom or Ruth.`,
+      ],
+      cmd: [`capxul org department budget set engineering --budget ${newBudget}/quarter --from 2027-01-01 --note "Owen Grady joins 4 Jan" ${ORG}`, `capxul org options grant --to ${owen.email} --shares 40000 --strike 0.25 --agreement option-agreement.pdf --vest 4y --cliff 1y --start 2027-01-04 ${ORG}`],
+      runLabel: 'Review and approve',
+      onRun: async () => {
+        const r = await cx.approval({ title: "Raise Engineering's budget", from: 'Harbourline (the hat above Engineering)', to: 'Engineering', amount: newBudget, asset: 'USDC', signer: founder, hat: 'Harbourline', warnings: [`${fmt.usdc(eng.amount, 0)} → ${fmt.usdc(newBudget, 0)} a quarter from 1 January 2027`, 'Owen Grady joins on 4 January 2027'], cmd: `capxul org department budget set engineering --budget ${newBudget}/quarter --from 2027-01-01 ${ORG}` });
+        if (r.status !== 'done') return;
+        const dept = D.departments.find((d) => d.id === 'engineering');
+        (dept.changes ||= []).push({ when: cx.today, kind: 'Set amount', terms: `${fmt.num(eng.amount, 2)} → ${fmt.num(newBudget, 2)} USDC a quarter from Q1 2027`, signedBy: founder, signedAs: 'Harbourline (office above)', state: 'Scheduled', from: eng.amount, to: newBudget, note: 'Owen Grady joins 4 Jan' });
+        N().addEvent?.(`${cx.name(founder)} raised Engineering's budget to ${fmt.usdc(newBudget, 0)} a quarter from Q1 2027`, { type: 'department', id: 'engineering' }, 'Departments');
+        const ask = N().boardAsk || (() => null);
+        const p2 = await ask({ title: 'Grant 40,000 options to Owen Grady', calls: [`Options.grant(${owen.email}, 40000, strike 0.25, 4y/1y from 2027-01-04)`], note: 'Senior Software Engineer, joins 4 January 2027', cmd: `capxul org options grant --to ${owen.email} --shares 40000 --strike 0.25 --agreement option-agreement.pdf --vest 4y --cliff 1y --start 2027-01-04 ${ORG}` });
+        cx.toast(p2 ? `Engineering's budget is set for Q1, and ${p2.id} waits for Tom or Ruth.` : "Engineering's budget is set for Q1. The options proposal was not sent.", { tone: 'success' });
+        cx.refresh();
+      } };
+    const peopleDraft = { for: people, by: FDE_HANDLE, at: stamp(), title: 'Add Owen Grady as an employee from 4 January 2027',
+      why: `From his signed offer. An employee needs no seat; ${inv?.status === 'Pending' ? `his seat invitation from ${fmt.day(inv.sentAt)} is still open until ${fmt.day(inv.expires)}.` : 'offer one with org member invite.'}`,
+      steps: ['Add the employee record (Engineering, reports to Tom Ashworth, paid to his Safe once he claims his account)', `Assign the UK Monthly 2026/27 salary structure from 4 January, base ${fmt.gbp(monthly, 0)} a month`, 'Assign the Studio Day shift'],
+      cmd: [`capxul org hr employee add ${owen.email} --first-name Owen --last-name Grady --joined 2027-01-04 --department engineering --designation "Senior Software Engineer" --type full-time`, `capxul org payroll structure assign "UK Monthly 2026/27" --employee owen.grady --from 2027-01-04 --base ${monthly}`, 'capxul org hr shift-type assign "Studio Day" --employee owen.grady --from 2027-01-04'],
+      runLabel: 'Open the employee form', onRun: () => cx.go('employee-new', null, { fill: 'owen' }) };
+    const mineFirst = me.id === people ? [peopleDraft, founderDraft] : [founderDraft, peopleDraft];
+    const canPeople = me.id === people, isFounder = me.id === founder;
+    return {
+      text: `${isFounder || canPeople ? '' : `I can't run any of this as you: it needs the People hat or the Harbourline hat, and you wear ${hatsLine(me)}. `}Owen Grady joins Engineering on 4 January 2027. Five steps in all. Three are People's (${peopleWearers().map(cx.firstName).join(', ')}): the employee record, his salary structure and his shift; I've drafted them for ${cx.name(people)}${canPeople ? ', that is you' : ''}. Two are the founder's: Engineering's budget for Q1, and his options, which need the Board. I've drafted those for ${cx.name(founder)}${isFounder ? ', that is you' : ''}. His seat invitation went out on ${fmt.day(inv?.sentAt)}; he pays nothing for it and gets his own Safe when he accepts.`,
+      lookedAt: looked, drafts: mineFirst,
+      links: [{ label: 'Engineering', route: 'department', id: 'engineering' }, { label: 'Seats', route: 'seats' }, { label: 'Options', route: 'options' }],
+    };
+  } },
+  // book leave for yourself
+  { test: (q) => /(book|take|apply for|request).*(off|leave|holiday)|(off|leave|holiday).*\d{1,2}(st|nd|rd|th)?\s*(to|-|–)\s*\d/.test(q) && !/balance|how much|left/.test(q), run: (q, me) => {
+    if (me.kind !== 'employee') return { text: `I can only book leave for an employee, and ${me.name} is not one of Harbourline's employees.`, lookedAt: [{ command: `capxul org me ${ORG}`, result: `${me.name}: not an employee` }] };
+    const range = dayRange(q) || { from: '2026-12-21', to: '2026-12-24' };
+    const type = /sick/.test(q) ? 'Sick Leave' : 'Annual Leave';
+    const days = workingDays(range.from, range.to);
+    const bal = leaveLeft(me.id, type);
+    const hols = []; for (let d = range.from; d <= range.to; d = addDays(d, 1)) { const x = holidayOn(d); if (x && !x.weeklyOff) hols.push(`${x.description} (${fmt.day(d)})`); }
+    const deciders = cx.holders(me.department).filter((x) => !String(x).startsWith('@') && x !== me.id);
+    const cmd = `capxul hr leave apply --type "${type}" --start ${range.from} --end ${range.to}`;
+    const enough = !bal || bal.left >= days.length;
+    return { text: `${fmt.date(range.from)} to ${fmt.date(range.to)} is ${fmt.plural(days.length, 'working day')}${hols.length ? `, not counting ${hols.join(' and ')}` : ''}. ${bal ? `You have ${fmt.num(bal.left, 1)} days of ${type} left until ${fmt.date(bal.to)}${enough ? '' : ', which is not enough'}.` : ''} ${enough ? `I've drafted the application for you to send. ${deciders.length ? cx.name(deciders[0]) : 'Your department\'s hat'} (who wears ${cx.deptName(me.department)}) or People decides it.` : 'Ask People about unpaid leave for the rest.'}`.replace(/\s+/g, ' '),
+      lookedAt: [{ command: 'capxul hr leave balance', result: bal ? `${type}: ${fmt.num(bal.left, 1)} of ${fmt.num(bal.allocated, 1)} left` : 'no allocation' }, { command: `capxul org hr holiday list --year ${range.from.slice(0, 4)}`, result: hols.length ? hols.join('; ') : 'no bank holidays in those days' }],
+      draft: enough ? { for: me.id, by: FDE_HANDLE, at: stamp(), title: `${type}, ${fmt.date(range.from)} to ${fmt.date(range.to)}`, why: `${fmt.plural(days.length, 'day')} from your ${fmt.num(bal?.left ?? 0, 1)} left.`, cmd, runLabel: 'Open the application', onRun: () => cx.go('leave-new', null, { leave: { leaveType: type, fromDate: range.from, toDate: range.to } }) } : null,
+      links: [{ label: 'My leave', route: 'me-leave' }, cx.hasSeat() ? { label: 'Leave calendar', route: 'leave-calendar' } : null].filter(Boolean) };
+  } },
+  // run the month's payroll
+  { test: (q) => /(run|do|start|create|process|pay).*payroll|payroll run|month.?end pay|pay (everyone|the team|salaries)/.test(q), run: (q, me) => {
+    if (!cx.hasSeat()) return noSeat(me);
+    const runs = D.payroll.runs.filter((r) => r.status !== 'Cancelled');
+    const want = Object.keys(MONTH_IX).find((m) => m.length > 3 && q.includes(m));
+    const last = runs.at(-1);
+    const named = want ? runs.find((r) => +r.startDate.slice(5, 7) - 1 === MONTH_IX[want] && r.startDate.slice(0, 4) === (MONTH_IX[want] > 10 ? '2025' : '2026')) || runs.find((r) => +r.startDate.slice(5, 7) - 1 === MONTH_IX[want]) : null;
+    const founder = harbourlineHolder();
+    const people = firstPeople(me);
+    if (named && named.status === 'Paid') {
+      const { slips, net } = runPay(named);
+      const waiting = M.escrows.filter((e) => e.from === 'harbourline' && e.fundedAt.slice(0, 10) === named.postingDate);
+      return { text: `${fmt.month(named.startDate)}'s payroll is done: ${named.name}, ${fmt.plural(slips.length, 'payslip')}, ${fmt.gbp(net)} net, paid on ${fmt.date(named.postingDate)} in one approval by ${cx.name(founder)}. Each payslip's payment carries its own document hash.${waiting.length ? ` ${waiting.map((e) => `${e.email}'s ${fmt.usdc(e.amount)} went to money waiting${e.claimedAt ? ` and was claimed on ${fmt.date(e.claimedAt)}` : ''}`).join('; ')}.` : ''} The next one is ${fmt.month(addDays(named.endDate, 1))}'s, paid on Monday 30 November.`,
+        lookedAt: [{ command: `capxul org payroll run get ${named.name} ${ORG}`, result: `Paid ${fmt.date(named.postingDate)} · ${slips.length} payslips · ${fmt.gbp(net)} net` }],
+        links: [{ label: `Open ${named.name}`, route: 'payroll-run', id: named.name }, { label: 'Payroll runs', route: 'payroll-runs' }] };
+    }
+    const open = runs.find((r) => ['Draft', 'Submitted'].includes(r.status));
+    const start = addDays(last.endDate, 1);
+    const drafts = [];
+    if (!open || open.status === 'Draft') drafts.push({ for: people, by: FDE_HANDLE, at: stamp(), title: `Create and submit ${fmt.month(start)}'s payroll`, why: `${D.people.filter((p) => p.status === 'Active').length} active employees. People creates the run and checks the payslips; submitting locks them for payment.`, steps: ['Create the run for the month', 'Check the payslips (withhold any that are not ready)', 'Submit the payslips'], cmd: [`capxul org payroll run create harbourline --start ${start} --end ${addDays(addDays(start, 32).slice(0, 8) + '01', -1)}`, `capxul org payroll run submit <run>`], runLabel: 'Open the new run', onRun: () => cx.go(open ? 'payroll-run' : 'payroll-run-new', open?.name) });
+    drafts.push({ for: founder, by: FDE_HANDLE, at: stamp(), title: `Pay ${open?.status === 'Submitted' ? open.name : `${fmt.month(start)}'s payslips`} in one approval`, why: `Paid from Harbourline's budget, so whoever wears the Harbourline hat approves: one passkey for every payslip, each payment with its own proof. Someone with no account gets theirs as money waiting.`, cmd: `capxul org payroll run pay ${open?.status === 'Submitted' ? open.name : '<run>'} ${ORG}`, runLabel: open?.status === 'Submitted' ? 'Open the run to pay' : 'Open Payroll', onRun: () => cx.go(open?.status === 'Submitted' ? 'payroll-run' : 'payroll-runs', open?.status === 'Submitted' ? open.name : null) });
+    const mine = drafts.filter((d) => d.for === me.id);
+    return { text: `${mine.length ? '' : `I can't run payroll as you: People creates and submits the run, and the Harbourline hat pays it; you wear ${hatsLine(me)}. `}${fmt.month(start)}'s payroll is ${open ? `${open.name}, ${open.status.toLowerCase()}` : 'not created yet'}. Last month's ${last.name} paid ${fmt.gbp(runPay(last).net)} net to ${runPay(last).slips.length} people on ${fmt.date(last.postingDate)}. I've drafted ${drafts.map((d) => `"${d.title}" for ${d.for === me.id ? 'you' : cx.name(d.for)}`).join(' and ')}.`,
+      lookedAt: [{ command: `capxul org payroll run list ${ORG}`, result: `${runs.length} runs; last ${last.name} ${last.status}` }, { command: `capxul org department show harbourline ${ORG}`, result: `pays payroll; hat: ${cx.holders('harbourline').map(cx.name).join(', ')}` }],
+      drafts: [...mine, ...drafts.filter((d) => d.for !== me.id)],
+      links: [{ label: 'Payroll', route: 'payroll' }] };
+  } },
+  // whose pay waits to be claimed
+  { test: (q) => /(claimed|claim) (their|my|his|her)? ?pay|unclaimed|hasn.t claimed|not claimed|who.*claim/.test(q), run: (q, me) => {
+    if (!cx.hasSeat()) return noSeat(me);
+    const pay = M.escrows.filter((e) => e.from === 'harbourline');
+    const open = M.escrows.filter((e) => e.status === 'Open');
+    const lastRun = D.payroll.runs.filter((r) => r.status === 'Paid').at(-1);
+    const fromRun = pay.filter((e) => e.fundedAt.slice(0, 10) === lastRun.postingDate);
+    return { text: `${fromRun.length ? `From ${lastRun.name} (paid ${fmt.date(lastRun.postingDate)}), ${fromRun.map((e) => `${e.email}'s ${fmt.usdc(e.amount)} went to money waiting${e.status === 'Claimed' ? ` and was claimed on ${fmt.datetime(e.claimedAt)}` : ', not claimed yet'}`).join('; ')}. Everyone else was paid straight to their Safe or bank.` : `Everyone in ${lastRun.name} was paid straight to their Safe or bank.`} ${open.length ? `Not pay, but still waiting: ${open.map((e) => `${fmt.usdc(e.amount)} for ${e.email} from ${cx.deptName(e.from)}`).join('; ')}.` : ''}`,
+      lookedAt: [{ command: `capxul org payroll run get ${lastRun.name} ${ORG}`, result: `${fromRun.length} payslip${fromRun.length === 1 ? '' : 's'} sent to money waiting` }, { command: `capxul payment list ${ORG} --status escrowed`, result: open.map((e) => e.email).join(', ') || 'none open' }],
+      links: [{ label: 'Money waiting', route: 'money-waiting' }, { label: `Open ${lastRun.name}`, route: 'payroll-run', id: lastRun.name }] };
+  } },
+  // approve someone's expense claim
+  { test: (q) => /claim/.test(q) && /approve|bristol|expense|receipt/.test(q), run: (q, me) => {
+    if (!cx.hasSeat()) return noSeat(me);
+    const open = D.hr.expenseClaims.filter((c) => ['Open', 'Approved'].includes(c.status) && c.status !== 'Paid');
+    const who = nameIn(q);
+    const c = open.find((x) => who && x.employee === who.id) || open.find((x) => q.includes(x.name.toLowerCase())) || open[0];
+    if (!c) return { text: 'No expense claim is waiting for a decision.', lookedAt: [{ command: 'capxul org hr expense-claim list --status open', result: 'none' }], links: [{ label: 'Expense claims', route: 'expense-claims' }] };
+    const may = cx.holds(c.department);
+    const decider = may ? me.id : cx.holders(c.department).find((x) => !String(x).startsWith('@'));
+    const lines = c.expenses.map((e) => `${e.description} ${fmt.gbp(e.sanctionedAmount ?? e.amount)}`).join('; ');
+    return { text: `${who && who.id !== c.employee ? `${who.name} has no claim waiting; the open one is ${cx.name(c.employee)}'s. ` : ''}${c.name} from ${cx.name(c.employee)} is ${fmt.gbp(c.grandTotal)}: ${lines}. Every line has its receipt. ${may ? `You wear the ${cx.deptName(c.department)} hat or one above it, so the decision and the payment are yours.` : `I can't approve it as you: it is decided on ${cx.deptName(c.department)}'s budget, and you wear ${hatsLine(me)}. I've drafted it for ${cx.name(decider)}.`}`,
+      lookedAt: [{ command: `capxul org hr expense-claim get ${c.name}`, result: `${c.status} · ${fmt.gbp(c.grandTotal)} · ${c.expenses.length} lines` }],
+      draft: { for: decider, by: FDE_HANDLE, at: stamp(), title: `Approve and pay ${c.name}`, why: `${cx.name(c.employee)} · ${fmt.gbp(c.grandTotal)} from ${cx.deptName(c.department)}'s budget`, cmd: [`capxul org hr expense-claim approve ${c.name}`, `capxul org hr expense-claim pay ${c.name} ${ORG}`], runLabel: 'Open the claim', onRun: () => cx.go('expense-claim', c.name) },
+      links: [{ label: `Open ${c.name}`, route: 'expense-claim', id: c.name }] };
+  } },
+  // a call to log on a lead or deal
+  { test: (q) => /(called|call with|just spoke|phoned|rang)\b/.test(q) || /log (a|the|my) call/.test(q), run: (q, me) => {
+    if (!cx.hasSeat()) return noSeat(me);
+    const C = D.crm;
+    const cur = cx.current;
+    const onRec = ['lead', 'deal'].includes(cur?.name) ? (cur.name === 'lead' ? cx.find(C.leads, 'name', cur.id) : cx.find(C.deals, 'name', cur.id)) : null;
+    const lead = onRec || C.leads.find((l) => !l.converted && (q.includes(String(l.org || '').toLowerCase().split(' ')[0]) || q.includes(String(l.firstName || '').toLowerCase()))) || C.leads.filter((l) => !l.converted && l.status !== 'Junk').at(-1);
+    const kind = onRec && cur.name === 'deal' ? 'deal' : 'lead';
+    const title = kind === 'lead' ? `${lead.firstName} ${lead.lastName}${lead.org ? ' at ' + lead.org : ''}` : lead.title;
+    const minutes = +(q.match(/(\d+)\s*(min|minute)/)?.[1] || 20);
+    const note = /proposal/.test(q) ? 'Wants a proposal' : 'Call logged from the FDE';
+    const moveTo = kind === 'lead' && lead.status === 'New' ? 'Contacted' : null;
+    const runner = isPeople(me) ? me.id : firstPeople(me);
+    const cmd = [`capxul org crm call log ${lead.name} --type outgoing --status completed --start ${cx.today}T${fmt.time(cx.now.toISOString())} --duration ${minutes * 60} --note "${note}"`, moveTo ? `capxul org crm ${kind} move ${lead.name} ${moveTo}` : null].filter(Boolean);
+    return { text: `${isPeople(me) ? '' : `I can't write to the CRM as you: changes need the People hat (${peopleWearers().map(cx.name).join(', ')}), and you wear ${hatsLine(me)}. `}${lead.name} is ${title}, ${lead.status}. I've drafted the call log (outgoing, ${minutes} minutes: "${note}")${moveTo ? ` and the move to ${moveTo}` : ''} for ${runner === me.id ? 'you' : cx.name(runner)} to run.`,
+      lookedAt: [{ command: `capxul org crm ${kind} get ${lead.name}`, result: `${lead.status}${lead.owner ? ' · owner ' + cx.name(lead.owner) : ''}` }],
+      draft: { for: runner, by: FDE_HANDLE, at: stamp(), title: `Log the call on ${lead.name}${moveTo ? ' and move it to ' + moveTo : ''}`, why: title, cmd, runLabel: 'Run',
+        onRun: async () => { const c = N().crmLogCall?.(kind, lead, { minutes, note, other: title }); if (!c) return; if (moveTo) await N().crmMove?.(kind, lead, moveTo); cx.toast(`Logged ${c.name} on ${lead.name}`, { tone: 'success', cmd: cmd[0] }); cx.go(kind, lead.name); } },
+      links: [{ label: `Open ${lead.name}`, route: kind, id: lead.name }] };
+  } },
+  // a change to a CRM record, asked from its read-only banner
+  { test: (q) => /i want to change|draft the command for/.test(q), run: (q, me) => {
+    const cur = cx.current;
+    const kind = ['lead', 'deal', 'contact', 'company'].includes(cur?.name) ? cur.name : 'lead';
+    const forP = D.people.find((p) => q.includes(p.name.toLowerCase())) || cx.person(firstPeople(me));
+    const id = cur?.id || '<record>';
+    return { text: `${cx.name(forP.id)} wears the People hat, so the change is theirs to run. Tell me which field and the new value and I'll fill it in; meanwhile here is the command with its blanks. ${forP.id === me.id ? '' : `Only ${cx.firstName(forP.id)} can press Run.`}`,
+      lookedAt: [{ command: `capxul org crm ${kind} get ${id}`, result: 'read' }, { command: `capxul org me ${ORG}`, result: `${me.name}: ${hatsLine(me)}` }],
+      draft: { for: forP.id, by: FDE_HANDLE, at: stamp(), title: `Change ${kind} ${id}`, cmd: `capxul org crm ${kind} change ${id} --<field> "<new value>"`, runLabel: 'Open it', onRun: () => cx.go(kind, cur?.id) } };
+  } },
+  // what will close this month
+  { test: (q) => /(close|closing) this month|what will close|forecast|pipeline/.test(q), run: (q, me) => {
+    if (!cx.hasSeat()) return noSeat(me);
+    const open = D.crm.deals.filter((d) => !['Won', 'Lost'].includes(d.status));
+    const month = cx.today.slice(0, 7), next = addDays(month + '-28', 7).slice(0, 7);
+    const gbpOf = (d) => (d.currency === 'USD' ? d.dealValue * RATE : d.dealValue);
+    const line = (d) => `${d.title}, ${fmt.money(d.dealValue, d.currency, 0)} at ${d.probability}%, closing ${fmt.day(d.expectedClosureDate)}`;
+    const now = open.filter((d) => String(d.expectedClosureDate).startsWith(month));
+    const later = open.filter((d) => String(d.expectedClosureDate).startsWith(next));
+    const w = (l) => r2(l.reduce((s, d) => s + gbpOf(d) * d.probability / 100, 0));
+    return { text: `${now.length ? `This month: ${now.map(line).join('; ')}, weighted ${fmt.gbp(w(now), 0)}.` : 'Nothing is set to close this month.'} ${later.length ? `Next month: ${later.map(line).join('; ')}, weighted ${fmt.gbp(w(later), 0)}.` : ''} The whole open pipeline is ${fmt.plural(open.length, 'deal')}, weighted ${fmt.gbp(w(open), 0)}.`,
+      lookedAt: [{ command: 'capxul org crm deal list --stage ongoing', result: `${open.length} open deals` }], links: [{ label: 'Deals', route: 'deals' }, { label: 'Pipeline', route: 'pipeline' }] };
+  } },
+  // bill a customer's time
+  { test: (q) => /\bbill\b|invoice .*hours|unbilled/.test(q), run: (q, me) => {
+    if (!cx.hasSeat()) return noSeat(me);
+    const P = D.projects;
+    const logs = cx.rows('projects.logs');
+    const proj = P.projects.find((p) => q.includes(p.projectName.toLowerCase().split(' ')[0]) || (p.customer && q.includes(p.customer))) || P.projects.find((p) => p.name === 'PROJ-0011');
+    const want = Object.keys(MONTH_IX).find((m) => m.length > 3 && q.includes(m));
+    const tsDone = new Map(P.timesheets.map((t) => [t.name, t]));
+    const unbilled = logs.filter((l) => l.project === proj.name && l.billable && !l.invoice && ['Submitted'].includes(tsDone.get(l.timesheet)?.status));
+    const inMonth = want ? unbilled.filter((l) => +l.date.slice(5, 7) - 1 === MONTH_IX[want]) : unbilled;
+    const use = inMonth.length ? inMonth : unbilled;
+    const ts = [...new Set(use.map((l) => l.timesheet))];
+    const hours = r2(use.reduce((s, l) => s + l.hours, 0)), net = r2(use.reduce((s, l) => s + l.billingAmount, 0));
+    const billed = want && !inMonth.length ? logs.filter((l) => l.project === proj.name && l.invoice && +l.date.slice(5, 7) - 1 === MONTH_IX[want]) : [];
+    const invs = [...new Set(billed.map((l) => l.invoice))];
+    const runner = cx.wears('Invoicing') ? me.id : D.people.find((p) => (p.hats || []).includes('Invoicing'))?.id || 'maya';
+    const cust = D.crm.companies.find((c) => c.id === proj.customer)?.name || proj.customer;
+    const head = invs.length ? `${cust}'s ${want[0].toUpperCase() + want.slice(1)} time is billed already, on ${invs.join(', ')}. ` : '';
+    if (!use.length) return { text: `${head}Nothing billable is waiting on ${proj.name} · ${proj.projectName}.`, lookedAt: [{ command: `capxul org doc list timesheet --filter project=${proj.name} --filter status=Submitted`, result: 'nothing unbilled' }], links: [{ label: `Open ${proj.name}`, route: 'project', id: proj.name }] };
+    return { text: `${head}${proj.name} · ${proj.projectName} has ${fmt.hours(hours)} of submitted, unbilled time on ${fmt.plural(ts.length, 'timesheet')}: ${fmt.money(net, proj.currency || 'GBP')} before VAT. ${runner === me.id ? 'You wear Invoicing, so you can bill it:' : `Billing needs the Invoicing hat; I've drafted it for ${cx.name(runner)}:`} one invoice, a line per activity and rate, to ${cust}'s accounts mailbox. It is posted as it is made.`,
+      lookedAt: [{ command: `capxul org doc list timesheet --filter project=${proj.name} --filter status=Submitted`, result: `${ts.length} timesheets · ${fmt.hours(hours)} unbilled` }],
+      draft: { for: runner, by: FDE_HANDLE, at: stamp(), title: `Bill ${cust}: ${fmt.hours(hours)} on ${proj.name}`, why: `${fmt.money(net, proj.currency || 'GBP')} net`, cmd: `capxul org projects timesheet bill ${ts.slice(0, 4).join(' ')}${ts.length > 4 ? ' …' : ''} --to <accounts mailbox>`, runLabel: 'Review the invoice', onRun: () => (N().billTimesheets ? N().billTimesheets(ts, proj.name) : cx.go('project', proj.name)) },
+      links: [{ label: `Open ${proj.name}`, route: 'project', id: proj.name }, { label: 'Project billing summary', route: 'timesheet-billing' }] };
+  } },
+  // is a project on track
+  { test: (q) => /on track|behind|late|how is .* going|status of/.test(q) && (/project|larkspur|meridian|saltmarsh|aldermoor|studio|beta|launch/.test(q)), run: (q, me) => {
+    if (!cx.hasSeat()) return noSeat(me);
+    const P = D.projects;
+    const proj = P.projects.find((p) => q.includes(p.projectName.toLowerCase().split(' ')[0]) || (p.customer && q.includes(p.customer))) || P.projects.find((p) => p.name === 'PROJ-0011');
+    const tasks = P.tasks.filter((t) => t.project === proj.name && !t.isGroup);
+    const done = new Set(tasks.filter((t) => t.status === 'Completed').map((t) => t.name));
+    const overdue = tasks.filter((t) => t.status === 'Overdue');
+    const blocked = tasks.filter((t) => !['Completed', 'Cancelled'].includes(t.status) && (t.dependsOn || []).some((d) => !done.has(d)));
+    const unassigned = tasks.filter((t) => !['Completed', 'Cancelled'].includes(t.status) && !(t.assignees || []).length);
+    const expected = tasks.reduce((s, t) => s + (t.expectedTime || 0), 0);
+    const used = proj.actualTime || 0;
+    const subj = (n) => P.tasks.find((t) => t.name === n)?.subject || n;
+    return { text: `${proj.name} · ${proj.projectName} is ${Math.round(proj.percentComplete)}% complete, due ${fmt.date(proj.expectedEnd)}. ${overdue.length ? `Overdue: ${overdue.map((t) => `${t.subject} (${cx.name((t.assignees || [])[0])})`).join(', ')}.` : 'Nothing is overdue.'} ${blocked.length ? `Waiting on others: ${blocked.map((t) => `${t.subject} waits for ${(t.dependsOn || []).filter((d) => !done.has(d)).map(subj).join(' and ')}`).join('; ')}.` : ''} ${unassigned.length ? `Nobody is on ${unassigned.map((t) => t.subject).join(', ')}.` : ''} ${expected ? `${fmt.hours(used)} logged against ${fmt.hours(expected)} expected (${Math.round((used / expected) * 100)}%).` : `${fmt.hours(used)} logged so far.`}`.replace(/\s+/g, ' '),
+      lookedAt: [{ command: `capxul org projects task list --project ${proj.name}`, result: `${tasks.length} tasks, ${done.size} completed, ${overdue.length} overdue` }, { command: `capxul org projects project get ${proj.name}`, result: `${Math.round(proj.percentComplete)}% · ${fmt.hours(used)} logged` }],
+      links: [{ label: `Open ${proj.name}`, route: 'project', id: proj.name }, { label: 'Gantt', route: 'tasks-gantt', id: proj.name }] };
+  } },
+  // log my week
+  { test: (q) => /log (my|the) (week|time|hours)|log .* (monday|tuesday|wednesday|thursday|friday)/.test(q), run: (q, me) => {
+    if (me.kind !== 'employee') return { text: 'Only an employee logs time.', lookedAt: [] };
+    const P = D.projects;
+    const proj = P.projects.find((p) => p.status === 'Open' && (q.includes(p.projectName.toLowerCase().split(' ')[0]) || (p.customer && q.includes(p.customer)))) || P.projects.find((p) => p.name === 'PROJ-0011');
+    const tasks = P.tasks.filter((t) => t.project === proj.name && !t.isGroup);
+    const taskFor = (word) => tasks.find((t) => t.subject.toLowerCase().includes(word)) || null;
+    const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'];
+    const monday = (() => { const d = new Date(cx.today + 'T00:00:00Z'); const wd = (d.getUTCDay() + 6) % 7; return addDays(cx.today, -wd); })();
+    const parts = q.split(/,|;| and (?=[a-z]+ (?:on|monday|tuesday|wednesday|thursday|friday))/).map((x) => x.trim()).filter(Boolean);
+    const entries = [];
+    for (const part of parts) {
+      const range = part.match(/(monday|tuesday|wednesday|thursday|friday)\s*(?:to|-|–)\s*(monday|tuesday|wednesday|thursday|friday)/);
+      const single = part.match(/\b(monday|tuesday|wednesday|thursday|friday)\b/);
+      if (!range && !single) continue;
+      const a = days.indexOf(range ? range[1] : single[1]), b = range ? days.indexOf(range[2]) : a;
+      const word = (part.match(/(square|ios|android|checkout|loyalty|history|beta|design|review)/) || [])[1];
+      const t = word ? taskFor(word) : null;
+      for (let i = a; i <= b; i++) entries.push({ date: addDays(monday, i), hours: 6.5, activity: /design/.test(part) ? 'Design' : 'Engineering', task: t?.name || null, note: t ? t.subject : part.slice(0, 60) });
+    }
+    if (!entries.length) for (let i = 0; i < 5; i++) entries.push({ date: addDays(monday, i), hours: 6.5, activity: 'Engineering', task: null, note: proj.projectName });
+    const ts0 = P.timesheets.find((t) => t.employee === me.id && t.status === 'Draft' && t.startDate >= monday);
+    const ahead = entries.filter((e) => e.date > cx.today).length;
+    const cmd = [ts0 ? null : `capxul org projects timesheet create --project ${proj.name}`, ...entries.slice(0, 3).map((e) => `capxul org projects timesheet log ${ts0?.name || '<timesheet>'} --activity ${e.activity} --start ${e.date}T09:00 --hours ${e.hours}${e.task ? ' --task ' + e.task : ''} --billable`), entries.length > 3 ? `# and ${entries.length - 3} more logs` : null, `capxul org projects timesheet submit ${ts0?.name || '<timesheet>'}`].filter(Boolean);
+    return { text: `${fmt.plural(entries.length, 'day')} on ${proj.name} · ${proj.projectName}, ${fmt.hours(entries.length * 6.5)} in all: ${entries.map((e) => `${fmt.weekday(e.date)} ${e.note}`).join(', ')}. It is your own time, so you can log it yourself${ts0 ? ` into your draft ${ts0.name}` : ' in a new timesheet'}. ${ahead ? `${ahead === 1 ? 'One day is' : `${ahead} days are`} still ahead of today, so check the hours before you submit on Friday.` : 'Check it, then submit it.'}`,
+      lookedAt: [{ command: `capxul org doc list timesheet --filter employee=${me.employee} --filter status=Draft`, result: ts0 ? `${ts0.name}, ${fmt.hours(ts0.totalHours || 0)}` : 'no draft this week' }, { command: `capxul org projects task list --project ${proj.name} --assignee ${me.employee}`, result: tasks.filter((t) => (t.assignees || []).includes(me.id)).map((t) => t.subject).join(', ') || 'none' }],
+      draft: { for: me.id, by: FDE_HANDLE, at: stamp(), title: `Log ${fmt.hours(entries.length * 6.5)} on ${proj.name}`, cmd, runLabel: 'Log it', onRun: () => { const ts = N().logWeekFor?.(me.id, proj.name, entries); if (ts) { cx.toast(`Logged ${fmt.plural(entries.length, 'day')} on ${ts.name}. Submit it when the week is done.`, { tone: 'success', cmd: `capxul org projects timesheet submit ${ts.name}` }); cx.go('timesheet', ts.name); } } },
+      links: [{ label: 'Timesheets', route: 'timesheets' }] };
+  } },
+  // what waits for me
+  { test: (q) => /waiting for me|what.*(should i do|do first)|my approvals|waits for me/.test(q), run: (q, me) => {
+    const mine = D.approvals.waiting.filter((a) => (a.waitsFor || []).includes(me.id));
+    if (!mine.length) return { text: 'Nothing waits for you.', lookedAt: [{ command: `capxul org approval list ${ORG} --for me`, result: 'none' }] };
+    const order = [...mine].sort((a, b) => (a.kind === 'Money' ? -1 : 0) - (b.kind === 'Money' ? -1 : 0) || String(a.openedAt).localeCompare(String(b.openedAt)));
+    return { text: `${fmt.plural(mine.length, 'thing')} ${mine.length === 1 ? 'waits' : 'wait'} for you. Start with ${order[0].what}${order[0].amount ? ` (${order[0].amount})` : ''}, from ${cx.name(order[0].openedBy)} ${fmt.agoLong(order[0].openedAt)}: ${order[0].because}. Then: ${order.slice(1, 4).map((a) => a.what).join('; ') || 'nothing else'}.`,
+      lookedAt: [{ command: `capxul org approval list ${ORG} --for me`, result: `${mine.length} waiting` }], links: [{ label: 'Approvals', route: 'approvals' }, ...(order[0].ref ? [{ label: 'Open the first', route: cx.refRoute(order[0].ref)?.[0], id: cx.refRoute(order[0].ref)?.[1] }] : [])].filter((l) => l.route) };
+  } },
+  // what to know about an employee
+  { test: (q) => /what should i know about|tell me about|who is/.test(q) && !!nameIn(q), run: (q, me) => {
+    if (!cx.hasSeat()) return noSeat(me);
+    const p = nameIn(q);
+    const leaves = D.hr.leaveApplications.filter((l) => l.employee === p.id && l.toDate >= cx.today && ['Open', 'Approved'].includes(l.status));
+    const claims = D.hr.expenseClaims.filter((c) => c.employee === p.id && c.status === 'Open');
+    const tasks = D.projects.tasks.filter((t) => (t.assignees || []).includes(p.id) && ['Open', 'Working', 'Overdue', 'Pending Review'].includes(t.status) && !t.isGroup);
+    const bal = leaveLeft(p.id, 'Annual Leave');
+    return { text: `${p.name} is a ${p.designation} in ${cx.deptName(p.department)}, since ${fmt.date(p.dateOfJoining)}${p.reportsTo ? `, reporting to ${cx.name(p.reportsTo)}` : ''}. ${p.hats?.length ? `Wears ${p.hats.join(', ')}.` : 'Wears no hat.'} ${cx.hasSeat(p.id) ? 'Has a seat.' : 'Has no seat.'} Paid to ${p.salaryMode === 'Bank' ? 'a bank account through Bridge' : 'their Safe'}. ${bal ? `${fmt.num(bal.left, 1)} days of annual leave left.` : ''} ${leaves.length ? `Leave coming up: ${leaves.map((l) => `${fmt.day(l.fromDate)} to ${fmt.day(l.toDate)} (${l.status})`).join(', ')}.` : ''} ${claims.length ? `${fmt.plural(claims.length, 'expense claim')} open.` : ''} ${tasks.length ? `Open tasks: ${tasks.slice(0, 4).map((t) => t.subject).join(', ')}.` : ''}`.replace(/\s+/g, ' '),
+      lookedAt: [{ command: `capxul org hr employee get ${p.employee}`, result: `${p.status} · ${p.designation}` }, { command: `capxul org hr leave list --employee ${p.employee}`, result: `${leaves.length} coming up` }],
+      links: [{ label: `Open ${p.name}`, route: 'employee', id: p.employee }] };
+  } },
+];
+
 function noSeat(me) {
   return { text: `You have no seat at Harbourline, so I can only show your own records: your payslips, your leave and money waiting for you. Ask me about those.`, lookedAt: [{ command: `capxul org me ${ORG}`, result: `${me.name}: no seat` }] };
 }
 async function answer(question, { context, me } = {}) {
   await sleep(500);
   const q = String(question).toLowerCase();
-  for (const it of intents) {
+  for (const it of [...moreIntents, ...intents]) {
     if (!it.test(q, String(context || '').toLowerCase())) continue;
     const r = it.run(q, me || cx.me(), context);
     if (r) { recordAsk(question); return r; }
@@ -321,7 +616,7 @@ function talkPanel(pageTurns, ctxLabel) {
     cx.fill(body, pageTurns.length ? pageTurns.map((t) => h('div.chat-turn', { class: t.role },
       t.role === 'fde' && t.lookedAt?.length ? h('div.looked', h('span', 'What I looked at'), t.lookedAt.map((x) => h('div', h('code', '$ ' + x.command), x.result ? h('div', h('span', x.result)) : null))) : null,
       h('div.bubble', t.text === '…' ? h('span', { style: 'color:var(--muted)' }, 'Working…') : t.text),
-      t.draft ? cx.draft(t.draft) : null,
+      [].concat(t.draft || [], t.drafts || []).map((d) => cx.draft(d)),
       t.links?.length ? h('div.chips', t.links.filter((l) => cx.hasRoute(l.route)).map((l) => h('a.btn.sm', { href: cx.href(l.route, l.id) }, l.label))) : null)) : h('div', { style: 'display:grid;gap:8px' }, h('p', { style: 'color:var(--muted)' }, 'Ask about anything in the company. Try:'), h('div.suggest', suggestFor(cx.current?.name || 'fde').map((sg) => h('button', { type: 'button', onclick: () => ask(sg) }, sg)))));
     body.scrollTop = body.scrollHeight;
   };

@@ -370,11 +370,10 @@ cx.style('accounting', `
 .ac-pays .ln { display: flex; justify-content: space-between; gap: 12px; }
 .ac-pays .ln span:last-child { white-space: nowrap; }
 .ac-err { color: var(--neg); font-size: 12.5px; }
-.grid.c2 > .chart-card.wide { grid-column: 1 / -1; }
 .ac-bank > *, .ac-match > *, .ac-wrap > * { min-width: 0; }
 .ac-tb-acct a { color: inherit; }
 .ac-section-note { font-size: 12.5px; color: var(--muted); margin: 0; }
-.section > div[hidden], .tl-body[hidden], .ac-hidden { display: none !important; }
+.ac-hidden { display: none !important; }
 `);
 
 /* =====================================================================================================
@@ -404,6 +403,7 @@ cx.workspace({
       { label: 'Cash flow', route: 'cash-flow' },
       { label: 'Accounts receivable', route: 'accounts-receivable', match: ['accounts-receivable-summary'] },
       { label: 'Accounts payable', route: 'accounts-payable', match: ['accounts-payable-summary'] },
+      { label: 'VAT returns', route: 'vat-returns' },
     ] },
     { section: 'Banking', items: [
       { label: 'Banking', route: 'banking', badge: () => unreconciledBank().length || null },
@@ -932,6 +932,13 @@ async function postSalesInvoice(inv) {
   if (!inv.items.length || near0(inv.grandTotal)) { cx.toast('Add at least one item before posting.', { tone: 'warning' }); return; }
   const cmd = `capxul org doc submit sales-invoice ${inv.name}`;
   if (!(await cx.confirm({ title: `Post ${inv.name}?`, body: `${inv.customerName} · ${fmt.money(inv.grandTotal, inv.currency)}. Posting makes it final: it goes to the ledger and can then only be cancelled or credited.`, cmd, who: 'whoever wears the Invoicing hat', confirmLabel: 'Post' }))) return;
+  await commitSalesInvoice(inv);
+  cx.refresh();
+  cx.toast(`Posted ${inv.name}: ${fmt.money(inv.grandTotal, inv.currency)} to ${inv.customerName}`, { tone: 'success', cmd, action: inv.isReturn ? null : { label: 'Request payment', onClick: () => requestPayment(inv) } });
+}
+/** The posting itself, with no questions: the ledger lines, the RF reference, the content hash, the billed hours. */
+async function commitSalesInvoice(inv) {
+  siRecompute(inv);
   inv.docstatus = 1; inv.submittedAt = NOW(); inv.submittedBy = cx.meId();
   inv.rfReference = inv.rfReference || rfRef(inv.name);
   inv.outstanding = inv.isReturn ? 0 : inv.grandTotal;
@@ -944,9 +951,28 @@ async function postSalesInvoice(inv) {
   }
   const logs = cx.rows('projects.logs');
   for (const ts of inv.timesheets || []) for (const l of logs) if (l.timesheet === ts.timesheet && !l.invoice && l.project === inv.project) l.invoice = inv.name;
-  cx.refresh();
-  cx.toast(`Posted ${inv.name}: ${fmt.money(inv.grandTotal, inv.currency)} to ${inv.customerName}`, { tone: 'success', cmd, action: inv.isReturn ? null : { label: 'Request payment', onClick: () => requestPayment(inv) } });
+  return inv;
 }
+// Other modules post through this hook: Projects' "Create invoice" (capxul org projects timesheet bill) makes and posts
+// the invoice in one write.
+/** A customer's bank transfer that Bridge turned into USDC in the Treasury: the payment entry against the invoice its
+ *  reference names (1010 at the USDC's pounds, the conversion fees to 6500, the receivable cleared). */
+function bookBridgeDeposit(dep, p, inv) {
+  if (!inv) return null;
+  const name = nextName(`ACC-PAY-${YEAR}-`);
+  const day = String(dep.creditedAt || NOW()).slice(0, 10);
+  const cr = inv.conversionRate || 1;
+  const got = r2(dep.net * p.rate);
+  const fee = r2(dep.bankAmount - got);
+  postVoucher({ name, type: 'Payment Entry', entryType: null, paymentType: 'Receive', date: day, title: `Bridge deposit from ${dep.from}`, total: dep.bankAmount, party: inv.customer, partyType: 'Customer', payment: p.id, closing: false, reference: dep.reference, refDate: day, createdBy: null, createdAt: NOW() },
+    [{ account: '1010', debit: got, accDebit: dep.net }, { account: '6500', debit: fee, costCenter: 'Main' }, { account: '1200', credit: dep.bankAmount, party: inv.customer, partyType: 'Customer', againstType: 'Sales Invoice', against: inv.name }]);
+  const invAmt = r2(Math.min(inv.outstanding, dep.bankAmount / cr));
+  inv.payments = [...(inv.payments || []), { date: day, amount: invAmt, payment: p.id, voucher: name, channel: 'Bridge', at: NOW() }];
+  inv.outstanding = r2(inv.outstanding - invAmt); inv.paidAmount = r2((inv.paidAmount || 0) + invAmt); inv.modifiedAt = NOW();
+  (inv.timelineExtra ||= []).push({ at: NOW(), kind: 'money', text: `${fmt.money(dep.bankAmount, dep.currency)} arrived through Bridge as ${fmt.usdc(dep.net)}, matched by reference ${dep.reference} and booked as ${name}`, href: ['payment-entry', name] });
+  return name;
+}
+cx.native = Object.assign(cx.native || {}, { postSalesInvoice: commitSalesInvoice, bookBridgeDeposit });
 
 /* ---- request payment, record payment, credit note, reminder, cancel, amend ---- */
 
@@ -1138,6 +1164,7 @@ function siPage(inv) {
   const draft = inv.docstatus === 0;
   const st = inv.__new ? 'Not saved' : invStatus(inv);
   const flight = siFlight(inv);
+  if (flight?.deposit) cx.native?.watchArrival?.(flight.deposit);
   const cust = CUST.get(inv.customer);
   const contact = customerContact(inv.customer);
   const ccOptions = B.costCenters.filter((c) => !c.isGroup).map((c) => c.name);
@@ -1454,7 +1481,7 @@ function quoteFor(gbp) {
 }
 async function adviceFor(p, list, route, dept, payee, cashGbp) {
   const allocations = list.map((pi) => ({
-    doctype: 'Purchase Invoice', doc: pi.name, currency: pi.currency, number: pi.billNo, date: pi.billDate || pi.postingDate, content: pi.contentHash,
+    record: 'Purchase Invoice', doc: pi.name, currency: pi.currency, number: pi.billNo, date: pi.billDate || pi.postingDate, content: pi.contentHash,
     allocated: Math.round(pi.outstanding * 100),
     lines: pi.items.map((it) => ({ idx: it.idx, description: it.description, amount: Math.round(it.amount * 100), taxes: (pi.taxes || []).length ? [{ name: 'VAT', bps: Math.round((pi.taxes[0].rate || 20) * 100), amount: Math.round(it.amount * (pi.taxes[0].rate || 20)) }] : [] })),
   }));

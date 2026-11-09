@@ -96,7 +96,7 @@ export const AGENTS = [
   { handle: "@grace-pm", name: "Delivery assistant", owner: "grace", created: "2025-11-10", state: "Active", hats: [] },
   { handle: "@leo-outreach", name: "Outreach", owner: "leo", created: "2026-01-20", state: "Frozen", frozenAt: "2026-10-30", hats: [] },
   { handle: "@tom-build", name: "Build bot", owner: "tom", created: "2026-02-02", state: "Active", hats: ["Engineering (with Tom Ashworth)"] },
-  { handle: "@maya-desk", name: "Desk", owner: "maya", created: "2026-04-14", state: "Active", hats: [] },
+  { handle: "@maya-office", name: "Office assistant", owner: "maya", created: "2026-04-14", state: "Active", hats: [] },
 ];
 
 // Customers. channel: how they pay. bridge = bank transfer to Harbourline's Bridge bank details (becomes USDC);

@@ -24,7 +24,8 @@ Contents: [Rules](#rules) · [Workspaces and routes](#workspaces-and-routes) · 
 [List view](#list-view) · [Form view](#form-view) · [Report view](#report-view) · [Tree view](#tree-view) ·
 [Kanban](#kanban) · [Charts](#charts) · [Confirmation, modal, panel, toast](#confirmation-modal-panel-toast) ·
 [Money: approval, draft, proof](#money-approval-draft-proof) · [The FDE](#the-fde) · [Search](#search) ·
-[Events](#events) · [CSS classes](#css-classes) · [Checking your module](#checking-your-module)
+[Events](#events) · [Hooks between modules](#hooks-between-modules-cxnative) · [Walkthroughs](#walkthroughs) ·
+[CSS classes](#css-classes) · [Checking your module](#checking-your-module)
 
 ## Rules
 
@@ -69,9 +70,11 @@ cx.route('sales-invoice', (ctx) => {
 }, { workspace: 'books', title: 'Sales invoice' });
 ```
 
-- The sidebar groups workspaces as Company (`home`, `approvals`, `money`, `departments`), Business (`books`, `hr`,
-  `payroll`, `crm`, `projects`), Governance (`board`, `seats`) and Help (`fde`, `activity`). Use these ids; a new id
-  goes at the end of Help. The workspace whose route (or `meta.workspace`) matches the screen expands its `nav`.
+- The sidebar groups workspaces as Company (`home`, `approvals`, `money`, `departments`), You (`yours`: your money and
+  your notices, seatless), Business (`books`, `hr`, `payroll`, `crm`, `projects`), Governance (`board`, `seats`) and
+  Help (`fde`, `activity`). Use these ids; a new id goes at the end of Help. The workspace whose route (or
+  `meta.workspace`) matches the screen expands its `nav`. Home lists every workspace and its nav pages, so a page
+  reachable from the sidebar is reachable from Home too.
 - **Route names**: lower-case letters, digits and single hyphens. Never `settings`, `sidebar`, `customize`,
   `upgrade`, `downloads` or anything starting `comment-` (`cx.route` throws).
 - **Hashes** are `#name` or `#name--ID`. `cx.href('payslip', 'Sal Slip/HR-EMP-00003/00018')` gives
@@ -82,7 +85,9 @@ cx.route('sales-invoice', (ctx) => {
 - A handler returns a Node (normally `cx.page(...)`) or a Promise of one. If it throws, the shell shows the error
   on the page and logs it to the console. `cx.refresh()` redraws the current screen (after you change data).
 - A route with no handler shows "This screen is not built yet". A workspace not marked `seatless` shows "no seat"
-  to a viewer without one.
+  to a viewer without one, unless the route itself is registered with `{ seatless: true }` in its meta (a person's
+  own record inside a workspace that otherwise needs a seat).
+- `cx.go(route, id, { tab: 'Payment' })` opens a form view on that tab (any `cx.formView` page, by tab label).
 - **Routes other modules link to.** Data references (`{ type, id }` on approvals, events, notices) open through
   `cx.refRoute(ref)` → these route names. Register them with these names so links land:
 
@@ -147,6 +152,8 @@ A command spec is a string, a list of strings, or:
 
 - `cx.setCommand(spec)` sets the screen's command (`cx.page({ cmd })` does it for you).
 - `cx.showAction(spec, label, { pin })` shows an action's command; `cx.clearAction()` returns to the screen's.
+  A custom control previews on `mouseenter` with `cx.showAction(spec, label)` and clears on `mouseleave` with
+  `cx.unpreview()` (a pinned command stays).
 - `cx.sdkOf(cli)` derives the SDK call by the G7 rule (`org` → `client.org(orgId)`, groups are namespaces, nouns
   plural camelCase, the verb last, flags become an options object, `--org` is dropped). It knows the frozen names
   (`payment send` → `client.payments.pay`, `balance` → `client.accounts.read`, `bank pay` →
@@ -160,6 +167,8 @@ A command spec is a string, a list of strings, or:
 | `cx.data` | the whole of `data.json` |
 | `cx.today`, `cx.now` | `'2026-11-09'`, a `Date` for 10:45 UTC that day |
 | `cx.rows('books.gl')` | a compact `{cols, rows}` table as objects (cached); works for any path or table |
+| `cx.rows.push(path, obj, { front })` | add a row to a compact table and to its cached objects at once |
+| `cx.rows.invalidate(path)` | forget a table's cached objects after changing its compact rows directly |
 | `cx.find(list, key, slug)` | the record whose `key` (or `key(r)`) slugs to `slug` |
 | `cx.slug(id)` | the hash-safe form of a name |
 | `cx.rate(day)` | GBP per USDC on a day (nearest earlier day if missing) |
@@ -238,6 +247,8 @@ cx.copy(text)                               // clipboard with a select-to-copy f
 cx.fill(el, ...kids)                        // empty an element and add children (null-safe)
 ```
 
+A select field's `options` may be values, `[value, label]` pairs, or a function of the record returning either.
+
 `h(tag, props, ...children)` makes elements: `h('div.card#id', { class, style, onClick, dataset, html }, …)`;
 children may be strings, Nodes, arrays, `null` or `false`. `s(tag, attrs, …)` makes SVG elements. In SVG use
 `style: 'fill:var(--chart-1)'`, never a `fill="var(…)"` attribute (it does not work).
@@ -297,6 +308,10 @@ cx.listView({
 });
 ```
 
+- `defaultTab` (an index or a tab's label) is the tab the list opens on the first time, and when a link carries
+  filters but no tab. Navigation state (`cx.go(route, id, { list: { filters, tab } })`) wins over `initial`.
+- `strip: false` keeps a secondary list (inside a card or a tab) from taking over the page's command strip.
+
 Column `type`: `currency` (with `currency`, else the row's `currency`, else GBP), `usdc`, `int`, `float`, `number`,
 `percent`, `date`, `datetime`, `status`, `dot` (with `color(r)`), `person`, `check`, `ago`, or text. `get(r)`
 computes a value; `render(r)` draws the cell. The Filter button builds conditions (equals, like, >, <, is set) on
@@ -337,8 +352,14 @@ carry Save, Post, Cancel, Amend ("Submit" reads **Post**; Cancel goes through `c
 
 `cx.grid({ columns, rows, editable, onChange, totals, addLabel, empty, rowHref, numbered, rowForm, title })` is the
 child table on its own: No. column, totals row, and when editable Add row, Delete and a pencil that opens the row.
-Column `edit: true` makes a cell an input when the grid is editable. `cx.section(spec, { doc, editable, onChange })`
-draws one section.
+Column `edit: true` makes a cell an input when the grid is editable; a `select` column's `options` take values or
+`[value, label]` pairs (or a function of the row). A cell's change redraws the table once focus has moved on and puts
+focus back on the same cell, so Tab walks through a row. `cx.section(spec, { doc, editable, onChange })` draws one
+section.
+
+A section (in `cx.section` or a form view's `sections`) may carry header actions: `{ label: 'Items', actions:
+cx.btn('Add from timesheets', { sm: true, … }), fields | table | node }`. They sit at the right of the section's
+title (not on collapsible sections). `collapsible: true, collapsed: true` makes the title a toggle.
 
 `cx.timeline(items, { comment, sort })`: newest first. `kind` picks the icon: `created`, `change`, `comment`,
 `email`, `whatsapp`, `call`, `note`, `task`, `money`, `link`, `approval`, `status`, `submitted`, `cancelled`,
@@ -508,9 +529,14 @@ cx.fde.open({ ask: 'How much runway do we have?', context });          // open i
 
 The FDE acts only with the asker's permissions: answer within `cx.me()`'s hats and draft anything risky.
 
+An answer may carry several drafts, `drafts: [specA, specB]`, for instance one for the asker and one for whoever
+must run the other half; each shows who can run it.
+
 ## Search
 
-The top bar searches workspaces, nav pages, people and departments. Add your records:
+The top bar searches workspaces, nav pages, people, customers, suppliers and departments; the modules add invoices,
+payment and journal entries, accounts, leads, deals, contacts, companies, CRM tasks, projects, project tasks and
+timesheets. Add your records:
 
 ```js
 cx.search.add((q, limit) => D.books.salesInvoices
@@ -525,6 +551,32 @@ Results group by `kind`, six each. `/` or Ctrl+K focuses the search.
 `cx.on(event, fn)` returns an unsubscribe function. Events: `ready` (after the first render), `route` (ctx),
 `persona` (the new viewer), `acting` (`'org'`/`'personal'`). `cx.emit(name, payload)` sends your own.
 
+## Hooks between modules (`cx.native`)
+
+Modules share behaviour through `cx.native`, read at call time (`cx.native?.payFromBudget?.(…)`), so load order does
+not matter. Add yours with `cx.native = Object.assign(cx.native || {}, { … })`.
+
+| From | Hook | Does |
+|---|---|---|
+| money.js | `payFromBudget({ title, to, payee, amount, budget, memo, purpose, cmd, allocations })` | the approval, the payment with its hashed proof, the Treasury, the budget and the feed |
+| money.js | `boardAsk({ title, calls, note, cmd })`, `proposeToBoard(…)` | a Board proposal (the viewer approves first) |
+| money.js | `approvePrepared(p)`, `takeBack(p)`, `cancelScheduled(s)`, `findPayment(id)` | act on a payment |
+| money.js | `creditDeposit(d)`, `watchArrival(d)` | Bridge lands an arriving deposit (USDC in, matched, booked); the page's timer |
+| money.js | `payableBudgets()`, `mayAct(budget)`, `hatFor(budget)`, `whoMay(budget)`, `leftOf(budget)` | who may spend what |
+| money.js | `addEvent`, `addNotice`, `dropWaiting`, `pushTable`, `stamp`, `gbpOf`, `RATE`, `ORG` | the feed and helpers |
+| governance.js | `approveProposal(sp)`, `castVote(…)`, `buySeats(n)`, `standing()` | Board and equity actions |
+| accounting.js | `postSalesInvoice(inv)` | post a sales invoice with no questions (ledger, RF reference, content hash, billed hours) |
+| accounting.js | `bookBridgeDeposit(dep, payment, inv)` | the payment entry for a Bridge deposit against its invoice |
+| crm.js | `crmLogCall(kind, rec, { minutes, note, other })`, `crmMove(kind, rec, status)` | write to a lead or deal (People hat) |
+| projects.js | `billTimesheets(names, project)`, `logWeekFor(employee, project, entries)` | bill time; log a week into a draft timesheet |
+
+## Walkthroughs
+
+Home starts four walkthroughs (`cx.tours.start('bridge' | 'payroll' | 'hire' | 'swap')`). Each step names the person
+to view as, the route (or a `resolve()` that finds it from the data as it now stands), an optional `state`, and an
+optional question to ask the FDE. A bar above the page gives the step, Back, Next and End; `cx.tours.current()` says
+where the viewer is.
+
 ## CSS classes
 
 Use these before writing your own: `.grid` with `.c2`, `.c3`, `.c4`, `.side` (main and a 350px column); `.card`,
@@ -533,7 +585,8 @@ Use these before writing your own: `.grid` with `.c2`, `.c3`, `.c4`, `.side` (ma
 `.pill` with `.t-gray|blue|green|orange|yellow|red|purple|teal|escrow|muted`; `.dot`; `.tag`; `.hat`; `.chips`;
 `.muted`, `.faint`, `.pos`, `.neg`, `.mono`, `.num`; `.fields` (`--cols`) with `.field` and `.fval`; `.finput`,
 `.ctl`; `.empty`; `.banner`; `.kb-title`, `.kb-meta` inside kanban cards; `.raw` for preformatted JSON;
-`.confirm-cmd` for a command block.
+`.confirm-cmd` for a command block. `[hidden]` always hides (it beats the display of `.btn`, `.pill`, grids and flex
+boxes); `.chart-card.wide` spans its grid (a workspace chart with `wide: true`).
 
 Tokens: `--bg`, `--surface`, `--surface-2`, `--sunk`, `--hover`, `--line`, `--line-2`, `--fg`, `--fg-2`, `--muted`,
 `--faint`, `--accent`, `--accent-2`, `--accent-soft`, `--accent-fg`, `--link`, `--pos`, `--neg`, `--t-<tone>` and
@@ -543,7 +596,9 @@ Mono); radii `--r`, `--r-lg`.
 
 ## Checking your module
 
-Serve the app (`cd demo/app && python3 -m http.server 8765`) and drive it with Playwright from Chromium at 1280×900
+Serve the app from `localhost` (`cd demo/app && python3 -m http.server 8765 --bind 127.0.0.1`), never from another
+host over plain http: `cx.hashOf` uses `crypto.subtle`, which exists only in a secure context (https or localhost), so
+Verify, posting and paying throw anywhere else. Drive it with Playwright from Chromium at 1280×900
 and 400×860, light and dark (`colorScheme`). For each of your routes: no console errors, and
 `document.documentElement.scrollWidth <= clientWidth`. The page is published inside a wrapper that adds
 `<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">`; when testing locally,

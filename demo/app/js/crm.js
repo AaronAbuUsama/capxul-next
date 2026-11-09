@@ -261,9 +261,7 @@ button.crm-f-v:hover { background: var(--hover); border-color: var(--line); }
 .crm-pipe { height: 6px; border-radius: 3px; background: var(--sunk); overflow: hidden; min-width: 60px; }
 .crm-pipe i { display: block; height: 100%; background: var(--accent); }
 .crm-sel { display: inline-flex; align-items: center; gap: 6px; }
-.btn[hidden], .pill[hidden] { display: none !important; }
-.crm-dash > .wide { grid-column: 1 / -1; }
-.crm-pc-b[hidden], .crm-sec-b[hidden], .crm-chg[hidden], .crm-compose[hidden] { display: none !important; }
+.crm-dash > .wide { grid-column: 1 / -1; } /* its own cards, not chart cards */
 `);
 
 /* =====================================================================================================
@@ -404,6 +402,20 @@ async function moveRecord(kind, rec, to) {
   cx.toast(`${recTitle(rec)} moved to ${to}`, { tone: 'success', cmd });
   return true;
 }
+/** Log a call on a lead or deal without the form: what the FDE's draft runs for a People wearer. */
+function logCallFor(kind, rec, o = {}) {
+  const allow = cx.allowed(NEED);
+  if (!allow.ok) { cx.toast(allow.reason, { tone: 'warning' }); return null; }
+  const me = cx.me().name, other = o.other || recTitle(rec);
+  const type = o.type || 'Outgoing', status = o.status || 'Completed';
+  const at = o.at || NOW();
+  const name = nextName('CALL-', C.calls.map((c) => c.name));
+  const rec2 = { name, type, status, duration: status === 'Completed' ? Math.round((+o.minutes || 0) * 60) : 0, caller: type === 'Outgoing' ? me : other, receiver: type === 'Outgoing' ? other : me, note: o.note || null, at, by: cx.meId(), reference: rec.name, referenceType: recType(kind) };
+  C.calls.push(rec2);
+  addItem(rec.name, recType(kind), { kind: 'call', call: name, type: rec2.type, status: rec2.status, duration: rec2.duration, caller: rec2.caller, receiver: rec2.receiver, note: rec2.note, at });
+  return rec2;
+}
+cx.native = Object.assign(cx.native || {}, { crmLogCall: logCallFor, crmMove: moveRecord });
 /** The People hat's wearers, in a sentence, for locked controls. */
 const lockLine = () => `Changes to the CRM need the People hat. ${namesList(peopleWearers())} ${peopleWearers().length === 1 ? 'wears' : 'wear'} it now.`;
 /** For a member without the People hat: a quiet line and the FDE's offer to draft the change for a wearer. */

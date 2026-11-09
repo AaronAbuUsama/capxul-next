@@ -270,7 +270,7 @@ function allocOf(pi, amt) {
   const cents = (n) => Math.round(n * 100);
   const vat = pi.taxes?.[0]?.rate || 0;
   return {
-    doctype: 'Purchase Invoice', doc: pi.name, currency: pi.currency, number: pi.billNo || pi.name, date: pi.billDate || pi.postingDate, content: pi.contentHash, allocated: cents(amt),
+    record: 'Purchase Invoice', doc: pi.name, currency: pi.currency, number: pi.billNo || pi.name, date: pi.billDate || pi.postingDate, content: pi.contentHash, allocated: cents(amt),
     lines: (pi.items || []).map((it) => ({ idx: it.idx, description: it.description, amount: cents(it.amount), taxes: vat ? [{ name: 'VAT', bps: vat * 100, amount: cents(it.amount * vat / 100) }] : [] })),
   };
 }
@@ -547,7 +547,7 @@ cx.route('money', () => {
     links: [
       { title: 'Safes', items: [{ label: 'Treasury', route: 'treasury' }, { label: 'Reserve Safe', route: 'reserve' }, { label: 'Deposit address', route: 'treasury' }] },
       { title: 'Bank (via Bridge)', items: [{ label: 'Bank details', route: 'bank' }, { label: 'Deposits', route: 'bank', count: M.deposits.length }, { label: 'Payouts', route: 'bank', count: M.payouts.length }, { label: 'Pay a bank account', route: 'pay-by-bank' }] },
-      { title: 'Books', items: [{ label: 'Barclays Business', route: cx.hasRoute('bank-account') ? 'bank-account' : null }, { label: 'Bank reconciliation', route: cx.hasRoute('banking') ? 'banking' : null }, { label: 'Payment entries', route: cx.hasRoute('payment-entries') ? 'payment-entries' : null, kind: 'report' }] },
+      { title: 'Books', items: [{ label: 'Barclays Business', route: cx.hasRoute('bank-account') ? 'bank-account' : null, id: D.books.bankAccounts?.[0]?.name }, { label: 'Bank reconciliation', route: cx.hasRoute('banking') ? 'banking' : null }, { label: 'Payment entries', route: cx.hasRoute('payment-entries') ? 'payment-entries' : null, kind: 'report' }] },
     ],
   });
 }, { workspace: 'money', title: 'Money' });
@@ -757,8 +757,8 @@ cx.route('payment', (ctx) => {
   const sections = [{ label: 'Summary', fields: summary.map((f) => ({ ...f, render: () => f.value ?? h('span.faint', '—') })) }];
   if (allocs.length || p.scheduled) {
     sections.push({ label: 'What it pays', node: h('div', { style: 'display:grid;gap:8px' }, allocs.length ? allocs.map((al) => {
-      const r = { 'Purchase Invoice': 'purchase-invoice', 'Sales Invoice': 'sales-invoice', 'Salary Slip': 'payslip', 'Expense Claim': 'expense-claim', 'Employee Advance': 'advance' }[al.doctype];
-      return h('div.alloc', h('div.alloc-head', h('span.muted', al.doctype), r && cx.hasRoute(r) ? cx.link(al.number || al.doc, r, al.doc) : h('b', al.number || al.doc), al.doc !== al.number ? h('span.muted', `(Capxul's ${al.doc})`) : null, al.date ? h('span.muted', fmt.date(al.date)) : null, h('span', { style: 'margin-left:auto' }, 'Allocated ', h('b', fmt.money(al.allocated / 100, al.currency)))),
+      const r = { 'Purchase Invoice': 'purchase-invoice', 'Sales Invoice': 'sales-invoice', 'Salary Slip': 'payslip', 'Expense Claim': 'expense-claim', 'Employee Advance': 'advance' }[al.record];
+      return h('div.alloc', h('div.alloc-head', h('span.muted', al.record), r && cx.hasRoute(r) ? cx.link(al.number || al.doc, r, al.doc) : h('b', al.number || al.doc), al.doc !== al.number ? h('span.muted', `(Capxul's ${al.doc})`) : null, al.date ? h('span.muted', fmt.date(al.date)) : null, h('span', { style: 'margin-left:auto' }, 'Allocated ', h('b', fmt.money(al.allocated / 100, al.currency)))),
         h('div.alloc-lines', (al.lines || []).slice(0, 6).map((ln) => h('div.alloc-line', h('span', `${ln.idx} · ${ln.description}`), h('span.num', fmt.money(ln.amount / 100, al.currency), (ln.taxes || []).map((t) => h('span.muted', ` + VAT ${t.bps ? t.bps / 100 : t.rate}% ${fmt.money(t.amount / 100, al.currency)}`)))))));
     }) : h('p.muted', p.memo || 'Nothing named yet.'), p.proof?.advice ? h('div.mx-note', `Adjustments: ${(p.proof.advice.adjustments || []).map((a) => `${a.kind} ${fmt.usdc(Number(a.amount) / 1e6)} (${a.by})`).join(', ') || 'none'} · On account: ${fmt.gbp(p.proof.advice.onAccount || 0)} · Memo: ${p.proof.advice.memo || 'none'}`) : null) });
   }
@@ -793,7 +793,7 @@ cx.route('payment', (ctx) => {
     doc: p, tabKey: 'payment',
     tabs: [{ label: 'Details', sections }],
     connections: [
-      { group: 'Books', items: [{ label: docRoute(p.voucher) === 'journal-entry' ? 'Journal entry' : 'Payment entry', count: p.voucher ? 1 : 0, route: docRoute(p.voucher), id: p.voucher }, { label: 'Purchase invoice', count: allocs.filter((a) => a.doctype === 'Purchase Invoice').length, route: 'purchase-invoice', id: allocs.find((a) => a.doctype === 'Purchase Invoice')?.doc }] },
+      { group: 'Books', items: [{ label: docRoute(p.voucher) === 'journal-entry' ? 'Journal entry' : 'Payment entry', count: p.voucher ? 1 : 0, route: docRoute(p.voucher), id: p.voucher }, { label: 'Purchase invoice', count: allocs.filter((a) => a.record === 'Purchase Invoice').length, route: 'purchase-invoice', id: allocs.find((a) => a.record === 'Purchase Invoice')?.doc }] },
       { group: 'Money', items: [{ label: 'Bank payout', count: po ? 1 : 0, route: 'payout', id: po?.id }, { label: 'Bank deposit', count: dep ? 1 : 0, route: 'deposit', id: dep?.id }, { label: 'Board proposal', count: p.proposal ? 1 : 0, route: 'proposal', id: p.proposal }] },
     ],
     side: { id: p.id, title: p.counterparty, cmd, assigned: [p.preparedBy, p.approvedBy].filter((x) => x && x !== 'board' && cx.person(x)), tags: [PURPOSE[p.purpose] || p.purpose, ROUTE_LABEL[p.route]].filter(Boolean), created: p.createdAt ? { by: p.preparedBy && cx.person(p.preparedBy) ? p.preparedBy : null, at: p.createdAt } : null, modified: { by: p.approvedBy && cx.person(p.approvedBy) ? p.approvedBy : null, at: p.settledAt || p.createdAt } },
@@ -1220,9 +1220,54 @@ function matchDeposit(d) {
     close(); cx.toast(model.pick === 'none' ? 'Marked as not an invoice: Books reviews it.' : `Matched to ${model.pick}.`, { tone: 'success', cmd: cmdOf() }); cx.refresh();
   } }] });
 }
+/** Bridge finishes converting an arriving deposit: USDC lands in the Treasury, Capxul matches it to the invoice its
+ *  reference names, and Books gets the payment entry. Incoming money needs nobody's approval. */
+const landTimers = new Map();
+function creditDeposit(d) {
+  if (!d || d.status !== 'Arriving') return null;
+  clearTimeout(landTimers.get(d.id)); landTimers.delete(d.id);
+  const at = stamp();
+  const rate = RATE;
+  const gross = d.bankAmount / rate;
+  const capxulFee = r2(gross * 0.005), exchange = r2(gross * 0.001);
+  const fees = r2(capxulFee + exchange);
+  const net = r6(gross - fees);
+  const tx = cx.randHex(32), block = cx.blockAt(at);
+  const inv = D.books.salesInvoices.find((i) => (d.matchedTo || []).includes(i.name));
+  const payer = inv?.customerName || depFrom(d);
+  const id = cx.newId('payment');
+  const p = { id, direction: 'in', kind: 'movement', status: 'Settled', outcome: null, purpose: 'receipt', route: 'outside', budget: null, counterparty: payer,
+    payee: { type: 'Self', name: D.company.name, safe: T.address }, payer: { name: payer, party: inv?.customer || null },
+    amount: net, asset: 'USDC', amountRaw: String(Math.round(net * 1e6)), gbp: d.bankAmount, rate, fee: fees, createdAt: d.receivedAt, sentAt: at, settledAt: at,
+    approval: null, approvedBy: null, approvedHat: null, preparedBy: null, proposal: null, batch: null, memo: d.reference, account: null, proof: null, books: null, deposit: d.id, voucher: null };
+  M.payments.push(p);
+  Object.assign(d, { status: 'Credited', net, fees, feeBreakdown: { capxul: capxulFee, exchange }, match: inv ? 'Matched' : 'Unmatched', matchedTo: inv ? [inv.name] : [], creditedAt: at, tx, block,
+    bridgeId: d.bridgeId || 'dep_' + cx.randHex(12).slice(2), purpose: inv ? 'receipt' : 'unknown', payment: id, payer: d.payer || { name: payer, party: inv?.customer || null } });
+  treasuryMove(net, at, `Bridge deposit from ${d.from}`, id, tx, block);
+  addActivity(p, at);
+  const voucher = inv && cx.native?.bookBridgeDeposit ? cx.native.bookBridgeDeposit(d, p, inv) : null;
+  if (voucher) { d.voucher = voucher; p.books = voucher; p.voucher = voucher; }
+  dropWaiting((a) => a.ref?.id === d.id);
+  addEvent(`${fmt.money(d.bankAmount, d.currency)} from ${payer} arrived through Bridge as ${fmt.usdc(net)}${inv ? ` and paid ${inv.name}` : ''}`, { type: 'deposit', id: d.id });
+  const tellers = [...new Set(D.seats.members.filter((m) => (m.hats || []).some((x) => x === 'Invoicing' || x === 'Books')).map((m) => m.id))];
+  addNotice(tellers, `${payer} paid ${inv ? inv.name : 'by bank'}: ${fmt.money(d.bankAmount, d.currency)} arrived as ${fmt.usdc(net)}`, { type: 'deposit', id: d.id });
+  return p;
+}
+/** On the deposit's page, an arriving deposit lands by itself a few seconds later, as Bridge finishes. */
+function watchArrival(d) {
+  if (d.status !== 'Arriving' || landTimers.has(d.id)) return;
+  landTimers.set(d.id, setTimeout(() => {
+    landTimers.delete(d.id);
+    const p = creditDeposit(d);
+    if (!p) return;
+    cx.toast(`Bridge credited ${fmt.usdc(d.net)} to the Treasury. ${d.matchedTo?.length ? `Matched to ${d.matchedTo[0]} by its reference and booked as ${d.voucher}.` : ''}`, { tone: 'success', cmd: `capxul bank deposits ${ORG}` });
+    if (['deposit', 'sales-invoice', 'bank', 'money', 'treasury', 'payments'].includes(cx.current.name)) cx.refresh();
+  }, 6000));
+}
 cx.route('deposit', (ctx) => {
   const d = cx.find(M.deposits, 'id', ctx.id);
   if (!d) return cx.page({ title: 'Not found', body: cx.empty('No such deposit', cx.btn('Bank', { href: ['bank'] })) });
+  watchArrival(d);
   const p = d.payment ? M.payments.find((x) => x.id === d.payment) : null;
   const fb = d.feeBreakdown;
   const form = formV({
@@ -1241,8 +1286,10 @@ cx.route('deposit', (ctx) => {
     title: `Deposit from ${depFrom(d)}`, crumbs: [{ label: 'Money', route: 'money' }, { label: 'Bank', route: 'bank' }],
     status: [cx.pill(d.status, DEP_TONE[d.status], { lg: true }), d.match === 'Unmatched' ? cx.pill('Unmatched', 'orange', { lg: true }) : null].filter(Boolean),
     sub: `${fmt.money(d.bankAmount, d.currency)} · ${fmt.datetime(d.receivedAt)}`,
-    actions: d.match === 'Unmatched' ? [cx.btn('Match', { kind: 'primary', needs: { any: ['Books', 'Invoicing'] }, cmd: `capxul bank match ${d.id} <request|none>`, onClick: () => matchDeposit(d) })] : [],
-    banner: d.status === 'Arriving' ? cx.banner(`Arriving: Bridge has the transfer and is converting it. Reference ${d.reference} matches ${(d.matchedTo || []).join(', ')}.`, { tone: 'info' }) : null,
+    actions: d.match === 'Unmatched' ? [cx.btn('Match', { kind: 'primary', needs: { any: ['Books', 'Invoicing'] }, cmd: `capxul bank match ${d.id} <request|none>`, onClick: () => matchDeposit(d) })]
+      : d.status === 'Arriving' ? [cx.btn('Check with Bridge', { icon: 'refresh', cmd: `capxul bank deposits ${ORG}`, onClick: () => { const p = creditDeposit(d); if (p) { cx.toast(`Bridge credited ${fmt.usdc(d.net)} to the Treasury.${d.voucher ? ` Matched to ${d.matchedTo[0]} and booked as ${d.voucher}.` : ''}`, { tone: 'success', cmd: `capxul bank deposits ${ORG}` }); cx.refresh(); } } })] : [],
+    banner: d.status === 'Arriving' ? cx.banner(`Arriving: Bridge has the transfer and is converting it to USDC. Reference ${d.reference} matches ${(d.matchedTo || []).join(', ')}, so Capxul books it to that invoice when it lands, usually within a minute.`, { tone: 'info', icon: 'hourglass' })
+      : d.creditedAt && d.voucher && d.matchedTo?.length ? cx.banner(h('span', `Reconciled: ${fmt.usdc(d.net)} arrived in the Treasury, matched to `, cx.link(d.matchedTo[0], 'sales-invoice', d.matchedTo[0]), ' by its reference, and booked as ', cx.link(d.voucher, 'payment-entry', d.voucher), '.'), { tone: 'success', icon: 'check' }) : null,
     cmd: { cli: `capxul bank deposits ${ORG}`, sdk: 'client.banking.deposits.list({ org: "harbourline" })', json: { id: d.id, state: d.status.toLowerCase(), currency: d.currency, amount: String(d.bankAmount), net: d.net, reference: d.reference, match: d.match } },
     body: form,
   });
@@ -1765,6 +1812,6 @@ async function payFromBudget({ title, to, payee, amount, budget, memo, purpose =
   return p;
 }
 cx.native = Object.assign(cx.native || {}, {
-  ORG, RATE, gbpOf, stamp, boardAsk, proposeToBoard, payFromBudget, CAPXUL_PAYEE, addEvent, addNotice, dropWaiting, pushTable,
+  ORG, RATE, gbpOf, stamp, creditDeposit, watchArrival, boardAsk, proposeToBoard, payFromBudget, CAPXUL_PAYEE, addEvent, addNotice, dropWaiting, pushTable,
   payableBudgets, mayAct, hatFor, whoMay, leftOf, isAllowance, payPill, findPayment, approvePrepared, takeBack, cancelScheduled, schedRec, escrowOf, payoutOf,
 });

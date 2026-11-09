@@ -169,7 +169,7 @@ export function buildPurchases(ctx) {
     const s = sup(b.supplier);
     const p = b.pay;
     if (!p) continue;
-    const pays = [{ doctype: "Purchase Invoice", ref: b, number: b.billNo, date: b.billDate, allocated: P(b.grandTotal), currency: b.currency, lines: b.items.map((it) => ({ idx: it.idx, description: it.description, amount: P(it.amount), vatRate: b.totalTaxes ? 2000 : 0, vat: b.totalTaxes ? P(it.amount * 0.2) : 0 })) }];
+    const pays = [{ record: "Purchase Invoice", ref: b, number: b.billNo, date: b.billDate, allocated: P(b.grandTotal), currency: b.currency, lines: b.items.map((it) => ({ idx: it.idx, description: it.description, amount: P(it.amount), vatRate: b.totalTaxes ? 2000 : 0, vat: b.totalTaxes ? P(it.amount * 0.2) : 0 })) }];
     const counter = [{ account: "2000", dr: P(b.baseGrandTotal), party: b.supplier, partyType: "Supplier", against: { type: "Purchase Invoice", ref: b } }];
     const settle = (channel) => (pay) => b.payments.push({ date: (pay.settledAt || pay.voucher?.date || "").slice(0, 10) || null, amount: b.grandTotal, payment: pay.id || null, voucher: pay.voucher, channel });
     const budget = p.budget || s.from;

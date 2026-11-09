@@ -195,7 +195,7 @@ export function buildPayroll(ctx) {
         person: p, date: run.postingDate, hour: 16, gbpPence: P(sl._s.net), budget: "harbourline", purpose: "payroll", account: "2200",
         against: { type: "Salary Slip", ref: sl }, batch: { id: batchId, label, index: i + 1, count: toPay.length, run: run.name },
         approval: { signer: approver, title: `Pay ${toPay.length} payslips for ${label}` },
-        pays: [{ doctype: "Salary Slip", ref: sl, number: sl.name, date: sl.postingDate, allocated: P(sl._s.net), lines: [{ idx: 1, description: `Net pay ${sl.startDate} to ${sl.endDate}`, amount: P(sl._s.net), vatRate: 0, vat: 0 }] }],
+        pays: [{ record: "Salary Slip", ref: sl, number: sl.name, date: sl.postingDate, allocated: P(sl._s.net), lines: [{ idx: 1, description: `Net pay ${sl.startDate} to ${sl.endDate}`, amount: P(sl._s.net), vatRate: 0, vat: 0 }] }],
         onSettled: (pay) => { sl.payment = pay; },
       });
     });
@@ -204,7 +204,7 @@ export function buildPayroll(ctx) {
       cash.payEmployee({
         person: p, date: sl.withheld.releasedAt.slice(0, 10), hour: 14, gbpPence: P(sl._s.net), budget: "harbourline", purpose: "payroll", account: "2200",
         against: { type: "Salary Slip", ref: sl }, memo: `Released withheld slip ${sl.name}`,
-        pays: [{ doctype: "Salary Slip", ref: sl, number: sl.name, date: sl.postingDate, allocated: P(sl._s.net), lines: [{ idx: 1, description: `Final net pay ${sl.startDate} to ${sl.endDate}`, amount: P(sl._s.net), vatRate: 0, vat: 0 }] }],
+        pays: [{ record: "Salary Slip", ref: sl, number: sl.name, date: sl.postingDate, allocated: P(sl._s.net), lines: [{ idx: 1, description: `Final net pay ${sl.startDate} to ${sl.endDate}`, amount: P(sl._s.net), vatRate: 0, vat: 0 }] }],
         onSettled: (pay) => { sl.payment = pay; },
       });
     }
@@ -251,7 +251,7 @@ export function buildPayroll(ctx) {
     cash.add({
       kind: "usdc_out", from: "treasury", time: at(d, 6, 0, r.int(0, 59)), amount: { usdc: U(sofia.agreement) }, budget: "engineering", purpose: "agreement", noApproval: true,
       payee: ctx.payeeOfPerson(sofia), expense: { account: "5100", cc: "Engineering" }, party: "sofia", partyType: "Employee", voucherType: "Journal Entry", entryType: "Bank Entry",
-      pays: [{ doctype: "Salary Slip", ref: slip, number: slipName, date: d, allocated: sofia.agreement * 100, currency: "USDC", lines: [{ idx: 1, description: `Pay agreement ${agreement.id}, collection ${n}`, amount: sofia.agreement * 100, vatRate: 0, vat: 0 }] }],
+      pays: [{ record: "Salary Slip", ref: slip, number: slipName, date: d, allocated: sofia.agreement * 100, currency: "USDC", lines: [{ idx: 1, description: `Pay agreement ${agreement.id}, collection ${n}`, amount: sofia.agreement * 100, vatRate: 0, vat: 0 }] }],
       memo: `Pay agreement collection ${n}`,
       onSettled: (pay) => { slip.payment = pay; agreement.collections.push({ n, at: pay.settledAt, amount: sofia.agreement, payment: pay.id, slip: slipName }); },
     });

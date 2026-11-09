@@ -131,7 +131,7 @@ export async function makePayment(o) {
     payee: { party, account: bank ? 'bridge:' + e.bank.account.slice(-4) : e.safe },
     token: 'USDC', amount: String(Math.round(amount * 1e6)),
     cash: { currency: 'GBP', decimals: 2, amount: Math.round(o.gbp * 100), rate },
-    allocations: [{ doctype: o.docKind, doc: o.doc, currency: 'GBP', number: o.doc, date: o.date, content: o.content, allocated: Math.round(o.gbp * 100), lines: o.lines }],
+    allocations: [{ record: o.docKind, doc: o.doc, currency: 'GBP', number: o.doc, date: o.date, content: o.content, allocated: Math.round(o.gbp * 100), lines: o.lines }],
     adjustments: fee ? [{ kind: 'fee', by: 'Bridge', amount: String(Math.round(fee * 1e6)) }] : [],
     onAccount: 0, memo: '', refundOf: '0x0',
     route: { kind: 'department', budget: o.budget, payAt: 0, ...(bank ? { payout: { bankAmount: Math.round(o.gbp * 100), currency: 'GBP', rail: 'Faster Payments' } } : {}) },
@@ -610,7 +610,7 @@ cx.route('employee', (ctx) => {
   });
 }, { workspace: 'hr', title: 'Employee' });
 
-cx.route('employee-new', () => {
+cx.route('employee-new', (ctx) => {
   const g = seatGate('New employee'); if (g) return g;
   const owen = D.others.find((x) => x.id === 'owen');
   const draft = { firstName: '', middleName: '', lastName: '', gender: '', dateOfBirth: '', dateOfJoining: '', status: 'Active', employee: '(given on save)', company: D.company.name, department: 'engineering', employmentType: 'Full-time', designation: 'Senior Software Engineer', reportsTo: 'tom', companyEmail: '', personalEmail: '', payMailbox: '', salaryMode: 'Capxul Safe', salaryCurrency: 'GBP', holidayList: 'Holidays 2027', defaultShift: 'Studio Day', hats: [], name: '' };
@@ -618,6 +618,7 @@ cx.route('employee-new', () => {
   const draw = () => cx.fill(host, employeeForm(draft, { editable: true, isNew: true }));
   const fillOwen = () => { Object.assign(draft, { firstName: 'Owen', lastName: 'Grady', gender: 'Male', dateOfJoining: '2027-01-04', personalEmail: owen.email, payMailbox: owen.email, companyEmail: 'owen@harbourline.studio', designation: 'Senior Software Engineer', department: 'engineering', reportsTo: 'tom' }); draw(); cx.toast('Filled from the FDE\'s draft for Owen Grady'); };
   draw();
+  if (ctx.state?.fill === 'owen') fillOwen();
   const cmdOf = () => `capxul org hr employee add ${draft.payMailbox || draft.personalEmail || '<email>'} --first-name ${draft.firstName || '…'} --last-name ${draft.lastName || '…'} --joined ${draft.dateOfJoining || '…'} --department ${draft.department} --designation "${draft.designation}" --type ${String(draft.employmentType).toLowerCase()}`;
   const save = () => {
     const missing = [['First name', draft.firstName], ['Last name', draft.lastName], ['Date of joining', draft.dateOfJoining], ['Personal email', draft.personalEmail || draft.payMailbox]].filter(([, v]) => !v).map(([l]) => l);
@@ -958,10 +959,10 @@ cx.route('leave', (ctx) => {
 }, { workspace: 'hr', title: 'Leave' });
 
 /** Apply for leave as the viewer (their own side, no seat needed). */
-export function leaveApplyForm(onDone) {
+export function leaveApplyForm(onDone, pre = {}) {
   const me = cx.me();
   const types = leaveDetails(me.id).filter((x) => x.available > 0 || H.leaveTypes.find((t) => t.name === x.leaveType)?.lwp);
-  const m = { leaveType: types[0]?.leaveType || 'Annual Leave', fromDate: addDays(cx.today, 14), toDate: addDays(cx.today, 15), halfDay: 0, reason: '' };
+  const m = { leaveType: types[0]?.leaveType || 'Annual Leave', fromDate: addDays(cx.today, 14), toDate: addDays(cx.today, 15), halfDay: 0, reason: '', ...pre };
   const out = h('div', { style: 'display:grid;gap:12px' });
   const dept = me.department;
   const balEl = h('div.fval.num'); const daysEl = h('div.fval.num'); const cmdEl = h('div.confirm-cmd');
@@ -1008,9 +1009,10 @@ export function leaveApplyForm(onDone) {
   return out;
 }
 
-cx.route('leave-new', () => {
+cx.route('leave-new', (ctx) => {
   const ne = notEmployee('New leave application'); if (ne) return ne;
-  const form = leaveApplyForm((l) => cx.go('leave', l.name));
+  // The FDE's draft (or any link) may fill the form: cx.go('leave-new', null, { leave: { leaveType, fromDate, toDate, reason } }).
+  const form = leaveApplyForm((l) => cx.go('leave', l.name), ctx.state?.leave || {});
   return cx.page({ title: 'New leave application', crumbs: [{ label: 'HR', route: 'hr' }, { label: 'Leave', route: cx.hasSeat() ? 'leaves' : 'me-leave' }], status: [{ text: 'Not saved', tone: 'orange' }],
     actions: [cx.btn('Submit', { kind: 'primary', cmd: 'capxul hr leave apply --type … --start … --end …', onClick: () => form.submit() })],
     cmd: { cli: 'capxul hr leave apply --type "Annual Leave" --start … --end … --reason "…"', sdk: 'client.me.hr.leaves.apply({ type, start, end, reason })', who: 'any employee, for themselves; no seat needed' },

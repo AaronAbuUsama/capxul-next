@@ -524,7 +524,7 @@ export function buildClaims(ctx) {
     const payDay = addDays(c.approvedAt, r.int(1, 4));
     if (payDay > TODAY) { c.status = "Unpaid"; continue; }
     ctx.cash.payEmployee({ person: p, date: payDay, hour: r.int(10, 16), gbpPence: P(c.grandTotal), budget: p.dept, purpose: "claim", account: "2600", against: { type: "Expense Claim", ref: c },
-      pays: [{ doctype: "Expense Claim", ref: c, date: c.postingDate, allocated: P(c.grandTotal), lines: c.expenses.map((e) => ({ idx: e.idx, description: e.description, amount: P(e.sanctionedAmount), vatRate: 0, vat: 0 })).concat(c.totalTaxesAndCharges ? [{ idx: c.expenses.length + 1, description: "VAT on receipts", amount: 0, vatRate: 2000, vat: P(c.totalTaxesAndCharges) }] : []) }],
+      pays: [{ record: "Expense Claim", ref: c, date: c.postingDate, allocated: P(c.grandTotal), lines: c.expenses.map((e) => ({ idx: e.idx, description: e.description, amount: P(e.sanctionedAmount), vatRate: 0, vat: 0 })).concat(c.totalTaxesAndCharges ? [{ idx: c.expenses.length + 1, description: "VAT on receipts", amount: 0, vatRate: 2000, vat: P(c.totalTaxesAndCharges) }] : []) }],
       onSettled: (pay) => { c.status = "Paid"; c.totalAmountReimbursed = c.grandTotal; c.payment = pay; } });
   }
 
@@ -543,7 +543,7 @@ export function buildClaims(ctx) {
     a.decidedHat = dec.hat;
     const payDay = addDays(a.postingDate, 1);
     ctx.cash.payEmployee({ person: p, date: payDay, hour: 11, gbpPence: P(a.advanceAmount), budget: p.dept, purpose: "advance", account: "1400", against: { type: "Employee Advance", ref: a },
-      pays: [{ doctype: "Employee Advance", ref: a, date: a.postingDate, allocated: P(a.advanceAmount), lines: [{ idx: 1, description: a.purpose, amount: P(a.advanceAmount), vatRate: 0, vat: 0 }] }],
+      pays: [{ record: "Employee Advance", ref: a, date: a.postingDate, allocated: P(a.advanceAmount), lines: [{ idx: 1, description: a.purpose, amount: P(a.advanceAmount), vatRate: 0, vat: 0 }] }],
       onSettled: (pay) => { a.paidAmount = a.advanceAmount; a.payment = pay; a.status = "Paid"; } });
     a.paidAmount = a.advanceAmount;
     const unclaimed = Math.round((a.advanceAmount - (pl.claimed || 0)) * 100) / 100;

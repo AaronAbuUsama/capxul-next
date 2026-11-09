@@ -51,7 +51,7 @@ export class CashBook {
       kind: "usdc_in", to: "treasury", time: at(date, 15, 20, 11), amount: { gbp: gbpPence }, purpose: "advance-return",
       payer: this.ctx.payeeOfPerson(person), counter: [{ account: "1400", cr: gbpPence, party: person.id, partyType: "Employee", against: { type: "Employee Advance", ref: advance } }],
       voucherType: "Payment Entry", paymentType: "Receive", party: person.id, partyType: "Employee",
-      pays: [{ doctype: "Employee Advance", ref: advance, date: advance.postingDate, allocated: gbpPence, lines: [{ idx: 1, description: "Unspent advance returned", amount: gbpPence, vatRate: 0, vat: 0 }] }],
+      pays: [{ record: "Employee Advance", ref: advance, date: advance.postingDate, allocated: gbpPence, lines: [{ idx: 1, description: "Unspent advance returned", amount: gbpPence, vatRate: 0, vat: 0 }] }],
     });
   }
 
@@ -237,7 +237,7 @@ export class CashBook {
           const esc = {
             id: "escrow_" + pay.id.slice(8), payment: pay.id, email: ev.escrow.email, amount: usdc(ev.usdc), from: ev.budget, sentBy: approval ? approval.signer : null,
             fundedAt: ev.time, escrowAddress: hex20(), status: "Open", claimedAt: null, takenBackAt: null, takenBackBy: null,
-            reminders: [], what: ev.pays ? ev.pays.map((p) => `${p.doctype} ${p.ref.name || p.number}`).join(", ") : ev.memo,
+            reminders: [], what: ev.pays ? ev.pays.map((p) => `${p.record} ${p.ref.name || p.number}`).join(", ") : ev.memo,
           };
           pay.escrow = esc.id;
           pay._esc = esc;
@@ -424,7 +424,7 @@ export class CashBook {
         token: "USDC", amount: String(ev.usdc),
         cash: { currency: "GBP", decimals: 2, amount: ev.kind === "payout" ? ev.bank : (ev.amount.gbp ?? Math.round((ev.usdc / 1e6) * ev.rate * 100)), rate: ev.rate },
         allocations: (ev.pays || []).map((p) => ({
-          doctype: p.doctype, doc: p.ref.name || p.number, currency: p.currency || "GBP", number: p.number || p.ref.billNo || p.ref.name, date: p.date,
+          record: p.record, doc: p.ref.name || p.number, currency: p.currency || "GBP", number: p.number || p.ref.billNo || p.ref.name, date: p.date,
           content: p.ref.contentHash || hashOf({ doc: p.ref.name || p.number }), allocated: p.allocated,
           lines: (p.lines || []).map((l) => ({ idx: l.idx, description: l.description, amount: l.amount, taxes: l.vat ? [{ name: "VAT", bps: l.vatRate || 2000, amount: l.vat }] : [] })),
         })),

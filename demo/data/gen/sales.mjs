@@ -183,7 +183,7 @@ export function buildSales(ctx) {
       const share = amount / inv.grandTotal;
       const baseAlloc = inv.currency === "USD" ? Math.round(P(inv.baseGrandTotal) * share) : P(amount);
       const counter = [{ account: "1200", cr: baseAlloc, party: inv.customer, partyType: "Customer", against: { type: "Sales Invoice", ref: inv } }];
-      const pays = [{ doctype: "Sales Invoice", ref: inv, number: inv.name, date: inv.postingDate, allocated: P(amount), currency: inv.currency, lines: inv.items.map((it) => ({ idx: it.idx, description: it.description, amount: P(it.amount), vatRate: inv.totalTaxes ? 2000 : 0, vat: inv.totalTaxes ? P(it.amount * 0.2) : 0 })) }];
+      const pays = [{ record: "Sales Invoice", ref: inv, number: inv.name, date: inv.postingDate, allocated: P(amount), currency: inv.currency, lines: inv.items.map((it) => ({ idx: it.idx, description: it.description, amount: P(it.amount), vatRate: inv.totalTaxes ? 2000 : 0, vat: inv.totalTaxes ? P(it.amount * 0.2) : 0 })) }];
       const onSettled = (pay) => {
         inv.payments.push({ date: d, amount, payment: pay.id || null, voucher: pay.voucher, channel });
       };

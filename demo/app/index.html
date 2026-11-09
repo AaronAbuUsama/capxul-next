@@ -763,6 +763,41 @@ a.position-cell:hover { background: var(--hover); text-decoration: none; }
 .ask form { display: flex; gap: 8px; }
 .ask form input { flex: 1; min-width: 0; }
 .fictional { font-size: 12px; color: var(--faint); text-align: center; padding-top: 6px; }
+
+/* ---------- rules every module relies on ---------- */
+[hidden] { display: none !important; }                  /* beats the display of .btn, .pill, grids and flex boxes */
+.chart-card.wide { grid-column: 1 / -1; }              /* a workspace chart with wide: true spans the grid */
+.tabs-root { min-width: 0; }                           /* a tab bar wider than the screen scrolls inside itself */
+.form-side .card-body > * { min-width: 0; }
+.form-side .hash { white-space: normal; overflow-wrap: anywhere; flex-wrap: wrap; max-width: 100%; }
+.form-side .hash > span { overflow-wrap: anywhere; min-width: 0; }
+@media (max-width: 640px) {
+  .lv-bar > label { width: calc(50% - 3px); min-width: 0; }   /* a report filter: its label is the half-width item */
+  .lv-bar > label > .ctl { width: 100%; }
+}
+
+/* ---------- walkthroughs ---------- */
+.tour-bar { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 10px 14px; align-items: center; padding: 10px 14px; border: 1px solid var(--accent); border-radius: var(--r-lg); background: var(--accent-soft); color: var(--fg); min-width: 0; }
+.tour-bar .tour-step { font: 600 11.5px/1.2 var(--font-ui); letter-spacing: .06em; text-transform: uppercase; color: var(--accent); white-space: nowrap; }
+.tour-bar .tour-text { min-width: 0; display: grid; gap: 2px; }
+.tour-bar .tour-text b { font-weight: 600; }
+.tour-bar .tour-text span { font-size: 13px; color: var(--fg-2); }
+.tour-bar .tour-nav { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+@media (max-width: 640px) { .tour-bar { grid-template-columns: minmax(0, 1fr); } .tour-bar .tour-nav { justify-content: flex-start; } }
+.tours { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0; }
+@media (max-width: 760px) { .tours { grid-template-columns: minmax(0, 1fr); } }
+.tour { display: grid; gap: 8px; align-content: start; padding: 14px; box-shadow: 1px 0 0 var(--line), 0 1px 0 var(--line); min-width: 0; }
+.tour h3 { font: 600 14.5px/1.3 var(--font-ui); display: flex; gap: 8px; align-items: baseline; }
+.tour h3 .n { font: 600 11.5px/1 var(--font-mono); color: var(--accent); border: 1px solid var(--accent); border-radius: 3px; padding: 3px 5px; flex: none; }
+.tour p { font-size: 13px; color: var(--fg-2); }
+.tour ol { margin: 0; padding-left: 18px; display: grid; gap: 2px; font-size: 12.5px; color: var(--muted); }
+.tour .tour-go { justify-self: start; }
+.wsdir { columns: 5 180px; column-gap: 24px; }
+.wsdir-ws { display: grid; gap: 6px; align-content: start; min-width: 0; break-inside: avoid; margin-bottom: 18px; }
+.wsdir-head { display: flex; align-items: center; gap: 7px; font-weight: 600; color: var(--fg); }
+.wsdir-ws ul { list-style: none; margin: 0; padding: 0 0 0 22px; display: grid; gap: 2px; font-size: 13px; }
+.wsdir-ws li a { color: var(--fg-2); }
+.wsdir-ws li a:hover { color: var(--link); }
 </style>
 <div id="app" class="cx-app">
   <div class="boot" role="status" aria-live="polite">

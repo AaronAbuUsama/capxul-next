@@ -289,6 +289,18 @@ cx.rows = (pathOrTable) => {
   if (key) tableCache.set(key, out);
   return out;
 };
+/** Add a row to a compact table and to its cached objects: cx.rows.push('activity', { at, … }, { front: true }). */
+cx.rows.push = (path, obj, o = {}) => {
+  const objs = cx.rows(path);
+  const t = path.split('.').reduce((x, k) => x?.[k], D);
+  if (!t) return obj;
+  if (Array.isArray(t)) { if (o.front) t.unshift(obj); else t.push(obj); return obj; }
+  const arr = t.cols.map((c) => obj[c] ?? null);
+  if (o.front) { t.rows.unshift(arr); objs.unshift(obj); } else { t.rows.push(arr); objs.push(obj); }
+  return obj;
+};
+/** Forget the cached objects of a table (after changing its compact rows directly). */
+cx.rows.invalidate = (path) => { if (path) tableCache.delete(path); else tableCache.clear(); };
 /** A plain, hash-safe form of any record name: letters, digits and single hyphens. */
 cx.slug = (id) => String(id ?? '').replace(/[^A-Za-z0-9]+/g, '-').replace(/^-|-$/g, '');
 /** Find a record whose `key` slugs to `slug` (what a route receives as ctx.id). */
@@ -444,6 +456,7 @@ cx.emit = emit;
 
 const GROUPS = [
   { label: 'Company', ids: ['home', 'approvals', 'money', 'departments'] },
+  { label: 'You', ids: ['yours'] },
   { label: 'Business', ids: ['books', 'hr', 'payroll', 'crm', 'projects'] },
   { label: 'Governance', ids: ['board', 'seats'] },
   { label: 'Help', ids: ['fde', 'activity'] },
@@ -530,7 +543,7 @@ async function render(opts = {}) {
   const ws = workspaceOf(name);
   try {
     if (!r) node = notBuilt(name, id);
-    else if (ws && !ws.seatless && !cx.hasSeat() && name !== 'home') node = noSeatPage(ws);
+    else if (ws && !ws.seatless && !r.meta?.seatless && !cx.hasSeat() && name !== 'home') node = noSeatPage(ws);
     else node = await r.handler(ctx);
   } catch (e) {
     console.error(`Screen "${name}" failed:`, e);
@@ -543,6 +556,7 @@ async function render(opts = {}) {
     wrap.appendChild(node);
     node = wrap;
   }
+  if (tour) { const pg = node.classList?.contains('page') ? node : node.querySelector?.('.page'); (pg || node).prepend(tourBar()); }
   fill(view, node);
   renderSidebar();
   if (!opts.keepScroll && (prev.name !== name || prev.id !== id)) window.scrollTo(0, 0);
@@ -706,6 +720,8 @@ cx.setCommand = (spec) => strip.screen(spec);
 /** Show an action's command on the strip; pin keeps it until cx.clearAction() or the next screen. */
 cx.showAction = (spec, label, o = {}) => (o.pin ? strip.pin(spec, label) : strip.preview(spec, label));
 cx.clearAction = () => strip.unpin();
+/** Clear a hover preview (shown with cx.showAction) after the pointer leaves; a pinned command stays. */
+cx.unpreview = () => strip.unpreview();
 cx.command = () => strip.get();
 
 function copyText(text, selectEl) {
@@ -1239,7 +1255,7 @@ cx.tabs = (tabs, o = {}) => {
     o.onChange?.(i, tabs[i]);
   }
   tabs.forEach((t, i) => bar.appendChild(h('button.tab', { type: 'button', role: 'tab', 'aria-selected': 'false', onclick: () => show(i) }, t.label, t.count != null ? h('small', String(t.count)) : null)));
-  const root = h('div', bar, panel);
+  const root = h('div.tabs-root', bar, panel);
   show(Math.min(active, tabs.length - 1));
   root.show = show;
   return root;
@@ -1262,6 +1278,11 @@ function displayValue(f, v, doc) {
     case 'link': return f.href ? h('a', { href: Array.isArray(f.href) ? cx.href(f.href[0], f.href[1]) : f.href }, String(v)) : String(v);
     case 'hash': return cx.hashChip(v, { full: f.full });
     case 'address': return cx.addr(v);
+    case 'select': {
+      const opts = typeof f.options === 'function' ? f.options(doc) : f.options || [];
+      const hit = opts.find((op) => Array.isArray(op) && String(op[0]) === String(v));
+      return hit ? String(hit[1]) : String(v);
+    }
     default: return String(v);
   }
 }
@@ -1280,7 +1301,8 @@ cx.field = (f) => {
   if (editing) {
     const set = (val) => { if (f.key) model[f.key] = val; f.onChange?.(val, f.key); };
     if (f.type === 'select') {
-      control = h('select.finput', { id, onchange: (e) => set(e.target.value) }, (f.options || []).map((op) => { const [val, txt] = Array.isArray(op) ? op : [op, op]; return h('option', { value: val, selected: String(val) === String(v ?? '') }, txt); }));
+      const opts = typeof f.options === 'function' ? f.options(model) : f.options || [];
+      control = h('select.finput', { id, onchange: (e) => set(e.target.value) }, opts.map((op) => { const [val, txt] = Array.isArray(op) ? op : [op, op]; return h('option', { value: val, selected: String(val) === String(v ?? '') }, txt); }));
     } else if (f.type === 'textarea') {
       control = h('textarea.finput', { id, rows: f.rows || 3, placeholder: f.placeholder || '', oninput: (e) => set(e.target.value) }, v ?? '');
     } else if (f.type === 'check') {
@@ -1343,7 +1365,10 @@ cx.formView = (o) => {
   const ctx = { doc, editable: !!o.editable, onChange };
   const tabs = (o.tabs || [{ label: 'Details', sections: o.sections || [] }]).map((t) => ({ label: t.label, count: t.count, render: () => t.render ? t.render() : h('div', t.node || null, (t.sections || []).map((sec) => (sec instanceof Node ? sec : cx.section(sec, ctx)))) }));
   if (o.connections?.length) tabs.push({ label: 'Connections', render: () => connectionsOf(o.connections) });
-  const sheet = h('div.form-sheet', tabs.length > 1 ? cx.tabs(tabs, { key: o.tabKey }) : tabs[0].render());
+  // A link may open a form on one of its tabs: cx.go('payslip', id, { tab: 'Payment' }).
+  const wantTab = cx.current.state?.tab;
+  const ai = wantTab ? tabs.findIndex((t) => t.label === wantTab) : -1;
+  const sheet = h('div.form-sheet', tabs.length > 1 ? cx.tabs(tabs, { key: o.tabKey, active: ai >= 0 ? ai : undefined }) : tabs[0].render());
   const tl = o.timeline ? h('section', { style: 'display:grid;gap:8px' }, h('h3', { style: 'font:600 14px/1.3 var(--font-ui);margin-top:6px' }, o.timelineTitle || 'Activity'), cx.timeline(o.timeline.items || o.timeline, { comment: o.timeline.comment ?? true })) : null;
   const main = h('div.form-main', sheet, tl);
   return h('div.form', h('div.form-layout', { class: { solo: !o.side } , style: o.side ? null : 'grid-template-columns:minmax(0,1fr)' }, main, o.side ? formSide(o.side) : null));
@@ -1378,14 +1403,37 @@ cx.grid = (o) => {
   const cell = (c, r, i) => {
     if (o.editable && c.edit) {
       const numeric = ['int', 'float', 'currency', 'usdc', 'percent'].includes(c.type);
-      if (c.type === 'select') return h('select', { onchange: (e) => { r[c.key] = e.target.value; changed(); } }, (c.options || []).map((op) => h('option', { value: op, selected: op === r[c.key] }, op)));
-      return h('input', { type: numeric ? 'number' : c.type === 'date' ? 'date' : 'text', step: 'any', class: numeric ? 'num' : null, value: r[c.key] ?? '', 'aria-label': `${c.label}, row ${i + 1}`,
-        onchange: (e) => { r[c.key] = numeric ? +e.target.value : e.target.value; changed(); } });
+      const cellKey = i + ':' + c.key;
+      if (c.type === 'select') {
+        const opts = typeof c.options === 'function' ? c.options(r) : c.options || [];
+        return h('select', { 'aria-label': `${c.label}, row ${i + 1}`, dataset: { cell: cellKey }, onchange: (e) => { r[c.key] = e.target.value; changed(true); } },
+          opts.map((op) => { const [val, txt] = Array.isArray(op) ? op : [op, op]; return h('option', { value: val, selected: String(val) === String(r[c.key] ?? '') }, txt); }));
+      }
+      return h('input', { type: numeric ? 'number' : c.type === 'date' ? 'date' : 'text', step: 'any', class: numeric ? 'num' : null, value: r[c.key] ?? '', 'aria-label': `${c.label}, row ${i + 1}`, dataset: { cell: cellKey },
+        onchange: (e) => { r[c.key] = numeric ? +e.target.value : e.target.value; changed(true); } });
     }
     const v = c.get ? c.get(r) : r[c.key];
     return c.render ? c.render(r, i) : displayValue(c, v, r);
   };
-  const changed = () => { o.onChange?.(rows); draw(); };
+  // A cell's change redraws after focus has moved on (Tab, a click), then puts focus back on the same cell of the new
+  // table, so typing through a row's cells is not interrupted.
+  let redraw = 0;
+  const changed = (fromCell) => {
+    o.onChange?.(rows);
+    if (!fromCell) return draw();
+    clearTimeout(redraw);
+    redraw = setTimeout(() => {
+      if (!root.isConnected) return;
+      const a = document.activeElement;
+      const keep = a && root.contains(a) ? a.dataset?.cell : null;
+      const selStart = keep && typeof a.selectionStart === 'number' ? a.selectionStart : null;
+      draw();
+      if (keep) {
+        const el = root.querySelector(`[data-cell="${keep}"]`);
+        if (el) { el.focus(); if (selStart != null) try { el.setSelectionRange(selStart, selStart); } catch { /* number inputs have no selection */ } }
+      }
+    }, 0);
+  };
   function draw() {
     const numCols = (c) => ['currency', 'usdc', 'int', 'float', 'percent'].includes(c.type) || c.align === 'right';
     const head = h('tr', o.editable ? h('th.chk', h('input', { type: 'checkbox', 'aria-label': 'Select all rows', checked: sel.size === rows.length && rows.length > 0, onchange: (e) => { sel.clear(); if (e.target.checked) rows.forEach((_, i) => sel.add(i)); draw(); } })) : null,
@@ -1507,15 +1555,21 @@ cx.listView = (o) => {
   const titleCol = o.titleCol || { label: o.titleLabel || 'Title', get: (r) => r.title || r.name };
   const sortOpts = o.sort?.options || [];
   let st = lvStates.get(key);
+  const fresh = !st || !!o.reset;
   if (!st || o.reset) {
     st = { filters: {}, conds: [], tab: 0, sort: o.sort?.default?.key || sortOpts[0]?.key || null, dir: o.sort?.default?.dir || 'desc', limit: o.pageSize || 20, facet: null, sel: new Set() };
     for (const f of filters) if (f.default != null) st.filters[f.key] = f.default;
     lvStates.set(key, st);
   }
-  const init = o.initial || cx.current.state?.list;
+  // defaultTab (an index or a tab's label) is the tab a list opens on the first time, and when a link carries filters
+  // but no tab. Navigation state (cx.go(route, id, { list })) wins over o.initial.
+  const tabIndex = (t) => (typeof t === 'number' ? t : Math.max(0, (o.tabs || []).findIndex((x) => x.label === t)));
+  if (fresh && o.defaultTab != null) st.tab = tabIndex(o.defaultTab);
+  const init = cx.current.state?.list || o.initial;
   if (init) {
     if (init.filters) { st.filters = { ...init.filters }; st.conds = []; st.facet = null; }
-    if (init.tab != null) st.tab = typeof init.tab === 'number' ? init.tab : Math.max(0, (o.tabs || []).findIndex((t) => t.label === init.tab));
+    if (init.tab != null) st.tab = tabIndex(init.tab);
+    else if (init.filters && o.defaultTab != null) st.tab = tabIndex(o.defaultTab);
   }
   st.sel = new Set();
   const getters = new Map();
@@ -1649,7 +1703,7 @@ cx.listView = (o) => {
       rows.length > st.limit ? h('button.btn.sm.ghost', { type: 'button', onclick: () => { st.limit += o.pageSize || 20; update(); } }, 'Load more') : null,
       h('span', { style: 'margin-left:auto' }, `${fmt.int(Math.min(st.limit, rows.length))} of ${fmt.int(rows.length)}`));
     const spec = typeof o.cmd === 'function' ? o.cmd(st, rows) : o.cmd ? withFilters(o.cmd, st, filters) : null;
-    if (spec && o.setsCommand !== false) { if (firstUpdate) queueMicrotask(() => strip.screen(spec)); else strip.screen(spec); }
+    if (spec && o.setsCommand !== false && o.strip !== false) { if (firstUpdate) queueMicrotask(() => strip.screen(spec)); else strip.screen(spec); }
     firstUpdate = false;
   }
   function updateTop(rows) {
@@ -2044,7 +2098,7 @@ cx.approval = (o) => new Promise((resolve) => {
     setTimeout(() => {
       fill(wait, h('div.ring'), h('b', 'Sending…'), h('span.muted', 'Capxul sponsors the gas; your Safe signs.'));
       setTimeout(() => {
-        const at = new Date(cx.now.getTime() + 60000).toISOString();
+        const at = cx.now.toISOString();
         if (isBoard) {
           const have = (o.board.have ?? 0) + 1, need = o.board.need ?? D.board.threshold;
           const remaining = Math.max(0, need - have);
@@ -2122,7 +2176,7 @@ cx.verify = async (p) => {
   out.push({ ok: a.token === p.asset && String(a.amount) === String(p.amountRaw), label: 'Token and amount match what moved on chain', detail: `${a.token} ${a.amount} (raw, 6 decimals)` });
   const allocs = a.allocations || [];
   const docChecks = allocs.map((al) => { const d = cx.docByName(al.doc); return { al, d, ok: !d || !d.doc.contentHash || d.doc.contentHash === al.content }; });
-  out.push({ ok: docChecks.every((x) => x.ok), label: allocs.length === 1 ? `${allocs[0].doctype} ${allocs[0].number || allocs[0].doc} re-hashes to the version paid` : `${allocs.length} documents re-hash to the versions paid`, detail: allocs.map((al) => `${al.doc}: ${fmt.hash(al.content)}`).join('\n') || 'No documents' });
+  out.push({ ok: docChecks.every((x) => x.ok), label: allocs.length === 1 ? `${allocs[0].record} ${allocs[0].number || allocs[0].doc} re-hashes to the version paid` : `${allocs.length} documents re-hash to the versions paid`, detail: allocs.map((al) => `${al.doc}: ${fmt.hash(al.content)}`).join('\n') || 'No documents' });
   const gbp = allocs.filter((x) => x.currency === 'GBP').reduce((s2, x) => s2 + x.allocated, 0);
   const usd = allocs.filter((x) => x.currency !== 'GBP').reduce((s2, x) => s2 + x.allocated, 0);
   const sumOk = (!gbp || gbp === a.cash?.amount) && (!usd || usd * 10000 === Number(a.amount));
@@ -2156,10 +2210,10 @@ cx.proof = (p, o = {}) => {
   } });
   const cash = a.cash ? fmt.money(a.cash.amount / 10 ** (a.cash.decimals ?? 2), a.cash.currency) + (a.cash.rate ? ` at 1 ${a.token} = £${a.cash.rate}` : '') : null;
   const allocs = (a.allocations || []).map((al) => {
-    const route = ALLOC_ROUTE[al.doctype];
+    const route = ALLOC_ROUTE[al.record];
     const div = 10 ** (al.decimals ?? 2);
     return h('div.alloc',
-      h('div.alloc-head', h('span.muted', al.doctype), route && cx.hasRoute(route) ? cx.link(al.number || al.doc, route, al.doc) : h('b', al.number || al.doc), al.date ? h('span.muted', fmt.date(al.date)) : null, h('span', { style: 'margin-left:auto' }, 'Allocated ', h('b', fmt.money(al.allocated / div, al.currency || 'GBP')))),
+      h('div.alloc-head', h('span.muted', al.record), route && cx.hasRoute(route) ? cx.link(al.number || al.doc, route, al.doc) : h('b', al.number || al.doc), al.date ? h('span.muted', fmt.date(al.date)) : null, h('span', { style: 'margin-left:auto' }, 'Allocated ', h('b', fmt.money(al.allocated / div, al.currency || 'GBP')))),
       al.lines?.length ? h('div.alloc-lines', al.lines.slice(0, 12).map((ln) => h('div.alloc-line', h('span', `${ln.idx} · ${ln.description}`), h('span.num', fmt.money(ln.amount / div, al.currency || 'GBP'), (ln.taxes || []).map((t) => h('span.muted', ` + ${t.name || t.tax || 'VAT'} ${t.rate != null ? t.rate + '%' : t.bps != null ? t.bps / 100 + '%' : ''} ${fmt.money((t.amount ?? 0) / div, al.currency || 'GBP')}`))))), al.lines.length > 12 ? h('div.muted', `and ${al.lines.length - 12} more lines`) : null) : null,
       h('div.muted', { style: 'font-size:12px' }, 'Version paid ', h('span.mono', fmt.hash(al.content))));
   });
@@ -2209,7 +2263,7 @@ cx.fde = {
       fill(convo, ...fdeTurns.map((t) => h('div.chat-turn', { class: t.role },
         t.role === 'fde' && t.lookedAt?.length ? h('div.looked', h('span', 'What I looked at'), t.lookedAt.map((x) => h('div', h('code', '$ ' + x.command), x.result ? h('div', h('span', x.result)) : null))) : null,
         h('div.bubble', t.text),
-        t.draft ? cx.draft(t.draft) : null,
+        [].concat(t.draft || [], t.drafts || []).map((d) => cx.draft(d)),
         t.links?.length ? h('div.chips', t.links.map((l) => h('a.btn.sm', { href: cx.href(l.route, l.id) }, l.label))) : null)));
       if (!fdeTurns.length) convo.appendChild(h('div', { style: 'display:grid;gap:8px' }, h('p.muted', 'Ask about anything on this screen or in the company. Try:'), h('div.suggest', cx.fde.suggestions.map((sg) => h('button', { type: 'button', onclick: () => ask(sg) }, sg)))));
       panel.body.scrollTop = panel.body.scrollHeight;
@@ -2252,6 +2306,16 @@ function coreSearch(q) {
   }
   for (const p of D.people) if (p.name.toLowerCase().includes(t) || (p.employee || '').toLowerCase().includes(t)) out.push({ kind: 'People', label: p.name, sub: `${p.designation} · ${p.employee}${p.status !== 'Active' ? ' · ' + p.status : ''}`, route: 'employee', id: p.employee, person: p.id });
   for (const o of D.others || []) if (o.name.toLowerCase().includes(t)) out.push({ kind: 'People', label: o.name, sub: o.role, person: o.id });
+  // customers and suppliers: the parties the books bill and pay
+  const owed = (list, key, id) => list.filter((i) => i[key] === id && i.outstanding > 0.005).reduce((s, i) => s + (i.baseOutstanding ?? i.outstanding * (i.conversionRate || 1)), 0);
+  for (const c of D.books.customers || []) if (`${c.name} ${c.short || ''} ${c.id}`.toLowerCase().includes(t)) {
+    const n = D.books.salesInvoices.filter((i) => i.customer === c.id).length;
+    out.push({ kind: 'Customers', label: c.name, sub: [c.industry, `${fmt.plural(n, 'invoice')}`, owed(D.books.salesInvoices, 'customer', c.id) > 0 ? `${fmt.gbp(owed(D.books.salesInvoices, 'customer', c.id), 0)} owed` : null].filter(Boolean).join(' · '), route: routes.has('company') ? 'company' : 'accounts-receivable', id: routes.has('company') ? c.id : null, icon: 'crm' });
+  }
+  for (const sp of D.books.suppliers || []) if (`${sp.name} ${sp.id}`.toLowerCase().includes(t)) {
+    const bills = D.books.purchaseInvoices.filter((i) => i.supplier === sp.id || i.supplierName === sp.name).sort((a, b) => String(b.postingDate).localeCompare(String(a.postingDate)));
+    out.push({ kind: 'Suppliers', label: sp.name, sub: [sp.group, fmt.plural(bills.length, 'bill'), bills[0] ? `latest ${bills[0].name}` : null].filter(Boolean).join(' · '), route: bills[0] ? 'purchase-invoice' : 'purchase-invoices', id: bills[0]?.name || null, icon: 'file' });
+  }
   for (const d of [...D.departments, ...D.allowances]) if (d.name.toLowerCase().includes(t)) out.push({ kind: 'Departments', label: cx.deptName(d.id), sub: 'Hat: ' + cx.holders(d.id).map(cx.name).join(', '), route: D.allowances.includes(d) ? 'allowance' : 'department', id: d.id, icon: 'departments' });
   return out;
 }
@@ -2441,6 +2505,132 @@ cx.stubPage = (o) => cx.workspacePage({
   body: cx.card({ title: 'Coming in this workspace', body: h('div', { style: 'display:grid;gap:10px' }, h('p.muted', o.note || 'This workspace is being built.'), h('ul', { style: 'margin:0;padding-left:18px;display:grid;gap:3px' }, (o.screens || []).map((x) => h('li', x)))) }),
 });
 
+/* =====================================================================================================
+   Walkthroughs: four stories through the mock-up, step by step, each step as the person who would act
+   ===================================================================================================== */
+
+const landSaltmarsh = () => { const d = (D.money.deposits || []).find((x) => x.id === 'bdep_arriving'); if (d?.status === 'Arriving') cx.native?.creditDeposit?.(d); return d; };
+const TOURS = [
+  { id: 'bridge', n: 1, title: 'A customer pays through Bridge', icon: 'bank',
+    blurb: "Saltmarsh pays an invoice by bank transfer. Bridge turns the pounds into USDC in the Treasury; Capxul matches it to the invoice by its reference and books it.",
+    steps: [
+      { title: 'The invoice', as: 'maya', route: 'sales-invoice', id: 'ACC-SINV-2026-00052',
+        text: 'Saltmarsh Distillery owes £13,680.00 on ACC-SINV-2026-00052. It quotes reference RF31 HL26 0052, and "How to pay" gives Harbourline\'s pound account at Bridge. The pill beside Unpaid says a payment is on its way.' },
+      { title: 'The deposit', as: 'maya', route: 'deposit', id: 'bdep_arriving',
+        text: 'Saltmarsh paid by Faster Payments this morning. Bridge has the pounds and is converting them to USDC. In a few seconds it lands in the Treasury (or press Check with Bridge), matched to the invoice by its reference.' },
+      { title: 'Reconciled', as: 'maya', route: 'sales-invoice', id: 'ACC-SINV-2026-00052', state: { tab: 'Payments' }, before: landSaltmarsh,
+        text: 'The invoice is Paid. Its payments list the entry Capxul booked against it. Nobody keyed anything: the reference did the matching.' },
+      { title: 'The payment entry', as: 'maya', before: landSaltmarsh, resolve: () => { const d = landSaltmarsh(); return d?.voucher ? ['payment-entry', d.voucher] : ['payment-entries']; },
+        text: 'Receive, from Saltmarsh: the USDC at its pounds into 1010 Treasury, Bridge\'s conversion fees to bank charges, and the receivable cleared against ACC-SINV-2026-00052.' },
+      { title: 'The Treasury', as: 'maya', route: 'treasury', state: { tab: 'Statement' },
+        text: 'The Treasury Safe\'s statement shows the USDC arriving, with its transaction on Base. The Safe and the books agree to the cent.' },
+      { title: 'Every Bridge deposit', as: 'maya', route: 'bank', state: { tab: 'Deposits' },
+        text: 'All the deposits Bridge has turned into USDC: matched by reference, matched by hand, or waiting for Books to review.' },
+    ] },
+  { id: 'payroll', n: 2, title: 'Month-end payroll in one batch', icon: 'payroll',
+    blurb: 'October went out on 30 October in one approval, every payslip with its own proof. Then November: Isla, who wears People, prepares it; Maya, who wears the Harbourline hat, pays it.',
+    steps: [
+      { title: "October's run", as: 'maya', route: 'payroll-run', id: 'HR-PRUN-2026-00010', state: { tab: 'Accounting and payment' },
+        text: 'HR-PRUN-2026-00010: one approval by Maya, one payment on Base per payslip, each with its document hash. Hannah Cole had no account yet, so hers waited for her in money waiting until she claimed it.' },
+      { title: 'One payslip, its proof', as: 'maya', route: 'payslip', id: 'Sal Slip/HR-EMP-00003/00018', state: { tab: 'Payment' },
+        text: "Ellis Hart's October pay went to his bank through Bridge. Press Verify: the page re-hashes the payment advice, which commits to the payslip's lines, and checks it against the hash on chain." },
+      { title: 'Isla prepares November', as: 'isla', route: 'payroll-run-new',
+        text: 'Isla wears People. She creates the run for November and submits the payslips. She cannot pay them: paying takes the Harbourline hat.' },
+      { title: 'Maya pays everyone at once', as: 'maya',
+        resolve: () => { const r = D.payroll.runs.find((x) => x.status === 'Submitted'); return r ? ['payroll-run', r.name, { tab: 'Accounting and payment' }] : ['payroll-runs']; },
+        check: () => D.payroll.runs.some((x) => ['Submitted', 'Paid'].includes(x.status) && x.startDate === '2026-11-01'), unmet: "November's run is not submitted yet: go back a step and let Isla create and submit it.",
+        text: 'On the submitted run Maya presses Pay: one passkey approval sends every payslip, each payment with its own proof. A payslip that is withheld stays out of the batch.' },
+      { title: 'The salary register', as: 'maya', route: 'salary-register',
+        text: 'Every payslip with what it paid, how it was paid, and its proof.' },
+    ] },
+  { id: 'hire', n: 3, title: 'The FDE drafts a new hire', icon: 'fde',
+    blurb: "Maya tells the FDE that Owen Grady joins on 4 January. It drafts her two steps as founder, and People's three for Kwame, acting only with each person's permissions.",
+    steps: [
+      { title: 'Maya asks the FDE', as: 'maya', route: 'home', ask: 'Owen Grady joins on 4 January as a Senior Software Engineer. What do I need to do?',
+        text: "The FDE reads the invitation, Engineering's budget and the options pool. It drafts Maya's steps for her to run and People's steps for Kwame. Press Review and approve on hers." },
+      { title: "Engineering's budget", as: 'maya', route: 'department', id: 'engineering', state: { tab: 'Changes' },
+        check: () => (D.departments.find((d) => d.id === 'engineering')?.changes || []).some((c) => /Owen/.test(c.note || '')), unmet: "Maya has not run her draft yet: go back a step and press Review and approve.",
+        text: "Engineering's changes show the raise for Q1, signed with Maya's passkey as Harbourline, the hat above Engineering." },
+      { title: "Owen's options", as: 'maya', route: 'proposals',
+        text: 'The grant is a Board proposal. Maya approved it as she proposed it; Tom or Ruth makes it final.' },
+      { title: 'Kwame adds the employee', as: 'kwame', route: 'employee-new', state: { fill: 'owen' },
+        text: "Kwame wears People. The FDE's draft opens the employee form filled from Owen's offer. Maya could not do this herself: People cannot be worn with a department's hat." },
+      { title: 'His seat', as: 'kwame', route: 'seats',
+        text: "Owen's invitation went out on 3 November. When he accepts, he gets his own Safe and his own agent." },
+    ] },
+  { id: 'swap', n: 4, title: "A department's budget, a new person in its hat", icon: 'departments',
+    blurb: "Delivery's budget belongs to Delivery, not to a person. Maya swaps Ravi in for Grace: the money, its payments and what Delivery set running stay with Delivery.",
+    steps: [
+      { title: 'Departments', as: 'maya', route: 'departments',
+        text: "Each department has a quarterly budget in USDC. Whoever wears its hat now spends it and decides its people's leave and claims." },
+      { title: "Delivery's budget", as: 'maya', route: 'department', id: 'delivery', state: { tab: 'Overview' },
+        text: 'Spent, handed down, committed and left this quarter, and who can act on it now.' },
+      { title: 'Swap the hat', as: 'maya', route: 'department', id: 'delivery', state: { tab: 'Holders' },
+        text: 'Maya wears Harbourline, the hat above Delivery. Under Holders she adds Ravi Shah, then removes Grace Adeyemi: one passkey approval each.' },
+      { title: 'Ravi can pay from it', as: 'ravi', route: 'send-money',
+        check: () => cx.holders('delivery').includes('ravi'), unmet: 'Ravi does not wear the Delivery hat yet: go back a step and add him.',
+        text: "Viewing as Ravi: Pay from now offers Delivery's budget, and its leave and claims come to him." },
+      { title: 'Grace no longer can', as: 'grace', route: 'department', id: 'delivery', state: { tab: 'Holders' },
+        check: () => !cx.holders('delivery').includes('grace'), unmet: 'Grace still wears the Delivery hat: go back two steps and remove her.',
+        text: "Viewing as Grace: Delivery's controls are locked, with the reason. Her past approvals stay on the record." },
+    ] },
+];
+let tour = null;
+function tourGo(i) {
+  if (!tour) return;
+  const t = tour.t;
+  tour.i = Math.max(0, Math.min(i, t.steps.length - 1));
+  const st = t.steps[tour.i];
+  try { st.before?.(); } catch (e) { console.error(e); }
+  if (st.as && st.as !== meId && cx.person(st.as)) { meId = st.as; store.set('persona', meId); renderTopbar(); emit('persona', cx.me()); }
+  const [route, id, state] = st.resolve ? st.resolve() : [st.route, st.id, st.state];
+  cx.panel.close();
+  cx.go(route, id, state);
+  if (st.ask) setTimeout(() => cx.fde.open({ ask: st.ask }), 350);
+}
+cx.tours = {
+  list: () => TOURS,
+  start(id, i = 0) { const t = TOURS.find((x) => x.id === id); if (!t) return; tour = { t, i: 0 }; tourGo(i); },
+  go: tourGo,
+  end() { tour = null; render({ keepScroll: true }); },
+  current: () => (tour ? { id: tour.t.id, step: tour.i } : null),
+};
+function tourBar() {
+  const t = tour.t, st = t.steps[tour.i];
+  const unmet = st.check && !st.check() ? st.unmet : null;
+  const where = st.resolve ? null : cx.href(st.route, st.id);
+  const away = where && location.hash !== where && !(location.hash === '' && st.route === 'home');
+  return h('section.tour-bar', { role: 'region', 'aria-label': 'Walkthrough' },
+    h('span.tour-step', `${t.n} · Step ${tour.i + 1} of ${t.steps.length}`),
+    h('div.tour-text', h('b', `${t.title}: ${st.title}`), h('span', st.text), unmet ? h('span', { style: 'color:var(--t-orange)' }, unmet) : null, st.as ? h('span.faint', { style: 'font-size:12px' }, `Viewing as ${cx.name(st.as)}${cx.person(st.as)?.hats?.length ? ' · ' + cx.person(st.as).hats.join(', ') : ''}`) : null),
+    h('div.tour-nav',
+      away ? h('button.btn.sm', { type: 'button', onclick: () => tourGo(tour.i) }, 'Back to this step') : null,
+      tour.i > 0 ? h('button.btn.sm', { type: 'button', onclick: () => tourGo(tour.i - 1) }, cx.icon('left'), 'Back') : null,
+      tour.i < t.steps.length - 1 ? h('button.btn.sm.primary', { type: 'button', onclick: () => tourGo(tour.i + 1) }, 'Next', cx.icon('right'))
+        : h('button.btn.sm.primary', { type: 'button', onclick: () => { cx.tours.end(); cx.go('home'); } }, cx.icon('check'), 'Finish'),
+      h('button.btn.sm.ghost', { type: 'button', title: 'End the walkthrough', onclick: () => cx.tours.end() }, 'End')));
+}
+function toursCard() {
+  return cx.card({ title: 'Walk through Harbourline', flush: true,
+    actions: h('span.muted', { style: 'font-size:12.5px' }, 'Each step switches who you are viewing as'),
+    body: h('div.tours', TOURS.map((t) => h('div.tour',
+      h('h3', h('span.n', String(t.n)), t.title),
+      h('p', t.blurb),
+      h('ol', t.steps.map((s) => h('li', s.title))),
+      h('button.btn.sm.primary.tour-go', { type: 'button', onclick: () => cx.tours.start(t.id) }, 'Start', cx.icon('right'))))) });
+}
+/** Home's index of every workspace and its pages, so every screen is two clicks from Home. */
+function directoryCard() {
+  const seat = cx.hasSeat();
+  const groups = GROUPS.map((g) => ({ ...g, ids: [...g.ids] }));
+  for (const id of workspaces.keys()) if (!groups.some((g) => g.ids.includes(id))) groups[groups.length - 1].ids.push(id);
+  const flat = (items) => items.flatMap((it) => (it.items ? flat(it.items) : [it]));
+  const cols = groups.flatMap((g) => g.ids.map((id) => workspaces.get(id)).filter((ws) => ws && ws.id !== 'home' && (seat || ws.seatless)))
+    .map((ws) => h('div.wsdir-ws', h('a.wsdir-head', { href: cx.href(ws.route) }, cx.icon(ws.icon, { size: 15 }), ws.label),
+      h('ul', flat(ws.nav || []).filter((it) => it.route !== ws.route || it.id).map((it) => h('li', cx.link(it.label, it.route, it.id))))));
+  return cx.card({ title: 'Everything in Capxul', cmd: 'capxul --help', body: h('div.wsdir', cols) });
+}
+
 function greeting() { const hh = +london(D.meta.now).hh; return hh < 12 ? 'Good morning' : hh < 18 ? 'Good afternoon' : 'Good evening'; }
 function homePage() {
   const me = cx.me();
@@ -2458,7 +2648,7 @@ function homePage() {
     const mine = (D.notices || []).filter((n) => n.to === meId);
     return cx.page({ title: '', hero: hello, cmd: { cli: ['capxul payroll payslip list', 'capxul hr leave balance', 'capxul payment claim'], note: 'Without a seat you see your own records.' }, fde: 'Home',
       body: [cx.banner(`${me.name} has no seat at Harbourline, so Capxul shows only ${me.firstName}'s own records.`, { tone: 'info' }),
-        h('div.grid.c2', cx.card({ title: 'Your notices', body: mine.length ? h('ul.feed', mine.slice(0, 6).map((n) => h('li', cx.icon('bell'), h('span', n.text), h('span.ago', fmt.ago(n.at))))) : h('p.muted', 'No notices.'), flush: !!mine.length }), askCard)] });
+        h('div.grid.c2', cx.card({ title: 'Your notices', body: mine.length ? h('ul.feed', mine.slice(0, 6).map((n) => h('li', cx.icon('bell'), h('span', n.text), h('span.ago', fmt.ago(n.at))))) : h('p.muted', 'No notices.'), flush: !!mine.length }), askCard), directoryCard()] });
   }
   // waiting for you
   const waits = (D.approvals?.waiting || []).filter((a) => (a.waitsFor || []).includes(meId));
@@ -2534,7 +2724,7 @@ function homePage() {
     return h('li', e.who ? cx.avatar(e.who, { size: 'sm' }) : h('span.avatar.sm.t-gray', cx.icon(EV_ICON[e.kind] || 'activity', { size: 12 })), h('div', { style: 'min-width:0' }, href ? h('a', { href, style: 'color:inherit' }, e.text) : e.text, h('div.muted', { style: 'font-size:12px' }, e.kind)), h('span.ago', { title: fmt.datetime(e.at) }, fmt.ago(e.at)));
   })) });
   return cx.page({ title: '', hero: hello, cmd: homeCmd, fde: 'Home',
-    body: h('div.grid.side.home-cols', h('div.grid', waitCard, moneyCard, deptCard), h('div.grid', askCard, comingCard, feedCard)) });
+    body: [toursCard(), h('div.grid.side.home-cols', h('div.grid', waitCard, moneyCard, deptCard), h('div.grid', askCard, comingCard, feedCard)), directoryCard()] });
 }
 
 cx.workspace({ id: 'home', label: 'Home', icon: 'home', route: 'home', nav: [], seatless: true });
@@ -2571,6 +2761,7 @@ async function boot() {
     return;
   }
   cx.data = D;
+  try { document.documentElement.lang = 'en-GB'; } catch { /* the wrapper may own the root */ }
   cx.today = D.meta.today;
   cx.now = new Date(D.meta.now);
   cx.company = D.company;

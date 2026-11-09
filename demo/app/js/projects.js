@@ -289,7 +289,6 @@ cx.style('projects', `
 .pj-sum { display: grid; gap: 2px; font-size: 12.5px; color: var(--muted); }
 .pj-delay { color: var(--neg); font-weight: 600; }
 .pj-ontrack { height: 26px; display: flex; border-radius: var(--r); overflow: hidden; font-size: 12px; font-weight: 600; color: var(--surface); }
-.btn[hidden], .pill[hidden] { display: none !important; }
 .pj-ontrack div { display: flex; align-items: center; padding: 0 10px; min-width: 0; white-space: nowrap; overflow: hidden; }
 `);
 
@@ -1322,8 +1321,17 @@ function billModal(tsNames, onlyProject) {
       (p.salesInvoices ||= []).push(name);
       (p.history ||= []).push({ at: NOW(), who: cx.meId(), kind: 'change', text: `billed ${fmt.hours(r2(sum(logs, (l) => l.hours)))} into ${name}` });
       close();
-      cx.toast(`${name} made from ${fmt.plural(tsList.length, 'timesheet')}: ${money(total, cur)}. Post it to send it; posting marks the hours billed.`, { tone: 'success', cmd, ms: 9000 });
-      cx.go('sales-invoice', name);
+      // The command makes and posts the invoice in one write, through the Books hook; without it the invoice stays a draft.
+      const post = cx.native?.postSalesInvoice;
+      if (post) {
+        Promise.resolve(post(inv)).then(() => {
+          cx.toast(`Posted ${name} from ${fmt.plural(tsList.length, 'timesheet')}: ${money(total, cur)}, reference ${inv.rfReference}. The hours read Billed.`, { tone: 'success', cmd, ms: 9000 });
+          cx.go('sales-invoice', name);
+        }, (e) => { console.error(e); cx.toast(`${name} was made but not posted.`, { tone: 'warning' }); cx.go('sales-invoice', name); });
+      } else {
+        cx.toast(`${name} made from ${fmt.plural(tsList.length, 'timesheet')}: ${money(total, cur)}. Post it to send it; posting marks the hours billed.`, { tone: 'success', cmd, ms: 9000 });
+        cx.go('sales-invoice', name);
+      }
     } });
 }
 
@@ -1624,3 +1632,31 @@ cx.route('delayed-tasks', () => cx.page({
     cmd: (v) => ({ cli: [`capxul org projects task list${v.project ? ' --project ' + v.project : ''} --status ${v.status ? lc(v.status) : 'overdue'}`, `capxul org report run delayed-tasks-summary --filter from_date=${v.from} --filter to_date=${v.to}${v.project ? ' --filter project=' + v.project : ''}`] }),
   }),
 }), { workspace: 'projects', title: 'Delayed tasks summary' });
+
+/* ---------- hooks the FDE uses ---------- */
+
+/** Add logs to a person's draft timesheet for this week (or start one): what the FDE runs for someone's own time. */
+function logWeekFor(employee, project, entries) {
+  const p = PROJ.get(project);
+  const ws = entries.reduce((m, e) => (e.date < m ? e.date : m), entries[0].date);
+  let ts = P.timesheets.find((t) => t.employee === employee && t.status === 'Draft' && t.startDate >= addDays(ws, -6));
+  if (!ts) {
+    const name = nextName(`TS-${TODAY.slice(0, 4)}-`, P.timesheets.map((t) => t.name));
+    ts = { employee, startDate: ws, currency: p?.currency || 'GBP', name, endDate: ws, project, customer: p?.customer || null, department: cx.person(employee)?.department, loggedBy: cx.meId(), status: 'Draft', submittedAt: null, totalHours: 0, totalBillableHours: 0, totalBillableAmount: 0, totalCostingAmount: 0, totalBilledHours: 0, totalBilledAmount: 0, perBilled: 0, salesInvoices: [], logCount: 0, note: null, createdAt: NOW() };
+    P.timesheets.push(ts); TSM.set(name, ts);
+  }
+  let idx = tsLogs(ts.name).reduce((mx, l) => Math.max(mx, l.idx), 0);
+  const billable = p?.billing === 'tm' ? 1 : 0;
+  for (const e of entries) {
+    const r = ratesFor(employee, e.activity, project);
+    const used = tsLogs(ts.name).filter((l) => l.date === e.date).reduce((s, l) => s + l.hours, 0);
+    const start = 9 + used + (used >= 4 ? 0.5 : 0);
+    const hh = String(Math.floor(start)).padStart(2, '0'), mm = String(Math.round((start % 1) * 60)).padStart(2, '0');
+    LOGS.push({ timesheet: ts.name, idx: ++idx, date: e.date, hours: e.hours, activity: e.activity, project, task: e.task || null, billable, billingRate: billable ? r.billing : 0, billingAmount: billable ? r2(r.billing * e.hours) : 0, costingRate: r.costing, invoice: null, completed: 0, fromTime: `${e.date}T${hh}:${mm}:00Z`, note: e.note || null });
+    reindex();
+    if (e.date < ts.startDate) ts.startDate = e.date; if (e.date > ts.endDate) ts.endDate = e.date;
+  }
+  ts.logCount = idx;
+  return ts;
+}
+cx.native = Object.assign(cx.native || {}, { billTimesheets: billModal, logWeekFor });
