@@ -61,7 +61,9 @@ The system is built on the decisions in `docs/decisions/README.md`:
 - one clock for the whole system, block time included, driven from outside on a devnet
   (`docs/design/time.md`): each world's clock is frozen or running at a rate of 1 to 60 world seconds a
   real second (`dev time set --rate`, `devnet.clock-rate`), and every outside channel is its world's
-  (mail, WhatsApp, a connected head, the FDE's host: `aaron.world-clock`, `time.world-channels`, section 7).
+  (mail, WhatsApp, a connected head, the FDE's host: `aaron.world-clock`, `time.world-channels`, section 7);
+  a shared world runs in seasons, like a game: each starts from a saved world, runs at a rate, warps on a real
+  schedule, admits only its players and ends in a reset (`aaron.seasons`, `devnet.seasons`, section 8).
 
 ## Capxul is designed around Frappe
 
@@ -97,16 +99,24 @@ Aaron's rulings of 8 November 2026 (`books/target/shared/rulings.ts`) put Frappe
 - **The head itself is a separate build.** This build makes Capxul head-ready: its tables, its
   change feed, its doorbell route and its sync. It proves them against the devnet's head stand-in.
   What lives only on a head is reached through the document family over the Core SDK and the CLI
-  (`org doc`, `org doctype`, `org doc-call`), as the member's own head User, never a native or a money
-  DocType (`aaron.sdk-reaches-everything`, `organizations.doc-family`, section 5.7).
+  (`org head doc`, `org head doctype`, `org head doc-call`), as the member's own head User, never a native or a money
+  DocType (`aaron.sdk-reaches-everything`, `organizations.doc-family`, section 5.7). How each of Frappe's 425
+  DocTypes is reached today, and Aaron's open question on reaching more, is `docs/design/command-surface.md` section 7.
 - **Where it leads.** Capxul sits inside a larger agentic ERP on stablecoins (`docs/vision/erp.md`),
   and the one clock must drive all of it.
 
 New capabilities beyond the 215 are booked under the rule `rules.new-operations`: a new operation
-carries a decision citing the ruling it serves, and acceptance claims of its own. 165 are booked, each
-listed once in `docs/design/new-commands.md`: projects 35; the CRM 14 and its conversations 13;
-payroll 28 and HR 45; apps, the head and the FDE 8, the FDE's guests and turns 4 and the document family
-12; buying from Capxul 3; `org timesheet bill`, `payment claim` and `dev time set`.
+carries a decision citing the ruling it serves, and acceptance claims of its own, at least two each. 179 are
+booked, each listed once in `docs/design/new-commands.md`: projects 35; the CRM 14 and its conversations 13;
+payroll 28 and HR 48; apps, the head and the FDE 8, the FDE's guests and turns 4 and the document family
+12; buying from Capxul 3; the devnet's seasons 11; `org projects timesheet bill`, `payment claim` and `dev time set`.
+
+**The command surface is one tree** (`surface.tree`; `docs/design/command-surface.md`), on Aaron's answer of 9 November
+2026: "It's the logical groupings." All 394 commands sit in thirteen groups. Frappe's apps are group words under
+`org` (`org books`, `org hr`, `org payroll`, `org crm`, `org projects`, `org head`), a person's own side the same word
+without `org` (`hr`, `payroll`), and Capxul's native areas keep the 215's nouns, grouped as sections of the help.
+119 commands moved, 11 of them of the 215 (the agreement commands, into payroll), each with a decision; no behaviour
+changed. The CLI, the SDK's namespaces and the flow ids follow the tree (G7). `tools/report-surface.ts` checks it.
 
 ## Start from the kit
 
@@ -189,10 +199,11 @@ template's copy.
 
 | | |
 |---|---|
-| Records | 3,255 in the target book: 23 concepts, 380 operations (the 215 and 165 beyond them), 13 journeys, 147 tables, 75 state machines, 108 durable processes, 375 rpcs, 213 Core SDK flows, 20 procedures and 1,005 decision records |
-| Derived evals | 8,027, including 1,074 acceptance claims, 1,489 refusals, 13 journeys and 13 funnels, 56 row-policy clauses and 104 wake routes |
+| Records | 3,347 in the target book: 23 concepts, 394 operations (the 215 and 179 beyond them), 13 journeys, 147 tables, 75 state machines, 119 durable processes, 378 rpcs, 224 Core SDK flows, 20 procedures and 1,045 decision records |
+| Derived evals | 8,398, including 1,205 acceptance claims, 1,541 refusals, 13 journeys and 13 funnels, 56 row-policy clauses and 104 wake routes |
 | Problems | 0, with the target rules on |
-| Kept behaviour | `check-frozen` reports 0 breaches. All 215 operations are booked once each. Of the 733 acceptance claims, 547 are kept word for word, and 173 rewritten and 13 retired, each with a decision. Of the 705 old refusals, 691 are still refused under their code, and 14 are named by a decision. Its line on the new: "165 operations beyond the 215, with 354 acceptance claims", each serving an Aaron ruling. |
+| Kept behaviour | `check-frozen` reports 0 breaches. All 215 operations are booked once each. Of the 733 acceptance claims, 547 are kept word for word, and 173 rewritten and 13 retired, each with a decision. Of the 705 old refusals, 691 are still refused under their code, and 14 are named by a decision. Its line on the new: "179 operations beyond the 215, with 485 acceptance claims", each serving an Aaron ruling; every new operation has at least two. |
+| Command surface | `tools/report-surface.ts`: 394 rows for 394 operations in 13 groups, 119 moves, 0 still to apply, 0 problems; `--check-md` finds 0 differences in `docs/design/command-surface.md` section 6 |
 | Gaps | 79, listed below, each known and owned |
 
 The 79 gaps, and who closes them:
@@ -299,19 +310,18 @@ operating text, given in full under "How you run the build" below.
   recommendation.
 - **The judgments flagged for him.** `docs/decisions/judgments.md` lists them under "For Aaron",
   after the rulings he has made ("Decided by Aaron"), the records his rulings superseded and the
-  recommendations he accepted. At handoff the questions are the world pass's, numbered 39 to 49 in
-  `docs/decisions/open-for-aaron.md`:
-  - the clock's rate and its command (`devnet.clock-rate`);
-  - who may join a shared world (`devnet.shared-world`);
-  - staging on the real clock (`time.worlds`);
-  - the document family's twelve commands (`organizations.doc-family`) and what counts as money
-    (`organizations.doc-reach`);
-  - the hosted FDE acting as its asker (`organizations.fde-for-the-asker`);
-  - the CRM's conversation commands (`contacts.conversation-commands`), the money on a timeline
-    (`contacts.timeline-money`) and attachments later (`contacts.attachments-later`);
-  - HR's 45 commands (`payroll.hr-commands`) and a department's sole hat wearer (`payroll.hr-approvers`).
+  recommendations he accepted. He answered the world pass's questions (39 to 49) in his ninth batch: all accepted,
+  question 40 superseded by the seasons (`aaron.seasons`) and question 48 answered by the command tree. At handoff
+  the open questions are 50 to 55 in `docs/decisions/open-for-aaron.md`:
+  - 50, the command tree, applied (`surface.tree`, `surface.payroll-group`);
+  - 51, HR as a command group but not a concept (`surface.hr-concept`);
+  - 52, reaching Frappe's other DocTypes: native as what Capxul writes, money as what moves money, reversing
+    question 43 (`surface.frappe-reach`); until he answers, `organizations.doc-reach` stays in force;
+  - 53, reports, next documents and prints through the family (`surface.head-methods`), proposed and not booked;
+  - 54, which computed DocType gets a native command first (`surface.computed-gaps`), not booked;
+  - 55, a shared world's eleven `dev season` commands (`devnet.seasons`), booked.
 
-  The rest of that list carries out his eighth batch and asks him nothing; it leaves the list once
+  The rest of that list carries out his answers and asks him nothing; it leaves the list once
   `books/target/shared/rulings.ts` names it in `CARRIES_OUT`.
 
   Each recorded choice stands, and you build to it, until he changes it. His change goes into the

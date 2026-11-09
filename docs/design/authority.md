@@ -206,7 +206,7 @@ proposes, and the threshold of Directors approves from their own Safes.
 | Pay from the company Safe now | The Board | Gate threshold of valid Director-hat signatures | `payments.commands.propose`, a Board proposal |
 | Spend from a budget now | Its hat's wearers, anyone above | `Budgets.spend`: `authorised(id)`, room, open path, then Roles' payout ceiling | An approval from the spender's Safe (`payments.commands.prepare`, `payroll.runs.pay`, `banking.payouts.quote`, `requests.inbox.pay`) |
 | Schedule a dated payment from a budget | Its hat's wearers, anyone above, the Board | `Budgets.schedule`: `authorised(id)`, reserves room | An approval, or a Board proposal for a Board payment |
-| Cancel a budget's dated payment | Its hat's wearers *now*, anyone above, the Board, whoever scheduled it | `Budgets.cancel`: `authorised(budget)` | An approval or a Board proposal (`payments.changes.cancel`) |
+| Cancel a budget's dated payment | Its hat's wearers *now*, anyone above, or the Board; whoever scheduled it only while they still wear the hat (`payment.cancel`'s who) | `Budgets.cancel`: `authorised(budget)` | An approval or a Board proposal (`payments.changes.cancel`) |
 | Execute a dated payment on its day | Anyone | `Budgets.execute`: due, pending | Payments' own process |
 | Create a team or allowance under a budget | The parent's wearers, anyone above, the Board | `createChildBudget`: `authorised(parent)`, room | An approval, or a Board proposal (`budgets.departments.create`) |
 | Create a top budget or department | The Board | `createTopBudget`: `msg.sender` is the Safe | A Board proposal, with the ceiling grown (`Installer.buildSetCeiling`) |

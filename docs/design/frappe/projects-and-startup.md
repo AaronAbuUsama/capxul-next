@@ -170,7 +170,7 @@ no live token is refused, every signature it prepares is handed to the asker, an
 previews is the asker's own to answer (`organizations.fde-for-the-asker`, `agents.fde-authority`,
 `rules.fde-acts-for-asker`). So it needs no hat: the import above is the asker's, done by the FDE
 when a Books-hat wearer asks it. On a connected head it reaches what lives only there through the
-document family (`org doc …`, `org doctype …`, `org doc-call list`), as the asker's own head User
+document family (`org head doc …`, `org head doctype …`, `org head doc-call list`), as the asker's own head User
 (`organizations.doc-family`, `organizations.doc-authority`).
 
 **Worlds** (`organizations.startup-worlds`). Every existing world starts Acme with `--no-fde`, so
@@ -256,16 +256,16 @@ booked them in the one grammar of `docs/design/new-commands.md`:
 
 | Decision | Where it stands |
 |---|---|
-| `projects.commands` (decision pack) | Accepted. Booked as the 35 commands of `new-commands.md` section 5.1 (`org project …`, `org task …`, `org timesheet …`, `org activity-type …`, `org project-type …`), each one rpc |
+| `projects.commands` (decision pack) | Accepted. Booked as the 35 commands of `new-commands.md` section 5.1, spelt since in the command tree as `org projects …` with its `member`, `settings`, `task`, `timesheet`, `activity-type` and `project-type` (`surface.projects-group`, `projects.surface-moves`), each one rpc |
 | `projects.permissions` | Accepted. Member, People or Director, and Worker, read from the hat when the command runs (`docs/design/authority.md`) |
-| `organizations.commands` (decision pack) | Accepted for the app and head commands, booked as `org app list\|add\|remove` and `org head connect\|show\|disconnect`; `org fde show\|ask` were added for `aaron.fde-hosted` |
+| `organizations.commands` (decision pack) | Accepted for the app and head commands, booked as `org head app list\|add\|remove` (first `org app`, `surface.head-group`) and `org head connect\|show\|disconnect`; `org fde show\|ask` were added for `aaron.fde-hosted` |
 | `organizations.apps-native-or-head` | Accepted |
 | `organizations.fde-at-start-up` | Superseded by `aaron.fde-hosted`: Capxul hosts the FDE and its key is the host's |
 | `agents.fde-authority` | Accepted, then rewritten for `aaron.fde-anyone` in the world pass: the hosted FDE acts as its asker (`as-the-asker`); adding a Frappe app is a Director's, or the FDE's for a Director who asks |
 | `organizations.fde-commands` | Rewritten for `aaron.fde-anyone`: any member or a named guest may ask (`organizations.fde-guests`); the FDE's commands are not critical (`organizations.command-priorities`) |
 | `organizations.head-ownership` | Accepted |
 
-Billing hours is requests' `org timesheet bill` (`requests.bill-time`, booked). Buying seats is `org seats buy`, and
+Billing hours is requests' `org projects timesheet bill` (`requests.bill-time`, `requests.bill-time-in-projects`, booked). Buying seats is `org seats buy`, and
 paying the FDE's hosting `org fde pay` (`organizations.buy-seats`, booked by payments).
 
 ## 6. To reconcile with other lanes

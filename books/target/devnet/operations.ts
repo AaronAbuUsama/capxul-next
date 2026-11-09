@@ -473,6 +473,14 @@ export const operation_dev_season_cancel = defineOperation({
         "before (frozen at the eval epoch, rate 1, `season` null) and `dev snapshot list` has no s1-end. world: no chain, " +
         "Postgres or sink change.",
     },
+    {
+      claim: "A planned season whose real end passes before it starts is cancelled the same way, by the supervisor.",
+      observes:
+        "cli: from shared-world-owner, `dev season create s2 --snapshot person-ready --end +10s --json` prints s2 `planned` " +
+        "with `startAt` null; about twenty real seconds later `dev season list --json` prints s2 `cancelled`, its `note` " +
+        "naming the end that came first, with `startedAt` and `final` null. read: `dev time` shows the clock as before. " +
+        "world: no chain, Postgres or sink change.",
+    },
   ],
   returns: flow_devnet_seasons_cancel.output,
   errors: [error_WRONG_ENVIRONMENT],
@@ -511,6 +519,13 @@ export const operation_dev_season_show = defineOperation({
         "cli: from season-planned, `dev season show --json` with Ana's grant prints s1 `planned` with `playing` false, " +
         "`next` w1 (an hour on, 30d) and the clock frozen at the eval epoch; with Dana's grant the same with `playing` " +
         "true. From shared-world-owner it prints `season` null and `next` null.",
+    },
+    {
+      claim: "Between seasons the last ended season is current, with its last world; a cancelled one never is.",
+      observes:
+        "cli: from season-ended, `dev season show --json` with Dana's grant prints s1 `ended` with `final` s1-end, " +
+        "`playing` true and `next` null; after the owner's `dev season create s2 --snapshot person-ready --start +1h --end " +
+        "+2h` and `dev season cancel s2`, it prints s1 again. world: the reads change nothing.",
     },
   ],
   returns: flow_devnet_seasons_show.output,
@@ -638,6 +653,13 @@ export const operation_dev_season_warp_remove = defineOperation({
         "w2 --json` prints s1 with w2 `removed`. read: twenty real seconds later `dev season show` lists w2 `removed` with " +
         "`ranAt` null, and two `dev time` reads taken across that wait differ by about 80 world seconds, not 30 days.",
     },
+    {
+      claim: "Removing a planned season's only warp leaves it no next warp, and the season planned.",
+      observes:
+        "cli: from season-planned, `dev season warp remove s1 w1 --json` prints s1 `planned` with w1 `removed`; `dev " +
+        "season show --json` prints `next` null. read: `dev time` shows the clock as before. world: no chain, Postgres " +
+        "or sink change.",
+    },
   ],
   returns: flow_devnet_seasons_warps_remove.output,
   errors: [error_WRONG_ENVIRONMENT],
@@ -670,6 +692,12 @@ export const operation_dev_season_player_add = defineOperation({
         "cli: from season-running, with Ana's grant `auth login ana@acme.test` exits ROLE_PERMISSION_DENIED; after the " +
         "owner's `dev season player add s1 ana@acme.test --json` (s1's players Dana and Ana), with Ana's grant `auth login " +
         "ana@acme.test` sends her a code that `dev mail list --to ana@acme.test` shows her, and `dev season show` answers `playing` true.",
+    },
+    {
+      claim: "Adding a person who already plays changes nothing.",
+      observes:
+        "cli: from season-planned, `dev season player add s1 dana@acme.test --json` prints s1 with Dana among its " +
+        "players once, and `dev season list --json` the same. world: no chain, Postgres or sink change.",
     },
   ],
   returns: flow_devnet_seasons_players_add.output,
@@ -708,6 +736,13 @@ export const operation_dev_season_player_remove = defineOperation({
         "cli: from season-running, after the owner's `dev season player remove s1 dana@acme.test --json` (s1's players " +
         "none), with Dana's grant `balance` exits ROLE_PERMISSION_DENIED and `dev season show` answers `playing` false. " +
         "chain: Dana's Safe still holds 995 USDC.",
+    },
+    {
+      claim: "A person taken out of a planned season is not admitted when it starts, and keeps their grant.",
+      observes:
+        "cli: from season-planned, after the owner's `dev season player remove s1 dana@acme.test` and `dev season start " +
+        "s1 --confirm`, with Dana's grant `auth login dana@acme.test` exits ROLE_PERMISSION_DENIED, while `dev season " +
+        "show --json` with the same grant still answers, s1 `running` and `playing` false.",
     },
   ],
   returns: flow_devnet_seasons_players_remove.output,

@@ -1473,23 +1473,18 @@ Eleven requests of `capxul.devnet/1`, each a call of `devnet-control`:
     devnet build, and the SDK sends the joiner's grant with every request (`devnet.shared-world`).
   - **`docs/design/new-commands.md` totals:** section 5.6 adds one command; the counts in its opening and
     section 1 are the assembly's to recount once this batch's other commands land.
-- **The seasons' asks** (section 8), each for the owner of another file:
-  - **`devnet-control`** (`external.ts`): the eleven season calls of 8.9, each with its failures; `ROLE_PERMISSION_DENIED`
-    for a joiner on all but `seasonList` and `seasonCurrent`; `snapshotRestore` and `timeStartAt` refuse
-    `WRONG_STATE` while a season runs, and `snapshotRestore` when a joined stateful follower is missing from the
-    world's manifest; `snapshotSave` and `snapshotRestore` ask stateful followers to save and restore; `timeFollow`
-    takes `stateful`; `timeRead` and `timeWatch` carry `season`. Then the eleven season flows name their calls and drop
-    the answers those calls' failures carry (`devnet.season-protocol`).
-  - **The command surface** (`shared/surface.ts`, `command-surface.md`): the eleven `dev season` commands as rows of
-    the devnet group, which grows from 16 to 27 commands, 391 in all; `new-commands.md` gains a section for them and
-    names a season's `start`, `end` and `cancel` among G3's lifecycle verbs.
-  - **`environment_shared_world`** (`foundation.ts`): its time runs in seasons, and a joiner uses it only while a
-    season they play runs (`devnet.season-players`).
-  - **The Frappe app and `frappe-head`** (`foundation.ts`, `external.ts`): `bench --site <site> capxul follow` joins
-    stateful and answers `save` and `restore` with Frappe's own backup and restore (`devnet.stateful-followers`).
-  - **`fde-host` and the swarm design:** a world's namespace joins stateful; swarmD must save and restore a
-    namespace's agents under a world's name, beside its timers on an outside clock.
-  - **Access and applications:** prose that names `devnet.shared-world` (`access/flows.ts`,
-    `applications/bootstraps.ts`) now names `devnet.season-players`; the CLI treats a session the world no longer
-    knows as signed out, as it already does (`time.seasons`).
+- **The seasons' asks** (section 8): done in the surface pass's build, 9 November 2026.
+  - `devnet-control` (`external.ts`) lists the eleven season calls with their failures, `ROLE_PERMISSION_DENIED` for a
+    joiner on all but `seasonList` and `seasonCurrent`; `snapshotRestore` and `timeStartAt` refuse `WRONG_STATE` while a
+    season runs, and `snapshotRestore` when a joined stateful follower is missing from the manifest; the snapshot calls
+    and `timeFollow` name stateful followers; `timeRead` and `timeWatch` carry `season`. The eleven season flows name
+    their calls (8.9).
+  - The command surface (`shared/surface.ts`, `command-surface.md`) has the eleven `dev season` rows: the devnet group
+    is 27 commands, the surface 394 with HR's three person-side reads. `new-commands.md` section 5.10 lists them, and G3
+    names a season's `start|end|cancel` among the lifecycle verbs.
+  - `environment_shared_world` says its time runs in seasons and a joiner uses it only while a season they play runs;
+    `component_frappe_app` and `frappe-head`'s fake say the bench follows stateful; `fde-host`'s fake says the
+    namespace does, saved and restored by swarmD under the world's name.
+  - Access and applications name `devnet.season-players`. The CLI treats a session the world no longer knows as signed
+    out, as it already does (`time.seasons`).
 

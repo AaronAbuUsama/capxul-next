@@ -1108,8 +1108,9 @@ export const decision_payroll_run_one_approval = defineDecision({
   why:
     "`payments.prepare-command` already takes many items, each with its own document, under one approval from the " +
     "payer's own Safe: what blocked C9 was only `payment send`'s one recipient, which payroll does not use. A person " +
-    "signs a run once; an agent whose Safe wears the budget's hat or one above it, the FDE included, signs it with " +
-    "its key and needs no person, and the chain still caps it at what the budget has left. Each Payment keeps its own " +
+    "signs a run once; a self-run own agent whose Safe wears the budget's hat or one above it signs it with its key " +
+    "and needs no person (the hosted FDE only prepares it for the member who asked it, who signs: " +
+    "rules.fde-acts-for-asker), and the chain still caps it at what the budget has left. Each Payment keeps its own " +
     "payslip hash on chain, so every employee can prove their pay alone. A new key after a lapse would birth new " +
     "Payments while the lapsed ones stay `needs_retry` and retryable by `payment retry`, so one slip could be paid " +
     "twice; payments' own `resume` reopens the same Payments under the same key and can never pay twice. A run can " +
@@ -1158,7 +1159,7 @@ export const decision_payroll_deduction_remittance = defineDecision({
       text:
         "A deduction or employer contribution may name the Party its liability is owed to (a Custom Field on a head). " +
         "The run's command carries nets only. When a remittance falls due, whoever wears the department budget's hat, or " +
-        "one above it (the FDE only by a hat its Safe was granted), pays that Party with an ordinary budget payment " +
+        "one above it (the hosted FDE only for a member who asked it, as that member: rules.fde-acts-for-asker), pays that Party with an ordinary budget payment " +
         "against the component's liability account, which books " +
         "posts as a Bank Entry on that liability. A component with no payee stays a liability, as in Frappe HR.",
     },
@@ -1177,7 +1178,7 @@ export const decision_payroll_deduction_remittance = defineDecision({
     "a remittance schedule. Remittances also fall due on their own calendar (usually once a period for every run), " +
     "which is how the vision has them, not on payday. An ordinary budget payment already carries an account for books " +
     "and keeps its own request key, so nothing new is needed, and Frappe HR's behaviour is kept. Recording the payee " +
-    "lets whoever pays it, the FDE among them once it wears such a hat, pay it without asking whom (the departments " +
+    "lets whoever pays it, the hosted FDE for a member who asked it among them, pay it without asking whom (the departments " +
     "ruling: authority over the money is the hat's, payroll.command-authority).",
   source: AFTER_RULING("aaron.frappe-shape, aaron.departments; docs/vision/erp.md (section 4, step 2); /tmp/hrms/hrms/payroll/doctype/salary_component_account; docs/design/frappe/accounting.md (payment send --account)"),
   affects: [table_salary_components, rpc_payroll_structures_component],
@@ -1380,8 +1381,9 @@ export const decision_payroll_command_authority = defineDecision({
         "The People hat changes and reads the HR records (Employees, components, structures, assignments, runs, " +
         "withholding), as Frappe's HR Manager. `org payroll run pay` is whoever `Budgets.authorised` admits on the run's " +
         "department budget when it pays, read on chain then: a wearer of its hat or of an ancestor's, never the person who " +
-        "drafted the run, paid it before or is named on it. `payroll payslip list|get` is the payee's own Safe. An agent, the FDE " +
-        "included, acts only with the hats its Safe wears. The Board pays no run: it spends from no budget.",
+        "drafted the run, paid it before or is named on it. `payroll payslip list|get` is the payee's own Safe. A self-run own agent " +
+        "acts only with the hats its Safe wears; the hosted FDE acts only as the member who asked it, whose Safe signs " +
+        "(rules.fde-acts-for-asker). The Board pays no run: it spends from no budget.",
     },
     { label: "person", text: "Whoever drafted a run, or whom Capxul records as the department's holder, pays it." },
   ],
@@ -2179,9 +2181,9 @@ export const decision_payroll_surface_fit = defineDecision({
     "another command's success, tests nothing new: run list's first claim already shows a submitted run's next step; " +
     "leave-type change and component add already show their own change; expense-type list's two claims show an added " +
     "type to any member. A claim's title is what its evidence proves (organizations.head-fit). Every command keeps at " +
-    "least two claims. payroll.command-authority, payroll.run-one-approval and payroll.deduction-remittance predate " +
-    "aaron.fde-hosted and say the FDE acts with its own Safe's hats; they are read through rules.fde-acts-for-asker: a " +
-    "self-run own agent does, and the hosted FDE acts as its asker. Text only, but for settle's act-for refusal, which " +
+    "least two claims. payroll.command-authority, payroll.run-one-approval and payroll.deduction-remittance predated " +
+    "aaron.fde-hosted and said the FDE acts with its own Safe's hats; the surface pass's build amended their text to " +
+    "rules.fde-acts-for-asker: a self-run own agent does, and the hosted FDE acts as its asker. Text only, but for settle's act-for refusal, which " +
     "rules.fde-acts-for-asker already decided.",
   source: surfaceBy(
     "docs/design/authority.md (agents and the FDE); rules.fde-acts-for-asker; payroll.hr-approvers; organizations.head-fit; " +

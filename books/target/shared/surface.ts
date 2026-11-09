@@ -713,13 +713,14 @@ export const decision_surface_frappe_reach = defineDecision({
   title: "Everything on Frappe: native as what Capxul writes, money as what moves money",
   question:
     "Every non-child DocType of erpnext@6b946b0, hrms@8816102 and crm@2cecd30 (425), read against the family's guard " +
-    "(organizations.doc-reach): 53 reached by native commands, 233 through the family, 21 left out by design, and 118 " +
-    "by neither. 101 are refused as native though no command writes them: 69 of ERPNext's Accounts (Sales and Purchase " +
-    "Invoice, Period Closing Voucher, Cost Center, the tax, payment-term and pricing masters; a manual Journal Entry " +
-    "too, since Capxul writes only its own), 18 of Payroll, 4 of Projects, 10 of FCRM. 17 are refused as money: " +
-    "Sales and Purchase Order, Supplier Quotation, Delivery Note, Purchase Receipt, Stock Entry, Stock " +
-    "Reconciliation, Landed Cost Voucher, Repost Item Valuation, five Asset DocTypes, Subcontracting Order and " +
-    "Receipt, Leave Encashment. The hooks the money test reads are a proxy: accounting_dimension_doctypes lists what " +
+    "(organizations.doc-reach, with organizations.reach-holes and payroll.hr-head-documents): 53 reached by native " +
+    "commands, 229 through the family, 23 left out by design, and 120 by neither. 102 are refused as native though no " +
+    "command writes them: 69 of ERPNext's Accounts (Sales and Purchase Invoice, Period Closing Voucher, Cost Center, " +
+    "the tax, payment-term and pricing masters; a manual Journal Entry too, since Capxul writes only its own), 18 of " +
+    "Payroll, 4 of Projects, 10 of FCRM, and HR's Leave Adjustment. 18 are refused as money: Sales and Purchase " +
+    "Order, Supplier Quotation, Delivery Note, Purchase Receipt, Stock Entry, Stock Reconciliation, Landed Cost " +
+    "Voucher, Repost Item Valuation, five Asset DocTypes, Subcontracting Order and Receipt, Leave Encashment, " +
+    "Transaction Deletion Record. The hooks the money test reads are a proxy: accounting_dimension_doctypes lists what " +
     "carries dimensions, so it refuses documents that post nothing (Supplier Quotation, Sales and Purchase Order) and " +
     "leaves a hooked child's parent (Material Request) unclear. How is every Frappe capability reached, with no second " +
     "record of money?",
@@ -831,4 +832,48 @@ export const decision_surface_computed_gaps = defineDecision({
     "comes first; the recommendation stands until he answers.",
   source: by("hrms@8816102 payroll and hr DocTypes (overtime_slip, attendance_request, shift_request on_submit); erpnext@6b946b0 projects; crm@2cecd30 fcrm"),
   affects: [f.concept_payroll, f.concept_projects, f.concept_contacts],
+});
+
+export const decision_surface_fit_calls = defineDecision({
+  id: "surface.fit-calls",
+  title: "The surface after its fit review: what stays spelt as it is, and why",
+  question:
+    "The fit reviews of the applied tree raised spellings left to the surface: `payroll agreement show <id>` beside " +
+    "`payroll payslip get <id>`; `org hr employee leave` (an Employee leaving) beside `org hr leave` (Leave " +
+    "Application); `apply` both a leave's birth and a Workflow's action; `org director add|remove|replace|threshold`, " +
+    "which always refuse, beside `org board director` and `org board threshold`; `balance` in the verb place; G5's " +
+    "`--from <budget>` against the 215's dated `--from`; and 67 HR DocTypes reached only through `org head doc`. Which " +
+    "change?",
+  options: [
+    {
+      label: "keep-and-say",
+      text:
+        "No spelling changes; the grammar and the help say what each is. G3's 'show <id> is not used' binds new commands, " +
+        "and the 215's eleven agreement commands moved by their group word only, so `payroll agreement show` keeps the " +
+        "215's verb. `org hr employee leave` keeps G3's lifecycle verb, Frappe's own (the Employee's status Left); the " +
+        "noun before it (`employee`) tells it from the record `org hr leave`. `apply` keeps its two meanings, each " +
+        "Frappe's word (Leave Application; frappe.model.workflow apply_workflow), and G3 says so. `balance` is a view " +
+        "read by its noun, as the 215's `balance`, and G3 lists it. G5's `--from <budget>` binds new commands; the " +
+        "215's `dev prices set --from <date>` and `org payroll agreement change --from <date>` keep theirs. `capxul " +
+        "--help` marks `org director add|remove|replace|threshold` retired, naming `org board director` and `org board " +
+        "threshold`, and `capxul org hr --help` names `org head doc` and `org head doctype list --app hrms --module HR` " +
+        "for HR's other DocTypes (recruitment, appraisal, training).",
+    },
+    {
+      label: "respell",
+      text:
+        "Respell `payroll agreement show` as `payroll agreement get`, `org hr employee leave` as `org hr employee " +
+        "relieve` (Frappe's relieving_date), and one of the two `apply`s.",
+    },
+  ],
+  chosen: "keep-and-say",
+  why:
+    "Each respelling would be a second change to a command whose group just moved, for a reader the noun already " +
+    "serves: `org hr employee leave <Ana> --on <day>` names the Employee, and `relieve` is no verb of the 215, so it " +
+    "would open G3's closed set. A Frappe reader meets both `apply`s in Frappe itself. Saying it in the grammar and " +
+    "the help costs nothing and keeps every id and eval. The tree also grew after it was designed, each spelt as the " +
+    "tree spells: the devnet's eleven `dev season` commands (devnet.seasons) and HR's three person-side reads " +
+    "(payroll.hr-self-rules), 394 commands in all.",
+  source: by("the fit reviews of the surface pass (identity-and-org, frappe-apps, devnet-seasons); docs/design/new-commands.md G3 and G5"),
+  affects: [f.component_cli, f.component_core_sdk, f.concept_payroll, f.concept_board, f.concept_devnet],
 });

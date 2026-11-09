@@ -471,7 +471,7 @@ The agreement's process (`payroll.agreements.lifecycle`) now also writes Frappe'
     payslip is stored for it.
 - **An Organization payee** is a Supplier in ERPNext, which is accounting's to record, not HR's.
 
-The `Payslip` preview that `agreement collect` already shows (`payroll/shapes.ts`) is this slip
+The `Payslip` preview that `payroll agreement collect` already shows (`payroll/shapes.ts`) is this slip
 before it lands.
 
 The eleven frozen operations are unchanged in behaviour. Their rpcs, flows and acceptance lines are
@@ -705,13 +705,18 @@ An adversarial review against Frappe's sources and payments' machine changed the
 - **Tooling:** in `tools/report-judgments.ts`, `FLAGGED` can drop `documents.acceptance-rewrites`.
   Its line is now kept word for word, and W1 is settled.
 - **The CLI pass (done):** the commands pass booked the 28 operations of `payroll.hr-surface`, accepted, in the
-  grammar of `docs/design/new-commands.md` (section 5.3), with acceptance claims and worlds:
-  - `org employee add|change|get|list|suspend|deactivate|reinstate|leave`;
+  grammar of `docs/design/new-commands.md` (section 5.3), with acceptance claims and worlds, spelt since in the
+  command tree (`docs/design/command-surface.md`; `payroll.surface-moves`):
+  - `org hr employee add|change|get|list|suspend|deactivate|reinstate|leave`;
   - `org payroll component add|change|list|disable|enable`;
   - `org payroll structure create|cancel|assign|unassign|list`;
   - `org payroll run create|submit|pay|cancel|list|get`;
-  - `org payslip withhold|release`;
-  - `payslip list|get` (with `--employer` as a filter).
+  - `org payroll payslip withhold|release`;
+  - `payroll payslip list|get` (with `--employer` as a filter).
+
+  HR's own commands (`hr …` and `org hr …`, `payroll.hr-commands`, with `payroll.hr-self-rules`) and the eleven
+  agreement commands (`payroll agreement …` and `org payroll agreement …`, `surface.payroll-group`) sit in the same
+  tree: HR is its own group, Payroll another (`surface.hr-group`, `surface.payroll-group`).
 
 ## Not decided here
 

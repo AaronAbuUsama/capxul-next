@@ -2188,3 +2188,37 @@ export const decision_devnet_season_worlds = defineDecision({
   source: SEASONS("devnet.deterministic-worlds; devnet.shared-world (shared-world-joiner); books/target/devnet/worlds.ts"),
   affects: [concept_devnet, ...SEASON_OPS],
 });
+
+export const decision_devnet_season_claims = defineDecision({
+  id: "devnet.season-claims",
+  title: "Every season command proves more than one behaviour",
+  question:
+    "After the seasons design and its reviews, five season commands had one acceptance claim each: `dev season cancel`, " +
+    "`show`, `warp remove`, `player add` and `player remove`. Every other new command of the surface pass has two or " +
+    "more. Which behaviours the records already book do they also prove?",
+  options: [
+    {
+      label: "booked-behaviours",
+      text:
+        "One more claim each, read off its flow and devnet.seasons, from a catalogued season world: a planned season " +
+        "whose real end passes before it starts is cancelled by the supervisor, its note saying so; between seasons the " +
+        "last ended season is current and a cancelled one never is; removing a planned season's only warp leaves `next` " +
+        "null; adding a player who already plays changes nothing; and a player taken out of a planned season is not " +
+        "admitted when it starts, while their grant still reads `dev season show`.",
+    },
+    { label: "leave", text: "Leave them at one claim; their refusals are evals already." },
+  ],
+  chosen: "booked-behaviours",
+  why:
+    "A command with one claim proves one path: each of these has a second that its flow already books and an eval " +
+    "would otherwise miss, the supervisor's own cancel above all, which no command triggers. Each claim starts from a " +
+    "season world built just before it is used (devnet.season-worlds), so its real times hold, and none adds a flag, " +
+    "an answer or a refusal.",
+  source:
+    "Claude, surface pass build, 9 November 2026; evidence: books/target/devnet/flows.ts (the season flows' abouts); " +
+    "devnet.seasons; devnet.season-players; devnet.season-worlds",
+  affects: [
+    ops.operation_dev_season_cancel, ops.operation_dev_season_show, ops.operation_dev_season_warp_remove,
+    ops.operation_dev_season_player_add, ops.operation_dev_season_player_remove,
+  ],
+});

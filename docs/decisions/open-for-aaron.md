@@ -1,4 +1,4 @@
-# Open for Aaron, 8 November 2026
+# Open for Aaron, 8 to 9 November 2026
 
 ## His answers (sixth batch, 8 November 2026)
 
@@ -141,7 +141,7 @@ questions; each recommendation stands, and the build follows it, until he answer
 | # | Question | Recommendation | Records |
 |---|---|---|---|
 | 39 | Is a world's clock rate set by one new command, `dev time set --rate <n>`, a whole number from 1 to 60 world seconds a real second? | Yes. Above 60 the real-time machinery dominates and a warp is the tool; a world where people sign in by emailed code runs at 5 or less, since a five-minute code lasts 5/rate real minutes | `devnet.clock-rate`, operation `dev.time.set` |
-| 40 | Who may join a shared world? | Only people its owner grants, each grant file handed over outside the world (never by its mail), carrying the joiner's own dev-signer keys; only the owner moves, follows, saves or restores the clock | `devnet.shared-world`, environment `shared-world` |
+| 40 | Who may join a shared world? | Only people its owner grants, each grant file handed over outside the world (never by its mail), carrying the joiner's own dev-signer keys; only the owner moves, follows, saves or restores the clock. **Superseded by `aaron.seasons`** (ninth batch): a joiner plays only the seasons its owner names (question 55) | `devnet.shared-world`, environment `shared-world`; now `devnet.season-players` |
 | 41 | Your ruling lists "a staging network" among the worlds whose clock is controlled. Does staging's clock move? | No: staging stays on Base Sepolia's real clock at rate 1, never moved, since the sequencer's time is not Capxul's; it stays self-contained by its channels (mail to MAIL_ALLOWED_RECIPIENTS, WhatsApp only from the test numbers WHATSAPP_ALLOWED_NUMBERS lists). A controlled world others share is a shared world | `time.worlds`, `time.world-channels`, `contacts.whatsapp-staging-numbers` |
 | 42 | The document family: your six commands, plus `org doc amend` (a cancelled document's correction), `org doc apply <action>` (a Workflow step), `org doc remove` (delete after a preview), `org doctype list\|get` and `org doc-call list` (the log)? | All twelve. Left out on purpose: count, copy, bulk writes, whitelisted methods, files and comments | `organizations.doc-family`, section 5.7 of `docs/design/new-commands.md` |
 | 43 | Do stock, selling, buying and asset documents on the head (Stock Entry, Delivery Note, Sales and Purchase Orders, Asset), which ERPNext's ledger hooks list, count as money? | Yes: the family refuses them, and people work them in the head's own desk while books copies their vouchers. The alternatives: read them and keep drafts, refusing only submit; or read them only | `organizations.doc-reach` |
@@ -155,3 +155,31 @@ questions; each recommendation stands, and the build follows it, until he answer
 To record in `books/target/shared/rulings.ts` (its owner's, not the pass's): "payroll means HR" as a ruling of its own
 (for example `aaron.payroll-means-hr`), which the `payroll.hr-*` decisions would then cite; and the CARRIES_OUT and
 SUPERSEDED entries the pass's records ask for (see its build report).
+
+## His answers (ninth batch, 9 November 2026)
+
+- **The world pass's questions:** "Agreed with all, but we need a shared world that gets time jumps and resets, as
+  part of a season, like a game sort of thing." Accepted: 39, 41 to 47 and 49. Question 40 is superseded by
+  `aaron.seasons` (a shared world runs in seasons: it starts from a known world, runs at a rate, jumps time on a
+  schedule and ends in a reset).
+- **HR's commands (question 48), asked again:** "The number was not the issue. We need everything you can do on Frappe
+  to be programmatic and accessible from our tooling. It's the logical groupings." Carried out by the surface pass:
+  one tree of thirteen logical groups (`docs/design/command-surface.md`), and every DocType of the three Frappe apps
+  classed by how Capxul's CLI and SDK reach it (its section 7).
+
+## Raised by the surface pass and the seasons design (9 November 2026)
+
+The surface pass (`tools/workflows/surface-pass.js`) designed the command tree, and its owners applied it the same day:
+119 commands changed spelling, none changed behaviour, and the book spells all 394 operations as the tree does. The
+seasons design booked eleven `dev season` commands for `aaron.seasons`. Each recommendation stands, and the build
+follows it, until he answers. The one exception is question 52: it reverses his acceptance of question 43, so
+`organizations.doc-reach` stays in force until he answers it.
+
+| # | Question | Recommendation | Records |
+|---|---|---|---|
+| 50 | Is this the command tree? Thirteen groups; Frappe's apps as group words (`org hr`, `org payroll`, `org crm`, `org projects`, `org head`, beside `org books`); your own side the same word without `org` (`hr`, `payroll`); Capxul's native areas keep the 215's nouns, grouped as sections of the help. 119 commands move, among them the 215's eleven agreement commands into payroll | Yes | `surface.tree`, `surface.payroll-group`, `surface.fit-calls`; `docs/design/command-surface.md` sections 1 to 6 |
+| 51 | HR is now its own command group. Is it also its own concept? | No: it stays in the payroll concept, in its own files, until HR gains native records off the path to a slip (recruitment, appraisal) | `surface.hr-concept`, `payroll.hr-in-payroll` |
+| 52 | 120 of Frappe's 425 DocTypes are reachable from no Capxul tooling today: 102 because a native module is refused whole though no Capxul command writes them (69 of ERPNext Accounts, among them Sales and Purchase Invoice), and 18 as money (Sales and Purchase Order, Delivery Note, Stock Entry, the Asset DocTypes). Should native mean "what Capxul writes" and money "what moves money", with every Bank and Cash account on the head frozen to Capxul's app user? | Yes: then 348 are reached, 20 refused as moving money, 23 left out by design, and 34 refused as native until they have native commands. It reverses question 43 | `surface.frappe-reach`, `organizations.doc-reach`; command-surface.md 7.3 |
+| 53 | Reports, next documents and prints: `org head report list\|run`, `org head doc create --from <DocType> <name>` and `org head doc render`? | Yes | `surface.head-methods`; command-surface.md 7.4 |
+| 54 | What Capxul computes but has no command for (32 DocTypes): which first? | Additional Salary (`org payroll additional-salary create\|cancel\|list`), then Activity Cost, then CRM Product | `surface.computed-gaps`; command-surface.md 7.5 |
+| 55 | A shared world's seasons get eleven commands: `dev season create\|change\|start\|end\|cancel\|show\|list` (the list paged), `dev season warp add\|remove` and `dev season player add\|remove`. A season's start, end and warps are real times; seasons never overlap; only the people its owner names play it; its end saves `<name>-end` and restores the reset world | Yes | `devnet.seasons`, `devnet.season-players`, `devnet.season-jumps`, `devnet.season-reset`, `time.seasons`; `docs/design/time.md` section 8 |
