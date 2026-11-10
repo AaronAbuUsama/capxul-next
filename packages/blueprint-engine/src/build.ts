@@ -1,11 +1,11 @@
-// Build a blueprint: register every record, check every link and rule, compute the reverse links,
-// derive the gaps and the evals. Problems must be fixed; gaps are shown, never written by hand.
-
+// Register records, check links and rules, derive open and standing gaps and unique evals.
 import { Schema } from "effect";
 import { KINDS, type Kind } from "./records/base.ts";
-import { deriveEvals, type EvalDef } from "./evals.ts";
+import type { EvalDef } from "./evals.ts";
+import type { StandingFinding } from "./findings.ts";
 import { BUDGET_DEFAULTS } from "./budgets.ts";
 import { exampleGaps, exampleProblems } from "./examples.ts";
+import { classifyFindings } from "./findings.ts";
 import { telemetryGaps } from "./telemetry.ts";
 
 export interface AnyRecord {
@@ -38,9 +38,9 @@ export interface Blueprint {
   readonly problems: readonly Finding[];
   /** Derived: the design is incomplete here. */
   readonly gaps: readonly Finding[];
+  readonly standing: readonly StandingFinding[];
   readonly evals: readonly EvalDef[];
 }
-
 export const keyOf = (r: { _kind: string; id: string }) => `${r._kind}:${r.id}`;
 
 const isRef = (u: unknown): u is { _kind: Kind; id: string } =>
@@ -101,12 +101,12 @@ export const buildBlueprint = (input: { name: string; stage: "as-is" | "target";
   const linkedBy = new Map<string, Link[]>();
   for (const l of links) linkedBy.set(l.to, [...(linkedBy.get(l.to) ?? []), l]);
 
-  const blueprint = { name: input.name, stage: input.stage, records, links, linkedBy, problems, gaps: [] as Finding[], evals: [] as EvalDef[] };
+  const blueprint = { name: input.name, stage: input.stage, records, links, linkedBy, problems, gaps: [] as Finding[], standing: [] as StandingFinding[], evals: [] as EvalDef[] };
   checkRules(blueprint, problems);
   problems.push(...exampleProblems(blueprint, all(blueprint, "operation")));
   if (input.stage === "target") checkTargetRules(blueprint, problems);
   const gaps = deriveGaps(blueprint, input.stage);
-  return { ...blueprint, gaps, evals: deriveEvals(blueprint) };
+  return classifyFindings(blueprint, gaps, problems);
 };
 
 // ── what a schema value, a chain event or a link carries ────────────────────────────────────

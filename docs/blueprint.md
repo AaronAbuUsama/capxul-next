@@ -680,6 +680,22 @@ The blueprint says what to build; the plan says where the build is and what come
   `docs/mission/tasks.json`, and reads its milestones from `plan/plan.json`, so there is one list. `pnpm tasks:check` fails when the
   file is stale; regenerate it with `pnpm tasks` after a milestone or exit line changes.
 
+## Gaps that stand for a recorded reason
+
+The build derives gaps; authors never write findings by hand. A decision may carry optional
+`stands: [{ record: "kind:id", rule: "gap-rule", why: "the specific reason" }]`.
+An entry matches a derived gap by both record key and rule. The build moves it out of `gaps`
+and into `standing`, retaining the finding's detail and adding `decision` (the decision id)
+and `why`. Problems cannot be waived this way. An entry matching no current gap, or with a
+blank reason, is a `stale-standing-gap` problem: remove or reconsider the reason when design changes.
+`var/blueprint/findings.json` carries `problems`, `gaps` and `standing`; the build summary prints
+both open and standing counts. A standing gap is a visible boundary, not evidence of implementation.
+
+Every derived eval id is globally unique (`system.eval-identity`); a collision is a build problem.
+For repeated operation refusal codes or integration failure codes, the first case keeps its
+existing id and subsequent cases append `/2`, `/3`, etc. Declaration order is stable identity,
+just as acceptance line order is; preserve it when extending a record. All cases retain their claims.
+
 ## What the schema does not cover yet
 
 [`docs/spec/50-design-book.md`](spec/50-design-book.md#deliberately-not-in-the-schema-yet-the-step-2-slice-decides)

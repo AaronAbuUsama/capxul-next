@@ -17,8 +17,8 @@ mkdirSync(join(out, "concepts"), { recursive: true });
 writeFileSync(join(out, "README.md"), summaryPage(blueprint));
 for (const r of blueprint.records.values()) if (r._kind === "concept") writeFileSync(join(out, "concepts", `${r.id}.md`), conceptPage(blueprint, r));
 writeFileSync(join(out, "evals.json"), JSON.stringify(blueprint.evals, null, 2));
-writeFileSync(join(out, "findings.json"), JSON.stringify({ problems: blueprint.problems, gaps: blueprint.gaps }, null, 2));
+writeFileSync(join(out, "findings.json"), JSON.stringify({ problems: blueprint.problems, gaps: blueprint.gaps, standing: blueprint.standing }, null, 2));
 
-console.log(`${blueprint.records.size} records, ${blueprint.evals.length} evals, ${blueprint.problems.length} problems, ${blueprint.gaps.length} gaps → ${out}`);
+console.log(`${blueprint.records.size} records, ${blueprint.evals.length} evals, ${blueprint.problems.length} problems, ${blueprint.gaps.length} gaps, ${blueprint.standing.length} standing → ${out}`);
 for (const p of blueprint.problems) console.log(`problem ${p.record} ${p.rule}: ${p.detail}`);
 process.exitCode = blueprint.problems.length ? 1 : 0;
