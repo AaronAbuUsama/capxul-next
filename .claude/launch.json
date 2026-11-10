@@ -3,8 +3,10 @@
   "configurations": [
     {
       "name": "portal",
-      "runtimeExecutable": "pnpm",
+      "runtimeExecutable": "env",
       "runtimeArgs": [
+        "PORTAL_ALLOW_HOSTS=macbook.tail4b9a40.ts.net:8443",
+        "pnpm",
         "portal:serve",
         "--port",
         "4391"
