@@ -8,6 +8,17 @@ import { BY } from "../plugs/kit.ts";
 import { integration_devnet_control } from "../shared/external.ts";
 import { integration_site_service } from "../plugs/integrations.ts";
 import * as d from "./world-data.ts";
+import { table_record_entries } from "./record-entry.ts";
+
+export const decision_devnet_telemetry_contract = defineDecision({
+  id: "devnet.telemetry-contract", title: "Named execution spans and a validated record wire format",
+  question: "How do telemetry declarations and actual command entries stay checkable?",
+  options: [{ label: "explicit", text: "Every reachable rpc and SDK flow names an execution span, rpc.<id> or sdk.<id>, retaining existing finer-grained spans. Events remain the explicit emits and driven transition events, including an empty set for reads; do not invent analytics events. The record-entries table books the spike's nested v1 wire fields separately from command-records' future searchable projection. Validate every serialized append, including restore lineage, against it after redaction." }],
+  chosen: "explicit",
+  why: "docs/mission/worlds.md section 6 calls the record training data. m1-telemetry requires zero silent operations and real entries conforming to the book, not an assertion that a flattened future projection is already emitted. Execution spans cover the whole named implementation, excluding separately declared waits from system budgets.",
+  source: BY("docs/mission/worlds.md section 6; m1-telemetry"),
+  affects: [table_record_entries, d.table_command_records],
+});
 import * as r from "./world-rpcs.ts";
 import * as o from "./world-ops.ts";
 import * as w from "./world-processes.ts";

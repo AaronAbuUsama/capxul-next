@@ -57,7 +57,7 @@ export const rpc_access_sign_in_send_code = defineRpc({
   emits: [],
   calls: [integration_mail.c.send],
   chain: [],
-  spans: [],
+  spans: ["rpc.access.sign-in.send-code"],
   budget: budget("vendor"),
 });
 
@@ -84,7 +84,7 @@ export const rpc_access_sign_in_verify_code = defineRpc({
   emits: [],
   calls: [],
   chain: [],
-  spans: [],
+  spans: ["rpc.access.sign-in.verify-code"],
   budget: budget("write"),
 });
 
@@ -109,7 +109,7 @@ export const rpc_access_sign_in_challenge = defineRpc({
   emits: [],
   calls: [],
   chain: [],
-  spans: [],
+  spans: ["rpc.access.sign-in.challenge"],
   budget: budget("read"),
 });
 
@@ -138,6 +138,6 @@ export const rpc_access_sign_in_with_key = defineRpc({
   emits: [],
   calls: [integration_chain_rpc.c.readContract],
   chain: [contract_agent_owner.f.agentOf, contract_safe.f.getOwners],
-  spans: [],
+  spans: ["rpc.access.sign-in.with-key"],
   budget: budget("chain-read"),
 });

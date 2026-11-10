@@ -72,7 +72,7 @@ export const rpc_banking_accounts_requirements = defineRpc({
   emits: [],
   calls: [],
   chain: [],
-  spans: [],
+  spans: ["rpc.banking.accounts.requirements"],
   budget: budget("read"),
   was: [`${A}/operations/requirements.ts:1`, `${A}/rules/requirements.ts:1`],
 });
@@ -128,7 +128,7 @@ export const rpc_banking_accounts_add = defineRpc({
   emits: [],
   calls: [integration_bridge.c.addBankAccount],
   chain: [],
-  spans: [],
+  spans: ["rpc.banking.accounts.add"],
   budget: budget("vendor"),
   was: [`${A}/operations/add.ts:1`, `${A}/operations/register.ts:1`, `${A}/operations/prepare.ts:1`, `${A}/operations/finalize.ts:1`],
 });
@@ -153,7 +153,7 @@ export const rpc_banking_accounts_list = defineRpc({
   emits: [],
   calls: [],
   chain: [],
-  spans: [],
+  spans: ["rpc.banking.accounts.list"],
   budget: budget("read"),
   was: [`${A}/operations/list.ts:1`, `${A}/views.ts:1`],
 });
@@ -180,7 +180,7 @@ export const rpc_banking_accounts_list_for_contact = defineRpc({
   emits: [],
   calls: [],
   chain: [],
-  spans: [],
+  spans: ["rpc.banking.accounts.list-for-contact"],
   budget: budget("read"),
   was: ["apps/cli/src/commands/contact/subcommands/get/execute.ts:50", `${A}/operations/list.ts:1`],
 });
@@ -207,7 +207,7 @@ export const rpc_banking_accounts_remove = defineRpc({
   emits: [],
   calls: [],
   chain: [],
-  spans: [],
+  spans: ["rpc.banking.accounts.remove"],
   budget: budget("write"),
   was: [`${A}/operations/remove.ts:14`],
 });

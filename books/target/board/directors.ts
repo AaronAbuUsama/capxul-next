@@ -155,7 +155,7 @@ export const rpc_board_directors_show = defineRpc({
   emits: [],
   calls: READ_LIVE,
   chain: [contract_safe.f.getOwners, contract_safe.f.getThreshold, contract_hats_signer_gate.f.isValidSigner],
-  spans: [],
+  spans: ["rpc.board.directors.show"],
   budget: chainRead,
 });
 
@@ -180,7 +180,7 @@ export const rpc_board_directors_safe = defineRpc({
   emits: [],
   calls: READ_LIVE,
   chain: [contract_safe.f.getOwners, contract_safe.f.getThreshold, contract_hats_signer_gate.f.isValidSigner],
-  spans: [],
+  spans: ["rpc.board.directors.safe"],
   budget: chainRead,
 });
 
@@ -206,7 +206,7 @@ export const rpc_board_directors_get = defineRpc({
   emits: [],
   calls: [],
   chain: [],
-  spans: [],
+  spans: ["rpc.board.directors.get"],
   budget: budget("read"),
 });
 
@@ -255,7 +255,7 @@ export const rpc_board_directors_authority = defineRpc({
   emits: [],
   calls: READ_LIVE,
   chain: [contract_safe.f.getOwners, contract_safe.f.getThreshold, contract_hats.f.isWearerOfHat],
-  spans: [],
+  spans: ["rpc.board.directors.authority"],
   budget: chainRead,
 });
 
@@ -298,6 +298,8 @@ export const rpc_board_directors_seat = defineRpc({
     contract_hats_signer_gate.f.claimSignerFor,
   ],
   budget: chainRead,
+
+  spans: ["rpc.board.directors.seat"],
 });
 
 export const rpc_board_directors_remove = defineRpc({
@@ -327,6 +329,8 @@ export const rpc_board_directors_remove = defineRpc({
     contract_hats_signer_gate.f.removeSigner,
   ],
   budget: chainRead,
+
+  spans: ["rpc.board.directors.remove"],
 });
 
 export const rpc_board_directors_set_threshold = defineRpc({
@@ -348,6 +352,8 @@ export const rpc_board_directors_set_threshold = defineRpc({
   ...WRITE_TOUCHES,
   chain: [contract_hats.f.isWearerOfHat, contract_hats_signer_gate.f.isValidSigner, contract_hats_signer_gate.f.setThresholdConfig],
   budget: chainRead,
+
+  spans: ["rpc.board.directors.set-threshold"],
 });
 
 export const rpc_board_directors_hand_over = defineRpc({
@@ -378,6 +384,8 @@ export const rpc_board_directors_hand_over = defineRpc({
     contract_hats.f.transferHat,
   ],
   budget: chainRead,
+
+  spans: ["rpc.board.directors.hand-over"],
 });
 
 // ── writes anyone, or an elected Director, makes ────────────────────────────────────────────
@@ -402,6 +410,8 @@ export const rpc_board_directors_refresh = defineRpc({
   ...WRITE_TOUCHES,
   chain: [contract_safe.f.getOwners, contract_hats_signer_gate.f.isValidSigner, contract_hats_signer_gate.f.removeSigner],
   budget: chainRead,
+
+  spans: ["rpc.board.directors.refresh"],
 });
 
 export const rpc_board_directors_claim = defineRpc({
@@ -425,4 +435,6 @@ export const rpc_board_directors_claim = defineRpc({
   ...WRITE_TOUCHES,
   chain: [contract_hats.f.isWearerOfHat, contract_hats_signer_gate.f.isValidSigner, contract_hats_signer_gate.f.claimSigner],
   budget: chainRead,
+
+  spans: ["rpc.board.directors.claim"],
 });

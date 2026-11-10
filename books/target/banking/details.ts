@@ -89,7 +89,7 @@ export const rpc_banking_details_show = defineRpc({
   emits: [],
   calls: [integration_bridge.c.openBankDetails],
   chain: [],
-  spans: [],
+  spans: ["rpc.banking.details.show"],
   budget: budget("vendor"),
   was: [`${B}/operations/open.ts:1`, `${B}/operations/get.ts:1`, `${B}/operations/list.ts:1`, "docs/as-is/archive/banking/flows.ts:43"],
 });
@@ -124,7 +124,7 @@ export const rpc_banking_details_settle = defineRpc({
   emits: [],
   calls: [integration_bridge.c.readBankDetails, integration_bridge.c.setDepositToken],
   chain: [],
-  spans: [],
+  spans: ["rpc.banking.details.settle"],
   budget: {
     ...budget("vendor"),
     p95Ms: 5_000,

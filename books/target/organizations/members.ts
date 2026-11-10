@@ -65,7 +65,7 @@ export const rpc_organizations_members_list = defineRpc({
   emits: [],
   calls: [],
   chain: [],
-  spans: [],
+  spans: ["rpc.organizations.members.list"],
   budget: budget("read"),
 });
 
@@ -109,7 +109,7 @@ export const rpc_organizations_seats_raise = defineRpc({
   emits: [],
   calls: [],
   chain: [],
-  spans: [],
+  spans: ["rpc.organizations.seats.raise"],
   budget: budget("write"),
 });
 
@@ -146,6 +146,6 @@ export const rpc_organizations_seats_show = defineRpc({
   emits: [],
   calls: [],
   chain: [],
-  spans: [],
+  spans: ["rpc.organizations.seats.show"],
   budget: budget("read"),
 });

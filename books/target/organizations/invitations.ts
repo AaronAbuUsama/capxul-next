@@ -133,7 +133,7 @@ export const rpc_organizations_invitations_invite = defineRpc({
   emits: [],
   calls: [],
   chain: [],
-  spans: [],
+  spans: ["rpc.organizations.invitations.invite"],
   budget: budget("write"),
 });
 
@@ -163,7 +163,7 @@ export const rpc_organizations_invitations_accept = defineRpc({
   emits: [],
   calls: [],
   chain: [],
-  spans: [],
+  spans: ["rpc.organizations.invitations.accept"],
   budget: budget("write"),
 });
 
@@ -190,7 +190,7 @@ export const rpc_organizations_invitations_decline = defineRpc({
   emits: [],
   calls: [],
   chain: [],
-  spans: [],
+  spans: ["rpc.organizations.invitations.decline"],
   budget: budget("write"),
 });
 
@@ -218,7 +218,7 @@ export const rpc_organizations_invitations_cancel = defineRpc({
   emits: [],
   calls: [],
   chain: [],
-  spans: [],
+  spans: ["rpc.organizations.invitations.cancel"],
   budget: budget("write"),
 });
 
@@ -246,7 +246,7 @@ export const rpc_organizations_invitations_resend = defineRpc({
   emits: [],
   calls: [],
   chain: [],
-  spans: [],
+  spans: ["rpc.organizations.invitations.resend"],
   budget: budget("write"),
 });
 
@@ -273,7 +273,7 @@ export const rpc_organizations_invitations_list = defineRpc({
   emits: [],
   calls: [],
   chain: [],
-  spans: [],
+  spans: ["rpc.organizations.invitations.list"],
   budget: budget("read"),
 });
 
@@ -299,6 +299,6 @@ export const rpc_organizations_invitations_list_mine = defineRpc({
   emits: [],
   calls: [],
   chain: [],
-  spans: [],
+  spans: ["rpc.organizations.invitations.list-mine"],
   budget: budget("read"),
 });

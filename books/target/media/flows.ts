@@ -34,7 +34,7 @@ export const flow_client_media_upload = defineFlow({
   ],
   errors: [],
   calls: [],
-  spans: [],
+  spans: ["sdk.client.media.upload"],
   budget: {
     ...budget("write"),
     p50Ms: 1_200,
@@ -62,7 +62,7 @@ export const flow_client_media_fetch_image = defineFlow({
   ],
   errors: [],
   calls: [],
-  spans: [],
+  spans: ["sdk.client.media.fetch-image"],
   budget: budget("read"),
   was: [`${SDK}/images.ts:5`],
 });

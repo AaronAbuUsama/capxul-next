@@ -53,6 +53,8 @@ export const rpc_budgets_ceilings_set = defineRpc({
   ...CEILING_TOUCHES,
   chain: [contract_roles.f.allowances, contract_budgets.f.budgetOf, contract_installer.f.buildSetCeiling, contract_roles.f.setAllowance],
   budget: budget("chain-read"),
+
+  spans: ["rpc.budgets.ceilings.set"],
 });
 
 export const rpc_budgets_ceilings_freeze = defineRpc({
@@ -74,6 +76,8 @@ export const rpc_budgets_ceilings_freeze = defineRpc({
   ...CEILING_TOUCHES,
   chain: [contract_roles.f.allowances, contract_installer.f.buildSetCeiling, contract_roles.f.setAllowance],
   budget: budget("chain-read"),
+
+  spans: ["rpc.budgets.ceilings.freeze"],
 });
 
 export const rpc_budgets_ceilings_unfreeze = defineRpc({
@@ -95,4 +99,6 @@ export const rpc_budgets_ceilings_unfreeze = defineRpc({
   ...CEILING_TOUCHES,
   chain: [contract_roles.f.allowances, contract_installer.f.buildSetCeiling, contract_roles.f.setAllowance],
   budget: budget("chain-read"),
+
+  spans: ["rpc.budgets.ceilings.unfreeze"],
 });

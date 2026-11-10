@@ -84,7 +84,7 @@ export const rpc_organizations_workspaces_list = defineRpc({
   emits: [],
   calls: [],
   chain: [],
-  spans: [],
+  spans: ["rpc.organizations.workspaces.list"],
   budget: budget("read"),
 });
 
@@ -115,6 +115,6 @@ export const rpc_organizations_workspaces_me = defineRpc({
   emits: [],
   calls: [],
   chain: [],
-  spans: [],
+  spans: ["rpc.organizations.workspaces.me"],
   budget: budget("read"),
 });

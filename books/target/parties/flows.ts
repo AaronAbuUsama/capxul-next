@@ -25,7 +25,7 @@ export const flow_client_me_profile_save = defineFlow({
   steps: [{ name: "save", rpc: rpc_parties_profiles_save }],
   errors: [],
   calls: [],
-  spans: [],
+  spans: ["sdk.client.me.profile.save"],
   budget: budget("write"),
   was: [`${SDK}/details.ts:115`, `${SDK}/onboarding-records.ts:51`],
 });
@@ -44,7 +44,7 @@ export const flow_client_me_profile_get = defineFlow({
   steps: [{ name: "get", rpc: rpc_parties_profiles_get }],
   errors: [],
   calls: [],
-  spans: [],
+  spans: ["sdk.client.me.profile.get"],
   budget: budget("read"),
   was: [`${SDK}/details.ts:113`],
 });

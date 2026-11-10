@@ -33,7 +33,7 @@ export const flow_client_site_sign_in = defineFlow({
   ],
   errors: [error_NOT_AUTHENTICATED, error_ROLE_PERMISSION_DENIED, error_INVALID_INPUT],
   calls: [],
-  spans: [],
+  spans: ["sdk.client.site.sign-in"],
   budget: budget("write"),
 });
 
@@ -51,7 +51,7 @@ export const flow_client_site_payment_status = defineFlow({
   steps: [{ name: "get", rpc: rpc_plugs_payments_get, about: "Reads the request and its state." }],
   errors: [],
   calls: [],
-  spans: [],
+  spans: ["sdk.client.site.payment-status"],
   budget: budget("read"),
 });
 
@@ -70,7 +70,7 @@ export const flow_client_org_roles_show = defineFlow({
   ],
   errors: [],
   calls: [],
-  spans: [],
+  spans: ["sdk.client.org.roles.show"],
   budget: budget("read"),
 });
 
@@ -87,6 +87,6 @@ export const flow_client_site_session = defineFlow({
   steps: [{ name: "mint", rpc: rpc_plugs_sessions_mint, about: "Signs the person's short-lived assertion for the site." }],
   errors: [],
   calls: [],
-  spans: [],
+  spans: ["sdk.client.site.session"],
   budget: budget("write"),
 });

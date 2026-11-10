@@ -69,7 +69,7 @@ export const flow_client_account_requests_issue = defineFlow({
   ],
   errors: [error_CANCELLED],
   calls: [],
-  spans: [],
+  spans: ["sdk.client.account.requests.issue"],
   budget: budget("write"),
 });
 
@@ -91,7 +91,7 @@ export const flow_client_account_requests_get = defineFlow({
   ],
   errors: [],
   calls: [],
-  spans: [],
+  spans: ["sdk.client.account.requests.get"],
   budget: budget("read"),
 });
 
@@ -113,7 +113,7 @@ export const flow_client_account_requests_cancel = defineFlow({
   ],
   errors: [error_CANCELLED],
   calls: [],
-  spans: [],
+  spans: ["sdk.client.account.requests.cancel"],
   budget: PREVIEW_WRITE,
 });
 
@@ -135,7 +135,7 @@ export const flow_client_account_inbox_get = defineFlow({
   ],
   errors: [error_PROVIDER_RESPONSE_INVALID],
   calls: [],
-  spans: [],
+  spans: ["sdk.client.account.inbox.get"],
   budget: budget("read"),
 });
 
@@ -158,7 +158,7 @@ export const flow_client_account_inbox_decline = defineFlow({
   ],
   errors: [error_CANCELLED],
   calls: [],
-  spans: [],
+  spans: ["sdk.client.account.inbox.decline"],
   budget: PREVIEW_WRITE,
 });
 
@@ -212,7 +212,7 @@ export const flow_client_account_inbox_pay = defineFlow({
   ],
   errors: [error_WRONG_STATE, error_CANCELLED, error_PROVIDER_RESPONSE_INVALID],
   calls: [integration_openfort.c.signDigest],
-  spans: [],
+  spans: ["sdk.client.account.inbox.pay"],
   budget: budget("chain-settle"),
 });
 
@@ -236,7 +236,7 @@ export const flow_client_banking_deposits_match = defineFlow({
   ],
   errors: [error_CANCELLED],
   calls: [],
-  spans: [],
+  spans: ["sdk.client.banking.deposits.match"],
   budget: PREVIEW_WRITE,
 });
 
@@ -264,7 +264,7 @@ export const flow_client_checkouts_pay = defineFlow({
   ],
   errors: [],
   calls: [],
-  spans: [],
+  spans: ["sdk.client.checkouts.pay"],
   budget: PREVIEW_WRITE,
 });
 

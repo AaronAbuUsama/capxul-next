@@ -31,6 +31,6 @@ export const rpc_budgets_changes_get = defineRpc({
   emits: [],
   calls: [],
   chain: [],
-  spans: [],
+  spans: ["rpc.budgets.changes.get"],
   budget: budget("read"),
 });

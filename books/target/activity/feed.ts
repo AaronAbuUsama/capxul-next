@@ -260,7 +260,7 @@ export const rpc_activity_feed_list = defineRpc({
   emits: [],
   calls: [],
   chain: [],
-  spans: [],
+  spans: ["rpc.activity.feed.list"],
   budget: budget("read"),
 });
 
@@ -313,7 +313,7 @@ export const rpc_activity_feed_get = defineRpc({
   emits: [],
   calls: [],
   chain: [],
-  spans: [],
+  spans: ["rpc.activity.feed.get"],
   budget: budget("read"),
 });
 
@@ -346,6 +346,6 @@ export const rpc_activity_feed_summary = defineRpc({
   emits: [],
   calls: [],
   chain: [],
-  spans: [],
+  spans: ["rpc.activity.feed.summary"],
   budget: budget("read"),
 });

@@ -59,7 +59,7 @@ export const rpc_banking_deposits_list = defineRpc({
   emits: [],
   calls: [],
   chain: [],
-  spans: [],
+  spans: ["rpc.banking.deposits.list"],
   budget: budget("read"),
   was: [`${D}/operations/list.ts:1`, `${D}/reads.ts:40`, "docs/as-is/archive/banking/deposits.ts:130"],
 });

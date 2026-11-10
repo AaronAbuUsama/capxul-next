@@ -64,6 +64,8 @@ export const rpc_budgets_offices_add_holder = defineRpc({
   ...HOLDER_TOUCHES,
   chain: [contract_hats.f.isWearerOfHat, contract_hats.f.changeHatMaxSupply, contract_hats.f.mintHat],
   budget: budget("chain-read"),
+
+  spans: ["rpc.budgets.offices.add-holder"],
 });
 
 export const rpc_budgets_offices_remove_holder = defineRpc({
@@ -90,4 +92,6 @@ export const rpc_budgets_offices_remove_holder = defineRpc({
   ...HOLDER_TOUCHES,
   chain: [contract_hats.f.isWearerOfHat, contract_hats.f.setHatWearerStatus, contract_hats.f.transferHat],
   budget: budget("chain-read"),
+
+  spans: ["rpc.budgets.offices.remove-holder"],
 });

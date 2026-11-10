@@ -118,7 +118,7 @@ export const flow_client_payments_pay = defineFlow({
   ],
   errors: [...MONEY_ERRORS],
   calls: [integration_openfort.c.signDigest],
-  spans: [],
+  spans: ["sdk.client.payments.pay"],
   budget: budget("chain-submit"),
   was: [
     `${SDK}/accounts/approvals.ts:106`,
@@ -156,7 +156,7 @@ export const flow_client_org_departments_pay = defineFlow({
   ],
   errors: [...MONEY_ERRORS],
   calls: [integration_openfort.c.signDigest],
-  spans: [],
+  spans: ["sdk.client.org.departments.pay"],
   budget: budget("chain-submit"),
   was: [`${SDK}/org/departments.ts`, "packages/sdk/src/payments/tests/department-budget-route.test.ts"],
 });
@@ -180,7 +180,7 @@ export const flow_client_payments_retry = defineFlow({
   ],
   errors: [...MONEY_ERRORS],
   calls: [integration_openfort.c.signDigest],
-  spans: [],
+  spans: ["sdk.client.payments.retry"],
   budget: budget("chain-submit"),
   was: ["apps/cli/src/commands/payment/subcommands/retry", `${SDK}/payments/methods.ts:28`],
 });
@@ -201,7 +201,7 @@ export const flow_client_payments_cancel = defineFlow({
   steps: [{ name: "cancel", rpc: rpc_payments_changes_cancel, about: "Opens the void, cancel or refund for the Payment." }, ...signing, ...following],
   errors: [error_WRONG_STATE, error_CANCELLED, error_TRANSACTION_FAILED],
   calls: [integration_openfort.c.signDigest],
-  spans: [],
+  spans: ["sdk.client.payments.cancel"],
   budget: budget("chain-submit"),
   was: ["apps/cli/src/commands/payment/internal/voids.ts:38", `${SDK}/accounts/approvals.ts:106`],
 });
@@ -230,7 +230,7 @@ export const flow_client_payments_reschedule = defineFlow({
   ],
   errors: [error_WRONG_STATE, error_CANCELLED, error_TRANSACTION_FAILED],
   calls: [integration_openfort.c.signDigest],
-  spans: [],
+  spans: ["sdk.client.payments.reschedule"],
   budget: budget("chain-submit"),
   was: ["apps/cli/src/commands/payment/subcommands/reschedule", "apps/cli/src/commands/payment/internal/voids.ts:11"],
 });
@@ -254,7 +254,7 @@ export const flow_client_payments_subscribe = defineFlow({
   ],
   errors: [],
   calls: [],
-  spans: [],
+  spans: ["sdk.client.payments.subscribe"],
   budget: budget("live-read"),
   was: ["apps/cli/src/commands/payment/subcommands/wait", `${SDK}/payments/methods.ts:44`],
 });
@@ -292,7 +292,7 @@ export const flow_client_org_seats_buy = defineFlow({
   ],
   errors: [...MONEY_ERRORS],
   calls: [integration_openfort.c.signDigest],
-  spans: [],
+  spans: ["sdk.client.org.seats.buy"],
   budget: budget("chain-submit"),
   was: ["docs/design/new-commands.md (section 5.5)", "books/target/payments/flows.ts (client.payments.pay, the pattern)"],
 });
@@ -335,7 +335,7 @@ export const flow_client_payments_claim = defineFlow({
   ],
   errors: [error_SUPERSEDED, error_CANCELLED, error_TRANSACTION_FAILED],
   calls: [integration_openfort.c.signDigest],
-  spans: [],
+  spans: ["sdk.client.payments.claim"],
   budget: budget("chain-submit"),
   was: [
     "books/target/accounts/flows.ts (client.account.collect, respelled by aaron.payment-claim)",

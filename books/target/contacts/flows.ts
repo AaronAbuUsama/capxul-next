@@ -100,7 +100,7 @@ export const flow_client_account_address_book_label = defineFlow({
   ],
   errors: [error_CANCELLED, error_INVALID_INPUT],
   calls: [],
-  spans: [],
+  spans: ["sdk.client.account.address-book.label"],
   budget: guidedWrite,
   was: [`${CLI}/subcommands/label/execute.ts:24`, `${CLI}/internal/write.ts:26`, `${CLI}/internal/write.ts:40`, `${SDK}:172`],
 });
@@ -122,7 +122,7 @@ export const flow_client_account_address_book_hide = defineFlow({
   ],
   errors: [error_CANCELLED, error_INVALID_INPUT],
   calls: [],
-  spans: [],
+  spans: ["sdk.client.account.address-book.hide"],
   budget: guidedWrite,
   was: [`${CLI}/subcommands/hide/execute.ts:3`, `${CLI}/internal/visibility.ts:20`, `${CLI}/internal/write.ts:26`, `${SDK}:168`],
 });
@@ -144,7 +144,7 @@ export const flow_client_account_address_book_unhide = defineFlow({
   ],
   errors: [error_CANCELLED, error_INVALID_INPUT],
   calls: [],
-  spans: [],
+  spans: ["sdk.client.account.address-book.unhide"],
   budget: guidedWrite,
   was: [`${CLI}/subcommands/unhide/execute.ts:3`, `${CLI}/internal/visibility.ts:20`, `${CLI}/internal/write.ts:26`, `${SDK}:170`],
 });
@@ -185,7 +185,7 @@ const crm = (spec: {
     steps: [{ name: "call", rpc: spec.rpc }],
     errors: spec.errors ?? [],
     calls: [],
-    spans: [],
+    spans: [`rpc.${spec.id}`],
     budget: budget(spec.read ? "read" : "write"),
     was: spec.was,
   });
@@ -247,7 +247,7 @@ export const flow_client_account_address_book_link = defineFlow({
   ],
   errors: [error_CANCELLED, error_INVALID_INPUT],
   calls: [],
-  spans: [],
+  spans: ["sdk.client.account.address-book.link"],
   budget: guidedWrite,
   was: [`${CRM}/api/contact.py:73`, "packages/backend/src/parties/rules.ts:19"],
 });

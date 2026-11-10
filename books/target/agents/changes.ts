@@ -134,7 +134,7 @@ export const rpc_agents_changes_create = defineRpc({
   emits: [],
   calls: [],
   chain: [contract_agent_owner.f.safeAddressFor, contract_agent_owner.f.create],
-  spans: [],
+  spans: ["rpc.agents.changes.create"],
   budget: budget("write"),
 });
 
@@ -159,7 +159,7 @@ export const rpc_agents_changes_freeze = defineRpc({
   ...OPEN,
   calls: [],
   chain: [contract_agent_owner.f.freeze],
-  spans: [],
+  spans: ["rpc.agents.changes.freeze"],
   budget: budget("write"),
 });
 
@@ -181,7 +181,7 @@ export const rpc_agents_changes_unfreeze = defineRpc({
   ...OPEN,
   calls: [],
   chain: [contract_agent_owner.f.unfreeze],
-  spans: [],
+  spans: ["rpc.agents.changes.unfreeze"],
   budget: budget("write"),
 });
 
@@ -210,7 +210,7 @@ export const rpc_agents_changes_rotate = defineRpc({
   ...OPEN,
   calls: [],
   chain: [contract_agent_owner.f.swapSigner],
-  spans: [],
+  spans: ["rpc.agents.changes.rotate"],
   budget: budget("write"),
 });
 
@@ -245,7 +245,7 @@ export const rpc_agents_changes_sweep = defineRpc({
   invokes: [procedure_parties_resolve_recipient, procedure_approvals_open, procedure_board_propose],
   calls: [integration_chain_rpc.c.readContract],
   chain: [contract_erc20.f.balanceOf, contract_agent_owner.f.sweep],
-  spans: [],
+  spans: ["rpc.agents.changes.sweep"],
   budget: budget("chain-read"),
 });
 
@@ -272,7 +272,7 @@ export const rpc_agents_changes_remove = defineRpc({
   ...OPEN,
   calls: [integration_chain_rpc.c.readContract],
   chain: [contract_erc20.f.balanceOf, contract_agent_owner.f.remove],
-  spans: [],
+  spans: ["rpc.agents.changes.remove"],
   budget: budget("chain-read"),
 });
 
@@ -301,6 +301,6 @@ export const rpc_agents_changes_get = defineRpc({
   emits: [],
   calls: [],
   chain: [],
-  spans: [],
+  spans: ["rpc.agents.changes.get"],
   budget: budget("live-read"),
 });

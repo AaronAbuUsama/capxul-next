@@ -99,7 +99,7 @@ export const rpc_applications_keys_list = defineRpc({
   emits: [],
   calls: [],
   chain: [],
-  spans: [],
+  spans: ["rpc.applications.keys.list"],
   budget: budget("read"),
   was: [`${ASIS}:153`, `${OLD}/operations/list.ts:12`, `${OLD}/reads.ts:43`, `${PROTOCOL}:100`, ...GUARD_WAS],
 });
@@ -135,7 +135,7 @@ export const rpc_applications_keys_create = defineRpc({
   emits: [],
   calls: [],
   chain: [],
-  spans: [],
+  spans: ["rpc.applications.keys.create"],
   budget: budget("write"),
   was: [`${ASIS}:99`, `${OLD}/operations/create.ts:16`, `${OLD}/rules.ts:45`, `${OLD}/writes.ts:24`, `${PROTOCOL}:89`, ...GUARD_WAS],
 });
@@ -165,7 +165,7 @@ export const rpc_applications_keys_rotate = defineRpc({
   emits: [],
   calls: [],
   chain: [],
-  spans: [],
+  spans: ["rpc.applications.keys.rotate"],
   budget: budget("write"),
   was: [`${ASIS}:179`, `${OLD}/operations/rotate.ts:14`, `${OLD}/rules.ts:54`, `${OLD}/rules.ts:60`, `${OLD}/writes.ts:77`, `${PROTOCOL}:110`, ...GUARD_WAS, ...OWNED_WAS],
 });
@@ -193,7 +193,7 @@ export const rpc_applications_keys_revoke = defineRpc({
   emits: [],
   calls: [],
   chain: [],
-  spans: [],
+  spans: ["rpc.applications.keys.revoke"],
   budget: budget("write"),
   was: [`${ASIS}:226`, `${OLD}/operations/revoke.ts:12`, `${OLD}/writes.ts:84`, `${PROTOCOL}:117`, ...GUARD_WAS, ...OWNED_WAS],
 });

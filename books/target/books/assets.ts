@@ -74,7 +74,7 @@ export const rpc_books_assets_list = defineRpc({
   emits: [],
   calls: [],
   chain: [],
-  spans: [],
+  spans: ["rpc.books.assets.list"],
   budget: budget("read"),
 });
 
@@ -128,7 +128,7 @@ export const rpc_books_assets_add = defineRpc({
   emits: [],
   calls: [integration_chain_rpc.c.getBlock, integration_chain_rpc.c.readContract],
   chain: [contract_erc20.f.decimals, contract_erc20.f.symbol, contract_erc20.f.balanceOf],
-  spans: [],
+  spans: ["rpc.books.assets.add"],
   budget: budget("chain-read"),
 });
 
@@ -153,6 +153,6 @@ export const rpc_books_assets_remove = defineRpc({
   emits: [],
   calls: [],
   chain: [],
-  spans: [],
+  spans: ["rpc.books.assets.remove"],
   budget: budget("write"),
 });

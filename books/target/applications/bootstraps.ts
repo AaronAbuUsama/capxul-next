@@ -82,7 +82,7 @@ export const rpc_applications_bootstraps_resolve = defineRpc({
   emits: [],
   calls: [],
   chain: [],
-  spans: [],
+  spans: ["rpc.applications.bootstraps.resolve"],
   budget: budget("write"),
   was: [
     `${ASIS}:57`,

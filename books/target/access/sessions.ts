@@ -45,7 +45,7 @@ export const rpc_access_sessions_current = defineRpc({
   emits: [],
   calls: [integration_chain_rpc.c.getCode, integration_chain_rpc.c.readContract],
   chain: [contract_safe.f.getOwners],
-  spans: [],
+  spans: ["rpc.access.sessions.current"],
   budget: budget("chain-read"),
 });
 
@@ -70,7 +70,7 @@ export const rpc_access_sessions_revoke = defineRpc({
   emits: [],
   calls: [],
   chain: [],
-  spans: [],
+  spans: ["rpc.access.sessions.revoke"],
   budget: budget("write"),
 });
 
@@ -95,6 +95,6 @@ export const rpc_access_sessions_wallet_recovery = defineRpc({
   emits: [],
   calls: [integration_openfort_shield.c.createEncryptionSession],
   chain: [],
-  spans: [],
+  spans: ["rpc.access.sessions.wallet-recovery"],
   budget: budget("vendor"),
 });

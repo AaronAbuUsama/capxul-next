@@ -76,7 +76,7 @@ export const flow_client_onboarding_begin_organization = defineFlow({
   ],
   errors: [],
   calls: [],
-  spans: [],
+  spans: ["sdk.client.onboarding.begin-organization"],
   budget: budget("write"),
 });
 
@@ -102,7 +102,7 @@ export const flow_client_org_setup_resume = defineFlow({
   ],
   errors: [],
   calls: [],
-  spans: [],
+  spans: ["sdk.client.org.setup.resume"],
   budget: budget("write"),
 });
 
@@ -125,7 +125,7 @@ export const flow_client_org_setup_get = defineFlow({
   ],
   errors: [],
   calls: [],
-  spans: [],
+  spans: ["sdk.client.org.setup.get"],
   budget: budget("read"),
 });
 
@@ -150,7 +150,7 @@ export const flow_client_org_setup_subscribe = defineFlow({
   ],
   errors: [],
   calls: [],
-  spans: [],
+  spans: ["sdk.client.org.setup.subscribe"],
   budget: budget("live-read"),
 });
 
@@ -172,7 +172,7 @@ export const flow_client_orgs_use = defineFlow({
   ],
   errors: [],
   calls: [],
-  spans: [],
+  spans: ["sdk.client.orgs.use"],
   budget: budget("read"),
 });
 
@@ -194,7 +194,7 @@ export const flow_client_org_members_get = defineFlow({
   ],
   errors: [error_INVALID_INPUT],
   calls: [],
-  spans: [],
+  spans: ["sdk.client.org.members.get"],
   budget: budget("read"),
 });
 
@@ -220,7 +220,7 @@ export const flow_client_orgs_invitations = defineFlow({
   ],
   errors: [],
   calls: [],
-  spans: [],
+  spans: ["sdk.client.orgs.invitations"],
   budget: budget("read"),
 });
 
@@ -240,7 +240,7 @@ export const flow_client_operator_organizations_seats_raise = defineFlow({
   steps: [{ name: "raise", rpc: rpc_organizations_seats_raise, about: "Raises the limit in one transaction." }],
   errors: [],
   calls: [],
-  spans: [],
+  spans: ["sdk.client.operator.organizations.seats.raise"],
   budget: budget("write"),
   was: ["books/target/shared/rulings.ts (aaron.seats, aaron.buy-seats)"],
 });

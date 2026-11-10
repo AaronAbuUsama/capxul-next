@@ -90,7 +90,7 @@ export const rpc_payroll_payees_accept = defineRpc({
   emits: [],
   calls: [integration_chain_rpc.c.readContract],
   chain: [contract_agreements.f.agreementOf, contract_agreements.f.accept],
-  spans: [],
+  spans: ["rpc.payroll.payees.accept"],
   budget: budget("chain-read"),
 });
 
@@ -129,7 +129,7 @@ export const rpc_payroll_payees_collect = defineRpc({
     contract_roles.f.allowances,
     contract_agreements.f.collect,
   ],
-  spans: [],
+  spans: ["rpc.payroll.payees.collect"],
   budget: budget("chain-read"),
 });
 
@@ -160,7 +160,7 @@ export const rpc_payroll_payees_list = defineRpc({
   emits: [],
   calls: [integration_chain_rpc.c.readContract, integration_chain_rpc.c.getBlock],
   chain: [contract_agreements.f.agreementOf, contract_agreements.f.availableOf],
-  spans: [],
+  spans: ["rpc.payroll.payees.list"],
   budget: budget("chain-read"),
 });
 
@@ -187,6 +187,6 @@ export const rpc_payroll_payees_show = defineRpc({
   emits: [],
   calls: [integration_chain_rpc.c.readContract, integration_chain_rpc.c.getBlock],
   chain: [contract_agreements.f.agreementOf, contract_agreements.f.availableOf],
-  spans: [],
+  spans: ["rpc.payroll.payees.show"],
   budget: budget("chain-read"),
 });

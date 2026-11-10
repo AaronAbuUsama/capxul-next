@@ -46,6 +46,8 @@ export const rpc_plugs_oauth_authorize = rpc({
   reads: [table_oauth_clients, table_site_users],
   writes: [table_oauth_codes],
   was: [`${SPIKE} (Frappe half: Sign-in verified end to end)`],
+
+  spans: ["rpc.plugs.oauth.authorize"],
 });
 
 export const rpc_plugs_oauth_token = rpc({
@@ -64,6 +66,8 @@ export const rpc_plugs_oauth_token = rpc({
   reads: [table_oauth_clients],
   writes: [table_oauth_codes],
   was: [`${SPIKE} (Core half: the OAuth stand-in)`],
+
+  spans: ["rpc.plugs.oauth.token"],
 });
 
 export const rpc_plugs_oauth_userinfo = rpc({
@@ -81,6 +85,8 @@ export const rpc_plugs_oauth_userinfo = rpc({
   errors: [error_NOT_AUTHENTICATED],
   reads: [table_site_users],
   was: [`${SPIKE} (INTERFACE.md: Sign-in)`],
+
+  spans: ["rpc.plugs.oauth.userinfo"],
 });
 
 void FIND;

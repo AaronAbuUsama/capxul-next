@@ -166,7 +166,7 @@ export const rpc_contacts_book_list = defineRpc({
   emits: [],
   calls: [],
   chain: [],
-  spans: [],
+  spans: ["rpc.contacts.book.list"],
   budget: budget("read"),
   was: [`${OLD}/operations/list.ts:13`, `${OLD}/reads.ts:140`, `${PROTOCOL}/operations.ts:86`, "apps/cli/src/runtime/paging.ts:82"],
 });
@@ -193,7 +193,7 @@ export const rpc_contacts_book_get = defineRpc({
   emits: [],
   calls: [],
   chain: [],
-  spans: [],
+  spans: ["rpc.contacts.book.get"],
   budget: budget("read"),
   was: [`${OLD}/operations/get.ts:1`, `${OLD}/reads.ts:121`, `${PROTOCOL}/operations.ts:93`],
 });
@@ -230,7 +230,7 @@ export const rpc_contacts_book_add = defineRpc({
   emits: [],
   calls: [],
   chain: [],
-  spans: [],
+  spans: ["rpc.contacts.book.add"],
   budget: budget("write"),
   was: [
     `${OLD}/operations/add.ts:13`,
@@ -286,7 +286,7 @@ export const rpc_contacts_book_record = defineRpc({
   emits: [],
   calls: [],
   chain: [],
-  spans: [],
+  spans: ["rpc.contacts.book.record"],
   budget: budget("write"),
   was: [
     `${FRAPPE}/contact/contact.json`,
@@ -318,7 +318,7 @@ export const rpc_contacts_book_label = defineRpc({
   emits: [],
   calls: [],
   chain: [],
-  spans: [],
+  spans: ["rpc.contacts.book.label"],
   budget: budget("write"),
   was: [`${OLD}/operations/label.ts:12`, `${OLD}/rules.ts:12`, `${OLD}/writes.ts:42`, `${OLD}/errors.ts:14`],
 });
@@ -344,7 +344,7 @@ export const rpc_contacts_book_hide = defineRpc({
   emits: [],
   calls: [],
   chain: [],
-  spans: [],
+  spans: ["rpc.contacts.book.hide"],
   budget: budget("write"),
   was: [`${OLD}/operations/hide.ts:11`, `${OLD}/writes.ts:42`, `${PROTOCOL}/operations.ts:111`],
 });
@@ -369,7 +369,7 @@ export const rpc_contacts_book_unhide = defineRpc({
   emits: [],
   calls: [],
   chain: [],
-  spans: [],
+  spans: ["rpc.contacts.book.unhide"],
   budget: budget("write"),
   was: [`${OLD}/operations/unhide.ts:1`, `${OLD}/writes.ts:42`, `${PROTOCOL}/operations.ts:118`],
 });

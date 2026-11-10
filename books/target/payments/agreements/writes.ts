@@ -32,6 +32,6 @@ export const rpc_payroll_writes_watch = defineRpc({
   emits: [],
   calls: [],
   chain: [],
-  spans: [],
+  spans: ["rpc.payroll.writes.watch"],
   budget: budget("live-read"),
 });

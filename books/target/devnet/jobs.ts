@@ -48,6 +48,6 @@ export const rpc_devnet_jobs_run = defineRpc({
   emits: [],
   calls: [],
   chain: [],
-  spans: [],
+  spans: ["rpc.devnet.jobs.run"],
   budget: budget("background"),
 });

@@ -54,7 +54,7 @@ export const rpc_parties_profiles_save = defineRpc({
   emits: [],
   calls: [],
   chain: [],
-  spans: [],
+  spans: ["rpc.parties.profiles.save"],
   budget: budget("write"),
   was: [
     `${OLD}/onboardings/operations/complete.ts:23`,
@@ -85,7 +85,7 @@ export const rpc_parties_profiles_get = defineRpc({
   emits: [],
   calls: [],
   chain: [],
-  spans: [],
+  spans: ["rpc.parties.profiles.get"],
   budget: budget("read"),
   was: [`${OLD}/details/operations/get.ts:11`],
 });

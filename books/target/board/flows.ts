@@ -111,7 +111,7 @@ export const flow_client_org_board_claim = defineFlow({
   steps: boardChange(rpc_board_directors_claim, "the Gate's `claimSigner` of the Director hat"),
   errors: [...CHANGE_ERRORS],
   calls: [],
-  spans: [],
+  spans: ["sdk.client.org.board.claim"],
   budget: WRITE_BUDGET,
   was: [`${SDK}/board-claim.ts`, `${CLI}/board/command.ts`],
 });
@@ -130,7 +130,7 @@ export const flow_client_org_board_directors_add = defineFlow({
   steps: boardChange(rpc_board_directors_seat, "the Director hat's supply change, its mint to the member's Safe and `claimSignerFor`"),
   errors: [...CHANGE_ERRORS],
   calls: [],
-  spans: [],
+  spans: ["sdk.client.org.board.directors.add"],
   budget: WRITE_BUDGET,
   was: [`${SDK}/board.ts`, `${CLI}/board/command.ts`],
 });
@@ -148,7 +148,7 @@ export const flow_client_org_board_directors_remove = defineFlow({
   steps: boardChange(rpc_board_directors_remove, "`Hats.setHatWearerStatus(director, safe, false, true)` and `removeSigner` of that Safe"),
   errors: [...CHANGE_ERRORS],
   calls: [],
-  spans: [],
+  spans: ["sdk.client.org.board.directors.remove"],
   budget: WRITE_BUDGET,
   was: [`${SDK}/board.ts`, `${CLI}/board/command.ts`],
 });
@@ -171,7 +171,7 @@ export const flow_client_org_board_set_threshold = defineFlow({
   ],
   errors: [...CHANGE_ERRORS],
   calls: [],
-  spans: [],
+  spans: ["sdk.client.org.board.set-threshold"],
   budget: WRITE_BUDGET,
   was: [`${SDK}/board.ts`, `${CLI}/board/command.ts`],
 });
@@ -190,7 +190,7 @@ export const flow_client_org_board_hand_over = defineFlow({
   steps: boardChange(rpc_board_directors_hand_over, "`changeHatEligibility`, `changeHatToggle` and the top hat's `transferHat` to the Governor"),
   errors: [...CHANGE_ERRORS],
   calls: [],
-  spans: [],
+  spans: ["sdk.client.org.board.hand-over"],
   budget: WRITE_BUDGET,
   was: [`${SDK}/board-handover.ts`, `${CLI}/board/command.ts`],
 });
@@ -208,7 +208,7 @@ export const flow_client_org_board_refresh = defineFlow({
   steps: boardChange(rpc_board_directors_refresh, "one `removeSigner` per lapsed signer"),
   errors: [...CHANGE_ERRORS],
   calls: [],
-  spans: [],
+  spans: ["sdk.client.org.board.refresh"],
   budget: WRITE_BUDGET,
   was: [`${SDK}/board-refresh.ts`, `${CLI}/board/command.ts`],
 });
@@ -238,7 +238,7 @@ export const flow_client_org_proposals_approve = defineFlow({
   ],
   errors: [error_CANCELLED, error_WRONG_STATE, error_CAPABILITY_UNAVAILABLE],
   calls: [],
-  spans: [],
+  spans: ["sdk.client.org.proposals.approve"],
   budget: WRITE_BUDGET,
   was: [`${SDK}/proposals.ts`, `${SDK}/board-approval.ts`, `${CLI}/proposal/command.ts`],
 });
@@ -262,7 +262,7 @@ export const flow_client_org_proposals_reject = defineFlow({
   ],
   errors: [error_CANCELLED, error_WRONG_STATE],
   calls: [],
-  spans: [],
+  spans: ["sdk.client.org.proposals.reject"],
   budget: WRITE_BUDGET,
   was: [`${SDK}/proposals.ts`, `${CLI}/proposal/command.ts`],
 });
@@ -286,7 +286,7 @@ export const flow_client_org_proposals_wait = defineFlow({
   ],
   errors: [],
   calls: [],
-  spans: [],
+  spans: ["sdk.client.org.proposals.wait"],
   budget: { ...budget("read"), excludes: ["wait.chain"] },
   was: [`${SDK}/proposals.ts`, "docs/as-is/archive/organizations/flows-governance.ts"],
 });
@@ -313,7 +313,7 @@ export const flow_client_org_members_grant = defineFlow({
   steps: officer(rpc_board_officers_grant, "the hat's supply change when full and its `mintHat` to the member's Safe"),
   errors: [error_CANCELLED],
   calls: [],
-  spans: [],
+  spans: ["sdk.client.org.members.grant"],
   budget: WRITE_BUDGET,
   was: [`${SDK}/member-permissions.ts`, `${CLI}/member/grant`],
 });
@@ -331,7 +331,7 @@ export const flow_client_org_members_revoke = defineFlow({
   steps: officer(rpc_board_officers_revoke, "one `setHatWearerStatus(hat, memberSafe, false, true)`"),
   errors: [error_CANCELLED],
   calls: [],
-  spans: [],
+  spans: ["sdk.client.org.members.revoke"],
   budget: WRITE_BUDGET,
   was: [`${SDK}/member-permissions.ts`, `${CLI}/member/revoke`],
 });
@@ -379,7 +379,7 @@ const refused = (spec: { id: string; sdk: string; title: string; instead: string
       error_WRONG_STATE,
     ],
     calls: [],
-    spans: [],
+    spans: [`rpc.${spec.id}`],
     budget: budget("chain-read"),
     was: [
       "packages/backend/src/organizations/proposals/operations/change-owners.ts:31",

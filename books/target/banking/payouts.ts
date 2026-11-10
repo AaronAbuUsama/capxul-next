@@ -132,7 +132,7 @@ export const rpc_banking_payouts_quote = defineRpc({
     integration_chain_rpc.c.readContract,
   ],
   chain: [contract_erc20.f.balanceOf, contract_budgets.f.budgetOf, contract_budgets.f.authorised, contract_budgets.f.leftOf],
-  spans: [],
+  spans: ["rpc.banking.payouts.quote"],
   budget: {
     ...budget("vendor"),
     p95Ms: 5_000,
@@ -168,7 +168,7 @@ export const rpc_banking_payouts_get = defineRpc({
   emits: [],
   calls: [],
   chain: [],
-  spans: [],
+  spans: ["rpc.banking.payouts.get"],
   budget: budget("read"),
   was: [`${PO}/operations/outcome.ts:1`, `${PO}/rules/stage.ts:1`, "docs/as-is/archive/banking/payouts.ts:317"],
 });
@@ -199,7 +199,7 @@ export const rpc_banking_payouts_resolve = defineRpc({
   emits: [],
   calls: [],
   chain: [],
-  spans: [],
+  spans: ["rpc.banking.payouts.resolve"],
   budget: budget("write"),
   was: [`${PO}/operations/resolve.ts:1`, "docs/as-is/archive/banking/payouts.ts:411"],
 });

@@ -93,6 +93,8 @@ export const rpc_accounts_setup_start = defineRpc({
   ...noCalls,
   budget: budget("write"),
   was: [`${OLD}/safes/operations/provision.ts:10`, `${OLD}/claims/operations/claim.ts:34`, `${OLD}/claims/rules.ts:45`, `${SDK}/account-setup.ts:86`],
+
+  spans: ["rpc.accounts.setup.start"],
 });
 
 export const rpc_accounts_setup_lifecycle = defineRpc({
@@ -119,6 +121,8 @@ export const rpc_accounts_setup_lifecycle = defineRpc({
   ...noCalls,
   budget: budget("read"),
   was: [`${OLD}/safes/operations/load-by-auth-user-id.ts:11`, `${OLD}/safes/guards.ts:11`, `${SDK}/account-lifecycle.ts:92`],
+
+  spans: ["rpc.accounts.setup.lifecycle"],
 });
 
 export const rpc_accounts_setup_check = defineRpc({
@@ -144,6 +148,8 @@ export const rpc_accounts_setup_check = defineRpc({
   ...noCalls,
   budget: budget("read"),
   was: [`${OLD}/safes/operations/load-by-auth-user-id.ts:11`, "apps/cli/src/auth/profile-report.ts:18", "apps/docs/factory/operations/account.retry.yaml"],
+
+  spans: ["rpc.accounts.setup.check"],
 });
 
 /** One claim escrow the caller's Safe owns, as `payment claim` lists it. */
@@ -200,7 +206,7 @@ export const rpc_accounts_setup_collect = defineRpc({
   emits: [],
   calls: [],
   chain: [contract_escrow.f.collect],
-  spans: [],
+  spans: ["rpc.accounts.setup.collect"],
   budget: budget("write"),
   was: [`${OLD}/claims/operations/claim.ts:34`, "apps/docs/factory/operations/account.retry.yaml (designed: collects claim escrows)"],
 });

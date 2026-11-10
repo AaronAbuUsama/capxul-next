@@ -38,7 +38,7 @@ export const make = (s: Spec) => {
   const cls: Cls = s.cls ?? (s.kind === "query" ? "read" : "write");
   const rpc = defineRpc({
     id: s.rpc, title: s.title, about: s.rpcAbout ?? s.about, concept: concept_devnet, kind: s.kind, who: s.who, input: s.input, output: s.output, errors,
-    reads: s.reads ?? [], writes: s.writes ?? [], drives: s.drives ?? [], invokes: [], emits: [], calls: s.calls ?? [], chain: [], spans: [],
+    reads: s.reads ?? [], writes: s.writes ?? [], drives: s.drives ?? [], invokes: [], emits: [], calls: s.calls ?? [], chain: [], spans: [`rpc.${s.rpc}`],
     budget: s.p95Ms ? { class: cls, p50Ms: Math.round(s.p95Ms / 3), p95Ms: s.p95Ms, why: "An estimate from the spike's measured times (docs/design/worlds-platform.md, Numbers); the first hosted-world eval measures it." } : budget(cls),
     was: [DOC],
   } as never);

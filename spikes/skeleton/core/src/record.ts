@@ -10,6 +10,8 @@
 // (the shared secret, every test key, each with and without 0x) is replaced wherever it appears in the text; (4) a last check refuses to
 // write the line if any of those values is still in it. Hashes are kept (a key and a transaction hash look alike, so this is by value).
 import { createHash, randomBytes } from "node:crypto";
+import { Schema } from "effect";
+import { CommandRecordEntry } from "../../../../books/target/devnet/record-entry.ts";
 import { appendFileSync, closeSync, existsSync, mkdirSync, openSync, readdirSync, readFileSync, statSync, unlinkSync, writeFileSync } from "node:fs";
 import type { Address } from "viem";
 import { abis, deployment, orgId, publicClient } from "./chain.ts";
@@ -94,7 +96,11 @@ export function appendTo(path: string, rec: Record<string, unknown>): void {
   try {
     let seq = 1, prev = "0".repeat(64);
     if (existsSync(path)) { const last = readFileSync(path, "utf8").trimEnd().split("\n").pop()!; if (last) { seq = JSON.parse(last).seq + 1; prev = sha(last); } }
-    appendFileSync(path, line({ seq, prev, ...rec }) + "\n");
+    const serialized = line({ ...rec, seq, prev });
+    // Validate the redacted bytes, retaining extension fields (lineage, domain pointers).
+    // Never decode into a narrower object: that would silently drop training data.
+    Schema.decodeUnknownSync(CommandRecordEntry)(JSON.parse(serialized));
+    appendFileSync(path, serialized + "\n");
   } finally { unlock(); }
 }
 function writeSync(rec: Record<string, unknown>): void {

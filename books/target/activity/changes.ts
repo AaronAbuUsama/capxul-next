@@ -83,6 +83,6 @@ export const rpc_activity_changes_read = defineRpc({
   emits: [],
   calls: [],
   chain: [],
-  spans: [],
+  spans: ["rpc.activity.changes.read"],
   budget: budget("read"),
 });

@@ -75,6 +75,8 @@ export const rpc_budgets_tree_set_amount = defineRpc({
     contract_budgets.f.setAmount,
   ],
   budget: budget("chain-read"),
+
+  spans: ["rpc.budgets.tree.set-amount"],
 });
 
 // ── close and reopen ────────────────────────────────────────────────────────────────────────
@@ -100,6 +102,8 @@ export const rpc_budgets_tree_close = defineRpc({
   ...ONE_BUDGET,
   chain: [contract_budgets.f.budgetOf, contract_budgets.f.authorised, contract_budgets.f.close],
   budget: budget("chain-read"),
+
+  spans: ["rpc.budgets.tree.close"],
 });
 
 export const rpc_budgets_tree_reopen = defineRpc({
@@ -119,6 +123,8 @@ export const rpc_budgets_tree_reopen = defineRpc({
   ...ONE_BUDGET,
   chain: [contract_budgets.f.budgetOf, contract_budgets.f.authorised, contract_budgets.f.reopen],
   budget: budget("chain-read"),
+
+  spans: ["rpc.budgets.tree.reopen"],
 });
 
 // ── the tree ────────────────────────────────────────────────────────────────────────────────
@@ -160,6 +166,6 @@ export const rpc_budgets_tree_show = defineRpc({
   emits: [],
   calls: [integration_chain_rpc.c.readContract],
   chain: [contract_budgets.f.childrenOf, contract_budgets.f.budgetOf, contract_budgets.f.leftOf, contract_roles.f.allowances],
-  spans: [],
+  spans: ["rpc.budgets.tree.show"],
   budget: budget("chain-read"),
 });

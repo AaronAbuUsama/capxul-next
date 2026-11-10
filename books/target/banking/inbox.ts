@@ -75,7 +75,7 @@ export const rpc_banking_inbox_receive = defineRpc({
   emits: [],
   calls: [],
   chain: [],
-  spans: [],
+  spans: ["rpc.banking.inbox.receive"],
   budget: budget("write"),
   was: [`${W}/operations/receive.ts:1`, `${W}/operations/insert.ts:1`, `${W}/operations/process.ts:1`, "packages/backend/convex/http.ts:32"],
 });

@@ -174,7 +174,7 @@ export const rpc_budgets_invitations_plan = defineRpc({
   emits: [],
   calls: [integration_chain_rpc.c.readContract, integration_indexer.c.head],
   chain: [contract_budgets.f.budgetOf, contract_budgets.f.leftOf, contract_hats.f.viewHat],
-  spans: [],
+  spans: ["rpc.budgets.invitations.plan"],
   budget: budget("chain-read"),
 });
 
@@ -222,6 +222,6 @@ export const rpc_budgets_invitations_propose = defineRpc({
     contract_hats.f.changeHatMaxSupply,
     contract_hats.f.mintHat,
   ],
-  spans: [],
+  spans: ["rpc.budgets.invitations.propose"],
   budget: budget("chain-read"),
 });

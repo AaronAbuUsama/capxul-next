@@ -59,7 +59,7 @@ export const rpc_access_assistants_read_request = defineRpc({
   emits: [],
   calls: [],
   chain: [],
-  spans: [],
+  spans: ["rpc.access.assistants.read-request"],
   budget: budget("read"),
 });
 
@@ -85,7 +85,7 @@ export const rpc_access_assistants_consent = defineRpc({
   emits: [],
   calls: [],
   chain: [],
-  spans: [],
+  spans: ["rpc.access.assistants.consent"],
   budget: budget("write"),
 });
 
@@ -126,7 +126,7 @@ export const rpc_access_assistants_token = defineRpc({
   emits: [],
   calls: [],
   chain: [],
-  spans: [],
+  spans: ["rpc.access.assistants.token"],
   budget: budget("write"),
 });
 
@@ -151,6 +151,6 @@ export const rpc_access_assistants_revoke = defineRpc({
   emits: [],
   calls: [],
   chain: [],
-  spans: [],
+  spans: ["rpc.access.assistants.revoke"],
   budget: budget("write"),
 });

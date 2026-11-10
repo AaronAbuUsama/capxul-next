@@ -89,7 +89,7 @@ export const flow_client_system_health = defineFlow({
   ],
   errors: [error_NETWORK_ERROR, error_PROVIDER_RESPONSE_INVALID],
   calls: [],
-  spans: [],
+  spans: ["sdk.client.system.health"],
   budget: {
     ...budget("read"),
     p50Ms: 1_000,
@@ -115,7 +115,7 @@ export const flow_client_account_keys_rotate = defineFlow({
   steps: [confirm("the grace window"), { name: "rotate", rpc: rpc_applications_keys_rotate }],
   errors: [error_CANCELLED],
   calls: [],
-  spans: [],
+  spans: ["sdk.client.account.keys.rotate"],
   budget: GUIDED,
 });
 
@@ -134,7 +134,7 @@ export const flow_client_account_keys_revoke = defineFlow({
   steps: [confirm("that apps using it stop at their next sign-in"), { name: "revoke", rpc: rpc_applications_keys_revoke }],
   errors: [error_CANCELLED],
   calls: [],
-  spans: [],
+  spans: ["sdk.client.account.keys.revoke"],
   budget: GUIDED,
 });
 
@@ -169,7 +169,7 @@ export const flow_client_dev_key = defineFlow({
   ],
   errors: [error_WRONG_ENVIRONMENT, error_CLI_STORAGE],
   calls: [],
-  spans: [],
+  spans: ["sdk.client.dev.key"],
   budget: budget("write"),
 });
 
@@ -205,6 +205,6 @@ export const flow_create_capxul_client = defineFlow({
   ],
   errors: [error_INVALID_INPUT, error_NETWORK_ERROR, error_PROVIDER_RESPONSE_INVALID],
   calls: [],
-  spans: [],
+  spans: ["sdk.create-capxul-client"],
   budget: budget("write"),
 });

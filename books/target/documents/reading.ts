@@ -88,7 +88,7 @@ export const rpc_documents_reading_get = defineRpc({
   emits: [],
   calls: [],
   chain: [],
-  spans: [],
+  spans: ["rpc.documents.reading.get"],
   budget: budget("read"),
   was: [
     `${ACTIVITY}/operations/get.ts:9`,
@@ -132,7 +132,7 @@ export const rpc_documents_reading_verify = defineRpc({
   emits: [],
   calls: [],
   chain: [],
-  spans: [],
+  spans: ["rpc.documents.reading.verify"],
   budget: budget("read"),
   was: [
     `${ACTIVITY}/operations/verify.ts:10`,

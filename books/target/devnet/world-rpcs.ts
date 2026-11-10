@@ -54,6 +54,8 @@ export const rpc_devnet_worlds_create = rpc({
   writes: [table_worlds, table_command_records],
   drives: [machine_world.t.create],
   was: [`${NOTE} (section 4)`],
+
+  spans: ["rpc.devnet.worlds.create"],
 });
 
 export const rpc_devnet_worlds_list = rpc({
@@ -63,6 +65,8 @@ export const rpc_devnet_worlds_list = rpc({
   concept: concept_devnet, kind: "query", who: WHO_READ,
   input: Schema.Struct({ hostedToo: B }), output: Schema.Struct({ worlds: Schema.Array(WorldView) }),
   errors: [error_NOT_AUTHENTICATED], reads: [table_worlds, table_world_registrations], was: [`${NOTE}`],
+
+  spans: ["rpc.devnet.worlds.list"],
 });
 
 export const rpc_devnet_worlds_show = rpc({
@@ -72,6 +76,8 @@ export const rpc_devnet_worlds_show = rpc({
   concept: concept_devnet, kind: "query", who: WHO_READ,
   input: Schema.Struct({ world: S }), output: WorldView,
   errors: [error_NOT_AUTHENTICATED, error_INVALID_INPUT], reads: [table_worlds, table_command_records], was: [`${NOTE}`],
+
+  spans: ["rpc.devnet.worlds.show"],
 });
 
 const clockRpc = (verb: "set" | "freeze" | "resume" | "warp", call: "timeRate" | "timeFreeze" | "timeResume" | "timeWarp", title: string, about: string, input: Schema.Struct<Schema.Struct.Fields>) =>
@@ -79,7 +85,8 @@ const clockRpc = (verb: "set" | "freeze" | "resume" | "warp", call: "timeRate" |
     id: `devnet.worlds.clock-${verb}`, title, about,
     concept: concept_devnet, kind: "action", who: WHO_OWNER, input, output: Schema.Struct({ worldId: S, clockMode: ClockMode, rate: N, worldNow: N }),
     errors: errorsOf(call, [error_INVALID_INPUT]), reads: [table_worlds], writes: [table_worlds, table_command_records], calls: [integration_devnet_control.c[call]], was: [`${NOTE} (section 2)`],
-  });
+  spans: [`rpc.devnet.worlds.clock-${verb}`],
+});
 
 export const rpc_devnet_worlds_clock_set = clockRpc("set", "timeRate", "Set the world's clock running at a rate",
   "Sets the world's clock rate without changing frozen or running mode, in world seconds per real second, 1 to 60 (devnet.clock-rate; the bound is the coordinator's, accepted on Aaron's delegation, and the owner has not ruled on it). The chain, the service and every company's site follow (devnet.site-follows-world).",
@@ -102,12 +109,16 @@ export const rpc_devnet_worlds_snapshot_save = rpc({
   concept: concept_devnet, kind: "action", who: WHO_OWNER, input: Schema.Struct({ world: S, name: S, replace: B, template: B }), output: SnapshotView,
   errors: errorsOf("snapshotSave", [error_INVALID_INPUT]), reads: [table_worlds], writes: [table_world_snapshots, table_command_records], calls: [integration_devnet_control.c.snapshotSave, integration_site_service.c.saveSnapshot],
   budget: { class: "background", p50Ms: 20_000, p95Ms: 60_000, why: "A snapshot saves a chain and a site backup per company: 9.4 s and 9.5 MB for four companies (measured in the spike); a hosted world's larger sites are the headroom." }, was: [`${NOTE} (section 6, 6)`],
+
+  spans: ["rpc.devnet.worlds.snapshot-save"],
 });
 export const rpc_devnet_worlds_snapshot_list = rpc({
   id: "devnet.worlds.snapshot-list", title: "List a world's snapshots",
   about: "A world's snapshots, newest first, with the epoch and sequence each was taken at and whether it is a template.",
   concept: concept_devnet, kind: "query", who: WHO_READ, input: Schema.Struct({ world: S }), output: Schema.Struct({ snapshots: Schema.Array(SnapshotView) }),
   errors: [error_NOT_AUTHENTICATED, error_INVALID_INPUT], reads: [table_world_snapshots, table_worlds], was: [`${NOTE}`],
+
+  spans: ["rpc.devnet.worlds.snapshot-list"],
 });
 export const rpc_devnet_worlds_snapshot_restore = rpc({
   id: "devnet.worlds.snapshot-restore",
@@ -120,6 +131,8 @@ export const rpc_devnet_worlds_snapshot_restore = rpc({
   reads: [table_world_snapshots, table_worlds], writes: [table_worlds, table_command_records], drives: [machine_world.t.restore],
   calls: [integration_devnet_control.c.snapshotRestore, integration_devnet_control.c.restoreAs, integration_site_service.c.restoreSnapshot],
   budget: { class: "background", p50Ms: 30_000, p95Ms: 90_000, why: "A restore replaces a chain and every company's site: measured in the spike, 36 s into a new world with one company and 80 s in place for four; 90 s p95 is the headroom." }, was: [`${NOTE} (section 6, 4)`],
+
+  spans: ["rpc.devnet.worlds.snapshot-restore"],
 });
 
 export const rpc_devnet_records_list = rpc({
@@ -128,6 +141,8 @@ export const rpc_devnet_records_list = rpc({
   concept: concept_devnet, kind: "query", who: WHO_READ,
   input: Schema.Struct({ world: S, who: Null(S), kind: Null(S), from: Null(N), to: Null(N), trace: Null(S), includeAbandoned: B, limit: N }), output: Schema.Struct({ entries: Schema.Array(EntryView) }),
   errors: [error_NOT_AUTHENTICATED, error_ROLE_PERMISSION_DENIED, error_INVALID_INPUT], reads: [table_command_records, table_worlds], was: [`${NOTE} (section 6, 5)`],
+
+  spans: ["rpc.devnet.records.list"],
 });
 export const rpc_devnet_records_show = rpc({
   id: "devnet.records.show", title: "Read one entry of the record in full",
@@ -135,6 +150,8 @@ export const rpc_devnet_records_show = rpc({
   concept: concept_devnet, kind: "query", who: WHO_READ, input: Schema.Struct({ world: S, epoch: N, seq: N }),
   output: Schema.Struct({ entry: EntryView, args: Null(S), returned: Null(S), changed: Null(S), pointers: Null(S) }),
   errors: [error_NOT_AUTHENTICATED, error_ROLE_PERMISSION_DENIED, error_INVALID_INPUT], reads: [table_command_records], was: [`${NOTE} (section 6, 5)`],
+
+  spans: ["rpc.devnet.records.show"],
 });
 export const rpc_devnet_records_export = rpc({
   id: "devnet.records.export", title: "Export the world's record as lines of JSON",
@@ -143,6 +160,8 @@ export const rpc_devnet_records_export = rpc({
   output: Schema.Struct({ lines: N, bytes: N, lineage: Schema.Struct({ parentWorld: Null(S), parentSnapshot: Null(S), parentSeq: Null(N) }) }),
   errors: [error_NOT_AUTHENTICATED, error_ROLE_PERMISSION_DENIED, error_INVALID_INPUT], reads: [table_command_records, table_worlds],
   budget: { class: "read", p50Ms: 600, p95Ms: 1200 }, was: [`${NOTE} (section 6, 5)`],
+
+  spans: ["rpc.devnet.records.export"],
 });
 
 export const rpc_devnet_worlds_register = rpc({
@@ -155,4 +174,6 @@ export const rpc_devnet_worlds_register = rpc({
   output: Schema.Struct({ worldId: S, name: S, secret: S }),
   errors: [error_NOT_AUTHENTICATED, error_ROLE_PERMISSION_DENIED, error_INVALID_INPUT, ...integration_site_service.calls.registerWorld.failures.map((f) => f.error)],
   reads: [table_worlds], writes: [table_world_registrations, table_worlds], calls: [integration_site_service.c.registerWorld], was: ["books/target/plugs/decisions.ts (plugs.service-calls-site)"],
+
+  spans: ["rpc.devnet.worlds.register"],
 });

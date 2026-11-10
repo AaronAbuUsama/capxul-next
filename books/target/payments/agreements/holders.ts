@@ -124,7 +124,7 @@ export const rpc_payroll_holders_offer = defineRpc({
     contract_companies_house_claimer.f.safeAddressFor,
     contract_agreements.f.offer,
   ],
-  spans: [],
+  spans: ["rpc.payroll.holders.offer"],
   budget: budget("chain-read"),
 });
 
@@ -149,6 +149,8 @@ export const rpc_payroll_holders_withdraw = defineRpc({
   ...HOLDER_TOUCHES,
   chain: [contract_agreements.f.agreementOf, contract_budgets.f.authorised, contract_agreements.f.withdrawOffer],
   budget: budget("chain-read"),
+
+  spans: ["rpc.payroll.holders.withdraw"],
 });
 
 export const rpc_payroll_holders_change = defineRpc({
@@ -182,6 +184,8 @@ export const rpc_payroll_holders_change = defineRpc({
     contract_agreements.f.cancelChange,
   ],
   budget: budget("chain-read"),
+
+  spans: ["rpc.payroll.holders.change"],
 });
 
 export const rpc_payroll_holders_pause = defineRpc({
@@ -202,6 +206,8 @@ export const rpc_payroll_holders_pause = defineRpc({
   ...HOLDER_TOUCHES,
   chain: [contract_agreements.f.agreementOf, contract_budgets.f.authorised, contract_agreements.f.pause],
   budget: budget("chain-read"),
+
+  spans: ["rpc.payroll.holders.pause"],
 });
 
 export const rpc_payroll_holders_resume = defineRpc({
@@ -222,6 +228,8 @@ export const rpc_payroll_holders_resume = defineRpc({
   ...HOLDER_TOUCHES,
   chain: [contract_agreements.f.agreementOf, contract_budgets.f.authorised, contract_agreements.f.resume],
   budget: budget("chain-read"),
+
+  spans: ["rpc.payroll.holders.resume"],
 });
 
 export const rpc_payroll_holders_end = defineRpc({
@@ -245,6 +253,8 @@ export const rpc_payroll_holders_end = defineRpc({
   ...HOLDER_TOUCHES,
   chain: [contract_agreements.f.agreementOf, contract_budgets.f.authorised, contract_agreements.f.end],
   budget: budget("chain-read"),
+
+  spans: ["rpc.payroll.holders.end"],
 });
 
 // ── the Organization's list ─────────────────────────────────────────────────────────────────
@@ -273,6 +283,6 @@ export const rpc_payroll_holders_list = defineRpc({
   emits: [],
   calls: [integration_chain_rpc.c.readContract],
   chain: [contract_agreements.f.agreementOf, contract_budgets.f.budgetOf, contract_budgets.f.leftOf],
-  spans: [],
+  spans: ["rpc.payroll.holders.list"],
   budget: budget("chain-read"),
 });

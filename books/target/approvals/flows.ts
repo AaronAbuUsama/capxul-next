@@ -43,7 +43,7 @@ export const flow_client_approvals_sign = defineFlow({
   ],
   errors: [error_CAPABILITY_UNAVAILABLE, error_INVALID_INPUT, error_WRONG_STATE],
   calls: [integration_openfort.c.getAddress, integration_openfort.c.signDigest],
-  spans: [],
+  spans: ["sdk.client.approvals.sign"],
   budget: budget("vendor"),
   was: [`${SDK}/approvals.ts:156`, `${SDK}/approval-rules.ts:66`, `${SDK}/approval-wait.ts:1`],
 });

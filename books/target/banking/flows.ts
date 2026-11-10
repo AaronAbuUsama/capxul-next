@@ -61,7 +61,7 @@ export const flow_client_verification_start = defineFlow({
   ],
   errors: [],
   calls: [],
-  spans: [],
+  spans: ["sdk.client.verification.start"],
   budget: {
     ...budget("vendor"),
     p95Ms: 10_000,
@@ -95,7 +95,7 @@ export const flow_client_verification_status = defineFlow({
   ],
   errors: [error_CLI_DEADLINE],
   calls: [],
-  spans: [],
+  spans: ["sdk.client.verification.status"],
   budget: budget("vendor"),
   was: [`${SDK}/parties/verifications.ts:51`, `${CLI}/verify/subcommands/status/execute.ts:1`],
 });
@@ -131,7 +131,7 @@ export const flow_client_account_bank_accounts_add = defineFlow({
   ],
   errors: [],
   calls: [],
-  spans: [],
+  spans: ["sdk.client.account.bank-accounts.add"],
   budget: budget("vendor"),
   was: [`${SDK}/parties/accounts.ts:52`, `${CLI}/bank/subcommands/accounts/internal/input.ts:1`, `${CLI}/contact/subcommands/bank/subcommands/add/execute.ts:24`],
 });
@@ -185,7 +185,7 @@ export const flow_client_account_address_book_get = defineFlow({
   ],
   errors: [error_CANCELLED],
   calls: [],
-  spans: [],
+  spans: ["sdk.client.account.address-book.get"],
   budget: guidedRead,
   was: [`${CLI}/contact/subcommands/get/execute.ts:20`, `${CLI}/contact/subcommands/get/execute.ts:50`, `${SDK}/parties/contacts.ts:146`],
 });
@@ -237,7 +237,7 @@ export const flow_client_banking_payouts_pay = defineFlow({
   ],
   errors: [error_WRONG_STATE, error_CANCELLED],
   calls: [],
-  spans: [],
+  spans: ["sdk.client.banking.payouts.pay"],
   budget: budget("vendor"),
   was: [`${SDK}/accounts/command-approvals.ts:137`, `${CLI}/bank/subcommands/pay/execute.ts:1`, `${CLI}/bank/internal/payout-errors.ts:16`],
 });
@@ -270,7 +270,7 @@ export const flow_client_org_invitations_accept = defineFlow({
   ],
   errors: [error_CANCELLED],
   calls: [],
-  spans: [],
+  spans: ["sdk.client.org.invitations.accept"],
   budget: budget("vendor"),
   was: [`${SDK}/organizations/invitations.ts:1`, `${CLI}/org-invite/subcommands/accept/execute.ts:1`],
 });

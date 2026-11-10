@@ -136,7 +136,7 @@ export const rpc_board_proposals_get = defineRpc({
   emits: [],
   calls: [],
   chain: [],
-  spans: [],
+  spans: ["rpc.board.proposals.get"],
   budget: budget("read"),
 });
 
@@ -161,7 +161,7 @@ export const rpc_board_proposals_list = defineRpc({
   emits: [],
   calls: [],
   chain: [],
-  spans: [],
+  spans: ["rpc.board.proposals.list"],
   budget: budget("read"),
 });
 
@@ -211,7 +211,7 @@ export const rpc_board_proposals_approve = defineRpc({
     contract_safe.f.execTransaction,
     contract_multi_send_call_only.f.multiSend,
   ],
-  spans: [],
+  spans: ["rpc.board.proposals.approve"],
   budget: budget("chain-read"),
 });
 
@@ -242,6 +242,6 @@ export const rpc_board_proposals_reject = defineRpc({
   emits: [],
   calls: [],
   chain: [contract_payments.f.paid],
-  spans: [],
+  spans: ["rpc.board.proposals.reject"],
   budget: budget("write"),
 });

@@ -118,7 +118,7 @@ export const flow_client_me_agents_create = defineFlow({
   ],
   errors: [error_INVALID_INPUT, ...FOLLOW_ERRORS],
   calls: [],
-  spans: [],
+  spans: ["sdk.client.me.agents.create"],
   budget: budget("chain-submit"),
   was: [`${SDK}/agents.ts:1`, `${CLI}/subcommands/create/execute.ts:1`, `${CLI}/internal/key.ts:1`, "apps/cli/src/auth/own-key.ts:195"],
 });
@@ -139,7 +139,7 @@ export const flow_client_me_agents_freeze = defineFlow({
   ],
   errors: FOLLOW_ERRORS,
   calls: [],
-  spans: [],
+  spans: ["sdk.client.me.agents.freeze"],
   budget: budget("chain-submit"),
   was: [`${SDK}/agents.ts:1`, `${CLI}/subcommands/freeze`, `${CLI}/internal/change.ts:1`],
 });
@@ -158,7 +158,7 @@ export const flow_client_me_agents_unfreeze = defineFlow({
   ],
   errors: FOLLOW_ERRORS,
   calls: [],
-  spans: [],
+  spans: ["sdk.client.me.agents.unfreeze"],
   budget: budget("chain-submit"),
   was: [`${SDK}/agents.ts:1`, `${CLI}/subcommands/unfreeze`, `${CLI}/internal/change.ts:1`],
 });
@@ -189,7 +189,7 @@ export const flow_client_me_agents_rotate_key = defineFlow({
   ],
   errors: [error_INVALID_INPUT, ...FOLLOW_ERRORS],
   calls: [],
-  spans: [],
+  spans: ["sdk.client.me.agents.rotate-key"],
   budget: budget("chain-submit"),
   was: [`${SDK}/agent-keys.ts:1`, `${CLI}/internal/rotate.ts:1`, `${CLI}/internal/key.ts:1`],
 });
@@ -213,7 +213,7 @@ export const flow_client_me_agents_sweep = defineFlow({
   ],
   errors: FOLLOW_ERRORS,
   calls: [],
-  spans: [],
+  spans: ["sdk.client.me.agents.sweep"],
   budget: budget("chain-submit"),
   was: [`${SDK}/agent-changes.ts:1`, `${CLI}/internal/sweep.ts:1`, `${CLI}/internal/presentation.ts:1`],
 });
@@ -237,7 +237,7 @@ export const flow_client_me_agents_remove = defineFlow({
   ],
   errors: FOLLOW_ERRORS,
   calls: [],
-  spans: [],
+  spans: ["sdk.client.me.agents.remove"],
   budget: budget("chain-submit"),
   was: [`${SDK}/agent-changes.ts:1`, `${CLI}/internal/remove.ts:1`],
 });

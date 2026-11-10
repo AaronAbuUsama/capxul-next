@@ -33,6 +33,8 @@ export const rpc_sites_show = rpc({
   errors: [error_NOT_AUTHENTICATED, error_INVALID_INPUT],
   reads: [table_sites, table_org_members],
   was: [`${SPIKE} (Numbers measured)`],
+
+  spans: ["rpc.sites.show"],
 });
 
 export const rpc_sites_open = rpc({
@@ -49,6 +51,8 @@ export const rpc_sites_open = rpc({
   errors: [error_NOT_AUTHENTICATED, error_WRONG_STATE],
   reads: [table_sites, table_site_users, table_org_members],
   was: [`${SPIKE} (INTERFACE.md: a company's site in a browser)`],
+
+  spans: ["rpc.sites.open"],
 });
 
 export const rpc_sites_retry = rpc({
@@ -67,6 +71,8 @@ export const rpc_sites_retry = rpc({
   writes: [table_sites],
   drives: [machine_site.t.retry],
   was: [`${SPIKE} (End to end: What broke, 2; Frappe half: new-site.sh again for the same slug)`],
+
+  spans: ["rpc.sites.retry"],
 });
 
 export const rpc_sites_features_list = rpc({
@@ -83,6 +89,8 @@ export const rpc_sites_features_list = rpc({
   errors: [error_NOT_AUTHENTICATED],
   reads: [table_site_features, table_org_members],
   was: [`${SPIKE} (Feature switches)`],
+
+  spans: ["rpc.sites.features.list"],
 });
 
 const switchRpc = (to: "on" | "off") =>
@@ -105,7 +113,8 @@ const switchRpc = (to: "on" | "off") =>
     writes: [table_site_features],
     drives: [machine_site_feature.t.request],
     was: [`${SPIKE} (Feature switches; INTERFACE.md: Turning parts of the product on and off)`],
-  });
+  spans: [`rpc.sites.features.${to}`],
+});
 
 export const rpc_sites_features_on = switchRpc("on");
 export const rpc_sites_features_off = switchRpc("off");

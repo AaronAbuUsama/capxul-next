@@ -56,7 +56,7 @@ export const flow_client_activity_changes = defineFlow({
   ],
   errors: [],
   calls: [],
-  spans: [],
+  spans: ["sdk.client.activity.changes"],
   budget: { ...budget("read"), excludes: ["wait.*"] },
   was: [`${CLI}:131`, `${CLI}:14`, "packages/sdk/src/activity/methods.ts:1"],
 });

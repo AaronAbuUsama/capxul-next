@@ -103,7 +103,7 @@ export const rpc_requests_issuing_issue = defineRpc({
   emits: [],
   calls: [],
   chain: [],
-  spans: [],
+  spans: ["rpc.requests.issuing.issue"],
   budget: budget("write"),
 });
 
@@ -129,7 +129,7 @@ export const rpc_requests_issuing_list = defineRpc({
   emits: [],
   calls: [integration_indexer.c.head],
   chain: [],
-  spans: [],
+  spans: ["rpc.requests.issuing.list"],
   budget: budget("read"),
 });
 
@@ -154,7 +154,7 @@ export const rpc_requests_issuing_get = defineRpc({
   emits: [],
   calls: [integration_indexer.c.head],
   chain: [],
-  spans: [],
+  spans: ["rpc.requests.issuing.get"],
   budget: budget("read"),
 });
 
@@ -182,7 +182,7 @@ export const rpc_requests_issuing_cancel = defineRpc({
   emits: [],
   calls: [],
   chain: [],
-  spans: [],
+  spans: ["rpc.requests.issuing.cancel"],
   budget: budget("write"),
 });
 

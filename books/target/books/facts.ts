@@ -84,6 +84,6 @@ export const rpc_books_facts_list = defineRpc({
   emits: [],
   calls: [],
   chain: [],
-  spans: [],
+  spans: ["rpc.books.facts.list"],
   budget: budget("read"),
 });
