@@ -16,9 +16,9 @@ const scriptsOf = (dir: string): Readonly<Record<string, string>> => {
 
 /** The checks of the checkout in `dir`, as commands an agent's shell may run too (`pnpm exec`, `pnpm test`, `pnpm <script>`). */
 export const gatesOf = (dir: string): readonly GateSpec[] => {
-  const renamed = existsSync(join(dir, "blueprint"));
+  const renamed = existsSync(join(dir, "blueprint")), engine = existsSync(join(dir, "packages/blueprint-engine")) ? "packages/blueprint-engine" : "packages/book";
   return [
-    { name: "book types and tests", sh: "pnpm exec tsc -p packages/book && pnpm test" },
+    { name: "engine types and tests", sh: `pnpm exec tsc -p ${engine} && pnpm test` },
     { name: "design types", sh: `pnpm exec tsc -p ${renamed ? "blueprint" : "books"}` },
     { name: "design builds", sh: `pnpm ${"blueprint" in scriptsOf(dir) ? "blueprint" : "book"}` },
     { name: "frozen behaviour", sh: "pnpm frozen" },
