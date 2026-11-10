@@ -409,7 +409,7 @@ export const decision_journeys_onto_target = defineDecision({
     "The event carries no budget kind, so within each pair only its `budget_ref` (the allowance's or the department's) " +
     "tells them apart; a funnel that needs them apart needs that kind on the event, which is budgets' change. " +
     "Alternative endings the old lists keep (a cancel, a decline, a retry) stay steps: the scenario takes " +
-    "each on a second object its world holds, so every step's event is still sent once, in order.",
+    "each on a second object its world holds, so every step's event is still sent once, in order." + " Review, 11 November 2026: The surviving rule (Each old journey is a journey of target operations, proved by machine events) still applies. Removed subjects in its historical evidence are not restored; cut.principle; aaron.one-door; sites.door; portal.plan-page governs their replacement.",
   source: by(`${OLD}/*.yaml; ${CATALOG}; ${CONTRACTS}/*-contract.ts; docs/decisions/policy-pack.md (P7, recommendation B)`),
   affects: [],
 });
@@ -473,7 +473,7 @@ export const decision_journeys_steps = defineDecision({
     "writes always end WRONG_STATE naming their `org board` command (board.director-commands). run_company needs its " +
     "second Director before the Board proposals that follow, so it takes the v4 command; govern_company has them " +
     "already. The alternative endings stay: the old lists name them as steps (journeys.onto-target). Left out: get_paid " +
-    "3, get_started 6, pay_someone 5, run_company 30 (11 books operations, 19 along the way).",
+    "3, get_started 6, pay_someone 5, run_company 30 (11 books operations, 19 along the way)." + " Review, 11 November 2026: The surviving rule (Optional operations leave the journeys; the refused `org director` writes go) still applies. Removed subjects in its historical evidence are not restored; cut.principle; aaron.one-door; sites.door; portal.plan-page governs their replacement.",
   source: by(`${OLD}/{get_paid,get_started,pay_someone,run_company,govern_company}.yaml; blueprint/board/decisions.ts (board.director-commands)`),
   affects: [
     journey_get_paid,

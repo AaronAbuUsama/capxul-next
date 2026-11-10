@@ -134,39 +134,23 @@ export const decision_contacts_one_book_table = defineDecision({
 
 export const decision_contacts_relationships = defineDecision({
   id: "contacts.relationships",
-  title: "Relationships are `manual` and `member`; last activity is the last change",
+  title: "Archived: Relationships are `manual` and `member`; last activity is the last cha",
   question:
-    "The old book merged how you know a counterparty from edges other concepts wrote: paid, paidBy, invoiced, invoicedBy, " +
-    "member, manual and employed. Which can the target keep?",
+    "The old book merged how you know a counterparty from edges other concepts wrote: paid, paidBy, invoiced, invoicedBy, member, manual and employed. Which can the target keep?",
   options: [
-    {
-      label: "manual-member",
-      text:
-        "Keep `manual` (added by hand, contacts' own) and `member` (an active Seat, read from organizations, which contacts " +
-        "depends on). Drop the rest; `lastActivityAt` is the entry's last change.",
-    },
-    {
-      label: "react-up",
-      text:
-        "Keep them all: contacts reacts to payments', requests' and payroll's transitions through the outbox and records " +
-        "the provenance.",
-    },
-    {
-      label: "procedures",
-      text: "Keep them all: payments, requests and payroll invoke a contacts procedure in their own transactions, as old parties' `recordContactEdges` was.",
-    },
-  ],
-  chosen: "manual-member",
+  {
+    "label": "current-scope",
+    "text": "Archive Core manual/member relationship types and last-change lastActivityAt. The site owns CRM relationship and timeline fields. A chain-derived money timeline may show only proven money, but does not overwrite site contact activity with a Core synthetic relationship."
+  },
+  {
+    "label": "historical",
+    "text": "The former answer to contacts.relationships is preserved in docs/cut-archive/decision-review-history.json as historical evidence, not implementation authority."
+  }
+],
+  chosen: "current-scope",
   why:
-    "The concept map puts contacts below payments, payroll and requests, so contacts may neither read them nor react to " +
-    "their transitions (the reacting concept depends on the one that changed), and making it depend on requests would be " +
-    "a cycle (requests depends on banking, which depends on contacts). They cannot write the book either: none of them " +
-    "depends on contacts, and a relationship is a projection that may lag, never a money fact, so rules.procedures forbids " +
-    "a procedure. No frozen acceptance line needs the dropped values: the frozen text names a `relationship` field and " +
-    "says 'how you know them', and `manual` and `member` keep that meaning, so the shape is kept and its values narrowed " +
-    "(a reader of the old values never sees a new one). Where someone was paid or invoiced is activity's feed. Last " +
-    "activity was the last payment or invoice with them; it becomes the entry's own last change, or its member's Seat's.",
-  source: by(`${P}/writes/edges.ts:26 and :125 (ensureEmployedEdge, recordContactEdges); packages/protocol/src/parties/schema.ts:43`),
+    "Review, 11 November 2026: Archive Core manual/member relationship types and last-change lastActivityAt. The site owns CRM relationship and timeline fields. A chain-derived money timeline may show only proven money, but does not overwrite site contact activity with a Core synthetic relationship. Authority: cut.contacts; sites.crm; plugs.roles-follow-hats.",
+  source: "The coordinator, round 2, m1-old-decisions; cut.contacts; sites.crm; plugs.roles-follow-hats",
   affects: [
     table_contacts, rpc_contacts_book_list, rpc_contacts_book_get, operation_contact_list, operation_contact_add,
     concept_contacts,
@@ -175,28 +159,22 @@ export const decision_contacts_relationships = defineDecision({
 
 export const decision_contacts_members_derived = defineDecision({
   id: "contacts.members-derived",
-  title: "An Organization's members are read from its Seats when the book is read",
+  title: "Archived: An Organization's members are read from its Seats when the book is rea",
   question: "How does an Organization's book show its members?",
   options: [
-    {
-      label: "read-time",
-      text: "Each read joins the Organization's active Seats (organizations' `org-members`) to its rows, by PartyId.",
-    },
-    {
-      label: "projection",
-      text: "A contacts workflow triggered by `org_member_transitioned` copies each Seat into `contacts` as a member row.",
-    },
-  ],
-  chosen: "read-time",
+  {
+    "label": "current-scope",
+    "text": "Archive the read-time join of Core Seats into a contacts book. Site users and roles follow chain hats through plugs; CRM contacts are site records, not a derived membership list. Revoking a hat disables the corresponding authority without deleting CRM history."
+  },
+  {
+    "label": "historical",
+    "text": "The former answer to contacts.members-derived is preserved in docs/cut-archive/decision-review-history.json as historical evidence, not implementation authority."
+  }
+],
+  chosen: "current-scope",
   why:
-    "The Seat is the one record of membership and contacts depends on organizations, so reading it keeps one source and " +
-    "no lag: when a Seat ends, the member relationship is gone on the next read, which is what `contact list` #2 claims. " +
-    "A projection would be a second copy that can drift and a workflow whose only job is copying (P3). The read stays on " +
-    "indexes: the book's own index and the `org_id` range of the Seats' `by_org_party`. A row is written for a member only " +
-    "when the book curates it (a label or hide), and it keeps that curation if the member leaves and returns; an entry " +
-    "is in the book while it is `manual` or `member`. The member's label falls back to the Party's name, never the " +
-    "invitation's mailbox, which the old book showed.",
-  source: by(`${P}/contacts/reads.ts:73 (accumulateMembers from orgMembers); ${P}/contacts/tests/list.test.ts:54`),
+    "Review, 11 November 2026: Archive the read-time join of Core Seats into a contacts book. Site users and roles follow chain hats through plugs; CRM contacts are site records, not a derived membership list. Revoking a hat disables the corresponding authority without deleting CRM history. Authority: cut.contacts; sites.crm; plugs.roles-follow-hats.",
+  source: "The coordinator, round 2, m1-old-decisions; cut.contacts; sites.crm; plugs.roles-follow-hats",
   affects: [table_org_members, table_contacts, rpc_contacts_book_list, rpc_contacts_book_get, operation_contact_list],
 });
 
@@ -258,27 +236,22 @@ export const decision_contacts_ref_and_label = defineDecision({
 
 export const decision_contacts_resolve_in_add = defineDecision({
   id: "contacts.resolve-in-add",
-  title: "contact add resolves its Party in its own transaction, through parties' door",
+  title: "Archived: contact add resolves its Party in its own transaction, through parties",
   question: "Adding a mailbox or an address nobody has named yet needs a Party first. Who makes it, and when?",
   options: [
-    {
-      label: "procedure",
-      text: "`contacts.book.add` invokes `parties.resolve-recipient` in its transaction, then writes the entry; `contact add` stays one rpc.",
-    },
-    {
-      label: "flow",
-      text: "A Core SDK flow calls a parties rpc that names the Party, then `contacts.book.add` with its PartyId.",
-    },
-  ],
-  chosen: "procedure",
+  {
+    "label": "current-scope",
+    "text": "Archive contacts.book.add invoking parties.resolve-recipient: the RPC is removed. Creating a Frappe contact does not automatically register a Core recipient. Party resolution is explicit at a money/identity boundary, preventing address-book edits from redirecting a Safe."
+  },
+  {
+    "label": "historical",
+    "text": "The former answer to contacts.resolve-in-add is preserved in docs/cut-archive/decision-review-history.json as historical evidence, not implementation authority."
+  }
+],
+  chosen: "current-scope",
   why:
-    "Parties' door already has the procedure for this, and names a contact among its users: its money fact is that the " +
-    "first record naming a counterparty binds it to the Safe its money routes to, so every later naming, the person's " +
-    "claim and the chain views agree. Invoking it keeps `contact add` one rpc (A4) and one transaction, so a refusal " +
-    "after resolution (your own Party) commits nothing, a newly named Party included: 'refused before any write' holds. " +
-    "The flow would leave a named Party behind a refused add and need an rpc parties does not offer. The label is checked " +
-    "before the procedure runs. One procedure from one other concept is within sys:tx-width.",
-  source: by(`blueprint/parties/procedures.ts (parties.resolve-recipient); ${P}/contacts/writes.ts:29 (pairByLocator)`),
+    "Review, 11 November 2026: Archive contacts.book.add invoking parties.resolve-recipient: the RPC is removed. Creating a Frappe contact does not automatically register a Core recipient. Party resolution is explicit at a money/identity boundary, preventing address-book edits from redirecting a Safe. Authority: cut.contacts; sites.crm; plugs.roles-follow-hats.",
+  source: "The coordinator, round 2, m1-old-decisions; cut.contacts; sites.crm; plugs.roles-follow-hats",
   affects: [procedure_parties_resolve_recipient, rpc_contacts_book_add, operation_contact_add],
 });
 
@@ -362,52 +335,44 @@ export const decision_contacts_members_write = defineDecision({
 
 export const decision_contacts_get_bank_accounts = defineDecision({
   id: "contacts.get-bank-accounts",
-  title: "contact get's bank accounts are banking's: the operation belongs with banking",
+  title: "Archived: contact get's bank accounts are banking's: the operation belongs with ",
   question:
-    "`contact get` returns the bank accounts saved for the contact, which banking owns, and contacts sits below banking. " +
-    "How does the operation get them?",
+    "`contact get` returns the bank accounts saved for the contact, which banking owns, and contacts sits below banking. How does the operation get them?",
   options: [
-    {
-      label: "owner-banking",
-      text:
-        "Move `contact.get` to banking in OPERATION_OWNERS, as `contact.bank.add` already is: banking's flow calls " +
-        "`contacts.book.get` (banking depends on contacts) and then its own masked account list for that Party.",
-    },
-    { label: "flow-up", text: "Contacts' flow calls banking's rpc: contacts would depend on banking, a cycle (rule 8)." },
-    { label: "read-up", text: "`contacts.book.get` reads banking's table: a read-boundary problem the build refuses." },
-    { label: "drop", text: "Return no bank accounts: the frozen `returns` loses `bankAccounts` (P10 rung 1)." },
-  ],
-  chosen: "owner-banking",
+  {
+    "label": "current-scope",
+    "text": "Archive the move-to-banking composition over contacts.book.get. Frappe Contact is reached through the door, banking reads saved accounts only for a resolved Party, and no contacts RPC is reinstated to satisfy the old return shape."
+  },
+  {
+    "label": "historical",
+    "text": "The former answer to contacts.get-bank-accounts is preserved in docs/cut-archive/decision-review-history.json as historical evidence, not implementation authority."
+  }
+],
+  chosen: "current-scope",
   why:
-    "Only a concept above both can compose the entry and the accounts, and banking is the one above contacts that owns " +
-    "the accounts; the frozen command already lives beside `contact bank add` there in spirit (it prints `bank pay`). " +
-    "The other options break the concept map, the build or the frozen surface. The architecture review made the move " +
-    "(shared operations.contact-get-in-banking), so contacts no longer books the operation or its flow (contacts.get-moved); " +
-    "`contacts.book.list` and `contacts.book.get` stay for banking's flow to step through.",
-  source: by("apps/cli/src/commands/contact/subcommands/get/execute.ts:50 (a second call, bankAccounts.list); OPERATION_OWNERS"),
+    "Review, 11 November 2026: Archive the move-to-banking composition over contacts.book.get. Frappe Contact is reached through the door, banking reads saved accounts only for a resolved Party, and no contacts RPC is reinstated to satisfy the old return shape. Authority: cut.contacts; sites.crm; plugs.roles-follow-hats.",
+  source: "The coordinator, round 2, m1-old-decisions; cut.contacts; sites.crm; plugs.roles-follow-hats",
   affects: [rpc_contacts_book_get, rpc_contacts_book_list, concept_contacts],
 });
 
 export const decision_contacts_server_pages = defineDecision({
   id: "contacts.server-pages",
-  title: "The server pages the book with a keyset cursor",
+  title: "Archived: The server pages the book with a keyset cursor",
   question: "How is `contact list --limit --after` served?",
   options: [
-    {
-      label: "server-keyset",
-      text:
-        "`contacts.book.list` takes `limit` (1 to 100, default 25) and `after`, an opaque cursor over (last change, PartyId) " +
-        "bound to the book, and returns `nextCursor`.",
-    },
-    { label: "client-cut", text: "Return the whole book and let the CLI cut the page, as the old row and CLI did." },
-  ],
-  chosen: "server-keyset",
+  {
+    "label": "current-scope",
+    "text": "Archive contacts.book.list's (last change, PartyId) keyset cursor and 25/100 limits. The generated site door pages Frappe records under caller permissions; no private Core contacts pagination endpoint survives."
+  },
+  {
+    "label": "historical",
+    "text": "The former answer to contacts.server-pages is preserved in docs/cut-archive/decision-review-history.json as historical evidence, not implementation authority."
+  }
+],
+  chosen: "current-scope",
   why:
-    "The frozen notes promise 25 at a time and a cursor; reading the whole book on every page grows with the book, and " +
-    "P5's read budget is per call. A keyset over the book's own index answers any page in the same time. The CLI still " +
-    "refuses a `--limit` out of range or a malformed `--after` with CLI_USAGE before calling, as the old CLI did; a cursor " +
-    "that decodes but names another book is the rpc's INVALID_INPUT.",
-  source: by("apps/cli/src/runtime/paging.ts:82; packages/backend/src/parties/contacts/operations/list.ts:21 (onePage)"),
+    "Review, 11 November 2026: Archive contacts.book.list's (last change, PartyId) keyset cursor and 25/100 limits. The generated site door pages Frappe records under caller permissions; no private Core contacts pagination endpoint survives. Authority: cut.contacts; sites.crm; plugs.roles-follow-hats.",
+  source: "The coordinator, round 2, m1-old-decisions; cut.contacts; sites.crm; plugs.roles-follow-hats",
   affects: [rpc_contacts_book_list, operation_contact_list, table_contacts],
 });
 
@@ -538,24 +503,22 @@ export const decision_contacts_worlds = defineDecision({
 
 export const decision_contacts_budgets = defineDecision({
   id: "contacts.budgets",
-  title: "Class budgets, and one override for the guided commands",
+  title: "Archived: Class budgets, and one override for the guided commands",
   question: "Which budget does each contacts record take?",
   options: [
-    {
-      label: "class-with-guided",
-      text:
-        "Reads `read`, writes `write`, the CRM's included; the guided get, label, hide, unhide and link (flow and operation) " +
-        "allow a second call in sequence: read 800/1,600 ms, write 900/1,900 ms, excluding `wait.person`.",
-    },
-    { label: "class-only", text: "Class defaults everywhere, the guided path included." },
-  ],
-  chosen: "class-with-guided",
+  {
+    "label": "current-scope",
+    "text": "Archive Core contacts read/write and guided-flow budget overrides: contacts RPCs are removed. Door operations take their site/vendor budgets with person waits excluded; banking's retained account actions retain their own budgets, not a hidden contacts second round trip."
+  },
+  {
+    "label": "historical",
+    "text": "The former answer to contacts.budgets is preserved in docs/cut-archive/decision-review-history.json as historical evidence, not implementation authority."
+  }
+],
+  chosen: "current-scope",
   why:
-    "No contacts rpc calls the chain, the bundler or a vendor, so `read` and `write` fit (P5). At a terminal the guided " +
-    "commands make a second call before their one read or write (the picker's list, the preview's read), which the class " +
-    "default does not allow for. The person's picking and answering are `wait.person` spans and never system time. A " +
-    "script's run of the same flow makes one call and stays well inside the override.",
-  source: by("packages/blueprint-engine/src/budgets.ts; P5; P6 (wait.person for prompt steps)"),
+    "Review, 11 November 2026: Archive Core contacts read/write and guided-flow budget overrides: contacts RPCs are removed. Door operations take their site/vendor budgets with person waits excluded; banking's retained account actions retain their own budgets, not a hidden contacts second round trip. Authority: cut.contacts; sites.crm; plugs.roles-follow-hats.",
+  source: "The coordinator, round 2, m1-old-decisions; cut.contacts; sites.crm; plugs.roles-follow-hats",
   affects: [
     ...FLOWS, operation_contact_label, operation_contact_hide, operation_contact_unhide, ...READS, ...WRITES, ...CRM_RPCS,
     ...CRM_FLOWS, ...CRM_OPERATIONS,
@@ -566,29 +529,23 @@ export const decision_contacts_budgets = defineDecision({
 
 export const decision_contacts_get_moved = defineDecision({
   id: "contacts.get-moved",
-  title: "`contact get` leaves contacts: banking books it over contacts' rpcs",
+  title: "Archived: `contact get` leaves contacts: banking books it over contacts' rpcs",
   question:
-    "OPERATION_OWNERS now gives `contact.get` to banking (shared operations.contact-get-in-banking). Contacts still booked " +
-    "the operation and its flow `client.account.address-book.get`. What stays in contacts?",
+    "OPERATION_OWNERS now gives `contact.get` to banking (shared operations.contact-get-in-banking). Contacts still booked the operation and its flow `client.account.address-book.get`. What stays in contacts?",
   options: [
-    {
-      label: "drop-both",
-      text:
-        "Remove the operation and its flow; keep `contacts.book.list` (the picker) and `contacts.book.get` (the entry, or " +
-        "null) as the rpcs banking's flow steps through before its own masked accounts.",
-    },
-    { label: "keep-flow", text: "Remove the operation, keep the flow for the SDK's address book." },
-    { label: "keep-both", text: "Keep both until banking books its own." },
-  ],
-  chosen: "drop-both",
+  {
+    "label": "current-scope",
+    "text": "Archive the residual contacts.book.list picker and contacts.book.get rpc. Contact selection/read is site-owned through the door; banking retains its Party-keyed masked-account query without rebuilding the removed Core contacts module."
+  },
+  {
+    "label": "historical",
+    "text": "The former answer to contacts.get-moved is preserved in docs/cut-archive/decision-review-history.json as historical evidence, not implementation authority."
+  }
+],
+  chosen: "current-scope",
   why:
-    "A4 gives the operation one SDK flow, and banking's flow is that flow: it alone can add `bankAccounts`. A second " +
-    "contacts flow for the same SDK method would be a duplicate record or a second answer to one call, and keeping the " +
-    "operation would book it twice. Both rpcs stay reached: label, hide and unhide step through them for their " +
-    "picker and preview. The removed acceptance observations (null outside the book, exit 0; the owner reads their " +
-    "entry back and `--org` without a Seat is ROLE_PERMISSION_DENIED; a get given a PartyId is one `contacts.book.get` " +
-    "call with no list or `wait.person`) and the guided-get budget (p95 1,600 ms) pass to banking's record.",
-  source: by("blueprint/shared/foundation.ts (OPERATION_OWNERS contact.get); shared operations.contact-get-in-banking; A4; contact.get.yaml"),
+    "Review, 11 November 2026: Archive the residual contacts.book.list picker and contacts.book.get rpc. Contact selection/read is site-owned through the door; banking retains its Party-keyed masked-account query without rebuilding the removed Core contacts module. Authority: cut.contacts; sites.crm; plugs.roles-follow-hats.",
+  source: "The coordinator, round 2, m1-old-decisions; cut.contacts; sites.crm; plugs.roles-follow-hats",
   affects: [rpc_contacts_book_get, rpc_contacts_book_list, concept_contacts],
 });
 
@@ -648,73 +605,43 @@ export const decision_contacts_private_entries = defineDecision({
   id: "contacts.private-entries",
   title: "A company not on Capxul is a private entry until it has a Party",
   question:
-    "The directory holds only identities Capxul can name and pay (parties.outside-companies), so a prospect company, a " +
-    "supplier paid only by bank or a person known only by phone has no Party. The CRM must still keep them. How?",
+    "The directory holds only identities Capxul can name and pay (parties.outside-companies), so a prospect company, a supplier paid only by bank or a person known only by phone has no Party. The CRM must still keep them. How?",
   options: [
-    {
-      label: "private-entry",
-      text:
-        "An entry with no Party: `party_id` null, its own id `contact_<ulid>`, `ref` null in every read, so it cannot be " +
-        "paid or invoiced through the book until it has a Party. It is linked once, by `contact link` (contacts.book-verbs): " +
-        "when the company is on Capxul (its handle), is paid at a wallet (its address), or the person's mailbox is " +
-        "given (which names them in the directory), and it keeps its id. Wire inputs that named an entry by `partyId` now name it by `contactId`, the same " +
-        "value for every entry born from a Party.",
-    },
-    {
-      label: "re-key",
-      text: "A private entry takes its Party's id as its own id when it is linked.",
-    },
-    { label: "elsewhere", text: "Keep companies without a Party out of the book, in a separate prospects table." },
-  ],
-  chosen: "private-entry",
+  {
+    "label": "current-scope",
+    "text": "A site Contact or CRM Organization may have no Core Party. It remains business data, not a payable Safe; paying requires explicit Core recipient resolution. Archive contact_<ulid> ids, ref-null wire shapes and contact link as the private Core-book implementation."
+  },
+  {
+    "label": "historical",
+    "text": "The former answer to contacts.private-entries is preserved in docs/cut-archive/decision-review-history.json as historical evidence, not implementation authority."
+  }
+],
+  chosen: "current-scope",
   why:
-    "One book of people and companies is Frappe CRM's own model and what a business expects: its prospects, its " +
-    "bank-paid suppliers and its customers sit in one list. An id that changes at linking would break every lead, deal " +
-    "and connected head that points at it, so a private entry keeps its own; every entry the frozen commands make is " +
-    "still born from a Party with the PartyId as its id, so their claims hold. A separate prospects table would be a " +
-    "second contact book with its own hide and label. A private entry never shares its Party with another entry " +
-    "(`contacts-by-party`), and a link is refused rather than merged when the Party is already in the book, so no two " +
-    "entries can disagree about where money goes.",
-  source: crmBy("blueprint/parties/decisions.ts (parties.outside-companies); contact.add.yaml acceptance 1; crm frontend/src/pages/Organization.vue:490"),
+    "Review, 11 November 2026: A site Contact or CRM Organization may have no Core Party. It remains business data, not a payable Safe; paying requires explicit Core recipient resolution. Archive contact_<ulid> ids, ref-null wire shapes and contact link as the private Core-book implementation. Authority: cut.contacts; sites.crm; plugs.roles-follow-hats.",
+  source: "The coordinator, round 2, m1-old-decisions; cut.contacts; sites.crm; plugs.roles-follow-hats",
   affects: [table_contacts, rpc_contacts_book_record, rpc_contacts_book_get, rpc_contacts_book_list, rpc_contacts_book_add, procedure_parties_resolve_recipient, ...FLOWS],
 });
 
 export const decision_contacts_lead_conversion = defineDecision({
   id: "contacts.lead-conversion",
-  title: "A lead converts once, naming its person in the directory then",
+  title: "Archived: A lead converts once, naming its person in the directory then",
   question:
-    "Frappe CRM's `convert_to_deal` makes a Contact (matched by mailbox only), a CRM Organization (matched by name) and a " +
-    "CRM Deal, and marks the lead converted. What does Capxul's conversion do, and when does a lead's mailbox enter the " +
-    "global directory?",
+    "Frappe CRM's `convert_to_deal` makes a Contact (matched by mailbox only), a CRM Organization (matched by name) and a CRM Deal, and marks the lead converted. What does Capxul's conversion do, and when does a lead's mailbox enter the global directory?",
   options: [
-    {
-      label: "convert-once",
-      text:
-        "One transaction that locks the lead: the person is the entry given, or the book's entry for the lead's mailbox, " +
-        "resolved through the directory (naming a provisional Party if new), or a private Contact with no mailbox; the " +
-        "company is the entry given, else the book's CRM Organization whose shown name is the lead's typed name, else a " +
-        "new private one from it; the deal is born from the lead; the lead becomes converted with the deal's id, status " +
-        "Qualified. A lost lead is WRONG_STATE; a converted one answers its deal. A lead names no Party before that.",
-    },
-    { label: "name-at-capture", text: "Resolve a lead's mailbox in the directory when the lead is captured." },
-    { label: "never-by-name", text: "Never match the lead's typed company name: the company is the entry given or a new private one." },
-  ],
-  chosen: "convert-once",
+  {
+    "label": "current-scope",
+    "text": "Frappe CRM owns lead conversion, its transactional duplicate/conversion checks and resulting deal/contact links. Archive Core's lead lock, provisional Party creation and converted-deal idempotency implementation. Converting a lead alone cannot create a payable identity or select a Safe."
+  },
+  {
+    "label": "historical",
+    "text": "The former answer to contacts.lead-conversion is preserved in docs/cut-archive/decision-review-history.json as historical evidence, not implementation authority."
+  }
+],
+  chosen: "current-scope",
   why:
-    "A lead is an unqualified prospect, often junk; naming every one in the global directory would fill it with digests " +
-    "of mailboxes nobody will pay. A converted lead's person is someone the business deals with, which is what a contact " +
-    "is, so the directory learns of them exactly when `contact add` would. Matching a person by mailbox is Frappe's own " +
-    "rule ('Match only on email which uniquely identifies a person') and the directory's key, so it holds across the " +
-    "Organization's book and every other. A company is matched by its name because that is Frappe's own rule " +
-    "(`create_organization`) and, on a head, a CRM Organization's name is its identity, unique on the site: a " +
-    "conversion made on the head lands on the existing company, so one made here must too, or the two sides would " +
-    "split one company in two. A deal names a company and moves no money, and the match never changes an entry's " +
-    "Party, so it cannot route a payment; a caller who means another company passes it (Frappe's " +
-    "`existing_organization`). Answering the first deal on a second conversion is Frappe's 'Return Existing', which " +
-    "makes an agent's retry safe; the lead's lock and its `deal_id` enforce it. `deals-by-lead` is not unique, because " +
-    "a head may still make a second deal from one lead (Frappe's default is 'Create'). Revised in review: the first " +
-    "pass never matched by name and made `deals-by-lead` unique, which a head's push and pull could not keep.",
-  source: crmBy(`${CRM}/fcrm/doctype/crm_lead/crm_lead.py:230, :267 (by organization_name), :335 (by email), :354, :546 ('Create' by default), :583, :600`),
+    "Review, 11 November 2026: Frappe CRM owns lead conversion, its transactional duplicate/conversion checks and resulting deal/contact links. Archive Core's lead lock, provisional Party creation and converted-deal idempotency implementation. Converting a lead alone cannot create a payable identity or select a Safe. Authority: cut.contacts; sites.crm; plugs.roles-follow-hats.",
+  source: "The coordinator, round 2, m1-old-decisions; cut.contacts; sites.crm; plugs.roles-follow-hats",
   affects: [table_contacts, procedure_parties_resolve_recipient],
 });
 
@@ -722,39 +649,21 @@ export const decision_contacts_crm_permission = defineDecision({
   id: "contacts.crm-permission",
   title: "The People hat edits the whole CRM; every member reads it",
   question:
-    "Editing an Organization's contact book needs its edit permission, the People hat (contacts.members-write). Leads " +
-    "and deals are part of the same CRM. Who may read and change them, and who may own a lead or deal?",
+    "Editing an Organization's contact book needs its edit permission, the People hat (contacts.members-write). Leads and deals are part of the same CRM. Who may read and change them, and who may own a lead or deal?",
   options: [
-    {
-      label: "people-hat",
-      text:
-        "The same as the book: every member reads the CRM; only a member whose Safe wears the People hat records, " +
-        "changes, moves or converts, whether in Capxul or on a connected head. A lead's or deal's owner is a member (an " +
-        "active Seat's Party).",
-    },
-    {
-      label: "sales-hat",
-      text: "A separate sales permission (Frappe's Sales User and Sales Manager), as a new hat in each Organization's tree.",
-    },
-    { label: "any-member", text: "Any member edits leads and deals; only the contact book needs the hat." },
-  ],
-  chosen: "people-hat",
+  {
+    "label": "current-scope",
+    "text": "Site CRM reads and edits require the caller's projected roles; People and sales jobs are proven separately by the hat job evals. Archive a blanket all-members-read/People-only-write Core CRM guard; a lead owner field grants neither chain authority nor unrestricted cross-company access."
+  },
+  {
+    "label": "historical",
+    "text": "The former answer to contacts.crm-permission is preserved in docs/cut-archive/decision-review-history.json as historical evidence, not implementation authority."
+  }
+],
+  chosen: "current-scope",
   why:
-    "The CRM is the Organization's contact book in Frappe's shape, so its edit permission is the book's, and one " +
-    "permission for one app keeps who-may-change-what one answer. The hat is already the Organization's authority " +
-    "(P9), the founder wears it from setup, and an agent given it works the CRM with no new grant; the hosted Forward " +
-    "Deployed Engineer needs none, since it acts as an asker who wears it (aaron.fde-anyone, organizations.fde-for-the-asker). A sales hat would need a hat in every Organization's tree and an officer command to grant " +
-    "it, which nothing asks for yet; it can split from the People hat later without changing a table. Letting any member " +
-    "edit leads would bring back the rule the book's own permission replaced. The owner must be a member because " +
-    "Frappe's `lead_owner` and `deal_owner` are site users who work the record. A connected head's edits arrive through " +
-    "`contacts.head.sync` and are held to the same rule: applied as the member the head user's mailbox matches, only if " +
-    "that member's Safe wears the People hat, else pushed back. Projects applies a head edit under the connection's " +
-    "authority when no member matches; the CRM cannot, because editing the contact book is a permission by ruling " +
-    "(contacts.members-write), and because the book is where money paid to an entry is aimed (only `contact link`, " +
-    "in Capxul, names an entry's Party: contacts.book-verbs). Revised in review: the first pass let the connection's authority apply " +
-    "an edit no member made. The head's own roles (Sales User, Sales Manager) should follow the hat, so its forms stop " +
-    "other users before Capxul has to push back.",
-  source: crmBy("blueprint/contacts/decisions.ts (contacts.members-write); frappe crm_organization.json and contact.json permissions (Sales User, Sales Manager)"),
+    "Review, 11 November 2026: Site CRM reads and edits require the caller's projected roles; People and sales jobs are proven separately by the hat job evals. Archive a blanket all-members-read/People-only-write Core CRM guard; a lead owner field grants neither chain authority nor unrestricted cross-company access. Authority: cut.contacts; sites.crm; plugs.roles-follow-hats.",
+  source: "The coordinator, round 2, m1-old-decisions; cut.contacts; sites.crm; plugs.roles-follow-hats",
   affects: [
     ...CRM_WRITES, 
     table_org_deployments, table_org_members, 
@@ -820,44 +729,23 @@ export const decision_contacts_crm_capabilities = defineDecision({
 
 export const decision_contacts_head_sync = defineDecision({
   id: "contacts.head-sync",
-  title: "Contacts syncs its own CRM with a connected head, one process per head",
+  title: "Archived: Contacts syncs its own CRM with a connected head, one process per head",
   question:
-    "When a Frappe head is connected, its CRM and the Organization's must stay one. Who syncs the CRM's records, how, " +
-    "and what stays Capxul's alone?",
+    "When a Frappe head is connected, its CRM and the Organization's must stay one. Who syncs the CRM's records, how, and what stays Capxul's alone?",
   options: [
-    {
-      label: "own-process",
-      text:
-        "Contacts' own process, `contacts.head.sync`, as every app concept syncs its own records: started at the " +
-        "connection's `confirm`, it pushes `contact-changes` in seq order (`upsertDocs`) and pulls the head's changes " +
-        "(`listChanges`), applying each through the CRM's own checks and transitions by the version rule of " +
-        "organizations.head-ownership, as a member wearing the People hat (contacts.crm-permission); what it does not " +
-        "apply (a conflict, a refusal, a deletion) it pushes back. Each Frappe record carries its `capxul_id`, and a " +
-        "Contact or CRM Organization its `capxul_party`. An entry's Party, and so where money goes, is set only in " +
-        "Capxul. How each record meets its document on the head is contacts.head-mapping.",
-    },
-    {
-      label: "sdk-agent",
-      text: "The head's sync runs outside the backend as an agent of the Organization, reading the lists and writing through the SDK methods.",
-    },
-    { label: "head-master", text: "Once a head is connected, the head's CRM is the record and Capxul's copy follows it." },
-  ],
-  chosen: "own-process",
+  {
+    "label": "current-scope",
+    "text": "Archive contacts.head.sync and its gap-free contact-changes replica. CRM edits commit on the company site under projected roles; there is no second Core CRM to push back conflicts or deletions to. The service calls the site, not vice versa."
+  },
+  {
+    "label": "historical",
+    "text": "The former answer to contacts.head-sync is preserved in docs/cut-archive/decision-review-history.json as historical evidence, not implementation authority."
+  }
+],
+  chosen: "current-scope",
   why:
-    "The connected head is one integration that each app concept follows for its own records (the `frappe-head` " +
-    "integration, organizations.head-ownership), so the CRM syncs as projects do: one ordered change log, cursors per " +
-    "connection, and a version on every record so a stale head edit never overwrites a newer Capxul one. Applying pulled " +
-    "changes through the CRM's own checks and transitions keeps Frappe's rules and the frozen claims in one place " +
-    "whoever writes, and every stage change still sends its machine's event. An outside agent would need its own " +
-    "credentials, its own cursor and a time-ordered read that can miss a late commit; a gap-free `seq` is what makes " +
-    "the push exact. Head-master would let a head repoint an entry to another Party, which would redirect payments, so " +
-    "`capxul_party` is never taken from the head: a Contact born there with a primary mailbox is named in the " +
-    "directory exactly as a recorded person is, and one whose Party already has an entry is refused, never merged, so " +
-    "one Party is one entry. Capxul never deletes a CRM record, so a head's deletion is pushed back like any refused " +
-    "edit; a refused document born in the head has no Capxul version to push, so it stays there unadopted. Statuses " +
-    "map one to one by name; a custom status the head adds is refused and pushed back until per-Organization lists " +
-    "exist (contacts.crm-statuses).",
-  source: crmBy("blueprint/shared/external.ts (integration frappe-head); blueprint/projects/processes.ts (projects.head.sync); organizations/data.ts (org-heads)"),
+    "Review, 11 November 2026: Archive contacts.head.sync and its gap-free contact-changes replica. CRM edits commit on the company site under projected roles; there is no second Core CRM to push back conflicts or deletions to. The service calls the site, not vice versa. Authority: cut.contacts; sites.crm; plugs.roles-follow-hats.",
+  source: "The coordinator, round 2, m1-old-decisions; cut.contacts; sites.crm; plugs.roles-follow-hats",
   affects: [
     table_contact_changes, table_contacts, 
     table_parties, procedure_parties_resolve_recipient, concept_parties,
@@ -895,65 +783,23 @@ export const decision_contacts_change_log = defineDecision({
 
 export const decision_contacts_head_mapping = defineDecision({
   id: "contacts.head-mapping",
-  title: "Each CRM record meets its head document by Frappe's own rules",
+  title: "Archived: Each CRM record meets its head document by Frappe's own rules",
   question:
-    "The CRM's tables carry Frappe CRM's field names, but a head has rules no table shows: a CRM Organization is named " +
-    "by its `organization_name`, unique on the site, and Contact's `company_name` and CRM Deal's `organization` name it; " +
-    "Frappe makes a Contact for every User; CRM Lead's `first_name` is mandatory in its form; Frappe's own conversion " +
-    "marks a lead `converted`, sets it Qualified and makes another deal if asked again; and a site connected late may " +
-    "already hold a CRM. How does each record meet its document there?",
+    "The CRM's tables carry Frappe CRM's field names, but a head has rules no table shows: a CRM Organization is named by its `organization_name`, unique on the site, and Contact's `company_name` and CRM Deal's `organization` name it; Frappe makes a Contact for every User; CRM Lead's `first_name` is mandatory in its form; Frappe's own conversion marks a lead `converted`, sets it Qualified and makes another deal if asked again; and a site connected late may already hold a CRM. How does each record meet its document there?",
   options: [
-    {
-      label: "frappe-rules",
-      text:
-        "Follow Frappe's own rules. An organization entry is pushed with its shown name (its label, else its Party's " +
-        "display name) as `organization_name`; when another document on the head holds that name, with ` - 2`, ` - 3` " +
-        "and on (the first free), as Frappe numbers a Contact's name, kept as `head_name`; a label change renames it " +
-        "there. A Contact's `first_name` is the shown name, with no last name, and Frappe names it. A pulled " +
-        "`full_name` or `organization_name` becomes the entry's label only when it differs from the name Capxul shows; " +
-        "a Party's display name is never taken from a head. A member is a User on the head with the Contact Frappe made " +
-        "for it: a deal naming a member names that Contact, found by its `capxul_party`, and a lead's or deal's owner is " +
-        "the owner's User; an agent has no User (organizations.head-users), so an agent owner goes as null and a pulled " +
-        "null owner leaves Capxul's agent owner as it is; a member's own row (its label " +
-        "or hide) is not pushed while the member holds a Seat, and a change to a User's Contact is not pulled. A lead " +
-        "with no first name is written as Frappe's Data Import writes one (mandatory fields not enforced), the path " +
-        "`set_lead_name` serves. A converted lead is `converted` there with status Qualified; a lead the head converts " +
-        "is pulled as `convert` with the first deal whose `lead` names it, which Frappe writes first (with no such deal " +
-        "it is refused), and later deals from it are kept as deals. On a site that already holds a CRM, the first push adopts a Contact with no " +
-        "`capxul_id` whose primary mailbox is an entry's, and a CRM Organization whose name is an organization entry's " +
-        "shown name (Frappe's own keys), instead of making a second; the rest is pulled as documents born there.",
-    },
-    {
-      label: "push-as-is",
-      text:
-        "Push every record under its own label and let the head refuse what it cannot hold (a second organization of " +
-        "one name, a lead with no first name, a second Contact for a User).",
-    },
-    {
-      label: "customize-naming",
-      text: "Change CRM Organization's naming on the head to a hash with a Property Setter, so names need not be unique.",
-    },
-  ],
-  chosen: "frappe-rules",
+  {
+    "label": "current-scope",
+    "text": "Archive push/pull naming, mailbox adoption and head_name mappings for Contact, CRM Organization and converted leads. Frappe names and links its own documents on the authoritative site; Core only owns Party/Safe resolution and explicit identity links. A rename or same mailbox must not silently change a payment recipient."
+  },
+  {
+    "label": "historical",
+    "text": "The former answer to contacts.head-mapping is preserved in docs/cut-archive/decision-review-history.json as historical evidence, not implementation authority."
+  }
+],
+  chosen: "current-scope",
   why:
-    "Each rule is one the head enforces whether Capxul knows it or not. CRM Organization is named by `organization_name` " +
-    "(autoname by field), and Contact's `company_name` is a Data field holding that name, so two companies of one name " +
-    "cannot both exist there; the frozen book lets two entries share a label (`contact label` #2), so the push must " +
-    "tell them apart, and Frappe's own numbering of Contact names is the least surprising way. Renaming a CRM " +
-    "Organization does not rewrite Contacts' `company_name`, so the head's Capxul app must. Changing CRM Organization's " +
-    "naming would break Frappe CRM's pages, which show and link organizations by that name, and is a customization the " +
-    "ruling asks to avoid. Frappe makes a Contact for every User (`create_contact`), so pushing a member as another " +
-    "Contact would split one person in two, and that Contact's mailbox is the member's own, which a book never shows " +
-    "(contacts.members-derived). Frappe's `convert_to_deal` makes the deal first and then sets the lead's `converted` " +
-    "check with `db_set`, and by default makes another deal on a second conversion, so the pull takes the first and " +
-    "keeps the rest. Frappe's form needs a lead's first name, but `set_lead_name` serves imports that hold only a " +
-    "company or a mailbox, and Capxul's leads follow it. Adopting by mailbox and by name is how Frappe CRM itself " +
-    "dedupes (`contact_exists`, `create_organization`). None of this touches money: an entry's Party is still set only " +
-    "in Capxul. Added in review: the first pass said only that a sync renames fields, which left all of this to the build.",
-  source: crmBy(
-    `${CRM} crm_organization.json (autoname by field), crm_lead.json, crm_lead.py:140, :546, :600; frappe@1a7ea577 ` +
-      "user.py:1615 (create_contact), contact.py:57, document.py:2287 (db_set)",
-  ),
+    "Review, 11 November 2026: Archive push/pull naming, mailbox adoption and head_name mappings for Contact, CRM Organization and converted leads. Frappe names and links its own documents on the authoritative site; Core only owns Party/Safe resolution and explicit identity links. A rename or same mailbox must not silently change a payment recipient. Authority: cut.contacts; sites.crm; plugs.roles-follow-hats.",
+  source: "The coordinator, round 2, m1-old-decisions; cut.contacts; sites.crm; plugs.roles-follow-hats",
   affects: [
     table_contacts, table_org_members,
     table_parties, 

@@ -54,26 +54,21 @@ export const decision_requests_one_table = defineDecision({
   id: "requests.one-table",
   title: "One requests table for requests, Invoices and service purchases",
   question:
-    "The old concept kept five tables: paymentRequests, invoiceCheckoutPayments, offerCheckouts, fixedOffers and " +
-    "fixedOfferRevisions. Which does the target keep?",
+    "The old concept kept five tables: paymentRequests, invoiceCheckoutPayments, offerCheckouts, fixedOffers and fixedOfferRevisions. Which does the target keep?",
   options: [
-    {
-      label: "consolidate",
-      text:
-        "`requests` (requests, Invoices and service purchases), `services` and `service-revisions`. A purchase at a " +
-        "service's link is a request of kind `purchase`; the Payments that tried to pay a request are payments' rows.",
-    },
-    { label: "as-is", text: "Keep all five, with offer purchases and the request-to-Payment link as their own tables." },
-  ],
-  chosen: "consolidate",
+  {
+    "label": "current-scope",
+    "text": "Core retains requests and payer inbox for chain payment intent. ERPNext owns invoices and service/timesheet business documents through the door; archive Core services and service-revisions storage as business authority. Payment attempts remain payments rows rather than duplicate checkout payment records."
+  },
+  {
+    "label": "historical",
+    "text": "The former answer to requests.one-table is preserved in docs/cut-archive/decision-review-history.json as historical evidence, not implementation authority."
+  }
+],
+  chosen: "current-scope",
   why:
-    "A purchase and a request are the same thing to be paid: an amount owed to a Safe, a document, a payer and one way to " +
-    "pay it. Two shapes meant two checkout paths, two receipt verifiers and two sets of rate limits. invoiceCheckoutPayments " +
-    "was written by payments into requests' table (a write-boundary finding) and only listed attempts; payments now " +
-    "holds every Payment with its v4 payment id, and the request keeps the one that pays it. The receipt, consumption, " +
-    "verification, envelope-v3/v4 and settlement-id columns served the V3 router's checkout and the read-time chain " +
-    "check, both gone (P9, requests.reads-write-nothing). Money Invoices are dropped by requests.no-money-invoice.",
-  source: by("docs/as-is/archive/requests/data.ts; docs/as-is/payments.md (Payments inserts invoiceCheckoutPayments); P2, P9"),
+    "Review, 11 November 2026: Core retains requests and payer inbox for chain payment intent. ERPNext owns invoices and service/timesheet business documents through the door; archive Core services and service-revisions storage as business authority. Payment attempts remain payments rows rather than duplicate checkout payment records. Authority: cut.requests; plugs.held-payment; plugs.repoint-money-fact.",
+  source: "The coordinator, round 2, m1-old-decisions; cut.requests; plugs.held-payment; plugs.repoint-money-fact",
   affects: [d.table_requests, concept_requests],
 });
 
@@ -98,7 +93,7 @@ export const decision_requests_owner_tenancy = defineDecision({
     "Two rows would copy the status, the payment and the escrow, and could disagree: the old system's derived states were " +
     "that kind of drift. A global table fails open. The issuer owns the receivable and is the only one who changes its " +
     "terms; the payer's rights are to read, pay and decline, all through rpcs that check the payer Safe is theirs. The " +
-    "child tables carry their own tenant columns (no tenancy by join), and service revisions carry the owner's too.",
+    "child tables carry their own tenant columns (no tenancy by join), and service revisions carry the owner's too." + " Review, 11 November 2026: The surviving rule (A request is its issuer's row; its payer reads it across tenants by Safe) still applies. Removed subjects in its historical evidence are not restored; cut.requests; plugs.held-payment; plugs.repoint-money-fact governs their replacement.",
   source: by("P8 (owner tenancy, no tenancy by join); docs/as-is/archive/requests/data.ts (mixed tenancy, payerPartyId reads)"),
   affects: [d.table_requests, inb.rpc_requests_inbox_list, inb.rpc_requests_inbox_get, inb.rpc_requests_inbox_pay],
 });
@@ -318,7 +313,7 @@ export const decision_requests_invoicing_hat = defineDecision({
     "v4 replaces issue invoices with the Invoicing officer hat (the designed refusals of `request issue` and `request " +
     "cancel`). Matching a deposit marks a receivable paid, which is the Invoicing officer's work; the deposit's own book " +
     "fact is banking's and already written at credit. Paying from the Organization's inbox is the budget's hat, which " +
-    "`payments.prepare-command` and the chain check, not this guard.",
+    "`payments.prepare-command` and the chain check, not this guard." + " Review, 11 November 2026: The surviving rule (An Organization's request writes need its Invoicing hat, bank match included) still applies. Removed subjects in its historical evidence are not restored; cut.requests; plugs.held-payment; plugs.repoint-money-fact governs their replacement.",
   source: by("request.issue.yaml and request.cancel.yaml (designed refusals); packages/backend/src/requests/guards.ts:44"),
   affects: ORG_WRITES,
 });
@@ -420,7 +415,7 @@ export const decision_requests_telemetry = defineDecision({
     { label: "keep", text: "Port them as rpcs or workflows." },
   ],
   chosen: "drop",
-  why: "Telemetry is never an operation (P7, review emit-only), and no concept but notices sends mail (dependencies.notices-top).",
+  why: "Telemetry is never an operation (P7, review emit-only), and no concept but notices sends mail (dependencies.notices-top)." + " Review, 11 November 2026: The surviving rule (The emit actions and the notify workflow are not ported) still applies. Removed subjects in its historical evidence are not restored; cut.requests; plugs.held-payment; plugs.repoint-money-fact governs their replacement.",
   source: by("docs/as-is/archive/requests/receivables.ts (emit-*, notify); docs/as-is/archive/requests/offers.ts (emit-changed); P7"),
   affects: [d.event_request_transitioned],
 });
@@ -447,7 +442,7 @@ export const decision_requests_acceptance_rewrites = defineDecision({
     "P1: a claim names an outcome one of the five observers can check. Each rewrite keeps the old outcome and passes " +
     "against the old system: the issuer still gets its request with the status the chain shows; a refused list still " +
     "shows nothing; one cancel still reports one cancel. The `--after` cursor of inbox.list 2 is the printed `nextCursor`, " +
-    "a surface the CLI shows, so that line is kept. The old line and its test are in each rewritten line's `was`.",
+    "a surface the CLI shows, so that line is kept. The old line and its test are in each rewritten line's `was`." + " Review, 11 November 2026: The surviving rule (Eleven acceptance lines rewritten as outcomes) still applies. Removed subjects in its historical evidence are not restored; cut.requests; plugs.held-payment; plugs.repoint-money-fact governs their replacement.",
   source: by("blueprint/baseline/operations.ts (acceptance); P1"),
   affects: [
     op.operation_request_get,
@@ -465,28 +460,19 @@ export const decision_requests_worlds = defineDecision({
   title: "The devnet worlds requests' refusals are reached from",
   question: "Which named devnet snapshots do requests' refusals need?",
   options: [
-    {
-      label: "nine",
-      text:
-        "signed-out (no session); person-with-requests (an issuer with an open request to a person on Capxul, an open " +
-        "escrow Invoice to an outside email, a link request, and a paid, a declined and a cancelled one; the payer signed " +
-        "in too); org-with-requests (an Organization that issued and received requests, a member wearing the Invoicing hat " +
-        "and one wearing none, a budget whose office hat a member wears, spent to less than a received request); " +
-        "requests-indexer-behind (person-with-requests with Ponder held more than the finality depth behind the chain); " +
-        "person-with-underfunded-safe (a payer whose Safe holds less than the request to them); person-with-services (an " +
-        "active service at revision 2 and a deactivated one); org-with-services (an Organization's service and a member " +
-        "without the Invoicing hat); person-with-credited-deposit (a credited unmatched deposit, an arriving one, one " +
-        "matched, and an open USDC request it can pay); org-with-credited-deposit (the same for an Organization, with a " +
-        "member without the Invoicing hat).",
-    },
-    { label: "one", text: "One large world for every refusal." },
-  ],
-  chosen: "nine",
+  {
+    "label": "current-scope",
+    "text": "Retain issuer/payer, paid/declined/cancelled, underfunded Safe, lagging reader, credited-deposit and missing-Invoicing-hat scenarios. Service and invoice business records live on the real company site: do not build removed Core services tables. signed-out still reaches unauthenticated refusals."
+  },
+  {
+    "label": "historical",
+    "text": "The former answer to requests.worlds is preserved in docs/cut-archive/decision-review-history.json as historical evidence, not implementation authority."
+  }
+],
+  chosen: "current-scope",
   why:
-    "Each world holds what its refusals need and is named after it, so an eval restores the smallest snapshot; the money " +
-    "worlds (a credited deposit, an underfunded Safe, a lagging indexer) stay separate because building them costs chain " +
-    "and Bridge-sandbox time.",
-  source: by("CONVENTIONS.md (worlds); the refusals of the 14 operations"),
+    "Review, 11 November 2026: Retain issuer/payer, paid/declined/cancelled, underfunded Safe, lagging reader, credited-deposit and missing-Invoicing-hat scenarios. Service and invoice business records live on the real company site: do not build removed Core services tables. signed-out still reaches unauthenticated refusals. Authority: cut.requests; plugs.held-payment; plugs.repoint-money-fact.",
+  source: "The coordinator, round 2, m1-old-decisions; cut.requests; plugs.held-payment; plugs.repoint-money-fact",
   affects: ALL_OPERATIONS,
 });
 
@@ -503,7 +489,7 @@ export const decision_requests_budget_overrides = defineDecision({
     "The frozen claims require the preview ('At a terminal it previews the exact issued request'). A read (p95 1.2 s) " +
     "and a write (1.5 s) in sequence cannot fit 1.5 s; 2.5 s is their sum less the shared session cost. Everything else " +
     "takes its class default: reads read, writes write, `inbox pay` chain-read on the server (it reads funding from the " +
-    "chain) and chain-settle end to end, the processes background.",
+    "chain) and chain-settle end to end, the processes background." + " Review, 11 November 2026: The surviving rule (A preview then a write gets 2.5 s at p95) still applies. Removed subjects in its historical evidence are not restored; cut.requests; plugs.held-payment; plugs.repoint-money-fact governs their replacement.",
   source: by("packages/blueprint-engine/src/budgets.ts; P5"),
   affects: [
     op.operation_request_cancel,
@@ -520,79 +506,43 @@ export const decision_requests_income_meaning = defineDecision({
   id: "requests.income-meaning",
   title: "An Organization's request carries its income account to the books",
   question:
-    "The accounting design asks that a paid request's side carry its meaning to books: its income account, and, when " +
-    "a head made a Sales Invoice for it, party Customer and that invoice as the reference. Payments' door now takes a " +
-    "`payee_against`. Where does a request keep its meaning, and how does it reach the books?",
+    "The accounting design asks that a paid request's side carry its meaning to books: its income account, and, when a head made a Sales Invoice for it, party Customer and that invoice as the reference. Payments' door now takes a `payee_against`. Where does a request keep its meaning, and how does it reach the books?",
   options: [
-    {
-      label: "on-the-request",
-      text:
-        "`request issue --org` takes `account` and, from a head, `sales_invoice`; the request keeps them as `income`, and " +
-        "`inbox pay` passes them to `payments.prepare-command` as the item's `payee_against` with party Customer at the " +
-        "payer's Party. Books checks the account when it posts, and a side whose account no longer fits waits in review.",
-    },
-    { label: "annotate-later", text: "Keep nothing on the request; the Organization classifies the payment afterwards with `activity annotate`." },
-    { label: "head-only", text: "Only a head's Sales Invoice carries meaning, through its own Payment Entry." },
-  ],
-  chosen: "on-the-request",
+  {
+    "label": "current-scope",
+    "text": "A held invoice payment carries its document hash and account/cost-centre labels to site posting. Core requests may retain payment intent but do not own a second income account or Sales Invoice. Invalid site classification stays visible/unmatched; it must not lose the money fact or redirect the payer."
+  },
+  {
+    "label": "historical",
+    "text": "The former answer to requests.income-meaning is preserved in docs/cut-archive/decision-review-history.json as historical evidence, not implementation authority."
+  }
+],
+  chosen: "current-scope",
   why:
-    "The issuer knows what a request is for when it asks, as a Sales Invoice names its income account, so the meaning " +
-    "belongs with the request from its birth; payments keeps what the command carried and passes it with the " +
-    "settlement (payments.money-sides), so the voucher is a Payment Entry Receive against the head's Sales Invoice or a " +
-    "Bank Entry on the income account rather than an unclassified 4999 line. Requests does not depend on books, so it " +
-    "cannot check the account; books never refuses a money fact and holds a side whose account does not fit in review " +
-    "(books' door), which is the right place for that check. The Customer is the payer's Party in the directory, which " +
-    "the head finds by capxul_party. Mapping the request to the head's Sales Invoice is the head's: the Capxul app " +
-    "asks for the payment by naming its invoice, and its Payment Entry follows the fact. Two paths still carry no " +
-    "meaning: an outside payer's invoice escrow pays out as a Payment born from the chain, which payments cannot tie " +
-    "to a request, and a matched bank deposit, whose fact is banking's (`banking.match-deposit` takes no meaning yet); " +
-    "both wait in review for `activity annotate` or the head (banking.matched-deposit-meaning; the escrow payout is " +
-    "the escrow redesign's to carry).",
-  source: ASSEMBLY("docs/design/frappe/accounting.md (For other lanes: requests); blueprint/payments/procedures.ts (payee_against)"),
+    "Review, 11 November 2026: A held invoice payment carries its document hash and account/cost-centre labels to site posting. Core requests may retain payment intent but do not own a second income account or Sales Invoice. Invalid site classification stays visible/unmatched; it must not lose the money fact or redirect the payer. Authority: cut.requests; plugs.held-payment; plugs.repoint-money-fact.",
+  source: "The coordinator, round 2, m1-old-decisions; cut.requests; plugs.held-payment; plugs.repoint-money-fact",
   affects: [d.table_requests, iss.rpc_requests_issuing_issue, inb.rpc_requests_inbox_pay, concept_books],
 });
 
 export const decision_requests_bill_time = defineDecision({
   id: "requests.bill-time",
-  title: "Decision pack: bill logged hours as an Invoice, marking them in one write",
+  title: "Archived: Decision pack: bill logged hours as an Invoice, marking them in one wr",
   question:
-    "Projects' timesheets hold billable hours (aaron.projects), and the invoice-from-timesheets command is requests'. " +
-    "Which command bills them, and how do the request and the hours it bills stay one fact?",
+    "Projects' timesheets hold billable hours (aaron.projects), and the invoice-from-timesheets command is requests'. Which command bills them, and how do the request and the hours it bills stay one fact?",
   options: [
-    {
-      label: "timesheet-bill",
-      text:
-        "Recommended. A new operation, `org projects timesheet bill <timesheet…> [--to <payer>] [--request-key]` (grammar G1: an " +
-        "Organization-only command begins with `org`; SDK `client.org(orgId).projects.timesheets.bill`; who: the Invoicing hat; " +
-        "write), as requests' flow over its own rpc `requests.issuing.bill-time`, which issues as `requests.issuing.issue` " +
-        "does: it reads the timesheets' billable logs not yet billed, issues an Invoice to the project's customer with one " +
-        "line per activity and rate (hours times the billing rate), keeps the hours and amount it asks for each log on the " +
-        "request (`billed_logs`, as a Sales Invoice's Timesheet rows do; the log keeps its own), and in the issue's " +
-        "transaction invokes `projects.bill-time` (`bill`) so the logs name the request. `request cancel` and `inbox " +
-        "decline` of such a request invoke it with `unbill` in their own transactions; paid keeps the marks.",
-    },
-    {
-      label: "issue-flag",
-      text: "No new command: `request issue --timesheets <ts…>` on the kept command, with the same door and the same marks.",
-    },
-    { label: "head-only", text: "None: hours are invoiced only by a connected head's Sales Invoice, which marks them through the sync." },
-  ],
-  chosen: "timesheet-bill",
+  {
+    "label": "current-scope",
+    "text": "Archive the Core org projects timesheet bill operation and projects.bill-time transaction. ERPNext owns timesheet billing and invoice cancellation/unbilling; the door reaches them. A resulting payment still uses the held-payment chain path, not a second Core invoice-from-hours implementation."
+  },
+  {
+    "label": "historical",
+    "text": "The former answer to requests.bill-time is preserved in docs/cut-archive/decision-review-history.json as historical evidence, not implementation authority."
+  }
+],
+  chosen: "current-scope",
   why:
-    "A decision pack under rules.new-operations, accepted as recommended with the sixth batch; the commands pass booked " +
-    "it as `org.timesheet.bill`, and the command surface moved it into the projects group as " +
-    "`org.projects.timesheet.bill` (requests.bill-time-in-projects). A time Invoice is one money fact with the hours it bills " +
-    "(projects.bill-time): the issue writes the request and, through projects' door, the marks, or neither, so a " +
-    "second Invoice, Capxul's or a head's, can never ask for the same hours. Ending it clears them, as cancelling a " +
-    "Sales Invoice unlinks its timesheets; an expired request keeps them until cancelled, as an unpaid invoice does. " +
-    "A command of its own reads as ERPNext's 'Make Sales Invoice' from a timesheet and keeps `request issue` the kept " +
-    "command it was; the flag would widen a frozen command's flags for one source of lines. Head-only leaves an " +
-    "Organization with no head unable to bill its time. Its own rpc, not `requests.issuing.issue`, because the lines, " +
-    "the payer and the marks come from the timesheets, not from the caller: one call that issues and marks is the one " +
-    "transaction the money fact needs. The edge it needs, requests depending on projects (dependencies.of-requests), " +
-    "exists, and projects sits below requests, so it makes no cycle. The rpc invokes three doors (parties, documents, " +
-    "projects), one wider than sys:tx-width allows, recorded in requests.bill-time-currency.",
-  source: ASSEMBLY("docs/design/frappe/projects-and-startup.md (section 2); projects.billing-and-payslips; projects.commands; aaron.projects"),
+    "Review, 11 November 2026: Archive the Core org projects timesheet bill operation and projects.bill-time transaction. ERPNext owns timesheet billing and invoice cancellation/unbilling; the door reaches them. A resulting payment still uses the held-payment chain path, not a second Core invoice-from-hours implementation. Authority: cut.requests; plugs.held-payment; plugs.repoint-money-fact.",
+  source: "The coordinator, round 2, m1-old-decisions; cut.requests; plugs.held-payment; plugs.repoint-money-fact",
   affects: [
     concept_requests,
     d.table_requests,

@@ -530,10 +530,7 @@ export const decision_tooling_generated_header = defineDecision({
   ],
   chosen: "hashed-header",
   why:
-    "A per-file hash shows a hand edit in the editor and at pre-commit in milliseconds, where regeneration takes the whole " +
-    "generator; regeneration still runs at pre-push and in CI, because a hash cannot show that a record changed and the " +
-    "files were not regenerated. The formatter must not touch generated files, or every hash would break; the generator " +
-    "emits finished code, and lint holds it to the standard. Prototyped: the rule caught an edited header-hashed file.",
+    "A per-file hash shows a hand edit in the editor and at pre-commit in milliseconds, where regeneration takes the whole generator; regeneration still runs at pre-push and in CI, because a hash cannot show that a record changed and the files were not regenerated. The formatter must not touch generated files, or every hash would break; the generator emits finished code, and lint holds it to the standard. Prototyped: the rule caught an edited header-hashed file. Review, 11 November 2026: Confirmed tooling.generated-header; original choice retained.",
   source: by("system.layout (header text); sys:generated; prototype rule"),
   affects: SHIPPED,
 });
@@ -678,30 +675,19 @@ export const decision_tooling_hooks = defineDecision({
   title: "Hooks: staged fmt, lint and secrets; pre-push runs every gate on the tree",
   question: "What do pre-commit and pre-push run, within what time, and which lessons of the old hooks do they keep?",
   options: [
-    {
-      label: "two-scripts",
-      text:
-        "pre-commit: CI=1 vp staged (fmt and lint on staged files, gitleaks on the staged diff), at most 5 s for 30 files. " +
-        "pre-push: refuse any update or deletion of main or integration/build and a ref that is not HEAD, then vp fmt " +
-        "--check, vp lint, " +
-        "tsc -b, generate:check, pnpm book and vp test run on the whole tree, at most 90 s until B3.",
-    },
-    { label: "staged-only", text: "Only the staged checks; leave everything else to CI." },
-    { label: "scoped", text: "Scope pre-push to the files the push changes, as the old check.sh did." },
-  ],
-  chosen: "two-scripts",
+  {
+    "label": "current-scope",
+    "text": "Pre-commit checks staged formatting, lint and secret leakage; pre-push checks the current tree and refuses protected-branch updates. Use the current CLAUDE.md gates (test, blueprint, frozen, layout and contract reconciliation), not the old pnpm book spelling or a swarmD merge gate. Hook timing targets do not authorize skipping a gate."
+  },
+  {
+    "label": "historical",
+    "text": "The former answer to tooling.hooks is preserved in docs/cut-archive/decision-review-history.json as historical evidence, not implementation authority."
+  }
+],
+  chosen: "current-scope",
   why:
-    "The old hooks recorded the lessons: every vp call needs CI=1 (vp opened /dev/tty and a pre-push 'hung' for nine " +
-    "minutes); a pushed ref that is not HEAD must be refused because gates read the working tree; vp staged appends paths, " +
-    "so tsc cannot run there; no --fix at commit, because the Effect fixes rewrite code; hooks call direct verbs, never the " +
-    "task graph, after vp was SIGKILLed in a macOS worktree. Staged-only lets a red tree reach the remote and costs a CI " +
-    "round trip per mistake. Scoping by changed files took a 100-line script; the whole tree fits 90 s now (book checks " +
-    "about 15 s, lint and types seconds), and scoping is the first remedy when it stops fitting. The old pre-push ran no tsc " +
-    "and no tests because the SDK's declaration emit hit a memory cliff; every target project is noEmit. Measured through " +
-    "the dispatcher with a bare remote: pushes to main and integration/build, a deletion of main and a ref that is not " +
-    "HEAD were refused; a first draft that skipped deletions before checking the protected names let the deletion through, " +
-    "which the old merge gate refused.",
-  source: by("/home/user/factory/lefthook.yml and .lefthook/pre-push/check.sh; /home/user/factory/vite.config.ts staged block; prototype hook timings"),
+    "Review, 11 November 2026: Pre-commit checks staged formatting, lint and secret leakage; pre-push checks the current tree and refuses protected-branch updates. Use the current CLAUDE.md gates (test, blueprint, frozen, layout and contract reconciliation), not the old pnpm book spelling or a swarmD merge gate. Hook timing targets do not authorize skipping a gate. Authority: system.layout; sites.door; portal.plan-page.",
+  source: "The coordinator, round 2, m1-old-decisions; system.layout; sites.door; portal.plan-page",
   affects: [f.system_capxul],
 });
 

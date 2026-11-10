@@ -484,23 +484,19 @@ export const decision_banking_flows = defineDecision({
   title: "Six flows; the one-call operations are their rpc",
   question: "Which banking operations need a Core SDK flow (A4), and what are the flows called?",
   options: [
-    {
-      label: "six",
-      text:
-        "Flows for `verify start`, `verify status`, `invite accept`, `bank pay`, `contact get`, and one shared by `bank " +
-        "accounts add` and `contact bank add`; every other operation is one rpc.",
-    },
-    { label: "all", text: "A flow for every operation." },
-  ],
-  chosen: "six",
+  {
+    "label": "current-scope",
+    "text": "Retain banking flows for verification, invite acceptance, bank pay and adding bank accounts; single-rpc operations stay single calls. Archive the contact.get flow over contacts RPCs: site Contact/Address reads use the door and banking supplies masked accounts only for resolved Parties."
+  },
+  {
+    "label": "historical",
+    "text": "The former answer to banking.flows is preserved in docs/cut-archive/decision-review-history.json as historical evidence, not implementation authority."
+  }
+],
+  chosen: "current-scope",
   why:
-    "A flow is for an operation that composes rpcs with prompts, uploads, waits or polls. The two add commands share " +
-    "the frozen SDK method `client.account.bankAccounts.add`, so one flow serves both. `bank settle`'s picker only " +
-    "chooses `--to` from two tokens before the one call, so it stays an rpc. `bank pay`'s frozen method " +
-    "`client.approvals.prepare` was shared by every payment command; its flow is named `client.banking.payouts.pay` " +
-    "so it has one meaning. `contact get` composes contacts' entry with the accounts saved on it (banking.contact-get). " +
-    "`bank pay`'s signing follows banking.payers-sign: an agent paying from an Organization's budget signs at once.",
-  source: "A4; bank.pay.yaml (sdk), bank.accounts.add.yaml and contact.bank.add.yaml (sdk); blueprint/approvals/flows.ts",
+    "Review, 11 November 2026: Retain banking flows for verification, invite acceptance, bank pay and adding bank accounts; single-rpc operations stay single calls. Archive the contact.get flow over contacts RPCs: site Contact/Address reads use the door and banking supplies masked accounts only for resolved Parties. Authority: cut.requests; plugs.held-payment; plugs.repoint-money-fact.",
+  source: "The coordinator, round 2, m1-old-decisions; cut.requests; plugs.held-payment; plugs.repoint-money-fact",
   affects: [
     flow_client_verification_start,
     flow_client_verification_status,
@@ -568,26 +564,19 @@ export const decision_banking_worlds = defineDecision({
   title: "The devnet worlds banking's refusals start from",
   question: "Which named devnet snapshots reach each refusal of banking's twelve operations?",
   options: [
-    {
-      label: "worlds",
-      text:
-        "New: person-verified (approved for USD, EUR and GBP, no details or accounts); person-with-bank-details (plus USD " +
-        "and EUR details, EUR settling in EURC); person-with-gbp-account (verified, a registered GBP account, 1,000 USDC " +
-        "in the Safe); person-with-deposits (bank details and 21 USD deposits: credited, arriving, below minimum, returned, " +
-        "some matched); org-verified (Globex, KYB-approved: Fay the founding Director, Gus wearing the `office-costs` hat " +
-        "with 2,000 USDC left, Hal a member with no hat, Ivy outside; a registered GBP account and USD details); " +
-        "bridge-unreachable (person-with-bank-details with the Bridge stand-in failing every call). Reused: signed-out, " +
-        "person-ready, org-with-pending-invitation and org-with-expired-invitation (organizations.worlds), " +
-        "person-with-contacts (contacts.worlds).",
-    },
-    { label: "none", text: "Leave every refusal's world as `?`." },
-  ],
-  chosen: "worlds",
+  {
+    "label": "current-scope",
+    "text": "Retain verified people/companies, USD/EUR details, GBP payout, deposit-state and Bridge-failure fixtures, plus signed-out and invitation states. Contact fixtures now live on real company sites, not a Core contacts book; snapshots save those sites with the chain/service world."
+  },
+  {
+    "label": "historical",
+    "text": "The former answer to banking.worlds is preserved in docs/cut-archive/decision-review-history.json as historical evidence, not implementation authority."
+  }
+],
+  chosen: "current-scope",
   why:
-    "Each world is built by running operations as the devnet's fixed identities against the Bridge stand-in, and saved " +
-    "as a snapshot named for what it holds; reusing the other concepts' worlds keeps one snapshot per situation. A " +
-    "quote expiring before approval is reached from person-with-gbp-account with `dev time warp`.",
-  source: "spec 30 (worlds); organizations.worlds; contacts.worlds; the twelve operations' refusals",
+    "Review, 11 November 2026: Retain verified people/companies, USD/EUR details, GBP payout, deposit-state and Bridge-failure fixtures, plus signed-out and invitation states. Contact fixtures now live on real company sites, not a Core contacts book; snapshots save those sites with the chain/service world. Authority: cut.requests; plugs.held-payment; plugs.repoint-money-fact.",
+  source: "The coordinator, round 2, m1-old-decisions; cut.requests; plugs.held-payment; plugs.repoint-money-fact",
   affects: OPERATIONS,
 });
 
@@ -627,29 +616,23 @@ const ASSEMBLY = (evidence: string) => `Claude, target assembly (rails-and-reads
 
 export const decision_banking_contact_get = defineDecision({
   id: "banking.contact-get",
-  title: "`contact get` is contacts' entry, then the accounts saved on it here",
+  title: "Archived: `contact get` is contacts' entry, then the accounts saved on it here",
   question:
-    "The architecture review moved `contact get` to banking (shared operations.contact-get-in-banking) and contacts " +
-    "dropped its record (contacts.get-moved). How does banking book it, and where do a contact's accounts come from?",
+    "The architecture review moved `contact get` to banking (shared operations.contact-get-in-banking) and contacts dropped its record (contacts.get-moved). How does banking book it, and where do a contact's accounts come from?",
   options: [
-    {
-      label: "flow-and-rpc",
-      text:
-        "One flow, `client.account.address-book.get` (the frozen method): at a terminal with no PartyId the picker " +
-        "(`contacts.book.list`, hidden included), then `contacts.book.get`, and for an entry a new query " +
-        "`banking.accounts.list-for-contact` over the `bank-accounts-by-party` index. Null ends it with no second read.",
-    },
-    { label: "widen-list", text: "Give `banking.accounts.list` a contact filter, as the old SDK's list had a target." },
-    { label: "one-rpc", text: "One banking rpc that reads contacts' table and the accounts together." },
-  ],
-  chosen: "flow-and-rpc",
+  {
+    "label": "current-scope",
+    "text": "Archive contact.get's Core contacts picker/get composition. Contact/Address is read through the site door. Banking only supplies masked bank accounts for an explicitly resolved Party; absent/private contacts cannot acquire another Party's accounts by a label or email match."
+  },
+  {
+    "label": "historical",
+    "text": "The former answer to banking.contact-get is preserved in docs/cut-archive/decision-review-history.json as historical evidence, not implementation authority."
+  }
+],
+  chosen: "current-scope",
   why:
-    "A4 gives the operation one SDK flow, and the old CLI made exactly these calls (the entry, then the contact's " +
-    "accounts). `banking.accounts.list` implements `bank accounts`, whose frozen page lists only your own; a filter " +
-    "would give one rpc two meanings. A banking rpc reading contacts' table would repeat contacts' book rule (manual or " +
-    "member). The acceptance observations and the guided-read budget (p95 1,600 ms) are the ones contacts handed over; " +
-    "the refusals start from contacts' world person-with-contacts and signed-out.",
-  source: ASSEMBLY("contact.get.yaml; blueprint/contacts/decisions.ts (contacts.get-moved, contacts.budgets); apps/cli/src/commands/contact/subcommands/get/execute.ts:41"),
+    "Review, 11 November 2026: Archive contact.get's Core contacts picker/get composition. Contact/Address is read through the site door. Banking only supplies masked bank accounts for an explicitly resolved Party; absent/private contacts cannot acquire another Party's accounts by a label or email match. Authority: cut.contacts; sites.crm; plugs.roles-follow-hats.",
+  source: "The coordinator, round 2, m1-old-decisions; cut.contacts; sites.crm; plugs.roles-follow-hats",
   affects: [
     o.operation_contact_get,
     flow_client_account_address_book_get,
@@ -854,16 +837,7 @@ export const decision_banking_payout_books = defineDecision({
   ],
   chosen: "through-the-door",
   why:
-    "The payout and its Payment are one money fact (dependencies.payments-banking), so what the books post it against " +
-    "is known at the quote and belongs on the Payment from its birth (payments.money-sides); a later annotation would " +
-    "leave every payout in review. The fee is Bridge's number on the quote: neither payments nor books computes one. A " +
-    "contact's account names its Party (`bank-accounts.party_id`), which Frappe makes a Supplier; a payout to your own " +
-    "account (`self`) or to a payee known only by name has no party, and `bank pay --account` names a saved bank " +
-    "account, not a ledger account, so no account is chosen: books posts the payout to its not-decided account with " +
-    "the fee on bank charges until someone annotates it. A deposit's fee is only meaningful where the bank currency and " +
-    "the token are one (USD and USDC, EUR and EURC); across a conversion the rate is Bridge's and the fee is left out. " +
-    "The return references the payout's Payment (banking.payout-return-reference), so it nets against the same party " +
-    "and account.",
+    "The payout and its Payment are one money fact (dependencies.payments-banking), so what the books post it against is known at the quote and belongs on the Payment from its birth (payments.money-sides); a later annotation would leave every payout in review. The fee is Bridge's number on the quote: neither payments nor books computes one. A contact's account names its Party (`bank-accounts.party_id`), which Frappe makes a Supplier; a payout to your own account (`self`) or to a payee known only by name has no party, and `bank pay --account` names a saved bank account, not a ledger account, so no account is chosen: books posts the payout to its not-decided account with the fee on bank charges until someone annotates it. A deposit's fee is only meaningful where the bank currency and the token are one (USD and USDC, EUR and EURC); across a conversion the rate is Bridge's and the fee is left out. The return references the payout's Payment (banking.payout-return-reference), so it nets against the same party and account. Review, 11 November 2026: Confirmed banking.payout-books; original choice retained.",
   source: FRAPPE("docs/design/frappe/accounting.md (For other lanes: banking); blueprint/books/procedures.ts (MoneySide)"),
   affects: [
     rpc_banking_payouts_quote,
@@ -879,30 +853,21 @@ export const decision_banking_private_entries = defineDecision({
   id: "banking.private-entries",
   title: "A private contact has no bank accounts: contact get shows none, bank pay refuses",
   question:
-    "The CRM's book now holds private entries (a company not on Capxul, a person with no mailbox) whose `ref` is null, " +
-    "and `contacts.book.get` takes `{ book, contactId }`. Bank accounts are saved on a contact's Party. What do " +
-    "`contact get`, `contact bank add` and `bank pay` do with such an entry?",
+    "The CRM's book now holds private entries (a company not on Capxul, a person with no mailbox) whose `ref` is null, and `contacts.book.get` takes `{ book, contactId }`. Bank accounts are saved on a contact's Party. What do `contact get`, `contact bank add` and `bank pay` do with such an entry?",
   options: [
-    {
-      label: "party-only",
-      text:
-        "`contact get` takes the entry's id (a PartyId or `contact_` id), shows the entry with its doctype and details, " +
-        "and for a private entry reads and shows no accounts; `contact bank add` and `bank pay` refuse a private entry " +
-        "with CLI_USAGE before any write or quote, naming how to give it a Party (add their email or handle).",
-    },
-    { label: "key-by-entry", text: "Save bank accounts on the entry's id, so a private entry can be paid by bank." },
-  ],
-  chosen: "party-only",
+  {
+    "label": "current-scope",
+    "text": "A site-only contact with no resolved Party has no Core saved bank accounts and cannot be paid through a fabricated Party. Refuse before any quote or write and require explicit recipient resolution. Archive contact_<id>/ref shapes and removed contact link instructions."
+  },
+  {
+    "label": "historical",
+    "text": "The former answer to banking.private-entries is preserved in docs/cut-archive/decision-review-history.json as historical evidence, not implementation authority."
+  }
+],
+  chosen: "current-scope",
   why:
-    "A Party is what Capxul can pay and name in the books; a private entry is the CRM's note of someone not yet in the " +
-    "directory, and accounts keyed by an entry would orphan when the entry gains its Party or be paid with no payee " +
-    "in the books. The value of `contactId` equals the old `partyId` for every Party-backed entry, so the frozen " +
-    "`contact get` claims hold as they stand: one `contacts.book.get` and one `banking.accounts.list-for-contact` for an " +
-    "entry with a Party. The refusal is the CLI's own, as the frozen 'not in your book' already is for `contact bank " +
-    "add`. `contact get`'s frozen CLI_USAGE ('not a valid PartyId') now reads 'neither a PartyId nor a `contact_` id', " +
-    "since both are ids of an entry. Both refusals start from person-with-contacts, whose book holds a private company " +
-    "entry (Northwind Ltd). A payee known only by name may later name a private company entry; that waits for a need.",
-  source: FRAPPE("docs/design/frappe/crm.md (banking); blueprint/contacts/book.ts (Entry.ref, OneEntry); contact.bank.add.yaml (CLI_USAGE)"),
+    "Review, 11 November 2026: A site-only contact with no resolved Party has no Core saved bank accounts and cannot be paid through a fabricated Party. Refuse before any quote or write and require explicit recipient resolution. Archive contact_<id>/ref shapes and removed contact link instructions. Authority: cut.contacts; sites.crm; plugs.roles-follow-hats.",
+  source: "The coordinator, round 2, m1-old-decisions; cut.contacts; sites.crm; plugs.roles-follow-hats",
   affects: [
     flow_client_account_address_book_get,
     flow_client_account_bank_accounts_add,
@@ -971,12 +936,7 @@ export const decision_banking_matched_deposit_meaning = defineDecision({
   ],
   chosen: "review",
   why:
-    "The deposit's book fact is written when the money arrives (its money fact, banking.payout-books); by the match " +
-    "it stands, and books' door writes nothing for a key it already holds, so carrying the meaning would need a new " +
-    "procedure that edits an annotation. That is a classification, not a money fact (rules.procedures): nothing about " +
-    "the money changes if it lags, and books' own `activity annotate` already does it with the right hat's check. The " +
-    "match keeps the money fact it is for, the deposit and the request it paid. Revisit if Organizations match many " +
-    "deposits and classifying them by hand proves heavy.",
+    "The deposit's book fact is written when the money arrives (its money fact, banking.payout-books); by the match it stands, and books' door writes nothing for a key it already holds, so carrying the meaning would need a new procedure that edits an annotation. That is a classification, not a money fact (rules.procedures): nothing about the money changes if it lags, and books' own `activity annotate` already does it with the right hat's check. The match keeps the money fact it is for, the deposit and the request it paid. Revisit if Organizations match many deposits and classifying them by hand proves heavy. Review, 11 November 2026: Confirmed banking.matched-deposit-meaning; original choice retained.",
   source: BUILD("blueprint/requests/decisions.ts (requests.income-meaning: 'banking.match-deposit takes no meaning yet'); blueprint/books/procedures.ts (record-money-fact replays write nothing)"),
   affects: [procedure_banking_match_deposit],
 });

@@ -189,7 +189,7 @@ export const decision_activity_row_shapes = defineDecision({
     "payments' view keeps `activity get` and `payment get` one answer. A payee sees no approval, proposal or command of the " +
     "payer's: that is the payer's private execution data. Evidence names the Payments contract that emitted the PaymentSent " +
     "and what sent it through (the Safe, Budgets, an escrow, Agreements), and `final` replaces the deprecated always-" +
-    "`finalized` fields. Old ledger kinds (Payout, Deposit Payments) are gone with payments' Deposit Payments.",
+    "`finalized` fields. Old ledger kinds (Payout, Deposit Payments) are gone with payments' Deposit Payments." + " Review, 11 November 2026: The surviving rule (Feed rows carry the reader's side only; a Payment in full is payments' own view) still applies. Removed subjects in its historical evidence are not restored; cut.principle; aaron.one-door; sites.door; portal.plan-page governs their replacement.",
   source: by("packages/protocol/src/activity/schema.ts:58, :146; blueprint/payments/ledger.ts (PaymentView)"),
   affects: [rpc_activity_feed_list, rpc_activity_feed_get, rpc_activity_changes_read, table_book_annotations],
 });
@@ -207,7 +207,7 @@ export const decision_activity_row_ids = defineDecision({
     "A Movement is one side of one indexed Transfer for one owner, and payments keys it so; the id repeats that key, so " +
     "no column or lookup is added, and both sides of an internal Transfer have different ids. Books' annotations name the " +
     "same string as their reference. Documents names a Movement's Memo by its Transfer alone (`<chain id>:<tx hash>:<log " +
-    "index>`, one Memo for both sides), so `activity get` drops the side to find it. A Payment keeps its `payment_` id.",
+    "index>`, one Memo for both sides), so `activity get` drops the side to find it. A Payment keeps its `payment_` id." + " Review, 11 November 2026: The surviving rule (A Movement's id is its Transfer and side; a Payment's is payments' id) still applies. Removed subjects in its historical evidence are not restored; cut.principle; aaron.one-door; sites.door; portal.plan-page governs their replacement.",
   source: by("blueprint/payments/data.ts (movements key); blueprint/books/data.ts (Reference); blueprint/documents/data.ts (by_subject)"),
   affects: [rpc_activity_feed_get, table_activity_changes, table_movements, table_book_annotations, table_documents],
 });
@@ -315,7 +315,7 @@ export const decision_activity_valuation = defineDecision({
   why:
     "Books' price sync is the one source of USD rates (P3 keeps the Chainlink cron), and its devnet fake answers the " +
     "devnet's scripted rates, so devnet and staging value the same way. Rates in the SDK were a second, unsynced copy. " +
-    "Only non-zero positions need a rate; if one has none, both valuations are null and the positions still show.",
+    "Only non-zero positions need a rate; if one has none, both valuations are null and the positions still show." + " Review, 11 November 2026: The surviving rule (The USD headline uses books' Chainlink prices, valued by the backend) still applies. Removed subjects in its historical evidence are not restored; cut.principle; aaron.one-door; sites.door; portal.plan-page governs their replacement.",
   source: by("packages/sdk/src/accounts/positions.ts:84 (MONEY_READ_RATES); blueprint/books/data.ts (book-prices)"),
   affects: [rpc_activity_holdings_balances, operation_balance],
 });

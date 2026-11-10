@@ -278,13 +278,7 @@ export const decision_time_chain_judged_deadlines = defineDecision({
   ],
   chosen: "head-judges",
   why:
-    "On staging now and the head's time are close but not equal: the head trails by up to a block and a host's clock can " +
-    "run ahead of the sequencer's. The chain's judgment is final, so the decision that depends on it defers to it; a " +
-    "failure for a second's difference would be a defect the devnet could never show. The re-arm alone is not enough: " +
-    "a lapse needs no chain call, so nothing reverts to say it is early, and a payee's accept can land in a block dated " +
-    "before the expiry after the backend has lapsed the offer. And the devnet's equality of head and now hides an " +
-    "off-by-one, not removes it: a timer due at voteEnd fires at a stop whose block is at voteEnd, where Governor.state " +
-    "still answers Active. Revised by the time review, 8 November 2026.",
+    "On staging now and the head's time are close but not equal: the head trails by up to a block and a host's clock can run ahead of the sequencer's. The chain's judgment is final, so the decision that depends on it defers to it; a failure for a second's difference would be a defect the devnet could never show. The re-arm alone is not enough: a lapse needs no chain call, so nothing reverts to say it is early, and a payee's accept can land in a block dated before the expiry after the backend has lapsed the offer. And the devnet's equality of head and now hides an off-by-one, not removes it: a timer due at voteEnd fires at a stop whose block is at voteEnd, where Governor.state still answers Active. Revised by the time review, 8 November 2026. Review, 11 November 2026: Confirmed time.chain-judged-deadlines; original choice retained.",
   source: by("v4 src/money/Agreements.sol:198 (>= offerExpiresAt), Budgets.sol:288 (< payAt); OZ GovernorUpgradeable.state; blueprint/equity/processes.ts:403"),
   affects: [
     f.component_backend, f.component_chain, x.integration_chain_rpc, x.integration_indexer, 
@@ -297,23 +291,19 @@ export const decision_time_drift_watch = defineDecision({
   title: "Staging watches the chain's lag behind now and each host's skew",
   question: "On staging and production nothing makes the chain's time and the backend's now equal. How is drift seen before it becomes a defect?",
   options: [
-    {
-      label: "two-signals",
-      text:
-        "Every read of the chain head (chain-rpc.getBlock, the indexer's head) records `time.chain_lag_ms`, now minus the " +
-        "head's timestamp, on its span; each transaction records `time.db_skew_ms`, the backend's now minus Postgres' " +
-        "clock_timestamp(), read in the round trip that sets the tenant. B5 adds live evals and alerts: chain lag outside " +
-        "-2 s to +60 s for five minutes, and a host's skew beyond one second.",
-    },
-    { label: "none", text: "Trust NTP and the sequencer." },
-  ],
-  chosen: "two-signals",
+  {
+    "label": "current-scope",
+    "text": "Chain lag is now minus the observed chain head timestamp and is recorded on reads. Host skew monitoring must cover the service and site hosts; a lean SQLite world cannot query Postgres clock_timestamp(). Staging alerts retain the chain-lag -2 s to +60 s for five minutes and host-skew one-second thresholds; world time never substitutes for elapsed transport time."
+  },
+  {
+    "label": "historical",
+    "text": "The former answer to time.drift-watch is preserved in docs/cut-archive/decision-review-history.json as historical evidence, not implementation authority."
+  }
+],
+  chosen: "current-scope",
   why:
-    "A negative lag means the backend's clock is behind the chain's, so a deadline the chain enforces can pass before " +
-    "Capxul acts; a large positive one means a stale node or a stalled head. Several backend instances share one " +
-    "Postgres, so its clock is the reference that shows one host's skew, which would reorder rows and fire timers early " +
-    "or late. Both ride on reads already made, so the watch costs no new call.",
-  source: by("blueprint/shared/external.ts (chain-rpc.getBlock, indexer.head); blueprint/shared/foundation.ts (staging: two or more backend instances)"),
+    "Review, 11 November 2026: Chain lag is now minus the observed chain head timestamp and is recorded on reads. Host skew monitoring must cover the service and site hosts; a lean SQLite world cannot query Postgres clock_timestamp(). Staging alerts retain the chain-lag -2 s to +60 s for five minutes and host-skew one-second thresholds; world time never substitutes for elapsed transport time. Authority: devnet.lean-world; devnet.site-follows-world; devnet.snapshot-of-a-world.",
+  source: "The coordinator, round 2, m1-old-decisions; devnet.lean-world; devnet.site-follows-world; devnet.snapshot-of-a-world",
   affects: [f.environment_staging, f.component_backend, f.component_postgres, x.integration_chain_rpc, x.integration_indexer],
 });
 
@@ -395,43 +385,21 @@ export const decision_time_world_channels = defineDecision({
   id: "time.world-channels",
   title: "Every outside channel belongs to its world and follows its clock",
   question:
-    "aaron.world-clock: emails, WhatsApp, the Frappe head and the FDE follow the world's clock, and a world's outside " +
-    "channels are its own (a devnet's mail goes to its sink, WhatsApp to a stand-in, a connected head follows the " +
-    "clock). Which channels does each world hold, and how does each stay inside it?",
+    "aaron.world-clock: emails, WhatsApp, the Frappe head and the FDE follow the world's clock, and a world's outside channels are its own (a devnet's mail goes to its sink, WhatsApp to a stand-in, a connected head follows the clock). Which channels does each world hold, and how does each stay inside it?",
   options: [
-    {
-      label: "world-owns-channels",
-      text:
-        "A channel is a stand-in inside the world that follows its clock, or, on staging, the real service held to the " +
-        "world's own parties. Mail: on a devnet and a shared world the sink, so none leaves, a shared world's joiner " +
-        "reading only its own mailboxes; on staging Resend, but only to the mailboxes MAIL_ALLOWED_RECIPIENTS lists " +
-        "(domains and addresses), a send to any other address refused before Resend as Resend refuses a recipient " +
-        "(INVALID_INPUT), so the notice records the failure. A head's own email (ERPNext's and Frappe HR's notifications) " +
-        "goes the same way: to the sink on a devnet and a shared world, and on staging only to those mailboxes, " +
-        "through the Capxul app's mail hook. WhatsApp: a stand-in of Meta's Cloud API on a devnet and a shared world; " +
-        "on staging only a Meta test number, which sends only to the recipients registered with it, so staging's " +
-        "connect admits no other number. The Frappe head: a follower of the world's clock on a devnet and a shared " +
-        "world, through the Capxul app's hooks; on staging a site on its host's clock. The FDE host: the stand-in on a devnet, the world's own namespace following " +
-        "its clock in a shared world, the host's clock on staging. Bridge, the bundler and paymaster, Chainlink and " +
-        "PostHog: the stand-ins and fakes already follow; Bridge's sandbox, which a banking eval may use on a devnet, " +
-        "does not, so such an eval never relies on Bridge's own times, and a shared world uses only the stand-in. Every message is dated at the world's now; a vendor's envelope " +
-        "stays real (time.real-elapsed). Production's channels are the real ones. A season's reset restores every " +
-        "channel's state with its world (time.seasons). The devnet's decisions say how: devnet.season-players, " +
-        "devnet.whatsapp-stand-in, devnet.site-follows-world, devnet.fde-host-follows-world, devnet.stand-ins-follow and " +
-        "devnet.stateful-followers.",
-    },
-    { label: "real-channels", text: "Send a world's mail and messages through the real services, dated by the world's clock." },
-  ],
-  chosen: "world-owns-channels",
+  {
+    "label": "current-scope",
+    "text": "Devnet mail goes to the world sink; staging mail is allowlisted before the vendor call. Site mail uses the same isolation. WhatsApp uses world stand-ins or staging test recipients. Hosted sites follow business world time in simulation and host time on staging. Bridge sandbox times are never a world-clock oracle. Hosted FDE namespaces and seasons are parked, not required channels."
+  },
+  {
+    "label": "historical",
+    "text": "The former answer to time.world-channels is preserved in docs/cut-archive/decision-review-history.json as historical evidence, not implementation authority."
+  }
+],
+  chosen: "current-scope",
   why:
-    "A world's story is one story only if what it says to people happens inside it: an email dated next March from a " +
-    "world at rate 4, sent to a real inbox, is a false message in the real world, and a code that went to a real inbox " +
-    "could not be read by the eval that needs it. Holding each channel in its world keeps every date in it on one clock " +
-    "and every party one of its own. Staging cannot keep Resend or Meta in a sink without ceasing to test them, so it " +
-    "holds their recipients instead; Meta's own test number already sends only to registered recipients. For the owners " +
-    "of the mail, frappe-head and fde-host integrations, and of the WhatsApp integration the CRM books: each one's text " +
-    "says how it stays in its world.",
-  source: WORLD("aaron.world-clock; docs/decisions/open-for-aaron.md (the CRM tracks every conversation); blueprint/shared/external.ts (mail, frappe-head, fde-host)"),
+    "Review, 11 November 2026: Devnet mail goes to the world sink; staging mail is allowlisted before the vendor call. Site mail uses the same isolation. WhatsApp uses world stand-ins or staging test recipients. Hosted sites follow business world time in simulation and host time on staging. Bridge sandbox times are never a world-clock oracle. Hosted FDE namespaces and seasons are parked, not required channels. Authority: devnet.lean-world; devnet.site-follows-world; devnet.snapshot-of-a-world.",
+  source: "The coordinator, round 2, m1-old-decisions; devnet.lean-world; devnet.site-follows-world; devnet.snapshot-of-a-world",
   affects: [
     x.integration_mail, x.integration_fde_host, x.integration_bridge, x.integration_bundler,
     x.integration_chainlink, x.integration_posthog, f.environment_devnet, f.environment_staging, f.environment_shared_world,

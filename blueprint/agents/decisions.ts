@@ -714,56 +714,23 @@ export const decision_agents_fde = defineDecision({
 
 export const decision_agents_fde_authority = defineDecision({
   id: "agents.fde-authority",
-  title: "The hosted FDE acts only as its asker, through the CLI; it never governs",
+  title: "Archived: The hosted FDE acts only as its asker, through the CLI; it never gover",
   question:
-    "aaron.fde-agent: the FDE sets the Organization up and adds the apps it needs, acting through the same CLI and SDK " +
-    "under the Organization's authority. What may it do, and what may it never do?",
+    "aaron.fde-agent: the FDE sets the Organization up and adds the apps it needs, acting through the same CLI and SDK under the Organization's authority. What may it do, and what may it never do?",
   options: [
-    {
-      label: "seat-and-hats",
-      text:
-        "It runs on Capxul's FDE host (aaron.fde-hosted), whose runtime holds its key, and acts only through the CLI and " +
-        "SDK, signed in with that key, as a member: it reads what any member reads, runs the commands any member may " +
-        "(reading projects, working tasks and keeping its own time), adds or removes a Frappe app (`org head app add|remove`: a Director or the FDE, " +
-        "organizations.app-commands), and whatever the hats and allowances the Board grants it allow (Books to set up the " +
-        "chart, People to keep the contact book, an allowance to pay within its limit). It starts with no hat and no " +
-        "allowance. It may never be a Director or wear the Shareholders' top hat, approve or execute a Board proposal, " +
-        "sign the company Safe, change its own key, freeze, sweep or removal, raise or buy seats, pay its own hosting " +
-        "(`org fde pay` needs a person), connect or disconnect a head, ask itself (`org fde ask` is a Director's), or sit " +
-        "in another Organization.",
-    },
-    {
-      label: "as-the-asker",
-      text:
-        "As seat-and-hats in what it never does, but under aaron.fde-anyone the hosted FDE acts only within a turn and " +
-        "only as that turn's asker (organizations.fde-for-the-asker): every call it makes is the asker's, with their " +
-        "Seat and hats, so it does for each asker exactly what they may do themselves, and for a guest only what a " +
-        "counterparty may. It holds no authority of its own: it starts with no hat and needs none, and hats the Board " +
-        "grants its Safe are not used while it is hosted. It never signs for anyone: an approval it prepares opens for " +
-        "the asker's own Safe, which the asker signs. It never answers a preview for the asker (the head's connection, a " +
-        "contact's link, an employee's leaving, a head document's deletion): the asker runs that command. A self-run " +
-        "own agent (`agent create --org`, or the FDE after its key left the host) acts as itself with its own hats.",
-    },
-    {
-      label: "officer-at-start",
-      text: "As seat-and-hats, but the install batch also mints the Books, Invoicing and People hats to the FDE, so it can set up the books and the CRM in its first conversation.",
-    },
-    { label: "unbounded", text: "The FDE acts with the founder's authority in everything." },
-  ],
-  chosen: "as-the-asker",
+  {
+    "label": "current-scope",
+    "text": "Archive hosted-FDE turn impersonation and its preview/signing hand-over protocol while hosted FDE is parked. Self-run agents act only with their own grants and keys. No current agent borrows a person's hats or receives site Administrator authority by being called an FDE."
+  },
+  {
+    "label": "historical",
+    "text": "The former answer to agents.fde-authority is preserved in docs/cut-archive/decision-review-history.json as historical evidence, not implementation authority."
+  }
+],
+  chosen: "current-scope",
   why:
-    "Accepted by Aaron as recommended (8 November 2026, sixth batch): the FDE starts with no hat. His later ruling " +
-    "aaron.fde-anyone (the eighth batch: 'the host passes the asker's Seat, so the FDE does for them only what their " +
-    "own hats allow') moves its authority from its own Safe to each asker, so this record now books that: the FDE " +
-    "starts with no hat and, hosted, needs none, which is what seat-and-hats' one cost was (the founder had to grant " +
-    "Books or People before the FDE could set up the chart or the CRM; now it does so as the founder who asks). What " +
-    "it never does is unchanged, and each item now holds by itself: a Director's commands, a Board approval, a seat " +
-    "purchase or a hosting payment need the asker's own signature, which the FDE never makes; a preview is the asker's " +
-    "to answer. Every action is an ordinary command with its own trace, refusals and evals, the trace naming the FDE " +
-    "and its asker, so nothing it does is invisible to the Organization. Hosted by Capxul, it is a runtime Capxul " +
-    "operates for the Organization, which the Board can freeze, re-key or remove at any time; an app's add is the " +
-    "Organization's choice, so it adds one only for a Director who asks.",
-  source: FDE_RULING,
+    "Review, 11 November 2026: Archive hosted-FDE turn impersonation and its preview/signing hand-over protocol while hosted FDE is parked. Self-run agents act only with their own grants and keys. No current agent borrows a person's hats or receives site Administrator authority by being called an FDE. Authority: cut.organizations; cut.fde-parked; sites.lifecycle; plugs.roles-follow-hats.",
+  source: "The coordinator, round 2, m1-old-decisions; cut.organizations; cut.fde-parked; sites.lifecycle; plugs.roles-follow-hats",
   affects: [table_agents, table_org_members, concept_organizations],
 });
 

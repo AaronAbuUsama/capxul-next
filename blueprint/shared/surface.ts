@@ -524,33 +524,21 @@ export const decision_surface_payroll_group = defineDecision({
   id: "surface.payroll-group",
   title: "Payroll is its own group: components, structures, runs, payslips, agreements",
   question:
-    "Payroll's commands are `org payroll component|structure|run`, `org payslip withhold|release` and `payslip " +
-    "list|get`; the 215's pay agreements are `agreement accept|collect|list|show` and `org agreement " +
-    "offer|change|pause|resume|end|withdraw|list`. Where do payslips and agreements go?",
+    "Payroll's commands are `org payroll component|structure|run`, `org payslip withhold|release` and `payslip list|get`; the 215's pay agreements are `agreement accept|collect|list|show` and `org agreement offer|change|pause|resume|end|withdraw|list`. Where do payslips and agreements go?",
   options: [
-    {
-      label: "pay-group",
-      text:
-        "One group mirroring Frappe HR's Payroll module and Capxul's pay agreements: `org payroll " +
-        "component|structure|run|payslip|agreement` for the Organization, `payroll payslip|agreement` for the payee, " +
-        "across every employer. The eleven agreement commands of the 215 move. `agreement accept` becomes `payroll " +
-        "agreement accept`, `agreement collect` becomes `payroll agreement collect`, `agreement list` becomes `payroll " +
-        "agreement list` and `agreement show` becomes `payroll agreement show`. `org agreement offer` becomes `org " +
-        "payroll agreement offer`, and in the same way `org agreement change`, `org agreement pause`, `org agreement " +
-        "resume`, `org agreement end`, `org agreement withdraw` and `org agreement list` gain `payroll` after `org`.",
-    },
-    { label: "agreements-apart", text: "Payslips move into payroll; agreements stay where the 215 put them, as Capxul's own." },
-  ],
-  chosen: "pay-group",
+  {
+    "label": "current-scope",
+    "text": "The eleven chain agreement commands move: agreement accept, agreement collect, agreement list and agreement show become payroll agreement accept, payroll agreement collect, payroll agreement list and payroll agreement show. org agreement offer, org agreement change, org agreement pause, org agreement resume, org agreement end, org agreement withdraw and org agreement list each gain payroll after org. Components, structures, runs and salary slips are Frappe HR documents reached through the door, not new parallel Core payroll commands."
+  },
+  {
+    "label": "historical",
+    "text": "The former answer to surface.payroll-group is preserved in docs/cut-archive/decision-review-history.json as historical evidence, not implementation authority."
+  }
+],
+  chosen: "current-scope",
   why:
-    "An agreement is how an Organization pays a person on a stream, and the book keeps it in Frappe's payroll shape: " +
-    "its acceptance makes an Employee and an assignment of the agreement structure, and each collection is a submitted " +
-    "Salary Slip (payroll.agreements-in-frappe-shape, payroll.collection-slips). So `payroll payslip list` already " +
-    "shows an agreement's collections; with agreements apart, the payee would read them in one group and collect them " +
-    "in another. A Frappe user looks for every way people are paid under Payroll. The moves are spelling only " +
-    "(system.frozen-behaviour): each operation keeps its id and every claim's behaviour, its SDK method follows its " +
-    "words (G7), and its owner renames the command with this decision on it.",
-  source: by("payroll.agreements-in-frappe-shape; payroll.collection-slips; docs/design/frappe/payroll.md"),
+    "Review, 11 November 2026: The eleven chain agreement commands move: agreement accept, agreement collect, agreement list and agreement show become payroll agreement accept, payroll agreement collect, payroll agreement list and payroll agreement show. org agreement offer, org agreement change, org agreement pause, org agreement resume, org agreement end, org agreement withdraw and org agreement list each gain payroll after org. Components, structures, runs and salary slips are Frappe HR documents reached through the door, not new parallel Core payroll commands. Authority: cut.payroll; cut.agreements-in-payments; plugs.held-payment.",
+  source: "The coordinator, round 2, m1-old-decisions; cut.payroll; cut.agreements-in-payments; plugs.held-payment",
   affects: [
     payroll.operation_agreement_accept,
     payroll.operation_agreement_collect,
@@ -568,34 +556,23 @@ export const decision_surface_payroll_group = defineDecision({
 
 export const decision_surface_projects_group = defineDecision({
   id: "surface.projects-group",
-  title: "Projects is its own group, and a project takes its verbs on the group",
+  title: "Archived: Projects is its own group, and a project takes its verbs on the group",
   question:
-    "Projects' 36 commands sit under five nouns of `org` (`org project`, `org task`, `org timesheet`, `org " +
-    "activity-type`, `org project-type`). How do they group?",
+    "Projects' 36 commands sit under five nouns of `org` (`org project`, `org task`, `org timesheet`, `org activity-type`, `org project-type`). How do they group?",
   options: [
-    {
-      label: "group-verbs",
-      text:
-        "`org projects`, ERPNext's Projects module. The Project's own verbs sit on the group, as the Organization's sit on " +
-        "`org` (`org create`, `org list`, `org show`): `org projects create|list|get|change|hold|resume|complete|reopen|" +
-        "cancel`, with `org projects member add|remove` (Project User) and `org projects settings show|set` (Projects " +
-        "Settings). The module's other DocTypes are its nouns: `org projects task …`, `org projects timesheet …` " +
-        "(requests' `bill` among them), `org projects activity-type …` and `org projects project-type add|list`.",
-    },
-    {
-      label: "noun-under-group",
-      text: "`org projects project create`, `org projects project member add`: systematic, at the cost of 'projects project' and five words.",
-    },
-    { label: "as-booked", text: "Keep the five nouns as booked." },
-  ],
-  chosen: "group-verbs",
+  {
+    "label": "current-scope",
+    "text": "Archive the explicit 36-command org projects family. ERPNext Project, Task, Timesheet, Activity Type and Project Type are reached through the door. No Core projects RPC or bill-time operation is reinstated by this spelling decision."
+  },
+  {
+    "label": "historical",
+    "text": "The former answer to surface.projects-group is preserved in docs/cut-archive/decision-review-history.json as historical evidence, not implementation authority."
+  }
+],
+  chosen: "current-scope",
   why:
-    "The group is the module's name, as Frappe's workspace is, and its first record is the module's own, as the " +
-    "Organization is `org`'s; repeating it would add a word to the thirteen project commands and make `member add` five " +
-    "words, longer than anything in the 215. The SDK reads the same way: `client.org(orgId).projects.create` (as " +
-    "booked) and `client.org(orgId).projects.tasks.create`. All 36 are new, so no frozen command moves; each id becomes " +
-    "its new words (`org.task.create` is `org.projects.task.create`).",
-  source: by("frappe/erpnext@6b946b0 (module Projects); projects.commands; requests.bill-time"),
+    "Review, 11 November 2026: Archive the explicit 36-command org projects family. ERPNext Project, Task, Timesheet, Activity Type and Project Type are reached through the door. No Core projects RPC or bill-time operation is reinstated by this spelling decision. Authority: cut.principle; aaron.one-door; sites.door; portal.plan-page.",
+  source: "The coordinator, round 2, m1-old-decisions; cut.principle; aaron.one-door; sites.door; portal.plan-page",
   affects: [f.concept_requests],
 });
 
@@ -643,42 +620,20 @@ export const decision_surface_fit_calls = defineDecision({
   id: "surface.fit-calls",
   title: "The surface after its fit review: what stays spelt as it is, and why",
   question:
-    "The fit reviews of the applied tree raised spellings left to the surface: `payroll agreement show <id>` beside " +
-    "`payroll payslip get <id>`; `org hr employee leave` (an Employee leaving) beside `org hr leave` (Leave " +
-    "Application); `apply` both a leave's birth and a Workflow's action; `org director add|remove|replace|threshold`, " +
-    "which always refuse, beside `org board director` and `org board threshold`; `balance` in the verb place; G5's " +
-    "`--from <budget>` against the 215's dated `--from`; and 67 HR DocTypes reached only through `org head doc`. Which " +
-    "change?",
+    "The fit reviews of the applied tree raised spellings left to the surface: `payroll agreement show <id>` beside `payroll payslip get <id>`; `org hr employee leave` (an Employee leaving) beside `org hr leave` (Leave Application); `apply` both a leave's birth and a Workflow's action; `org director add|remove|replace|threshold`, which always refuse, beside `org board director` and `org board threshold`; `balance` in the verb place; G5's `--from <budget>` against the 215's dated `--from`; and 67 HR DocTypes reached only through `org head doc`. Which change?",
   options: [
-    {
-      label: "keep-and-say",
-      text:
-        "No spelling changes; the grammar and the help say what each is. G3's 'show <id> is not used' binds new commands, " +
-        "and the 215's eleven agreement commands moved by their group word only, so `payroll agreement show` keeps the " +
-        "215's verb. `org hr employee leave` keeps G3's lifecycle verb, Frappe's own (the Employee's status Left); the " +
-        "noun before it (`employee`) tells it from the record `org hr leave`. `apply` keeps its two meanings, each " +
-        "Frappe's word (Leave Application; frappe.model.workflow apply_workflow), and G3 says so. `balance` is a view " +
-        "read by its noun, as the 215's `balance`, and G3 lists it. G5's `--from <budget>` binds new commands; the " +
-        "215's `dev prices set --from <date>` and `org payroll agreement change --from <date>` keep theirs. `capxul " +
-        "--help` marks `org director add|remove|replace|threshold` retired, naming `org board director` and `org board " +
-        "threshold`, and `capxul org hr --help` names `org head doc` and `org head doctype list --app hrms --module HR` " +
-        "for HR's other DocTypes (recruitment, appraisal, training).",
-    },
-    {
-      label: "respell",
-      text:
-        "Respell `payroll agreement show` as `payroll agreement get`, `org hr employee leave` as `org hr employee " +
-        "relieve` (Frappe's relieving_date), and one of the two `apply`s.",
-    },
-  ],
-  chosen: "keep-and-say",
+  {
+    "label": "current-scope",
+    "text": "The eleven retained agreement commands keep their frozen verbs, including show, under payroll; bare org director writes remain retired in favor of board. Removed explicit HR and CRM families do not survive as fit-review exceptions: their verbs are reached through the site door, whose grammar and help are current authority."
+  },
+  {
+    "label": "historical",
+    "text": "The former answer to surface.fit-calls is preserved in docs/cut-archive/decision-review-history.json as historical evidence, not implementation authority."
+  }
+],
+  chosen: "current-scope",
   why:
-    "Each respelling would be a second change to a command whose group just moved, for a reader the noun already " +
-    "serves: `org hr employee leave <Ana> --on <day>` names the Employee, and `relieve` is no verb of the 215, so it " +
-    "would open G3's closed set. A Frappe reader meets both `apply`s in Frappe itself. Saying it in the grammar and " +
-    "the help costs nothing and keeps every id and eval. The tree also grew after it was designed, each spelt as the " +
-    "tree spells: the devnet's eleven `dev season` commands (devnet.seasons) and HR's three person-side reads " +
-    "(payroll.hr-self-rules), 394 commands in all.",
-  source: by("the fit reviews of the surface pass (identity-and-org, frappe-apps, devnet-seasons); docs/design/new-commands.md G3 and G5"),
+    "Review, 11 November 2026: The eleven retained agreement commands keep their frozen verbs, including show, under payroll; bare org director writes remain retired in favor of board. Removed explicit HR and CRM families do not survive as fit-review exceptions: their verbs are reached through the site door, whose grammar and help are current authority. Authority: cut.principle; aaron.one-door; sites.door; portal.plan-page.",
+  source: "The coordinator, round 2, m1-old-decisions; cut.principle; aaron.one-door; sites.door; portal.plan-page",
   affects: [f.component_cli, f.component_core_sdk, f.concept_board, f.concept_devnet],
 });

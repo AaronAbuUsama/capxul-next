@@ -9,6 +9,7 @@ import * as cloud from "./cloud.ts";
 import * as vocabulary from "./vocabulary.ts";
 import * as external from "./external.ts";
 import * as decisions from "./decisions.ts";
+import * as decisionReview from "./decision-review.ts";
 import * as landings from "./landings.ts";
 import * as tooling from "./tooling.ts";
 import * as portal from "./portal.ts";
@@ -37,5 +38,5 @@ export const recordsOf = (modules: readonly object[]): unknown[] => [
   ),
 ];
 
-export const sharedModules = [stateGaps, contractGaps, foundation, cloud, vocabulary, external, decisions, landings, tooling, portal, swarm, time, rulings, surface, cut, cutMoves, milestones, contractRecords] as const;
+export const sharedModules = [stateGaps, contractGaps, foundation, cloud, vocabulary, external, decisions, decisionReview, landings, tooling, portal, swarm, time, rulings, surface, cut, cutMoves, milestones, contractRecords] as const;
 export const sharedRecords = recordsOf(sharedModules);

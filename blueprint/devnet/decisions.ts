@@ -93,18 +93,19 @@ export const decision_devnet_own_schema = defineDecision({
   title: "Devnet's tables live in a `devnet` schema only a devnet migrates",
   question: "Old operator kept its devnet mail, mail faults and test holds in the one production schema, empty everywhere but a devnet. Where do devnet's tables live now?",
   options: [
-    { label: "devnet-schema", text: "In Postgres' own `devnet` schema, which only the devnet build of the backend migrates; staging and production never create it." },
-    { label: "app-schema", text: "In the `app` schema with every concept's tables, empty off a devnet, as the old schema had them." },
-    { label: "supervisor-files", text: "Outside Postgres, in the supervisor's state directory." },
-  ],
-  chosen: "devnet-schema",
+  {
+    "label": "current-scope",
+    "text": "Devnet-only faults, mail and world metadata must not be production business data. Lean worlds keep this state in their own SQLite service database, not a mandatory Postgres devnet schema. Staging/production never migrate test controls."
+  },
+  {
+    "label": "historical",
+    "text": "The former answer to devnet.own-schema is preserved in docs/cut-archive/decision-review-history.json as historical evidence, not implementation authority."
+  }
+],
+  chosen: "current-scope",
   why:
-    "Devnet-only data must never be in the production schema (concepts.devnet, P8's move of test tables). A separate " +
-    "schema in the same server keeps it out of every staging migration while one snapshot of the server still carries it " +
-    "with the world, so a restored world brings back its mail (the invitation links and codes evals read), its armed " +
-    "faults and its scripted gates and rates. Files outside Postgres would need their own save and restore beside the " +
-    "database and could drift from it.",
-  source: by("docs/as-is/archive/operator/data.ts:1-9 (devnet tables in the production schema); concepts.devnet; environments.devnet"),
+    "Review, 11 November 2026: Devnet-only faults, mail and world metadata must not be production business data. Lean worlds keep this state in their own SQLite service database, not a mandatory Postgres devnet schema. Staging/production never migrate test controls. Authority: devnet.lean-world; devnet.site-follows-world; devnet.snapshot-of-a-world.",
+  source: "The coordinator, round 2, m1-old-decisions; devnet.lean-world; devnet.site-follows-world; devnet.snapshot-of-a-world",
   affects: [...TABLES, concept_devnet, environment_devnet],
 });
 
@@ -113,20 +114,19 @@ export const decision_devnet_no_machines = defineDecision({
   title: "No state machine, so no event",
   question: "Does any devnet table carry a lifecycle that needs a machine and its `<machine>_transitioned` event (P7)?",
   options: [
-    {
-      label: "none",
-      text:
-        "None: a message is kept once, a fault is armed and spent, a gate or rate is a value that is replaced, and a " +
-        "stand-in head's document keeps Frappe's own docstatus, which Capxul reads through the head's API, never as an event.",
-    },
-    { label: "fault-machine", text: "A machine on mail faults (armed, spent, cleared) with its event." },
-  ],
-  chosen: "none",
+  {
+    "label": "current-scope",
+    "text": "Devnet mail, faults, clock rate and test controls are infrastructure values, not business lifecycles needing product transition events. Real site document docstatus belongs to Frappe and is saved in site backups, not a stand-in head document table. This does not remove machines from retained Core money/authority concepts."
+  },
+  {
+    "label": "historical",
+    "text": "The former answer to devnet.no-machines is preserved in docs/cut-archive/decision-review-history.json as historical evidence, not implementation authority."
+  }
+],
+  chosen: "current-scope",
   why:
-    "No row moves through states a reader follows: the sink is append-only, a fault is a counter deleted at zero, and a " +
-    "scripted gate's on or off is a setting, not a status. A machine only to send an event would be telemetry booked as " +
-    "behaviour (P7's emit-only review), and nothing downstream follows these rows.",
-  source: by("docs/decisions/policy-pack.md#p7; docs/as-is/archive/operator/data.ts (only noticeDeliveries had a status, now notices')"),
+    "Review, 11 November 2026: Devnet mail, faults, clock rate and test controls are infrastructure values, not business lifecycles needing product transition events. Real site document docstatus belongs to Frappe and is saved in site backups, not a stand-in head document table. This does not remove machines from retained Core money/authority concepts. Authority: devnet.lean-world; devnet.site-follows-world; devnet.snapshot-of-a-world.",
+  source: "The coordinator, round 2, m1-old-decisions; devnet.lean-world; devnet.site-follows-world; devnet.snapshot-of-a-world",
   affects: TABLES,
 });
 
@@ -370,7 +370,7 @@ export const decision_devnet_only_miner = defineDecision({
     "many ticks a stop takes depends on how its transactions happen to batch, which is timing, not the story. Revised " +
     "by the time review, 8 November 2026. Revised again by the world-clock pass, 8 November 2026: a stop that mined its " +
     "head block only at its end left a chain-judged timer, which fires as the stop opens, a block short of its second, " +
-    "so it re-armed past its own instant; on a quiet running devnet nothing mined at all, so it re-armed for ever.",
+    "so it re-armed past its own instant; on a quiet running devnet nothing mined at all, so it re-armed for ever." + " Review, 11 November 2026: The surviving rule (The supervisor is the chain's only miner, and every block is mined at now) still applies. Removed subjects in its historical evidence are not restored; devnet.lean-world; devnet.site-follows-world; devnet.snapshot-of-a-world governs their replacement.",
   source: TIME(`${OLD_WORLD}/README.md (Anvil's clock moves with the wall); ${OLD_WORLD}/service.ts:240-270, :493`),
   affects: [component_devnet, environment_devnet, integration_chain_rpc, flow_devnet_time_warp, flow_devnet_time_start_at, flow_devnet_time_step],
 });
@@ -401,7 +401,7 @@ export const decision_devnet_mine_to_depth = defineDecision({
     "removed) could never be shown on a devnet. An empty block a second would mine 31.5 million blocks for a simulated " +
     "year, each one Ponder must index. Mining to depth inside the stop costs 2k empty blocks per stop that carried a " +
     "transaction, keeps whatever depth staging's code reads, and leaves the depth itself to the deployment's config " +
-    "(environment_devnet names it).",
+    "(environment_devnet names it)." + " Review, 11 November 2026: The surviving rule (A stop mines empty blocks until its last transaction is twice the finality depth) still applies. Removed subjects in its historical evidence are not restored; devnet.lean-world; devnet.site-follows-world; devnet.snapshot-of-a-world governs their replacement.",
   source: TIME("blueprint/payments/decisions.ts (payments.reorg: confirm at twice the depth); blueprint/indexing/decisions.ts (indexing.reorgs-are-ponders); blueprint/books/processes.ts:49"),
   affects: [component_devnet, environment_devnet, integration_indexer, flow_devnet_time_warp, flow_devnet_time_step, flow_devnet_time_settle],
 });
@@ -438,50 +438,21 @@ export const decision_devnet_warp_barrier = defineDecision({
   id: "devnet.warp-barrier",
   title: "A warp is a barrier that stops at every due instant on the way",
   question:
-    "A warp moved the clocks, mined one block at the target and then ran every cron once and shifted the scheduler, so " +
-    "a dated payment due on day 10 of a 28-day warp ran on day 28, and the caller polled until things looked done. What " +
-    "does a warp promise when it returns?",
+    "A warp moved the clocks, mined one block at the target and then ran every cron once and shifted the scheduler, so a dated payment due on day 10 of a 28-day warp ran on day 28, and the caller polled until things looked done. What does a warp promise when it returns?",
   options: [
-    {
-      label: "stepped-barrier",
-      text:
-        "A warp from now to T moves through stops, each a whole second (T rounded up), in order. The next stop is " +
-        "chosen after each stop settles, as the earliest of every follower's next due instant (the backend's is its " +
-        "earliest unfired timer or next hourly-or-slower cron run) and T, so a timer that one stop's work sets for before " +
-        "T is a stop too. At each stop the clock stands at that instant: the backend fires what is due and runs it, the " +
-        "minute-scale syncs that are due run once, the supervisor mines what is pending at that second and ends with the " +
-        "head there (devnet.only-miner, devnet.mine-to-depth), and the authority runs settle rounds. A round is a " +
-        "`settle` event (a new version, now unchanged); the stop has settled when, in one round, every follower " +
-        "acknowledged it idle, Anvil holds no pending transaction, Ponder has indexed the head (or the block an armed " +
-        "indexer hold keeps it at), and nothing was mined and no follower reported busy since the round began; else " +
-        "another round runs. A warp returns when the head is at T, the backend reads T, every timer due by T has fired " +
-        "once, every calendar cron run due by T has run once and Ponder has indexed the head. `jobs` false skips the " +
-        "crons and moves each skipped cron's next run past T, so none runs late; timers still fire. A stop that does not " +
-        "settle within its limit (60 s of real time by default) fails the warp WORK_DIED, naming the stop and the busy " +
-        "followers, and the clock stays at the last settled stop. One move at a time: a warp, step, settle, start-at, " +
-        "freeze, resume or rate change while another runs is WRONG_STATE; reads and watches always answer. A warp whose caller goes " +
-        "away stops at its next settled stop. On a running clock the warp holds now at each stop and lets it run on from " +
-        "T at its rate; between moves a running clock stops at the same due instants (devnet.running-stops). Step is one " +
-        "stop; settle is a stop at now.",
-    },
-    { label: "jump", text: "Jump to T, mine one block there, then run everything that fell due at T, as before." },
-  ],
-  chosen: "stepped-barrier",
+  {
+    "label": "current-scope",
+    "text": "Warp visits each due instant through target T in order and waits for timers, scheduled real-site jobs, outbox delivery, pending chain transactions, configured finality and reader wake routing to settle. jobs=false skips scheduled jobs without skipping timers. Serialize moves, fail a nonsettling stop visibly and preserve the last settled time; folded-in readers and real sites replace Ponder sidecars and stand-in heads without weakening the barrier."
+  },
+  {
+    "label": "historical",
+    "text": "The former answer to devnet.warp-barrier is preserved in docs/cut-archive/decision-review-history.json as historical evidence, not implementation authority."
+  }
+],
+  chosen: "current-scope",
   why:
-    "A warp should leave the world that time passing would have left: a payment dated day 10 settles in a block dated " +
-    "day 10 and its book fact is dated day 10, a month's budget period closes at the month's end, and a notice is sent " +
-    "the day it is due. The jump made states production can never reach. The barrier also ends the caller's polling: " +
-    "when the call returns, its consequences have happened. The minute-scale syncs read an outside system's current " +
-    "state, so one run per stop is the same as one per minute; stopping at each of them would make a year 525,600 " +
-    "stops. Two calendar crons a day make a year about 730 stops, minutes of work, not seconds, which the barrier " +
-    "budget covers for the warps evals use (a day to a month). A list of stops built when the warp starts would miss " +
-    "what the work on the way schedules (a dated payment's day-ahead timer, set at the stop that created it), and " +
-    "'wait until nothing changes' needs a test that cannot pass in the gap between Ponder indexing a fact and the wake " +
-    "it causes: a round whose acknowledgements all postdate its start, with nothing mined meanwhile, is that test. A " +
-    "cron skipped but left due would run on the pump's next poll, right after the warp, which is not skipping it. Two " +
-    "moves at once would interleave their stops, and a follower that called settle from its own handler would wait on " +
-    "itself. Revised by the time review, 8 November 2026.",
-  source: TIME(`${OLD_WORLD}/service.ts:465-535; ${BENCH}/devnet-world.ts:123-140 (waitUntil); node_modules/effect/src/testing/TestClock.ts (sleeps woken earliest first)`),
+    "Review, 11 November 2026: Warp visits each due instant through target T in order and waits for timers, scheduled real-site jobs, outbox delivery, pending chain transactions, configured finality and reader wake routing to settle. jobs=false skips scheduled jobs without skipping timers. Serialize moves, fail a nonsettling stop visibly and preserve the last settled time; folded-in readers and real sites replace Ponder sidecars and stand-in heads without weakening the barrier. Authority: devnet.lean-world; devnet.site-follows-world; devnet.snapshot-of-a-world.",
+  source: "The coordinator, round 2, m1-old-decisions; devnet.lean-world; devnet.site-follows-world; devnet.snapshot-of-a-world",
   affects: [flow_devnet_time_warp, flow_devnet_time_step, flow_devnet_time_settle, worldOps.operation_world_clock_warp, rpc_devnet_jobs_run, integration_devnet_control, component_devnet],
 });
 
@@ -528,42 +499,19 @@ export const decision_devnet_followers = defineDecision({
   title: "Followers take the clock, report idle and their next due, and the barrier waits",
   question: "How does each component, and an outside program, follow the clock closely enough that a warp can wait for it?",
   options: [
-    {
-      label: "ack",
-      text:
-        "A follower joins under a name, takes every clock event, and acknowledges each version with whether it is idle " +
-        "and its own next due instant (later than now, or none). The built-in followers are the backend (its devnet Now " +
-        "layer: at each event it takes the new now and runs its timer and cron pump; it is idle when no due timer is " +
-        "unfired; no workflow run or step is executing; the engine's message storage holds nothing deliverable that " +
-        "has not been processed (a resume, a deferred's completion, a new execution, a run's retry); its outbox is " +
-        "delivered; and its wake router has consumed every row up to the block Ponder has indexed), Ponder (through " +
-        "the supervisor: idle when its indexed block is the head), the bundler stand-in (idle when its mempool is empty " +
-        "and no bundle is in flight), the paymaster stand-in, the Bridge stand-in (its scheduled answers are its next " +
-        "due), each stand-in Frappe head (idle when no ring it sent is unanswered, with no next due: " +
-        "devnet.head-stand-in) and the stand-in WhatsApp (idle once every webhook it posted is answered, its earliest " +
-        "redelivery its next due: devnet.whatsapp-stand-in). An armed fault switch's held state counts as idle (a held receipt, an indexer hold). An outside program " +
-        "joins the same way, so a simulation's own happenings become stops. Running, a follower computes now from the " +
-        "event's now, realAt, rate and next stop (devnet.follow-at-a-rate). A follower that misses an " +
-        "acknowledgement fails the barrier and is dropped. The backend's follower channel is the runtime's, not an rpc. " +
-        "A follower that keeps world state outside the chain and Postgres (a real bench, the world's FDE namespace) joins " +
-        "stateful, and saves and restores that state with every world (devnet.stateful-followers).",
-    },
-    { label: "poll", text: "Each component reads the supervisor's clock on every use, and the warp polls each one's state." },
-  ],
-  chosen: "ack",
+  {
+    "label": "current-scope",
+    "text": "Each active follower reports its clock version, idle state and next due instant; the barrier waits for due work, pending chain transactions, chain-reader progress, outbox delivery and wake routing. Lean worlds fold backend and reader into one service; real company sites report scheduled jobs and delivery work. Remove optional-head and hosted-FDE follower requirements. A deliberately held fault counts as idle only for the held work, never for unrelated pending work."
+  },
+  {
+    "label": "historical",
+    "text": "The former answer to devnet.followers is preserved in docs/cut-archive/decision-review-history.json as historical evidence, not implementation authority."
+  }
+],
+  chosen: "current-scope",
   why:
-    "A barrier needs to know that each part has taken the new time and finished what fell due, which only the part can " +
-    "say; next due lets the warp stop where something happens instead of at every second. Reading the supervisor on " +
-    "every use puts a round trip in every rpc. The backend's follower is runtime plumbing like the outbox relay " +
-    "(rules.outbox): booking it as an rpc only the supervisor calls would be unreached (P2). Using the public protocol " +
-    "for the built-in followers keeps one path, proven by Capxul's own use. 'No step running and the outbox delivered' " +
-    "alone is idle in the gap after a timer's deferred is completed, or an outbox event starts a workflow, and before " +
-    "the run begins (Effect's cluster persists the message and only then reads it), and in the gap after Ponder " +
-    "indexes a block and before the wake router routes its rows; the barrier would return there with work still to " +
-    "come. A follower that timed now from its own receipt of an event would trail the authority by the event's " +
-    "delivery, so a block mined at the authority's second could be later than the backend's now. Revised by the time " +
-    "review, 8 November 2026.",
-  source: TIME(`${BENCH}/bridge.ts:99-107 (warps to each engine minute); ${OLD_WORLD}/../stand-ins/time.ts (DevnetTime); docs/decisions shared rules.outbox`),
+    "Review, 11 November 2026: Each active follower reports its clock version, idle state and next due instant; the barrier waits for due work, pending chain transactions, chain-reader progress, outbox delivery and wake routing. Lean worlds fold backend and reader into one service; real company sites report scheduled jobs and delivery work. Remove optional-head and hosted-FDE follower requirements. A deliberately held fault counts as idle only for the held work, never for unrelated pending work. Authority: devnet.lean-world; devnet.site-follows-world; devnet.snapshot-of-a-world.",
+  source: "The coordinator, round 2, m1-old-decisions; devnet.lean-world; devnet.site-follows-world; devnet.snapshot-of-a-world",
   affects: [flow_devnet_time_follow, flow_devnet_time_settle, integration_devnet_control, component_devnet, environment_devnet],
 });
 
@@ -899,30 +847,19 @@ export const decision_devnet_fault_switches = defineDecision({
   title: "Fault switches and chain actions are supervisor controls, saved with the world",
   question: "Several worlds hold a failing dependency (Bridge down, a node down, Ponder behind) or a chain fact no Capxul surface makes. How are they made and kept?",
   options: [
-    {
-      label: "supervisor",
-      text:
-        "`capxul-devnet fault <switch> <mode>` arms the devnet layers' switches (chain-rpc node-down and garbage-answers, " +
-        "bridge fail-all, indexer hold <n>, service-signer refuse-send and hold-receipt, bundler hold-receipt, documents " +
-        "tamper) and " +
-        "`capxul-devnet chain` and `bridge` make what no Capxul surface makes (a Safe transaction or a Hats ruling " +
-        "outside Capxul, an outside transfer, a token, Bridge deposits, a payout's return); a still clock is the clock's " +
-        "frozen mode (devnet.clock-modes), not a switch. The armed switches " +
-        "are in the world's manifest and re-armed on restore. The mail switch is `dev mail fail`, in Postgres, and so " +
-        "is the stand-in Frappe head's (`fault frappe-head down|key-refused|conflict|refuse|replay|clear`, on its site " +
-        "row: devnet.head-stand-in), and the stand-in WhatsApp's (`fault whatsapp down|refuse|clear`, on its number's " +
-        "row: devnet.whatsapp-stand-in).",
-    },
-    { label: "devnet-rpcs", text: "A devnet rpc per switch." },
-  ],
-  chosen: "supervisor",
+  {
+    "label": "current-scope",
+    "text": "Faults and supervisor actions remain explicit, saved world controls: node errors, indexer lag, Bridge failure, signer/bundler receipt holds, tampered documents and external chain facts. Site failure/replay tests target the real hosted site and plugs delivery, not a stand-in optional head. Mail stays in the world sink and snapshots restore armed faults."
+  },
+  {
+    "label": "historical",
+    "text": "The former answer to devnet.fault-switches is preserved in docs/cut-archive/decision-review-history.json as historical evidence, not implementation authority."
+  }
+],
+  chosen: "current-scope",
   why:
-    "The switches belong to integration layers and processes the supervisor runs, and outside facts are by definition not " +
-    "made by Capxul's operations; rpcs for them would be reached by no operation (P2) and would put eval controls in the " +
-    "backend. Saving them with the world makes a world like bridge-unreachable one restore. The old receipt hold is the " +
-    "bundler switch (responsibilities.operator-proof-tools). `documents tamper` is the one control that changes stored " +
-    "bytes, as disk corruption would, for documents' org-with-tampered-note; it is a fault, never a way to build state.",
-  source: by("responsibilities.operator-proof-tools; shared external.ts (fakes and fault switches); the banking, books, budgets, requests, board, documents and applications worlds"),
+    "Review, 11 November 2026: Faults and supervisor actions remain explicit, saved world controls: node errors, indexer lag, Bridge failure, signer/bundler receipt holds, tampered documents and external chain facts. Site failure/replay tests target the real hosted site and plugs delivery, not a stand-in optional head. Mail stays in the world sink and snapshots restore armed faults. Authority: devnet.lean-world; devnet.site-follows-world; devnet.snapshot-of-a-world.",
+  source: "The coordinator, round 2, m1-old-decisions; devnet.lean-world; devnet.site-follows-world; devnet.snapshot-of-a-world",
   affects: [component_devnet, environment_devnet, concept_devnet],
 });
 
@@ -1105,35 +1042,21 @@ export const decision_devnet_head_warp_stops = defineDecision({
   id: "devnet.head-warp-stops",
   title: "A head's daily-or-slower Frappe jobs are warp stops; faster ones run at stops",
   question:
-    "Frappe runs scheduled jobs by a Scheduled Job Type's frequency (All, Hourly, Hourly Long, Hourly Maintenance, " +
-    "Daily, Daily Long, Daily Maintenance, Weekly, Weekly Long, Monthly, Monthly Long, Yearly, Annual, Cron). On a " +
-    "devnet a head follows the one clock (organizations.head-clock). Which of its jobs are stops a warp must halt at, " +
-    "and which merely run?",
+    "Frappe runs scheduled jobs by a Scheduled Job Type's frequency (All, Hourly, Hourly Long, Hourly Maintenance, Daily, Daily Long, Daily Maintenance, Weekly, Weekly Long, Monthly, Monthly Long, Yearly, Annual, Cron). On a devnet a head follows the one clock (organizations.head-clock). Which of its jobs are stops a warp must halt at, and which merely run?",
   options: [
-    {
-      label: "daily-or-slower",
-      text:
-        "A followed bench reports as its next due only the next run of a job whose period is a day or more: Daily, " +
-        "Daily Long, Daily Maintenance (at the site's own minute offset, as Frappe schedules it), Weekly, Weekly Long, " +
-        "Monthly, Monthly Long, Yearly, Annual, or a cron entry of a day or more, at the site's time zone; All, Hourly, " +
-        "Hourly Long, Hourly Maintenance and faster crons run once at each stop it reaches, never making one. The " +
-        "stand-in runs no Frappe job and reports no next due.",
-    },
-    { label: "hourly-or-slower", text: "As the backend's own crons: every hourly-or-slower job is a stop too." },
-    { label: "none", text: "No head job is a stop; every due job runs at whatever stop comes next." },
-  ],
-  chosen: "daily-or-slower",
+  {
+    "label": "current-scope",
+    "text": "A real company site follows its world: daily-or-slower Frappe jobs report next due in site time zone; hourly/faster jobs run at stops rather than making every minute a stop. There is no optional stand-in head reporting no jobs. Barriers must await site job completion."
+  },
+  {
+    "label": "historical",
+    "text": "The former answer to devnet.head-warp-stops is preserved in docs/cut-archive/decision-review-history.json as historical evidence, not implementation authority."
+  }
+],
+  chosen: "current-scope",
   why:
-    "A head's daily jobs are calendar work a simulation must see on the right day: ERPNext's `set_tasks_as_overdue` " +
-    "(Daily Maintenance) is Capxul's own timer now (projects.overdue-timer), but a head's other apps (Frappe's " +
-    "auto-repeat and ERPNext's subscriptions and asset postings, Daily Maintenance; Frappe HR's earned leave, Daily " +
-    "Long) date documents by the day, so a warp past one must stop at it, the Maintenance kind included. Frappe's hourly " +
-    "and faster jobs are sweeps (email queues, project status reminders, reposts) whose result at a stop is the same " +
-    "whether they ran once or twenty-four times; as stops they would add 8,760 per simulated year per head, against " +
-    "the barrier's minutes for a year (devnet.warp-barrier), and the backend's hourly crons are its own few, not a " +
-    "whole ERP's. None would leave a dated job to run late, on whatever day the next stop fell. The stand-in has " +
-    "nothing scheduled, so a world with a stand-in head stops exactly where it would without one.",
-  source: WORLD_GROUP("organizations.head-clock; devnet.warp-barrier; frappe core/doctype/scheduled_job_type (frequency, CRON_MAP); hooks.py scheduler_events (frappe, erpnext, hrms)"),
+    "Review, 11 November 2026: A real company site follows its world: daily-or-slower Frappe jobs report next due in site time zone; hourly/faster jobs run at stops rather than making every minute a stop. There is no optional stand-in head reporting no jobs. Barriers must await site job completion. Authority: devnet.lean-world; devnet.site-follows-world; devnet.snapshot-of-a-world.",
+  source: "The coordinator, round 2, m1-old-decisions; devnet.lean-world; devnet.site-follows-world; devnet.snapshot-of-a-world",
   affects: [integration_devnet_control, component_frappe_app, component_devnet],
 });
 
@@ -1193,29 +1116,23 @@ export const decision_devnet_money_waiting_world = defineDecision({
 
 export const decision_devnet_payslip_world = defineDecision({
   id: "devnet.payslip-world",
-  title: "org-with-documents also holds a submitted run's payslip, for Kai",
+  title: "Archived: org-with-documents also holds a submitted run's payslip, for Kai",
   question:
-    "Payroll's runs are Frappe HR's again and every submitted slip stores a payslip (documents.payslip-kind), so " +
-    "documents keeps `document render` #1 word for word, reached in org-with-documents. What does the builder add?",
+    "Payroll's runs are Frappe HR's again and every submitted slip stores a payslip (documents.payslip-kind), so documents keeps `document render` #1 word for word, reached in org-with-documents. What does the builder add?",
   options: [
-    {
-      label: "kai",
-      text:
-        "Kai (kai@acme.test, ready) as an Employee of the `people` department; a Basic earning, a monthly Standard " +
-        "structure, an assignment to Kai on a 3,000 base from `people`; a run for this month, created and submitted, " +
-        "with payroll's commands (`org hr employee add`, `org payroll component add`, `org payroll structure " +
-        "create|assign`, `org payroll run create|submit`).",
-    },
-    { label: "olga", text: "Make Olga, already paid and under a salary agreement there, the Employee." },
-  ],
-  chosen: "kai",
+  {
+    "label": "current-scope",
+    "text": "Archive the Core payroll-command recipe for Kai's Salary Slip. Salary-slip fixtures are created in Frappe HR on the world's real site and saved in its site backup; Core stores only associated chain payment/document evidence."
+  },
+  {
+    "label": "historical",
+    "text": "The former answer to devnet.payslip-world is preserved in docs/cut-archive/decision-review-history.json as historical evidence, not implementation authority."
+  }
+],
+  chosen: "current-scope",
   why:
-    "A new person keeps each of the world's readers to the one role its claims give them: Olga is the payee of a note, " +
-    "an Invoice and an agreement, Lee the member who joined after, Max the stranger, Nia the person with no Party. Kai " +
-    "has a Safe and a display name, so the rendered payslip names the employee by name, as the claim needs. The steps " +
-    "were first Core SDK methods of a surface with no command; payroll.hr-surface has since booked the commands, so " +
-    "they are those commands. The run is submitted, not paid: the payslip is stored at submit.",
-  source: WORLD_GROUP("documents.acceptance-rewrites; documents.payslip-kind; blueprint/payroll/operations.ts (payroll.hr-surface's commands)"),
+    "Review, 11 November 2026: Archive the Core payroll-command recipe for Kai's Salary Slip. Salary-slip fixtures are created in Frappe HR on the world's real site and saved in its site backup; Core stores only associated chain payment/document evidence. Authority: devnet.lean-world; devnet.site-follows-world; devnet.snapshot-of-a-world.",
+  source: "The coordinator, round 2, m1-old-decisions; devnet.lean-world; devnet.site-follows-world; devnet.snapshot-of-a-world",
   affects: [concept_devnet, concept_documents],
 });
 
@@ -1225,38 +1142,23 @@ const COMMANDS = (evidence: string) => `Claude, organizations commands pass, 8 N
 
 export const decision_devnet_command_worlds = defineDecision({
   id: "devnet.command-worlds",
-  title: "Six new worlds and a rebuilt org-with-fde for the head and the hosted FDE",
+  title: "Archived: Six new worlds and a rebuilt org-with-fde for the head and the hosted ",
   question:
-    "organizations.command-worlds asks for the worlds its nine new commands start from. Which does the catalogue add, " +
-    "and what changes in org-with-fde now that the FDE is hosted?",
+    "organizations.command-worlds asks for the worlds its nine new commands start from. Which does the catalogue add, and what changes in org-with-fde now that the FDE is hosted?",
   options: [
-    {
-      label: "six-and-rebuild",
-      text:
-        "org-with-head-site (from org-with-member: `capxul-devnet head up acme --frappe-cloud`, a site hosted as on " +
-        "Frappe Cloud, with its key file and team token file), org-with-head (Dana connects it, `--host frappe-cloud`, " +
-        "with `--confirm`), org-with-head-site-down (the site's `down` switch), org-with-fde-paused (org-with-fde warped 32 " +
-        "days, past its start-up month, then the sessions the warp ended signed in again), org-with-fde-host-down " +
-        "(the stand-in host's `down` switch) and org-with-fde-allowance (funded, with a Board top budget " +
-        "`running-costs` of 1,000 USDC a month, an allowance `capxul` under it that Dana wears beside the People hat, and " +
-        "the payout ceiling set, for `org fde pay` and `org seats buy`). org-with-fde keeps its steps, but its FDE's key is the stand-in host's " +
-        "(aaron.fde-hosted), none is on the eval machine, and its hosting runs in its start-up month.",
-    },
-    { label: "steps-in-evals", text: "No new worlds: each eval connects a site or warps the FDE itself." },
-  ],
-  chosen: "six-and-rebuild",
+  {
+    "label": "current-scope",
+    "text": "Archive org-with-head/FDE hosting/allowance command fixtures. Every full world uses real hosted company sites on the bench; site-down is a delivery-failure case. Parked hosted FDE billing or payment fixtures are not prerequisites for current world commands."
+  },
+  {
+    "label": "historical",
+    "text": "The former answer to devnet.command-worlds is preserved in docs/cut-archive/decision-review-history.json as historical evidence, not implementation authority."
+  }
+],
+  chosen: "current-scope",
   why:
-    "Each world is a state several claims and refusals share: a site to connect, a live head, a site that is down, a " +
-    "paused FDE, a host that is down, a budget a People-hat wearer may spend. The head is a Frappe Cloud one because only " +
-    "a Frappe Cloud host installs an app for Capxul; a self-hosted bench answers `installApp` WRONG_STATE, so `org head app " +
-    "add` could never show an app installed there. The head worlds come from org-with-member so Sam (no hat) and Olga (outside) are " +
-    "in each. The paused world is reached by the one clock, as org-with-expired-invitation is, so it proves the lapse " +
-    "as the hosting's own timers make it; 32 days is past any calendar month. The allowance needs a parent with room in " +
-    "its period (the install's company top budget is 0, and Budgets.createChildBudget refuses ChildrenExceedParent) and " +
-    "Budgets pays out only within the payout ceiling (the Roles allowance), so the world sets both, as " +
-    "org-with-budget-tree does; a per-payment cap has no v4 form. org-with-fde's steps did not change, " +
-    "because the founder's command did not: only where its key is made.",
-  source: COMMANDS("organizations.command-worlds; organizations.fde-hosting; devnet.sessions-across-warps; blueprint/devnet/worlds.ts"),
+    "Review, 11 November 2026: Archive org-with-head/FDE hosting/allowance command fixtures. Every full world uses real hosted company sites on the bench; site-down is a delivery-failure case. Parked hosted FDE billing or payment fixtures are not prerequisites for current world commands. Authority: devnet.lean-world; devnet.site-follows-world; devnet.snapshot-of-a-world.",
+  source: "The coordinator, round 2, m1-old-decisions; devnet.lean-world; devnet.site-follows-world; devnet.snapshot-of-a-world",
   affects: [operation_org_seats_show, concept_devnet, concept_organizations],
 });
 
@@ -1361,48 +1263,21 @@ export const decision_devnet_running_stops = defineDecision({
   id: "devnet.running-stops",
   title: "A running clock stops at every due instant it knows, at its rate's pace",
   question:
-    "On a running devnet nothing is mined while nothing is pending, so the head trails now, and a timer for a deadline " +
-    "the chain enforces re-arms until the head reaches its second (time.chain-judged-deadlines), which on a quiet " +
-    "running devnet never happens. A timer fires on the pump's next poll with its step reading a now past its due " +
-    "instant, later the faster the clock runs, and a follower computing now between events can run past an instant the " +
-    "authority is about to stop at. How does a running clock, at any rate, keep due work on its instants?",
+    "On a running devnet nothing is mined while nothing is pending, so the head trails now, and a timer for a deadline the chain enforces re-arms until the head reaches its second (time.chain-judged-deadlines), which on a quiet running devnet never happens. A timer fires on the pump's next poll with its step reading a now past its due instant, later the faster the clock runs, and a follower computing now between events can run past an instant the authority is about to stop at. How does a running clock, at any rate, keep due work on its instants?",
   options: [
-    {
-      label: "paced-stops",
-      text:
-        "A running clock moves through the same stops a warp does, at its rate's pace. Every clock event carries " +
-        "`stopAt`, the next stop: the earliest next due any follower reported (the backend's earliest unfired timer or " +
-        "next calendar cron run, a head's next daily job, a simulation's next happening), and every follower caps now at " +
-        "it (devnet.follow-at-a-rate). When now reaches stopAt the clock stands there (a `stop` event): the head is mined " +
-        "to that second, the backend fires what is due, pending transactions and the depth blocks are mined there, and " +
-        "settle rounds run, for at most the running stop's limit (5 s of real time by default). Then the clock runs on " +
-        "from that instant at its rate (a `run` event naming the next stopAt and, if the limit cut the stop short, the " +
-        "followers still busy). A follower that learns of an earlier due between stops reports it at once (`POST " +
-        "/v1/followers/<id>/due`) and the authority lowers stopAt with a `due` event. An instant less than one real " +
-        "second of running ahead (rate world seconds) is too close to announce before a follower's now could pass it, " +
-        "so the authority stops one real second of running ahead instead: the backend's pump fires that timer when now " +
-        "reaches it, and the stop brings the head past its second, so a chain-judged timer that re-armed acts there. " +
-        "The rate is so a ceiling: now never runs faster, and loses each stop's settle time. The minute-scale syncs run " +
-        "on their own schedule on now and are never stops.",
-    },
-    { label: "free-running", text: "Let a running clock run free at its rate: timers fire on the pump's poll and the head trails, as on staging." },
-    { label: "interval-blocks", text: "Mine an empty block every few seconds of world time so the head keeps up." },
-  ],
-  chosen: "paced-stops",
+  {
+    "label": "current-scope",
+    "text": "A running clock caps at the earliest reported due instant, settles the service, chain reader and real site jobs, then resumes at its configured rate. Newly earlier due work lowers the cap; stop limits are real elapsed time and busy followers remain visible. Minute transport polling is not a business-time stop and optional head/FDE syncs do not run."
+  },
+  {
+    "label": "historical",
+    "text": "The former answer to devnet.running-stops is preserved in docs/cut-archive/decision-review-history.json as historical evidence, not implementation authority."
+  }
+],
+  chosen: "current-scope",
   why:
-    "A world at a rate is a story people and simulations rely on as on a frozen one: a dated payment due at 09:00 " +
-    "should settle in a block dated 09:00 with its book fact dated then, whether a warp or the rate brought the clock " +
-    "there. Free running makes the lateness grow with the rate (a 250 ms poll is a world second at rate 4) and leaves " +
-    "the chain-judged re-arm waiting on a head that never moves, a defect the running devnet had at rate 1 too. " +
-    "Interval blocks would mine 43,200 blocks a world day at one every two seconds, each one Ponder indexes and every " +
-    "snapshot carries, and still would not put the head at a due second. stopAt in every event lets a follower compute " +
-    "now without overrunning a stop, so none ever reads back (time.monotonic), provided a lowered stopAt reaches it " +
-    "before its now does: a lead of one world second is 17 ms of real time at rate 60, less than an event's delivery " +
-    "to a remote follower, so the lead is a real second of running, whatever the rate. The limit keeps a busy world moving: in " +
-    "a shared world people act while the clock stands, and a stop that waited for a quiet round could hold for good; a " +
-    "running world is not deterministic anyway (time.frozen-deterministic is the frozen clock's). A cut-short stop is " +
-    "reported, never a failure, because no caller waits on it.",
-  source: WORLD_CLOCK("blueprint/shared/time.ts (time.chain-judged-deadlines: the re-arm); devnet.only-miner (automine off); devnet.warp-barrier"),
+    "Review, 11 November 2026: A running clock caps at the earliest reported due instant, settles the service, chain reader and real site jobs, then resumes at its configured rate. Newly earlier due work lowers the cap; stop limits are real elapsed time and busy followers remain visible. Minute transport polling is not a business-time stop and optional head/FDE syncs do not run. Authority: devnet.lean-world; devnet.site-follows-world; devnet.snapshot-of-a-world.",
+  source: "The coordinator, round 2, m1-old-decisions; devnet.lean-world; devnet.site-follows-world; devnet.snapshot-of-a-world",
   affects: [
     flow_devnet_time_resume, flow_devnet_time_set, flow_devnet_time_follow, flow_devnet_time_watch, integration_devnet_control,
     integration_chain_rpc, component_devnet, environment_devnet, environment_shared_world,
@@ -1413,41 +1288,21 @@ export const decision_devnet_follow_at_a_rate = defineDecision({
   id: "devnet.follow-at-a-rate",
   title: "At a rate, a follower computes now from the event, capped at the next stop",
   question:
-    "With a rate, a follower's now between events is the event's now plus the rate times the real time since. A " +
-    "follower may also be on another machine (a shared world's real head, its FDE host), whose real clock is not the " +
-    "authority's, and some followers are actors that think for real seconds. How does every follower compute one now, " +
-    "never past a stop and never backward, and when does it acknowledge?",
+    "With a rate, a follower's now between events is the event's now plus the rate times the real time since. A follower may also be on another machine (a shared world's real head, its FDE host), whose real clock is not the authority's, and some followers are actors that think for real seconds. How does every follower compute one now, never past a stop and never backward, and when does it acknowledge?",
   options: [
-    {
-      label: "capped-formula",
-      text:
-        "Every clock event and answer carries now, realAt, mode, rate and stopAt. Frozen, now is `now`. Running, now is " +
-        "min(stopAt, now + rate × (t − realAt)), t being the follower's real time on the authority's real clock; a stop's " +
-        "event has stopAt equal to now, so the clock stands. A follower on the authority's machine reads that clock. One " +
-        "elsewhere measures its offset: every answer carries `realNow`, the authority's real time as it answered, and the " +
-        "follower takes the offset from a `GET /v1/time` round trip at join and every minute, as NTP does; it never reads " +
-        "a now earlier than one it read, holding at the last until the computed now passes it. A follower reports a due " +
-        "instant earlier than its last as soon as it learns of it (`POST /v1/followers/<id>/due`), not only in an " +
-        "acknowledgement. Machinery (the backend, Ponder, a head's jobs, the stand-ins) acknowledges a stop idle when its " +
-        "work is done; an actor (a hosted FDE, a simulation's agent) acknowledges once it has taken the stop's work, not " +
-        "when its thinking ends. A simulation that needs its agent's whole turn at one instant runs the clock frozen and " +
-        "steps it, as vending-bench does.",
-    },
-    { label: "receipt", text: "Each follower times now from its own receipt of each event." },
-  ],
-  chosen: "capped-formula",
+  {
+    "label": "current-scope",
+    "text": "Followers compute running now as min(stopAt, now + rate times elapsed since realAt), frozen now unchanged, never moving backward. Remote followers measure clock offset and report earlier due work immediately. Real sites and the lean service acknowledge due work before the barrier advances; parked hosted-FDE turns and optional stand-in heads are not followers."
+  },
+  {
+    "label": "historical",
+    "text": "The former answer to devnet.follow-at-a-rate is preserved in docs/cut-archive/decision-review-history.json as historical evidence, not implementation authority."
+  }
+],
+  chosen: "current-scope",
   why:
-    "One function of one real clock is what makes every reader agree without a round trip per read; with a rate the " +
-    "function needs the rate, and with running stops it needs the cap, else a follower would compute a now past the " +
-    "instant the authority is about to stand at and then read an earlier one there (time.monotonic). Timing from " +
-    "receipt makes a remote follower trail by the delivery time times the rate: 100 ms is 0.4 world seconds at rate 4, " +
-    "enough for a head's document to be dated before the block whose fact it records. A measured offset's error is " +
-    "half a round trip times the rate: 0.2 world seconds at rate 4 over a 100 ms round trip, but 3 at rate 60. The " +
-    "cap keeps it from carrying a follower past a stop and the hold from reading back; between stops a remote " +
-    "follower's dates differ from the authority's by it, so a world with a remote follower runs at a rate that keeps " +
-    "it under a world second (20 or less at a 100 ms round trip), its owner's choice, as with sign-in codes. A world that waited for every " +
-    "FDE's turn would hold everyone's clock for a model's minutes; the FDE is not on the critical path (aaron.fde-anyone).",
-  source: WORLD_CLOCK("devnet.followers; devnet.time-protocol (realAt); blueprint/shared/rulings.ts (aaron.fde-anyone); /home/user/factory packages/vending-bench/src/bridge.ts:99"),
+    "Review, 11 November 2026: Followers compute running now as min(stopAt, now + rate times elapsed since realAt), frozen now unchanged, never moving backward. Remote followers measure clock offset and report earlier due work immediately. Real sites and the lean service acknowledge due work before the barrier advances; parked hosted-FDE turns and optional stand-in heads are not followers. Authority: devnet.lean-world; devnet.site-follows-world; devnet.snapshot-of-a-world.",
+  source: "The coordinator, round 2, m1-old-decisions; devnet.lean-world; devnet.site-follows-world; devnet.snapshot-of-a-world",
   affects: [flow_devnet_time_follow, flow_devnet_time_watch, integration_devnet_control, component_devnet, component_frappe_app, integration_fde_host],
 });
 
@@ -1579,47 +1434,23 @@ const WORLD_PASS = (evidence: string) => `Claude, world pass build, 9 November 2
 
 export const decision_devnet_world_pass_worlds = defineDecision({
   id: "devnet.world-pass-worlds",
-  title: "Twelve worlds for the world pass, and what the stand-ins serve for them",
+  title: "Archived: Twelve worlds for the world pass, and what the stand-ins serve for the",
   question:
-    "The world pass booked claims and refusals from twelve worlds the catalogue did not hold (organizations.doc-worlds, " +
-    "contacts.conversation-worlds, payroll.hr-worlds); its document family reaches a head the stand-in did not serve; " +
-    "its FDE acts only under an ask's act-for token; and `payment claim`'s world held one escrow, so one approval " +
-    "collecting several could not be told from one per escrow. What does devnet add?",
+    "The world pass booked claims and refusals from twelve worlds the catalogue did not hold (organizations.doc-worlds, contacts.conversation-worlds, payroll.hr-worlds); its document family reaches a head the stand-in did not serve; its FDE acts only under an ask's act-for token; and `payment claim`'s world held one escrow, so one approval collecting several could not be told from one per escrow. What does devnet add?",
   options: [
-    {
-      label: "catalogue-and-stand-ins",
-      text:
-        "Twelve worlds, each built with booked commands and supervisor controls: org-with-head-docs, org-with-head-down, " +
-        "org-with-fde-member, org-with-fde-guest and org-with-fde-head-docs (organizations); org-with-conversations " +
-        "(contacts); org-with-leave, org-with-attendance, org-with-expenses and its budget-used, short-safe and " +
-        "chain-unreachable variants (payroll). person-ready-money-waiting gains Sam's 3 USDC escrow before the setup. The " +
-        "stand-in head serves `docRead` and `docWrite` over head-documents: Frappe's docstatus rules (submit a draft, " +
-        "cancel a submitted one, amend a cancelled one as Frappe names it, `<name>-1` and an amendment's amendment " +
-        "`<name>-2`, never delete a submitted one), fixture metas for the DocTypes the claims name (Designation, Job " +
-        "Opening, Job Applicant, Training Event and its child Training Event Employee, Leave Application, Expense Claim, " +
-        "Employee, Project in ERPNext's projects module, Stock Entry), their role permissions and mandatory fields as the pinned apps' JSON " +
-        "gives them, an active Workflow's transitions and roles, ERPNext's ledger hooks, and its applied call ids " +
-        "(head-sites.applied_calls, a world day), with a `drop-answer` fault; `head edit` addresses a head-born " +
-        "document by its head name. The stand-in host keeps each turn's ask and act-for token, and `capxul-devnet fde " +
-        "run <org> [--ask <askId>] -- <command>` sends that token with `--ask`, none without. `mail receive` takes " +
-        "`--cc`, `--bcc` and `--references`, its event's `received_for` naming each CRM mailbox among them.",
-    },
-    { label: "in-eval", text: "Each eval builds its state from the nearest catalogued world." },
-  ],
-  chosen: "catalogue-and-stand-ins",
+  {
+    "label": "current-scope",
+    "text": "Archive the stand-in head document engine and hosted-FDE turn fixtures. Door/HR/Projects behavior is exercised on real Frappe sites backed up with the world; mail stays isolated in the world sink and Bridge/chain faults remain explicit controls. Do not simulate ledger hooks or DocType permissions in a second Core document store."
+  },
+  {
+    "label": "historical",
+    "text": "The former answer to devnet.world-pass-worlds is preserved in docs/cut-archive/decision-review-history.json as historical evidence, not implementation authority."
+  }
+],
+  chosen: "current-scope",
   why:
-    "Each concept's world decision says what its claims need, and a refusal whose world nobody builds cannot be run: " +
-    "worldGaps listed 238 refusals in these twelve. Built with the commands and the stand-ins' controls, each world " +
-    "stays a black box (devnet.deterministic-worlds): a head document, an inbound email or message, a check-in at a " +
-    "time, is someone acting outside Capxul's commands, so it is a supervisor control or the person's own command. The " +
-    "stand-in head answers the family as Frappe would for its fixtures only, so a claim that needs Frappe's own " +
-    "validations boots a real bench (devnet.head-stand-in). The host keeps a turn's token after the turn ends so an eval " +
-    "sees Capxul's `ended_at`, not the host, end what an ask allows; without `--ask` the FDE acts as itself, which every " +
-    "guard refuses, as `org fde pay`'s claim needs. Sam's second escrow makes `payment claim`'s one approval and its " +
-    "take-back claim discriminating. org-with-leave warps to the third working day of a month or later, January to " +
-    "November, since the eval epoch fixes no month, so its claims' next-month days stay in the year their holidays " +
-    "and allocations cover.",
-  source: WORLD_PASS("organizations.doc-worlds; contacts.conversation-worlds; payroll.hr-worlds; payments.claim-command; devnet.head-stand-in; devnet.fde-host-stand-in; devnet.mail-sink"),
+    "Review, 11 November 2026: Archive the stand-in head document engine and hosted-FDE turn fixtures. Door/HR/Projects behavior is exercised on real Frappe sites backed up with the world; mail stays isolated in the world sink and Bridge/chain faults remain explicit controls. Do not simulate ledger hooks or DocType permissions in a second Core document store. Authority: devnet.lean-world; devnet.site-follows-world; devnet.snapshot-of-a-world.",
+  source: "The coordinator, round 2, m1-old-decisions; devnet.lean-world; devnet.site-follows-world; devnet.snapshot-of-a-world",
   affects: [
     concept_devnet, concept_organizations, concept_contacts, concept_payments, 
     table_mail_messages, 
@@ -1635,36 +1466,21 @@ export const decision_devnet_stateful_followers = defineDecision({
   id: "devnet.stateful-followers",
   title: "A follower that keeps world state saves and restores it with every world",
   question:
-    "A world's snapshot holds the chain, Postgres (every schema, the stand-ins' tables included), Ponder's checkpoint " +
-    "and the clock. A real Frappe bench following the world keeps its site's database on its own host, and the world's " +
-    "FDE namespace keeps its agents' conversations, memory and timers on the FDE host. A restore, and so each season's " +
-    "start and reset, would leave them in another world's state. How do they save and restore with the world?",
+    "A world's snapshot holds the chain, Postgres (every schema, the stand-ins' tables included), Ponder's checkpoint and the clock. A real Frappe bench following the world keeps its site's database on its own host, and the world's FDE namespace keeps its agents' conversations, memory and timers on the FDE host. A restore, and so each season's start and reset, would leave them in another world's state. How do they save and restore with the world?",
   options: [
-    {
-      label: "stateful-follower",
-      text:
-        "A follower that keeps world state joins `stateful` (devnet.followers). When a world is saved, the authority " +
-        "sends a `save` event naming it, and each stateful follower saves its own state under that name before it " +
-        "acknowledges: a bench with `bench --site <site> backup --with-files`, which the Capxul app keeps under the " +
-        "world's name; the FDE namespace with swarmD's own save of its agents. The world's manifest lists them. When a " +
-        "world is restored, the clock frozen at its now, a `restore` event names it, and each restores its own state from " +
-        "that name before it acknowledges; the backend and Ponder start only after. A restore while a stateful follower " +
-        "is joined that the world's manifest lacks is WRONG_STATE before anything changes, naming it, so a world never " +
-        "comes back half restored. A stateful follower that joins later is told the world it must hold and restores it " +
-        "before it follows. The stand-ins need none of this: their state is in devnet's tables.",
-    },
-    { label: "ignore", text: "Leave outside state as it is across restores, and let each follower cope." },
-    { label: "forbid", text: "Allow only the stand-ins in a world that restores: no real bench, no hosted FDE." },
-  ],
-  chosen: "stateful-follower",
+  {
+    "label": "current-scope",
+    "text": "A snapshot saves chain, lean-service SQLite state and every company site backup with files as one world lineage. Restore freezes the clock and restores every manifest component before following resumes, including into another world. Missing required component state refuses before partial restore. Hosted FDE namespaces are parked."
+  },
+  {
+    "label": "historical",
+    "text": "The former answer to devnet.stateful-followers is preserved in docs/cut-archive/decision-review-history.json as historical evidence, not implementation authority."
+  }
+],
+  chosen: "current-scope",
   why:
-    "The world clock puts a real head and the hosted FDE inside the world, and a season's end resets it: a bench left " +
-    "holding last season's documents beside a reset Capxul would answer the document family with records the world no " +
-    "longer has, and an FDE would remember conversations that never happened. Refusing a restore that would leave a " +
-    "follower behind keeps the world one world. Frappe's own backup and restore hold a site's whole state, so the " +
-    "Capxul app needs no fork. For the FDE host's owners and the swarm design: swarmD must save and restore a " +
-    "namespace's agents under a name, beside its timers on an outside clock (devnet.fde-host-follows-world).",
-  source: SEASONS("devnet.site-follows-world; devnet.fde-host-follows-world; devnet.own-schema; Frappe's bench backup and restore"),
+    "Review, 11 November 2026: A snapshot saves chain, lean-service SQLite state and every company site backup with files as one world lineage. Restore freezes the clock and restores every manifest component before following resumes, including into another world. Missing required component state refuses before partial restore. Hosted FDE namespaces are parked. Authority: devnet.lean-world; devnet.site-follows-world; devnet.snapshot-of-a-world.",
+  source: "The coordinator, round 2, m1-old-decisions; devnet.lean-world; devnet.site-follows-world; devnet.snapshot-of-a-world",
   affects: [
     flow_devnet_time_follow, flow_devnet_snapshots_save, flow_devnet_snapshots_restore, worldOps.operation_world_snapshot_save,
     worldOps.operation_world_snapshot_restore, integration_devnet_control, integration_fde_host,

@@ -1215,46 +1215,21 @@ export const decision_payments_money_sides = defineDecision({
   id: "payments.money-sides",
   title: "Each money side gives books its Safe, log, Party, fee and what it is for",
   question:
-    "Books' Frappe-shaped vouchers need, for each settled side, its Safe, the log index, the counterparty's directory " +
-    "Party, a rail's fee and what the payer said the money is for (`payment send --account` and `--suggest`, a " +
-    "request's meaning, a payout's payee, a head's references). Nothing carried `--account` to books. Where does " +
-    "payments keep each, and when does it pass them?",
+    "Books' Frappe-shaped vouchers need, for each settled side, its Safe, the log index, the counterparty's directory Party, a rail's fee and what the payer said the money is for (`payment send --account` and `--suggest`, a request's meaning, a payout's payee, a head's references). Nothing carried `--account` to books. Where does payments keep each, and when does it pass them?",
   options: [
-    {
-      label: "kept-on-payment",
-      text:
-        "The Payment keeps `against`, `source` and `fee_raw` from its birth: prepare turns `--account` (a code, resolved " +
-        "to its account in the Organization's chart, or for a person a code of the fixed personal chart) and `--suggest` " +
-        "into `against`, and the door's items bring theirs from requests, banking and payroll, with `payee_against` for " +
-        "the payee's side when the invoker knows it (a paid request's income account, Customer and invoice). The " +
-        "settlement passes each side its own, with the side's Safe, the settled log index, the block's time and the other " +
-        "side's Party from parties' directory, in the transaction that settles it. A claim escrow's PaymentSent comes " +
-        "from the escrow, so its payer side's Safe is `payer_safe`, the Safe that funded it (the payer's own, or the " +
-        "company Safe for a budget or the Board), and its counterparty the payee's Party; the escrow is never a side.",
-    },
-    { label: "classify-at-send", text: "Annotate books' row at send time through a books procedure, as the old `bookSentPayments` did." },
-    { label: "books-reads", text: "Books reads the command at settlement." },
-  ],
-  chosen: "kept-on-payment",
+  {
+    "label": "current-scope",
+    "text": "Each settled side retains its own Safe, log, block time, counterparty, fee, document hash and accounting labels. The payer of a claim escrow is the funding Safe, never the escrow. Account codes/cost centres are labels for site posting, not Core chart ids; site-owned invoice/payroll meaning accompanies held payments without duplicating those documents."
+  },
+  {
+    "label": "historical",
+    "text": "The former answer to payments.money-sides is preserved in docs/cut-archive/decision-review-history.json as historical evidence, not implementation authority."
+  }
+],
+  chosen: "current-scope",
   why:
-    "A procedure is for one money fact (rules.procedures), and an annotation before any money moved is not one; books " +
-    "cannot read payments, which sits above it. Kept on the Payment from birth, the choice is the same for a retry, a " +
-    "resume and a reorg's second settlement, and a replay changes nothing. Books applies only the parts that fit the " +
-    "chart and leaves the rest in review (its door never refuses), so payments refuses only what it can check at the " +
-    "birth: an `--account` code the Organization's chart lacks, archived or a group, and a `--suggest` with no " +
-    "`--account` or beside one other than 4999 or 6999, are INVALID_INPUT naming it, as the old classifier refused " +
-    "before saving (packages/backend/src/books/writes.ts:223). `--as-directors` takes neither flag (the frozen note " +
-    "says so). A person's own payment has books too, the fixed personal chart, which keep no fact: the old send gave " +
-    "the person's row its account at prepare, so `client.payments.pay` saves a personal choice as the person's own " +
-    "annotation of each Payment (`books.annotations.save`, actor person) right after prepare, and not on a replay, so " +
-    "a repeat never undoes a later choice. An escrow's own address names no Safe of the payer's, and books makes a " +
-    "Safe account for any side's Safe it lacks, so the funding Safe is passed. The counterparty's Party is read at " +
-    "settlement, not snapshotted: a Party id never changes, and a chain-born Payment has none at birth. `fee_raw` comes " +
-    "from the rail that knows it (a bank payout's quote): payments never computes a fee. A deposit's and a payout " +
-    "return's sides are banking's own facts and carry the same fields from banking.",
-  source: by(
-    "docs/design/frappe/accounting.md (For other lanes: payments); blueprint/books/procedures.ts (MoneySide, Against); packages/backend/src/payments/commands/writes/books.ts:24; books/writes.ts:223",
-  ),
+    "Review, 11 November 2026: Each settled side retains its own Safe, log, block time, counterparty, fee, document hash and accounting labels. The payer of a claim escrow is the funding Safe, never the escrow. Account codes/cost centres are labels for site posting, not Core chart ids; site-owned invoice/payroll meaning accompanies held payments without duplicating those documents. Authority: cut.requests; plugs.held-payment; plugs.repoint-money-fact.",
+  source: "The coordinator, round 2, m1-old-decisions; cut.requests; plugs.held-payment; plugs.repoint-money-fact",
   affects: [
     table_payments,
     table_payment_commands,
@@ -1287,17 +1262,7 @@ export const decision_payments_payroll_door = defineDecision({
   ],
   chosen: "widen",
   why:
-    "A run's pay and its Payments are one money fact, which the door already records for requests and banking; payroll " +
-    "now depends on payments (dependencies.payments-payroll), and payments still knows nothing of payroll beyond an " +
-    "opaque source: it never reads payroll's tables, and payroll routes `payment_transitioned` by the command and " +
-    "payment ids it already holds. Books' door names a settlement's source as the Payment, so the slip reaches books in " +
-    "the side's `against` (party the Employee, reference the Payroll Entry, the Payroll Payable account), which payroll " +
-    "sets per item; the Payment's own `source` keeps the slip for reads and a head. The mailbox is per item because a " +
-    "run mixes Employees with and without accounts; such an item is a budget claim escrow (payments.claim-escrow-routes). " +
-    "`settled_at` is the block's time because books dates the fact at it and the slip copies it; when Capxul saw it is " +
-    "`updated_at`. The payer owns the row, so its tenant already reads `settled_tx_hash` and `settled_block_number`, " +
-    "and a concept above payments reads them as a plain read: nothing new is admitted. A resume still reopens a " +
-    "command whose Payments all lapsed, which is how payroll retries a run's approval.",
+    "A run's pay and its Payments are one money fact, which the door already records for requests and banking; payroll now depends on payments (dependencies.payments-payroll), and payments still knows nothing of payroll beyond an opaque source: it never reads payroll's tables, and payroll routes `payment_transitioned` by the command and payment ids it already holds. Books' door names a settlement's source as the Payment, so the slip reaches books in the side's `against` (party the Employee, reference the Payroll Entry, the Payroll Payable account), which payroll sets per item; the Payment's own `source` keeps the slip for reads and a head. The mailbox is per item because a run mixes Employees with and without accounts; such an item is a budget claim escrow (payments.claim-escrow-routes). `settled_at` is the block's time because books dates the fact at it and the slip copies it; when Capxul saw it is `updated_at`. The payer owns the row, so its tenant already reads `settled_tx_hash` and `settled_block_number`, and a concept above payments reads them as a plain read: nothing new is admitted. A resume still reopens a command whose Payments all lapsed, which is how payroll retries a run's approval. Review, 11 November 2026: Confirmed payments.payroll-door; original choice retained.",
   source: by("docs/design/frappe/payroll.md (For other lanes: Payments); blueprint/payroll/staged.ts (payroll.runs.pay)"),
   affects: [procedure_payments_prepare_command, table_payments, table_payment_commands, workflow_payments_lifecycle_payment],
 });

@@ -72,12 +72,7 @@ export const decision_documents_tenancy = defineDecision({
   ],
   chosen: "owner-and-safes",
   why:
-    "It is the shape payments' Payments and requests' payer side already take (payments.two-sided-tenancy, requests' " +
-    "`by_payer_created`): one row, its owner's tenant, its other readers by a column on the row, so row-level security " +
-    "fails closed with no join. A copy per reader would need a tenant for every reader at store time, and a payer outside " +
-    "Capxul has none yet. A global table would leave private invoices to the rpcs alone. The participants are Safes " +
-    "because a Safe is the one name stable across sign-up: a person's Safe is derived from their mailbox before they " +
-    "join, so an outside payer who later signs in reads the invoice they were sent.",
+    "It is the shape payments' Payments and requests' payer side already take (payments.two-sided-tenancy, requests' `by_payer_created`): one row, its owner's tenant, its other readers by a column on the row, so row-level security fails closed with no join. A copy per reader would need a tenant for every reader at store time, and a payer outside Capxul has none yet. A global table would leave private invoices to the rpcs alone. The participants are Safes because a Safe is the one name stable across sign-up: a person's Safe is derived from their mailbox before they join, so an outside payer who later signs in reads the invoice they were sent. Review, 11 November 2026: Confirmed documents.tenancy; original choice retained.",
   source: by("blueprint/payments/decisions.ts (payments.two-sided-tenancy); blueprint/requests/data.ts (by_payer_created); P8"),
   affects: [table_documents],
 });
@@ -88,7 +83,7 @@ export const decision_documents_participants = defineDecision({
   question: "Who may read a document, and how is that decided at read time, now that documents cannot read its subjects?",
   options: [
     {
-      label: "given-participants",
+      label: "current-scope",
       text:
         "The storing concept names the participants (Safe, Party, role). A reader's Safes are their own Party's Safe and " +
         "the company Safe of each Organization where they hold an active Seat now; one must be a participant. A caller " +
@@ -97,17 +92,10 @@ export const decision_documents_participants = defineDecision({
     { label: "subject-actors", text: "Keep the old rule: reread the subject's current actors (a Payment's, a request's) at every read." },
     { label: "creator", text: "The tenant that stored it, and the Organization it names." },
   ],
-  chosen: "given-participants",
+  chosen: "current-scope",
   why:
-    "Documents sits below payments, requests and payroll (concepts.documents), so the old rule, which read payments' " +
-    "participants and requests' invoice access at every read, would need the edges the map removed. Fixing readers at " +
-    "store time also keeps the old privacy guarantee by construction: an issued Invoice or Memo is readable only by its " +
-    "issuer and named payer, and a later carrier cannot widen it, because nothing adds a reader. The frozen line 'Current " +
-    "Organization membership decides reads, not the stored creator' holds because an Organization participant is its " +
-    "company Safe, matched through the reader's active Seats at read time. 'Strangers and accountless callers get the " +
-    "same missing-pair refusal' holds because a caller with no Party of their own has no Safes, and every refusal is " +
-    "`document not found` on `documentHash`.",
-  source: by(`${D}/guards.ts:100, :149; packages/backend/src/activity/documents/tests/get.test.ts:191, :249; ${D}/README.md:23`),
+    "Review, 11 November 2026: Retained Core chain documents receive fixed participants from the storing concept, without reading their subjects (concepts.documents). Fixing readers at store time keeps an issued Invoice or Memo readable only by its issuer and named payer; a later carrier cannot widen access. Current Organization membership, not the stored creator, decides Organization-side reads: its company Safe matches through the reader's active Seats. A caller with no Party has no Safes; missing and unreadable both refuse as `document not found` on `documentHash`. Rewritten in round 3 for F-2.1 against cut.documents: this rule does not imply a Core payroll dependency. Frappe HR owns runs and Salary Slips; site HR permissions through the door, not generic company-Seat admission, govern salary data. Held site payments bind the canonical draft hash under plugs.document-canon without duplicating payroll documents in Core.",
+  source: "The coordinator, m1-old-decisions round 3; cut.documents; concepts.documents; plugs.document-canon; historical participant-admission evidence in docs/cut-archive/decision-review-history.json",
   affects: [table_documents, procedure_documents_store, error_INVALID_INPUT],
 });
 
@@ -115,29 +103,21 @@ export const decision_documents_kinds = defineDecision({
   id: "documents.kinds",
   title: "Five kinds in one envelope version: Memo, Invoice, terms, payslip, receipt",
   question:
-    "Old documents stored v3 envelopes (Memo, Invoice, Payslip, Receipt), a v4 Invoice with a note and a discount, a v5 " +
-    "Money Invoice and opaque receipt files. Which does the target store?",
+    "Old documents stored v3 envelopes (Memo, Invoice, Payslip, Receipt), a v4 Invoice with a note and a discount, a v5 Money Invoice and opaque receipt files. Which does the target store?",
   options: [
-    {
-      label: "five-kinds",
-      text:
-        "One envelope version with four typed kinds, a Memo (a Payment's or request's, or a Movement's), an Invoice " +
-        "with its lines and note in the typed message, the terms of an offer (an agreement, an equity offer) and a " +
-        "payslip (a submitted salary slip's pay, documents.payslip-kind), plus receipt files of at most 128 KB.",
-    },
-    { label: "as-is", text: "Keep v3, v4 and v5 envelopes and the receipt files, each with its own format." },
-  ],
-  chosen: "five-kinds",
+  {
+    "label": "current-scope",
+    "text": "Core stores canonical chain-backed memo, Invoice, agreement terms and receipt bytes with hash verification and participant admissions. HR salary slips are site documents, not a second Core payslip envelope created by a Core run. Receipt limits and retained wire types are unchanged; rendering belongs to the site."
+  },
+  {
+    "label": "historical",
+    "text": "The former answer to documents.kinds is preserved in docs/cut-archive/decision-review-history.json as historical evidence, not implementation authority."
+  }
+],
+  chosen: "current-scope",
   why:
-    "The target is a fresh v4 deployment with nothing migrated (P9 option A), so no stored v3 or v4 envelope needs " +
-    "reading and one version is enough. A v4 Agreement commits to one terms document whose hash every collection " +
-    "carries, and equity's grants, rounds and transfers commit to theirs, so 'terms' is a new kind. Payslips come back " +
-    "with payroll's runs in Frappe HR's shape (payroll.scope), typed, so Capxul renders and checks " +
-    "them (documents.payslip-kind). Money Invoices are dropped with requests' fiat invoices " +
-    "(requests' decisions). The Invoice's lines go into its typed message instead of a separate column checked against " +
-    "a lines hash, so the two hashes are the whole integrity check. Receipt files stay: payments' `document` input is " +
-    "one, and the frozen render line names an opaque receipt.",
-  source: by("packages/protocol/src/documents/schema.ts:162, :193, :211; packages/protocol/src/documents/codec.ts:134; P9; blueprint/payments/commands.ts (SendInput.document)"),
+    "Review, 11 November 2026: Core stores canonical chain-backed memo, Invoice, agreement terms and receipt bytes with hash verification and participant admissions. HR salary slips are site documents, not a second Core payslip envelope created by a Core run. Receipt limits and retained wire types are unchanged; rendering belongs to the site. Authority: cut.documents; plugs.document-canon.",
+  source: "The coordinator, round 2, m1-old-decisions; cut.documents; plugs.document-canon",
   affects: [table_documents, procedure_documents_store, rpc_documents_reading_get],
 });
 
@@ -181,10 +161,7 @@ export const decision_documents_unsigned = defineDecision({
   ],
   chosen: "unsigned",
   why:
-    "In the target no client supplies an envelope (documents.store-builds), and nothing signs one: the CLI's own line " +
-    "says 'Capxul does not sign documents; Verified checks the stored bytes against the document hash'. Keeping a " +
-    "column nothing writes is P2's orphan. The frozen surface's three values are kept, so a signed kind can return " +
-    "without changing what the commands print.",
+    "In the target no client supplies an envelope (documents.store-builds), and nothing signs one: the CLI's own line says 'Capxul does not sign documents; Verified checks the stored bytes against the document hash'. Keeping a column nothing writes is P2's orphan. The frozen surface's three values are kept, so a signed kind can return without changing what the commands print. Review, 11 November 2026: Confirmed documents.unsigned; original choice retained.",
   source: by(`apps/cli/src/commands/document/internal/shared.ts:31; ${D}/rules/integrity.ts:84; P2`),
   affects: [table_documents],
 });
@@ -276,27 +253,21 @@ export const decision_documents_rpcs_and_flows = defineDecision({
   id: "documents.rpcs-and-flows",
   title: "Three read rpcs; export and render are SDK flows",
   question:
-    "Old activity owned the three document rows (get, verify, render) and `document export` reused `get`. How are the " +
-    "four commands implemented (A4)?",
+    "Old activity owned the three document rows (get, verify, render) and `document export` reused `get`. How are the four commands implemented (A4)?",
   options: [
-    {
-      label: "three-rpcs-two-flows",
-      text:
-        "Documents' `reading` area has get (with the bytes), verify and render. `document get` and `verify` are " +
-        "implemented by their rpc; `export` and `render` by a flow that adds the local file work, each its own SDK method " +
-        "under `client.paymentDocuments`.",
-    },
-    { label: "four-rpcs", text: "A separate download rpc for export, and get without bytes." },
-    { label: "cli-writes", text: "The CLI calls the rpc and writes the files itself." },
-  ],
-  chosen: "three-rpcs-two-flows",
+  {
+    "label": "current-scope",
+    "text": "Core retains canonical get and verify and local file export of those bytes. Print Format/rendering and salary-slip export use the company site through the door. Archive the removed documents.reading.render rpc and do not make the Core SDK a second rendering engine."
+  },
+  {
+    "label": "historical",
+    "text": "The former answer to documents.rpcs-and-flows is preserved in docs/cut-archive/decision-review-history.json as historical evidence, not implementation authority."
+  }
+],
+  chosen: "current-scope",
   why:
-    "The rows read documents' content, so they are documents' rpcs, not activity's (old review-agent named the three " +
-    "names for one thing). A4 puts every local step in the SDK, so writing the exported file and printing the PDF are " +
-    "flow steps, and the CLI calls exactly one method. `get` keeps the bytes because its frozen first line says it " +
-    "'returns the exact stored bytes', and export needs exactly that answer: a second rpc would serve the same read " +
-    "twice. The SDK namespace stays the frozen pages' `client.paymentDocuments`; `export` is the one new method.",
-  source: by("packages/protocol/src/activity/operations.ts:142; packages/sdk/src/activity/documents.ts:86; docs/as-is/lane-reports/review-agent.json; A4"),
+    "Review, 11 November 2026: Core retains canonical get and verify and local file export of those bytes. Print Format/rendering and salary-slip export use the company site through the door. Archive the removed documents.reading.render rpc and do not make the Core SDK a second rendering engine. Authority: cut.documents; plugs.document-canon.",
+  source: "The coordinator, round 2, m1-old-decisions; cut.documents; plugs.document-canon",
   affects: [...OPERATIONS],
 });
 
@@ -317,10 +288,7 @@ export const decision_documents_verify_answers = defineDecision({
   ],
   chosen: "verify-answers",
   why:
-    "P10: the frozen book wins where it and the old code disagree, and its line is only checkable by a black box if " +
-    "the backend can answer `ok` false (the old test reached it only by mocking the SDK). A verify that cannot say no " +
-    "is not a check. The readers that hand the document on (its bytes, its PDF) must not hand on bad bytes, so they " +
-    "still refuse, as the frozen get line requires ('tampering with a hashed note is detected').",
+    "P10: the frozen book wins where it and the old code disagree, and its line is only checkable by a black box if the backend can answer `ok` false (the old test reached it only by mocking the SDK). A verify that cannot say no is not a check. The readers that hand the document on (its bytes, its PDF) must not hand on bad bytes, so they still refuse, as the frozen get line requires ('tampering with a hashed note is detected'). Review, 11 November 2026: Confirmed documents.verify-answers; original choice retained.",
   source: by(`${D}/reads/contents.ts:72; apps/cli/src/commands/document/tests/document.test.ts:83, :115; P10`),
   affects: [rpc_documents_reading_verify, rpc_documents_reading_get, operation_document_verify, error_UNKNOWN],
 });
@@ -337,8 +305,7 @@ export const decision_documents_no_org_hint = defineDecision({
   ],
   chosen: "drop",
   why:
-    "The hint never granted access ('never selects an unrelated Organization'); it only labelled telemetry. Spans are " +
-    "the runtime's (P6) and no rpc sends an event (P7), so an input that exists for telemetry has no place on the wire.",
+    "The hint never granted access ('never selects an unrelated Organization'); it only labelled telemetry. Spans are the runtime's (P6) and no rpc sends an event (P7), so an input that exists for telemetry has no place on the wire. Review, 11 November 2026: Confirmed documents.no-org-hint; original choice retained.",
   source: by(`${D}/guards.ts:143; packages/backend/src/activity/documents/reads.ts:28; P6; P7`),
   affects: [rpc_documents_reading_verify],
 });
@@ -350,23 +317,19 @@ export const decision_documents_worlds = defineDecision({
   title: "Two worlds reach every documents refusal and line",
   question: "Which devnet worlds do the documents operations name?",
   options: [
-    {
-      label: "two-new",
-      text:
-        "`org-with-documents` (new): an Organization with a member who stored documents for it and was then removed and " +
-        "a member who joined after; a person it paid with a note; an Invoice the person issued it; a salary agreement's " +
-        "terms; a submitted payroll run's payslip for an Employee; a receipt file on a Payment; a Movement's Memo from an outside Transfer to the person; a signed-in " +
-        "stranger; and a signed-in person with no Party of their own. `org-with-tampered-note` (new): the same with one " +
-        "stored note's bytes altered after it was stored. `signed-out` (shared) for NOT_AUTHENTICATED.",
-    },
-    { label: "per-line", text: "A world per acceptance line." },
-  ],
-  chosen: "two-new",
+  {
+    "label": "current-scope",
+    "text": "Retain removed-member, newly admitted member, counterparty, stranger, no-Party and tampered-byte document cases on world snapshots. Salary-slip privacy/rendering cases run on the site, not on a submitted Core payroll fixture. signed-out still proves unauthenticated refusal."
+  },
+  {
+    "label": "historical",
+    "text": "The former answer to documents.worlds is preserved in docs/cut-archive/decision-review-history.json as historical evidence, not implementation authority."
+  }
+],
+  chosen: "current-scope",
   why:
-    "Every refusal (CLI_USAGE, INVALID_INPUT) and every kept line is reached from one world that holds a document of " +
-    "each kind and each kind of reader; the tampered note is its own world because altering stored bytes is a fault no " +
-    "operation can make, and every other run must see clean bytes.",
-  source: by("blueprint/baseline/operations.ts (document.* refusals and acceptance); packages/scenarios/src/acme/s18-dana-reads-her-payment-surface.scenario.ts:89"),
+    "Review, 11 November 2026: Retain removed-member, newly admitted member, counterparty, stranger, no-Party and tampered-byte document cases on world snapshots. Salary-slip privacy/rendering cases run on the site, not on a submitted Core payroll fixture. signed-out still proves unauthenticated refusal. Authority: cut.documents; plugs.document-canon.",
+  source: "The coordinator, round 2, m1-old-decisions; cut.documents; plugs.document-canon",
   affects: OPERATIONS,
 });
 
@@ -374,29 +337,23 @@ export const decision_documents_worlds = defineDecision({
 
 export const decision_documents_payslip_kind = defineDecision({
   id: "documents.payslip-kind",
-  title: "A payslip is a typed envelope, stored when its salary slip is submitted",
+  title: "Archived: A payslip is a typed envelope, stored when its salary slip is submitte",
   question:
-    "Payroll's runs are back in Frappe HR's shape (payroll.scope), and each slip's net is a Payment " +
-    "whose document hash goes on chain. Is the payslip a receipt file, or a typed kind documents builds and checks?",
+    "Payroll's runs are back in Frappe HR's shape (payroll.scope), and each slip's net is a Payment whose document hash goes on chain. Is the payslip a receipt file, or a typed kind documents builds and checks?",
   options: [
-    {
-      label: "typed",
-      text:
-        "A fifth envelope kind, `payslip`: the slip's id and run, employer and employee by Party and Safe, the period and " +
-        "its days, the earnings, deductions and employer contributions by component, and gross, total deduction and net " +
-        "in one token, earnings less deductions equal to the net exactly. Subject kind `salary-slip`; the payer and payee " +
-        "read it. Payroll stores it when a run is submitted or taken in from a head.",
-    },
-    { label: "receipt", text: "A PDF or JSON receipt file of at most 128 KB, kept byte for byte and never interpreted." },
-  ],
-  chosen: "typed",
+  {
+    "label": "current-scope",
+    "text": "Archive Core salary-slip payslip-envelope creation at run submit/head import. Frappe HR owns Salary Slip and its print form; any payment document hash uses the current canonical form. This does not expose salary lines to every company member or restore a Core payroll run."
+  },
+  {
+    "label": "historical",
+    "text": "The former answer to documents.payslip-kind is preserved in docs/cut-archive/decision-review-history.json as historical evidence, not implementation authority."
+  }
+],
+  chosen: "current-scope",
   why:
-    "A receipt file is opaque: documents could not render a payslip's names (documents.render-names) or check that its " +
-    "lines make its net, and the frozen render line 'A payslip names its employer and employee' could not be reached. A " +
-    "typed envelope binds the slip to its chain (EIP-712) and to its Payment, so the employee proves what they were paid " +
-    "for, and the same rows are Frappe's Salary Detail, so a head shows the very slip. An agreement collection's slip " +
-    "stores no payslip: its collection already carries the terms document's hash (payroll.collection-slips).",
-  source: by("/tmp/hrms/hrms/payroll/doctype/salary_slip/salary_slip.json; docs/vision/erp.md (C8); blueprint/payroll/decisions.ts (payroll.scope)"),
+    "Review, 11 November 2026: Archive Core salary-slip payslip-envelope creation at run submit/head import. Frappe HR owns Salary Slip and its print form; any payment document hash uses the current canonical form. This does not expose salary lines to every company member or restore a Core payroll run. Authority: cut.documents; plugs.document-canon.",
+  source: "The coordinator, round 2, m1-old-decisions; cut.documents; plugs.document-canon",
   affects: [table_documents, procedure_documents_store, ],
 });
 
@@ -404,27 +361,20 @@ export const decision_documents_payslip_readers = defineDecision({
   id: "documents.payslip-readers",
   title: "A payslip is its employee's and the People hat's, not every member's",
   question:
-    "A payslip's participants are the employee's Safe and the paying company Safe, and an Organization participant is " +
-    "read by every member with an active Seat, so any member could `document render` a colleague's payslip, while " +
-    "`payroll payslip get` never shows someone else's. Who reads a payslip's Organization side?",
+    "A payslip's participants are the employee's Safe and the paying company Safe, and an Organization participant is read by every member with an active Seat, so any member could `document render` a colleague's payslip, while `payroll payslip get` never shows someone else's. Who reads a payslip's Organization side?",
   options: [
-    {
-      label: "people-hat",
-      text:
-        "For a document of kind payslip, the Organization side is read only by a member whose own Safe wears the " +
-        "Organization's People hat now (indexing's hat-wearers, the hat id from org-deployments) or a Director; the " +
-        "employee reads it through their own Safe as before. Every other kind keeps the active-Seat rule.",
-    },
-    { label: "seat", text: "Keep the active-Seat rule for every kind." },
-    { label: "employee-only", text: "A payslip's only participant is the employee's Safe." },
-  ],
-  chosen: "people-hat",
+  {
+    "label": "current-scope",
+    "text": "Employee salary data is private: the employee and authorized HR/People roles on the site may read it, not every company Seat. Archive the Core kind=payslip participant exception as the implementation; site HR permissions enforce the rule and no generic door read bypasses them."
+  },
+  {
+    "label": "historical",
+    "text": "The former answer to documents.payslip-readers is preserved in docs/cut-archive/decision-review-history.json as historical evidence, not implementation authority."
+  }
+],
+  chosen: "current-scope",
   why:
-    "Pay is personal: `payroll payslip get` refuses another person's slip (payroll.command-authority), and the HR records are " +
-    "the People hat's, so a member with a Seat and no hat must not read through the document what the command refuses. " +
-    "The People hat is read when the document is read, so a wearer swapped out of the hat stops reading at once, as " +
-    "every authority in the book follows the hat now (docs/design/authority.md). Employee-only would leave the " +
-    "Organization unable to show the payslip it issued. A Director keeps reading, as for every Organization record.",
-  source: by("blueprint/payroll/decisions.ts (payroll.command-authority); blueprint/documents/data.ts (participants); docs/design/authority.md"),
+    "Review, 11 November 2026: Employee salary data is private: the employee and authorized HR/People roles on the site may read it, not every company Seat. Archive the Core kind=payslip participant exception as the implementation; site HR permissions enforce the rule and no generic door read bypasses them. Authority: cut.documents; plugs.document-canon.",
+  source: "The coordinator, round 2, m1-old-decisions; cut.documents; plugs.document-canon",
   affects: [rpc_documents_reading_get, rpc_documents_reading_verify, table_documents],
 });
