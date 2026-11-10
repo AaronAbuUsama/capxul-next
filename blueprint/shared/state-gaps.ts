@@ -8,6 +8,19 @@ export const decision_vocabulary_parked_equity_errors = defineDecision({
   chosen: "reserve", why: "The cut parks equity, not its meaning. Reserved shared codes are harmless; adding them to unrelated payment errors would promise false refusals.",
   source: "Builder, m1-gaps-states; lane findings.json; cut.equity; cut.equity-parked; shared vocabulary was links",
   affects: [error_POOL_EXCEEDED, error_SHARES_LOCKED],
+  stands: [
+    { record: "error:POOL_EXCEEDED", rule: "unproduced-error", why: "Reserved for the parked equity option grant pool check; cut.equity and cut.equity-parked remove its producer. No active money command produces it." },
+    { record: "error:SHARES_LOCKED", rule: "unproduced-error", why: "Reserved for parked equity sale and transfer vesting checks; cut.equity and cut.equity-parked remove its producers. No active money command produces it." },
+  ],
+});
+
+export const decision_system_error_producers = defineDecision({
+  id: "system.error-producers", title: "Only producer declarations close an unproduced error gap",
+  question: "Does a decision mentioning an error make it produced?",
+  options: [{ label: "producers", text: "Derive unproduced-error from errors links on operations, flows, rpcs and procedures, and failures links on integration calls. Refusal claims and decision affects links are references, not producers." }],
+  chosen: "producers", why: "A reason to reserve a code must not erase the gap it explains. The equity reservation must appear as standing with its reasons, not disappear through affects links.",
+  source: "Builder, m1-engine-rules round 2; F-1.1",
+  affects: [f.system_capxul],
 });
 
 export const decision_system_eval_identity = defineDecision({

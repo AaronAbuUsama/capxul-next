@@ -690,6 +690,9 @@ and `why`. Problems cannot be waived this way. An entry matching no current gap,
 blank reason, is a `stale-standing-gap` problem: remove or reconsider the reason when design changes.
 `var/blueprint/findings.json` carries `problems`, `gaps` and `standing`; the build summary prints
 both open and standing counts. A standing gap is a visible boundary, not evidence of implementation.
+For `unproduced-error`, only producer declarations count: `errors` on operations, flows, rpcs
+and procedures, or `failures` on integration calls. Decision `affects` and operation `refusals`
+are references, not producers; reserving a code in a decision does not erase its gap.
 
 Every derived eval id is globally unique (`system.eval-identity`); a collision is a build problem.
 For repeated operation refusal codes or integration failure codes, the first case keeps its

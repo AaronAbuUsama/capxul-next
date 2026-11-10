@@ -1,4 +1,11 @@
-import type { Blueprint, Finding } from "./build.ts";
+import type { Blueprint, Finding, Link } from "./build.ts";
+
+/** Links to errors: references and refusal claims do not count as producers. */
+export const isErrorProducer = (link: Link): boolean => {
+  const kind = link.from.split(":", 1)[0] ?? "";
+  return (link.field === "errors" && ["operation", "flow", "rpc", "procedure"].includes(kind)) ||
+    (link.field === "calls" && kind === "integration");
+};
 
 export interface StandingFinding extends Finding {
   readonly decision: string;

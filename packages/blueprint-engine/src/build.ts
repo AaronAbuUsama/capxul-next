@@ -5,7 +5,7 @@ import type { EvalDef } from "./evals.ts";
 import type { StandingFinding } from "./findings.ts";
 import { BUDGET_DEFAULTS } from "./budgets.ts";
 import { exampleGaps, exampleProblems } from "./examples.ts";
-import { classifyFindings } from "./findings.ts";
+import { classifyFindings, isErrorProducer } from "./findings.ts";
 import { telemetryGaps } from "./telemetry.ts";
 
 export interface AnyRecord {
@@ -440,7 +440,7 @@ const deriveGaps = (b: Draft, stage: "as-is" | "target"): Finding[] => {
   }
   // A wait that is woken by an event listens to it; it does not send it.
   for (const e of all(b, "event")) if (by(e).filter((l) => l.field !== "waits").length === 0) g(e, "unsent-event", "no transition, operation or workflow sends it");
-  for (const e of all(b, "error")) if (by(e).length === 0) g(e, "unproduced-error", "nothing produces it");
+  for (const e of all(b, "error")) if (!by(e).some(isErrorProducer)) g(e, "unproduced-error", "nothing produces it");
   for (const c of all(b, "call")) if (by(c, "calls").length === 0) g(c, "unused-call", "nothing calls it");
   for (const f of all(b, "function")) if (by(f, "chain").length === 0) g(f, "uncalled-function", "nothing calls it");
   for (const e of all(b, "chainEvent")) if (by(e).length === 0) g(e, "unconsumed-chain-event", "no workflow is triggered by it or waits on it");
