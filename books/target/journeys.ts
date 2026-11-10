@@ -28,7 +28,7 @@ import * as documents from "./documents/operations.ts";
 import * as equity from "./equity/operations.ts";
 import * as organizations from "./organizations/operations.ts";
 import * as payments from "./payments/operations.ts";
-import * as payroll from "./payroll/operations.ts";
+import * as payroll from "./payments/agreements/operations.ts";
 import * as requests from "./requests/operations.ts";
 import { event_session_transitioned } from "./access/data.ts";
 import { event_referral_transitioned } from "./accounts/data.ts";
@@ -57,7 +57,7 @@ import {
 } from "./equity/data.ts";
 import { event_org_invite_transitioned, event_org_setup_transitioned } from "./organizations/data.ts";
 import { event_payment_transitioned } from "./payments/data.ts";
-import { event_agreement_transitioned, event_agreement_write_transitioned } from "./payroll/data.ts";
+import { event_agreement_transitioned, event_agreement_write_transitioned } from "./payments/agreements/data.ts";
 import { event_request_transitioned, event_service_transitioned } from "./requests/data.ts";
 
 /** A system actor of system_capxul: the compiler refuses an actor the system does not list. */

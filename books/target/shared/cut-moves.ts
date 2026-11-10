@@ -46,3 +46,31 @@ export const decision_cut_contacts = defineDecision({
   source: BY,
   affects: [f.system_capxul, decision_cut_principle, decision_cut_individuals_parked],
 });
+
+export const decision_cut_payroll = defineDecision({
+  id: "cut.payroll",
+  title: "payroll leaves the built book: Frappe HR owns it; pay agreements move to paymen",
+  question: "What happens to payroll in the built book?",
+  options: [
+      {
+          "label": "moved",
+          "text": "Payroll leaves the built book: Frappe HR owns it; pay agreements move to payments. Moved to docs/cut-archive/payroll/ with their text intact: 18 workflows, 65 rpcs, 22 tables, 11 events, 11 machines, 31 flows, 76 operations, 53 decisions, 1 concept. Listed in docs/cut-archive/INDEX.md with a reason and what carries each. Frappe HR owns payroll, HR, leave, attendance, shifts and expense claims (Employee, Salary Structure, Payroll Entry, Salary Slip, Leave Application, Attendance, Expense Claim). Capxul's own records leave the built book; they are reached through the door."
+      },
+      {
+          "label": "carried-1",
+          "text": "Operations that still move money or change authority, and what carries them (stage 3 writes the plug; cut.plug-placeholders): org.hr.employee.add -> plug: roles follow hats (the payroll-approver hat gives the Frappe approval roles); the hat itself is granted by org.member.grant. org.hr.employee.suspend -> plug: roles follow hats (the payroll-approver hat gives the Frappe approval roles); the hat itself is granted by org.member.grant. org.hr.employee.deactivate -> plug: roles follow hats (the payroll-approver hat gives the Frappe approval roles); the hat itself is granted by org.member.grant. org.hr.employee.reinstate -> plug: roles follow hats (the payroll-approver hat gives the Frappe approval roles); the hat itself is granted by org.member.grant. org.hr.employee.leave -> plug: roles follow hats (the payroll-approver hat gives the Frappe approval roles); the hat itself is granted by org.member.grant. org.payroll.run.pay -> plug: the signer (a Frappe payment is held until the chain confirms), then Core operation org.department.pay. org.payroll.payslip.withhold -> plug: roles follow hats (the payroll-approver hat gives the Frappe approval roles); the hat itself is granted by org.member.grant. org.payroll.payslip.release -> plug: roles follow hats (the payroll-approver hat gives the Frappe approval roles); the hat itself is granted by org.member.grant. org.hr.leave.approve -> plug: roles follow hats (the payroll-approver hat gives the Frappe approval roles); the hat itself is granted by org.member.grant. org.hr.leave.reject -> plug: roles follow hats (the payroll-approver hat gives the Frappe approval roles); the hat itself is granted by org.member.grant. org.hr.expense-claim.approve -> plug: roles follow hats (the payroll-approver hat gives the Frappe approval roles); the hat itself is granted by org.member.grant."
+      },
+      {
+          "label": "carried-2",
+          "text": "Operations that still move money or change authority, and what carries them (stage 3 writes the plug; cut.plug-placeholders): org.hr.expense-claim.reject -> plug: roles follow hats (the payroll-approver hat gives the Frappe approval roles); the hat itself is granted by org.member.grant. org.hr.expense-claim.pay -> plug: the signer (a Frappe payment is held until the chain confirms), then Core operation org.department.pay. org.hr.advance.pay -> plug: the signer (a Frappe payment is held until the chain confirms), then Core operation org.department.pay. org.hr.advance.reject -> plug: roles follow hats (the payroll-approver hat gives the Frappe approval roles); the hat itself is granted by org.member.grant."
+      },
+      {
+          "label": "trimmed-1",
+          "text": "Kept records that read or invoked a removed record and no longer do (the dependency is Frappe's now): payroll/processes.ts: export const workflow_payroll_agreements_lifecycle = defineW no longer reads or invokes table_employees. payroll/processes.ts: export const workflow_payroll_agreements_lifecycle = defineW no longer reads or invokes table_salary_components. payroll/processes.ts: export const workflow_payroll_agreements_lifecycle = defineW no longer reads or invokes table_salary_structures. payroll/processes.ts: export const workflow_payroll_agreements_lifecycle = defineW no longer reads or invokes table_salary_structure_assignments. payroll/processes.ts: export const workflow_payroll_agreements_lifecycle = defineW no longer reads or invokes table_salary_slips. payroll/processes.ts: export const workflow_payroll_agreements_lifecycle = defineW no longer reads or invokes LOGGED. payroll/processes.ts: export const workflow_payroll_agreements_lifecycle = defineW no longer reads or invokes machine_employee. payroll/processes.ts: export const workflow_payroll_agreements_lifecycle = defineW no longer reads or invokes machine_salary_structure. payroll/processes.ts: export const workflow_payroll_agreements_lifecycle = defineW no longer reads or invokes machine_salary_structure_assignment. payroll/processes.ts: export const workflow_payroll_agreements_lifecycle = defineW no longer reads or invokes machine_salary_slip."
+      }
+  ],
+  chosen: "moved",
+  why: "The cut's rule (cut.principle): Frappe owns what it owns and the door reaches it; nothing is deleted. Aaron's rulings aaron.frappe-native and aaron.one-door.",
+  source: BY,
+  affects: [f.system_capxul, decision_cut_principle, decision_cut_plug_placeholders, decision_cut_agreements_in_payments],
+});

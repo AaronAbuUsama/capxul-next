@@ -14,7 +14,6 @@ import {
   concept_organizations,
   concept_parties,
   concept_payments,
-  concept_payroll,
   concept_books,
   component_frappe_app,
   system_capxul,
@@ -173,7 +172,7 @@ export const decision_parties_dropped_stores = defineDecision({
     "(responsibilities.operator-proof-tools). `ensureLedgerParty` and `partyKeyFor*` keyed old ledger rows on a Party; a " +
     "Payment now names its recipient's Party through resolution, and activity reads the counterparty by Safe.",
   source: by(`${OLD}/parties/tables.ts:153, :190; parties/README.md:96-110 (the door's seams); parties/reads/purges.ts`),
-  affects: [table_parties, concept_contacts, concept_payroll, concept_payments, procedure_parties_resolve_recipient],
+  affects: [table_parties, concept_contacts, concept_payments, procedure_parties_resolve_recipient],
 });
 
 // ── the Party's life ────────────────────────────────────────────────────────────────────────
@@ -508,7 +507,7 @@ export const decision_parties_mailbox_for_life = defineDecision({
   source: crmBy("docs/vision/erp.md (C27, question 5); shared/external.ts companies-house-claimer, escrow; erpnext setup/doctype/employee/employee.json (personal_email, company_email)"),
   affects: [
     table_parties, procedure_parties_resolve_recipient, rpc_parties_profiles_save, contract_companies_house_claimer, contract_escrow,
-    concept_access, concept_accounts, concept_payroll, system_capxul,
+    concept_access, concept_accounts, system_capxul,
   ],
 });
 
@@ -596,5 +595,5 @@ export const decision_parties_head_parties = defineDecision({
     "that is not on Capxul, so a project for a prospect company needs the CRM entry or the head's Customer name beside " +
     "it; projects sits below contacts and cannot read the entry, so that is the projects designer's to add.",
   source: asmBy("docs/design/frappe/accounting.md (capxul_party); docs/design/frappe/crm.md (Custom Fields); books/target/projects/data.ts (customer_party_id)"),
-  affects: [table_parties, component_frappe_app, integration_frappe_head, concept_books, concept_contacts, concept_payroll],
+  affects: [table_parties, component_frappe_app, integration_frappe_head, concept_books, concept_contacts],
 });

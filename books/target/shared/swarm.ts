@@ -14,7 +14,7 @@ export const by = (evidence: string) => `${BY}; evidence: ${evidence}`;
 
 const SWARMD = "/home/user/swarmd";
 const RETRO = `${SWARMD} docs/planning/swarm-retro-2026-11-06.md`;
-const MONEY = [f.concept_payments, f.concept_books, f.concept_banking, f.concept_requests, f.concept_payroll, f.concept_budgets, f.concept_approvals];
+const MONEY = [f.concept_payments, f.concept_books, f.concept_banking, f.concept_requests, f.concept_budgets, f.concept_approvals];
 
 // ── topology ────────────────────────────────────────────────────────────────────────────────
 

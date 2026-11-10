@@ -9,9 +9,8 @@ import { defineDecision } from "../../../packages/book/src/index.ts";
 import { concept_budgets, concept_devnet, concept_notices, concept_payments } from "../shared/foundation.ts";
 import { machine_payment } from "../payments/data.ts";
 import { machine_org_head, machine_org_setup } from "../organizations/data.ts";
-import { machine_salary_slip } from "../payroll/data.ts";
 import { machine_proposal } from "../board/data.ts";
-import { machine_agreement_write } from "../payroll/data.ts";
+import { machine_agreement_write } from "../payments/agreements/data.ts";
 import { integration_chain_rpc, integration_mail } from "../shared/external.ts";
 import {
   event_balance_alert_transitioned,
@@ -56,7 +55,6 @@ import {
 import {
   workflow_notices_payroll_agreement_ended,
   workflow_notices_payroll_collection_refused,
-  workflow_notices_payroll_payslip,
   workflow_notices_payroll_write_landed,
 } from "./payroll.ts";
 import {
@@ -106,7 +104,6 @@ const OUTBOX = [
   workflow_notices_payroll_write_landed,
   workflow_notices_payroll_collection_refused,
   workflow_notices_payroll_agreement_ended,
-  workflow_notices_payroll_payslip,
   workflow_notices_banking_person_invited,
   workflow_notices_banking_verified,
   workflow_notices_banking_payout_sent,
@@ -851,7 +848,7 @@ export const decision_notices_payslip = defineDecision({
     "never a work address. One notice regardless of a head, because the head keeps its own email off (payroll's Payroll " +
     "Settings). An agreement collection's slip is told by `pay-received` already.",
   source: RULINGS("docs/design/frappe/payroll.md (notices); hrms salary_slip.py (email_salary_slip); payroll.new-hire-escrow; payroll.mailbox-for-pay"),
-  affects: [workflow_notices_payroll_payslip, machine_salary_slip.t.settle, table_notices],
+  affects: [table_notices],
 });
 
 export const decision_notices_head_and_fde = defineDecision({
@@ -956,20 +953,6 @@ export const decision_notices_mail_channel = defineDecision({
 
 // ── HR (the surface pass's build, 9 November 2026): the notices payroll.hr-notices promised ─────────
 
-import {
-  workflow_notices_hr_advance_paid,
-  workflow_notices_hr_advance_rejected,
-  workflow_notices_hr_advance_waiting,
-  workflow_notices_hr_expense_claim_approved,
-  workflow_notices_hr_expense_claim_covered,
-  workflow_notices_hr_expense_claim_paid,
-  workflow_notices_hr_expense_claim_rejected,
-  workflow_notices_hr_expense_claim_waiting,
-  workflow_notices_hr_leave_approved,
-  workflow_notices_hr_leave_rejected,
-  workflow_notices_hr_leave_waiting,
-} from "./hr.ts";
-
 export const decision_notices_hr = defineDecision({
   id: "notices.hr",
   title: "Leave, expense claims and advances tell their deciders and their Employee",
@@ -1005,10 +988,9 @@ export const decision_notices_hr = defineDecision({
     "Claude, surface pass build, 9 November 2026; evidence: payroll.hr-notices; payroll.hr-approvers; " +
     "payroll.mailbox-for-pay; hrms leave_application.py (notify_leave_approver, notify_employee); the money fit review",
   affects: [
-    concept_notices, table_notices, workflow_notices_hr_leave_waiting, workflow_notices_hr_leave_approved,
-    workflow_notices_hr_leave_rejected, workflow_notices_hr_expense_claim_waiting, workflow_notices_hr_expense_claim_approved,
-    workflow_notices_hr_expense_claim_covered, workflow_notices_hr_expense_claim_rejected,
-    workflow_notices_hr_expense_claim_paid, workflow_notices_hr_advance_waiting, workflow_notices_hr_advance_rejected,
-    workflow_notices_hr_advance_paid,
+    concept_notices, table_notices, 
+    
+    
+    
   ],
 });

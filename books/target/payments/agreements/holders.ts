@@ -9,14 +9,14 @@
 // is on chain when it returns; the agreement's process follows the write from there (processes.ts),
 // and the SDK flow follows the write to its end (flows.ts).
 
-import { budget, defineRpc } from "../../../packages/book/src/index.ts";
-import { concept_payroll } from "../shared/foundation.ts";
+import { budget, defineRpc } from "../../../../packages/book/src/index.ts";
+import { concept_payments } from "../../shared/foundation.ts";
 import {
   contract_agreements,
   contract_budgets,
   contract_companies_house_claimer,
   integration_chain_rpc,
-} from "../shared/external.ts";
+} from "../../shared/external.ts";
 import {
   error_FEATURE_NOT_AVAILABLE,
   error_INVALID_INPUT,
@@ -28,13 +28,13 @@ import {
   error_TOKEN_NOT_BUDGETED,
   error_TOKEN_NOT_SUPPORTED,
   error_WRONG_STATE,
-} from "../shared/vocabulary.ts";
-import { table_feature_flags } from "../access/data.ts";
-import { table_parties } from "../parties/data.ts";
-import { table_org_deployments, table_org_members, table_organizations } from "../organizations/data.ts";
-import { table_budgets } from "../budgets/data.ts";
-import { procedure_approvals_open } from "../approvals/procedures.ts";
-import { procedure_documents_store } from "../documents/procedures.ts";
+} from "../../shared/vocabulary.ts";
+import { table_feature_flags } from "../../access/data.ts";
+import { table_parties } from "../../parties/data.ts";
+import { table_org_deployments, table_org_members, table_organizations } from "../../organizations/data.ts";
+import { table_budgets } from "../../budgets/data.ts";
+import { procedure_approvals_open } from "../../approvals/procedures.ts";
+import { procedure_documents_store } from "../../documents/procedures.ts";
 import { machine_agreement, machine_agreement_write, table_agreement_writes, table_agreements } from "./data.ts";
 import { AgreementRef, AgreementRow, ChangeInput, Department, EndInput, OfferInput, OrgListInput, Prepared } from "./shapes.ts";
 import { Schema } from "effect";
@@ -105,7 +105,7 @@ export const rpc_payroll_holders_offer = defineRpc({
     "`approvals.open` opens the approval of one `Agreements.offer` call from the caller's own Safe. Its birth starts the " +
     "agreement's process.",
   was: [`${OPS}/offer.ts:61`, `${AG}/external/v4-offers.ts:41`, `${AG}/rules/offers.ts:26`, "docs/as-is/archive/payroll/agreements.ts"],
-  concept: concept_payroll,
+  concept: concept_payments,
   kind: "action",
   who: WHO_HOLDER,
   input: OfferInput,
@@ -140,7 +140,7 @@ export const rpc_payroll_holders_withdraw = defineRpc({
     OPEN_ABOUT +
     " Once it lands the reservation frees at once.",
   was: [`${OPS}/withdraw.ts:15`, "docs/as-is/archive/payroll/agreements.ts"],
-  concept: concept_payroll,
+  concept: concept_payments,
   kind: "action",
   who: WHO_HOLDER,
   input: AgreementRef,
@@ -166,7 +166,7 @@ export const rpc_payroll_holders_change = defineRpc({
     "(WRONG_STATE when none waits). " +
     OPEN_ABOUT,
   was: [`${OPS}/change.ts:24`, `${OPS}/cancel-change.ts:20`, `${AG}/rules.ts:211`, "docs/as-is/archive/payroll/agreements.ts"],
-  concept: concept_payroll,
+  concept: concept_payments,
   kind: "action",
   who: WHO_HOLDER,
   input: ChangeInput,
@@ -193,7 +193,7 @@ export const rpc_payroll_holders_pause = defineRpc({
     OPEN_ABOUT +
     " Once it lands no pay builds up; earned pay stays collectable and the budget does not change.",
   was: [`${OPS}/pause.ts:15`, "docs/as-is/archive/payroll/agreements.ts"],
-  concept: concept_payroll,
+  concept: concept_payments,
   kind: "action",
   who: WHO_HOLDER,
   input: AgreementRef,
@@ -213,7 +213,7 @@ export const rpc_payroll_holders_resume = defineRpc({
     OPEN_ABOUT +
     " Once it lands pay builds up again from the block's time, and nothing is paid for the days it was paused.",
   was: [`${OPS}/resume.ts:10`, `${OPS}/pause.ts:15`, "docs/as-is/archive/payroll/agreements.ts"],
-  concept: concept_payroll,
+  concept: concept_payments,
   kind: "action",
   who: WHO_HOLDER,
   input: AgreementRef,
@@ -236,7 +236,7 @@ export const rpc_payroll_holders_end = defineRpc({
     OPEN_ABOUT +
     " Once it lands earned pay stays collectable, and the reservation frees when the end comes.",
   was: [`${OPS}/end.ts:21`, `${AG}/errors.ts:152`, "docs/as-is/archive/payroll/agreements.ts"],
-  concept: concept_payroll,
+  concept: concept_payments,
   kind: "action",
   who: WHO_HOLDER,
   input: EndInput,
@@ -260,7 +260,7 @@ export const rpc_payroll_holders_list = defineRpc({
     "department's budget per token from Budgets (`budgetOf`, `leftOf`) as the chain answers now. It reads only: a chain " +
     "that does not answer is PROVIDER_ERROR and no list is made up.",
   was: [`${OPS}/list.ts:20`, `${AG}/rules.ts:88`, "docs/as-is/archive/payroll/agreements.ts"],
-  concept: concept_payroll,
+  concept: concept_payments,
   kind: "action",
   who: "A signed-in member of the Organization, human or agent.",
   input: OrgListInput,

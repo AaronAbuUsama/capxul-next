@@ -8,9 +8,9 @@
 // payment agreements off, a payee can still accept and collect what was offered.
 
 import { Schema } from "effect";
-import { budget, defineRpc } from "../../../packages/book/src/index.ts";
-import { concept_payroll } from "../shared/foundation.ts";
-import { contract_agreements, contract_erc20, contract_roles, integration_chain_rpc } from "../shared/external.ts";
+import { budget, defineRpc } from "../../../../packages/book/src/index.ts";
+import { concept_payments } from "../../shared/foundation.ts";
+import { contract_agreements, contract_erc20, contract_roles, integration_chain_rpc } from "../../shared/external.ts";
 import {
   error_INVALID_INPUT,
   error_NOT_AUTHENTICATED,
@@ -19,12 +19,12 @@ import {
   error_PROVIDER_RESPONSE_INVALID,
   error_ROLE_PERMISSION_DENIED,
   error_WRONG_STATE,
-} from "../shared/vocabulary.ts";
-import { table_feature_flags } from "../access/data.ts";
-import { table_parties } from "../parties/data.ts";
-import { table_org_members, table_organizations } from "../organizations/data.ts";
-import { procedure_approvals_open } from "../approvals/procedures.ts";
-import { procedure_board_propose } from "../board/procedures.ts";
+} from "../../shared/vocabulary.ts";
+import { table_feature_flags } from "../../access/data.ts";
+import { table_parties } from "../../parties/data.ts";
+import { table_org_members, table_organizations } from "../../organizations/data.ts";
+import { procedure_approvals_open } from "../../approvals/procedures.ts";
+import { procedure_board_propose } from "../../board/procedures.ts";
 import { machine_agreement_write, table_agreement_writes, table_agreements } from "./data.ts";
 import { AcceptInput, Agreement, AgreementRow, NothingReleased, PayeeListInput, PayeeRef, Prepared, PreparedCollection } from "./shapes.ts";
 
@@ -77,7 +77,7 @@ export const rpc_payroll_payees_accept = defineRpc({
     "still open on chain. The call is `Agreements.accept(id, termsHash)`. " +
     CARRY_ABOUT,
   was: [`${OPS}/accept.ts:23`, `${OPS}/organization-accept.ts:25`, `${AG}/guards.ts:221`, "docs/as-is/archive/payroll/agreements.ts"],
-  concept: concept_payroll,
+  concept: concept_payments,
   kind: "action",
   who: WHO_PAYEE,
   input: AcceptInput,
@@ -110,7 +110,7 @@ export const rpc_payroll_payees_collect = defineRpc({
     "with it. The call is `Agreements.collect(id, amount)`, which Budgets pays from the reservation (kind 4). " +
     CARRY_ABOUT,
   was: [`${OPS}/collect.ts:40`, `${OPS}/collect.ts:82`, `${OPS}/organization-collect.ts:24`, `${AG}/external/v4-funds.ts:22`, "docs/as-is/archive/payroll/agreements.ts"],
-  concept: concept_payroll,
+  concept: concept_payments,
   kind: "action",
   who: WHO_PAYEE,
   input: PayeeRef,
@@ -147,7 +147,7 @@ export const rpc_payroll_payees_list = defineRpc({
     "(parties); and the next command to run (accept an open " +
     "offer, collect released pay). It reads only: a chain that does not answer is PROVIDER_ERROR, and no list is made up.",
   was: [`${OPS}/mine.ts:17`, `${OPS}/organization-received.ts:16`, "docs/as-is/archive/payroll/agreements.ts"],
-  concept: concept_payroll,
+  concept: concept_payments,
   kind: "action",
   who: "A signed-in person or agent, for what pays its own Safe; with `--org`, a member of that Organization.",
   input: PayeeListInput,
@@ -174,7 +174,7 @@ export const rpc_payroll_payees_show = defineRpc({
     "value an acceptance pins); for an accepted agreement, earned, collectable, collected and the next release, read from " +
     "Agreements now; and the next command. A lapsed or withdrawn offer is still read by its id. Nothing is stored.",
   was: [`${OPS}/show.ts:13`, `${OPS}/organization-show.ts:14`, `${AG}/guards.ts:204`, "docs/as-is/archive/payroll/agreements.ts"],
-  concept: concept_payroll,
+  concept: concept_payments,
   kind: "action",
   who: "The payee, a signed-in person or agent; with `--org`, a member of the payee Organization.",
   input: PayeeRef,

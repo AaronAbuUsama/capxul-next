@@ -301,7 +301,7 @@ export const decision_concepts_parties = defineDecision({
     "only, so it moves to banking. Engagements were what payroll runs paid; v4 Agreements replace them. What remains is " +
     "the one thing everyone below organizations needs: a name, the Safe it routes money to, and who owns that Safe.",
   source: by("packages/backend/src/profiles/README.md:3; apps/docs/factory/operations/verify.start.yaml; ADR-0022"),
-  affects: [f.concept_parties, f.concept_contacts, f.concept_banking, f.concept_payroll],
+  affects: [f.concept_parties, f.concept_contacts, f.concept_banking],
 });
 
 export const decision_concepts_parties_scope = defineDecision({
@@ -452,7 +452,7 @@ export const decision_concepts_budgets = defineDecision({
     "department is a top or child budget. Both are one v4 contract (Budgets), one tree and one authority rule (the wearer " +
     "of the budget's hat or of any above it). Keeping them apart would duplicate the tree and its authority check.",
   source: by("apps/docs/factory/operations/org.allowance.create.yaml, org.department.create.yaml (designed)"),
-  affects: [f.concept_budgets, f.concept_payroll],
+  affects: [f.concept_budgets],
 });
 
 export const decision_concepts_permissions = defineDecision({
@@ -496,7 +496,7 @@ export const decision_concepts_payroll = defineDecision({
     "(payroll.pays-through-payments), and posts its accrual through books' door, so the old settle-run procedure stays " +
     "gone and neither payments nor books depends on payroll (dependencies.payments-payroll, dependencies.books-payroll).",
   source: by("payroll.scope; aaron.frappe-shape; books/frozen/operations.ts (payroll area: agreements only); P2; packages/backend/src/payroll/tables.ts:167"),
-  affects: [f.concept_payroll, f.concept_budgets, f.concept_payments, f.concept_books],
+  affects: [f.concept_budgets, f.concept_payments, f.concept_books],
 });
 
 export const decision_concepts_books = defineDecision({
@@ -548,7 +548,7 @@ export const decision_concepts_documents = defineDecision({
     "subject's concept stores it through a procedure and must depend on documents. Documents then cannot read its subjects; " +
     "giving it the participants at store time means it never has to.",
   source: by("K2 in docs/as-is/payments.md; docs/as-is/archive/shared/foundation.ts (documents imports 7 concepts)"),
-  affects: [f.concept_documents, f.concept_payments, f.concept_requests, f.concept_payroll],
+  affects: [f.concept_documents, f.concept_payments, f.concept_requests],
 });
 
 export const decision_concepts_contacts = defineDecision({
@@ -794,7 +794,7 @@ export const decision_dependencies_payments_payroll = defineDecision({
     "`Agreements.collect`, whose PaymentSent payments settles like any other. The edge points down the order (payroll " +
     "after payments), so it makes no cycle, and payments never writes or reads payroll's tables.",
   source: by("payroll.scope, payroll.pays-through-payments; P4 (settle-run procedure); docs/as-is/payments.md (K11); docs/design/frappe/payroll.md"),
-  affects: [f.concept_payments, f.concept_payroll],
+  affects: [f.concept_payments],
 });
 
 export const decision_dependencies_books_payroll = defineDecision({
@@ -821,7 +821,7 @@ export const decision_dependencies_books_payroll = defineDecision({
     "payments and banking write their book facts. Books needs no new edge for it: the lines name books' own accounts and " +
     "an Employee's Party id, which books keeps as given.",
   source: by("books.payroll-accrual, payroll.accrual (books/target/payroll/decisions.ts); docs/design/frappe/accounting.md (For other lanes: payroll); P4"),
-  affects: [f.concept_books, f.concept_payroll, f.concept_payments],
+  affects: [f.concept_books, f.concept_payments],
 });
 
 export const decision_dependencies_payments_requests = defineDecision({
@@ -903,7 +903,7 @@ export const decision_dependencies_proposals = defineDecision({
     "Board only collects approvals and executes. If board built them it would depend on every money concept. A proposal " +
     "and the intent it carries are one fact (rules.procedures), so opening it is a procedure.",
   source: by("org.department.create.yaml, payment.send.yaml (--as-directors), agent.create.yaml (designed)"),
-  affects: [f.concept_board, f.concept_budgets, f.concept_payments, f.concept_payroll, f.concept_agents, f.concept_equity],
+  affects: [f.concept_board, f.concept_budgets, f.concept_payments, f.concept_agents, f.concept_equity],
 });
 
 export const decision_dependencies_approvals = defineDecision({
@@ -1036,7 +1036,7 @@ export const decision_rules_durable_processes = defineDecision({
     "four designers added objects that wait on a person, the chain or a date.",
   source: by("A3 (time); P3 (the three-part test); assembly, 8 November 2026: access, media, budgets, equity and payments decisions"),
   affects: [
-    f.concept_approvals, f.concept_payments, f.concept_board, f.concept_organizations, f.concept_accounts, f.concept_payroll,
+    f.concept_approvals, f.concept_payments, f.concept_board, f.concept_organizations, f.concept_accounts, 
     f.concept_requests, f.concept_banking, f.concept_agents, f.concept_equity, f.concept_access, f.concept_media,
     f.concept_budgets,
   ],
@@ -1943,18 +1943,6 @@ export const decision_dependencies_of_payments = dependencies(f.concept_payments
   books: "a settled Payment writes its book fact in its own transaction (books.record-money-fact).",
   documents: "a Payment's document is stored at its birth (documents.store).",
 });
-export const decision_dependencies_of_payroll = dependencies(f.concept_payroll, {
-  access: "the caller of every rpc.",
-  parties: "the payee is resolved to a Party and its Safe.",
-  indexing: "Agreements' events drive each agreement's process.",
-  approvals: "offers, changes, acceptance and collection are approvals from the actor's Safe.",
-  organizations: "an agreement is an Organization's, read by its members.",
-  board: "an Organization payee's acceptance and collection are Board proposals: the payee is the company Safe (payroll.holder-writes).",
-  budgets: "an agreement pays from a budget, whose office holder or anyone above may act on it.",
-  books: "a submitted run Capxul computed posts its accrual through books.record-payroll-accrual, and a cancel takes it back (dependencies.books-payroll).",
-  documents: "an agreement's terms document is stored at its offer.",
-  payments: "a run is paid through payments.prepare-command, and its slips follow payment_transitioned to settled (dependencies.payments-payroll).",
-});
 export const decision_dependencies_of_banking = dependencies(f.concept_banking, {
   access: "the caller of every rpc.",
   media: "verification documents are stored files.",
@@ -2012,7 +2000,6 @@ export const decision_dependencies_of_notices = dependencies(f.concept_notices, 
   board: "a proposal waiting for a Director.",
   budgets: "an allowance assigned to a member, at its amount once the assign executes (dependencies.notices-budgets).",
   payments: "a dated payment due or failed, and money received.",
-  payroll: "an agreement offered, changed or ending.",
   banking: "a business verification invitation and a payout returned.",
   requests: "a request issued, paid or declined.",
   equity: "a round or SAFE invitation.",
@@ -2622,7 +2609,6 @@ export const decision_rules_admissions_and_wait_keys = defineDecision({
     f.concept_agents,
     f.concept_banking,
     f.concept_equity,
-    f.concept_payroll,
   ],
 });
 
@@ -2994,7 +2980,7 @@ export const decision_rules_counterparty_reads = defineDecision({
     "Found by the adversarial review of the admissions, which listed fundraise-rounds, votes, equity-installs and " +
     "organizations; the review did not finish the list, so B1 starts from the rpcs whose `who` is a counterparty.",
   source: `${HANDOFF}; evidence: the adversarial review of rules.admissions-and-wait-keys (counterparty rpcs in equity, payroll and organizations)`,
-  affects: [f.concept_equity, f.concept_organizations, f.concept_payroll, f.component_postgres],
+  affects: [f.concept_equity, f.concept_organizations, f.component_postgres],
 });
 
 // ── operations beyond the 215 (8 November 2026) ─────────────────────────────────────────────
@@ -3065,7 +3051,7 @@ export const decision_rules_new_operations = defineDecision({
   source: `${RULES}; under system.frozen-behaviour and aaron.frappe-shape (aaron.projects: a decision pack); evidence: tools/check-frozen.ts; contacts.crm-capabilities, payroll.hr-surface, projects.commands, organizations.commands`,
   affects: [
     decision_system_frozen_behaviour, f.system_capxul, f.component_cli, f.component_core_sdk, f.concept_contacts,
-    f.concept_payroll, f.concept_organizations,
+    f.concept_organizations,
   ],
 });
 
@@ -3115,7 +3101,7 @@ export const decision_rules_department_authority = defineDecision({
     `${AUTHORITY}; under aaron.departments and aaron.escrow-general; evidence: v4 Budgets.sol:373 (authorised), :442 ` +
     "(_requireManager), :146, :179; Agreements.sol:279; InstallerMoney.sol:132; spec/budgets.md, spec/board.md",
   affects: [
-    f.concept_budgets, f.concept_payments, f.concept_payroll, f.concept_board, f.concept_organizations,
+    f.concept_budgets, f.concept_payments, f.concept_board, f.concept_organizations,
     f.concept_agents, f.concept_banking, f.concept_requests, f.concept_notices,
     x.contract_budgets, x.contract_agreements, x.contract_hats, x.contract_escrow,
   ],
@@ -3157,7 +3143,7 @@ export const decision_rules_fde_acts_for_asker = defineDecision({
     "states it for every concept's guard.",
   source: "Claude, world pass build, 9 November 2026; under aaron.fde-anyone; evidence: organizations.fde-for-the-asker; books/target/organizations/apps.ts (MEMBER_GUARD); docs/design/new-commands.md (G4, G5)",
   affects: [
-    f.concept_organizations, f.concept_agents, f.concept_contacts, f.concept_payroll, f.concept_payments,
+    f.concept_organizations, f.concept_agents, f.concept_contacts, f.concept_payments,
     f.concept_budgets, f.component_core_sdk, x.integration_fde_host,
   ],
 });

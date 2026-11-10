@@ -9,7 +9,7 @@ import type { Concept, Decision } from "../../../packages/book/src/index.ts";
 import * as f from "./foundation.ts";
 import * as d from "./decisions.ts";
 // The one landing a concept's own decision settles: payroll.scope supersedes concepts.payroll.
-import { decision_payroll_scope } from "../payroll/decisions.ts";
+import { decision_payroll_scope } from "../payments/agreements/decisions.ts";
 
 /** One old area: where it goes, and the decision that says so. */
 export interface Landing {
@@ -138,10 +138,10 @@ export const OLD_AREAS: { readonly [A in OldArea]: Landing } = {
   "payments/schedules": { to: [c.concept_payments], by: d.decision_concepts_payments, note: "Dated payments, one durable process each." },
   "payments/verifications": { to: [c.concept_payments], by: d.decision_concepts_payments, note: "Settlement from the indexed PaymentSent, one path." },
   // payroll
-  "payroll/agreements": { to: [c.concept_payroll], by: decision_payroll_scope, note: "v4 Agreements, one durable process each." },
+  "payroll/agreements": { to: [], by: decision_payroll_scope, note: "v4 Agreements, one durable process each." },
   "payroll/departments": { to: [c.concept_budgets], by: d.decision_concepts_budgets, note: "Departments are budgets." },
   "payroll/groups": { to: [], by: decision_payroll_scope, note: "Dropped: no frozen operation (P2)." },
-  "payroll/runs": { to: [c.concept_payroll], by: decision_payroll_scope, note: "Frappe HR's Payroll Entry and Salary Slip." },
+  "payroll/runs": { to: [], by: decision_payroll_scope, note: "Frappe HR's Payroll Entry and Salary Slip." },
   "payroll/terms": { to: [], by: decision_payroll_scope, note: "Dropped: agreements and salary structures carry their terms." },
   // permissions
   "permissions/allowances": { to: [c.concept_budgets], by: d.decision_concepts_budgets, note: "A spending allowance is a budget under a hat." },

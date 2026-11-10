@@ -21,7 +21,7 @@ import * as books from "./books/index.ts";
 import * as documents from "./documents/index.ts";
 import * as contacts from "./contacts/index.ts";
 import * as payments from "./payments/index.ts";
-import * as payroll from "./payroll/index.ts";
+import * as payroll from "./payments/agreements/index.ts";
 import * as banking from "./banking/index.ts";
 import * as requests from "./requests/index.ts";
 import * as applications from "./applications/index.ts";

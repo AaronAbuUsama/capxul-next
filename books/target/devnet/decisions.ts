@@ -11,7 +11,6 @@ import {
   concept_devnet,
   concept_documents,
   concept_notices,
-  concept_payroll,
   environment_devnet,
   environment_shared_world,
 } from "../shared/foundation.ts";
@@ -1256,7 +1255,7 @@ export const decision_devnet_payslip_world = defineDecision({
     "were first Core SDK methods of a surface with no command; payroll.hr-surface has since booked the commands, so " +
     "they are those commands. The run is submitted, not paid: the payslip is stored at submit.",
   source: WORLD_GROUP("documents.acceptance-rewrites; documents.payslip-kind; books/target/payroll/operations.ts (payroll.hr-surface's commands)"),
-  affects: [concept_devnet, concept_documents, concept_payroll],
+  affects: [concept_devnet, concept_documents],
 });
 
 // ── the commands pass (8 November 2026): the head's and the hosted FDE's worlds ─────────────
@@ -1730,7 +1729,7 @@ export const decision_devnet_world_pass_worlds = defineDecision({
     "and allocations cover.",
   source: WORLD_PASS("organizations.doc-worlds; contacts.conversation-worlds; payroll.hr-worlds; payments.claim-command; devnet.head-stand-in; devnet.fde-host-stand-in; devnet.mail-sink"),
   affects: [
-    concept_devnet, concept_organizations, concept_contacts, concept_payroll, concept_payments, table_head_sites,
+    concept_devnet, concept_organizations, concept_contacts, concept_payments, table_head_sites,
     table_head_documents, table_head_changes, table_fde_host_agents, table_mail_messages, integration_frappe_head,
     integration_fde_host, component_devnet,
   ],

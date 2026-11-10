@@ -125,7 +125,7 @@ export const decision_cut_agreements_in_payments = defineDecision({
   chosen: "keep-in-payments",
   why: "Money and authority on chain are Core (START-HERE section 2). A contractor or a stream can be paid with no payroll.",
   source: BY,
-  affects: [f.system_capxul, f.concept_payments, f.concept_payroll, ...rulings],
+  affects: [f.system_capxul, f.concept_payments, ...rulings],
 });
 
 export const decision_cut_department_budgets = defineDecision({
@@ -160,7 +160,7 @@ export const decision_cut_uk_payroll_filing = defineDecision({
   chosen: "open",
   why: "START-HERE section 11 lists it under 'Only Aaron'. Payroll is Frappe's whichever he chooses.",
   source: BY,
-  affects: [f.system_capxul, f.concept_payroll, ...rulings],
+  affects: [f.system_capxul, ...rulings],
 });
 
 export const decision_cut_individuals_parked = defineDecision({

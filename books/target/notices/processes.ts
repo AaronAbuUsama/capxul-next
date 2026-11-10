@@ -7,7 +7,7 @@ import { budget, defineWorkflow } from "../../../packages/book/src/index.ts";
 import { table_principals } from "../access/data.ts";
 import { table_organizations } from "../organizations/data.ts";
 import { table_parties } from "../parties/data.ts";
-import { table_agreements } from "../payroll/data.ts";
+import { table_agreements } from "../payments/agreements/data.ts";
 import { concept_notices } from "../shared/foundation.ts";
 import { contract_agreements, contract_erc20, contract_safe, integration_chain_rpc, integration_mail } from "../shared/external.ts";
 import { machine_balance_alert, machine_notice, table_balance_alerts, table_notices } from "./data.ts";

@@ -9,7 +9,6 @@ import * as budgets from "./budgets.ts";
 import * as board from "./board.ts";
 import * as payments from "./payments.ts";
 import * as payroll from "./payroll.ts";
-import * as hr from "./hr.ts";
 import * as banking from "./banking.ts";
 import * as requests from "./requests.ts";
 import * as equity from "./equity.ts";
@@ -27,7 +26,6 @@ export const modules = [
   board,
   payments,
   payroll,
-  hr,
   banking,
   requests,
   equity,

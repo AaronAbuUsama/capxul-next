@@ -57,7 +57,7 @@ export const decision_aaron_erp_on_capxul = defineDecision({
     "Capxul, you start with all of these things, whether the Frappe head has been connected or not yet; that's a separate " +
     "thing altogether.' The one clock matters because the larger system runs on it too.",
   source: AARON,
-  affects: [f.system_capxul, f.concept_parties, f.concept_contacts, f.concept_books, f.concept_payroll],
+  affects: [f.system_capxul, f.concept_parties, f.concept_contacts, f.concept_books],
 });
 
 export const decision_aaron_crm_frappe_shape = defineDecision({
@@ -123,7 +123,7 @@ export const decision_aaron_frappe_shape = defineDecision({
     "Projects app from Frappe. All the other apps are added as a customer needs them, either in the initialization start-up " +
     "step or in conversation with an FDE agent.'",
   source: AARON,
-  affects: [f.concept_parties, f.concept_contacts, f.concept_books, f.concept_payroll],
+  affects: [f.concept_parties, f.concept_contacts, f.concept_books],
 });
 
 export const decision_aaron_seats = defineDecision({

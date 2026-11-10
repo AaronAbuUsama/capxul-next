@@ -2,9 +2,9 @@
 // has it signed, then subscribes here until the agreement's process decides it.
 
 import { Schema } from "effect";
-import { budget, defineRpc } from "../../../packages/book/src/index.ts";
-import { concept_payroll } from "../shared/foundation.ts";
-import { error_INVALID_INPUT, error_NOT_AUTHENTICATED, error_ROLE_PERMISSION_DENIED } from "../shared/vocabulary.ts";
+import { budget, defineRpc } from "../../../../packages/book/src/index.ts";
+import { concept_payments } from "../../shared/foundation.ts";
+import { error_INVALID_INPUT, error_NOT_AUTHENTICATED, error_ROLE_PERMISSION_DENIED } from "../../shared/vocabulary.ts";
 import { table_agreement_writes, table_agreements } from "./data.ts";
 import { Agreement, CollectionPayment, Write, WriteRef } from "./shapes.ts";
 
@@ -19,7 +19,7 @@ export const rpc_payroll_writes_watch = defineRpc({
     "the amount, the window it covers and the transaction. An unknown write is INVALID_INPUT; one the " +
     "caller neither prepared nor may read (a member of the paying Organization, or the payee) is ROLE_PERMISSION_DENIED.",
   was: ["packages/backend/src/payroll/agreements/views/agreements.ts", "packages/sdk/src/payroll"],
-  concept: concept_payroll,
+  concept: concept_payments,
   kind: "live",
   who: "Whoever prepared the write; a member of the paying Organization; the payee.",
   input: WriteRef,
