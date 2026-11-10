@@ -5,3 +5,7 @@ packages/portal/dist
 # spikes/skeleton/frappe generated files
 spikes/skeleton/frappe/capxul/**/__pycache__/
 spikes/skeleton/frappe/capxul/*.egg-info/
+
+# loop runs: everything but the small status file of each
+runs/*/*
+!runs/*/status.json

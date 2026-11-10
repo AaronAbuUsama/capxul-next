@@ -1,0 +1,56 @@
+/**
+ * GENERIC. Durable agents over pi-durable: open a storage, register the coding tools with a policy that confines them to
+ * a directory, pick a model, ask one agent one question and get its last message back. Nothing here knows about Capxul;
+ * this module is what would be lifted into a library (README.md).
+ */
+import type { Context } from "@earendil-works/chord";
+import type { Models } from "@earendil-works/pi-ai";
+import type { Conversation, Extension, Harness, Registry, ToolRegistration } from "@earendil-works/pi-durable";
+
+/** A model entry as `~/.pi/agent/models.json` writes it; the fields are pi-ai's `Model`. */
+export interface ModelEntry { id: string; name?: string; reasoning?: boolean; input?: ("text" | "image")[]; cost?: { input: number; output: number; cacheRead: number; cacheWrite: number }; contextWindow?: number; maxTokens?: number; compat?: Record<string, unknown> }
+/** An OpenAI-compatible provider: the endpoint, the NAME of the variable that holds its key, its models. */
+export interface ProviderConfig { baseUrl: string; apiKeyEnv: string; models: ModelEntry[] }
+
+/** Which tools an agent gets: `write` is read, write, edit and a limited bash; `read` is read and a bash that only reads git. */
+export type Profile = "write" | "read";
+
+/** The confinement policy (README: it is a policy on tool calls, not a security boundary). */
+export interface Policy {
+  /** A bash command is run only if every `&&`/`;`/`|` segment of it matches one of these. */
+  readonly bash: Record<Profile, readonly RegExp[]>;
+  /** Paths (relative to the directory) the file tools may not write even inside it. */
+  readonly denyWrite: readonly RegExp[];
+}
+
+export interface HostOptions {
+  /** The SQLite file of the run: everything durable lives in it. */
+  readonly file: string;
+  readonly models: Models;
+  /** The environment agents' commands see, and nothing else: no inherited variables. */
+  readonly env: Readonly<Record<string, string>>;
+  readonly policy: Policy;
+  /** Look without driving: opens the storage for reading, recovers nothing, writes nothing. */
+  readonly readOnly?: boolean;
+}
+
+export interface Host { readonly harness: Harness; readonly registry: Registry; readonly parts: Readonly<Record<Profile, { extensions: Extension[]; tools: ToolRegistration[] }>>; readonly root: Conversation; readonly context: Context; close(): Promise<void> }
+
+export interface Ask {
+  /** Names the agent within the run. The same key after a restart finds the same conversation and the same question. */
+  readonly key: string;
+  /** `provider/id`, as the models config names it. */
+  readonly model: string;
+  readonly system: string;
+  readonly prompt: string;
+  readonly cwd: string;
+  readonly profile: Profile;
+  readonly maxTurns?: number;
+  readonly timeoutMs?: number;
+  /** When this file exists the agent is aborted and the call rejects with `stopped`. */
+  readonly stopFile?: string;
+  /** Tools beyond the coding ones, for example an MCP server's (`mcpTools`). */
+  readonly tools?: readonly ToolRegistration[];
+}
+
+export interface Answer { ok: boolean; text: string; json?: unknown; costUsd: number; tokens: number; conversation: number; error?: string }
