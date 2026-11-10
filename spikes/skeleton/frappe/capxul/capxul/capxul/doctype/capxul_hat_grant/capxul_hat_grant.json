@@ -1,0 +1,65 @@
+{
+ "doctype": "DocType",
+ "name": "Capxul Hat Grant",
+ "module": "Capxul",
+ "custom": 0,
+ "engine": "InnoDB",
+ "field_order": [
+  "user",
+  "hat",
+  "department",
+  "roles_given",
+  "event_key"
+ ],
+ "fields": [
+  {
+   "fieldname": "user",
+   "fieldtype": "Link",
+   "label": "User",
+   "options": "User",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "hat",
+   "fieldtype": "Data",
+   "label": "Hat",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "department",
+   "fieldtype": "Data",
+   "label": "Department"
+  },
+  {
+   "fieldname": "roles_given",
+   "fieldtype": "Small Text",
+   "label": "Roles Given",
+   "description": "JSON list: the roles this grant added"
+  },
+  {
+   "fieldname": "event_key",
+   "fieldtype": "Data",
+   "label": "Event Key"
+  }
+ ],
+ "permissions": [
+  {
+   "role": "System Manager",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1,
+   "report": 1,
+   "export": 1
+  }
+ ],
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "creation": "2026-11-10 00:00:00.000000",
+ "modified": "2026-11-10 00:00:00.000000",
+ "owner": "Administrator",
+ "modified_by": "Administrator",
+ "autoname": "hash"
+}

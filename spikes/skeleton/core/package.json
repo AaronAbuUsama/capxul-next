@@ -1,0 +1,7 @@
+{
+  "name": "capxul-skeleton-core",
+  "private": true,
+  "type": "module",
+  "description": "Throwaway walking-skeleton Core half: STAND-IN chain contracts, service and CLI. Not product code.",
+  "dependencies": { "viem": "^2.21.0" }
+}

@@ -1,0 +1,88 @@
+{
+ "doctype": "DocType",
+ "name": "Capxul Chain Event",
+ "module": "Capxul",
+ "custom": 0,
+ "engine": "InnoDB",
+ "field_order": [
+  "event_key",
+  "seq",
+  "org",
+  "kind",
+  "status",
+  "attempts",
+  "error",
+  "data"
+ ],
+ "fields": [
+  {
+   "fieldname": "event_key",
+   "fieldtype": "Data",
+   "label": "Event Key",
+   "reqd": 1,
+   "unique": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "seq",
+   "fieldtype": "Int",
+   "label": "Seq",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "org",
+   "fieldtype": "Data",
+   "label": "Org"
+  },
+  {
+   "fieldname": "kind",
+   "fieldtype": "Data",
+   "label": "Kind",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "label": "Status",
+   "options": "Applied\nFailed\nParked",
+   "default": "Applied",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "attempts",
+   "fieldtype": "Int",
+   "label": "Attempts",
+   "default": "0"
+  },
+  {
+   "fieldname": "error",
+   "fieldtype": "Small Text",
+   "label": "Error"
+  },
+  {
+   "fieldname": "data",
+   "fieldtype": "Code",
+   "label": "Data",
+   "options": "JSON"
+  }
+ ],
+ "permissions": [
+  {
+   "role": "System Manager",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1,
+   "report": 1,
+   "export": 1
+  }
+ ],
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "creation": "2026-11-10 00:00:00.000000",
+ "modified": "2026-11-10 00:00:00.000000",
+ "owner": "Administrator",
+ "modified_by": "Administrator",
+ "autoname": "field:event_key"
+}

@@ -1,0 +1,28 @@
+{
+ "doctype": "DocType",
+ "name": "Capxul Hat Role",
+ "module": "Capxul",
+ "custom": 0,
+ "engine": "InnoDB",
+ "field_order": [
+  "role"
+ ],
+ "fields": [
+  {
+   "fieldname": "role",
+   "fieldtype": "Link",
+   "label": "Role",
+   "options": "Role",
+   "reqd": 1,
+   "in_list_view": 1
+  }
+ ],
+ "permissions": [],
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "creation": "2026-11-10 00:00:00.000000",
+ "modified": "2026-11-10 00:00:00.000000",
+ "owner": "Administrator",
+ "modified_by": "Administrator",
+ "istable": 1
+}
