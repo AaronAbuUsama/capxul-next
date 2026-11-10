@@ -26,6 +26,9 @@ through the CLI alone:
 - **Everything is recorded.** Every command, with who ran it under which hat, what it returned, and the world's time,
   is kept. The record is also training data, so it is a product of the system, not a debugging aid.
 - **Time can be moved.** A world's clock is set and advanced from the CLI, and the chain and the Frappe site follow it.
+- **A world can be saved and restored.** A snapshot is a version of a whole world: the chain, the site, the service's
+  state, the clock and the place in the record. It can be restored in place or into a whole separate world, and the
+  record keeps which snapshot a world came from. The book already designs `dev snapshot save|list|restore`.
 - **It must be visible.** Agents drive it, but a person can open the Frappe screens of a running world and see it.
 - **The cloud matters.** Where this runs, on the cloud that already exists (`Xelmar-tech/hosting`), must be understood
   and written down before it is needed.
