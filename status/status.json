@@ -50,6 +50,13 @@
       "run": "run-20261110121422",
       "evidence": "status/runs/run-20261110121422/evidence/acc-world.snapshot.restore-2.txt"
     },
+    "jrn:thin_line": {
+      "verdict": "not_run",
+      "commit": "f5907ef+dirty",
+      "at": "2026-11-10T16:54:50Z",
+      "run": "run-20261110165450",
+      "evidence": "status/runs/run-20261110165450/evidence/jrn-thin_line.txt"
+    },
     "wfl:plugs.events.deliver/idempotent": {
       "verdict": "pass",
       "commit": "a35e9ab",

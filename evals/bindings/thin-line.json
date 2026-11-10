@@ -1,0 +1,34 @@
+{
+  "area": "thin-line",
+  "script": "spikes/skeleton/run.sh",
+  "worlds": ["main"],
+  "secrets": ["spikes/skeleton/.env", "spikes/skeleton/core/people.json"],
+  "bindings": [],
+  "near": [
+    {
+      "eval": "acc:world.create/2",
+      "checks": ["B1.org-create", "B1.site-answers-by-name"],
+      "missing": "Startup provides a working company site, but reuses main rather than world create; running state, frozen clock, epoch and birth record are not read. No hosted placement or real v4 deployment is established."
+    },
+    {
+      "eval": "acc:org.create/6",
+      "checks": ["B1.org-create", "B1.safe-on-chain-is-the-sites-safe", "B1.site-answers-by-name", "B1.company-exists", "B1.safe-bank-account", "B1.admin-hat-reaches-site", "B1.admin-sign-in-chain"],
+      "missing": "The company, chain Safe and site agree, but the stub does not establish CompanySafeMinted with founderSafe at the minter's companySafeAddressFor."
+    },
+    {
+      "eval": "acc:org.member.grant/1",
+      "checks": ["B2.hat-grant-on-chain", "B2.roles-follow-grant", "B2.department-limit-exists"],
+      "missing": "The grant reaches the chain and site roles, but there is no waiting Director proposal, second Director approval, or applied change read through org member get."
+    },
+    {
+      "eval": "acc:payment.send/1",
+      "checks": ["B3.sign-sends-chain-transaction", "B3.chain-moved-the-money", "B3.payment-entry-submitted", "B3.entry-carries-transaction-hash", "B3.ledger-posted", "B3.invoice-nothing-outstanding"],
+      "missing": "A test key signs through the stub's approval sign and the real site posts; the real v4 UserOperation and PaymentSent carrying the payment id and payment list settled are not asserted."
+    },
+    {
+      "eval": "jrn:thin_line",
+      "checks": ["B1.org-create", "B1.safe-on-chain-is-the-sites-safe", "B1.site-answers-by-name", "B2.roles-follow-grant", "B3.budget-holder-makes-invoice-and-payment-entry", "B3.submit-waits-for-signature", "B3.still-a-draft-while-waiting", "B3.sign-sends-chain-transaction", "B3.chain-moved-the-money", "B3.ledger-posted", "B3.invoice-nothing-outstanding", "B6.reports-run", "B7.world-at-31-march-all-agree", "B8.export-one-file-line-by-line", "B9.snapshot-saved", "B9.restore-into-new-world", "B9.new-world-payment-not-in-old", "B9.old-world-payment-not-in-new", "B9.new-world-record-begins-with-old-then-lineage"],
+      "missing": "Partial end-to-end evidence only. Missing one-command full hosted world creation, real v4 deployment and payment path, Director proposal, door creation of the payment documents, signer identity in the hold answer, books/chain reconciliation, due-job assertion, complete record export assertions, snapshot untouched assertion, and world show lineage. See the twelve ordered tests in evals/thin-line.md; the spike uses localhost and main and cannot prove g8 on the sites machine."
+    }
+  ]
+}
