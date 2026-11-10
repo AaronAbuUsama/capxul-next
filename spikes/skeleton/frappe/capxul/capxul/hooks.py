@@ -22,13 +22,18 @@ doc_events = {
         "before_submit": "capxul.payments.guard_submit",
         "before_cancel": "capxul.payments.guard_cancel",
     },
-    "GL Entry": {"before_insert": "capxul.payments.guard_gl_entry"},
+    "GL Entry": {"before_insert": ["capxul.payments.guard_gl_entry", "capxul.trace.stamp_gl"]},
+    # the trace id of the command that caused a write (capxul.trace)
+    "*": {"after_insert": "capxul.trace.stamp", "on_update": "capxul.trace.stamp", "on_submit": "capxul.trace.stamp", "on_cancel": "capxul.trace.stamp"},
 }
+
+# the door: a person is vouched for by Core with a signed assertion (capxul.door); everything after that is Frappe's own permissions
+auth_hooks = ["capxul.door.validate_assertion"]
 
 # feature switches (capxul.features): off means refused, nothing is deleted
 has_permission = {"*": ["capxul.features.has_permission"]}
 permission_query_conditions = {"*": "capxul.features.query_conditions"}
-before_request = ["capxul.features.guard_request"]
+before_request = ["capxul.trace.from_request", "capxul.features.guard_request"]
 
 # names only (capxul.brand): the site says Capxul
 after_request = ["capxul.brand.after_request"]

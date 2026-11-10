@@ -8,12 +8,16 @@ import {
 import { privateKeyToAccount } from "viem/accounts";
 import { foundry } from "viem/chains";
 import { config } from "./config.ts";
+import { appendFileSync, mkdirSync } from "node:fs";
+import { touched, touchTx, trace } from "./trace.ts";
+import { worldNowMs } from "./world.ts";
 
 export type Deployment = {
   chainId: number; deployer: Address; usdc: Address; hats: Address; orgs: Address; payments: Address; deployedBlock: number;
 };
 
-export const transport = () => http(config.rpcUrl);
+// every call to the chain carries the command's trace id (anvil ignores it; a real node's gateway logs would join on it)
+export const transport = () => http(config.rpcUrl, { fetchOptions: { headers: { "x-capxul-trace": trace } } });
 export const publicClient = createPublicClient({ chain: foundry, transport: transport(), pollingInterval: 200 });
 
 export const loadAbi = (file: string, name: string): Abi =>
@@ -38,8 +42,25 @@ export const fromUnits = (v: bigint): string => {
   const s = formatUnits(v, 6);
   return s.includes(".") ? (s.split(".")[1]!.length < 2 ? s + "0" : s) : s + ".00";
 };
-export const wallet = (privateKey: Hex) =>
-  createWalletClient({ account: privateKeyToAccount(privateKey), chain: foundry, transport: transport() });
+// Before a transaction the chain is set to the world's time again (anvil forgets it on a restart; a real chain cannot be moved: finding).
+export async function syncTime(): Promise<void> {
+  try { await (publicClient as any).request({ method: "anvil_setTime", params: [Math.floor(worldNowMs() / 1000)] }); } catch { /* not anvil */ }
+}
+// Every transaction a command sends is noted for the recorder, and its hash is filed with the trace id (state/tx-trace.jsonl) so Core can
+// pass the id on to the site with the event the transaction causes.
+export const wallet = (privateKey: Hex) => {
+  const w = createWalletClient({ account: privateKeyToAccount(privateKey), chain: foundry, transport: transport() });
+  const write = w.writeContract.bind(w) as (p: unknown) => Promise<Hex>;
+  (w as any).writeContract = async (p: { functionName?: string }) => {
+    await syncTime();
+    const hash = await write(p);
+    touchTx(hash, p.functionName ?? "?");
+    mkdirSync(config.stateDir, { recursive: true });
+    appendFileSync(`${config.stateDir}/tx-trace.jsonl`, JSON.stringify({ tx: hash, trace }) + "\n");
+    return hash;
+  };
+  return w;
+};
 
 // Revert -> the contract error name, or undefined if this was not a contract revert.
 export function revertName(e: unknown): string | undefined {
@@ -63,6 +84,7 @@ export type SendResult =
 // A signed payment attempt. A revert leaves NO log on the chain, so the attempt is simulated first and the
 // refusal is reported by us (payment_failed), not read from the chain.
 export async function sendPayment(a: SendArgs): Promise<SendResult> {
+  touched.org = a.org;
   const d = deployment();
   const w = wallet(a.privateKey);
   const params = { address: d.payments, abi: abis.payments, functionName: "send", account: w.account,

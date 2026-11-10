@@ -11,12 +11,17 @@ DEFAULT_HAT_ROLES = {
     "budget-holder": ["Accounts User", "Purchase User", "Expense Approver"],
     "payroll-approver": ["HR Manager", "HR User"],
     "member": ["Employee"],
+    # the door's test people (added with the door: the four hats above were too few for sales, HR and projects work)
+    "sales": ["Sales User", "Sales Manager", "Accounts User"],
+    "hr-manager": ["HR Manager", "HR User", "Employee"],
+    "project-manager": ["Projects Manager", "Projects User", "Employee"],
 }
 
 CUSTOM_FIELDS = {
     "Supplier": [dict(fieldname="capxul_wallet_address", label="Capxul Wallet Address", fieldtype="Data", insert_after="supplier_name")],
     "Customer": [dict(fieldname="capxul_wallet_address", label="Capxul Wallet Address", fieldtype="Data", insert_after="customer_name")],
     "Employee": [dict(fieldname="capxul_wallet_address", label="Capxul Wallet Address", fieldtype="Data", insert_after="employee_name")],
+    "GL Entry": [dict(fieldname="capxul_trace", label="Capxul Trace", fieldtype="Data", read_only=1, no_copy=1, search_index=1)],
     "Payment Entry": [
         dict(fieldname="capxul_status", label="Capxul Status", fieldtype="Data", read_only=1, no_copy=1, insert_after="status"),
         dict(fieldname="capxul_approval_url", label="Capxul Approval Link", fieldtype="Data", read_only=1, no_copy=1, hidden=1, insert_after="capxul_status"),
@@ -64,6 +69,8 @@ def ensure_defaults():
     from capxul import features
 
     features.ensure_rows()
+    for g in frappe.get_all("Capxul Hat Grant", pluck="user"):  # people made before hats.ensure_employee stopped ERPNext restricting them to their own Employee
+        frappe.db.delete("User Permission", {"user": g, "allow": "Employee"})
     frappe.db.set_single_value("Capxul Settings", "last_seq", frappe.db.get_single_value("Capxul Settings", "last_seq") or 0)
     frappe.db.commit()
 
@@ -95,6 +102,11 @@ def configure_site(slug, company_name, safe_address, admin_email, core_url, secr
     frappe.set_user("Administrator")
     print("wizard:", run_wizard(company_name, currency, country))
     ensure_defaults()
+    if not frappe.db.exists("Company", company_name):  # a site made from the company template: its one Company is the template's; it takes the new name
+        old = frappe.db.get_value("Company", {})
+        if old:
+            frappe.rename_doc("Company", old, company_name, force=True)
+            frappe.db.commit()
     company = frappe.db.get_value("Company", {"company_name": company_name}) or frappe.db.get_value("Company", {})
     abbr = frappe.db.get_value("Company", company, "abbr")
 
@@ -106,6 +118,9 @@ def configure_site(slug, company_name, safe_address, admin_email, core_url, secr
         parent = frappe.db.get_value("Account", {"company": company, "account_type": "Bank", "is_group": 1}) or f"Current Assets - {abbr}"
         frappe.get_doc({"doctype": "Account", "account_name": "Capxul Safe (USDC)", "parent_account": parent, "company": company,
                         "account_type": "Bank", "account_currency": currency, "is_group": 0}).insert()
+    stale = frappe.db.get_value("Bank Account", {"account": acct_name})
+    if stale and not frappe.db.exists("Bank Account", {"integration_id": safe_address}):  # a site made from the template: its placeholder Safe account becomes this one
+        frappe.db.set_value("Bank Account", stale, {"integration_id": safe_address, "account_name": f"Safe {safe_address[:10]}"})
     if not frappe.db.exists("Bank Account", {"integration_id": safe_address}):
         frappe.get_doc({"doctype": "Bank Account", "account_name": f"Safe {safe_address[:10]}", "bank": "Capxul Safe", "account": acct_name,
                         "company": company, "is_company_account": 1, "is_default": 1, "integration_id": safe_address}).insert()
@@ -160,3 +175,10 @@ def configure_crm(company_name=None):
     ensure_defaults()
     frappe.db.commit()
     return {"company": company, "deal_status": s.deal_status}
+
+
+def reset_chain_cursor():
+    """After the chain was redeployed from nothing (a spike-only event): the site's event cursor starts again at 0."""
+    frappe.db.set_single_value("Capxul Settings", "last_seq", 0)
+    frappe.db.commit()
+    return "last_seq=0"

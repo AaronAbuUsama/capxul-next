@@ -31,7 +31,10 @@ export const config = {
   // the URL a person's browser uses (the approval link in /prepare answers)
   coreBrowserUrl: env("CORE_BROWSER_URL", `http://localhost:${corePort}`),
   newSiteScript: env("NEW_SITE_SCRIPT", join(skeletonDir, "frappe", "bin", "new-site.sh")),
+  newSiteFromTemplateScript: join(skeletonDir, "frappe", "bin", "new-site-from-template.sh"),
+  templateDir: env("TEMPLATE_DIR", join(coreDir, "state", "templates", "site")),
   featureScript: env("FEATURE_SCRIPT", join(skeletonDir, "frappe", "bin", "feature.sh")),  // stand-in for the site service
+  benchExecScript: env("BENCH_EXEC_SCRIPT", join(skeletonDir, "frappe", "bin", "bench-exec.sh")),
   peopleFile: join(coreDir, "people.json"),
   outDir: join(coreDir, "out"),
   clientId: "capxul-skeleton",

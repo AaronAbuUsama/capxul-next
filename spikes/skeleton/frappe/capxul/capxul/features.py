@@ -85,7 +85,7 @@ def _exempt():
 
 
 def _refuse(feature):
-    frappe.throw(_("{0} is switched off for this company.").format(CATALOG[feature]["label"]), frappe.PermissionError)
+    frappe.throw(_("{0} is switched off for this company (feature: {1}).").format(CATALOG[feature]["label"], feature), frappe.PermissionError)
 
 
 # ---- layer 2 and 3: permission hooks -------------------------------------------------------------------------------------------
@@ -213,7 +213,9 @@ def precheck(feature, on):
     return {"ok": True, "app": CATALOG[feature].get("app"), "state": st[feature]}
 
 
-def switch(feature, on):
+def switch(feature, on, trace_id=None):
+    if trace_id:
+        frappe.flags.capxul_trace = trace_id
     r = precheck(feature, on)
     if not r["ok"]:
         return r

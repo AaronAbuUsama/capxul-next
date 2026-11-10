@@ -5,7 +5,7 @@
 set -euo pipefail
 slug="$1"; action="$2"; feature="${3:-}"
 . "$(dirname "$0")/lib.sh"
-site="$slug.localhost"
+site="${SITE_NAME:-$slug.localhost}"
 t0=$(date +%s); step() { echo "[$(( $(date +%s) - t0 ))s] $*" >&2; }
 inbench "test -d sites/$site" || { echo "no site $site" >&2; exit 2; }
 # `bench execute` prints the return value as the last line of stdout
@@ -31,7 +31,7 @@ case "$action" in
       fi
     fi
     step "switching $feature $action"
-    out="$(run capxul.features.switch "{\"feature\":\"$feature\",\"on\":$flag}")"
+    out="$(run capxul.features.switch "{\"feature\":\"$feature\",\"on\":$flag,\"trace_id\":\"${TRACE_ID:-}\"}")"
     step "done"
     emit "$out" ;;
   *) echo "usage: feature.sh <slug> list | on <feature> | off <feature>" >&2; exit 2 ;;

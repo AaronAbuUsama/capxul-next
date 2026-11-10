@@ -53,7 +53,7 @@ async function handle(l: Log, chainId: number, hats: string, orgs: string, payme
 
   if (ev.eventName === "HatGranted" || ev.eventName === "HatRevoked") {
     const kind = ev.eventName === "HatGranted" ? "hat_granted" : "hat_revoked";
-    enqueue(org.slug, key, kind, { hat: a.hat, ...personData(a.wearer), department: a.department || null });
+    enqueue(org.slug, key, kind, { hat: a.hat, ...personData(a.wearer), department: a.department || null, tx_hash: l.transactionHash });
   } else if (ev.eventName === "PaymentSent") {
     const block = await publicClient.getBlock({ blockNumber: l.blockNumber! });
     enqueue(org.slug, key, "payment_sent", {

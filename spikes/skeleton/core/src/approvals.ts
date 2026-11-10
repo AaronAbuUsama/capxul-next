@@ -4,6 +4,7 @@ import { randomBytes } from "node:crypto";
 import { isAddress, type Address, type Hex } from "viem";
 import { sendPayment, toUnits } from "./chain.ts";
 import { config } from "./config.ts";
+import { siteOf } from "./world.ts";
 import { esc, html, page } from "./http.ts";
 import { enqueue, getOrg } from "./outbox.ts";
 import { byEmail } from "./people.ts";
@@ -13,7 +14,7 @@ import { poll } from "./watcher.ts";
 export type Approval = {
   id: string; org: string; site: string; doctype: string; name: string; document_hash: string;
   requested_by: string; to_party: string; to_address: string; amount: string; asset: string; department?: string;
-  status: "pending" | "signing" | "submitted" | "failed"; txHash?: string; reason?: string; detail?: string; createdAt: string;
+  status: "pending" | "signing" | "submitted" | "failed"; trace?: string; signedBy?: string; txHash?: string; reason?: string; detail?: string; createdAt: string;
 };
 const store = loadJson<Record<string, Approval>>("approvals.json", {});
 const save = () => saveJson("approvals.json", store);
@@ -22,12 +23,12 @@ const log = (m: string) => console.log(`${new Date().toISOString()} [approval] $
 export const getApproval = (id: string) => store[id];
 
 // Returns an error string, or the approval.
-export function prepare(b: Record<string, any>): string | Approval {
+export function prepare(b: Record<string, any>, trace?: string): string | Approval {
   for (const k of ["org", "site", "doctype", "name", "document_hash", "requested_by", "to_party", "to_address", "amount"]) {
     if (typeof b[k] !== "string" || !b[k]) return `missing field: ${k}`;
   }
   if (!getOrg(b.org)) return `unknown org: ${b.org}`;
-  if (b.site !== `${b.org}.localhost`) return `site ${b.site} does not belong to org ${b.org}`;
+  if (b.site !== siteOf(b.org)) return `site ${b.site} does not belong to org ${b.org}`;
   if (!/^0x[0-9a-fA-F]{64}$/.test(b.document_hash)) return "document_hash must be 0x + 64 hex";
   if (!isAddress(b.to_address)) return "to_address is not an address";
   if (!/^\d+(\.\d{1,6})?$/.test(b.amount) || toUnits(b.amount) <= 0n) return "amount must be a positive decimal with at most 6 places";
@@ -38,7 +39,7 @@ export function prepare(b: Record<string, any>): string | Approval {
   if (again) return again;
   const a: Approval = { id: `apr_${randomBytes(8).toString("hex")}`, org: b.org, site: b.site, doctype: b.doctype, name: b.name,
     document_hash: b.document_hash, requested_by: b.requested_by, to_party: b.to_party, to_address: b.to_address,
-    amount: b.amount, asset: b.asset ?? "USDC", department: b.department, status: "pending", createdAt: new Date().toISOString() };
+    amount: b.amount, asset: b.asset ?? "USDC", department: b.department, status: "pending", trace, createdAt: new Date().toISOString() };
   store[a.id] = a; save();
   log(`${a.id} prepared: ${a.org} pays ${a.amount} to ${a.to_party} for ${a.doctype} ${a.name}`);
   return a;
@@ -78,6 +79,26 @@ export async function sign(id: string): Promise<Approval | undefined> {
     log(`${a.id} refused: ${r.reason} (${r.detail})`);
     enqueue(a.org, `approval:${a.id}:failed`, "payment_failed",
       { approval_id: a.id, document_hash: a.document_hash, reason: r.reason, detail: r.detail });
+  }
+  return a;
+}
+
+// A person signed with their own key outside Core (the CLI, `approval sign`) and says what happened. The chain's own log is what the
+// site is told (the watcher); this only keeps the approval page and the record honest.
+export async function external(id: string, b: Record<string, any>): Promise<Approval | string> {
+  const a = store[id];
+  if (!a) return "unknown approval";
+  if (a.status !== "pending") return a;
+  if (!byEmail(b.signer)) return `signer ${b.signer} is not a person Capxul knows`;
+  a.signedBy = b.signer;
+  if (b.txHash) {
+    a.status = "submitted"; a.txHash = b.txHash; save();
+    log(`${a.id} signed by ${b.signer} with their own key: ${b.txHash}`);
+    await poll().catch((e) => log(`ERROR watcher after external sign: ${e.message}`));
+  } else {
+    a.status = "failed"; a.reason = b.reason; a.detail = b.detail; save();
+    log(`${a.id} refused for ${b.signer}: ${b.reason} (${b.detail})`);
+    enqueue(a.org, `approval:${a.id}:failed`, "payment_failed", { approval_id: a.id, document_hash: a.document_hash, reason: b.reason, detail: b.detail });
   }
   return a;
 }

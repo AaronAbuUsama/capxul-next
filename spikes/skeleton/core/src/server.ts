@@ -1,6 +1,6 @@
 // The Core stub service on CORE_PORT. Plain node:http.
 import { createServer } from "node:http";
-import { approvalUrl, approvePage, getApproval, prepare, sign } from "./approvals.ts";
+import { approvalUrl, approvePage, external, getApproval, prepare, sign } from "./approvals.ts";
 import { config } from "./config.ts";
 import { verify } from "./hmac.ts";
 import { html, readBody, send, type Ctx } from "./http.ts";
@@ -17,6 +17,8 @@ const signed = (c: Ctx): boolean => verify(c.body, c.req.headers["x-capxul-signa
 async function route(c: Ctx): Promise<void> {
   const { req, res, url } = c;
   const m = req.method, p = url.pathname;
+  const tr = req.headers["x-capxul-trace"];
+  if (tr && p !== "/health") log(`trace ${tr} ${m} ${p}`);   // so Core's log can be joined to the command that made the call
   if (p === "/health") return send(res, 200, { ok: true, standIn: true });
   if (await handleOauth(c)) return;
 
@@ -32,12 +34,18 @@ async function route(c: Ctx): Promise<void> {
     return send(res, 405, { error: "method not allowed" });
   }
 
+  const ext = /^\/approve\/(apr_[0-9a-f]+)\/external$/.exec(p);
+  if (ext && m === "POST") {
+    if (!signed(c)) return send(res, 401, { error: "bad signature" });
+    const a = await external(ext[1]!, JSON.parse(c.body || "{}"));
+    return typeof a === "string" ? send(res, 400, { error: a }) : send(res, 200, a);
+  }
   if (m === "POST" && p.startsWith("/admin/") || p === "/prepare") {
     if (m !== "POST") return send(res, 405, { error: "method not allowed" });
     if (!signed(c)) return send(res, 401, { error: "bad signature" });
     const b = JSON.parse(c.body || "{}");
     if (p === "/prepare") {
-      const a = prepare(b);
+      const a = prepare(b, typeof tr === "string" ? tr : undefined);
       return typeof a === "string" ? send(res, 400, { error: a })
         : send(res, 200, { approval_id: a.id, approval_url: approvalUrl(a) });
     }

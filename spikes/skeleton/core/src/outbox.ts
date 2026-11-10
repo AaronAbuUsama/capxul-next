@@ -1,7 +1,9 @@
 // The outbox: every event Core owes a Frappe site, persisted in state/outbox.json.
 // Core assigns each org's gap-free seq at enqueue time and resends, in order, until Frappe answers applied.
 // Delivery is at-least-once; Frappe's event_key makes it effectively once.
+import { readFileSync } from "node:fs";
 import { config } from "./config.ts";
+import { siteOf } from "./world.ts";
 import { sign } from "./hmac.ts";
 import { loadJson, saveJson } from "./store.ts";
 
@@ -66,12 +68,20 @@ export const resend = (slug: string): void => {
   if (o) { o.retryAt = 0; o.failures = 0; save(); }
 };
 
+// The trace id a command filed with the hash of a transaction it sent (chain.ts), so the event that transaction causes carries it to the site.
+function traceOf(tx: unknown): string {
+  if (typeof tx !== "string") return "";
+  try {
+    const hit = readFileSync(`${config.stateDir}/tx-trace.jsonl`, "utf8").split("\n").filter(Boolean).map((l) => JSON.parse(l)).reverse().find((r) => r.tx === tx);
+    return hit?.trace ?? "";
+  } catch { return ""; }
+}
 type Answer = { status: number; body: any };
 async function post(o: OrgRecord, ev: OutEvent): Promise<Answer> {
   const body = JSON.stringify({ event_key: ev.event_key, seq: ev.seq, org: o.slug, kind: ev.kind, data: ev.data });
   const res = await fetch(`${config.frappeUrl}/api/method/capxul.api.chain_event`, {
     method: "POST",
-    headers: { "content-type": "application/json", "x-capxul-signature": sign(body), "x-frappe-site-name": `${o.slug}.localhost` },
+    headers: { "content-type": "application/json", "x-capxul-signature": sign(body), "x-frappe-site-name": siteOf(o.slug), "x-capxul-trace": traceOf(ev.data.tx_hash) },
     body, signal: AbortSignal.timeout(8000),
   });
   const text = await res.text();

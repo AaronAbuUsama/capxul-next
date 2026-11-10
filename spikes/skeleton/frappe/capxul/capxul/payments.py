@@ -89,7 +89,7 @@ def request_payment(name):
     try:
         r = requests.post(
             s.core_url.rstrip("/") + "/prepare", data=raw, timeout=10,
-            headers={"Content-Type": "application/json", "X-Capxul-Signature": sign(raw)},
+            headers={"Content-Type": "application/json", "X-Capxul-Signature": sign(raw), "X-Capxul-Trace": frappe.flags.get("capxul_trace") or ""},
         )
     except Exception as e:  # keep the failed request visible, then tell the person
         req.db_set({"status": "Failed", "reason": f"PREPARE_UNREACHABLE: {e}"[:400]})
