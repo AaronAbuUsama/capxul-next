@@ -29,6 +29,10 @@ through the CLI alone:
 - **A world can be saved and restored.** A snapshot is a version of a whole world: the chain, the site, the service's
   state, the clock and the place in the record. It can be restored in place or into a whole separate world, and the
   record keeps which snapshot a world came from. The book already designs `dev snapshot save|list|restore`.
+- **One bench is shared by everything, local devnets included.** A developer's devnet runs only the Capxul part on
+  the laptop and registers as a world with the hosted bench, which holds its companies' sites. For that to work every
+  call goes from the service to the site and never the other way: a request to pay is a row the site writes and the
+  service collects. The spike's `/prepare` call and its sign-in exchange break this rule and are to be changed.
 - **It must be visible.** Agents drive it, but a person can open the Frappe screens of a running world and see it.
 - **The cloud matters.** Where this runs, on the cloud that already exists (`Xelmar-tech/hosting`), must be understood
   and written down before it is needed.
