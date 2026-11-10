@@ -683,10 +683,12 @@
       "title": "Lanes: one working copy per thread, merged only when the checks pass",
       "why": "Several agents shared one working tree. It caused locked commits, a plan tool that crashed while another agent was mid-edit, and a test that wrote into Aaron's answers file.",
       "milestone": "m1",
-      "state": "doing",
+      "state": "done",
       "needs": [],
       "records": [],
-      "evidence": [],
+      "evidence": [
+        "every thread since the scoreboard ran in its own worktree and was merged by the coordinator after the checks; the loop gives each run its own lane"
+      ],
       "created": "2026-11-10",
       "updated": "2026-11-10",
       "thread": "coordinator"
@@ -732,10 +734,12 @@
       "title": "The loop: a minimal runner so agents can be started, watched and coordinated from scripts",
       "why": "Aaron asked for it: just enough machinery in the repository that the coordinator, a person, Claude or Codex can start a task, watch it and steer it, without swarmD and without the coordinator starting every thread by hand.",
       "milestone": "m1",
-      "state": "doing",
+      "state": "done",
       "needs": [],
       "records": [],
-      "evidence": [],
+      "evidence": [
+        "lane/loop merged (packages/loop, loops/pair.ts); a real run on m1-dev-commands went three rounds and ended blocked on a faulty test that has since been fixed"
+      ],
       "created": "2026-11-10",
       "updated": "2026-11-10",
       "thread": "lane/loop"
@@ -791,13 +795,24 @@
       "evidence": [],
       "created": "2026-11-10",
       "updated": "2026-11-10"
+    },
+    {
+      "id": "m1-loop-hardening",
+      "title": "The loop: make it trustworthy enough to run tasks unattended",
+      "why": "The first version works but is not yet safe to leave alone: its budget is counted in turns and time, not money; its rules on what an agent may run are a filter, not a sandbox; steering a running agent and the heavy sandbox are untested; and it is 1,200 lines against a cap of 800.",
+      "milestone": "m1",
+      "state": "todo",
+      "needs": [],
+      "records": [],
+      "evidence": [],
+      "created": "2026-11-10",
+      "updated": "2026-11-10"
     }
   ],
   "path": {
     "tasks": [
       "m1-worlds-spec",
-      "m1-lanes",
-      "m1-loop-runner",
+      "m1-loop-hardening",
       "m1-eval-coverage",
       "m1-time-proof",
       "m1-aws-records",
@@ -806,7 +821,7 @@
       "m1-entry-docs",
       "m1-aaron-accepts"
     ],
-    "why": "Worlds as a hosted platform is specified first: Aaron called it the foundational piece that must come before breadth. The scoreboard now exists and its first true score is 8 of 4,724, so the next step on it is closing the gap between the checks and the book's tests, for the thin line first. Lanes and the loop runner change how later tasks are run. Then time is proved on the scoreboard, the AWS side is written in, and telemetry is the remaining bulk. The old decisions and the entry documents are cleaned up before Aaron is asked to accept the book.",
+    "why": "Worlds as a hosted platform is specified first: Aaron called it the foundational piece that must come before breadth. The loop runner is merged; it is made trustworthy next, so later tasks run through it and not by hand. Then the checks are lined up with the book's tests so the score is real, time is proved on the scoreboard, the AWS side is written in, and telemetry is the remaining bulk. The old decisions and the entry documents are cleaned up before Aaron is asked to accept the book.",
     "written": "2026-11-10"
   },
   "notes": [
