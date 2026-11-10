@@ -49,6 +49,7 @@ export const architecture = (p: ArchitecturePage): readonly string[] => [
       `- **${plain(n.title)}**${n.note === "" ? "" : ` (${plain(n.note)})`}: ${plain(n.text)}${n.chips.length === 0 ? "" : ` [${n.chips.map(plain).join(", ")}]`}`),
   ]),
   ...tableSection(p.id, p.runs),
+  ...tableSection(p.id, p.deployment),
   ...section("What must be up before what", p.layers.map((layer, i) => `${i + 1}. ${i === 0 ? "Depends on nothing" : `Layer ${i + 1}`}: ${refs(p.id, layer)}`)),
   ...tableSection(p.id, p.depends),
   ...(p.traced ? section("One request, end to end", [`The operation ${link(p.id, p.traced.operation)}: ${plain(p.traced.title)}.`, "", ...trace(p.id, p.traced.trace)]) : []),

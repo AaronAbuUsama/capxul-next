@@ -207,7 +207,7 @@ const MILESTONE_BOOK: Readonly<Record<string, readonly string[]>> = {
   m1: ["system:capxul"],
   // the devnet's own environment and the invariants over no table (the clock's among them) are stood up with the door and the clock
   m3: ["environment:devnet", ...ofKind("invariant").filter((i) => !(i.over as unknown[] | undefined)?.length).map(keyOf)],
-  m3b: ["environment:shared-world"], m5: ["environment:staging"],
+  m3b: ["environment:shared-world", "environment:worlds"], m5: ["environment:staging", "environment:production"],
 };
 
 add({ key: "capxul", kind: "root", title: "Capxul rebuilt", priority: "critical", evals: ["ok:capxul"], checkers: [], paths: [],

@@ -18,6 +18,12 @@ test("the real book generates a site that passes the portal check", async () => 
   assert.ok(input.worlds, "the Worlds page is made from docs/design/worlds-platform.md");
   assert.ok((files.get("worlds/index.html") ?? "").includes("Worlds as a hosted platform"));
   assert.ok((files.get("worlds.md") ?? "").includes("## Clean data"));
+  for (const path of ["design/index.html", "design.md", "data/design.json"]) {
+    const page = files.get(path) ?? "";
+    for (const phrase of ["sites-backup", "production", "worlds", "34.249.131.57", "8 February 2027", "No production RPO/RTO promised"]) {
+      assert.ok(page.includes(phrase), `${path} exposes deployment record: ${phrase}`);
+    }
+  }
   const outcomes = check(files, generate(input, assets), expected);
   assert.ok(passed(outcomes), JSON.stringify(outcomes.filter((o) => o.failures > 0), null, 2));
 
