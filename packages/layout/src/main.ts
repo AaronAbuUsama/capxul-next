@@ -47,7 +47,7 @@ const policyOf = (oversize: Oversize): Policy => ({
   limit: LIMIT,
   sourceExtensions: [".ts", ".tsx", ".js", ".mjs", ".cjs", ".py", ".sh", ".sol"],
   // designs and evidence; dead material; generated code; vendored libraries
-  sizeExempt: ["blueprint/", "docs/", "archive/", "/generated/", "packages/contracts/lib/", "/node_modules/"],
+  sizeExempt: ["blueprint/", "docs/", "archive/", "/generated/", "packages/contracts/lib/", "packages/loop-ui/src/components/ui/", "/node_modules/"],   // loop-ui/components/ui is shadcn's code, copied in by its tool
   oversize,
 });
 
