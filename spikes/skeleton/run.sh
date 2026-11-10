@@ -22,7 +22,9 @@ chk() { if [ "$2" = "$3" ]; then ok "$1${4:+ ($4)}"; else bad "$1" "expected [$3
 info() { echo "INFO $*"; }
 ms() { python3 -c 'import time;print(int(time.time()*1000))'; }
 jget() { python3 -c 'import json,sys; d=json.load(sys.stdin); print(eval(sys.argv[1]))' "$1" 2>/dev/null; }
-core() { node --experimental-strip-types --no-warnings "$HERE/core/src/main.ts" "$@"; }
+CALLS="$T/calls"; : > "$CALLS"
+core() { echo x >> "$CALLS"; node --experimental-strip-types --no-warnings "$HERE/core/src/main.ts" "$@"; }   # every call is counted: B8 compares with the record
+export -f core; export CALLS HERE   # (the polling loops below run `core` inside bash -c)
 fr() { local jar=$1; shift; curl -s -b "$jar" -H "X-Frappe-Site-Name: $SITE" -H 'Content-Type: application/json' "$@"; }
 # list docs: lst <jar> <doctype> <filters json> <fields json> [order_by]
 lst() { fr "$1" -G "$FR/api/resource/${2// /%20}" --data-urlencode "filters=$3" --data-urlencode "fields=$4" --data-urlencode "limit_page_length=200" ${5:+--data-urlencode "order_by=$5"}; }
@@ -81,6 +83,7 @@ echo "== run.sh for org '$SLUG' ($SITE)"
 USDC=$(python3 -c "import json;print(json.load(open('$HERE/core/state/deployment.json'))['usdc'])")
 PAYMENTS=$(python3 -c "import json;print(json.load(open('$HERE/core/state/deployment.json'))['payments'])")
 
+REC="$HERE/core/state/record/main.jsonl"; REC0=$( [ -f "$REC" ] && wc -l < "$REC" || echo 0 ); REC0=$((REC0))
 echo "== Behaviour 1: an org is one command"
 existed=$(curl -s -o /dev/null -w '%{http_code}' -H "X-Frappe-Site-Name: $SITE" $FR/api/method/ping)
 [ "$existed" = 200 ] && info "site $SITE already exists: org create continues idempotently (reuses the Safe, re-runs the site script)"
@@ -171,7 +174,7 @@ n0=$(n_sent_events); B_TO=$(usdc $SUPPLIER_ADDR)
 "$HERE/frappe/bin/down.sh" >/dev/null 2>&1
 res=$(approval_sign "$APR"); TX5=$(echo "$res" | jget "d['txHash']")
 chk "4c signed while Frappe is down: the chain moved the money" "$(( $(usdc $SUPPLIER_ADDR) - B_TO ))" 60000000 "tx $TX5"
-wait_for 10 bash -c "core() { node --experimental-strip-types --no-warnings $HERE/core/src/main.ts \"\$@\"; }; core events status $SLUG | grep -q 'pending=[1-9]'"
+wait_for 10 bash -c "core events status $SLUG | grep -q 'pending=[1-9]'"
 chk "4c Core holds the undelivered event in its outbox" "$(core events status "$SLUG" | head -1 | grep -o 'pending=[0-9]*')" "pending=1" "$(core events status "$SLUG" | sed -n 2p | cut -c1-90)"
 t0=$(ms); "$HERE/frappe/bin/up.sh" >/dev/null 2>&1; up_ms=$(( $(ms) - t0 )); info "Frappe stack back up in $((up_ms/1000)) s"
 login_admin; t0=$(ms); wait_for 90 pe_posted "$PE5"; ok_c=$?; posted_ms=$(( $(ms) - t0 ))
@@ -199,7 +202,7 @@ out=$(request "$T/admin" "$PE4"); chk "4f Administrator asking for a payment is 
 UNKNOWN=$(python3 -c 'import secrets;print("0x"+secrets.token_hex(20))'); HATS=$(python3 -c "import json;print(json.load(open('$HERE/core/state/deployment.json'))['hats'])")
 HK=$(python3 -c "import json;print([p for p in json.load(open('$HERE/core/people.json'))['people'] if p['email']=='$ADMIN'][0]['privateKey'])")   # anvil's published test key
 cast send "$HATS" "grant(bytes32,string,address,string)" "$(cast keccak "$SLUG")" member "$UNKNOWN" "" --private-key "$HK" --rpc-url $RPC >/dev/null 2>&1
-t0=$(ms); wait_for 30 bash -c "node --experimental-strip-types --no-warnings $HERE/core/src/main.ts events status $SLUG | head -1 | grep -q 'pending=0'"
+t0=$(ms); wait_for 30 bash -c "core events status $SLUG | head -1 | grep -q 'pending=0'"
 chk "4g poison event: Core's outbox drains (the unappliable event is parked, not retried for ever)" "$(core events status "$SLUG" | head -1 | grep -o 'pending=[0-9]*')" "pending=0" "$((WAITED))ms"
 chk "4g the parked event is visible on the site with its reason" "$(lst "$T/admin" "Capxul Chain Event" '[["status","=","Parked"]]' '["error"]' | jget "'has no person_email' in d['data'][-1]['error']")" True
 core hat grant "$SLUG" member jonas@acme.test >/dev/null 2>&1; wait_for 15 has_roles jonas@acme.test "['Employee']"
@@ -255,6 +258,184 @@ chk "B5 whatsapp on (crm on): installs the app if needed; it is on and answers a
 core feature off "$SLUG" whatsapp --as $ADMIN >/dev/null 2>&1
 chk "B5 a feature cannot be switched by hand on the site (REST PUT as Administrator is refused)" "$(code_of "$T/admin" -X PUT "$FR/api/resource/Capxul%20Feature/stock" -d '{"enabled":1}') $(feat stock)" "403 off"
 core hat revoke "$SLUG" member jonas@acme.test >/dev/null 2>&1
+
+# ---------------------------------------------------------------------------------------------------------------
+echo "== Behaviour 6: the door (the CLI reaches Frappe as the calling person; their own permissions decide)"
+SALES=sam@acme.test; HR=sana@acme.test; PROJ=pavel@acme.test; RUN=$(date +%s)
+WORLD=""   # set to another world's name to drive that world (B9)
+dj() { core "$@" ${WORLD:+--world $WORLD} --json; }   # a door command's JSON answer
+for pair in "sales $SALES" "hr-manager $HR" "project-manager $PROJ"; do set -- $pair; core hat grant "$SLUG" "$1" "$2" >/dev/null 2>&1; done
+wait_for 30 has_roles $SALES "['Accounts User', 'Sales Manager', 'Sales User']"; wait_for 30 has_roles $HR "['Employee', 'HR Manager', 'HR User']"; wait_for 30 has_roles $PROJ "['Employee', 'Projects Manager', 'Projects User']"
+chk "B6 three new hats (sales, hr-manager, project-manager) reached the site as roles" "$(roles_of $SALES | tr -d "'[] ,")$(roles_of $HR | tr -d "'[] ,")$(roles_of $PROJ | tr -d "'[] ,")" "AccountsUserSalesManagerSalesUserEmployeeHRManagerHRUserEmployeeProjectsManagerProjectsUser"
+t0=$(ms); out=$(dj doc types $SLUG --as $ADMIN); ms_types=$(( $(ms) - t0 ))
+NTYPES=$(echo "$out" | jget "d['data']['count']"); NDOC=$(echo "$out" | jget "len([t for t in d['data']['types'] if not t['child'] and not t['single']])")
+[ "${NTYPES:-0}" -gt 100 ] && ok "B6 discovery: the admin-hat person reaches $NTYPES document types on a default site ($NDOC listable, ${ms_types}ms), from Frappe's own metadata" || bad "B6 doc types" "$out"
+chk "B6 discovery by feature: crm lists its own types for the sales person" "$(dj doc types $SLUG --as $SALES --feature crm | jget "sorted(t['doctype'] for t in d['data']['types'] if t['doctype'] in ('CRM Lead','CRM Deal','CRM Organization'))")" "['CRM Deal', 'CRM Lead', 'CRM Organization']"
+chk "B6 discovery: a schema comes from Frappe's metadata (CRM Lead has first_name, status)" "$(dj doc schema $SLUG "CRM Lead" --as $SALES | jget "all(f in [x['fieldname'] for x in d['data']['fields']] for f in ('first_name','status'))")" True
+# sales: lead -> deal -> won -> customer in accounts -> invoice -> submit
+LEAD=$(dj doc create $SLUG "CRM Lead" --as $SALES --data "{\"first_name\":\"Lena\",\"last_name\":\"Lead $RUN\",\"email\":\"lena$RUN@lead.test\",\"organization\":\"Lead Co $RUN\"}" | jget "d['data']['name']")
+DEAL=$(dj doc call $SLUG crm.fcrm.doctype.crm_lead.crm_lead.convert_to_deal --as $SALES --args "{\"lead\":\"$LEAD\"}" | jget "d['data']")
+[ -n "$LEAD" ] && [ -n "$DEAL" ] && ok "B6 sales person made lead $LEAD and converted it to deal $DEAL" || bad "B6 lead to deal" "lead=[$LEAD] deal=[$DEAL]"
+dj doc update $SLUG "CRM Deal" "$DEAL" --as $SALES --data '{"status":"Won"}' >/dev/null
+chk "B6 deal won: the customer is in accounts (read by the sales person)" "$(dj doc list $SLUG Customer --as $SALES --filters "[[\"crm_deal\",\"=\",\"$DEAL\"]]" --fields name,customer_type | jget "[(r['name'], r['customer_type']) for r in d['data']['rows']]")" "[('Lead Co $RUN', 'Company')]"
+SI=$(dj doc create $SLUG "Sales Invoice" --as $SALES --data "{\"customer\":\"Lead Co $RUN\",\"company\":\"$COMPANY\",\"items\":[{\"item_name\":\"Consulting\",\"description\":\"Consulting\",\"qty\":1,\"rate\":900,\"income_account\":\"Sales - $ABBR\"}]}" | jget "d['data']['name']")
+dj doc submit $SLUG "Sales Invoice" "$SI" --as $SALES >/dev/null
+chk "B6 sales person made and submitted Sales Invoice $SI; it is in the ledger (Debtors debited 900)" "$(dj doc get $SLUG "Sales Invoice" "$SI" --as $SALES | jget "d['data']['docstatus']") $(lst "$T/admin" "GL Entry" "[[\"voucher_no\",\"=\",\"$SI\"],[\"is_cancelled\",\"=\",0]]" '["account","debit"]' | jget "sum(g['debit'] for g in d['data'] if g['account'].startswith('Debtors'))")" "1 900.0"
+# HR: employee, leave application, approve
+EMP=$(dj doc create $SLUG Employee --as $HR --data "{\"first_name\":\"Eva\",\"last_name\":\"Employee $RUN\",\"gender\":\"Female\",\"date_of_birth\":\"1992-04-04\",\"date_of_joining\":\"2026-01-05\",\"company\":\"$COMPANY\",\"status\":\"Active\"}" | jget "d['data']['name']")
+[ "$(dj doc list $SLUG "Holiday List Assignment" --as $HR | jget "d['data']['count']")" = 0 ] && { dj doc create $SLUG "Holiday List" --as $HR --data "{\"holiday_list_name\":\"Acme $RUN\",\"from_date\":\"2026-01-01\",\"to_date\":\"2026-12-31\"}" >/dev/null; HLA=$(dj doc create $SLUG "Holiday List Assignment" --as $HR --data "{\"applicable_for\":\"Company\",\"assigned_to\":\"$COMPANY\",\"holiday_list\":\"Acme $RUN\",\"from_date\":\"2026-01-01\"}" | jget "d['data']['name']"); dj doc submit $SLUG "Holiday List Assignment" "$HLA" --as $HR >/dev/null; }
+LA=$(dj doc create $SLUG "Leave Application" --as $HR --data "{\"employee\":\"$EMP\",\"leave_type\":\"Leave Without Pay\",\"from_date\":\"2026-11-16\",\"to_date\":\"2026-11-17\",\"company\":\"$COMPANY\",\"status\":\"Open\"}" | jget "d['data']['name']")
+dj doc update $SLUG "Leave Application" "$LA" --as $HR --data '{"status":"Approved"}' >/dev/null; dj doc submit $SLUG "Leave Application" "$LA" --as $HR >/dev/null
+chk "B6 HR person made employee $EMP and leave application $LA, approved it (submitted, status Approved)" "$(dj doc get $SLUG "Leave Application" "$LA" --as $HR | jget "(d['data']['docstatus'], d['data']['status'])")" "(1, 'Approved')"
+# projects: project, task, timesheet
+TSDATE=$(python3 -c "import datetime,sys; print(datetime.date(2025,1,1)+datetime.timedelta(days=int(sys.argv[1])%400))" $RUN)
+PRJ=$(dj doc create $SLUG Project --as $PROJ --data "{\"project_name\":\"B6 Website $RUN\"}" | jget "d['data']['name']")
+TSK=$(dj doc create $SLUG Task --as $PROJ --data "{\"subject\":\"Design\",\"project\":\"$PRJ\"}" | jget "d['data']['name']")
+TS=$(dj doc create $SLUG Timesheet --as $PROJ --data "{\"company\":\"$COMPANY\",\"time_logs\":[{\"activity_type\":\"Planning\",\"from_time\":\"$TSDATE 09:00:00\",\"hours\":2,\"project\":\"$PRJ\",\"task\":\"$TSK\"}]}" | jget "d['data']['name']")
+[ -n "$PRJ" ] && [ -n "$TSK" ] && [ -n "$TS" ] && ok "B6 project person made project $PRJ, task $TSK and timesheet $TS" || bad "B6 projects" "$PRJ/$TSK/$TS"
+# reports
+GLF="{\"company\":\"$COMPANY\",\"from_date\":\"2026-01-01\",\"to_date\":\"2026-12-31\"}"   # (a variable: macOS bash 3.2 mis-parses \" inside nested $( ) )
+chk "B6 reports: the admin-hat person runs General Ledger and Trial Balance (rows come back)" "$(dj report run $SLUG "General Ledger" --as $ADMIN --filters "$GLF" | jget "d['data']['count']>5") $(dj report run $SLUG "Trial Balance" --as $ADMIN --filters "{\"company\":\"$COMPANY\",\"fiscal_year\":\"2026\",\"from_date\":\"2026-01-01\",\"to_date\":\"2026-12-31\"}" | jget "d['data']['count']>3") $(dj report list $SLUG --as $ADMIN | jget "d['data']['count']>50")" "True True True"
+# refusals: a person without the role is refused, with a reason
+refused() { local code; code=$(echo "$1" | jget "d['error']['code'] if not d['ok'] else 'OK'"); echo "$code"; }
+chk "B6 refused with a reason: budget-holder creating a CRM Lead, sales person creating an Employee, HR person creating a Sales Invoice, project person running the General Ledger" "$(refused "$(dj doc create $SLUG "CRM Lead" --as $BUDGET --data '{"first_name":"x"}')") $(refused "$(dj doc create $SLUG Employee --as $SALES --data '{"first_name":"x"}')") $(refused "$(dj doc create $SLUG "Sales Invoice" --as $HR --data '{"customer":"x"}')") $(refused "$(dj report run $SLUG "General Ledger" --as $PROJ --filters "$GLF")")" "FORBIDDEN FORBIDDEN FORBIDDEN FORBIDDEN"
+chk "B6 a known person with no hat on this site (elena) has no door: NO_HAT; Administrator is not a person: UNKNOWN_PERSON" "$(refused "$(dj doc list $SLUG Customer --as elena@brightside.test)") $(refused "$(dj doc list $SLUG Customer --as Administrator)")" "NO_HAT UNKNOWN_PERSON"
+chk "B6 a door command with no --as is refused (the door never acts as Administrator)" "$(refused "$(dj doc list $SLUG Customer)")" NEEDS_PERSON
+core feature off "$SLUG" projects --as $ADMIN >/dev/null 2>&1
+off=$(dj doc list $SLUG Project --as $PROJ); offt=$(dj doc types $SLUG --as $PROJ --feature projects)
+chk "B6 a switched-off feature is refused through the door, with the feature's name in the reason" "$(echo "$off" | jget "(d['error']['code'], 'projects' in d['error']['reason'])") $(refused "$offt")" "('FEATURE_OFF', True) FEATURE_OFF"
+core feature on "$SLUG" projects --as $ADMIN >/dev/null 2>&1
+chk "B6 ... and switched on again it answers" "$(dj doc list $SLUG Project --as $PROJ | jget "d['ok']")" True
+nx=$(dj doc next $SLUG "Sales Invoice" "$SI" --as $SALES); info "doc next: $(echo "$nx" | jget "(len(d['data']['connections']), len(d['data']['makers']))") (connections, make-methods) for a Sales Invoice"
+t0=$(ms); core doc list $SLUG Customer --as $SALES --limit 5 >/dev/null; info "timing: doc list $(( $(ms) - t0 )) ms wall (node start included)"
+t0=$(ms); core doc create $SLUG Project --as $PROJ --data "{\"project_name\":\"B6 timing $RUN\"}" >/dev/null; info "timing: doc create $(( $(ms) - t0 )) ms wall"
+
+# ---------------------------------------------------------------------------------------------------------------
+echo "== Behaviour 7: the clock (a world's time is set and moved from the CLI; the chain and every site in it follow)"
+wd() { core world clock show ${WORLD:-main} --json | jget "d['data']['time'][:10]"; }
+mkpay() {   # mkpay <amount> [world]: sales invoice, purchase invoice, Safe payment entry, submit, sign by key. Prints "PE TX".
+  local wdate si pi pe apr tx
+  wdate=$(wd)
+  dj doc create $SLUG "Sales Invoice" --as $SALES --data "{\"customer\":\"Lead Co $RUN\",\"company\":\"$COMPANY\",\"items\":[{\"item_name\":\"Retainer\",\"description\":\"Retainer\",\"qty\":1,\"rate\":100,\"income_account\":\"Sales - $ABBR\"}]}" > "$T/si.json"
+  si=$(jget "d['data']['name']" < "$T/si.json"); dj doc submit $SLUG "Sales Invoice" "$si" --as $SALES >/dev/null
+  pi=$(dj doc create $SLUG "Purchase Invoice" --as $BUDGET --data "{\"supplier\":\"$SUPPLIER\",\"company\":\"$COMPANY\",\"posting_date\":\"$wdate\",\"due_date\":\"$wdate\",\"items\":[{\"item_name\":\"Office cleaning\",\"description\":\"Office cleaning\",\"qty\":1,\"rate\":$1,\"expense_account\":\"Administrative Expenses - $ABBR\"}]}" | jget "d['data']['name']")
+  dj doc submit $SLUG "Purchase Invoice" "$pi" --as $BUDGET >/dev/null
+  dj doc call $SLUG erpnext.accounts.doctype.payment_entry.payment_entry.get_payment_entry --as $BUDGET --args "{\"dt\":\"Purchase Invoice\",\"dn\":\"$pi\",\"bank_account\":\"$SAFE_ACCOUNT\"}" > "$T/pe.json"
+  python3 -c 'import json,sys; d=json.load(open(sys.argv[1]))["data"]; d["paid_from"]=sys.argv[2]; print(json.dumps({k:v for k,v in d.items() if not k.startswith("__")}))' "$T/pe.json" "$SAFE_ACCOUNT" > "$T/pe.data"
+  pe=$(dj doc create $SLUG "Payment Entry" --as $BUDGET --data @"$T/pe.data" | jget "d['data']['name']")
+  apr=$(dj doc submit $SLUG "Payment Entry" "$pe" --as $BUDGET | jget "d['data']['approval']")
+  dj approval sign $SLUG "$apr" --as $BUDGET > "$T/sign.json"; tx=$(jget "d['data']['txHash']" < "$T/sign.json")
+  echo "$si $pi $pe $tx"
+}
+core hat grant "$SLUG" budget-holder $BUDGET >/dev/null 2>&1
+chk "B7 a person who is not the world's admin cannot move its clock (refused, nothing changed)" "$(refused "$(dj world clock set main 2026-03-02T09:00:00Z --as $ADMIN)")" NOT_WORLD_ADMIN
+t0=$(ms); out=$(dj world clock set main 2026-03-02T09:00:00Z --as operator); set_ms=$(( $(ms) - t0 ))
+chk "B7 world clock set to 2 March 2026 (in the past): every site and the chain show it" "$(dj world clock show main | jget "(d['data']['time'][:10], d['data']['chainLatestBlock'][:10], sorted(set(s['today'] for s in d['data']['sites'])))")" "('2026-03-02', '2026-03-02', ['2026-03-02'])" "${set_ms}ms"
+PERIODS=("2026-03-02")
+pay_at() { read -r si pi pe tx <<<"$(mkpay "$1")"; PES+=("$pe"); TXS+=("$tx"); SIS+=("$si"); [ -n "$tx" ] && ok "B7 $(wd): invoice $si, bill $pi, payment $pe signed by key through approval sign, tx $tx" || bad "B7 payment at $(wd)" "no tx: $(cat "$T/sign.json" | head -c 300)"; }
+PES=(); TXS=(); SIS=()
+pay_at 101.00
+for step in 10d 10d 9d; do
+  t0=$(ms); out=$(dj world clock advance main $step --as operator); adv_ms=$(( $(ms) - t0 )); PERIODS+=("$(wd)")
+  info "B7 advanced $step in ${adv_ms}ms: $(echo "$out" | jget "(d['data']['stopsPerSite'], d['data']['jobsRun'])") (stops per site, scheduled jobs run)"
+  pay_at $((100 + ${#PES[@]})).50
+done
+chk "B7 the world is at 31 March after three advances; every site of the world and the chain agree" "$(dj world clock show main | jget "(d['data']['time'][:10], d['data']['chainLatestBlock'][:10], sorted(set(s['today'] for s in d['data']['sites'])), len(d['data']['sites'])>=3)")" "('2026-03-31', '2026-03-31', ['2026-03-31'], True)"
+chk "B7 the ledger's dates are the world's dates: each payment and each sales invoice posted on the day the world was at" "$(lst "$T/admin" "GL Entry" "[[\"voucher_no\",\"in\",$(python3 -c 'import json,sys; print(json.dumps(sys.argv[1:]))' "${PES[@]}" "${SIS[@]}")],[\"is_cancelled\",\"=\",0]]" '["voucher_type","posting_date"]' | jget "sorted(set((g['voucher_type'],g['posting_date']) for g in d['data']))")" "[('Payment Entry', '2026-03-02'), ('Payment Entry', '2026-03-12'), ('Payment Entry', '2026-03-22'), ('Payment Entry', '2026-03-31'), ('Sales Invoice', '2026-03-02'), ('Sales Invoice', '2026-03-12'), ('Sales Invoice', '2026-03-22'), ('Sales Invoice', '2026-03-31')]"
+blocks=""; for tx in "${TXS[@]}"; do n=$(cast receipt "$tx" blockNumber --rpc-url $RPC); blocks+="$(date -u -r "$(cast block "$n" -f timestamp --rpc-url $RPC)" +%F) "; done
+chk "B7 the chain's block times agree: each payment's block carries the world's date" "$blocks" "2026-03-02 2026-03-12 2026-03-22 2026-03-31 "
+chk "B7 the payment entries took their reference date from the block (chain time, not host time)" "$(for pe in "${PES[@]}"; do pe_field "$pe" reference_date; done | tr '\n' ' ')" "2026-03-02 2026-03-12 2026-03-22 2026-03-31 "
+# a recurring document and scheduled jobs: made by the scheduler's own rules at each day crossed
+close_body=$(python3 -c 'import json,sys; print(json.dumps({"period_name":"March 2026 close "+sys.argv[1],"start_date":"2026-03-01","end_date":"2026-03-31","company":sys.argv[2],"closed_documents":[{"document_type":t,"closed":1} for t in ("Sales Invoice","Purchase Invoice","Payment Entry","Journal Entry")]}))' "$RUN" "$COMPANY")
+AP=$(dj doc create $SLUG "Accounting Period" --as $ADMIN --data "$close_body" | jget "d['data']['name']")
+[ -n "$AP" ] && ok "B7 the month is closed: Accounting Period $AP (Sales Invoice, Purchase Invoice, Payment Entry, Journal Entry closed for March)" || bad "B7 close the month" "no accounting period"
+chk "B7 a Sales Invoice dated in the closed month is refused" "$(dj doc create $SLUG "Sales Invoice" --as $SALES --data "{\"customer\":\"Lead Co $RUN\",\"company\":\"$COMPANY\",\"set_posting_time\":1,\"posting_date\":\"2026-03-15\",\"due_date\":\"2026-03-15\",\"items\":[{\"item_name\":\"Late\",\"qty\":1,\"rate\":1,\"income_account\":\"Sales - $ABBR\"}]}" | jget "d['error']['code'] if not d['ok'] else d['data']['name']")" INVALID
+# the world moves back to the host's time, closes the period for the next run
+dj doc delete $SLUG "Accounting Period" "$AP" --as $ADMIN >/dev/null 2>&1
+core world clock reset main --as operator >/dev/null 2>&1
+chk "B7 clock reset: the chain and every site are back on the host's time" "$(dj world clock show main | jget "(d['data']['offsetMs'], sorted(set(s['today'] for s in d['data']['sites'])) == [__import__('datetime').date.today().isoformat()], d['data']['chainLatestBlock'][:7] == d['data']['time'][:7])")" "(0, True, True)"
+
+# ---------------------------------------------------------------------------------------------------------------
+echo "== Behaviour 8: the record (one entry per command, in order; a money movement can be followed by its trace id)"
+login_admin   # a cookie session does not survive the world's clock being moved (a finding): sign in again before the admin REST reads below
+NREC=$(( $(wc -l < "$REC") - REC0 )); NCALLS=$(wc -l < "$CALLS" | tr -d " ")
+chk "B8 the record has one entry per command of this run (every command, not only the successful ones)" "$NREC" "$NCALLS"
+chk "B8 in order: sequence numbers run 1..n with no gap and each line carries the hash of the one before (tamper-evident)" "$(core record tail main --json --n 1 | jget "d['data']['chainOk']")" True
+chk "B8 world time is in the entries: the March payments are recorded at their world dates" "$(python3 -c '
+import json,sys
+rs=[json.loads(l) for l in open(sys.argv[1])][int(sys.argv[2]):]   # this run only
+print(sorted(set(r["world_time"][:10] for r in rs if r["command"]=="approval sign" and r["world_time"].startswith("2026-03"))))' "$REC" "$REC0")" "['2026-03-02', '2026-03-12', '2026-03-22', '2026-03-31']"
+# follow the last payment: command -> chain transaction -> ledger entry, by trace id
+LAST_TX=${TXS[3]}; SIGN_TRACE=$(python3 -c '
+import json,sys
+for l in open(sys.argv[1]):
+    r=json.loads(l)
+    if r["command"]=="approval sign" and any(t["hash"]==sys.argv[2] for t in r["changes"]["tx"]): print(r["trace"])' "$REC" "$LAST_TX")
+chk "B8 the command's record names the chain transaction (trace $SIGN_TRACE -> $LAST_TX)" "$([ -n "$SIGN_TRACE" ] && echo found)" found
+chk "B8 ... and the ledger entries carry the same trace id (GL Entry.capxul_trace), for the payment's voucher" "$(lst "$T/admin" "GL Entry" "[[\"capxul_trace\",\"=\",\"$SIGN_TRACE\"]]" '["voucher_no","voucher_type"]' | jget "sorted(set((g['voucher_type'], g['voucher_no']==\"${PES[3]}\") for g in d['data']))")" "[('Payment Entry', True)]"
+chk "B8 ... and the Payment Entry's own timeline holds the trace id (a Comment)" "$(lst "$T/admin" Comment "[[\"reference_doctype\",\"=\",\"Payment Entry\"],[\"reference_name\",\"=\",\"${PES[3]}\"],[\"content\",\"like\",\"%$SIGN_TRACE%\"]]" '["name"]' | jget "len(d['data'])>=1")" True
+chk "B8 ... and Core's log has the call under that trace id" "$(grep -c "trace $SIGN_TRACE" "$HERE/core/state/core.log" | awk '{print ($1>0)?"yes":"no"}')" yes
+chk "B8 record show finds the command by its trace id" "$(core record show "$SIGN_TRACE" --json | jget "d['data']['command']")" "approval sign"
+OUT_EXPORT="$T/export.jsonl"; core record export main --out "$OUT_EXPORT" >/dev/null
+chk "B8 record export produces one file: a header line and every record, readable line by line" "$(python3 -c '
+import json,sys
+ls=[json.loads(l) for l in open(sys.argv[1])]
+print(ls[0]["type"], ls[0]["chain_ok"], len(ls)-1==ls[0]["count"])' "$OUT_EXPORT")" "capxul-record-export True True"
+leaks=0; for k in $(python3 -c "import json;p=json.load(open('$HERE/core/people.json'));print(' '.join([p['operator']['privateKey']]+[x['privateKey'] for x in p['people']]))") "$SKELETON_SECRET"; do n=$(cat "$HERE"/core/state/record/*.jsonl "$OUT_EXPORT" | grep -c -F "$k"); leaks=$((leaks+n)); done
+chk "B8 no secret in the record or the export (grep for every test key and the shared secret)" "$leaks" 0
+
+# ---------------------------------------------------------------------------------------------------------------
+echo "== Behaviour 9: world snapshots (a world is saved, restored beside the original as a second world, and restored in place)"
+W2=w2; core world delete $W2 --as operator >/dev/null 2>&1      # a world left by an earlier run
+dj world clock set main 2026-06-01T10:00:00Z --as operator >/dev/null
+sbal() { cast call "$USDC" "balanceOf(address)(uint256)" "$SAFE" --rpc-url "$1" | awk '{print $1}'; }
+sum_of() { "$HERE/frappe/bin/bench-exec.sh" "$1" capxul.world.summary | python3 -c 'import json,sys; d=json.loads(sys.stdin.read()); [d.pop(k) for k in ("site","world","now")]; print(json.dumps(d,sort_keys=True))'; }
+pes() { sum_of "$1" | jget "d['docs']['Payment Entry']"; }
+S0=$(sum_of $SITE); B0=$(sbal $RPC); P0=$(echo "$S0" | jget "d['docs']['Payment Entry']")
+t0=$(ms); out=$(dj world snapshot save main --as operator --name "run-$RUN"); save_ms=$(( $(ms) - t0 ))
+SNAP=$(echo "$out" | jget "d['data']['id']"); SNAP_MB=$(echo "$out" | jget "round(d['data']['bytes']/1e6,1)")
+[ -n "$SNAP" ] && ok "B9 world main saved as $SNAP: every company, the whole chain, Core's state, the clock, record position $(echo "$out" | jget "d['data']['record']['count']"); ${save_ms}ms, ${SNAP_MB} MB" || bad "B9 snapshot save" "$out"
+chk "B9 snapshot list shows it with its world, name and record position" "$(dj world snapshot list main | jget "[(s['world'], s['name']) for s in d['data']['snapshots'] if s['id']=='$SNAP']")" "[('main', 'run-$RUN')]"
+chk "B9 a person who is not the operator cannot save or restore a world" "$(refused "$(dj world snapshot save main --as $ADMIN)") $(refused "$(dj world snapshot restore $SNAP --as $ADMIN --into zz)")" "NOT_WORLD_ADMIN NOT_WORLD_ADMIN"
+core world clock reset main --as operator >/dev/null
+t0=$(ms); out=$(dj world snapshot restore $SNAP --as operator --into $W2 --only acme); into_ms=$(( $(ms) - t0 ))
+[ "$(echo "$out" | jget "d['ok']")" = True ] && ok "B9 restored into a NEW world $W2 beside the original (own chain, own Core, site acme.$W2.localhost) in ${into_ms}ms: $(echo "$out" | jget "d['data']['phasesMs']")" || bad "B9 restore into" "$out"
+W2_RPC=$(core world show $W2 --json | jget "'http://127.0.0.1:%d' % d['data']['anvilPort']")
+chk "B9 the new world has the same documents, ledger balances, hats, features and event position as the saved one" "$(sum_of acme.$W2.localhost)" "$S0"
+chk "B9 the new world's chain has the same balance in the company's Safe" "$(sbal $W2_RPC)" "$B0" "$B0 units"
+chk "B9 the new world's clock resumed at the saved world time (1 June), on its chain and its site; the original is on the host's time" "$(dj world clock show $W2 | jget "(d['data']['time'][:10], d['data']['chainLatestBlock'][:10] <= '2026-11-10', [s['today'] for s in d['data']['sites']])") $(core world clock show main --json | jget "d['data']['offsetMs']")" "('2026-06-01', True, ['2026-06-01']) 0"
+chk "B9 the restored site signs people in through the new world's Core and the door works there (hannah lists invoices as herself)" "$(dj doc list $SLUG "Sales Invoice" --as $ADMIN --world $W2 --limit 2 | jget "d['ok']")" True
+chk "B9 the world list shows both worlds and where the new one came from" "$(core world list --json | jget "sorted((w['name'], (w['from'] or {}).get('snapshot','')) for w in d['data']['worlds'])")" "[('main', ''), ('$W2', '$SNAP')]"
+# a payment in the new world does not appear in the old one, and the reverse
+B1=$(sbal $RPC)
+WORLD=$W2; read -r si pi pe tx <<<"$(mkpay 7.25 $W2)"; WORLD=""
+[ -n "$tx" ] && ok "B9 a payment made in $W2 (invoice $si, payment $pe, tx $tx)" || bad "B9 payment in the new world" "no tx"
+chk "B9 ... is in the new world ($(( P0 + 1 )) payment entries, Safe down 7.25) and not in the old ($P0, unchanged)" "$(pes acme.$W2.localhost) $(( B0 - $(sbal $W2_RPC) )) $(pes $SITE) $(sbal $RPC)" "$((P0+1)) 7250000 $P0 $B0"
+read -r si pi pe tx <<<"$(mkpay 3.10 main)"
+chk "B9 a payment made in the old world is not in the new one (old $((P0+1)), new still $((P0+1)))" "$(pes $SITE) $(pes acme.$W2.localhost) $(( B0 - $(sbal $RPC) ))" "$((P0+1)) $((P0+1)) 3100000"
+# lineage in the record
+SREC=$(dj world snapshot list main | jget "[s['record'] for s in d['data']['snapshots'] if s['id']=='$SNAP'][0]")
+chk "B9 the new world's record begins with the old world's up to the snapshot, then says which snapshot it came from; its own commands follow" "$(python3 -c '
+import json,sys
+rs=[json.loads(l) for l in open(sys.argv[1])]
+i=[k for k,r in enumerate(rs) if r.get("lineage")]
+print(len(i), rs[i[0]]["lineage"]["snapshot"]==sys.argv[2], rs[i[0]]["seq"]==int(sys.argv[3])+1, any(r["command"]=="approval sign" for r in rs[i[0]+1:]))' "$HERE/core/state/worlds/$W2/record/$W2.jsonl" "$SNAP" "$SREC")" "1 True True True"
+chk "B9 the old world's record says it made the new one (restore --into) and its own trace is not in the new world's record" "$(python3 -c '
+import json,sys
+a=[json.loads(l) for l in open(sys.argv[1])]; b=[json.loads(l) for l in open(sys.argv[2])]
+print(any(r["command"]=="world snapshot restore" and r["changes"].get("lineage",{}).get("intoWorld")==sys.argv[3] for r in a), not any(r["id"]==a[-1]["id"] for r in b))' "$REC" "$HERE/core/state/worlds/$W2/record/$W2.jsonl" "$W2")" "True True"
+# restore in place: main goes back to the saved moment
+t0=$(ms); out=$(dj world snapshot restore $SNAP --as operator --in-place); inplace_ms=$(( $(ms) - t0 ))
+[ "$(echo "$out" | jget "d['ok']")" = True ] && ok "B9 restore --in-place of the whole world main in ${inplace_ms}ms: $(echo "$out" | jget "d['data']['phasesMs']")" || bad "B9 restore in place" "$out"
+chk "B9 in place: main is back at the saved moment (the payment made after the save is gone: documents, ledger, hats, features, balance)" "$(sum_of $SITE | python3 -c 'import sys; print(sys.stdin.read().strip())') $(sbal $RPC)" "$S0 $B0"
+chk "B9 in place: the world clock is back at the saved world time on the chain and on all three sites" "$(core world clock show main --json | jget "(d['data']['time'][:10], d['data']['chainLatestBlock'][:10] <= '2026-11-10', sorted(set(s['today'] for s in d['data']['sites'])))")" "('2026-06-01', True, ['2026-06-01'])"
+chk "B9 in place: the record of main was not rewound (it grew), and says what it was restored from" "$(python3 -c '
+import json,sys
+rs=[json.loads(l) for l in open(sys.argv[1])]
+r=[x for x in rs if x["command"]=="world snapshot restore" and x["changes"].get("lineage",{}).get("intoWorld")=="main"]
+print(len(r)>=1, rs[-1]["seq"]==len(rs))' "$REC")" "True True"
+core world clock reset main --as operator >/dev/null; login_admin
+info "B9 measured: save ${save_ms}ms, ${SNAP_MB} MB; restore into a new world (1 company) ${into_ms}ms; restore in place (whole world) ${inplace_ms}ms"
 
 echo "== Privacy: nothing phones home"
 for s in acme beta gamma; do
