@@ -33,8 +33,8 @@
     },
     {
       "id": "concepts.documents",
-      "disposition": "confirmed",
-      "reason": "Confirmed concepts.documents: retain the specific chosen rule and its original rationale. Site-owned business records are not restored to Core; current site posting and authority follow cut.documents; plugs.document-canon.",
+      "disposition": "rewritten",
+      "reason": "Retain Core hash stamps, verification and participant admissions for chain document evidence, with participants supplied by retained money subjects. Reject the old Core payroll dependency: Frappe HR owns payroll runs and Salary Slips on the company site. Printing uses the door; held payments carry the canonical site document hash without requiring duplicate Core payroll documents or documents.store calls.",
       "authority": "cut.documents; plugs.document-canon",
       "path": "blueprint/shared/decisions.ts"
     },

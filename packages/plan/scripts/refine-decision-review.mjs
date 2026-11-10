@@ -17,7 +17,7 @@ function literal(node) {
 // These questions do not depend on a replicated business ledger or an optional head.
 // Restore their actual choices and reasoning, rather than merely saying 'still applies'.
 const confirm = new Set([
-  'concepts.budgets','concepts.documents','concepts.line-budgets','concepts.parties',
+  'concepts.budgets','concepts.line-budgets','concepts.parties',
   'dependencies.books-below-money','dependencies.board-below-proposers','operations.owners',
   'responsibilities.landings','rules.new-operations','system.size','tooling.generated-header',
   'time.chain-judged-deadlines','organizations.deployment-row','organizations.founder-people-hat',
@@ -28,6 +28,7 @@ const confirm = new Set([
 ]);
 // id -> replacement text. The manifest also names the authority for every case.
 const rules = {
+  'concepts.documents': 'Core documents retains canonical chain-backed bytes, hash stamps, verification and participant admissions. Retained money subjects supply participants at storage time, so documents need not read its subjects. Payroll runs and Salary Slips belong to Frappe HR on the company site, not a Core payroll concept using documents.store. Site printing and export use Print Format through the door; held site payments carry the canonical hash defined by plugs.document-canon without duplicating payroll documents in Core.',
   'concepts.books': 'Books retains chain money facts, activity annotations and Chainlink prices. An annotation still classifies a money row and prices still value it. The editable chart, Journal Entry and GL Entry are ERPNext documents on the site, not duplicate Core business tables; plugs projects the money facts to them.',
   'concepts.books-token-scan': 'Books owns scanning tokens explicitly added to its asset list, because it knows the add block and the company Safe. The scanner writes idempotent outside-money facts; indexing remains the chain read model, not a second owner of the added-token list.',
   'concepts.contacts': 'There is no active Core contacts concept or private replicated address book. Contact, Address and CRM documents live on the company site and are reached through the door under projected site roles. Core parties remains the identity/Safe directory and banking owns saved bank accounts.',

@@ -549,16 +549,16 @@ export const decision_concepts_activity = defineDecision({
 
 export const decision_concepts_documents = defineDecision({
   id: "concepts.documents",
-  title: "Documents stays, below everything that stamps a document hash",
+  title: "Documents retains hash evidence, not site payroll ownership",
   question: "Where does documents sit, and how does it know who may read a document?",
   options: [
-    { label: "below-money", text: "Below payments, requests and payroll; participants are given when the document is stored." },
-    { label: "as-is", text: "Keep documents reading payments, requests and books to find a document's participants." },
+    { label: "current-scope", text: "Core documents retains canonical chain-backed bytes, hash stamps, verification and participant admissions. Retained money subjects supply participants at storage time, so documents need not read its subjects. Payroll runs and Salary Slips belong to Frappe HR on the company site, not a Core payroll concept using documents.store. Site printing and export use Print Format through the door; held site payments carry the canonical hash defined by plugs.document-canon without duplicating payroll documents in Core." },
+    { label: "historical", text: "The former payroll dependency is obsolete. Its original specification is preserved in docs/cut-archive/decision-review-history.json as evidence, not implementation authority." },
   ],
-  chosen: "below-money",
+  chosen: "current-scope",
   why:
-    "A document is born with its subject (K2: a command, its Payments and their documents are born together), so the subject's concept stores it through a procedure and must depend on documents. Documents then cannot read its subjects; giving it the participants at store time means it never has to. Review, 11 November 2026: Confirmed concepts.documents; original choice retained.",
-  source: by("K2 in docs/as-is/payments.md; docs/as-is/archive/shared/foundation.ts (documents imports 7 concepts)"),
+    "Review, 11 November 2026: K2 still explains atomic storage of retained chain document evidence and caller-supplied participants, not ownership of site business records. Under cut.documents and aaron.frappe-native, Frappe HR owns payroll documents and printing goes through the door. A site payment's canonical hash binds its draft without requiring a Core payroll document or procedure dependency. This rewrites the earlier unchanged confirmation in response to F-1.1.",
+  source: "The coordinator, m1-old-decisions round 2; cut.documents; plugs.document-canon; aaron.frappe-native; K2 in docs/as-is/payments.md",
   affects: [f.concept_documents, f.concept_payments, f.concept_requests],
 });
 

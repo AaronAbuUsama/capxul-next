@@ -28,6 +28,15 @@ added-token scans retain cursors/finality but reject the old no-reversals assump
 chart allocation and payroll accrual mechanisms are explicitly archived rather than silently retained.
 The blueprint remains authoritative; neither script is a runtime component.
 
+## Round 2 correction: documents (F-1.1)
+
+`concepts.documents` is **rewritten**, not confirmed unchanged. Core retains chain document
+hash evidence and caller-supplied participant admissions. The old dependency on a Core payroll
+concept is obsolete: Frappe HR owns payroll runs and Salary Slips on the company site. Printing
+uses the door; a held site payment binds its draft with `plugs.document-canon`, without requiring
+a duplicate Core payroll document or a payroll call to `documents.store`. The refinement script
+now records this explicit scope instead of restoring the old choice. Original evidence is unchanged.
+
 ## Authority
 
 This is a coordinator reconciliation, not new owner testimony. Earlier `aaron.*` records retain
