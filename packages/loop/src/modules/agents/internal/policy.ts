@@ -64,6 +64,7 @@ export const confine = (profile: Profile, policy: Policy): Extension =>
         const args = call.arguments as { path?: string; command?: string };
         const why = FILE_TOOLS.has(call.name) ? refusePath(String(args.path ?? "."), cwd, call.name !== "read", policy.denyWrite)
           : call.name === "bash" ? refuseBash(String(args.command ?? ""), cwd, policy.bash[profile])
+          : policy.tools?.includes(call.name) ? undefined
           : `the tool ${call.name} is not available`;
         return why ? { block: `Refused by the loop's policy: ${why}` } : undefined;
       },

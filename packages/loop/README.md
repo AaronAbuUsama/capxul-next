@@ -83,6 +83,19 @@ registers (`mcpTools`). Every call passes a `beforeTool` hook (`agents/internal/
 | shell refused | `git push`, `curl`, `pnpm install`, redirects (`>` `<`), `$(…)`, backticks, `..` paths, absolute paths outside the lane and `/tmp/`, a quote left open | same, and `node` and every `pnpm` | same |
 | environment of its commands | `PATH HOME USER LOGNAME SHELL TERM LANG LC_ALL TMPDIR` and the sandbox's `CAPXUL_*`; nothing inherited | same | same |
 | network | none by policy, but see below | same | same |
+| show its work (`record_terminal`) | any command its shell may run, recorded as a GIF | the lane's checks and `node` (what a maker's shell runs, without `git add/commit`, `rm`, `mkdir`): only on camera, and what it leaves in the lane is undone | same as checker |
+| browser (`browser`, `screenshot`, `record_screen`) | this machine only (`127.0.0.1`, `localhost`, `*.localhost`): the sandbox and a lane's own server | same | same |
+
+### Evidence
+
+An agent shows what it says (`src/modules/evidence`, whose README has the tools). A capture is made by a tool, into
+`var/runs/<id>/evidence/`, with a record of the command and its exit code or the page's address; the agent then claims
+it in its final json: `"evidence": [{ "capture": "make.1.pay-refuses", "shows": "…", "eval": "…" }]` on the hand-back
+and on the check. The loop judges every claim against the captures (a claim that names none is thrown out, and the
+checker is told), tells the checker what each of the maker's captures really recorded, and shows both in
+`loop show <run> --json --full` (`captures`, and `evidence` on an agent's step). The host serves a capture's file at
+`/runs/evidence/<run>/<file>`. A machine without asciinema, agent-browser or ffmpeg still runs: the tool says what it cannot record.
+`LOOP_BROWSER=off` takes the browser tools away. Nothing yet says an eval *needs* a capture: that is the blueprint's rule to make.
 
 The model key (`LLM_ROUTER_API_KEY`) lives only in the runner's process, is read when a request is made, and is not in
 any command's environment (tests prove a secret in the runner's environment does not reach `bash`), file or log.
@@ -142,7 +155,7 @@ reports tokens and the budget is enforced by turn and time limits and checked be
 
 ## Which parts are generic
 
-`src/modules/agents`, `runs` and `lanes` (and `index.ts`'s first lines) know nothing about Capxul: open a pi-durable
+`src/modules/agents`, `runs`, `lanes`, `evidence`, `inspect` and `host` (and `index.ts`'s first lines) know nothing about Capxul: open a pi-durable
 storage, register tools with a confinement policy and MCP servers, pick a model from an OpenAI-compatible config, ask an
 agent a question durably and get its last message, keep a step ledger, play a script, list/stop/watch/work runs, make a
 git worktree and find a free port. **That is what would be extracted into a library for swarmD.** `src/modules/capxul` is

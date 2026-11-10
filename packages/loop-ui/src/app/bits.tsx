@@ -1,5 +1,5 @@
 /** Small parts used on every screen: a run's status, a step's state, an icon per kind of step. */
-import { Ban, CircleAlert, CircleCheck, CircleDashed, Eye, FileDiff, Flag, GitBranch, Hammer, LayoutList, ListChecks, LoaderCircle, Upload } from "lucide-react";
+import { Ban, Camera, CircleAlert, CircleCheck, CircleDashed, Eye, FileDiff, Flag, GitBranch, Hammer, LayoutList, ListChecks, LoaderCircle, Upload } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { statusText } from "./data.ts";
@@ -27,7 +27,7 @@ export const StateIcon = ({ state, className }: { state: StepState; className?: 
   : state === "pending" ? <CircleDashed className={cn("size-4 text-muted-foreground/50", className)} />
   : <CircleCheck className={cn("size-4 text-muted-foreground", className)} />;
 
-const KIND: Record<StepKind, typeof Hammer> = { overview: LayoutList, setup: GitBranch, builder: Hammer, changes: FileDiff, checks: ListChecks, reviewer: Eye, publish: Upload, end: Flag };
+const KIND: Record<StepKind, typeof Hammer> = { overview: LayoutList, setup: GitBranch, builder: Hammer, changes: FileDiff, evidence: Camera, checks: ListChecks, reviewer: Eye, publish: Upload, end: Flag };
 export const KindIcon = ({ kind, className }: { kind: StepKind; className?: string }) => { const I = KIND[kind]; return <I className={cn("size-4", className)} />; };
 export const RefusedIcon = Ban;
 export const stepLabel = (s: Step): string => (s.round !== null && (s.kind === "builder" || s.kind === "reviewer") ? `${s.title} · round ${s.round}` : s.title);

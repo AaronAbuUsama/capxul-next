@@ -1,6 +1,7 @@
 /** What is Capxul's about the agents: what their shell may run, what they may not write, which models and where the keys are looked for. */
 import type { Models } from "@earendil-works/pi-ai";
-import { modelsFrom, type Policy } from "../../agents/service.ts";
+import { modelsFrom, type Policy, type Profile } from "../../agents/service.ts";
+import { TOOL_NAMES } from "../../evidence/types.ts";
 import type { Ctx } from "../types.ts";
 
 const FILES = /^(ls|cat|head|tail|wc|nl|grep|sort|diff|echo|pwd)( |$)/;
@@ -17,15 +18,25 @@ const READS: readonly RegExp[] = [
 ];
 
 /** `pnpm exec` and `node` can run anything the user can: the list limits what the model asks for, it is not a sandbox (README). */
+const RUNS: readonly RegExp[] = [/^pnpm (-s |--silent )?(exec|test|run|check|plan|book|blueprint|frozen|layout|tasks|judgments|evals|evals:check|portal:check|contracts:[a-z-]+|devnet:test|sdk:test)( |$)/, /^node( |$)/];
+const CD = /^cd [A-Za-z0-9_./-]+$/;
 export const POLICY: Policy = {
   bash: {
-    write: [/^pnpm (-s |--silent )?(exec|test|run|check|plan|book|blueprint|frozen|layout|tasks|judgments|evals|evals:check|portal:check|contracts:[a-z-]+|devnet:test|sdk:test)( |$)/, /^node( |$)/, /^git (add|commit|mv|rm)( |$)/,
+    write: [...RUNS, /^git (add|commit|mv|rm)( |$)/,
       /^rm( -f)?(?!.* (books\/frozen|blueprint\/baseline|var)\/)(?!.*\/(src\/generated|\.git|\.claude)\/)( [A-Za-z0-9_][A-Za-z0-9_.\/-]*)+$/,   // its own scratch files, by plain relative name: never -r, a dash, a dot or a protected folder
-      ...READS, FILES, /^mkdir( |$)/, /^cd [A-Za-z0-9_./-]+$/],
+      ...READS, FILES, /^mkdir( |$)/, CD],
     read: [...READS, FILES],
   },
   denyWrite: [/^books\/frozen\//, /^blueprint\/baseline\//, /(^|\/)src\/generated\//, /^\.git(\/|$)/, /^\.claude\//, /^var\//],
+  tools: TOOL_NAMES,                       // the capture tools (modules/evidence): each checks its own arguments
 };
+
+/**
+ * What an agent may run through `record_terminal`. A maker: what its shell may run. A reader: the same programs a maker
+ * runs (the lane's checks, node), though its own shell only reads. So a reader can try the thing it reviews, and
+ * everything it runs is recorded; what that leaves in the lane is undone after it (internal/evidence.ts, `restore`).
+ */
+export const RECORD: Readonly<Record<Profile, readonly RegExp[]>> = { write: POLICY.bash.write, read: [...RUNS, ...READS, FILES, CD] };
 
 /**
  * The maker's and the checker's default models. The maker is gpt-6.1-sol and the checker gpt-6.1-terra, by Aaron's ruling (10 November

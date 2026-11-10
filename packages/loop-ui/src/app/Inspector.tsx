@@ -7,8 +7,8 @@ import { clock, duration, tokens } from "./format.ts";
 import type { Agent, Run } from "./types.ts";
 
 const MAY: Record<string, string> = {
-  builder: "Reads and writes inside its lane. Runs the repository's pnpm scripts, node, and git add and commit. Cannot push, install or reach the network.",
-  reviewer: "Reads only: files in the lane, git history, search. Cannot write, run node or pnpm, or push. Cannot be steered.",
+  builder: "Reads and writes inside its lane. Runs the repository's pnpm scripts, node, and git add and commit. Shows its work: records a command, drives a browser on this machine, takes screenshots. Cannot push, install or reach the network.",
+  reviewer: "Changes nothing: its shell only reads. It may run the lane's checks and the product, but only recorded, and what that leaves in the lane is undone. It may drive a browser on this machine and take screenshots. Cannot be steered.",
   adversary: "Reads only, like a reviewer. Looks for what breaks.",
   researcher: "Reads only. Answers one question with sources.",
 };
@@ -39,7 +39,7 @@ export const AgentPanel = ({ agent, round }: { agent: Agent; round: number | nul
         </dl>
         <div className="mt-1.5 space-y-1.5">
           {calls.map(([name, n]) => (
-            <div key={name} className="flex items-center gap-2 text-xs"><span className="w-10 font-mono">{name}</span><span className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted"><span className="block h-full rounded-full bg-foreground/60" style={{ width: `${Math.round((n / total) * 100)}%` }} /></span><span className="w-6 text-right tabular-nums">{n}</span></div>
+            <div key={name} className="flex items-center gap-2 text-xs"><span className="w-28 shrink-0 truncate font-mono" title={name}>{name}</span><span className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted"><span className="block h-full rounded-full bg-foreground/60" style={{ width: `${Math.round((n / total) * 100)}%` }} /></span><span className="w-6 text-right tabular-nums">{n}</span></div>
           ))}
         </div>
         {(agent.usage.refused > 0 || agent.usage.errors > 0) && <p className="mt-2 text-xs text-amber-700">{agent.usage.refused > 0 && `${agent.usage.refused} refused by policy`}{agent.usage.refused > 0 && agent.usage.errors > 0 && " · "}{agent.usage.errors > 0 && `${agent.usage.errors} model errors`}</p>}

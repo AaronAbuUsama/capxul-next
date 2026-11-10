@@ -28,7 +28,7 @@ const GROUND = (sandbox: string, checks: readonly string[], findings: string | n
 ].join("\n");
 
 /** `checks` are the commands the runner runs after the maker (the lane's gates), told to it so it can run them first. */
-export const makerPrompt = (i: MakerInput, checks: readonly string[], findingsFile: string | null = null): string => [
+export const makerPrompt = (i: MakerInput, checks: readonly string[], findingsFile: string | null = null, evidence = ""): string => [
   `# Task \`${i.task.id}\`: ${i.task.title}`,
   `Round ${i.round} of the run · budget $${i.budgetUsd.toFixed(2)}, used so far ${i.spentUsd > 0 || i.spentTokens > 0 ? spendText(i.spentUsd, i.spentTokens) : "nothing"} · target integration/build · branch ${i.branch}`,
   i.round > 1 ? "Revise: the last round did not pass. The open findings below are what to fix; a failing check is a finding." : "",
@@ -38,13 +38,14 @@ export const makerPrompt = (i: MakerInput, checks: readonly string[], findingsFi
   "\n## Open findings", findings(i.open),
   "\n## Handover from the last maker", handover(i.handover),
   "\n" + GROUND(i.sandbox, checks, findingsFile),
+  evidence ? `\n${evidence}` : "",
   "\n## How this differs from your definition",
   "You may `git add` and `git commit` on the current branch (subject `<what changed>`, trailers `Task:` and `Round:`); the runner commits what you leave. You cannot push, and must not try. There is no pull request: set `pr` to 0.",
   "Your last message is the Handback as one fenced json block and nothing after it.",
   "\n## The input, exactly", "```json", JSON.stringify(i, null, 2), "```",
 ].filter((x) => x !== "").join("\n");
 
-export interface CheckInput { task: Task; role: string; round: number; version: string; from: string; machine: string; open: Finding[]; note: string; branch: string }
+export interface CheckInput { task: Task; role: string; round: number; version: string; from: string; machine: string; open: Finding[]; note: string; branch: string; /** What the maker claimed to show, as the loop recorded it. */ shown?: string; /** What this checker is told about making evidence. */ evidence?: string }
 
 export const checkerPrompt = (i: CheckInput): string => [
   `# Check \`${i.task.id}\` at ${i.version.slice(0, 7)}, round ${i.round}`,
@@ -54,6 +55,8 @@ export const checkerPrompt = (i: CheckInput): string => [
   "\n## Machine verdicts at this version (the runner ran them)", i.machine,
   "\n## Open findings", findings(i.open),
   "\n## The maker's note", i.note || "_none_",
+  "\n## The maker's evidence", i.shown || "_the maker showed nothing: it only says_",
+  i.evidence ? `\n${i.evidence}` : "",
   "\nThe repository's rules are in `CLAUDE.md`. There is no pull request: the version is the commit above.",
   "Your last message is the check as one fenced json block and nothing after it.",
   "\n## The input, exactly", "```json", JSON.stringify({ version: { kind: "commit", commit: i.version }, from: i.from, round: i.round, open: i.open }, null, 2), "```",

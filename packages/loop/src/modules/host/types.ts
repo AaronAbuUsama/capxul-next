@@ -52,6 +52,8 @@ export interface HostDeps {
   readonly load: (id: string) => Promise<RunDetail | null>;
   readonly stop: (id: string) => string;
   readonly say: (line: string) => void;
+  /** The evidence folder of a run, or null when there is no such run. Its files are served at `evidence/<run id>/<file name>`. */
+  readonly evidence?: (id: string) => string | null;
 }
 
 export interface HostOptions {

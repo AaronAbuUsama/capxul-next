@@ -16,6 +16,12 @@ export interface Live { readonly link: Link; readonly runs: Run[] | null; readon
 const address = (): string => new URLSearchParams(window.location.search).get("host")
   ?? (window.location.pathname.startsWith(PREFIX) ? `${window.location.protocol === "https:" ? "wss" : "ws"}://${window.location.host}${PREFIX}ws` : `ws://127.0.0.1:${DEFAULT_PORT}${PREFIX}ws`);
 
+/** Where a capture's file is: beside the page when the host served it, else at this machine's host (or the one `?host=` names). */
+export const fileUrl = (run: string, name: string): string => {
+  const at = address().replace(/^ws/, "http").replace(/ws$/, "");
+  return `${at}evidence/${encodeURIComponent(run)}/${encodeURIComponent(name)}`;
+};
+
 export const useLive = (): Live => {
   const [link, setLink] = useState<Link>("connecting"), [runs, setRuns] = useState<Run[] | null>(null), [updates, setUpdates] = useState(0);
   const ref = useRef<RunsRef | null>(null);
