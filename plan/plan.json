@@ -378,32 +378,26 @@
       "title": "Equity: kept or dropped",
       "why": "Parked until the owner settles it.",
       "milestone": "m1",
-      "state": "blocked",
+      "state": "done",
       "needs": [],
       "records": [],
-      "evidence": [],
+      "evidence": [
+        "Aaron accepted cut.equity-parked on 10 November 2026 (answer a-20261110T105536-0c1612, applied in 91ba444); whether equity is kept or dropped is still his to settle later, parked meanwhile"
+      ],
       "created": "2026-11-10",
-      "updated": "2026-11-10",
-      "blockedBy": {
-        "need": "Aaron settles it; parked meanwhile",
-        "who": "Aaron"
-      }
+      "updated": "2026-11-10"
     },
     {
       "id": "m1-payroll-uk",
-      "title": "UK payroll filing route",
-      "why": "A real customer cannot be served without a filing route.",
+      "title": "Payroll: the United States first, and what already exists to build on",
+      "why": "Aaron, 10 November 2026: pick the United States for now and avoid HMRC filing; and find what open-source payroll and tax support already exists. Payroll is Frappe's whichever jurisdiction comes first, so what is chosen now is where to start and what to build on.",
       "milestone": "m1",
-      "state": "blocked",
+      "state": "todo",
       "needs": [],
       "records": [],
       "evidence": [],
       "created": "2026-11-10",
-      "updated": "2026-11-10",
-      "blockedBy": {
-        "need": "Aaron chooses a provider, a bureau or to build",
-        "who": "Aaron"
-      }
+      "updated": "2026-11-10"
     },
     {
       "id": "m2-contracts-proof",
@@ -486,7 +480,7 @@
       "created": "2026-11-10",
       "updated": "2026-11-10",
       "blockedBy": {
-        "need": "sign in to AWS on this Mac, choose the subdomain, add the DNS records at Namecheap",
+        "need": "At Namecheap, for the domain capxul.com, add four NS records for the host `worlds` pointing to: ns-1035.awsdns-01.org, ns-1870.awsdns-41.co.uk, ns-221.awsdns-27.com, ns-659.awsdns-18.net",
         "who": "Aaron"
       }
     },
@@ -495,16 +489,14 @@
       "title": "Cloud cost audit: choose what to switch off",
       "why": "The cloud that already exists costs money; the machine should not add to a bill nobody has read.",
       "milestone": "m3b",
-      "state": "blocked",
+      "state": "done",
       "needs": [],
       "records": [],
-      "evidence": [],
+      "evidence": [
+        "Aaron answered the audit session (10 November 2026, answer a-20261110T110713-7a9c2e)"
+      ],
       "created": "2026-11-10",
-      "updated": "2026-11-10",
-      "blockedBy": {
-        "need": "answer the audit session",
-        "who": "Aaron"
-      }
+      "updated": "2026-11-10"
     },
     {
       "id": "m3b-bench-image",
@@ -582,10 +574,65 @@
       "evidence": [],
       "created": "2026-11-10",
       "updated": "2026-11-10"
+    },
+    {
+      "id": "m1-time-study",
+      "title": "Time: what following a world's clock really takes, and what can go wrong",
+      "why": "Aaron, 10 November 2026, did not accept devnet.site-follows-world: he needs to understand the implications, what could go wrong, and whether to fork Frappe while staying in line with upstream. The time has to be right, and the clock checks failed on the coordinator's re-run.",
+      "milestone": "m1",
+      "state": "doing",
+      "needs": [],
+      "records": [],
+      "evidence": [],
+      "created": "2026-11-10",
+      "updated": "2026-11-10",
+      "thread": "time-study"
+    },
+    {
+      "id": "m1-payroll-research",
+      "title": "Find what open-source payroll and tax support exists",
+      "why": "Aaron, 10 November 2026, asked what open-source tax support exists and whether a plugin gives a head start for a jurisdiction, with the United States first (aaron.us-first).",
+      "milestone": "m1",
+      "state": "doing",
+      "needs": [],
+      "records": [],
+      "evidence": [],
+      "created": "2026-11-10",
+      "updated": "2026-11-10",
+      "thread": "payroll-research"
+    },
+    {
+      "id": "m1-seasons-parked",
+      "title": "Seasons dropped for now and parked",
+      "why": "Aaron, 10 November 2026: seasons add complexity that is not needed yet; they can be added later.",
+      "milestone": "m1",
+      "state": "done",
+      "needs": [],
+      "records": [],
+      "evidence": [
+        "commit 91ba444; decisions cut.seasons and aaron.seasons-dropped; 33 records parked"
+      ],
+      "created": "2026-11-10",
+      "updated": "2026-11-10"
+    },
+    {
+      "id": "m3b-dns-zone",
+      "title": "Create the DNS zone for worlds.capxul.com",
+      "why": "The worlds machine is reached at addresses under worlds.capxul.com; the zone has to exist in AWS before Aaron points Namecheap at it.",
+      "milestone": "m3b",
+      "state": "done",
+      "needs": [],
+      "records": [],
+      "evidence": [
+        "stack capxul-worlds-dns"
+      ],
+      "created": "2026-11-10",
+      "updated": "2026-11-10"
     }
   ],
   "path": {
     "tasks": [
+      "m1-time-study",
       "m1-spike-evidence",
       "m1-contracts-reconcile",
       "m1-aws-records",
@@ -594,7 +641,7 @@
       "m1-examples",
       "m1-aaron-accepts"
     ],
-    "why": "The plan page and the task tree are done. The spikes' evidence turns assumptions into records, so it comes before the bulk work of telemetry and examples. The machine is the one step only Aaron can unblock, so it is asked for early.",
+    "why": "The plan page and the task tree are done. The spikes' evidence turns assumptions into records, so it comes before the bulk work of telemetry and examples. The machine is the one step only Aaron can unblock, so it is asked for early. Aaron said the time thing has to be right, and the clock checks failed on the coordinator's re-run, so time is settled before anything is built on it.",
     "written": "2026-11-10"
   },
   "notes": [
@@ -617,6 +664,11 @@
       "date": "2026-11-10",
       "by": "coordinator",
       "text": "The plan now explains itself: an outline, and a page for every milestone and task. Everything that waits on Aaron is in one list on the Questions page, and his answers are saved to plan/answers.jsonl on this Mac. The door, the recorder, the clock and snapshots are built on the test sites; the coordinator is re-running their checks before closing that task."
+    },
+    {
+      "date": "2026-11-10",
+      "by": "coordinator",
+      "text": "Aaron answered every question. Six are accepted. Seasons are dropped for now. Payroll targets the United States first. The clock question is open again: he wants to understand what can go wrong, and a study is being written."
     }
   ]
 }
