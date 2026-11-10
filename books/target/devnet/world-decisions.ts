@@ -51,16 +51,6 @@ export const decision_devnet_site_clock = dec({
   affects: [f.system_capxul, f.concept_devnet, r.rpc_devnet_worlds_clock_set, r.rpc_devnet_worlds_clock_freeze, r.rpc_devnet_worlds_clock_warp, o.operation_world_clock_set, o.operation_world_clock_warp],
 });
 
-export const decision_devnet_seasons_on_a_world = dec({
-  id: "devnet.seasons-on-a-world",
-  title: "Seasons become an optional schedule on a world, deferred, not removed",
-  question: "What happens to seasons now that a world is first-class?",
-  options: [{ label: "optional-schedule", text: "A season is an optional schedule on a world (start from a saved snapshot, a rate, jumps, an end in a reset). The eleven `dev season` commands and their records stay as they are and are not built first; they address a world by name when they are. aaron.seasons is not changed." }],
-  chosen: "optional-schedule",
-  why: "docs/mission/worlds.md, section 7, decision 3: defer. aaron.seasons ruled only that a shared world runs in seasons; the schedule and the commands are the book's own.",
-  affects: [f.system_capxul, f.concept_devnet, d.table_worlds],
-});
-
 export const decision_devnet_restore_as = dec({
   id: "devnet.restore-into-a-separate-world",
   title: "Restoring into a separate world keeps the chain id, with a new chain instance",

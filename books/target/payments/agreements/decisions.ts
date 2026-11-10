@@ -994,8 +994,9 @@ export const decision_payroll_surface_moves = defineDecision({
     "`client.org.expense-claims.pay` and `client.org.advances.pay|settle` gain `.hr`, `client.me.payslips.*` and " +
     "`client.org.payslips.*` gain `.payroll`, and so do `client.me.agreements.*` and `client.org.agreements.*`; the " +
     "commands an rpc implements alone change no record but their operation. HR stays in this concept (surface.hr-concept, " +
-    "payroll.hr-in-payroll). For Aaron, as part of question 50 (surface.tree): the recommendation stands until he " +
-    "answers, and if he keeps the booked nouns the words move back with no change of behaviour.",
+    "payroll.hr-in-payroll). Part of question 50 (surface.tree). Aaron, 10 November 2026, on the portal's Questions page: accepted as recommended. What it now applies to: the eleven " +
+    "agreement commands, booked in payments (`payroll agreement …`, `org payroll agreement …`); HR's and the payslips' words are the tree's " +
+    "and are Frappe's now, reached through the door (cut.payroll). The ruling stands as chosen.",
   source: surfaceBy(
     "books/target/shared/surface.ts (surface.tree, surface.hr-group, surface.payroll-group); docs/design/command-surface.md " +
       "sections 3, 4, 5 and 9; aaron.frappe-shape",

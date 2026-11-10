@@ -9,7 +9,7 @@
 
 import { defineDecision } from "../../../packages/book/src/index.ts";
 import * as f from "./foundation.ts";
-import { decision_aaron_frappe_native, decision_aaron_one_door } from "./rulings.ts";
+import { decision_aaron_frappe_native, decision_aaron_one_door, decision_aaron_us_first } from "./rulings.ts";
 
 /** What became of a frozen operation: Frappe owns it (reached), the cut removes it (dropped) or it waits outside the built book (parked). */
 export type CutFate = "reached" | "dropped" | "parked";
@@ -88,8 +88,8 @@ export const CUT = {
   // <cut-entries> one line per frozen operation that left the built book, added by the commit that moved it
 } as const satisfies Readonly<Record<string, Cut>>;
 
-/** The four cut decisions that wait for Aaron; every other `cut.*` decision carries out his rulings and needs nothing from him. */
-export const CUT_FOR_AARON: readonly string[] = ["cut.equity-parked", "cut.fde-parked", "cut.individuals-parked", "cut.uk-payroll-filing"];
+/** The cut decisions that wait for Aaron. None does now: on 10 November 2026 he accepted three as recommended (they are in ACCEPTED, rulings.ts) and changed the fourth (cut.uk-payroll-filing, superseded by aaron.us-first). Every `cut.*` decision carries out his rulings and needs nothing from him. */
+export const CUT_FOR_AARON: readonly string[] = [];
 
 const BY = "The coordinator, 10 November 2026, on Aaron's delegation of the book (aaron.one-door, aaron.frappe-native)";
 const rulings = [decision_aaron_one_door, decision_aaron_frappe_native];
@@ -143,7 +143,7 @@ export const decision_cut_equity_parked = defineDecision({
   chosen: "park",
   why:
     "GROUNDING and START-HERE drop equity ('not the direction', 'dropped for now'), while aaron.frappe-native still names " +
-    "it. Parking is reversible and costs nothing; dropping 38 operations is hard to undo. It is Aaron's ruling to make.",
+    "it. Parking is reversible and costs nothing; dropping 38 operations is hard to undo. It is Aaron's ruling to make. Aaron, 10 November 2026, on the portal's Questions page: accepted as recommended. Whether equity is kept or dropped is still his to settle later; it stays parked meanwhile.",
   source: BY,
   affects: [f.system_capxul, f.concept_board, ...rulings],
 });
@@ -166,7 +166,7 @@ export const decision_cut_fde_parked = defineDecision({
   chosen: "park",
   why:
     "GROUNDING calls the FDE the upsell, not the base product; START-HERE says it sets Capxul up and does not run daily " +
-    "operations. aaron.fde-hosted says otherwise. Parking keeps both readings open.",
+    "operations. aaron.fde-hosted says otherwise. Parking keeps both readings open. Aaron, 10 November 2026, on the portal's Questions page: accepted as recommended.",
   source: BY,
   affects: [f.system_capxul, f.concept_organizations, ...rulings],
 });
@@ -213,17 +213,45 @@ export const decision_cut_department_budgets = defineDecision({
 
 export const decision_cut_uk_payroll_filing = defineDecision({
   id: "cut.uk-payroll-filing",
-  title: "How a UK company files payroll with HMRC stays Aaron's",
+  title: "HMRC payroll filing is set aside for now: the United States first",
   question: "Frappe has no RTI and its PAYE is not HMRC's cumulative method. Provider API, bureau, or build?",
   options: [
-    { label: "open", text: "Open. Nothing in the book changes. Aaron decides (START-HERE section 11); the coordinator's recommendation is a provider API, one integration record." },
+    { label: "open", text: "Open. Nothing in the book changes; the coordinator's recommendation was a provider API, one integration record. This was the choice until 10 November 2026." },
+    { label: "set-aside-for-now", text: "Set aside by Aaron's ruling aaron.us-first: the build targets the United States first and writes its examples for it, so HMRC filing is neither designed nor built now. Not exclusively and not for ever. Which existing open-source payroll and tax support gives the best start is payroll.open-source-support." },
     { label: "provider-api", text: "A payroll provider's API files the returns." },
     { label: "bureau", text: "A bureau files them." },
   ],
-  chosen: "open",
-  why: "START-HERE section 11 lists it under 'Only Aaron'. Payroll is Frappe's whichever he chooses.",
+  chosen: "set-aside-for-now",
+  why:
+    "START-HERE section 11 had listed it under 'Only Aaron'. Aaron, 10 November 2026, dictated: 'I think this is a decision we should revisit actually. I think we should probably avoid HMRC for now. Let's just do this US, not that this is only going to be US, but let's just like pick US for now, US examples for now, especially because the legal path is a bit more straightforward as well, especially for stable coins and stable coin companies.' " +
+    "His ruling is aaron.us-first, which lists the places in the book that assume a UK company; nothing is rewritten yet. Payroll is Frappe's whichever jurisdiction comes first.",
   source: BY,
-  affects: [f.system_capxul, ...rulings],
+  affects: [f.system_capxul, ...rulings, decision_aaron_us_first],
+});
+
+export const decision_payroll_open_source_support = defineDecision({
+  id: "payroll.open-source-support",
+  title: "Which existing open-source payroll and tax support gives the best start?",
+  question:
+    "aaron.us-first makes the United States the first jurisdiction. Frappe HR's payroll calculates from salary structures and formulas; " +
+    "what existing open-source payroll and tax support (a Frappe app, a plugin, a tax engine or a filing library) already exists " +
+    "for the United States, and for any other jurisdiction, that gives the build a start?",
+  options: [
+    {
+      label: "research-first",
+      text:
+        "Open, and not waiting on Aaron yet: it waits on research. The research note docs/design/payroll-jurisdiction.md (being " +
+        "written by another agent) is where the answer comes from: what exists, how well it is kept, its licence, what it covers for " +
+        "the United States and what it would take to use it beside Frappe HR. When the note is in, this record is rewritten to its " +
+        "recommendation, and only then does it go to Aaron if the call is his.",
+    },
+  ],
+  chosen: "research-first",
+  why:
+    "Aaron asked the question himself on 10 November 2026 (aaron.us-first): what open-source tax support exists, and whether a " +
+    "plugin gives a head start for a jurisdiction. It is open as a question, not as a choice, so no option is recommended yet.",
+  source: BY,
+  affects: [f.system_capxul, ...rulings, decision_aaron_us_first],
 });
 
 export const decision_cut_individuals_parked = defineDecision({
@@ -241,7 +269,7 @@ export const decision_cut_individuals_parked = defineDecision({
     { label: "both", text: "Keep individuals as written." },
   ],
   chosen: "companies-only-now",
-  why: "GROUNDING sells to companies of 15 to 25 people. A person with no company has no Frappe site, so the book's personal features have no place to land.",
+  why: "GROUNDING sells to companies of 15 to 25 people. A person with no company has no Frappe site, so the book's personal features have no place to land. Aaron, 10 November 2026, on the portal's Questions page: accepted as recommended.",
   source: BY,
   affects: [f.system_capxul, f.concept_accounts, f.concept_contacts, ...rulings],
 });

@@ -8,6 +8,7 @@ import {
   decision_cut_agreements_in_payments, decision_cut_equity_parked, decision_cut_fde_parked, decision_cut_individuals_parked,
   decision_cut_plug_placeholders, decision_cut_principle,
 } from "./cut.ts";
+import { decision_aaron_seasons, decision_aaron_seasons_dropped } from "./rulings.ts";
 
 const BY = "The coordinator, 10 November 2026, on Aaron's delegation of the book (aaron.one-door, aaron.frappe-native)";
 
@@ -241,4 +242,54 @@ export const decision_cut_head = defineDecision({
   why: "The cut's rule (cut.principle): Frappe owns what it owns and the door reaches it; nothing is deleted. Aaron's rulings aaron.frappe-native and aaron.one-door.",
   source: BY,
   affects: [f.system_capxul, decision_cut_principle],
+});
+
+export const decision_cut_seasons = defineDecision({
+  id: "cut.seasons",
+  title: "seasons are parked: a shared world keeps its clock, snapshots and grants",
+  question: "What happens to a shared world's seasons now that Aaron has dropped them for now (aaron.seasons-dropped)?",
+  options: [
+    {
+      label: "moved",
+      text:
+        "Seasons leave the built book. Moved to docs/cut-archive/parked/seasons/ with their text intact: 11 operations (the `dev " +
+        "season` commands), their 11 Core SDK flows, 9 decisions (devnet.seasons, devnet.season-players, devnet.season-jumps, " +
+        "devnet.season-reset, devnet.season-protocol, devnet.season-worlds, devnet.season-claims, devnet.seasons-on-a-world, " +
+        "time.seasons) and 2 invariants (time.season-schedule, time.season-reset). There was no table, state machine or rpc of " +
+        "their own: the supervisor kept seasons outside the chain. Listed in docs/cut-archive/INDEX.md with a reason. Aaron's " +
+        "earlier ruling aaron.seasons (9 November 2026) is set aside by his answer, not deleted: it stays in rulings.ts " +
+        "unedited. None of the eleven operations is one of the 215 frozen ones, so the frozen check classifies nothing.",
+    },
+    {
+      label: "trimmed-1",
+      text:
+        "Kept records that named a season and no longer do: the `devnet-control` integration (shared/external.ts) loses its eleven " +
+        "season calls and their helpers (kept as text in docs/cut-archive/parked/seasons/shared/external.ts) and the lines of its " +
+        "text and its calls' failures that named a season; the shared-world environment (shared/foundation.ts) no longer says its time " +
+        "runs in seasons; the eval world catalog (devnet/worlds.ts) loses season-planned, season-running and season-ended (kept as text in " +
+        "docs/cut-archive/parked/seasons/devnet/worlds.ts); shared-world-joiner and shared-world-owner are reworded; devnet.budgets and the " +
+        "operations' lists stop naming season commands.",
+    },
+    {
+      label: "stays-1",
+      text:
+        "What seasons shared with worlds stays: the clock and its rate (dev time, devnet.clock-rate), snapshots (dev snapshot), grants and " +
+        "the owner-only rules (devnet.shared-world). The `season` field of the supervisor's Clock, ClockEvent and Snapshot shapes (devnet/flows.ts) stays and is " +
+        "always null now; remove it if seasons stay dropped. Prose in kept decisions that names a season (for example " +
+        "devnet.supervisor-owns-time-and-worlds, devnet.stateful-followers, time.worlds, time.one-clock, payments' claim-retry) is read as parked.",
+    },
+    {
+      label: "to-revisit-1",
+      text:
+        "To revisit, not decided here: a shared world's gateway admitted a joiner's backend calls only while a season the joiner plays ran " +
+        "(devnet.season-players); with seasons parked the rule that admits a joiner is undefined, and so is what devnet.shared-world's " +
+        "supersession by aaron.seasons now means. It goes with the time study (docs/design/time-deep-dive.md), since a shared world's clock is the question there.",
+    },
+  ],
+  chosen: "moved",
+  why:
+    "Aaron, 10 November 2026, dictated, on devnet.seasons: 'Let's just drop this for now, man. This seems like it's just adding complexity where it doesn't really need it. It's not even needed yet. We can add this later if we want it.' " +
+    "The cut's rule (cut.principle) is that nothing is deleted: parking keeps the design for when he wants it.",
+  source: BY,
+  affects: [f.system_capxul, decision_cut_principle, decision_aaron_seasons_dropped, decision_aaron_seasons],
 });

@@ -510,7 +510,12 @@ export const decision_surface_tree = defineDecision({
     "Organization's; domain-first loses that. flat-sections leaves HR's own side at the top beside money (`leave`, " +
     "`advance`). No command is longer than the 215's longest (`org books accounts add`). The SDK follows the words " +
     "(G7): `client.org(orgId).hr.leaves.approve`, `client.me.hr.leaves.apply`. For Aaron: the tree, its thirteen " +
-    "groups and its 119 moves are in docs/design/command-surface.md; the recommendation stands until he answers.",
+    "groups and its 119 moves are in docs/design/command-surface.md. " +
+    "Aaron, 10 November 2026, on the portal's Questions page: accepted as recommended. What it now applies to: of the tree's 394 rows, 159 are still booked (the native groups: identity, builders, " +
+    "money, the Organization, governance's board, agents, the devnet and the eleven pay agreements under payroll). The HR, projects and head " +
+    "groups and most of the books, payroll and CRM rows left the built book with the cut and are Frappe's, reached through the door " +
+    "(cut.books, cut.payroll, cut.contacts, cut.projects, cut.organizations); the devnet's eleven `dev season` rows are parked (cut.seasons). " +
+    "The ruling stands as chosen.",
   source: by("docs/design/command-surface.md; the workspaces of frappe/erpnext@6b946b0 and frappe/hrms@8816102"),
   affects: [f.system_capxul, f.component_cli, f.component_core_sdk],
 });
@@ -625,8 +630,11 @@ export const decision_surface_computed_gaps = defineDecision({
     "A computed figure has one author or it is wrong: a slip Capxul computed cannot also include an incentive the head " +
     "holds, unless the sync takes it in before the run, which is a second path for every pay figure. Additional Salary " +
     "comes first because every payroll has one-off pay and Frappe builds three other DocTypes on it. Each new command " +
-    "is booked by its concept with a pack decision citing aaron.frappe-shape (rules.new-operations). For Aaron: which " +
-    "comes first; the recommendation stands until he answers.",
+    "is booked by its concept with a pack decision citing aaron.frappe-shape (rules.new-operations). " +
+    "Aaron, 10 November 2026, on the portal's Questions page: accepted as recommended. What it now applies to: Payroll, Projects and CRM left the built book with the cut and are Frappe's, so the 32 DocTypes are " +
+    "Frappe documents reached through the door (cut.payroll, cut.projects, cut.contacts) and the packs of native commands it chose are not " +
+    "written; the rule that a figure Capxul computes has one author applies to what Core computes (budgets, payments, authority). The " +
+    "ruling stands as chosen.",
   source: by("hrms@8816102 payroll and hr DocTypes (overtime_slip, attendance_request, shift_request on_submit); erpnext@6b946b0 projects; crm@2cecd30 fcrm"),
   affects: [f.concept_contacts],
 });

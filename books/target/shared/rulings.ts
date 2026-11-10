@@ -32,7 +32,9 @@ export const SUPERSEDED: Readonly<Record<string, string>> = {
 };
 
 /** Judgments Aaron reopened on 8 November 2026: they are redesigned, or asked again with context. */
-export const REOPENED: readonly string[] = [];
+export const REOPENED: readonly string[] = [
+  "devnet.site-follows-world", // 10 November 2026: Aaron did not accept it; a time study is written and the question is put to him again
+];
 
 export const decision_aaron_erp_on_capxul = defineDecision({
   id: "aaron.erp-on-capxul",
@@ -801,3 +803,72 @@ export const decision_aaron_one_door = defineDecision({
   source: AARON_11,
   affects: [f.system_capxul, f.component_frappe_app],
 });
+
+
+// ── Aaron's twelfth batch (10 November 2026): his answers on the portal's Questions page ───────────────────────
+// Dictated, so the words are quoted as written. Six of the coordinator's calls he accepted as recommended; two he changed.
+const AARON_12 = "Aaron, 10 November 2026, on the portal's Questions page (twelfth batch, dictated)";
+
+(ACCEPTED as string[]).push(
+  "surface.computed-gaps", "surface.tree", "payroll.surface-moves",
+  "cut.equity-parked", "cut.fde-parked", "cut.individuals-parked",
+);
+
+export const decision_aaron_us_first = defineDecision({
+  id: "aaron.us-first",
+  title: "The build targets the United States first, and writes its examples for it",
+  question:
+    "cut.uk-payroll-filing asked how a UK company files payroll with HMRC. Which jurisdiction does the build target first?",
+  options: [
+    {
+      label: "us-first",
+      text:
+        "The United States first: its examples, its test companies, its currency (USD) and its payroll and tax support. Not " +
+        "exclusively and not for ever: other jurisdictions come later. HMRC filing (RTI, FPS and EPS, PAYE's cumulative " +
+        "method) is set aside for now, not designed and not built. Which existing open-source payroll and tax support " +
+        "gives the best start is a new open decision (payroll.open-source-support), answered from the research note " +
+        "docs/design/payroll-jurisdiction.md.",
+    },
+    { label: "uk-first", text: "The United Kingdom first, as START-HERE and GROUNDING assume: file with HMRC through a provider's API, a bureau, or a build." },
+  ],
+  chosen: "us-first",
+  why:
+    "Aaron, 10 November 2026, dictated: " + "I think this is a decision we should revisit actually. I think we should probably avoid HMRC for now. Let's just do this US, not that this is only going to be US, but let's just like pick US for now, US examples for now, especially because the legal path is a bit more straightforward as well, especially for stable coins and stable coin companies. Also as well, ideally we want to like, what open source tax stuff is there? Is there a plugin already existing for this for any particular jurisdiction that gives us a leg up over there? But that's how I would assess this." + " The places in the book that assume a UK company, to revisit (not " +
+    "rewritten by this ruling): the eval worlds' companies are `Acme Ltd`, created `--country GB`, and Dana's profile is " +
+    "country GB (devnet/worlds.ts lines 77, 96-97, 201, 334-391, 696, 1045; contacts' `Globex Ltd` and `Northwind Ltd`); " +
+    "the GBP bank accounts, GBP deals and GBP notes in those worlds (devnet/worlds.ts 1007-1132, 1762; devnet/decisions.ts " +
+    "1021; banking/decisions.ts 574-578); banking's GBP details, sort codes and EUR IBAN fields (banking/accounts.ts 48-50, " +
+    "banking/data.ts 57, banking/payouts.ts 73, banking/operations.ts 153, 176, 203, 301-330); books' currency rates " +
+    "and euro books (books/decisions.ts 370, 891-903; requests/decisions.ts 631); the book's currency decision for a GBP " +
+    "company (plugs/decisions.ts 252-259, whose skeleton was USD); the site's UK English locale (en-GB: sites/decisions.ts " +
+    "82, shared/foundation.ts 214); payroll held off 'until the UK filing route is chosen' (sites/data.ts 63, " +
+    "sites/operations.ts 54); and the HMRC decision itself (cut.uk-payroll-filing). 'Companies House' in the book is a " +
+    "contract role's name, not a UK registry, and is not on this list. START-HERE.md and GROUNDING.md also assume a UK " +
+    "company; the coordinator reads them next.",
+  source: AARON_12,
+  affects: [f.system_capxul],
+});
+
+export const decision_aaron_seasons_dropped = defineDecision({
+  id: "aaron.seasons-dropped",
+  title: "Seasons are dropped for now; they can be added later",
+  question: "devnet.seasons booked seasons for a shared world (aaron.seasons). Are they built now?",
+  options: [
+    {
+      label: "drop-for-now",
+      text:
+        "No. Seasons leave the built book and are archived under docs/cut-archive/parked/seasons/. What they shared with " +
+        "worlds stays: the clock, snapshots and grants. They can be added later.",
+    },
+    { label: "keep", text: "Keep seasons as booked: the eleven `dev season` commands, their flows and the supervisor's season calls." },
+  ],
+  chosen: "drop-for-now",
+  why:
+    "Aaron, 10 November 2026, dictated: " + "Let's just drop this for now, man. This seems like it's just adding complexity where it doesn't really need it. It's not even needed yet. We can add this later if we want it." + " This sets aside his earlier ruling aaron.seasons (9 November 2026), " +
+    "which stays in this file unedited; cut.seasons carries it out.",
+  source: AARON_12,
+  affects: [f.system_capxul, decision_aaron_seasons],
+});
+
+// His answer to cut.uk-payroll-filing replaces that decision's open choice (the cut's record is rewritten to it).
+Object.assign(SUPERSEDED as Record<string, string>, { "cut.uk-payroll-filing": "aaron.us-first" });

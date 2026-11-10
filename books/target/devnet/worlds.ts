@@ -130,16 +130,16 @@ export const WORLDS: readonly World[] = [
   {
     name: "shared-world-joiner",
     holds:
-      "empty-devnet served as a shared world on the eval machine, its gateway on loopback (devnet.season-players), with " +
+      "empty-devnet served as a shared world on the eval machine, its gateway on loopback (devnet.shared-world), with " +
       "every command run as a joiner, Ana (ana@acme.test), through the gateway with her grant alone; the builder keeps " +
-      "the owner's. The clock is frozen at the eval epoch at rate 1, and no season runs, so the gateway refuses Ana's " +
-      "calls to the backend WRONG_STATE. A joiner's move, follow, save or restore of the clock, and every season command " +
-      "but `dev season show` and `list`, is ROLE_PERMISSION_DENIED; the supervisor's reads and watches answer. The " +
+      "the owner's. The clock is frozen at the eval epoch at rate 1, and the gateway admits a joiner's backend calls only " +
+      "while a season they play runs, a rule parked with the seasons (cut.seasons, devnet.season-players), so it refuses " +
+      "Ana's calls to the backend WRONG_STATE. A joiner's move, follow, save or restore of the clock is " +
+      "ROLE_PERMISSION_DENIED; the supervisor's reads and watches answer. The " +
       "world runs with the eval machine's seed, so each person's dev signer is the one their catalogued Safe was set up " +
       "with, and its store is a copy of the eval machine's, made fresh with the world and thrown away with it, so every " +
-      "catalogued world is saved in it and nothing a season saves there (`s1-end`) reaches another eval. Grants and " +
-      "seasons live on the world's host outside its snapshots, so this world, and each built from it, is built by its " +
-      "steps every time an eval uses it (devnet.season-worlds).",
+      "catalogued world is saved in it. Grants live on the world's host outside its snapshots, so this world, and each " +
+      "built from it, is built by its steps every time an eval uses it (devnet.shared-world).",
     from: null,
     steps: [
       supervisor("capxul-devnet up --shared eval --public localhost --start-at <the eval epoch> --frozen (fresh, with the eval machine's seed and a fresh copy of its store)"),
@@ -1889,64 +1889,18 @@ export const WORLDS: readonly World[] = [
     steps: [fault("chain-rpc node-down"), current("lead@acme.test")],
     namedBy: ["payroll"],
   },
-  // ── seasons: a shared world's seasons (aaron.seasons; devnet.seasons, devnet.season-worlds) ──
-  // Last in the catalog: each names catalogued worlds (person-with-funded-safe, person-ready) as a season's start, so
-  // every other world is built and saved before them.
-  // Each is built by its steps on a fresh shared world every time an eval uses it, since its grants and seasons live
-  // outside the snapshots, and a running season runs on real time, so these are the catalog's only worlds whose clock
-  // runs. A player's command runs from that player's own CLI home, which the harness keeps outside the world's
-  // snapshots as their own machine would be; the owner's runs from the eval machine's.
+  // ── a shared world's owner ──
+  // Last in the catalog: it is built by its steps on a fresh shared world every time an eval uses it, since its grants live
+  // outside the snapshots. A player's command runs from that player's own CLI home, which the harness keeps outside the
+  // world's snapshots as their own machine would be; the owner's runs from the eval machine's.
   {
     name: "shared-world-owner",
     holds:
       "shared-world-joiner with every command run as the world's owner (the builder's owner grant), and a second joiner, " +
-      "Dana (dana@acme.test), granted too; no season, the clock frozen at the eval epoch at rate 1. A claim that runs a " +
+      "Dana (dana@acme.test), granted too; the clock is frozen at the eval epoch at rate 1. A claim that runs a " +
       "command as Ana or Dana runs it with her grant file from her own CLI home.",
     from: "shared-world-joiner",
     steps: [supervisor("capxul-devnet world grant dana@acme.test (her grant file, kept for the commands a claim runs as Dana)")],
-    env: { CAPXUL_BOOTSTRAP_URL: "<the world's gateway on loopback>", CAPXUL_WORLD_GRANT: "<the owner's grant file>" },
-    namedBy: ["devnet"],
-  },
-  {
-    name: "season-planned",
-    holds:
-      "shared-world-owner with season s1 planned by the owner: from person-with-funded-safe (Dana ready with 1,000 USDC " +
-      "in her Safe, Sam ready), reset to the same world, rate 4, ending two real hours after it was made, one warp w1 " +
-      "of 30 days an hour after it was made, and Dana its one player. The world itself is unchanged: frozen at the eval " +
-      "epoch at rate 1, no season running, so the gateway refuses Dana's and Ana's backend calls WRONG_STATE.",
-    from: "shared-world-owner",
-    steps: [anyone("capxul dev season create s1 --snapshot person-with-funded-safe --rate 4 --end +2h --warp +1h=30d --player dana@acme.test")],
-    env: { CAPXUL_BOOTSTRAP_URL: "<the world's gateway on loopback>", CAPXUL_WORLD_GRANT: "<the owner's grant file>" },
-    namedBy: ["devnet"],
-  },
-  {
-    name: "season-running",
-    holds:
-      "season-planned after the owner started s1: the world is person-with-funded-safe's under a new epoch, its clock " +
-      "running at rate 4 and naming s1, w1 still scheduled. Dana signed in from her own CLI home and paid Sam 5 USDC, " +
-      "settled, so her Safe holds 995 USDC; her season's mail (the sign-in code, the payment's notices) is in the sink. " +
-      "Ana holds a grant but does not play s1.",
-    from: "season-planned",
-    steps: [
-      anyone("capxul dev season start s1 --confirm"),
-      step(
-        "dana@acme.test",
-        "from her own CLI home, with her grant: capxul auth login dana@acme.test; capxul auth verify <the code `capxul dev mail list --to dana@acme.test` shows>",
-      ),
-      step("dana@acme.test", "capxul payment send sam@acme.test 5 --json; capxul dev approve --as dana@acme.test <its approval>; until it is settled"),
-    ],
-    env: { CAPXUL_BOOTSTRAP_URL: "<the world's gateway on loopback>", CAPXUL_WORLD_GRANT: "<the owner's grant file>" },
-    namedBy: ["devnet"],
-  },
-  {
-    name: "season-ended",
-    holds:
-      "season-running after the owner ended s1: s1 ended, its last state (Dana's 995 USDC and her payment to Sam) saved " +
-      "as the world s1-end, and the world reset to person-with-funded-safe, frozen at its now under a new epoch, with no " +
-      "season running. Dana's own CLI home still holds her s1 session, which this world does not know, and the sink " +
-      "holds none of s1's mail.",
-    from: "season-running",
-    steps: [anyone("capxul dev season end s1 --confirm")],
     env: { CAPXUL_BOOTSTRAP_URL: "<the world's gateway on loopback>", CAPXUL_WORLD_GRANT: "<the owner's grant file>" },
     namedBy: ["devnet"],
   },
@@ -1961,9 +1915,6 @@ export const W = {
   offDevnet: "cli-on-beta-environment",
   sharedJoiner: "shared-world-joiner",
   sharedOwner: "shared-world-owner",
-  seasonPlanned: "season-planned",
-  seasonRunning: "season-running",
-  seasonEnded: "season-ended",
   orgReady: "org-ready",
   history: "person-with-payment-history",
   bridgeDown: "bridge-unreachable",

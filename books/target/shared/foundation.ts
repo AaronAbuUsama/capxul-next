@@ -811,11 +811,9 @@ export const environment_shared_world = defineEnvironment({
   about:
     "A devnet's whole stack run on a host for several people, so one story can be shared (aaron.world-clock; decision " +
     "devnet.shared-world): one chain, one backend, one clock (frozen, or running at a rate: up to four world hours each " +
-    "real hour at rate 4), one mail sink and one set of stand-ins. Its time runs in seasons, like a game (aaron.seasons; " +
-    "decision devnet.seasons): each starts from a saved world, runs at a rate, warps on a real schedule and ends in a " +
-    "reset. Its owner starts it, controls its clock and plans its seasons; anyone else joins only by a grant the owner " +
-    "makes for their email, over HTTPS at the world's address, and is admitted only while a season they play runs " +
-    "(devnet.season-players). Self-contained: everything " +
+    "real hour at rate 4), one mail sink and one set of stand-ins. Its owner controls its clock, and anyone else joins " +
+    "only by a grant the owner makes for their email, over HTTPS at the world's address. (Seasons, a schedule of starts, " +
+    "jumps and resets that ran it like a game, are dropped for now: aaron.seasons-dropped, cut.seasons.) Self-contained: everything " +
     "in it follows its clock, and nothing it sends leaves it (time.world-channels). It runs the devnet build of the " +
     "backend, so devnet-only rpcs answer here too, behind the world's gateway, each by the grant's role.",
   runs: [
