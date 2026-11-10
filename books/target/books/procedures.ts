@@ -92,6 +92,7 @@ export const procedure_books_record_money_fact = defineProcedure({
   id: "books.record-money-fact",
   title: "Record a money occurrence's book facts",
   about:
+    "Repointed (plugs.repoint-money-fact): the chain reader; the plugs' outbox carries each fact to Frappe's books. " +
     "Money fact: a settled Payment, a Payment born from a chain fact, a bank deposit, a payout's return and a Movement of " +
     "outside money always have their book fact, written in the same transaction (K10), and so their voucher. For each " +
     "Organization side the invoker passes, one fact under its `money_key` with the Organization's next feed number, " +

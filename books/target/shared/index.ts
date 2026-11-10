@@ -15,6 +15,7 @@ import * as rulings from "./rulings.ts";
 import * as surface from "./surface.ts";
 import * as cut from "./cut.ts";
 import * as cutMoves from "./cut-moves.ts";
+import * as milestones from "./milestones.ts";
 
 /** Records carried by a parent (a machine's transitions, an integration's calls, a contract's parts) come with it. */
 const CHILDREN = new Set(["transition", "call", "function", "chainEvent"]);
@@ -32,5 +33,5 @@ export const recordsOf = (modules: readonly object[]): unknown[] => [
   ),
 ];
 
-export const sharedModules = [foundation, vocabulary, external, decisions, landings, tooling, portal, swarm, time, rulings, surface, cut, cutMoves] as const;
+export const sharedModules = [foundation, vocabulary, external, decisions, landings, tooling, portal, swarm, time, rulings, surface, cut, cutMoves, milestones] as const;
 export const sharedRecords = recordsOf(sharedModules);
