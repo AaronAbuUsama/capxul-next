@@ -9,12 +9,9 @@ import { concept_documents, concept_payments } from "../shared/foundation.ts";
 import { error_INVALID_INPUT, error_UNKNOWN } from "../shared/vocabulary.ts";
 import { table_documents } from "./data.ts";
 import { procedure_documents_store } from "./procedures.ts";
-import { rpc_documents_reading_get, rpc_documents_reading_render, rpc_documents_reading_verify } from "./reading.ts";
-import { flow_client_payment_documents_export, flow_client_payment_documents_render } from "./flows.ts";
+import { rpc_documents_reading_get, rpc_documents_reading_verify } from "./reading.ts";
 import {
-  operation_document_export,
   operation_document_get,
-  operation_document_render,
   operation_document_verify,
 } from "./operations.ts";
 
@@ -22,9 +19,7 @@ const CLAUDE = "Claude, documents design, 8 November 2026";
 const by = (evidence: string) => `${CLAUDE}; evidence: ${evidence}`;
 const D = "packages/backend/src/documents";
 
-const RPCS = [rpc_documents_reading_get, rpc_documents_reading_verify, rpc_documents_reading_render];
-const FLOWS = [flow_client_payment_documents_render, flow_client_payment_documents_export];
-const OPERATIONS = [operation_document_get, operation_document_verify, operation_document_render, operation_document_export];
+const OPERATIONS = [operation_document_get, operation_document_verify, ];
 
 // ── data ────────────────────────────────────────────────────────────────────────────────────
 
@@ -84,7 +79,7 @@ export const decision_documents_tenancy = defineDecision({
     "because a Safe is the one name stable across sign-up: a person's Safe is derived from their mailbox before they " +
     "join, so an outside payer who later signs in reads the invoice they were sent.",
   source: by("books/target/payments/decisions.ts (payments.two-sided-tenancy); books/target/requests/data.ts (by_payer_created); P8"),
-  affects: [table_documents, ...RPCS],
+  affects: [table_documents],
 });
 
 export const decision_documents_participants = defineDecision({
@@ -113,7 +108,7 @@ export const decision_documents_participants = defineDecision({
     "same missing-pair refusal' holds because a caller with no Party of their own has no Safes, and every refusal is " +
     "`document not found` on `documentHash`.",
   source: by(`${D}/guards.ts:100, :149; packages/backend/src/activity/documents/tests/get.test.ts:191, :249; ${D}/README.md:23`),
-  affects: [table_documents, procedure_documents_store, ...RPCS, error_INVALID_INPUT],
+  affects: [table_documents, procedure_documents_store, error_INVALID_INPUT],
 });
 
 export const decision_documents_kinds = defineDecision({
@@ -191,7 +186,7 @@ export const decision_documents_unsigned = defineDecision({
     "column nothing writes is P2's orphan. The frozen surface's three values are kept, so a signed kind can return " +
     "without changing what the commands print.",
   source: by(`apps/cli/src/commands/document/internal/shared.ts:31; ${D}/rules/integrity.ts:84; P2`),
-  affects: [table_documents, ...RPCS],
+  affects: [table_documents],
 });
 
 // ── the door ────────────────────────────────────────────────────────────────────────────────
@@ -302,7 +297,7 @@ export const decision_documents_rpcs_and_flows = defineDecision({
     "'returns the exact stored bytes', and export needs exactly that answer: a second rpc would serve the same read " +
     "twice. The SDK namespace stays the frozen pages' `client.paymentDocuments`; `export` is the one new method.",
   source: by("packages/protocol/src/activity/operations.ts:142; packages/sdk/src/activity/documents.ts:86; docs/as-is/lane-reports/review-agent.json; A4"),
-  affects: [...RPCS, ...FLOWS, ...OPERATIONS],
+  affects: [...OPERATIONS],
 });
 
 export const decision_documents_verify_answers = defineDecision({
@@ -327,30 +322,7 @@ export const decision_documents_verify_answers = defineDecision({
     "is not a check. The readers that hand the document on (its bytes, its PDF) must not hand on bad bytes, so they " +
     "still refuse, as the frozen get line requires ('tampering with a hashed note is detected').",
   source: by(`${D}/reads/contents.ts:72; apps/cli/src/commands/document/tests/document.test.ts:83, :115; P10`),
-  affects: [rpc_documents_reading_verify, rpc_documents_reading_get, rpc_documents_reading_render, operation_document_verify, error_UNKNOWN],
-});
-
-export const decision_documents_render_names = defineDecision({
-  id: "documents.render-names",
-  title: "Render names parties by their public names, and adds no link",
-  question: "What does a rendered document show beyond its stored fields?",
-  options: [
-    {
-      label: "public-names",
-      text:
-        "The current public name of each party it names (an Organization's name; a person's or agent's display name, " +
-        "else handle, else Safe shortened; never a Party id or a mailbox), read after the checks; no checkout link.",
-    },
-    { label: "as-is", text: "Names with a mailbox fallback for a payslip, and the request's checkout link from requests." },
-  ],
-  chosen: "public-names",
-  why:
-    "The names are read from parties and organizations, which documents depends on, only after access and integrity " +
-    "pass, and they never enter the stored bytes. A mailbox is left out because a counterparty who named someone by " +
-    "handle never typed it (the contacts rule). The checkout link came from requests, which documents may not read; the " +
-    "request's own reads and notices print it.",
-  source: by(`${D}/reads/parties.ts:47; ${D}/reads/contents.ts:104; books/target/contacts/book.ts (Entry.label)`),
-  affects: [rpc_documents_reading_render, operation_document_render],
+  affects: [rpc_documents_reading_verify, rpc_documents_reading_get, operation_document_verify, error_UNKNOWN],
 });
 
 export const decision_documents_no_org_hint = defineDecision({
@@ -368,37 +340,10 @@ export const decision_documents_no_org_hint = defineDecision({
     "The hint never granted access ('never selects an unrelated Organization'); it only labelled telemetry. Spans are " +
     "the runtime's (P6) and no rpc sends an event (P7), so an input that exists for telemetry has no place on the wire.",
   source: by(`${D}/guards.ts:143; packages/backend/src/activity/documents/reads.ts:28; P6; P7`),
-  affects: [rpc_documents_reading_verify, rpc_documents_reading_render],
+  affects: [rpc_documents_reading_verify],
 });
 
 // ── operations ──────────────────────────────────────────────────────────────────────────────
-
-export const decision_documents_acceptance_rewrites = defineDecision({
-  id: "documents.acceptance-rewrites",
-  title: "`document render` #1 is kept word for word: payslips are stored again",
-  question:
-    "The frozen line 'A payslip names its employer and employee, not their Party IDs.' was rewritten while the target " +
-    "stored no payslip. Payroll now stores one per submitted salary slip (documents.payslip-kind). Keep, retire or rewrite it?",
-  options: [
-    { label: "keep", text: "Keep it word for word, reached by rendering a run's payslip in `org-with-documents`." },
-    {
-      label: "rewrite",
-      text:
-        "'A document that names an employer and an employee (a payslip, or an agreement's terms) renders their names, " +
-        "not their Party IDs.', the old line in `was`, as while no payslip was stored.",
-    },
-    { label: "retire", text: "Retire it as null, as P9 does for pre-v4-only lines." },
-  ],
-  chosen: "keep",
-  why:
-    "The rewrite existed only because the target stored no payslip, and went beyond P1 (a payslip is not a mechanism), " +
-    "so it was flagged for review as W1. With payroll's runs back in Frappe HR's shape, every submitted salary slip has " +
-    "a typed payslip, and render lays out its employer and employee by their public names (documents.render-names). " +
-    "The frozen line now reads as an outcome a world can reach, so it is kept word for word (system.frozen-behaviour), " +
-    "and W1 is settled by it. Every other line of the four operations is kept word for word too.",
-  source: by("books/frozen/operations.ts (document.render acceptance 1); packages/backend/src/activity/documents/tests/render.test.ts:89; P1; books/target/payroll/decisions.ts (payroll.scope)"),
-  affects: [operation_document_render, rpc_documents_reading_render],
-});
 
 export const decision_documents_worlds = defineDecision({
   id: "documents.worlds",
@@ -423,24 +368,6 @@ export const decision_documents_worlds = defineDecision({
     "operation can make, and every other run must see clean bytes.",
   source: by("books/frozen/operations.ts (document.* refusals and acceptance); packages/scenarios/src/acme/s18-dana-reads-her-payment-surface.scenario.ts:89"),
   affects: OPERATIONS,
-});
-
-export const decision_documents_render_budget = defineDecision({
-  id: "documents.render-budget",
-  title: "`document render` takes a longer read budget for its browser",
-  question: "Which budget does `document render` take (P5)?",
-  options: [
-    { label: "override", text: "The read class at 2.5 s p50 and 6 s p95, the first-run browser download excluded." },
-    { label: "read", text: "The read class default, 600 ms p50 and 1.2 s p95." },
-  ],
-  chosen: "override",
-  why:
-    "After its one read the command launches a headless browser on this machine, loads the embedded font and prints an " +
-    "A4 PDF: local work the read class does not anticipate, measured in seconds in the old CLI. A browser that is not " +
-    "installed is downloaded once, which is its own span (`sdk.step.browser-install`) and excluded. Get, verify and " +
-    "export keep the read default: one read and, for export, one small file write.",
-  source: by("apps/cli/src/platform/documents.ts:16, :41; P5"),
-  affects: [flow_client_payment_documents_render, operation_document_render],
 });
 
 // ── payslips (the payroll lane of the Frappe redesign, 8 November 2026) ────────────────────
@@ -470,7 +397,7 @@ export const decision_documents_payslip_kind = defineDecision({
     "for, and the same rows are Frappe's Salary Detail, so a head shows the very slip. An agreement collection's slip " +
     "stores no payslip: its collection already carries the terms document's hash (payroll.collection-slips).",
   source: by("/tmp/hrms/hrms/payroll/doctype/salary_slip/salary_slip.json; docs/vision/erp.md (C8); books/target/payroll/decisions.ts (payroll.scope)"),
-  affects: [table_documents, procedure_documents_store, rpc_documents_reading_render, operation_document_render],
+  affects: [table_documents, procedure_documents_store, ],
 });
 
 export const decision_documents_payslip_readers = defineDecision({
@@ -499,5 +426,5 @@ export const decision_documents_payslip_readers = defineDecision({
     "every authority in the book follows the hat now (docs/design/authority.md). Employee-only would leave the " +
     "Organization unable to show the payslip it issued. A Director keeps reading, as for every Organization record.",
   source: by("books/target/payroll/decisions.ts (payroll.command-authority); books/target/documents/data.ts (participants); docs/design/authority.md"),
-  affects: [rpc_documents_reading_get, rpc_documents_reading_verify, rpc_documents_reading_render, table_documents],
+  affects: [rpc_documents_reading_get, rpc_documents_reading_verify, table_documents],
 });

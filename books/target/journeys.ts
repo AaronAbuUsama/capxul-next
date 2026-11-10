@@ -339,8 +339,6 @@ export const journey_close_the_books = defineJourney({
     step(books.operation_activity_annotate, "member", event_book_annotation_transitioned),
     step(documents.operation_document_get, "member", "success"),
     step(documents.operation_document_verify, "member", "success"),
-    step(documents.operation_document_render, "member", "success"),
-    step(documents.operation_document_export, "member", "success"),
   ],
   was: [`${OLD}/close_the_books.yaml (chapters S8, S20, S26)`, `${CATALOG}:74`, `${CONTRACTS}/close-the-books-contract.ts`],
 });

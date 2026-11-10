@@ -7,7 +7,7 @@ Capxul-native records leave the built book; nothing is deleted, it is moved with
 Aaron or on a call are parked under `docs/cut-archive/parked/`. Moved files keep their imports as they were, so those point at the
 folder the file was written in (as `docs/as-is/archive/` does) and are outside every typecheck.
 
-623 records have left the built book: 452 reached, 126 archive, 27 dropped, 18 parked.
+631 records have left the built book: 457 reached, 129 archive, 27 dropped, 18 parked.
 
 | Where | Records | Of which |
 |---|---|---|
@@ -17,6 +17,7 @@ folder the file was written in (as `docs/as-is/archive/` does) and are outside e
 | `docs/cut-archive/books/` | 48 | 14 rpc, 1 event, 1 machine, 4 table, 2 invariant, 2 flow, 12 operation, 1 procedure, 2 workflow, 9 decision |
 | `docs/cut-archive/parked/services/` | 18 | 2 table, 1 event, 1 machine, 3 flow, 5 operation, 5 rpc, 1 decision |
 | `docs/cut-archive/organizations/` | 21 | 4 table, 2 workflow, 1 event, 1 machine, 2 flow, 3 rpc, 2 operation, 6 decision |
+| `docs/cut-archive/documents/` | 8 | 2 flow, 2 operation, 1 rpc, 3 decision |
 
 ## projects (127)
 
@@ -670,3 +671,16 @@ folder the file was written in (as `docs/as-is/archive/` does) and are outside e
 | flow | `client.org.head.disconnect` | dropped | Capxul hosts every organisation's Frappe site and creates it with the organisation (aaron.one-door); nothing is connected from outside, so the connec… | the site is created with the organisation; a connection is not needed | `organizations/organizations/flows.ts` |
 | workflow | `notices.organizations.head-stalled` | dropped | Capxul hosts every organisation's Frappe site and creates it with the organisation (aaron.one-door); nothing is connected from outside, so the connec… | the site is created with the organisation; a connection is not needed | `organizations/notices/organizations.ts` |
 | workflow | `organizations.heads.watch` | dropped | Capxul hosts every organisation's Frappe site and creates it with the organisation (aaron.one-door); nothing is connected from outside, so the connec… | the site is created with the organisation; a connection is not needed | `organizations/organizations/processes.ts` |
+
+## documents (8)
+
+| Kind | Id | Verdict | Reason | Carried or replaced by | Archived to |
+|---|---|---|---|---|---|
+| operation | `document.export` | reached | Printing and exporting a document is Frappe's Print Format and PDF download, through the door. | Frappe Print Format through the door (`doc print`) | `documents/documents/operations.ts` |
+| operation | `document.render` | reached | Printing and exporting a document is Frappe's Print Format and PDF download, through the door. | Frappe Print Format through the door (`doc print`) | `documents/documents/operations.ts` |
+| decision | `documents.acceptance-rewrites` | archive | Governed only records that left the built book; archived with them. | the records it governed are in documents | `documents/documents/decisions.ts` |
+| decision | `documents.render-budget` | archive | Governed only records that left the built book; archived with them. | the records it governed are in documents | `documents/documents/decisions.ts` |
+| decision | `documents.render-names` | archive | Governed only records that left the built book; archived with them. | the records it governed are in documents | `documents/documents/decisions.ts` |
+| rpc | `documents.reading.render` | reached | Printing and exporting a document is Frappe's Print Format through the door. The hash stamp and its verification stay. | Frappe Print Format (`doc print`) | `documents/documents/reading.ts` |
+| flow | `client.payment-documents.export` | reached | Printing and exporting a document is Frappe's Print Format through the door. The hash stamp and its verification stay. | Frappe Print Format (`doc print`) | `documents/documents/flows.ts` |
+| flow | `client.payment-documents.render` | reached | Printing and exporting a document is Frappe's Print Format through the door. The hash stamp and its verification stay. | Frappe Print Format (`doc print`) | `documents/documents/flows.ts` |

@@ -142,3 +142,23 @@ export const decision_cut_organizations = defineDecision({
   source: BY,
   affects: [f.system_capxul, decision_cut_principle, decision_cut_plug_placeholders],
 });
+
+export const decision_cut_documents = defineDecision({
+  id: "cut.documents",
+  title: "document printing leaves: Frappe prints; the hash stamp stays",
+  question: "What happens to documents in the built book?",
+  options: [
+      {
+          "label": "moved",
+          "text": "Document printing leaves: Frappe prints; the hash stamp stays. Moved to docs/cut-archive/documents/ with their text intact: 2 flows, 2 operations, 1 rpc, 3 decisions. Listed in docs/cut-archive/INDEX.md with a reason and what carries each. Printing and exporting a document is Frappe's Print Format through the door. The hash stamp and its verification stay."
+      },
+      {
+          "label": "frozen-1",
+          "text": "Frozen operations classified by the cut (tools/check-frozen.ts): document.render (reached): Frappe Print Format through the door (`doc print`). document.export (reached): Frappe Print Format through the door (`doc print`)."
+      }
+  ],
+  chosen: "moved",
+  why: "The cut's rule (cut.principle): Frappe owns what it owns and the door reaches it; nothing is deleted. Aaron's rulings aaron.frappe-native and aaron.one-door.",
+  source: BY,
+  affects: [f.system_capxul, decision_cut_principle],
+});

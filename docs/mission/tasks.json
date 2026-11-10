@@ -9425,58 +9425,6 @@
       ]
     },
     {
-      "key": "operation:document.export",
-      "kind": "operation",
-      "lane": "documents",
-      "layer": 7,
-      "parent": "lane:documents",
-      "priority": "normal",
-      "evals": [
-        "acc:document.export/1",
-        "acc:document.export/2",
-        "acc:document.export/3",
-        "bud:document.export/p95",
-        "des:document.export",
-        "doc:document.export",
-        "flw:client.payment-documents.export/budget",
-        "flw:client.payment-documents.export/spans",
-        "ref:document.export/CLI_USAGE",
-        "ref:document.export/INVALID_INPUT",
-        "ref:document.export/NOT_AUTHENTICATED",
-        "ret:document.export",
-        "rpc:documents.reading.get/budget",
-        "rpc:documents.reading.get/errors",
-        "rpc:documents.reading.get/spans",
-        "spn:document.export"
-      ],
-      "record": "operation:document.export",
-      "title": "document export: Export a document",
-      "labels": [
-        "area:payments",
-        "kind:operation",
-        "lane:documents",
-        "layer:7"
-      ],
-      "goal": "`capxul document export` does what operation document.export promises: its 3 acceptance claims and 3 refusals hold, its --json shape, events, spans and budget pass on a devnet at the head of integration/build, and its reference page agrees with it. Saves a payment document's original bytes, exactly as stored, to a new file. Use it when you need the source file rather than a PDF rendering.",
-      "needs": [
-        "door:access",
-        "door:documents",
-        "door:indexing",
-        "door:organizations",
-        "door:parties",
-        "milestone:B3"
-      ],
-      "budgetUsd": 5,
-      "checkers": [
-        "reviewer"
-      ],
-      "paths": [
-        "books/target/documents/",
-        "packages/backend/src/documents/",
-        "packages/sdk/src/documents/"
-      ]
-    },
-    {
       "key": "operation:document.get",
       "kind": "operation",
       "lane": "documents",
@@ -9495,6 +9443,9 @@
         "ref:document.get/INVALID_INPUT",
         "ref:document.get/NOT_AUTHENTICATED",
         "ret:document.get",
+        "rpc:documents.reading.get/budget",
+        "rpc:documents.reading.get/errors",
+        "rpc:documents.reading.get/spans",
         "spn:document.get"
       ],
       "record": "operation:document.get",
@@ -9506,54 +9457,6 @@
         "layer:7"
       ],
       "goal": "`capxul document get` does what operation document.get promises: its 4 acceptance claims and 3 refusals hold, its --json shape, events, spans and budget pass on a devnet at the head of integration/build, and its reference page agrees with it. Reads a payment document's details: its kind, format, media type and signature status. You name it by its document hash and content hash, which payment and request reads print. The output also gives the command that saves it as PDF.",
-      "needs": [
-        "milestone:B3",
-        "operation:document.export"
-      ],
-      "budgetUsd": 5,
-      "checkers": [
-        "reviewer"
-      ],
-      "paths": [
-        "books/target/documents/",
-        "packages/backend/src/documents/",
-        "packages/sdk/src/documents/"
-      ]
-    },
-    {
-      "key": "operation:document.render",
-      "kind": "operation",
-      "lane": "documents",
-      "layer": 7,
-      "parent": "lane:documents",
-      "priority": "normal",
-      "evals": [
-        "acc:document.render/1",
-        "acc:document.render/2",
-        "acc:document.render/3",
-        "bud:document.render/p95",
-        "des:document.render",
-        "doc:document.render",
-        "flw:client.payment-documents.render/budget",
-        "flw:client.payment-documents.render/spans",
-        "ref:document.render/CLI_USAGE",
-        "ref:document.render/INVALID_INPUT",
-        "ref:document.render/NOT_AUTHENTICATED",
-        "ret:document.render",
-        "rpc:documents.reading.render/budget",
-        "rpc:documents.reading.render/errors",
-        "rpc:documents.reading.render/spans",
-        "spn:document.render"
-      ],
-      "record": "operation:document.render",
-      "title": "document render: Save a document as PDF",
-      "labels": [
-        "area:payments",
-        "kind:operation",
-        "lane:documents",
-        "layer:7"
-      ],
-      "goal": "`capxul document render` does what operation document.render promises: its 3 acceptance claims and 3 refusals hold, its --json shape, events, spans and budget pass on a devnet at the head of integration/build, and its reference page agrees with it. Saves a verified payment document as a PDF, with an HTML copy beside it. The backend checks the document's bytes before it renders.",
       "needs": [
         "door:access",
         "door:documents",
@@ -21677,9 +21580,7 @@
         "operation:activity.events",
         "operation:activity.get",
         "operation:activity.summary",
-        "operation:document.export",
         "operation:document.get",
-        "operation:document.render",
         "operation:document.verify"
       ],
       "labels": [

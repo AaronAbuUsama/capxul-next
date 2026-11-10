@@ -39,6 +39,8 @@ export const CUT = {
   "service.deactivate": { fate: "parked", decision: "cut.requests", carriedBy: "ERPNext Item and Payment Request through the door; `request issue` makes the payer's request" },
   "service.get": { fate: "parked", decision: "cut.requests", carriedBy: "ERPNext Item and Payment Request through the door; `request issue` makes the payer's request" },
   "service.list": { fate: "parked", decision: "cut.requests", carriedBy: "ERPNext Item and Payment Request through the door; `request issue` makes the payer's request" },
+  "document.render": { fate: "reached", decision: "cut.documents", carriedBy: "Frappe Print Format through the door (`doc print`)" },
+  "document.export": { fate: "reached", decision: "cut.documents", carriedBy: "Frappe Print Format through the door (`doc print`)" },
   // <cut-entries> one line per frozen operation that left the built book, added by the commit that moved it
 } as const satisfies Readonly<Record<string, Cut>>;
 
