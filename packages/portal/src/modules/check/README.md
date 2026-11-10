@@ -20,7 +20,7 @@ passed(outcomes);   // true when no part has a failure
 A page that belongs to no record is one of the fixed set: the five top pages, `docs/<name>` for each catalogue,
 `eval`, and `eval/<kind>` for each kind of eval the book derives. `expect` lists them by rule.
 
-`waits` is `forAaron` from `books/target/shared/waiting.ts`, the predicate `tools/report-judgments.ts` lists its
+`waits` is `forAaron` from `books/target/shared/waiting.ts`, the predicate `packages/book/scripts/report-judgments.ts` lists its
 "For Aaron" section with. The check derives the expected list from the book and that predicate, not from the site.
 
 ## Rules

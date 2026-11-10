@@ -37,7 +37,7 @@ export const impact = (at: string, b: ImpactBlock): readonly string[] =>
   b.total === 0 ? ["Nothing depends on this record.", ""] : [
     `${b.total} records depend on it: ${b.byKind.map((k) => `${k.kind} ${k.count}`).join(", ")}. ` +
       `${b.decisions} decisions name it; ${b.decisionsOnDependents} name something that depends on it. ${b.evals} evals belong to it or to them.`, "",
-    ...(b.complete ? [] : ["This list is cut to the nearest 500, or for a decision to the records it names; `tools/impact.ts` lists everything that depends on them.", ""]),
+    ...(b.complete ? [] : ["This list is cut to the nearest 500, or for a decision to the records it names; `packages/book/scripts/impact.ts` lists everything that depends on them.", ""]),
     ...table(["Record", "Kind", "Field", "Names", "Distance"], b.all.map((d) => [link(at, d.ref), d.kind, `\`${d.field}\``, link(at, d.via), String(d.distance)])),
   ];
 

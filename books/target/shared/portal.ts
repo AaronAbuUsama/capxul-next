@@ -45,7 +45,7 @@ export const decision_portal_milestone = defineDecision({
     "review of the design and of the CLI surface would happen in Markdown files and terminal output, and the surface B1 " +
     "designs would first be seen as code. After B1 delays it behind work it does not need. D0 runs beside B0, so it costs " +
     "nothing on the critical path; its generator is packages/portal, grown from the starter kit's (portal.stack).",
-  source: by("docs/mission/initializer.md (order of work, B4); docs/design-book.md (the docs site row); the old apps/docs read the YAML book and the factory's state.json"),
+  source: by("archive/docs/mission/initializer.md (order of work, B4); docs/design-book.md (the docs site row); the old apps/docs read the YAML book and the factory's state.json"),
   affects: [f.system_capxul, decision_system_build_order],
 });
 
@@ -144,7 +144,7 @@ export const decision_portal_operation_page = defineDecision({
     "the record promises; status comes last because it changes most. The public developer build keeps only Use and " +
     "Acceptance (portal.hosting). Split pages repeat the command, refusals and shape twice and invite the drift the old " +
     "site had between its operations table and its reference pages.",
-  source: by("old apps/docs templates/command.mdx and components/page/operation-evals.tsx; the prototype docs/design/portal-prototype.html (#/operation/payment.send)"),
+  source: by("old apps/docs templates/command.mdx and components/page/operation-evals.tsx; the prototype archive/docs/design/portal-prototype.html (#/operation/payment.send)"),
   affects: [f.component_cli, f.component_core_sdk],
 });
 
@@ -185,7 +185,7 @@ export const decision_portal_stand = defineDecision({
     "states. One function in packages/book keeps the stand derived like the gaps and the evals and product-neutral. It " +
     "needs the book, so it runs where the book is (the portal's generator and the status job); the browser and swarmD, a " +
     "separate product-neutral repository, read its results as data and never reimplement it.",
-  source: by("tools/portal-prototype.ts over buildBook(books/target): 41 specify, 40 decide, 134 build with no verdicts; docs/design-book.md (the stand table); docs/spec/10 (roll-up)"),
+  source: by("archive/tools/portal-prototype.ts over buildBook(books/target): 41 specify, 40 decide, 134 build with no verdicts; docs/design-book.md (the stand table); docs/spec/10 (roll-up)"),
   affects: [f.system_capxul],
 });
 
@@ -329,7 +329,7 @@ export const decision_portal_review_state = defineDecision({
   id: "portal.review-state",
   title: "A decision record says whether it waits for review",
   question:
-    "Today the judgments waiting for review are found by tools/report-judgments.ts: a hand list of flagged ids plus any " +
+    "Today the judgments waiting for review are found by packages/book/scripts/report-judgments.ts: a hand list of flagged ids plus any " +
     "decision whose text names the owner. The stand's decide step, the Review page and the report need the same answer, " +
     "and it must change when a judgment is answered. Where does that state live?",
   options: [
@@ -338,7 +338,7 @@ export const decision_portal_review_state = defineDecision({
       text:
         "Book first, at D0: the decision schema gains an optional review: {state: waiting | accepted | changed, by, at?, " +
         "ref?: the issue or matter}. The decisions on today's list get state waiting; an answer sets accepted or changed " +
-        "with its ref. tools/report-judgments.ts, the portal and standOf read the field, and the hand list and the name " +
+        "with its ref. packages/book/scripts/report-judgments.ts, the portal and standOf read the field, and the hand list and the name " +
         "match go.",
     },
     { label: "heuristic", text: "Keep the hand list and the name match, and mark an answered judgment by rewriting its source." },
@@ -351,7 +351,7 @@ export const decision_portal_review_state = defineDecision({
     "Rewriting source loses the original evidence. The ledger is not running at D0 and is not where the record lives: " +
     "the book must say on its own what is decided and by whom. A field is one small schema change, checked like every " +
     "other.",
-  source: by("tools/report-judgments.ts (FLAGGED, CARRIES_OUT, the name match); docs/decisions/judgments.md (17 waiting); packages/book/src/records/outcomes.ts (DecisionSpec)"),
+  source: by("packages/book/scripts/report-judgments.ts (FLAGGED, CARRIES_OUT, the name match); archive/docs/decisions/judgments.md (17 waiting); packages/book/src/records/outcomes.ts (DecisionSpec)"),
   affects: [f.system_capxul],
 });
 
@@ -552,7 +552,7 @@ export const decision_portal_stack = defineDecision({
     "eval finder now; a site-wide index over search.json when it is wanted). Everything else in the design stands: the " +
     "sitemap, the page types, the stand, the status document, the review flow, doc:<operation>, the twins and the " +
     "hosting. The JSON twins keep a switch to a framework possible later without changing the generator's views.",
-  source: by("books/target/shared/rulings.ts (aaron.portal-generator); /home/user/hillclimb-kit/packages/portal (README, src/, 3,292 lines); tools/portal-prototype.ts"),
+  source: by("books/target/shared/rulings.ts (aaron.portal-generator); /home/user/hillclimb-kit/packages/portal (README, src/, 3,292 lines); archive/tools/portal-prototype.ts"),
   affects: [f.system_capxul],
 });
 
@@ -701,7 +701,7 @@ export const decision_portal_plan_page = defineDecision({
       label: "authored-plan",
       text:
         "The coordinating model writes the plan as data in plan/plan.json (goal, milestones, tasks, the critical path as its own " +
-        "ordered list and words, dated notes). It changes the plan only through `pnpm plan …` (tools/plan.ts), which validates " +
+        "ordered list and words, dated notes). It changes the plan only through `pnpm plan …` (packages/plan/src/main.ts), which validates " +
         "each change, appends it to plan/log.jsonl with who made it and the commit, and prints the result. `plan check` keeps " +
         "the plan honest against the book (ids, needs without a cycle, a blocked task's decision, every record and eval id " +
         "named, exactly one current milestone, a path of live tasks, evidence for what is met) and never reorders or rewrites it. " +
@@ -736,6 +736,6 @@ export const decision_portal_plan_page = defineDecision({
     "a record of every change, and a page that shows it to a person and to other agents.",
   source:
     "The coordinator, 10 November 2026, on the owner's delegation of the book; the owner's words quoted in why; evidence: " +
-    "tools/plan.ts, tools/plan/, plan/plan.json, plan/log.jsonl and packages/portal (the Plan page)",
+    "packages/plan/src/main.ts, packages/plan/src/modules/plan/, plan/plan.json, plan/log.jsonl and packages/portal (the Plan page)",
   affects: [f.system_capxul, decision_system_build_order],
 });

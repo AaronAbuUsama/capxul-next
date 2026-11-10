@@ -1,21 +1,21 @@
-// node --experimental-strip-types tools/check-layout.ts    (pnpm layout; also part of pnpm test)
+// node --experimental-strip-types packages/layout/src/main.ts    (pnpm layout; also part of pnpm test)
 //
 // Keeps the repository findable. It fails, with a list, when:
 //
 // - something is at the top level that is not in ALLOWED below (tracked, or untracked and not git-ignored);
-// - a source file is over LIMIT lines, unless it is in tools/check-layout/oversize.json, and those may not grow;
+// - a source file is over LIMIT lines, unless it is in packages/layout/oversize.json, and those may not grow;
 // - a top-level directory or a package has no README.md.
 //
-// This file is the entry and holds the policy; the rules are pure and live in tools/check-layout/service.ts.
+// This file is the entry and holds the policy; the rules are pure and live in src/modules/layout.
 
 import { execFileSync } from "node:child_process";
 import { readFileSync, statSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { checkLayout, type Allowlist, type Oversize, type Policy, type Tree } from "./check-layout/service.ts";
+import { checkLayout, type Allowlist, type Oversize, type Policy, type Tree } from "./modules/layout/service.ts";
 
-const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
+const ROOT = join(dirname(fileURLToPath(import.meta.url)), "../../..");
 
 /** Everything that may be at the top level, and why. To add an entry, add its reason; a README row is not enough. */
 export const ALLOWED: Allowlist = {
@@ -23,16 +23,14 @@ export const ALLOWED: Allowlist = {
   "CLAUDE.md": "the rules an agent follows here, and the checks",
   "START-HERE.md": "the owner's direction of 9 November 2026; the book cites it as evidence",
   "GROUNDING.md": "what is being built and why, in the owner's words; the book cites it",
-  "HANDOFF.md": "the hand-over of 8 November; the book cites its path, so it is archived in stage two of the tidy-up",
   "books": "the design: the target book and the frozen book",
   "packages": "the code, one package per component",
   "plan": "the coordinator's plan, its log and the owner's answers",
   "evals": "which check proves which eval of the book",
   "status": "the scoreboard, written only by pnpm evals",
-  "loops": "the scripts the agent loop runs",
+  "loops": "the scripts the agent loop runs (owned with packages/loop)",
   "spikes": "proven throwaway code, deleted when plan task m2-graduate-spike is done",
   "docs": "written designs, evidence the book cites, generated reports",
-  "tools": "checks and scripts not yet folded into a package; emptied in stage two of the tidy-up",
   "archive": "dead material, kept at its old path",
   "package.json": "the workspace's scripts",
   "pnpm-lock.yaml": "the lockfile",
@@ -69,7 +67,7 @@ const main = (): number => {
     topLevel, topLevelDirs: topLevel.filter(isDir), files, linesOf,
     packages: [...new Set(files.filter((p) => p.startsWith("packages/") && p.split("/").length > 2).map((p) => p.split("/")[1]!))],
   };
-  const oversize = JSON.parse(readFileSync(join(ROOT, "tools/check-layout/oversize.json"), "utf8")) as Oversize;
+  const oversize = JSON.parse(readFileSync(join(ROOT, "packages/layout/oversize.json"), "utf8")) as Oversize;
   const problems = checkLayout(tree, policyOf(oversize));
   for (const p of problems) console.error(`${p.rule}  ${p.at}: ${p.why}`);
   if (problems.length > 0) { console.error(`check-layout: ${problems.length} problem${problems.length === 1 ? "" : "s"}`); return 1; }

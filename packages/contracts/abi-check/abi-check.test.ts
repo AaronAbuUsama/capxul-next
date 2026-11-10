@@ -1,4 +1,4 @@
-// node --experimental-strip-types --no-warnings --test tools/check-contracts/check-contracts.test.ts
+// node --experimental-strip-types --no-warnings --test packages/contracts/abi-check/abi-check.test.ts
 // The comparison rules, on small fixtures: no book, no build.
 
 import assert from "node:assert/strict";

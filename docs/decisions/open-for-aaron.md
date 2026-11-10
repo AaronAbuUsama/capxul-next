@@ -19,7 +19,7 @@ He accepted every recommendation below that he did not mention. He changed two:
 - **Repositories he cannot reach while out:** work locally to stay unblocked; swarmd-next is a local repository with
   its bundle kept in capxul-next, as the kit is.
 
-`tools/workflows/commands-and-escrow.js` applies both, with an audit of every authority statement in the book against
+`archive/tools/workflows/commands-and-escrow.js` applies both, with an audit of every authority statement in the book against
 the v4 contracts.
 
 The open decisions, numbered as they were put to Aaron (in text written for text-to-speech). Each recommendation
@@ -133,7 +133,7 @@ Also accepted that night: `payments.seat-authority` and `payments.seat-purchase`
 
 ## Raised by the world pass (9 November 2026)
 
-The world pass (`tools/workflows/world-pass.js`) carried out the eighth batch: `aaron.world-clock`,
+The world pass (`archive/tools/workflows/world-pass.js`) carried out the eighth batch: `aaron.world-clock`,
 `aaron.sdk-reaches-everything`, `aaron.payment-claim`, `aaron.fde-anyone`, and the evening answers (the CRM tracks
 every conversation; payroll means HR). It booked 75 new operations, 165 beyond the 215 in all. Its records raise these
 questions; each recommendation stands, and the build follows it, until he answers.
@@ -169,7 +169,7 @@ SUPERSEDED entries the pass's records ask for (see its build report).
 
 ## Raised by the surface pass and the seasons design (9 November 2026)
 
-The surface pass (`tools/workflows/surface-pass.js`) designed the command tree, and its owners applied it the same day:
+The surface pass (`archive/tools/workflows/surface-pass.js`) designed the command tree, and its owners applied it the same day:
 119 commands changed spelling, none changed behaviour, and the book spells all 394 operations as the tree does. The
 seasons design booked eleven `dev season` commands for `aaron.seasons`. Each recommendation stands, and the build
 follows it, until he answers. The one exception is question 52: it reverses his acceptance of question 43, so

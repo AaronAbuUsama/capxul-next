@@ -1155,7 +1155,7 @@ export const decision_payments_escrow_contract_build = defineDecision({
     "still hold. B3 is the latest it can land, because payments' prepare and the SDK's address prediction need the " +
     "escrow's ABI and creation code. For the goal prompt: the master adds `packages/contracts` to system.layout's " +
     "packages and to B3's spine.",
-  source: by("environments.staging; open-for-aaron.md question 16; contracts.v4-set; docs/mission/initializer.md (B3: anvil with the v4 contracts; B5); packages/protocol/src/evm/escrows-v4.ts:13 (creation code)"),
+  source: by("environments.staging; open-for-aaron.md question 16; contracts.v4-set; archive/docs/mission/initializer.md (B3: anvil with the v4 contracts; B5); packages/protocol/src/evm/escrows-v4.ts:13 (creation code)"),
   affects: [contract_escrow, contract_escrow_factory, environment_staging, environment_devnet],
 });
 

@@ -1,4 +1,4 @@
-// node --experimental-strip-types --no-warnings tools/record-status.ts <results.json> [--status <file>]
+// node --experimental-strip-types --no-warnings packages/evals/src/record-status.ts <results.json> [--status <file>]
 // Merges one run's results into status/status.json (the repository root's; absent means nothing has run).
 // A results file is { commit, at, run?, results: [{ id, verdict: "pass" | "fail" | "not_run", evidence? }] }.
 // It refuses the whole run, and writes nothing, when it names an eval id the book does not derive.
@@ -6,10 +6,10 @@
 
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
-import { mergeResults, parseResults, parseStatus, type StatusDocument } from "../packages/book/src/index.ts";
-import { loadTarget } from "./book-target.ts";
+import { mergeResults, parseResults, parseStatus, type StatusDocument } from "@capxul/book";
+import { loadTarget } from "../../book/scripts/target.ts";
 
-const STATUS = resolve(import.meta.dirname, "../status/status.json");
+const STATUS = resolve(import.meta.dirname, "../../../status/status.json");
 
 type Json = { readonly ok: true; readonly value: unknown } | { readonly ok: false; readonly error: string };
 const readJson = (file: string): Json => {
@@ -24,7 +24,7 @@ const readJson = (file: string): Json => {
 const run = async (args: readonly string[]): Promise<{ lines: readonly string[]; code: number }> => {
   const [resultsPath, flag, statusArg] = args;
   if (!resultsPath || resultsPath.startsWith("--") || (flag !== undefined && (flag !== "--status" || !statusArg)))
-    return { lines: ["usage: tools/record-status.ts <results.json> [--status <file>]"], code: 2 };
+    return { lines: ["usage: packages/evals/src/record-status.ts <results.json> [--status <file>]"], code: 2 };
   const statusPath = statusArg ? resolve(statusArg) : STATUS;
   const results = readJson(resolve(resultsPath));
   if (!results.ok) return { lines: [results.error], code: 1 };

@@ -1,7 +1,7 @@
 /** The page of one task and of one milestone of the plan, with their history from the log. */
 import { keyOf } from "@capxul/book";
 
-import type { LogEntry } from "../../../../../../tools/plan/types.ts";
+import type { LogEntry } from "@capxul/plan";
 import type { PlanMilestonePage, PlanTaskPage } from "../types.ts";
 import { head, type Ctx } from "./context.ts";
 import { refOf } from "./locate.ts";

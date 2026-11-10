@@ -77,7 +77,7 @@ and TypeScript versions it supports. The bundle must fall inside that list.
 | ↳ vitest | 5.1.0 (bundled; pinned by `overrides`) | 2 Nov 2026 | Tests | Vite Plus's local-CLI guide gives the `vite` alias and the `vitest` pin as npm `overrides`. Without them, a top-level `vitest` cannot find `vite` (reproduced: `ERR_MODULE_NOT_FOUND`). A direct `vite` devDependency is needed only where a manifest already lists `vite`, so the root has none: with the overrides alone `vp test run` passes (measured), and knip reports a root `vite` entry as unused. |
 | @effect/tsgo | 0.67.3 | 5 Nov 2026 | Effect's Oxlint rules (`effect-tsgo patch --oxlint`) | Its README's `supported-components` block lists TypeScript 7.0.2, Oxlint 1.88.0–1.91.0 and tsgolint 7.0.2004–7.0.2005. 0.67.4 (6 Nov) and 0.67.5 (7 Nov) also exist but are under 3 days old. |
 | typescript | 7.0.2 | 8 Jul 2026 | The only compiler (`tsc`, `tsc -b`) | Measured: `tsc -p books` passes clean in 4.8 s, against 10.2 s on 5.9.3, and `packages/book` passes in 0.4 s. @effect/tsgo needs a native TypeScript 7. |
-| typescript-5 | `npm:typescript@5.9.3` | | Only `tools/freeze-flags.ts`, which uses the compiler API | TypeScript 7 has no stable programmatic API. The alias keeps `books/frozen/flags.ts` reproducible. |
+| typescript-5 | `npm:typescript@5.9.3` | | Only `archive/tools/freeze-flags.ts`, which uses the compiler API | TypeScript 7 has no stable programmatic API. The alias keeps `books/frozen/flags.ts` reproducible. |
 | effect, @effect/platform-node, @effect/vitest | 4.1.2 | 2 Nov 2026 | Runtime and Effect tests | `packages/book` already pins `effect` 4.1.2. The other two join with the first package that uses them (B0/B3), at the same version. `@effect/vitest` has a required `vitest` peer, so a package that uses it also lists `vitest` `5.1.0` (Vite Plus's rule for a required peer). |
 | @types/node | 24.19.2 | 9 Oct 2026 | Node 24 types | |
 | knip | 6.44.1 | 31 Oct 2026 | Unused dependencies, files, exports; unlisted dependencies | 6.44.2 is under 3 days old. |
@@ -157,7 +157,7 @@ Exactly these files, plus the plugin package (section 3) and the facts target of
   "workspaces": ["packages/*"],
   "scripts": {
     "prepare": "effect-tsgo patch --oxlint && vp config --no-agent",
-    "book": "tsc -p packages/book && pnpm --filter @capxul/book test && tsc -p books && node --experimental-strip-types packages/book/src/main.ts books/target/index.ts /tmp/target && node --experimental-strip-types tools/check-frozen.ts",
+    "book": "tsc -p packages/book && pnpm --filter @capxul/book test && tsc -p books && node --experimental-strip-types packages/book/src/main.ts books/target/index.ts /tmp/target && node --experimental-strip-types packages/book/scripts/check-frozen.ts",
     "generate": "node --experimental-strip-types packages/generate/src/main.ts",
     "generate:check": "node --experimental-strip-types packages/generate/src/main.ts --check",
     "check": "vp check && tsc -b && pnpm generate:check && pnpm book && vp test run",
@@ -198,7 +198,7 @@ is TypeScript 7.0.2 on every install (the alias's `tsc` does not take the link).
 there is one compiler and one set of Node types: the root's 7.0.2 and 24.19.2 serve it, and
 `pnpm workspace` would otherwise fail on `@types/node` at two versions. Measured: `tsc 7.0.2`
 checks `packages/book` and `books/` clean, also under `tsconfig.base.json`'s stricter flags.
-`tools/freeze-flags.ts` changes `import ts from "typescript"` to `"typescript-5"`.
+`archive/tools/freeze-flags.ts` changes `import ts from "typescript"` to `"typescript-5"`.
 
 ### `pnpm-workspace.yaml`, `.node-version`, `.gitignore`
 
@@ -428,7 +428,7 @@ export default defineConfig({
       "**/src/generated/**",
       "books/frozen/**",
       "docs/as-is/archive/**",
-      "tools/workflows/**",
+      "archive/tools/workflows/**",
       "package-lock.json",
     ],
   },
@@ -556,7 +556,7 @@ the repository's owner can turn it on (decision `tooling.branch-protection`).
     ".": {
       "entry": ["vite.config.ts"],
       "project": ["vite.config.ts"],
-      // tools/freeze-flags.ts imports the old compiler API; tools/ is outside knip (tooling.lint-scope).
+      // archive/tools/freeze-flags.ts imports the old compiler API; tools/ is outside knip (tooling.lint-scope).
       "ignoreDependencies": ["typescript-5"]
     },
     "packages/*": { "entry": ["src/index.ts", "src/main.ts"], "project": ["src/**/*.{ts,tsx}"] },

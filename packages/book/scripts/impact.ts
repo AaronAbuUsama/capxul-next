@@ -1,10 +1,10 @@
-// node --experimental-strip-types --no-warnings tools/impact.ts <record key> [--json] [--depth n]
+// node --experimental-strip-types --no-warnings packages/book/scripts/impact.ts <record key> [--json] [--depth n]
 // Everything that depends on a record, directly and transitively, grouped by kind, with the field that links each
 // and its distance; the decisions that name any of them, listed apart; the evals that belong to any of them.
 // "Depends on" is defined in packages/book/src/impact.ts and docs/design-book.md.
 
-import { impactOf, type Dependent, type Impact } from "../packages/book/src/index.ts";
-import { loadTarget } from "./book-target.ts";
+import { impactOf, type Dependent, type Impact } from "../src/index.ts";
+import { loadTarget } from "./target.ts";
 
 const SHOWN = 12;
 
@@ -41,7 +41,7 @@ export const parse = (args: readonly string[]): { key: string; json: boolean; de
     else positional.push(a);
   }
   const [key, ...extra] = positional;
-  return key === undefined || extra.length > 0 || !key.includes(":") ? "usage: tools/impact.ts <kind:id, e.g. event:payment_transitioned> [--json] [--depth n]" : { key, json, depth };
+  return key === undefined || extra.length > 0 || !key.includes(":") ? "usage: packages/book/scripts/impact.ts <kind:id, e.g. event:payment_transitioned> [--json] [--depth n]" : { key, json, depth };
 };
 
 const args = parse(process.argv.slice(2));

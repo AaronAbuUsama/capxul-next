@@ -11,7 +11,7 @@ what.
 
 ## The task tree
 
-Derived from the book by `tools/plan-tasks.ts` into `docs/mission/tasks.json` (`swarm.task-tree`; swarm.md section 5).
+Derived from the book by `packages/plan/src/tasks.ts` into `docs/mission/tasks.json` (`swarm.task-tree`; swarm.md section 5).
 Nobody writes a task by hand, except a defect from a finding or a red head, and a review task from an answer
 (`swarm.hand-tasks`).
 
@@ -128,7 +128,7 @@ agent produces (the pull request, the handback, the check, the diagnosis, a matt
 | "Copy the frozen text, never improve it" | Behaviour, not spelling: the target designs the surface | `system.frozen-behaviour` |
 | A `scout` from the start | A scout only from B5, for the live evals | `swarm.workers` |
 | Labels `area:` and `kind:design`, `kind:operation`, `kind:journey`, `kind:system` | The plan's labels (`kind:<task kind>`, `lane:`, `layer:`, `area:`, `money`, `pilot`) | `swarm.task-tree` |
-| A hand-written tree, one design and one build task per operation | Derived by `tools/plan-tasks.ts`; one task per operation | `swarm.task-tree`, `swarm.task-unit` |
+| A hand-written tree, one design and one build task per operation | Derived by `packages/plan/src/tasks.ts`; one task per operation | `swarm.task-tree`, `swarm.task-unit` |
 | "Linear is not used [confirm with Aaron]" | Confirmed: the ledger is the tracker (spec 00, decision 8) | — |
 | The second family as "a decision for Aaron" | `swarm.checker-family`: gateway makers, Anthropic checkers, for Aaron | `swarm.checker-family` |
 | Prompt skeletons for the lead, the build manager, the designer, the builder and the reviewer | The master's skeleton (swarm.md 1b) and each role's prompt (swarm-templates.md 10.5) | `swarm.master-prompt`, `swarm.templates` |

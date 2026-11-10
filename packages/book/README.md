@@ -15,4 +15,4 @@ pnpm --filter @capxul/book test
 - `src/impact.ts`, `views.ts`, `examples.ts`, `telemetry.ts`, `budgets.ts`: what the portal and the checks read.
 
 Written by: the coordinator, when the blueprint needs a new kind of record or check. Read by: `packages/portal`,
-`packages/evals`, the scripts in `tools/`. How it is used end to end: `docs/design-book.md`.
+`packages/evals`, `packages/plan`. How it is used end to end: `docs/design-book.md`.

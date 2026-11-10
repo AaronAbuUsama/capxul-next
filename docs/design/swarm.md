@@ -1,10 +1,10 @@
 # The swarm: how the build runs on swarmD
 
 The build runs as **one swarmD manager, the master agent, with its workers**. The master's instructions are the goal
-prompt ([`docs/mission/initializer.md`](../mission/initializer.md)). It climbs one hill: the scoreboard of the book's
+prompt ([`archive/docs/mission/initializer.md`](../mission/initializer.md)). It climbs one hill: the scoreboard of the book's
 evals at the head of `integration/build`. This page designs that manager and everything it connects to, so that nothing
 the swarm does is improvised: who does what, what the master sees, the schemas of everything that flows between them,
-the task tree (derived from the book by [`tools/plan-tasks.ts`](../../tools/plan-tasks.ts) into
+the task tree (derived from the book by [`packages/plan/src/tasks.ts`](../../tools/plan-tasks.ts) into
 [`docs/mission/tasks.json`](../mission/tasks.json)), and the pair protocol with its limits.
 
 Every judgment here is a decision record in [`books/target/shared/swarm.ts`](../../books/target/shared/swarm.ts), with
@@ -179,7 +179,7 @@ The master keeps nothing durable in its conversation (`swarm.state`). It rereads
 | What | Where | Written by |
 |---|---|---|
 | The design, its decisions, the gaps, the evals' definitions | `books/target` (the repository) | lane tasks, book first |
-| The task tree | `docs/mission/tasks.json` (regenerated with the book, checked by `--check`), mirrored into the ledger's tasks | `tools/plan-tasks.ts`; the ledger reconciles its tasks from it in code (SD-2) |
+| The task tree | `docs/mission/tasks.json` (regenerated with the book, checked by `--check`), mirrored into the ledger's tasks | `packages/plan/src/tasks.ts`; the ledger reconciles its tasks from it in code (SD-2) |
 | Tasks, assignments, pairs, messages, findings, verdicts, matters, entries, refs, the catalogue | The project's ledger (`LedgerDO`; planned) | the master, the engine, the sandbox, people |
 | Code, branches, pull requests, CI | GitHub | builders (branches, PRs), CI, the master (merges) |
 | The build's progress before the ledger runs | `docs/mission/progress.md` | Mission Control |
@@ -198,7 +198,7 @@ The master keeps nothing durable in its conversation (`swarm.state`). It rereads
 | `github`: `pulls.create`, `pulls.get`, `pulls.update`, `issues.createComment` | builder | the GitHub connector | built | The task's pull request |
 | `github`: `pulls.get`, `pulls.listFiles` | reviewer, adversary | the GitHub connector | built | Read the pull request |
 | Sandbox `read`, `write`, `edit`, `bash` | builder; reviewer, adversary, diagnoser read | swarmD's sandbox | built (read-only planned) | The repository, the book's commands, the devnet |
-| The book's commands (`pnpm book`, `tools/plan-tasks.ts`, `pnpm generate`, `pnpm eval`) | workers, in the sandbox | the repository | Capxul's, from T0 and B1 | Book-first changes; the evals |
+| The book's commands (`pnpm book`, `packages/plan/src/tasks.ts`, `pnpm generate`, `pnpm eval`) | workers, in the sandbox | the repository | Capxul's, from T0 and B1 | Book-first changes; the evals |
 | `posthog` (MCP: `query-*`, `insights-get`) | scout, from B5 | swarmD's MCP connector | planned | Live evals as verdicts |
 | The portal | nobody's tool | — | D0 | The master links to it; it reads the ledger itself (`portal.artifact-boundary`) |
 | Skills (`.swarmd/skills/book`, `evals`, `lane`, `money`, `old-system`) | workers | swarmD's `skills` field | planned; pass-through needed (SD-16) | Repository knowledge, loaded when needed (`swarm.skills`) |
@@ -212,7 +212,7 @@ file is about 700 KB, too large to read on a wake.
 
 ```mermaid
 flowchart TD
-  book["books/target"] -->|tools/plan-tasks.ts| plan["docs/mission/tasks.json"]
+  book["books/target"] -->|packages/plan/src/tasks.ts| plan["docs/mission/tasks.json"]
   plan -->|"reconcile at each move of integration/build (SD-2)"| tasks[("ledger: tasks")]
   book -->|"runner list (B2)"| cat[("ledger: catalogue")]
   tasks --> master["capxul/master"]
@@ -293,7 +293,7 @@ board are code (swarmD's build template).
 ### The prompt skeleton
 
 swarmD prepends its built-in manager prompt and the `build` template's prompt. Capxul's instructions file
-(`.swarmd/prompts/master.md`) is the whole of `docs/mission/initializer.md`, followed by this skeleton
+(`.swarmd/prompts/master.md`) is the whole of `archive/docs/mission/initializer.md`, followed by this skeleton
 (`swarm.master-prompt`). Its rules are assumptions to test and delete (swarmD's Zen, rule 6).
 
 ```md
@@ -464,7 +464,7 @@ they differ (section 4.11 lists how).
 
 ### 2.4 The design book, the plan and the portal
 
-- **Tasks come from records.** `tools/plan-tasks.ts` derives every task from the book (section 5). A maker that must
+- **Tasks come from records.** `packages/plan/src/tasks.ts` derives every task from the book (section 5). A maker that must
   change a record changes it book first, in its own concept's folder, with a decision record, rebuilds to zero
   problems, and regenerates `tasks.json` in the same pull request; CI's `--check` refuses a stale plan. The master
   reconciles the ledger from the plan at the next move of `integration/build`.
@@ -594,7 +594,7 @@ type Version =
 
 ### 4.2 TaskDef: one entry of `docs/mission/tasks.json`
 
-Written by `tools/plan-tasks.ts`; nobody edits it. The file is `{ about, regenerated, layers, tasks: TaskDef[] }`.
+Written by `packages/plan/src/tasks.ts`; nobody edits it. The file is `{ about, regenerated, layers, tasks: TaskDef[] }`.
 `regenerated` lists the outputs every task may change, but only to what the generators write (`docs/mission/tasks.json`
 and `packages/*/src/generated/`). The file holds no counts over the book: the script prints them. So two lanes that
 change different tasks never conflict in it, and their merge is what the script writes at the merged head.
@@ -984,8 +984,8 @@ interface PairView {
 ## 5. Task derivation
 
 ```bash
-node --experimental-strip-types tools/plan-tasks.ts           # writes docs/mission/tasks.json, prints counts
-node --experimental-strip-types tools/plan-tasks.ts --check   # exits 1 if tasks.json is stale (for CI and pnpm book)
+node --experimental-strip-types packages/plan/src/tasks.ts           # writes docs/mission/tasks.json, prints counts
+node --experimental-strip-types packages/plan/src/tasks.ts --check   # exits 1 if tasks.json is stale (for CI and pnpm book)
 ```
 
 The script imports `books/target/index.ts`, builds the book (it refuses to run on a book with problems), finds each
@@ -1183,7 +1183,7 @@ The goal prompt's **How to work** bullets this design replaces or adds:
   build as `docs/design/swarm.md` says. Stage 0 (Mission Control) until stage 1's entry criteria hold; then one swarmD
   manager, capxul/master, with its workers; lane managers only at stage 2, on the evidence in `swarm.nested-entry`.
 - **Replaces "The link graph gives each lane's order":** the task tree is `docs/mission/tasks.json`, derived by
-  `tools/plan-tasks.ts`. Regenerate it with the book (`--check` in CI). Never write a task by hand, except a defect from a
+  `packages/plan/src/tasks.ts`. Regenerate it with the book (`--check` in CI). Never write a task by hand, except a defect from a
   finding or a review answer.
 - **Replaces "Pair a maker with a checker …":** every task is a pair. The builder makes; the reviewer checks on another
   model (all OpenAI for now, `swarm.checker-family`) and posts the `des:` verdicts; on the seven money lanes and B0.once the adversary checks too. The engine
@@ -1223,7 +1223,7 @@ direction.
 | `swarm.workers` | Builder, reviewer, adversary, diagnoser, researcher; no verifier, designer or scout until B5 |
 | `swarm.money` | The adversary on every task of the seven money lanes, and B0.once |
 | `swarm.pacing` | At most 4 pairs in flight, 6 agents, one task per lane; 2 pairs at stage 0 |
-| `swarm.task-tree` | Derived from the book by `tools/plan-tasks.ts`; reconciled into the ledger |
+| `swarm.task-tree` | Derived from the book by `packages/plan/src/tasks.ts`; reconciled into the ledger |
 | `swarm.task-unit` | The operation is the unit; split only on a signal |
 | `swarm.rpc-ownership` | An rpc belongs to the first task of its own lane; a shared one is its own task |
 | `swarm.process-order` | Door, then process, then what starts it; a later layer's reacting process waits instead |
@@ -1258,7 +1258,7 @@ direction.
 ## 10. Open items for other owners
 
 - **packages/book (D0, before stage 1):** qualify the duplicated eval ids, 81 after the commands pass (`ms:D0/unique`, `portal.eval-ids`: one `ref:<operation>/<CODE>` per code, naming every world the operation lists for it).
-- **The tooling design:** add `node --experimental-strip-types tools/plan-tasks.ts --check` to `pnpm book`, so a book
+- **The tooling design:** add `node --experimental-strip-types packages/plan/src/tasks.ts --check` to `pnpm book`, so a book
   change that moves the plan regenerates it in the same pull request.
 - **The portal design:** milestone acceptance is the steps' `ms:` evals, and `ok:capxul` is the only person eval
   (`swarm.milestone-evals`); the portal's per-milestone `ok:<milestone>` reads the exit evals instead. The portal reads

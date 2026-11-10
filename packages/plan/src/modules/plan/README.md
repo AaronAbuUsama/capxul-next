@@ -13,7 +13,7 @@ const problems = check(applied.value.plan, facts);
 |---|---|
 | `plan/plan.json` | the plan: goal, milestones, tasks, path, notes |
 | `plan/log.jsonl` | every change, one line each, append only |
-| `tools/plan.ts` | the entry: reads and writes both files, loads the book's facts, prints |
+| `packages/plan/src/main.ts` | the entry: reads and writes both files, loads the book's facts, prints |
 
 `types.ts` is the module. `service.ts` is its door: `parsePlan`, `apply`, `check`, `show`, `parseArgs`. Nothing here reads
-a file, the clock or `process`; `tools/plan.ts` does, and the portal's `main.ts` hands the Plan page the same parsed plan.
+a file, the clock or `process`; `packages/plan/src/main.ts` does, and the portal's `main.ts` hands the Plan page the same parsed plan.

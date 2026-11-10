@@ -7,8 +7,8 @@ import { appendFileSync, existsSync, readFileSync, statSync } from "node:fs";
 import { createServer, type Server } from "node:http";
 import { extname, join, resolve, sep } from "node:path";
 
-import { parsePlan } from "../../../tools/plan/service.ts";
-import type { LogEntry } from "../../../tools/plan/types.ts";
+import { parsePlan } from "@capxul/plan";
+import type { LogEntry } from "@capxul/plan";
 import { respond, MAX_BODY, type Deps, type Waiting } from "#src/modules/answers/service.ts";
 import type { SiteInput } from "#src/modules/site/types.ts";
 

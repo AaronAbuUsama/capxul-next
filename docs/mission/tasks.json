@@ -1,5 +1,5 @@
 {
-  "about": "The build's task tree, derived from books/target by tools/plan-tasks.ts (docs/design/swarm.md, section 5). Do not edit: change the book or the script, then regenerate. It holds no counts over the book, so lanes that change different tasks never conflict here.",
+  "about": "The build's task tree, derived from books/target by packages/plan/src/tasks.ts (docs/design/swarm.md, section 5). Do not edit: change the book or the script, then regenerate. It holds no counts over the book, so lanes that change different tasks never conflict here.",
   "regenerated": [
     "docs/mission/tasks.json",
     "packages/*/src/generated/"

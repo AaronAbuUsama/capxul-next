@@ -1,8 +1,8 @@
 /** The Questions page: every decision that waits for an answer, with its options and the recommendation. */
 import { keyOf, type AnyRecord } from "@capxul/book";
 
-import type { Task } from "../../../../../../tools/plan/types.ts";
-import { waitsOnOwner } from "../../../../../../tools/plan/service.ts";
+import type { Task } from "@capxul/plan";
+import { waitsOnOwner } from "@capxul/plan";
 import type { Question, QuestionsPage } from "../types.ts";
 import { head, type Ctx } from "./context.ts";
 import { refOf } from "./locate.ts";

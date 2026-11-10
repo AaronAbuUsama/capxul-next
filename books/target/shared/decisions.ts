@@ -2586,6 +2586,39 @@ export const decision_system_layout = defineDecision({
   affects: [f.system_capxul, f.component_backend, f.component_core_sdk, f.component_cli, f.component_react_sdk, f.component_mcp_server, f.component_devnet, f.component_ponder],
 });
 
+export const decision_system_repository_layout = defineDecision({
+  id: "system.repository-layout",
+  title: "A closed top level: scripts in their packages, dead material in archive/",
+  question:
+    "The owner opened the repository on 10 November 2026 and could not find his way: loop runs at the top level, twenty loose " +
+    "scripts and thirty-one old workflow scripts in tools/, hand-overs and a mock-up beside the code. Where does each kind of " +
+    "thing go, and what keeps it there?",
+  options: [
+    {
+      label: "closed-top-level",
+      text:
+        "The top level holds only what packages/layout/src/main.ts allows, each entry with a reason. A script lives in the package " +
+        "it serves: the plan CLI and the task tree in packages/plan, the frozen check, the cut report, the surface report, the " +
+        "judgments report and impact in packages/book/scripts, the status writer in packages/evals, the contract check and the ABI " +
+        "export in packages/contracts/abi-check, the layout check in packages/layout. Dead material moves to archive/ at its old " +
+        "path, so an older citation resolves by putting archive/ in front of it. Working data (loop runs) goes under the " +
+        "git-ignored var/. pnpm layout, part of pnpm test, fails on a new top-level entry, a new source file over 300 lines, a " +
+        "recorded oversize file that grew, or a directory or package without a README. The pnpm script names do not change.",
+    },
+    { label: "keep-tools", text: "Keep tools/ and add a README that explains each script." },
+    { label: "delete-dead", text: "Delete the dead material instead of archiving it; git history keeps it." },
+  ],
+  chosen: "closed-top-level",
+  why:
+    "A README over tools/ explains the mess and leaves it: the next script lands there again, and the plan, the checks and the " +
+    "contracts each stay split between a package and a loose file. Deleting loses what records cite as evidence (the hand-over, " +
+    "the goal prompt, the generators of the frozen book) unless a reader knows to search history; an archive at the same path " +
+    "keeps every citation one prefix away. A check is what keeps a layout: without it the top level drifts back within days, " +
+    "as it did between 6 and 10 November.",
+  source: "The coordinator's tidy thread, 10 November 2026, on the owner's request; evidence: docs/repository-map.md; archive/README.md; packages/layout/README.md",
+  affects: [f.system_capxul],
+});
+
 export const decision_system_build_order = defineDecision({
   id: "system.build-order",
   title: "Concepts are built in dependency layers; priority orders the work within each",
@@ -2613,7 +2646,7 @@ export const decision_system_build_order = defineDecision({
     "through payments and posts its accrual through books, moves above payments, beside banking and activity), then by the cut (cut.principle), which takes out the concepts Frappe owns and moves the layers up, then by the plugs and sites " +
     "concepts (10 November 2026: plugs joins activity and banking, sites joins requests; the layer list is the one plan-tasks computes and checks). " +
     "The milestones the lanes sit under are no longer listed here: they are the milestones of plan/plan.json (portal.plan-page).",
-  source: `${HANDOFF}; evidence: the concept dependsOn graph of the built target book (14 layers, no cycle); the fact check of the goal prompt's earlier order; amended 10 November 2026 by the coordinator, on the owner's delegation, to the layers tools/plan-tasks.ts computes`,
+  source: `${HANDOFF}; evidence: the concept dependsOn graph of the built target book (14 layers, no cycle); the fact check of the goal prompt's earlier order; amended 10 November 2026 by the coordinator, on the owner's delegation, to the layers the task tree computes`,
   affects: [f.system_capxul, f.concept_board, f.concept_notices],
 });
 
@@ -2631,7 +2664,7 @@ export const decision_rules_frozen_flags_source = defineDecision({
     {
       label: "source",
       text:
-        "tools/freeze-flags.ts parses apps/cli/src with the TypeScript compiler API and evaluates only the Effect CLI grammar " +
+        "archive/tools/freeze-flags.ts parses apps/cli/src with the TypeScript compiler API and evaluates only the Effect CLI grammar " +
         "(Command.make, Flag.*, Argument.*, GlobalFlag.Setting), following constants and flag helpers across imports into the " +
         "old packages. It never runs a handler, and it stops on any name, help text, choice or default it cannot work out.",
     },
@@ -2737,7 +2770,7 @@ export const decision_rules_frozen_flags_unlisted = defineDecision({
     "needs one of them: `schema` #4 uses `schema org.payroll.run` as its example, but it still holds when neither spelling " +
     "names a command, since both are refused alike with CLI_USAGE; its eval should use a frozen command. No frozen operation " +
     "describes bare `capxul`, so what it prints is the target CLI's own design.",
-  source: flagsBy("tools/freeze-flags.ts (cli-not-frozen); apps/cli/src/commands/home/command.ts; books/frozen/operations.ts (schema #4)"),
+  source: flagsBy("archive/tools/freeze-flags.ts (cli-not-frozen); apps/cli/src/commands/home/command.ts; books/frozen/operations.ts (schema #4)"),
   affects: [f.component_cli],
 });
 
@@ -2779,7 +2812,7 @@ export const decision_rules_frozen_flags_designed_attribution = defineDecision({
     "designed text lists 58 flags for 25 commands that the old CLI does not declare. One part names no frozen command " +
     "(`invites void --referee` on `waitlist invites grant`, an operator script); the generator reports it and keeps it " +
     "nowhere.",
-  source: flagsBy("books/frozen/operations.ts (designed synopsis and flags of org.round.create, org.safe.create, org.vote.list, org.agreement.change, org.vote.create, org.department.ceiling.set); tools/freeze-flags.ts"),
+  source: flagsBy("books/frozen/operations.ts (designed synopsis and flags of org.round.create, org.safe.create, org.vote.list, org.agreement.change, org.vote.create, org.department.ceiling.set); archive/tools/freeze-flags.ts"),
   affects: [f.component_cli],
 });
 
@@ -2846,7 +2879,7 @@ export const decision_system_frozen_behaviour = defineDecision({
     "and bought nobody anything. What must survive is what the system does, and the acceptance claims say that. This supersedes " +
     "the strict reading of the freeze and P10's 'the frozen text wins' for spelling; P10's rungs still decide behaviour, money and " +
     "internals. books/frozen stays as the list of capabilities and the source of each claim, and books/frozen/flags.ts is reference " +
-    "for designing the new flags, not surface to preserve. tools/check-frozen.ts checks that every operation is booked once or " +
+    "for designing the new flags, not surface to preserve. packages/book/scripts/check-frozen.ts checks that every operation is booked once or " +
     "classified by the cut, and that every booked operation's acceptance claims and refusal behaviours are kept in intent, or " +
     "rewritten or retired with a decision. Extended on 10 November 2026 by the coordinator, on Aaron's delegation, as START-HERE " +
     "section 6 asks: the old rule said all 215 stay, which would force the book to keep rebuilding what Frappe owns.",
@@ -2898,7 +2931,7 @@ export const decision_rules_new_operations = defineDecision({
   id: "rules.new-operations",
   title: "A new operation is booked with a decision citing an Aaron ruling, and a claim",
   question:
-    "system.frozen-behaviour keeps the 215 operations as the list of capabilities, and tools/check-frozen.ts refused any " +
+    "system.frozen-behaviour keeps the 215 operations as the list of capabilities, and packages/book/scripts/check-frozen.ts refused any " +
     "target operation that is none of them. Aaron has since ruled new capabilities fundamental: every Organization starts " +
     "with a CRM and Projects in Frappe's shapes, and its payroll is Frappe HR's (aaron.frappe-shape, " +
     "aaron.crm-frappe-shape, aaron.projects), and aaron.projects says their operations are new capabilities, designed " +
@@ -2918,7 +2951,7 @@ export const decision_rules_new_operations = defineDecision({
         "operation's old command. It is " +
         "written in the owning concept's operations.ts with its own text (it has no frozenText, so nothing of it is " +
         "compared with the old book) and keeps every target rule: its flow serves the CLI (A4), its budget (P5), and " +
-        "refusals its implementation produces, each from a world. tools/check-frozen.ts counts new operations apart from " +
+        "refusals its implementation produces, each from a world. packages/book/scripts/check-frozen.ts counts new operations apart from " +
         "the 215, which it still requires booked exactly once each, and reports the rulings they serve.",
     },
     {
@@ -2955,7 +2988,7 @@ export const decision_rules_new_operations = defineDecision({
     "booked, not which: the commands the CRM, projects, payroll and the head get are their packs' questions. For Aaron: " +
     "may a new command be booked on its pack's recommendation before he answers the pack? Recommended: yes, as chosen; " +
     "accepted-pack is the change if he wants his acceptance first.",
-  source: `${RULES}; under system.frozen-behaviour and aaron.frappe-shape (aaron.projects: a decision pack); evidence: tools/check-frozen.ts; contacts.crm-capabilities, payroll.hr-surface, projects.commands, organizations.commands`,
+  source: `${RULES}; under system.frozen-behaviour and aaron.frappe-shape (aaron.projects: a decision pack); evidence: packages/book/scripts/check-frozen.ts; contacts.crm-capabilities, payroll.hr-surface, projects.commands, organizations.commands`,
   affects: [
     decision_system_frozen_behaviour, f.system_capxul, f.component_cli, f.component_core_sdk, f.concept_contacts,
     f.concept_organizations,

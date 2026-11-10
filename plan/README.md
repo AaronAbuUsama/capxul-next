@@ -9,4 +9,4 @@ on the portal's Plan page.
 - `outline.md`, `milestones/<id>.md`, `tasks/<id>.md`: the prose for each (What, Why, Done when).
 
 Written only through `pnpm plan …` (never by editing the JSON); only the coordinator writes the path and the notes.
-Read by the portal, the loop and `pnpm plan check`. The code is `tools/plan.ts` and `tools/plan/`.
+Read by the portal, the loop and `pnpm plan check`. The code is `packages/plan`.
