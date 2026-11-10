@@ -661,18 +661,82 @@
       "evidence": [],
       "created": "2026-11-10",
       "updated": "2026-11-10"
+    },
+    {
+      "id": "m1-eval-harness",
+      "title": "The scoreboard: tests from the book that run, and results the portal shows",
+      "why": "No test from the book has ever run, so the climb has no score. Until results come from a machine and not from a report, done means whatever an agent says.",
+      "milestone": "m1",
+      "state": "todo",
+      "needs": [],
+      "records": [],
+      "evidence": [],
+      "created": "2026-11-10",
+      "updated": "2026-11-10"
+    },
+    {
+      "id": "m1-lanes",
+      "title": "Lanes: one working copy per thread, merged only when the checks pass",
+      "why": "Several agents shared one working tree. It caused locked commits, a plan tool that crashed while another agent was mid-edit, and a test that wrote into Aaron's answers file.",
+      "milestone": "m1",
+      "state": "todo",
+      "needs": [],
+      "records": [],
+      "evidence": [],
+      "created": "2026-11-10",
+      "updated": "2026-11-10"
+    },
+    {
+      "id": "m1-entry-docs",
+      "title": "Rewrite the entry documents to the current direction",
+      "why": "START-HERE, GROUNDING, HANDOFF and CLAUDE.md still describe UK companies, a swarm build and an optional Frappe. A new session or agent that reads them starts from the wrong place.",
+      "milestone": "m1",
+      "state": "todo",
+      "needs": [],
+      "records": [],
+      "evidence": [],
+      "created": "2026-11-10",
+      "updated": "2026-11-10"
+    },
+    {
+      "id": "m2-graduate-spike",
+      "title": "Graduate the spike into the product, part by part, under the book's tests",
+      "why": "The spike is proven but lives in spikes/ and was written fast. Rewriting it from nothing would throw the proof away; leaving it there means the product never starts.",
+      "milestone": "m2",
+      "state": "todo",
+      "needs": [],
+      "records": [],
+      "evidence": [],
+      "created": "2026-11-10",
+      "updated": "2026-11-10"
+    },
+    {
+      "id": "m1-old-decisions",
+      "title": "Rewrite or archive the decisions that still assume the old design",
+      "why": "About 200 decisions were flagged in the cut as written on the old model. They read as current and are not.",
+      "milestone": "m1",
+      "state": "todo",
+      "needs": [],
+      "records": [],
+      "evidence": [],
+      "created": "2026-11-10",
+      "updated": "2026-11-10"
     }
   ],
   "path": {
     "tasks": [
+      "m1-lanes",
+      "m1-eval-harness",
       "m1-time-proof",
       "m1-aws-records",
       "m3b-create-machine",
       "m1-telemetry",
       "m1-examples",
+      "m1-old-decisions",
+      "m1-entry-docs",
       "m1-aaron-accepts"
     ],
-    "why": "Time comes first: Aaron said it has to be right, and he settled the approach for option A, so the proof of it is the first thing built on it. The spikes' evidence is in the book and the contract reconciliation is done (its check passes), so the AWS records follow; the machine is the one step only Aaron can unblock, so it is asked for early.",
+    "why": "Lanes and the scoreboard come first, because they change how every later task is done and judged: each thread in its own working copy, and done meaning the scoreboard says so. Then time is proved on the scoreboard, since Aaron said it has to be right. The AWS side and the machine follow, the machine being the one step that needs Aaron's DNS records. Telemetry and examples are the bulk and go to cheaper threads. The old decisions and the entry documents are cleaned up before Aaron is asked to accept the book.",
     "written": "2026-11-10"
   },
   "notes": [
@@ -705,6 +769,11 @@
       "date": "2026-11-10",
       "by": "coordinator",
       "text": "10 November 2026 (coordinator): the clock is settled: Aaron accepted the recommendation, option A of the time study, and the book records it with six tests (m1-time-proof, first on the path). The spikes' evidence is in the book. The jurisdiction is open again: Aaron left it open, preferring a crypto-friendly place (the UAE a candidate), so payroll waits on a comparison of places (m1-payroll-uk)."
+    },
+    {
+      "date": "2026-11-10",
+      "by": "coordinator",
+      "text": "Aaron has handed over: the coordinator runs the climb. His answers are applied, the clock is settled for option A and proved on the test sites, the jurisdiction is open, and the contract records match the code with a check. Before the bulk work starts, two things change: every thread gets its own working copy, and a scoreboard runs the book's tests so that done is a result, not a report. One thing waits on Aaron: the four DNS records for worlds.capxul.com."
     }
   ]
 }

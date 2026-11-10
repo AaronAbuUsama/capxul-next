@@ -660,9 +660,6 @@
         "int:frappe-site.doorReport/INVALID_INPUT",
         "int:frappe-site.doorReport/PROVIDER_ERROR",
         "int:frappe-site.doorReport/PROVIDER_RESPONSE_INVALID",
-        "int:frappe-site.mintSession/PROVIDER_ERROR",
-        "int:frappe-site.mintSession/PROVIDER_RESPONSE_INVALID",
-        "int:frappe-site.mintSession/ROLE_PERMISSION_DENIED",
         "int:frappe-site.mintViewLink/PROVIDER_ERROR",
         "int:frappe-site.mintViewLink/PROVIDER_RESPONSE_INVALID",
         "int:frappe-site.mintViewLink/ROLE_PERMISSION_DENIED",
@@ -13092,7 +13089,6 @@
       "goal": "The Core SDK flow client.site.session (Obtain a session for a person on their site, by calling the site) runs its steps as its record says, within its budget and with its spans; no operation implements it, so its surfaces call it.",
       "needs": [
         "door:plugs",
-        "integration:frappe-site",
         "milestone:m2",
         "milestone:m3"
       ],
@@ -14602,7 +14598,7 @@
         "pilot",
         "pilot-closure"
       ],
-      "goal": "`capxul doc create` does what operation doc.create promises: its 1 acceptance claims and 5 refusals hold, its --json shape, events, spans and budget pass on a devnet at the head of integration/build, and its reference page agrees with it. Inserts a document from the fields given. Runs as the calling person; Frappe's permissions decide. Awaiting the spike's door section (sites.door-awaits-spike).",
+      "goal": "`capxul doc create` does what operation doc.create promises: its 1 acceptance claims and 5 refusals hold, its --json shape, events, spans and budget pass on a devnet at the head of integration/build, and its reference page agrees with it. Inserts a document from the fields given. Runs as the calling person; Frappe's permissions decide. Checked against the spike's door (sites.door-awaits-spike).",
       "needs": [
         "door:plugs",
         "door:sites",
@@ -14652,7 +14648,7 @@
         "pilot",
         "pilot-closure"
       ],
-      "goal": "`capxul doc get` does what operation doc.get promises: its 1 acceptance claims and 5 refusals hold, its --json shape, events, spans and budget pass on a devnet at the head of integration/build, and its reference page agrees with it. One document by type and name, with its docstatus and fields. Runs as the calling person; Frappe's permissions decide. Awaiting the spike's door section (sites.door-awaits-spike).",
+      "goal": "`capxul doc get` does what operation doc.get promises: its 1 acceptance claims and 5 refusals hold, its --json shape, events, spans and budget pass on a devnet at the head of integration/build, and its reference page agrees with it. One document by type and name, with its docstatus and fields. Runs as the calling person; Frappe's permissions decide. Checked against the spike's door (sites.door-awaits-spike).",
       "needs": [
         "door:plugs",
         "door:sites",
@@ -14701,7 +14697,7 @@
         "pilot",
         "pilot-closure"
       ],
-      "goal": "`capxul doc list` does what operation doc.list promises: its 1 acceptance claims and 4 refusals hold, its --json shape, events, spans and budget pass on a devnet at the head of integration/build, and its reference page agrees with it. Lists documents with filters, fields, order and a limit. Runs as the calling person; Frappe's permissions decide. Awaiting the spike's door section (sites.door-awaits-spike).",
+      "goal": "`capxul doc list` does what operation doc.list promises: its 1 acceptance claims and 4 refusals hold, its --json shape, events, spans and budget pass on a devnet at the head of integration/build, and its reference page agrees with it. Lists documents with filters, fields, order and a limit. Runs as the calling person; Frappe's permissions decide. Checked against the spike's door (sites.door-awaits-spike).",
       "needs": [
         "door:plugs",
         "door:sites",
@@ -14755,7 +14751,7 @@
         "pilot",
         "pilot-closure"
       ],
-      "goal": "`capxul doc submit` does what operation doc.submit promises: its 2 acceptance claims and 5 refusals hold, its --json shape, events, spans and budget pass on a devnet at the head of integration/build, and its reference page agrees with it. Submits a draft so Frappe posts it. A Payment Entry from the Safe's account is not posted: it is held and the signer is named. Runs as the calling person; Frappe's permissions decide. Awaiting the spike's door section (sites.door-awaits-spike).",
+      "goal": "`capxul doc submit` does what operation doc.submit promises: its 2 acceptance claims and 5 refusals hold, its --json shape, events, spans and budget pass on a devnet at the head of integration/build, and its reference page agrees with it. Submits a draft so Frappe posts it. A Payment Entry from the Safe's account is not posted: it is held and the signer is named. Runs as the calling person; Frappe's permissions decide. Checked against the spike's door (sites.door-awaits-spike).",
       "needs": [
         "door:plugs",
         "door:sites",
@@ -14808,7 +14804,7 @@
         "pilot",
         "pilot-closure"
       ],
-      "goal": "`capxul doc types` does what operation doc.types promises: its 1 acceptance claims and 4 refusals hold, its --json shape, events, spans and budget pass on a devnet at the head of integration/build, and its reference page agrees with it. Lists the DocTypes the caller can read, with the part that owns each and whether it is reachable now. Runs as the calling person; Frappe's permissions decide. Awaiting the spike's door section (sites.door-awaits-spike).",
+      "goal": "`capxul doc types` does what operation doc.types promises: its 1 acceptance claims and 4 refusals hold, its --json shape, events, spans and budget pass on a devnet at the head of integration/build, and its reference page agrees with it. Lists the DocTypes the caller can read, with the part that owns each and whether it is reachable now. Runs as the calling person; Frappe's permissions decide. Checked against the spike's door (sites.door-awaits-spike).",
       "needs": [
         "door:plugs",
         "door:sites",
@@ -15053,7 +15049,7 @@
         "pilot",
         "pilot-closure"
       ],
-      "goal": "`capxul report run` does what operation report.run promises: its 1 acceptance claims and 5 refusals hold, its --json shape, events, spans and budget pass on a devnet at the head of integration/build, and its reference page agrees with it. Runs a report and prints its columns and rows; reads only. Runs as the calling person; Frappe's permissions decide. Awaiting the spike's door section (sites.door-awaits-spike).",
+      "goal": "`capxul report run` does what operation report.run promises: its 1 acceptance claims and 5 refusals hold, its --json shape, events, spans and budget pass on a devnet at the head of integration/build, and its reference page agrees with it. Runs a report and prints its columns and rows; reads only. Runs as the calling person; Frappe's permissions decide. Checked against the spike's door (sites.door-awaits-spike).",
       "needs": [
         "door:plugs",
         "door:sites",
@@ -15101,7 +15097,7 @@
         "lane:sites",
         "layer:11"
       ],
-      "goal": "`capxul doc amend` does what operation doc.amend promises: its 1 acceptance claims and 5 refusals hold, its --json shape, events, spans and budget pass on a devnet at the head of integration/build, and its reference page agrees with it. Makes a new draft from a cancelled document. Runs as the calling person; Frappe's permissions decide. Awaiting the spike's door section (sites.door-awaits-spike).",
+      "goal": "`capxul doc amend` does what operation doc.amend promises: its 1 acceptance claims and 5 refusals hold, its --json shape, events, spans and budget pass on a devnet at the head of integration/build, and its reference page agrees with it. Makes a new draft from a cancelled document. Runs as the calling person; Frappe's permissions decide. Checked against the spike's door (sites.door-awaits-spike).",
       "needs": [
         "door:plugs",
         "door:sites",
@@ -15150,7 +15146,7 @@
         "lane:sites",
         "layer:11"
       ],
-      "goal": "`capxul doc call` does what operation doc.call promises: its 1 acceptance claims and 5 refusals hold, its --json shape, events, spans and budget pass on a devnet at the head of integration/build, and its reference page agrees with it. Applies a Workflow action or a whitelisted method on a document. Runs as the calling person; Frappe's permissions decide. Awaiting the spike's door section (sites.door-awaits-spike).",
+      "goal": "`capxul doc call` does what operation doc.call promises: its 1 acceptance claims and 5 refusals hold, its --json shape, events, spans and budget pass on a devnet at the head of integration/build, and its reference page agrees with it. Applies a Workflow action or a whitelisted method on a document. Runs as the calling person; Frappe's permissions decide. Checked against the spike's door (sites.door-awaits-spike).",
       "needs": [
         "door:plugs",
         "door:sites",
@@ -15200,7 +15196,7 @@
         "lane:sites",
         "layer:11"
       ],
-      "goal": "`capxul doc cancel` does what operation doc.cancel promises: its 1 acceptance claims and 5 refusals hold, its --json shape, events, spans and budget pass on a devnet at the head of integration/build, and its reference page agrees with it. Cancels a submitted document; a waiting Safe payment is abandoned and a sent one cannot be un-sent. Runs as the calling person; Frappe's permissions decide. Awaiting the spike's door section (sites.door-awaits-spike).",
+      "goal": "`capxul doc cancel` does what operation doc.cancel promises: its 1 acceptance claims and 5 refusals hold, its --json shape, events, spans and budget pass on a devnet at the head of integration/build, and its reference page agrees with it. Cancels a submitted document; a waiting Safe payment is abandoned and a sent one cannot be un-sent. Runs as the calling person; Frappe's permissions decide. Checked against the spike's door (sites.door-awaits-spike).",
       "needs": [
         "door:plugs",
         "door:sites",
@@ -15249,7 +15245,7 @@
         "lane:sites",
         "layer:11"
       ],
-      "goal": "`capxul doc delete` does what operation doc.delete promises: its 1 acceptance claims and 5 refusals hold, its --json shape, events, spans and budget pass on a devnet at the head of integration/build, and its reference page agrees with it. Deletes a draft; Frappe keeps its Deleted Document record. Runs as the calling person; Frappe's permissions decide. Awaiting the spike's door section (sites.door-awaits-spike).",
+      "goal": "`capxul doc delete` does what operation doc.delete promises: its 1 acceptance claims and 5 refusals hold, its --json shape, events, spans and budget pass on a devnet at the head of integration/build, and its reference page agrees with it. Deletes a draft; Frappe keeps its Deleted Document record. Runs as the calling person; Frappe's permissions decide. Checked against the spike's door (sites.door-awaits-spike).",
       "needs": [
         "door:plugs",
         "door:sites",
@@ -15298,7 +15294,7 @@
         "lane:sites",
         "layer:11"
       ],
-      "goal": "`capxul doc next` does what operation doc.next promises: its 1 acceptance claims and 5 refusals hold, its --json shape, events, spans and budget pass on a devnet at the head of integration/build, and its reference page agrees with it. Makes the next document from one with Frappe's own mapper. Runs as the calling person; Frappe's permissions decide. Awaiting the spike's door section (sites.door-awaits-spike).",
+      "goal": "`capxul doc next` does what operation doc.next promises: its 1 acceptance claims and 5 refusals hold, its --json shape, events, spans and budget pass on a devnet at the head of integration/build, and its reference page agrees with it. Makes the next document from one with Frappe's own mapper. Runs as the calling person; Frappe's permissions decide. Checked against the spike's door (sites.door-awaits-spike).",
       "needs": [
         "door:plugs",
         "door:sites",
@@ -15346,7 +15342,7 @@
         "lane:sites",
         "layer:11"
       ],
-      "goal": "`capxul doc schema` does what operation doc.schema promises: its 1 acceptance claims and 4 refusals hold, its --json shape, events, spans and budget pass on a devnet at the head of integration/build, and its reference page agrees with it. Its fields, links, child tables, workflow states and the actions the door can call on it, so an agent knows what to send. Runs as the calling person; Frappe's permissions decide. Awaiting the spike's door section (sites.door-awaits-spike).",
+      "goal": "`capxul doc schema` does what operation doc.schema promises: its 1 acceptance claims and 4 refusals hold, its --json shape, events, spans and budget pass on a devnet at the head of integration/build, and its reference page agrees with it. Its fields, links, child tables, workflow states and the actions the door can call on it, so an agent knows what to send. Runs as the calling person; Frappe's permissions decide. Checked against the spike's door (sites.door-awaits-spike).",
       "needs": [
         "door:plugs",
         "door:sites",
@@ -15395,7 +15391,7 @@
         "lane:sites",
         "layer:11"
       ],
-      "goal": "`capxul doc update` does what operation doc.update promises: its 1 acceptance claims and 5 refusals hold, its --json shape, events, spans and budget pass on a devnet at the head of integration/build, and its reference page agrees with it. Saves the fields given on a draft. Runs as the calling person; Frappe's permissions decide. Awaiting the spike's door section (sites.door-awaits-spike).",
+      "goal": "`capxul doc update` does what operation doc.update promises: its 1 acceptance claims and 5 refusals hold, its --json shape, events, spans and budget pass on a devnet at the head of integration/build, and its reference page agrees with it. Saves the fields given on a draft. Runs as the calling person; Frappe's permissions decide. Checked against the spike's door (sites.door-awaits-spike).",
       "needs": [
         "door:plugs",
         "door:sites",
@@ -15537,7 +15533,7 @@
         "lane:sites",
         "layer:11"
       ],
-      "goal": "`capxul report list` does what operation report.list promises: its 1 acceptance claims and 4 refusals hold, its --json shape, events, spans and budget pass on a devnet at the head of integration/build, and its reference page agrees with it. The reports of every part the caller reaches, with whether each is reachable now. Runs as the calling person; Frappe's permissions decide. Awaiting the spike's door section (sites.door-awaits-spike).",
+      "goal": "`capxul report list` does what operation report.list promises: its 1 acceptance claims and 4 refusals hold, its --json shape, events, spans and budget pass on a devnet at the head of integration/build, and its reference page agrees with it. The reports of every part the caller reaches, with whether each is reachable now. Runs as the calling person; Frappe's permissions decide. Checked against the spike's door (sites.door-awaits-spike).",
       "needs": [
         "door:plugs",
         "door:sites",
