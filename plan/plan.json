@@ -1078,12 +1078,15 @@
       "title": "Refusals, model failures and superseded runs are visible",
       "why": "Post-mortem 10 Nov, changes 5 and 6: the coordinator could not see 226 refusals and 100 model failures, and the Runs page listed 13 runs needing Aaron when none did",
       "milestone": "m1",
-      "state": "todo",
+      "state": "done",
       "needs": [],
       "records": [],
-      "evidence": [],
+      "evidence": [
+        "711d0ea"
+      ],
       "created": "2026-11-10",
-      "updated": "2026-11-10"
+      "updated": "2026-11-10",
+      "thread": "coordinator"
     },
     {
       "id": "m1-loop-watched-run",
@@ -1160,7 +1163,6 @@
   ],
   "path": {
     "tasks": [
-      "m1-loop-visibility",
       "m1-loop-steer-stop",
       "m1-loop-watch",
       "m1-loop-watched-run",
@@ -1170,7 +1172,7 @@
       "m1-time-proof",
       "m1-aaron-accepts"
     ],
-    "why": "Reassessment, 10 Nov evening: the run-observability session's merged work is done (0f03218); its uncommitted Stop fix and steering became m1-loop-steer-stop; the coordinator gets woken by runs (m1-loop-watch); all three come before the one watched run. Agent definitions (the agents-rollup slice) follow the watched run, off the path",
+    "why": "m1-loop-visibility done (711d0ea): m1-gaps-contracts-11101507 shows 28 refused; nothing on the Runs page needs Aaron now. Next: Stop and steering, then the watch",
     "written": "2026-11-10"
   },
   "notes": [
