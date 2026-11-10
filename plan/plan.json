@@ -343,10 +343,12 @@
       "title": "The AWS side as records: the machine, routes, DNS, backups and a production environment",
       "why": "Every part of the system is a record, the production environment included.",
       "milestone": "m1",
-      "state": "doing",
+      "state": "done",
       "needs": [],
       "records": [],
-      "evidence": [],
+      "evidence": [
+        "03911e1"
+      ],
       "created": "2026-11-10",
       "updated": "2026-11-10",
       "thread": "m1-aws-records-11101341"
@@ -945,13 +947,12 @@
       "m1-loop-hardening",
       "m1-eval-coverage",
       "m1-time-proof",
-      "m1-aws-records",
       "m1-telemetry",
       "m1-old-decisions",
       "m1-entry-docs",
       "m1-aaron-accepts"
     ],
-    "why": "Worlds as a hosted platform is now specified. The loop runner is made trustworthy next, so later tasks run through it. Then the checks are lined up with the book's tests so the score is real, time is proved on the scoreboard, the AWS side is written in, and telemetry is the remaining bulk. The old decisions and the entry documents are cleaned up before Aaron is asked to accept the book. Beside this path, the cloud milestone builds the platform: the lean service, a first hosted world, joining, scenarios, runs and the dataset.",
+    "why": "The AWS side is now records (done by the loop). The loop is made trustworthy next (its bug list is with the run-observability session), then the checks are lined up with the blueprint's tests so the score is real, time is proved on the scoreboard, telemetry is on every operation, the old decisions and entry documents are rewritten, and Aaron reads the portal.",
     "written": "2026-11-10"
   },
   "notes": [
