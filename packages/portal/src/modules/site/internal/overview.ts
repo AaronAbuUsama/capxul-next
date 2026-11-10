@@ -19,7 +19,7 @@ const HOLDS: readonly (readonly [string, string])[] = [
 ];
 
 export const NAV: readonly Ref[] = [
-  { label: "Overview", page: "index", anchor: "" }, { label: "Questions", page: "review", anchor: "" },
+  { label: "Overview", page: "index", anchor: "" }, { label: "Plan", page: "plan", anchor: "" }, { label: "Questions", page: "review", anchor: "" },
   { label: "Concepts", page: "index", anchor: "concepts" }, { label: "Architecture", page: "design", anchor: "" },
   { label: "Build", page: "build", anchor: "" }, { label: "Docs", page: "docs", anchor: "" },
 ];
@@ -56,6 +56,7 @@ export const overview = (ctx: Ctx): OverviewPage => {
   const paged = [...ctx.byKind].filter(([kind]) => hasPage(kind));
   return {
     ...head("index", "Overview", HAND_WRITTEN, null), type: "overview", commit,
+    planNote: ctx.input.plan?.plan.notes[ctx.input.plan.plan.notes.length - 1] ?? null,
     hero: direction.hero, needsYou: direction.needsYou, banner: direction.banner, climb: climb(ctx),
     verdicts: { given: concepts.filter((c) => c.verdict !== "none").length, of: concepts.length },
     waiting: ctx.waiting.map((d) => questionOf(ctx, d)),

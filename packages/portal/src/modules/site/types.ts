@@ -5,6 +5,10 @@
 import type { AnyRecord, Book, Stand, StandOf, StatusDocument, Verdict as EvalVerdict } from "@capxul/book";
 
 import type { Diagram, Direction, Step, Verdict } from "#content/shape.ts";
+import type { PlanInput, TaskState } from "../../../../../tools/plan/types.ts";
+
+/** The plan the Plan page is drawn from: the coordinator's file, its log and the plan check (tools/plan). */
+export type { PlanInput };
 
 /** The hand-written content's shape lives beside the content; pages carry parts of it. */
 export type { Diagram, DiagramEdge, DiagramNode, Direction, Step, Verdict } from "#content/shape.ts";
@@ -116,6 +120,8 @@ export interface ConceptCard {
   readonly ref: Ref; readonly title: string; readonly verdict: Verdict; readonly operations: number; readonly decisions: number;
 }
 export interface OverviewPage extends PageHead {
+  /** The coordinator's latest note, and the link to the plan: null when there is no plan file. */
+  readonly planNote: { readonly date: string; readonly by: string; readonly text: string } | null;
   readonly type: "overview"; readonly commit: string;
   readonly hero: Direction["hero"]; readonly needsYou: string; readonly banner: Direction["banner"];
   readonly climb: readonly ClimbCard[]; readonly verdicts: { readonly given: number; readonly of: number };
@@ -219,13 +225,51 @@ export interface CataloguePage extends PageHead {
   readonly type: "catalogue"; readonly nav: string; readonly eyebrow: string; readonly lead: string;
   readonly crumbs: readonly Ref[]; readonly tiles: readonly Tile[]; readonly sections: readonly TableSection[];
 }
+// ── the Plan page ───────────────────────────────────────────────────────────────────────────────
+
+export interface PlanExit { readonly id: string; readonly claim: string; readonly met: boolean; readonly evidence: string }
+export interface PlanTask {
+  readonly id: string; readonly title: string; readonly why: string; readonly milestone: string; readonly state: TaskState;
+  readonly thread: string; readonly needs: readonly string[]; readonly evidence: readonly string[]; readonly updated: string; readonly droppedWhy: string;
+}
+export interface PlanMilestone {
+  readonly id: string; readonly title: string; readonly goal: string; readonly state: string; readonly order: number;
+  readonly exit: readonly PlanExit[]; readonly concepts: readonly Ref[];
+  /** How many of the named concepts' evals pass in the status document; null when it names no concept. */
+  readonly evals: Count | null;
+  readonly tasks: Readonly<Record<TaskState, number>>;
+}
+/** A blocked task and what blocks it, with the context: for a decision, its question, options and recommendation. */
+export interface PlanBlocked {
+  readonly task: PlanTask; readonly on: "decision" | "need"; readonly who: string; readonly need: string; readonly waitsOnOwner: boolean;
+  /** The decision, as the Questions page shows it, when the task is blocked on one the book holds. */
+  readonly decision: Question | null;
+  /** Where the decision is: its question on the Questions page while it waits, else its own page. */
+  readonly decisionRef: Ref | null; readonly decisionWaits: boolean;
+}
+export interface PlanLogRow { readonly at: string; readonly by: string; readonly action: string; readonly summary: string; readonly commit: string }
+export interface PlanPage extends PageHead {
+  readonly type: "plan"; readonly commit: string;
+  /** False when `plan/plan.json` is absent: the page says so and holds nothing else. */
+  readonly present: boolean; readonly owner: string;
+  readonly note: { readonly date: string; readonly by: string; readonly text: string } | null;
+  readonly goal: { readonly title: string; readonly why: string; readonly exit: readonly PlanExit[] } | null;
+  readonly milestones: readonly PlanMilestone[];
+  /** The critical path as the coordinator wrote it: in its order, in its words. */
+  readonly path: { readonly milestone: string; readonly written: string; readonly why: string; readonly steps: readonly PlanTask[] } | null;
+  readonly blocked: readonly PlanBlocked[]; readonly waitsOnOwner: number;
+  readonly groups: readonly { readonly state: TaskState; readonly title: string; readonly tasks: readonly PlanTask[] }[];
+  readonly log: readonly PlanLogRow[]; readonly problems: readonly { readonly at: string; readonly why: string }[];
+}
 export type Page =
-  | OverviewPage | QuestionsPage | ArchitecturePage | ConceptPage | OperationPage | RecordPage | BuildPage | CataloguePage;
+  | PlanPage | OverviewPage | QuestionsPage | ArchitecturePage | ConceptPage | OperationPage | RecordPage | BuildPage | CataloguePage;
 
 export interface Site {
   readonly commit: string;
   /** How many decisions wait for an answer: the count beside Questions in the top bar. */
   readonly waiting: number;
+  /** How many tasks of the plan wait on the owner: the count beside Plan in the top bar. */
+  readonly planWaiting: number;
   readonly problems: number;
   readonly pages: readonly Page[];
 }
@@ -266,4 +310,6 @@ export interface SiteInput {
   readonly direction: Direction;
   /** `status/status.json`: what has run. Null when the file is absent, which means nothing has run. */
   readonly status: StatusDocument | null;
+  /** `plan/plan.json` with the last lines of its log: null when the file is absent. */
+  readonly plan: PlanInput | null;
 }

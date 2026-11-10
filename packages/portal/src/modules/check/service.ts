@@ -2,11 +2,11 @@
 import { unknownEvals, type AnyRecord, type Book, type StatusDocument } from "@capxul/book";
 
 import { coverage } from "./internal/coverage.ts";
-import { evals, identical, questions, stands } from "./internal/data.ts";
+import { evals, identical, planTasks, questions, stands } from "./internal/data.ts";
 import { links } from "./internal/links.ts";
-import type { Expect, Outcome } from "./types.ts";
+import type { Expect, Outcome, PlanExpect } from "./types.ts";
 
-const FIXED = ["index", "review", "design", "build", "docs"];
+const FIXED = ["index", "plan", "review", "design", "build", "docs"];
 /** The catalogues under Docs: one page each at `docs/<name>`, whatever the book holds. */
 const CATALOGUES = [
   "commands", "events", "errors", "spans", "tables", "machines", "rpcs", "flows", "procedures", "workflows", "contracts",
@@ -22,7 +22,9 @@ const outcome = (check: string, failures: readonly string[]): Outcome =>
   ({ check, failures: failures.length, detail: failures.slice(0, SHOWN) });
 
 /** What the book says the site must hold. `waits` is the one predicate the judgments report uses. */
-export const expect = (book: Book, waits: (decision: AnyRecord) => boolean, status: StatusDocument | null = null): Expect => {
+export const expect = (
+  book: Book, waits: (decision: AnyRecord) => boolean, status: StatusDocument | null = null, plan: PlanExpect = { problems: [], tasks: null },
+): Expect => {
   const records = [...book.records.values()];
   return {
     pages: [
@@ -33,6 +35,7 @@ export const expect = (book: Book, waits: (decision: AnyRecord) => boolean, stat
     unknownStatus: status === null ? [] : unknownEvals(book, status),
     waiting: records.filter((r) => r._kind === "decision" && waits(r)).map((r) => r.id),
     operations: records.filter((r) => r._kind === "operation").map((r) => r.id),
+    plan,
   };
 };
 
@@ -44,6 +47,8 @@ export const check = (files: ReadonlyMap<string, string>, again: ReadonlyMap<str
   outcome("the Questions list equals the judgments list", questions(files, expected.waiting)),
   outcome("every operation has a stand", stands(files, expected.operations)),
   outcome("the eval catalogue lists every eval the book derives", evals(files, expected.evals)),
+  outcome("the plan is honest against the book (plan check)", expected.plan.problems),
+  outcome("the Plan page lists every task of the plan", planTasks(files, expected.plan.tasks)),
   outcome("every status entry names an eval the book derives", expected.unknownStatus.map((id) => `${id}: in status/status.json, and the book derives no such eval`)),
 ];
 

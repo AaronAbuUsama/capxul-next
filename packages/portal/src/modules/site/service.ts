@@ -8,6 +8,7 @@ import { build } from "./internal/lists.ts";
 import { hasPage } from "./internal/locate.ts";
 import { operation } from "./internal/operation.ts";
 import { overview } from "./internal/overview.ts";
+import { ownerWaits, plan } from "./internal/plan.ts";
 import { questions } from "./internal/questions.ts";
 import { record } from "./internal/record.ts";
 import type { Site, SiteInput } from "./types.ts";
@@ -16,7 +17,7 @@ export { htmlFile, jsonFile, mdFile, relative } from "./internal/paths.ts";
 export { canonical } from "./internal/schema.ts";
 
 /**
- * Every page of the portal: the five fixed pages, a page per concept, a page per record of every kind that has
+ * Every page of the portal: the six fixed pages, a page per concept, a page per record of every kind that has
  * pages, in the book's order, then the catalogues under Docs and the eval catalogue. The same input always gives
  * the same site.
  */
@@ -25,9 +26,9 @@ export const buildSite = (input: SiteInput): Site => {
   const rest = [...input.book.records.values()].filter((r) => hasPage(r._kind) && r._kind !== "concept");
   const [index, ...catalogues] = docs(ctx);
   return {
-    commit: input.commit, waiting: ctx.waiting.length, problems: input.book.problems.length,
+    commit: input.commit, waiting: ctx.waiting.length, planWaiting: ownerWaits(ctx), problems: input.book.problems.length,
     pages: [
-      overview(ctx), questions(ctx), architecture(ctx), build(ctx), ...(index ? [index] : []),
+      overview(ctx), plan(ctx), questions(ctx), architecture(ctx), build(ctx), ...(index ? [index] : []),
       ...ofKind(ctx, "concept").map((c) => concept(ctx, c)),
       ...rest.map((r) => (r._kind === "operation" ? operation(ctx, r) : record(ctx, r))),
       ...catalogues, ...evalCatalogue(ctx),

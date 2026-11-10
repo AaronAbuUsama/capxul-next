@@ -6,7 +6,7 @@ import { buildBook, defineDecision, keyOf, type AnyRecord, type StatusDocument }
 
 import { direction } from "#content/direction.ts";
 import type { Assets } from "#src/modules/render/types.ts";
-import type { SiteInput } from "#src/modules/site/types.ts";
+import type { PlanInput, SiteInput } from "#src/modules/site/types.ts";
 
 import * as fixture from "../../book/test/fixtures/invitations.ts";
 
@@ -49,6 +49,7 @@ export const fixtureRecords: readonly unknown[] = [...fixture.records, waiting, 
  */
 export const fixtureInput = (
   commit = "abc1234", stage: "as-is" | "target" = "as-is", status: StatusDocument | null = null, records: readonly unknown[] = fixtureRecords,
+  plan: PlanInput | null = null,
 ): SiteInput => {
   const book = buildBook({ name: "fixture", stage, records });
   const conceptOf = new Map<string, string>();
@@ -57,7 +58,7 @@ export const fixtureInput = (
     if (isRecord(concept)) conceptOf.set(keyOf(r), concept.id);
   }
   return {
-    book, commit, concepts: ["access", "organizations"], conceptOf, direction, status,
+    book, commit, concepts: ["access", "organizations"], conceptOf, direction, status, plan,
     waits: (decision) => decision.id === WAITING,
     frozenOperations: new Set(["org.member.invite"]),
     frozen: new Map([["org.member.invite", {

@@ -9,6 +9,7 @@ import { concept } from "./internal/concept.ts";
 import { build } from "./internal/lists.ts";
 import { operation } from "./internal/operation.ts";
 import { overview } from "./internal/overview.ts";
+import { plan } from "./internal/plan.ts";
 import type { Cites } from "./internal/prose.ts";
 import { questions } from "./internal/questions.ts";
 import { record } from "./internal/record.ts";
@@ -34,6 +35,7 @@ const citesOf = (site: Site): Cites => {
 const body = (page: Page, cites: Cites): string => {
   switch (page.type) {
     case "overview": return overview(page);
+    case "plan": return plan(page, cites);
     case "questions": return questions(page, cites);
     case "architecture": return architecture(page, cites);
     case "concept": return concept(page, cites);

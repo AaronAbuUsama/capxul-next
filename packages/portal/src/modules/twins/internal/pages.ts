@@ -1,5 +1,5 @@
 /** The Markdown twins of the five fixed pages: Overview, Questions, Architecture, Build and Docs. */
-import type { ArchitecturePage, BuildPage, CataloguePage, OperationRow, OverviewPage, QuestionsPage, Step } from "#src/modules/site/types.ts";
+import type { ArchitecturePage, BuildPage, CataloguePage, OperationRow, OverviewPage, PlanPage, QuestionsPage, Step } from "#src/modules/site/types.ts";
 
 import { briefs, bullets, findings, link, plain, refs, section, table, tableSection, tiles, trace } from "./md.ts";
 
@@ -14,6 +14,7 @@ export const overview = (p: OverviewPage): readonly string[] => [
   `**${plain(p.hero.eyebrow)}.** ${plain(p.hero.title)}`, "", plain(p.hero.lead), "", plain(p.hero.sub), "",
   `Built from commit \`${p.commit}\`: ${p.problems.length} problems, ${p.gaps.length} gaps, ${p.evals} evals.`, "",
   ...section(plain(p.banner.title), [plain(p.banner.text)]),
+  ...(p.planNote === null ? [] : section("Where the plan is", [`${plain(p.planNote.text)} (the coordinator, ${p.planNote.date})`, "", `The whole plan: [Plan](plan.md).`])),
   ...section("The climb", p.climb.map((c) => `- **${c.step}** (${plain(c.status)}): ${c.big}, ${c.sub}`)),
   ...section(`Waiting for you (${p.waiting.length})`, [
     plain(p.needsYou), "", ...p.waiting.map((q) => `- ${link(p.id, q.ref)}: ${plain(q.title)}`),
@@ -75,3 +76,41 @@ export const catalogue = (p: CataloguePage): readonly string[] => [
   plain(p.lead), "", ...tiles(p.id, p.tiles), "",
   ...p.sections.flatMap((s) => tableSection(p.id, s)),
 ];
+
+const exitLines = (held: PlanPage["milestones"][number]["exit"]): readonly string[] =>
+  held.map((e) => `- ${e.met ? "[met]" : "[open]"} \`${e.id}\`: ${plain(e.claim)}${e.evidence === "" ? "" : ` Evidence: ${plain(e.evidence)}`}`);
+
+/** The Plan page: the note first, then the goal, milestones, critical path, what is blocked, tasks by state and the log. */
+export const plan = (p: PlanPage): readonly string[] => {
+  if (!p.present) return ["There is no plan yet: `plan/plan.json` is absent."];
+  const blocked = p.blocked.flatMap((b) => [
+    `### ${b.task.id}: ${plain(b.task.title)}`, "", `Milestone ${b.task.milestone}. ${plain(b.task.why)}${b.waitsOnOwner ? ` Waits on ${p.owner}.` : ""}`, "",
+    ...(b.decision !== null && b.decisionRef !== null
+      ? [
+        `Blocked on decision ${link(p.id, b.decisionRef)}${b.decisionWaits ? " (on the Questions page)" : " (already decided)"}: ${plain(b.decision.title)}`, "",
+        plain(b.decision.question), "",
+        ...b.decision.options.map((o) => `- **${plain(o.label)}**${o.recommended ? " (recommended)" : ""}: ${plain(o.text)}`), "",
+        `The book recommends \`${b.decision.chosen}\`. ${plain(b.decision.why)}`, "",
+      ]
+      : [`Blocked on a need${b.who === "" ? "" : ` of ${b.who}`}: ${plain(b.need)}`, ""]),
+  ]);
+  return [
+    ...(p.note ? [`**Latest note, ${p.note.date} (${p.note.by}).** ${plain(p.note.text)}`, ""] : []),
+    ...(p.waitsOnOwner > 0 ? [`${p.waitsOnOwner} tasks wait on ${p.owner}.`, ""] : []),
+    ...(p.goal ? section(`Goal: ${plain(p.goal.title)}`, [plain(p.goal.why), "", ...exitLines(p.goal.exit)]) : []),
+    ...section("Milestones, in order", p.milestones.flatMap((m) => [
+      `### ${m.id}: ${plain(m.title)} (${m.state})`, "", plain(m.goal), "",
+      `${m.tasks.done} done, ${m.tasks.doing} doing, ${m.tasks.blocked} blocked, ${m.tasks.todo} to do.${m.evals === null ? "" : ` ${m.evals.passing} of ${m.evals.total} evals pass in ${m.concepts.map((c) => c.label).join(", ")}.`}`, "",
+      ...exitLines(m.exit), "",
+    ])),
+    ...(p.path ? section(`Critical path through ${p.path.milestone}`, [
+      ...p.path.steps.map((t, i) => `${i + 1}. \`${t.id}\` ${plain(t.title)} (${t.state}${t.thread === "" ? "" : `, thread ${t.thread}`})`), "",
+      `Why, written ${p.path.written} by the coordinator: ${plain(p.path.why)}`,
+    ]) : []),
+    ...section(`Blocked (${p.blocked.length})`, blocked.length === 0 ? ["Nothing is blocked."] : blocked),
+    ...(p.problems.length === 0 ? [] : section("What the plan check says", p.problems.map((x) => `- ${x.at}: ${plain(x.why)}`))),
+    ...p.groups.filter((g) => g.tasks.length > 0).flatMap((g) => section(`${g.title} (${g.tasks.length})`,
+      table(["Task", "Id", "Milestone", "Thread"], g.tasks.map((t) => [plain(t.title), `\`${t.id}\``, t.milestone, t.thread])))),
+    ...section("The last changes", table(["When", "By", "Change", "About", "Commit"], p.log.map((l) => [l.at, l.by, l.action, plain(l.summary), l.commit]))),
+  ];
+};

@@ -19,6 +19,13 @@ export interface Expect {
   readonly evals: number;
   /** The ids in the status document that the book does not derive. Empty when there is no document. */
   readonly unknownStatus: readonly string[];
+  readonly plan: PlanExpect;
+}
+
+/** What `plan check` says of plan/plan.json (one line per problem), and how many tasks it holds: null when there is no plan file. */
+export interface PlanExpect {
+  readonly problems: readonly string[];
+  readonly tasks: number | null;
 }
 
 /** The verdict on one part of the check. It passed when `failures` is 0. */

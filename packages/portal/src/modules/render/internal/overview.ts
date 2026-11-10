@@ -76,8 +76,16 @@ const unfinished = (p: OverviewPage): string => {
   return parts === "" ? "" : `<section class="block"><h2 id="unfinished">What the book still lacks</h2>${parts}</section>`;
 };
 
+/** The coordinator's latest note, and the way to the plan. */
+const planBlock = (p: OverviewPage): string =>
+  p.planNote === null ? "" :
+    `<section class="block"><div class="col-head"><h2 id="plan">Where the plan is</h2>` +
+    `<a href="${esc(hrefTo(p.id, { label: "", page: "plan", anchor: "" }))}">The whole plan ${ARROW}</a></div>` +
+    `<div class="banner"><div class="banner-words"><p class="banner-title">${prose(p.planNote.text)}</p>` +
+    `<p class="banner-text">The coordinator, ${esc(p.planNote.date)}</p></div></div></section>`;
+
 export const overview = (p: OverviewPage): string =>
-  `<main class="page">${hero(p)}${climb(p)}<div class="cols">${waiting(p)}${holds(p)}</div>${concepts(p)}${unfinished(p)}` +
+  `<main class="page">${hero(p)}${planBlock(p)}${climb(p)}<div class="cols">${waiting(p)}${holds(p)}</div>${concepts(p)}${unfinished(p)}` +
   `<p class="all-kinds">Every record has a page. Start from a concept, or from ` +
   `${link(p.id, { label: "Docs", page: "docs", anchor: "" })} for the commands and the errors, or ` +
   `${link(p.id, { label: "Build", page: "build", anchor: "" })} for where each operation stands.</p></main>`;

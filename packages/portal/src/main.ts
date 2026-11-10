@@ -12,12 +12,14 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 
 import { buildBook, keyOf, parseStatus, type AnyRecord, type StatusDocument } from "@capxul/book";
 
+import { check as planCheck, parsePlan } from "../../../tools/plan/service.ts";
+import type { Facts, LogEntry } from "../../../tools/plan/types.ts";
 import { direction } from "#content/direction.ts";
 import { check, expect, passed } from "#src/modules/check/service.ts";
 import { renderSite } from "#src/modules/render/service.ts";
 import type { Assets } from "#src/modules/render/types.ts";
 import { buildSite } from "#src/modules/site/service.ts";
-import type { FrozenArgument, FrozenCommand, FrozenFlag, SiteInput } from "#src/modules/site/types.ts";
+import type { FrozenArgument, FrozenCommand, FrozenFlag, PlanInput, SiteInput } from "#src/modules/site/types.ts";
 import { twinsOf } from "#src/modules/twins/service.ts";
 import { LLMS_FILE } from "#src/modules/twins/types.ts";
 
@@ -97,10 +99,12 @@ export const load = async (root: string, commit: string = commitOf(root)): Promi
     const book = buildBook({ name: str(target["name"]), stage: target["stage"] === "as-is" ? "as-is" : "target", records: target["records"] });
     const status = statusOf(root);
     if (!status.ok) return status;
+    const plan = planOf(root, book, concepts);
+    if (!plan.ok) return plan;
     return {
       ok: true,
       value: {
-        book, commit, concepts, conceptOf, direction, status: status.value,
+        book, commit, concepts, conceptOf, direction, status: status.value, plan: plan.value,
         waits: (decision) => forAaron(decision) === true,
         frozen: frozenOf(flagBook), frozenOperations: new Set(Object.keys(frozen)),
       },
@@ -119,6 +123,32 @@ const statusOf = (root: string): Result<StatusDocument | null> => {
     return parsed.ok ? { ok: true, value: parsed.value } : { ok: false, error: `status/status.json: ${parsed.errors.join("; ")}` };
   } catch (cause) {
     return { ok: false, error: `status/status.json: ${cause instanceof Error ? cause.message : String(cause)}` };
+  }
+};
+
+/** How many lines of the plan's log the Plan page keeps. */
+const LOG_KEPT = 20;
+
+/**
+ * The coordinator's plan at `plan/plan.json`, its log's last lines, and what `plan check` says of it: null when the file is
+ * absent; an error when it is not a plan. The log is read here, so the site module stays free of the file system.
+ */
+const planOf = (root: string, book: ReturnType<typeof buildBook>, concepts: readonly string[]): Result<PlanInput | null> => {
+  const file = join(root, "plan/plan.json");
+  if (!existsSync(file)) return { ok: true, value: null };
+  try {
+    const parsed = parsePlan(JSON.parse(readFileSync(file, "utf8")) as unknown);
+    if (!parsed.ok) return { ok: false, error: `plan/plan.json: ${parsed.error}` };
+    const logFile = join(root, "plan/log.jsonl");
+    const lines = existsSync(logFile) ? readFileSync(logFile, "utf8").split("\n").filter((l) => l.trim() !== "") : [];
+    const log = lines.slice(-LOG_KEPT).map((l) => JSON.parse(l) as LogEntry);
+    const facts: Facts = {
+      decisions: new Set([...book.records.values()].filter((r) => r._kind === "decision").map((r) => r.id)),
+      records: new Set(book.records.keys()), evals: new Set(book.evals.map((e) => e.id)), concepts: new Set(concepts),
+    };
+    return { ok: true, value: { plan: parsed.value, log, problems: planCheck(parsed.value, facts) } };
+  } catch (cause) {
+    return { ok: false, error: `plan/plan.json: ${cause instanceof Error ? cause.message : String(cause)}` };
   }
 };
 
@@ -176,7 +206,9 @@ const run = async (args: readonly string[]): Promise<{ readonly lines: readonly 
       code: 0,
     };
   }
-  const outcomes = check(files, generate(input, assets), expect(input.book, input.waits, input.status));
+  const outcomes = check(files, generate(input, assets), expect(input.book, input.waits, input.status, {
+    problems: (input.plan?.problems ?? []).map((p) => `${p.at}: ${p.why}`), tasks: input.plan?.plan.tasks.length ?? null,
+  }));
   return {
     lines: [
       ...outcomes.flatMap((o) => [

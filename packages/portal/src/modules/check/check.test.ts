@@ -32,7 +32,7 @@ const replaceIn = (file: string, from: string, to: string) => (copy: Map<string,
 };
 
 test("what the book expects: a page per record that has one, the waiting list, the operations", () => {
-  assert.deepEqual(expected.pages.slice(0, 5), ["index", "review", "design", "build", "docs"]);
+  assert.deepEqual(expected.pages.slice(0, 6), ["index", "plan", "review", "design", "build", "docs"]);
   assert.ok(expected.pages.includes("operation/org.member.invite") && expected.pages.includes("concept/access"));
   assert.equal(expected.pages.some((p) => /^(transition|call|function|chainEvent|system)\//.test(p)), false);
   assert.deepEqual(expected.waiting, [WAITING]);
@@ -46,7 +46,7 @@ test("what the book expects: a page per record that has one, the waiting list, t
 test("a generated site passes every part", () => {
   const outcomes = run(files, generate());
   assert.deepEqual(failed(outcomes), [], JSON.stringify(outcomes, null, 2));
-  assert.equal(outcomes.length, 7);
+  assert.equal(outcomes.length, 9);
   assert.ok(passed(outcomes));
 });
 

@@ -12,6 +12,7 @@ const FONTS =
 const activeOf = (page: Page): string => {
   switch (page.type) {
     case "overview": return "Overview";
+    case "plan": return "Plan";
     case "questions": return "Questions";
     case "architecture": return "Architecture";
     case "build": return "Build";
@@ -42,7 +43,8 @@ const head = (site: Site, page: Page): string => [
 const topBar = (site: Site, page: Page, nav: readonly Ref[]): string => {
   const active = activeOf(page);
   const items = nav.map((ref) => {
-    const pill = ref.label === "Questions" && site.waiting > 0 ? ` <span class="nav-count">${site.waiting}</span>` : "";
+    const waits = ref.label === "Questions" ? site.waiting : ref.label === "Plan" ? site.planWaiting : 0;
+    const pill = waits > 0 ? ` <span class="nav-count">${waits}</span>` : "";
     return `<a class="nav-item${ref.label === active ? " is-active" : ""}" href="${esc(hrefTo(page.id, ref))}">${esc(ref.label)}${pill}</a>`;
   });
   const home = hrefTo(page.id, { label: "", page: "index", anchor: "" });
