@@ -216,6 +216,8 @@
       "evals": [
         "env:shared-world/boot",
         "env:shared-world/smoke",
+        "env:worlds/boot",
+        "env:worlds/smoke",
         "ms:m3b/done"
       ],
       "checkers": [],
@@ -269,6 +271,8 @@
       "parent": "capxul",
       "priority": "critical",
       "evals": [
+        "env:production/boot",
+        "env:production/smoke",
         "env:staging/boot",
         "env:staging/smoke",
         "ms:m5/done"

@@ -10,7 +10,7 @@ import { boundary } from "./boundary.ts";
 import { brief, head, ofKind, titleOf, type Ctx } from "./context.ts";
 import { refOf } from "./locate.ts";
 import { HAND_WRITTEN } from "./questions.ts";
-import { many, row, tableOf, to, words } from "./table.ts";
+import { words as cellWords, many, row, tableOf, to, words } from "./table.ts";
 import { traceOf } from "./trace.ts";
 import { count, entries, isRecord, list, objects, plural, records, text } from "./values.ts";
 
@@ -98,7 +98,12 @@ export const architecture = (ctx: Ctx): ArchitecturePage => {
   const crossing = boundary(ctx);
   return {
     ...head("design", words.title, HAND_WRITTEN, null), type: "architecture", lead: words.lead, diagram: words.diagram,
-    runs: runs(ctx), layers: layers(ctx), depends: depends(ctx), traced, boundary: crossing.sections,
+    runs: runs(ctx), deployment: tableOf("deployment", "Deployment reality and recovery", ["Record", "Reality, stand-ins and owner dependencies", "Deploy"],
+      [...ofKind(ctx, "environment"), ...ofKind(ctx, "component").filter((c) => c.id.startsWith("sites-"))]
+        .map((r) => row([to(refOf(r), titleOf(r)), cellWords(text(r["about"])), cellWords(text(r["deploy"]))])), {
+        caption: "Dated deployment inventory from the book. Planned services and recovery procedures are not evidence of a live deployment.",
+        empty: "No deployment records.",
+      }), layers: layers(ctx), depends: depends(ctx), traced, boundary: crossing.sections,
     silent: silent(ctx, traced, crossing),
     portal: words.portalDecisions.flatMap((id) => {
       const d = ctx.input.book.records.get(`decision:${id}`);

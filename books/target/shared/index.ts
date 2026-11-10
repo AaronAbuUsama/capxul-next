@@ -3,6 +3,7 @@
 // them. books/target/index.ts adds each concept's records to these.
 
 import * as foundation from "./foundation.ts";
+import * as cloud from "./cloud.ts";
 import * as vocabulary from "./vocabulary.ts";
 import * as external from "./external.ts";
 import * as decisions from "./decisions.ts";
@@ -34,5 +35,5 @@ export const recordsOf = (modules: readonly object[]): unknown[] => [
   ),
 ];
 
-export const sharedModules = [foundation, vocabulary, external, decisions, landings, tooling, portal, swarm, time, rulings, surface, cut, cutMoves, milestones, contractRecords] as const;
+export const sharedModules = [foundation, cloud, vocabulary, external, decisions, landings, tooling, portal, swarm, time, rulings, surface, cut, cutMoves, milestones, contractRecords] as const;
 export const sharedRecords = recordsOf(sharedModules);

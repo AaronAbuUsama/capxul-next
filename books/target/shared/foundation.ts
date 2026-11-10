@@ -728,6 +728,7 @@ export const environment_staging = defineEnvironment({
   id: "staging",
   title: "Staging",
   about:
+    "Deployment status (10 November 2026): target plan only, not an evidenced new staging deployment. Real: old staging remains separately operated; cloud.md's Convex worker is not this target. Stand-ins: sandbox/test provider accounts, never production money; recipients remain allow-listed. Needs Aaron: host/spend, provider credentials and retirement of old staging. " +
     "The new standing tier: merged code together on Base Sepolia, allowed to break, measured by the `live:*` evals. A fresh " +
     "Protocol v4 deployment through Companies House; nothing is migrated from old staging (P9), which keeps running until " +
     "Aaron turns it off. The host is chosen at the spine (Y3). It runs the backend, one managed Postgres with Ponder on it, " +

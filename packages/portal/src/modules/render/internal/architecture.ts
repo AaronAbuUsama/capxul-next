@@ -72,7 +72,7 @@ const steps = (p: ArchitecturePage): string =>
 export const architecture = (p: ArchitecturePage, cites: Cites): string =>
   `<main class="page"><p class="eyebrow eyebrow-muted">Architecture</p><h1 class="title">${esc(p.title)}</h1>` +
   `<p class="lead lead-wide">${prose(p.lead)}</p>${diagram(p.diagram, p.title)}` +
-  tableSection(p.id, p.runs, cites) +
+  tableSection(p.id, p.runs, cites) + tableSection(p.id, p.deployment, cites) +
   `<section class="block"><h2 id="layers">What must be up before what</h2><p class="caption">From each component's <code>dependsOn</code>: a component sits one band below the deepest thing it depends on.</p>${layers(p)}</section>` +
   tableSection(p.id, p.depends, cites) + traced(p, cites) +
   p.boundary.map((s) => tableSection(p.id, s, cites)).join("") + silent(p, cites) + portal(p) +

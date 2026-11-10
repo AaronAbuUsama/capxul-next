@@ -152,7 +152,7 @@ export interface QuestionsPage extends PageHead {
 export interface ArchitecturePage extends PageHead {
   readonly type: "architecture"; readonly lead: string; readonly diagram: Diagram;
   /** What runs where: one row per component, one column per environment. */
-  readonly runs: TableSection;
+  readonly runs: TableSection; readonly deployment: TableSection;
   /** What must be up before what: each layer depends only on layers before it. */
   readonly layers: readonly (readonly Ref[])[];
   readonly depends: TableSection;
