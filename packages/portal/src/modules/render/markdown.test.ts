@@ -15,6 +15,14 @@ test("inline code, bold, italics and links; everything else is escaped", () => {
   assert.equal(inline("`**not bold**`"), "<code>**not bold**</code>", "nothing inside code is Markdown");
 });
 
+test("a fenced block is code, escaped, and a pipe table is a table (the Worlds page)", () => {
+  const html = markdown("Before\n```\ncapxul world use r1 <x>\n```\n\n| A | B |\n|---|---|\n| `c` | d |\n");
+  assert.match(html, /<div class="code"><pre class="code-body"><code>capxul world use r1 &lt;x&gt;<\/code><\/pre><\/div>/);
+  assert.match(html, /<th>A<\/th><th>B<\/th>/);
+  assert.match(html, /<td><code>c<\/code><\/td><td>d<\/td>/);
+  assert.match(html, /^<div class="md"><p>Before<\/p>/);
+});
+
 test("a repository path is shown as a path, in code or as a link, and is never linked", () => {
   assert.equal(inline("`docs/mission/cloud.md`"), '<code class="path">docs/mission/cloud.md</code>');
   assert.equal(inline("`pnpm plan show`"), "<code>pnpm plan show</code>");

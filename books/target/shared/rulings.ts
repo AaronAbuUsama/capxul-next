@@ -914,3 +914,27 @@ export const decision_aaron_jurisdiction_open = defineDecision({
 });
 
 Object.assign(SUPERSEDED as Record<string, string>, { "aaron.us-first": "aaron.jurisdiction-open" });
+
+// ── The same day, later: people's sign-in belongs to Capxul Core; worlds are built for agents first (his words, dictated) ──
+const AARON_14 = "Aaron, 10 November 2026, in conversation with the coordinator, later the same day (dictated)";
+
+export const decision_aaron_sign_in_is_core = defineDecision({
+  id: "aaron.sign-in-is-core",
+  title: "People's sign-in belongs to Capxul Core, later; worlds are for agents first",
+  question: "How do people sign in to a world's screens and sign transactions, and what is built first for worlds?",
+  options: [
+    {
+      label: "core-popup-later-agents-first",
+      text:
+        "Sign-in is Capxul Core's, designed there. The obvious path for users is a pop-up that displays what is being signed, lets the person sign a transaction and proves who they are. It is not the focus now. The focus now is the agent side: agents hold keys and sign with them. " +
+        "The people's sign-in is on the critical path at some point, before people use a world's screens (the milestone is not yet chosen).",
+    },
+    { label: "key-links-now", text: "Build key-based sign-in links for screens now, so human testers can use worlds at once." },
+    { label: "external-provider", text: "Use an external sign-in provider for testers." },
+  ],
+  chosen: "core-popup-later-agents-first",
+  why:
+    "Aaron, 10 November 2026, dictated: \"As for sign in, that is something for the Capxul Core. We need to do some sort of design in the Capxul Core for this. The obvious path is for users, we create some pop-up thing that can display some information and allow them to sign transactions, and authenticate who they are. But we don't need to focus on that yet anyway. The thing that we need to focus on right now is just the agent side of it. We will get to that. But that is definitely on the critical path at some point. I'm not sure what milestone, but it's definitely there.\"",
+  source: AARON_14,
+  affects: [f.system_capxul],
+});

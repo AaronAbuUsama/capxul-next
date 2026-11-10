@@ -18,5 +18,17 @@ import * as worldProcesses from "./world-processes.ts";
 import * as worldDecisions from "./world-decisions.ts";
 import * as decisions from "./decisions.ts";
 import * as worldEvidence from "./world-evidence.ts";
+import * as platformData from "./platform-data.ts";
+import * as platformLifecycle from "./platform-lifecycle.ts";
+import * as platformAccess from "./platform-access.ts";
+import * as platformScenarios from "./platform-scenarios.ts";
+import * as platformRuns from "./platform-runs.ts";
+import * as platformDatasets from "./platform-datasets.ts";
+import * as platformCohorts from "./platform-cohorts.ts";
+import * as platformEnv from "./platform-env.ts";
+import * as platformProcesses from "./platform-processes.ts";
+import * as platformJourneys from "./platform-journeys.ts";
+import * as platformDecisions from "./platform-decisions.ts";
+import * as platformDecisionsData from "./platform-decisions-data.ts";
 
-export const modules = [data, procedures, mail, gates, prices, jobs, processes, flows, worlds, worldData, worldRpcs, worldOps, worldProcesses, worldDecisions, operations, decisions, worldEvidence] as const;
+export const modules = [data, procedures, mail, gates, prices, jobs, processes, flows, worlds, worldData, worldRpcs, worldOps, worldProcesses, worldDecisions, operations, decisions, worldEvidence, platformData, platformLifecycle, platformAccess, platformScenarios, platformRuns, platformDatasets, platformCohorts, platformEnv, platformProcesses, platformJourneys, platformDecisions, platformDecisionsData] as const;

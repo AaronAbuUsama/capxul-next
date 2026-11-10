@@ -16,6 +16,7 @@ const activeOf = (page: Page): string => {
     case "plan-task":
     case "plan-milestone": return "Plan";
     case "questions": return "Questions";
+    case "worlds": return "Worlds";
     case "architecture": return "Architecture";
     case "build": return "Build";
     case "catalogue": return page.nav;

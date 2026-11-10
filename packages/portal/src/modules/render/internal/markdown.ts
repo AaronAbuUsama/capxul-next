@@ -26,6 +26,8 @@ export const inline = (text: string): string => {
   return html.replace(/\u0000(\d+)\u0000/g, (_, i: string) => spans[Number(i)] ?? "");
 };
 
+const TABLE_ROW = /^\s*\|.*\|\s*$/;
+const TABLE_RULE = /^\s*\|(\s*:?-{3,}:?\s*\|)+\s*$/;
 const BULLET = /^\s*[-*]\s+(.*)$/;
 const NUMBER = /^\s*\d+\.\s+(.*)$/;
 
@@ -49,12 +51,26 @@ export const markdown = (md: string, cls = "md"): string => {
     const line = lines[i] ?? "";
     const h = /^(#{3,4})\s+(.+)$/.exec(line);
     if (line.trim() === "") i++;
-    else if (h) { out.push(`<h${(h[1] ?? "###").length}>${inline(h[2] ?? "")}</h${(h[1] ?? "###").length}>`); i++; }
+    else if (line.startsWith("```")) {
+      const code: string[] = [];
+      i++;
+      while (i < lines.length && !(lines[i] ?? "").startsWith("```")) { code.push(lines[i] ?? ""); i++; }
+      i++;
+      out.push(`<div class="code"><pre class="code-body"><code>${esc(code.join("\n"))}</code></pre></div>`);
+    } else if (TABLE_ROW.test(line) && TABLE_RULE.test(lines[i + 1] ?? "")) {
+      const cells = (row: string): string[] => row.trim().replace(/^\|/, "").replace(/\|$/, "").split("|").map((c) => c.trim());
+      const head = cells(line);
+      i += 2;
+      const rows: string[][] = [];
+      while (i < lines.length && TABLE_ROW.test(lines[i] ?? "")) { rows.push(cells(lines[i] ?? "")); i++; }
+      out.push(`<div class="table-wrap"><table class="table"><thead><tr>${head.map((c) => `<th>${inline(c)}</th>`).join("")}</tr></thead><tbody>` +
+        `${rows.map((r) => `<tr>${r.map((c) => `<td>${inline(c)}</td>`).join("")}</tr>`).join("")}</tbody></table></div>`);
+    } else if (h) { out.push(`<h${(h[1] ?? "###").length}>${inline(h[2] ?? "")}</h${(h[1] ?? "###").length}>`); i++; }
     else if (BULLET.test(line)) list("ul", BULLET);
     else if (NUMBER.test(line)) list("ol", NUMBER);
     else {
       const para: string[] = [];
-      while (i < lines.length && (lines[i] ?? "").trim() !== "" && !BULLET.test(lines[i] ?? "") && !NUMBER.test(lines[i] ?? "") && !/^#{3,4}\s/.test(lines[i] ?? "")) { para.push((lines[i] ?? "").trim()); i++; }
+      while (i < lines.length && (lines[i] ?? "").trim() !== "" && !BULLET.test(lines[i] ?? "") && !NUMBER.test(lines[i] ?? "") && !/^#{3,4}\s/.test(lines[i] ?? "") && !(lines[i] ?? "").startsWith("```")) { para.push((lines[i] ?? "").trim()); i++; }
       out.push(`<p>${inline(para.join(" "))}</p>`);
     }
   }

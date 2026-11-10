@@ -6,11 +6,11 @@ import { Schema } from "effect";
 import type { ErrorRecord } from "../../../packages/book/src/index.ts";
 import { concept_devnet } from "../shared/foundation.ts";
 import { integration_devnet_control } from "../shared/external.ts";
-import { error_NOT_AUTHENTICATED, error_ROLE_PERMISSION_DENIED, error_INVALID_INPUT } from "../shared/vocabulary.ts";
+import { error_NOT_AUTHENTICATED, error_ROLE_PERMISSION_DENIED, error_INVALID_INPUT, error_CAPACITY_REACHED } from "../shared/vocabulary.ts";
 import { integration_site_service } from "../plugs/integrations.ts";
 import { rpc } from "../plugs/kit.ts";
 import {
-  ClockMode, machine_world, table_command_records, table_world_registrations, table_world_snapshots, table_worlds, WorldKind, WorldState,
+  ClockMode, machine_world, table_command_records, table_world_registrations, table_world_snapshots, table_worlds, WorldKind, WorldProfile, WorldState,
 } from "./world-data.ts";
 
 const S = Schema.String;
@@ -18,7 +18,7 @@ const N = Schema.Number;
 const Null = Schema.NullOr;
 const B = Schema.Boolean;
 const NOTE = "docs/mission/worlds.md";
-const WHO_OWNER = "The world's owner: on a local devnet anyone on the machine; on a hosted world the holder of an owner grant.";
+const WHO_OWNER = "The world's owner: on a local devnet anyone on the machine; on a hosted world the holder of an organiser grant.";
 const WHO_READ = "Anyone with a grant in the world (owner, player or viewer); on a local devnet anyone on the machine.";
 
 /** The errors a call of the control protocol fails with, so the rpc declares each (rule call-error-not-declared). */
@@ -30,7 +30,7 @@ const errorsOf = (call: keyof typeof integration_devnet_control.calls, more: rea
 };
 
 export const WorldView = Schema.Struct({
-  worldId: S, name: S, kind: WorldKind, state: WorldState, clockMode: ClockMode, rate: N, worldNow: N, epoch: N, chainId: N, hosted: B,
+  worldId: S, name: S, kind: WorldKind, profile: WorldProfile, address: Null(S), state: WorldState, clockMode: ClockMode, rate: N, worldNow: N, epoch: N, chainId: N, hosted: B,
   parentWorld: Null(S), parentSnapshot: Null(S), parentSeq: Null(N), companies: Schema.Array(Schema.Struct({ orgId: S, name: S, url: Null(S) })), recordHead: N,
 });
 export const SnapshotView = Schema.Struct({ name: S, worldId: S, epoch: N, recordSeq: N, clockMode: ClockMode, rate: N, worldNow: N, template: B, createdAt: N, sites: N });
@@ -42,14 +42,14 @@ export const rpc_devnet_worlds_create = rpc({
   id: "devnet.worlds.create",
   title: "Make a whole world",
   about:
-    "Asks for a world: an id (no hyphen), a name, a kind, an optional template, and a clock (frozen or running, a rate of 1 to 60). It writes the world creating and the `born` entry, and its creation process asks the supervisor to make the chain, the service, the " +
+    "Asks for a world: an id (no hyphen), a name, a kind (local, simulated, staging or production), a profile (`core`: chain, lean service and record, no company sites; `full`: also a Frappe site per company on the one shared bench), an optional template, and a clock (frozen or running, a rate of 1 to 60). A simulated world gets its service address `core-<world>.<base>` and each company's site `<company>-<world>.<base>` (docs/design/worlds-platform.md). Staging and production are made by the same call: they run on a public chain with the real clock and real services, are always `full`, take no snapshot or clock verbs, and creating production needs the platform owner's one-time approval (devnet.production-is-a-world). The machine refuses a world it has no room for (CAPACITY_REACHED, devnet.world-capacity). It writes the world creating and the `born` entry, and its creation process asks the supervisor to make the chain, the service, the " +
     "clock, the record and the stand-ins. A world with a template restores the template's chain state and one site backup per company under the new addresses; without one it deploys the contracts (25 s in the old product). Companies are made after, with `org create --world`.",
   concept: concept_devnet,
   kind: "mutation",
-  who: "Anyone on a local devnet's machine; on the hosted service, a signed-in person with a world quota (assumption: the quota is not designed; settled when the hosted service is built, m3b-first-shared-world).",
-  input: Schema.Struct({ worldId: S, name: S, kind: WorldKind, template: Null(S), clock: ClockMode, rate: N }),
+  who: "Anyone on a local devnet's machine; on the hosted service, a signed-in holder of a key the worlds service admits as an organiser (assumption: a per-organiser world quota is not designed; settled when the hosted service is built, m3b-first-shared-world); production only with the platform owner's approval.",
+  input: Schema.Struct({ worldId: S, name: S, kind: WorldKind, profile: WorldProfile, template: Null(S), clock: ClockMode, rate: N, ownerApproval: Null(S) }),
   output: Schema.Struct({ worldId: S, state: Schema.Literal("creating") }),
-  errors: errorsOf("worldCreate", [error_INVALID_INPUT]),
+  errors: errorsOf("worldCreate", [error_INVALID_INPUT, error_CAPACITY_REACHED]),
   reads: [table_worlds],
   writes: [table_worlds, table_command_records],
   drives: [machine_world.t.create],

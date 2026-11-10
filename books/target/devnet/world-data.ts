@@ -15,7 +15,9 @@ const N = Schema.Number;
 const Null = Schema.NullOr;
 const B = Schema.Boolean;
 
-export const WorldKind = Schema.Literals(["local", "simulated"]);
+export const WorldKind = Schema.Literals(["local", "simulated", "staging", "production"]);
+/** `core`: chain, lean service and record, no company sites. `full`: also one Frappe site per company on the shared bench. Staging and production are always full. */
+export const WorldProfile = Schema.Literals(["core", "full"]);
 export const ClockMode = Schema.Literals(["frozen", "running"]);
 export const WorldState = Schema.Literals(["creating", "running", "stopped", "restoring", "parked", "closed"]);
 
@@ -24,8 +26,8 @@ export const table_worlds = defineTable({
   title: "Worlds: a chain, its companies, one clock and one record",
   about:
     "One row per world on this machine (and per hosted world the service knows): its id (lower-case letters and digits, no hyphen, at most 12, because a site's address is " +
-    "`<company>-<world>.<base>`, a single label under one wildcard certificate), its name, its kind (local or simulated), its chain id and the instance serving it, its clock " +
-    "(mode frozen or running, rate 1 to 60, the world's now), its epoch (bumped by an in-place restore), its parent world, snapshot and sequence when it was restored into a separate " +
+    "`<company>-<world>.<base>`, a single label under one wildcard certificate), its name, its kind (local, simulated, staging or production), its chain id and the instance serving it, its clock " +
+    "(mode frozen or running, rate 1 to 60, the world's now), its profile (core or full) and its service address (`core-<world>.<base>`), its epoch (bumped by an in-place restore), its parent world, snapshot and sequence when it was restored into a separate " +
     "world, and whether it is registered with the hosted service. A company is bound to one world at `org create --world`. Seasons are an optional schedule on a world, deferred, not removed " +
     "(devnet.seasons-on-a-world).",
   was: [`${NOTE} (sections 1, 3 and 4)`],
@@ -33,7 +35,7 @@ export const table_worlds = defineTable({
   tenancy: "global",
   scope: "A world is the system's, not any company's: the supervisor writes it.",
   fields: Schema.Struct({
-    world_id: S, name: S, kind: WorldKind, template: Null(S), chain_id: N, chain_instance: S, clock_mode: ClockMode, rate: N, world_now: N, epoch: N,
+    world_id: S, name: S, kind: WorldKind, profile: WorldProfile, address: Null(S), template: Null(S), chain_id: N, chain_instance: S, clock_mode: ClockMode, rate: N, world_now: N, epoch: N,
     parent_world: Null(S), parent_snapshot: Null(S), parent_seq: Null(N), hosted: B, state: WorldState, created_at: N, updated_at: N,
   }),
   key: ["world_id"],
@@ -76,7 +78,7 @@ export const table_command_records = defineTable({
   scope: "The world's own; a person reads the entries of a world they have a grant in.",
   fields: Schema.Struct({
     world_id: S, epoch: N, seq: N, prev: S, v: N, id: S, trace_id: S,
-    kind: Schema.Literals(["command", "tool-call", "reply", "born", "restore", "clock", "event"]),
+    kind: Schema.Literals(["command", "tool-call", "reply", "born", "restore", "clock", "event", "join", "handover", "score"]),
     command: Null(S), args: S, actor_email: Null(S), actor_address: Null(S), actor_hats: Schema.Array(S), who_kind: Schema.Literals(["person", "agent", "system"]),
     org_id: Null(S), site: Null(S), world_time: S, world_time_end: S, real_time: S, duration_ms: N,
     outcome: Schema.Literals(["ok", "refused", "failed"]), error_code: Null(S), error_reason: Null(S), error_detail: Null(S), result: Null(S), changes: Null(S),
@@ -145,7 +147,7 @@ export const machine_world = defineMachine({
     restore: { from: ["running"], to: "restoring", about: "`world snapshot restore` in place: the clock freezes at the world's now meanwhile.", emits: WE },
     restored: { from: ["restoring"], to: "running", about: "The snapshot is restored; the epoch is one higher.", emits: WE },
     park: { from: ["running"], to: "parked", about: "A hosted world idle past the stated time (devnet.worlds.park-idle).", emits: WE },
-    close: { from: ["stopped"], to: "closed", about: "The world is closed for good.", emits: WE },
+    close: { from: ["stopped", "parked"], to: "closed", about: "The world is destroyed: its chain, sites and snapshots are removed and its record stays (`world destroy`).", emits: WE },
   },
   was: [`${NOTE} (section 4)`],
 });

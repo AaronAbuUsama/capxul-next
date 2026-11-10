@@ -14,6 +14,7 @@ import { milestone as planMilestone, task as planTask } from "./internal/planPag
 import type { Cites } from "./internal/prose.ts";
 import { questions } from "./internal/questions.ts";
 import { record } from "./internal/record.ts";
+import { worldsPage } from "./internal/worlds.ts";
 import { SCRIPT_FILE, STYLE_FILE, type Assets } from "./types.ts";
 
 /** Which kind's record a bare id means when several kinds share it: a decision first, then what a reader meets most. */
@@ -36,6 +37,7 @@ const citesOf = (site: Site): Cites => {
 const body = (page: Page, cites: Cites): string => {
   switch (page.type) {
     case "overview": return overview(page);
+    case "worlds": return worldsPage(page);
     case "plan": return plan(page);
     case "plan-task": return planTask(page);
     case "plan-milestone": return planMilestone(page);
