@@ -7,7 +7,7 @@ import { writeFileSync } from "node:fs";
 import { name, records, stage } from "../books/target/index.ts";
 import { CONCEPTS } from "../books/target/shared/foundation.ts";
 import { recordsOf } from "../books/target/shared/index.ts";
-import { ACCEPTED, CARRIES_OUT as CARRIES_OUT_RULINGS, REOPENED, SUPERSEDED } from "../books/target/shared/rulings.ts";
+import { stateOf, supersededBy } from "../books/target/shared/waiting.ts";
 import { buildBook, keyOf, type AnyRecord } from "../packages/book/src/index.ts";
 import { frozen } from "../books/frozen/operations.ts";
 
@@ -25,17 +25,8 @@ const where = (r: AnyRecord) => conceptOf.get(keyOf(r)) ?? "shared";
 const ref = (x: unknown) => (x && typeof x === "object" && "id" in x ? String((x as { id: string }).id) : String(x ?? ""));
 const one = (s: unknown) => String(s ?? "").replace(/\s+/g, " ").trim();
 
-// As tools/report-judgments.ts decides it.
-const FLAGGED = [
-  "payroll.scope", "payments.birth-width", "parties.directory-tenancy", "procedures.accounts-admit",
-  "agents.org-owned", "board.failed-proposal", "equity.acceptance", "contacts.members-write", "notices.claim-escrow", "system.size",
-];
-const CARRIES_OUT = ["rules.frozen-flags-kept", "rules.frozen-flags-built-ins", ...CARRIES_OUT_RULINGS];
+// Which decisions wait for Aaron is decided in books/target/shared/waiting.ts, as tools/report-judgments.ts reads it.
 const PACKS = ["projects.commands", "organizations.commands", "contacts.crm-capabilities", "payroll.hr-surface"];
-const byAaron = (d: AnyRecord) => /^Aaron\b/.test(String(d.source ?? ""));
-const forAaron = (d: AnyRecord) =>
-  !byAaron(d) && !CARRIES_OUT.includes(d.id) && !ACCEPTED.includes(d.id) && !(d.id in SUPERSEDED) &&
-  (REOPENED.includes(d.id) || FLAGGED.includes(d.id) || /\baaron\b/i.test(`${d.title} ${d.question} ${d.why} ${d.chosen}`));
 
 const count = (c: string, k: string) => all.filter((r) => r._kind === k && conceptOf.get(keyOf(r)) === c).length;
 const evalCount = new Map<string, number>();
@@ -66,8 +57,8 @@ const data = {
     id: d.id, concept: where(d), title: d.title, question: one(d.question), chosen: d.chosen, why: one(d.why), source: one(d.source),
     options: ((d.options ?? []) as AnyRecord[]).map((o) => ({ label: o.label, text: one(o.text) })),
     affects: ((d.affects ?? []) as AnyRecord[]).map((a) => `${a._kind}:${a.id}`),
-    state: byAaron(d) ? "ruling" : d.id in SUPERSEDED ? "superseded" : ACCEPTED.includes(d.id) ? "accepted" : forAaron(d) ? "for-aaron" : "settled",
-    supersededBy: (SUPERSEDED as Record<string, string>)[d.id] ?? null,
+    state: stateOf(d),
+    supersededBy: supersededBy(d.id),
     pack: PACKS.includes(d.id) || /^Decision pack/i.test(String(d.title)),
   })),
   gaps: book.gaps.map((g) => ({ record: g.record, rule: g.rule, detail: one(g.detail) })),

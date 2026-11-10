@@ -738,3 +738,66 @@ export const decision_aaron_other_accounts = defineDecision({
   source: AARON_10,
   affects: [f.concept_payments, f.concept_banking],
 });
+
+// ── Aaron's eleventh batch (10 November 2026): one door, and Frappe works normally ─────────────────────────────
+// Dictated: the transcript's "capsule", "fraké" and "hacks" are written Capxul, Frappe and hats; quotes are lightly
+// punctuated and fillers are dropped, the words are his.
+const AARON_11 = "Aaron, 10 November 2026, in the coordinator conversation (eleventh batch, dictated)";
+
+export const decision_aaron_one_door = defineDecision({
+  id: "aaron.one-door",
+  title: "The CLI and SDK are the one door; Frappe works normally; the chain owns",
+  question:
+    "Now that every Organization runs on a Frappe site Capxul hosts (aaron.frappe-native): what is the way in for " +
+    "people and agents, what do the CLI and SDK keep, and may the site do Frappe's normal transactions, money included?",
+  options: [
+    {
+      label: "one-door",
+      text:
+        "The CLI and the SDK are the one unified API for everything. Agents and people operate through them, and " +
+        "Frappe's API is reached through them, never around them, so everything is programmable and anyone can write " +
+        "their own agents and UIs on top. Capxul hosts its own skinned Frappe for every Organization: HR, payroll, " +
+        "books, CRM and projects are Frappe's and work as Frappe works; they are not rebuilt as Capxul features, and " +
+        "anything in the CLI or SDK that no longer makes sense is removed. The chain owns authority and budgets and " +
+        "Frappe reflects it; Frappe's permission system defaults to Capxul's hats and Zodiac roles. Normal Frappe " +
+        "transactions work normally on the site, money included: the cash leg goes through Capxul's signer and the " +
+        "chain, with Capxul placed inside the hosted Frappe as a provider or signer. This replaces the rule that the " +
+        "document family refuses money DocTypes, wherever that rule stands on the optional-head model. Books sync by " +
+        "reading the chain. Banking is Bridge accounts: IBANs that settle into the Safe. Contracts can and should " +
+        "change where the Frappe shape needs it, and a Frappe app may be forked and changed slightly where needed. " +
+        "The book is the most important thing; the portal serves it.",
+    },
+    {
+      label: "frappe-api-direct",
+      text:
+        "Agents and custom UIs call each site's Frappe API directly, and the CLI and SDK shrink to Core's own commands " +
+        "for money and authority. Proposed to him on 10 November 2026 and rejected.",
+    },
+    {
+      label: "refuse-money-on-site",
+      text:
+        "Keep the optional-head rule: the site refuses any document that moves money, and money moves only through " +
+        "Capxul's own commands. Rejected the same day.",
+    },
+  ],
+  chosen: "one-door",
+  why:
+    "Aaron, 10 November 2026, dictated. On the door: 'the whole purpose of the SDK and CLI is to have one unified API " +
+    "source, so agents and users still operate through the CLI. It's Frappe's API that needs to go through the CLI ... " +
+    "the whole point is that everything becomes programmable so people can write their own agents, their own UIs or " +
+    "whatever on top of what we're building here.' On scope: 'Capxul can change, we can and should update contracts " +
+    "where they're needed to be updated. Everything should be Frappe shaped. Everything that doesn't make sense in " +
+    "the current CLI SDK should be removed ... since we're going to be hosting Frappe, our own skinned version of it, " +
+    "we still have control.' On sync and banking: 'the books and stuff, they should just sync ... we're just reading " +
+    "from the chain'; 'we use Bridge for accounts, to get IBAN numbers that settle into crypto in the Safe ... that's " +
+    "going to be the banking'; 'the Capxul side of it then becomes a provider or a signer ... we may need to fork some " +
+    "of the apps and change them slightly.' On ownership: 'for sure the chain is the owner.' On money: 'You should " +
+    "still be able to go onto the Frappe site and do all of the normal transactions as you should normally be able to " +
+    "do ... Frappe's permission system should default to using our Zodiac roles and hats.' And: 'the portal is " +
+    "important but the book is the most important thing.' aaron.frappe-native stays and this builds on it; " +
+    "aaron.frappe-head was already replaced. Unresolved, and his to settle: aaron.frappe-native keeps 'governance and " +
+    "equity', while START-HERE.md and GROUNDING.md drop equity. The book's concepts are not yet re-cut to this; a " +
+    "walking skeleton in spikes/skeleton/ is testing it.",
+  source: AARON_11,
+  affects: [f.system_capxul, f.component_frappe_app],
+});

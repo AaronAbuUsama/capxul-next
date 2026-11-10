@@ -3,7 +3,8 @@
 // Generated from the records, so it never disagrees with the book.
 
 import { records } from "../books/target/index.ts";
-import { ACCEPTED, CARRIES_OUT as CARRIES_OUT_RULINGS, REOPENED, SUPERSEDED } from "../books/target/shared/rulings.ts";
+import { ACCEPTED, SUPERSEDED } from "../books/target/shared/rulings.ts";
+import { FLAGGED, byAaron, forAaron } from "../books/target/shared/waiting.ts";
 
 type Decision = {
   _kind: "decision"; id: string; title: string; question: string; chosen: string; why: string; source: string;
@@ -22,21 +23,8 @@ const home = (d: Decision) => {
   const first = d.id.split(".")[0] ?? "";
   return concepts.includes(first) ? first : "shared";
 };
-// The designers and the assembly flagged these for Aaron in their reports; their text need not name him.
-// The report fails if one is not a decision in the book.
-// documents.acceptance-rewrites left the list once its line was kept word for word again (W1 settled).
-const FLAGGED = [
-  "payroll.scope", "payments.birth-width", "parties.directory-tenancy", "procedures.accounts-admit",
-  "agents.org-owned", "board.failed-proposal", "equity.acceptance",
-  "contacts.members-write", "notices.claim-escrow", "system.size",
-];
-/** Decisions that carry out one of Aaron's own; they cite him but need nothing from him.
- * rules.new-operations is not one: whether a pack's recommendation may book a command before he answers is his. */
-const CARRIES_OUT = ["rules.frozen-flags-kept", "rules.frozen-flags-built-ins", ...CARRIES_OUT_RULINGS];
-/** Aaron's own decisions are settled, not for his review. */
-const byAaron = (d: Decision) => /^Aaron\b/.test(d.source);
-const forAaron = (d: Decision) =>
-  !byAaron(d) && !CARRIES_OUT.includes(d.id) && !ACCEPTED.includes(d.id) && !(d.id in SUPERSEDED) && (REOPENED.includes(d.id) || FLAGGED.includes(d.id) || /\baaron\b/i.test(`${d.title} ${d.question} ${d.why} ${d.chosen}`));
+// Which decisions are Aaron's own, and which wait for him, is decided in books/target/shared/waiting.ts:
+// the portal's Questions page reads the same predicate. The report fails if a flagged id is not a decision in the book.
 const chosenText = (d: Decision) => d.options.find((o) => o.label === d.chosen)?.text ?? d.chosen;
 const one = (s: string) => s.replace(/\s+/g, " ").trim();
 

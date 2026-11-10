@@ -4,10 +4,12 @@
   "type": "module",
   "scripts": {
     "check": "tsc -b packages/book",
-    "test": "pnpm --filter @capxul/book test",
+    "test": "pnpm --filter @capxul/book test && pnpm --filter @capxul/portal test",
     "book": "node --experimental-strip-types packages/book/src/main.ts books/target/index.ts /tmp/target",
     "frozen": "node --experimental-strip-types tools/check-frozen.ts",
-    "judgments": "node --experimental-strip-types tools/report-judgments.ts"
+    "judgments": "node --experimental-strip-types tools/report-judgments.ts",
+    "portal": "node --experimental-strip-types --no-warnings packages/portal/src/main.ts generate packages/portal/dist",
+    "portal:check": "node --experimental-strip-types --no-warnings packages/portal/src/main.ts check"
   },
   "devDependencies": {
     "effect": "catalog:",

@@ -1,2 +1,7 @@
 node_modules
 *.zip
+packages/portal/dist
+
+# spikes/skeleton/frappe generated files
+spikes/skeleton/frappe/capxul/**/__pycache__/
+spikes/skeleton/frappe/capxul/*.egg-info/

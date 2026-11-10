@@ -638,3 +638,45 @@ export const decision_portal_size = defineDecision({
   source: by("old apps/docs components/page (1,812 lines); decision system.size; docs/spec/30 (the harness's 2,000 lines)"),
   affects: [decision_system_size],
 });
+
+// ── the designed screens (Aaron, 9 November 2026) ───────────────────────────────────────────
+
+export const decision_portal_designed_screens = defineDecision({
+  id: "portal.designed-screens",
+  title: "The portal is built to the five designed screens, by a fresh generator",
+  question:
+    "The portal's first slice needs a shape and a generator. The starter kit's generator renders generic blocks and imports " +
+    "packages this repository does not have; five screens were designed on the canvas 'Capxul Portal' (Overview, Questions, " +
+    "Concept, Operation, Architecture). What is built first, and from what?",
+  options: [
+    {
+      label: "designed-screens",
+      text:
+        "Build the real generated portal to the five designed screens. The navigation reads Overview, Questions, Concepts, " +
+        "Architecture, Build and Docs over the portal.sitemap URLs (/review/ is labelled Questions, /design/ is labelled " +
+        "Architecture). The first slice is a fresh generator in packages/portal on @capxul/book: it takes the kit's rules " +
+        "(one URL per record, a Markdown and a JSON twin beside every page, a deterministic generation, relative links) " +
+        "and not its code wholesale, which amends portal.stack. Hosting (portal.hosting), the status overlay " +
+        "(portal.status-source) and D0's book-first items (the review field, unique eval ids, underOf and standOf in " +
+        "packages/book) stay as designed and come after this slice.",
+    },
+    {
+      label: "copy-the-kit",
+      text:
+        "Start packages/portal as a copy of the starter kit's generator, as portal.stack had it, and restyle its generic " +
+        "blocks towards the design afterwards.",
+    },
+    { label: "design-only", text: "Keep the design on the canvas and the explorer artifact, and build the generator later." },
+  ],
+  chosen: "designed-screens",
+  why:
+    "Aaron's ruling of 9 November 2026: asked 'Build the real generated portal to this design?', he answered 'Yes, build it'. " +
+    "He had set the explorer artifact aside and asked for the portal to be designed properly first; the five screens are " +
+    "that design. The kit's generator imports @kit/book, @kit/evals, @kit/runtime and effect/cli, none of which exist here, " +
+    "and its pages are generic blocks, not the approved screens, so a copy would be rewritten twice. The kit's rules are " +
+    "what keep the portal from going stale, and they are kept: every page is generated from the records, with both twins, " +
+    "and the portal's own check fails the build when a record has no page, a link does not resolve, two generations " +
+    "differ, or the Questions list differs from the judgments report.",
+  source: "Aaron, 9 November 2026, in the portal conversation: 'Yes, build it' to 'Build the real generated portal to this design?'; evidence: the design canvas 'Capxul Portal' (Overview, Questions, Concept, Operation, Architecture); decisions portal.sitemap, portal.stack, portal.hosting, portal.status-source",
+  affects: [f.system_capxul, decision_portal_stack, decision_portal_sitemap],
+});

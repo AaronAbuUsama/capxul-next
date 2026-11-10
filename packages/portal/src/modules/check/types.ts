@@ -1,0 +1,28 @@
+/**
+ * The check module: the generated files in, a verdict per part out. It is the portal's own gate, and it knows the
+ * site only by its written rules: `<kind>/<id>/index.html` for a record, `<page>.md` and `data/<page>.json` beside
+ * it. It imports nothing from the modules that write the site, so a mistake there cannot hide here.
+ */
+
+/** What the book says the site must hold. Worked out from the book alone, never from the site. */
+export interface Expect {
+  /**
+   * Every page id: the five fixed pages, `<kind>/<id>` for every record that has a page of its own, `docs/<name>`
+   * for every catalogue, `eval`, and `eval/<kind>` for every kind of eval the book derives.
+   */
+  readonly pages: readonly string[];
+  /** The ids of the decisions that wait for an answer, in the book's order: the judgments report's list. */
+  readonly waiting: readonly string[];
+  /** Every operation id. */
+  readonly operations: readonly string[];
+  /** How many evals the book derives. */
+  readonly evals: number;
+}
+
+/** The verdict on one part of the check. It passed when `failures` is 0. */
+export interface Outcome {
+  readonly check: string;
+  readonly failures: number;
+  /** The first few failures, one line each. */
+  readonly detail: readonly string[];
+}
