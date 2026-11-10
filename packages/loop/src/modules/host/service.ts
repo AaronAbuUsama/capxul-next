@@ -1,15 +1,16 @@
 /**
  * GENERIC. The host's door: `serve` starts it. See types.ts for what it is and what travels.
  */
-import type { IncomingMessage } from "node:http";
+import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import * as chord from "@earendil-works/chord";
 import * as schema from "@earendil-works/pi-schema";
 import { WebSocketServer } from "ws";
 import type { RunDetail } from "../inspect/types.ts";
-import { HOST_NAME, runsContract, type HostDeps, type HostOptions, type Served } from "./types.ts";
+import { fileUnder } from "./internal/files.ts";
+import { HOST_NAME, PREFIX, runsContract, summaryOf, type HostDeps, type HostOptions, type Served } from "./types.ts";
 
 export type * from "./types.ts";
-export { DEFAULT_PORT, HOST_NAME, runsContract } from "./types.ts";
+export { DEFAULT_PORT, HOST_NAME, PREFIX, runsContract, summaryOf } from "./types.ts";
 
 interface Task { readonly signal: AbortSignal }
 interface Cell { replace: (task: Task, value: unknown, o: { diff: boolean }) => void }
@@ -48,14 +49,27 @@ export const serve = async (deps: HostDeps, o: HostOptions): Promise<Served> => 
     return { variant: "owner", runs, stop: async ({ run }: { run: string }) => ({ said: deps.stop(run) }) };
   });
 
-  const wss = new WebSocketServer({ port: o.port, host: "127.0.0.1" });
-  await new Promise<void>((ready, failed) => { wss.once("listening", () => ready()); wss.once("error", failed); });
+  // Plain reads over HTTP, for a page that is not the app: a summary of the runs, and the app's own files.
+  const answer = async (req: IncomingMessage, res: ServerResponse): Promise<void> => {
+    const path = decodeURIComponent((req.url ?? "/").split("?")[0]!);
+    const send = (status: number, type: string, body: string | Uint8Array): void => { res.writeHead(status, { "content-type": type, "cache-control": "no-store" }); res.end(req.method === "HEAD" ? undefined : body); };
+    if (req.method !== "GET" && req.method !== "HEAD") return send(405, "text/plain; charset=utf-8", "this host only answers reads over HTTP\n");
+    if (path === `${PREFIX}summary.json`) return send(200, "application/json; charset=utf-8", `${JSON.stringify({ runs: (await read()).map(summaryOf) })}\n`);
+    if (!path.startsWith(PREFIX)) return send(404, "text/plain; charset=utf-8", `the runs are at ${PREFIX}\n`);
+    const file = o.ui === undefined ? null : fileUnder(o.ui, path.slice(PREFIX.length) || "index.html");
+    if (file) return send(200, file.type, file.body);
+    if (path === PREFIX) return send(200, "text/plain; charset=utf-8", "The host is running, but the Runs app is not built: pnpm --filter @capxul/loop-ui build\n");
+    return send(404, "text/plain; charset=utf-8", "not found\n");
+  };
+  const http = createServer((req, res) => { void answer(req, res).catch(() => { res.writeHead(500); res.end(); }); });
+  const wss = new WebSocketServer({ server: http, path: `${PREFIX}ws` });
+  await new Promise<void>((ready, failed) => { http.once("error", failed); http.listen(o.port, "127.0.0.1", () => ready()); });
   const allowed = (origin: string | undefined): boolean => origin === undefined || LOCAL.test(origin) || (o.origins ?? []).includes(origin);
   // Whoever reaches this port from an allowed origin is the owner: the host listens on this machine only.
   chord.acceptWebSockets(wss as never, host as never, { principal: (request: IncomingMessage) => (allowed(request.headers.origin) ? { kind: "owner" } : undefined) } as never);
-  const port = (wss.address() as { port: number }).port;
+  const port = (http.address() as { port: number }).port;
   return {
-    port, url: `ws://127.0.0.1:${port}/`,
-    close: async () => { await new Promise<void>((done) => wss.close(() => done())); for (const c of wss.clients) c.terminate(); await (host as unknown as { close: () => Promise<void> }).close(); },
+    port, url: `ws://127.0.0.1:${port}${PREFIX}ws`, http: `http://127.0.0.1:${port}${PREFIX}`,
+    close: async () => { for (const c of wss.clients) c.terminate(); await new Promise<void>((done) => wss.close(() => done())); await new Promise<void>((done) => http.close(() => done())); await (host as unknown as { close: () => Promise<void> }).close(); },
   };
 };

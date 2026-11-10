@@ -4,7 +4,7 @@
  */
 import * as chord from "@earendil-works/chord";
 import * as schema from "@earendil-works/pi-schema";
-import { DEFAULT_PORT, runsContract } from "@capxul/loop/host";
+import { DEFAULT_PORT, PREFIX, runsContract } from "@capxul/loop/host";
 import { useEffect, useRef, useState } from "react";
 import type { Run } from "./types.ts";
 
@@ -12,7 +12,9 @@ export type Link = "connecting" | "live" | "offline";
 interface RunsRef { runs: { subscribe: (f: (runs: unknown) => void) => () => void }; stop: (input: { run: string }) => Promise<{ said: string }>; onStatus: (f: (status: string) => void) => void }
 export interface Live { readonly link: Link; readonly runs: Run[] | null; readonly updates: number; readonly stop: (run: string) => Promise<string> }
 
-const address = (): string => new URLSearchParams(window.location.search).get("host") ?? `ws://${window.location.hostname === "localhost" ? "127.0.0.1" : window.location.hostname}:${DEFAULT_PORT}/`;
+/** Where the host is: the same address the page came from when the host (or the portal in front of it) served it, else this machine's host. `?host=` names another. */
+const address = (): string => new URLSearchParams(window.location.search).get("host")
+  ?? (window.location.pathname.startsWith(PREFIX) ? `${window.location.protocol === "https:" ? "wss" : "ws"}://${window.location.host}${PREFIX}ws` : `ws://127.0.0.1:${DEFAULT_PORT}${PREFIX}ws`);
 
 export const useLive = (): Live => {
   const [link, setLink] = useState<Link>("connecting"), [runs, setRuns] = useState<Run[] | null>(null), [updates, setUpdates] = useState(0);

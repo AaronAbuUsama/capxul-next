@@ -1,4 +1,7 @@
 import assert from "node:assert/strict";
+import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { test } from "node:test";
 import * as chord from "@earendil-works/chord";
 import * as schema from "@earendil-works/pi-schema";
@@ -44,5 +47,23 @@ test("a page from another site cannot attach", async () => {
       setTimeout(() => done(false), 3000);
     });
     assert.equal(refused, true);
+  } finally { await served.close(); }
+});
+
+test("over HTTP the host answers reads only: a summary of the runs, and the app's files from its folder and nowhere else", async () => {
+  const ui = mkdtempSync(join(tmpdir(), "loop-ui-"));
+  mkdirSync(join(ui, "assets"));
+  writeFileSync(join(ui, "index.html"), "<p>the app</p>");
+  writeFileSync(join(ui, "assets/app.js"), "1");
+  writeFileSync(join(ui, "..", "secret.txt"), "not served");
+  const served = await serve({ ids: () => [{ id: "a", stamp: "1" }], load: async (id) => ({ ...run(id, "make.1"), agents: [{ key: "make.1", role: "builder", model: "m", tools: [], instructions: "", state: "working", failure: null, startedAt: 1, endedAt: null, usage: { turns: 0, tools: {}, refused: 0, errors: 0, tokensIn: 0, tokensOut: 0 }, messages: [] }] }), stop: () => "", say: () => undefined }, { port: 0, ui });
+  const get = async (path: string, init?: RequestInit) => { const r = await fetch(`http://127.0.0.1:${served.port}${path}`, init); return { status: r.status, type: r.headers.get("content-type"), text: await r.text() }; };
+  try {
+    const summary = await get("/runs/summary.json");
+    assert.deepEqual((JSON.parse(summary.text) as { runs: unknown[] }).runs, [{ id: "a", task: { id: "t", title: "T" }, workflow: "pair", status: "running", round: 1, rounds: 3, startedAt: "2026-11-10T10:00:01.000Z", endedAt: null, tokens: 0, working: { key: "make.1", role: "builder" } }]);
+    assert.deepEqual([(await get("/runs/")).text, (await get("/runs/assets/app.js")).type], ["<p>the app</p>", "text/javascript; charset=utf-8"]);
+    assert.equal((await get("/runs/..%2Fsecret.txt")).status, 404);
+    assert.equal((await get("/elsewhere")).status, 404);
+    assert.equal((await get("/runs/summary.json", { method: "POST" })).status, 405);
   } finally { await served.close(); }
 });

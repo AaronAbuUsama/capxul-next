@@ -241,5 +241,5 @@ export const serve = (ctx: Ctx, o: { port: number; sinceHours?: number }): Promi
     load: (id) => showDetail(lookOf(ctx, 0), id),
     stop: (id) => stop(ctx, id),
     say: ctx.say,
-  }, { port: o.port, ...(ctx.env.LOOP_HOST_ORIGINS ? { origins: ctx.env.LOOP_HOST_ORIGINS.split(",") } : {}) });
+  }, { port: o.port, ...(ctx.env.LOOP_HOST_ORIGINS ? { origins: ctx.env.LOOP_HOST_ORIGINS.split(",") } : {}), ui: ctx.env.LOOP_UI_DIR ?? join(ctx.root, "packages/loop-ui/dist") });
 };

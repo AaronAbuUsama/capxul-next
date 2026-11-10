@@ -24,7 +24,7 @@ export const scrub = (text: string, secrets: readonly string[], cap: number): st
 
 /** `scrub` for a text of several lines: each line keeps its place, nothing secret-looking is left, and the whole is cut at `cap` with a note of how much was cut. */
 export const scrubText = (text: string, secrets: readonly string[], cap: number): string => {
-  let out = text;
+  let out = text.replace(/\b([0-9a-f]{7})[0-9a-f]{33}\b/g, "$1");   // a commit shows as its short form, as in `scrub`
   for (const s of secrets) out = out.split(s).join("[hidden]");
   for (const shape of SHAPES) out = out.replace(shape, "[hidden]");
   return out.length <= cap ? out : `${out.slice(0, cap)}\n… ${out.length - cap} more characters`;

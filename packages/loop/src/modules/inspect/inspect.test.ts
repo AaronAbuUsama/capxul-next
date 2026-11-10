@@ -127,4 +127,5 @@ test("scrub: a long path is not taken for a key; a text of several lines keeps i
   assert.equal(scrub(`cat ${path}`, [], 200), `cat ${path}`);
   assert.equal(scrubText("one\ntwo sk-abcdefghij12\nthree", [], 100), "one\ntwo [hidden]\nthree");
   assert.equal(scrubText("abcdef", [], 3), "abc\n… 3 more characters");
+  assert.equal(scrubText("HEAD is b50cae1db01670af9d2496cdd2b31005be15e9ff\nok", [], 100), "HEAD is b50cae1\nok");
 });
