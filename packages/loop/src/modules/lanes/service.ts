@@ -47,7 +47,20 @@ export const commitAll = (dir: string, message: string): string => {
   return head(dir);
 };
 
-export const dropLane = (repo: string, lane: Lane): void => { if (existsSync(lane.dir)) git(repo, "worktree", "remove", "--force", lane.dir); };
+/**
+ * Removes the lane's worktree and frees its branch name, so the next lane of the same name starts from the base. A
+ * branch already merged into its base is deleted. One that is not keeps its work under `keepAs` when a name is given,
+ * and stays where it is otherwise.
+ */
+export const dropLane = (repo: string, lane: Lane, keepAs?: string): string => {
+  if (existsSync(lane.dir)) git(repo, "worktree", "remove", "--force", lane.dir);
+  try { git(repo, "worktree", "prune"); } catch { /* nothing to prune */ }
+  if (!exists(repo, lane.branch)) return "its branch was already gone";
+  try { git(repo, "branch", "-d", lane.branch); return `its branch ${lane.branch} was merged and is deleted`; } catch { /* not merged */ }
+  if (keepAs === undefined) return `its branch ${lane.branch} is not merged and stays`;
+  git(repo, "branch", "-M", lane.branch, keepAs);
+  return `its unmerged work is kept as the branch ${keepAs}`;
+};
 
 /** Brings the base into the lane. Returns false, and leaves the lane as it was, when they conflict. */
 export const catchUp = (lane: Lane): boolean => {

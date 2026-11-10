@@ -257,11 +257,10 @@ export const merge = async (ctx: Ctx, id: string): Promise<string[]> => {
 
 const writeStatus = async (dir: string, info: Info): Promise<void> => writeFileSync(join(dir, "status.json"), `${JSON.stringify(info, null, 2)}\n`);
 
-/** Removes the worktree of one run (any run that is not running), or of every merged or answered run. The branch stays. */
+/** Removes the worktree of one run (any run that is not running), or of every merged or answered run, and frees the branch name `lane/<task>`: a merged branch is deleted, unmerged work is kept as `kept/<run id>`. */
 export const clean = (ctx: Ctx, id?: string): string[] => {
   const picked = listRuns(runsDir(ctx)).filter((r) => (id ? r.info.id === id : r.info.status === "merged" || r.info.status === "answered") && existsSync((r.info.extra.lane as Lane | undefined)?.dir ?? "") && r.info.status !== "running");
-  picked.forEach((r) => dropLane(ctx.root, r.info.extra.lane as Lane));
-  return picked.length ? picked.map((r) => `removed the lane of ${r.info.id}`) : ["nothing to clean"];
+  return picked.length ? picked.map((r) => `removed the lane of ${r.info.id}: ${dropLane(ctx.root, r.info.extra.lane as Lane, `kept/${r.info.id}`)}`) : ["nothing to clean"];
 };
 
 /** `loop serve`: the host a page or a terminal attaches to. It shows every run that is running or was saved in the last `sinceHours`, and takes `stop`. */

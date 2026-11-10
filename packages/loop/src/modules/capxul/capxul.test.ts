@@ -235,3 +235,19 @@ test("the worker resumes a named task's run that was stopped or failed, once, in
   assert.equal(JSON.parse(readFileSync(join(r.root, "var", "runs", first.id, "status.json"), "utf8")).status, "ready");
   assert.equal(r.lines.filter((l) => l.startsWith("resuming")).length, 1);
 });
+
+test("clean frees the lane's branch name, so the next run of the task starts from the base; unmerged work is kept under the run's name", async () => {
+  const r = rig(), ctx = r.ctx([{ name: "tests", sh: "false" }]);
+  r.faux.setResponses([...makes("first.txt"), fauxAssistantMessage(check("approve")), ...makes("first.txt"), fauxAssistantMessage(check("approve"))]);
+  const one = await start(ctx, "t1", opts, pair);
+  assert.equal(one.status, "blocked");                                        // the gate fails both rounds: its work is not merged
+  assert.match(clean(ctx, one.id)[0]!, new RegExp(`removed the lane of ${one.id}: its unmerged work is kept as the branch kept/${one.id}`));
+  assert.equal(git(r.root, "branch", "--list", "lane/t1"), "");
+  assert.notEqual(git(r.root, "branch", "--list", `kept/${one.id}`), "");
+  r.faux.setResponses([...makes("second.txt"), fauxAssistantMessage(check("approve"))]);
+  const two = await start(r.ctx(), "t1", opts, pair);
+  assert.equal(two.status, "ready", two.error);
+  const dir = (two.extra.lane as { dir: string }).dir;
+  assert.equal(existsSync(join(dir, "second.txt")), true);
+  assert.equal(existsSync(join(dir, "first.txt")), false);                    // a fresh lane from the base, not the old attempt
+});
