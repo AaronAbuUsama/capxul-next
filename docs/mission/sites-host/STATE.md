@@ -40,24 +40,22 @@ Machine $84 a month (static address free while attached); Route 53 zone $0.50 a 
 
 The test bench uses a stand-in sign-in that lets anyone become any test person. Therefore only the operator's address can reach the machine. **Opening it wider needs real access control first** (a real sign-in, or restricting at the proxy), then a stack update of the firewall and ufw.
 
-## Certificate: NOT issued
+## Certificate: issued
 
-The delegation had not resolved fifteen minutes after the machine was ready (11:34 to 11:50 UTC on 10 Nov): `dig NS worlds.capxul.com` returned nothing from 1.1.1.1, 8.8.8.8 and the registrar's own server `pdns1.registrar-servers.com`, so Namecheap did not yet hold the four NS records. The zone itself answers correctly. Nothing was issued, nothing is in `~/.capxul/worlds-host/tls/`. Run these when `dig +short NS worlds.capxul.com @1.1.1.1` prints the four AWS names and `aws sts get-caller-identity` works.
-A certbot with the Route 53 plugin was installed in a throwaway virtual environment (`certbot 5.9.0`, in the session's scratch directory, safe to delete). No contact address is used: nothing in the owner's repositories uses `hostmaster@capxul.com` for Let's Encrypt.
+Let's Encrypt production, issuer `YE1`, names `worlds.capxul.com` and `*.worlds.capxul.com`, DNS challenge against Route 53 from this Mac (certbot 5.9.0 with the Route 53 plugin, in a throwaway venv in the session scratch directory, safe to delete). A staging run succeeded first. No contact email was registered (nothing in the owner's repositories uses `hostmaster@capxul.com` for Let's Encrypt). **Valid until 8 February 2027 (11:06 UTC)**; renew by about 9 January 2027.
+
+- On this Mac, outside any repository: `~/.capxul/worlds-host/tls/fullchain.pem` (644) and `privkey.pem` (600); ACME account and both runs' state under `~/.capxul/worlds-host/le/`. The `~/.capxul` directories are mode 700.
+- On the machine: `/srv/capxul/tls/fullchain.pem` (644) and `privkey.pem` (600), root-owned, inside a root-only (700) directory. Temporary copies in `/tmp` were removed (the key was shredded).
+- Nothing serves the certificate yet (no proxy running on the machine).
+- Delegation confirmed: `dig NS worlds.capxul.com @1.1.1.1` returns the four AWS name servers, and `acme.worlds.capxul.com` resolves to `34.249.131.57` through the delegated zone from this Mac. Certbot added and removed temporary `_acme-challenge` TXT records in the zone; none remain.
+
+**Renewal needs AWS access again** (this Mac with a fresh session; repeat the production command, which needs `botocore[crt]` installed beside certbot because the session is a login credential) **or automation the owner must approve**: an IAM credential limited to `route53:ChangeResourceRecordSets` on this zone plus `route53:ListHostedZones` and `route53:GetChange`. None was created. Put the renewal date on the scoreboard. Renewal command:
 
 ```bash
-python3 -m venv /tmp/le && /tmp/le/bin/pip install certbot certbot-dns-route53
-D=~/.capxul/worlds-host/le; mkdir -p $D ~/.capxul/worlds-host/tls; chmod 700 ~/.capxul ~/.capxul/worlds-host ~/.capxul/worlds-host/tls
-COMMON="--dns-route53 --dns-route53-propagation-seconds 30 -d worlds.capxul.com -d *.worlds.capxul.com --config-dir $D/config --work-dir $D/work --logs-dir $D/logs --register-unsafely-without-email --agree-tos --non-interactive"
-AWS_DEFAULT_REGION=eu-west-1 /tmp/le/bin/certbot certonly $COMMON --staging      # must succeed first
-AWS_DEFAULT_REGION=eu-west-1 /tmp/le/bin/certbot certonly $COMMON --force-renewal # production
-install -m 600 $D/config/live/worlds.capxul.com/privkey.pem ~/.capxul/worlds-host/tls/privkey.pem
-install -m 644 $D/config/live/worlds.capxul.com/fullchain.pem ~/.capxul/worlds-host/tls/fullchain.pem
-scp -i ~/.ssh/capxul-worlds-host ~/.capxul/worlds-host/tls/* ubuntu@34.249.131.57:/tmp/
-ssh -i ~/.ssh/capxul-worlds-host ubuntu@34.249.131.57 'sudo install -m 600 -o root -g root /tmp/privkey.pem /srv/capxul/tls/privkey.pem && sudo install -m 644 -o root -g root /tmp/fullchain.pem /srv/capxul/tls/fullchain.pem && shred -u /tmp/privkey.pem; rm -f /tmp/fullchain.pem'
+python3 -m venv /tmp/le && /tmp/le/bin/pip install certbot certbot-dns-route53 "botocore[crt]"
+AWS_DEFAULT_REGION=eu-west-1 /tmp/le/bin/certbot certonly --dns-route53 -d worlds.capxul.com -d '*.worlds.capxul.com' --config-dir ~/.capxul/worlds-host/le/prod/config --work-dir ~/.capxul/worlds-host/le/prod/work --logs-dir ~/.capxul/worlds-host/le/prod/logs --non-interactive
+# then install and copy privkey.pem and fullchain.pem as before
 ```
-
-The staging run needs the zone to be reachable by the world's resolvers, hence the delegation. The certificate lasts 90 days. **Renewal needs AWS access again** (this Mac with a fresh session) or automation the owner must approve: that would mean an IAM credential limited to `route53:ChangeResourceRecordSets` on this zone plus `ListHostedZones`/`GetChange`, which was not created here. Put the renewal date (about day 60) on the scoreboard once issued.
 
 ## Differences from the draft, and why
 
@@ -70,12 +68,12 @@ The staging run needs the zone to be reachable by the world's resolvers, hence t
 
 ## Not done
 
-No bench, no product, no containers; no secrets placed; no certificate; no Namecheap delegation confirmed; no backups (not in the nightly job, no Lightsail snapshots); no monitoring or alarm; no hardening beyond key-only SSH, ufw and unattended upgrades.
+No bench, no product, no containers; no secrets placed; nothing serving the certificate; no backups (not in the nightly job, no Lightsail snapshots); no monitoring or alarm; no hardening beyond key-only SSH, ufw and unattended upgrades.
 
 ## Delete it all, in order
 
 1. Remove the two records in zone `Z033083453DGJI3WUU2O` (`aws route53 change-resource-record-sets` with `DELETE`, same values as above).
 2. `aws cloudformation delete-stack --stack-name capxul-worlds-host --region eu-west-1`. The instance and static IP have `DeletionPolicy: Retain`, so the stack goes but they stay: then
    `aws lightsail detach-static-ip --static-ip-name worlds-host-ireland-ip`, `aws lightsail release-static-ip --static-ip-name worlds-host-ireland-ip`, `aws lightsail delete-instance --instance-name worlds-host-ireland` (this destroys the disk and everything on it: take a snapshot first if anything matters).
-3. Zone, only if the whole worlds subdomain is going: remove the NS records at Namecheap first, then `aws cloudformation delete-stack --stack-name capxul-worlds-dns` (delete any remaining records in it first).
+3. Zone, only if the whole worlds subdomain is going: remove the NS records at Namecheap first (and delete the certificate files), then `aws cloudformation delete-stack --stack-name capxul-worlds-dns` (delete any remaining records in it first).
 4. On this Mac: `rm ~/.ssh/capxul-worlds-host ~/.ssh/capxul-worlds-host.pub` and `~/.capxul/worlds-host/`, and the `34.249.131.57` line in `~/.ssh/known_hosts`.

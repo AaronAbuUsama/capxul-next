@@ -53,10 +53,10 @@ Status on 10 November 2026: steps 1-5 below are done or replaced as shown; see `
 4. **Coordinator.** Create the DNS zone (`dns-zone.yaml`, stack `capxul-worlds-dns`) and the machine (`template.yaml`, stack
    `capxul-worlds-host`, `CreateHostedZone=false`, a firewall open only to the operator's address). *Done.*
 5. **Coordinator.** Records `worlds.capxul.com` and `*.worlds.capxul.com` point straight at the machine's own static
-   address (not the controller). *Done.* Four NS records at Namecheap delegate the subdomain. *Added by the coordinator; see `STATE.md` for whether the delegation had resolved.*
+   address (not the controller). *Done.* Four NS records at Namecheap delegate the subdomain. *Added by the coordinator; confirmed live.*
 6. **Coordinator.** Machine prepared: Docker Engine and compose plugin, `/srv/capxul` tree, unattended upgrades, ufw. No product. *Done.*
 7. **Coordinator.** Wildcard certificate from Let's Encrypt by DNS challenge, issued from the coordinator's Mac, kept under
-   `~/.capxul/worlds-host/tls/`, copied to `/srv/capxul/tls/`. *See `STATE.md`.*
+   `~/.capxul/worlds-host/tls/`, copied to `/srv/capxul/tls/`. *Done: valid until 8 February 2027; see `STATE.md`.*
 8. **Coordinator.** The machine terminates HTTPS itself with that certificate. The controller is not touched. Moving the
    machine behind the controller (the original plan in `ingress.md`) stays possible later. *Not done.*
 9. **Coordinator.** Place secrets, start the bench, create a test world and one company, open it in a browser. *Not done.*
