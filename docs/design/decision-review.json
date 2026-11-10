@@ -831,8 +831,8 @@
     },
     {
       "id": "documents.participants",
-      "disposition": "confirmed",
-      "reason": "Confirmed documents.participants: retain the specific chosen rule and its original rationale. Site-owned business records are not restored to Core; current site posting and authority follow cut.documents; plugs.document-canon.",
+      "disposition": "rewritten",
+      "reason": "Retain caller-supplied participants and admission via current Seats for Core chain documents, but remove the obsolete Core payroll dependency. Frappe HR owns Salary Slips and site HR permissions govern their reads; held site payments bind a canonical draft hash without duplicating payroll documents in Core.",
       "authority": "cut.documents; plugs.document-canon",
       "path": "blueprint/documents/decisions.ts"
     },

@@ -83,7 +83,7 @@ export const decision_documents_participants = defineDecision({
   question: "Who may read a document, and how is that decided at read time, now that documents cannot read its subjects?",
   options: [
     {
-      label: "given-participants",
+      label: "current-scope",
       text:
         "The storing concept names the participants (Safe, Party, role). A reader's Safes are their own Party's Safe and " +
         "the company Safe of each Organization where they hold an active Seat now; one must be a participant. A caller " +
@@ -92,10 +92,10 @@ export const decision_documents_participants = defineDecision({
     { label: "subject-actors", text: "Keep the old rule: reread the subject's current actors (a Payment's, a request's) at every read." },
     { label: "creator", text: "The tenant that stored it, and the Organization it names." },
   ],
-  chosen: "given-participants",
+  chosen: "current-scope",
   why:
-    "Documents sits below payments, requests and payroll (concepts.documents), so the old rule, which read payments' participants and requests' invoice access at every read, would need the edges the map removed. Fixing readers at store time also keeps the old privacy guarantee by construction: an issued Invoice or Memo is readable only by its issuer and named payer, and a later carrier cannot widen it, because nothing adds a reader. The frozen line 'Current Organization membership decides reads, not the stored creator' holds because an Organization participant is its company Safe, matched through the reader's active Seats at read time. 'Strangers and accountless callers get the same missing-pair refusal' holds because a caller with no Party of their own has no Safes, and every refusal is `document not found` on `documentHash`. Review, 11 November 2026: Confirmed documents.participants; original choice retained.",
-  source: by(`${D}/guards.ts:100, :149; packages/backend/src/activity/documents/tests/get.test.ts:191, :249; ${D}/README.md:23`),
+    "Review, 11 November 2026: Retained Core chain documents receive fixed participants from the storing concept, without reading their subjects (concepts.documents). Fixing readers at store time keeps an issued Invoice or Memo readable only by its issuer and named payer; a later carrier cannot widen access. Current Organization membership, not the stored creator, decides Organization-side reads: its company Safe matches through the reader's active Seats. A caller with no Party has no Safes; missing and unreadable both refuse as `document not found` on `documentHash`. Rewritten in round 3 for F-2.1 against cut.documents: this rule does not imply a Core payroll dependency. Frappe HR owns runs and Salary Slips; site HR permissions through the door, not generic company-Seat admission, govern salary data. Held site payments bind the canonical draft hash under plugs.document-canon without duplicating payroll documents in Core.",
+  source: "The coordinator, m1-old-decisions round 3; cut.documents; concepts.documents; plugs.document-canon; historical participant-admission evidence in docs/cut-archive/decision-review-history.json",
   affects: [table_documents, procedure_documents_store, error_INVALID_INPUT],
 });
 

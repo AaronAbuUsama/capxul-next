@@ -37,6 +37,16 @@ uses the door; a held site payment binds its draft with `plugs.document-canon`, 
 a duplicate Core payroll document or a payroll call to `documents.store`. The refinement script
 now records this explicit scope instead of restoring the old choice. Original evidence is unchanged.
 
+## Round 3 correction: participant admission (F-2.1)
+
+`documents.participants` is **rewritten**, not confirmed with its original rationale.
+The retained rule still fixes participants at storage time and admits Organization-side
+readers through current active Seats, with missing and unreadable indistinguishable.
+Its rationale no longer places documents below Core payroll: Frappe HR owns Salary Slips,
+and site HR permissions, not generic company-Seat admission, protect their salary data.
+The refinement recipe now supplies an explicit replacement rather than restoring the
+obsolete dependency from historical evidence.
+
 ## Authority
 
 This is a coordinator reconciliation, not new owner testimony. Earlier `aaron.*` records retain
