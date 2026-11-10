@@ -18,10 +18,31 @@ import {
   error_NOT_AUTHENTICATED,
   error_ROLE_PERMISSION_DENIED,
 } from "../shared/vocabulary.ts";
+import { ADDRESS, CHAIN_ID, hash, ID, NORTHWIND, ok, refused, uuid } from "../shared/examples.ts";
 import { ChangeEvent } from "./changes.ts";
 import { Detail, Page, Summary, rpc_activity_feed_get, rpc_activity_feed_list, rpc_activity_feed_summary } from "./feed.ts";
 import { flow_client_activity_changes } from "./flows.ts";
 import { DepositAddress, Holdings, rpc_activity_holdings_address, rpc_activity_holdings_balances } from "./holdings.ts";
+
+// ── examples: the activity story (ids 950-999) ───────────────────────────────────────────────
+// Northwind's payment to Brightside (ID.paymentToBrightside) settled on 5 February; a 500 USDC movement came in on the 9th.
+
+const at = (iso: string) => Date.parse(iso);
+const USDC_TOKEN = "0x5FbDB2315678afecb367f032d93F642f64180aa3";
+const rawAmount = (raw: string) => ({ asset: "USDC", chainId: CHAIN_ID, tokenAddress: USDC_TOKEN, decimals: 6, raw });
+const paymentItem = {
+  kind: "payment", id: ID.paymentToBrightside, status: "settled", outcome: null, route: "budget", direction: "out", amount: rawAmount("1200000000"),
+  counterparty: { label: "Brightside Cleaning", safe: ADDRESS.brightside }, payAt: null, receipt: { chainId: CHAIN_ID, transactionHash: hash("c1") },
+  createdAt: at("2026-02-05T10:00:00Z"), updatedAt: at("2026-02-05T10:01:00Z"),
+};
+const movementItem = {
+  kind: "movement", id: uuid(950), direction: "in", amount: rawAmount("500000000"), counterparty: { label: "Hannah Okafor", address: ADDRESS.hannah },
+  receipt: { chainId: CHAIN_ID, transactionHash: hash("d2") }, createdAt: at("2026-02-09T14:20:00Z"), updatedAt: at("2026-02-09T14:20:00Z"),
+};
+const movementEvidence = {
+  chainId: CHAIN_ID, tokenAddress: USDC_TOKEN, transactionHash: hash("d2"), blockNumber: 120, blockHash: hash("e3"), transferLogIndex: 0,
+  source: ADDRESS.hannah, destination: ADDRESS.northwind, rawAmount: "500000000", final: true,
+};
 
 const page = (id: FrozenId) => `apps/docs/factory/operations/${id}.yaml:1`;
 const CLI = "apps/cli/src/commands";
@@ -128,6 +149,23 @@ export const operation_activity_events = defineOperation({
   }),
   errors: [error_CLI_USAGE],
   refusals: refusals("activity.events", { CLI_USAGE: WITH_ACTIVITY, INVALID_INPUT: WITH_ACTIVITY, NOT_AUTHENTICATED: SIGNED_OUT }),
+  examples: [
+    ok(
+      "Northwind's payment to Brightside settles; one read since the cursor",
+      "capxul activity events --after cur_2026-02-05T10:00 --org northwind --json",
+      {
+        events: [{ kind: "payment", id: ID.paymentToBrightside, change: "updated", transition: "settle", at: at("2026-02-05T10:01:00Z"), item: paymentItem }],
+        cursor: "cur_2026-02-05T10:01", next: { argv: ["capxul", "activity", "events", "--after", "cur_2026-02-05T10:01", "--org", "northwind", "--json"] }, truncated: false,
+      },
+    ),
+    ok(
+      "With no --after it starts from now and returns only a cursor",
+      "capxul activity events --org northwind --json",
+      { events: [], cursor: "cur_2026-02-10T09:30", next: { argv: ["capxul", "activity", "events", "--after", "cur_2026-02-10T09:30", "--org", "northwind", "--json"] }, truncated: false },
+    ),
+    refused("A cursor an events read never returned", "capxul activity events --after nonsense --json", error_CLI_USAGE),
+    refused("Signed out", "capxul activity events --json", error_NOT_AUTHENTICATED),
+  ],
   budget: { ...budget("read"), excludes: ["wait.*"] },
 });
 
@@ -171,6 +209,41 @@ export const operation_activity_get = defineOperation({
   returns: Detail,
   errors: [error_CLI_USAGE],
   refusals: refusals("activity.get", { CLI_USAGE: WITH_ACTIVITY, NOT_AUTHENTICATED: SIGNED_OUT }),
+  examples: [
+    ok(
+      "The settled payment to Brightside, in full, with the account it is booked to",
+      `capxul activity get --kind payment --id ${ID.paymentToBrightside} --org northwind --json`,
+      {
+        kind: "payment",
+        payment: {
+          id: ID.paymentToBrightside, status: "settled", route: "budget", direction: "out", amount: { asset: "USDC", value: "1200.00" }, counterparty: "Brightside Cleaning",
+          chain_payment_id: hash("9a"), pay_at: null, receipt: { chain_id: CHAIN_ID, tx_hash: hash("c1") },
+          execution: { approval_id: ID.approval, proposal_id: null, outcome: null, needs_retry: false },
+          documents: [{ document_id: uuid(951), document_hash: hash("a1"), render: `capxul document render --document-hash ${hash("a1")} --content-hash ${hash("b2")}` }],
+          timing: { created_at: at("2026-02-05T10:00:00Z"), sent_at: at("2026-02-05T10:00:30Z"), settled_at: at("2026-02-05T10:01:00Z") },
+        },
+        annotation: {
+          reference: { kind: "payment", id: ID.paymentToBrightside }, actor: { kind: "person", id: ID.marcus }, account: { accountId: uuid(952), code: "6100", name: "Cleaning" },
+          party: { type: "Supplier", id: ID.brightside }, costCenter: null, project: null, references: [{ reference_doctype: "Purchase Invoice", reference_name: "INV-0042", allocated_amount: "1200.00" }],
+          suggestion: null, memo: "Office cleaning, January", lastEditor: { kind: "person", id: ID.marcus }, updatedAt: at("2026-02-05T11:00:00Z"),
+        },
+        evidence: {
+          chainId: CHAIN_ID, contractAddress: ADDRESS.stranger, settledThrough: "budgets", tokenAddress: USDC_TOKEN, transactionHash: hash("c1"), blockNumber: 118, blockHash: hash("f4"),
+          paymentEventLogIndex: 1, transferLogIndex: 0, source: ADDRESS.northwind, destination: ADDRESS.brightside, rawAmount: "1200000000", final: true,
+        },
+        viewer: { kind: "organization", orgId: NORTHWIND.orgId },
+      },
+    ),
+    ok(
+      "The 500 USDC movement that came in on 9 February",
+      `capxul activity get --kind movement --id ${uuid(950)} --org northwind --json`,
+      {
+        kind: "movement", movementId: uuid(950), movement: movementItem, documents: [], documentState: "ready", annotation: null,
+        evidence: movementEvidence, viewer: { kind: "organization", orgId: NORTHWIND.orgId },
+      },
+    ),
+    refused("A row that does not exist", `capxul activity get --kind payment --id ${uuid(999)} --json`, error_CLI_USAGE),
+  ],
   budget: budget("read"),
 });
 
@@ -218,6 +291,20 @@ export const operation_activity_list = defineOperation({
   returns: Page,
   errors: [error_CLI_USAGE],
   refusals: refusals("activity.list", { CLI_USAGE: WITH_ACTIVITY, INVALID_INPUT: WITH_ACTIVITY, NOT_AUTHENTICATED: SIGNED_OUT }),
+  examples: [
+    ok(
+      "Northwind's activity, newest first",
+      "capxul activity list --org northwind --limit 25 --json",
+      { items: [movementItem, paymentItem], nextCursor: null, checkpoint: at("2026-02-10T09:30:00Z"), observedAt: at("2026-02-10T09:30:01Z") },
+    ),
+    ok(
+      "Only settled outgoing payments, one page of one",
+      "capxul activity list --kind payment --direction out --status settled --limit 1 --org northwind --json",
+      { items: [paymentItem], nextCursor: "cur_page_2", checkpoint: at("2026-02-10T09:30:00Z"), observedAt: at("2026-02-10T09:30:01Z") },
+    ),
+    refused("A status that is not known", "capxul activity list --status finished --json", error_CLI_USAGE),
+    refused("A cursor this list did not issue", "capxul activity list --after nonsense --json", error_INVALID_INPUT),
+  ],
   budget: budget("read"),
 });
 
@@ -253,6 +340,18 @@ export const operation_activity_summary = defineOperation({
   ],
   returns: Summary,
   refusals: refusals("activity.summary", { INVALID_INPUT: WITH_ACTIVITY, NOT_AUTHENTICATED: SIGNED_OUT }),
+  examples: [
+    ok(
+      "Northwind's totals for February to date",
+      `capxul activity summary --from ${Date.parse("2026-02-01T00:00:00Z")} --to ${Date.parse("2026-02-10T23:59:59Z")} --org northwind --json`,
+      {
+        window: { from: at("2026-02-01T00:00:00Z"), to: at("2026-02-10T23:59:59Z") },
+        totals: [{ asset: "USDC", chainId: CHAIN_ID, tokenAddress: USDC_TOKEN, in: "500000000", out: "1200000000", net: "-700000000", pendingIn: "0" }],
+        count: 2, observedAt: at("2026-02-10T09:30:01Z"),
+      },
+    ),
+    refused("A bound that is not whole epoch milliseconds", "capxul activity summary --from 1.5 --json", error_INVALID_INPUT),
+  ],
   budget: budget("read"),
 });
 
@@ -293,6 +392,15 @@ export const operation_address = defineOperation({
   ],
   returns: DepositAddress,
   refusals: refusals("address", { NOT_AUTHENTICATED: SIGNED_OUT, ROLE_PERMISSION_DENIED: ORG, INVALID_INPUT: NO_WORLD }),
+  examples: [
+    ok(
+      "Northwind's treasury address",
+      "capxul address --org northwind --json",
+      { accountKind: "orgTreasury", chainId: 84532, network: "base-sepolia", currency: "USD", address: ADDRESS.northwind.toLowerCase(), label: "Northwind Trading" },
+    ),
+    refused("An Organization the caller is not a member of", "capxul address --org northwind --json", error_ROLE_PERMISSION_DENIED),
+    refused("Signed out", "capxul address --json", error_NOT_AUTHENTICATED),
+  ],
   budget: budget("read"),
 });
 
@@ -345,6 +453,19 @@ export const operation_balance = defineOperation({
     available: Holdings.fields.available,
   }),
   refusals: refusals("balance", { NOT_AUTHENTICATED: SIGNED_OUT, ROLE_PERMISSION_DENIED: ORG, INVALID_INPUT: NO_WORLD }),
+  examples: [
+    ok(
+      "Northwind's treasury",
+      "capxul balance --org northwind --json",
+      {
+        id: uuid(953),
+        balances: [{ asset: "USDC", chainId: CHAIN_ID, tokenAddress: USDC_TOKEN, symbol: "USDC", decimals: 6, balance: "12500.00", available: "11300.00", rawBalance: "12500000000", rawAvailable: "11300000000" }],
+        balance: { currency: "USD", value: "12500.00", decimals: 2 }, available: { currency: "USD", value: "11300.00", decimals: 2 },
+      },
+    ),
+    refused("An Organization the caller is not a member of", "capxul balance --org northwind --json", error_ROLE_PERMISSION_DENIED),
+    refused("Signed out", "capxul balance --json", error_NOT_AUTHENTICATED),
+  ],
   budget: budget("read"),
 });
 

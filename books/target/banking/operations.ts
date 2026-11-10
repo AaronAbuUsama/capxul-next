@@ -20,6 +20,7 @@ import {
   error_VERIFICATION_REQUIRED,
   error_WRONG_STATE,
 } from "../shared/vocabulary.ts";
+import { ADDRESS, CHAIN_ID, hash, ID, NORTHWIND, ok, refused, uuid } from "../shared/examples.ts";
 import { Currency, Token } from "./data.ts";
 import { VerificationView } from "./verification.ts";
 import { BankAccountView, rpc_banking_accounts_list, rpc_banking_accounts_remove } from "./accounts.ts";
@@ -37,6 +38,22 @@ import {
   guidedRead,
 } from "./flows.ts";
 import { InvitationView } from "../organizations/invitations.ts";
+
+// ── examples: the cast's banking story (ids 850-899) ─────────────────────────────────────────
+
+const at = (iso: string) => Date.parse(iso);
+const EUR_ACCOUNT = uuid(850);
+const BRIGHTSIDE_ACCOUNT = uuid(851);
+const eurAccount = { partyAccountId: EUR_ACCOUNT, currency: "eur", holderName: "Northwind Trading", bankName: "Harbour Bank", last4: "4321", state: "active", ownerScope: "self", recipient: null };
+const brightsideAccount = {
+  partyAccountId: BRIGHTSIDE_ACCOUNT, currency: "usd", holderName: "Brightside Cleaning", bankName: "Harbour Bank", last4: "7788", state: "active", ownerScope: "contact",
+  recipient: { partyId: ID.brightside, label: "Brightside Cleaning", onCapxul: false },
+};
+const currencies = (usd: string, eur: string, gbp: string) => ({ usd, eur, gbp });
+const approvedVerification = {
+  status: "approved", journeyId: uuid(852), subject: "business", nextStep: null, completed: ["business", "people", "documents"],
+  currencies: currencies("approved", "approved", "not_started"), people: [],
+};
 
 const S = Schema.String;
 
@@ -87,6 +104,32 @@ export const operation_verify_start = defineOperation({
     { error: error_PROVIDER_ERROR, given: "bridge-unreachable", when: when("verify.start", "PROVIDER_ERROR") },
     { error: error_NOT_AUTHENTICATED, given: "signed-out", when: when("verify.start", "NOT_AUTHENTICATED") },
   ],
+  examples: [
+    ok(
+      "Hannah answers Bridge's questions for Northwind from a file and is sent to Bridge's page for the last step",
+      "capxul verify start --org northwind --input answers.json --json",
+      {
+        status: "needs_person", journeyId: uuid(852), subject: "business",
+        nextStep: { kind: "person", url: "https://bridge.test/verify/jrn_852", purpose: "terms" },
+        completed: ["business"], currencies: currencies("pending", "pending", "not_started"),
+        people: [{ invitationId: uuid(853), name: "Tomas Varga", status: "invited" }],
+      },
+    ),
+    ok(
+      "Starting with no answers returns the first questions",
+      "capxul verify start --json",
+      {
+        status: "needs_answers", journeyId: uuid(854), subject: "person",
+        nextStep: { kind: "answers", questions: [
+          { id: "date_of_birth", label: "Date of birth", input: "date", choices: null, correction: null },
+          { id: "id_document", label: "A photo of your ID", input: "file", choices: null, correction: null },
+        ] },
+        completed: [], currencies: currencies("not_started", "not_started", "not_started"), people: [],
+      },
+    ),
+    refused("Bridge refuses an answer: a date of birth under 18", "capxul verify start --input answers.json --json", error_INVALID_INPUT),
+    refused("Priya is a member, not a Director, of Northwind", "capxul verify start --org northwind --json", error_ROLE_PERMISSION_DENIED),
+  ],
   budget: { ...budget("vendor"), p95Ms: 10_000, why: "uploads the person's documents, up to 24 MB each, before the one submission", ...PERSON_WAIT },
 });
 
@@ -108,6 +151,11 @@ export const operation_verify_status = defineOperation({
     { error: error_CLI_DEADLINE, given: "person-ready", when: "After `verify start`, `--wait --timeout-seconds 1` while Bridge's page waits for the person. Progress is kept." },
     { error: error_PROVIDER_ERROR, given: "bridge-unreachable", when: when("verify.status", "PROVIDER_ERROR") },
     { error: error_NOT_AUTHENTICATED, given: "signed-out", when: when("verify.status", "NOT_AUTHENTICATED") },
+  ],
+  examples: [
+    ok("Northwind's verification is approved for USD and EUR", "capxul verify status --org northwind --json", approvedVerification),
+    refused("Waiting one second while Bridge's page waits for the person", "capxul verify status --wait --timeout-seconds 1 --json", error_CLI_DEADLINE),
+    refused("Signed out", "capxul verify status --json", error_NOT_AUTHENTICATED),
   ],
   budget: { ...budget("vendor"), ...PERSON_WAIT },
 });
@@ -132,6 +180,21 @@ export const operation_invite_accept = defineOperation({
     { error: error_ROLE_PERMISSION_DENIED, given: "org-with-pending-invitation", when: when("invite.accept", "ROLE_PERMISSION_DENIED") },
     { error: error_WRONG_STATE, given: "org-with-expired-invitation", when: when("invite.accept", "WRONG_STATE") },
     { error: error_NOT_AUTHENTICATED, given: "signed-out", when: when("invite.accept", "NOT_AUTHENTICATED") },
+  ],
+  examples: [
+    ok(
+      "Priya accepts Northwind's allowance offer at the digest she reviewed",
+      `capxul invite accept ${uuid(855)} --offer-digest ${hash("e5")} --confirm --json`,
+      {
+        id: uuid(855), orgId: NORTHWIND.orgId, organizationName: NORTHWIND.name,
+        grantee: { partyId: ID.priya, kind: "human", handle: "priya", accountId: uuid(856), accountReady: true },
+        phase: "pending", offers: [{ kind: "allowance", budgetId: ID.financeBudget }], offerDigest: hash("e5"),
+        recovery: null, recoveryActions: { resendAvailableAt: null }, expiresAt: at("2026-02-24T09:30:00Z"),
+        endingReason: null, acceptedAt: at("2026-02-10T09:30:00Z"), memberId: null, delivery: "sent",
+      },
+    ),
+    refused("The offer changed since Priya read its digest", `capxul invite accept ${uuid(855)} --offer-digest ${hash("f6")} --confirm --json`, error_WRONG_STATE),
+    refused("An invitation that was not sent to this person", `capxul invite accept ${uuid(857)} --offer-digest ${hash("e5")} --confirm --json`, error_ROLE_PERMISSION_DENIED),
   ],
   budget: { ...budget("vendor"), ...PERSON_WAIT },
 });
@@ -158,6 +221,10 @@ export const operation_bank_accounts = defineOperation({
     { error: error_ROLE_PERMISSION_DENIED, given: "org-verified", when: "You are not in the Organization named with `--org`: Ivy, outside Globex." },
     { error: error_NOT_AUTHENTICATED, given: "signed-out", when: when("bank.accounts", "NOT_AUTHENTICATED") },
   ],
+  examples: [
+    ok("Northwind's saved bank accounts", "capxul bank accounts --org northwind --json", { items: [eurAccount, brightsideAccount], nextCursor: null }),
+    refused("Someone outside Northwind asks for its accounts", "capxul bank accounts --org northwind --json", error_ROLE_PERMISSION_DENIED),
+  ],
   budget: budget("read"),
 });
 
@@ -183,6 +250,15 @@ export const operation_bank_accounts_add = defineOperation({
     { error: error_CLI_USAGE, given: "person-ready", when: when("bank.accounts.add", "CLI_USAGE") },
     { error: error_INVALID_INPUT, given: "person-ready", when: when("bank.accounts.add", "INVALID_INPUT") },
     { error: error_ROLE_PERMISSION_DENIED, given: "org-verified", when: "For an Organization, you cannot manage it: Gus, who wears only a budget's hat in Globex." },
+  ],
+  examples: [
+    ok(
+      "Hannah saves Northwind's EUR account from a file",
+      `capxul bank accounts add --input account.json --request-key ${uuid(858)} --org northwind --json`,
+      eurAccount,
+    ),
+    refused("Both --currency and --input", "capxul bank accounts add --currency EUR --input account.json --json", error_CLI_USAGE),
+    refused("Priya manages no bank accounts for Northwind", "capxul bank accounts add --input account.json --org northwind --json", error_ROLE_PERMISSION_DENIED),
   ],
   budget: { ...budget("vendor"), ...PERSON_WAIT },
 });
@@ -214,6 +290,15 @@ export const operation_contact_bank_add = defineOperation({
     { error: error_ROLE_PERMISSION_DENIED, given: "person-with-contacts", when: "You cannot write to that book: `--org acme` as Ada, who holds no Seat in Acme." },
     { error: error_NOT_AUTHENTICATED, given: "signed-out", when: when("contact.bank.add", "NOT_AUTHENTICATED") },
   ],
+  examples: [
+    ok(
+      "Hannah saves Brightside's account on its contact entry",
+      `capxul contact bank add Brightside --input account.json --request-key ${uuid(859)} --org northwind --json`,
+      brightsideAccount,
+    ),
+    refused("A bank field is invalid", "capxul contact bank add Brightside --input account.json --org northwind --json", error_INVALID_INPUT),
+    refused("A contact who is not in the book", "capxul contact bank add Nobody --input account.json --org northwind --json", error_CLI_USAGE),
+  ],
   budget: { ...budget("vendor"), ...PERSON_WAIT },
 });
 
@@ -239,6 +324,22 @@ export const operation_contact_get = defineOperation({
     { error: error_ROLE_PERMISSION_DENIED, given: "person-with-contacts", when: "`--org` names an Organization you are outside: `--org acme` as Ada, who holds no Seat in Acme." },
     { error: error_NOT_AUTHENTICATED, given: "signed-out", when: when("contact.get", "NOT_AUTHENTICATED") },
   ],
+  examples: [
+    ok(
+      "Brightside Cleaning's entry, with its masked bank account",
+      `capxul contact get ${ID.brightside} --org northwind --json`,
+      {
+        id: ID.brightside, ref: { kind: "party", partyId: ID.brightside }, label: "Brightside Cleaning", hidden: false, doctype: "organization",
+        details: {
+          email_ids: [{ email_id: "accounts@brightside.test", is_primary: true }], phone_nos: [], designation: null, company: "Brightside Cleaning",
+          website: "https://brightside.test", industry: "Cleaning services", territory: null, no_of_employees: "11-50", annual_revenue: null, currency: "USD", company_description: null,
+        },
+        bankAccounts: [brightsideAccount],
+      },
+    ),
+    refused("An id that is neither a PartyId nor a private entry", "capxul contact get brightside --org northwind --json", error_CLI_USAGE),
+    refused("Asking for another company's book", "capxul contact get --org northwind --json", error_ROLE_PERMISSION_DENIED),
+  ],
   budget: guidedRead,
 });
 
@@ -259,6 +360,11 @@ export const operation_bank_accounts_remove = defineOperation({
     { error: error_CLI_USAGE, given: "person-with-gbp-account", when: when("bank.accounts.remove", "CLI_USAGE") },
     { error: error_INVALID_INPUT, given: "person-with-gbp-account", when: "The account is not one of yours: a well-formed id that names none of the caller's accounts." },
     { error: error_ROLE_PERMISSION_DENIED, given: "org-verified", when: "For an Organization, you cannot manage it: Gus, who wears only a budget's hat in Globex." },
+  ],
+  examples: [
+    ok("Hannah removes the old EUR account", `capxul bank accounts remove ${EUR_ACCOUNT} --org northwind --json`, { partyAccountId: EUR_ACCOUNT }),
+    refused("An id that is well formed but not one of Northwind's accounts", `capxul bank accounts remove ${uuid(899)} --org northwind --json`, error_INVALID_INPUT),
+    refused("An id that is not a bank account id", "capxul bank accounts remove eur --json", error_CLI_USAGE),
   ],
   budget: budget("write"),
 });
@@ -288,6 +394,26 @@ export const operation_bank_deposits = defineOperation({
     { error: error_ROLE_PERMISSION_DENIED, given: "org-verified", when: "You are outside the Organization named with `--org`: Ivy, outside Globex." },
     { error: error_NOT_AUTHENTICATED, given: "signed-out", when: when("bank.deposits", "NOT_AUTHENTICATED") },
   ],
+  examples: [
+    ok(
+      "Northwind's deposits, one credited and one still needing a request",
+      "capxul bank deposits --org northwind --json",
+      {
+        items: [
+          {
+            bankDepositId: uuid(860), currency: "eur", rail: "sepa", amount: "1200.00", status: "credited", receivedAt: at("2026-02-04T08:00:00Z"), sender: "Brightside Cleaning",
+            credit: { token: "eurc", amount: "1200.00", txHash: hash("c1"), safe: ADDRESS.northwind }, match: { kind: "request", requestId: uuid(903), reference: "REFUND-2026-001" },
+          },
+          {
+            bankDepositId: uuid(861), currency: "usd", rail: "wire", amount: "500.00", status: "processing", receivedAt: at("2026-02-09T14:20:00Z"), sender: null,
+            credit: null, match: null,
+          },
+        ],
+        nextCursor: null, unmatchedCount: 1, firstUnmatched: uuid(861),
+      },
+    ),
+    refused("A cursor this list never gave", "capxul bank deposits --cursor zzz --json", error_INVALID_INPUT),
+  ],
   budget: budget("read"),
 });
 
@@ -309,6 +435,22 @@ export const operation_bank_details = defineOperation({
     { error: error_WRONG_STATE, given: "person-ready", when: when("bank.details", "WRONG_STATE") },
     { error: error_ROLE_PERMISSION_DENIED, given: "org-verified", when: "For an Organization, you cannot manage it, so details it lacks cannot be opened: Gus asks Globex for `--currency eur`." },
     { error: error_NOT_AUTHENTICATED, given: "signed-out", when: when("bank.details", "NOT_AUTHENTICATED") },
+  ],
+  examples: [
+    ok(
+      "Northwind's EUR details in full",
+      "capxul bank details --currency EUR --org northwind --json",
+      {
+        items: [{
+          currency: "eur", state: "active", visibility: "full",
+          fields: { bankName: "Harbour Bank", payeeName: "Northwind Trading", rail: "sepa", last4: "4321", routingNumber: null, accountNumber: null, iban: "DE00000000000000004321", bic: "HARBDEXX", sortCode: null },
+          destination: { chainId: CHAIN_ID, token: "eurc", address: ADDRESS.northwind }, developerFeePercent: null,
+        }],
+        unverified: [{ currency: "gbp", next: ["capxul verify start"] }],
+      },
+    ),
+    refused("Not verified for the currency asked", "capxul bank details --currency EUR --json", error_WRONG_STATE),
+    refused("Priya cannot manage Northwind's bank details", "capxul bank details --currency EUR --org northwind --json", error_ROLE_PERMISSION_DENIED),
   ],
   budget: budget("vendor"),
 });
@@ -353,6 +495,15 @@ export const operation_bank_settle = defineOperation({
     { error: error_NOT_AUTHENTICATED, given: "signed-out", when: when("bank.settle", "NOT_AUTHENTICATED") },
     { error: error_PROVIDER_ERROR, given: "bridge-unreachable", when: when("bank.settle", "PROVIDER_ERROR") },
   ],
+  examples: [
+    ok(
+      "EUR deposits now arrive as USDC",
+      "capxul bank settle eur --to usdc --org northwind --json",
+      { currency: "eur", destination: { chainId: CHAIN_ID, token: "usdc", address: ADDRESS.northwind }, state: "active" },
+    ),
+    refused("No --to in a --json run", "capxul bank settle eur --json", error_CLI_USAGE),
+    refused("The currency has no bank details open yet", "capxul bank settle gbp --to usdc --json", error_INVALID_INPUT),
+  ],
   budget: {
     ...budget("vendor"),
     p95Ms: 5_000,
@@ -389,6 +540,22 @@ export const operation_bank_pay = defineOperation({
     { error: error_INSUFFICIENT_BALANCE, given: "person-with-gbp-account", when: "The Safe cannot fund the payout: more than its 1,000 USDC." },
     { error: error_ROLE_PERMISSION_DENIED, given: "org-verified", when: "You wear no hat on that budget or above it: Hal, paying from Globex's `office-costs`." },
     { error: error_PAYROLL_BUDGET_EXCEEDED, given: "org-verified", when: "The budget has less left this period than the funding amount: Gus, above the 2,000 USDC `office-costs` has left." },
+  ],
+  examples: [
+    ok(
+      "Marcus pays Brightside 250 by bank from the Finance budget; the quote waits for his approval",
+      `capxul bank pay contact 250 --account ${BRIGHTSIDE_ACCOUNT} --org northwind --from finance --json`,
+      {
+        payoutId: uuid(862), status: "awaiting_approval", stage: "quoted", stageReason: null,
+        quote: { receive: { currency: "usd", amount: "250.00" }, send: { token: "usdc", amount: "250.75" }, slippage: "0.30", rate: "1.00", fee: "0.45", expiresAt: at("2026-02-10T09:45:00Z") },
+        account: { partyAccountId: BRIGHTSIDE_ACCOUNT, bankName: "Harbour Bank", last4: "7788", currency: "usd" },
+        budget: { budgetId: ID.financeBudget, key: "finance", name: "Finance" },
+        paymentIds: [ID.paymentToBrightside], approvalId: ID.approval, approvalUrl: "https://app.capxul.test/approvals/" + ID.approval, refund: null, warnings: [],
+      },
+    ),
+    refused("Marcus is not verified yet", "capxul bank pay self 250 --json", error_VERIFICATION_REQUIRED),
+    refused("The payout needs more than the Finance budget has left", `capxul bank pay contact 5000 --account ${BRIGHTSIDE_ACCOUNT} --org northwind --from finance --json`, error_PAYROLL_BUDGET_EXCEEDED),
+    refused("Priya wears no hat on the budget", `capxul bank pay contact 250 --account ${BRIGHTSIDE_ACCOUNT} --org northwind --from finance --json`, error_ROLE_PERMISSION_DENIED),
   ],
   budget: {
     ...budget("vendor"),
