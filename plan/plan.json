@@ -424,10 +424,12 @@
       "title": "The contracts' deeper tests run to completion",
       "why": "The contracts hold money; their tests must run to the end.",
       "milestone": "m2",
-      "state": "doing",
+      "state": "done",
       "needs": [],
       "records": [],
-      "evidence": [],
+      "evidence": [
+        "full profile run, 10 Nov 2026"
+      ],
       "created": "2026-11-10",
       "updated": "2026-11-10",
       "thread": "coordinator"

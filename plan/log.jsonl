@@ -80,3 +80,4 @@
 {"at":"2026-11-10T10:13:09.090Z","by":"coordinator","action":"exit.met","args":{"owner":"goal","id":"g6","evidence":"a3012a9"},"commit":"2f8a946"}
 {"at":"2026-11-10T10:13:09.656Z","by":"coordinator","action":"exit.met","args":{"owner":"m1","id":"g6","evidence":"a3012a9"},"commit":"2f8a946"}
 {"at":"2026-11-10T10:13:10.205Z","by":"coordinator","action":"note","args":{"text":"The plan page is live and is now where the work is tracked. Four things wait on Aaron: the AWS sign-in with the subdomain and DNS records, the cost audit's switch-offs, equity, and the payroll filing route. The door and clock spike and the contracts' deeper tests are still running."},"commit":"2f8a946"}
+{"at":"2026-11-10T10:16:52.881Z","by":"coordinator","action":"task.done","args":{"id":"m2-deeper-tests","evidence":"full profile run, 10 Nov 2026"},"commit":"000b6b1"}
