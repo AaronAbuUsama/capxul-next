@@ -69,7 +69,7 @@ export const agent = (job: Job, name: string, o: { role: string; prompt: string;
   if (left <= 0 && job.run.info.spentUsd > 0) return { ok: false, text: "", costUsd: 0, tokens: 0, head: head(wt.dir), error: `the budget of $${job.opts.budgetUsd} is spent` };
   const maker = job.opts.model ? qualify(job.opts.model) : defaultModel(job.ctx);
   const model = qualify(CHECKER_ROLES.has(o.role) ? job.opts.checkerModel ?? defaultCheckerModel(job.ctx) : maker);
-  if (!allowedModel(model)) return { ok: false, text: "", costUsd: 0, tokens: 0, head: head(wt.dir), error: `the model ${model} is not allowed: only gpt-6.1-sol and gpt-6.1-terra` };
+  if (!(await allowedModel(job.ctx, model))) return { ok: false, text: "", costUsd: 0, tokens: 0, head: head(wt.dir), error: `the model ${model} is not one the gateway serves; \`curl ${gatewayOf(job.ctx).baseUrl}/models\` lists them` };
   // The gateway carries only so many agents at once: an agent takes a slot shared by every run and process of this checkout, and waits for one.
   const release = await acquire(join(runsDir(job.ctx), ".agents"), maxAgents(job.ctx), { stopped: () => existsSync(job.run.stopFile), waiting: () => job.ctx.say(`${name} waits: ${maxAgents(job.ctx)} agents are already working`), ...(job.ctx.retry ? { pollMs: 20 } : {}) });
   const said = await ask(job.run.host, {

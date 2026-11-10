@@ -29,14 +29,26 @@ export const POLICY: Policy = {
 
 /**
  * The maker's and the checker's default models. The maker is gpt-6.1-sol and the checker gpt-6.1-terra, by Aaron's ruling (10 November
- * 2026: Sol 6.1 for coding; only Sol 6.1 and Terra 6.1 allowed). Both are flags.
+ * 2026: Sol 6.1 for coding). Both are flags, and any model the gateway serves may be named.
  */
 export const MAKER_MODEL = "gpt-6.1-sol";
 export const CHECKER_MODEL = "gpt-6.1-terra";
 
-/** Aaron, 10 November 2026: only gpt-6.1-sol and gpt-6.1-terra are allowed. Anything else is refused before a call is made. */
-export const ALLOWED_MODELS = ["gpt-6.1-sol", "gpt-6.1-terra"] as const;
-export const allowedModel = (id: string): boolean => !id.startsWith("gateway/") || ALLOWED_MODELS.some((m) => id === `gateway/${m}`); // a test's fake provider is not the gateway
+/**
+ * Which models may be used. The owner, 10 November 2026, later the same day: any model the gateway serves (it was
+ * only Sol 6.1 and Terra 6.1 before). So the gateway is asked what it serves, each time an agent starts; when it does
+ * not answer, only the two defaults are allowed. A test's fake provider is not the gateway and is not asked about.
+ */
+export const DEFAULT_MODELS = [MAKER_MODEL, CHECKER_MODEL] as const;
+export const servedModels = async (ctx: Ctx): Promise<readonly string[]> => {
+  const gateway = gatewayOf(ctx), key = gateway.keyEnv === null ? undefined : ctx.env[gateway.keyEnv];
+  try {
+    const answer = await fetch(`${gateway.baseUrl.replace(/\/$/, "")}/models`, { signal: AbortSignal.timeout(5000), ...(key ? { headers: { authorization: `Bearer ${key}` } } : {}) });
+    const listed = ((await answer.json()) as { data?: { id?: unknown }[] }).data?.flatMap((m) => (typeof m.id === "string" ? [m.id] : [])) ?? [];
+    return answer.ok && listed.length > 0 ? listed : DEFAULT_MODELS;
+  } catch { return DEFAULT_MODELS; }
+};
+export const allowedModel = async (ctx: Ctx, id: string): Promise<boolean> => !id.startsWith("gateway/") || (await servedModels(ctx)).includes(id.slice("gateway/".length));
 
 /** `provider/id`, or a bare id (taken to be the gateway's). */
 export const qualify = (id: string): string => (id.includes("/") ? id : `gateway/${id}`);
