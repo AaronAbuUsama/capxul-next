@@ -172,13 +172,6 @@ export const integration_site_service = defineIntegration({
       p95Ms: 90_000,
       failures: [{ when: "The service is down", error: error_PROVIDER_ERROR }, { when: "The snapshot names no site of this Organization", error: error_INVALID_INPUT }],
     },
-    dropSite: {
-      about: "Remove a site from the bench. Used by tests and a world's teardown, never a customer's command. Proved by the spike: dropping a site takes about a minute.",
-      timeoutMs: 120_000,
-      retries: { max: 0, backoff: "none" },
-      p95Ms: 30_000,
-      failures: [{ when: "The service is down", error: error_PROVIDER_ERROR }],
-    },
   },
   fake:
     "A local run of the real service on the developer's bench container: the same script, on a bench with a short app list. What it cannot imitate is " +

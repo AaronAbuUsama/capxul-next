@@ -82,9 +82,10 @@ export const rpc_devnet_worlds_show = rpc({
 
 const clockRpc = (verb: "set" | "freeze" | "resume" | "warp", call: "timeRate" | "timeFreeze" | "timeResume" | "timeWarp", title: string, about: string, input: Schema.Struct<Schema.Struct.Fields>) =>
   rpc({
-    id: `devnet.worlds.clock-${verb}`, title, about,
+    id: `devnet.worlds.clock-${verb}`, title,
+    about: about + " After the authority moves, sends its resulting clock to site-service.setClock for every site in a full world (none in a core-only world). A failed delivery is retried from the authority's current clock, never by advancing twice (plugs.surface-gap-audit).",
     concept: concept_devnet, kind: "action", who: WHO_OWNER, input, output: Schema.Struct({ worldId: S, clockMode: ClockMode, rate: N, worldNow: N }),
-    errors: errorsOf(call, [error_INVALID_INPUT]), reads: [table_worlds], writes: [table_worlds, table_command_records], calls: [integration_devnet_control.c[call]], was: [`${NOTE} (section 2)`],
+    errors: errorsOf(call, [error_INVALID_INPUT, ...integration_site_service.calls.setClock.failures.map((f) => f.error)]), reads: [table_worlds], writes: [table_worlds, table_command_records], calls: [integration_devnet_control.c[call], integration_site_service.c.setClock], was: [`${NOTE} (section 2)`],
   spans: [`rpc.devnet.worlds.clock-${verb}`],
 });
 

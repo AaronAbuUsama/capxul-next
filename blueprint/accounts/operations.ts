@@ -78,7 +78,7 @@ const PERSON_READY = "person-ready";
 const REFUSED_OTHER_SIGNER = "setup-refused-other-signer";
 const REFUSED_EMAIL = "setup-refused-non-ascii-email";
 /** No devnet world runs off a devnet; the staging `live:*` evals reach it. */
-const OFF_DEVNET = "?";
+const OFF_DEVNET = "cli-on-beta-environment";
 
 // ── account ─────────────────────────────────────────────────────────────────────────────────
 

@@ -83,11 +83,6 @@ export const integration_chain_rpc = defineIntegration({
       ...NODE_READ,
       failures: [unavailable("Every configured node"), unusable("The node")],
     },
-    getTransactionReceipt: {
-      about: "eth_getTransactionReceipt of one transaction hash; null while it is not mined.",
-      ...NODE_READ,
-      failures: [unavailable("Every configured node"), unusable("The node")],
-    },
     getLogs: {
       about:
         "eth_getLogs over one block window, for books' added-token scan only: at most 2,000 blocks per call, on the " +
@@ -331,20 +326,6 @@ export const integration_mail = defineIntegration({
         { when: "Resend answered 429", error: error_RATE_LIMITED },
       ],
     },
-    getReceived: {
-      about:
-        "Reads one email Resend received, by the id its event named: from, to, cc, subject, Date, Message-ID, " +
-        "In-Reply-To and References, the text and HTML bodies, and each attachment's name, type and size.",
-      timeoutMs: 5_000,
-      retries: { max: 2, backoff: "exponential" },
-      p95Ms: 1_500,
-      failures: [
-        unavailable("Resend"),
-        { when: "Resend holds no received email of that id (an event Resend did not sign, or one deleted since)", error: error_INVALID_INPUT },
-        { when: "Resend answered 429 and the retries ran out", error: error_RATE_LIMITED },
-        unusable("Resend"),
-      ],
-    },
   },
   fake:
     "The devnet's mail sink (devnet's tables), on a devnet and in a shared world: every message sent is kept and nothing " +
@@ -386,54 +367,6 @@ export const integration_whatsapp = defineIntegration({
   system: "meta",
   service: "WhatsApp",
   calls: {
-    readNumber: {
-      about:
-        "Reads the account's number as Meta holds it (display number, verified name, quality rating) with its token: " +
-        "proof that the token reaches the number, at connect and in the account's daily check.",
-      timeoutMs: 5_000,
-      retries: { max: 2, backoff: "exponential" },
-      p95Ms: 1_500,
-      failures: [
-        metaUnavailable,
-        { when: "Meta refused the access token (401, code 190) or the number id names no number it reaches (code 100)", error: error_INVALID_INPUT },
-        metaThrottled,
-        metaUnusable,
-      ],
-    },
-    subscribeApp: {
-      about:
-        "Subscribes the token's app to the account's WhatsApp Business Account (`POST /<business_id>/subscribed_apps`, " +
-        "as the WhatsApp app's `subscribe_webhook` does), without which Meta sends that account's webhooks to no app; " +
-        "idempotent, at connect.",
-      timeoutMs: 5_000,
-      retries: { max: 2, backoff: "exponential" },
-      p95Ms: 1_500,
-      failures: [
-        metaUnavailable,
-        { when: "Meta refused the token (401, code 190; or code 200, a token without whatsapp_business_management) or the business id (code 100)", error: error_INVALID_INPUT },
-        metaThrottled,
-        metaUnusable,
-      ],
-    },
-    sendMessage: {
-      about:
-        "Sends one message from the account's number to one E.164 number (a text, a reply with its context, or an " +
-        "approved template with its language and parameters); answers its wamid. Meta takes no idempotency key.",
-      timeoutMs: 10_000,
-      retries: { max: 0, backoff: "none" },
-      p95Ms: 2_000,
-      failures: [
-        metaUnavailable,
-        { when: "Outside the 24-hour customer service window a free-form message is refused (code 131047): a template must go", error: error_WRONG_STATE },
-        { when: "Meta refused the account's token (401, code 190): the account must be connected again", error: error_WRONG_STATE },
-        {
-          when: "Meta refused the recipient (131026, 131030: not on WhatsApp, or not a registered test recipient) or the template (132000, 132001)",
-          error: error_INVALID_INPUT,
-        },
-        metaThrottled,
-        metaUnusable,
-      ],
-    },
   },
   fake:
     "The devnet's stand-in WhatsApp (devnet.whatsapp-stand-in), on a devnet and in a shared world: the supervisor " +
@@ -529,15 +462,6 @@ export const integration_chainlink = defineIntegration({
   system: "chainlink",
   service: "Prices",
   calls: {
-    usdRate: {
-      about: "The pair's latest answer, its decimals and when it was updated.",
-      ...NODE_READ,
-      failures: [
-        unavailable("Every configured node"),
-        { when: "The answer is not positive, or older than the feed's heartbeat", error: error_PROVIDER_RESPONSE_INVALID },
-        { when: "The pair has no feed on this network", error: error_INVALID_INPUT },
-      ],
-    },
   },
   fake:
     "The devnet's scripted rates (`dev prices set`, devnet's `scripted-prices`), dated when they took effect; without a " +
@@ -560,20 +484,6 @@ export const integration_posthog = defineIntegration({
   system: "posthog (through the connector gateway)",
   service: "Analytics",
   calls: {
-    capture: {
-      about: "One batch of product events from the outbox, each with its delivery id, so a repeat is dropped by PostHog.",
-      timeoutMs: 5_000,
-      retries: { max: 5, backoff: "exponential" },
-      p95Ms: 1_000,
-      failures: [unavailable("The gateway"), { when: "The gateway or PostHog refused the batch (mode refused)", error: error_PROVIDER_ERROR }],
-    },
-    exportTelemetry: {
-      about: "One OTLP export of spans and logs.",
-      timeoutMs: 5_000,
-      retries: { max: 3, backoff: "exponential" },
-      p95Ms: 1_000,
-      failures: [unavailable("The gateway")],
-    },
     flags: {
       about: "The feature flag definitions and their rollouts, for the gates sync.",
       timeoutMs: 5_000,
@@ -729,14 +639,6 @@ export const integration_devnet_control = defineIntegration({
         ownerOnly,
       ],
     },
-    worldRead: {
-      about: "One world: kind, chain, clock mode and rate, world now, companies and addresses, parent world and snapshot, and the head of its record.",
-      timeoutMs: 2_000,
-      ...CONTROL,
-      p95Ms: 500,
-      failures: [...controlFailures, { when: "No world has that id", error: error_INVALID_INPUT }],
-    },
-    worldList: { about: "The worlds on this machine and the hosted service this one is registered with.", timeoutMs: 2_000, ...CONTROL, p95Ms: 500, failures: [...controlFailures] },
     restoreAs: {
       about: "Restores a snapshot into a separate world under a new id: same chain id, new chain instance, every site address, secret, port and name renamed; the born entry names the parent. Proved by the spike: 36 s for one company.",
       timeoutMs: 180_000,
@@ -867,25 +769,6 @@ export const integration_fde_host = defineIntegration({
     provision: {
       about: "Makes the Organization's FDE agent and its key, or finds them; keeps the key and answers the agent id and the key's address.",
       ...HOST_CALL,
-      failures: [...hostFailures],
-    },
-    start: { about: "Starts the agent's runtime once the Organization's setup is ready.", ...HOST_CALL, failures: [...hostFailures] },
-    pause: { about: "Pauses it for an unpaid month: no turns, sandbox stopped, key, conversation and workspace kept.", ...HOST_CALL, failures: [...hostFailures] },
-    resume: { about: "Resumes a paused agent once its hosting is paid again.", ...HOST_CALL, failures: [...hostFailures] },
-    retire: { about: "Retires the runtime for good: the setup failed, the Board removed the agent, or its key moved off the host.", ...HOST_CALL, failures: [...hostFailures] },
-    send: {
-      about:
-        "Posts a message with its asker (a member id and Seat, or a guest id with their Party) and a fresh act-for token, " +
-        "which the host gives the FDE's CLI for that turn only, as an egress header, never in the sandbox, and drops " +
-        "when the turn ends; answers the new turn's id.",
-      ...HOST_CALL,
-      failures: [...hostFailures],
-    },
-    turn: {
-      about: "A turn's status (working, ended or failed) and, once ended, its reply or its failure's reason.",
-      timeoutMs: 5_000,
-      retries: { max: 2, backoff: "exponential" },
-      p95Ms: 500,
       failures: [...hostFailures],
     },
   },

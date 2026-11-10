@@ -25,6 +25,7 @@ export const environment_worlds = defineEnvironment({
   id: "worlds", title: "Hosted simulated worlds",
   about: "Real: provisioned AWS host, DNS and unserved certificate only (10 November 2026). No deployed bench or product. Target is several isolated simulated worlds sharing one bench, each with its own chain, clock, companies and record. Stand-ins: test sign-in, mail and external channels; nothing real leaves a world. Operator-only firewall is essential while test sign-in permits impersonation. Needs Aaron: access control before wider exposure, notification email, backup/monitoring spending. Not the old Convex worker described in cloud.md, nor evidence that shared-world's older Postgres topology is installed.",
   runs: [
+    { component: f.component_site_service, on: "Planned site lifecycle service on the shared bench host; not deployed. Creates, configures, parks, snapshots and removes company sites." },
     { component: component_sites_host, on: "Real machine only; planned shared bench and per-world services are not running." },
     { component: component_sites_ingress, on: "Real DNS and certificate; planned Host-preserving catch-all proxy not running." },
     { component: component_sites_backup, on: "Draft only; no nightly backup or verified restore yet." },
@@ -38,6 +39,7 @@ export const environment_production = defineEnvironment({
   id: "production", title: "Production (not provisioned)",
   about: "Real: no new production deployment evidenced. Target: a second machine using the same pinned images as worlds, with real-time clock and real integrations, separate data and credentials, never simulated identities or test money. Stand-in: this is a deployment plan only, not a live environment. Needs Aaron: approve host/spend, domain, chain and provider accounts, access policy, secrets custody, retention, recovery objectives and go-live after restore rehearsal. Do not infer a production network or address from old staging.",
   runs: [
+    { component: f.component_site_service, on: "Planned site lifecycle service on the separate production bench host, with real-time sites and isolated credentials; not deployed." },
     { component: component_sites_host, on: "Planned separate real-time machine, not worlds-host-ireland; no production host allocated." },
     { component: component_sites_ingress, on: "Planned production DNS and verified TLS; no domain/certificate allocated." },
     { component: component_sites_backup, on: "Planned separate backup scope and tested restore; retention/RPO/RTO need approval." },

@@ -469,7 +469,7 @@ export const decision_accounts_worlds = defineDecision({
     "access.email-rule). The open beta is a world, not a `dev gates set` step: that command scripts only Organization " +
     "gates (devnet.scripted-gates), so the world builder seeds the PostHog fake with `beta-access` on at rollout 100 " +
     "for everyone before the sync. Only `dev fund`'s " +
-    "WRONG_ENVIRONMENT has no devnet world (`?`). No acceptance claim names a mechanism; one, `waitlist status` #2, is " +
+    "dev fund's WRONG_ENVIRONMENT uses cli-on-beta-environment (CAPXUL_ENV=beta), before any faucet call. No acceptance claim names a mechanism; one, `waitlist status` #2, is " +
     "rewritten for Aaron's money-waiting ruling and also starts from devnet's person-with-money-waiting " +
     "(accounts.money-waiting-admits). Every operation is `normal`, since no pilot of the spine is among them.",
   source: by("docs/spec/30-capxul-evals.md; ICompaniesHouseClaimer.sol (SwapRefused, EmailNotNormalized); blueprint/baseline/operations.ts"),
