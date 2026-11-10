@@ -11,10 +11,7 @@ import { concept_books } from "../shared/foundation.ts";
 import { integration_chain_rpc, integration_chainlink, integration_frappe_head } from "../shared/external.ts";
 import { table_feature_flags, table_principals } from "../access/data.ts";
 import {
-  event_org_head_transitioned,
-  machine_org_head,
   table_org_deployments,
-  table_org_heads,
   table_org_members,
 } from "../organizations/data.ts";
 import { table_hat_wearers } from "../indexing/data.ts";

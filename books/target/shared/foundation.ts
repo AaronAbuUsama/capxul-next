@@ -204,9 +204,10 @@ export const component_frappe_app = defineComponent({
   id: "frappe-app",
   title: "Capxul app for Frappe",
   about:
-    "The Frappe app Capxul publishes for a connected head (aaron.frappe-head): on the Organization's site with ERPNext, " +
-    "Frappe HR and Frappe CRM, it is the head's half of the `frappe-head` integration, with " +
-    "no fork. Its Custom Fields (organizations.frappe-app-fields): `capxul_id` and `capxul_version` on every synced " +
+    "The Frappe app Capxul publishes and installs on the site it hosts for every Organization (aaron.frappe-native, " +
+    "aaron.one-door), beside ERPNext, Frappe HR and Frappe CRM: the site's half of the `frappe-head` integration, with " +
+    "no fork. It is not for an optional connected head; nothing is connected from outside. This text was written for " +
+    "that head and stage 3 of the cut rewrites it as the plugs and the door (cut.plug-placeholders). Its Custom Fields (organizations.frappe-app-fields): `capxul_id` and `capxul_version` on every synced " +
     "DocType; `capxul_party` on Contact, CRM Organization, Customer, Supplier, Employee and a member's User, by which it " +
     "finds or creates the document Capxul names; `capxul_hidden` on Contact and CRM Organization; and each app " +
     "concept's own. It makes Capxul's fields read-only (a `validate` hook), writes only the fields and rows Capxul " +
@@ -220,10 +221,7 @@ export const component_frappe_app = defineComponent({
     "roles match those the member's hats give at the call; they refuse native-module, money (ledger hooks, " +
     "repost_allowed_doctypes, MONEY_MODULES, LEDGER_UNHOOKED) and child-table DocTypes with a reason, refuse a direct " +
     "submit or cancel under an active Workflow, tell a Workflow's refusals apart, and keep applied call ids a day. In " +
-    "a world it follows the world's clock (devnet.head-follows-world): now_datetime reads the cached clock event, " +
-    "deciding host-clock reads are rebound, `bench capxul follow` runs due Scheduled Job Types at each stop and joins " +
-    "stateful (devnet.stateful-followers), and override_email_send keeps " +
-    "the head's mail in the world.",
+    "a world it follows the world's clock (devnet.head-follows-world) and keeps the site's mail in the world.",
   runtime: "python (Frappe Framework v15)",
   exposes: ["http"],
   dependsOn: [],

@@ -8,7 +8,7 @@
 import { defineDecision } from "../../../packages/book/src/index.ts";
 import { concept_budgets, concept_devnet, concept_notices, concept_payments } from "../shared/foundation.ts";
 import { machine_payment } from "../payments/data.ts";
-import { machine_org_head, machine_org_setup } from "../organizations/data.ts";
+import { machine_org_setup } from "../organizations/data.ts";
 import { machine_proposal } from "../board/data.ts";
 import { machine_agreement_write } from "../payments/agreements/data.ts";
 import { integration_chain_rpc, integration_mail } from "../shared/external.ts";
@@ -29,7 +29,6 @@ import {
   workflow_notices_organizations_fde_due,
   workflow_notices_organizations_fde_paused,
   workflow_notices_organizations_fde_ready,
-  workflow_notices_organizations_head_stalled,
   workflow_notices_organizations_invitation_opened,
   workflow_notices_organizations_invitation_resent,
   workflow_notices_organizations_invitation_sent,
@@ -87,7 +86,6 @@ const OUTBOX = [
   workflow_notices_organizations_fde_ready,
   workflow_notices_organizations_fde_due,
   workflow_notices_organizations_fde_paused,
-  workflow_notices_organizations_head_stalled,
   workflow_notices_budgets_office_changed,
   workflow_notices_board_director_seated,
   workflow_notices_board_director_removed,
@@ -118,7 +116,6 @@ const OUTBOX = [
 
 /** The workflows that tell an Organization through its Directors. */
 const TO_DIRECTORS = [
-  workflow_notices_organizations_head_stalled,
   workflow_notices_organizations_fde_due,
   workflow_notices_organizations_fde_paused,
   workflow_notices_board_threshold_changed,
@@ -879,9 +876,7 @@ export const decision_notices_head_and_fde = defineDecision({
     "begun `--no-fde` sends nothing.",
   source: RULINGS("docs/design/frappe/assembly-items.md (projects-startup: notices); organizations.head-connection; organizations.fde-seat"),
   affects: [
-    workflow_notices_organizations_head_stalled,
     workflow_notices_organizations_fde_ready,
-    machine_org_head.t.stall,
     machine_org_setup.t.complete,
   ],
 });

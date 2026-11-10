@@ -7,7 +7,7 @@ Capxul-native records leave the built book; nothing is deleted, it is moved with
 Aaron or on a call are parked under `docs/cut-archive/parked/`. Moved files keep their imports as they were, so those point at the
 folder the file was written in (as `docs/as-is/archive/` does) and are outside every typecheck.
 
-602 records have left the built book: 452 reached, 120 archive, 12 dropped, 18 parked.
+623 records have left the built book: 452 reached, 126 archive, 27 dropped, 18 parked.
 
 | Where | Records | Of which |
 |---|---|---|
@@ -16,6 +16,7 @@ folder the file was written in (as `docs/as-is/archive/` does) and are outside e
 | `docs/cut-archive/payroll/` | 288 | 18 workflow, 65 rpc, 22 table, 11 event, 11 machine, 31 flow, 76 operation, 53 decision, 1 concept |
 | `docs/cut-archive/books/` | 48 | 14 rpc, 1 event, 1 machine, 4 table, 2 invariant, 2 flow, 12 operation, 1 procedure, 2 workflow, 9 decision |
 | `docs/cut-archive/parked/services/` | 18 | 2 table, 1 event, 1 machine, 3 flow, 5 operation, 5 rpc, 1 decision |
+| `docs/cut-archive/organizations/` | 21 | 4 table, 2 workflow, 1 event, 1 machine, 2 flow, 3 rpc, 2 operation, 6 decision |
 
 ## projects (127)
 
@@ -643,3 +644,29 @@ folder the file was written in (as `docs/as-is/archive/` does) and are outside e
 | flow | `client.account.services.create` | parked | Parked, not dropped (cut.park-when-unsure): a sellable service with a checkout link is probably an ERPNext Item with a Payment Request, which the doo… | parked, not replaced | `parked/services/requests/flows.ts` |
 | flow | `client.account.services.deactivate` | parked | Parked, not dropped (cut.park-when-unsure): a sellable service with a checkout link is probably an ERPNext Item with a Payment Request, which the doo… | parked, not replaced | `parked/services/requests/flows.ts` |
 | flow | `client.account.services.revise` | parked | Parked, not dropped (cut.park-when-unsure): a sellable service with a checkout link is probably an ERPNext Item with a Payment Request, which the doo… | parked, not replaced | `parked/services/requests/flows.ts` |
+
+## organizations (21)
+
+| Kind | Id | Verdict | Reason | Carried or replaced by | Archived to |
+|---|---|---|---|---|---|
+| operation | `org.head.connect` | dropped | Connects an outside Frappe site. Capxul now hosts the site and creates it when the organisation is created, so nothing is connected. | Connects an outside Frappe site. Capxul now hosts the site and creates it when the organisation is created, so nothing… | `organizations/organizations/operations.ts` |
+| operation | `org.head.disconnect` | dropped | Connects an outside Frappe site. Capxul now hosts the site and creates it when the organisation is created, so nothing is connected. | Connects an outside Frappe site. Capxul now hosts the site and creates it when the organisation is created, so nothing… | `organizations/organizations/operations.ts` |
+| decision | `devnet.head-claims-stand-in` | archive | Governed only records that left the built book; archived with them. | the records it governed are in organizations | `organizations/devnet/decisions.ts` |
+| decision | `devnet.head-stand-in` | archive | Governed only records that left the built book; archived with them. | the records it governed are in organizations | `organizations/devnet/decisions.ts` |
+| decision | `organizations.frappe-app-fields` | archive | Governed only records that left the built book; archived with them. | the records it governed are in organizations | `organizations/organizations/decisions.ts` |
+| decision | `organizations.head-connection` | archive | Governed only records that left the built book; archived with them. | the records it governed are in organizations | `organizations/organizations/decisions.ts` |
+| decision | `organizations.head-doorbell` | archive | Governed only records that left the built book; archived with them. | the records it governed are in organizations | `organizations/organizations/decisions.ts` |
+| decision | `organizations.head-ownership` | archive | Governed only records that left the built book; archived with them. | the records it governed are in organizations | `organizations/organizations/decisions.ts` |
+| table | `head-changes` | dropped | Capxul hosts every organisation's Frappe site and creates it with the organisation (aaron.one-door); nothing is connected from outside, so the connec… | the site is created with the organisation; a connection is not needed | `organizations/devnet/data.ts` |
+| table | `head-documents` | dropped | Capxul hosts every organisation's Frappe site and creates it with the organisation (aaron.one-door); nothing is connected from outside, so the connec… | the site is created with the organisation; a connection is not needed | `organizations/devnet/data.ts` |
+| table | `head-sites` | dropped | Capxul hosts every organisation's Frappe site and creates it with the organisation (aaron.one-door); nothing is connected from outside, so the connec… | the site is created with the organisation; a connection is not needed | `organizations/devnet/data.ts` |
+| table | `org-heads` | dropped | Capxul hosts every organisation's Frappe site and creates it with the organisation (aaron.one-door); nothing is connected from outside, so the connec… | the site is created with the organisation; a connection is not needed | `organizations/organizations/data.ts` |
+| machine | `org-head` | dropped | Capxul hosts every organisation's Frappe site and creates it with the organisation (aaron.one-door); nothing is connected from outside, so the connec… | the site is created with the organisation; a connection is not needed | `organizations/organizations/data.ts` |
+| event | `org_head_transitioned` | dropped | Capxul hosts every organisation's Frappe site and creates it with the organisation (aaron.one-door); nothing is connected from outside, so the connec… | the site is created with the organisation; a connection is not needed | `organizations/organizations/data.ts` |
+| rpc | `organizations.heads.connect` | dropped | Capxul hosts every organisation's Frappe site and creates it with the organisation (aaron.one-door); nothing is connected from outside, so the connec… | the site is created with the organisation; a connection is not needed | `organizations/organizations/heads.ts` |
+| rpc | `organizations.heads.disconnect` | dropped | Capxul hosts every organisation's Frappe site and creates it with the organisation (aaron.one-door); nothing is connected from outside, so the connec… | the site is created with the organisation; a connection is not needed | `organizations/organizations/heads.ts` |
+| rpc | `organizations.heads.ring` | dropped | Capxul hosts every organisation's Frappe site and creates it with the organisation (aaron.one-door); nothing is connected from outside, so the connec… | the site is created with the organisation; a connection is not needed | `organizations/organizations/heads.ts` |
+| flow | `client.org.head.connect` | dropped | Capxul hosts every organisation's Frappe site and creates it with the organisation (aaron.one-door); nothing is connected from outside, so the connec… | the site is created with the organisation; a connection is not needed | `organizations/organizations/flows.ts` |
+| flow | `client.org.head.disconnect` | dropped | Capxul hosts every organisation's Frappe site and creates it with the organisation (aaron.one-door); nothing is connected from outside, so the connec… | the site is created with the organisation; a connection is not needed | `organizations/organizations/flows.ts` |
+| workflow | `notices.organizations.head-stalled` | dropped | Capxul hosts every organisation's Frappe site and creates it with the organisation (aaron.one-door); nothing is connected from outside, so the connec… | the site is created with the organisation; a connection is not needed | `organizations/notices/organizations.ts` |
+| workflow | `organizations.heads.watch` | dropped | Capxul hosts every organisation's Frappe site and creates it with the organisation (aaron.one-door); nothing is connected from outside, so the connec… | the site is created with the organisation; a connection is not needed | `organizations/organizations/processes.ts` |

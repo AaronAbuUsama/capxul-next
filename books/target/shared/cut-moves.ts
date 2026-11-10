@@ -122,3 +122,23 @@ export const decision_cut_requests = defineDecision({
   source: BY,
   affects: [f.system_capxul, decision_cut_principle],
 });
+
+export const decision_cut_organizations = defineDecision({
+  id: "cut.organizations",
+  title: "the connected head leaves: Capxul hosts every site",
+  question: "What happens to organizations in the built book?",
+  options: [
+      {
+          "label": "moved",
+          "text": "The connected head leaves: Capxul hosts every site. Moved to docs/cut-archive/organizations/ with their text intact: 4 tables, 2 workflows, 1 event, 1 machine, 2 flows, 3 rpcs, 2 operations, 6 decisions. Listed in docs/cut-archive/INDEX.md with a reason and what carries each. Capxul hosts every organisation's Frappe site and creates it with the organisation (aaron.one-door); nothing is connected from outside, so the connect and disconnect records go."
+      },
+      {
+          "label": "trimmed-1",
+          "text": "Kept records that read or invoked a removed record and no longer do (the dependency is Frappe's now): organizations/heads.ts: export const rpc_organizations_heads_show no longer reads or invokes table_org_heads."
+      }
+  ],
+  chosen: "moved",
+  why: "The cut's rule (cut.principle): Frappe owns what it owns and the door reaches it; nothing is deleted. Aaron's rulings aaron.frappe-native and aaron.one-door.",
+  source: BY,
+  affects: [f.system_capxul, decision_cut_principle, decision_cut_plug_placeholders],
+});

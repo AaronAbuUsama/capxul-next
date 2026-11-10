@@ -4452,9 +4452,6 @@
         "tbl:org-fdes/schema",
         "tbl:org-fdes/tenancy",
         "tbl:org-fdes/writers",
-        "tbl:org-heads/schema",
-        "tbl:org-heads/tenancy",
-        "tbl:org-heads/writers",
         "tbl:org-invitations/schema",
         "tbl:org-invitations/tenancy",
         "tbl:org-invitations/writers",
@@ -4489,11 +4486,6 @@
         "trn:org-fde.retire",
         "trn:org-fde.start",
         "trn:org-fde.wake",
-        "trn:org-head.confirm",
-        "trn:org-head.connect",
-        "trn:org-head.disconnect",
-        "trn:org-head.recover",
-        "trn:org-head.stall",
         "trn:org-invite.accept",
         "trn:org-invite.begin_cleanup",
         "trn:org-invite.cancel",
@@ -4563,48 +4555,6 @@
       "needs": [
         "door:organizations",
         "integration:fde-host",
-        "milestone:B3"
-      ],
-      "labels": [
-        "kind:process",
-        "lane:organizations",
-        "layer:6"
-      ],
-      "budgetUsd": 5,
-      "checkers": [
-        "reviewer"
-      ],
-      "paths": [
-        "books/target/organizations/",
-        "packages/backend/src/organizations/",
-        "packages/sdk/src/organizations/"
-      ]
-    },
-    {
-      "key": "workflow:organizations.heads.watch",
-      "kind": "process",
-      "lane": "organizations",
-      "layer": 6,
-      "parent": "lane:organizations",
-      "priority": "normal",
-      "evals": [
-        "bud:organizations.heads.watch/p95",
-        "wfl:organizations.heads.watch/idempotent",
-        "wfl:organizations.heads.watch/resume",
-        "wfl:organizations.heads.watch/wake/app-wanted",
-        "wfl:organizations.heads.watch/wake/disconnected",
-        "wfl:organizations.heads.watch/wake/ring",
-        "wfl:organizations.heads.watch/wake/seat-changed"
-      ],
-      "record": "workflow:organizations.heads.watch",
-      "title": "Process: organizations.heads.watch",
-      "goal": "The durable process organizations.heads.watch (One head connection's life: check the site, install wanted apps, follow it) runs as its record says: it resumes after a crash, each activity's side effect lands once, and every keyed wait is woken by what its key names.",
-      "needs": [
-        "door:access",
-        "door:indexing",
-        "door:organizations",
-        "door:parties",
-        "integration:frappe-head",
         "milestone:B3"
       ],
       "labels": [
@@ -4731,41 +4681,6 @@
         "kind:process",
         "lane:organizations",
         "layer:6"
-      ],
-      "budgetUsd": 5,
-      "checkers": [
-        "reviewer"
-      ],
-      "paths": [
-        "books/target/organizations/",
-        "packages/backend/src/organizations/",
-        "packages/sdk/src/organizations/"
-      ]
-    },
-    {
-      "key": "rpc:organizations.heads.ring",
-      "kind": "rpc",
-      "lane": "organizations",
-      "layer": 6,
-      "parent": "lane:organizations",
-      "priority": "normal",
-      "evals": [
-        "rpc:organizations.heads.ring/budget",
-        "rpc:organizations.heads.ring/errors",
-        "rpc:organizations.heads.ring/spans"
-      ],
-      "record": "rpc:organizations.heads.ring",
-      "title": "Rpc: organizations.heads.ring",
-      "labels": [
-        "kind:rpc",
-        "lane:organizations",
-        "layer:6"
-      ],
-      "goal": "The server endpoint organizations.heads.ring (A connected head rings: something changed there) answers as its record says: its declared errors only, its spans and its budget. No operation steps it; a durable process or another surface does.",
-      "needs": [
-        "door:organizations",
-        "milestone:B3",
-        "workflow:organizations.heads.watch"
       ],
       "budgetUsd": 5,
       "checkers": [
@@ -5547,118 +5462,6 @@
       ]
     },
     {
-      "key": "operation:org.head.connect",
-      "kind": "operation",
-      "lane": "organizations",
-      "layer": 6,
-      "parent": "lane:organizations",
-      "priority": "normal",
-      "evals": [
-        "acc:org.head.connect/1",
-        "acc:org.head.connect/2",
-        "acc:org.head.connect/3",
-        "acc:org.head.connect/4",
-        "bud:org.head.connect/p95",
-        "des:org.head.connect",
-        "doc:org.head.connect",
-        "evt:org.head.connect/org_head_transitioned",
-        "flw:client.org.head.connect/budget",
-        "flw:client.org.head.connect/spans",
-        "ref:org.head.connect/CANCELLED",
-        "ref:org.head.connect/CLI_USAGE",
-        "ref:org.head.connect/INVALID_INPUT",
-        "ref:org.head.connect/NOT_AUTHENTICATED",
-        "ref:org.head.connect/PROVIDER_ERROR",
-        "ref:org.head.connect/ROLE_PERMISSION_DENIED",
-        "ref:org.head.connect/WRONG_STATE",
-        "ret:org.head.connect",
-        "rpc:organizations.heads.connect/budget",
-        "rpc:organizations.heads.connect/errors",
-        "rpc:organizations.heads.connect/spans",
-        "rpc:organizations.heads.show/budget",
-        "rpc:organizations.heads.show/errors",
-        "rpc:organizations.heads.show/spans",
-        "spn:org.head.connect"
-      ],
-      "record": "operation:org.head.connect",
-      "title": "org head connect: Connect a Frappe site as the Organization's head",
-      "labels": [
-        "area:organizations",
-        "kind:operation",
-        "lane:organizations",
-        "layer:6"
-      ],
-      "goal": "`capxul org head connect` does what operation org.head.connect promises: its 4 acceptance claims and 7 refusals hold, its --json shape, events, spans and budget pass on a devnet at the head of integration/build, and its reference page agrees with it. Connects a Frappe site, on Frappe Cloud or self-hosted, as the Organization's head: once connected, accounting, payroll, the CRM and projects sync with it, and Capxul stays the record of money and identity. It reads the head user's API key and secret, and on Frappe Cloud the team's token, from a prompt or from `--key-file` and `--team-token-file`, never from a flag; previews what connecting shares and asks (`--confirm` answers yes in a script); then follows the site's check until the head is connected, or failing with the reason. An Organization has at most one live head.",
-      "needs": [
-        "door:indexing",
-        "door:organizations",
-        "milestone:B3",
-        "operation:org.head.app.list",
-        "workflow:organizations.heads.watch"
-      ],
-      "budgetUsd": 5,
-      "checkers": [
-        "reviewer"
-      ],
-      "paths": [
-        "books/target/organizations/",
-        "packages/backend/src/organizations/",
-        "packages/sdk/src/organizations/"
-      ]
-    },
-    {
-      "key": "operation:org.head.disconnect",
-      "kind": "operation",
-      "lane": "organizations",
-      "layer": 6,
-      "parent": "lane:organizations",
-      "priority": "normal",
-      "evals": [
-        "acc:org.head.disconnect/1",
-        "acc:org.head.disconnect/2",
-        "bud:org.head.disconnect/p95",
-        "des:org.head.disconnect",
-        "doc:org.head.disconnect",
-        "evt:org.head.disconnect/org_head_transitioned",
-        "flw:client.org.head.disconnect/budget",
-        "flw:client.org.head.disconnect/spans",
-        "ref:org.head.disconnect/CANCELLED",
-        "ref:org.head.disconnect/CLI_USAGE",
-        "ref:org.head.disconnect/NOT_AUTHENTICATED",
-        "ref:org.head.disconnect/ROLE_PERMISSION_DENIED",
-        "ref:org.head.disconnect/WRONG_STATE",
-        "ret:org.head.disconnect",
-        "rpc:organizations.heads.disconnect/budget",
-        "rpc:organizations.heads.disconnect/errors",
-        "rpc:organizations.heads.disconnect/spans",
-        "spn:org.head.disconnect"
-      ],
-      "record": "operation:org.head.disconnect",
-      "title": "org head disconnect: Disconnect the Organization's head",
-      "labels": [
-        "area:organizations",
-        "kind:operation",
-        "lane:organizations",
-        "layer:6"
-      ],
-      "goal": "`capxul org head disconnect` does what operation org.head.disconnect promises: its 2 acceptance claims and 5 refusals hold, its --json shape, events, spans and budget pass on a devnet at the head of integration/build, and its reference page agrees with it. After a preview, disconnects the Organization's live head: every sync stops, Capxul keeps every record it holds and the head keeps its own documents. The head's key is never used again, and its later rings are refused. A new connection can be made afterwards.",
-      "needs": [
-        "door:indexing",
-        "door:organizations",
-        "milestone:B3",
-        "operation:org.head.connect"
-      ],
-      "budgetUsd": 5,
-      "checkers": [
-        "reviewer"
-      ],
-      "paths": [
-        "books/target/organizations/",
-        "packages/backend/src/organizations/",
-        "packages/sdk/src/organizations/"
-      ]
-    },
-    {
       "key": "operation:org.head.doc-call.list",
       "kind": "operation",
       "lane": "organizations",
@@ -6290,6 +6093,9 @@
         "ref:org.head.show/NOT_AUTHENTICATED",
         "ref:org.head.show/ROLE_PERMISSION_DENIED",
         "ret:org.head.show",
+        "rpc:organizations.heads.show/budget",
+        "rpc:organizations.heads.show/errors",
+        "rpc:organizations.heads.show/spans",
         "spn:org.head.show"
       ],
       "record": "operation:org.head.show",
@@ -6302,8 +6108,8 @@
       ],
       "goal": "`capxul org head show` does what operation org.head.show promises: its 5 acceptance claims and 2 refusals hold, its --json shape, events, spans and budget pass on a devnet at the head of integration/build, and its reference page agrees with it. Shows the Organization's live head: its site and host, whether it is connecting, connected or failing and why, Frappe's and the Capxul app's versions, its time zone, who connected it, when it was last checked and last rang, and the Organization's apps as the head runs them. Null when there is none. It never shows a key or a token.",
       "needs": [
-        "milestone:B3",
-        "operation:org.head.connect"
+        "door:organizations",
+        "milestone:B3"
       ],
       "budgetUsd": 5,
       "checkers": [
@@ -16996,45 +16802,6 @@
       ]
     },
     {
-      "key": "workflow:notices.organizations.head-stalled",
-      "kind": "process",
-      "lane": "notices",
-      "layer": 12,
-      "parent": "lane:notices",
-      "priority": "normal",
-      "evals": [
-        "bud:notices.organizations.head-stalled/p95",
-        "wfl:notices.organizations.head-stalled/idempotent",
-        "wfl:notices.organizations.head-stalled/resume"
-      ],
-      "record": "workflow:notices.organizations.head-stalled",
-      "title": "Process: notices.organizations.head-stalled",
-      "goal": "The durable process notices.organizations.head-stalled (Tell the Directors their Frappe head stopped answering) runs as its record says: it resumes after a crash, each activity's side effect lands once, and every keyed wait is woken by what its key names.",
-      "needs": [
-        "door:access",
-        "door:notices",
-        "door:organizations",
-        "door:parties",
-        "integration:chain-rpc",
-        "integration:mail",
-        "milestone:B3"
-      ],
-      "labels": [
-        "kind:process",
-        "lane:notices",
-        "layer:12"
-      ],
-      "budgetUsd": 5,
-      "checkers": [
-        "reviewer"
-      ],
-      "paths": [
-        "books/target/notices/",
-        "packages/backend/src/notices/",
-        "packages/sdk/src/notices/"
-      ]
-    },
-    {
       "key": "workflow:notices.organizations.invitation-opened",
       "kind": "process",
       "lane": "notices",
@@ -17861,12 +17628,6 @@
       "evals": [
         "tbl:fde-host-agents/schema",
         "tbl:fde-host-agents/writers",
-        "tbl:head-changes/schema",
-        "tbl:head-changes/writers",
-        "tbl:head-documents/schema",
-        "tbl:head-documents/writers",
-        "tbl:head-sites/schema",
-        "tbl:head-sites/writers",
         "tbl:mail-faults/schema",
         "tbl:mail-faults/writers",
         "tbl:mail-messages/schema",

@@ -4,7 +4,7 @@
 
 import { defineDecision } from "../../../packages/book/src/index.ts";
 import { concept_contacts, concept_parties } from "../shared/foundation.ts";
-import { machine_org_head, table_org_deployments, table_org_heads, table_org_members } from "../organizations/data.ts";
+import { table_org_deployments, table_org_members } from "../organizations/data.ts";
 import { table_parties } from "../parties/data.ts";
 import { procedure_parties_resolve_recipient } from "../parties/procedures.ts";
 import {
@@ -860,7 +860,7 @@ export const decision_contacts_head_sync = defineDecision({
   source: crmBy("books/target/shared/external.ts (integration frappe-head); books/target/projects/processes.ts (projects.head.sync); organizations/data.ts (org-heads)"),
   affects: [
     table_contact_changes, table_contacts, 
-    table_org_heads, machine_org_head, table_parties, procedure_parties_resolve_recipient, concept_parties,
+    table_parties, procedure_parties_resolve_recipient, concept_parties,
   ],
 });
 

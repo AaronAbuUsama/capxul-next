@@ -21,11 +21,8 @@ import { procedure_parties_resolve_recipient } from "../../parties/procedures.ts
 import { procedure_documents_store } from "../../documents/procedures.ts";
 import { table_budgets } from "../../budgets/data.ts";
 import {
-  event_org_head_transitioned,
-  machine_org_head,
   machine_org_setup,
   table_org_deployments,
-  table_org_heads,
   table_org_members,
   table_organizations,
 } from "../../organizations/data.ts";
