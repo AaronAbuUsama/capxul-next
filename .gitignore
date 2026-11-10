@@ -12,4 +12,7 @@ status/runs/*/run.log
 # working data, never committed: loop run folders are written to var/runs/
 var/
 
+# TypeScript's incremental build record: `pnpm check` (tsc -b) writes one beside each tsconfig
+*.tsbuildinfo
+
 .DS_Store
