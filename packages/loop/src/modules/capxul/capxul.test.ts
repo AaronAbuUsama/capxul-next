@@ -10,7 +10,8 @@ import pair from "../../../../../loops/pair.ts";       // the real standard scri
 import { git } from "../lanes/service.ts";
 import { ask, openHost, refuseBash, refusePath } from "../agents/service.ts";
 import { clean, DEFAULTS, gatesOf, lane, logs, merge, POLICY, resume, start, status, stop, watch, work, type Ctx, type Opts } from "./service.ts";
-import { modelsOf } from "./internal/config.ts";
+import { GATEWAYS, gatewayOf, modelsOf } from "./internal/config.ts";
+import { findingsOf } from "./internal/gates.ts";
 import * as plan from "./internal/plan.ts";
 
 const AGENTS = join(import.meta.dirname, "../../../../../.claude/agents");
@@ -264,8 +265,7 @@ test("every request to the gateway carries the conversation's own session id, on
   });
   await new Promise<void>((ready) => gateway.listen(0, "127.0.0.1", () => ready()));
   const dir = mkdtempSync(join(tmpdir(), "loop-session-"));
-  const env = { LOOP_MODEL_BASE_URL: `http://127.0.0.1:${(gateway.address() as { port: number }).port}/v1`, LLM_ROUTER_API_KEY: "a-test-key" };
-  Object.assign(process.env, { LLM_ROUTER_API_KEY: process.env.LLM_ROUTER_API_KEY ?? env.LLM_ROUTER_API_KEY });   // the key is read from the process when a request is made
+  const env = { LOOP_MODEL_BASE_URL: `http://127.0.0.1:${(gateway.address() as { port: number }).port}/v1` };   // the default gateway asks for no key
   const host = await openHost({ file: join(dir, "run.sqlite"), models: modelsOf({ root: dir, env, now: () => new Date(), say: () => undefined }), env: {}, policy: POLICY });
   try {
     const one = await ask(host, { key: "make.1", model: "gateway/gpt-6.1-sol", system: "s", prompt: "p", cwd: dir, profile: "read" });
@@ -275,4 +275,20 @@ test("every request to the gateway carries the conversation's own session id, on
     assert.match(seen[0] ?? "", /^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-/);                  // pi-durable's id of the conversation
     assert.notEqual(seen[0], seen[1]);                                                    // another agent, another session
   } finally { await host.close(); await new Promise((done) => gateway.close(done)); }
+});
+
+test("the gateway is named: the proxy on this machine by default, with no key; another by LOOP_GATEWAY; its parts can still be overridden", () => {
+  const of = (env: Record<string, string>) => gatewayOf({ root: "/", env, now: () => new Date(), say: () => undefined });
+  assert.deepEqual(of({}), { name: "local", baseUrl: "http://127.0.0.1:8317/v1", keyEnv: null });
+  assert.deepEqual(of({ LOOP_GATEWAY: "router" }), { name: "router", ...GATEWAYS["router"] });
+  assert.deepEqual(of({ LOOP_MODEL_BASE_URL: "http://x/v1", LOOP_MODEL_KEY_ENV: "SOME_KEY" }), { name: "local", baseUrl: "http://x/v1", keyEnv: "SOME_KEY" });
+  assert.throws(() => of({ LOOP_GATEWAY: "nope" }), /there is no gateway named nope: LOOP_GATEWAY is one of local, router/);
+});
+
+test("a builder is told where its own lane's findings are: the folder the checkout's build script writes to", () => {
+  const dir = mkdtempSync(join(tmpdir(), "loop-findings-"));
+  writeFileSync(join(dir, "package.json"), JSON.stringify({ scripts: { blueprint: "node engine/main.ts blueprint/index.ts var/blueprint" } }));
+  assert.equal(findingsOf(dir), "var/blueprint/findings.json");
+  writeFileSync(join(dir, "package.json"), JSON.stringify({ scripts: { blueprint: "node engine/main.ts blueprint/index.ts /tmp/target" } }));
+  assert.equal(findingsOf(dir), null);                                    // a folder outside the checkout is shared: the brief does not point at it
 });

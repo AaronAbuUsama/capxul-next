@@ -126,8 +126,15 @@ picks its own ports (`8545 + 100n`), so "free ports are found" holds for light o
 
 ## Models
 
-One OpenAI-compatible gateway: `LOOP_MODEL_BASE_URL` (default `https://llm.capxul.com/v1`), key from the variable named by
-`LOOP_MODEL_KEY_ENV` (default `LLM_ROUTER_API_KEY`; `source ~/.zshenv` if unset). Only `gpt-6.1-sol` and `gpt-6.1-terra` are accepted (Aaron's ruling); any other id is refused before a call is made. Defaults: maker `gpt-6.1-sol` (Aaron's ruling: Sol 6.1 for coding),
+One OpenAI-compatible gateway, by name (`internal/config.ts`, `GATEWAYS`). `LOOP_GATEWAY` picks it:
+
+| Name | Where | Key |
+|---|---|---|
+| `local` (default) | `http://127.0.0.1:8317/v1`: the CLI proxy on this Mac (CLIProxyAPI, through VibeProxy) | none |
+| `router` | `https://llm.capxul.com/v1`: the LiteLLM router, out of the loop's path by the owner's ruling of 10 November | `LLM_ROUTER_API_KEY` |
+
+`LOOP_MODEL_BASE_URL` and `LOOP_MODEL_KEY_ENV` still override the two parts. A run records which gateway it used.
+Only `gpt-6.1-sol` and `gpt-6.1-terra` are accepted (Aaron's ruling); any other id is refused before a call is made. Defaults: maker `gpt-6.1-sol` (Aaron's ruling: Sol 6.1 for coding),
 checker `gpt-6.1-terra`: a strong coding model, and a different family so the review is independent. They were picked from
 what the gateway lists and answers (the newer Claude ids, kimi and deepseek returned 401 from the gateway on 10 November).
 Override with `--model` / `--checker-model` or `LOOP_MODEL` / `LOOP_CHECKER_MODEL`. The gateway reports no prices, so pi

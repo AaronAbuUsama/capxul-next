@@ -10,10 +10,10 @@ import { join } from "node:path";
 import { ask, lastJson, openHost, type Host } from "../agents/service.ts";
 import { commitAll, ensureLane, git, head, laneBlocked, slug, type Lane } from "../lanes/service.ts";
 import { acquire, alive, ledgerLines, listRuns, play, readInfo, SETTLED, stop as stopRun, table, watchRun, work as workLoop, type Info, type Run } from "../runs/service.ts";
-import { allowedModel, defaultCheckerModel, defaultModel, modelsOf, POLICY, qualify } from "./internal/config.ts";
+import { allowedModel, defaultCheckerModel, defaultModel, gatewayOf, modelsOf, POLICY, qualify } from "./internal/config.ts";
 import { serve as serveHost, type Served } from "../host/service.ts";
 import { showDetail, showView, statusViews, type Look, type RunDetail, type RunView } from "../inspect/service.ts";
-import { gatesFor, runGates } from "./internal/gates.ts";
+import { findingsOf, gatesFor, runGates } from "./internal/gates.ts";
 import * as plan from "./internal/plan.ts";
 import { checkerPrompt, makerPrompt as renderMaker, researchPrompt, type CheckInput } from "./internal/prompts.ts";
 import { startSandbox, stopSandbox } from "./internal/sandbox.ts";
@@ -61,7 +61,7 @@ const roleBody = (job: Job, role: string): string => {
 
 /** The maker's brief for round `round`: the task, the open findings, the last handover, the sandbox (swarm-templates.md 2.1). */
 export const makerPrompt = (job: Job, round: number, open: Finding[], last?: Handback): string =>
-  renderMaker({ task: job.task, round, budgetUsd: job.opts.budgetUsd, spentUsd: job.run.info.spentUsd, spentTokens: job.run.info.tokens, branch: job.lane!.branch, sandbox: boxLine(job.box!), open, ...(last?.handover ? { handover: last.handover } : {}) }, gatesFor(job.ctx, job.lane!.dir, job.task).map((g) => g.sh));
+  renderMaker({ task: job.task, round, budgetUsd: job.opts.budgetUsd, spentUsd: job.run.info.spentUsd, spentTokens: job.run.info.tokens, branch: job.lane!.branch, sandbox: boxLine(job.box!), open, ...(last?.handover ? { handover: last.handover } : {}) }, gatesFor(job.ctx, job.lane!.dir, job.task).map((g) => g.sh), findingsOf(job.lane!.dir));
 
 /** One agent (pi-durable conversation, the role's definition as its system prompt, tools confined to the lane) as one step. Its work is committed after. */
 export const agent = (job: Job, name: string, o: { role: string; prompt: string; readOnly?: boolean }): Promise<Said> => job.run.step(name, async () => {
@@ -161,7 +161,7 @@ const playJob = (ctx: Ctx, id: string, task: Task, opts: Opts, script?: Script):
   let job: Job | undefined;
   return play({
     dir, id, subject: task.id, now: ctx.now, open: () => open(ctx, dir, env, false, [opts.model, opts.checkerModel].filter((x): x is string => !!x)),
-    extra: () => ({ opts, task, lane: job?.lane ?? was.lane, sandbox: job?.box ?? was.sandbox, source: task.source }),
+    extra: () => ({ opts, task, lane: job?.lane ?? was.lane, sandbox: job?.box ?? was.sandbox, source: task.source, gateway: ctx.models ? "test" : gatewayOf(ctx).name }),
     script: async (run: Run) => {
       job = { ctx, run, env, task, opts, ...(was.lane ? { lane: was.lane as Lane } : {}), ...(was.sandbox ? { box: was.sandbox as SandboxInfo } : {}) };
       Object.assign(env, cleanEnv(ctx, job.box?.env ?? {}));
