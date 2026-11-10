@@ -9,6 +9,8 @@ watchable from another process, and open to being steered later.
 ```bash
 pnpm loop run m1-dev-commands --script pair --sandbox none   # one run: maker, gates, checker, up to 3 rounds
 pnpm loop status                                             # run, task, status, step, round, elapsed, spend
+pnpm loop status --json [--since-hours 24]                   # the same as data: counts, models, last events (src/modules/inspect)
+pnpm loop show <run id> --json                               # one run with its last twenty events
 pnpm loop watch <run id>                                     # attach: what the agent is doing now, live (read-only)
 pnpm loop logs <run id>                                      # the ledger: each step, the conversation it used, how it ended
 pnpm loop stop <run id>                                      # the agent is aborted within a second or two

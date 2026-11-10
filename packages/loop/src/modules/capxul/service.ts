@@ -11,6 +11,7 @@ import { ask, lastJson, openHost, type Host } from "../agents/service.ts";
 import { catchUp, commitAll, dropLane, ensureLane, git, head, slug, type Lane } from "../lanes/service.ts";
 import { alive, ledgerLines, listRuns, play, readInfo, SETTLED, stop as stopRun, table, watchRun, work as workLoop, type Info, type Run } from "../runs/service.ts";
 import { allowedModel, defaultCheckerModel, defaultModel, modelsOf, POLICY, qualify } from "./internal/config.ts";
+import { showView, statusViews, type Look, type RunView } from "../inspect/service.ts";
 import { runGates } from "./internal/gates.ts";
 import * as plan from "./internal/plan.ts";
 import { checkerPrompt, makerPrompt as renderMaker, researchPrompt, type CheckInput } from "./internal/prompts.ts";
@@ -23,7 +24,8 @@ export { GATES } from "./internal/gates.ts";
 export { POLICY } from "./internal/config.ts";
 
 export const DEFAULTS: Opts = { script: "pair", sandbox: "none", rounds: 3, budgetUsd: 5, timeoutMin: 30 };
-const runsDir = (ctx: Ctx): string => join(ctx.root, "runs");
+/** Where the runs are: `runs/` of the checkout, or the folder `LOOP_RUNS` names (the portal can read another checkout's). */
+const runsDir = (ctx: Ctx): string => ctx.env.LOOP_RUNS ?? join(ctx.root, "runs");
 const baseOf = (ctx: Ctx): string => ctx.env.LOOP_BASE ?? "integration/build";
 const CHECKER_ROLES = new Set(["reviewer", "adversary", "diagnoser"]);
 
@@ -179,6 +181,12 @@ export const resume = async (ctx: Ctx, id: string, script?: Script): Promise<Inf
 
 export const stop = (ctx: Ctx, id: string): string => stopRun(join(runsDir(ctx), id));
 export const status = (ctx: Ctx): string => table(listRuns(runsDir(ctx)).map((r) => r.info), ctx.now());
+
+const lookOf = (ctx: Ctx, events: number): Look => ({ runs: runsDir(ctx), open: (dir) => open(ctx, dir, {}, true), now: ctx.now(), env: ctx.env, events });
+/** `loop status --json`: every run that is running or was saved within `sinceHours`, each with its counts and its last three events. */
+export const statusJson = (ctx: Ctx, sinceHours: number): Promise<readonly RunView[]> => statusViews(lookOf(ctx, 3), sinceHours);
+/** `loop show <run> --json`: one run with its last twenty events, or null. */
+export const showJson = (ctx: Ctx, id: string): Promise<RunView | null> => showView(lookOf(ctx, 20), id);
 
 /** The ledger of a run, then, with `follow`, what its agent is doing until the run ends. */
 export const logs = async (ctx: Ctx, id: string, follow: boolean): Promise<void> => {
