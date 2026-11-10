@@ -29,6 +29,22 @@ const dec = (spec: { id: string; title: string; question: string; options: { lab
 const WORLD_OPS = [o.operation_world_create, o.operation_world_list, o.operation_world_show, o.operation_world_register, o.operation_world_clock_set, o.operation_world_clock_freeze, o.operation_world_clock_resume, o.operation_world_clock_warp, o.operation_world_snapshot_save, o.operation_world_snapshot_list, o.operation_world_snapshot_restore];
 const RECORD_OPS = [o.operation_record_list, o.operation_record_show, o.operation_record_export];
 
+export const decision_devnet_site_clock_follower = dec({
+  id: "devnet.site-clock-follower",
+  title: "A persistent supervisor adapter puts sites inside the clock barrier",
+  question: "How do hosted sites follow during a warp and between clock commands?",
+  options: [{ label: "push-follower", text: "A supervisor-owned adapter joins timeFollow as stateful sites:<world>; it pushes setClock on every version and relays site idle and earliest next due to the authority." }],
+  chosen: "push-follower",
+  why:
+    "F-1.2: a final clock write cannot implement devnet.warp-barrier. World creation starts the adapter before running; clock rpcs ensure it is attached, reusing its identity rather than joining twice. " +
+    "It lives beyond the rpc and reconnects after supervisor restart. Every due stop, including intermediate warp stops, reaches every site before the adapter acknowledges idle; it aggregates the earliest site due and reports new due instants immediately. " +
+    "Sites run due jobs to quiescence at the held instant, then acknowledge the matching epoch/version. A missing site or acknowledgement fails the barrier with its name; the authority retains its last settled stop under devnet.warp-barrier, never treats delivery failure as success. " +
+    "setClock carries world, epoch, version, now, realAt, realNow, mode, rate and stopAt. Duplicate versions return the same acknowledgement; older versions are rejected. While running, sites use the capped formula, minute offset calibration and monotonic reads of devnet.follow-at-a-rate. " +
+    "All traffic is initiated by the supervisor: it polls the site's due/idle result, so the hosted bench needs no inbound route to a laptop. The adapter handles save/restore as a stateful follower; restore changes epoch before resuming, and a new site receives the current clock before serving. " +
+    "Core-only worlds have no site follower. This reconciles plugs.surface-gap-audit with the existing follower and warp contracts; rate and barrier delivery remain unproved design, not spike evidence.",
+  affects: [integration_devnet_control, integration_site_service, w.workflow_devnet_worlds_create, r.rpc_devnet_worlds_clock_set, r.rpc_devnet_worlds_clock_freeze, r.rpc_devnet_worlds_clock_resume, r.rpc_devnet_worlds_clock_warp],
+});
+
 export const decision_devnet_world_first_class = dec({
   id: "devnet.world-first-class",
   title: "A world is a chain, its companies, one clock and one record, and is first-class",

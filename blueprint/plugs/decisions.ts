@@ -21,12 +21,12 @@ export const decision_plugs_surface_gap_audit = dec({
   id: "plugs.surface-gap-audit",
   title: "Place the site service and connect the world's clock",
   question: "Where is the site service hosted, and which surviving caller moves its clock?",
-  options: [{ label: "host-and-connect", text: "Place it on the bench host; clock rpcs call setClock after moving the authority. Remove the unused dropSite API record." }],
+  options: [{ label: "host-and-connect", text: "Place it on the bench host; the supervisor site follower calls setClock at every authority version and stop. Remove the unused dropSite API record." }],
   chosen: "host-and-connect",
   why:
     "Hosted simulated and production environments place component:site-service on their bench host, explicitly planned rather than deployed. " +
-    "devnet.worlds.clock-set, clock-freeze, clock-resume and clock-warp send the resulting authority clock to site-service.setClock, idempotently; " +
-    "full worlds move every site, core-only worlds have none. A retry resends the authority's current clock, never advances it twice. " +
+    "devnet.site-clock-follower connects setClock inside the authority barrier, not after the move; it follows running rates too. " +
+    "Full worlds move every site, core-only worlds have none. A retry repeats its epoch and version, never advances the authority twice. " +
     "site-service.dropSite has no surviving product workflow or customer command: teardown remains test/operator machinery, evidenced by the spike scripts, " +
     "not a promise of an unused Core API. Its removal changes no site's deletion semantics or retention policy.",
   evidence: "m1-gaps-surface; lane var/blueprint/findings.json; blueprint/devnet/world-rpcs.ts; blueprint/shared/cloud.ts; spikes/skeleton/FINDINGS.md",

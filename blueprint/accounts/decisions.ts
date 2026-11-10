@@ -391,6 +391,17 @@ export const decision_accounts_sign_in_flow = defineDecision({
   affects: [flow_client_auth_sign_in, flow_client_auth_verify_otp, ops.operation_auth_login, ops.operation_auth_verify],
 });
 
+export const decision_accounts_faucet_refusal_fixture = defineDecision({
+  id: "accounts.faucet-refusal-fixture",
+  title: "Reach the production faucet guard locally, not an unavailable deployment",
+  question: "Which template reaches dev fund's WRONG_ENVIRONMENT?",
+  options: [{ label: "policy-fixture", text: "Use person-ready with only the accounts network-policy guard configured as production." }],
+  chosen: "policy-fixture",
+  why: "cli-on-beta-environment stops at CAPABILITY_UNAVAILABLE, not the faucet. The new supervisor fixture retains the reachable local backend and signed-in admitted person, but selects the production branch of the real faucet guard. It never mints or contacts a public chain. The harness must support this test-only startup configuration, not a customer fault switch.",
+  source: by("m1-gaps-surface round 2, F-1.1; accounts.grants.fund; devnet/worlds.ts"),
+  affects: [ops.operation_dev_fund, rpc_accounts_grants_fund],
+});
+
 export const decision_accounts_faucet = defineDecision({
   id: "accounts.faucet",
   title: "`dev fund` sends one faucet mint and answers at broadcast",
@@ -406,8 +417,8 @@ export const decision_accounts_faucet = defineDecision({
   why:
     "Rule 5 keeps waits out of rpcs, and a test mint is not a long-lived object worth a table and a process. The service " +
     "signer records the signed bytes before broadcasting, so a lost answer lands or is looked up, never sent twice. It is " +
-    "refused off test networks, and `--org` off a devnet, with WRONG_ENVIRONMENT (no devnet world reaches that refusal; " +
-    "the staging `live:*` evals do). Admission is required, as `waitlist status` says of the faucet, and the person's " +
+    "refused off test networks, and `--org` off a devnet, with WRONG_ENVIRONMENT. The local template person-ready-on-production-network-policy reaches the production guard " +
+    "with a valid session, changing only accounts network-policy configuration, not CAPXUL_ENV. Admission is required, as `waitlist status` says of the faucet, and the person's " +
     "Safe is the one their setup names. The mint is the test tokens' open `ERC20.mint(recipient, amount)` (shared " +
     "`contracts.test-token-mint`), named in the `chain` of this rpc and of the setup's staging welcome step.",
   source: by("dev.fund.yaml; waitlist.status.yaml (notes); packages/backend/src/accounts/grants/external/mints.ts:76; packages/contracts/src/TestMoneyToken.sol:22"),
@@ -468,8 +479,8 @@ export const decision_accounts_worlds = defineDecision({
     "landed with the first; the second signs in with a mailbox whose local part is not ASCII (sign-in keeps it, " +
     "access.email-rule). The open beta is a world, not a `dev gates set` step: that command scripts only Organization " +
     "gates (devnet.scripted-gates), so the world builder seeds the PostHog fake with `beta-access` on at rollout 100 " +
-    "for everyone before the sync. Only `dev fund`'s " +
-    "dev fund's WRONG_ENVIRONMENT uses cli-on-beta-environment (CAPXUL_ENV=beta), before any faucet call. No acceptance claim names a mechanism; one, `waitlist status` #2, is " +
+    "for everyone before the sync. " +
+    "dev fund's WRONG_ENVIRONMENT uses person-ready-on-production-network-policy at the rpc guard before any faucet call. No acceptance claim names a mechanism; one, `waitlist status` #2, is " +
     "rewritten for Aaron's money-waiting ruling and also starts from devnet's person-with-money-waiting " +
     "(accounts.money-waiting-admits). Every operation is `normal`, since no pilot of the spine is among them.",
   source: by("docs/spec/30-capxul-evals.md; ICompaniesHouseClaimer.sol (SwapRefused, EmailNotNormalized); blueprint/baseline/operations.ts"),

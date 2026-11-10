@@ -152,7 +152,7 @@ export const integration_site_service = defineIntegration({
       ],
     },
     setClock: {
-      about: "The world owns the clock and every site follows it: one write moves every site of the world. Proved by the spike: a set takes 4 to 6 s for four companies; an advance of 10 days 33 to 41 s. The rate is not built.",
+      about: "Push epoch/version and the capped rate clock to every site at every stop; return idle and next due after jobs finish. Idempotent by world/epoch/version; reject stale versions. devnet.site-clock-follower specifies the persistent adapter. Rate and barrier following are designed, not yet proved.",
       timeoutMs: 20_000,
       retries: { max: 2, backoff: "fixed" },
       p95Ms: 5_000,

@@ -17062,6 +17062,7 @@
       "needs": [
         "door:devnet",
         "integration:devnet-control",
+        "integration:site-service",
         "milestone:m2"
       ],
       "labels": [

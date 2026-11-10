@@ -15,7 +15,7 @@ export const workflow_devnet_worlds_create = defineWorkflow({
   about:
     "Started by `world create`. One process per world: it asks the supervisor to make the chain instance (from the template's saved chain state, or with the contracts deployed, 25 s in the old product), the service and its Postgres, the clock in the mode and " +
     "rate asked, the record's first entry `born` (naming the parent when the world is a restore), the stand-ins (mail sink, Bridge, prices) and the people's and agents' keys; then moves the world to running. If the template has a site backup per company, " +
-    "each is restored under the new address. A world that does not come up stays creating with the reason and can be made again; nothing it made is shared with another world (devnet.worlds-never-see-each-other).",
+    "each is restored under the new address. Before marking running, the supervisor joins its persistent stateful site follower via timeFollow and pushes the initial clock through setClock. It stays attached across rpc lifetimes (devnet.site-clock-follower). A world that does not come up stays creating with the reason and can be made again; nothing it made is shared with another world (devnet.worlds-never-see-each-other).",
   concept: concept_devnet,
   priority: "critical",
   trigger: { after: rpc_devnet_worlds_create },
@@ -30,7 +30,7 @@ export const workflow_devnet_worlds_create = defineWorkflow({
   drives: [machine_world.t.start],
   invokes: [],
   emits: [],
-  calls: [integration_devnet_control.c.worldCreate],
+  calls: [integration_devnet_control.c.worldCreate, integration_devnet_control.c.timeFollow, integration_site_service.c.setClock],
   chain: [],
   idempotency: "One process per world id; the supervisor's creation is idempotent by id.",
   timeoutMs: 180_000,

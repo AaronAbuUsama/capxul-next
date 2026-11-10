@@ -128,6 +128,13 @@ export const WORLDS: readonly World[] = [
     namedBy: ["budgets", "devnet"],
   },
   {
+    name: "person-ready-on-production-network-policy",
+    holds: "person-ready on the reachable local endpoint with a valid session and Safe, but the accounts network-policy guard configured as production. dev fund reaches accounts.grants.fund and refuses WRONG_ENVIRONMENT before signing or broadcasting. CAPXUL_ENV stays local.",
+    from: "person-ready",
+    steps: [supervisor("Restart the local backend with accounts network-policy set to production (test fixture only); retain the local endpoint, chain, session keys and saved state. No public network is contacted.")],
+    namedBy: ["accounts"],
+  },
+  {
     name: "shared-world-joiner",
     holds:
       "empty-devnet served as a shared world on the eval machine, its gateway on loopback (devnet.shared-world), with " +
