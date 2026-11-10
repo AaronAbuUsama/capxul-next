@@ -330,24 +330,26 @@
       "title": "Telemetry on every operation, and the record entry as a record",
       "why": "Every operation names its telemetry; the world's record entry is itself a record.",
       "milestone": "m1",
-      "state": "todo",
+      "state": "doing",
       "needs": [],
       "records": [],
       "evidence": [],
       "created": "2026-11-10",
-      "updated": "2026-11-10"
+      "updated": "2026-11-10",
+      "thread": "m1-telemetry-11101341"
     },
     {
       "id": "m1-aws-records",
       "title": "The AWS side as records: the machine, routes, DNS, backups and a production environment",
       "why": "Every part of the system is a record, the production environment included.",
       "milestone": "m1",
-      "state": "todo",
+      "state": "doing",
       "needs": [],
       "records": [],
       "evidence": [],
       "created": "2026-11-10",
-      "updated": "2026-11-10"
+      "updated": "2026-11-10",
+      "thread": "m1-aws-records-11101341"
     },
     {
       "id": "m1-lean-world",
@@ -1012,6 +1014,11 @@
       "date": "2026-11-10",
       "by": "coordinator",
       "text": "Models: only gpt-6.1-sol (maker) and gpt-6.1-terra (checker) are allowed on the gateway (Aaron, 10 Nov). The stopped live-page thread's loop half was good and is merged (d87bcb0: loop status --json, show --json). Its portal half is replaced by the agents view Aaron asked for (see, inspect and steer runs), prototyped in its own session. The stopped eval-coverage thread left nothing committed; it is redone through the loop."
+    },
+    {
+      "date": "2026-11-10",
+      "by": "coordinator",
+      "text": "Run observability (session run-observability): Aaron asked the coordinator to steer it. Accepted: one host that plays runs and serves the live view, shadcn AI Elements, the Workflow DX note as the direction for the authoring layer, the rename of loop to workflow last. Gate: a design pack in docs/design/run-observability (where runs live in the portal, the object model from plan task to tool call, the screens, the architecture) that Aaron accepts before product code."
     }
   ]
 }
