@@ -30,3 +30,19 @@ export const decision_cut_projects = defineDecision({
   source: BY,
   affects: [f.system_capxul, decision_cut_principle],
 });
+
+export const decision_cut_contacts = defineDecision({
+  id: "cut.contacts",
+  title: "contacts leaves the built book: Frappe owns the CRM and the address book",
+  question: "What happens to contacts in the built book?",
+  options: [
+      {
+          "label": "moved",
+          "text": "Contacts leaves the built book: Frappe owns the CRM and the address book. Moved to docs/cut-archive/contacts/ with their text intact: 22 rpcs, 14 tables, 7 events, 7 machines, 19 flows, 24 operations, 3 workflows, 25 decisions. Listed in docs/cut-archive/INDEX.md with a reason and what carries each. Frappe CRM owns leads, deals, tasks, notes, calls, email and WhatsApp, and Frappe core owns Contact and Address. Capxul's own records leave the built book; they are reached through the door."
+      }
+  ],
+  chosen: "moved",
+  why: "The cut's rule (cut.principle): Frappe owns what it owns and the door reaches it; nothing is deleted. Aaron's rulings aaron.frappe-native and aaron.one-door.",
+  source: BY,
+  affects: [f.system_capxul, decision_cut_principle, decision_cut_individuals_parked],
+});
