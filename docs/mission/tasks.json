@@ -21279,6 +21279,46 @@
       "paths": []
     },
     {
+      "key": "journey:thin_line",
+      "kind": "journey",
+      "lane": "journeys",
+      "layer": 15,
+      "parent": "lane:journeys",
+      "priority": "normal",
+      "evals": [
+        "fun:thin_line",
+        "jrn:thin_line"
+      ],
+      "record": "journey:thin_line",
+      "title": "Journey: thin_line",
+      "goal": "The journey thin_line (A company through the whole stack in a shared world) runs end to end on a devnet, and each step sends its proving event once, in order.",
+      "needs": [
+        "milestone:m2",
+        "milestone:m3",
+        "operation:doc.create",
+        "operation:doc.submit",
+        "operation:org.create",
+        "operation:org.member.grant",
+        "operation:payment.send",
+        "operation:record.export",
+        "operation:report.run",
+        "operation:world.clock.warp",
+        "operation:world.create",
+        "operation:world.show",
+        "operation:world.snapshot.restore",
+        "operation:world.snapshot.save"
+      ],
+      "labels": [
+        "kind:journey",
+        "lane:journeys",
+        "layer:15",
+        "watch"
+      ],
+      "budgetUsd": 0,
+      "checkers": [],
+      "paths": []
+    },
+    {
       "key": "journey:world_parks_and_wakes",
       "kind": "journey",
       "lane": "journeys",
