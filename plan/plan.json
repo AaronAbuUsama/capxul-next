@@ -21,7 +21,8 @@
       {
         "id": "g4",
         "claim": "Where code exists a check proves the book matches it.",
-        "state": "open"
+        "state": "met",
+        "evidence": "pnpm contracts:check-book on the real book: 0 undeclared differences (commit 029ca65)"
       },
       {
         "id": "g5",
@@ -72,7 +73,8 @@
         {
           "id": "g4",
           "claim": "Where code exists a check proves the book matches it.",
-          "state": "open"
+          "state": "met",
+          "evidence": "pnpm contracts:check-book on the real book: 0 undeclared differences (commit 029ca65)"
         },
         {
           "id": "g5",
@@ -298,12 +300,15 @@
       "title": "Reconcile the contract records with the code, and a check that fails when they differ",
       "why": "Where code exists, a check proves the book matches it.",
       "milestone": "m1",
-      "state": "todo",
+      "state": "done",
       "needs": [],
       "records": [],
-      "evidence": [],
+      "evidence": [
+        "commits 8f01525 029ca65: pnpm contracts:check-book, 9 contracts, 124 functions, 41 events, 113 errors compared, 0 undeclared differences, 10 allowed by contracts.general-escrow-not-built and contracts.equity-in-code"
+      ],
       "created": "2026-11-10",
-      "updated": "2026-11-10"
+      "updated": "2026-11-10",
+      "thread": "contracts-book"
     },
     {
       "id": "m1-examples",
@@ -661,14 +666,13 @@
   "path": {
     "tasks": [
       "m1-time-proof",
-      "m1-contracts-reconcile",
       "m1-aws-records",
       "m3b-create-machine",
       "m1-telemetry",
       "m1-examples",
       "m1-aaron-accepts"
     ],
-    "why": "Time comes first: Aaron said it has to be right, and he settled the approach for option A, so the proof of it is the first thing built on it. The spikes' evidence is in the book, so the contract reconciliation follows; the machine is the one step only Aaron can unblock, so it is asked for early.",
+    "why": "Time comes first: Aaron said it has to be right, and he settled the approach for option A, so the proof of it is the first thing built on it. The spikes' evidence is in the book and the contract reconciliation is done (its check passes), so the AWS records follow; the machine is the one step only Aaron can unblock, so it is asked for early.",
     "written": "2026-11-10"
   },
   "notes": [
