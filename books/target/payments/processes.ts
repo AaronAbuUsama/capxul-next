@@ -27,9 +27,7 @@ import * as books from "../books/procedures.ts";
 import { procedure_accounts_admit } from "../accounts/procedures.ts";
 import {
   procedure_organizations_add_bought_seats,
-  procedure_organizations_extend_fde_hosting,
   procedure_organizations_return_bought_seats,
-  procedure_organizations_return_fde_hosting,
 } from "../organizations/procedures.ts";
 import { procedure_documents_store } from "../documents/procedures.ts";
 import * as partiesData from "../parties/data.ts";
@@ -183,8 +181,6 @@ export const workflow_payments_lifecycle_payment = defineWorkflow({
     procedure_accounts_admit,
     procedure_organizations_add_bought_seats,
     procedure_organizations_return_bought_seats,
-    procedure_organizations_extend_fde_hosting,
-    procedure_organizations_return_fde_hosting,
   ],
   emits: [],
   calls: [

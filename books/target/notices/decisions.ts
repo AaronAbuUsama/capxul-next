@@ -26,9 +26,6 @@ import {
   workflow_notices_accounts_welcome_unlisted,
 } from "./accounts.ts";
 import {
-  workflow_notices_organizations_fde_due,
-  workflow_notices_organizations_fde_paused,
-  workflow_notices_organizations_fde_ready,
   workflow_notices_organizations_invitation_opened,
   workflow_notices_organizations_invitation_resent,
   workflow_notices_organizations_invitation_sent,
@@ -76,8 +73,6 @@ const OLD = "packages/backend/src";
 
 /** The workflows that tell an Organization through its Directors. */
 const TO_DIRECTORS = [
-  workflow_notices_organizations_fde_due,
-  workflow_notices_organizations_fde_paused,
   workflow_notices_board_threshold_changed,
   workflow_notices_board_proposal_waiting,
   workflow_notices_payments_scheduled,
@@ -819,7 +814,6 @@ export const decision_notices_head_and_fde = defineDecision({
     "begun `--no-fde` sends nothing.",
   source: RULINGS("docs/design/frappe/assembly-items.md (projects-startup: notices); organizations.head-connection; organizations.fde-seat"),
   affects: [
-    workflow_notices_organizations_fde_ready,
     machine_org_setup.t.complete,
   ],
 });
@@ -848,7 +842,7 @@ export const decision_notices_fde_hosting = defineDecision({
     "no agent pays for its own hosting (agents.fde-authority). Following the hosting's own transitions, as head-stalled " +
     "follows the head's, keeps the reminder on the one clock, so a warp past the instant sends both once.",
   source: RULINGS("organizations.fde-hosting; notices.recipients; notices.head-and-fde; books/target/organizations/data.ts (machine org-fde); aaron.fde-hosted"),
-  affects: [workflow_notices_organizations_fde_due, workflow_notices_organizations_fde_paused, table_notices],
+  affects: [table_notices],
 });
 
 // ── the mail channel, shared with the CRM's conversations (8 November 2026) ─────────────────

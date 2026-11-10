@@ -83,30 +83,20 @@ import {
 import {
   rpc_organizations_heads_show,
 } from "./heads.ts";
-import { workflow_organizations_fde_host } from "./processes.ts";
 import { rpc_organizations_apps_add, rpc_organizations_apps_list, rpc_organizations_apps_remove } from "./apps.ts";
-import { rpc_organizations_fde_ask, rpc_organizations_fde_show, rpc_organizations_fde_turn } from "./fde.ts";
 import { rpc_organizations_seats_show } from "./members.ts";
-import { flow_client_org_fde_ask,  } from "./flows.ts";
 import {
   NEW_OPERATIONS,
-  operation_org_fde_turn_get,
   operation_org_head_app_add,
   operation_org_head_app_list,
   operation_org_head_app_remove,
-  operation_org_fde_ask,
-  operation_org_fde_show,
   operation_org_head_show,
   operation_org_seats_show,
 } from "./operations.ts";
 import {
-  machine_fde_payment,
   machine_org_fde,
-  table_org_fde_asks,
-  table_org_fde_payments,
   table_org_fdes,
 } from "./data.ts";
-import { procedure_organizations_extend_fde_hosting, procedure_organizations_return_fde_hosting } from "./procedures.ts";
 import { concept_agents, concept_devnet, concept_payments } from "../shared/foundation.ts";
 
 const CLAUDE = "Claude, organizations design, 8 November 2026";
@@ -1100,10 +1090,10 @@ export const decision_organizations_commands = defineDecision({
     "books/target/shared/rulings.ts (aaron.erp-on-capxul, aaron.frappe-shape, aaron.frappe-head, aaron.fde-agent, aaron.fde-hosted); docs/design/new-commands.md (section 5.4); docs/decisions/open-for-aaron.md (question 10)",
   ),
   affects: [
-    table_org_apps, table_org_fdes, table_org_fde_asks, machine_org_app, 
+    table_org_apps, table_org_fdes, machine_org_app, 
     rpc_organizations_apps_list, rpc_organizations_apps_add, rpc_organizations_apps_remove, 
-    rpc_organizations_heads_show, rpc_organizations_fde_show, rpc_organizations_fde_ask,
-    rpc_organizations_fde_turn, flow_client_org_fde_ask,
+    rpc_organizations_heads_show, 
+    
     ...NEW_OPERATIONS, system_capxul,
   ],
 });
@@ -1198,7 +1188,7 @@ export const decision_organizations_buy_seats = defineDecision({
   affects: [
     table_organizations, table_org_seat_purchases, machine_seat_purchase, event_seat_purchase_transitioned,
     procedure_organizations_add_bought_seats, procedure_organizations_return_bought_seats, rpc_organizations_seats_raise,
-    procedure_organizations_extend_fde_hosting, procedure_organizations_return_fde_hosting, table_org_fde_payments,
+    
     rpc_organizations_seats_show, operation_org_seats_show, system_capxul,
   ],
 });
@@ -1374,8 +1364,8 @@ export const decision_organizations_fde_commands = defineDecision({
     "never system time, so the command's budget is its two host calls.",
   source: passBy("books/target/shared/rulings.ts (aaron.fde-agent, aaron.fde-hosted, aaron.fde-anyone); docs/decisions/open-for-aaron.md (question 36)"),
   affects: [
-    rpc_organizations_fde_show, rpc_organizations_fde_ask, rpc_organizations_fde_turn, flow_client_org_fde_ask,
-    operation_org_fde_show, operation_org_fde_ask, operation_org_fde_turn_get, table_org_fde_asks, table_org_fdes,
+    
+    table_org_fdes,
   ],
 });
 
@@ -1439,8 +1429,8 @@ export const decision_organizations_fde_host = defineDecision({
     "FDE_HOST_TOKEN in the environments, and wired each call into its record's `calls`.",
   source: passBy("books/target/shared/rulings.ts (aaron.fde-hosted, aaron.machine-login); /home/user/swarmd/docs/SPEC.md (B.15, B.16)"),
   affects: [
-    system_capxul, table_org_fdes, workflow_organizations_fde_host, workflow_organizations_setups_set_up, rpc_organizations_fde_ask,
-    rpc_organizations_fde_turn, concept_agents,
+    system_capxul, table_org_fdes, workflow_organizations_setups_set_up, 
+    concept_agents,
   ],
 });
 
@@ -1491,8 +1481,8 @@ export const decision_organizations_fde_hosting = defineDecision({
     "answers; the alternative is the standing agreement, an automatic monthly charge.",
   source: passBy("books/target/shared/rulings.ts (aaron.fde-hosted, aaron.test-prices, aaron.departments); payments.prepare-command"),
   affects: [
-    table_org_fdes, table_org_fde_payments, machine_org_fde, machine_fde_payment, procedure_organizations_extend_fde_hosting,
-    procedure_organizations_return_fde_hosting, workflow_organizations_fde_host, operation_org_fde_show, concept_payments,
+    table_org_fdes, machine_org_fde, 
+    concept_payments,
     concept_notices,
   ],
 });
@@ -1602,15 +1592,8 @@ export const decision_organizations_founder_people_hat = defineDecision({
 // ── the world pass: anyone talks to the FDE, and the document family (8 November 2026) ──────
 
 import {
-  machine_fde_guest,
   table_org_doc_calls,
-  table_org_fde_guests,
 } from "./data.ts";
-import {
-  rpc_organizations_fde_guests_add,
-  rpc_organizations_fde_guests_list,
-  rpc_organizations_fde_guests_remove,
-} from "./fde.ts";
 import {
   rpc_organizations_doc_calls_list,
   rpc_organizations_docs_amend,
@@ -1628,16 +1611,12 @@ import {
 import { flow_client_org_head_docs_remove } from "./flows.ts";
 import {
   DOC_OPERATIONS,
-  FDE_ANYONE_OPERATIONS,
   operation_org_head_doc_amend,
   operation_org_head_doc_call_list,
   operation_org_head_doc_remove,
   operation_org_head_doc_submit,
   operation_org_head_doctype_get,
   operation_org_head_doctype_list,
-  operation_org_fde_guest_add,
-  operation_org_fde_guest_list,
-  operation_org_fde_guest_remove,
 } from "./operations.ts";
 import { procedure_accounts_admit } from "../accounts/procedures.ts";
 import { procedure_parties_resolve_recipient } from "../parties/procedures.ts";
@@ -1698,7 +1677,7 @@ export const decision_organizations_fde_for_the_asker = defineDecision({
     "signing steps hand over under an act-for session.",
   source: worldBy("books/target/shared/rulings.ts (aaron.fde-anyone, aaron.departments); docs/design/authority.md (Agents and the FDE); access.assistants (the person signs every approval)"),
   affects: [
-    table_org_fde_asks, rpc_organizations_fde_ask, rpc_organizations_fde_turn, flow_client_org_fde_ask, operation_org_fde_ask,
+    
     table_org_members, integration_fde_host_, component_core_sdk, concept_approvals, concept_agents,
   ],
 });
@@ -1739,9 +1718,9 @@ export const decision_organizations_fde_guests = defineDecision({
     "accounts and shared designers: `accounts.admit` gains `via` fde-guest; for notices, a guest-named email.",
   source: worldBy("books/target/shared/rulings.ts (aaron.fde-anyone); organizations.invitation-process; procedures.accounts-admit"),
   affects: [
-    table_org_fde_guests, machine_fde_guest, rpc_organizations_fde_guests_add, rpc_organizations_fde_guests_remove,
-    rpc_organizations_fde_guests_list, operation_org_fde_guest_add, operation_org_fde_guest_remove, operation_org_fde_guest_list,
-    ...FDE_ANYONE_OPERATIONS, procedure_accounts_admit, procedure_parties_resolve_recipient, concept_accounts, concept_notices,
+    
+    
+    procedure_accounts_admit, procedure_parties_resolve_recipient, concept_accounts, concept_notices,
   ],
 });
 
@@ -1979,7 +1958,7 @@ export const decision_organizations_doc_worlds = defineDecision({
     "devnet worlds.ts; devnet.head-stand-in; devnet.fde-host-stand-in; hrms job_applicant.py (autoname); " +
       "frappe workflow.py (get_transitions); document.py (check_if_latest)",
   ),
-  affects: [...DOC_OPERATIONS, ...FDE_ANYONE_OPERATIONS, operation_org_fde_ask, concept_devnet],
+  affects: [...DOC_OPERATIONS, concept_devnet],
 });
 
 // ── the command surface (surface.tree, surface.head-group; Aaron, 9 November 2026) ──────────────────────────────
@@ -2073,7 +2052,7 @@ export const decision_organizations_head_claims = defineDecision({
   source: surfaceBy("heads.ts, docs.ts, fde.ts, organizations.heads.watch; devnet worlds.ts; hrms@8816102 job_opening, training_event(_employee); frappe@1a7ea57 naming.py, document.py"),
   affects: [
     operation_org_head_show, operation_org_head_doc_submit, operation_org_head_doc_amend, operation_org_head_doctype_list,
-    operation_org_fde_guest_list, concept_devnet,
+    concept_devnet,
   ],
 });
 
@@ -2166,8 +2145,8 @@ export const decision_organizations_head_fit = defineDecision({
       "payroll operations hr.leave.balance, hr.attendance.list; organizations flows client.org.setup.get; organizations.fde-guests.list",
   ),
   affects: [
-    ...DOC_RPCS, operation_org_head_doctype_list, operation_org_fde_guest_list, table_org_apps, operation_org_head_show,
-    operation_org_head_app_list, operation_org_fde_show, operation_org_seats_show, rpc_organizations_apps_list,
+    ...DOC_RPCS, operation_org_head_doctype_list, table_org_apps, operation_org_head_show,
+    operation_org_head_app_list, operation_org_seats_show, rpc_organizations_apps_list,
     rpc_organizations_seats_show, 
   ],
 });

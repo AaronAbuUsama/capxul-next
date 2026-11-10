@@ -186,3 +186,23 @@ export const decision_cut_equity = defineDecision({
   source: BY,
   affects: [f.system_capxul, decision_cut_principle, decision_cut_equity_parked],
 });
+
+export const decision_cut_fde_hosted = defineDecision({
+  id: "cut.fde-hosted",
+  title: "the hosted FDE is parked until Aaron settles it",
+  question: "What happens to the hosted FDE in the built book?",
+  options: [
+      {
+          "label": "moved",
+          "text": "The hosted FDE is parked until Aaron settles it. Moved to docs/cut-archive/parked/fde-hosted/ with their text intact: 4 tables, 6 workflows, 2 events, 2 machines, 7 rpcs, 2 flows, 7 operations, 2 procedures, 3 decisions. Listed in docs/cut-archive/INDEX.md with a reason and what carries each. Parked: GROUNDING makes the FDE an upsell, aaron.fde-hosted a hosted agent. Aaron settles it (cut.fde-parked)."
+      },
+      {
+          "label": "trimmed-1",
+          "text": "Kept records that read or invoked a removed record and no longer do (the dependency is Frappe's now): payments/processes.ts: export const workflow_payments_lifecycle_payment = defineWor no longer reads or invokes procedure_organizations_extend_fde_hosting. payments/processes.ts: export const workflow_payments_lifecycle_payment = defineWor no longer reads or invokes procedure_organizations_return_fde_hosting."
+      }
+  ],
+  chosen: "moved",
+  why: "The cut's rule (cut.principle): Frappe owns what it owns and the door reaches it; nothing is deleted. The call is parked, not made: see the cut decision that parks it.",
+  source: BY,
+  affects: [f.system_capxul, decision_cut_principle, decision_cut_fde_parked],
+});

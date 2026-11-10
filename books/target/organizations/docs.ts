@@ -29,7 +29,6 @@ import {
   table_org_apps,
   table_org_deployments,
   table_org_doc_calls,
-  table_org_fde_asks,
   table_org_members,
 } from "./data.ts";
 import { table_hat_wearers } from "../indexing/data.ts";
@@ -198,7 +197,7 @@ const ERRORS = [
   error_NOT_AUTHENTICATED, error_ROLE_PERMISSION_DENIED, error_INVALID_INPUT, error_WRONG_STATE, ...HEAD_FAILURES,
 ] as const;
 const READS = [
-  table_org_members, table_org_fde_asks, table_parties, table_org_deployments, table_hat_wearers, table_org_apps,
+  table_org_members, table_parties, table_org_deployments, table_hat_wearers, table_org_apps,
   table_org_doc_calls,
 ] as const;
 

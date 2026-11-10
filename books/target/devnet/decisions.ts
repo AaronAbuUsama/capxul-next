@@ -27,7 +27,6 @@ import {
   integration_posthog,
 } from "../shared/external.ts";
 import {
-  table_fde_host_agents,
   table_mail_faults,
   table_mail_messages,
   table_scripted_gates,
@@ -1217,45 +1216,6 @@ export const decision_devnet_payslip_world = defineDecision({
 
 const COMMANDS = (evidence: string) => `Claude, organizations commands pass, 8 November 2026; evidence: ${evidence}`;
 
-export const decision_devnet_fde_host_stand_in = defineDecision({
-  id: "devnet.fde-host-stand-in",
-  title: "The stand-in FDE host: devnet keys, scripted replies, on the one clock",
-  question:
-    "Every Organization's FDE now runs on Capxul's FDE host (organizations.fde-host), which makes and keeps its key. " +
-    "Evals need a host that provisions an FDE with a key a world can rebuild, answers a message with a fixed reply, " +
-    "pauses and resumes on the one clock, fails on demand, and lets an eval run a command as the FDE. What is it?",
-  options: [
-    {
-      label: "supervisor-http-table",
-      text:
-        "For aaron.fde-hosted: a supervisor-run stand-in speaking the `fde-host` integration's calls over HTTP on " +
-        "loopback, so the backend's real `FdeHost` client calls it. Its state is devnet's `fde-host-agents`: per agent " +
-        "a devnet key derived from the agent id (so a rebuilt world makes the same one), its state and its turns, each " +
-        "ended with a scripted reply as it is posted. `capxul-devnet fde run <org> -- <command>` runs a Capxul " +
-        "command as the FDE with that key, as the hosted FDE's own tool would. `capxul-devnet fault fde-host " +
-        "down|hold|clear` arms its switch (`hold` keeps new turns working). It joins the clock as a follower with no " +
-        "next due, always idle.",
-    },
-    { label: "real-swarmd", text: "Run a local swarmD with a real model behind each FDE." },
-    { label: "backend-layer", text: "An `FdeHost` devnet layer inside the backend over the same table." },
-  ],
-  chosen: "supervisor-http-table",
-  why:
-    "Served over HTTP, the stand-in exercises the backend's real host client, its timeouts and its error mapping, as the " +
-    "stand-in head does (devnet.head-stand-in). A real model would make every reply, and so every eval of `org fde " +
-    "ask`, differ from run to run; a scripted reply is what a black-box eval can compare. It ends a turn as it is " +
-    "posted because evals run on a frozen clock: a reply kept for the next stop would come only if something moved the " +
-    "clock during the command, so `org fde ask` would reach its deadline instead of the reply; `hold` is how an eval " +
-    "reaches the deadline on purpose. A key derived from the agent " +
-    "id keeps worlds deterministic (devnet.deterministic-worlds), and keeping it in devnet's schema lets a world's " +
-    "snapshot carry it with the chain that knows its address. `fde run` is a supervisor control, not a Capxul command: " +
-    "it is the hosted agent acting, which no Capxul surface makes (devnet.fault-switches). Its table's writer is the " +
-    "stand-in, outside the book's records, so it shows the unwritten-table gap as the head's tables do. For the shared " +
-    "owner: the `fde-host` integration's `fake` names this stand-in.",
-  source: COMMANDS("organizations.fde-host; devnet.head-stand-in; devnet.fault-switches; aaron.fde-hosted"),
-  affects: [table_fde_host_agents, component_devnet, environment_devnet, concept_devnet],
-});
-
 export const decision_devnet_command_worlds = defineDecision({
   id: "devnet.command-worlds",
   title: "Six new worlds and a rebuilt org-with-fde for the head and the hosted FDE",
@@ -1545,43 +1505,6 @@ export const decision_devnet_head_follows_world = defineDecision({
   affects: [component_frappe_app, integration_frappe_head, integration_mail, table_mail_messages, component_devnet, environment_devnet, environment_shared_world],
 });
 
-export const decision_devnet_fde_host_follows_world = defineDecision({
-  id: "devnet.fde-host-follows-world",
-  title: "A world's hosted FDEs run on its clock: their timers are its instants",
-  question:
-    "aaron.world-clock: the FDE follows the world's clock. A hosted FDE (organizations.fde-host) is a durable agent on " +
-    "swarmD whose runtime keeps timers of its own (a follow-up it promised, a wake-up, a turn's deadline) on " +
-    "Cloudflare's real clock. On a devnet the stand-in host keeps none. In a shared world, how do a world's FDEs keep " +
-    "their times on its clock?",
-  options: [
-    {
-      label: "world-namespace",
-      text:
-        "A world that hosts real FDEs (a shared world; a devnet's evals keep the stand-in) has its own namespace on the " +
-        "FDE host, which FDE_HOST_URL names, and that namespace joins the world's clock as one follower, `fde-host`, " +
-        "over the protocol with a follower grant. Each agent's timer is kept as an instant on the world's now; the " +
-        "namespace reports the earliest as its next due, and at a stop fires each one due by starting its turn, then " +
-        "acknowledges idle once those turns are taken (an actor's acknowledgement, devnet.follow-at-a-rate). A turn runs " +
-        "in real time: what the FDE does through Capxul is dated by Capxul's now when it lands " +
-        "(time.clients-take-server-now), and its sandbox's and model calls' timeouts stay real (time.real-elapsed). The " +
-        "stand-in host stays as it is: no timer, always idle, a reply as each turn is posted. Staging's and production's " +
-        "FDEs run on the host's real clock.",
-    },
-    { label: "shared-namespace", text: "One FDE namespace for every world, each agent converting its own timers." },
-  ],
-  chosen: "world-namespace",
-  why:
-    "A durable agent's timers are its promises in the story: 'I will check the invoice in three days' must fire three " +
-    "world days later, which at rate 4 is 18 real hours, not 72. A namespace per world gives its agents one clock and " +
-    "one follower that reports their earliest instant, as the backend reports its timers; a shared namespace would mix " +
-    "clocks in one runtime. Acknowledging once the turns are taken keeps a model's thinking out of the world's barrier, " +
-    "since the FDE is not on the critical path (aaron.fde-anyone). For the FDE host's owners (organizations.fde-host " +
-    "and the swarm design): swarmD's agent timers must take an instant on an outside clock and a follower that fires " +
-    "them, a requirement on swarmD.",
-  source: WORLD_CLOCK("organizations.fde-host; books/target/shared/external.ts (fde-host); devnet.fde-host-stand-in; aaron.fde-anyone"),
-  affects: [integration_fde_host, table_fde_host_agents, component_devnet, environment_shared_world],
-});
-
 export const decision_devnet_shared_world = defineDecision({
   id: "devnet.shared-world",
   title: "A shared world: a hosted devnet its owner's grantees join, on one clock",
@@ -1685,7 +1608,7 @@ export const decision_devnet_world_pass_worlds = defineDecision({
   source: WORLD_PASS("organizations.doc-worlds; contacts.conversation-worlds; payroll.hr-worlds; payments.claim-command; devnet.head-stand-in; devnet.fde-host-stand-in; devnet.mail-sink"),
   affects: [
     concept_devnet, concept_organizations, concept_contacts, concept_payments, 
-    table_fde_host_agents, table_mail_messages, integration_frappe_head,
+    table_mail_messages, integration_frappe_head,
     integration_fde_host, component_devnet,
   ],
 });
@@ -1891,7 +1814,7 @@ export const decision_devnet_season_reset = defineDecision({
     ops.operation_dev_season_end, ops.operation_dev_season_cancel, ops.operation_dev_season_start, flow_devnet_seasons_end,
     flow_devnet_seasons_cancel, flow_devnet_seasons_start,
     flow_devnet_snapshots_save, flow_devnet_snapshots_restore, ops.operation_dev_snapshot_restore, ops.operation_dev_time_start_at,
-    table_mail_messages, table_fde_host_agents, integration_devnet_control,
+    table_mail_messages, integration_devnet_control,
     environment_shared_world,
   ],
 });

@@ -7,7 +7,7 @@ Capxul-native records leave the built book; nothing is deleted, it is moved with
 Aaron or on a call are parked under `docs/cut-archive/parked/`. Moved files keep their imports as they were, so those point at the
 folder the file was written in (as `docs/as-is/archive/` does) and are outside every typecheck.
 
-804 records have left the built book: 457 reached, 129 archive, 27 dropped, 191 parked.
+839 records have left the built book: 457 reached, 129 archive, 27 dropped, 226 parked.
 
 | Where | Records | Of which |
 |---|---|---|
@@ -19,6 +19,7 @@ folder the file was written in (as `docs/as-is/archive/` does) and are outside e
 | `docs/cut-archive/organizations/` | 21 | 4 table, 2 workflow, 1 event, 1 machine, 2 flow, 3 rpc, 2 operation, 6 decision |
 | `docs/cut-archive/documents/` | 8 | 2 flow, 2 operation, 1 rpc, 3 decision |
 | `docs/cut-archive/parked/equity/` | 173 | 7 table, 7 event, 7 machine, 39 rpc, 26 flow, 38 operation, 7 workflow, 2 journey, 8 contract, 1 concept, 31 decision |
+| `docs/cut-archive/parked/fde-hosted/` | 35 | 4 table, 6 workflow, 2 event, 2 machine, 7 rpc, 2 flow, 7 operation, 2 procedure, 3 decision |
 
 ## projects (127)
 
@@ -863,3 +864,43 @@ folder the file was written in (as `docs/as-is/archive/` does) and are outside e
 | concept | `equity` | parked | Parked: aaron.frappe-native keeps equity, START-HERE and GROUNDING drop it. Aaron settles it (cut.equity-parked). | parked, not replaced | `parked/equity/shared/foundation.ts` |
 | journey | `own_equity` | parked | Parked: aaron.frappe-native keeps equity, START-HERE and GROUNDING drop it. Aaron settles it (cut.equity-parked). | parked, not replaced | `parked/equity/journeys.ts` |
 | journey | `raise_money` | parked | Parked: aaron.frappe-native keeps equity, START-HERE and GROUNDING drop it. Aaron settles it (cut.equity-parked). | parked, not replaced | `parked/equity/journeys.ts` |
+
+## parked/fde-hosted (35)
+
+| Kind | Id | Verdict | Reason | Carried or replaced by | Archived to |
+|---|---|---|---|---|---|
+| operation | `org.fde.ask` | parked | The hosted FDE: GROUNDING calls the FDE an upsell, not the base product; the book makes it a durable agent in every organisation (question 2). | nothing until Aaron settles the hosted FDE (cut.fde-parked) | `parked/fde-hosted/organizations/operations.ts` |
+| operation | `org.fde.guest.add` | parked | The hosted FDE: GROUNDING calls the FDE an upsell, not the base product; the book makes it a durable agent in every organisation (question 2). | nothing until Aaron settles the hosted FDE (cut.fde-parked) | `parked/fde-hosted/organizations/operations.ts` |
+| operation | `org.fde.guest.list` | parked | The hosted FDE: GROUNDING calls the FDE an upsell, not the base product; the book makes it a durable agent in every organisation (question 2). | nothing until Aaron settles the hosted FDE (cut.fde-parked) | `parked/fde-hosted/organizations/operations.ts` |
+| operation | `org.fde.guest.remove` | parked | The hosted FDE: GROUNDING calls the FDE an upsell, not the base product; the book makes it a durable agent in every organisation (question 2). | nothing until Aaron settles the hosted FDE (cut.fde-parked) | `parked/fde-hosted/organizations/operations.ts` |
+| operation | `org.fde.pay` | parked | The hosted FDE: GROUNDING calls the FDE an upsell, not the base product; the book makes it a durable agent in every organisation (question 2). | nothing until Aaron settles the hosted FDE (cut.fde-parked) | `parked/fde-hosted/payments/operations.ts` |
+| operation | `org.fde.show` | parked | The hosted FDE: GROUNDING calls the FDE an upsell, not the base product; the book makes it a durable agent in every organisation (question 2). | nothing until Aaron settles the hosted FDE (cut.fde-parked) | `parked/fde-hosted/organizations/operations.ts` |
+| operation | `org.fde.turn.get` | parked | The hosted FDE: GROUNDING calls the FDE an upsell, not the base product; the book makes it a durable agent in every organisation (question 2). | nothing until Aaron settles the hosted FDE (cut.fde-parked) | `parked/fde-hosted/organizations/operations.ts` |
+| decision | `devnet.fde-host-follows-world` | parked | Governed only parked records; parked with them. | the records it governed are in parked/fde-hosted | `parked/fde-hosted/devnet/decisions.ts` |
+| decision | `devnet.fde-host-stand-in` | parked | Governed only parked records; parked with them. | the records it governed are in parked/fde-hosted | `parked/fde-hosted/devnet/decisions.ts` |
+| decision | `payments.fde-pay-retry` | parked | Governed only parked records; parked with them. | the records it governed are in parked/fde-hosted | `parked/fde-hosted/payments/decisions.ts` |
+| table | `fde-host-agents` | parked | Parked: GROUNDING makes the FDE an upsell, aaron.fde-hosted a hosted agent. Aaron settles it (cut.fde-parked). | parked, not replaced | `parked/fde-hosted/devnet/data.ts` |
+| table | `org-fde-asks` | parked | Parked: GROUNDING makes the FDE an upsell, aaron.fde-hosted a hosted agent. Aaron settles it (cut.fde-parked). | parked, not replaced | `parked/fde-hosted/organizations/data.ts` |
+| table | `org-fde-guests` | parked | Parked: GROUNDING makes the FDE an upsell, aaron.fde-hosted a hosted agent. Aaron settles it (cut.fde-parked). | parked, not replaced | `parked/fde-hosted/organizations/data.ts` |
+| table | `org-fde-payments` | parked | Parked: GROUNDING makes the FDE an upsell, aaron.fde-hosted a hosted agent. Aaron settles it (cut.fde-parked). | parked, not replaced | `parked/fde-hosted/organizations/data.ts` |
+| machine | `fde-guest` | parked | Parked: GROUNDING makes the FDE an upsell, aaron.fde-hosted a hosted agent. Aaron settles it (cut.fde-parked). | parked, not replaced | `parked/fde-hosted/organizations/data.ts` |
+| machine | `fde-payment` | parked | Parked: GROUNDING makes the FDE an upsell, aaron.fde-hosted a hosted agent. Aaron settles it (cut.fde-parked). | parked, not replaced | `parked/fde-hosted/organizations/data.ts` |
+| event | `fde_guest_transitioned` | parked | Parked: GROUNDING makes the FDE an upsell, aaron.fde-hosted a hosted agent. Aaron settles it (cut.fde-parked). | parked, not replaced | `parked/fde-hosted/organizations/data.ts` |
+| event | `fde_payment_transitioned` | parked | Parked: GROUNDING makes the FDE an upsell, aaron.fde-hosted a hosted agent. Aaron settles it (cut.fde-parked). | parked, not replaced | `parked/fde-hosted/organizations/data.ts` |
+| rpc | `organizations.fde-guests.add` | parked | Parked: GROUNDING makes the FDE an upsell, aaron.fde-hosted a hosted agent. Aaron settles it (cut.fde-parked). | parked, not replaced | `parked/fde-hosted/organizations/fde.ts` |
+| rpc | `organizations.fde-guests.list` | parked | Parked: GROUNDING makes the FDE an upsell, aaron.fde-hosted a hosted agent. Aaron settles it (cut.fde-parked). | parked, not replaced | `parked/fde-hosted/organizations/fde.ts` |
+| rpc | `organizations.fde-guests.remove` | parked | Parked: GROUNDING makes the FDE an upsell, aaron.fde-hosted a hosted agent. Aaron settles it (cut.fde-parked). | parked, not replaced | `parked/fde-hosted/organizations/fde.ts` |
+| rpc | `organizations.fde.ask` | parked | Parked: GROUNDING makes the FDE an upsell, aaron.fde-hosted a hosted agent. Aaron settles it (cut.fde-parked). | parked, not replaced | `parked/fde-hosted/organizations/fde.ts` |
+| rpc | `organizations.fde.show` | parked | Parked: GROUNDING makes the FDE an upsell, aaron.fde-hosted a hosted agent. Aaron settles it (cut.fde-parked). | parked, not replaced | `parked/fde-hosted/organizations/fde.ts` |
+| rpc | `organizations.fde.turn` | parked | Parked: GROUNDING makes the FDE an upsell, aaron.fde-hosted a hosted agent. Aaron settles it (cut.fde-parked). | parked, not replaced | `parked/fde-hosted/organizations/fde.ts` |
+| rpc | `payments.commands.pay-fde-hosting` | parked | Parked: GROUNDING makes the FDE an upsell, aaron.fde-hosted a hosted agent. Aaron settles it (cut.fde-parked). | parked, not replaced | `parked/fde-hosted/payments/commands.ts` |
+| flow | `client.org.fde.ask` | parked | Parked: GROUNDING makes the FDE an upsell, aaron.fde-hosted a hosted agent. Aaron settles it (cut.fde-parked). | parked, not replaced | `parked/fde-hosted/organizations/flows.ts` |
+| flow | `client.org.fde.pay` | parked | Parked: GROUNDING makes the FDE an upsell, aaron.fde-hosted a hosted agent. Aaron settles it (cut.fde-parked). | parked, not replaced | `parked/fde-hosted/payments/flows.ts` |
+| workflow | `notices.organizations.fde-due` | parked | Parked: GROUNDING makes the FDE an upsell, aaron.fde-hosted a hosted agent. Aaron settles it (cut.fde-parked). | parked, not replaced | `parked/fde-hosted/notices/organizations.ts` |
+| workflow | `notices.organizations.fde-guest-named` | parked | Parked: GROUNDING makes the FDE an upsell, aaron.fde-hosted a hosted agent. Aaron settles it (cut.fde-parked). | parked, not replaced | `parked/fde-hosted/notices/organizations.ts` |
+| workflow | `notices.organizations.fde-guest-named-again` | parked | Parked: GROUNDING makes the FDE an upsell, aaron.fde-hosted a hosted agent. Aaron settles it (cut.fde-parked). | parked, not replaced | `parked/fde-hosted/notices/organizations.ts` |
+| workflow | `notices.organizations.fde-paused` | parked | Parked: GROUNDING makes the FDE an upsell, aaron.fde-hosted a hosted agent. Aaron settles it (cut.fde-parked). | parked, not replaced | `parked/fde-hosted/notices/organizations.ts` |
+| workflow | `notices.organizations.fde-ready` | parked | Parked: GROUNDING makes the FDE an upsell, aaron.fde-hosted a hosted agent. Aaron settles it (cut.fde-parked). | parked, not replaced | `parked/fde-hosted/notices/organizations.ts` |
+| workflow | `organizations.fde.host` | parked | Parked: GROUNDING makes the FDE an upsell, aaron.fde-hosted a hosted agent. Aaron settles it (cut.fde-parked). | parked, not replaced | `parked/fde-hosted/organizations/processes.ts` |
+| procedure | `organizations.extend-fde-hosting` | parked | Parked: GROUNDING makes the FDE an upsell, aaron.fde-hosted a hosted agent. Aaron settles it (cut.fde-parked). | parked, not replaced | `parked/fde-hosted/organizations/procedures.ts` |
+| procedure | `organizations.return-fde-hosting` | parked | Parked: GROUNDING makes the FDE an upsell, aaron.fde-hosted a hosted agent. Aaron settles it (cut.fde-parked). | parked, not replaced | `parked/fde-hosted/organizations/procedures.ts` |

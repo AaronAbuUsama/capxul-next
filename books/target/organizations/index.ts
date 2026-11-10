@@ -8,7 +8,6 @@ import * as members from "./members.ts";
 import * as invitations from "./invitations.ts";
 import * as apps from "./apps.ts";
 import * as heads from "./heads.ts";
-import * as fde from "./fde.ts";
 import * as docs from "./docs.ts";
 import * as processes from "./processes.ts";
 import * as flows from "./flows.ts";
@@ -24,7 +23,6 @@ export const modules = [
   invitations,
   apps,
   heads,
-  fde,
   docs,
   processes,
   flows,

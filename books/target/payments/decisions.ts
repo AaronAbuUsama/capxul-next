@@ -63,13 +63,11 @@ import {
 import { concept_devnet } from "../shared/foundation.ts";
 import {
   procedure_organizations_add_bought_seats,
-  procedure_organizations_extend_fde_hosting,
   procedure_organizations_return_bought_seats,
-  procedure_organizations_return_fde_hosting,
 } from "../organizations/procedures.ts";
-import { rpc_payments_commands_buy_seats, rpc_payments_commands_pay_fde_hosting } from "./commands.ts";
-import { flow_client_org_fde_pay, flow_client_org_seats_buy } from "./flows.ts";
-import { operation_org_fde_pay, operation_org_seats_buy } from "./operations.ts";
+import { rpc_payments_commands_buy_seats } from "./commands.ts";
+import { flow_client_org_seats_buy } from "./flows.ts";
+import { operation_org_seats_buy } from "./operations.ts";
 
 const CLAUDE = "Claude, payments design, 8 November 2026";
 const by = (evidence: string) => `${CLAUDE}; evidence: ${evidence}`;
@@ -1549,17 +1547,12 @@ export const decision_payments_fde_hosting_purchase = defineDecision({
     "books/target/shared/rulings.ts (aaron.fde-hosted, aaron.test-prices, aaron.departments); organizations.buy-seats; organizations.fde-hosting; docs/design/new-commands.md (5.5)",
   ),
   affects: [
-    operation_org_fde_pay,
-    flow_client_org_fde_pay,
-    rpc_payments_commands_pay_fde_hosting,
     rpc_payments_changes_retry,
     table_payment_commands,
     table_payments,
     workflow_payments_lifecycle_payment,
     P.settle,
     P.unsettle,
-    procedure_organizations_extend_fde_hosting,
-    procedure_organizations_return_fde_hosting,
     concept_devnet,
   ],
 });
@@ -1661,39 +1654,6 @@ export const decision_payments_claim_retry = defineDecision({
 // ── the command surface's fit review (9 November 2026) ─────────────────────────────────────────
 
 const FIT = (evidence: string) => `Claude, money group, surface pass fit review, 9 November 2026; evidence: ${evidence}`;
-
-export const decision_payments_fde_pay_retry = defineDecision({
-  id: "payments.fde-pay-retry",
-  title: "`org fde pay` observes what asking again does, as `org seats buy` does",
-  question:
-    "`org fde pay` came from the commands pass with four claims, and none says what asking again does, though its flow " +
-    "answers a repeat under the same `--request-key` where the first approval ended (K1), and every other new money " +
-    "command that takes `--request-key` observes it. Does it get that claim?",
-  options: [
-    {
-      label: "retry-claim",
-      text:
-        "A fifth claim: asked twice under one request key with `--no-wait --json`, it answers the same approval and " +
-        "Payment, and once signed and settled the hosting has moved by its months once. Observed from " +
-        "org-with-fde-allowance by the CLI, `org fde show` and the world (one payment command).",
-    },
-    { label: "four", text: "Keep the four claims; the repeat stays a sentence in the flow's `about`." },
-  ],
-  chosen: "retry-claim",
-  why:
-    "A hosting payment is money paid to Capxul, and a person who lost the reply and ran the command again must not pay " +
-    "a month twice. That is booked behaviour (payments.commands.pay-fde-hosting births under the request key's command, " +
-    "and a repeat answers it as it stands; client.org.fde.pay), and the other new money commands that take " +
-    "`--request-key` already observe it (`org seats buy` claim 3, `org payroll run pay`, `org hr expense-claim pay`), so " +
-    "this was the one such money path whose retry no eval would catch. payments.claim-retry gave `payment claim` its fourth " +
-    "claim for the same reason. Nothing new is designed: no flag, answer or refusal changes, and the claim reuses claim " +
-    "1's world. A lapsed approval's retry stays `payment retry`'s, which this command's SUPERSEDED refusal names. It " +
-    "holds on any world's clock: the eval world is restored on a frozen clock (devnet.deterministic-worlds); on a " +
-    "season's running clock the repeat still answers the first command, never a second payment; and a reset restores " +
-    "the unpaid world (aaron.seasons).",
-  source: FIT("client.org.fde.pay ('A repeat under the same --request-key answers where the first approval ended'); payments.commands.pay-fde-hosting (K1); org.seats.buy claim 3; aaron.fde-hosted"),
-  affects: [operation_org_fde_pay],
-});
 
 export const decision_payments_department_pay_sdk = defineDecision({
   id: "payments.department-pay-sdk",
