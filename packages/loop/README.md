@@ -76,7 +76,7 @@ registers (`mcpTools`). Every call passes a `beforeTool` hook (`agents/internal/
 | | maker (`builder`) | checker (`reviewer`, `adversary`) | researcher |
 |---|---|---|---|
 | read files | inside its lane only | inside its lane only | inside its lane only |
-| write / edit files | inside its lane; not `books/frozen/`, `src/generated/`, `.git/`, `.claude/`, `var/` | no (no write or edit tool) | no |
+| write / edit files | inside its lane; not the frozen baseline (`books/frozen/`, `blueprint/baseline/`), `src/generated/`, `.git/`, `.claude/`, `var/` | no (no write or edit tool) | no |
 | shell | `pnpm exec/test/run/…`, `node`, `git status/diff/log/show/add/commit/mv/rm`, `ls cat head tail wc grep sort diff mkdir echo pwd`, `cd <inside>` | `git diff/log/show/status`, `ls cat head tail wc grep` | same as checker |
 | shell refused | `git push`, `curl`, redirects (`>` `<`), `$(…)`, backticks, `..` paths, absolute paths outside the lane and `/tmp/` | same | same |
 | environment of its commands | `PATH HOME USER LOGNAME SHELL TERM LANG LC_ALL TMPDIR` and the sandbox's `CAPXUL_*`; nothing inherited | same | same |
@@ -117,14 +117,14 @@ agent a question durably and get its last message, keep a step ledger, play a sc
 git worktree and find a free port. **That is what would be extracted into a library for swarmD.** `src/modules/capxul` is
 Capxul's: the plan's CLI, the repository's checks, `.claude/agents/` roles, the hand-back and check shapes of
 `docs/design/swarm-templates.md`, the policy values, the sandbox scripts, merge rules. The package imports nothing from the
-rest of the repository and nothing in the product imports it; it reaches the repository through commands (`tools/plan.ts`,
-`pnpm`, `git`, the sandbox scripts) and files (`plan/tasks/*.md`, `docs/mission/tasks.json`, `.claude/agents/*.md`). Only
+rest of the repository and nothing in the product imports it; it reaches the repository through commands (the root scripts
+`pnpm plan`, `pnpm book` or `pnpm blueprint`, `pnpm frozen` and `pnpm test`, never a file's path; `git`; the sandbox scripts) and files (`plan/tasks/*.md`, `docs/mission/tasks.json`, `.claude/agents/*.md`). Only
 `loops/*.ts`, the scripts it plays, import it (and one test imports `loops/pair.ts`).
 
 ## The plan stays the source of truth
 
 Starting a run claims the task (`plan task start <id> --thread <run id>`), blocking records why (`plan task block … --need … --who
-coordinator`), a merged run marks it done with the merge commit. All through `tools/plan.ts`, so each change is logged
+coordinator`), a merged run marks it done with the merge commit. All through `pnpm plan`, so each change is logged
 in `plan/log.jsonl`; the runner never touches the critical path or creates a task. A derived task (an entry of
 `docs/mission/tasks.json`) can be run too; it has no plan entry, so no plan calls are made. The commands change the plan
 files of the checkout the runner is started from (normally the coordinator's, on `integration/build`).

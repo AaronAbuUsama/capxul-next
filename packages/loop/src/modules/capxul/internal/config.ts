@@ -8,10 +8,10 @@ const FILES = /^(ls|cat|head|tail|wc|grep|sort|diff|mkdir|echo|pwd)( |$)/;
 /** `pnpm exec` and `node` can run anything the user can: the list limits what the model asks for, it is not a sandbox (README). */
 export const POLICY: Policy = {
   bash: {
-    write: [/^pnpm (exec|test|run|check|plan|book|frozen|tasks|judgments|evals|portal:check|contracts:[a-z-]+|devnet:test|sdk:test)( |$)/, /^node( |$)/, /^git (status|diff|log|show|add|commit|mv|rm)( |$)/, FILES, /^cd [A-Za-z0-9_./-]+$/],
+    write: [/^pnpm (exec|test|run|check|plan|book|blueprint|frozen|tasks|judgments|evals|portal:check|contracts:[a-z-]+|devnet:test|sdk:test)( |$)/, /^node( |$)/, /^git (status|diff|log|show|add|commit|mv|rm)( |$)/, FILES, /^cd [A-Za-z0-9_./-]+$/],
     read: [/^git (diff|log|show|status)( |$)/, FILES],
   },
-  denyWrite: [/^books\/frozen\//, /(^|\/)src\/generated\//, /^\.git(\/|$)/, /^\.claude\//, /^var\//],
+  denyWrite: [/^books\/frozen\//, /^blueprint\/baseline\//, /(^|\/)src\/generated\//, /^\.git(\/|$)/, /^\.claude\//, /^var\//],
 };
 
 /**
