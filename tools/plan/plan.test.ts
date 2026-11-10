@@ -203,3 +203,17 @@ test("task add makes the task's file from a stub and refuses to finish without w
   assert.deepEqual(parseArgs(["task", "add", "t9", "--title", "T", "--why", "w", "--milestone", "m1", "--what", "x", "--done-when", "a", "--done-when", "b"]),
     { ok: true, value: { kind: "change", by: "coordinator", command: { kind: "task.add", id: "t9", title: "T", why: "w", milestone: "m1", what: "x", doneWhen: ["a", "b"] } } });
 });
+
+test("answers: a change to a decision, or a need set after the answer, is not an applied answer to a question that must close", () => {
+  const lines = parseAnswerLines([
+    '{"type":"answer","id":"a-1","at":"2026-11-10T10:00:00Z","target":{"kind":"decision","id":"d.one"},"answer":{"how":"change","text":"look deeper"}}',
+    '{"type":"answer","id":"a-2","at":"2026-11-10T10:00:00Z","target":{"kind":"task","id":"t1"},"answer":{"how":"done"}}',
+    '{"type":"answer","id":"a-3","at":"2026-11-10T10:00:00Z","target":{"kind":"decision","id":"d.two"},"answer":{"how":"accept"}}',
+  ].join("\n"));
+  const log = [
+    { at: "2026-11-10T11:00:00Z", by: "c", action: "task.block", args: { id: "t1", blocker: { need: "n", who: "Aaron" } }, commit: "x" },
+    ...["a-1", "a-2", "a-3"].map((answer, i) => ({ at: "2026-11-10T12:00:00Z", by: "c", action: "answers.apply", args: { answer, target: { kind: i === 1 ? "task" : "decision", id: ["d.one", "t1", "d.two"][i] }, evidence: "e" }, commit: "x" })),
+  ] as never;
+  assert.equal(appliedTargets(log).length, 3, "without the answers file every apply counts");
+  assert.deepEqual(appliedTargets(log, lines).map((t) => t.id), ["d.two"]);
+});

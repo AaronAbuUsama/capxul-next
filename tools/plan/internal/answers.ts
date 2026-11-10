@@ -36,12 +36,23 @@ export const parseAnswerLines = (text: string): readonly AnswerLine[] =>
 export const appliedIds = (log: readonly LogEntry[]): ReadonlySet<string> =>
   new Set(log.flatMap((l) => (l.action === "answers.apply" && isFields(l.args) && typeof l.args["answer"] === "string" ? [l.args["answer"]] : [])));
 
-/** The targets of applied answers, as the log recorded them. */
-export const appliedTargets = (log: readonly LogEntry[]): readonly Target[] =>
-  log.flatMap((l) => {
+/**
+ * The targets of applied answers, as the log recorded them. With the answers file, an answer that sent its question back is left
+ * out, since the question is still open by design: a `change` to a decision (it is put to the owner again with new options), and a
+ * task blocked on a need that was set after the answer was given (a new need, not the one he answered).
+ */
+export const appliedTargets = (log: readonly LogEntry[], answers: readonly AnswerLine[] = []): readonly Target[] => {
+  const given = new Map(answers.flatMap((l) => (l.type === "answer" ? [[l.id, l] as const] : [])));
+  return log.flatMap((l) => {
     const t = l.action === "answers.apply" && isFields(l.args) ? l.args["target"] : undefined;
-    return isFields(t) && (t["kind"] === "decision" || t["kind"] === "task") && typeof t["id"] === "string" ? [{ kind: t["kind"], id: t["id"] }] : [];
+    if (!isFields(t) || (t["kind"] !== "decision" && t["kind"] !== "task") || typeof t["id"] !== "string") return [];
+    const id: string = t["id"];
+    const a = isFields(l.args) && typeof l.args["answer"] === "string" ? given.get(l.args["answer"]) : undefined;
+    if (a && t["kind"] === "decision" && a.answer.how === "change") return [];
+    if (a && t["kind"] === "task" && log.some((b) => b.action === "task.block" && isFields(b.args) && b.args["id"] === id && b.at > a.at)) return [];
+    return [{ kind: t["kind"], id }];
   });
+};
 
 /** Answers not withdrawn and not applied, oldest first. Applied state is in the log, so the answers file stays append only. */
 export const unapplied = (lines: readonly AnswerLine[], log: readonly LogEntry[]): readonly Answer[] => {

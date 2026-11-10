@@ -10,7 +10,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 import { buildBook, keyOf, parseStatus, type AnyRecord, type StatusDocument } from "@capxul/book";
 
 import { planFilesOf } from "../../../tools/plan-files.ts";
-import { appliedTargets, check as planCheck, parsePlan, waitsOnOwner } from "../../../tools/plan/service.ts";
+import { appliedTargets, check as planCheck, parseAnswerLines, parsePlan, waitsOnOwner } from "../../../tools/plan/service.ts";
 import type { Facts, LogEntry } from "../../../tools/plan/types.ts";
 import { direction } from "#content/direction.ts";
 import type { Assets } from "#src/modules/render/types.ts";
@@ -136,7 +136,7 @@ const planOf = (root: string, book: ReturnType<typeof buildBook>, concepts: read
     const facts: Facts = {
       decisions: new Set([...book.records.values()].filter((r) => r._kind === "decision").map((r) => r.id)),
       records: new Set(book.records.keys()), evals: new Set(book.evals.map((e) => e.id)), concepts: new Set(concepts),
-      waiting: new Set([...book.records.values()].filter((r) => r._kind === "decision" && waits(r)).map((r) => r.id)), applied: appliedTargets(everything),
+      waiting: new Set([...book.records.values()].filter((r) => r._kind === "decision" && waits(r)).map((r) => r.id)), applied: appliedTargets(everything, parseAnswerLines(existsSync(join(root, "plan/answers.jsonl")) ? readFileSync(join(root, "plan/answers.jsonl"), "utf8") : "")),
     };
     return { ok: true, value: { plan: parsed.value, files, log: everything, problems: planCheck(parsed.value, facts, files) } };
   } catch (cause) {

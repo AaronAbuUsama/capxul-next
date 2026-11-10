@@ -24,7 +24,7 @@ export const factsOf = (log: readonly LogEntry[] = []): Facts => {
   const book = buildBook({ name, stage, records });
   return {
     waiting: new Set([...book.records.values()].filter((r) => r._kind === "decision" && forAaron(r)).map((r) => r.id)),
-    applied: appliedTargets(log),
+    applied: appliedTargets(log, parseAnswerLines(lines(ANSWERS_FILE))),
     decisions: new Set([...book.records.values()].filter((r) => r._kind === "decision").map((r) => r.id)),
     records: new Set(book.records.keys()),
     evals: new Set(book.evals.map((e) => e.id)),
