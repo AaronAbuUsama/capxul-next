@@ -110,7 +110,17 @@ export interface ClimbCard {
   readonly step: string; readonly status: string; readonly tone: "blue" | "orange" | "grey";
   readonly big: string; readonly sub: string; readonly bar: "full" | "split" | "empty";
 }
+/** A task of the plan that an inbox entry holds up. */
+export interface HeldUp { readonly id: string; readonly title: string; readonly milestone: string }
+/**
+ * One thing that waits on the owner: a decision the book holds for him, or a task of the plan blocked on a need of his.
+ * A need has no options and no recommendation; its `question` is what is needed and `concept` is its milestone.
+ */
 export interface Question {
+  /** `decision` or `need`; `key` is the page's anchor name, `q-<key>`. */
+  readonly kind: "decision" | "need"; readonly key: string;
+  /** The plan tasks blocked on this decision (a need holds up its own task). */
+  readonly holdsUp: readonly HeldUp[];
   readonly id: string; readonly ref: Ref; readonly title: string; readonly question: string; readonly concept: string;
   readonly holds: number; readonly chosen: string; readonly why: string; readonly source: string;
   readonly options: readonly { readonly label: string; readonly text: string; readonly recommended: boolean }[];
@@ -122,8 +132,8 @@ export interface ConceptCard {
 export interface OverviewPage extends PageHead {
   /** The coordinator's latest note, and the link to the plan: null when there is no plan file. */
   readonly planNote: { readonly date: string; readonly by: string; readonly text: string } | null;
-  /** How many tasks of the plan wait on the owner. */
-  readonly planWaits: number;
+  /** How many things wait on the owner: the Questions page's count. */
+  readonly inbox: number;
   readonly type: "overview"; readonly commit: string;
   readonly hero: Direction["hero"]; readonly needsYou: string; readonly banner: Direction["banner"];
   readonly climb: readonly ClimbCard[]; readonly verdicts: { readonly given: number; readonly of: number };
@@ -243,13 +253,13 @@ export interface PlanMilestone {
   readonly evals: Count | null;
   readonly tasks: Readonly<Record<TaskState, number>>;
 }
-/** A blocked task and what blocks it, with the context: for a decision, its question, options and recommendation. */
+/** A blocked task and what blocks it, in a line. The context is on the Questions page, which `inbox` links to. */
 export interface PlanBlocked {
   readonly task: PlanTask; readonly on: "decision" | "need"; readonly who: string; readonly need: string; readonly waitsOnOwner: boolean;
-  /** The decision, as the Questions page shows it, when the task is blocked on one the book holds. */
-  readonly decision: Question | null;
-  /** Where the decision is: its question on the Questions page while it waits, else its own page. */
-  readonly decisionRef: Ref | null; readonly decisionWaits: boolean;
+  /** The decision it is blocked on, when it is blocked on one the book holds. */
+  readonly decisionRef: Ref | null;
+  /** Its entry on the Questions page, when it waits on the owner; null otherwise. */
+  readonly inbox: Ref | null;
 }
 export interface PlanLogRow { readonly at: string; readonly by: string; readonly action: string; readonly summary: string; readonly commit: string }
 export interface PlanPage extends PageHead {
@@ -270,10 +280,8 @@ export type Page =
 
 export interface Site {
   readonly commit: string;
-  /** How many decisions wait for an answer: the count beside Questions in the top bar. */
+  /** How many things wait for an answer, decisions and the plan's needs of the owner: the count beside Questions in the top bar. */
   readonly waiting: number;
-  /** How many tasks of the plan wait on the owner: the count beside Plan in the top bar. */
-  readonly planWaiting: number;
   readonly problems: number;
   readonly pages: readonly Page[];
 }

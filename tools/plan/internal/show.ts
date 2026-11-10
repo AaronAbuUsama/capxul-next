@@ -1,5 +1,6 @@
 /** The plan as text for a terminal: what `plan show` prints. */
-import type { Facts, Plan, Problem, Task, TaskState } from "../types.ts";
+import type { Answer, Plan, Problem, Task, TaskState } from "../types.ts";
+import { describe } from "./answers.ts";
 
 const MARK: Readonly<Record<string, string>> = { todo: " ", current: ">", done: "x", doing: "~", blocked: "!", dropped: "-" };
 const STATES: readonly TaskState[] = ["doing", "blocked", "todo", "done", "dropped"];
@@ -13,10 +14,11 @@ export const blockerLine = (t: Task): string => {
 const taskLine = (t: Task): string =>
   `  [${MARK[t.state]}] ${t.id}  ${t.title}${t.thread ? `  (thread ${t.thread})` : ""}${t.state === "blocked" ? `  <- ${blockerLine(t)}` : ""}`;
 
-export const show = (plan: Plan, problems: readonly Problem[] | null, _facts?: Facts): string => {
+export const show = (plan: Plan, problems: readonly Problem[] | null, answers: readonly Answer[] = []): string => {
   const note = plan.notes[plan.notes.length - 1];
   const title = (id: string): string => plan.tasks.find((t) => t.id === id)?.title ?? "(no such task)";
   const lines: string[] = [];
+  if (answers.length) lines.push(`${answers.length} answers from Aaron to apply (pnpm plan answers):`, ...answers.map((a) => `  ${a.id}  ${a.target.kind} ${a.target.id}: ${describe(a)}`), "");
   if (note) lines.push(`Note, ${note.date} (${note.by}): ${note.text}`, "");
   lines.push(`Goal: ${plan.goal.title}`, `  ${plan.goal.why}`);
   for (const e of plan.goal.exit) lines.push(`  [${e.state === "met" ? "x" : " "}] ${e.id}  ${e.claim}`);

@@ -87,7 +87,7 @@ test("two generations that differ fail the determinism part", () => {
 });
 
 test("a Questions page that is not the judgments list fails", () => {
-  const part = "the Questions list equals the judgments list";
+  const part = "the Questions list equals the judgments list plus the plan's needs of the owner";
   assert.deepEqual(failed(run(files, files, { ...expected, waiting: [] })), [part]);
   assert.deepEqual(failed(run(files, files, { ...expected, waiting: [WAITING, "access.one-open"] })), [part]);
 });

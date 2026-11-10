@@ -43,8 +43,7 @@ const head = (site: Site, page: Page): string => [
 const topBar = (site: Site, page: Page, nav: readonly Ref[]): string => {
   const active = activeOf(page);
   const items = nav.map((ref) => {
-    const waits = ref.label === "Questions" ? site.waiting : ref.label === "Plan" ? site.planWaiting : 0;
-    const pill = waits > 0 ? ` <span class="nav-count">${waits}</span>` : "";
+    const pill = ref.label === "Questions" && site.waiting > 0 ? ` <span class="nav-count" data-total="${site.waiting}" id="nav-questions-count">${site.waiting}</span>` : "";
     return `<a class="nav-item${ref.label === active ? " is-active" : ""}" href="${esc(hrefTo(page.id, ref))}">${esc(ref.label)}${pill}</a>`;
   });
   const home = hrefTo(page.id, { label: "", page: "index", anchor: "" });

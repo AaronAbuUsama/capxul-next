@@ -1,5 +1,7 @@
-// The portal's only script. It runs on the Questions page: it shows one question at a time, builds the typed answer
-// (a ReviewAnswer), shows it, and points a link at a prefilled GitHub issue. It writes nothing and holds no credential.
+// The portal's only script. It runs on the Questions page: it shows one item at a time and takes the owner's answer. When
+// the page is served by `pnpm portal:serve` the answer is saved through /api/answers (a line in plan/answers.jsonl, which
+// the coordinator applies). Opened from files or a static host there is no such endpoint, and the page falls back to the
+// typed answer and a prefilled GitHub issue. It holds no credential.
 (function () {
   "use strict";
   var main = document.querySelector("main[data-repo]");
@@ -8,6 +10,8 @@
 
   var articles = Array.prototype.slice.call(main.querySelectorAll("article.q"));
   var items = Array.prototype.slice.call(main.querySelectorAll(".q-item"));
+  var mode = "files"; // "server" once /api/answers answers
+  var saved = {}; // item key -> the answer line it holds
 
   function show(id) {
     articles.forEach(function (a) { a.classList.toggle("is-current", a.dataset.decision === id); });
@@ -32,20 +36,63 @@
 
   function label(article) {
     var button = article.querySelector('[data-act="accept"]');
+    if (!button) return;
     var option = picked(article);
     button.textContent = option === article.dataset.chosen ? "Accept the recommendation" : "Choose " + option + " instead";
   }
 
-  // The answer as the ledger reads it. `seenAt` is the commit this page was built from.
-  function answerOf(article, kind, text) {
-    var option = picked(article);
-    var answer = { decision: article.dataset.decision, answer: kind };
-    if (kind === "choose") answer.option = option;
-    if (kind === "change") answer.text = text;
-    answer.by = main.dataset.reviewer;
-    answer.at = new Date().toISOString();
-    answer.seenAt = main.dataset.commit;
-    return answer;
+  // The answer as the server and the ledger read it: { how, option?, text? } for a target { kind, id }.
+  function howOf(article, act, text) {
+    if (article.dataset.kind === "need") return act === "done" ? { how: "done" } : { how: "text", text: text };
+    if (act === "accept") return picked(article) === article.dataset.chosen ? { how: "accept" } : { how: "choose", option: picked(article) };
+    return { how: "change", text: text };
+  }
+  function targetOf(article) { return { kind: article.dataset.kind === "need" ? "task" : "decision", id: article.dataset.target }; }
+
+  function words(answer) {
+    var a = answer.answer;
+    if (a.how === "accept") return "accepted the recommendation";
+    if (a.how === "choose") return "chose " + a.option;
+    if (a.how === "change") return "changed it: " + a.text;
+    return a.how === "done" ? "marked this done" : "said: " + a.text;
+  }
+
+  // Marks an item answered (or not), and brings the count in the top bar down to what is still unanswered.
+  function paint(article) {
+    var answer = saved[article.dataset.decision];
+    var box = article.querySelector(".saved");
+    var item = main.querySelector('.q-item[data-for="' + article.dataset.decision + '"]');
+    box.hidden = !answer;
+    article.querySelector(".actions").hidden = !!answer;
+    article.querySelector(".change").hidden = true;
+    article.querySelector(".answer").hidden = true;
+    if (answer) {
+      var at = new Date(answer.at);
+      box.querySelector(".saved-text").textContent = "Answered " + at.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) + ": " + words(answer) + ". The coordinator will apply it.";
+    }
+    if (item) {
+      item.classList.toggle("is-answered", !!answer);
+      item.querySelector(".q-status").textContent = answer ? "Answered" : (article.dataset.kind === "need" ? "Needs you" : "Waiting");
+    }
+    var left = articles.filter(function (a) { return !saved[a.dataset.decision]; }).length;
+    var pill = document.getElementById("nav-questions-count");
+    if (pill) { pill.textContent = String(left); pill.hidden = left === 0; }
+    var count = main.querySelector(".q-count-big");
+    if (count) count.textContent = String(left);
+  }
+
+  function fail(article, message) {
+    var box = article.querySelector(".q-error");
+    box.textContent = message;
+    box.hidden = false;
+  }
+
+  function send(article, body, done) {
+    article.querySelector(".q-error").hidden = true;
+    fetch("/api/answers", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) })
+      .then(function (res) { return res.json().then(function (json) { return { ok: res.ok, json: json }; }); })
+      .then(function (r) { if (r.ok) done(r.json); else fail(article, r.json.error || "The answer was not saved."); })
+      .catch(function () { fail(article, "The answer was not saved: the server did not answer."); });
   }
 
   function esc(text) { return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
@@ -59,15 +106,21 @@
     });
   }
 
-  function file(article, answer) {
+  // No server: the typed answer and the link that files it as an issue.
+  function file(article, how) {
+    var answer = { target: targetOf(article), answer: how, by: main.dataset.reviewer, at: new Date().toISOString(), seenAt: main.dataset.commit };
     var json = JSON.stringify(answer, null, 2);
-    var title = "review: " + answer.decision + " (" + answer.answer + ")";
-    var body = "```json\n" + json + "\n```\n";
+    var title = "review: " + article.dataset.target + " (" + how.how + ")";
     var panel = article.querySelector(".answer");
     panel.querySelector(".answer-json").innerHTML = highlightJson(json);
     panel.querySelector(".answer-link").href = main.dataset.repo + "/issues/new?title=" + encodeURIComponent(title) +
-      "&body=" + encodeURIComponent(body) + "&labels=" + encodeURIComponent(main.dataset.label);
+      "&body=" + encodeURIComponent("```json\n" + json + "\n```\n") + "&labels=" + encodeURIComponent(main.dataset.label);
     panel.hidden = false;
+  }
+
+  function answer(article, how) {
+    if (mode !== "server") { file(article, how); return; }
+    send(article, { target: targetOf(article), answer: how }, function (json) { saved[article.dataset.decision] = json.answer; paint(article); });
   }
 
   items.forEach(function (item) {
@@ -88,19 +141,35 @@
       if (!button) return;
       var act = button.dataset.act;
       var change = article.querySelector(".change");
-      if (act === "accept") {
+      if (act === "accept" || act === "done") {
         change.hidden = true;
-        file(article, answerOf(article, picked(article) === article.dataset.chosen ? "accept" : "choose", ""));
+        answer(article, howOf(article, act, ""));
       } else if (act === "change") {
         change.hidden = !change.hidden;
         if (!change.hidden) change.querySelector("textarea").focus();
       } else if (act === "send") {
         var text = change.querySelector("textarea").value.trim();
         if (text === "") { change.querySelector("textarea").focus(); return; }
-        file(article, answerOf(article, "change", text));
+        answer(article, howOf(article, "change", text));
+      } else if (act === "undo") {
+        var id = saved[article.dataset.decision] && saved[article.dataset.decision].id;
+        if (id) send(article, { withdraw: id }, function () { delete saved[article.dataset.decision]; paint(article); });
       }
     });
   });
+
+  // Is there a server behind this page? Only a JSON answer from /api/answers says so.
+  fetch("/api/answers", { headers: { accept: "application/json" } })
+    .then(function (res) { return res.ok && (res.headers.get("content-type") || "").indexOf("json") >= 0 ? res.json() : null; })
+    .then(function (json) {
+      if (!json || !Array.isArray(json.answers)) throw new Error("no server");
+      mode = "server";
+      json.answers.forEach(function (a) { saved[(a.target.kind === "task" ? "task-" : "") + a.target.id] = a; });
+      articles.forEach(paint);
+    })
+    .catch(function () {
+      articles.forEach(function (a) { a.querySelector(".fallback-note").hidden = false; });
+    });
 
   window.addEventListener("hashchange", function () { show(fromHash()); });
   show(fromHash());

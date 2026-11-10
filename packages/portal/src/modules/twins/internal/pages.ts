@@ -14,7 +14,7 @@ export const overview = (p: OverviewPage): readonly string[] => [
   `**${plain(p.hero.eyebrow)}.** ${plain(p.hero.title)}`, "", plain(p.hero.lead), "", plain(p.hero.sub), "",
   `Built from commit \`${p.commit}\`: ${p.problems.length} problems, ${p.gaps.length} gaps, ${p.evals} evals.`, "",
   ...section(plain(p.banner.title), [plain(p.banner.text)]),
-  ...(p.planNote === null ? [] : section("Where the plan is", [`${plain(p.planNote.text)} (the coordinator, ${p.planNote.date})`, "", `${p.planWaits} tasks wait for you.`, "", `The whole plan: [Plan](plan.md).`])),
+  ...(p.planNote === null ? [] : section("Where the plan is", [`${plain(p.planNote.text)} (the coordinator, ${p.planNote.date})`, "", `${p.inbox} things wait for you: see [Questions](review.md).`, "", `The whole plan: [Plan](plan.md).`])),
   ...section("The climb", p.climb.map((c) => `- **${c.step}** (${plain(c.status)}): ${c.big}, ${c.sub}`)),
   ...section(`Waiting for you (${p.waiting.length})`, [
     plain(p.needsYou), "", ...p.waiting.map((q) => `- ${link(p.id, q.ref)}: ${plain(q.title)}`),
@@ -83,17 +83,8 @@ const exitLines = (held: PlanPage["milestones"][number]["exit"]): readonly strin
 /** The Plan page: the note first, then the goal, milestones, critical path, what is blocked, tasks by state and the log. */
 export const plan = (p: PlanPage): readonly string[] => {
   if (!p.present) return ["There is no plan yet: `plan/plan.json` is absent."];
-  const blocked = p.blocked.flatMap((b) => [
-    `### ${b.task.id}: ${plain(b.task.title)}`, "", `Milestone ${b.task.milestone}. ${plain(b.task.why)}${b.waitsOnOwner ? ` Waits on ${p.owner}.` : ""}`, "",
-    ...(b.decision !== null && b.decisionRef !== null
-      ? [
-        `Blocked on decision ${link(p.id, b.decisionRef)}${b.decisionWaits ? " (on the Questions page)" : " (already decided)"}: ${plain(b.decision.title)}`, "",
-        plain(b.decision.question), "",
-        ...b.decision.options.map((o) => `- **${plain(o.label)}**${o.recommended ? " (recommended)" : ""}: ${plain(o.text)}`), "",
-        `The book recommends \`${b.decision.chosen}\`. ${plain(b.decision.why)}`, "",
-      ]
-      : [`Blocked on a need${b.who === "" ? "" : ` of ${b.who}`}: ${plain(b.need)}`, ""]),
-  ]);
+  const blocked = p.blocked.map((b) =>
+    `- \`${b.task.id}\` ${plain(b.task.title)} (${b.task.milestone}): ${plain(b.need)}${b.waitsOnOwner ? ` Waits on ${p.owner}; answer it on the Questions page, \`review.md\`.` : ""}`);
   return [
     ...(p.note ? [`**Latest note, ${p.note.date} (${p.note.by}).** ${plain(p.note.text)}`, ""] : []),
     ...section(`Blocked (${p.blocked.length}; ${p.waitsOnOwner} wait on ${p.owner})`, blocked.length === 0 ? ["Nothing is blocked."] : blocked),

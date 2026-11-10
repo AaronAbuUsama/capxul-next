@@ -39,7 +39,7 @@ const climb = (p: OverviewPage): string =>
 
 const waitingRow = (at: string, q: Question): string =>
   `<a class="wait-row" href="${esc(hrefTo(at, q.ref))}"><span class="wait-title">${prose(q.title)}</span>` +
-  `<span class="wait-meta"><span class="mono">${esc(q.id)}</span><span>recommended: <span class="mono">${esc(q.chosen)}</span></span>` +
+  `<span class="wait-meta"><span class="mono">${esc(q.id)}</span>` +
   `<span>holds ${plural(q.holds, "record")}</span></span></a>`;
 
 const waiting = (p: OverviewPage): string => {
@@ -83,7 +83,7 @@ const planBlock = (p: OverviewPage): string =>
     `<a href="${esc(hrefTo(p.id, { label: "", page: "plan", anchor: "" }))}">The whole plan ${ARROW}</a></div>` +
     `<div class="banner"><div class="banner-words"><p class="banner-title">${prose(p.planNote.text)}</p>` +
     `<p class="banner-text">The coordinator, ${esc(p.planNote.date)}</p></div>` +
-    `<div class="banner-count"><span class="banner-big">${count(p.planWaits)}</span><span class="banner-sub">${p.planWaits === 1 ? "thing waits" : "things wait"} for you</span></div></div></section>`;
+    `<a class="banner-count" href="${esc(hrefTo(p.id, REVIEW))}"><span class="banner-big">${count(p.inbox)}</span><span class="banner-sub">${p.inbox === 1 ? "thing waits" : "things wait"} for you: see Questions</span></a></div></section>`;
 
 export const overview = (p: OverviewPage): string =>
   `<main class="page">${hero(p)}${planBlock(p)}${climb(p)}<div class="cols">${waiting(p)}${holds(p)}</div>${concepts(p)}${unfinished(p)}` +

@@ -1,5 +1,5 @@
 /** The Plan page: the coordinator's plan (plan/plan.json) laid beside the book. It adds nothing of its own to the plan. */
-import { passing, type AnyRecord } from "@capxul/book";
+import { passing } from "@capxul/book";
 
 import type { ExitLine, Task, TaskState } from "../../../../../../tools/plan/types.ts";
 import { blockerLine, waitsOnOwner } from "../../../../../../tools/plan/service.ts";
@@ -8,7 +8,6 @@ import type {
 } from "../types.ts";
 import { head, type Ctx } from "./context.ts";
 import { refOf } from "./locate.ts";
-import { questionOf } from "./questions.ts";
 
 const SOURCE = "plan/plan.json and plan/log.jsonl";
 const STATES: readonly (readonly [TaskState, string])[] = [
@@ -62,12 +61,14 @@ const milestones = (ctx: Ctx, tasks: readonly Task[]): readonly PlanMilestone[] 
 const blockedOf = (ctx: Ctx, t: Task): PlanBlocked => {
   const b = t.blockedBy;
   const book = b && "decision" in b ? ctx.input.book.records.get(`decision:${b.decision}`) : undefined;
-  const waits = book !== undefined && ctx.waiting.includes(book as AnyRecord);
-  const decision = book ? questionOf(ctx, book) : null;
+  const owner = ctx.input.direction.settings.reviewer;
+  const waits = waitsOnOwner(t, owner, (id) => ctx.waiting.some((d) => d.id === id));
+  const need = b && "need" in b;
   return {
     task: taskOf(t), on: b && "decision" in b ? "decision" : "need", who: b && "need" in b ? b.who : "", need: b && "need" in b ? b.need : blockerLine(t),
-    waitsOnOwner: waitsOnOwner(t, ctx.input.direction.settings.reviewer, (id) => ctx.waiting.some((d) => d.id === id)),
-    decision, decisionRef: book ? (waits && decision ? decision.ref : refOf(book)) : null, decisionWaits: waits,
+    waitsOnOwner: waits, decisionRef: book ? refOf(book) : null,
+    // a need is its own entry on the Questions page; a task blocked on a waiting decision points at the decision's entry
+    inbox: !waits ? null : need ? { label: t.id, page: "review", anchor: `q-task-${t.id}` } : { label: t.id, page: "review", anchor: `q-${b && "decision" in b ? b.decision : ""}` },
   };
 };
 

@@ -87,6 +87,10 @@ export const check = (plan: Plan, facts: Facts): readonly Problem[] => {
       bad(`path/${id}`, `it belongs to ${m.id}, after the current milestone ${now.id}, and is not blocked`);
     }
   }
+  for (const t of facts.applied ?? []) {
+    if (t.kind === "decision" && (facts.waiting ?? new Set<string>()).has(t.id)) bad(`answer/${t.id}`, `an answer was applied, and decision ${t.id} still waits in the book with no ruling`);
+    if (t.kind === "task" && byId.get(t.id)?.state === "blocked") bad(`answer/${t.id}`, `an answer was applied, and task ${t.id} is still blocked`);
+  }
   if (plan.path.tasks.length > 0 && plan.path.why.trim() === "") bad("path", "the path has no why");
   if (plan.path.tasks.length > 0 && plan.path.written.trim() === "") bad("path", "the path has no date");
   return out;

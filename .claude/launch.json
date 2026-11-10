@@ -3,8 +3,12 @@
   "configurations": [
     {
       "name": "portal",
-      "runtimeExecutable": "python3",
-      "runtimeArgs": ["-m", "http.server", "4391", "--directory", "packages/portal/dist"],
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": [
+        "portal:serve",
+        "--port",
+        "4391"
+      ],
       "port": 4391
     }
   ]

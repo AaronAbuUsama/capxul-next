@@ -3,11 +3,11 @@
  * and words, what is blocked with its context, the tasks by state with their threads, and the log. It reads as a plain
  * page without the script.
  */
-import type { PlanBlocked, PlanExit, PlanMilestone, PlanPage, PlanTask, Question } from "#src/modules/site/types.ts";
+import type { PlanBlocked, PlanExit, PlanMilestone, PlanPage, PlanTask } from "#src/modules/site/types.ts";
 
 import { chip, count, esc, hrefTo, link, plural, prose, section, table } from "./html.ts";
 import { fold } from "./parts.ts";
-import { blocks, folded, rich, type Cites } from "./prose.ts";
+import type { Cites } from "./prose.ts";
 
 const REVIEW = { label: "", page: "review", anchor: "" };
 
@@ -59,35 +59,17 @@ const path = (p: PlanPage): string => {
   "Written by the coordinator, never computed from the tasks. Its order is the order of the work.");
 };
 
-const options = (at: string, q: Question, cites: Cites): string =>
-  `<div class="plan-options">${q.options.map((o) =>
-    `<div class="plan-option${o.recommended ? " is-recommended" : ""}"><span class="option-top"><span class="option-label">${esc(o.label)}</span>` +
-    `${o.recommended ? '<span class="badge">Recommended</span>' : ""}</span><span class="option-text">${rich(at, o.text, cites)}</span></div>`).join("")}</div>`;
-
-const blockedCard = (p: PlanPage, b: PlanBlocked, cites: Cites): string => {
-  const q = b.decision;
-  const head = `<div class="q-meta"><span class="mono">${esc(b.task.id)}</span><span class="pill">${esc(b.task.milestone)}</span>` +
-    `${b.waitsOnOwner ? chip(`waits on ${p.owner}`, "chip chip-orange") : ""}</div><h3>${esc(b.task.title)}</h3><p class="plan-why">${prose(b.task.why)}</p>`;
-  if (q !== null && b.decisionRef !== null) {
-    const where = b.decisionWaits
-      ? `${link(p.id, b.decisionRef, "mono")} on the Questions page`
-      : `${link(p.id, b.decisionRef, "mono")}, already decided`;
-    return `<article class="plan-block" id="blocked-${esc(b.task.id)}">${head}<p class="eyebrow eyebrow-muted">Blocked on a decision</p>` +
-      `<p class="plan-claim">${prose(q.title)} (${where})</p>${blocks(p.id, q.question, cites, "prose")}${options(p.id, q, cites)}` +
-      `<div class="why"><p class="why-title">The book recommends <code>${esc(q.chosen)}</code></p>${folded(p.id, q.why, cites, "The rest of the reasoning")}</div></article>`;
-  }
-  return `<article class="plan-block" id="blocked-${esc(b.task.id)}">${head}<p class="eyebrow eyebrow-muted">Blocked on a need</p>` +
-    `<p class="plan-claim">${b.who === "" ? "" : `<strong>${esc(b.who)}:</strong> `}${prose(b.need)}</p></article>`;
-};
-
-/** Every blocked task in full, those that wait on the owner first. */
-const blocked = (p: PlanPage, cites: Cites): string => {
+/** Every blocked task in a line; what waits on the owner links to its entry on the Questions page, where the context is. */
+const blocked = (p: PlanPage): string => {
+  const row = (b: PlanBlocked): string =>
+    `<div class="row"><span class="plan-exit">${b.waitsOnOwner ? chip(`waits on ${p.owner}`, "chip chip-orange") : chip(b.who === "" ? "blocked" : `waits on ${b.who}`, "chip chip-quiet")}` +
+    `<span class="row-id plain">${esc(b.task.title)}</span></span><span class="row-text"><span class="mono">${esc(b.task.milestone)}</span> · ${prose(b.need)}` +
+    `${b.inbox === null ? "" : ` · ${link(p.id, { ...b.inbox, label: "Answer it on the Questions page" })}`}</span></div>`;
   const ordered = [...p.blocked.filter((b) => b.waitsOnOwner), ...p.blocked.filter((b) => !b.waitsOnOwner)];
-  const title = p.waitsOnOwner > 0 ? `Waiting for ${p.owner === "aaron" ? "Aaron" : p.owner}: ${p.waitsOnOwner}` : "What is blocked";
   return ordered.length === 0
     ? section("blocked", "What is blocked", `<p class="q-none">Nothing is blocked.</p>`)
-    : section("blocked", title, `<div class="plan-blocks">${ordered.map((b) => blockedCard(p, b, cites)).join("")}</div>`,
-      `${plural(p.blocked.length, "task is", "tasks are")} blocked, each with what it waits for. A decision is shown with its question, its options and the book's recommendation.`);
+    : section("blocked", p.waitsOnOwner > 0 ? `Waiting for ${p.owner === "aaron" ? "Aaron" : p.owner}: ${p.waitsOnOwner}` : "What is blocked", `<div class="rows">${ordered.map(row).join("")}</div>`,
+      "The context for each is on the Questions page, with a place to answer.");
 };
 
 const taskTable = (held: readonly PlanTask[]): string =>
@@ -123,6 +105,6 @@ export const plan = (p: PlanPage, cites: Cites): string =>
   !p.present
     ? `<main class="page"><p class="eyebrow eyebrow-muted">Plan</p><h1 class="title">Plan</h1><p class="q-none">There is no plan yet: <code>plan/plan.json</code> is absent. ` +
       `The coordinator writes it with <code>pnpm plan</code>.</p></main>`
-    : `<main class="page">${hero(p)}${blocked(p, cites)}${path(p)}${problems(p)}${inProgress(p)}${goal(p)}${milestones(p)}${tasks(p)}${log(p)}` +
+    : `<main class="page">${hero(p)}${blocked(p)}${path(p)}${problems(p)}${inProgress(p)}${goal(p)}${milestones(p)}${tasks(p)}${log(p)}` +
       `<p class="all-kinds">This page is read from <code>plan/plan.json</code>; the coordinator changes it with <code>pnpm plan</code>. Questions for you are on ` +
       `<a href="${esc(hrefTo(p.id, REVIEW))}">the Questions page</a>.</p></main>`;

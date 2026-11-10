@@ -31,9 +31,9 @@ export const questions = (files: ReadonlyMap<string, string>, waiting: readonly 
   return shown.length === waiting.length && shown.every((id, i) => id === waiting[i])
     ? []
     : [
-      ...waiting.filter((id) => !shown.includes(id)).map((id) => `${id}: waits in the book, not on the Questions page`),
-      ...shown.filter((id) => !waiting.includes(id)).map((id) => `${id}: on the Questions page, does not wait in the book`),
-      `the Questions page lists ${shown.length} in its order, the judgments list ${waiting.length} in the book's`,
+      ...waiting.filter((id) => !shown.includes(id)).map((id) => `${id}: waits on the owner, and is not on the Questions page`),
+      ...shown.filter((id) => !waiting.includes(id)).map((id) => `${id}: on the Questions page, and neither a decision that waits nor a need of the owner`),
+      `the Questions page lists ${shown.length} in its order, ${waiting.length} wait on the owner`,
     ];
 };
 

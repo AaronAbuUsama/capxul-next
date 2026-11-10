@@ -82,6 +82,23 @@ export interface Plan {
   readonly notes: readonly Note[];
 }
 
+// ── the owner's answers (plan/answers.jsonl, append only) ───────────────────────────────────
+
+/** What an answer is about: a decision that waits in the book, or a task of the plan blocked on a need. */
+export interface Target { readonly kind: "decision" | "task"; readonly id: string }
+/** The owner's answer: accept the recommendation, choose another option, change it in words; or for a task, done or words. */
+export type How =
+  | { readonly how: "accept" }
+  | { readonly how: "choose"; readonly option: string }
+  | { readonly how: "change"; readonly text: string }
+  | { readonly how: "done" }
+  | { readonly how: "text"; readonly text: string };
+/** One line of `plan/answers.jsonl`. */
+export interface Answer { readonly type: "answer"; readonly id: string; readonly at: string; readonly target: Target; readonly answer: How }
+/** An undo: a second line that withdraws an answer; the file is never rewritten. */
+export interface Withdrawal { readonly type: "withdraw"; readonly id: string; readonly at: string; readonly answer: string }
+export type AnswerLine = Answer | Withdrawal;
+
 /** What the plan is checked against: the book, as sets of names. */
 export interface Facts {
   readonly decisions: ReadonlySet<string>;
@@ -89,6 +106,10 @@ export interface Facts {
   readonly records: ReadonlySet<string>;
   readonly evals: ReadonlySet<string>;
   readonly concepts: ReadonlySet<string>;
+  /** Decisions that still wait for the owner in the book (shared/waiting.ts): none yet when absent. */
+  readonly waiting?: ReadonlySet<string>;
+  /** The targets of answers the log says were applied. */
+  readonly applied?: readonly Target[];
 }
 
 /** One thing wrong with the plan. `at` is the task, milestone or exit line it concerns. */

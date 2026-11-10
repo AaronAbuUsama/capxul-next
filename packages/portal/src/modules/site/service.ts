@@ -8,8 +8,8 @@ import { build } from "./internal/lists.ts";
 import { hasPage } from "./internal/locate.ts";
 import { operation } from "./internal/operation.ts";
 import { overview } from "./internal/overview.ts";
-import { ownerWaits, plan } from "./internal/plan.ts";
-import { questions } from "./internal/questions.ts";
+import { plan } from "./internal/plan.ts";
+import { inbox, questions } from "./internal/questions.ts";
 import { record } from "./internal/record.ts";
 import type { Site, SiteInput } from "./types.ts";
 
@@ -26,7 +26,7 @@ export const buildSite = (input: SiteInput): Site => {
   const rest = [...input.book.records.values()].filter((r) => hasPage(r._kind) && r._kind !== "concept");
   const [index, ...catalogues] = docs(ctx);
   return {
-    commit: input.commit, waiting: ctx.waiting.length, planWaiting: ownerWaits(ctx), problems: input.book.problems.length,
+    commit: input.commit, waiting: inbox(ctx).length, problems: input.book.problems.length,
     pages: [
       overview(ctx), plan(ctx), questions(ctx), architecture(ctx), build(ctx), ...(index ? [index] : []),
       ...ofKind(ctx, "concept").map((c) => concept(ctx, c)),

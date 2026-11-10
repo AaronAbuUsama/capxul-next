@@ -64,46 +64,55 @@ test("the Plan page opens with the latest note and follows the plan's own order"
   assert.equal(page.groups[0]?.tasks[0]?.thread, "plan-page");
 });
 
-test("a task blocked on a decision shows its question, options and recommendation and links to the Questions page", () => {
-  const { page, site } = withPlan();
-  const b = page.blocked.find((x) => x.task.id === "t-decide");
-  assert.equal(b?.on, "decision");
-  assert.equal(b?.decision?.id, WAITING);
-  assert.equal(b?.decision?.chosen, "owners");
-  assert.deepEqual(b?.decision?.options.map((o) => o.recommended), [true, false]);
-  assert.deepEqual(b?.decisionRef, { label: WAITING, page: "review", anchor: `q-${WAITING}` });
-  assert.equal(b?.waitsOnOwner, true);
-  const need = page.blocked.find((x) => x.task.id === "t-need");
-  assert.deepEqual([need?.on, need?.who, need?.need], ["need", "Aaron", "sign in on this Mac"]);
-  assert.equal(site.planWaiting, 2);
-  assert.equal(page.waitsOnOwner, 2);
+test("what waits on the owner is one list on the Questions page: the waiting decisions, then the plan's needs of his", () => {
+  const { site, page } = withPlan();
+  const review = site.pages.find((p) => p.id === "review");
+  assert.ok(review?.type === "questions");
+  assert.deepEqual(review.questions.map((q) => [q.kind, q.id]), [["decision", WAITING], ["need", "t-need"]]);
+  const decision = review.questions[0];
+  assert.deepEqual(decision?.holdsUp.map((t) => t.id), ["t-decide"], "a decision says which task it holds up");
+  const need = review.questions[1];
+  assert.deepEqual([need?.title, need?.question, need?.concept, need?.options.length], ["Sign in to the cloud", "sign in on this Mac", "m1", 0]);
+  assert.equal(need?.ref.anchor, "q-task-t-need");
+  assert.equal(site.waiting, 2, "one count: decisions and needs");
+  const blocked = page.blocked.find((x) => x.task.id === "t-decide");
+  assert.deepEqual(blocked?.inbox, { label: "t-decide", page: "review", anchor: `q-${WAITING}` });
+  assert.deepEqual(page.blocked.find((x) => x.task.id === "t-need")?.inbox, { label: "t-need", page: "review", anchor: "q-task-t-need" });
 });
 
-test("the HTML shows the context inline and the count beside Plan; the twins and llms.txt carry the page", () => {
+test("the HTML: Plan lists what is blocked in a line with a link; Questions holds the context and the answer buttons; the count is on Questions only", () => {
   const { site } = withPlan();
-  const html = renderSite(site, fixtureAssets).get("plan/index.html") ?? "";
-  assert.match(html, /Settle who invites/);
-  assert.match(html, /An invitation gives a person a way in\. Who may send one\?/);
-  assert.match(html, /Recommended/);
-  assert.match(html, /href="\.\.\/review\/index\.html#q-access\.who-invites"/);
-  assert.match(html, /sign in on this Mac/);
-  assert.match(html, /Plan <span class="nav-count">2<\/span>/);
-  const index = renderSite(site, fixtureAssets).get("index.html") ?? "";
+  const files = renderSite(site, fixtureAssets);
+  const plan = files.get("plan/index.html") ?? "";
+  assert.match(plan, /Settle who invites/);
+  assert.match(plan, /href="\.\.\/review\/index\.html#q-task-t-need"/);
+  assert.doesNotMatch(plan, /Recommended/, "the plan does not repeat the context");
+  assert.doesNotMatch(plan, /Plan <span class="nav-count"/);
+  const review = files.get("review/index.html") ?? "";
+  assert.match(review, /Questions <span class="nav-count" data-total="2" id="nav-questions-count">2<\/span>/);
+  assert.match(review, /data-kind="need" data-target="t-need"/);
+  assert.match(review, /I've done this/);
+  assert.match(review, /Holds up <a href="[^"]*">Settle who invites<\/a>/);
+  assert.match(review, /not served by <code>pnpm portal:serve<\/code>/, "the fallback line is on the page");
+  const index = files.get("index.html") ?? "";
   assert.match(index, /Latest note: three things wait\./);
-  assert.match(index, /href="plan\/index\.html"/);
+  assert.match(index, /href="review\/index\.html"/);
   const twins = twinsOf(site);
-  assert.match(twins.get("plan.md") ?? "", /Blocked on decision \[access\.who-invites\]/);
   assert.match(twins.get("plan.md") ?? "", /1\. `t-doing`/);
   assert.equal((JSON.parse(twins.get("data/plan.json") ?? "{}") as { type: string }).type, "plan");
   assert.match(twins.get("llms.txt") ?? "", /\(plan\.md\)/);
 });
 
-test("the portal check passes with a plan, and fails with the plan check's problems", () => {
+test("the portal check compares the Questions list with the judgments list plus the plan's needs of the owner", () => {
   const { input } = withPlan();
-  const files = new Map([...renderSite(buildSite(input), fixtureAssets), ...twinsOf(buildSite(input))]);
-  const ok = portalCheck(files, files, expect(input.book, input.waits, null, { problems: [], tasks: 3 }));
-  assert.ok(ok.filter((o) => o.check.includes("plan")).every((o) => o.failures === 0), JSON.stringify(ok));
-  const bad = portalCheck(files, files, expect(input.book, input.waits, null, { problems: ["t1: it is doing, and names no thread"], tasks: 4 }));
+  const site = buildSite(input);
+  const files = new Map([...renderSite(site, fixtureAssets), ...twinsOf(site)]);
+  const want = { problems: [], tasks: 3, ownerNeeds: ["t-need"] };
+  const ok = portalCheck(files, files, expect(input.book, input.waits, null, want));
+  assert.deepEqual(ok.filter((o) => o.failures > 0).map((o) => o.check), []);
+  const missing = portalCheck(files, files, expect(input.book, input.waits, null, { ...want, ownerNeeds: ["t-need", "t-other"] }));
+  assert.ok(missing.some((o) => o.failures > 0 && o.check.includes("Questions list")));
+  const bad = portalCheck(files, files, expect(input.book, input.waits, null, { ...want, problems: ["t1: it is doing, and names no thread"], tasks: 4 }));
   assert.equal(bad.filter((o) => o.failures > 0).length, 2);
   assert.equal(passed(bad), false);
 });
@@ -113,7 +122,6 @@ test("with no plan file the page says so, and holds nothing else", () => {
   const page = site.pages.find((p) => p.id === "plan");
   assert.ok(page?.type === "plan");
   assert.equal(page.present, false);
-  assert.equal(site.planWaiting, 0);
   const html = renderSite(site, fixtureAssets).get("plan/index.html") ?? "";
   assert.match(html, /plan\/plan\.json<\/code> is absent/);
   assert.doesNotMatch(renderSite(site, fixtureAssets).get("index.html") ?? "", /Where the plan is/);

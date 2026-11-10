@@ -19,7 +19,8 @@
     "plan:test": "node --experimental-strip-types --no-warnings --test tools/plan/plan.test.ts",
     "plan:check": "node --experimental-strip-types --no-warnings tools/plan.ts check",
     "tasks": "node --experimental-strip-types tools/plan-tasks.ts",
-    "tasks:check": "node --experimental-strip-types tools/plan-tasks.ts --check"
+    "tasks:check": "node --experimental-strip-types tools/plan-tasks.ts --check",
+    "portal:serve": "node --experimental-strip-types --no-warnings packages/portal/src/main.ts serve"
   },
   "devDependencies": {
     "effect": "catalog:",

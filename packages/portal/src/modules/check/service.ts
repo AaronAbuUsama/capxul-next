@@ -23,7 +23,7 @@ const outcome = (check: string, failures: readonly string[]): Outcome =>
 
 /** What the book says the site must hold. `waits` is the one predicate the judgments report uses. */
 export const expect = (
-  book: Book, waits: (decision: AnyRecord) => boolean, status: StatusDocument | null = null, plan: PlanExpect = { problems: [], tasks: null },
+  book: Book, waits: (decision: AnyRecord) => boolean, status: StatusDocument | null = null, plan: PlanExpect = { problems: [], tasks: null, ownerNeeds: [] },
 ): Expect => {
   const records = [...book.records.values()];
   return {
@@ -33,7 +33,7 @@ export const expect = (
     ],
     evals: book.evals.length,
     unknownStatus: status === null ? [] : unknownEvals(book, status),
-    waiting: records.filter((r) => r._kind === "decision" && waits(r)).map((r) => r.id),
+    waiting: [...records.filter((r) => r._kind === "decision" && waits(r)).map((r) => r.id), ...plan.ownerNeeds],
     operations: records.filter((r) => r._kind === "operation").map((r) => r.id),
     plan,
   };
@@ -44,7 +44,7 @@ export const check = (files: ReadonlyMap<string, string>, again: ReadonlyMap<str
   outcome("every record has a page and both twins, and every page belongs to a record", coverage(files, expected.pages)),
   outcome("every internal link and anchor resolves", links(files)),
   outcome("two generations are byte-identical", identical(files, again)),
-  outcome("the Questions list equals the judgments list", questions(files, expected.waiting)),
+  outcome("the Questions list equals the judgments list plus the plan's needs of the owner", questions(files, expected.waiting)),
   outcome("every operation has a stand", stands(files, expected.operations)),
   outcome("the eval catalogue lists every eval the book derives", evals(files, expected.evals)),
   outcome("the plan is honest against the book (plan check)", expected.plan.problems),

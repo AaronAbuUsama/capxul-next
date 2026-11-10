@@ -225,16 +225,19 @@ export const decision_portal_status_source = defineDecision({
 
 export const decision_portal_read_only = defineDecision({
   id: "portal.read-only",
-  title: "The portal holds no secret and writes nothing",
+  title: "The portal holds no secret; its local server only takes the owner's answers",
   question: "Should the portal be able to change anything (a record, a task, a verdict), or hold any credential?",
   options: [
     {
       label: "read-only",
       text:
-        "No. It is static pages and the status document behind access control. Every action a reader takes on it leaves " +
-        "through a system that already knows the reader: a prefilled GitHub issue, or a swarmD control-plane action on " +
-        "the manager's board. It holds no GitHub, ledger or PostHog credential and no secret value; an environment's page " +
-        "lists secret names only.",
+        "No. It is static pages and the status document behind access control. It holds no GitHub, ledger or PostHog " +
+        "credential and no secret value; an environment's page lists secret names only. Amended 10 November 2026 by the " +
+        "coordinator, on the owner's words (\"Why do we need to open a GitHub issue?\"): the generated site is still static " +
+        "and holds no credential, but the local server that serves it (`pnpm portal:serve`) accepts the owner's answers " +
+        "into the repository as lines of plan/answers.jsonl, and nothing else. A hosted portal will need the same " +
+        "endpoint behind its sign-in, which is not built; until then a hosted page falls back to a prefilled GitHub issue " +
+        "or a swarmD control-plane action on the manager's board.",
     },
     { label: "writes", text: "A small backend that edits records, resolves matters and waives evals on the reader's behalf." },
   ],
@@ -244,7 +247,7 @@ export const decision_portal_read_only = defineDecision({
     "skips both. swarmD's control plane already checks each action's actor by role in code, and GitHub already knows who " +
     "opened an issue; a portal backend would duplicate both and need their credentials. Read-only, the portal is a static " +
     "deploy with no runtime to break, which is why D0 carries no risk.",
-  source: by("docs/spec/10 (actions checked by role); docs/spec/20 (the artifact's actions); CLAUDE.md (the book changes first)"),
+  source: `${by("docs/spec/10 (actions checked by role); docs/spec/20 (the artifact's actions); CLAUDE.md (the book changes first)")}; amended 10 November 2026 by the coordinator, on the owner's words`,
   affects: [f.system_capxul],
 });
 
@@ -292,11 +295,15 @@ export const decision_portal_review_flow = defineDecision({
       text:
         "A waiting decision's page has Accept, Choose another option and Change; every other decision has Change. An " +
         "answer is one typed request: {decision, answer: accept | choose | change, option?, text?, by, at, seenAt: the " +
-        "commit the page was built from}; by and at come from the system that carries it, never from a form. Until the " +
-        "ledger runs it is a GitHub issue form prefilled through its URL and labelled review, which the build session " +
-        "takes before other work, applying only an issue whose author is the decision's reviewer; after, it resolves the " +
-        "decision's matter, once the ledger's matters name their record and carry a typed resolution (the swarm design " +
-        "adds both; until then the issue stays the way). An agent then edits the records: " +
+        "commit the page was built from}; by and at come from the system that carries it, never from a form. Amended " +
+        "10 November 2026 by the coordinator, on the owner's words (\"Why do we need to open a GitHub issue?\"): where the " +
+        "portal is served by `pnpm portal:serve`, an answer is saved as one validated line of plan/answers.jsonl, undone " +
+        "while unapplied, and applied by the coordinator, who writes the ruling and then marks the answer applied in " +
+        "plan/log.jsonl; the same list holds the plan's tasks blocked on a need of the owner. Where there is no such " +
+        "server (plain files, a static host, a hosted portal not yet built) it is the GitHub issue form prefilled through " +
+        "its URL and labelled review, which the build session takes before other work, applying only an issue whose author " +
+        "is the decision's reviewer; after the ledger runs, it resolves the decision's matter, once the ledger's matters name " +
+        "their record and carry a typed resolution (the swarm design adds both; until then the issue stays the way). An agent then edits the records: " +
         "accept sets the decision's review state; choose sets chosen and puts the reason first in why; change adds the new " +
         "option and chooses it. Every record the change ripples to changes with it; if the answer leaves a judgment open, " +
         "the agent raises a decision pack back instead of guessing. It rebuilds to zero problems, runs check-frozen and " +
@@ -314,7 +321,7 @@ export const decision_portal_review_flow = defineDecision({
     "and change usually ripple to other records, which needs an agent and a rebuild. Free comments are what the old " +
     "system's tickets had; a typed answer cannot be misread. The same request works before and after the ledger, so the " +
     "habit does not change when swarmD arrives.",
-  source: by("docs/spec/10 (matters: decision packs, resolve with a record); docs/spec/20 (raise a matter only when no other action fits); CLAUDE.md (the book changes first)"),
+  source: `${by("docs/spec/10 (matters: decision packs, resolve with a record); docs/spec/20 (raise a matter only when no other action fits); CLAUDE.md (the book changes first)")}; amended 10 November 2026 by the coordinator, on the owner's words`,
   affects: [f.system_capxul],
 });
 

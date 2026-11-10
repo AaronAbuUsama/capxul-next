@@ -5,6 +5,8 @@ import type { Command, Result, TaskFields } from "../types.ts";
 export type Request =
   | { readonly kind: "show"; readonly json: boolean }
   | { readonly kind: "check" }
+  | { readonly kind: "answers" }
+  | { readonly kind: "answers.apply"; readonly answer: string; readonly evidence: string; readonly by: string }
   | { readonly kind: "change"; readonly command: Command; readonly by: string };
 
 interface Parsed { readonly words: readonly string[]; readonly flags: ReadonlyMap<string, string> }
@@ -29,6 +31,7 @@ const list = (s: string | undefined): readonly string[] | undefined => (s === un
 
 const USAGE = [
   "usage: plan show [--json] | check",
+  "       plan answers | answers apply <answer id> --evidence <ref>     (the owner's answers to apply, and marking one applied)",
   "       plan note <text>",
   "       plan goal set [--title <t>] [--why <t>]",
   "       plan exit add <goal|milestone> <id> --claim <t> [--evals a,b] | exit met <goal|milestone> <id> --evidence <ref>",
@@ -69,6 +72,8 @@ export const parseArgs = (argv: readonly string[]): Result<Request> => {
   const bad = (m: string | null): Result<never> | null => (m ? fail(m) : null);
 
   if (a === "show") return { ok: true, value: { kind: "show", json: flags.has("json") } };
+  if (a === "answers" && b === undefined) return { ok: true, value: { kind: "answers" } };
+  if (a === "answers" && b === "apply" && c !== undefined) return bad(missing("evidence")) ?? { ok: true, value: { kind: "answers.apply", answer: c, evidence: f("evidence"), by } };
   if (a === "check") return { ok: true, value: { kind: "check" } };
   if (a === "note") return b === undefined ? fail("note needs the text") : change({ kind: "note", text: [b, c, ...rest].filter((x) => x !== undefined).join(" ") });
   if (a === "goal" && b === "set") return change({ kind: "goal.set", ...(flags.has("title") ? { title: f("title") } : {}), ...(flags.has("why") ? { why: f("why") } : {}) });

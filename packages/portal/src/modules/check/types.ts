@@ -11,7 +11,7 @@ export interface Expect {
    * for every catalogue, `eval`, and `eval/<kind>` for every kind of eval the book derives.
    */
   readonly pages: readonly string[];
-  /** The ids of the decisions that wait for an answer, in the book's order: the judgments report's list. */
+  /** The ids of everything that waits on the owner, in the page's order: the decisions the judgments report lists, then the plan's owner needs. */
   readonly waiting: readonly string[];
   /** Every operation id. */
   readonly operations: readonly string[];
@@ -26,6 +26,8 @@ export interface Expect {
 export interface PlanExpect {
   readonly problems: readonly string[];
   readonly tasks: number | null;
+  /** The plan's tasks blocked on a need of the owner: they join the waiting decisions on the Questions page. */
+  readonly ownerNeeds: readonly string[];
 }
 
 /** The verdict on one part of the check. It passed when `failures` is 0. */

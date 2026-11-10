@@ -37,10 +37,10 @@ export const direction: Direction = {
     "Core stays in full. Frappe-owned means Frappe holds it and the door reaches it; books keeps only the chain reader and contacts only the payee address book until stage 3. Payroll's pay agreements moved into payments. Projects and payroll left the built book; equity is parked, not decided (cut.equity-parked).",
 
   questions: {
-    lead: "These are the decisions only you can make. Everything else in the book is already decided. Your answer changes the record first, then the code.",
+    lead: "Everything that waits on you, in one list: the decisions only you can make, and the tasks of the plan that need something only you can do or say. Your answer is saved here; the coordinator applies it, to the record first, then the code.",
     answerSteps: [
-      { title: "Filed", text: "Saved as a typed answer against this decision." },
-      { title: "Record first", text: "An agent edits the decision record, never the code." },
+      { title: "Saved", text: "Your answer is saved as a line in plan/answers.jsonl on this machine, and you can undo it until it is applied." },
+      { title: "Applied", text: "The coordinator writes the ruling into the book, or unblocks the task, and marks your answer applied. Nothing is automatic." },
       { title: "Rebuilt", text: "The book rebuilds to 0 problems, with a preview of this portal." },
       { title: "Settled", text: "Checked and merged. The question leaves this page." },
     ],

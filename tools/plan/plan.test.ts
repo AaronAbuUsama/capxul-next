@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import { apply, check, parseArgs, parsePlan, show, waitsOnOwner } from "./service.ts";
+import { apply, applyAnswer, appliedTargets, check, parseAnswerLines, parseArgs, parsePlan, show, unapplied, waitsOnOwner } from "./service.ts";
 import type { Command, Ctx, Facts, Plan } from "./types.ts";
 import { EMPTY_PLAN } from "./types.ts";
 
@@ -142,4 +142,31 @@ test("show prints the note, the path in its order and what is blocked", () => {
   assert.match(text, /Note, 2026-11-10 \(coordinator\): hello/);
   assert.ok(text.indexOf("1. t2") < text.indexOf("2. t1"));
   assert.match(text, /\[!\] t1 {2}T1 {2}<- Aaron: a key/);
+});
+
+test("answers: unapplied ones are listed, applying is a log line and never a rewrite, and an applied answer's decision must not still wait", () => {
+  const text = [
+    '{"type":"answer","id":"a-1","at":"t","target":{"kind":"decision","id":"d.one"},"answer":{"how":"accept"}}',
+    '{"type":"answer","id":"a-2","at":"t","target":{"kind":"task","id":"t1"},"answer":{"how":"text","text":"sub.example.org"}}',
+    '{"type":"withdraw","id":"w-1","at":"t","answer":"a-2"}',
+    "garbage", '{"type":"answer","id":"a-3","at":"t","target":{"kind":"bogus","id":"x"},"answer":{"how":"accept"}}',
+  ].join("\n");
+  const lines = parseAnswerLines(text);
+  assert.equal(lines.length, 3, "lines that are not answers are ignored, not repaired");
+  assert.deepEqual(unapplied(lines, []).map((a) => a.id), ["a-1"], "a withdrawn answer is not listed");
+  const entry = applyAnswer(lines, [], "a-1", "ruling in books/target/shared/rulings.ts", "coordinator", "2026-11-10T10:00:00Z", "abc");
+  assert.ok(entry.ok);
+  if (!entry.ok) return;
+  assert.deepEqual(entry.value.args, { answer: "a-1", target: { kind: "decision", id: "d.one" }, evidence: "ruling in books/target/shared/rulings.ts" });
+  assert.deepEqual(unapplied(lines, [entry.value]), [], "the log, not the answers file, says it is applied");
+  assert.equal(applyAnswer(lines, [entry.value], "a-1", "x", "c", "t", "c").ok, false, "twice");
+  assert.equal(applyAnswer(lines, [], "a-1", " ", "c", "t", "c").ok, false, "without evidence");
+  assert.equal(applyAnswer(lines, [], "a-2", "x", "c", "t", "c").ok, false, "a withdrawn answer");
+  const plan = run(...base);
+  const still = check(plan, { ...facts, waiting: new Set(["d.one"]), applied: appliedTargets([entry.value]) }).map((p) => p.why);
+  assert.ok(still.some((w) => /decision d\.one still waits in the book with no ruling/.test(w)));
+  assert.deepEqual(check(plan, { ...facts, waiting: new Set(), applied: appliedTargets([entry.value]) }), []);
+  assert.match(show(plan, [], unapplied(lines, [])), /^1 answers from Aaron to apply/);
+  assert.deepEqual(parseArgs(["answers", "apply", "a-1", "--evidence", "e"]), { ok: true, value: { kind: "answers.apply", answer: "a-1", evidence: "e", by: "coordinator" } });
+  assert.equal(parseArgs(["answers", "apply", "a-1"]).ok, false);
 });
