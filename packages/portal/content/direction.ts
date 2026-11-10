@@ -14,7 +14,7 @@ export const direction: Direction = {
   settings: { repo: "https://github.com/AaronAbuUsama/capxul-next", reviewer: "aaron", issueLabel: "review" },
 
   hero: {
-    eyebrow: "Where we are, 9 November 2026",
+    eyebrow: "Where we are, 10 November 2026",
     title: "Capxul is the on-chain company.",
     lead: "A complete business system on Frappe, with Capxul Core built in: identity, the organisation and its authority, budgets, payments, governance and banking.",
     sub: "This portal is the whole design before any code. Every page is generated from a record in the book, so no page can go stale. The questions that need you are in one place.",
@@ -22,13 +22,19 @@ export const direction: Direction = {
   needsYou: "Each has a recommendation. Accept it, choose another option, or change it in your own words.",
   climb: { specify: "Done for the old plan", build: "Not started", prove: "Not started" },
   banner: {
-    title: "The book still describes the plan from before 9 November.",
-    text: "The Frappe-native re-cut gives each concept one verdict: Core, Frappe-owned, or dropped. Until it is done, the numbers above count the old plan.",
+    title: "The book is cut to the Frappe-native direction: stages 1 and 2 are done.",
+    text: "Core and the plugs stay in full. What Frappe owns (projects, payroll and HR, the CRM, the chart and reports of the books, printing, sellable services) has left the built book and is reached through the door. Equity, the hosted FDE and the referral and waitlist operations are parked, not decided. Nothing was deleted: docs/cut-archive/INDEX.md lists every record that moved, why, and what carries it. The plugs, the site and the door are not written yet (stage 3).",
   },
 
   // One line per concept once the re-cut decides it: `payments: "core"`. A concept not named here has no verdict.
-  verdicts: {},
-  verdictNote: "The Frappe-native re-cut has not given this concept a verdict yet: Core, Frappe-owned, or dropped.",
+  verdicts: {
+    access: "core", media: "core", parties: "core", indexing: "core", approvals: "core", accounts: "core", organizations: "core",
+    board: "core", agents: "core", budgets: "core", payments: "core", banking: "core", requests: "core", applications: "core",
+    activity: "core", notices: "core", devnet: "core", documents: "core",
+    books: "frappe", contacts: "frappe",
+  },
+  verdictNote:
+    "Core stays in full. Frappe-owned means Frappe holds it and the door reaches it; books keeps only the chain reader and contacts only the payee address book until stage 3. Payroll's pay agreements moved into payments. Projects and payroll left the built book; equity is parked, not decided (cut.equity-parked).",
 
   questions: {
     lead: "These are the decisions only you can make. Everything else in the book is already decided. Your answer changes the record first, then the code.",
