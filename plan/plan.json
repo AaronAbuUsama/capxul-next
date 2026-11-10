@@ -715,17 +715,15 @@
       "title": "Rewrite the entry documents to the current direction",
       "why": "START-HERE, GROUNDING, HANDOFF and CLAUDE.md still describe UK companies, a swarm build and an optional Frappe. A new session or agent that reads them starts from the wrong place.",
       "milestone": "m1",
-      "state": "blocked",
+      "state": "done",
       "needs": [],
       "records": [],
-      "evidence": [],
+      "evidence": [
+        "58a0f58"
+      ],
       "created": "2026-11-10",
       "updated": "2026-11-10",
-      "thread": "m1-entry-docs-11101453",
-      "blockedBy": {
-        "need": "A yes or no: the loop's run is ready and passes its checks, but it rewrites CLAUDE.md's banner and replaces START-HERE.md (206 lines, the owner's direction of 9 November) with a one-page entry, keeping the original whole in archive/START-HERE.md; GROUNDING.md likewise. Branch lane/m1-entry-docs, run m1-entry-docs-11101507. The coordinator recommends merging.",
-        "who": "aaron"
-      }
+      "thread": "m1-entry-docs-11101453"
     },
     {
       "id": "m2-graduate-spike",
@@ -1224,6 +1222,11 @@
       "date": "2026-11-10",
       "by": "coordinator",
       "text": "17:45 sweep (new coordinator, Capxul Next project; skills in .claude/skills): nothing merged; no run started; portal and host up. Path re-set: layer first (policy, visibility, one watched run, gateway, hardening). The 11 ready runs include 8 already merged, so superseded runs are task m1-loop-visibility."
+    },
+    {
+      "date": "2026-11-10",
+      "by": "coordinator",
+      "text": "17:58: merging lane/m1-entry-docs (run m1-entry-docs-11101507) on Aaron's 'done' of 17:41, without its CLAUDE.md change; the matching AGENTS.md line goes to him as a diff"
     }
   ]
 }
