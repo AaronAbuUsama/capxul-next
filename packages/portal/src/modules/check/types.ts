@@ -28,6 +28,8 @@ export interface PlanExpect {
   readonly tasks: number | null;
   /** The plan's tasks blocked on a need of the owner: they join the waiting decisions on the Questions page. */
   readonly ownerNeeds: readonly string[];
+  /** The page ids of the plan's tasks and milestones: `plan/task/<id>` and `plan/milestone/<id>`. */
+  readonly pages: readonly string[];
 }
 
 /** The verdict on one part of the check. It passed when `failures` is 0. */

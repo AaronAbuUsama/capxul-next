@@ -76,14 +76,16 @@ const unfinished = (p: OverviewPage): string => {
   return parts === "" ? "" : `<section class="block"><h2 id="unfinished">What the book still lacks</h2>${parts}</section>`;
 };
 
-/** The coordinator's latest note, and the way to the plan. */
+/** What the goal is in two sentences, the coordinator's latest note, and the way to the plan and to what waits. */
 const planBlock = (p: OverviewPage): string =>
   p.planNote === null ? "" :
     `<section class="block"><div class="col-head"><h2 id="plan">Where the plan is</h2>` +
-    `<a href="${esc(hrefTo(p.id, { label: "", page: "plan", anchor: "" }))}">The whole plan ${ARROW}</a></div>` +
+    `<span><a href="${esc(hrefTo(p.id, { label: "", page: "plan", anchor: "" }))}">The whole plan ${ARROW}</a> · ` +
+    `<a href="${esc(hrefTo(p.id, REVIEW))}">${plural(p.inbox, "question")} for you</a></span></div>` +
+    (p.planGoal === "" ? "" : `<p class="lead lead-wide">${prose(p.planGoal)}</p>`) +
     `<div class="banner"><div class="banner-words"><p class="banner-title">${prose(p.planNote.text)}</p>` +
     `<p class="banner-text">The coordinator, ${esc(p.planNote.date)}</p></div>` +
-    `<a class="banner-count" href="${esc(hrefTo(p.id, REVIEW))}"><span class="banner-big">${count(p.inbox)}</span><span class="banner-sub">${p.inbox === 1 ? "thing waits" : "things wait"} for you: see Questions</span></a></div></section>`;
+    `<a class="banner-count" href="${esc(hrefTo(p.id, REVIEW))}"><span class="banner-big">${count(p.inbox)}</span><span class="banner-sub">${p.inbox === 1 ? "thing waits" : "things wait"} for you</span></a></div></section>`;
 
 export const overview = (p: OverviewPage): string =>
   `<main class="page">${hero(p)}${planBlock(p)}${climb(p)}<div class="cols">${waiting(p)}${holds(p)}</div>${concepts(p)}${unfinished(p)}` +

@@ -134,6 +134,8 @@ export interface OverviewPage extends PageHead {
   readonly planNote: { readonly date: string; readonly by: string; readonly text: string } | null;
   /** How many things wait on the owner: the Questions page's count. */
   readonly inbox: number;
+  /** The outline's "What this goal is": its opening two sentences. Empty without a plan. */
+  readonly planGoal: string;
   readonly type: "overview"; readonly commit: string;
   readonly hero: Direction["hero"]; readonly needsYou: string; readonly banner: Direction["banner"];
   readonly climb: readonly ClimbCard[]; readonly verdicts: { readonly given: number; readonly of: number };
@@ -239,44 +241,66 @@ export interface CataloguePage extends PageHead {
 }
 // ── the Plan page ───────────────────────────────────────────────────────────────────────────────
 
-export interface PlanExit { readonly id: string; readonly claim: string; readonly met: boolean; readonly evidence: string }
+/** A `##` section of one of the plan's Markdown files; `body` is Markdown, which the renderer draws and the twins print as written. */
+export interface PlanSection { readonly heading: string; readonly body: string }
+export interface PlanExit { readonly id: string; readonly claim: string; readonly met: boolean; readonly evidence: string; readonly evals: readonly Ref[] }
 export interface PlanTask {
   readonly id: string; readonly title: string; readonly why: string; readonly milestone: string; readonly state: TaskState;
   readonly thread: string; readonly needs: readonly string[]; readonly evidence: readonly string[]; readonly updated: string; readonly droppedWhy: string;
+  /** The first sentence of its What, and its page. */
+  readonly what: string; readonly ref: Ref;
 }
 export interface PlanMilestone {
-  readonly id: string; readonly title: string; readonly goal: string; readonly state: string; readonly order: number;
+  readonly id: string; readonly title: string; readonly goal: string; readonly state: string; readonly order: number; readonly ref: Ref;
+  /** The first sentence of "What it delivers". */
+  readonly delivers: string; readonly tasksTotal: number; readonly tasksDone: number;
   readonly exit: readonly PlanExit[]; readonly concepts: readonly Ref[];
   /** True when its exit lines are the goal's, word for word: the page then says so and counts, instead of repeating them. */
   readonly repeatsGoal: boolean;
   /** How many of the named concepts' evals pass in the status document; null when it names no concept. */
   readonly evals: Count | null;
-  readonly tasks: Readonly<Record<TaskState, number>>;
+  readonly sections: readonly PlanSection[]; readonly tasks: readonly PlanTask[];
 }
-/** A blocked task and what blocks it, in a line. The context is on the Questions page, which `inbox` links to. */
+/** One step of the critical path: the task, the start of its What, and its Done-when bullets. */
+export interface PlanStep { readonly n: number; readonly task: PlanTask; readonly what: string; readonly doneWhen: readonly string[] }
+export interface PlanLogRow { readonly at: string; readonly by: string; readonly action: string; readonly summary: string; readonly commit: string }
+/** A blocked task and what blocks it, in a line; the context is on the Questions page, which `inbox` links to. */
 export interface PlanBlocked {
   readonly task: PlanTask; readonly on: "decision" | "need"; readonly who: string; readonly need: string; readonly waitsOnOwner: boolean;
-  /** The decision it is blocked on, when it is blocked on one the book holds. */
-  readonly decisionRef: Ref | null;
-  /** Its entry on the Questions page, when it waits on the owner; null otherwise. */
-  readonly inbox: Ref | null;
+  readonly decisionRef: Ref | null; readonly inbox: Ref | null;
 }
-export interface PlanLogRow { readonly at: string; readonly by: string; readonly action: string; readonly summary: string; readonly commit: string }
 export interface PlanPage extends PageHead {
   readonly type: "plan"; readonly commit: string;
   /** False when `plan/plan.json` is absent: the page says so and holds nothing else. */
   readonly present: boolean; readonly owner: string;
+  /** The outline's sections, in its order. */
+  readonly outline: readonly PlanSection[];
   readonly note: { readonly date: string; readonly by: string; readonly text: string } | null;
   readonly goal: { readonly title: string; readonly why: string; readonly exit: readonly PlanExit[] } | null;
   readonly milestones: readonly PlanMilestone[];
   /** The critical path as the coordinator wrote it: in its order, in its words. */
-  readonly path: { readonly milestone: string; readonly written: string; readonly why: string; readonly steps: readonly PlanTask[] } | null;
+  readonly path: { readonly milestone: string; readonly written: string; readonly why: string; readonly steps: readonly PlanStep[] } | null;
   readonly blocked: readonly PlanBlocked[]; readonly waitsOnOwner: number;
+  /** How many things wait on the owner: the Questions page's count. */
+  readonly inbox: number;
   readonly groups: readonly { readonly state: TaskState; readonly title: string; readonly tasks: readonly PlanTask[] }[];
   readonly log: readonly PlanLogRow[]; readonly problems: readonly { readonly at: string; readonly why: string }[];
 }
+/** The page of one task: its whole file, its state, what it needs and what needs it, the records it names, its history. */
+export interface PlanTaskPage extends PageHead {
+  readonly type: "plan-task"; readonly commit: string; readonly task: PlanTask; readonly milestone: PlanMilestone;
+  readonly sections: readonly PlanSection[]; readonly needs: readonly PlanTask[]; readonly neededBy: readonly PlanTask[];
+  /** The records it names, each with how many evals the book derives on it. */
+  readonly records: readonly { readonly ref: Ref; readonly evals: number }[];
+  readonly blocker: PlanBlocked | null; readonly pathPosition: number | null; readonly pathLength: number;
+  readonly history: readonly PlanLogRow[];
+}
+/** The page of one milestone: its whole file, its exit lines, its tasks and its history. */
+export interface PlanMilestonePage extends PageHead {
+  readonly type: "plan-milestone"; readonly commit: string; readonly milestone: PlanMilestone; readonly history: readonly PlanLogRow[];
+}
 export type Page =
-  | PlanPage | OverviewPage | QuestionsPage | ArchitecturePage | ConceptPage | OperationPage | RecordPage | BuildPage | CataloguePage;
+  | PlanPage | PlanTaskPage | PlanMilestonePage | OverviewPage | QuestionsPage | ArchitecturePage | ConceptPage | OperationPage | RecordPage | BuildPage | CataloguePage;
 
 export interface Site {
   readonly commit: string;

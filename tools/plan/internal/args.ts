@@ -3,17 +3,18 @@ import type { Command, Result, TaskFields } from "../types.ts";
 
 /** What the CLI does besides changing the plan. */
 export type Request =
-  | { readonly kind: "show"; readonly json: boolean }
+  | { readonly kind: "show"; readonly json: boolean; readonly task?: string }
   | { readonly kind: "check" }
   | { readonly kind: "answers" }
   | { readonly kind: "answers.apply"; readonly answer: string; readonly evidence: string; readonly by: string }
   | { readonly kind: "change"; readonly command: Command; readonly by: string };
 
-interface Parsed { readonly words: readonly string[]; readonly flags: ReadonlyMap<string, string> }
+interface Parsed { readonly words: readonly string[]; readonly flags: ReadonlyMap<string, string>; readonly many: readonly string[] }
 
 const parse = (argv: readonly string[]): Result<Parsed> => {
   const words: string[] = [];
   const flags = new Map<string, string>();
+  const many: string[] = [];
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i] ?? "";
     if (!a.startsWith("--")) { words.push(a); continue; }
@@ -21,22 +22,23 @@ const parse = (argv: readonly string[]): Result<Parsed> => {
     const next = argv[i + 1];
     if (name === "json") { flags.set(name, "true"); continue; }
     if (next === undefined) return { ok: false, error: `--${name} needs a value` };
-    flags.set(name, next);
+    if (name === "done-when") many.push(next); // repeatable: one line of "done when" each
+    else flags.set(name, next);
     i++;
   }
-  return { ok: true, value: { words, flags } };
+  return { ok: true, value: { words, flags, many } };
 };
 
 const list = (s: string | undefined): readonly string[] | undefined => (s === undefined ? undefined : s.split(",").map((x) => x.trim()).filter((x) => x !== ""));
 
 const USAGE = [
-  "usage: plan show [--json] | check",
+  "usage: plan show [<task id>] [--json] | check",
   "       plan answers | answers apply <answer id> --evidence <ref>     (the owner's answers to apply, and marking one applied)",
   "       plan note <text>",
   "       plan goal set [--title <t>] [--why <t>]",
   "       plan exit add <goal|milestone> <id> --claim <t> [--evals a,b] | exit met <goal|milestone> <id> --evidence <ref>",
   "       plan milestone add <id> --title <t> --goal <t> [--order n] [--concepts a,b] | milestone current <id>",
-  "       plan task add <id> --title <t> --why <t> --milestone <id> [--needs a,b] [--records k,k]",
+  "       plan task add <id> --title <t> --milestone <id> --why <t> --what <t> --done-when <t> [--done-when <t>…] [--needs a,b] [--records k,k]   (or --detail-file <md> in place of --what and --done-when)",
   "       plan task start <id> --thread <name> | unblock <id> | done <id> [--evidence <ref>] | drop <id> --why <t>",
   "       plan task block <id> (--decision <id> | --need <t> --who <name>)",
   "       plan task edit <id> [--title t] [--why t] [--milestone m] [--needs a,b] [--records k,k] [--thread name]",
@@ -71,7 +73,7 @@ export const parseArgs = (argv: readonly string[]): Result<Request> => {
   const missing = (...names: string[]): string | null => need(p.value, ...names);
   const bad = (m: string | null): Result<never> | null => (m ? fail(m) : null);
 
-  if (a === "show") return { ok: true, value: { kind: "show", json: flags.has("json") } };
+  if (a === "show") return { ok: true, value: { kind: "show", json: flags.has("json"), ...(b !== undefined ? { task: b } : {}) } };
   if (a === "answers" && b === undefined) return { ok: true, value: { kind: "answers" } };
   if (a === "answers" && b === "apply" && c !== undefined) return bad(missing("evidence")) ?? { ok: true, value: { kind: "answers.apply", answer: c, evidence: f("evidence"), by } };
   if (a === "check") return { ok: true, value: { kind: "check" } };
@@ -93,6 +95,7 @@ export const parseArgs = (argv: readonly string[]): Result<Request> => {
       case "add":
         return bad(missing("title", "why", "milestone")) ?? change({
           kind: "task.add", id: c, title: f("title"), why: f("why"), milestone: f("milestone"),
+          ...(flags.has("what") ? { what: f("what") } : {}), ...(p.value.many.length ? { doneWhen: p.value.many } : {}), ...(flags.has("detail-file") ? { detailFile: f("detail-file") } : {}),
           ...(flags.has("needs") ? { needs: list(f("needs")) as readonly string[] } : {}), ...(flags.has("records") ? { records: list(f("records")) as readonly string[] } : {}),
         });
       case "start": return bad(missing("thread")) ?? change({ kind: "task.start", id: c, thread: f("thread") });

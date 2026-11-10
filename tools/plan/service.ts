@@ -4,10 +4,13 @@ import { apply } from "./internal/apply.ts";
 import { check } from "./internal/check.ts";
 import { parsePlan } from "./internal/parse.ts";
 import { applyAnswer, appliedIds, appliedTargets, describe, parseAnswerLines, unapplied } from "./internal/answers.ts";
-import { blockerLine, show } from "./internal/show.ts";
+import { bulletsOf, sectionBody, sectionsOf, sentences, taskFile } from "./internal/markdown.ts";
+import { blockerLine, show, showTask } from "./internal/show.ts";
 import type { Plan, Task } from "./types.ts";
 
-export { apply, applyAnswer, appliedIds, appliedTargets, blockerLine, check, describe, parseAnswerLines, parseArgs, parsePlan, show, unapplied };
+export { apply, applyAnswer, appliedIds, appliedTargets, blockerLine, check, describe, parseAnswerLines, parseArgs, parsePlan, show, showTask, unapplied };
+export { bulletsOf, sectionBody, sectionsOf, sentences, taskFile };
+export type { Section } from "./internal/markdown.ts";
 export type { Request } from "./internal/args.ts";
 
 /** A task that waits on the owner: blocked on a need that is his, or on a decision that waits for him. */

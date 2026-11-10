@@ -9,6 +9,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 
 import { buildBook, keyOf, parseStatus, type AnyRecord, type StatusDocument } from "@capxul/book";
 
+import { planFilesOf } from "../../../tools/plan-files.ts";
 import { appliedTargets, check as planCheck, parsePlan, waitsOnOwner } from "../../../tools/plan/service.ts";
 import type { Facts, LogEntry } from "../../../tools/plan/types.ts";
 import { direction } from "#content/direction.ts";
@@ -118,11 +119,8 @@ const statusOf = (root: string): Result<StatusDocument | null> => {
   }
 };
 
-/** How many lines of the plan's log the Plan page keeps. */
-const LOG_KEPT = 20;
-
 /**
- * The coordinator's plan at `plan/plan.json`, its log's last lines, and what `plan check` says of it: null when the file is
+ * The coordinator's plan at `plan/plan.json`, its files, its log, and what `plan check` says of it: null when the file is
  * absent; an error when it is not a plan. The log is read here, so the site module stays free of the file system.
  */
 const planOf = (root: string, book: ReturnType<typeof buildBook>, concepts: readonly string[], waits: (d: AnyRecord) => boolean): Result<PlanInput | null> => {
@@ -134,13 +132,13 @@ const planOf = (root: string, book: ReturnType<typeof buildBook>, concepts: read
     const logFile = join(root, "plan/log.jsonl");
     const lines = existsSync(logFile) ? readFileSync(logFile, "utf8").split("\n").filter((l) => l.trim() !== "") : [];
     const everything = lines.map((l) => JSON.parse(l) as LogEntry);
-    const log = everything.slice(-LOG_KEPT);
+    const files = planFilesOf(root);
     const facts: Facts = {
       decisions: new Set([...book.records.values()].filter((r) => r._kind === "decision").map((r) => r.id)),
       records: new Set(book.records.keys()), evals: new Set(book.evals.map((e) => e.id)), concepts: new Set(concepts),
       waiting: new Set([...book.records.values()].filter((r) => r._kind === "decision" && waits(r)).map((r) => r.id)), applied: appliedTargets(everything),
     };
-    return { ok: true, value: { plan: parsed.value, log, problems: planCheck(parsed.value, facts) } };
+    return { ok: true, value: { plan: parsed.value, files, log: everything, problems: planCheck(parsed.value, facts, files) } };
   } catch (cause) {
     return { ok: false, error: `plan/plan.json: ${cause instanceof Error ? cause.message : String(cause)}` };
   }
@@ -159,3 +157,8 @@ export const assetsOf = (packageDir: string = PACKAGE): Assets => {
 /** The ids of the tasks blocked on a need whose owner is the reviewer: what the Questions page holds beyond the waiting decisions. */
 export const ownerNeedsOf = (input: SiteInput): readonly string[] =>
   (input.plan?.plan.tasks ?? []).filter((t) => waitsOnOwner(t, input.direction.settings.reviewer, () => false)).map((t) => t.id);
+
+/** The page ids of the plan's tasks and milestones. */
+export const planPagesOf = (input: SiteInput): readonly string[] => [
+  ...(input.plan?.plan.milestones ?? []).map((m) => `plan/milestone/${m.id}`), ...(input.plan?.plan.tasks ?? []).map((t) => `plan/task/${t.id}`),
+];

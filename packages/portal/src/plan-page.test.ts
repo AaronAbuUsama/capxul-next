@@ -9,6 +9,7 @@ import { buildSite } from "#src/modules/site/service.ts";
 import type { PlanInput, PlanPage, Site } from "#src/modules/site/types.ts";
 import { twinsOf } from "#src/modules/twins/service.ts";
 
+import { planPagesOf } from "./load.ts";
 import { fixtureAssets, fixtureInput, WAITING } from "./testing.ts";
 
 const ctx = { by: "coordinator", date: "2026-11-10", at: "2026-11-10T09:00:00.000Z", commit: "abc1234" };
@@ -23,9 +24,9 @@ const planOf = (input = fixtureInput()): { readonly plan: Plan; readonly facts: 
     { kind: "exit.add", owner: "goal", id: "g1", claim: "Everything is a record." },
     { kind: "milestone.add", id: "m1", title: "Foundation", goal: "Get the book fit.", concepts: ["access"] },
     { kind: "milestone.current", id: "m1" },
-    { kind: "task.add", id: "t-decide", title: "Settle who invites", why: "Invitations are grants.", milestone: "m1" },
-    { kind: "task.add", id: "t-need", title: "Sign in to the cloud", why: "A machine needs an account.", milestone: "m1" },
-    { kind: "task.add", id: "t-doing", title: "Write the page", why: "So it is visible.", milestone: "m1" },
+    { kind: "task.add", what: "What it is.", doneWhen: ["It is done."], id: "t-decide", title: "Settle who invites", why: "Invitations are grants.", milestone: "m1" },
+    { kind: "task.add", what: "What it is.", doneWhen: ["It is done."], id: "t-need", title: "Sign in to the cloud", why: "A machine needs an account.", milestone: "m1" },
+    { kind: "task.add", what: "What it is.", doneWhen: ["It is done."], id: "t-doing", title: "Write the page", why: "So it is visible.", milestone: "m1" },
     { kind: "task.block", id: "t-decide", blocker: { decision: WAITING } },
     { kind: "task.block", id: "t-need", blocker: { need: "sign in on this Mac", who: "Aaron" } },
     { kind: "task.start", id: "t-doing", thread: "plan-page" },
@@ -42,11 +43,23 @@ const planOf = (input = fixtureInput()): { readonly plan: Plan; readonly facts: 
   return { plan, facts };
 };
 
+const OUTLINE = [
+  "# The plan", "", "## Where we are going", "Capxul is the on-chain company. It runs on **Frappe** with `Core` built in.", "",
+  "## What this goal is", "Two things.", "", "1. **The book fully specifies it.** Every operation.", "2. **One shared world runs a thin line.** On a machine.", "",
+  "## How we get there", "Six milestones.", "", "## How the work runs", "- One coordinator writes the plan.", "- See [the book](docs/design-book.md) and `plan/plan.json`.", "",
+  "## What is not in this goal", "OpenFort sign-in.", "",
+].join("\n");
+const taskFile = (what: string): string => `## What\n${what}\n\n## Why\nBecause.\n\n## Done when\n- It works.\n- It is tested.\n\n## Links\n- \`docs/mission/cloud.md\`\n`;
+
 const withPlan = (): { readonly site: Site; readonly page: PlanPage; readonly input: ReturnType<typeof fixtureInput> } => {
   const base = fixtureInput();
   const { plan } = planOf(base);
   const log = [{ at: "2026-11-10T09:00:00.000Z", by: "coordinator", action: "task.add", args: { id: "t-doing" }, commit: "abc1234" }];
-  const held: PlanInput = { plan, log, problems: [] };
+  const files = {
+    outline: OUTLINE, milestones: { m1: "## What it delivers\nA book that is fit. Nothing is guessed.\n\n## How we know it is done\nThe exit lines." },
+    tasks: { "t-decide": taskFile("Decide who invites. Then write it down."), "t-need": taskFile("Sign in to the cloud."), "t-doing": taskFile("Write the page. It reads top to bottom. Then more.") },
+  };
+  const held: PlanInput = { plan, files, log, problems: [] };
   const input = fixtureInput("abc1234", "as-is", null, undefined, held);
   const site = buildSite(input);
   const page = site.pages.find((p) => p.id === "plan");
@@ -58,7 +71,7 @@ test("the Plan page opens with the latest note and follows the plan's own order"
   const { page } = withPlan();
   assert.equal(page.note?.text, "Latest note: three things wait.");
   assert.equal(page.goal?.title, "The goal title");
-  assert.deepEqual(page.path?.steps.map((t) => t.id), ["t-doing", "t-need"]);
+  assert.deepEqual(page.path?.steps.map((t) => t.task.id), ["t-doing", "t-need"]);
   assert.equal(page.path?.why, "The page first, then the sign-in.");
   assert.deepEqual(page.groups.map((g) => [g.state, g.tasks.length]), [["doing", 1], ["blocked", 2], ["todo", 0], ["done", 0], ["dropped", 0]]);
   assert.equal(page.groups[0]?.tasks[0]?.thread, "plan-page");
@@ -98,7 +111,7 @@ test("the HTML: Plan lists what is blocked in a line with a link; Questions hold
   assert.match(index, /Latest note: three things wait\./);
   assert.match(index, /href="review\/index\.html"/);
   const twins = twinsOf(site);
-  assert.match(twins.get("plan.md") ?? "", /1\. `t-doing`/);
+  assert.match(twins.get("plan.md") ?? "", /1\. \*\*\[Write the page\]\(plan\/task\/t-doing\.md\)\*\* \(doing, thread plan-page\)/);
   assert.equal((JSON.parse(twins.get("data/plan.json") ?? "{}") as { type: string }).type, "plan");
   assert.match(twins.get("llms.txt") ?? "", /\(plan\.md\)/);
 });
@@ -107,7 +120,7 @@ test("the portal check compares the Questions list with the judgments list plus 
   const { input } = withPlan();
   const site = buildSite(input);
   const files = new Map([...renderSite(site, fixtureAssets), ...twinsOf(site)]);
-  const want = { problems: [], tasks: 3, ownerNeeds: ["t-need"] };
+  const want = { problems: [], tasks: 3, ownerNeeds: ["t-need"], pages: planPagesOf(input) };
   const ok = portalCheck(files, files, expect(input.book, input.waits, null, want));
   assert.deepEqual(ok.filter((o) => o.failures > 0).map((o) => o.check), []);
   const missing = portalCheck(files, files, expect(input.book, input.waits, null, { ...want, ownerNeeds: ["t-need", "t-other"] }));
@@ -125,4 +138,60 @@ test("with no plan file the page says so, and holds nothing else", () => {
   const html = renderSite(site, fixtureAssets).get("plan/index.html") ?? "";
   assert.match(html, /plan\/plan\.json<\/code> is absent/);
   assert.doesNotMatch(renderSite(site, fixtureAssets).get("index.html") ?? "", /Where the plan is/);
+});
+
+test("the plan page reads top to bottom: where we are going, where we are, what is next, what I need, the whole plan, how it runs, recent changes", () => {
+  const { site } = withPlan();
+  const html = renderSite(site, fixtureAssets).get("plan/index.html") ?? "";
+  const order = ["id=\"going\"", "id=\"goal\"", "id=\"where\"", "id=\"next\"", "id=\"you\"", "id=\"whole\"", "id=\"runs\"", "id=\"not\"", "id=\"log\""].map((m) => html.indexOf(m));
+  assert.ok(order.every((n, i) => n > 0 && (i === 0 || n > (order[i - 1] ?? 0))), JSON.stringify(order));
+  assert.match(html, /<h1 class="title">Plan<\/h1><p class="lead">The goal title<\/p>/, "a short headline: Plan, and the goal's title under it");
+  assert.match(html, /<strong>Frappe<\/strong>/, "the outline is rendered as Markdown");
+  assert.match(html, /<code>Core<\/code>/);
+  assert.match(html, /<code class="path">plan\/plan\.json<\/code>/, "a repository path is shown as a path");
+  assert.match(html, /the book <code class="path">docs\/design-book\.md<\/code>/, "a link to a repository path is shown as a path");
+  assert.match(html, /Write the page\. It reads top to bottom\./, "a step shows the first two sentences of its What");
+  assert.doesNotMatch(html, /Then more\./);
+  assert.match(html, /<li>It works\.<\/li><li>It is tested\.<\/li>/, "and its Done-when bullets");
+  assert.match(html, /href="task\/t-doing\/index\.html"|href="\.\/task\/t-doing\/index\.html"|href="task\/t-doing\//, "a step links to its page");
+  assert.match(html, /A book that is fit\./, "the milestone row shows the first sentence of What it delivers");
+  assert.match(html, /2 things wait on you: /);
+  assert.equal(html.split("The exit lines.").length - 1, 1, "How we know it is done appears once");
+  assert.equal(html.split("Because.").length - 1, 0, "a task's Why is on its page, not repeated here");
+});
+
+test("a page per task and per milestone, with Markdown and JSON twins: the whole file, links both ways, history from the log", () => {
+  const { site } = withPlan();
+  const files = renderSite(site, fixtureAssets);
+  const task = files.get("plan/task/t-doing/index.html") ?? "";
+  assert.match(task, /<h2>What<\/h2>/);
+  assert.match(task, /<h2>Done when<\/h2>/);
+  assert.match(task, /<code class="path">docs\/mission\/cloud\.md<\/code>/);
+  assert.match(task, /Step 1 of 2 on the critical path/);
+  assert.match(task, /plan-page/, "its thread");
+  assert.match(task, /<h2 id="history">History<\/h2>/, "history from the log");
+  const waiting = files.get("plan/task/t-need/index.html") ?? "";
+  assert.match(waiting, /sign in on this Mac/);
+  assert.match(waiting, /Answer it on the Questions page/);
+  const m1 = files.get("plan/milestone/m1/index.html") ?? "";
+  assert.match(m1, /How we know it is done/);
+  assert.match(m1, /Settle who invites/, "its tasks");
+  const twins = twinsOf(site);
+  for (const id of ["plan/task/t-doing", "plan/milestone/m1"]) {
+    assert.ok(twins.has(`${id}.md`) && twins.has(`data/${id}.json`), `no twins for ${id}`);
+  }
+  assert.equal((JSON.parse(twins.get("data/plan/task/t-doing.json") ?? "{}") as { type: string }).type, "plan-task");
+  assert.match(twins.get("plan/task/t-doing.md") ?? "", /## Done when/);
+  assert.match(twins.get("plan.md") ?? "", /## Where we are going/);
+});
+
+test("the Overview's plan block gives the goal in two sentences, the latest note, and links to Plan and Questions", () => {
+  const { site } = withPlan();
+  const page = site.pages.find((p) => p.id === "index");
+  assert.ok(page?.type === "overview");
+  assert.equal(page.planGoal, "The book fully specifies it. One shared world runs a thin line.");
+  const html = renderSite(site, fixtureAssets).get("index.html") ?? "";
+  assert.match(html, /Latest note: three things wait\./);
+  assert.match(html, /href="plan\/index\.html"/);
+  assert.match(html, /href="review\/index\.html"/);
 });

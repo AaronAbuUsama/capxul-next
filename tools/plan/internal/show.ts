@@ -1,5 +1,5 @@
 /** The plan as text for a terminal: what `plan show` prints. */
-import type { Answer, Plan, Problem, Task, TaskState } from "../types.ts";
+import type { Answer, LogEntry, Plan, Problem, Task, TaskState } from "../types.ts";
 import { describe } from "./answers.ts";
 
 const MARK: Readonly<Record<string, string>> = { todo: " ", current: ">", done: "x", doing: "~", blocked: "!", dropped: "-" };
@@ -34,4 +34,18 @@ export const show = (plan: Plan, problems: readonly Problem[] | null, answers: r
   }
   if (problems !== null) lines.push("", problems.length === 0 ? "check: 0 problems" : `check: ${problems.length} problems`, ...problems.map((p) => `  ${p.at}: ${p.why}`));
   return lines.join("\n");
+};
+
+/** One task in full: its state, thread, links, its file as written, and its history in the log. */
+export const showTask = (plan: Plan, id: string, file: string | null, log: readonly LogEntry[]): string => {
+  const t = plan.tasks.find((x) => x.id === id);
+  if (!t) return `no task ${id}`;
+  const needing = plan.tasks.filter((x) => x.needs.includes(id)).map((x) => x.id);
+  const mine = log.filter((l) => typeof l.args === "object" && l.args !== null && ((l.args as { id?: unknown }).id === id || ((l.args as { tasks?: unknown }).tasks as string[] | undefined)?.includes(id)));
+  return [
+    `${t.id}  ${t.title}`, `  milestone ${t.milestone} · ${t.state}${t.thread ? ` · thread ${t.thread}` : ""}${t.state === "blocked" ? ` · waiting: ${blockerLine(t)}` : ""}`,
+    `  needs: ${t.needs.join(", ") || "nothing"} · needed by: ${needing.join(", ") || "nothing"} · created ${t.created}, updated ${t.updated}`,
+    ...(t.records.length ? [`  records: ${t.records.join(", ")}`] : []), ...(t.evidence.length ? [`  evidence: ${t.evidence.join("; ")}`] : []), "",
+    file ?? "(no file plan/tasks/" + id + ".md)", "", "History", ...mine.map((l) => `  ${l.at.slice(0, 16).replace("T", " ")}  ${l.by}  ${l.action}`),
+  ].join("\n");
 };

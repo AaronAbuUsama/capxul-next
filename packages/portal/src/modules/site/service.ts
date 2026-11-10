@@ -9,6 +9,7 @@ import { hasPage } from "./internal/locate.ts";
 import { operation } from "./internal/operation.ts";
 import { overview } from "./internal/overview.ts";
 import { plan } from "./internal/plan.ts";
+import { milestonePage, taskPage } from "./internal/planPages.ts";
 import { inbox, questions } from "./internal/questions.ts";
 import { record } from "./internal/record.ts";
 import type { Site, SiteInput } from "./types.ts";
@@ -28,7 +29,7 @@ export const buildSite = (input: SiteInput): Site => {
   return {
     commit: input.commit, waiting: inbox(ctx).length, problems: input.book.problems.length,
     pages: [
-      overview(ctx), plan(ctx), questions(ctx), architecture(ctx), build(ctx), ...(index ? [index] : []),
+      overview(ctx), plan(ctx), ...(input.plan?.plan.milestones ?? []).flatMap((m) => milestonePage(ctx, m.id) ?? []), ...(input.plan?.plan.tasks ?? []).flatMap((t) => taskPage(ctx, t.id) ?? []), questions(ctx), architecture(ctx), build(ctx), ...(index ? [index] : []),
       ...ofKind(ctx, "concept").map((c) => concept(ctx, c)),
       ...rest.map((r) => (r._kind === "operation" ? operation(ctx, r) : record(ctx, r))),
       ...catalogues, ...evalCatalogue(ctx),

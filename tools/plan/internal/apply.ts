@@ -1,10 +1,14 @@
 /** One command applied to a plan: a new plan and a line for the log, or a refusal that says why. */
-import type { Applied, Command, Ctx, ExitLine, Facts, Milestone, Plan, Result, Task, TaskFields } from "../types.ts";
+import type { Applied, Command, Ctx, ExitLine, Facts, Milestone, Plan, Result, Task, TaskFields, Write } from "../types.ts";
+import { sectionBody, taskFile } from "./markdown.ts";
 
 const refuse = (error: string): Result<never> => ({ ok: false, error });
-const done = (plan: Plan, command: Command, ctx: Ctx, message: string): Result<Applied> => {
+const done = (plan: Plan, command: Command, ctx: Ctx, message: string, writes: readonly Write[] = []): Result<Applied> => {
   const { kind, ...args } = command;
-  return { ok: true, value: { plan, message, entry: { at: ctx.at, by: ctx.by, action: kind, args, commit: ctx.commit } } };
+  // the detail's text is in the file it makes, not in the log
+  const logged: Record<string, unknown> = { ...args };
+  delete logged["detail"];
+  return { ok: true, value: { plan, message, writes, entry: { at: ctx.at, by: ctx.by, action: kind, args: logged, commit: ctx.commit } } };
 };
 
 const taskOf = (plan: Plan, id: string): Result<Task> => {
@@ -78,7 +82,8 @@ export const apply = (plan: Plan, command: Command, ctx: Ctx, facts: Facts): Res
       const order = c.order ?? Math.max(0, ...plan.milestones.map((m) => m.order)) + 1;
       const m: Milestone = { id: c.id, title: c.title, goal: c.goal, exit: [], state: "todo", order, ...(c.concepts?.length ? { concepts: c.concepts } : {}) };
       const bad = missing("concept", c.concepts ?? [], (id) => facts.concepts.has(id));
-      return bad ? refuse(bad) : done({ ...plan, milestones: [...plan.milestones, m].sort((a, b) => a.order - b.order) }, c, ctx, `milestone ${c.id} added`);
+      const stub = { path: `plan/milestones/${c.id}.md`, content: `## What it delivers\n${c.goal.trim()}\n` };
+      return bad ? refuse(bad) : done({ ...plan, milestones: [...plan.milestones, m].sort((a, b) => a.order - b.order) }, c, ctx, `milestone ${c.id} added; its file ${stub.path} is a stub to write`, [stub]);
     }
     case "milestone.current": {
       const next = becomeCurrent(plan, c.id);
@@ -90,7 +95,13 @@ export const apply = (plan: Plan, command: Command, ctx: Ctx, facts: Facts): Res
       const bad = missing("task", c.needs ?? [], (id) => plan.tasks.some((t) => t.id === id)) ?? missing("record", c.records ?? [], (k) => facts.records.has(k));
       if (bad) return refuse(bad);
       const t: Task = { id: c.id, title: c.title, why: c.why, milestone: c.milestone, state: "todo", needs: c.needs ?? [], records: c.records ?? [], evidence: [], created: ctx.date, updated: ctx.date };
-      return done({ ...plan, tasks: [...plan.tasks, t] }, c, ctx, `task ${c.id} added to ${c.milestone}`);
+      // a task is not added without its explanation: what it is, why, and when it is done (or a whole file that has them)
+      const content = c.detail !== undefined ? c.detail : (c.what ?? "").trim() !== "" && (c.doneWhen ?? []).some((d) => d.trim() !== "")
+        ? taskFile(c.what ?? "", c.why, c.doneWhen ?? [], []) : null;
+      if (content === null) return refuse("a task needs --what, --why and at least one --done-when (or a --detail-file that has What, Why and Done when sections)");
+      const lacks = ["What", "Why", "Done when"].filter((h) => sectionBody(content, h) === "");
+      if (lacks.length) return refuse(`the task's file lacks ${lacks.join(", ")}`);
+      return done({ ...plan, tasks: [...plan.tasks, t] }, c, ctx, `task ${c.id} added to ${c.milestone}; its file is plan/tasks/${c.id}.md`, [{ path: `plan/tasks/${c.id}.md`, content }]);
     }
     case "task.edit": {
       const t = taskOf(plan, c.id);

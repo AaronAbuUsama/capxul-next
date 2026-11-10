@@ -36,7 +36,7 @@ const answering = (q: Question): string =>
 /** What an item holds up: the plan's tasks blocked on it. */
 const heldUp = (q: Question): string =>
   q.holdsUp.length === 0 ? "" :
-    `<p class="held-up">Holds up ${q.holdsUp.map((t) => `<a href="${esc(hrefTo("review", { label: "", page: "plan", anchor: "blocked" }))}">${esc(t.title)}</a> <span class="mono">(${esc(t.milestone)})</span>`).join(", ")}.</p>`;
+    `<p class="held-up">Holds up ${q.holdsUp.map((t) => `<a href="${esc(hrefTo("review", { label: "", page: `plan/task/${t.id}`, anchor: "" }))}">${esc(t.title)}</a> <span class="mono">(${esc(t.milestone)})</span>`).join(", ")}.</p>`;
 
 /** Where an answer is shown once it is saved, and the line that says why a saved answer is not offered. */
 const saved = `<div class="saved" hidden><p class="saved-text"></p><button type="button" class="btn btn-line" data-act="undo">Undo</button></div>` +

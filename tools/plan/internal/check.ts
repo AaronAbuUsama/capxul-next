@@ -1,5 +1,6 @@
 /** The checks that keep the plan honest against the book. They report; they never reorder or rewrite the plan. */
-import type { ExitLine, Facts, Plan, Problem } from "../types.ts";
+import type { ExitLine, Facts, Plan, PlanFiles, Problem } from "../types.ts";
+import { sectionBody } from "./markdown.ts";
 
 const dups = (ids: readonly string[]): readonly string[] => [...new Set(ids.filter((id, i) => ids.indexOf(id) !== i))];
 
@@ -34,8 +35,26 @@ const cycleOf = (plan: Plan): readonly string[] | null => {
   return null;
 };
 
-export const check = (plan: Plan, facts: Facts): readonly Problem[] => {
+/** A task's file must say what the task is, why it is there and when it is done. */
+const TASK_SECTIONS = ["What", "Why", "Done when"] as const;
+
+/** The explanation files: an outline, a file for every milestone and task, and no file for anything else. */
+const fileProblems = (plan: Plan, files: PlanFiles): readonly Problem[] => {
   const out: Problem[] = [];
+  if (files.outline === null || files.outline.trim() === "") out.push({ at: "plan/outline.md", why: "the plan has no outline" });
+  for (const m of plan.milestones) if ((files.milestones[m.id] ?? "").trim() === "") out.push({ at: m.id, why: `it has no file plan/milestones/${m.id}.md` });
+  for (const t of plan.tasks) {
+    const text = files.tasks[t.id];
+    if ((text ?? "").trim() === "") { out.push({ at: t.id, why: `it has no file plan/tasks/${t.id}.md` }); continue; }
+    for (const h of TASK_SECTIONS) if (sectionBody(text ?? "", h) === "") out.push({ at: t.id, why: `its file has no "${h}" section, or it is empty` });
+  }
+  for (const id of Object.keys(files.milestones)) if (!plan.milestones.some((m) => m.id === id)) out.push({ at: `plan/milestones/${id}.md`, why: "it is the file of no milestone" });
+  for (const id of Object.keys(files.tasks)) if (!plan.tasks.some((t) => t.id === id)) out.push({ at: `plan/tasks/${id}.md`, why: "it is the file of no task" });
+  return out;
+};
+
+export const check = (plan: Plan, facts: Facts, files?: PlanFiles): readonly Problem[] => {
+  const out: Problem[] = files ? [...fileProblems(plan, files)] : [];
   const bad = (at: string, why: string): void => { out.push({ at, why }); };
   const taskIds = new Set(plan.tasks.map((t) => t.id));
   const byId = new Map(plan.tasks.map((t) => [t.id, t] as const));

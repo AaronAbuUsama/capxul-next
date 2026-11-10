@@ -132,7 +132,14 @@ export type Command =
   | { readonly kind: "exit.met"; readonly owner: string; readonly id: string; readonly evidence: string }
   | { readonly kind: "milestone.add"; readonly id: string; readonly title: string; readonly goal: string; readonly order?: number; readonly concepts?: readonly string[] }
   | { readonly kind: "milestone.current"; readonly id: string }
-  | { readonly kind: "task.add"; readonly id: string; readonly title: string; readonly why: string; readonly milestone: string; readonly needs?: readonly string[]; readonly records?: readonly string[] }
+  | {
+    readonly kind: "task.add"; readonly id: string; readonly title: string; readonly why: string; readonly milestone: string;
+    readonly needs?: readonly string[]; readonly records?: readonly string[];
+    /** What the task is, and when it is done: both are needed unless `detailFile` gives the whole file. */
+    readonly what?: string; readonly doneWhen?: readonly string[];
+    /** The path of a Markdown file to use as the task's file; `detail` is its content, read by the caller. */
+    readonly detailFile?: string; readonly detail?: string;
+  }
   | { readonly kind: "task.start"; readonly id: string; readonly thread: string }
   | { readonly kind: "task.block"; readonly id: string; readonly blocker: Blocker }
   | { readonly kind: "task.unblock"; readonly id: string }
@@ -160,15 +167,28 @@ export interface LogEntry {
   readonly commit: string;
 }
 
+/** A file a command creates: the task's or milestone's explanation, from a stub. Written by the caller, never overwritten. */
+export interface Write { readonly path: string; readonly content: string }
+
 export interface Applied {
+  readonly writes?: readonly Write[];
   readonly plan: Plan;
   readonly entry: LogEntry;
   readonly message: string;
 }
 
-/** What the Plan page is drawn from: the plan, the last lines of its log, and what `check` says about it. */
+/** The explanation of the plan, as Markdown files beside plan.json: plan/outline.md, plan/milestones/<id>.md, plan/tasks/<id>.md. */
+export interface PlanFiles {
+  readonly outline: string | null;
+  readonly milestones: Readonly<Record<string, string>>;
+  readonly tasks: Readonly<Record<string, string>>;
+}
+
+/** What the Plan page is drawn from: the plan and its files, the whole log, and what `check` says about it. */
 export interface PlanInput {
   readonly plan: Plan;
+  readonly files: PlanFiles;
+  /** Every line of plan/log.jsonl, oldest first. */
   readonly log: readonly LogEntry[];
   readonly problems: readonly Problem[];
 }

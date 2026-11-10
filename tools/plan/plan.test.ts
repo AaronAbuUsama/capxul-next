@@ -22,9 +22,9 @@ const base: Command[] = [
   { kind: "milestone.add", id: "m1", title: "One", goal: "g" },
   { kind: "milestone.add", id: "m2", title: "Two", goal: "g" },
   { kind: "milestone.current", id: "m1" },
-  { kind: "task.add", id: "t1", title: "T1", why: "w", milestone: "m1" },
-  { kind: "task.add", id: "t2", title: "T2", why: "w", milestone: "m1", needs: ["t1"] },
-  { kind: "task.add", id: "t3", title: "T3", why: "w", milestone: "m2" },
+  { kind: "task.add", what: "What it is.", doneWhen: ["It is done."], id: "t1", title: "T1", why: "w", milestone: "m1" },
+  { kind: "task.add", what: "What it is.", doneWhen: ["It is done."], id: "t2", title: "T2", why: "w", milestone: "m1", needs: ["t1"] },
+  { kind: "task.add", what: "What it is.", doneWhen: ["It is done."], id: "t3", title: "T3", why: "w", milestone: "m2" },
 ];
 const problemsOf = (plan: Plan): string[] => check(plan, facts).map((p) => `${p.at}: ${p.why}`);
 const has = (plan: Plan, text: RegExp): boolean => problemsOf(plan).some((p) => text.test(p));
@@ -37,8 +37,8 @@ test("a sound plan has no problems", () => {
 
 test("commands refuse what they cannot do and write a log line when they can", () => {
   const plan = run(...base);
-  assert.equal(apply(plan, { kind: "task.add", id: "t1", title: "x", why: "y", milestone: "m1" }, ctx, facts).ok, false);
-  assert.equal(apply(plan, { kind: "task.add", id: "t9", title: "x", why: "y", milestone: "nope" }, ctx, facts).ok, false);
+  assert.equal(apply(plan, { kind: "task.add", what: "What it is.", doneWhen: ["It is done."], id: "t1", title: "x", why: "y", milestone: "m1" }, ctx, facts).ok, false);
+  assert.equal(apply(plan, { kind: "task.add", what: "What it is.", doneWhen: ["It is done."], id: "t9", title: "x", why: "y", milestone: "nope" }, ctx, facts).ok, false);
   assert.equal(apply(plan, { kind: "task.block", id: "t1", blocker: { decision: "d.none" } }, ctx, facts).ok, false);
   assert.equal(apply(plan, { kind: "task.start", id: "t1", thread: " " }, ctx, facts).ok, false);
   const done = apply(plan, { kind: "task.done", id: "t1", evidence: "abc" }, ctx, facts);
@@ -169,4 +169,37 @@ test("answers: unapplied ones are listed, applying is a log line and never a rew
   assert.match(show(plan, [], unapplied(lines, [])), /^1 answers from Aaron to apply/);
   assert.deepEqual(parseArgs(["answers", "apply", "a-1", "--evidence", "e"]), { ok: true, value: { kind: "answers.apply", answer: "a-1", evidence: "e", by: "coordinator" } });
   assert.equal(parseArgs(["answers", "apply", "a-1"]).ok, false);
+});
+
+test("files: the plan needs an outline and a file for every milestone and task with What, Why and Done when, and no file of nothing", () => {
+  const plan = run(...base);
+  const good = { outline: "# The plan\n\n## Where we are going\nHere.\n", milestones: { m1: "## What it delivers\nx", m2: "## What it delivers\ny" },
+    tasks: Object.fromEntries(plan.tasks.map((t) => [t.id, "## What\nw\n## Why\ny\n## Done when\n- d\n"])) };
+  assert.deepEqual(check(plan, facts, good), []);
+  const why = (files: Parameters<typeof check>[2]): string[] => check(plan, facts, files).map((p) => `${p.at}: ${p.why}`);
+  assert.ok(why({ ...good, outline: null }).some((p) => /plan\/outline\.md: the plan has no outline/.test(p)));
+  assert.ok(why({ ...good, milestones: { m1: "x" } }).some((p) => /m2: it has no file plan\/milestones\/m2\.md/.test(p)));
+  assert.ok(why({ ...good, tasks: { ...good.tasks, t1: undefined as unknown as string } }).some((p) => /t1: it has no file plan\/tasks\/t1\.md/.test(p)));
+  assert.ok(why({ ...good, tasks: { ...good.tasks, t1: "## What\nw\n## Why\ny\n" } }).some((p) => /t1: its file has no "Done when" section/.test(p)));
+  assert.ok(why({ ...good, tasks: { ...good.tasks, t1: "## What\n\n## Why\ny\n## Done when\n- d" } }).some((p) => /t1: its file has no "What" section, or it is empty/.test(p)));
+  assert.ok(why({ ...good, tasks: { ...good.tasks, ghost: "## What\nw" } }).some((p) => /plan\/tasks\/ghost\.md: it is the file of no task/.test(p)));
+  assert.ok(why({ ...good, milestones: { ...good.milestones, mx: "x" } }).some((p) => /plan\/milestones\/mx\.md: it is the file of no milestone/.test(p)));
+});
+
+test("task add makes the task's file from a stub and refuses to finish without what, why and done when", () => {
+  const plan = run(...base);
+  const add = (c: Partial<Extract<Command, { kind: "task.add" }>>): ReturnType<typeof apply> =>
+    apply(plan, { kind: "task.add", id: "t9", title: "T9", why: "Because.", milestone: "m1", ...c }, ctx, facts);
+  assert.equal(add({}).ok, false, "nothing but a why");
+  assert.equal(add({ what: "A thing." }).ok, false, "no done when");
+  assert.equal(add({ doneWhen: ["It is done."] }).ok, false, "no what");
+  const r = add({ what: "A thing.", doneWhen: ["It is done.", "Also this."] });
+  assert.ok(r.ok);
+  if (r.ok) assert.deepEqual(r.value.writes, [{ path: "plan/tasks/t9.md", content: "## What\nA thing.\n## Why\nBecause.\n## Done when\n- It is done.\n- Also this.\n" }]);
+  const whole = add({ detail: "## What\nw\n## Why\ny\n## Done when\n- d\n", detailFile: "x.md" });
+  assert.ok(whole.ok);
+  if (whole.ok) assert.equal(JSON.stringify(whole.value.entry.args).includes("## What"), false, "the log holds no file text");
+  assert.equal(add({ detail: "## What\nw\n" }).ok, false, "a whole file must have all three sections");
+  assert.deepEqual(parseArgs(["task", "add", "t9", "--title", "T", "--why", "w", "--milestone", "m1", "--what", "x", "--done-when", "a", "--done-when", "b"]),
+    { ok: true, value: { kind: "change", by: "coordinator", command: { kind: "task.add", id: "t9", title: "T", why: "w", milestone: "m1", what: "x", doneWhen: ["a", "b"] } } });
 });

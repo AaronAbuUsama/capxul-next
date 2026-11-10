@@ -4,7 +4,8 @@ import type { Page, Site } from "#src/modules/site/types.ts";
 
 import { llms } from "./internal/llms.ts";
 import { doc } from "./internal/md.ts";
-import { architecture, build, catalogue, overview, plan, questions } from "./internal/pages.ts";
+import { architecture, build, catalogue, overview, questions } from "./internal/pages.ts";
+import { plan, planMilestone, planTask } from "./internal/plan.ts";
 import { concept, operation, record } from "./internal/records.ts";
 import { LLMS_FILE } from "./types.ts";
 
@@ -13,6 +14,8 @@ const body = (page: Page): readonly string[] => {
   switch (page.type) {
     case "overview": return overview(page);
     case "plan": return plan(page);
+    case "plan-task": return planTask(page);
+    case "plan-milestone": return planMilestone(page);
     case "questions": return questions(page);
     case "architecture": return architecture(page);
     case "concept": return concept(page);

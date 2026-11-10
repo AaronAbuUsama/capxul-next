@@ -23,13 +23,13 @@ const outcome = (check: string, failures: readonly string[]): Outcome =>
 
 /** What the book says the site must hold. `waits` is the one predicate the judgments report uses. */
 export const expect = (
-  book: Book, waits: (decision: AnyRecord) => boolean, status: StatusDocument | null = null, plan: PlanExpect = { problems: [], tasks: null, ownerNeeds: [] },
+  book: Book, waits: (decision: AnyRecord) => boolean, status: StatusDocument | null = null, plan: PlanExpect = { problems: [], tasks: null, ownerNeeds: [], pages: [] },
 ): Expect => {
   const records = [...book.records.values()];
   return {
     pages: [
       ...FIXED, ...records.filter((r) => !NO_PAGE.has(r._kind)).map((r) => `${r._kind}/${r.id}`),
-      ...CATALOGUES.map((name) => `docs/${name}`), "eval", ...[...new Set(book.evals.map((e) => evalKind(e.id)))].map((kind) => `eval/${kind}`),
+      ...CATALOGUES.map((name) => `docs/${name}`), ...plan.pages, "eval", ...[...new Set(book.evals.map((e) => evalKind(e.id)))].map((kind) => `eval/${kind}`),
     ],
     evals: book.evals.length,
     unknownStatus: status === null ? [] : unknownEvals(book, status),

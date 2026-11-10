@@ -3,7 +3,7 @@ import { test } from "node:test";
 
 import { check, expect, passed } from "#src/modules/check/service.ts";
 
-import { assetsOf, generate, load, ownerNeedsOf, ROOT } from "./main.ts";
+import { assetsOf, generate, load, ownerNeedsOf, planPagesOf, ROOT } from "./main.ts";
 
 test("the real book generates a site that passes the portal check", async () => {
   const loaded = await load(ROOT, "test000");
@@ -13,7 +13,7 @@ test("the real book generates a site that passes the portal check", async () => 
   const assets = assetsOf();
   const files = generate(input, assets);
   const expected = expect(input.book, input.waits, input.status, {
-    problems: (input.plan?.problems ?? []).map((p) => `${p.at}: ${p.why}`), tasks: input.plan?.plan.tasks.length ?? null, ownerNeeds: ownerNeedsOf(input),
+    problems: (input.plan?.problems ?? []).map((p) => `${p.at}: ${p.why}`), tasks: input.plan?.plan.tasks.length ?? null, ownerNeeds: ownerNeedsOf(input), pages: planPagesOf(input),
   });
   const outcomes = check(files, generate(input, assets), expected);
   assert.ok(passed(outcomes), JSON.stringify(outcomes.filter((o) => o.failures > 0), null, 2));
