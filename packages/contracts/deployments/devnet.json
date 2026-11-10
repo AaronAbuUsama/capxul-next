@@ -1,0 +1,140 @@
+{
+  "version": "v4",
+  "chainId": 84532,
+  "companiesHouse": "0x38d9772b87a52Ed4615E2c804414f0cDD4854F2F",
+  "companiesHouseRoles": "0x4b4810f262447DDd0f9De4D13ca0de04823B3dc5",
+  "createCall": "0x9b35Af71d77eaf8d7e40252370304687390A1A52",
+  "tiers": [
+    {
+      "tier": "devnet",
+      "namespace": "capxul:devnet:email:v1",
+      "companyNamespace": "capxul:devnet:company:v1",
+      "member": "0x90F79bf6EB2c4f870365E785982E1f101E93b906"
+    }
+  ],
+  "contracts": {
+    "CompaniesHouseClaimer": {
+      "address": "0x4244EfF941473B8F839A0f23ad1eBA650B37426E",
+      "salt": "0x99af6397303eafb4e72e0f899c3b315a9349032b4ce507efe5213b9d6ecb310e",
+      "constructorArguments": {},
+      "runtimeCodeHash": "0x1e49479822cd23f3fdc7353b50cad7bbdbdec83cd0358d83c46edad35a567606"
+    },
+    "CompanySafeMinter": {
+      "address": "0x27e3faE904527BcA73C39683D2a1239020915c71",
+      "salt": "0x5f0c1765fb99e95f98dca36b1eeee0e280979f97bd96e9e463338da8fc4e41f8",
+      "constructorArguments": {},
+      "runtimeCodeHash": "0x5cbc2366530e3226fa15ce3521b0e79ff9eeb3f543a01f03678eca93fce36b6f"
+    },
+    "Payments": {
+      "address": "0x468241C0CFaB01eD410D8f9A281Ace9b8D4E30e3",
+      "salt": "0xb8bee11c092cc6722838b9624c5ab7a34f1f9c512401492062f0651cb2264ff1",
+      "constructorArguments": {},
+      "runtimeCodeHash": "0x1ba2fa559c831a5ec94816d644f31001b40240d2e11695f49d373ec05cfa348e"
+    },
+    "Budgets": {
+      "address": "0x6950Cd8E6195beaaB7eECDcc26b8d68Ede662c79",
+      "salt": "0x0fc5b12a78443b30073e13c084483b36b2a87f72d290adc8fcba288e4043e08c",
+      "constructorArguments": {
+        "payments_": "0x468241C0CFaB01eD410D8f9A281Ace9b8D4E30e3",
+        "hats_": "0x3bc1A0Ad72417f2d411118085256fC53CBdDd137"
+      },
+      "runtimeCodeHash": "0x86b28cf0e375c8f5296b376592b41958dfcf7888a7d2fde1a232a6efe1d6969d"
+    },
+    "Agreements": {
+      "address": "0x0F5aFd748850f455C68ea80A67E537Da6773baEF",
+      "salt": "0x2a8e205bdee39507285ef8ac875adab5e4bc435146d16409d2047b71f5cb07ae",
+      "constructorArguments": {
+        "budgets_": "0x6950Cd8E6195beaaB7eECDcc26b8d68Ede662c79"
+      },
+      "runtimeCodeHash": "0x23afefb916b6ce93996369beca1f8f5d32d5ae30a84f59e82818d4e6a9377c8b"
+    },
+    "EscrowFactory": {
+      "address": "0x0E08e340Fa3aa1D3a0903D051088A5Dc9aa8fd2a",
+      "salt": "0x4cb7c28cdae7f72c84701e027b60af828e1475f403f69785da092def8bfde41a",
+      "constructorArguments": {
+        "payments_": "0x468241C0CFaB01eD410D8f9A281Ace9b8D4E30e3",
+        "bootstrapOwner_": "0x38d9772b87a52Ed4615E2c804414f0cDD4854F2F"
+      },
+      "runtimeCodeHash": "0xb3f94235bbfb7b34a27f6f4aa27b3e9184ecb74499038af2f8299af5c928a9e9"
+    },
+    "Vesting": {
+      "address": "0x562Dbef6ca003C3a959fB76B59f3B23B18D70B0e",
+      "salt": "0x3844370bdcfd59e7224976dae99c82684e062d3875d807b2e3251a99d6706144",
+      "constructorArguments": {},
+      "runtimeCodeHash": "0xdca9701ef7cbab940299c2b93bb9fb8a574aa51421b9652b6ef85a95306031b0"
+    },
+    "Captable": {
+      "address": "0xE614EBCb8b7eDeE1cd22bc6c3a0FEBbf3eCA46c1",
+      "salt": "0x7723948f6556bfb203e862af58cc3674b12b4c31ad569d17b598600b9d07ba0e",
+      "constructorArguments": {},
+      "runtimeCodeHash": "0xf774d8c2949f7e849856b9562b3c933d078b86e24192c1cb98e42647ad4f135e"
+    },
+    "ShareClass": {
+      "address": "0xaedF784E8a2f75f49eC9129be6ca9205d477a9b0",
+      "salt": "0xd32457d48ab8b56523a176aef43f1ba5adf9440bd891756d6b34946ccb5c31eb",
+      "constructorArguments": {},
+      "runtimeCodeHash": "0x3a1388f55e24f7104b5fd6ea0545aab7c601cbce1351545a4b8671cb87ad2aca"
+    },
+    "Options": {
+      "address": "0x7660822DD9b108Ef3Dac5073870A7A6CA6A138C8",
+      "salt": "0x1e98919e8a33f91ae0f0d7f331a95dc7a1bff1f25d0e5feb6f8b9428da6a1c03",
+      "constructorArguments": {},
+      "runtimeCodeHash": "0x2f46eaaf5493cd411e57e72d01a9e564dca6ddaa5bf7aeac32ade48ac4e3024e"
+    },
+    "Rounds": {
+      "address": "0xbb9F5D0EA3E1dcD12aE72a8d11a754fd512f5a9C",
+      "salt": "0x4bf4613785e4ddc076edf127b9969ccc6d3fcc07c0d17066d1cce8047d12c261",
+      "constructorArguments": {},
+      "runtimeCodeHash": "0xbe052bddca2c3fe653d139930bb4f7da660b5f2e7d3ac83c92473f37928589a1"
+    },
+    "Exits": {
+      "address": "0x4E38cc912125CDD7bF8DF6C56C7b631F8c5153D5",
+      "salt": "0xb5b7611cd6ef2848385647d6b845c969ee75858e10809cd37a4d16cf029b0c26",
+      "constructorArguments": {},
+      "runtimeCodeHash": "0x883a61619f0d5bf1b976abc0d39df6daf7847a219a779ebd549791b4b926fadc"
+    },
+    "Governor": {
+      "address": "0xa7625713085f4241a4847881C0c6Dd894f844c67",
+      "salt": "0x71ad08e8adf8151b2ba76735e36a9bb71498a71a624ab33c6b1c2b9ec2a2d09b",
+      "constructorArguments": {},
+      "runtimeCodeHash": "0x9fce2b721eeec58b35686fb3b32053d3844902c37723cae94707f6c42a365e3f"
+    },
+    "Installer": {
+      "address": "0xffD1FC1Ab6d74B2dBa208acf7724A205187eC417",
+      "salt": "0x20ef009ba20a858ce49c8681ec2f84235c0db515e2d69c0cce93e6811c0a7903",
+      "constructorArguments": {
+        "config": {
+          "payments": "0x468241C0CFaB01eD410D8f9A281Ace9b8D4E30e3",
+          "budgets": "0x6950Cd8E6195beaaB7eECDcc26b8d68Ede662c79",
+          "agreements": "0x0F5aFd748850f455C68ea80A67E537Da6773baEF",
+          "vesting": "0x562Dbef6ca003C3a959fB76B59f3B23B18D70B0e",
+          "hats": "0x3bc1A0Ad72417f2d411118085256fC53CBdDd137",
+          "moduleProxyFactory": "0x000000000000aDdB49795b0f9bA5BC298cDda236",
+          "rolesMastercopy": "0xF2964CE6161ce0e75964Fe7927cE114cb0B283D5",
+          "gateImplementation": "0x148057884AC910Bdd93693F230C5c35a8c47CA3b",
+          "hatsModuleFactory": "0x0a3f85fa597B6a967271286aA0724811acDF5CD9",
+          "electionsImplementation": "0xd3b916a8F0C4f9D1d5B6Af29c3C012dbd4f3149E",
+          "fallbackHandler": "0x3EfCBb83A4A7AfcB4F68D501E2c2203a38be77f4",
+          "safe4337Module": "0x75cf11467937ce3F2f357CE24ffc3DBF8fD5c226",
+          "captableImplementation": "0xE614EBCb8b7eDeE1cd22bc6c3a0FEBbf3eCA46c1",
+          "shareClassImplementation": "0xaedF784E8a2f75f49eC9129be6ca9205d477a9b0",
+          "governorImplementation": "0xa7625713085f4241a4847881C0c6Dd894f844c67",
+          "optionsImplementation": "0x7660822DD9b108Ef3Dac5073870A7A6CA6A138C8",
+          "roundsImplementation": "0xbb9F5D0EA3E1dcD12aE72a8d11a754fd512f5a9C",
+          "exitsImplementation": "0x4E38cc912125CDD7bF8DF6C56C7b631F8c5153D5",
+          "escrowFactory": "0x0E08e340Fa3aa1D3a0903D051088A5Dc9aa8fd2a",
+          "multisendUnwrapper": "0xB4Cd4bb764C089f20DA18700CE8bc5e49F369efD"
+        }
+      },
+      "runtimeCodeHash": "0xe78cdf41ff911518d3879eec11c229b2f86e4c6df8dee42ca01f2570fc3426d2"
+    },
+    "AgentOwner": {
+      "address": "0x64C7f0f1a9Ae6a89744B4E0929D15929629df144",
+      "salt": "0x82c3f8593d3a4dadd0cbf34859d8334cc052d07e54042d2d0cc0848cd3049ddc",
+      "constructorArguments": {
+        "payments_": "0x468241C0CFaB01eD410D8f9A281Ace9b8D4E30e3"
+      },
+      "runtimeCodeHash": "0x5811909f1ebb320bcf3360489a61091e43e5adb22e791f217ee424d63b1f4047"
+    }
+  }
+}

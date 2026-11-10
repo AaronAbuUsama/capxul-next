@@ -9,7 +9,12 @@
     "frozen": "node --experimental-strip-types tools/check-frozen.ts",
     "judgments": "node --experimental-strip-types tools/report-judgments.ts",
     "portal": "node --experimental-strip-types --no-warnings packages/portal/src/main.ts generate packages/portal/dist",
-    "portal:check": "node --experimental-strip-types --no-warnings packages/portal/src/main.ts check"
+    "portal:check": "node --experimental-strip-types --no-warnings packages/portal/src/main.ts check",
+    "contracts:test": "pnpm --filter @capxul/contracts test",
+    "contracts:fork": "pnpm --filter @capxul/contracts fork",
+    "contracts:prove": "pnpm --filter @capxul/contracts prove",
+    "sdk:test": "pnpm --filter @capxul/sdk test",
+    "devnet:test": "pnpm --filter @capxul/devnet test"
   },
   "devDependencies": {
     "effect": "catalog:",
