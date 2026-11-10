@@ -7,6 +7,7 @@ import { budget, defineWorkflow } from "../../packages/blueprint-engine/src/inde
 import { concept_organizations } from "../shared/foundation.ts";
 import {
   contract_agent_owner,
+  contract_budgets,
   contract_company_safe_minter,
   contract_hats,
   contract_installer,
@@ -165,6 +166,7 @@ export const workflow_organizations_setups_set_up = defineWorkflow({
     contract_company_safe_minter.f.mint,
     contract_installer.f.deployMoney,
     contract_installer.f.buildMoney,
+    contract_budgets.f.configure,
     contract_safe.f.execTransaction,
     contract_hats.f.mintHat,
     contract_agent_owner.f.create,

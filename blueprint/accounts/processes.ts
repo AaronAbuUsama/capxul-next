@@ -71,6 +71,7 @@ export const workflow_accounts_setup_personal_safe = defineWorkflow({
     {
       name: "claim-indexed",
       for: "indexer",
+      events: [contract_companies_house_claimer.e.CapxulSafeClaimed],
       timeoutMs: 10_000,
       key: [{ on: [table_indexer_progress], props: ["chain_id"], reaches: "indexed_block" }],
       about: "Ponder has indexed the claim's block, so its CapxulSafeClaimed and the escrows that pay the Safe can be read.",
