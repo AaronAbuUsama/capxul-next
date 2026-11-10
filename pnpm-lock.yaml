@@ -274,6 +274,12 @@ importers:
       '@base-ui/react':
         specifier: 1.9.0
         version: 1.9.0(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
+      '@earendil-works/chord':
+        specifier: 1.5.0
+        version: 1.5.0(ws@8.21.0)
+      '@earendil-works/pi-schema':
+        specifier: 1.5.0
+        version: 1.5.0
       '@fontsource-variable/geist':
         specifier: 5.3.0
         version: 5.3.0
