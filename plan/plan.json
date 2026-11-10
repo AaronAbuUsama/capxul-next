@@ -1140,14 +1140,17 @@
       "title": "The coordinator is told when a run ends or turns unhealthy",
       "why": "Layer first: the post-mortem's coordinator read statuses and missed 226 refusals; the sweep must be woken by runs, not by polling",
       "milestone": "m1",
-      "state": "todo",
+      "state": "done",
       "needs": [
         "m1-loop-visibility"
       ],
       "records": [],
-      "evidence": [],
+      "evidence": [
+        "cabc7d4 (capxul/watch.test.ts: a scripted run is seen to start, be refused and end, in order)"
+      ],
       "created": "2026-11-10",
-      "updated": "2026-11-10"
+      "updated": "2026-11-10",
+      "thread": "coordinator"
     },
     {
       "id": "m1-agent-definitions",
@@ -1166,7 +1169,6 @@
   ],
   "path": {
     "tasks": [
-      "m1-loop-watch",
       "m1-loop-watched-run",
       "m1-model-gateway",
       "m1-loop-hardening",
@@ -1174,7 +1176,7 @@
       "m1-time-proof",
       "m1-aaron-accepts"
     ],
-    "why": "m1-loop-steer-stop done (3070e3c). Next: the watch, then the one watched run",
+    "why": "m1-loop-watch done (cabc7d4). The layer's code is in; next is the one watched run, which waits for Aaron's go-ahead",
     "written": "2026-11-10"
   },
   "notes": [
