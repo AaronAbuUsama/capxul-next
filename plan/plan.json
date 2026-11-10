@@ -330,17 +330,15 @@
       "title": "Telemetry on every operation, and the record entry as a record",
       "why": "Every operation names its telemetry; the world's record entry is itself a record.",
       "milestone": "m1",
-      "state": "blocked",
+      "state": "done",
       "needs": [],
       "records": [],
-      "evidence": [],
+      "evidence": [
+        "e48c4ed"
+      ],
       "created": "2026-11-10",
       "updated": "2026-11-10",
-      "thread": "m1-telemetry-11101341",
-      "blockedBy": {
-        "need": "loop run m1-telemetry-11101341: F-1.1 done-when: spike entries conform: Seen: The real-recorder test failed on missing viem, so no run demonstrated that real entries conform. It also imports config without setting SKELETON_SECRET, which config requires in a clean environment. Expected: A passing, reproducible test of actual succes",
-        "who": "coordinator"
-      }
+      "thread": "m1-telemetry-11101341"
     },
     {
       "id": "m1-aws-records",
@@ -951,12 +949,11 @@
       "m1-loop-hardening",
       "m1-eval-coverage",
       "m1-time-proof",
-      "m1-telemetry",
       "m1-old-decisions",
       "m1-entry-docs",
       "m1-aaron-accepts"
     ],
-    "why": "The AWS side is now records (done by the loop). The loop is made trustworthy next (its bug list is with the run-observability session), then the checks are lined up with the blueprint's tests so the score is real, time is proved on the scoreboard, telemetry is on every operation, the old decisions and entry documents are rewritten, and Aaron reads the portal.",
+    "why": "Telemetry and the AWS side are done by the loop. Next the loop is made trustworthy (it cannot yet install the spike's dependencies or run the test sites in a lane, which blocked the telemetry run on a finding that was only its environment), then the checks are lined up with the blueprint's tests so the score is real, time is proved on the scoreboard, the old decisions and entry documents are rewritten, and Aaron reads the portal.",
     "written": "2026-11-10"
   },
   "notes": [
@@ -1024,6 +1021,11 @@
       "date": "2026-11-10",
       "by": "coordinator",
       "text": "Run observability (session run-observability): Aaron asked the coordinator to steer it. Accepted: one host that plays runs and serves the live view, shadcn AI Elements, the Workflow DX note as the direction for the authoring layer, the rename of loop to workflow last. Gate: a design pack in docs/design/run-observability (where runs live in the portal, the object model from plan task to tool call, the screens, the architecture) that Aaron accepts before product code."
+    },
+    {
+      "date": "2026-11-10",
+      "by": "coordinator",
+      "text": "Run observability: Aaron rejected the first design pack as really bad. The coordinator's acceptance is withdrawn; the session redoes the design as clickable prototypes in two or three directions and Aaron chooses. Only the small loop fixes continue."
     }
   ]
 }
