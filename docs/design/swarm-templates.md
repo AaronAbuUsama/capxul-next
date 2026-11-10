@@ -1447,7 +1447,7 @@ returns, and a section on where it runs before swarmD.
 
 | Profile | Role | Model | Tools | Returns (one json block) |
 |---|---|---|---|---|
-| [`master`](../../.claude/agents/master.md) | capxul/master as Mission Control | the session's | Read, Grep, Glob, Bash, Edit, Write, Agent, GitHub (issues, pull requests, merge) | — (it writes the artifacts of 7, 8 and 9) |
+| [`master`](../../archive/.claude/agents/master.md) | capxul/master as Mission Control | the session's | Read, Grep, Glob, Bash, Edit, Write, Agent, GitHub (issues, pull requests, merge) | — (it writes the artifacts of 7, 8 and 9) |
 | [`builder`](../../.claude/agents/builder.md) | maker | opus | Read, Grep, Glob, Bash, Edit, Write, GitHub (create and update a pull request) | submit with its handover (3.1, 3.2) |
 | [`reviewer`](../../.claude/agents/reviewer.md) | checker | sonnet | Read, Grep, Glob, Bash, GitHub (read a pull request) | check with `des:` verdicts (4.1, 4.4) |
 | [`adversary`](../../.claude/agents/adversary.md) | checker on money tasks | sonnet | as the reviewer | check (4.1, 4.3) |
