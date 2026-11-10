@@ -1,5 +1,18 @@
 # START HERE
 
+> **This is a historical record: the owner's direction as dictated on 9 November 2026.** The book cites it as
+> evidence, so its text below is left as written. It is not the current state. What is current: `pnpm plan show`
+> (the plan) and the rulings in the book (`books/target/shared/rulings.ts`, shown in the portal).
+>
+> What has changed since:
+> - **The first jurisdiction is open, not the United Kingdom** (ruling `aaron.jurisdiction-open`, 10 November). The
+>   UK payroll sections below are research, not the target.
+> - **Equity, the hosted FDE and individuals are parked** (`docs/cut-archive/parked/`).
+> - **Work is coordinated through the plan and the loop** (`pnpm plan`, `pnpm loop`), not by reading this file or
+>   `HANDOFF.md`, and not through swarmD.
+> - **Paths have moved.** `demo/`, `kit/` and `docs/handoff/` are under `archive/` at the same path
+>   (`archive/README.md`). The map of the repository is `README.md`.
+
 > Read [GROUNDING.md](GROUNDING.md) first: what we are building and why (the strategy, Aaron 9 Nov). This file is how.
 
 

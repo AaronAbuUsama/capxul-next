@@ -3,7 +3,10 @@
 What every entry is, what live thing uses it, and whether it stays. Written 10 November 2026 for the tidy-up
 (plan task `m1-tidy`). "Uses" were found by searching the tracked files for each path, not assumed.
 
-**How the verdicts were reached.** A thing is *live* when the book (`books/`), a package, a check, the plan, the
+**Words.** "The blueprint" is the typed design, today in `books/` and until 10 November called "the design book" or
+"the book"; both words mean the same thing on this page.
+
+**How the verdicts were reached.** A thing is *live* when the blueprint (`books/`), a package, a check, the plan, the
 portal or the loop reads it or cites it. Live things stay where they are, or move only together with every
 reference to them. The tidy-up runs in two stages because another lane is working in `books/`, `spikes/`, `evals/`
 and `packages/` right now:
@@ -27,12 +30,12 @@ Nothing is deleted in stage one: there was no pure duplicate and no generated ou
 | `START-HERE.md` | The owner's 9 November direction | 6 book files cite it as evidence; 4 plan files | stays, with a banner: a historical record |
 | `GROUNDING.md` | The four fixed points of the product, in Aaron's words | 3 book files, 4 plan files | stays |
 | `HANDOFF.md` | The hand-over into the build session of 8 November; superseded by the plan | `books/target/shared/swarm.ts` cites it 4 times | archive, stage two |
-| `books/` | The design: `target/` (what is being built) and `frozen/` (the old system's behaviour, never edited) | `packages/book` builds it; every check reads it | stays (see "Why `books/` is not a package") |
+| `books/` | The blueprint: `target/` (what is being built) and `frozen/` (the baseline: the old system's behaviour, never edited) | `packages/book` builds it; every check reads it | stays in stage one; renamed to `blueprint/` in stage two (see "The blueprint") |
 | `packages/` | The code, one package per component (see below) | pnpm workspace | stays |
 | `plan/` | The coordinator's plan: `plan.json`, the log, the owner's answers, one file per task | `pnpm plan`, the portal's Plan page, the loop | stays |
 | `evals/` | `bindings/`: which check proves which eval of the book | `pnpm evals` | stays |
 | `status/` | The scoreboard: `status.json` and the evidence of each run | written only by `pnpm evals`; read by the portal and the plan | stays |
-| `loops/` | The scripts the loop runs (`pair.ts`, `research.ts`) | `pnpm loop start --script <name>` | stays; stage two decides whether they live inside `packages/loop` |
+| `loops/` | The scripts the loop runs (`pair.ts`, `research.ts`) | `pnpm loop run <task id> --script <name>` | stays; stage two decides whether they live inside `packages/loop` |
 | `spikes/` | `skeleton/`: proven throwaway code (real Frappe v16, a stand-in chain) | the loop's sandbox, the evals bindings, plan task `m2-graduate-spike` | stays until graduated, then deleted |
 | `docs/` | Written design, evidence and generated reports (see below) | the book cites most of it | stays |
 | `tools/` | Twenty loose scripts and thirty-one old workflow scripts (see below) | `package.json`, packages, the book | stage two: emptied into packages and the archive |
@@ -47,22 +50,33 @@ Nothing is deleted in stage one: there was no pure duplicate and no generated ou
 
 | Today | After stage one | After stage two |
 |---|---|---|
-| `.claude .github books demo docs evals kit loops packages plan runs spikes status tools` | `.claude .github archive books docs evals loops packages plan spikes status tools` (+ `var/`, ignored) | `.claude .github archive books docs evals packages plan spikes status` (+ `var/`); `spikes/` goes when `m2-graduate-spike` is done |
+| `.claude .github books demo docs evals kit loops packages plan runs spikes status tools` | `.claude .github archive books docs evals loops packages plan spikes status tools` (+ `var/`, ignored) | `.claude .github archive blueprint docs evals packages plan spikes status` (+ `var/`); `spikes/` goes when `m2-graduate-spike` is done |
 | `CLAUDE.md GROUNDING.md HANDOFF.md README.md START-HERE.md` | the same | `CLAUDE.md GROUNDING.md README.md START-HERE.md` |
 
-### Why `books/` is not a package
+### The blueprint
 
-`packages/book` is the engine: record types, the builder, the checks. `books/` is the content the engine reads, like
-a site's pages next to its generator. It has no `package.json`, exports nothing, and is never imported by product
-code. 99 files in it cite repository paths as evidence and the frozen half may never be edited, so moving it changes
-every script, both `tsconfig` files, the portal's loader and the frozen check for no gain in clarity. A README in
-`books/` now says this. If it is to move anyway, stage two lists every line that changes first.
+Aaron's question was why `books/` sits loose at the top level beside a package called `book`. The content and its
+engine shared a name. His ruling of 10 November 2026: the design book is renamed **the blueprint** (plan task
+`m1-rename-blueprint`, done in stage two as one mechanical commit once the lanes in flight have merged):
+
+| Today | After the rename |
+|---|---|
+| `books/target/` | `blueprint/` |
+| `books/frozen/` | `blueprint/baseline/` |
+| `packages/book` (`@capxul/book`) | `packages/blueprint-engine` |
+| `docs/design-book.md` | `docs/blueprint.md` |
+| "the book" in scripts, checks, the portal, the plan and the entry documents | "the blueprint" |
+
+The blueprint stays at the top level and is not a package: it is content, like a site's pages next to its generator.
+It has no `package.json` and exports nothing; it is read by the engine, the portal and the checks, never by product
+code. Paths that records cite as historical evidence (under `docs/as-is/archive/` and `docs/cut-archive/`) stay as
+they are.
 
 ## `packages/`
 
 | Package | What it is | Verdict |
 |---|---|---|
-| `book` | The design book's engine: records, build, checks | stays |
+| `book` | The blueprint's engine: records, build, checks | stays; renamed `blueprint-engine` in stage two |
 | `portal` | Generates and serves the portal from the book, the plan and the scoreboard | stays (README added) |
 | `evals` | Runs the checks bound to evals; the only writer of `status/` | stays |
 | `loop` | The agent runner on pi-durable; this is where pi-durable is used | stays; stage two makes it readable |
@@ -77,6 +91,7 @@ every script, both `tsconfig` files, the portal's loader and the frozen check fo
 | `plan.ts`, `plan/`, `plan-files.ts` | The plan CLI, its module and its file reader | `pnpm plan`, the portal (9 files), the loop | stage two: one package |
 | `plan-tasks.ts` | Derives the task tree `docs/mission/tasks.json` from the book and the plan (569 lines) | `pnpm tasks`, `pnpm test`, the loop | stage two |
 | `check-frozen.ts` | Proves every one of the 215 old behaviours is kept or classified | the checks in `CLAUDE.md`, the loop's gates | stage two: into `packages/book` |
+| `check-layout.ts`, `check-layout/` | The layout check added by this tidy-up: the top level, file sizes, READMEs | `pnpm layout`, `pnpm test` | stage two: with the other checks |
 | `report-cut.ts` | Generates and checks `docs/cut-archive/INDEX.md` | the checks | stage two: into `packages/book` |
 | `impact.ts` | What a change to a record touches | the portal (4 files), `docs/design-book.md` | stage two |
 | `book-target.ts` | Loads the target book for other tools | `impact.ts`, `record-status.ts`, `packages/evals` | stage two: into `packages/book` |
