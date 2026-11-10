@@ -1026,6 +1026,11 @@
       "date": "2026-11-10",
       "by": "coordinator",
       "text": "Run observability: Aaron rejected the first design pack as really bad. The coordinator's acceptance is withdrawn; the session redoes the design as clickable prototypes in two or three directions and Aaron chooses. Only the small loop fixes continue."
+    },
+    {
+      "date": "2026-11-10",
+      "by": "coordinator",
+      "text": "Key rotation (the CLI proxy key pasted on 8 November): Aaron will rotate it after milestone 1 is met, not before, and will give a heads-up first. At that time no loop run may be in flight, LiteLLM needs the new upstream key, and one test call goes through the loop before real runs restart."
     }
   ]
 }
