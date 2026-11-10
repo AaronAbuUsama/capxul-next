@@ -368,13 +368,17 @@
       "title": "Resolve the old dev time and dev snapshot commands against the world commands",
       "why": "Two ways to move time and take snapshots would contradict each other.",
       "milestone": "m1",
-      "state": "doing",
+      "state": "blocked",
       "needs": [],
       "records": [],
       "evidence": [],
       "created": "2026-11-10",
       "updated": "2026-11-10",
-      "thread": "m1-dev-commands-11101246-2"
+      "thread": "m1-dev-commands-11101246-2",
+      "blockedBy": {
+        "need": "loop run m1-dev-commands-11101246-2: F-1.1 Goal: one command set remains and the other is classified: Seen: The target operations still book `dev time` and `dev snapshot`; the time records also describe `dev time set`. The supervisor decision names `capxul-devnet time` and world commands, but does not classify the old command set. Expe | F-1.0 : The maker did not finish: unanswered: model_error | ",
+        "who": "coordinator"
+      }
     },
     {
       "id": "m1-flaky-portal-test",
@@ -765,10 +769,12 @@
       "title": "Specify worlds as a hosted platform: connect, join, scenarios, runs, clean data, RL environments",
       "why": "Aaron: this is a core, foundational part and must be specified well before breadth. Heavy infrastructure on every sandbox makes no sense; it must be easy to create a simulation, bring a hundred or two hundred testers and agents through scenarios, and get clean training data and environments for reinforcement learning. Today the pieces are scattered across five documents and a few dozen records.",
       "milestone": "m1",
-      "state": "doing",
+      "state": "done",
       "needs": [],
       "records": [],
-      "evidence": [],
+      "evidence": [
+        "lane/worlds-spec merged (141885c, 54e1af1): docs/design/worlds-platform.md, 38 operations, the Worlds page"
+      ],
       "created": "2026-11-10",
       "updated": "2026-11-10",
       "thread": "lane/worlds-spec"
@@ -808,11 +814,80 @@
       "evidence": [],
       "created": "2026-11-10",
       "updated": "2026-11-10"
+    },
+    {
+      "id": "m3b-world-service",
+      "title": "Worlds 1: the lean service, a registry of worlds, and twenty measured",
+      "why": "Everything else in the platform stands on a world being cheap. The figure of 0.15 GiB for a world's Capxul part is an estimate until it is measured.",
+      "milestone": "m3b",
+      "state": "todo",
+      "needs": [
+        "m2-lean-service"
+      ],
+      "records": [],
+      "evidence": [],
+      "created": "2026-11-10",
+      "updated": "2026-11-10"
+    },
+    {
+      "id": "m3b-world-join",
+      "title": "Worlds 2: a first hosted core world, and joining it with a key",
+      "why": "Aaron: if they have already got keys, here is a new environment. This is the smallest version of that.",
+      "milestone": "m3b",
+      "state": "todo",
+      "needs": [
+        "m3b-world-service"
+      ],
+      "records": [],
+      "evidence": [],
+      "created": "2026-11-10",
+      "updated": "2026-11-10"
+    },
+    {
+      "id": "m3b-scenarios",
+      "title": "Worlds 3: templates, the seed adapter and the first scenario",
+      "why": "A world is only useful with companies and events in it. The old scenario companies are the source.",
+      "milestone": "m3b",
+      "state": "todo",
+      "needs": [
+        "m3b-world-join"
+      ],
+      "records": [],
+      "evidence": [],
+      "created": "2026-11-10",
+      "updated": "2026-11-10"
+    },
+    {
+      "id": "m3b-runs-data",
+      "title": "Worlds 4: cohorts, runs and the accepted dataset",
+      "why": "The product of a run is clean data. A hundred or two hundred testers and agents need runs that are scheduled, watched, closed and checked.",
+      "milestone": "m3b",
+      "state": "todo",
+      "needs": [
+        "m3b-scenarios"
+      ],
+      "records": [],
+      "evidence": [],
+      "created": "2026-11-10",
+      "updated": "2026-11-10"
+    },
+    {
+      "id": "m3b-env",
+      "title": "Worlds 5: a core world as a learning environment",
+      "why": "Aaron: as we move into reinforcement learning we need environments and clean data.",
+      "milestone": "m3b",
+      "state": "todo",
+      "needs": [
+        "m3b-scenarios"
+      ],
+      "records": [],
+      "evidence": [],
+      "created": "2026-11-10",
+      "updated": "2026-11-10"
     }
   ],
   "path": {
     "tasks": [
-      "m1-worlds-spec",
       "m1-loop-hardening",
       "m1-eval-coverage",
       "m1-time-proof",
@@ -822,7 +897,7 @@
       "m1-entry-docs",
       "m1-aaron-accepts"
     ],
-    "why": "Worlds as a hosted platform is specified first: Aaron called it the foundational piece that must come before breadth. The loop runner is merged; it is made trustworthy next, so later tasks run through it and not by hand. Then the checks are lined up with the book's tests so the score is real, time is proved on the scoreboard, the AWS side is written in, and telemetry is the remaining bulk. The old decisions and the entry documents are cleaned up before Aaron is asked to accept the book.",
+    "why": "Worlds as a hosted platform is now specified. The loop runner is made trustworthy next, so later tasks run through it. Then the checks are lined up with the book's tests so the score is real, time is proved on the scoreboard, the AWS side is written in, and telemetry is the remaining bulk. The old decisions and the entry documents are cleaned up before Aaron is asked to accept the book. Beside this path, the cloud milestone builds the platform: the lean service, a first hosted world, joining, scenarios, runs and the dataset.",
     "written": "2026-11-10"
   },
   "notes": [
@@ -870,6 +945,11 @@
       "date": "2026-11-10",
       "by": "coordinator",
       "text": "Aaron asked for worlds as a hosted platform to be specified well, before breadth: easy to create a simulation, to bring a hundred or two hundred testers and agents through scenarios, and to get clean data and environments for learning. It was scattered across documents. It is now one task, first on the path, being written into the book with its own page on the portal."
+    },
+    {
+      "date": "2026-11-10",
+      "by": "coordinator",
+      "text": "Worlds as a hosted platform is specified: one design in the book and on the portal's Worlds page, with 38 commands for scenarios, runs, cohorts, joining, datasets and the learning interface. Building it is five tasks in the cloud milestone, starting with the lean service. The loop runner is merged; its real run was blocked by model errors from the gateway, which is being looked at."
     }
   ]
 }
