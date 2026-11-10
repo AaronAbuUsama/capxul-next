@@ -315,10 +315,12 @@
       "title": "An example on every operation",
       "why": "Every operation has an example; the portal counts the gaps.",
       "milestone": "m1",
-      "state": "doing",
+      "state": "done",
       "needs": [],
       "records": [],
-      "evidence": [],
+      "evidence": [
+        "lane/examples merged; no-example gaps 201 to 0; about 580 examples"
+      ],
       "created": "2026-11-10",
       "updated": "2026-11-10",
       "thread": "lane/examples"
