@@ -680,3 +680,55 @@ export const decision_portal_designed_screens = defineDecision({
   source: "Aaron, 9 November 2026, in the portal conversation: 'Yes, build it' to 'Build the real generated portal to this design?'; evidence: the design canvas 'Capxul Portal' (Overview, Questions, Concept, Operation, Architecture); decisions portal.sitemap, portal.stack, portal.hosting, portal.status-source",
   affects: [f.system_capxul, decision_portal_stack, decision_portal_sitemap],
 });
+
+// ── the plan page (10 November 2026) ──────────────────────────────────────────────────────
+
+export const decision_portal_plan_page = defineDecision({
+  id: "portal.plan-page",
+  title: "The coordinator writes the plan; its critical path is written, never computed",
+  question:
+    "How do the owner and the agents see the overall goal, the milestones, the tasks, the threads working on them, what is " +
+    "blocked and the critical path to the goal, so that everyone stays aligned on the longer term?",
+  options: [
+    {
+      label: "authored-plan",
+      text:
+        "The coordinating model writes the plan as data in plan/plan.json (goal, milestones, tasks, the critical path as its own " +
+        "ordered list and words, dated notes). It changes the plan only through `pnpm plan …` (tools/plan.ts), which validates " +
+        "each change, appends it to plan/log.jsonl with who made it and the commit, and prints the result. `plan check` keeps " +
+        "the plan honest against the book (ids, needs without a cycle, a blocked task's decision, every record and eval id " +
+        "named, exactly one current milestone, a path of live tasks, evidence for what is met) and never reorders or rewrites it. " +
+        "The portal shows it at /plan/, with Markdown and JSON twins, the last note first, and for a task blocked on a decision " +
+        "that decision's question, options and recommendation inline.",
+    },
+    {
+      label: "computed-path",
+      text:
+        "Compute the critical path from the tasks' dependencies. Rejected: the owner: the path is not mathematical, it is the " +
+        "coordinator's judgment of what unblocks the next milestone, and it changes as new tickets arrive.",
+    },
+    {
+      label: "new-record-kinds",
+      text: "Make tasks and milestones record kinds of the book. Rejected: they change daily and are not a design; the book would churn and every change would need a decision record.",
+    },
+    {
+      label: "outside-tracker",
+      text: "Keep the plan in an outside tracker. Rejected: the agents, the owner and the portal would then each read a copy; the plan is checked against the book and must sit beside it.",
+    },
+  ],
+  chosen: "authored-plan",
+  why:
+    "The owner, 10 November 2026: \"A new page in the book/portal for project management. What is the overall goal, what are the " +
+    "current milestones, what are the tasks, what threads are they being worked on, and what's the current critical path " +
+    "through the milestones to the goal. This makes a meta hill climb so we can stay aligned on the longer term goal.\" " +
+    "Correcting a first proposal that computed the path from dependencies: \"The critical path is not something that's computed " +
+    "mathematically … it's driven by a model, a smart model like yourself … it's responsible for creating all of the tasks and " +
+    "making sure all the tasks are getting done. And when things get blocked, unblocking them … When it gets blocked, the user " +
+    "can see what the decisions it needs to make or unblock, with the context. Ultimately it's a way of sharing understanding " +
+    "where we are on the hill climb.\" So the plan is authored; the machinery adds a place to write it, checks against the book, " +
+    "a record of every change, and a page that shows it to a person and to other agents.",
+  source:
+    "The coordinator, 10 November 2026, on the owner's delegation of the book; the owner's words quoted in why; evidence: " +
+    "tools/plan.ts, tools/plan/, plan/plan.json, plan/log.jsonl and packages/portal (the Plan page)",
+  affects: [f.system_capxul, decision_system_build_order],
+});

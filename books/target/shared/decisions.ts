@@ -2597,8 +2597,8 @@ export const decision_system_build_order = defineDecision({
       label: "layers-then-priority",
       text:
         "By the concept map's layers, each concept's door (its tables, machines and procedures) before any concept that depends on " +
-        "it: access; media; parties; indexing; approvals; accounts; organizations; then applications, board's proposals and door, books, contacts and documents; agents and budgets; payments; activity and banking; requests; notices; " +
-        "devnet's own dev commands alongside the harness. Within a concept, critical operations first. Board's director and vote " +
+        "it: access; media; parties; indexing; approvals; accounts; organizations; then applications, board, books, contacts and documents; agents and budgets; payments; activity, banking and plugs; requests and sites; notices; " +
+        "devnet's own world commands alongside the harness. Within a concept, critical operations first. Board's director and vote " +
         "operations and all of equity are built last, and a lane may build against their events before they exist.",
     },
     { label: "product-priority", text: "By product priority alone, stubbing every dependency that is not built yet." },
@@ -2610,8 +2610,10 @@ export const decision_system_build_order = defineDecision({
     "payment, budget and grant, so they are on the critical path even though its director and voting commands are not. Equity " +
     "stays last because only notices depends on it, and only for its events. Revised at the Frappe assembly (projects " +
     "joins the eighth layer; books, which now reads projects, moves up to budgets and agents; payroll, which now pays " +
-    "through payments and posts its accrual through books, moves above payments, beside banking and activity), then by the cut (cut.principle), which takes out the concepts Frappe owns and moves the layers up.",
-  source: `${HANDOFF}; evidence: the concept dependsOn graph of the built target book (14 layers, no cycle); the fact check of the goal prompt's earlier order`,
+    "through payments and posts its accrual through books, moves above payments, beside banking and activity), then by the cut (cut.principle), which takes out the concepts Frappe owns and moves the layers up, then by the plugs and sites " +
+    "concepts (10 November 2026: plugs joins activity and banking, sites joins requests; the layer list is the one plan-tasks computes and checks). " +
+    "The milestones the lanes sit under are no longer listed here: they are the milestones of plan/plan.json (portal.plan-page).",
+  source: `${HANDOFF}; evidence: the concept dependsOn graph of the built target book (14 layers, no cycle); the fact check of the goal prompt's earlier order; amended 10 November 2026 by the coordinator, on the owner's delegation, to the layers tools/plan-tasks.ts computes`,
   affects: [f.system_capxul, f.concept_board, f.concept_notices],
 });
 
