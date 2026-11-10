@@ -42,6 +42,8 @@ if [ "${REUSE:-0}" != 1 ]; then
   "$(dirname "$0")/new-site.sh" "$SLUG" "Acme Trading Ltd" "$SAFE" hannah@acme.test >/dev/null 2>&1 && ok "new-site.sh is safe to re-run ($(( $(date +%s) - t0 ))s)" || bad "new-site.sh is safe to re-run" "second run failed"
 fi
 login
+# a NEW site reports nothing outward by default (capxul.privacy.status reads telemetry, update check, CRM consent screen, enrichment, keys)
+check "new site: nothing phones home (telemetry, update check, CRM usage-data screen, enrichment, vendor keys all off)" "$(inbench "bench --site $SITE execute capxul.privacy.status" 2>/dev/null | tail -1 | jx "(d['phoning_home'], d['enable_telemetry'], d['update_check_on'], d['crm_first_run_screen_pending'], d['domain_enrichment_on'], d['conf_keys_set'])")" "(False, 0, 0, 0, 0, [])"
 # point this site at the fake Core for the duration of the test (the real stub may own :8787)
 rest -o /dev/null -X PUT "$API/api/resource/Capxul%20Settings/Capxul%20Settings" -d "{\"core_url\":\"http://host.docker.internal:$FAKE_PORT\"}"
 BASE=$(rest "$API/api/method/frappe.client.get_single_value?doctype=Capxul%20Settings&field=last_seq" | jx "int(d['message'] or 0)")

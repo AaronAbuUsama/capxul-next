@@ -76,3 +76,17 @@ def unbrand():
     nav = frappe.get_doc("Navbar Settings")
     nav.append("help_dropdown", {"item_label": "Frappe Support", "item_type": "Route", "route": "https://frappe.io/support"}); nav.save()
     frappe.clear_cache(); frappe.db.commit()
+
+
+def telemetry_state():
+    out = {}
+    for dt, f in (("System Settings", "enable_telemetry"), ("System Settings", "disable_system_update_notification"), ("System Settings", "allow_error_reporting") ):
+        try: out[f] = frappe.db.get_single_value(dt, f)
+        except Exception as e: out[f] = "n/a"
+    out["conf"] = {k: frappe.conf.get(k) for k in ("pulse_api_key", "pulse_force_enabled", "developer_mode", "fc_team", "posthog_host")}
+    meta = frappe.get_meta("System Settings")
+    out["fields_with_report_or_update"] = [f.fieldname for f in meta.fields if any(w in f.fieldname for w in ("telemetry","update","report","error","track","analytics","usage"))]
+    if frappe.db.exists("DocType", "FCRM Settings"):
+        out["fcrm"] = {f.fieldname: frappe.db.get_single_value("FCRM Settings", f.fieldname) for f in frappe.get_meta("FCRM Settings").fields if f.fieldtype == "Check"}
+    out["enrichment"] = {d: frappe.db.count(d) for d in ("CRM Enrichment Run",) if frappe.db.exists("DocType", d)}
+    return out

@@ -36,7 +36,7 @@ PYTHON = ["crm/crm/**/*.py", "erpnext/erpnext/**/*.py", "hrms/hrms/**/*.py", "fr
 QUOTES, OPENERS = "\"'`", "(,[:=+{ ?|&!>\t"
 
 
-def literals_with_names(body):
+def literals_with_names(body):  # (the crawler's copy also reports whether the text went through __())
     """Every JS string literal that holds the name: from the name left to the quote that opens it, right to the one that closes it."""
     out = set()
     for m in NAME.finditer(body):
@@ -156,6 +156,8 @@ def apply():
     ws.save(ignore_permissions=True)
     frappe.db.set_default("disable_standard_email_footer", 1)  # the standard footer says "Sent via ERPNext"; ours is the sender address block
     frappe.db.set_default("email_footer_address", f"Sent via {BRAND}")
+    if frappe.db.exists("DocType", "FCRM Settings"):
+        frappe.db.set_single_value("FCRM Settings", "brand_name", f"{BRAND} CRM")  # CRM's own Settings > Branding: the name in its sidebar
     nav = frappe.get_doc("Navbar Settings")
     nav.help_dropdown = [r for r in nav.help_dropdown if not re.search(r"Frappe|ERPNext", r.item_label or "")]
     nav.save(ignore_permissions=True)

@@ -44,9 +44,11 @@ def record(who, url, where, text, kind, final=False):  # final: the exact text t
             if key in TRANSLATED and not named(TRANSLATED[key]):
                 covered.append((who, url, where, text[:160], TRANSLATED[key][:60]))
                 return
-        if KEPT.search(text) and not re.search(r"Frappe(?! (Technologies|Mail|Cloud))", text) and not re.search(r"ERPNext", text):
-            kept.append((who, url, where, text[:160]))
-            return
+    if kind == "shown" and KEPT.search(text) and not re.search(r"Frappe(?! (Technologies|Mail|Cloud))", text) and not re.search(r"ERPNext", text):
+        kept.append((who, url, where, text[:160]))
+        return
+    if kind == "shown" and re.search(r"`\)|/\^|\.replace\(|=>", text):  # a mispaired quote in minified code, not text
+        kind = "internal"
     if len(text) > 160 and (m := NAME.search(text)):  # long text (a letter head, an email): show the words around the name
         text = "..." + text[max(0, m.start() - 70): m.end() + 70] + "..."
     k = (who, url, where, text[:160])
@@ -157,7 +159,7 @@ def literals_with_names(body):
                 while r != -1 and body[r - 1] == "\\":
                     r = body.find(c, r + 1)
                 if r != -1 and r - pos <= 700 and "\n" not in body[pos + 1:r]:
-                    out.add(body[pos + 1:r])
+                    out.add((body[pos + 1:r], bool(re.search(r"__\(\s*$", body[max(0, pos - 8):pos]))))  # (text, passed through __())
                     break
     return out
 
@@ -166,13 +168,14 @@ KEPT = re.compile(r"Frappe (Technologies|Mail|Cloud)")
 
 
 def scan_bundle(who, url, body):
-    for s in literals_with_names(body):
+    for s, wrapped in literals_with_names(body):
         if re.search(r"https?://|/assets/|frappe\.[a-z]|frappeframework|github", s) and not re.search(r"\s[A-Za-z]", s):
             record(who, url, "bundle (code or link)", s, "internal")
         elif re.match(r"^[A-Za-z_.]+$", s):
             record(who, url, "bundle (code or link)", s, "internal")
         else:
-            record(who, url, "bundle (text in the interface)", s, "shown")
+            # written straight into the front end (not through __()) a translation cannot reach it
+            record(who, url, "bundle (text in the interface)" if wrapped else "bundle (text in the interface, NOT translatable)", s, "shown", final=not wrapped)
 
 
 def boot_of(body):
@@ -252,15 +255,20 @@ admin_op, member_op = sso(admin_email), sso(member_email)
 for who, op in (("guest", guest), ("admin-hat " + admin_email, admin_op), ("member-hat " + member_email, member_op)):
     crawl(who, op, who.startswith("member"))
 
-shown_unique = sorted({(u, w, t) for _, u, w, t in shown})
+shown_unique = sorted({t for _, u, w, t in shown})  # distinct strings; the same text in two files or for three people counts once
 internal_unique = sorted({(u, w, t) for _, u, w, t in internal})
 print(f"== where {slug} still shows Frappe or ERPNext to a person ({len(shown)} places, {len(shown_unique)} distinct)")
 for who, u, w, t in sorted(shown, key=lambda r: (r[1], r[2])):
     print(f"SHOWN  [{who.split()[0]}] {u} {w} :: {t}")
 kept_u = sorted({(u, w, t) for _, u, w, t in kept})
-print(f"== kept on purpose: the copyright holder's notice and other companies' product names ({len(kept_u)} distinct)")
-for u, w, t in kept_u:
-    print(f"kept   {u} {w} :: {t[:100]}")
+third = [k for k in kept_u if not re.search(r"Technologies", k[2])]
+legal = [k for k in kept_u if re.search(r"Technologies", k[2])]
+print(f"== kept on purpose: the copyright holder's notice ({len(legal)} distinct)")
+for u, w, t in legal:
+    print(f"legal  {u} {w} :: {t[:100]}")
+print(f"== third-party product names in lists and dialogs, not ours to rename: hide the option or leave it ({len(third)} distinct)")
+for u, w, t in third:
+    print(f"third  {u} {w} :: {t[:100]}")
 cov = sorted({(u, w, t, r) for _, u, w, t, r in covered})
 print(f"== names the person's own translations replace when the desk or CRM show them through __() ({len(cov)} distinct; not verified one by one)")
 for u, w, t, r in cov:
@@ -270,4 +278,5 @@ for who, u, w, t in internal[:25]:
     print(f"intern [{who.split()[0]}] {u} {w} :: {t[:100]}")
 for who, dt, status in sorted(u for u in unread if u[0] != "guest"):
     print(f"note   [{who}] could not read {dt} ({status}): not scanned for that person")
-print(f"FOUND shown={len(shown_unique)} internal={len(internal_unique)} covered={len(cov)} kept={len(kept_u)}")
+print(f"places: {len(shown)} places show {len(shown_unique)} distinct strings")
+print(f"FOUND shown={len(shown_unique)} internal={len(internal_unique)} covered={len(cov)} legal={len(legal)} thirdparty={len(third)}")

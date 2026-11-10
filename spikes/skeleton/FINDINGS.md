@@ -491,3 +491,39 @@ notices and third-party names, 250 are identifiers. The "before" was taken by un
 7. **Names.** Which parts of "Frappe" and "ERPNext" must go, which must stay for the licences, and whether the CRM manifest and logos justify a thin fork or a proxy rewrite.
    Decide the language rule: `en-GB` for everyone is what makes the strings change.
 8. **AGPL.** Decide with a lawyer whether hosting the CRM for customers as part of a product obliges a source offer, and where it is published.
+
+
+### Follow-up: what phones home, and a more honest name count
+
+**What reports outward by default** (found by reading the apps, then reading each site's settings with `capxul.privacy.status`):
+
+| What | Where | State before | Now |
+|---|---|---|---|
+| Update check: weekly `frappe.utils.change_log.check_for_update` asks GitHub for each app's releases | System Settings `disable_system_update_notification` | **on (0) on all three sites: this was phoning home** | forced to 1 |
+| "Pulse" telemetry (Frappe and CRM `capture()` calls, browser client from `telemetry.bundle.js`) | needs conf `pulse_api_key` **and** System Settings `enable_telemetry` | setting already 0 (the wizard turns it off); no key ships in the apps | setting forced to 0 by a `System Settings.validate` hook, so the CRM's pre-ticked "Share usage data" box (it writes that setting) cannot enable it; conf keys checked empty |
+| CRM first-run screen `/crm/setup` with the consent box | `FCRM Settings.setup_completed` | 0 on beta and gamma | 1 (screen skipped; it also carries CRM's mail setup, which a person can still reach in Settings) |
+| CRM Domain Enrichment (crawls company websites) | `CRM Enrichment Settings.enabled` | 0 | 0, forced |
+| Sentry | env `FRAPPE_SENTRY_DSN` | not set in the container | nothing to do; a deployment must not set it |
+
+`capxul.privacy.apply` does all of it (new sites through `configure_site`, existing sites after every migrate); `privacy.status` reports `phoning_home`.
+Checked by `run.sh` on acme, beta and gamma, by `test-frappe.sh` on a freshly created site, and by trying to turn telemetry on through REST (it stays 0).
+Note the hook cache: a hook added to `hooks.py` needs `bench clear-cache` on each site before it applies (a container restart does not clear it).
+
+**Could not be switched off by configuration:**
+- The code paths still exist: if someone sets `pulse_api_key` in a site or common config, telemetry is only held off by our validate hook (the hook stops the setting, not `pulse_force_enabled`
+  in conf, which `status()` reports). A deployment rule is needed: no vendor keys in config.
+- Outbound calls made on use, not reported usage: exchange-rate lookups (CRM `api/exchange_rate.py` to exchangerate.host, ERPNext's Currency Exchange Settings), Exotel and Twilio
+  integrations when configured, domain enrichment if someone enables it, Gravatar (already removed by Frappe), the "Login to Frappe Cloud" dialog and Frappe Cloud billing helpers
+  (only on a site whose config marks it as a Frappe Cloud site). Not measured on the wire: this is from the code, not a packet capture.
+- Social login, email and WhatsApp send data to the providers a company configures; that is the product, not telemetry.
+
+**Name count, redone.** The first crawler counted a string as "replaced" if the person's translations held it, which is only true when the front end passes it through `__()`. It now
+scans every file of the built CRM front end (about 290 files) and the desk's bundles for string literals that hold the names, and separates text written into the front end
+without `__()` (which no translation can reach) from text that is translated. Distinct strings a person can read that still say Frappe or ERPNext: **3**, in 11 places:
+`Frappe CRM` (the manifest name, the About dialog and the setup screen footer), `ERPNext CRM Settings` (the CRM's settings sidebar), `No synced ERPNext Items`. 46 are replaced through
+translations, 2 are the copyright notice, **7 are third-party product names, counted apart**: "Frappe Mail" (in CRM's email-provider list and its help text, 3 strings) and "Frappe Cloud" (a
+login dialog, 2 strings). Whether to hide the Frappe Mail option is a product decision; renaming it would be wrong. Not covered: text built at run time from several pieces, and lazily
+loaded chunks that no file names.
+What configuration or our app reached: the CRM's own Settings > Branding name (`FCRM Settings.brand_name` = "Capxul CRM"), the tab title, and the setup screen is skipped. **What only a rebuild of the CRM
+front end can rename** (a modification of an AGPL-3.0 app, so a lawyer's question first): the three strings above, plus the manifest (a static file the CRM ships), all hard-coded in its Vue source
+(`AboutModal.vue`, `Setup.vue`, the settings pages, `manifest.webmanifest`).

@@ -13,6 +13,7 @@ doctype_js = {"Payment Entry": "public/js/payment_entry.js"}
 doc_events = {
     # roles follow hats: nobody edits them by hand
     "User": {"validate": ["capxul.locks.guard_user_roles", "capxul.features.apply_user_blocks", "capxul.brand.user_language"]},
+    "System Settings": {"validate": "capxul.privacy.guard_system_settings"},
     "Capxul Feature": {"validate": "capxul.locks.guard_feature"},
     "Has Role": {"before_insert": "capxul.locks.guard_has_role", "on_trash": "capxul.locks.guard_has_role"},
     # money follows the chain
@@ -31,4 +32,4 @@ before_request = ["capxul.features.guard_request"]
 
 # names only (capxul.brand): the site says Capxul
 after_request = ["capxul.brand.after_request"]
-after_migrate = ["capxul.brand.apply"]
+after_migrate = ["capxul.brand.apply", "capxul.privacy.apply"]

@@ -256,6 +256,14 @@ core feature off "$SLUG" whatsapp --as $ADMIN >/dev/null 2>&1
 chk "B5 a feature cannot be switched by hand on the site (REST PUT as Administrator is refused)" "$(code_of "$T/admin" -X PUT "$FR/api/resource/Capxul%20Feature/stock" -d '{"enabled":1}') $(feat stock)" "403 off"
 core hat revoke "$SLUG" member jonas@acme.test >/dev/null 2>&1
 
+echo "== Privacy: nothing phones home"
+for s in acme beta gamma; do
+  [ "$(curl -s -H "X-Frappe-Site-Name: $s.localhost" $FR/api/method/ping | jget "d['message']")" = pong ] || continue
+  chk "PRIVACY $s.localhost: no telemetry, no update check, no CRM usage-data screen, no enrichment, no vendor keys" "$( ( . "$HERE/frappe/bin/lib.sh"; inbench "bench --site $s.localhost execute capxul.privacy.status" 2>/dev/null | tail -1 ) | jget "(d['phoning_home'], d['enable_telemetry'], d['update_check_on'], d['crm_first_run_screen_pending'], d['domain_enrichment_on'], d['conf_keys_set'])")" "(False, 0, 0, 0, 0, [])"
+done
+fr "$T/admin" -o /dev/null -X PUT "$FR/api/resource/System%20Settings/System%20Settings" -d '{"enable_telemetry":1,"disable_system_update_notification":0}'
+chk "PRIVACY ticking 'Share usage data' (it writes enable_telemetry) cannot turn it on: stays 0, update check stays off" "$(fr "$T/admin" "$FR/api/resource/System%20Settings/System%20Settings" | jget "(d['data']['enable_telemetry'], d['data']['disable_system_update_notification'])")" "(0, 1)"
+
 echo "== Names: the site says Capxul, not Frappe or ERPNext (measured, not asserted)"
 t0=$(ms); "$HERE/frappe/bin/find-names.sh" "$SLUG" $ADMIN jonas@acme.test > "$T/names.txt" 2>&1; names_ms=$(( $(ms) - t0 ))
 FOUND=$(grep '^FOUND' "$T/names.txt" | tail -1)

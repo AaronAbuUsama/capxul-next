@@ -139,6 +139,9 @@ def configure_site(slug, company_name, safe_address, admin_email, core_url, secr
     from capxul import brand
 
     print("brand:", brand.apply())
+    from capxul import privacy
+
+    print("privacy:", privacy.apply())
     print("configured", slug, company, acct_name, ba)
 
 
