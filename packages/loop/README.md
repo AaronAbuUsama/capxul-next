@@ -75,6 +75,12 @@ Conversations").
 Agents are pi-durable conversations with the coding tools `read`, `write`, `edit`, `bash`, plus whatever MCP tools a script
 registers (`mcpTools`). Every call passes a `beforeTool` hook (`agents/internal/policy.ts`).
 
+A bash command is read as the shell reads it (`agents/internal/shell.ts`): text in quotes or a here-document is the
+program's, and only the cuts between commands, redirections and substitutions are judged. A maker may send output to a
+file inside its lane (not into a protected path); a checker may not. Every refusal says what to do instead, so a refused
+agent does not try the same thing another way. The 226 calls refused on 10 November are replayed against the policy in
+`capxul/refused.test.ts`: 203 are allowed now, and 23 stay refused with a reason (outside the lane, an install, python).
+
 | | maker (`builder`) | checker (`reviewer`, `adversary`) | researcher |
 |---|---|---|---|
 | read files | inside its lane only | inside its lane only | inside its lane only |

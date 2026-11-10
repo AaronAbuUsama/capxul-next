@@ -4,31 +4,53 @@ import { modelsFrom, type Policy, type Profile } from "../../agents/service.ts";
 import { TOOL_NAMES } from "../../evidence/types.ts";
 import type { Ctx } from "../types.ts";
 
-const FILES = /^(ls|cat|head|tail|wc|nl|grep|sort|diff|echo|pwd)( |$)/;
+const FILES = /^(ls|cat|head|tail|wc|nl|grep|sort|uniq|cut|tr|diff|echo|printf|pwd|true|basename|dirname|stat|du|jq)( |$)/;
 /**
- * Commands that only read, which the agents asked for and were refused on 10 November 2026 (54 of 256 calls in four runs):
- * `rg` (never with a preprocessor, which runs a program), `sed -n` printing a range of lines, `find` without an action
- * that runs or deletes, and the parts of git that only look.
+ * Commands that only read, which the agents asked for and were refused on 10 November 2026: `rg` (never with a
+ * preprocessor, which runs a program), `sed -n` printing ranges of lines (of a file, or of what is piped to it), `find`
+ * without an action that runs or deletes, and the parts of git that only look.
  */
 const READS: readonly RegExp[] = [
   /^rg (?!.*--(pre|pre-glob|hostname-bin)\b)/,
-  /^sed -n (['"]?)[0-9,$]+p\1( [A-Za-z0-9_.\/-]+)+$/,
+  /^sed -n [0-9,$;p]+( [A-Za-z0-9_.\/@-]+)*$/,
   /^find (?!.*-(exec|execdir|ok|okdir|delete|fls|fprint\w*)\b)/,
-  /^git (diff|log|show|status|rev-parse|ls-files|merge-base|blame)( |$)/,   // not `git grep`: its -O opens a program
+  /^git (diff|log|show|status|rev-parse|ls-files|merge-base|blame|rev-list|cat-file|shortlog|describe)( |$)/,
+  /^git branch( (--show-current|-a|-r|-v|-vv|--list|--contains|--merged|--no-merged)( [A-Za-z0-9_.\/-]+)*)?$/,
+  /^git grep (?!.*(-O|--open-files-in-pager))/,
 ];
 
-/** `pnpm exec` and `node` can run anything the user can: the list limits what the model asks for, it is not a sandbox (README). */
-const RUNS: readonly RegExp[] = [/^pnpm (-s |--silent )?(exec|test|run|check|plan|book|blueprint|frozen|layout|tasks|judgments|evals|evals:check|portal:check|contracts:[a-z-]+|devnet:test|sdk:test)( |$)/, /^node( |$)/];
+/**
+ * The repository's own scripts an agent runs to do and check its work. Not `pnpm loop` (an agent does not drive the loop),
+ * `pnpm portal`/`portal:serve` (a server) or `pnpm install` (the lane's dependencies are prepared before it starts).
+ * `pnpm exec` and `node` can run anything the user can: the list limits what the model asks for, it is not a sandbox (README).
+ */
+const SCRIPTS = "test|check|plan|plan:check|plan:test|tasks|tasks:check|blueprint|book|frozen|layout|layout:test|judgments|evals|evals:check|evals:test|portal:check|loop:test|record:test|contracts:[a-z:-]+|devnet:test|sdk:test";
+const RUNS: readonly RegExp[] = [
+  new RegExp(`^pnpm (-s |--silent )?(exec|run (${SCRIPTS})|${SCRIPTS})( |$)`),
+  /^pnpm (-s |--silent )?(--filter|-F) @?[A-Za-z0-9_.\/-]+ (test|check|build|typecheck|exec)( |$)/,
+  /^node( |$)/,
+];
+/** Removing, copying or moving its own files, by plain relative names: never -r, a dash, a dot or a protected folder. */
+const KEEP_OUT = String.raw`(?!.*(^| )(books\/frozen|blueprint\/baseline|var\/runs)\/)(?!.*\/(src\/generated|\.git|\.claude)\/)(?!.*(^| )(\.git|\.claude)(\/| |$))`;
+const OWN_FILES = String.raw`( [A-Za-z0-9_][A-Za-z0-9_.\/@-]*)+$`;
 const CD = /^cd [A-Za-z0-9_./-]+$/;
 export const POLICY: Policy = {
   bash: {
-    write: [...RUNS, /^git (add|commit|mv|rm)( |$)/,
-      /^rm( -f)?(?!.* (books\/frozen|blueprint\/baseline|var)\/)(?!.*\/(src\/generated|\.git|\.claude)\/)( [A-Za-z0-9_][A-Za-z0-9_.\/-]*)+$/,   // its own scratch files, by plain relative name: never -r, a dash, a dot or a protected folder
-      ...READS, FILES, /^mkdir( |$)/, CD],
+    write: [...RUNS, /^git (add|commit|mv|rm|restore)( |$)/,
+      new RegExp(`^rm( -f)?${KEEP_OUT}${OWN_FILES}`), new RegExp(`^(cp|mv)( -[fn])?${KEEP_OUT}${OWN_FILES}`),
+      ...READS, FILES, /^mkdir( |$)/, /^touch( |$)/, CD],
     read: [...READS, FILES],
   },
-  denyWrite: [/^books\/frozen\//, /^blueprint\/baseline\//, /(^|\/)src\/generated\//, /^\.git(\/|$)/, /^\.claude\//, /^var\//],
+  // var/ is the lane's own working data (the build writes var/blueprint); only the runs' storage under it is kept out
+  denyWrite: [/^books\/frozen\//, /^blueprint\/baseline\//, /(^|\/)src\/generated\//, /^\.git(\/|$)/, /^\.claude\//, /^var\/runs(\/|$)/],
   tools: TOOL_NAMES,                       // the capture tools (modules/evidence): each checks its own arguments
+  hints: [
+    [/^pnpm (-s |--silent )?(--dir \S+ )?(install|i|add)( |$)/, "the lane's dependencies are installed before it starts; if one is missing, say so in your hand-back"],
+    [/^python3?( |$)/, "use node for a script"],
+    [/^pnpm (-s |--silent )?loop( |$)/, "an agent does not drive the loop"],
+    [/^git (push|fetch|pull|checkout|switch|reset|rebase|merge)( |$)/, "the loop moves branches; commit your work in the lane"],
+    [/^(curl|wget)( |$)/, "an agent has no network beyond its model"],
+  ],
 };
 
 /**

@@ -23,6 +23,8 @@ export interface Policy {
   readonly denyWrite: readonly RegExp[];
   /** Tools beyond the coding ones that an agent may call, by name. Each is its own guard: the policy only lets it through. */
   readonly tools?: readonly string[];
+  /** What to do instead, added to the refusal of a command that matches: so a refused agent does not try the same thing another way. */
+  readonly hints?: readonly (readonly [RegExp, string])[];
 }
 
 export interface HostOptions {

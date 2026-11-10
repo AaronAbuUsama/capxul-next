@@ -8,7 +8,7 @@ import { git } from "../../lanes/service.ts";
 import { capturesOf, evidenceTools, FOLDER, judge, nodeExec, toolingOf, type Capture, type Judged, type Tooling } from "../../evidence/service.ts";
 import { refuseBash } from "../../agents/service.ts";
 import type { Job } from "../types.ts";
-import { RECORD } from "./config.ts";
+import { POLICY, RECORD } from "./config.ts";
 
 export const evidenceDir = (job: Job): string => join(job.run.dir, FOLDER);
 
@@ -32,7 +32,7 @@ export const kitFor = (job: Job, by: string, readOnly: boolean): ReturnType<type
   const cwd = job.lane!.dir, tooling = toolingFor(job);
   return evidenceTools({
     dir: evidenceDir(job), by, cwd, env: job.env, now: job.ctx.now, exec: job.ctx.evidence?.exec ?? nodeExec, tooling,
-    refuse: (command) => refuseBash(command, cwd, RECORD[readOnly ? "read" : "write"]),
+    refuse: (command) => refuseBash(command, cwd, RECORD[readOnly ? "read" : "write"], readOnly ? undefined : { deny: POLICY.denyWrite }, POLICY.hints),
     hosts: tooling.browser ? HOSTS : [],
   });
 };

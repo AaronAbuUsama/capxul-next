@@ -4,42 +4,52 @@
  * policy on what the model asks for, not a sandbox: a command the list allows (`node`, `pnpm exec`) can do anything the
  * user can. The README says so.
  */
-import { isAbsolute, relative, resolve } from "node:path";
+import { isAbsolute, normalize, relative, resolve } from "node:path";
 import { AgentDoc, defineExtension, hook, ToolTask, type Extension } from "@earendil-works/pi-durable";
 import type { Policy, Profile } from "../types.ts";
+import { commandsOf } from "./shell.ts";
 
 const FILE_TOOLS = new Set(["read", "write", "edit"]);
 
-/**
- * A command line as the commands it runs one after another: cut at `&&`, `||`, `;`, `|` and a new line, but never inside
- * quotes, so `grep -E 'a|b' f` and a commit message of several lines are each one command. Undefined when a quote is left open.
- */
-export const segmentsOf = (line: string): string[] | undefined => {
-  const out: string[] = [];
-  let now = "", quote = "";
-  for (let i = 0; i < line.length; i++) {
-    const c = line[i]!;
-    if (quote) { now += c; if (c === "\\" && quote === '"' && i + 1 < line.length) now += line[++i]!; else if (c === quote) quote = ""; continue; }
-    if (c === "'" || c === '"') { quote = c; now += c; continue; }
-    if (c === "\\" && i + 1 < line.length) { now += c + line[++i]!; continue; }
-    const two = line.slice(i, i + 2);
-    if (two === "&&" || two === "||") { out.push(now); now = ""; i++; continue; }
-    if (c === ";" || c === "|" || c === "\n") { out.push(now); now = ""; continue; }
-    now += c;
+/** A command line as the commands it runs one after another, each as its words (internal/shell.ts). Undefined when a quote is left open. */
+export const segmentsOf = (line: string): string[] | undefined => commandsOf(line)?.map((c) => c.words.join(" "));
+
+/** Why a path a command names is refused, or undefined. Each reason says the way round, so a refused agent does not try the same thing another way. */
+const refuseNamed = (token: string, cwd: string): string | undefined => {
+  if (token === "/dev/null" || token === "/tmp" || token.startsWith("/tmp/")) return undefined;
+  if (isAbsolute(token)) {
+    if (token === cwd || token.startsWith(`${cwd}/`)) return undefined;
+    if (token.startsWith("/home/user/")) return `${token} is outside the lane, and does not exist on this machine (a path of an old cloud session)`;
+    return `${token} is outside the lane`;
   }
-  return quote ? undefined : [...out, now].map((s) => s.trim()).filter(Boolean);
+  return normalize(token).split("/")[0] === ".." ? `${token} is outside the lane: name paths from the lane's root, without \`..\`` : undefined;
 };
 
-/** Why a bash command is refused, or undefined when it is allowed. Pure: the tests call it. */
-export const refuseBash = (command: string, cwd: string, allow: readonly RegExp[]): string | undefined => {
-  const plain = command.replace(/\d?>&\d|2>\/dev\/null/g, " ");
-  if (/[`<>]|\$\(|\.\.\//.test(plain)) return "no redirects, substitutions or `..` in a command";
-  const segments = segmentsOf(plain);
-  if (!segments) return "a quote in the command is never closed";
-  for (const segment of segments) {
-    if (!allow.some((a) => a.test(segment))) return `\`${segment.slice(0, 60)}\` is not a command this agent may run`;
-    for (const token of segment.split(/\s+/)) {
-      if (isAbsolute(token) && !token.startsWith(cwd) && !token.startsWith("/tmp/")) return `${token} is outside the lane`;
+/**
+ * Why a bash command is refused, or undefined when it is allowed. Pure: the tests call it. Only what the shell acts on is
+ * judged; text in quotes or a here-document is the program's (internal/shell.ts). Output may be redirected to a file
+ * only when `writes` is given (a reader changes nothing), and never into a path it lists. A `hint` matching the command
+ * is added to its refusal.
+ */
+export const refuseBash = (command: string, cwd: string, allow: readonly RegExp[], writes?: { readonly deny: readonly RegExp[] }, hints: Policy["hints"] = []): string | undefined => {
+  const commands = commandsOf(command);
+  if (!commands) return "a quote or a here-document in the command is never closed";
+  for (const c of commands) {
+    if (c.forbidden) return c.forbidden;
+    const line = c.words.join(" ");
+    if (!allow.some((a) => a.test(line))) {
+      const hint = hints.find(([when]) => when.test(line))?.[1];
+      return `\`${line.slice(0, 60)}\` is not a command this agent may run${hint ? `: ${hint}` : ""}`;
+    }
+    for (const w of c.words) if (w.startsWith("/") || w.startsWith("..")) { const why = refuseNamed(w, cwd); if (why) return why; }
+    for (const target of c.redirects) {
+      if (target === "/dev/null") continue;
+      const why = refuseNamed(target, cwd); if (why) return why;
+      if (!writes) return "this agent only reads: it may not send output to a file";
+      if (!target.startsWith("/tmp")) {
+        const rel = relative(cwd, resolve(cwd, target));
+        if (writes.deny.some((d) => d.test(rel))) return `${rel} may not be written`;
+      }
     }
   }
   return undefined;
@@ -63,7 +73,7 @@ export const confine = (profile: Profile, policy: Policy): Extension =>
         if (!cwd) return { block: "this agent has no directory" };
         const args = call.arguments as { path?: string; command?: string };
         const why = FILE_TOOLS.has(call.name) ? refusePath(String(args.path ?? "."), cwd, call.name !== "read", policy.denyWrite)
-          : call.name === "bash" ? refuseBash(String(args.command ?? ""), cwd, policy.bash[profile])
+          : call.name === "bash" ? refuseBash(String(args.command ?? ""), cwd, policy.bash[profile], profile === "write" ? { deny: policy.denyWrite } : undefined, policy.hints)
           : policy.tools?.includes(call.name) ? undefined
           : `the tool ${call.name} is not available`;
         return why ? { block: `Refused by the loop's policy: ${why}` } : undefined;
