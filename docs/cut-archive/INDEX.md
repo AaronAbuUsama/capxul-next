@@ -7,7 +7,7 @@ Capxul-native records leave the built book; nothing is deleted, it is moved with
 Aaron or on a call are parked under `docs/cut-archive/parked/`. Moved files keep their imports as they were, so those point at the
 folder the file was written in (as `docs/as-is/archive/` does) and are outside every typecheck.
 
-839 records have left the built book: 457 reached, 129 archive, 27 dropped, 226 parked.
+852 records have left the built book: 457 reached, 129 archive, 27 dropped, 239 parked.
 
 | Where | Records | Of which |
 |---|---|---|
@@ -20,6 +20,7 @@ folder the file was written in (as `docs/as-is/archive/` does) and are outside e
 | `docs/cut-archive/documents/` | 8 | 2 flow, 2 operation, 1 rpc, 3 decision |
 | `docs/cut-archive/parked/equity/` | 173 | 7 table, 7 event, 7 machine, 39 rpc, 26 flow, 38 operation, 7 workflow, 2 journey, 8 contract, 1 concept, 31 decision |
 | `docs/cut-archive/parked/fde-hosted/` | 35 | 4 table, 6 workflow, 2 event, 2 machine, 7 rpc, 2 flow, 7 operation, 2 procedure, 3 decision |
+| `docs/cut-archive/parked/individuals/` | 13 | 6 operation, 1 workflow, 6 rpc |
 
 ## projects (127)
 
@@ -904,3 +905,21 @@ folder the file was written in (as `docs/as-is/archive/` does) and are outside e
 | workflow | `organizations.fde.host` | parked | Parked: GROUNDING makes the FDE an upsell, aaron.fde-hosted a hosted agent. Aaron settles it (cut.fde-parked). | parked, not replaced | `parked/fde-hosted/organizations/processes.ts` |
 | procedure | `organizations.extend-fde-hosting` | parked | Parked: GROUNDING makes the FDE an upsell, aaron.fde-hosted a hosted agent. Aaron settles it (cut.fde-parked). | parked, not replaced | `parked/fde-hosted/organizations/procedures.ts` |
 | procedure | `organizations.return-fde-hosting` | parked | Parked: GROUNDING makes the FDE an upsell, aaron.fde-hosted a hosted agent. Aaron settles it (cut.fde-parked). | parked, not replaced | `parked/fde-hosted/organizations/procedures.ts` |
+
+## parked/individuals (13)
+
+| Kind | Id | Verdict | Reason | Carried or replaced by | Archived to |
+|---|---|---|---|---|---|
+| operation | `referral.invite` | parked | Beta growth mechanics. Nothing in GROUNDING or START-HERE rules them in or out (question 6). | parked until individuals are settled (cut.individuals-parked) | `parked/individuals/accounts/operations.ts` |
+| operation | `referral.list` | parked | Beta growth mechanics. Nothing in GROUNDING or START-HERE rules them in or out (question 6). | parked until individuals are settled (cut.individuals-parked) | `parked/individuals/accounts/operations.ts` |
+| operation | `referral.show` | parked | Beta growth mechanics. Nothing in GROUNDING or START-HERE rules them in or out (question 6). | parked until individuals are settled (cut.individuals-parked) | `parked/individuals/accounts/operations.ts` |
+| operation | `waitlist.invites.grant` | parked | Beta growth mechanics. Nothing in GROUNDING or START-HERE rules them in or out (question 6). | parked until individuals are settled (cut.individuals-parked) | `parked/individuals/accounts/operations.ts` |
+| operation | `waitlist.join` | parked | Beta growth mechanics. Nothing in GROUNDING or START-HERE rules them in or out (question 6). | parked until individuals are settled (cut.individuals-parked) | `parked/individuals/accounts/operations.ts` |
+| operation | `waitlist.status` | parked | Beta growth mechanics. Nothing in GROUNDING or START-HERE rules them in or out (question 6). | parked until individuals are settled (cut.individuals-parked) | `parked/individuals/accounts/operations.ts` |
+| rpc | `accounts.admission.join` | parked | Parked: companies only for now (cut.individuals-parked). The personal account and Safe stay. | parked, not replaced | `parked/individuals/accounts/admission.ts` |
+| rpc | `accounts.admission.status` | parked | Parked: companies only for now (cut.individuals-parked). The personal account and Safe stay. | parked, not replaced | `parked/individuals/accounts/admission.ts` |
+| rpc | `accounts.referrals.grant-invites` | parked | Parked: companies only for now (cut.individuals-parked). The personal account and Safe stay. | parked, not replaced | `parked/individuals/accounts/referrals.ts` |
+| rpc | `accounts.referrals.invite` | parked | Parked: companies only for now (cut.individuals-parked). The personal account and Safe stay. | parked, not replaced | `parked/individuals/accounts/referrals.ts` |
+| rpc | `accounts.referrals.list` | parked | Parked: companies only for now (cut.individuals-parked). The personal account and Safe stay. | parked, not replaced | `parked/individuals/accounts/referrals.ts` |
+| rpc | `accounts.referrals.show` | parked | Parked: companies only for now (cut.individuals-parked). The personal account and Safe stay. | parked, not replaced | `parked/individuals/accounts/referrals.ts` |
+| workflow | `accounts.referrals.qualify` | parked | Parked: companies only for now (cut.individuals-parked). The personal account and Safe stay. | parked, not replaced | `parked/individuals/accounts/processes.ts` |

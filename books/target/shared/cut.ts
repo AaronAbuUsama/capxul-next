@@ -79,6 +79,12 @@ export const CUT = {
   "vote.cast": { fate: "parked", decision: "cut.equity", carriedBy: "nothing until Aaron settles equity (cut.equity-parked)" },
   "vote.delegate": { fate: "parked", decision: "cut.equity", carriedBy: "nothing until Aaron settles equity (cut.equity-parked)" },
   "vote.list": { fate: "parked", decision: "cut.equity", carriedBy: "nothing until Aaron settles equity (cut.equity-parked)" },
+  "referral.invite": { fate: "parked", decision: "cut.individuals", carriedBy: "parked until individuals are settled (cut.individuals-parked)" },
+  "referral.list": { fate: "parked", decision: "cut.individuals", carriedBy: "parked until individuals are settled (cut.individuals-parked)" },
+  "referral.show": { fate: "parked", decision: "cut.individuals", carriedBy: "parked until individuals are settled (cut.individuals-parked)" },
+  "waitlist.invites.grant": { fate: "parked", decision: "cut.individuals", carriedBy: "parked until individuals are settled (cut.individuals-parked)" },
+  "waitlist.join": { fate: "parked", decision: "cut.individuals", carriedBy: "parked until individuals are settled (cut.individuals-parked)" },
+  "waitlist.status": { fate: "parked", decision: "cut.individuals", carriedBy: "parked until individuals are settled (cut.individuals-parked)" },
   // <cut-entries> one line per frozen operation that left the built book, added by the commit that moved it
 } as const satisfies Readonly<Record<string, Cut>>;
 

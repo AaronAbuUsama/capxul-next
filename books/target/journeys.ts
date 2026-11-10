@@ -363,10 +363,6 @@ export const journey_refer_someone = defineJourney({
     "records later as the referral's `qualify`. The invitation attributes the referral (and admits the friend); granting " +
     "invites changes a code row, not a state machine, so its own success proves it.",
   steps: [
-    step(accounts.operation_referral_show, "person", "success"),
-    step(accounts.operation_referral_invite, "person", event_referral_transitioned),
-    step(accounts.operation_referral_list, "person", "success"),
-    step(accounts.operation_waitlist_invites_grant, "operator", "success"),
   ],
   was: [`${OLD}/refer_someone.yaml (no chapters)`, `${CATALOG}:97`, `${CONTRACTS}/refer-someone-contract.ts`],
 });
@@ -492,8 +488,6 @@ export const decision_journeys_steps = defineDecision({
     // get_paid
     requests.operation_request_list,
     // get_started
-    accounts.operation_waitlist_join,
-    accounts.operation_waitlist_status,
     access.operation_auth_list,
     access.operation_auth_switch,
     access.operation_use_personal,

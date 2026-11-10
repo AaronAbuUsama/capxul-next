@@ -8,7 +8,7 @@ import { defineDecision } from "../../../packages/book/src/index.ts";
 import { contract_companies_house_claimer, contract_erc20, contract_escrow, integration_service_signer } from "../shared/external.ts";
 import { concept_accounts, concept_organizations, concept_payments } from "../shared/foundation.ts";
 import { error_PROFILE_NOT_FOUND, error_SMART_ACCOUNT_MISSING, error_WRONG_ENVIRONMENT } from "../shared/vocabulary.ts";
-import { rpc_accounts_admission_admit, rpc_accounts_admission_join, rpc_accounts_admission_status } from "./admission.ts";
+import { rpc_accounts_admission_admit,  } from "./admission.ts";
 import {
   event_personal_safe_transitioned,
   event_referral_transitioned,
@@ -30,13 +30,7 @@ import {
 import { rpc_accounts_grants_fund } from "./grants.ts";
 import * as ops from "./operations.ts";
 import { procedure_accounts_admit } from "./procedures.ts";
-import { workflow_accounts_referrals_qualify, workflow_accounts_setup_personal_safe } from "./processes.ts";
-import {
-  rpc_accounts_referrals_grant_invites,
-  rpc_accounts_referrals_invite,
-  rpc_accounts_referrals_list,
-  rpc_accounts_referrals_show,
-} from "./referrals.ts";
+import { workflow_accounts_setup_personal_safe } from "./processes.ts";
 import { rpc_accounts_setup_check, rpc_accounts_setup_collect, rpc_accounts_setup_lifecycle, rpc_accounts_setup_start } from "./setup.ts";
 
 const by = (evidence: string) => `Claude, accounts design, 8 November 2026; evidence: ${evidence}`;
@@ -46,12 +40,6 @@ const ALL_OPERATIONS = [
   ops.operation_account_show,
   ops.operation_auth_login,
   ops.operation_auth_verify,
-  ops.operation_referral_invite,
-  ops.operation_referral_list,
-  ops.operation_referral_show,
-  ops.operation_waitlist_invites_grant,
-  ops.operation_waitlist_join,
-  ops.operation_waitlist_status,
   ops.operation_dev_fund,
 ];
 
@@ -112,9 +100,6 @@ export const decision_accounts_mailbox_tenancy = defineDecision({
     table_referral_codes,
     table_referrals,
     table_personal_safes,
-    rpc_accounts_referrals_invite,
-    rpc_accounts_referrals_list,
-    rpc_accounts_referrals_show,
   ],
 });
 
@@ -310,7 +295,7 @@ export const decision_accounts_qualify_from_chain = defineDecision({
     "setup's code. Its run is one transaction, keyed by the friend's mailbox, so a replayed or reindexed event earns " +
     "nothing twice. The old qualify, scheduled from the claim action, did the same work.",
   source: by("shared decision concepts.accounts; packages/backend/src/access/referrals/operations/qualify.ts:31; CapxulSafeClaimed"),
-  affects: [workflow_accounts_referrals_qualify, machine_referral, contract_companies_house_claimer],
+  affects: [machine_referral, contract_companies_house_claimer],
 });
 
 export const decision_accounts_operator_tools = defineDecision({
@@ -339,10 +324,7 @@ export const decision_accounts_operator_tools = defineDecision({
   source: by("waitlist.invites.grant.yaml (designed synopsis, also); waitlist.status.yaml (acceptance 2); packages/backend/scripts/beta-waitlist.ts"),
   affects: [
     rpc_accounts_admission_admit,
-    rpc_accounts_referrals_grant_invites,
     flow_client_operator_waitlist_admit,
-    ops.operation_waitlist_invites_grant,
-    ops.operation_waitlist_status,
   ],
 });
 
@@ -363,7 +345,7 @@ export const decision_accounts_admission_paths = defineDecision({
     "it existed for the operator's list, which is dropped. The 'on the list' email followed old profile onboarding; any " +
     "email after a change is notices', from `waitlist_entry_transitioned`.",
   source: by("docs/as-is/archive/access/waitlist.ts (record, request, hold, deliver-on-the-list); P2; system_capxul surfaces"),
-  affects: [table_admissions, machine_waitlist_entry, rpc_accounts_admission_join, rpc_accounts_admission_status],
+  affects: [table_admissions, machine_waitlist_entry, ],
 });
 
 export const decision_accounts_door = defineDecision({
@@ -509,7 +491,7 @@ export const decision_accounts_no_acceptance = defineDecision({
     "An acceptance line is frozen surface (P1), and a line the design wrote would be a new public claim, which is Aaron's to " +
     "accept (equity.acceptance, devnet.no-acceptance). Both are operator and test tooling, and their refusals and returns are checked.",
   source: `Claude, handoff to the build, 8 November 2026; evidence: the no-acceptance gaps of the built target book`,
-  affects: [concept_accounts, ops.operation_dev_fund, ops.operation_waitlist_invites_grant],
+  affects: [concept_accounts, ops.operation_dev_fund],
 });
 
 // ── money waiting admits its recipient (aaron.money-waiting-reminders, 8 November 2026) ─────
@@ -564,8 +546,6 @@ export const decision_accounts_money_waiting_admits = defineDecision({
     table_admissions,
     machine_waitlist_entry,
     event_waitlist_entry_transitioned,
-    ops.operation_waitlist_status,
-    rpc_accounts_admission_status,
     concept_payments,
   ],
 });

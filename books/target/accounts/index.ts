@@ -4,7 +4,6 @@
 import * as data from "./data.ts";
 import * as procedures from "./procedures.ts";
 import * as admission from "./admission.ts";
-import * as referrals from "./referrals.ts";
 import * as setup from "./setup.ts";
 import * as grants from "./grants.ts";
 import * as processes from "./processes.ts";
@@ -12,4 +11,4 @@ import * as flows from "./flows.ts";
 import * as operations from "./operations.ts";
 import * as decisions from "./decisions.ts";
 
-export const modules = [data, procedures, admission, referrals, setup, grants, processes, flows, operations, decisions] as const;
+export const modules = [data, procedures, admission, setup, grants, processes, flows, operations, decisions] as const;

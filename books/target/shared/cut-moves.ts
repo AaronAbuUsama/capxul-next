@@ -206,3 +206,23 @@ export const decision_cut_fde_hosted = defineDecision({
   source: BY,
   affects: [f.system_capxul, decision_cut_principle, decision_cut_fde_parked],
 });
+
+export const decision_cut_individuals = defineDecision({
+  id: "cut.individuals",
+  title: "referrals and the waitlist are parked: companies only for now",
+  question: "What happens to referrals, the waitlist and the personal book in the built book?",
+  options: [
+      {
+          "label": "moved",
+          "text": "Referrals and the waitlist are parked: companies only for now. Moved to docs/cut-archive/parked/individuals/ with their text intact: 6 operations, 1 workflow, 6 rpcs. Listed in docs/cut-archive/INDEX.md with a reason and what carries each. Parked: companies only for now (cut.individuals-parked). The personal account and Safe stay."
+      },
+      {
+          "label": "frozen-1",
+          "text": "Frozen operations classified by the cut (tools/check-frozen.ts): referral.invite (parked): parked until individuals are settled (cut.individuals-parked). referral.list (parked): parked until individuals are settled (cut.individuals-parked). referral.show (parked): parked until individuals are settled (cut.individuals-parked). waitlist.invites.grant (parked): parked until individuals are settled (cut.individuals-parked). waitlist.join (parked): parked until individuals are settled (cut.individuals-parked). waitlist.status (parked): parked until individuals are settled (cut.individuals-parked)."
+      }
+  ],
+  chosen: "moved",
+  why: "The cut's rule (cut.principle): Frappe owns what it owns and the door reaches it; nothing is deleted. The call is parked, not made: see the cut decision that parks it.",
+  source: BY,
+  affects: [f.system_capxul, decision_cut_principle, decision_cut_individuals_parked],
+});
