@@ -1162,6 +1162,11 @@
       "date": "2026-11-10",
       "by": "coordinator",
       "text": "Handoff, 10 November: the coordinator session of 9 and 10 November is wrapped up at Aaron's request; a new coordinator takes over. Everything open, the merge routine, how to run the loop, the processes to restart and what was left behind are in docs/mission/coordinator-handoff.md. Open with Aaron: m1-entry-docs (his yes or no, in Questions). Held for the coordinator: m1-old-decisions (a ready run that rewrites Aaron's rulings; split it before merging)."
+    },
+    {
+      "date": "2026-11-10",
+      "by": "coordinator",
+      "text": "Post-mortem of the loop's day, 10 November: docs/mission/post-mortem-2026-11-10.md. 23 runs for 9 finished tasks; one tool call in five refused by the loop's own policy; agent instructions written for swarmD and pointing at a folder that does not exist; 100 model failures, 13 of them the local proxy's one account running out at three agents. Everything is stopped on Aaron's instruction: no run, no host, no portal, and the working sessions' turns were stopped. No batch is started until the instructions and the policy are fixed and one run has been watched."
     }
   ]
 }

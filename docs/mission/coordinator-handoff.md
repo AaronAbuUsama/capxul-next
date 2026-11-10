@@ -4,6 +4,13 @@ Written by the coordinator session that ran 9 and 10 November, for the coordinat
 clean handoff: everything open is listed here with where it stands and what it needs. The plan is still the source of
 truth; this page is the part the plan does not hold.
 
+**Read `docs/mission/post-mortem-2026-11-10.md` before starting a loop run.** One tool call in five was refused by the
+loop's own policy, the agents' instructions are for a system that no longer exists, and the one account behind the
+local proxy failed at three agents. Do not start a batch until the first three changes in that page are made.
+
+**Everything is stopped**, on Aaron's instruction at the end of 10 November: no loop run, no host, no portal, and the
+turns of the two working sessions (run-observability, agents-rollup) were stopped. Start nothing until he says so.
+
 ## Start
 
 ```bash
@@ -64,9 +71,9 @@ LOOP_MAX_AGENTS=3 pnpm loop run <task id> --timeout-min 60     # one run; severa
 pnpm loop show <run id> --json                                 # what happened inside
 ```
 
-- Gateway: the local proxy is the default. Three agents at once ran clean; seven through the old LiteLLM gateway did
-  not (its container became unreachable). The ceiling of the local proxy is not measured; it has one OpenAI account,
-  shared with Aaron's own tools.
+- Gateway: the local proxy is the default. It did **not** run clean at three agents: two of four runs had 8 and 6
+  failures, "no auth available", because its one OpenAI account was cooling down. Seven agents through the old LiteLLM
+  gateway made its container unreachable. The account is shared with Aaron's own tools.
 - Models: any model the gateway lists (Aaron, 10 November). `gpt-6.1-sol` builds and `gpt-6.1-terra` reviews by default.
 - `pnpm loop work --task …` resumes a task's stopped or failed run. If that run's lane was cleaned, it fails; use
   `pnpm loop run <task>` for a fresh run.
