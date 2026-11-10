@@ -24,8 +24,8 @@ export { GATES } from "./internal/gates.ts";
 export { POLICY } from "./internal/config.ts";
 
 export const DEFAULTS: Opts = { script: "pair", sandbox: "none", rounds: 3, budgetUsd: 5, timeoutMin: 30 };
-/** Where the runs are: `runs/` of the checkout, or the folder `LOOP_RUNS` names (the portal can read another checkout's). */
-const runsDir = (ctx: Ctx): string => ctx.env.LOOP_RUNS ?? join(ctx.root, "runs");
+/** Where run folders go: working data, git-ignored, out of the top level; or the folder `LOOP_RUNS` names (the portal can read another checkout's). */
+const runsDir = (ctx: Ctx): string => ctx.env.LOOP_RUNS ?? join(ctx.root, "var", "runs");
 const baseOf = (ctx: Ctx): string => ctx.env.LOOP_BASE ?? "integration/build";
 const CHECKER_ROLES = new Set(["reviewer", "adversary", "diagnoser"]);
 
@@ -208,7 +208,7 @@ export const work = (ctx: Ctx, o: { concurrency: number; tasks: string[]; opts: 
   });
 };
 
-const dirtyOutsidePlan = (cwd: string): string[] => git(cwd, "status", "--porcelain").split("\n").filter((l) => l !== "" && !/^.. (plan\/|runs\/)/.test(l));
+const dirtyOutsidePlan = (cwd: string): string[] => git(cwd, "status", "--porcelain").split("\n").filter((l) => l !== "" && !/^.. (plan\/|var\/)/.test(l));
 
 /**
  * Merges a run that is "ready": brings the current base into the lane, runs the gates again there, and only if every one
@@ -219,7 +219,7 @@ export const merge = async (ctx: Ctx, id: string): Promise<string[]> => {
   if (info.status !== "ready" || !wt) return [`refused: run ${id} is ${info.status}, not ready to merge`];
   if (git(ctx.root, "rev-parse", "--abbrev-ref", "HEAD") !== wt.base) return [`refused: this checkout is not on ${wt.base}`];
   const dirty = dirtyOutsidePlan(ctx.root);
-  if (dirty.length) return [`refused: this checkout has uncommitted changes outside plan/ and runs/: ${dirty.slice(0, 3).join("; ")}`];
+  if (dirty.length) return [`refused: this checkout has uncommitted changes outside plan/ and var/: ${dirty.slice(0, 3).join("; ")}`];
   if (!catchUp(wt)) return [`refused: ${wt.branch} conflicts with the current ${wt.base}; resolve it in ${wt.dir}`];
   const task = info.extra.task as Task;
   const box = await startSandbox(ctx, opts.sandbox, wt, id);

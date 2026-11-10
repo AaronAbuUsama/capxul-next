@@ -2,6 +2,8 @@
 
 **A grounding document for internal alignment. Written 9 November 2026 from Aaron's words, restated and steelmanned (second version).** If a plan, a ticket or a design drifts from this, this document wins until the team agrees to change it.
 
+> Since this was written: the first jurisdiction is open, not the United Kingdom (ruling `aaron.jurisdiction-open`, 10 November 2026). Where the text says "UK payroll", read it as an example of the depth needed, not the first target.
+
 ## The honest starting point
 
 What we built was not working. The technology is not the problem: wallets, Safes, on-chain authority, Bridge and agents all work.

@@ -1,12 +1,14 @@
 # CLAUDE.md
 
-> **9 November 2026: read [START-HERE.md](START-HERE.md) first.** The direction changed: capxul-next becomes the rebuild of Capxul Core, Frappe-native, coordinated through the ledger portal with Aaron in the loop (no swarmD). Where this file disagrees with START-HERE.md, START-HERE.md wins.
-
+> **The map of this repository is [README.md](README.md).** What is current is the plan (`pnpm plan show`) and the
+> rulings in the book. [START-HERE.md](START-HERE.md) is the owner's direction of 9 November 2026, kept as a record:
+> capxul-next is the rebuild of Capxul Core, Frappe-native, coordinated through the plan, the portal and the loop (no
+> swarmD). Where an older document disagrees with the plan or a ruling, the plan and the ruling win.
 
 This repository holds the Capxul rebuild: a typed design book (`books/target`, `packages/book`) and,
 from the build session on, the product code it describes.
 
-- **Start here.** Read `HANDOFF.md`. To build, the goal is `docs/mission/initializer.md`. Read
+- **Start here.** Run `pnpm plan show`: it gives the goal, the critical path and the task you are on. Read
   `docs/design-book.md` before you add or change a record.
 - **The book changes first.** When code needs to differ from the book:
   1. change the record and add a decision record;
@@ -29,7 +31,13 @@ from the build session on, the product code it describes.
   node --experimental-strip-types packages/book/src/main.ts books/target/index.ts /tmp/target   # 0 problems
   node --experimental-strip-types tools/check-frozen.ts                                           # 0 breaches: every behaviour kept
   pnpm contracts:check-book                                                                       # 0 undeclared differences: the contract records match the code
+  pnpm layout                                                                                     # the top level, file sizes and package READMEs (also in pnpm test)
   ```
+
+- **Where things go.** The top level is closed: `tools/check-layout.ts` holds the list of what may be there, with a
+  reason each. Dead material moves to `archive/` at its old path (`archive/README.md`); working data goes under the
+  git-ignored `var/`; a new script belongs in the package it serves, not in `tools/`. `docs/repository-map.md` says
+  what every entry is.
 
 - **The plan.** `plan/plan.json` is the coordinator's plan, shown at `/plan/` in the portal (decision `portal.plan-page`).
   Every session starts with `pnpm plan show` and ends by updating the plan. Agents report through `pnpm plan task …` (`start <id>
@@ -43,16 +51,15 @@ from the build session on, the product code it describes.
   - `src/<concept>/` mirrors `books/target/<concept>/`;
   - another concept's code is imported only through its `door.ts`;
   - lanes `lane/<concept>` merge into `integration/build`.
-- **Tracking work.** Until the swarmD ledger runs, track work on the scoreboard and in
-  `docs/mission/progress.md`: one line per finished lane, with its evals and its commit. This old
-  Capxul repository's Linear workflow and `docs/rules` do not apply here.
+- **Tracking work.** Work is tracked in the plan (above) and proven on the scoreboard (below). This old Capxul
+  repository's Linear workflow and `docs/rules` do not apply here.
 - **Done means evals pass in a run.** A task is done when its evals pass in a run, not when an agent
   says so. `pnpm evals -- <eval ids | all | --journey id | --milestone id>` runs the checks bound to
   evals (`evals/bindings/`) and is the only thing that writes `status/status.json`; never edit that
   file or an eval's verdict by hand. A claim with no check is `not_run` until a check proves all of
   it (`pnpm evals -- gaps` lists what has none). `docs/design-book.md`, "Evals run", has the rules.
-- **Decisions.** Every judgment is a decision record. Bring Aaron only what the goal prompt lists
-  under "Bring to Aaron".
+- **Decisions.** Every judgment is a decision record. Bring Aaron only what is truly his: a question goes to him
+  as a blocked plan task, and his answer arrives through `pnpm plan answers`.
 - **Old system.** `Xelmar-tech/infrastructure` (branch `integration/factory`) is a reference for
   behaviour, not a baseline. Read its code for edge cases (contract reverts, money paths,
   permissions). Never port it, and never run the evals against it. The as-is book is closed and
