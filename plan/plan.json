@@ -1025,12 +1025,13 @@
       "title": "The engine: unique eval ids, and gaps that stand for a recorded reason",
       "why": "Two loop runs on 10 November stopped at the engine. m1-old-decisions blocked because giving every eval a unique id means implementing the recorded rule system.eval-identity in the engine, which a blueprint task may not touch. And the three gap tasks could only write reasons as decisions: the build still counts those gaps as open, so exit line g2 (every gap closed or with a recorded reason) cannot be read off the build.",
       "milestone": "m1",
-      "state": "todo",
+      "state": "doing",
       "needs": [],
       "records": [],
       "evidence": [],
       "created": "2026-11-10",
-      "updated": "2026-11-10"
+      "updated": "2026-11-10",
+      "thread": "m1-engine-rules-11101629"
     }
   ],
   "path": {
