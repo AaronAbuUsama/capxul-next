@@ -368,12 +368,13 @@
       "title": "Resolve the old dev time and dev snapshot commands against the world commands",
       "why": "Two ways to move time and take snapshots would contradict each other.",
       "milestone": "m1",
-      "state": "todo",
+      "state": "doing",
       "needs": [],
       "records": [],
       "evidence": [],
       "created": "2026-11-10",
-      "updated": "2026-11-10"
+      "updated": "2026-11-10",
+      "thread": "m1-dev-commands-11101246-2"
     },
     {
       "id": "m1-flaky-portal-test",
