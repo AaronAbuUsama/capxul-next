@@ -1981,6 +1981,8 @@ export const decision_dependencies_of_devnet = dependencies(f.concept_devnet, {
   approvals: "`dev approve` signs an approval with the dev signer.",
   organizations: "`dev gates set` for an Organization needs its membership.",
   notices: "`dev mail notices` reads notices' delivery records (operations.dev-mail-notices-in-devnet).",
+  plugs: "a world's chain events reach every company's site through the plugs' outbox, on the world's one clock.",
+  sites: "a world holds each company's site, which follows the world's clock and is saved and restored with it (devnet.site-follows-world).",
 });
 
 // ── adversarial review of the architecture (8 November 2026) ────────────────────────────────

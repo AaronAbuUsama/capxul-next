@@ -202,29 +202,38 @@ export const component_devnet = defineComponent({
 
 export const component_frappe_app = defineComponent({
   id: "frappe-app",
-  title: "Capxul app for Frappe",
+  title: "The Capxul app that lives on every hosted Frappe site",
   about:
-    "The Frappe app Capxul publishes and installs on the site it hosts for every Organization (aaron.frappe-native, " +
-    "aaron.one-door), beside ERPNext, Frappe HR and Frappe CRM: the site's half of the `frappe-head` integration, with " +
-    "no fork. It is not for an optional connected head; nothing is connected from outside. This text was written for " +
-    "that head and stage 3 of the cut rewrites it as the plugs and the door (cut.plug-placeholders). Its Custom Fields (organizations.frappe-app-fields): `capxul_id` and `capxul_version` on every synced " +
-    "DocType; `capxul_party` on Contact, CRM Organization, Customer, Supplier, Employee and a member's User, by which it " +
-    "finds or creates the document Capxul names; `capxul_hidden` on Contact and CRM Organization; and each app " +
-    "concept's own. It makes Capxul's fields read-only (a `validate` hook), writes only the fields and rows Capxul " +
-    "sends, makes the link records a document names first, and copies a User's `capxul_party` onto its Contact. It " +
-    "appends a change row in the writing transaction from each synced document's `on_change`, and before answering " +
-    "`listChanges` one for each document whose `modified` is later than its last row's (catching " +
-    "`frappe.db.set_value`); `listChanges` covers every synced DocType, at first with all the site holds. It " +
-    "answers the whitelisted methods Capxul calls and rings Capxul's doorbell (`organizations.heads.ring`) " +
-    "and holds no Capxul key. The document family's `docRead` and `docWrite` " +
-    "(organizations.doc-family) run each call as the matched User (`frappe.set_user`), once that User's Capxul-held " +
-    "roles match those the member's hats give at the call; they refuse native-module, money (ledger hooks, " +
-    "repost_allowed_doctypes, MONEY_MODULES, LEDGER_UNHOOKED) and child-table DocTypes with a reason, refuse a direct " +
-    "submit or cancel under an active Workflow, tell a Workflow's refusals apart, and keep applied call ids a day. In " +
-    "a world it follows the world's clock (devnet.head-follows-world) and keeps the site's mail in the world.",
-  runtime: "python (Frappe Framework v15)",
+    "A custom Frappe app (no fork of Frappe, ERPNext, Frappe HR, Frappe CRM or the WhatsApp app: every join is a hook) that " +
+    "Capxul installs on the site it hosts for each Organization (aaron.frappe-native, aaron.one-door). It is where the plugs " +
+    "meet Frappe. Sign-in: a Social Login Key points at Capxul's provider, sign-up is denied, and a User exists only because a " +
+    "hat created it. Roles follow hats: hat events create and change Users and their roles, and a hand edit of a role or a " +
+    "feature is refused for every user. The signer: a Payment Entry from the Safe's bank account is held until the chain " +
+    "confirms; ledger hooks refuse any other credit to the Safe. Books from the chain: `capxul.api.chain_event` applies the " +
+    "ordered events, once each. Feature switches: Capxul Feature rows and a request guard that answers 403 for a part that " +
+    "is off. The names-only rename: Capxul's translation rows for en-GB and a title hook; nothing reports usage outward. The " +
+    "door's whitelisted methods run a call as the calling person. Its hat-to-role map ships inside the app and is not editable " +
+    "on a site. Proven on a real site by spikes/skeleton (FINDINGS: Frappe half, CRM and feature switches).",
+  runtime: "python (Frappe Framework v16)",
   exposes: ["http"],
   dependsOn: [],
+});
+
+/** The service that creates, changes, saves and restores the sites on a bench. */
+export const component_site_service = defineComponent({
+  id: "site-service",
+  title: "The site service: creates and runs the Frappe sites Capxul hosts",
+  about:
+    "Runs beside the backend on the machine that holds the bench (docs/mission/cloud.md): it creates a company's site from the " +
+    "images the bench already holds (a new site took 143 s in the spike, 7 s to repeat for the same slug), switches a feature, " +
+    "reads a site, drops one, sets and advances a world's clock on a site, and saves and restores a site's database and files for " +
+    "a snapshot. The backend asks it over HTTP and never touches the bench. It is not Frappe's Press: the spike's script is what " +
+    "it runs, wrapped. One bench serves many sites; Frappe picks the site from the hostname, so one catch-all route reaches every " +
+    "company (an assumption, docs/mission/cloud.md: Not determined). Every app Capxul supports is installed on every site, and a " +
+    "feature switch only controls what is reachable (sites.features-reachability).",
+  runtime: "node (and the Frappe bench's bench CLI)",
+  exposes: ["http"],
+  dependsOn: [component_backend],
 });
 
 // ── concepts: the target map (each after everything it depends on) ─────────────────────────
@@ -574,6 +583,38 @@ export const concept_notices = defineConcept({
   was: [`${OLD}/operator/README.md:3`],
 });
 
+export const concept_plugs = defineConcept({
+  id: "plugs",
+  title: "Plugs",
+  about:
+    "The joins between Capxul Core and each company's Frappe site. Sign-in: Capxul is the OAuth and OpenID provider each site " +
+    "signs in through, and only a person a hat created can sign in. The signer: a payment a person starts in Frappe is held " +
+    "until the chain confirms it (prepare, the CANON v1 document hash, waiting, sent, failed, hash mismatch, reversal). Roles " +
+    "follow hats: the map from a hat to Frappe roles, the grants it makes, the projection, the drift check, and no hand edits. " +
+    "Books from the chain: the ordered outbox of chain events a site applies, its delivery, and the event that can never be " +
+    "applied. It owns no money itself: payments still moves it, budgets still limits it, and Frappe's books only follow. Written " +
+    "from the spike in spikes/skeleton (FINDINGS) in the cut's stage 3; new in the rebuild.",
+  component: B,
+  dependsOn: [
+    concept_access, concept_parties, concept_indexing, concept_approvals, concept_organizations, concept_budgets, concept_books,
+    concept_payments,
+  ],
+});
+
+export const concept_sites = defineConcept({
+  id: "sites",
+  title: "Sites",
+  about:
+    "Each Organization's hosted Frappe site (ERPNext, Frappe HR, Frappe CRM and the WhatsApp app, renamed to Capxul): its life " +
+    "(creating, ready, suspended, archived), its feature switches (every supported app is installed on every site; a switch " +
+    "controls only what is reachable), and the document door, which is how the CLI and SDK reach Frappe's documents, actions " +
+    "and reports as the calling person (aaron.one-door). A site is created because its Organization was set up, never by " +
+    "connecting one from outside. It replaces organizations' connected head: the head's tables, process and commands are in " +
+    "docs/cut-archive. It does not hold Frappe's data; Frappe does.",
+  component: B,
+  dependsOn: [concept_access, concept_indexing, concept_organizations, concept_plugs],
+});
+
 export const concept_devnet = defineConcept({
   id: "devnet",
   title: "Devnet",
@@ -587,7 +628,7 @@ export const concept_devnet = defineConcept({
     "notices; its proof identities, fixtures and receipt hold give way to worlds built by running operations and saved " +
     "as snapshots, and to the integrations' fault switches.",
   component: B,
-  dependsOn: [concept_access, concept_approvals, concept_organizations, concept_notices],
+  dependsOn: [concept_access, concept_approvals, concept_organizations, concept_notices, concept_plugs, concept_sites],
   was: [`${OLD}/operator/README.md:3`],
 });
 
@@ -595,7 +636,7 @@ export const concept_devnet = defineConcept({
 export const CONCEPTS: readonly Concept[] = [
   concept_access, concept_media, concept_parties, concept_indexing, concept_approvals, concept_accounts, concept_organizations,
   concept_board, concept_agents, concept_budgets, concept_books, concept_documents, concept_contacts, concept_payments,
-  concept_banking, concept_requests, concept_applications, concept_activity, concept_notices,
+  concept_banking, concept_requests, concept_applications, concept_activity, concept_notices, concept_plugs, concept_sites,
   concept_devnet,
 ];
 

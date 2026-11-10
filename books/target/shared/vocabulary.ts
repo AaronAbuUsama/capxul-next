@@ -581,3 +581,27 @@ export const error_ENVIRONMENT_NOT_CHOSEN = defineError({
   exit: 2,
   was: [`${CLI}:41`],
 });
+
+// ── the plugs between Capxul Core and a hosted Frappe site (stage 3 of the cut) ──────────────
+
+export const error_DOCUMENT_HASH_MISMATCH = defineError({
+  id: "DOCUMENT_HASH_MISMATCH",
+  title: "The document changed after the payment was prepared",
+  class: "state",
+  actor: "person",
+  message: "The document's hash is not the one the payment was prepared for. Prepare the payment again.",
+  retryable: false,
+  exit: 2,
+  was: ["spikes/skeleton/FINDINGS.md (Canonical JSON for document_hash: the Mismatch state)"],
+});
+
+export const error_EVENT_UNAPPLIABLE = defineError({
+  id: "EVENT_UNAPPLIABLE",
+  title: "A chain event the site cannot apply",
+  class: "state",
+  actor: "operator",
+  message: "The site refused event {seq} for {org} after its retries, and it is set aside.",
+  retryable: false,
+  exit: 2,
+  was: ["spikes/skeleton/FINDINGS.md (What the design must now decide, 2: the poison event)"],
+});
