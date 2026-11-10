@@ -779,6 +779,18 @@
       "evidence": [],
       "created": "2026-11-10",
       "updated": "2026-11-10"
+    },
+    {
+      "id": "m4-people-signin",
+      "title": "Core: sign-in and signing for people",
+      "why": "Aaron: this belongs to Capxul Core and is on the critical path, though not yet. Agents hold keys and sign with them. People need a way to prove who they are and to approve a transaction, and no person should use a world's screens before it exists.",
+      "milestone": "m4",
+      "state": "todo",
+      "needs": [],
+      "records": [],
+      "evidence": [],
+      "created": "2026-11-10",
+      "updated": "2026-11-10"
     }
   ],
   "path": {
