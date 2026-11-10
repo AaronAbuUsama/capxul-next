@@ -31,10 +31,16 @@ export interface RunSummary {
   readonly tokens: number;
   /** The agent working now, when one is. */
   readonly working: { readonly key: string; readonly role: string } | null;
+  /** Calls the loop's policy refused and model requests that failed, over every agent. */
+  readonly refused: number;
+  readonly failures: number;
+  /** Why the run no longer needs anyone (inspect, `supersededOf`), or null. */
+  readonly superseded: string | null;
 }
 export const summaryOf = (run: RunDetail): RunSummary => {
   const agent = run.agents.find((a) => a.state === "working");
-  return { id: run.id, task: { id: run.task.id, title: run.task.title }, workflow: run.workflow, status: run.status, round: run.round, rounds: run.rounds, startedAt: run.startedAt, endedAt: run.endedAt, tokens: run.tokens, working: agent ? { key: agent.key, role: agent.role } : null };
+  return { id: run.id, task: { id: run.task.id, title: run.task.title }, workflow: run.workflow, status: run.status, round: run.round, rounds: run.rounds, startedAt: run.startedAt, endedAt: run.endedAt, tokens: run.tokens, working: agent ? { key: agent.key, role: agent.role } : null,
+    refused: run.agents.reduce((n, a) => n + a.usage.refused, 0), failures: run.agents.reduce((n, a) => n + a.usage.errors, 0), superseded: run.superseded };
 };
 
 /**

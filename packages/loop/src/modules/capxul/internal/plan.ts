@@ -30,6 +30,14 @@ const derived = (ctx: Ctx): Record<string, Record<string, unknown>> => {
   return Object.fromEntries(all.map((t) => [String(t.key), t]));
 };
 
+/** The plan's closed tasks (done or dropped), read from plan/plan.json without a process: a page asks for it on every load. Empty when the plan cannot be read. */
+export const doneTasks = (ctx: Ctx): ReadonlySet<string> => {
+  try {
+    const p = JSON.parse(readFileSync(join(ctx.root, "plan/plan.json"), "utf8")) as { tasks?: { id?: unknown; state?: unknown }[] };
+    return new Set((p.tasks ?? []).flatMap((t) => ((t.state === "done" || t.state === "dropped") && typeof t.id === "string" ? [t.id] : [])));
+  } catch { return new Set(); }
+};
+
 export const isPlanTask = (ctx: Ctx, id: string): boolean => plan(ctx).tasks.some((t) => t.id === id);
 
 export const loadTask = (ctx: Ctx, id: string): Task => {

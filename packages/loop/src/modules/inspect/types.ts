@@ -39,6 +39,11 @@ export interface RunView {
   readonly turns: number;
   readonly toolCalls: { readonly total: number; readonly byName: Readonly<Record<string, number>> };
   readonly tokens: { readonly in: number; readonly out: number };
+  /** Calls the loop's policy refused, and model requests that failed, over every agent of the run. */
+  readonly refused: number;
+  readonly failures: number;
+  /** Why the run no longer matters, when it does not: a later run of the same task, or the task is done. Null for the newest run of an open task. */
+  readonly superseded: string | null;
   /** The lane's branch, when the run has a lane. */
   readonly branch: string | null;
   /** The newest events last, as many as were asked for. */
@@ -124,6 +129,8 @@ export interface RunDetail {
   readonly agents: readonly AgentSession[];
   /** Everything the run's agents captured, oldest first. A file is fetched from the host at `evidence/<run id>/<file name>`. */
   readonly captures: readonly Capture[];
+  /** As in `RunView`. */
+  readonly superseded: string | null;
 }
 
 /** The longest a summary of one argument, a reason or an event may be, in characters. */

@@ -34,7 +34,18 @@ export const otherWork = [
   { task: "m1-run-observability", title: "See, inspect and steer loop runs from the portal", thread: "run-observability", since: "10 Nov" },
 ];
 
-export const group = (r: Run): "running" | "needs" | "done" => r.status === "running" ? "running" : r.status === "blocked" || r.status === "failed" || r.status === "stopped" || r.status === "dead" ? "needs" : "done";
+/** A run needs a person only while it is the newest run of an open task (the loop's `superseded`). */
+export const group = (r: Run): "running" | "needs" | "done" => r.status === "running" ? "running" : !r.superseded && (r.status === "blocked" || r.status === "failed" || r.status === "stopped" || r.status === "dead") ? "needs" : "done";
+/** What the post-mortem of 10 November could not see at a glance: calls the policy refused, and model requests that failed. */
+export const healthOf = (r: Run): { calls: number; refused: number; failures: number } => ({
+  calls: r.agents.reduce((n, a) => n + Object.values(a.usage.tools).reduce((m, k) => m + k, 0), 0),
+  refused: r.agents.reduce((n, a) => n + a.usage.refused, 0), failures: r.agents.reduce((n, a) => n + a.usage.errors, 0),
+});
+/** One line of a run's health; empty when it is clean. */
+export const healthText = (r: Run): string => {
+  const h = healthOf(r), parts = [h.refused ? `${h.refused} of ${h.calls} calls refused` : "", h.failures ? `${h.failures} model failure${h.failures === 1 ? "" : "s"}` : ""].filter(Boolean);
+  return parts.join(" · ");
+};
 export const statusText: Record<Run["status"], string> = { running: "Running", ready: "Ready to merge", answered: "Answered", blocked: "Blocked", failed: "Failed", stopped: "Stopped", merged: "Merged", dead: "Offline" };
 export const agentOf = (run: Run, key: string): Agent | undefined => run.agents.find((a) => a.key === key || a.key === `${key}.agent`);
 export const workingAgent = (run: Run): Agent | undefined => run.agents.find((a) => a.state === "working");

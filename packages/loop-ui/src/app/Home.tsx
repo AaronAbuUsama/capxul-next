@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from "@/components/ui/empty";
 import { Item, ItemActions, ItemContent, ItemDescription, ItemGroup, ItemMedia, ItemTitle } from "@/components/ui/item";
 import { Dot, RunBadge, toneOf } from "./bits.tsx";
-import { agentTime, doingNow, elapsed, group, otherWork, roleLabel, workingAgent } from "./data.ts";
+import { agentTime, doingNow, elapsed, group, healthText, otherWork, roleLabel, workingAgent } from "./data.ts";
 import { clock, duration, tokens } from "./format.ts";
 import { href } from "./router.ts";
 import { TopBar } from "./TopBar.tsx";
@@ -26,7 +26,8 @@ const RunRow = ({ run }: { run: Run }) => (
     <ItemMedia><Dot tone={toneOf(run.status)} /></ItemMedia>
     <ItemContent className="min-w-0">
       <ItemTitle className="line-clamp-2 w-full">{run.task.title}</ItemTitle>
-      <ItemDescription className="line-clamp-2">{whyOf(run)}</ItemDescription>
+      <ItemDescription className="line-clamp-2">{run.superseded ? `Superseded: ${run.superseded}` : whyOf(run)}</ItemDescription>
+      {healthText(run) && <span className="text-xs text-amber-700 dark:text-amber-500">{healthText(run)}</span>}
       <span className="font-mono text-xs text-muted-foreground">{run.id} · {clock(run.startedAt)} · {duration(elapsed(run))}</span>
     </ItemContent>
     <ItemActions><RunBadge run={run} /></ItemActions>

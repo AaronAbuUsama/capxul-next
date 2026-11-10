@@ -2,7 +2,7 @@
 import { EvidenceStrip } from "./Evidence.tsx";
 import { Badge } from "@/components/ui/badge";
 import { KindIcon, StateIcon } from "./bits.tsx";
-import { doingNow, roleLabel, workingAgent } from "./data.ts";
+import { doingNow, healthText, roleLabel, workingAgent } from "./data.ts";
 import { plural, tokens } from "./format.ts";
 import { FindingCard, HandbackCard } from "./Results.tsx";
 import { href } from "./router.ts";
@@ -32,7 +32,9 @@ export const Overview = ({ run, steps, handoffs }: { run: Run; steps: Step[]; ha
         <div className={head.warn ? "rounded-lg border border-amber-600/30 bg-amber-600/5 p-4" : "rounded-lg border bg-muted/40 p-4"}>
           <h2 className="text-lg font-semibold">{head.title}</h2>
           {head.text && <p className={run.status === "running" ? "mt-1 font-mono text-xs" : "mt-1 text-sm leading-relaxed"}>{head.text}</p>}
+          {run.superseded && <p className="mt-1 text-sm text-muted-foreground">Superseded: {run.superseded}. Nothing here needs you.</p>}
         </div>
+        {healthText(run) && <div className="rounded-lg border border-amber-600/30 bg-amber-600/5 p-3 text-sm">{healthText(run)}. Open an agent's conversation to see why.</div>}
 
         {rounds.length > 0 && (
           <section className="space-y-2">

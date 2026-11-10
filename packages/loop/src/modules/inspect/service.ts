@@ -30,7 +30,20 @@ export interface Look {
   readonly events: number;
   /** Runs git in the repository the runs belong to, for a builder's changes; absent, a detail carries none. */
   readonly git?: (args: readonly string[]) => string;
+  /** The tasks that are done or dropped; a run of one of them is superseded. Absent, only a later run supersedes. */
+  readonly done?: ReadonlySet<string>;
 }
+
+/**
+ * Why a run no longer needs anyone, or null. A run that is going on, or that was merged, is never superseded; any other is
+ * when a later run of the same task exists, or when its task is done. So "needs you" lists only what still does.
+ */
+export const supersededOf = (info: Info, all: readonly Info[], done: ReadonlySet<string> = new Set()): string | null => {
+  if (info.status === "running" || info.status === "merged") return null;
+  const later = all.filter((o) => o.subject === info.subject && o.startedAt > info.startedAt).sort((a, b) => b.startedAt.localeCompare(a.startedAt))[0];
+  if (later) return `run ${later.id} took over`;
+  return done.has(info.subject) ? `task ${info.subject} is closed in the plan` : null;
+};
 
 const PAGES = 20;
 const entriesPage = async (host: Host, id: number): Promise<readonly EntryRecord[]> => {
@@ -64,7 +77,7 @@ const whyOf = (info: Info, dead: boolean, secrets: readonly string[], unreadable
   return own.slice(0, 6).map((r) => scrub(r, secrets, WHY_CAP));
 };
 
-export const viewOf = async (look: Look, info: Info): Promise<RunView> => {
+export const viewOf = async (look: Look, info: Info, all: readonly Info[] = [info]): Promise<RunView> => {
   const dir = join(look.runs, info.id);
   const secrets = secretsOf(look.env);
   const lane = info.extra["lane"] as { dir?: string; branch?: string } | undefined;
@@ -92,6 +105,7 @@ export const viewOf = async (look: Look, info: Info): Promise<RunView> => {
     startedAt: info.startedAt, endedAt: info.endedAt ?? null, lastEventAt: iso(last), models: { maker, checkers },
     turns: sum(agents.map(([, c]) => c.turns)), toolCalls: { total: sum(Object.values(byName)), byName },
     tokens: { in: sum(agents.map(([, c]) => c.input)), out: sum(agents.map(([, c]) => c.output)) },
+    refused: sum(agents.map(([, c]) => c.refused)), failures: sum(agents.map(([, c]) => c.failures)), superseded: supersededOf(info, all, look.done),
     branch: lane?.branch ?? null, events, why: whyOf(info, dead, secrets, unreadable), readable: unreadable === null,
   };
 };
@@ -99,23 +113,35 @@ export const viewOf = async (look: Look, info: Info): Promise<RunView> => {
 /** Every run that is running, or that was last saved within `sinceHours`, oldest first. */
 export const statusViews = async (look: Look, sinceHours: number): Promise<readonly RunView[]> => {
   const from = look.now.getTime() - sinceHours * 3_600_000;
-  const held = listRuns(look.runs).map((r) => r.info).filter((i) => i.status === "running" || (Date.parse(i.updatedAt) || 0) >= from);
-  return Promise.all(held.sort((a, b) => a.startedAt.localeCompare(b.startedAt)).map((i) => viewOf(look, i)));
+  const all = listRuns(look.runs).map((r) => r.info);
+  const held = all.filter((i) => i.status === "running" || (Date.parse(i.updatedAt) || 0) >= from);
+  return Promise.all(held.sort((a, b) => a.startedAt.localeCompare(b.startedAt)).map((i) => viewOf(look, i, all)));
 };
 
 /** One run, or null when there is none of that id. */
 export const showView = async (look: Look, id: string): Promise<RunView | null> => {
-  const info = listRuns(look.runs).map((r) => r.info).find((i) => i.id === id);
-  return info ? viewOf(look, info) : null;
+  const all = listRuns(look.runs).map((r) => r.info), info = all.find((i) => i.id === id);
+  return info ? viewOf(look, info, all) : null;
 };
 
 /** One run in full (types.ts, `RunDetail`), or null when there is none of that id or its storage cannot be read. */
 export const showDetail = async (look: Look, id: string): Promise<RunDetail | null> => {
-  const info = listRuns(look.runs).map((r) => r.info).find((i) => i.id === id);
+  const all = listRuns(look.runs).map((r) => r.info), info = all.find((i) => i.id === id);
   if (!info) return null;
+  const superseded = supersededOf(info, all, look.done);
   const dead = info.status === "running" && !alive(info.pid);
   try {
     const host = await look.open(join(look.runs, id));
-    try { return { ...(await detailOf(host, info, secretsOf(look.env), look.git, capturesOf(join(look.runs, id, FOLDER)))), status: dead ? "dead" : info.status }; } finally { await host.close(); }
+    try { return { ...(await detailOf(host, info, secretsOf(look.env), look.git, capturesOf(join(look.runs, id, FOLDER)))), status: dead ? "dead" : info.status, superseded }; } finally { await host.close(); }
   } catch { return null; }
+};
+
+/** `loop status`: one line per run, with what the post-mortem of 10 November could not see: refused calls, model failures, and runs that no longer matter. */
+export const viewsTable = (views: readonly RunView[]): string => {
+  const k = (n: number): string => (n >= 1_000_000 ? `${(n / 1_000_000).toFixed(2)}M` : n >= 10_000 ? `${Math.round(n / 1000)}k` : String(n));
+  const rows = views.map((v) => [v.id, v.task, v.status === "dead" ? "dead (resume)" : v.status, v.round ? String(v.round) : "-",
+    `${v.refused}/${v.toolCalls.total}`, String(v.failures), k(v.tokens.in + v.tokens.out), v.superseded ?? ""]);
+  const all = [["run", "task", "status", "round", "refused", "failures", "tokens", "superseded"], ...rows];
+  const w = all[0]!.map((_, i) => Math.max(...all.map((r) => r[i]!.length)));
+  return all.map((r) => r.map((c, i) => c.padEnd(w[i]!)).join("  ").trimEnd()).join("\n");
 };

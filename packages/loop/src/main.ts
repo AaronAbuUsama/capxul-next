@@ -54,7 +54,7 @@ const main = async (argv: readonly string[]): Promise<number> => {
     case "merge": { const out = await merge(ctx, need ?? ""); out.forEach((l) => console.log(l)); return out[0]!.startsWith("merged") && !out[0]!.includes("push failed") ? 0 : 1; }
     case "clean": clean(ctx, need).forEach((l) => console.log(l)); return 0;
     case "status":
-      if (!f.has("json")) { console.log(status(ctx)); return 0; }
+      if (!f.has("json")) { console.log(await status(ctx, Number(f.get("since-hours") || 24))); return 0; }
       console.log(JSON.stringify({ runs: await statusJson(ctx, Number(f.get("since-hours") || 24)) }));
       return 0;
     case "show": {

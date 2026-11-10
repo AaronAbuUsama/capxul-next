@@ -8,7 +8,8 @@ import { fauxAssistantMessage, fauxProvider, fauxToolCall } from "@earendil-work
 import { ask, openHost } from "../agents/service.ts";
 import { play, readInfo } from "../runs/service.ts";
 import { scrub, scrubText, secretsOf } from "./internal/scrub.ts";
-import { showDetail, showView, statusViews, type Look } from "./service.ts";
+import { showDetail, showView, statusViews, supersededOf, viewsTable, type Look } from "./service.ts";
+import type { Info } from "../runs/types.ts";
 
 const SECRET = "sk-live-0123456789abcdefABCDEF";
 const ENV_SECRET = "hunter2-hunter2-hunter2";
@@ -55,6 +56,10 @@ test("a run as a view: the task, models, counts by tool name, tokens, branch, th
   assert.equal(v.models.maker, "faux/faux-1");
   assert.equal(v.models.checkers["reviewer"], "faux/faux-1");
   assert.deepEqual(v.toolCalls, { total: 2, byName: { bash: 1, read: 1 } });
+  assert.equal(v.refused, 1, "the bash call is refused by the rig's empty allow-list");
+  assert.equal(v.failures, 0);
+  assert.equal(v.superseded, null);
+  assert.match(viewsTable([v]), /r1 +m1-x +blocked +1 +1\/2 +0 +\d+$/m);
   assert.equal(v.turns, 3);
   assert.ok(v.tokens.in + v.tokens.out > 0, JSON.stringify(v.tokens));
   assert.deepEqual(v.events.map((e) => `${e.who}: ${e.what.split(" ")[0]}`), ["make.1: bash", "make.1: read", "make.1: replied", "reviewer.1.agent: replied"].slice(0, 4));
@@ -128,4 +133,16 @@ test("scrub: a long path is not taken for a key; a text of several lines keeps i
   assert.equal(scrubText("one\ntwo sk-abcdefghij12\nthree", [], 100), "one\ntwo [hidden]\nthree");
   assert.equal(scrubText("abcdef", [], 3), "abc\n… 3 more characters");
   assert.equal(scrubText("HEAD is b50cae1db01670af9d2496cdd2b31005be15e9ff\nok", [], 100), "HEAD is b50cae1\nok");
+});
+
+test("a run is superseded by a later run of its task, or when its task is closed; a running or merged run never is", () => {
+  const at = (id: string, subject: string, status: Info["status"], startedAt: string) => ({ id, subject, status, startedAt }) as Info;
+  const a = at("a", "t", "failed", "2026-11-10T10:00:00Z"), b = at("b", "t", "blocked", "2026-11-10T11:00:00Z"), c = at("c", "u", "stopped", "2026-11-10T10:00:00Z");
+  const all = [a, b, c];
+  assert.equal(supersededOf(a, all), "run b took over");
+  assert.equal(supersededOf(b, all), null, "the newest run of an open task still needs someone");
+  assert.equal(supersededOf(b, all, new Set(["t"])), "task t is closed in the plan");
+  assert.equal(supersededOf(c, all, new Set(["t"])), null);
+  assert.equal(supersededOf(at("d", "t", "running", "2026-11-10T09:00:00Z"), all), null);
+  assert.equal(supersededOf(at("e", "t", "merged", "2026-11-10T09:00:00Z"), all), null);
 });

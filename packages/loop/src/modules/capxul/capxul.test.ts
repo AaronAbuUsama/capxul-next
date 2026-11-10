@@ -85,7 +85,7 @@ test("a pair run: the maker writes in its lane, the gates pass, the checker appr
   assert.equal(git(r.root, "rev-parse", "integration/build"), git(r.origin, "rev-parse", "integration/build"));   // integration/build untouched
   assert.ok(info.tokens > 0);
   assert.equal(r.calls()[0], `task start t1 --thread ${info.id} --by loop`);
-  assert.match(status(r.ctx()), /ready/);
+  assert.match(await status(r.ctx()), /ready/);
 });
 
 test("a failing gate goes back to the maker, and when the rounds run out the run is blocked and the plan task blocked with the reason", async () => {

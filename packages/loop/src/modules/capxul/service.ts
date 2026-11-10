@@ -9,12 +9,12 @@ import { existsSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { ask, lastJson, openHost, type Host } from "../agents/service.ts";
 import { commitAll, ensureLane, git, head, laneBlocked, slug, type Lane } from "../lanes/service.ts";
-import { acquire, alive, ledgerLines, listRuns, play, readInfo, SETTLED, stop as stopRun, table, watchRun, work as workLoop, type Info, type Run } from "../runs/service.ts";
+import { acquire, alive, ledgerLines, listRuns, play, readInfo, SETTLED, stop as stopRun, watchRun, work as workLoop, type Info, type Run } from "../runs/service.ts";
 import { allowedModel, defaultCheckerModel, defaultModel, gatewayOf, modelsOf, POLICY, qualify } from "./internal/config.ts";
 import { evidenceBrief, evidenceLines, kitFor, restore } from "./internal/evidence.ts";
 import { FOLDER as EVIDENCE } from "../evidence/service.ts";
 import { serve as serveHost, type Served } from "../host/service.ts";
-import { showDetail, showView, statusViews, type Look, type RunDetail, type RunView } from "../inspect/service.ts";
+import { showDetail, showView, statusViews, viewsTable, type Look, type RunDetail, type RunView } from "../inspect/service.ts";
 import { findingsOf, gatesFor, runGates } from "./internal/gates.ts";
 import * as plan from "./internal/plan.ts";
 import { checkerPrompt, makerPrompt as renderMaker, researchPrompt, type CheckInput } from "./internal/prompts.ts";
@@ -196,10 +196,11 @@ export const resume = async (ctx: Ctx, id: string, script?: Script): Promise<Inf
 };
 
 export const stop = (ctx: Ctx, id: string): string => stopRun(runDir(ctx, id));
-export const status = (ctx: Ctx): string => table(listRuns(runsDir(ctx)).map((r) => r.info), ctx.now());
+/** `loop status`: every run saved in the last day, with its refused calls, model failures and whether it was superseded. */
+export const status = async (ctx: Ctx, sinceHours = 24): Promise<string> => viewsTable(await statusViews(lookOf(ctx, 0), sinceHours));
 
 const quietGit = (ctx: Ctx) => (args: readonly string[]): string => { try { return git(ctx.root, ...args); } catch { return ""; } };
-export const lookOf = (ctx: Ctx, events: number): Look => ({ runs: runsDir(ctx), open: (dir) => open(ctx, dir, {}, true), now: ctx.now(), env: ctx.env, events, git: quietGit(ctx) });
+export const lookOf = (ctx: Ctx, events: number): Look => ({ runs: runsDir(ctx), open: (dir) => open(ctx, dir, {}, true), now: ctx.now(), env: ctx.env, events, git: quietGit(ctx), done: plan.doneTasks(ctx) });
 /** `loop status --json`: every run that is running or was saved within `sinceHours`, each with its counts and its last three events. */
 export const statusJson = (ctx: Ctx, sinceHours: number): Promise<readonly RunView[]> => statusViews(lookOf(ctx, 3), sinceHours);
 /** `loop show <run> --json`: one run with its last twenty events, or null. */

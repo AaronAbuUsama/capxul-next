@@ -100,7 +100,7 @@ const stepsOf = (ledger: readonly EntryRecord[], clean: Clean, changes: (commit:
 };
 
 /** `git` runs a git command in the repository the runs belong to and returns its output, or an empty string. */
-export const detailOf = async (host: Host, info: Info, secrets: readonly string[], git?: (args: readonly string[]) => string, captures: readonly Capture[] = []): Promise<RunDetail> => {
+export const detailOf = async (host: Host, info: Info, secrets: readonly string[], git?: (args: readonly string[]) => string, captures: readonly Capture[] = []): Promise<Omit<RunDetail, "superseded">> => {
   const lane = (info.extra["lane"] as { dir?: string; branch?: string; base?: string } | undefined) ?? {};
   const opts = (info.extra["opts"] as { script?: string; rounds?: number } | undefined) ?? {};
   const task = (info.extra["task"] as { title?: string; goal?: string; evals?: string[] } | undefined) ?? {};
