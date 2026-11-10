@@ -101,7 +101,7 @@ picks its own ports (`8545 + 100n`), so "free ports are found" holds for light o
 ## Models
 
 One OpenAI-compatible gateway: `LOOP_MODEL_BASE_URL` (default `https://llm.capxul.com/v1`), key from the variable named by
-`LOOP_MODEL_KEY_ENV` (default `LLM_ROUTER_API_KEY`; `source ~/.zshenv` if unset). Defaults: maker `claude-sonnet-4-6`,
+`LOOP_MODEL_KEY_ENV` (default `LLM_ROUTER_API_KEY`; `source ~/.zshenv` if unset). Defaults: maker `gpt-6.1-sol` (Aaron's ruling: Sol 6.1 for coding),
 checker `gpt-6-luna`: a strong coding model, and a different family so the review is independent. They were picked from
 what the gateway lists and answers (the newer Claude ids, kimi and deepseek returned 401 from the gateway on 10 November).
 Override with `--model` / `--checker-model` or `LOOP_MODEL` / `LOOP_CHECKER_MODEL`. The gateway reports no prices, so pi

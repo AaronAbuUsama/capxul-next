@@ -14,8 +14,11 @@ export const POLICY: Policy = {
   denyWrite: [/^books\/frozen\//, /(^|\/)src\/generated\//, /^\.git(\/|$)/, /^\.claude\//, /^runs\//],
 };
 
-/** The maker's and the checker's default models, chosen from what the gateway lists (README: why). Both are flags. */
-export const MAKER_MODEL = "claude-sonnet-4-6";
+/**
+ * The maker's and the checker's default models. The maker is gpt-6.1-sol by Aaron's ruling (10 November 2026: "we need
+ * to be using sol 6.1 for coding"). Both are flags.
+ */
+export const MAKER_MODEL = "gpt-6.1-sol";
 export const CHECKER_MODEL = "gpt-6-luna";
 
 /** `provider/id`, or a bare id (taken to be the gateway's). */
