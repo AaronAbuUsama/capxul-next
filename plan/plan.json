@@ -669,7 +669,9 @@
       "why": "Aaron settled devnet.site-follows-world for option A on 10 November 2026 and said the time has to be right. A mistake shows up as a document dated by the machine, often unnoticed until a month end, so each proof is a run. Only two of six tests exist in the spike.",
       "milestone": "m1",
       "state": "todo",
-      "needs": [],
+      "needs": [
+        "m1-loop-hardening"
+      ],
       "records": [
         "decision:devnet.time-is-right",
         "decision:devnet.site-follows-world"
@@ -805,7 +807,9 @@
       "why": "The first real score is 8 of 4,724. The test sites' checks are real, but 56 of them prove something the book has no test for, 39 prove only part of one, and 143 of the 146 tests of the thin-line journeys have no check at all.",
       "milestone": "m1",
       "state": "todo",
-      "needs": [],
+      "needs": [
+        "m1-loop-hardening"
+      ],
       "records": [],
       "evidence": [],
       "created": "2026-11-10",
@@ -829,7 +833,11 @@
       "why": "The first version works but is not yet safe to leave alone: its budget is counted in turns and time, not money; its rules on what an agent may run are a filter, not a sandbox; steering a running agent and the heavy sandbox are untested; and it is 1,200 lines against a cap of 800.",
       "milestone": "m1",
       "state": "todo",
-      "needs": [],
+      "needs": [
+        "m1-loop-policy",
+        "m1-loop-visibility",
+        "m1-loop-watched-run"
+      ],
       "records": [],
       "evidence": [],
       "created": "2026-11-10",
@@ -1013,7 +1021,9 @@
       "why": "Seven agents at once made the LiteLLM container unreachable (57 of 57 errors were the edge's 504, none a rate limit), and three at once still hit it. Parallel agents are how the plan gets done, and swarms are the direction, so the gateway is a blocker we must own. Aaron ruled on 10 November: LiteLLM is out of the path; the gateway is CLI proxy, as it is, forked, or taken apart.",
       "milestone": "m1",
       "state": "todo",
-      "needs": [],
+      "needs": [
+        "m1-loop-watched-run"
+      ],
       "records": [],
       "evidence": [],
       "created": "2026-11-10",
@@ -1048,18 +1058,59 @@
       "created": "2026-11-10",
       "updated": "2026-11-10",
       "thread": "m1-gaps-contracts-stand-11101649"
+    },
+    {
+      "id": "m1-loop-policy",
+      "title": "The loop's command policy fits a builder's job",
+      "why": "Post-mortem 10 Nov, change 2: one tool call in five (226 of 1,132) was refused by the loop's own policy; it blocks g2, g3 and every loop task",
+      "milestone": "m1",
+      "state": "todo",
+      "needs": [],
+      "records": [],
+      "evidence": [],
+      "created": "2026-11-10",
+      "updated": "2026-11-10"
+    },
+    {
+      "id": "m1-loop-visibility",
+      "title": "Refusals, model failures and superseded runs are visible",
+      "why": "Post-mortem 10 Nov, changes 5 and 6: the coordinator could not see 226 refusals and 100 model failures, and the Runs page listed 13 runs needing Aaron when none did",
+      "milestone": "m1",
+      "state": "todo",
+      "needs": [],
+      "records": [],
+      "evidence": [],
+      "created": "2026-11-10",
+      "updated": "2026-11-10"
+    },
+    {
+      "id": "m1-loop-watched-run",
+      "title": "One watched run is healthy",
+      "why": "Post-mortem 10 Nov, change 3: no batch until one run is measured",
+      "milestone": "m1",
+      "state": "todo",
+      "needs": [
+        "m1-loop-policy",
+        "m1-loop-visibility"
+      ],
+      "records": [],
+      "evidence": [],
+      "created": "2026-11-10",
+      "updated": "2026-11-10"
     }
   ],
   "path": {
     "tasks": [
+      "m1-loop-policy",
+      "m1-loop-visibility",
+      "m1-loop-watched-run",
+      "m1-model-gateway",
       "m1-loop-hardening",
       "m1-eval-coverage",
       "m1-time-proof",
-      "m1-old-decisions",
-      "m1-entry-docs",
       "m1-aaron-accepts"
     ],
-    "why": "The engine's two rules are in. Next the loop is made trustworthy for tasks that need the test sites, the checks are lined up with the blueprint's tests so the score is real, time is proved, the old decisions and entry documents are finished, and Aaron reads the portal.",
+    "why": "Aaron, 10 Nov: the orchestration layer must fully work before any task work. The loop does the work, so its policy, its visibility, one measured run and the gateway come first. Then the lanes can prepare the spike and test sites, which eval coverage and the time proof need. Off the path, in parallel: split m1-old-decisions (his rulings to Questions), m1-entry-docs (his yes or no; its run now conflicts with AGENTS.md), and exit g8's chain (m2-contracts-under-sites, m3b-first-shared-world).",
     "written": "2026-11-10"
   },
   "notes": [
@@ -1167,6 +1218,11 @@
       "date": "2026-11-10",
       "by": "coordinator",
       "text": "Post-mortem of the loop's day, 10 November: docs/mission/post-mortem-2026-11-10.md. 23 runs for 9 finished tasks; one tool call in five refused by the loop's own policy; agent instructions written for swarmD and pointing at a folder that does not exist; 100 model failures, 13 of them the local proxy's one account running out at three agents. Everything is stopped on Aaron's instruction: no run, no host, no portal, and the working sessions' turns were stopped. No batch is started until the instructions and the policy are fixed and one run has been watched."
+    },
+    {
+      "date": "2026-11-10",
+      "by": "coordinator",
+      "text": "17:45 sweep (new coordinator, Capxul Next project; skills in .claude/skills): nothing merged; no run started; portal and host up. Path re-set: layer first (policy, visibility, one watched run, gateway, hardening). The 11 ready runs include 8 already merged, so superseded runs are task m1-loop-visibility."
     }
   ]
 }
