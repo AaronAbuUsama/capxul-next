@@ -13,7 +13,9 @@ from the build session on, the product code it describes.
   2. rebuild to zero problems;
   3. change the code.
 
-  Never edit `books/frozen/` or any file under a `src/generated/` folder.
+  Never edit `books/frozen/` or any file under a `src/generated/` folder. For the contracts in `packages/contracts` the code
+  is the truth for what exists: change a contract's source, run `pnpm contracts:export-abi`, and reconcile the contract records
+  until `pnpm contracts:check-book` passes (`docs/design-book.md`, "Contract records and the contract code").
 - **What is fixed is behaviour, not spelling** (`system.frozen-behaviour`). Each of the 215 old
   operations is either booked in the book or classified by the cut (reached, dropped or parked: `books/target/shared/cut.ts`,
   `docs/cut-archive/INDEX.md`), never both and never neither. A booked operation's acceptance claims are the evals. Commands, flags,
@@ -26,6 +28,7 @@ from the build session on, the product code it describes.
   pnpm exec tsc -p books
   node --experimental-strip-types packages/book/src/main.ts books/target/index.ts /tmp/target   # 0 problems
   node --experimental-strip-types tools/check-frozen.ts                                           # 0 breaches: every behaviour kept
+  pnpm contracts:check-book                                                                       # 0 undeclared differences: the contract records match the code
   ```
 
 - **The plan.** `plan/plan.json` is the coordinator's plan, shown at `/plan/` in the portal (decision `portal.plan-page`).

@@ -640,6 +640,8 @@ pnpm exec tsc -p packages/book && pnpm test     # the record system and its test
 pnpm exec tsc -p books                                           # the target and frozen books typecheck
 node --experimental-strip-types packages/book/src/main.ts books/target/index.ts /tmp/target   # 0 problems
 node --experimental-strip-types tools/check-frozen.ts       # the 215 booked, every behaviour kept, new operations by a ruling: 0 breaches
+pnpm contracts:check-book                                        # the contract records against the contract code: 0 undeclared differences
+pnpm contracts:export-abi                                        # after a contract's source changes: forge build, then the ABI the check reads
 node --experimental-strip-types tools/report-judgments.ts > docs/decisions/judgments.md
 node --experimental-strip-types --no-warnings tools/impact.ts event:payment_transitioned   # what depends on a record
 node --experimental-strip-types --no-warnings tools/record-status.ts results.json          # merge a run into status/status.json
@@ -662,3 +664,27 @@ The book build does not see the frozen text beside the target's records, so
   (`rules.new-operations`).
 
 It does not compare flags, `--json` shapes or wording: those are the target's to design.
+
+### Contract records and the contract code
+
+The contract kind (`packages/book/src/records/external.ts`) records what the chain holds. Its fields:
+`code` (`built`, `designed` or `third-party`: where the code is), `artifact` (for a built contract, its Solidity name in
+`packages/contracts/src`), `functions`, `events` and `errors` (each member's `signature` and `about`) and `addresses` (only for a
+third-party contract at a fixed address on a real network: the devnet's addresses are in the deployment file the deploy tool
+writes, `packages/contracts/deployments/devnet.json`, decision `contracts.devnet-addresses`). The code is the truth for what
+exists (`contracts.code-is-truth`), so a `built` record holds every function, event and error of its compiled contract.
+
+`tools/check-contracts.ts` (`pnpm contracts:check-book`, `--json`) compares them. It reads the committed ABI export
+(`packages/contracts/abi/abi.json`, made from `forge build` by `pnpm contracts:export-abi`; the export carries a hash of the
+contract source, the manifest and `foundry.toml`, and the check fails when the source has moved on and the export has not, so it
+needs no 100 s build) and fails, with a list, when:
+- a function, event or error in the code is not in the book, or one in the book is not in the code;
+- a signature differs: the name, argument types and order, return types, mutability, an event's indexed arguments (names are the
+  book's words and are not compared; a struct or enum is compared by name);
+- a record says `built` for a contract the code lacks, says nothing about its `code`, or the code deploys a contract (the deploy
+  manifest, plus what the Installer and the EscrowFactory create) that no record describes.
+
+A difference stands only where a decision names it: an entry in `CONTRACT_ALLOWANCES` (`books/target/shared/contracts.ts`) pairs
+a subject with a decision, and counts only if that decision is in the book, its text names the subject, and the difference still
+exists. The check prints the allowed differences so they stay visible. Third-party records are listed and not compared. A
+contract's source is changed only with the book first (`CLAUDE.md`), then the export is made again.
