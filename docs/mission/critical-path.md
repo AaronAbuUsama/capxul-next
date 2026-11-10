@@ -15,6 +15,23 @@ through the CLI alone:
 - a scripted company life: set up the org, grant hats, set budgets, win a deal, invoice it, pay suppliers, run
   payroll, with the books agreeing with the chain at every month end.
 
+## Priorities (Aaron, 10 November, later the same day)
+
+"I want to optimize for time, for speed, for cost … get as much breadth done as possible."
+
+- **OpenFort is out of this path.** It adds testing friction. Every signature is made with a key by an agent or by
+  deterministic code. People's sign-in stays a stand-in until the breadth is there.
+- **Breadth first.** Get the CLI reaching as much as possible, Frappe especially, before any one part is polished.
+- **Everything is tested by agents and deterministic code,** the clock and the simulation included.
+- **Everything is recorded.** Every command, with who ran it under which hat, what it returned, and the world's time,
+  is kept. The record is also training data, so it is a product of the system, not a debugging aid.
+- **Time can be moved.** A world's clock is set and advanced from the CLI, and the chain and the Frappe site follow it.
+- **It must be visible.** Agents drive it, but a person can open the Frappe screens of a running world and see it.
+- **The cloud matters.** Where this runs, on the cloud that already exists (`Xelmar-tech/hosting`), must be understood
+  and written down before it is needed.
+
+So the door, the recorder and the clock are built now, beside the real contracts, not after them.
+
 ## The measure
 
 How much of current Capxul works on the new stack. After the cut the book keeps 183 operations (159 Core, 24
@@ -39,7 +56,8 @@ So the contracts and the signing come over nearly as they are. The service layer
 |---|---|---|
 | 1 | **Foundation.** The cut; the plugs, sites and the door written into the book in full; where each operation stands is recorded | the book builds with 0 problems on the new shape and the portal shows the kept operations with their stand |
 | 2 | **Real chain under the skeleton.** The v4 contracts in this repository with their tests; a seeded chain state so nothing needs the network; a key-based agent signer; the skeleton's stand-in chain replaced | the skeleton's checks pass against the real contracts: a hat granted through Hats, a budget set, a payment sent through `Payments` under that hat and budget with the document's hash |
-| 3 | **The door.** The CLI reaches Frappe's documents, actions and reports as the calling person | an agent takes a lead to a paid invoice, and onboards a staff member, through the CLI only |
+| 3 | **The door, the recorder and the clock** (in parallel with 2). The CLI reaches Frappe's documents, actions and reports as the calling person; every command is recorded; a world's time is moved from the CLI and the site and chain follow | an agent takes a lead to a paid invoice, onboards a staff member and runs a month end through the CLI only, on a clock it moved, and the whole run can be read back from the record |
+| 3b | **The cloud.** How a bench of company sites, the service, a chain and the record run on the existing cloud, written down and then stood up | a world running in the cloud that a person can open in a browser while agents drive it |
 | 4 | **The compatibility climb.** The Core operations built to the book, group by group (organisations, hats, budgets, payments, board, agents, approvals, activity), with the old code as the reference for behaviour | the score: kept operations passing their evals. No number is promised before milestone 2 is done |
 | 5 | **Company life.** A multi-month run on the real stack, from the old scenario histories | the books agree with the chain at every month end |
 
