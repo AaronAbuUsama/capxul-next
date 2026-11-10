@@ -743,10 +743,12 @@
       "title": "The catch-all certificate for worlds.capxul.com",
       "why": "A world's sites need HTTPS. The certificate can only be issued once the worlds subdomain is handed to AWS's DNS, and issuing it needs the AWS sign-in.",
       "milestone": "m3b",
-      "state": "doing",
+      "state": "done",
       "needs": [],
       "records": [],
-      "evidence": [],
+      "evidence": [
+        "issued 10 Nov 2026, valid to 8 Feb 2027; docs/mission/sites-host/STATE.md; commit eaaab63"
+      ],
       "created": "2026-11-10",
       "updated": "2026-11-10",
       "thread": "machine"
