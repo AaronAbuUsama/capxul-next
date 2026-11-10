@@ -4,7 +4,7 @@
 // root: the only place that reads the process, prints, or exits. See packages/loop/README.md.
 
 import { execFileSync } from "node:child_process";
-import { clean, DEFAULTS, logs, merge, resume, showJson, start, status, statusJson, stop, watch, work, type Ctx, type Opts } from "./index.ts";
+import { clean, DEFAULTS, logs, merge, resume, showJson, spendText, start, status, statusJson, stop, watch, work, type Ctx, type Opts } from "./index.ts";
 
 const USAGE = [
   "usage: loop run <task id> [--script pair] [--model provider/id] [--checker-model provider/id] [--sandbox none|light|heavy]",
@@ -41,7 +41,7 @@ const main = async (argv: readonly string[]): Promise<number> => {
   const { words, f } = parse(rest);
   const ctx: Ctx = { root: execFileSync("git", ["rev-parse", "--show-toplevel"], { encoding: "utf8" }).trim(), env: process.env, now: () => new Date(), say: (l) => console.log(l) };
   const ended = (s: { id: string; status: string; round: number; spentUsd: number; tokens: number; reasons: string[]; error?: string }): number => {
-    console.log(`run ${s.id}: ${s.status}, ${s.round} round(s), spend $${s.spentUsd.toFixed(2)} (${s.tokens} tokens)${s.error ? `, error: ${s.error}` : ""}`);
+    console.log(`run ${s.id}: ${s.status}, ${s.round} round(s), used ${spendText(s.spentUsd, s.tokens)}${s.error ? `, error: ${s.error}` : ""}`);
     s.reasons.forEach((r) => console.log(`  ${r.slice(0, 300)}`));
     return ["ready", "answered", "merged"].includes(s.status) ? 0 : 1;
   };

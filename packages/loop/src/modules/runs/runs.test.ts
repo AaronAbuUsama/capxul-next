@@ -5,7 +5,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "node:test";
 import { open, script } from "./die.fixture.ts";
-import { alive, ledgerLines, listRuns, play, readInfo, stop, table, work } from "./service.ts";
+import { alive, ledgerLines, listRuns, play, readInfo, spendText, stop, table, work } from "./service.ts";
 
 const rig = () => { const dir = mkdtempSync(join(tmpdir(), "loop-runs-")); return { dir, run: join(dir, "r1"), counter: join(dir, "counter"), marker: join(dir, "marker") }; };
 const steps = (counter: string): string => readFileSync(counter, "utf8").split("\n").filter(Boolean).join("");
@@ -63,4 +63,15 @@ test("the worker resumes dead runs first, then starts ready tasks, up to its con
   });
   assert.deepEqual(log.slice(0, 2), ["resume:d1", "start:t1"]);
   assert.deepEqual(log.filter((l) => l.startsWith("start")).sort(), ["start:t1", "start:t2", "start:t3"]);
+});
+
+test("what was used reads as dollars when there is a price and as tokens when there is none, never as $0.00", () => {
+  assert.equal(spendText(1.234, 5000), "$1.23");
+  assert.equal(spendText(0, 1_774_290), "1.77M tokens");
+  assert.equal(spendText(0, 196_938), "197k tokens");
+  assert.equal(spendText(0, 963), "963 tokens");
+  assert.equal(spendText(0, 0), "-");
+  const row = table([{ id: "r1", subject: "t", status: "ready", step: null, round: 1, startedAt: "2026-11-10T13:23:45.530Z", updatedAt: "", endedAt: "2026-11-10T13:37:22.100Z", pid: 0, spentUsd: 0, tokens: 1_774_290, reasons: [], extra: {} }], new Date());
+  assert.match(row, /1\.77M tokens/);
+  assert.doesNotMatch(row, /\$0/);
 });

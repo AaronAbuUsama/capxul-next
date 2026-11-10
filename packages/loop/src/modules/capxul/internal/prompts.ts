@@ -2,9 +2,10 @@
  * The prompts: docs/design/swarm-templates.md sections 2.1 and 2.2 rendered from a task, ending in the exact input as a
  * json block (when the rendering and the block disagree, the block wins). Pure functions.
  */
+import { spendText } from "../../runs/service.ts";
 import type { Finding, Handover, Task } from "../types.ts";
 
-export interface MakerInput { task: Task; round: number; budgetUsd: number; spentUsd: number; branch: string; sandbox: string; open: Finding[]; handover?: Handover }
+export interface MakerInput { task: Task; round: number; budgetUsd: number; spentUsd: number; spentTokens: number; branch: string; sandbox: string; open: Finding[]; handover?: Handover }
 
 const findings = (open: readonly Finding[]): string =>
   open.length === 0 ? "_none_" : open.map((f) => `- ${f.id ?? "F"} ${f.severity}${f.check ? ` \`${f.check}\`` : ""}${f.where ? ` at ${f.where.path}${f.where.line ? `:${f.where.line}` : ""}` : ""}: ${f.text}`).join("\n");
@@ -28,7 +29,7 @@ const GROUND = (sandbox: string, checks: readonly string[]): string => [
 /** `checks` are the commands the runner runs after the maker (the lane's gates), told to it so it can run them first. */
 export const makerPrompt = (i: MakerInput, checks: readonly string[]): string => [
   `# Task \`${i.task.id}\`: ${i.task.title}`,
-  `Round ${i.round} of the run · budget $${i.budgetUsd.toFixed(2)}, spent $${i.spentUsd.toFixed(2)} · target integration/build · branch ${i.branch}`,
+  `Round ${i.round} of the run · budget $${i.budgetUsd.toFixed(2)}, used so far ${i.spentUsd > 0 || i.spentTokens > 0 ? spendText(i.spentUsd, i.spentTokens) : "nothing"} · target integration/build · branch ${i.branch}`,
   i.round > 1 ? "Revise: the last round did not pass. The open findings below are what to fix; a failing check is a finding." : "",
   "\n## Goal", i.task.goal,
   "\n## Evals", i.task.evals.length ? i.task.evals.map((e) => `- \`${e}\``).join("\n") : "_this task has no evals of its own: its done-when above is the definition_",

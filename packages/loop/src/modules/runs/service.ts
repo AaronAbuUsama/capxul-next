@@ -78,12 +78,19 @@ export const stop = (dir: string): string => {
   return `run ${info.id} was not running; marked stopped`;
 };
 
+/** What a run or a step used, for a person: dollars when the provider reports prices, otherwise tokens (never "$0.00" for work that was done). */
+export const spendText = (usd: number, tokens: number): string => {
+  if (usd > 0) return `$${usd.toFixed(2)}`;
+  if (tokens <= 0) return "-";
+  return `${tokens >= 1_000_000 ? `${(tokens / 1_000_000).toFixed(2)}M` : tokens >= 10_000 ? `${Math.round(tokens / 1000)}k` : String(tokens)} tokens`;
+};
+
 const dur = (ms: number): string => { const s = Math.round(ms / 1000); return s < 60 ? `${s}s` : s < 3600 ? `${Math.floor(s / 60)}m${String(s % 60).padStart(2, "0")}s` : `${Math.floor(s / 3600)}h${String(Math.floor((s % 3600) / 60)).padStart(2, "0")}m`; };
 
 export const table = (runs: readonly Info[], now: Date): string => {
   const rows = [...runs].sort((a, b) => a.startedAt.localeCompare(b.startedAt)).map((s) => [
     s.id, s.subject, s.status === "running" && !alive(s.pid) ? "dead (resume)" : s.status, s.step ?? "-", s.round ? String(s.round) : "-",
-    dur((s.endedAt ? new Date(s.endedAt) : now).getTime() - new Date(s.startedAt).getTime()), s.spentUsd ? `$${s.spentUsd.toFixed(2)}` : s.tokens ? `${s.tokens} tok` : "-",
+    dur((s.endedAt ? new Date(s.endedAt) : now).getTime() - new Date(s.startedAt).getTime()), spendText(s.spentUsd, s.tokens),
   ]);
   const all = [["run", "task", "status", "step", "round", "elapsed", "spend"], ...rows];
   const w = all[0]!.map((_, i) => Math.max(...all.map((r) => r[i]!.length)));
@@ -93,8 +100,8 @@ export const table = (runs: readonly Info[], now: Date): string => {
 /** The ledger as lines: each step's start and end, the agent conversation it used, how the run ended. */
 export const ledgerLines = async (host: Host): Promise<string[]> =>
   (await entriesOf(host)).map((e) => {
-    const d = e.data as { name?: string; id?: number; reasons?: string[]; result?: { costUsd?: number } };
-    const extra = e.kind === "loop.conversation" ? ` conversation ${d.id}` : e.kind === "loop.end" ? ` ${(d.reasons ?? []).join(" | ").slice(0, 200)}` : e.kind === "loop.done" && d.result?.costUsd !== undefined ? ` $${d.result.costUsd.toFixed(3)}` : "";
+    const d = e.data as { name?: string; id?: number; reasons?: string[]; result?: { costUsd?: number; tokens?: number } };
+    const extra = e.kind === "loop.conversation" ? ` conversation ${d.id}` : e.kind === "loop.end" ? ` ${(d.reasons ?? []).join(" | ").slice(0, 200)}` : e.kind === "loop.done" && d.result?.tokens !== undefined ? ` ${spendText(d.result.costUsd ?? 0, d.result.tokens)}` : "";
     return `${e.kind.replace("loop.", "").padEnd(12)} ${d.name}${extra}`;
   });
 
