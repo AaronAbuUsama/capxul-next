@@ -1,0 +1,104 @@
+{
+  "area": "devnet",
+  "script": "spikes/skeleton/run.sh",
+  "worlds": [
+    "main"
+  ],
+  "secrets": [
+    "spikes/skeleton/.env",
+    "spikes/skeleton/core/people.json"
+  ],
+  "bindings": [
+    {
+      "eval": "acc:world.snapshot.restore/1",
+      "checks": [
+        "B9.in-place-state-back-at-saved-moment",
+        "B9.in-place-clock-back-at-saved-time",
+        "B9.in-place-record-not-rewound"
+      ],
+      "why": "The world is saved, a payment is made, then `world snapshot restore --in-place` runs. The checks find documents, ledger, hats, features and the Safe balance as saved, the clock back at the saved time on the chain and every site, and the record grown with an entry that names what it was restored from."
+    },
+    {
+      "eval": "acc:world.snapshot.restore/2",
+      "checks": [
+        "B9.restore-into-new-world",
+        "B9.new-world-payment-not-in-old",
+        "B9.old-world-payment-not-in-new"
+      ],
+      "why": "The snapshot is restored into a second world beside the first. A payment made in the new world is in its documents and its chain and not in the old world's, which stay at their counts and balance; a payment made in the old world is not in the new."
+    }
+  ],
+  "near": [
+    {
+      "eval": "acc:world.snapshot.save/1",
+      "checks": [
+        "B9.snapshot-saved",
+        "B9.snapshot-list",
+        "B9.new-world-same-documents-ledger-hats-features"
+      ],
+      "missing": "A snapshot saves and restores to the same documents, ledger, hats and features, but 'leaves the world untouched' is not checked."
+    },
+    {
+      "eval": "acc:world.show/1",
+      "checks": [
+        "B9.world-list-shows-origin"
+      ],
+      "missing": "The world list says where the new world came from; the check reads `world list`, not `world show`."
+    },
+    {
+      "eval": "acc:world.clock.warp/1",
+      "checks": [
+        "B7.clock-set-in-the-past-chain-and-sites-follow",
+        "B7.world-at-31-march-all-agree"
+      ],
+      "missing": "The chain and every site move together; 'runs what fell due' is printed for each advance but nothing asserts the jobs ran."
+    },
+    {
+      "eval": "acc:record.export/1",
+      "checks": [
+        "B8.export-one-file-line-by-line"
+      ],
+      "missing": "The export is one file with a header and every record, but the lineage is not read and 'every entry once' is checked only by count."
+    },
+    {
+      "eval": "jrn:run_a_world",
+      "checks": [
+        "B7.world-at-31-march-all-agree",
+        "B9.snapshot-saved",
+        "B9.restore-into-new-world",
+        "B8.export-one-file-line-by-line"
+      ],
+      "missing": "The clock, a snapshot, a restore into another world and the export run, but not `world create`, `world show` or the funnel events."
+    },
+    {
+      "eval": "acc:record.show/1",
+      "checks": [
+        "B8.no-secret-in-record",
+        "B8.record-show-by-trace-id"
+      ],
+      "missing": "The record and its export are searched for every test key and the shared secret and hold none, but tokens and passwords are not searched for."
+    },
+    {
+      "eval": "acc:record.list/1",
+      "checks": [
+        "B8.one-record-entry-per-command",
+        "B8.sequence-gap-free-and-hash-chained"
+      ],
+      "missing": "Every command of the run is in the record, in order and hash-chained, but who ran it under which hat is not read."
+    },
+    {
+      "eval": "acc:world.snapshot.list/1",
+      "checks": [
+        "B9.snapshot-list"
+      ],
+      "missing": "A saved snapshot is listed with its world and name, but the newest-first order and the record position of each are not read."
+    },
+    {
+      "eval": "acc:world.list/1",
+      "checks": [
+        "B9.world-list-shows-origin"
+      ],
+      "missing": "Both worlds are listed with where the new one came from, but each world's clock and epoch are not read."
+    }
+  ]
+}

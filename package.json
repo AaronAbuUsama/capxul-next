@@ -4,7 +4,7 @@
   "type": "module",
   "scripts": {
     "check": "tsc -b packages/book",
-    "test": "pnpm --filter @capxul/book test && pnpm --filter @capxul/portal test && pnpm contracts:check-book:test && pnpm plan:test && pnpm plan:check && pnpm tasks:check",
+    "test": "pnpm --filter @capxul/book test && pnpm --filter @capxul/portal test && pnpm contracts:check-book:test && pnpm evals:test && pnpm plan:test && pnpm plan:check && pnpm tasks:check && pnpm evals:check",
     "book": "node --experimental-strip-types packages/book/src/main.ts books/target/index.ts /tmp/target",
     "frozen": "node --experimental-strip-types tools/check-frozen.ts",
     "judgments": "node --experimental-strip-types tools/report-judgments.ts",
@@ -23,7 +23,10 @@
     "plan:check": "node --experimental-strip-types --no-warnings tools/plan.ts check",
     "tasks": "node --experimental-strip-types tools/plan-tasks.ts",
     "tasks:check": "node --experimental-strip-types tools/plan-tasks.ts --check",
-    "portal:serve": "node --experimental-strip-types --no-warnings packages/portal/src/main.ts serve"
+    "portal:serve": "node --experimental-strip-types --no-warnings packages/portal/src/main.ts serve",
+    "evals": "node --experimental-strip-types --no-warnings packages/evals/src/main.ts",
+    "evals:check": "node --experimental-strip-types --no-warnings packages/evals/src/main.ts check",
+    "evals:test": "pnpm --filter @capxul/evals test"
   },
   "devDependencies": {
     "effect": "catalog:",

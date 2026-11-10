@@ -5,3 +5,6 @@ packages/portal/dist
 # spikes/skeleton/frappe generated files
 spikes/skeleton/frappe/capxul/**/__pycache__/
 spikes/skeleton/frappe/capxul/*.egg-info/
+
+# a run's log is kept on the machine that ran it; its results and evidence are committed
+status/runs/*/run.log

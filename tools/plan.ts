@@ -8,7 +8,7 @@ import { execFileSync } from "node:child_process";
 import { appendFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { planFilesOf } from "./plan-files.ts";
 import { dirname } from "node:path";
-import { buildBook } from "../packages/book/src/index.ts";
+import { buildBook, parseStatus, type StatusDocument } from "../packages/book/src/index.ts";
 import { name, records, stage } from "../books/target/index.ts";
 import { CONCEPTS } from "../books/target/shared/foundation.ts";
 import { forAaron } from "../books/target/shared/waiting.ts";
@@ -39,6 +39,13 @@ const commit = (): string => {
 const lines = (file: string): string => (existsSync(file) ? readFileSync(file, "utf8") : "");
 const logOf = (): readonly LogEntry[] => lines(LOG_FILE).split("\n").filter((l) => l.trim() !== "").map((l) => JSON.parse(l) as LogEntry);
 
+/** status/status.json as the book reads it; none when it is absent or is not one. */
+const statusOf = (): StatusDocument | null => {
+  if (!existsSync("status/status.json")) return null;
+  const parsed = parseStatus(JSON.parse(readFileSync("status/status.json", "utf8")) as unknown);
+  return parsed.ok ? parsed.value : null;
+};
+
 const read = (): { ok: true; plan: Plan } | { ok: false; error: string } => {
   if (!existsSync(PLAN_FILE)) return { ok: true, plan: EMPTY_PLAN };
   try {
@@ -60,7 +67,7 @@ const main = (argv: readonly string[]): number => {
   const answers = unapplied(parseAnswerLines(lines(ANSWERS_FILE)), log);
   const files = planFilesOf();
   if (r.kind === "show" && r.task !== undefined) {
-    console.log(showTask(loaded.plan, r.task, files.tasks[r.task] ?? null, log));
+    console.log(showTask(loaded.plan, r.task, files.tasks[r.task] ?? null, log, statusOf()));
     return loaded.plan.tasks.some((t) => t.id === r.task) ? 0 : 1;
   }
   if (r.kind === "show") {

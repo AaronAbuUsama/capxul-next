@@ -46,6 +46,11 @@ from the build session on, the product code it describes.
 - **Tracking work.** Until the swarmD ledger runs, track work on the scoreboard and in
   `docs/mission/progress.md`: one line per finished lane, with its evals and its commit. This old
   Capxul repository's Linear workflow and `docs/rules` do not apply here.
+- **Done means evals pass in a run.** A task is done when its evals pass in a run, not when an agent
+  says so. `pnpm evals -- <eval ids | all | --journey id | --milestone id>` runs the checks bound to
+  evals (`evals/bindings/`) and is the only thing that writes `status/status.json`; never edit that
+  file or an eval's verdict by hand. A claim with no check is `not_run` until a check proves all of
+  it (`pnpm evals -- gaps` lists what has none). `docs/design-book.md`, "Evals run", has the rules.
 - **Decisions.** Every judgment is a decision record. Bring Aaron only what the goal prompt lists
   under "Bring to Aaron".
 - **Old system.** `Xelmar-tech/infrastructure` (branch `integration/factory`) is a reference for

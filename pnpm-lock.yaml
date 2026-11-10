@@ -204,6 +204,8 @@ importers:
         specifier: 'catalog:'
         version: 5.9.3
 
+  packages/contracts: {}
+
   packages/devnet:
     dependencies:
       '@capxul/sdk':
@@ -212,6 +214,19 @@ importers:
       viem:
         specifier: 'catalog:'
         version: 2.55.18(typescript@5.9.3)
+    devDependencies:
+      '@types/node':
+        specifier: 'catalog:'
+        version: 22.19.1
+      typescript:
+        specifier: 'catalog:'
+        version: 5.9.3
+
+  packages/evals:
+    dependencies:
+      '@capxul/book':
+        specifier: workspace:*
+        version: link:../book
     devDependencies:
       '@types/node':
         specifier: 'catalog:'

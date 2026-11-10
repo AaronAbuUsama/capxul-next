@@ -137,7 +137,10 @@ books/target/
   index.ts                     every record of the target, with stage "target"
 tools/                         the workflow scripts that wrote the book; report generators;
                                impact.ts and record-status.ts (below)
-status/status.json             what has run, per eval (below); absent until a run is recorded
+packages/evals/                the evals runner: it runs the checks bound to evals and writes the results (below)
+evals/bindings/<area>.json     which checks prove which evals, one file per area (below)
+status/status.json             what has run, per eval (below); written only by a run, never by hand
+status/runs/<run>/             one run's results, check lines and evidence (below)
 docs/decisions/                the accepted decisions, and the generated judgments report
 docs/mission/initializer.md    the goal prompt that starts the build
 ```
@@ -585,6 +588,55 @@ are written sorted, so two runs of the same results give the same file. The port
 shows the evals passing per operation, per concept and in total, and `pnpm portal:check` fails
 when an entry names an eval the book does not derive.
 
+## Evals run: bindings, runs and the score
+
+**A task is done when its evals pass in a run, not when an agent says so.** The book derives the evals; `status/status.json` is
+the score; only a run writes it. Agents' reports are not evidence: a run's results are.
+
+An eval is a claim in the book. A **check** is code that proves it: a named step of an executable script and its expected
+outcome (pass). A **binding** says which checks prove which evals. The runner is `packages/evals` (decision `system.layout`
+names `packages/evals` for the harness); the bindings are `evals/bindings/<area>.json`, one file per area (`sites`, `plugs`,
+`devnet`), each:
+
+```jsonc
+{ "area": "devnet", "script": "spikes/skeleton/run.sh", "worlds": ["main"], "secrets": ["spikes/skeleton/.env"],
+  "bindings": [ { "eval": "acc:world.snapshot.restore/1", "checks": ["B9.in-place-state-back-at-saved-moment", "…"], "why": "…" } ],
+  "near":     [ { "eval": "acc:world.snapshot.save/1",    "checks": ["B9.snapshot-saved", "…"], "missing": "…" } ] }
+```
+
+- **A binding is strict.** An eval is bound to a check only if the check establishes the whole claim; the eval passes when every
+  one of its checks passes. A check that proves only part of a claim is listed as a **near-miss**, with what is missing, and it
+  never scores. An eval is bound once. The loader fails on an eval id the book does not derive, a check the script does not
+  list, a guard (a check that can only fail), an eval bound twice, and an eval both bound and a near-miss.
+- **The script contract.** `run.sh [company] [--only B1,B6]` runs the behaviours asked for, and the ones they need first
+  (`deps` in the script); `run.sh --list` prints each check's name and whether it is a check or a guard. Each check prints a human
+  `PASS`/`FAIL` line and one machine line, `@check<TAB>name<TAB>pass|fail<TAB>ms<TAB>detail`. A name is stable
+  (`<behaviour>.<what>`); a name that repeats in a run (the four payments of B7) passes only if every repeat passed.
+- **Truthful states.** An eval asked for with no binding is written `not_run`, never `pass`. A bound eval with a failing check is
+  `fail` (the portal shows it orange). A bound eval whose checks did not all run and none failed writes nothing, so it stays as it
+  was. `status/status.json` is written only by `tools/record-status.ts`, which the runner calls with the run's results file.
+- **Evidence.** Each run keeps `status/runs/<run id>/`: `results.json` (what was merged), `checks.tsv` (every check line),
+  `evidence/<eval>.txt` (the eval, its claim, its checks with their details, the run, the commit; at most 60 000 characters) and
+  `run.log` (the script's whole output, at most 400 000 characters, not committed). Values from the files a binding lists under
+  `secrets` (keys, secrets, passwords, tokens) are replaced with `[redacted]`. Only anvil's published test keys exist in a run.
+  A commit that has uncommitted changes to tracked files outside `status/` is recorded as `<sha>+dirty`.
+
+```bash
+pnpm evals -- all                                      # every eval that has a check (company slug: a fresh one; --slug to choose, --world main)
+pnpm evals -- acc:doc.submit/1 acc:world.snapshot.restore/1
+pnpm evals -- --journey run_a_world                    # the journey's evals and its steps' acceptance, returns, refusals, events
+pnpm evals -- --milestone m1                           # the eval ids named by the milestone's exit lines and its tasks
+pnpm evals -- check                                    # the bindings against the book and the scripts; no entry that is pass or fail without a binding (also in pnpm test)
+pnpm evals -- gaps                                     # checks no eval is proved by; checks that prove part of one; journey evals with no check
+```
+
+A run needs the stack the script drives (for the skeleton: the bench on 8000, anvil on 8545 and the Core stub on 8787, started
+by the script if they are down) and takes about ten minutes. To run a copy of the script from another checkout against a stack
+that is already up, set `SKELETON_FRAPPE` to that stack's `frappe/` folder, so the run does not recreate its containers.
+
+A task may name the evals that say it is done (`pnpm plan task edit <id> --evals id,id`, checked against the book);
+`pnpm plan show <task>` then prints how many pass in the status document and which do not yet.
+
 ## The plan
 
 The book says what to build; the plan says where the build is and what comes next. It lives beside the book, not in it
@@ -644,7 +696,8 @@ pnpm contracts:check-book                                        # the contract 
 pnpm contracts:export-abi                                        # after a contract's source changes: forge build, then the ABI the check reads
 node --experimental-strip-types tools/report-judgments.ts > docs/decisions/judgments.md
 node --experimental-strip-types --no-warnings tools/impact.ts event:payment_transitioned   # what depends on a record
-node --experimental-strip-types --no-warnings tools/record-status.ts results.json          # merge a run into status/status.json
+node --experimental-strip-types --no-warnings tools/record-status.ts results.json          # merge a run into status/status.json (a run does this itself)
+pnpm evals -- all                                                # run the checks bound to evals and record the verdicts; pnpm evals -- gaps shows what has none
 pnpm plan show                                                   # the plan: note, goal, milestones, path, blocked, tasks
 pnpm plan check && pnpm tasks:check                              # the plan against the book; the derived task tree is current
 ```

@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import { apply, applyAnswer, appliedTargets, check, parseAnswerLines, parseArgs, parsePlan, show, unapplied, waitsOnOwner } from "./service.ts";
+import { apply, applyAnswer, appliedTargets, check, parseAnswerLines, parseArgs, parsePlan, show, showTask, unapplied, waitsOnOwner } from "./service.ts";
 import type { Command, Ctx, Facts, Plan } from "./types.ts";
 import { EMPTY_PLAN } from "./types.ts";
 
@@ -216,4 +216,23 @@ test("answers: a change to a decision, or a need set after the answer, is not an
   ] as never;
   assert.equal(appliedTargets(log).length, 3, "without the answers file every apply counts");
   assert.deepEqual(appliedTargets(log, lines).map((t) => t.id), ["d.two"]);
+});
+
+test("a task names the evals that say it is done; an unknown one is refused, and `show` counts the ones that pass", () => {
+  const plan = run(...base);
+  const edit = (evals: string[]) => apply(plan, { kind: "task.edit", id: "t1", fields: { evals } }, ctx, facts);
+  const refused = edit(["ev:9"]);
+  assert.ok(!refused.ok && /eval ev:9 does not exist/.test(refused.error));
+  const named = edit(["ev:1"]);
+  assert.ok(named.ok);
+  if (!named.ok) return;
+  const withEvals = named.value.plan;
+  assert.deepEqual(withEvals.tasks.find((t) => t.id === "t1")?.evals, ["ev:1"]);
+  assert.deepEqual(parseArgs(["task", "edit", "t1", "--evals", "ev:1,ev:2"]), { ok: true, value: { kind: "change", by: "coordinator", command: { kind: "task.edit", id: "t1", fields: { evals: ["ev:1", "ev:2"] } } } });
+  assert.ok(has({ ...withEvals, tasks: withEvals.tasks.map((t) => (t.id === "t1" ? { ...t, evals: ["ev:7"] } : t)) }, /t1: it names eval ev:7/));
+  const text = (status: Parameters<typeof showTask>[4]) => showTask(withEvals, "t1", null, [], status);
+  assert.match(text(null), /evals: 0 of 1 pass; not yet: ev:1 \(not run\)/);
+  assert.match(text({ evals: { "ev:1": { verdict: "fail" } } }), /evals: 0 of 1 pass; not yet: ev:1 \(fail\)/);
+  assert.match(text({ evals: { "ev:1": { verdict: "pass" } } }), /evals: 1 of 1 pass$/m);
+  assert.equal(parsePlan(JSON.parse(JSON.stringify(withEvals))).ok, true, "the plan round-trips with the field");
 });
