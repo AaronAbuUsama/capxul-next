@@ -5,3 +5,6 @@ on a WebSocket (`types.ts` holds the contract and says what travels). A client t
 then only what changes; `stop` asks a run to stop. It reads runs through `deps` and keeps nothing of its own; a run
 that is not changing is not read again. Sending input to an agent is not here yet: that needs the host to be the
 process that plays the run.
+
+Over HTTP it also serves a capture's file, `GET /runs/evidence/<run id>/<file name>`, from that run's evidence folder
+(`deps.evidence`) and nowhere else, whole or in the byte range a video player asks for.

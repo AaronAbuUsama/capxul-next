@@ -4,7 +4,7 @@
  * it were live, so the live states can be seen.
  */
 import fixture from "@/fixtures/runs.json";
-import type { Agent, Finding, Handback, Handoff, RawStep, Review, Run, Step, StepState } from "./types.ts";
+import type { Agent, Finding, Handback, Handoff, RawStep, Review, Run, Shown, Step, StepState } from "./types.ts";
 
 const REPLAY = { run: "m1-telemetry-11101341", step: "make.2", keep: 0.55 };
 
@@ -43,6 +43,17 @@ export const roleLabel: Record<string, string> = { builder: "Builder", reviewer:
 const roundOf = (name: string): number | null => { const m = /\.(\d+)(\.agent)?$/.exec(name); return m ? Number(m[1]) : null; };
 const stateOf = (raw: RawStep, bad: boolean): StepState => (raw.state === "running" ? "running" : bad ? "attention" : "done");
 
+/** What the agent of step `by` showed: its captures, each with the claim made about it, then the claims that named no capture. */
+export const shownOf = (run: Run, by: string): Shown[] => {
+  const claims = run.steps.find((s) => s.name === by)?.evidence ?? [], captures = (run.captures ?? []).filter((c) => c.by === by);
+  return [...captures.map((capture) => ({ capture, claim: claims.find((e) => e.capture === capture.id) ?? null })), ...claims.filter((e) => !captures.some((c) => c.id === e.capture)).map((claim) => ({ capture: null, claim }))];
+};
+const evidenceRow = (run: Run, by: string, round: number | null, who: string): Step[] => {
+  const shown = shownOf(run, by), out = shown.filter((s) => s.claim && !s.claim.ok).length;
+  return shown.length === 0 ? [] : [{ id: `evidence.${by}`, kind: "evidence", title: `${who}'s evidence`, round, state: out > 0 ? "attention" : "done", shown, by,
+    summary: `${shown.filter((s) => s.capture).length} captured${out > 0 ? ` · ${out} thrown out` : ""}` }];
+};
+
 /** The timeline: one row per step a person cares about (a checker and its conversation are one row). */
 export const stepsOf = (run: Run): Step[] => {
   const out: Step[] = [];
@@ -58,6 +69,7 @@ export const stepsOf = (run: Run): Step[] => {
         summary: raw.state === "running" ? "working" : raw.said?.ok ? "handed back" : (raw.said?.error ?? "did not finish").replace("unanswered: ", "").replace("model_error", "model error") });
       if (raw.changes) out.push({ id: `changes.${round}`, kind: "changes", title: "Changes", round, state: "done", changes: raw.changes, commit: raw.changes.commit,
         summary: `${/(\d+) files? changed/.exec(raw.changes.stat)?.[1] ?? "?"} files · ${raw.changes.commit}` });
+      out.push(...evidenceRow(run, raw.name, round, "Builder"));
     } else if (/^gates\./.test(raw.name)) {
       const failed = (raw.checks ?? []).filter((c) => !c.ok).length;
       out.push({ id: raw.name, kind: "checks", title: "Checks", round, state: stateOf(raw, failed > 0), checks: raw.checks, summary: raw.checks ? `${raw.checks.length - failed} of ${raw.checks.length} pass` : "running" });
@@ -65,6 +77,7 @@ export const stepsOf = (run: Run): Step[] => {
       const review = raw.review as Review | undefined, blocking = (review?.findings ?? []).filter((f) => f.severity === "blocking").length;
       out.push({ id: raw.name, kind: "reviewer", title: roleLabel[raw.name.split(".")[0]!] ?? "Checker", round, at: agent?.startedAt ?? null, state: stateOf(raw, review?.verdict !== "approve" && raw.state !== "running"), agent, review,
         summary: raw.state === "running" ? "reviewing" : review?.verdict === "approve" ? "approved" : `changes · ${blocking} blocking` });
+      out.push(...evidenceRow(run, `${raw.name}.agent`, round, roleLabel[raw.name.split(".")[0]!] ?? "Checker"));
     } else if (raw.name === "push") out.push({ id: raw.name, kind: "publish", title: "Push the branch", round: null, state: stateOf(raw, false), summary: String(raw.result ?? run.branch ?? "") });
     else if (raw.name === "plan.block") out.push({ id: raw.name, kind: "end", title: "Block the task", round: null, state: "attention", summary: "handed to the coordinator" });
     else if (raw.end) out.push({ id: raw.name, kind: "end", title: raw.end === "ready" ? "Ready to merge" : raw.end === "blocked" ? "Blocked" : "Answered", round: null, state: raw.end === "blocked" ? "attention" : "done", summary: raw.end === "blocked" ? `${raw.reasons?.length ?? 0} findings open` : (raw.reasons?.[0] ?? ""), reasons: raw.reasons });

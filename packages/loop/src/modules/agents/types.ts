@@ -21,6 +21,8 @@ export interface Policy {
   readonly bash: Record<Profile, readonly RegExp[]>;
   /** Paths (relative to the directory) the file tools may not write even inside it. */
   readonly denyWrite: readonly RegExp[];
+  /** Tools beyond the coding ones that an agent may call, by name. Each is its own guard: the policy only lets it through. */
+  readonly tools?: readonly string[];
 }
 
 export interface HostOptions {

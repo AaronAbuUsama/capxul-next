@@ -5,6 +5,9 @@
  */
 
 /** A run's status as a reader sees it: the run's own (runs/types.ts, `Status`), or `dead` when it says running and its process is gone. */
+import type { Capture, Judged } from "../evidence/types.ts";
+
+export type { Capture, CaptureFile, CaptureKind, CaptureSource, Evidence, Judged } from "../evidence/types.ts";
 export type RunStatus = "running" | "ready" | "answered" | "blocked" | "failed" | "stopped" | "merged" | "dead";
 
 export interface EventLine {
@@ -93,6 +96,8 @@ export interface StepRecord {
   checks?: { name: string; ok: boolean; tail: string }[];
   review?: { verdict: string; findings: unknown[]; fixed: string[] };
   said?: { ok: boolean; error: string | null; head: string; tokens: number; json: unknown };
+  /** The claims in this agent's structured output, judged against the run's captures. Absent when it claimed nothing. */
+  evidence?: Judged[];
   changes?: Changes | null;
   result?: unknown;
   end?: string;
@@ -117,6 +122,8 @@ export interface RunDetail {
   readonly step: string | null;
   readonly steps: readonly StepRecord[];
   readonly agents: readonly AgentSession[];
+  /** Everything the run's agents captured, oldest first. A file is fetched from the host at `evidence/<run id>/<file name>`. */
+  readonly captures: readonly Capture[];
 }
 
 /** The longest a summary of one argument, a reason or an event may be, in characters. */

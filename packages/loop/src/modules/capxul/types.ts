@@ -4,6 +4,7 @@
  * reaches the repository through commands and files, never through imports.
  */
 import type { Models } from "@earendil-works/pi-ai";
+import type { Evidence, Exec, Tooling } from "../evidence/types.ts";
 import type { Lane } from "../lanes/service.ts";
 import type { Run } from "../runs/service.ts";
 
@@ -33,6 +34,8 @@ export interface Ctx {
   readonly models?: Models;
   /** Tests hand in short waits; absent, pi retries a request 3 times and the loop then waits 20 s, 60 s and 3 min for the gateway. */
   readonly retry?: { readonly maxRetries: number; readonly baseDelayMs: number; readonly waitsMs: readonly number[] };
+  /** Tests hand in the capture programs and how they are run; absent, what this machine's `PATH` holds (modules/evidence). */
+  readonly evidence?: { readonly tooling: Tooling; readonly exec: Exec };
   /** Tests hand in the gates to run; absent, the repository's own (internal/gates.ts). */
   readonly gates?: readonly { name: string; sh: string }[];
 }
@@ -57,9 +60,9 @@ export interface Job { readonly ctx: Ctx; readonly run: Run; /** What the agents
 export interface Finding { id?: string; check?: string; severity: "blocking" | "advisory"; where?: { path: string; line?: number }; text: string }
 export interface Handover { done: string[]; left: string[]; decisions: string[]; where: string[] }
 /** swarm-templates.md section 3 (the pull request is the runner's push, so `pr` is 0). */
-export interface Handback { submit?: { version: { kind: "commit"; repo: string; commit: string }; addresses: string[]; note: string }; pr?: number; handover?: Handover; ran?: Record<string, number>; ask?: { to: "manager"; text: string; options?: string[] } }
+export interface Handback { /** What it shows for what it says: claims about captures it made (modules/evidence). */ evidence?: Evidence[]; submit?: { version: { kind: "commit"; repo: string; commit: string }; addresses: string[]; note: string }; pr?: number; handover?: Handover; ran?: Record<string, number>; ask?: { to: "manager"; text: string; options?: string[] } }
 /** swarm-templates.md section 4.1. */
-export interface Check { version?: { kind: "commit"; repo: string; commit: string }; verdict: "approve" | "changes"; findings: Finding[]; fixed: string[]; ran?: Record<string, number>; verdicts?: unknown[] }
+export interface Check { /** What the checker shows for its verdict: claims about captures it made. */ evidence?: Evidence[]; version?: { kind: "commit"; repo: string; commit: string }; verdict: "approve" | "changes"; findings: Finding[]; fixed: string[]; ran?: Record<string, number>; verdicts?: unknown[] }
 export interface Gate { name: string; ok: boolean; tail: string }
 /** What an agent step returned (kept in the run's ledger). */
 export interface Said { ok: boolean; text: string; json?: unknown; costUsd: number; tokens: number; head: string; error?: string }

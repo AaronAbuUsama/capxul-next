@@ -6,7 +6,7 @@ import * as chord from "@earendil-works/chord";
 import * as schema from "@earendil-works/pi-schema";
 import { WebSocketServer } from "ws";
 import type { RunDetail } from "../inspect/types.ts";
-import { fileUnder } from "./internal/files.ts";
+import { fileUnder, ranged } from "./internal/files.ts";
 import { HOST_NAME, PREFIX, runsContract, summaryOf, type HostDeps, type HostOptions, type Served } from "./types.ts";
 
 export type * from "./types.ts";
@@ -56,6 +56,15 @@ export const serve = async (deps: HostDeps, o: HostOptions): Promise<Served> => 
     if (req.method !== "GET" && req.method !== "HEAD") return send(405, "text/plain; charset=utf-8", "this host only answers reads over HTTP\n");
     if (path === `${PREFIX}summary.json`) return send(200, "application/json; charset=utf-8", `${JSON.stringify({ runs: (await read()).map(summaryOf) })}\n`);
     if (!path.startsWith(PREFIX)) return send(404, "text/plain; charset=utf-8", `the runs are at ${PREFIX}\n`);
+    const shown = /^evidence\/([A-Za-z0-9][A-Za-z0-9._-]*)\/([A-Za-z0-9][A-Za-z0-9._-]*)$/.exec(path.slice(PREFIX.length));
+    if (shown) {                                                          // a capture's file: an image, a video, a cast
+      const folder = deps.evidence?.(shown[1]!) ?? null, found = folder === null ? null : fileUnder(folder, shown[2]!);
+      if (!found) return send(404, "text/plain; charset=utf-8", "no such capture\n");
+      const part = ranged(found.body, req.headers.range);
+      res.writeHead(part.status, { "content-type": found.type, "cache-control": "private, max-age=3600", "content-length": String(part.body.length), ...part.headers });
+      res.end(req.method === "HEAD" ? undefined : part.body);
+      return;
+    }
     const file = o.ui === undefined ? null : fileUnder(o.ui, path.slice(PREFIX.length) || "index.html");
     if (file) return send(200, file.type, file.body);
     if (path === PREFIX) return send(200, "text/plain; charset=utf-8", "The host is running, but the Runs app is not built: pnpm --filter @capxul/loop-ui build\n");

@@ -8,6 +8,7 @@ import { entriesOf, type Host } from "../agents/service.ts";
 import type { Cursor, EntryRecord } from "@earendil-works/pi-durable";
 import { alive, listRuns } from "../runs/service.ts";
 import type { Info } from "../runs/types.ts";
+import { capturesOf, FOLDER } from "../evidence/service.ts";
 import { detailOf } from "./internal/detail.ts";
 import { countOf, type Counted } from "./internal/events.ts";
 import { scrub, secretsOf } from "./internal/scrub.ts";
@@ -115,6 +116,6 @@ export const showDetail = async (look: Look, id: string): Promise<RunDetail | nu
   const dead = info.status === "running" && !alive(info.pid);
   try {
     const host = await look.open(join(look.runs, id));
-    try { return { ...(await detailOf(host, info, secretsOf(look.env), look.git)), status: dead ? "dead" : info.status }; } finally { await host.close(); }
+    try { return { ...(await detailOf(host, info, secretsOf(look.env), look.git, capturesOf(join(look.runs, id, FOLDER)))), status: dead ? "dead" : info.status }; } finally { await host.close(); }
   } catch { return null; }
 };

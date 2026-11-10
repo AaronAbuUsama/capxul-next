@@ -4,6 +4,7 @@
  * output: each text is scrubbed of secrets and cut, and paths under the lane are shown relative. The storage keeps
  * everything whole.
  */
+import { judge, type Capture, type Judged } from "../../evidence/service.ts";
 import { AssistantEntry, type EntryRecord } from "@earendil-works/pi-durable";
 import { entriesOf, type Host } from "../../agents/service.ts";
 import type { Info } from "../../runs/types.ts";
@@ -75,7 +76,7 @@ const sessionOf = async (host: Host, key: string, id: number, clean: Clean): Pro
   };
 };
 
-const stepsOf = (ledger: readonly EntryRecord[], clean: Clean, changes: (commit: string) => Changes | null): StepRecord[] => {
+const stepsOf = (ledger: readonly EntryRecord[], clean: Clean, changes: (commit: string) => Changes | null, claims: (by: string, json: unknown) => Judged[]): StepRecord[] => {
   const steps: StepRecord[] = [];
   const at = (name: string): StepRecord => steps.find((s) => s.name === name) ?? (steps.push({ name, state: "running" }), steps.at(-1)!);
   for (const e of ledger) {
@@ -90,6 +91,8 @@ const stepsOf = (ledger: readonly EntryRecord[], clean: Clean, changes: (commit:
       else if (r && typeof r === "object" && "ok" in r) {
         s.said = { ok: r["ok"] === true, error: typeof r["error"] === "string" ? clean(r["error"], 500) : null, head: String(r["head"] ?? "").slice(0, 7), tokens: Number(r["tokens"] ?? 0), json: deep(r["json"] ?? null, clean) };
         if (/^make\./.test(d.name) && s.said.ok && typeof r["head"] === "string") s.changes = changes(r["head"]);
+        const judged = claims(d.name, r["json"]);
+        if (judged.length > 0) s.evidence = judged.map((e) => ({ ...e, shows: clean(e.shows, 600) }));
       } else s.result = typeof r === "string" ? clean(r, 600) : r;
     }
   }
@@ -97,10 +100,10 @@ const stepsOf = (ledger: readonly EntryRecord[], clean: Clean, changes: (commit:
 };
 
 /** `git` runs a git command in the repository the runs belong to and returns its output, or an empty string. */
-export const detailOf = async (host: Host, info: Info, secrets: readonly string[], git?: (args: readonly string[]) => string): Promise<RunDetail> => {
+export const detailOf = async (host: Host, info: Info, secrets: readonly string[], git?: (args: readonly string[]) => string, captures: readonly Capture[] = []): Promise<RunDetail> => {
   const lane = (info.extra["lane"] as { dir?: string; branch?: string; base?: string } | undefined) ?? {};
   const opts = (info.extra["opts"] as { script?: string; rounds?: number } | undefined) ?? {};
-  const task = (info.extra["task"] as { title?: string; goal?: string } | undefined) ?? {};
+  const task = (info.extra["task"] as { title?: string; goal?: string; evals?: string[] } | undefined) ?? {};
   const clean: Clean = (text, cap) => scrubText(lane.dir ? text.split(`${lane.dir}/`).join("").split(lane.dir).join(".") : text, secrets, cap);
   const changes = (commit: string): Changes | null => {
     if (!git) return null;
@@ -114,6 +117,8 @@ export const detailOf = async (host: Host, info: Info, secrets: readonly string[
     id: info.id, task: { id: info.subject, title: clean(task.title ?? info.subject, 200), goal: clean(task.goal ?? "", 3000) }, workflow: opts.script ?? "",
     status: info.status, round: info.round, rounds: typeof opts.rounds === "number" ? opts.rounds : null, startedAt: info.startedAt, endedAt: info.endedAt ?? null, updatedAt: info.updatedAt,
     tokens: info.tokens, branch: lane.branch ?? null, base: lane.base ?? null, reasons: info.reasons.map((r) => clean(r, 600)), error: info.error ? clean(info.error, 600) : null, step: info.step,
-    steps: stepsOf(ledger, clean, changes), agents: await Promise.all(named.map((d) => sessionOf(host, d.name!, d.id!, clean))),
+    steps: stepsOf(ledger, clean, changes, (by, json) => judge((json as { evidence?: unknown } | null)?.evidence, captures, { by, evals: task.evals ?? [] })),
+    agents: await Promise.all(named.map((d) => sessionOf(host, d.name!, d.id!, clean))),
+    captures: captures.map((c) => ("command" in c.source ? { ...c, source: { ...c.source, command: clean(c.source.command, 600) } } : c)),
   };
 };

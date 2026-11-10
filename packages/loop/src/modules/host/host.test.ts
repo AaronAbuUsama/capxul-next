@@ -9,7 +9,7 @@ import WS from "ws";
 import type { RunDetail } from "../inspect/types.ts";
 import { runsContract, serve, type HostDeps } from "./service.ts";
 
-const run = (id: string, step: string): RunDetail => ({ id, task: { id: "t", title: "T", goal: "" }, workflow: "pair", status: "running", round: 1, rounds: 3, startedAt: `2026-11-10T10:00:0${id.length}.000Z`, endedAt: null, updatedAt: "", tokens: 0, branch: null, base: null, reasons: [], error: null, step, steps: [], agents: [] });
+const run = (id: string, step: string): RunDetail => ({ id, task: { id: "t", title: "T", goal: "" }, workflow: "pair", status: "running", round: 1, rounds: 3, startedAt: `2026-11-10T10:00:0${id.length}.000Z`, endedAt: null, updatedAt: "", tokens: 0, branch: null, base: null, reasons: [], error: null, step, steps: [], agents: [], captures: [] });
 const until = async (ok: () => boolean): Promise<void> => { for (let i = 0; i < 200 && !ok(); i++) await new Promise((r) => setTimeout(r, 10)); assert.ok(ok(), "timed out"); };
 
 test("a client that attaches gets the runs, then what changes; a run that did not change is not read again; stop reaches the owner", async () => {
@@ -65,5 +65,22 @@ test("over HTTP the host answers reads only: a summary of the runs, and the app'
     assert.equal((await get("/runs/..%2Fsecret.txt")).status, 404);
     assert.equal((await get("/elsewhere")).status, 404);
     assert.equal((await get("/runs/summary.json", { method: "POST" })).status, 405);
+  } finally { await served.close(); }
+});
+
+test("a capture's file is served from its run's evidence folder, whole or in the part a video player asks for, and nothing outside it", async () => {
+  const folder = mkdtempSync(join(tmpdir(), "loop-shown-"));
+  writeFileSync(join(folder, "make.1.pays.webm"), "0123456789");
+  writeFileSync(join(folder, "..", "outside.txt"), "not served");
+  const served = await serve({ ids: () => [], load: async () => null, stop: () => "", say: () => undefined, evidence: (id) => (id === "run-1" ? folder : null) }, { port: 0 });
+  const get = async (path: string, headers: Record<string, string> = {}) => { const r = await fetch(`http://127.0.0.1:${served.port}${path}`, { headers }); return [r.status, r.headers.get("content-type"), r.headers.get("content-range"), await r.text()]; };
+  try {
+    assert.deepEqual(await get("/runs/evidence/run-1/make.1.pays.webm"), [200, "video/webm", null, "0123456789"]);
+    assert.deepEqual(await get("/runs/evidence/run-1/make.1.pays.webm", { range: "bytes=2-5" }), [206, "video/webm", "bytes 2-5/10", "2345"]);
+    assert.deepEqual(await get("/runs/evidence/run-1/make.1.pays.webm", { range: "bytes=-3" }), [206, "video/webm", "bytes 7-9/10", "789"]);
+    assert.deepEqual((await get("/runs/evidence/run-1/make.1.pays.webm", { range: "bytes=50-" })).slice(0, 3), [416, "video/webm", "bytes */10"]);
+    assert.equal((await get("/runs/evidence/run-2/make.1.pays.webm"))[0], 404);       // no such run
+    assert.equal((await get("/runs/evidence/run-1/nope.gif"))[0], 404);
+    assert.equal((await get("/runs/evidence/run-1/..%2Foutside.txt"))[0], 404);
   } finally { await served.close(); }
 });

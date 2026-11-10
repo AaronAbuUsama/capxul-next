@@ -17,3 +17,5 @@ names another folder of runs. The portal's Live page runs these commands; nothin
 reviewer's verdict and findings) and every agent's conversation, entry by entry, with tool calls and their results.
 It does carry prompts, replies and tool output: each text is scrubbed and cut, and paths under the lane are shown
 relative. The storage itself is never changed: it keeps every conversation whole.
+It also carries the run's captures (`captures`, from the evidence folder's own record) and, on each agent's step, the
+claims of its structured output judged against them (`evidence`); the files themselves are the host's to serve.

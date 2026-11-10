@@ -7,7 +7,8 @@ import { createModels } from "@earendil-works/pi-ai/models";
 import { fauxAssistantMessage, fauxProvider, fauxToolCall } from "@earendil-works/pi-ai/providers/faux";
 import pair from "../../../../../loops/pair.ts";       // the real standard script, played here against a fake provider
 import { git } from "../lanes/service.ts";
-import { clean, DEFAULTS, lane, logs, merge, resume, start, status, stop, watch, work, type Ctx, type Opts } from "./service.ts";
+import { clean, DEFAULTS, lane, logs, merge, resume, showFull, start, status, stop, watch, work, type Ctx, type Opts } from "./service.ts";
+import type { Exec } from "../evidence/service.ts";
 import * as plan from "./internal/plan.ts";
 
 const AGENTS = join(import.meta.dirname, "../../../../../.claude/agents");
@@ -21,6 +22,14 @@ const PLAN = { plan: { tasks: [
   { id: "t2", title: "Second", why: "later", state: "todo", needs: ["t1"] },
   { id: "t3", title: "Third", why: "done already", state: "done", needs: [] },
 ], path: { tasks: ["t1", "t2", "t3"] } } };
+
+/** A recorder that is not there: it writes the cast and the GIF the real one would, and a command named `leave` leaves a file behind. */
+const recorder: Exec = async (file, args, o) => {
+  const command = args[args.indexOf("-c") + 1] ?? "";
+  if (file === "asciinema" && command.includes("leave")) writeFileSync(join(o.cwd, "stray.txt"), "left behind\n");
+  writeFileSync(args.at(-1)!, file === "agg" ? "GIF89a" : `${JSON.stringify({ version: 2, command })}\n${JSON.stringify([0.1, "o", "ran\r\n"])}\n`);
+  return { code: 0, out: "" };
+};
 
 const rig = () => {
   const dir = mkdtempSync(join(tmpdir(), "loop-capxul-"));
@@ -43,7 +52,7 @@ const rig = () => {
   const models = createModels();
   models.setProvider(faux.provider);
   const lines: string[] = [];
-  const ctx = (gates: { name: string; sh: string }[] = [{ name: "ok", sh: "true" }]): Ctx => ({ root, env: { PATH: process.env.PATH ?? "", HOME: dir }, now: () => new Date(), say: (l) => lines.push(l), models, gates, retry: { maxRetries: 0, baseDelayMs: 1, waitsMs: [5, 5] } });
+  const ctx = (gates: { name: string; sh: string }[] = [{ name: "ok", sh: "true" }]): Ctx => ({ root, env: { PATH: process.env.PATH ?? "", HOME: dir }, now: () => new Date(), say: (l) => lines.push(l), models, gates, retry: { maxRetries: 0, baseDelayMs: 1, waitsMs: [5, 5] }, evidence: { tooling: { asciinema: "asciinema", agg: "agg", browser: null, ffmpeg: null }, exec: recorder } });
   const calls = (): string[] => (existsSync(join(root, "plan-calls.log")) ? readFileSync(join(root, "plan-calls.log"), "utf8").split("\n").filter(Boolean) : []);
   return { dir, root, origin, faux, ctx, calls, lines };
 };
@@ -214,4 +223,31 @@ test("clean frees the lane's branch name, so the next run of the task starts fro
   const dir = (two.extra.lane as { dir: string }).dir;
   assert.equal(existsSync(join(dir, "second.txt")), true);
   assert.equal(existsSync(join(dir, "first.txt")), false);                    // a fresh lane from the base, not the old attempt
+});
+
+test("evidence: both agents record commands; claims are judged against what the loop recorded; the checker is told; what a reader leaves is undone", async () => {
+  const r = rig();
+  const record = (name: string, command: string) => fauxAssistantMessage(fauxToolCall("record_terminal", { name, command }), { stopReason: "toolUse" });
+  const withEvidence = (block: string, evidence: unknown[]) => block.replace("```json\n{", `\`\`\`json\n{"evidence":${JSON.stringify(evidence)},`);
+  r.faux.setResponses([
+    record("it-runs", "node -v"), fauxAssistantMessage(withEvidence(handback("Made."), [{ capture: "it-runs", shows: "node answers" }, { capture: "made-up", shows: "nothing" }])),
+    record("tried-it", "node leave.js"), record("no", "git commit -m x"), fauxAssistantMessage(withEvidence(check("approve"), [{ capture: "tried-it", shows: "it runs" }])),
+  ]);
+  const info = await start(r.ctx(), "t1", opts, pair);
+  assert.equal(info.status, "ready", JSON.stringify(info));
+  const full = (await showFull(r.ctx(), info.id))!;
+  assert.deepEqual(full.captures.map((c) => [c.id, c.by, c.source, c.files.map((x) => x.type)]), [
+    ["make.1.it-runs", "make.1", { command: "node -v", exit: 0 }, ["image/gif", "application/x-asciicast"]],
+    ["reviewer.1.agent.tried-it", "reviewer.1.agent", { command: "node leave.js", exit: 0 }, ["image/gif", "application/x-asciicast"]],
+  ]);
+  const step = (name: string) => full.steps.find((x) => x.name === name)!;
+  assert.deepEqual(step("make.1").evidence, [{ capture: "make.1.it-runs", shows: "node answers", ok: true }, { capture: "made-up", shows: "nothing", ok: false, why: "no capture named made-up was made in this run" }]);
+  assert.deepEqual(step("reviewer.1.agent").evidence, [{ capture: "reviewer.1.agent.tried-it", shows: "it runs", ok: true }]);
+  const reviewer = full.agents.find((a) => a.key === "reviewer.1.agent")!, said = JSON.stringify(reviewer.messages);
+  assert.ok(reviewer.tools.includes("record_terminal"));
+  assert.match(said, /terminal `make\.1\.it-runs`: the maker says it shows \\"node answers\\"\. The loop recorded: `node -v` ended with 0\./);
+  assert.match(said, /THROWN OUT `made-up`: no capture named made-up was made in this run\./);
+  assert.match(said, /Refused by the loop's policy: `git commit -m x` is not a command this agent may run/);   // a reader runs things on camera, but still changes nothing
+  assert.equal(existsSync(join(r.root, "var", "runs", info.id, "lane", "stray.txt")), false);
+  assert.ok(r.lines.includes("reviewer.1.agent left 1 change(s) in the lane; they are undone"), r.lines.join("\n"));
 });

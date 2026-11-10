@@ -1,4 +1,5 @@
 /** A run in short: the one thing to know first, the back and forth between builder and checkers, and what came out. */
+import { EvidenceStrip } from "./Evidence.tsx";
 import { Badge } from "@/components/ui/badge";
 import { KindIcon, StateIcon } from "./bits.tsx";
 import { doingNow, roleLabel, workingAgent } from "./data.ts";
@@ -61,6 +62,13 @@ export const Overview = ({ run, steps, handoffs }: { run: Run; steps: Step[]; ha
           <section className="space-y-2">
             <h3 className="flex items-center gap-2 text-sm font-semibold">What the builder handed back {lastBuilder.commit && <Badge variant="outline" className="font-mono">{lastBuilder.commit}</Badge>}</h3>
             <HandbackCard handback={lastBuilder.handback} />
+          </section>
+        )}
+
+        {(run.captures?.length ?? 0) > 0 && (
+          <section className="space-y-2">
+            <h3 className="text-sm font-semibold">Evidence · {plural(run.captures.length, "capture")}</h3>
+            <EvidenceStrip run={run} />
           </section>
         )}
 

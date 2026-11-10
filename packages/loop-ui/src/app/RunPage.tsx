@@ -10,6 +10,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
 import { KindIcon, RunBadge, StateIcon, stepLabel } from "./bits.tsx";
 import { Conversation } from "./Conversation.tsx";
+import { EvidenceView } from "./Evidence.tsx";
 import { elapsed, handoffsOf, stepsOf } from "./data.ts";
 import { duration, tokens } from "./format.ts";
 import { AgentPanel, RunPanel } from "./Inspector.tsx";
@@ -95,6 +96,7 @@ export const RunPage = ({ run, runs, step: wanted, tab = "activity", stop }: { r
 
   const center = handoff ? <Back handoff={handoff} last={handoff.after === handoffs.at(-1)?.after && run.status !== "running"} />
     : !step ? <Overview run={run} steps={steps} handoffs={handoffs} />
+    : step.shown ? <EvidenceView run={run} title={`${stepLabel(step)}${step.round ? ` · round ${step.round}` : ""}`} by={step.by!} shown={step.shown} />
     : step.agent ? (
       <div className="flex min-h-0 flex-1 flex-col">
         <div className="flex shrink-0 items-center gap-2 border-b px-4 py-2 text-sm">

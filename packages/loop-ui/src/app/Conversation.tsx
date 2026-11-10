@@ -8,20 +8,25 @@ import { useMemo, useState } from "react";
 import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupTextarea } from "@/components/ui/input-group";
 import { MessageScroller, MessageScrollerButton, MessageScrollerContent, MessageScrollerItem, MessageScrollerProvider, MessageScrollerViewport } from "@/components/ui/message-scroller";
 import { cn } from "@/lib/utils";
+import { Media } from "./Evidence.tsx";
 import { clock, firstLine } from "./format.ts";
+import { href } from "./router.ts";
 import { HandbackCard, VerdictCard } from "./Results.tsx";
 import type { Agent, Handback, Msg, Run, ToolCall } from "./types.ts";
 
 /** A model error in a few words: a gateway that answers with a web page says nothing useful past its status. */
 const modelError = (e: string): string => e.includes("<") ? `${/^\d{3}/.exec(e)?.[0] ?? "error"} from the gateway${e.includes("upstream-down") ? ": its upstream is down" : ""}` : firstLine(e, 140);
-const NAME: Record<string, string> = { bash: "Bash", read: "Read", write: "Write", edit: "Edit" };
-const argOf = (call: ToolCall): string => firstLine(String(call.args.command ?? call.args.path ?? ""), 140);
+const NAME: Record<string, string> = { bash: "Bash", read: "Read", write: "Write", edit: "Edit", record_terminal: "Record", browser: "Browser", screenshot: "Screenshot", record_screen: "Record screen" };
+/** The words given to the browser arrive as the JSON of a list: shown as the words. */
+const words = (v: unknown): string | undefined => { try { const list = typeof v === "string" ? (JSON.parse(v) as unknown) : v; return Array.isArray(list) ? list.join(" ") : undefined; } catch { return undefined; } };
+const argOf = (call: ToolCall): string => firstLine(String(call.args.command ?? call.args.path ?? words(call.args.args) ?? call.args.name ?? ""), 140);
 
 /** One tool call: `● Bash(pnpm frozen)`, the first lines of what came back, and the rest on a click. */
-const ToolLine = ({ call, result, live }: { call: ToolCall; result: Msg | undefined; live: boolean }) => {
+const ToolLine = ({ call, result, live, run }: { call: ToolCall; result: Msg | undefined; live: boolean; run: Run }) => {
   const [open, setOpen] = useState(false);
   const bad = result?.isError || result?.refused, running = !result && live;
   const lines = (result?.text ?? "").split("\n").filter((l) => l.trim() !== "");
+  const made = /capture ([A-Za-z0-9.-]+?)[:.]? /.exec(result?.text ?? "")?.[1], capture = made ? (run.captures ?? []).find((x) => x.id === made) : undefined;
   const input = call.name === "bash" ? String(call.args.command ?? "") : call.name === "write" ? String(call.args.content ?? "") : call.name === "edit" ? JSON.stringify(call.args, null, 2) : "";
   return (
     <div>
@@ -36,6 +41,7 @@ const ToolLine = ({ call, result, live }: { call: ToolCall; result: Msg | undefi
           {lines.length > (bad ? 3 : 2) && <button className="text-neutral-600 hover:text-neutral-300" onClick={() => setOpen(true)}>  … +{lines.length - (bad ? 3 : 2)} lines</button>}
         </div>
       )}
+      {capture && <a href={href("runs", run.id, `evidence.${capture.by}`)} className="mt-1 ml-4 block max-w-md overflow-hidden rounded border border-neutral-800 hover:border-neutral-600"><Media run={run} capture={capture} className="pointer-events-none max-h-56" /><span className="block px-2 py-1 text-neutral-500">capture {capture.id}</span></a>}
       {open && (
         <div className="mt-1 ml-4 space-y-1 border-l border-neutral-700 pl-3">
           {input.includes("\n") && <pre className="max-h-56 overflow-auto rounded bg-neutral-900 p-2 whitespace-pre-wrap text-neutral-300">{input}</pre>}
@@ -96,7 +102,7 @@ export const Conversation = ({ run, agent }: { run: Run; agent: Agent }) => {
                     <div className="space-y-2">
                       {m.thinking && <p className="text-neutral-500 italic">{m.thinking}</p>}
                       {m.error && <p className="text-red-300"><span className="text-red-400">●</span> the model failed: {modelError(m.error)}</p>}
-                      {m.calls?.map((c) => <ToolLine key={c.id} call={c} result={results.get(c.id)} live={live} />)}
+                      {m.calls?.map((c) => <ToolLine key={c.id} call={c} result={results.get(c.id)} live={live} run={run} />)}
                       {m.text && <Final text={m.text} />}
                     </div>
                   )}
