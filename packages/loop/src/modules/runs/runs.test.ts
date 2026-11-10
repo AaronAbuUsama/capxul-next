@@ -75,3 +75,15 @@ test("what was used reads as dollars when there is a price and as tokens when th
   assert.match(row, /1\.77M tokens/);
   assert.doesNotMatch(row, /\$0/);
 });
+
+test("a run that was stopped ends a waiting worker: it starts nothing more; a start that throws is said and the worker goes on", async () => {
+  const said: string[] = [], started: string[] = [];
+  let ready = ["boom", "t1", "t2"];
+  await work({
+    concurrency: 1, wait: true, pause: 5, say: (l) => said.push(l), dead: () => [], ready: () => ready, resume: async () => undefined,
+    start: async (s) => { started.push(s); ready = ready.filter((x) => x !== s); if (s === "boom") throw new Error("cannot start boom"); return { status: s === "t1" ? "stopped" : "ready" }; },
+  });                                                                    // returns although `wait` is set
+  assert.deepEqual(started, ["boom", "t1"]);                             // t2 was never started
+  assert.ok(said.includes("cannot start boom"));
+  assert.ok(said.some((l) => /^t1 was stopped: the worker starts nothing more/.test(l)));
+});

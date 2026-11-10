@@ -223,3 +223,15 @@ test("a model that never answers fails the run with the gateway's words: no chec
   r.faux.setResponses([...makes("hello.txt"), fauxAssistantMessage(check("approve"))]);
   assert.equal((await resume(r.ctx(), info.id, pair)).status, "ready");       // the gateway is back: resume continues the same builder
 });
+
+test("the worker resumes a named task's run that was stopped or failed, once, instead of sitting idle", async () => {
+  const r = rig(), ctx = r.ctx();
+  mkdirSync(join(r.root, "loops"));
+  writeFileSync(join(r.root, "loops/mini.ts"), `import { lane, ready } from ${JSON.stringify(join(import.meta.dirname, "../../index.ts"))};\nexport default async (job) => { await lane(job, { install: false }); await ready(job); };\n`);
+  const first = await start(ctx, "t1", { ...opts, script: "mini" }, async () => { throw new Error("stopped"); });
+  assert.equal(first.status, "stopped");
+  await work(ctx, { concurrency: 1, tasks: ["t1"], opts: { ...opts, script: "mini" }, wait: false, pause: 5 });
+  assert.ok(r.lines.includes(`resuming ${first.id}`));
+  assert.equal(JSON.parse(readFileSync(join(r.root, "var", "runs", first.id, "status.json"), "utf8")).status, "ready");
+  assert.equal(r.lines.filter((l) => l.startsWith("resuming")).length, 1);
+});

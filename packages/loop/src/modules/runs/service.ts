@@ -128,14 +128,25 @@ export const watchRun = async (dir: string, open: () => Promise<Host>, say: (s: 
   }
 };
 
-/** The worker's loop:keep `concurrency` runs going, resuming dead ones first, then starting what `ready()` offers; end when idle unless `wait`. */
+/**
+ * The worker's loop: keep `concurrency` runs going, resuming first, then starting what `ready()` offers; end when idle
+ * unless `wait`. A run that ends `stopped` was stopped by a person: the worker then starts nothing more and ends when
+ * the runs it has are over, `wait` or not. A start or a resume that throws is said and does not end the worker.
+ */
 export const work = async (o: { concurrency: number; wait: boolean; pause?: number; dead: () => string[]; ready: () => string[]; resume: (id: string) => Promise<unknown>; start: (subject: string) => Promise<unknown>; say: (s: string) => void }): Promise<void> => {
   const going = new Map<string, Promise<unknown>>();
-  const go = (key: string, p: Promise<unknown>): void => { going.set(key, p.finally(() => going.delete(key))); };
+  let halted = false;
+  const go = (key: string, p: Promise<unknown>): void => {
+    going.set(key, p.then((ended) => {
+      if ((ended as { status?: string } | undefined)?.status === "stopped" && !halted) { halted = true; o.say(`${key} was stopped: the worker starts nothing more and ends when its runs are over`); }
+    }, (cause: unknown) => o.say(cause instanceof Error ? cause.message : String(cause))).finally(() => going.delete(key)));
+  };
   for (;;) {
-    for (const id of o.dead()) if (going.size < o.concurrency && !going.has(id)) { o.say(`resuming ${id}`); go(id, o.resume(id)); }
-    for (const s of o.ready()) if (going.size < o.concurrency && !going.has(s)) { o.say(`starting ${s}`); go(s, o.start(s)); }
-    if (going.size === 0 && !o.wait) return;
+    if (!halted) {
+      for (const id of o.dead()) if (going.size < o.concurrency && !going.has(id)) { o.say(`resuming ${id}`); go(id, o.resume(id)); }
+      for (const s of o.ready()) if (going.size < o.concurrency && !going.has(s)) { o.say(`starting ${s}`); go(s, o.start(s)); }
+    }
+    if (going.size === 0 && (halted || !o.wait)) return;
     await Promise.race([...going.values(), new Promise((r) => setTimeout(r, o.pause ?? 30_000))]);
   }
 };

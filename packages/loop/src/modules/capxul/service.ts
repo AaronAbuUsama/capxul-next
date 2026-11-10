@@ -210,12 +210,17 @@ export const watch = (ctx: Ctx, id: string): Promise<void> => { const dir = runD
 
 /** The worker: ready tasks from the plan (named, or on the critical path), a run each, `concurrency` at once; dead runs are resumed first. */
 export const work = (ctx: Ctx, o: { concurrency: number; tasks: string[]; opts: Opts; wait: boolean; pause?: number }): Promise<void> => {
-  const runs = (): { dir: string; info: Info }[] => listRuns(runsDir(ctx)), gaveUp = new Set<string>();
+  const runs = (): { dir: string; info: Info }[] => listRuns(runsDir(ctx)), gaveUp = new Set<string>(), tried = new Set<string>();
+  /** A task named on the command line whose newest run was stopped or failed: that run is resumed, once, before anything new is started for it. */
+  const left = (): string[] => o.tasks.flatMap((t) => {
+    const newest = runs().filter((r) => r.info.subject === t).sort((a, b) => b.info.startedAt.localeCompare(a.info.startedAt))[0];
+    return newest && (newest.info.status === "stopped" || newest.info.status === "failed") && !tried.has(newest.info.id) ? [newest.info.id] : [];
+  });
   return workLoop({
     concurrency: o.concurrency, wait: o.wait, say: ctx.say, ...(o.pause ? { pause: o.pause } : {}),
-    dead: () => runs().filter((r) => r.info.status === "running" && !alive(r.info.pid)).map((r) => r.info.id),
+    dead: () => [...runs().filter((r) => r.info.status === "running" && !alive(r.info.pid)).map((r) => r.info.id), ...left()],
     ready: () => plan.readyTasks(ctx, o.tasks).filter((t) => !gaveUp.has(t) && !runs().some((r) => r.info.subject === t && !SETTLED.includes(r.info.status))),
-    resume: (id) => resume(ctx, id),
+    resume: (id) => { tried.add(id); return resume(ctx, id); },
     start: (t) => start(ctx, t, o.opts).catch((e: unknown) => { gaveUp.add(t); ctx.say(e instanceof Error ? e.message : String(e)); }),   // one task that cannot start does not end the worker
   });
 };
