@@ -11,7 +11,7 @@ export const POLICY: Policy = {
     write: [/^pnpm (exec|test|run|check|plan|book|frozen|tasks|judgments|evals|portal:check|contracts:[a-z-]+|devnet:test|sdk:test)( |$)/, /^node( |$)/, /^git (status|diff|log|show|add|commit|mv|rm)( |$)/, FILES, /^cd [A-Za-z0-9_./-]+$/],
     read: [/^git (diff|log|show|status)( |$)/, FILES],
   },
-  denyWrite: [/^books\/frozen\//, /(^|\/)src\/generated\//, /^\.git(\/|$)/, /^\.claude\//, /^runs\//],
+  denyWrite: [/^books\/frozen\//, /(^|\/)src\/generated\//, /^\.git(\/|$)/, /^\.claude\//, /^var\//],
 };
 
 /** The maker's and the checker's default models, chosen from what the gateway lists (README: why). Both are flags. */

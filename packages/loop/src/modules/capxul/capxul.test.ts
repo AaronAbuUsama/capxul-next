@@ -31,7 +31,7 @@ const rig = () => {
   writeFileSync(join(root, "tools/plan.ts"), FAKE_PLAN);
   writeFileSync(join(root, "plan.json"), JSON.stringify(PLAN));
   writeFileSync(join(root, "README.md"), "root\n");
-  writeFileSync(join(root, ".gitignore"), "runs/\nplan-calls.log\n");
+  writeFileSync(join(root, ".gitignore"), "var/\nplan-calls.log\n");
   git(dir, "init", "--bare", "-q", origin);
   git(dir, "init", "-q", "-b", "integration/build", root);
   git(root, "config", "user.email", "t@t"); git(root, "config", "user.name", "t");
@@ -69,7 +69,7 @@ test("a pair run: the maker writes in its lane, the gates pass, the checker appr
   r.faux.setResponses([...makes("hello.txt"), fauxAssistantMessage(check("approve"))]);
   const info = await start(r.ctx(), "t1", opts, pair);
   assert.equal(info.status, "ready", JSON.stringify(info));
-  const lane = join(r.root, "runs", info.id, "lane");
+  const lane = join(r.root, "var", "runs", info.id, "lane");
   assert.equal(readFileSync(join(lane, "hello.txt"), "utf8"), "made\n");
   assert.match(git(r.root, "ls-remote", "origin", "lane/t1"), /refs\/heads\/lane\/t1/);
   assert.equal(git(r.root, "rev-parse", "integration/build"), git(r.origin, "rev-parse", "integration/build"));   // integration/build untouched
@@ -95,7 +95,7 @@ test("a checker that asks for changes blocks the run after the last round; the c
   const info = await start(r.ctx(), "t1", opts, pair);
   assert.equal(info.status, "blocked");
   assert.match(info.reasons.join(" "), /Seen: bad/);
-  assert.equal(existsSync(join(r.root, "runs", info.id, "lane", "evil.txt")), false);
+  assert.equal(existsSync(join(r.root, "var", "runs", info.id, "lane", "evil.txt")), false);
 });
 
 test("merge: refuses a run that is not ready, a failing gate and a checkout off the base; merges and pushes only when every gate passes", async () => {
@@ -122,7 +122,7 @@ test("merge: refuses a run that is not ready, a failing gate and a checkout off 
   assert.equal(git(r.root, "rev-parse", "HEAD"), git(r.origin, "rev-parse", "integration/build"));
   assert.match(r.calls().at(-1)!, /^task done t1 --evidence [0-9a-f]{40} --by loop/);
   assert.match((await merge(r.ctx(), info.id))[0]!, /is merged, not ready/);
-  assert.equal(existsSync(join(r.root, "runs", info.id, "lane")), false);   // the lane was cleaned
+  assert.equal(existsSync(join(r.root, "var", "runs", info.id, "lane")), false);   // the lane was cleaned
   assert.deepEqual(clean(r.ctx()), ["nothing to clean"]);
 });
 

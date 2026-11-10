@@ -55,7 +55,7 @@ ledger, and the agent step that was in flight continues in its own stored conver
 
 ## How a run is stored
 
-`runs/<run id>/run.sqlite` is the pi-durable storage and the only source of truth: the root conversation is the **ledger**
+`var/runs/<run id>/run.sqlite` (git-ignored working data) is the pi-durable storage and the only source of truth: the root conversation is the **ledger**
 (`loop.start`, `loop.done` with the result, `loop.conversation`, `loop.end`), and every agent is another conversation in it.
 `status.json` beside it is a small index derived from the ledger so `status` never opens a database; it is the one file
 of a run that is not git-ignored. `STOP` appears when `loop stop` is asked. `lane/` is the run's git worktree.
@@ -74,7 +74,7 @@ registers (`mcpTools`). Every call passes a `beforeTool` hook (`agents/internal/
 | | maker (`builder`) | checker (`reviewer`, `adversary`) | researcher |
 |---|---|---|---|
 | read files | inside its lane only | inside its lane only | inside its lane only |
-| write / edit files | inside its lane; not `books/frozen/`, `src/generated/`, `.git/`, `.claude/`, `runs/` | no (no write or edit tool) | no |
+| write / edit files | inside its lane; not `books/frozen/`, `src/generated/`, `.git/`, `.claude/`, `var/` | no (no write or edit tool) | no |
 | shell | `pnpm exec/test/run/…`, `node`, `git status/diff/log/show/add/commit/mv/rm`, `ls cat head tail wc grep sort diff mkdir echo pwd`, `cd <inside>` | `git diff/log/show/status`, `ls cat head tail wc grep` | same as checker |
 | shell refused | `git push`, `curl`, redirects (`>` `<`), `$(…)`, backticks, `..` paths, absolute paths outside the lane and `/tmp/` | same | same |
 | environment of its commands | `PATH HOME USER LOGNAME SHELL TERM LANG LC_ALL TMPDIR` and the sandbox's `CAPXUL_*`; nothing inherited | same | same |
