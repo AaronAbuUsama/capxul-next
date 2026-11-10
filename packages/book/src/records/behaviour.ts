@@ -104,6 +104,19 @@ export type Flow = ReturnType<typeof defineFlow>;
 
 // ── operation: one of the kept capabilities, the user-facing unit ───────────────────────────
 
+/** One run of the command, as a terminal shows it. The build checks `output` against `returns` (exit 0) or against the
+ * declared refusal it names (any other exit): a wrong example is worse than none. */
+export const Example = Schema.Struct({
+  title: Line,
+  /** The command line, as typed: it names the operation's command. */
+  input: Prose,
+  /** The JSON it prints with `--json`: the `returns` shape on exit 0, else `{ error: { code, message } }`. */
+  output: Schema.Unknown,
+  /** The process exit code: 0, or the exit code of the refusal's error. */
+  exit: Schema.Int.pipe(Schema.check(Schema.isBetween({ minimum: 0, maximum: 255 }))),
+});
+export type Example = typeof Example.Type;
+
 export const OperationSpec = Schema.Struct({
   ...Common,
   /** The old book's area: `payments`, `books`; a new operation's old area or owning concept. Not a concept: an area is how people find it. */
@@ -142,6 +155,8 @@ export const OperationSpec = Schema.Struct({
 
   /** End to end: the CLI command, excluding a person's wait and chain confirmation. */
   budget: Schema.optionalKey(Budget),
+  /** Real runs, written as the terminal shows them. Absent: a gap (`no-example`). */
+  examples: Schema.optionalKey(Schema.Array(Example)),
 });
 export const defineOperation = make("operation")(OperationSpec);
 export type Operation = ReturnType<typeof defineOperation>;

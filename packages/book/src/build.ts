@@ -5,6 +5,8 @@ import { Schema } from "effect";
 import { KINDS, type Kind } from "./records/base.ts";
 import { deriveEvals, type EvalDef } from "./evals.ts";
 import { BUDGET_DEFAULTS } from "./budgets.ts";
+import { exampleGaps, exampleProblems } from "./examples.ts";
+import { telemetryGaps } from "./telemetry.ts";
 
 export interface AnyRecord {
   readonly _kind: Kind;
@@ -101,6 +103,7 @@ export const buildBook = (input: { name: string; stage: "as-is" | "target"; reco
 
   const book = { name: input.name, stage: input.stage, records, links, linkedBy, problems, gaps: [] as Finding[], evals: [] as EvalDef[] };
   checkRules(book, problems);
+  problems.push(...exampleProblems(book, all(book, "operation")));
   if (input.stage === "target") checkTargetRules(book, problems);
   const gaps = deriveGaps(book, input.stage);
   return { ...book, gaps, evals: deriveEvals(book) };
@@ -460,5 +463,7 @@ const deriveGaps = (b: Draft, stage: "as-is" | "target"): Finding[] => {
     for (const f of o.refusals as { error: AnyRecord; given: string }[])
       if (f.given === "?") g(o, "refusal-without-world", `no world reaches ${f.error.id}`);
   for (const i of all(b, "invariant")) if (i.check === "reconcile" && !i.by) g(i, "unchecked-invariant", "a reconcile check names no workflow");
+  // What a target operation shows beyond its design: an example, the spans it names, an event for a change of state.
+  if (stage === "target") gaps.push(...exampleGaps(all(b, "operation")), ...telemetryGaps(b, all(b, "operation")));
   return gaps;
 };
