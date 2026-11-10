@@ -224,3 +224,4 @@
 {"at":"2026-11-10T15:55:06.917Z","by":"loop","action":"task.start","args":{"id":"m1-flaky-portal-test","thread":"m1-flaky-portal-test-11101555"},"commit":"aed54dc"}
 {"at":"2026-11-10T15:55:06.918Z","by":"loop","action":"task.start","args":{"id":"m1-gaps-states","thread":"m1-gaps-states-11101555"},"commit":"aed54dc"}
 {"at":"2026-11-10T15:55:06.929Z","by":"loop","action":"task.start","args":{"id":"m1-gaps-surface","thread":"m1-gaps-surface-11101555"},"commit":"aed54dc"}
+{"at":"2026-11-10T16:26:31.087Z","by":"coordinator","action":"note","args":{"text":"Models, Aaron's ruling of 10 November (later than the Sol-and-Terra-only rule, which it replaces): 'Yes, it can use any model the proxy serves.' The loop accepts any model the gateway lists; gpt-6.1-sol stays the default builder and gpt-6.1-terra the default checker, and another model is used only where a run names one."},"commit":"9d51993"}

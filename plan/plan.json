@@ -1113,6 +1113,11 @@
       "date": "2026-11-10",
       "by": "coordinator",
       "text": "Model gateway: Aaron allows the CLI proxy on this Mac (VibeProxy, 127.0.0.1:8317) for the loop, as long as it works in every sandbox. It does: the loop's own process makes every model call, never a sandbox or an agent's shell, and a streamed tool call to gpt-6.1-terra passed. Runs started on this Mac use LOOP_MODEL_BASE_URL=http://127.0.0.1:8317/v1 with LOOP_MODEL_KEY_ENV naming any non-empty variable. Runs started on another machine (the worlds host) cannot reach it and need Capxul's hosted CLI proxy and its key."
+    },
+    {
+      "date": "2026-11-10",
+      "by": "coordinator",
+      "text": "Models, Aaron's ruling of 10 November (later than the Sol-and-Terra-only rule, which it replaces): 'Yes, it can use any model the proxy serves.' The loop accepts any model the gateway lists; gpt-6.1-sol stays the default builder and gpt-6.1-terra the default checker, and another model is used only where a run names one."
     }
   ]
 }
