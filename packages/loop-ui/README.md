@@ -1,7 +1,8 @@
 # @capxul/loop-ui
 
-The Runs app: watch, inspect and steer the loop's agents. **A prototype**: it shows real runs read from a file
-(`src/fixtures/runs.json`), and nothing it does is sent anywhere. The real app will be a client of the loop's host.
+The Runs app: watch and inspect the loop's agents. It attaches to the loop's host (`pnpm loop serve`, on this
+machine) and shows every run as it changes; Stop asks a run to stop. With no host it says so and shows a recording
+(`src/fixtures/runs.json`, real runs of 10 November). Steering an agent from the page is not wired yet.
 
 ```bash
 pnpm --filter @capxul/loop-ui dev      # http://localhost:4393
@@ -15,6 +16,8 @@ code, not ours.
 
 | Where | What |
 |---|---|
+| `src/app/types.ts` | a run's data has one definition, in the loop (`@capxul/loop/wire`); this adds only what the page derives |
+| `src/app/live.ts` | the attachment to the host: `loop.runs` over pi's Chord layer on a WebSocket |
 | `src/app/data.ts` | the runs, and what is derived from them: the timeline of steps, the rounds, the handoffs |
 | `src/app/Home.tsx` | Now: what is working, what needs you, what finished, other work in progress |
 | `src/app/RunPage.tsx`, `Overview.tsx` | one run: steps, the picked step, the details; the run in short |

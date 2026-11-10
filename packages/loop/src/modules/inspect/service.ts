@@ -11,9 +11,13 @@ import type { Info } from "../runs/types.ts";
 import { detailOf } from "./internal/detail.ts";
 import { countOf, type Counted } from "./internal/events.ts";
 import { scrub, secretsOf } from "./internal/scrub.ts";
-import { CAP, WHY_CAP, type EventLine, type RunDetail, type RunView } from "./types.ts";
+import { CAP, WHY_CAP, type EventLine, type RunDetail, type RunStatus, type RunView } from "./types.ts";
 
-export type { AgentSession, Call, Changes, Entry, EventLine, RunDetail, RunView, StepRecord } from "./types.ts";
+/** The statuses on the wire are a run's own plus `dead`: this line stops compiling when one is added to either and not the other. */
+const _statuses: [Exclude<RunStatus, "dead">] extends [Info["status"]] ? ([Info["status"]] extends [Exclude<RunStatus, "dead">] ? true : never) : never = true;
+void _statuses;
+
+export type { AgentSession, Call, Changes, Entry, EventLine, RunDetail, RunStatus, RunView, StepRecord } from "./types.ts";
 
 /** What a view is made from: the runs' folder, how to open one run's storage read-only, the clock, the environment (only its secrets are looked at). */
 export interface Look {

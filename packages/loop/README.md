@@ -8,6 +8,7 @@ watchable from another process, and open to being steered later.
 
 ```bash
 pnpm loop run m1-dev-commands --script pair --sandbox none   # one run: maker, gates, checker, up to 3 rounds
+pnpm loop serve [--port 4392]                                # the host: a page or a terminal attaches and sees runs as they change
 pnpm loop status                                             # run, task, status, step, round, elapsed, spend
 pnpm loop status --json [--since-hours 24]                   # the same as data: counts, models, last events (src/modules/inspect)
 pnpm loop show <run id> --json                               # one run with its last twenty events

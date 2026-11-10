@@ -6,6 +6,7 @@ import { Dot, toneOf } from "./bits.tsx";
 import { elapsed, group, roleLabel, statusText, workingAgent } from "./data.ts";
 import { duration } from "./format.ts";
 import { href } from "./router.ts";
+import type { Link } from "./live.ts";
 import type { Run } from "./types.ts";
 
 const RunItem = ({ run, active, step }: { run: Run; active: boolean; step?: string }) => {
@@ -32,7 +33,7 @@ const RunItem = ({ run, active, step }: { run: Run; active: boolean; step?: stri
   );
 };
 
-export const AppSidebar = ({ runs, route, replay, setReplay }: { runs: Run[]; route: string[]; replay: boolean; setReplay: (on: boolean) => void }) => {
+export const AppSidebar = ({ runs, route, replay, setReplay, link, updates }: { runs: Run[]; route: string[]; replay: boolean; setReplay: (on: boolean) => void; link: Link; updates: number }) => {
   const { setOpenMobile } = useSidebar();
   useEffect(() => setOpenMobile(false), [route.join("/"), setOpenMobile]);
   const groups: [string, Run[]][] = [["Running", runs.filter((r) => group(r) === "running")], ["Needs you", runs.filter((r) => group(r) === "needs")], ["Finished", runs.filter((r) => group(r) === "done")]];
@@ -65,11 +66,15 @@ export const AppSidebar = ({ runs, route, replay, setReplay }: { runs: Run[]; ro
         ))}
       </SidebarContent>
       <SidebarFooter>
-        <label className="flex items-center gap-2 px-2 text-xs text-muted-foreground">
-          <input type="checkbox" checked={replay} onChange={(e) => setReplay(e.target.checked)} />
-          Replay one real run as if it were live
-        </label>
-        <p className="px-2 pb-1 text-xs text-muted-foreground">Prototype: real runs of 10 November, read from a file. Nothing is sent.</p>
+        {link === "live" ? (
+          <p className="flex items-center gap-2 px-2 pb-1 text-xs text-muted-foreground"><Dot tone="live" pulse /> Live from the host · {updates} updates</p>
+        ) : (
+          <>
+            <p className="flex items-center gap-2 px-2 text-xs text-amber-700"><Dot tone="warn" /> {link === "connecting" ? "Looking for the host…" : "The host is not running: pnpm loop serve"}</p>
+            <label className="flex items-center gap-2 px-2 text-xs text-muted-foreground"><input type="checkbox" checked={replay} onChange={(e) => setReplay(e.target.checked)} /> Replay one recorded run as if live</label>
+            <p className="px-2 pb-1 text-xs text-muted-foreground">Showing a recording of 10 November's runs.</p>
+          </>
+        )}
       </SidebarFooter>
     </Sidebar>
   );

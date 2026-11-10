@@ -4,13 +4,14 @@
 // root: the only place that reads the process, prints, or exits. See packages/loop/README.md.
 
 import { execFileSync } from "node:child_process";
-import { clean, DEFAULTS, logs, merge, resume, showFull, showJson, spendText, start, status, statusJson, stop, watch, work, type Ctx, type Opts } from "./index.ts";
+import { clean, DEFAULTS, logs, merge, resume, serve, showFull, showJson, spendText, start, status, statusJson, stop, watch, work, type Ctx, type Opts } from "./index.ts";
 
 const USAGE = [
   "usage: loop run <task id> [--script pair] [--model provider/id] [--checker-model provider/id] [--sandbox none|light|heavy]",
   "                          [--rounds 3] [--budget-usd 5] [--timeout-min 30] [--checkers reviewer,adversary]",
   "       loop resume <run id> | stop <run id> | merge <run id> | clean [<run id>]",
   "       loop work [--concurrency 2] [--task a,b] [--wait]   (the options of run apply to every run it starts)",
+  "       loop serve [--port 4392] [--since-hours 24]   (the host: runs as they change, for a page or a terminal)",
   "       loop status [--json [--since-hours 24]] | show <run id> --json [--full] | logs <run id> [-f] | watch <run id>",
 ].join("\n");
 
@@ -61,6 +62,12 @@ const main = async (argv: readonly string[]): Promise<number> => {
       const view = f.has("full") ? await showFull(ctx, need) : await showJson(ctx, need);
       console.log(JSON.stringify(view));
       return view === null ? 1 : 0;
+    }
+    case "serve": {
+      const served = await serve(ctx, { port: Number(f.get("port") ?? 4392), ...(f.get("since-hours") ? { sinceHours: Number(f.get("since-hours")) } : {}) });
+      console.log(`the host is at ${served.url} (this machine only). A page or a terminal attaches there; Ctrl-C ends it.`);
+      await new Promise(() => undefined);
+      return 0;
     }
     case "logs": return need ? (await logs(ctx, need, f.has("f")), 0) : (console.error(USAGE), 2);
     case "watch": return need ? (await watch(ctx, need), 0) : (console.error(USAGE), 2);

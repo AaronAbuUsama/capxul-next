@@ -4,7 +4,7 @@
  * it were live, so the live states can be seen.
  */
 import fixture from "@/fixtures/runs.json";
-import type { Agent, Finding, Handback, Handoff, RawStep, Run, Step, StepState } from "./types.ts";
+import type { Agent, Finding, Handback, Handoff, RawStep, Review, Run, Step, StepState } from "./types.ts";
 
 const REPLAY = { run: "m1-telemetry-11101341", step: "make.2", keep: 0.55 };
 
@@ -34,8 +34,8 @@ export const otherWork = [
   { task: "m1-run-observability", title: "See, inspect and steer loop runs from the portal", thread: "run-observability", since: "10 Nov" },
 ];
 
-export const group = (r: Run): "running" | "needs" | "done" => r.status === "running" ? "running" : r.status === "blocked" || r.status === "failed" || r.status === "stopped" ? "needs" : "done";
-export const statusText: Record<Run["status"], string> = { running: "Running", ready: "Ready to merge", answered: "Answered", blocked: "Blocked", failed: "Failed", stopped: "Stopped", merged: "Merged" };
+export const group = (r: Run): "running" | "needs" | "done" => r.status === "running" ? "running" : r.status === "blocked" || r.status === "failed" || r.status === "stopped" || r.status === "dead" ? "needs" : "done";
+export const statusText: Record<Run["status"], string> = { running: "Running", ready: "Ready to merge", answered: "Answered", blocked: "Blocked", failed: "Failed", stopped: "Stopped", merged: "Merged", dead: "Offline" };
 export const agentOf = (run: Run, key: string): Agent | undefined => run.agents.find((a) => a.key === key || a.key === `${key}.agent`);
 export const workingAgent = (run: Run): Agent | undefined => run.agents.find((a) => a.state === "working");
 export const roleLabel: Record<string, string> = { builder: "Builder", reviewer: "Reviewer", adversary: "Adversary", researcher: "Researcher", diagnoser: "Diagnoser" };
@@ -62,9 +62,9 @@ export const stepsOf = (run: Run): Step[] => {
       const failed = (raw.checks ?? []).filter((c) => !c.ok).length;
       out.push({ id: raw.name, kind: "checks", title: "Checks", round, state: stateOf(raw, failed > 0), checks: raw.checks, summary: raw.checks ? `${raw.checks.length - failed} of ${raw.checks.length} pass` : "running" });
     } else if (raw.review || /^(reviewer|adversary)\./.test(raw.name)) {
-      const blocking = (raw.review?.findings ?? []).filter((f) => f.severity === "blocking").length;
-      out.push({ id: raw.name, kind: "reviewer", title: roleLabel[raw.name.split(".")[0]!] ?? "Checker", round, at: agent?.startedAt ?? null, state: stateOf(raw, raw.review?.verdict !== "approve" && raw.state !== "running"), agent, review: raw.review,
-        summary: raw.state === "running" ? "reviewing" : raw.review?.verdict === "approve" ? "approved" : `changes · ${blocking} blocking` });
+      const review = raw.review as Review | undefined, blocking = (review?.findings ?? []).filter((f) => f.severity === "blocking").length;
+      out.push({ id: raw.name, kind: "reviewer", title: roleLabel[raw.name.split(".")[0]!] ?? "Checker", round, at: agent?.startedAt ?? null, state: stateOf(raw, review?.verdict !== "approve" && raw.state !== "running"), agent, review,
+        summary: raw.state === "running" ? "reviewing" : review?.verdict === "approve" ? "approved" : `changes · ${blocking} blocking` });
     } else if (raw.name === "push") out.push({ id: raw.name, kind: "publish", title: "Push the branch", round: null, state: stateOf(raw, false), summary: String(raw.result ?? run.branch ?? "") });
     else if (raw.name === "plan.block") out.push({ id: raw.name, kind: "end", title: "Block the task", round: null, state: "attention", summary: "handed to the coordinator" });
     else if (raw.end) out.push({ id: raw.name, kind: "end", title: raw.end === "ready" ? "Ready to merge" : raw.end === "blocked" ? "Blocked" : "Answered", round: null, state: raw.end === "blocked" ? "attention" : "done", summary: raw.end === "blocked" ? `${raw.reasons?.length ?? 0} findings open` : (raw.reasons?.[0] ?? ""), reasons: raw.reasons });
@@ -106,7 +106,7 @@ export const agentTime = (a: Agent): number => (a.startedAt && (a.endedAt ?? a.m
 export const doingNow = (a: Agent): string => {
   const last = [...a.messages].reverse().find((m) => m.role === "assistant");
   const call = last?.calls?.at(-1);
-  if (!call) return last?.text.split("\n")[0]?.slice(0, 80) ?? "starting";
+  if (!call) return last?.text.split("\n")[0]?.slice(0, 80) || (last?.error ? "waiting: the model failed, retrying" : "waiting for the model");
   const arg = String(call.args.command ?? call.args.path ?? "").split("\n")[0]!;
   return `${call.name} ${arg}`.slice(0, 90);
 };

@@ -9,7 +9,7 @@ export const Dot = ({ tone, pulse }: { tone: "live" | "warn" | "muted"; pulse?: 
   <span className={cn("inline-block size-2 shrink-0 rounded-full", tone === "live" ? "bg-blue-600" : tone === "warn" ? "bg-amber-600" : "bg-muted-foreground/40", pulse && "animate-pulse")} />
 );
 
-export const toneOf = (status: Run["status"]): "live" | "warn" | "muted" => status === "running" ? "live" : status === "blocked" || status === "failed" || status === "stopped" ? "warn" : "muted";
+export const toneOf = (status: Run["status"]): "live" | "warn" | "muted" => status === "running" ? "live" : status === "blocked" || status === "failed" || status === "stopped" || status === "dead" ? "warn" : "muted";
 
 export const RunBadge = ({ run }: { run: Run }) => {
   const tone = toneOf(run.status);

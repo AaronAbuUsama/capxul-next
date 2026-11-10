@@ -83,7 +83,8 @@ const Back = ({ handoff, last }: { handoff: Handoff; last: boolean }) => (
   </div>
 );
 
-export const RunPage = ({ run, runs, step: wanted, tab = "activity" }: { run: Run; runs: Run[]; step?: string; tab?: string }) => {
+export const RunPage = ({ run, runs, step: wanted, tab = "activity", stop }: { run: Run; runs: Run[]; step?: string; tab?: string; stop?: ((run: string) => Promise<string>) | undefined }) => {
+  const askStop = (): void => { if (stop && window.confirm(`Stop ${run.id}? Its agent is aborted within a second or two.`)) void stop(run.id).then((said) => window.alert(said)); };
   const steps = stepsOf(run), handoffs = handoffsOf(steps), isMobile = useIsMobile();
   const fallback = steps.find((s) => s.state === "running")?.id ?? "overview";
   const step = steps.find((s) => s.id === wanted || s.agent?.key === wanted) ?? (wanted === "overview" ? undefined : steps.find((s) => s.id === fallback));
@@ -110,7 +111,7 @@ export const RunPage = ({ run, runs, step: wanted, tab = "activity" }: { run: Ru
     <>
       <TopBar crumbs={[<a href={href()}>Runs</a>, run.task.title]}>
         <RunBadge run={run} />
-        {run.status === "running" && <Button size="sm" variant="outline" className="hidden sm:inline-flex"><Square /> Stop run</Button>}
+        {run.status === "running" && <Button size="sm" variant="outline" className="hidden sm:inline-flex" disabled={!stop} onClick={askStop}><Square /> Stop run</Button>}
         {!isMobile && (
           <Sheet>
             <SheetTrigger render={<Button size="icon-sm" variant="ghost" className="xl:hidden" aria-label="Details" />}><PanelRight /></SheetTrigger>

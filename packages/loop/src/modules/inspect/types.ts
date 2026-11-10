@@ -3,7 +3,9 @@
  * opening anything: the portal's Live page runs the command and reads this. Nothing here carries file contents, a prompt,
  * a reply or an environment value: tool calls are a name and a short summary, and every free text is scrubbed (README).
  */
-import type { Info } from "../runs/types.ts";
+
+/** A run's status as a reader sees it: the run's own (runs/types.ts, `Status`), or `dead` when it says running and its process is gone. */
+export type RunStatus = "running" | "ready" | "answered" | "blocked" | "failed" | "stopped" | "merged" | "dead";
 
 export interface EventLine {
   /** ISO time of the entry. */
@@ -20,7 +22,7 @@ export interface RunView {
   readonly task: string;
   readonly script: string | null;
   /** The run's own status, except `dead` for a run that says running while its process is gone. */
-  readonly status: Info["status"] | "dead";
+  readonly status: RunStatus;
   readonly step: string | null;
   readonly round: number;
   /** The most rounds the run may take, when it says. */
@@ -99,7 +101,7 @@ export interface RunDetail {
   readonly id: string;
   readonly task: { readonly id: string; readonly title: string; readonly goal: string };
   readonly workflow: string;
-  readonly status: Info["status"] | "dead";
+  readonly status: RunStatus;
   readonly round: number;
   readonly rounds: number | null;
   readonly startedAt: string;

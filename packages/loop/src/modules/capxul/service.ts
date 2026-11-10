@@ -5,12 +5,13 @@
  * run's ledger, so a script replayed after a restart skips what is done.
  */
 import { execFileSync } from "node:child_process";
-import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { ask, lastJson, openHost, type Host } from "../agents/service.ts";
 import { catchUp, commitAll, dropLane, ensureLane, git, head, laneBlocked, slug, type Lane } from "../lanes/service.ts";
 import { alive, ledgerLines, listRuns, play, readInfo, SETTLED, stop as stopRun, table, watchRun, work as workLoop, type Info, type Run } from "../runs/service.ts";
 import { allowedModel, defaultCheckerModel, defaultModel, modelsOf, POLICY, qualify } from "./internal/config.ts";
+import { serve as serveHost, type Served } from "../host/service.ts";
 import { showDetail, showView, statusViews, type Look, type RunDetail, type RunView } from "../inspect/service.ts";
 import { gatesFor, runGates } from "./internal/gates.ts";
 import * as plan from "./internal/plan.ts";
@@ -250,4 +251,17 @@ export const clean = (ctx: Ctx, id?: string): string[] => {
   const picked = listRuns(runsDir(ctx)).filter((r) => (id ? r.info.id === id : r.info.status === "merged" || r.info.status === "answered") && existsSync((r.info.extra.lane as Lane | undefined)?.dir ?? "") && r.info.status !== "running");
   picked.forEach((r) => dropLane(ctx.root, r.info.extra.lane as Lane));
   return picked.length ? picked.map((r) => `removed the lane of ${r.info.id}`) : ["nothing to clean"];
+};
+
+/** `loop serve`: the host a page or a terminal attaches to. It shows every run that is running or was saved in the last `sinceHours`, and takes `stop`. */
+export const serve = (ctx: Ctx, o: { port: number; sinceHours?: number }): Promise<Served> => {
+  const mtime = (file: string): number => { try { return statSync(file).mtimeMs; } catch { return 0; } };
+  const from = (): number => ctx.now().getTime() - (o.sinceHours ?? 24) * 3_600_000;
+  return serveHost({
+    ids: () => listRuns(runsDir(ctx)).filter((r) => r.info.status === "running" || (Date.parse(r.info.updatedAt) || 0) >= from())
+      .map((r) => ({ id: r.info.id, stamp: `${mtime(join(r.dir, "status.json"))}:${mtime(join(r.dir, "run.sqlite"))}:${mtime(join(r.dir, "run.sqlite-wal"))}:${r.info.status === "running" && !alive(r.info.pid)}` })),
+    load: (id) => showDetail(lookOf(ctx, 0), id),
+    stop: (id) => stop(ctx, id),
+    say: ctx.say,
+  }, { port: o.port, ...(ctx.env.LOOP_HOST_ORIGINS ? { origins: ctx.env.LOOP_HOST_ORIGINS.split(",") } : {}) });
 };
