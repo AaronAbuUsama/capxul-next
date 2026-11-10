@@ -1,7 +1,10 @@
 """What a site needs after it is restored from a snapshot into another world (or under another name). Idempotent."""
 import frappe
 
+from capxul.emit import emit
 
+
+@emit
 def rewrite(world, core_url, browser_core_url, site):
     """Point a restored site at its new world: the world it names, its host name, where Core is (the settings the site calls, and the sign-in key the
     browser follows). Returns what was changed."""
@@ -31,6 +34,7 @@ def rewrite(world, core_url, browser_core_url, site):
     return changed
 
 
+@emit
 def summary():
     """What a snapshot's restore is judged against: documents, ledger, hats, features, clock."""
     from capxul import clock, features

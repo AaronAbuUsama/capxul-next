@@ -20,6 +20,8 @@ from datetime import datetime, timedelta, timezone
 
 import frappe
 
+from capxul.emit import emit
+
 OVERRIDE = "capxul_clock_override_ms"
 _installed = False
 _cache = {"mtime": None, "data": {}}
@@ -100,6 +102,7 @@ def now():
             "tz": frappe.utils.get_system_timezone()}
 
 
+@emit
 def join_world(world):
     """Name the world this site belongs to (done once, when the site is made or restored into a world)."""
     from frappe.installer import update_site_config
@@ -109,6 +112,7 @@ def join_world(world):
     return world
 
 
+@emit
 def write_world(world, offset_ms):
     """The one write that moves every site of the world (atomic)."""
     import os
@@ -123,6 +127,7 @@ def write_world(world, offset_ms):
     return data
 
 
+@emit
 def rewind_jobs():
     """A world moved BACK must also move every Scheduled Job Type's `last_execution` back to the new now (on this site; a job that never ran falls back to
     its `creation`, which is the host's real time, so it is set too), or no job would ever fall due until the world caught up with the host's own history."""
@@ -149,6 +154,7 @@ def run_due():
     return ran
 
 
+@emit
 def advance(from_offset_ms, to_offset_ms, step_days=1, trace_id=None):
     """Move THIS site from one offset to another, stopping at every `step_days` midnight on the way and running what is due at each stop (so a
     daily job, a recurring document, runs once per day skipped, not once for the whole jump). The world's file is written by the CLI after every

@@ -21,7 +21,9 @@ export async function bench(site: string, fn: string, kw: Record<string, unknown
   try { ({ stdout } = await exec(config.benchExecScript, [site, fn, kwargs], { maxBuffer: 16 * 1024 * 1024, timeout: 10 * 60_000 })); }
   catch (e: any) { throw new CliError(`the site ${site} could not run ${fn}: ${String(e.stderr || e.message).slice(-300)}`, "FRAPPE_FAILED"); }
   // a job that prints progress with carriage returns (search indexing) leaves the answer on the same line: take the last piece
-  try { return JSON.parse(stdout.split(/[\r\n]/).map((x) => x.trim()).filter(Boolean).pop()!); } catch { throw new CliError(`${fn} on ${site} answered something that is not JSON: ${stdout.slice(0, 200)}`, "FRAPPE_FAILED"); }
+  const at = stdout.lastIndexOf("CAPXUL_RESULT:");   // capxul/emit.py: the answer is printed after a marker
+  if (at >= 0) { try { return JSON.parse(stdout.slice(at + 14).split(/[\r\n]/)[0]!); } catch { /* fall through */ } }
+  throw new CliError(`${fn} on ${site} answered something that is not JSON: ${stdout.slice(-200)}`, "FRAPPE_FAILED");
 }
 // the companies of this world (Core's outbox knows every org it was told about)
 export const companies = (): string[] => Object.entries(loadJson<{ orgs: Record<string, { released?: boolean }> }>("outbox.json", { orgs: {} }).orgs).filter(([, o]) => o.released).map(([k]) => k);

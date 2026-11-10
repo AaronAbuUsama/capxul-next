@@ -331,12 +331,14 @@ core hat grant "$SLUG" budget-holder $BUDGET >/dev/null 2>&1
 chk "B7 a person who is not the world's admin cannot move its clock (refused, nothing changed)" "$(refused "$(dj world clock set main 2026-03-02T09:00:00Z --as $ADMIN)")" NOT_WORLD_ADMIN
 t0=$(ms); out=$(dj world clock set main 2026-03-02T09:00:00Z --as operator); set_ms=$(( $(ms) - t0 ))
 chk "B7 world clock set to 2 March 2026 (in the past): every site and the chain show it" "$(dj world clock show main | jget "(d['data']['time'][:10], d['data']['chainLatestBlock'][:10], sorted(set(s['today'] for s in d['data']['sites'])))")" "('2026-03-02', '2026-03-02', ['2026-03-02'])" "${set_ms}ms"
+for old in $(dj doc list $SLUG "Accounting Period" --as $ADMIN --filters '[["start_date","=","2026-03-01"]]' | jget "' '.join(r['name'] for r in d['data']['rows'])"); do dj doc delete $SLUG "Accounting Period" "$old" --as $ADMIN >/dev/null; done   # a period left by an earlier run
 PERIODS=("2026-03-02")
 pay_at() { read -r si pi pe tx <<<"$(mkpay "$1")"; PES+=("$pe"); TXS+=("$tx"); SIS+=("$si"); [ -n "$tx" ] && ok "B7 $(wd): invoice $si, bill $pi, payment $pe signed by key through approval sign, tx $tx" || bad "B7 payment at $(wd)" "no tx: $(cat "$T/sign.json" | head -c 300)"; }
 PES=(); TXS=(); SIS=()
 pay_at 101.00
 for step in 10d 10d 9d; do
   t0=$(ms); out=$(dj world clock advance main $step --as operator); adv_ms=$(( $(ms) - t0 )); PERIODS+=("$(wd)")
+  [ "$(echo "$out" | jget "d['ok']")" = True ] || bad "B7 advance $step" "$(echo "$out" | head -c 300)"
   info "B7 advanced $step in ${adv_ms}ms: $(echo "$out" | jget "(d['data']['stopsPerSite'], d['data']['jobsRun'])") (stops per site, scheduled jobs run)"
   pay_at $((100 + ${#PES[@]})).50
 done
@@ -389,7 +391,7 @@ echo "== Behaviour 9: world snapshots (a world is saved, restored beside the ori
 W2=w2; core world delete $W2 --as operator >/dev/null 2>&1      # a world left by an earlier run
 dj world clock set main 2026-06-01T10:00:00Z --as operator >/dev/null
 sbal() { cast call "$USDC" "balanceOf(address)(uint256)" "$SAFE" --rpc-url "$1" | awk '{print $1}'; }
-sum_of() { "$HERE/frappe/bin/bench-exec.sh" "$1" capxul.world.summary | python3 -c 'import json,sys; d=json.loads(sys.stdin.read()); [d.pop(k) for k in ("site","world","now")]; print(json.dumps(d,sort_keys=True))'; }
+sum_of() { "$HERE/frappe/bin/bench-exec.sh" "$1" capxul.world.summary | grep -a CAPXUL_RESULT: | tail -1 | sed "s/.*CAPXUL_RESULT://" | python3 -c 'import json,sys; d=json.loads(sys.stdin.read()); [d.pop(k) for k in ("site","world","now")]; print(json.dumps(d,sort_keys=True))'; }
 pes() { sum_of "$1" | jget "d['docs']['Payment Entry']"; }
 S0=$(sum_of $SITE); B0=$(sbal $RPC); P0=$(echo "$S0" | jget "d['docs']['Payment Entry']")
 t0=$(ms); out=$(dj world snapshot save main --as operator --name "run-$RUN"); save_ms=$(( $(ms) - t0 ))
@@ -398,10 +400,10 @@ SNAP=$(echo "$out" | jget "d['data']['id']"); SNAP_MB=$(echo "$out" | jget "roun
 chk "B9 snapshot list shows it with its world, name and record position" "$(dj world snapshot list main | jget "[(s['world'], s['name']) for s in d['data']['snapshots'] if s['id']=='$SNAP']")" "[('main', 'run-$RUN')]"
 chk "B9 a person who is not the operator cannot save or restore a world" "$(refused "$(dj world snapshot save main --as $ADMIN)") $(refused "$(dj world snapshot restore $SNAP --as $ADMIN --into zz)")" "NOT_WORLD_ADMIN NOT_WORLD_ADMIN"
 core world clock reset main --as operator >/dev/null
-t0=$(ms); out=$(dj world snapshot restore $SNAP --as operator --into $W2 --only acme); into_ms=$(( $(ms) - t0 ))
-[ "$(echo "$out" | jget "d['ok']")" = True ] && ok "B9 restored into a NEW world $W2 beside the original (own chain, own Core, site acme.$W2.localhost) in ${into_ms}ms: $(echo "$out" | jget "d['data']['phasesMs']")" || bad "B9 restore into" "$out"
+t0=$(ms); out=$(dj world snapshot restore $SNAP --as operator --into $W2 --only $SLUG); into_ms=$(( $(ms) - t0 ))
+[ "$(echo "$out" | jget "d['ok']")" = True ] && ok "B9 restored into a NEW world $W2 beside the original (own chain, own Core, site $SLUG.$W2.localhost) in ${into_ms}ms: $(echo "$out" | jget "d['data']['phasesMs']")" || bad "B9 restore into" "$out"
 W2_RPC=$(core world show $W2 --json | jget "'http://127.0.0.1:%d' % d['data']['anvilPort']")
-chk "B9 the new world has the same documents, ledger balances, hats, features and event position as the saved one" "$(sum_of acme.$W2.localhost)" "$S0"
+chk "B9 the new world has the same documents, ledger balances, hats, features and event position as the saved one" "$(sum_of $SLUG.$W2.localhost)" "$S0"
 chk "B9 the new world's chain has the same balance in the company's Safe" "$(sbal $W2_RPC)" "$B0" "$B0 units"
 chk "B9 the new world's clock resumed at the saved world time (1 June), on its chain and its site; the original is on the host's time" "$(dj world clock show $W2 | jget "(d['data']['time'][:10], d['data']['chainLatestBlock'][:10] <= '2026-11-10', [s['today'] for s in d['data']['sites']])") $(core world clock show main --json | jget "d['data']['offsetMs']")" "('2026-06-01', True, ['2026-06-01']) 0"
 chk "B9 the restored site signs people in through the new world's Core and the door works there (hannah lists invoices as herself)" "$(dj doc list $SLUG "Sales Invoice" --as $ADMIN --world $W2 --limit 2 | jget "d['ok']")" True
@@ -410,9 +412,9 @@ chk "B9 the world list shows both worlds and where the new one came from" "$(cor
 B1=$(sbal $RPC)
 WORLD=$W2; read -r si pi pe tx <<<"$(mkpay 7.25 $W2)"; WORLD=""
 [ -n "$tx" ] && ok "B9 a payment made in $W2 (invoice $si, payment $pe, tx $tx)" || bad "B9 payment in the new world" "no tx"
-chk "B9 ... is in the new world ($(( P0 + 1 )) payment entries, Safe down 7.25) and not in the old ($P0, unchanged)" "$(pes acme.$W2.localhost) $(( B0 - $(sbal $W2_RPC) )) $(pes $SITE) $(sbal $RPC)" "$((P0+1)) 7250000 $P0 $B0"
+chk "B9 ... is in the new world ($(( P0 + 1 )) payment entries, Safe down 7.25) and not in the old ($P0, unchanged)" "$(pes $SLUG.$W2.localhost) $(( B0 - $(sbal $W2_RPC) )) $(pes $SITE) $(sbal $RPC)" "$((P0+1)) 7250000 $P0 $B0"
 read -r si pi pe tx <<<"$(mkpay 3.10 main)"
-chk "B9 a payment made in the old world is not in the new one (old $((P0+1)), new still $((P0+1)))" "$(pes $SITE) $(pes acme.$W2.localhost) $(( B0 - $(sbal $RPC) ))" "$((P0+1)) $((P0+1)) 3100000"
+chk "B9 a payment made in the old world is not in the new one (old $((P0+1)), new still $((P0+1)))" "$(pes $SITE) $(pes $SLUG.$W2.localhost) $(( B0 - $(sbal $RPC) ))" "$((P0+1)) $((P0+1)) 3100000"
 # lineage in the record
 SREC=$(dj world snapshot list main | jget "[s['record'] for s in d['data']['snapshots'] if s['id']=='$SNAP'][0]")
 chk "B9 the new world's record begins with the old world's up to the snapshot, then says which snapshot it came from; its own commands follow" "$(python3 -c '

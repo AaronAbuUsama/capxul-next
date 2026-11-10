@@ -3,4 +3,4 @@
 set -euo pipefail
 . "$(dirname "$0")/lib.sh"
 site="${1%.localhost}.localhost"
-inbench "bench --site $site execute $2 ${3:+--kwargs '$3'}" 2>/dev/null | tail -1
+inbench "bench --site $site execute $2 ${3:+--kwargs '$3'}" 2>/dev/null
