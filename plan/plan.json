@@ -1093,7 +1093,7 @@
       "title": "One watched run is healthy",
       "why": "Post-mortem 10 Nov, change 3: no batch until one run is measured",
       "milestone": "m1",
-      "state": "todo",
+      "state": "blocked",
       "needs": [
         "m1-loop-visibility",
         "m1-loop-steer-stop",
@@ -1102,7 +1102,11 @@
       "records": [],
       "evidence": [],
       "created": "2026-11-10",
-      "updated": "2026-11-10"
+      "updated": "2026-11-10",
+      "blockedBy": {
+        "need": "Your go-ahead for one loop run: m1-gaps-unproduced-errors, alone, builder gpt-6.1-sol and reviewer gpt-6.1-terra through the local proxy, about 1-2M tokens. I watch it with pnpm loop watch and report its refused calls, model failures and rounds. Also: may I restart the loop host on :4392, so the Runs page shows tonight's counts and Stop fix? Mark done for yes to both",
+        "who": "aaron"
+      }
     },
     {
       "id": "m1-agents-md-review",
@@ -1161,6 +1165,18 @@
       "needs": [
         "m1-loop-watched-run"
       ],
+      "records": [],
+      "evidence": [],
+      "created": "2026-11-10",
+      "updated": "2026-11-10"
+    },
+    {
+      "id": "m1-gaps-unproduced-errors",
+      "title": "Every error record is produced by something, or stands with its own reason",
+      "why": "Exit g2: 9 of the last 20 gaps are unproduced-error. Small and checkable: the first watched run",
+      "milestone": "m1",
+      "state": "todo",
+      "needs": [],
       "records": [],
       "evidence": [],
       "created": "2026-11-10",
