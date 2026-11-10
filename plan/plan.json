@@ -267,10 +267,12 @@
       "title": "The door, the recorder, the clock and snapshots on the test sites",
       "why": "The spike that proves the door and the clock turns the book's assumptions into records.",
       "milestone": "m3",
-      "state": "doing",
+      "state": "done",
       "needs": [],
       "records": [],
-      "evidence": [],
+      "evidence": [
+        "run.sh 119 of 119 on a new company, the coordinator's own run, 10 Nov 2026 (after fix 047d75a)"
+      ],
       "created": "2026-11-10",
       "updated": "2026-11-10",
       "thread": "door-clock"

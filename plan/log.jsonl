@@ -110,3 +110,4 @@
 {"at":"2026-11-10T11:22:51.374Z","by":"coordinator","action":"answers.apply","args":{"answer":"a-20261110T110425-f5d10d","target":{"kind":"task","id":"m1-payroll-uk"},"evidence":"23f18e6"},"commit":"23f18e6"}
 {"at":"2026-11-10T11:22:52.485Z","by":"coordinator","action":"answers.apply","args":{"answer":"a-20261110T110658-495c98","target":{"kind":"task","id":"m3b-create-machine"},"evidence":"23f18e6"},"commit":"23f18e6"}
 {"at":"2026-11-10T11:22:53.719Z","by":"coordinator","action":"answers.apply","args":{"answer":"a-20261110T110713-7a9c2e","target":{"kind":"task","id":"m3b-cost-audit"},"evidence":"23f18e6"},"commit":"23f18e6"}
+{"at":"2026-11-10T11:35:38.457Z","by":"coordinator","action":"task.done","args":{"id":"m3-door-clock","evidence":"run.sh 119 of 119 on a new company, the coordinator's own run, 10 Nov 2026 (after fix 047d75a)"},"commit":"7dbdfe6"}
