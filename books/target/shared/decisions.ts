@@ -415,7 +415,7 @@ export const decision_concepts_organizations = defineDecision({
     "and below them. Keeping both in one concept is what tied organizations and permissions into a two-way loop (76 and 37 " +
     "imports). Equity is low priority and off the critical path, so it should not share a line budget with the workspace.",
   source: by("docs/mission/findings.md (organizations-permissions cycle); docs/spec/40-capxul-team.md (equity low priority)"),
-  affects: [f.concept_organizations, f.concept_board, f.concept_equity, f.concept_activity],
+  affects: [f.concept_organizations, f.concept_board, f.concept_activity],
 });
 
 export const decision_concepts_board = defineDecision({
@@ -641,23 +641,6 @@ export const decision_concepts_applications = defineDecision({
     "deployment and the app key, which is what bootstrap already describes, so health lives here.",
   source: by("apps/docs/factory/operations/key.create.yaml, doctor.yaml; docs/as-is/archive/shared/foundation.ts (access-applications loop)"),
   affects: [f.concept_applications, f.concept_access],
-});
-
-export const decision_concepts_equity = defineDecision({
-  id: "concepts.equity",
-  title: "New concept: equity, with shareholder votes",
-  question: "Where do the cap table, options, rounds, SAFEs, exits, shares and shareholder votes live?",
-  options: [
-    { label: "equity", text: "One equity concept, low priority, including the Governor's votes." },
-    { label: "board-votes", text: "Equity without votes; votes in board." },
-  ],
-  chosen: "equity",
-  why:
-    "They are the v4 equity clones (Captable, ShareClass, Vesting, Options, Rounds, Exits, Governor), all low priority and " +
-    "off the critical path (spec 40), so one concept keeps them out of the critical concepts' budgets. Shareholder votes " +
-    "weigh shares and run on the Governor, an equity clone; Board decisions are board's proposals.",
-  source: by("docs/spec/40-capxul-team.md (equity, directors and voting low priority); docs/planning/protocol-v4/architecture.md"),
-  affects: [f.concept_equity, f.concept_board],
 });
 
 export const decision_concepts_notices = defineDecision({
@@ -903,7 +886,7 @@ export const decision_dependencies_proposals = defineDecision({
     "Board only collects approvals and executes. If board built them it would depend on every money concept. A proposal " +
     "and the intent it carries are one fact (rules.procedures), so opening it is a procedure.",
   source: by("org.department.create.yaml, payment.send.yaml (--as-directors), agent.create.yaml (designed)"),
-  affects: [f.concept_board, f.concept_budgets, f.concept_payments, f.concept_agents, f.concept_equity],
+  affects: [f.concept_board, f.concept_budgets, f.concept_payments, f.concept_agents],
 });
 
 export const decision_dependencies_approvals = defineDecision({
@@ -1037,7 +1020,7 @@ export const decision_rules_durable_processes = defineDecision({
   source: by("A3 (time); P3 (the three-part test); assembly, 8 November 2026: access, media, budgets, equity and payments decisions"),
   affects: [
     f.concept_approvals, f.concept_payments, f.concept_board, f.concept_organizations, f.concept_accounts, 
-    f.concept_requests, f.concept_banking, f.concept_agents, f.concept_equity, f.concept_access, f.concept_media,
+    f.concept_requests, f.concept_banking, f.concept_agents, f.concept_access, f.concept_media,
     f.concept_budgets,
   ],
 });
@@ -1415,9 +1398,9 @@ export const decision_contracts_set = defineDecision({
   affects: [
     x.contract_companies_house_claimer, x.contract_company_safe_minter, x.contract_installer, x.contract_payments,
     x.contract_budgets, x.contract_agreements, x.contract_escrow_factory, x.contract_escrow, x.contract_agent_owner,
-    x.contract_captable, x.contract_share_class, x.contract_vesting, x.contract_options, x.contract_rounds, x.contract_exits,
-    x.contract_governor, x.contract_safe, x.contract_safe_4337_module, x.contract_multi_send_call_only, x.contract_entry_point,
-    x.contract_roles, x.contract_hats, x.contract_hats_signer_gate, x.contract_hats_elections, x.contract_erc20,
+    
+    x.contract_safe, x.contract_safe_4337_module, x.contract_multi_send_call_only, x.contract_entry_point,
+    x.contract_roles, x.contract_hats, x.contract_hats_signer_gate, x.contract_erc20,
   ],
 });
 
@@ -1971,16 +1954,6 @@ export const decision_dependencies_of_applications = dependencies(f.concept_appl
   indexing: "the Invoicing hat's wearers may manage an Organization's keys.",
   organizations: "an Organization's applications, and its Invoicing hat id.",
 });
-export const decision_dependencies_of_equity = dependencies(f.concept_equity, {
-  access: "the caller of every rpc.",
-  parties: "investors, grantees and shareholders are resolved to Parties and Safes.",
-  indexing: "the equity clones' events and positions.",
-  approvals: "an investor's, grantee's or shareholder's call is an approval from their own Safe.",
-  accounts: "an invited investor needs a claimed Safe to commit or pay.",
-  organizations: "the company, its members and its equity deployment.",
-  board: "every Board matter (issue, round, options, exit) is a Board proposal.",
-  documents: "round, SAFE and grant documents are stored with their offers.",
-});
 export const decision_dependencies_of_activity = dependencies(f.concept_activity, {
   access: "the reader.",
   parties: "the counterparties a row names.",
@@ -2002,7 +1975,6 @@ export const decision_dependencies_of_notices = dependencies(f.concept_notices, 
   payments: "a dated payment due or failed, and money received.",
   banking: "a business verification invitation and a payout returned.",
   requests: "a request issued, paid or declined.",
-  equity: "a round or SAFE invitation.",
 });
 export const decision_dependencies_of_devnet = dependencies(f.concept_devnet, {
   access: "`dev approve` signs in as another person, and `dev gates set` writes gates.",
@@ -2281,7 +2253,7 @@ export const decision_rules_transaction_width = defineDecision({
     "a decision record: payments.birth-width is that record for payments' prepare and propose (parties, documents, and " +
     "approvals or board). Equity's Board-matter prepares are within the rule.",
   source: assembly("docs/decisions/policy-pack.md (P4: sys:tx-width, 'a wider one needs a decision record'); agents.transaction-width; payments.birth-width; parties.resolve-recipient"),
-  affects: [f.concept_payments, f.concept_agents, f.concept_equity, f.concept_board, f.concept_approvals],
+  affects: [f.concept_payments, f.concept_agents, f.concept_board, f.concept_approvals],
 });
 
 export const decision_rules_process_wakeups = defineDecision({
@@ -2447,74 +2419,6 @@ export const decision_contracts_hats_view_hat = defineDecision({
   affects: [x.contract_hats, f.concept_budgets],
 });
 
-export const decision_contracts_hats_elections = defineDecision({
-  id: "contracts.hats-elections",
-  title: "Hats Elections and the Installer's election calls are recorded",
-  question:
-    "`org vote create` names `board-settings`, `elect` and `remove` (designed, W6), whose Governor calls go to a seat " +
-    "group's Hats Elections clone and the Installer's election batch. contracts.v4-set left Elections out. Record it?",
-  options: [
-    {
-      label: "record",
-      text:
-        "Record the Elections clone (elect, recall, setNextTerm, startNextTerm, currentTermEnd, nextTermEnd) and the " +
-        "Installer's deployElections, buildElections and ElectionsDeployed.",
-    },
-    { label: "wait", text: "Leave it out until board designs seat groups; the three matters answer NOT_IMPLEMENTED." },
-  ],
-  chosen: "record",
-  why:
-    "P10: a designed block is the specification, and the shared records should not be what keeps a designed matter " +
-    "unbuilt; equity.vote-matters names this record as one of its two blockers. The calls are v4's: IHatsElectionEligibility " +
-    "and InstallerElections are in packages/contracts/v4, and the Governor's allowed targets include the predicted " +
-    "Elections clone. The other blocker, board's seat groups and terms, is board's design; until it lands the three " +
-    "matters keep NOT_IMPLEMENTED, and equity builds them once it does.",
-  source: assembly("packages/contracts/v4/src/interfaces/external/IHatsElectionEligibility.sol:9; authority/InstallerElections.sol:22-80; interfaces/IInstaller.sol:113, 288; frozen org.vote.create designed flags"),
-  affects: [x.contract_hats_elections, x.contract_installer, f.concept_equity, f.concept_board],
-});
-
-export const decision_contracts_equity_events = defineDecision({
-  id: "contracts.equity-events",
-  title: "The equity events that equity's processes follow are recorded",
-  question: "Equity's processes and tables name 12 v4 events that the contract records lacked. Record them?",
-  options: [
-    {
-      label: "record",
-      text:
-        "Add Options' OptionsAccepted; Rounds' SafeRoundCreated, SafeInvited, SafeSigned, Invited, Allocated and " +
-        "RoundCancelled; Exits' SaleApproved, TransferOffered and TransferApproved; Vesting's Granted and Revoked.",
-    },
-    { label: "prose", text: "Leave them named only in the processes' prose." },
-  ],
-  chosen: "record",
-  why:
-    "contracts.functions records every event a concept must follow, and equity/processes.ts and equity/data.ts name " +
-    "these; Ponder indexes them for indexing's views either way. Recorded, equity can trigger on or name them by record, " +
-    "and the unconsumed-chain-event gap shows exactly which it still follows only in words. Escrow's " +
-    "InvoicePaymentCompleted is not added: nothing reads the surplus it reports (indexing's report).",
-  source: assembly("packages/contracts/v4/src/interfaces/IOptions.sol:38; IRounds.sol:70-104; IExits.sol:68-90; IVesting.sol:30-39; books/target/equity/processes.ts"),
-  affects: [x.contract_options, x.contract_rounds, x.contract_exits, x.contract_vesting, f.concept_equity],
-});
-
-export const decision_contracts_no_checkpoint_reads = defineDecision({
-  id: "contracts.no-checkpoint-reads",
-  title: "No checkpoint reads for `org cap-table --at` yet",
-  question: "Equity asks for the share classes' checkpoint reads so `org cap-table --at` can answer. Record them?",
-  options: [
-    { label: "wait", text: "Record none: the designed call says `--at` is not built yet, so it answers NOT_IMPLEMENTED." },
-    { label: "votes", text: "Record ShareClass getPastVotes, getPastTotalSupply and safeBalanceAt." },
-  ],
-  chosen: "wait",
-  why:
-    "The frozen designed `call` says '`--at` (checkpoints) is not built yet', so NOT_IMPLEMENTED is the frozen surface, " +
-    "not a weakening. ERC20Votes keeps checkpoints of votes, not balances: a holder who delegated shows no votes, so a past " +
-    "vote count is not a past holding, and only the company Safe's balance has its own checkpoint (safeBalanceAt). A past " +
-    "cap table reads better from indexing's history of the classes' Transfers; when `--at` is designed, equity and " +
-    "indexing choose.",
-  source: assembly("frozen org.cap-table (designed call); packages/contracts/v4/src/interfaces/IShareClass.sol:8-58; books/target/equity/holdings.ts:39"),
-  affects: [x.contract_share_class, f.concept_equity],
-});
-
 // ── target assembly (builder) ───────────────────────────────────────────────────────────────
 
 const builder = (evidence: string) => `Claude, target assembly (builder), 8 November 2026; evidence: ${evidence}`;
@@ -2608,7 +2512,6 @@ export const decision_rules_admissions_and_wait_keys = defineDecision({
     f.concept_media,
     f.concept_agents,
     f.concept_banking,
-    f.concept_equity,
   ],
 });
 
@@ -2707,7 +2610,7 @@ export const decision_system_build_order = defineDecision({
     "joins the eighth layer; books, which now reads projects, moves up to budgets and agents; payroll, which now pays " +
     "through payments and posts its accrual through books, moves above payments, beside banking and activity), then by the cut (cut.principle), which takes out the concepts Frappe owns and moves the layers up.",
   source: `${HANDOFF}; evidence: the concept dependsOn graph of the built target book (14 layers, no cycle); the fact check of the goal prompt's earlier order`,
-  affects: [f.system_capxul, f.concept_board, f.concept_equity, f.concept_notices],
+  affects: [f.system_capxul, f.concept_board, f.concept_notices],
 });
 
 // ── the frozen flags (8 November 2026) ──────────────────────────────────────────────────────
@@ -2980,7 +2883,7 @@ export const decision_rules_counterparty_reads = defineDecision({
     "Found by the adversarial review of the admissions, which listed fundraise-rounds, votes, equity-installs and " +
     "organizations; the review did not finish the list, so B1 starts from the rpcs whose `who` is a counterparty.",
   source: `${HANDOFF}; evidence: the adversarial review of rules.admissions-and-wait-keys (counterparty rpcs in equity, payroll and organizations)`,
-  affects: [f.concept_equity, f.concept_organizations, f.component_postgres],
+  affects: [f.concept_organizations, f.component_postgres],
 });
 
 // ── operations beyond the 215 (8 November 2026) ─────────────────────────────────────────────

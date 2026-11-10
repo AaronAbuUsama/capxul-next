@@ -25,7 +25,6 @@ import * as budgets from "./budgets/operations.ts";
 import * as contacts from "./contacts/operations.ts";
 import * as devnet from "./devnet/operations.ts";
 import * as documents from "./documents/operations.ts";
-import * as equity from "./equity/operations.ts";
 import * as organizations from "./organizations/operations.ts";
 import * as payments from "./payments/operations.ts";
 import * as payroll from "./payments/agreements/operations.ts";
@@ -46,15 +45,6 @@ import { event_board_change_transitioned, event_proposal_transitioned } from "./
 import { event_book_annotation_transitioned } from "./books/data.ts";
 import { event_budget_change_transitioned, event_budget_transitioned } from "./budgets/data.ts";
 import { event_contact_transitioned } from "./contacts/data.ts";
-import {
-  event_equity_grant_transitioned,
-  event_equity_install_transitioned,
-  event_equity_write_transitioned,
-  event_fundraise_investment_transitioned,
-  event_fundraise_round_transitioned,
-  event_share_sale_transitioned,
-  event_vote_transitioned,
-} from "./equity/data.ts";
 import { event_org_invite_transitioned, event_org_setup_transitioned } from "./organizations/data.ts";
 import { event_payment_transitioned } from "./payments/data.ts";
 import { event_agreement_transitioned, event_agreement_write_transitioned } from "./payments/agreements/data.ts";
@@ -270,14 +260,6 @@ export const journey_govern_company = defineJourney({
     step(board.operation_org_board_handover, "founder", event_board_change_transitioned),
     step(board.operation_org_board_claim, "director", event_board_change_transitioned),
     step(board.operation_org_board_refresh, "member", event_board_change_transitioned),
-    step(equity.operation_org_vote_create, "shareholder", event_vote_transitioned),
-    step(equity.operation_org_vote_list, "member", "success"),
-    step(equity.operation_org_vote_show, "shareholder", "success"),
-    step(equity.operation_vote_list, "shareholder", "success"),
-    step(equity.operation_vote_delegate, "shareholder", event_equity_write_transitioned),
-    step(equity.operation_vote_cast, "shareholder", event_equity_write_transitioned),
-    step(equity.operation_org_vote_wait, "shareholder", "success"),
-    step(equity.operation_org_vote_execute, "shareholder", event_vote_transitioned),
   ],
   was: [`${OLD}/govern_company.yaml (chapters S1, S6, S7, S11)`, `${CATALOG}:64`, `${CONTRACTS}/govern-company-contract.ts`],
 });
@@ -345,64 +327,7 @@ export const journey_close_the_books = defineJourney({
 
 // ── own equity ──────────────────────────────────────────────────────────────────────────────
 
-export const journey_own_equity = defineJourney({
-  id: "own_equity",
-  title: "Own equity",
-  about:
-    "A Director switches equity on, issues shares and grants options; the grantee accepts and exercises; shareholders " +
-    "convert and sell, a Director approves the transfer and the company pays out an exit; the old finish is 'a grantee " +
-    "exercises options and holds shares on the cap table'. Each change lands as an equity write; where it moves an " +
-    "object with its own machine (the install, a grant, a sale), that machine's event proves it, and where it changes " +
-    "only holdings on chain (an issue, an exercise, a conversion, an exit), the equity write's own event does.",
-  steps: [
-    step(equity.operation_org_equity_setup, "director", event_equity_install_transitioned),
-    step(equity.operation_org_cap_table, "member", "success"),
-    step(equity.operation_org_equity_issue, "director", event_equity_write_transitioned),
-    step(equity.operation_org_options_grant, "director", event_equity_grant_transitioned),
-    step(equity.operation_org_options_show, "member", "success"),
-    step(equity.operation_shares, "grantee", "success"),
-    step(equity.operation_shares_accept, "grantee", event_equity_grant_transitioned),
-    step(equity.operation_shares_exercise, "grantee", event_equity_write_transitioned),
-    step(equity.operation_org_options_end, "director", event_equity_grant_transitioned),
-    step(equity.operation_shares_convert, "shareholder", event_equity_write_transitioned),
-    step(equity.operation_shares_sell, "shareholder", event_share_sale_transitioned),
-    step(equity.operation_org_equity_transfer_approve, "director", event_share_sale_transitioned),
-    step(equity.operation_org_exit_preview, "member", "success"),
-    step(equity.operation_org_exit_pay, "director", event_equity_write_transitioned),
-  ],
-  was: [`${OLD}/own_equity.yaml (no chapters)`, `${CATALOG}:81`, `${CONTRACTS}/own-equity-contract.ts`],
-});
-
 // ── raise money ─────────────────────────────────────────────────────────────────────────────
-
-export const journey_raise_money = defineJourney({
-  id: "raise_money",
-  title: "Raise money",
-  about:
-    "A Director raises on a SAFE and in a priced round: creates it, invites investors, who sign, commit and pay, " +
-    "allocates and closes it; the old finish is 'investors pay and the round closes'. A SAFE or round's own steps are " +
-    "the round machine's, an investor's the investment machine's. `org round cancel` is taken on a second round the " +
-    "scenario's world holds, since the first one closes.",
-  steps: [
-    step(equity.operation_org_safe_create, "director", event_fundraise_round_transitioned),
-    step(equity.operation_org_safe_invite, "director", event_fundraise_investment_transitioned),
-    step(equity.operation_invest, "investor", "success"),
-    step(equity.operation_invest_show, "investor", "success"),
-    step(equity.operation_invest_sign, "investor", event_fundraise_investment_transitioned),
-    step(equity.operation_org_safe_show, "member", "success"),
-    step(equity.operation_org_safe_close, "director", event_fundraise_round_transitioned),
-    step(equity.operation_org_round_preview, "member", "success"),
-    step(equity.operation_org_round_create, "director", event_fundraise_round_transitioned),
-    step(equity.operation_org_round_invite, "director", event_fundraise_investment_transitioned),
-    step(equity.operation_org_round_show, "member", "success"),
-    step(equity.operation_invest_commit, "investor", event_fundraise_investment_transitioned),
-    step(equity.operation_org_round_allocate, "director", event_fundraise_round_transitioned),
-    step(equity.operation_invest_pay, "investor", event_fundraise_investment_transitioned),
-    step(equity.operation_org_round_close, "director", event_fundraise_round_transitioned),
-    step(equity.operation_org_round_cancel, "director", event_fundraise_round_transitioned),
-  ],
-  was: [`${OLD}/raise_money.yaml (no chapters)`, `${CATALOG}:86`, `${CONTRACTS}/raise-money-contract.ts`],
-});
 
 // ── delegate to an agent ────────────────────────────────────────────────────────────────────
 
@@ -445,22 +370,6 @@ export const journey_refer_someone = defineJourney({
   ],
   was: [`${OLD}/refer_someone.yaml (no chapters)`, `${CATALOG}:97`, `${CONTRACTS}/refer-someone-contract.ts`],
 });
-
-const JOURNEYS = [
-  journey_get_started,
-  journey_get_verified,
-  journey_money_in,
-  journey_pay_someone,
-  journey_get_paid,
-  journey_run_company,
-  journey_govern_company,
-  journey_build_on_capxul,
-  journey_close_the_books,
-  journey_own_equity,
-  journey_raise_money,
-  journey_delegate_to_agent,
-  journey_refer_someone,
-];
 
 // ── decisions ───────────────────────────────────────────────────────────────────────────────
 
@@ -505,7 +414,7 @@ export const decision_journeys_onto_target = defineDecision({
     "Alternative endings the old lists keep (a cancel, a decline, a retry) stay steps: the scenario takes " +
     "each on a second object its world holds, so every step's event is still sent once, in order.",
   source: by(`${OLD}/*.yaml; ${CATALOG}; ${CONTRACTS}/*-contract.ts; docs/decisions/policy-pack.md (P7, recommendation B)`),
-  affects: [...JOURNEYS],
+  affects: [],
 });
 
 export const decision_journeys_variants = defineDecision({

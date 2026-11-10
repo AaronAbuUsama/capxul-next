@@ -336,7 +336,7 @@ export const decision_swarm_events_not_needs = defineDecision({
     "system.build-order lets a lane build against equity's events before equity exists. A need on every sender would make " +
     "notices wait for every concept and pull equity forward. A read of a table is different: it needs the table to exist.",
   source: by("system.build-order (a lane may build against their events); books/target/notices/equity.ts (reads fundraise rounds)"),
-  affects: [decision_system_build_order, f.concept_notices, f.concept_equity],
+  affects: [decision_system_build_order, f.concept_notices],
 });
 
 export const decision_swarm_layers = defineDecision({

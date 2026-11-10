@@ -7,7 +7,7 @@ Capxul-native records leave the built book; nothing is deleted, it is moved with
 Aaron or on a call are parked under `docs/cut-archive/parked/`. Moved files keep their imports as they were, so those point at the
 folder the file was written in (as `docs/as-is/archive/` does) and are outside every typecheck.
 
-631 records have left the built book: 457 reached, 129 archive, 27 dropped, 18 parked.
+804 records have left the built book: 457 reached, 129 archive, 27 dropped, 191 parked.
 
 | Where | Records | Of which |
 |---|---|---|
@@ -18,6 +18,7 @@ folder the file was written in (as `docs/as-is/archive/` does) and are outside e
 | `docs/cut-archive/parked/services/` | 18 | 2 table, 1 event, 1 machine, 3 flow, 5 operation, 5 rpc, 1 decision |
 | `docs/cut-archive/organizations/` | 21 | 4 table, 2 workflow, 1 event, 1 machine, 2 flow, 3 rpc, 2 operation, 6 decision |
 | `docs/cut-archive/documents/` | 8 | 2 flow, 2 operation, 1 rpc, 3 decision |
+| `docs/cut-archive/parked/equity/` | 173 | 7 table, 7 event, 7 machine, 39 rpc, 26 flow, 38 operation, 7 workflow, 2 journey, 8 contract, 1 concept, 31 decision |
 
 ## projects (127)
 
@@ -684,3 +685,181 @@ folder the file was written in (as `docs/as-is/archive/` does) and are outside e
 | rpc | `documents.reading.render` | reached | Printing and exporting a document is Frappe's Print Format through the door. The hash stamp and its verification stay. | Frappe Print Format (`doc print`) | `documents/documents/reading.ts` |
 | flow | `client.payment-documents.export` | reached | Printing and exporting a document is Frappe's Print Format through the door. The hash stamp and its verification stay. | Frappe Print Format (`doc print`) | `documents/documents/flows.ts` |
 | flow | `client.payment-documents.render` | reached | Printing and exporting a document is Frappe's Print Format through the door. The hash stamp and its verification stay. | Frappe Print Format (`doc print`) | `documents/documents/flows.ts` |
+
+## parked/equity (173)
+
+| Kind | Id | Verdict | Reason | Carried or replaced by | Archived to |
+|---|---|---|---|---|---|
+| operation | `invest` | parked | Equity: kept by aaron.frappe-native, dropped by START-HERE and GROUNDING (question 1). | nothing until Aaron settles equity (cut.equity-parked) | `parked/equity/equity/operations.ts` |
+| operation | `invest.commit` | parked | Equity: kept by aaron.frappe-native, dropped by START-HERE and GROUNDING (question 1). | nothing until Aaron settles equity (cut.equity-parked) | `parked/equity/equity/operations.ts` |
+| operation | `invest.pay` | parked | Equity: kept by aaron.frappe-native, dropped by START-HERE and GROUNDING (question 1). | nothing until Aaron settles equity (cut.equity-parked) | `parked/equity/equity/operations.ts` |
+| operation | `invest.show` | parked | Equity: kept by aaron.frappe-native, dropped by START-HERE and GROUNDING (question 1). | nothing until Aaron settles equity (cut.equity-parked) | `parked/equity/equity/operations.ts` |
+| operation | `invest.sign` | parked | Equity: kept by aaron.frappe-native, dropped by START-HERE and GROUNDING (question 1). | nothing until Aaron settles equity (cut.equity-parked) | `parked/equity/equity/operations.ts` |
+| operation | `org.cap-table` | parked | Equity: kept by aaron.frappe-native, dropped by START-HERE and GROUNDING (question 1). | nothing until Aaron settles equity (cut.equity-parked) | `parked/equity/equity/operations.ts` |
+| operation | `org.equity.issue` | parked | Equity: kept by aaron.frappe-native, dropped by START-HERE and GROUNDING (question 1). | nothing until Aaron settles equity (cut.equity-parked) | `parked/equity/equity/operations.ts` |
+| operation | `org.equity.setup` | parked | Equity: kept by aaron.frappe-native, dropped by START-HERE and GROUNDING (question 1). | nothing until Aaron settles equity (cut.equity-parked) | `parked/equity/equity/operations.ts` |
+| operation | `org.equity.transfer.approve` | parked | Equity: kept by aaron.frappe-native, dropped by START-HERE and GROUNDING (question 1). | nothing until Aaron settles equity (cut.equity-parked) | `parked/equity/equity/operations.ts` |
+| operation | `org.exit.pay` | parked | Equity: kept by aaron.frappe-native, dropped by START-HERE and GROUNDING (question 1). | nothing until Aaron settles equity (cut.equity-parked) | `parked/equity/equity/operations.ts` |
+| operation | `org.exit.preview` | parked | Equity: kept by aaron.frappe-native, dropped by START-HERE and GROUNDING (question 1). | nothing until Aaron settles equity (cut.equity-parked) | `parked/equity/equity/operations.ts` |
+| operation | `org.options.end` | parked | Equity: kept by aaron.frappe-native, dropped by START-HERE and GROUNDING (question 1). | nothing until Aaron settles equity (cut.equity-parked) | `parked/equity/equity/operations.ts` |
+| operation | `org.options.grant` | parked | Equity: kept by aaron.frappe-native, dropped by START-HERE and GROUNDING (question 1). | nothing until Aaron settles equity (cut.equity-parked) | `parked/equity/equity/operations.ts` |
+| operation | `org.options.show` | parked | Equity: kept by aaron.frappe-native, dropped by START-HERE and GROUNDING (question 1). | nothing until Aaron settles equity (cut.equity-parked) | `parked/equity/equity/operations.ts` |
+| operation | `org.round.allocate` | parked | Equity: kept by aaron.frappe-native, dropped by START-HERE and GROUNDING (question 1). | nothing until Aaron settles equity (cut.equity-parked) | `parked/equity/equity/operations.ts` |
+| operation | `org.round.cancel` | parked | Equity: kept by aaron.frappe-native, dropped by START-HERE and GROUNDING (question 1). | nothing until Aaron settles equity (cut.equity-parked) | `parked/equity/equity/operations.ts` |
+| operation | `org.round.close` | parked | Equity: kept by aaron.frappe-native, dropped by START-HERE and GROUNDING (question 1). | nothing until Aaron settles equity (cut.equity-parked) | `parked/equity/equity/operations.ts` |
+| operation | `org.round.create` | parked | Equity: kept by aaron.frappe-native, dropped by START-HERE and GROUNDING (question 1). | nothing until Aaron settles equity (cut.equity-parked) | `parked/equity/equity/operations.ts` |
+| operation | `org.round.invite` | parked | Equity: kept by aaron.frappe-native, dropped by START-HERE and GROUNDING (question 1). | nothing until Aaron settles equity (cut.equity-parked) | `parked/equity/equity/operations.ts` |
+| operation | `org.round.preview` | parked | Equity: kept by aaron.frappe-native, dropped by START-HERE and GROUNDING (question 1). | nothing until Aaron settles equity (cut.equity-parked) | `parked/equity/equity/operations.ts` |
+| operation | `org.round.show` | parked | Equity: kept by aaron.frappe-native, dropped by START-HERE and GROUNDING (question 1). | nothing until Aaron settles equity (cut.equity-parked) | `parked/equity/equity/operations.ts` |
+| operation | `org.safe.close` | parked | Equity: kept by aaron.frappe-native, dropped by START-HERE and GROUNDING (question 1). | nothing until Aaron settles equity (cut.equity-parked) | `parked/equity/equity/operations.ts` |
+| operation | `org.safe.create` | parked | Equity: kept by aaron.frappe-native, dropped by START-HERE and GROUNDING (question 1). | nothing until Aaron settles equity (cut.equity-parked) | `parked/equity/equity/operations.ts` |
+| operation | `org.safe.invite` | parked | Equity: kept by aaron.frappe-native, dropped by START-HERE and GROUNDING (question 1). | nothing until Aaron settles equity (cut.equity-parked) | `parked/equity/equity/operations.ts` |
+| operation | `org.safe.show` | parked | Equity: kept by aaron.frappe-native, dropped by START-HERE and GROUNDING (question 1). | nothing until Aaron settles equity (cut.equity-parked) | `parked/equity/equity/operations.ts` |
+| operation | `org.vote.create` | parked | Equity: kept by aaron.frappe-native, dropped by START-HERE and GROUNDING (question 1). | nothing until Aaron settles equity (cut.equity-parked) | `parked/equity/equity/operations.ts` |
+| operation | `org.vote.execute` | parked | Equity: kept by aaron.frappe-native, dropped by START-HERE and GROUNDING (question 1). | nothing until Aaron settles equity (cut.equity-parked) | `parked/equity/equity/operations.ts` |
+| operation | `org.vote.list` | parked | Equity: kept by aaron.frappe-native, dropped by START-HERE and GROUNDING (question 1). | nothing until Aaron settles equity (cut.equity-parked) | `parked/equity/equity/operations.ts` |
+| operation | `org.vote.show` | parked | Equity: kept by aaron.frappe-native, dropped by START-HERE and GROUNDING (question 1). | nothing until Aaron settles equity (cut.equity-parked) | `parked/equity/equity/operations.ts` |
+| operation | `org.vote.wait` | parked | Equity: kept by aaron.frappe-native, dropped by START-HERE and GROUNDING (question 1). | nothing until Aaron settles equity (cut.equity-parked) | `parked/equity/equity/operations.ts` |
+| operation | `shares` | parked | Equity: kept by aaron.frappe-native, dropped by START-HERE and GROUNDING (question 1). | nothing until Aaron settles equity (cut.equity-parked) | `parked/equity/equity/operations.ts` |
+| operation | `shares.accept` | parked | Equity: kept by aaron.frappe-native, dropped by START-HERE and GROUNDING (question 1). | nothing until Aaron settles equity (cut.equity-parked) | `parked/equity/equity/operations.ts` |
+| operation | `shares.convert` | parked | Equity: kept by aaron.frappe-native, dropped by START-HERE and GROUNDING (question 1). | nothing until Aaron settles equity (cut.equity-parked) | `parked/equity/equity/operations.ts` |
+| operation | `shares.exercise` | parked | Equity: kept by aaron.frappe-native, dropped by START-HERE and GROUNDING (question 1). | nothing until Aaron settles equity (cut.equity-parked) | `parked/equity/equity/operations.ts` |
+| operation | `shares.sell` | parked | Equity: kept by aaron.frappe-native, dropped by START-HERE and GROUNDING (question 1). | nothing until Aaron settles equity (cut.equity-parked) | `parked/equity/equity/operations.ts` |
+| operation | `vote.cast` | parked | Equity: kept by aaron.frappe-native, dropped by START-HERE and GROUNDING (question 1). | nothing until Aaron settles equity (cut.equity-parked) | `parked/equity/equity/operations.ts` |
+| operation | `vote.delegate` | parked | Equity: kept by aaron.frappe-native, dropped by START-HERE and GROUNDING (question 1). | nothing until Aaron settles equity (cut.equity-parked) | `parked/equity/equity/operations.ts` |
+| operation | `vote.list` | parked | Equity: kept by aaron.frappe-native, dropped by START-HERE and GROUNDING (question 1). | nothing until Aaron settles equity (cut.equity-parked) | `parked/equity/equity/operations.ts` |
+| decision | `concepts.equity` | parked | Governed only parked records; parked with them. | the records it governed are in parked/equity | `parked/equity/shared/decisions.ts` |
+| decision | `contracts.equity-events` | parked | Governed only parked records; parked with them. | the records it governed are in parked/equity | `parked/equity/shared/decisions.ts` |
+| decision | `contracts.hats-elections` | parked | Governed only parked records; parked with them. | the records it governed are in parked/equity | `parked/equity/shared/decisions.ts` |
+| decision | `contracts.no-checkpoint-reads` | parked | Governed only parked records; parked with them. | the records it governed are in parked/equity | `parked/equity/shared/decisions.ts` |
+| decision | `dependencies.of-equity` | parked | Governed only parked records; parked with them. | the records it governed are in parked/equity | `parked/equity/shared/decisions.ts` |
+| decision | `equity.acceptance` | parked | Governed only parked records; parked with them. | the records it governed are in parked/equity | `parked/equity/equity/decisions.ts` |
+| decision | `equity.acceptance-rewrites` | parked | Governed only parked records; parked with them. | the records it governed are in parked/equity | `parked/equity/equity/decisions.ts` |
+| decision | `equity.assembly-rulings` | parked | Governed only parked records; parked with them. | the records it governed are in parked/equity | `parked/equity/equity/decisions.ts` |
+| decision | `equity.chain-is-truth` | parked | Governed only parked records; parked with them. | the records it governed are in parked/equity | `parked/equity/equity/decisions.ts` |
+| decision | `equity.contract-functions` | parked | Governed only parked records; parked with them. | the records it governed are in parked/equity | `parked/equity/equity/decisions.ts` |
+| decision | `equity.director-from-chain` | parked | Governed only parked records; parked with them. | the records it governed are in parked/equity | `parked/equity/equity/decisions.ts` |
+| decision | `equity.dropped` | parked | Governed only parked records; parked with them. | the records it governed are in parked/equity | `parked/equity/equity/decisions.ts` |
+| decision | `equity.events` | parked | Governed only parked records; parked with them. | the records it governed are in parked/equity | `parked/equity/equity/decisions.ts` |
+| decision | `equity.failed-proposals` | parked | Governed only parked records; parked with them. | the records it governed are in parked/equity | `parked/equity/equity/decisions.ts` |
+| decision | `equity.holder-reads` | parked | Governed only parked records; parked with them. | the records it governed are in parked/equity | `parked/equity/equity/decisions.ts` |
+| decision | `equity.invest-pay-buys` | parked | Governed only parked records; parked with them. | the records it governed are in parked/equity | `parked/equity/equity/decisions.ts` |
+| decision | `equity.no-door` | parked | Governed only parked records; parked with them. | the records it governed are in parked/equity | `parked/equity/equity/decisions.ts` |
+| decision | `equity.one-writes-table` | parked | Governed only parked records; parked with them. | the records it governed are in parked/equity | `parked/equity/equity/decisions.ts` |
+| decision | `equity.processes` | parked | Governed only parked records; parked with them. | the records it governed are in parked/equity | `parked/equity/equity/decisions.ts` |
+| decision | `equity.reports` | parked | Governed only parked records; parked with them. | the records it governed are in parked/equity | `parked/equity/equity/decisions.ts` |
+| decision | `equity.returns` | parked | Governed only parked records; parked with them. | the records it governed are in parked/equity | `parked/equity/equity/decisions.ts` |
+| decision | `equity.round-refusals` | parked | Governed only parked records; parked with them. | the records it governed are in parked/equity | `parked/equity/equity/decisions.ts` |
+| decision | `equity.safe-close` | parked | Governed only parked records; parked with them. | the records it governed are in parked/equity | `parked/equity/equity/decisions.ts` |
+| decision | `equity.safe-create-refusals` | parked | Governed only parked records; parked with them. | the records it governed are in parked/equity | `parked/equity/equity/decisions.ts` |
+| decision | `equity.setup-budget` | parked | Governed only parked records; parked with them. | the records it governed are in parked/equity | `parked/equity/equity/decisions.ts` |
+| decision | `equity.setup-in-process` | parked | Governed only parked records; parked with them. | the records it governed are in parked/equity | `parked/equity/equity/decisions.ts` |
+| decision | `equity.tables` | parked | Governed only parked records; parked with them. | the records it governed are in parked/equity | `parked/equity/equity/decisions.ts` |
+| decision | `equity.vote-list-refusals` | parked | Governed only parked records; parked with them. | the records it governed are in parked/equity | `parked/equity/equity/decisions.ts` |
+| decision | `equity.vote-matters` | parked | Governed only parked records; parked with them. | the records it governed are in parked/equity | `parked/equity/equity/decisions.ts` |
+| decision | `equity.worlds` | parked | Governed only parked records; parked with them. | the records it governed are in parked/equity | `parked/equity/equity/decisions.ts` |
+| decision | `notices.round-invitation` | parked | Governed only parked records; parked with them. | the records it governed are in parked/equity | `parked/equity/notices/decisions.ts` |
+| table | `equity-grants` | parked | Parked: aaron.frappe-native keeps equity, START-HERE and GROUNDING drop it. Aaron settles it (cut.equity-parked). | parked, not replaced | `parked/equity/equity/data.ts` |
+| table | `equity-installs` | parked | Parked: aaron.frappe-native keeps equity, START-HERE and GROUNDING drop it. Aaron settles it (cut.equity-parked). | parked, not replaced | `parked/equity/equity/data.ts` |
+| table | `equity-writes` | parked | Parked: aaron.frappe-native keeps equity, START-HERE and GROUNDING drop it. Aaron settles it (cut.equity-parked). | parked, not replaced | `parked/equity/equity/data.ts` |
+| table | `fundraise-investments` | parked | Parked: aaron.frappe-native keeps equity, START-HERE and GROUNDING drop it. Aaron settles it (cut.equity-parked). | parked, not replaced | `parked/equity/equity/data.ts` |
+| table | `fundraise-rounds` | parked | Parked: aaron.frappe-native keeps equity, START-HERE and GROUNDING drop it. Aaron settles it (cut.equity-parked). | parked, not replaced | `parked/equity/equity/data.ts` |
+| table | `share-sales` | parked | Parked: aaron.frappe-native keeps equity, START-HERE and GROUNDING drop it. Aaron settles it (cut.equity-parked). | parked, not replaced | `parked/equity/equity/data.ts` |
+| table | `votes` | parked | Parked: aaron.frappe-native keeps equity, START-HERE and GROUNDING drop it. Aaron settles it (cut.equity-parked). | parked, not replaced | `parked/equity/equity/data.ts` |
+| machine | `equity-grant` | parked | Parked: aaron.frappe-native keeps equity, START-HERE and GROUNDING drop it. Aaron settles it (cut.equity-parked). | parked, not replaced | `parked/equity/equity/data.ts` |
+| machine | `equity-install` | parked | Parked: aaron.frappe-native keeps equity, START-HERE and GROUNDING drop it. Aaron settles it (cut.equity-parked). | parked, not replaced | `parked/equity/equity/data.ts` |
+| machine | `equity-write` | parked | Parked: aaron.frappe-native keeps equity, START-HERE and GROUNDING drop it. Aaron settles it (cut.equity-parked). | parked, not replaced | `parked/equity/equity/data.ts` |
+| machine | `fundraise-investment` | parked | Parked: aaron.frappe-native keeps equity, START-HERE and GROUNDING drop it. Aaron settles it (cut.equity-parked). | parked, not replaced | `parked/equity/equity/data.ts` |
+| machine | `fundraise-round` | parked | Parked: aaron.frappe-native keeps equity, START-HERE and GROUNDING drop it. Aaron settles it (cut.equity-parked). | parked, not replaced | `parked/equity/equity/data.ts` |
+| machine | `share-sale` | parked | Parked: aaron.frappe-native keeps equity, START-HERE and GROUNDING drop it. Aaron settles it (cut.equity-parked). | parked, not replaced | `parked/equity/equity/data.ts` |
+| machine | `vote` | parked | Parked: aaron.frappe-native keeps equity, START-HERE and GROUNDING drop it. Aaron settles it (cut.equity-parked). | parked, not replaced | `parked/equity/equity/data.ts` |
+| event | `equity_grant_transitioned` | parked | Parked: aaron.frappe-native keeps equity, START-HERE and GROUNDING drop it. Aaron settles it (cut.equity-parked). | parked, not replaced | `parked/equity/equity/data.ts` |
+| event | `equity_install_transitioned` | parked | Parked: aaron.frappe-native keeps equity, START-HERE and GROUNDING drop it. Aaron settles it (cut.equity-parked). | parked, not replaced | `parked/equity/equity/data.ts` |
+| event | `equity_write_transitioned` | parked | Parked: aaron.frappe-native keeps equity, START-HERE and GROUNDING drop it. Aaron settles it (cut.equity-parked). | parked, not replaced | `parked/equity/equity/data.ts` |
+| event | `fundraise_investment_transitioned` | parked | Parked: aaron.frappe-native keeps equity, START-HERE and GROUNDING drop it. Aaron settles it (cut.equity-parked). | parked, not replaced | `parked/equity/equity/data.ts` |
+| event | `fundraise_round_transitioned` | parked | Parked: aaron.frappe-native keeps equity, START-HERE and GROUNDING drop it. Aaron settles it (cut.equity-parked). | parked, not replaced | `parked/equity/equity/data.ts` |
+| event | `share_sale_transitioned` | parked | Parked: aaron.frappe-native keeps equity, START-HERE and GROUNDING drop it. Aaron settles it (cut.equity-parked). | parked, not replaced | `parked/equity/equity/data.ts` |
+| event | `vote_transitioned` | parked | Parked: aaron.frappe-native keeps equity, START-HERE and GROUNDING drop it. Aaron settles it (cut.equity-parked). | parked, not replaced | `parked/equity/equity/data.ts` |
+| rpc | `equity.exits.pay` | parked | Parked: aaron.frappe-native keeps equity, START-HERE and GROUNDING drop it. Aaron settles it (cut.equity-parked). | parked, not replaced | `parked/equity/equity/exits.ts` |
+| rpc | `equity.exits.preview` | parked | Parked: aaron.frappe-native keeps equity, START-HERE and GROUNDING drop it. Aaron settles it (cut.equity-parked). | parked, not replaced | `parked/equity/equity/exits.ts` |
+| rpc | `equity.grants.accept` | parked | Parked: aaron.frappe-native keeps equity, START-HERE and GROUNDING drop it. Aaron settles it (cut.equity-parked). | parked, not replaced | `parked/equity/equity/grants.ts` |
+| rpc | `equity.grants.end` | parked | Parked: aaron.frappe-native keeps equity, START-HERE and GROUNDING drop it. Aaron settles it (cut.equity-parked). | parked, not replaced | `parked/equity/equity/grants.ts` |
+| rpc | `equity.grants.exercise` | parked | Parked: aaron.frappe-native keeps equity, START-HERE and GROUNDING drop it. Aaron settles it (cut.equity-parked). | parked, not replaced | `parked/equity/equity/grants.ts` |
+| rpc | `equity.grants.propose` | parked | Parked: aaron.frappe-native keeps equity, START-HERE and GROUNDING drop it. Aaron settles it (cut.equity-parked). | parked, not replaced | `parked/equity/equity/grants.ts` |
+| rpc | `equity.grants.show` | parked | Parked: aaron.frappe-native keeps equity, START-HERE and GROUNDING drop it. Aaron settles it (cut.equity-parked). | parked, not replaced | `parked/equity/equity/grants.ts` |
+| rpc | `equity.holdings.cap-table` | parked | Parked: aaron.frappe-native keeps equity, START-HERE and GROUNDING drop it. Aaron settles it (cut.equity-parked). | parked, not replaced | `parked/equity/equity/holdings.ts` |
+| rpc | `equity.holdings.convert` | parked | Parked: aaron.frappe-native keeps equity, START-HERE and GROUNDING drop it. Aaron settles it (cut.equity-parked). | parked, not replaced | `parked/equity/equity/holdings.ts` |
+| rpc | `equity.holdings.delegate` | parked | Parked: aaron.frappe-native keeps equity, START-HERE and GROUNDING drop it. Aaron settles it (cut.equity-parked). | parked, not replaced | `parked/equity/equity/holdings.ts` |
+| rpc | `equity.holdings.list` | parked | Parked: aaron.frappe-native keeps equity, START-HERE and GROUNDING drop it. Aaron settles it (cut.equity-parked). | parked, not replaced | `parked/equity/equity/holdings.ts` |
+| rpc | `equity.installs.begin` | parked | Parked: aaron.frappe-native keeps equity, START-HERE and GROUNDING drop it. Aaron settles it (cut.equity-parked). | parked, not replaced | `parked/equity/equity/installs.ts` |
+| rpc | `equity.installs.watch` | parked | Parked: aaron.frappe-native keeps equity, START-HERE and GROUNDING drop it. Aaron settles it (cut.equity-parked). | parked, not replaced | `parked/equity/equity/installs.ts` |
+| rpc | `equity.investments.commit` | parked | Parked: aaron.frappe-native keeps equity, START-HERE and GROUNDING drop it. Aaron settles it (cut.equity-parked). | parked, not replaced | `parked/equity/equity/investments.ts` |
+| rpc | `equity.investments.get` | parked | Parked: aaron.frappe-native keeps equity, START-HERE and GROUNDING drop it. Aaron settles it (cut.equity-parked). | parked, not replaced | `parked/equity/equity/investments.ts` |
+| rpc | `equity.investments.list` | parked | Parked: aaron.frappe-native keeps equity, START-HERE and GROUNDING drop it. Aaron settles it (cut.equity-parked). | parked, not replaced | `parked/equity/equity/investments.ts` |
+| rpc | `equity.investments.pay` | parked | Parked: aaron.frappe-native keeps equity, START-HERE and GROUNDING drop it. Aaron settles it (cut.equity-parked). | parked, not replaced | `parked/equity/equity/investments.ts` |
+| rpc | `equity.investments.sign` | parked | Parked: aaron.frappe-native keeps equity, START-HERE and GROUNDING drop it. Aaron settles it (cut.equity-parked). | parked, not replaced | `parked/equity/equity/investments.ts` |
+| rpc | `equity.issues.propose` | parked | Parked: aaron.frappe-native keeps equity, START-HERE and GROUNDING drop it. Aaron settles it (cut.equity-parked). | parked, not replaced | `parked/equity/equity/issues.ts` |
+| rpc | `equity.rounds.allocate` | parked | Parked: aaron.frappe-native keeps equity, START-HERE and GROUNDING drop it. Aaron settles it (cut.equity-parked). | parked, not replaced | `parked/equity/equity/rounds.ts` |
+| rpc | `equity.rounds.cancel` | parked | Parked: aaron.frappe-native keeps equity, START-HERE and GROUNDING drop it. Aaron settles it (cut.equity-parked). | parked, not replaced | `parked/equity/equity/rounds.ts` |
+| rpc | `equity.rounds.close` | parked | Parked: aaron.frappe-native keeps equity, START-HERE and GROUNDING drop it. Aaron settles it (cut.equity-parked). | parked, not replaced | `parked/equity/equity/rounds.ts` |
+| rpc | `equity.rounds.create` | parked | Parked: aaron.frappe-native keeps equity, START-HERE and GROUNDING drop it. Aaron settles it (cut.equity-parked). | parked, not replaced | `parked/equity/equity/rounds.ts` |
+| rpc | `equity.rounds.invite` | parked | Parked: aaron.frappe-native keeps equity, START-HERE and GROUNDING drop it. Aaron settles it (cut.equity-parked). | parked, not replaced | `parked/equity/equity/rounds.ts` |
+| rpc | `equity.rounds.preview` | parked | Parked: aaron.frappe-native keeps equity, START-HERE and GROUNDING drop it. Aaron settles it (cut.equity-parked). | parked, not replaced | `parked/equity/equity/rounds.ts` |
+| rpc | `equity.rounds.show` | parked | Parked: aaron.frappe-native keeps equity, START-HERE and GROUNDING drop it. Aaron settles it (cut.equity-parked). | parked, not replaced | `parked/equity/equity/rounds.ts` |
+| rpc | `equity.safes.close` | parked | Parked: aaron.frappe-native keeps equity, START-HERE and GROUNDING drop it. Aaron settles it (cut.equity-parked). | parked, not replaced | `parked/equity/equity/safes.ts` |
+| rpc | `equity.safes.create` | parked | Parked: aaron.frappe-native keeps equity, START-HERE and GROUNDING drop it. Aaron settles it (cut.equity-parked). | parked, not replaced | `parked/equity/equity/safes.ts` |
+| rpc | `equity.safes.invite` | parked | Parked: aaron.frappe-native keeps equity, START-HERE and GROUNDING drop it. Aaron settles it (cut.equity-parked). | parked, not replaced | `parked/equity/equity/safes.ts` |
+| rpc | `equity.safes.show` | parked | Parked: aaron.frappe-native keeps equity, START-HERE and GROUNDING drop it. Aaron settles it (cut.equity-parked). | parked, not replaced | `parked/equity/equity/safes.ts` |
+| rpc | `equity.sales.approve` | parked | Parked: aaron.frappe-native keeps equity, START-HERE and GROUNDING drop it. Aaron settles it (cut.equity-parked). | parked, not replaced | `parked/equity/equity/sales.ts` |
+| rpc | `equity.sales.offer` | parked | Parked: aaron.frappe-native keeps equity, START-HERE and GROUNDING drop it. Aaron settles it (cut.equity-parked). | parked, not replaced | `parked/equity/equity/sales.ts` |
+| rpc | `equity.votes.cast` | parked | Parked: aaron.frappe-native keeps equity, START-HERE and GROUNDING drop it. Aaron settles it (cut.equity-parked). | parked, not replaced | `parked/equity/equity/votes.ts` |
+| rpc | `equity.votes.execute` | parked | Parked: aaron.frappe-native keeps equity, START-HERE and GROUNDING drop it. Aaron settles it (cut.equity-parked). | parked, not replaced | `parked/equity/equity/votes.ts` |
+| rpc | `equity.votes.get` | parked | Parked: aaron.frappe-native keeps equity, START-HERE and GROUNDING drop it. Aaron settles it (cut.equity-parked). | parked, not replaced | `parked/equity/equity/votes.ts` |
+| rpc | `equity.votes.list` | parked | Parked: aaron.frappe-native keeps equity, START-HERE and GROUNDING drop it. Aaron settles it (cut.equity-parked). | parked, not replaced | `parked/equity/equity/votes.ts` |
+| rpc | `equity.votes.mine` | parked | Parked: aaron.frappe-native keeps equity, START-HERE and GROUNDING drop it. Aaron settles it (cut.equity-parked). | parked, not replaced | `parked/equity/equity/votes.ts` |
+| rpc | `equity.votes.propose` | parked | Parked: aaron.frappe-native keeps equity, START-HERE and GROUNDING drop it. Aaron settles it (cut.equity-parked). | parked, not replaced | `parked/equity/equity/votes.ts` |
+| rpc | `equity.writes.watch` | parked | Parked: aaron.frappe-native keeps equity, START-HERE and GROUNDING drop it. Aaron settles it (cut.equity-parked). | parked, not replaced | `parked/equity/equity/writes.ts` |
+| flow | `client.me.invest.commit` | parked | Parked: aaron.frappe-native keeps equity, START-HERE and GROUNDING drop it. Aaron settles it (cut.equity-parked). | parked, not replaced | `parked/equity/equity/flows.ts` |
+| flow | `client.me.invest.pay` | parked | Parked: aaron.frappe-native keeps equity, START-HERE and GROUNDING drop it. Aaron settles it (cut.equity-parked). | parked, not replaced | `parked/equity/equity/flows.ts` |
+| flow | `client.me.invest.sign` | parked | Parked: aaron.frappe-native keeps equity, START-HERE and GROUNDING drop it. Aaron settles it (cut.equity-parked). | parked, not replaced | `parked/equity/equity/flows.ts` |
+| flow | `client.me.shares.accept` | parked | Parked: aaron.frappe-native keeps equity, START-HERE and GROUNDING drop it. Aaron settles it (cut.equity-parked). | parked, not replaced | `parked/equity/equity/flows.ts` |
+| flow | `client.me.shares.convert` | parked | Parked: aaron.frappe-native keeps equity, START-HERE and GROUNDING drop it. Aaron settles it (cut.equity-parked). | parked, not replaced | `parked/equity/equity/flows.ts` |
+| flow | `client.me.shares.exercise` | parked | Parked: aaron.frappe-native keeps equity, START-HERE and GROUNDING drop it. Aaron settles it (cut.equity-parked). | parked, not replaced | `parked/equity/equity/flows.ts` |
+| flow | `client.me.shares.sell` | parked | Parked: aaron.frappe-native keeps equity, START-HERE and GROUNDING drop it. Aaron settles it (cut.equity-parked). | parked, not replaced | `parked/equity/equity/flows.ts` |
+| flow | `client.me.votes.cast` | parked | Parked: aaron.frappe-native keeps equity, START-HERE and GROUNDING drop it. Aaron settles it (cut.equity-parked). | parked, not replaced | `parked/equity/equity/flows.ts` |
+| flow | `client.me.votes.delegate` | parked | Parked: aaron.frappe-native keeps equity, START-HERE and GROUNDING drop it. Aaron settles it (cut.equity-parked). | parked, not replaced | `parked/equity/equity/flows.ts` |
+| flow | `client.org.equity.issue` | parked | Parked: aaron.frappe-native keeps equity, START-HERE and GROUNDING drop it. Aaron settles it (cut.equity-parked). | parked, not replaced | `parked/equity/equity/flows.ts` |
+| flow | `client.org.equity.setup` | parked | Parked: aaron.frappe-native keeps equity, START-HERE and GROUNDING drop it. Aaron settles it (cut.equity-parked). | parked, not replaced | `parked/equity/equity/flows.ts` |
+| flow | `client.org.equity.transfers.approve` | parked | Parked: aaron.frappe-native keeps equity, START-HERE and GROUNDING drop it. Aaron settles it (cut.equity-parked). | parked, not replaced | `parked/equity/equity/flows.ts` |
+| flow | `client.org.exits.pay` | parked | Parked: aaron.frappe-native keeps equity, START-HERE and GROUNDING drop it. Aaron settles it (cut.equity-parked). | parked, not replaced | `parked/equity/equity/flows.ts` |
+| flow | `client.org.options.end` | parked | Parked: aaron.frappe-native keeps equity, START-HERE and GROUNDING drop it. Aaron settles it (cut.equity-parked). | parked, not replaced | `parked/equity/equity/flows.ts` |
+| flow | `client.org.options.grant` | parked | Parked: aaron.frappe-native keeps equity, START-HERE and GROUNDING drop it. Aaron settles it (cut.equity-parked). | parked, not replaced | `parked/equity/equity/flows.ts` |
+| flow | `client.org.rounds.allocate` | parked | Parked: aaron.frappe-native keeps equity, START-HERE and GROUNDING drop it. Aaron settles it (cut.equity-parked). | parked, not replaced | `parked/equity/equity/flows.ts` |
+| flow | `client.org.rounds.cancel` | parked | Parked: aaron.frappe-native keeps equity, START-HERE and GROUNDING drop it. Aaron settles it (cut.equity-parked). | parked, not replaced | `parked/equity/equity/flows.ts` |
+| flow | `client.org.rounds.close` | parked | Parked: aaron.frappe-native keeps equity, START-HERE and GROUNDING drop it. Aaron settles it (cut.equity-parked). | parked, not replaced | `parked/equity/equity/flows.ts` |
+| flow | `client.org.rounds.create` | parked | Parked: aaron.frappe-native keeps equity, START-HERE and GROUNDING drop it. Aaron settles it (cut.equity-parked). | parked, not replaced | `parked/equity/equity/flows.ts` |
+| flow | `client.org.rounds.invite` | parked | Parked: aaron.frappe-native keeps equity, START-HERE and GROUNDING drop it. Aaron settles it (cut.equity-parked). | parked, not replaced | `parked/equity/equity/flows.ts` |
+| flow | `client.org.safes.close` | parked | Parked: aaron.frappe-native keeps equity, START-HERE and GROUNDING drop it. Aaron settles it (cut.equity-parked). | parked, not replaced | `parked/equity/equity/flows.ts` |
+| flow | `client.org.safes.create` | parked | Parked: aaron.frappe-native keeps equity, START-HERE and GROUNDING drop it. Aaron settles it (cut.equity-parked). | parked, not replaced | `parked/equity/equity/flows.ts` |
+| flow | `client.org.safes.invite` | parked | Parked: aaron.frappe-native keeps equity, START-HERE and GROUNDING drop it. Aaron settles it (cut.equity-parked). | parked, not replaced | `parked/equity/equity/flows.ts` |
+| flow | `client.org.votes.create` | parked | Parked: aaron.frappe-native keeps equity, START-HERE and GROUNDING drop it. Aaron settles it (cut.equity-parked). | parked, not replaced | `parked/equity/equity/flows.ts` |
+| flow | `client.org.votes.execute` | parked | Parked: aaron.frappe-native keeps equity, START-HERE and GROUNDING drop it. Aaron settles it (cut.equity-parked). | parked, not replaced | `parked/equity/equity/flows.ts` |
+| flow | `client.org.votes.wait` | parked | Parked: aaron.frappe-native keeps equity, START-HERE and GROUNDING drop it. Aaron settles it (cut.equity-parked). | parked, not replaced | `parked/equity/equity/flows.ts` |
+| workflow | `equity.grants.lifecycle` | parked | Parked: aaron.frappe-native keeps equity, START-HERE and GROUNDING drop it. Aaron settles it (cut.equity-parked). | parked, not replaced | `parked/equity/equity/processes.ts` |
+| workflow | `equity.installs.setup` | parked | Parked: aaron.frappe-native keeps equity, START-HERE and GROUNDING drop it. Aaron settles it (cut.equity-parked). | parked, not replaced | `parked/equity/equity/processes.ts` |
+| workflow | `equity.rounds.lifecycle` | parked | Parked: aaron.frappe-native keeps equity, START-HERE and GROUNDING drop it. Aaron settles it (cut.equity-parked). | parked, not replaced | `parked/equity/equity/processes.ts` |
+| workflow | `equity.sales.lifecycle` | parked | Parked: aaron.frappe-native keeps equity, START-HERE and GROUNDING drop it. Aaron settles it (cut.equity-parked). | parked, not replaced | `parked/equity/equity/processes.ts` |
+| workflow | `equity.votes.lifecycle` | parked | Parked: aaron.frappe-native keeps equity, START-HERE and GROUNDING drop it. Aaron settles it (cut.equity-parked). | parked, not replaced | `parked/equity/equity/processes.ts` |
+| workflow | `equity.writes.follow` | parked | Parked: aaron.frappe-native keeps equity, START-HERE and GROUNDING drop it. Aaron settles it (cut.equity-parked). | parked, not replaced | `parked/equity/equity/processes.ts` |
+| workflow | `notices.equity.round-invitation` | parked | Parked: aaron.frappe-native keeps equity, START-HERE and GROUNDING drop it. Aaron settles it (cut.equity-parked). | parked, not replaced | `parked/equity/notices/equity.ts` |
+| contract | `captable` | parked | Parked: aaron.frappe-native keeps equity, START-HERE and GROUNDING drop it. Aaron settles it (cut.equity-parked). | parked, not replaced | `parked/equity/shared/external.ts` |
+| contract | `exits` | parked | Parked: aaron.frappe-native keeps equity, START-HERE and GROUNDING drop it. Aaron settles it (cut.equity-parked). | parked, not replaced | `parked/equity/shared/external.ts` |
+| contract | `governor` | parked | Parked: aaron.frappe-native keeps equity, START-HERE and GROUNDING drop it. Aaron settles it (cut.equity-parked). | parked, not replaced | `parked/equity/shared/external.ts` |
+| contract | `hats-elections` | parked | Parked: aaron.frappe-native keeps equity, START-HERE and GROUNDING drop it. Aaron settles it (cut.equity-parked). | parked, not replaced | `parked/equity/shared/external.ts` |
+| contract | `options` | parked | Parked: aaron.frappe-native keeps equity, START-HERE and GROUNDING drop it. Aaron settles it (cut.equity-parked). | parked, not replaced | `parked/equity/shared/external.ts` |
+| contract | `rounds` | parked | Parked: aaron.frappe-native keeps equity, START-HERE and GROUNDING drop it. Aaron settles it (cut.equity-parked). | parked, not replaced | `parked/equity/shared/external.ts` |
+| contract | `share-class` | parked | Parked: aaron.frappe-native keeps equity, START-HERE and GROUNDING drop it. Aaron settles it (cut.equity-parked). | parked, not replaced | `parked/equity/shared/external.ts` |
+| contract | `vesting` | parked | Parked: aaron.frappe-native keeps equity, START-HERE and GROUNDING drop it. Aaron settles it (cut.equity-parked). | parked, not replaced | `parked/equity/shared/external.ts` |
+| concept | `equity` | parked | Parked: aaron.frappe-native keeps equity, START-HERE and GROUNDING drop it. Aaron settles it (cut.equity-parked). | parked, not replaced | `parked/equity/shared/foundation.ts` |
+| journey | `own_equity` | parked | Parked: aaron.frappe-native keeps equity, START-HERE and GROUNDING drop it. Aaron settles it (cut.equity-parked). | parked, not replaced | `parked/equity/journeys.ts` |
+| journey | `raise_money` | parked | Parked: aaron.frappe-native keeps equity, START-HERE and GROUNDING drop it. Aaron settles it (cut.equity-parked). | parked, not replaced | `parked/equity/journeys.ts` |

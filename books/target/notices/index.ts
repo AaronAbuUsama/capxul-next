@@ -11,7 +11,6 @@ import * as payments from "./payments.ts";
 import * as payroll from "./payroll.ts";
 import * as banking from "./banking.ts";
 import * as requests from "./requests.ts";
-import * as equity from "./equity.ts";
 import * as processes from "./processes.ts";
 import * as flows from "./flows.ts";
 import * as operations from "./operations.ts";
@@ -28,7 +27,6 @@ export const modules = [
   payroll,
   banking,
   requests,
-  equity,
   processes,
   flows,
   operations,

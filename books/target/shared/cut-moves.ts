@@ -162,3 +162,27 @@ export const decision_cut_documents = defineDecision({
   source: BY,
   affects: [f.system_capxul, decision_cut_principle],
 });
+
+export const decision_cut_equity = defineDecision({
+  id: "cut.equity",
+  title: "equity is parked until Aaron settles it",
+  question: "What happens to equity in the built book?",
+  options: [
+      {
+          "label": "moved",
+          "text": "Equity is parked until Aaron settles it. Moved to docs/cut-archive/parked/equity/ with their text intact: 7 tables, 7 events, 7 machines, 39 rpcs, 26 flows, 38 operations, 7 workflows, 2 journeys, 8 contracts, 1 concept, 31 decisions. Listed in docs/cut-archive/INDEX.md with a reason and what carries each. Parked: aaron.frappe-native keeps equity, START-HERE and GROUNDING drop it. Aaron settles it (cut.equity-parked)."
+      },
+      {
+          "label": "frozen-1",
+          "text": "Frozen operations classified by the cut (tools/check-frozen.ts): org.equity.setup (parked): nothing until Aaron settles equity (cut.equity-parked). org.equity.issue (parked): nothing until Aaron settles equity (cut.equity-parked). org.cap-table (parked): nothing until Aaron settles equity (cut.equity-parked). org.options.grant (parked): nothing until Aaron settles equity (cut.equity-parked). org.options.end (parked): nothing until Aaron settles equity (cut.equity-parked). org.options.show (parked): nothing until Aaron settles equity (cut.equity-parked). shares.accept (parked): nothing until Aaron settles equity (cut.equity-parked). shares.exercise (parked): nothing until Aaron settles equity (cut.equity-parked). shares (parked): nothing until Aaron settles equity (cut.equity-parked). shares.convert (parked): nothing until Aaron settles equity (cut.equity-parked). shares.sell (parked): nothing until Aaron settles equity (cut.equity-parked). org.equity.transfer.approve (parked): nothing until Aaron settles equity (cut.equity-parked). org.exit.preview (parked): nothing until Aaron settles equity (cut.equity-parked). org.exit.pay (parked): nothing until Aaron settles equity (cut.equity-parked). org.round.preview (parked): nothing until Aaron settles equity (cut.equity-parked). org.round.create (parked): nothing until Aaron settles equity (cut.equity-parked). org.round.invite (parked): nothing until Aaron settles equity (cut.equity-parked). org.round.allocate (parked): nothing until Aaron settles equity (cut.equity-parked). org.round.close (parked): nothing until Aaron settles equity (cut.equity-parked). org.round.cancel (parked): nothing until Aaron settles equity (cut.equity-parked). org.round.show (parked): nothing until Aaron settles equity (cut.equity-parked)."
+      },
+      {
+          "label": "frozen-2",
+          "text": "Frozen operations classified by the cut (tools/check-frozen.ts): org.safe.create (parked): nothing until Aaron settles equity (cut.equity-parked). org.safe.invite (parked): nothing until Aaron settles equity (cut.equity-parked). org.safe.close (parked): nothing until Aaron settles equity (cut.equity-parked). org.safe.show (parked): nothing until Aaron settles equity (cut.equity-parked). invest (parked): nothing until Aaron settles equity (cut.equity-parked). invest.show (parked): nothing until Aaron settles equity (cut.equity-parked). invest.commit (parked): nothing until Aaron settles equity (cut.equity-parked). invest.pay (parked): nothing until Aaron settles equity (cut.equity-parked). invest.sign (parked): nothing until Aaron settles equity (cut.equity-parked). org.vote.create (parked): nothing until Aaron settles equity (cut.equity-parked). org.vote.execute (parked): nothing until Aaron settles equity (cut.equity-parked). org.vote.list (parked): nothing until Aaron settles equity (cut.equity-parked). org.vote.show (parked): nothing until Aaron settles equity (cut.equity-parked). org.vote.wait (parked): nothing until Aaron settles equity (cut.equity-parked). vote.cast (parked): nothing until Aaron settles equity (cut.equity-parked). vote.delegate (parked): nothing until Aaron settles equity (cut.equity-parked). vote.list (parked): nothing until Aaron settles equity (cut.equity-parked)."
+      }
+  ],
+  chosen: "moved",
+  why: "The cut's rule (cut.principle): Frappe owns what it owns and the door reaches it; nothing is deleted. The call is parked, not made: see the cut decision that parks it.",
+  source: BY,
+  affects: [f.system_capxul, decision_cut_principle, decision_cut_equity_parked],
+});

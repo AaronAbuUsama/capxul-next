@@ -13,7 +13,6 @@ import {
   contract_companies_house_claimer,
   contract_escrow,
   contract_escrow_factory,
-  contract_exits,
   contract_payments,
   integration_indexer,
   integration_service_signer,
@@ -900,7 +899,6 @@ export const decision_payments_general_escrow = defineDecision({
     contract_escrow_factory,
     contract_budgets,
     contract_companies_house_claimer,
-    contract_exits,
     table_payments,
     P.escrow,
     P.cancel,
@@ -1160,7 +1158,7 @@ export const decision_payments_escrow_contract_build = defineDecision({
     "escrow's ABI and creation code. For the goal prompt: the master adds `packages/contracts` to system.layout's " +
     "packages and to B3's spine.",
   source: by("environments.staging; open-for-aaron.md question 16; contracts.v4-set; docs/mission/initializer.md (B3: anvil with the v4 contracts; B5); packages/protocol/src/evm/escrows-v4.ts:13 (creation code)"),
-  affects: [contract_escrow, contract_escrow_factory, contract_exits, environment_staging, environment_devnet],
+  affects: [contract_escrow, contract_escrow_factory, environment_staging, environment_devnet],
 });
 
 export const decision_payments_claim_escrow_mailbox = defineDecision({

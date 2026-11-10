@@ -538,22 +538,6 @@ export const concept_applications = defineConcept({
   was: [`${OLD}/applications/README.md:3`],
 });
 
-export const concept_equity = defineConcept({
-  id: "equity",
-  title: "Equity",
-  about:
-    "The company's equity, low priority and off the critical path: share classes and the cap table, issues and transfers, " +
-    "vesting, options (grant, accept, exercise, end), priced rounds and SAFEs (create, invite, commit, sign, allocate, pay, " +
-    "close, cancel), exits, a shareholder's shares, and shareholder votes through the Governor. A Board matter is a Board " +
-    "proposal. Split from old organizations.",
-  component: B,
-  dependsOn: [
-    concept_access, concept_parties, concept_indexing, concept_approvals, concept_accounts, concept_organizations, concept_board,
-    concept_documents,
-  ],
-  was: [`${OLD}/organizations/README.md:3`],
-});
-
 export const concept_activity = defineConcept({
   id: "activity",
   title: "Activity",
@@ -585,7 +569,7 @@ export const concept_notices = defineConcept({
   component: B,
   dependsOn: [
     concept_access, concept_parties, concept_indexing, concept_accounts, concept_organizations, concept_board, concept_budgets,
-    concept_payments, concept_banking, concept_requests, concept_equity,
+    concept_payments, concept_banking, concept_requests, 
   ],
   was: [`${OLD}/operator/README.md:3`],
 });
@@ -611,7 +595,7 @@ export const concept_devnet = defineConcept({
 export const CONCEPTS: readonly Concept[] = [
   concept_access, concept_media, concept_parties, concept_indexing, concept_approvals, concept_accounts, concept_organizations,
   concept_board, concept_agents, concept_budgets, concept_books, concept_documents, concept_contacts, concept_payments,
-  concept_banking, concept_requests, concept_applications, concept_equity, concept_activity, concept_notices,
+  concept_banking, concept_requests, concept_applications, concept_activity, concept_notices,
   concept_devnet,
 ];
 
@@ -880,7 +864,6 @@ export const AREA_CONCEPTS = {
   books: concept_books,
   departments: concept_budgets,
   devnet: concept_devnet,
-  equity: concept_equity,
   governance: concept_board,
   organizations: concept_organizations,
   payments: concept_payments,

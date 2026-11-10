@@ -14,7 +14,6 @@ import {
   concept_approvals,
   concept_books,
   concept_budgets,
-  concept_equity,
   concept_indexing,
   concept_organizations,
   concept_parties,
@@ -547,7 +546,7 @@ export const decision_indexing_equity_two_tables = defineDecision({
     "cap table folded from logs at every read is too slow for `shares`. Votes are read by the company's Governor (its " +
     "ProposalCreated and VoteCast), which chain-logs' by-safe index serves.",
   source: by("apps/indexer/src/v4/captable/schema.ts:12; apps/indexer/src/v4/rounds/schema.ts:11; apps/indexer/src/v4/exits/schema.ts:8; apps/indexer/src/v4/share-class/schema.ts:12"),
-  affects: [table_equity_instruments, table_equity_positions, table_chain_logs, concept_equity],
+  affects: [table_equity_instruments, table_equity_positions, table_chain_logs],
 });
 
 // ── what is not ported ──────────────────────────────────────────────────────────────────────

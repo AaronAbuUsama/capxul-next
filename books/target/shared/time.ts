@@ -287,7 +287,7 @@ export const decision_time_chain_judged_deadlines = defineDecision({
     "still answers Active. Revised by the time review, 8 November 2026.",
   source: by("v4 src/money/Agreements.sol:198 (>= offerExpiresAt), Budgets.sol:288 (< payAt); OZ GovernorUpgradeable.state; books/target/equity/processes.ts:403"),
   affects: [
-    f.component_backend, f.component_chain, x.integration_chain_rpc, x.integration_indexer, f.concept_equity,
+    f.component_backend, f.component_chain, x.integration_chain_rpc, x.integration_indexer, 
     f.concept_approvals, f.concept_books, f.concept_budgets,
   ],
 });
