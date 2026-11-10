@@ -20,6 +20,7 @@ export const ACCEPTED: readonly string[] = [
   "accounts.no-acceptance",
   "devnet.time-protocol", // accepted with his change: no support window, everyone cut over at once
   "procedures.accounts-admit",
+  "cloud.inventory", // accepted on the portal, 10 November 2026 (answer a-20261110T163119-f894d2)
 ];
 
 /** Judgments an Aaron ruling replaced; the design pass rewrites each record to its ruling, book first. */
