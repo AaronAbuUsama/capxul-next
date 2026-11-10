@@ -907,12 +907,14 @@
       "title": "Rename the book to the blueprint",
       "why": "Aaron: call it blueprint, because nothing else sounds like it. The word book does not say what the thing is, and books/ beside packages/book confused him.",
       "milestone": "m1",
-      "state": "todo",
+      "state": "done",
       "needs": [
         "m1-tidy"
       ],
       "records": [],
-      "evidence": [],
+      "evidence": [
+        "b1fc04c"
+      ],
       "created": "2026-11-10",
       "updated": "2026-11-10"
     },
