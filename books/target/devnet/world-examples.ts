@@ -1,7 +1,7 @@
 // The examples of the devnet's world operations (`world ...`, `record ...`): the world named `town` holds Northwind
 // Trading, early 2026. Times in these shapes are epoch milliseconds. Commands use only what the records state.
 
-import { error_INVALID_INPUT, error_NOT_AUTHENTICATED, error_ROLE_PERMISSION_DENIED, error_WRONG_STATE } from "../shared/vocabulary.ts";
+import { error_CAPACITY_REACHED, error_INVALID_INPUT, error_NOT_AUTHENTICATED, error_ROLE_PERMISSION_DENIED, error_WRONG_STATE } from "../shared/vocabulary.ts";
 import { CHAIN_ID, NORTHWIND, ok, refused } from "../shared/examples.ts";
 
 const ms = (iso: string) => Date.parse(iso);
@@ -10,6 +10,8 @@ const town = (over: Record<string, unknown> = {}) => ({
   worldId: "town",
   name: "town",
   kind: "local",
+  profile: "core",
+  address: null,
   state: "running",
   clockMode: "frozen",
   rate: 1,
@@ -65,6 +67,9 @@ const NOT_OWNER = (input: string) => refused("Priya is a player in the world, no
 
 export const examples_world_create = [
   ok("Make the world town with a frozen clock", "capxul world create town --template empty --clock frozen --json", { worldId: "town", state: "creating" }),
+  ok("A full world with its companies' sites", "capxul world create town2 --profile full --template town-of-four@m3 --clock frozen --json", { worldId: "town2", state: "creating" }),
+  refused("The machine has no room for another full world", "capxul world create town3 --profile full --clock frozen --json", error_CAPACITY_REACHED, {}),
+  refused("Production without the owner's approval", "capxul world create live --kind production --profile full --json", error_ROLE_PERMISSION_DENIED),
   refused("The world name has a hyphen", "capxul world create town-1 --template empty --clock frozen --json", error_INVALID_INPUT, { field: "id", value: "town-1" }),
   SIGNED_OUT("capxul world create town --template empty --clock frozen --json"),
 ];

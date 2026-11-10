@@ -4,7 +4,7 @@
 // `dev time` and `dev snapshot` commands, by world name (devnet.world-first-class); a world name is lower-case letters and digits, no hyphen.
 
 import { budget } from "../../../packages/book/src/index.ts";
-import { error_CLI_USAGE, error_INVALID_INPUT, error_NOT_AUTHENTICATED, error_ROLE_PERMISSION_DENIED, error_WRONG_STATE } from "../shared/vocabulary.ts";
+import { error_CAPACITY_REACHED, error_CLI_USAGE, error_INVALID_INPUT, error_NOT_AUTHENTICATED, error_ROLE_PERMISSION_DENIED, error_WRONG_STATE } from "../shared/vocabulary.ts";
 import { operation } from "../plugs/kit.ts";
 import * as r from "./world-rpcs.ts";
 import * as ex from "./world-examples.ts";
@@ -13,19 +13,21 @@ const W = { empty: "empty-devnet", town: "town-of-four-m3", frozen: "world-froze
 const out = { error: error_NOT_AUTHENTICATED, given: W.signedOut, when: "No one is signed in on this machine (a hosted world needs a grant)." } as const;
 const notOwner = (what: string) => ({ error: error_ROLE_PERMISSION_DENIED, given: W.member, when: `A player or viewer, not an owner, tries to ${what}; nothing changes.` }) as const;
 const noWorld = { error: error_INVALID_INPUT, given: W.empty, when: "No world has that name." } as const;
-const OWN = "The world's owner: on a local devnet anyone on the machine; on a hosted world the holder of an owner grant.";
+const OWN = "The world's owner: on a local devnet anyone on the machine; on a hosted world the holder of an organiser grant.";
 const READ = "Anyone with a grant in the world; on a local devnet anyone on the machine.";
 
 export const operation_world_create = operation({
   id: "world.create", title: "Make a whole world", area: "devnet", command: "world create", priority: "critical", implementedBy: r.rpc_devnet_worlds_create, examples: ex.examples_world_create,
-  about: "Makes a world: a chain with the contracts, a service, a clock and a record, from a template or empty. `--clock frozen|running` and `--rate <1 to 60>`. Companies are made after with `org create --world`. As easy as making a company.",
+  about: "Makes a world: a chain with the contracts, a service, a clock and a record, from a template or empty. `--profile core|full` (default `core`), `--kind local|simulated|staging|production` (default `simulated` on the hosted service, `local` on a laptop), `--clock frozen|running` and `--rate <1 to 60>`. A hosted world answers at `core-<world>.<base>` and its companies at `<company>-<world>.<base>`. Companies are made after with `org create --world`. As easy as making a company.",
   who: OWN, changes: "One world, creating; its creation process makes the chain, service, clock, record and stand-ins and the world becomes running.",
   acceptance: [
     { claim: "A new world runs with its clock and a record that begins with its birth.", observes: `cli: from \`${W.empty}\`, \`world create town1 --template empty --clock frozen --json\` prints creating; \`world show town1\` then prints running, clockMode frozen, epoch 1 and recordHead 1; \`record list --world town1\` lists one \`born\` entry.` },
+    { claim: "A `full` world gives each company a site on its own address and a `core` world gives none.", observes: `cli: from \`${W.empty}\`, \`world create core1 --profile core\` then \`world show core1\` lists no company site; \`world create full1 --profile full --template town-of-four@m3\` then \`world show full1\` lists four sites at \`<company>-full1.<base>\`, each answering.` },
+    { claim: "Production is never made without the platform owner's approval.", observes: `cli: \`world create live --kind production --profile full --json\` exits ROLE_PERMISSION_DENIED and makes nothing; with the owner's one-time approval it is accepted.` },
     { claim: "A world made from a template starts with the template's companies on their own addresses.", observes: `cli: \`world create town2 --template town-of-four@m3 --clock frozen\`; \`world show town2\` lists the four companies at \`<company>-town2.<base>\`, each answering; the born entry names no parent.` },
   ],
   returns: r.rpc_devnet_worlds_create.output, errors: [error_CLI_USAGE],
-  refusals: [out, { error: error_INVALID_INPUT, given: W.empty, when: "The id has a hyphen or a capital, is longer than 12 characters, or is taken; or the template is not saved here." }], budget: budget("background"),
+  refusals: [out, { error: error_INVALID_INPUT, given: W.empty, when: "The id has a hyphen or a capital, is longer than 12 characters, or is taken; or the template is not saved here." }, { error: error_CAPACITY_REACHED, given: W.empty, when: "The worlds machine has no room for another world of this profile." }, { error: error_ROLE_PERMISSION_DENIED, given: W.member, when: "Production was asked for without the platform owner's approval; nothing is made." }], budget: budget("background"),
 });
 export const operation_world_list = operation({
   id: "world.list", title: "List the worlds", area: "devnet", command: "world list", priority: "normal", implementedBy: r.rpc_devnet_worlds_list, examples: ex.examples_world_list,

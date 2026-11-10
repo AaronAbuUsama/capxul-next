@@ -17010,23 +17010,51 @@
       "parent": "lane:devnet",
       "priority": "normal",
       "evals": [
+        "tbl:cohorts/schema",
+        "tbl:cohorts/writers",
         "tbl:command-records/schema",
         "tbl:command-records/writers",
         "tbl:mail-faults/schema",
         "tbl:mail-faults/writers",
         "tbl:mail-messages/schema",
         "tbl:mail-messages/writers",
+        "tbl:run-datasets/schema",
+        "tbl:run-datasets/writers",
+        "tbl:run-seats/schema",
+        "tbl:run-seats/writers",
+        "tbl:runs/schema",
+        "tbl:runs/writers",
+        "tbl:scenarios/schema",
+        "tbl:scenarios/writers",
         "tbl:scripted-gates/schema",
         "tbl:scripted-gates/tenancy",
         "tbl:scripted-gates/writers",
         "tbl:scripted-prices/schema",
         "tbl:scripted-prices/writers",
+        "tbl:world-grants/schema",
+        "tbl:world-grants/writers",
+        "tbl:world-invitations/schema",
+        "tbl:world-invitations/writers",
+        "tbl:world-members/schema",
+        "tbl:world-members/writers",
         "tbl:world-registrations/schema",
         "tbl:world-registrations/writers",
         "tbl:world-snapshots/schema",
         "tbl:world-snapshots/writers",
         "tbl:worlds/schema",
         "tbl:worlds/writers",
+        "trn:cohort.close",
+        "trn:cohort.create",
+        "trn:cohort.start",
+        "trn:run.accept",
+        "trn:run.archive",
+        "trn:run.close",
+        "trn:run.create",
+        "trn:run.open",
+        "trn:run.pause",
+        "trn:run.reject",
+        "trn:run.resume",
+        "trn:run.start",
         "trn:world.close",
         "trn:world.create",
         "trn:world.park",
@@ -17083,6 +17111,78 @@
         "lane:devnet",
         "layer:13",
         "pilot-closure"
+      ],
+      "budgetUsd": 5,
+      "checkers": [
+        "reviewer"
+      ],
+      "paths": [
+        "books/target/devnet/",
+        "packages/backend/src/devnet/",
+        "packages/sdk/src/devnet/",
+        "packages/devnet/"
+      ]
+    },
+    {
+      "key": "workflow:devnet.cohorts.waves",
+      "kind": "process",
+      "lane": "devnet",
+      "layer": 13,
+      "parent": "lane:devnet",
+      "priority": "normal",
+      "evals": [
+        "bud:devnet.cohorts.waves/p95",
+        "wfl:devnet.cohorts.waves/idempotent",
+        "wfl:devnet.cohorts.waves/resume"
+      ],
+      "record": "workflow:devnet.cohorts.waves",
+      "title": "Process: devnet.cohorts.waves",
+      "goal": "The durable process devnet.cohorts.waves (Open a cohort's runs in waves within the machine's room) runs as its record says: it resumes after a crash, each activity's side effect lands once, and every keyed wait is woken by what its key names.",
+      "needs": [
+        "door:devnet",
+        "milestone:m2",
+        "milestone:m3"
+      ],
+      "labels": [
+        "kind:process",
+        "lane:devnet",
+        "layer:13"
+      ],
+      "budgetUsd": 5,
+      "checkers": [
+        "reviewer"
+      ],
+      "paths": [
+        "books/target/devnet/",
+        "packages/backend/src/devnet/",
+        "packages/sdk/src/devnet/",
+        "packages/devnet/"
+      ]
+    },
+    {
+      "key": "workflow:devnet.runs.watch",
+      "kind": "process",
+      "lane": "devnet",
+      "layer": 13,
+      "parent": "lane:devnet",
+      "priority": "normal",
+      "evals": [
+        "bud:devnet.runs.watch/p95",
+        "wfl:devnet.runs.watch/idempotent",
+        "wfl:devnet.runs.watch/resume"
+      ],
+      "record": "workflow:devnet.runs.watch",
+      "title": "Process: devnet.runs.watch",
+      "goal": "The durable process devnet.runs.watch (Watch a run for its end and for a silent seat) runs as its record says: it resumes after a crash, each activity's side effect lands once, and every keyed wait is woken by what its key names.",
+      "needs": [
+        "door:devnet",
+        "milestone:m2",
+        "milestone:m3"
+      ],
+      "labels": [
+        "kind:process",
+        "lane:devnet",
+        "layer:13"
       ],
       "budgetUsd": 5,
       "checkers": [
@@ -17343,6 +17443,200 @@
       ]
     },
     {
+      "key": "operation:cohort.create",
+      "kind": "operation",
+      "lane": "devnet",
+      "layer": 13,
+      "parent": "lane:devnet",
+      "priority": "critical",
+      "evals": [
+        "acc:cohort.create/1",
+        "acc:cohort.create/2",
+        "bud:cohort.create/p95",
+        "des:cohort.create",
+        "doc:cohort.create",
+        "evt:cohort.create/cohort_transitioned",
+        "ref:cohort.create/CAPACITY_REACHED",
+        "ref:cohort.create/INVALID_INPUT",
+        "ref:cohort.create/NOT_AUTHENTICATED",
+        "ref:cohort.create/ROLE_PERMISSION_DENIED",
+        "ret:cohort.create",
+        "rpc:devnet.cohorts.create/budget",
+        "rpc:devnet.cohorts.create/errors",
+        "rpc:devnet.cohorts.create/spans",
+        "spn:cohort.create"
+      ],
+      "record": "operation:cohort.create",
+      "title": "cohort create: Plan a cohort: many runs for many participants",
+      "labels": [
+        "area:devnet",
+        "kind:operation",
+        "lane:devnet",
+        "layer:13",
+        "pilot",
+        "pilot-closure"
+      ],
+      "goal": "`capxul cohort create` does what operation cohort.create promises: its 2 acceptance claims and 4 refusals hold, its --json shape, events, spans and budget pass on a devnet at the head of integration/build, and its reference page agrees with it. `cohort create beta-1 --scenario town-of-four@1 --participants beta-1.csv --per-run 4 --at-once 2 --start 2026-12-01T09:00Z --on-drop agent`. The participants file holds a key address and an optional seat preference per line: no names, no emails. The cohort makes `ceil(participants / per-run)` runs, assigns people and agents to seats (a person's seat is specified and waits on Core's sign-in: until then the file's lines are agents), makes the invitations bound to each key and opens runs in waves of `--at-once`, never more than the machine has room for. A participant's one command to enter is `world join`.",
+      "needs": [
+        "door:devnet",
+        "milestone:m2"
+      ],
+      "budgetUsd": 5,
+      "checkers": [
+        "reviewer"
+      ],
+      "paths": [
+        "books/target/devnet/",
+        "packages/backend/src/devnet/",
+        "packages/sdk/src/devnet/",
+        "packages/devnet/"
+      ]
+    },
+    {
+      "key": "operation:cohort.show",
+      "kind": "operation",
+      "lane": "devnet",
+      "layer": 13,
+      "parent": "lane:devnet",
+      "priority": "critical",
+      "evals": [
+        "acc:cohort.show/1",
+        "bud:cohort.show/p95",
+        "des:cohort.show",
+        "doc:cohort.show",
+        "ref:cohort.show/INVALID_INPUT",
+        "ref:cohort.show/NOT_AUTHENTICATED",
+        "ref:cohort.show/ROLE_PERMISSION_DENIED",
+        "ret:cohort.show",
+        "rpc:devnet.cohorts.show/budget",
+        "rpc:devnet.cohorts.show/errors",
+        "rpc:devnet.cohorts.show/spans",
+        "spn:cohort.show"
+      ],
+      "record": "operation:cohort.show",
+      "title": "cohort show: See who is in which run and how each is going",
+      "labels": [
+        "area:devnet",
+        "kind:operation",
+        "lane:devnet",
+        "layer:13",
+        "pilot",
+        "pilot-closure"
+      ],
+      "goal": "`capxul cohort show` does what operation cohort.show promises: its 1 acceptance claims and 3 refusals hold, its --json shape, events, spans and budget pass on a devnet at the head of integration/build, and its reference page agrees with it. One cohort: every run with its state, how many seats are filled, the world's now and how many record entries and refusals it has so far. Entries and refusals per run are the quickest sign that a run is moving or stuck.",
+      "needs": [
+        "door:devnet",
+        "milestone:m2"
+      ],
+      "budgetUsd": 5,
+      "checkers": [
+        "reviewer"
+      ],
+      "paths": [
+        "books/target/devnet/",
+        "packages/backend/src/devnet/",
+        "packages/sdk/src/devnet/",
+        "packages/devnet/"
+      ]
+    },
+    {
+      "key": "operation:env.reset",
+      "kind": "operation",
+      "lane": "devnet",
+      "layer": 13,
+      "parent": "lane:devnet",
+      "priority": "critical",
+      "evals": [
+        "acc:env.reset/1",
+        "acc:env.reset/2",
+        "bud:env.reset/p95",
+        "des:env.reset",
+        "doc:env.reset",
+        "evt:env.reset/run_transitioned",
+        "ref:env.reset/CAPACITY_REACHED",
+        "ref:env.reset/INVALID_INPUT",
+        "ref:env.reset/NOT_AUTHENTICATED",
+        "ret:env.reset",
+        "rpc:devnet.env.reset/budget",
+        "rpc:devnet.env.reset/errors",
+        "rpc:devnet.env.reset/spans",
+        "spn:env.reset"
+      ],
+      "record": "operation:env.reset",
+      "title": "env reset: Reset: make a fresh environment from a scenario and a seed",
+      "labels": [
+        "area:devnet",
+        "kind:operation",
+        "lane:devnet",
+        "layer:13",
+        "pilot",
+        "pilot-closure"
+      ],
+      "goal": "`capxul env reset` does what operation env.reset promises: its 2 acceptance claims and 3 refusals hold, its --json shape, events, spans and budget pass on a devnet at the head of integration/build, and its reference page agrees with it. `env reset solo-bit-connect@1 --seed 7 --seat bc-finance --profile core`: makes a run (so a world) from the scenario's template with the seed, starts its stepped clock and returns the first observation. Cost is by profile: `core` restores a 5.5 MB state and starts a lean service (estimate: 1 to 3 seconds; the spike's chain and service start took 1.0 second with stand-in contracts); `full` also restores each company's site (measured: 34 to 42 seconds for one company, 80 seconds for four). Many `core` environments run at once; `full` ones are for evaluation and human runs, not millions of steps.",
+      "needs": [
+        "door:devnet",
+        "milestone:m2"
+      ],
+      "budgetUsd": 5,
+      "checkers": [
+        "reviewer"
+      ],
+      "paths": [
+        "books/target/devnet/",
+        "packages/backend/src/devnet/",
+        "packages/sdk/src/devnet/",
+        "packages/devnet/"
+      ]
+    },
+    {
+      "key": "operation:env.step",
+      "kind": "operation",
+      "lane": "devnet",
+      "layer": 13,
+      "parent": "lane:devnet",
+      "priority": "critical",
+      "evals": [
+        "acc:env.step/1",
+        "acc:env.step/2",
+        "bud:env.step/p95",
+        "des:env.step",
+        "doc:env.step",
+        "ref:env.step/INVALID_INPUT",
+        "ref:env.step/NOT_AUTHENTICATED",
+        "ref:env.step/WRONG_STATE",
+        "ret:env.step",
+        "rpc:devnet.env.step/budget",
+        "rpc:devnet.env.step/errors",
+        "rpc:devnet.env.step/spans",
+        "spn:env.step"
+      ],
+      "record": "operation:env.step",
+      "title": "env step: Step: one command through the door, or one agent turn",
+      "labels": [
+        "area:devnet",
+        "kind:operation",
+        "lane:devnet",
+        "layer:13",
+        "pilot",
+        "pilot-closure"
+      ],
+      "goal": "`capxul env step` does what operation env.step promises: its 2 acceptance claims and 3 refusals hold, its --json shape, events, spans and budget pass on a devnet at the head of integration/build, and its reference page agrees with it. `env step --env e_r00051 --command 'payment send …'`: runs one command as the seat, through the same door as any caller (a refusal is a result, not a crash). `--command 'wait 1d'` moves the clock by one plan step, stopping at every due instant. It returns the observation (what the command returned, plus the seat's named reads), the reward (the change in each of the scenario's measures since the last step, weighted, so a learner gets deltas, not totals), whether the run is done and why, and the record entries the step produced. A step takes 0.1 to 0.7 seconds with no clock move (measured: the spike's commands; signing 0.6 s); a one-day move on a `core` world is well under a second (estimate) and on a `full` world seconds (a ten-day move took 33 to 41 seco…",
+      "needs": [
+        "door:devnet",
+        "milestone:m2"
+      ],
+      "budgetUsd": 5,
+      "checkers": [
+        "reviewer"
+      ],
+      "paths": [
+        "books/target/devnet/",
+        "packages/backend/src/devnet/",
+        "packages/sdk/src/devnet/",
+        "packages/devnet/"
+      ]
+    },
+    {
       "key": "operation:record.list",
       "kind": "operation",
       "lane": "devnet",
@@ -17374,6 +17668,495 @@
         "pilot-closure"
       ],
       "goal": "`capxul record list` does what operation record.list promises: its 1 acceptance claims and 3 refusals hold, its --json shape, events, spans and budget pass on a devnet at the head of integration/build, and its reference page agrees with it. The world's entries in order, filtered by who, kind, world-time range or trace. Every command is one wide entry: who, hats, world time, trace id, outcome, what it changed.",
+      "needs": [
+        "door:devnet",
+        "milestone:m2"
+      ],
+      "budgetUsd": 5,
+      "checkers": [
+        "reviewer"
+      ],
+      "paths": [
+        "books/target/devnet/",
+        "packages/backend/src/devnet/",
+        "packages/sdk/src/devnet/",
+        "packages/devnet/"
+      ]
+    },
+    {
+      "key": "operation:run.accept",
+      "kind": "operation",
+      "lane": "devnet",
+      "layer": 13,
+      "parent": "lane:devnet",
+      "priority": "critical",
+      "evals": [
+        "acc:run.accept/1",
+        "bud:run.accept/p95",
+        "des:run.accept",
+        "doc:run.accept",
+        "evt:run.accept/run_transitioned",
+        "ref:run.accept/INVALID_INPUT",
+        "ref:run.accept/NOT_AUTHENTICATED",
+        "ref:run.accept/ROLE_PERMISSION_DENIED",
+        "ref:run.accept/WRONG_STATE",
+        "ret:run.accept",
+        "rpc:devnet.runs.accept/budget",
+        "rpc:devnet.runs.accept/errors",
+        "rpc:devnet.runs.accept/spans",
+        "spn:run.accept"
+      ],
+      "record": "operation:run.accept",
+      "title": "run accept: Accept a run's dataset, or reject it",
+      "labels": [
+        "area:devnet",
+        "kind:operation",
+        "lane:devnet",
+        "layer:13",
+        "pilot",
+        "pilot-closure"
+      ],
+      "goal": "`capxul run accept` does what operation run.accept promises: its 1 acceptance claims and 4 refusals hold, its --json shape, events, spans and budget pass on a devnet at the head of integration/build, and its reference page agrees with it. Accepts a closed, exported run whose every quality check passes: the run becomes accepted and its dataset is the product. If a check fails the run becomes rejected, the dataset is kept and marked, and the failing checks are printed. Nothing is deleted either way.",
+      "needs": [
+        "door:devnet",
+        "milestone:m2"
+      ],
+      "budgetUsd": 5,
+      "checkers": [
+        "reviewer"
+      ],
+      "paths": [
+        "books/target/devnet/",
+        "packages/backend/src/devnet/",
+        "packages/sdk/src/devnet/",
+        "packages/devnet/"
+      ]
+    },
+    {
+      "key": "operation:run.check",
+      "kind": "operation",
+      "lane": "devnet",
+      "layer": 13,
+      "parent": "lane:devnet",
+      "priority": "critical",
+      "evals": [
+        "acc:run.check/1",
+        "bud:run.check/p95",
+        "des:run.check",
+        "doc:run.check",
+        "ref:run.check/INVALID_INPUT",
+        "ref:run.check/NOT_AUTHENTICATED",
+        "ref:run.check/ROLE_PERMISSION_DENIED",
+        "ref:run.check/WRONG_STATE",
+        "ret:run.check",
+        "rpc:devnet.runs.check/budget",
+        "rpc:devnet.runs.check/errors",
+        "rpc:devnet.runs.check/spans",
+        "spn:run.check"
+      ],
+      "record": "operation:run.check",
+      "title": "run check: Check a closed run's data before it is accepted",
+      "labels": [
+        "area:devnet",
+        "kind:operation",
+        "lane:devnet",
+        "layer:13",
+        "pilot",
+        "pilot-closure"
+      ],
+      "goal": "`capxul run check` does what operation run.check promises: its 1 acceptance claims and 4 refusals hold, its --json shape, events, spans and budget pass on a devnet at the head of integration/build, and its reference page agrees with it. Runs the quality checks on a closed run and prints each: the record's sequence has no gap and its hash chain verifies; the books agree with the chain (every company's Safe balance equals its books' bank account, every payment's transaction hash exists, the outbox is drained); no secret is in the data (a search by value for every key and secret the world held); the manifest is complete; the clock plan was kept (world time never moved back except by a recorded restore); every human seat consented; the lineage resolves; no abandoned branch is mixed in unflagged; a redaction pass found no email or phone that is not a pseudonym.",
+      "needs": [
+        "door:devnet",
+        "milestone:m2"
+      ],
+      "budgetUsd": 5,
+      "checkers": [
+        "reviewer"
+      ],
+      "paths": [
+        "books/target/devnet/",
+        "packages/backend/src/devnet/",
+        "packages/sdk/src/devnet/",
+        "packages/devnet/"
+      ]
+    },
+    {
+      "key": "operation:run.close",
+      "kind": "operation",
+      "lane": "devnet",
+      "layer": 13,
+      "parent": "lane:devnet",
+      "priority": "critical",
+      "evals": [
+        "acc:run.close/1",
+        "bud:run.close/p95",
+        "des:run.close",
+        "doc:run.close",
+        "evt:run.close/run_transitioned",
+        "ref:run.close/INVALID_INPUT",
+        "ref:run.close/NOT_AUTHENTICATED",
+        "ref:run.close/ROLE_PERMISSION_DENIED",
+        "ref:run.close/WRONG_STATE",
+        "ret:run.close",
+        "rpc:devnet.runs.close/budget",
+        "rpc:devnet.runs.close/errors",
+        "rpc:devnet.runs.close/spans",
+        "spn:run.close"
+      ],
+      "record": "operation:run.close",
+      "title": "run close: Close a run",
+      "labels": [
+        "area:devnet",
+        "kind:operation",
+        "lane:devnet",
+        "layer:13",
+        "pilot",
+        "pilot-closure"
+      ],
+      "goal": "`capxul run close` does what operation run.close promises: its 1 acceptance claims and 4 refusals hold, its --json shape, events, spans and budget pass on a devnet at the head of integration/build, and its reference page agrees with it. Ends a run: when the scenario's end is reached (the world's time, or its `orWhen`), or when the organiser says so with a reason. The world is frozen, no more commands are accepted, the record is closed at its head and the run waits to be exported and checked.",
+      "needs": [
+        "door:devnet",
+        "milestone:m2"
+      ],
+      "budgetUsd": 5,
+      "checkers": [
+        "reviewer"
+      ],
+      "paths": [
+        "books/target/devnet/",
+        "packages/backend/src/devnet/",
+        "packages/sdk/src/devnet/",
+        "packages/devnet/"
+      ]
+    },
+    {
+      "key": "operation:run.create",
+      "kind": "operation",
+      "lane": "devnet",
+      "layer": 13,
+      "parent": "lane:devnet",
+      "priority": "critical",
+      "evals": [
+        "acc:run.create/1",
+        "acc:run.create/2",
+        "acc:run.create/3",
+        "bud:run.create/p95",
+        "des:run.create",
+        "doc:run.create",
+        "evt:run.create/run_transitioned",
+        "evt:run.create/world_transitioned",
+        "ref:run.create/CAPACITY_REACHED",
+        "ref:run.create/INVALID_INPUT",
+        "ref:run.create/NOT_AUTHENTICATED",
+        "ref:run.create/ROLE_PERMISSION_DENIED",
+        "ret:run.create",
+        "rpc:devnet.runs.create/budget",
+        "rpc:devnet.runs.create/errors",
+        "rpc:devnet.runs.create/spans",
+        "spn:run.create"
+      ],
+      "record": "operation:run.create",
+      "title": "run create: Make a run from a scenario",
+      "labels": [
+        "area:devnet",
+        "kind:operation",
+        "lane:devnet",
+        "layer:13",
+        "pilot",
+        "pilot-closure"
+      ],
+      "goal": "`capxul run create` does what operation run.create promises: its 3 acceptance claims and 4 refusals hold, its --json shape, events, spans and budget pass on a devnet at the head of integration/build, and its reference page agrees with it. Makes one world from one scenario version: `run create town-of-four@1 --seed 7 --seats bc-finance=agent:ledger-agent@1,bc-director=open`. The world is restored from the scenario's template (core: seconds, estimated; full: about 34 to 42 seconds for one company and 80 seconds for four, measured in the spike), the seed is set for the scenario's stand-ins, and the seats are made. The run waits `open`, its clock frozen, until `run start`. Its id (`r` and five digits) is its world's id and its address is `core-<id>.worlds.capxul.com`.",
+      "needs": [
+        "door:devnet",
+        "milestone:m2"
+      ],
+      "budgetUsd": 5,
+      "checkers": [
+        "reviewer"
+      ],
+      "paths": [
+        "books/target/devnet/",
+        "packages/backend/src/devnet/",
+        "packages/sdk/src/devnet/",
+        "packages/devnet/"
+      ]
+    },
+    {
+      "key": "operation:run.export",
+      "kind": "operation",
+      "lane": "devnet",
+      "layer": 13,
+      "parent": "lane:devnet",
+      "priority": "critical",
+      "evals": [
+        "acc:run.export/1",
+        "acc:run.export/2",
+        "bud:run.export/p95",
+        "des:run.export",
+        "doc:run.export",
+        "ref:run.export/INVALID_INPUT",
+        "ref:run.export/NOT_AUTHENTICATED",
+        "ref:run.export/ROLE_PERMISSION_DENIED",
+        "ref:run.export/WRONG_STATE",
+        "ret:run.export",
+        "rpc:devnet.runs.export/budget",
+        "rpc:devnet.runs.export/errors",
+        "rpc:devnet.runs.export/spans",
+        "spn:run.export"
+      ],
+      "record": "operation:run.export",
+      "title": "run export: Export a closed run as one dataset",
+      "labels": [
+        "area:devnet",
+        "kind:operation",
+        "lane:devnet",
+        "layer:13",
+        "pilot",
+        "pilot-closure"
+      ],
+      "goal": "`capxul run export` does what operation run.export promises: its 2 acceptance claims and 4 refusals hold, its --json shape, events, spans and budget pass on a devnet at the head of integration/build, and its reference page agrees with it. Writes the run's dataset to a folder: `manifest.json` (the run's manifest), `entries.jsonl` (the record, lineage first, one entry a line, with a pseudonym in place of every participant and personal data redacted), `scores.jsonl` (the scenario's measures after each step or day: the rewards), `checks.json` and `ledgers/` (each company's month-end books and chain balances). The schema version is `dataset/1`. A dataset is for training only if every human seat consented to `train` (agent-only runs always); otherwise it is marked evaluation-only.",
+      "needs": [
+        "door:devnet",
+        "milestone:m2"
+      ],
+      "budgetUsd": 5,
+      "checkers": [
+        "reviewer"
+      ],
+      "paths": [
+        "books/target/devnet/",
+        "packages/backend/src/devnet/",
+        "packages/sdk/src/devnet/",
+        "packages/devnet/"
+      ]
+    },
+    {
+      "key": "operation:run.seat.assign",
+      "kind": "operation",
+      "lane": "devnet",
+      "layer": 13,
+      "parent": "lane:devnet",
+      "priority": "critical",
+      "evals": [
+        "acc:run.seat.assign/1",
+        "acc:run.seat.assign/2",
+        "bud:run.seat.assign/p95",
+        "des:run.seat.assign",
+        "doc:run.seat.assign",
+        "ref:run.seat.assign/CAPABILITY_UNAVAILABLE",
+        "ref:run.seat.assign/INVALID_INPUT",
+        "ref:run.seat.assign/NOT_AUTHENTICATED",
+        "ref:run.seat.assign/ROLE_PERMISSION_DENIED",
+        "ref:run.seat.assign/WRONG_STATE",
+        "ret:run.seat.assign",
+        "rpc:devnet.runs.seat-assign/budget",
+        "rpc:devnet.runs.seat-assign/errors",
+        "rpc:devnet.runs.seat-assign/spans",
+        "spn:run.seat.assign"
+      ],
+      "record": "operation:run.seat.assign",
+      "title": "run seat assign: Put a person or an agent in a seat",
+      "labels": [
+        "area:devnet",
+        "kind:operation",
+        "lane:devnet",
+        "layer:13",
+        "pilot",
+        "pilot-closure"
+      ],
+      "goal": "`capxul run seat assign` does what operation run.seat.assign promises: its 2 acceptance claims and 6 refusals hold, its --json shape, events, spans and budget pass on a devnet at the head of integration/build, and its reference page agrees with it. Assigns a seat: `run seat assign r00042 bc-director --agent ledger-agent@1 --key 0x…` or, for a person, `--key 0x…` alone. It makes the invitation bound to that key and, if the key has joined, gives it the seat at once. A person's key and account in the world are the same as an agent's. A seat for a person is specified now and opened after Capxul Core's sign-in exists (aaron.sign-in-is-core): until then a human seat is refused CAPABILITY_UNAVAILABLE and every seat is an agent's.",
+      "needs": [
+        "door:devnet",
+        "milestone:m2"
+      ],
+      "budgetUsd": 5,
+      "checkers": [
+        "reviewer"
+      ],
+      "paths": [
+        "books/target/devnet/",
+        "packages/backend/src/devnet/",
+        "packages/sdk/src/devnet/",
+        "packages/devnet/"
+      ]
+    },
+    {
+      "key": "operation:run.seat.drop",
+      "kind": "operation",
+      "lane": "devnet",
+      "layer": 13,
+      "parent": "lane:devnet",
+      "priority": "critical",
+      "evals": [
+        "acc:run.seat.drop/1",
+        "bud:run.seat.drop/p95",
+        "des:run.seat.drop",
+        "doc:run.seat.drop",
+        "evt:run.seat.drop/run_transitioned",
+        "ref:run.seat.drop/INVALID_INPUT",
+        "ref:run.seat.drop/NOT_AUTHENTICATED",
+        "ref:run.seat.drop/ROLE_PERMISSION_DENIED",
+        "ref:run.seat.drop/WRONG_STATE",
+        "ret:run.seat.drop",
+        "rpc:devnet.runs.seat-drop/budget",
+        "rpc:devnet.runs.seat-drop/errors",
+        "rpc:devnet.runs.seat-drop/spans",
+        "spn:run.seat.drop"
+      ],
+      "record": "operation:run.seat.drop",
+      "title": "run seat drop: A participant drops out: apply the run's drop-out policy",
+      "labels": [
+        "area:devnet",
+        "kind:operation",
+        "lane:devnet",
+        "layer:13",
+        "pilot",
+        "pilot-closure"
+      ],
+      "goal": "`capxul run seat drop` does what operation run.seat.drop promises: its 1 acceptance claims and 4 refusals hold, its --json shape, events, spans and budget pass on a devnet at the head of integration/build, and its reference page agrees with it. Marks a seat's holder gone (the organiser says so, or the seat's key stopped answering for longer than the scenario allows) and applies the scenario's policy: `agent`: the scenario's agent policy takes the seat, a `handover` entry in the record says from whom to whom and at what world time, and the run goes on; `pause`: the run's world is paused until the seat is filled. The dropped holder's earlier entries stay.",
+      "needs": [
+        "door:devnet",
+        "milestone:m2"
+      ],
+      "budgetUsd": 5,
+      "checkers": [
+        "reviewer"
+      ],
+      "paths": [
+        "books/target/devnet/",
+        "packages/backend/src/devnet/",
+        "packages/sdk/src/devnet/",
+        "packages/devnet/"
+      ]
+    },
+    {
+      "key": "operation:run.show",
+      "kind": "operation",
+      "lane": "devnet",
+      "layer": 13,
+      "parent": "lane:devnet",
+      "priority": "critical",
+      "evals": [
+        "acc:run.show/1",
+        "bud:run.show/p95",
+        "des:run.show",
+        "doc:run.show",
+        "ref:run.show/INVALID_INPUT",
+        "ref:run.show/NOT_AUTHENTICATED",
+        "ref:run.show/ROLE_PERMISSION_DENIED",
+        "ret:run.show",
+        "rpc:devnet.runs.show/budget",
+        "rpc:devnet.runs.show/errors",
+        "rpc:devnet.runs.show/spans",
+        "spn:run.show"
+      ],
+      "record": "operation:run.show",
+      "title": "run show: Show one run and how it is going",
+      "labels": [
+        "area:devnet",
+        "kind:operation",
+        "lane:devnet",
+        "layer:13",
+        "pilot",
+        "pilot-closure"
+      ],
+      "goal": "`capxul run show` does what operation run.show promises: its 1 acceptance claims and 3 refusals hold, its --json shape, events, spans and budget pass on a devnet at the head of integration/build, and its reference page agrees with it. One run: its state and scenario, who plays each seat (person or agent, and the agent's model), the world's now, the record's head and the addresses of the service and of each company's site.",
+      "needs": [
+        "door:devnet",
+        "milestone:m2"
+      ],
+      "budgetUsd": 5,
+      "checkers": [
+        "reviewer"
+      ],
+      "paths": [
+        "books/target/devnet/",
+        "packages/backend/src/devnet/",
+        "packages/sdk/src/devnet/",
+        "packages/devnet/"
+      ]
+    },
+    {
+      "key": "operation:run.start",
+      "kind": "operation",
+      "lane": "devnet",
+      "layer": 13,
+      "parent": "lane:devnet",
+      "priority": "critical",
+      "evals": [
+        "acc:run.start/1",
+        "bud:run.start/p95",
+        "des:run.start",
+        "doc:run.start",
+        "evt:run.start/run_transitioned",
+        "ref:run.start/INVALID_INPUT",
+        "ref:run.start/NOT_AUTHENTICATED",
+        "ref:run.start/ROLE_PERMISSION_DENIED",
+        "ref:run.start/WRONG_STATE",
+        "ret:run.start",
+        "rpc:devnet.runs.start/budget",
+        "rpc:devnet.runs.start/errors",
+        "rpc:devnet.runs.start/spans",
+        "spn:run.start"
+      ],
+      "record": "operation:run.start",
+      "title": "run start: Start a run's clock plan",
+      "labels": [
+        "area:devnet",
+        "kind:operation",
+        "lane:devnet",
+        "layer:13",
+        "pilot",
+        "pilot-closure"
+      ],
+      "goal": "`capxul run start` does what operation run.start promises: its 1 acceptance claims and 4 refusals hold, its --json shape, events, spans and budget pass on a devnet at the head of integration/build, and its reference page agrees with it. Starts the scenario's clock plan: a stepped clock is unfrozen to its first step, a real or fast clock begins running at its rate. Seats that are still open are filled by the scenario's agent policy if the run was made with `--fill-open agent`, otherwise the run refuses to start.",
+      "needs": [
+        "door:devnet",
+        "milestone:m2"
+      ],
+      "budgetUsd": 5,
+      "checkers": [
+        "reviewer"
+      ],
+      "paths": [
+        "books/target/devnet/",
+        "packages/backend/src/devnet/",
+        "packages/sdk/src/devnet/",
+        "packages/devnet/"
+      ]
+    },
+    {
+      "key": "operation:scenario.save",
+      "kind": "operation",
+      "lane": "devnet",
+      "layer": 13,
+      "parent": "lane:devnet",
+      "priority": "critical",
+      "evals": [
+        "acc:scenario.save/1",
+        "bud:scenario.save/p95",
+        "des:scenario.save",
+        "doc:scenario.save",
+        "ref:scenario.save/INVALID_INPUT",
+        "ref:scenario.save/NOT_AUTHENTICATED",
+        "ref:scenario.save/ROLE_PERMISSION_DENIED",
+        "ret:scenario.save",
+        "rpc:devnet.scenarios.save/budget",
+        "rpc:devnet.scenarios.save/errors",
+        "rpc:devnet.scenarios.save/spans",
+        "spn:scenario.save"
+      ],
+      "record": "operation:scenario.save",
+      "title": "scenario save: Publish a scenario version",
+      "labels": [
+        "area:devnet",
+        "kind:operation",
+        "lane:devnet",
+        "layer:13",
+        "pilot",
+        "pilot-closure"
+      ],
+      "goal": "`capxul scenario save` does what operation scenario.save promises: its 1 acceptance claims and 3 refusals hold, its --json shape, events, spans and budget pass on a devnet at the head of integration/build, and its reference page agrees with it. Publishes a scenario version from a manifest file (`--manifest`): the template snapshot, the companies, the seats and which are filled by people and which by agents, the script of outside events, the clock plan, what is scored (the book's evals, plus measures stated as deltas) and when the run ends. A version never changes: a change is `version + 1`, so a run names exactly what it ran. The manifest is checked as `scenario check` checks it.",
       "needs": [
         "door:devnet",
         "milestone:m2"
@@ -17591,12 +18374,16 @@
       "evals": [
         "acc:world.create/1",
         "acc:world.create/2",
+        "acc:world.create/3",
+        "acc:world.create/4",
         "bud:world.create/p95",
         "des:world.create",
         "doc:world.create",
         "evt:world.create/world_transitioned",
+        "ref:world.create/CAPACITY_REACHED",
         "ref:world.create/INVALID_INPUT",
         "ref:world.create/NOT_AUTHENTICATED",
+        "ref:world.create/ROLE_PERMISSION_DENIED",
         "ret:world.create",
         "rpc:devnet.worlds.create/budget",
         "rpc:devnet.worlds.create/errors",
@@ -17613,11 +18400,306 @@
         "pilot",
         "pilot-closure"
       ],
-      "goal": "`capxul world create` does what operation world.create promises: its 2 acceptance claims and 2 refusals hold, its --json shape, events, spans and budget pass on a devnet at the head of integration/build, and its reference page agrees with it. Makes a world: a chain with the contracts, a service, a clock and a record, from a template or empty. `--clock frozen|running` and `--rate <1 to 60>`. Companies are made after with `org create --world`. As easy as making a company.",
+      "goal": "`capxul world create` does what operation world.create promises: its 4 acceptance claims and 4 refusals hold, its --json shape, events, spans and budget pass on a devnet at the head of integration/build, and its reference page agrees with it. Makes a world: a chain with the contracts, a service, a clock and a record, from a template or empty. `--profile core|full` (default `core`), `--kind local|simulated|staging|production` (default `simulated` on the hosted service, `local` on a laptop), `--clock frozen|running` and `--rate <1 to 60>`. A hosted world answers at `core-<world>.<base>` and its companies at `<company>-<world>.<base>`. Companies are made after with `org create --world`. As easy as making a company.",
       "needs": [
         "door:devnet",
         "milestone:m2",
         "workflow:devnet.worlds.create"
+      ],
+      "budgetUsd": 5,
+      "checkers": [
+        "reviewer"
+      ],
+      "paths": [
+        "books/target/devnet/",
+        "packages/backend/src/devnet/",
+        "packages/sdk/src/devnet/",
+        "packages/devnet/"
+      ]
+    },
+    {
+      "key": "operation:world.grant.revoke",
+      "kind": "operation",
+      "lane": "devnet",
+      "layer": 13,
+      "parent": "lane:devnet",
+      "priority": "critical",
+      "evals": [
+        "acc:world.grant.revoke/1",
+        "acc:world.grant.revoke/2",
+        "bud:world.grant.revoke/p95",
+        "des:world.grant.revoke",
+        "doc:world.grant.revoke",
+        "ref:world.grant.revoke/INVALID_INPUT",
+        "ref:world.grant.revoke/NOT_AUTHENTICATED",
+        "ref:world.grant.revoke/ROLE_PERMISSION_DENIED",
+        "ret:world.grant.revoke",
+        "rpc:devnet.worlds.grant-revoke/budget",
+        "rpc:devnet.worlds.grant-revoke/errors",
+        "rpc:devnet.worlds.grant-revoke/spans",
+        "spn:world.grant.revoke"
+      ],
+      "record": "operation:world.grant.revoke",
+      "title": "world grant revoke: Revoke a key's grant in a world",
+      "labels": [
+        "area:devnet",
+        "kind:operation",
+        "lane:devnet",
+        "layer:13",
+        "pilot",
+        "pilot-closure"
+      ],
+      "goal": "`capxul world grant revoke` does what operation world.grant.revoke promises: its 2 acceptance claims and 4 refusals hold, its --json shape, events, spans and budget pass on a devnet at the head of integration/build, and its reference page agrees with it. Ends a key's grant at the gateway at once: its next call, and its next page on any company's site address, is refused. In a `full` world its site roles follow (roles follow hats). The seat becomes open (and the run's drop-out policy applies). The key's own record entries stay: the record is never edited. A grant outlives snapshots on purpose: a restore never re-admits it (devnet.shared-world).",
+      "needs": [
+        "door:devnet",
+        "milestone:m2"
+      ],
+      "budgetUsd": 5,
+      "checkers": [
+        "reviewer"
+      ],
+      "paths": [
+        "books/target/devnet/",
+        "packages/backend/src/devnet/",
+        "packages/sdk/src/devnet/",
+        "packages/devnet/"
+      ]
+    },
+    {
+      "key": "operation:world.invite.create",
+      "kind": "operation",
+      "lane": "devnet",
+      "layer": 13,
+      "parent": "lane:devnet",
+      "priority": "critical",
+      "evals": [
+        "acc:world.invite.create/1",
+        "acc:world.invite.create/2",
+        "bud:world.invite.create/p95",
+        "des:world.invite.create",
+        "doc:world.invite.create",
+        "ref:world.invite.create/INVALID_INPUT",
+        "ref:world.invite.create/NOT_AUTHENTICATED",
+        "ref:world.invite.create/ROLE_PERMISSION_DENIED",
+        "ref:world.invite.create/WRONG_STATE",
+        "ret:world.invite.create",
+        "rpc:devnet.worlds.invite-create/budget",
+        "rpc:devnet.worlds.invite-create/errors",
+        "rpc:devnet.worlds.invite-create/spans",
+        "spn:world.invite.create"
+      ],
+      "record": "operation:world.invite.create",
+      "title": "world invite create: Make a join link for a world",
+      "labels": [
+        "area:devnet",
+        "kind:operation",
+        "lane:devnet",
+        "layer:13",
+        "pilot",
+        "pilot-closure"
+      ],
+      "goal": "`capxul world invite create` does what operation world.invite.create promises: its 2 acceptance claims and 5 refusals hold, its --json shape, events, spans and budget pass on a devnet at the head of integration/build, and its reference page agrees with it. The organiser's one command for a person or agent who already has a key: `world invite create r00042 --role player --seat bc-finance --key 0xabc…` makes a link bound to that key. Without `--key` the link is open and works for its first `--uses` holders of any key. The link is `capxul://join/<world>/<code>`; the code is shown once and stored as a hash. It expires (default 24 hours) and never outlives its run. `--role` is organiser, player or viewer.",
+      "needs": [
+        "door:devnet",
+        "milestone:m2"
+      ],
+      "budgetUsd": 5,
+      "checkers": [
+        "reviewer"
+      ],
+      "paths": [
+        "books/target/devnet/",
+        "packages/backend/src/devnet/",
+        "packages/sdk/src/devnet/",
+        "packages/devnet/"
+      ]
+    },
+    {
+      "key": "operation:world.join",
+      "kind": "operation",
+      "lane": "devnet",
+      "layer": 13,
+      "parent": "lane:devnet",
+      "priority": "critical",
+      "evals": [
+        "acc:world.join/1",
+        "acc:world.join/2",
+        "acc:world.join/3",
+        "bud:world.join/p95",
+        "des:world.join",
+        "doc:world.join",
+        "ref:world.join/INVALID_INPUT",
+        "ref:world.join/NOT_AUTHENTICATED",
+        "ref:world.join/WRONG_STATE",
+        "ret:world.join",
+        "rpc:devnet.worlds.join/budget",
+        "rpc:devnet.worlds.join/errors",
+        "rpc:devnet.worlds.join/spans",
+        "spn:world.join"
+      ],
+      "record": "operation:world.join",
+      "title": "world join: Join a world with your key",
+      "labels": [
+        "area:devnet",
+        "kind:operation",
+        "lane:devnet",
+        "layer:13",
+        "pilot",
+        "pilot-closure"
+      ],
+      "goal": "`capxul world join` does what operation world.join promises: its 3 acceptance claims and 3 refusals hold, its --json shape, events, spans and budget pass on a devnet at the head of integration/build, and its reference page agrees with it. The participant's one command: `world join <link> --consent run|train`. The CLI signs with the caller's key (`--new-key` makes a test key first for a person who has none: it is held in the CLI's home, holds test money only and is shown once as a recovery phrase). The service checks the invitation, writes the grant, creates the key's account in this world and its Safe at the address that follows from the key and the world, records the consent (the version and the hash of its text) and a `join` entry, grants the seat's hats in its company, and makes this world the current one. Nothing is carried over from any other world. An agent's join is built first. A person's join to play through the screens is specified and waits on Capxul Core's sign-in and sign…",
+      "needs": [
+        "door:devnet",
+        "milestone:m2"
+      ],
+      "budgetUsd": 5,
+      "checkers": [
+        "reviewer"
+      ],
+      "paths": [
+        "books/target/devnet/",
+        "packages/backend/src/devnet/",
+        "packages/sdk/src/devnet/",
+        "packages/devnet/"
+      ]
+    },
+    {
+      "key": "operation:world.park",
+      "kind": "operation",
+      "lane": "devnet",
+      "layer": 13,
+      "parent": "lane:devnet",
+      "priority": "critical",
+      "evals": [
+        "acc:world.park/1",
+        "bud:world.park/p95",
+        "des:world.park",
+        "doc:world.park",
+        "evt:world.park/world_transitioned",
+        "ref:world.park/INVALID_INPUT",
+        "ref:world.park/NOT_AUTHENTICATED",
+        "ref:world.park/ROLE_PERMISSION_DENIED",
+        "ref:world.park/WRONG_STATE",
+        "ret:world.park",
+        "rpc:devnet.worlds.park/budget",
+        "rpc:devnet.worlds.park/errors",
+        "rpc:devnet.worlds.park/spans",
+        "spn:world.park"
+      ],
+      "record": "operation:world.park",
+      "title": "world park: Park a world: storage only",
+      "labels": [
+        "area:devnet",
+        "kind:operation",
+        "lane:devnet",
+        "layer:13",
+        "pilot",
+        "pilot-closure"
+      ],
+      "goal": "`capxul world park` does what operation world.park promises: its 1 acceptance claims and 4 refusals hold, its --json shape, events, spans and budget pass on a devnet at the head of integration/build, and its reference page agrees with it. Saves a world and takes it down to storage: the chain's state file, the service's database, the record and, in a `full` world, each company's site as a backup, then drops the sites from the bench. A parked world costs disk only. It is restored on demand: `world resume`, or the first call to its address (the gateway wakes it). Waking a `core` world is seconds (estimate); a `full` world is about 33 seconds per company (measured, the spike's site restore). Idle hosted worlds are parked by the park-idle process.",
+      "needs": [
+        "door:devnet",
+        "milestone:m2"
+      ],
+      "budgetUsd": 5,
+      "checkers": [
+        "reviewer"
+      ],
+      "paths": [
+        "books/target/devnet/",
+        "packages/backend/src/devnet/",
+        "packages/sdk/src/devnet/",
+        "packages/devnet/"
+      ]
+    },
+    {
+      "key": "operation:world.pause",
+      "kind": "operation",
+      "lane": "devnet",
+      "layer": 13,
+      "parent": "lane:devnet",
+      "priority": "critical",
+      "evals": [
+        "acc:world.pause/1",
+        "bud:world.pause/p95",
+        "des:world.pause",
+        "doc:world.pause",
+        "evt:world.pause/world_transitioned",
+        "ref:world.pause/INVALID_INPUT",
+        "ref:world.pause/NOT_AUTHENTICATED",
+        "ref:world.pause/ROLE_PERMISSION_DENIED",
+        "ref:world.pause/WRONG_ENVIRONMENT",
+        "ret:world.pause",
+        "rpc:devnet.worlds.pause/budget",
+        "rpc:devnet.worlds.pause/errors",
+        "rpc:devnet.worlds.pause/spans",
+        "spn:world.pause"
+      ],
+      "record": "operation:world.pause",
+      "title": "world pause: Pause a world",
+      "labels": [
+        "area:devnet",
+        "kind:operation",
+        "lane:devnet",
+        "layer:13",
+        "pilot",
+        "pilot-closure"
+      ],
+      "goal": "`capxul world pause` does what operation world.pause promises: its 1 acceptance claims and 4 refusals hold, its --json shape, events, spans and budget pass on a devnet at the head of integration/build, and its reference page agrees with it. Stops a world's chain, service and clock where they are and keeps everything in memory-free form on disk: nothing moves and nothing is lost. A run's world paused pauses the run. A paused world still costs its disk and, in a `full` world, its sites' database share, and no memory. The nightly backup also pauses a world for seconds to copy it consistently.",
+      "needs": [
+        "door:devnet",
+        "milestone:m2"
+      ],
+      "budgetUsd": 5,
+      "checkers": [
+        "reviewer"
+      ],
+      "paths": [
+        "books/target/devnet/",
+        "packages/backend/src/devnet/",
+        "packages/sdk/src/devnet/",
+        "packages/devnet/"
+      ]
+    },
+    {
+      "key": "operation:world.resume",
+      "kind": "operation",
+      "lane": "devnet",
+      "layer": 13,
+      "parent": "lane:devnet",
+      "priority": "critical",
+      "evals": [
+        "acc:world.resume/1",
+        "acc:world.resume/2",
+        "bud:world.resume/p95",
+        "des:world.resume",
+        "doc:world.resume",
+        "evt:world.resume/world_transitioned",
+        "ref:world.resume/CAPACITY_REACHED",
+        "ref:world.resume/INVALID_INPUT",
+        "ref:world.resume/NOT_AUTHENTICATED",
+        "ref:world.resume/ROLE_PERMISSION_DENIED",
+        "ref:world.resume/WRONG_STATE",
+        "ret:world.resume",
+        "rpc:devnet.worlds.resume/budget",
+        "rpc:devnet.worlds.resume/errors",
+        "rpc:devnet.worlds.resume/spans",
+        "spn:world.resume"
+      ],
+      "record": "operation:world.resume",
+      "title": "world resume: Resume a paused or parked world",
+      "labels": [
+        "area:devnet",
+        "kind:operation",
+        "lane:devnet",
+        "layer:13",
+        "pilot",
+        "pilot-closure"
+      ],
+      "goal": "`capxul world resume` does what operation world.resume promises: its 2 acceptance claims and 5 refusals hold, its --json shape, events, spans and budget pass on a devnet at the head of integration/build, and its reference page agrees with it. Brings a paused world back where it stopped, or restores a parked one from storage. The clock continues from the world's now at the rate it had (a frozen clock stays frozen). A call to a parked world's address does this by itself.",
+      "needs": [
+        "door:devnet",
+        "milestone:m2"
       ],
       "budgetUsd": 5,
       "checkers": [
@@ -17766,6 +18848,147 @@
         "integration:devnet-control",
         "integration:site-service",
         "milestone:m2"
+      ],
+      "budgetUsd": 5,
+      "checkers": [
+        "reviewer"
+      ],
+      "paths": [
+        "books/target/devnet/",
+        "packages/backend/src/devnet/",
+        "packages/sdk/src/devnet/",
+        "packages/devnet/"
+      ]
+    },
+    {
+      "key": "operation:world.use",
+      "kind": "operation",
+      "lane": "devnet",
+      "layer": 13,
+      "parent": "lane:devnet",
+      "priority": "critical",
+      "evals": [
+        "acc:world.use/1",
+        "acc:world.use/2",
+        "bud:world.use/p95",
+        "des:world.use",
+        "doc:world.use",
+        "ref:world.use/INVALID_INPUT",
+        "ref:world.use/NOT_AUTHENTICATED",
+        "ref:world.use/ROLE_PERMISSION_DENIED",
+        "ret:world.use",
+        "rpc:devnet.worlds.connect/budget",
+        "rpc:devnet.worlds.connect/errors",
+        "rpc:devnet.worlds.connect/spans",
+        "spn:world.use"
+      ],
+      "record": "operation:world.use",
+      "title": "world use: Connect to a world and make it the current one",
+      "labels": [
+        "area:devnet",
+        "kind:operation",
+        "lane:devnet",
+        "layer:13",
+        "pilot",
+        "pilot-closure"
+      ],
+      "goal": "`capxul world use` does what operation world.use promises: its 2 acceptance claims and 3 refusals hold, its --json shape, events, spans and budget pass on a devnet at the head of integration/build, and its reference page agrees with it. One CLI, many worlds. `world use <world>` signs a challenge with the caller's key, checks the grant, and stores a connection in the CLI's home: the world's address, the caller's key (a reference, never the key itself) and the grant's role. Every later command goes to that world's service. A flag `--world <name>` or the variable `CAPXUL_WORLD` overrides it for one command. A local devnet is a world whose address is on the laptop (`--address http://127.0.0.1:<port>`).",
+      "needs": [
+        "door:devnet",
+        "milestone:m2"
+      ],
+      "budgetUsd": 5,
+      "checkers": [
+        "reviewer"
+      ],
+      "paths": [
+        "books/target/devnet/",
+        "packages/backend/src/devnet/",
+        "packages/sdk/src/devnet/",
+        "packages/devnet/"
+      ]
+    },
+    {
+      "key": "operation:cohort.close",
+      "kind": "operation",
+      "lane": "devnet",
+      "layer": 13,
+      "parent": "lane:devnet",
+      "priority": "normal",
+      "evals": [
+        "acc:cohort.close/1",
+        "bud:cohort.close/p95",
+        "des:cohort.close",
+        "doc:cohort.close",
+        "evt:cohort.close/cohort_transitioned",
+        "ref:cohort.close/INVALID_INPUT",
+        "ref:cohort.close/NOT_AUTHENTICATED",
+        "ref:cohort.close/ROLE_PERMISSION_DENIED",
+        "ref:cohort.close/WRONG_STATE",
+        "ret:cohort.close",
+        "rpc:devnet.cohorts.close/budget",
+        "rpc:devnet.cohorts.close/errors",
+        "rpc:devnet.cohorts.close/spans",
+        "spn:cohort.close"
+      ],
+      "record": "operation:cohort.close",
+      "title": "cohort close: Close a cohort",
+      "labels": [
+        "area:devnet",
+        "kind:operation",
+        "lane:devnet",
+        "layer:13"
+      ],
+      "goal": "`capxul cohort close` does what operation cohort.close promises: its 1 acceptance claims and 4 refusals hold, its --json shape, events, spans and budget pass on a devnet at the head of integration/build, and its reference page agrees with it. Closes every run of the cohort that has not ended (with the reason `cohort closed`), cancels runs not yet opened and marks the cohort closed. Each closed run still has to be checked and exported (`run check`, `run export`, `run accept`).",
+      "needs": [
+        "door:devnet",
+        "milestone:m2",
+        "milestone:m3"
+      ],
+      "budgetUsd": 5,
+      "checkers": [
+        "reviewer"
+      ],
+      "paths": [
+        "books/target/devnet/",
+        "packages/backend/src/devnet/",
+        "packages/sdk/src/devnet/",
+        "packages/devnet/"
+      ]
+    },
+    {
+      "key": "operation:cohort.list",
+      "kind": "operation",
+      "lane": "devnet",
+      "layer": 13,
+      "parent": "lane:devnet",
+      "priority": "normal",
+      "evals": [
+        "acc:cohort.list/1",
+        "bud:cohort.list/p95",
+        "des:cohort.list",
+        "doc:cohort.list",
+        "ref:cohort.list/NOT_AUTHENTICATED",
+        "ref:cohort.list/ROLE_PERMISSION_DENIED",
+        "ret:cohort.list",
+        "rpc:devnet.cohorts.list/budget",
+        "rpc:devnet.cohorts.list/errors",
+        "rpc:devnet.cohorts.list/spans",
+        "spn:cohort.list"
+      ],
+      "record": "operation:cohort.list",
+      "title": "cohort list: List cohorts",
+      "labels": [
+        "area:devnet",
+        "kind:operation",
+        "lane:devnet",
+        "layer:13"
+      ],
+      "goal": "`capxul cohort list` does what operation cohort.list promises: its 1 acceptance claims and 2 refusals hold, its --json shape, events, spans and budget pass on a devnet at the head of integration/build, and its reference page agrees with it. Cohorts with their scenario, state and how many runs are open, live or done.",
+      "needs": [
+        "door:devnet",
+        "milestone:m2",
+        "milestone:m3"
       ],
       "budgetUsd": 5,
       "checkers": [
@@ -18427,6 +19650,96 @@
       ]
     },
     {
+      "key": "operation:env.close",
+      "kind": "operation",
+      "lane": "devnet",
+      "layer": 13,
+      "parent": "lane:devnet",
+      "priority": "normal",
+      "evals": [
+        "acc:env.close/1",
+        "bud:env.close/p95",
+        "des:env.close",
+        "doc:env.close",
+        "ref:env.close/INVALID_INPUT",
+        "ref:env.close/NOT_AUTHENTICATED",
+        "ret:env.close",
+        "rpc:devnet.env.close/budget",
+        "rpc:devnet.env.close/errors",
+        "rpc:devnet.env.close/spans",
+        "spn:env.close"
+      ],
+      "record": "operation:env.close",
+      "title": "env close: Close an environment",
+      "labels": [
+        "area:devnet",
+        "kind:operation",
+        "lane:devnet",
+        "layer:13"
+      ],
+      "goal": "`capxul env close` does what operation env.close promises: its 1 acceptance claims and 2 refusals hold, its --json shape, events, spans and budget pass on a devnet at the head of integration/build, and its reference page agrees with it. Ends an environment: the run is closed, and its world is destroyed (`--keep` parks it and keeps the dataset). Training loops close thousands; a `core` world frees its memory at once.",
+      "needs": [
+        "door:devnet",
+        "milestone:m2",
+        "milestone:m3"
+      ],
+      "budgetUsd": 5,
+      "checkers": [
+        "reviewer"
+      ],
+      "paths": [
+        "books/target/devnet/",
+        "packages/backend/src/devnet/",
+        "packages/sdk/src/devnet/",
+        "packages/devnet/"
+      ]
+    },
+    {
+      "key": "operation:env.state",
+      "kind": "operation",
+      "lane": "devnet",
+      "layer": 13,
+      "parent": "lane:devnet",
+      "priority": "normal",
+      "evals": [
+        "acc:env.state/1",
+        "bud:env.state/p95",
+        "des:env.state",
+        "doc:env.state",
+        "ref:env.state/INVALID_INPUT",
+        "ref:env.state/NOT_AUTHENTICATED",
+        "ret:env.state",
+        "rpc:devnet.env.state/budget",
+        "rpc:devnet.env.state/errors",
+        "rpc:devnet.env.state/spans",
+        "spn:env.state"
+      ],
+      "record": "operation:env.state",
+      "title": "env state: Read an environment's state without stepping",
+      "labels": [
+        "area:devnet",
+        "kind:operation",
+        "lane:devnet",
+        "layer:13"
+      ],
+      "goal": "`capxul env state` does what operation env.state promises: its 1 acceptance claims and 2 refusals hold, its --json shape, events, spans and budget pass on a devnet at the head of integration/build, and its reference page agrees with it. The current observation, the measures' current values, the step number and whether the environment is done. No clock moves and no entry is written beyond the read.",
+      "needs": [
+        "door:devnet",
+        "milestone:m2",
+        "milestone:m3"
+      ],
+      "budgetUsd": 5,
+      "checkers": [
+        "reviewer"
+      ],
+      "paths": [
+        "books/target/devnet/",
+        "packages/backend/src/devnet/",
+        "packages/sdk/src/devnet/",
+        "packages/devnet/"
+      ]
+    },
+    {
       "key": "operation:record.export",
       "kind": "operation",
       "lane": "devnet",
@@ -18502,6 +19815,554 @@
         "layer:13"
       ],
       "goal": "`capxul record show` does what operation record.show promises: its 1 acceptance claims and 3 refusals hold, its --json shape, events, spans and budget pass on a devnet at the head of integration/build, and its reference page agrees with it. One entry with its redacted arguments, what it returned and changed, its pointers and its cause. No key, token, secret or password is ever in one.",
+      "needs": [
+        "door:devnet",
+        "milestone:m2",
+        "milestone:m3"
+      ],
+      "budgetUsd": 5,
+      "checkers": [
+        "reviewer"
+      ],
+      "paths": [
+        "books/target/devnet/",
+        "packages/backend/src/devnet/",
+        "packages/sdk/src/devnet/",
+        "packages/devnet/"
+      ]
+    },
+    {
+      "key": "operation:run.archive",
+      "kind": "operation",
+      "lane": "devnet",
+      "layer": 13,
+      "parent": "lane:devnet",
+      "priority": "normal",
+      "evals": [
+        "acc:run.archive/1",
+        "bud:run.archive/p95",
+        "des:run.archive",
+        "doc:run.archive",
+        "evt:run.archive/run_transitioned",
+        "ref:run.archive/INVALID_INPUT",
+        "ref:run.archive/NOT_AUTHENTICATED",
+        "ref:run.archive/ROLE_PERMISSION_DENIED",
+        "ref:run.archive/WRONG_STATE",
+        "ret:run.archive",
+        "rpc:devnet.runs.archive/budget",
+        "rpc:devnet.runs.archive/errors",
+        "rpc:devnet.runs.archive/spans",
+        "spn:run.archive"
+      ],
+      "record": "operation:run.archive",
+      "title": "run archive: Archive a run: free its world, keep its data",
+      "labels": [
+        "area:devnet",
+        "kind:operation",
+        "lane:devnet",
+        "layer:13"
+      ],
+      "goal": "`capxul run archive` does what operation run.archive promises: its 1 acceptance claims and 4 refusals hold, its --json shape, events, spans and budget pass on a devnet at the head of integration/build, and its reference page agrees with it. Parks (`--park`, the default: the world can be restored to look at again) or destroys (`--destroy`) the run's world once its dataset is accepted or rejected. The record, the dataset and the run row stay.",
+      "needs": [
+        "door:devnet",
+        "milestone:m2",
+        "milestone:m3"
+      ],
+      "budgetUsd": 5,
+      "checkers": [
+        "reviewer"
+      ],
+      "paths": [
+        "books/target/devnet/",
+        "packages/backend/src/devnet/",
+        "packages/sdk/src/devnet/",
+        "packages/devnet/"
+      ]
+    },
+    {
+      "key": "operation:run.list",
+      "kind": "operation",
+      "lane": "devnet",
+      "layer": 13,
+      "parent": "lane:devnet",
+      "priority": "normal",
+      "evals": [
+        "acc:run.list/1",
+        "bud:run.list/p95",
+        "des:run.list",
+        "doc:run.list",
+        "ref:run.list/NOT_AUTHENTICATED",
+        "ret:run.list",
+        "rpc:devnet.runs.list/budget",
+        "rpc:devnet.runs.list/errors",
+        "rpc:devnet.runs.list/spans",
+        "spn:run.list"
+      ],
+      "record": "operation:run.list",
+      "title": "run list: List runs",
+      "labels": [
+        "area:devnet",
+        "kind:operation",
+        "lane:devnet",
+        "layer:13"
+      ],
+      "goal": "`capxul run list` does what operation run.list promises: its 1 acceptance claims and 1 refusals hold, its --json shape, events, spans and budget pass on a devnet at the head of integration/build, and its reference page agrees with it. Runs with their state, scenario, cohort and how many seats are filled. `--cohort`, `--state` and `--scenario` filter.",
+      "needs": [
+        "door:devnet",
+        "milestone:m2",
+        "milestone:m3"
+      ],
+      "budgetUsd": 5,
+      "checkers": [
+        "reviewer"
+      ],
+      "paths": [
+        "books/target/devnet/",
+        "packages/backend/src/devnet/",
+        "packages/sdk/src/devnet/",
+        "packages/devnet/"
+      ]
+    },
+    {
+      "key": "operation:run.redact",
+      "kind": "operation",
+      "lane": "devnet",
+      "layer": 13,
+      "parent": "lane:devnet",
+      "priority": "normal",
+      "evals": [
+        "acc:run.redact/1",
+        "bud:run.redact/p95",
+        "des:run.redact",
+        "doc:run.redact",
+        "ref:run.redact/INVALID_INPUT",
+        "ref:run.redact/NOT_AUTHENTICATED",
+        "ref:run.redact/ROLE_PERMISSION_DENIED",
+        "ret:run.redact",
+        "rpc:devnet.runs.redact/budget",
+        "rpc:devnet.runs.redact/errors",
+        "rpc:devnet.runs.redact/spans",
+        "spn:run.redact"
+      ],
+      "record": "operation:run.redact",
+      "title": "run redact: Withdraw a participant's data from a run",
+      "labels": [
+        "area:devnet",
+        "kind:operation",
+        "lane:devnet",
+        "layer:13"
+      ],
+      "goal": "`capxul run redact` does what operation run.redact promises: its 1 acceptance claims and 4 refusals hold, its --json shape, events, spans and budget pass on a devnet at the head of integration/build, and its reference page agrees with it. A participant withdraws consent: `run redact r00042 --participant p_9c41`. The member row is marked withdrawn, the participant's free text (what they typed in comments, names and notes) is removed from every export, the export is rewritten and marked, and the dataset's training flag becomes false if the withdrawn seat was human. The record itself is never edited: its entries keep the pseudonym and the commands, which hold no personal data once redacted.",
+      "needs": [
+        "door:devnet",
+        "milestone:m2",
+        "milestone:m3"
+      ],
+      "budgetUsd": 5,
+      "checkers": [
+        "reviewer"
+      ],
+      "paths": [
+        "books/target/devnet/",
+        "packages/backend/src/devnet/",
+        "packages/sdk/src/devnet/",
+        "packages/devnet/"
+      ]
+    },
+    {
+      "key": "operation:scenario.check",
+      "kind": "operation",
+      "lane": "devnet",
+      "layer": 13,
+      "parent": "lane:devnet",
+      "priority": "normal",
+      "evals": [
+        "acc:scenario.check/1",
+        "bud:scenario.check/p95",
+        "des:scenario.check",
+        "doc:scenario.check",
+        "ref:scenario.check/NOT_AUTHENTICATED",
+        "ref:scenario.check/ROLE_PERMISSION_DENIED",
+        "ret:scenario.check",
+        "rpc:devnet.scenarios.check/budget",
+        "rpc:devnet.scenarios.check/errors",
+        "rpc:devnet.scenarios.check/spans",
+        "spn:scenario.check"
+      ],
+      "record": "operation:scenario.check",
+      "title": "scenario check: Check a scenario before publishing it",
+      "labels": [
+        "area:devnet",
+        "kind:operation",
+        "lane:devnet",
+        "layer:13"
+      ],
+      "goal": "`capxul scenario check` does what operation scenario.check promises: its 1 acceptance claims and 2 refusals hold, its --json shape, events, spans and budget pass on a devnet at the head of integration/build, and its reference page agrees with it. Reads a manifest and says whether it can run: the template snapshot exists and its companies match, every seat is in a company and wears a hat the site knows, the evals named are in the book, the script reads and its seed draws the same events twice, the clock plan's warps fit the end, and the profile can hold it. With `--dry-run` it makes the run's world, plays the script's first day and destroys it.",
+      "needs": [
+        "door:devnet",
+        "milestone:m2",
+        "milestone:m3"
+      ],
+      "budgetUsd": 5,
+      "checkers": [
+        "reviewer"
+      ],
+      "paths": [
+        "books/target/devnet/",
+        "packages/backend/src/devnet/",
+        "packages/sdk/src/devnet/",
+        "packages/devnet/"
+      ]
+    },
+    {
+      "key": "operation:scenario.list",
+      "kind": "operation",
+      "lane": "devnet",
+      "layer": 13,
+      "parent": "lane:devnet",
+      "priority": "normal",
+      "evals": [
+        "acc:scenario.list/1",
+        "bud:scenario.list/p95",
+        "des:scenario.list",
+        "doc:scenario.list",
+        "ref:scenario.list/NOT_AUTHENTICATED",
+        "ret:scenario.list",
+        "rpc:devnet.scenarios.list/budget",
+        "rpc:devnet.scenarios.list/errors",
+        "rpc:devnet.scenarios.list/spans",
+        "spn:scenario.list"
+      ],
+      "record": "operation:scenario.list",
+      "title": "scenario list: List scenarios",
+      "labels": [
+        "area:devnet",
+        "kind:operation",
+        "lane:devnet",
+        "layer:13"
+      ],
+      "goal": "`capxul scenario list` does what operation scenario.list promises: its 1 acceptance claims and 1 refusals hold, its --json shape, events, spans and budget pass on a devnet at the head of integration/build, and its reference page agrees with it. The published scenarios, the latest version of each, with the profile each needs and how many companies and seats it has.",
+      "needs": [
+        "door:devnet",
+        "milestone:m2",
+        "milestone:m3"
+      ],
+      "budgetUsd": 5,
+      "checkers": [
+        "reviewer"
+      ],
+      "paths": [
+        "books/target/devnet/",
+        "packages/backend/src/devnet/",
+        "packages/sdk/src/devnet/",
+        "packages/devnet/"
+      ]
+    },
+    {
+      "key": "operation:scenario.show",
+      "kind": "operation",
+      "lane": "devnet",
+      "layer": 13,
+      "parent": "lane:devnet",
+      "priority": "normal",
+      "evals": [
+        "acc:scenario.show/1",
+        "bud:scenario.show/p95",
+        "des:scenario.show",
+        "doc:scenario.show",
+        "ref:scenario.show/INVALID_INPUT",
+        "ref:scenario.show/NOT_AUTHENTICATED",
+        "ret:scenario.show",
+        "rpc:devnet.scenarios.show/budget",
+        "rpc:devnet.scenarios.show/errors",
+        "rpc:devnet.scenarios.show/spans",
+        "spn:scenario.show"
+      ],
+      "record": "operation:scenario.show",
+      "title": "scenario show: Show a scenario's manifest",
+      "labels": [
+        "area:devnet",
+        "kind:operation",
+        "lane:devnet",
+        "layer:13"
+      ],
+      "goal": "`capxul scenario show` does what operation scenario.show promises: its 1 acceptance claims and 2 refusals hold, its --json shape, events, spans and budget pass on a devnet at the head of integration/build, and its reference page agrees with it. One scenario version's whole manifest: template, seats, script, clock plan, scoring and end.",
+      "needs": [
+        "door:devnet",
+        "milestone:m2",
+        "milestone:m3"
+      ],
+      "budgetUsd": 5,
+      "checkers": [
+        "reviewer"
+      ],
+      "paths": [
+        "books/target/devnet/",
+        "packages/backend/src/devnet/",
+        "packages/sdk/src/devnet/",
+        "packages/devnet/"
+      ]
+    },
+    {
+      "key": "operation:world.approve",
+      "kind": "operation",
+      "lane": "devnet",
+      "layer": 13,
+      "parent": "lane:devnet",
+      "priority": "normal",
+      "evals": [
+        "acc:world.approve/1",
+        "bud:world.approve/p95",
+        "des:world.approve",
+        "doc:world.approve",
+        "ref:world.approve/INVALID_INPUT",
+        "ref:world.approve/NOT_AUTHENTICATED",
+        "ref:world.approve/ROLE_PERMISSION_DENIED",
+        "ret:world.approve",
+        "rpc:devnet.worlds.approve/budget",
+        "rpc:devnet.worlds.approve/errors",
+        "rpc:devnet.worlds.approve/spans",
+        "spn:world.approve"
+      ],
+      "record": "operation:world.approve",
+      "title": "world approve: Approve creating or destroying production",
+      "labels": [
+        "area:devnet",
+        "kind:operation",
+        "lane:devnet",
+        "layer:13"
+      ],
+      "goal": "`capxul world approve` does what operation world.approve promises: its 1 acceptance claims and 3 refusals hold, its --json shape, events, spans and budget pass on a devnet at the head of integration/build, and its reference page agrees with it. The platform owner's one-time approval: signs a statement naming the action (`create` or `destroy`), the world and a 15-minute expiry, and prints a token that `world create --owner-approval` or `world destroy --owner-approval` accepts once. Nothing about production proceeds without it, however the caller is signed in.",
+      "needs": [
+        "door:devnet",
+        "milestone:m2",
+        "milestone:m3"
+      ],
+      "budgetUsd": 5,
+      "checkers": [
+        "reviewer"
+      ],
+      "paths": [
+        "books/target/devnet/",
+        "packages/backend/src/devnet/",
+        "packages/sdk/src/devnet/",
+        "packages/devnet/"
+      ]
+    },
+    {
+      "key": "operation:world.current",
+      "kind": "operation",
+      "lane": "devnet",
+      "layer": 13,
+      "parent": "lane:devnet",
+      "priority": "normal",
+      "evals": [
+        "acc:world.current/1",
+        "bud:world.current/p95",
+        "des:world.current",
+        "doc:world.current",
+        "ref:world.current/NOT_AUTHENTICATED",
+        "ret:world.current",
+        "rpc:devnet.worlds.current/budget",
+        "rpc:devnet.worlds.current/errors",
+        "rpc:devnet.worlds.current/spans",
+        "spn:world.current"
+      ],
+      "record": "operation:world.current",
+      "title": "world current: Show the world the CLI is connected to",
+      "labels": [
+        "area:devnet",
+        "kind:operation",
+        "lane:devnet",
+        "layer:13"
+      ],
+      "goal": "`capxul world current` does what operation world.current promises: its 1 acceptance claims and 1 refusals hold, its --json shape, events, spans and budget pass on a devnet at the head of integration/build, and its reference page agrees with it. The current connection: the world, its address, the caller's key address and role, the seat, and how the world was chosen (flag, variable or `world use`). Reads the CLI's home and asks the service once.",
+      "needs": [
+        "door:devnet",
+        "milestone:m2",
+        "milestone:m3"
+      ],
+      "budgetUsd": 5,
+      "checkers": [
+        "reviewer"
+      ],
+      "paths": [
+        "books/target/devnet/",
+        "packages/backend/src/devnet/",
+        "packages/sdk/src/devnet/",
+        "packages/devnet/"
+      ]
+    },
+    {
+      "key": "operation:world.destroy",
+      "kind": "operation",
+      "lane": "devnet",
+      "layer": 13,
+      "parent": "lane:devnet",
+      "priority": "normal",
+      "evals": [
+        "acc:world.destroy/1",
+        "acc:world.destroy/2",
+        "bud:world.destroy/p95",
+        "des:world.destroy",
+        "doc:world.destroy",
+        "evt:world.destroy/world_transitioned",
+        "ref:world.destroy/INVALID_INPUT",
+        "ref:world.destroy/NOT_AUTHENTICATED",
+        "ref:world.destroy/ROLE_PERMISSION_DENIED",
+        "ref:world.destroy/WRONG_STATE",
+        "ret:world.destroy",
+        "rpc:devnet.worlds.destroy/budget",
+        "rpc:devnet.worlds.destroy/errors",
+        "rpc:devnet.worlds.destroy/spans",
+        "spn:world.destroy"
+      ],
+      "record": "operation:world.destroy",
+      "title": "world destroy: Destroy a world",
+      "labels": [
+        "area:devnet",
+        "kind:operation",
+        "lane:devnet",
+        "layer:13"
+      ],
+      "goal": "`capxul world destroy` does what operation world.destroy promises: its 2 acceptance claims and 5 refusals hold, its --json shape, events, spans and budget pass on a devnet at the head of integration/build, and its reference page agrees with it. Removes a stopped or parked world: its chain, service database, sites (about a minute each to drop, measured) and snapshots. Its record stays, closed, and so does an accepted dataset. A run whose dataset is neither accepted nor rejected is refused, so data is never lost by a mistake (`--discard-data` overrides). Production is destroyed only with the platform owner's one-time approval.",
+      "needs": [
+        "door:devnet",
+        "milestone:m2",
+        "milestone:m3"
+      ],
+      "budgetUsd": 5,
+      "checkers": [
+        "reviewer"
+      ],
+      "paths": [
+        "books/target/devnet/",
+        "packages/backend/src/devnet/",
+        "packages/sdk/src/devnet/",
+        "packages/devnet/"
+      ]
+    },
+    {
+      "key": "operation:world.grant.list",
+      "kind": "operation",
+      "lane": "devnet",
+      "layer": 13,
+      "parent": "lane:devnet",
+      "priority": "normal",
+      "evals": [
+        "acc:world.grant.list/1",
+        "bud:world.grant.list/p95",
+        "des:world.grant.list",
+        "doc:world.grant.list",
+        "ref:world.grant.list/INVALID_INPUT",
+        "ref:world.grant.list/NOT_AUTHENTICATED",
+        "ret:world.grant.list",
+        "rpc:devnet.worlds.grant-list/budget",
+        "rpc:devnet.worlds.grant-list/errors",
+        "rpc:devnet.worlds.grant-list/spans",
+        "spn:world.grant.list"
+      ],
+      "record": "operation:world.grant.list",
+      "title": "world grant list: List who may do what in a world",
+      "labels": [
+        "area:devnet",
+        "kind:operation",
+        "lane:devnet",
+        "layer:13"
+      ],
+      "goal": "`capxul world grant list` does what operation world.grant.list promises: its 1 acceptance claims and 2 refusals hold, its --json shape, events, spans and budget pass on a devnet at the head of integration/build, and its reference page agrees with it. Every grant in a world: the key's address (never a key), role, seat, how it came and whether it is revoked. A player sees only their own.",
+      "needs": [
+        "door:devnet",
+        "milestone:m2",
+        "milestone:m3"
+      ],
+      "budgetUsd": 5,
+      "checkers": [
+        "reviewer"
+      ],
+      "paths": [
+        "books/target/devnet/",
+        "packages/backend/src/devnet/",
+        "packages/sdk/src/devnet/",
+        "packages/devnet/"
+      ]
+    },
+    {
+      "key": "operation:world.invite.list",
+      "kind": "operation",
+      "lane": "devnet",
+      "layer": 13,
+      "parent": "lane:devnet",
+      "priority": "normal",
+      "evals": [
+        "acc:world.invite.list/1",
+        "bud:world.invite.list/p95",
+        "des:world.invite.list",
+        "doc:world.invite.list",
+        "ref:world.invite.list/INVALID_INPUT",
+        "ref:world.invite.list/NOT_AUTHENTICATED",
+        "ref:world.invite.list/ROLE_PERMISSION_DENIED",
+        "ret:world.invite.list",
+        "rpc:devnet.worlds.invite-list/budget",
+        "rpc:devnet.worlds.invite-list/errors",
+        "rpc:devnet.worlds.invite-list/spans",
+        "spn:world.invite.list"
+      ],
+      "record": "operation:world.invite.list",
+      "title": "world invite list: List a world's invitations",
+      "labels": [
+        "area:devnet",
+        "kind:operation",
+        "lane:devnet",
+        "layer:13"
+      ],
+      "goal": "`capxul world invite list` does what operation world.invite.list promises: its 1 acceptance claims and 3 refusals hold, its --json shape, events, spans and budget pass on a devnet at the head of integration/build, and its reference page agrees with it. A world's invitations, newest first: the role, the seat, the key it is bound to, uses and expiry, and whether it was revoked. Never the code.",
+      "needs": [
+        "door:devnet",
+        "milestone:m2",
+        "milestone:m3"
+      ],
+      "budgetUsd": 5,
+      "checkers": [
+        "reviewer"
+      ],
+      "paths": [
+        "books/target/devnet/",
+        "packages/backend/src/devnet/",
+        "packages/sdk/src/devnet/",
+        "packages/devnet/"
+      ]
+    },
+    {
+      "key": "operation:world.invite.revoke",
+      "kind": "operation",
+      "lane": "devnet",
+      "layer": 13,
+      "parent": "lane:devnet",
+      "priority": "normal",
+      "evals": [
+        "acc:world.invite.revoke/1",
+        "bud:world.invite.revoke/p95",
+        "des:world.invite.revoke",
+        "doc:world.invite.revoke",
+        "ref:world.invite.revoke/INVALID_INPUT",
+        "ref:world.invite.revoke/NOT_AUTHENTICATED",
+        "ref:world.invite.revoke/ROLE_PERMISSION_DENIED",
+        "ret:world.invite.revoke",
+        "rpc:devnet.worlds.invite-revoke/budget",
+        "rpc:devnet.worlds.invite-revoke/errors",
+        "rpc:devnet.worlds.invite-revoke/spans",
+        "spn:world.invite.revoke"
+      ],
+      "record": "operation:world.invite.revoke",
+      "title": "world invite revoke: Revoke an invitation",
+      "labels": [
+        "area:devnet",
+        "kind:operation",
+        "lane:devnet",
+        "layer:13"
+      ],
+      "goal": "`capxul world invite revoke` does what operation world.invite.revoke promises: its 1 acceptance claims and 4 refusals hold, its --json shape, events, spans and budget pass on a devnet at the head of integration/build, and its reference page agrees with it. Ends an invitation that has not been used. A key that already joined keeps its grant: `world grant revoke` ends that.",
       "needs": [
         "door:devnet",
         "milestone:m2",
@@ -18655,6 +20516,54 @@
       ]
     },
     {
+      "key": "operation:world.viewer.link",
+      "kind": "operation",
+      "lane": "devnet",
+      "layer": 13,
+      "parent": "lane:devnet",
+      "priority": "normal",
+      "evals": [
+        "acc:world.viewer.link/1",
+        "bud:world.viewer.link/p95",
+        "des:world.viewer.link",
+        "doc:world.viewer.link",
+        "ref:world.viewer.link/CAPABILITY_UNAVAILABLE",
+        "ref:world.viewer.link/INVALID_INPUT",
+        "ref:world.viewer.link/NOT_AUTHENTICATED",
+        "ref:world.viewer.link/ROLE_PERMISSION_DENIED",
+        "ref:world.viewer.link/WRONG_STATE",
+        "ret:world.viewer.link",
+        "rpc:devnet.worlds.viewer-link/budget",
+        "rpc:devnet.worlds.viewer-link/errors",
+        "rpc:devnet.worlds.viewer-link/spans",
+        "spn:world.viewer.link"
+      ],
+      "record": "operation:world.viewer.link",
+      "title": "world viewer link: Open a company's screens in a world",
+      "labels": [
+        "area:devnet",
+        "kind:operation",
+        "lane:devnet",
+        "layer:13"
+      ],
+      "goal": "`capxul world viewer link` does what operation world.viewer.link promises: its 1 acceptance claims and 5 refusals hold, its --json shape, events, spans and budget pass on a devnet at the head of integration/build, and its reference page agrees with it. Mints a one-time, read-only link to a company's Frappe site in a `full` world for the caller, who must hold a grant (viewer, player or organiser). The caller's CLI signs with their key; the service asks the site to mint the link (plugs.sessions.link); it expires in five minutes and works once. A viewer cannot save anything. NOT OPENED: the service refuses it (CAPABILITY_UNAVAILABLE) until Capxul Core's sign-in and signing pop-up exists (aaron.sign-in-is-core), because the spike's stand-in sign-in lets anyone become any test person. When it exists the link is the way in for a person with a key; nothing here may make that pop-up harder.",
+      "needs": [
+        "door:devnet",
+        "milestone:m2",
+        "milestone:m3"
+      ],
+      "budgetUsd": 5,
+      "checkers": [
+        "reviewer"
+      ],
+      "paths": [
+        "books/target/devnet/",
+        "packages/backend/src/devnet/",
+        "packages/sdk/src/devnet/",
+        "packages/devnet/"
+      ]
+    },
+    {
       "key": "lane:journeys",
       "kind": "lane",
       "lane": "journeys",
@@ -18673,6 +20582,39 @@
         "layer:15"
       ],
       "budgetUsd": 5
+    },
+    {
+      "key": "journey:agent_plays_a_seat",
+      "kind": "journey",
+      "lane": "journeys",
+      "layer": 15,
+      "parent": "lane:journeys",
+      "priority": "normal",
+      "evals": [
+        "fun:agent_plays_a_seat",
+        "jrn:agent_plays_a_seat"
+      ],
+      "record": "journey:agent_plays_a_seat",
+      "title": "Journey: agent_plays_a_seat",
+      "goal": "The journey agent_plays_a_seat (An agent with a key joins a world and plays a seat) runs end to end on a devnet, and each step sends its proving event once, in order.",
+      "needs": [
+        "milestone:m2",
+        "milestone:m3",
+        "operation:record.list",
+        "operation:world.current",
+        "operation:world.invite.create",
+        "operation:world.join",
+        "operation:world.use"
+      ],
+      "labels": [
+        "kind:journey",
+        "lane:journeys",
+        "layer:15",
+        "watch"
+      ],
+      "budgetUsd": 0,
+      "checkers": [],
+      "paths": []
     },
     {
       "key": "journey:build_on_capxul",
@@ -18998,6 +20940,38 @@
       "paths": []
     },
     {
+      "key": "journey:learner_uses_a_core_world",
+      "kind": "journey",
+      "lane": "journeys",
+      "layer": 15,
+      "parent": "lane:journeys",
+      "priority": "normal",
+      "evals": [
+        "fun:learner_uses_a_core_world",
+        "jrn:learner_uses_a_core_world"
+      ],
+      "record": "journey:learner_uses_a_core_world",
+      "title": "Journey: learner_uses_a_core_world",
+      "goal": "The journey learner_uses_a_core_world (A learner uses a core world as an environment) runs end to end on a devnet, and each step sends its proving event once, in order.",
+      "needs": [
+        "milestone:m2",
+        "milestone:m3",
+        "operation:env.close",
+        "operation:env.reset",
+        "operation:env.state",
+        "operation:env.step"
+      ],
+      "labels": [
+        "kind:journey",
+        "lane:journeys",
+        "layer:15",
+        "watch"
+      ],
+      "budgetUsd": 0,
+      "checkers": [],
+      "paths": []
+    },
+    {
       "key": "journey:money_in",
       "kind": "journey",
       "lane": "journeys",
@@ -19021,6 +20995,41 @@
         "operation:bank.match",
         "operation:bank.settle",
         "operation:dev.fund"
+      ],
+      "labels": [
+        "kind:journey",
+        "lane:journeys",
+        "layer:15",
+        "watch"
+      ],
+      "budgetUsd": 0,
+      "checkers": [],
+      "paths": []
+    },
+    {
+      "key": "journey:organiser_runs_a_cohort",
+      "kind": "journey",
+      "lane": "journeys",
+      "layer": 15,
+      "parent": "lane:journeys",
+      "priority": "normal",
+      "evals": [
+        "fun:organiser_runs_a_cohort",
+        "jrn:organiser_runs_a_cohort"
+      ],
+      "record": "journey:organiser_runs_a_cohort",
+      "title": "Journey: organiser_runs_a_cohort",
+      "goal": "The journey organiser_runs_a_cohort (An organiser sets up a scenario run for a cohort) runs end to end on a devnet, and each step sends its proving event once, in order.",
+      "needs": [
+        "milestone:m2",
+        "milestone:m3",
+        "operation:cohort.create",
+        "operation:cohort.show",
+        "operation:run.seat.drop",
+        "operation:run.start",
+        "operation:scenario.check",
+        "operation:scenario.save",
+        "operation:world.invite.create"
       ],
       "labels": [
         "kind:journey",
@@ -19169,6 +21178,39 @@
       "paths": []
     },
     {
+      "key": "journey:run_closes_and_is_accepted",
+      "kind": "journey",
+      "lane": "journeys",
+      "layer": 15,
+      "parent": "lane:journeys",
+      "priority": "normal",
+      "evals": [
+        "fun:run_closes_and_is_accepted",
+        "jrn:run_closes_and_is_accepted"
+      ],
+      "record": "journey:run_closes_and_is_accepted",
+      "title": "Journey: run_closes_and_is_accepted",
+      "goal": "The journey run_closes_and_is_accepted (A run closes, its data is exported and accepted, and its world is archived) runs end to end on a devnet, and each step sends its proving event once, in order.",
+      "needs": [
+        "milestone:m2",
+        "milestone:m3",
+        "operation:run.accept",
+        "operation:run.archive",
+        "operation:run.check",
+        "operation:run.close",
+        "operation:run.export"
+      ],
+      "labels": [
+        "kind:journey",
+        "lane:journeys",
+        "layer:15",
+        "watch"
+      ],
+      "budgetUsd": 0,
+      "checkers": [],
+      "paths": []
+    },
+    {
       "key": "journey:run_company",
       "kind": "journey",
       "lane": "journeys",
@@ -19248,6 +21290,69 @@
         "operation:org.events.resend",
         "operation:org.events.retry",
         "operation:org.events.status"
+      ],
+      "labels": [
+        "kind:journey",
+        "lane:journeys",
+        "layer:15",
+        "watch"
+      ],
+      "budgetUsd": 0,
+      "checkers": [],
+      "paths": []
+    },
+    {
+      "key": "journey:tester_plays_through_screens",
+      "kind": "journey",
+      "lane": "journeys",
+      "layer": 15,
+      "parent": "lane:journeys",
+      "priority": "normal",
+      "evals": [
+        "fun:tester_plays_through_screens",
+        "jrn:tester_plays_through_screens"
+      ],
+      "record": "journey:tester_plays_through_screens",
+      "title": "Journey: tester_plays_through_screens",
+      "goal": "The journey tester_plays_through_screens (A tester with a key plays a seat through the screens (waits on Core's sign-in)) runs end to end on a devnet, and each step sends its proving event once, in order.",
+      "needs": [
+        "milestone:m2",
+        "milestone:m3",
+        "operation:world.grant.list",
+        "operation:world.join",
+        "operation:world.viewer.link"
+      ],
+      "labels": [
+        "kind:journey",
+        "lane:journeys",
+        "layer:15",
+        "watch"
+      ],
+      "budgetUsd": 0,
+      "checkers": [],
+      "paths": []
+    },
+    {
+      "key": "journey:world_parks_and_wakes",
+      "kind": "journey",
+      "lane": "journeys",
+      "layer": 15,
+      "parent": "lane:journeys",
+      "priority": "normal",
+      "evals": [
+        "fun:world_parks_and_wakes",
+        "jrn:world_parks_and_wakes"
+      ],
+      "record": "journey:world_parks_and_wakes",
+      "title": "Journey: world_parks_and_wakes",
+      "goal": "The journey world_parks_and_wakes (An idle world is parked and wakes where it stopped) runs end to end on a devnet, and each step sends its proving event once, in order.",
+      "needs": [
+        "milestone:m2",
+        "milestone:m3",
+        "operation:world.destroy",
+        "operation:world.park",
+        "operation:world.pause",
+        "operation:world.resume"
       ],
       "labels": [
         "kind:journey",

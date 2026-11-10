@@ -145,6 +145,19 @@ export const error_CAPABILITY_UNAVAILABLE = defineError({
   was: [`${CODES}:37`],
 });
 
+// The worlds platform (docs/design/worlds-platform.md): the machine holds only so many worlds of each profile.
+export const error_CAPACITY_REACHED = defineError({
+  id: "CAPACITY_REACHED",
+  title: "No room for another world",
+  class: "state",
+  actor: "person",
+  message:
+    "The worlds machine has no room for another world of this profile now. Nothing was made. Park or close a world, choose the `core` profile, or wait for a run to finish.",
+  retryable: true,
+  exit: 6,
+  was: ["books/target/devnet/world-decisions-capacity.ts (devnet.world-capacity)"],
+});
+
 export const error_WRONG_ENVIRONMENT = defineError({
   id: "WRONG_ENVIRONMENT",
   title: "Wrong environment",
