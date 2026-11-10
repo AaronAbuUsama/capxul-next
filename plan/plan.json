@@ -31,7 +31,8 @@
       {
         "id": "g6",
         "claim": "The plan page is generated and current.",
-        "state": "open"
+        "state": "met",
+        "evidence": "a3012a9"
       },
       {
         "id": "g7",
@@ -81,7 +82,8 @@
         {
           "id": "g6",
           "claim": "The plan page is generated and current.",
-          "state": "open"
+          "state": "met",
+          "evidence": "a3012a9"
         },
         {
           "id": "g7",
@@ -231,12 +233,14 @@
       "title": "The plan page and the plan CLI",
       "why": "So the goal, the milestones, the tasks, the threads and the critical path are visible to a person and to agents.",
       "milestone": "m1",
-      "state": "doing",
+      "state": "done",
       "needs": [],
       "records": [
         "decision:portal.plan-page"
       ],
-      "evidence": [],
+      "evidence": [
+        "a3012a9"
+      ],
       "created": "2026-11-10",
       "updated": "2026-11-10",
       "thread": "plan-page"
@@ -246,12 +250,14 @@
       "title": "Fix the derived task tree's build order and milestones",
       "why": "The derived task tree must follow the book and the plan's milestones, so there is one list.",
       "milestone": "m1",
-      "state": "doing",
+      "state": "done",
       "needs": [],
       "records": [
         "decision:system.build-order"
       ],
-      "evidence": [],
+      "evidence": [
+        "69ac923"
+      ],
       "created": "2026-11-10",
       "updated": "2026-11-10",
       "thread": "plan-page"
@@ -578,8 +584,6 @@
   ],
   "path": {
     "tasks": [
-      "m1-plan-page",
-      "m1-task-tree",
       "m1-spike-evidence",
       "m1-contracts-reconcile",
       "m1-aws-records",
@@ -588,7 +592,7 @@
       "m1-examples",
       "m1-aaron-accepts"
     ],
-    "why": "the spikes' evidence turns assumptions into records, so it comes before the bulk work of examples and telemetry; the plan page comes first so all of it is visible; the machine is the one step only Aaron can unblock, so it is asked for early",
+    "why": "The plan page and the task tree are done. The spikes' evidence turns assumptions into records, so it comes before the bulk work of telemetry and examples. The machine is the one step only Aaron can unblock, so it is asked for early.",
     "written": "2026-11-10"
   },
   "notes": [
@@ -601,6 +605,11 @@
       "date": "2026-11-10",
       "by": "coordinator",
       "text": "Done now also means a shared world running a thin line through the whole stack on the machine. That needs Aaron's AWS sign-in, the subdomain and the DNS records before it can start."
+    },
+    {
+      "date": "2026-11-10",
+      "by": "coordinator",
+      "text": "The plan page is live and is now where the work is tracked. Four things wait on Aaron: the AWS sign-in with the subdomain and DNS records, the cost audit's switch-offs, equity, and the payroll filing route. The door and clock spike and the contracts' deeper tests are still running."
     }
   ]
 }
