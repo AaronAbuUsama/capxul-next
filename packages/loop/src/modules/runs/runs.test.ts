@@ -1,11 +1,11 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { mkdtempSync, readFileSync } from "node:fs";
+import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "node:test";
 import { open, script } from "./die.fixture.ts";
-import { alive, ledgerLines, listRuns, play, readInfo, spendText, stop, table, work } from "./service.ts";
+import { acquire, alive, ledgerLines, listRuns, play, readInfo, spendText, stop, table, tryAcquire, work } from "./service.ts";
 
 const rig = () => { const dir = mkdtempSync(join(tmpdir(), "loop-runs-")); return { dir, run: join(dir, "r1"), counter: join(dir, "counter"), marker: join(dir, "marker") }; };
 const steps = (counter: string): string => readFileSync(counter, "utf8").split("\n").filter(Boolean).join("");
@@ -86,4 +86,24 @@ test("a run that was stopped ends a waiting worker: it starts nothing more; a st
   assert.deepEqual(started, ["boom", "t1"]);                             // t2 was never started
   assert.ok(said.includes("cannot start boom"));
   assert.ok(said.some((l) => /^t1 was stopped: the worker starts nothing more/.test(l)));
+});
+
+test("slots: no more than the limit hold one at a time; a release or a dead holder frees one; a stop ends the wait", async () => {
+  const dir = mkdtempSync(join(tmpdir(), "loop-slots-"));
+  const a = await acquire(dir, 2), b = await acquire(dir, 2);
+  assert.equal(tryAcquire(dir, 2), undefined);
+  let waited = false;
+  const third = acquire(dir, 2, { pollMs: 5, waiting: () => { waited = true; } });
+  await new Promise((r) => setTimeout(r, 20));
+  a();
+  const c = await third;
+  assert.equal(waited, true);
+  assert.equal(tryAcquire(dir, 2), undefined);
+  b(); c();
+  writeFileSync(join(dir, "slot-0"), "999999");                       // a holder whose process is gone
+  writeFileSync(join(dir, "slot-1"), String(process.pid));            // and one that is alive
+  const d = tryAcquire(dir, 2);
+  assert.ok(d, "the dead holder's slot is free");
+  await assert.rejects(acquire(dir, 2, { pollMs: 5, stopped: () => true }), /stopped/);
+  d();
 });

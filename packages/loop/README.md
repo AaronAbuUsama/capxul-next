@@ -93,6 +93,20 @@ files outside the lane or call `git push` through them. The list narrows what a 
 the runner never pushes anything but `lane/<task>` and never merges by itself; it does not contain a hostile one. Real
 containment needs an OS-level sandbox around the whole runner.
 
+## When the gateway struggles
+
+- **A model that fails.** pi retries a request three times. If it still fails, the loop waits 20 s, then 60 s, then
+  3 min, and each time continues the same conversation, so nothing the agent did is lost. If it never answers, the
+  step throws and the run ends `failed` at that step with the gateway's message in a line: no check runs, no reviewer
+  reads an unchanged lane, no round is spent. `pnpm loop resume <run>` continues the same agent later.
+- **How many agents work at once.** `LOOP_MAX_AGENTS` (default 3) is shared by every run and process of the checkout:
+  an agent takes a slot (a file under `var/runs/.agents/`) and waits when none is free. It bounds agents, not single
+  model calls: an agent keeps its slot while its tools run.
+- **The worker.** A run that is stopped tells `loop work` to start nothing more and to end when its runs are over,
+  `--wait` or not. A task named with `--task` whose newest run was stopped or failed has that run resumed, once.
+- **Cleaning.** `loop clean` removes a lane's worktree and frees the name `lane/<task>`: a merged branch is deleted,
+  unmerged work is kept as `kept/<run id>`, so the next run of the task starts from the base.
+
 ## Sandboxes
 
 `none`; `light`: a local chain from the seeded state (`packages/contracts/bin/chain-up.sh core`, run in the lane) on a free

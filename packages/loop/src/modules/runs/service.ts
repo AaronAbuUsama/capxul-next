@@ -9,6 +9,7 @@ import { entriesOf, record, remember, tail, type Host } from "../agents/service.
 import { SETTLED, type Info, type Run, type Script } from "./types.ts";
 
 export type * from "./types.ts";
+export { acquire, tryAcquire } from "./internal/slots.ts";
 export { SETTLED };
 
 export const alive = (pid: number): boolean => { try { process.kill(pid, 0); return pid > 0; } catch { return false; } };
