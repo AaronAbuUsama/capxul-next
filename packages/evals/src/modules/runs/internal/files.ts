@@ -1,4 +1,4 @@
-/** The files a run leaves: the results file `tools/record-status.ts` merges, and the evidence behind each verdict. */
+/** The files a run leaves: the results file `packages/evals/src/record-status.ts` merges, and the evidence behind each verdict. */
 import type { ResultsFile } from "@capxul/book";
 import type { Row, RunInfo } from "../types.ts";
 

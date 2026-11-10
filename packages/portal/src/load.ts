@@ -9,9 +9,9 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 
 import { buildBook, keyOf, parseStatus, type AnyRecord, type StatusDocument } from "@capxul/book";
 
-import { planFilesOf } from "../../../tools/plan-files.ts";
-import { appliedTargets, check as planCheck, parseAnswerLines, parsePlan, waitsOnOwner } from "../../../tools/plan/service.ts";
-import type { Facts, LogEntry } from "../../../tools/plan/types.ts";
+import { planFilesOf } from "@capxul/plan";
+import { appliedTargets, check as planCheck, parseAnswerLines, parsePlan, waitsOnOwner } from "@capxul/plan";
+import type { Facts, LogEntry } from "@capxul/plan";
 import { direction } from "#content/direction.ts";
 import type { Assets } from "#src/modules/render/types.ts";
 import type { FrozenArgument, FrozenCommand, FrozenFlag, PlanInput, SiteInput } from "#src/modules/site/types.ts";

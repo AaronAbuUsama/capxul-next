@@ -5,8 +5,8 @@
 //
 // SURFACE_GROUPS and SURFACE are plain data, not records: every operation's command as it stood when the surface was
 // designed (`now`) and as the tree spells it (`next`), with its group. The owning concepts apply the moves, book first
-// (each frozen command renamed carries a decision naming the old one, which tools/check-frozen.ts checks; a new
-// operation's id becomes its new words, rules.new-operations). tools/report-surface.ts prints the tree from these rows
+// (each frozen command renamed carries a decision naming the old one, which packages/book/scripts/check-frozen.ts checks; a new
+// operation's id becomes its new words, rules.new-operations). packages/book/scripts/report-surface.ts prints the tree from these rows
 // and the book, and reports every row the book does not yet spell as `next`.
 //
 // Shared records link only to shared records, except the eleven frozen agreement operations, whose ids never change:

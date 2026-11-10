@@ -16,7 +16,7 @@ export const impactView = (at: string, b: ImpactBlock): string => {
       `<ul class="impact-list">${names.join("")}</ul>` +
       `<p class="caption">${b.total > NEAREST || !b.complete ? `The nearest ${NEAREST} of ${plural(b.total, "record")}; ${b.complete
       ? "the full list, with each field and distance, is in this page's JSON and Markdown twins."
-      : "the twins list the nearest 500 (a decision's, the records it names), and `tools/impact.ts` lists everything."}` : "That is every one."}` +
+      : "the twins list the nearest 500 (a decision's, the records it names), and `packages/book/scripts/impact.ts` lists everything."}` : "That is every one."}` +
       `${decisions} ${plural(b.evals, "eval")} belong to it or to them.</p>`;
   return section("impact", "If this changes", body, "Records that name this one, directly or through others.");
 };

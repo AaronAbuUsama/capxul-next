@@ -164,7 +164,7 @@ does until its rule lands (**review**, with the rule's name from the policy pack
   for the B3 pilots' operations (`auth.login`, `auth.verify`, `account.retry`, `payment.send`);
   `normal` for the rest.
 
-### 4a. Operations beyond the 215 (`rules.new-operations`) — built (`tools/check-frozen.ts`)
+### 4a. Operations beyond the 215 (`rules.new-operations`) — built (`packages/book/scripts/check-frozen.ts`)
 
 The 215 are the list of capabilities the rebuild keeps. A new capability, such as the CRM, projects
 and Frappe HR payroll that Aaron ruled fundamental (`aaron.frappe-shape`, `aaron.projects`), may be
@@ -190,7 +190,7 @@ an operation too, but only on these terms:
   world. A concept whose new capability is booked as an SDK-only flow adds `cli` to the flow's
   `surfaces` when the operation is booked.
 
-`tools/check-frozen.ts` counts new operations apart from the 215, which it still requires booked
+`packages/book/scripts/check-frozen.ts` counts new operations apart from the 215, which it still requires booked
 exactly once each, and reports the rulings they serve. A new operation never stands in for one of
 the 215. `OPERATION_OWNERS` lists only the 215: a new operation's owner is the concept that books it.
 
@@ -306,7 +306,7 @@ the 215. `OPERATION_OWNERS` lists only the 215: a new operation's owner is the c
 - Build: `node --experimental-strip-types packages/book/src/main.ts books/target/index.ts /tmp/target`.
   It must report 0 problems. Gaps are expected until every concept lands, and are never written by
   hand.
-- Frozen check: `node --experimental-strip-types tools/check-frozen.ts`. It must report 0 breaches:
+- Frozen check: `node --experimental-strip-types packages/book/scripts/check-frozen.ts`. It must report 0 breaches:
   each of the 215 booked once with its behaviour kept, and each new operation booked by rule 4a.
 - Keep prose short: `title` ≤ 80, `about` ≤ 2000, a line ≤ 300 characters. Write for a reader who
   has not seen the old system.

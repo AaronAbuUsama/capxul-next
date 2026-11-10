@@ -1,4 +1,4 @@
-// node --experimental-strip-types tools/check-frozen.ts
+// node --experimental-strip-types packages/book/scripts/check-frozen.ts
 // Checks that the target book keeps the old operations' BEHAVIOUR, not their spelling (Aaron's
 // decision system.frozen-behaviour, 8 November 2026, extended by the cut on 10 November 2026), and books a new
 // capability only where an Aaron ruling asks for it (decision rules.new-operations). Three things, mechanically:
@@ -23,9 +23,9 @@
 // Flags, --json shapes and wording are the target's to design and are not compared;
 // books/frozen/flags.ts is reference material. Exits 1 on a breach.
 
-import { frozen, type FrozenId } from "../books/frozen/operations.ts";
-import { records } from "../books/target/index.ts";
-import { CUT } from "../books/target/shared/cut.ts";
+import { frozen, type FrozenId } from "../../../books/frozen/operations.ts";
+import { records } from "../../../books/target/index.ts";
+import { CUT } from "../../../books/target/shared/cut.ts";
 
 type Line = { claim: string; observes?: string; was?: readonly string[] } | null;
 type Op = { _kind: "operation"; id: string; command: string; title: string; acceptance: Line[]; refusals: { error: { id: string } }[] };

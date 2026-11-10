@@ -1,5 +1,5 @@
-// node --experimental-strip-types tools/plan-tasks.ts           → writes docs/mission/tasks.json and prints counts
-// node --experimental-strip-types tools/plan-tasks.ts --check   → exits 1 if docs/mission/tasks.json is stale
+// node --experimental-strip-types packages/plan/src/tasks.ts           → writes docs/mission/tasks.json and prints counts
+// node --experimental-strip-types packages/plan/src/tasks.ts --check   → exits 1 if docs/mission/tasks.json is stale
 //
 // The build's task tree, derived from the design book (docs/design/swarm.md, section 5). Nothing here is written by hand
 // except the milestones, which are the milestones of plan/plan.json (the coordinator's plan, read from the file, so there is
@@ -24,12 +24,12 @@
 // both is the file plan-tasks writes at the merged head (swarm.task-tree). The counts are printed instead.
 
 import { readFileSync, writeFileSync } from "node:fs";
-import { name, records, stage } from "../books/target/index.ts";
-import { CONCEPTS } from "../books/target/shared/foundation.ts";
-import { recordsOf } from "../books/target/shared/index.ts";
-import { WORLDS } from "../books/target/devnet/worlds.ts";
-import { parsePlan } from "./plan/service.ts";
-import { buildBook, keyOf, type AnyRecord, type EvalDef } from "../packages/book/src/index.ts";
+import { name, records, stage } from "../../../books/target/index.ts";
+import { CONCEPTS } from "../../../books/target/shared/foundation.ts";
+import { recordsOf } from "../../../books/target/shared/index.ts";
+import { WORLDS } from "../../../books/target/devnet/worlds.ts";
+import { parsePlan } from "./modules/plan/service.ts";
+import { buildBook, keyOf, type AnyRecord, type EvalDef } from "@capxul/book";
 
 const OUT = "docs/mission/tasks.json";
 const PLAN = "plan/plan.json";
@@ -57,7 +57,7 @@ const linksFrom = (key: string, field?: string) =>
 /** The concept whose folder exports a record (a machine's transitions come with it). */
 const conceptOf = new Map<string, string>();
 for (const c of CONCEPTS) {
-  const m = (await import(`../books/target/${c.id}/index.ts`)) as { modules: readonly object[] };
+  const m = (await import(`../../../books/target/${c.id}/index.ts`)) as { modules: readonly object[] };
   for (const r of recordsOf(m.modules) as AnyRecord[]) {
     conceptOf.set(keyOf(r), c.id);
     if (r._kind === "machine") for (const t of Object.values(r.t as object) as AnyRecord[]) conceptOf.set(keyOf(t), c.id);
@@ -65,7 +65,7 @@ for (const c of CONCEPTS) {
 }
 // The pay agreements moved from payroll into payments (cut.agreements-in-payments); they keep their own folder inside it.
 {
-  const m = (await import("../books/target/payments/agreements/index.ts")) as { modules: readonly object[] };
+  const m = (await import("../../../books/target/payments/agreements/index.ts")) as { modules: readonly object[] };
   for (const r of recordsOf(m.modules) as AnyRecord[]) {
     conceptOf.set(keyOf(r), "payments");
     if (r._kind === "machine") for (const t of Object.values(r.t as object) as AnyRecord[]) conceptOf.set(keyOf(t), "payments");
@@ -544,7 +544,7 @@ const counts = {
   bookRecords: book.records.size,
 };
 const doc = {
-  about: "The build's task tree, derived from books/target by tools/plan-tasks.ts (docs/design/swarm.md, section 5). Do not edit: change the book or the script, then regenerate. It holds no counts over the book, so lanes that change different tasks never conflict here.",
+  about: "The build's task tree, derived from books/target by packages/plan/src/tasks.ts (docs/design/swarm.md, section 5). Do not edit: change the book or the script, then regenerate. It holds no counts over the book, so lanes that change different tasks never conflict here.",
   regenerated: REGENERATED,
   layers: [[INTEGRATIONS], ...computed, [JOURNEYS]],
   tasks: out,
@@ -561,7 +561,7 @@ if (check) {
   let prior = "";
   try { prior = readFileSync(OUT, "utf8"); } catch { /* missing counts as stale */ }
   if (prior !== text) {
-    console.error(`${OUT} is stale: run node --experimental-strip-types tools/plan-tasks.ts`);
+    console.error(`${OUT} is stale: run node --experimental-strip-types packages/plan/src/tasks.ts`);
     process.exit(1);
   }
   console.log(`${OUT} is current`);

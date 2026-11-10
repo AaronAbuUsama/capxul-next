@@ -1,9 +1,9 @@
 // Reads the plan's explanation files: plan/outline.md, plan/milestones/<id>.md and plan/tasks/<id>.md. The one place that
-// lists them, shared by tools/plan.ts and the portal's loader. Reading only.
+// lists them, shared by packages/plan/src/main.ts and the portal's loader. Reading only.
 
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
-import type { PlanFiles } from "./plan/types.ts";
+import type { PlanFiles } from "./modules/plan/types.ts";
 
 const folder = (dir: string): Readonly<Record<string, string>> =>
   existsSync(dir)

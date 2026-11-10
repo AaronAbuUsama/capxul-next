@@ -1,4 +1,4 @@
-// node --experimental-strip-types tools/report-surface.ts [--md | --check-md [<file>]]
+// node --experimental-strip-types packages/book/scripts/report-surface.ts [--md | --check-md [<file>]]
 // The command surface (books/target/shared/surface.ts, decision surface.tree) against the book: every operation once in
 // SURFACE, and every row spelt in the book as its `next` once its owner has applied it. Prints each row still to apply
 // and each mismatch, and exits 1 on a mismatch (an operation in no row, a row matching no operation, a command twice).
@@ -10,11 +10,11 @@
 
 import * as fs from "node:fs";
 import * as path from "node:path";
-import { frozen } from "../books/frozen/operations.ts";
-import { SURFACE, SURFACE_GROUPS } from "../books/target/shared/surface.ts";
+import { frozen } from "../../../books/frozen/operations.ts";
+import { SURFACE, SURFACE_GROUPS } from "../../../books/target/shared/surface.ts";
 
 type Op = { _kind: string; id: string; command: string };
-const root = path.join(import.meta.dirname, "..", "books", "target");
+const root = path.join(import.meta.dirname, "..", "..", "..", "books", "target");
 const concepts = fs.readdirSync(root).filter((d) => fs.existsSync(path.join(root, d, "operations.ts")));
 const ops: (Op & { concept: string })[] = [];
 for (const c of concepts) {
@@ -62,7 +62,7 @@ if (process.argv.includes("--md")) {
   const at = process.argv.indexOf("--check-md");
   const file = process.argv[at + 1] && !process.argv[at + 1]!.startsWith("--")
     ? process.argv[at + 1]!
-    : path.join(import.meta.dirname, "..", "docs", "design", "command-surface.md");
+    : path.join(import.meta.dirname, "..", "..", "..", "docs", "design", "command-surface.md");
   const page = fs.readFileSync(file, "utf8");
   const start = page.indexOf("\n## 6. ");
   const end = page.indexOf("\n## 7. ", start);

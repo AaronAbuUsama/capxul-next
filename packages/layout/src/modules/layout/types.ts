@@ -5,7 +5,7 @@
  * 2. No source file is over the limit, except the recorded offenders, and none of those may grow.
  * 3. Every top-level directory and every package has a README.
  *
- * The rules are pure: the entry (`tools/check-layout.ts`) reads git and the files and hands them in.
+ * The rules are pure: the entry (`src/main.ts`) reads git and the files and hands them in.
  */
 
 /** What may be at the top level: the entry's name and the one-line reason it is there. */

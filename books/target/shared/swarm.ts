@@ -2,7 +2,7 @@
 // adds. One writer: the swarm designer. Explained in docs/design/swarm.md.
 //
 // The swarm is how the build runs: one swarmD manager (the master agent, whose instructions are the goal prompt) with its
-// workers, turning the task tree that tools/plan-tasks.ts derives from this book green, eval by eval. It adds no component
+// workers, turning the task tree that packages/plan/src/tasks.ts derives from this book green, eval by eval. It adds no component
 // or environment record: it is the build's tooling, not part of Capxul.
 
 import { defineDecision } from "../../../packages/book/src/index.ts";
@@ -73,7 +73,7 @@ export const decision_swarm_stages = defineDecision({
     "Waiting idles the critical path on another project's schedule. Workflows only would not prove swarmD, and the goal " +
     "prompt says building Capxul is how swarmD is proven. One set of schemas across the stages makes the move a change of " +
     "runner, not of plan: the same task keys, evals, branches and gate.",
-  source: by("docs/mission/initializer.md (How to work); swarmD STATUS.md (the manager-model rows are all not started); HANDOFF.md (lessons that save usage)"),
+  source: by("archive/docs/mission/initializer.md (How to work); swarmD STATUS.md (the manager-model rows are all not started); archive/HANDOFF.md (lessons that save usage)"),
   affects: [f.system_capxul],
 });
 
@@ -111,7 +111,7 @@ export const decision_swarm_master_prompt = defineDecision({
     {
       label: "goal-plus-skeleton",
       text:
-        "docs/mission/initializer.md whole (the goal, the book, the order of work, how to work, what to bring to Aaron), " +
+        "archive/docs/mission/initializer.md whole (the goal, the book, the order of work, how to work, what to bring to Aaron), " +
         "followed by the operating skeleton in docs/design/swarm.md section 1b: its durable state, tools, the events that wake " +
         "it and what it does on each, its rules, and the stop and escalation rules. swarmD adds its built-in manager prompt " +
         "and the build template's prompt before them, and they cannot be overridden.",
@@ -123,7 +123,7 @@ export const decision_swarm_master_prompt = defineDecision({
   why:
     "The goal prompt is the whole basis of the master. A summary drifts from it; a skeleton without it loses the definition " +
     "of done. The skeleton covers what the goal prompt leaves to the runner: which event wakes the master and what it does then.",
-  source: by("docs/mission/initializer.md; swarmD reference/manager.md (instructions are added after the built-in and template prompts)"),
+  source: by("archive/docs/mission/initializer.md; swarmD reference/manager.md (instructions are added after the built-in and template prompts)"),
   affects: [f.system_capxul],
 });
 
@@ -149,7 +149,7 @@ export const decision_swarm_workers = defineDecision({
     "cost under 1%, but only because it ran nothing it could not run). The book is designed, so there is no design stage to " +
     "staff. The scout reads PostHog, which matters only once staging runs (B5). The adversary exists because a writer " +
     "followed by an adversarial reviewer found real errors in every money file reviewed (HANDOFF lessons).",
-  source: by(`${SWARMD} apps/docs/content/docs/decisions.mdx (DOC-3); HANDOFF.md (lessons); docs/spec/40-capxul-team.md`),
+  source: by(`${SWARMD} apps/docs/content/docs/decisions.mdx (DOC-3); archive/HANDOFF.md (lessons); docs/spec/40-capxul-team.md`),
   affects: [f.system_capxul, ...MONEY],
 });
 
@@ -162,7 +162,7 @@ export const decision_swarm_money = defineDecision({
       label: "seven-lanes",
       text:
         "Every task in the payments, books, banking, requests, payroll, budgets and approvals lanes, and step B0.once (an " +
-        "activity's side effect lands once). tools/plan-tasks.ts sets checkers to [reviewer, adversary] and the label money.",
+        "activity's side effect lands once). packages/plan/src/tasks.ts sets checkers to [reviewer, adversary] and the label money.",
     },
     { label: "six", text: "The six concepts HANDOFF names, without approvals." },
     { label: "risk-flag", text: "Only operations whose acceptance moves money, chosen per operation." },
@@ -172,7 +172,7 @@ export const decision_swarm_money = defineDecision({
     "The goal prompt's list includes approvals: every money movement is signed through it. A per-operation choice is a " +
     "judgment made 215 times; the lane is the unit the code and the reviewer's checklist share. B0.once proves the property " +
     "every money path rests on.",
-  source: by("docs/mission/initializer.md (How to work: the money concepts); HANDOFF.md (lessons); tools/plan-tasks.ts MONEY"),
+  source: by("archive/docs/mission/initializer.md (How to work: the money concepts); archive/HANDOFF.md (lessons); packages/plan/src/tasks.ts MONEY"),
   affects: MONEY,
 });
 
@@ -205,7 +205,7 @@ export const decision_swarm_pacing = defineDecision({
     "with its own window, whose exhaustion is a provider signal that pauses the makers. The retro's healthy task took 16 " +
     "active minutes and $0.77, a long one 11 minutes a round: 4 pairs keep about 6 agents busy. After B3 the frontier is 104 " +
     "tasks over 22 lanes, so one task per lane costs no parallelism and keeps lane branches free of conflicts.",
-  source: by(`HANDOFF.md (lessons that save usage); ${RETRO} (per mission, per ticket); ${SWARMD} docs/planning/sitrep-2026-11-08.md (gateway: CLIProxy); tools/plan-tasks.ts (frontierAfterB3 104, 22 lanes)`),
+  source: by(`archive/HANDOFF.md (lessons that save usage); ${RETRO} (per mission, per ticket); ${SWARMD} docs/planning/sitrep-2026-11-08.md (gateway: CLIProxy); the task tree (frontierAfterB3 104, 22 lanes)`),
   affects: [f.system_capxul, decision_system_layout],
 });
 
@@ -213,13 +213,13 @@ export const decision_swarm_pacing = defineDecision({
 
 export const decision_swarm_task_tree = defineDecision({
   id: "swarm.task-tree",
-  title: "The task tree is derived from the book by tools/plan-tasks.ts",
+  title: "The task tree is derived from the book by packages/plan/src/tasks.ts",
   question: "Who writes the build's tasks, their evals and their order?",
   options: [
     {
       label: "derived",
       text:
-        "tools/plan-tasks.ts derives every task from the records: milestones and their steps, a lane per concept, and in each " +
+        "packages/plan/src/tasks.ts derives every task from the records: milestones and their steps, a lane per concept, and in each " +
         "lane its door, processes, operations and the rpcs and helper flows no operation of its lane owns, plus integrations " +
         "and journeys. A task's key is its record's key. Its evals are the book's eval ids. Its needs come from the links. " +
         "docs/mission/tasks.json is regenerated with the book and checked (--check); it holds the tasks and no counts over " +
@@ -236,7 +236,7 @@ export const decision_swarm_task_tree = defineDecision({
     "The link graph is the work plan (docs/design-book.md, in the factory). A manager writing tasks is the freestyling this " +
     "design removes, and a hand plan drifts from the book on the first record change. Deriving it gives every operation " +
     "exactly one task and every eval exactly one owner, and the checks fail the moment either stops being true.",
-  source: by("docs/design-book.md (in the factory); tools/plan-tasks.ts; docs/mission/tasks.json"),
+  source: by("docs/design-book.md (in the factory); packages/plan/src/tasks.ts; docs/mission/tasks.json"),
   affects: [f.system_capxul, decision_system_build_order],
 });
 
@@ -285,7 +285,7 @@ export const decision_swarm_rpc_ownership = defineDecision({
     "An rpc's code lives in its concept's folder, so only its lane may write it. Owned by an operation of another lane, two " +
     "lanes would each wait on the other's operation and the graph could cycle. In the door, every rpc would wait on the " +
     "door, and the door would grow to a lane. On this book 17 rpcs are their own tasks.",
-  source: by("tools/plan-tasks.ts; system.layout (src/<concept>/ mirrors the book); docs/mission/tasks.json"),
+  source: by("packages/plan/src/tasks.ts; system.layout (src/<concept>/ mirrors the book); docs/mission/tasks.json"),
   affects: [decision_system_layout],
 });
 
@@ -312,7 +312,7 @@ export const decision_swarm_process_order = defineDecision({
     "Process last leaves the operations' acceptance failing until the end of the lane. One task for both makes the payment " +
     "lane's largest task larger. Ordering by layer keeps the graph acyclic: a reacting process never holds back the " +
     "operation it reacts to.",
-  source: by("rules.process-wakeups; docs/mission/initializer.md (B0: route by keys); tools/plan-tasks.ts"),
+  source: by("rules.process-wakeups; archive/docs/mission/initializer.md (B0: route by keys); packages/plan/src/tasks.ts"),
   affects: [decision_system_build_order],
 });
 
@@ -358,7 +358,7 @@ export const decision_swarm_layers = defineDecision({
   why:
     "Gating by layer serialises 14 layers for no reason: each need the links name is already there. Checking the layers " +
     "catches a record change that would make a lane wait on a later one, which is what the decision forbids.",
-  source: by("system.build-order; tools/plan-tasks.ts (BUILD_ORDER, the layer check)"),
+  source: by("system.build-order; packages/plan/src/tasks.ts (BUILD_ORDER, the layer check)"),
   affects: [decision_system_build_order],
 });
 
@@ -389,7 +389,7 @@ export const decision_swarm_pilots = defineDecision({
     "system.build-order puts devnet's own dev commands alongside the harness; as devnet's layer they would wait for B4's " +
     "layer 13. payment.send's refusals start from org-with-budgets, whose steps create departments: making worlds needs " +
     "would pull organizations' and budgets' operations, most of B4, into B3.",
-  source: by("docs/mission/initializer.md (B3); system.build-order; books/target/devnet/worlds.ts (steps, the builder); tools/plan-tasks.ts (WORLD_OPS, pilot-closure)"),
+  source: by("archive/docs/mission/initializer.md (B3); system.build-order; books/target/devnet/worlds.ts (steps, the builder); packages/plan/src/tasks.ts (WORLD_OPS, pilot-closure)"),
   affects: [decision_system_size],
 });
 
@@ -414,7 +414,7 @@ export const decision_swarm_milestone_evals = defineDecision({
   why:
     "A person eval on each milestone blocks the next milestone on a sign-off the goal prompt does not ask for. Exit lines as " +
     "evals are runnable, and the portal shows them where it shows acceptance.",
-  source: by("docs/mission/initializer.md (order of work, exits); docs/spec/30-capxul-evals.md (ok:, sys:); swarmD the-record (done)"),
+  source: by("archive/docs/mission/initializer.md (order of work, exits); docs/spec/30-capxul-evals.md (ok:, sys:); swarmD the-record (done)"),
   affects: [f.system_capxul],
 });
 
@@ -495,7 +495,7 @@ export const decision_swarm_head_red = defineDecision({
   why:
     "Every pair's checks run against the integration head; a red head makes every later verdict noise. Reverting at once " +
     "throws away a change that is often one line from green; one round bounds the cost.",
-  source: by("docs/mission/initializer.md (the build rules hold at every commit); docs/spec/10-swarmd-ledger.md (roll-up at ref moves)"),
+  source: by("archive/docs/mission/initializer.md (the build rules hold at every commit); docs/spec/10-swarmd-ledger.md (roll-up at ref moves)"),
   affects: [f.system_capxul],
 });
 
@@ -561,7 +561,7 @@ export const decision_swarm_watch_tasks = defineDecision({
     {
       label: "watch",
       text:
-        "tools/plan-tasks.ts gives a working task with no paths the label watch, no checkers and no budget. The master never " +
+        "packages/plan/src/tasks.ts gives a working task with no paths the label watch, no checkers and no budget. The master never " +
         "pairs it: it is done when its evals pass at the integration head, by the machine runs every ref move makes. When its " +
         "needs are all done and one of its evals still fails or errors, the master assigns the diagnoser outside a pair, and " +
         "opens a defect in the lane the diagnosis names. A watch task gets no task card at stage 0.",
@@ -575,7 +575,7 @@ export const decision_swarm_watch_tasks = defineDecision({
     "the budget signal: $75 over the 15 such tasks for no work. Giving a journey every lane's paths would let one task " +
     "change 10 concepts at once, which swarm.scope and the one-task-per-lane rule exist to stop. Its failure is a defect " +
     "in the lane that owns the cause.",
-  source: by("tools/plan-tasks.ts (watch: 13 journeys, B3.pilots, B5.week); .github/ISSUE_TEMPLATE/task-journey.yml (\"a journey's paths may be empty\", now removed); swarmD reference/pairs.md (a failed code level doesn't count)"),
+  source: by("packages/plan/src/tasks.ts (watch: 13 journeys, B3.pilots, B5.week); .github/ISSUE_TEMPLATE/task-journey.yml (\"a journey's paths may be empty\", now removed); swarmD reference/pairs.md (a failed code level doesn't count)"),
   affects: [f.system_capxul],
 });
 
@@ -771,7 +771,7 @@ export const decision_swarm_escalation = defineDecision({
   why:
     "The goal prompt's Bring list, and the retro's D2: the manager asks only when it needs the person. A stuck pair is a " +
     "diagnosis, not a question.",
-  source: by(`docs/mission/initializer.md (Bring list); ${RETRO} (D2); swarmD domains/software-factory.mdx (scenario 7)`),
+  source: by(`archive/docs/mission/initializer.md (Bring list); ${RETRO} (D2); swarmD domains/software-factory.mdx (scenario 7)`),
   affects: [f.system_capxul],
 });
 
@@ -793,7 +793,7 @@ export const decision_swarm_matters_dont_block = defineDecision({
   why:
     "The goal prompt: each recorded choice stands, and the build follows it, until changed, and the change goes into the " +
     "record first. In swarmD's ledger only a question matter blocks a task, which fits.",
-  source: by("docs/mission/initializer.md (Bring list: each recorded choice stands); swarmD reference/ledger.md (blocked)"),
+  source: by("archive/docs/mission/initializer.md (Bring list: each recorded choice stands); swarmD reference/ledger.md (blocked)"),
   affects: [f.system_capxul],
 });
 
@@ -1183,7 +1183,7 @@ export const decision_swarm_stage0_profiles = defineDecision({
     "different model is the nearest one family allows, and the book's own lesson is that a same-subscription adversarial " +
     "reviewer still found real errors in every money file it read. Codex would add a second subscription and its tooling " +
     "for stage 0 alone.",
-  source: tby("HANDOFF.md (lessons that save usage); tools/workflows/; .claude/agents/; the old system's .claude/agents/ (profiles with name, description, tools, model)"),
+  source: tby("archive/HANDOFF.md (lessons that save usage); archive/tools/workflows/; .claude/agents/; the old system's .claude/agents/ (profiles with name, description, tools, model)"),
   affects: [f.system_capxul, decision_swarm_stages],
 });
 

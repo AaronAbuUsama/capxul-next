@@ -4,8 +4,8 @@
 // of them shows as his ruling (shared/waiting.ts); the four that need his answer wait for him there.
 //
 // CUT is plain data, not records: for each of the 215 frozen operations that is no longer booked in the built book, the
-// fate it has and the decision that classified it. tools/check-frozen.ts requires every frozen operation to be booked
-// exactly once or to have an entry here. docs/cut-archive/ holds everything that left, with an index (tools/report-cut.ts).
+// fate it has and the decision that classified it. packages/book/scripts/check-frozen.ts requires every frozen operation to be booked
+// exactly once or to have an entry here. docs/cut-archive/ holds everything that left, with an index (packages/book/scripts/report-cut.ts).
 
 import { defineDecision } from "../../../packages/book/src/index.ts";
 import * as f from "./foundation.ts";

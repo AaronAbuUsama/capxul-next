@@ -19,14 +19,13 @@ pnpm loop status               # the agent runs on this machine
 | Directory | What it is |
 |---|---|
 | `books/` | The blueprint: the design. `target/` is what is being built; `frozen/` is the baseline, the old system's behaviour, never edited. (Plan task `m1-rename-blueprint` renames this directory to `blueprint/`.) |
-| `packages/` | The code, one package per component: `book` (the engine that builds the blueprint), `portal`, `evals`, `loop` (the agent runner, on pi-durable), `contracts`, `sdk`, `devnet`. |
+| `packages/` | The code, one package per component: `book` (the engine that builds the blueprint), `portal`, `plan`, `evals`, `loop` (the agent runner, on pi-durable), `contracts`, `sdk`, `devnet`, `layout`. |
 | `plan/` | The coordinator's plan, its log and the owner's answers. Changed only through `pnpm plan`. |
 | `evals/` | Which check proves which eval of the blueprint. |
 | `status/` | The scoreboard. Written only by `pnpm evals`. |
 | `loops/` | The scripts the loop runs. |
 | `spikes/` | Proven throwaway code, waiting to be moved into packages (plan task `m2-graduate-spike`). |
 | `docs/` | Written designs, evidence the blueprint cites, and generated reports. |
-| `tools/` | Checks and scripts not yet folded into a package. |
 | `archive/` | Dead material, kept at its old path. Nothing reads it. |
 | `var/` | Working data on this machine (loop runs). Not in git. |
 

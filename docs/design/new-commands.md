@@ -24,7 +24,7 @@ day, book first, so sections 1, 2, 5, 6 and 8 give each command, id and SDK meth
 
 Nothing here changes the 215. A new operation never stands in for one of them, and the grammar is checked
 against them: no id, export name or command below collides with a frozen operation or its old command
-(`tools/check-frozen.ts`, 9 November 2026: 179 new operations, 0 collisions, 0 breaches).
+(`packages/book/scripts/check-frozen.ts`, 9 November 2026: 179 new operations, 0 collisions, 0 breaches).
 
 The rulings these commands serve, all in `books/target/shared/rulings.ts`:
 

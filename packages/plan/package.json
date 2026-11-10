@@ -1,0 +1,20 @@
+{
+  "name": "@capxul/plan",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "The coordinator's plan: the CLI that changes it, the checks that keep it honest, and the task tree derived from it.",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "test": "node --experimental-strip-types --no-warnings --test 'src/**/*.test.ts'"
+  },
+  "dependencies": {
+    "@capxul/book": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "typescript": "catalog:"
+  }
+}

@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@capxul/book": "workspace:*",
+    "@capxul/plan": "workspace:*",
     "effect": "catalog:"
   },
   "devDependencies": {

@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import { apply, check } from "../../../tools/plan/service.ts";
-import { EMPTY_PLAN, type Command, type Facts, type Plan } from "../../../tools/plan/types.ts";
+import { apply, check } from "@capxul/plan";
+import { EMPTY_PLAN, type Command, type Facts, type Plan } from "@capxul/plan";
 import { check as portalCheck, expect, passed } from "#src/modules/check/service.ts";
 import { renderSite } from "#src/modules/render/service.ts";
 import { buildSite } from "#src/modules/site/service.ts";

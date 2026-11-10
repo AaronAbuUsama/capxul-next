@@ -28,11 +28,9 @@
   "packages/contracts/test/unit/fuzz/Payments/differential.t.sol": 358,
   "packages/contracts/test/utils/Agreements/beta/PayrollDepartments.sol": 687,
   "packages/contracts/test/utils/Installer/Installer_Fork_Base.sol": 521,
+  "packages/plan/src/tasks.ts": 569,
   "packages/portal/src/modules/site/types.ts": 366,
   "packages/sdk/src/access/signing/signer.test.ts": 361,
   "packages/sdk/src/shared/protocol/errors/factories.ts": 356,
-  "spikes/skeleton/run.sh": 510,
-  "tools/freeze-flags.ts": 1056,
-  "tools/plan-tasks.ts": 569,
-  "tools/portal-prototype.ts": 763
+  "spikes/skeleton/run.sh": 510
 }

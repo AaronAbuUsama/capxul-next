@@ -10,8 +10,9 @@
 > - **Equity, the hosted FDE and individuals are parked** (`docs/cut-archive/parked/`).
 > - **Work is coordinated through the plan and the loop** (`pnpm plan`, `pnpm loop`), not by reading this file or
 >   `HANDOFF.md`, and not through swarmD.
-> - **Paths have moved.** `demo/`, `kit/` and `docs/handoff/` are under `archive/` at the same path
->   (`archive/README.md`). The map of the repository is `README.md`.
+> - **Paths have moved.** `demo/`, `kit/`, `docs/handoff/`, `HANDOFF.md` and the old `tools/` scripts named below are
+>   under `archive/` at the same path (`archive/README.md`); the live checks moved into `packages/`
+>   (`docs/repository-map.md`, "Where `tools/` went"). The map of the repository is `README.md`.
 
 > Read [GROUNDING.md](GROUNDING.md) first: what we are building and why (the strategy, Aaron 9 Nov). This file is how.
 

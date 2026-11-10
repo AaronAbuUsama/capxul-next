@@ -1,4 +1,4 @@
-// The milestones of docs/mission/critical-path.md as decision records, so the portal can show them and each is linked to what it needs. The tools' own task tree (tools/plan-tasks.ts)
+// The milestones of docs/mission/critical-path.md as decision records, so the portal can show them and each is linked to what it needs. The tools' own task tree (packages/plan/src/tasks.ts)
 // holds its hand-written milestone list and is not changed by this file; these records say what each milestone is done when, and which records and journeys carry it. The critical
 // path file is the plan until these are the plan; then the book wins (its own words). The coordinator's, on Aaron's delegation; the priorities are Aaron's, 10 November
 // (OpenFort out, breadth first, everything recorded, time movable, snapshots, visible, the cloud).

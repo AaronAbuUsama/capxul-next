@@ -41,7 +41,7 @@ design book makes the whole design something a machine can check:
 
 | Book | Folder | What it is | Who writes it |
 |---|---|---|---|
-| Frozen | `books/frozen/` | **Reference, not surface.** The old book's 215 operations: the list of capabilities the rebuild keeps, and the acceptance claims whose behaviour its evals keep. Also the old commands, titles and refusals. `flags.ts` holds each command's arguments and flags as the old CLI declares them, plus the global flags: the material for designing the new flags. | Generated: `operations.ts` by `tools/freeze-operations.py` from the old repository's `apps/docs/factory/operations/*.yaml`, and `flags.ts` by `tools/freeze-flags.ts` from its `apps/cli/src`. Never edited by hand. |
+| Frozen | `books/frozen/` | **Reference, not surface.** The old book's 215 operations: the list of capabilities the rebuild keeps, and the acceptance claims whose behaviour its evals keep. Also the old commands, titles and refusals. `flags.ts` holds each command's arguments and flags as the old CLI declares them, plus the global flags: the material for designing the new flags. | Generated: `operations.ts` by `archive/tools/freeze-operations.py` from the old repository's `apps/docs/factory/operations/*.yaml`, and `flags.ts` by `archive/tools/freeze-flags.ts` from its `apps/cli/src`. Never edited by hand. |
 | Target | `books/target/` | The design of the rebuilt Capxul: the specification the build implements, including its own spelling of the surface (commands, flags, `--json` shapes, refusal codes). | The concept designers, then the assembly. When the code needs to differ from it, it changes first. |
 
 **What the freeze keeps.** Aaron's decision `system.frozen-behaviour` is that the freeze keeps
@@ -87,7 +87,7 @@ checked as rules:
 - A4: a flow that implements an operation serves the CLI.
 
 P4's write boundary is a base rule, so it runs in every stage. The kept behaviour, and the terms
-on which a new operation is booked, are checked by `tools/check-frozen.ts`. Nothing checks P3, P6
+on which a new operation is booked, are checked by `packages/book/scripts/check-frozen.ts`. Nothing checks P3, P6
 or P9 mechanically yet: reviewers hold them, and the build session's generators will check P6's
 spans.
 
@@ -135,14 +135,15 @@ books/target/
                                decisions.ts   every judgment behind the design
                                index.ts       the concept's module list
   index.ts                     every record of the target, with stage "target"
-tools/                         the workflow scripts that wrote the book; report generators;
-                               impact.ts and record-status.ts (below)
+packages/book/scripts/         the checks and reports over the book: check-frozen, report-cut, report-surface,
+                               report-judgments, impact.ts (below)
+packages/plan/                 the plan CLI and the task tree
 packages/evals/                the evals runner: it runs the checks bound to evals and writes the results (below)
 evals/bindings/<area>.json     which checks prove which evals, one file per area (below)
 status/status.json             what has run, per eval (below); written only by a run, never by hand
 status/runs/<run>/             one run's results, check lines and evidence (below)
 docs/decisions/                the accepted decisions, and the generated judgments report
-docs/mission/initializer.md    the goal prompt that starts the build
+plan/                          the coordinator's plan (`pnpm plan show`)
 ```
 
 ## Records and links
@@ -310,7 +311,7 @@ node --experimental-strip-types packages/book/src/main.ts books/target/index.ts 
 ## Using it end to end
 
 Every piece of work follows the same path, from a design question to production. Steps 1 to 3
-work today. Steps 4 to 7 are what the goal prompt (`docs/mission/initializer.md`) has the build
+work today. Steps 4 to 7 are what the goal prompt (`archive/docs/mission/initializer.md`) has the build
 session make, as milestones B1 to B5.
 
 ```mermaid
@@ -325,7 +326,7 @@ flowchart LR
    and why.
 2. **Build the book.**
 3. **Fix every problem and read the gaps.** A gap is allowed, but each one is visible work. A
-   decision that needs Aaron says so, and `tools/report-judgments.ts` collects those under "For
+   decision that needs Aaron says so, and `packages/book/scripts/report-judgments.ts` collects those under "For
    Aaron".
 4. **Generate (B1).** From the records the generators make:
 
@@ -373,7 +374,7 @@ source has many readers:
 |---|---|---|---|
 | The book build | every record | problems, gaps, evals | built |
 | Markdown views | every record | the summary page and concept pages, with diagrams | built |
-| Judgments report | decisions | `docs/decisions/judgments.md`, with "For Aaron" | built |
+| Judgments report | decisions | `pnpm judgments` prints it, with "For Aaron"; the portal shows the same list | built |
 | Frozen check | the frozen book beside the target operations | an operation not booked, a behaviour dropped without a decision, or a new operation no Aaron ruling asks for | built |
 | The docs site | operations, flows, errors, concepts, machines | the reference: a page per CLI command and SDK method, the error catalogue, the state diagrams; the `doc:<operation>` evals check it | B4 |
 | Generators | tables, rpcs, flows, operations, machines, events | migrations, schemas, the `RpcGroup`, the SDK client, the CLI wiring, the telemetry catalogue | B1 |
@@ -493,7 +494,7 @@ These three rules, with `no-example`, run only on a target book. The stand does 
 ## What depends on a record
 
 `impactOf(book, "kind:id", { depth? })` in `packages/book/src/impact.ts`, and
-`tools/impact.ts <kind:id> [--json] [--depth n]`, answer "if this record changes, what is
+`packages/book/scripts/impact.ts <kind:id> [--json] [--depth n]`, answer "if this record changes, what is
 affected". The answer is every record that depends on it, directly and transitively, each with
 the field of its own that names the record one step nearer and its distance, grouped by kind,
 nearest first; the decisions that name any of them, apart; and the evals whose subject is any of
@@ -581,7 +582,7 @@ nothing has run. Its type is `StatusDocument` in `packages/book/src/status.ts`:
 | `at` | when, as an ISO 8601 time with a zone |
 | `run`, `evidence` | optional: the run's id, and the path of its evidence |
 
-`tools/record-status.ts <results.json> [--status <file>]` merges one run into it. A results file is
+`packages/evals/src/record-status.ts <results.json> [--status <file>]` merges one run into it. A results file is
 `{ "commit", "at", "run"?, "results": [{ "id", "verdict", "evidence"? }] }`. The tool refuses the
 whole run, and writes nothing, when it names an eval id the book does not derive. The file's keys
 are written sorted, so two runs of the same results give the same file. The portal reads the file,
@@ -614,7 +615,7 @@ names `packages/evals` for the harness); the bindings are `evals/bindings/<area>
   (`<behaviour>.<what>`); a name that repeats in a run (the four payments of B7) passes only if every repeat passed.
 - **Truthful states.** An eval asked for with no binding is written `not_run`, never `pass`. A bound eval with a failing check is
   `fail` (the portal shows it orange). A bound eval whose checks did not all run and none failed writes nothing, so it stays as it
-  was. `status/status.json` is written only by `tools/record-status.ts`, which the runner calls with the run's results file.
+  was. `status/status.json` is written only by `packages/evals/src/record-status.ts`, which the runner calls with the run's results file.
 - **Evidence.** Each run keeps `status/runs/<run id>/`: `results.json` (what was merged), `checks.tsv` (every check line),
   `evidence/<eval>.txt` (the eval, its claim, its checks with their details, the run, the commit; at most 60 000 characters) and
   `run.log` (the script's whole output, at most 400 000 characters, not committed). Values from the files a binding lists under
@@ -647,7 +648,7 @@ The book says what to build; the plan says where the build is and what comes nex
   what each needs, what blocks it, the book records it concerns, its evidence), the **critical path** as an ordered list of
   task ids with a why in the coordinator's words and the date, and dated notes, the latest of which opens the page. Nothing
   sorts, infers or repairs the path.
-- **It changes through one command.** `pnpm plan <command>` (`tools/plan.ts`, module `tools/plan/`): `show [--json]`, `note`,
+- **It changes through one command.** `pnpm plan <command>` (`packages/plan/src/main.ts`, module `packages/plan/src/modules/plan/`): `show [--json]`, `note`,
   `task add | start | block | unblock | done | drop | edit`, `path set`, `milestone current`, `exit met`, `check`, and
   `goal set`, `exit add`, `milestone add` to shape it. Every change takes `--by <name>` (default `coordinator`), is validated,
   written, appended to `plan/log.jsonl` (one line: time, who, action, arguments, commit; never rewritten) and printed.
@@ -675,7 +676,7 @@ The book says what to build; the plan says where the build is and what comes nex
   unblocks the task) and then runs `pnpm plan answers apply <id> --evidence <ref>`, which records it in `plan/log.jsonl`;
   `answers.jsonl` is append only, `pnpm plan show` opens with the answers to apply, and `plan check` fails if an applied
   answer's decision still waits. Opened without that server, the page falls back to a prefilled GitHub issue.
-- **The derived task tree stays beneath it.** `tools/plan-tasks.ts` still derives the lanes and tasks from the book into
+- **The derived task tree stays beneath it.** `packages/plan/src/tasks.ts` still derives the lanes and tasks from the book into
   `docs/mission/tasks.json`, and reads its milestones from `plan/plan.json`, so there is one list. `pnpm tasks:check` fails when the
   file is stale; regenerate it with `pnpm tasks` after a milestone or exit line changes.
 
@@ -691,19 +692,19 @@ The `chain` tenancy for Ponder's indexed tables has since been added.
 pnpm exec tsc -p packages/book && pnpm test     # the record system and its tests
 pnpm exec tsc -p books                                           # the target and frozen books typecheck
 node --experimental-strip-types packages/book/src/main.ts books/target/index.ts /tmp/target   # 0 problems
-node --experimental-strip-types tools/check-frozen.ts       # the 215 booked, every behaviour kept, new operations by a ruling: 0 breaches
+node --experimental-strip-types packages/book/scripts/check-frozen.ts       # the 215 booked, every behaviour kept, new operations by a ruling: 0 breaches
 pnpm contracts:check-book                                        # the contract records against the contract code: 0 undeclared differences
 pnpm contracts:export-abi                                        # after a contract's source changes: forge build, then the ABI the check reads
-node --experimental-strip-types tools/report-judgments.ts > docs/decisions/judgments.md
-node --experimental-strip-types --no-warnings tools/impact.ts event:payment_transitioned   # what depends on a record
-node --experimental-strip-types --no-warnings tools/record-status.ts results.json          # merge a run into status/status.json (a run does this itself)
+pnpm judgments                                                   # every judgment, with the ones waiting for Aaron (printed, not committed)
+node --experimental-strip-types --no-warnings packages/book/scripts/impact.ts event:payment_transitioned   # what depends on a record
+node --experimental-strip-types --no-warnings packages/evals/src/record-status.ts results.json          # merge a run into status/status.json (a run does this itself)
 pnpm evals -- all                                                # run the checks bound to evals and record the verdicts; pnpm evals -- gaps shows what has none
 pnpm plan show                                                   # the plan: note, goal, milestones, path, blocked, tasks
 pnpm plan check && pnpm tasks:check                              # the plan against the book; the derived task tree is current
 ```
 
 The book build does not see the frozen text beside the target's records, so
-`tools/check-frozen.ts` checks the kept behaviour, and the new operations, separately:
+`packages/book/scripts/check-frozen.ts` checks the kept behaviour, and the new operations, separately:
 - **Booking.** Every one of the 215 operations is booked exactly once. A renamed command or title
   carries a decision.
 - **Acceptance.** Every acceptance claim is either kept in intent, or rewritten or retired with a
@@ -727,7 +728,7 @@ third-party contract at a fixed address on a real network: the devnet's addresse
 writes, `packages/contracts/deployments/devnet.json`, decision `contracts.devnet-addresses`). The code is the truth for what
 exists (`contracts.code-is-truth`), so a `built` record holds every function, event and error of its compiled contract.
 
-`tools/check-contracts.ts` (`pnpm contracts:check-book`, `--json`) compares them. It reads the committed ABI export
+`packages/contracts/abi-check/main.ts` (`pnpm contracts:check-book`, `--json`) compares them. It reads the committed ABI export
 (`packages/contracts/abi/abi.json`, made from `forge build` by `pnpm contracts:export-abi`; the export carries a hash of the
 contract source, the manifest and `foundry.toml`, and the check fails when the source has moved on and the export has not, so it
 needs no 100 s build) and fails, with a list, when:

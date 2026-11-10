@@ -1,6 +1,6 @@
 // The contract records made to match the contract code (10 November 2026). The v4 Solidity is now in the repository
 // (packages/contracts, from Xelmar-tech/infrastructure at 62e4947), so the code is the truth for what exists and the book's
-// contract records follow it. tools/check-contracts.ts compares the two and fails on any difference that no decision names.
+// contract records follow it. packages/contracts/abi-check/main.ts compares the two and fails on any difference that no decision names.
 //
 // CONTRACT_ALLOWANCES is plain data, not records: each difference that may stand, and the decision that names it. The check
 // requires the decision to be in the book and its text to name the subject, and that the difference still exists.
@@ -48,7 +48,7 @@ export const decision_contracts_code_is_truth = defineDecision({
       label: "code-is-truth",
       text:
         "A contract record that says `code: built` and names its `artifact` carries every function, event and error of that " +
-        "compiled contract, with the same names, argument types and order, mutability and indexed arguments. tools/check-contracts.ts " +
+        "compiled contract, with the same names, argument types and order, mutability and indexed arguments. packages/contracts/abi-check/main.ts " +
         "(`pnpm contracts:check-book`) compares them from a committed ABI export (`pnpm contracts:export-abi`, stamped with a hash of " +
         "the contract source, so it fails when the source moves on and the export does not) and fails on any difference that no " +
         "decision names. Third-party records (`code: third-party`) are listed, not compared. A design with no code says " +
@@ -79,7 +79,7 @@ export const decision_contracts_record_shape = defineDecision({
       text:
         "Three optional fields on the contract kind: `code` (`built`, `designed` or `third-party`), `artifact` (the Solidity name " +
         "of a built contract, the name of its compiled ABI) and `errors` (name, signature, about: the contract's custom errors, " +
-        "the refusals an operation depends on). tools/check-contracts.ts requires `code` on every contract record.",
+        "the refusals an operation depends on). packages/contracts/abi-check/main.ts requires `code` on every contract record.",
     },
     { label: "errors-in-about", text: "Leave the kind as it is and write the errors into each function's about." },
   ],

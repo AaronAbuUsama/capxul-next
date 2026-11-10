@@ -4,8 +4,8 @@
  */
 import { passing } from "@capxul/book";
 
-import { blockerLine, bulletsOf, sectionBody, sectionsOf, sentences, waitsOnOwner } from "../../../../../../tools/plan/service.ts";
-import type { ExitLine, LogEntry, Milestone, Task, TaskState } from "../../../../../../tools/plan/types.ts";
+import { blockerLine, bulletsOf, sectionBody, sectionsOf, sentences, waitsOnOwner } from "@capxul/plan";
+import type { ExitLine, LogEntry, Milestone, Task, TaskState } from "@capxul/plan";
 import type { PlanBlocked, PlanExit, PlanLogRow, PlanMilestone, PlanPage, PlanSection, PlanStep, PlanTask, Ref } from "../types.ts";
 import { head, type Ctx } from "./context.ts";
 import { refOf } from "./locate.ts";

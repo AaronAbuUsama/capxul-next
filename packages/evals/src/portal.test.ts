@@ -1,5 +1,5 @@
 // A failing result written into a status file must show as failing on the portal, and a pass as passing.
-// The status file is a temporary one made by tools/record-status.ts (the only writer); the portal is read from a temporary
+// The status file is a temporary one made by packages/evals/src/record-status.ts (the only writer); the portal is read from a temporary
 // root that points at the real books and plan, and generated into a temporary directory.
 
 import assert from "node:assert/strict";
@@ -28,7 +28,7 @@ test("a failing result shows as fail on the operation's page, a passing one as p
     results: [{ id: FAILING, verdict: "fail", evidence: "status/runs/run-test/evidence/x.txt" }, { id: PASSING, verdict: "pass" }],
   }));
   const status = join(root, "status/status.json");
-  const recorded = spawnSync(process.execPath, ["--experimental-strip-types", "--no-warnings", join(REPO, "tools/record-status.ts"), results, "--status", status], { encoding: "utf8" });
+  const recorded = spawnSync(process.execPath, ["--experimental-strip-types", "--no-warnings", join(REPO, "packages/evals/src/record-status.ts"), results, "--status", status], { encoding: "utf8" });
   assert.equal(recorded.status, 0, recorded.stdout + recorded.stderr);
 
   const loaded = await load(root, "abc1234");

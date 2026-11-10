@@ -5,7 +5,7 @@ What a script printed, what that says about each bound eval, and the files a run
 ```ts
 const { lines } = parseCheckLines(output);                       // the @check<TAB>name<TAB>pass|fail<TAB>ms<TAB>detail lines
 const scored = scoreEvals(askedEvalIds, bindings, foldChecks(lines));
-const results = resultsFile(info, scored.rows, evidencePathOf);  // the file tools/record-status.ts merges
+const results = resultsFile(info, scored.rows, evidencePathOf);  // the file packages/evals/src/record-status.ts merges
 ```
 
 The rules of truth are in `internal/checks.ts` and nowhere else:
