@@ -739,3 +739,40 @@ export const decision_portal_plan_page = defineDecision({
     "packages/plan/src/main.ts, packages/plan/src/modules/plan/, plan/plan.json, plan/log.jsonl and packages/portal (the Plan page)",
   affects: [f.system_capxul, decision_system_build_order],
 });
+
+export const decision_loop_evidence = defineDecision({
+  id: "loop.evidence",
+  title: "Agents show their work: captures made by tools, claims in the hand-back",
+  question:
+    "A run's builder and reviewer say what they did and what they saw. What, beyond their words and the gates' output, " +
+    "lets a person or another agent check it by looking?",
+  options: [
+    {
+      label: "captures-and-claims",
+      text:
+        "Two records, kept apart (packages/loop/src/modules/evidence/types.ts). A capture is made by a tool the loop hands the " +
+        "agent: a recording of a command in a terminal, a screenshot of a page, a recording of several steps in a browser. The " +
+        "tool writes the file and how it was made (the command and its exit code, or the page's address) into the run's evidence " +
+        "folder, outside the agent's directory, so an agent cannot write a capture by hand. An evidence entry is the agent's " +
+        "claim in its structured hand-back: this capture shows that, for this eval. The loop judges each claim against the " +
+        "captures; a claim that names no capture of the run, or an eval the task does not have, does not stand and says why. " +
+        "The browser opens this machine only (a sandbox or the lane's own server), takes a closed list of actions, and a recorded " +
+        "command passes the same shell policy as any other. The Runs pages show captures beside the step that made them. A " +
+        "capture's hash and size are in its record, so a copy of a run can be checked: the folder and the run's storage are what " +
+        "a data set of runs is made from.",
+    },
+    { label: "words-only", text: "The hand-back stays text: a note, the commit, the checks' output." },
+    { label: "free-attachments", text: "An agent attaches any file it likes to its hand-back as evidence." },
+  ],
+  chosen: "captures-and-claims",
+  why:
+    "Words alone cannot be checked by looking, and a file an agent writes itself proves nothing about how it was made. A " +
+    "capture made by the tool, with its command or address recorded, is the smallest thing a reviewer or the owner can trust " +
+    "at a glance. Not decided here: which evals need a capture before they can pass; that rule belongs to the evals and is not " +
+    "written yet. No real model had used the tools when this was recorded (10 November 2026), only a scripted one.",
+  source:
+    "Aaron, 10 November 2026, in the run-observability session: the agent should be able to return screenshots as part of " +
+    "the evidence, as part of its structured output, and a reviewer should be able to do the same. Built in " +
+    "packages/loop/src/modules/evidence (commit 0f67f4e).",
+  affects: [f.system_capxul],
+});
