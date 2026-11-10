@@ -16,6 +16,7 @@ import { gatesFor, runGates } from "./internal/gates.ts";
 import * as plan from "./internal/plan.ts";
 import { checkerPrompt, makerPrompt as renderMaker, researchPrompt, type CheckInput } from "./internal/prompts.ts";
 import { startSandbox, stopSandbox } from "./internal/sandbox.ts";
+import { baseOf, runDir, runsDir } from "./internal/where.ts";
 import { cleanEnv } from "./internal/sh.ts";
 import type { Check, Ctx, Finding, Gate, Handback, Job, Opts, SandboxInfo, Said, Task } from "./types.ts";
 
@@ -24,9 +25,6 @@ export { gatesOf } from "./internal/gates.ts";
 export { POLICY } from "./internal/config.ts";
 
 export const DEFAULTS: Opts = { script: "pair", sandbox: "none", rounds: 3, budgetUsd: 5, timeoutMin: 30 };
-/** Where run folders go: working data, git-ignored, out of the top level; or the folder `LOOP_RUNS` names (the portal can read another checkout's). */
-const runsDir = (ctx: Ctx): string => ctx.env.LOOP_RUNS ?? join(ctx.root, "var", "runs");
-const baseOf = (ctx: Ctx): string => ctx.env.LOOP_BASE ?? "integration/build";
 const CHECKER_ROLES = new Set(["reviewer", "adversary", "diagnoser"]);
 
 // ── the vocabulary ──────────────────────────────────────────────────────────────────────────────
@@ -173,13 +171,13 @@ export const start = async (ctx: Ctx, taskId: string, opts: Opts, script?: Scrip
 
 /** Continues a run whose process died, was stopped or failed: the script replays, done steps answer from the ledger, an agent continues in its conversation. */
 export const resume = async (ctx: Ctx, id: string, script?: Script): Promise<Info> => {
-  const dir = join(runsDir(ctx), id), info = readInfo(dir);
+  const dir = runDir(ctx, id), info = readInfo(dir);
   if (SETTLED.includes(info.status)) throw new Error(`run ${id} is ${info.status}: nothing to resume`);
   if (alive(info.pid) && info.pid !== process.pid) throw new Error(`run ${id} is still running (pid ${info.pid}); \`loop stop ${id}\` first`);
   return playJob(ctx, id, info.extra.task as Task, info.extra.opts as Opts, script);
 };
 
-export const stop = (ctx: Ctx, id: string): string => stopRun(join(runsDir(ctx), id));
+export const stop = (ctx: Ctx, id: string): string => stopRun(runDir(ctx, id));
 export const status = (ctx: Ctx): string => table(listRuns(runsDir(ctx)).map((r) => r.info), ctx.now());
 
 const lookOf = (ctx: Ctx, events: number): Look => ({ runs: runsDir(ctx), open: (dir) => open(ctx, dir, {}, true), now: ctx.now(), env: ctx.env, events });
@@ -190,12 +188,12 @@ export const showJson = (ctx: Ctx, id: string): Promise<RunView | null> => showV
 
 /** The ledger of a run, then, with `follow`, what its agent is doing until the run ends. */
 export const logs = async (ctx: Ctx, id: string, follow: boolean): Promise<void> => {
-  const dir = join(runsDir(ctx), id), host = await open(ctx, dir, {}, true);
+  const dir = runDir(ctx, id), host = await open(ctx, dir, {}, true);
   try { (await ledgerLines(host)).forEach(ctx.say); } finally { await host.close(); }
   if (follow) await watchRun(dir, () => open(ctx, dir, {}, true), ctx.say);
 };
 /** Attach to a running agent: print what it has done so far and follow it live (read-only; it changes nothing). */
-export const watch = (ctx: Ctx, id: string): Promise<void> => { const dir = join(runsDir(ctx), id); return watchRun(dir, () => open(ctx, dir, {}, true), ctx.say); };
+export const watch = (ctx: Ctx, id: string): Promise<void> => { const dir = runDir(ctx, id); return watchRun(dir, () => open(ctx, dir, {}, true), ctx.say); };
 
 /** The worker: ready tasks from the plan (named, or on the critical path), a run each, `concurrency` at once; dead runs are resumed first. */
 export const work = (ctx: Ctx, o: { concurrency: number; tasks: string[]; opts: Opts; wait: boolean; pause?: number }): Promise<void> => {
@@ -215,7 +213,7 @@ const dirtyOutsidePlan = (cwd: string): string[] => git(cwd, "status", "--porcel
  * passes merges into the base in this checkout and pushes it. Refuses, and says why, otherwise. Marks the plan task done.
  */
 export const merge = async (ctx: Ctx, id: string): Promise<string[]> => {
-  const dir = join(runsDir(ctx), id), info = readInfo(dir), wt = info.extra.lane as Lane | undefined, opts = info.extra.opts as Opts;
+  const dir = runDir(ctx, id), info = readInfo(dir), wt = info.extra.lane as Lane | undefined, opts = info.extra.opts as Opts;
   if (info.status !== "ready" || !wt) return [`refused: run ${id} is ${info.status}, not ready to merge`];
   if (git(ctx.root, "rev-parse", "--abbrev-ref", "HEAD") !== wt.base) return [`refused: this checkout is not on ${wt.base}`];
   const dirty = dirtyOutsidePlan(ctx.root);

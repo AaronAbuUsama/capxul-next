@@ -8,7 +8,7 @@ import { fauxAssistantMessage, fauxProvider, fauxToolCall } from "@earendil-work
 import pair from "../../../../../loops/pair.ts";       // the real standard script, played here against a fake provider
 import { git } from "../lanes/service.ts";
 import { refusePath } from "../agents/service.ts";
-import { clean, DEFAULTS, gatesOf, lane, merge, POLICY, resume, start, status, type Ctx, type Opts } from "./service.ts";
+import { clean, DEFAULTS, gatesOf, lane, logs, merge, POLICY, resume, start, status, stop, watch, type Ctx, type Opts } from "./service.ts";
 import * as plan from "./internal/plan.ts";
 
 const AGENTS = join(import.meta.dirname, "../../../../../.claude/agents");
@@ -150,4 +150,11 @@ test("the gates are the root scripts, whichever name the design folder has; the 
   for (const path of ["books/frozen/a.ts", "blueprint/baseline/a.ts"]) assert.match(refusePath(path, "/w", true, POLICY.denyWrite) ?? "", /may not be written/);
   assert.equal(refusePath("blueprint/target/a.ts", "/w", true, POLICY.denyWrite), undefined);
   assert.ok(POLICY.bash.write.some((r) => r.test("pnpm blueprint")) && POLICY.bash.write.some((r) => r.test("pnpm frozen")));
+});
+
+test("a run that is not there is an error with its name, for every command that takes a run, and no folder is made", async () => {
+  const r = rig(), ctx = r.ctx();
+  assert.throws(() => stop(ctx, "nope"), /there is no run nope in .*var\/runs/);
+  for (const ask of [() => resume(ctx, "nope"), () => merge(ctx, "nope"), () => logs(ctx, "nope", false), () => watch(ctx, "nope")]) await assert.rejects(async () => ask(), /there is no run nope/);
+  assert.equal(existsSync(join(r.root, "var", "runs", "nope")), false);
 });
