@@ -53,7 +53,7 @@ company=$(rest "$API/api/resource/Company" | jx "[c['name'] for c in d['data']]"
 ba=$(rest "$API/api/resource/Bank%20Account?fields=%5B%22name%22,%22integration_id%22,%22account%22%5D" | jx "[(b['integration_id'], b['account']) for b in d['data']]")
 [[ "$ba" == *"$SAFE"* ]] && ok "Safe bank account + ledger account exist $ba" || bad "Safe bank account" "$ba"
 slk=$(rest "$API/api/resource/Social%20Login%20Key" | jx "[s['name'] for s in d['data']]"); [[ "$slk" == *capxul* ]] && ok "Social Login Key exists" || bad "Social Login Key" "$slk"
-check "default hat map has 4 hats" "$(rest "$API/api/resource/Capxul%20Hat%20Map" | jx "len(d['data'])")" 4
+check "default hat map has 7 hats (the four of the skeleton, and sales, hr-manager, project-manager)" "$(rest "$API/api/resource/Capxul%20Hat%20Map" | jx "len(d['data'])")" 7
 
 # ---- chain_event: signature, seq, idempotency -----------------------------------------------------------------
 H1='{"hat":"admin","person_email":"hannah@acme.test","person_name":"Hannah Okafor"}'

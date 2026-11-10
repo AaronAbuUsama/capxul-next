@@ -1,12 +1,15 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.24;
 
-/// STAND-IN for the hats protocol. Four hat names only. A department is carried in the event, not enforced.
+/// STAND-IN for the hats protocol. Seven hat names only (the skeleton's four, plus sales, hr-manager and project-manager for the door). A department is carried in the event, not enforced.
 contract Hats {
     bytes32 internal constant ADMIN = keccak256("admin");
     bytes32 internal constant BUDGET_HOLDER = keccak256("budget-holder");
     bytes32 internal constant PAYROLL_APPROVER = keccak256("payroll-approver");
     bytes32 internal constant MEMBER = keccak256("member");
+    bytes32 internal constant SALES = keccak256("sales");
+    bytes32 internal constant HR_MANAGER = keccak256("hr-manager");
+    bytes32 internal constant PROJECT_MANAGER = keccak256("project-manager");
 
     address public immutable deployer = msg.sender;
     address public orgs;
@@ -56,7 +59,10 @@ contract Hats {
 
     function _grant(bytes32 org, string memory hat, address to, string memory department) internal {
         bytes32 h = keccak256(bytes(hat));
-        if (h != ADMIN && h != BUDGET_HOLDER && h != PAYROLL_APPROVER && h != MEMBER) revert UnknownHat();
+        if (
+            h != ADMIN && h != BUDGET_HOLDER && h != PAYROLL_APPROVER && h != MEMBER && h != SALES && h != HR_MANAGER
+                && h != PROJECT_MANAGER
+        ) revert UnknownHat();
         if (worn[org][to][h]) revert AlreadyWorn();
         worn[org][to][h] = true;
         emit HatGranted(org, to, hat, department, msg.sender);

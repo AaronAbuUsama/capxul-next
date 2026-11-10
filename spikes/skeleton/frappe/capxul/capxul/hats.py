@@ -27,14 +27,14 @@ def ensure_department(name):
 def ensure_employee(email, full_name, dept):
     """ERPNext's own User hook (erpnext.setup.doctype.employee.employee.validate_employee_role) strips the `Employee`
     role from any User with no Employee record. So the `member` hat has to create the Employee first. The date of
-    birth and gender are placeholders: the chain does not know them (a finding, see FINDINGS.md)."""
+    birth and gender are placeholders: the chain does not know them (a finding, see FINDINGS.md). `create_user_permission` is 0: ERPNext's default (1) restricts the person to their own Employee record, which would stop an HR hat from working with any other employee."""
     if frappe.db.exists("Employee", {"user_id": email}):
         return
     first, _, last = (full_name or email).partition(" ")
     emp = frappe.get_doc(
         {"doctype": "Employee", "first_name": first, "last_name": last, "user_id": email, "company_email": email,
          "company": frappe.db.get_single_value("Global Defaults", "default_company"), "gender": "Prefer not to say",
-         "date_of_birth": "1990-01-01", "date_of_joining": frappe.utils.nowdate(), "status": "Active",
+         "date_of_birth": "1990-01-01", "create_user_permission": 0, "date_of_joining": frappe.utils.nowdate(), "status": "Active",
          "department": ensure_department(dept) if dept else None}
     )
     emp.flags.ignore_permissions = True
