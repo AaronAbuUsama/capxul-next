@@ -389,12 +389,13 @@
       "title": "Find the portal test that fails intermittently",
       "why": "A gate that sometimes fails teaches everyone to ignore it.",
       "milestone": "m1",
-      "state": "todo",
+      "state": "doing",
       "needs": [],
       "records": [],
       "evidence": [],
       "created": "2026-11-10",
-      "updated": "2026-11-10"
+      "updated": "2026-11-10",
+      "thread": "m1-flaky-portal-test-11101453"
     },
     {
       "id": "m1-equity",
@@ -566,12 +567,13 @@
       "title": "The thin line as a journey in the book, with its tests",
       "why": "The thin line must be a record before it can be proven.",
       "milestone": "m1",
-      "state": "todo",
+      "state": "doing",
       "needs": [],
       "records": [],
       "evidence": [],
       "created": "2026-11-10",
-      "updated": "2026-11-10"
+      "updated": "2026-11-10",
+      "thread": "m1-thin-line-journey-11101453"
     },
     {
       "id": "m1-aaron-accepts",
@@ -707,12 +709,13 @@
       "title": "Rewrite the entry documents to the current direction",
       "why": "START-HERE, GROUNDING, HANDOFF and CLAUDE.md still describe UK companies, a swarm build and an optional Frappe. A new session or agent that reads them starts from the wrong place.",
       "milestone": "m1",
-      "state": "todo",
+      "state": "doing",
       "needs": [],
       "records": [],
       "evidence": [],
       "created": "2026-11-10",
-      "updated": "2026-11-10"
+      "updated": "2026-11-10",
+      "thread": "m1-entry-docs-11101453"
     },
     {
       "id": "m2-graduate-spike",
@@ -731,12 +734,13 @@
       "title": "Rewrite or archive the decisions that still assume the old design",
       "why": "About 200 decisions were flagged in the cut as written on the old model. They read as current and are not.",
       "milestone": "m1",
-      "state": "todo",
+      "state": "doing",
       "needs": [],
       "records": [],
       "evidence": [],
       "created": "2026-11-10",
-      "updated": "2026-11-10"
+      "updated": "2026-11-10",
+      "thread": "m1-old-decisions-11101453"
     },
     {
       "id": "m1-loop-runner",
@@ -950,36 +954,39 @@
       "title": "Close the gaps on contract functions and chain events",
       "why": "Exit line g2: the blueprint builds with no problems and every open gap is closed or has a recorded reason. 162 gaps are open after the telemetry work; they are listed in the findings file the blueprint build writes (pnpm blueprint, then findings.json in the output folder, under gaps, each with record, rule and detail).",
       "milestone": "m1",
-      "state": "todo",
+      "state": "doing",
       "needs": [],
       "records": [],
       "evidence": [],
       "created": "2026-11-10",
-      "updated": "2026-11-10"
+      "updated": "2026-11-10",
+      "thread": "m1-gaps-contracts-11101453"
     },
     {
       "id": "m1-gaps-states",
       "title": "Close the gaps on transitions, tables and errors",
       "why": "Exit line g2: the blueprint builds with no problems and every open gap is closed or has a recorded reason. 162 gaps are open after the telemetry work; they are listed in the findings file the blueprint build writes (pnpm blueprint, then findings.json in the output folder, under gaps, each with record, rule and detail).",
       "milestone": "m1",
-      "state": "todo",
+      "state": "doing",
       "needs": [],
       "records": [],
       "evidence": [],
       "created": "2026-11-10",
-      "updated": "2026-11-10"
+      "updated": "2026-11-10",
+      "thread": "m1-gaps-states-11101453"
     },
     {
       "id": "m1-gaps-surface",
       "title": "Close the gaps on calls, components and operations",
       "why": "Exit line g2: the blueprint builds with no problems and every open gap is closed or has a recorded reason. 162 gaps are open after the telemetry work; they are listed in the findings file the blueprint build writes (pnpm blueprint, then findings.json in the output folder, under gaps, each with record, rule and detail).",
       "milestone": "m1",
-      "state": "todo",
+      "state": "doing",
       "needs": [],
       "records": [],
       "evidence": [],
       "created": "2026-11-10",
-      "updated": "2026-11-10"
+      "updated": "2026-11-10",
+      "thread": "m1-gaps-surface-11101453"
     }
   ],
   "path": {
