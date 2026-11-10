@@ -1,44 +1,49 @@
 /**
- * One agent's conversation, the way every agent tool shows one: what it was asked on the right, what it said on the
- * left, its tool calls folded into its turn, and a box at the bottom to talk to it.
+ * One agent, shown the way a coding terminal shows it: a stream. What it was told, what it says, and each tool call
+ * as one line with the start of its output under it; a line opens to the whole input and output. The prompt at the
+ * bottom steers it, queues a note, or stops it.
  */
-import { ArrowUp, FilePlus2, FileText, PencilLine, Square, Terminal, TriangleAlert } from "lucide-react";
+import { ArrowUp, Square } from "lucide-react";
 import { useMemo, useState } from "react";
-import { Bubble, BubbleContent } from "@/components/ui/bubble";
-import { Button } from "@/components/ui/button";
-import { CodeBlock, CodeBlockContent } from "@/components/ui/code-block";
 import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupTextarea } from "@/components/ui/input-group";
-import { Message, MessageContent, MessageFooter } from "@/components/ui/message";
 import { MessageScroller, MessageScrollerButton, MessageScrollerContent, MessageScrollerItem, MessageScrollerProvider, MessageScrollerViewport } from "@/components/ui/message-scroller";
-import { Trace, TraceCollapsible, TraceCollapsibleContent, TraceCollapsibleTrigger, TraceIcon, TraceLine, TraceTitle } from "@/components/ui/trace";
-import { RefusedIcon } from "./bits.tsx";
+import { cn } from "@/lib/utils";
 import { clock, firstLine } from "./format.ts";
 import { HandbackCard, VerdictCard } from "./Results.tsx";
 import type { Agent, Handback, Msg, Run, ToolCall } from "./types.ts";
 
-const ICON: Record<string, typeof Terminal> = { bash: Terminal, read: FileText, write: FilePlus2, edit: PencilLine };
-const titleOf = (call: ToolCall, result: Msg | undefined): string => {
-  const arg = firstLine(String(call.args.command ?? call.args.path ?? ""), 110);
-  if (result?.refused) return `Refused ${arg}`;
-  const verb = call.name === "bash" ? (result ? (result.isError ? "Failed" : "Ran") : "Running") : call.name === "read" ? (result ? "Read" : "Reading") : call.name === "write" ? (result ? "Wrote" : "Writing") : call.name === "edit" ? (result ? "Edited" : "Editing") : call.name;
-  return `${verb} ${arg}`;
-};
+/** A model error in a few words: a gateway that answers with a web page says nothing useful past its status. */
+const modelError = (e: string): string => e.includes("<") ? `${/^\d{3}/.exec(e)?.[0] ?? "error"} from the gateway${e.includes("upstream-down") ? ": its upstream is down" : ""}` : firstLine(e, 140);
+const NAME: Record<string, string> = { bash: "Bash", read: "Read", write: "Write", edit: "Edit" };
+const argOf = (call: ToolCall): string => firstLine(String(call.args.command ?? call.args.path ?? ""), 140);
 
-const ToolRow = ({ call, result, live }: { call: ToolCall; result: Msg | undefined; live: boolean }) => {
-  const Icon = result?.refused ? RefusedIcon : (ICON[call.name] ?? Terminal);
-  const failed = result?.isError || result?.refused;
-  if (!result) return <TraceLine status={live ? "running" : "pending"}><TraceIcon><Icon /></TraceIcon><TraceTitle className="font-mono text-xs">{titleOf(call, result)}</TraceTitle></TraceLine>;
+/** One tool call: `● Bash(pnpm frozen)`, the first lines of what came back, and the rest on a click. */
+const ToolLine = ({ call, result, live }: { call: ToolCall; result: Msg | undefined; live: boolean }) => {
+  const [open, setOpen] = useState(false);
+  const bad = result?.isError || result?.refused, running = !result && live;
+  const lines = (result?.text ?? "").split("\n").filter((l) => l.trim() !== "");
   const input = call.name === "bash" ? String(call.args.command ?? "") : call.name === "write" ? String(call.args.content ?? "") : call.name === "edit" ? JSON.stringify(call.args, null, 2) : "";
   return (
-    <TraceCollapsible>
-      <TraceCollapsibleTrigger>
-        <TraceLine status={failed ? "error" : undefined}><TraceIcon><Icon /></TraceIcon><TraceTitle className="font-mono text-xs">{titleOf(call, result)}</TraceTitle></TraceLine>
-      </TraceCollapsibleTrigger>
-      <TraceCollapsibleContent className="space-y-2">
-        {input.includes("\n") && <CodeBlock size="sm"><CodeBlockContent wrap className="max-h-48">{input}</CodeBlockContent></CodeBlock>}
-        <CodeBlock size="sm"><CodeBlockContent wrap className="max-h-72">{result.text || "(no output)"}</CodeBlockContent></CodeBlock>
-      </TraceCollapsibleContent>
-    </TraceCollapsible>
+    <div>
+      <button className="flex w-full items-baseline gap-2 text-left hover:bg-white/5" onClick={() => setOpen(!open)}>
+        <span className={cn("shrink-0", bad ? "text-red-400" : running ? "animate-pulse text-sky-400" : result ? "text-emerald-400" : "text-neutral-600")}>●</span>
+        <span className="min-w-0 break-all"><span className={cn("font-semibold", bad ? "text-red-300" : "text-neutral-100")}>{result?.refused ? "Refused" : (NAME[call.name] ?? call.name)}</span><span className="text-neutral-400">({argOf(call)})</span></span>
+      </button>
+      {!open && (
+        <div className="ml-4 border-l border-neutral-800 pl-3 text-neutral-500">
+          {running && <p>running…</p>}
+          {lines.slice(0, bad ? 3 : 2).map((l, i) => <p key={i} className={cn("truncate", bad && "text-red-300/80")}>{i === 0 ? "⎿ " : "  "}{l}</p>)}
+          {lines.length > (bad ? 3 : 2) && <button className="text-neutral-600 hover:text-neutral-300" onClick={() => setOpen(true)}>  … +{lines.length - (bad ? 3 : 2)} lines</button>}
+        </div>
+      )}
+      {open && (
+        <div className="mt-1 ml-4 space-y-1 border-l border-neutral-700 pl-3">
+          {input.includes("\n") && <pre className="max-h-56 overflow-auto rounded bg-neutral-900 p-2 whitespace-pre-wrap text-neutral-300">{input}</pre>}
+          <pre className={cn("max-h-96 overflow-auto rounded bg-neutral-900 p-2 whitespace-pre-wrap", bad ? "text-red-300" : "text-neutral-300")}>{result?.text || (running ? "running…" : "(no output)")}</pre>
+          {result?.durationMs != null && <p className="text-neutral-600">{result.durationMs} ms · {clock(result.at)}</p>}
+        </div>
+      )}
+    </div>
   );
 };
 
@@ -51,27 +56,22 @@ const Final = ({ text }: { text: string }) => {
   const j = json as (Handback & { verdict?: string }) | undefined;
   return (
     <>
-      {before && <p className="whitespace-pre-wrap leading-relaxed">{before}</p>}
-      {j?.verdict ? <VerdictCard review={j as never} /> : j?.submit || j?.ask ? <HandbackCard handback={j} /> : m ? <CodeBlock size="sm"><CodeBlockContent wrap className="max-h-72">{m[1]}</CodeBlockContent></CodeBlock> : null}
+      {before && <p className="whitespace-pre-wrap text-neutral-100">{before}</p>}
+      {(j?.verdict || j?.submit || j?.ask) && <div className="font-sans">{j.verdict ? <VerdictCard review={j as never} /> : <HandbackCard handback={j} />}</div>}
+      {m && !j?.verdict && !j?.submit && !j?.ask && <pre className="max-h-72 overflow-auto rounded bg-neutral-900 p-2 whitespace-pre-wrap text-neutral-300">{m[1]}</pre>}
     </>
   );
 };
 
 const Brief = ({ msg, first }: { msg: Msg; first: boolean }) => {
   const [open, setOpen] = useState(false);
-  const long = msg.text.length > 420;
+  const lines = msg.text.split("\n"), long = lines.length > 4 || msg.text.length > 400;
   return (
-    <Message align="end">
-      <MessageContent>
-        <Bubble align="end" variant="muted">
-          <BubbleContent className="whitespace-pre-wrap">{open || !long ? msg.text : `${msg.text.slice(0, 420).trimEnd()}…`}</BubbleContent>
-        </Bubble>
-        <MessageFooter className="justify-end text-xs text-muted-foreground">
-          {first ? "The workflow's brief" : "A note from a person"} · {clock(msg.at)}
-          {long && <button className="ml-2 underline underline-offset-2" onClick={() => setOpen(!open)}>{open ? "Show less" : "Show all of it"}</button>}
-        </MessageFooter>
-      </MessageContent>
-    </Message>
+    <div className="rounded border border-neutral-800 bg-neutral-900/60 px-3 py-2">
+      <p className="mb-1 text-neutral-500">{first ? "the workflow's brief" : "a note from a person"} · {clock(msg.at)}</p>
+      <div className="flex gap-2"><span className="text-neutral-500">›</span><p className="min-w-0 whitespace-pre-wrap text-neutral-300">{open || !long ? msg.text : `${lines.slice(0, 4).join("\n").slice(0, 400)}…`}</p></div>
+      {long && <button className="mt-1 text-neutral-500 underline underline-offset-2 hover:text-neutral-200" onClick={() => setOpen(!open)}>{open ? "show less" : `show all ${lines.length} lines`}</button>}
+    </div>
   );
 };
 
@@ -85,57 +85,53 @@ export const Conversation = ({ run, agent }: { run: Run; agent: Agent }) => {
   const send = (): void => { if (draft.trim() === "") return; setNotes([...notes, { text: draft.trim(), mode }]); setDraft(""); };
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col">
+    <div className="dark flex min-h-0 flex-1 flex-col bg-neutral-950 font-mono text-[13px] leading-relaxed text-neutral-300">
       <MessageScrollerProvider autoScroll>
         <MessageScroller className="min-h-0 flex-1">
           <MessageScrollerViewport>
-            <MessageScrollerContent className="mx-auto w-full max-w-3xl gap-5 px-4 py-6 text-sm">
+            <MessageScrollerContent className="mx-auto w-full max-w-4xl gap-3 px-4 py-4">
               {turns.map((m) => (
                 <MessageScrollerItem key={m.id} messageId={String(m.id)} scrollAnchor={m.role === "user"}>
                   {m.role === "user" ? <Brief msg={m} first={m.id === firstUser} /> : (
-                    <Message>
-                      <MessageContent className="gap-3">
-                        {m.thinking && <p className="border-l-2 pl-3 text-muted-foreground italic">{m.thinking}</p>}
-                        {m.error && <TraceLine status="error"><TraceIcon><TriangleAlert /></TraceIcon><TraceTitle>The model failed: {firstLine(m.error, 160)}</TraceTitle></TraceLine>}
-                        {m.calls && m.calls.length > 0 && <Trace>{m.calls.map((c) => <ToolRow key={c.id} call={c} result={results.get(c.id)} live={live} />)}</Trace>}
-                        {m.text && <Final text={m.text} />}
-                      </MessageContent>
-                    </Message>
+                    <div className="space-y-2">
+                      {m.thinking && <p className="text-neutral-500 italic">{m.thinking}</p>}
+                      {m.error && <p className="text-red-300"><span className="text-red-400">●</span> the model failed: {modelError(m.error)}</p>}
+                      {m.calls?.map((c) => <ToolLine key={c.id} call={c} result={results.get(c.id)} live={live} />)}
+                      {m.text && <Final text={m.text} />}
+                    </div>
                   )}
                 </MessageScrollerItem>
               ))}
               {notes.map((n, i) => (
                 <MessageScrollerItem key={`note-${i}`} messageId={`note-${i}`} scrollAnchor>
-                  <Message align="end"><MessageContent>
-                    <Bubble align="end"><BubbleContent>{n.text}</BubbleContent></Bubble>
-                    <MessageFooter className="justify-end text-xs text-muted-foreground">You · {n.mode === "steer" ? "joins after its current tool call" : "queued for after this turn"} · not sent, this is a prototype</MessageFooter>
-                  </MessageContent></Message>
+                  <div className="rounded border border-sky-900 bg-sky-950/40 px-3 py-2"><p className="mb-1 text-sky-400/80">you · {n.mode === "steer" ? "joins after its current tool call" : "queued for after this turn"} · not sent, this is a prototype</p><div className="flex gap-2"><span className="text-sky-400">›</span><p className="whitespace-pre-wrap text-neutral-100">{n.text}</p></div></div>
                 </MessageScrollerItem>
               ))}
-              {agent.failure && <p className="rounded-lg border border-amber-600/30 bg-amber-600/5 px-3 py-2 text-amber-800">This agent stopped without an answer: {agent.failure.reason?.replace("_", " ")}. {firstLine(agent.failure.detail, 200)}</p>}
+              {agent.failure && <p className="rounded border border-amber-900 bg-amber-950/40 px-3 py-2 text-amber-200">stopped without an answer: {agent.failure.reason?.replace("_", " ")}. {firstLine(agent.failure.detail, 160)}</p>}
+              {live && <p className="text-sky-400"><span className="animate-pulse">●</span> working…</p>}
             </MessageScrollerContent>
           </MessageScrollerViewport>
           <MessageScrollerButton />
         </MessageScroller>
       </MessageScrollerProvider>
 
-      <div className="mx-auto w-full max-w-3xl shrink-0 px-4 pb-4">
+      <div className="mx-auto w-full max-w-4xl shrink-0 px-4 pb-3">
         {canSteer ? (
-          <InputGroup>
-            <InputGroupTextarea placeholder={`Say something to ${agent.key}`} value={draft} onChange={(e) => setDraft(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); } }} />
+          <InputGroup className="font-mono">
+            <InputGroupTextarea className="text-[13px]" placeholder={`› say something to ${agent.key}   (Enter sends)`} value={draft} onChange={(e) => setDraft(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); } }} />
             <InputGroupAddon align="block-end">
-              <InputGroupButton variant={mode === "steer" ? "secondary" : "ghost"} onClick={() => setMode("steer")}>Steer now</InputGroupButton>
-              <InputGroupButton variant={mode === "queue" ? "secondary" : "ghost"} onClick={() => setMode("queue")}>Queue for later</InputGroupButton>
-              <span className="ml-auto hidden text-xs text-muted-foreground sm:inline">{mode === "steer" ? "Joins after its current tool call" : "Waits for this turn to end"}</span>
-              <InputGroupButton variant="outline" className="ml-auto sm:ml-0"><Square /> Stop</InputGroupButton>
+              <InputGroupButton variant={mode === "steer" ? "secondary" : "ghost"} onClick={() => setMode("steer")}>steer now</InputGroupButton>
+              <InputGroupButton variant={mode === "queue" ? "secondary" : "ghost"} onClick={() => setMode("queue")}>queue</InputGroupButton>
+              <span className="ml-auto hidden text-xs text-neutral-500 sm:inline">{mode === "steer" ? "joins after its current tool call" : "waits for this turn to end"}</span>
+              <InputGroupButton variant="outline" className="ml-auto sm:ml-0"><Square /> stop</InputGroupButton>
               <InputGroupButton variant="default" size="icon-xs" aria-label="Send" onClick={send}><ArrowUp /></InputGroupButton>
             </InputGroupAddon>
           </InputGroup>
         ) : (
-          <div className="flex items-center justify-between gap-3 rounded-lg border bg-muted/40 px-3 py-2 text-sm text-muted-foreground">
-            <span>{live ? "A reviewer can be watched and stopped, not steered, so its check stays independent." : run.status === "running" ? "This agent has finished its part of the run." : "This run has ended. The conversation is kept whole and nothing can be sent."}</span>
-            {live && <Button size="sm" variant="outline"><Square /> Stop</Button>}
-          </div>
+          <p className="flex items-center justify-between gap-3 rounded border border-neutral-800 px-3 py-2 text-neutral-500">
+            <span>{live ? "a reviewer can be watched and stopped, not steered: its check stays independent" : run.status === "running" ? "this agent has finished its part of the run" : "this run has ended; the conversation is kept whole and nothing can be sent"}</span>
+            {live && <button className="flex items-center gap-1 rounded border border-neutral-700 px-2 py-1 text-neutral-300 hover:bg-white/5"><Square className="size-3" /> stop</button>}
+          </p>
         )}
       </div>
     </div>

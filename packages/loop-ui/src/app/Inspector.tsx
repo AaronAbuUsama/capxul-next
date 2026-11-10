@@ -58,11 +58,17 @@ export const AgentPanel = ({ agent, round }: { agent: Agent; round: number | nul
   );
 };
 
-export const RunPanel = ({ run, commit }: { run: Run; commit?: string }) => (
+export const RunPanel = ({ run, commit, others }: { run: Run; commit?: string; others: Run[] }) => (
   <>
     <Block title="Task">
       <a className="text-sm font-medium underline-offset-2 hover:underline" href={`/plan/task/${run.task.id}/`}>{run.task.title}</a>
       <p className="font-mono text-xs text-muted-foreground">{run.task.id} · in the Plan</p>
+      {others.length > 0 && (
+        <div className="mt-2 space-y-1">
+          <p className="text-xs text-muted-foreground">Other runs of this task</p>
+          {others.map((o) => <a key={o.id} href={`#/runs/${o.id}`} className="flex items-center justify-between gap-2 rounded-md px-1.5 py-1 text-sm hover:bg-muted"><span className="truncate font-mono text-xs">{o.id.replace(`${o.task.id}-`, "")}</span><span className="shrink-0 text-xs text-muted-foreground">{statusText[o.status]} · {clock(o.startedAt)}</span></a>)}
+        </div>
+      )}
     </Block>
     <Block title="Run">
       <dl>

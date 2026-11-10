@@ -23,6 +23,7 @@ const replayOf = (run: Run): Run => {
 };
 
 const all = (fixture as unknown as { runs: Run[] }).runs;
+export const hasLive = all.some((r) => r.status === "running");
 export const capturedAt = (fixture as unknown as { capturedAt: string }).capturedAt;
 export const runsOf = (replay: boolean): Run[] =>
   all.map((r) => (replay && r.id === REPLAY.run ? replayOf(r) : r)).sort((a, b) => b.startedAt.localeCompare(a.startedAt));
@@ -53,13 +54,16 @@ export const stepsOf = (run: Run): Step[] => {
     else if (/^make\./.test(raw.name) || raw.name === "research") {
       const handback = (raw.said?.json ?? null) as Handback | null;
       out.push({ id: raw.name, kind: "builder", title: raw.name === "research" ? "Researcher" : "Builder", round, state: stateOf(raw, raw.said ? !raw.said.ok : false), agent, handback, error: raw.said?.error ?? null, commit: raw.said?.head,
+        at: agent?.startedAt ?? null,
         summary: raw.state === "running" ? "working" : raw.said?.ok ? "handed back" : (raw.said?.error ?? "did not finish").replace("unanswered: ", "").replace("model_error", "model error") });
+      if (raw.changes) out.push({ id: `changes.${round}`, kind: "changes", title: "Changes", round, state: "done", changes: raw.changes, commit: raw.changes.commit,
+        summary: `${/(\d+) files? changed/.exec(raw.changes.stat)?.[1] ?? "?"} files · ${raw.changes.commit}` });
     } else if (/^gates\./.test(raw.name)) {
       const failed = (raw.checks ?? []).filter((c) => !c.ok).length;
       out.push({ id: raw.name, kind: "checks", title: "Checks", round, state: stateOf(raw, failed > 0), checks: raw.checks, summary: raw.checks ? `${raw.checks.length - failed} of ${raw.checks.length} pass` : "running" });
     } else if (raw.review || /^(reviewer|adversary)\./.test(raw.name)) {
       const blocking = (raw.review?.findings ?? []).filter((f) => f.severity === "blocking").length;
-      out.push({ id: raw.name, kind: "reviewer", title: roleLabel[raw.name.split(".")[0]!] ?? "Checker", round, state: stateOf(raw, raw.review?.verdict !== "approve" && raw.state !== "running"), agent, review: raw.review,
+      out.push({ id: raw.name, kind: "reviewer", title: roleLabel[raw.name.split(".")[0]!] ?? "Checker", round, at: agent?.startedAt ?? null, state: stateOf(raw, raw.review?.verdict !== "approve" && raw.state !== "running"), agent, review: raw.review,
         summary: raw.state === "running" ? "reviewing" : raw.review?.verdict === "approve" ? "approved" : `changes · ${blocking} blocking` });
     } else if (raw.name === "push") out.push({ id: raw.name, kind: "publish", title: "Push the branch", round: null, state: stateOf(raw, false), summary: String(raw.result ?? run.branch ?? "") });
     else if (raw.name === "plan.block") out.push({ id: raw.name, kind: "end", title: "Block the task", round: null, state: "attention", summary: "handed to the coordinator" });

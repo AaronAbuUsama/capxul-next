@@ -1,6 +1,7 @@
 // Exports real runs as one JSON file for the Runs app's prototype: read-only, scrubbed, long output capped.
 // A prototype's tool, not part of the app: the real app will get runs from the loop's host.
 // node --experimental-strip-types --no-warnings packages/loop-ui/tools/export-fixtures.ts <runs dir> packages/loop-ui/src/fixtures/runs.json <run id>...
+import { spawnSync } from "node:child_process";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { openHost, modelsFrom, POLICY, entriesOf } from "../../loop/src/index.ts";
 import { secretsOf } from "../../loop/src/modules/inspect/internal/scrub.ts";
@@ -17,6 +18,14 @@ const clean = (text: string, cap: number, lane: string): string => {
 };
 const textOf = (content: unknown): string => typeof content === "string" ? content : Array.isArray(content) ? (content as { type: string; text?: string }[]).map((p) => p.text ?? "").join("") : "";
 const roleOf = (key: string): string => /^make/.test(key) ? "builder" : /^research/.test(key) ? "researcher" : key.split(".")[0]!;
+/** What a builder's commit changed: its subject, the files, and the start of the diff. Read from the repository the runs belong to. */
+const changesOf = (commit: string): { commit: string; subject: string; stat: string; diff: string } | null => {
+  const git = (...args: string[]): string => spawnSync("git", args, { cwd: `${runsDir}/../..`, encoding: "utf8", maxBuffer: 64 * 1024 * 1024 }).stdout ?? "";
+  const subject = git("show", "-s", "--format=%s", commit).trim();
+  if (!/^(lane\/|loop: )/.test(subject)) return null;                       // not this run's commit: the builder changed nothing
+  const diff = git("show", "--format=", "--no-color", commit);
+  return { commit: commit.slice(0, 7), subject, stat: git("show", "--format=", "--stat=110", "--no-color", commit).trimEnd(), diff: diff.length > 14_000 ? `${diff.slice(0, 14_000)}\n… ${diff.length - 14_000} more characters` : diff };
+};
 const runs: unknown[] = [];
 
 for (const id of ids) {
@@ -43,7 +52,10 @@ for (const id of ids) {
         s.state = "done";
         if (Array.isArray(r)) s.checks = r.map((g) => ({ name: (g as { name: string }).name, ok: (g as { ok: boolean }).ok, tail: clean(String((g as { tail: string }).tail), 1400, lane) }));
         else if (r && typeof r === "object" && "verdict" in r) s.review = { verdict: r.verdict, findings: r.findings, fixed: r.fixed };
-        else if (r && typeof r === "object" && "ok" in r) { s.said = { ok: r.ok, error: r.error ?? null, head: String(r.head ?? "").slice(0, 7), tokens: r.tokens, json: r.json ?? null }; }
+        else if (r && typeof r === "object" && "ok" in r) {
+          s.said = { ok: r.ok, error: r.error ?? null, head: String(r.head ?? "").slice(0, 7), tokens: r.tokens, json: r.json ?? null };
+          if (/^make\./.test(d.name) && r.ok && typeof r.head === "string") s.changes = changesOf(r.head);
+        }
         else s.result = typeof r === "object" ? r : String(r);
       }
       if (e.kind === "loop.end") steps.push({ name: `end.${d.name}`, state: "done", end: d.name, reasons: (d.reasons ?? []).map((x) => clean(x, 600, lane)) });

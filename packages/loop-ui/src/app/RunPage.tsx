@@ -14,16 +14,18 @@ import { elapsed, handoffsOf, stepsOf } from "./data.ts";
 import { duration, tokens } from "./format.ts";
 import { AgentPanel, RunPanel } from "./Inspector.tsx";
 import { Overview } from "./Overview.tsx";
-import { ChecksList, VerdictCard } from "./Results.tsx";
+import { ChecksList, FindingCard, VerdictCard } from "./Results.tsx";
+import { clock } from "./format.ts";
 import { go, href } from "./router.ts";
 import { TopBar } from "./TopBar.tsx";
 import type { Handoff, Run, Step } from "./types.ts";
 
 const Rail = ({ run, steps, handoffs, selected }: { run: Run; steps: Step[]; handoffs: Handoff[]; selected: string }) => {
-  const row = (id: string, kind: Step["kind"], title: string, summary: string, state?: Step["state"]) => (
+  const row = (id: string, kind: Step["kind"], title: string, summary: string, state?: Step["state"], at?: number | null) => (
     <a key={id} href={href("runs", run.id, id)} className={cn("flex items-center gap-2.5 rounded-md px-2.5 py-2 text-sm hover:bg-muted", selected === id && "bg-muted font-medium")}>
       <KindIcon kind={kind} className="shrink-0 text-muted-foreground" />
       <span className="grid min-w-0 flex-1 leading-tight"><span className="truncate">{title}</span><span className="truncate text-xs font-normal text-muted-foreground">{summary}</span></span>
+      {at ? <span className="text-xs font-normal text-muted-foreground tabular-nums">{clock(at)}</span> : null}
       {state && <StateIcon state={state} />}
     </a>
   );
@@ -39,8 +41,8 @@ const Rail = ({ run, steps, handoffs, selected }: { run: Run; steps: Step[]; han
         return (
           <div key={n}>
             {label(`Round ${n}`)}
-            {steps.filter((s) => s.round === n).map((s) => row(s.id, s.kind, s.title, s.summary, s.state))}
-            {back && back.sent.length > 0 && !last && <p className="mx-2.5 my-1.5 rounded-md border border-amber-600/30 bg-amber-600/5 px-2 py-1.5 text-xs text-amber-800">↩ {back.sent.length} finding{back.sent.length === 1 ? "" : "s"} back to the builder{back.fixed ? ` · ${back.fixed} fixed` : ""}</p>}
+            {steps.filter((s) => s.round === n).map((s) => row(s.id, s.kind, s.title, s.summary, s.state, s.at))}
+            {back && back.sent.length > 0 && <a href={href("runs", run.id, `handoff.${n}`)} className={cn("mx-2.5 my-1.5 block rounded-md border border-amber-600/30 bg-amber-600/5 px-2 py-1.5 text-xs text-amber-800 hover:bg-amber-600/10", selected === `handoff.${n}` && "ring-1 ring-amber-600/50")}>↩ {back.sent.length} finding{back.sent.length === 1 ? "" : "s"} {last ? "still open" : "back to the builder"}{back.fixed ? ` · ${back.fixed} fixed` : ""}</a>}
           </div>
         );
       })}
@@ -56,6 +58,13 @@ const Plain = ({ run, step }: { run: Run; step: Step }) => (
     <div className="mx-auto w-full max-w-3xl space-y-4 p-4 md:p-6">
       <div><h2 className="text-lg font-semibold">{stepLabel(step)}</h2><p className="text-sm text-muted-foreground">{step.summary}</p></div>
       {step.checks && <ChecksList checks={step.checks} />}
+      {step.changes && (
+        <>
+          <p className="text-sm">{step.changes.subject}</p>
+          <pre className="overflow-x-auto rounded-lg border bg-muted/40 p-3 font-mono text-xs leading-relaxed">{step.changes.stat}</pre>
+          <pre className="max-h-[60vh] overflow-auto rounded-lg bg-neutral-950 p-3 font-mono text-xs leading-relaxed text-neutral-300">{step.changes.diff.split("\n").map((l, i) => <span key={i} className={l.startsWith("+") && !l.startsWith("+++") ? "block text-emerald-400" : l.startsWith("-") && !l.startsWith("---") ? "block text-red-400" : l.startsWith("@@") || l.startsWith("diff ") ? "block text-sky-400" : "block"}>{l || " "}</span>)}</pre>
+        </>
+      )}
       {step.error && <pre className="rounded-lg border border-amber-600/30 bg-amber-600/5 p-3 text-sm whitespace-pre-wrap text-amber-900">{step.error}</pre>}
       {step.kind === "setup" && step.id === "lane" && !step.error && <p className="text-sm">A git worktree on <span className="font-mono">{run.branch}</span>, cut from <span className="font-mono">{run.base}</span>. The agents of this run work inside it and nowhere else.</p>}
       {step.reasons && step.reasons.length > 0 && <ul className="list-disc space-y-2 pl-5 text-sm">{step.reasons.map((r, i) => <li key={i}>{r}</li>)}</ul>}
@@ -64,15 +73,27 @@ const Plain = ({ run, step }: { run: Run; step: Step }) => (
   </div>
 );
 
-export const RunPage = ({ run, step: wanted, tab = "activity" }: { run: Run; step?: string; tab?: string }) => {
+/** What went back to the builder after a round: the findings, each with where and what. */
+const Back = ({ handoff, last }: { handoff: Handoff; last: boolean }) => (
+  <div className="flex-1 overflow-y-auto">
+    <div className="mx-auto w-full max-w-3xl space-y-3 p-4 md:p-6">
+      <div><h2 className="text-lg font-semibold">After round {handoff.after}: {handoff.sent.length} finding{handoff.sent.length === 1 ? "" : "s"} {last ? "still open" : "went back to the builder"}</h2><p className="text-sm text-muted-foreground">Failed checks and blocking findings, less what a checker marked fixed{handoff.fixed ? ` (${handoff.fixed} fixed this round)` : ""}. The next builder gets these and the last builder's handover.</p></div>
+      {handoff.sent.map((f, i) => <FindingCard key={i} finding={f} />)}
+    </div>
+  </div>
+);
+
+export const RunPage = ({ run, runs, step: wanted, tab = "activity" }: { run: Run; runs: Run[]; step?: string; tab?: string }) => {
   const steps = stepsOf(run), handoffs = handoffsOf(steps), isMobile = useIsMobile();
   const fallback = steps.find((s) => s.state === "running")?.id ?? "overview";
   const step = steps.find((s) => s.id === wanted || s.agent?.key === wanted) ?? (wanted === "overview" ? undefined : steps.find((s) => s.id === fallback));
-  const selected = step?.id ?? "overview";
+  const handoff = wanted?.startsWith("handoff.") ? handoffs.find((h) => `handoff.${h.after}` === wanted) : undefined;
+  const selected = handoff ? wanted! : (step?.id ?? "overview");
   const setTab = (t: string): void => go("runs", run.id, selected, ...(t === "activity" ? [] : [t]));
   const commit = [...steps].reverse().find((s) => s.commit)?.commit;
 
-  const center = !step ? <Overview run={run} steps={steps} handoffs={handoffs} />
+  const center = handoff ? <Back handoff={handoff} last={handoff.after === handoffs.at(-1)?.after && run.status !== "running"} />
+    : !step ? <Overview run={run} steps={steps} handoffs={handoffs} />
     : step.agent ? (
       <div className="flex min-h-0 flex-1 flex-col">
         <div className="flex shrink-0 items-center gap-2 border-b px-4 py-2 text-sm">
@@ -83,7 +104,7 @@ export const RunPage = ({ run, step: wanted, tab = "activity" }: { run: Run; ste
         <Conversation key={step.agent.key} run={run} agent={step.agent} />
       </div>
     ) : <Plain run={run} step={step} />;
-  const side = <>{step?.agent && <AgentPanel agent={step.agent} round={step.round} />}<RunPanel run={run} commit={commit} /></>;
+  const side = <>{step?.agent && <AgentPanel agent={step.agent} round={step.round} />}<RunPanel run={run} commit={commit} others={runs.filter((x) => x.task.id === run.task.id && x.id !== run.id)} /></>;
 
   return (
     <>
