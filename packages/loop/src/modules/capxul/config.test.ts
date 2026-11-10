@@ -6,7 +6,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "node:test";
 import { ask, openHost, refuseBash, refusePath } from "../agents/service.ts";
-import { GATEWAYS, gatewayOf, modelsOf } from "./internal/config.ts";
+import { allowedModel, GATEWAYS, gatewayOf, modelsOf } from "./internal/config.ts";
 import { findingsOf } from "./internal/gates.ts";
 import { gatesOf, POLICY } from "./service.ts";
 
@@ -81,4 +81,17 @@ test("a builder is told where its own lane's findings are: the folder the checko
   assert.equal(findingsOf(dir), "var/blueprint/findings.json");
   writeFileSync(join(dir, "package.json"), JSON.stringify({ scripts: { blueprint: "node engine/main.ts blueprint/index.ts /tmp/target" } }));
   assert.equal(findingsOf(dir), null);                                    // a folder outside the checkout is shared: the brief does not point at it
+});
+
+test("any model the gateway serves may be used; one it does not serve is refused; when it does not answer, only the two defaults", async () => {
+  const gateway = createServer((req, res) => { res.writeHead(req.url === "/v1/models" ? 200 : 404, { "content-type": "application/json" }); res.end(JSON.stringify({ data: [{ id: "gpt-6.1-sol" }, { id: "claude-sonnet-5-5" }] })); });
+  await new Promise<void>((ready) => gateway.listen(0, "127.0.0.1", () => ready()));
+  const ctx = (url: string) => ({ root: "/", env: { LOOP_MODEL_BASE_URL: url }, now: () => new Date(), say: () => undefined });
+  const up = ctx(`http://127.0.0.1:${(gateway.address() as { port: number }).port}/v1`);
+  try {
+    assert.deepEqual([await allowedModel(up, "gateway/claude-sonnet-5-5"), await allowedModel(up, "gateway/gpt-6.1-sol"), await allowedModel(up, "gateway/not-served")], [true, true, false]);
+    assert.equal(await allowedModel(up, "faux/faux-1"), true);                      // a test's fake provider is not the gateway
+  } finally { await new Promise((done) => gateway.close(done)); }
+  const down = ctx("http://127.0.0.1:1/v1");
+  assert.deepEqual([await allowedModel(down, "gateway/gpt-6.1-terra"), await allowedModel(down, "gateway/claude-sonnet-5-5")], [true, false]);
 });
