@@ -1,4 +1,4 @@
-// The portal's only script. It runs on the Questions page: it shows one item at a time and takes the owner's answer. When
+// The portal's only script, in two parts. The first runs on the Questions page: it shows one item at a time and takes the owner's answer. When
 // the page is served by `pnpm portal:serve` the answer is saved through /api/answers (a line in plan/answers.jsonl, which
 // the coordinator applies). Opened from files or a static host there is no such endpoint, and the page falls back to the
 // typed answer and a prefilled GitHub issue. It holds no credential.
@@ -173,4 +173,54 @@
 
   window.addEventListener("hashchange", function () { show(fromHash()); });
   show(fromHash());
+})();
+
+// The second part runs on every page that a server serves. The runs are not generated pages: they are the loop's host,
+// live, which `pnpm portal:serve` passes through under runs/. So no generated page links to them (the site must also
+// work opened from a folder); this adds the Runs item to the top bar, with the number running, and on a task's page
+// lists that task's runs. With the host down the item says so. It writes text only, never markup from the data.
+(function () {
+  "use strict";
+  if (location.protocol !== "http:" && location.protocol !== "https:") return;
+  var script = document.querySelector('script[src$="assets/site.js"]');
+  var nav = document.querySelector("nav.nav");
+  if (!script || !nav) return;
+  var root = script.src.replace(/assets\/site\.js.*$/, "");
+  var WORDS = { running: "Running", ready: "Ready to merge", merged: "Merged", answered: "Answered", blocked: "Blocked", failed: "Failed", stopped: "Stopped", dead: "Offline" };
+  var el = function (tag, cls, text) { var e = document.createElement(tag); if (cls) e.className = cls; if (text !== undefined) e.textContent = text; return e; };
+  var clock = function (iso) { var d = new Date(iso); return isNaN(d) ? "" : d.toLocaleString([], { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit", hour12: false }); };
+  var tokens = function (n) { return n >= 1e6 ? (n / 1e6).toFixed(2) + "M" : n >= 1e4 ? Math.round(n / 1e3) + "k" : String(n); };
+
+  var item = el("a", "nav-item", "Runs");
+  item.href = root + "runs/";
+  var plan = Array.prototype.filter.call(nav.children, function (a) { return a.textContent.trim() === "Plan"; })[0];
+  nav.insertBefore(item, plan ? plan.nextSibling : null);
+  var block = document.getElementById("runs-block");
+
+  fetch(root + "runs/summary.json", { cache: "no-store" }).then(function (r) { if (!r.ok) throw new Error("no host"); return r.json(); }).then(function (data) {
+    var runs = data.runs || [];
+    var running = runs.filter(function (r) { return r.status === "running"; }).length;
+    if (running > 0) { item.appendChild(document.createTextNode(" ")); item.appendChild(el("span", "nav-count nav-count-live", String(running))); }
+    if (!block) return;
+    var rows = document.getElementById("runs-rows"), none = document.getElementById("runs-none");
+    var mine = runs.filter(function (r) { return r.task.id === block.dataset.task; });
+    if (mine.length === 0) { none.textContent = "No run of the last day has worked on this task."; return; }
+    mine.forEach(function (r) {
+      var row = el("a", "row");
+      row.href = root + "runs/#/runs/" + encodeURIComponent(r.id);
+      row.style.textDecoration = "none";
+      row.style.color = "inherit";
+      var top = el("span", "row-id plain", (WORDS[r.status] || r.status) + (r.round > 0 ? " \u00b7 round " + r.round + (r.rounds ? " of " + r.rounds : "") : ""));
+      if (r.working) top.textContent += " \u00b7 the " + r.working.role + " is working";
+      row.appendChild(top);
+      row.appendChild(el("span", "row-text", r.id + " \u00b7 " + r.workflow + " \u00b7 started " + clock(r.startedAt) + (r.tokens ? " \u00b7 " + tokens(r.tokens) + " tokens" : "")));
+      rows.appendChild(row);
+    });
+    rows.hidden = false;
+    none.hidden = true;
+  }).catch(function () {
+    item.appendChild(document.createTextNode(" "));
+    item.appendChild(el("span", "nav-off", "host down"));
+    item.title = "The loop's host is not running: pnpm loop serve";
+  });
 })();
