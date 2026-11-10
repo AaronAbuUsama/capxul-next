@@ -272,7 +272,7 @@ today.
   [TPR earnings thresholds](https://www.thepensionsregulator.gov.uk/employers/new-employers/im-an-employer-who-has-to-provide-a-pension/declare-your-compliance/ongoing-duties-for-employers/earnings-thresholds).
 - **Prior research.** `archive/demo/research/hr-payroll.md`, `accounting.md` and `crm-projects.md`;
   `docs/design/frappe/payroll.md`, `accounting.md`, `crm.md` and `projects-and-startup.md`;
-  `books/target/payroll/hr-decisions.ts` (`payroll.hr-scope`). None of them had settled the UK
+  `blueprint/payroll/hr-decisions.ts` (`payroll.hr-scope`). None of them had settled the UK
   statutory questions. The mock-up research models PAYE and NI as formulas and says so.
 - **Not checked.** HMRC's own lists of recognised payroll and MTD software, which are behind a search
   service we could not query. The real behaviour of the community MTD apps against HMRC's sandbox. The

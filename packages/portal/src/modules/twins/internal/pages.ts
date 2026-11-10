@@ -21,12 +21,12 @@ export const overview = (p: OverviewPage): readonly string[] => [
   ...section(`Waiting for you (${p.waiting.length})`, [
     plain(p.needsYou), "", ...p.waiting.map((q) => `- ${link(p.id, q.ref)}: ${plain(q.title)}`),
   ]),
-  ...section("What the book holds", tiles(p.id, p.holds)),
+  ...section("What the blueprint holds", tiles(p.id, p.holds)),
   ...section("Concepts", [
     `${p.verdicts.given} of ${p.verdicts.of} concepts have a verdict.`, "",
     ...p.concepts.map((c) => `- ${link(p.id, c.ref)}: ${c.operations} operations, ${c.decisions} decisions${c.verdict === "none" ? "" : `, verdict ${c.verdict}`}`),
   ]),
-  ...section("What the book still lacks", [...findings(p.problems), ...findings(p.gaps)]),
+  ...section("What the blueprint still lacks", [...findings(p.problems), ...findings(p.gaps)]),
   ...section("Sections", bullets(p.nav.map((n) => link(p.id, n)))),
 ];
 
@@ -44,7 +44,7 @@ export const questions = (p: QuestionsPage): readonly string[] => [
 export const architecture = (p: ArchitecturePage): readonly string[] => [
   plain(p.lead), "",
   ...section("Direction, hand-written", [
-    "This one picture is drawn by hand in `content/direction.ts`. It is where the design is heading, not what the book records; everything after it is generated from the book.", "",
+    "This one picture is drawn by hand in `content/direction.ts`. It is where the design is heading, not what the blueprint records; everything after it is generated from the blueprint.", "",
     ...p.diagram.nodes.map((n) =>
       `- **${plain(n.title)}**${n.note === "" ? "" : ` (${plain(n.note)})`}: ${plain(n.text)}${n.chips.length === 0 ? "" : ` [${n.chips.map(plain).join(", ")}]`}`),
   ]),
@@ -54,7 +54,7 @@ export const architecture = (p: ArchitecturePage): readonly string[] => [
   ...tableSection(p.id, p.depends),
   ...(p.traced ? section("One request, end to end", [`The operation ${link(p.id, p.traced.operation)}: ${plain(p.traced.title)}.`, "", ...trace(p.id, p.traced.trace)]) : []),
   ...p.boundary.flatMap((s) => tableSection(p.id, s)),
-  ...section("What the book is silent on", bullets(p.silent.map(plain))),
+  ...section("What the blueprint is silent on", bullets(p.silent.map(plain))),
   ...section("How this portal is deployed", briefs(p.id, p.portal)),
   ...section("How a change reaches this page", steps(p.steps)),
 ];
@@ -62,7 +62,7 @@ export const architecture = (p: ArchitecturePage): readonly string[] => [
 export const build = (p: BuildPage): readonly string[] => [
   p.recorded ? `${p.operations} operations, ${p.evals} evals, ${p.passing.passing} passing in the status document.` : `${p.operations} operations, ${p.evals} evals, none run against real code yet.`,
   "", ...tiles(p.id, p.tiles), "",
-  ...section("What the book still lacks", [
+  ...section("What the blueprint still lacks", [
     `${p.gapCounts.total} gaps in all.`, "",
     ...p.gapCounts.telemetry.map((t) => `- ${t.rule}: ${t.count}`), `- no-example: ${p.gapCounts.examples}`, `- every other rule together: ${p.gapCounts.other}`,
   ]),

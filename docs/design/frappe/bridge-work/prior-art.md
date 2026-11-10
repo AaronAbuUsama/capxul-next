@@ -360,7 +360,7 @@ known. A Capxul payment is known before it is signed, because its id is computed
 
 This is "Frappe never marks money moved until the chain says so", done in ERPNext's own style. One chain transaction that
 pays a batch, such as a payroll run, maps to HRMS's one Bank Entry per run, with each slip's payment id on the slip (the
-book already has `capxul_chain_payment_id` on slips, `books/target/payroll/decisions.ts:1256`).
+book already has `capxul_chain_payment_id` on slips, `blueprint/payroll/decisions.ts:1256`).
 
 ### 2.5 Allocation, and changing it later
 
@@ -447,7 +447,7 @@ which is what ERPNext's Bank Transaction Rule and ranked matching are for. On Ca
 
 The design is the study's to make. This list only records which field each source shows to be needed, so that both
 systems can prove that "this payment pays these lines of these documents". A typed EIP-712 message is the book's existing
-form (`books/target/documents/data.ts:76-90`). Its fields would be:
+form (`blueprint/documents/data.ts:76-90`). Its fields would be:
 
 - **The domain:** chain id and Payments' address. EIP-712 domains already bind them, as AuthCaptureEscrow's hash does
   [W30].
@@ -480,7 +480,7 @@ form (`books/target/documents/data.ts:76-90`). Its fields would be:
 - **EDI 820 exists because payers deduct.** The 820 shows the invoice amount, the deduction and the net, and the payee
   reconciles by checking that the invoice amount less the adjustment equals RMR04 [W8][W9].
 - **ERPNext lets the payee re-allocate** with Unreconcile Payment (section 2.5).
-- **Today the book's annotation is last-write-wins** (`books/target/books/data.ts:421-468`, as `v4.md` section 6 reads
+- **Today the book's annotation is last-write-wins** (`blueprint/books/data.ts:421-468`, as `v4.md` section 6 reads
   it).
 
 **Lesson.** The on-chain hash fixes what the payer committed to. The payee's allocation in its own books is a separate
@@ -503,7 +503,7 @@ committed advice, and never force the payee's books to match it.
 
 - **Make each object's state a machine.**
   - **Keep only newer news:** apply a provider's state only when it is newer than the last one applied. The book already
-    does this for Bridge: "only when newer than `bridge_updated_at`" (`books/target/banking/processes.ts:211-213`, and
+    does this for Bridge: "only when newer than `bridge_updated_at`" (`blueprint/banking/processes.ts:211-213`, and
     the verification process at `:100-101`).
   - **Allow repeats:** the same state arriving twice changes nothing.
 - **Reply quickly and work later.**
@@ -535,7 +535,7 @@ committed advice, and never force the payee's books to match it.
   - `description`: the bank's description;
   - `reference_number`: the transaction hash.
 - **It joins the chain exactly:** `destination_tx_hash` is the chain Transfer into the Safe that the book's deposit
-  process waits for (`books/target/banking/processes.ts:229-262`, its wait at `:253-254`).
+  process waits for (`blueprint/banking/processes.ts:229-262`, its wait at `:253-254`).
 - **Matching to an invoice is fuzzy:** it depends on the sender's name and the description, so ERPNext's ranked matching
   and Bank Transaction Rule are the right tools.
 
@@ -675,10 +675,10 @@ Base.
 - **What "finalized" means to Ponder:** `getFinalizedBlock` treats as final the newest block whose timestamp is more than
   the chain's `reorgWindow` behind the head. `DEFAULT_REORG_WINDOW = 180` seconds (`packages/core/src/utils/finality.ts`
   on `main`, read 9 November 2026 [W25]).
-- **Base Sepolia:** finality there is minutes (`books/target/indexing/decisions.ts:257-274`).
+- **Base Sepolia:** finality there is minutes (`blueprint/indexing/decisions.ts:257-274`).
 - **On Base mainnet,** 180 seconds is past stage 2 but well short of stage 3.
 - **Who decides:** the book already makes finality the reader's choice, "at the deployment's finality depth"
-  (`books/target/indexing/decisions.ts:257-274`; `books/target/shared/external.ts:185`, `:208`). The pinned Ponder
+  (`blueprint/indexing/decisions.ts:257-274`; `blueprint/shared/external.ts:185`, `:208`). The pinned Ponder
   version should be checked against this source.
 
 **Lessons.**
@@ -688,7 +688,7 @@ Base.
   `safe` and above.
 - **A reorg after posting is a cancel.** ERPNext reverses the GL entries, and with the immutable ledger the reversal is
   dated on the day of the cancel (section 2.5). The book already reopens and reverses on a reorg (`v4.md` section 5,
-  citing `books/target/payments/data.ts:445-450`).
+  citing `blueprint/payments/data.ts:445-450`).
 - **Use flashblocks and unsafe blocks only for display.** Base says to confirm critical operations against finalized
   data [W20].
 
@@ -740,7 +740,7 @@ Base.
 - **Bridge's delivery and retry guarantees are not documented** [W18][W19]. Design for at-least-once and unordered
   delivery, and re-check Bridge's API, as Payment Core does with its providers.
 - **The fiat leg of a Bridge payout has no chain proof.** Only Bridge's events and receipt evidence delivery. A bank's
-  return is the only reversal, and it can come weeks later (`books/target/banking/processes.ts:123-124`, `:158-163`).
+  return is the only reversal, and it can come weeks later (`blueprint/banking/processes.ts:123-124`, `:158-163`).
 - **Whether `frappe/payments`' version-2 `PaymentController` lands upstream** is unconfirmed [W37]. Payment Core [W38] is
   third-party.
 

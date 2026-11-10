@@ -1,5 +1,5 @@
-/** The Overview: where the book stands, what waits for Aaron, what the book holds, and the concepts. */
-import { passing } from "@capxul/book";
+/** The Overview: where the blueprint stands, what waits for Aaron, what the blueprint holds, and the concepts. */
+import { passing } from "@capxul/blueprint-engine";
 
 import type { ClimbCard, ConceptCard, OverviewPage, Ref } from "../types.ts";
 import { catalogueOf } from "./catalogue.ts";
@@ -26,33 +26,33 @@ export const NAV: readonly Ref[] = [
 ];
 
 const climb = (ctx: Ctx): readonly ClimbCard[] => {
-  const { book, direction } = ctx.input;
+  const { blueprint, direction } = ctx.input;
   const decisions = ofKind(ctx, "decision").length;
   const waiting = ctx.waiting.length;
   const operations = ofKind(ctx, "operation").length;
   const built = [...ctx.stands.values()].filter((s) => s.stand.stand === "observe" || s.stand.stand === "done").length;
-  const proven = passing(ctx.input.status, book.evals.map((e) => e.id));
+  const proven = passing(ctx.input.status, blueprint.evals.map((e) => e.id));
   return [
-    { step: "Specify", status: direction.climb.specify, tone: "blue", big: plural(book.records.size, "record"),
-      sub: `${plural(book.problems.length, "problem")}, ${plural(book.gaps.length, "gap")}, ${plural(ctx.input.concepts.length, "concept")}`, bar: "full" },
+    { step: "Specify", status: direction.climb.specify, tone: "blue", big: plural(blueprint.records.size, "record"),
+      sub: `${plural(blueprint.problems.length, "problem")}, ${plural(blueprint.gaps.length, "gap")}, ${plural(ctx.input.concepts.length, "concept")}`, bar: "full" },
     { step: "Decide", status: waiting > 0 ? `${count(waiting)} wait for you` : "Nothing waits for you", tone: waiting > 0 ? "orange" : "blue",
       big: plural(decisions, "decision"), sub: `${count(decisions - waiting)} made, ${count(waiting)} waiting`, bar: waiting > 0 ? "split" : "full" },
     { step: "Build", status: direction.climb.build, tone: "grey", big: `${count(built)} of ${count(operations)}`,
       sub: "operations built", bar: barOf(built, operations) },
-    { step: "Prove", status: direction.climb.prove, tone: "grey", big: `${count(proven)} of ${count(book.evals.length)}`,
-      sub: ctx.input.status === null ? "evals run against real code" : "evals passing against real code", bar: barOf(proven, book.evals.length) },
+    { step: "Prove", status: direction.climb.prove, tone: "grey", big: `${count(proven)} of ${count(blueprint.evals.length)}`,
+      sub: ctx.input.status === null ? "evals run against real code" : "evals passing against real code", bar: barOf(proven, blueprint.evals.length) },
   ];
 };
 
 const conceptCards = (ctx: Ctx): readonly ConceptCard[] =>
   ctx.input.concepts.flatMap((id) => {
-    const c = ctx.input.book.records.get(`concept:${id}`);
+    const c = ctx.input.blueprint.records.get(`concept:${id}`);
     return c ? [{ ref: refOf(c), title: titleOf(c), verdict: ctx.input.direction.verdicts[id] ?? "none",
       operations: membersOf(ctx, id, "operation").length, decisions: membersOf(ctx, id, "decision").length }] : [];
   });
 
 export const overview = (ctx: Ctx): OverviewPage => {
-  const { book, direction, commit } = ctx.input;
+  const { blueprint, direction, commit } = ctx.input;
   const concepts = conceptCards(ctx);
   const paged = [...ctx.byKind].filter(([kind]) => hasPage(kind));
   return {
@@ -62,10 +62,10 @@ export const overview = (ctx: Ctx): OverviewPage => {
     verdicts: { given: concepts.filter((c) => c.verdict !== "none").length, of: concepts.length },
     waiting: inbox(ctx),
     holds: [...HOLDS.slice(0, 1), ["", "evals"] as const, ...HOLDS.slice(1)].map(([kind, name]) => ({
-      big: count(kind === "" ? book.evals.length : ofKind(ctx, kind).length), name, to: kind === "" ? EVALS : catalogueOf(kind),
+      big: count(kind === "" ? blueprint.evals.length : ofKind(ctx, kind).length), name, to: kind === "" ? EVALS : catalogueOf(kind),
     })),
-    concepts, counts: Object.fromEntries([...ctx.byKind].map(([kind, held]) => [kind, held.length])), evals: book.evals.length,
-    problems: findingRows(book.problems), gaps: findingRows(book.gaps), nav: ctx.input.worlds ? NAV : NAV.filter((r) => r.page !== "worlds"),
+    concepts, counts: Object.fromEntries([...ctx.byKind].map(([kind, held]) => [kind, held.length])), evals: blueprint.evals.length,
+    problems: findingRows(blueprint.problems), gaps: findingRows(blueprint.gaps), nav: ctx.input.worlds ? NAV : NAV.filter((r) => r.page !== "worlds"),
     sitemap: Object.fromEntries(paged.map(([kind, held]) => [kind, held.map((r) => r.id)])),
   };
 };

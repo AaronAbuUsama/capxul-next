@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { mergeResults, parseResults, parseStatus, verdictOf, type StatusDocument } from "@capxul/book";
+import { mergeResults, parseResults, parseStatus, verdictOf, type StatusDocument } from "@capxul/blueprint-engine";
 
 import { loadBindings, parseScriptList } from "../bindings/service.ts";
 import { cap, evidenceText, foldChecks, parseCheckLines, redact, resultsFile, scoreEvals, type RunInfo } from "./service.ts";

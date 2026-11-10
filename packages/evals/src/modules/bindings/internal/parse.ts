@@ -1,4 +1,4 @@
-/** A binding file as parsed JSON: its shape, and nothing about the book or the script yet. */
+/** A binding file as parsed JSON: its shape, and nothing about the blueprint or the script yet. */
 import type { Binding, BindingFile, NearMiss, Result } from "../types.ts";
 
 const isObject = (u: unknown): u is Record<string, unknown> => typeof u === "object" && u !== null && !Array.isArray(u);

@@ -11,7 +11,7 @@
 // write the line if any of those values is still in it. Hashes are kept (a key and a transaction hash look alike, so this is by value).
 import { createHash, randomBytes } from "node:crypto";
 import { Schema } from "effect";
-import { CommandRecordEntry } from "../../../../books/target/devnet/record-entry.ts";
+import { CommandRecordEntry } from "../../../../blueprint/devnet/record-entry.ts";
 import { appendFileSync, closeSync, existsSync, mkdirSync, openSync, readdirSync, readFileSync, statSync, unlinkSync, writeFileSync } from "node:fs";
 import type { Address } from "viem";
 import { config } from "./config.ts";

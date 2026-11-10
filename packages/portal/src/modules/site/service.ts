@@ -1,4 +1,4 @@
-/** The site module's door: a built Book in, every page of the site out, as plain data. */
+/** The site module's door: a built Blueprint in, every page of the site out, as plain data. */
 import { architecture } from "./internal/architecture.ts";
 import { docs } from "./internal/catalogue.ts";
 import { concept } from "./internal/concept.ts";
@@ -20,15 +20,15 @@ export { canonical } from "./internal/schema.ts";
 
 /**
  * Every page of the portal: the six fixed pages, a page per concept, a page per record of every kind that has
- * pages, in the book's order, then the catalogues under Docs and the eval catalogue. The same input always gives
+ * pages, in the blueprint's order, then the catalogues under Docs and the eval catalogue. The same input always gives
  * the same site.
  */
 export const buildSite = (input: SiteInput): Site => {
   const ctx = contextOf(input);
-  const rest = [...input.book.records.values()].filter((r) => hasPage(r._kind) && r._kind !== "concept");
+  const rest = [...input.blueprint.records.values()].filter((r) => hasPage(r._kind) && r._kind !== "concept");
   const [index, ...catalogues] = docs(ctx);
   return {
-    commit: input.commit, waiting: inbox(ctx).length, problems: input.book.problems.length,
+    commit: input.commit, waiting: inbox(ctx).length, problems: input.blueprint.problems.length,
     pages: [
       overview(ctx), plan(ctx), ...(input.worlds ? [worlds(ctx)] : []), ...(input.plan?.plan.milestones ?? []).flatMap((m) => milestonePage(ctx, m.id) ?? []), ...(input.plan?.plan.tasks ?? []).flatMap((t) => taskPage(ctx, t.id) ?? []), questions(ctx), architecture(ctx), build(ctx), ...(index ? [index] : []),
       ...ofKind(ctx, "concept").map((c) => concept(ctx, c)),

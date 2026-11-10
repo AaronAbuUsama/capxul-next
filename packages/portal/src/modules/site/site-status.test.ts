@@ -1,10 +1,10 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { Schema } from "effect";
-import { defineOperation, evalsUnder, mergeResults, parseResults, type StatusDocument } from "@capxul/book";
+import { defineOperation, evalsUnder, mergeResults, parseResults, type StatusDocument } from "@capxul/blueprint-engine";
 
 import { fixtureInput, fixtureRecords } from "#src/testing.ts";
-import * as fixture from "../../../../book/test/fixtures/invitations.ts";
+import * as fixture from "../../../../blueprint-engine/test/fixtures/invitations.ts";
 
 import { buildSite } from "./service.ts";
 import type { BuildPage, ConceptPage, OperationPage, OverviewPage, Page, RecordPage } from "./types.ts";
@@ -18,17 +18,17 @@ const passAll = (ids: readonly string[], verdict: "pass" | "fail" = "pass"): Sta
   const input = fixtureInput();
   const run = parseResults({ commit: "abc1234", at: "2026-11-10T10:00:00Z", results: ids.map((id) => ({ id, verdict })) });
   assert.ok(run.ok);
-  const merged = mergeResults(input.book, null, run.value);
+  const merged = mergeResults(input.blueprint, null, run.value);
   assert.ok(merged.ok);
   return merged.value;
 };
 const l1Of = (op: string): string[] => {
-  const book = fixtureInput().book;
-  const held = evalsUnder(book, book.records.get(`operation:${op}`)!);
+  const blueprint = fixtureInput().blueprint;
+  const held = evalsUnder(blueprint, blueprint.records.get(`operation:${op}`)!);
   return [...held.own, ...held.under].filter((e) => e.level === "L1").map((e) => e.id);
 };
 
-test("with no status document nothing has a verdict, and the stands are the ones the book alone gives", () => {
+test("with no status document nothing has a verdict, and the stands are the ones the blueprint alone gives", () => {
   const site = buildSite(fixtureInput());
   const build = pageOf<BuildPage>(site, "build", "build");
   assert.equal(build.recorded, false);
@@ -123,5 +123,5 @@ test("the Build page counts telemetry gaps and example gaps apart from every oth
   assert.deepEqual(counts.telemetry.map((t) => t.rule), ["no-span", "state-change-without-event"]);
   assert.equal(counts.examples, 2);
   assert.equal(counts.total, counts.telemetry.reduce((n, t) => n + t.count, 0) + counts.examples + counts.other);
-  assert.equal(counts.total, fixtureInput("abc1234", "target").book.gaps.length);
+  assert.equal(counts.total, fixtureInput("abc1234", "target").blueprint.gaps.length);
 });

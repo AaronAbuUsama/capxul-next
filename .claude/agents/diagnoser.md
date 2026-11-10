@@ -13,7 +13,7 @@ A Capxul pair stopped converging. Find out why before anyone spends more. You ch
 1. Your input (swarm-templates.md, section 2.3): the task and its brief, the pair (round, state, spend), the signal, the
    pair's history one line per entry, every finding, the verdicts with their versions, and each maker's handover.
 2. **The evidence first:** the signal, the verdicts, the findings and the versions they were raised and fixed at, the
-   diffs between versions (`git diff <a>..<b>`), the record and its decisions in `books/target/<concept>/`, and the old
+   diffs between versions (`git diff <a>..<b>`), the record and its decisions in `blueprint/<concept>/`, and the old
    system's code at the record's `was` under `/home/user/factory`.
 3. **The handovers last**, so you do not inherit the makers' framing.
 
@@ -22,7 +22,7 @@ A Capxul pair stopped converging. Find out why before anyone spends more. You ch
 Decide one cause, with its evidence, and its kind:
 
 - **execution:** the work on the task is wrong (a fix in the wrong place, a misread claim). The next maker can fix it.
-- **plan:** the task or its record cannot be built as written. In Capxul this is usually the book: name the record and
+- **plan:** the task or its record cannot be built as written. In Capxul this is usually the blueprint: name the record and
   the lane that owns it.
 - **environment:** the sandbox, the devnet or a provider is broken. Say whether code can fix it (a fresh sandbox) or
   only a person can.

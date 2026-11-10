@@ -1,13 +1,13 @@
 // node --experimental-strip-types --no-warnings packages/evals/src/record-status.ts <results.json> [--status <file>]
 // Merges one run's results into status/status.json (the repository root's; absent means nothing has run).
 // A results file is { commit, at, run?, results: [{ id, verdict: "pass" | "fail" | "not_run", evidence? }] }.
-// It refuses the whole run, and writes nothing, when it names an eval id the book does not derive.
-// The format is described in docs/design-book.md ("The status document").
+// It refuses the whole run, and writes nothing, when it names an eval id the blueprint does not derive.
+// The format is described in docs/blueprint.md ("The status document").
 
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
-import { mergeResults, parseResults, parseStatus, type StatusDocument } from "@capxul/book";
-import { loadTarget } from "../../book/scripts/target.ts";
+import { mergeResults, parseResults, parseStatus, type StatusDocument } from "@capxul/blueprint-engine";
+import { loadTarget } from "../../blueprint-engine/scripts/target.ts";
 
 const STATUS = resolve(import.meta.dirname, "../../../status/status.json");
 
@@ -40,7 +40,7 @@ const run = async (args: readonly string[]): Promise<{ lines: readonly string[];
   }
   const loaded = await loadTarget();
   if (!loaded.ok) return { lines: [loaded.error], code: 1 };
-  const merged = mergeResults(loaded.book, current, run.value);
+  const merged = mergeResults(loaded.blueprint, current, run.value);
   if (!merged.ok) return { lines: [...merged.errors, `refused: nothing was written to ${statusPath}`], code: 1 };
   mkdirSync(dirname(statusPath), { recursive: true });
   writeFileSync(statusPath, `${JSON.stringify(merged.value, null, 2)}\n`);

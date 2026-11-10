@@ -2,7 +2,7 @@
  * The index of one kind of record: every table, every state machine, every rpc and so on, grouped by concept, each
  * row linked to the record's page. A kind adds the one or two columns that tell its records apart.
  */
-import { keyOf, type AnyRecord } from "@capxul/book";
+import { keyOf, type AnyRecord } from "@capxul/blueprint-engine";
 
 import type { Cell, TableSection } from "../types.ts";
 import { isWaiting, membersOf, titleOf, type Ctx } from "./context.ts";
@@ -47,15 +47,15 @@ export const KIND_CATALOGUES: readonly KindCatalogue[] = [
     heads: ["Runs on", "Depends on"], cells: (_, r) => [words(text(r["runtime"])), size(r["dependsOn"])] },
   { name: "environments", kind: "environment", title: "Environments", one: "environment", lists: "Every environment, and how many components run in it.",
     heads: ["Components"], cells: (_, r) => [size(r["runs"])] },
-  { name: "decisions", kind: "decision", title: "Decisions", one: "decision", lists: "Every decision in the book: what was chosen, and whether it waits for an answer.",
+  { name: "decisions", kind: "decision", title: "Decisions", one: "decision", lists: "Every decision in the blueprint: what was chosen, and whether it waits for an answer.",
     heads: ["Chosen", "Status"], cells: (ctx, r) => [code(text(r["chosen"])), words(isWaiting(ctx, r) ? "waits for you" : "made")] },
 ];
 
-/** The table of one kind: the concepts in the book's order, then the records no concept owns. */
+/** The table of one kind: the concepts in the blueprint's order, then the records no concept owns. */
 export const kindSection = (ctx: Ctx, k: KindCatalogue): TableSection => {
   const groups = [...ctx.input.concepts, ""].flatMap((id) => {
     const held = membersOf(ctx, id, k.kind).toSorted((a, b) => a.id.localeCompare(b.id, "en"));
-    const concept = ctx.input.book.records.get(`concept:${id}`);
+    const concept = ctx.input.blueprint.records.get(`concept:${id}`);
     return held.map((r) => ({ r, group: concept ? titleOf(concept) : "Shared" }));
   });
   const withEvals = groups.some(({ r }) => (ctx.evals.get(keyOf(r)) ?? []).length > 0);
@@ -65,5 +65,5 @@ export const kindSection = (ctx: Ctx, k: KindCatalogue): TableSection => {
       ...(withEvals ? [words(count((ctx.evals.get(keyOf(r)) ?? []).length))] : []),
     ], group)),
   { caption: `${plural(groups.length, k.one)}, grouped by concept. Each links to its page.`,
-    empty: `The book holds no ${k.one}.` });
+    empty: `The blueprint holds no ${k.one}.` });
 };

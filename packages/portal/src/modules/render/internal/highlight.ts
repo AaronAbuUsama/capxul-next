@@ -1,7 +1,7 @@
 /**
  * Syntax highlighting at generation time: a small tokenizer for JSON, the command line and TypeScript. Each token
  * becomes a span with a `tk-*` class, coloured on the fixed dark panel; `assets/site.js` uses the same classes for
- * the one block that is built in the browser. Everything is escaped, so code from the book cannot become markup.
+ * the one block that is built in the browser. Everything is escaped, so code from the blueprint cannot become markup.
  */
 import { esc } from "./html.ts";
 

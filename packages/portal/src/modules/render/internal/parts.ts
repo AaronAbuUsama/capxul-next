@@ -47,7 +47,7 @@ export const evalsTable = (evals: readonly EvalRow[]): string =>
 export const evalsFold = (evals: readonly EvalRow[]): string =>
   fold(`All ${plural(evals.length, "eval")}, with their ids`, evalsTable(evals));
 
-/** Gaps or problems the book found on a record. */
+/** Gaps or problems the blueprint found on a record. */
 export const findings = (rows: readonly FindingRow[]): string =>
   rows.length === 0 ? "" :
     `<ul class="findings">${rows.map((f) => `<li>${chip(f.rule, "chip chip-orange")}<span>${prose(f.detail)}</span></li>`).join("")}</ul>`;

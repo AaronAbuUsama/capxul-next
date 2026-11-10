@@ -21,8 +21,8 @@ test("a script's list says which names are checks and which are guards", () => {
   assert.deepEqual([...s.guards], ["PRE.up"]);
 });
 
-test("a binding for an eval the book does not derive fails", () => {
-  assert.match(failures([file({ bindings: [{ eval: "acc:nope/1", checks: ["B1.one"], why: "w" }] })]), /acc:nope\/1: the book derives no such eval/);
+test("a binding for an eval the blueprint does not derive fails", () => {
+  assert.match(failures([file({ bindings: [{ eval: "acc:nope/1", checks: ["B1.one"], why: "w" }] })]), /acc:nope\/1: the blueprint derives no such eval/);
 });
 
 test("an eval bound twice fails, in one file or two", () => {

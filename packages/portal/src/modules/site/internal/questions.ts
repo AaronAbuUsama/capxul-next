@@ -1,5 +1,5 @@
 /** The Questions page: every decision that waits for an answer, with its options and the recommendation. */
-import { keyOf, type AnyRecord } from "@capxul/book";
+import { keyOf, type AnyRecord } from "@capxul/blueprint-engine";
 
 import type { Task } from "@capxul/plan";
 import { waitsOnOwner } from "@capxul/plan";
@@ -8,7 +8,7 @@ import { head, type Ctx } from "./context.ts";
 import { refOf } from "./locate.ts";
 import { objects, records, text } from "./values.ts";
 
-export const HAND_WRITTEN = "books/target and packages/portal/content/direction.ts";
+export const HAND_WRITTEN = "blueprint and packages/portal/content/direction.ts";
 
 export const questionOf = (ctx: Ctx, d: AnyRecord): Question => {
   const chosen = text(d["chosen"]);
@@ -38,7 +38,7 @@ const needs = (ctx: Ctx): readonly Task[] => {
   return (ctx.input.plan?.plan.tasks ?? []).filter((t) => waitsOnOwner(t, owner, () => false));
 };
 
-/** Everything that waits on the owner, in one list: the book's waiting decisions, then the plan's needs of his. */
+/** Everything that waits on the owner, in one list: the blueprint's waiting decisions, then the plan's needs of his. */
 export const inbox = (ctx: Ctx): readonly Question[] => [...ctx.waiting.map((d) => questionOf(ctx, d)), ...needs(ctx).map(needOf)];
 
 export const questions = (ctx: Ctx): QuestionsPage => {

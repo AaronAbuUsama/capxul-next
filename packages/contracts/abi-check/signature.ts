@@ -1,11 +1,11 @@
-// A book signature, read, and compared with the ABI entry the compiler made. Pure: no files, no book.
+// A blueprint signature, read, and compared with the ABI entry the compiler made. Pure: no files, no blueprint.
 //
-//   book:  "execute(uint256 scheduledId) returns (bytes32 paymentId)"      "Spent(address indexed safe, uint256 amount)"
+//   blueprint:  "execute(uint256 scheduledId) returns (bytes32 paymentId)"      "Spent(address indexed safe, uint256 amount)"
 //   code:  { type: "function", name: "execute", inputs: [...], outputs: [...], stateMutability: "nonpayable" }
 //
 // What is compared: the name, each argument's type in order, the return types in order, the mutability (a signature that
-// says nothing is nonpayable), and an event's indexed flags. Argument names are not compared: they are the book's words. A
-// struct is compared by name (`Budget`) and an enum by name or as its `uint8`; a tuple written out in the book is compared
+// says nothing is nonpayable), and an event's indexed flags. Argument names are not compared: they are the blueprint's words. A
+// struct is compared by name (`Budget`) and an enum by name or as its `uint8`; a tuple written out in the blueprint is compared
 // field by field with the ABI's components. An address typed as a contract in the code (`IPayments`) is an `address`.
 
 export interface AbiParam {
@@ -23,22 +23,22 @@ export interface AbiEntry {
   readonly stateMutability?: string;
 }
 
-/** One type as the book writes it: a name (`uint8`, `Budget`) or a tuple of types, then array suffixes (`[]`, `[3]`). */
-export interface BookType {
+/** One type as the blueprint writes it: a name (`uint8`, `Budget`) or a tuple of types, then array suffixes (`[]`, `[3]`). */
+export interface BlueprintType {
   readonly base: string;
-  readonly tuple?: readonly BookParam[];
+  readonly tuple?: readonly BlueprintParam[];
   readonly arrays: string;
 }
-export interface BookParam {
-  readonly type: BookType;
+export interface BlueprintParam {
+  readonly type: BlueprintType;
   readonly indexed: boolean;
   readonly name?: string;
 }
-export interface BookSignature {
+export interface BlueprintSignature {
   readonly name: string;
-  readonly params: readonly BookParam[];
+  readonly params: readonly BlueprintParam[];
   readonly mutability: string;
-  readonly returns: readonly BookParam[];
+  readonly returns: readonly BlueprintParam[];
 }
 
 const splitTop = (s: string): string[] => {
@@ -67,10 +67,10 @@ const closing = (s: string, open: number): number => {
   throw new Error(`unbalanced parentheses in "${s}"`);
 };
 
-const parseParam = (raw: string): BookParam => {
+const parseParam = (raw: string): BlueprintParam => {
   let rest = raw.trim();
   let base: string;
-  let tuple: BookParam[] | undefined;
+  let tuple: BlueprintParam[] | undefined;
   if (rest.startsWith("(")) {
     const end = closing(rest, 0);
     tuple = splitTop(rest.slice(1, end)).map(parseParam);
@@ -89,14 +89,14 @@ const parseParam = (raw: string): BookParam => {
   return { type: { base, ...(tuple ? { tuple } : {}), arrays }, indexed, ...(name ? { name } : {}) };
 };
 
-export const parseSignature = (signature: string): BookSignature => {
+export const parseSignature = (signature: string): BlueprintSignature => {
   const open = signature.indexOf("(");
   if (open < 1) throw new Error(`no argument list in "${signature}"`);
   const name = signature.slice(0, open).trim();
   const end = closing(signature, open);
   const params = splitTop(signature.slice(open + 1, end)).map(parseParam);
   let tail = signature.slice(end + 1).trim();
-  let returns: BookParam[] = [];
+  let returns: BlueprintParam[] = [];
   const r = tail.indexOf("returns");
   if (r >= 0) {
     const ro = tail.indexOf("(", r);
@@ -116,8 +116,8 @@ const internalName = (p: AbiParam): { kind: "struct" | "enum" | "contract" | "pl
   return m ? { kind: m[1] as "struct" | "enum" | "contract", name: m[2]! } : { kind: "plain", name: "" };
 };
 
-/** Why a book type is not the ABI parameter's, or undefined when they are the same. */
-export const typeMismatch = (b: BookType, c: AbiParam): string | undefined => {
+/** Why a blueprint type is not the ABI parameter's, or undefined when they are the same. */
+export const typeMismatch = (b: BlueprintType, c: AbiParam): string | undefined => {
   const arrays = arraysOf(c.type);
   if (b.arrays !== arrays) return `array shape ${b.arrays || "none"} against ${arrays || "none"}`;
   const base = c.type.slice(0, c.type.length - arrays.length);
@@ -139,7 +139,7 @@ export const typeMismatch = (b: BookType, c: AbiParam): string | undefined => {
   return `${b.base} against ${named.kind === "plain" ? base : `${base} (${named.name})`}`;
 };
 
-/** The ABI entry in the book's notation, to show in a report: the type names, no argument names unless the code has them. */
+/** The ABI entry in the blueprint's notation, to show in a report: the type names, no argument names unless the code has them. */
 export const renderType = (p: AbiParam): string => {
   const arrays = arraysOf(p.type);
   const base = p.type.slice(0, p.type.length - arrays.length);
@@ -158,8 +158,8 @@ export const renderEntry = (e: AbiEntry): string => {
   return `${e.name}(${args})${m}${outs}`;
 };
 
-export const renderBook = (s: BookSignature): string => {
-  const one = (p: BookParam): string => {
+export const renderBlueprint = (s: BlueprintSignature): string => {
+  const one = (p: BlueprintParam): string => {
     const t = p.type.tuple ? `(${p.type.tuple.map(one).join(", ")})` : p.type.base;
     return [`${t}${p.type.arrays}`, p.indexed ? "indexed" : "", p.name ?? ""].filter(Boolean).join(" ");
   };
@@ -168,26 +168,26 @@ export const renderBook = (s: BookSignature): string => {
   return `${s.name}(${s.params.map(one).join(", ")})${m}${outs}`;
 };
 
-const listMismatch = (b: readonly BookParam[], c: readonly AbiParam[], what: string, events: boolean): string[] => {
-  if (b.length !== c.length) return [`${what}: ${b.length} in the book, ${c.length} in the code`];
+const listMismatch = (b: readonly BlueprintParam[], c: readonly AbiParam[], what: string, events: boolean): string[] => {
+  if (b.length !== c.length) return [`${what}: ${b.length} in the blueprint, ${c.length} in the code`];
   const out: string[] = [];
   b.forEach((bp, i) => {
     const why = typeMismatch(bp.type, c[i]!);
     if (why) out.push(`${what} ${i + 1} (${c[i]!.name || "unnamed"}): ${why}`);
-    if (events && bp.indexed !== Boolean(c[i]!.indexed)) out.push(`${what} ${i + 1} (${c[i]!.name || "unnamed"}): ${c[i]!.indexed ? "indexed in the code, not in the book" : "indexed in the book, not in the code"}`);
+    if (events && bp.indexed !== Boolean(c[i]!.indexed)) out.push(`${what} ${i + 1} (${c[i]!.name || "unnamed"}): ${c[i]!.indexed ? "indexed in the code, not in the blueprint" : "indexed in the blueprint, not in the code"}`);
   });
   return out;
 };
 
-/** Every way the book's signature differs from the code's entry; empty when they agree. */
-export const signatureMismatches = (b: BookSignature, c: AbiEntry): string[] => {
+/** Every way the blueprint's signature differs from the code's entry; empty when they agree. */
+export const signatureMismatches = (b: BlueprintSignature, c: AbiEntry): string[] => {
   const out: string[] = [];
   if (b.name !== c.name) out.push(`name ${b.name} against ${c.name}`);
   out.push(...listMismatch(b.params, c.inputs ?? [], "argument", c.type === "event"));
   if (c.type === "function") {
     out.push(...listMismatch(b.returns, c.outputs ?? [], "return", false));
     const cm = c.stateMutability ?? "nonpayable";
-    if (b.mutability !== cm) out.push(`mutability ${b.mutability} in the book, ${cm} in the code`);
+    if (b.mutability !== cm) out.push(`mutability ${b.mutability} in the blueprint, ${cm} in the code`);
   }
   return out;
 };

@@ -1,6 +1,6 @@
 // node --experimental-strip-types packages/contracts/abi-check/export-abi.ts   → writes packages/contracts/abi/abi.json
 //
-// What `packages/contracts/abi-check/main.ts` compares the book against: the ABI of every contract that has code in
+// What `packages/contracts/abi-check/main.ts` compares the blueprint against: the ABI of every contract that has code in
 // `packages/contracts/src/` (a build of it, in `out/`), with the hash of the source it was built from. The export is
 // committed, so the check needs no build (about 100 s); the check recomputes the hash and fails when the source moved on and
 // this was not run again. Run `pnpm contracts:export-abi` after any change to a contract (it runs `forge build` first).

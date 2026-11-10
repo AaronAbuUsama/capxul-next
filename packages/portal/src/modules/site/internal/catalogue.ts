@@ -1,9 +1,9 @@
 /**
- * Docs: the book as catalogues. `docs` is the index; every catalogue is a page of its own at `docs/<name>`, and
+ * Docs: the blueprint as catalogues. `docs` is the index; every catalogue is a page of its own at `docs/<name>`, and
  * each is a table of records linked to their pages. The four with a shape of their own are here; the rest are one
  * index per kind (kinds.ts).
  */
-import { keyOf, type AnyRecord } from "@capxul/book";
+import { keyOf, type AnyRecord } from "@capxul/blueprint-engine";
 
 import type { CataloguePage, Ref, TableSection, Tile } from "../types.ts";
 import { conceptRef, head, ofKind, standOf, titleOf, type Ctx } from "./context.ts";
@@ -14,11 +14,11 @@ import { code, many, row, standing, tableOf, to, toOr, words } from "./table.ts"
 import { count, entries, field, list, plural, records, text } from "./values.ts";
 
 export const DOCS: Ref = { label: "Docs", page: "docs", anchor: "" };
-const SOURCE = "books/target";
+const SOURCE = "blueprint";
 const byId = (a: AnyRecord, b: AnyRecord): number => a.id.localeCompare(b.id, "en");
 const from = (ctx: Ctx, key: string, kind: string): readonly AnyRecord[] =>
-  [...new Set((ctx.input.book.linkedBy.get(key) ?? []).filter((l) => l.from.startsWith(`${kind}:`)).map((l) => l.from))]
-    .flatMap((k) => { const r = ctx.input.book.records.get(k); return r ? [r] : []; });
+  [...new Set((ctx.input.blueprint.linkedBy.get(key) ?? []).filter((l) => l.from.startsWith(`${kind}:`)).map((l) => l.from))]
+    .flatMap((k) => { const r = ctx.input.blueprint.records.get(k); return r ? [r] : []; });
 
 const commands = (ctx: Ctx): TableSection => {
   const ops = ofKind(ctx, "operation").map((op) => ({ op, command: text(op["command"]) || op.id }))
@@ -75,7 +75,7 @@ const spans = (ctx: Ctx): TableSection => {
   const named = owners.filter((r) => list(r["spans"]).length > 0);
   return tableOf("spans", "Spans", ["Span", "Named by", "Kind"],
     named.flatMap((r) => list(r["spans"]).map((name) => row([code(text(name)), to(refOf(r), titleOf(r)), words(r._kind)]))), {
-      caption: `The book holds span names only, as a list on an rpc or a flow: no attributes, no parent and no schema. ` +
+      caption: `The blueprint holds span names only, as a list on an rpc or a flow: no attributes, no parent and no schema. ` +
         `${count(named.length)} of ${plural(owners.length, "rpc and flow", "rpcs and flows")} name any.`,
       empty: "No rpc and no flow names a span.",
     });
@@ -87,7 +87,7 @@ const CATALOGUES: readonly Catalogue[] = [
   { name: "commands", title: "Commands", lists: "Every command, grouped by its first word, with its concept and where it stands.", section: commands },
   { name: "events", title: "Events", lists: "Every product event: what it means, what sends it and which journeys read it.", section: events },
   { name: "errors", title: "Errors", lists: "Every error code: its class, who acts next, its exit code and what the caller reads.", section: errors },
-  { name: "spans", title: "Spans", lists: "The span names the book holds, and what it does not hold about them.", section: spans },
+  { name: "spans", title: "Spans", lists: "The span names the blueprint holds, and what it does not hold about them.", section: spans },
   ...KIND_CATALOGUES.map((k) => ({ name: k.name, title: k.title, lists: k.lists, section: (ctx: Ctx) => kindSection(ctx, k) })),
 ];
 
@@ -104,16 +104,16 @@ export const docs = (ctx: Ctx): readonly CataloguePage[] => {
   const evals: Ref = { label: "Evals", page: "eval", anchor: "" };
   const tiles: readonly Tile[] = [
     ...built.map((c) => ({ big: count(c.table.rows.length), name: c.title.toLowerCase(), to: c.ref })),
-    { big: count(ctx.input.book.evals.length), name: "evals", to: evals },
+    { big: count(ctx.input.blueprint.evals.length), name: "evals", to: evals },
   ];
   const index = tableOf("catalogues", "The catalogues", ["Catalogue", "What it lists", "Rows"], [
     ...built.map((c) => row([to(c.ref), words(c.lists), words(count(c.table.rows.length))])),
-    row([to(evals), words("Every eval the book derives, by level and by kind."), words(count(ctx.input.book.evals.length))]),
+    row([to(evals), words("Every eval the blueprint derives, by level and by kind."), words(count(ctx.input.blueprint.evals.length))]),
   ]);
   return [
     {
       ...head("docs", "Docs", SOURCE, null), type: "catalogue", nav: "Docs", eyebrow: "Docs",
-      lead: "The book as catalogues: every command, event, error and record, each in a table and each linked to its page. Every number is the length of the list it links to.",
+      lead: "The blueprint as catalogues: every command, event, error and record, each in a table and each linked to its page. Every number is the length of the list it links to.",
       crumbs: [], tiles, sections: [index],
     },
     ...built.map((c): CataloguePage => ({

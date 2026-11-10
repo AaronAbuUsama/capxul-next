@@ -1,14 +1,14 @@
 /**
- * The small book every module's test is run on: the invitations fixture of `@capxul/book`, plus one decision that
+ * The small blueprint every module's test is run on: the invitations fixture of `@capxul/blueprint-engine`, plus one decision that
  * waits for an answer. Test-only: nothing under `modules/` or `main.ts` imports it.
  */
-import { buildBook, defineDecision, keyOf, type AnyRecord, type StatusDocument } from "@capxul/book";
+import { buildBlueprint, defineDecision, keyOf, type AnyRecord, type StatusDocument } from "@capxul/blueprint-engine";
 
 import { direction } from "#content/direction.ts";
 import type { Assets } from "#src/modules/render/types.ts";
 import type { PlanInput, SiteInput } from "#src/modules/site/types.ts";
 
-import * as fixture from "../../book/test/fixtures/invitations.ts";
+import * as fixture from "../../blueprint-engine/test/fixtures/invitations.ts";
 
 /** The id of the one decision that waits in the fixture. */
 export const WAITING = "access.who-invites";
@@ -40,25 +40,25 @@ const settled = defineDecision({
 
 const isRecord = (u: unknown): u is AnyRecord => typeof u === "object" && u !== null && "_kind" in u && "id" in u;
 
-/** Every record of the fixture book, for a test that changes one of them. */
+/** Every record of the fixture blueprint, for a test that changes one of them. */
 export const fixtureRecords: readonly unknown[] = [...fixture.records, waiting, settled];
 
 /**
- * The input of a site over the fixture book. The old CLI knows `org member invite` and nothing else.
+ * The input of a site over the fixture blueprint. The old CLI knows `org member invite` and nothing else.
  * At stage `as-is` the fixture has no problem; at stage `target` its operations have several, so they stand at specify.
  */
 export const fixtureInput = (
   commit = "abc1234", stage: "as-is" | "target" = "as-is", status: StatusDocument | null = null, records: readonly unknown[] = fixtureRecords,
   plan: PlanInput | null = null,
 ): SiteInput => {
-  const book = buildBook({ name: "fixture", stage, records });
+  const blueprint = buildBlueprint({ name: "fixture", stage, records });
   const conceptOf = new Map<string, string>();
-  for (const r of book.records.values()) {
+  for (const r of blueprint.records.values()) {
     const concept = r["concept"];
     if (isRecord(concept)) conceptOf.set(keyOf(r), concept.id);
   }
   return {
-    book, commit, concepts: ["access", "organizations"], conceptOf, direction, status, plan,
+    blueprint, commit, concepts: ["access", "organizations"], conceptOf, direction, status, plan,
     waits: (decision) => decision.id === WAITING,
     frozenOperations: new Set(["org.member.invite"]),
     frozen: new Map([["org.member.invite", {

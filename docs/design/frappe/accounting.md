@@ -1,8 +1,8 @@
 # Accounting: the books in ERPNext accounting's shape, synced
 
-Lane: **accounting**. Owns `books/target/books`. Written 8 November 2026, main-line design, book
+Lane: **accounting**. Owns `blueprint/books`. Written 8 November 2026, main-line design, book
 first. The records are the design; this page explains them and lists what other lanes must change.
-Every judgment is a decision record in `books/target/books/decisions.ts`, named in brackets.
+Every judgment is a decision record in `blueprint/books/decisions.ts`, named in brackets.
 
 The rulings this lane carries out:
 
@@ -82,7 +82,7 @@ out on purpose:
 - Budget. Budgets is Capxul's own concept, on chain.
 
 The ERPNext document shapes the feed and the head sync hand a head are in
-`books/target/books/frappe.ts`.
+`blueprint/books/frappe.ts`.
 
 ## The chart: ERPNext's Account tree
 
@@ -476,7 +476,7 @@ What changed is spelling or new design, never a dropped behaviour:
   rows.
 - `facts list` shows the fact's number, Safe, chain, Party, fee and voucher.
 
-`packages/book/scripts/check-frozen.ts` reports 0 breaches.
+`packages/blueprint-engine/scripts/check-frozen.ts` reports 0 breaches.
 
 ## Decisions
 

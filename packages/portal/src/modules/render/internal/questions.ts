@@ -70,11 +70,11 @@ const article = (p: QuestionsPage, q: Question, i: number, cites: Cites): string
   `<article class="q" ${attrs(q)}>${meta(p, q, i)}` +
   `<h2>${prose(q.title)}</h2>${heldUp(q)}<p class="eyebrow eyebrow-muted">The question</p>${blocks(p.id, q.question, cites, "prose q-text")}` +
   `<p class="eyebrow eyebrow-muted">The options</p><div class="options">${q.options.map((o) => option(p.id, q, o, cites)).join("")}</div>` +
-  `<div class="why"><p class="why-title">The book recommends <code>${esc(q.chosen)}</code></p>${folded(p.id, q.why, cites, "The rest of the reasoning")}` +
+  `<div class="why"><p class="why-title">The blueprint recommends <code>${esc(q.chosen)}</code></p>${folded(p.id, q.why, cites, "The rest of the reasoning")}` +
   (q.source === "" ? "" : `<p class="why-source">Source: ${rich(p.id, q.source, cites)}</p>`) + `</div>` +
   `${holds(p.id, q)}${answering(q)}${saved}${filing}</article>`;
 
-const empty = `<p class="q-none">No question is waiting for you. Every decision in the book is made.</p>`;
+const empty = `<p class="q-none">No question is waiting for you. Every decision in the blueprint is made.</p>`;
 
 export const questions = (p: QuestionsPage, cites: Cites): string =>
   `<main class="page" data-commit="${esc(p.commit)}" data-repo="${esc(p.repo)}" data-reviewer="${esc(p.reviewer)}" data-label="${esc(p.issueLabel)}">` +

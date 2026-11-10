@@ -12,9 +12,9 @@
 import { spawn, spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
-import { parseStatus, type Book } from "@capxul/book";
+import { parseStatus, type Blueprint } from "@capxul/blueprint-engine";
 
-import { loadTarget } from "../../book/scripts/target.ts";
+import { loadTarget } from "../../blueprint-engine/scripts/target.ts";
 import { gapsOf, loadBindings, parseBindingFile, parseScriptList, selectEvals, type BindingFile, type Bindings, type Index, type ScriptChecks, type What } from "./modules/bindings/service.ts";
 import { cap, evidenceText, fileNameOf, foldChecks, parseCheckLines, redact, resultsFile, scoreEvals, type CheckLine, type RunInfo } from "./modules/runs/service.ts";
 
@@ -23,13 +23,13 @@ const EVIDENCE_CAP = 60_000;
 const LOG_CAP = 400_000;
 const JOURNEYS = ["create_company_site", "grant_hat_in_frappe", "pay_invoice_from_frappe", "stays_true_when_broken", "run_a_world"];
 
-type Loaded = { readonly book: Book; readonly files: readonly BindingFile[]; readonly scripts: ReadonlyMap<string, ScriptChecks>; readonly bindings: Bindings };
+type Loaded = { readonly blueprint: Blueprint; readonly files: readonly BindingFile[]; readonly scripts: ReadonlyMap<string, ScriptChecks>; readonly bindings: Bindings };
 type Raw = Record<string, unknown>;
 
 const read = (path: string): string => readFileSync(join(ROOT, path), "utf8");
 const json = (path: string): unknown => JSON.parse(read(path)) as unknown;
 
-/** The book, the binding files and the scripts' lists of checks, validated against each other. */
+/** The blueprint, the binding files and the scripts' lists of checks, validated against each other. */
 const loadAll = async (): Promise<{ ok: true; value: Loaded } | { ok: false; errors: readonly string[] }> => {
   const target = await loadTarget();
   if (!target.ok) return { ok: false, errors: [target.error] };
@@ -47,18 +47,18 @@ const loadAll = async (): Promise<{ ok: true; value: Loaded } | { ok: false; err
     if (listed.status !== 0) errors.push(`${f.script} --list failed: ${listed.stderr.slice(0, 200)}`);
     else scripts.set(f.script, parseScriptList(listed.stdout));
   }
-  const loaded = loadBindings(files, { evals: new Set(target.book.evals.map((e) => e.id)), scripts });
+  const loaded = loadBindings(files, { evals: new Set(target.blueprint.evals.map((e) => e.id)), scripts });
   if (!loaded.ok) errors.push(...loaded.errors);
-  return errors.length > 0 || !loaded.ok ? { ok: false, errors } : { ok: true, value: { book: target.book, files, scripts, bindings: loaded.value } };
+  return errors.length > 0 || !loaded.ok ? { ok: false, errors } : { ok: true, value: { blueprint: target.blueprint, files, scripts, bindings: loaded.value } };
 };
 
 /** The evals a journey stands for: its own, and what its steps' operations promise (acceptance, returns, refusals, events). */
-const indexOf = (book: Book): Index => ({
+const indexOf = (blueprint: Blueprint): Index => ({
   journey: (id) => {
-    const journey = book.records.get(`journey:${id}`) as { steps?: readonly { operation: { id: string } }[] } | undefined;
+    const journey = blueprint.records.get(`journey:${id}`) as { steps?: readonly { operation: { id: string } }[] } | undefined;
     if (!journey) return null;
     const ops = new Set((journey.steps ?? []).map((s) => `operation:${s.operation.id}`));
-    return book.evals.filter((e) => e.subject === `journey:${id}` || (ops.has(e.subject) && /^(acc|ret|ref|evt):/.test(e.id))).map((e) => e.id);
+    return blueprint.evals.filter((e) => e.subject === `journey:${id}` || (ops.has(e.subject) && /^(acc|ret|ref|evt):/.test(e.id))).map((e) => e.id);
   },
   milestone: (id) => {
     const plan = json("plan/plan.json") as { milestones?: Raw[]; tasks?: Raw[] };
@@ -123,12 +123,12 @@ const run = async (args: readonly string[]): Promise<number> => {
   if (typeof parsed === "string") { console.error(parsed); return 2; }
   const loaded = await loadAll();
   if (!loaded.ok) { console.error(loaded.errors.join("\n")); return 1; }
-  const { book, bindings } = loaded.value;
-  const asked = selectEvals(parsed.what, indexOf(book), bindings);
+  const { blueprint, bindings } = loaded.value;
+  const asked = selectEvals(parsed.what, indexOf(blueprint), bindings);
   if (!asked.ok) { console.error(asked.errors.join("\n")); return 1; }
-  const known = new Set(book.evals.map((e) => e.id));
+  const known = new Set(blueprint.evals.map((e) => e.id));
   const unknown = asked.value.filter((id) => !known.has(id));
-  if (unknown.length > 0) { console.error(`the book derives no eval ${unknown.join(", ")}`); return 1; }
+  if (unknown.length > 0) { console.error(`the blueprint derives no eval ${unknown.join(", ")}`); return 1; }
 
   const at = new Date().toISOString();
   const info: RunInfo = { run: `run-${at.replace(/\D/g, "").slice(0, 14)}`, commit: commitOf(), at: at.replace(/\.\d+Z$/, "Z"), script: "", world: parsed.world, slug: parsed.slug };
@@ -155,7 +155,7 @@ const run = async (args: readonly string[]): Promise<number> => {
   }
   const folded = foldChecks(lines);
   const scored = scoreEvals(asked.value, bindings, folded);
-  const claimOf = new Map(book.evals.map((e) => [e.id, e.claim]));
+  const claimOf = new Map(blueprint.evals.map((e) => [e.id, e.claim]));
   const evidenceOf = (id: string): string => `${out}/evidence/${fileNameOf(id)}.txt`;
   for (const row of scored.rows) {
     const why = bindings.byEval.get(row.id)?.binding.why ?? "no check is bound to this eval";
@@ -191,11 +191,11 @@ const check = async (): Promise<number> => {
 const gaps = async (asJson: boolean): Promise<number> => {
   const loaded = await loadAll();
   if (!loaded.ok) { console.error(loaded.errors.join("\n")); return 1; }
-  const index = indexOf(loaded.value.book);
+  const index = indexOf(loaded.value.blueprint);
   const wanted = [...new Set(JOURNEYS.flatMap((j) => index.journey(j) ?? []))].sort();
   const g = gapsOf(loaded.value.bindings, loaded.value.scripts, wanted);
   if (asJson) { console.log(JSON.stringify(g, null, 2)); return 0; }
-  console.log(`Checks no eval in the book is proved by (${g.checksWithNoEval.length}):\n${g.checksWithNoEval.map((c) => `  ${c}`).join("\n")}`);
+  console.log(`Checks no eval in the blueprint is proved by (${g.checksWithNoEval.length}):\n${g.checksWithNoEval.map((c) => `  ${c}`).join("\n")}`);
   console.log(`\nChecks that prove part of an eval, recorded as near-misses (${g.checksInNearMisses.length}):\n${g.checksInNearMisses.map((c) => `  ${c}`).join("\n")}`);
   console.log(`\nEvals of the skeleton's ${JOURNEYS.length} journeys, with their steps' acceptance, returns, refusals and events, that have no check (${g.evalsWithNoCheck.length} of ${wanted.length}; * marks a near-miss):\n${g.evalsWithNoCheck.map((e) => `  ${e.near ? "*" : " "} ${e.id}`).join("\n")}`);
   return 0;

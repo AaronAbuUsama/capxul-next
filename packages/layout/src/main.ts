@@ -21,16 +21,16 @@ const ROOT = join(dirname(fileURLToPath(import.meta.url)), "../../..");
 export const ALLOWED: Allowlist = {
   "README.md": "the front door: what this is and where things are",
   "CLAUDE.md": "the rules an agent follows here, and the checks",
-  "START-HERE.md": "the owner's direction of 9 November 2026; the book cites it as evidence",
-  "GROUNDING.md": "what is being built and why, in the owner's words; the book cites it",
-  "books": "the design: the target book and the frozen book",
+  "START-HERE.md": "the owner's direction of 9 November 2026; the blueprint cites it as evidence",
+  "GROUNDING.md": "what is being built and why, in the owner's words; the blueprint cites it",
+  "blueprint": "the design: the blueprint, with the old system's behaviour in baseline/",
   "packages": "the code, one package per component",
   "plan": "the coordinator's plan, its log and the owner's answers",
-  "evals": "which check proves which eval of the book",
+  "evals": "which check proves which eval of the blueprint",
   "status": "the scoreboard, written only by pnpm evals",
   "loops": "the scripts the agent loop runs (owned with packages/loop)",
   "spikes": "proven throwaway code, deleted when plan task m2-graduate-spike is done",
-  "docs": "written designs, evidence the book cites, generated reports",
+  "docs": "written designs, evidence the blueprint cites, generated reports",
   "archive": "dead material, kept at its old path",
   "package.json": "the workspace's scripts",
   "pnpm-lock.yaml": "the lockfile",
@@ -47,7 +47,7 @@ const policyOf = (oversize: Oversize): Policy => ({
   limit: LIMIT,
   sourceExtensions: [".ts", ".tsx", ".js", ".mjs", ".cjs", ".py", ".sh", ".sol"],
   // designs and evidence; dead material; generated code; vendored libraries
-  sizeExempt: ["books/", "docs/", "archive/", "/generated/", "packages/contracts/lib/", "/node_modules/"],
+  sizeExempt: ["blueprint/", "docs/", "archive/", "/generated/", "packages/contracts/lib/", "/node_modules/"],
   oversize,
 });
 

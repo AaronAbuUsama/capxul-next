@@ -1,10 +1,10 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { defineOperation } from "@capxul/book";
+import { defineOperation } from "@capxul/blueprint-engine";
 
 import { buildSite, jsonFile, mdFile } from "#src/modules/site/service.ts";
 import { fixtureInput, fixtureRecords } from "#src/testing.ts";
-import * as fixture from "../../../../book/test/fixtures/invitations.ts";
+import * as fixture from "../../../../blueprint-engine/test/fixtures/invitations.ts";
 
 import { twinsOf } from "./service.ts";
 

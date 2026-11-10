@@ -1,8 +1,8 @@
-/** The book indexed once, as plain data, and the small questions every page builder asks of it. */
+/** The blueprint indexed once, as plain data, and the small questions every page builder asks of it. */
 import { Schema } from "effect";
 import {
   evalsUnder, impactIndex, keyOf, passing, standOf as stand, type AnyRecord, type EvalDef, type Finding, type ImpactIndex, type Link,
-} from "@capxul/book";
+} from "@capxul/blueprint-engine";
 
 import type { Brief, Count, FindingRow, LinkGroup, OperationRow, PageHead, Ref, SiteInput, StandOf, Value } from "../types.ts";
 import { hasPage, refOf } from "./locate.ts";
@@ -17,15 +17,15 @@ export interface Ctx {
   readonly gaps: ReadonlyMap<string, readonly Finding[]>;
   readonly problems: ReadonlyMap<string, readonly Finding[]>;
   readonly linksFrom: ReadonlyMap<string, readonly Link[]>;
-  /** The decisions that wait for an answer, in the book's order. */
+  /** The decisions that wait for an answer, in the blueprint's order. */
   readonly waiting: readonly AnyRecord[];
   /** Record key to the decisions whose `affects` name it. */
   readonly affecting: ReadonlyMap<string, readonly AnyRecord[]>;
   /** `<concept>/<kind>` to the concept's records of that kind; a shared record's concept is "". */
   readonly members: ReadonlyMap<string, readonly AnyRecord[]>;
-  /** Each operation's stand and its eval counts, worked out once from the book and the status document. */
+  /** Each operation's stand and its eval counts, worked out once from the blueprint and the status document. */
   readonly stands: ReadonlyMap<string, { readonly stand: StandOf; readonly own: Count; readonly under: Count }>;
-  /** The book's dependency edges, built once for every "If this changes" block. */
+  /** The blueprint's dependency edges, built once for every "If this changes" block. */
   readonly impacts: ImpactIndex;
 }
 
@@ -35,23 +35,23 @@ const countOf = (input: SiteInput, evals: readonly EvalDef[]): Count => {
 };
 
 export const contextOf = (input: SiteInput): Ctx => {
-  const all = [...input.book.records.values()];
-  const affects = input.book.links.filter((l) => l.field === "affects" && l.from.startsWith("decision:"));
+  const all = [...input.blueprint.records.values()];
+  const affects = input.blueprint.links.filter((l) => l.field === "affects" && l.from.startsWith("decision:"));
   const stands = new Map(all.filter((r) => r._kind === "operation").map((op) => {
-    const held = evalsUnder(input.book, op);
+    const held = evalsUnder(input.blueprint, op);
     return [keyOf(op), {
-      stand: stand(input.book, op, { waits: input.waits, status: input.status }),
+      stand: stand(input.blueprint, op, { waits: input.waits, status: input.status }),
       own: countOf(input, held.own), under: countOf(input, held.under),
     }] as const;
   }));
   return {
-    stands, impacts: impactIndex(input.book),
+    stands, impacts: impactIndex(input.blueprint),
     input,
     byKind: group(all, (r) => r._kind),
-    evals: group(input.book.evals, (e) => e.subject),
-    gaps: group(input.book.gaps, (g) => g.record),
-    problems: group(input.book.problems, (g) => g.record),
-    linksFrom: group(input.book.links, (l) => l.from),
+    evals: group(input.blueprint.evals, (e) => e.subject),
+    gaps: group(input.blueprint.gaps, (g) => g.record),
+    problems: group(input.blueprint.problems, (g) => g.record),
+    linksFrom: group(input.blueprint.links, (l) => l.from),
     waiting: all.filter((r) => r._kind === "decision" && input.waits(r)),
     affecting: new Map([...group(affects, (l) => l.to)].map(([to, links]) => [to, recordsAt(input, links.map((l) => l.from))])),
     members: group(all.filter((r) => hasPage(r._kind)), (r) => `${input.conceptOf.get(keyOf(r)) ?? ""}/${r._kind}`),
@@ -59,7 +59,7 @@ export const contextOf = (input: SiteInput): Ctx => {
 };
 
 const recordsAt = (input: SiteInput, keys: readonly string[]): readonly AnyRecord[] =>
-  [...new Set(keys)].flatMap((k) => { const r = input.book.records.get(k); return r ? [r] : []; });
+  [...new Set(keys)].flatMap((k) => { const r = input.blueprint.records.get(k); return r ? [r] : []; });
 
 export const ofKind = (ctx: Ctx, kind: string): readonly AnyRecord[] => ctx.byKind.get(kind) ?? [];
 export const membersOf = (ctx: Ctx, concept: string, kind: string): readonly AnyRecord[] =>
@@ -71,14 +71,14 @@ export const isWaiting = (ctx: Ctx, d: AnyRecord): boolean => ctx.waiting.includ
 
 /** The concept record whose folder exports this record, or null for a shared one. */
 export const conceptOf = (ctx: Ctx, r: AnyRecord): AnyRecord | null =>
-  ctx.input.book.records.get(`concept:${ctx.input.conceptOf.get(keyOf(r)) ?? ""}`) ?? null;
+  ctx.input.blueprint.records.get(`concept:${ctx.input.conceptOf.get(keyOf(r)) ?? ""}`) ?? null;
 export const conceptRef = (ctx: Ctx, r: AnyRecord): Ref | null => {
   const c = conceptOf(ctx, r);
   return c ? refOf(c) : null;
 };
-/** The folder of the book a record is written in. */
+/** The folder of the blueprint a record is written in. */
 export const sourceOf = (ctx: Ctx, r: AnyRecord): string =>
-  `books/target/${r._kind === "concept" ? r.id : (ctx.input.conceptOf.get(keyOf(r)) ?? "shared")}`;
+  `blueprint/${r._kind === "concept" ? r.id : (ctx.input.conceptOf.get(keyOf(r)) ?? "shared")}`;
 
 export const titleOf = (r: AnyRecord): string => text(r["title"]) || r.id;
 export const brief = (r: AnyRecord): Brief => ({ ref: refOf(r), text: text(r["title"]) || text(r["about"]) });
@@ -108,9 +108,9 @@ export const valueOf = (u: unknown): Value => {
   return { t: "text", text: text(u) };
 };
 
-/** Where an operation stands: `standOf` in `@capxul/book`, worked out once for the context. */
+/** Where an operation stands: `standOf` in `@capxul/blueprint-engine`, worked out once for the context. */
 export const standOf = (ctx: Ctx, op: AnyRecord): StandOf =>
-  ctx.stands.get(keyOf(op))?.stand ?? { stand: "specify", why: "the book has no such operation" };
+  ctx.stands.get(keyOf(op))?.stand ?? { stand: "specify", why: "the blueprint has no such operation" };
 
 export const operationRow = (ctx: Ctx, op: AnyRecord): OperationRow => ({
   ref: refOf(op), title: titleOf(op), priority: text(op["priority"]), isNew: !ctx.input.frozenOperations.has(op.id),

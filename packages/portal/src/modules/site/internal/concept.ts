@@ -2,7 +2,7 @@
  * A concept's page: what it is, its operations with their stands, its machines, tables, events and errors.
  * Each count links to the section that lists what it counts, so a number is never taken on trust.
  */
-import { keyOf, type AnyRecord } from "@capxul/book";
+import { keyOf, type AnyRecord } from "@capxul/blueprint-engine";
 
 import type { ConceptPage, MachineCard, Ref } from "../types.ts";
 import { impactBlock } from "./impact.ts";
@@ -39,12 +39,12 @@ const errorsOf = (ctx: Ctx, id: string): readonly Ref[] => {
 };
 
 export const concept = (ctx: Ctx, c: AnyRecord): ConceptPage => {
-  const { direction, concepts, book } = ctx.input;
+  const { direction, concepts, blueprint } = ctx.input;
   return {
     ...head(`concept/${c.id}`, titleOf(c), sourceOf(ctx, c), c), type: "concept", about: text(c["about"]), impact: impactBlock(ctx, keyOf(c)),
     verdict: direction.verdicts[c.id] ?? "none", verdictNote: direction.verdictNote,
     rail: concepts.flatMap((id) => {
-      const other = book.records.get(`concept:${id}`);
+      const other = blueprint.records.get(`concept:${id}`);
       return other ? [{ ref: refOf(other), title: titleOf(other), operations: membersOf(ctx, id, "operation").length, active: id === c.id }] : [];
     }),
     counts: COUNTS.map(([kind, name]) => {

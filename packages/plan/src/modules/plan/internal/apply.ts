@@ -55,7 +55,7 @@ const becomeCurrent = (plan: Plan, id: string): Result<Plan> => {
   return { ok: true, value: { ...plan, milestones: plan.milestones.map(settle) } };
 };
 
-/** Applies `command`. It validates what the command itself says; `check` judges the whole plan against the book. */
+/** Applies `command`. It validates what the command itself says; `check` judges the whole plan against the blueprint. */
 export const apply = (plan: Plan, command: Command, ctx: Ctx, facts: Facts): Result<Applied> => {
   const c = command;
   switch (c.kind) {
@@ -134,7 +134,7 @@ const moveTask = (plan: Plan, c: Move, ctx: Ctx, facts: Facts): Result<Applied> 
     case "task.start":
       return c.thread.trim() === "" ? refuse("a task that is doing names its thread") : put({ ...strip(t, "blockedBy"), state: "doing", thread: c.thread }, `task ${c.id} is doing, on ${c.thread}`);
     case "task.block": {
-      if ("decision" in c.blocker && !facts.decisions.has(c.blocker.decision)) return refuse(`the book holds no decision ${c.blocker.decision}`);
+      if ("decision" in c.blocker && !facts.decisions.has(c.blocker.decision)) return refuse(`the blueprint holds no decision ${c.blocker.decision}`);
       if ("need" in c.blocker && (c.blocker.need.trim() === "" || c.blocker.who.trim() === "")) return refuse("a need names what is needed and who has it");
       return put({ ...t, state: "blocked", blockedBy: c.blocker }, `task ${c.id} is blocked`);
     }

@@ -19,7 +19,7 @@ const files = renderSite(site, { css, js });   // ReadonlyMap<path, content>
 - Every page is whole without the script. The script runs on the Questions page only: it shows one question at
   a time, builds the typed answer (a `ReviewAnswer`) and points a link at a prefilled GitHub issue. It writes
   nothing and holds no credential; without it every question is on the page, with a `<noscript>` note.
-- All text from the book passes through `esc` in `internal/html.ts`. No page model carries HTML.
+- All text from the blueprint passes through `esc` in `internal/html.ts`. No page model carries HTML.
 - Long text is never rewritten, only laid out (`internal/prose.ts`): split at sentence ends into paragraphs of two
   or three sentences, never inside backticks or brackets or after an abbreviation; a bracketed citation such as
   `(old S3)` or `(payments.claim-escrow-routes)` is drawn quiet, and links when it names a record.
@@ -27,7 +27,7 @@ const files = renderSite(site, { css, js });   // ReadonlyMap<path, content>
   and TypeScript, on one fixed dark panel, each block under a label that says what it is. The answer on the
   Questions page is built in the browser, so `assets/site.js` highlights it with the same `tk-*` classes.
 - A count is drawn as a link to the list it counts (`tiles` in `internal/tables.ts`).
-- Where the book holds nothing, the page says so ("the book names none"); a row is not left out.
+- Where the blueprint holds nothing, the page says so ("the blueprint names none"); a row is not left out.
 - The design is `docs/design/portal.md` and the five screens it names (decision `portal.designed-screens`):
   blue, orange and grey only; no red, no green, no emoji, no gradient.
 - The module reads no file. `main.ts` reads `assets/` and passes the text in.

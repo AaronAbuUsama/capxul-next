@@ -118,7 +118,7 @@ body:
       label: "Paths"
       description: "TaskDef.paths and brief.paths: what the maker may change, one prefix per line; the gate refuses the rest (swarm.scope)."
       placeholder: |
-        books/target/access/
+        blueprint/access/
         packages/backend/src/access/
         packages/sdk/src/access/
     validations:
@@ -127,7 +127,7 @@ body:
     id: record
     attributes:
       label: "Record"
-      description: "TaskDef.record and brief.record: the book record it builds."
+      description: "TaskDef.record and brief.record: the blueprint record it builds."
       placeholder: "rpc:access.sign-in.challenge"
     validations:
       required: true

@@ -2,15 +2,15 @@
 
 Status: designed book first on 8 November 2026, on the main line, under Aaron's rulings
 `aaron.erp-on-capxul`, `aaron.frappe-shape`, `aaron.projects`, `aaron.fde-agent`,
-`aaron.frappe-head` and `aaron.seats` (`books/target/shared/rulings.ts`). The starting point is
+`aaron.frappe-head` and `aaron.seats` (`blueprint/shared/rulings.ts`). The starting point is
 the mapping in [`docs/vision/erp.md`](../../vision/erp.md), now read as main-line design. The
 records are the authority; this page explains them.
 
 | What | Records |
 |---|---|
-| The projects concept | `books/target/projects/` (data, processes, decisions); `concept_projects` in `shared/foundation.ts` |
-| Start-up and the head connection | `books/target/organizations/` (data, setups, heads, processes, flows, decisions) |
-| The FDE | `books/target/agents/` (data, processes, decisions) and the organizations setup |
+| The projects concept | `blueprint/projects/` (data, processes, decisions); `concept_projects` in `shared/foundation.ts` |
+| Start-up and the head connection | `blueprint/organizations/` (data, setups, heads, processes, flows, decisions) |
+| The FDE | `blueprint/agents/` (data, processes, decisions) and the organizations setup |
 | The head integration and the Capxul app for Frappe | `integration_frappe_head` in `shared/external.ts`; `component_frappe_app` in `shared/foundation.ts` |
 
 Nothing here adds an operation. The new commands are two decision packs for Aaron

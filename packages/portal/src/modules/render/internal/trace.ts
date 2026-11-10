@@ -1,13 +1,13 @@
 /**
  * What happens when an operation runs, as a vertical trace: each step in order, and under an rpc step everything
- * the book lists for it. A row the book holds nothing for says so; it is never left out.
+ * the blueprint lists for it. A row the blueprint holds nothing for says so; it is never left out.
  */
 import type { Ref, Trace, TraceStep } from "#src/modules/site/types.ts";
 
 import { chip, esc, link } from "./html.ts";
 import { rich, type Cites } from "./prose.ts";
 
-const NONE = '<span class="muted">the book names none</span>';
+const NONE = '<span class="muted">the blueprint names none</span>';
 const refs = (at: string, held: readonly Ref[]): string =>
   held.length === 0 ? NONE : `<span class="inline-list">${held.map((r) => link(at, r, "ref")).join(" ")}</span>`;
 /** The same, inside a sentence. */
@@ -26,7 +26,7 @@ const step = (at: string, s: TraceStep, i: number, cites: Cites): string =>
   `<p class="trace-head"><span class="trace-name">${esc(s.name)}</span>${chip(s.rpc ? "rpc" : `the SDK: ${s.does}`, s.rpc ? "chip chip-blue" : "chip chip-quiet")}` +
   `${s.rpc ? link(at, s.rpc, "ref") : ""}</p>` +
   (s.about === "" ? "" : `<p class="trace-about">${rich(at, s.about, cites)}</p>`) +
-  (s.rpc ? facts(at, s) : `<p class="trace-quiet">The SDK does this itself. The book lists nothing under it.</p>`) + `</div></li>`;
+  (s.rpc ? facts(at, s) : `<p class="trace-quiet">The SDK does this itself. The blueprint lists nothing under it.</p>`) + `</div></li>`;
 
 /** What the whole run sends and names: each event with the transition that sends it, each span with who names it. */
 const telemetry = (at: string, t: Trace): string =>
@@ -38,7 +38,7 @@ const telemetry = (at: string, t: Trace): string =>
 
 /** The trace of one operation. With nothing implementing it, it says so. */
 export const traceView = (at: string, t: Trace, cites: Cites): string => {
-  if (!t.by) return '<p class="silent">The book names nothing that implements this operation, so there is no run to trace.</p>';
+  if (!t.by) return '<p class="silent">The blueprint names nothing that implements this operation, so there is no run to trace.</p>';
   const top = `<p class="trace-top">Implemented by the ${esc(t.kind)} ${link(at, t.by, "ref")}. ` +
     (t.kind === "flow"
       ? `Outside calls the client makes itself: ${inline(at, t.calls)}. Spans the flow names: ${t.spans.length === 0 ? NONE : t.spans.map((s) => `<code>${esc(s)}</code>`).join(", ")}.`

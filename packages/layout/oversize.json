@@ -1,5 +1,5 @@
 {
-  "packages/book/src/build.ts": 469,
+  "packages/blueprint-engine/src/build.ts": 469,
   "packages/contracts/src/agents/AgentOwner.sol": 418,
   "packages/contracts/src/authority/InstallerMoney.sol": 319,
   "packages/contracts/src/equity/Captable.sol": 544,

@@ -21,6 +21,6 @@ lists. `data/eval/<kind>.json` holds every eval of one kind: the portal check co
 
 - A Markdown twin links to other twins (`.md`), never to an anchor: a twin has no ids. It opens with a line that
   links to its own HTML and JSON.
-- Text from the book is put on one line and cannot start a link (`plain` in `internal/md.ts`).
+- Text from the blueprint is put on one line and cannot start a link (`plain` in `internal/md.ts`).
 - The JSON twin is the page model with nothing added and nothing left out, so a page never says more than its data.
 - No timestamp anywhere. The commit is the one the caller passed.

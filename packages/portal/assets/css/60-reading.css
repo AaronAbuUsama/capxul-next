@@ -1,4 +1,4 @@
-/* reading: the book's long text as paragraphs, quiet citations, folds */
+/* reading: the blueprint's long text as paragraphs, quiet citations, folds */
 .prose { max-width: 68ch; line-height: 1.6; }
 .prose p + p { margin-top: 0.85em; }
 .lead-prose { font-size: 17px; color: var(--body-2); }

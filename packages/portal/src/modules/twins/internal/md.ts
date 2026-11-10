@@ -2,7 +2,7 @@
 import { htmlFile, jsonFile, mdFile, relative } from "#src/modules/site/service.ts";
 import type { Brief, Cell, EvalRow, FindingRow, ImpactBlock, LinkGroup, Ref, TableSection, Tile, Trace, Value, Variant } from "#src/modules/site/types.ts";
 
-/** Text on one line. A `](` the book wrote is escaped, so the only links in a twin are the ones the site makes. */
+/** Text on one line. A `](` the blueprint wrote is escaped, so the only links in a twin are the ones the site makes. */
 export const plain = (s: string): string => s.replace(/\s+/g, " ").trim().replaceAll("](", "]\\(");
 
 /** The link from the twin of page `at` to the twin of another page. A twin has no anchors, so the page is the target. */
@@ -37,7 +37,7 @@ export const impact = (at: string, b: ImpactBlock): readonly string[] =>
   b.total === 0 ? ["Nothing depends on this record.", ""] : [
     `${b.total} records depend on it: ${b.byKind.map((k) => `${k.kind} ${k.count}`).join(", ")}. ` +
       `${b.decisions} decisions name it; ${b.decisionsOnDependents} name something that depends on it. ${b.evals} evals belong to it or to them.`, "",
-    ...(b.complete ? [] : ["This list is cut to the nearest 500, or for a decision to the records it names; `packages/book/scripts/impact.ts` lists everything that depends on them.", ""]),
+    ...(b.complete ? [] : ["This list is cut to the nearest 500, or for a decision to the records it names; `packages/blueprint-engine/scripts/impact.ts` lists everything that depends on them.", ""]),
     ...table(["Record", "Kind", "Field", "Names", "Distance"], b.all.map((d) => [link(at, d.ref), d.kind, `\`${d.field}\``, link(at, d.via), String(d.distance)])),
   ];
 
@@ -74,28 +74,28 @@ export const tableSection = (at: string, s: TableSection): readonly string[] => 
 export const tiles = (at: string, held: readonly Tile[]): readonly string[] =>
   held.map((t) => `- ${t.big} ${t.to ? `[${plain(t.name)}](${relative(mdFile(at), mdFile(t.to.page))})` : plain(t.name)}`);
 
-const or = (at: string, held: readonly Ref[]): string => (held.length === 0 ? "the book names none" : refs(at, held));
+const or = (at: string, held: readonly Ref[]): string => (held.length === 0 ? "the blueprint names none" : refs(at, held));
 
 /** The events a run sends and the spans it names, from the whole implementation. */
 const telemetry = (at: string, t: Trace): readonly string[] => [
-  `Events it sends: ${t.sends.length === 0 ? "the book names none" : t.sends.map((e) =>
+  `Events it sends: ${t.sends.length === 0 ? "the blueprint names none" : t.sends.map((e) =>
     `${link(at, e.event)} through ${e.transition ? link(at, e.transition) : "the record itself"} (driven by ${link(at, e.by)})`).join("; ")}.`, "",
-  `Spans it names: ${t.named.length === 0 ? "the book names none" : t.named.map((s) => `\`${s.span}\` (${link(at, s.by)})`).join(", ")}.`, "",
+  `Spans it names: ${t.named.length === 0 ? "the blueprint names none" : t.named.map((s) => `\`${s.span}\` (${link(at, s.by)})`).join(", ")}.`, "",
 ];
 
-/** What happens when an operation runs: each step, and under an rpc step what the book lists for it. */
+/** What happens when an operation runs: each step, and under an rpc step what the blueprint lists for it. */
 export const trace = (at: string, t: Trace): readonly string[] =>
-  !t.by ? ["The book names nothing that implements this operation, so there is no run to trace.", ""] : [
+  !t.by ? ["The blueprint names nothing that implements this operation, so there is no run to trace.", ""] : [
     `Implemented by the ${t.kind} ${link(at, t.by)}.` + (t.kind === "flow"
-      ? ` Outside calls the client makes itself: ${or(at, t.calls)}. Spans the flow names: ${t.spans.length === 0 ? "the book names none" : t.spans.join(", ")}.` : ""), "",
+      ? ` Outside calls the client makes itself: ${or(at, t.calls)}. Spans the flow names: ${t.spans.length === 0 ? "the blueprint names none" : t.spans.join(", ")}.` : ""), "",
     ...telemetry(at, t),
     ...t.steps.flatMap((s, i) => [
       `${i + 1}. **${plain(s.name)}** (${s.rpc ? `rpc ${link(at, s.rpc)}` : `the SDK: ${s.does}`})${s.about === "" ? "" : `: ${plain(s.about)}`}`,
       ...(s.rpc ? [
         `   - Contract calls: ${or(at, s.chain)}`, `   - Outside calls: ${or(at, s.calls)}`, `   - Procedures: ${or(at, s.invokes)}`,
         `   - Transitions: ${or(at, s.drives)}`, `   - Events it sends: ${or(at, s.events)}`, `   - Tables it writes: ${or(at, s.writes)}`,
-        `   - Spans: ${s.spans.length === 0 ? "the book names none" : s.spans.join(", ")}`,
-      ] : ["   - The SDK does this itself. The book lists nothing under it."]),
+        `   - Spans: ${s.spans.length === 0 ? "the blueprint names none" : s.spans.join(", ")}`,
+      ] : ["   - The SDK does this itself. The blueprint lists nothing under it."]),
     ]), "",
   ];
 

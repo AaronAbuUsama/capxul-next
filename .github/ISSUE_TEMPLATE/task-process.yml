@@ -118,7 +118,7 @@ body:
       label: "Paths"
       description: "TaskDef.paths and brief.paths: what the maker may change, one prefix per line; the gate refuses the rest (swarm.scope)."
       placeholder: |
-        books/target/payments/
+        blueprint/payments/
         packages/backend/src/payments/
         packages/sdk/src/payments/
     validations:
@@ -127,7 +127,7 @@ body:
     id: record
     attributes:
       label: "Record"
-      description: "TaskDef.record and brief.record: the book record it builds."
+      description: "TaskDef.record and brief.record: the blueprint record it builds."
       placeholder: "workflow:payments.lifecycle.payment"
     validations:
       required: true

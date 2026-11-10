@@ -5,14 +5,14 @@ import { check, expect, passed } from "#src/modules/check/service.ts";
 
 import { assetsOf, generate, load, ownerNeedsOf, planPagesOf, ROOT } from "./main.ts";
 
-test("the real book generates a site that passes the portal check", async () => {
+test("the real blueprint generates a site that passes the portal check", async () => {
   const loaded = await load(ROOT, "test000");
   assert.ok(loaded.ok, loaded.ok ? "" : loaded.error);
   const input = loaded.value;
-  assert.equal(input.book.problems.length, 0);
+  assert.equal(input.blueprint.problems.length, 0);
   const assets = assetsOf();
   const files = generate(input, assets);
-  const expected = expect(input.book, input.waits, input.status, {
+  const expected = expect(input.blueprint, input.waits, input.status, {
     problems: (input.plan?.problems ?? []).map((p) => `${p.at}: ${p.why}`), tasks: input.plan?.plan.tasks.length ?? null, ownerNeeds: ownerNeedsOf(input), pages: planPagesOf(input),
   }, input.worlds ? ["worlds"] : []);
   assert.ok(input.worlds, "the Worlds page is made from docs/design/worlds-platform.md");
@@ -27,7 +27,7 @@ test("the real book generates a site that passes the portal check", async () => 
   const outcomes = check(files, generate(input, assets), expected);
   assert.ok(passed(outcomes), JSON.stringify(outcomes.filter((o) => o.failures > 0), null, 2));
 
-  const operations = [...input.book.records.values()].filter((r) => r._kind === "operation").length;
+  const operations = [...input.blueprint.records.values()].filter((r) => r._kind === "operation").length;
   assert.equal(expected.operations.length, operations);
   assert.equal([...files.keys()].filter((f) => f.endsWith(".html")).length, expected.pages.length);
   assert.equal(files.size, expected.pages.length * 3 + 3);

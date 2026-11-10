@@ -3,7 +3,7 @@
 Status: **proposed, 7 November 2026.** Each policy is a decision for Aaron. The
 recommendations are what the design threads follow until he rules otherwise.
 Each ruling becomes a `defineDecision` record in the book and, where it says
-so, a rule or a gap in `packages/book/src/build.ts`.
+so, a rule or a gap in `packages/blueprint-engine/src/build.ts`.
 
 ## How to read this pack
 
@@ -17,7 +17,7 @@ so, a rule or a gap in `packages/book/src/build.ts`.
 - **The fixed points.** The CLI and the old book's operations
   (`apps/docs/factory/operations/*.yaml`, 215 records) are frozen. The new
   system is Effect 4 on Node with Postgres, with Ponder on the same Postgres,
-  built from the typed book in `capxul-next/packages/book`.
+  built from the typed book in `capxul-next/packages/blueprint-engine`.
 
 ### The rubric
 
@@ -420,7 +420,7 @@ consumes later, or do the two concepts **merge**?
 ### Options
 
 - **A. Procedures on a door, invoked in the caller's transaction.** This is
-  what `capxul-next/packages/book/src/records/behaviour.ts` already sketches:
+  what `capxul-next/packages/blueprint-engine/src/records/behaviour.ts` already sketches:
   a `procedure` "runs inside the invoker's transaction", and an rpc lists it
   in `invokes`. All writes commit together, or none do.
 - **B. Events through an outbox.** Payments commits the settlement and an
@@ -469,7 +469,7 @@ export const ProcedureSpec = Schema.Struct({
 ```
 
 - **The `dependsOn` check already exists:** `invoke-boundary` in
-  `capxul-next/packages/book/src/build.ts:159-163` refuses an invoke of a
+  `capxul-next/packages/blueprint-engine/src/build.ts:159-163` refuses an invoke of a
   procedure whose concept the invoker does not depend on. What is new is
   only that the generated code imports procedures from the door, never a
   deep path, so the old "0 door imports" cannot recur.
@@ -488,7 +488,7 @@ export const ProcedureSpec = Schema.Struct({
 ### Question
 
 What is the default system-time budget for each of the eight budget classes in
-`capxul-next/packages/book/src/records/base.ts` (`read`, `live-read`, `write`,
+`capxul-next/packages/blueprint-engine/src/records/base.ts` (`read`, `live-read`, `write`,
 `chain-read`, `chain-submit`, `chain-settle`, `vendor`, `background`)? When
 may an operation override it?
 
@@ -608,7 +608,7 @@ export const Budget = Schema.Struct({
 });
 ```
 
-- **New file `packages/book/src/budgets.ts`** holds the table above as data.
+- **New file `packages/blueprint-engine/src/budgets.ts`** holds the table above as data.
 - **New rule `budget-override-why`:** a number without a `why` is a problem.
 - **New rule `budget-class-fit`:** an rpc or flow whose `chain` or `calls`
   touch the chain or a vendor cannot take `read` or `write`.

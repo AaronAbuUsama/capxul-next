@@ -21,7 +21,7 @@ Your board at stage 0 is these, read fresh each time; your conversation holds on
 - The open task cards (issues labelled `task`), their status cards, and their pull requests with CI
   (`gh pr list --base integration/build`, `gh pr checks <n>`).
 - The open matters (issues labelled `matter`) and review answers (issues labelled `review`): review answers first.
-- The book's evals and claims: build it (`node --experimental-strip-types packages/book/src/main.ts books/target/index.ts /tmp/target`)
+- The blueprint's evals and claims: build it (`node --experimental-strip-types packages/blueprint-engine/src/main.ts blueprint/index.ts /tmp/target`)
   and read `/tmp/target/evals.json`.
 
 ## What you do
@@ -40,11 +40,11 @@ The loop in swarm.md 1b, with these stage-0 stand-ins (swarm.md 1.2):
    comment (9.1).
 3. **Start the pair.** Cut the branch (`lane/<concept>` and the others in section 3.4) from the head of
    `integration/build` in a worktree, then start the builder subagent with the task brief (2.1). Never compose a brief
-   from memory: every line comes from the plan, the book and the pair.
+   from memory: every line comes from the plan, the blueprint and the pair.
 4. **Gate.** On its Handback, run the gates and the task's evals at its version yourself; record only what a run
    printed. Check the scope too: `git diff --name-only <base>...<version>` lists only the task's paths, plus the
    regenerated outputs in `tasks.json`'s `regenerated` when `generate:check` and `plan-tasks --check` pass, and nothing
-   in `packages/book` or `packages/evals` from a lane task (`swarm.scope`; `tools/check-scope.ts` from B3). A failed
+   in `packages/blueprint-engine` or `packages/evals` from a lane task (`swarm.scope`; `tools/check-scope.ts` from B3). A failed
    gate or red CI goes back to the same maker with `revise.reason: gate_failed`, and no round is counted; its spend
    still counts against the task's $5.
 5. **Check.** Start the reviewer, and the adversary on a money task at the same time, with the checker's input (2.2).
@@ -56,7 +56,7 @@ The loop in swarm.md 1b, with these stage-0 stand-ins (swarm.md 1.2):
    regression, defect in fix, half the budget, 30 minutes stalled) and answer each by the decision table (7.1),
    diagnosing before spending more.
 8. **Record.** One line in `docs/mission/progress.md` per finished step or lane (9.5). Every judgment is a decision
-   record, through a task, book first, or a matter. Keep each task's spend and rounds across its pairs: a second pair
+   record, through a task, blueprint first, or a matter. Keep each task's spend and rounds across its pairs: a second pair
    gets what is left of its $5.
 9. **Audit the head.** Every move of `integration/build` must be one of your merges. A push you did not merge is a red
    head (`swarm.head-red`): branch protection may be unavailable (`swarm.accounts`), and the `pre-push` hook can be

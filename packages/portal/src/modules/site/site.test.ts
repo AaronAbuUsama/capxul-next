@@ -71,7 +71,7 @@ test("the old CLI's arguments and flags show only where the old CLI had the comm
   assert.ok(invite.returns.length > 0, "the returns schema is not shown");
 });
 
-test("the same book builds the same site, and the commit is the one passed in", () => {
+test("the same blueprint builds the same site, and the commit is the one passed in", () => {
   assert.equal(canonical(buildSite(fixtureInput())), canonical(site));
   assert.equal(buildSite(fixtureInput("fff0000")).commit, "fff0000");
 });
@@ -112,7 +112,7 @@ test("an operation carries its SDK call, its trace, and every eval under a named
   assert.equal(accept.trace.kind, "flow");
   assert.ok(accept.trace.steps.length > 0 && accept.trace.steps.some((s) => s.rpc !== null));
   const invite = operation("org.member.invite");
-  assert.ok(invite.sdkCall.includes("The book names no SDK method"));
+  assert.ok(invite.sdkCall.includes("The blueprint names no SDK method"));
   assert.equal(invite.trace.steps.length, 1);
   assert.ok(invite.trace.steps[0]?.events.some((e) => e.label === "invitation_sent"), "the rpc's transition events are not traced");
   assert.deepEqual(invite.evalKinds.map((k) => k.kind), [...new Set(invite.evalKinds.map((k) => k.kind))]);
@@ -121,13 +121,13 @@ test("an operation carries its SDK call, its trace, and every eval under a named
   assert.deepEqual(invite.acceptance.map((a) => a.n), invite.evals.filter((e) => e.kind === "acc").map((e) => Number(e.id.split("/").pop())));
 });
 
-test("the eval catalogue counts every eval the book derives, by level and by kind", () => {
-  const { evals } = fixtureInput().book;
+test("the eval catalogue counts every eval the blueprint derives, by level and by kind", () => {
+  const { evals } = fixtureInput().blueprint;
   const kinds = [...new Set(evals.map((e) => e.id.slice(0, e.id.indexOf(":"))))];
   const index = catalogue("eval");
   assert.deepEqual(index.sections.map((s) => s.anchor), ["l1", "l2", "l3", "l4"]);
   assert.equal(index.sections[3]?.rows.length, 0);
-  assert.equal(index.sections[3]?.empty, "The book derives none yet.");
+  assert.equal(index.sections[3]?.empty, "The blueprint derives none yet.");
   const listed = index.sections.flatMap((s) => s.rows.map((r) => r.cells[0])).flatMap((c) => (c?.t === "ref" ? [c.ref.label] : []));
   assert.deepEqual([...listed].sort(), [...kinds].sort());
   let total = 0;
@@ -158,7 +158,7 @@ test("Docs is catalogues: every count is the length of the table it links to", (
   for (const tile of concept.counts) assert.equal(tile.to === null, tile.big === "0", `${tile.name}: a count and its link disagree`);
 });
 
-test("Architecture is drawn from the book: what runs where, the layers, and what the book is silent on", () => {
+test("Architecture is drawn from the blueprint: what runs where, the layers, and what the blueprint is silent on", () => {
   const design = page("design");
   assert.ok(design.type === "architecture");
   assert.deepEqual(design.runs.heads.slice(0, 2), ["Component", "Runs on"]);
