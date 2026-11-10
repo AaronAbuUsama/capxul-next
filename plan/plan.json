@@ -1125,12 +1125,15 @@
       "title": "Stop, steer and queue a run from the Runs page, proven on a live run",
       "why": "Layer first: a watched run must be stoppable from the page; the stopped run-observability session found that Stop left a recorded command running",
       "milestone": "m1",
-      "state": "todo",
+      "state": "done",
       "needs": [],
       "records": [],
-      "evidence": [],
+      "evidence": [
+        "3070e3c (stop.test.ts: ended 423 ms after stop while recording; host.test.ts: stop and notes reach the owner over the page's connection; a click on the live page waits for the host on :4392 to restart)"
+      ],
       "created": "2026-11-10",
-      "updated": "2026-11-10"
+      "updated": "2026-11-10",
+      "thread": "coordinator"
     },
     {
       "id": "m1-loop-watch",
@@ -1163,7 +1166,6 @@
   ],
   "path": {
     "tasks": [
-      "m1-loop-steer-stop",
       "m1-loop-watch",
       "m1-loop-watched-run",
       "m1-model-gateway",
@@ -1172,7 +1174,7 @@
       "m1-time-proof",
       "m1-aaron-accepts"
     ],
-    "why": "m1-loop-visibility done (711d0ea): m1-gaps-contracts-11101507 shows 28 refused; nothing on the Runs page needs Aaron now. Next: Stop and steering, then the watch",
+    "why": "m1-loop-steer-stop done (3070e3c). Next: the watch, then the one watched run",
     "written": "2026-11-10"
   },
   "notes": [
