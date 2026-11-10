@@ -2,8 +2,8 @@
 // node --experimental-strip-types tools/plan-tasks.ts --check   → exits 1 if docs/mission/tasks.json is stale
 //
 // The build's task tree, derived from the design book (docs/design/swarm.md, section 5). Nothing here is written by hand
-// except the milestones' steps and exit lines, which come from the goal prompt and the tooling and portal designs. Every
-// other task is a record of the book, and its done is the book's own eval ids:
+// except the milestones, which are the milestones of plan/plan.json (the coordinator's plan, read from the file, so there is
+// one list; portal.plan-page). Every other task is a record of the book, and its done is the book's own eval ids:
 //
 // - one lane per concept, in the layers of decision system.build-order (the concepts' dependsOn depth, equity last);
 // - in each lane: the door (its tables, machines and procedures), one task per durable process, one per operation, and
@@ -17,7 +17,7 @@
 // need points at a later layer, or the needs (with each parent waiting on its children) have a cycle.
 //
 // A task with evals but no paths is a watch task (swarm.watch-tasks): no maker could change anything for it, so it has no
-// checkers and no budget, never gets a pair, and is done when its evals pass (the journeys, B3.pilots, B5.week).
+// checkers and no budget, never gets a pair, and is done when its evals pass (the journeys).
 //
 // The file holds the tasks and nothing aggregated over the book: no record or eval counts, which change with every
 // decision record a lane adds. So two lanes that change different tasks regenerate it without a conflict, and a merge of
@@ -28,9 +28,11 @@ import { name, records, stage } from "../books/target/index.ts";
 import { CONCEPTS } from "../books/target/shared/foundation.ts";
 import { recordsOf } from "../books/target/shared/index.ts";
 import { WORLDS } from "../books/target/devnet/worlds.ts";
+import { parsePlan } from "./plan/service.ts";
 import { buildBook, keyOf, type AnyRecord, type EvalDef } from "../packages/book/src/index.ts";
 
 const OUT = "docs/mission/tasks.json";
+const PLAN = "plan/plan.json";
 const check = process.argv.includes("--check");
 const failures: string[] = [];
 const warnings: string[] = [];
@@ -105,7 +107,7 @@ const maxDepth = Math.max(...depth.values());
 const layerOf = (c: string) => (LAST.has(c) ? maxDepth + 1 : depth.get(c)!);
 /** The decision's own list, so that a change to the concept map that moves a layer fails here until the decision moves. */
 const BUILD_ORDER: readonly (readonly string[])[] = [
-  ["access"], ["media"], ["parties"], ["indexing"], ["approvals"], ["accounts"], ["organizations"], ["applications", "board", "books", "contacts", "documents"], ["agents", "budgets"], ["payments"], ["activity", "banking"], ["requests"], ["notices"], ["devnet"],
+  ["access"], ["media"], ["parties"], ["indexing"], ["approvals"], ["accounts"], ["organizations"], ["applications", "board", "books", "contacts", "documents"], ["agents", "budgets"], ["payments"], ["activity", "banking", "plugs"], ["requests", "sites"], ["notices"], ["devnet"],
 ];
 const computed: string[][] = [];
 for (const c of CONCEPTS) (computed[layerOf(c.id)] ??= []).push(c.id);
@@ -121,7 +123,7 @@ const laneLayer = (lane: string) => (lane === INTEGRATIONS ? -1 : lane === JOURN
 
 // ── the task shape (docs/design/swarm.md, section 4: TaskDef) ──────────────────────────────
 
-type Kind = "root" | "milestone" | "step" | "lane" | "door" | "process" | "rpc" | "flow" | "operation" | "integration" | "journey";
+type Kind = "root" | "milestone" | "lane" | "door" | "process" | "rpc" | "flow" | "operation" | "integration" | "journey";
 type Priority = "critical" | "normal" | "low";
 interface TaskDef {
   key: string;
@@ -177,150 +179,36 @@ const REGENERATED = ["docs/mission/tasks.json", "packages/*/src/generated/"];
 const clip = (s: string, n: number) => (s.length <= n ? s : `${s.slice(0, n - 1)}…`);
 const RANK: Record<Priority, number> = { critical: 0, normal: 1, low: 2 };
 
-// ── milestones and their steps (the goal prompt; docs/design/tooling.md; docs/design/portal.md) ──
+// ── milestones: the plan's own (plan/plan.json), read from the file so there is one list ──────
 
-/** A step inherits its milestone's needs, unless it names its own `base` (the spine starts beside the harness). */
-interface Step { key: string; title: string; goal: string; exit: [string, string][]; needs?: string[]; base?: string[]; book?: string[]; money?: boolean; paths: string[] }
-interface Milestone { key: string; title: string; goal: string; needs: string[]; steps: Step[] }
-const MILESTONES: Milestone[] = [
-  {
-    key: "T0", title: "T0 Tooling", needs: [],
-    goal: "The pinned toolchain, one strict lint standard with Capxul's own rules, the formatter, the hooks, CI and the few cross-file checks, exactly as docs/design/tooling.md gives them, before any product code.",
-    steps: [
-      { key: "T0.files", title: "T0 Toolchain and gate files", paths: ["package.json", ".npmrc", ".node-version", ".gitignore", "tsconfig.base.json", "tsconfig.json", "vite.config.ts", ".vite-hooks/", "knip.jsonc", ".jscpd.json", ".gitleaks.toml"],
-        goal: "The toolchain is pinned and every gate's config is the file tooling.md gives, so a fresh clone runs every gate on the whole tree.",
-        exit: [["ms:T0/gates", "From a fresh clone every gate passes on the whole tree."], ["ms:T0/book", "The book's counts are unchanged by T0."]] },
-      { key: "T0.lint", title: "T0 Capxul lint plugin and its facts", paths: ["packages/lint/", "packages/generate/"], needs: ["step:T0.files"],
-        goal: "packages/lint holds the nine capxul/* rules, each with good and bad fixtures, reading facts generate writes from books/target.",
-        exit: [["ms:T0/canary", "The lint canary fires every rule on its bad fixtures and none on its good ones."]] },
-      { key: "T0.ci", title: "T0 Hooks, CI and the cloud environment", paths: [".github/workflows/", ".vite-hooks/", "docs/mission/progress.md"], needs: ["step:T0.lint"],
-        goal: "The hooks and CI hold the gates within their budgets, and the build session's environment installs the pinned toolchain.",
-        exit: [["ms:T0/hooks", "The hooks refuse a bad commit and a push to main, within their time budgets."], ["ms:T0/ci", "CI is green on the T0 pull request."], ["ms:T0/baselines", "The gates' baselines are logged in docs/mission/progress.md."]] },
-    ],
-  },
-  {
-    key: "D0", title: "D0 The portal", needs: ["milestone:T0"],
-    goal: "The portal (docs/design/portal.md) is live behind Access: a page for every record, Review with typed answers, the stands, the scoreboard and the CLI surface, with Markdown and JSON twins.",
-    steps: [
-      { key: "D0.book", title: "D0 Review field, underOf and standOf in the book", paths: ["packages/book/", "books/target/", "tools/report-judgments.ts", "docs/decisions/judgments.md"],
-        goal: "Decisions carry their review state, the judgments report reads it, every eval id is unique, and packages/book computes the records under an operation and its stand.",
-        exit: [["ms:D0/book", "The decision schema has its review field, report-judgments reads it, and underOf and standOf pass their tests on the fixture book."],
-          ["ms:D0/unique", "Every eval id the book derives is unique (portal.eval-ids), and a duplicate id is the build problem duplicate-eval."]] },
-      { key: "D0.site", title: "D0 The portal target and site", paths: ["packages/generate/", "packages/portal/", ".github/workflows/"], needs: ["step:D0.book"],
-        goal: "packages/generate's portal target writes the bundle and packages/portal renders every page, twin and the status overlay, checked in CI.",
-        exit: [["ms:D0/check", "The portal check passes: every record has its page, every link resolves, two generations are byte-identical, and Review's list equals the judgments report's."], ["ms:D0/stands", "Every operation shows its stand, equal to standOf over the book at that commit."]] },
-      { key: "D0.host", title: "D0 Hosting, previews and the status job", paths: ["packages/portal/", ".github/workflows/"], needs: ["step:D0.site"],
-        goal: "The portal runs as a private Cloudflare Worker behind Access, with a preview per pull request and a status document per tracked ref.",
-        exit: [["ms:D0/live", "The portal is live behind Access with a preview on each pull request, and its link has gone to Aaron."]] },
-    ],
-  },
-  {
-    key: "B0", title: "B0 Spike: durable execution", needs: ["milestone:T0"],
-    goal: "Effect Workflow and Cluster on Postgres are proven for the book's processes, or a decision chooses the fallback (DBOS on Postgres) and the book follows it.",
-    steps: [
-      { key: "B0.engine", title: "B0 Resume, signal and timer", paths: ["spikes/durable-execution/"],
-        goal: "A process killed mid-run resumes, a signal resumes a waiting instance, and a timer fires, on the throwaway Postgres.",
-        exit: [["ms:B0/resume", "A process killed mid-run resumes on Effect Workflow and Cluster over Postgres."], ["ms:B0/signal", "A signal resumes a waiting instance."], ["ms:B0/timer", "A timer fires."]] },
-      { key: "B0.once", title: "B0 An activity's side effect lands once", paths: ["spikes/durable-execution/"], needs: ["step:B0.engine"], money: true,
-        goal: "An activity retried after a crash has its side effect land exactly once, through an idempotency key or a claim-before-call row, as the book's design does.",
-        exit: [["ms:B0/once", "An activity retried after a crash has its side effect land once."]] },
-      { key: "B0.wake", title: "B0 Wake routing by keys, and the decisions", paths: ["spikes/durable-execution/", "books/target/"], needs: ["step:B0.engine"],
-        goal: "A chain event and a withdraw transition, routed by their keys, wake the same waiting instance, and the runtime's choices are decision records.",
-        exit: [["ms:B0/wake", "A chain event and a withdraw transition, routed by their routing keys, reach the same waiting instance."], ["ms:B0/decisions", "How the runtime learns of a new indexed row and where the key-to-instance map lives are decision records; or a decision chooses DBOS and the book is updated."]] },
-    ],
-  },
-  {
-    key: "B1", title: "B1 Generators", needs: ["milestone:B0"],
-    goal: "packages/generate regenerates every src/generated/ folder from the records with no diff, every package compiles, and the migrations apply to an empty Postgres.",
-    steps: [
-      { key: "B1.flags", title: "B1 The operations' CLI flags, book first", paths: ["packages/book/", "books/target/"],
-        goal: "Every operation's flags are designed in the book as one consistent system and map onto its flow's or rpc's input; books/frozen/flags.ts is reference only.",
-        exit: [["ms:B1/flags", "Every operation's CLI flags are designed in the book, with the field's decision, and each maps onto its flow's or rpc's input."]] },
-      { key: "B1.admissions", title: "B1 Counterparty admissions, book first", paths: ["books/target/"],
-        goal: "The read-only admissions counterparties need on company rows are in the book (rules.counterparty-reads) before the policies are generated.",
-        exit: [["ms:B1/counterparty", "Every rpc whose who is a counterparty reads company rows only through a read-only admission clause in the book."]] },
-      { key: "B1.data", title: "B1 Migrations and schemas", paths: ["packages/generate/"], needs: ["step:B1.admissions"],
-        goal: "SQL migrations with tenant-first keys and row-level security, and the Effect Schema types, are generated from the tables and fields.",
-        exit: [["ms:B1/migrations", "The generated migrations apply to an empty Postgres."]] },
-      { key: "B1.server", title: "B1 Rpc group, router stubs and catalogues", paths: ["packages/generate/"], needs: ["step:B1.data"],
-        goal: "The RpcGroup, the server router stubs, the error catalogue, each machine's transition table and the integrations' timeouts and retries are generated.",
-        exit: [["ms:B1/server", "The backend's generated rpc group, errors, transition tables and integration settings compile, typed as tooling.md section 7 requires."]] },
-      { key: "B1.client", title: "B1 Core SDK client, flows and CLI wiring", paths: ["packages/generate/"], needs: ["step:B1.flags", "step:B1.server"],
-        goal: "The Core SDK client and flow skeletons, and the CLI wiring from each operation's designed command and flags, are generated.",
-        exit: [["ms:B1/client", "The generated SDK client, flow skeletons and CLI wiring compile, one SDK method per command."]] },
-      { key: "B1.workflows", title: "B1 Workflow skeletons with waits", paths: ["packages/generate/"], needs: ["step:B1.server"],
-        goal: "Each durable process has a generated skeleton with its typed steps, its waits and its wake registrations by routing key.",
-        exit: [["ms:B1/workflows", "Every workflow's generated skeleton compiles with its typed steps, waits and wake registrations."]] },
-      { key: "B1.catalogues", title: "B1 Telemetry and eval catalogues", paths: ["packages/generate/"], needs: ["step:B1.server"],
-        goal: "The telemetry catalogue (one event per machine, plus the runtime spans) and the eval catalogue are generated.",
-        exit: [["ms:B1/catalogues", "The generated telemetry and eval catalogues equal the book's machines, spans and evals."]] },
-      { key: "B1.check", title: "B1 Regenerate with no diff", paths: ["packages/generate/"], needs: ["step:B1.client", "step:B1.workflows", "step:B1.catalogues"],
-        goal: "Regenerating gives no diff and every package compiles.", book: ["system:capxul"],
-        exit: [["ms:B1/compile", "pnpm exec tsc -b compiles every package."]] },
-    ],
-  },
-  {
-    key: "B2", title: "B2 Eval harness", needs: ["milestone:B1"],
-    goal: "packages/evals, within 2,000 lines, lists the catalogue and runs any eval by id on a devnet world through the real CLI, as swarmD's runner contract says.",
-    steps: [
-      { key: "B2.runner", title: "B2 The runner contract", paths: ["packages/evals/"],
-        goal: "`eval list --json` and `eval run --json --out <dir> -- <ids>` print exactly the catalogue and one RunResult per id.",
-        exit: [["ms:B2/runner", "`eval list --json` prints the catalogue (the book's evals and the milestone evals, each id once) and `eval run --json` prints one RunResult per id asked for."]] },
-      { key: "B2.worlds", title: "B2 Worlds as devnet snapshots", paths: ["packages/evals/", "books/target/devnet/"], needs: ["step:B2.runner"],
-        goal: "The world builder builds each world a refusal or claim names from its steps, as the devnet concept designs it, and restores it as a named snapshot once the operations its steps run exist.",
-        exit: [["ms:B2/worlds", "The world builder builds a world from its steps and restores it by name, and lists every world whose steps run an operation not built yet, with those operations, as not yet buildable."]] },
-      { key: "B2.otlp", title: "B2 Spans and measures", paths: ["packages/evals/"], needs: ["step:B2.runner"],
-        goal: "A local OTLP collector gives each run its trace, so span, event and budget evals carry measures.",
-        exit: [["ms:B2/otlp", "Span, event and budget evals read the run's trace and report p50, p95 and n."]] },
-      { key: "B2.coverage", title: "B2 Every eval runnable or listed", paths: ["packages/evals/"], needs: ["step:B2.worlds", "step:B2.otlp"],
-        goal: "Every eval id has a runner, or is listed as not yet runnable with the reason, and the harness stays within its line budget.",
-        exit: [["ms:B2/coverage", "Every eval id in evals.json has a runner or is listed as not yet runnable."], ["ms:B2/size", "The harness is within 2,000 hand-written lines."]] },
-    ],
-  },
-  {
-    key: "B3", title: "B3 Spine and pilots", needs: ["milestone:B2"],
-    goal: "The devnet and the runtime run, the pilots (sign in, set up an Account, send a payment) pass every eval within budget, and each concept's line budget is set from what they measure.",
-    steps: [
-      { key: "B3.spine", title: "B3 The devnet and the runtime", paths: ["packages/devnet/", "packages/runtime/", "packages/backend/src/"], base: ["milestone:B1"],
-        goal: "The devnet (anvil with the v4 contracts, Postgres, Ponder, the backend, a mock bundler and paymaster, the mail sink) boots, and the runtime's services run on it under one clock.",
-        book: ["environment:devnet", ...ofKind("invariant").filter((i) => !(i.over as unknown[] | undefined)?.length).map(keyOf)],
-        exit: [["ms:B3/runtime", "The runtime's services (auth, SQL, chain, integrations, the workflow engine, tracing) start on the devnet."]] },
-      { key: "B3.sandbox", title: "B3 The devnet in a swarmD sandbox, and the gate's scope", paths: [".swarmd/", "tools/check-scope.ts"], base: [], needs: ["step:B3.spine"],
-        goal: "A swarmD sandbox boots the devnet from a golden snapshot and runs an L1 eval fast enough for pairs, otherwise a decision records the fallback host; and the gate refuses a change outside the task's paths.",
-        exit: [["ms:B3/sandbox", "At an integration head newer than its golden snapshot, the devnet boots in a swarmD sandbox in at most 2 minutes and one L1 eval runs in at most 10 seconds, or a decision records the fallback: one long-lived devnet host, a world restored per pair under a lock."],
-          ["ms:B3/scope", "With SWARMD_TASK_PATHS set, the project's gate fails on a change outside the task's paths, or to packages/book or packages/evals from a lane task, and admits the regenerated outputs only when generate:check and plan-tasks --check pass."]] },
-      { key: "B3.shared-world", title: "B3 A shared world", paths: ["packages/devnet/"], base: [], needs: ["step:B3.spine"], book: ["environment:shared-world"],
-        goal: "The devnet stack runs as a shared world behind its world gateway over HTTPS, in seasons (aaron.seasons, devnet.seasons): the owner's grant controls the clock and plans each season, which starts from a saved world, runs at its rate, warps on a real schedule and ends in a reset; joiners reach it with their own grants only while a season they play runs, and nothing leaves it (devnet.season-players).",
-        exit: [["ms:B3/shared-world", "A shared world boots on one host and passes its smoke journey; a joiner's grant reads its own mail while a season they play runs and is refused ROLE_PERMISSION_DENIED when it moves the clock."],
-          ["ms:B3/seasons", "A season created, started, warped on its schedule and ended on one shared world leaves `<name>-end` saved and the reset world restored, and a player's next call after the reset is NOT_AUTHENTICATED."]] },
-      { key: "B3.pilots", title: "B3 The pilots pass", paths: [], needs: [],
-        goal: "Sign in, set up an Account and send a payment, and the devnet commands the world builder runs, pass every eval of their tasks at the integration head that a buildable world allows, within budget.",
-        exit: [["ms:B3/pilots", "In one run at the integration head, every eval of the pilot closure passes within its budget, except those whose world's steps run an operation not built yet, which read unverifiable and name that world."]] },
-      { key: "B3.size", title: "B3 Each concept's line budget", paths: ["books/target/shared/", "books/target/"], needs: ["step:B3.pilots"],
-        goal: "Each concept's line budget is set in its record from the pilots' measured lines per operation, and sys:loc evals check it.",
-        exit: [["ms:B3/size", "Every concept record carries its line budget from the pilots' measurement (system.size), and sys:loc/<concept> is in the catalogue."]] },
-    ],
-  },
-  {
-    key: "B4", title: "B4 Concepts on the critical path", needs: [], steps: [],
-    goal: "Every concept's lane is done: each operation the built book keeps (the old 215 less what the cut classified: Frappe's, dropped or parked) has every eval of its record, and of every record under it, passing at the head of integration/build.",
-  },
-  {
-    key: "B5", title: "B5 New staging", needs: ["milestone:B4"],
-    goal: "The new staging runs the same suite, and its live evals hold for a week.",
-    steps: [
-      { key: "B5.deploy", title: "B5 Deploy staging", paths: ["packages/devnet/", ".github/workflows/"], book: ["environment:staging"],
-        goal: "Staging is deployed from main and boots and passes its smoke journey.",
-        exit: [["ms:B5/suite", "The suite runs against staging and passes what it passed on the devnet."]] },
-      { key: "B5.live", title: "B5 Live evals from PostHog", paths: ["packages/evals/"], needs: ["step:B5.deploy"],
-        goal: "The live evals (p95 per operation, error rate, journey conversion) are in the catalogue and posted from PostHog by the scout.",
-        exit: [["ms:B5/live", "Every live eval (live:bud, live:err, live:fun) is in the catalogue and has a verdict from PostHog."]] },
-      { key: "B5.week", title: "B5 A week on staging", paths: [], needs: ["step:B5.live"],
-        goal: "The live evals hold on staging for seven days.",
-        exit: [["ms:B5/week", "Every live eval holds on staging for seven consecutive days."]] },
-    ],
-  },
-];
+/** A milestone as the tree holds it: the plan's id, words and exit lines, and what it waits for. */
+interface Milestone { key: string; title: string; goal: string; needs: string[]; exit: [string, string][] }
+const planFile = parsePlan(JSON.parse(readFileSync(PLAN, "utf8")) as unknown);
+if (!planFile.ok) {
+  console.error(`${PLAN}: ${planFile.error}`);
+  process.exit(1);
+}
+/** What each milestone waits for in the tree. The plan holds the order, not these edges: the compatibility climb needs the
+ * real chain and the door, the cloud needs the door, company life needs the climb; the rest wait for nothing. A milestone
+ * the table does not know yet waits for the one before it. */
+const MILESTONE_NEEDS: Readonly<Record<string, readonly string[]>> = { m1: [], m2: [], m3: [], m3b: ["m3"], m4: ["m2", "m3"], m5: ["m4"] };
+const planMilestones = [...planFile.value.milestones].sort((a, b) => a.order - b.order);
+const MILESTONES: Milestone[] = planMilestones.map((m, i) => ({
+  key: m.id, title: m.title, goal: m.goal,
+  needs: (MILESTONE_NEEDS[m.id] ?? (i > 0 ? [planMilestones[i - 1]!.id] : [])).map((k) => `milestone:${k}`),
+  // a check's claim is held to 300 characters (below); the whole claim stays in plan/plan.json
+  exit: m.exit.map((e): [string, string] => [`ms:${m.id}/${e.id}`, clip(e.claim, 300)]),
+}));
+/** The milestone the concepts' lanes sit under, and the ones a lane waits for: the real chain, then the door. */
+const CLIMB = "milestone:m4";
+for (const k of [CLIMB, "milestone:m2", "milestone:m3"]) if (!MILESTONES.some((m) => `milestone:${m.key}` === k)) failures.push(`plan/plan.json has no milestone ${k.slice("milestone:".length)}`);
+/** Book records whose evals no lane owns: the system's own, and the environments the plan's milestones stand up. */
+const MILESTONE_BOOK: Readonly<Record<string, readonly string[]>> = {
+  m1: ["system:capxul"],
+  // the devnet's own environment and the invariants over no table (the clock's among them) are stood up with the door and the clock
+  m3: ["environment:devnet", ...ofKind("invariant").filter((i) => !(i.over as unknown[] | undefined)?.length).map(keyOf)],
+  m3b: ["environment:shared-world"], m5: ["environment:staging"],
+};
 
 add({ key: "capxul", kind: "root", title: "Capxul rebuilt", priority: "critical", evals: ["ok:capxul"], checkers: [], paths: [],
   goal: "Capxul runs on the new stack and does everything the built book's operations promise (the old 215 less what the cut classified, plus the plugs and the door): every eval passes at the head of integration/build on a devnet, the system evals and the size budget hold, and staging's live evals hold for a week.",
@@ -336,14 +224,10 @@ const own = (task: string, ids: string[]) => {
 };
 for (const m of MILESTONES) {
   const key = `milestone:${m.key}`;
-  add({ key, kind: "milestone", title: m.title, goal: m.goal, parent: "capxul", priority: "critical", evals: [], checkers: [], paths: [], needs: m.needs });
-  for (const s of m.steps) {
-    const sk = `step:${s.key}`;
-    add({ key: sk, kind: "step", title: s.title, goal: s.goal, parent: key, priority: "critical", evals: [], paths: s.paths,
-      checkers: s.money ? ["reviewer", "adversary"] : ["reviewer"], needs: [...(s.base ?? m.needs), ...(s.needs ?? [])], exit: s.exit.map(([id, claim]) => ({ id, claim })) });
-    own(sk, s.exit.map(([id]) => id));
-    for (const r of s.book ?? []) own(sk, evalIdsOf(r));
-  }
+  add({ key, kind: "milestone", title: m.title, goal: m.goal, parent: "capxul", priority: "critical", evals: [], checkers: [], paths: [], needs: m.needs,
+    exit: m.exit.map(([id, claim]) => ({ id, claim })) });
+  own(key, m.exit.map(([id]) => id));
+  for (const r of MILESTONE_BOOK[m.key] ?? []) if (book.records.has(r)) own(key, evalIdsOf(r));
 }
 
 // ── lanes, doors, processes, rpcs, flows and operations ────────────────────────────────────
@@ -351,7 +235,7 @@ for (const m of MILESTONES) {
 const lanes = [INTEGRATIONS, ...CONCEPTS.map((c) => c.id), JOURNEYS];
 for (const lane of lanes) {
   const isConcept = lane !== INTEGRATIONS && lane !== JOURNEYS;
-  add({ key: `lane:${lane}`, kind: "lane", lane, layer: laneLayer(lane), parent: "milestone:B4", priority: lane === "equity" ? "low" : "normal", evals: [],
+  add({ key: `lane:${lane}`, kind: "lane", lane, layer: laneLayer(lane), parent: CLIMB, priority: lane === "equity" ? "low" : "normal", evals: [],
     title: isConcept ? `Lane: ${lane}` : lane === INTEGRATIONS ? "Lane: integrations" : "Lane: journeys", checkers: [], paths: [],
     goal: isConcept
       ? `The ${lane} concept is built as its records say: its door, durable processes and operations pass every eval at the integration head, and its code imports other concepts only through their doors.`
@@ -375,7 +259,7 @@ for (const c of CONCEPTS.map((x) => x.id)) {
 }
 for (const inv of ofKind("invariant")) {
   const over = linksFrom(keyOf(inv), "over");
-  if (!over.length) continue; // owned by step:B3.spine
+  if (!over.length) continue; // owned by the milestone that stands up the world (MILESTONE_BOOK)
   own(`door:${concept(over[0]!)}`, evalIdsOf(keyOf(inv)));
   for (const t of over) needs(`door:${concept(over[0]!)}`, `door:${concept(t)}`);
 }
@@ -554,11 +438,10 @@ for (const p of PILOTS) visit(p);
 for (const t of tasks.values()) {
   if (!t.lane || t.kind === "lane") continue;
   if (closure.has(t.key)) {
-    needs(t.key, "step:B3.spine", "milestone:B2");
+    needs(t.key, "milestone:m2");
     t.labels.push("pilot-closure");
-  } else needs(t.key, "milestone:B3");
+  } else needs(t.key, "milestone:m2", "milestone:m3");
 }
-for (const p of PILOTS) needs("step:B3.pilots", p);
 
 // ── checks: every eval owned once, every operation one task, layers, cycles ────────────────
 
@@ -613,7 +496,7 @@ for (const k of [...tasks.keys()].sort()) if (dfs(k)) break;
 
 // ── output ──────────────────────────────────────────────────────────────────────────────────
 
-const KIND_ORDER: Kind[] = ["root", "milestone", "step", "lane", "integration", "door", "process", "rpc", "flow", "operation", "journey"];
+const KIND_ORDER: Kind[] = ["root", "milestone", "lane", "integration", "door", "process", "rpc", "flow", "operation", "journey"];
 const order = (t: TaskDef) => [laneLayer(t.lane ?? INTEGRATIONS) + (t.lane ? 0 : -10), t.lane ?? "", KIND_ORDER.indexOf(t.kind), RANK[t.priority], t.key] as const;
 const cmp = (a: TaskDef, b: TaskDef) => {
   const x = order(a), y = order(b);
@@ -628,18 +511,17 @@ const out = [...tasks.values()].sort(cmp).map((t) => ({
 }));
 const count = (f: (t: TaskDef) => boolean) => out.filter(f).length;
 const isWorking = (t: TaskDef) => t.kind !== "root" && t.kind !== "milestone" && t.kind !== "lane";
-/** The frontier once B3 is done: the working tasks with checkers, outside the pilot closure, whose needs are all met by
- * the milestones T0 to B3, their steps and the closure (the loop's step 3 takes from it, one task per lane). */
-const doneByB3 = new Set(out.filter((t) => (t.kind === "milestone" || t.kind === "step") && /^(milestone|step):(T0|D0|B0|B1|B2|B3)\b/.test(t.key)).map((t) => t.key));
-for (const k of closure) doneByB3.add(k);
-const frontierAfterB3 = out.filter((t) => isWorking(t) && t.checkers.length && !doneByB3.has(t.key) && t.needs.every((n) => doneByB3.has(n)));
+/** The frontier once the real chain and the door are done (m2 and m3): the working tasks with checkers, outside the pilot
+ * closure, whose needs are all met by those milestones and the closure (the loop's step 3 takes from it, one task per lane). */
+const doneByM3 = new Set(["milestone:m2", "milestone:m3"]);
+for (const k of closure) doneByM3.add(k);
+const frontierAfterM3 = out.filter((t) => isWorking(t) && t.checkers.length && !doneByM3.has(t.key) && t.needs.every((n) => doneByM3.has(n)));
 const counts = {
   tasks: out.length,
   working: count(isWorking),
   paired: count((t) => isWorking(t) && t.checkers.length > 0),
   watch: count((t) => t.labels.includes("watch")),
   milestones: count((t) => t.kind === "milestone"),
-  steps: count((t) => t.kind === "step"),
   lanes: count((t) => t.kind === "lane"),
   doors: count((t) => t.kind === "door"),
   processes: count((t) => t.kind === "process"),
@@ -657,8 +539,8 @@ const counts = {
   needs: out.reduce((n, t) => n + t.needs.length, 0),
   budgetUsd: out.reduce((n, t) => n + (isWorking(t) ? t.budgetUsd : 0), 0),
   worldPilots: WORLD_OPS.length,
-  frontierAfterB3: frontierAfterB3.length,
-  frontierLanesAfterB3: new Set(frontierAfterB3.map((t) => t.lane)).size,
+  frontierAfterM3: frontierAfterM3.length,
+  frontierLanesAfterM3: new Set(frontierAfterM3.map((t) => t.lane)).size,
   bookRecords: book.records.size,
 };
 const doc = {
