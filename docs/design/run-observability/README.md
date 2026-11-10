@@ -8,6 +8,14 @@ What Aaron asked for: see what is running at any time; how many backwards and fo
 between agents; see and inspect what is happening inside a run; ideally steer it. And, on 10 November: where exactly
 the runs are in the portal, how they relate to a task, and how it all works, because these are durable agents.
 
+## The screens here were rejected, 10 November
+
+Aaron rejected the screens of this pack (sections 1 and 3, and the pictures in `shots/`): they are document pages, with
+no agents as things you can open and a transcript that does not read as a conversation. They are replaced by a
+working prototype, `packages/loop-ui` (`pnpm --filter @capxul/loop-ui dev`), built from shadcn's own components on the
+same real runs: a sidebar of runs, a run as steps, an agent as a conversation with everything about it beside it, and
+an Agents page. The object model (section 2) and the architecture (section 4) stand. Nothing is accepted yet.
+
 ## Amendments, 10 November
 
 The coordinator read the pack and accepted it on Aaron's behalf, with these changes. Where they differ from the text or
