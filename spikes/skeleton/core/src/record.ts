@@ -14,7 +14,6 @@ import { Schema } from "effect";
 import { CommandRecordEntry } from "../../../../books/target/devnet/record-entry.ts";
 import { appendFileSync, closeSync, existsSync, mkdirSync, openSync, readdirSync, readFileSync, statSync, unlinkSync, writeFileSync } from "node:fs";
 import type { Address } from "viem";
-import { abis, deployment, orgId, publicClient } from "./chain.ts";
 import { config } from "./config.ts";
 import { CliError } from "./errors.ts";
 import { operatorKey, people, byEmail } from "./people.ts";
@@ -51,6 +50,9 @@ async function hatsOf(slug: string | undefined, email: string | undefined): Prom
   const p = email ? byEmail(email) : undefined;
   if (!slug || !p) return [];
   try {
+    // Offline commands have no hats to query. Do not load viem or compiled
+    // contract artifacts until an actor and organization actually need them.
+    const { abis, deployment, orgId, publicClient } = await import("./chain.ts");
     const d = deployment();
     const worn = await Promise.all(HATS.map((h) => publicClient.readContract({ address: d.hats, abi: abis.hats, functionName: "wears", args: [orgId(slug), p.address as Address, h] })));
     return HATS.filter((_, i) => worn[i]);
