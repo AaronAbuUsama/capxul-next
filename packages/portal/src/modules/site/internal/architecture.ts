@@ -94,7 +94,7 @@ export const architecture = (ctx: Ctx): ArchitecturePage => {
   const words = ctx.input.direction.architecture;
   const op = ctx.input.book.records.get(`operation:${words.traceOperation}`);
   const impl = op?.["implementedBy"];
-  const traced = op ? { operation: refOf(op), title: titleOf(op), trace: traceOf(ctx, isRecord(impl) ? impl : null) } : null;
+  const traced = op ? { operation: refOf(op), title: titleOf(op), trace: traceOf(ctx, isRecord(impl) ? impl : null, op) } : null;
   const crossing = boundary(ctx);
   return {
     ...head("design", words.title, HAND_WRITTEN, null), type: "architecture", lead: words.lead, diagram: words.diagram,

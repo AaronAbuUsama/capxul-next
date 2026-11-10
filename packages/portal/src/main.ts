@@ -10,7 +10,7 @@ import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
-import { buildBook, keyOf, type AnyRecord } from "@capxul/book";
+import { buildBook, keyOf, parseStatus, type AnyRecord, type StatusDocument } from "@capxul/book";
 
 import { direction } from "#content/direction.ts";
 import { check, expect, passed } from "#src/modules/check/service.ts";
@@ -95,16 +95,30 @@ export const load = async (root: string, commit: string = commitOf(root)): Promi
       }
     }
     const book = buildBook({ name: str(target["name"]), stage: target["stage"] === "as-is" ? "as-is" : "target", records: target["records"] });
+    const status = statusOf(root);
+    if (!status.ok) return status;
     return {
       ok: true,
       value: {
-        book, commit, concepts, conceptOf, direction,
+        book, commit, concepts, conceptOf, direction, status: status.value,
         waits: (decision) => forAaron(decision) === true,
         frozen: frozenOf(flagBook), frozenOperations: new Set(Object.keys(frozen)),
       },
     };
   } catch (cause) {
     return { ok: false, error: `the book could not be loaded: ${cause instanceof Error ? cause.message : String(cause)}` };
+  }
+};
+
+/** The status document at `status/status.json`: null when the file is absent, which means nothing has run; an error when it is not one. */
+const statusOf = (root: string): Result<StatusDocument | null> => {
+  const file = join(root, "status/status.json");
+  if (!existsSync(file)) return { ok: true, value: null };
+  try {
+    const parsed = parseStatus(JSON.parse(readFileSync(file, "utf8")) as unknown);
+    return parsed.ok ? { ok: true, value: parsed.value } : { ok: false, error: `status/status.json: ${parsed.errors.join("; ")}` };
+  } catch (cause) {
+    return { ok: false, error: `status/status.json: ${cause instanceof Error ? cause.message : String(cause)}` };
   }
 };
 
@@ -162,7 +176,7 @@ const run = async (args: readonly string[]): Promise<{ readonly lines: readonly 
       code: 0,
     };
   }
-  const outcomes = check(files, generate(input, assets), expect(input.book, input.waits));
+  const outcomes = check(files, generate(input, assets), expect(input.book, input.waits, input.status));
   return {
     lines: [
       ...outcomes.flatMap((o) => [

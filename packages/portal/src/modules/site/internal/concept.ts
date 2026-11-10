@@ -5,6 +5,7 @@
 import { keyOf, type AnyRecord } from "@capxul/book";
 
 import type { ConceptPage, MachineCard, Ref } from "../types.ts";
+import { impactBlock } from "./impact.ts";
 import { brief, head, membersOf, operationRow, sourceOf, titleOf, type Ctx } from "./context.ts";
 import { evalRows, refOf } from "./locate.ts";
 import { count, entries, field, list, records, text } from "./values.ts";
@@ -40,7 +41,7 @@ const errorsOf = (ctx: Ctx, id: string): readonly Ref[] => {
 export const concept = (ctx: Ctx, c: AnyRecord): ConceptPage => {
   const { direction, concepts, book } = ctx.input;
   return {
-    ...head(`concept/${c.id}`, titleOf(c), sourceOf(ctx, c), c), type: "concept", about: text(c["about"]),
+    ...head(`concept/${c.id}`, titleOf(c), sourceOf(ctx, c), c), type: "concept", about: text(c["about"]), impact: impactBlock(ctx, keyOf(c)),
     verdict: direction.verdicts[c.id] ?? "none", verdictNote: direction.verdictNote,
     rail: concepts.flatMap((id) => {
       const other = book.records.get(`concept:${id}`);
@@ -59,6 +60,6 @@ export const concept = (ctx: Ctx, c: AnyRecord): ConceptPage => {
       const items = membersOf(ctx, c.id, kind).map(brief);
       return items.length > 0 ? [{ title, anchor: `${kind}s`, items }] : [];
     }),
-    evals: evalRows(ctx.evals.get(keyOf(c)) ?? [], c.id, new Set()),
+    evals: evalRows(ctx.evals.get(keyOf(c)) ?? [], c.id, new Set(), ctx.input.status),
   };
 };

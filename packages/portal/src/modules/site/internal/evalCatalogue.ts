@@ -2,7 +2,7 @@
  * The eval catalogue: `eval` lists the four levels and the kinds at each with their counts, and `eval/<kind>` lists
  * every eval of one kind beside the record it is about. Every count is the length of a list the book derives.
  */
-import type { EvalDef } from "@capxul/book";
+import { verdictOf, type EvalDef } from "@capxul/book";
 
 import type { CataloguePage, Ref, TableRow, TableSection } from "../types.ts";
 import { head, type Ctx } from "./context.ts";
@@ -13,6 +13,7 @@ import { count, group, plural, text } from "./values.ts";
 
 export const EVALS: Ref = { label: "Evals", page: "eval", anchor: "" };
 const SOURCE = "books/target and docs/spec/30-capxul-evals.md";
+const VERDICT_WORDS = { pass: "pass", fail: "fail", not_run: "not run" } as const;
 const kindRef = (kind: string): Ref => ({ label: kind, page: `eval/${kind}`, anchor: "" });
 
 /** One level: its kinds in the spec's order, each with what it claims and how many evals the book derives. */
@@ -29,7 +30,7 @@ const level = (held: ReadonlyMap<string, readonly EvalDef[]>, l: (typeof LEVELS)
 
 const evalRow = (ctx: Ctx, e: EvalDef): TableRow => {
   const subject = ctx.input.book.records.get(e.subject);
-  return row([code(e.id), toOr(subject ? refOf(subject) : null, e.subject), words(text(e.claim)), words(e.decider), words("not run")]);
+  return row([code(e.id), toOr(subject ? refOf(subject) : null, e.subject), words(text(e.claim)), words(e.decider), words(VERDICT_WORDS[verdictOf(ctx.input.status, e.id)])]);
 };
 
 /** The catalogue's index, then one page per kind of eval the book derives. */
@@ -40,7 +41,8 @@ export const evalCatalogue = (ctx: Ctx): readonly CataloguePage[] => {
   return [
     {
       ...head("eval", "Evals", SOURCE, null), type: "catalogue", nav: "Build", eyebrow: "Evals",
-      lead: "An eval is one claim about Capxul that a run can check. The book derives every one from its records, so a complete record is also its definition of done. None has run yet: no code exists.",
+      lead: "An eval is one claim about Capxul that a run can check. The book derives every one from its records, so a complete record is also its definition of done. " +
+        (ctx.input.status === null ? "None has run yet: no code exists." : "Each eval's verdict comes from the status document; one with no entry has not run."),
       crumbs: [{ label: "Build", page: "build", anchor: "" }],
       tiles: [
         { big: count(all.length), name: "evals", to: null },
@@ -48,7 +50,7 @@ export const evalCatalogue = (ctx: Ctx): readonly CataloguePage[] => {
           big: count(all.filter((e) => e.level === l.level).length), name: l.title.toLowerCase(),
           to: { label: l.title, page: "eval", anchor: l.level.toLowerCase() },
         })),
-        { big: "0", name: "run so far", to: null },
+        { big: count(all.filter((e) => verdictOf(ctx.input.status, e.id) !== "not_run").length), name: "run so far", to: null },
       ],
       sections: LEVELS.map((l) => level(held, l)),
     },
@@ -60,7 +62,7 @@ export const evalCatalogue = (ctx: Ctx): readonly CataloguePage[] => {
         lead: info.claims === "" ? `Every eval whose id starts with \`${kind}:\`.` : info.claims,
         crumbs: [{ label: "Build", page: "build", anchor: "" }, EVALS], tiles: [],
         sections: [tableOf("evals", `${plural(evals.length, "eval")} of kind ${kind}`, ["Eval", "About", "Claim", "Decided by", "Verdict"],
-          evals.map((e) => evalRow(ctx, e)), { caption: "Each eval is beside the record it is about. None has run." })],
+          evals.map((e) => evalRow(ctx, e)), { caption: `Each eval is beside the record it is about.${ctx.input.status === null ? " None has run." : " Its verdict is the status document's."}` })],
       };
     }),
   ];

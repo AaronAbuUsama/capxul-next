@@ -1,6 +1,6 @@
 /** The parts of the check that read the data twins: determinism, the waiting list, each operation's stand, the evals. */
 
-const STANDS = new Set(["specify", "decide", "build"]);
+const STANDS = new Set(["specify", "decide", "build", "observe", "done"]);
 
 type Fields = Readonly<Record<string, unknown>>;
 const isFields = (u: unknown): u is Fields => typeof u === "object" && u !== null && !Array.isArray(u);

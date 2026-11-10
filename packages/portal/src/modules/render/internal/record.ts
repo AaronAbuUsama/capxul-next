@@ -3,6 +3,7 @@ import type { ChildSection, RecordPage } from "#src/modules/site/types.ts";
 
 import { chip, crumbs, esc, link, plural, section } from "./html.ts";
 import { forAgents } from "./operation.ts";
+import { impactView } from "./impact.ts";
 import { briefRows, evalsFold, findings, fold, linkGroups } from "./parts.ts";
 import { blocks, type Cites } from "./prose.ts";
 import { keyValues, value } from "./value.ts";
@@ -35,7 +36,8 @@ export const record = (p: RecordPage, cites: Cites): string => {
     section("fields", "What the record says", p.fields.length === 0 ? "" : keyValues(at, p.fields, cites)) + parts(p, cites) +
     section("links-out", "What it links to", linkGroups(at, p.linksOut)) +
     section("linked-by", "What links to it", linkGroups(at, p.linkedBy)) +
-    section("evals", "Evals", p.evals.length === 0 ? "" : evalsFold(p.evals), `${plural(p.evals.length, "eval")} on this record. None has run.`) +
+    impactView(at, p.impact) +
+    section("evals", "Evals", p.evals.length === 0 ? "" : evalsFold(p.evals), `${plural(p.evals.length, "eval")} on this record.${p.evals.some((e) => e.verdict !== "not_run") ? "" : " None has run."}`) +
     section("gaps", "What the book still lacks here", findings(p.gaps)) +
     section("decisions", "Decisions that name it", p.decisions.length === 0 ? "" : fold(plural(p.decisions.length, "decision"), briefRows(at, p.decisions))) +
     `</div><aside class="side">${onPage(p)}${forAgents(at)}</aside></main>`;

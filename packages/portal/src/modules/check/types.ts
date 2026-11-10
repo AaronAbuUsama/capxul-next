@@ -17,6 +17,8 @@ export interface Expect {
   readonly operations: readonly string[];
   /** How many evals the book derives. */
   readonly evals: number;
+  /** The ids in the status document that the book does not derive. Empty when there is no document. */
+  readonly unknownStatus: readonly string[];
 }
 
 /** The verdict on one part of the check. It passed when `failures` is 0. */

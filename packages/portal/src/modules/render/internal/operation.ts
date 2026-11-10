@@ -6,6 +6,8 @@ import { jsonFile, mdFile } from "#src/modules/site/service.ts";
 import type { ArgRow, OperationPage, Variant } from "#src/modules/site/types.ts";
 
 import { evalGroups } from "./evals.ts";
+import { impactView } from "./impact.ts";
+import { sessionView } from "./session.ts";
 import { codeBlock } from "./highlight.ts";
 import { chip, count, crumbs, esc, fileHref, hrefTo, link, plural, prose, section, table } from "./html.ts";
 import { RUNGS, briefRows, findings, fold, linkGroups, rungsBehind } from "./parts.ts";
@@ -30,10 +32,15 @@ const shape = (v: Variant): string =>
   `<div class="shape-fields">${fieldsTable(v)}</div>` +
   `<div class="shape-json">${codeBlock("JSON · generated from the schema, not a recorded response", "json", v.skeleton)}</div></div></div>`;
 
+const examples = (p: OperationPage): string =>
+  p.examples.length === 0 ? "" : `<div class="examples" id="examples">${p.examples.map(sessionView).join("")}</div>`;
+
 const returns = (p: OperationPage): string =>
   p.returns.length > 0
-    ? section("returns", "What it returns", p.returns.map(shape).join(""),
-      "The shape of `--json`, as the book holds it. A `<type>` in the skeleton is a placeholder: the book records no example response, and what the command prints for a person is not designed yet.")
+    ? section("returns", "What it returns", examples(p) + p.returns.map(shape).join(""),
+      p.examples.length === 0
+        ? "The shape of `--json`, as the book holds it. A `<type>` in the skeleton is a placeholder: the book records no example response, and what the command prints for a person is not designed yet."
+        : "Recorded runs first, each checked against the shape at build time. Then the shape of `--json`, as the book holds it; a `<type>` in the skeleton is a placeholder, not a recorded response.")
     : `<div class="undesigned">${chip("Not designed yet", "chip chip-orange")}<span>What the command prints, and its <code>--json</code> shape, ` +
       `appear here once the book holds them. This is where the DX gets explored.</span></div>`;
 
@@ -64,7 +71,8 @@ const stands = (p: OperationPage): string => {
   return `<div class="side-card"><p class="eyebrow eyebrow-muted">Where it stands</p><ul class="rungs">` +
     RUNGS.map((r, i) => `<li class="rung${i < behind ? " on" : ""}"><i class="rung-dot"></i>${r}</li>`).join("") +
     `</ul><p class="side-note">${prose(p.stand.why)}</p>` +
-    `<p class="side-total"><a href="#evals">Evals passing</a><span class="mono">0 / ${count(p.evals.length)}</span></p></div>`;
+    `<p class="side-total"><a href="#evals">Evals passing</a><span class="mono">${count(p.passing.own.passing)} / ${count(p.evals.length)}</span></p>` +
+    `<p class="side-total"><span>Under it</span><span class="mono">${count(p.passing.under.passing)} / ${count(p.passing.under.total)}</span></p></div>`;
 };
 
 const implemented = (p: OperationPage): string => {
@@ -109,10 +117,10 @@ export const operation = (p: OperationPage, cites: Cites): string => {
     section("run", "What happens when you run it", traceView(at, p.trace, cites),
       "The steps of the record that implements it, in order, and what the book lists under each. Nothing here has run: it is the design.") +
     section("evals", "Evals", evalGroups(p, cites),
-      `${plural(p.evals.length, "eval")} in ${plural(p.evalKinds.length, "kind")}. Each is one claim a run can check; none has run, because no code exists yet.`) +
+      `${plural(p.evals.length, "eval")} in ${plural(p.evalKinds.length, "kind")}. Each is one claim a run can check; ${p.evals.some((e) => e.verdict !== "not_run") ? `${p.passing.own.passing} pass in the status document.` : "none has run, because no code exists yet."}`) +
     refusals(p, cites) + section("notes", "Notes", notes) + section("mistakes", "Common mistakes", mistakes) +
     section("gaps", "What the book still lacks here", findings(p.gaps)) +
-    section("used-by", "Used by", linkGroups(at, p.usedBy)) +
+    section("used-by", "Used by", linkGroups(at, p.usedBy)) + impactView(at, p.impact) +
     section("decisions", "Decisions that name it", p.decisions.length === 0 ? "" : fold(plural(p.decisions.length, "decision"), briefRows(at, p.decisions))) +
     `</div><aside class="side">${stands(p)}${implemented(p)}${open(p)}${forAgents(at)}</aside></main>`;
 };

@@ -2,6 +2,8 @@
 import { keyOf, type AnyRecord } from "@capxul/book";
 
 import type { ArgRow, FrozenCommand, OperationPage, Refusal } from "../types.ts";
+import { exampleViews } from "./examples.ts";
+import { impactBlock } from "./impact.ts";
 import {
   brief, conceptOf, decisionsOn, findingRows, head, isWaiting, linkGroups, membersOf, sourceOf, standOf, titleOf, type Ctx,
 } from "./context.ts";
@@ -83,9 +85,11 @@ export const operation = (ctx: Ctx, op: AnyRecord): OperationPage => {
   const affecting = decisionsOn(ctx, [key, ...(impl ? [keyOf(impl)] : [])]);
   const inConcept = home ? membersOf(ctx, home.id, "decision") : [];
   const sdk = impl ? impl["sdk"] : undefined;
-  const evals = evalRows(ctx.evals.get(key) ?? [], op.id, new Set());
+  const evals = evalRows(ctx.evals.get(key) ?? [], op.id, new Set(), ctx.input.status);
   return {
     ...head(`operation/${op.id}`, titleOf(op), sourceOf(ctx, op), op), type: "operation",
+    impact: impactBlock(ctx, key), examples: exampleViews(op),
+    passing: { own: ctx.stands.get(key)?.own ?? { passing: 0, total: 0 }, under: ctx.stands.get(key)?.under ?? { passing: 0, total: 0 } },
     concept: home ? refOf(home) : null, command, about: text(op["about"]), priority: text(op["priority"]),
     isNew: !ctx.input.frozenOperations.has(op.id), synopsis: synopsisOf(command, old), oldCli: old ? oldCliOf(old) : null,
     returns: variantsOf(op["returns"]), who: text(op["who"]), changes: text(op["changes"]),
@@ -94,7 +98,7 @@ export const operation = (ctx: Ctx, op: AnyRecord): OperationPage => {
     acceptance: acceptanceOf(op), evals, evalKinds: inOrder(evals.map((e) => e.kind)).map(evalKind),
     refusals: refusalsOf(op), stand: standOf(ctx, op),
     implementedBy: impl ? brief(impl) : null, implementedKind: impl ? impl._kind : "",
-    sdk: isRecord(sdk) ? sdk.id : text(sdk), sdkCall: sdkCallOf(impl), trace: traceOf(ctx, impl),
+    sdk: isRecord(sdk) ? sdk.id : text(sdk), sdkCall: sdkCallOf(impl), trace: traceOf(ctx, impl, op),
     budget: budgetOf(op),
     waiting: affecting.filter((d) => isWaiting(ctx, d)).map((d) => ({ ref: questionOf(ctx, d).ref, text: text(d["title"]) })),
     decisions: affecting.filter((d) => !isWaiting(ctx, d)).map(brief),

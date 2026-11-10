@@ -1,4 +1,6 @@
 /** The Overview: where the book stands, what waits for Aaron, what the book holds, and the concepts. */
+import { passing } from "@capxul/book";
+
 import type { ClimbCard, ConceptCard, OverviewPage, Ref } from "../types.ts";
 import { catalogueOf } from "./catalogue.ts";
 import { findingRows, head, membersOf, ofKind, titleOf, type Ctx } from "./context.ts";
@@ -7,8 +9,8 @@ import { hasPage, refOf } from "./locate.ts";
 import { HAND_WRITTEN, questionOf } from "./questions.ts";
 import { count, plural } from "./values.ts";
 
-/** No verdict is recorded anywhere yet, so nothing is built and nothing is proven. The ledger replaces this. */
-const VERDICTS_PASSED = 0;
+/** Empty when none, full when all, split between. */
+const barOf = (n: number, of: number): ClimbCard["bar"] => (n === 0 ? "empty" : n === of ? "full" : "split");
 
 const HOLDS: readonly (readonly [string, string])[] = [
   ["operation", "operations"], ["decision", "decisions"], ["table", "tables"], ["event", "events"], ["error", "errors"],
@@ -26,15 +28,18 @@ const climb = (ctx: Ctx): readonly ClimbCard[] => {
   const { book, direction } = ctx.input;
   const decisions = ofKind(ctx, "decision").length;
   const waiting = ctx.waiting.length;
+  const operations = ofKind(ctx, "operation").length;
+  const built = [...ctx.stands.values()].filter((s) => s.stand.stand === "observe" || s.stand.stand === "done").length;
+  const proven = passing(ctx.input.status, book.evals.map((e) => e.id));
   return [
     { step: "Specify", status: direction.climb.specify, tone: "blue", big: plural(book.records.size, "record"),
       sub: `${plural(book.problems.length, "problem")}, ${plural(book.gaps.length, "gap")}, ${plural(ctx.input.concepts.length, "concept")}`, bar: "full" },
     { step: "Decide", status: waiting > 0 ? `${count(waiting)} wait for you` : "Nothing waits for you", tone: waiting > 0 ? "orange" : "blue",
       big: plural(decisions, "decision"), sub: `${count(decisions - waiting)} made, ${count(waiting)} waiting`, bar: waiting > 0 ? "split" : "full" },
-    { step: "Build", status: direction.climb.build, tone: "grey", big: `${VERDICTS_PASSED} of ${count(ofKind(ctx, "operation").length)}`,
-      sub: "operations built", bar: "empty" },
-    { step: "Prove", status: direction.climb.prove, tone: "grey", big: `${VERDICTS_PASSED} of ${count(book.evals.length)}`,
-      sub: "evals run against real code", bar: "empty" },
+    { step: "Build", status: direction.climb.build, tone: "grey", big: `${count(built)} of ${count(operations)}`,
+      sub: "operations built", bar: barOf(built, operations) },
+    { step: "Prove", status: direction.climb.prove, tone: "grey", big: `${count(proven)} of ${count(book.evals.length)}`,
+      sub: ctx.input.status === null ? "evals run against real code" : "evals passing against real code", bar: barOf(proven, book.evals.length) },
   ];
 };
 

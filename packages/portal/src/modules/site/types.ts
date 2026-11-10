@@ -2,7 +2,7 @@
  * The site module: a built Book in, typed page models out. A page model is plain data: the renderer draws it,
  * the twins print it as Markdown and JSON, and the check reads it back. Nothing here knows about HTML.
  */
-import type { AnyRecord, Book } from "@capxul/book";
+import type { AnyRecord, Book, Stand, StandOf, StatusDocument, Verdict as EvalVerdict } from "@capxul/book";
 
 import type { Diagram, Direction, Step, Verdict } from "#content/shape.ts";
 
@@ -11,10 +11,10 @@ export type { Diagram, DiagramEdge, DiagramNode, Direction, Step, Verdict } from
 
 // ── shared pieces ───────────────────────────────────────────────────────────────────────────────
 
-/** Where an operation stands on the climb. The first slice has no verdicts, so it stops at `build`. */
-export type Stand = "specify" | "decide" | "build";
-/** A stand and the rule that placed it, in words. */
-export interface StandOf { readonly stand: Stand; readonly why: string }
+/** Where an operation stands on the climb, and the rule that placed it: `standOf` in `@capxul/book`. */
+export type { EvalVerdict, Stand, StandOf };
+/** How many of some evals pass, of how many there are. */
+export interface Count { readonly passing: number; readonly total: number }
 /** A link to a page of this site. `anchor` is "" for the page itself. */
 export interface Ref { readonly label: string; readonly page: string; readonly anchor: string }
 /** A link with one line about its target. */
@@ -33,6 +33,8 @@ export type Value =
 /** An eval as a page shows it: `kind` is its id's prefix, and `anchor` is unique on its page. */
 export interface EvalRow {
   readonly id: string; readonly kind: string; readonly anchor: string; readonly level: string; readonly claim: string; readonly decider: string;
+  /** From the status document; `not_run` when it has no entry. */
+  readonly verdict: EvalVerdict;
 }
 /** What one kind of eval claims, in the words of docs/spec/30-capxul-evals.md. */
 export interface EvalKind { readonly kind: string; readonly name: string; readonly claims: string }
@@ -40,7 +42,8 @@ export interface FindingRow { readonly record: string; readonly rule: string; re
 export interface LinkGroup { readonly field: string; readonly refs: readonly Ref[] }
 export interface OperationRow {
   readonly ref: Ref; readonly title: string; readonly priority: string; readonly isNew: boolean;
-  readonly evals: number; readonly stand: StandOf;
+  /** Its own evals, and the evals under it, with how many of each pass. */
+  readonly evals: number; readonly own: Count; readonly under: Count; readonly stand: StandOf;
 }
 /** A count and the list it counts. `to` is null when there is nothing to list. */
 export interface Tile { readonly big: string; readonly name: string; readonly to: Ref | null }
@@ -68,10 +71,27 @@ export interface TraceStep {
   readonly chain: readonly Ref[]; readonly calls: readonly Ref[]; readonly invokes: readonly Ref[];
   readonly drives: readonly Ref[]; readonly events: readonly Ref[]; readonly writes: readonly Ref[]; readonly spans: readonly string[];
 }
-/** What happens when an operation runs: the record that implements it, and its steps in order. */
+/** An event an operation sends, the transition that sends it (null: sent by a record itself) and who drives it. */
+export interface EventRow { readonly event: Ref; readonly transition: Ref | null; readonly by: Ref }
+/** A span an operation names, and the record that names it. */
+export interface SpanRow { readonly span: string; readonly by: Ref }
+/** What happens when an operation runs: the record that implements it, and its steps in order. `sends` and `named`
+ * are derived from the whole implementation, so they hold what no single step shows. */
 export interface Trace {
   readonly by: Ref | null; readonly kind: string; readonly spans: readonly string[]; readonly calls: readonly Ref[];
-  readonly steps: readonly TraceStep[];
+  readonly steps: readonly TraceStep[]; readonly sends: readonly EventRow[]; readonly named: readonly SpanRow[];
+}
+
+/** One record that depends on the page's record: how far, and by which field of its own. */
+export interface ImpactRow { readonly ref: Ref; readonly kind: string; readonly field: string; readonly via: Ref; readonly distance: number }
+/** "If this changes": what depends on a record. `all` is the full list, which the twins carry; a page draws `all`'s first few. */
+export interface ImpactBlock {
+  readonly total: number; readonly byKind: readonly { readonly kind: string; readonly count: number }[];
+  readonly all: readonly ImpactRow[];
+  /** False when `all` is cut: to the nearest 500, or for a decision to what it names directly. `tools/impact.ts` has the rest. */
+  readonly complete: boolean;
+  /** Decisions that name the record itself (listed on the page), and how many name something that depends on it. */
+  readonly decisions: number; readonly decisionsOnDependents: number; readonly evals: number;
 }
 
 /** What every page carries. `recordKey` is "" and `record` null on a page that is not one record's. */
@@ -129,6 +149,7 @@ export interface MachineCard {
   readonly states: readonly { readonly id: string; readonly initial: boolean; readonly terminal: boolean }[];
 }
 export interface ConceptPage extends PageHead {
+  readonly impact: ImpactBlock;
   readonly type: "concept"; readonly about: string; readonly verdict: Verdict; readonly verdictNote: string;
   readonly rail: readonly { readonly ref: Ref; readonly title: string; readonly operations: number; readonly active: boolean }[];
   readonly counts: readonly Tile[];
@@ -142,7 +163,14 @@ export interface Refusal {
   readonly error: Ref; readonly title: string; readonly message: string; readonly exit: string; readonly class: string;
   readonly given: string; readonly when: string;
 }
+/** An example as a terminal shows it. `refusal` links the declared error when the example is a refusal. */
+export interface ExampleView {
+  readonly title: string; readonly input: string; readonly output: string; readonly exit: number; readonly refusal: Ref | null;
+}
 export interface OperationPage extends PageHead {
+  readonly impact: ImpactBlock; readonly examples: readonly ExampleView[];
+  /** Its own evals passing, and those of the records under it. */
+  readonly passing: { readonly own: Count; readonly under: Count };
   readonly type: "operation"; readonly concept: Ref | null; readonly command: string; readonly about: string;
   readonly priority: string; readonly isNew: boolean; readonly synopsis: string;
   /** Null when the old CLI never had the command. */
@@ -164,6 +192,7 @@ export interface ChildSection {
   readonly evals: readonly EvalRow[]; readonly gaps: readonly FindingRow[]; readonly linkedBy: readonly LinkGroup[];
 }
 export interface RecordPage extends PageHead {
+  readonly impact: ImpactBlock;
   readonly type: "record"; readonly kind: string; readonly concept: Ref | null; readonly about: string;
   /** For a decision that waits: the link to its question. */
   readonly waits: Ref | null;
@@ -171,12 +200,19 @@ export interface RecordPage extends PageHead {
   readonly linksOut: readonly LinkGroup[]; readonly linkedBy: readonly LinkGroup[];
   readonly evals: readonly EvalRow[]; readonly gaps: readonly FindingRow[]; readonly decisions: readonly Brief[];
 }
+/** What the build is still missing, counted by the gap rules that name it. */
+export interface BuildGaps {
+  readonly total: number; readonly telemetry: readonly { readonly rule: string; readonly count: number }[];
+  readonly examples: number; readonly other: number;
+}
 export interface BuildPage extends PageHead {
   readonly type: "build"; readonly operations: number; readonly evals: number;
+  /** The evals passing in the status document; `recorded` is false when there is no document. */
+  readonly passing: Count; readonly recorded: boolean; readonly gapCounts: BuildGaps;
   readonly stands: Readonly<Record<Stand, number>>; readonly tiles: readonly Tile[];
   /** The operations at each stand: what a tile above counts. */
   readonly byStand: readonly { readonly stand: Stand; readonly title: string; readonly anchor: string; readonly rows: readonly OperationRow[] }[];
-  readonly concepts: readonly { readonly ref: Ref; readonly title: string; readonly rows: readonly OperationRow[] }[];
+  readonly concepts: readonly { readonly ref: Ref; readonly title: string; readonly rows: readonly OperationRow[]; readonly passing: Count }[];
 }
 /** A page of tables: Docs, each of its catalogues, and the eval catalogue. `nav` is the top-bar entry it lights. */
 export interface CataloguePage extends PageHead {
@@ -228,4 +264,6 @@ export interface SiteInput {
   /** Operation ids the old system had. An operation outside the set is new. */
   readonly frozenOperations: ReadonlySet<string>;
   readonly direction: Direction;
+  /** `status/status.json`: what has run. Null when the file is absent, which means nothing has run. */
+  readonly status: StatusDocument | null;
 }

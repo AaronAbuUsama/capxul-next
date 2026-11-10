@@ -8,7 +8,7 @@ const steps = (held: readonly Step[]): readonly string[] => held.map((s, i) => `
 /** Operations as a table: the command, what it is for, and where it stands. */
 export const operations = (at: string, rows: readonly OperationRow[]): readonly string[] =>
   table(["Command", "What it does", "Priority", "Evals", "Stands at"],
-    rows.map((r) => [link(at, r.ref), plain(r.title) + (r.isNew ? " (new)" : ""), r.priority, String(r.evals), r.stand.stand]));
+    rows.map((r) => [link(at, r.ref), plain(r.title) + (r.isNew ? " (new)" : ""), r.priority, `${r.own.passing} / ${r.evals}`, r.stand.stand]));
 
 export const overview = (p: OverviewPage): readonly string[] => [
   `**${plain(p.hero.eyebrow)}.** ${plain(p.hero.title)}`, "", plain(p.hero.lead), "", plain(p.hero.sub), "",
@@ -56,11 +56,17 @@ export const architecture = (p: ArchitecturePage): readonly string[] => [
 ];
 
 export const build = (p: BuildPage): readonly string[] => [
-  `${p.operations} operations, ${p.evals} evals, none run against real code yet.`, "", ...tiles(p.id, p.tiles), "",
+  p.recorded ? `${p.operations} operations, ${p.evals} evals, ${p.passing.passing} passing in the status document.` : `${p.operations} operations, ${p.evals} evals, none run against real code yet.`,
+  "", ...tiles(p.id, p.tiles), "",
+  ...section("What the book still lacks", [
+    `${p.gapCounts.total} gaps in all.`, "",
+    ...p.gapCounts.telemetry.map((t) => `- ${t.rule}: ${t.count}`), `- no-example: ${p.gapCounts.examples}`, `- every other rule together: ${p.gapCounts.other}`,
+  ]),
   ...p.byStand.flatMap((s) => section(`${plain(s.title)} (${s.rows.length})`, [
-    ...table(["Command", "What it does", "Why it stands there"], s.rows.map((r) => [link(p.id, r.ref), plain(r.title), plain(r.stand.why)])),
+    ...table(["Command", "What it does", "Why it stands there", "Evals passing", "Under it"], s.rows.map((r) =>
+      [link(p.id, r.ref), plain(r.title), plain(r.stand.why), `${r.own.passing} / ${r.evals}`, `${r.under.passing} / ${r.under.total}`])),
   ])),
-  ...p.concepts.flatMap((c) => section(`${plain(c.title)} (${c.rows.length})`, [`Concept: ${link(p.id, c.ref)}`, "", ...operations(p.id, c.rows)])),
+  ...p.concepts.flatMap((c) => section(`${plain(c.title)} (${c.rows.length})`, [`Concept: ${link(p.id, c.ref)}. Evals passing: ${c.passing.passing} of ${c.passing.total}.`, "", ...operations(p.id, c.rows)])),
 ];
 
 /** Docs, a catalogue under it, or the eval catalogue: its counts, then its tables. */

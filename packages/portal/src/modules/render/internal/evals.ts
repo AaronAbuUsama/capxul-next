@@ -4,7 +4,8 @@
  */
 import type { EvalRow, OperationPage, Ref } from "#src/modules/site/types.ts";
 
-import { chip, esc, link, plural, table } from "./html.ts";
+import { esc, link, plural, table } from "./html.ts";
+import { verdictChip } from "./parts.ts";
 import { rich, type Cites } from "./prose.ts";
 
 /** The acceptance claim an `acc` eval checks: its number is the last part of the eval's id. */
@@ -16,7 +17,7 @@ const rows = (p: OperationPage, evals: readonly EvalRow[], cites: Cites): readon
     const seen = observes(p, e);
     return `<tr id="${esc(e.anchor)}"><td class="mono eval-id">${esc(e.id)}</td><td>${rich(p.id, e.claim, cites)}` +
       (seen === "" ? "" : `<span class="observes"><b>Observes</b> ${rich(p.id, seen, cites)}</span>`) +
-      `</td><td class="muted nowrap">${esc(e.decider)}</td><td>${chip("not run", "chip chip-quiet")}</td></tr>`;
+      `</td><td class="muted nowrap">${esc(e.decider)}</td><td>${verdictChip(e.verdict)}</td></tr>`;
   });
 
 export const evalGroups = (p: OperationPage, cites: Cites): string =>

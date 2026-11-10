@@ -1,8 +1,10 @@
 /** The book indexed once, as plain data, and the small questions every page builder asks of it. */
 import { Schema } from "effect";
-import { keyOf, type AnyRecord, type EvalDef, type Finding, type Link } from "@capxul/book";
+import {
+  evalsUnder, impactIndex, keyOf, passing, standOf as stand, type AnyRecord, type EvalDef, type Finding, type ImpactIndex, type Link,
+} from "@capxul/book";
 
-import type { Brief, FindingRow, LinkGroup, OperationRow, PageHead, Ref, SiteInput, StandOf, Value } from "../types.ts";
+import type { Brief, Count, FindingRow, LinkGroup, OperationRow, PageHead, Ref, SiteInput, StandOf, Value } from "../types.ts";
 import { hasPage, refOf } from "./locate.ts";
 import { hashOf, recordJson, variantsOf } from "./schema.ts";
 import { entries, group, isObject, isRecord, list, text } from "./values.ts";
@@ -21,12 +23,29 @@ export interface Ctx {
   readonly affecting: ReadonlyMap<string, readonly AnyRecord[]>;
   /** `<concept>/<kind>` to the concept's records of that kind; a shared record's concept is "". */
   readonly members: ReadonlyMap<string, readonly AnyRecord[]>;
+  /** Each operation's stand and its eval counts, worked out once from the book and the status document. */
+  readonly stands: ReadonlyMap<string, { readonly stand: StandOf; readonly own: Count; readonly under: Count }>;
+  /** The book's dependency edges, built once for every "If this changes" block. */
+  readonly impacts: ImpactIndex;
 }
+
+const countOf = (input: SiteInput, evals: readonly EvalDef[]): Count => {
+  const ids = evals.map((e) => e.id);
+  return { passing: passing(input.status, ids), total: ids.length };
+};
 
 export const contextOf = (input: SiteInput): Ctx => {
   const all = [...input.book.records.values()];
   const affects = input.book.links.filter((l) => l.field === "affects" && l.from.startsWith("decision:"));
+  const stands = new Map(all.filter((r) => r._kind === "operation").map((op) => {
+    const held = evalsUnder(input.book, op);
+    return [keyOf(op), {
+      stand: stand(input.book, op, { waits: input.waits, status: input.status }),
+      own: countOf(input, held.own), under: countOf(input, held.under),
+    }] as const;
+  }));
   return {
+    stands, impacts: impactIndex(input.book),
     input,
     byKind: group(all, (r) => r._kind),
     evals: group(input.book.evals, (e) => e.subject),
@@ -89,25 +108,12 @@ export const valueOf = (u: unknown): Value => {
   return { t: "text", text: text(u) };
 };
 
-/**
- * Where an operation stands. The first slice has no verdicts, so the rule reads the book alone:
- * `specify` while the operation or what implements it has a problem or a gap, `decide` while a waiting decision
- * names either, and `build` otherwise.
- */
-export const standOf = (ctx: Ctx, op: AnyRecord): StandOf => {
-  const targets = [op, op["implementedBy"]].filter(isRecord).map(keyOf);
-  for (const key of targets) {
-    const found = [...(ctx.problems.get(key) ?? []), ...(ctx.gaps.get(key) ?? [])][0];
-    if (found) return { stand: "specify", why: `${key}: ${found.rule}, ${text(found.detail)}` };
-  }
-  for (const key of targets) {
-    const waits = (ctx.affecting.get(key) ?? []).find((d) => isWaiting(ctx, d));
-    if (waits) return { stand: "decide", why: `decision ${waits.id} waits for an answer` };
-  }
-  return { stand: "build", why: "specified and decided; no eval has run against real code yet" };
-};
+/** Where an operation stands: `standOf` in `@capxul/book`, worked out once for the context. */
+export const standOf = (ctx: Ctx, op: AnyRecord): StandOf =>
+  ctx.stands.get(keyOf(op))?.stand ?? { stand: "specify", why: "the book has no such operation" };
 
 export const operationRow = (ctx: Ctx, op: AnyRecord): OperationRow => ({
   ref: refOf(op), title: titleOf(op), priority: text(op["priority"]), isNew: !ctx.input.frozenOperations.has(op.id),
   evals: (ctx.evals.get(keyOf(op)) ?? []).length, stand: standOf(ctx, op),
+  own: ctx.stands.get(keyOf(op))?.own ?? { passing: 0, total: 0 }, under: ctx.stands.get(keyOf(op))?.under ?? { passing: 0, total: 0 },
 });

@@ -2,6 +2,7 @@
 import type { ConceptPage, MachineCard } from "#src/modules/site/types.ts";
 
 import { chip, crumbs, esc, hrefTo, link, plural, prose, section } from "./html.ts";
+import { impactView } from "./impact.ts";
 import { VERDICT } from "./overview.ts";
 import { briefRows, evalsFold, fold, operationsTable } from "./parts.ts";
 import { blocks, type Cites } from "./prose.ts";
@@ -46,6 +47,7 @@ export const concept = (p: ConceptPage, cites: Cites): string => {
     section("operations", "Operations", p.operations.length === 0 ? "" : operationsTable(at, p.operations)) +
     section("machines", "State machines", machines, "Every status a record can have, and every move between them.") +
     pair + section("errors", "Errors it can answer with", errors) + more +
+    impactView(at, p.impact) +
     section("evals", "Evals on the concept itself", p.evals.length === 0 ? "" : evalsFold(p.evals)) +
     `</div></main>`;
 };

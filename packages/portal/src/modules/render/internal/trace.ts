@@ -28,6 +28,14 @@ const step = (at: string, s: TraceStep, i: number, cites: Cites): string =>
   (s.about === "" ? "" : `<p class="trace-about">${rich(at, s.about, cites)}</p>`) +
   (s.rpc ? facts(at, s) : `<p class="trace-quiet">The SDK does this itself. The book lists nothing under it.</p>`) + `</div></li>`;
 
+/** What the whole run sends and names: each event with the transition that sends it, each span with who names it. */
+const telemetry = (at: string, t: Trace): string =>
+  `<dl class="trace-facts trace-telemetry"><dt>Events it sends</dt><dd>${t.sends.length === 0 ? NONE :
+    `<ul class="telemetry">${t.sends.map((e) =>
+      `<li>${link(at, e.event, "ref")}<span class="muted"> through ${e.transition ? link(at, e.transition, "ref") : "the record itself"}, driven by ${link(at, e.by, "ref")}</span></li>`).join("")}</ul>`}</dd>` +
+  `<dt>Spans it names</dt><dd>${t.named.length === 0 ? NONE :
+    `<ul class="telemetry">${t.named.map((s) => `<li><code>${esc(s.span)}</code><span class="muted"> named by ${link(at, s.by, "ref")}</span></li>`).join("")}</ul>`}</dd></dl>`;
+
 /** The trace of one operation. With nothing implementing it, it says so. */
 export const traceView = (at: string, t: Trace, cites: Cites): string => {
   if (!t.by) return '<p class="silent">The book names nothing that implements this operation, so there is no run to trace.</p>';
@@ -35,5 +43,5 @@ export const traceView = (at: string, t: Trace, cites: Cites): string => {
     (t.kind === "flow"
       ? `Outside calls the client makes itself: ${inline(at, t.calls)}. Spans the flow names: ${t.spans.length === 0 ? NONE : t.spans.map((s) => `<code>${esc(s)}</code>`).join(", ")}.`
       : "One server endpoint: the run is one step.") + `</p>`;
-  return `${top}<ol class="trace">${t.steps.map((s, i) => step(at, s, i, cites)).join("")}</ol>`;
+  return `${top}${telemetry(at, t)}<ol class="trace">${t.steps.map((s, i) => step(at, s, i, cites)).join("")}</ol>`;
 };

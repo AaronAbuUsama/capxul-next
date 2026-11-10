@@ -46,7 +46,7 @@ test("what the book expects: a page per record that has one, the waiting list, t
 test("a generated site passes every part", () => {
   const outcomes = run(files, generate());
   assert.deepEqual(failed(outcomes), [], JSON.stringify(outcomes, null, 2));
-  assert.equal(outcomes.length, 6);
+  assert.equal(outcomes.length, 7);
   assert.ok(passed(outcomes));
 });
 
@@ -102,4 +102,18 @@ test("an eval catalogue that drops an eval, or a catalogue page that is missing,
   assert.deepEqual(failed(dropped), ["the eval catalogue lists every eval the book derives"]);
   const gone = run(change((copy) => void copy.delete("docs/events/index.html")));
   assert.ok(failed(gone).includes("every record has a page and both twins, and every page belongs to a record"));
+});
+
+test("a status entry for an eval the book does not derive fails the check; a known one passes", () => {
+  const at = "2026-11-10T10:00:00Z";
+  const entry = { verdict: "pass", commit: "abc1234", at } as const;
+  const known = expect(input.book, input.waits, { version: 1, evals: { "ret:invite.accept": entry } });
+  assert.deepEqual(known.unknownStatus, []);
+  assert.deepEqual(failed(run(files, files, known)), []);
+  const unknown = expect(input.book, input.waits, { version: 1, evals: { "ret:invite.accept": entry, "ret:ghost": entry } });
+  assert.deepEqual(unknown.unknownStatus, ["ret:ghost"]);
+  const outcomes = run(files, files, unknown);
+  assert.deepEqual(failed(outcomes), ["every status entry names an eval the book derives"]);
+  assert.match(outcomes.find((o) => o.failures > 0)?.detail[0] ?? "", /ret:ghost/);
+  assert.deepEqual(expected.unknownStatus, [], "no status document, no unknown entry");
 });

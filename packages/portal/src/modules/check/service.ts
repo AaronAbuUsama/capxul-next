@@ -1,5 +1,5 @@
 /** The check module's door: what the book expects of the site, and the verdict on a generated one. */
-import type { AnyRecord, Book } from "@capxul/book";
+import { unknownEvals, type AnyRecord, type Book, type StatusDocument } from "@capxul/book";
 
 import { coverage } from "./internal/coverage.ts";
 import { evals, identical, questions, stands } from "./internal/data.ts";
@@ -22,7 +22,7 @@ const outcome = (check: string, failures: readonly string[]): Outcome =>
   ({ check, failures: failures.length, detail: failures.slice(0, SHOWN) });
 
 /** What the book says the site must hold. `waits` is the one predicate the judgments report uses. */
-export const expect = (book: Book, waits: (decision: AnyRecord) => boolean): Expect => {
+export const expect = (book: Book, waits: (decision: AnyRecord) => boolean, status: StatusDocument | null = null): Expect => {
   const records = [...book.records.values()];
   return {
     pages: [
@@ -30,6 +30,7 @@ export const expect = (book: Book, waits: (decision: AnyRecord) => boolean): Exp
       ...CATALOGUES.map((name) => `docs/${name}`), "eval", ...[...new Set(book.evals.map((e) => evalKind(e.id)))].map((kind) => `eval/${kind}`),
     ],
     evals: book.evals.length,
+    unknownStatus: status === null ? [] : unknownEvals(book, status),
     waiting: records.filter((r) => r._kind === "decision" && waits(r)).map((r) => r.id),
     operations: records.filter((r) => r._kind === "operation").map((r) => r.id),
   };
@@ -43,6 +44,7 @@ export const check = (files: ReadonlyMap<string, string>, again: ReadonlyMap<str
   outcome("the Questions list equals the judgments list", questions(files, expected.waiting)),
   outcome("every operation has a stand", stands(files, expected.operations)),
   outcome("the eval catalogue lists every eval the book derives", evals(files, expected.evals)),
+  outcome("every status entry names an eval the book derives", expected.unknownStatus.map((id) => `${id}: in status/status.json, and the book derives no such eval`)),
 ];
 
 export const passed = (outcomes: readonly Outcome[]): boolean => outcomes.every((o) => o.failures === 0);

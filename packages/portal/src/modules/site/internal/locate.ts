@@ -2,7 +2,7 @@
  * Where a record lives on the site. Most kinds have a page at `<kind>/<id>`; a child kind is an anchor on its
  * parent's page; the system is the Overview. Eval anchors follow docs/design/portal.md ("Anchors").
  */
-import type { AnyRecord, EvalDef } from "@capxul/book";
+import { verdictOf, type AnyRecord, type EvalDef, type StatusDocument } from "@capxul/book";
 
 import type { EvalRow, Ref } from "../types.ts";
 import { kindOf } from "./evalKinds.ts";
@@ -54,7 +54,8 @@ export const unique = (used: Set<string>, anchor: string): string => {
 };
 
 /** Evals as a page shows them. `used` holds the page's anchors so far, and gains these. */
-export const evalRows = (evals: readonly EvalDef[], pageId: string, used: Set<string>): readonly EvalRow[] =>
+export const evalRows = (evals: readonly EvalDef[], pageId: string, used: Set<string>, status: StatusDocument | null): readonly EvalRow[] =>
   evals.map((e) => ({
     id: e.id, kind: kindOf(e.id), anchor: unique(used, evalAnchor(e.id, pageId)), level: e.level, claim: text(e.claim), decider: e.decider,
+    verdict: verdictOf(status, e.id),
   }));

@@ -95,3 +95,12 @@ a.cell-link .cell-name { color: var(--blue); text-decoration: underline; text-de
   .trace-facts dd { margin-bottom: 8px; }
   .layer-n { flex: 1 1 100%; }
 }
+
+/* examples as terminal sessions above the generated skeleton; telemetry and impact lists */
+.examples { margin-bottom: 20px; }
+.examples .session + .session { margin-top: 12px; }
+.session .code-body { white-space: pre; }
+.impact-kinds { margin: 0 0 10px; }
+.impact-list, .telemetry { margin: 0; padding-left: 18px; }
+.impact-list li, .telemetry li { margin: 3px 0; }
+.trace-telemetry { margin: 12px 0 18px; }

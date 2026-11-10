@@ -2,7 +2,7 @@
  * The small book every module's test is run on: the invitations fixture of `@capxul/book`, plus one decision that
  * waits for an answer. Test-only: nothing under `modules/` or `main.ts` imports it.
  */
-import { buildBook, defineDecision, keyOf, type AnyRecord } from "@capxul/book";
+import { buildBook, defineDecision, keyOf, type AnyRecord, type StatusDocument } from "@capxul/book";
 
 import { direction } from "#content/direction.ts";
 import type { Assets } from "#src/modules/render/types.ts";
@@ -40,19 +40,24 @@ const settled = defineDecision({
 
 const isRecord = (u: unknown): u is AnyRecord => typeof u === "object" && u !== null && "_kind" in u && "id" in u;
 
+/** Every record of the fixture book, for a test that changes one of them. */
+export const fixtureRecords: readonly unknown[] = [...fixture.records, waiting, settled];
+
 /**
  * The input of a site over the fixture book. The old CLI knows `org member invite` and nothing else.
  * At stage `as-is` the fixture has no problem; at stage `target` its operations have several, so they stand at specify.
  */
-export const fixtureInput = (commit = "abc1234", stage: "as-is" | "target" = "as-is"): SiteInput => {
-  const book = buildBook({ name: "fixture", stage, records: [...fixture.records, waiting, settled] });
+export const fixtureInput = (
+  commit = "abc1234", stage: "as-is" | "target" = "as-is", status: StatusDocument | null = null, records: readonly unknown[] = fixtureRecords,
+): SiteInput => {
+  const book = buildBook({ name: "fixture", stage, records });
   const conceptOf = new Map<string, string>();
   for (const r of book.records.values()) {
     const concept = r["concept"];
     if (isRecord(concept)) conceptOf.set(keyOf(r), concept.id);
   }
   return {
-    book, commit, concepts: ["access", "organizations"], conceptOf, direction,
+    book, commit, concepts: ["access", "organizations"], conceptOf, direction, status,
     waits: (decision) => decision.id === WAITING,
     frozenOperations: new Set(["org.member.invite"]),
     frozen: new Map([["org.member.invite", {

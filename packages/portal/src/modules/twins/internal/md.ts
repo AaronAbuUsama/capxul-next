@@ -1,6 +1,6 @@
 /** The pieces every Markdown twin is made of: one-line text, links between twins, tables, lists. */
 import { htmlFile, jsonFile, mdFile, relative } from "#src/modules/site/service.ts";
-import type { Brief, Cell, EvalRow, FindingRow, LinkGroup, Ref, TableSection, Tile, Trace, Value, Variant } from "#src/modules/site/types.ts";
+import type { Brief, Cell, EvalRow, FindingRow, ImpactBlock, LinkGroup, Ref, TableSection, Tile, Trace, Value, Variant } from "#src/modules/site/types.ts";
 
 /** Text on one line. A `](` the book wrote is escaped, so the only links in a twin are the ones the site makes. */
 export const plain = (s: string): string => s.replace(/\s+/g, " ").trim().replaceAll("](", "]\\(");
@@ -31,6 +31,15 @@ export const section = (title: string, lines: readonly string[]): readonly strin
 
 export const evals = (rows: readonly EvalRow[]): readonly string[] =>
   table(["Eval", "Level", "Claim", "Decided by"], rows.map((e) => [`\`${e.id}\``, e.level, plain(e.claim), e.decider]));
+
+/** "If this changes": the counts, then every record that depends on this one, nearest first. */
+export const impact = (at: string, b: ImpactBlock): readonly string[] =>
+  b.total === 0 ? ["Nothing depends on this record.", ""] : [
+    `${b.total} records depend on it: ${b.byKind.map((k) => `${k.kind} ${k.count}`).join(", ")}. ` +
+      `${b.decisions} decisions name it; ${b.decisionsOnDependents} name something that depends on it. ${b.evals} evals belong to it or to them.`, "",
+    ...(b.complete ? [] : ["This list is cut to the nearest 500, or for a decision to the records it names; `tools/impact.ts` lists everything that depends on them.", ""]),
+    ...table(["Record", "Kind", "Field", "Names", "Distance"], b.all.map((d) => [link(at, d.ref), d.kind, `\`${d.field}\``, link(at, d.via), String(d.distance)])),
+  ];
 
 /** A fenced block of code, with its language. */
 export const fence = (language: string, code: string): readonly string[] => ["```" + language, ...code.split("\n"), "```", ""];
@@ -67,11 +76,19 @@ export const tiles = (at: string, held: readonly Tile[]): readonly string[] =>
 
 const or = (at: string, held: readonly Ref[]): string => (held.length === 0 ? "the book names none" : refs(at, held));
 
+/** The events a run sends and the spans it names, from the whole implementation. */
+const telemetry = (at: string, t: Trace): readonly string[] => [
+  `Events it sends: ${t.sends.length === 0 ? "the book names none" : t.sends.map((e) =>
+    `${link(at, e.event)} through ${e.transition ? link(at, e.transition) : "the record itself"} (driven by ${link(at, e.by)})`).join("; ")}.`, "",
+  `Spans it names: ${t.named.length === 0 ? "the book names none" : t.named.map((s) => `\`${s.span}\` (${link(at, s.by)})`).join(", ")}.`, "",
+];
+
 /** What happens when an operation runs: each step, and under an rpc step what the book lists for it. */
 export const trace = (at: string, t: Trace): readonly string[] =>
   !t.by ? ["The book names nothing that implements this operation, so there is no run to trace.", ""] : [
     `Implemented by the ${t.kind} ${link(at, t.by)}.` + (t.kind === "flow"
       ? ` Outside calls the client makes itself: ${or(at, t.calls)}. Spans the flow names: ${t.spans.length === 0 ? "the book names none" : t.spans.join(", ")}.` : ""), "",
+    ...telemetry(at, t),
     ...t.steps.flatMap((s, i) => [
       `${i + 1}. **${plain(s.name)}** (${s.rpc ? `rpc ${link(at, s.rpc)}` : `the SDK: ${s.does}`})${s.about === "" ? "" : `: ${plain(s.about)}`}`,
       ...(s.rpc ? [

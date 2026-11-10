@@ -3,9 +3,9 @@
  * book says it does: the contract functions it calls, the outside calls, the procedures, the transitions it
  * drives, the events those send, the tables it writes and the spans it names.
  */
-import { keyOf, type AnyRecord } from "@capxul/book";
+import { eventsSent, keyOf, spansNamed, type AnyRecord } from "@capxul/book";
 
-import type { Ref, Trace, TraceStep } from "../types.ts";
+import type { EventRow, Ref, SpanRow, Trace, TraceStep } from "../types.ts";
 import type { Ctx } from "./context.ts";
 import { refOf } from "./locate.ts";
 import { field, isRecord, list, objects, records, text } from "./values.ts";
@@ -44,17 +44,32 @@ const rpcStep = (ctx: Ctx, name: string, about: string, link: AnyRecord): TraceS
   };
 };
 
+/** What the whole implementation sends and names, from the book's views: the events with the transition that sends each, the spans. */
+const telemetryOf = (ctx: Ctx, op: AnyRecord | null): Pick<Trace, "sends" | "named"> => {
+  if (!op) return { sends: [], named: [] };
+  const at = (key: string): Ref | null => { const r = ctx.input.book.records.get(key); return r ? refOf(r) : null; };
+  const sends = eventsSent(ctx.input.book, op).flatMap((e): readonly EventRow[] => {
+    const event = at(e.event);
+    const by = at(e.by);
+    return event && by ? [{ event, transition: e.transition === null ? null : at(e.transition), by }] : [];
+  });
+  const named = spansNamed(ctx.input.book, op).flatMap((s): readonly SpanRow[] => { const by = at(s.by); return by ? [{ span: s.span, by }] : []; });
+  return { sends, named };
+};
+
 /**
  * The trace of the record that implements an operation. A flow gives its steps in order, each rpc step opened up;
  * an rpc alone is one step; with nothing implementing it, the trace is empty.
  */
-export const traceOf = (ctx: Ctx, link: AnyRecord | null): Trace => {
-  if (!link) return { by: null, kind: "", spans: [], calls: [], steps: [] };
+export const traceOf = (ctx: Ctx, link: AnyRecord | null, op: AnyRecord | null): Trace => {
+  if (!link) return { by: null, kind: "", spans: [], calls: [], steps: [], sends: [], named: [] };
   const impl = held(ctx, link);
+  const telemetry = telemetryOf(ctx, op);
   if (impl._kind !== "flow") {
-    return { by: refOf(impl), kind: impl._kind, spans: [], calls: [], steps: [rpcStep(ctx, impl.id, "", impl)] };
+    return { by: refOf(impl), kind: impl._kind, spans: [], calls: [], steps: [rpcStep(ctx, impl.id, "", impl)], ...telemetry };
   }
   return {
+    ...telemetry,
     by: refOf(impl), kind: "flow", spans: list(impl["spans"]).map(text), calls: refs(impl["calls"]),
     steps: objects(impl["steps"]).map((s) => {
       const rpc = s["rpc"];
