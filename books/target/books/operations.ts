@@ -30,6 +30,7 @@ import {
   error_ROLE_PERMISSION_DENIED,
   error_WRONG_STATE,
 } from "../shared/vocabulary.ts";
+import * as examples from "./examples.ts";
 import { Annotation, rpc_books_annotations_save } from "./annotations.ts";
 import { BookAsset, rpc_books_assets_add, rpc_books_assets_list, rpc_books_assets_remove } from "./assets.ts";
 import { BookFact, rpc_books_facts_list } from "./facts.ts";
@@ -110,6 +111,7 @@ export const operation_activity_annotate = defineOperation({
   ],
   returns: Schema.Struct({ annotation: Annotation }),
   errors: [error_CLI_USAGE, error_CANCELLED],
+  examples: examples.annotate,
   refusals: refusalsOf("activity.annotate", {
     CLI_USAGE: [error_CLI_USAGE, CHART],
     INVALID_INPUT: [error_INVALID_INPUT, CHART],
@@ -150,6 +152,7 @@ export const operation_org_books_assets_list = defineOperation({
   returns: Schema.Struct({ assets: Schema.Array(BookAsset) }),
   errors: [error_CLI_USAGE],
   // An empty Organization id never reaches the rpc from the CLI: its scope refuses it with CLI_USAGE first.
+  examples: examples.assetsList,
   refusals: refusalsOf("org.books.assets.list", {
     ROLE_PERMISSION_DENIED: [error_ROLE_PERMISSION_DENIED, CHART],
     INVALID_INPUT: [error_INVALID_INPUT, "?"],
@@ -190,6 +193,7 @@ export const operation_org_books_assets_add = defineOperation({
     priced: Schema.Literal(false),
   }),
   errors: [error_CLI_USAGE],
+  examples: examples.assetsAdd,
   refusals: refusalsOf("org.books.assets.add", {
     INVALID_INPUT: [error_INVALID_INPUT, CHART],
     WRONG_STATE: [error_WRONG_STATE, CHART],
@@ -224,6 +228,7 @@ export const operation_org_books_assets_remove = defineOperation({
   ],
   returns: Schema.Struct({ assetId: S, address: S }),
   errors: [error_CLI_USAGE],
+  examples: examples.assetsRemove,
   refusals: refusalsOf("org.books.assets.remove", {
     WRONG_STATE: [error_WRONG_STATE, CHART],
     ROLE_PERMISSION_DENIED: [error_ROLE_PERMISSION_DENIED, ADDED],
@@ -250,6 +255,7 @@ export const operation_org_books_facts_list = defineOperation({
   ],
   returns: Schema.Struct({ facts: Schema.Array(BookFact), next: NullOr(S) }),
   errors: [error_CLI_USAGE],
+  examples: examples.factsList,
   refusals: refusalsOf("org.books.facts.list", {
     CLI_USAGE: [error_CLI_USAGE, NO_CHART],
     INVALID_INPUT: [error_INVALID_INPUT, CHART],
