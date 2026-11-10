@@ -94,17 +94,32 @@ export const load = async (root: string, commit: string = commitOf(root)): Promi
     if (!status.ok) return status;
     const plan = planOf(root, book, concepts, (d) => forAaron(d) === true);
     if (!plan.ok) return plan;
+    const worlds = await worldsOf(root, open);
     return {
       ok: true,
       value: {
         book, commit, concepts, conceptOf, direction, status: status.value, plan: plan.value,
         waits: (decision) => forAaron(decision) === true,
-        frozen: frozenOf(flagBook), frozenOperations: new Set(Object.keys(frozen)),
+        frozen: frozenOf(flagBook), frozenOperations: new Set(Object.keys(frozen)), worlds,
       },
     };
   } catch (cause) {
     return { ok: false, error: `the book could not be loaded: ${cause instanceof Error ? cause.message : String(cause)}` };
   }
+};
+
+/**
+ * The worlds design: the readable document and the ids of the records that are the design, which the book lists in
+ * `books/target/devnet/platform-index.ts`. Null when either is absent (the Worlds page and its nav entry then do not exist).
+ */
+const worldsOf = async (root: string, open: (path: string) => Promise<Fields>): Promise<SiteInput["worlds"]> => {
+  const index = existsSync(join(root, "books/target/devnet/platform-index.ts")) ? (await open("books/target/devnet/platform-index.ts"))["WORLDS_PAGE"] : null;
+  if (!isFields(index)) return null;
+  const document = str(index["document"]);
+  const file = join(root, document);
+  if (document === "" || !existsSync(file)) return null;
+  const ids = (u: unknown): readonly string[] => list(u).map(str);
+  return { document, text: readFileSync(file, "utf8"), operations: ids(index["operations"]), journeys: ids(index["journeys"]), decisions: ids(index["decisions"]), tables: ids(index["tables"]) };
 };
 
 /** The status document at `status/status.json`: null when the file is absent, which means nothing has run; an error when it is not one. */

@@ -1,0 +1,6 @@
+/* The Worlds page: the design document's tables and code blocks sit inside the plan's reading column. */
+.worlds .md { max-width: none; }
+.worlds .md > p, .worlds .md > ul, .worlds .md > ol { max-width: 68ch; }
+.worlds .md .code, .worlds .md .table-wrap { margin: 14px 0; max-width: 100%; }
+.worlds .md .code-body { white-space: pre; }
+.worlds .md p + .code, .worlds .md ul + .code, .worlds .md ol + .code { margin-top: 14px; }

@@ -7,12 +7,14 @@ import { doc } from "./internal/md.ts";
 import { architecture, build, catalogue, overview, questions } from "./internal/pages.ts";
 import { plan, planMilestone, planTask } from "./internal/plan.ts";
 import { concept, operation, record } from "./internal/records.ts";
+import { worlds } from "./internal/worlds.ts";
 import { LLMS_FILE } from "./types.ts";
 
 /** The lines of a page's Markdown under its title. */
 const body = (page: Page): readonly string[] => {
   switch (page.type) {
     case "overview": return overview(page);
+    case "worlds": return worlds(page);
     case "plan": return plan(page);
     case "plan-task": return planTask(page);
     case "plan-milestone": return planMilestone(page);

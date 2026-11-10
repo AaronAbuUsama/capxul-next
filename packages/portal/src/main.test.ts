@@ -14,7 +14,10 @@ test("the real book generates a site that passes the portal check", async () => 
   const files = generate(input, assets);
   const expected = expect(input.book, input.waits, input.status, {
     problems: (input.plan?.problems ?? []).map((p) => `${p.at}: ${p.why}`), tasks: input.plan?.plan.tasks.length ?? null, ownerNeeds: ownerNeedsOf(input), pages: planPagesOf(input),
-  });
+  }, input.worlds ? ["worlds"] : []);
+  assert.ok(input.worlds, "the Worlds page is made from docs/design/worlds-platform.md");
+  assert.ok((files.get("worlds/index.html") ?? "").includes("Worlds as a hosted platform"));
+  assert.ok((files.get("worlds.md") ?? "").includes("## Clean data"));
   const outcomes = check(files, generate(input, assets), expected);
   assert.ok(passed(outcomes), JSON.stringify(outcomes.filter((o) => o.failures > 0), null, 2));
 

@@ -299,8 +299,21 @@ export interface PlanTaskPage extends PageHead {
 export interface PlanMilestonePage extends PageHead {
   readonly type: "plan-milestone"; readonly commit: string; readonly milestone: PlanMilestone; readonly history: readonly PlanLogRow[];
 }
+// ── the Worlds page ─────────────────────────────────────────────────────────────────────────────
+
+/** What the Worlds page is made from: the readable document and the ids of the records that are the worlds design (devnet/platform-index.ts). */
+export interface WorldsInput {
+  readonly document: string; readonly text: string;
+  readonly operations: readonly string[]; readonly journeys: readonly string[]; readonly decisions: readonly string[]; readonly tables: readonly string[];
+}
+/** The Worlds page: the document's sections first, then the operations, journeys, decisions and tables of the worlds design. */
+export interface WorldsPage extends PageHead {
+  readonly type: "worlds"; readonly commit: string; readonly present: boolean;
+  readonly intro: string; readonly sections: readonly PlanSection[];
+  readonly operations: readonly OperationRow[]; readonly journeys: readonly Brief[]; readonly decisions: readonly Brief[]; readonly tables: readonly Brief[];
+}
 export type Page =
-  | PlanPage | PlanTaskPage | PlanMilestonePage | OverviewPage | QuestionsPage | ArchitecturePage | ConceptPage | OperationPage | RecordPage | BuildPage | CataloguePage;
+  | WorldsPage | PlanPage | PlanTaskPage | PlanMilestonePage | OverviewPage | QuestionsPage | ArchitecturePage | ConceptPage | OperationPage | RecordPage | BuildPage | CataloguePage;
 
 export interface Site {
   readonly commit: string;
@@ -348,4 +361,6 @@ export interface SiteInput {
   readonly status: StatusDocument | null;
   /** `plan/plan.json` with the last lines of its log: null when the file is absent. */
   readonly plan: PlanInput | null;
+  /** The worlds design: null (or absent) when the document is not in the repository. */
+  readonly worlds?: WorldsInput | null;
 }

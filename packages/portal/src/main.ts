@@ -72,7 +72,7 @@ const run = async (args: readonly string[]): Promise<{ readonly lines: readonly 
   const outcomes = check(files, generate(input, assets), expect(input.book, input.waits, input.status, {
     problems: (input.plan?.problems ?? []).map((p) => `${p.at}: ${p.why}`), tasks: input.plan?.plan.tasks.length ?? null,
     ownerNeeds: ownerNeedsOf(input), pages: planPagesOf(input),
-  }));
+  }, input.worlds ? ["worlds"] : []));
   return {
     lines: [
       ...outcomes.flatMap((o) => [
