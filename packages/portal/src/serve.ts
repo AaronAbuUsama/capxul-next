@@ -64,11 +64,23 @@ const depsOf = (input: SiteInput, root: string, dist: string, port: number, extr
   ...(closedFor(root) === undefined ? {} : { closed: closedFor(root)! }),
 });
 
-/** Starts the server on 127.0.0.1:`port`. */
-export const listen = (input: SiteInput, root: string, port: number, extraHosts: readonly string[] = [], runsPort: number = DEFAULT_HOST_PORT): Promise<Result<{ readonly server: Server; readonly url: string; readonly closed?: string }>> => {
+/**
+ * Starts the server on 127.0.0.1:`port`. `reload` loads the blueprint again: an answer is checked against what the pages
+ * show, so when `pnpm portal` has rebuilt them since the server last loaded, it loads again before taking the answer.
+ * Without it, a page could offer a decision the server had never heard of ("is not a decision that waits for you",
+ * 10 November 2026).
+ */
+export const listen = (input: SiteInput, root: string, port: number, extraHosts: readonly string[] = [], runsPort: number = DEFAULT_HOST_PORT, reload?: () => Promise<Result<SiteInput>>): Promise<Result<{ readonly server: Server; readonly url: string; readonly closed?: string }>> => {
   const dist = resolve(root, "packages/portal/dist");
   if (!existsSync(join(dist, "index.html"))) return Promise.resolve({ ok: false, error: `${dist} holds no site: run pnpm portal first` });
-  const deps = depsOf(input, root, dist, port, extraHosts);
+  const built = (): number => { try { return statSync(join(dist, "index.html")).mtimeMs; } catch { return 0; } };
+  let deps = depsOf(input, root, dist, port, extraHosts), loadedFor = built();
+  const fresh = async (): Promise<void> => {
+    const now = built();
+    if (!reload || now === loadedFor) return;
+    const again = await reload();
+    if (again.ok) { deps = depsOf(again.value, root, dist, port, extraHosts); loadedFor = now; }
+  };
   const runs = passThrough({ port: runsPort, hosts: deps.hosts });
   const server = createServer((req, res) => {
     if (runs.owns((req.url ?? "/").split("?")[0]!)) { runs.request(req, res); return; }
@@ -80,8 +92,9 @@ export const listen = (input: SiteInput, root: string, port: number, extraHosts:
       if (size > MAX_BODY) tooLarge = true;
       else chunks.push(c);
     });
-    req.on("end", () => {
+    req.on("end", async () => {
       try {
+        if (req.method === "POST") await fresh();
         const out = respond({
           method: req.method ?? "GET", path: req.url ?? "/", host: req.headers.host ?? "", origin: String(req.headers.origin ?? ""),
           body: Buffer.concat(chunks).toString("utf8"), tooLarge,
