@@ -8,7 +8,7 @@
 
 import { budget, defineWorkflow } from "../../../packages/book/src/index.ts";
 import { concept_books } from "../shared/foundation.ts";
-import { integration_chain_rpc, integration_chainlink, integration_frappe_head } from "../shared/external.ts";
+import { integration_chain_rpc, integration_chainlink } from "../shared/external.ts";
 import { table_feature_flags, table_principals } from "../access/data.ts";
 import {
   table_org_deployments,

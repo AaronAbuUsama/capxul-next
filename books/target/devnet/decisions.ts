@@ -21,7 +21,6 @@ import {
   integration_chainlink,
   integration_devnet_control,
   integration_fde_host,
-  integration_frappe_head,
   integration_indexer,
   integration_mail,
   integration_posthog,
@@ -32,7 +31,7 @@ import {
   table_scripted_gates,
   table_scripted_prices,
 } from "./data.ts";
-import { NEW_OPERATIONS as ORG_NEW_OPERATIONS, operation_org_create, operation_org_seats_show } from "../organizations/operations.ts";
+import { operation_org_create, operation_org_seats_show } from "../organizations/operations.ts";
 import { concept_organizations } from "../shared/foundation.ts";
 import { rpc_devnet_mail_fail, rpc_devnet_mail_list, rpc_devnet_mail_list_notices } from "./mail.ts";
 import { rpc_devnet_gates_read, rpc_devnet_gates_script } from "./gates.ts";
@@ -1127,7 +1126,7 @@ export const decision_devnet_head_warp_stops = defineDecision({
     "whole ERP's. None would leave a dated job to run late, on whatever day the next stop fell. The stand-in has " +
     "nothing scheduled, so a world with a stand-in head stops exactly where it would without one.",
   source: WORLD_GROUP("organizations.head-clock; devnet.warp-barrier; frappe core/doctype/scheduled_job_type (frequency, CRON_MAP); hooks.py scheduler_events (frappe, erpnext, hrms)"),
-  affects: [integration_frappe_head, integration_devnet_control, component_frappe_app, component_devnet],
+  affects: [integration_devnet_control, component_frappe_app, component_devnet],
 });
 
 export const decision_devnet_fde_worlds = defineDecision({
@@ -1250,7 +1249,7 @@ export const decision_devnet_command_worlds = defineDecision({
     "org-with-budget-tree does; a per-payment cap has no v4 form. org-with-fde's steps did not change, " +
     "because the founder's command did not: only where its key is made.",
   source: COMMANDS("organizations.command-worlds; organizations.fde-hosting; devnet.sessions-across-warps; books/target/devnet/worlds.ts"),
-  affects: [...ORG_NEW_OPERATIONS, operation_org_seats_show, concept_devnet, concept_organizations],
+  affects: [operation_org_seats_show, concept_devnet, concept_organizations],
 });
 
 // ── the worlds the commands pass's last bookings start from (8 November 2026, build pass) ─────────
@@ -1502,7 +1501,7 @@ export const decision_devnet_head_follows_world = defineDecision({
   source: WORLD_CLOCK(
     "frappe@1a7ea577 utils/data.py:373, scheduler.py:44, __init__.py:1050, model/document.py:170, email_queue.py:248; direct reads listed in docs/design/time.md 7.5",
   ),
-  affects: [component_frappe_app, integration_frappe_head, integration_mail, table_mail_messages, component_devnet, environment_devnet, environment_shared_world],
+  affects: [component_frappe_app, integration_mail, table_mail_messages, component_devnet, environment_devnet, environment_shared_world],
 });
 
 export const decision_devnet_shared_world = defineDecision({
@@ -1608,7 +1607,7 @@ export const decision_devnet_world_pass_worlds = defineDecision({
   source: WORLD_PASS("organizations.doc-worlds; contacts.conversation-worlds; payroll.hr-worlds; payments.claim-command; devnet.head-stand-in; devnet.fde-host-stand-in; devnet.mail-sink"),
   affects: [
     concept_devnet, concept_organizations, concept_contacts, concept_payments, 
-    table_mail_messages, integration_frappe_head,
+    table_mail_messages, 
     integration_fde_host, component_devnet,
   ],
 });
@@ -1855,7 +1854,7 @@ export const decision_devnet_stateful_followers = defineDecision({
   source: SEASONS("devnet.head-follows-world; devnet.fde-host-follows-world; devnet.own-schema; Frappe's bench backup and restore"),
   affects: [
     flow_devnet_time_follow, flow_devnet_snapshots_save, flow_devnet_snapshots_restore, ops.operation_dev_snapshot_save,
-    ops.operation_dev_snapshot_restore, integration_devnet_control, integration_frappe_head, integration_fde_host,
+    ops.operation_dev_snapshot_restore, integration_devnet_control, integration_fde_host,
     component_frappe_app, component_devnet,
   ],
 });

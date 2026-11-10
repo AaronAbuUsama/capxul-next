@@ -8,9 +8,6 @@ import { Schema } from "effect";
 import { budget, defineFlow } from "../../../packages/book/src/index.ts";
 import { component_core_sdk } from "../shared/foundation.ts";
 import { error_CANCELLED, error_INVALID_INPUT, error_PROVIDER_ERROR, error_ROLE_PERMISSION_DENIED, error_WRONG_STATE } from "../shared/vocabulary.ts";
-import { HeadView, rpc_organizations_heads_show } from "./heads.ts";
-import { rpc_organizations_docs_get, rpc_organizations_docs_remove } from "./docs.ts";
-import { rpc_organizations_apps_list } from "./apps.ts";
 import { rpc_organizations_setups_begin, rpc_organizations_setups_get, rpc_organizations_setups_resume, SetupView } from "./setups.ts";
 import { rpc_organizations_workspaces_list } from "./workspaces.ts";
 import { rpc_approvals_signing_get } from "../approvals/signing.ts";
@@ -252,26 +249,3 @@ export const flow_client_operator_organizations_seats_raise = defineFlow({
 
 // ── the document family (organizations.doc-family) ─────────────────────────────────────────
 
-export const flow_client_org_head_docs_remove = defineFlow({
-  id: "client.org.head.docs.remove",
-  title: "Delete a head document after a preview",
-  about:
-    "`org head doc remove` (organizations.doc-family, aaron.sdk-reaches-everything). Deleting a head document cannot be " +
-    "undone from Capxul, so it reads the document first (one logged read: a name the head lacks, or one the member may " +
-    "not read, ends there), shows its DocType, name, title and status and that it cannot be undone, and asks; no is " +
-    "CANCELLED and nothing is deleted, and `--confirm` answers yes in a script, which without it is the CLI's usage " +
-    "refusal (vocabulary.declined-preview-cancelled). Then it deletes it in one call, with the same call id on a retry.",
-  component: component_core_sdk,
-  sdk: "client.org(orgId).head.docs.remove",
-  input: Schema.Struct({ orgId: S, doctype: S, name: S, confirm: Schema.optionalKey(Schema.Boolean) }),
-  output: rpc_organizations_docs_remove.output,
-  steps: [
-    { name: "read", rpc: rpc_organizations_docs_get, about: "Read the document once, for the preview." },
-    { name: "confirm", local: "prompt", about: "Only at a terminal without `confirm`: show what is deleted and ask; no is CANCELLED." },
-    { name: "remove", rpc: rpc_organizations_docs_remove, about: "Delete it on the head, as the member's own User." },
-  ],
-  errors: [error_CANCELLED],
-  calls: [],
-  spans: [],
-  budget: { ...budget("vendor"), why: "one read and one write of the head, each followed by its log write" },
-});

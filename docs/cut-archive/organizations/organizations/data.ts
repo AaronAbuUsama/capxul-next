@@ -141,3 +141,77 @@ export const machine_org_head = defineMachine({
     },
   },
 });
+
+export const table_org_doc_calls = defineTable({
+  id: "org-doc-calls",
+  title: "Document calls: every call the document family made to the head, and for whom",
+  about:
+    "The document family's log (aaron.sdk-reaches-everything: 'with the caller's authority, logged, on the world's " +
+    "clock'; organizations.doc-log). One row per call an `org head doc` or `org head doctype` command made, read or write, " +
+    "written in one transaction once the head has answered, or once Capxul refused before any call: whose authority it " +
+    "ran with (the member's Seat; for the hosted FDE, its asker's, with the ask), the head User it ran as, the verb, " +
+    "the DocType and the document's name, the outcome (done, or the refusal's code and reason), and the head's " +
+    "`modified` and docstatus after a write. It keeps the names of the fields a write set, the filters a list used and " +
+    "how many documents it answered, never a value: the documents are the head's, and Capxul copies none " +
+    "(organizations.head-ownership). The SDK method gives each invocation one call id and repeats it on a retry, so a " +
+    "call is logged once and a write is applied once: a row already under that id answers as recorded, and the Capxul " +
+    "app answers a write it already applied under that id as it did the first time. The one exception is a call the " +
+    "head did not answer (PROVIDER_ERROR or RATE_LIMITED), which may have been applied there all the same: its row is " +
+    "logged refused, and a retry under the same id calls the head again and completes that row, once, with what the " +
+    "head then answers (organizations.doc-log). `at` is the world's now when the row was written, and `completed_at` " +
+    "when a retry completed it. No other row ever changes.",
+  concept: concept_organizations,
+  tenancy: "organization",
+  tenantField: "org_id",
+  fields: Schema.Struct({
+    org_id: S,
+    /** `dcall_` and a ULID, made once by the SDK method and kept on every retry. */
+    call_id: S,
+    /** The live head it went to; null when refused before any head was found. */
+    head_id: NullOr(S),
+    verb: DocVerb,
+    /** Null for `doctypes`. */
+    doctype: NullOr(S),
+    /** The document's name on the head: given, or the one a create or an amend made; null for a list. */
+    name: NullOr(S),
+    /** Whose authority it ran with: the caller's Seat, or for the hosted FDE its asker's. */
+    member_id: S,
+    /** The ask the hosted FDE made it under; null when a member called themselves. */
+    ask_id: NullOr(S),
+    /** The head User it ran as, by mailbox; null when refused before the head. */
+    head_user: NullOr(S),
+    outcome: Schema.Literals(["done", "refused"]),
+    /** The refusal's code (INVALID_INPUT, ROLE_PERMISSION_DENIED, WRONG_STATE, PROVIDER_ERROR...) and the head's reason. */
+    code: NullOr(S),
+    reason: NullOr(S),
+    /** The fields a create or change set, and the filters a list used: names only. */
+    field_names: Schema.Array(S),
+    /** How many documents a list or `doctypes` answered. */
+    count: NullOr(N),
+    /** After a write: the head's `modified` stamp and the document's docstatus (0 draft, 1 submitted, 2 cancelled). */
+    head_modified: NullOr(S),
+    docstatus: NullOr(N),
+    at: N,
+    /** When a retry under the same id completed a row the head had not answered; null otherwise. */
+    completed_at: NullOr(N),
+  }),
+  key: ["org_id", "call_id"],
+  indexes: [
+    {
+      name: "by_org_at",
+      fields: ["org_id", "at", "call_id"],
+      for: "`org head doc-call list`, newest first, for a Director.",
+    },
+    {
+      name: "by_org_member",
+      fields: ["org_id", "member_id", "at", "call_id"],
+      for: "`org head doc-call list` for a member other than a Director: the calls made with their own authority, the FDE's for them included.",
+    },
+    {
+      name: "by_org_document",
+      fields: ["org_id", "doctype", "name", "at"],
+      for: "`org head doc-call list --doctype --name`: every call that touched one document.",
+    },
+  ],
+  retention: KEPT,
+});

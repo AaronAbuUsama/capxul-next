@@ -13,7 +13,6 @@ import {
   contract_safe,
   integration_chain_rpc,
   integration_fde_host,
-  integration_frappe_head,
   integration_indexer,
   integration_service_signer,
 } from "../shared/external.ts";

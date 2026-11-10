@@ -226,3 +226,19 @@ export const decision_cut_individuals = defineDecision({
   source: BY,
   affects: [f.system_capxul, decision_cut_principle, decision_cut_individuals_parked],
 });
+
+export const decision_cut_head = defineDecision({
+  id: "cut.head",
+  title: "the old Frappe head is replaced by the site, the features and the door",
+  question: "What happens to head in the built book?",
+  options: [
+      {
+          "label": "moved",
+          "text": "The old Frappe head is replaced by the site, the features and the door. Moved to docs/cut-archive/organizations/ with their text intact: 16 operations, 16 rpcs, 1 flow, 1 table, 1 integration, 21 decisions. Listed in docs/cut-archive/INDEX.md with a reason and what carries each. Capxul hosts every organisation's Frappe site and creates it with the organisation (aaron.one-door); nothing is connected from outside, so the connect and disconnect records go."
+      }
+  ],
+  chosen: "moved",
+  why: "The cut's rule (cut.principle): Frappe owns what it owns and the door reaches it; nothing is deleted. Aaron's rulings aaron.frappe-native and aaron.one-door.",
+  source: BY,
+  affects: [f.system_capxul, decision_cut_principle],
+});

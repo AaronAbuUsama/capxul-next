@@ -6,7 +6,7 @@
 
 import { budget, defineWorkflow } from "../../../../packages/book/src/index.ts";
 import { concept_payments } from "../../shared/foundation.ts";
-import { contract_agreements, integration_chain_rpc, integration_frappe_head, integration_indexer } from "../../shared/external.ts";
+import { contract_agreements, integration_chain_rpc, integration_indexer } from "../../shared/external.ts";
 import { procedure_approvals_withdraw } from "../../approvals/procedures.ts";
 import { table_approvals } from "../../approvals/data.ts";
 import { table_board_proposals } from "../../board/data.ts";

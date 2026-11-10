@@ -89,3 +89,27 @@ export const flow_client_org_head_disconnect = defineFlow({
   spans: [],
   budget: budget("write"),
 });
+
+export const flow_client_org_head_docs_remove = defineFlow({
+  id: "client.org.head.docs.remove",
+  title: "Delete a head document after a preview",
+  about:
+    "`org head doc remove` (organizations.doc-family, aaron.sdk-reaches-everything). Deleting a head document cannot be " +
+    "undone from Capxul, so it reads the document first (one logged read: a name the head lacks, or one the member may " +
+    "not read, ends there), shows its DocType, name, title and status and that it cannot be undone, and asks; no is " +
+    "CANCELLED and nothing is deleted, and `--confirm` answers yes in a script, which without it is the CLI's usage " +
+    "refusal (vocabulary.declined-preview-cancelled). Then it deletes it in one call, with the same call id on a retry.",
+  component: component_core_sdk,
+  sdk: "client.org(orgId).head.docs.remove",
+  input: Schema.Struct({ orgId: S, doctype: S, name: S, confirm: Schema.optionalKey(Schema.Boolean) }),
+  output: rpc_organizations_docs_remove.output,
+  steps: [
+    { name: "read", rpc: rpc_organizations_docs_get, about: "Read the document once, for the preview." },
+    { name: "confirm", local: "prompt", about: "Only at a terminal without `confirm`: show what is deleted and ask; no is CANCELLED." },
+    { name: "remove", rpc: rpc_organizations_docs_remove, about: "Delete it on the head, as the member's own User." },
+  ],
+  errors: [error_CANCELLED],
+  calls: [],
+  spans: [],
+  budget: { ...budget("vendor"), why: "one read and one write of the head, each followed by its log write" },
+});

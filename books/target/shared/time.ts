@@ -433,7 +433,7 @@ export const decision_time_world_channels = defineDecision({
     "says how it stays in its world.",
   source: WORLD("aaron.world-clock; docs/decisions/open-for-aaron.md (the CRM tracks every conversation); books/target/shared/external.ts (mail, frappe-head, fde-host)"),
   affects: [
-    x.integration_mail, x.integration_frappe_head, x.integration_fde_host, x.integration_bridge, x.integration_bundler,
+    x.integration_mail, x.integration_fde_host, x.integration_bridge, x.integration_bundler,
     x.integration_chainlink, x.integration_posthog, f.environment_devnet, f.environment_staging, f.environment_shared_world,
     f.component_frappe_app,
   ],
@@ -479,7 +479,7 @@ export const decision_time_seasons = defineDecision({
     "rebuild: the 215 assumed a world lasted, so the rule is written once here, where every client and component " +
     "reads it, rather than rediscovered by each when a season resets.",
   source: SEASONS("books/target/shared/rulings.ts (aaron.seasons); books/target/devnet/decisions.ts (the season decisions); docs/design/time.md section 8"),
-  affects: [f.system_capxul, f.environment_shared_world, f.component_devnet, ...CLIENTS, x.integration_devnet_control, x.integration_frappe_head, x.integration_fde_host],
+  affects: [f.system_capxul, f.environment_shared_world, f.component_devnet, ...CLIENTS, x.integration_devnet_control, x.integration_fde_host],
 });
 
 // ── invariants: each is an eval (inv:<id>) ──────────────────────────────────────────────────
