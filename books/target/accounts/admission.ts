@@ -69,4 +69,6 @@ export const rpc_accounts_admission_admit = defineRpc({
   ...noCalls,
   budget: budget("write"),
   was: [`${W}/operations/admit.ts:23`, `${W}/rules.ts:38`, `${W}/writes.ts:71`, `${R}/writes.ts:124`],
+
+  spans: ["rpc.accounts.admission.admit"],
 });

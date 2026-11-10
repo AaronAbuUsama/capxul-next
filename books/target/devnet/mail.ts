@@ -73,7 +73,7 @@ export const rpc_devnet_mail_list = defineRpc({
   emits: [],
   calls: [],
   chain: [],
-  spans: [],
+  spans: ["rpc.devnet.mail.list"],
   budget: budget("read"),
 });
 
@@ -105,7 +105,7 @@ export const rpc_devnet_mail_fail = defineRpc({
   emits: [],
   calls: [],
   chain: [],
-  spans: [],
+  spans: ["rpc.devnet.mail.fail"],
   budget: budget("write"),
 });
 
@@ -143,6 +143,6 @@ export const rpc_devnet_mail_list_notices = defineRpc({
   emits: [],
   calls: [],
   chain: [],
-  spans: [],
+  spans: ["rpc.devnet.mail.list-notices"],
   budget: budget("read"),
 });

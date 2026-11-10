@@ -37,6 +37,6 @@ export const rpc_devnet_prices_script = defineRpc({
   emits: [],
   calls: [],
   chain: [],
-  spans: [],
+  spans: ["rpc.devnet.prices.script"],
   budget: budget("write"),
 });

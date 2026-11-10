@@ -88,7 +88,7 @@ export const rpc_approvals_signing_get = defineRpc({
   emits: [],
   calls: [],
   chain: [],
-  spans: [],
+  spans: ["rpc.approvals.signing.get"],
   budget: budget("live-read"),
 });
 
@@ -113,7 +113,7 @@ export const rpc_approvals_signing_review = defineRpc({
   emits: [],
   calls: [],
   chain: [],
-  spans: [],
+  spans: ["rpc.approvals.signing.review"],
   budget: budget("write"),
 });
 
@@ -149,7 +149,7 @@ export const rpc_approvals_signing_sign = defineRpc({
   emits: [],
   calls: [],
   chain: [],
-  spans: [],
+  spans: ["rpc.approvals.signing.sign"],
   budget: budget("write"),
 });
 
@@ -175,6 +175,6 @@ export const rpc_approvals_signing_decline = defineRpc({
   emits: [],
   calls: [],
   chain: [],
-  spans: [],
+  spans: ["rpc.approvals.signing.decline"],
   budget: budget("write"),
 });

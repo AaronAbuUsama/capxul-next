@@ -104,7 +104,7 @@ export const rpc_banking_verification_status = defineRpc({
   emits: [],
   calls: [integration_bridge.c.getVerification],
   chain: [],
-  spans: [],
+  spans: ["rpc.banking.verification.status"],
   budget: budget("vendor"),
   was: [`${P}/operations/status.ts:1`, `${P}/views.ts:49`],
 });
@@ -165,7 +165,7 @@ export const rpc_banking_verification_start = defineRpc({
   emits: [],
   calls: [integration_bridge.c.submitVerification],
   chain: [],
-  spans: [],
+  spans: ["rpc.banking.verification.start"],
   budget: budget("vendor"),
   was: [
     `${P}/operations/start.ts:1`,

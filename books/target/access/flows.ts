@@ -68,7 +68,7 @@ export const flow_client_auth_browser_sign_in = defineFlow({
   ],
   errors: [error_CANCELLED],
   calls: [integration_openfort.c.getAddress],
-  spans: [],
+  spans: ["sdk.client.auth.browser.sign-in"],
   budget: budget("vendor"),
 });
 
@@ -93,7 +93,7 @@ export const flow_client_auth_key_session = defineFlow({
   ],
   errors: [],
   calls: [],
-  spans: [],
+  spans: ["sdk.client.auth.key-session"],
   budget: budget("chain-read"),
 });
 
@@ -119,7 +119,7 @@ export const flow_client_auth_assistants_consent = defineFlow({
   ],
   errors: [],
   calls: [],
-  spans: [],
+  spans: ["sdk.client.auth.assistants.consent"],
   budget: budget("write"),
 });
 
@@ -145,7 +145,7 @@ export const flow_client_auth_sign_out = defineFlow({
   ],
   errors: [error_CLI_STORAGE],
   calls: [],
-  spans: [],
+  spans: ["sdk.client.auth.sign-out"],
   budget: budget("write"),
 });
 
@@ -170,7 +170,7 @@ export const flow_client_auth_switch = defineFlow({
   ],
   errors: [error_CLI_STORAGE, error_NOT_AUTHENTICATED],
   calls: [],
-  spans: [],
+  spans: ["sdk.client.auth.switch"],
   budget: budget("chain-read"),
 });
 
@@ -192,7 +192,7 @@ export const flow_client_auth_list = defineFlow({
   steps: [STATE_READ],
   errors: [error_CLI_STORAGE],
   calls: [],
-  spans: [],
+  spans: ["sdk.client.auth.list"],
   budget: LOCAL,
 });
 
@@ -219,7 +219,7 @@ export const flow_client_use_env = defineFlow({
   ],
   errors: [error_CAPABILITY_UNAVAILABLE, error_EXPERIMENTAL_NOT_ACCEPTED, error_CLI_STORAGE],
   calls: [],
-  spans: [],
+  spans: ["sdk.client.use.env"],
   budget: LOCAL,
 });
 
@@ -237,7 +237,7 @@ export const flow_client_use_personal = defineFlow({
   steps: [{ name: "forget", local: "cache", about: "Clears the saved Organization for this environment; a file that cannot be written is CLI_STORAGE." }],
   errors: [error_CLI_STORAGE],
   calls: [],
-  spans: [],
+  spans: ["sdk.client.use.personal"],
   budget: LOCAL,
 });
 
@@ -269,7 +269,7 @@ export const flow_client_whoami = defineFlow({
   ],
   errors: [error_CLI_STORAGE],
   calls: [],
-  spans: [],
+  spans: ["sdk.client.whoami"],
   budget: LOCAL,
 });
 
@@ -297,7 +297,7 @@ export const flow_client_config_telemetry_on = defineFlow({
   ],
   errors: [error_CLI_STORAGE],
   calls: [],
-  spans: [],
+  spans: ["sdk.client.config.telemetry.on"],
   budget: LOCAL,
 });
 
@@ -316,7 +316,7 @@ export const flow_client_config_telemetry_off = defineFlow({
   ],
   errors: [error_CLI_STORAGE],
   calls: [],
-  spans: [],
+  spans: ["sdk.client.config.telemetry.off"],
   budget: LOCAL,
 });
 
@@ -335,7 +335,7 @@ export const flow_client_config_telemetry_status = defineFlow({
   ],
   errors: [error_CLI_STORAGE],
   calls: [],
-  spans: [],
+  spans: ["sdk.client.config.telemetry.status"],
   budget: LOCAL,
 });
 
@@ -357,6 +357,6 @@ export const flow_client_schema = defineFlow({
   steps: [{ name: "describe", local: "build", about: "Looks the words up in the generated catalogue." }],
   errors: [error_CLI_USAGE],
   calls: [],
-  spans: [],
+  spans: ["sdk.client.schema"],
   budget: LOCAL,
 });

@@ -48,7 +48,7 @@ export const rpc_applications_quickstarts_mint = defineRpc({
   emits: [],
   calls: [],
   chain: [],
-  spans: [],
+  spans: ["rpc.applications.quickstarts.mint"],
   budget: budget("write"),
   was: [`${ASIS}:33`, `${ASIS}:118`, `${OLD}/operations/mint.ts:34`, `${OLD}/rules.ts:11`, `${OLD}/rules.ts:24`, "packages/backend/convex/http.ts:122"],
 });

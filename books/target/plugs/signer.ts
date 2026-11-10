@@ -84,6 +84,8 @@ export const rpc_plugs_payments_prepare = rpc({
   invokes: [procedure_plugs_payments_hold],
   budget: { class: "chain-read", p50Ms: 900, p95Ms: 2000 },
   was: [`${SPIKE} (INTERFACE.md: Frappe to Core, now collected by the service)`],
+
+  spans: ["rpc.plugs.payments.prepare"],
 });
 
 export const rpc_plugs_payments_awaiting = rpc({
@@ -101,6 +103,8 @@ export const rpc_plugs_payments_awaiting = rpc({
   errors: [error_NOT_AUTHENTICATED, error_ROLE_PERMISSION_DENIED],
   reads: [table_payment_requests, table_site_users],
   was: [`${SPIKE} (What the design must now decide, 4)`],
+
+  spans: ["rpc.plugs.payments.awaiting"],
 });
 
 export const rpc_plugs_payments_get = rpc({
@@ -116,4 +120,6 @@ export const rpc_plugs_payments_get = rpc({
   errors: [error_NOT_AUTHENTICATED, error_INVALID_INPUT],
   reads: [table_payment_requests],
   was: [`${SPIKE} (Frappe half: Paying a document, route 2)`],
+
+  spans: ["rpc.plugs.payments.get"],
 });

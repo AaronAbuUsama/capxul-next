@@ -140,7 +140,7 @@ export const rpc_activity_holdings_balances = defineRpc({
   emits: [],
   calls: [],
   chain: [],
-  spans: [],
+  spans: ["rpc.activity.holdings.balances"],
   budget: budget("read"),
 });
 
@@ -174,6 +174,6 @@ export const rpc_activity_holdings_address = defineRpc({
   emits: [],
   calls: [],
   chain: [],
-  spans: [],
+  spans: ["rpc.activity.holdings.address"],
   budget: budget("read"),
 });

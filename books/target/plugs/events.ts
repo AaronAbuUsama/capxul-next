@@ -50,6 +50,8 @@ export const rpc_plugs_events_status = rpc({
   errors: [error_NOT_AUTHENTICATED],
   reads: [table_site_events, table_site_cursors],
   was: [`${SPIKE} (Core half: events status)`],
+
+  spans: ["rpc.plugs.events.status"],
 });
 
 export const rpc_plugs_events_resend = rpc({
@@ -68,6 +70,8 @@ export const rpc_plugs_events_resend = rpc({
   reads: [table_site_cursors, table_org_deployments, table_hat_wearers],
   writes: [table_site_cursors],
   was: [`${SPIKE} (Core half: events resend; Frappe's view wins on 409)`],
+
+  spans: ["rpc.plugs.events.resend"],
 });
 
 export const rpc_plugs_events_retry = rpc({
@@ -86,4 +90,6 @@ export const rpc_plugs_events_retry = rpc({
   writes: [table_site_events],
   drives: [machine_site_event.t.release],
   was: [`${SPIKE} (What the design must now decide, 2: there is no retry tool)`],
+
+  spans: ["rpc.plugs.events.retry"],
 });

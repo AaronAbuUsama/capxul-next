@@ -62,7 +62,7 @@ export const rpc_requests_deposits_candidates = defineRpc({
   emits: [],
   calls: [],
   chain: [],
-  spans: [],
+  spans: ["rpc.requests.deposits.candidates"],
   budget: budget("read"),
 });
 
@@ -90,6 +90,6 @@ export const rpc_requests_deposits_match = defineRpc({
   emits: [],
   calls: [],
   chain: [],
-  spans: [],
+  spans: ["rpc.requests.deposits.match"],
   budget: budget("write"),
 });

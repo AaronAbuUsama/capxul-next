@@ -80,7 +80,7 @@ export const rpc_budgets_allowances_create = defineRpc({
     contract_budgets.f.createChildBudget,
     contract_hats.f.mintHat,
   ],
-  spans: [],
+  spans: ["rpc.budgets.allowances.create"],
   budget: budget("chain-read"),
 });
 
@@ -104,7 +104,7 @@ export const rpc_budgets_allowances_list = defineRpc({
   emits: [],
   calls: [integration_chain_rpc.c.readContract, integration_chain_rpc.c.getBlock],
   chain: [contract_budgets.f.budgetOf, contract_budgets.f.leftOf],
-  spans: [],
+  spans: ["rpc.budgets.allowances.list"],
   budget: budget("chain-read"),
 });
 
@@ -128,6 +128,6 @@ export const rpc_budgets_allowances_get = defineRpc({
   emits: [],
   calls: [integration_chain_rpc.c.readContract, integration_chain_rpc.c.getBlock],
   chain: [contract_budgets.f.budgetOf, contract_budgets.f.leftOf],
-  spans: [],
+  spans: ["rpc.budgets.allowances.get"],
   budget: budget("chain-read"),
 });

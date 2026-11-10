@@ -123,7 +123,7 @@ export const rpc_budgets_departments_create = defineRpc({
     contract_budgets.f.createTopBudget,
     contract_budgets.f.createChildBudget,
   ],
-  spans: [],
+  spans: ["rpc.budgets.departments.create"],
   budget: budget("chain-read"),
 });
 
@@ -164,6 +164,6 @@ export const rpc_budgets_departments_list = defineRpc({
   emits: [],
   calls: [integration_chain_rpc.c.readContract],
   chain: [contract_budgets.f.budgetOf, contract_budgets.f.leftOf],
-  spans: [],
+  spans: ["rpc.budgets.departments.list"],
   budget: budget("chain-read"),
 });

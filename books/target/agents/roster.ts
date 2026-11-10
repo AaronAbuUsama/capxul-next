@@ -71,7 +71,7 @@ export const rpc_agents_roster_list = defineRpc({
   emits: [],
   calls: [],
   chain: [],
-  spans: [],
+  spans: ["rpc.agents.roster.list"],
   budget: budget("read"),
 });
 
@@ -101,6 +101,6 @@ export const rpc_agents_roster_show = defineRpc({
   emits: [],
   calls: [integration_chain_rpc.c.readContract],
   chain: [contract_erc20.f.balanceOf],
-  spans: [],
+  spans: ["rpc.agents.roster.show"],
   budget: budget("chain-read"),
 });

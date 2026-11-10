@@ -1,6 +1,7 @@
 // The devnet concept's module list: its records, in the order the conventions give. worlds.ts holds
 // the eval world catalog as plain data (no records), listed so the book's readers find it.
 
+import * as recordEntry from "./record-entry.ts";
 import * as data from "./data.ts";
 import * as procedures from "./procedures.ts";
 import * as mail from "./mail.ts";
@@ -31,4 +32,4 @@ import * as platformJourneys from "./platform-journeys.ts";
 import * as platformDecisions from "./platform-decisions.ts";
 import * as platformDecisionsData from "./platform-decisions-data.ts";
 
-export const modules = [data, procedures, mail, gates, prices, jobs, processes, flows, worlds, worldData, worldRpcs, worldOps, worldProcesses, worldDecisions, operations, decisions, worldEvidence, platformData, platformLifecycle, platformAccess, platformScenarios, platformRuns, platformDatasets, platformCohorts, platformEnv, platformProcesses, platformJourneys, platformDecisions, platformDecisionsData] as const;
+export const modules = [recordEntry, data, procedures, mail, gates, prices, jobs, processes, flows, worlds, worldData, worldRpcs, worldOps, worldProcesses, worldDecisions, operations, decisions, worldEvidence, platformData, platformLifecycle, platformAccess, platformScenarios, platformRuns, platformDatasets, platformCohorts, platformEnv, platformProcesses, platformJourneys, platformDecisions, platformDecisionsData] as const;

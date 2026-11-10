@@ -84,7 +84,7 @@ export const rpc_payments_changes_retry = defineRpc({
   emits: [],
   calls: [integration_chain_rpc.c.readContract],
   chain: [contract_erc20.f.balanceOf, contract_budgets.f.leftOf, contract_budgets.f.authorised, contract_payments.f.paid],
-  spans: [],
+  spans: ["rpc.payments.changes.retry"],
   budget: budget("chain-read"),
   was: [`${OLD}/lifecycles/operations/prepare-scoped.ts`, `${OLD}/lifecycles/reads/previews.ts:37`, "apps/docs/factory/operations/payment.retry.yaml"],
 });
@@ -133,7 +133,7 @@ export const rpc_payments_changes_cancel = defineRpc({
     contract_escrow_factory.f.deploy,
     contract_escrow.f.refund,
   ],
-  spans: [],
+  spans: ["rpc.payments.changes.cancel"],
   budget: budget("chain-read"),
   was: [
     `${OLD}/lifecycles/operations/prepare-scoped.ts`,
@@ -168,7 +168,7 @@ export const rpc_payments_changes_reschedule = defineRpc({
   emits: [],
   calls: [integration_chain_rpc.c.readContract],
   chain: [contract_budgets.f.scheduledOf, contract_budgets.f.authorised, contract_budgets.f.cancel, contract_budgets.f.schedule],
-  spans: [],
+  spans: ["rpc.payments.changes.reschedule"],
   budget: budget("chain-read"),
   was: [
     `${OLD}/lifecycles/operations/prepare-scoped.ts`,

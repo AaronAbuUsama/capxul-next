@@ -28,6 +28,8 @@ export const rpc_plugs_sessions_link = rpc({
   calls: [integration_frappe_site.c.mintViewLink],
   budget: { class: "vendor", p50Ms: 1500, p95Ms: 4000 },
   was: ["docs/mission/worlds.md (section 7, decision 7)"],
+
+  spans: ["rpc.plugs.sessions.link"],
 });
 
 export const rpc_plugs_sessions_mint = rpc({
@@ -47,4 +49,6 @@ export const rpc_plugs_sessions_mint = rpc({
   calls: [],
   budget: { class: "vendor", p50Ms: 1500, p95Ms: 4000 },
   was: ["spikes/skeleton/FINDINGS.md (The door: how a person is reached without a browser and without a stored password)"],
+
+  spans: ["rpc.plugs.sessions.mint"],
 });

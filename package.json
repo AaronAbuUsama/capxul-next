@@ -4,7 +4,8 @@
   "type": "module",
   "scripts": {
     "check": "tsc -b packages/book",
-    "test": "pnpm --filter @capxul/book test && pnpm --filter @capxul/portal test && pnpm contracts:check-book:test && pnpm evals:test && pnpm loop:test && pnpm plan:test && pnpm plan:check && pnpm tasks:check && pnpm evals:check && pnpm layout:test && pnpm layout",
+    "test": "pnpm --filter @capxul/book test && pnpm --filter @capxul/portal test && pnpm record:test && pnpm contracts:check-book:test && pnpm evals:test && pnpm loop:test && pnpm plan:test && pnpm plan:check && pnpm tasks:check && pnpm evals:check && pnpm layout:test && pnpm layout",
+    "record:test": "node --experimental-strip-types --test spikes/skeleton/core/test/record-schema.test.ts spikes/skeleton/core/test/record-runtime.test.ts",
     "book": "node --experimental-strip-types packages/book/src/main.ts books/target/index.ts /tmp/target",
     "frozen": "node --experimental-strip-types packages/book/scripts/check-frozen.ts",
     "judgments": "node --experimental-strip-types packages/book/scripts/report-judgments.ts",

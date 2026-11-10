@@ -122,7 +122,7 @@ export const rpc_organizations_setups_begin = defineRpc({
   emits: [],
   calls: [],
   chain: [contract_company_safe_minter.f.companySafeAddressFor],
-  spans: [],
+  spans: ["rpc.organizations.setups.begin"],
   budget: budget("write"),
 });
 
@@ -150,7 +150,7 @@ export const rpc_organizations_setups_get = defineRpc({
   emits: [],
   calls: [],
   chain: [],
-  spans: [],
+  spans: ["rpc.organizations.setups.get"],
   budget: budget("live-read"),
 });
 
@@ -178,6 +178,6 @@ export const rpc_organizations_setups_resume = defineRpc({
   emits: [],
   calls: [],
   chain: [],
-  spans: [],
+  spans: ["rpc.organizations.setups.resume"],
   budget: budget("write"),
 });

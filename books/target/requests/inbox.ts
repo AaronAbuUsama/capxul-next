@@ -64,7 +64,7 @@ export const rpc_requests_inbox_list = defineRpc({
   emits: [],
   calls: [integration_indexer.c.head],
   chain: [],
-  spans: [],
+  spans: ["rpc.requests.inbox.list"],
   budget: budget("read"),
 });
 
@@ -89,7 +89,7 @@ export const rpc_requests_inbox_get = defineRpc({
   emits: [],
   calls: [integration_indexer.c.head],
   chain: [],
-  spans: [],
+  spans: ["rpc.requests.inbox.get"],
   budget: budget("read"),
 });
 
@@ -156,7 +156,7 @@ export const rpc_requests_inbox_pay = defineRpc({
   emits: [],
   calls: [integration_chain_rpc.c.readContract],
   chain: [contract_erc20.f.balanceOf, contract_budgets.f.leftOf],
-  spans: [],
+  spans: ["rpc.requests.inbox.pay"],
   budget: budget("chain-read"),
 });
 
@@ -184,6 +184,6 @@ export const rpc_requests_inbox_decline = defineRpc({
   emits: [],
   calls: [],
   chain: [],
-  spans: [],
+  spans: ["rpc.requests.inbox.decline"],
   budget: budget("write"),
 });

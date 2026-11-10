@@ -75,7 +75,7 @@ export const rpc_payments_ledger_get = defineRpc({
   emits: [],
   calls: [],
   chain: [],
-  spans: [],
+  spans: ["rpc.payments.ledger.get"],
   budget: budget("read"),
   was: [`${OLD}/records/reads.ts:23`, `${OLD}/reads/payments.ts:130`, `${OLD}/views/recipients.ts:22`, "docs/as-is/archive/payments/movements.ts"],
 });
@@ -102,7 +102,7 @@ export const rpc_payments_ledger_list = defineRpc({
   emits: [],
   calls: [],
   chain: [],
-  spans: [],
+  spans: ["rpc.payments.ledger.list"],
   budget: budget("read"),
   was: [`${OLD}/reads/payments.ts:163`, "packages/protocol/src/payments/operations.ts:108", "apps/cli/src/runtime/paging.ts:42"],
 });
@@ -129,7 +129,7 @@ export const rpc_payments_ledger_watch = defineRpc({
   emits: [],
   calls: [],
   chain: [],
-  spans: [],
+  spans: ["rpc.payments.ledger.watch"],
   budget: budget("live-read"),
   was: ["packages/sdk/src/payments/methods.ts:28", "apps/cli/src/commands/payment/internal/voids.ts:38", "packages/backend/src/payments/records/reads.ts:39"],
 });

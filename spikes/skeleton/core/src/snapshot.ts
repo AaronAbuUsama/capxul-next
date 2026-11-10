@@ -148,6 +148,9 @@ export async function snapshotRestore(args: string[]): Promise<Out> {
   if (into) {
     const lineage = { snapshot: m.id, fromWorld: srcWorld, fromRecord: m.record, savedAtWorld: m.savedAtWorld, companies: cos };
     appendTo(join(w.stateDir, "record", `${target}.jsonl`), { v: 1, id: `rec_restore_${Date.now().toString(36)}`, command: "world snapshot restore", world: target, org: null, outcome: "ok",
+      trace: `restore_${Date.now().toString(36)}`, args: { positional: [m.id], flags: { into: target } },
+      actor: null, site: null, world_time_end: new Date(savedMs).toISOString(), duration_ms: Date.now() - t0,
+      error: null, result: null, changes: { tx: [], docs: [] },
       note: "this world was made from a snapshot: its record up to here is the snapshot's world's record", lineage, world_time: new Date(savedMs).toISOString(), real_time: new Date().toISOString() });
   }
   await startWorld(w);

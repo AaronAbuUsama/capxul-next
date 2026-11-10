@@ -121,6 +121,6 @@ export const rpc_books_annotations_save = defineRpc({
   emits: [],
   calls: [],
   chain: [],
-  spans: [],
+  spans: ["rpc.books.annotations.save"],
   budget: budget("write"),
 });

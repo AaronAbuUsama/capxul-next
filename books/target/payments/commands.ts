@@ -171,7 +171,7 @@ export const rpc_payments_commands_prepare = defineRpc({
     contract_budgets.f.schedule,
     contract_escrow_factory.f.deploy,
   ],
-  spans: [],
+  spans: ["rpc.payments.commands.prepare"],
   budget: budget("chain-read"),
   was: [
     `${OLD}/commands/operations/prepare.ts:20`,
@@ -247,7 +247,7 @@ export const rpc_payments_commands_propose = defineRpc({
     contract_budgets.f.schedule,
     contract_escrow_factory.f.deploy,
   ],
-  spans: [],
+  spans: ["rpc.payments.commands.propose"],
   budget: budget("chain-read"),
   was: [
     `${OLD}/commands/operations/prepare-organization.ts`,
@@ -343,7 +343,7 @@ export const rpc_payments_commands_buy_seats = defineRpc({
     contract_erc20.f.balanceOf,
     contract_budgets.f.spend,
   ],
-  spans: [],
+  spans: ["rpc.payments.commands.buy-seats"],
   budget: budget("chain-read"),
   was: [
     "books/target/shared/rulings.ts (aaron.buy-seats, aaron.test-prices, aaron.departments)",

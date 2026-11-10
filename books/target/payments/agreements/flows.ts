@@ -111,7 +111,7 @@ const holderFlow = (
     steps: [{ name: "prepare", rpc, about: `Runs ${rpc.id}: the checks, the write and its approval.` }, SPONSORED, SIGN, SUBMIT, WAIT, FOLLOW],
     errors: FLOW_ERRORS,
     calls: [],
-    spans: [],
+    spans: [`sdk.client.org.payroll.agreements.${verb}`],
     budget: budget("chain-submit"),
   });
 
@@ -197,7 +197,7 @@ export const flow_client_me_payroll_agreements_accept = defineFlow({
   ],
   errors: FLOW_ERRORS,
   calls: [],
-  spans: [],
+  spans: ["sdk.client.me.payroll.agreements.accept"],
   budget: budget("chain-submit"),
 });
 
@@ -230,7 +230,7 @@ export const flow_client_me_payroll_agreements_collect = defineFlow({
   ],
   errors: FLOW_ERRORS,
   calls: [],
-  spans: [],
+  spans: ["sdk.client.me.payroll.agreements.collect"],
   budget: budget("chain-submit"),
 });
 
@@ -269,7 +269,7 @@ const hrFlow = (f: HrFlow) =>
     steps: [{ name: "call", rpc: f.rpc, about: f.call ?? `Runs ${f.rpc.id}.` }],
     errors: [],
     calls: [],
-    spans: [],
+    spans: [`rpc.${f.sdk.replace("(orgId)", "")}`],
     surfaces: [...HR_SURFACES],
     budget: budget(f.write ? "write" : "read"),
   });

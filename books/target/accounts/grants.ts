@@ -61,7 +61,7 @@ export const rpc_accounts_grants_fund = defineRpc({
   calls: [integration_service_signer.c.send],
   // The test token's open mint, sent by the faucet key (decisions `accounts.faucet`, shared `contracts.test-token-mint`).
   chain: [contract_erc20.f.mint],
-  spans: [],
+  spans: ["rpc.accounts.grants.fund"],
   budget: budget("chain-submit"),
   was: [`${G}/operations/faucet-mint.ts:16`, `${G}/guards.ts:10`, `${G}/rules.ts:23`, `${G}/external/mints.ts:76`, `${OLD}/operator/faucets/operations`],
 });

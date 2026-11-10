@@ -68,7 +68,7 @@ export const rpc_requests_checkout_get = defineRpc({
   emits: [],
   calls: [],
   chain: [],
-  spans: [],
+  spans: ["rpc.requests.checkout.get"],
   budget: budget("read"),
 });
 
@@ -103,6 +103,6 @@ export const rpc_requests_checkout_open = defineRpc({
   emits: [],
   calls: [],
   chain: [],
-  spans: [],
+  spans: ["rpc.requests.checkout.open"],
   budget: budget("write"),
 });

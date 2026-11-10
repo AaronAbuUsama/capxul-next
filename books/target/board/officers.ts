@@ -128,7 +128,7 @@ export const rpc_board_officers_grant = defineRpc({
   emits: [],
   calls: [integration_chain_rpc.c.readContract],
   chain: [contract_hats.f.isWearerOfHat, contract_hats.f.changeHatMaxSupply, contract_hats.f.mintHat],
-  spans: [],
+  spans: ["rpc.board.officers.grant"],
   budget: budget("chain-read"),
 });
 
@@ -154,7 +154,7 @@ export const rpc_board_officers_revoke = defineRpc({
   emits: [],
   calls: [integration_chain_rpc.c.readContract],
   chain: [contract_hats.f.isWearerOfHat, contract_hats.f.setHatWearerStatus],
-  spans: [],
+  spans: ["rpc.board.officers.revoke"],
   budget: budget("chain-read"),
 });
 
@@ -182,6 +182,6 @@ export const rpc_board_officers_get = defineRpc({
   emits: [],
   calls: [],
   chain: [],
-  spans: [],
+  spans: ["rpc.board.officers.get"],
   budget: budget("read"),
 });

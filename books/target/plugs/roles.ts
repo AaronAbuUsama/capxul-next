@@ -35,6 +35,8 @@ export const rpc_plugs_roles_map = rpc({
   errors: [error_NOT_AUTHENTICATED],
   reads: [table_hat_role_map, table_org_members],
   was: [`${SPIKE} (What the design must now decide, 6 and 7)`],
+
+  spans: ["rpc.plugs.roles.map"],
 });
 
 export const rpc_plugs_roles_show = rpc({
@@ -51,6 +53,8 @@ export const rpc_plugs_roles_show = rpc({
   errors: [error_NOT_AUTHENTICATED, error_ROLE_PERMISSION_DENIED],
   reads: [table_role_grants, table_site_users, table_org_members, table_org_deployments, table_hat_wearers],
   was: [`${SPIKE} (Frappe half: A role two hats give stays while one remains)`],
+
+  spans: ["rpc.plugs.roles.show"],
 });
 
 export const rpc_plugs_roles_drift = rpc({
@@ -73,4 +77,6 @@ export const rpc_plugs_roles_drift = rpc({
   calls: [integration_frappe_site.c.readSite],
   budget: { class: "vendor", p50Ms: 1500, p95Ms: 4000 },
   was: [`${SPIKE} (Frappe half: Cannot be locked; What the design must now decide, 5)`],
+
+  spans: ["rpc.plugs.roles.drift"],
 });

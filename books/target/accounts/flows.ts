@@ -81,7 +81,7 @@ export const flow_client_auth_sign_in = defineFlow({
   ],
   errors: [],
   calls: [],
-  spans: [],
+  spans: ["sdk.client.auth.sign-in"],
   budget: { ...budget("vendor"), excludes: ["sdk.step.code"] },
   was: [`${CLI}/commands/auth`, `${CLI}/auth/profile-report.ts:36`, `${SDK}/access`, "apps/docs/factory/operations/auth.login.yaml"],
 });
@@ -106,7 +106,7 @@ export const flow_client_auth_verify_otp = defineFlow({
   ],
   errors: [],
   calls: [],
-  spans: [],
+  spans: ["sdk.client.auth.verify-otp"],
   budget: budget("write"),
   was: [`${CLI}/commands/auth`, "apps/docs/factory/operations/auth.verify.yaml"],
 });
@@ -135,7 +135,7 @@ export const flow_client_account_setup = defineFlow({
   ],
   errors: [],
   calls: [integration_openfort.c.getAddress],
-  spans: [],
+  spans: ["sdk.client.account.setup"],
   budget: budget("vendor"),
   was: [`${SDK}/accounts/account-setup.ts:86`, `${SDK}/accounts/account-lane.ts:72`, "apps/docs/factory/operations/account.retry.yaml"],
 });
@@ -155,7 +155,7 @@ export const flow_client_operator_waitlist_admit = defineFlow({
   steps: [{ name: "admit", rpc: rpc_accounts_admission_admit, about: "Admits the wave in one transaction." }],
   errors: [],
   calls: [],
-  spans: [],
+  spans: ["sdk.client.operator.waitlist.admit"],
   budget: budget("write"),
   was: ["packages/backend/scripts/beta-waitlist.ts", "packages/backend/src/access/waitlist/operations/admit.ts:23"],
 });

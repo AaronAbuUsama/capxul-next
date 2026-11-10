@@ -170,7 +170,7 @@ export const flow_devnet_time_show = defineFlow({
   steps: [{ name: "read", local: "cache", about: "devnet-control timeRead: the clock, the chain head, the backend's now, Ponder and the followers." }],
   errors: [],
   calls: [control.timeRead],
-  spans: [],
+  spans: ["sdk.devnet.time.show"],
   budget: budget("read"),
 });
 
@@ -198,7 +198,7 @@ export const flow_devnet_time_warp = defineFlow({
   ],
   errors: [error_INVALID_INPUT],
   calls: [control.timeWarp],
-  spans: [],
+  spans: ["sdk.devnet.time.warp"],
   budget: budget("background"),
 });
 
@@ -222,7 +222,7 @@ export const flow_devnet_time_start_at = defineFlow({
   ],
   errors: [error_INVALID_INPUT],
   calls: [control.timeStartAt],
-  spans: [],
+  spans: ["sdk.devnet.time.start-at"],
   budget: budget("chain-settle"),
 });
 
@@ -252,7 +252,7 @@ export const flow_devnet_time_set = defineFlow({
   ],
   errors: [error_INVALID_INPUT],
   calls: [control.timeRate],
-  spans: [],
+  spans: ["sdk.devnet.time.set"],
   budget: budget("write"),
 });
 
@@ -277,7 +277,7 @@ export const flow_devnet_time_freeze = defineFlow({
   steps: [{ name: "freeze", local: "cache", about: "devnet-control timeFreeze." }],
   errors: [],
   calls: [control.timeFreeze],
-  spans: [],
+  spans: ["sdk.devnet.time.freeze"],
   surfaces: ["sdk"],
   budget: budget("write"),
 });
@@ -297,7 +297,7 @@ export const flow_devnet_time_resume = defineFlow({
   steps: [{ name: "resume", local: "cache", about: "devnet-control timeResume." }],
   errors: [],
   calls: [control.timeResume],
-  spans: [],
+  spans: ["sdk.devnet.time.resume"],
   surfaces: ["sdk"],
   budget: budget("write"),
 });
@@ -318,7 +318,7 @@ export const flow_devnet_time_step = defineFlow({
   steps: [{ name: "step", local: "cache", about: "devnet-control timeStep: to the next due instant, not past the limit, then settle." }],
   errors: [],
   calls: [control.timeStep],
-  spans: [],
+  spans: ["sdk.devnet.time.step"],
   surfaces: ["sdk"],
   budget: budget("background"),
 });
@@ -340,7 +340,7 @@ export const flow_devnet_time_settle = defineFlow({
   steps: [{ name: "settle", local: "cache", about: "devnet-control timeSettle." }],
   errors: [],
   calls: [control.timeSettle],
-  spans: [],
+  spans: ["sdk.devnet.time.settle"],
   surfaces: ["sdk"],
   budget: budget("background"),
 });
@@ -360,7 +360,7 @@ export const flow_devnet_time_watch = defineFlow({
   steps: [{ name: "events", local: "poll", about: "devnet-control timeWatch: the clock's server-sent events, from `after`'s version on." }],
   errors: [],
   calls: [control.timeWatch],
-  spans: [],
+  spans: ["sdk.devnet.time.watch"],
   surfaces: ["sdk"],
   budget: budget("live-read"),
 });
@@ -395,7 +395,7 @@ export const flow_devnet_time_follow = defineFlow({
   ],
   errors: [],
   calls: [control.timeFollow],
-  spans: [],
+  spans: ["sdk.devnet.time.follow"],
   surfaces: ["sdk"],
   budget: budget("live-read"),
 });
@@ -423,7 +423,7 @@ export const flow_devnet_snapshots_list = defineFlow({
   ],
   errors: [],
   calls: [control.snapshotList],
-  spans: [],
+  spans: ["sdk.devnet.snapshots.list"],
   budget: budget("read"),
 });
 
@@ -450,7 +450,7 @@ export const flow_devnet_snapshots_save = defineFlow({
   ],
   errors: [error_INVALID_INPUT],
   calls: [control.snapshotSave],
-  spans: [],
+  spans: ["sdk.devnet.snapshots.save"],
   budget: budget("background"),
 });
 
@@ -487,7 +487,7 @@ export const flow_devnet_snapshots_restore = defineFlow({
   ],
   errors: [error_INVALID_INPUT],
   calls: [control.snapshotRestore],
-  spans: [],
+  spans: ["sdk.devnet.snapshots.restore"],
   budget: budget("background"),
 });
 
@@ -522,7 +522,7 @@ export const flow_devnet_approve = defineFlow({
   ],
   errors: [error_WRONG_ENVIRONMENT, error_WRONG_STATE],
   calls: [],
-  spans: [],
+  spans: ["sdk.devnet.approve"],
   budget: budget("vendor"),
 });
 
@@ -555,7 +555,7 @@ export const flow_devnet_gates_set = defineFlow({
   ],
   errors: [error_CLI_USAGE],
   calls: [],
-  spans: [],
+  spans: ["sdk.devnet.gates.set"],
   budget: budget("vendor"),
 });
 
@@ -577,6 +577,6 @@ export const flow_devnet_prices_set = defineFlow({
   ],
   errors: [],
   calls: [],
-  spans: [],
+  spans: ["sdk.devnet.prices.set"],
   budget: budget("chain-read"),
 });

@@ -84,7 +84,7 @@ export const flow_client_org_departments_create = defineFlow({
   steps: steps(rpc_budgets_departments_create, "the office hat, its holders' mints, the token's ceiling calls and one budget create under the planned hat"),
   errors: [error_CANCELLED],
   calls: [],
-  spans: [],
+  spans: ["sdk.client.org.departments.create"],
   budget: WRITE_BUDGET,
   was: [`${SDK_PAY}/departments.ts:1`, `${SDK_PAY}/department-batch.ts:1`],
 });
@@ -102,7 +102,7 @@ export const flow_client_org_departments_set_amount = defineFlow({
   steps: steps(rpc_budgets_tree_set_amount, "one `Budgets.setAmount` on the budget's own id and, for a top budget, its ceiling resize"),
   errors: [error_CANCELLED],
   calls: [],
-  spans: [],
+  spans: ["sdk.client.org.departments.set-amount"],
   budget: WRITE_BUDGET,
   was: [`${SDK_PAY}/departments.ts:1`, `${SDK_PAY}/department-checks.ts:1`],
 });
@@ -118,7 +118,7 @@ export const flow_client_org_departments_close = defineFlow({
   steps: steps(rpc_budgets_tree_close, "one `Budgets.close` on the department's own budget id"),
   errors: [error_CANCELLED],
   calls: [],
-  spans: [],
+  spans: ["sdk.client.org.departments.close"],
   budget: WRITE_BUDGET,
   was: [`${SDK_PAY}/department-checks.ts:1`],
 });
@@ -134,7 +134,7 @@ export const flow_client_org_departments_reopen = defineFlow({
   steps: steps(rpc_budgets_tree_reopen, "one `Budgets.reopen` on the department's own budget id"),
   errors: [error_CANCELLED],
   calls: [],
-  spans: [],
+  spans: ["sdk.client.org.departments.reopen"],
   budget: WRITE_BUDGET,
   was: [`${SDK_PAY}/department-checks.ts:1`],
 });
@@ -150,7 +150,7 @@ export const flow_client_org_departments_holders_add = defineFlow({
   steps: steps(rpc_budgets_offices_add_holder, "a `changeHatMaxSupply` when the hat is full and one `mintHat` of the office hat to the holder's Safe"),
   errors: [error_CANCELLED],
   calls: [],
-  spans: [],
+  spans: ["sdk.client.org.departments.holders.add"],
   budget: WRITE_BUDGET,
   was: [`${SDK_PAY}/departments.ts:1`],
 });
@@ -166,7 +166,7 @@ export const flow_client_org_departments_holders_remove = defineFlow({
   steps: steps(rpc_budgets_offices_remove_holder, "one `setHatWearerStatus` or `transferHat` of the office hat for the holder's Safe"),
   errors: [error_CANCELLED],
   calls: [],
-  spans: [],
+  spans: ["sdk.client.org.departments.holders.remove"],
   budget: WRITE_BUDGET,
   was: [`${SDK_PAY}/departments.ts:1`],
 });
@@ -186,7 +186,7 @@ export const flow_client_org_departments_ceiling_set = defineFlow({
   steps: steps(rpc_budgets_ceilings_set, "one `Roles.setAllowance` on the token's `v4-payout-ceiling:` key"),
   errors: [error_CANCELLED],
   calls: [],
-  spans: [],
+  spans: ["sdk.client.org.departments.ceiling.set"],
   budget: WRITE_BUDGET,
   was: [`${SDK_PAY}/departments.ts:1`],
 });
@@ -202,7 +202,7 @@ export const flow_client_org_departments_ceiling_freeze = defineFlow({
   steps: steps(rpc_budgets_ceilings_freeze, "one `Roles.setAllowance` on the token's ceiling key with no refill"),
   errors: [error_CANCELLED],
   calls: [],
-  spans: [],
+  spans: ["sdk.client.org.departments.ceiling.freeze"],
   budget: WRITE_BUDGET,
   was: [`${SDK_PAY}/departments.ts:1`],
 });
@@ -218,7 +218,7 @@ export const flow_client_org_departments_ceiling_unfreeze = defineFlow({
   steps: steps(rpc_budgets_ceilings_unfreeze, "one `Roles.setAllowance` on the token's ceiling key restoring the freeze's saved allowance"),
   errors: [error_CANCELLED],
   calls: [],
-  spans: [],
+  spans: ["sdk.client.org.departments.ceiling.unfreeze"],
   budget: WRITE_BUDGET,
   was: [`${SDK_PAY}/departments.ts:1`],
 });
@@ -239,7 +239,7 @@ export const flow_client_org_allowances_create = defineFlow({
   steps: steps(rpc_budgets_allowances_create, "one `createHat` under the Board's top hat, one `createChildBudget` under the parent, and the first wearer's `mintHat`"),
   errors: [error_CANCELLED],
   calls: [],
-  spans: [],
+  spans: ["sdk.client.org.allowances.create"],
   budget: WRITE_BUDGET,
   was: [`${SDK_PERM}/allowance-create.ts:1`, `${SDK_PERM}/allowance-dispatch.ts:1`],
 });
@@ -257,7 +257,7 @@ export const flow_client_org_allowances_change = defineFlow({
   steps: steps(rpc_budgets_tree_set_amount, "one `Budgets.setAmount` on the allowance's own budget id"),
   errors: [error_CANCELLED],
   calls: [],
-  spans: [],
+  spans: ["sdk.client.org.allowances.change"],
   budget: WRITE_BUDGET,
   was: [`${SDK_PERM}/allowance-writes.ts:1`],
 });
@@ -278,7 +278,7 @@ export const flow_client_org_allowances_assign = defineFlow({
   steps: steps(rpc_budgets_offices_add_holder, "a `changeHatMaxSupply` when the hat is full and one `mintHat` of the allowance's hat to the member's Safe"),
   errors: [error_CANCELLED],
   calls: [],
-  spans: [],
+  spans: ["sdk.client.org.allowances.assign"],
   budget: WRITE_BUDGET,
   was: [`${SDK_PERM}/allowance-writes.ts:1`],
 });
@@ -294,7 +294,7 @@ export const flow_client_org_allowances_revoke = defineFlow({
   steps: steps(rpc_budgets_offices_remove_holder, "one `setHatWearerStatus(hat, memberSafe, false, true)` of the allowance's hat"),
   errors: [error_CANCELLED],
   calls: [],
-  spans: [],
+  spans: ["sdk.client.org.allowances.revoke"],
   budget: WRITE_BUDGET,
   was: [`${SDK_PERM}/allowance-writes.ts:1`],
 });
@@ -314,7 +314,7 @@ export const flow_client_org_allowances_replace = defineFlow({
   steps: [],
   errors: [error_FEATURE_NOT_AVAILABLE],
   calls: [],
-  spans: [],
+  spans: ["sdk.client.org.allowances.replace"],
   budget: budget("read"),
   was: ["packages/backend/src/permissions/replacements/rules.ts:1", `${SDK_PERM}/allowance-dispatch.ts:1`],
 });
@@ -353,7 +353,7 @@ export const flow_client_org_invitations_invite = defineFlow({
   ],
   errors: [error_CANCELLED],
   calls: [],
-  spans: [],
+  spans: ["sdk.client.org.invitations.invite"],
   budget: WRITE_BUDGET,
   was: [
     "packages/sdk/src/organizations/invitations.ts:1",

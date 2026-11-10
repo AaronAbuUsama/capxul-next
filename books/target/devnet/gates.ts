@@ -52,7 +52,7 @@ export const rpc_devnet_gates_script = defineRpc({
   emits: [],
   calls: [],
   chain: [],
-  spans: [],
+  spans: ["rpc.devnet.gates.script"],
   budget: budget("write"),
 });
 
@@ -77,6 +77,6 @@ export const rpc_devnet_gates_read = defineRpc({
   emits: [],
   calls: [],
   chain: [],
-  spans: [],
+  spans: ["rpc.devnet.gates.read"],
   budget: budget("read"),
 });

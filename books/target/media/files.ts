@@ -57,7 +57,7 @@ export const rpc_media_files_upload = defineRpc({
   emits: [],
   calls: [],
   chain: [],
-  spans: [],
+  spans: ["rpc.media.files.upload"],
   budget: {
     ...budget("write"),
     p50Ms: 900,
@@ -105,7 +105,7 @@ export const rpc_media_files_get = defineRpc({
   emits: [],
   calls: [],
   chain: [],
-  spans: [],
+  spans: ["rpc.media.files.get"],
   budget: budget("read"),
   was: [`${OLD}/media/model.ts:17`, `${OLD}/profiles/writes.ts:34`, `${OLD}/organizations/writes.ts:26`],
 });

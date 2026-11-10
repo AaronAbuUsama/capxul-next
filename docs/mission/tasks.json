@@ -17022,6 +17022,8 @@
         "tbl:mail-faults/writers",
         "tbl:mail-messages/schema",
         "tbl:mail-messages/writers",
+        "tbl:record-entries/schema",
+        "tbl:record-entries/writers",
         "tbl:run-datasets/schema",
         "tbl:run-datasets/writers",
         "tbl:run-seats/schema",
