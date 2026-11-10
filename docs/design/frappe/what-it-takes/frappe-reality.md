@@ -36,7 +36,7 @@ Each need gets one of four verdicts:
 
    The docs' only worked example is Indian (Health and Education Cess). The working route is the one
    our own research took: a person writes PAYE and NI as **formula salary components**
-   (`demo/research/hr-payroll.md:835-840`). That gives a Month 1 calculation for one tax code and one
+   (`archive/demo/research/hr-payroll.md:835-840`). That gives a Month 1 calculation for one tax code and one
    NI category. It is not cumulative and it does not follow code changes. It is fine for a picture, but
    not for running payroll.
 2. **Nothing sends the FPS or EPS to HMRC.** Frappe core has no RTI code. The feature request for it,
@@ -116,7 +116,7 @@ We could not search that finder from here.
 | Need | Verdict | What Frappe has, and what is missing | Evidence |
 |---|---|---|---|
 | Salary structures | Out of the box | Salary Component, Salary Structure, Salary Structure Assignment, Payroll Period (set it to 6 April to 5 April) and Payroll Entry. Frequencies are Monthly, Fortnightly, Bimonthly, Weekly and Daily; there is **no four-weekly** | `payroll/doctype/payroll_entry/payroll_entry.json:69` |
-| PAYE income tax by tax code | Gap | No tax code. Income Tax Slab projects the year and spreads the remaining tax over the periods left (`calculate_variable_tax`, `salary_slip.py:1585`). It has no K codes, no 50% overriding limit, no Week 1/Month 1 or X basis, no allowance for each employee, and takes no P6 or P9 code notices. Bands add +1 (`:2265-2272`). The working route is one formula component for each code, as our mock-up does: Month 1 only, and wrong for joiners mid-year, code changes and bonuses | `salary_slip.py`; [docs: Income Tax Slab](https://docs.frappe.io/hr/income-tax-slab); `demo/research/hr-payroll.md:835-840` |
+| PAYE income tax by tax code | Gap | No tax code. Income Tax Slab projects the year and spreads the remaining tax over the periods left (`calculate_variable_tax`, `salary_slip.py:1585`). It has no K codes, no 50% overriding limit, no Week 1/Month 1 or X basis, no allowance for each employee, and takes no P6 or P9 code notices. Bands add +1 (`:2265-2272`). The working route is one formula component for each code, as our mock-up does: Month 1 only, and wrong for joiners mid-year, code changes and bonuses | `salary_slip.py`; [docs: Income Tax Slab](https://docs.frappe.io/hr/income-tax-slab); `archive/demo/research/hr-payroll.md:835-840` |
 | Emergency and Scottish or Welsh codes | Gap | No basis flag and no country of residence. Scotland's six bands could be a slab condition on a Custom Field, but the method above would still be wrong. The emergency codes from April 2026 are 1257L W1, M1 and X | gov.uk rates 2026/27 |
 | Employee and employer NI by category | Gap | No category letters, no LEL, PT, ST or UEL for each period, no directors' annual method and no Employment Allowance (£10,500). It can only be done as a formula component for each category, and nothing records NI-able pay or the letter for RTI. In v15 a Salary Component is only Earning or Deduction, so employer NI cannot be accrued through payroll. v16.20 adds employer contributions with their own liability account | `salary_component.json:71` (`Earning\nDeduction`); [hrms v16.20.0 notes](https://newreleases.io/project/github/frappe/hrms/release/v16.20.0) |
 | Student and postgraduate loans | With setup for the deduction, gap for HMRC's notices | A formula component for each plan (1, 2, 4, 5 and PGL; thresholds £26,900, £29,385, £33,795, £25,000 and £21,000; 9% or 6%) keyed on a Custom Field. The SL1, SL2, PGL1 and PGL2 start and stop notices come through HMRC's Data Provisioning Service, and nothing receives them | gov.uk rates 2026/27 |
@@ -235,7 +235,7 @@ and South Africa all have PAYE apps on GitHub.
 ## How this matches our own mock-up
 
 Our research for the mock-up shows a UK payslip whose PAYE and NI are formula components written by
-hand (`demo/research/hr-payroll.md:126-128, 835-840`). It also leaves out the Income Tax Breakup tab
+hand (`archive/demo/research/hr-payroll.md:126-128, 835-840`). It also leaves out the Income Tax Breakup tab
 "because Capxul does not compute annual tax slabs" (`:1035`). That is honest about the shape. It is
 exactly the "formula salary components a person sets up" route, and it is a Month 1 calculation for one
 tax code and one NI category. Running payroll for real would also need cumulative PAYE, NI categories,
@@ -270,7 +270,7 @@ today.
   [payroll software](https://www.gov.uk/payroll-software),
   [MTD VAT software](https://www.gov.uk/guidance/find-software-thats-compatible-with-making-tax-digital-for-vat),
   [TPR earnings thresholds](https://www.thepensionsregulator.gov.uk/employers/new-employers/im-an-employer-who-has-to-provide-a-pension/declare-your-compliance/ongoing-duties-for-employers/earnings-thresholds).
-- **Prior research.** `demo/research/hr-payroll.md`, `accounting.md` and `crm-projects.md`;
+- **Prior research.** `archive/demo/research/hr-payroll.md`, `accounting.md` and `crm-projects.md`;
   `docs/design/frappe/payroll.md`, `accounting.md`, `crm.md` and `projects-and-startup.md`;
   `books/target/payroll/hr-decisions.ts` (`payroll.hr-scope`). None of them had settled the UK
   statutory questions. The mock-up research models PAYE and NI as formulas and says so.
