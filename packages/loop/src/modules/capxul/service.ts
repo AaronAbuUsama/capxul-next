@@ -16,7 +16,7 @@ import { sendNote, takeNote } from "./internal/notes.ts";
 import { openDoor, type Door } from "../door/service.ts";
 import { FOLDER as EVIDENCE } from "../evidence/service.ts";
 import { serve as serveHost, type Served } from "../host/service.ts";
-import { showDetail, showView, statusViews, viewsTable, type Look, type RunDetail, type RunView } from "../inspect/service.ts";
+import { changesOf, showDetail, showView, statusViews, viewsTable, type Look, type RunDetail, type RunView } from "../inspect/service.ts";
 import { findingsOf, gatesFor, runGates } from "./internal/gates.ts";
 import * as plan from "./internal/plan.ts";
 import { checkerPrompt, makerPrompt as renderMaker, researchPrompt, type CheckInput } from "./internal/prompts.ts";
@@ -220,6 +220,19 @@ export const logs = async (ctx: Ctx, id: string, follow: boolean): Promise<void>
   const dir = runDir(ctx, id), host = await open(ctx, dir, {}, true);
   try { (await ledgerLines(host)).forEach(ctx.say); } finally { await host.close(); }
   if (follow) await watchRun(dir, () => open(ctx, dir, {}, true), ctx.say);
+};
+/**
+ * `loop watch` with no run: every run, a line per event (started, refused calls, a model failure, unhealthy, ended,
+ * superseded), until `until` says to stop. The first look is the baseline and prints nothing.
+ */
+export const watchAll = async (ctx: Ctx, o: { intervalMs?: number; until?: () => boolean } = {}): Promise<void> => {
+  let before = await statusViews(lookOf(ctx, 0), 24);
+  while (!(o.until?.() ?? false)) {
+    await new Promise((r) => setTimeout(r, o.intervalMs ?? 2000));
+    const after = await statusViews(lookOf(ctx, 0), 24);
+    for (const line of changesOf(before, after)) ctx.say(`${ctx.now().toISOString().slice(11, 19)} ${line}`);
+    before = after;
+  }
 };
 /** Attach to a running agent: print what it has done so far and follow it live (read-only; it changes nothing). */
 export const watch = (ctx: Ctx, id: string): Promise<void> => { const dir = runDir(ctx, id); return watchRun(dir, () => open(ctx, dir, {}, true), ctx.say); };

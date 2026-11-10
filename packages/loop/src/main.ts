@@ -4,7 +4,7 @@
 // root: the only place that reads the process, prints, or exits. See packages/loop/README.md.
 
 import { execFileSync } from "node:child_process";
-import { clean, DEFAULTS, logs, merge, resume, serve, showFull, showJson, spendText, start, status, statusJson, stop, watch, work, type Ctx, type Opts } from "./index.ts";
+import { clean, DEFAULTS, logs, merge, resume, serve, showFull, showJson, spendText, start, status, statusJson, stop, watch, watchAll, work, type Ctx, type Opts } from "./index.ts";
 
 const USAGE = [
   "usage: loop run <task id> [--script pair] [--model provider/id] [--checker-model provider/id] [--sandbox none|light|heavy]",
@@ -12,7 +12,7 @@ const USAGE = [
   "       loop resume <run id> | stop <run id> | merge <run id> | clean [<run id>]",
   "       loop work [--concurrency 2] [--task a,b] [--wait]   (the options of run apply to every run it starts)",
   "       loop serve [--port 4392] [--since-hours 24]   (the host: runs as they change, for a page or a terminal)",
-  "       loop status [--json [--since-hours 24]] | show <run id> --json [--full] | logs <run id> [-f] | watch <run id>",
+  "       loop status [--json [--since-hours 24]] | show <run id> --json [--full] | logs <run id> [-f] | watch [<run id>]",
 ].join("\n");
 
 const parse = (argv: readonly string[]): { words: string[]; f: Map<string, string> } => {
@@ -70,7 +70,7 @@ const main = async (argv: readonly string[]): Promise<number> => {
       return 0;
     }
     case "logs": return need ? (await logs(ctx, need, f.has("f")), 0) : (console.error(USAGE), 2);
-    case "watch": return need ? (await watch(ctx, need), 0) : (console.error(USAGE), 2);
+    case "watch": return need ? (await watch(ctx, need), 0) : (await watchAll(ctx), 0);
     case "work": await work(ctx, { concurrency: Number(f.get("concurrency") ?? 2), tasks: f.get("task")?.split(",") ?? [], opts: optsOf(f), wait: f.has("wait") }); return 0;
     default: console.error(USAGE); return 2;
   }

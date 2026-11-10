@@ -14,6 +14,7 @@ pnpm loop status --json [--since-hours 24]                   # the same as data:
 pnpm loop show <run id> --json                               # one run with its last twenty events
 pnpm loop show <run id> --json --full                        # the run in full: every step's result and every agent's conversation
 pnpm loop watch <run id>                                     # attach: what the agent is doing now, live (read-only)
+pnpm loop watch                                              # every run: a line when one starts, is refused, fails a model request, turns unhealthy, ends or is superseded
 pnpm loop logs <run id>                                      # the ledger: each step, the conversation it used, how it ended
 pnpm loop stop <run id>                                      # the agent is aborted within a second or two
 pnpm loop resume <run id>                                    # after a kill: done steps are skipped, the agent continues

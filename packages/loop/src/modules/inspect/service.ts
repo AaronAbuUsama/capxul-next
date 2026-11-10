@@ -10,6 +10,7 @@ import { alive, listRuns } from "../runs/service.ts";
 import type { Info } from "../runs/types.ts";
 import { capturesOf, FOLDER } from "../evidence/service.ts";
 import { detailOf } from "./internal/detail.ts";
+export { changesOf } from "./internal/changes.ts";
 import { countOf, type Counted } from "./internal/events.ts";
 import { scrub, secretsOf } from "./internal/scrub.ts";
 import { CAP, WHY_CAP, type EventLine, type RunDetail, type RunStatus, type RunView } from "./types.ts";
