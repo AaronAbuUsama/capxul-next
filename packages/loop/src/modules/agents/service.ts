@@ -11,7 +11,7 @@ import { entriesOf, recall, record, remember } from "./internal/ledger.ts";
 export { openHost } from "./internal/host.ts";
 export { modelsFrom } from "./internal/models.ts";
 export { mcpTools, type McpServer } from "./internal/mcp.ts";
-export { confine, refuseBash, refusePath } from "./internal/policy.ts";
+export { confine, refuseBash, refusePath, segmentsOf } from "./internal/policy.ts";
 export { entriesOf, recall, record, remember };
 export type * from "./types.ts";
 

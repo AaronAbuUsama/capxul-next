@@ -7,7 +7,7 @@ import { createModels } from "@earendil-works/pi-ai/models";
 import { fauxAssistantMessage, fauxProvider, fauxToolCall } from "@earendil-works/pi-ai/providers/faux";
 import pair from "../../../../../loops/pair.ts";       // the real standard script, played here against a fake provider
 import { git } from "../lanes/service.ts";
-import { refusePath } from "../agents/service.ts";
+import { refuseBash, refusePath } from "../agents/service.ts";
 import { clean, DEFAULTS, gatesOf, lane, logs, merge, POLICY, resume, start, status, stop, watch, work, type Ctx, type Opts } from "./service.ts";
 import * as plan from "./internal/plan.ts";
 
@@ -176,4 +176,26 @@ test("a start that cannot go ahead claims nothing in the plan and makes no run; 
   await work(ctx, { concurrency: 1, tasks: ["t1"], opts, wait: false, pause: 5 });
   assert.equal(r.lines.filter((l) => /^no script /.test(l)).length, 1);       // this rig has no loops/ folder: the worker's start cannot go ahead either
   assert.deepEqual(r.calls(), []);
+});
+
+test("the command policy: what the agents were refused on 10 November and only reads is allowed; what runs or removes is still refused", () => {
+  const w = (cmd: string) => refuseBash(cmd, "/lane", POLICY.bash.write), r = (cmd: string) => refuseBash(cmd, "/lane", POLICY.bash.read);
+  // a pattern with | and a message of several lines are one command each (they were cut inside the quotes before)
+  for (const cmd of [
+    "grep -n -E 'dev_time|dev_snapshot' books/target/devnet/operations.ts",
+    "git commit -m 'lane/t: one surface' -m 'Task: t\nRound: 1'",
+    "node -e 'const fs = require(\"fs\"); console.log(fs.readdirSync(\"books\").length)'",
+    "rm resolve-dev-commands.cjs finish-dev-commands.cjs", "pnpm layout", "pnpm -s frozen", "pnpm evals:check",
+  ]) assert.equal(w(cmd), undefined, cmd);
+  for (const cmd of [
+    "rg -n 'world.clock|world.snapshot' books/target", "sed -n '1,260p' books/target/devnet/operations.ts", "git rev-parse HEAD",
+    "find books/target -name '*.ts'", "nl -ba books/target/shared/cut.ts", "git ls-files books", "git merge-base integration/build HEAD",
+  ]) { assert.equal(r(cmd), undefined, cmd); assert.equal(w(cmd), undefined, cmd); }
+  for (const cmd of [
+    "rg --pre cat x .", "find . -name x -delete", "find . -exec rm {} +", "sed -i s/a/b/ f.ts", "sed -n '1,3p;w out' f.ts", "git push", "pnpm install",
+    "grep 'a' f ; curl http://x", "echo 'unclosed", "echo ok | sh",
+  ]) { assert.notEqual(w(cmd), undefined, cmd); assert.notEqual(r(cmd), undefined, cmd); }
+  for (const cmd of ["rm -rf books", "rm -r x", "rm .git/config", "rm -f -- -x", "rm books/frozen/a.ts", "rm x.cjs blueprint/baseline/a.ts", "rm packages/sdk/src/generated/a.ts", "rm var/runs/x"]) assert.notEqual(w(cmd), undefined, cmd);
+  for (const cmd of ["find . -fprint0 out", "git grep -Osh x"]) { assert.notEqual(w(cmd), undefined, cmd); assert.notEqual(r(cmd), undefined, cmd); }
+  for (const cmd of ["rm x.cjs", "node x.js", "git commit -m x", "pnpm test", "mkdir out"]) assert.notEqual(r(cmd), undefined, cmd);   // a reader changes nothing and runs no program
 });

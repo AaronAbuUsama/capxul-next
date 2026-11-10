@@ -77,8 +77,8 @@ registers (`mcpTools`). Every call passes a `beforeTool` hook (`agents/internal/
 |---|---|---|---|
 | read files | inside its lane only | inside its lane only | inside its lane only |
 | write / edit files | inside its lane; not the frozen baseline (`books/frozen/`, `blueprint/baseline/`), `src/generated/`, `.git/`, `.claude/`, `var/` | no (no write or edit tool) | no |
-| shell | `pnpm exec/test/run/…`, `node`, `git status/diff/log/show/add/commit/mv/rm`, `ls cat head tail wc grep sort diff mkdir echo pwd`, `cd <inside>` | `git diff/log/show/status`, `ls cat head tail wc grep` | same as checker |
-| shell refused | `git push`, `curl`, redirects (`>` `<`), `$(…)`, backticks, `..` paths, absolute paths outside the lane and `/tmp/` | same | same |
+| shell | `pnpm exec/test/run/…` and the root scripts (`pnpm frozen`, `pnpm layout`, …), `node`, `git add/commit/mv/rm`, `rm <its own files>` (no `-r`), `mkdir`, `cd <inside>`, and everything a checker may run | only what reads: `git diff/log/show/status/rev-parse/ls-files/merge-base/blame`, `rg`, `sed -n '<lines>p'`, `find` (no `-exec`, `-delete`), `ls cat head tail wc nl grep sort diff echo pwd` | same as checker |
+| shell refused | `git push`, `curl`, `pnpm install`, redirects (`>` `<`), `$(…)`, backticks, `..` paths, absolute paths outside the lane and `/tmp/`, a quote left open | same, and `node` and every `pnpm` | same |
 | environment of its commands | `PATH HOME USER LOGNAME SHELL TERM LANG LC_ALL TMPDIR` and the sandbox's `CAPXUL_*`; nothing inherited | same | same |
 | network | none by policy, but see below | same | same |
 
