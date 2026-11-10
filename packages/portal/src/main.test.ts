@@ -1,9 +1,13 @@
 import assert from "node:assert/strict";
+import { existsSync, mkdirSync, mkdtempSync, statSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { test } from "node:test";
 
 import { check, expect, passed } from "#src/modules/check/service.ts";
 
 import { assetsOf, generate, load, ownerNeedsOf, planPagesOf, ROOT } from "./main.ts";
+import { closedFor } from "./serve.ts";
 
 test("the real blueprint generates a site that passes the portal check", async () => {
   const loaded = await load(ROOT, "test000");
@@ -38,4 +42,13 @@ test("the real blueprint generates a site that passes the portal check", async (
 test("a folder with no books is an error value, not a throw", async () => {
   const loaded = await load("/nonexistent-capxul-root", "test000");
   assert.equal(loaded.ok, false);
+});
+
+test("a server started from a linked worktree takes no answers; one started from the repository's own checkout does", () => {
+  const worktree = mkdtempSync(join(tmpdir(), "portal-worktree-")), own = mkdtempSync(join(tmpdir(), "portal-own-"));
+  writeFileSync(join(worktree, ".git"), "gitdir: /somewhere/.git/worktrees/x\n");
+  mkdirSync(join(own, ".git"));
+  assert.match(closedFor(worktree) ?? "", /served from a worktree.*takes no answers/);
+  assert.equal(closedFor(own), undefined);
+  assert.equal(closedFor(ROOT), existsSync(join(ROOT, ".git")) && statSync(join(ROOT, ".git")).isFile() ? closedFor(worktree) : undefined);
 });

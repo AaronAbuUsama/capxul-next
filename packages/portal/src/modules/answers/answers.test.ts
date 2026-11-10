@@ -92,3 +92,14 @@ test("everything else is the generated site: a folder is its index page, a missi
   assert.equal(respond(req({ path: "/review" }), deps).status, 200);
   assert.equal(respond(req({ path: "/nope/" }), deps).status, 404);
 });
+
+test("a closed server takes no answers: reading and writing are both refused with the reason, nothing is written, the site is still served", () => {
+  const { deps, written } = world();
+  const closed: Deps = { ...deps, closed: "this portal is served from a worktree: answer on the real portal" };
+  for (const r of [respond(post(decision({ how: "accept" })), closed), respond(post({ withdraw: "a-1" }), closed), respond(req({ path: "/api/answers" }), closed)]) {
+    assert.equal(r.status, 403);
+    assert.deepEqual(JSON.parse(String(r.body)), { error: "this portal is served from a worktree: answer on the real portal" });
+  }
+  assert.equal(written.length, 0);
+  assert.equal(respond(req({ path: "/" }), closed).status, 200);
+});

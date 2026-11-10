@@ -36,6 +36,18 @@ const waitingOf = (input: SiteInput, root: string): Waiting => {
   return { decisions, tasks };
 };
 
+/**
+ * Why this server takes no answers, or undefined when it does. A linked worktree (its `.git` is a file, not a folder)
+ * has its own plan/answers.jsonl, which the coordinator never reads: an answer saved there is an answer lost. That
+ * happened once, on 10 November 2026. So only the repository's own checkout takes answers.
+ */
+export const closedFor = (root: string): string | undefined => {
+  const git = join(root, ".git");
+  return existsSync(git) && statSync(git).isFile()
+    ? "This portal is served from a worktree, a copy of the repository, so it takes no answers: answer on the real portal."
+    : undefined;
+};
+
 const depsOf = (input: SiteInput, root: string, dist: string, port: number, extraHosts: readonly string[] = []): Deps => ({
   now: () => new Date().toISOString(),
   newId: () => `a-${new Date().toISOString().replace(/[-:.]/g, "").slice(0, 15)}-${randomBytes(3).toString("hex")}`,
@@ -49,10 +61,11 @@ const depsOf = (input: SiteInput, root: string, dist: string, port: number, extr
     return { type: TYPES[extname(full)] ?? "application/octet-stream", body: readFileSync(full) };
   },
   hosts: [`127.0.0.1:${port}`, `localhost:${port}`, ...extraHosts],
+  ...(closedFor(root) === undefined ? {} : { closed: closedFor(root)! }),
 });
 
 /** Starts the server on 127.0.0.1:`port`. */
-export const listen = (input: SiteInput, root: string, port: number, extraHosts: readonly string[] = [], runsPort: number = DEFAULT_HOST_PORT): Promise<Result<{ readonly server: Server; readonly url: string }>> => {
+export const listen = (input: SiteInput, root: string, port: number, extraHosts: readonly string[] = [], runsPort: number = DEFAULT_HOST_PORT): Promise<Result<{ readonly server: Server; readonly url: string; readonly closed?: string }>> => {
   const dist = resolve(root, "packages/portal/dist");
   if (!existsSync(join(dist, "index.html"))) return Promise.resolve({ ok: false, error: `${dist} holds no site: run pnpm portal first` });
   const deps = depsOf(input, root, dist, port, extraHosts);
@@ -84,6 +97,6 @@ export const listen = (input: SiteInput, root: string, port: number, extraHosts:
   server.on("upgrade", (req, socket, head) => { if (runs.owns((req.url ?? "/").split("?")[0]!)) runs.upgrade(req, socket, head); else socket.destroy(); });
   return new Promise((done) => {
     server.once("error", (e) => done({ ok: false, error: `could not listen on 127.0.0.1:${port}: ${e.message}` }));
-    server.listen(port, "127.0.0.1", () => done({ ok: true, value: { server, url: `http://127.0.0.1:${port}/` } }));
+    server.listen(port, "127.0.0.1", () => done({ ok: true, value: { server, url: `http://127.0.0.1:${port}/`, ...(deps.closed === undefined ? {} : { closed: deps.closed }) } }));
   });
 };
