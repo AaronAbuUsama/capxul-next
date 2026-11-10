@@ -37,7 +37,7 @@ Every entry, what uses it and whether it stays: [docs/repository-map.md](docs/re
 - [docs/philosophy.md](docs/philosophy.md): how we work, read first.
 - [AGENTS.md](AGENTS.md) (`CLAUDE.md` links to it): the rules for changing anything here, the roles, and the checks.
 - [docs/blueprint.md](docs/blueprint.md): how the blueprint works, end to end.
-- [START-HERE.md](START-HERE.md): the owner's direction of 9 November, kept as a record.
+- [START-HERE.md](START-HERE.md): the current goal, milestone, next task and links to the plan, rulings and portal.
 
 ## The checks
 
