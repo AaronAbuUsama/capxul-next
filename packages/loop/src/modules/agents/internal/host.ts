@@ -1,4 +1,5 @@
 /** Opening the harness on a run's SQLite file, with the coding tools, the confinement and an environment that inherits nothing. */
+import { existsSync } from "node:fs";
 import { BACKGROUND_CONTEXT } from "@earendil-works/chord/context";
 import { createRegistry, Harness } from "@earendil-works/pi-durable";
 import { NodeExecutionEnv } from "@earendil-works/pi-durable/env/node";
@@ -16,6 +17,8 @@ class CleanEnv extends NodeExecutionEnv {
 }
 
 export const openHost = async (o: HostOptions): Promise<Host> => {
+  // Opening SQLite creates the file, and the folder with it: a reader must find the storage, never make one.
+  if (o.readOnly && !existsSync(o.file)) throw new Error(`there is no storage at ${o.file}: a reader does not create one`);
   const registry = createRegistry();
   registry.install(CodingTools);
   const [cw, cr] = [confine("write", o.policy), confine("read", o.policy)];
@@ -25,7 +28,7 @@ export const openHost = async (o: HostOptions): Promise<Host> => {
   const context = BACKGROUND_CONTEXT;
   const harness = await Harness.open(await openNodeSqliteStorage(o.file), {
     models: o.models, registry, readOnly: o.readOnly ?? false,
-    settings: { retry: { maxRetries: 3 }, restartLimit: 5 },
+    settings: { retry: o.retry ?? { maxRetries: 3 }, restartLimit: 5 },
     env: ({ cwd }) => new CleanEnv(cwd ?? process.cwd(), { ...o.env }),
     identity: { attribution: null },
   }, context);

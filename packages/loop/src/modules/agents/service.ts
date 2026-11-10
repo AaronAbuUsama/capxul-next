@@ -2,7 +2,7 @@
  * GENERIC. The door of the agents module: open a host on a run's storage, `ask` one agent one question durably, keep a
  * ledger of named steps, look at what an agent is doing. See types.ts.
  */
-import { AssistantEntry, defineExtension, ToolResultEntry, UsageDoc, type EntryRecord } from "@earendil-works/pi-durable";
+import { AssistantEntry, defineExtension, LiveDoc, ToolResultEntry, UsageDoc, type EntryRecord } from "@earendil-works/pi-durable";
 import type { AssistantMessage } from "@earendil-works/pi-ai";
 import { existsSync } from "node:fs";
 import type { Answer, Ask, Host } from "./types.ts";
@@ -11,7 +11,7 @@ import { entriesOf, recall, record, remember } from "./internal/ledger.ts";
 export { openHost } from "./internal/host.ts";
 export { modelsFrom } from "./internal/models.ts";
 export { mcpTools, type McpServer } from "./internal/mcp.ts";
-export { confine, refuseBash, refusePath } from "./internal/policy.ts";
+export { confine, refuseBash, refusePath, segmentsOf } from "./internal/policy.ts";
 export { entriesOf, recall, record, remember };
 export type * from "./types.ts";
 
@@ -33,7 +33,8 @@ const spend = async (host: Host, id: number): Promise<{ costUsd: number; tokens:
 /**
  * One agent, one question, durably. The conversation is found again by `key` after a restart, and so is the question
  * (its request id is the key), so a killed run's agent continues instead of starting over. Rejects with `stopped` when the
- * stop file appears; a timeout or a failed answer comes back as `ok: false`.
+ * stop file appears; a timeout or a failed answer comes back as `ok: false`. A model that fails is waited for and the
+ * conversation continued (`modelWaitsMs`) before that failure is the answer.
  */
 export const ask = async (host: Host, a: Ask): Promise<Answer> => {
   const [provider, ...rest] = a.model.split("/");
@@ -46,25 +47,33 @@ export const ask = async (host: Host, a: Ask): Promise<Answer> => {
   };
   const conv = known ? (await host.harness.conversation(known.id as never, host.context))! : await host.harness.createConversation({ ownership: { kind: "ownerless" }, agent }, host.context);
   if (!known) await record(host, "loop.conversation", a.key, { id: conv.id as unknown as number });
-  const sub = await conv.submit({ type: "input", content: a.prompt, requestId: a.key }, host.context);
-  const waiting = sub.wait(host.context);
-  const t0 = Date.now();
+  const id = conv.id as unknown as number, t0 = Date.now();
+  const waits = [...(a.modelWaitsMs ?? [])];
+  let sub = await conv.submit({ type: "input", content: a.prompt, requestId: a.key }, host.context);
   for (;;) {
-    const settled = await Promise.race([waiting, sleep(1000)]);
-    if (settled) {
-      const used = await spend(host, conv.id as unknown as number);
-      if (settled.status !== "done" || settled.type !== "input") return { ok: false, text: "", ...used, conversation: conv.id as unknown as number, error: `unanswered: ${"reason" in settled ? String(settled.reason) : settled.status}` };
+    const waiting = sub.wait(host.context);
+    let settled: Awaited<typeof waiting> | undefined;
+    while (!(settled = await Promise.race([waiting, sleep(1000)]))) {
+      if (a.stopFile && existsSync(a.stopFile)) { await conv.abort(host.context); throw new Error("stopped"); }
+      if (a.timeoutMs && Date.now() - t0 > a.timeoutMs) { await conv.abort(host.context); return { ok: false, text: "", ...(await spend(host, id)), conversation: id, error: "timed out" }; }
+    }
+    if (settled.status === "done" && "answer" in settled) {
       const entry = (await conv.entries({}, 20, undefined, host.context)).items.find((e) => e.id === settled.answer);
       const text = entry && AssistantEntry.is(entry) ? textOf(entry.model![0] as AssistantMessage) : "";
-      return { ok: text !== "", text, json: lastJson(text), ...used, conversation: conv.id as unknown as number };
+      return { ok: text !== "", text, json: lastJson(text), ...(await spend(host, id)), conversation: id };
     }
-    if (a.stopFile && existsSync(a.stopFile)) { await conv.abort(host.context); throw new Error("stopped"); }
-    if (a.timeoutMs && Date.now() - t0 > a.timeoutMs) {
-      await conv.abort(host.context);
-      return { ok: false, text: "", ...(await spend(host, conv.id as unknown as number)), conversation: conv.id as unknown as number, error: "timed out" };
-    }
+    const reason = "reason" in settled ? String(settled.reason) : settled.status;
+    const detail = String((await host.harness.snapshot(LiveDoc, id as never, host.context))?.runFailure?.detail ?? "");
+    const wait = MODEL_FAILURES.has(reason) ? waits.shift() : undefined;
+    if (wait === undefined) return { ok: false, text: "", ...(await spend(host, id)), conversation: id, error: `unanswered: ${reason}`, ...(detail ? { detail } : {}) };
+    // The model failed beyond pi's own retries: wait, then continue this conversation where it stands. Nothing it did is lost.
+    for (const until = Date.now() + wait; Date.now() < until; await sleep(Math.min(1000, Math.max(1, until - Date.now())))) if (a.stopFile && existsSync(a.stopFile)) throw new Error("stopped");
+    sub = await conv.submit({ type: "continue", requestId: `${a.key}:again:${Date.now()}` }, host.context);
   }
 };
+
+/** The ways a run ends without an answer that are the model's or the gateway's, not the agent's: worth trying again. */
+const MODEL_FAILURES = new Set(["model_error", "interrupted"]);
 
 /** What happened in a conversation after entry `after`, as lines a person can follow, and the newest entry seen. */
 export const tail = async (host: Host, conversation: number, after = 0): Promise<{ lines: string[]; last: number }> => {

@@ -97,8 +97,6 @@ Every `pnpm` script name is unchanged.
   design work under plan task `m1-old-decisions`.
 - `.github/ISSUE_TEMPLATE/` holds issue forms for the swarmD ledger, which is not used. Three blueprint files cite
   them, so they stay until `m1-old-decisions` settles those records.
-- `.claude/agents/master.md` is the profile of the swarmD-era "Mission Control". Its pointer now resolves
-  (`archive/docs/mission/initializer.md`), but the coordinator and the loop do its job.
 - `docs/mission/progress.md` is no longer written: the plan's log does that job.
 
 ## Counts

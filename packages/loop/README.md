@@ -8,9 +8,11 @@ watchable from another process, and open to being steered later.
 
 ```bash
 pnpm loop run m1-dev-commands --script pair --sandbox none   # one run: maker, gates, checker, up to 3 rounds
+pnpm loop serve [--port 4392]                                # the host: a page or a terminal attaches and sees runs as they change
 pnpm loop status                                             # run, task, status, step, round, elapsed, spend
 pnpm loop status --json [--since-hours 24]                   # the same as data: counts, models, last events (src/modules/inspect)
 pnpm loop show <run id> --json                               # one run with its last twenty events
+pnpm loop show <run id> --json --full                        # the run in full: every step's result and every agent's conversation
 pnpm loop watch <run id>                                     # attach: what the agent is doing now, live (read-only)
 pnpm loop logs <run id>                                      # the ledger: each step, the conversation it used, how it ended
 pnpm loop stop <run id>                                      # the agent is aborted within a second or two
@@ -77,8 +79,8 @@ registers (`mcpTools`). Every call passes a `beforeTool` hook (`agents/internal/
 |---|---|---|---|
 | read files | inside its lane only | inside its lane only | inside its lane only |
 | write / edit files | inside its lane; not the frozen baseline (`books/frozen/`, `blueprint/baseline/`), `src/generated/`, `.git/`, `.claude/`, `var/` | no (no write or edit tool) | no |
-| shell | `pnpm exec/test/run/…`, `node`, `git status/diff/log/show/add/commit/mv/rm`, `ls cat head tail wc grep sort diff mkdir echo pwd`, `cd <inside>` | `git diff/log/show/status`, `ls cat head tail wc grep` | same as checker |
-| shell refused | `git push`, `curl`, redirects (`>` `<`), `$(…)`, backticks, `..` paths, absolute paths outside the lane and `/tmp/` | same | same |
+| shell | `pnpm exec/test/run/…` and the root scripts (`pnpm frozen`, `pnpm layout`, …), `node`, `git add/commit/mv/rm`, `rm <its own files>` (no `-r`), `mkdir`, `cd <inside>`, and everything a checker may run | only what reads: `git diff/log/show/status/rev-parse/ls-files/merge-base/blame`, `rg`, `sed -n '<lines>p'`, `find` (no `-exec`, `-delete`), `ls cat head tail wc nl grep sort diff echo pwd` | same as checker |
+| shell refused | `git push`, `curl`, `pnpm install`, redirects (`>` `<`), `$(…)`, backticks, `..` paths, absolute paths outside the lane and `/tmp/`, a quote left open | same, and `node` and every `pnpm` | same |
 | environment of its commands | `PATH HOME USER LOGNAME SHELL TERM LANG LC_ALL TMPDIR` and the sandbox's `CAPXUL_*`; nothing inherited | same | same |
 | network | none by policy, but see below | same | same |
 
@@ -90,6 +92,20 @@ sandbox.** `node` and `pnpm exec` can run any program as the user: a model that 
 files outside the lane or call `git push` through them. The list narrows what a well-behaved or confused agent does, and
 the runner never pushes anything but `lane/<task>` and never merges by itself; it does not contain a hostile one. Real
 containment needs an OS-level sandbox around the whole runner.
+
+## When the gateway struggles
+
+- **A model that fails.** pi retries a request three times. If it still fails, the loop waits 20 s, then 60 s, then
+  3 min, and each time continues the same conversation, so nothing the agent did is lost. If it never answers, the
+  step throws and the run ends `failed` at that step with the gateway's message in a line: no check runs, no reviewer
+  reads an unchanged lane, no round is spent. `pnpm loop resume <run>` continues the same agent later.
+- **How many agents work at once.** `LOOP_MAX_AGENTS` (default 3) is shared by every run and process of the checkout:
+  an agent takes a slot (a file under `var/runs/.agents/`) and waits when none is free. It bounds agents, not single
+  model calls: an agent keeps its slot while its tools run.
+- **The worker.** A run that is stopped tells `loop work` to start nothing more and to end when its runs are over,
+  `--wait` or not. A task named with `--task` whose newest run was stopped or failed has that run resumed, once.
+- **Cleaning.** `loop clean` removes a lane's worktree and frees the name `lane/<task>`: a merged branch is deleted,
+  unmerged work is kept as `kept/<run id>`, so the next run of the task starts from the base.
 
 ## Sandboxes
 

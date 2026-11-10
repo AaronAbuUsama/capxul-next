@@ -8,11 +8,16 @@ import { entriesOf, type Host } from "../agents/service.ts";
 import type { Cursor, EntryRecord } from "@earendil-works/pi-durable";
 import { alive, listRuns } from "../runs/service.ts";
 import type { Info } from "../runs/types.ts";
+import { detailOf } from "./internal/detail.ts";
 import { countOf, type Counted } from "./internal/events.ts";
 import { scrub, secretsOf } from "./internal/scrub.ts";
-import { CAP, WHY_CAP, type EventLine, type RunView } from "./types.ts";
+import { CAP, WHY_CAP, type EventLine, type RunDetail, type RunStatus, type RunView } from "./types.ts";
 
-export type { EventLine, RunView } from "./types.ts";
+/** The statuses on the wire are a run's own plus `dead`: this line stops compiling when one is added to either and not the other. */
+const _statuses: [Exclude<RunStatus, "dead">] extends [Info["status"]] ? ([Info["status"]] extends [Exclude<RunStatus, "dead">] ? true : never) : never = true;
+void _statuses;
+
+export type { AgentSession, Call, Changes, Entry, EventLine, RunDetail, RunStatus, RunView, StepRecord } from "./types.ts";
 
 /** What a view is made from: the runs' folder, how to open one run's storage read-only, the clock, the environment (only its secrets are looked at). */
 export interface Look {
@@ -22,6 +27,8 @@ export interface Look {
   readonly env: Readonly<Record<string, string | undefined>>;
   /** How many of the newest events each view carries. */
   readonly events: number;
+  /** Runs git in the repository the runs belong to, for a builder's changes; absent, a detail carries none. */
+  readonly git?: (args: readonly string[]) => string;
 }
 
 const PAGES = 20;
@@ -99,4 +106,15 @@ export const statusViews = async (look: Look, sinceHours: number): Promise<reado
 export const showView = async (look: Look, id: string): Promise<RunView | null> => {
   const info = listRuns(look.runs).map((r) => r.info).find((i) => i.id === id);
   return info ? viewOf(look, info) : null;
+};
+
+/** One run in full (types.ts, `RunDetail`), or null when there is none of that id or its storage cannot be read. */
+export const showDetail = async (look: Look, id: string): Promise<RunDetail | null> => {
+  const info = listRuns(look.runs).map((r) => r.info).find((i) => i.id === id);
+  if (!info) return null;
+  const dead = info.status === "running" && !alive(info.pid);
+  try {
+    const host = await look.open(join(look.runs, id));
+    try { return { ...(await detailOf(host, info, secretsOf(look.env), look.git)), status: dead ? "dead" : info.status }; } finally { await host.close(); }
+  } catch { return null; }
 };

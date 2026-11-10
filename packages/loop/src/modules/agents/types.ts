@@ -32,6 +32,8 @@ export interface HostOptions {
   readonly policy: Policy;
   /** Look without driving: opens the storage for reading, recovers nothing, writes nothing. */
   readonly readOnly?: boolean;
+  /** pi's own retries of one model request: how many, and the first wait in milliseconds (it doubles). Default 3 and 2,000. */
+  readonly retry?: { readonly maxRetries: number; readonly baseDelayMs: number };
 }
 
 export interface Host { readonly harness: Harness; readonly registry: Registry; readonly parts: Readonly<Record<Profile, { extensions: Extension[]; tools: ToolRegistration[] }>>; readonly root: Conversation; readonly context: Context; close(): Promise<void> }
@@ -49,8 +51,14 @@ export interface Ask {
   readonly timeoutMs?: number;
   /** When this file exists the agent is aborted and the call rejects with `stopped`. */
   readonly stopFile?: string;
+  /**
+   * When the model fails beyond pi's own retries (a gateway that is down), wait this long and continue the same
+   * conversation, once per entry. Empty or absent: a model failure is the answer.
+   */
+  readonly modelWaitsMs?: readonly number[];
   /** Tools beyond the coding ones, for example an MCP server's (`mcpTools`). */
   readonly tools?: readonly ToolRegistration[];
 }
 
-export interface Answer { ok: boolean; text: string; json?: unknown; costUsd: number; tokens: number; conversation: number; error?: string }
+/** `detail` says more about an `error` when the harness knows it: the gateway's own message for a model failure. */
+export interface Answer { ok: boolean; text: string; json?: unknown; costUsd: number; tokens: number; conversation: number; error?: string; detail?: string }
