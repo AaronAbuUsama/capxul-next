@@ -31,7 +31,9 @@ from the build session on, the product code it describes.
 - **The plan.** `plan/plan.json` is the coordinator's plan, shown at `/plan/` in the portal (decision `portal.plan-page`).
   Every session starts with `pnpm plan show` and ends by updating the plan. Agents report through `pnpm plan task …` (`start <id>
   --thread <name>`, `block`, `unblock`, `done <id> --evidence <ref>`, each with `--by <name>`), never by editing the JSON; every
-  change is logged in `plan/log.jsonl`. Only the coordinator writes `path set` and `note`: the critical path is written, never
+  change is logged in `plan/log.jsonl`. A task has a file `plan/tasks/<id>.md` (What, Why, Done when): `task add` needs `--what`,
+  `--why` and `--done-when`. The owner's answers arrive in `plan/answers.jsonl` through `pnpm portal:serve`; `pnpm plan answers`
+  lists them, and after writing the ruling or unblocking the task you run `pnpm plan answers apply <id> --evidence <ref>`. Only the coordinator writes `path set` and `note`: the critical path is written, never
   computed. `pnpm test` runs `plan check` and `plan-tasks --check` too.
 - **Where code goes:** decision `system.layout` in `books/target/shared/decisions.ts`. In short:
   - one package per component;

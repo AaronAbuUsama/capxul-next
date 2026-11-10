@@ -610,6 +610,19 @@ The book says what to build; the plan says where the build is and what comes nex
   in its order and words, what is blocked (for a decision: its question, options and the book's recommendation inline and a
   link to it on the Questions page; for a need: who and what), the tasks by state with their threads, and the last twenty log
   lines. It has Markdown and JSON twins and a line in `llms.txt`. The Overview shows the latest note and a link.
+- **It is explained in files.** `plan/plan.json` is the state; the explanation is Markdown beside it: `plan/outline.md` (where we
+  are going, what this goal is, how we get there, how the work runs, what is not in it), `plan/milestones/<id>.md` and
+  `plan/tasks/<id>.md` (a task file has What, Why and Done when). `plan check` requires all of them and fails on a file that
+  belongs to nothing; `pnpm plan task add` makes the file from `--what`, `--why` and `--done-when` (or a `--detail-file`) and
+  refuses without them; `pnpm plan show <task id>` prints one task in full. The portal draws a page per task
+  (`/plan/task/<id>/`) and per milestone (`/plan/milestone/<id>/`), and the Plan page reads top to bottom from them.
+- **What waits on the owner is one list, and an answer is saved.** The Questions page holds the book's waiting decisions and
+  the plan's tasks blocked on a need of the owner, with one count. `pnpm portal:serve [--port 4391]` serves
+  `packages/portal/dist` on 127.0.0.1 with `POST /api/answers` (one validated line appended to `plan/answers.jsonl`, or a
+  withdrawal) and `GET /api/answers` (those not yet applied). The coordinator applies an answer (writes the ruling in the book, or
+  unblocks the task) and then runs `pnpm plan answers apply <id> --evidence <ref>`, which records it in `plan/log.jsonl`;
+  `answers.jsonl` is append only, `pnpm plan show` opens with the answers to apply, and `plan check` fails if an applied
+  answer's decision still waits. Opened without that server, the page falls back to a prefilled GitHub issue.
 - **The derived task tree stays beneath it.** `tools/plan-tasks.ts` still derives the lanes and tasks from the book into
   `docs/mission/tasks.json`, and reads its milestones from `plan/plan.json`, so there is one list. `pnpm tasks:check` fails when the
   file is stale; regenerate it with `pnpm tasks` after a milestone or exit line changes.
