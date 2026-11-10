@@ -61,6 +61,14 @@ for (const c of CONCEPTS) {
     if (r._kind === "machine") for (const t of Object.values(r.t as object) as AnyRecord[]) conceptOf.set(keyOf(t), c.id);
   }
 }
+// The pay agreements moved from payroll into payments (cut.agreements-in-payments); they keep their own folder inside it.
+{
+  const m = (await import("../books/target/payments/agreements/index.ts")) as { modules: readonly object[] };
+  for (const r of recordsOf(m.modules) as AnyRecord[]) {
+    conceptOf.set(keyOf(r), "payments");
+    if (r._kind === "machine") for (const t of Object.values(r.t as object) as AnyRecord[]) conceptOf.set(keyOf(t), "payments");
+  }
+}
 const concept = (key: string): string => {
   const c = conceptOf.get(key);
   if (!c) throw new Error(`no concept exports ${key}`);
@@ -97,7 +105,7 @@ const maxDepth = Math.max(...depth.values());
 const layerOf = (c: string) => (LAST.has(c) ? maxDepth + 1 : depth.get(c)!);
 /** The decision's own list, so that a change to the concept map that moves a layer fails here until the decision moves. */
 const BUILD_ORDER: readonly (readonly string[])[] = [
-  ["access"], ["media"], ["parties"], ["indexing"], ["approvals"], ["accounts"], ["organizations"], ["applications", "board", "books", "contacts", "documents"], ["agents", "budgets"], ["payments"], ["activity", "banking", "payroll"], ["requests"], ["notices"], ["devnet"], ["equity"],
+  ["access"], ["media"], ["parties"], ["indexing"], ["approvals"], ["accounts"], ["organizations"], ["applications", "board", "books", "contacts", "documents"], ["agents", "budgets"], ["payments"], ["activity", "banking"], ["requests"], ["notices"], ["devnet"], ["equity"],
 ];
 const computed: string[][] = [];
 for (const c of CONCEPTS) (computed[layerOf(c.id)] ??= []).push(c.id);

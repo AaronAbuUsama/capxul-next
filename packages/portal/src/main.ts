@@ -88,6 +88,11 @@ export const load = async (root: string, commit: string = commitOf(root)): Promi
     for (const id of concepts) {
       const modules = (await open(`books/target/${id}/index.ts`))["modules"];
       for (const r of list(recordsOf(list(modules)))) if (isRecord(r)) conceptOf.set(keyOf(r), id);
+      // the pay agreements live in payments/agreements since the cut (cut.agreements-in-payments)
+      if (id === "payments") {
+        const agreements = (await open("books/target/payments/agreements/index.ts"))["modules"];
+        for (const r of list(recordsOf(list(agreements)))) if (isRecord(r)) conceptOf.set(keyOf(r), id);
+      }
     }
     const book = buildBook({ name: str(target["name"]), stage: target["stage"] === "as-is" ? "as-is" : "target", records: target["records"] });
     return {

@@ -2692,7 +2692,7 @@ export const decision_system_build_order = defineDecision({
       label: "layers-then-priority",
       text:
         "By the concept map's layers, each concept's door (its tables, machines and procedures) before any concept that depends on " +
-        "it: access; media; parties; indexing; approvals; accounts; organizations; then applications, board's proposals and door, books, contacts and documents; agents and budgets; payments; activity, banking and payroll; requests; notices; " +
+        "it: access; media; parties; indexing; approvals; accounts; organizations; then applications, board's proposals and door, books, contacts and documents; agents and budgets; payments; activity and banking; requests; notices; " +
         "devnet's own dev commands alongside the harness. Within a concept, critical operations first. Board's director and vote " +
         "operations and all of equity are built last, and a lane may build against their events before they exist.",
     },
