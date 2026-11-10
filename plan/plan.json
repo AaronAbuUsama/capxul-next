@@ -1,0 +1,606 @@
+{
+  "goal": {
+    "title": "The book fully specifies Capxul on Frappe, and one shared world runs a thin line through the whole stack.",
+    "why": "One statement, readable by people and machines, of exactly what is being built and where it stands.",
+    "exit": [
+      {
+        "id": "g1",
+        "claim": "Every part of the system is a record, the machine, the worlds, the site service and a production environment included.",
+        "state": "open"
+      },
+      {
+        "id": "g2",
+        "claim": "The book builds with no problems and every open gap is closed or has a recorded reason.",
+        "state": "open"
+      },
+      {
+        "id": "g3",
+        "claim": "Every operation has an example and names its telemetry.",
+        "state": "open"
+      },
+      {
+        "id": "g4",
+        "claim": "Where code exists a check proves the book matches it.",
+        "state": "open"
+      },
+      {
+        "id": "g5",
+        "claim": "Everything the spikes found is a record or a decision.",
+        "state": "open"
+      },
+      {
+        "id": "g6",
+        "claim": "The plan page is generated and current.",
+        "state": "open"
+      },
+      {
+        "id": "g7",
+        "claim": "Aaron reads the portal and accepts it.",
+        "state": "open"
+      },
+      {
+        "id": "g8",
+        "claim": "A shared world runs on the sites machine, not a laptop, created by one command, with a thin line through every part of the stack proven by tests that run there: the real contracts on its chain, the service, a company's site, the door, a payment held and signed by key, the record, the clock, and a snapshot restored as a separate world.",
+        "state": "open"
+      }
+    ]
+  },
+  "milestones": [
+    {
+      "id": "m1",
+      "title": "Foundation: the book complete and fit for purpose",
+      "goal": "The cut; the plugs, sites and the door written into the book in full; where each operation stands is recorded; and the book fit to build from.",
+      "order": 1,
+      "state": "current",
+      "exit": [
+        {
+          "id": "g1",
+          "claim": "Every part of the system is a record, the machine, the worlds, the site service and a production environment included.",
+          "state": "open"
+        },
+        {
+          "id": "g2",
+          "claim": "The book builds with no problems and every open gap is closed or has a recorded reason.",
+          "state": "open"
+        },
+        {
+          "id": "g3",
+          "claim": "Every operation has an example and names its telemetry.",
+          "state": "open"
+        },
+        {
+          "id": "g4",
+          "claim": "Where code exists a check proves the book matches it.",
+          "state": "open"
+        },
+        {
+          "id": "g5",
+          "claim": "Everything the spikes found is a record or a decision.",
+          "state": "open"
+        },
+        {
+          "id": "g6",
+          "claim": "The plan page is generated and current.",
+          "state": "open"
+        },
+        {
+          "id": "g7",
+          "claim": "Aaron reads the portal and accepts it.",
+          "state": "open"
+        },
+        {
+          "id": "g8",
+          "claim": "A shared world runs on the sites machine, not a laptop, created by one command, with a thin line through every part of the stack proven by tests that run there: the real contracts on its chain, the service, a company's site, the door, a payment held and signed by key, the record, the clock, and a snapshot restored as a separate world.",
+          "state": "open"
+        }
+      ]
+    },
+    {
+      "id": "m2",
+      "title": "Real chain under the test sites",
+      "goal": "The v4 contracts in this repository with their tests; a seeded chain state so nothing needs the network; a key-based agent signer; the skeleton's stand-in chain replaced.",
+      "order": 2,
+      "state": "todo",
+      "exit": [
+        {
+          "id": "done",
+          "claim": "The skeleton's checks pass against the real contracts: a hat granted through Hats, a budget set, a payment sent through Payments under that hat and budget with the document's hash.",
+          "state": "open"
+        }
+      ]
+    },
+    {
+      "id": "m3",
+      "title": "The door, the recorder and the clock",
+      "goal": "The CLI reaches Frappe's documents, actions and reports as the calling person; every command is recorded; a world's time is moved from the CLI and the site and chain follow it. Built in parallel with m2.",
+      "order": 3,
+      "state": "todo",
+      "exit": [
+        {
+          "id": "done",
+          "claim": "An agent takes a lead to a paid invoice, onboards a staff member and runs a month end through the CLI only, on a clock it moved, and the whole run can be read back from the record.",
+          "state": "open"
+        }
+      ]
+    },
+    {
+      "id": "m3b",
+      "title": "The cloud: worlds on a machine, not a laptop",
+      "goal": "How a bench of company sites, the service, a chain and the record run on the existing cloud, written down and then stood up.",
+      "order": 4,
+      "state": "todo",
+      "exit": [
+        {
+          "id": "done",
+          "claim": "A world running in the cloud that a person can open in a browser while agents drive it.",
+          "state": "open"
+        }
+      ]
+    },
+    {
+      "id": "m4",
+      "title": "The compatibility climb",
+      "goal": "The Core operations built to the book, group by group, with the old code as the reference for behaviour.",
+      "order": 5,
+      "state": "todo",
+      "exit": [
+        {
+          "id": "done",
+          "claim": "The score: kept operations passing their evals on the real stack, group by group. No number is promised before milestone 2 is done.",
+          "state": "open"
+        }
+      ],
+      "concepts": [
+        "access",
+        "accounts",
+        "organizations",
+        "board",
+        "agents",
+        "budgets",
+        "payments",
+        "banking",
+        "requests",
+        "applications",
+        "activity",
+        "notices",
+        "approvals",
+        "parties",
+        "indexing"
+      ]
+    },
+    {
+      "id": "m5",
+      "title": "Company life: months on the real stack",
+      "goal": "A multi-month run on the real stack, from the old scenario histories.",
+      "order": 6,
+      "state": "todo",
+      "exit": [
+        {
+          "id": "done",
+          "claim": "The books agree with the chain at every month end, over a multi-month run from the old scenario histories.",
+          "state": "open"
+        }
+      ]
+    }
+  ],
+  "tasks": [
+    {
+      "id": "m1-cut",
+      "title": "Cut the book to the new shape",
+      "why": "The owner's direction: Frappe owns what it can; the book keeps Core, the plugs and the door.",
+      "milestone": "m1",
+      "state": "done",
+      "needs": [],
+      "records": [],
+      "evidence": [
+        "9438ece..f47b70c (the cut commits)"
+      ],
+      "created": "2026-11-10",
+      "updated": "2026-11-10"
+    },
+    {
+      "id": "m1-plugs-book",
+      "title": "Write the plugs, sites, worlds and the door into the book",
+      "why": "The new shape has to be written down before anything is built on it.",
+      "milestone": "m1",
+      "state": "done",
+      "needs": [],
+      "records": [],
+      "evidence": [
+        "1a5a989, 8b2f50f, 113dd68, e81bbc6"
+      ],
+      "created": "2026-11-10",
+      "updated": "2026-11-10"
+    },
+    {
+      "id": "m1-stand-checks",
+      "title": "Impact, stand, status, telemetry and example checks",
+      "why": "The book says where each operation stands, and the gaps it still has, by itself.",
+      "milestone": "m1",
+      "state": "done",
+      "needs": [],
+      "records": [],
+      "evidence": [
+        "827e127, 5283fa5, 15609ae"
+      ],
+      "created": "2026-11-10",
+      "updated": "2026-11-10"
+    },
+    {
+      "id": "m1-plan-page",
+      "title": "The plan page and the plan CLI",
+      "why": "So the goal, the milestones, the tasks, the threads and the critical path are visible to a person and to agents.",
+      "milestone": "m1",
+      "state": "doing",
+      "needs": [],
+      "records": [
+        "decision:portal.plan-page"
+      ],
+      "evidence": [],
+      "created": "2026-11-10",
+      "updated": "2026-11-10",
+      "thread": "plan-page"
+    },
+    {
+      "id": "m1-task-tree",
+      "title": "Fix the derived task tree's build order and milestones",
+      "why": "The derived task tree must follow the book and the plan's milestones, so there is one list.",
+      "milestone": "m1",
+      "state": "doing",
+      "needs": [],
+      "records": [
+        "decision:system.build-order"
+      ],
+      "evidence": [],
+      "created": "2026-11-10",
+      "updated": "2026-11-10",
+      "thread": "plan-page"
+    },
+    {
+      "id": "m3-door-clock",
+      "title": "The door, the recorder, the clock and snapshots on the test sites",
+      "why": "The spike that proves the door and the clock turns the book's assumptions into records.",
+      "milestone": "m3",
+      "state": "doing",
+      "needs": [],
+      "records": [],
+      "evidence": [],
+      "created": "2026-11-10",
+      "updated": "2026-11-10",
+      "thread": "door-clock"
+    },
+    {
+      "id": "m1-spike-evidence",
+      "title": "Write the spikes' evidence into the book and clear each assumption mark",
+      "why": "Assumption marks stay until a spike proves them; the evidence has to land as records or decisions.",
+      "milestone": "m1",
+      "state": "todo",
+      "needs": [
+        "m3-door-clock"
+      ],
+      "records": [],
+      "evidence": [],
+      "created": "2026-11-10",
+      "updated": "2026-11-10"
+    },
+    {
+      "id": "m1-contracts-reconcile",
+      "title": "Reconcile the contract records with the code, and a check that fails when they differ",
+      "why": "Where code exists, a check proves the book matches it.",
+      "milestone": "m1",
+      "state": "todo",
+      "needs": [],
+      "records": [],
+      "evidence": [],
+      "created": "2026-11-10",
+      "updated": "2026-11-10"
+    },
+    {
+      "id": "m1-examples",
+      "title": "An example on every operation",
+      "why": "Every operation has an example; the portal counts the gaps.",
+      "milestone": "m1",
+      "state": "todo",
+      "needs": [],
+      "records": [],
+      "evidence": [],
+      "created": "2026-11-10",
+      "updated": "2026-11-10"
+    },
+    {
+      "id": "m1-telemetry",
+      "title": "Telemetry on every operation, and the record entry as a record",
+      "why": "Every operation names its telemetry; the world's record entry is itself a record.",
+      "milestone": "m1",
+      "state": "todo",
+      "needs": [],
+      "records": [],
+      "evidence": [],
+      "created": "2026-11-10",
+      "updated": "2026-11-10"
+    },
+    {
+      "id": "m1-aws-records",
+      "title": "The AWS side as records: the machine, routes, DNS, backups and a production environment",
+      "why": "Every part of the system is a record, the production environment included.",
+      "milestone": "m1",
+      "state": "todo",
+      "needs": [],
+      "records": [],
+      "evidence": [],
+      "created": "2026-11-10",
+      "updated": "2026-11-10"
+    },
+    {
+      "id": "m1-lean-world",
+      "title": "Record the lean world design: one small service per world, the real chain kept",
+      "why": "A world must be cheap enough to run many of; the design belongs in the book.",
+      "milestone": "m1",
+      "state": "todo",
+      "needs": [],
+      "records": [],
+      "evidence": [],
+      "created": "2026-11-10",
+      "updated": "2026-11-10"
+    },
+    {
+      "id": "m1-dev-commands",
+      "title": "Resolve the old dev time and dev snapshot commands against the world commands",
+      "why": "Two ways to move time and take snapshots would contradict each other.",
+      "milestone": "m1",
+      "state": "todo",
+      "needs": [],
+      "records": [],
+      "evidence": [],
+      "created": "2026-11-10",
+      "updated": "2026-11-10"
+    },
+    {
+      "id": "m1-flaky-portal-test",
+      "title": "Find the portal test that fails intermittently",
+      "why": "A gate that sometimes fails teaches everyone to ignore it.",
+      "milestone": "m1",
+      "state": "todo",
+      "needs": [],
+      "records": [],
+      "evidence": [],
+      "created": "2026-11-10",
+      "updated": "2026-11-10"
+    },
+    {
+      "id": "m1-equity",
+      "title": "Equity: kept or dropped",
+      "why": "Parked until the owner settles it.",
+      "milestone": "m1",
+      "state": "blocked",
+      "needs": [],
+      "records": [],
+      "evidence": [],
+      "created": "2026-11-10",
+      "updated": "2026-11-10",
+      "blockedBy": {
+        "need": "Aaron settles it; parked meanwhile",
+        "who": "Aaron"
+      }
+    },
+    {
+      "id": "m1-payroll-uk",
+      "title": "UK payroll filing route",
+      "why": "A real customer cannot be served without a filing route.",
+      "milestone": "m1",
+      "state": "blocked",
+      "needs": [],
+      "records": [],
+      "evidence": [],
+      "created": "2026-11-10",
+      "updated": "2026-11-10",
+      "blockedBy": {
+        "need": "Aaron chooses a provider, a bureau or to build",
+        "who": "Aaron"
+      }
+    },
+    {
+      "id": "m2-contracts-proof",
+      "title": "The v4 contracts, the key signer and the proof in the repository",
+      "why": "The real chain is the base of every payment.",
+      "milestone": "m2",
+      "state": "done",
+      "needs": [],
+      "records": [],
+      "evidence": [
+        "f6945b7, 2344539, 327293c"
+      ],
+      "created": "2026-11-10",
+      "updated": "2026-11-10"
+    },
+    {
+      "id": "m2-deeper-tests",
+      "title": "The contracts' deeper tests run to completion",
+      "why": "The contracts hold money; their tests must run to the end.",
+      "milestone": "m2",
+      "state": "doing",
+      "needs": [],
+      "records": [],
+      "evidence": [],
+      "created": "2026-11-10",
+      "updated": "2026-11-10",
+      "thread": "coordinator"
+    },
+    {
+      "id": "m2-contracts-under-sites",
+      "title": "Put the real contracts under the test sites",
+      "why": "The skeleton's stand-in chain is replaced by the real contracts.",
+      "milestone": "m2",
+      "state": "todo",
+      "needs": [
+        "m3-door-clock"
+      ],
+      "records": [],
+      "evidence": [],
+      "created": "2026-11-10",
+      "updated": "2026-11-10"
+    },
+    {
+      "id": "m3-site-stops-calling",
+      "title": "The site stops calling the service",
+      "why": "Every call goes from the service to the site and never the other way (plugs.service-calls-site).",
+      "milestone": "m3",
+      "state": "todo",
+      "needs": [],
+      "records": [],
+      "evidence": [],
+      "created": "2026-11-10",
+      "updated": "2026-11-10"
+    },
+    {
+      "id": "m3b-machine-definition",
+      "title": "Draft the sites machine definition",
+      "why": "The machine is written down before it is created.",
+      "milestone": "m3b",
+      "state": "done",
+      "needs": [],
+      "records": [],
+      "evidence": [
+        "docs/mission/sites-host/"
+      ],
+      "created": "2026-11-10",
+      "updated": "2026-11-10"
+    },
+    {
+      "id": "m3b-create-machine",
+      "title": "Create the sites machine",
+      "why": "Worlds run on a machine, not a laptop.",
+      "milestone": "m3b",
+      "state": "blocked",
+      "needs": [],
+      "records": [],
+      "evidence": [],
+      "created": "2026-11-10",
+      "updated": "2026-11-10",
+      "blockedBy": {
+        "need": "sign in to AWS on this Mac, choose the subdomain, add the DNS records at Namecheap",
+        "who": "Aaron"
+      }
+    },
+    {
+      "id": "m3b-cost-audit",
+      "title": "Cloud cost audit: choose what to switch off",
+      "why": "The cloud that already exists costs money; the machine should not add to a bill nobody has read.",
+      "milestone": "m3b",
+      "state": "blocked",
+      "needs": [],
+      "records": [],
+      "evidence": [],
+      "created": "2026-11-10",
+      "updated": "2026-11-10",
+      "blockedBy": {
+        "need": "answer the audit session",
+        "who": "Aaron"
+      }
+    },
+    {
+      "id": "m3b-bench-image",
+      "title": "Build and test the hosted bench image locally",
+      "why": "The image is the same one the machine runs; it is proven on a laptop first.",
+      "milestone": "m3b",
+      "state": "todo",
+      "needs": [],
+      "records": [],
+      "evidence": [],
+      "created": "2026-11-10",
+      "updated": "2026-11-10"
+    },
+    {
+      "id": "m3b-first-shared-world",
+      "title": "Bring up the first shared world on the machine and run the thin line there",
+      "why": "This is what done means: a shared world on the machine, with the thin line proven there.",
+      "milestone": "m3b",
+      "state": "todo",
+      "needs": [
+        "m3b-create-machine",
+        "m2-contracts-under-sites"
+      ],
+      "records": [],
+      "evidence": [],
+      "created": "2026-11-10",
+      "updated": "2026-11-10"
+    },
+    {
+      "id": "m2-lean-service",
+      "title": "A lean service per world: one process, one database file, the indexer folded in",
+      "why": "One small service per world keeps a world cheap and the real chain kept.",
+      "milestone": "m2",
+      "state": "todo",
+      "needs": [],
+      "records": [],
+      "evidence": [],
+      "created": "2026-11-10",
+      "updated": "2026-11-10"
+    },
+    {
+      "id": "m1-thin-line-journey",
+      "title": "The thin line as a journey in the book, with its tests",
+      "why": "The thin line must be a record before it can be proven.",
+      "milestone": "m1",
+      "state": "todo",
+      "needs": [],
+      "records": [],
+      "evidence": [],
+      "created": "2026-11-10",
+      "updated": "2026-11-10"
+    },
+    {
+      "id": "m1-aaron-accepts",
+      "title": "Aaron reads the portal and accepts the book",
+      "why": "The book is fit to build from when the owner has read it and accepts it (g7).",
+      "milestone": "m1",
+      "state": "todo",
+      "needs": [
+        "m1-plan-page",
+        "m1-task-tree",
+        "m1-spike-evidence",
+        "m1-contracts-reconcile",
+        "m1-examples",
+        "m1-telemetry",
+        "m1-aws-records",
+        "m1-lean-world",
+        "m1-dev-commands",
+        "m1-flaky-portal-test",
+        "m1-equity",
+        "m1-payroll-uk",
+        "m1-thin-line-journey"
+      ],
+      "records": [],
+      "evidence": [],
+      "created": "2026-11-10",
+      "updated": "2026-11-10"
+    }
+  ],
+  "path": {
+    "tasks": [
+      "m1-plan-page",
+      "m1-task-tree",
+      "m1-spike-evidence",
+      "m1-contracts-reconcile",
+      "m1-aws-records",
+      "m3b-create-machine",
+      "m1-telemetry",
+      "m1-examples",
+      "m1-aaron-accepts"
+    ],
+    "why": "the spikes' evidence turns assumptions into records, so it comes before the bulk work of examples and telemetry; the plan page comes first so all of it is visible; the machine is the one step only Aaron can unblock, so it is asked for early",
+    "written": "2026-11-10"
+  },
+  "notes": [
+    {
+      "date": "2026-11-10",
+      "by": "coordinator",
+      "text": "The book is cut to the new shape and the plugs, sites, worlds and the door are written in, much of it still marked as assumption. The real contracts run in the repository. The spike that proves the door and the clock is running. Three things wait on Aaron: equity, the payroll route, and the AWS sign-in for the machine."
+    },
+    {
+      "date": "2026-11-10",
+      "by": "coordinator",
+      "text": "Done now also means a shared world running a thin line through the whole stack on the machine. That needs Aaron's AWS sign-in, the subdomain and the DNS records before it can start."
+    }
+  ]
+}

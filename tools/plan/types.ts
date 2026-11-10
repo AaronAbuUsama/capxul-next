@@ -1,0 +1,157 @@
+/**
+ * The plan module's types: the plan as the coordinator writes it, the facts about the book it is checked against, the
+ * commands that change it, and what comes back. Nothing here reads a file or the clock.
+ *
+ * The plan is authored, never computed: the critical path is the coordinator's own ordered list and its own words
+ * (portal.plan-page). Nothing in this module sorts it, infers it or repairs it.
+ */
+
+export type Result<T> = { readonly ok: true; readonly value: T } | { readonly ok: false; readonly error: string };
+
+export type ExitState = "open" | "met";
+/** One line of what must be true: a goal's or a milestone's. `evals` names eval ids of the book that count towards it. */
+export interface ExitLine {
+  readonly id: string;
+  readonly claim: string;
+  readonly state: ExitState;
+  readonly evidence?: string;
+  readonly evals?: readonly string[];
+}
+
+export interface Goal {
+  readonly title: string;
+  readonly why: string;
+  readonly exit: readonly ExitLine[];
+}
+
+export type MilestoneState = "todo" | "current" | "done";
+export interface Milestone {
+  readonly id: string;
+  readonly title: string;
+  readonly goal: string;
+  readonly exit: readonly ExitLine[];
+  readonly state: MilestoneState;
+  /** Position in the plan, from 1. A milestone is "before" another when its order is lower. */
+  readonly order: number;
+  /** Book concepts whose derived evals count towards this milestone. */
+  readonly concepts?: readonly string[];
+}
+
+export type TaskState = "todo" | "doing" | "blocked" | "done" | "dropped";
+export type Blocker =
+  | { readonly decision: string }
+  | { readonly need: string; readonly who: string };
+export interface Task {
+  readonly id: string;
+  readonly title: string;
+  readonly why: string;
+  readonly milestone: string;
+  readonly state: TaskState;
+  /** The session or agent working on it. */
+  readonly thread?: string;
+  readonly needs: readonly string[];
+  readonly blockedBy?: Blocker;
+  /** Book record keys it concerns, as `kind:id`. */
+  readonly records: readonly string[];
+  /** Commits or paths. */
+  readonly evidence: readonly string[];
+  readonly droppedWhy?: string;
+  readonly created: string;
+  readonly updated: string;
+}
+
+/** The critical path of the current milestone: ordered task ids, and why, in the coordinator's words. */
+export interface CriticalPath {
+  readonly tasks: readonly string[];
+  readonly why: string;
+  readonly written: string;
+}
+
+export interface Note {
+  readonly date: string;
+  readonly by: string;
+  readonly text: string;
+}
+
+export interface Plan {
+  readonly goal: Goal;
+  readonly milestones: readonly Milestone[];
+  readonly tasks: readonly Task[];
+  readonly path: CriticalPath;
+  /** Oldest first; the last is the page's opening. */
+  readonly notes: readonly Note[];
+}
+
+/** What the plan is checked against: the book, as sets of names. */
+export interface Facts {
+  readonly decisions: ReadonlySet<string>;
+  /** Record keys, `kind:id`. */
+  readonly records: ReadonlySet<string>;
+  readonly evals: ReadonlySet<string>;
+  readonly concepts: ReadonlySet<string>;
+}
+
+/** One thing wrong with the plan. `at` is the task, milestone or exit line it concerns. */
+export interface Problem { readonly at: string; readonly why: string }
+
+export interface TaskFields {
+  readonly title?: string;
+  readonly why?: string;
+  readonly milestone?: string;
+  readonly needs?: readonly string[];
+  readonly records?: readonly string[];
+  readonly thread?: string;
+}
+
+/** Every change the CLI can make. */
+export type Command =
+  | { readonly kind: "note"; readonly text: string }
+  | { readonly kind: "goal.set"; readonly title?: string; readonly why?: string }
+  | { readonly kind: "exit.add"; readonly owner: string; readonly id: string; readonly claim: string; readonly evals?: readonly string[] }
+  | { readonly kind: "exit.met"; readonly owner: string; readonly id: string; readonly evidence: string }
+  | { readonly kind: "milestone.add"; readonly id: string; readonly title: string; readonly goal: string; readonly order?: number; readonly concepts?: readonly string[] }
+  | { readonly kind: "milestone.current"; readonly id: string }
+  | { readonly kind: "task.add"; readonly id: string; readonly title: string; readonly why: string; readonly milestone: string; readonly needs?: readonly string[]; readonly records?: readonly string[] }
+  | { readonly kind: "task.start"; readonly id: string; readonly thread: string }
+  | { readonly kind: "task.block"; readonly id: string; readonly blocker: Blocker }
+  | { readonly kind: "task.unblock"; readonly id: string }
+  | { readonly kind: "task.done"; readonly id: string; readonly evidence?: string }
+  | { readonly kind: "task.drop"; readonly id: string; readonly why: string }
+  | { readonly kind: "task.edit"; readonly id: string; readonly fields: TaskFields }
+  | { readonly kind: "path.set"; readonly tasks: readonly string[]; readonly why: string };
+
+/** Who, when and at which commit: the caller's, so the module stays free of the clock and of git. */
+export interface Ctx {
+  readonly by: string;
+  /** `YYYY-MM-DD`. */
+  readonly date: string;
+  /** ISO time of the change. */
+  readonly at: string;
+  readonly commit: string;
+}
+
+/** One line of `plan/log.jsonl`. */
+export interface LogEntry {
+  readonly at: string;
+  readonly by: string;
+  readonly action: string;
+  readonly args: unknown;
+  readonly commit: string;
+}
+
+export interface Applied {
+  readonly plan: Plan;
+  readonly entry: LogEntry;
+  readonly message: string;
+}
+
+/** What the Plan page is drawn from: the plan, the last lines of its log, and what `check` says about it. */
+export interface PlanInput {
+  readonly plan: Plan;
+  readonly log: readonly LogEntry[];
+  readonly problems: readonly Problem[];
+}
+
+export const EMPTY_PLAN: Plan = {
+  goal: { title: "", why: "", exit: [] }, milestones: [], tasks: [], path: { tasks: [], why: "", written: "" }, notes: [],
+};

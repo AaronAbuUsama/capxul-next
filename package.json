@@ -4,7 +4,7 @@
   "type": "module",
   "scripts": {
     "check": "tsc -b packages/book",
-    "test": "pnpm --filter @capxul/book test && pnpm --filter @capxul/portal test",
+    "test": "pnpm --filter @capxul/book test && pnpm --filter @capxul/portal test && pnpm plan:test && pnpm plan:check && pnpm tasks:check",
     "book": "node --experimental-strip-types packages/book/src/main.ts books/target/index.ts /tmp/target",
     "frozen": "node --experimental-strip-types tools/check-frozen.ts",
     "judgments": "node --experimental-strip-types tools/report-judgments.ts",
@@ -14,7 +14,12 @@
     "contracts:fork": "pnpm --filter @capxul/contracts fork",
     "contracts:prove": "pnpm --filter @capxul/contracts prove",
     "sdk:test": "pnpm --filter @capxul/sdk test",
-    "devnet:test": "pnpm --filter @capxul/devnet test"
+    "devnet:test": "pnpm --filter @capxul/devnet test",
+    "plan": "node --experimental-strip-types --no-warnings tools/plan.ts",
+    "plan:test": "node --experimental-strip-types --no-warnings --test tools/plan/plan.test.ts",
+    "plan:check": "node --experimental-strip-types --no-warnings tools/plan.ts check",
+    "tasks": "node --experimental-strip-types tools/plan-tasks.ts",
+    "tasks:check": "node --experimental-strip-types tools/plan-tasks.ts --check"
   },
   "devDependencies": {
     "effect": "catalog:",
