@@ -82,9 +82,10 @@ export const rpc_devnet_worlds_show = rpc({
 
 const clockRpc = (verb: "set" | "freeze" | "resume" | "warp", call: "timeRate" | "timeFreeze" | "timeResume" | "timeWarp", title: string, about: string, input: Schema.Struct<Schema.Struct.Fields>) =>
   rpc({
-    id: `devnet.worlds.clock-${verb}`, title, about,
+    id: `devnet.worlds.clock-${verb}`, title,
+    about: about + " Before moving, ensures the supervisor's persistent stateful site follower is joined via timeFollow. That adapter calls site-service.setClock at every version and barrier stop, not just the target, and stays attached while running at a rate. Full worlds include every site; core-only worlds have none (devnet.site-clock-follower).",
     concept: concept_devnet, kind: "action", who: WHO_OWNER, input, output: Schema.Struct({ worldId: S, clockMode: ClockMode, rate: N, worldNow: N }),
-    errors: errorsOf(call, [error_INVALID_INPUT]), reads: [table_worlds], writes: [table_worlds, table_command_records], calls: [integration_devnet_control.c[call]], was: [`${NOTE} (section 2)`],
+    errors: errorsOf(call, [...errorsOf("timeFollow"), error_INVALID_INPUT, ...integration_site_service.calls.setClock.failures.map((f) => f.error)]), reads: [table_worlds], writes: [table_worlds, table_command_records], calls: [integration_devnet_control.c.timeFollow, integration_devnet_control.c[call], integration_site_service.c.setClock], was: [`${NOTE} (section 2)`],
   spans: [`rpc.devnet.worlds.clock-${verb}`],
 });
 

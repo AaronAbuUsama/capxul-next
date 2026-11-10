@@ -1032,6 +1032,25 @@ export const decision_devnet_straddling_payout_world = defineDecision({
   affects: [concept_devnet, environment_devnet, integration_devnet_control],
 });
 
+import { operation_dev_fund as surface_operation_dev_fund } from "../accounts/operations.ts";
+
+export const decision_devnet_surface_gap_disposition = defineDecision({
+  id: "devnet.surface-gap-disposition",
+  title: "Record why six tooling operations keep empty frozen acceptance lists",
+  question: "May this gap repair invent acceptance lines where the frozen operations have none?",
+  options: [{ label: "retain-with-reason", text: "Keep the frozen empty lists and explicitly retain their no-acceptance gaps with reasons." }],
+  chosen: "retain-with-reason",
+  why:
+    "dev.fund, dev.approve, dev.gates.set, dev.jobs.run, dev.mail.list and dev.prices.set each have zero frozen acceptance lines. " +
+    "The frozen checker requires equal list lengths, so adding claims here would breach the freeze; neither baseline nor checker is changed. " +
+    "These six no-acceptance gaps are intentionally retained, not claimed as tested: fund mints test tokens; approve plays a dev signer; gates scripts a gate; " +
+    "jobs runs due work; mail lists the sink; prices scripts a rate. Their returns and refusals remain specified. " +
+    "This is the recorded reason allowed by m1-gaps-surface and g2, not a waiver of an eval. It confirms devnet.no-acceptance and accounts.no-acceptance " +
+    "without claiming the worlds harness proves an acceptance claim that does not exist. A future acceptance design must first settle how new lines are booked against the freeze.",
+  source: "m1-gaps-surface audit, 10 November 2026; blueprint/baseline/operations.ts; packages/blueprint-engine/scripts/check-frozen.ts (acceptance length); devnet.no-acceptance; accounts.no-acceptance",
+  affects: [ops.operation_dev_approve, ops.operation_dev_gates_set, ops.operation_dev_jobs_run, ops.operation_dev_mail_list, ops.operation_dev_prices_set, surface_operation_dev_fund],
+});
+
 export const decision_devnet_no_acceptance = defineDecision({
   id: "devnet.no-acceptance",
   title: "The dev commands without acceptance lines get none from the design",

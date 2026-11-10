@@ -14,6 +14,27 @@ import * as x from "./external.ts";
 const CLAUDE = "Claude, target architecture, 7 November 2026";
 const by = (evidence: string) => `${CLAUDE}; evidence: ${evidence}`;
 
+export const decision_integrations_surface_gap_audit = defineDecision({
+  id: "integrations.surface-gap-audit",
+  title: "Remove outside calls with no surviving Core caller",
+  question: "Which unused calls survive the Frappe-native cut?",
+  options: [
+    { label: "remove", text: "Remove unused members, not their integrations or behaviour now owned by Frappe." },
+    { label: "invent-callers", text: "Add Core processes solely to consume old calls." },
+  ],
+  chosen: "remove",
+  why:
+    "chain-rpc.getTransactionReceipt has no caller: indexing and the bundler receipt path serve settlement. " +
+    "chainlink.usdRate lost its price-sync workflow in the books cut; Core keeps the rate call it uses. " +
+    "devnet-control.worldRead and worldList duplicate the surviving world rpcs, which read registry rows even while the chain is stopped. " +
+    "fde-host.start, pause, resume, retire, send and turn lost their lifecycle and conversation callers in the FDE cut; provision remains reached. " +
+    "mail.getReceived and whatsapp.readNumber, subscribeApp and sendMessage belonged to Core CRM conversations; Frappe owns those now. " +
+    "posthog.capture and exportTelemetry have no product caller: tracing and the world record are runtime facilities, not new business workflows. " +
+    "Removing these 16 members does not remove any operation, refusal or acceptance claim.",
+  source: "m1-gaps-surface, 10 November 2026; evidence: lane var/blueprint/findings.json; blueprint/shared/cut.ts; blueprint/devnet/world-rpcs.ts",
+  affects: [x.integration_chain_rpc, x.integration_chainlink, x.integration_devnet_control, x.integration_fde_host, x.integration_mail, x.integration_whatsapp, x.integration_posthog],
+});
+
 // ── components ──────────────────────────────────────────────────────────────────────────────
 
 export const decision_components_backend = defineDecision({

@@ -431,8 +431,6 @@
         "int:chain-rpc.getCode/PROVIDER_RESPONSE_INVALID",
         "int:chain-rpc.getLogs/PROVIDER_ERROR",
         "int:chain-rpc.getLogs/PROVIDER_RESPONSE_INVALID",
-        "int:chain-rpc.getTransactionReceipt/PROVIDER_ERROR",
-        "int:chain-rpc.getTransactionReceipt/PROVIDER_RESPONSE_INVALID",
         "int:chain-rpc.readContract/PROVIDER_ERROR",
         "int:chain-rpc.readContract/PROVIDER_RESPONSE_INVALID",
         "int:chain-rpc/conformance"
@@ -465,9 +463,6 @@
       "parent": "lane:integrations",
       "priority": "normal",
       "evals": [
-        "int:chainlink.usdRate/INVALID_INPUT",
-        "int:chainlink.usdRate/PROVIDER_ERROR",
-        "int:chainlink.usdRate/PROVIDER_RESPONSE_INVALID",
         "int:chainlink/conformance"
       ],
       "record": "integration:chainlink",
@@ -563,11 +558,6 @@
         "int:devnet-control.worldCreate/PROVIDER_ERROR",
         "int:devnet-control.worldCreate/ROLE_PERMISSION_DENIED",
         "int:devnet-control.worldCreate/WRONG_ENVIRONMENT",
-        "int:devnet-control.worldList/PROVIDER_ERROR",
-        "int:devnet-control.worldList/WRONG_ENVIRONMENT",
-        "int:devnet-control.worldRead/INVALID_INPUT",
-        "int:devnet-control.worldRead/PROVIDER_ERROR",
-        "int:devnet-control.worldRead/WRONG_ENVIRONMENT",
         "int:devnet-control/conformance"
       ],
       "record": "integration:devnet-control",
@@ -598,27 +588,9 @@
       "parent": "lane:integrations",
       "priority": "normal",
       "evals": [
-        "int:fde-host.pause/PROVIDER_ERROR",
-        "int:fde-host.pause/PROVIDER_RESPONSE_INVALID",
-        "int:fde-host.pause/RATE_LIMITED",
         "int:fde-host.provision/PROVIDER_ERROR",
         "int:fde-host.provision/PROVIDER_RESPONSE_INVALID",
         "int:fde-host.provision/RATE_LIMITED",
-        "int:fde-host.resume/PROVIDER_ERROR",
-        "int:fde-host.resume/PROVIDER_RESPONSE_INVALID",
-        "int:fde-host.resume/RATE_LIMITED",
-        "int:fde-host.retire/PROVIDER_ERROR",
-        "int:fde-host.retire/PROVIDER_RESPONSE_INVALID",
-        "int:fde-host.retire/RATE_LIMITED",
-        "int:fde-host.send/PROVIDER_ERROR",
-        "int:fde-host.send/PROVIDER_RESPONSE_INVALID",
-        "int:fde-host.send/RATE_LIMITED",
-        "int:fde-host.start/PROVIDER_ERROR",
-        "int:fde-host.start/PROVIDER_RESPONSE_INVALID",
-        "int:fde-host.start/RATE_LIMITED",
-        "int:fde-host.turn/PROVIDER_ERROR",
-        "int:fde-host.turn/PROVIDER_RESPONSE_INVALID",
-        "int:fde-host.turn/RATE_LIMITED",
         "int:fde-host/conformance"
       ],
       "record": "integration:fde-host",
@@ -735,10 +707,6 @@
       "parent": "lane:integrations",
       "priority": "normal",
       "evals": [
-        "int:mail.getReceived/INVALID_INPUT",
-        "int:mail.getReceived/PROVIDER_ERROR",
-        "int:mail.getReceived/PROVIDER_RESPONSE_INVALID",
-        "int:mail.getReceived/RATE_LIMITED",
         "int:mail.send/INVALID_INPUT",
         "int:mail.send/PROVIDER_ERROR",
         "int:mail.send/RATE_LIMITED",
@@ -839,8 +807,6 @@
       "parent": "lane:integrations",
       "priority": "normal",
       "evals": [
-        "int:posthog.capture/PROVIDER_ERROR",
-        "int:posthog.exportTelemetry/PROVIDER_ERROR",
         "int:posthog.flags/PROVIDER_ERROR",
         "int:posthog.flags/PROVIDER_RESPONSE_INVALID",
         "int:posthog/conformance"
@@ -911,7 +877,6 @@
         "int:site-service.createSite/INVALID_INPUT",
         "int:site-service.createSite/PROVIDER_ERROR",
         "int:site-service.createSite/PROVIDER_RESPONSE_INVALID",
-        "int:site-service.dropSite/PROVIDER_ERROR",
         "int:site-service.parkSites/PROVIDER_ERROR",
         "int:site-service.registerWorld/INVALID_INPUT",
         "int:site-service.registerWorld/PROVIDER_ERROR",
@@ -951,19 +916,6 @@
       "parent": "lane:integrations",
       "priority": "normal",
       "evals": [
-        "int:whatsapp.readNumber/INVALID_INPUT",
-        "int:whatsapp.readNumber/PROVIDER_ERROR",
-        "int:whatsapp.readNumber/PROVIDER_RESPONSE_INVALID",
-        "int:whatsapp.readNumber/RATE_LIMITED",
-        "int:whatsapp.sendMessage/INVALID_INPUT",
-        "int:whatsapp.sendMessage/PROVIDER_ERROR",
-        "int:whatsapp.sendMessage/PROVIDER_RESPONSE_INVALID",
-        "int:whatsapp.sendMessage/RATE_LIMITED",
-        "int:whatsapp.sendMessage/WRONG_STATE",
-        "int:whatsapp.subscribeApp/INVALID_INPUT",
-        "int:whatsapp.subscribeApp/PROVIDER_ERROR",
-        "int:whatsapp.subscribeApp/PROVIDER_RESPONSE_INVALID",
-        "int:whatsapp.subscribeApp/RATE_LIMITED",
         "int:whatsapp/conformance"
       ],
       "record": "integration:whatsapp",
@@ -17110,6 +17062,7 @@
       "needs": [
         "door:devnet",
         "integration:devnet-control",
+        "integration:site-service",
         "milestone:m2"
       ],
       "labels": [
@@ -18458,6 +18411,7 @@
       "needs": [
         "door:devnet",
         "integration:devnet-control",
+        "integration:site-service",
         "milestone:m2"
       ],
       "budgetUsd": 5,
@@ -18506,6 +18460,7 @@
       "needs": [
         "door:devnet",
         "integration:devnet-control",
+        "integration:site-service",
         "milestone:m2"
       ],
       "budgetUsd": 5,
@@ -18554,6 +18509,7 @@
       "needs": [
         "door:devnet",
         "integration:devnet-control",
+        "integration:site-service",
         "milestone:m2"
       ],
       "budgetUsd": 5,
@@ -18602,6 +18558,7 @@
       "needs": [
         "door:devnet",
         "integration:devnet-control",
+        "integration:site-service",
         "milestone:m2"
       ],
       "budgetUsd": 5,
