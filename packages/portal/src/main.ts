@@ -92,7 +92,9 @@ const serve = async (args: readonly string[]): Promise<number> => {
   if (!Number.isInteger(port) || port < 1 || port > 65535) { console.error("usage: main.ts serve [--port n]"); return 2; }
   const loaded = await load(ROOT);
   if (!loaded.ok) { console.error(loaded.error); return 1; }
-  const started = await listen(loaded.value, ROOT, port);
+  /** Extra hosts the server answers on, for a private proxy in front of it (a tailnet address). Never a public one. */
+  const extraHosts = (process.env.PORTAL_ALLOW_HOSTS ?? "").split(",").map((h) => h.trim()).filter((h) => h !== "");
+  const started = await listen(loaded.value, ROOT, port, extraHosts);
   if (!started.ok) { console.error(started.error); return 1; }
   console.log(`Serving packages/portal/dist at ${started.value.url} (127.0.0.1 only). Answers are appended to plan/answers.jsonl.`);
   return 0;

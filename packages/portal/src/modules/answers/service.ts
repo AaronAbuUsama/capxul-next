@@ -35,7 +35,7 @@ const post = (req: Req, deps: Deps): Res => {
 
 /** Only this server's own origin may write: a page from another origin cannot post to it. */
 const sameOrigin = (req: Req, deps: Deps): boolean =>
-  deps.hosts.includes(req.host) && (req.origin === "" || deps.hosts.some((h) => req.origin === `http://${h}`));
+  deps.hosts.includes(req.host) && (req.origin === "" || deps.hosts.some((h) => req.origin === `http://${h}` || req.origin === `https://${h}`));
 
 /**
  * One request, one response. `/api/answers` takes GET (the answers not yet applied) and POST (a new answer or a

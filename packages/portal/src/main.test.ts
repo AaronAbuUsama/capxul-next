@@ -22,7 +22,7 @@ test("the real book generates a site that passes the portal check", async () => 
   assert.equal(expected.operations.length, operations);
   assert.equal([...files.keys()].filter((f) => f.endsWith(".html")).length, expected.pages.length);
   assert.equal(files.size, expected.pages.length * 3 + 3);
-  assert.ok(expected.waiting.length > 0, "the judgments list is empty");
+  // The list of what waits on the owner may be empty: he may have answered everything.
   assert.ok((files.get("assets/style.css") ?? "").length > 1000);
 });
 

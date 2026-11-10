@@ -35,7 +35,7 @@ const waitingOf = (input: SiteInput, root: string): Waiting => {
   return { decisions, tasks };
 };
 
-const depsOf = (input: SiteInput, root: string, dist: string, port: number): Deps => ({
+const depsOf = (input: SiteInput, root: string, dist: string, port: number, extraHosts: readonly string[] = []): Deps => ({
   now: () => new Date().toISOString(),
   newId: () => `a-${new Date().toISOString().replace(/[-:.]/g, "").slice(0, 15)}-${randomBytes(3).toString("hex")}`,
   waiting: () => waitingOf(input, root),
@@ -47,14 +47,14 @@ const depsOf = (input: SiteInput, root: string, dist: string, port: number): Dep
     if (!full.startsWith(dist + sep) || !existsSync(full) || !statSync(full).isFile()) return null;
     return { type: TYPES[extname(full)] ?? "application/octet-stream", body: readFileSync(full) };
   },
-  hosts: [`127.0.0.1:${port}`, `localhost:${port}`],
+  hosts: [`127.0.0.1:${port}`, `localhost:${port}`, ...extraHosts],
 });
 
 /** Starts the server on 127.0.0.1:`port`. */
-export const listen = (input: SiteInput, root: string, port: number): Promise<Result<{ readonly server: Server; readonly url: string }>> => {
+export const listen = (input: SiteInput, root: string, port: number, extraHosts: readonly string[] = []): Promise<Result<{ readonly server: Server; readonly url: string }>> => {
   const dist = resolve(root, "packages/portal/dist");
   if (!existsSync(join(dist, "index.html"))) return Promise.resolve({ ok: false, error: `${dist} holds no site: run pnpm portal first` });
-  const deps = depsOf(input, root, dist, port);
+  const deps = depsOf(input, root, dist, port, extraHosts);
   const server = createServer((req, res) => {
     const chunks: Buffer[] = [];
     let size = 0;
