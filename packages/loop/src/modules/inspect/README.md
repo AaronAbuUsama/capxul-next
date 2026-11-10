@@ -11,3 +11,9 @@ contents, a prompt, an agent's reply or an environment value: a tool call shows 
 path or a pattern, capped at 90 characters; every free text passes `scrub` (key and token shapes, `NAME=value` assignments,
 values of environment variables whose names say secret, long hashes; a commit shows as seven characters). `LOOP_RUNS`
 names another folder of runs. The portal's Live page runs these commands; nothing in the portal imports this package.
+
+`loop show <run id> --json --full` is the other reading, for a page that shows a run to its owner (`RunDetail` in
+`types.ts`): every step with what it left behind (the builder's hand-back and its commit's diff, each check's output, a
+reviewer's verdict and findings) and every agent's conversation, entry by entry, with tool calls and their results.
+It does carry prompts, replies and tool output: each text is scrubbed and cut, and paths under the lane are shown
+relative. The storage itself is never changed: it keeps every conversation whole.

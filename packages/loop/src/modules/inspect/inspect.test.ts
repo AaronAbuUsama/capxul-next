@@ -7,8 +7,8 @@ import { createModels } from "@earendil-works/pi-ai/models";
 import { fauxAssistantMessage, fauxProvider, fauxToolCall } from "@earendil-works/pi-ai/providers/faux";
 import { ask, openHost } from "../agents/service.ts";
 import { play, readInfo } from "../runs/service.ts";
-import { scrub, secretsOf } from "./internal/scrub.ts";
-import { showView, statusViews, type Look } from "./service.ts";
+import { scrub, scrubText, secretsOf } from "./internal/scrub.ts";
+import { showDetail, showView, statusViews, type Look } from "./service.ts";
 
 const SECRET = "sk-live-0123456789abcdefABCDEF";
 const ENV_SECRET = "hunter2-hunter2-hunter2";
@@ -103,4 +103,28 @@ test("scrub: shapes of keys, tokens and assignments, values of secret-named vari
   assert.equal(scrub("PASSWORD=hunter2 ok", [], 50), "[hidden] ok");
   assert.equal(scrub("git show 0123456789abcdef0123456789abcdef01234567", [], 50), "git show 0123456");
   assert.equal(scrub("word ".repeat(30), [], 10), "word word…");
+});
+
+test("a run in full: its steps, each agent's conversation with tool calls matched to results, and nothing secret", async () => {
+  const { look } = await rig();
+  const d = (await showDetail(look(0), "r1"))!;
+  assert.equal(d.task.id, "m1-x");
+  const maker = d.agents.find((a) => a.key === "make.1")!;
+  assert.equal(maker.role, "builder");
+  assert.deepEqual(maker.messages.map((m) => m.role).slice(0, 2), ["user", "assistant"]);
+  const calls = maker.messages.flatMap((m) => m.calls ?? []);
+  assert.deepEqual(calls.map((c) => c.name), ["bash", "read"]);
+  assert.ok(maker.messages.filter((m) => m.role === "tool").every((m) => calls.some((c) => c.id === m.callId)), "every result names its call");
+  assert.equal(maker.usage.turns >= 2, true);
+  const all = JSON.stringify(d);
+  assert.ok(!all.includes(SECRET) && !all.includes(ENV_SECRET), "no secret leaves");
+  assert.match(all, /second line/);                                   // unlike a view, a detail keeps the lines of a command
+  assert.equal(await showDetail(look(0), "nope"), null);
+});
+
+test("scrub: a long path is not taken for a key; a text of several lines keeps its lines and says what was cut", () => {
+  const path = "packages/blueprint-engine/src/records/behaviour-and-evals.ts";
+  assert.equal(scrub(`cat ${path}`, [], 200), `cat ${path}`);
+  assert.equal(scrubText("one\ntwo sk-abcdefghij12\nthree", [], 100), "one\ntwo [hidden]\nthree");
+  assert.equal(scrubText("abcdef", [], 3), "abc\n… 3 more characters");
 });
