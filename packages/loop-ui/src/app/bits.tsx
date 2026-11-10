@@ -12,6 +12,8 @@ export const Dot = ({ tone, pulse }: { tone: "live" | "warn" | "muted"; pulse?: 
 export const toneOf = (status: Run["status"]): "live" | "warn" | "muted" => status === "running" ? "live" : status === "blocked" || status === "failed" || status === "stopped" || status === "dead" ? "warn" : "muted";
 
 export const RunBadge = ({ run }: { run: Run }) => {
+  // a run that a later run or the plan replaced is history: it is not ready to merge, and it is not a warning
+  if (run.superseded) return <Badge variant="outline" className="text-muted-foreground">{/closed in the plan/.test(run.superseded) ? "Task closed" : "Replaced"}</Badge>;
   const tone = toneOf(run.status);
   return (
     <Badge variant={tone === "warn" ? "destructive" : tone === "live" ? "default" : "secondary"} className={cn("gap-1.5", tone === "live" && "bg-blue-600 text-white", tone === "warn" && "bg-amber-600/10 text-amber-700")}>

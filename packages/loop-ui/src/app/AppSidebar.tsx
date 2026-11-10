@@ -15,10 +15,10 @@ const RunItem = ({ run, active, step }: { run: Run; active: boolean; step?: stri
   return (
     <SidebarMenuItem>
       <SidebarMenuButton size="lg" isActive={active} render={<a href={href("runs", run.id)} />}>
-        <Dot tone={toneOf(run.status)} pulse={run.status === "running"} />
+        <Dot tone={run.superseded ? "muted" : toneOf(run.status)} pulse={run.status === "running"} />
         <span className="grid min-w-0 flex-1 leading-tight">
           <span className="truncate text-sm font-medium">{run.task.title}</span>
-          <span className="truncate text-xs text-muted-foreground">{statusText[run.status]} · {run.round > 0 ? `round ${run.round} · ` : ""}{duration(elapsed(run))}</span>
+          <span className="truncate text-xs text-muted-foreground">{run.superseded ? (/closed in the plan/.test(run.superseded) ? "Task closed" : "Replaced") : statusText[run.status]} · {run.round > 0 ? `round ${run.round} · ` : ""}{duration(elapsed(run))}</span>
         </span>
       </SidebarMenuButton>
       {working && (
@@ -93,8 +93,8 @@ export const AppSidebar = ({ runs, route, replay, setReplay, link, updates }: { 
         ) : (
           <>
             <p className="flex items-center gap-2 px-2 text-xs text-amber-700"><Dot tone="warn" /> {link === "connecting" ? "Looking for the host…" : "The host is not running: pnpm loop serve"}</p>
-            <label className="flex items-center gap-2 px-2 text-xs text-muted-foreground"><input type="checkbox" checked={replay} onChange={(e) => setReplay(e.target.checked)} /> Replay one recorded run as if live</label>
-            <p className="px-2 pb-1 text-xs text-muted-foreground">Showing a recording of 10 November's runs.</p>
+            <label className="flex items-center gap-2 px-2 text-xs text-muted-foreground"><input type="checkbox" checked={replay} onChange={(e) => setReplay(e.target.checked)} /> Show a recording of 10 November's runs</label>
+            {replay && <p className="px-2 pb-1 text-xs text-muted-foreground">A recording, not live: one run replays as if it were working.</p>}
           </>
         )}
       </SidebarFooter>

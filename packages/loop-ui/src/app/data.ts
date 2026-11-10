@@ -23,7 +23,6 @@ const replayOf = (run: Run): Run => {
 };
 
 const all = (fixture as unknown as { runs: Run[] }).runs;
-export const hasLive = all.some((r) => r.status === "running");
 export const capturedAt = (fixture as unknown as { capturedAt: string }).capturedAt;
 export const runsOf = (replay: boolean): Run[] =>
   all.map((r) => (replay && r.id === REPLAY.run ? replayOf(r) : r)).sort((a, b) => b.startedAt.localeCompare(a.startedAt));

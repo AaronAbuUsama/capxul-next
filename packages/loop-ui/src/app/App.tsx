@@ -4,7 +4,7 @@ import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AgentsPage } from "./AgentsPage.tsx";
 import { AppSidebar } from "./AppSidebar.tsx";
-import { hasLive, runsOf } from "./data.ts";
+import { runsOf } from "./data.ts";
 import { Home } from "./Home.tsx";
 import { useLive } from "./live.ts";
 import { useRoute } from "./router.ts";
@@ -12,10 +12,11 @@ import { RunPage } from "./RunPage.tsx";
 
 export const App = () => {
   const route = useRoute();
-  const [replay, setReplay] = useState(!hasLive);
+  // the recording is shown only when asked for: while the host is being looked for, a recording would pass for live runs
+  const [replay, setReplay] = useState(false);
   const live = useLive();
   const recorded = useMemo(() => runsOf(replay), [replay]);
-  const runs = live.runs ?? recorded;
+  const runs = live.runs ?? (replay ? recorded : []);
   const run = route[0] === "runs" ? runs.find((r) => r.id === route[1]) : undefined;
   return (
     <TooltipProvider>

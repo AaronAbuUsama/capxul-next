@@ -23,7 +23,7 @@ const whyOf = (run: Run): string => run.status === "failed" ? (run.error ?? "fai
 
 const RunRow = ({ run }: { run: Run }) => (
   <Item variant="outline" size="sm" render={<a href={href("runs", run.id)} />}>
-    <ItemMedia><Dot tone={toneOf(run.status)} /></ItemMedia>
+    <ItemMedia><Dot tone={run.superseded ? "muted" : toneOf(run.status)} /></ItemMedia>
     <ItemContent className="min-w-0">
       <ItemTitle className="line-clamp-2 w-full">{run.task.title}</ItemTitle>
       <ItemDescription className="line-clamp-2">{run.superseded ? `Superseded: ${run.superseded}` : whyOf(run)}</ItemDescription>
