@@ -96,7 +96,7 @@ const serve = async (args: readonly string[]): Promise<number> => {
   const extraHosts = (process.env.PORTAL_ALLOW_HOSTS ?? "").split(",").map((h) => h.trim()).filter((h) => h !== "");
   const started = await listen(loaded.value, ROOT, port, extraHosts, Number(process.env.PORTAL_RUNS_PORT) || undefined);
   if (!started.ok) { console.error(started.error); return 1; }
-  console.log(`Serving packages/portal/dist at ${started.value.url} (127.0.0.1 only). Answers are appended to plan/answers.jsonl.`);
+  console.log(`Serving packages/portal/dist at ${started.value.url} (127.0.0.1 only). ${started.value.closed ?? "Answers are appended to plan/answers.jsonl."}`);
   return 0;
 };
 

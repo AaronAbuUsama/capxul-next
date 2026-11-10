@@ -134,7 +134,7 @@ One OpenAI-compatible gateway, by name (`internal/config.ts`, `GATEWAYS`). `LOOP
 | `router` | `https://llm.capxul.com/v1`: the LiteLLM router, out of the loop's path by the owner's ruling of 10 November | `LLM_ROUTER_API_KEY` |
 
 `LOOP_MODEL_BASE_URL` and `LOOP_MODEL_KEY_ENV` still override the two parts. A run records which gateway it used.
-Any model the gateway serves may be named (the owner, 10 November 2026; before that only two were): the loop asks
+Any model the gateway serves may be named (Aaron's ruling of 10 November 2026; before that only two were): the loop asks
 the gateway what it serves when an agent starts and refuses a model it does not list. Defaults: maker `gpt-6.1-sol`
 (Aaron's ruling: Sol 6.1 for coding), checker `gpt-6.1-terra`, a different model so the review is independent.
 Override with `--model` / `--checker-model` or `LOOP_MODEL` / `LOOP_CHECKER_MODEL`. The gateway reports no prices, so pi

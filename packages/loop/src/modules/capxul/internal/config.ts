@@ -35,8 +35,8 @@ export const MAKER_MODEL = "gpt-6.1-sol";
 export const CHECKER_MODEL = "gpt-6.1-terra";
 
 /**
- * Which models may be used. The owner, 10 November 2026, later the same day: any model the gateway serves (it was
- * only Sol 6.1 and Terra 6.1 before). So the gateway is asked what it serves, each time an agent starts; when it does
+ * Which models may be used. Aaron's ruling of 10 November 2026, in his words to the coordinator: "it can use any model
+ * the proxy serves" (it was only Sol 6.1 and Terra 6.1 earlier that day). So the gateway is asked what it serves, each time an agent starts; when it does
  * not answer, only the two defaults are allowed. A test's fake provider is not the gateway and is not asked about.
  */
 export const DEFAULT_MODELS = [MAKER_MODEL, CHECKER_MODEL] as const;

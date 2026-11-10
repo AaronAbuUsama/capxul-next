@@ -40,12 +40,14 @@ const sameOrigin = (req: Req, deps: Deps): boolean =>
 /**
  * One request, one response. `/api/answers` takes GET (the answers not yet applied) and POST (a new answer or a
  * withdrawal); every other GET is a file of the generated site. Nothing else is possible, and the only write is one line
- * appended to plan/answers.jsonl.
+ * appended to plan/answers.jsonl. A closed server (`deps.closed`) refuses `/api/answers` whole, so the page behaves as it
+ * does with no server behind it and nothing is written.
  */
 export const respond = (req: Req, deps: Deps): Res => {
   if (!deps.hosts.includes(req.host)) return fail(403, "wrong host");
   const clean = req.path.split("?")[0] ?? "/";
   if (clean === "/api/answers") {
+    if (deps.closed !== undefined) return fail(403, deps.closed);
     if (req.method === "GET") return json(200, { answers: active(deps) });
     if (req.method !== "POST") return fail(405, "GET or POST");
     return sameOrigin(req, deps) ? post(req, deps) : fail(403, "wrong origin");

@@ -44,6 +44,11 @@ export interface Deps {
   readonly file: (path: string) => { readonly type: string; readonly body: Uint8Array } | null;
   /** The `host` values the server answers to, such as `127.0.0.1:4391`. */
   readonly hosts: readonly string[];
+  /**
+   * Set when this server must take no answers, with the reason in words: it is served from a copy of the repository
+   * whose plan/answers.jsonl the coordinator never reads. `/api/answers` then refuses every request and writes nothing.
+   */
+  readonly closed?: string;
 }
 
 /** The longest text an answer may hold, in characters, and the largest request body, in bytes. */
