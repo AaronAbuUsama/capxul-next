@@ -884,6 +884,19 @@
       "evidence": [],
       "created": "2026-11-10",
       "updated": "2026-11-10"
+    },
+    {
+      "id": "m1-tidy",
+      "title": "Tidy the repository so a person can find their way",
+      "why": "Aaron opened the repository and could not make sense of it: run folders at the top level, twenty loose scripts and thirty-one old workflow scripts in tools, a spike still sitting there, books beside a book package, and a loop package he could not follow.",
+      "milestone": "m1",
+      "state": "doing",
+      "needs": [],
+      "records": [],
+      "evidence": [],
+      "created": "2026-11-10",
+      "updated": "2026-11-10",
+      "thread": "lane/tidy-1"
     }
   ],
   "path": {
