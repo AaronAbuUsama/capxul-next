@@ -368,17 +368,13 @@
       "title": "Resolve the old dev time and dev snapshot commands against the world commands",
       "why": "Two ways to move time and take snapshots would contradict each other.",
       "milestone": "m1",
-      "state": "blocked",
+      "state": "doing",
       "needs": [],
       "records": [],
       "evidence": [],
       "created": "2026-11-10",
       "updated": "2026-11-10",
-      "thread": "m1-dev-commands-11101246-2",
-      "blockedBy": {
-        "need": "loop run m1-dev-commands-11101246-2: F-1.1 Goal: one command set remains and the other is classified: Seen: The target operations still book `dev time` and `dev snapshot`; the time records also describe `dev time set`. The supervisor decision names `capxul-devnet time` and world commands, but does not classify the old command set. Expe | F-1.0 : The maker did not finish: unanswered: model_error | ",
-        "who": "coordinator"
-      }
+      "thread": "m1-dev-commands-11101323"
     },
     {
       "id": "m1-flaky-portal-test",
