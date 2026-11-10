@@ -115,8 +115,15 @@ test("merge: refuses a run that is not ready, a failing gate and a checkout off 
   git(r.root, "checkout", "-q", "integration/build");
 
   writeFileSync(join(r.root, "README.md"), "dirty\n");
-  assert.match((await merge(r.ctx(), info.id))[0]!, /uncommitted changes/);
+  assert.match((await merge(r.ctx(), info.id))[0]!, /uncommitted changes to tracked files outside plan\/ and var\/: README\.md$/);
   git(r.root, "checkout", "--", "README.md");
+
+  // What the runner and a person leave lying around is not in the way: an untracked file, and a changed file under plan/.
+  mkdirSync(join(r.root, "plan"));
+  writeFileSync(join(r.root, "plan/log.jsonl"), "{}\n");
+  git(r.root, "add", "plan/log.jsonl"); git(r.root, "commit", "-q", "-m", "a plan log");
+  writeFileSync(join(r.root, "plan/log.jsonl"), "{}\n{}\n");
+  writeFileSync(join(r.root, "notes-untracked.md"), "a person's notes\n");
 
   const out = await merge(r.ctx(), info.id);
   assert.match(out[0]!, /^merged lane\/t1 into integration\/build/);

@@ -206,7 +206,8 @@ export const work = (ctx: Ctx, o: { concurrency: number; tasks: string[]; opts: 
   });
 };
 
-const dirtyOutsidePlan = (cwd: string): string[] => git(cwd, "status", "--porcelain").split("\n").filter((l) => l !== "" && !/^.. (plan\/|var\/)/.test(l));
+/** Tracked files with uncommitted changes, outside plan/ and var/ (the runner itself writes there). An untracked file is not in a merge's way. */
+const dirtyOutsidePlan = (cwd: string): string[] => git(cwd, "diff", "--name-only", "HEAD").split("\n").filter((p) => p !== "" && !/^(plan|var)\//.test(p));
 
 /**
  * Merges a run that is "ready": brings the current base into the lane, runs the gates again there, and only if every one
@@ -217,7 +218,7 @@ export const merge = async (ctx: Ctx, id: string): Promise<string[]> => {
   if (info.status !== "ready" || !wt) return [`refused: run ${id} is ${info.status}, not ready to merge`];
   if (git(ctx.root, "rev-parse", "--abbrev-ref", "HEAD") !== wt.base) return [`refused: this checkout is not on ${wt.base}`];
   const dirty = dirtyOutsidePlan(ctx.root);
-  if (dirty.length) return [`refused: this checkout has uncommitted changes outside plan/ and var/: ${dirty.slice(0, 3).join("; ")}`];
+  if (dirty.length) return [`refused: this checkout has uncommitted changes to tracked files outside plan/ and var/: ${dirty.slice(0, 3).join("; ")}${dirty.length > 3 ? ` and ${dirty.length - 3} more` : ""}`];
   if (!catchUp(wt)) return [`refused: ${wt.branch} conflicts with the current ${wt.base}; resolve it in ${wt.dir}`];
   const task = info.extra.task as Task;
   const box = await startSandbox(ctx, opts.sandbox, wt, id);
