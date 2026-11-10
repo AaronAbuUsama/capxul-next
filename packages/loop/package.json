@@ -1,0 +1,22 @@
+{
+  "name": "@capxul/loop",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "The loop: durable agents (pi-durable) driven by readable scripts. Imports nothing from this repository's source.",
+  "scripts": {
+    "check": "tsc -p .",
+    "test": "node --experimental-strip-types --no-warnings --test 'src/**/*.test.ts'"
+  },
+  "dependencies": {
+    "@earendil-works/chord": "1.5.0",
+    "@earendil-works/pi-ai": "1.5.0",
+    "@earendil-works/pi-durable": "1.5.0",
+    "@earendil-works/pi-mcp": "1.5.0",
+    "@earendil-works/pi-schema": "1.5.0"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "typescript": "catalog:"
+  }
+}

@@ -16,3 +16,8 @@ onlyBuiltDependencies: []
 
 savePrefix: ""
 packageImportMethod: clone-or-copy
+
+# Install scripts of these are known and deliberately NOT run (pi-ai pulls them in; neither is needed at run time).
+allowBuilds:
+  "@google/genai": false
+  protobufjs: false
