@@ -117,3 +117,115 @@ export const invariant_books_one_author_per_voucher = defineInvariant({
   over: [table_book_document_vouchers, table_book_facts, table_book_accounts],
   check: "property",
 });
+
+export const table_book_cost_centers = defineTable({
+  id: "book-cost-centers",
+  title: "Book cost centres: ERPNext's Cost Center tree",
+  about:
+    "Frappe's Cost Center: every profit-and-loss line of a voucher names one. The import makes the root group, named for " +
+    "the Organization, and `Main` under it, the Company's default; a money row posts to Main unless its annotation names " +
+    "another. A connected head makes the rest, and the head sync pulls them (`origin` head, with its `head_name`); " +
+    "Capxul never edits a head's cost centre. A head's Cost Center carries the id as `capxul_id`. No machine: " +
+    "a cost centre has no lifecycle Capxul acts on, and `disabled` only stops new annotations naming it.",
+  concept: concept_books,
+  tenancy: "organization",
+  tenantField: "org_id",
+  fields: Schema.Struct({
+    org_id: S,
+    cost_center_id: S,
+    cost_center_name: S,
+    cost_center_number: NullOr(S),
+    parent_cost_center_id: NullOr(S),
+    is_group: Schema.Boolean,
+    disabled: Schema.Boolean,
+    origin: Schema.Literals(["capxul", "head"]),
+    head_name: NullOr(S),
+    head_modified: NullOr(N),
+    created_at: N,
+    updated_at: N,
+  }),
+  key: ["org_id", "cost_center_id"],
+  indexes: [
+    {
+      name: "by_org_parent",
+      fields: ["org_id", "parent_cost_center_id"],
+      for: "The tree: a cost centre's children, and the root and Main the import made.",
+    },
+    {
+      name: "by_org_head_name",
+      fields: ["org_id", "head_name"],
+      unique: true,
+      for: "The head's cost centre by its Frappe name, so the sync updates it in place and never makes it twice.",
+    },
+  ],
+  retention: KEPT,
+});
+
+export const table_book_document_vouchers = defineTable({
+  id: "book-document-vouchers",
+  title: "Book document vouchers: vouchers whose author gives their GL Entries",
+  about:
+    "A voucher Capxul does not derive from a money fact, with its GL Entry lines as its author gives them, accounts and " +
+    "cost centres by Capxul's ids, so Capxul holds the Organization's whole ledger and its reports equal a head's " +
+    "(books.head-vouchers). Two authors, one each (invariant books.one-author-per-voucher): `head`, a voucher a " +
+    "connected head submitted (a Sales or Purchase Invoice, a Journal Entry for an accrual or depreciation, a head-run " +
+    "Payroll Entry's accrual, a Period Closing Voucher), pulled by the head sync and keyed by the head's `voucher_type` " +
+    "and `voucher_no`, a newer `head_modified` replacing its lines; and `payroll`, the accrual Journal Entry of a run " +
+    "Capxul computed, or of an agreement collection's paid slip (naming the collection's Payment, `payment_id`, whose " +
+    "voucher then posts on the payable this one credits: books.payroll-postings), recorded by " +
+    "`books.record-payroll-accrual` in payroll's own transaction, keyed by its `accrual_posted` fact's id and pushed to " +
+    "a head like Capxul's money vouchers (books.payroll-accrual). A payroll voucher keeps payroll's lines as given " +
+    "(`payroll_lines`, in the run's token `asset_id`); its GL lines are fixed once, when the books are charted (at the " +
+    "record, or by the import for one recorded before), and until then `lines` is empty and it posts nothing " +
+    "(books.payroll-lines). A " +
+    "cancellation appends the reversing lines, dated the day it was cancelled (the immutable ledger's way). No line is " +
+    "ever on a Safe account: money in a Safe is posted only from its fact. A head voucher never posts on or before " +
+    "`closed_through` unless it is the closing itself; a submitted Period Closing Voucher's `period_end_date` sets the " +
+    "Company's `closed_through` (books.closed-periods).",
+  concept: concept_books,
+  tenancy: "organization",
+  tenantField: "org_id",
+  fields: Schema.Struct({
+    org_id: S,
+    author: Schema.Literals(["head", "payroll"]),
+    voucher_type: S,
+    voucher_no: S,
+    posting_date: S,
+    status: Schema.Literals(["submitted", "cancelled"]),
+    party_type: NullOr(PartyType),
+    party_id: NullOr(S),
+    remarks: NullOr(S),
+    period_end_date: NullOr(S),
+    /** For a payroll accrual, the run it accrues (its `Payroll Entry` id); null for a head's voucher and a collection's. */
+    run_id: NullOr(S),
+    /** For a collection's accrual, the paid slip it accrues and the Payment that paid it (`payment_<id>`); null otherwise. */
+    salary_slip_id: NullOr(S),
+    payment_id: NullOr(S),
+    /** For a payroll voucher, the run's token and payroll's lines as given (books.payroll-lines); null for a head's. */
+    asset_id: NullOr(S),
+    payroll_lines: NullOr(Schema.Array(PayrollLine)),
+    lines: Schema.Array(GlLine),
+    head_modified: NullOr(N),
+    received_at: N,
+    updated_at: N,
+  }),
+  key: ["org_id", "voucher_type", "voucher_no"],
+  indexes: [
+    {
+      name: "by_org_posting",
+      fields: ["org_id", "posting_date", "voucher_type", "voucher_no"],
+      for: "Every report's document lines to its end or in its window, and the closings that set closed_through.",
+    },
+    {
+      name: "by_org_run",
+      fields: ["org_id", "run_id"],
+      for: "A payroll run's accrual: a second submit of the same run is a no-op, and a cancel finds what it reverses.",
+    },
+    {
+      name: "by_org_payment",
+      fields: ["org_id", "payment_id"],
+      for: "A collection's accrual by the Payment that paid it: that Payment's voucher posts on its payable, and a second record of the same slip is a no-op.",
+    },
+  ],
+  retention: KEPT,
+});

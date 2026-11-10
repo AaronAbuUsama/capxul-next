@@ -30,8 +30,6 @@ import {
   table_book_accounts,
   table_book_annotations,
   table_book_companies,
-  table_book_cost_centers,
-  table_book_document_vouchers,
   table_book_facts,
 } from "./data.ts";
 
@@ -129,7 +127,6 @@ export const procedure_books_record_money_fact = defineProcedure({
     table_book_facts,
     table_book_accounts,
     table_book_annotations,
-    table_book_cost_centers,
   ],
   writes: [table_book_companies, table_book_facts, table_book_accounts, table_book_annotations],
   drives: [

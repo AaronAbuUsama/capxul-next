@@ -9,7 +9,6 @@ import { contract_escrow, contract_escrow_factory, integration_indexer, integrat
 import * as d from "./data.ts";
 import * as iss from "./issuing.ts";
 import * as inb from "./inbox.ts";
-import * as svc from "./services.ts";
 import * as co from "./checkout.ts";
 import * as dep from "./deposits.ts";
 import * as p from "./processes.ts";
@@ -29,9 +28,6 @@ const ORG_WRITES = [
   iss.rpc_requests_issuing_issue,
   iss.rpc_requests_issuing_cancel,
   inb.rpc_requests_inbox_decline,
-  svc.rpc_requests_services_create,
-  svc.rpc_requests_services_revise,
-  svc.rpc_requests_services_deactivate,
   dep.rpc_requests_deposits_candidates,
   dep.rpc_requests_deposits_match,
 ];
@@ -39,14 +35,6 @@ const FOLLOWERS = [
   p.workflow_requests_lifecycle_follow_settled,
   p.workflow_requests_lifecycle_follow_unsettled,
   p.workflow_requests_lifecycle_follow_cancelled,
-];
-const PREVIEW_FLOWS = [
-  fl.flow_client_account_requests_cancel,
-  fl.flow_client_account_inbox_decline,
-  fl.flow_client_account_services_revise,
-  fl.flow_client_account_services_deactivate,
-  fl.flow_client_banking_deposits_match,
-  fl.flow_client_checkouts_pay,
 ];
 const ALL_OPERATIONS = [
   op.operation_request_issue,
@@ -57,11 +45,6 @@ const ALL_OPERATIONS = [
   op.operation_inbox_get,
   op.operation_inbox_pay,
   op.operation_inbox_decline,
-  op.operation_service_create,
-  op.operation_service_revise,
-  op.operation_service_deactivate,
-  op.operation_service_get,
-  op.operation_service_list,
   op.operation_bank_match,
 ];
 
@@ -91,7 +74,7 @@ export const decision_requests_one_table = defineDecision({
     "verification, envelope-v3/v4 and settlement-id columns served the V3 router's checkout and the read-time chain " +
     "check, both gone (P9, requests.reads-write-nothing). Money Invoices are dropped by requests.no-money-invoice.",
   source: by("docs/as-is/archive/requests/data.ts; docs/as-is/payments.md (Payments inserts invoiceCheckoutPayments); P2, P9"),
-  affects: [d.table_requests, d.table_services, d.table_service_revisions, concept_requests],
+  affects: [d.table_requests, concept_requests],
 });
 
 export const decision_requests_owner_tenancy = defineDecision({
@@ -117,7 +100,7 @@ export const decision_requests_owner_tenancy = defineDecision({
     "terms; the payer's rights are to read, pay and decline, all through rpcs that check the payer Safe is theirs. The " +
     "child tables carry their own tenant columns (no tenancy by join), and service revisions carry the owner's too.",
   source: by("P8 (owner tenancy, no tenancy by join); docs/as-is/archive/requests/data.ts (mixed tenancy, payerPartyId reads)"),
-  affects: [d.table_requests, d.table_service_revisions, inb.rpc_requests_inbox_list, inb.rpc_requests_inbox_get, inb.rpc_requests_inbox_pay],
+  affects: [d.table_requests, inb.rpc_requests_inbox_list, inb.rpc_requests_inbox_get, inb.rpc_requests_inbox_pay],
 });
 
 export const decision_requests_payer_by_safe = defineDecision({
@@ -172,22 +155,6 @@ export const decision_requests_machine = defineDecision({
     "simply never occur.",
   source: by("docs/as-is/archive/requests/data.ts (payment-request machine); request.cancel.yaml (designed); P7"),
   affects: [d.machine_request, d.event_request_transitioned, d.table_requests],
-});
-
-export const decision_requests_service_machine = defineDecision({
-  id: "requests.service-machine",
-  title: "A service's status is a machine; each revision is a transition",
-  question: "The old `active` boolean had one transition and revisions sent their own event. How does the target book it?",
-  options: [
-    { label: "machine", text: "`status` active or inactive; `create` from no state, `revise` active to active, `deactivate`; one event." },
-    { label: "boolean", text: "Keep the boolean and send a separate event for revisions." },
-  ],
-  chosen: "machine",
-  why:
-    "P7: one event per machine, from every transition. A revision changes the row (its revision) though not its status, " +
-    "so `revise` is a self-transition and 'each revision is reported once, in order' is the event's `revision` prop.",
-  source: by("docs/as-is/archive/requests/data.ts (fixed-offer machine); service.revise.yaml (acceptance 2)"),
-  affects: [d.machine_service, d.event_service_transitioned, d.table_services],
 });
 
 export const decision_requests_no_money_invoice = defineDecision({
@@ -455,7 +422,7 @@ export const decision_requests_telemetry = defineDecision({
   chosen: "drop",
   why: "Telemetry is never an operation (P7, review emit-only), and no concept but notices sends mail (dependencies.notices-top).",
   source: by("docs/as-is/archive/requests/receivables.ts (emit-*, notify); docs/as-is/archive/requests/offers.ts (emit-changed); P7"),
-  affects: [d.event_request_transitioned, d.event_service_transitioned],
+  affects: [d.event_request_transitioned],
 });
 
 // ── operations ──────────────────────────────────────────────────────────────────────────────
@@ -489,8 +456,6 @@ export const decision_requests_acceptance_rewrites = defineDecision({
     op.operation_inbox_list,
     op.operation_inbox_get,
     op.operation_inbox_pay,
-    op.operation_service_create,
-    op.operation_service_revise,
     op.operation_bank_match,
   ],
 });
@@ -541,11 +506,8 @@ export const decision_requests_budget_overrides = defineDecision({
     "chain) and chain-settle end to end, the processes background.",
   source: by("packages/book/src/budgets.ts; P5"),
   affects: [
-    ...PREVIEW_FLOWS,
     op.operation_request_cancel,
     op.operation_inbox_decline,
-    op.operation_service_revise,
-    op.operation_service_deactivate,
     op.operation_bank_match,
   ],
 });

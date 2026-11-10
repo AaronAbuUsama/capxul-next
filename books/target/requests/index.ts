@@ -8,7 +8,6 @@ import * as data from "./data.ts";
 import * as procedures from "./procedures.ts";
 import * as issuing from "./issuing.ts";
 import * as inbox from "./inbox.ts";
-import * as services from "./services.ts";
 import * as checkout from "./checkout.ts";
 import * as deposits from "./deposits.ts";
 import * as processes from "./processes.ts";
@@ -16,4 +15,4 @@ import * as flows from "./flows.ts";
 import * as operations from "./operations.ts";
 import * as decisions from "./decisions.ts";
 
-export const modules = [data, procedures, issuing, inbox, services, checkout, deposits, processes, flows, operations, decisions] as const;
+export const modules = [data, procedures, issuing, inbox, checkout, deposits, processes, flows, operations, decisions] as const;

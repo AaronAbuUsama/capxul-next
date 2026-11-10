@@ -8,7 +8,7 @@ import { Schema } from "effect";
 import { budget, defineRpc } from "../../../packages/book/src/index.ts";
 import { concept_requests } from "../shared/foundation.ts";
 import { error_INVALID_INPUT, error_RATE_LIMITED, error_WRONG_STATE } from "../shared/vocabulary.ts";
-import { machine_request, table_requests, table_service_revisions, table_services } from "./data.ts";
+import { machine_request, table_requests,  } from "./data.ts";
 import { Amount } from "./shapes.ts";
 import { procedure_documents_store } from "../documents/procedures.ts";
 import { table_parties } from "../parties/data.ts";
@@ -61,7 +61,7 @@ export const rpc_requests_checkout_get = defineRpc({
   input: Schema.Struct({ link: S }),
   output: NullOr(LinkTerms),
   errors: [error_INVALID_INPUT],
-  reads: [table_requests, table_services, table_service_revisions, table_parties],
+  reads: [table_requests, table_parties],
   writes: [],
   drives: [],
   invokes: [],
@@ -96,7 +96,7 @@ export const rpc_requests_checkout_open = defineRpc({
     payTo: Schema.Union([Schema.Struct({ escrow: S }), Schema.Literal("inbox")]),
   }),
   errors: [error_INVALID_INPUT, error_WRONG_STATE, error_RATE_LIMITED],
-  reads: [table_requests, table_services, table_service_revisions, table_parties],
+  reads: [table_requests, table_parties],
   writes: [table_requests],
   drives: [machine_request.t.issue, machine_request.t.bind_payer],
   invokes: [procedure_documents_store],

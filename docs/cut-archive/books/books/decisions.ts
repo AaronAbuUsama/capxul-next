@@ -225,3 +225,76 @@ export const decision_books_hr_money = defineDecision({
   source: "Claude, world pass build, 9 November 2026; evidence: payroll.hr-money; hrms expense_claim.py (make_gl_entries); employee_advance.py; payroll_entry.py:481 (add_advance_deduction_entry)",
   affects: [procedure_books_record_payroll_accrual, concept_books],
 });
+
+export const decision_books_head_vouchers = defineDecision({
+  id: "books.head-vouchers",
+  title: "Capxul keeps a head's own vouchers as their GL Entries",
+  question:
+    "A head posts vouchers Capxul does not (Sales and Purchase Invoices, accruals, depreciation, a payroll run's " +
+    "accrual, a year's closing). Does Capxul keep them, and how much of them?",
+  options: [
+    {
+      label: "gl-lines",
+      text:
+        "Keep each as its header (type, number, posting date, docstatus, party, a closing's period end) and its GL Entry " +
+        "lines, accounts and cost centres by Capxul's ids; not the invoice's items or taxes. Reports sum them with " +
+        "Capxul's vouchers, so they equal the head's; `basis` reads `accrual` once one exists.",
+    },
+    { label: "documents", text: "Keep the head's invoices, orders and payroll documents themselves." },
+    { label: "none", text: "Keep nothing of the head's: Capxul's books are its money only." },
+  ],
+  chosen: "gl-lines",
+  why:
+    "The GL is what every ERPNext financial statement reads, so its lines are the least that makes Capxul's books the " +
+    "Organization's whole books and keeps them complete if the head is gone; the documents behind them stay the head's, " +
+    "as the documents of selling and buying are not accounting. With `none`, a payment allocated to an invoice would " +
+    "debit payables that Capxul never credited. Aaron should confirm this reading of 'accounting synced': that Capxul " +
+    "holds a copy of the head's ledger, authored by the head, rather than only its own money's vouchers.",
+  source: byFrappe(`${ERP}/gl_entry/gl_entry.json; ${ERP}/period_closing_voucher/period_closing_voucher.json; rulings.ts (aaron.frappe-head)`),
+  affects: [
+    table_book_document_vouchers,
+  ],
+});
+
+export const decision_books_payroll_lines = defineDecision({
+  id: "books.payroll-lines",
+  title: "A payroll accrual's lines come in the run's token; books fixes them once charted",
+  question:
+    "The accrual door took lines 'in the Company's currency' with accounts resolved by role. Payroll computes in the " +
+    "run's token and cannot know the Company's currency, which the import fixes (books.company-settings), nor the " +
+    "chart's role accounts before there is a chart; a voucher kept before the chart has neither. Who values and " +
+    "accounts a payroll line, when, and on which day does it post?",
+  options: [
+    {
+      label: "token-lines-fixed-once",
+      text:
+        "Payroll gives its lines in the run's token, with Frappe HR's accounts or null, and books keeps them as given. " +
+        "When the books are charted (at the record, or by the import for one recorded before), books fixes the GL lines " +
+        "once: each null or unfit account to its role's; each amount in the Company's currency at par when that currency " +
+        "is the token's peg (USD for USDC, EUR for EURC), else through the two USD rates in force at the record, any " +
+        "rounding left on exchange gain or loss (6510). A run's voucher posts on its `posting_date`, a collection's on " +
+        "its block's day, a cancellation on the day of `at`, each a day in the Company's time zone and moved to the first " +
+        "open day when on or before `closed_through`. The lines are Frappe HR's: an earning's `account` and an employer " +
+        "contribution's are expense, a deduction's `account` and an employer contribution's `liability_account` are " +
+        "liability, and only a net's Payroll Payable line names the Payroll Entry.",
+    },
+    { label: "payroll-converts", text: "Payroll converts its lines into the Company's currency and resolves the accounts before it invokes the door." },
+    { label: "derive-on-read", text: "Derive a payroll voucher's GL lines from payroll's lines every time it is read, as a money fact's voucher is." },
+  ],
+  chosen: "token-lines-fixed-once",
+  why:
+    "Books owns the Company's currency, the prices and the chart; payroll reads none of them before the chart and would " +
+    "copy books' rules if it converted. Deriving on every read would move a posted accrual when an account is archived " +
+    "or a price row arrives late, and ERPNext never moves a submitted entry. At par for the peg is what the slip says " +
+    "and what Frappe HR posts with the exchange rate 1 the Capxul app sets on a head, and it matches the at-par " +
+    "allocation of each slip's Bank Entry (books.vouchers), so an Employee's Payroll Payable closes exactly; another " +
+    "currency is valued at the record's rates, the Bank Entry's difference going to 6510 as ERPNext's does. Moving a " +
+    "closed day forward is what books.closed-periods does for late money, since a head refuses a posting on or before " +
+    "its closing. Frappe HR posts employer contributions as a second Journal Entry; Capxul keeps them in the run's one " +
+    "voucher, which still balances and is keyed by the run. A deduction's liability is its component's `account` in " +
+    "Frappe HR (`make_accrual_jv_entry` credits it); `liability_account` is an employer contribution's.",
+  source: byAssembly("hrms payroll_entry.py:619, :784, :891, :1011; books.company-settings, books.vouchers, books.closed-periods"),
+  affects: [
+    table_book_document_vouchers,
+  ],
+});

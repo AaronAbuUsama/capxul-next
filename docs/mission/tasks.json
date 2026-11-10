@@ -8624,12 +8624,6 @@
         "tbl:book-companies/schema",
         "tbl:book-companies/tenancy",
         "tbl:book-companies/writers",
-        "tbl:book-cost-centers/schema",
-        "tbl:book-cost-centers/tenancy",
-        "tbl:book-cost-centers/writers",
-        "tbl:book-document-vouchers/schema",
-        "tbl:book-document-vouchers/tenancy",
-        "tbl:book-document-vouchers/writers",
         "tbl:book-facts/schema",
         "tbl:book-facts/tenancy",
         "tbl:book-facts/writers",
@@ -15373,12 +15367,6 @@
         "tbl:requests/schema",
         "tbl:requests/tenancy",
         "tbl:requests/writers",
-        "tbl:service-revisions/schema",
-        "tbl:service-revisions/tenancy",
-        "tbl:service-revisions/writers",
-        "tbl:services/schema",
-        "tbl:services/tenancy",
-        "tbl:services/writers",
         "trn:request.bind_payer",
         "trn:request.cancel",
         "trn:request.decline",
@@ -15389,10 +15377,7 @@
         "trn:request.pay",
         "trn:request.reopen",
         "trn:request.settle",
-        "trn:request.unsettle",
-        "trn:service.create",
-        "trn:service.deactivate",
-        "trn:service.revise"
+        "trn:request.unsettle"
       ],
       "title": "Door: requests tables, machines and procedures",
       "goal": "The requests concept's tables, state machines and door procedures exist as its records say: tenant-first keys and row-level security, only declared transitions, one event per machine, each procedure atomic.",
@@ -16166,269 +16151,6 @@
       "needs": [
         "milestone:B3",
         "operation:request.issue"
-      ],
-      "budgetUsd": 5,
-      "checkers": [
-        "reviewer",
-        "adversary"
-      ],
-      "paths": [
-        "books/target/requests/",
-        "packages/backend/src/requests/",
-        "packages/sdk/src/requests/"
-      ]
-    },
-    {
-      "key": "operation:service.create",
-      "kind": "operation",
-      "lane": "requests",
-      "layer": 11,
-      "parent": "lane:requests",
-      "priority": "normal",
-      "evals": [
-        "acc:service.create/1",
-        "acc:service.create/2",
-        "acc:service.create/3",
-        "acc:service.create/4",
-        "bud:service.create/p95",
-        "des:service.create",
-        "doc:service.create",
-        "evt:service.create/service_transitioned",
-        "flw:client.account.services.create/budget",
-        "flw:client.account.services.create/spans",
-        "ref:service.create/CLI_USAGE",
-        "ref:service.create/INVALID_INPUT",
-        "ref:service.create/NOT_AUTHENTICATED",
-        "ref:service.create/ROLE_PERMISSION_DENIED",
-        "ret:service.create",
-        "rpc:requests.services.create/budget",
-        "rpc:requests.services.create/errors",
-        "rpc:requests.services.create/spans",
-        "spn:service.create"
-      ],
-      "record": "operation:service.create",
-      "title": "service create: Create a service",
-      "labels": [
-        "area:payments",
-        "kind:operation",
-        "lane:requests",
-        "layer:11",
-        "money"
-      ],
-      "goal": "`capxul service create` does what operation service.create promises: its 4 acceptance claims and 4 refusals hold, its --json shape, events, spans and budget pass on a devnet at the head of integration/build, and its reference page agrees with it. Creates a fixed-price service from a JSON file or stdin: a title, a unit label, a unit price and the quantity range a payer can buy. It returns the service at revision 1 with its checkout link. With `--org`, the Organization offers it.",
-      "needs": [
-        "door:indexing",
-        "door:organizations",
-        "door:parties",
-        "door:requests",
-        "milestone:B3"
-      ],
-      "budgetUsd": 5,
-      "checkers": [
-        "reviewer",
-        "adversary"
-      ],
-      "paths": [
-        "books/target/requests/",
-        "packages/backend/src/requests/",
-        "packages/sdk/src/requests/"
-      ]
-    },
-    {
-      "key": "operation:service.deactivate",
-      "kind": "operation",
-      "lane": "requests",
-      "layer": 11,
-      "parent": "lane:requests",
-      "priority": "normal",
-      "evals": [
-        "acc:service.deactivate/1",
-        "acc:service.deactivate/2",
-        "acc:service.deactivate/3",
-        "bud:service.deactivate/p95",
-        "des:service.deactivate",
-        "doc:service.deactivate",
-        "evt:service.deactivate/service_transitioned",
-        "flw:client.account.services.deactivate/budget",
-        "flw:client.account.services.deactivate/spans",
-        "ref:service.deactivate/CLI_USAGE",
-        "ref:service.deactivate/INVALID_INPUT",
-        "ref:service.deactivate/NOT_AUTHENTICATED",
-        "ref:service.deactivate/ROLE_PERMISSION_DENIED",
-        "ret:service.deactivate",
-        "rpc:requests.services.deactivate/budget",
-        "rpc:requests.services.deactivate/errors",
-        "rpc:requests.services.deactivate/spans",
-        "rpc:requests.services.get/budget",
-        "rpc:requests.services.get/errors",
-        "rpc:requests.services.get/spans",
-        "spn:service.deactivate"
-      ],
-      "record": "operation:service.deactivate",
-      "title": "service deactivate: Deactivate a service",
-      "labels": [
-        "area:payments",
-        "kind:operation",
-        "lane:requests",
-        "layer:11",
-        "money"
-      ],
-      "goal": "`capxul service deactivate` does what operation service.deactivate promises: its 3 acceptance claims and 4 refusals hold, its --json shape, events, spans and budget pass on a devnet at the head of integration/build, and its reference page agrees with it. Stops offering a service, so payers can no longer buy it at checkout. A deactivated service cannot be revised.",
-      "needs": [
-        "door:indexing",
-        "door:organizations",
-        "door:parties",
-        "door:requests",
-        "milestone:B3"
-      ],
-      "budgetUsd": 5,
-      "checkers": [
-        "reviewer",
-        "adversary"
-      ],
-      "paths": [
-        "books/target/requests/",
-        "packages/backend/src/requests/",
-        "packages/sdk/src/requests/"
-      ]
-    },
-    {
-      "key": "operation:service.get",
-      "kind": "operation",
-      "lane": "requests",
-      "layer": 11,
-      "parent": "lane:requests",
-      "priority": "normal",
-      "evals": [
-        "acc:service.get/1",
-        "acc:service.get/2",
-        "bud:service.get/p95",
-        "des:service.get",
-        "doc:service.get",
-        "ref:service.get/NOT_AUTHENTICATED",
-        "ref:service.get/ROLE_PERMISSION_DENIED",
-        "ret:service.get",
-        "spn:service.get"
-      ],
-      "record": "operation:service.get",
-      "title": "service get: Show a service",
-      "labels": [
-        "area:payments",
-        "kind:operation",
-        "lane:requests",
-        "layer:11",
-        "money"
-      ],
-      "goal": "`capxul service get` does what operation service.get promises: its 2 acceptance claims and 2 refusals hold, its --json shape, events, spans and budget pass on a devnet at the head of integration/build, and its reference page agrees with it. Reads one fixed-price service: its checkout link, revision, whether it is active, the Safe it pays and its terms. Read it to get the current revision before you revise or deactivate it.",
-      "needs": [
-        "milestone:B3",
-        "operation:service.deactivate"
-      ],
-      "budgetUsd": 5,
-      "checkers": [
-        "reviewer",
-        "adversary"
-      ],
-      "paths": [
-        "books/target/requests/",
-        "packages/backend/src/requests/",
-        "packages/sdk/src/requests/"
-      ]
-    },
-    {
-      "key": "operation:service.list",
-      "kind": "operation",
-      "lane": "requests",
-      "layer": 11,
-      "parent": "lane:requests",
-      "priority": "normal",
-      "evals": [
-        "acc:service.list/1",
-        "acc:service.list/2",
-        "acc:service.list/3",
-        "bud:service.list/p95",
-        "des:service.list",
-        "doc:service.list",
-        "ref:service.list/NOT_AUTHENTICATED",
-        "ref:service.list/ROLE_PERMISSION_DENIED",
-        "ret:service.list",
-        "rpc:requests.services.list/budget",
-        "rpc:requests.services.list/errors",
-        "rpc:requests.services.list/spans",
-        "spn:service.list"
-      ],
-      "record": "operation:service.list",
-      "title": "service list: List services",
-      "labels": [
-        "area:payments",
-        "kind:operation",
-        "lane:requests",
-        "layer:11",
-        "money"
-      ],
-      "goal": "`capxul service list` does what operation service.list promises: its 3 acceptance claims and 2 refusals hold, its --json shape, events, spans and budget pass on a devnet at the head of integration/build, and its reference page agrees with it. Lists your fixed-price services: what a payer buys at checkout. Each one shows its checkout link, revision, whether it is active, the Safe it pays and its terms. With `--org`, it lists the Organization's services.",
-      "needs": [
-        "door:organizations",
-        "door:parties",
-        "door:requests",
-        "milestone:B3"
-      ],
-      "budgetUsd": 5,
-      "checkers": [
-        "reviewer",
-        "adversary"
-      ],
-      "paths": [
-        "books/target/requests/",
-        "packages/backend/src/requests/",
-        "packages/sdk/src/requests/"
-      ]
-    },
-    {
-      "key": "operation:service.revise",
-      "kind": "operation",
-      "lane": "requests",
-      "layer": 11,
-      "parent": "lane:requests",
-      "priority": "normal",
-      "evals": [
-        "acc:service.revise/1",
-        "acc:service.revise/2",
-        "acc:service.revise/3",
-        "acc:service.revise/4",
-        "bud:service.revise/p95",
-        "des:service.revise",
-        "doc:service.revise",
-        "evt:service.revise/service_transitioned",
-        "flw:client.account.services.revise/budget",
-        "flw:client.account.services.revise/spans",
-        "ref:service.revise/CLI_USAGE",
-        "ref:service.revise/INVALID_INPUT",
-        "ref:service.revise/NOT_AUTHENTICATED",
-        "ref:service.revise/ROLE_PERMISSION_DENIED",
-        "ret:service.revise",
-        "rpc:requests.services.revise/budget",
-        "rpc:requests.services.revise/errors",
-        "rpc:requests.services.revise/spans",
-        "spn:service.revise"
-      ],
-      "record": "operation:service.revise",
-      "title": "service revise: Revise a service",
-      "labels": [
-        "area:payments",
-        "kind:operation",
-        "lane:requests",
-        "layer:11",
-        "money"
-      ],
-      "goal": "`capxul service revise` does what operation service.revise promises: its 4 acceptance claims and 4 refusals hold, its --json shape, events, spans and budget pass on a devnet at the head of integration/build, and its reference page agrees with it. Changes a service's price or terms from a JSON file or stdin. The new terms become the next revision.",
-      "needs": [
-        "door:indexing",
-        "door:organizations",
-        "door:parties",
-        "door:requests",
-        "milestone:B3",
-        "operation:service.deactivate"
       ],
       "budgetUsd": 5,
       "checkers": [
@@ -22267,10 +21989,7 @@
         "operation:inbox.pay",
         "operation:request.cancel",
         "operation:request.get",
-        "operation:request.issue",
-        "operation:service.create",
-        "operation:service.deactivate",
-        "operation:service.revise"
+        "operation:request.issue"
       ],
       "labels": [
         "kind:journey",

@@ -25,8 +25,6 @@ import {
   table_book_annotations,
   table_book_assets,
   table_book_companies,
-  table_book_cost_centers,
-  table_book_document_vouchers,
   table_book_facts,
 } from "./data.ts";
 

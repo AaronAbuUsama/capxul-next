@@ -58,7 +58,7 @@ import {
 import { event_org_invite_transitioned, event_org_setup_transitioned } from "./organizations/data.ts";
 import { event_payment_transitioned } from "./payments/data.ts";
 import { event_agreement_transitioned, event_agreement_write_transitioned } from "./payments/agreements/data.ts";
-import { event_request_transitioned, event_service_transitioned } from "./requests/data.ts";
+import { event_request_transitioned } from "./requests/data.ts";
 
 /** A system actor of system_capxul: the compiler refuses an actor the system does not list. */
 type Actor = (typeof system_capxul)["actors"][number]["id"];
@@ -176,8 +176,6 @@ export const journey_get_paid = defineJourney({
     "payee's and the inbox steps the payer's. `request cancel` and `inbox decline` are taken on other requests the " +
     "scenario's world holds, so each step still happens once. " + LEFT_OUT + " `service list`, `service get`, `request list`.",
   steps: [
-    step(requests.operation_service_create, "owner", event_service_transitioned),
-    step(requests.operation_service_revise, "owner", event_service_transitioned),
     step(requests.operation_request_issue, "payee", event_request_transitioned),
     step(requests.operation_request_get, "payee", "success"),
     step(requests.operation_request_cancel, "payee", event_request_transitioned),
@@ -186,7 +184,6 @@ export const journey_get_paid = defineJourney({
     step(requests.operation_inbox_pay, "payer", event_request_transitioned),
     step(requests.operation_inbox_decline, "payer", event_request_transitioned),
     step(activity.operation_activity_list, "payee", "success"),
-    step(requests.operation_service_deactivate, "owner", event_service_transitioned),
   ],
   variants: ["owner_kind", "payer_kind"],
   was: [`${OLD}/get_paid.yaml (chapters S8, S11)`, `${CATALOG}:54`, `${CONTRACTS}/get-paid-contract.ts`],
@@ -586,8 +583,6 @@ export const decision_journeys_steps = defineDecision({
     board.operation_org_director_threshold,
     board.operation_org_board_director_add,
     // get_paid
-    requests.operation_service_list,
-    requests.operation_service_get,
     requests.operation_request_list,
     // get_started
     accounts.operation_waitlist_join,

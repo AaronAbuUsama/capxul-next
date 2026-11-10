@@ -98,3 +98,27 @@ export const decision_cut_books = defineDecision({
   source: BY,
   affects: [f.system_capxul, decision_cut_principle, decision_cut_plug_placeholders],
 });
+
+export const decision_cut_requests = defineDecision({
+  id: "cut.requests",
+  title: "sellable services are parked: ERPNext Item and Payment Request may own them",
+  question: "What happens to requests in the built book?",
+  options: [
+      {
+          "label": "moved",
+          "text": "Sellable services are parked: ERPNext Item and Payment Request may own them. Moved to docs/cut-archive/books/ and docs/cut-archive/parked/services/ with their text intact: 4 tables, 1 event, 1 machine, 3 flows, 5 operations, 5 rpcs, 3 decisions. Listed in docs/cut-archive/INDEX.md with a reason and what carries each. ERPNext Accounts owns the books (Account, GL Entry, Journal Entry, Payment Entry, Bank Transaction). Capxul's own records leave the built book; the chain reader that writes them from the chain stays as a plug."
+      },
+      {
+          "label": "frozen-1",
+          "text": "Frozen operations classified by the cut (tools/check-frozen.ts): service.create (parked): ERPNext Item and Payment Request through the door; `request issue` makes the payer's request. service.revise (parked): ERPNext Item and Payment Request through the door; `request issue` makes the payer's request. service.deactivate (parked): ERPNext Item and Payment Request through the door; `request issue` makes the payer's request. service.get (parked): ERPNext Item and Payment Request through the door; `request issue` makes the payer's request. service.list (parked): ERPNext Item and Payment Request through the door; `request issue` makes the payer's request."
+      },
+      {
+          "label": "trimmed-1",
+          "text": "Kept records that read or invoked a removed record and no longer do (the dependency is Frappe's now): books/procedures.ts: export const procedure_books_record_money_fact = defineProce no longer reads or invokes table_book_cost_centers. books/annotations.ts: export const rpc_books_annotations_save no longer reads or invokes table_book_cost_centers. requests/checkout.ts: export const rpc_requests_checkout_get no longer reads or invokes table_services. requests/checkout.ts: export const rpc_requests_checkout_get no longer reads or invokes table_service_revisions. requests/checkout.ts: export const rpc_requests_checkout_open no longer reads or invokes table_services. requests/checkout.ts: export const rpc_requests_checkout_open no longer reads or invokes table_service_revisions."
+      }
+  ],
+  chosen: "moved",
+  why: "The cut's rule (cut.principle): Frappe owns what it owns and the door reaches it; nothing is deleted. Aaron's rulings aaron.frappe-native and aaron.one-door.",
+  source: BY,
+  affects: [f.system_capxul, decision_cut_principle],
+});

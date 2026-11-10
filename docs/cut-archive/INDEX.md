@@ -7,14 +7,15 @@ Capxul-native records leave the built book; nothing is deleted, it is moved with
 Aaron or on a call are parked under `docs/cut-archive/parked/`. Moved files keep their imports as they were, so those point at the
 folder the file was written in (as `docs/as-is/archive/` does) and are outside every typecheck.
 
-580 records have left the built book: 450 reached, 118 archive, 12 dropped.
+602 records have left the built book: 452 reached, 120 archive, 12 dropped, 18 parked.
 
 | Where | Records | Of which |
 |---|---|---|
 | `docs/cut-archive/projects/` | 127 | 36 rpc, 10 table, 3 event, 3 machine, 36 operation, 1 procedure, 3 workflow, 1 concept, 1 flow, 33 decision |
 | `docs/cut-archive/contacts/` | 121 | 22 rpc, 14 table, 7 event, 7 machine, 19 flow, 24 operation, 3 workflow, 25 decision |
 | `docs/cut-archive/payroll/` | 288 | 18 workflow, 65 rpc, 22 table, 11 event, 11 machine, 31 flow, 76 operation, 53 decision, 1 concept |
-| `docs/cut-archive/books/` | 44 | 14 rpc, 1 event, 1 machine, 2 table, 2 invariant, 2 flow, 12 operation, 1 procedure, 2 workflow, 7 decision |
+| `docs/cut-archive/books/` | 48 | 14 rpc, 1 event, 1 machine, 4 table, 2 invariant, 2 flow, 12 operation, 1 procedure, 2 workflow, 9 decision |
+| `docs/cut-archive/parked/services/` | 18 | 2 table, 1 event, 1 machine, 3 flow, 5 operation, 5 rpc, 1 decision |
 
 ## projects (127)
 
@@ -567,7 +568,7 @@ folder the file was written in (as `docs/as-is/archive/` does) and are outside e
 | workflow | `payroll.startup.open` | reached | Frappe HR owns payroll, HR, leave, attendance, shifts and expense claims (Employee, Salary Structure, Payroll Entry, Salary Slip, Leave Application,… | Frappe through the door | `payroll/payroll/processes.ts` |
 | concept | `payroll` | reached | Frappe HR owns payroll, HR, leave, attendance, shifts and expense claims (Employee, Salary Structure, Payroll Entry, Salary Slip, Leave Application,… | Frappe through the door | `payroll/shared/foundation.ts` |
 
-## books (44)
+## books (48)
 
 | Kind | Id | Verdict | Reason | Carried or replaced by | Archived to |
 |---|---|---|---|---|---|
@@ -584,12 +585,16 @@ folder the file was written in (as `docs/as-is/archive/` does) and are outside e
 | operation | `org.books.reports.reconcile` | reached | Frappe's Bank Reconciliation Tool and the unmatched Bank Transaction lines. Capxul's chain-versus-books check becomes an eval of the plug. | an ERPNext report through the door (`report run`: Bank Reconciliation Tool) | `books/books/operations.ts` |
 | operation | `org.books.reports.trial-balance` | reached | Frappe Accounts report: Balance Sheet, run through the door. | an ERPNext report through the door (`report run`: Balance Sheet) | `books/books/operations.ts` |
 | decision | `books.export-files-by-cli` | archive | Governed only records that left the built book; archived with them. | the records it governed are in books | `books/books/decisions.ts` |
+| decision | `books.head-vouchers` | archive | Governed only records that left the built book; archived with them. | the records it governed are in books | `books/books/decisions.ts` |
 | decision | `books.hr-money` | archive | Governed only records that left the built book; archived with them. | the records it governed are in books | `books/books/decisions.ts` |
 | decision | `books.no-fork` | archive | Governed only records that left the built book; archived with them. | the records it governed are in books | `books/books/decisions.ts` |
+| decision | `books.payroll-lines` | archive | Governed only records that left the built book; archived with them. | the records it governed are in books | `books/books/decisions.ts` |
 | decision | `books.prices-sync` | archive | Governed only records that left the built book; archived with them. | the records it governed are in books | `books/books/decisions.ts` |
 | decision | `books.reconcile-held` | archive | Governed only records that left the built book; archived with them. | the records it governed are in books | `books/books/decisions.ts` |
 | decision | `books.review-flow` | archive | Governed only records that left the built book; archived with them. | the records it governed are in books | `books/books/decisions.ts` |
 | decision | `books.rows-by-id` | archive | Governed only records that left the built book; archived with them. | the records it governed are in books | `books/books/decisions.ts` |
+| table | `book-cost-centers` | reached | ERPNext Accounts owns the books (Account, GL Entry, Journal Entry, Payment Entry, Bank Transaction). Capxul's own records leave the built book; the c… | Frappe's own DocType, reached through the door | `books/books/data.ts` |
+| table | `book-document-vouchers` | reached | ERPNext Accounts owns the books (Account, GL Entry, Journal Entry, Payment Entry, Bank Transaction). Capxul's own records leave the built book; the c… | Frappe's own DocType, reached through the door | `books/books/data.ts` |
 | table | `book-head-syncs` | dropped | ERPNext Accounts owns the books (Account, GL Entry, Journal Entry, Payment Entry, Bank Transaction). Capxul's own records leave the built book; the c… | Frappe's own DocType, reached through the door | `books/books/data.ts` |
 | table | `book-prices` | reached | ERPNext Accounts owns the books (Account, GL Entry, Journal Entry, Payment Entry, Bank Transaction). Capxul's own records leave the built book; the c… | Frappe's own DocType, reached through the door | `books/books/data.ts` |
 | machine | `book-document-voucher` | reached | ERPNext Accounts owns the books (Account, GL Entry, Journal Entry, Payment Entry, Bank Transaction). Capxul's own records leave the built book; the c… | Frappe's own DocType, reached through the door | `books/books/data.ts` |
@@ -615,3 +620,26 @@ folder the file was written in (as `docs/as-is/archive/` does) and are outside e
 | procedure | `books.record-payroll-accrual` | dropped | ERPNext Accounts owns the books (Account, GL Entry, Journal Entry, Payment Entry, Bank Transaction). Capxul's own records leave the built book; the c… | Frappe through the door | `books/books/procedures.ts` |
 | invariant | `books.one-author-per-voucher` | reached | ERPNext Accounts owns the books (Account, GL Entry, Journal Entry, Payment Entry, Bank Transaction). Capxul's own records leave the built book; the c… | Frappe through the door | `books/books/data.ts` |
 | invariant | `books.postings-balance` | reached | ERPNext Accounts owns the books (Account, GL Entry, Journal Entry, Payment Entry, Bank Transaction). Capxul's own records leave the built book; the c… | Frappe through the door | `books/books/data.ts` |
+
+## parked/services (18)
+
+| Kind | Id | Verdict | Reason | Carried or replaced by | Archived to |
+|---|---|---|---|---|---|
+| operation | `service.create` | parked | A sellable service with a checkout link is an ERPNext Item with a Payment Request. | ERPNext Item and Payment Request through the door; `request issue` makes the payer's request | `parked/services/requests/operations.ts` |
+| operation | `service.deactivate` | parked | A sellable service with a checkout link is an ERPNext Item with a Payment Request. | ERPNext Item and Payment Request through the door; `request issue` makes the payer's request | `parked/services/requests/operations.ts` |
+| operation | `service.get` | parked | A sellable service with a checkout link is an ERPNext Item with a Payment Request. | ERPNext Item and Payment Request through the door; `request issue` makes the payer's request | `parked/services/requests/operations.ts` |
+| operation | `service.list` | parked | A sellable service with a checkout link is an ERPNext Item with a Payment Request. | ERPNext Item and Payment Request through the door; `request issue` makes the payer's request | `parked/services/requests/operations.ts` |
+| operation | `service.revise` | parked | A sellable service with a checkout link is an ERPNext Item with a Payment Request. | ERPNext Item and Payment Request through the door; `request issue` makes the payer's request | `parked/services/requests/operations.ts` |
+| decision | `requests.service-machine` | parked | Governed only parked records; parked with them. | the records it governed are in parked/services | `parked/services/requests/decisions.ts` |
+| table | `service-revisions` | parked | Parked, not dropped (cut.park-when-unsure): a sellable service with a checkout link is probably an ERPNext Item with a Payment Request, which the doo… | parked, not replaced | `parked/services/requests/data.ts` |
+| table | `services` | parked | Parked, not dropped (cut.park-when-unsure): a sellable service with a checkout link is probably an ERPNext Item with a Payment Request, which the doo… | parked, not replaced | `parked/services/requests/data.ts` |
+| machine | `service` | parked | Parked, not dropped (cut.park-when-unsure): a sellable service with a checkout link is probably an ERPNext Item with a Payment Request, which the doo… | parked, not replaced | `parked/services/requests/data.ts` |
+| event | `service_transitioned` | parked | Parked, not dropped (cut.park-when-unsure): a sellable service with a checkout link is probably an ERPNext Item with a Payment Request, which the doo… | parked, not replaced | `parked/services/requests/data.ts` |
+| rpc | `requests.services.create` | parked | Parked, not dropped (cut.park-when-unsure): a sellable service with a checkout link is probably an ERPNext Item with a Payment Request, which the doo… | parked, not replaced | `parked/services/requests/services.ts` |
+| rpc | `requests.services.deactivate` | parked | Parked, not dropped (cut.park-when-unsure): a sellable service with a checkout link is probably an ERPNext Item with a Payment Request, which the doo… | parked, not replaced | `parked/services/requests/services.ts` |
+| rpc | `requests.services.get` | parked | Parked, not dropped (cut.park-when-unsure): a sellable service with a checkout link is probably an ERPNext Item with a Payment Request, which the doo… | parked, not replaced | `parked/services/requests/services.ts` |
+| rpc | `requests.services.list` | parked | Parked, not dropped (cut.park-when-unsure): a sellable service with a checkout link is probably an ERPNext Item with a Payment Request, which the doo… | parked, not replaced | `parked/services/requests/services.ts` |
+| rpc | `requests.services.revise` | parked | Parked, not dropped (cut.park-when-unsure): a sellable service with a checkout link is probably an ERPNext Item with a Payment Request, which the doo… | parked, not replaced | `parked/services/requests/services.ts` |
+| flow | `client.account.services.create` | parked | Parked, not dropped (cut.park-when-unsure): a sellable service with a checkout link is probably an ERPNext Item with a Payment Request, which the doo… | parked, not replaced | `parked/services/requests/flows.ts` |
+| flow | `client.account.services.deactivate` | parked | Parked, not dropped (cut.park-when-unsure): a sellable service with a checkout link is probably an ERPNext Item with a Payment Request, which the doo… | parked, not replaced | `parked/services/requests/flows.ts` |
+| flow | `client.account.services.revise` | parked | Parked, not dropped (cut.park-when-unsure): a sellable service with a checkout link is probably an ERPNext Item with a Payment Request, which the doo… | parked, not replaced | `parked/services/requests/flows.ts` |

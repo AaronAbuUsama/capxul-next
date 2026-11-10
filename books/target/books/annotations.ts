@@ -26,7 +26,6 @@ import {
   table_book_accounts,
   table_book_annotations,
   table_book_companies,
-  table_book_cost_centers,
   table_book_facts,
 } from "./data.ts";
 
@@ -107,7 +106,6 @@ export const rpc_books_annotations_save = defineRpc({
     table_hat_wearers,
     table_book_companies,
     table_book_accounts,
-    table_book_cost_centers,
     table_book_annotations,
     table_book_facts,
   ],
