@@ -21,9 +21,9 @@ export interface Cut {
   readonly carriedBy: string;
 }
 
-export const CUT: Readonly<Record<string, Cut>> = {
+export const CUT = {
   // <cut-entries> one line per frozen operation that left the built book, added by the commit that moved it
-};
+} as const satisfies Readonly<Record<string, Cut>>;
 
 /** The four cut decisions that wait for Aaron; every other `cut.*` decision carries out his rulings and needs nothing from him. */
 export const CUT_FOR_AARON: readonly string[] = ["cut.equity-parked", "cut.fde-parked", "cut.individuals-parked", "cut.uk-payroll-filing"];

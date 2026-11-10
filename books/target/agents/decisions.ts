@@ -52,7 +52,7 @@ import * as op from "./operations.ts";
 
 import { workflow_agents_fde_follow_setup } from "./processes.ts";
 import { table_org_fde_asks, table_org_fdes, table_org_members, table_org_setups } from "../organizations/data.ts";
-import { concept_organizations, concept_projects } from "../shared/foundation.ts";
+import { concept_organizations } from "../shared/foundation.ts";
 
 const CLAUDE = "Claude, agents design, 8 November 2026";
 const by = (evidence: string) => `${CLAUDE}; evidence: ${evidence}`;
@@ -764,7 +764,7 @@ export const decision_agents_fde_authority = defineDecision({
     "operates for the Organization, which the Board can freeze, re-key or remove at any time; an app's add is the " +
     "Organization's choice, so it adds one only for a Director who asks.",
   source: FDE_RULING,
-  affects: [table_agents, table_org_members, table_org_fde_asks, concept_organizations, concept_projects],
+  affects: [table_agents, table_org_members, table_org_fde_asks, concept_organizations],
 });
 
 // ── the assembly after the Frappe lanes (8 November 2026) ────────────────────────────────────
@@ -807,5 +807,5 @@ export const decision_agents_fde_people_hat = defineDecision({
     "the start-up sitting it imports the founder's contacts as the founder, who wears the People hat, with no Board " +
     "approval at all (contacts.startup).",
   source: asmBy("docs/design/frappe/crm.md (FDE and organizations); books/target/contacts/decisions.ts (contacts.crm-permission); books/target/shared/rulings.ts (aaron.fde-anyone)"),
-  affects: [table_agents, table_org_members, table_org_setups, concept_organizations, concept_projects],
+  affects: [table_agents, table_org_members, table_org_setups, concept_organizations],
 });

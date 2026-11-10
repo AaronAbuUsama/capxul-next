@@ -25,7 +25,6 @@ import { procedure_payments_prepare_command } from "../payments/procedures.ts";
 import { table_payments } from "../payments/data.ts";
 import { table_chain_budgets } from "../indexing/data.ts";
 import { table_budgets } from "../budgets/data.ts";
-import { procedure_projects_bill_time } from "../projects/procedures.ts";
 
 const R = "packages/backend/src/requests";
 const ASIS = "docs/as-is/archive/requests/inboxes.ts";
@@ -181,7 +180,7 @@ export const rpc_requests_inbox_decline = defineRpc({
   reads: [table_requests, ...WRITER],
   writes: [table_requests],
   drives: [machine_request.t.decline],
-  invokes: [procedure_projects_bill_time],
+  invokes: [],
   emits: [],
   calls: [],
   chain: [],

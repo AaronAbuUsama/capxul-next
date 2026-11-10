@@ -9,7 +9,7 @@
 // dependency always points from the concept that reacts to the concept that changed.
 //
 // OPERATION_OWNERS, at the end, names the concept that designs each of the 215 frozen operations:
-// TypeScript refuses this file if one is missing.
+// TypeScript refuses this file if one is missing, except an operation the cut classified (shared/cut.ts).
 
 import {
   defineComponent,
@@ -19,6 +19,7 @@ import {
   type Concept,
 } from "../../../packages/book/src/index.ts";
 import type { FrozenId } from "../../frozen/index.ts";
+import type { CUT } from "./cut.ts";
 
 const OLD = "packages/backend/src";
 
@@ -393,24 +394,6 @@ export const concept_agents = defineConcept({
   was: [`${OLD}/accounts/README.md:3`],
 });
 
-export const concept_projects = defineConcept({
-  id: "projects",
-  title: "Projects",
-  about:
-    "Projects in the shape of ERPNext's Projects module, one of the fundamental apps every Organization starts with " +
-    "(aaron.projects, aaron.frappe-shape): projects with their users, tasks with their parents and dependencies, " +
-    "timesheets with their time logs, activity types, project types and the Projects Settings, each a Frappe DocType's " +
-    "fields with a Capxul id beside the head's name. Its start-up creates the settings and ERPNext's starting activity and " +
-    "project types when the Organization begins, whether or not a Frappe head is ever connected; once one is, its sync " +
-    "process pushes every change in order from its gap-free change log and applies the head's changes (organizations' " +
-    "head-ownership rules). A task's expected end is its own process's timer on the one clock, never a daily sweep. It " +
-    "moves no money: billing hours (a request) and paying them (a payslip) sit above it, and its one door, " +
-    "`projects.bill-time`, marks the hours an Invoice bills in that request's transaction. Its 35 commands are new " +
-    "operations beyond the 215, booked on its accepted pack (projects.commands). New in the rebuild.",
-  component: B,
-  dependsOn: [concept_access, concept_parties, concept_organizations],
-});
-
 export const concept_budgets = defineConcept({
   id: "budgets",
   title: "Budgets",
@@ -446,7 +429,7 @@ export const concept_books = defineConcept({
     "through `books.record-payroll-accrual`; books never reads payments or payroll back. It reads projects to check an " +
     "annotation's project. Old books, old activity's annotations, the Chainlink price sync and the added-token Movement scan.",
   component: B,
-  dependsOn: [concept_access, concept_indexing, concept_organizations, concept_projects],
+  dependsOn: [concept_access, concept_indexing, concept_organizations],
   was: [`${OLD}/books/README.md:3`, `${OLD}/activity/README.md:3`],
 });
 
@@ -563,7 +546,7 @@ export const concept_requests = defineConcept({
     "(requests.bill-time). Old requests, with the deposit match from banking.",
   component: B,
   dependsOn: [
-    concept_access, concept_parties, concept_indexing, concept_approvals, concept_organizations, concept_projects, concept_budgets,
+    concept_access, concept_parties, concept_indexing, concept_approvals, concept_organizations, concept_budgets,
     concept_documents, concept_payments, concept_banking,
   ],
   was: [`${OLD}/requests/README.md:3`],
@@ -654,7 +637,7 @@ export const concept_devnet = defineConcept({
 /** Every target concept, in dependency order. */
 export const CONCEPTS: readonly Concept[] = [
   concept_access, concept_media, concept_parties, concept_indexing, concept_approvals, concept_accounts, concept_organizations,
-  concept_board, concept_agents, concept_projects, concept_budgets, concept_books, concept_documents, concept_contacts, concept_payments,
+  concept_board, concept_agents, concept_budgets, concept_books, concept_documents, concept_contacts, concept_payments,
   concept_payroll, concept_banking, concept_requests, concept_applications, concept_equity, concept_activity, concept_notices,
   concept_devnet,
 ];
@@ -937,7 +920,7 @@ const o = {
   requests: concept_requests,
 } as const;
 
-export const OPERATION_OWNERS: { readonly [Id in FrozenId]: Concept } = {
+export const OPERATION_OWNERS: { readonly [Id in Exclude<FrozenId, keyof typeof CUT>]: Concept } = {
   // area accounts (36)
   "account.retry": o.accounts,
   "account.show": o.accounts,

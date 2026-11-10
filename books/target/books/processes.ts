@@ -18,7 +18,6 @@ import {
   table_org_members,
 } from "../organizations/data.ts";
 import { table_hat_wearers } from "../indexing/data.ts";
-import { table_projects } from "../projects/data.ts";
 import {
   machine_book_account,
   machine_book_annotation,
@@ -191,7 +190,6 @@ export const workflow_books_head_sync = defineWorkflow({
     table_book_annotations,
     table_book_facts,
     table_book_document_vouchers,
-    table_projects,
   ],
   writes: [
     table_book_head_syncs,

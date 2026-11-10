@@ -70,7 +70,6 @@ import {
   concept_books,
   concept_contacts,
   concept_payroll,
-  concept_projects,
   component_frappe_app,
   system_capxul,
 } from "../shared/foundation.ts";
@@ -869,7 +868,7 @@ export const decision_organizations_startup = defineDecision({
   source: by(`${WIZARD}/setup_wizard.py:get_setup_stages; ${WIZARD}/operations/install_fixtures.py; books/target/shared/rulings.ts (aaron.frappe-shape)`),
   affects: [
     rpc_organizations_setups_begin, table_organizations, table_org_apps, machine_org_setup, concept_books, concept_payroll,
-    concept_contacts, concept_projects,
+    concept_contacts, 
   ],
 });
 
@@ -898,7 +897,7 @@ export const decision_organizations_company_shape = defineDecision({
     "Changing one later is not in this design: a time zone or fiscal year that moves under existing books is the books " +
     "designer's question.",
   source: by(`/tmp/frappe/frappe/geo/country_info.json (currency, timezones); /tmp/erpnext/erpnext/public/js/setup_wizard.js:195 (fiscal_years); docs/vision/erp.md (check C18)`),
-  affects: [table_organizations, rpc_organizations_setups_begin, concept_books, concept_projects],
+  affects: [table_organizations, rpc_organizations_setups_begin, concept_books],
 });
 
 export const decision_organizations_apps_native_or_head = defineDecision({
@@ -1057,7 +1056,7 @@ export const decision_organizations_head_connection = defineDecision({
     "not its hash) and, for Frappe Cloud, the team's token its site API needs to install an app, which no site key can. Connecting is a Director's step, because it hands the Organization's " +
     "records to an outside system (organizations.commands).",
   source: FRAPPE_RULINGS,
-  affects: [table_org_heads, machine_org_head, workflow_heads_watch, integration_frappe_head, concept_projects],
+  affects: [table_org_heads, machine_org_head, workflow_heads_watch, integration_frappe_head],
 });
 
 export const decision_organizations_head_ownership = defineDecision({
@@ -1099,7 +1098,7 @@ export const decision_organizations_head_ownership = defineDecision({
     "match gives an edit a member's rights, never more. Roles pushed from the hats let the head's forms stop most such " +
     "edits before Capxul must push them back.",
   source: FRAPPE_RULINGS,
-  affects: [integration_frappe_head, component_frappe_app, table_org_heads, concept_books, concept_payroll, concept_contacts, concept_projects],
+  affects: [integration_frappe_head, component_frappe_app, table_org_heads, concept_books, concept_payroll, concept_contacts],
 });
 
 export const decision_organizations_head_doorbell = defineDecision({
@@ -1346,7 +1345,7 @@ export const decision_organizations_frappe_app_fields = defineDecision({
     "CRM Deal (a Contact's mailbox change) with `frappe.db.set_value`, which no hook sees. Payroll's own field list is " +
     "payroll's; this records only the shared names.",
   source: asmBy("docs/design/frappe/crm.md (head and organizations); docs/design/frappe/accounting.md (capxul_party); books/target/payroll/decisions.ts"),
-  affects: [component_frappe_app, integration_frappe_head, table_org_heads, concept_contacts, concept_payroll, concept_books, concept_projects],
+  affects: [component_frappe_app, integration_frappe_head, table_org_heads, concept_contacts, concept_payroll, concept_books],
 });
 
 export const decision_organizations_head_users = defineDecision({
@@ -1394,7 +1393,7 @@ export const decision_organizations_head_users = defineDecision({
   source: by("/tmp/frappe/frappe/core/doctype/user/user.py:349 (on_update, create_contact); /tmp/erpnext account, cost_center, journal_entry, sales_invoice, project, task .json permissions"),
   affects: [
     workflow_heads_watch, integration_frappe_head, component_frappe_app, table_org_heads, table_org_members, concept_contacts,
-    concept_payroll, concept_projects, concept_books,
+    concept_payroll, concept_books,
   ],
 });
 
@@ -1996,7 +1995,7 @@ export const decision_organizations_doc_reach = defineDecision({
     "erpnext and hrms hooks.py; erpnext stock/repost_item_valuation; frappe/lending hooks.py, loan_management; " +
       "frappe@1a7ea577 custom, workflow, email, website; frappe/whatsapp WA Account; payroll.hr-scope",
   ),
-  affects: [...DOC_RPCS, table_org_apps, integration_frappe_head, component_frappe_app, concept_books, concept_payroll, concept_contacts, concept_projects],
+  affects: [...DOC_RPCS, table_org_apps, integration_frappe_head, component_frappe_app, concept_books, concept_payroll, concept_contacts],
 });
 
 export const decision_organizations_doc_authority = defineDecision({
@@ -2315,6 +2314,6 @@ export const decision_organizations_head_fit = defineDecision({
   affects: [
     ...DOC_RPCS, operation_org_head_doctype_list, operation_org_fde_guest_list, table_org_apps, operation_org_head_show,
     operation_org_head_app_list, operation_org_fde_show, operation_org_seats_show, rpc_organizations_apps_list,
-    rpc_organizations_seats_show, concept_payroll, concept_projects,
+    rpc_organizations_seats_show, concept_payroll, 
   ],
 });

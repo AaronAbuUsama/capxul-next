@@ -1906,11 +1906,6 @@ export const decision_dependencies_of_agents = dependencies(f.concept_agents, {
   organizations: "with `--org` the owner is the Organization's Safe, acted for by a Director.",
   board: "every change to an Organization-owned agent is a Board proposal.",
 });
-export const decision_dependencies_of_projects = dependencies(f.concept_projects, {
-  access: "the caller of every rpc, and the principal a head user's edit is matched to.",
-  parties: "a project's customer and a member named on a task or timesheet are Parties.",
-  organizations: "projects are an Organization's, kept by its members; its setup starts the projects' start-up and its head connection their sync.",
-});
 export const decision_dependencies_of_budgets = dependencies(f.concept_budgets, {
   access: "the caller of every rpc.",
   parties: "a holder or wearer is named by email or an agent's `@handle` and resolved to their Party and Safe; lists name them (dependencies.budgets-parties).",
@@ -1923,7 +1918,6 @@ export const decision_dependencies_of_books = dependencies(f.concept_books, {
   access: "the caller of every rpc.",
   indexing: "the Transfers, PaymentSent facts and Safe balances it reconciles against, and the Books hat's wearers.",
   organizations: "books are an Organization's, and the Books hat id is in its deployment.",
-  projects: "an annotation's or a voucher line's project is checked against projects' table (projects.dependencies put projects below books).",
 });
 export const decision_dependencies_of_documents = dependencies(f.concept_documents, {
   access: "the reader of a document.",
@@ -1979,7 +1973,6 @@ export const decision_dependencies_of_requests = dependencies(f.concept_requests
   indexing: "an invoice escrow's events pay a checkout request.",
   approvals: "the payer signs an inbox payment's approval: an agent with its own key at once (dependencies.payers-sign-and-name-budgets).",
   organizations: "an Organization's requests need the Invoicing hat; its inbox is read by members.",
-  projects: "an Invoice for logged hours marks them billed through projects.bill-time in its own transaction (requests.bill-time).",
   budgets: "`inbox pay --from` names the budget an Organization pays from by its key, and who may spend from it.",
   documents: "a request's invoice document is stored at issue.",
   payments: "paying from the inbox births a command; a request's paid state follows payment_transitioned.",
@@ -2713,9 +2706,7 @@ export const decision_system_build_order = defineDecision({
       label: "layers-then-priority",
       text:
         "By the concept map's layers, each concept's door (its tables, machines and procedures) before any concept that depends on " +
-        "it: access; media; parties; indexing; approvals; accounts; organizations; then board's proposals and door, " +
-        "documents, contacts, applications and projects; budgets, agents and books; payments; payroll, banking and activity; " +
-        "requests; notices; " +
+        "it: access; media; parties; indexing; approvals; accounts; organizations; then applications, board's proposals and door, books, contacts and documents; agents and budgets; payments; activity, banking and payroll; requests; notices; " +
         "devnet's own dev commands alongside the harness. Within a concept, critical operations first. Board's director and vote " +
         "operations and all of equity are built last, and a lane may build against their events before they exist.",
     },
@@ -2726,9 +2717,9 @@ export const decision_system_build_order = defineDecision({
     "Built in layers, every procedure a lane invokes already exists and is proven, so no lane builds against a stub that can " +
     "drift from the real door. Board shows why priority alone fails: its proposal machine and board.propose carry every Board " +
     "payment, budget and grant, so they are on the critical path even though its director and voting commands are not. Equity " +
-    "stays last because only notices depends on it, and only for its events. Revised at the Frappe assembly: projects " +
+    "stays last because only notices depends on it, and only for its events. Revised at the Frappe assembly (projects " +
     "joins the eighth layer; books, which now reads projects, moves up to budgets and agents; payroll, which now pays " +
-    "through payments and posts its accrual through books, moves above payments, beside banking and activity.",
+    "through payments and posts its accrual through books, moves above payments, beside banking and activity), then by the cut (cut.principle), which takes out the concepts Frappe owns and moves the layers up.",
   source: `${HANDOFF}; evidence: the concept dependsOn graph of the built target book (14 layers, no cycle); the fact check of the goal prompt's earlier order`,
   affects: [f.system_capxul, f.concept_board, f.concept_equity, f.concept_notices],
 });
@@ -3074,7 +3065,7 @@ export const decision_rules_new_operations = defineDecision({
   source: `${RULES}; under system.frozen-behaviour and aaron.frappe-shape (aaron.projects: a decision pack); evidence: tools/check-frozen.ts; contacts.crm-capabilities, payroll.hr-surface, projects.commands, organizations.commands`,
   affects: [
     decision_system_frozen_behaviour, f.system_capxul, f.component_cli, f.component_core_sdk, f.concept_contacts,
-    f.concept_projects, f.concept_payroll, f.concept_organizations,
+    f.concept_payroll, f.concept_organizations,
   ],
 });
 
@@ -3167,6 +3158,6 @@ export const decision_rules_fde_acts_for_asker = defineDecision({
   source: "Claude, world pass build, 9 November 2026; under aaron.fde-anyone; evidence: organizations.fde-for-the-asker; books/target/organizations/apps.ts (MEMBER_GUARD); docs/design/new-commands.md (G4, G5)",
   affects: [
     f.concept_organizations, f.concept_agents, f.concept_contacts, f.concept_payroll, f.concept_payments,
-    f.concept_projects, f.concept_budgets, f.component_core_sdk, x.integration_fde_host,
+    f.concept_budgets, f.component_core_sdk, x.integration_fde_host,
   ],
 });

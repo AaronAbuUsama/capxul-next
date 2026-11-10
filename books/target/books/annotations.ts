@@ -17,7 +17,6 @@ import {
 } from "../shared/vocabulary.ts";
 import { table_org_deployments, table_org_members } from "../organizations/data.ts";
 import { table_hat_wearers } from "../indexing/data.ts";
-import { table_projects } from "../projects/data.ts";
 import {
   DocumentRef,
   machine_book_account,
@@ -111,7 +110,6 @@ export const rpc_books_annotations_save = defineRpc({
     table_book_cost_centers,
     table_book_annotations,
     table_book_facts,
-    table_projects,
   ],
   writes: [table_book_companies, table_book_annotations, table_book_accounts, table_book_facts],
   drives: [

@@ -36,7 +36,6 @@ import {
   table_book_facts,
   table_book_prices,
 } from "./data.ts";
-import { table_projects } from "../projects/data.ts";
 
 const OLD = "packages/backend/src";
 const BK = `${OLD}/books`;
@@ -134,7 +133,6 @@ export const procedure_books_record_money_fact = defineProcedure({
     table_book_accounts,
     table_book_annotations,
     table_book_cost_centers,
-    table_projects,
   ],
   writes: [table_book_companies, table_book_facts, table_book_accounts, table_book_annotations],
   drives: [
@@ -235,7 +233,6 @@ export const procedure_books_record_payroll_accrual = defineProcedure({
     table_book_annotations,
     table_book_document_vouchers,
     table_book_prices,
-    table_projects,
   ],
   writes: [table_book_companies, table_book_facts, table_book_document_vouchers],
   drives: [machine_book_company.t.open, machine_book_document_voucher.t.post, machine_book_document_voucher.t.cancel],

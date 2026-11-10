@@ -16,7 +16,6 @@ import {
   concept_payments,
   concept_payroll,
   concept_books,
-  concept_projects,
   component_frappe_app,
   system_capxul,
 } from "../shared/foundation.ts";
@@ -597,5 +596,5 @@ export const decision_parties_head_parties = defineDecision({
     "that is not on Capxul, so a project for a prospect company needs the CRM entry or the head's Customer name beside " +
     "it; projects sits below contacts and cannot read the entry, so that is the projects designer's to add.",
   source: asmBy("docs/design/frappe/accounting.md (capxul_party); docs/design/frappe/crm.md (Custom Fields); books/target/projects/data.ts (customer_party_id)"),
-  affects: [table_parties, component_frappe_app, integration_frappe_head, concept_books, concept_contacts, concept_payroll, concept_projects],
+  affects: [table_parties, component_frappe_app, integration_frappe_head, concept_books, concept_contacts, concept_payroll],
 });

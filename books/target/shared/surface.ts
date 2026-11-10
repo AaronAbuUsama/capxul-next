@@ -674,7 +674,7 @@ export const decision_surface_projects_group = defineDecision({
     "booked) and `client.org(orgId).projects.tasks.create`. All 36 are new, so no frozen command moves; each id becomes " +
     "its new words (`org.task.create` is `org.projects.task.create`).",
   source: by("frappe/erpnext@6b946b0 (module Projects); projects.commands; requests.bill-time"),
-  affects: [f.concept_projects, f.concept_requests],
+  affects: [f.concept_requests],
 });
 
 export const decision_surface_head_group = defineDecision({
@@ -831,7 +831,7 @@ export const decision_surface_computed_gaps = defineDecision({
     "is booked by its concept with a pack decision citing aaron.frappe-shape (rules.new-operations). For Aaron: which " +
     "comes first; the recommendation stands until he answers.",
   source: by("hrms@8816102 payroll and hr DocTypes (overtime_slip, attendance_request, shift_request on_submit); erpnext@6b946b0 projects; crm@2cecd30 fcrm"),
-  affects: [f.concept_payroll, f.concept_projects, f.concept_contacts],
+  affects: [f.concept_payroll, f.concept_contacts],
 });
 
 export const decision_surface_fit_calls = defineDecision({

@@ -32,13 +32,12 @@
     [
       "applications",
       "board",
+      "books",
       "contacts",
-      "documents",
-      "projects"
+      "documents"
     ],
     [
       "agents",
-      "books",
       "budgets"
     ],
     [
@@ -774,17 +773,6 @@
         "operation:org.payroll.run.submit",
         "operation:org.payroll.structure.assign",
         "operation:org.payroll.structure.create",
-        "operation:org.projects.create",
-        "operation:org.projects.get",
-        "operation:org.projects.list",
-        "operation:org.projects.task.complete",
-        "operation:org.projects.task.create",
-        "operation:org.projects.task.list",
-        "operation:org.projects.timesheet.create",
-        "operation:org.projects.timesheet.get",
-        "operation:org.projects.timesheet.list",
-        "operation:org.projects.timesheet.log",
-        "operation:org.projects.timesheet.submit",
         "operation:payment.send",
         "operation:payroll.payslip.list",
         "rpc:access.sign-in.challenge",
@@ -8613,6 +8601,1201 @@
       ]
     },
     {
+      "key": "lane:books",
+      "kind": "lane",
+      "lane": "books",
+      "layer": 7,
+      "parent": "milestone:B4",
+      "priority": "normal",
+      "evals": [
+        "sys:imports/books"
+      ],
+      "title": "Lane: books",
+      "checkers": [],
+      "paths": [],
+      "goal": "The books concept is built as its records say: its door, durable processes and operations pass every eval at the integration head, and its code imports other concepts only through their doors.",
+      "needs": [],
+      "labels": [
+        "kind:lane",
+        "lane:books",
+        "layer:7"
+      ],
+      "budgetUsd": 5
+    },
+    {
+      "key": "door:books",
+      "kind": "door",
+      "lane": "books",
+      "layer": 7,
+      "parent": "lane:books",
+      "priority": "normal",
+      "evals": [
+        "inv:books.facts-append-only",
+        "inv:books.feed-gap-free",
+        "inv:books.one-author-per-voucher",
+        "inv:books.one-live-money-fact",
+        "inv:books.postings-balance",
+        "prc:books.record-money-fact/atomic",
+        "prc:books.record-payroll-accrual/atomic",
+        "prc:books.reverse-money-fact/atomic",
+        "tbl:book-accounts/schema",
+        "tbl:book-accounts/tenancy",
+        "tbl:book-accounts/writers",
+        "tbl:book-annotations/schema",
+        "tbl:book-annotations/tenancy",
+        "tbl:book-annotations/writers",
+        "tbl:book-assets/schema",
+        "tbl:book-assets/tenancy",
+        "tbl:book-assets/writers",
+        "tbl:book-companies/schema",
+        "tbl:book-companies/tenancy",
+        "tbl:book-companies/writers",
+        "tbl:book-cost-centers/schema",
+        "tbl:book-cost-centers/tenancy",
+        "tbl:book-cost-centers/writers",
+        "tbl:book-document-vouchers/schema",
+        "tbl:book-document-vouchers/tenancy",
+        "tbl:book-document-vouchers/writers",
+        "tbl:book-facts/schema",
+        "tbl:book-facts/tenancy",
+        "tbl:book-facts/writers",
+        "tbl:book-head-syncs/schema",
+        "tbl:book-head-syncs/tenancy",
+        "tbl:book-head-syncs/writers",
+        "tbl:book-prices/schema",
+        "tbl:book-prices/writers",
+        "trn:book-account.add",
+        "trn:book-account.archive",
+        "trn:book-account.rename",
+        "trn:book-annotation.accept",
+        "trn:book-annotation.assign",
+        "trn:book-annotation.queue",
+        "trn:book-annotation.recategorize",
+        "trn:book-annotation.reclassify",
+        "trn:book-annotation.requeue",
+        "trn:book-asset.add",
+        "trn:book-asset.readd",
+        "trn:book-asset.remove",
+        "trn:book-company.import",
+        "trn:book-company.open",
+        "trn:book-document-voucher.cancel",
+        "trn:book-document-voucher.post"
+      ],
+      "title": "Door: books tables, machines and procedures",
+      "goal": "The books concept's tables, state machines and door procedures exist as its records say: tenant-first keys and row-level security, only declared transitions, one event per machine, each procedure atomic.",
+      "needs": [
+        "milestone:B2",
+        "step:B3.spine"
+      ],
+      "labels": [
+        "kind:door",
+        "lane:books",
+        "layer:7",
+        "money",
+        "pilot-closure"
+      ],
+      "budgetUsd": 5,
+      "checkers": [
+        "reviewer",
+        "adversary"
+      ],
+      "paths": [
+        "books/target/books/",
+        "packages/backend/src/books/",
+        "packages/sdk/src/books/"
+      ]
+    },
+    {
+      "key": "workflow:books.assets.scan-added",
+      "kind": "process",
+      "lane": "books",
+      "layer": 7,
+      "parent": "lane:books",
+      "priority": "normal",
+      "evals": [
+        "bud:books.assets.scan-added/p95",
+        "wfl:books.assets.scan-added/idempotent",
+        "wfl:books.assets.scan-added/resume"
+      ],
+      "record": "workflow:books.assets.scan-added",
+      "title": "Process: books.assets.scan-added",
+      "goal": "The durable process books.assets.scan-added (Book the Transfers of the tokens Organizations added) runs as its record says: it resumes after a crash, each activity's side effect lands once, and every keyed wait is woken by what its key names.",
+      "needs": [
+        "door:books",
+        "integration:chain-rpc",
+        "milestone:B3"
+      ],
+      "labels": [
+        "kind:process",
+        "lane:books",
+        "layer:7",
+        "money"
+      ],
+      "budgetUsd": 5,
+      "checkers": [
+        "reviewer",
+        "adversary"
+      ],
+      "paths": [
+        "books/target/books/",
+        "packages/backend/src/books/",
+        "packages/sdk/src/books/"
+      ]
+    },
+    {
+      "key": "workflow:books.head.sync",
+      "kind": "process",
+      "lane": "books",
+      "layer": 7,
+      "parent": "lane:books",
+      "priority": "normal",
+      "evals": [
+        "bud:books.head.sync/p95",
+        "wfl:books.head.sync/idempotent",
+        "wfl:books.head.sync/resume",
+        "wfl:books.head.sync/wake/capxul-change",
+        "wfl:books.head.sync/wake/disconnected",
+        "wfl:books.head.sync/wake/ring"
+      ],
+      "record": "workflow:books.head.sync",
+      "title": "Process: books.head.sync",
+      "goal": "The durable process books.head.sync (Sync the Organization's books with its connected head) runs as its record says: it resumes after a crash, each activity's side effect lands once, and every keyed wait is woken by what its key names.",
+      "needs": [
+        "door:access",
+        "door:books",
+        "door:indexing",
+        "door:organizations",
+        "integration:frappe-head",
+        "milestone:B3"
+      ],
+      "labels": [
+        "kind:process",
+        "lane:books",
+        "layer:7",
+        "money"
+      ],
+      "budgetUsd": 5,
+      "checkers": [
+        "reviewer",
+        "adversary"
+      ],
+      "paths": [
+        "books/target/books/",
+        "packages/backend/src/books/",
+        "packages/sdk/src/books/"
+      ]
+    },
+    {
+      "key": "workflow:books.prices.sync",
+      "kind": "process",
+      "lane": "books",
+      "layer": 7,
+      "parent": "lane:books",
+      "priority": "normal",
+      "evals": [
+        "bud:books.prices.sync/p95",
+        "wfl:books.prices.sync/idempotent",
+        "wfl:books.prices.sync/resume"
+      ],
+      "record": "workflow:books.prices.sync",
+      "title": "Process: books.prices.sync",
+      "goal": "The durable process books.prices.sync (Keep the USD rates of Capxul's priced assets) runs as its record says: it resumes after a crash, each activity's side effect lands once, and every keyed wait is woken by what its key names.",
+      "needs": [
+        "door:books",
+        "integration:chainlink",
+        "milestone:B3"
+      ],
+      "labels": [
+        "kind:process",
+        "lane:books",
+        "layer:7",
+        "money"
+      ],
+      "budgetUsd": 5,
+      "checkers": [
+        "reviewer",
+        "adversary"
+      ],
+      "paths": [
+        "books/target/books/",
+        "packages/backend/src/books/",
+        "packages/sdk/src/books/"
+      ]
+    },
+    {
+      "key": "rpc:books.annotations.save",
+      "kind": "rpc",
+      "lane": "books",
+      "layer": 7,
+      "parent": "lane:books",
+      "priority": "critical",
+      "evals": [
+        "rpc:books.annotations.save/budget",
+        "rpc:books.annotations.save/errors",
+        "rpc:books.annotations.save/spans"
+      ],
+      "record": "rpc:books.annotations.save",
+      "title": "Rpc: books.annotations.save",
+      "labels": [
+        "kind:rpc",
+        "lane:books",
+        "layer:7",
+        "money",
+        "pilot",
+        "pilot-closure"
+      ],
+      "goal": "The server endpoint books.annotations.save (Save a row's annotation) answers as its record says: its declared errors only, its spans and its budget. Other lanes reach it: operation:payment.send, operation:activity.annotate.",
+      "needs": [
+        "door:books",
+        "door:indexing",
+        "door:organizations",
+        "milestone:B2",
+        "step:B3.spine"
+      ],
+      "budgetUsd": 5,
+      "checkers": [
+        "reviewer",
+        "adversary"
+      ],
+      "paths": [
+        "books/target/books/",
+        "packages/backend/src/books/",
+        "packages/sdk/src/books/"
+      ]
+    },
+    {
+      "key": "flow:client.org.books.sync.follow",
+      "kind": "flow",
+      "lane": "books",
+      "layer": 7,
+      "parent": "lane:books",
+      "priority": "normal",
+      "evals": [
+        "flw:client.org.books.sync.follow/budget",
+        "flw:client.org.books.sync.follow/spans",
+        "rpc:books.sync.feed/budget",
+        "rpc:books.sync.feed/errors",
+        "rpc:books.sync.feed/spans"
+      ],
+      "record": "flow:client.org.books.sync.follow",
+      "title": "Flow: client.org(orgId).books.sync.follow",
+      "labels": [
+        "kind:flow",
+        "lane:books",
+        "layer:7",
+        "money"
+      ],
+      "goal": "The Core SDK flow client.org(orgId).books.sync.follow (Follow the books' feed from a number, waiting if asked) runs its steps as its record says, within its budget and with its spans; no operation implements it, so its surfaces call it.",
+      "needs": [
+        "door:access",
+        "door:books",
+        "door:organizations",
+        "milestone:B3"
+      ],
+      "budgetUsd": 5,
+      "checkers": [
+        "reviewer",
+        "adversary"
+      ],
+      "paths": [
+        "books/target/books/",
+        "packages/backend/src/books/",
+        "packages/sdk/src/books/"
+      ]
+    },
+    {
+      "key": "operation:activity.annotate",
+      "kind": "operation",
+      "lane": "books",
+      "layer": 7,
+      "parent": "lane:books",
+      "priority": "normal",
+      "evals": [
+        "acc:activity.annotate/1",
+        "acc:activity.annotate/2",
+        "acc:activity.annotate/3",
+        "acc:activity.annotate/4",
+        "acc:activity.annotate/5",
+        "acc:activity.annotate/6",
+        "bud:activity.annotate/p95",
+        "des:activity.annotate",
+        "doc:activity.annotate",
+        "evt:activity.annotate/book_account_transitioned",
+        "evt:activity.annotate/book_annotation_transitioned",
+        "ref:activity.annotate/CLI_USAGE",
+        "ref:activity.annotate/INVALID_INPUT",
+        "ref:activity.annotate/NOT_AUTHENTICATED",
+        "ref:activity.annotate/ROLE_PERMISSION_DENIED",
+        "ret:activity.annotate",
+        "spn:activity.annotate"
+      ],
+      "record": "operation:activity.annotate",
+      "title": "activity annotate: Annotate a row",
+      "labels": [
+        "area:activity",
+        "kind:operation",
+        "lane:books",
+        "layer:7",
+        "money"
+      ],
+      "goal": "`capxul activity annotate` does what operation activity.annotate promises: its 6 acceptance claims and 4 refusals hold, its --json shape, events, spans and budget pass on a devnet at the head of integration/build, and its reference page agrees with it. Gives a Payment or Movement its account and a memo. Pass `--kind` and `--id` with flags, or the whole annotation as JSON with `--input`. When you are not sure of the account, give 6999 or 4999 with `--suggest` to leave a name for a holder of Manage books to accept in review.",
+      "needs": [
+        "milestone:B3",
+        "rpc:books.annotations.save"
+      ],
+      "budgetUsd": 5,
+      "checkers": [
+        "reviewer",
+        "adversary"
+      ],
+      "paths": [
+        "books/target/books/",
+        "packages/backend/src/books/",
+        "packages/sdk/src/books/"
+      ]
+    },
+    {
+      "key": "operation:org.books.accounts.add",
+      "kind": "operation",
+      "lane": "books",
+      "layer": 7,
+      "parent": "lane:books",
+      "priority": "normal",
+      "evals": [
+        "acc:org.books.accounts.add/1",
+        "acc:org.books.accounts.add/2",
+        "acc:org.books.accounts.add/3",
+        "acc:org.books.accounts.add/4",
+        "bud:org.books.accounts.add/p95",
+        "des:org.books.accounts.add",
+        "doc:org.books.accounts.add",
+        "evt:org.books.accounts.add/book_account_transitioned",
+        "ref:org.books.accounts.add/INVALID_INPUT",
+        "ref:org.books.accounts.add/ROLE_PERMISSION_DENIED",
+        "ref:org.books.accounts.add/WRONG_STATE",
+        "ret:org.books.accounts.add",
+        "rpc:books.accounts.add/budget",
+        "rpc:books.accounts.add/errors",
+        "rpc:books.accounts.add/spans",
+        "spn:org.books.accounts.add"
+      ],
+      "record": "operation:org.books.accounts.add",
+      "title": "org books accounts add: Add an account",
+      "labels": [
+        "area:books",
+        "kind:operation",
+        "lane:books",
+        "layer:7",
+        "money"
+      ],
+      "goal": "`capxul org books accounts add` does what operation org.books.accounts.add promises: its 4 acceptance claims and 3 refusals hold, its --json shape, events, spans and budget pass on a devnet at the head of integration/build, and its reference page agrees with it. Adds one account to the chart. Give `--under` to make a sub-account, which takes its parent's type. Give `--type` for a top-level account.",
+      "needs": [
+        "door:access",
+        "door:books",
+        "door:indexing",
+        "door:organizations",
+        "milestone:B3"
+      ],
+      "budgetUsd": 5,
+      "checkers": [
+        "reviewer",
+        "adversary"
+      ],
+      "paths": [
+        "books/target/books/",
+        "packages/backend/src/books/",
+        "packages/sdk/src/books/"
+      ]
+    },
+    {
+      "key": "operation:org.books.accounts.archive",
+      "kind": "operation",
+      "lane": "books",
+      "layer": 7,
+      "parent": "lane:books",
+      "priority": "normal",
+      "evals": [
+        "acc:org.books.accounts.archive/1",
+        "acc:org.books.accounts.archive/2",
+        "acc:org.books.accounts.archive/3",
+        "bud:org.books.accounts.archive/p95",
+        "des:org.books.accounts.archive",
+        "doc:org.books.accounts.archive",
+        "evt:org.books.accounts.archive/book_account_transitioned",
+        "ref:org.books.accounts.archive/ROLE_PERMISSION_DENIED",
+        "ref:org.books.accounts.archive/WRONG_STATE",
+        "ret:org.books.accounts.archive",
+        "rpc:books.accounts.archive/budget",
+        "rpc:books.accounts.archive/errors",
+        "rpc:books.accounts.archive/spans",
+        "spn:org.books.accounts.archive"
+      ],
+      "record": "operation:org.books.accounts.archive",
+      "title": "org books accounts archive: Archive an account",
+      "labels": [
+        "area:books",
+        "kind:operation",
+        "lane:books",
+        "layer:7",
+        "money"
+      ],
+      "goal": "`capxul org books accounts archive` does what operation org.books.accounts.archive promises: its 3 acceptance claims and 2 refusals hold, its --json shape, events, spans and budget pass on a devnet at the head of integration/build, and its reference page agrees with it. Archives an account so it takes no new rows. Accounts are never deleted, and the facts already booked to it stay. Use it to retire an account you no longer want people to pick.",
+      "needs": [
+        "door:access",
+        "door:books",
+        "door:indexing",
+        "door:organizations",
+        "milestone:B3"
+      ],
+      "budgetUsd": 5,
+      "checkers": [
+        "reviewer",
+        "adversary"
+      ],
+      "paths": [
+        "books/target/books/",
+        "packages/backend/src/books/",
+        "packages/sdk/src/books/"
+      ]
+    },
+    {
+      "key": "operation:org.books.accounts.import",
+      "kind": "operation",
+      "lane": "books",
+      "layer": 7,
+      "parent": "lane:books",
+      "priority": "normal",
+      "evals": [
+        "acc:org.books.accounts.import/1",
+        "acc:org.books.accounts.import/2",
+        "acc:org.books.accounts.import/3",
+        "acc:org.books.accounts.import/4",
+        "bud:org.books.accounts.import/p95",
+        "des:org.books.accounts.import",
+        "doc:org.books.accounts.import",
+        "evt:org.books.accounts.import/book_account_transitioned",
+        "evt:org.books.accounts.import/book_company_transitioned",
+        "ref:org.books.accounts.import/INVALID_INPUT",
+        "ref:org.books.accounts.import/NOT_AUTHENTICATED",
+        "ref:org.books.accounts.import/ROLE_PERMISSION_DENIED",
+        "ref:org.books.accounts.import/WRONG_STATE",
+        "ret:org.books.accounts.import",
+        "rpc:books.accounts.import/budget",
+        "rpc:books.accounts.import/errors",
+        "rpc:books.accounts.import/spans",
+        "spn:org.books.accounts.import"
+      ],
+      "record": "operation:org.books.accounts.import",
+      "title": "org books accounts import: Make the chart",
+      "labels": [
+        "area:books",
+        "kind:operation",
+        "lane:books",
+        "layer:7",
+        "money"
+      ],
+      "goal": "`capxul org books accounts import` does what operation org.books.accounts.import promises: its 4 acceptance claims and 4 refusals hold, its --json shape, events, spans and budget pass on a devnet at the head of integration/build, and its reference page agrees with it. Makes the Organization's chart of accounts from a template. The only template is `us-services`, and Capxul adds its own two \"not decided\" accounts, 4999 Uncategorized income and 6999 Uncategorized expense, and 3990 Opening balance equity, which takes what the Safe already held. Run it once, before anything else in the books.",
+      "needs": [
+        "door:access",
+        "door:books",
+        "door:indexing",
+        "door:organizations",
+        "milestone:B3"
+      ],
+      "budgetUsd": 5,
+      "checkers": [
+        "reviewer",
+        "adversary"
+      ],
+      "paths": [
+        "books/target/books/",
+        "packages/backend/src/books/",
+        "packages/sdk/src/books/"
+      ]
+    },
+    {
+      "key": "operation:org.books.accounts.list",
+      "kind": "operation",
+      "lane": "books",
+      "layer": 7,
+      "parent": "lane:books",
+      "priority": "normal",
+      "evals": [
+        "acc:org.books.accounts.list/1",
+        "bud:org.books.accounts.list/p95",
+        "des:org.books.accounts.list",
+        "doc:org.books.accounts.list",
+        "ref:org.books.accounts.list/ROLE_PERMISSION_DENIED",
+        "ref:org.books.accounts.list/WRONG_STATE",
+        "ret:org.books.accounts.list",
+        "rpc:books.accounts.list/budget",
+        "rpc:books.accounts.list/errors",
+        "rpc:books.accounts.list/spans",
+        "spn:org.books.accounts.list"
+      ],
+      "record": "operation:org.books.accounts.list",
+      "title": "org books accounts list: List accounts",
+      "labels": [
+        "area:books",
+        "kind:operation",
+        "lane:books",
+        "layer:7",
+        "money"
+      ],
+      "goal": "`capxul org books accounts list` does what operation org.books.accounts.list promises: its 1 acceptance claims and 2 refusals hold, its --json shape, events, spans and budget pass on a devnet at the head of integration/build, and its reference page agrees with it. Shows the Organization's chart of accounts, in code order, grouped by type: Asset, Liability, Equity, Income, Cost of services, Expense. Sub-accounts are indented under their parent. Use it to find the code you give a payment or a row.",
+      "needs": [
+        "door:access",
+        "door:books",
+        "door:organizations",
+        "milestone:B3"
+      ],
+      "budgetUsd": 5,
+      "checkers": [
+        "reviewer",
+        "adversary"
+      ],
+      "paths": [
+        "books/target/books/",
+        "packages/backend/src/books/",
+        "packages/sdk/src/books/"
+      ]
+    },
+    {
+      "key": "operation:org.books.accounts.reclassify",
+      "kind": "operation",
+      "lane": "books",
+      "layer": 7,
+      "parent": "lane:books",
+      "priority": "normal",
+      "evals": [
+        "acc:org.books.accounts.reclassify/1",
+        "acc:org.books.accounts.reclassify/2",
+        "acc:org.books.accounts.reclassify/3",
+        "acc:org.books.accounts.reclassify/4",
+        "acc:org.books.accounts.reclassify/5",
+        "bud:org.books.accounts.reclassify/p95",
+        "des:org.books.accounts.reclassify",
+        "doc:org.books.accounts.reclassify",
+        "evt:org.books.accounts.reclassify/book_annotation_transitioned",
+        "ref:org.books.accounts.reclassify/CLI_USAGE",
+        "ref:org.books.accounts.reclassify/INVALID_INPUT",
+        "ref:org.books.accounts.reclassify/ROLE_PERMISSION_DENIED",
+        "ref:org.books.accounts.reclassify/WRONG_STATE",
+        "ret:org.books.accounts.reclassify",
+        "rpc:books.accounts.reclassify/budget",
+        "rpc:books.accounts.reclassify/errors",
+        "rpc:books.accounts.reclassify/spans",
+        "spn:org.books.accounts.reclassify"
+      ],
+      "record": "operation:org.books.accounts.reclassify",
+      "title": "org books accounts reclassify: Reclassify rows",
+      "labels": [
+        "area:books",
+        "kind:operation",
+        "lane:books",
+        "layer:7",
+        "money"
+      ],
+      "goal": "`capxul org books accounts reclassify` does what operation org.books.accounts.reclassify promises: its 5 acceptance claims and 4 refusals hold, its --json shape, events, spans and budget pass on a devnet at the head of integration/build, and its reference page agrees with it. Moves the rows waiting in a \"not decided\" account (4999 or 6999) to one account in a single change. It moves every row waiting there, or with `--from` and `--to` only the rows whose money falls in that period. With `--row` it moves only the rows you name.",
+      "needs": [
+        "door:access",
+        "door:books",
+        "door:indexing",
+        "door:organizations",
+        "milestone:B3"
+      ],
+      "budgetUsd": 5,
+      "checkers": [
+        "reviewer",
+        "adversary"
+      ],
+      "paths": [
+        "books/target/books/",
+        "packages/backend/src/books/",
+        "packages/sdk/src/books/"
+      ]
+    },
+    {
+      "key": "operation:org.books.accounts.rename",
+      "kind": "operation",
+      "lane": "books",
+      "layer": 7,
+      "parent": "lane:books",
+      "priority": "normal",
+      "evals": [
+        "acc:org.books.accounts.rename/1",
+        "acc:org.books.accounts.rename/2",
+        "acc:org.books.accounts.rename/3",
+        "acc:org.books.accounts.rename/4",
+        "acc:org.books.accounts.rename/5",
+        "bud:org.books.accounts.rename/p95",
+        "des:org.books.accounts.rename",
+        "doc:org.books.accounts.rename",
+        "evt:org.books.accounts.rename/book_account_transitioned",
+        "ref:org.books.accounts.rename/CLI_USAGE",
+        "ref:org.books.accounts.rename/INVALID_INPUT",
+        "ref:org.books.accounts.rename/ROLE_PERMISSION_DENIED",
+        "ref:org.books.accounts.rename/WRONG_STATE",
+        "ret:org.books.accounts.rename",
+        "rpc:books.accounts.rename/budget",
+        "rpc:books.accounts.rename/errors",
+        "rpc:books.accounts.rename/spans",
+        "spn:org.books.accounts.rename"
+      ],
+      "record": "operation:org.books.accounts.rename",
+      "title": "org books accounts rename: Rename an account",
+      "labels": [
+        "area:books",
+        "kind:operation",
+        "lane:books",
+        "layer:7",
+        "money"
+      ],
+      "goal": "`capxul org books accounts rename` does what operation org.books.accounts.rename promises: its 5 acceptance claims and 4 refusals hold, its --json shape, events, spans and budget pass on a devnet at the head of integration/build, and its reference page agrees with it. Changes an account's name, its code, or both. Name the account by its code (6100) or its ID (`acct_…`). History follows the account's ID, so earlier facts stay linked to it.",
+      "needs": [
+        "door:access",
+        "door:books",
+        "door:indexing",
+        "door:organizations",
+        "milestone:B3"
+      ],
+      "budgetUsd": 5,
+      "checkers": [
+        "reviewer",
+        "adversary"
+      ],
+      "paths": [
+        "books/target/books/",
+        "packages/backend/src/books/",
+        "packages/sdk/src/books/"
+      ]
+    },
+    {
+      "key": "operation:org.books.accounts.review",
+      "kind": "operation",
+      "lane": "books",
+      "layer": 7,
+      "parent": "lane:books",
+      "priority": "normal",
+      "evals": [
+        "acc:org.books.accounts.review/1",
+        "acc:org.books.accounts.review/2",
+        "bud:org.books.accounts.review/p95",
+        "des:org.books.accounts.review",
+        "doc:org.books.accounts.review",
+        "evt:org.books.accounts.review/book_account_transitioned",
+        "evt:org.books.accounts.review/book_annotation_transitioned",
+        "flw:client.org.books.accounts.review/budget",
+        "flw:client.org.books.accounts.review/spans",
+        "ref:org.books.accounts.review/CLI_USAGE",
+        "ref:org.books.accounts.review/INVALID_INPUT",
+        "ref:org.books.accounts.review/ROLE_PERMISSION_DENIED",
+        "ref:org.books.accounts.review/WRONG_STATE",
+        "ret:org.books.accounts.review",
+        "rpc:books.accounts.accept/budget",
+        "rpc:books.accounts.accept/errors",
+        "rpc:books.accounts.accept/spans",
+        "rpc:books.accounts.review/budget",
+        "rpc:books.accounts.review/errors",
+        "rpc:books.accounts.review/spans",
+        "spn:org.books.accounts.review"
+      ],
+      "record": "operation:org.books.accounts.review",
+      "title": "org books accounts review: Review the queue",
+      "labels": [
+        "area:books",
+        "kind:operation",
+        "lane:books",
+        "layer:7",
+        "money"
+      ],
+      "goal": "`capxul org books accounts review` does what operation org.books.accounts.review promises: its 2 acceptance claims and 4 refusals hold, its --json shape, events, spans and budget pass on a devnet at the head of integration/build, and its reference page agrees with it. Lists the rows still waiting in a \"not decided\" account (4999 or 6999), oldest first, with the account name someone suggested for each. With `--accept <id>` it makes that suggestion a new account and moves the row to it.",
+      "needs": [
+        "door:access",
+        "door:books",
+        "door:indexing",
+        "door:organizations",
+        "milestone:B3"
+      ],
+      "budgetUsd": 5,
+      "checkers": [
+        "reviewer",
+        "adversary"
+      ],
+      "paths": [
+        "books/target/books/",
+        "packages/backend/src/books/",
+        "packages/sdk/src/books/"
+      ]
+    },
+    {
+      "key": "operation:org.books.assets.add",
+      "kind": "operation",
+      "lane": "books",
+      "layer": 7,
+      "parent": "lane:books",
+      "priority": "normal",
+      "evals": [
+        "acc:org.books.assets.add/1",
+        "acc:org.books.assets.add/2",
+        "acc:org.books.assets.add/3",
+        "acc:org.books.assets.add/4",
+        "acc:org.books.assets.add/5",
+        "bud:org.books.assets.add/p95",
+        "des:org.books.assets.add",
+        "doc:org.books.assets.add",
+        "evt:org.books.assets.add/book_account_transitioned",
+        "evt:org.books.assets.add/book_asset_transitioned",
+        "evt:org.books.assets.add/book_company_transitioned",
+        "ref:org.books.assets.add/INVALID_INPUT",
+        "ref:org.books.assets.add/PROVIDER_ERROR",
+        "ref:org.books.assets.add/ROLE_PERMISSION_DENIED",
+        "ref:org.books.assets.add/WRONG_STATE",
+        "ret:org.books.assets.add",
+        "rpc:books.assets.add/budget",
+        "rpc:books.assets.add/errors",
+        "rpc:books.assets.add/spans",
+        "spn:org.books.assets.add"
+      ],
+      "record": "operation:org.books.assets.add",
+      "title": "org books assets add: Add a token",
+      "labels": [
+        "area:books",
+        "kind:operation",
+        "lane:books",
+        "layer:7",
+        "money"
+      ],
+      "goal": "`capxul org books assets add` does what operation org.books.assets.add promises: its 5 acceptance claims and 4 refusals hold, its --json shape, events, spans and budget pass on a devnet at the head of integration/build, and its reference page agrees with it. Adds an ERC-20 token your Safe holds, by its contract address, so the books record its transfers. Capxul reads the token's `decimals` and `symbol` on your Organization's chain before it saves it. Use it for tokens Capxul does not pay in but your Safe receives.",
+      "needs": [
+        "door:access",
+        "door:books",
+        "door:indexing",
+        "door:organizations",
+        "integration:chain-rpc",
+        "milestone:B3"
+      ],
+      "budgetUsd": 5,
+      "checkers": [
+        "reviewer",
+        "adversary"
+      ],
+      "paths": [
+        "books/target/books/",
+        "packages/backend/src/books/",
+        "packages/sdk/src/books/"
+      ]
+    },
+    {
+      "key": "operation:org.books.assets.list",
+      "kind": "operation",
+      "lane": "books",
+      "layer": 7,
+      "parent": "lane:books",
+      "priority": "normal",
+      "evals": [
+        "acc:org.books.assets.list/1",
+        "acc:org.books.assets.list/2",
+        "acc:org.books.assets.list/3",
+        "acc:org.books.assets.list/4",
+        "acc:org.books.assets.list/5",
+        "bud:org.books.assets.list/p95",
+        "des:org.books.assets.list",
+        "doc:org.books.assets.list",
+        "ref:org.books.assets.list/INVALID_INPUT",
+        "ref:org.books.assets.list/ROLE_PERMISSION_DENIED",
+        "ret:org.books.assets.list",
+        "rpc:books.assets.list/budget",
+        "rpc:books.assets.list/errors",
+        "rpc:books.assets.list/spans",
+        "spn:org.books.assets.list"
+      ],
+      "record": "operation:org.books.assets.list",
+      "title": "org books assets list: List tokens",
+      "labels": [
+        "area:books",
+        "kind:operation",
+        "lane:books",
+        "layer:7",
+        "money"
+      ],
+      "goal": "`capxul org books assets list` does what operation org.books.assets.list promises: its 5 acceptance claims and 2 refusals hold, its --json shape, events, spans and budget pass on a devnet at the head of integration/build, and its reference page agrees with it. Lists every token the books record. Capxul's own assets come first, then the ERC-20s your Organization added. Each line says whether Capxul pays in it, holds it without paying in it, or you added it, and whether it carries a USD value.",
+      "needs": [
+        "door:access",
+        "door:books",
+        "door:organizations",
+        "milestone:B3"
+      ],
+      "budgetUsd": 5,
+      "checkers": [
+        "reviewer",
+        "adversary"
+      ],
+      "paths": [
+        "books/target/books/",
+        "packages/backend/src/books/",
+        "packages/sdk/src/books/"
+      ]
+    },
+    {
+      "key": "operation:org.books.assets.remove",
+      "kind": "operation",
+      "lane": "books",
+      "layer": 7,
+      "parent": "lane:books",
+      "priority": "normal",
+      "evals": [
+        "acc:org.books.assets.remove/1",
+        "acc:org.books.assets.remove/2",
+        "acc:org.books.assets.remove/3",
+        "acc:org.books.assets.remove/4",
+        "bud:org.books.assets.remove/p95",
+        "des:org.books.assets.remove",
+        "doc:org.books.assets.remove",
+        "evt:org.books.assets.remove/book_asset_transitioned",
+        "ref:org.books.assets.remove/ROLE_PERMISSION_DENIED",
+        "ref:org.books.assets.remove/WRONG_STATE",
+        "ret:org.books.assets.remove",
+        "rpc:books.assets.remove/budget",
+        "rpc:books.assets.remove/errors",
+        "rpc:books.assets.remove/spans",
+        "spn:org.books.assets.remove"
+      ],
+      "record": "operation:org.books.assets.remove",
+      "title": "org books assets remove: Stop recording a token",
+      "labels": [
+        "area:books",
+        "kind:operation",
+        "lane:books",
+        "layer:7",
+        "money"
+      ],
+      "goal": "`capxul org books assets remove` does what operation org.books.assets.remove promises: its 4 acceptance claims and 2 refusals hold, its --json shape, events, spans and budget pass on a devnet at the head of integration/build, and its reference page agrees with it. Stops recording a token your Organization added. The facts it already booked stay in the books.",
+      "needs": [
+        "door:access",
+        "door:books",
+        "door:indexing",
+        "door:organizations",
+        "milestone:B3"
+      ],
+      "budgetUsd": 5,
+      "checkers": [
+        "reviewer",
+        "adversary"
+      ],
+      "paths": [
+        "books/target/books/",
+        "packages/backend/src/books/",
+        "packages/sdk/src/books/"
+      ]
+    },
+    {
+      "key": "operation:org.books.export.quickbooks",
+      "kind": "operation",
+      "lane": "books",
+      "layer": 7,
+      "parent": "lane:books",
+      "priority": "normal",
+      "evals": [
+        "acc:org.books.export.quickbooks/1",
+        "acc:org.books.export.quickbooks/2",
+        "bud:org.books.export.quickbooks/p95",
+        "des:org.books.export.quickbooks",
+        "doc:org.books.export.quickbooks",
+        "ref:org.books.export.quickbooks/CLI_STORAGE",
+        "ref:org.books.export.quickbooks/ROLE_PERMISSION_DENIED",
+        "ref:org.books.export.quickbooks/WRONG_STATE",
+        "ret:org.books.export.quickbooks",
+        "rpc:books.exports.quickbooks/budget",
+        "rpc:books.exports.quickbooks/errors",
+        "rpc:books.exports.quickbooks/spans",
+        "spn:org.books.export.quickbooks"
+      ],
+      "record": "operation:org.books.export.quickbooks",
+      "title": "org books export quickbooks: Export for QuickBooks",
+      "labels": [
+        "area:books",
+        "kind:operation",
+        "lane:books",
+        "layer:7",
+        "money"
+      ],
+      "goal": "`capxul org books export quickbooks` does what operation org.books.export.quickbooks promises: its 2 acceptance claims and 3 refusals hold, its --json shape, events, spans and budget pass on a devnet at the head of integration/build, and its reference page agrees with it. Writes two files that QuickBooks Online imports. `chart-of-accounts.csv` holds the chart. `journal-entries.csv` holds one journal entry for each money fact in the window you give with `--from` and `--to`. `--out` names the folder.",
+      "needs": [
+        "door:access",
+        "door:books",
+        "door:organizations",
+        "milestone:B3"
+      ],
+      "budgetUsd": 5,
+      "checkers": [
+        "reviewer",
+        "adversary"
+      ],
+      "paths": [
+        "books/target/books/",
+        "packages/backend/src/books/",
+        "packages/sdk/src/books/"
+      ]
+    },
+    {
+      "key": "operation:org.books.facts.list",
+      "kind": "operation",
+      "lane": "books",
+      "layer": 7,
+      "parent": "lane:books",
+      "priority": "normal",
+      "evals": [
+        "acc:org.books.facts.list/1",
+        "acc:org.books.facts.list/2",
+        "acc:org.books.facts.list/3",
+        "acc:org.books.facts.list/4",
+        "acc:org.books.facts.list/5",
+        "acc:org.books.facts.list/6",
+        "bud:org.books.facts.list/p95",
+        "des:org.books.facts.list",
+        "doc:org.books.facts.list",
+        "ref:org.books.facts.list/CLI_USAGE",
+        "ref:org.books.facts.list/INVALID_INPUT",
+        "ref:org.books.facts.list/ROLE_PERMISSION_DENIED",
+        "ret:org.books.facts.list",
+        "rpc:books.facts.list/budget",
+        "rpc:books.facts.list/errors",
+        "rpc:books.facts.list/spans",
+        "spn:org.books.facts.list"
+      ],
+      "record": "operation:org.books.facts.list",
+      "title": "org books facts list: List facts",
+      "labels": [
+        "area:books",
+        "kind:operation",
+        "lane:books",
+        "layer:7",
+        "money"
+      ],
+      "goal": "`capxul org books facts list` does what operation org.books.facts.list promises: its 6 acceptance claims and 3 refusals hold, its --json shape, events, spans and budget pass on a devnet at the head of integration/build, and its reference page agrees with it. Lists the books' facts, oldest first. A fact is a change to the chart, an account given to a row, or a money event with its USD value. Use it to read what the books recorded and why.",
+      "needs": [
+        "door:access",
+        "door:books",
+        "door:organizations",
+        "milestone:B3"
+      ],
+      "budgetUsd": 5,
+      "checkers": [
+        "reviewer",
+        "adversary"
+      ],
+      "paths": [
+        "books/target/books/",
+        "packages/backend/src/books/",
+        "packages/sdk/src/books/"
+      ]
+    },
+    {
+      "key": "operation:org.books.reports.balance-sheet",
+      "kind": "operation",
+      "lane": "books",
+      "layer": 7,
+      "parent": "lane:books",
+      "priority": "normal",
+      "evals": [
+        "acc:org.books.reports.balance-sheet/1",
+        "acc:org.books.reports.balance-sheet/2",
+        "acc:org.books.reports.balance-sheet/3",
+        "bud:org.books.reports.balance-sheet/p95",
+        "des:org.books.reports.balance-sheet",
+        "doc:org.books.reports.balance-sheet",
+        "ref:org.books.reports.balance-sheet/CLI_USAGE",
+        "ref:org.books.reports.balance-sheet/ROLE_PERMISSION_DENIED",
+        "ref:org.books.reports.balance-sheet/WRONG_STATE",
+        "ret:org.books.reports.balance-sheet",
+        "rpc:books.reports.balance-sheet/budget",
+        "rpc:books.reports.balance-sheet/errors",
+        "rpc:books.reports.balance-sheet/spans",
+        "spn:org.books.reports.balance-sheet"
+      ],
+      "record": "operation:org.books.reports.balance-sheet",
+      "title": "org books reports balance-sheet: Read the balance sheet",
+      "labels": [
+        "area:books",
+        "kind:operation",
+        "lane:books",
+        "layer:7",
+        "money"
+      ],
+      "goal": "`capxul org books reports balance-sheet` does what operation org.books.reports.balance-sheet promises: its 3 acceptance claims and 3 refusals hold, its --json shape, events, spans and budget pass on a devnet at the head of integration/build, and its reference page agrees with it. Shows assets, liabilities, equity and current earnings, on the cash basis. It uses the facts up to the end of the day you give with `--as-of`, or up to now.",
+      "needs": [
+        "door:access",
+        "door:books",
+        "door:organizations",
+        "milestone:B3"
+      ],
+      "budgetUsd": 5,
+      "checkers": [
+        "reviewer",
+        "adversary"
+      ],
+      "paths": [
+        "books/target/books/",
+        "packages/backend/src/books/",
+        "packages/sdk/src/books/"
+      ]
+    },
+    {
+      "key": "operation:org.books.reports.profit-and-loss",
+      "kind": "operation",
+      "lane": "books",
+      "layer": 7,
+      "parent": "lane:books",
+      "priority": "normal",
+      "evals": [
+        "acc:org.books.reports.profit-and-loss/1",
+        "acc:org.books.reports.profit-and-loss/2",
+        "acc:org.books.reports.profit-and-loss/3",
+        "bud:org.books.reports.profit-and-loss/p95",
+        "des:org.books.reports.profit-and-loss",
+        "doc:org.books.reports.profit-and-loss",
+        "ref:org.books.reports.profit-and-loss/CLI_USAGE",
+        "ref:org.books.reports.profit-and-loss/INVALID_INPUT",
+        "ref:org.books.reports.profit-and-loss/ROLE_PERMISSION_DENIED",
+        "ref:org.books.reports.profit-and-loss/WRONG_STATE",
+        "ret:org.books.reports.profit-and-loss",
+        "rpc:books.reports.profit-and-loss/budget",
+        "rpc:books.reports.profit-and-loss/errors",
+        "rpc:books.reports.profit-and-loss/spans",
+        "spn:org.books.reports.profit-and-loss"
+      ],
+      "record": "operation:org.books.reports.profit-and-loss",
+      "title": "org books reports profit-and-loss: Read the profit and loss",
+      "labels": [
+        "area:books",
+        "kind:operation",
+        "lane:books",
+        "layer:7",
+        "money"
+      ],
+      "goal": "`capxul org books reports profit-and-loss` does what operation org.books.reports.profit-and-loss promises: its 3 acceptance claims and 4 refusals hold, its --json shape, events, spans and budget pass on a devnet at the head of integration/build, and its reference page agrees with it. Shows income, cost of services and expense over a window, on the cash basis. Sub-accounts roll into their parent. Give the window with `--from` and `--to`, both as days.",
+      "needs": [
+        "door:access",
+        "door:books",
+        "door:organizations",
+        "milestone:B3"
+      ],
+      "budgetUsd": 5,
+      "checkers": [
+        "reviewer",
+        "adversary"
+      ],
+      "paths": [
+        "books/target/books/",
+        "packages/backend/src/books/",
+        "packages/sdk/src/books/"
+      ]
+    },
+    {
+      "key": "operation:org.books.reports.reconcile",
+      "kind": "operation",
+      "lane": "books",
+      "layer": 7,
+      "parent": "lane:books",
+      "priority": "normal",
+      "evals": [
+        "acc:org.books.reports.reconcile/1",
+        "acc:org.books.reports.reconcile/2",
+        "acc:org.books.reports.reconcile/3",
+        "bud:org.books.reports.reconcile/p95",
+        "des:org.books.reports.reconcile",
+        "doc:org.books.reports.reconcile",
+        "ref:org.books.reports.reconcile/PROVIDER_ERROR",
+        "ref:org.books.reports.reconcile/ROLE_PERMISSION_DENIED",
+        "ref:org.books.reports.reconcile/WRONG_STATE",
+        "ret:org.books.reports.reconcile",
+        "rpc:books.reports.reconcile/budget",
+        "rpc:books.reports.reconcile/errors",
+        "rpc:books.reports.reconcile/spans",
+        "spn:org.books.reports.reconcile"
+      ],
+      "record": "operation:org.books.reports.reconcile",
+      "title": "org books reports reconcile: Check the books against the Safe",
+      "labels": [
+        "area:books",
+        "kind:operation",
+        "lane:books",
+        "layer:7",
+        "money"
+      ],
+      "goal": "`capxul org books reports reconcile` does what operation org.books.reports.reconcile promises: its 3 acceptance claims and 3 refusals hold, its --json shape, events, spans and budget pass on a devnet at the head of integration/build, and its reference page agrees with it. Checks what the books say each Safe asset holds against what the chain says the Safe holds now. It also shows the money that open agreements still hold. It says `matches` when every asset agrees.",
+      "needs": [
+        "door:access",
+        "door:books",
+        "door:indexing",
+        "door:organizations",
+        "integration:chain-rpc",
+        "milestone:B3"
+      ],
+      "budgetUsd": 5,
+      "checkers": [
+        "reviewer",
+        "adversary"
+      ],
+      "paths": [
+        "books/target/books/",
+        "packages/backend/src/books/",
+        "packages/sdk/src/books/"
+      ]
+    },
+    {
+      "key": "operation:org.books.reports.trial-balance",
+      "kind": "operation",
+      "lane": "books",
+      "layer": 7,
+      "parent": "lane:books",
+      "priority": "normal",
+      "evals": [
+        "acc:org.books.reports.trial-balance/1",
+        "acc:org.books.reports.trial-balance/2",
+        "acc:org.books.reports.trial-balance/3",
+        "acc:org.books.reports.trial-balance/4",
+        "bud:org.books.reports.trial-balance/p95",
+        "des:org.books.reports.trial-balance",
+        "doc:org.books.reports.trial-balance",
+        "ref:org.books.reports.trial-balance/CLI_USAGE",
+        "ref:org.books.reports.trial-balance/ROLE_PERMISSION_DENIED",
+        "ref:org.books.reports.trial-balance/WRONG_STATE",
+        "ret:org.books.reports.trial-balance",
+        "rpc:books.reports.trial-balance/budget",
+        "rpc:books.reports.trial-balance/errors",
+        "rpc:books.reports.trial-balance/spans",
+        "spn:org.books.reports.trial-balance"
+      ],
+      "record": "operation:org.books.reports.trial-balance",
+      "title": "org books reports trial-balance: Read the trial balance",
+      "labels": [
+        "area:books",
+        "kind:operation",
+        "lane:books",
+        "layer:7",
+        "money"
+      ],
+      "goal": "`capxul org books reports trial-balance` does what operation org.books.reports.trial-balance promises: its 4 acceptance claims and 3 refusals hold, its --json shape, events, spans and budget pass on a devnet at the head of integration/build, and its reference page agrees with it. Shows every account's debits and credits, on the cash basis, with what each Safe account holds. It uses the facts up to the end of the day you give with `--as-of`, or up to now.",
+      "needs": [
+        "door:access",
+        "door:books",
+        "door:organizations",
+        "milestone:B3"
+      ],
+      "budgetUsd": 5,
+      "checkers": [
+        "reviewer",
+        "adversary"
+      ],
+      "paths": [
+        "books/target/books/",
+        "packages/backend/src/books/",
+        "packages/sdk/src/books/"
+      ]
+    },
+    {
       "key": "lane:contacts",
       "kind": "lane",
       "lane": "contacts",
@@ -10909,2002 +12092,6 @@
       ]
     },
     {
-      "key": "lane:projects",
-      "kind": "lane",
-      "lane": "projects",
-      "layer": 7,
-      "parent": "milestone:B4",
-      "priority": "normal",
-      "evals": [
-        "sys:imports/projects"
-      ],
-      "title": "Lane: projects",
-      "checkers": [],
-      "paths": [],
-      "goal": "The projects concept is built as its records say: its door, durable processes and operations pass every eval at the integration head, and its code imports other concepts only through their doors.",
-      "needs": [],
-      "labels": [
-        "kind:lane",
-        "lane:projects",
-        "layer:7"
-      ],
-      "budgetUsd": 5
-    },
-    {
-      "key": "door:projects",
-      "kind": "door",
-      "lane": "projects",
-      "layer": 7,
-      "parent": "lane:projects",
-      "priority": "normal",
-      "evals": [
-        "prc:projects.bill-time/atomic",
-        "tbl:activity-types/schema",
-        "tbl:activity-types/tenancy",
-        "tbl:activity-types/writers",
-        "tbl:project-changes/schema",
-        "tbl:project-changes/tenancy",
-        "tbl:project-changes/writers",
-        "tbl:project-head-syncs/schema",
-        "tbl:project-head-syncs/tenancy",
-        "tbl:project-head-syncs/writers",
-        "tbl:project-settings/schema",
-        "tbl:project-settings/tenancy",
-        "tbl:project-settings/writers",
-        "tbl:project-types/schema",
-        "tbl:project-types/tenancy",
-        "tbl:project-types/writers",
-        "tbl:project-users/schema",
-        "tbl:project-users/tenancy",
-        "tbl:project-users/writers",
-        "tbl:projects/schema",
-        "tbl:projects/tenancy",
-        "tbl:projects/writers",
-        "tbl:tasks/schema",
-        "tbl:tasks/tenancy",
-        "tbl:tasks/writers",
-        "tbl:timesheet-logs/schema",
-        "tbl:timesheet-logs/tenancy",
-        "tbl:timesheet-logs/writers",
-        "tbl:timesheets/schema",
-        "tbl:timesheets/tenancy",
-        "tbl:timesheets/writers",
-        "trn:project.cancel",
-        "trn:project.complete",
-        "trn:project.hold",
-        "trn:project.open",
-        "trn:project.reopen",
-        "trn:project.resume",
-        "trn:task.cancel",
-        "trn:task.complete",
-        "trn:task.fall_overdue",
-        "trn:task.open",
-        "trn:task.recover_open",
-        "trn:task.recover_working",
-        "trn:task.reopen",
-        "trn:task.review",
-        "trn:task.start",
-        "trn:task.stop",
-        "trn:task.template",
-        "trn:timesheet.bill",
-        "trn:timesheet.bill_part",
-        "trn:timesheet.cancel",
-        "trn:timesheet.complete",
-        "trn:timesheet.draft",
-        "trn:timesheet.pay",
-        "trn:timesheet.submit",
-        "trn:timesheet.unbill",
-        "trn:timesheet.uncomplete",
-        "trn:timesheet.unpay"
-      ],
-      "title": "Door: projects tables, machines and procedures",
-      "goal": "The projects concept's tables, state machines and door procedures exist as its records say: tenant-first keys and row-level security, only declared transitions, one event per machine, each procedure atomic.",
-      "needs": [
-        "milestone:B2",
-        "step:B3.spine"
-      ],
-      "labels": [
-        "kind:door",
-        "lane:projects",
-        "layer:7",
-        "pilot-closure"
-      ],
-      "budgetUsd": 5,
-      "checkers": [
-        "reviewer"
-      ],
-      "paths": [
-        "books/target/projects/",
-        "packages/backend/src/projects/",
-        "packages/sdk/src/projects/"
-      ]
-    },
-    {
-      "key": "workflow:projects.head.sync",
-      "kind": "process",
-      "lane": "projects",
-      "layer": 7,
-      "parent": "lane:projects",
-      "priority": "normal",
-      "evals": [
-        "bud:projects.head.sync/p95",
-        "wfl:projects.head.sync/idempotent",
-        "wfl:projects.head.sync/resume",
-        "wfl:projects.head.sync/wake/capxul-change",
-        "wfl:projects.head.sync/wake/disconnected",
-        "wfl:projects.head.sync/wake/ring"
-      ],
-      "record": "workflow:projects.head.sync",
-      "title": "Process: projects.head.sync",
-      "goal": "The durable process projects.head.sync (Sync the Organization's projects with its connected head) runs as its record says: it resumes after a crash, each activity's side effect lands once, and every keyed wait is woken by what its key names.",
-      "needs": [
-        "door:access",
-        "door:organizations",
-        "door:parties",
-        "door:projects",
-        "integration:chain-rpc",
-        "integration:frappe-head",
-        "milestone:B3"
-      ],
-      "labels": [
-        "kind:process",
-        "lane:projects",
-        "layer:7"
-      ],
-      "budgetUsd": 5,
-      "checkers": [
-        "reviewer"
-      ],
-      "paths": [
-        "books/target/projects/",
-        "packages/backend/src/projects/",
-        "packages/sdk/src/projects/"
-      ]
-    },
-    {
-      "key": "workflow:projects.startup.open",
-      "kind": "process",
-      "lane": "projects",
-      "layer": 7,
-      "parent": "lane:projects",
-      "priority": "normal",
-      "evals": [
-        "bud:projects.startup.open/p95",
-        "wfl:projects.startup.open/idempotent",
-        "wfl:projects.startup.open/resume"
-      ],
-      "record": "workflow:projects.startup.open",
-      "title": "Process: projects.startup.open",
-      "goal": "The durable process projects.startup.open (Start the Organization's Projects app) runs as its record says: it resumes after a crash, each activity's side effect lands once, and every keyed wait is woken by what its key names.",
-      "needs": [
-        "door:organizations",
-        "door:projects",
-        "milestone:B3"
-      ],
-      "labels": [
-        "kind:process",
-        "lane:projects",
-        "layer:7"
-      ],
-      "budgetUsd": 5,
-      "checkers": [
-        "reviewer"
-      ],
-      "paths": [
-        "books/target/projects/",
-        "packages/backend/src/projects/",
-        "packages/sdk/src/projects/"
-      ]
-    },
-    {
-      "key": "workflow:projects.tasks.watch-due",
-      "kind": "process",
-      "lane": "projects",
-      "layer": 7,
-      "parent": "lane:projects",
-      "priority": "normal",
-      "evals": [
-        "bud:projects.tasks.watch-due/p95",
-        "wfl:projects.tasks.watch-due/idempotent",
-        "wfl:projects.tasks.watch-due/resume",
-        "wfl:projects.tasks.watch-due/wake/task-ended",
-        "wfl:projects.tasks.watch-due/wake/task-written"
-      ],
-      "record": "workflow:projects.tasks.watch-due",
-      "title": "Process: projects.tasks.watch-due",
-      "goal": "The durable process projects.tasks.watch-due (One task's expected end: overdue on the one clock) runs as its record says: it resumes after a crash, each activity's side effect lands once, and every keyed wait is woken by what its key names.",
-      "needs": [
-        "door:organizations",
-        "door:projects",
-        "milestone:B2",
-        "step:B3.spine"
-      ],
-      "labels": [
-        "kind:process",
-        "lane:projects",
-        "layer:7",
-        "pilot-closure"
-      ],
-      "budgetUsd": 5,
-      "checkers": [
-        "reviewer"
-      ],
-      "paths": [
-        "books/target/projects/",
-        "packages/backend/src/projects/",
-        "packages/sdk/src/projects/"
-      ]
-    },
-    {
-      "key": "operation:org.projects.create",
-      "kind": "operation",
-      "lane": "projects",
-      "layer": 7,
-      "parent": "lane:projects",
-      "priority": "critical",
-      "evals": [
-        "acc:org.projects.create/1",
-        "acc:org.projects.create/2",
-        "acc:org.projects.create/3",
-        "bud:org.projects.create/p95",
-        "des:org.projects.create",
-        "doc:org.projects.create",
-        "evt:org.projects.create/project_transitioned",
-        "ref:org.projects.create/INVALID_INPUT",
-        "ref:org.projects.create/NOT_AUTHENTICATED",
-        "ref:org.projects.create/PROVIDER_ERROR",
-        "ref:org.projects.create/ROLE_PERMISSION_DENIED",
-        "ret:org.projects.create",
-        "rpc:projects.projects.create/budget",
-        "rpc:projects.projects.create/errors",
-        "rpc:projects.projects.create/spans",
-        "spn:org.projects.create"
-      ],
-      "record": "operation:org.projects.create",
-      "title": "org projects create: Create a project",
-      "labels": [
-        "area:projects",
-        "kind:operation",
-        "lane:projects",
-        "layer:7",
-        "pilot",
-        "pilot-closure"
-      ],
-      "goal": "`capxul org projects create` does what operation org.projects.create promises: its 3 acceptance claims and 5 refusals hold, its --json shape, events, spans and budget pass on a devnet at the head of integration/build, and its reference page agrees with it. Creates an open project for the Organization: its name and, as you choose, its project type, priority, expected start and end days, customer, how its percent complete is worked out (by hand with `--percent`, or from its tasks' completion, progress or weight; task completion when not given), department, cost center, estimated cost and notes. Its totals and actual dates are worked out from its tasks and submitted timesheets, never typed, and so is its percent complete unless it is worked out by hand. A customer on Capxul is named as a Party (an email, an @handle, a 0x address or a Party id); any other text is kept as the name of a customer who is not on Capxul.",
-      "needs": [
-        "door:organizations",
-        "door:parties",
-        "door:projects",
-        "integration:chain-rpc",
-        "milestone:B2",
-        "step:B3.spine"
-      ],
-      "budgetUsd": 5,
-      "checkers": [
-        "reviewer"
-      ],
-      "paths": [
-        "books/target/projects/",
-        "packages/backend/src/projects/",
-        "packages/sdk/src/projects/"
-      ]
-    },
-    {
-      "key": "operation:org.projects.get",
-      "kind": "operation",
-      "lane": "projects",
-      "layer": 7,
-      "parent": "lane:projects",
-      "priority": "critical",
-      "evals": [
-        "acc:org.projects.get/1",
-        "acc:org.projects.get/2",
-        "acc:org.projects.get/3",
-        "bud:org.projects.get/p95",
-        "des:org.projects.get",
-        "doc:org.projects.get",
-        "ref:org.projects.get/INVALID_INPUT",
-        "ref:org.projects.get/NOT_AUTHENTICATED",
-        "ref:org.projects.get/ROLE_PERMISSION_DENIED",
-        "ret:org.projects.get",
-        "rpc:projects.projects.get/budget",
-        "rpc:projects.projects.get/errors",
-        "rpc:projects.projects.get/spans",
-        "spn:org.projects.get"
-      ],
-      "record": "operation:org.projects.get",
-      "title": "org projects get: Show one project",
-      "labels": [
-        "area:projects",
-        "kind:operation",
-        "lane:projects",
-        "layer:7",
-        "pilot",
-        "pilot-closure"
-      ],
-      "goal": "`capxul org projects get` does what operation org.projects.get promises: its 3 acceptance claims and 3 refusals hold, its --json shape, events, spans and budget pass on a devnet at the head of integration/build, and its reference page agrees with it. Shows one project: its fields, its members, its tasks counted by status, its actual dates and time, its costing and billable totals and its percent complete, as its tasks and submitted timesheets make them.",
-      "needs": [
-        "door:organizations",
-        "door:parties",
-        "door:projects",
-        "milestone:B2",
-        "step:B3.spine"
-      ],
-      "budgetUsd": 5,
-      "checkers": [
-        "reviewer"
-      ],
-      "paths": [
-        "books/target/projects/",
-        "packages/backend/src/projects/",
-        "packages/sdk/src/projects/"
-      ]
-    },
-    {
-      "key": "operation:org.projects.list",
-      "kind": "operation",
-      "lane": "projects",
-      "layer": 7,
-      "parent": "lane:projects",
-      "priority": "critical",
-      "evals": [
-        "acc:org.projects.list/1",
-        "acc:org.projects.list/2",
-        "bud:org.projects.list/p95",
-        "des:org.projects.list",
-        "doc:org.projects.list",
-        "ref:org.projects.list/INVALID_INPUT",
-        "ref:org.projects.list/NOT_AUTHENTICATED",
-        "ref:org.projects.list/ROLE_PERMISSION_DENIED",
-        "ret:org.projects.list",
-        "rpc:projects.projects.list/budget",
-        "rpc:projects.projects.list/errors",
-        "rpc:projects.projects.list/spans",
-        "spn:org.projects.list"
-      ],
-      "record": "operation:org.projects.list",
-      "title": "org projects list: List the Organization's projects",
-      "labels": [
-        "area:projects",
-        "kind:operation",
-        "lane:projects",
-        "layer:7",
-        "pilot",
-        "pilot-closure"
-      ],
-      "goal": "`capxul org projects list` does what operation org.projects.list promises: its 2 acceptance claims and 3 refusals hold, its --json shape, events, spans and budget pass on a devnet at the head of integration/build, and its reference page agrees with it. Lists the Organization's projects, newest first, a page at a time: each with its status, type, priority, customer, percent complete and expected end. Filter by `--status`, `--type`, `--customer` or `--member` (the projects shared with that member). Use it to find a project's id for `org projects get`.",
-      "needs": [
-        "door:organizations",
-        "door:parties",
-        "door:projects",
-        "milestone:B2",
-        "step:B3.spine"
-      ],
-      "budgetUsd": 5,
-      "checkers": [
-        "reviewer"
-      ],
-      "paths": [
-        "books/target/projects/",
-        "packages/backend/src/projects/",
-        "packages/sdk/src/projects/"
-      ]
-    },
-    {
-      "key": "operation:org.projects.task.complete",
-      "kind": "operation",
-      "lane": "projects",
-      "layer": 7,
-      "parent": "lane:projects",
-      "priority": "critical",
-      "evals": [
-        "acc:org.projects.task.complete/1",
-        "acc:org.projects.task.complete/2",
-        "bud:org.projects.task.complete/p95",
-        "des:org.projects.task.complete",
-        "doc:org.projects.task.complete",
-        "evt:org.projects.task.complete/project_transitioned",
-        "evt:org.projects.task.complete/task_transitioned",
-        "ref:org.projects.task.complete/INVALID_INPUT",
-        "ref:org.projects.task.complete/NOT_AUTHENTICATED",
-        "ref:org.projects.task.complete/ROLE_PERMISSION_DENIED",
-        "ref:org.projects.task.complete/WRONG_STATE",
-        "ret:org.projects.task.complete",
-        "rpc:projects.tasks.complete/budget",
-        "rpc:projects.tasks.complete/errors",
-        "rpc:projects.tasks.complete/spans",
-        "spn:org.projects.task.complete"
-      ],
-      "record": "operation:org.projects.task.complete",
-      "title": "org projects task complete: Complete a task",
-      "labels": [
-        "area:projects",
-        "kind:operation",
-        "lane:projects",
-        "layer:7",
-        "pilot",
-        "pilot-closure"
-      ],
-      "goal": "`capxul org projects task complete` does what operation org.projects.task.complete promises: its 2 acceptance claims and 4 refusals hold, its --json shape, events, spans and budget pass on a devnet at the head of integration/build, and its reference page agrees with it. Completes a task, recording who completed it and when. A task whose dependencies, or a group task whose children, are not all completed or cancelled is refused, naming them. Its project's percent complete moves, and at 100 the project completes.",
-      "needs": [
-        "door:organizations",
-        "door:parties",
-        "door:projects",
-        "milestone:B2",
-        "step:B3.spine"
-      ],
-      "budgetUsd": 5,
-      "checkers": [
-        "reviewer"
-      ],
-      "paths": [
-        "books/target/projects/",
-        "packages/backend/src/projects/",
-        "packages/sdk/src/projects/"
-      ]
-    },
-    {
-      "key": "operation:org.projects.task.create",
-      "kind": "operation",
-      "lane": "projects",
-      "layer": 7,
-      "parent": "lane:projects",
-      "priority": "critical",
-      "evals": [
-        "acc:org.projects.task.create/1",
-        "acc:org.projects.task.create/2",
-        "bud:org.projects.task.create/p95",
-        "des:org.projects.task.create",
-        "doc:org.projects.task.create",
-        "evt:org.projects.task.create/project_transitioned",
-        "evt:org.projects.task.create/task_transitioned",
-        "ref:org.projects.task.create/INVALID_INPUT",
-        "ref:org.projects.task.create/NOT_AUTHENTICATED",
-        "ref:org.projects.task.create/ROLE_PERMISSION_DENIED",
-        "ret:org.projects.task.create",
-        "rpc:projects.tasks.create/budget",
-        "rpc:projects.tasks.create/errors",
-        "rpc:projects.tasks.create/spans",
-        "spn:org.projects.task.create"
-      ],
-      "record": "operation:org.projects.task.create",
-      "title": "org projects task create: Create a task",
-      "labels": [
-        "area:projects",
-        "kind:operation",
-        "lane:projects",
-        "layer:7",
-        "pilot",
-        "pilot-closure"
-      ],
-      "goal": "`capxul org projects task create` does what operation org.projects.task.create promises: its 2 acceptance claims and 3 refusals hold, its --json shape, events, spans and budget pass on a devnet at the head of integration/build, and its reference page agrees with it. Creates an open task: its subject and, as you choose, its project, its parent group task, the tasks it depends on, its expected start and end (days or times, within its project's days), expected hours, weight, percent complete (`--percent`), priority, whether it is a group or a milestone, and its type. A parent must be a group task of the same project that is not completed, and no dependency or parent may make a cycle. A task created under a project its tasks had completed opens the project again.",
-      "needs": [
-        "door:organizations",
-        "door:parties",
-        "door:projects",
-        "milestone:B2",
-        "step:B3.spine",
-        "workflow:projects.tasks.watch-due"
-      ],
-      "budgetUsd": 5,
-      "checkers": [
-        "reviewer"
-      ],
-      "paths": [
-        "books/target/projects/",
-        "packages/backend/src/projects/",
-        "packages/sdk/src/projects/"
-      ]
-    },
-    {
-      "key": "operation:org.projects.task.list",
-      "kind": "operation",
-      "lane": "projects",
-      "layer": 7,
-      "parent": "lane:projects",
-      "priority": "critical",
-      "evals": [
-        "acc:org.projects.task.list/1",
-        "acc:org.projects.task.list/2",
-        "bud:org.projects.task.list/p95",
-        "des:org.projects.task.list",
-        "doc:org.projects.task.list",
-        "ref:org.projects.task.list/INVALID_INPUT",
-        "ref:org.projects.task.list/NOT_AUTHENTICATED",
-        "ref:org.projects.task.list/ROLE_PERMISSION_DENIED",
-        "ret:org.projects.task.list",
-        "rpc:projects.tasks.list/budget",
-        "rpc:projects.tasks.list/errors",
-        "rpc:projects.tasks.list/spans",
-        "spn:org.projects.task.list"
-      ],
-      "record": "operation:org.projects.task.list",
-      "title": "org projects task list: List the Organization's tasks",
-      "labels": [
-        "area:projects",
-        "kind:operation",
-        "lane:projects",
-        "layer:7",
-        "pilot",
-        "pilot-closure"
-      ],
-      "goal": "`capxul org projects task list` does what operation org.projects.task.list promises: its 2 acceptance claims and 3 refusals hold, its --json shape, events, spans and budget pass on a devnet at the head of integration/build, and its reference page agrees with it. Lists the Organization's tasks, earliest expected end first, a page at a time, with their status, priority and percent complete. Filter by `--project`, `--status` or `--parent`.",
-      "needs": [
-        "door:organizations",
-        "door:parties",
-        "door:projects",
-        "milestone:B2",
-        "step:B3.spine"
-      ],
-      "budgetUsd": 5,
-      "checkers": [
-        "reviewer"
-      ],
-      "paths": [
-        "books/target/projects/",
-        "packages/backend/src/projects/",
-        "packages/sdk/src/projects/"
-      ]
-    },
-    {
-      "key": "operation:org.projects.timesheet.create",
-      "kind": "operation",
-      "lane": "projects",
-      "layer": 7,
-      "parent": "lane:projects",
-      "priority": "critical",
-      "evals": [
-        "acc:org.projects.timesheet.create/1",
-        "acc:org.projects.timesheet.create/2",
-        "bud:org.projects.timesheet.create/p95",
-        "des:org.projects.timesheet.create",
-        "doc:org.projects.timesheet.create",
-        "evt:org.projects.timesheet.create/timesheet_transitioned",
-        "ref:org.projects.timesheet.create/INVALID_INPUT",
-        "ref:org.projects.timesheet.create/NOT_AUTHENTICATED",
-        "ref:org.projects.timesheet.create/PROVIDER_ERROR",
-        "ref:org.projects.timesheet.create/ROLE_PERMISSION_DENIED",
-        "ret:org.projects.timesheet.create",
-        "rpc:projects.timesheets.create/budget",
-        "rpc:projects.timesheets.create/errors",
-        "rpc:projects.timesheets.create/spans",
-        "spn:org.projects.timesheet.create"
-      ],
-      "record": "operation:org.projects.timesheet.create",
-      "title": "org projects timesheet create: Create a draft timesheet",
-      "labels": [
-        "area:projects",
-        "kind:operation",
-        "lane:projects",
-        "layer:7",
-        "pilot",
-        "pilot-closure"
-      ],
-      "goal": "`capxul org projects timesheet create` does what operation org.projects.timesheet.create promises: its 2 acceptance claims and 5 refusals hold, its --json shape, events, spans and budget pass on a devnet at the head of integration/build, and its reference page agrees with it. Creates a draft timesheet for your own time, or with `--for`, for another worker: any Party, such as an employee or a contractor who has no Seat, named by email, @handle, address or Party id. `--employee` records their Employee name, `--project` the project and customer it is for. Log time on it with `org projects timesheet log`.",
-      "needs": [
-        "door:organizations",
-        "door:parties",
-        "door:projects",
-        "integration:chain-rpc",
-        "milestone:B2",
-        "step:B3.spine"
-      ],
-      "budgetUsd": 5,
-      "checkers": [
-        "reviewer"
-      ],
-      "paths": [
-        "books/target/projects/",
-        "packages/backend/src/projects/",
-        "packages/sdk/src/projects/"
-      ]
-    },
-    {
-      "key": "operation:org.projects.timesheet.get",
-      "kind": "operation",
-      "lane": "projects",
-      "layer": 7,
-      "parent": "lane:projects",
-      "priority": "critical",
-      "evals": [
-        "acc:org.projects.timesheet.get/1",
-        "acc:org.projects.timesheet.get/2",
-        "bud:org.projects.timesheet.get/p95",
-        "des:org.projects.timesheet.get",
-        "doc:org.projects.timesheet.get",
-        "ref:org.projects.timesheet.get/INVALID_INPUT",
-        "ref:org.projects.timesheet.get/NOT_AUTHENTICATED",
-        "ref:org.projects.timesheet.get/ROLE_PERMISSION_DENIED",
-        "ret:org.projects.timesheet.get",
-        "rpc:projects.timesheets.get/budget",
-        "rpc:projects.timesheets.get/errors",
-        "rpc:projects.timesheets.get/spans",
-        "spn:org.projects.timesheet.get"
-      ],
-      "record": "operation:org.projects.timesheet.get",
-      "title": "org projects timesheet get: Show one timesheet",
-      "labels": [
-        "area:projects",
-        "kind:operation",
-        "lane:projects",
-        "layer:7",
-        "pilot",
-        "pilot-closure"
-      ],
-      "goal": "`capxul org projects timesheet get` does what operation org.projects.timesheet.get promises: its 2 acceptance claims and 3 refusals hold, its --json shape, events, spans and budget pass on a devnet at the head of integration/build, and its reference page agrees with it. Shows one timesheet: its worker, its logs in order with their hours, rates and amounts, its totals and the share billed, and what billed or paid it.",
-      "needs": [
-        "door:organizations",
-        "door:parties",
-        "door:projects",
-        "milestone:B2",
-        "step:B3.spine"
-      ],
-      "budgetUsd": 5,
-      "checkers": [
-        "reviewer"
-      ],
-      "paths": [
-        "books/target/projects/",
-        "packages/backend/src/projects/",
-        "packages/sdk/src/projects/"
-      ]
-    },
-    {
-      "key": "operation:org.projects.timesheet.list",
-      "kind": "operation",
-      "lane": "projects",
-      "layer": 7,
-      "parent": "lane:projects",
-      "priority": "critical",
-      "evals": [
-        "acc:org.projects.timesheet.list/1",
-        "acc:org.projects.timesheet.list/2",
-        "bud:org.projects.timesheet.list/p95",
-        "des:org.projects.timesheet.list",
-        "doc:org.projects.timesheet.list",
-        "ref:org.projects.timesheet.list/INVALID_INPUT",
-        "ref:org.projects.timesheet.list/NOT_AUTHENTICATED",
-        "ref:org.projects.timesheet.list/ROLE_PERMISSION_DENIED",
-        "ret:org.projects.timesheet.list",
-        "rpc:projects.timesheets.list/budget",
-        "rpc:projects.timesheets.list/errors",
-        "rpc:projects.timesheets.list/spans",
-        "spn:org.projects.timesheet.list"
-      ],
-      "record": "operation:org.projects.timesheet.list",
-      "title": "org projects timesheet list: List the Organization's timesheets",
-      "labels": [
-        "area:projects",
-        "kind:operation",
-        "lane:projects",
-        "layer:7",
-        "pilot",
-        "pilot-closure"
-      ],
-      "goal": "`capxul org projects timesheet list` does what operation org.projects.timesheet.list promises: its 2 acceptance claims and 3 refusals hold, its --json shape, events, spans and budget pass on a devnet at the head of integration/build, and its reference page agrees with it. Lists the Organization's timesheets, latest start day first, a page at a time, with their worker, project, status and totals. Filter by `--for` (a worker), `--project` or `--status`.",
-      "needs": [
-        "door:organizations",
-        "door:parties",
-        "door:projects",
-        "milestone:B2",
-        "step:B3.spine"
-      ],
-      "budgetUsd": 5,
-      "checkers": [
-        "reviewer"
-      ],
-      "paths": [
-        "books/target/projects/",
-        "packages/backend/src/projects/",
-        "packages/sdk/src/projects/"
-      ]
-    },
-    {
-      "key": "operation:org.projects.timesheet.log",
-      "kind": "operation",
-      "lane": "projects",
-      "layer": 7,
-      "parent": "lane:projects",
-      "priority": "critical",
-      "evals": [
-        "acc:org.projects.timesheet.log/1",
-        "acc:org.projects.timesheet.log/2",
-        "bud:org.projects.timesheet.log/p95",
-        "des:org.projects.timesheet.log",
-        "doc:org.projects.timesheet.log",
-        "ref:org.projects.timesheet.log/INVALID_INPUT",
-        "ref:org.projects.timesheet.log/NOT_AUTHENTICATED",
-        "ref:org.projects.timesheet.log/PROVIDER_ERROR",
-        "ref:org.projects.timesheet.log/ROLE_PERMISSION_DENIED",
-        "ref:org.projects.timesheet.log/WRONG_STATE",
-        "ret:org.projects.timesheet.log",
-        "rpc:projects.timesheets.log/budget",
-        "rpc:projects.timesheets.log/errors",
-        "rpc:projects.timesheets.log/spans",
-        "spn:org.projects.timesheet.log"
-      ],
-      "record": "operation:org.projects.timesheet.log",
-      "title": "org projects timesheet log: Log time on a draft timesheet",
-      "labels": [
-        "area:projects",
-        "kind:operation",
-        "lane:projects",
-        "layer:7",
-        "pilot",
-        "pilot-closure"
-      ],
-      "goal": "`capxul org projects timesheet log` does what operation org.projects.timesheet.log promises: its 2 acceptance claims and 7 refusals hold, its --json shape, events, spans and budget pass on a devnet at the head of integration/build, and its reference page agrees with it. Adds one time log to a draft timesheet: its activity type, its start, its end or its hours, and as you choose the task and project it was for, whether it is billable, whether it completed the task, and a note. Its rates are the activity type's. A log that overlaps another of the same worker's, unless the Projects Settings allow it, a disabled activity type and a cancelled task are refused.",
-      "needs": [
-        "door:organizations",
-        "door:parties",
-        "door:projects",
-        "integration:chain-rpc",
-        "milestone:B2",
-        "step:B3.spine"
-      ],
-      "budgetUsd": 5,
-      "checkers": [
-        "reviewer"
-      ],
-      "paths": [
-        "books/target/projects/",
-        "packages/backend/src/projects/",
-        "packages/sdk/src/projects/"
-      ]
-    },
-    {
-      "key": "operation:org.projects.timesheet.submit",
-      "kind": "operation",
-      "lane": "projects",
-      "layer": 7,
-      "parent": "lane:projects",
-      "priority": "critical",
-      "evals": [
-        "acc:org.projects.timesheet.submit/1",
-        "acc:org.projects.timesheet.submit/2",
-        "bud:org.projects.timesheet.submit/p95",
-        "des:org.projects.timesheet.submit",
-        "doc:org.projects.timesheet.submit",
-        "evt:org.projects.timesheet.submit/project_transitioned",
-        "evt:org.projects.timesheet.submit/task_transitioned",
-        "evt:org.projects.timesheet.submit/timesheet_transitioned",
-        "ref:org.projects.timesheet.submit/INVALID_INPUT",
-        "ref:org.projects.timesheet.submit/NOT_AUTHENTICATED",
-        "ref:org.projects.timesheet.submit/PROVIDER_ERROR",
-        "ref:org.projects.timesheet.submit/ROLE_PERMISSION_DENIED",
-        "ref:org.projects.timesheet.submit/WRONG_STATE",
-        "ret:org.projects.timesheet.submit",
-        "rpc:projects.timesheets.submit/budget",
-        "rpc:projects.timesheets.submit/errors",
-        "rpc:projects.timesheets.submit/spans",
-        "spn:org.projects.timesheet.submit"
-      ],
-      "record": "operation:org.projects.timesheet.submit",
-      "title": "org projects timesheet submit: Submit a timesheet",
-      "labels": [
-        "area:projects",
-        "kind:operation",
-        "lane:projects",
-        "layer:7",
-        "pilot",
-        "pilot-closure"
-      ],
-      "goal": "`capxul org projects timesheet submit` does what operation org.projects.timesheet.submit promises: its 2 acceptance claims and 7 refusals hold, its --json shape, events, spans and budget pass on a devnet at the head of integration/build, and its reference page agrees with it. Submits a draft timesheet. Its logs no longer change, and its hours roll into its tasks and projects: a task it logs time on becomes working, one a log marks completed completes, and their projects' time, totals and percent complete follow. Every log needs its times and hours, and an activity type when an employee is named; and, as ERPNext checks a draft's every log again, none may name a type since disabled or a task since cancelled.",
-      "needs": [
-        "door:organizations",
-        "door:parties",
-        "door:projects",
-        "integration:chain-rpc",
-        "milestone:B2",
-        "step:B3.spine"
-      ],
-      "budgetUsd": 5,
-      "checkers": [
-        "reviewer"
-      ],
-      "paths": [
-        "books/target/projects/",
-        "packages/backend/src/projects/",
-        "packages/sdk/src/projects/"
-      ]
-    },
-    {
-      "key": "operation:org.projects.activity-type.add",
-      "kind": "operation",
-      "lane": "projects",
-      "layer": 7,
-      "parent": "lane:projects",
-      "priority": "normal",
-      "evals": [
-        "acc:org.projects.activity-type.add/1",
-        "acc:org.projects.activity-type.add/2",
-        "bud:org.projects.activity-type.add/p95",
-        "des:org.projects.activity-type.add",
-        "doc:org.projects.activity-type.add",
-        "ref:org.projects.activity-type.add/INVALID_INPUT",
-        "ref:org.projects.activity-type.add/NOT_AUTHENTICATED",
-        "ref:org.projects.activity-type.add/PROVIDER_ERROR",
-        "ref:org.projects.activity-type.add/ROLE_PERMISSION_DENIED",
-        "ret:org.projects.activity-type.add",
-        "rpc:projects.activity-types.add/budget",
-        "rpc:projects.activity-types.add/errors",
-        "rpc:projects.activity-types.add/spans",
-        "spn:org.projects.activity-type.add"
-      ],
-      "record": "operation:org.projects.activity-type.add",
-      "title": "org projects activity-type add: Add an activity type",
-      "labels": [
-        "area:projects",
-        "kind:operation",
-        "lane:projects",
-        "layer:7"
-      ],
-      "goal": "`capxul org projects activity-type add` does what operation org.projects.activity-type.add promises: its 2 acceptance claims and 5 refusals hold, its --json shape, events, spans and budget pass on a devnet at the head of integration/build, and its reference page agrees with it. Adds a kind of work that time is logged against, named by its title, with default hourly costing and billing rates (zero when not given).",
-      "needs": [
-        "door:organizations",
-        "door:parties",
-        "door:projects",
-        "integration:chain-rpc",
-        "milestone:B3"
-      ],
-      "budgetUsd": 5,
-      "checkers": [
-        "reviewer"
-      ],
-      "paths": [
-        "books/target/projects/",
-        "packages/backend/src/projects/",
-        "packages/sdk/src/projects/"
-      ]
-    },
-    {
-      "key": "operation:org.projects.activity-type.change",
-      "kind": "operation",
-      "lane": "projects",
-      "layer": 7,
-      "parent": "lane:projects",
-      "priority": "normal",
-      "evals": [
-        "acc:org.projects.activity-type.change/1",
-        "acc:org.projects.activity-type.change/2",
-        "bud:org.projects.activity-type.change/p95",
-        "des:org.projects.activity-type.change",
-        "doc:org.projects.activity-type.change",
-        "ref:org.projects.activity-type.change/INVALID_INPUT",
-        "ref:org.projects.activity-type.change/NOT_AUTHENTICATED",
-        "ref:org.projects.activity-type.change/PROVIDER_ERROR",
-        "ref:org.projects.activity-type.change/ROLE_PERMISSION_DENIED",
-        "ret:org.projects.activity-type.change",
-        "rpc:projects.activity-types.change/budget",
-        "rpc:projects.activity-types.change/errors",
-        "rpc:projects.activity-types.change/spans",
-        "spn:org.projects.activity-type.change"
-      ],
-      "record": "operation:org.projects.activity-type.change",
-      "title": "org projects activity-type change: Change an activity type's rates",
-      "labels": [
-        "area:projects",
-        "kind:operation",
-        "lane:projects",
-        "layer:7"
-      ],
-      "goal": "`capxul org projects activity-type change` does what operation org.projects.activity-type.change promises: its 2 acceptance claims and 5 refusals hold, its --json shape, events, spans and budget pass on a devnet at the head of integration/build, and its reference page agrees with it. Changes an activity type's default hourly rates. Logs already made keep their own rates; the next log takes the new ones.",
-      "needs": [
-        "door:organizations",
-        "door:parties",
-        "door:projects",
-        "integration:chain-rpc",
-        "milestone:B3"
-      ],
-      "budgetUsd": 5,
-      "checkers": [
-        "reviewer"
-      ],
-      "paths": [
-        "books/target/projects/",
-        "packages/backend/src/projects/",
-        "packages/sdk/src/projects/"
-      ]
-    },
-    {
-      "key": "operation:org.projects.activity-type.disable",
-      "kind": "operation",
-      "lane": "projects",
-      "layer": 7,
-      "parent": "lane:projects",
-      "priority": "normal",
-      "evals": [
-        "acc:org.projects.activity-type.disable/1",
-        "acc:org.projects.activity-type.disable/2",
-        "acc:org.projects.activity-type.disable/3",
-        "bud:org.projects.activity-type.disable/p95",
-        "des:org.projects.activity-type.disable",
-        "doc:org.projects.activity-type.disable",
-        "ref:org.projects.activity-type.disable/INVALID_INPUT",
-        "ref:org.projects.activity-type.disable/NOT_AUTHENTICATED",
-        "ref:org.projects.activity-type.disable/PROVIDER_ERROR",
-        "ref:org.projects.activity-type.disable/ROLE_PERMISSION_DENIED",
-        "ref:org.projects.activity-type.disable/WRONG_STATE",
-        "ret:org.projects.activity-type.disable",
-        "rpc:projects.activity-types.disable/budget",
-        "rpc:projects.activity-types.disable/errors",
-        "rpc:projects.activity-types.disable/spans",
-        "spn:org.projects.activity-type.disable"
-      ],
-      "record": "operation:org.projects.activity-type.disable",
-      "title": "org projects activity-type disable: Disable an activity type",
-      "labels": [
-        "area:projects",
-        "kind:operation",
-        "lane:projects",
-        "layer:7"
-      ],
-      "goal": "`capxul org projects activity-type disable` does what operation org.projects.activity-type.disable promises: its 3 acceptance claims and 6 refusals hold, its --json shape, events, spans and budget pass on a devnet at the head of integration/build, and its reference page agrees with it. Disables an activity type: no new log may name it. Logs that already name it are kept.",
-      "needs": [
-        "door:organizations",
-        "door:parties",
-        "door:projects",
-        "integration:chain-rpc",
-        "milestone:B3"
-      ],
-      "budgetUsd": 5,
-      "checkers": [
-        "reviewer"
-      ],
-      "paths": [
-        "books/target/projects/",
-        "packages/backend/src/projects/",
-        "packages/sdk/src/projects/"
-      ]
-    },
-    {
-      "key": "operation:org.projects.activity-type.enable",
-      "kind": "operation",
-      "lane": "projects",
-      "layer": 7,
-      "parent": "lane:projects",
-      "priority": "normal",
-      "evals": [
-        "acc:org.projects.activity-type.enable/1",
-        "acc:org.projects.activity-type.enable/2",
-        "bud:org.projects.activity-type.enable/p95",
-        "des:org.projects.activity-type.enable",
-        "doc:org.projects.activity-type.enable",
-        "ref:org.projects.activity-type.enable/INVALID_INPUT",
-        "ref:org.projects.activity-type.enable/NOT_AUTHENTICATED",
-        "ref:org.projects.activity-type.enable/PROVIDER_ERROR",
-        "ref:org.projects.activity-type.enable/ROLE_PERMISSION_DENIED",
-        "ref:org.projects.activity-type.enable/WRONG_STATE",
-        "ret:org.projects.activity-type.enable",
-        "rpc:projects.activity-types.enable/budget",
-        "rpc:projects.activity-types.enable/errors",
-        "rpc:projects.activity-types.enable/spans",
-        "spn:org.projects.activity-type.enable"
-      ],
-      "record": "operation:org.projects.activity-type.enable",
-      "title": "org projects activity-type enable: Enable an activity type",
-      "labels": [
-        "area:projects",
-        "kind:operation",
-        "lane:projects",
-        "layer:7"
-      ],
-      "goal": "`capxul org projects activity-type enable` does what operation org.projects.activity-type.enable promises: its 2 acceptance claims and 6 refusals hold, its --json shape, events, spans and budget pass on a devnet at the head of integration/build, and its reference page agrees with it. Enables a disabled activity type, so time can be logged against it again.",
-      "needs": [
-        "door:organizations",
-        "door:parties",
-        "door:projects",
-        "integration:chain-rpc",
-        "milestone:B3"
-      ],
-      "budgetUsd": 5,
-      "checkers": [
-        "reviewer"
-      ],
-      "paths": [
-        "books/target/projects/",
-        "packages/backend/src/projects/",
-        "packages/sdk/src/projects/"
-      ]
-    },
-    {
-      "key": "operation:org.projects.activity-type.list",
-      "kind": "operation",
-      "lane": "projects",
-      "layer": 7,
-      "parent": "lane:projects",
-      "priority": "normal",
-      "evals": [
-        "acc:org.projects.activity-type.list/1",
-        "acc:org.projects.activity-type.list/2",
-        "bud:org.projects.activity-type.list/p95",
-        "des:org.projects.activity-type.list",
-        "doc:org.projects.activity-type.list",
-        "ref:org.projects.activity-type.list/NOT_AUTHENTICATED",
-        "ref:org.projects.activity-type.list/ROLE_PERMISSION_DENIED",
-        "ret:org.projects.activity-type.list",
-        "rpc:projects.activity-types.list/budget",
-        "rpc:projects.activity-types.list/errors",
-        "rpc:projects.activity-types.list/spans",
-        "spn:org.projects.activity-type.list"
-      ],
-      "record": "operation:org.projects.activity-type.list",
-      "title": "org projects activity-type list: List the activity types",
-      "labels": [
-        "area:projects",
-        "kind:operation",
-        "lane:projects",
-        "layer:7"
-      ],
-      "goal": "`capxul org projects activity-type list` does what operation org.projects.activity-type.list promises: its 2 acceptance claims and 2 refusals hold, its --json shape, events, spans and budget pass on a devnet at the head of integration/build, and its reference page agrees with it. Lists the Organization's activity types with their default rates, enabled ones first.",
-      "needs": [
-        "door:organizations",
-        "door:parties",
-        "door:projects",
-        "milestone:B3"
-      ],
-      "budgetUsd": 5,
-      "checkers": [
-        "reviewer"
-      ],
-      "paths": [
-        "books/target/projects/",
-        "packages/backend/src/projects/",
-        "packages/sdk/src/projects/"
-      ]
-    },
-    {
-      "key": "operation:org.projects.cancel",
-      "kind": "operation",
-      "lane": "projects",
-      "layer": 7,
-      "parent": "lane:projects",
-      "priority": "normal",
-      "evals": [
-        "acc:org.projects.cancel/1",
-        "acc:org.projects.cancel/2",
-        "acc:org.projects.cancel/3",
-        "bud:org.projects.cancel/p95",
-        "des:org.projects.cancel",
-        "doc:org.projects.cancel",
-        "evt:org.projects.cancel/project_transitioned",
-        "ref:org.projects.cancel/INVALID_INPUT",
-        "ref:org.projects.cancel/NOT_AUTHENTICATED",
-        "ref:org.projects.cancel/PROVIDER_ERROR",
-        "ref:org.projects.cancel/ROLE_PERMISSION_DENIED",
-        "ref:org.projects.cancel/WRONG_STATE",
-        "ret:org.projects.cancel",
-        "rpc:projects.projects.cancel/budget",
-        "rpc:projects.projects.cancel/errors",
-        "rpc:projects.projects.cancel/spans",
-        "spn:org.projects.cancel"
-      ],
-      "record": "operation:org.projects.cancel",
-      "title": "org projects cancel: Cancel a project",
-      "labels": [
-        "area:projects",
-        "kind:operation",
-        "lane:projects",
-        "layer:7"
-      ],
-      "goal": "`capxul org projects cancel` does what operation org.projects.cancel promises: its 3 acceptance claims and 6 refusals hold, its --json shape, events, spans and budget pass on a devnet at the head of integration/build, and its reference page agrees with it. Cancels an open or on-hold project. It is kept, with its tasks and timesheets: `org projects list --status cancelled` still lists it, and `org projects reopen` opens it again.",
-      "needs": [
-        "door:organizations",
-        "door:parties",
-        "door:projects",
-        "integration:chain-rpc",
-        "milestone:B3"
-      ],
-      "budgetUsd": 5,
-      "checkers": [
-        "reviewer"
-      ],
-      "paths": [
-        "books/target/projects/",
-        "packages/backend/src/projects/",
-        "packages/sdk/src/projects/"
-      ]
-    },
-    {
-      "key": "operation:org.projects.change",
-      "kind": "operation",
-      "lane": "projects",
-      "layer": 7,
-      "parent": "lane:projects",
-      "priority": "normal",
-      "evals": [
-        "acc:org.projects.change/1",
-        "acc:org.projects.change/2",
-        "acc:org.projects.change/3",
-        "bud:org.projects.change/p95",
-        "des:org.projects.change",
-        "doc:org.projects.change",
-        "evt:org.projects.change/project_transitioned",
-        "ref:org.projects.change/INVALID_INPUT",
-        "ref:org.projects.change/NOT_AUTHENTICATED",
-        "ref:org.projects.change/PROVIDER_ERROR",
-        "ref:org.projects.change/ROLE_PERMISSION_DENIED",
-        "ret:org.projects.change",
-        "rpc:projects.projects.change/budget",
-        "rpc:projects.projects.change/errors",
-        "rpc:projects.projects.change/spans",
-        "spn:org.projects.change"
-      ],
-      "record": "operation:org.projects.change",
-      "title": "org projects change: Change a project's fields",
-      "labels": [
-        "area:projects",
-        "kind:operation",
-        "lane:projects",
-        "layer:7"
-      ],
-      "goal": "`capxul org projects change` does what operation org.projects.change promises: its 3 acceptance claims and 6 refusals hold, its --json shape, events, spans and budget pass on a devnet at the head of integration/build, and its reference page agrees with it. Changes a project's fields, with the flags `org projects create` takes; `--clear <field>` empties one. The fields not given are kept, and a change that gives none is refused. No flag sets its status, which `hold`, `resume`, `complete`, `reopen` and `cancel` move, except that a new `--progress` method from its tasks works its percent out again and, as a task's change would, completes an open project at 100 or opens a completed one below it. Its totals and actual dates are worked out, never set; its percent complete is set with `--percent` only when it is worked out by hand (`--progress manual`).",
-      "needs": [
-        "door:organizations",
-        "door:parties",
-        "door:projects",
-        "integration:chain-rpc",
-        "milestone:B3"
-      ],
-      "budgetUsd": 5,
-      "checkers": [
-        "reviewer"
-      ],
-      "paths": [
-        "books/target/projects/",
-        "packages/backend/src/projects/",
-        "packages/sdk/src/projects/"
-      ]
-    },
-    {
-      "key": "operation:org.projects.complete",
-      "kind": "operation",
-      "lane": "projects",
-      "layer": 7,
-      "parent": "lane:projects",
-      "priority": "normal",
-      "evals": [
-        "acc:org.projects.complete/1",
-        "acc:org.projects.complete/2",
-        "bud:org.projects.complete/p95",
-        "des:org.projects.complete",
-        "doc:org.projects.complete",
-        "evt:org.projects.complete/project_transitioned",
-        "ref:org.projects.complete/INVALID_INPUT",
-        "ref:org.projects.complete/NOT_AUTHENTICATED",
-        "ref:org.projects.complete/PROVIDER_ERROR",
-        "ref:org.projects.complete/ROLE_PERMISSION_DENIED",
-        "ref:org.projects.complete/WRONG_STATE",
-        "ret:org.projects.complete",
-        "rpc:projects.projects.complete/budget",
-        "rpc:projects.projects.complete/errors",
-        "rpc:projects.projects.complete/spans",
-        "spn:org.projects.complete"
-      ],
-      "record": "operation:org.projects.complete",
-      "title": "org projects complete: Complete a project",
-      "labels": [
-        "area:projects",
-        "kind:operation",
-        "lane:projects",
-        "layer:7"
-      ],
-      "goal": "`capxul org projects complete` does what operation org.projects.complete promises: its 2 acceptance claims and 6 refusals hold, its --json shape, events, spans and budget pass on a devnet at the head of integration/build, and its reference page agrees with it. Completes an open project whose tasks make it 100 percent complete (with task completion: all completed or cancelled), one worked out by hand, or one with no tasks, which from then on is worked out by hand, as ERPNext does; its percent complete becomes 100. A project with an unfinished task is refused, naming each one: finish or cancel them first.",
-      "needs": [
-        "door:organizations",
-        "door:parties",
-        "door:projects",
-        "integration:chain-rpc",
-        "milestone:B3"
-      ],
-      "budgetUsd": 5,
-      "checkers": [
-        "reviewer"
-      ],
-      "paths": [
-        "books/target/projects/",
-        "packages/backend/src/projects/",
-        "packages/sdk/src/projects/"
-      ]
-    },
-    {
-      "key": "operation:org.projects.hold",
-      "kind": "operation",
-      "lane": "projects",
-      "layer": 7,
-      "parent": "lane:projects",
-      "priority": "normal",
-      "evals": [
-        "acc:org.projects.hold/1",
-        "acc:org.projects.hold/2",
-        "acc:org.projects.hold/3",
-        "bud:org.projects.hold/p95",
-        "des:org.projects.hold",
-        "doc:org.projects.hold",
-        "evt:org.projects.hold/project_transitioned",
-        "ref:org.projects.hold/INVALID_INPUT",
-        "ref:org.projects.hold/NOT_AUTHENTICATED",
-        "ref:org.projects.hold/PROVIDER_ERROR",
-        "ref:org.projects.hold/ROLE_PERMISSION_DENIED",
-        "ref:org.projects.hold/WRONG_STATE",
-        "ret:org.projects.hold",
-        "rpc:projects.projects.hold/budget",
-        "rpc:projects.projects.hold/errors",
-        "rpc:projects.projects.hold/spans",
-        "spn:org.projects.hold"
-      ],
-      "record": "operation:org.projects.hold",
-      "title": "org projects hold: Put a project on hold",
-      "labels": [
-        "area:projects",
-        "kind:operation",
-        "lane:projects",
-        "layer:7"
-      ],
-      "goal": "`capxul org projects hold` does what operation org.projects.hold promises: its 3 acceptance claims and 6 refusals hold, its --json shape, events, spans and budget pass on a devnet at the head of integration/build, and its reference page agrees with it. Puts an open project on hold. Its tasks can still be worked and its percent complete still moves, but it no longer completes or reopens by itself until it is resumed.",
-      "needs": [
-        "door:organizations",
-        "door:parties",
-        "door:projects",
-        "integration:chain-rpc",
-        "milestone:B3"
-      ],
-      "budgetUsd": 5,
-      "checkers": [
-        "reviewer"
-      ],
-      "paths": [
-        "books/target/projects/",
-        "packages/backend/src/projects/",
-        "packages/sdk/src/projects/"
-      ]
-    },
-    {
-      "key": "operation:org.projects.member.add",
-      "kind": "operation",
-      "lane": "projects",
-      "layer": 7,
-      "parent": "lane:projects",
-      "priority": "normal",
-      "evals": [
-        "acc:org.projects.member.add/1",
-        "acc:org.projects.member.add/2",
-        "bud:org.projects.member.add/p95",
-        "des:org.projects.member.add",
-        "doc:org.projects.member.add",
-        "ref:org.projects.member.add/INVALID_INPUT",
-        "ref:org.projects.member.add/NOT_AUTHENTICATED",
-        "ref:org.projects.member.add/PROVIDER_ERROR",
-        "ref:org.projects.member.add/ROLE_PERMISSION_DENIED",
-        "ref:org.projects.member.add/WRONG_STATE",
-        "ret:org.projects.member.add",
-        "rpc:projects.members.add/budget",
-        "rpc:projects.members.add/errors",
-        "rpc:projects.members.add/spans",
-        "spn:org.projects.member.add"
-      ],
-      "record": "operation:org.projects.member.add",
-      "title": "org projects member add: Share a project with a member",
-      "labels": [
-        "area:projects",
-        "kind:operation",
-        "lane:projects",
-        "layer:7"
-      ],
-      "goal": "`capxul org projects member add` does what operation org.projects.member.add promises: its 2 acceptance claims and 7 refusals hold, its --json shape, events, spans and budget pass on a devnet at the head of integration/build, and its reference page agrees with it. Shares a project with a member of the Organization, named by their email or an agent's @handle: Frappe's Project User, which a connected head uses for its portal and project emails. Every member reads every project already; sharing says who works on it.",
-      "needs": [
-        "door:organizations",
-        "door:parties",
-        "door:projects",
-        "integration:chain-rpc",
-        "milestone:B3"
-      ],
-      "budgetUsd": 5,
-      "checkers": [
-        "reviewer"
-      ],
-      "paths": [
-        "books/target/projects/",
-        "packages/backend/src/projects/",
-        "packages/sdk/src/projects/"
-      ]
-    },
-    {
-      "key": "operation:org.projects.member.remove",
-      "kind": "operation",
-      "lane": "projects",
-      "layer": 7,
-      "parent": "lane:projects",
-      "priority": "normal",
-      "evals": [
-        "acc:org.projects.member.remove/1",
-        "acc:org.projects.member.remove/2",
-        "bud:org.projects.member.remove/p95",
-        "des:org.projects.member.remove",
-        "doc:org.projects.member.remove",
-        "ref:org.projects.member.remove/INVALID_INPUT",
-        "ref:org.projects.member.remove/NOT_AUTHENTICATED",
-        "ref:org.projects.member.remove/PROVIDER_ERROR",
-        "ref:org.projects.member.remove/ROLE_PERMISSION_DENIED",
-        "ref:org.projects.member.remove/WRONG_STATE",
-        "ret:org.projects.member.remove",
-        "rpc:projects.members.remove/budget",
-        "rpc:projects.members.remove/errors",
-        "rpc:projects.members.remove/spans",
-        "spn:org.projects.member.remove"
-      ],
-      "record": "operation:org.projects.member.remove",
-      "title": "org projects member remove: Stop sharing a project with a member",
-      "labels": [
-        "area:projects",
-        "kind:operation",
-        "lane:projects",
-        "layer:7"
-      ],
-      "goal": "`capxul org projects member remove` does what operation org.projects.member.remove promises: its 2 acceptance claims and 7 refusals hold, its --json shape, events, spans and budget pass on a devnet at the head of integration/build, and its reference page agrees with it. Stops sharing a project with a member. Their tasks, time logs and timesheets on it are kept, and they still read it, as every member reads every project.",
-      "needs": [
-        "door:organizations",
-        "door:parties",
-        "door:projects",
-        "integration:chain-rpc",
-        "milestone:B3"
-      ],
-      "budgetUsd": 5,
-      "checkers": [
-        "reviewer"
-      ],
-      "paths": [
-        "books/target/projects/",
-        "packages/backend/src/projects/",
-        "packages/sdk/src/projects/"
-      ]
-    },
-    {
-      "key": "operation:org.projects.project-type.add",
-      "kind": "operation",
-      "lane": "projects",
-      "layer": 7,
-      "parent": "lane:projects",
-      "priority": "normal",
-      "evals": [
-        "acc:org.projects.project-type.add/1",
-        "acc:org.projects.project-type.add/2",
-        "bud:org.projects.project-type.add/p95",
-        "des:org.projects.project-type.add",
-        "doc:org.projects.project-type.add",
-        "ref:org.projects.project-type.add/INVALID_INPUT",
-        "ref:org.projects.project-type.add/NOT_AUTHENTICATED",
-        "ref:org.projects.project-type.add/PROVIDER_ERROR",
-        "ref:org.projects.project-type.add/ROLE_PERMISSION_DENIED",
-        "ret:org.projects.project-type.add",
-        "rpc:projects.project-types.add/budget",
-        "rpc:projects.project-types.add/errors",
-        "rpc:projects.project-types.add/spans",
-        "spn:org.projects.project-type.add"
-      ],
-      "record": "operation:org.projects.project-type.add",
-      "title": "org projects project-type add: Add a project type",
-      "labels": [
-        "area:projects",
-        "kind:operation",
-        "lane:projects",
-        "layer:7"
-      ],
-      "goal": "`capxul org projects project-type add` does what operation org.projects.project-type.add promises: its 2 acceptance claims and 5 refusals hold, its --json shape, events, spans and budget pass on a devnet at the head of integration/build, and its reference page agrees with it. Adds a project type, named by its title, with an optional description. A project names its type with `--type`.",
-      "needs": [
-        "door:organizations",
-        "door:parties",
-        "door:projects",
-        "integration:chain-rpc",
-        "milestone:B3"
-      ],
-      "budgetUsd": 5,
-      "checkers": [
-        "reviewer"
-      ],
-      "paths": [
-        "books/target/projects/",
-        "packages/backend/src/projects/",
-        "packages/sdk/src/projects/"
-      ]
-    },
-    {
-      "key": "operation:org.projects.project-type.list",
-      "kind": "operation",
-      "lane": "projects",
-      "layer": 7,
-      "parent": "lane:projects",
-      "priority": "normal",
-      "evals": [
-        "acc:org.projects.project-type.list/1",
-        "acc:org.projects.project-type.list/2",
-        "bud:org.projects.project-type.list/p95",
-        "des:org.projects.project-type.list",
-        "doc:org.projects.project-type.list",
-        "ref:org.projects.project-type.list/NOT_AUTHENTICATED",
-        "ref:org.projects.project-type.list/ROLE_PERMISSION_DENIED",
-        "ret:org.projects.project-type.list",
-        "rpc:projects.project-types.list/budget",
-        "rpc:projects.project-types.list/errors",
-        "rpc:projects.project-types.list/spans",
-        "spn:org.projects.project-type.list"
-      ],
-      "record": "operation:org.projects.project-type.list",
-      "title": "org projects project-type list: List the project types",
-      "labels": [
-        "area:projects",
-        "kind:operation",
-        "lane:projects",
-        "layer:7"
-      ],
-      "goal": "`capxul org projects project-type list` does what operation org.projects.project-type.list promises: its 2 acceptance claims and 2 refusals hold, its --json shape, events, spans and budget pass on a devnet at the head of integration/build, and its reference page agrees with it. Lists the Organization's project types with their descriptions.",
-      "needs": [
-        "door:organizations",
-        "door:parties",
-        "door:projects",
-        "milestone:B3"
-      ],
-      "budgetUsd": 5,
-      "checkers": [
-        "reviewer"
-      ],
-      "paths": [
-        "books/target/projects/",
-        "packages/backend/src/projects/",
-        "packages/sdk/src/projects/"
-      ]
-    },
-    {
-      "key": "operation:org.projects.reopen",
-      "kind": "operation",
-      "lane": "projects",
-      "layer": 7,
-      "parent": "lane:projects",
-      "priority": "normal",
-      "evals": [
-        "acc:org.projects.reopen/1",
-        "acc:org.projects.reopen/2",
-        "acc:org.projects.reopen/3",
-        "bud:org.projects.reopen/p95",
-        "des:org.projects.reopen",
-        "doc:org.projects.reopen",
-        "evt:org.projects.reopen/project_transitioned",
-        "ref:org.projects.reopen/INVALID_INPUT",
-        "ref:org.projects.reopen/NOT_AUTHENTICATED",
-        "ref:org.projects.reopen/PROVIDER_ERROR",
-        "ref:org.projects.reopen/ROLE_PERMISSION_DENIED",
-        "ref:org.projects.reopen/WRONG_STATE",
-        "ret:org.projects.reopen",
-        "rpc:projects.projects.reopen/budget",
-        "rpc:projects.projects.reopen/errors",
-        "rpc:projects.projects.reopen/spans",
-        "spn:org.projects.reopen"
-      ],
-      "record": "operation:org.projects.reopen",
-      "title": "org projects reopen: Reopen a completed or cancelled project",
-      "labels": [
-        "area:projects",
-        "kind:operation",
-        "lane:projects",
-        "layer:7"
-      ],
-      "goal": "`capxul org projects reopen` does what operation org.projects.reopen promises: its 3 acceptance claims and 6 refusals hold, its --json shape, events, spans and budget pass on a devnet at the head of integration/build, and its reference page agrees with it. Opens a completed or cancelled project again, with its tasks and timesheets as they were. A completed project whose tasks still make it 100 percent is refused: reopen or add one of its tasks instead.",
-      "needs": [
-        "door:organizations",
-        "door:parties",
-        "door:projects",
-        "integration:chain-rpc",
-        "milestone:B3"
-      ],
-      "budgetUsd": 5,
-      "checkers": [
-        "reviewer"
-      ],
-      "paths": [
-        "books/target/projects/",
-        "packages/backend/src/projects/",
-        "packages/sdk/src/projects/"
-      ]
-    },
-    {
-      "key": "operation:org.projects.resume",
-      "kind": "operation",
-      "lane": "projects",
-      "layer": 7,
-      "parent": "lane:projects",
-      "priority": "normal",
-      "evals": [
-        "acc:org.projects.resume/1",
-        "acc:org.projects.resume/2",
-        "acc:org.projects.resume/3",
-        "bud:org.projects.resume/p95",
-        "des:org.projects.resume",
-        "doc:org.projects.resume",
-        "evt:org.projects.resume/project_transitioned",
-        "ref:org.projects.resume/INVALID_INPUT",
-        "ref:org.projects.resume/NOT_AUTHENTICATED",
-        "ref:org.projects.resume/PROVIDER_ERROR",
-        "ref:org.projects.resume/ROLE_PERMISSION_DENIED",
-        "ref:org.projects.resume/WRONG_STATE",
-        "ret:org.projects.resume",
-        "rpc:projects.projects.resume/budget",
-        "rpc:projects.projects.resume/errors",
-        "rpc:projects.projects.resume/spans",
-        "spn:org.projects.resume"
-      ],
-      "record": "operation:org.projects.resume",
-      "title": "org projects resume: Take a project off hold",
-      "labels": [
-        "area:projects",
-        "kind:operation",
-        "lane:projects",
-        "layer:7"
-      ],
-      "goal": "`capxul org projects resume` does what operation org.projects.resume promises: its 3 acceptance claims and 6 refusals hold, its --json shape, events, spans and budget pass on a devnet at the head of integration/build, and its reference page agrees with it. Takes a project off hold: it is open again, and its status follows its percent complete from then on, so one whose tasks are all done completes at once.",
-      "needs": [
-        "door:organizations",
-        "door:parties",
-        "door:projects",
-        "integration:chain-rpc",
-        "milestone:B3"
-      ],
-      "budgetUsd": 5,
-      "checkers": [
-        "reviewer"
-      ],
-      "paths": [
-        "books/target/projects/",
-        "packages/backend/src/projects/",
-        "packages/sdk/src/projects/"
-      ]
-    },
-    {
-      "key": "operation:org.projects.settings.set",
-      "kind": "operation",
-      "lane": "projects",
-      "layer": 7,
-      "parent": "lane:projects",
-      "priority": "normal",
-      "evals": [
-        "acc:org.projects.settings.set/1",
-        "acc:org.projects.settings.set/2",
-        "acc:org.projects.settings.set/3",
-        "bud:org.projects.settings.set/p95",
-        "des:org.projects.settings.set",
-        "doc:org.projects.settings.set",
-        "ref:org.projects.settings.set/INVALID_INPUT",
-        "ref:org.projects.settings.set/NOT_AUTHENTICATED",
-        "ref:org.projects.settings.set/PROVIDER_ERROR",
-        "ref:org.projects.settings.set/ROLE_PERMISSION_DENIED",
-        "ret:org.projects.settings.set",
-        "rpc:projects.settings.set/budget",
-        "rpc:projects.settings.set/errors",
-        "rpc:projects.settings.set/spans",
-        "spn:org.projects.settings.set"
-      ],
-      "record": "operation:org.projects.settings.set",
-      "title": "org projects settings set: Set the Projects Settings",
-      "labels": [
-        "area:projects",
-        "kind:operation",
-        "lane:projects",
-        "layer:7"
-      ],
-      "goal": "`capxul org projects settings set` does what operation org.projects.settings.set promises: its 3 acceptance claims and 5 refusals hold, its --json shape, events, spans and budget pass on a devnet at the head of integration/build, and its reference page agrees with it. Sets the Projects Settings given, each with its `--no-` form, and keeps the rest. The next time log is checked against the new values, and so are a draft's earlier logs when it next takes a log or is submitted; a submitted timesheet's logs are not checked again.",
-      "needs": [
-        "door:organizations",
-        "door:parties",
-        "door:projects",
-        "integration:chain-rpc",
-        "milestone:B3"
-      ],
-      "budgetUsd": 5,
-      "checkers": [
-        "reviewer"
-      ],
-      "paths": [
-        "books/target/projects/",
-        "packages/backend/src/projects/",
-        "packages/sdk/src/projects/"
-      ]
-    },
-    {
-      "key": "operation:org.projects.settings.show",
-      "kind": "operation",
-      "lane": "projects",
-      "layer": 7,
-      "parent": "lane:projects",
-      "priority": "normal",
-      "evals": [
-        "acc:org.projects.settings.show/1",
-        "acc:org.projects.settings.show/2",
-        "bud:org.projects.settings.show/p95",
-        "des:org.projects.settings.show",
-        "doc:org.projects.settings.show",
-        "ref:org.projects.settings.show/NOT_AUTHENTICATED",
-        "ref:org.projects.settings.show/ROLE_PERMISSION_DENIED",
-        "ret:org.projects.settings.show",
-        "rpc:projects.settings.show/budget",
-        "rpc:projects.settings.show/errors",
-        "rpc:projects.settings.show/spans",
-        "spn:org.projects.settings.show"
-      ],
-      "record": "operation:org.projects.settings.show",
-      "title": "org projects settings show: Show the Projects Settings",
-      "labels": [
-        "area:projects",
-        "kind:operation",
-        "lane:projects",
-        "layer:7"
-      ],
-      "goal": "`capxul org projects settings show` does what operation org.projects.settings.show promises: its 2 acceptance claims and 2 refusals hold, its --json shape, events, spans and budget pass on a devnet at the head of integration/build, and its reference page agrees with it. Shows the Organization's Projects Settings: whether one worker's time logs may overlap, whether one employee's may, and whether an invoice fetches timesheets. Every Organization starts with all three off.",
-      "needs": [
-        "door:organizations",
-        "door:parties",
-        "door:projects",
-        "milestone:B3"
-      ],
-      "budgetUsd": 5,
-      "checkers": [
-        "reviewer"
-      ],
-      "paths": [
-        "books/target/projects/",
-        "packages/backend/src/projects/",
-        "packages/sdk/src/projects/"
-      ]
-    },
-    {
-      "key": "operation:org.projects.task.cancel",
-      "kind": "operation",
-      "lane": "projects",
-      "layer": 7,
-      "parent": "lane:projects",
-      "priority": "normal",
-      "evals": [
-        "acc:org.projects.task.cancel/1",
-        "acc:org.projects.task.cancel/2",
-        "acc:org.projects.task.cancel/3",
-        "bud:org.projects.task.cancel/p95",
-        "des:org.projects.task.cancel",
-        "doc:org.projects.task.cancel",
-        "evt:org.projects.task.cancel/project_transitioned",
-        "evt:org.projects.task.cancel/task_transitioned",
-        "ref:org.projects.task.cancel/INVALID_INPUT",
-        "ref:org.projects.task.cancel/NOT_AUTHENTICATED",
-        "ref:org.projects.task.cancel/ROLE_PERMISSION_DENIED",
-        "ref:org.projects.task.cancel/WRONG_STATE",
-        "ret:org.projects.task.cancel",
-        "rpc:projects.tasks.cancel/budget",
-        "rpc:projects.tasks.cancel/errors",
-        "rpc:projects.tasks.cancel/spans",
-        "spn:org.projects.task.cancel"
-      ],
-      "record": "operation:org.projects.task.cancel",
-      "title": "org projects task cancel: Cancel a task",
-      "labels": [
-        "area:projects",
-        "kind:operation",
-        "lane:projects",
-        "layer:7"
-      ],
-      "goal": "`capxul org projects task cancel` does what operation org.projects.task.cancel promises: its 3 acceptance claims and 4 refusals hold, its --json shape, events, spans and budget pass on a devnet at the head of integration/build, and its reference page agrees with it. Cancels a task and keeps it. It counts as done for its project's percent complete and for the tasks that depend on it.",
-      "needs": [
-        "door:organizations",
-        "door:parties",
-        "door:projects",
-        "milestone:B3"
-      ],
-      "budgetUsd": 5,
-      "checkers": [
-        "reviewer"
-      ],
-      "paths": [
-        "books/target/projects/",
-        "packages/backend/src/projects/",
-        "packages/sdk/src/projects/"
-      ]
-    },
-    {
-      "key": "operation:org.projects.task.change",
-      "kind": "operation",
-      "lane": "projects",
-      "layer": 7,
-      "parent": "lane:projects",
-      "priority": "normal",
-      "evals": [
-        "acc:org.projects.task.change/1",
-        "acc:org.projects.task.change/2",
-        "bud:org.projects.task.change/p95",
-        "des:org.projects.task.change",
-        "doc:org.projects.task.change",
-        "evt:org.projects.task.change/project_transitioned",
-        "evt:org.projects.task.change/task_transitioned",
-        "ref:org.projects.task.change/INVALID_INPUT",
-        "ref:org.projects.task.change/NOT_AUTHENTICATED",
-        "ref:org.projects.task.change/ROLE_PERMISSION_DENIED",
-        "ret:org.projects.task.change",
-        "rpc:projects.tasks.change/budget",
-        "rpc:projects.tasks.change/errors",
-        "rpc:projects.tasks.change/spans",
-        "spn:org.projects.task.change"
-      ],
-      "record": "operation:org.projects.task.change",
-      "title": "org projects task change: Change a task's fields",
-      "labels": [
-        "area:projects",
-        "kind:operation",
-        "lane:projects",
-        "layer:7"
-      ],
-      "goal": "`capxul org projects task change` does what operation org.projects.task.change promises: its 2 acceptance claims and 4 refusals hold, its --json shape, events, spans and budget pass on a devnet at the head of integration/build, and its reference page agrees with it. Changes a task's fields, with the flags `org projects task create` takes; `--clear <field>` empties one. Its status moves only by its lifecycle commands, except that moving an overdue task's expected end to a day that has not yet ended, or clearing it, takes it back to open, or to working if time is logged on it.",
-      "needs": [
-        "door:organizations",
-        "door:parties",
-        "door:projects",
-        "milestone:B3"
-      ],
-      "budgetUsd": 5,
-      "checkers": [
-        "reviewer"
-      ],
-      "paths": [
-        "books/target/projects/",
-        "packages/backend/src/projects/",
-        "packages/sdk/src/projects/"
-      ]
-    },
-    {
-      "key": "operation:org.projects.task.get",
-      "kind": "operation",
-      "lane": "projects",
-      "layer": 7,
-      "parent": "lane:projects",
-      "priority": "normal",
-      "evals": [
-        "acc:org.projects.task.get/1",
-        "acc:org.projects.task.get/2",
-        "bud:org.projects.task.get/p95",
-        "des:org.projects.task.get",
-        "doc:org.projects.task.get",
-        "ref:org.projects.task.get/INVALID_INPUT",
-        "ref:org.projects.task.get/NOT_AUTHENTICATED",
-        "ref:org.projects.task.get/ROLE_PERMISSION_DENIED",
-        "ret:org.projects.task.get",
-        "rpc:projects.tasks.get/budget",
-        "rpc:projects.tasks.get/errors",
-        "rpc:projects.tasks.get/spans",
-        "spn:org.projects.task.get"
-      ],
-      "record": "operation:org.projects.task.get",
-      "title": "org projects task get: Show one task",
-      "labels": [
-        "area:projects",
-        "kind:operation",
-        "lane:projects",
-        "layer:7"
-      ],
-      "goal": "`capxul org projects task get` does what operation org.projects.task.get promises: its 2 acceptance claims and 3 refusals hold, its --json shape, events, spans and budget pass on a devnet at the head of integration/build, and its reference page agrees with it. Shows one task: its fields, the tasks it depends on and its children with their statuses, its logged time and totals, and who completed it and when.",
-      "needs": [
-        "door:organizations",
-        "door:parties",
-        "door:projects",
-        "milestone:B3"
-      ],
-      "budgetUsd": 5,
-      "checkers": [
-        "reviewer"
-      ],
-      "paths": [
-        "books/target/projects/",
-        "packages/backend/src/projects/",
-        "packages/sdk/src/projects/"
-      ]
-    },
-    {
-      "key": "operation:org.projects.task.reopen",
-      "kind": "operation",
-      "lane": "projects",
-      "layer": 7,
-      "parent": "lane:projects",
-      "priority": "normal",
-      "evals": [
-        "acc:org.projects.task.reopen/1",
-        "acc:org.projects.task.reopen/2",
-        "acc:org.projects.task.reopen/3",
-        "bud:org.projects.task.reopen/p95",
-        "des:org.projects.task.reopen",
-        "doc:org.projects.task.reopen",
-        "evt:org.projects.task.reopen/project_transitioned",
-        "evt:org.projects.task.reopen/task_transitioned",
-        "ref:org.projects.task.reopen/INVALID_INPUT",
-        "ref:org.projects.task.reopen/NOT_AUTHENTICATED",
-        "ref:org.projects.task.reopen/ROLE_PERMISSION_DENIED",
-        "ref:org.projects.task.reopen/WRONG_STATE",
-        "ret:org.projects.task.reopen",
-        "rpc:projects.tasks.reopen/budget",
-        "rpc:projects.tasks.reopen/errors",
-        "rpc:projects.tasks.reopen/spans",
-        "spn:org.projects.task.reopen"
-      ],
-      "record": "operation:org.projects.task.reopen",
-      "title": "org projects task reopen: Reopen a task",
-      "labels": [
-        "area:projects",
-        "kind:operation",
-        "lane:projects",
-        "layer:7"
-      ],
-      "goal": "`capxul org projects task reopen` does what operation org.projects.task.reopen promises: its 3 acceptance claims and 4 refusals hold, its --json shape, events, spans and budget pass on a devnet at the head of integration/build, and its reference page agrees with it. Opens a completed or cancelled task again, clearing who completed it. A project its tasks had completed opens again.",
-      "needs": [
-        "door:organizations",
-        "door:parties",
-        "door:projects",
-        "milestone:B3"
-      ],
-      "budgetUsd": 5,
-      "checkers": [
-        "reviewer"
-      ],
-      "paths": [
-        "books/target/projects/",
-        "packages/backend/src/projects/",
-        "packages/sdk/src/projects/"
-      ]
-    },
-    {
-      "key": "operation:org.projects.task.review",
-      "kind": "operation",
-      "lane": "projects",
-      "layer": 7,
-      "parent": "lane:projects",
-      "priority": "normal",
-      "evals": [
-        "acc:org.projects.task.review/1",
-        "acc:org.projects.task.review/2",
-        "bud:org.projects.task.review/p95",
-        "des:org.projects.task.review",
-        "doc:org.projects.task.review",
-        "evt:org.projects.task.review/task_transitioned",
-        "ref:org.projects.task.review/INVALID_INPUT",
-        "ref:org.projects.task.review/NOT_AUTHENTICATED",
-        "ref:org.projects.task.review/ROLE_PERMISSION_DENIED",
-        "ref:org.projects.task.review/WRONG_STATE",
-        "ret:org.projects.task.review",
-        "rpc:projects.tasks.review/budget",
-        "rpc:projects.tasks.review/errors",
-        "rpc:projects.tasks.review/spans",
-        "spn:org.projects.task.review"
-      ],
-      "record": "operation:org.projects.task.review",
-      "title": "org projects task review: Send a task for review",
-      "labels": [
-        "area:projects",
-        "kind:operation",
-        "lane:projects",
-        "layer:7"
-      ],
-      "goal": "`capxul org projects task review` does what operation org.projects.task.review promises: its 2 acceptance claims and 5 refusals hold, its --json shape, events, spans and budget pass on a devnet at the head of integration/build, and its reference page agrees with it. Sends a task for review by a day (`--by`). Unfinished, it falls overdue once its expected end's day has ended and the review day has come, as ERPNext's daily overdue job has it.",
-      "needs": [
-        "door:organizations",
-        "door:parties",
-        "door:projects",
-        "milestone:B3"
-      ],
-      "budgetUsd": 5,
-      "checkers": [
-        "reviewer"
-      ],
-      "paths": [
-        "books/target/projects/",
-        "packages/backend/src/projects/",
-        "packages/sdk/src/projects/"
-      ]
-    },
-    {
-      "key": "operation:org.projects.task.start",
-      "kind": "operation",
-      "lane": "projects",
-      "layer": 7,
-      "parent": "lane:projects",
-      "priority": "normal",
-      "evals": [
-        "acc:org.projects.task.start/1",
-        "acc:org.projects.task.start/2",
-        "acc:org.projects.task.start/3",
-        "bud:org.projects.task.start/p95",
-        "des:org.projects.task.start",
-        "doc:org.projects.task.start",
-        "evt:org.projects.task.start/task_transitioned",
-        "ref:org.projects.task.start/INVALID_INPUT",
-        "ref:org.projects.task.start/NOT_AUTHENTICATED",
-        "ref:org.projects.task.start/ROLE_PERMISSION_DENIED",
-        "ref:org.projects.task.start/WRONG_STATE",
-        "ret:org.projects.task.start",
-        "rpc:projects.tasks.start/budget",
-        "rpc:projects.tasks.start/errors",
-        "rpc:projects.tasks.start/spans",
-        "spn:org.projects.task.start"
-      ],
-      "record": "operation:org.projects.task.start",
-      "title": "org projects task start: Start a task",
-      "labels": [
-        "area:projects",
-        "kind:operation",
-        "lane:projects",
-        "layer:7"
-      ],
-      "goal": "`capxul org projects task start` does what operation org.projects.task.start promises: its 3 acceptance claims and 4 refusals hold, its --json shape, events, spans and budget pass on a devnet at the head of integration/build, and its reference page agrees with it. Marks an open or pending-review task as working, as logging time on it would.",
-      "needs": [
-        "door:organizations",
-        "door:parties",
-        "door:projects",
-        "milestone:B3"
-      ],
-      "budgetUsd": 5,
-      "checkers": [
-        "reviewer"
-      ],
-      "paths": [
-        "books/target/projects/",
-        "packages/backend/src/projects/",
-        "packages/sdk/src/projects/"
-      ]
-    },
-    {
-      "key": "operation:org.projects.timesheet.cancel",
-      "kind": "operation",
-      "lane": "projects",
-      "layer": 7,
-      "parent": "lane:projects",
-      "priority": "normal",
-      "evals": [
-        "acc:org.projects.timesheet.cancel/1",
-        "acc:org.projects.timesheet.cancel/2",
-        "acc:org.projects.timesheet.cancel/3",
-        "bud:org.projects.timesheet.cancel/p95",
-        "des:org.projects.timesheet.cancel",
-        "doc:org.projects.timesheet.cancel",
-        "evt:org.projects.timesheet.cancel/task_transitioned",
-        "evt:org.projects.timesheet.cancel/timesheet_transitioned",
-        "ref:org.projects.timesheet.cancel/INVALID_INPUT",
-        "ref:org.projects.timesheet.cancel/NOT_AUTHENTICATED",
-        "ref:org.projects.timesheet.cancel/PROVIDER_ERROR",
-        "ref:org.projects.timesheet.cancel/ROLE_PERMISSION_DENIED",
-        "ref:org.projects.timesheet.cancel/WRONG_STATE",
-        "ret:org.projects.timesheet.cancel",
-        "rpc:projects.timesheets.cancel/budget",
-        "rpc:projects.timesheets.cancel/errors",
-        "rpc:projects.timesheets.cancel/spans",
-        "spn:org.projects.timesheet.cancel"
-      ],
-      "record": "operation:org.projects.timesheet.cancel",
-      "title": "org projects timesheet cancel: Cancel a timesheet",
-      "labels": [
-        "area:projects",
-        "kind:operation",
-        "lane:projects",
-        "layer:7"
-      ],
-      "goal": "`capxul org projects timesheet cancel` does what operation org.projects.timesheet.cancel promises: its 3 acceptance claims and 6 refusals hold, its --json shape, events, spans and budget pass on a devnet at the head of integration/build, and its reference page agrees with it. Cancels a draft or submitted timesheet and keeps it. A submitted one's hours leave its tasks and projects: a working or pending-review task left with no submitted time is open again, and a pending-review one with some left is working. A timesheet billed in part or in full, or paid by a salary slip, is refused: cancel what billed or paid it first.",
-      "needs": [
-        "door:organizations",
-        "door:parties",
-        "door:projects",
-        "integration:chain-rpc",
-        "milestone:B3"
-      ],
-      "budgetUsd": 5,
-      "checkers": [
-        "reviewer"
-      ],
-      "paths": [
-        "books/target/projects/",
-        "packages/backend/src/projects/",
-        "packages/sdk/src/projects/"
-      ]
-    },
-    {
       "key": "lane:agents",
       "kind": "lane",
       "lane": "agents",
@@ -13546,1204 +12733,6 @@
         "books/target/agents/",
         "packages/backend/src/agents/",
         "packages/sdk/src/agents/"
-      ]
-    },
-    {
-      "key": "lane:books",
-      "kind": "lane",
-      "lane": "books",
-      "layer": 8,
-      "parent": "milestone:B4",
-      "priority": "normal",
-      "evals": [
-        "sys:imports/books"
-      ],
-      "title": "Lane: books",
-      "checkers": [],
-      "paths": [],
-      "goal": "The books concept is built as its records say: its door, durable processes and operations pass every eval at the integration head, and its code imports other concepts only through their doors.",
-      "needs": [],
-      "labels": [
-        "kind:lane",
-        "lane:books",
-        "layer:8"
-      ],
-      "budgetUsd": 5
-    },
-    {
-      "key": "door:books",
-      "kind": "door",
-      "lane": "books",
-      "layer": 8,
-      "parent": "lane:books",
-      "priority": "normal",
-      "evals": [
-        "inv:books.facts-append-only",
-        "inv:books.feed-gap-free",
-        "inv:books.one-author-per-voucher",
-        "inv:books.one-live-money-fact",
-        "inv:books.postings-balance",
-        "prc:books.record-money-fact/atomic",
-        "prc:books.record-payroll-accrual/atomic",
-        "prc:books.reverse-money-fact/atomic",
-        "tbl:book-accounts/schema",
-        "tbl:book-accounts/tenancy",
-        "tbl:book-accounts/writers",
-        "tbl:book-annotations/schema",
-        "tbl:book-annotations/tenancy",
-        "tbl:book-annotations/writers",
-        "tbl:book-assets/schema",
-        "tbl:book-assets/tenancy",
-        "tbl:book-assets/writers",
-        "tbl:book-companies/schema",
-        "tbl:book-companies/tenancy",
-        "tbl:book-companies/writers",
-        "tbl:book-cost-centers/schema",
-        "tbl:book-cost-centers/tenancy",
-        "tbl:book-cost-centers/writers",
-        "tbl:book-document-vouchers/schema",
-        "tbl:book-document-vouchers/tenancy",
-        "tbl:book-document-vouchers/writers",
-        "tbl:book-facts/schema",
-        "tbl:book-facts/tenancy",
-        "tbl:book-facts/writers",
-        "tbl:book-head-syncs/schema",
-        "tbl:book-head-syncs/tenancy",
-        "tbl:book-head-syncs/writers",
-        "tbl:book-prices/schema",
-        "tbl:book-prices/writers",
-        "trn:book-account.add",
-        "trn:book-account.archive",
-        "trn:book-account.rename",
-        "trn:book-annotation.accept",
-        "trn:book-annotation.assign",
-        "trn:book-annotation.queue",
-        "trn:book-annotation.recategorize",
-        "trn:book-annotation.reclassify",
-        "trn:book-annotation.requeue",
-        "trn:book-asset.add",
-        "trn:book-asset.readd",
-        "trn:book-asset.remove",
-        "trn:book-company.import",
-        "trn:book-company.open",
-        "trn:book-document-voucher.cancel",
-        "trn:book-document-voucher.post"
-      ],
-      "title": "Door: books tables, machines and procedures",
-      "goal": "The books concept's tables, state machines and door procedures exist as its records say: tenant-first keys and row-level security, only declared transitions, one event per machine, each procedure atomic.",
-      "needs": [
-        "door:projects",
-        "milestone:B2",
-        "step:B3.spine"
-      ],
-      "labels": [
-        "kind:door",
-        "lane:books",
-        "layer:8",
-        "money",
-        "pilot-closure"
-      ],
-      "budgetUsd": 5,
-      "checkers": [
-        "reviewer",
-        "adversary"
-      ],
-      "paths": [
-        "books/target/books/",
-        "packages/backend/src/books/",
-        "packages/sdk/src/books/"
-      ]
-    },
-    {
-      "key": "workflow:books.assets.scan-added",
-      "kind": "process",
-      "lane": "books",
-      "layer": 8,
-      "parent": "lane:books",
-      "priority": "normal",
-      "evals": [
-        "bud:books.assets.scan-added/p95",
-        "wfl:books.assets.scan-added/idempotent",
-        "wfl:books.assets.scan-added/resume"
-      ],
-      "record": "workflow:books.assets.scan-added",
-      "title": "Process: books.assets.scan-added",
-      "goal": "The durable process books.assets.scan-added (Book the Transfers of the tokens Organizations added) runs as its record says: it resumes after a crash, each activity's side effect lands once, and every keyed wait is woken by what its key names.",
-      "needs": [
-        "door:books",
-        "integration:chain-rpc",
-        "milestone:B3"
-      ],
-      "labels": [
-        "kind:process",
-        "lane:books",
-        "layer:8",
-        "money"
-      ],
-      "budgetUsd": 5,
-      "checkers": [
-        "reviewer",
-        "adversary"
-      ],
-      "paths": [
-        "books/target/books/",
-        "packages/backend/src/books/",
-        "packages/sdk/src/books/"
-      ]
-    },
-    {
-      "key": "workflow:books.head.sync",
-      "kind": "process",
-      "lane": "books",
-      "layer": 8,
-      "parent": "lane:books",
-      "priority": "normal",
-      "evals": [
-        "bud:books.head.sync/p95",
-        "wfl:books.head.sync/idempotent",
-        "wfl:books.head.sync/resume",
-        "wfl:books.head.sync/wake/capxul-change",
-        "wfl:books.head.sync/wake/disconnected",
-        "wfl:books.head.sync/wake/ring"
-      ],
-      "record": "workflow:books.head.sync",
-      "title": "Process: books.head.sync",
-      "goal": "The durable process books.head.sync (Sync the Organization's books with its connected head) runs as its record says: it resumes after a crash, each activity's side effect lands once, and every keyed wait is woken by what its key names.",
-      "needs": [
-        "door:access",
-        "door:books",
-        "door:indexing",
-        "door:organizations",
-        "door:projects",
-        "integration:frappe-head",
-        "milestone:B3"
-      ],
-      "labels": [
-        "kind:process",
-        "lane:books",
-        "layer:8",
-        "money"
-      ],
-      "budgetUsd": 5,
-      "checkers": [
-        "reviewer",
-        "adversary"
-      ],
-      "paths": [
-        "books/target/books/",
-        "packages/backend/src/books/",
-        "packages/sdk/src/books/"
-      ]
-    },
-    {
-      "key": "workflow:books.prices.sync",
-      "kind": "process",
-      "lane": "books",
-      "layer": 8,
-      "parent": "lane:books",
-      "priority": "normal",
-      "evals": [
-        "bud:books.prices.sync/p95",
-        "wfl:books.prices.sync/idempotent",
-        "wfl:books.prices.sync/resume"
-      ],
-      "record": "workflow:books.prices.sync",
-      "title": "Process: books.prices.sync",
-      "goal": "The durable process books.prices.sync (Keep the USD rates of Capxul's priced assets) runs as its record says: it resumes after a crash, each activity's side effect lands once, and every keyed wait is woken by what its key names.",
-      "needs": [
-        "door:books",
-        "integration:chainlink",
-        "milestone:B3"
-      ],
-      "labels": [
-        "kind:process",
-        "lane:books",
-        "layer:8",
-        "money"
-      ],
-      "budgetUsd": 5,
-      "checkers": [
-        "reviewer",
-        "adversary"
-      ],
-      "paths": [
-        "books/target/books/",
-        "packages/backend/src/books/",
-        "packages/sdk/src/books/"
-      ]
-    },
-    {
-      "key": "rpc:books.annotations.save",
-      "kind": "rpc",
-      "lane": "books",
-      "layer": 8,
-      "parent": "lane:books",
-      "priority": "critical",
-      "evals": [
-        "rpc:books.annotations.save/budget",
-        "rpc:books.annotations.save/errors",
-        "rpc:books.annotations.save/spans"
-      ],
-      "record": "rpc:books.annotations.save",
-      "title": "Rpc: books.annotations.save",
-      "labels": [
-        "kind:rpc",
-        "lane:books",
-        "layer:8",
-        "money",
-        "pilot",
-        "pilot-closure"
-      ],
-      "goal": "The server endpoint books.annotations.save (Save a row's annotation) answers as its record says: its declared errors only, its spans and its budget. Other lanes reach it: operation:payment.send, operation:activity.annotate.",
-      "needs": [
-        "door:books",
-        "door:indexing",
-        "door:organizations",
-        "door:projects",
-        "milestone:B2",
-        "step:B3.spine"
-      ],
-      "budgetUsd": 5,
-      "checkers": [
-        "reviewer",
-        "adversary"
-      ],
-      "paths": [
-        "books/target/books/",
-        "packages/backend/src/books/",
-        "packages/sdk/src/books/"
-      ]
-    },
-    {
-      "key": "flow:client.org.books.sync.follow",
-      "kind": "flow",
-      "lane": "books",
-      "layer": 8,
-      "parent": "lane:books",
-      "priority": "normal",
-      "evals": [
-        "flw:client.org.books.sync.follow/budget",
-        "flw:client.org.books.sync.follow/spans",
-        "rpc:books.sync.feed/budget",
-        "rpc:books.sync.feed/errors",
-        "rpc:books.sync.feed/spans"
-      ],
-      "record": "flow:client.org.books.sync.follow",
-      "title": "Flow: client.org(orgId).books.sync.follow",
-      "labels": [
-        "kind:flow",
-        "lane:books",
-        "layer:8",
-        "money"
-      ],
-      "goal": "The Core SDK flow client.org(orgId).books.sync.follow (Follow the books' feed from a number, waiting if asked) runs its steps as its record says, within its budget and with its spans; no operation implements it, so its surfaces call it.",
-      "needs": [
-        "door:access",
-        "door:books",
-        "door:organizations",
-        "milestone:B3"
-      ],
-      "budgetUsd": 5,
-      "checkers": [
-        "reviewer",
-        "adversary"
-      ],
-      "paths": [
-        "books/target/books/",
-        "packages/backend/src/books/",
-        "packages/sdk/src/books/"
-      ]
-    },
-    {
-      "key": "operation:activity.annotate",
-      "kind": "operation",
-      "lane": "books",
-      "layer": 8,
-      "parent": "lane:books",
-      "priority": "normal",
-      "evals": [
-        "acc:activity.annotate/1",
-        "acc:activity.annotate/2",
-        "acc:activity.annotate/3",
-        "acc:activity.annotate/4",
-        "acc:activity.annotate/5",
-        "acc:activity.annotate/6",
-        "bud:activity.annotate/p95",
-        "des:activity.annotate",
-        "doc:activity.annotate",
-        "evt:activity.annotate/book_account_transitioned",
-        "evt:activity.annotate/book_annotation_transitioned",
-        "ref:activity.annotate/CLI_USAGE",
-        "ref:activity.annotate/INVALID_INPUT",
-        "ref:activity.annotate/NOT_AUTHENTICATED",
-        "ref:activity.annotate/ROLE_PERMISSION_DENIED",
-        "ret:activity.annotate",
-        "spn:activity.annotate"
-      ],
-      "record": "operation:activity.annotate",
-      "title": "activity annotate: Annotate a row",
-      "labels": [
-        "area:activity",
-        "kind:operation",
-        "lane:books",
-        "layer:8",
-        "money"
-      ],
-      "goal": "`capxul activity annotate` does what operation activity.annotate promises: its 6 acceptance claims and 4 refusals hold, its --json shape, events, spans and budget pass on a devnet at the head of integration/build, and its reference page agrees with it. Gives a Payment or Movement its account and a memo. Pass `--kind` and `--id` with flags, or the whole annotation as JSON with `--input`. When you are not sure of the account, give 6999 or 4999 with `--suggest` to leave a name for a holder of Manage books to accept in review.",
-      "needs": [
-        "milestone:B3",
-        "rpc:books.annotations.save"
-      ],
-      "budgetUsd": 5,
-      "checkers": [
-        "reviewer",
-        "adversary"
-      ],
-      "paths": [
-        "books/target/books/",
-        "packages/backend/src/books/",
-        "packages/sdk/src/books/"
-      ]
-    },
-    {
-      "key": "operation:org.books.accounts.add",
-      "kind": "operation",
-      "lane": "books",
-      "layer": 8,
-      "parent": "lane:books",
-      "priority": "normal",
-      "evals": [
-        "acc:org.books.accounts.add/1",
-        "acc:org.books.accounts.add/2",
-        "acc:org.books.accounts.add/3",
-        "acc:org.books.accounts.add/4",
-        "bud:org.books.accounts.add/p95",
-        "des:org.books.accounts.add",
-        "doc:org.books.accounts.add",
-        "evt:org.books.accounts.add/book_account_transitioned",
-        "ref:org.books.accounts.add/INVALID_INPUT",
-        "ref:org.books.accounts.add/ROLE_PERMISSION_DENIED",
-        "ref:org.books.accounts.add/WRONG_STATE",
-        "ret:org.books.accounts.add",
-        "rpc:books.accounts.add/budget",
-        "rpc:books.accounts.add/errors",
-        "rpc:books.accounts.add/spans",
-        "spn:org.books.accounts.add"
-      ],
-      "record": "operation:org.books.accounts.add",
-      "title": "org books accounts add: Add an account",
-      "labels": [
-        "area:books",
-        "kind:operation",
-        "lane:books",
-        "layer:8",
-        "money"
-      ],
-      "goal": "`capxul org books accounts add` does what operation org.books.accounts.add promises: its 4 acceptance claims and 3 refusals hold, its --json shape, events, spans and budget pass on a devnet at the head of integration/build, and its reference page agrees with it. Adds one account to the chart. Give `--under` to make a sub-account, which takes its parent's type. Give `--type` for a top-level account.",
-      "needs": [
-        "door:access",
-        "door:books",
-        "door:indexing",
-        "door:organizations",
-        "milestone:B3"
-      ],
-      "budgetUsd": 5,
-      "checkers": [
-        "reviewer",
-        "adversary"
-      ],
-      "paths": [
-        "books/target/books/",
-        "packages/backend/src/books/",
-        "packages/sdk/src/books/"
-      ]
-    },
-    {
-      "key": "operation:org.books.accounts.archive",
-      "kind": "operation",
-      "lane": "books",
-      "layer": 8,
-      "parent": "lane:books",
-      "priority": "normal",
-      "evals": [
-        "acc:org.books.accounts.archive/1",
-        "acc:org.books.accounts.archive/2",
-        "acc:org.books.accounts.archive/3",
-        "bud:org.books.accounts.archive/p95",
-        "des:org.books.accounts.archive",
-        "doc:org.books.accounts.archive",
-        "evt:org.books.accounts.archive/book_account_transitioned",
-        "ref:org.books.accounts.archive/ROLE_PERMISSION_DENIED",
-        "ref:org.books.accounts.archive/WRONG_STATE",
-        "ret:org.books.accounts.archive",
-        "rpc:books.accounts.archive/budget",
-        "rpc:books.accounts.archive/errors",
-        "rpc:books.accounts.archive/spans",
-        "spn:org.books.accounts.archive"
-      ],
-      "record": "operation:org.books.accounts.archive",
-      "title": "org books accounts archive: Archive an account",
-      "labels": [
-        "area:books",
-        "kind:operation",
-        "lane:books",
-        "layer:8",
-        "money"
-      ],
-      "goal": "`capxul org books accounts archive` does what operation org.books.accounts.archive promises: its 3 acceptance claims and 2 refusals hold, its --json shape, events, spans and budget pass on a devnet at the head of integration/build, and its reference page agrees with it. Archives an account so it takes no new rows. Accounts are never deleted, and the facts already booked to it stay. Use it to retire an account you no longer want people to pick.",
-      "needs": [
-        "door:access",
-        "door:books",
-        "door:indexing",
-        "door:organizations",
-        "milestone:B3"
-      ],
-      "budgetUsd": 5,
-      "checkers": [
-        "reviewer",
-        "adversary"
-      ],
-      "paths": [
-        "books/target/books/",
-        "packages/backend/src/books/",
-        "packages/sdk/src/books/"
-      ]
-    },
-    {
-      "key": "operation:org.books.accounts.import",
-      "kind": "operation",
-      "lane": "books",
-      "layer": 8,
-      "parent": "lane:books",
-      "priority": "normal",
-      "evals": [
-        "acc:org.books.accounts.import/1",
-        "acc:org.books.accounts.import/2",
-        "acc:org.books.accounts.import/3",
-        "acc:org.books.accounts.import/4",
-        "bud:org.books.accounts.import/p95",
-        "des:org.books.accounts.import",
-        "doc:org.books.accounts.import",
-        "evt:org.books.accounts.import/book_account_transitioned",
-        "evt:org.books.accounts.import/book_company_transitioned",
-        "ref:org.books.accounts.import/INVALID_INPUT",
-        "ref:org.books.accounts.import/NOT_AUTHENTICATED",
-        "ref:org.books.accounts.import/ROLE_PERMISSION_DENIED",
-        "ref:org.books.accounts.import/WRONG_STATE",
-        "ret:org.books.accounts.import",
-        "rpc:books.accounts.import/budget",
-        "rpc:books.accounts.import/errors",
-        "rpc:books.accounts.import/spans",
-        "spn:org.books.accounts.import"
-      ],
-      "record": "operation:org.books.accounts.import",
-      "title": "org books accounts import: Make the chart",
-      "labels": [
-        "area:books",
-        "kind:operation",
-        "lane:books",
-        "layer:8",
-        "money"
-      ],
-      "goal": "`capxul org books accounts import` does what operation org.books.accounts.import promises: its 4 acceptance claims and 4 refusals hold, its --json shape, events, spans and budget pass on a devnet at the head of integration/build, and its reference page agrees with it. Makes the Organization's chart of accounts from a template. The only template is `us-services`, and Capxul adds its own two \"not decided\" accounts, 4999 Uncategorized income and 6999 Uncategorized expense, and 3990 Opening balance equity, which takes what the Safe already held. Run it once, before anything else in the books.",
-      "needs": [
-        "door:access",
-        "door:books",
-        "door:indexing",
-        "door:organizations",
-        "milestone:B3"
-      ],
-      "budgetUsd": 5,
-      "checkers": [
-        "reviewer",
-        "adversary"
-      ],
-      "paths": [
-        "books/target/books/",
-        "packages/backend/src/books/",
-        "packages/sdk/src/books/"
-      ]
-    },
-    {
-      "key": "operation:org.books.accounts.list",
-      "kind": "operation",
-      "lane": "books",
-      "layer": 8,
-      "parent": "lane:books",
-      "priority": "normal",
-      "evals": [
-        "acc:org.books.accounts.list/1",
-        "bud:org.books.accounts.list/p95",
-        "des:org.books.accounts.list",
-        "doc:org.books.accounts.list",
-        "ref:org.books.accounts.list/ROLE_PERMISSION_DENIED",
-        "ref:org.books.accounts.list/WRONG_STATE",
-        "ret:org.books.accounts.list",
-        "rpc:books.accounts.list/budget",
-        "rpc:books.accounts.list/errors",
-        "rpc:books.accounts.list/spans",
-        "spn:org.books.accounts.list"
-      ],
-      "record": "operation:org.books.accounts.list",
-      "title": "org books accounts list: List accounts",
-      "labels": [
-        "area:books",
-        "kind:operation",
-        "lane:books",
-        "layer:8",
-        "money"
-      ],
-      "goal": "`capxul org books accounts list` does what operation org.books.accounts.list promises: its 1 acceptance claims and 2 refusals hold, its --json shape, events, spans and budget pass on a devnet at the head of integration/build, and its reference page agrees with it. Shows the Organization's chart of accounts, in code order, grouped by type: Asset, Liability, Equity, Income, Cost of services, Expense. Sub-accounts are indented under their parent. Use it to find the code you give a payment or a row.",
-      "needs": [
-        "door:access",
-        "door:books",
-        "door:organizations",
-        "milestone:B3"
-      ],
-      "budgetUsd": 5,
-      "checkers": [
-        "reviewer",
-        "adversary"
-      ],
-      "paths": [
-        "books/target/books/",
-        "packages/backend/src/books/",
-        "packages/sdk/src/books/"
-      ]
-    },
-    {
-      "key": "operation:org.books.accounts.reclassify",
-      "kind": "operation",
-      "lane": "books",
-      "layer": 8,
-      "parent": "lane:books",
-      "priority": "normal",
-      "evals": [
-        "acc:org.books.accounts.reclassify/1",
-        "acc:org.books.accounts.reclassify/2",
-        "acc:org.books.accounts.reclassify/3",
-        "acc:org.books.accounts.reclassify/4",
-        "acc:org.books.accounts.reclassify/5",
-        "bud:org.books.accounts.reclassify/p95",
-        "des:org.books.accounts.reclassify",
-        "doc:org.books.accounts.reclassify",
-        "evt:org.books.accounts.reclassify/book_annotation_transitioned",
-        "ref:org.books.accounts.reclassify/CLI_USAGE",
-        "ref:org.books.accounts.reclassify/INVALID_INPUT",
-        "ref:org.books.accounts.reclassify/ROLE_PERMISSION_DENIED",
-        "ref:org.books.accounts.reclassify/WRONG_STATE",
-        "ret:org.books.accounts.reclassify",
-        "rpc:books.accounts.reclassify/budget",
-        "rpc:books.accounts.reclassify/errors",
-        "rpc:books.accounts.reclassify/spans",
-        "spn:org.books.accounts.reclassify"
-      ],
-      "record": "operation:org.books.accounts.reclassify",
-      "title": "org books accounts reclassify: Reclassify rows",
-      "labels": [
-        "area:books",
-        "kind:operation",
-        "lane:books",
-        "layer:8",
-        "money"
-      ],
-      "goal": "`capxul org books accounts reclassify` does what operation org.books.accounts.reclassify promises: its 5 acceptance claims and 4 refusals hold, its --json shape, events, spans and budget pass on a devnet at the head of integration/build, and its reference page agrees with it. Moves the rows waiting in a \"not decided\" account (4999 or 6999) to one account in a single change. It moves every row waiting there, or with `--from` and `--to` only the rows whose money falls in that period. With `--row` it moves only the rows you name.",
-      "needs": [
-        "door:access",
-        "door:books",
-        "door:indexing",
-        "door:organizations",
-        "milestone:B3"
-      ],
-      "budgetUsd": 5,
-      "checkers": [
-        "reviewer",
-        "adversary"
-      ],
-      "paths": [
-        "books/target/books/",
-        "packages/backend/src/books/",
-        "packages/sdk/src/books/"
-      ]
-    },
-    {
-      "key": "operation:org.books.accounts.rename",
-      "kind": "operation",
-      "lane": "books",
-      "layer": 8,
-      "parent": "lane:books",
-      "priority": "normal",
-      "evals": [
-        "acc:org.books.accounts.rename/1",
-        "acc:org.books.accounts.rename/2",
-        "acc:org.books.accounts.rename/3",
-        "acc:org.books.accounts.rename/4",
-        "acc:org.books.accounts.rename/5",
-        "bud:org.books.accounts.rename/p95",
-        "des:org.books.accounts.rename",
-        "doc:org.books.accounts.rename",
-        "evt:org.books.accounts.rename/book_account_transitioned",
-        "ref:org.books.accounts.rename/CLI_USAGE",
-        "ref:org.books.accounts.rename/INVALID_INPUT",
-        "ref:org.books.accounts.rename/ROLE_PERMISSION_DENIED",
-        "ref:org.books.accounts.rename/WRONG_STATE",
-        "ret:org.books.accounts.rename",
-        "rpc:books.accounts.rename/budget",
-        "rpc:books.accounts.rename/errors",
-        "rpc:books.accounts.rename/spans",
-        "spn:org.books.accounts.rename"
-      ],
-      "record": "operation:org.books.accounts.rename",
-      "title": "org books accounts rename: Rename an account",
-      "labels": [
-        "area:books",
-        "kind:operation",
-        "lane:books",
-        "layer:8",
-        "money"
-      ],
-      "goal": "`capxul org books accounts rename` does what operation org.books.accounts.rename promises: its 5 acceptance claims and 4 refusals hold, its --json shape, events, spans and budget pass on a devnet at the head of integration/build, and its reference page agrees with it. Changes an account's name, its code, or both. Name the account by its code (6100) or its ID (`acct_…`). History follows the account's ID, so earlier facts stay linked to it.",
-      "needs": [
-        "door:access",
-        "door:books",
-        "door:indexing",
-        "door:organizations",
-        "milestone:B3"
-      ],
-      "budgetUsd": 5,
-      "checkers": [
-        "reviewer",
-        "adversary"
-      ],
-      "paths": [
-        "books/target/books/",
-        "packages/backend/src/books/",
-        "packages/sdk/src/books/"
-      ]
-    },
-    {
-      "key": "operation:org.books.accounts.review",
-      "kind": "operation",
-      "lane": "books",
-      "layer": 8,
-      "parent": "lane:books",
-      "priority": "normal",
-      "evals": [
-        "acc:org.books.accounts.review/1",
-        "acc:org.books.accounts.review/2",
-        "bud:org.books.accounts.review/p95",
-        "des:org.books.accounts.review",
-        "doc:org.books.accounts.review",
-        "evt:org.books.accounts.review/book_account_transitioned",
-        "evt:org.books.accounts.review/book_annotation_transitioned",
-        "flw:client.org.books.accounts.review/budget",
-        "flw:client.org.books.accounts.review/spans",
-        "ref:org.books.accounts.review/CLI_USAGE",
-        "ref:org.books.accounts.review/INVALID_INPUT",
-        "ref:org.books.accounts.review/ROLE_PERMISSION_DENIED",
-        "ref:org.books.accounts.review/WRONG_STATE",
-        "ret:org.books.accounts.review",
-        "rpc:books.accounts.accept/budget",
-        "rpc:books.accounts.accept/errors",
-        "rpc:books.accounts.accept/spans",
-        "rpc:books.accounts.review/budget",
-        "rpc:books.accounts.review/errors",
-        "rpc:books.accounts.review/spans",
-        "spn:org.books.accounts.review"
-      ],
-      "record": "operation:org.books.accounts.review",
-      "title": "org books accounts review: Review the queue",
-      "labels": [
-        "area:books",
-        "kind:operation",
-        "lane:books",
-        "layer:8",
-        "money"
-      ],
-      "goal": "`capxul org books accounts review` does what operation org.books.accounts.review promises: its 2 acceptance claims and 4 refusals hold, its --json shape, events, spans and budget pass on a devnet at the head of integration/build, and its reference page agrees with it. Lists the rows still waiting in a \"not decided\" account (4999 or 6999), oldest first, with the account name someone suggested for each. With `--accept <id>` it makes that suggestion a new account and moves the row to it.",
-      "needs": [
-        "door:access",
-        "door:books",
-        "door:indexing",
-        "door:organizations",
-        "milestone:B3"
-      ],
-      "budgetUsd": 5,
-      "checkers": [
-        "reviewer",
-        "adversary"
-      ],
-      "paths": [
-        "books/target/books/",
-        "packages/backend/src/books/",
-        "packages/sdk/src/books/"
-      ]
-    },
-    {
-      "key": "operation:org.books.assets.add",
-      "kind": "operation",
-      "lane": "books",
-      "layer": 8,
-      "parent": "lane:books",
-      "priority": "normal",
-      "evals": [
-        "acc:org.books.assets.add/1",
-        "acc:org.books.assets.add/2",
-        "acc:org.books.assets.add/3",
-        "acc:org.books.assets.add/4",
-        "acc:org.books.assets.add/5",
-        "bud:org.books.assets.add/p95",
-        "des:org.books.assets.add",
-        "doc:org.books.assets.add",
-        "evt:org.books.assets.add/book_account_transitioned",
-        "evt:org.books.assets.add/book_asset_transitioned",
-        "evt:org.books.assets.add/book_company_transitioned",
-        "ref:org.books.assets.add/INVALID_INPUT",
-        "ref:org.books.assets.add/PROVIDER_ERROR",
-        "ref:org.books.assets.add/ROLE_PERMISSION_DENIED",
-        "ref:org.books.assets.add/WRONG_STATE",
-        "ret:org.books.assets.add",
-        "rpc:books.assets.add/budget",
-        "rpc:books.assets.add/errors",
-        "rpc:books.assets.add/spans",
-        "spn:org.books.assets.add"
-      ],
-      "record": "operation:org.books.assets.add",
-      "title": "org books assets add: Add a token",
-      "labels": [
-        "area:books",
-        "kind:operation",
-        "lane:books",
-        "layer:8",
-        "money"
-      ],
-      "goal": "`capxul org books assets add` does what operation org.books.assets.add promises: its 5 acceptance claims and 4 refusals hold, its --json shape, events, spans and budget pass on a devnet at the head of integration/build, and its reference page agrees with it. Adds an ERC-20 token your Safe holds, by its contract address, so the books record its transfers. Capxul reads the token's `decimals` and `symbol` on your Organization's chain before it saves it. Use it for tokens Capxul does not pay in but your Safe receives.",
-      "needs": [
-        "door:access",
-        "door:books",
-        "door:indexing",
-        "door:organizations",
-        "integration:chain-rpc",
-        "milestone:B3"
-      ],
-      "budgetUsd": 5,
-      "checkers": [
-        "reviewer",
-        "adversary"
-      ],
-      "paths": [
-        "books/target/books/",
-        "packages/backend/src/books/",
-        "packages/sdk/src/books/"
-      ]
-    },
-    {
-      "key": "operation:org.books.assets.list",
-      "kind": "operation",
-      "lane": "books",
-      "layer": 8,
-      "parent": "lane:books",
-      "priority": "normal",
-      "evals": [
-        "acc:org.books.assets.list/1",
-        "acc:org.books.assets.list/2",
-        "acc:org.books.assets.list/3",
-        "acc:org.books.assets.list/4",
-        "acc:org.books.assets.list/5",
-        "bud:org.books.assets.list/p95",
-        "des:org.books.assets.list",
-        "doc:org.books.assets.list",
-        "ref:org.books.assets.list/INVALID_INPUT",
-        "ref:org.books.assets.list/ROLE_PERMISSION_DENIED",
-        "ret:org.books.assets.list",
-        "rpc:books.assets.list/budget",
-        "rpc:books.assets.list/errors",
-        "rpc:books.assets.list/spans",
-        "spn:org.books.assets.list"
-      ],
-      "record": "operation:org.books.assets.list",
-      "title": "org books assets list: List tokens",
-      "labels": [
-        "area:books",
-        "kind:operation",
-        "lane:books",
-        "layer:8",
-        "money"
-      ],
-      "goal": "`capxul org books assets list` does what operation org.books.assets.list promises: its 5 acceptance claims and 2 refusals hold, its --json shape, events, spans and budget pass on a devnet at the head of integration/build, and its reference page agrees with it. Lists every token the books record. Capxul's own assets come first, then the ERC-20s your Organization added. Each line says whether Capxul pays in it, holds it without paying in it, or you added it, and whether it carries a USD value.",
-      "needs": [
-        "door:access",
-        "door:books",
-        "door:organizations",
-        "milestone:B3"
-      ],
-      "budgetUsd": 5,
-      "checkers": [
-        "reviewer",
-        "adversary"
-      ],
-      "paths": [
-        "books/target/books/",
-        "packages/backend/src/books/",
-        "packages/sdk/src/books/"
-      ]
-    },
-    {
-      "key": "operation:org.books.assets.remove",
-      "kind": "operation",
-      "lane": "books",
-      "layer": 8,
-      "parent": "lane:books",
-      "priority": "normal",
-      "evals": [
-        "acc:org.books.assets.remove/1",
-        "acc:org.books.assets.remove/2",
-        "acc:org.books.assets.remove/3",
-        "acc:org.books.assets.remove/4",
-        "bud:org.books.assets.remove/p95",
-        "des:org.books.assets.remove",
-        "doc:org.books.assets.remove",
-        "evt:org.books.assets.remove/book_asset_transitioned",
-        "ref:org.books.assets.remove/ROLE_PERMISSION_DENIED",
-        "ref:org.books.assets.remove/WRONG_STATE",
-        "ret:org.books.assets.remove",
-        "rpc:books.assets.remove/budget",
-        "rpc:books.assets.remove/errors",
-        "rpc:books.assets.remove/spans",
-        "spn:org.books.assets.remove"
-      ],
-      "record": "operation:org.books.assets.remove",
-      "title": "org books assets remove: Stop recording a token",
-      "labels": [
-        "area:books",
-        "kind:operation",
-        "lane:books",
-        "layer:8",
-        "money"
-      ],
-      "goal": "`capxul org books assets remove` does what operation org.books.assets.remove promises: its 4 acceptance claims and 2 refusals hold, its --json shape, events, spans and budget pass on a devnet at the head of integration/build, and its reference page agrees with it. Stops recording a token your Organization added. The facts it already booked stay in the books.",
-      "needs": [
-        "door:access",
-        "door:books",
-        "door:indexing",
-        "door:organizations",
-        "milestone:B3"
-      ],
-      "budgetUsd": 5,
-      "checkers": [
-        "reviewer",
-        "adversary"
-      ],
-      "paths": [
-        "books/target/books/",
-        "packages/backend/src/books/",
-        "packages/sdk/src/books/"
-      ]
-    },
-    {
-      "key": "operation:org.books.export.quickbooks",
-      "kind": "operation",
-      "lane": "books",
-      "layer": 8,
-      "parent": "lane:books",
-      "priority": "normal",
-      "evals": [
-        "acc:org.books.export.quickbooks/1",
-        "acc:org.books.export.quickbooks/2",
-        "bud:org.books.export.quickbooks/p95",
-        "des:org.books.export.quickbooks",
-        "doc:org.books.export.quickbooks",
-        "ref:org.books.export.quickbooks/CLI_STORAGE",
-        "ref:org.books.export.quickbooks/ROLE_PERMISSION_DENIED",
-        "ref:org.books.export.quickbooks/WRONG_STATE",
-        "ret:org.books.export.quickbooks",
-        "rpc:books.exports.quickbooks/budget",
-        "rpc:books.exports.quickbooks/errors",
-        "rpc:books.exports.quickbooks/spans",
-        "spn:org.books.export.quickbooks"
-      ],
-      "record": "operation:org.books.export.quickbooks",
-      "title": "org books export quickbooks: Export for QuickBooks",
-      "labels": [
-        "area:books",
-        "kind:operation",
-        "lane:books",
-        "layer:8",
-        "money"
-      ],
-      "goal": "`capxul org books export quickbooks` does what operation org.books.export.quickbooks promises: its 2 acceptance claims and 3 refusals hold, its --json shape, events, spans and budget pass on a devnet at the head of integration/build, and its reference page agrees with it. Writes two files that QuickBooks Online imports. `chart-of-accounts.csv` holds the chart. `journal-entries.csv` holds one journal entry for each money fact in the window you give with `--from` and `--to`. `--out` names the folder.",
-      "needs": [
-        "door:access",
-        "door:books",
-        "door:organizations",
-        "milestone:B3"
-      ],
-      "budgetUsd": 5,
-      "checkers": [
-        "reviewer",
-        "adversary"
-      ],
-      "paths": [
-        "books/target/books/",
-        "packages/backend/src/books/",
-        "packages/sdk/src/books/"
-      ]
-    },
-    {
-      "key": "operation:org.books.facts.list",
-      "kind": "operation",
-      "lane": "books",
-      "layer": 8,
-      "parent": "lane:books",
-      "priority": "normal",
-      "evals": [
-        "acc:org.books.facts.list/1",
-        "acc:org.books.facts.list/2",
-        "acc:org.books.facts.list/3",
-        "acc:org.books.facts.list/4",
-        "acc:org.books.facts.list/5",
-        "acc:org.books.facts.list/6",
-        "bud:org.books.facts.list/p95",
-        "des:org.books.facts.list",
-        "doc:org.books.facts.list",
-        "ref:org.books.facts.list/CLI_USAGE",
-        "ref:org.books.facts.list/INVALID_INPUT",
-        "ref:org.books.facts.list/ROLE_PERMISSION_DENIED",
-        "ret:org.books.facts.list",
-        "rpc:books.facts.list/budget",
-        "rpc:books.facts.list/errors",
-        "rpc:books.facts.list/spans",
-        "spn:org.books.facts.list"
-      ],
-      "record": "operation:org.books.facts.list",
-      "title": "org books facts list: List facts",
-      "labels": [
-        "area:books",
-        "kind:operation",
-        "lane:books",
-        "layer:8",
-        "money"
-      ],
-      "goal": "`capxul org books facts list` does what operation org.books.facts.list promises: its 6 acceptance claims and 3 refusals hold, its --json shape, events, spans and budget pass on a devnet at the head of integration/build, and its reference page agrees with it. Lists the books' facts, oldest first. A fact is a change to the chart, an account given to a row, or a money event with its USD value. Use it to read what the books recorded and why.",
-      "needs": [
-        "door:access",
-        "door:books",
-        "door:organizations",
-        "milestone:B3"
-      ],
-      "budgetUsd": 5,
-      "checkers": [
-        "reviewer",
-        "adversary"
-      ],
-      "paths": [
-        "books/target/books/",
-        "packages/backend/src/books/",
-        "packages/sdk/src/books/"
-      ]
-    },
-    {
-      "key": "operation:org.books.reports.balance-sheet",
-      "kind": "operation",
-      "lane": "books",
-      "layer": 8,
-      "parent": "lane:books",
-      "priority": "normal",
-      "evals": [
-        "acc:org.books.reports.balance-sheet/1",
-        "acc:org.books.reports.balance-sheet/2",
-        "acc:org.books.reports.balance-sheet/3",
-        "bud:org.books.reports.balance-sheet/p95",
-        "des:org.books.reports.balance-sheet",
-        "doc:org.books.reports.balance-sheet",
-        "ref:org.books.reports.balance-sheet/CLI_USAGE",
-        "ref:org.books.reports.balance-sheet/ROLE_PERMISSION_DENIED",
-        "ref:org.books.reports.balance-sheet/WRONG_STATE",
-        "ret:org.books.reports.balance-sheet",
-        "rpc:books.reports.balance-sheet/budget",
-        "rpc:books.reports.balance-sheet/errors",
-        "rpc:books.reports.balance-sheet/spans",
-        "spn:org.books.reports.balance-sheet"
-      ],
-      "record": "operation:org.books.reports.balance-sheet",
-      "title": "org books reports balance-sheet: Read the balance sheet",
-      "labels": [
-        "area:books",
-        "kind:operation",
-        "lane:books",
-        "layer:8",
-        "money"
-      ],
-      "goal": "`capxul org books reports balance-sheet` does what operation org.books.reports.balance-sheet promises: its 3 acceptance claims and 3 refusals hold, its --json shape, events, spans and budget pass on a devnet at the head of integration/build, and its reference page agrees with it. Shows assets, liabilities, equity and current earnings, on the cash basis. It uses the facts up to the end of the day you give with `--as-of`, or up to now.",
-      "needs": [
-        "door:access",
-        "door:books",
-        "door:organizations",
-        "milestone:B3"
-      ],
-      "budgetUsd": 5,
-      "checkers": [
-        "reviewer",
-        "adversary"
-      ],
-      "paths": [
-        "books/target/books/",
-        "packages/backend/src/books/",
-        "packages/sdk/src/books/"
-      ]
-    },
-    {
-      "key": "operation:org.books.reports.profit-and-loss",
-      "kind": "operation",
-      "lane": "books",
-      "layer": 8,
-      "parent": "lane:books",
-      "priority": "normal",
-      "evals": [
-        "acc:org.books.reports.profit-and-loss/1",
-        "acc:org.books.reports.profit-and-loss/2",
-        "acc:org.books.reports.profit-and-loss/3",
-        "bud:org.books.reports.profit-and-loss/p95",
-        "des:org.books.reports.profit-and-loss",
-        "doc:org.books.reports.profit-and-loss",
-        "ref:org.books.reports.profit-and-loss/CLI_USAGE",
-        "ref:org.books.reports.profit-and-loss/INVALID_INPUT",
-        "ref:org.books.reports.profit-and-loss/ROLE_PERMISSION_DENIED",
-        "ref:org.books.reports.profit-and-loss/WRONG_STATE",
-        "ret:org.books.reports.profit-and-loss",
-        "rpc:books.reports.profit-and-loss/budget",
-        "rpc:books.reports.profit-and-loss/errors",
-        "rpc:books.reports.profit-and-loss/spans",
-        "spn:org.books.reports.profit-and-loss"
-      ],
-      "record": "operation:org.books.reports.profit-and-loss",
-      "title": "org books reports profit-and-loss: Read the profit and loss",
-      "labels": [
-        "area:books",
-        "kind:operation",
-        "lane:books",
-        "layer:8",
-        "money"
-      ],
-      "goal": "`capxul org books reports profit-and-loss` does what operation org.books.reports.profit-and-loss promises: its 3 acceptance claims and 4 refusals hold, its --json shape, events, spans and budget pass on a devnet at the head of integration/build, and its reference page agrees with it. Shows income, cost of services and expense over a window, on the cash basis. Sub-accounts roll into their parent. Give the window with `--from` and `--to`, both as days.",
-      "needs": [
-        "door:access",
-        "door:books",
-        "door:organizations",
-        "milestone:B3"
-      ],
-      "budgetUsd": 5,
-      "checkers": [
-        "reviewer",
-        "adversary"
-      ],
-      "paths": [
-        "books/target/books/",
-        "packages/backend/src/books/",
-        "packages/sdk/src/books/"
-      ]
-    },
-    {
-      "key": "operation:org.books.reports.reconcile",
-      "kind": "operation",
-      "lane": "books",
-      "layer": 8,
-      "parent": "lane:books",
-      "priority": "normal",
-      "evals": [
-        "acc:org.books.reports.reconcile/1",
-        "acc:org.books.reports.reconcile/2",
-        "acc:org.books.reports.reconcile/3",
-        "bud:org.books.reports.reconcile/p95",
-        "des:org.books.reports.reconcile",
-        "doc:org.books.reports.reconcile",
-        "ref:org.books.reports.reconcile/PROVIDER_ERROR",
-        "ref:org.books.reports.reconcile/ROLE_PERMISSION_DENIED",
-        "ref:org.books.reports.reconcile/WRONG_STATE",
-        "ret:org.books.reports.reconcile",
-        "rpc:books.reports.reconcile/budget",
-        "rpc:books.reports.reconcile/errors",
-        "rpc:books.reports.reconcile/spans",
-        "spn:org.books.reports.reconcile"
-      ],
-      "record": "operation:org.books.reports.reconcile",
-      "title": "org books reports reconcile: Check the books against the Safe",
-      "labels": [
-        "area:books",
-        "kind:operation",
-        "lane:books",
-        "layer:8",
-        "money"
-      ],
-      "goal": "`capxul org books reports reconcile` does what operation org.books.reports.reconcile promises: its 3 acceptance claims and 3 refusals hold, its --json shape, events, spans and budget pass on a devnet at the head of integration/build, and its reference page agrees with it. Checks what the books say each Safe asset holds against what the chain says the Safe holds now. It also shows the money that open agreements still hold. It says `matches` when every asset agrees.",
-      "needs": [
-        "door:access",
-        "door:books",
-        "door:indexing",
-        "door:organizations",
-        "integration:chain-rpc",
-        "milestone:B3"
-      ],
-      "budgetUsd": 5,
-      "checkers": [
-        "reviewer",
-        "adversary"
-      ],
-      "paths": [
-        "books/target/books/",
-        "packages/backend/src/books/",
-        "packages/sdk/src/books/"
-      ]
-    },
-    {
-      "key": "operation:org.books.reports.trial-balance",
-      "kind": "operation",
-      "lane": "books",
-      "layer": 8,
-      "parent": "lane:books",
-      "priority": "normal",
-      "evals": [
-        "acc:org.books.reports.trial-balance/1",
-        "acc:org.books.reports.trial-balance/2",
-        "acc:org.books.reports.trial-balance/3",
-        "acc:org.books.reports.trial-balance/4",
-        "bud:org.books.reports.trial-balance/p95",
-        "des:org.books.reports.trial-balance",
-        "doc:org.books.reports.trial-balance",
-        "ref:org.books.reports.trial-balance/CLI_USAGE",
-        "ref:org.books.reports.trial-balance/ROLE_PERMISSION_DENIED",
-        "ref:org.books.reports.trial-balance/WRONG_STATE",
-        "ret:org.books.reports.trial-balance",
-        "rpc:books.reports.trial-balance/budget",
-        "rpc:books.reports.trial-balance/errors",
-        "rpc:books.reports.trial-balance/spans",
-        "spn:org.books.reports.trial-balance"
-      ],
-      "record": "operation:org.books.reports.trial-balance",
-      "title": "org books reports trial-balance: Read the trial balance",
-      "labels": [
-        "area:books",
-        "kind:operation",
-        "lane:books",
-        "layer:8",
-        "money"
-      ],
-      "goal": "`capxul org books reports trial-balance` does what operation org.books.reports.trial-balance promises: its 4 acceptance claims and 3 refusals hold, its --json shape, events, spans and budget pass on a devnet at the head of integration/build, and its reference page agrees with it. Shows every account's debits and credits, on the cash basis, with what each Safe account holds. It uses the facts up to the end of the day you give with `--as-of`, or up to now.",
-      "needs": [
-        "door:access",
-        "door:books",
-        "door:organizations",
-        "milestone:B3"
-      ],
-      "budgetUsd": 5,
-      "checkers": [
-        "reviewer",
-        "adversary"
-      ],
-      "paths": [
-        "books/target/books/",
-        "packages/backend/src/books/",
-        "packages/sdk/src/books/"
       ]
     },
     {
@@ -24455,7 +22444,6 @@
         "des:inbox.decline",
         "doc:inbox.decline",
         "evt:inbox.decline/request_transitioned",
-        "evt:inbox.decline/timesheet_transitioned",
         "flw:client.account.inbox.decline/budget",
         "flw:client.account.inbox.decline/spans",
         "ref:inbox.decline/CLI_USAGE",
@@ -24486,7 +22474,6 @@
         "door:organizations",
         "door:parties",
         "door:payments",
-        "door:projects",
         "door:requests",
         "integration:indexer",
         "milestone:B3",
@@ -24682,73 +22669,6 @@
       ]
     },
     {
-      "key": "operation:org.projects.timesheet.bill",
-      "kind": "operation",
-      "lane": "requests",
-      "layer": 11,
-      "parent": "lane:requests",
-      "priority": "normal",
-      "evals": [
-        "acc:org.projects.timesheet.bill/1",
-        "acc:org.projects.timesheet.bill/2",
-        "acc:org.projects.timesheet.bill/3",
-        "acc:org.projects.timesheet.bill/4",
-        "bud:org.projects.timesheet.bill/p95",
-        "des:org.projects.timesheet.bill",
-        "doc:org.projects.timesheet.bill",
-        "evt:org.projects.timesheet.bill/party_transitioned",
-        "evt:org.projects.timesheet.bill/request_transitioned",
-        "evt:org.projects.timesheet.bill/timesheet_transitioned",
-        "flw:client.org.projects.timesheets.bill/budget",
-        "flw:client.org.projects.timesheets.bill/spans",
-        "ref:org.projects.timesheet.bill/CLI_USAGE",
-        "ref:org.projects.timesheet.bill/INVALID_INPUT",
-        "ref:org.projects.timesheet.bill/NOT_AUTHENTICATED",
-        "ref:org.projects.timesheet.bill/ROLE_PERMISSION_DENIED",
-        "ref:org.projects.timesheet.bill/WRONG_STATE",
-        "ret:org.projects.timesheet.bill",
-        "rpc:requests.issuing.bill-time/budget",
-        "rpc:requests.issuing.bill-time/errors",
-        "rpc:requests.issuing.bill-time/spans",
-        "rpc:requests.issuing.list/budget",
-        "rpc:requests.issuing.list/errors",
-        "rpc:requests.issuing.list/spans",
-        "spn:org.projects.timesheet.bill"
-      ],
-      "record": "operation:org.projects.timesheet.bill",
-      "title": "org projects timesheet bill: Bill timesheets' unbilled hours as one Invoice",
-      "labels": [
-        "area:payments",
-        "kind:operation",
-        "lane:requests",
-        "layer:11",
-        "money"
-      ],
-      "goal": "`capxul org projects timesheet bill` does what operation org.projects.timesheet.bill promises: its 4 acceptance claims and 5 refusals hold, its --json shape, events, spans and budget pass on a devnet at the head of integration/build, and its reference page agrees with it. Issues one Invoice from the Organization for the billable hours its submitted timesheets log and no invoice has billed yet, to the projects' customer or the payer `--to` names, with one line per activity and billing rate (the hours at the rate), in the token of the timesheets' currency. The same write marks those hours billed, so no second invoice, Capxul's or a connected head's, can ask for them; cancelling or declining the Invoice clears the marks, and paying it keeps them. It is then a request like any other: `request get`, `request cancel`, and the payer's inbox or invoice escrow.",
-      "needs": [
-        "door:documents",
-        "door:indexing",
-        "door:organizations",
-        "door:parties",
-        "door:payments",
-        "door:projects",
-        "door:requests",
-        "integration:indexer",
-        "milestone:B3",
-        "workflow:requests.lifecycle.request"
-      ],
-      "budgetUsd": 5,
-      "checkers": [
-        "reviewer",
-        "adversary"
-      ],
-      "paths": [
-        "books/target/requests/",
-        "packages/backend/src/requests/",
-        "packages/sdk/src/requests/"
-      ]
-    },
-    {
       "key": "operation:request.cancel",
       "kind": "operation",
       "lane": "requests",
@@ -24762,7 +22682,6 @@
         "des:request.cancel",
         "doc:request.cancel",
         "evt:request.cancel/request_transitioned",
-        "evt:request.cancel/timesheet_transitioned",
         "flw:client.account.requests.cancel/budget",
         "flw:client.account.requests.cancel/spans",
         "ref:request.cancel/CLI_USAGE",
@@ -24793,7 +22712,6 @@
         "door:organizations",
         "door:parties",
         "door:payments",
-        "door:projects",
         "door:requests",
         "integration:indexer",
         "milestone:B3",
@@ -24887,6 +22805,9 @@
         "rpc:requests.issuing.issue/budget",
         "rpc:requests.issuing.issue/errors",
         "rpc:requests.issuing.issue/spans",
+        "rpc:requests.issuing.list/budget",
+        "rpc:requests.issuing.list/errors",
+        "rpc:requests.issuing.list/spans",
         "spn:request.issue"
       ],
       "record": "operation:request.issue",
@@ -24904,9 +22825,10 @@
         "door:indexing",
         "door:organizations",
         "door:parties",
+        "door:payments",
         "door:requests",
+        "integration:indexer",
         "milestone:B3",
-        "operation:org.projects.timesheet.bill",
         "workflow:requests.lifecycle.request"
       ],
       "budgetUsd": 5,
@@ -24954,7 +22876,7 @@
       "goal": "`capxul request list` does what operation request.list promises: its 4 acceptance claims and 4 refusals hold, its --json shape, events, spans and budget pass on a devnet at the head of integration/build, and its reference page agrees with it. Lists the payment requests you issued, with each one's status, amount, reference and document references. With `--org`, it lists the Organization's issued requests.",
       "needs": [
         "milestone:B3",
-        "operation:org.projects.timesheet.bill"
+        "operation:request.issue"
       ],
       "budgetUsd": 5,
       "checkers": [
