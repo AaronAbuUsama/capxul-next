@@ -961,10 +961,12 @@
       "title": "See, inspect and steer loop runs from the portal; better loop DX",
       "why": "Aaron asked to organise the durable agents around the portal: what is running, the rounds and handoffs, what happens inside a run, and steering. The coordinator cannot run agents at scale without seeing them.",
       "milestone": "m1",
-      "state": "doing",
+      "state": "done",
       "needs": [],
       "records": [],
-      "evidence": [],
+      "evidence": [
+        "0f03218"
+      ],
       "created": "2026-11-10",
       "updated": "2026-11-10",
       "thread": "run-observability"
@@ -1090,8 +1092,9 @@
       "milestone": "m1",
       "state": "todo",
       "needs": [
-        "m1-loop-policy",
-        "m1-loop-visibility"
+        "m1-loop-visibility",
+        "m1-loop-steer-stop",
+        "m1-loop-watch"
       ],
       "records": [],
       "evidence": [],
@@ -1113,11 +1116,53 @@
         "need": "Review the AGENTS.md change: keep f593f2b (CLAUDE.md becomes a link to AGENTS.md)? Make the one-line fix to point 2 that the task page shows? Mark done if you keep both, or reply with what to revert",
         "who": "aaron"
       }
+    },
+    {
+      "id": "m1-loop-steer-stop",
+      "title": "Stop, steer and queue a run from the Runs page, proven on a live run",
+      "why": "Layer first: a watched run must be stoppable from the page; the stopped run-observability session found that Stop left a recorded command running",
+      "milestone": "m1",
+      "state": "todo",
+      "needs": [],
+      "records": [],
+      "evidence": [],
+      "created": "2026-11-10",
+      "updated": "2026-11-10"
+    },
+    {
+      "id": "m1-loop-watch",
+      "title": "The coordinator is told when a run ends or turns unhealthy",
+      "why": "Layer first: the post-mortem's coordinator read statuses and missed 226 refusals; the sweep must be woken by runs, not by polling",
+      "milestone": "m1",
+      "state": "todo",
+      "needs": [
+        "m1-loop-visibility"
+      ],
+      "records": [],
+      "evidence": [],
+      "created": "2026-11-10",
+      "updated": "2026-11-10"
+    },
+    {
+      "id": "m1-agent-definitions",
+      "title": "An agent is a record: the loop reads agent definitions, and the Runs app lists them",
+      "why": "Aaron, 10 Nov: create agents in the UI, code mode, PostHog MCP, enrichment agents; all need an agent as a record. The agents-rollup session's first slice",
+      "milestone": "m1",
+      "state": "todo",
+      "needs": [
+        "m1-loop-watched-run"
+      ],
+      "records": [],
+      "evidence": [],
+      "created": "2026-11-10",
+      "updated": "2026-11-10"
     }
   ],
   "path": {
     "tasks": [
       "m1-loop-visibility",
+      "m1-loop-steer-stop",
+      "m1-loop-watch",
       "m1-loop-watched-run",
       "m1-model-gateway",
       "m1-loop-hardening",
@@ -1125,7 +1170,7 @@
       "m1-time-proof",
       "m1-aaron-accepts"
     ],
-    "why": "m1-loop-policy done (be9a917): of the 226 refused calls, 203 are allowed and 23 refused with a reason. Next on the layer: visibility, then one watched run",
+    "why": "Reassessment, 10 Nov evening: the run-observability session's merged work is done (0f03218); its uncommitted Stop fix and steering became m1-loop-steer-stop; the coordinator gets woken by runs (m1-loop-watch); all three come before the one watched run. Agent definitions (the agents-rollup slice) follow the watched run, off the path",
     "written": "2026-11-10"
   },
   "notes": [
@@ -1243,6 +1288,11 @@
       "date": "2026-11-10",
       "by": "coordinator",
       "text": "17:58: merging lane/m1-entry-docs (run m1-entry-docs-11101507) on Aaron's 'done' of 17:41, without its CLAUDE.md change; the matching AGENTS.md line goes to him as a diff"
+    },
+    {
+      "date": "2026-11-10",
+      "by": "coordinator",
+      "text": "18:05: reassessment written (docs/mission/reassessment-2026-11-10.md); stranded session work saved under var/stranded; new tasks m1-loop-steer-stop, m1-loop-watch, m1-agent-definitions; path: visibility, steer-stop, watch, watched run, gateway, hardening, ..."
     }
   ]
 }
