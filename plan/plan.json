@@ -759,13 +759,12 @@
       "m1-loop-runner",
       "m1-time-proof",
       "m1-aws-records",
-      "m3b-certificate",
       "m1-telemetry",
       "m1-old-decisions",
       "m1-entry-docs",
       "m1-aaron-accepts"
     ],
-    "why": "Lanes, the scoreboard and the loop runner come first, because they change how every later task is done and judged. Then time is proved on the scoreboard. The machine exists and its DNS is live, so its certificate is being issued while the AWS sign-in lasts. Examples are done; telemetry is the remaining bulk. The old decisions and the entry documents are cleaned up before Aaron is asked to accept the book.",
+    "why": "Lanes, the scoreboard and the loop runner come first, because they change how every later task is done and judged. Then time is proved on the scoreboard. Examples are done; telemetry is the remaining bulk. The old decisions and the entry documents are cleaned up before Aaron is asked to accept the book. Beside this path, in the cloud milestone, the machine exists and its certificate is being issued while the AWS sign-in lasts.",
     "written": "2026-11-10"
   },
   "notes": [
