@@ -42,6 +42,16 @@ import {
   flow_client_account_address_book_link,
   flow_client_account_address_book_unhide,
 } from "./flows.ts";
+import {
+  examples_contact_add,
+  examples_contact_hide,
+  examples_contact_label,
+  examples_contact_list,
+  examples_contact_unhide,
+  examples_contact_create,
+  examples_contact_change,
+  examples_contact_link,
+} from "./examples.ts";
 
 const CLI = "apps/cli/src/commands/contact";
 const AS_IS = "docs/as-is/archive/operations/payments.ts";
@@ -115,6 +125,7 @@ export const operation_contact_add = defineOperation({
   was: [page("contact.add"), `${AS_IS}:916`, `${CLI}/subcommands/add/execute.ts:23`, `${CLI}/internal/parse.ts:48`],
   priority: "normal",
   implementedBy: rpc_contacts_book_add,
+  examples: examples_contact_add,
   acceptance: [
     kept(
       "contact.add",
@@ -162,6 +173,7 @@ export const operation_contact_hide = defineOperation({
   was: [page("contact.hide"), `${AS_IS}:979`, `${CLI}/internal/visibility.ts:20`, `${CLI}/internal/write.ts:26`],
   priority: "normal",
   implementedBy: flow_client_account_address_book_hide,
+  examples: examples_contact_hide,
   acceptance: [
     kept(
       "contact.hide",
@@ -197,6 +209,7 @@ export const operation_contact_label = defineOperation({
   was: [page("contact.label"), `${AS_IS}:949`, `${CLI}/subcommands/label/execute.ts:24`, `${CLI}/internal/write.ts:40`],
   priority: "normal",
   implementedBy: flow_client_account_address_book_label,
+  examples: examples_contact_label,
   acceptance: [
     kept(
       "contact.label",
@@ -234,6 +247,7 @@ export const operation_contact_list = defineOperation({
   was: [page("contact.list"), `${AS_IS}:840`, `${CLI}/subcommands/list/execute.ts:23`, "apps/cli/src/runtime/paging.ts:82"],
   priority: "normal",
   implementedBy: rpc_contacts_book_list,
+  examples: examples_contact_list,
   acceptance: [
     rewritten(
       "contact.list",
@@ -277,6 +291,7 @@ export const operation_contact_unhide = defineOperation({
   was: [page("contact.unhide"), `${AS_IS}:1007`, `${CLI}/internal/visibility.ts:20`, `${CLI}/internal/write.ts:40`],
   priority: "normal",
   implementedBy: flow_client_account_address_book_unhide,
+  examples: examples_contact_unhide,
   acceptance: [
     kept(
       "contact.unhide",
@@ -399,6 +414,7 @@ export const operation_contact_create = defineOperation({
   command: "contact create",
   priority: "critical",
   implementedBy: flow_client_account_address_book_create,
+  examples: examples_contact_create,
   who: WHO_BOOK_WRITE,
   changes:
     "One new entry in the book, listed. A person given a mailbox no Party holds yet also names one in the directory, as " +
@@ -462,6 +478,7 @@ export const operation_contact_change = defineOperation({
   command: "contact change",
   priority: "normal",
   implementedBy: flow_client_account_address_book_change,
+  examples: examples_contact_change,
   who: WHO_BOOK_WRITE,
   changes: `The entry's details. Its id, label and Party stay as they were. ${LOGGED}`,
   acceptance: [
@@ -514,6 +531,7 @@ export const operation_contact_link = defineOperation({
   command: "contact link",
   priority: "normal",
   implementedBy: flow_client_account_address_book_link,
+  examples: examples_contact_link,
   who: WHO_BOOK_WRITE + NOT_FOR_ASKER,
   changes:
     "The entry's Party, once and for good. A mailbox or address no Party holds yet is named in the directory. " + LOGGED,
