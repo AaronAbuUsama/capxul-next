@@ -752,10 +752,24 @@
       "created": "2026-11-10",
       "updated": "2026-11-10",
       "thread": "machine"
+    },
+    {
+      "id": "m1-worlds-spec",
+      "title": "Specify worlds as a hosted platform: connect, join, scenarios, runs, clean data, RL environments",
+      "why": "Aaron: this is a core, foundational part and must be specified well before breadth. Heavy infrastructure on every sandbox makes no sense; it must be easy to create a simulation, bring a hundred or two hundred testers and agents through scenarios, and get clean training data and environments for reinforcement learning. Today the pieces are scattered across five documents and a few dozen records.",
+      "milestone": "m1",
+      "state": "doing",
+      "needs": [],
+      "records": [],
+      "evidence": [],
+      "created": "2026-11-10",
+      "updated": "2026-11-10",
+      "thread": "lane/worlds-spec"
     }
   ],
   "path": {
     "tasks": [
+      "m1-worlds-spec",
       "m1-lanes",
       "m1-eval-harness",
       "m1-loop-runner",
@@ -766,7 +780,7 @@
       "m1-entry-docs",
       "m1-aaron-accepts"
     ],
-    "why": "Lanes, the scoreboard and the loop runner come first, because they change how every later task is done and judged. Then time is proved on the scoreboard. Examples are done; telemetry is the remaining bulk. The old decisions and the entry documents are cleaned up before Aaron is asked to accept the book. Beside this path, in the cloud milestone, the machine exists and its certificate is being issued while the AWS sign-in lasts.",
+    "why": "Worlds as a hosted platform is specified first: Aaron called it the foundational piece that must come before breadth, and it shapes the service, the machine and the data. Lanes, the scoreboard and the loop runner run beside it, because they change how every later task is done and judged. Then time is proved on the scoreboard, the AWS side is written in, and telemetry is the remaining bulk. The old decisions and the entry documents are cleaned up before Aaron is asked to accept the book.",
     "written": "2026-11-10"
   },
   "notes": [
@@ -809,6 +823,11 @@
       "date": "2026-11-10",
       "by": "coordinator",
       "text": "Handoff note, 10 November, midday. Aaron is away and has handed over. Done and merged: the book cut and reshaped (201 operations, 0 problems), his answers applied, the clock settled for option A and proved on the test sites (119 of 119, the coordinator's own run), the contract records matching the code with a check, an example on every operation, the plan page and the one inbox with saved answers, the worlds machine in AWS with its DNS zone and the four NS records at Namecheap. Running in their own lanes: the scoreboard (lane/scoreboard), the loop runner on pi-durable in its own package (lane/loop), the certificate (machine thread). Next: merge those when their checks pass, prove time on the scoreboard, the AWS side as records, telemetry on every operation, the lean service, the hosted bench image, the first shared world. Nothing waits on Aaron right now. The jurisdiction is open; equity, the hosted FDE and individuals are parked."
+    },
+    {
+      "date": "2026-11-10",
+      "by": "coordinator",
+      "text": "Aaron asked for worlds as a hosted platform to be specified well, before breadth: easy to create a simulation, to bring a hundred or two hundred testers and agents through scenarios, and to get clean data and environments for learning. It was scattered across documents. It is now one task, first on the path, being written into the book with its own page on the portal."
     }
   ]
 }
