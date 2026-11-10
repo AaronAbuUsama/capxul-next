@@ -2,13 +2,15 @@ import assert from "node:assert/strict";
 import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { createServer } from "node:http";
 import { test } from "node:test";
 import { createModels } from "@earendil-works/pi-ai/models";
 import { fauxAssistantMessage, fauxProvider, fauxToolCall } from "@earendil-works/pi-ai/providers/faux";
 import pair from "../../../../../loops/pair.ts";       // the real standard script, played here against a fake provider
 import { git } from "../lanes/service.ts";
-import { refuseBash, refusePath } from "../agents/service.ts";
+import { ask, openHost, refuseBash, refusePath } from "../agents/service.ts";
 import { clean, DEFAULTS, gatesOf, lane, logs, merge, POLICY, resume, start, status, stop, watch, work, type Ctx, type Opts } from "./service.ts";
+import { modelsOf } from "./internal/config.ts";
 import * as plan from "./internal/plan.ts";
 
 const AGENTS = join(import.meta.dirname, "../../../../../.claude/agents");
@@ -250,4 +252,27 @@ test("clean frees the lane's branch name, so the next run of the task starts fro
   const dir = (two.extra.lane as { dir: string }).dir;
   assert.equal(existsSync(join(dir, "second.txt")), true);
   assert.equal(existsSync(join(dir, "first.txt")), false);                    // a fresh lane from the base, not the old attempt
+});
+
+test("every request to the gateway carries the conversation's own session id, one per agent, so a gateway can keep an agent on one account", async () => {
+  const seen: (string | undefined)[] = [];
+  const gateway = createServer((req, res) => {
+    seen.push(req.headers["x-session-id"] as string | undefined);
+    req.resume();
+    res.writeHead(200, { "content-type": "text/event-stream" });
+    res.end(`data: ${JSON.stringify({ id: "c1", object: "chat.completion.chunk", model: "gpt-6.1-sol", choices: [{ index: 0, delta: { role: "assistant", content: "ok" }, finish_reason: null }] })}\n\ndata: ${JSON.stringify({ id: "c1", object: "chat.completion.chunk", model: "gpt-6.1-sol", choices: [{ index: 0, delta: {}, finish_reason: "stop" }], usage: { prompt_tokens: 1, completion_tokens: 1, total_tokens: 2 } })}\n\ndata: [DONE]\n\n`);
+  });
+  await new Promise<void>((ready) => gateway.listen(0, "127.0.0.1", () => ready()));
+  const dir = mkdtempSync(join(tmpdir(), "loop-session-"));
+  const env = { LOOP_MODEL_BASE_URL: `http://127.0.0.1:${(gateway.address() as { port: number }).port}/v1`, LLM_ROUTER_API_KEY: "a-test-key" };
+  Object.assign(process.env, { LLM_ROUTER_API_KEY: process.env.LLM_ROUTER_API_KEY ?? env.LLM_ROUTER_API_KEY });   // the key is read from the process when a request is made
+  const host = await openHost({ file: join(dir, "run.sqlite"), models: modelsOf({ root: dir, env, now: () => new Date(), say: () => undefined }), env: {}, policy: POLICY });
+  try {
+    const one = await ask(host, { key: "make.1", model: "gateway/gpt-6.1-sol", system: "s", prompt: "p", cwd: dir, profile: "read" });
+    assert.equal(one.text, "ok", one.error);
+    await ask(host, { key: "reviewer.1.agent", model: "gateway/gpt-6.1-sol", system: "s", prompt: "p", cwd: dir, profile: "read" });
+    assert.equal(seen.length, 2);
+    assert.match(seen[0] ?? "", /^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-/);                  // pi-durable's id of the conversation
+    assert.notEqual(seen[0], seen[1]);                                                    // another agent, another session
+  } finally { await host.close(); await new Promise((done) => gateway.close(done)); }
 });

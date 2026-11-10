@@ -93,6 +93,14 @@ files outside the lane or call `git push` through them. The list narrows what a 
 the runner never pushes anything but `lane/<task>` and never merges by itself; it does not contain a hostile one. Real
 containment needs an OS-level sandbox around the whole runner.
 
+## What the gateway is told about a conversation
+
+Every model request carries `x-session-id`: pi-durable's own id of the conversation (one per agent of a run, the same
+after a retry, a resume or a restart). A gateway that binds a session to one upstream account, as CLIProxyAPI's
+`routing.session-affinity` does, then keeps an agent on that account and its prompt cache holds. The id is pi's, not
+`<run id>/<agent>`: pi-ai 1.5.0 sends its session id when a model's `compat.sendSessionAffinityHeaders` is set
+(`internal/config.ts`) and offers no per-conversation header of our own choosing.
+
 ## When the gateway struggles
 
 - **A model that fails.** pi retries a request three times. If it still fails, the loop waits 20 s, then 60 s, then

@@ -44,6 +44,14 @@ export const defaultModel = (ctx: Ctx): string => qualify(ctx.env.LOOP_MODEL ?? 
 export const defaultCheckerModel = (ctx: Ctx): string => qualify(ctx.env.LOOP_CHECKER_MODEL ?? CHECKER_MODEL);
 
 /**
+ * Every request carries `x-session-id`: pi-durable's own id of the conversation, one per agent of a run, the same after
+ * a retry, a resume or a restart. A gateway that binds a session to one upstream account (CLIProxyAPI's
+ * `routing.session-affinity`) keeps an agent on that account, so its prompt cache holds. pi-ai sends it only when
+ * asked for an endpoint that is not OpenRouter; `openrouter` is the format whose header is the generic `x-session-id`.
+ */
+const SESSION = { sendSessionAffinityHeaders: true, sessionAffinityFormat: "openrouter" } as const;
+
+/**
  * The models: tests hand in a fake provider. Otherwise one OpenAI-compatible gateway (LOOP_MODEL_BASE_URL, default
  * https://llm.capxul.com/v1) whose key is read, when a request is made, from the environment variable named by
  * LOOP_MODEL_KEY_ENV (default LLM_ROUTER_API_KEY). The key is never stored, logged or written anywhere.
@@ -53,6 +61,6 @@ export const modelsOf = (ctx: Ctx, wanted: readonly string[] = []): Models => {
   const ids = [...new Set([...wanted, defaultModel(ctx), defaultCheckerModel(ctx)].map((m) => m.replace(/^gateway\//, "")))];
   return modelsFrom({ gateway: {
     baseUrl: ctx.env.LOOP_MODEL_BASE_URL ?? "https://llm.capxul.com/v1", apiKeyEnv: ctx.env.LOOP_MODEL_KEY_ENV ?? "LLM_ROUTER_API_KEY",
-    models: ids.map((id) => ({ id, contextWindow: 200_000, maxTokens: 16_000, compat: { supportsStore: false, supportsDeveloperRole: false } })),
+    models: ids.map((id) => ({ id, contextWindow: 200_000, maxTokens: 16_000, compat: { supportsStore: false, supportsDeveloperRole: false, ...SESSION } })),
   } });
 };
