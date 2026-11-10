@@ -10,7 +10,7 @@ import { join } from "node:path";
 import { ask, lastJson, openHost, type Host } from "../agents/service.ts";
 import { catchUp, commitAll, dropLane, ensureLane, git, head, slug, type Lane } from "../lanes/service.ts";
 import { alive, ledgerLines, listRuns, play, readInfo, SETTLED, stop as stopRun, table, watchRun, work as workLoop, type Info, type Run } from "../runs/service.ts";
-import { defaultCheckerModel, defaultModel, modelsOf, POLICY, qualify } from "./internal/config.ts";
+import { allowedModel, defaultCheckerModel, defaultModel, modelsOf, POLICY, qualify } from "./internal/config.ts";
 import { runGates } from "./internal/gates.ts";
 import * as plan from "./internal/plan.ts";
 import { checkerPrompt, makerPrompt as renderMaker, researchPrompt, type CheckInput } from "./internal/prompts.ts";
@@ -61,8 +61,10 @@ export const agent = (job: Job, name: string, o: { role: string; prompt: string;
   const wt = job.lane!, left = job.opts.budgetUsd - job.run.info.spentUsd;
   if (left <= 0 && job.run.info.spentUsd > 0) return { ok: false, text: "", costUsd: 0, tokens: 0, head: head(wt.dir), error: `the budget of $${job.opts.budgetUsd} is spent` };
   const maker = job.opts.model ? qualify(job.opts.model) : defaultModel(job.ctx);
+  const model = qualify(CHECKER_ROLES.has(o.role) ? job.opts.checkerModel ?? defaultCheckerModel(job.ctx) : maker);
+  if (!allowedModel(model)) return { ok: false, text: "", costUsd: 0, tokens: 0, head: head(wt.dir), error: `the model ${model} is not allowed: only 6.0 and 6.1 class models (gpt-6-*, gpt-6.1-*)` };
   const said = await ask(job.run.host, {
-    key: name, model: qualify(CHECKER_ROLES.has(o.role) ? job.opts.checkerModel ?? defaultCheckerModel(job.ctx) : maker), system: roleBody(job, o.role), prompt: o.prompt, cwd: wt.dir,
+    key: name, model, system: roleBody(job, o.role), prompt: o.prompt, cwd: wt.dir,
     profile: o.readOnly ? "read" : "write", maxTurns: 80, timeoutMs: job.opts.timeoutMin * 60_000, stopFile: job.run.stopFile,
   });
   return { ...said, head: o.readOnly ? head(wt.dir) : commitAll(wt.dir, `loop: ${name}`) } as unknown as Said;
