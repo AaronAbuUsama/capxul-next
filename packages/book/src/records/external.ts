@@ -54,7 +54,7 @@ export type Integration = ReturnType<typeof defineIntegration>;
 export const ContractSpec = Schema.Struct({
   ...Common,
   /**
-   * Where the contract's code is (`tools/check-contracts.ts` requires it of every record): `built` is in
+   * Where the contract's code is (`packages/contracts/abi-check/main.ts` requires it of every record): `built` is in
    * `packages/contracts` and compared with its compiled ABI, `designed` is designed and not built, `third-party` is
    * someone else's code, deployed by the install and not compared.
    */

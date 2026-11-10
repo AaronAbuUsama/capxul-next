@@ -1,4 +1,4 @@
-// What depends on a record. A pure function over a built book; tools/impact.ts and the portal both call it.
+// What depends on a record. A pure function over a built book; packages/book/scripts/impact.ts and the portal both call it.
 //
 // "A depends on B" means A names B: every link `{from: A, to: B}` in the book is one dependency, read backwards.
 // An operation names the flow that implements it; a flow names its rpcs; an rpc names the tables, procedures, calls,

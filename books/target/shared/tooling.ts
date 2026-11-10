@@ -48,7 +48,7 @@ export const decision_tooling_milestone = defineDecision({
     "block each other, and the generated code needs the gates to judge it. As-needed is what the old system did. The exit is " +
     "observable, not a claim: a canary proves the three rule layers are loaded, which a green but empty lint cannot show " +
     "(measured: Vite Plus 1.5.0 ignored a bare .oxlintrc.json and exited 0 with no output).",
-  source: by("docs/mission/initializer.md (B0-B5, no tooling milestone); /home/user/factory/.oxlintrc.json (26 overrides); a Vite Plus 1.5.0 prototype"),
+  source: by("archive/docs/mission/initializer.md (B0-B5, no tooling milestone); /home/user/factory/.oxlintrc.json (26 overrides); a Vite Plus 1.5.0 prototype"),
   affects: SHIPPED,
 });
 
@@ -180,7 +180,7 @@ export const decision_tooling_typescript = defineDecision({
       text:
         "typescript 7.0.2 everywhere. Each package is an independent composite, noEmit project importing the others by " +
         "package name; the root tsconfig.json is a solution file, so tsc -b checks every package incrementally. " +
-        "tools/freeze-flags.ts keeps the compiler API through the alias typescript-5 (npm:typescript@5.9.3). packages/book " +
+        "archive/tools/freeze-flags.ts keeps the compiler API through the alias typescript-5 (npm:typescript@5.9.3). packages/book " +
         "drops its own typescript 5.9.3 and @types/node 22.19.1, so the root's 7.0.2 and 24.19.2 serve it.",
     },
     { label: "two-compilers", text: "TypeScript 5.9 for the book, 7 for product code." },
@@ -655,7 +655,7 @@ export const decision_tooling_fmt = defineDecision({
       label: "w120",
       text:
         "printWidth 120, two spaces, semicolons, double quotes, trailing commas, LF, sortImports and sortPackageJson; ignore " +
-        "Markdown, src/generated, books/frozen, docs/as-is/archive, tools/workflows and the lockfile. T0 formats the tree " +
+        "Markdown, src/generated, books/frozen, docs/as-is/archive, archive/tools/workflows and the lockfile. T0 formats the tree " +
         "once in a commit with nothing else, then shows the book's counts unchanged.",
     },
     { label: "w100", text: "The old repository's width of 100, Markdown included." },
@@ -725,7 +725,7 @@ export const decision_tooling_branch_protection = defineDecision({
     "may need a paid plan, which is spending. Lanes are run by agents, and a hook is a convenience they can bypass; the " +
     "remote is the only place the rule cannot be skipped. Until it is on, the build session treats a direct push to either " +
     "branch as a defect and reports it.",
-  source: by("docs/mission/initializer.md (lanes merge by pull request into integration/build); the old CAP-155 merge gate"),
+  source: by("archive/docs/mission/initializer.md (lanes merge by pull request into integration/build); the old CAP-155 merge gate"),
   affects: [f.system_capxul],
 });
 
@@ -792,7 +792,7 @@ export const decision_tooling_dead_code = defineDecision({
       text:
         "knip 6.44.1 for unused dependencies, files and exports and unlisted dependencies, over hand-written code " +
         "(src/generated and the book excluded), run with KNIP_DISABLE_RAW_TRANSFER=1, with typescript-5 the one ignored " +
-        "dependency (tools/freeze-flags.ts, outside knip); jscpd 5.4.2 at a 2% threshold over packages/*/src, run directly " +
+        "dependency (archive/tools/freeze-flags.ts, outside knip); jscpd 5.4.2 at a 2% threshold over packages/*/src, run directly " +
         "in CI, never under vp run.",
     },
     { label: "deps-only", text: "knip --dependencies only, as the old gate ran it." },

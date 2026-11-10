@@ -29,14 +29,14 @@ from the build session on, the product code it describes.
   pnpm exec tsc -p packages/book && pnpm test
   pnpm exec tsc -p books
   node --experimental-strip-types packages/book/src/main.ts books/target/index.ts /tmp/target   # 0 problems
-  node --experimental-strip-types tools/check-frozen.ts                                           # 0 breaches: every behaviour kept
+  node --experimental-strip-types packages/book/scripts/check-frozen.ts                                           # 0 breaches: every behaviour kept
   pnpm contracts:check-book                                                                       # 0 undeclared differences: the contract records match the code
   pnpm layout                                                                                     # the top level, file sizes and package READMEs (also in pnpm test)
   ```
 
-- **Where things go.** The top level is closed: `tools/check-layout.ts` holds the list of what may be there, with a
+- **Where things go.** The top level is closed: `packages/layout/src/main.ts` holds the list of what may be there, with a
   reason each. Dead material moves to `archive/` at its old path (`archive/README.md`); working data goes under the
-  git-ignored `var/`; a new script belongs in the package it serves, not in `tools/`. `docs/repository-map.md` says
+  git-ignored `var/`; a new script belongs in the package it serves (there is no `tools/` directory). `docs/repository-map.md` says
   what every entry is.
 
 - **The plan.** `plan/plan.json` is the coordinator's plan, shown at `/plan/` in the portal (decision `portal.plan-page`).

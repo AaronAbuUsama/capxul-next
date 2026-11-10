@@ -7,7 +7,8 @@ import { createModels } from "@earendil-works/pi-ai/models";
 import { fauxAssistantMessage, fauxProvider, fauxToolCall } from "@earendil-works/pi-ai/providers/faux";
 import pair from "../../../../../loops/pair.ts";       // the real standard script, played here against a fake provider
 import { git } from "../lanes/service.ts";
-import { clean, DEFAULTS, lane, merge, resume, start, status, type Ctx, type Opts } from "./service.ts";
+import { refusePath } from "../agents/service.ts";
+import { clean, DEFAULTS, gatesOf, lane, merge, POLICY, resume, start, status, type Ctx, type Opts } from "./service.ts";
 import * as plan from "./internal/plan.ts";
 
 const AGENTS = join(import.meta.dirname, "../../../../../.claude/agents");
@@ -29,6 +30,7 @@ const rig = () => {
   mkdirSync(join(root, "tools"));
   cpSync(AGENTS, join(root, ".claude/agents"), { recursive: true });
   writeFileSync(join(root, "tools/plan.ts"), FAKE_PLAN);
+  writeFileSync(join(root, "package.json"), JSON.stringify({ name: "rig", private: true, scripts: { plan: "node --experimental-strip-types --no-warnings tools/plan.ts" } }));
   writeFileSync(join(root, "plan.json"), JSON.stringify(PLAN));
   writeFileSync(join(root, "README.md"), "root\n");
   writeFileSync(join(root, ".gitignore"), "var/\nplan-calls.log\n");
@@ -135,4 +137,17 @@ test("a run whose script crashed can be resumed, and the lane and plan claim are
   const again = await resume(r.ctx(), first.id, pair);
   assert.equal(again.id, first.id);
   assert.equal(r.calls().filter((c) => c.startsWith("task start")).length, 1);
+});
+
+test("the gates are the root scripts, whichever name the design folder has; the frozen baseline is protected under both names", () => {
+  const dir = mkdtempSync(join(tmpdir(), "loop-gates-"));
+  writeFileSync(join(dir, "package.json"), JSON.stringify({ scripts: { book: "x", frozen: "x" } }));
+  assert.deepEqual(gatesOf(dir).map((g) => g.sh).slice(1), ["pnpm exec tsc -p books", "pnpm book", "pnpm frozen"]);
+  mkdirSync(join(dir, "blueprint"));
+  writeFileSync(join(dir, "package.json"), JSON.stringify({ scripts: { blueprint: "x", frozen: "x" } }));
+  assert.deepEqual(gatesOf(dir).map((g) => g.sh).slice(1), ["pnpm exec tsc -p blueprint", "pnpm blueprint", "pnpm frozen"]);
+  assert.ok(gatesOf(dir).every((g) => !/tools\/|\.ts\b/.test(g.sh)), "no gate names a file of the repository");
+  for (const path of ["books/frozen/a.ts", "blueprint/baseline/a.ts"]) assert.match(refusePath(path, "/w", true, POLICY.denyWrite) ?? "", /may not be written/);
+  assert.equal(refusePath("blueprint/target/a.ts", "/w", true, POLICY.denyWrite), undefined);
+  assert.ok(POLICY.bash.write.some((r) => r.test("pnpm blueprint")) && POLICY.bash.write.some((r) => r.test("pnpm frozen")));
 });

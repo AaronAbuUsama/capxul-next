@@ -1,5 +1,5 @@
 /** The answers module's door: `respond` turns one request into one response. See README.md. */
-import { parseAnswerLines, unapplied } from "../../../../../tools/plan/service.ts";
+import { parseAnswerLines, unapplied } from "@capxul/plan";
 import { isFields, lineOf, newAnswer, newWithdrawal } from "./internal/validate.ts";
 import { MAX_BODY, type Deps, type Req, type Res } from "./types.ts";
 import type { Answer } from "./types.ts";

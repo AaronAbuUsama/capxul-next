@@ -814,7 +814,7 @@ export const decision_contacts_crm_capabilities = defineDecision({
     "`create` for a document with a lifecycle (a lead, a deal, a new book entry; `add` keeps `contact add`'s meaning), " +
     "`change` for fields, `get` for one record, and one SDK method per command, so an rpc that both creates and " +
     "changes is two commands. Head-only would leave an Organization without a head with no leads or deals.",
-  source: crmBy("tools/check-frozen.ts ('a target operation that is none of the 215'); books/target/shared/rulings.ts (aaron.crm-frappe-shape, aaron.frappe-shape, aaron.fde-agent)"),
+  source: crmBy("packages/book/scripts/check-frozen.ts ('a target operation that is none of the 215'); books/target/shared/rulings.ts (aaron.crm-frappe-shape, aaron.frappe-shape, aaron.fde-agent)"),
   affects: [...CRM_OPERATIONS, ...CRM_RPCS, ...CRM_FLOWS, concept_contacts],
 });
 

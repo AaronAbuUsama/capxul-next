@@ -2,7 +2,7 @@
 
 The runner that turns the book's evals into a score. `src/main.ts` is the composition root: it reads the binding files, the
 book and the plan, starts the bound script for the behaviours its checks sit in, and writes `status/runs/<run>/` and, through
-`tools/record-status.ts`, `status/status.json`. The modules hold the rules and no I/O.
+`packages/evals/src/record-status.ts`, `status/status.json`. The modules hold the rules and no I/O.
 
 ```bash
 pnpm evals -- all | <eval ids> | --journey <id> | --milestone <id>     # run

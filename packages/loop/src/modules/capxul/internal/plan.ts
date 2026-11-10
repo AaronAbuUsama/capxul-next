@@ -1,6 +1,7 @@
 /**
  * The plan stays the source of truth. Tasks are read from it (plan/plan.json, plan/tasks/<id>.md, and for a derived
- * task docs/mission/tasks.json), and every change goes through `tools/plan.ts`, so it is validated and logged there.
+ * task docs/mission/tasks.json), and every change goes through the root script `pnpm plan` (wherever the file behind it
+ * lives), so it is validated and logged there. pnpm quotes each argument, so a finding's text never reaches a shell unquoted.
  * The runner never writes the critical path and never adds a task: that is the coordinator's judgment.
  */
 import { spawnSync } from "node:child_process";
@@ -11,15 +12,16 @@ import type { Ctx, Task } from "../types.ts";
 interface PlanTask { id: string; title: string; why: string; state: string; needs: string[] }
 interface PlanView { tasks: PlanTask[]; path: { tasks: string[] } }
 
-const cli = (ctx: Ctx, args: string[]): { ok: boolean; out: string } => {
-  const r = spawnSync("node", ["--experimental-strip-types", "--no-warnings", "tools/plan.ts", ...args], { cwd: ctx.root, encoding: "utf8", env: { ...ctx.env } as NodeJS.ProcessEnv });
-  return { ok: r.status === 0, out: `${r.stdout}${r.stderr}`.trim() };
+/** `json` is what the command printed on its standard output alone: pnpm echoes the script's command line on the other stream. */
+const cli = (ctx: Ctx, args: string[]): { ok: boolean; out: string; json: string } => {
+  const r = spawnSync("pnpm", ["-s", "plan", ...args], { cwd: ctx.root, encoding: "utf8", env: { ...ctx.env } as NodeJS.ProcessEnv });
+  return { ok: r.status === 0, out: `${r.stdout ?? ""}${r.stderr ?? ""}${r.error ? String(r.error) : ""}`.trim(), json: r.stdout ?? "" };
 };
 
 const plan = (ctx: Ctx): PlanView => {
   const r = cli(ctx, ["show", "--json"]);
   if (!r.ok) throw new Error(`plan show failed: ${r.out.slice(0, 300)}`);
-  return (JSON.parse(r.out) as { plan: PlanView }).plan;
+  return (JSON.parse(r.json.slice(Math.max(0, r.json.indexOf("{")))) as { plan: PlanView }).plan;
 };
 
 const derived = (ctx: Ctx): Record<string, Record<string, unknown>> => {

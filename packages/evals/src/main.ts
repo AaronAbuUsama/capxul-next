@@ -7,14 +7,14 @@
  *
  * A run starts each bound script for the behaviours its checks sit in, reads the `@check` lines it prints, scores the evals
  * asked for, keeps the evidence under status/runs/<run>/ and merges the verdicts into status/status.json through
- * tools/record-status.ts, which is the only thing that writes that file.
+ * packages/evals/src/record-status.ts, which is the only thing that writes that file.
  */
 import { spawn, spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { parseStatus, type Book } from "@capxul/book";
 
-import { loadTarget } from "../../../tools/book-target.ts";
+import { loadTarget } from "../../book/scripts/target.ts";
 import { gapsOf, loadBindings, parseBindingFile, parseScriptList, selectEvals, type BindingFile, type Bindings, type Index, type ScriptChecks, type What } from "./modules/bindings/service.ts";
 import { cap, evidenceText, fileNameOf, foldChecks, parseCheckLines, redact, resultsFile, scoreEvals, type CheckLine, type RunInfo } from "./modules/runs/service.ts";
 
@@ -165,7 +165,7 @@ const run = async (args: readonly string[]): Promise<number> => {
   writeFileSync(join(ROOT, out, "run.log"), cap(redact(logs.join("\n"), secrets), LOG_CAP));
   const resultsPath = join(ROOT, out, "results.json");
   writeFileSync(resultsPath, `${JSON.stringify(resultsFile(info, scored.rows, evidenceOf), null, 2)}\n`);
-  const recorded = spawnSync(process.execPath, ["--experimental-strip-types", "--no-warnings", join(ROOT, "tools/record-status.ts"), resultsPath], { cwd: ROOT, encoding: "utf8" });
+  const recorded = spawnSync(process.execPath, ["--experimental-strip-types", "--no-warnings", join(ROOT, "packages/evals/src/record-status.ts"), resultsPath], { cwd: ROOT, encoding: "utf8" });
   console.log(`\n${recorded.stdout.trim()}${recorded.stderr.trim()}`);
   const count = (v: string) => scored.rows.filter((r) => r.verdict === v).length;
   console.log(`run ${info.run} at ${info.commit}: ${count("pass")} evals pass, ${count("fail")} fail, ${count("not_run")} not run (no check); ${scored.unfinished.length} bound evals did not finish and stay as they were`);

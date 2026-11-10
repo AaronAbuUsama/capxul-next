@@ -7,7 +7,7 @@ import { createModels } from "@earendil-works/pi-ai/models";
 import { fauxAssistantMessage, fauxProvider, fauxToolCall } from "@earendil-works/pi-ai/providers/faux";
 import { ask, openHost, refuseBash, refusePath, remember, tail, type Policy } from "./service.ts";
 
-const policy: Policy = { bash: { write: [/^echo /, /^env$/, /^cat /, /^git (status|diff|add|commit)/], read: [/^git (diff|log|show|status)/] }, denyWrite: [/^books\/frozen\//] };
+const policy: Policy = { bash: { write: [/^echo /, /^env$/, /^cat /, /^git (status|diff|add|commit)/], read: [/^git (diff|log|show|status)/] }, denyWrite: [/^locked\//] };
 
 const rig = async () => {
   const dir = mkdtempSync(join(tmpdir(), "loop-agents-"));
@@ -39,8 +39,8 @@ test("the policy refuses what is outside the lane or not on the list", () => {
   assert.match(refuseBash("echo a && curl x", "/w", policy.bash.write) ?? "", /not a command/);
   assert.equal(refuseBash("echo a && git status", "/w", policy.bash.write), undefined);
   assert.match(refusePath("../x", "/w", false, []) ?? "", /outside/);
-  assert.match(refusePath("books/frozen/a.ts", "/w", true, policy.denyWrite) ?? "", /may not be written/);
-  assert.equal(refusePath("books/frozen/a.ts", "/w", false, policy.denyWrite), undefined);
+  assert.match(refusePath("locked/a.ts", "/w", true, policy.denyWrite) ?? "", /may not be written/);
+  assert.equal(refusePath("locked/a.ts", "/w", false, policy.denyWrite), undefined);
 });
 
 test("a refused call reaches the model as an error, and bash sees only the environment it was given", async () => {

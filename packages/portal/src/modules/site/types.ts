@@ -5,9 +5,9 @@
 import type { AnyRecord, Book, Stand, StandOf, StatusDocument, Verdict as EvalVerdict } from "@capxul/book";
 
 import type { Diagram, Direction, Step, Verdict } from "#content/shape.ts";
-import type { PlanInput, TaskState } from "../../../../../tools/plan/types.ts";
+import type { PlanInput, TaskState } from "@capxul/plan";
 
-/** The plan the Plan page is drawn from: the coordinator's file, its log and the plan check (tools/plan). */
+/** The plan the Plan page is drawn from: the coordinator's file, its log and the plan check (packages/plan). */
 export type { PlanInput };
 
 /** The hand-written content's shape lives beside the content; pages carry parts of it. */
@@ -92,7 +92,7 @@ export interface ImpactRow { readonly ref: Ref; readonly kind: string; readonly 
 export interface ImpactBlock {
   readonly total: number; readonly byKind: readonly { readonly kind: string; readonly count: number }[];
   readonly all: readonly ImpactRow[];
-  /** False when `all` is cut: to the nearest 500, or for a decision to what it names directly. `tools/impact.ts` has the rest. */
+  /** False when `all` is cut: to the nearest 500, or for a decision to what it names directly. `packages/book/scripts/impact.ts` has the rest. */
   readonly complete: boolean;
   /** Decisions that name the record itself (listed on the page), and how many name something that depends on it. */
   readonly decisions: number; readonly decisionsOnDependents: number; readonly evals: number;

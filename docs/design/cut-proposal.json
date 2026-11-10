@@ -5207,7 +5207,7 @@
     {
       "id": "system.frozen-behaviour",
       "verdict": "rewrite",
-      "reason": "States that all 215 old operations stay. START-HERE section 6 replaces it: each old operation is classified core, reached or dropped by a recorded decision. tools/check-frozen.ts follows it.",
+      "reason": "States that all 215 old operations stay. START-HERE section 6 replaces it: each old operation is classified core, reached or dropped by a recorded decision. packages/book/scripts/check-frozen.ts follows it.",
       "governs": [
         "system:capxul",
         "component:cli",

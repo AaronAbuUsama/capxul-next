@@ -5,7 +5,7 @@ import type { ImpactBlock, ImpactRow, Ref } from "../types.ts";
 import type { Ctx } from "./context.ts";
 import { refOf } from "./locate.ts";
 
-/** The most dependents a page's twins list, nearest first. A record that more depend on is listed up to here; `tools/impact.ts` has the rest. */
+/** The most dependents a page's twins list, nearest first. A record that more depend on is listed up to here; `packages/book/scripts/impact.ts` has the rest. */
 const LISTED = 500;
 
 const EMPTY: ImpactBlock = { total: 0, byKind: [], all: [], complete: true, decisions: 0, decisionsOnDependents: 0, evals: 0 };

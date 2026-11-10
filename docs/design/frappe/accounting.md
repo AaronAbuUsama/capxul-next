@@ -476,7 +476,7 @@ What changed is spelling or new design, never a dropped behaviour:
   rows.
 - `facts list` shows the fact's number, Safe, chain, Party, fee and voucher.
 
-`tools/check-frozen.ts` reports 0 breaches.
+`packages/book/scripts/check-frozen.ts` reports 0 breaches.
 
 ## Decisions
 

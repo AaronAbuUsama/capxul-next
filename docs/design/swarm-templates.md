@@ -1011,7 +1011,7 @@ export default defineManager({
   template: "build",
   project: "capxul-next",
   model: cheap,
-  instructions: "../prompts/master.md",                                   // docs/mission/initializer.md whole, then swarm.md 1b's skeleton
+  instructions: "../prompts/master.md",                                   // archive/docs/mission/initializer.md whole, then swarm.md 1b's skeleton
   scope: { root: "K-1" },
   workers: [
     { worker: builder, role: "maker", models: [strong] },
@@ -1348,7 +1348,7 @@ swarmD prepends its built-in prompt (and, for the master, the `build` template's
 Their rules are assumptions to test and delete (swarmD's Zen, rule 6). The Claude Code profiles (section 11) carry the
 same text, with a section on where they run at stage 0.
 
-**`prompts/master.md`** is `docs/mission/initializer.md` whole, followed by swarm.md section 1b's skeleton
+**`prompts/master.md`** is `archive/docs/mission/initializer.md` whole, followed by swarm.md section 1b's skeleton
 (`swarm.master-prompt`), followed by: "Every artifact you produce follows docs/design/swarm-templates.md: decide 7.1,
 matters 7.2 and 7.3, tasks 8, room messages 9.4."
 
@@ -1485,7 +1485,7 @@ All in [`books/target/shared/swarm.ts`](../../books/target/shared/swarm.ts), sec
 
 ## 14. Open items for other owners
 
-- **The swarm design and `tools/plan-tasks.ts`:** a `--brief <key>` mode that prints a task's `MakerInput` (2.1) from
+- **The swarm design and `packages/plan/src/tasks.ts`:** a `--brief <key>` mode that prints a task's `MakerInput` (2.1) from
   the plan and the book (its claims, deciders, decisions and `was`), so Mission Control never composes a brief by hand;
   and leave `dec:<decision>/review` evals unowned by any derived task (`swarm.hand-tasks`), since only review tasks name
   them.

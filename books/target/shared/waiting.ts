@@ -1,4 +1,4 @@
-// Which decisions wait for Aaron. One predicate, used by tools/report-judgments.ts, tools/export-explorer.ts and the
+// Which decisions wait for Aaron. One predicate, used by packages/book/scripts/report-judgments.ts, archive/tools/export-explorer.ts and the
 // portal's Questions page, so the three lists cannot disagree. It reads the lists in ./rulings.ts and nothing else.
 
 import { ACCEPTED, CARRIES_OUT as CARRIES_OUT_RULINGS, REOPENED, SUPERSEDED } from "./rulings.ts";
@@ -20,9 +20,10 @@ export type DecisionState = "ruling" | "superseded" | "accepted" | "for-aaron" |
 // The designers and the assembly flagged these for Aaron in their reports; their text need not name him.
 // The report fails if one is not a decision in the book.
 // documents.acceptance-rewrites left the list once its line was kept word for word again (W1 settled).
+// equity.acceptance left it when the cut parked equity (docs/cut-archive/parked/equity/): it is no longer in the book.
 export const FLAGGED: readonly string[] = [
   "payroll.scope", "payments.birth-width", "parties.directory-tenancy", "procedures.accounts-admit",
-  "agents.org-owned", "board.failed-proposal", "equity.acceptance",
+  "agents.org-owned", "board.failed-proposal",
   "contacts.members-write", "notices.claim-escrow", "system.size",
 ];
 

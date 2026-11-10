@@ -1,9 +1,9 @@
 /**
  * The answers module: the owner's answers to what waits on him, saved as lines of `plan/answers.jsonl`. A request in, a
  * response out, both plain data; the files and the clock come in as `Deps`, so the whole endpoint is testable without a
- * socket. The answer's own types live with the plan (`tools/plan/types.ts`), which reads the same file.
+ * socket. The answer's own types live with the plan (`packages/plan/types.ts`), which reads the same file.
  */
-import type { Answer, AnswerLine, How, LogEntry, Target, Withdrawal } from "../../../../../tools/plan/types.ts";
+import type { Answer, AnswerLine, How, LogEntry, Target, Withdrawal } from "@capxul/plan";
 
 export type { Answer, AnswerLine, How, LogEntry, Target, Withdrawal };
 

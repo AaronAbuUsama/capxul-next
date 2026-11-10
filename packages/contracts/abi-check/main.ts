@@ -1,5 +1,5 @@
-// node --experimental-strip-types tools/check-contracts.ts           → compares the book's contract records with the code
-// node --experimental-strip-types tools/check-contracts.ts --json    → the same as one JSON document (exits 1 on a failure too)
+// node --experimental-strip-types packages/contracts/abi-check/main.ts           → compares the book's contract records with the code
+// node --experimental-strip-types packages/contracts/abi-check/main.ts --json    → the same as one JSON document (exits 1 on a failure too)
 //
 // The code is the truth for what exists. This reads the ABI of every contract in `packages/contracts` from the committed
 // export (`packages/contracts/abi/abi.json`, made from a build by `pnpm contracts:export-abi`, so the check needs no 100 s
@@ -19,12 +19,12 @@ import { existsSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { records } from "../books/target/index.ts";
-import { CONTRACT_ALLOWANCES } from "../books/target/shared/contracts.ts";
-import { compareContracts, type BookContract, type CodeContract, type Report } from "./check-contracts/compare.ts";
-import { sourceHash } from "./check-contracts/source-hash.ts";
+import { records } from "../../../books/target/index.ts";
+import { CONTRACT_ALLOWANCES } from "../../../books/target/shared/contracts.ts";
+import { compareContracts, type BookContract, type CodeContract, type Report } from "./compare.ts";
+import { sourceHash } from "./source-hash.ts";
 
-const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
+const ROOT = join(dirname(fileURLToPath(import.meta.url)), "../../..");
 const PKG = join(ROOT, "packages/contracts");
 const json = process.argv.includes("--json");
 

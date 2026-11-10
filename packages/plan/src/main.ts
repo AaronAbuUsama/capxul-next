@@ -1,4 +1,4 @@
-// node --experimental-strip-types tools/plan.ts <command>      (also: pnpm plan <command>)
+// node --experimental-strip-types packages/plan/src/main.ts <command>      (also: pnpm plan <command>)
 //
 // The coordinator's plan (plan/plan.json), changed one command at a time. Every change is validated, written, appended
 // to plan/log.jsonl with who made it and the commit at the time, and printed. The critical path is written, never
@@ -6,14 +6,14 @@
 
 import { execFileSync } from "node:child_process";
 import { appendFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { planFilesOf } from "./plan-files.ts";
+import { planFilesOf } from "./files.ts";
 import { dirname } from "node:path";
-import { buildBook, parseStatus, type StatusDocument } from "../packages/book/src/index.ts";
-import { name, records, stage } from "../books/target/index.ts";
-import { CONCEPTS } from "../books/target/shared/foundation.ts";
-import { forAaron } from "../books/target/shared/waiting.ts";
-import { apply, applyAnswer, appliedTargets, check, describe, logLine, parseAnswerLines, parseArgs, parsePlan, show, showTask, unapplied } from "./plan/service.ts";
-import { EMPTY_PLAN, type Facts, type LogEntry, type Plan } from "./plan/types.ts";
+import { buildBook, parseStatus, type StatusDocument } from "@capxul/book";
+import { name, records, stage } from "../../../books/target/index.ts";
+import { CONCEPTS } from "../../../books/target/shared/foundation.ts";
+import { forAaron } from "../../../books/target/shared/waiting.ts";
+import { apply, applyAnswer, appliedTargets, check, describe, logLine, parseAnswerLines, parseArgs, parsePlan, show, showTask, unapplied } from "./modules/plan/service.ts";
+import { EMPTY_PLAN, type Facts, type LogEntry, type Plan } from "./modules/plan/types.ts";
 
 export const PLAN_FILE = "plan/plan.json";
 export const LOG_FILE = "plan/log.jsonl";

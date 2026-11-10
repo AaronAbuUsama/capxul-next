@@ -12,7 +12,7 @@ import { catchUp, commitAll, dropLane, ensureLane, git, head, slug, type Lane } 
 import { alive, ledgerLines, listRuns, play, readInfo, SETTLED, stop as stopRun, table, watchRun, work as workLoop, type Info, type Run } from "../runs/service.ts";
 import { allowedModel, defaultCheckerModel, defaultModel, modelsOf, POLICY, qualify } from "./internal/config.ts";
 import { showView, statusViews, type Look, type RunView } from "../inspect/service.ts";
-import { runGates } from "./internal/gates.ts";
+import { gatesFor, runGates } from "./internal/gates.ts";
 import * as plan from "./internal/plan.ts";
 import { checkerPrompt, makerPrompt as renderMaker, researchPrompt, type CheckInput } from "./internal/prompts.ts";
 import { startSandbox, stopSandbox } from "./internal/sandbox.ts";
@@ -20,7 +20,7 @@ import { cleanEnv } from "./internal/sh.ts";
 import type { Check, Ctx, Finding, Gate, Handback, Job, Opts, SandboxInfo, Said, Task } from "./types.ts";
 
 export type * from "./types.ts";
-export { GATES } from "./internal/gates.ts";
+export { gatesOf } from "./internal/gates.ts";
 export { POLICY } from "./internal/config.ts";
 
 export const DEFAULTS: Opts = { script: "pair", sandbox: "none", rounds: 3, budgetUsd: 5, timeoutMin: 30 };
@@ -56,7 +56,7 @@ const roleBody = (job: Job, role: string): string => {
 
 /** The maker's brief for round `round`: the task, the open findings, the last handover, the sandbox (swarm-templates.md 2.1). */
 export const makerPrompt = (job: Job, round: number, open: Finding[], last?: Handback): string =>
-  renderMaker({ task: job.task, round, budgetUsd: job.opts.budgetUsd, spentUsd: job.run.info.spentUsd, branch: job.lane!.branch, sandbox: boxLine(job.box!), open, ...(last?.handover ? { handover: last.handover } : {}) });
+  renderMaker({ task: job.task, round, budgetUsd: job.opts.budgetUsd, spentUsd: job.run.info.spentUsd, branch: job.lane!.branch, sandbox: boxLine(job.box!), open, ...(last?.handover ? { handover: last.handover } : {}) }, gatesFor(job.ctx, job.lane!.dir, job.task).map((g) => g.sh));
 
 /** One agent (pi-durable conversation, the role's definition as its system prompt, tools confined to the lane) as one step. Its work is committed after. */
 export const agent = (job: Job, name: string, o: { role: string; prompt: string; readOnly?: boolean }): Promise<Said> => job.run.step(name, async () => {

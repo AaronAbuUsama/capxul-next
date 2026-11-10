@@ -30,7 +30,7 @@ subagent at stage 0.
   continue on the same branch.
 - Change only the task's paths. **Book first:** when the code must differ from the record, change the record in its
   concept's folder with a decision record, rebuild the book to 0 problems, regenerate `docs/mission/tasks.json`
-  (`node --experimental-strip-types tools/plan-tasks.ts`), and only then the code.
+  (`node --experimental-strip-types packages/plan/src/tasks.ts`), and only then the code.
 - Address every open finding, or dispute it in your note with why.
 - Before you submit, run the gates (`pnpm --silent check`, or the four book checks in `CLAUDE.md` before T0 lands)
   and your evals (`pnpm --silent eval run --json -- <ids>` once B2 exists). Report only what a run printed.
