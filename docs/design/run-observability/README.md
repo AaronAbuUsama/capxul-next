@@ -8,6 +8,25 @@ What Aaron asked for: see what is running at any time; how many backwards and fo
 between agents; see and inspect what is happening inside a run; ideally steer it. And, on 10 November: where exactly
 the runs are in the portal, how they relate to a task, and how it all works, because these are durable agents.
 
+## Amendments, 10 November
+
+The coordinator read the pack and accepted it on Aaron's behalf, with these changes. Where they differ from the text or
+the pictures below, they win. Aaron's own comments on the pictures, if any, win over both.
+
+1. **Who may be steered.** A person can steer and queue a builder only. A reviewer or any other checker can be watched
+   and stopped, not steered, so a check stays independent; its page says so where the box would be.
+2. **The browser client is proved first**, before any screen. If pi's Chord layer does not run in a browser against
+   our pinned version, the host carries the same three objects over a plain WebSocket as JSON.
+3. **One command brings up everything.** The host is added to `.claude/launch.json` beside the portal, and the portal
+   says plainly when the host is down: on the top bar's count, on the Runs page and in the Runs block.
+4. **Other work in progress.** Under the three groups on Runs, a short generated list of plan tasks that are being done
+   by something that is not a run: the task, its thread and since when, from `plan/plan.json`. Runs stays the one page
+   that answers "what is going on".
+5. **Many rounds.** A run with more than one round shows one line above its rounds: how many rounds, and for each
+   handoff how many findings went back and how many came back fixed.
+6. **Refusals are shown** on the run page, as drawn. The command policy was reviewed against them (commit `6b65712`).
+7. **The decisions** below are recorded in the blueprint by the coordinator.
+
 The screens are drawn with the portal's own stylesheet and filled with real data read from runs in `var/runs` on
 10 November 2026. To open them as pages instead of pictures:
 
@@ -200,7 +219,7 @@ Drafts for the coordinator to record in the blueprint.
 | The attach contract | Runs, a run and an agent are shared objects over a WebSocket: a view that updates, plus stop and send; an agent is addressed as run plus agent | The same object serves the terminal and the page; it is `connect()` in the Workflow DX note |
 | Where runs live in the portal | A top-level Runs page; a Runs block on each task's page and row; run pages are not under Plan | The path plan, task, runs, run, agent; a run may have no task |
 | The live pages are an app beside the generated portal | React, Tailwind and shadcn's AI Elements in its own package, served by the host under `/runs/`, passed through by the portal server; the generator does not read `var/runs` | Nothing invented for the conversation view; the portal check stays deterministic |
-| Who may steer | Anyone who can open the portal on the tailnet is the owner: stop, steer, queue. No start, resume or merge from the page | The tailnet is Aaron's devices; steering is as strong as starting a run |
+| Who may steer | Anyone who can open the portal on the tailnet is the owner: stop any agent or run; steer and queue a builder only. No start, resume or merge from the page | The tailnet is Aaron's devices; steering is as strong as starting a run |
 | Shown scrubbed, stored raw | Scrub on the way out; `run.sqlite` keeps every conversation whole | Every run is training data; nothing secret on a screen |
 | A blocked run and Questions | The run blocks its plan task for the coordinator, as today; the Questions card links to the run | Only what is truly Aaron's reaches him |
 | The run folder does not change | `run.sqlite`, `status.json`, `lane/`; old runs open in the new pages | The coordinator runs the plan through the loop daily |
@@ -209,5 +228,4 @@ Drafts for the coordinator to record in the blueprint.
 ## What is not settled
 
 - A browser as a Chord client is untested; the spike ran Node to Node. It is the first thing the first slice proves.
-- Whether a steer may go to a reviewer as well as a builder. The design allows any running agent and marks the note
-  in the conversation; a reviewer that was steered is no longer independent, and the run page should say so.
+- Settled by amendment 1: only a builder can be steered.
