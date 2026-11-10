@@ -15,7 +15,9 @@ pnpm plan show
 pnpm plan show m1-loop-hardening
 ```
 
-The live plan, not this snapshot, determines the current milestone and next task. Read [plan/outline.md](plan/outline.md) for the route and [plan/tasks/](plan/tasks/) for each task's What, Why and Done when.
+The live plan, not this snapshot, determines the current milestone and next task. “Next” here means the
+first task on the coordinator's written critical path, not permission to abandon an assigned task or to
+claim work already running in another thread. Read [plan/outline.md](plan/outline.md) for the route and [plan/tasks/](plan/tasks/) for each task's What, Why and Done when.
 
 ## Three sources to use
 
