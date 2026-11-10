@@ -923,7 +923,7 @@
       "evidence": [],
       "created": "2026-11-10",
       "updated": "2026-11-10",
-      "thread": "lane/live-page"
+      "thread": "coordinator"
     }
   ],
   "path": {
@@ -995,6 +995,11 @@
       "date": "2026-11-10",
       "by": "coordinator",
       "text": "Handoff note, 10 November, afternoon. Merged today: the cut and reshaped blueprint (still called the book in the code; a rename to blueprint is a task), Aaron's answers, an example on every operation, the contract check, the scoreboard (first score 8 of 4,724), the loop runner on pi-durable in packages/loop, and worlds as a hosted platform with its Worlds page. The worlds machine, its DNS and its certificate exist in AWS. In flight: lining the checks up with the blueprint's tests (lane/eval-coverage), a Live page for running agents (lane/live-page), and the repository tidy-up as its own session (repo-tidy), with the rename to blueprint in its second stage. Next on the path: make the loop trustworthy (its real run was blocked by model errors from the gateway), prove time on the scoreboard, the AWS side as records, telemetry. Aaron's standing decisions: keep LiteLLM; people's sign-in is a later Core design; agents first; the first jurisdiction is open; he no longer wants cost reports relayed. The portal is at localhost:4391 and, over Tailscale, at macbook.tail4b9a40.ts.net:8443."
+    },
+    {
+      "date": "2026-11-10",
+      "by": "coordinator",
+      "text": "Models: only gpt-6.1-sol (maker) and gpt-6.1-terra (checker) are allowed on the gateway (Aaron, 10 Nov). The stopped live-page thread's loop half was good and is merged (d87bcb0: loop status --json, show --json). Its portal half is replaced by the agents view Aaron asked for (see, inspect and steer runs), prototyped in its own session. The stopped eval-coverage thread left nothing committed; it is redone through the loop."
     }
   ]
 }
