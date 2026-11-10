@@ -105,32 +105,21 @@ export const decision_indexing_tables_only = defineDecision({
   id: "indexing.tables-only",
   title: "Indexing is tables only: no procedure, rpc, workflow, flow or operation",
   question:
-    "Indexing owns every chain view and no workflow (concepts.indexing). Does it own any behaviour: read rpcs for other " +
-    "concepts, the indexer service, a procedure, a flow?",
+    "Indexing owns every chain view and no workflow (concepts.indexing). Does it own any behaviour: read rpcs for other concepts, the indexer service, a procedure, a flow?",
   options: [
-    {
-      label: "tables-only",
-      text:
-        "Indexing owns its views and nothing else. A concept that depends on indexing reads the views in its own rpcs and " +
-        "workflows; what depends on Ponder's progress is the shared `indexer` integration; Ponder alone writes.",
-    },
-    {
-      label: "read-rpcs",
-      text: "Indexing exposes read rpcs (a Safe's transfers, a hat's wearers, a budget's tree) that other concepts call, like old `PonderService`.",
-    },
-    { label: "indexer-rpcs", text: "Indexing implements `head`, `awaitBlock` and `factsOf` as its own rpcs instead of an integration." },
-  ],
-  chosen: "tables-only",
+  {
+    "label": "current-scope",
+    "text": "Indexing owns chain read views; concepts read them through their own behavior and progress-dependent calls use the indexer integration. Only the reader writes them. In lean worlds it is folded into the service, so tables-only is an ownership boundary, not a requirement to deploy a separate Ponder/Postgres component."
+  },
+  {
+    "label": "historical",
+    "text": "The former answer to indexing.tables-only is preserved in docs/cut-archive/decision-review-history.json as historical evidence, not implementation authority."
+  }
+],
+  chosen: "current-scope",
   why:
-    "One Postgres holds the views and every concept's tables, so a reader joins a view in its own transaction, under " +
-    "row-level security, with no hop. A read rpc in indexing would be reached by no operation, flow, signal or trigger " +
-    "(P2's unreached-rpc), and an rpc calling an rpc is not a step the book has. Ponder's progress is a call with a " +
-    "timeout and a failure, not a read (integrations.indexer), and it serves every concept the same way, so it is the " +
-    "shared integration. Nothing in `app` is indexing's to write and nothing writes Ponder's schema but Ponder " +
-    "(components.ponder), so there is no procedure, and with no rpc there is nothing for a flow to compose. " +
-    "OPERATION_OWNERS gives indexing no frozen operation (operations.owners): every command that shows a chain fact is " +
-    "owned by the concept whose noun it shows.",
-  source: by("packages/backend/src/integrations/ponder/service.ts:45 (old reader); P2; P8; blueprint/shared/foundation.ts (OPERATION_OWNERS)"),
+    "Review, 11 November 2026: Indexing owns chain read views; concepts read them through their own behavior and progress-dependent calls use the indexer integration. Only the reader writes them. In lean worlds it is folded into the service, so tables-only is an ownership boundary, not a requirement to deploy a separate Ponder/Postgres component. Authority: devnet.lean-world; plugs.event-order; plugs.reversal-not-deletion.",
+  source: "The coordinator, round 2, m1-old-decisions; devnet.lean-world; plugs.event-order; plugs.reversal-not-deletion",
   affects: [
     concept_indexing,
     integration_indexer,
@@ -256,26 +245,19 @@ export const decision_indexing_reorgs_are_ponders = defineDecision({
   title: "Ponder handles reorgs; finality is the reader's, through the indexer integration",
   question: "Who handles a chain reorganisation, and how does a reader know a fact will not be rolled back?",
   options: [
-    {
-      label: "ponders",
-      text:
-        "Ponder rolls back a reorganised block's rows and replays the canonical ones, so every view is the chain at " +
-        "Ponder's head. A reader that books money reads at the deployment's finality depth (`indexer.factsOf`, " +
-        "`awaitBlock`) and re-reads later where a fact could still go.",
-    },
-    { label: "finalized-only", text: "Ponder indexes only finalized blocks, so no view is ever rolled back." },
-    { label: "app-retractions", text: "Capxul keeps its own checkpoints and a retraction protocol over Ponder's rows." },
-  ],
-  chosen: "ponders",
+  {
+    "label": "current-scope",
+    "text": "The chain reader rolls back reorganized views and replays canonical logs. Money readers wait for configured finality and reconcile later reorgs; folded-in lean-world readers have the same obligation as Ponder. Site corrections use explicit ordered reversal events, not silent deletion of a posted payment."
+  },
+  {
+    "label": "historical",
+    "text": "The former answer to indexing.reorgs-are-ponders is preserved in docs/cut-archive/decision-review-history.json as historical evidence, not implementation authority."
+  }
+],
+  chosen: "current-scope",
   why:
-    "Ponder already owns canonical ordering, checkpoints and rollback, and the old indexer added no finality wait, " +
-    "checkpoint or retraction protocol on top. Indexing only finalized blocks would hold every read (a hat just granted, " +
-    "an approval's landing, the chain-settle budget of 3 s p95) behind finality, which on Base Sepolia is minutes. A " +
-    "retraction protocol is the copy-and-correct the drift reconcile did, and it goes with it (concepts.indexing). So the " +
-    "views show the head, and the readers that must not act on a fact that may vanish (payments settling, books booking, " +
-    "a Movement's confirm step) wait for depth through the integration, which fails with a code while Ponder lags or " +
-    "rebuilds. On a devnet Anvil mines at once and reorgs only when a test scripts one.",
-  source: by("apps/indexer/CONTEXT.md:157 (Ponder owns rollback and replay); apps/indexer/README.md:4; P5 chain-settle"),
+    "Review, 11 November 2026: The chain reader rolls back reorganized views and replays canonical logs. Money readers wait for configured finality and reconcile later reorgs; folded-in lean-world readers have the same obligation as Ponder. Site corrections use explicit ordered reversal events, not silent deletion of a posted payment. Authority: devnet.lean-world; plugs.event-order; plugs.reversal-not-deletion.",
+  source: "The coordinator, round 2, m1-old-decisions; devnet.lean-world; plugs.event-order; plugs.reversal-not-deletion",
   affects: [...FACT_VIEWS, ...PROJECTIONS, table_indexer_progress, integration_indexer, component_ponder],
 });
 

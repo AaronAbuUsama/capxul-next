@@ -95,39 +95,21 @@ export const decision_notices_kinds = defineDecision({
   id: "notices.kinds",
   title: "Which notices the target sends",
   question:
-    "Old Capxul sent 44 kinds of email (the sign-in code among them) from a dozen notify actions. Notices owns no " +
-    "frozen operation, so no frozen text " +
-    "lists them. Which does the target send?",
+    "Old Capxul sent 44 kinds of email (the sign-in code among them) from a dozen notify actions. Notices owns no frozen operation, so no frozen text lists them. Which does the target send?",
   options: [
-    {
-      label: "live-subjects",
-      text:
-        "Every old notice whose subject lives on in the target, to its old audience and under its old template name " +
-        "unless that name no longer says what it is, plus the ones the architecture and the designed concepts name; none " +
-        "for a subject the target dropped.",
-    },
-    { label: "port-all", text: "Port all 43 notices, mapping each old event to the nearest target transition." },
-    { label: "claims-only", text: "Only the notices a frozen claim or note names (the allowance, the resume, the seat, the invite)." },
-  ],
-  chosen: "live-subjects",
+  {
+    "label": "current-scope",
+    "text": "Core sends notices only for retained money and authority transitions. HR/payslip notices belong to Frappe HR; optional-head and hosted-FDE templates are archived. The old list of 44 templates is evidence, not a requirement to resurrect removed subjects."
+  },
+  {
+    "label": "historical",
+    "text": "The former answer to notices.kinds is preserved in docs/cut-archive/decision-review-history.json as historical evidence, not implementation authority."
+  }
+],
+  chosen: "current-scope",
   why:
-    "A notice tells a person their money or authority changed (old G5), so each one is behaviour people rely on even " +
-    "where no frozen line names it; claims-only would silently stop the invoice, payout and dated-payment emails. " +
-    "Port-all would invent subjects for notices whose objects are gone. Kept, by source: the beta welcome and the " +
-    "account-ready message (accounts), the invitation (organizations), the allowance and department-holder emails " +
-    "(budgets), a Director seated or removed, the threshold changed, a proposal waiting and an officer hat granted " +
-    "(board; old owner-added, owner-removed, approvals-changed, approval-request and the three permission emails, " +
-    "renamed for v4's words), the five dated-payment emails (payments), eleven " +
-    "agreement emails (payroll), person verification, verified and payout sent and delivered (banking), the Invoice " +
-    "emails (requests). Added because a decision names them: a payout returned and an Invoice declined " +
-    "(dependencies.of-notices), a round or SAFE invitation (equity's design), and, by the money-waiting rulings, money waiting in " +
-    "a claim escrow, its reminders and its refund (notices.claim-escrow, notices.money-waiting-reminders); by the Frappe " +
-    "redesign, a paid salary slip's payslip (notices.payslip), a stalled head and a ready FDE (notices.head-and-fde). " +
-    "Dropped with their subjects: pay runs' " +
-    "pay-run-approval and pay-run-payment, approval-pending (an approval's own signer is at the page; approvals' " +
-    "decision on notify), beta-waitlist (accounts.admission-paths), invoice-part-received (requests.escrow-process) and " +
-    "payout-ceiling-alert (notices.agreements). The sign-in code stays access' (concepts.notices).",
-  source: by(`${OLD}/integrations/mail/service.ts:58 (MailTemplate); packages/protocol/src/templates/emails/; concepts.notices; dependencies.of-notices`),
+    "Review, 11 November 2026: Core sends notices only for retained money and authority transitions. HR/payslip notices belong to Frappe HR; optional-head and hosted-FDE templates are archived. The old list of 44 templates is evidence, not a requirement to resurrect removed subjects. Authority: cut.notices; cut.fde-parked; plugs.service-calls-site.",
+  source: "The coordinator, round 2, m1-old-decisions; cut.notices; cut.fde-parked; plugs.service-calls-site",
   affects: [table_notices, workflow_notices_payroll_daily, workflow_notices_payments_money_reminders],
 });
 
@@ -175,7 +157,7 @@ export const decision_notices_no_staleness_check = defineDecision({
     "The outbox delivers a transition within a second, so a moved-on subject is rare, and each move it made sends its " +
     "own true notice in order (scheduled, then cancelled). The old check made a notice depend on a second read, and a " +
     "read that failed sent nothing at all with no record (old R8). Facts are still read when the notice is sent, so an " +
-    "amount is the one current then (the allowance's, `org allowance assign` #5).",
+    "amount is the one current then (the allowance's, `org allowance assign` #5)." + " Review, 11 November 2026: The surviving rule (A notice tells the transition that committed, even if the subject moved on) still applies. Removed subjects in its historical evidence are not restored; cut.notices; cut.fde-parked; plugs.service-calls-site governs their replacement.",
   source: by(`${OLD}/payments/notices/rules.ts:40 (STATE_OF_EVENT); ${OLD}/banking/payouts/rules/notices.ts:40; docs/as-is/payments.md (R8)`),
   affects: [],
 });
@@ -207,7 +189,7 @@ export const decision_notices_first_attempt = defineDecision({
     "outbox workflow would repeat the backoff and its guard in each and make each one wait minutes. Here a notice is " +
     "the long-lived object only when it is held, and then it has one process (A3) that owns its last two attempts. The " +
     "provider's idempotency key is the notice's, so an attempt repeated after a crash is taken once; the mail call " +
-    "itself never retries (integrations.timeouts).",
+    "itself never retries (integrations.timeouts)." + " Review, 11 November 2026: The surviving rule (The outbox workflow makes the first attempt; a held notice gets a retry process) still applies. Removed subjects in its historical evidence are not restored; cut.notices; cut.fde-parked; plugs.service-calls-site governs their replacement.",
   source: by(`dev.mail.notices.yaml (about); ${OLD}/integrations/mail/notices.ts:17 (NOTICE_ATTEMPTS, delays); integration mail`),
   affects: [machine_notice, table_notices, workflow_notices_delivery_retry],
 });
@@ -284,32 +266,19 @@ export const decision_notices_recipients = defineDecision({
   title: "Who a notice reaches: a mailbox, a principal, the Directors, a budget's wearers",
   question: "Notices must turn a subject's parties into mailboxes. How, for a person, an agent and an Organization?",
   options: [
-    {
-      label: "directors-and-wearers",
-      text:
-        "A person at the mailbox the source row carries, else at their principal's email; an agent never (it has no " +
-        "mailbox); an Organization through its Directors, the company Safe's owners now, each to its principal's email. " +
-        "A notice about a budget's money (an agreement accepted, a payout, a payment sent, due or uncollected) also goes " +
-        "to whoever wears that budget's hat now, read from indexing's hat-wearers when it is sent; the person who acted " +
-        "(an offerer, a payout's maker, a payment's requester) is told only while they still wear it.",
-    },
-    {
-      label: "directors",
-      text: "An Organization through its Directors only, and the person who acted where the source row names one.",
-    },
-    { label: "seats", text: "An Organization through every Seat (old paid-invoice notices)." },
-  ],
-  chosen: "directors-and-wearers",
+  {
+    "label": "current-scope",
+    "text": "Retained money/authority notices reach a person at the source mailbox or principal email, never an agent mailbox. Company notices resolve current Directors; budget notices resolve current hat wearers, not stale membership. HR approval and salary-slip recipients belong to Frappe HR and do not reuse Core payroll/Employee recipient queries."
+  },
+  {
+    "label": "historical",
+    "text": "The former answer to notices.recipients is preserved in docs/cut-archive/decision-review-history.json as historical evidence, not implementation authority."
+  }
+],
+  chosen: "current-scope",
   why:
-    "Parties holds only a mailbox's digest (parties.mailbox-digest), so the mailbox comes from the row that named it " +
-    "(an invitation's grantee, an offer's payee, a request's payer, a named person) or from access' principal. The " +
-    "Directors can act on every subject a notice tells about, while every Seat would tell people with no authority. A " +
-    "department's money is acted on by whoever wears its hat now, so its current wearers must hear about it, and a " +
-    "person swapped out of the hat must not keep hearing about money they can no longer act on " +
-    "(docs/design/authority.md, contradiction 11). Who wears a hat is an indexed chain fact, so notices reads " +
-    "indexing's hat-wearers (dependencies.of-notices); the Directors stay the company Safe's owners read now " +
-    "(notices.chain-reads).",
-  source: by(`${OLD}/requests/receivables/reads/notices.ts:30, :89; ${OLD}/payroll/agreements/operations/sweep.ts:44; parties.mailbox-digest`),
+    "Review, 11 November 2026: Retained money/authority notices reach a person at the source mailbox or principal email, never an agent mailbox. Company notices resolve current Directors; budget notices resolve current hat wearers, not stale membership. HR approval and salary-slip recipients belong to Frappe HR and do not reuse Core payroll/Employee recipient queries. Authority: cut.notices; cut.fde-parked; plugs.service-calls-site.",
+  source: "The coordinator, round 2, m1-old-decisions; cut.notices; cut.fde-parked; plugs.service-calls-site",
   affects: [...TO_DIRECTORS],
 });
 
@@ -330,7 +299,7 @@ export const decision_notices_chain_reads = defineDecision({
     "are live state, not facts that happened: an amount after any change that applied, what an agreement has released " +
     "by now, a balance, the current owners; the view functions answer exactly, which is what chain-rpc is for. " +
     "Producers copying figures would put chain state in rows that drift, which payroll and budgets designed away " +
-    "(payroll.live-reads, budgets.chain-is-the-record). A failed read is the workflow's own retry.",
+    "(payroll.live-reads, budgets.chain-is-the-record). A failed read is the workflow's own retry." + " Review, 11 November 2026: The surviving rule (Live chain state for a notice is read through chain-rpc, not indexing) still applies. Removed subjects in its historical evidence are not restored; cut.notices; cut.fde-parked; plugs.service-calls-site governs their replacement.",
   source: by("blueprint/shared/external.ts (integration chain-rpc); payroll.live-reads; budgets.chain-is-the-record; dependencies.of-notices"),
   affects: [
     concept_notices,
@@ -628,7 +597,7 @@ export const decision_notices_priority_and_budgets = defineDecision({
     "No caller waits on a notice (P3), so its time is background time; a timer between retries is a wait, never system " +
     "time. One read, a render and a 2 s p95 mail call per recipient fit the class's 15 s. A notice that lags never " +
     "rolls back its change, so none is critical, even after a critical operation; equity's follows equity's low " +
-    "priority. The daily cron's override says why where it is set.",
+    "priority. The daily cron's override says why where it is set." + " Review, 11 November 2026: The surviving rule (Notices run at normal priority on the background budget) still applies. Removed subjects in its historical evidence are not restored; cut.notices; cut.fde-parked; plugs.service-calls-site governs their replacement.",
   source: by("packages/blueprint-engine/src/budgets.ts (background); P3; P5; CONVENTIONS rule 4 (priority)"),
   affects: [workflow_notices_delivery_retry, workflow_notices_payroll_daily, workflow_notices_payments_money_reminders],
 });
@@ -760,59 +729,45 @@ export const decision_notices_money_waiting_reminders = defineDecision({
 
 export const decision_notices_payslip = defineDecision({
   id: "notices.payslip",
-  title: "A paid salary slip emails its employee a payslip, in Frappe HR's place",
+  title: "Archived: A paid salary slip emails its employee a payslip, in Frappe HR's place",
   question:
-    "Payroll asked, optionally, for a payslip email when a salary slip is paid, replacing Frappe HR's " +
-    "`email_salary_slip_to_employee`, which a head keeps off. Send it, and on which transition?",
+    "Payroll asked, optionally, for a payslip email when a salary slip is paid, replacing Frappe HR's `email_salary_slip_to_employee`, which a head keeps off. Send it, and on which transition?",
   options: [
-    {
-      label: "on-settle",
-      text:
-        "`payslip` on `settle` (the net settled, from paying or from escrowed after a new hire claimed), once, to the " +
-        "Employee's personal email, with the period, the lines, the net, the transaction and the payslip's hash.",
-    },
-    { label: "on-submit", text: "On `submit`, as Frappe HR does when its setting is on: the slip before it is paid." },
-    { label: "none", text: "Send nothing: employees read their slips themselves." },
-  ],
-  chosen: "on-settle",
+  {
+    "label": "current-scope",
+    "text": "Frappe HR owns salary-slip email and print attachment. Archive the Core settle-triggered payslip email and replacement of email_salary_slip. A chain settlement still updates the site before it can send a paid notice; escrow funding alone is not salary paid."
+  },
+  {
+    "label": "historical",
+    "text": "The former answer to notices.payslip is preserved in docs/cut-archive/decision-review-history.json as historical evidence, not implementation authority."
+  }
+],
+  chosen: "current-scope",
   why:
-    "A payslip tells a person what they were paid, so it follows the money: settled is when the net reached their Safe, " +
-    "and a new hire's escrowed net is not paid until they collect (payroll.new-hire-escrow), when this email follows " +
-    "the money-waiting one. Frappe HR emails at submit, before any payment exists, which on Capxul would tell a person " +
-    "of pay that may still be withheld or cancelled. The personal email is where pay is routed (payroll.mailbox-for-pay), " +
-    "never a work address. One notice regardless of a head, because the head keeps its own email off (payroll's Payroll " +
-    "Settings). An agreement collection's slip is told by `pay-received` already.",
-  source: RULINGS("docs/design/frappe/payroll.md (notices); hrms salary_slip.py (email_salary_slip); payroll.new-hire-escrow; payroll.mailbox-for-pay"),
+    "Review, 11 November 2026: Frappe HR owns salary-slip email and print attachment. Archive the Core settle-triggered payslip email and replacement of email_salary_slip. A chain settlement still updates the site before it can send a paid notice; escrow funding alone is not salary paid. Authority: cut.notices; cut.fde-parked; plugs.service-calls-site.",
+  source: "The coordinator, round 2, m1-old-decisions; cut.notices; cut.fde-parked; plugs.service-calls-site",
   affects: [table_notices],
 });
 
 export const decision_notices_head_and_fde = defineDecision({
   id: "notices.head-and-fde",
-  title: "A stalled head tells the Directors; a founder hears their FDE is ready",
+  title: "Archived: A stalled head tells the Directors; a founder hears their FDE is ready",
   question:
-    "Projects and start-up asked, optionally, for a notice when a head connection stalls and when an Organization's " +
-    "Forward Deployed Engineer becomes active. Which, to whom, from which transition?",
+    "Projects and start-up asked, optionally, for a notice when a head connection stalls and when an Organization's Forward Deployed Engineer becomes active. Which, to whom, from which transition?",
   options: [
-    {
-      label: "both",
-      text:
-        "`head-stalled` on the head's `stall`, to the Directors and the Director who connected it, with the reason and " +
-        "the fix; `fde-ready` on the setup's `complete` when it made an FDE, to the founder.",
-    },
-    { label: "head-only", text: "Only the stalled head: the founder followed the setup and sees the FDE in `org show`." },
-    { label: "none", text: "Neither: `org show` reports both." },
-  ],
-  chosen: "both",
+  {
+    "label": "current-scope",
+    "text": "Archive head-stalled and fde-ready templates and triggers: optional head connections are gone and hosted FDE setup is parked. Hosted-site delivery faults remain visible through plugs event state and operator handling, not an invented head connection lifecycle."
+  },
+  {
+    "label": "historical",
+    "text": "The former answer to notices.head-and-fde is preserved in docs/cut-archive/decision-review-history.json as historical evidence, not implementation authority."
+  }
+],
+  chosen: "current-scope",
   why:
-    "A stalled head stops every app's sync silently: nothing is lost, but the head goes stale until someone restores " +
-    "the site or its key, and only a Director may act on the connection, so the Directors are told, as for every " +
-    "Organization notice (notices.recipients). A recovery fixes itself and needs no email. The FDE is the founder's " +
-    "first helper, hosted by Capxul with its key the host's (organizations.fde-at-start-up) and no hat " +
-    "(agents.fde-authority), so one email says how to talk to it and what it may not do yet; its hosting's due and " +
-    "pause notices follow the hosting's own transitions (notices.fde-hosting). The setup's `complete` is where the FDE is seated and active " +
-    "(organizations.fde-seat); notices reads organizations, not agents, so it follows that transition, and a setup " +
-    "begun `--no-fde` sends nothing.",
-  source: RULINGS("docs/design/frappe/assembly-items.md (projects-startup: notices); organizations.head-connection; organizations.fde-seat"),
+    "Review, 11 November 2026: Archive head-stalled and fde-ready templates and triggers: optional head connections are gone and hosted FDE setup is parked. Hosted-site delivery faults remain visible through plugs event state and operator handling, not an invented head connection lifecycle. Authority: cut.notices; cut.fde-parked; plugs.service-calls-site.",
+  source: "The coordinator, round 2, m1-old-decisions; cut.notices; cut.fde-parked; plugs.service-calls-site",
   affects: [
     machine_org_setup.t.complete,
   ],
@@ -887,38 +842,24 @@ export const decision_notices_mail_channel = defineDecision({
 
 export const decision_notices_hr = defineDecision({
   id: "notices.hr",
-  title: "Leave, expense claims and advances tell their deciders and their Employee",
+  title: "Archived: Leave, expense claims and advances tell their deciders and their Emplo",
   question:
-    "payroll.hr-notices chose that notices tells a leave's, claim's or advance's approvers when it opens and its " +
-    "Employee how it was decided, from each machine's one event, and the three events say so; but no workflow or " +
-    "template followed them, so nobody was told. Which transitions send what, to whom?",
+    "payroll.hr-notices chose that notices tells a leave's, claim's or advance's approvers when it opens and its Employee how it was decided, from each machine's one event, and the three events say so; but no workflow or template followed them, so nobody was told. Which transitions send what, to whom?",
   options: [
-    {
-      label: "open-and-decided",
-      text:
-        "Eleven workflows, one per transition that tells someone. Opened (leave `apply`, claim `create`, advance " +
-        "`request`): `leave-waiting`, `expense-claim-waiting`, `advance-waiting` to its deciders, never the applicant: a " +
-        "leave's are the wearers of the Employee's department's hat now, or the People hat's when that has none; a " +
-        "claim's or advance's whoever wears the department budget's hat now (payroll.hr-approvers). Decided or paid, to " +
-        "the Employee's `personal_email`: leave `approve` and `reject` (`leave-approved`, `leave-rejected`); claim " +
-        "`approve` (`expense-claim-approved`), `approve_covered` and `settle` (`expense-claim-paid`, once per claim) and " +
-        "`reject` (`expense-claim-rejected`); advance `reject` (`advance-rejected`) and `settle` (`advance-paid`, once per " +
-        "advance). A withdrawal, a lapse, a reorg and a recovery tell no one: the Employee or the decider did it, or it " +
-        "is bookkeeping.",
-    },
-    { label: "decided-only", text: "Tell only the Employee how it was decided; deciders read `org hr … list`." },
-    { label: "none", text: "Send nothing; a head's own Frappe HR notifications tell people." },
-  ],
-  chosen: "open-and-decided",
+  {
+    "label": "current-scope",
+    "text": "Frappe HR sends leave, expense and advance approval/result notices under site rules. Archive the eleven Core HR transition workflows and department-hat recipient queries; do not duplicate site mail or leak applicant data to generic company members."
+  },
+  {
+    "label": "historical",
+    "text": "The former answer to notices.hr is preserved in docs/cut-archive/decision-review-history.json as historical evidence, not implementation authority."
+  }
+],
+  chosen: "current-scope",
   why:
-    "A leave or a claim waits on a person, so the person who decides must hear it waits, as a proposal tells its " +
-    "Directors (notices.kinds); the Employee must hear the answer wherever they asked, here or on a head, and Frappe " +
-    "HR's own notifications are the head's channel, which a world keeps in the world and which knows nothing of " +
-    "Capxul's hats. The personal email is where pay goes (payroll.mailbox-for-pay), so the Employee needs no account. " +
-    "Paid notices are keyed by the record, as the payslip is, so a reorg's second settle tells no one twice.",
+    "Review, 11 November 2026: Frappe HR sends leave, expense and advance approval/result notices under site rules. Archive the eleven Core HR transition workflows and department-hat recipient queries; do not duplicate site mail or leak applicant data to generic company members. Authority: cut.notices; cut.fde-parked; plugs.service-calls-site.",
   source:
-    "Claude, surface pass build, 9 November 2026; evidence: payroll.hr-notices; payroll.hr-approvers; " +
-    "payroll.mailbox-for-pay; hrms leave_application.py (notify_leave_approver, notify_employee); the money fit review",
+    "The coordinator, round 2, m1-old-decisions; cut.notices; cut.fde-parked; plugs.service-calls-site",
   affects: [
     concept_notices, table_notices, 
     

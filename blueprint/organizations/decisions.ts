@@ -106,25 +106,19 @@ export const decision_organizations_tables = defineDecision({
   title: "Five tables from the old nineteen: the workspace's own records only",
   question: "Which of the old concept's tables does the target workspace keep, merge or drop?",
   options: [
-    {
-      label: "five",
-      text:
-        "organizations, org-setups, org-deployments, org-members and org-invitations. Roles and the Roles-module deployment " +
-        "merge into the deployment; Seat permissions and their changes go (officer hats are board's); Directors, proposals, " +
-        "equity, rounds and votes leave with their concepts.",
-    },
-    { label: "port", text: "Port the old workspace tables as they are: orgs, org-lifecycles, org-roles, org-roles-deployments, org-members, seat-permissions, seat-permission-changes, org-invitations." },
-  ],
-  chosen: "five",
+  {
+    "label": "current-scope",
+    "text": "Organizations keeps company identity, setup, deployment, membership and invitations, not business CRM/HR tables, Directors, proposals or equity. Hosted-site lifecycle lives in sites and role projection in plugs. The historical count of five does not justify restoring optional-head or FDE tables."
+  },
+  {
+    "label": "historical",
+    "text": "The former answer to organizations.tables is preserved in docs/cut-archive/decision-review-history.json as historical evidence, not implementation authority."
+  }
+],
+  chosen: "current-scope",
   why:
-    "On v4 a permission is a hat and an allowance a budget, so seat-permissions and their changes copied the chain (P9 " +
-    "and responsibilities.keepers). The old setup row was mostly plumbing for Convex scheduling (lease, dispatch and send " +
-    "tokens, generation, park, unresolved counters) that a durable workflow holds itself (P3). The roles catalog and the " +
-    "Roles deployment were pre-v4 shapes; on v4 the deployment's named hats replace them. Every table is tenant-first on " +
-    "org_id (P8); the cross-tenant indexes are the caller's own memberships, offers and unfinished setups, an " +
-    "Organization by its Party, and Seats by an agent's Safe. The Frappe rulings later added two new ones, the " +
-    "Organization's apps and its head connection (organizations.startup, organizations.head-connection).",
-  source: by("docs/as-is/archive/organizations/data.ts:140-1055 (19 tables); P3; P8; P9; responsibilities.keepers"),
+    "Review, 11 November 2026: Organizations keeps company identity, setup, deployment, membership and invitations, not business CRM/HR tables, Directors, proposals or equity. Hosted-site lifecycle lives in sites and role projection in plugs. The historical count of five does not justify restoring optional-head or FDE tables. Authority: cut.organizations; cut.fde-parked; sites.lifecycle; plugs.roles-follow-hats.",
+  source: "The coordinator, round 2, m1-old-decisions; cut.organizations; cut.fde-parked; sites.lifecycle; plugs.roles-follow-hats",
   affects: [table_organizations, table_org_setups, table_org_deployments, table_org_members, table_org_invitations, concept_board],
 });
 
@@ -138,10 +132,7 @@ export const decision_organizations_deployment_row = defineDecision({
   ],
   chosen: "row",
   why:
-    "The concept map gives organizations the deployment ('which officer hat is which') so every concept above can name " +
-    "hats without knowing the install's officer order. The event is emitted once per company and its ids never change, " +
-    "so the row cannot drift, which is what P3's 'nothing copies chain rows' guards against. The install batch is built " +
-    "from it, so the setup needs it anyway. Who wears a hat now, the budgets and the Board's signers stay indexing's views.",
+    "The concept map gives organizations the deployment ('which officer hat is which') so every concept above can name hats without knowing the install's officer order. The event is emitted once per company and its ids never change, so the row cannot drift, which is what P3's 'nothing copies chain rows' guards against. The install batch is built from it, so the setup needs it anyway. Who wears a hat now, the budgets and the Board's signers stay indexing's views. Review, 11 November 2026: Confirmed organizations.deployment-row; original choice retained.",
   source: by("IInstaller.sol:46-60 (MoneyDeployment); packages/backend/src/organizations/setups/external/deploys.ts:213; concepts.organizations"),
   affects: [table_org_deployments, workflow_organizations_setups_set_up],
 });
@@ -807,26 +798,19 @@ export const decision_organizations_company_shape = defineDecision({
   title: "The Organization is ERPNext's Company: abbr, currency, time zone, fiscal year",
   question: "ERPNext's setup wizard asks for a company's country, currency, time zone, abbreviation and fiscal year. Where do they live in Capxul?",
   options: [
-    {
-      label: "on-the-organization",
-      text:
-        "On the Organization's row: `abbr` from the name's initials (1 to 5 letters or digits), `default_currency` the " +
-        "country's (Frappe's country_info), `time_zone` the country's first, `fiscal_year_start` ERPNext's for the country " +
-        "or `01-01`; the founder may give any of them at `org create`.",
-    },
-    { label: "in-books", text: "In books' own Company table, read by everything above books." },
-  ],
-  chosen: "on-the-organization",
+  {
+    "label": "current-scope",
+    "text": "The organization supplies company abbreviation, currency, time zone and fiscal-year defaults at creation. Sites provisions ERPNext Company with them; ERPNext is the authority for accounting settings. Do not create an immutable second book-company settings copy or a later optional-head setup wizard."
+  },
+  {
+    "label": "historical",
+    "text": "The former answer to organizations.company-shape is preserved in docs/cut-archive/decision-review-history.json as historical evidence, not implementation authority."
+  }
+],
+  chosen: "current-scope",
   why:
-    "They are the Company's identity for every app, not accounting's alone: projects dates its tasks in the time zone and " +
-    "prices its rates in the currency, payroll's periods follow the fiscal year, and a head's System Settings carries the " +
-    "same zone. In books they would be out of reach of projects and the CRM, which sit below books. It also answers the " +
-    "vision's check C18: whose day a report cuts at is the Organization's time zone. The currency must be one Capxul can " +
-    "value (USD, or one whose USD price pair the deployment lists), because the books value every voucher in it " +
-    "(books.company-settings); a country whose currency has none starts in USD rather than with books that cannot post. " +
-    "Changing one later is not in this design: a time zone or fiscal year that moves under existing books is the books " +
-    "designer's question.",
-  source: by(`/tmp/frappe/frappe/geo/country_info.json (currency, timezones); /tmp/erpnext/erpnext/public/js/setup_wizard.js:195 (fiscal_years); docs/vision/erp.md (check C18)`),
+    "Review, 11 November 2026: The organization supplies company abbreviation, currency, time zone and fiscal-year defaults at creation. Sites provisions ERPNext Company with them; ERPNext is the authority for accounting settings. Do not create an immutable second book-company settings copy or a later optional-head setup wizard. Authority: cut.organizations; cut.fde-parked; sites.lifecycle; plugs.roles-follow-hats.",
+  source: "The coordinator, round 2, m1-old-decisions; cut.organizations; cut.fde-parked; sites.lifecycle; plugs.roles-follow-hats",
   affects: [table_organizations, rpc_organizations_setups_begin, concept_books],
 });
 
@@ -1231,14 +1215,7 @@ export const decision_organizations_founder_people_hat = defineDecision({
   ],
   chosen: "keep-and-state",
   why:
-    "The frozen behaviour holds both: org-ready's founder wears the three officer hats, and ROLE_CONFLICT is a frozen " +
-    "refusal, the separation of duties between who manages people and who spends a department's money. On v4 the " +
-    "People hat grants no money authority (offices and allowances are minted by the Board or an office above), so the " +
-    "conflict guards a product rule, not a chain power (docs/design/authority.md). A solo founder is not blocked: as the " +
-    "Board they pay, schedule and create budgets with their one signature, and an allowance gives them a budget of their " +
-    "own to spend from, which is also what `org seats buy` spends (organizations.buy-seats). Exempting the founder would " +
-    "empty the rule for the person it most often meets; minting no People hat would break the frozen worlds and leave " +
-    "nobody able to invite. So the rule stays and is said where a founder meets it.",
+    "The frozen behaviour holds both: org-ready's founder wears the three officer hats, and ROLE_CONFLICT is a frozen refusal, the separation of duties between who manages people and who spends a department's money. On v4 the People hat grants no money authority (offices and allowances are minted by the Board or an office above), so the conflict guards a product rule, not a chain power (docs/design/authority.md). A solo founder is not blocked: as the Board they pay, schedule and create budgets with their one signature, and an allowance gives them a budget of their own to spend from, which is also what `org seats buy` spends (organizations.buy-seats). Exempting the founder would empty the rule for the person it most often meets; minting no People hat would break the frozen worlds and leave nobody able to invite. So the rule stays and is said where a founder meets it. Review, 11 November 2026: Confirmed organizations.founder-people-hat; original choice retained.",
   source: passBy("docs/design/authority.md (contradiction 9); budgets.role-conflict-people-hat; board.people-hat-role-conflict; aaron.departments"),
   affects: [workflow_organizations_setups_set_up, table_org_deployments, concept_budgets, concept_board],
 });

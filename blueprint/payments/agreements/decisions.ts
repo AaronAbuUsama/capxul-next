@@ -166,7 +166,7 @@ export const decision_payroll_payee_reads = defineDecision({
     "payer's terms, so the row is the payer's record. A payee's own Safe is what the agreement pays, and P8 already scopes " +
     "chain reads by Safe ownership, so a policy on payee_safe admits exactly the payee (a person, or an Organization's " +
     "members) to read the agreement and open its own accept and collect, and no one else. Two rows would be one fact stored twice. Writes carry the payer's org_id too, so their tenant " +
-    "is never a join. A salary slip follows the same rule: the paying Organization's row, read by the employee through the Safe it pays.",
+    "is never a join. A salary slip follows the same rule: the paying Organization's row, read by the employee through the Safe it pays." + " Review, 11 November 2026: The surviving rule (An agreement is its payer's row; the payee reads it by its own Safe) still applies. Removed subjects in its historical evidence are not restored; cut.payroll; cut.agreements-in-payments; plugs.held-payment governs their replacement.",
   source: by(`${OLD}/tables.ts:298 (by_payee index); P8`),
   affects: [table_agreements, table_agreement_writes],
 });
@@ -495,7 +495,7 @@ export const decision_payroll_flows = defineDecision({
     "is `client.agreements.collect` but its designed method is `client.me.agreements.collect`, and the designed text wins " +
     "(P10), so both payee writes sit under `client.me`. The reads keep their frozen methods. The command tree then put every " +
     "agreement command in the payroll group (surface.payroll-group), so each method gains `.payroll` as its command gains " +
-    "`payroll`: `client.me.payroll.agreements.collect`, `client.org(orgId).payroll.agreements.offer`.",
+    "`payroll`: `client.me.payroll.agreements.collect`, `client.org(orgId).payroll.agreements.offer`." + " Review, 11 November 2026: The surviving rule (One flow per write command, one rpc per read; the designed SDK names win) still applies. Removed subjects in its historical evidence are not restored; cut.payroll; cut.agreements-in-payments; plugs.held-payment governs their replacement.",
   source: by("blueprint/baseline (sdk and designed.method of the payroll operations); approvals/flows.ts; A4; P10"),
   affects: [...WRITE_FLOWS, rpc_payroll_holders_list, rpc_payroll_payees_list, rpc_payroll_payees_show],
 });
@@ -513,7 +513,7 @@ export const decision_payroll_budgets = defineDecision({
     "Each prepare rpc reads two to four contract views in parallel and writes one transaction: chain-read's 1-3 parallel " +
     "eth_calls. A list reads one view per agreement, also in parallel, within the same class at the sizes the product " +
     "sees. A person's signature and chain confirmation are waits and never system time (P5), so the flows fit chain-submit. " +
-    "Each step of the process is a chain event to its recorded transition: chain-settle.",
+    "Each step of the process is a chain event to its recorded transition: chain-settle." + " Review, 11 November 2026: The surviving rule (Payroll's budgets are class defaults) still applies. Removed subjects in its historical evidence are not restored; cut.payroll; cut.agreements-in-payments; plugs.held-payment governs their replacement.",
   source: by("packages/blueprint-engine/src/budgets.ts; P5 (hop table)"),
   affects: [...HOLDER_RPCS, rpc_payroll_holders_list, rpc_payroll_payees_list, rpc_payroll_payees_show, rpc_payroll_writes_watch, workflow_payroll_agreements_lifecycle, ...WRITE_FLOWS],
 });
@@ -562,7 +562,7 @@ export const decision_payroll_dropped = defineDecision({
     "operation, so the send functions have no place here; notices owns the notice reads, sweeps and claims. No frozen " +
     "operation reaches `payroll.agreements.get`, `preview-collect` or the org-side `wait` (P2): a write flow follows its " +
     "own write, and the payslip is part of the collection it previews. An Organization payee is the same payee with " +
-    "`--org`, so it needs no second set of rows.",
+    "`--org`, so it needs no second set of rows." + " Review, 11 November 2026: The surviving rule (Old agreement rpcs that are folded in or dropped) still applies. Removed subjects in its historical evidence are not restored; cut.payroll; cut.agreements-in-payments; plugs.held-payment governs their replacement.",
   source: by("docs/as-is/archive/payroll/agreements.ts (37 rpcs, 2 workflows); docs/as-is/archive/payroll/flows.ts:549-857; P2; P3"),
   affects: [...HOLDER_RPCS, rpc_payroll_payees_accept, rpc_payroll_payees_collect, rpc_payroll_payees_list, rpc_payroll_payees_show, rpc_payroll_writes_watch, workflow_payroll_agreements_lifecycle],
 });
@@ -650,34 +650,19 @@ export const decision_payroll_agreements_in_frappe_shape = defineDecision({
   title: "An accepted agreement is an Employee and an assignment; no run pays it",
   question: "Pay that starts on chain, a v4 agreement, has no Frappe HR doctype. How does it appear in Frappe's shapes?",
   options: [
-    {
-      label: "employee-and-assignment",
-      text:
-        "At acceptance a person payee is hired as an Employee (if they have no live one) and assigned the Organization's " +
-        "agreement structure from the start, on the agreement's rate: one earning, the agreement component, at no fixed " +
-        "amount, not prorated by payment days, not taxed, left out when zero. A landed rate change assigns it anew from its " +
-        "date; the end lets the Employee go when nothing else pays them. Each collection is a paid slip, which a head shows " +
-        "as that slip, never as an Additional Salary. No run pays an agreement: a run Capxul makes leaves its assignments " +
-        "out, and a head's run with an agreement assignment or an agreement component row is refused when taken in. An " +
-        "Organization payee is a Supplier, which is accounting's, not HR's.",
-    },
-    { label: "slips-only", text: "Only each collection's slip; no Employee or assignment for an agreement." },
-    { label: "none", text: "Agreements stay outside Frappe's shapes; the ledger alone records collections." },
-  ],
-  chosen: "employee-and-assignment",
+  {
+    "label": "current-scope",
+    "text": "Retained chain agreements live in payments and are not automatically Core Employee/assignment/slip records. Frappe HR owns any corresponding employee and salary structure. Archive automatic hire/termination and exclusion-of-agreement-assignments sync logic; a collection must not cause a second salary run payment."
+  },
+  {
+    "label": "historical",
+    "text": "The former answer to payroll.agreements-in-frappe-shape is preserved in docs/cut-archive/decision-review-history.json as historical evidence, not implementation authority."
+  }
+],
+  chosen: "current-scope",
   why:
-    "A Salary Slip in Frappe needs an Employee with a submitted assignment (`set_salary_structure_assignment`), so a " +
-    "collection can only be a slip if the agreement is an assignment. A structure with no fixed earning means a head " +
-    "never works out pay of its own for an agreement. A collection must not become a submitted Additional Salary on the " +
-    "head: Frappe HR adds every submitted Additional Salary whose payroll date falls in a slip's period to the next slip " +
-    "it computes for that Employee (`get_additional_salaries` checks no earlier use), so a head's run would carry the " +
-    "collection again and Capxul would pay it twice; and Frappe's default `depends_on_payment_days` would prorate the " +
-    "collected amount. The guard that keeps one person's pay from being paid twice is therefore Capxul's own, on both " +
-    "paths: a Capxul run leaves agreement assignments out, and taking in a head's run refuses them. Release frequencies " +
-    "map to `payroll_frequency` (monthly, weekly, daily; a stream's every second is Frappe's empty option). Who is " +
-    "employed is the agreement's process's to record because only it sees the acceptance and the end at the block's " +
-    "time; the frozen operations' behaviour is unchanged, and the hire never holds up the agreement's own status move.",
-  source: AFTER_RULING(`aaron.frappe-shape; ${HRMS}/salary_slip/salary_slip.py:961, :1718, :2250; ${HRMS}/additional_salary/additional_salary.py:331; docs/vision/erp.md (C16, C17)`),
+    "Review, 11 November 2026: Retained chain agreements live in payments and are not automatically Core Employee/assignment/slip records. Frappe HR owns any corresponding employee and salary structure. Archive automatic hire/termination and exclusion-of-agreement-assignments sync logic; a collection must not cause a second salary run payment. Authority: cut.payroll; cut.agreements-in-payments; plugs.held-payment.",
+  source: "The coordinator, round 2, m1-old-decisions; cut.payroll; cut.agreements-in-payments; plugs.held-payment",
   affects: [
     workflow_payroll_agreements_lifecycle,
     table_agreements,
@@ -686,26 +671,22 @@ export const decision_payroll_agreements_in_frappe_shape = defineDecision({
 
 export const decision_payroll_collection_slips = defineDecision({
   id: "payroll.collection-slips",
-  title: "A landed collection is one paid slip, born paid, keyed by its write",
+  title: "Archived: A landed collection is one paid slip, born paid, keyed by its write",
   question: "How is pay that starts on chain reflected as a payslip, and what document does it carry?",
   options: [
-    {
-      label: "born-paid",
-      text:
-        "When a collection's write lands, the agreement's process records one slip for a person payee: born `paid`, its " +
-        "window as its period, the collected amount as its one earning (source collection), no deductions, its payment " +
-        "id, transaction, block number and block time, and the agreement's terms document, whose hash the collection carried.",
-    },
-    { label: "run-it", text: "Collect collections into a monthly run and pay nothing on chain until the run." },
-  ],
-  chosen: "born-paid",
+  {
+    "label": "current-scope",
+    "text": "Archive one Core born-paid Salary Slip per collection. The collection retains Payment id, transaction, block, time and agreement terms as chain evidence; any HR Salary Slip is a site document, not another chain-settlement record."
+  },
+  {
+    "label": "historical",
+    "text": "The former answer to payroll.collection-slips is preserved in docs/cut-archive/decision-review-history.json as historical evidence, not implementation authority."
+  }
+],
+  chosen: "current-scope",
   why:
-    "The chain already paid it: an agreement pays the released amount to the payee with no withholding, so the slip's " +
-    "gross is its net and nothing is owed. The write's id makes it exactly once (`by_write`), and its payment id is " +
-    "the same id payments' Payment carries, so a ledger posts it once. Its window is a half-open span of chain time; its " +
-    "days are the dates of its start and of the instant before its end. A new payslip document would be a hash no chain " +
-    "carries, so the slip names the terms document the chain did carry.",
-  source: AFTER_RULING("aaron.frappe-shape; payroll.collection-payment-id; agreement-writes (payment_id, landed_at, args.period_start, args.period_end)"),
+    "Review, 11 November 2026: Archive one Core born-paid Salary Slip per collection. The collection retains Payment id, transaction, block, time and agreement terms as chain evidence; any HR Salary Slip is a site document, not another chain-settlement record. Authority: cut.payroll; cut.agreements-in-payments; plugs.held-payment.",
+  source: "The coordinator, round 2, m1-old-decisions; cut.payroll; cut.agreements-in-payments; plugs.held-payment",
   affects: [workflow_payroll_agreements_lifecycle, operation_agreement_collect],
 });
 
@@ -779,80 +760,40 @@ export const decision_payroll_accrual = defineDecision({
   title: "A run's accrual has one author, the side that computed it; payroll posts none",
   question: "Frappe HR posts an accrual Journal Entry when slips are submitted and a Bank Entry when they are paid. Who posts them on Capxul?",
   options: [
-    {
-      label: "author-follows-computer",
-      text:
-        "The accrual (each earning's expense, each deduction's liability, Payroll Payable for each net, party the " +
-        "Employee) is posted once, by the side that computed the run. For a run Capxul computed, books posts it through " +
-        "its door `books.record-payroll-accrual`, which `runs.submit` invokes (action submit) and `runs.cancel` invokes " +
-        "(action cancel) in their own transactions (payroll depends on books; books cannot read payroll); a head " +
-        "receives it from books' feed and never posts its own. A landed collection's paid slip accrues the same way " +
-        "(action collection: payroll.collection-accrual). For a run its head computed, the " +
-        "head's own `make_accrual_jv_entry` posts it, books takes it in through its sync, and taking the run in invokes " +
-        "nothing. The Bank Entry is always books', from each settled Payment's money fact: the one `make_bank_entry` would " +
-        "have made, per slip (Payroll Payable, party the Employee, reference the Payroll Entry, against the treasury " +
-        "account of the Safe and token, the transaction as cheque number, the block's date). Money waiting in an escrow " +
-        "posts nothing until the claim settles.",
-    },
-    { label: "payroll-posts", text: "Payroll posts both into books' tables when it moves a run." },
-    { label: "books-always", text: "Books posts every run's accrual, a head's included." },
-  ],
-  chosen: "author-follows-computer",
+  {
+    "label": "current-scope",
+    "text": "Frappe HR is the sole author of run accruals and site payment posting. Core records chain money and delivers settlement once through plugs; it does not compute salary runs or call a books accrual door. Escrow-held money is not settled payroll and cannot close the payable until claimed."
+  },
+  {
+    "label": "historical",
+    "text": "The former answer to payroll.accrual is preserved in docs/cut-archive/decision-review-history.json as historical evidence, not implementation authority."
+  }
+],
+  chosen: "current-scope",
   why:
-    "Posting is the ledger's, and books keeps one author per voucher (books.sync, invariant books.one-author-per-voucher): money in a Safe is " +
-    "Capxul's, every other voucher its head's. A head that submits its slips through the Payroll Entry has already " +
-    "posted the accrual, so books posting it too would count every salary twice; a Capxul run on a head has its slips " +
-    "submitted one by one, which posts nothing, so books' accrual is the only one. Without a head, books must post it, or " +
-    "salaries would never reach expense and Payroll Payable would be debited with no credit. Books cannot depend on " +
-    "payroll (a cycle through payments), so the accrual must come through a door payroll invokes, never a read. A " +
-    "settled Payment already writes exactly one book fact, so payroll posting the Bank Entry would post it twice; a " +
-    "per-slip Bank Entry is what makes each employee's payable close at its own block.",
-  source: AFTER_RULING(`aaron.books-first-principles, aaron.frappe-shape; ${HRMS}/payroll_entry/payroll_entry.py:619, :1093, :1837; books.sync, books.head-vouchers`),
+    "Review, 11 November 2026: Frappe HR is the sole author of run accruals and site payment posting. Core records chain money and delivers settlement once through plugs; it does not compute salary runs or call a books accrual door. Escrow-held money is not settled payroll and cannot close the payable until claimed. Authority: cut.payroll; cut.agreements-in-payments; plugs.held-payment.",
+  source: "The coordinator, round 2, m1-old-decisions; cut.payroll; cut.agreements-in-payments; plugs.held-payment",
   affects: [workflow_payroll_agreements_lifecycle, concept_books],
 });
 
 export const decision_payroll_head_sync = defineDecision({
   id: "payroll.head-sync",
-  title: "Payroll syncs its own records with a head: pushed in order, pulled on a ring",
+  title: "Archived: Payroll syncs its own records with a head: pushed in order, pulled on ",
   question: "When a Frappe HR head is connected, who moves payroll's records, which way, keyed how, and what changes in Frappe?",
   options: [
-    {
-      label: "own-sync",
-      text:
-        "Payroll's own process (`payroll.head.sync`), as contacts and projects have theirs: it pushes every change of " +
-        "the six records from payroll's gap-free change log, in order, and pulls the head's own changes when the head " +
-        "rings, with Capxul's key; the head never calls Capxul's rpcs. Employees, components, structures and assignments " +
-        "are shared business records; runs and slips belong to the side that computed them; agreements' records and every " +
-        "payment fact are Capxul's only. The key is Capxul's id in a `capxul_id` Custom Field, and `head_name` here. " +
-        "Money and identity (Party, Safe, the pay mailbox, budget, payment facts) only Capxul changes; a head change to " +
-        "them is pushed back. Frappe gets Custom Fields, three Property Setters, settings and a Client Script from the " +
-        "Capxul app: no fork.",
-    },
-    { label: "head-pushes", text: "The head's Capxul app calls payroll's SDK flows as the Organization's agent, and takes in runs through an import rpc." },
-    { label: "fork-hr", text: "Fork Frappe HR so its Salary Slip has Capxul's states and its payment step is Capxul's." },
-  ],
-  chosen: "own-sync",
+  {
+    "label": "current-scope",
+    "text": "Archive the six-record payroll replica, change log and capxul_id/head_name push/pull process. Frappe HR owns employees, structures, assignments, runs and slips from the start; plugs delivers chain payment results, not business-data sync."
+  },
+  {
+    "label": "historical",
+    "text": "The former answer to payroll.head-sync is preserved in docs/cut-archive/decision-review-history.json as historical evidence, not implementation authority."
+  }
+],
+  chosen: "current-scope",
   why:
-    "The head connection's contract is that Capxul always calls and the head only rings (organizations.head-doorbell, " +
-    "integration frappe-head), and that each concept syncs its own records by the three classes of " +
-    "organizations.head-ownership; a head pushing through the SDK would make it a writer into Capxul holding Capxul's " +
-    "trust, which that contract refuses. A change log numbered under one lock is what lets a head replay payroll exactly " +
-    "once; a time column cannot. On the head, nothing is forked. Custom Fields carry what Frappe has no field for: " +
-    "`capxul_id` on all six doctypes; `capxul_party` on Employee; `capxul_payee_party` on Salary Component " +
-    "(organizations.frappe-app-fields: one Party field across the apps); " +
-    "`capxul_budget_id` and `capxul_agreement_id` on Salary Structure Assignment; `capxul_budget_id`, " +
-    "`capxul_command_id`, `capxul_status` and `capxul_computed_by` on Payroll Entry (Frappe validates `status` against " +
-    "its options, so paying and paid cannot go there); and on Salary Slip `capxul_status`, `capxul_payment_id`, " +
-    "`capxul_chain_payment_id`, `capxul_tx_hash`, `capxul_paid_at`, `capxul_document_hash` and `capxul_computed_by`. " +
-    "Three Property Setters: Employee's `gender` and `date_of_birth` optional (Capxul never needs them), and `Capxul` " +
-    "added to Employee's `salary_mode` options (Bank, Cash, Cheque otherwise refuse Capxul's value). Settings match " +
-    "payroll-settings and Banker's Rounding. A Client Script hides Payroll Entry's Submit Salary Slip and Make Bank Entry " +
-    "on a Capxul run, and the app sets each such slip's, and each collection slip's, `journal_entry` to books' accrual voucher, so neither Frappe " +
-    "button can post a second entry. Frappe's mandatory `company`, `cost_center`, `exchange_rate` and Payable " +
-    "`payroll_payable_account` come from the Company's defaults, books' chart and the rate books posted at " +
-    "(books.payroll-lines). Withholding is a Salary Withholding " +
-    "over the slip's period both ways. A collection is a submitted slip, never an Additional Salary.",
-  source: AFTER_RULING("aaron.frappe-head, aaron.erp-on-capxul; organizations.head-ownership, organizations.head-doorbell; shared/external.ts (frappe-head); contacts.head.sync; erpnext employee.json; hrms payroll_entry.json"),
+    "Review, 11 November 2026: Archive the six-record payroll replica, change log and capxul_id/head_name push/pull process. Frappe HR owns employees, structures, assignments, runs and slips from the start; plugs delivers chain payment results, not business-data sync. Authority: cut.payroll; cut.agreements-in-payments; plugs.held-payment.",
+  source: "The coordinator, round 2, m1-old-decisions; cut.payroll; cut.agreements-in-payments; plugs.held-payment",
   affects: [workflow_payroll_agreements_lifecycle],
 });
 
@@ -863,23 +804,22 @@ const COMMANDS = (rulings: string, evidence: string) =>
 
 export const decision_payroll_one_live_employee = defineDecision({
   id: "payroll.one-live-employee",
-  title: "One live Employee per person; a returning person is a new Employee",
+  title: "Archived: One live Employee per person; a returning person is a new Employee",
   question: "An Employee who left is final, and the index allowed one Employee per person. What happens when someone comes back?",
   options: [
-    {
-      label: "new-employee",
-      text:
-        "At most one Employee per person and Organization is live (not left). A person who left and is hired again, by " +
-        "`employees.add` or by accepting a new agreement, is a new Employee; the old record keeps its history.",
-    },
-    { label: "reinstate", text: "Let a left Employee return to active, clearing its relieving date." },
-  ],
-  chosen: "new-employee",
+  {
+    "label": "current-scope",
+    "text": "Archive Core one-live-Employee indexes and rehire row creation: the Core Employee table is removed. Frappe HR owns employment history and rehire validation on the site; chain agreement acceptance must not silently create or replace an Employee."
+  },
+  {
+    "label": "historical",
+    "text": "The former answer to payroll.one-live-employee is preserved in docs/cut-archive/decision-review-history.json as historical evidence, not implementation authority."
+  }
+],
+  chosen: "current-scope",
   why:
-    "With `left` final and one Employee per person, a contractor who left could never accept another agreement: the " +
-    "agreement's process could neither hire nor reinstate them. Frappe treats a rehire as a new Employee (its duplicate " +
-    "check counts only Active ones), so its slips, joining date and payment days start afresh, and a head shows the same.",
-  source: AFTER_RULING("aaron.frappe-shape; /tmp/erpnext/erpnext/setup/doctype/employee/employee.py:406 (validate_duplicate_user_id)"),
+    "Review, 11 November 2026: Archive Core one-live-Employee indexes and rehire row creation: the Core Employee table is removed. Frappe HR owns employment history and rehire validation on the site; chain agreement acceptance must not silently create or replace an Employee. Authority: cut.payroll; cut.agreements-in-payments; plugs.held-payment.",
+  source: "The coordinator, round 2, m1-old-decisions; cut.payroll; cut.agreements-in-payments; plugs.held-payment",
   affects: [workflow_payroll_agreements_lifecycle],
 });
 
@@ -912,33 +852,23 @@ const FRAPPE_ASSEMBLY = (evidence: string) => `Claude, assembly of the Frappe la
 
 export const decision_payroll_collection_accrual = defineDecision({
   id: "payroll.collection-accrual",
-  title: "A person's landed collection accrues through books' door with its paid slip",
+  title: "Archived: A person's landed collection accrues through books' door with its paid",
   question:
-    "A landed agreement collection is paid on chain before anyone classifies it, and payments, which books its money " +
-    "fact, knows nothing of agreements, so books saw it as unclassified money out. Payroll asked for it to post as the " +
-    "agreement component's expense with party the Employee. How does that meaning reach books?",
+    "A landed agreement collection is paid on chain before anyone classifies it, and payments, which books its money fact, knows nothing of agreements, so books saw it as unclassified money out. Payroll asked for it to post as the agreement component's expense with party the Employee. How does that meaning reach books?",
   options: [
-    {
-      label: "door-with-slip",
-      text:
-        "When the agreement's process records the paid slip of a collection to a person, it invokes " +
-        "`books.record-payroll-accrual` (action collection) in the same transaction: Dr the agreement component's " +
-        "expense, Cr Payroll Payable, party the Employee, naming the collection's Payment (`payment_` and its v4 id). " +
-        "Books then posts that Payment's voucher on Payroll Payable, party the Employee, so the pay and its liability " +
-        "meet as a Frappe slip's do (books.payroll-postings). A collection to an Organization payee has no slip and " +
-        "posts nothing here: its meaning is a Purchase Invoice, the head's.",
-    },
-    { label: "review", text: "Leave every collection in review for a Books-hat wearer to classify." },
-    { label: "payments-against", text: "Ask payments to give a collection's Payment an `against` at its birth from the chain fact." },
-  ],
-  chosen: "door-with-slip",
+  {
+    "label": "current-scope",
+    "text": "Archive the Core collection process calling books.record-payroll-accrual and generating a salary liability. A collection is chain money projected once to the company site; HR/accounting classification is site-owned. Organization payees are not manufactured as Employees."
+  },
+  {
+    "label": "historical",
+    "text": "The former answer to payroll.collection-accrual is preserved in docs/cut-archive/decision-review-history.json as historical evidence, not implementation authority."
+  }
+],
+  chosen: "current-scope",
   why:
-    "Only payroll knows a collection's Employee and its component's account, and books cannot read payroll; payments " +
-    "births the Payment from the chain fact and cannot know either. The door is already payroll's way down to books " +
-    "(payroll.accrual), and a paid slip and its expense are one money fact as a run and its accrual are: if they " +
-    "disagreed at a commit, the slip would show pay the books never expensed. Review would leave every salary paid by " +
-    "agreement unclassified. The step invokes one procedure of one concept, within sys:tx-width.",
-  source: FRAPPE_ASSEMBLY("docs/design/frappe/assembly-items.md (accounting and payroll on collections); payroll.collection-slips; books.payroll-postings"),
+    "Review, 11 November 2026: Archive the Core collection process calling books.record-payroll-accrual and generating a salary liability. A collection is chain money projected once to the company site; HR/accounting classification is site-owned. Organization payees are not manufactured as Employees. Authority: cut.payroll; cut.agreements-in-payments; plugs.held-payment.",
+  source: "The coordinator, round 2, m1-old-decisions; cut.payroll; cut.agreements-in-payments; plugs.held-payment",
   affects: [workflow_payroll_agreements_lifecycle, concept_books],
 });
 
@@ -961,46 +891,21 @@ export const decision_payroll_surface_moves = defineDecision({
   id: "payroll.surface-moves",
   title: "HR commands take `hr` and `org hr`; payslips and agreements take `payroll`",
   question:
-    "The command surface makes HR and Payroll each one group, with your side under the bare word and the " +
-    "Organization's under `org` (surface.hr-group, surface.payroll-group). This concept booked HR's 53 commands under " +
-    "twelve nouns, the payslips as `payslip` and `org payslip`, and keeps the 215's eleven agreement commands. How do " +
-    "they read now, and what are their ids and SDK methods?",
+    "The command surface makes HR and Payroll each one group, with your side under the bare word and the Organization's under `org` (surface.hr-group, surface.payroll-group). This concept booked HR's 53 commands under twelve nouns, the payslips as `payslip` and `org payslip`, and keeps the 215's eleven agreement commands. How do they read now, and what are their ids and SDK methods?",
   options: [
-    {
-      label: "tree",
-      text:
-        "As the tree spells them. HR: `org employee|holiday|leave-type|leave|shift-type|attendance|expense-type|" +
-        "expense-claim|advance …` become `org hr employee …` and so on, and the Employee's own `leave apply|list|cancel|" +
-        "balance`, `attendance checkin|list`, `expense-claim create|list|get|cancel` and `advance request|list|cancel` become " +
-        "`hr leave …`, `hr attendance …`, `hr expense-claim …` and `hr advance …`. Payslips: `payslip list|get` become " +
-        "`payroll payslip list|get`, `org payslip withhold|release` become `org payroll payslip withhold|release`. The 215's " +
-        "agreement accept, agreement collect, agreement list and agreement show become `payroll agreement accept|collect|" +
-        "list|show`, and org agreement offer, org agreement change, org agreement pause, org agreement resume, org " +
-        "agreement end, org agreement withdraw and org agreement list become `org payroll agreement …`. A new command's id " +
-        "is its new words joined by dots (`leave.apply` is `hr.leave.apply`); a frozen one keeps its id.",
-    },
-    { label: "as-booked", text: "Keep the booked nouns, and leave HR and the agreements outside the tree." },
-  ],
-  chosen: "tree",
+  {
+    "label": "current-scope",
+    "text": "Only the eleven chain agreement commands keep the payroll/org payroll group, with the original verbs. Archive the explicit hr leave, attendance, expense, advance, employee and payroll run/component/structure/payslip families: those business documents are reached on Frappe HR through the door. A frozen agreement id does not change when its command gains payroll."
+  },
+  {
+    "label": "historical",
+    "text": "The former answer to payroll.surface-moves is preserved in docs/cut-archive/decision-review-history.json as historical evidence, not implementation authority."
+  }
+],
+  chosen: "current-scope",
   why:
-    "Aaron, 9 November 2026: everything Frappe can do must be reachable from Capxul's tooling, and what matters is the " +
-    "logical groupings, so Frappe HR's HR module and its Payroll module each take one group word, where a Frappe user " +
-    "looks for them (aaron.frappe-shape). The move is spelling only (system.frozen-behaviour): each command's claims, " +
-    "refusals, worlds, rpcs, budgets and authority are as they were (payroll.hr-commands, payroll.hr-surface, " +
-    "payroll.hr-approvers), and every claim, refusal, shape and decision here that quoted a command quotes the new " +
-    "words. The eleven agreement commands keep their ids, claims and refusals; their command is the tree's, and the " +
-    "frozen about, notes and mistakes quote the tree's words wherever they named an agreement command. Each flow's id " +
-    "follows its SDK method (G7): `client.org.employees.*` is `client.org.hr.employees.*`, " +
-    "`client.org.expense-claims.pay` and `client.org.advances.pay|settle` gain `.hr`, `client.me.payslips.*` and " +
-    "`client.org.payslips.*` gain `.payroll`, and so do `client.me.agreements.*` and `client.org.agreements.*`; the " +
-    "commands an rpc implements alone change no record but their operation. HR stays in this concept (surface.hr-concept, " +
-    "payroll.hr-in-payroll). Part of question 50 (surface.tree). Aaron, 10 November 2026, on the portal's Questions page: accepted as recommended. What it now applies to: the eleven " +
-    "agreement commands, booked in payments (`payroll agreement …`, `org payroll agreement …`); HR's and the payslips' words are the tree's " +
-    "and are Frappe's now, reached through the door (cut.payroll). The ruling stands as chosen.",
-  source: surfaceBy(
-    "blueprint/shared/surface.ts (surface.tree, surface.hr-group, surface.payroll-group); docs/design/command-surface.md " +
-      "sections 3, 4, 5 and 9; aaron.frappe-shape",
-  ),
+    "Review, 11 November 2026: Only the eleven chain agreement commands keep the payroll/org payroll group, with the original verbs. Archive the explicit hr leave, attendance, expense, advance, employee and payroll run/component/structure/payslip families: those business documents are reached on Frappe HR through the door. A frozen agreement id does not change when its command gains payroll. Authority: cut.payroll; cut.agreements-in-payments; plugs.held-payment.",
+  source: "The coordinator, round 2, m1-old-decisions; cut.payroll; cut.agreements-in-payments; plugs.held-payment",
   affects: [
     ...WRITE_FLOWS,
   ],

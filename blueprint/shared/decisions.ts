@@ -243,27 +243,19 @@ export const decision_concepts_map = defineDecision({
   title: "23 target concepts in one dependency order",
   question: "How many concepts, and in what order, so that every old responsibility lands once and nothing loops?",
   options: [
-    { label: "keep-17", text: "Keep the 17 old concepts and cut the loop by moving imports." },
-    {
-      label: "23-dag",
-      text:
-        "23 concepts in this order: access, media, parties, indexing, approvals, accounts, organizations, board, agents, " +
-        "projects, budgets, books, documents, contacts, payments, payroll, banking, requests, applications, equity, activity, " +
-        "notices, devnet.",
-    },
-    { label: "fewer", text: "Merge into about 8 large concepts (identity, organizations, money, books, equity, devnet...)." },
-  ],
-  chosen: "23-dag",
+  {
+    "label": "current-scope",
+    "text": "The built foundation dependency graph, not the historical count of 23, is the concept map. Contacts, projects and HR business records move to sites through the door; chain agreements stay in payments; plugs owns chain-to-site projection. Parked equity and hosted FDE work do not impose active build layers."
+  },
+  {
+    "label": "historical",
+    "text": "The former answer to concepts.map is preserved in docs/cut-archive/decision-review-history.json as historical evidence, not implementation authority."
+  }
+],
+  chosen: "current-scope",
   why:
-    "15 of the 17 old concepts formed one import loop, and the loop ran through real responsibilities in the wrong place: " +
-    "permissions inside organizations' authority, executions inside payments, Directors inside organizations, waitlist " +
-    "credit inside access. v4 itself splits them: Budgets, Agreements, Hats and the Signer Gate, AgentOwner and the equity " +
-    "clones are separate contracts with separate authority. Each target concept owns one of those nouns, and its " +
-    "dependencies point only at concepts it must read or invoke. Merging into fewer concepts would break the line budgets " +
-    "(`sys:loc`) and hide ownership (P4 option C's objection). The new ones are small and each has a decision below. " +
-    "Projects, the 23rd, is new in the rebuild (aaron.projects): it sits after agents and below budgets, books, requests " +
-    "and payroll, which read it (projects.dependencies).",
-  source: by("docs/as-is/archive/shared/foundation.ts (108 edges, 15-concept cycle); docs/planning/protocol-v4/architecture.md; aaron.projects"),
+    "Review, 11 November 2026: The built foundation dependency graph, not the historical count of 23, is the concept map. Contacts, projects and HR business records move to sites through the door; chain agreements stay in payments; plugs owns chain-to-site projection. Parked equity and hosted FDE work do not impose active build layers. Authority: cut.principle; aaron.one-door; sites.door; portal.plan-page.",
+  source: "The coordinator, round 2, m1-old-decisions; cut.principle; aaron.one-door; sites.door; portal.plan-page",
   affects: [...f.CONCEPTS],
 });
 
@@ -316,11 +308,7 @@ export const decision_concepts_parties = defineDecision({
   ],
   chosen: "directory",
   why:
-    "A profile is a person's own Party seen by others: its display name is what a counterparty sees, so it belongs with the " +
-    "Party (old profiles was one `identities` table linked to the person's Party). Contacts need an Organization's " +
-    "membership, which sits above parties, so they move up (concepts.contacts). Verification is Bridge's KYC for bank rails " +
-    "only, so it moves to banking. Engagements were what payroll runs paid; v4 Agreements replace them. What remains is " +
-    "the one thing everyone below organizations needs: a name, the Safe it routes money to, and who owns that Safe.",
+    "A profile is a person's own Party seen by others: its display name is what a counterparty sees, so it belongs with the Party (old profiles was one `identities` table linked to the person's Party). Contacts need an Organization's membership, which sits above parties, so they move up (concepts.contacts). Verification is Bridge's KYC for bank rails only, so it moves to banking. Engagements were what payroll runs paid; v4 Agreements replace them. What remains is the one thing everyone below organizations needs: a name, the Safe it routes money to, and who owns that Safe. Review, 11 November 2026: Confirmed concepts.parties; original choice retained.",
   source: by("packages/backend/src/profiles/README.md:3; apps/docs/factory/operations/verify.start.yaml; ADR-0022"),
   affects: [f.concept_parties, f.concept_contacts, f.concept_banking],
 });
@@ -426,16 +414,19 @@ export const decision_concepts_organizations = defineDecision({
   title: "Organizations keeps the workspace; Directors and equity leave",
   question: "What stays in organizations, the old 30k-line reference concept?",
   options: [
-    { label: "workspace", text: "Identity, setup and install, the deployment record, members and invitations; Directors and proposals to board; equity and votes to equity." },
-    { label: "as-is", text: "Keep everything, including directors, equity, rounds, proposals and votes." },
-  ],
-  chosen: "workspace",
+  {
+    "label": "current-scope",
+    "text": "Organizations owns identity, members, invitations, deployment and setup. Setup provisions a hosted company site through sites; it does not run optional-head connection or hosted-FDE setup. Board authority remains in board and parked equity is not folded back into organizations."
+  },
+  {
+    "label": "historical",
+    "text": "The former answer to concepts.organizations is preserved in docs/cut-archive/decision-review-history.json as historical evidence, not implementation authority."
+  }
+],
+  chosen: "current-scope",
   why:
-    "Members and invitations are needed by almost every concept (who may act for this Organization), so they must sit low; " +
-    "Board proposals are opened by budgets, payments, payroll, agents and equity, so the Board must sit above organizations " +
-    "and below them. Keeping both in one concept is what tied organizations and permissions into a two-way loop (76 and 37 " +
-    "imports). Equity is low priority and off the critical path, so it should not share a line budget with the workspace.",
-  source: by("docs/mission/findings.md (organizations-permissions cycle); docs/spec/40-capxul-team.md (equity low priority)"),
+    "Review, 11 November 2026: Organizations owns identity, members, invitations, deployment and setup. Setup provisions a hosted company site through sites; it does not run optional-head connection or hosted-FDE setup. Board authority remains in board and parked equity is not folded back into organizations. Authority: cut.principle; aaron.one-door; sites.door; portal.plan-page.",
+  source: "The coordinator, round 2, m1-old-decisions; cut.principle; aaron.one-door; sites.door; portal.plan-page",
   affects: [f.concept_organizations, f.concept_board, f.concept_activity],
 });
 
@@ -469,9 +460,7 @@ export const decision_concepts_budgets = defineDecision({
   ],
   chosen: "budgets",
   why:
-    "The designed text says it directly: 'A spending allowance becomes a small budget under a hat the member wears', and a " +
-    "department is a top or child budget. Both are one v4 contract (Budgets), one tree and one authority rule (the wearer " +
-    "of the budget's hat or of any above it). Keeping them apart would duplicate the tree and its authority check.",
+    "The designed text says it directly: 'A spending allowance becomes a small budget under a hat the member wears', and a department is a top or child budget. Both are one v4 contract (Budgets), one tree and one authority rule (the wearer of the budget's hat or of any above it). Keeping them apart would duplicate the tree and its authority check. Review, 11 November 2026: Confirmed concepts.budgets; original choice retained.",
   source: by("apps/docs/factory/operations/org.allowance.create.yaml, org.department.create.yaml (designed)"),
   affects: [f.concept_budgets],
 });
@@ -525,16 +514,19 @@ export const decision_concepts_books = defineDecision({
   title: "Books gains annotations and prices",
   question: "Where do activity's annotations and the Chainlink price sync go?",
   options: [
-    { label: "books", text: "Both in books: an annotation gives a row its account, which is a book fact; prices value book facts." },
-    { label: "activity", text: "Annotations stay in activity, which then writes books' facts or is read by books." },
-  ],
-  chosen: "books",
+  {
+    "label": "current-scope",
+    "text": "Books retains chain money facts, activity annotations and Chainlink prices. An annotation still classifies a money row and prices still value it. The editable chart, Journal Entry and GL Entry are ERPNext documents on the site, not duplicate Core business tables; plugs projects the money facts to them."
+  },
+  {
+    "label": "historical",
+    "text": "The former answer to concepts.books is preserved in docs/cut-archive/decision-review-history.json as historical evidence, not implementation authority."
+  }
+],
+  chosen: "current-scope",
   why:
-    "The frozen text says a fact is 'a change to the chart, an account given to a row, or a money event'. If activity " +
-    "owned the annotation, either activity writes a book fact (a cross-concept write that is no money fact) or books reads " +
-    "activity while activity reads books' chart: a loop. In books, `activity annotate` is one transaction. Prices were " +
-    "already `bookPrices`; the Chainlink sync is its writer (P3 keeps it).",
-  source: by("apps/docs/factory/operations/org.books.facts.list.yaml, activity.annotate.yaml; packages/backend/src/books/README.md:3"),
+    "Review, 11 November 2026: Books retains chain money facts, activity annotations and Chainlink prices. An annotation still classifies a money row and prices still value it. The editable chart, Journal Entry and GL Entry are ERPNext documents on the site, not duplicate Core business tables; plugs projects the money facts to them. Authority: cut.books; plugs.repoint-money-fact; plugs.late-and-closed.",
+  source: "The coordinator, round 2, m1-old-decisions; cut.books; plugs.repoint-money-fact; plugs.late-and-closed",
   affects: [f.concept_books, f.concept_activity, x.integration_chainlink],
 });
 
@@ -565,9 +557,7 @@ export const decision_concepts_documents = defineDecision({
   ],
   chosen: "below-money",
   why:
-    "A document is born with its subject (K2: a command, its Payments and their documents are born together), so the " +
-    "subject's concept stores it through a procedure and must depend on documents. Documents then cannot read its subjects; " +
-    "giving it the participants at store time means it never has to.",
+    "A document is born with its subject (K2: a command, its Payments and their documents are born together), so the subject's concept stores it through a procedure and must depend on documents. Documents then cannot read its subjects; giving it the participants at store time means it never has to. Review, 11 November 2026: Confirmed concepts.documents; original choice retained.",
   source: by("K2 in docs/as-is/payments.md; docs/as-is/archive/shared/foundation.ts (documents imports 7 concepts)"),
   affects: [f.concept_documents, f.concept_payments, f.concept_requests],
 });
@@ -577,17 +567,19 @@ export const decision_concepts_contacts = defineDecision({
   title: "New concept: contacts, split from parties",
   question: "Where does the address book live?",
   options: [
-    { label: "contacts", text: "A small contacts concept above organizations." },
-    { label: "parties", text: "Keep contacts in parties and let the runtime check Organization membership." },
-    { label: "payments", text: "Put contacts in payments, as their area suggests." },
-  ],
-  chosen: "contacts",
+  {
+    "label": "current-scope",
+    "text": "There is no active Core contacts concept or private replicated address book. Contact, Address and CRM documents live on the company site and are reached through the door under projected site roles. Core parties remains the identity/Safe directory and banking owns saved bank accounts."
+  },
+  {
+    "label": "historical",
+    "text": "The former answer to concepts.contacts is preserved in docs/cut-archive/decision-review-history.json as historical evidence, not implementation authority."
+  }
+],
+  chosen: "current-scope",
   why:
-    "An Organization's address book is acted on by its members, which only a concept above organizations can check; " +
-    "parties must stay below organizations because an Organization registers its Party at birth. A hidden runtime check " +
-    "would be a dependency the book cannot see. In payments, banking (bank accounts on a contact) would still have to " +
-    "reach into payments for a non-money record.",
-  source: by("apps/docs/factory/operations/contact.add.yaml ('a member of the Organization for its book')"),
+    "Review, 11 November 2026: There is no active Core contacts concept or private replicated address book. Contact, Address and CRM documents live on the company site and are reached through the door under projected site roles. Core parties remains the identity/Safe directory and banking owns saved bank accounts. Authority: cut.contacts; sites.crm; plugs.roles-follow-hats.",
+  source: "The coordinator, round 2, m1-old-decisions; cut.contacts; sites.crm; plugs.roles-follow-hats",
   affects: [f.concept_contacts, f.concept_parties, f.concept_banking],
 });
 
@@ -727,9 +719,7 @@ export const decision_concepts_line_budgets = defineDecision({
   ],
   chosen: "later",
   why:
-    "A line budget is only as good as the design under it, and the per-concept designs have not been written. The old " +
-    "lines are mostly plumbing (about two thirds of an area is ceremony, and 166 files are emit, intent, load or record), " +
-    "so they would anchor the numbers on the system being replaced, the same objection P5 made to per-operation budgets.",
+    "A line budget is only as good as the design under it, and the per-concept designs have not been written. The old lines are mostly plumbing (about two thirds of an area is ceremony, and 166 files are emit, intent, load or record), so they would anchor the numbers on the system being replaced, the same objection P5 made to per-operation budgets. Review, 11 November 2026: Confirmed concepts.line-budgets; original choice retained.",
   source: by("docs/mission/findings.md (two thirds ceremony); P3 (166 plumbing files); P5 option A"),
   affects: [...f.CONCEPTS],
 });
@@ -776,55 +766,41 @@ export const decision_dependencies_payments_payroll = defineDecision({
   title: "Payroll depends on payments to pay a run; payments never depends on payroll",
   question: "Old payments called payroll's settle-run inside its settlement, and payroll built payments. Which way now?",
   options: [
-    {
-      label: "payroll-up",
-      text:
-        "Payroll depends on payments: a run's payment is born through `payments.prepare-command` (purpose payroll) and its " +
-        "settlement follows `payment_transitioned`. Payments never depends on payroll; collections are born as Payments " +
-        "from chain facts.",
-    },
-    { label: "independent", text: "The earlier choice: neither depends on the other; payroll depends on budgets, and collections are born from chain facts." },
-    { label: "procedure", text: "Keep `payroll.settle-run` as a procedure payments invokes (P4's example)." },
-  ],
-  chosen: "payroll-up",
+  {
+    "label": "current-scope",
+    "text": "Payments never calls a Core payroll settle-run procedure. Frappe HR requests a held payment through plugs; Core owns the command, signature and chain settlement, and the service delivers the result back to the site. Agreement collections remain chain Payments, not Core salary runs."
+  },
+  {
+    "label": "historical",
+    "text": "The former answer to dependencies.payments-payroll is preserved in docs/cut-archive/decision-review-history.json as historical evidence, not implementation authority."
+  }
+],
+  chosen: "current-scope",
   why:
-    "Rewritten to payroll.scope, which supersedes concepts.payroll: runs came back as Frappe HR's Payroll Entries and " +
-    "Salary Slips. A run's payment is a Payment and its route is payments' (one request key per command, the funding " +
-    "check, the claim escrow for a new hire, one settlement path with its reorg reversal), so payroll births it through " +
-    "payments' door, as requests and banking do (payroll.pays-through-payments). A slip's paid state and its settled " +
-    "transaction may lag a second, so they follow the Payment's transition (P4's outbox), never a procedure payments " +
-    "invokes: P4 kept settle-run only because a settled Payment with its run still open was a money bug, and a slip " +
-    "following the event closes that without payments knowing payroll. An agreement collection is still " +
-    "`Agreements.collect`, whose PaymentSent payments settles like any other. The edge points down the order (payroll " +
-    "after payments), so it makes no cycle, and payments never writes or reads payroll's tables.",
-  source: by("payroll.scope, payroll.pays-through-payments; P4 (settle-run procedure); docs/as-is/payments.md (K11); docs/design/frappe/payroll.md"),
+    "Review, 11 November 2026: Payments never calls a Core payroll settle-run procedure. Frappe HR requests a held payment through plugs; Core owns the command, signature and chain settlement, and the service delivers the result back to the site. Agreement collections remain chain Payments, not Core salary runs. Authority: cut.payroll; cut.agreements-in-payments; plugs.held-payment.",
+  source: "The coordinator, round 2, m1-old-decisions; cut.payroll; cut.agreements-in-payments; plugs.held-payment",
   affects: [f.concept_payments],
 });
 
 export const decision_dependencies_books_payroll = defineDecision({
   id: "dependencies.books-payroll",
-  title: "Payroll posts a run's accrual through books' door; books never reads payroll",
+  title: "Archived: Payroll posts a run's accrual through books' door; books never reads p",
   question:
-    "A run Capxul computed must credit Payroll Payable and the deductions' liabilities when it is submitted, and take " +
-    "them back when it is cancelled (books.payroll-accrual). Which way does the edge between books and payroll point?",
+    "A run Capxul computed must credit Payroll Payable and the deductions' liabilities when it is submitted, and take them back when it is cancelled (books.payroll-accrual). Which way does the edge between books and payroll point?",
   options: [
-    {
-      label: "payroll-up",
-      text:
-        "Payroll depends on books and invokes `books.record-payroll-accrual` in `payroll.runs.submit` and " +
-        "`payroll.runs.cancel`, in their own transactions; books reads nothing of payroll's.",
-    },
-    { label: "books-up", text: "Books depends on payroll and follows `payroll_entry_transitioned` to post the accrual." },
-  ],
-  chosen: "payroll-up",
+  {
+    "label": "current-scope",
+    "text": "Archive the Core payroll-to-books accrual procedure edge: Frappe HR submits and cancels its own runs and posts their accrual on the site. No Core run submission invokes books.record-payroll-accrual. Core retains chain money facts and plugs delivers their settlement to the site."
+  },
+  {
+    "label": "historical",
+    "text": "The former answer to dependencies.books-payroll is preserved in docs/cut-archive/decision-review-history.json as historical evidence, not implementation authority."
+  }
+],
+  chosen: "current-scope",
   why:
-    "Books sits below payments (dependencies.books-below-money) and payroll above payments " +
-    "(dependencies.payments-payroll), so books depending on payroll would make a cycle through payments. The accrual " +
-    "and the submitted run are one money fact: a run that owes its people must have the liability in the books, or a " +
-    "slip's Payment is booked against a payable nothing credited, so the door runs in the run's transaction (P4), as " +
-    "payments and banking write their book facts. Books needs no new edge for it: the lines name books' own accounts and " +
-    "an Employee's Party id, which books keeps as given.",
-  source: by("books.payroll-accrual, payroll.accrual (blueprint/payroll/decisions.ts); docs/design/frappe/accounting.md (For other lanes: payroll); P4"),
+    "Review, 11 November 2026: Archive the Core payroll-to-books accrual procedure edge: Frappe HR submits and cancels its own runs and posts their accrual on the site. No Core run submission invokes books.record-payroll-accrual. Core retains chain money facts and plugs delivers their settlement to the site. Authority: cut.books; plugs.repoint-money-fact; plugs.late-and-closed.",
+  source: "The coordinator, round 2, m1-old-decisions; cut.books; plugs.repoint-money-fact; plugs.late-and-closed",
   affects: [f.concept_books, f.concept_payments],
 });
 
@@ -872,9 +848,7 @@ export const decision_dependencies_books = defineDecision({
   ],
   chosen: "below",
   why:
-    "ADR-0042 decision 1 (accepted) and P4 put a book fact in the caller's transaction so a fact is never lost or doubled, " +
-    "and K10 says a settled Payment always has its book facts. Books needs nothing from payments: its facts carry what they " +
-    "record. The old code had the door (`recordSettledPaymentInTx`) and never used it; the target imports only the door.",
+    "ADR-0042 decision 1 (accepted) and P4 put a book fact in the caller's transaction so a fact is never lost or doubled, and K10 says a settled Payment always has its book facts. Books needs nothing from payments: its facts carry what they record. The old code had the door (`recordSettledPaymentInTx`) and never used it; the target imports only the door. Review, 11 November 2026: Confirmed dependencies.books-below-money; original choice retained.",
   source: by("ADR-0042 decision 1; P4; docs/as-is/payments.md (K10, 0 door imports)"),
   affects: [f.concept_books, f.concept_payments, f.concept_banking],
 });
@@ -884,12 +858,18 @@ export const decision_dependencies_activity_books = defineDecision({
   title: "Activity reads books; books never reads activity",
   question: "Old activity and books imported each other. Which way now?",
   options: [
-    { label: "activity-up", text: "Activity reads books' annotations, chart and prices; books owns annotations." },
-    { label: "books-up", text: "Books reads activity's annotations." },
-  ],
-  chosen: "activity-up",
-  why: "Annotations moved to books (concepts.books), so activity is a pure reader above books and nothing reads activity.",
-  source: by("docs/as-is/archive/shared/foundation.ts (activity imports books; books imports activity's neighbours)"),
+  {
+    "label": "current-scope",
+    "text": "Activity reads books annotations and prices; books never reads activity. Activity does not read a parallel Core chart: editable accounts and ledger reports belong to ERPNext through the door."
+  },
+  {
+    "label": "historical",
+    "text": "The former answer to dependencies.activity-books is preserved in docs/cut-archive/decision-review-history.json as historical evidence, not implementation authority."
+  }
+],
+  chosen: "current-scope",
+  why: "Review, 11 November 2026: Activity reads books annotations and prices; books never reads activity. Activity does not read a parallel Core chart: editable accounts and ledger reports belong to ERPNext through the door. Authority: cut.books; plugs.repoint-money-fact; plugs.late-and-closed.",
+  source: "The coordinator, round 2, m1-old-decisions; cut.books; plugs.repoint-money-fact; plugs.late-and-closed",
   affects: [f.concept_activity, f.concept_books],
 });
 
@@ -903,9 +883,7 @@ export const decision_dependencies_proposals = defineDecision({
   ],
   chosen: "proposers-up",
   why:
-    "The concept that knows the intent (a department, a Board payment, an org-owned agent's freeze) builds the calls; the " +
-    "Board only collects approvals and executes. If board built them it would depend on every money concept. A proposal " +
-    "and the intent it carries are one fact (rules.procedures), so opening it is a procedure.",
+    "The concept that knows the intent (a department, a Board payment, an org-owned agent's freeze) builds the calls; the Board only collects approvals and executes. If board built them it would depend on every money concept. A proposal and the intent it carries are one fact (rules.procedures), so opening it is a procedure. Review, 11 November 2026: Confirmed dependencies.board-below-proposers; original choice retained.",
   source: by("org.department.create.yaml, payment.send.yaml (--as-directors), agent.create.yaml (designed)"),
   affects: [f.concept_board, f.concept_budgets, f.concept_payments, f.concept_agents],
 });
@@ -1346,15 +1324,19 @@ export const decision_integrations_indexer = defineDecision({
   title: "The indexer is a service for what depends on Ponder's progress",
   question: "Ponder's tables are in the same Postgres. Why an integration at all, and what are its calls?",
   options: [
-    { label: "progress-calls", text: "Plain indexed reads are table reads; head, awaitBlock and factsOf are calls, because Ponder may lag, reindex or be rebuilt." },
-    { label: "tables-only", text: "No integration: everything is a table read." },
-  ],
-  chosen: "progress-calls",
+  {
+    "label": "current-scope",
+    "text": "Indexed table reads and progress-dependent calls are distinct: head, awaitBlock and factsOf must time out or fail visibly when the chain reader lags. In lean worlds the reader is folded into the SQLite service, not a mandatory Ponder/Postgres sidecar; this does not turn unavailable progress into a successful empty result."
+  },
+  {
+    "label": "historical",
+    "text": "The former answer to integrations.indexer is preserved in docs/cut-archive/decision-review-history.json as historical evidence, not implementation authority."
+  }
+],
+  chosen: "current-scope",
   why:
-    "A read that needs a fact Ponder has not indexed yet must wait for it or fail with a code, not answer with nothing " +
-    "(the old system answered 'pending' forever when the indexer was down, old R2). Making those reads calls gives them a " +
-    "timeout, a failure mapping and a `call.indexer.*` span (P6), so a lagging Ponder is visible in every trace that waits on it.",
-  source: by("docs/as-is/payments.md (R2, settle treats an unavailable indexer as pending); P6"),
+    "Review, 11 November 2026: Indexed table reads and progress-dependent calls are distinct: head, awaitBlock and factsOf must time out or fail visibly when the chain reader lags. In lean worlds the reader is folded into the SQLite service, not a mandatory Ponder/Postgres sidecar; this does not turn unavailable progress into a successful empty result. Authority: devnet.lean-world; plugs.event-order; plugs.reversal-not-deletion.",
+  source: "The coordinator, round 2, m1-old-decisions; devnet.lean-world; plugs.event-order; plugs.reversal-not-deletion",
   affects: [x.integration_indexer, f.concept_indexing],
 });
 
@@ -1527,17 +1509,7 @@ export const decision_operations_owners = defineDecision({
   ],
   chosen: "by-area-with-exceptions",
   why:
-    "Areas are how people find commands, not concepts (the operation record says so). 134 operations sit in their area's " +
-    "primary concept (AREA_CONCEPTS) and 81 move with their behaviour: agents, session and local commands out of accounts; " +
-    "`doctor` and keys to applications; verification and `contact bank add` to banking; invitations and members to " +
-    "organizations, `invite accept` to banking, allowances and `org member invite` to budgets and votes to equity out of " +
-    "governance; requests, services, the inbox, contacts, documents, `address` and `balance` out of payments, with " +
-    "`contact get` to banking; `activity annotate` to books; `bank match` to requests; `org department pay` to payments; " +
-    "`dev fund` to accounts, `dev key` to applications. The map is typed against every frozen id, so none can be missed, " +
-    "and every concept but media, parties, indexing, approvals and notices owns at least one operation. The rule behind " +
-    "each exception: an operation's flow sits in a concept that depends on every concept whose rpcs it composes " +
-    "(operations.sign-in-in-accounts, operations.member-invite-in-budgets, operations.invite-accept-in-banking, " +
-    "operations.contact-get-in-banking); every devnet-only operation is devnet's (operations.dev-mail-notices-in-devnet).",
+    "Areas are how people find commands, not concepts (the operation record says so). 134 operations sit in their area's primary concept (AREA_CONCEPTS) and 81 move with their behaviour: agents, session and local commands out of accounts; `doctor` and keys to applications; verification and `contact bank add` to banking; invitations and members to organizations, `invite accept` to banking, allowances and `org member invite` to budgets and votes to equity out of governance; requests, services, the inbox, contacts, documents, `address` and `balance` out of payments, with `contact get` to banking; `activity annotate` to books; `bank match` to requests; `org department pay` to payments; `dev fund` to accounts, `dev key` to applications. The map is typed against every frozen id, so none can be missed, and every concept but media, parties, indexing, approvals and notices owns at least one operation. The rule behind each exception: an operation's flow sits in a concept that depends on every concept whose rpcs it composes (operations.sign-in-in-accounts, operations.member-invite-in-budgets, operations.invite-accept-in-banking, operations.contact-get-in-banking); every devnet-only operation is devnet's (operations.dev-mail-notices-in-devnet). Review, 11 November 2026: Confirmed operations.owners; original choice retained.",
   source: by("blueprint/baseline/operations.ts (215 operations, 11 areas); OPERATION_OWNERS in blueprint/shared/foundation.ts"),
   affects: [...f.CONCEPTS],
 });
@@ -1554,18 +1526,19 @@ export const decision_concepts_books_token_scan = defineDecision({
   title: "Books scans the tokens an Organization adds; indexing has no workflow",
   question: "P3 keeps the scan of tokens added at run time. Which concept owns it, given that only books knows which tokens were added?",
   options: [
-    { label: "books", text: "Books: one cron scans each added asset's Transfers to and from the company Safe from the block it was added, and writes book facts." },
-    { label: "indexing", text: "Indexing, triggered by books' asset transition." },
-    { label: "indexing-procedure", text: "Indexing owns a watched-token table that books writes through a procedure." },
-  ],
-  chosen: "books",
+  {
+    "label": "current-scope",
+    "text": "Books owns scanning tokens explicitly added to its asset list, because it knows the add block and the company Safe. The scanner writes idempotent outside-money facts; indexing remains the chain read model, not a second owner of the added-token list."
+  },
+  {
+    "label": "historical",
+    "text": "The former answer to concepts.books-token-scan is preserved in docs/cut-archive/decision-review-history.json as historical evidence, not implementation authority."
+  }
+],
+  chosen: "current-scope",
   why:
-    "The frozen text says the books 'record its transfers' and 'Capxul starts scanning its transfers from the current " +
-    "block'; its facts carry the token's symbol and no USD. The scan's only reader is books, and its list of tokens is " +
-    "books' own `assets`. In indexing, the scan would have to follow books' transition, which needs indexing above books, " +
-    "a cycle; a watched-token procedure is not one money fact. In books it reads its own table and the chain (chain-rpc " +
-    "`getLogs`), and `org books assets remove` stops it. Indexing is then Ponder's views only.",
-  source: reviewed("org.books.assets.add.yaml, org.books.assets.remove.yaml; P3 (scan added tokens); platform/jobs.ts:125-139"),
+    "Review, 11 November 2026: Books owns scanning tokens explicitly added to its asset list, because it knows the add block and the company Safe. The scanner writes idempotent outside-money facts; indexing remains the chain read model, not a second owner of the added-token list. Authority: cut.books; plugs.repoint-money-fact; plugs.late-and-closed.",
+  source: "The coordinator, round 2, m1-old-decisions; cut.books; plugs.repoint-money-fact; plugs.late-and-closed",
   affects: [f.concept_books, f.concept_indexing, x.integration_chain_rpc],
 });
 
@@ -1703,10 +1676,7 @@ export const decision_responsibilities_landings = defineDecision({
   ],
   chosen: "typed-map",
   why:
-    "A concept's `about` says what it absorbs, but nothing checks that the old list is covered. The map lists all 91 " +
-    "area folders under packages/backend/src/<concept>/, plus the root files of documents and parties, and every entry names a " +
-    "decision record, so a dropped responsibility is a judgment a reviewer can find. The map is not a record: the build " +
-    "follows its decisions' `affects`.",
+    "A concept's `about` says what it absorbs, but nothing checks that the old list is covered. The map lists all 91 area folders under packages/backend/src/<concept>/, plus the root files of documents and parties, and every entry names a decision record, so a dropped responsibility is a judgment a reviewer can find. The map is not a record: the build follows its decisions' `affects`. Review, 11 November 2026: Confirmed responsibilities.landings; original choice retained.",
   source: reviewed("ls packages/backend/src/<concept>/ at 0d2be303e"),
   affects: [...f.CONCEPTS],
 });
@@ -1779,12 +1749,18 @@ export const decision_responsibilities_keepers = defineDecision({
   title: "'Manage books' is the Books officer hat",
   question: "Old books listed its keepers (who holds Manage books). What is that on v4?",
   options: [
-    { label: "hat", text: "The wearers of the Books hat: board grants and revokes it, books reads its wearers from indexing." },
-    { label: "table", text: "Keep a keepers table in books." },
-  ],
-  chosen: "hat",
-  why: "On v4 every officer permission is a hat granted by a Board batch (CAP-1101), and Capxul reads it only from Hats; a table would copy the chain.",
-  source: reviewed("org.member.grant.yaml (designed: Books, Invoicing and People hats); packages/backend/src/books/keepers/"),
+  {
+    "label": "current-scope",
+    "text": "Manage books means the on-chain Books hat, granted and revoked through board and read from hat wearers, never a keepers table. Its site permissions are the versioned hat-to-role projection; granting a Frappe role by hand cannot confer chain authority."
+  },
+  {
+    "label": "historical",
+    "text": "The former answer to responsibilities.keepers is preserved in docs/cut-archive/decision-review-history.json as historical evidence, not implementation authority."
+  }
+],
+  chosen: "current-scope",
+  why: "Review, 11 November 2026: Manage books means the on-chain Books hat, granted and revoked through board and read from hat wearers, never a keepers table. Its site permissions are the versioned hat-to-role projection; granting a Frappe role by hand cannot confer chain authority. Authority: cut.books; plugs.repoint-money-fact; plugs.late-and-closed.",
+  source: "The coordinator, round 2, m1-old-decisions; cut.books; plugs.repoint-money-fact; plugs.late-and-closed",
   affects: [f.concept_books, f.concept_board],
 });
 
@@ -2035,20 +2011,22 @@ export const decision_operations_dev_mail_notices = defineDecision({
 
 export const decision_operations_contact_get = defineDecision({
   id: "operations.contact-get-in-banking",
-  title: "`contact get` is banking's flow, because it returns the contact's bank accounts",
+  title: "Archived: `contact get` is banking's flow, because it returns the contact's bank",
   question: "`contact get` returns `bankAccounts`, which banking owns, and contacts sits below banking. Which concept owns it?",
   options: [
-    { label: "banking", text: "Banking: its flow calls contacts' read of the entry, then its own masked accounts for that Party." },
-    { label: "contacts", text: "Contacts, returning the entry without its bank accounts." },
-    { label: "contacts-up", text: "Contacts above banking (banking would lose the contact a saved account belongs to: a cycle)." },
-  ],
-  chosen: "banking",
+  {
+    "label": "current-scope",
+    "text": "Archive the composition over contacts.book.get: that rpc is removed. The door reads Frappe Contact/Address; banking remains the owner of masked bank accounts by Party. The cut classification, not this old Core flow, carries contact.get reachability."
+  },
+  {
+    "label": "historical",
+    "text": "The former answer to operations.contact-get-in-banking is preserved in docs/cut-archive/decision-review-history.json as historical evidence, not implementation authority."
+  }
+],
+  chosen: "current-scope",
   why:
-    "The frozen `returns` names `bankAccounts` (P10 rung 1), and the old CLI made a second call for them. A flow composes " +
-    "only concepts its concept depends on, and banking is the one concept above contacts that owns the accounts, as " +
-    "`contact bank add` already is. The contacts designer found this and kept the record in contacts until the map moved " +
-    "it (contacts.get-bank-accounts); the entry's rpc stays contacts' for banking's flow to call.",
-  source: adversarial("contact.get.yaml (returns: bankAccounts); blueprint/contacts/decisions.ts (contacts.get-bank-accounts)"),
+    "Review, 11 November 2026: Archive the composition over contacts.book.get: that rpc is removed. The door reads Frappe Contact/Address; banking remains the owner of masked bank accounts by Party. The cut classification, not this old Core flow, carries contact.get reachability. Authority: cut.contacts; sites.crm; plugs.roles-follow-hats.",
+  source: "The coordinator, round 2, m1-old-decisions; cut.contacts; sites.crm; plugs.roles-follow-hats",
   affects: [f.concept_banking, f.concept_contacts],
 });
 
@@ -2562,13 +2540,7 @@ export const decision_system_size = defineDecision({
   ],
   chosen: "quarter-then-measured",
   why:
-    "Measured on integration/factory (8 November 2026), the old product code is about 400,000 non-test lines: backend 184,000, " +
-    "Core SDK 59,000, protocol 55,000, CLI 48,000, devnet 22,000, React SDK 9,600, observability 9,400, indexer 4,600, MCP " +
-    "4,400, AA gateway 2,900. Much of it goes: pre-v4 paths (P9), schemas, routers, clients, CLI wiring and telemetry that " +
-    "are now generated from the records, and duplicate event and status plumbing (P7). What is left to write by hand is the " +
-    "body of each rpc, flow step and workflow step, about 215 operations at 150 to 300 lines, plus a runtime spine of some " +
-    "15,000 and a devnet of some 10,000: 60,000 to 100,000. A per-concept number set now would be a guess from the old " +
-    "areas, which are what is being cut; the pilots measure the real ratio first. With no budget, size is not hill-climbable.",
+    "Measured on integration/factory (8 November 2026), the old product code is about 400,000 non-test lines: backend 184,000, Core SDK 59,000, protocol 55,000, CLI 48,000, devnet 22,000, React SDK 9,600, observability 9,400, indexer 4,600, MCP 4,400, AA gateway 2,900. Much of it goes: pre-v4 paths (P9), schemas, routers, clients, CLI wiring and telemetry that are now generated from the records, and duplicate event and status plumbing (P7). What is left to write by hand is the body of each rpc, flow step and workflow step, about 215 operations at 150 to 300 lines, plus a runtime spine of some 15,000 and a devnet of some 10,000: 60,000 to 100,000. A per-concept number set now would be a guess from the old areas, which are what is being cut; the pilots measure the real ratio first. With no budget, size is not hill-climbable. Review, 11 November 2026: Confirmed system.size; original choice retained.",
   source: `${HANDOFF}; evidence: git ls-files of /home/user/factory (integration/factory), .ts and .tsx without tests, fixtures, .d.ts or generated files`,
   affects: [f.system_capxul, f.component_backend, f.component_core_sdk, f.component_cli, f.component_react_sdk, f.component_mcp_server, f.component_devnet],
 });
@@ -2644,30 +2616,21 @@ export const decision_system_build_order = defineDecision({
   id: "system.build-order",
   title: "Concepts are built in dependency layers; priority orders the work within each",
   question:
-    "Board is low priority, yet budgets, payments, payroll, agents, equity and notices depend on it. In what order are the " +
-    "concepts built, so that no lane waits on a concept below it?",
+    "Board is low priority, yet budgets, payments, payroll, agents, equity and notices depend on it. In what order are the concepts built, so that no lane waits on a concept below it?",
   options: [
-    {
-      label: "layers-then-priority",
-      text:
-        "By the concept map's layers, each concept's door (its tables, machines and procedures) before any concept that depends on " +
-        "it: access; media; parties; indexing; approvals; accounts; organizations; then applications, board, books, contacts and documents; agents and budgets; payments; activity, banking and plugs; requests and sites; notices; " +
-        "devnet's own world commands alongside the harness. Within a concept, critical operations first. Board's director and vote " +
-        "operations and all of equity are built last, and a lane may build against their events before they exist.",
-    },
-    { label: "product-priority", text: "By product priority alone, stubbing every dependency that is not built yet." },
-  ],
-  chosen: "layers-then-priority",
+  {
+    "label": "current-scope",
+    "text": "The coordinator authors build order and critical path in plan/plan.json. Dependencies still constrain imports and doors must exist before their callers, but the old layer list and equity-last scheduling are not an automatic scheduler. The plan and loop, not swarmD stages, coordinate work."
+  },
+  {
+    "label": "historical",
+    "text": "The former answer to system.build-order is preserved in docs/cut-archive/decision-review-history.json as historical evidence, not implementation authority."
+  }
+],
+  chosen: "current-scope",
   why:
-    "Built in layers, every procedure a lane invokes already exists and is proven, so no lane builds against a stub that can " +
-    "drift from the real door. Board shows why priority alone fails: its proposal machine and board.propose carry every Board " +
-    "payment, budget and grant, so they are on the critical path even though its director and voting commands are not. Equity " +
-    "stays last because only notices depends on it, and only for its events. Revised at the Frappe assembly (projects " +
-    "joins the eighth layer; books, which now reads projects, moves up to budgets and agents; payroll, which now pays " +
-    "through payments and posts its accrual through books, moves above payments, beside banking and activity), then by the cut (cut.principle), which takes out the concepts Frappe owns and moves the layers up, then by the plugs and sites " +
-    "concepts (10 November 2026: plugs joins activity and banking, sites joins requests; the layer list is the one plan-tasks computes and checks). " +
-    "The milestones the lanes sit under are no longer listed here: they are the milestones of plan/plan.json (portal.plan-page).",
-  source: `${HANDOFF}; evidence: the concept dependsOn graph of the built target book (14 layers, no cycle); the fact check of the goal prompt's earlier order; amended 10 November 2026 by the coordinator, on the owner's delegation, to the layers the task tree computes`,
+    "Review, 11 November 2026: The coordinator authors build order and critical path in plan/plan.json. Dependencies still constrain imports and doors must exist before their callers, but the old layer list and equity-last scheduling are not an automatic scheduler. The plan and loop, not swarmD stages, coordinate work. Authority: cut.principle; aaron.one-door; sites.door; portal.plan-page.",
+  source: "The coordinator, round 2, m1-old-decisions; cut.principle; aaron.one-door; sites.door; portal.plan-page",
   affects: [f.system_capxul, f.concept_board, f.concept_notices],
 });
 
@@ -2903,7 +2866,7 @@ export const decision_system_frozen_behaviour = defineDecision({
     "for designing the new flags, not surface to preserve. packages/blueprint-engine/scripts/check-frozen.ts checks that every operation is booked once or " +
     "classified by the cut, and that every booked operation's acceptance claims and refusal behaviours are kept in intent, or " +
     "rewritten or retired with a decision. Extended on 10 November 2026 by the coordinator, on Aaron's delegation, as START-HERE " +
-    "section 6 asks: the old rule said all 215 stay, which would force the book to keep rebuilding what Frappe owns.",
+    "section 6 asks: the old rule said all 215 stay, which would force the book to keep rebuilding what Frappe owns." + " Review, 11 November 2026: The surviving rule (The freeze keeps behaviour; each old operation is booked or classified) still applies. Removed subjects in its historical evidence are not restored; cut.principle; aaron.one-door; sites.door; portal.plan-page governs their replacement.",
   source:
     "Aaron, 8 November 2026, in the build-preparation conversation; extended 10 November 2026 by the coordinator, on Aaron's delegation (cut.principle)",
   affects: [f.system_capxul, f.component_cli, f.component_core_sdk, f.component_mcp_server],
@@ -2992,23 +2955,7 @@ export const decision_rules_new_operations = defineDecision({
   ],
   chosen: "cited-ruling",
   why:
-    "Aaron's rulings already make these capabilities operations: aaron.projects says they are new capabilities designed " +
-    "book first with a decision pack, and aaron.frappe-shape puts CRM, Projects and Frappe HR payroll in every " +
-    "Organization from the start. system.frozen-behaviour keeps the 215 and what their claims require, and nothing in it " +
-    "closes the list. So the rule opens it exactly where a ruling does. Citing the ruling ties each new command to the " +
-    "authority that made its capability; a claim makes it an eval, not a hope, as the 215's claims are theirs; and the " +
-    "collision checks keep the 215 exact: a new id equal to a frozen one would be read as that operation, one that " +
-    "differs only in its separators would share its export name, and a reused command would be two operations to the " +
-    "CLI. The 215 are still counted and required exactly, so a new operation never stands in for a frozen one. " +
-    "Accepted-pack was weighed: a decision pack's recommendation stands until Aaron answers, as every recorded choice " +
-    "does (the judgments report lists the packs for him), and a new operation changes no behaviour of the 215, so the " +
-    "stricter form would only hold the book back. Closed would leave the CRM, projects and Frappe HR payroll with no CLI, " +
-    "though the Forward Deployed Engineer works through the CLI as every agent does (aaron.fde-agent). Any-decision would " +
-    "let in a capability no ruling asked for. This rule never counts as the decision on a new operation: it cites rulings " +
-    "for every capability, so an operation in its affects would be booked with no pack of its own. It decides how one is " +
-    "booked, not which: the commands the CRM, projects, payroll and the head get are their packs' questions. For Aaron: " +
-    "may a new command be booked on its pack's recommendation before he answers the pack? Recommended: yes, as chosen; " +
-    "accepted-pack is the change if he wants his acceptance first.",
+    "Aaron's rulings already make these capabilities operations: aaron.projects says they are new capabilities designed book first with a decision pack, and aaron.frappe-shape puts CRM, Projects and Frappe HR payroll in every Organization from the start. system.frozen-behaviour keeps the 215 and what their claims require, and nothing in it closes the list. So the rule opens it exactly where a ruling does. Citing the ruling ties each new command to the authority that made its capability; a claim makes it an eval, not a hope, as the 215's claims are theirs; and the collision checks keep the 215 exact: a new id equal to a frozen one would be read as that operation, one that differs only in its separators would share its export name, and a reused command would be two operations to the CLI. The 215 are still counted and required exactly, so a new operation never stands in for a frozen one. Accepted-pack was weighed: a decision pack's recommendation stands until Aaron answers, as every recorded choice does (the judgments report lists the packs for him), and a new operation changes no behaviour of the 215, so the stricter form would only hold the book back. Closed would leave the CRM, projects and Frappe HR payroll with no CLI, though the Forward Deployed Engineer works through the CLI as every agent does (aaron.fde-agent). Any-decision would let in a capability no ruling asked for. This rule never counts as the decision on a new operation: it cites rulings for every capability, so an operation in its affects would be booked with no pack of its own. It decides how one is booked, not which: the commands the CRM, projects, payroll and the head get are their packs' questions. For Aaron: may a new command be booked on its pack's recommendation before he answers the pack? Recommended: yes, as chosen; accepted-pack is the change if he wants his acceptance first. Review, 11 November 2026: Confirmed rules.new-operations; original choice retained.",
   source: `${RULES}; under system.frozen-behaviour and aaron.frappe-shape (aaron.projects: a decision pack); evidence: packages/blueprint-engine/scripts/check-frozen.ts; contacts.crm-capabilities, payroll.hr-surface, projects.commands, organizations.commands`,
   affects: [
     decision_system_frozen_behaviour, f.system_capxul, f.component_cli, f.component_core_sdk, f.concept_contacts,
@@ -3072,37 +3019,23 @@ export const decision_rules_department_authority = defineDecision({
 
 export const decision_rules_fde_acts_for_asker = defineDecision({
   id: "rules.fde-acts-for-asker",
-  title: "Every tenant guard resolves the hosted FDE to its open ask's asker, or refuses",
+  title: "Archived: Every tenant guard resolves the hosted FDE to its open ask's asker, or",
   question:
-    "The eighth batch's ruling that anyone may ask the hosted FDE, which does for them only what their own hats allow, " +
-    "is applied in organizations (organizations.fde-for-the-asker). Every concept's rpcs authorise a caller through " +
-    "organizations' tenant guard. How does that guard, and the Core SDK, treat a call the hosted FDE makes?",
+    "The eighth batch's ruling that anyone may ask the hosted FDE, which does for them only what their own hats allow, is applied in organizations (organizations.fde-for-the-asker). Every concept's rpcs authorise a caller through organizations' tenant guard. How does that guard, and the Core SDK, treat a call the hosted FDE makes?",
   options: [
-    {
-      label: "asker-or-nothing",
-      text:
-        "A hosted FDE call carries the act-for token its turn's ask minted (the FDE host passes it as an egress header). " +
-        "The tenant guard every concept runs (organizations' MEMBER_GUARD and the guards built on it) resolves such a " +
-        "call to the open ask's asker by the token's hash (`org-fde-asks.by_token`): their Seat and hats for a member, " +
-        "their Party alone for a guest; the call is the asker's, logged with the ask. An expired, ended or unknown " +
-        "token, or none, is ROLE_PERMISSION_DENIED: the hosted FDE never resolves to its own Seat, so only a self-run " +
-        "own agent (`agent create --org`) acts as itself. Under such a session the Core SDK's signing steps hand the " +
-        "approval over to the asker (the `--no-wait` hand-over, or `--json` for the payment family) instead of signing. " +
-        "An rpc behind a preview (G5: `contact link`, `org hr employee leave`, `org head connect|disconnect`, `org head " +
-        "doc remove`, `org hr advance settle`, the CRM's sends and WhatsApp connect and disconnect) refuses an act-for call " +
-        "ROLE_PERMISSION_DENIED, since the preview is the asker's own to answer.",
-    },
-    { label: "own-seat", text: "The FDE calls as its own Seat, with hats the Board grants it, whoever asked." },
-  ],
-  chosen: "asker-or-nothing",
+  {
+    "label": "current-scope",
+    "text": "Archive the hosted act-for-token tenant guard: hosted FDE work is parked. No current caller gets an asker's Seat or hats by presenting an old org-fde-asks token. Self-run agents use their explicitly granted authority; a future hosted impersonation feature requires a new decision before enabling it."
+  },
+  {
+    "label": "historical",
+    "text": "The former answer to rules.fde-acts-for-asker is preserved in docs/cut-archive/decision-review-history.json as historical evidence, not implementation authority."
+  }
+],
+  chosen: "current-scope",
   why:
-    "Resolving the call in the one guard every concept already runs applies the ruling everywhere at once, with no " +
-    "concept checking two Seats; refusing a call with no live token keeps an FDE that nobody asked from acting at all, " +
-    "and refusing a preview's rpc keeps the asker's own answer theirs. Handing over instead of signing keeps every " +
-    "signature the asker's Safe's, as authority.md requires. Its own Seat with granted hats would let anyone who may ask " +
-    "act with hats they do not wear. organizations.fde-for-the-asker is the concept's record of the same choice; this " +
-    "states it for every concept's guard.",
-  source: "Claude, world pass build, 9 November 2026; under aaron.fde-anyone; evidence: organizations.fde-for-the-asker; blueprint/organizations/apps.ts (MEMBER_GUARD); docs/design/new-commands.md (G4, G5)",
+    "Review, 11 November 2026: Archive the hosted act-for-token tenant guard: hosted FDE work is parked. No current caller gets an asker's Seat or hats by presenting an old org-fde-asks token. Self-run agents use their explicitly granted authority; a future hosted impersonation feature requires a new decision before enabling it. Authority: cut.organizations; cut.fde-parked; sites.lifecycle; plugs.roles-follow-hats.",
+  source: "The coordinator, round 2, m1-old-decisions; cut.organizations; cut.fde-parked; sites.lifecycle; plugs.roles-follow-hats",
   affects: [
     f.concept_organizations, f.concept_agents, f.concept_contacts, f.concept_payments,
     f.concept_budgets, f.component_core_sdk, x.integration_fde_host,

@@ -377,44 +377,21 @@ export const decision_parties_frappe_identity = defineDecision({
   id: "parties.frappe-identity",
   title: "The directory is the identity half of Frappe CRM's Contact and Organization",
   question:
-    "The directory of people and companies is to be a global CRM in Frappe CRM's shape. Frappe CRM keeps a person as a " +
-    "Contact and a company as a CRM Organization, one site per business, each holding that business's own knowledge " +
-    "(mailboxes, phones, titles, territories, revenue, deals). What does the global directory hold, and how does a " +
-    "Frappe record meet it?",
+    "The directory of people and companies is to be a global CRM in Frappe CRM's shape. Frappe CRM keeps a person as a Contact and a company as a CRM Organization, one site per business, each holding that business's own knowledge (mailboxes, phones, titles, territories, revenue, deals). What does the global directory hold, and how does a Frappe record meet it?",
   options: [
-    {
-      label: "identity-half",
-      text:
-        "Each Party is the global identity a Frappe Contact (kind person, agent or address) or CRM Organization (kind " +
-        "organization) stands for: its name (`display_name`, which Contact's `full_name` or CRM Organization's " +
-        "`organization_name` shows when the owner's book gives no label of its own), its picture (`photo_file_id`: " +
-        "`image`, `organization_logo`) and the key Frappe itself " +
-        "dedupes a person by, the mailbox (`mailbox_digest`). Everything else those doctypes hold is the owner's, in its " +
-        "book (contacts), in the same doctypes' fields. A connected head carries `party_id` as one Custom Field on " +
-        "Contact, CRM Organization, Customer, Supplier and Employee, and a Frappe User for each person or agent with a " +
-        "Seat.",
-    },
-    {
-      label: "global-doctypes",
-      text: "The directory itself holds Contact and CRM Organization rows with all their fields, shared by every tenant.",
-    },
-    { label: "own-shape", text: "Keep Capxul's own shape and map it only when a head is connected." },
-  ],
-  chosen: "identity-half",
+  {
+    "label": "current-scope",
+    "text": "Parties owns global identity, display name, mailbox resolution, Safe and ownership. Frappe Contact, Customer, Supplier and Employee are company-site business documents linked to identities, not global CRM replicas. A site user is identified by person/account address and hat, never mailbox alone, and agents receive no implied human site user."
+  },
+  {
+    "label": "historical",
+    "text": "The former answer to parties.frappe-identity is preserved in docs/cut-archive/decision-review-history.json as historical evidence, not implementation authority."
+  }
+],
+  chosen: "current-scope",
   why:
-    "The directory is global and holds nothing private (parties.directory-tenancy). Frappe's Contact and CRM " +
-    "Organization are per-site records whose fields are what one business knows: a mailbox it was given, a phone, a " +
-    "title, a territory, a revenue estimate. Global rows of them would show one tenant's knowledge to every tenant. " +
-    "Split in two, the shape holds: the directory is what any counterparty may see and what makes a person or company " +
-    "one across tenants, and each book holds the rest under Frappe's field names, so a head syncs by mapping. Frappe CRM " +
-    "matches a person by mailbox only ('Match only on email which uniquely identifies a person', `contact_exists`), " +
-    "which is the directory's key for a person, so a head's Contacts and every book's entries meet on the same Party. " +
-    "Capxul's own shape, mapped only at a head, would leave an Organization without a head outside Frappe's shapes. The " +
-    "Party's columns keep their names: a display name is a full name or an organization name by kind, and a Frappe " +
-    "Contact without a last name is complete. A Party's name is identity, Capxul's alone (organizations.head-ownership): " +
-    "what a head writes into a Contact's or CRM Organization's name is the owner's label, never the Party's " +
-    "(contacts.head-mapping). This also settles core check C14: the directory leaks nothing a CRM keeps private.",
-  source: crmBy("frappe/crm@2cecd300 crm/fcrm/doctype/crm_lead/crm_lead.py:335; frappe/frappe@1a7ea577 contacts/doctype/contact/contact.json; docs/vision/erp.md section 2, C14"),
+    "Review, 11 November 2026: Parties owns global identity, display name, mailbox resolution, Safe and ownership. Frappe Contact, Customer, Supplier and Employee are company-site business documents linked to identities, not global CRM replicas. A site user is identified by person/account address and hat, never mailbox alone, and agents receive no implied human site user. Authority: aaron.frappe-native; plugs.user-from-hat; sites.door.",
+  source: "The coordinator, round 2, m1-old-decisions; aaron.frappe-native; plugs.user-from-hat; sites.door",
   affects: [table_parties, procedure_parties_resolve_recipient, decision_parties_directory_tenancy, concept_parties, concept_contacts],
 });
 
@@ -560,40 +537,20 @@ export const decision_parties_head_parties = defineDecision({
   id: "parties.head-parties",
   title: "A head's Customer, Supplier and Employee meet the directory by `capxul_party`",
   question:
-    "A voucher's party is a directory Party id (books), a deal's or contact's is too (contacts), and a project's customer " +
-    "is `customer_party_id` (projects). On a connected head these are ERPNext Customers, Suppliers and Employees. How " +
-    "does a head document find its Party, what of one with none, and is every CRM customer a Party?",
+    "A voucher's party is a directory Party id (books), a deal's or contact's is too (contacts), and a project's customer is `customer_party_id` (projects). On a connected head these are ERPNext Customers, Suppliers and Employees. How does a head document find its Party, what of one with none, and is every CRM customer a Party?",
   options: [
-    {
-      label: "custom-field",
-      text:
-        "Each of Contact, CRM Organization, Customer, Supplier and Employee carries the Party id in one Custom Field, " +
-        "`capxul_party`, which only Capxul sets. When Capxul pushes a record naming a Party, the head's Capxul app finds " +
-        "the document by that field, or creates it with the field set. A head document with no `capxul_party` (a customer " +
-        "the head made, a supplier paid only by bank) is accepted with a null Party id: a head GL line against it comes " +
-        "in with `party_id` null and the head's party name as its text. A head never names a company or an address and " +
-        "never chooses a Safe; the one Party a head document can lead to is a person's, by mailbox, when an app's sync " +
-        "takes in a document born there as a member would record it (a Contact's primary mailbox in contacts.head.sync, " +
-        "an Employee's `personal_email` in payroll's, each through `parties.resolve-recipient`). A customer is a Party " +
-        "only when it is one: a person by mailbox, an agent, an Organization on Capxul or an outside wallet; a company " +
-        "not on Capxul is a private CRM entry with no Party (parties.outside-companies).",
-    },
-    { label: "match-by-name", text: "Match a head's Customer or Supplier to a Party by its name or email when it carries no Party." },
-    { label: "name-from-head", text: "Name a new Party for every head Customer and Supplier." },
-  ],
-  chosen: "custom-field",
+  {
+    "label": "current-scope",
+    "text": "Site business documents may carry the Core Party link, but a site never selects a Safe or grants chain authority. A Customer or Supplier without a Party stays a site-only record until resolved by Core; it cannot be paid merely because its email matches. Site users follow account-address/hat identity rather than the old email-matched head sync."
+  },
+  {
+    "label": "historical",
+    "text": "The former answer to parties.head-parties is preserved in docs/cut-archive/decision-review-history.json as historical evidence, not implementation authority."
+  }
+],
+  chosen: "current-scope",
   why:
-    "A Party is where money goes, so only Capxul binds one (organizations.head-ownership: identity is Capxul's). One " +
-    "field name across the CRM, the books and payroll lets the Capxul app look up any document the same way, and it is " +
-    "the name the CRM lane chose (payroll's `capxul_party_id` on Employee becomes `capxul_party`, " +
-    "organizations.frappe-app-fields). Matching by name would let a head user choose whose Safe a voucher's party is; " +
-    "naming Parties from a head would put a tenant's words in the global directory. A person named by mailbox carries " +
-    "none: the mailbox fixes the Safe and the person later gives their own name, exactly as when a member records them " +
-    "in Capxul (corrected in review: the first text said no Party is ever named from a head, which contacts' and " +
-    "payroll's syncs contradict). A null Party keeps a head's own " +
-    "bookkeeping whole without inventing identity. For projects this means `customer_party_id` is null for a customer " +
-    "that is not on Capxul, so a project for a prospect company needs the CRM entry or the head's Customer name beside " +
-    "it; projects sits below contacts and cannot read the entry, so that is the projects designer's to add.",
-  source: asmBy("docs/design/frappe/accounting.md (capxul_party); docs/design/frappe/crm.md (Custom Fields); blueprint/projects/data.ts (customer_party_id)"),
+    "Review, 11 November 2026: Site business documents may carry the Core Party link, but a site never selects a Safe or grants chain authority. A Customer or Supplier without a Party stays a site-only record until resolved by Core; it cannot be paid merely because its email matches. Site users follow account-address/hat identity rather than the old email-matched head sync. Authority: aaron.frappe-native; plugs.user-from-hat; sites.door.",
+  source: "The coordinator, round 2, m1-old-decisions; aaron.frappe-native; plugs.user-from-hat; sites.door",
   affects: [table_parties, component_frappe_app, concept_books, concept_contacts],
 });

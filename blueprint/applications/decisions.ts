@@ -275,7 +275,7 @@ export const decision_applications_invoicing_hat = defineDecision({
     "The frozen `who` lines say 'for an Organization, a member who holds issue invoices' for every change and 'any " +
     "member' for the list. In v4 issuing invoices is the Invoicing officer hat, and applications depends on organizations " +
     "and indexing, so it reads the hat id and its wearers directly, as requests does; a procedure is only for a money " +
-    "fact (rules.procedures). A key for someone else's Organization is ROLE_PERMISSION_DENIED before anything is read.",
+    "fact (rules.procedures). A key for someone else's Organization is ROLE_PERMISSION_DENIED before anything is read." + " Review, 11 November 2026: The surviving rule (An Organization's keys: any member reads them, the Invoicing hat changes them) still applies. Removed subjects in its historical evidence are not restored; cut.principle; aaron.one-door; sites.door; portal.plan-page governs their replacement.",
   source: by(`${A}/keys/guards.ts:37; packages/backend/src/organizations/members/reads/permissions.ts:67; frozen key.* who`),
   affects: [...KEY_RPCS, table_org_members, table_org_deployments, table_hat_wearers],
 });

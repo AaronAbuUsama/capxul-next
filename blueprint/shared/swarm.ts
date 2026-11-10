@@ -48,82 +48,65 @@ export const decision_swarm_start_small = defineDecision({
 
 export const decision_swarm_stages = defineDecision({
   id: "swarm.stages",
-  title: "Three stages: Mission Control, one swarmD manager, then lane managers",
+  title: "Archived: Three stages: Mission Control, one swarmD manager, then lane managers",
   question:
-    "swarmD will be what its documentation describes, but not yet. T0, D0 and B0 may start before its ledger and pair engine " +
-    "exist. What runs the build before then, and when does the build move onto swarmD?",
+    "swarmD will be what its documentation describes, but not yet. T0, D0 and B0 may start before its ledger and pair engine exist. What runs the build before then, and when does the build move onto swarmD?",
   options: [
-    {
-      label: "three-stages",
-      text:
-        "Stage 0: the build session (a Claude session, Mission Control) runs the master's loop by hand with the same schemas: " +
-        "docs/mission/tasks.json as the task tree, pull requests on the same branches, makers and checkers as Workflow agents, " +
-        "at most 2 pairs at a time (swarm.pacing), and docs/mission/progress.md as the log. Stage 1: capxul/master on swarmD, " +
-        "when the entry criteria in docs/design/swarm.md section 1.2 hold (expected at B3): among them the briefs without " +
-        "which the master cannot run at all, the plan reconciled in code (SD-2), the brief and paths reaching the gate (SD-3, " +
-        "SD-4), des: verdicts posted and carried (SD-21, SD-22), a pair's end waking the master (SD-26), needs met at merge " +
-        "(SD-27) and pushes held to the task's branch (SD-28). Stage 2: lane managers under the master as lead " +
-        "(swarm.nested-entry).",
-    },
-    { label: "wait", text: "Start nothing until swarmD's manager runs." },
-    { label: "workflows-only", text: "Run the whole build from Claude sessions and workflows; swarmD is not used." },
-  ],
-  chosen: "three-stages",
+  {
+    "label": "current-scope",
+    "text": "Archive stages: Archive the three-stage migration and ledger-entry checklist: plan, portal and loop are the current coordination design, with no swarmD stage transition."
+  },
+  {
+    "label": "historical",
+    "text": "The former answer to swarm.stages is preserved in docs/cut-archive/decision-review-history.json as historical evidence, not implementation authority."
+  }
+],
+  chosen: "current-scope",
   why:
-    "Waiting idles the critical path on another project's schedule. Workflows only would not prove swarmD, and the goal " +
-    "prompt says building Capxul is how swarmD is proven. One set of schemas across the stages makes the move a change of " +
-    "runner, not of plan: the same task keys, evals, branches and gate.",
-  source: by("archive/docs/mission/initializer.md (How to work); swarmD STATUS.md (the manager-model rows are all not started); archive/HANDOFF.md (lessons that save usage)"),
+    "Review, 11 November 2026: Archive stages: Archive the three-stage migration and ledger-entry checklist: plan, portal and loop are the current coordination design, with no swarmD stage transition. Authority: portal.plan-page.",
+  source: "The coordinator, round 2, m1-old-decisions; portal.plan-page",
   affects: [f.system_capxul],
 });
 
 export const decision_swarm_nested_entry = defineDecision({
   id: "swarm.nested-entry",
-  title: "Lane managers only after the single manager has a measured record",
+  title: "Archived: Lane managers only after the single manager has a measured record",
   question: "What evidence must exist before the build moves from one manager to a lead over lane managers?",
   options: [
-    {
-      label: "record-and-bottleneck",
-      text:
-        "All of: at least 4 lanes done by the single manager, one of them a money lane; every done task within its $5 or over " +
-        "it only by a recorded decide; median cost per done task at most $2.50 and the 90th percentile of rounds at most 3; at " +
-        "least 80% of signals settled without a person; no merge outside the release gate; integration/build red under 2% of " +
-        "hours; the manager's own spend at most 10% of its lanes'. And a bottleneck: over 3 days, a free pair slot with open " +
-        "frontier tasks while a signal waited over 15 minutes for the manager, a quarter of the time or more. And swarmD's lead " +
-        "template, manages, bubbling and child roll-up built with their acceptance lines passing.",
-    },
-    { label: "milestone", text: "Move at B4, whatever the record." },
-    { label: "never", text: "Keep one manager to the end." },
-  ],
-  chosen: "record-and-bottleneck",
+  {
+    "label": "current-scope",
+    "text": "Archive nested-entry: There is no planned migration to nested swarmD managers. Its four-lane/cost/latency entry thresholds do not gate the current loop."
+  },
+  {
+    "label": "historical",
+    "text": "The former answer to swarm.nested-entry is preserved in docs/cut-archive/decision-review-history.json as historical evidence, not implementation authority."
+  }
+],
+  chosen: "current-scope",
   why:
-    "A hierarchy is worth its cost only when one manager cannot hold the scope (swarmD's Zen, rule 6), and only on a manager " +
-    "already shown to converge within budget. The numbers are the ones the retro could not compute and the scoreboard can.",
-  source: by(`${SWARMD} apps/docs/content/docs/zen.mdx (rule 6); concepts/managers-and-workers.mdx (managers manage managers, planned); ${RETRO} (health signals)`),
+    "Review, 11 November 2026: Archive nested-entry: There is no planned migration to nested swarmD managers. Its four-lane/cost/latency entry thresholds do not gate the current loop. Authority: portal.plan-page.",
+  source: "The coordinator, round 2, m1-old-decisions; portal.plan-page",
   affects: [f.system_capxul],
 });
 
 export const decision_swarm_master_prompt = defineDecision({
   id: "swarm.master-prompt",
-  title: "The goal prompt is the master's instructions, with the operating skeleton",
+  title: "Archived: The goal prompt is the master's instructions, with the operating skele",
   question: "What does capxul/master's instructions file hold, so that it does not improvise how to run the build?",
   options: [
-    {
-      label: "goal-plus-skeleton",
-      text:
-        "archive/docs/mission/initializer.md whole (the goal, the book, the order of work, how to work, what to bring to Aaron), " +
-        "followed by the operating skeleton in docs/design/swarm.md section 1b: its durable state, tools, the events that wake " +
-        "it and what it does on each, its rules, and the stop and escalation rules. swarmD adds its built-in manager prompt " +
-        "and the build template's prompt before them, and they cannot be overridden.",
-    },
-    { label: "summary", text: "A short prompt of its own, pointing at the goal prompt." },
-    { label: "skeleton-only", text: "The operating skeleton only; the goal prompt stays a document the master reads." },
-  ],
-  chosen: "goal-plus-skeleton",
+  {
+    "label": "current-scope",
+    "text": "Archive master-prompt: The loop uses its checked-in operating instructions; it does not concatenate a swarmD built-in manager prompt with the archived initializer."
+  },
+  {
+    "label": "historical",
+    "text": "The former answer to swarm.master-prompt is preserved in docs/cut-archive/decision-review-history.json as historical evidence, not implementation authority."
+  }
+],
+  chosen: "current-scope",
   why:
-    "The goal prompt is the whole basis of the master. A summary drifts from it; a skeleton without it loses the definition " +
-    "of done. The skeleton covers what the goal prompt leaves to the runner: which event wakes the master and what it does then.",
-  source: by("archive/docs/mission/initializer.md; swarmD reference/manager.md (instructions are added after the built-in and template prompts)"),
+    "Review, 11 November 2026: Archive master-prompt: The loop uses its checked-in operating instructions; it does not concatenate a swarmD built-in manager prompt with the archived initializer. Authority: portal.plan-page.",
+  source: "The coordinator, round 2, m1-old-decisions; portal.plan-page",
   affects: [f.system_capxul],
 });
 
@@ -178,34 +161,22 @@ export const decision_swarm_money = defineDecision({
 
 export const decision_swarm_pacing = defineDecision({
   id: "swarm.pacing",
-  title: "At most four pairs in flight, six agents at once, one task per lane",
+  title: "Archived: At most four pairs in flight, six agents at once, one task per lane",
   question: "How many workers run at once, given the usage lessons and the retro's numbers?",
   options: [
-    {
-      label: "four-pairs",
-      text:
-        "Stage 1: at most 4 pairs in flight and 6 worker assignments running at once, plus the manager: a pair runs its maker " +
-        "and its checkers in turn, and a money pair's two checkers run together. One task in flight per lane. Start at 2 pairs " +
-        "for B3, whose pilot closure is narrow; go to 4 when two pairs in a row converge within budget. Worker concurrency: " +
-        "builder 4, reviewer 4, adversary 2, diagnoser 1, researcher 1, under a manager-level cap of 6 (a needed brief). " +
-        "Stage 0: at most 2 pairs (3 agents at most), because there the limit is the subscription's usage window, not the " +
-        "agent count; Mission Control starts no pair it expects to outlast the window, and moves to 3 pairs only when a window " +
-        "has ended with usage left twice in a row.",
-    },
-    { label: "sixteen", text: "As many as the frontier allows." },
-    { label: "one", text: "One pair at a time." },
-    { label: "four-at-stage-0", text: "4 pairs and 6 agents at stage 0 too, as the goal prompt's 4-to-6 line says." },
-  ],
-  chosen: "four-pairs",
+  {
+    "label": "current-scope",
+    "text": "Archive pacing: Loop concurrency and per-lane isolation are configured for the run; the old stage-0 subscription-window and stage-1 four-pair/six-agent thresholds are not current capacity rules."
+  },
+  {
+    "label": "historical",
+    "text": "The former answer to swarm.pacing is preserved in docs/cut-archive/decision-review-history.json as historical evidence, not implementation authority."
+  }
+],
+  chosen: "current-scope",
   why:
-    "Sixteen agents at once spent a five-hour window in 36 minutes: the window holds about 576 agent-minutes, about 2 agents " +
-    "busy for all 5 hours. Six agents spend it in about 1.6 hours and then wait 3.4 with nothing running, doing no more work " +
-    "and losing what each agent had not written when the window closed; so stage 0 runs 2 pairs. At stage 1 the limits are " +
-    "money and the providers': the anthropic key's rate limits, and the gateway, which is a CLIProxy over a subscription " +
-    "with its own window, whose exhaustion is a provider signal that pauses the makers. The retro's healthy task took 16 " +
-    "active minutes and $0.77, a long one 11 minutes a round: 4 pairs keep about 6 agents busy. After B3 the frontier is 104 " +
-    "tasks over 22 lanes, so one task per lane costs no parallelism and keeps lane branches free of conflicts.",
-  source: by(`archive/HANDOFF.md (lessons that save usage); ${RETRO} (per mission, per ticket); ${SWARMD} docs/planning/sitrep-2026-11-08.md (gateway: CLIProxy); the task tree (frontierAfterB3 104, 22 lanes)`),
+    "Review, 11 November 2026: Archive pacing: Loop concurrency and per-lane isolation are configured for the run; the old stage-0 subscription-window and stage-1 four-pair/six-agent thresholds are not current capacity rules. Authority: portal.plan-page.",
+  source: "The coordinator, round 2, m1-old-decisions; portal.plan-page",
   affects: [f.system_capxul, decision_system_layout],
 });
 
@@ -341,24 +312,22 @@ export const decision_swarm_events_not_needs = defineDecision({
 
 export const decision_swarm_layers = defineDecision({
   id: "swarm.layers",
-  title: "Layers from the concept map, equity last; a need never points at a later layer",
+  title: "Archived: Layers from the concept map, equity last; a need never points at a lat",
   question: "How does the task tree keep system.build-order?",
   options: [
-    {
-      label: "checked",
-      text:
-        "A task's layer is its concept's dependsOn depth, with equity moved last; integrations come before every concept and " +
-        "journeys after. plan-tasks fails if the computed layers differ from the decision's list, or if a task needs a task in " +
-        "a later layer, except that a need on the last layer's tasks moves the needing task into that layer (labelled " +
-        "after:<lane>). Layers order, they do not gate: a task starts when its own needs are done.",
-    },
-    { label: "gate", text: "A lane starts only when every lane of the layer below is done." },
-  ],
-  chosen: "checked",
+  {
+    "label": "current-scope",
+    "text": "Archive layers: The coordinator authors task dependencies and critical path in the plan. Computed swarmD layers and automatic after:lane promotion no longer schedule work."
+  },
+  {
+    "label": "historical",
+    "text": "The former answer to swarm.layers is preserved in docs/cut-archive/decision-review-history.json as historical evidence, not implementation authority."
+  }
+],
+  chosen: "current-scope",
   why:
-    "Gating by layer serialises 14 layers for no reason: each need the links name is already there. Checking the layers " +
-    "catches a record change that would make a lane wait on a later one, which is what the decision forbids.",
-  source: by("system.build-order; packages/plan/src/tasks.ts (BUILD_ORDER, the layer check)"),
+    "Review, 11 November 2026: Archive layers: The coordinator authors task dependencies and critical path in the plan. Computed swarmD layers and automatic after:lane promotion no longer schedule work. Authority: portal.plan-page.",
+  source: "The coordinator, round 2, m1-old-decisions; portal.plan-page",
   affects: [decision_system_build_order],
 });
 
@@ -708,47 +677,43 @@ export const decision_swarm_review_evals = defineDecision({
 
 export const decision_swarm_state = defineDecision({
   id: "swarm.state",
-  title: "The ledger and the repository hold the state, not the manager's conversation",
+  title: "Archived: The ledger and the repository hold the state, not the manager's conver",
   question: "Where does the master's durable state live, so that a reset or an upgrade loses nothing?",
   options: [
-    {
-      label: "ledger-and-repo",
-      text:
-        "The ledger holds tasks, assignments, pairs, messages, findings, verdicts, matters, entries and refs. The repository " +
-        "holds the book, its decisions, tasks.json, the code and the pull requests. The manager's conversation holds only the " +
-        "current wake: it rereads its board each time, and it is rotated daily (a needed brief). Before the ledger runs, " +
-        "tasks.json, progress.md and GitHub hold it.",
-    },
-    { label: "conversation", text: "The manager remembers what it decided in its conversation." },
-  ],
-  chosen: "ledger-and-repo",
+  {
+    "label": "current-scope",
+    "text": "Archive state: Durable coordination state is the authored plan, loop run evidence and repository, not the swarmD ledger or a manager conversation. The portal is a view, not another task authority."
+  },
+  {
+    "label": "historical",
+    "text": "The former answer to swarm.state is preserved in docs/cut-archive/decision-review-history.json as historical evidence, not implementation authority."
+  }
+],
+  chosen: "current-scope",
   why:
-    "swarmD's manager is always on for months; a conversation that grows with every signal is the builder's 130k-token step " +
-    "again, at the top. The ledger was designed so that the conversation does not have to hold the record.",
-  source: by(`${SWARMD} concepts/managers-and-workers.mdx (context small on purpose); concepts/the-record.mdx; ${RETRO} (context)`),
+    "Review, 11 November 2026: Archive state: Durable coordination state is the authored plan, loop run evidence and repository, not the swarmD ledger or a manager conversation. The portal is a view, not another task authority. Authority: portal.plan-page.",
+  source: "The coordinator, round 2, m1-old-decisions; portal.plan-page",
   affects: [f.system_capxul],
 });
 
 export const decision_swarm_artifact = defineDecision({
   id: "swarm.artifact",
-  title: "The master's board: lanes by layer, pairs, blocked, matters, spend, heads",
+  title: "Archived: The master's board: lanes by layer, pairs, blocked, matters, spend, he",
   question: "What does the master's artifact show, and in what order?",
   options: [
-    {
-      label: "board",
-      text:
-        "Header; heads (integration/build and main: commit, last machine run, CI); lanes by layer (tasks by state, score, " +
-        "stands, spend against the lane budget); pairs in flight (round, state, spend, last signal); blocked tasks and why; " +
-        "the frontier; matters waiting for a person; spend against the envelope; timeline. Section 3 of docs/design/swarm.md " +
-        "gives each section's query. The portal links to it and does not repeat it.",
-    },
-    { label: "build-default", text: "The build template's default sections only." },
-  ],
-  chosen: "board",
+  {
+    "label": "current-scope",
+    "text": "Archive artifact: The portal renders the authored plan and loop state; the old swarmD master board and its ledger queries are not an additional state store."
+  },
+  {
+    "label": "historical",
+    "text": "The former answer to swarm.artifact is preserved in docs/cut-archive/decision-review-history.json as historical evidence, not implementation authority."
+  }
+],
+  chosen: "current-scope",
   why:
-    "The default lacks why a task is blocked, the budget and the heads, the three things the retro had to assemble by hand " +
-    "from 16 ticket reads. The portal is the design's view; the board is the run's.",
-  source: by(`${SWARMD} reference/templates.md (sections); ${RETRO} (health signals); docs/design/portal.md (portal.artifact-boundary)`),
+    "Review, 11 November 2026: Archive artifact: The portal renders the authored plan and loop state; the old swarmD master board and its ledger queries are not an additional state store. Authority: portal.plan-page.",
+  source: "The coordinator, round 2, m1-old-decisions; portal.plan-page",
   affects: [f.system_capxul],
 });
 
@@ -847,49 +812,43 @@ export const decision_swarm_budget = defineDecision({
 
 export const decision_swarm_sandbox = defineDecision({
   id: "swarm.sandbox",
-  title: "One golden sandbox with the repository, the old system and a devnet snapshot",
+  title: "Archived: One golden sandbox with the repository, the old system and a devnet sn",
   question: "What does a Capxul worker's sandbox hold, and how is a dead one kept from costing money?",
   options: [
-    {
-      label: "golden-devnet",
-      text:
-        "sandbox.repo of capxul-next on standard-3. prepare runs npm ci, clones the old system read-only for reference, and " +
-        "from B3 builds the devnet's base snapshot; runner.setup restores it on each boot. Egress: the npm registry, " +
-        "github.com with the App's token (for a maker, a push only to its task's branch; for the read-only roles, no write " +
-        "credential: SD-28), and the chain RPC the devnet forks. A sandbox that fails to boot twice is a signal that pauses " +
-        "the pair's spend (a needed brief), never a model's blocked report. A world saved with other backend code refuses to " +
-        "restore, so a snapshot older than the integration head is rebuilt at boot; B3.sandbox measures the boot at a head " +
-        "newer than the snapshot, and the golden snapshot is rebuilt (swarmd up) at each promotion to main.",
-    },
-    { label: "outside-devnet", text: "One long-lived devnet host per project, outside the sandboxes." },
-  ],
-  chosen: "golden-devnet",
+  {
+    "label": "current-scope",
+    "text": "Archive sandbox: The repository loop uses isolated worktrees and explicit gates, not golden swarmD sandbox boots or App-token egress. Keep old-system reference read-only and do not reuse an incompatible world snapshot."
+  },
+  {
+    "label": "historical",
+    "text": "The former answer to swarm.sandbox is preserved in docs/cut-archive/decision-review-history.json as historical evidence, not implementation authority."
+  }
+],
+  chosen: "current-scope",
   why:
-    "The retro's first builder spent 3 hours blocked on dead sandboxes before 10 minutes of work. The devnet inside the " +
-    "sandbox keeps each pair's world its own; step B3.sandbox measures it and keeps the outside host as the fallback.",
-  source: by(`${RETRO} (#53: T-4, T-5); ${SWARMD} docs/planning/swarm-postmortem-2026-11-06.md (P7, O3); docs/spec/40-capxul-team.md (devnet)`),
+    "Review, 11 November 2026: Archive sandbox: The repository loop uses isolated worktrees and explicit gates, not golden swarmD sandbox boots or App-token egress. Keep old-system reference read-only and do not reuse an incompatible world snapshot. Authority: portal.plan-page.",
+  source: "The coordinator, round 2, m1-old-decisions; portal.plan-page",
   affects: [f.component_devnet, f.environment_devnet],
 });
 
 export const decision_swarm_skills = defineDecision({
   id: "swarm.skills",
-  title: "Repository knowledge goes in skills, passed through to Pi",
+  title: "Archived: Repository knowledge goes in skills, passed through to Pi",
   question: "Where does the knowledge every worker needs (the book, the evals, the layout, money paths) live?",
   options: [
-    {
-      label: "skills",
-      text:
-        "In skills folders in the repository's .swarmd/skills/ (book, evals, lane, money, old-system), each a SKILL.md a " +
-        "worker loads when it needs it, through swarmD's planned skills field passed to pi-coding-agent's skill loader and " +
-        "pi-agent-core's skills section. Prompts stay short and say only the role.",
-    },
-    { label: "prompts", text: "Put all of it in each worker's prompt." },
-  ],
-  chosen: "skills",
+  {
+    "label": "current-scope",
+    "text": "Archive skills: Repository instructions and the brief supply required context. The old .swarmd skills pass-through and pi-agent loader are not required runtime components."
+  },
+  {
+    "label": "historical",
+    "text": "The former answer to swarm.skills is preserved in docs/cut-archive/decision-review-history.json as historical evidence, not implementation authority."
+  }
+],
+  chosen: "current-scope",
   why:
-    "A prompt re-sends everything on every step; a skill is read when needed. swarmD's docs plan the field but nothing passes " +
-    "skills through yet, though Pi supports them, so it is a needed brief.",
-  source: by(`${SWARMD} concepts/managers-and-workers.mdx (skills); node_modules/@earendil-works/pi-coding-agent dist/core/skills.d.ts`),
+    "Review, 11 November 2026: Archive skills: Repository instructions and the brief supply required context. The old .swarmd skills pass-through and pi-agent loader are not required runtime components. Authority: portal.plan-page.",
+  source: "The coordinator, round 2, m1-old-decisions; portal.plan-page",
   affects: [f.system_capxul],
 });
 
@@ -897,104 +856,88 @@ export const decision_swarm_skills = defineDecision({
 
 export const decision_swarm_superset = defineDecision({
   id: "swarm.superset",
-  title: "swarmD passes skills through now, and the rest of pi-durable later",
+  title: "Archived: swarmD passes skills through now, and the rest of pi-durable later",
   question:
-    "Aaron asks whether swarmD should pass through everything pi-durable gives an agent (a superset: skills, extension " +
-    "sections, hooks), rather than choosing pieces. What should the build ask swarmD for?",
+    "Aaron asks whether swarmD should pass through everything pi-durable gives an agent (a superset: skills, extension sections, hooks), rather than choosing pieces. What should the build ask swarmD for?",
   options: [
-    {
-      label: "skills-now",
-      text:
-        "Skills now (the build needs them), and a general pass-through of pi-durable's extension sections later, each section " +
-        "kind admitted with a review of what it can change, since an extension can alter a worker's prompt and tools.",
-    },
-    { label: "superset", text: "Pass through every pi-durable extension section and hook as it is, now." },
-    { label: "none", text: "Neither; repository knowledge goes in the prompts." },
-  ],
-  chosen: "skills-now",
+  {
+    "label": "current-scope",
+    "text": "Archive superset: No pi-durable extension-section passthrough is required. Any future extension that changes worker instructions needs its own reviewed boundary."
+  },
+  {
+    "label": "historical",
+    "text": "The former answer to swarm.superset is preserved in docs/cut-archive/decision-review-history.json as historical evidence, not implementation authority."
+  }
+],
+  chosen: "current-scope",
   why:
-    "Skills are read-only knowledge and the build needs them at stage 1. A full superset is attractive but lets a definition " +
-    "change what swarmD's built-in prompt and tool checks guarantee, so it deserves its own design in swarmD. This is " +
-    "Aaron's call; the recommendation stands until he answers.",
-  source: by(`the swarm design's brief, 8 November 2026; ${SWARMD} node_modules/@earendil-works/pi-durable dist/harness/prompt.d.ts (sections)`),
+    "Review, 11 November 2026: Archive superset: No pi-durable extension-section passthrough is required. Any future extension that changes worker instructions needs its own reviewed boundary. Authority: portal.plan-page.",
+  source: "The coordinator, round 2, m1-old-decisions; portal.plan-page",
   affects: [f.system_capxul],
 });
 
 export const decision_swarm_checker_family = defineDecision({
   id: "swarm.checker-family",
-  title: "Everything runs on OpenAI for now; models are set when the build runs",
+  title: "Archived: Everything runs on OpenAI for now; models are set when the build runs",
   question: "Which provider and model does each role use (maker, checker, adversary, manager, researcher)?",
   options: [
-    {
-      label: "openai-only",
-      text:
-        "Every role runs on OpenAI, paid from Aaron's credit. Which model fills each role is configuration set when the " +
-        "build runs and changed freely; a checker uses a different model from its maker where one is available. No " +
-        "DeepSeek; Anthropic only in a guarded, context-aware case Aaron opens.",
-    },
-    {
-      label: "two-families",
-      text: "Checkers on another provider's family than makers (DeepSeek or Anthropic), as swarmD's Zen rule 5 prefers.",
-    },
-  ],
-  chosen: "openai-only",
+  {
+    "label": "current-scope",
+    "text": "Archive checker-family: The current loop configures models per run. The historical OpenAI-only/provider-credit instruction is not a current model-routing restriction."
+  },
+  {
+    "label": "historical",
+    "text": "The former answer to swarm.checker-family is preserved in docs/cut-archive/decision-review-history.json as historical evidence, not implementation authority."
+  }
+],
+  chosen: "current-scope",
   why:
-    "Aaron, 8 November 2026: 'for now, everything's gonna be OpenAI. Don't get too worried about model configurations, " +
-    "because we could just change these when we run them... We're not going to worry about DeepSeek. Everything's just going " +
-    "to be on that OpenAI spend, just to keep it simple.' The two-family rule is waived for simplicity; a different model " +
-    "per checker keeps some of its benefit.",
-  source: "Aaron, 8 November 2026, in the build-preparation conversation",
+    "Review, 11 November 2026: Archive checker-family: The current loop configures models per run. The historical OpenAI-only/provider-credit instruction is not a current model-routing restriction. Authority: portal.plan-page.",
+  source: "The coordinator, round 2, m1-old-decisions; portal.plan-page",
   affects: [f.system_capxul],
 });
 
 export const decision_swarm_spend_envelope = defineDecision({
   id: "swarm.spend-envelope",
-  title: "Up to $4,000 for this project's rollout, then reassess",
+  title: "Archived: Up to $4,000 for this project's rollout, then reassess",
   question:
-    "The task tree's ceiling is $5 for each of its 390 paired tasks (its 15 watch tasks get no pair). How much may the " +
-    "build spend on models before it asks Aaron again?",
+    "The task tree's ceiling is $5 for each of its 390 paired tasks (its 15 watch tasks get no pair). How much may the build spend on models before it asks Aaron again?",
   options: [
-    {
-      label: "4000",
-      text:
-        "$4,000 for this project's rollout, on OpenAI, with no monthly cap; then Aaron reassesses. The per-task cap ($5 " +
-        "default) and the envelope are configuration the master reads and the board shows; 75% of the envelope raises a " +
-        "matter, and reaching it stops new work until Aaron raises it.",
-    },
-    { label: "2500", text: "$2,500: the plan's $1,950 ceiling plus a quarter for the manager, diagnoses and defects." },
-  ],
-  chosen: "4000",
+  {
+    "label": "current-scope",
+    "text": "Archive spend-envelope: The authored plan/run sets budgets; the historical $4,000 rollout and 75-percent swarmD matter threshold do not authorize current spend."
+  },
+  {
+    "label": "historical",
+    "text": "The former answer to swarm.spend-envelope is preserved in docs/cut-archive/decision-review-history.json as historical evidence, not implementation authority."
+  }
+],
+  chosen: "current-scope",
   why:
-    "Aaron, 8 November 2026: 'up to $4,000 is fine for the rollout. The monthly is not really an issue here either. It's just " +
-    "for this specific project, 4,000, and then we'll reassess where we are after that.' The retro's numbers expect about " +
-    "$1,000 (most tasks near $2.50), so the envelope leaves room for the manager, diagnoses and defects.",
-  source: "Aaron, 8 November 2026, in the build-preparation conversation",
+    "Review, 11 November 2026: Archive spend-envelope: The authored plan/run sets budgets; the historical $4,000 rollout and 75-percent swarmD matter threshold do not authorize current spend. Authority: portal.plan-page.",
+  source: "The coordinator, round 2, m1-old-decisions; portal.plan-page",
   affects: [f.system_capxul],
 });
 
 export const decision_swarm_accounts = defineDecision({
   id: "swarm.accounts",
-  title: "A capxul namespace, the GitHub App on both repositories, a room",
+  title: "Archived: A capxul namespace, the GitHub App on both repositories, a room",
   question:
     "What must Aaron set up for stage 1, since only he can provide accounts and access?",
   options: [
-    {
-      label: "namespace-app-room",
-      text:
-        "A swarmD namespace capxul with Aaron as admin; the swarmd-agent GitHub App installed on AaronAbuUsama/capxul-next " +
-        "(contents, issues, pull requests, checks) and on Xelmar-tech/infrastructure (contents read); branch protection on " +
-        "main and integration/build (tooling.branch-protection), which on a private repository needs GitHub Pro (GitHub " +
-        "refused it on swarmD's, #85): recommended, because without it nothing stops a sandbox's git push to either branch " +
-        "until swarmD builds SD-28, and the release gate's CI check (SD-5) and #85 guard only the merge call; the provider " +
-        "keys of swarm.checker-family; and the master's room: Pi at once, and a Slack channel once the app is connected.",
-    },
-    { label: "reuse-swarmd", text: "Run the build in the existing namespace swarmd beside swarmD's own team." },
-  ],
-  chosen: "namespace-app-room",
+  {
+    "label": "current-scope",
+    "text": "Archive accounts: No swarmD namespace, App installation or provider-account setup is required by the current plan/portal/repository loop; protected-branch policy remains a repository obligation."
+  },
+  {
+    "label": "historical",
+    "text": "The former answer to swarm.accounts is preserved in docs/cut-archive/decision-review-history.json as historical evidence, not implementation authority."
+  }
+],
+  chosen: "current-scope",
   why:
-    "A namespace of its own keeps the build's spend, members and catalog apart from swarmD's team, and its metrics clean " +
-    "for the stage 2 evidence. The App on the old repository lets a sandbox clone it for reference without a token in it.",
-  source: by(`${SWARMD} apps/docs/content/docs/how-to/connect-github.mdx; docs/planning/sitrep-2026-11-08.md (team, namespaces)`),
+    "Review, 11 November 2026: Archive accounts: No swarmD namespace, App installation or provider-account setup is required by the current plan/portal/repository loop; protected-branch policy remains a repository obligation. Authority: portal.plan-page.",
+  source: "The coordinator, round 2, m1-old-decisions; portal.plan-page",
   affects: [f.system_capxul],
 });
 
@@ -1036,33 +979,23 @@ export const decision_swarm_templates = defineDecision({
 
 export const decision_swarm_task_cards = defineDecision({
   id: "swarm.task-cards",
-  title: "Task cards: an issue per task in flight at stage 0, none at stage 1",
+  title: "Archived: Task cards: an issue per task in flight at stage 0, none at stage 1",
   question:
-    "Every task comes from the plan, yet a task needs a thread where a person can steer it and see why it waits. What is " +
-    "a GitHub issue form for a derived task for, and who opens one?",
+    "Every task comes from the plan, yet a task needs a thread where a person can steer it and see why it waits. What is a GitHub issue form for a derived task for, and who opens one?",
   options: [
-    {
-      label: "cards-in-flight",
-      text:
-        "One issue form per kind that gets a pair (step, integration, door, process, rpc, flow, operation, review, defect) " +
-        "renders TaskDef and its brief field for field. At stage 0 Mission Control opens a card from tasks.json when the " +
-        "task's pair starts: it is the task's thread and holds the status card, edited in place, and it closes at the merge " +
-        "or the drop. At stage 1 the ledger's task and the room thread replace it and no card is opened. The root, the " +
-        "milestones and the lanes have no form: they are done by roll-up and never get a pair; nor do the watch tasks " +
-        "(swarm.watch-tasks), the journeys among them. People open three forms only: a review answer, a decision pack and " +
-        "a defect.",
-    },
-    { label: "pull-request-only", text: "No issue per task; the pull request is the task's only thread." },
-    { label: "every-task", text: "An issue for each of the 438 tasks, opened at once from the plan." },
-  ],
-  chosen: "cards-in-flight",
+  {
+    "label": "current-scope",
+    "text": "Archive task-cards: Tasks live in the authored plan and their checked-in explanation files. There is no stage-1 ledger/room replacement of a stage-0 GitHub issue-per-task requirement."
+  },
+  {
+    "label": "historical",
+    "text": "The former answer to swarm.task-cards is preserved in docs/cut-archive/decision-review-history.json as historical evidence, not implementation authority."
+  }
+],
+  chosen: "current-scope",
   why:
-    "At stage 0 there is no ledger task and no room thread, and a pull request exists only from the first submit, so a " +
-    "pair waiting on a gate or a question has nowhere to show it. Cards for tasks in flight keep about six open at once; " +
-    "438 issues would bury the three forms people use. At stage 1 a card would duplicate the ledger. Every working task in " +
-    "tasks.json renders into its kind's form and parses back with no field lost (checked on all 405 before the journeys " +
-    "became watch tasks; 390 get a pair, and so a card).",
-  source: tby("docs/mission/tasks.json (390 paired tasks); .github/ISSUE_TEMPLATE/task-*.yml; swarmD concepts/rooms-and-roles.mdx (a thread per task, its status card)"),
+    "Review, 11 November 2026: Archive task-cards: Tasks live in the authored plan and their checked-in explanation files. There is no stage-1 ledger/room replacement of a stage-0 GitHub issue-per-task requirement. Authority: portal.plan-page.",
+  source: "The coordinator, round 2, m1-old-decisions; portal.plan-page",
   affects: [f.system_capxul, decision_swarm_task_tree],
 });
 
@@ -1105,27 +1038,22 @@ export const decision_swarm_hand_tasks = defineDecision({
 
 export const decision_swarm_pr_mirror = defineDecision({
   id: "swarm.pr-mirror",
-  title: "The pair's rounds show on its pull request as marked comments posted by code",
+  title: "Archived: The pair's rounds show on its pull request as marked comments posted b",
   question: "Besides the body the builder writes, who writes what on a task's pull request, so that it alone shows every round?",
   options: [
-    {
-      label: "marker-comments",
-      text:
-        "The builder writes the body, the Handback template, and nothing else. Every other event is one comment whose first " +
-        "line is a marker (SUBMIT, GATE, CI, EVALS, CHECK, SIGNAL, DECIDE, DIAGNOSIS, MERGED, STOPPED) with the round, the " +
-        "version and the actor, and a fixed body below. Code posts them under each actor's name at stage 1 (SD-13); Mission " +
-        "Control posts them from each worker's returned message at stage 0. Checkers post no review of their own, and the " +
-        "status card is edited in place, never reposted.",
-    },
-    { label: "workers-post", text: "Each worker posts its own review or comment, as swarmD's own team does today." },
-    { label: "body-only", text: "Everything goes into the pull request body, rewritten each round." },
-  ],
-  chosen: "marker-comments",
+  {
+    "label": "current-scope",
+    "text": "Archive pr-mirror: The current run and plan retain maker/reviewer evidence. The old swarmD marked-comment event mirror is not a second required ledger or permission to post comments outside the runner protocol."
+  },
+  {
+    "label": "historical",
+    "text": "The former answer to swarm.pr-mirror is preserved in docs/cut-archive/decision-review-history.json as historical evidence, not implementation authority."
+  }
+],
+  chosen: "current-scope",
   why:
-    "swarmD's reviewer today posts a COMMENT review because the app cannot approve its own pull request, and the verifier " +
-    "a comment of its own wording; the router then judged them. A comment posted by code from the typed message cannot " +
-    "drift from it. A first-line marker is what the old work contract used, so people and scripts read the same line.",
-  source: tby(`${SWARMD} dogfood/prompts/reviewer.md (step 6); /home/user/factory/docs/agents/work-contract.md (comment markers); docs/design/swarm.md (SD-13)`),
+    "Review, 11 November 2026: Archive pr-mirror: The current run and plan retain maker/reviewer evidence. The old swarmD marked-comment event mirror is not a second required ledger or permission to post comments outside the runner protocol. Authority: portal.plan-page.",
+  source: "The coordinator, round 2, m1-old-decisions; portal.plan-page",
   affects: [f.system_capxul, decision_swarm_merge],
 });
 
@@ -1160,58 +1088,43 @@ export const decision_swarm_agent_verdicts = defineDecision({
 
 export const decision_swarm_stage0_profiles = defineDecision({
   id: "swarm.stage0-profiles",
-  title: "At stage 0 the roles run as Claude Code profiles with the swarmD prompts",
+  title: "Archived: At stage 0 the roles run as Claude Code profiles with the swarmD promp",
   question:
-    "Before swarmD runs, Mission Control's makers and checkers are Claude subagents. How are they defined, and on which " +
-    "models, when only one model family is available there?",
+    "Before swarmD runs, Mission Control's makers and checkers are Claude subagents. How are they defined, and on which models, when only one model family is available there?",
   options: [
-    {
-      label: "profiles",
-      text:
-        ".claude/agents/ holds one profile per role (master, builder, reviewer, adversary, diagnoser, researcher). Each body " +
-        "is the role's swarmD prompt with what it reads, does, may not do and returns, and the same typed message as its " +
-        "final json block. The builder runs on opus; the reviewer, the adversary and the diagnoser on sonnet, another model " +
-        "of the same family; the researcher on haiku; the master is the session itself. Another family for checkers arrives " +
-        "at stage 1 (swarm.checker-family).",
-    },
-    { label: "workflow-prompts", text: "Write each worker's prompt inside each Workflow script, as the book's workflows did." },
-    { label: "codex-checkers", text: "Run the checkers through Codex at stage 0, for another family." },
-  ],
-  chosen: "profiles",
+  {
+    "label": "current-scope",
+    "text": "Archive stage0-profiles: The repository loop is the coordinator, not a temporary Claude-profile stage before swarmD. Historical opus/sonnet/haiku profiles are not a current role contract."
+  },
+  {
+    "label": "historical",
+    "text": "The former answer to swarm.stage0-profiles is preserved in docs/cut-archive/decision-review-history.json as historical evidence, not implementation authority."
+  }
+],
+  chosen: "current-scope",
   why:
-    "One text per role at both stages makes the move to swarmD a change of runner, not of behaviour (swarm.stages). A " +
-    "different model is the nearest one family allows, and the book's own lesson is that a same-subscription adversarial " +
-    "reviewer still found real errors in every money file it read. Codex would add a second subscription and its tooling " +
-    "for stage 0 alone.",
-  source: tby("archive/HANDOFF.md (lessons that save usage); archive/tools/workflows/; .claude/agents/; the old system's .claude/agents/ (profiles with name, description, tools, model)"),
+    "Review, 11 November 2026: Archive stage0-profiles: The repository loop is the coordinator, not a temporary Claude-profile stage before swarmD. Historical opus/sonnet/haiku profiles are not a current role contract. Authority: portal.plan-page.",
+  source: "The coordinator, round 2, m1-old-decisions; portal.plan-page",
   affects: [f.system_capxul, decision_swarm_stages],
 });
 
 export const decision_swarm_team_definition = defineDecision({
   id: "swarm.team-definition",
-  title: "The team on swarmD: one manager and five workers, in both APIs",
+  title: "Archived: The team on swarmD: one manager and five workers, in both APIs",
   question: "How is the team declared in .swarmd/, so that stage 1 needs no new design and a dry run can happen on today's code?",
   options: [
-    {
-      label: "both-apis",
-      text:
-        "docs/design/swarm-templates.md section 10 declares it. In swarmD's documented API: defineManager master on the " +
-        "build template with its workers imported and their roles; builder (sol, concurrency 4, a writable sandbox, " +
-        "pulls.create, pulls.get, pulls.update, issues.createComment); reviewer (sonnet, 4) and adversary (sonnet, 2) on " +
-        "read-only sandboxes with pulls.get and pulls.listFiles; diagnoser (sonnet, 1, read-only, no tools); researcher " +
-        "(haiku, 1, its own input and result); the skills book, evals, lane, money and old-system. In today's API: " +
-        "defineRouter and defineWorker with the typed messages as each worker's input and result JSON Schema " +
-        "(.swarmd/schemas.ts), and CI driving the rounds as swarmD's own team does, for the dry run only.",
-    },
-    { label: "documented-only", text: "Declare only the documented API, and wait for it." },
-    { label: "today-only", text: "Declare only today's API, and redo it when the documented API lands." },
-  ],
-  chosen: "both-apis",
+  {
+    "label": "current-scope",
+    "text": "Archive team-definition: The current loop owns worker orchestration; archive defineManager/defineRouter swarmD declarations and their API migration. They are not a dependency of lane work."
+  },
+  {
+    "label": "historical",
+    "text": "The former answer to swarm.team-definition is preserved in docs/cut-archive/decision-review-history.json as historical evidence, not implementation authority."
+  }
+],
+  chosen: "current-scope",
   why:
-    "The dry run (post-mortem O1) can run on today's code; the build runs on the documented API. The diagnoser on the " +
-    "checkers' family keeps it off the maker's framing (retro brief 04). Read-only sandboxes are planned in the docs and " +
-    "keep a checker from changing what it judges. The today form typechecks against packages/agent's types, and the " +
-    "templates' examples validate against its schemas with swarmD's own validator.",
-  source: tby(`${SWARMD} packages/agent/src/modules/define/types.ts; examples/api-team; dogfood/; how-to/define-a-manager.mdx; reference/manager.md, worker.md`),
+    "Review, 11 November 2026: Archive team-definition: The current loop owns worker orchestration; archive defineManager/defineRouter swarmD declarations and their API migration. They are not a dependency of lane work. Authority: portal.plan-page.",
+  source: "The coordinator, round 2, m1-old-decisions; portal.plan-page",
   affects: [f.system_capxul, decision_swarm_workers, decision_swarm_pacing],
 });
