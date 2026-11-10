@@ -368,10 +368,12 @@
       "title": "Resolve the old dev time and dev snapshot commands against the world commands",
       "why": "Two ways to move time and take snapshots would contradict each other.",
       "milestone": "m1",
-      "state": "doing",
+      "state": "done",
       "needs": [],
       "records": [],
-      "evidence": [],
+      "evidence": [
+        "792b62b"
+      ],
       "created": "2026-11-10",
       "updated": "2026-11-10",
       "thread": "m1-dev-commands-11101323"
@@ -913,13 +915,27 @@
       "title": "A Live page: what is running, on what, and whether it is moving",
       "why": "Aaron asked to see the agents that are running: what each is working on, when it last did anything, how many tool calls. He had also said he felt lost about what is in flight.",
       "milestone": "m1",
+      "state": "dropped",
+      "needs": [],
+      "records": [],
+      "evidence": [],
+      "created": "2026-11-10",
+      "updated": "2026-11-10",
+      "thread": "coordinator",
+      "droppedWhy": "Its loop half is merged (d87bcb0); its portal half is replaced by m1-run-observability"
+    },
+    {
+      "id": "m1-run-observability",
+      "title": "See, inspect and steer loop runs from the portal; better loop DX",
+      "why": "Aaron asked to organise the durable agents around the portal: what is running, the rounds and handoffs, what happens inside a run, and steering. The coordinator cannot run agents at scale without seeing them.",
+      "milestone": "m1",
       "state": "doing",
       "needs": [],
       "records": [],
       "evidence": [],
       "created": "2026-11-10",
       "updated": "2026-11-10",
-      "thread": "coordinator"
+      "thread": "run-observability"
     }
   ],
   "path": {
