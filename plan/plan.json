@@ -1097,6 +1097,11 @@
       "date": "2026-11-10",
       "by": "coordinator",
       "text": "Model gateway, found 10 Nov: CLIProxyAPI 8.0.48 already runs on this Mac (VibeProxy.app, 127.0.0.1:8317, config in ~/.cli-proxy-api). It serves gpt-6.1-sol and gpt-6.1-terra, answered a test call in 3 s with no edge and no LiteLLM, and holds one OpenAI (Codex) account, one Claude and two Google (Antigravity). Its management API (/v0/management: accounts, sign-in flows, routing, usage per key, cooldown reset) is the programmatic control Aaron asked for; it needs a management key set. With one OpenAI account the ceiling is that account's limit and the loop would share it with Aaron's own tools. Google accounts add capacity only if a Google model is allowed for a role; the rule today is Sol and Terra only."
+    },
+    {
+      "date": "2026-11-10",
+      "by": "coordinator",
+      "text": "Model gateway: Aaron ruled (10 Nov) the loop uses Capxul's hosted CLI proxy at cliproxy.capxul.com, not the one on this Mac and not LiteLLM. It is reachable (401 without a key) and rejects LLM_ROUTER_API_KEY. Needed from Aaron: its client key in ~/.zshenv as CLIPROXY_API_KEY. Then the loop runs with LOOP_MODEL_BASE_URL=https://cliproxy.capxul.com/v1 and LOOP_MODEL_KEY_ENV=CLIPROXY_API_KEY."
     }
   ]
 }
