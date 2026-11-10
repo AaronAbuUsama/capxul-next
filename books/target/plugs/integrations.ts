@@ -98,7 +98,7 @@ export const integration_frappe_site = defineIntegration({
   fake:
     "No stand-in is needed: the fake is the real thing. The devnet runs a real Frappe bench in a container (the spike's `frappe/bin/up.sh`) with the Capxul app " +
     "installed, and each world's sites follow the world's clock (devnet.site-follows-world). What it cannot imitate is a customer's network and a real " +
-    "outage of the machine; the `org-with-site-down` world stops the bench to imitate the second.",
+    "outage of the machine; the `org-with-site-down` template stops the bench to imitate the second.",
   secrets: ["SITE_HMAC_SECRET"],
   was: [`${SPIKE} (INTERFACE.md: Core to Frappe, one endpoint; Frappe half)`],
 });
@@ -126,6 +126,20 @@ export const integration_site_service = defineIntegration({
         { when: "The slug is taken by another Organization", error: error_INVALID_INPUT },
         { when: "The service answers something that is not its documented shape", error: error_PROVIDER_RESPONSE_INVALID },
       ],
+    },
+    registerWorld: {
+      about: "A local devnet registers itself as a world with the hosted service: a world id, a secret and a name are issued, and its companies' sites are created on the hosted bench. Assumption, not yet tested.",
+      timeoutMs: 30_000,
+      retries: { max: 2, backoff: "exponential" },
+      p95Ms: 5_000,
+      failures: [{ when: "The service is down", error: error_PROVIDER_ERROR }, { when: "The name or id is taken, or has a hyphen", error: error_INVALID_INPUT }],
+    },
+    parkSites: {
+      about: "Park a world's idle sites (no call for the stated time, 30 minutes assumed): the bench stops serving them and keeps their data; a later call wakes them. Assumption, not yet tested.",
+      timeoutMs: 60_000,
+      retries: { max: 1, backoff: "fixed" },
+      p95Ms: 20_000,
+      failures: [{ when: "The service is down", error: error_PROVIDER_ERROR }],
     },
     configureSignIn: {
       about: "Write the site's Social Login Key for Capxul's provider (client id and secret, both addresses, sign-up denied) and show the login button.",

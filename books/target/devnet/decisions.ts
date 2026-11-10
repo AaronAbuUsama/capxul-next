@@ -1443,16 +1443,16 @@ export const decision_devnet_follow_at_a_rate = defineDecision({
   affects: [flow_devnet_time_follow, flow_devnet_time_watch, integration_devnet_control, component_devnet, component_frappe_app, integration_fde_host],
 });
 
-export const decision_devnet_head_follows_world = defineDecision({
-  id: "devnet.head-follows-world",
-  title: "A head follows its world's clock through the Capxul app's hooks, no fork",
+export const decision_devnet_site_follows_world = defineDecision({
+  id: "devnet.site-follows-world",
+  title: "A site follows its world's clock through the Capxul app's hooks, no fork",
   question:
-    "aaron.world-clock: a connected Frappe head follows the world's clock. Frappe, ERPNext, Frappe HR and Frappe CRM " +
+    "aaron.world-clock: every company's hosted Frappe site follows its world's clock (a world is one chain with every company on it and one clock). Frappe, ERPNext, Frappe HR and Frappe CRM " +
     "read time through Frappe's now_datetime (about 700 calls outside tests, with Frappe's now, nowdate, today, " +
     "getdate() and get_datetime(), which call it); 88 modules of those apps and the WhatsApp app import that function " +
     "by name (develop, 8 November 2026); Frappe's scheduler enqueues a Scheduled Job Type once its next execution is " +
-    "not after now_datetime(); its Email Queue sends every head email over the site's own SMTP account; and a few " +
-    "modules read the host's clock directly. How does the Capxul app make a head's now, its jobs and its mail the " +
+    "not after now_datetime(); its Email Queue sends every site email over the site's own SMTP account; and a few " +
+    "modules read the host's clock directly. How does the Capxul app make a site's now, its jobs and its mail the " +
     "world's, on a devnet and across a network, without forking Frappe?",
   options: [
     {
@@ -1469,9 +1469,9 @@ export const decision_devnet_head_follows_world = defineDecision({
         "days, its service-level agreement's user time and bulk-transaction log, Frappe HR's interview reminder, " +
         "Frappe's unreplied-email notice and session end) get their datetime and date names rebound to world-clock " +
         "stand-ins; reads that protect or measure stay real; B3 scans the pinned apps so each direct read is rebound " +
-        "or named real. (3) `bench --site <site> capxul follow` joins as `head:<site>`, writes each event to the cache, " +
+        "or named real. (3) `bench --site <site> capxul follow` joins as `site:<site>`, writes each event to the cache, " +
         "enqueues the Scheduled Job Types due at each stop and waits for them, acknowledging with its next " +
-        "daily-or-slower job as its next due (devnet.head-warp-stops), and between stops enqueues the due ones every " +
+        "daily-or-slower job as its next due (devnet.site-warp-stops), and between stops enqueues the due ones every " +
         "world minute, since Frappe's scheduler wakes every 240 real seconds; is_event_due and the job's id keep each " +
         "run to one. (4) Its override_email_send hook hands every email the Email Queue sends to the supervisor " +
         "(`POST /v1/mail`, on the follower grant), which keeps it in the mail sink at the world's now; nothing reaches " +
@@ -1484,20 +1484,20 @@ export const decision_devnet_head_follows_world = defineDecision({
   chosen: "code-hook",
   why:
     "Replacing one function's code reaches every binding of it, the imports by name included, so one seam moves most " +
-    "of the head's dates, and aaron.erp-on-capxul asks for no fork. Rebinding the module attribute alone would miss " +
+    "of the site's dates, and aaron.erp-on-capxul asks for no fork. Rebinding the module attribute alone would miss " +
     "every module that imported the name first. Frappe's own tests move time with freezegun " +
     "(frappe/tests/classes/context_managers.py), but freezegun scans every loaded module on each start and freezes " +
     "time.time and the monotonic clock, which Frappe's Redis locks, RQ and its scheduler heartbeat need real, and it " +
     "has no rate; the rebinding in (2) is freezegun's technique kept to the few modules that decide on the host's " +
     "clock. A patch applied only in hooks.py would leave a worker or the scheduler on the host's clock, because Frappe " +
     "reads app hooks from its cache (frappe/__init__.py get_hooks) and imports a hook's own module only when it calls " +
-    "it. One cache read per request or job is the head's RequestTime: no network call per date. Waiting for the due " +
-    "jobs at a stop lets a warp see a head's daily work on its day, and the follower's world-minute enqueue keeps a " +
-    "head's faster jobs on their cadence at any rate. A head's own email (ERPNext's and Frappe HR's notifications, " +
+    "it. One cache read per request or job is the site's RequestTime: no network call per date. Waiting for the due " +
+    "jobs at a stop lets a warp see a site's daily work on its day, and the follower's world-minute enqueue keeps a " +
+    "site's faster jobs on their cadence at any rate. A site's own email (ERPNext's and Frappe HR's notifications, " +
     "its auto email reports) would otherwise leave the world over SMTP, dated at the world's now; the CRM's own " +
-    "conversations never go through the head (contacts.conversations-head-sync). A real bench in a shared world " +
-    "follows over HTTPS with a follower grant, its offset measured as any remote follower's. The stand-in head " +
-    "already follows (devnet.head-stand-in). For component frappe-app's owner: its text should say this.",
+    "conversations never go through the site (contacts.conversations-site-sync). A real bench in a shared world " +
+    "follows over HTTPS with a follower grant, its offset measured as any remote follower's. The stand-in site " +
+    "already follows (devnet.site-stand-in). Assumption, not yet tested: the spike has no clock evidence at all (FINDINGS has nothing on time); the clock-follow spike is the first thing to build (docs/mission/worlds.md, section 6, 1), with a bench per world under libfaketime as the fallback (sites.one-bench). Reshaped in stage 3 from the optional head to every hosted site; the original text is in docs/cut-archive/organizations/rewritten.",
   source: WORLD_CLOCK(
     "frappe@1a7ea577 utils/data.py:373, scheduler.py:44, __init__.py:1050, model/document.py:170, email_queue.py:248; direct reads listed in docs/design/time.md 7.5",
   ),
@@ -1851,7 +1851,7 @@ export const decision_devnet_stateful_followers = defineDecision({
     "follower behind keeps the world one world. Frappe's own backup and restore hold a site's whole state, so the " +
     "Capxul app needs no fork. For the FDE host's owners and the swarm design: swarmD must save and restore a " +
     "namespace's agents under a name, beside its timers on an outside clock (devnet.fde-host-follows-world).",
-  source: SEASONS("devnet.head-follows-world; devnet.fde-host-follows-world; devnet.own-schema; Frappe's bench backup and restore"),
+  source: SEASONS("devnet.site-follows-world; devnet.fde-host-follows-world; devnet.own-schema; Frappe's bench backup and restore"),
   affects: [
     flow_devnet_time_follow, flow_devnet_snapshots_save, flow_devnet_snapshots_restore, ops.operation_dev_snapshot_save,
     ops.operation_dev_snapshot_restore, integration_devnet_control, integration_fde_host,

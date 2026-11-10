@@ -352,7 +352,7 @@ export const integration_mail = defineIntegration({
     "sink, dated at the world's now, and posts its signed event to the CRM's mail route as Resend does; `getReceived` " +
     "reads it from the sink, its `received_for` naming every CRM mailbox it was received for, a BCC'd one included. " +
     "A connected real head's own email (its notifications and reports) reaches the sink through the supervisor's " +
-    "`POST /v1/mail` on its follower grant, as a sent message (devnet.head-follows-world). Delivery events: a sink send " +
+    "`POST /v1/mail` on its follower grant, as a sent message (devnet.site-follows-world). Delivery events: a sink send " +
     "is followed at once by its delivered event, unless a fault makes it bounce. It runs no spam filter and renders " +
     "nothing.",
   secrets: ["RESEND_API_KEY", "RESEND_WEBHOOK_SECRET"],
@@ -722,6 +722,38 @@ export const integration_devnet_control = defineIntegration({
           when: "A stateful follower joined now is missing from the world's manifest (the refusal names it), or a season is running: only its end replaces its world (decision devnet.season-reset)",
           error: error_WRONG_STATE,
         },
+        ownerOnly,
+      ],
+    },
+    worldCreate: {
+      about: "Makes a whole world: id (no hyphen), folder, ports, token; a chain instance with the contracts (from a template's saved state or deployed), the service, the clock, the record's born entry, the stand-ins and keys. One supervisor per world.",
+      timeoutMs: 120_000,
+      ...CONTROL,
+      p95Ms: 60_000,
+      failures: [
+        ...controlFailures,
+        { when: "A world has that id, or the id has a hyphen, a capital letter or is longer than 12 characters", error: error_INVALID_INPUT },
+        { when: "The template is not saved here", error: error_INVALID_INPUT },
+        ownerOnly,
+      ],
+    },
+    worldRead: {
+      about: "One world: kind, chain, clock mode and rate, world now, companies and addresses, parent world and snapshot, and the head of its record.",
+      timeoutMs: 2_000,
+      ...CONTROL,
+      p95Ms: 500,
+      failures: [...controlFailures, { when: "No world has that id", error: error_INVALID_INPUT }],
+    },
+    worldList: { about: "The worlds on this machine and the hosted service this one is registered with.", timeoutMs: 2_000, ...CONTROL, p95Ms: 500, failures: [...controlFailures] },
+    restoreAs: {
+      about: "Restores a snapshot into a separate world under a new id: same chain id, new chain instance, every site address, secret, port and name renamed; the new born entry names the parent. The old world is untouched. Assumption, not yet tested.",
+      timeoutMs: 180_000,
+      ...CONTROL,
+      p95Ms: 90_000,
+      failures: [
+        ...controlFailures,
+        { when: "No snapshot of that name in that world, or the new id is taken or malformed", error: error_INVALID_INPUT },
+        { when: "The snapshot was saved with other backend code, so its data may not match it", error: error_WRONG_STATE },
         ownerOnly,
       ],
     },

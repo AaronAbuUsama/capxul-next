@@ -417,7 +417,7 @@ export const decision_time_world_channels = defineDecision({
         "does not, so such an eval never relies on Bridge's own times, and a shared world uses only the stand-in. Every message is dated at the world's now; a vendor's envelope " +
         "stays real (time.real-elapsed). Production's channels are the real ones. A season's reset restores every " +
         "channel's state with its world (time.seasons). The devnet's decisions say how: devnet.season-players, " +
-        "devnet.whatsapp-stand-in, devnet.head-follows-world, devnet.fde-host-follows-world, devnet.stand-ins-follow and " +
+        "devnet.whatsapp-stand-in, devnet.site-follows-world, devnet.fde-host-follows-world, devnet.stand-ins-follow and " +
         "devnet.stateful-followers.",
     },
     { label: "real-channels", text: "Send a world's mail and messages through the real services, dated by the world's clock." },

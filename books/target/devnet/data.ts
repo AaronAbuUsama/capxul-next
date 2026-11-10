@@ -42,7 +42,7 @@ export const table_mail_messages = defineTable({
     "person it plays; evals read invitation links and codes here. The HTML body is not kept: the text carries every link. " +
     "A connected bench's own email comes here too: the Capxul app's mail hook hands each message its Email Queue sends " +
     "to the supervisor, which keeps it with template `head:<site>` and the queue row and recipient as its idempotency " +
-    "key (devnet.head-follows-world). The sink holds both directions (devnet.mail-sink): a CRM mailbox's send keeps " +
+    "key (devnet.site-follows-world). The sink holds both directions (devnet.mail-sink): a CRM mailbox's send keeps " +
     "its From name, Reply-To and threading headers, and `capxul-devnet mail receive` keeps an inbound email (`in`) at " +
     "the world's now with a Message-ID of its own, then posts its signed `email.received` event to the CRM's mail " +
     "route, its `received_for` naming each CRM mailbox among --to, --cc and --bcc; the fake's getReceived reads it here. `dev mail list` and `dev approve` read only `out`. " +
