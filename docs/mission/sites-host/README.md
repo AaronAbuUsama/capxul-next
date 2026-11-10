@@ -1,6 +1,6 @@
 # The company-sites machine
 
-Draft plan, 10 November 2026. Nothing has been created or run. Figures are marked as read (with the path) or as estimates.
+Plan of 10 November 2026. The machine and zone now exist (see `STATE.md`); the bench, product and backups do not.
 
 ## What it is
 
@@ -45,16 +45,22 @@ A weekly check restores a copy on an isolated network and proves it opens.
 
 ## Steps, in order
 
-1. **Coordinator.** Build and test the image and the hosted layout on a laptop (`compose.md`).
-2. **Aaron.** Approve the spend, the subdomain and the name form.
-3. **Aaron.** `aws login`.
-4. **Coordinator.** Create the stack from `template.yaml`. It makes the machine, its fixed address and the DNS zone.
-5. **Aaron.** Add the four name servers from the stack output at Namecheap as NS records for the subdomain.
-6. **Coordinator.** Check the delegation resolves.
-7. **Coordinator.** On the controller: Route 53 permission, DNS-challenge resolver (Let's Encrypt staging first), restart the front door at a quiet hour (`ingress.md`).
-8. **Coordinator.** Create the origin certificate on the machine, copy its public part to the controller, install the route file.
-9. **Coordinator.** Place secrets, start the bench, create a test world and one company, open it in a browser.
-10. **Coordinator.** Add the machine to the nightly backup and run the restore check once.
-11. **Coordinator.** Record the result in `docs/mission/progress.md`.
+Status on 10 November 2026: steps 1-5 below are done or replaced as shown; see `STATE.md` for what exists.
+
+1. **Coordinator.** Build and test the image and the hosted layout on a laptop (`compose.md`). *Not done.*
+2. **Aaron.** Approved the spend on 10 November 2026. Subdomain `worlds.capxul.com`. *Done.*
+3. **Aaron.** `aws login`. *Done (root session, short-lived).*
+4. **Coordinator.** Create the DNS zone (`dns-zone.yaml`, stack `capxul-worlds-dns`) and the machine (`template.yaml`, stack
+   `capxul-worlds-host`, `CreateHostedZone=false`, a firewall open only to the operator's address). *Done.*
+5. **Coordinator.** Records `worlds.capxul.com` and `*.worlds.capxul.com` point straight at the machine's own static
+   address (not the controller). *Done.* Four NS records at Namecheap delegate the subdomain. *Added by the coordinator; see `STATE.md` for whether the delegation had resolved.*
+6. **Coordinator.** Machine prepared: Docker Engine and compose plugin, `/srv/capxul` tree, unattended upgrades, ufw. No product. *Done.*
+7. **Coordinator.** Wildcard certificate from Let's Encrypt by DNS challenge, issued from the coordinator's Mac, kept under
+   `~/.capxul/worlds-host/tls/`, copied to `/srv/capxul/tls/`. *See `STATE.md`.*
+8. **Coordinator.** The machine terminates HTTPS itself with that certificate. The controller is not touched. Moving the
+   machine behind the controller (the original plan in `ingress.md`) stays possible later. *Not done.*
+9. **Coordinator.** Place secrets, start the bench, create a test world and one company, open it in a browser. *Not done.*
+10. **Coordinator.** Add the machine to the nightly backup and run the restore check once. *Not done.*
+11. **Coordinator.** Record the result in `docs/mission/progress.md`. *Not done.*
 
 Open questions and the recommended answers are in `open-questions.md`.

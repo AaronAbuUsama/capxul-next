@@ -1,7 +1,7 @@
 AWSTemplateFormatVersion: "2010-09-09"
 Description: Dedicated company-sites worker (Frappe bench, Capxul service, test chain, record); does not modify Capxul, Paynest or the tools worker.
 
-# DRAFT. Not deployed. Modelled on deploy/tools/template.yaml in Xelmar-tech/hosting (origin/main, 14 Oct 2026).
+# Deployed 10 Nov 2026 as stack capxul-worlds-host with CreateHostedZone=false (see STATE.md). Was: DRAFT. Modelled on deploy/tools/template.yaml in Xelmar-tech/hosting (origin/main, 14 Oct 2026).
 # "Same" below means identical to that file. Every difference is marked DIFFERS with the reason.
 # No secret is in this file. The SSH public key is public by nature; MariaDB and application secrets are placed
 # on the machine afterwards, under /etc/capxul/env/sites (see secrets handling in deploy/openship/secrets.md).
@@ -81,6 +81,9 @@ Resources:
               SnapshotTimeOfDay: !Ref SnapshotTimeOfDayUtc
         - !Ref AWS::NoValue
       Networking:
+        # DIFFERS (10 Nov 2026 coordinator decision): nothing is exposed to the internet. 22, 80 and 443 are open ONLY to
+        # the operator's /32. The controller is not involved (the machine terminates HTTPS itself). Opening it wider
+        # needs real access control first: the test bench has a stand-in sign-in.
         Ports:
           - FromPort: 22
             ToPort: 22
@@ -89,16 +92,20 @@ Resources:
             AccessType: Public
             Cidrs:
               - !Ref OperatorCidr
-              - !Ref ControllerPublicCidr
-          # DIFFERS: no port 80. The controller redirects HTTP itself and issues certificates by DNS challenge, so the
-          # precedent's ACME-over-HTTP path to the worker is not needed. Only 443 from the controller is open.
+          - FromPort: 80
+            ToPort: 80
+            Protocol: tcp
+            AccessDirection: inbound
+            AccessType: Public
+            Cidrs:
+              - !Ref OperatorCidr
           - FromPort: 443
             ToPort: 443
             Protocol: tcp
             AccessDirection: inbound
             AccessType: Public
             Cidrs:
-              - !Ref ControllerPublicCidr
+              - !Ref OperatorCidr
       UserData: !Sub |
         #!/bin/sh
         set -eu
@@ -106,13 +113,15 @@ Resources:
         printf '%s' '${SshPublicKeyBase64}' | base64 -d >> /root/.ssh/authorized_keys
         printf '\n' >> /root/.ssh/authorized_keys
         chmod 600 /root/.ssh/authorized_keys
-        # DIFFERS: container logs are capped before Docker first starts. A bench with many sites logs a lot and the
-        # precedent leaves the default (unbounded json-file) in place.
-        install -d -m 755 /etc/docker
-        printf '{"log-driver":"json-file","log-opts":{"max-size":"20m","max-file":"5"}}\n' > /etc/docker/daemon.json
+        # DIFFERS: the key is also given to the ubuntu user (the machine is reached as ubuntu@).
+        install -d -m 700 -o ubuntu -g ubuntu /home/ubuntu/.ssh
+        printf '%s' '${SshPublicKeyBase64}' | base64 -d >> /home/ubuntu/.ssh/authorized_keys
+        printf '\n' >> /home/ubuntu/.ssh/authorized_keys
+        chown ubuntu:ubuntu /home/ubuntu/.ssh/authorized_keys
+        chmod 600 /home/ubuntu/.ssh/authorized_keys
+        # DIFFERS: Docker is NOT installed here. Docker Engine and the compose plugin come from Docker's official apt
+        # repository, installed over SSH afterwards (docker.io from Ubuntu is not used). Container log caps are set then too.
         apt-get update
-        DEBIAN_FRONTEND=noninteractive apt-get install -y docker.io docker-compose-v2
-        systemctl enable --now docker
         # DIFFERS: the cloud's data convention (/srv/capxul/volumes, /etc/capxul/env) is created here, not by a later script.
         install -d -m 755 /srv/capxul/volumes /srv/capxul/sites-host
         install -d -m 700 /etc/capxul/env/sites
