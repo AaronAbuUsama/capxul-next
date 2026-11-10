@@ -1,0 +1,25 @@
+{
+  "area": "sites",
+  "script": "spikes/skeleton/run.sh",
+  "worlds": ["main"],
+  "secrets": ["spikes/skeleton/.env", "spikes/skeleton/core/people.json"],
+  "bindings": [
+    {
+      "eval": "acc:doc.submit/1",
+      "checks": ["B6.sales-invoice-submitted-in-ledger"],
+      "why": "The door's `doc submit` is the operation. A sales person submits a Sales Invoice with it, and the check reads the document back as submitted and finds the Debtors account debited 900 in the General Ledger: an ordinary document posts when submitted."
+    }
+  ],
+  "near": [
+    { "eval": "acc:doc.submit/2", "checks": ["B3.submit-waits-for-signature", "B3.still-a-draft-while-waiting"], "missing": "The Payment Entry is held and not posted, but nothing checks that the answer names the signer." },
+    { "eval": "acc:doc.create/1", "checks": ["B7.closed-month-invoice-refused"], "missing": "Frappe's validation applies (a closed month refuses the invoice), but no check reads a created document back as a draft." },
+    { "eval": "acc:report.run/1", "checks": ["B6.reports-run"], "missing": "Reports run as the caller and return rows, but nothing compares the books with the chain." },
+    { "eval": "acc:org.site.open/1", "checks": ["B1.admin-sign-in-chain"], "missing": "A person a hat created signs in, but the sign-in of a person with no hat, and what they are told, is not checked." },
+    { "eval": "acc:org.site.show/1", "checks": ["B1.site-answers-by-name", "B1.company-exists"], "missing": "The site answers and holds its Company, but the spike has no `org site show`, so its ready state, world and address are not read." },
+    { "eval": "acc:org.feature.list/1", "checks": ["B5.feature-list-state"], "missing": "The list is read, but the check sets the features first, so the defaults of a new company are not what it reads." },
+    { "eval": "ref:doc.create/ROLE_PERMISSION_DENIED", "checks": ["B6.refusals-with-reason"], "missing": "A person without the role is refused through the door, but under the spike's code FORBIDDEN, and the exit code, the shape and 'changes nothing' are not checked." },
+    { "eval": "ref:doc.create/FEATURE_NOT_AVAILABLE", "checks": ["B6.switched-off-feature-refused"], "missing": "A switched-off feature is refused under the spike's code FEATURE_OFF, with the feature named; the book's code, the exit code and the shape are not checked." },
+    { "eval": "jrn:create_company_site", "checks": ["B1.org-create", "B1.site-answers-by-name", "B1.company-exists", "B1.admin-sign-in-chain"], "missing": "The org is created and its site answers and takes the admin in, but the steps `org site show`, `org feature list` and `org site open` are not run as commands." },
+    { "eval": "jrn:pay_invoice_from_frappe", "checks": ["B3.budget-holder-makes-invoice-and-payment-entry", "B3.submit-waits-for-signature", "B3.payment-entry-submitted", "B3.ledger-posted", "B3.invoice-nothing-outstanding"], "missing": "The payment runs end to end, but not through the steps `payment awaiting` and `report run`, and the funnel events are not read." }
+  ]
+}
