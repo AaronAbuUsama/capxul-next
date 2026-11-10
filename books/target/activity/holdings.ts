@@ -23,7 +23,6 @@ import { table_principals } from "../access/data.ts";
 import { table_parties } from "../parties/data.ts";
 import { table_org_members, table_organizations } from "../organizations/data.ts";
 import { table_payments } from "../payments/data.ts";
-import { table_book_prices } from "../books/data.ts";
 import { table_chain_budgets, table_indexer_progress, table_safe_balances, table_safe_owners } from "../indexing/data.ts";
 import { Scope } from "./feed.ts";
 
@@ -134,7 +133,6 @@ export const rpc_activity_holdings_balances = defineRpc({
     table_safe_balances,
     table_payments,
     table_chain_budgets,
-    table_book_prices,
   ],
   writes: [],
   drives: [],

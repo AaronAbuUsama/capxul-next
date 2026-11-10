@@ -18,7 +18,6 @@ import { error_INVALID_INPUT, error_NOT_AUTHENTICATED, error_ROLE_PERMISSION_DEN
 import { table_budgets } from "../../budgets/data.ts";
 import { table_organizations } from "../../organizations/data.ts";
 import { procedure_documents_store } from "../../documents/procedures.ts";
-import { procedure_books_record_payroll_accrual } from "../../books/procedures.ts";
 import { table_book_accounts } from "../../books/data.ts";
 import { HR_ERRORS, HR_GUARD, HR_READS, WHO_HR } from "./employees.ts";
 import { Run, RunInput, RunListInput, RunRef, RunRow, WithholdInput } from "./shapes.ts";

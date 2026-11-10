@@ -22,6 +22,18 @@ export interface Cut {
 }
 
 export const CUT = {
+  "org.books.accounts.import": { fate: "reached", decision: "cut.books", carriedBy: "ERPNext Accounts through the door (`doc` on Account, Journal Entry; the chart importer)" },
+  "org.books.accounts.list": { fate: "reached", decision: "cut.books", carriedBy: "ERPNext Accounts through the door (`doc` on Account, Journal Entry; the chart importer)" },
+  "org.books.accounts.add": { fate: "reached", decision: "cut.books", carriedBy: "ERPNext Accounts through the door (`doc` on Account, Journal Entry; the chart importer)" },
+  "org.books.accounts.rename": { fate: "reached", decision: "cut.books", carriedBy: "ERPNext Accounts through the door (`doc` on Account, Journal Entry; the chart importer)" },
+  "org.books.accounts.archive": { fate: "reached", decision: "cut.books", carriedBy: "ERPNext Accounts through the door (`doc` on Account, Journal Entry; the chart importer)" },
+  "org.books.accounts.review": { fate: "reached", decision: "cut.books", carriedBy: "ERPNext Accounts through the door (`doc` on Account, Journal Entry; the chart importer)" },
+  "org.books.accounts.reclassify": { fate: "reached", decision: "cut.books", carriedBy: "ERPNext Accounts through the door (`doc` on Account, Journal Entry; the chart importer)" },
+  "org.books.export.quickbooks": { fate: "dropped", decision: "cut.books", carriedBy: "nothing: dropped; Frappe has its own exports" },
+  "org.books.reports.balance-sheet": { fate: "reached", decision: "cut.books", carriedBy: "an ERPNext report through the door (`report run`: Balance Sheet)" },
+  "org.books.reports.profit-and-loss": { fate: "reached", decision: "cut.books", carriedBy: "an ERPNext report through the door (`report run`: Profit and Loss Statement)" },
+  "org.books.reports.reconcile": { fate: "reached", decision: "cut.books", carriedBy: "an ERPNext report through the door (`report run`: Bank Reconciliation Tool)" },
+  "org.books.reports.trial-balance": { fate: "reached", decision: "cut.books", carriedBy: "an ERPNext report through the door (`report run`: Balance Sheet)" },
   // <cut-entries> one line per frozen operation that left the built book, added by the commit that moved it
 } as const satisfies Readonly<Record<string, Cut>>;
 

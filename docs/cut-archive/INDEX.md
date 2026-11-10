@@ -7,13 +7,14 @@ Capxul-native records leave the built book; nothing is deleted, it is moved with
 Aaron or on a call are parked under `docs/cut-archive/parked/`. Moved files keep their imports as they were, so those point at the
 folder the file was written in (as `docs/as-is/archive/` does) and are outside every typecheck.
 
-536 records have left the built book: 417 reached, 111 archive, 8 dropped.
+580 records have left the built book: 450 reached, 118 archive, 12 dropped.
 
 | Where | Records | Of which |
 |---|---|---|
 | `docs/cut-archive/projects/` | 127 | 36 rpc, 10 table, 3 event, 3 machine, 36 operation, 1 procedure, 3 workflow, 1 concept, 1 flow, 33 decision |
 | `docs/cut-archive/contacts/` | 121 | 22 rpc, 14 table, 7 event, 7 machine, 19 flow, 24 operation, 3 workflow, 25 decision |
 | `docs/cut-archive/payroll/` | 288 | 18 workflow, 65 rpc, 22 table, 11 event, 11 machine, 31 flow, 76 operation, 53 decision, 1 concept |
+| `docs/cut-archive/books/` | 44 | 14 rpc, 1 event, 1 machine, 2 table, 2 invariant, 2 flow, 12 operation, 1 procedure, 2 workflow, 7 decision |
 
 ## projects (127)
 
@@ -565,3 +566,52 @@ folder the file was written in (as `docs/as-is/archive/` does) and are outside e
 | workflow | `payroll.runs.lifecycle` | reached | Frappe HR owns payroll, HR, leave, attendance, shifts and expense claims (Employee, Salary Structure, Payroll Entry, Salary Slip, Leave Application,… | Frappe through the door | `payroll/payroll/staged.ts` |
 | workflow | `payroll.startup.open` | reached | Frappe HR owns payroll, HR, leave, attendance, shifts and expense claims (Employee, Salary Structure, Payroll Entry, Salary Slip, Leave Application,… | Frappe through the door | `payroll/payroll/processes.ts` |
 | concept | `payroll` | reached | Frappe HR owns payroll, HR, leave, attendance, shifts and expense claims (Employee, Salary Structure, Payroll Entry, Salary Slip, Leave Application,… | Frappe through the door | `payroll/shared/foundation.ts` |
+
+## books (44)
+
+| Kind | Id | Verdict | Reason | Carried or replaced by | Archived to |
+|---|---|---|---|---|---|
+| operation | `org.books.accounts.add` | reached | Frappe Accounts owns the chart: Account, Chart of Accounts Importer. | ERPNext Accounts through the door (`doc` on Account, Journal Entry; the chart importer) | `books/books/operations.ts` |
+| operation | `org.books.accounts.archive` | reached | Frappe Accounts owns the chart: Account, Chart of Accounts Importer. | ERPNext Accounts through the door (`doc` on Account, Journal Entry; the chart importer) | `books/books/operations.ts` |
+| operation | `org.books.accounts.import` | reached | Frappe Accounts owns the chart: Account, Chart of Accounts Importer. | ERPNext Accounts through the door (`doc` on Account, Journal Entry; the chart importer) | `books/books/operations.ts` |
+| operation | `org.books.accounts.list` | reached | Frappe Accounts owns the chart: Account, Chart of Accounts Importer. | ERPNext Accounts through the door (`doc` on Account, Journal Entry; the chart importer) | `books/books/operations.ts` |
+| operation | `org.books.accounts.reclassify` | reached | Frappe Accounts: a Journal Entry that moves the amount between accounts. | ERPNext Accounts through the door (`doc` on Account, Journal Entry; the chart importer) | `books/books/operations.ts` |
+| operation | `org.books.accounts.rename` | reached | Frappe Accounts owns the chart: Account, Chart of Accounts Importer. | ERPNext Accounts through the door (`doc` on Account, Journal Entry; the chart importer) | `books/books/operations.ts` |
+| operation | `org.books.accounts.review` | reached | Frappe Accounts owns the chart: Account, Chart of Accounts Importer. | ERPNext Accounts through the door (`doc` on Account, Journal Entry; the chart importer) | `books/books/operations.ts` |
+| operation | `org.books.export.quickbooks` | dropped | Exports to QuickBooks. Frappe has its own exports and Capxul is no longer the books. | nothing: dropped; Frappe has its own exports | `books/books/operations.ts` |
+| operation | `org.books.reports.balance-sheet` | reached | Frappe Accounts report: Balance Sheet, run through the door. | an ERPNext report through the door (`report run`: Balance Sheet) | `books/books/operations.ts` |
+| operation | `org.books.reports.profit-and-loss` | reached | Frappe Accounts report: Profit and Loss Statement, run through the door. | an ERPNext report through the door (`report run`: Profit and Loss Statement) | `books/books/operations.ts` |
+| operation | `org.books.reports.reconcile` | reached | Frappe's Bank Reconciliation Tool and the unmatched Bank Transaction lines. Capxul's chain-versus-books check becomes an eval of the plug. | an ERPNext report through the door (`report run`: Bank Reconciliation Tool) | `books/books/operations.ts` |
+| operation | `org.books.reports.trial-balance` | reached | Frappe Accounts report: Balance Sheet, run through the door. | an ERPNext report through the door (`report run`: Balance Sheet) | `books/books/operations.ts` |
+| decision | `books.export-files-by-cli` | archive | Governed only records that left the built book; archived with them. | the records it governed are in books | `books/books/decisions.ts` |
+| decision | `books.hr-money` | archive | Governed only records that left the built book; archived with them. | the records it governed are in books | `books/books/decisions.ts` |
+| decision | `books.no-fork` | archive | Governed only records that left the built book; archived with them. | the records it governed are in books | `books/books/decisions.ts` |
+| decision | `books.prices-sync` | archive | Governed only records that left the built book; archived with them. | the records it governed are in books | `books/books/decisions.ts` |
+| decision | `books.reconcile-held` | archive | Governed only records that left the built book; archived with them. | the records it governed are in books | `books/books/decisions.ts` |
+| decision | `books.review-flow` | archive | Governed only records that left the built book; archived with them. | the records it governed are in books | `books/books/decisions.ts` |
+| decision | `books.rows-by-id` | archive | Governed only records that left the built book; archived with them. | the records it governed are in books | `books/books/decisions.ts` |
+| table | `book-head-syncs` | dropped | ERPNext Accounts owns the books (Account, GL Entry, Journal Entry, Payment Entry, Bank Transaction). Capxul's own records leave the built book; the c… | Frappe's own DocType, reached through the door | `books/books/data.ts` |
+| table | `book-prices` | reached | ERPNext Accounts owns the books (Account, GL Entry, Journal Entry, Payment Entry, Bank Transaction). Capxul's own records leave the built book; the c… | Frappe's own DocType, reached through the door | `books/books/data.ts` |
+| machine | `book-document-voucher` | reached | ERPNext Accounts owns the books (Account, GL Entry, Journal Entry, Payment Entry, Bank Transaction). Capxul's own records leave the built book; the c… | Frappe's own DocType, reached through the door | `books/books/data.ts` |
+| event | `book_document_voucher_transitioned` | reached | ERPNext Accounts owns the books (Account, GL Entry, Journal Entry, Payment Entry, Bank Transaction). Capxul's own records leave the built book; the c… | Frappe's own DocType, reached through the door | `books/books/data.ts` |
+| rpc | `books.accounts.accept` | reached | ERPNext Accounts owns the books (Account, GL Entry, Journal Entry, Payment Entry, Bank Transaction). Capxul's own records leave the built book; the c… | Frappe through the door | `books/books/accounts.ts` |
+| rpc | `books.accounts.add` | reached | ERPNext Accounts owns the books (Account, GL Entry, Journal Entry, Payment Entry, Bank Transaction). Capxul's own records leave the built book; the c… | Frappe through the door | `books/books/accounts.ts` |
+| rpc | `books.accounts.archive` | reached | ERPNext Accounts owns the books (Account, GL Entry, Journal Entry, Payment Entry, Bank Transaction). Capxul's own records leave the built book; the c… | Frappe through the door | `books/books/accounts.ts` |
+| rpc | `books.accounts.import` | reached | ERPNext Accounts owns the books (Account, GL Entry, Journal Entry, Payment Entry, Bank Transaction). Capxul's own records leave the built book; the c… | Frappe through the door | `books/books/accounts.ts` |
+| rpc | `books.accounts.list` | reached | ERPNext Accounts owns the books (Account, GL Entry, Journal Entry, Payment Entry, Bank Transaction). Capxul's own records leave the built book; the c… | Frappe through the door | `books/books/accounts.ts` |
+| rpc | `books.accounts.reclassify` | reached | ERPNext Accounts owns the books (Account, GL Entry, Journal Entry, Payment Entry, Bank Transaction). Capxul's own records leave the built book; the c… | Frappe through the door | `books/books/accounts.ts` |
+| rpc | `books.accounts.rename` | reached | ERPNext Accounts owns the books (Account, GL Entry, Journal Entry, Payment Entry, Bank Transaction). Capxul's own records leave the built book; the c… | Frappe through the door | `books/books/accounts.ts` |
+| rpc | `books.accounts.review` | reached | ERPNext Accounts owns the books (Account, GL Entry, Journal Entry, Payment Entry, Bank Transaction). Capxul's own records leave the built book; the c… | Frappe through the door | `books/books/accounts.ts` |
+| rpc | `books.exports.quickbooks` | reached | ERPNext Accounts owns the books (Account, GL Entry, Journal Entry, Payment Entry, Bank Transaction). Capxul's own records leave the built book; the c… | Frappe through the door | `books/books/exports.ts` |
+| rpc | `books.reports.balance-sheet` | reached | ERPNext Accounts owns the books (Account, GL Entry, Journal Entry, Payment Entry, Bank Transaction). Capxul's own records leave the built book; the c… | Frappe through the door | `books/books/reports.ts` |
+| rpc | `books.reports.profit-and-loss` | reached | ERPNext Accounts owns the books (Account, GL Entry, Journal Entry, Payment Entry, Bank Transaction). Capxul's own records leave the built book; the c… | Frappe through the door | `books/books/reports.ts` |
+| rpc | `books.reports.reconcile` | reached | ERPNext Accounts owns the books (Account, GL Entry, Journal Entry, Payment Entry, Bank Transaction). Capxul's own records leave the built book; the c… | Frappe through the door | `books/books/reports.ts` |
+| rpc | `books.reports.trial-balance` | reached | ERPNext Accounts owns the books (Account, GL Entry, Journal Entry, Payment Entry, Bank Transaction). Capxul's own records leave the built book; the c… | Frappe through the door | `books/books/reports.ts` |
+| rpc | `books.sync.feed` | reached | ERPNext Accounts owns the books (Account, GL Entry, Journal Entry, Payment Entry, Bank Transaction). Capxul's own records leave the built book; the c… | Frappe through the door | `books/books/sync.ts` |
+| flow | `client.org.books.accounts.review` | reached | ERPNext Accounts owns the books (Account, GL Entry, Journal Entry, Payment Entry, Bank Transaction). Capxul's own records leave the built book; the c… | Frappe through the door | `books/books/flows.ts` |
+| flow | `client.org.books.sync.follow` | reached | ERPNext Accounts owns the books (Account, GL Entry, Journal Entry, Payment Entry, Bank Transaction). Capxul's own records leave the built book; the c… | Frappe through the door | `books/books/flows.ts` |
+| workflow | `books.head.sync` | dropped | ERPNext Accounts owns the books (Account, GL Entry, Journal Entry, Payment Entry, Bank Transaction). Capxul's own records leave the built book; the c… | Frappe through the door | `books/books/processes.ts` |
+| workflow | `books.prices.sync` | reached | ERPNext Accounts owns the books (Account, GL Entry, Journal Entry, Payment Entry, Bank Transaction). Capxul's own records leave the built book; the c… | Frappe through the door | `books/books/processes.ts` |
+| procedure | `books.record-payroll-accrual` | dropped | ERPNext Accounts owns the books (Account, GL Entry, Journal Entry, Payment Entry, Bank Transaction). Capxul's own records leave the built book; the c… | Frappe through the door | `books/books/procedures.ts` |
+| invariant | `books.one-author-per-voucher` | reached | ERPNext Accounts owns the books (Account, GL Entry, Journal Entry, Payment Entry, Bank Transaction). Capxul's own records leave the built book; the c… | Frappe through the door | `books/books/data.ts` |
+| invariant | `books.postings-balance` | reached | ERPNext Accounts owns the books (Account, GL Entry, Journal Entry, Payment Entry, Bank Transaction). Capxul's own records leave the built book; the c… | Frappe through the door | `books/books/data.ts` |

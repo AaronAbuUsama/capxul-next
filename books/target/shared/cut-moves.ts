@@ -74,3 +74,27 @@ export const decision_cut_payroll = defineDecision({
   source: BY,
   affects: [f.system_capxul, decision_cut_principle, decision_cut_plug_placeholders, decision_cut_agreements_in_payments],
 });
+
+export const decision_cut_books = defineDecision({
+  id: "cut.books",
+  title: "books leaves the built book but its chain reader: ERPNext owns the books",
+  question: "What happens to books in the built book?",
+  options: [
+      {
+          "label": "moved",
+          "text": "Books leaves the built book but its chain reader: ERPNext owns the books. Moved to docs/cut-archive/books/ with their text intact: 14 rpcs, 1 event, 1 machine, 2 tables, 2 invariants, 2 flows, 12 operations, 1 procedure, 2 workflows, 7 decisions. Listed in docs/cut-archive/INDEX.md with a reason and what carries each. ERPNext Accounts owns the books (Account, GL Entry, Journal Entry, Payment Entry, Bank Transaction). Capxul's own records leave the built book; the chain reader that writes them from the chain stays as a plug."
+      },
+      {
+          "label": "frozen-1",
+          "text": "Frozen operations classified by the cut (tools/check-frozen.ts): org.books.accounts.import (reached): ERPNext Accounts through the door (`doc` on Account, Journal Entry; the chart importer). org.books.accounts.list (reached): ERPNext Accounts through the door (`doc` on Account, Journal Entry; the chart importer). org.books.accounts.add (reached): ERPNext Accounts through the door (`doc` on Account, Journal Entry; the chart importer). org.books.accounts.rename (reached): ERPNext Accounts through the door (`doc` on Account, Journal Entry; the chart importer). org.books.accounts.archive (reached): ERPNext Accounts through the door (`doc` on Account, Journal Entry; the chart importer). org.books.accounts.review (reached): ERPNext Accounts through the door (`doc` on Account, Journal Entry; the chart importer). org.books.accounts.reclassify (reached): ERPNext Accounts through the door (`doc` on Account, Journal Entry; the chart importer). org.books.export.quickbooks (dropped): nothing: dropped; Frappe has its own exports. org.books.reports.balance-sheet (reached): an ERPNext report through the door (`report run`: Balance Sheet). org.books.reports.profit-and-loss (reached): an ERPNext report through the door (`report run`: Profit and Loss Statement). org.books.reports.reconcile (reached): an ERPNext report through the door (`report run`: Bank Reconciliation Tool). org.books.reports.trial-balance (reached): an ERPNext report through the door (`report run`: Balance Sheet)."
+      },
+      {
+          "label": "trimmed-1",
+          "text": "Kept records that read or invoked a removed record and no longer do (the dependency is Frappe's now): books/procedures.ts: export const procedure_books_record_money_fact = defineProce no longer reads or invokes table_book_prices. payments/agreements/processes.ts: export const workflow_payroll_agreements_lifecycle = defineW no longer reads or invokes procedure_books_record_payroll_accrual. activity/holdings.ts: export const rpc_activity_holdings_balances no longer reads or invokes table_book_prices."
+      }
+  ],
+  chosen: "moved",
+  why: "The cut's rule (cut.principle): Frappe owns what it owns and the door reaches it; nothing is deleted. Aaron's rulings aaron.frappe-native and aaron.one-door.",
+  source: BY,
+  affects: [f.system_capxul, decision_cut_principle, decision_cut_plug_placeholders],
+});

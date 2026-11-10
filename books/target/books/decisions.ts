@@ -12,12 +12,10 @@ import {
   event_book_annotation_transitioned,
   event_book_asset_transitioned,
   event_book_company_transitioned,
-  event_book_document_voucher_transitioned,
   machine_book_account,
   machine_book_annotation,
   machine_book_asset,
   machine_book_company,
-  machine_book_document_voucher,
   table_book_accounts,
   table_book_annotations,
   table_book_assets,
@@ -25,42 +23,18 @@ import {
   table_book_cost_centers,
   table_book_facts,
   table_book_document_vouchers,
-  table_book_head_syncs,
-  table_book_prices,
   invariant_books_facts_append_only,
   invariant_books_feed_gap_free,
-  invariant_books_one_author_per_voucher,
   invariant_books_one_live_money_fact,
-  invariant_books_postings_balance,
 } from "./data.ts";
 import {
   procedure_books_record_money_fact,
-  procedure_books_record_payroll_accrual,
   procedure_books_reverse_money_fact,
 } from "./procedures.ts";
-import {
-  rpc_books_accounts_accept,
-  rpc_books_accounts_add,
-  rpc_books_accounts_archive,
-  rpc_books_accounts_import,
-  rpc_books_accounts_list,
-  rpc_books_accounts_reclassify,
-  rpc_books_accounts_rename,
-  rpc_books_accounts_review,
-} from "./accounts.ts";
 import { rpc_books_annotations_save } from "./annotations.ts";
 import { rpc_books_assets_add, rpc_books_assets_list, rpc_books_assets_remove } from "./assets.ts";
 import { rpc_books_facts_list } from "./facts.ts";
-import { rpc_books_sync_feed } from "./sync.ts";
-import {
-  rpc_books_reports_balance_sheet,
-  rpc_books_reports_profit_and_loss,
-  rpc_books_reports_reconcile,
-  rpc_books_reports_trial_balance,
-} from "./reports.ts";
-import { rpc_books_exports_quickbooks } from "./exports.ts";
-import { workflow_books_assets_scan_added, workflow_books_head_sync, workflow_books_prices_sync } from "./processes.ts";
-import { flow_client_org_books_accounts_review, flow_client_org_books_sync_follow } from "./flows.ts";
+import { workflow_books_assets_scan_added,  } from "./processes.ts";
 import * as ops from "./operations.ts";
 
 const CLAUDE = "Claude, books target design, 8 November 2026";
@@ -123,9 +97,6 @@ export const decision_books_facts_without_chart = defineDecision({
     table_book_companies,
     machine_book_company,
     procedure_books_record_money_fact,
-    rpc_books_accounts_import,
-    ops.operation_org_books_accounts_import,
-    ops.operation_org_books_reports_balance_sheet,
     ops.operation_org_books_facts_list,
   ],
 });
@@ -223,13 +194,7 @@ export const decision_books_account_at_posting = defineDecision({
     table_book_annotations,
     procedure_books_record_money_fact,
     rpc_books_annotations_save,
-    rpc_books_sync_feed,
-    rpc_books_reports_trial_balance,
-    rpc_books_reports_profit_and_loss,
-    rpc_books_reports_balance_sheet,
-    rpc_books_exports_quickbooks,
     rpc_books_facts_list,
-    invariant_books_postings_balance,
   ],
 });
 
@@ -256,7 +221,7 @@ export const decision_books_added_token_opening = defineDecision({
     "too). One more parallel `balanceOf` at the block already read keeps the add in its chain-read class. The opening " +
     "credits 3990, which the template keeps.",
   source: by(`${B}/facts/operations/open.ts:93; ${B}/facts/writes/opening.ts:59; ${B}/README.md:127 (a token added later has no opening yet)`),
-  affects: [rpc_books_assets_add, table_book_facts, ops.operation_org_books_assets_add, ops.operation_org_books_reports_reconcile],
+  affects: [rpc_books_assets_add, table_book_facts, ops.operation_org_books_assets_add],
 });
 
 // ── rows and annotations ────────────────────────────────────────────────────────────────────
@@ -307,38 +272,6 @@ export const decision_books_annotate_known_rows = defineDecision({
   affects: [rpc_books_annotations_save, ops.operation_activity_annotate, procedure_books_record_money_fact],
 });
 
-export const decision_books_rows_by_id = defineDecision({
-  id: "books.rows-by-id",
-  title: "Accept and reclassify take a row's id; books finds its kind",
-  question: "The old CLI read the review queue to find each `--row` and `--accept` id's kind before calling. Who resolves it now?",
-  options: [
-    { label: "books", text: "The rpcs take ids only and find each row's kind from books' own facts and annotations." },
-    { label: "client", text: "The SDK reads the queue first, then calls with kinds." },
-  ],
-  chosen: "books",
-  why: "Books holds every row it can move, so resolving there removes a client round trip and keeps reclassify a single rpc behind its SDK method (A4).",
-  source: by("apps/cli/src/commands/org/subcommands/books/subcommands/accounts/subcommands/reclassify/execute.ts:34; review/execute.ts:26"),
-  affects: [rpc_books_accounts_reclassify, rpc_books_accounts_accept],
-});
-
-export const decision_books_review_flow = defineDecision({
-  id: "books.review-flow",
-  title: "`org books accounts review` is one SDK flow: the queue, then an accept",
-  question: "The old command called `books.accounts.review`, and with `--accept` also `books.accounts.accept`. A4 allows the CLI one SDK method. Which?",
-  options: [
-    { label: "flow", text: "One flow: read the queue; with `accept`, accept a row only if the queue lists it, else return `notInQueue` for the CLI's CLI_USAGE." },
-    { label: "rpc", text: "One rpc that reads or accepts depending on its input." },
-  ],
-  chosen: "flow",
-  why:
-    "An rpc is one kind (a query or a mutation); a read that sometimes writes would blur both. The frozen surface keeps " +
-    "CLI_USAGE for an `--accept` id not in the queue (P10 rung 1), so the flow reads the queue first and the CLI, not the " +
-    "SDK, turns `notInQueue` into its own code (the SDK never returns CLI codes). The frozen note naming two SDK methods " +
-    "stays as frozen text.",
-  source: by("apps/cli/src/commands/org/subcommands/books/subcommands/accounts/subcommands/review/execute.ts:21; A4; org.books.accounts.review.yaml notes"),
-  affects: [flow_client_org_books_accounts_review, rpc_books_accounts_review, rpc_books_accounts_accept, ops.operation_org_books_accounts_review],
-});
-
 // ── state machines ──────────────────────────────────────────────────────────────────────────
 
 export const decision_books_machines = defineDecision({
@@ -369,16 +302,13 @@ export const decision_books_machines = defineDecision({
     machine_book_company,
     machine_book_account,
     machine_book_annotation,
-    machine_book_document_voucher,
     machine_book_asset,
     event_book_company_transitioned,
     event_book_account_transitioned,
     event_book_annotation_transitioned,
-    event_book_document_voucher_transitioned,
     event_book_asset_transitioned,
     table_book_facts,
     table_book_cost_centers,
-    table_book_head_syncs,
     invariant_books_facts_append_only,
   ],
 });
@@ -394,7 +324,7 @@ export const decision_books_births_are_transitions = defineDecision({
   chosen: "from-empty",
   why: "The schema accepts an empty `from`, the build's state checks pass, and no phantom state is stored or listed. The event's `from` is null for a birth.",
   source: by("packages/book/src/records/data.ts (TransitionSpec.from); docs/as-is/archive/books/data.ts (births said only in prose)"),
-  affects: [machine_book_company, machine_book_account, machine_book_annotation, machine_book_document_voucher, machine_book_asset],
+  affects: [machine_book_company, machine_book_account, machine_book_annotation, machine_book_asset],
 });
 
 // ── authorization, assets, prices ───────────────────────────────────────────────────────────
@@ -422,26 +352,11 @@ export const decision_books_guards = defineDecision({
     "FEATURE_NOT_AVAILABLE is in each rpc's errors but in no refusal list, since the frozen pages list none.",
   source: by(`${B}/guards.ts:48; ${B}/accounts/operations/import.ts:16; packages/backend/src/access/features/guards.ts:121`),
   affects: [
-    rpc_books_accounts_import,
-    rpc_books_accounts_list,
-    rpc_books_accounts_add,
-    rpc_books_accounts_rename,
-    rpc_books_accounts_archive,
-    rpc_books_accounts_review,
-    rpc_books_accounts_accept,
-    rpc_books_accounts_reclassify,
     rpc_books_assets_list,
     rpc_books_assets_add,
     rpc_books_assets_remove,
     rpc_books_facts_list,
-    rpc_books_reports_trial_balance,
-    rpc_books_reports_profit_and_loss,
-    rpc_books_reports_balance_sheet,
-    rpc_books_reports_reconcile,
-    rpc_books_exports_quickbooks,
     rpc_books_annotations_save,
-    rpc_books_sync_feed,
-    workflow_books_head_sync,
   ],
 });
 
@@ -470,12 +385,8 @@ export const decision_books_capxul_assets = defineDecision({
   affects: [
     rpc_books_assets_list,
     rpc_books_assets_add,
-    rpc_books_reports_reconcile,
     procedure_books_record_money_fact,
     table_book_assets,
-    table_book_prices,
-    workflow_books_prices_sync,
-    rpc_books_accounts_import,
   ],
 });
 
@@ -502,65 +413,6 @@ export const decision_books_added_token_scan = defineDecision({
   affects: [workflow_books_assets_scan_added, table_book_assets, machine_book_asset],
 });
 
-export const decision_books_prices_sync = defineDecision({
-  id: "books.prices-sync",
-  title: "One price writer: the Chainlink sync; devnet prices come through its fake",
-  question: "The old prices had two writers (the devnet-only set-price and the five-minute Chainlink sync) and a stand-in series. What stays?",
-  options: [
-    { label: "one-writer", text: "Only the five-minute sync writes `book-prices`; on a devnet the Chainlink fake answers the devnet's scripted rates." },
-    { label: "as-is", text: "Keep a devnet set-price rpc in books and the stand-in series." },
-  ],
-  chosen: "one-writer",
-  why:
-    "Scripted prices are devnet's (concepts.devnet), read by the integration's fake, so books keeps no devnet rpc and one " +
-    "code path writes rates everywhere. The stand-in series hid a missing price on a devnet that staging would show as " +
-    "unpriced. P3 keeps this cron.",
-  source: by(`${B}/facts/operations/price.ts:23; ${B}/facts/operations/prices.ts:35; ${B}/facts/rules.ts:108; P3`),
-  affects: [workflow_books_prices_sync, table_book_prices],
-});
-
-export const decision_books_reconcile_held = defineDecision({
-  id: "books.reconcile-held",
-  title: "On v4, 'money in agreements' is money held outside the Safe: open escrows",
-  question:
-    "The reconcile shows 'what open agreements hold' and its line 1 says the chain's balance and the money in " +
-    "agreements explain the books. On v4 an agreement reserves its money in Budgets, inside the Safe. What fills the column?",
-  options: [
-    {
-      label: "escrows",
-      text:
-        "`held` is what the Organization's open escrows hold (money that left the Safe and is booked out only when the " +
-        "escrow pays); agreements hold nothing outside the Safe. Line 1 stays word for word.",
-    },
-    { label: "reserved", text: "Show what Budgets reserves for open agreements, and subtract it." },
-  ],
-  chosen: "escrows",
-  why:
-    "Subtracting a reservation would count money twice: it is still in the Safe's balance and in the books. A claim " +
-    "escrow is the v4 case the old column covered: money funded out of the Safe before its Payment settles. The frozen " +
-    "claim still holds, since agreements now explain a zero difference. The balance is read live with chain-rpc for " +
-    "every asset, added tokens included, which Ponder does not index.",
-  source: by(`${B}/reports/operations/reconcile.ts:7; ${B}/README.md:330 (readAgreementHoldingsInTx); packages/contracts/v4/src/interfaces/IEscrow.sol:8`),
-  affects: [rpc_books_reports_reconcile, ops.operation_org_books_reports_reconcile],
-});
-
-export const decision_books_export_files_by_cli = defineDecision({
-  id: "books.export-files-by-cli",
-  title: "The SDK returns the two export files; the CLI writes them",
-  question: "Who writes `chart-of-accounts.csv` and `journal-entries.csv`, and so who refuses CLI_STORAGE?",
-  options: [
-    { label: "cli", text: "The SDK method returns both files' text and counts; the CLI writes them, never over a file, and removes the chart if the journal fails." },
-    { label: "sdk", text: "An SDK flow with a local step writes the files (the shared landing note's reading)." },
-  ],
-  chosen: "cli",
-  why:
-    "The shared vocabulary says the SDK never returns the CLI's own codes, and the frozen refusal is CLI_STORAGE; MCP and " +
-    "browser hosts want the text, not a file on the host. Writing output is the CLI's printing, not orchestration (A4). " +
-    "The shared landing for books/exports says 'written by the SDK': this decision reads it as 'produced by the SDK'.",
-  source: by("books/target/shared/vocabulary.ts (the CLI's own codes); books/target/shared/landings.ts (books/exports); quickbooks.yaml notes"),
-  affects: [rpc_books_exports_quickbooks, ops.operation_org_books_export_quickbooks],
-});
-
 // ── operations ──────────────────────────────────────────────────────────────────────────────
 
 export const decision_books_acceptance_rewrites = defineDecision({
@@ -583,11 +435,6 @@ export const decision_books_acceptance_rewrites = defineDecision({
   source: by("books/frozen/operations.ts (the 17 books operations' acceptance); P1; P7"),
   affects: [
     ops.operation_activity_annotate,
-    ops.operation_org_books_accounts_import,
-    ops.operation_org_books_accounts_add,
-    ops.operation_org_books_accounts_rename,
-    ops.operation_org_books_accounts_archive,
-    ops.operation_org_books_accounts_reclassify,
     ops.operation_org_books_assets_add,
     ops.operation_org_books_assets_remove,
   ],
@@ -619,22 +466,10 @@ export const decision_books_worlds = defineDecision({
   source: by("docs/as-is/archive/operations/books.ts (the as-is worlds after-s1 and ?); CONVENTIONS rule 9"),
   affects: [
     ops.operation_activity_annotate,
-    ops.operation_org_books_accounts_import,
-    ops.operation_org_books_accounts_list,
-    ops.operation_org_books_accounts_add,
-    ops.operation_org_books_accounts_rename,
-    ops.operation_org_books_accounts_archive,
-    ops.operation_org_books_accounts_review,
-    ops.operation_org_books_accounts_reclassify,
     ops.operation_org_books_assets_list,
     ops.operation_org_books_assets_add,
     ops.operation_org_books_assets_remove,
-    ops.operation_org_books_export_quickbooks,
     ops.operation_org_books_facts_list,
-    ops.operation_org_books_reports_balance_sheet,
-    ops.operation_org_books_reports_profit_and_loss,
-    ops.operation_org_books_reports_reconcile,
-    ops.operation_org_books_reports_trial_balance,
   ],
 });
 
@@ -665,7 +500,7 @@ export const decision_books_straddling_row = defineDecision({
     "a month and returned by Bridge's fake after a `dev time warp` past it (devnet.straddling-payout-world); banking passes " +
     "the payout's Payment as the return fact's reference (banking.payout-return-reference).",
   source: by("org.books.accounts.reclassify.yaml #3; books/target/banking/processes.ts (payout_returned); dependencies.payments-payroll"),
-  affects: [ops.operation_org_books_accounts_reclassify, rpc_books_accounts_reclassify, procedure_books_record_money_fact],
+  affects: [procedure_books_record_money_fact],
 });
 
 export const decision_books_dropped = defineDecision({
@@ -711,14 +546,7 @@ export const decision_books_budgets = defineDecision({
     "parallel reads at it), inside chain-read. An override can come with a measurement.",
   source: by("packages/book/src/budgets.ts; P5 hop table"),
   affects: [
-    rpc_books_reports_trial_balance,
-    rpc_books_reports_balance_sheet,
     rpc_books_assets_add,
-    rpc_books_reports_reconcile,
-    rpc_books_sync_feed,
-    workflow_books_head_sync,
-    flow_client_org_books_accounts_review,
-    flow_client_org_books_sync_follow,
   ],
 });
 
@@ -842,14 +670,7 @@ export const decision_books_chart_tree = defineDecision({
   affects: [
     table_book_accounts,
     machine_book_account,
-    rpc_books_accounts_import,
-    rpc_books_accounts_list,
-    rpc_books_accounts_add,
-    rpc_books_accounts_archive,
     rpc_books_annotations_save,
-    ops.operation_org_books_accounts_add,
-    ops.operation_org_books_accounts_list,
-    ops.operation_org_books_reports_profit_and_loss,
   ],
 });
 
@@ -890,11 +711,7 @@ export const decision_books_feed = defineDecision({
     invariant_books_feed_gap_free,
     procedure_books_record_money_fact,
     procedure_books_reverse_money_fact,
-    rpc_books_sync_feed,
-    flow_client_org_books_sync_follow,
     workflow_books_assets_scan_added,
-    workflow_books_head_sync,
-    procedure_books_record_payroll_accrual,
   ],
 });
 
@@ -923,7 +740,7 @@ export const decision_books_fact_read = defineDecision({
     "answers the CRM lane's check C6 (a fact's counterparty pinned to a Party id). The log index makes two transfers " +
     "in one transaction distinct proofs. These are columns the invoker already knows when it records.",
   source: byFrappe("vision check C6 in docs/vision/erp.md; books/target/payments/processes.ts (settle, record); books/target/banking/processes.ts"),
-  affects: [table_book_facts, procedure_books_record_money_fact, rpc_books_facts_list, rpc_books_sync_feed, ops.operation_org_books_facts_list],
+  affects: [table_book_facts, procedure_books_record_money_fact, rpc_books_facts_list, ops.operation_org_books_facts_list],
 });
 
 export const decision_books_vouchers = defineDecision({
@@ -971,16 +788,8 @@ export const decision_books_vouchers = defineDecision({
     procedure_books_record_money_fact,
     procedure_books_reverse_money_fact,
     rpc_books_annotations_save,
-    rpc_books_sync_feed,
-    workflow_books_head_sync,
-    rpc_books_reports_trial_balance,
-    rpc_books_reports_profit_and_loss,
-    rpc_books_reports_balance_sheet,
-    rpc_books_exports_quickbooks,
     rpc_books_assets_add,
-    invariant_books_postings_balance,
     invariant_books_one_live_money_fact,
-    ops.operation_org_books_reports_trial_balance,
   ],
 });
 
@@ -1026,13 +835,7 @@ export const decision_books_sync = defineDecision({
     "a head'. The feed stays an rpc, for any other ledger that follows the books.",
   source: byFrappe("shared external.ts (frappe-head) and foundation.ts (frappe-app); organizations.head-connection, head-ownership, head-doorbell; projects.head-sync"),
   affects: [
-    rpc_books_sync_feed,
-    workflow_books_head_sync,
-    table_book_head_syncs,
-    flow_client_org_books_sync_follow,
     rpc_books_annotations_save,
-    rpc_books_accounts_add,
-    invariant_books_one_author_per_voucher,
     table_book_document_vouchers,
   ],
 });
@@ -1064,11 +867,6 @@ export const decision_books_head_vouchers = defineDecision({
   source: byFrappe(`${ERP}/gl_entry/gl_entry.json; ${ERP}/period_closing_voucher/period_closing_voucher.json; rulings.ts (aaron.frappe-head)`),
   affects: [
     table_book_document_vouchers,
-    machine_book_document_voucher,
-    workflow_books_head_sync,
-    rpc_books_reports_trial_balance,
-    rpc_books_reports_profit_and_loss,
-    rpc_books_reports_balance_sheet,
   ],
 });
 
@@ -1108,9 +906,6 @@ export const decision_books_closed_periods = defineDecision({
     table_book_facts,
     procedure_books_record_money_fact,
     rpc_books_annotations_save,
-    rpc_books_accounts_accept,
-    rpc_books_accounts_reclassify,
-    workflow_books_head_sync,
   ],
 });
 
@@ -1147,14 +942,6 @@ export const decision_books_company_settings = defineDecision({
   source: byFrappe(`erpnext/setup/doctype/company/company.json (default_currency); ${ERP}/fiscal_year/fiscal_year.json; organizations.company-shape; checks C18, C19`),
   affects: [
     table_book_companies,
-    table_book_prices,
-    workflow_books_prices_sync,
-    rpc_books_accounts_import,
-    rpc_books_reports_trial_balance,
-    rpc_books_reports_profit_and_loss,
-    rpc_books_reports_balance_sheet,
-    rpc_books_exports_quickbooks,
-    ops.operation_org_books_accounts_import,
   ],
 });
 
@@ -1180,48 +967,7 @@ export const decision_books_cost_centers = defineDecision({
     "Organization without a head needs. A head is where a business divides its costs, so its cost centres are its own, " +
     "and Capxul keeps them so that an annotation can name one and a head's voucher's lines resolve.",
   source: byFrappe(`${ERP}/cost_center/cost_center.json; ${ERP}/gl_entry/gl_entry.py:179 (cost centre required on P&L)`),
-  affects: [table_book_cost_centers, rpc_books_accounts_import, workflow_books_head_sync, rpc_books_annotations_save],
-});
-
-export const decision_books_no_fork = defineDecision({
-  id: "books.no-fork",
-  title: "ERPNext accounting is not forked",
-  question:
-    "Fork ERPNext's accounting only if Capxul-native cannot feel integrated. Does anything in the books' design need a " +
-    "fork of ERPNext Accounts, or an overridden doctype class?",
-  options: [
-    {
-      label: "no-fork",
-      text:
-        "No. The Capxul app for Frappe (component frappe-app) with configuration, Custom Fields and hooks only: " +
-        "`capxul_id` and `capxul_version` (indexed, not unique, since an amendment carries its predecessor's id; the app " +
-        "keeps one live document per id); Safe accounts frozen, the Company's `role_allowed_for_frozen_entries` a role " +
-        "only the app's user holds; the immutable ledger on; invoices' unlink-on-cancel off; a `Capxul` Mode of Payment; " +
-        "a Currency per token; currency precision at least the assets' (up to 9); hooks on Journal and Payment Entry " +
-        "(`before_submit`, `before_cancel`, `before_update_after_submit`) refusing every change to a Capxul voucher the " +
-        "sync did not make, and any other voucher with a line on a Safe account; and a 'Pay with Capxul' action on " +
-        "invoices that opens Capxul's own payment command, prefilled with the payee, the amount and the voucher's other " +
-        "side, for a person or the Organization's agent to sign in Capxul: the head holds no key and moves no money.",
-    },
-    { label: "override-classes", text: "Override Payment Entry and Journal Entry in the app to post from facts." },
-    { label: "fork-accounts", text: "Fork ERPNext Accounts so the bank is a Safe throughout." },
-  ],
-  chosen: "no-fork",
-  why:
-    "Every Capxul voucher is a standard Journal or Payment Entry that passes ERPNext's own validations: a party where " +
-    "the account needs one, a reference number and date on a bank entry (the transaction and the block's day), exchange " +
-    "rates given, cost centres on profit and loss. Four details the app must get right, all within its rights: it " +
-    "inserts with `flags.ignore_exchange_rate`, since a Journal Entry refetches a rate of exactly 1, which a stablecoin's " +
-    "often is; it cancels with the request's `posting_date` set, which the immutable ledger dates the reversal by (else " +
-    "today); it refuses Payment Reconciliation and allow-on-submit edits (cost centre, project) on a Capxul voucher, " +
-    "since both change it after submit, and offers its own classify action instead, which reaches the books through the " +
-    "head sync; and it keeps unlink-on-cancel off, so an invoice a Capxul payment settles cannot be cancelled until " +
-    "Capxul drops the allocation. Freezing alone does not stop the site's Administrator, who holds every role, hence " +
-    "the hook. The Bank Reconciliation workspace is hidden, not removed. What would force a fork: an asset with more " +
-    "decimals than Frappe's 9 (WETH's 18) rounds in the head while Capxul's raw units stay exact; showing the chain's " +
-    "live status in the form is a client script.",
-  source: byFrappe("build-on-frappe skill; erpnext gl_entry.py:430, journal_entry.py:764, general_ledger.py:760, accounts_controller.py:1358; frappe mariadb/database.py:188"),
-  affects: [concept_books, rpc_books_sync_feed, workflow_books_head_sync, invariant_books_one_author_per_voucher],
+  affects: [table_book_cost_centers, rpc_books_annotations_save],
 });
 
 export const decision_books_payroll_accrual = defineDecision({
@@ -1257,14 +1003,8 @@ export const decision_books_payroll_accrual = defineDecision({
     "runs Capxul computed, and for a landed collection's paid slip (books.payroll-postings).",
   source: byFrappe("payroll.accrual (books/target/payroll/decisions.ts); hrms payroll_entry.py:619, :1093; rules.procedures"),
   affects: [
-    procedure_books_record_payroll_accrual,
     table_book_document_vouchers,
-    machine_book_document_voucher,
     table_book_facts,
-    rpc_books_sync_feed,
-    rpc_books_reports_profit_and_loss,
-    rpc_books_exports_quickbooks,
-    invariant_books_one_author_per_voucher,
   ],
 });
 
@@ -1317,10 +1057,8 @@ export const decision_books_startup = defineDecision({
   source: byAssembly("organizations.startup; books/frozen (org.books.accounts.import, list, review); erpnext/accounts/doctype/account/account.py:107 (autoname)"),
   affects: [
     concept_books,
-    rpc_books_accounts_import,
     table_book_companies,
     machine_book_company,
-    ops.operation_org_books_accounts_import,
   ],
 });
 
@@ -1358,10 +1096,6 @@ export const decision_books_payroll_defaults = defineDecision({
   source: byAssembly("docs/design/frappe/payroll.md (For other lanes: Books); hrms payroll_entry.py:408, :810 (accounts required); packages/protocol/src/books/model.ts:113 (5000)"),
   affects: [
     table_book_accounts,
-    rpc_books_accounts_import,
-    procedure_books_record_payroll_accrual,
-    rpc_books_accounts_add,
-    rpc_books_accounts_archive,
   ],
 });
 
@@ -1413,13 +1147,8 @@ export const decision_books_payroll_postings = defineDecision({
   source: byAssembly("docs/design/frappe/assembly-items.md (accounting, payroll); payments.payroll-door; hrms payroll_entry.py:1093, :1196"),
   affects: [
     procedure_books_record_money_fact,
-    procedure_books_record_payroll_accrual,
     table_book_document_vouchers,
     table_book_annotations,
-    rpc_books_accounts_review,
-    rpc_books_accounts_reclassify,
-    rpc_books_sync_feed,
-    invariant_books_postings_balance,
   ],
 });
 
@@ -1454,7 +1183,7 @@ export const decision_books_escrow_held = defineDecision({
     "escrow is open. Both the payroll and the accounting designs (docs/design/frappe) read it this way; only the " +
     "assembly list asked for the account.",
   source: byAssembly("books.reconcile-held; org.books.reports.reconcile line 1; payments.movements.record (K17); docs/design/frappe/payroll.md"),
-  affects: [procedure_books_record_money_fact, rpc_books_reports_reconcile, ops.operation_org_books_reports_reconcile],
+  affects: [procedure_books_record_money_fact, ],
 });
 
 export const decision_books_annotation_project = defineDecision({
@@ -1479,7 +1208,7 @@ export const decision_books_annotation_project = defineDecision({
     "checked id also survives a rename. Projects sits below books, so the read makes no cycle. The refusal is a new " +
     "case under a code `activity annotate` already produces, never a dropped behaviour.",
   source: byAssembly("erpnext/accounts/doctype/gl_entry/gl_entry.json (project: Link to Project); projects.dependencies; dependencies.of-books"),
-  affects: [rpc_books_annotations_save, procedure_books_record_money_fact, workflow_books_head_sync, table_book_annotations],
+  affects: [rpc_books_annotations_save, procedure_books_record_money_fact, table_book_annotations],
 });
 
 export const decision_books_payroll_lines = defineDecision({
@@ -1521,12 +1250,7 @@ export const decision_books_payroll_lines = defineDecision({
     "Frappe HR (`make_accrual_jv_entry` credits it); `liability_account` is an employer contribution's.",
   source: byAssembly("hrms payroll_entry.py:619, :784, :891, :1011; books.company-settings, books.vouchers, books.closed-periods"),
   affects: [
-    procedure_books_record_payroll_accrual,
     table_book_document_vouchers,
-    machine_book_document_voucher,
-    rpc_books_accounts_import,
-    rpc_books_sync_feed,
-    table_book_prices,
   ],
 });
 
@@ -1564,7 +1288,7 @@ export const decision_books_party_lines = defineDecision({
     "transfer to one's own bank account is neither income nor expense, and books has no account for the off-chain " +
     "bank until the Books hat makes one, so it waits like any row nobody has classified.",
   source: byAssembly(`/tmp/erpnext/erpnext/accounts/party.py:939 (validate_account_party_type); ${ERP}/payment_entry/payment_entry.json (payment_type); banking.payout-books`),
-  affects: [procedure_books_record_money_fact, table_book_annotations, rpc_books_sync_feed, rpc_books_annotations_save],
+  affects: [procedure_books_record_money_fact, table_book_annotations, rpc_books_annotations_save],
 });
 
 export const decision_books_head_setup = defineDecision({
@@ -1605,41 +1329,8 @@ export const decision_books_head_setup = defineDecision({
     "Capxul's alone' hold on the head itself, not only in Capxul's push-back. Refusing a connection before the chart " +
     "would hold back the CRM, projects and payroll, which sync from the first day.",
   source: byAssembly(`accounting.md (the head connection); erpnext/setup/doctype/company/company.py:927, company.json; ${ERP}/accounts_settings/accounts_settings.json; hrms/setup.py:171`),
-  affects: [workflow_books_head_sync, component_frappe_app, table_book_accounts, table_book_cost_centers, table_book_companies],
+  affects: [component_frappe_app, table_book_accounts, table_book_cost_centers, table_book_companies],
 });
 
 // ── the world pass's build (9 November 2026): payroll's HR money (payroll.hr-money) ─────────
 
-export const decision_books_hr_money = defineDecision({
-  id: "books.hr-money",
-  title: "An expense claim accrues at approval; claims and advances post as Frappe HR's do",
-  question:
-    "Payroll now pays expense claims and employee advances from a department's budget (payroll.hr-money). How do they " +
-    "reach the books, which read neither payroll nor payments?",
-  options: [
-    {
-      label: "door-and-against",
-      text:
-        "Approving a claim invokes `books.record-payroll-accrual` (action `expense_claim`): each line's sanctioned " +
-        "amount debited to its Expense Claim Type's account (null: the default expense account), each advance it takes " +
-        "credited to Employee Advances (a receivable, Frappe's default_employee_advance_account, line role `advance`, " +
-        "reference the Employee Advance), and the grand total credited to the payable, party the Employee, reference the " +
-        "Expense Claim, on the approval's day, with its `accrual_posted` fact; cancelling it (`expense_claim_cancel`) " +
-        "records `accrual_cancelled`. A settled Payment posts by the `against` payroll gives its item: a claim's, Dr the " +
-        "payable (reference the Expense Claim) and Cr the paying Safe's account; an advance's, Dr Employee Advances " +
-        "(reference the Employee Advance) and Cr the Safe's account. A run's advance-recovery deduction credits Employee " +
-        "Advances (reference the Employee Advance).",
-    },
-    { label: "review", text: "Every HR payment waits in review for a Books-hat wearer, as unclassified money does." },
-  ],
-  chosen: "door-and-against",
-  why:
-    "It is how Frappe HR posts them: an Expense Claim's make_gl_entries debits each expense and credits the payable, " +
-    "less the advances it allocates, and an Employee Advance's payment debits the advance account; so a head that " +
-    "connects later rebuilds the same ledger. The accrual and its claim are one money fact in payroll's transaction, " +
-    "as a run's are (books.payroll-accrual), and the settlement already names its source through `against` " +
-    "(books.payroll-postings), so books learns no HR table. Review would leave every claim unbooked until someone " +
-    "classified it, which Frappe never asks.",
-  source: "Claude, world pass build, 9 November 2026; evidence: payroll.hr-money; hrms expense_claim.py (make_gl_entries); employee_advance.py; payroll_entry.py:481 (add_advance_deduction_entry)",
-  affects: [procedure_books_record_payroll_accrual, concept_books],
-});

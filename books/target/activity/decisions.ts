@@ -8,7 +8,7 @@
 import { defineDecision } from "../../../packages/book/src/index.ts";
 import { concept_activity, concept_budgets } from "../shared/foundation.ts";
 import { machine_movement, machine_payment, table_movements, table_payments } from "../payments/data.ts";
-import { table_book_annotations, table_book_prices } from "../books/data.ts";
+import { table_book_annotations } from "../books/data.ts";
 import { table_chain_budgets, table_indexer_progress, table_safe_balances, table_safe_owners } from "../indexing/data.ts";
 import { table_activity_changes } from "./data.ts";
 import { table_documents } from "../documents/data.ts";
@@ -317,7 +317,7 @@ export const decision_activity_valuation = defineDecision({
     "devnet's scripted rates, so devnet and staging value the same way. Rates in the SDK were a second, unsynced copy. " +
     "Only non-zero positions need a rate; if one has none, both valuations are null and the positions still show.",
   source: by("packages/sdk/src/accounts/positions.ts:84 (MONEY_READ_RATES); books/target/books/data.ts (book-prices)"),
-  affects: [rpc_activity_holdings_balances, operation_balance, table_book_prices],
+  affects: [rpc_activity_holdings_balances, operation_balance],
 });
 
 export const decision_activity_address_from_principal = defineDecision({

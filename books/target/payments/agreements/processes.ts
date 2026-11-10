@@ -19,7 +19,6 @@ import {
 import { table_parties } from "../../parties/data.ts";
 import { procedure_parties_resolve_recipient } from "../../parties/procedures.ts";
 import { procedure_documents_store } from "../../documents/procedures.ts";
-import { procedure_books_record_payroll_accrual } from "../../books/procedures.ts";
 import { table_budgets } from "../../budgets/data.ts";
 import {
   event_org_head_transitioned,
@@ -195,7 +194,7 @@ export const workflow_payroll_agreements_lifecycle = defineWorkflow({
     w.fail,
     w.abandon,
   ],
-  invokes: [procedure_approvals_withdraw, procedure_books_record_payroll_accrual],
+  invokes: [procedure_approvals_withdraw],
   emits: [],
   calls: [
     integration_indexer.c.awaitBlock,
