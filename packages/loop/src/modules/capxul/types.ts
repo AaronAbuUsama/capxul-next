@@ -31,6 +31,8 @@ export interface Ctx {
   readonly say: (line: string) => void;
   /** Tests hand in a fake provider's models. */
   readonly models?: Models;
+  /** Tests hand in short waits; absent, pi retries a request 3 times and the loop then waits 20 s, 60 s and 3 min for the gateway. */
+  readonly retry?: { readonly maxRetries: number; readonly baseDelayMs: number; readonly waitsMs: readonly number[] };
   /** Tests hand in the gates to run; absent, the repository's own (internal/gates.ts). */
   readonly gates?: readonly { name: string; sh: string }[];
 }

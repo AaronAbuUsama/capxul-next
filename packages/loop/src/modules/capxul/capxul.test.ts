@@ -44,7 +44,7 @@ const rig = () => {
   const models = createModels();
   models.setProvider(faux.provider);
   const lines: string[] = [];
-  const ctx = (gates: { name: string; sh: string }[] = [{ name: "ok", sh: "true" }]): Ctx => ({ root, env: { PATH: process.env.PATH ?? "", HOME: dir }, now: () => new Date(), say: (l) => lines.push(l), models, gates });
+  const ctx = (gates: { name: string; sh: string }[] = [{ name: "ok", sh: "true" }]): Ctx => ({ root, env: { PATH: process.env.PATH ?? "", HOME: dir }, now: () => new Date(), say: (l) => lines.push(l), models, gates, retry: { maxRetries: 0, baseDelayMs: 1, waitsMs: [5, 5] } });
   const calls = (): string[] => (existsSync(join(root, "plan-calls.log")) ? readFileSync(join(root, "plan-calls.log"), "utf8").split("\n").filter(Boolean) : []);
   return { dir, root, origin, faux, ctx, calls, lines };
 };
@@ -198,4 +198,28 @@ test("the command policy: what the agents were refused on 10 November and only r
   for (const cmd of ["rm -rf books", "rm -r x", "rm .git/config", "rm -f -- -x", "rm books/frozen/a.ts", "rm x.cjs blueprint/baseline/a.ts", "rm packages/sdk/src/generated/a.ts", "rm var/runs/x"]) assert.notEqual(w(cmd), undefined, cmd);
   for (const cmd of ["find . -fprint0 out", "git grep -Osh x"]) { assert.notEqual(w(cmd), undefined, cmd); assert.notEqual(r(cmd), undefined, cmd); }
   for (const cmd of ["rm x.cjs", "node x.js", "git commit -m x", "pnpm test", "mkdir out"]) assert.notEqual(r(cmd), undefined, cmd);   // a reader changes nothing and runs no program
+});
+
+const down = () => fauxAssistantMessage("", { stopReason: "error", errorMessage: "504 <!doctype html><!--openship-edge-upstream-down--><html>" });
+
+test("a model that fails is waited for and the builder continues where it stood; the run goes on as if nothing happened", async () => {
+  const r = rig();
+  r.faux.setResponses([down(), down(), ...makes("hello.txt"), fauxAssistantMessage(check("approve"))]);
+  const info = await start(r.ctx(), "t1", opts, pair);
+  assert.equal(info.status, "ready", info.error);
+  assert.equal(info.round, 1);
+  assert.equal(readFileSync(join((info.extra.lane as { dir: string }).dir, "hello.txt"), "utf8"), "made\n");
+});
+
+test("a model that never answers fails the run with the gateway's words: no check runs, no reviewer reads an empty change, no round is spent", async () => {
+  const r = rig();
+  r.faux.setResponses([down(), down(), down(), fauxAssistantMessage(check("approve"))]);
+  const info = await start(r.ctx(), "t1", opts, pair);
+  assert.equal(info.status, "failed");
+  assert.match(info.error ?? "", /^make\.1: the model did not answer \(model error\), after waiting for it 2 times\. The gateway answered 504: its upstream is down\.$/);
+  assert.equal(info.round, 1);
+  assert.equal(info.step, "make.1");                                          // it stopped at the builder: the gates and the reviewer never started
+  assert.deepEqual(r.calls().filter((c) => c.startsWith("task block")), []);  // a failed run is resumed, not handed to a person as findings
+  r.faux.setResponses([...makes("hello.txt"), fauxAssistantMessage(check("approve"))]);
+  assert.equal((await resume(r.ctx(), info.id, pair)).status, "ready");       // the gateway is back: resume continues the same builder
 });

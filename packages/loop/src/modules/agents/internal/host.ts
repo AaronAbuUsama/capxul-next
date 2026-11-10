@@ -28,7 +28,7 @@ export const openHost = async (o: HostOptions): Promise<Host> => {
   const context = BACKGROUND_CONTEXT;
   const harness = await Harness.open(await openNodeSqliteStorage(o.file), {
     models: o.models, registry, readOnly: o.readOnly ?? false,
-    settings: { retry: { maxRetries: 3 }, restartLimit: 5 },
+    settings: { retry: o.retry ?? { maxRetries: 3 }, restartLimit: 5 },
     env: ({ cwd }) => new CleanEnv(cwd ?? process.cwd(), { ...o.env }),
     identity: { attribution: null },
   }, context);

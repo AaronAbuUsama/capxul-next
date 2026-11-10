@@ -27,6 +27,10 @@ export { POLICY } from "./internal/config.ts";
 
 export const DEFAULTS: Opts = { script: "pair", sandbox: "none", rounds: 3, budgetUsd: 5, timeoutMin: 30 };
 const CHECKER_ROLES = new Set(["reviewer", "adversary", "diagnoser"]);
+/** How long the loop waits for a failing gateway before it continues an agent, after pi's own retries of the request. */
+const MODEL_WAITS_MS: readonly number[] = [20_000, 60_000, 180_000];
+/** A gateway's error in a line: one that answers with a web page says nothing useful past its status. */
+const modelSaid = (detail = ""): string => (detail.includes("<") ? `The gateway answered ${/^\d{3}/.exec(detail)?.[0] ?? "an error"}${detail.includes("upstream-down") ? ": its upstream is down" : ""}.` : detail.split("\n")[0]!.slice(0, 240));
 
 // ── the vocabulary ──────────────────────────────────────────────────────────────────────────────
 
@@ -66,8 +70,10 @@ export const agent = (job: Job, name: string, o: { role: string; prompt: string;
   if (!allowedModel(model)) return { ok: false, text: "", costUsd: 0, tokens: 0, head: head(wt.dir), error: `the model ${model} is not allowed: only gpt-6.1-sol and gpt-6.1-terra` };
   const said = await ask(job.run.host, {
     key: name, model, system: roleBody(job, o.role), prompt: o.prompt, cwd: wt.dir,
-    profile: o.readOnly ? "read" : "write", maxTurns: 80, timeoutMs: job.opts.timeoutMin * 60_000, stopFile: job.run.stopFile,
+    profile: o.readOnly ? "read" : "write", maxTurns: 80, timeoutMs: job.opts.timeoutMin * 60_000, stopFile: job.run.stopFile, modelWaitsMs: job.ctx.retry?.waitsMs ?? MODEL_WAITS_MS,
   });
+  // A model that never answered is not a hand-back and not a review: the run fails here, with the gateway's words, and no round is spent on it.
+  if (!said.ok && /^unanswered: (model_error|no_model|interrupted)/.test(said.error ?? "")) throw new Error(`${name}: the model did not answer (${said.error!.replace("unanswered: ", "").replace("_", " ")}), after waiting for it ${(job.ctx.retry?.waitsMs ?? MODEL_WAITS_MS).length} times. ${modelSaid(said.detail)}`);
   return { ...said, head: o.readOnly ? head(wt.dir) : commitAll(wt.dir, `loop: ${name}`) } as unknown as Said;
 });
 
@@ -143,7 +149,7 @@ const loadScript = async (ctx: Ctx, name: string): Promise<Script> => {
 };
 
 const open = (ctx: Ctx, dir: string, env: Record<string, string>, readOnly = false, wanted: string[] = []): Promise<Host> =>
-  openHost({ file: join(dir, "run.sqlite"), models: modelsOf(ctx, wanted), env, policy: POLICY, readOnly });
+  openHost({ file: join(dir, "run.sqlite"), models: modelsOf(ctx, wanted), env, policy: POLICY, readOnly, ...(ctx.retry ? { retry: { maxRetries: ctx.retry.maxRetries, baseDelayMs: ctx.retry.baseDelayMs } } : {}) });
 
 const playJob = (ctx: Ctx, id: string, task: Task, opts: Opts, script?: Script): Promise<Info> => {
   const dir = join(runsDir(ctx), id), env: Record<string, string> = cleanEnv(ctx);
