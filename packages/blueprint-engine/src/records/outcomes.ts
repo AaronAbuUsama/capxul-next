@@ -64,6 +64,7 @@ export const DecisionSpec = Schema.Struct({
   why: Prose,
   source: Line,
   affects: Schema.Array(AnyRef),
+  stands: Schema.optionalKey(Schema.Array(Schema.Struct({ record: Line, rule: Line, why: Prose }))),
 });
 export const defineDecision = make("decision")(DecisionSpec);
 export type Decision = ReturnType<typeof defineDecision>;

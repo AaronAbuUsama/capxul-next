@@ -43,8 +43,12 @@ export const deriveEvals = (b: Pick<Blueprint, "records">): EvalDef[] => {
       if (line !== null) e(`acc:${o.id}/${i + 1}`, "L1", o, typeof line === "string" ? line : line.claim);
     });
     e(`ret:${o.id}`, "L1", o, "a success prints exactly the returns schema with --json");
-    for (const r of list<{ error: AnyRecord; given: string }>(o.refusals))
-      e(`ref:${o.id}/${r.error.id}`, "L1", o, `from ${r.given}, it refuses with ${r.error.id}, its exit code and shape, and changes nothing`);
+    const refusalCases = new Map<string, number>();
+    for (const r of list<{ error: AnyRecord; given: string }>(o.refusals)) {
+      const n = (refusalCases.get(r.error.id) ?? 0) + 1;
+      refusalCases.set(r.error.id, n);
+      e(`ref:${o.id}/${r.error.id}${n === 1 ? "" : `/${n}`}`, "L1", o, `from ${r.given}, it refuses with ${r.error.id}, its exit code and shape, and changes nothing`);
+    }
     const impl = o.implementedBy as AnyRecord;
     for (const ev of eventsOf(`${impl._kind}:${impl.id}`)) e(`evt:${o.id}/${ev}`, "L1", o, `it sends ${ev}, valid against its schema, carrying trace_id`);
     e(`spn:${o.id}`, "L1", o, "one trace from the CLI command through the SDK to the server, with every declared span");
@@ -116,8 +120,15 @@ export const deriveEvals = (b: Pick<Blueprint, "records">): EvalDef[] => {
 
   for (const i of ofKind(b, "integration")) {
     e(`int:${i.id}/conformance`, "L1", i, "the devnet fake and the real service pass the same conformance suite");
-    for (const [name, call] of Object.entries(i.calls as Record<string, { failures: { error: AnyRecord }[] }>))
-      for (const f of call.failures) e(`int:${i.id}.${name}/${f.error.id}`, "L1", i, `when it fails this way, callers see ${f.error.id}`);
+    for (const [name, call] of Object.entries(i.calls as Record<string, { failures: { error: AnyRecord; when: string }[] }>))
+      {
+        const cases = new Map<string, number>();
+        for (const f of call.failures) {
+          const n = (cases.get(f.error.id) ?? 0) + 1;
+          cases.set(f.error.id, n);
+          e(`int:${i.id}.${name}/${f.error.id}${n === 1 ? "" : `/${n}`}`, "L1", i, `when ${f.when}, callers see ${f.error.id}`);
+        }
+      }
   }
 
   for (const j of ofKind(b, "journey")) {

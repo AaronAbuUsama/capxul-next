@@ -10,5 +10,32 @@ export const decision_books_state_gaps = defineDecision({
   ].join("\n") }],
   chosen: "retain", why: "cut.books reaches chart management through ERPNext and the document door, not the cut native commands. cut.principle keeps supporting records; remaining money-fact writers still use books data. These gaps explicitly do not claim an implemented chart projection.",
   source: "Builder, m1-gaps-states; lane findings.json; cut.books; books/data.ts and annotations.ts",
+  stands: [
+  {
+    "record": "transition:book-account.rename",
+    "rule": "undriven-transition",
+    "why": "cut.books reaches chart management through ERPNext and the document door, not the cut native commands. cut.principle keeps supporting records; remaining money-fact writers still use books data. These gaps explicitly do not claim an implemented chart projection."
+  },
+  {
+    "record": "transition:book-account.archive",
+    "rule": "undriven-transition",
+    "why": "cut.books reaches chart management through ERPNext and the document door, not the cut native commands. cut.principle keeps supporting records; remaining money-fact writers still use books data. These gaps explicitly do not claim an implemented chart projection."
+  },
+  {
+    "record": "transition:book-annotation.accept",
+    "rule": "undriven-transition",
+    "why": "cut.books reaches chart management through ERPNext and the document door, not the cut native commands. cut.principle keeps supporting records; remaining money-fact writers still use books data. These gaps explicitly do not claim an implemented chart projection."
+  },
+  {
+    "record": "transition:book-annotation.reclassify",
+    "rule": "undriven-transition",
+    "why": "cut.books reaches chart management through ERPNext and the document door, not the cut native commands. cut.principle keeps supporting records; remaining money-fact writers still use books data. These gaps explicitly do not claim an implemented chart projection."
+  },
+  {
+    "record": "transition:book-company.import",
+    "rule": "undriven-transition",
+    "why": "cut.books reaches chart management through ERPNext and the document door, not the cut native commands. cut.principle keeps supporting records; remaining money-fact writers still use books data. These gaps explicitly do not claim an implemented chart projection."
+  }
+],
   affects: [d.machine_book_account.t.rename, d.machine_book_account.t.archive, d.machine_book_annotation.t.accept, d.machine_book_annotation.t.reclassify, d.machine_book_company.t.import],
 });

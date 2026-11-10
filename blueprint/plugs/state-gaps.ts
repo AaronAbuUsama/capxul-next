@@ -9,5 +9,17 @@ export const decision_plugs_state_gaps = defineDecision({
   ].join("\n") }],
   chosen: "explicit-boundaries", why: "Retain these graph gaps rather than inventing an RPC or a refund correlation rule merely to satisfy reachability. Refund correlation remains a design boundary, not an implementation claim.",
   source: "Builder, m1-gaps-states; lane findings.json; plugs/data.ts; plugs.reversal-not-deletion; plugs/signer.ts",
+  stands: [
+  {
+    "record": "table:hat-role-map",
+    "rule": "unwritten-table",
+    "why": "Retain these graph gaps rather than inventing an RPC or a refund correlation rule merely to satisfy reachability. Refund correlation remains a design boundary, not an implementation claim."
+  },
+  {
+    "record": "transition:payment-request.reverse",
+    "rule": "undriven-transition",
+    "why": "Retain these graph gaps rather than inventing an RPC or a refund correlation rule merely to satisfy reachability. Refund correlation remains a design boundary, not an implementation claim."
+  }
+],
   affects: [d.table_hat_role_map, d.machine_payment_request.t.reverse],
 });

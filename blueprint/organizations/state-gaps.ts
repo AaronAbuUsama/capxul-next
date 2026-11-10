@@ -11,5 +11,57 @@ export const decision_organizations_state_gaps = defineDecision({
   ].join("\n") }],
   chosen: "retain", why: "cut.fde-parked parks the hosted runtime. sites.features-reachability replaces the optional-head app model. cut.principle keeps supporting records; no public commands or hosting billing are revived by these retained transitions.",
   source: "Builder, m1-gaps-states; lane findings.json; cut.fde-parked; sites.features-reachability",
+  stands: [
+  {
+    "record": "transition:org-app.install",
+    "rule": "undriven-transition",
+    "why": "cut.fde-parked parks the hosted runtime. sites.features-reachability replaces the optional-head app model. cut.principle keeps supporting records; no public commands or hosting billing are revived by these retained transitions."
+  },
+  {
+    "record": "transition:org-app.remove",
+    "rule": "undriven-transition",
+    "why": "cut.fde-parked parks the hosted runtime. sites.features-reachability replaces the optional-head app model. cut.principle keeps supporting records; no public commands or hosting billing are revived by these retained transitions."
+  },
+  {
+    "record": "transition:org-app.want_again",
+    "rule": "undriven-transition",
+    "why": "cut.fde-parked parks the hosted runtime. sites.features-reachability replaces the optional-head app model. cut.principle keeps supporting records; no public commands or hosting billing are revived by these retained transitions."
+  },
+  {
+    "record": "transition:org-fde.start",
+    "rule": "undriven-transition",
+    "why": "cut.fde-parked parks the hosted runtime. sites.features-reachability replaces the optional-head app model. cut.principle keeps supporting records; no public commands or hosting billing are revived by these retained transitions."
+  },
+  {
+    "record": "transition:org-fde.fall_due",
+    "rule": "undriven-transition",
+    "why": "cut.fde-parked parks the hosted runtime. sites.features-reachability replaces the optional-head app model. cut.principle keeps supporting records; no public commands or hosting billing are revived by these retained transitions."
+  },
+  {
+    "record": "transition:org-fde.extend",
+    "rule": "undriven-transition",
+    "why": "cut.fde-parked parks the hosted runtime. sites.features-reachability replaces the optional-head app model. cut.principle keeps supporting records; no public commands or hosting billing are revived by these retained transitions."
+  },
+  {
+    "record": "transition:org-fde.pause",
+    "rule": "undriven-transition",
+    "why": "cut.fde-parked parks the hosted runtime. sites.features-reachability replaces the optional-head app model. cut.principle keeps supporting records; no public commands or hosting billing are revived by these retained transitions."
+  },
+  {
+    "record": "transition:org-fde.wake",
+    "rule": "undriven-transition",
+    "why": "cut.fde-parked parks the hosted runtime. sites.features-reachability replaces the optional-head app model. cut.principle keeps supporting records; no public commands or hosting billing are revived by these retained transitions."
+  },
+  {
+    "record": "transition:org-fde.resume",
+    "rule": "undriven-transition",
+    "why": "cut.fde-parked parks the hosted runtime. sites.features-reachability replaces the optional-head app model. cut.principle keeps supporting records; no public commands or hosting billing are revived by these retained transitions."
+  },
+  {
+    "record": "transition:org-fde.retire",
+    "rule": "undriven-transition",
+    "why": "cut.fde-parked parks the hosted runtime. sites.features-reachability replaces the optional-head app model. cut.principle keeps supporting records; no public commands or hosting billing are revived by these retained transitions."
+  }
+],
   affects: [d.machine_org_app.t.install, d.machine_org_app.t.remove, d.machine_org_app.t.want_again, d.machine_org_fde.t.start, d.machine_org_fde.t.fall_due, d.machine_org_fde.t.extend, d.machine_org_fde.t.pause, d.machine_org_fde.t.wake, d.machine_org_fde.t.resume, d.machine_org_fde.t.retire],
 });

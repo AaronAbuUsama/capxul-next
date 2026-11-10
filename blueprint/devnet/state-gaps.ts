@@ -9,6 +9,18 @@ export const decision_devnet_state_gaps = defineDecision({
   options: [{ label: "external-writers", text: "unwritten-table: record-entries is written by the recorder append boundary after each command, including refusal, failure and restore lineage (spikes/skeleton/core/src/record.ts). It is JSON Lines, not an RPC transaction table. command-records remains the designed searchable projection. unwritten-table: mail-messages is written by the mail integration devnet fake on send and supervisor mail receive on inbound delivery. devnet.mail-sink records idempotency, fault spending and threading; these are not product operation or workflow writes." }],
   chosen: "external-writers", why: "The schema has no writer edge for recorder middleware or integration fake layers. Preserve the wire and sink records; adding a fake RPC solely for a graph edge would violate P2.",
   source: "Builder, m1-gaps-states; lane findings.json; devnet.mail-sink; devnet/record-entry.ts",
+  stands: [
+  {
+    "record": "table:record-entries",
+    "rule": "unwritten-table",
+    "why": "The schema has no writer edge for recorder middleware or integration fake layers. Preserve the wire and sink records; adding a fake RPC solely for a graph edge would violate P2."
+  },
+  {
+    "record": "table:mail-messages",
+    "rule": "unwritten-table",
+    "why": "The schema has no writer edge for recorder middleware or integration fake layers. Preserve the wire and sink records; adding a fake RPC solely for a graph edge would violate P2."
+  }
+],
   affects: [table_record_entries, d.table_mail_messages],
 });
 export const decision_devnet_completion_drivers = defineDecision({
