@@ -11,6 +11,7 @@ import {
   rpc_sites_features_list, rpc_sites_features_off, rpc_sites_features_on, rpc_sites_open, rpc_sites_retry, rpc_sites_show,
 } from "./sites.ts";
 import * as door from "./door.ts";
+import * as ex from "./examples.ts";
 
 const out = { error: error_NOT_AUTHENTICATED, given: WORLD.signedOut, when: "No one is signed in on this machine." } as const;
 const notDirector = (what: string) => ({ error: error_ROLE_PERMISSION_DENIED, given: WORLD.member, when: `A member who does not wear the Director hat tries to ${what}; nothing changes.` }) as const;
@@ -26,6 +27,7 @@ export const operation_org_site_show = operation({
     { claim: "A new Organization's site becomes ready, with its world and address.", observes: `cli: after \`org create acme --world town1\` completes, \`org wait\` then \`org site show --json\` prints state ready, worldId town1 and host \`acme-town1.<base>\`; read: the site answers at that address.` },
     { claim: "A failed creation shows its reason.", observes: `cli: in \`${WORLD.siteCreating}\` with the service stopped, \`org site show\` prints state failed and the failure.` },
   ],
+  examples: ex.siteShow,
   returns: rpc_sites_show.output, errors: [error_CLI_USAGE], refusals: [out, { error: error_INVALID_INPUT, given: WORLD.siteReady, when: "The Organization named does not exist." }], budget: budget("read"),
 });
 
@@ -36,6 +38,7 @@ export const operation_org_site_open = operation({
   acceptance: [
     { claim: "A person a hat created can sign in; one without a hat is told what they need.", observes: `cli: in \`${WORLD.hatsOnSite}\`, Hannah's \`org site open --json\` prints canSignIn true; Sam (no hat) prints canSignIn false and \`needs\` naming the hat; neither changes any row.` },
   ],
+  examples: ex.siteOpen,
   returns: rpc_sites_open.output, errors: [error_CLI_USAGE], refusals: [out, { error: error_WRONG_STATE, given: WORLD.siteCreating, when: "The site is not ready yet." }], budget: budget("read"),
 });
 
@@ -46,6 +49,7 @@ export const operation_org_site_retry = operation({
   acceptance: [
     { claim: "A failed site is made, and the books agree with the chain afterwards.", observes: `cli: in \`${WORLD.siteCreating}\` after the service is back, \`org site retry --json\` prints creating; the site then becomes ready and \`org events status\` shows every event applied with no gap.` },
   ],
+  examples: ex.siteRetry,
   returns: rpc_sites_retry.output, errors: [error_CLI_USAGE], refusals: [out, notDirector("retry the site"), { error: error_WRONG_STATE, given: WORLD.siteReady, when: "The site is not failed." }],
 });
 
@@ -56,6 +60,7 @@ export const operation_org_feature_list = operation({
   acceptance: [
     { claim: "A new company has the base set on and the rest off.", observes: `cli: in \`${WORLD.siteReady}\`, \`org feature list --json\` prints accounts, people, projects and crm on, and payroll, whatsapp, attendance, recruitment, reviews, stock and manufacturing off.` },
   ],
+  examples: ex.featureList,
   returns: rpc_sites_features_list.output, errors: [error_CLI_USAGE], refusals: [out], budget: budget("read"),
 });
 
@@ -67,6 +72,7 @@ export const operation_org_feature_on = operation({
     { claim: "A feature turned on becomes reachable and shows everything that was there.", observes: `cli: in \`${WORLD.siteFeatures}\`, after \`org feature off stock\` and \`org feature on stock --json\` prints switching then on; read: \`doc list "Stock Entry"\` works again and lists the entries made before it was off.` },
     { claim: "WhatsApp cannot be turned on without CRM, and the reason is said first.", observes: `cli: with crm off, \`org feature on whatsapp\` exits WRONG_STATE naming CRM; world: no row changes.` },
   ],
+  examples: ex.featureOn,
   returns: rpc_sites_features_on.output, errors: [error_CLI_USAGE],
   refusals: [out, notDirector("turn a feature on"), { error: error_WRONG_STATE, given: WORLD.siteFeatures, when: "WhatsApp is turned on while CRM is off." }, { error: error_INVALID_INPUT, given: WORLD.siteFeatures, when: "The feature is not one of the eleven." }],
   budget: budget("write"),
@@ -80,11 +86,29 @@ export const operation_org_feature_off = operation({
     { claim: "A feature turned off refuses everywhere it can be reached and keeps its data.", observes: `cli: in \`${WORLD.siteFeatures}\`, \`org feature off projects --json\` prints switching then off; \`doc list Project\` exits FEATURE_NOT_AVAILABLE; a browser request to a Project API route answers 403; \`org feature on projects\` then lists every project that was there.` },
     { claim: "CRM cannot be turned off while WhatsApp is on.", observes: "cli: `org feature off crm` with whatsapp on exits WRONG_STATE naming WhatsApp; world: no row changes." },
   ],
+  examples: ex.featureOff,
   returns: rpc_sites_features_off.output, errors: [error_CLI_USAGE],
   refusals: [out, notDirector("turn a feature off"), { error: error_WRONG_STATE, given: WORLD.siteFeatures, when: "CRM is turned off while WhatsApp is on." }], budget: budget("write"),
 });
 
 // ── the document door ───────────────────────────────────────────────────────────────────────
+
+const DOOR_EXAMPLES: Record<string, never> = {
+  "doc.types": ex.docTypes as never,
+  "doc.schema": ex.docSchema as never,
+  "doc.list": ex.docList as never,
+  "doc.get": ex.docGet as never,
+  "doc.create": ex.docCreate as never,
+  "doc.update": ex.docUpdate as never,
+  "doc.delete": ex.docDelete as never,
+  "doc.submit": ex.docSubmit as never,
+  "doc.cancel": ex.docCancel as never,
+  "doc.amend": ex.docAmend as never,
+  "doc.call": ex.docCall as never,
+  "doc.next": ex.docNext as never,
+  "report.list": ex.reportList as never,
+  "report.run": ex.reportRun as never,
+};
 
 const doorOp = (
   id: string, command: string, title: string, about: string, rpcRec: { output: unknown }, impl: never, changes: string, claims: { claim: string; observes: string }[],
@@ -92,7 +116,7 @@ const doorOp = (
 ) =>
   operation({
     id, title, area: "sites", command, priority, implementedBy: impl, about: `${about} Runs as the calling person; Frappe's permissions decide. Checked against the spike's door (sites.door-awaits-spike).`,
-    who: "A person or an agent whose Frappe user a hat created.", changes, acceptance: claims, returns: rpcRec.output as never, errors: [error_CLI_USAGE],
+    who: "A person or an agent whose Frappe user a hat created.", changes, examples: DOOR_EXAMPLES[id], acceptance: claims, returns: rpcRec.output as never, errors: [error_CLI_USAGE],
     refusals: [out, noUser, off("The call reaches"), down, ...extra],
   } as never);
 

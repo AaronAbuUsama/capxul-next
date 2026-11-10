@@ -36,6 +36,7 @@ import {
 import { rpc_organizations_workspaces_list, rpc_organizations_workspaces_me } from "./workspaces.ts";
 import { MemberView, rpc_organizations_members_list } from "./members.ts";
 import { SetupView } from "./setups.ts";
+import * as ex from "./examples.ts";
 import { WHO_DIRECTOR_OR_FDE, WHO_MEMBER } from "./apps.ts";
 import { rpc_organizations_seats_show } from "./members.ts";
 import { error_PROVIDER_ERROR } from "../shared/vocabulary.ts";
@@ -120,6 +121,7 @@ export const operation_org_create = defineOperation({
   // CLI_STORAGE: this machine could not save the Organization's id (the flow's `save` step). No FDE key is made here any
   // more: Capxul's FDE host makes and keeps it (organizations.fde-at-start-up, aaron.fde-hosted).
   errors: [error_CLI_USAGE, error_CLI_DEADLINE, error_CANCELLED, error_CLI_STORAGE],
+  examples: ex.orgCreate,
   budget: {
     ...budget("chain-submit"),
     p50Ms: 4_000,
@@ -142,6 +144,7 @@ export const operation_org_list = defineOperation({
   returns: rpc_organizations_workspaces_list.output,
   refusals: [refusal("org.list", error_CLI_USAGE, "person-ready"), refusal("org.list", error_NOT_AUTHENTICATED, "signed-out")],
   errors: [error_CLI_USAGE],
+  examples: ex.orgList,
   budget: budget("read"),
 });
 
@@ -174,6 +177,7 @@ export const operation_org_me = defineOperation({
   ],
   returns: rpc_organizations_workspaces_me.output,
   refusals: [refusal("org.me", error_ROLE_PERMISSION_DENIED, "two-founders"), refusal("org.me", error_NOT_AUTHENTICATED, "signed-out")],
+  examples: ex.orgMe,
   budget: budget("read"),
 });
 
@@ -200,6 +204,7 @@ export const operation_org_retry = defineOperation({
     { error: error_WRONG_STATE, given: "org-setup-failed", when: "The setup failed for good: nothing a retry does can finish it." },
   ],
   errors: [error_CLI_USAGE, error_CLI_DEADLINE, error_CANCELLED],
+  examples: ex.orgRetry,
   budget: budget("chain-submit"),
 });
 
@@ -227,6 +232,7 @@ export const operation_org_show = defineOperation({
     refusal("org.show", error_NOT_AUTHENTICATED, "signed-out"),
   ],
   errors: [error_CLI_USAGE],
+  examples: ex.orgShow,
   budget: budget("read"),
 });
 
@@ -257,6 +263,7 @@ export const operation_org_wait = defineOperation({
     refusal("org.wait", error_ROLE_PERMISSION_DENIED, "two-founders"),
   ],
   errors: [error_CLI_USAGE, error_CLI_DEADLINE],
+  examples: ex.orgWait,
   budget: budget("live-read"),
 });
 
@@ -273,6 +280,7 @@ export const operation_use_org = defineOperation({
   returns: flow_client_orgs_use.output,
   refusals: [refusal("use.org", error_CLI_USAGE, "two-founders"), refusal("use.org", error_NOT_AUTHENTICATED, "signed-out")],
   errors: [error_CLI_USAGE],
+  examples: ex.useOrg,
   budget: budget("read"),
 });
 
@@ -296,6 +304,7 @@ export const operation_org_member_list = defineOperation({
     refusal("org.member.list", error_ROLE_PERMISSION_DENIED, "two-founders"),
     refusal("org.member.list", error_NOT_AUTHENTICATED, "signed-out"),
   ],
+  examples: ex.orgMemberList,
   budget: budget("read"),
 });
 
@@ -315,6 +324,7 @@ export const operation_org_member_get = defineOperation({
     refusal("org.member.get", error_NOT_AUTHENTICATED, "signed-out"),
   ],
   errors: [error_CLI_USAGE],
+  examples: ex.orgMemberGet,
   budget: budget("read"),
 });
 
@@ -341,6 +351,7 @@ export const operation_invite_list = defineOperation({
     refusal("invite.list", error_ROLE_PERMISSION_DENIED, "org-with-member"),
     refusal("invite.list", error_NOT_AUTHENTICATED, "signed-out"),
   ],
+  examples: ex.inviteList,
   budget: budget("read"),
 });
 
@@ -382,6 +393,7 @@ export const operation_invite_decline = defineOperation({
     refusal("invite.decline", error_NOT_AUTHENTICATED, "signed-out"),
   ],
   errors: [error_CLI_USAGE, error_CANCELLED],
+  examples: ex.inviteDecline,
   budget: budget("write"),
 });
 
@@ -413,6 +425,7 @@ export const operation_org_invite_list = defineOperation({
     refusal("org.invite.list", error_NOT_AUTHENTICATED, "signed-out"),
   ],
   errors: [error_CLI_USAGE],
+  examples: ex.orgInviteList,
   budget: budget("read"),
 });
 
@@ -454,6 +467,7 @@ export const operation_org_invite_cancel = defineOperation({
     refusal("org.invite.cancel", error_NOT_AUTHENTICATED, "signed-out"),
   ],
   errors: [error_CLI_USAGE, error_CANCELLED],
+  examples: ex.orgInviteCancel,
   budget: budget("write"),
 });
 
@@ -485,6 +499,7 @@ export const operation_org_invite_resend = defineOperation({
     refusal("org.invite.resend", error_NOT_AUTHENTICATED, "signed-out"),
   ],
   errors: [error_CLI_USAGE, error_CANCELLED],
+  examples: ex.orgInviteResend,
   budget: budget("write"),
 });
 
@@ -596,6 +611,7 @@ export const operation_org_seats_show = defineOperation({
   returns: rpc_organizations_seats_show.output,
   errors: [error_CLI_USAGE],
   refusals: [signedOut, outsider()],
+  examples: ex.orgSeatsShow,
   budget: budget("read"),
 });
 
