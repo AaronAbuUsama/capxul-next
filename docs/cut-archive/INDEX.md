@@ -7,7 +7,7 @@ Capxul-native records leave the built book; nothing is deleted, it is moved with
 Aaron or on a call are parked under `docs/cut-archive/parked/`. Moved files keep their imports as they were, so those point at the
 folder the file was written in (as `docs/as-is/archive/` does) and are outside every typecheck.
 
-941 records have left the built book: 487 reached, 150 archive, 32 dropped, 272 parked.
+948 records have left the built book: 493 reached, 150 archive, 33 dropped, 272 parked.
 
 | Where | Records | Of which |
 |---|---|---|
@@ -22,6 +22,7 @@ folder the file was written in (as `docs/as-is/archive/` does) and are outside e
 | `docs/cut-archive/parked/fde-hosted/` | 35 | 4 table, 6 workflow, 2 event, 2 machine, 7 rpc, 2 flow, 7 operation, 2 procedure, 3 decision |
 | `docs/cut-archive/parked/individuals/` | 13 | 6 operation, 1 workflow, 6 rpc |
 | `docs/cut-archive/parked/seasons/` | 33 | 11 operation, 11 flow, 9 decision, 2 invariant |
+| `docs/cut-archive/devnet/` | 7 | 7 operation |
 
 ## projects (127)
 
@@ -1018,3 +1019,15 @@ folder the file was written in (as `docs/as-is/archive/` does) and are outside e
 | flow | `devnet.seasons.warps.remove` | parked | Seasons were dropped for now by Aaron (aaron.seasons-dropped): the shared world keeps its clock, snapshots and grants, and a season, the schedule tha… | nothing: parked until Aaron wants seasons back (cut.seasons); a world's clock is moved with `dev time`, saved and resto… | `parked/seasons/devnet/flows.ts` |
 | invariant | `time.season-reset` | parked | Seasons were dropped for now by Aaron (aaron.seasons-dropped): the shared world keeps its clock, snapshots and grants, and a season, the schedule tha… | cut.seasons | `parked/seasons/shared/time.ts` |
 | invariant | `time.season-schedule` | parked | Seasons were dropped for now by Aaron (aaron.seasons-dropped): the shared world keeps its clock, snapshots and grants, and a season, the schedule tha… | cut.seasons | `parked/seasons/shared/time.ts` |
+
+## devnet (7)
+
+| Kind | Id | Verdict | Reason | Carried or replaced by | Archived to |
+|---|---|---|---|---|---|
+| operation | `dev.snapshot.list` | reached | Superseded command surface; devnet.one-world-command-surface keeps only named world commands. SDK helpers remain. | world snapshot list | `devnet/operations.ts` |
+| operation | `dev.snapshot.restore` | reached | Superseded command surface; devnet.one-world-command-surface keeps only named world commands. SDK helpers remain. | world snapshot restore | `devnet/operations.ts` |
+| operation | `dev.snapshot.save` | reached | Superseded command surface; devnet.one-world-command-surface keeps only named world commands. SDK helpers remain. | world snapshot save | `devnet/operations.ts` |
+| operation | `dev.time` | reached | Superseded command surface; devnet.one-world-command-surface keeps only named world commands. SDK helpers remain. | world show | `devnet/operations.ts` |
+| operation | `dev.time.set` | dropped | Superseded command surface; devnet.one-world-command-surface keeps only named world commands. SDK helpers remain. | world clock set | `devnet/operations.ts` |
+| operation | `dev.time.start-at` | reached | Superseded command surface; devnet.one-world-command-surface keeps only named world commands. SDK helpers remain. | world create | `devnet/operations.ts` |
+| operation | `dev.time.warp` | reached | Superseded command surface; devnet.one-world-command-surface keeps only named world commands. SDK helpers remain. | world clock warp | `devnet/operations.ts` |

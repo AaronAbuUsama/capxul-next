@@ -17233,6 +17233,111 @@
       ]
     },
     {
+      "key": "flow:devnet.snapshots.list",
+      "kind": "flow",
+      "lane": "devnet",
+      "layer": 13,
+      "parent": "lane:devnet",
+      "priority": "normal",
+      "evals": [
+        "flw:devnet.snapshots.list/budget",
+        "flw:devnet.snapshots.list/spans"
+      ],
+      "record": "flow:devnet.snapshots.list",
+      "title": "Flow: devnet.snapshots.list",
+      "labels": [
+        "kind:flow",
+        "lane:devnet",
+        "layer:13"
+      ],
+      "goal": "The Core SDK flow devnet.snapshots.list (List the worlds saved on this machine, by world time) runs its steps as its record says, within its budget and with its spans; no operation implements it, so its surfaces call it.",
+      "needs": [
+        "integration:devnet-control",
+        "milestone:m2",
+        "milestone:m3"
+      ],
+      "budgetUsd": 5,
+      "checkers": [
+        "reviewer"
+      ],
+      "paths": [
+        "books/target/devnet/",
+        "packages/backend/src/devnet/",
+        "packages/sdk/src/devnet/",
+        "packages/devnet/"
+      ]
+    },
+    {
+      "key": "flow:devnet.snapshots.restore",
+      "kind": "flow",
+      "lane": "devnet",
+      "layer": 13,
+      "parent": "lane:devnet",
+      "priority": "normal",
+      "evals": [
+        "flw:devnet.snapshots.restore/budget",
+        "flw:devnet.snapshots.restore/spans"
+      ],
+      "record": "flow:devnet.snapshots.restore",
+      "title": "Flow: devnet.snapshots.restore",
+      "labels": [
+        "kind:flow",
+        "lane:devnet",
+        "layer:13"
+      ],
+      "goal": "The Core SDK flow devnet.snapshots.restore (Put the devnet back to a saved world) runs its steps as its record says, within its budget and with its spans; no operation implements it, so its surfaces call it.",
+      "needs": [
+        "integration:devnet-control",
+        "milestone:m2",
+        "milestone:m3"
+      ],
+      "budgetUsd": 5,
+      "checkers": [
+        "reviewer"
+      ],
+      "paths": [
+        "books/target/devnet/",
+        "packages/backend/src/devnet/",
+        "packages/sdk/src/devnet/",
+        "packages/devnet/"
+      ]
+    },
+    {
+      "key": "flow:devnet.snapshots.save",
+      "kind": "flow",
+      "lane": "devnet",
+      "layer": 13,
+      "parent": "lane:devnet",
+      "priority": "normal",
+      "evals": [
+        "flw:devnet.snapshots.save/budget",
+        "flw:devnet.snapshots.save/spans"
+      ],
+      "record": "flow:devnet.snapshots.save",
+      "title": "Flow: devnet.snapshots.save",
+      "labels": [
+        "kind:flow",
+        "lane:devnet",
+        "layer:13"
+      ],
+      "goal": "The Core SDK flow devnet.snapshots.save (Save the whole devnet world under a name) runs its steps as its record says, within its budget and with its spans; no operation implements it, so its surfaces call it.",
+      "needs": [
+        "integration:devnet-control",
+        "milestone:m2",
+        "milestone:m3"
+      ],
+      "budgetUsd": 5,
+      "checkers": [
+        "reviewer"
+      ],
+      "paths": [
+        "books/target/devnet/",
+        "packages/backend/src/devnet/",
+        "packages/sdk/src/devnet/",
+        "packages/devnet/"
+      ]
+    },
+    {
       "key": "flow:devnet.time.follow",
       "kind": "flow",
       "lane": "devnet",
@@ -17338,6 +17443,41 @@
       ]
     },
     {
+      "key": "flow:devnet.time.set",
+      "kind": "flow",
+      "lane": "devnet",
+      "layer": 13,
+      "parent": "lane:devnet",
+      "priority": "normal",
+      "evals": [
+        "flw:devnet.time.set/budget",
+        "flw:devnet.time.set/spans"
+      ],
+      "record": "flow:devnet.time.set",
+      "title": "Flow: devnet.time.set",
+      "labels": [
+        "kind:flow",
+        "lane:devnet",
+        "layer:13"
+      ],
+      "goal": "The Core SDK flow devnet.time.set (Set how fast the devnet's clock runs: world seconds per real second) runs its steps as its record says, within its budget and with its spans; no operation implements it, so its surfaces call it.",
+      "needs": [
+        "integration:devnet-control",
+        "milestone:m2",
+        "milestone:m3"
+      ],
+      "budgetUsd": 5,
+      "checkers": [
+        "reviewer"
+      ],
+      "paths": [
+        "books/target/devnet/",
+        "packages/backend/src/devnet/",
+        "packages/sdk/src/devnet/",
+        "packages/devnet/"
+      ]
+    },
+    {
       "key": "flow:devnet.time.settle",
       "kind": "flow",
       "lane": "devnet",
@@ -17373,6 +17513,76 @@
       ]
     },
     {
+      "key": "flow:devnet.time.show",
+      "kind": "flow",
+      "lane": "devnet",
+      "layer": 13,
+      "parent": "lane:devnet",
+      "priority": "normal",
+      "evals": [
+        "flw:devnet.time.show/budget",
+        "flw:devnet.time.show/spans"
+      ],
+      "record": "flow:devnet.time.show",
+      "title": "Flow: devnet.time.show",
+      "labels": [
+        "kind:flow",
+        "lane:devnet",
+        "layer:13"
+      ],
+      "goal": "The Core SDK flow devnet.time.show (Read the devnet's one clock, the chain head and how far Ponder has indexed) runs its steps as its record says, within its budget and with its spans; no operation implements it, so its surfaces call it.",
+      "needs": [
+        "integration:devnet-control",
+        "milestone:m2",
+        "milestone:m3"
+      ],
+      "budgetUsd": 5,
+      "checkers": [
+        "reviewer"
+      ],
+      "paths": [
+        "books/target/devnet/",
+        "packages/backend/src/devnet/",
+        "packages/sdk/src/devnet/",
+        "packages/devnet/"
+      ]
+    },
+    {
+      "key": "flow:devnet.time.start-at",
+      "kind": "flow",
+      "lane": "devnet",
+      "layer": 13,
+      "parent": "lane:devnet",
+      "priority": "normal",
+      "evals": [
+        "flw:devnet.time.start-at/budget",
+        "flw:devnet.time.start-at/spans"
+      ],
+      "record": "flow:devnet.time.start-at",
+      "title": "Flow: devnet.time.startAt",
+      "labels": [
+        "kind:flow",
+        "lane:devnet",
+        "layer:13"
+      ],
+      "goal": "The Core SDK flow devnet.time.startAt (Set a fresh devnet's story in the past) runs its steps as its record says, within its budget and with its spans; no operation implements it, so its surfaces call it.",
+      "needs": [
+        "integration:devnet-control",
+        "milestone:m2",
+        "milestone:m3"
+      ],
+      "budgetUsd": 5,
+      "checkers": [
+        "reviewer"
+      ],
+      "paths": [
+        "books/target/devnet/",
+        "packages/backend/src/devnet/",
+        "packages/sdk/src/devnet/",
+        "packages/devnet/"
+      ]
+    },
+    {
       "key": "flow:devnet.time.step",
       "kind": "flow",
       "lane": "devnet",
@@ -17391,6 +17601,41 @@
         "layer:13"
       ],
       "goal": "The Core SDK flow devnet.time.step (Move the devnet's clock to the next instant anything is due) runs its steps as its record says, within its budget and with its spans; no operation implements it, so its surfaces call it.",
+      "needs": [
+        "integration:devnet-control",
+        "milestone:m2",
+        "milestone:m3"
+      ],
+      "budgetUsd": 5,
+      "checkers": [
+        "reviewer"
+      ],
+      "paths": [
+        "books/target/devnet/",
+        "packages/backend/src/devnet/",
+        "packages/sdk/src/devnet/",
+        "packages/devnet/"
+      ]
+    },
+    {
+      "key": "flow:devnet.time.warp",
+      "kind": "flow",
+      "lane": "devnet",
+      "layer": 13,
+      "parent": "lane:devnet",
+      "priority": "normal",
+      "evals": [
+        "flw:devnet.time.warp/budget",
+        "flw:devnet.time.warp/spans"
+      ],
+      "record": "flow:devnet.time.warp",
+      "title": "Flow: devnet.time.warp",
+      "labels": [
+        "kind:flow",
+        "lane:devnet",
+        "layer:13"
+      ],
+      "goal": "The Core SDK flow devnet.time.warp (Move the devnet's clock forward, running what falls due on the way) runs its steps as its record says, within its budget and with its spans; no operation implements it, so its surfaces call it.",
       "needs": [
         "integration:devnet-control",
         "milestone:m2",
@@ -18299,7 +18544,7 @@
         "pilot",
         "pilot-closure"
       ],
-      "goal": "`capxul world clock set` does what operation world.clock.set promises: its 1 acceptance claims and 4 refusals hold, its --json shape, events, spans and budget pass on a devnet at the head of integration/build, and its reference page agrees with it. Sets a running clock's rate, 1 to 60 world seconds per real second. The chain, the service and every company's site follow.",
+      "goal": "`capxul world clock set` does what operation world.clock.set promises: its 1 acceptance claims and 4 refusals hold, its --json shape, events, spans and budget pass on a devnet at the head of integration/build, and its reference page agrees with it. Sets the clock's rate, a whole number 1 to 60 world seconds per real second, preserving frozen or running mode. The chain, the service and every company's site follow.",
       "needs": [
         "door:devnet",
         "integration:devnet-control",
@@ -18376,6 +18621,7 @@
         "acc:world.create/2",
         "acc:world.create/3",
         "acc:world.create/4",
+        "acc:world.create/5",
         "bud:world.create/p95",
         "des:world.create",
         "doc:world.create",
@@ -18400,7 +18646,7 @@
         "pilot",
         "pilot-closure"
       ],
-      "goal": "`capxul world create` does what operation world.create promises: its 4 acceptance claims and 4 refusals hold, its --json shape, events, spans and budget pass on a devnet at the head of integration/build, and its reference page agrees with it. Makes a world: a chain with the contracts, a service, a clock and a record, from a template or empty. `--profile core|full` (default `core`), `--kind local|simulated|staging|production` (default `simulated` on the hosted service, `local` on a laptop), `--clock frozen|running` and `--rate <1 to 60>`. A hosted world answers at `core-<world>.<base>` and its companies at `<company>-<world>.<base>`. Companies are made after with `org create --world`. As easy as making a company.",
+      "goal": "`capxul world create` does what operation world.create promises: its 5 acceptance claims and 4 refusals hold, its --json shape, events, spans and budget pass on a devnet at the head of integration/build, and its reference page agrees with it. Makes a world: a chain with the contracts, a service, a clock and a record, from a template or empty. `--profile core|full` (default `core`), `--kind local|simulated|staging|production` (default `simulated` on the hosted service, `local` on a laptop), `--clock frozen|running` and `--rate <1 to 60>`. A hosted world answers at `core-<world>.<base>` and its companies at `<company>-<world>.<base>`. `--start-at <date>` sets initial time before anything runs, even before host time; it cannot reset an existing world. Companies are made after with `org create --world`. As easy as making a company.",
       "needs": [
         "door:devnet",
         "milestone:m2",
@@ -19325,318 +19571,6 @@
         "milestone:m2",
         "milestone:m3",
         "operation:dev.gates.set"
-      ],
-      "budgetUsd": 5,
-      "checkers": [
-        "reviewer"
-      ],
-      "paths": [
-        "books/target/devnet/",
-        "packages/backend/src/devnet/",
-        "packages/sdk/src/devnet/",
-        "packages/devnet/"
-      ]
-    },
-    {
-      "key": "operation:dev.snapshot.list",
-      "kind": "operation",
-      "lane": "devnet",
-      "layer": 13,
-      "parent": "lane:devnet",
-      "priority": "normal",
-      "evals": [
-        "bud:dev.snapshot.list/p95",
-        "des:dev.snapshot.list",
-        "doc:dev.snapshot.list",
-        "flw:devnet.snapshots.list/budget",
-        "flw:devnet.snapshots.list/spans",
-        "ref:dev.snapshot.list/WRONG_ENVIRONMENT",
-        "ret:dev.snapshot.list",
-        "spn:dev.snapshot.list"
-      ],
-      "record": "operation:dev.snapshot.list",
-      "title": "dev snapshot list: List snapshots",
-      "labels": [
-        "area:devnet",
-        "kind:operation",
-        "lane:devnet",
-        "layer:13"
-      ],
-      "goal": "`capxul dev snapshot list` does what operation dev.snapshot.list promises: its 0 acceptance claims and 1 refusals hold, its --json shape, events, spans and budget pass on a devnet at the head of integration/build, and its reference page agrees with it. Lists the snapshots saved on this machine, ordered by world time. Each shows its name, its world time, when you saved it, and the backend code it was saved with.",
-      "needs": [
-        "integration:devnet-control",
-        "milestone:m2",
-        "milestone:m3"
-      ],
-      "budgetUsd": 5,
-      "checkers": [
-        "reviewer"
-      ],
-      "paths": [
-        "books/target/devnet/",
-        "packages/backend/src/devnet/",
-        "packages/sdk/src/devnet/",
-        "packages/devnet/"
-      ]
-    },
-    {
-      "key": "operation:dev.snapshot.restore",
-      "kind": "operation",
-      "lane": "devnet",
-      "layer": 13,
-      "parent": "lane:devnet",
-      "priority": "normal",
-      "evals": [
-        "acc:dev.snapshot.restore/1",
-        "bud:dev.snapshot.restore/p95",
-        "des:dev.snapshot.restore",
-        "doc:dev.snapshot.restore",
-        "flw:devnet.snapshots.restore/budget",
-        "flw:devnet.snapshots.restore/spans",
-        "ref:dev.snapshot.restore/INVALID_INPUT",
-        "ref:dev.snapshot.restore/WRONG_ENVIRONMENT",
-        "ref:dev.snapshot.restore/WRONG_STATE",
-        "ret:dev.snapshot.restore",
-        "spn:dev.snapshot.restore"
-      ],
-      "record": "operation:dev.snapshot.restore",
-      "title": "dev snapshot restore: Restore a snapshot",
-      "labels": [
-        "area:devnet",
-        "kind:operation",
-        "lane:devnet",
-        "layer:13",
-        "pilot",
-        "pilot-closure"
-      ],
-      "goal": "`capxul dev snapshot restore` does what operation dev.snapshot.restore promises: its 1 acceptance claims and 3 refusals hold, its --json shape, events, spans and budget pass on a devnet at the head of integration/build, and its reference page agrees with it. Puts the devnet back to a saved snapshot: the chain, the backend data and the indexer. Use it to go back in the story, since warps only move forward.",
-      "needs": [
-        "integration:devnet-control",
-        "milestone:m2"
-      ],
-      "budgetUsd": 5,
-      "checkers": [
-        "reviewer"
-      ],
-      "paths": [
-        "books/target/devnet/",
-        "packages/backend/src/devnet/",
-        "packages/sdk/src/devnet/",
-        "packages/devnet/"
-      ]
-    },
-    {
-      "key": "operation:dev.snapshot.save",
-      "kind": "operation",
-      "lane": "devnet",
-      "layer": 13,
-      "parent": "lane:devnet",
-      "priority": "normal",
-      "evals": [
-        "bud:dev.snapshot.save/p95",
-        "des:dev.snapshot.save",
-        "doc:dev.snapshot.save",
-        "flw:devnet.snapshots.save/budget",
-        "flw:devnet.snapshots.save/spans",
-        "ref:dev.snapshot.save/INVALID_INPUT",
-        "ref:dev.snapshot.save/WRONG_ENVIRONMENT",
-        "ref:dev.snapshot.save/WRONG_STATE",
-        "ret:dev.snapshot.save",
-        "spn:dev.snapshot.save"
-      ],
-      "record": "operation:dev.snapshot.save",
-      "title": "dev snapshot save: Save a snapshot",
-      "labels": [
-        "area:devnet",
-        "kind:operation",
-        "lane:devnet",
-        "layer:13",
-        "pilot",
-        "pilot-closure"
-      ],
-      "goal": "`capxul dev snapshot save` does what operation dev.snapshot.save promises: its 0 acceptance claims and 3 refusals hold, its --json shape, events, spans and budget pass on a devnet at the head of integration/build, and its reference page agrees with it. Saves the whole devnet world under a name: the chain, the backend data and, when it runs, the indexer. Restore it later to go back to this point. Use it after each step of a story you want to replay.",
-      "needs": [
-        "integration:devnet-control",
-        "milestone:m2"
-      ],
-      "budgetUsd": 5,
-      "checkers": [
-        "reviewer"
-      ],
-      "paths": [
-        "books/target/devnet/",
-        "packages/backend/src/devnet/",
-        "packages/sdk/src/devnet/",
-        "packages/devnet/"
-      ]
-    },
-    {
-      "key": "operation:dev.time",
-      "kind": "operation",
-      "lane": "devnet",
-      "layer": 13,
-      "parent": "lane:devnet",
-      "priority": "normal",
-      "evals": [
-        "bud:dev.time/p95",
-        "des:dev.time",
-        "doc:dev.time",
-        "flw:devnet.time.show/budget",
-        "flw:devnet.time.show/spans",
-        "ref:dev.time/WRONG_ENVIRONMENT",
-        "ret:dev.time",
-        "spn:dev.time"
-      ],
-      "record": "operation:dev.time",
-      "title": "dev time: Show the clocks",
-      "labels": [
-        "area:devnet",
-        "kind:operation",
-        "lane:devnet",
-        "layer:13"
-      ],
-      "goal": "`capxul dev time` does what operation dev.time promises: its 0 acceptance claims and 1 refusals hold, its --json shape, events, spans and budget pass on a devnet at the head of integration/build, and its reference page agrees with it. Shows both devnet clocks: the chain's and the backend's, and whether they agree. It also shows the chain's block and whether the indexer has caught up. Use it to check where the story stands before and after a warp.",
-      "needs": [
-        "integration:devnet-control",
-        "milestone:m2",
-        "milestone:m3"
-      ],
-      "budgetUsd": 5,
-      "checkers": [
-        "reviewer"
-      ],
-      "paths": [
-        "books/target/devnet/",
-        "packages/backend/src/devnet/",
-        "packages/sdk/src/devnet/",
-        "packages/devnet/"
-      ]
-    },
-    {
-      "key": "operation:dev.time.set",
-      "kind": "operation",
-      "lane": "devnet",
-      "layer": 13,
-      "parent": "lane:devnet",
-      "priority": "normal",
-      "evals": [
-        "acc:dev.time.set/1",
-        "acc:dev.time.set/2",
-        "acc:dev.time.set/3",
-        "acc:dev.time.set/4",
-        "acc:dev.time.set/5",
-        "bud:dev.time.set/p95",
-        "des:dev.time.set",
-        "doc:dev.time.set",
-        "flw:devnet.time.set/budget",
-        "flw:devnet.time.set/spans",
-        "ref:dev.time.set/INVALID_INPUT",
-        "ref:dev.time.set/ROLE_PERMISSION_DENIED",
-        "ref:dev.time.set/WRONG_ENVIRONMENT",
-        "ret:dev.time.set",
-        "spn:dev.time.set"
-      ],
-      "record": "operation:dev.time.set",
-      "title": "dev time set: Set how fast the devnet's clock runs",
-      "labels": [
-        "area:devnet",
-        "kind:operation",
-        "lane:devnet",
-        "layer:13"
-      ],
-      "goal": "`capxul dev time set` does what operation dev.time.set promises: its 5 acceptance claims and 3 refusals hold, its --json shape, events, spans and budget pass on a devnet at the head of integration/build, and its reference page agrees with it. Sets the rate of the devnet's one clock: how many seconds of world time pass in each real second while it runs, a whole number from 1 to 60. At 4, a real hour moves the world up to four hours, less the moments the clock stands at each due instant on the way: the chain's blocks, the backend's timers and crons, the mail sink's dates, the stand-ins and a connected head all follow it. A frozen clock stays frozen and runs at the rate when it resumes. Warps are unchanged: a warp moves the clock as far as it is told, whatever the rate.",
-      "needs": [
-        "integration:devnet-control",
-        "milestone:m2",
-        "milestone:m3"
-      ],
-      "budgetUsd": 5,
-      "checkers": [
-        "reviewer"
-      ],
-      "paths": [
-        "books/target/devnet/",
-        "packages/backend/src/devnet/",
-        "packages/sdk/src/devnet/",
-        "packages/devnet/"
-      ]
-    },
-    {
-      "key": "operation:dev.time.start-at",
-      "kind": "operation",
-      "lane": "devnet",
-      "layer": 13,
-      "parent": "lane:devnet",
-      "priority": "normal",
-      "evals": [
-        "bud:dev.time.start-at/p95",
-        "des:dev.time.start-at",
-        "doc:dev.time.start-at",
-        "flw:devnet.time.start-at/budget",
-        "flw:devnet.time.start-at/spans",
-        "ref:dev.time.start-at/INVALID_INPUT",
-        "ref:dev.time.start-at/WRONG_ENVIRONMENT",
-        "ref:dev.time.start-at/WRONG_STATE",
-        "ret:dev.time.start-at",
-        "spn:dev.time.start-at"
-      ],
-      "record": "operation:dev.time.start-at",
-      "title": "dev time start-at: Start in the past",
-      "labels": [
-        "area:devnet",
-        "kind:operation",
-        "lane:devnet",
-        "layer:13"
-      ],
-      "goal": "`capxul dev time start-at` does what operation dev.time.start-at promises: its 0 acceptance claims and 3 refusals hold, its --json shape, events, spans and budget pass on a devnet at the head of integration/build, and its reference page agrees with it. Sets the story in the past before it begins. Both clocks move back to the date you give, and from then on the story only moves forward with warps. Use it to replay a story set in an earlier year.",
-      "needs": [
-        "integration:devnet-control",
-        "milestone:m2",
-        "milestone:m3"
-      ],
-      "budgetUsd": 5,
-      "checkers": [
-        "reviewer"
-      ],
-      "paths": [
-        "books/target/devnet/",
-        "packages/backend/src/devnet/",
-        "packages/sdk/src/devnet/",
-        "packages/devnet/"
-      ]
-    },
-    {
-      "key": "operation:dev.time.warp",
-      "kind": "operation",
-      "lane": "devnet",
-      "layer": 13,
-      "parent": "lane:devnet",
-      "priority": "normal",
-      "evals": [
-        "bud:dev.time.warp/p95",
-        "des:dev.time.warp",
-        "doc:dev.time.warp",
-        "flw:devnet.time.warp/budget",
-        "flw:devnet.time.warp/spans",
-        "ref:dev.time.warp/INVALID_INPUT",
-        "ref:dev.time.warp/WRONG_ENVIRONMENT",
-        "ret:dev.time.warp",
-        "spn:dev.time.warp"
-      ],
-      "record": "operation:dev.time.warp",
-      "title": "dev time warp: Move time forward",
-      "labels": [
-        "area:devnet",
-        "kind:operation",
-        "lane:devnet",
-        "layer:13",
-        "pilot",
-        "pilot-closure"
-      ],
-      "goal": "`capxul dev time warp` does what operation dev.time.warp promises: its 0 acceptance claims and 2 refusals hold, its --json shape, events, spans and budget pass on a devnet at the head of integration/build, and its reference page agrees with it. Moves the chain and backend clocks forward together, by a duration such as `6h` or `28d`, or to a date with `--to`. After the move it runs the backend jobs that fell due. Use it to reach the next payday, claim or due date without waiting.",
-      "needs": [
-        "integration:devnet-control",
-        "milestone:m2"
       ],
       "budgetUsd": 5,
       "checkers": [
@@ -20644,19 +20578,19 @@
         "operation:dev.mail.list",
         "operation:dev.mail.notices",
         "operation:dev.prices.set",
-        "operation:dev.snapshot.list",
-        "operation:dev.snapshot.restore",
-        "operation:dev.snapshot.save",
-        "operation:dev.time",
-        "operation:dev.time.start-at",
-        "operation:dev.time.warp",
         "operation:doctor",
         "operation:key.create",
         "operation:key.list",
         "operation:key.revoke",
         "operation:key.rotate",
         "operation:schema",
-        "operation:use.env"
+        "operation:use.env",
+        "operation:world.clock.warp",
+        "operation:world.create",
+        "operation:world.show",
+        "operation:world.snapshot.list",
+        "operation:world.snapshot.restore",
+        "operation:world.snapshot.save"
       ],
       "labels": [
         "kind:journey",

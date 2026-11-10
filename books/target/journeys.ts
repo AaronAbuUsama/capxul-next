@@ -1,3 +1,4 @@
+import * as worldOps from "./devnet/world-ops.ts";
 // The target book's journeys: the old book's 13 (apps/docs/factory/journeys/*.yaml in the old
 // repository, each a key, its operations in order and its chapters), as journey records. Each step is
 // the target record of a frozen operation, the system actor who takes it (shared/foundation.ts,
@@ -287,9 +288,9 @@ export const journey_build_on_capxul = defineJourney({
     step(applications.operation_key_rotate, "developer", event_app_key_transitioned),
     step(applications.operation_key_revoke, "developer", event_app_key_transitioned),
     step(applications.operation_dev_key, "developer", "success"),
-    step(devnet.operation_dev_time, "developer", "success"),
-    step(devnet.operation_dev_time_start_at, "developer", "success"),
-    step(devnet.operation_dev_time_warp, "developer", "success"),
+    step(worldOps.operation_world_show, "developer", "success"),
+    step(worldOps.operation_world_create, "developer", "success"),
+    step(worldOps.operation_world_clock_warp, "developer", "success"),
     step(devnet.operation_dev_prices_set, "developer", "success"),
     step(devnet.operation_dev_gates_set, "developer", "success"),
     step(devnet.operation_dev_approve, "developer", event_approval_transitioned),
@@ -297,9 +298,9 @@ export const journey_build_on_capxul = defineJourney({
     step(devnet.operation_dev_mail_list, "developer", "success"),
     step(devnet.operation_dev_mail_notices, "developer", "success"),
     step(devnet.operation_dev_mail_fail, "developer", "success"),
-    step(devnet.operation_dev_snapshot_save, "developer", "success"),
-    step(devnet.operation_dev_snapshot_list, "developer", "success"),
-    step(devnet.operation_dev_snapshot_restore, "developer", "success"),
+    step(worldOps.operation_world_snapshot_save, "developer", "success"),
+    step(worldOps.operation_world_snapshot_list, "developer", "success"),
+    step(worldOps.operation_world_snapshot_restore, "developer", "success"),
   ],
   was: [`${OLD}/build_on_capxul.yaml (chapters S1 to S12, S14, S27 to S29)`, `${CATALOG}:69`, `${CONTRACTS}/build-on-capxul-contract.ts`],
 });

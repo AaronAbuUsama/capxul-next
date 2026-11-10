@@ -1,3 +1,4 @@
+import * as worldOps from "./world-ops.ts";
 // Devnet's own judgments, one decision record each. The architecture's judgments about devnet are
 // in ../shared/decisions.ts (concepts.devnet, components.devnet, environments.devnet,
 // operations.dev-mail-notices-in-devnet, responsibilities.operator-proof-tools,
@@ -73,16 +74,16 @@ const TIME_FLOWS = [
   flow_devnet_time_resume, flow_devnet_time_step, flow_devnet_time_settle, flow_devnet_time_watch, flow_devnet_time_follow,
 ];
 const SUPERVISOR_FLOWS = [...TIME_FLOWS, flow_devnet_snapshots_list, flow_devnet_snapshots_save, flow_devnet_snapshots_restore];
-const TIME_OPS = [ops.operation_dev_time, ops.operation_dev_time_warp, ops.operation_dev_time_start_at, ops.operation_dev_time_set];
+const TIME_OPS = [worldOps.operation_world_show, worldOps.operation_world_clock_warp, worldOps.operation_world_create, worldOps.operation_world_clock_set];
 /** The time design's own evidence (docs/design/time.md). */
 const TIME = (evidence: string) => `Claude, time design, 8 November 2026; evidence: ${evidence}`;
 const OLD_WORLD = "/home/user/factory packages/devnet/src/modules/world";
 const BENCH = "/home/user/factory packages/vending-bench/src";
 const OPERATIONS = [
-  ops.operation_dev_time, ops.operation_dev_time_warp, ops.operation_dev_time_start_at, ops.operation_dev_snapshot_save,
-  ops.operation_dev_snapshot_list, ops.operation_dev_snapshot_restore, ops.operation_dev_prices_set, ops.operation_dev_gates_set,
+  worldOps.operation_world_show, worldOps.operation_world_clock_warp, worldOps.operation_world_create, worldOps.operation_world_snapshot_save,
+  worldOps.operation_world_snapshot_list, worldOps.operation_world_snapshot_restore, ops.operation_dev_prices_set, ops.operation_dev_gates_set,
   ops.operation_dev_approve, ops.operation_dev_jobs_run, ops.operation_dev_mail_list, ops.operation_dev_mail_fail,
-  ops.operation_dev_mail_notices, ops.operation_dev_time_set,
+  ops.operation_dev_mail_notices, worldOps.operation_world_clock_set,
 ];
 
 // ── data ────────────────────────────────────────────────────────────────────────────────────
@@ -481,7 +482,7 @@ export const decision_devnet_warp_barrier = defineDecision({
     "moves at once would interleave their stops, and a follower that called settle from its own handler would wait on " +
     "itself. Revised by the time review, 8 November 2026.",
   source: TIME(`${OLD_WORLD}/service.ts:465-535; ${BENCH}/devnet-world.ts:123-140 (waitUntil); node_modules/effect/src/testing/TestClock.ts (sleeps woken earliest first)`),
-  affects: [flow_devnet_time_warp, flow_devnet_time_step, flow_devnet_time_settle, ops.operation_dev_time_warp, rpc_devnet_jobs_run, integration_devnet_control, component_devnet],
+  affects: [flow_devnet_time_warp, flow_devnet_time_step, flow_devnet_time_settle, worldOps.operation_world_clock_warp, rpc_devnet_jobs_run, integration_devnet_control, component_devnet],
 });
 
 export const decision_devnet_time_protocol = defineDecision({
@@ -649,7 +650,7 @@ export const decision_devnet_start_at = defineDecision({
     "first, so B0 checks on the pinned Ponder that every event of such later-mined, earlier-dated blocks is indexed; if " +
     "it is not, start-at is only `up --start-at` (decision record). Added by the time review, 8 November 2026.",
   source: TIME(`${OLD_WORLD}/README.md (start-at); ${OLD_WORLD}/service.ts:417-460; apps/docs/factory/operations/dev.time.start-at.yaml`),
-  affects: [flow_devnet_time_start_at, ops.operation_dev_time_start_at, integration_devnet_control, component_devnet],
+  affects: [flow_devnet_time_start_at, worldOps.operation_world_create, integration_devnet_control, component_devnet],
 });
 
 export const decision_devnet_control_refusals = defineDecision({
@@ -1049,8 +1050,8 @@ export const decision_devnet_no_acceptance = defineDecision({
     "eval runs.",
   source: `Claude, handoff to the build, 8 November 2026; evidence: the 35 no-acceptance gaps of the built target book; equity.acceptance`,
   affects: [
-    concept_devnet, ops.operation_dev_time, ops.operation_dev_time_warp, ops.operation_dev_time_start_at, ops.operation_dev_snapshot_save,
-    ops.operation_dev_snapshot_list, ops.operation_dev_prices_set, ops.operation_dev_gates_set, ops.operation_dev_approve,
+    concept_devnet, worldOps.operation_world_show, worldOps.operation_world_clock_warp, worldOps.operation_world_create, worldOps.operation_world_snapshot_save,
+    worldOps.operation_world_snapshot_list, ops.operation_dev_prices_set, ops.operation_dev_gates_set, ops.operation_dev_approve,
     ops.operation_dev_jobs_run, ops.operation_dev_mail_list,
   ],
 });
@@ -1331,7 +1332,7 @@ export const decision_devnet_clock_rate = defineDecision({
     "stands until he answers.",
   source: WORLD_CLOCK("books/target/shared/rulings.ts (aaron.world-clock); books/target/access/decisions.ts (a code lasts five minutes); docs/design/new-commands.md (G3 `set`)"),
   affects: [
-    flow_devnet_time_set, ops.operation_dev_time_set, flow_devnet_time_show, flow_devnet_time_resume, flow_devnet_time_freeze,
+    flow_devnet_time_set, worldOps.operation_world_clock_set, flow_devnet_time_show, flow_devnet_time_resume, flow_devnet_time_freeze,
     flow_devnet_snapshots_save, flow_devnet_snapshots_restore, integration_devnet_control, component_devnet, environment_devnet,
     environment_shared_world,
   ],
@@ -1547,7 +1548,7 @@ export const decision_devnet_shared_world = defineDecision({
   source: WORLD_CLOCK("aaron.world-clock; devnet.approve-as (dev signers from the seed and the email); books/target/access/flows.ts (CAPXUL_BOOTSTRAP_URL); devnet.devnet-only-rpcs"),
   affects: [
     environment_shared_world, component_devnet, integration_devnet_control, concept_devnet, rpc_devnet_mail_list,
-    rpc_devnet_mail_list_notices, flow_devnet_approve, flow_devnet_time_set, flow_devnet_time_follow, ops.operation_dev_time_set,
+    rpc_devnet_mail_list_notices, flow_devnet_approve, flow_devnet_time_set, flow_devnet_time_follow, worldOps.operation_world_clock_set,
   ],
 });
 
@@ -1646,8 +1647,8 @@ export const decision_devnet_stateful_followers = defineDecision({
     "namespace's agents under a name, beside its timers on an outside clock (devnet.fde-host-follows-world).",
   source: SEASONS("devnet.site-follows-world; devnet.fde-host-follows-world; devnet.own-schema; Frappe's bench backup and restore"),
   affects: [
-    flow_devnet_time_follow, flow_devnet_snapshots_save, flow_devnet_snapshots_restore, ops.operation_dev_snapshot_save,
-    ops.operation_dev_snapshot_restore, integration_devnet_control, integration_fde_host,
+    flow_devnet_time_follow, flow_devnet_snapshots_save, flow_devnet_snapshots_restore, worldOps.operation_world_snapshot_save,
+    worldOps.operation_world_snapshot_restore, integration_devnet_control, integration_fde_host,
     component_frappe_app, component_devnet,
   ],
 });

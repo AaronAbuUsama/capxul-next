@@ -23,7 +23,7 @@ export const decision_devnet_world_first_class = dec({
   title: "A world is a chain, its companies, one clock and one record, and is first-class",
   question: "What is a world, and what happens to the eval 'worlds' the book already names?",
   options: [
-    { label: "world-is-chain-companies-clock-record", text: "A world is one chain with every company on it, sharing one clock and one record; never one company. A company (an Organization) lives in exactly one world, named at `org create --world`. The clock, the record and snapshots belong to the world. Kinds: a local devnet (one developer, one machine), and simulated worlds, each with its own companies and clock speed (real time or faster, or stepped). `world create|list|show|register`, the world's clock verbs and `world snapshot save|list|restore [--as]` are operations at full resolution. The book's 139 named eval 'worlds' are templates (a snapshot meant to be copied, or the `from` plus `steps` that build one): the word is changed in the stage 3 records and text, and the ids and every refusal's `given` are kept as they are, because renaming them would churn hundreds of links. `dev time` and `dev snapshot` are the same supervisor addressed as the devnet's one world; the world verbs address it by name." },
+    { label: "world-is-chain-companies-clock-record", text: "A world is one chain with every company on it, sharing one clock and one record; never one company. A company (an Organization) lives in exactly one world, named at `org create --world`. The clock, the record and snapshots belong to the world. Kinds: a local devnet (one developer, one machine), and simulated worlds, each with its own companies and clock speed (real time or faster, or stepped). `world create|list|show|register`, the world's clock verbs and `world snapshot save|list|restore [--as]` are operations at full resolution. The book's 139 named eval 'worlds' are templates (a snapshot meant to be copied, or the `from` plus `steps` that build one): the word is changed in the stage 3 records and text, and the ids and every refusal's `given` are kept as they are, because renaming them would churn hundreds of links. Only the world verbs address it by name (devnet.one-world-command-surface); the old dev command surface is retired." },
     { label: "one-company-world", text: "Keep 'world' as the book used it, a named snapshot an eval starts from." },
   ],
   chosen: "world-is-chain-companies-clock-record",
@@ -109,4 +109,13 @@ export const decision_devnet_world_registers = dec({
   chosen: "register-and-park",
   why: "The owner, 10 November, relayed by the coordinator: one hosted bench shared by everything, including local devnets, whose service the bench cannot reach.",
   affects: [f.system_capxul, f.concept_devnet, f.concept_sites, r.rpc_devnet_worlds_register, o.operation_world_register, w.workflow_devnet_worlds_park_idle, d.table_world_registrations, integration_site_service],
+});
+
+export const decision_devnet_one_world_command_surface = dec({
+ id: "devnet.one-world-command-surface", title: "One world command surface, no dev aliases",
+ question: "Keep dev time and dev snapshot beside world commands?",
+ options: [{ label: "world-only", text: "dev.time is reached by world show; dev.time.warp by world clock warp; dev.time.start-at by world create --start-at, before anything runs. dev.snapshot.save, dev.snapshot.list and dev.snapshot.restore are reached by world snapshot save, list and restore. The target-only dev.time.set is retired in favour of world clock set. SDK supervisor helpers remain SDK-only. Original records: docs/cut-archive/devnet/operations.ts." }, { label: "dev-only", text: "Keep the implicit single-world dev commands instead of the named world surface." }],
+ chosen: "world-only",
+ why: "aaron.world-clock and devnet.world-first-class put time and snapshots on named worlds. Two spellings drift. Classify the six frozen capabilities as reached, not dropped; no CLI aliases. Keep start-at as a creation-only option, including dates before host time; later backwards movement stays INVALID_INPUT. Restore still covers chain, backend, indexer, faults and stateful followers. Keep environment isolation, name validation and version-mismatch refusal. Rate changes preserve frozen mode; resume alone starts it. Hosted grants still guard access. Historical decisions describe the prior surface, not aliases.",
+ affects: [f.concept_devnet, ...WORLD_OPS, r.rpc_devnet_worlds_create, r.rpc_devnet_worlds_clock_set],
 });
