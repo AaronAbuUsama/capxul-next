@@ -20,7 +20,8 @@ const ROOT = join(dirname(fileURLToPath(import.meta.url)), "../../..");
 /** Everything that may be at the top level, and why. To add an entry, add its reason; a README row is not enough. */
 export const ALLOWED: Allowlist = {
   "README.md": "the front door: what this is and where things are",
-  "CLAUDE.md": "the rules an agent follows here, and the checks",
+  "AGENTS.md": "the rules every agent follows here, the roles and the checks",
+  "CLAUDE.md": "a link to AGENTS.md, so Claude reads the same rules",
   "START-HERE.md": "the owner's direction of 9 November 2026; the blueprint cites it as evidence",
   "GROUNDING.md": "what is being built and why, in the owner's words; the blueprint cites it",
   "blueprint": "the design: the blueprint, with the old system's behaviour in baseline/",
@@ -37,7 +38,7 @@ export const ALLOWED: Allowlist = {
   "pnpm-workspace.yaml": "the workspace and the dependency catalog",
   ".gitignore": "git",
   ".github": "the pull request template and issue forms",
-  ".claude": "the agents' role prompts (read by the loop) and the preview launcher",
+  ".claude": "the agents' role prompts (read by the loop), the coordinator's skills and the preview launcher",
 };
 
 export const LIMIT = 300;

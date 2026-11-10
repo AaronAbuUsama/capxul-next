@@ -21,7 +21,8 @@ book" or "the book" and lived in `books/`; older documents and records still say
 | Entry | What it is | What uses it |
 |---|---|---|
 | `README.md` | The front door: what this is and where things are | people |
-| `CLAUDE.md` | The rules an agent follows here, and the checks | every agent session |
+| `AGENTS.md` | The rules every agent follows here, the roles (coordinator and workers) and the checks | every agent session |
+| `CLAUDE.md` | A link to `AGENTS.md` | Claude sessions |
 | `START-HERE.md` | The owner's direction of 9 November, kept as a record | the blueprint cites it as evidence |
 | `GROUNDING.md` | The four fixed points of the product, in Aaron's words | the blueprint and the plan cite it |
 | `blueprint/` | The design, as typed records: one folder per concept and `shared/`; `baseline/` is the old system's behaviour, never edited | `packages/blueprint-engine` builds it; every check reads it |
@@ -34,14 +35,14 @@ book" or "the book" and lived in `books/`; older documents and records still say
 | `docs/` | Written designs, evidence and generated reports (below) | the blueprint cites most of it |
 | `archive/` | Dead material at its old path; `archive/README.md` lists each thing | nothing live |
 | `var/` | Loop run folders, on the machine that ran them; not in git | `pnpm loop` |
-| `.claude/` | `agents/`: the role prompts the loop gives its agents; `launch.json` | `packages/loop` reads `agents/<role>.md` |
+| `.claude/` | `agents/`: the role prompts the loop gives its agents; `skills/`: the coordinator's skills (coordinate, plan-tasks, dispatch, ask-aaron, portal-ops); `launch.json` | `packages/loop` reads `agents/<role>.md` |
 | `.github/` | The pull request template and twelve issue forms written for the swarmD ledger | `docs/design/swarm*.md`, three blueprint files |
 | `package.json`, `pnpm-lock.yaml`, `pnpm-workspace.yaml`, `.gitignore` | The workspace | pnpm, git |
 
 | | Directories | Documents |
 |---|---|---|
 | 10 November, before | `books demo docs evals kit loops packages plan runs spikes status tools` | `CLAUDE.md GROUNDING.md HANDOFF.md README.md START-HERE.md` |
-| Now | `archive blueprint docs evals loops packages plan spikes status` (+ `var/`, ignored) | `CLAUDE.md GROUNDING.md README.md START-HERE.md` |
+| Now | `archive blueprint docs evals loops packages plan spikes status` (+ `var/`, ignored) | `AGENTS.md CLAUDE.md GROUNDING.md README.md START-HERE.md` |
 
 ## `packages/`
 
@@ -75,7 +76,8 @@ Every `pnpm` script name is unchanged.
 
 | Entry | What it is | What uses it |
 |---|---|---|
-| `blueprint.md` | How the blueprint works, end to end | `CLAUDE.md`, the blueprint, three packages |
+| `philosophy.md` | How every person and agent works here: climb, behave, survive, stay small | `AGENTS.md`, the coordinator's skills |
+| `blueprint.md` | How the blueprint works, end to end | `AGENTS.md`, the blueprint, three packages |
 | `repository-map.md` | This page | `README.md` |
 | `as-is/archive/` | The old system written as records (133 files) | 99 blueprint files, `docs/cut-archive` |
 | `as-is/lane-reports/` | Reviews of the old system by lane (46 files) | 4 blueprint files |
