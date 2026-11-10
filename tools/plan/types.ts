@@ -53,6 +53,8 @@ export interface Task {
   readonly blockedBy?: Blocker;
   /** Book record keys it concerns, as `kind:id`. */
   readonly records: readonly string[];
+  /** Eval ids of the book that say it is done: it is done when they pass in a run (`pnpm evals`), not when an agent says so. */
+  readonly evals?: readonly string[];
   /** Commits or paths. */
   readonly evidence: readonly string[];
   readonly droppedWhy?: string;
@@ -121,6 +123,7 @@ export interface TaskFields {
   readonly milestone?: string;
   readonly needs?: readonly string[];
   readonly records?: readonly string[];
+  readonly evals?: readonly string[];
   readonly thread?: string;
 }
 

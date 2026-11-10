@@ -48,10 +48,11 @@ const taskOf = (u: unknown, i: number): Result<Task> => {
   const id = str(u["id"]), title = str(u["title"]), why = str(u["why"]), milestone = str(u["milestone"]);
   const created = str(u["created"]), updated = str(u["updated"]);
   const needs = strs(u["needs"]), records = strs(u["records"]), evidence = strs(u["evidence"]);
+  const evals = u["evals"] === undefined ? [] : strs(u["evals"]);
   if (id === null || title === null || why === null || milestone === null || created === null || updated === null) {
     return fail(at, "a task has an id, title, why, milestone, created and updated");
   }
-  if (needs === null || records === null || evidence === null) return fail(id, "needs, records and evidence are lists of strings");
+  if (needs === null || records === null || evidence === null || evals === null) return fail(id, "needs, records, evals and evidence are lists of strings");
   if (typeof u["state"] !== "string" || !TASK_STATES.includes(u["state"])) return fail(id, `state is one of ${TASK_STATES.join(", ")}`);
   const blocker = blockerOf(id, u["blockedBy"]);
   if (!blocker.ok) return blocker;
@@ -60,7 +61,7 @@ const taskOf = (u: unknown, i: number): Result<Task> => {
     ok: true,
     value: {
       id, title, why, milestone, state: u["state"] as Task["state"], needs, records, evidence, created, updated,
-      ...(thread !== null ? { thread } : {}), ...(blocker.value ? { blockedBy: blocker.value } : {}), ...(droppedWhy !== null ? { droppedWhy } : {}),
+      ...(evals.length > 0 ? { evals } : {}), ...(thread !== null ? { thread } : {}), ...(blocker.value ? { blockedBy: blocker.value } : {}), ...(droppedWhy !== null ? { droppedWhy } : {}),
     },
   };
 };

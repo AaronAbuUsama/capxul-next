@@ -41,7 +41,7 @@ const USAGE = [
   "       plan task add <id> --title <t> --milestone <id> --why <t> --what <t> --done-when <t> [--done-when <t>…] [--needs a,b] [--records k,k]   (or --detail-file <md> in place of --what and --done-when)",
   "       plan task start <id> --thread <name> | unblock <id> | done <id> [--evidence <ref>] | drop <id> --why <t>",
   "       plan task block <id> (--decision <id> | --need <t> --who <name>)",
-  "       plan task edit <id> [--title t] [--why t] [--milestone m] [--needs a,b] [--records k,k] [--thread name]",
+  "       plan task edit <id> [--title t] [--why t] [--milestone m] [--needs a,b] [--records k,k] [--evals id,id] [--thread name]",
   "       plan path set <task ids...> --why <t>        (every change takes --by <name>, default coordinator)",
 ].join("\n");
 
@@ -53,11 +53,11 @@ const fail = (error: string): Result<never> => ({ ok: false, error: `${error}\n$
 
 const fieldsOf = (p: Parsed): TaskFields => {
   const f = (n: string): string | undefined => p.flags.get(n);
-  const needs = list(f("needs")), records = list(f("records"));
+  const needs = list(f("needs")), records = list(f("records")), evals = list(f("evals"));
   return {
     ...(f("title") !== undefined ? { title: f("title") as string } : {}), ...(f("why") !== undefined ? { why: f("why") as string } : {}),
     ...(f("milestone") !== undefined ? { milestone: f("milestone") as string } : {}), ...(f("thread") !== undefined ? { thread: f("thread") as string } : {}),
-    ...(needs ? { needs } : {}), ...(records ? { records } : {}),
+    ...(needs ? { needs } : {}), ...(records ? { records } : {}), ...(evals ? { evals } : {}),
   };
 };
 

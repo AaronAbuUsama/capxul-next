@@ -36,8 +36,20 @@ export const show = (plan: Plan, problems: readonly Problem[] | null, answers: r
   return lines.join("\n");
 };
 
-/** One task in full: its state, thread, links, its file as written, and its history in the log. */
-export const showTask = (plan: Plan, id: string, file: string | null, log: readonly LogEntry[]): string => {
+/** The part of the status document a task's line needs: the verdict of each eval that has one. */
+export interface Verdicts { readonly evals: Readonly<Record<string, { readonly verdict: string }>> }
+
+/** What a task's evals say: how many pass in the status document, and the ones that do not. A task is done when they pass in a run. */
+export const evalsLine = (t: Task, status: Verdicts | null): string[] => {
+  const ids = t.evals ?? [];
+  if (ids.length === 0) return [];
+  const verdict = (id: string): string => status?.evals[id]?.verdict ?? "not_run";
+  const rest = ids.filter((e) => verdict(e) !== "pass");
+  return [`  evals: ${ids.length - rest.length} of ${ids.length} pass${rest.length ? `; not yet: ${rest.map((e) => `${e} (${verdict(e).replace("_", " ")})`).join(", ")}` : ""}`];
+};
+
+/** One task in full: its state, thread, links, evals, its file as written, and its history in the log. */
+export const showTask = (plan: Plan, id: string, file: string | null, log: readonly LogEntry[], status: Verdicts | null = null): string => {
   const t = plan.tasks.find((x) => x.id === id);
   if (!t) return `no task ${id}`;
   const needing = plan.tasks.filter((x) => x.needs.includes(id)).map((x) => x.id);
@@ -45,7 +57,7 @@ export const showTask = (plan: Plan, id: string, file: string | null, log: reado
   return [
     `${t.id}  ${t.title}`, `  milestone ${t.milestone} · ${t.state}${t.thread ? ` · thread ${t.thread}` : ""}${t.state === "blocked" ? ` · waiting: ${blockerLine(t)}` : ""}`,
     `  needs: ${t.needs.join(", ") || "nothing"} · needed by: ${needing.join(", ") || "nothing"} · created ${t.created}, updated ${t.updated}`,
-    ...(t.records.length ? [`  records: ${t.records.join(", ")}`] : []), ...(t.evidence.length ? [`  evidence: ${t.evidence.join("; ")}`] : []), "",
+    ...(t.records.length ? [`  records: ${t.records.join(", ")}`] : []), ...evalsLine(t, status), ...(t.evidence.length ? [`  evidence: ${t.evidence.join("; ")}`] : []), "",
     file ?? "(no file plan/tasks/" + id + ".md)", "", "History", ...mine.map((l) => `  ${l.at.slice(0, 16).replace("T", " ")}  ${l.by}  ${l.action}`),
   ].join("\n");
 };

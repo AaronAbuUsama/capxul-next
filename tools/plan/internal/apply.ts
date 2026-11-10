@@ -37,12 +37,13 @@ const editTask = (plan: Plan, t: Task, f: TaskFields, ctx: Ctx, facts: Facts): R
   const e =
     (f.milestone !== undefined && !plan.milestones.some((m) => m.id === f.milestone) ? `no milestone ${f.milestone}` : null) ??
     missing("task", f.needs ?? [], (id) => plan.tasks.some((x) => x.id === id) && id !== t.id) ??
-    missing("record", f.records ?? [], (k) => facts.records.has(k));
+    missing("record", f.records ?? [], (k) => facts.records.has(k)) ??
+    missing("eval", f.evals ?? [], (id) => facts.evals.has(id));
   if (e) return refuse(e);
   const next: Task = {
     ...t, updated: ctx.date, ...(f.title !== undefined ? { title: f.title } : {}), ...(f.why !== undefined ? { why: f.why } : {}),
     ...(f.milestone !== undefined ? { milestone: f.milestone } : {}), ...(f.needs !== undefined ? { needs: f.needs } : {}),
-    ...(f.records !== undefined ? { records: f.records } : {}), ...(f.thread !== undefined ? { thread: f.thread } : {}),
+    ...(f.records !== undefined ? { records: f.records } : {}), ...(f.evals !== undefined ? { evals: f.evals } : {}), ...(f.thread !== undefined ? { thread: f.thread } : {}),
   };
   return { ok: true, value: withTask(plan, next) };
 };

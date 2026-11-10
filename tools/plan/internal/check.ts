@@ -80,6 +80,7 @@ export const check = (plan: Plan, facts: Facts, files?: PlanFiles): readonly Pro
       } else if (b.need.trim() === "" || b.who.trim() === "") bad(t.id, "its blocker names no need or no one");
     }
     for (const key of t.records) if (!facts.records.has(key)) bad(t.id, `it names record ${key}, which the book does not hold`);
+    for (const id of t.evals ?? []) if (!facts.evals.has(id)) bad(t.id, `it names eval ${id}, which the book does not derive`);
     if (t.state === "dropped" && (t.droppedWhy ?? "").trim() === "") bad(t.id, "it is dropped, and says no why");
   }
   const cycle = cycleOf(plan);
