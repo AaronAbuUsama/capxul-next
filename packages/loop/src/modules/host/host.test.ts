@@ -12,25 +12,29 @@ import { runsContract, serve, type HostDeps } from "./service.ts";
 const run = (id: string, step: string): RunDetail => ({ id, task: { id: "t", title: "T", goal: "" }, workflow: "pair", status: "running", round: 1, rounds: 3, startedAt: `2026-11-10T10:00:0${id.length}.000Z`, endedAt: null, updatedAt: "", tokens: 0, branch: null, base: null, reasons: [], error: null, step, steps: [], agents: [], captures: [], superseded: null });
 const until = async (ok: () => boolean): Promise<void> => { for (let i = 0; i < 200 && !ok(); i++) await new Promise((r) => setTimeout(r, 10)); assert.ok(ok(), "timed out"); };
 
-test("a client that attaches gets the runs, then what changes; a run that did not change is not read again; stop reaches the owner", async () => {
-  const loads: string[] = [], stops: string[] = [];
+test("a client that attaches gets the runs, then what changes; a run that did not change is not read again; stop and a note reach the owner", async () => {
+  const loads: string[] = [], stops: string[] = [], notes: unknown[] = [];
   let stamp = "1", step = "make.1";
   const deps: HostDeps = {
     ids: () => [{ id: "a", stamp: "fixed" }, { id: "bb", stamp }],
     load: async (id) => { loads.push(id); return run(id, id === "bb" ? step : "lane"); },
     stop: (id) => { stops.push(id); return `stop asked of ${id}`; },
+    note: async (id, n) => { notes.push([id, n]); return { ok: true, said: `sent to ${n.agent}` }; },
     say: () => undefined,
   };
   const served = await serve(deps, { port: 0, everyMs: 20 });
   const client = chord.createHost({ self: { kind: "host" }, name: "page", kind: "client", onError: () => undefined, upstream: { link: chord.webSocketLink(new WebSocket(served.url) as never), principal: { kind: "server" } } } as never);
   try {
-    const runs = await (client as unknown as { get: (t: unknown, i: unknown) => Promise<{ runs: { value: RunDetail[] }; stop: (i: { run: string }) => Promise<{ said: string }> }> }).get(runsContract(chord as never, schema as never), {});
+    const runs = await (client as unknown as { get: (t: unknown, i: unknown) => Promise<{ runs: { value: RunDetail[] }; stop: (i: { run: string }) => Promise<{ said: string }>; note: (i: { run: string; agent: string; text: string; mode: string }) => Promise<{ ok: boolean; said: string }> }> }).get(runsContract(chord as never, schema as never), {});
     assert.deepEqual(runs.runs.value.map((r) => `${r.id}:${r.step}`), ["bb:make.1", "a:lane"]);            // newest first
     stamp = "2"; step = "gates.1";
     await until(() => runs.runs.value[0]?.step === "gates.1");
     assert.equal(loads.filter((id) => id === "a").length, 1, "the run that did not change was read once");
     assert.deepEqual(await runs.stop({ run: "bb" }), { said: "stop asked of bb" });
     assert.deepEqual(stops, ["bb"]);
+    assert.deepEqual(await runs.note({ run: "bb", agent: "make.1", text: "Use the short name.", mode: "queue" }), { ok: true, said: "sent to make.1" });
+    assert.deepEqual(notes, [["bb", { agent: "make.1", text: "Use the short name.", mode: "queue" }]]);
+    assert.deepEqual(await runs.note({ run: "bb", agent: "make.1", text: "x", mode: "shout" }), { ok: false, said: "mode is steer or queue" });
   } finally {
     await (client as unknown as { close: () => Promise<void> }).close();
     await served.close();

@@ -127,3 +127,21 @@ test("with the real recorder, where this machine has one: a command is recorded 
   assert.equal(readFileSync(join(d.dir, c!.files[0]!.name)).subarray(0, 6).toString("latin1"), "GIF89a");
   assert.ok(existsSync(join(d.dir, "make.1.real.cast")));
 });
+
+test("when the agent is stopped, a program a tool started dies with everything under it, and nothing is kept", async () => {
+  const stop = new AbortController(), t0 = Date.now();
+  setTimeout(() => stop.abort(), 150);
+  const ran = await nodeExec("/bin/sh", ["-c", "sleep 30 & wait"], { cwd: tmpdir(), env: { PATH: "/usr/bin:/bin" }, timeoutMs: 60_000, signal: stop.signal });
+  assert.ok(Date.now() - t0 < 5000, "it did not wait for the sleep");
+  assert.notEqual(ran.code, 0);
+
+  // The recorder is asked to record, the agent is stopped meanwhile: the tool says so and keeps no capture.
+  const asked: (AbortSignal | undefined)[] = [], halt = new AbortController();
+  const d = deps({ exec: async (file, args, o) => { asked.push(o.signal); halt.abort(); writeFileSync(args.at(-1)!, CAST("x", "half\r\n", 0)); return { code: 143, out: "" }; } });
+  const tool = evidenceTools(d).tools.find((t) => t.name === "record_terminal")!;
+  const r = await (tool.execute as unknown as (a: unknown, api: unknown, context: unknown) => Promise<{ output: { text: string }[]; isError?: boolean }>)({ name: "cut-short", command: "node slow.js" }, undefined, { abortSignal: halt.signal });
+  assert.deepEqual([r.output[0]!.text, r.isError], ["the agent was stopped while the command ran: nothing was kept", true]);
+  assert.equal(asked[0], halt.signal, "the program is run with the agent's own signal");
+  assert.deepEqual(capturesOf(d.dir), []);
+  assert.equal(existsSync(join(d.dir, "make.1.cut-short.cast")), false);
+});

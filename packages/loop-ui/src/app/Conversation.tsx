@@ -10,6 +10,7 @@ import { MessageScroller, MessageScrollerButton, MessageScrollerContent, Message
 import { cn } from "@/lib/utils";
 import { Media } from "./Evidence.tsx";
 import { clock, firstLine } from "./format.ts";
+import type { NoteMode, Said } from "./live.ts";
 import { href } from "./router.ts";
 import { HandbackCard, VerdictCard } from "./Results.tsx";
 import type { Agent, Handback, Msg, Run, ToolCall } from "./types.ts";
@@ -81,14 +82,19 @@ const Brief = ({ msg, first }: { msg: Msg; first: boolean }) => {
   );
 };
 
-export const Conversation = ({ run, agent }: { run: Run; agent: Agent }) => {
-  const [notes, setNotes] = useState<{ text: string; mode: string }[]>([]);
-  const [draft, setDraft] = useState(""), [mode, setMode] = useState<"steer" | "queue">("steer");
+export const Conversation = ({ run, agent, send: sendNote, stop }: { run: Run; agent: Agent; send?: ((text: string, mode: NoteMode) => Promise<Said>) | undefined; stop?: (() => void) | undefined }) => {
+  const [said, setSaid] = useState<Said | null>(null), [sending, setSending] = useState(false);
+  const [draft, setDraft] = useState(""), [mode, setMode] = useState<NoteMode>("steer");
   const results = useMemo(() => new Map(agent.messages.filter((m) => m.role === "tool").map((m) => [m.callId!, m])), [agent]);
   const turns = agent.messages.filter((m) => m.role !== "tool");
-  const live = agent.state === "working", canSteer = live && agent.role === "builder";
+  const live = agent.state === "working", canSteer = live && agent.role === "builder" && sendNote !== undefined;
   const firstUser = turns.find((m) => m.role === "user")?.id;
-  const send = (): void => { if (draft.trim() === "") return; setNotes([...notes, { text: draft.trim(), mode }]); setDraft(""); };
+  /** The note goes to the host, which hands it to the run's own process. What became of it is said under the stream; the note itself arrives in the stream. */
+  const send = (): void => {
+    if (draft.trim() === "" || sending || !sendNote) return;
+    setSending(true);
+    void sendNote(draft.trim(), mode).then((answer) => { setSaid(answer); setSending(false); if (answer.ok) setDraft(""); });
+  };
 
   return (
     <div className="dark flex min-h-0 flex-1 flex-col bg-neutral-950 font-mono text-[13px] leading-relaxed text-neutral-300">
@@ -108,11 +114,6 @@ export const Conversation = ({ run, agent }: { run: Run; agent: Agent }) => {
                   )}
                 </MessageScrollerItem>
               ))}
-              {notes.map((n, i) => (
-                <MessageScrollerItem key={`note-${i}`} messageId={`note-${i}`} scrollAnchor>
-                  <div className="rounded border border-sky-900 bg-sky-950/40 px-3 py-2"><p className="mb-1 text-sky-400/80">you · {n.mode === "steer" ? "joins after its current tool call" : "queued for after this turn"} · not sent, this is a prototype</p><div className="flex gap-2"><span className="text-sky-400">›</span><p className="whitespace-pre-wrap text-neutral-100">{n.text}</p></div></div>
-                </MessageScrollerItem>
-              ))}
               {agent.failure && <p className="rounded border border-amber-900 bg-amber-950/40 px-3 py-2 text-amber-200">stopped without an answer: {agent.failure.reason?.replace("_", " ")}. {firstLine(agent.failure.detail, 160)}</p>}
               {live && <p className="text-sky-400"><span className="animate-pulse">●</span> working…</p>}
             </MessageScrollerContent>
@@ -122,6 +123,7 @@ export const Conversation = ({ run, agent }: { run: Run; agent: Agent }) => {
       </MessageScrollerProvider>
 
       <div className="mx-auto w-full max-w-4xl shrink-0 px-4 pb-3">
+        {said && <p className={cn("mb-1.5 px-1", said.ok ? "text-sky-400/90" : "text-amber-300")}>{said.ok ? "✓" : "✗"} {said.said}</p>}
         {canSteer ? (
           <InputGroup className="font-mono">
             <InputGroupTextarea className="text-[13px]" placeholder={`› say something to ${agent.key}   (Enter sends)`} value={draft} onChange={(e) => setDraft(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); } }} />
@@ -129,14 +131,14 @@ export const Conversation = ({ run, agent }: { run: Run; agent: Agent }) => {
               <InputGroupButton variant={mode === "steer" ? "secondary" : "ghost"} onClick={() => setMode("steer")}>steer now</InputGroupButton>
               <InputGroupButton variant={mode === "queue" ? "secondary" : "ghost"} onClick={() => setMode("queue")}>queue</InputGroupButton>
               <span className="ml-auto hidden text-xs text-neutral-500 sm:inline">{mode === "steer" ? "joins after its current tool call" : "waits for this turn to end"}</span>
-              <InputGroupButton variant="outline" className="ml-auto sm:ml-0"><Square /> stop</InputGroupButton>
-              <InputGroupButton variant="default" size="icon-xs" aria-label="Send" onClick={send}><ArrowUp /></InputGroupButton>
+              <InputGroupButton variant="outline" className="ml-auto sm:ml-0" disabled={!stop} onClick={stop}><Square /> stop</InputGroupButton>
+              <InputGroupButton variant="default" size="icon-xs" aria-label="Send" disabled={sending || draft.trim() === ""} onClick={send}><ArrowUp /></InputGroupButton>
             </InputGroupAddon>
           </InputGroup>
         ) : (
           <p className="flex items-center justify-between gap-3 rounded border border-neutral-800 px-3 py-2 text-neutral-500">
-            <span>{live ? "a reviewer can be watched and stopped, not steered: its check stays independent" : run.status === "running" ? "this agent has finished its part of the run" : "this run has ended; the conversation is kept whole and nothing can be sent"}</span>
-            {live && <button className="flex items-center gap-1 rounded border border-neutral-700 px-2 py-1 text-neutral-300 hover:bg-white/5"><Square className="size-3" /> stop</button>}
+            <span>{live && agent.role === "builder" ? "this is a recording, not a live run: nothing can be sent" : live ? "a checker can be watched and stopped, not steered: its check stays independent" : run.status === "running" ? "this agent has finished its part of the run" : "this run has ended; the conversation is kept whole and nothing can be sent"}</span>
+            {live && stop && <button className="flex items-center gap-1 rounded border border-neutral-700 px-2 py-1 text-neutral-300 hover:bg-white/5" onClick={stop}><Square className="size-3" /> stop</button>}
           </p>
         )}
       </div>

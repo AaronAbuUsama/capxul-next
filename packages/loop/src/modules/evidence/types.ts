@@ -64,7 +64,7 @@ export interface Tooling {
 }
 
 /** Runs one program and returns how it ended and what it printed. Injected, so tests need no recorder and no browser. */
-export type Exec = (file: string, args: readonly string[], o: { readonly cwd: string; readonly env: Readonly<Record<string, string>>; readonly timeoutMs: number }) => Promise<{ readonly code: number; readonly out: string }>;
+export type Exec = (file: string, args: readonly string[], o: { readonly cwd: string; readonly env: Readonly<Record<string, string>>; readonly timeoutMs: number; /** When it aborts, the program and everything it started are killed. */ readonly signal?: AbortSignal }) => Promise<{ readonly code: number; readonly out: string }>;
 
 export interface EvidenceDeps {
   /** The run's evidence folder: the files and `captures.jsonl`. Outside every agent's directory. */
@@ -82,6 +82,8 @@ export interface EvidenceDeps {
   readonly refuse: (command: string) => string | undefined;
   /** The hosts the browser may open, such as `127.0.0.1` and `*.localhost`. Empty: this agent has no browser. */
   readonly hosts: readonly string[];
+  /** True once the agent was stopped while a tool ran: what it was making is not kept. Set by the tools for each call. */
+  readonly stopped?: () => boolean;
 }
 
 /** The evidence folder's name inside a run's folder. */

@@ -2,10 +2,10 @@
  * GENERIC. The door of the agents module: open a host on a run's storage, `ask` one agent one question durably, keep a
  * ledger of named steps, look at what an agent is doing. See types.ts.
  */
-import { AssistantEntry, defineExtension, LiveDoc, ToolResultEntry, UsageDoc, type EntryRecord } from "@earendil-works/pi-durable";
+import { AssistantEntry, ConversationIdle, defineExtension, LiveDoc, ToolResultEntry, UsageDoc, type EntryRecord, type SettledSubmissionRecord, type Submission } from "@earendil-works/pi-durable";
 import type { AssistantMessage } from "@earendil-works/pi-ai";
 import { existsSync } from "node:fs";
-import type { Answer, Ask, Host } from "./types.ts";
+import type { Answer, Ask, Host, Note } from "./types.ts";
 import { entriesOf, recall, record, remember } from "./internal/ledger.ts";
 
 export { openHost } from "./internal/host.ts";
@@ -34,7 +34,8 @@ const spend = async (host: Host, id: number): Promise<{ costUsd: number; tokens:
  * One agent, one question, durably. The conversation is found again by `key` after a restart, and so is the question
  * (its request id is the key), so a killed run's agent continues instead of starting over. Rejects with `stopped` when the
  * stop file appears; a timeout or a failed answer comes back as `ok: false`. A model that fails is waited for and the
- * conversation continued (`modelWaitsMs`) before that failure is the answer.
+ * conversation continued (`modelWaitsMs`) before that failure is the answer. A note a person sent meanwhile (`say`) is
+ * part of the same piece of work: the answer is the agent's last one, after every note has had its turn.
  */
 export const ask = async (host: Host, a: Ask): Promise<Answer> => {
   const [provider, ...rest] = a.model.split("/");
@@ -49,16 +50,31 @@ export const ask = async (host: Host, a: Ask): Promise<Answer> => {
   if (!known) await record(host, "loop.conversation", a.key, { id: conv.id as unknown as number });
   const id = conv.id as unknown as number, t0 = Date.now();
   const waits = [...(a.modelWaitsMs ?? [])];
-  let sub = await conv.submit({ type: "input", content: a.prompt, requestId: a.key }, host.context);
-  for (;;) {
-    const waiting = sub.wait(host.context);
-    let settled: Awaited<typeof waiting> | undefined;
+  const timedOut = async (): Promise<Answer> => ({ ok: false, text: "", ...(await spend(host, id)), conversation: id, error: "timed out" });
+  /** Waits for one submission to settle. Undefined when the time ran out; throws `stopped` when the stop file appears. */
+  const settle = async (one: Submission): Promise<SettledSubmissionRecord | undefined> => {
+    const waiting = one.wait(host.context);
+    let settled: SettledSubmissionRecord | undefined;
     while (!(settled = await Promise.race([waiting, sleep(1000)]))) {
       if (a.stopFile && existsSync(a.stopFile)) { await conv.abort(host.context); throw new Error("stopped"); }
-      if (a.timeoutMs && Date.now() - t0 > a.timeoutMs) { await conv.abort(host.context); return { ok: false, text: "", ...(await spend(host, id)), conversation: id, error: "timed out" }; }
+      if (a.timeoutMs && Date.now() - t0 > a.timeoutMs) { await conv.abort(host.context); return undefined; }
     }
+    return settled;
+  };
+  let sub = await conv.submit({ type: "input", content: a.prompt, requestId: a.key }, host.context);
+  for (;;) {
+    let settled = await settle(sub);
+    if (!settled) return timedOut();
     if (settled.status === "done" && "answer" in settled) {
-      const entry = (await conv.entries({}, 20, undefined, host.context)).items.find((e) => e.id === settled.answer);
+      // A person's notes are part of the same work: one that joined this turn settles with it, one that was queued has
+      // a turn of its own. The answer is the last one the agent gave.
+      for (let note = host.notes.get(a.key)?.shift(); note; note = host.notes.get(a.key)?.shift()) {
+        const more = await settle(note);
+        if (!more) return timedOut();
+        if (more.status === "done" && "answer" in more) settled = more;
+      }
+      const answer = settled.answer;
+      const entry = (await conv.entries({}, 20, undefined, host.context)).items.find((e) => e.id === answer);
       const text = entry && AssistantEntry.is(entry) ? textOf(entry.model![0] as AssistantMessage) : "";
       return { ok: text !== "", text, json: lastJson(text), ...(await spend(host, id)), conversation: id };
     }
@@ -69,6 +85,23 @@ export const ask = async (host: Host, a: Ask): Promise<Answer> => {
     // The model failed beyond pi's own retries: wait, then continue this conversation where it stands. Nothing it did is lost.
     for (const until = Date.now() + wait; Date.now() < until; await sleep(Math.min(1000, Math.max(1, until - Date.now())))) if (a.stopFile && existsSync(a.stopFile)) throw new Error("stopped");
     sub = await conv.submit({ type: "continue", requestId: `${a.key}:again:${Date.now()}` }, host.context);
+  }
+};
+
+/**
+ * A person's note to a working agent. Only the process that owns the storage can call this. An agent that is not
+ * working takes no note: a note never starts work of its own.
+ */
+export const say = async (host: Host, n: Note): Promise<{ ok: boolean; said: string }> => {
+  const known = await recall(host, "loop.conversation", n.key);
+  const conv = known ? await host.harness.conversation(known.id as never, host.context) : undefined;
+  if (!conv) return { ok: false, said: `there is no agent ${n.key} in this run` };
+  try {
+    const sub = await conv.submit({ type: "input", content: n.text, whenBusy: n.mode === "steer" ? "steer" : "followUp", whenIdle: "reject", requestId: `note:${n.key}:${Date.now()}` }, host.context);
+    host.notes.set(n.key, [...(host.notes.get(n.key) ?? []), sub]);
+    return { ok: true, said: n.mode === "steer" ? `sent: ${n.key} reads it after its current tool call` : `queued: ${n.key} reads it when its turn ends, and then goes on` };
+  } catch (e) {
+    return { ok: false, said: e instanceof ConversationIdle ? `${n.key} is not working now: nothing was sent` : `the note was not sent: ${e instanceof Error ? e.message : String(e)}` };
   }
 };
 

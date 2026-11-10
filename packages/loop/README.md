@@ -92,6 +92,16 @@ agent does not try the same thing another way. The 226 calls refused on 10 Novem
 | show its work (`record_terminal`) | any command its shell may run, recorded as a GIF | the lane's checks and `node` (what a maker's shell runs, without `git add/commit`, `rm`, `mkdir`): only on camera, and what it leaves in the lane is undone | same as checker |
 | browser (`browser`, `screenshot`, `record_screen`) | this machine only (`127.0.0.1`, `localhost`, `*.localhost`): the sandbox and a lane's own server | same | same |
 
+### A person's note
+
+While a run is played, a person can write to its builder from the Runs app: `steer` (the builder reads the note after
+its current tool call) or `queue` (it reads it when its turn ends, then goes on; its last answer is the hand-back). The
+page calls the host, the host hands the note through the door of the process that plays the run (`src/modules/door`),
+and that process puts it into the conversation, where it stays as part of the record. A checker takes no note, so its
+check stays independent; an agent that is not working takes none either. A queued note is held in the playing process:
+if that process dies before the agent's turn ends, the note is still in the conversation, but the run that resumes
+takes the agent's first answer.
+
 ### Evidence
 
 An agent shows what it says (`src/modules/evidence`, whose README has the tools). A capture is made by a tool, into
@@ -161,7 +171,7 @@ reports tokens and the budget is enforced by turn and time limits and checked be
 
 ## Which parts are generic
 
-`src/modules/agents`, `runs`, `lanes`, `evidence`, `inspect` and `host` (and `index.ts`'s first lines) know nothing about Capxul: open a pi-durable
+`src/modules/agents`, `runs`, `lanes`, `evidence`, `door`, `inspect` and `host` (and `index.ts`'s first lines) know nothing about Capxul: open a pi-durable
 storage, register tools with a confinement policy and MCP servers, pick a model from an OpenAI-compatible config, ask an
 agent a question durably and get its last message, keep a step ledger, play a script, list/stop/watch/work runs, make a
 git worktree and find a free port. **That is what would be extracted into a library for swarmD.** `src/modules/capxul` is

@@ -2,7 +2,7 @@
  * A command recorded in a terminal that has no screen: asciinema runs it and writes the cast (every byte it printed, with
  * its timing, and how it ended), and agg draws the cast as a GIF. The command is one the agent's own shell policy allows.
  */
-import { existsSync, mkdirSync, readFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { MAX_OUTPUT, type Capture, type EvidenceDeps } from "../types.ts";
 import { captureOf, idOf, keep, refuseName, size } from "./store.ts";
@@ -36,6 +36,7 @@ export const recordTerminal = async (deps: EvidenceDeps, a: { name?: unknown; co
   // The recording opens with the command as a person would have typed it, so whoever watches knows what they are looking at.
   const ran = await deps.exec(deps.tooling.asciinema, ["rec", "--overwrite", "-q", "--headless", "--return", "--window-size", `${COLS}x${ROWS}`, "-f", "asciicast-v2", "-c", `${typed(command)}; ${command}`, join(deps.dir, cast)],
     { cwd: deps.cwd, env: { TERM: "xterm-256color", ...deps.env }, timeoutMs: 10 * 60_000 });
+  if (deps.stopped?.()) { rmSync(join(deps.dir, cast), { force: true }); return no("the agent was stopped while the command ran: nothing was kept"); }
   if (!existsSync(join(deps.dir, cast))) return no(`the recorder wrote nothing (it ended with ${ran.code}): ${ran.out.slice(-300)}`);
   const all = textOfCast(readFileSync(join(deps.dir, cast), "utf8")), out = all.slice(all.indexOf("\n") + 1);
   // A short run is drawn only as tall as it is: thirty rows around two lines is a picture of nothing.

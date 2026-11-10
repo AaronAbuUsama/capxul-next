@@ -46,7 +46,11 @@ export const serve = async (deps: HostDeps, o: HostOptions): Promise<Served> => 
         if (!task.signal.aborted) runs.replace(task, await read(), { diff: true });
       }
     });
-    return { variant: "owner", runs, stop: async ({ run }: { run: string }) => ({ said: deps.stop(run) }) };
+    return {
+      variant: "owner", runs, stop: async ({ run }: { run: string }) => ({ said: deps.stop(run) }),
+      note: async ({ run, agent, text, mode }: { run: string; agent: string; text: string; mode: string }) =>
+        mode !== "steer" && mode !== "queue" ? { ok: false, said: "mode is steer or queue" } : (await deps.note?.(run, { agent, text, mode })) ?? { ok: false, said: "this host does not send notes" },
+    };
   });
 
   // Plain reads over HTTP, for a page that is not the app: a summary of the runs, and the app's own files.

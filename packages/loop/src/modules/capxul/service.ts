@@ -12,6 +12,8 @@ import { commitAll, ensureLane, git, head, laneBlocked, slug, type Lane } from "
 import { acquire, alive, ledgerLines, listRuns, play, readInfo, SETTLED, stop as stopRun, watchRun, work as workLoop, type Info, type Run } from "../runs/service.ts";
 import { allowedModel, defaultCheckerModel, defaultModel, gatewayOf, modelsOf, POLICY, qualify } from "./internal/config.ts";
 import { evidenceBrief, evidenceLines, kitFor, restore } from "./internal/evidence.ts";
+import { sendNote, takeNote } from "./internal/notes.ts";
+import { openDoor, type Door } from "../door/service.ts";
 import { FOLDER as EVIDENCE } from "../evidence/service.ts";
 import { serve as serveHost, type Served } from "../host/service.ts";
 import { showDetail, showView, statusViews, viewsTable, type Look, type RunDetail, type RunView } from "../inspect/service.ts";
@@ -162,15 +164,19 @@ const open = (ctx: Ctx, dir: string, env: Record<string, string>, readOnly = fal
 const playJob = (ctx: Ctx, id: string, task: Task, opts: Opts, script?: Script): Promise<Info> => {
   const dir = join(runsDir(ctx), id), env: Record<string, string> = cleanEnv(ctx);
   const was = existsSync(join(dir, "status.json")) ? readInfo(dir).extra : {};
-  let job: Job | undefined;
+  let job: Job | undefined, door: Door | undefined;
   return play({
     dir, id, subject: task.id, now: ctx.now, open: () => open(ctx, dir, env, false, [opts.model, opts.checkerModel].filter((x): x is string => !!x)),
-    extra: () => ({ opts, task, lane: job?.lane ?? was.lane, sandbox: job?.box ?? was.sandbox, source: task.source, gateway: ctx.models ? "test" : gatewayOf(ctx).name }),
+    extra: () => ({ opts, task, lane: job?.lane ?? was.lane, sandbox: job?.box ?? was.sandbox, source: task.source, gateway: ctx.models ? "test" : gatewayOf(ctx).name, door: door?.at ?? null }),
     script: async (run: Run) => {
       job = { ctx, run, env, task, opts, ...(was.lane ? { lane: was.lane as Lane } : {}), ...(was.sandbox ? { box: was.sandbox as SandboxInfo } : {}) };
       Object.assign(env, cleanEnv(ctx, job.box?.env ?? {}));
-      if (task.source === "plan") await run.step("plan.claim", async () => { plan.claim(ctx, task.id, id); return true; });
-      await (script ?? await loadScript(ctx, opts.script))(job);
+      door = await openDoor({ note: (n) => takeNote(job!, n) });           // while this process plays the run, a person's note can reach its agents
+      await run.save();
+      try {
+        if (task.source === "plan") await run.step("plan.claim", async () => { plan.claim(ctx, task.id, id); return true; });
+        await (script ?? await loadScript(ctx, opts.script))(job);
+      } finally { await door.close(); door = undefined; }
     },
   });
 };
@@ -196,6 +202,7 @@ export const resume = async (ctx: Ctx, id: string, script?: Script): Promise<Inf
 };
 
 export const stop = (ctx: Ctx, id: string): string => stopRun(runDir(ctx, id));
+export { sendNote };
 /** `loop status`: every run saved in the last day, with its refused calls, model failures and whether it was superseded. */
 export const status = async (ctx: Ctx, sinceHours = 24): Promise<string> => viewsTable(await statusViews(lookOf(ctx, 0), sinceHours));
 
@@ -245,6 +252,7 @@ export const serve = (ctx: Ctx, o: { port: number; sinceHours?: number }): Promi
       .map((r) => ({ id: r.info.id, stamp: `${mtime(join(r.dir, "status.json"))}:${mtime(join(r.dir, "run.sqlite"))}:${mtime(join(r.dir, "run.sqlite-wal"))}:${r.info.status === "running" && !alive(r.info.pid)}` })),
     load: (id) => showDetail(lookOf(ctx, 0), id),
     stop: (id) => stop(ctx, id),
+    note: (id, n) => sendNote(ctx, id, n),
     say: ctx.say,
     evidence: (id) => (existsSync(join(runsDir(ctx), id, "status.json")) ? join(runsDir(ctx), id, EVIDENCE) : null),
   }, { port: o.port, ...(ctx.env.LOOP_HOST_ORIGINS ? { origins: ctx.env.LOOP_HOST_ORIGINS.split(",") } : {}), ui: ctx.env.LOOP_UI_DIR ?? join(ctx.root, "packages/loop-ui/dist") });

@@ -35,5 +35,5 @@ export const openHost = async (o: HostOptions): Promise<Host> => {
   const root = await harness.root(context);
   if (!o.readOnly) harness.resume();
   const parts = { write: { extensions: [CodingTools, cw], tools: [read, write, edit, bash] }, read: { extensions: [CodingTools, cr], tools: [read, bash] } };
-  return { harness, registry, parts, root, context, close: () => harness.close(context) };
+  return { harness, registry, parts, root, context, notes: new Map(), close: () => harness.close(context) };
 };

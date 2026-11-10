@@ -5,7 +5,7 @@
  */
 import type { Context } from "@earendil-works/chord";
 import type { Models } from "@earendil-works/pi-ai";
-import type { Conversation, Extension, Harness, Registry, ToolRegistration } from "@earendil-works/pi-durable";
+import type { Conversation, Extension, Harness, Registry, Submission, ToolRegistration } from "@earendil-works/pi-durable";
 
 /** A model entry as `~/.pi/agent/models.json` writes it; the fields are pi-ai's `Model`. */
 export interface ModelEntry { id: string; name?: string; reasoning?: boolean; input?: ("text" | "image")[]; cost?: { input: number; output: number; cacheRead: number; cacheWrite: number }; contextWindow?: number; maxTokens?: number; compat?: Record<string, unknown> }
@@ -40,7 +40,7 @@ export interface HostOptions {
   readonly retry?: { readonly maxRetries: number; readonly baseDelayMs: number };
 }
 
-export interface Host { readonly harness: Harness; readonly registry: Registry; readonly parts: Readonly<Record<Profile, { extensions: Extension[]; tools: ToolRegistration[] }>>; readonly root: Conversation; readonly context: Context; close(): Promise<void> }
+export interface Host { readonly harness: Harness; readonly registry: Registry; readonly parts: Readonly<Record<Profile, { extensions: Extension[]; tools: ToolRegistration[] }>>; readonly root: Conversation; readonly context: Context; /** Notes sent to an agent that `ask` has yet to see settle, by the agent's key. */ readonly notes: Map<string, Submission[]>; close(): Promise<void> }
 
 export interface Ask {
   /** Names the agent within the run. The same key after a restart finds the same conversation and the same question. */
@@ -66,3 +66,6 @@ export interface Ask {
 
 /** `detail` says more about an `error` when the harness knows it: the gateway's own message for a model failure. */
 export interface Answer { ok: boolean; text: string; json?: unknown; costUsd: number; tokens: number; conversation: number; error?: string; detail?: string }
+
+/** A note from a person to a working agent. `steer` joins after its current tool call; `queue` waits for its turn to end. */
+export interface Note { readonly key: string; readonly text: string; readonly mode: "steer" | "queue" }

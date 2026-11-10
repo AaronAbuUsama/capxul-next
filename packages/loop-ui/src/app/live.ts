@@ -9,8 +9,14 @@ import { useEffect, useRef, useState } from "react";
 import type { Run } from "./types.ts";
 
 export type Link = "connecting" | "live" | "offline";
-interface RunsRef { runs: { subscribe: (f: (runs: unknown) => void) => () => void }; stop: (input: { run: string }) => Promise<{ said: string }>; onStatus: (f: (status: string) => void) => void }
-export interface Live { readonly link: Link; readonly runs: Run[] | null; readonly updates: number; readonly stop: (run: string) => Promise<string> }
+export interface Said { readonly ok: boolean; readonly said: string }
+export type NoteMode = "steer" | "queue";
+interface RunsRef { runs: { subscribe: (f: (runs: unknown) => void) => () => void }; stop: (input: { run: string }) => Promise<{ said: string }>; note: (input: { run: string; agent: string; text: string; mode: NoteMode }) => Promise<Said>; onStatus: (f: (status: string) => void) => void }
+export interface Live {
+  readonly link: Link; readonly runs: Run[] | null; readonly updates: number; readonly stop: (run: string) => Promise<string>;
+  /** A person's note to a working agent, handed to the host. It answers in words what became of it. */
+  readonly note: (run: string, agent: string, text: string, mode: NoteMode) => Promise<Said>;
+}
 
 /** Where the host is: the same address the page came from when the host (or the portal in front of it) served it, else this machine's host. `?host=` names another. */
 const address = (): string => new URLSearchParams(window.location.search).get("host")
@@ -40,5 +46,8 @@ export const useLive = (): Live => {
     const off = held.runs.subscribe((value) => { if (!current) return; setRuns(value as Run[]); setUpdates((n) => n + 1); setLink("live"); });
     return () => { current = false; clearTimeout(retry); off(); void (host as unknown as { close: () => Promise<void> }).close(); };
   }, [attempt]);
-  return { link, runs: link === "live" ? runs : null, updates, stop: async (run) => (await ref.current!.stop({ run })).said };
+  return {
+    link, runs: link === "live" ? runs : null, updates, stop: async (run) => (await ref.current!.stop({ run })).said,
+    note: (run, agent, text, mode) => ref.current!.note({ run, agent, text, mode }).catch((e: unknown): Said => ({ ok: false, said: `the host did not take the note: ${e instanceof Error ? e.message : String(e)}` })),
+  };
 };

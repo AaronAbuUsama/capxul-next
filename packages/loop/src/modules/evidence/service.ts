@@ -25,21 +25,25 @@ export const toolingOf = (path: string | undefined): Tooling => {
 
 /** Runs a program with exactly the environment it is given, no shell and no input, and collects what it printed. */
 export const nodeExec: Exec = (file, args, o) => new Promise((done) => {
-  const child = spawn(file, [...args], { cwd: o.cwd, env: { ...o.env }, stdio: ["ignore", "pipe", "pipe"] });
+  // Its own process group, so that stopping it stops what it started too (a recorder's shell, the command under it).
+  const child = spawn(file, [...args], { cwd: o.cwd, env: { ...o.env }, stdio: ["ignore", "pipe", "pipe"], detached: true });
+  const kill = (how: NodeJS.Signals): void => { try { process.kill(-child.pid!, how); } catch { /* gone */ } };
+  const stop = (): void => { kill("SIGTERM"); setTimeout(() => kill("SIGKILL"), 2000).unref(); };
+  if (o.signal?.aborted) stop(); else o.signal?.addEventListener("abort", stop, { once: true });
   let out = "";
   const add = (b: Buffer): void => { out = (out + b.toString("utf8")).slice(-200_000); };
   child.stdout.on("data", add);
   child.stderr.on("data", add);
-  const timer = setTimeout(() => child.kill("SIGKILL"), o.timeoutMs);
+  const timer = setTimeout(() => kill("SIGKILL"), o.timeoutMs);
   child.on("error", (e) => { clearTimeout(timer); done({ code: 127, out: `${out}${e.message}` }); });
-  child.on("close", (code) => { clearTimeout(timer); done({ code: code ?? 137, out }); });
+  child.on("close", (code) => { clearTimeout(timer); o.signal?.removeEventListener("abort", stop); done({ code: code ?? 137, out }); });
 });
 
 const text = (s: string) => ({ type: "string", description: s });
-const tool = (name: string, description: string, properties: Record<string, object>, required: string[], run: (args: Record<string, unknown>) => Promise<Made>): ToolRegistration =>
+const tool = (name: string, description: string, properties: Record<string, object>, required: string[], run: (args: Record<string, unknown>, signal: AbortSignal | undefined) => Promise<Made>): ToolRegistration =>
   defineTool({
     name, description, parameters: { type: "object", properties, required },
-    execute: async (args: Record<string, unknown>) => { const made = await run(args); return { output: [{ type: "text" as const, text: made.text }], ...(made.ok ? {} : { isError: true }) }; },
+    execute: async (args: Record<string, unknown>, _api: unknown, context: { readonly abortSignal?: AbortSignal | undefined }) => { const made = await run(args, context?.abortSignal); return { output: [{ type: "text" as const, text: made.text }], ...(made.ok ? {} : { isError: true }) }; },
   }) as unknown as ToolRegistration;
 
 /**
@@ -48,12 +52,14 @@ const tool = (name: string, description: string, properties: Record<string, obje
  */
 export const evidenceTools = (deps: EvidenceDeps): { readonly tools: ToolRegistration[]; readonly close: () => Promise<void> } => {
   const at: Browsing = { opened: false, recording: null };
-  const withBrowser = <A>(run: (deps: EvidenceDeps, at: Browsing, a: A) => Promise<Made>) => (a: Record<string, unknown>): Promise<Made> => run(deps, at, a as A);
+  /** The same deps for one call: its programs die when the agent is stopped, and what it was making is not kept. */
+  const during = (signal: AbortSignal | undefined): EvidenceDeps => (signal ? { ...deps, exec: (file, args, o) => deps.exec(file, args, { ...o, signal }), stopped: () => signal.aborted } : deps);
+  const withBrowser = <A>(run: (deps: EvidenceDeps, at: Browsing, a: A) => Promise<Made>) => (a: Record<string, unknown>, signal: AbortSignal | undefined): Promise<Made> => run(during(signal), at, a as A);
   const name = text("A short name for this capture: lower-case letters, digits and dashes, such as pay-refuses-overdraft. It becomes the capture's id.");
   const tools = [
     tool("record_terminal",
       "Run one command in a terminal and record it, as evidence. Returns the command's output and exit code, and the id of the capture (a GIF a person can watch). Use it instead of bash for a command whose run is itself the proof: a check passing, a command refusing what it must refuse. Then name the capture in the `evidence` list of your final json.",
-      { name, command: text("The command to run and record, as you would give it to bash.") }, ["name", "command"], (a) => recordTerminal(deps, a)),
+      { name, command: text("The command to run and record, as you would give it to bash.") }, ["name", "command"], (a, signal) => recordTerminal(during(signal), a)),
     ...(deps.tooling.browser && deps.hosts.length > 0 ? [
       tool("browser",
         `Drive a headless browser: one action per call, as words. It may open only ${deps.hosts.join(", ")}. Actions: open <url>; snapshot -i (the page's interactive elements with refs such as @e2); click <ref|selector>; fill <ref|selector> <text>; type, press <key>, hover, check, uncheck, select, scroll <dir> [px], wait <selector|ms>; get text|html|value|title|url [selector]; is visible|enabled|checked <selector>; back, forward, reload; console, errors.`,

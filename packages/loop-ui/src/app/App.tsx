@@ -22,7 +22,7 @@ export const App = () => {
       <SidebarProvider>
         <AppSidebar runs={runs} route={route} replay={replay} setReplay={setReplay} link={live.link} updates={live.updates} />
         <SidebarInset className="h-svh min-w-0 overflow-hidden">
-          {run ? <RunPage key={run.id} run={run} runs={runs} step={route[2]} tab={route[3]} stop={live.runs ? live.stop : undefined} /> : route[0] === "agents" ? <AgentsPage runs={runs} role={route[1]} /> : <Home runs={runs} />}
+          {run ? <RunPage key={run.id} run={run} runs={runs} step={route[2]} tab={route[3]} stop={live.runs ? live.stop : undefined} note={live.runs ? live.note : undefined} /> : route[0] === "agents" ? <AgentsPage runs={runs} role={route[1]} /> : <Home runs={runs} />}
         </SidebarInset>
       </SidebarProvider>
     </TooltipProvider>

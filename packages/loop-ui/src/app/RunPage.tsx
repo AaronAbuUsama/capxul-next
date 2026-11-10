@@ -3,6 +3,7 @@
  * the three are tabs. An agent's step opens as its conversation; a check step as its results.
  */
 import { PanelRight, Square } from "lucide-react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -17,6 +18,7 @@ import { AgentPanel, RunPanel } from "./Inspector.tsx";
 import { Overview } from "./Overview.tsx";
 import { ChecksList, FindingCard, VerdictCard } from "./Results.tsx";
 import { clock } from "./format.ts";
+import type { Live } from "./live.ts";
 import { go, href } from "./router.ts";
 import { TopBar } from "./TopBar.tsx";
 import type { Handoff, Run, Step } from "./types.ts";
@@ -84,8 +86,11 @@ const Back = ({ handoff, last }: { handoff: Handoff; last: boolean }) => (
   </div>
 );
 
-export const RunPage = ({ run, runs, step: wanted, tab = "activity", stop }: { run: Run; runs: Run[]; step?: string; tab?: string; stop?: ((run: string) => Promise<string>) | undefined }) => {
-  const askStop = (): void => { if (stop && window.confirm(`Stop ${run.id}? Its agent is aborted within a second or two.`)) void stop(run.id).then((said) => window.alert(said)); };
+export const RunPage = ({ run, runs, step: wanted, tab = "activity", stop, note }: { run: Run; runs: Run[]; step?: string; tab?: string; stop?: ((run: string) => Promise<string>) | undefined; note?: Live["note"] | undefined }) => {
+  /** Stopping is asked for, then confirmed in a bar under the top strip: no browser dialog, so it works the same on a phone. */
+  const [stopping, setStopping] = useState<"no" | "asking" | "sent">("no"), [stopSaid, setStopSaid] = useState("");
+  const askStop = (): void => setStopping("asking");
+  const doStop = (): void => { if (!stop) return; setStopping("sent"); setStopSaid("asking the run to stop…"); void stop(run.id).then(setStopSaid, (e: unknown) => setStopSaid(`the host did not take it: ${e instanceof Error ? e.message : String(e)}`)); };
   const steps = stepsOf(run), handoffs = handoffsOf(steps), isMobile = useIsMobile();
   const fallback = steps.find((s) => s.state === "running")?.id ?? "overview";
   const step = steps.find((s) => s.id === wanted || s.agent?.key === wanted) ?? (wanted === "overview" ? undefined : steps.find((s) => s.id === fallback));
@@ -104,7 +109,7 @@ export const RunPage = ({ run, runs, step: wanted, tab = "activity", stop }: { r
           <span className="ml-auto flex items-center gap-1.5 text-xs text-muted-foreground"><StateIcon state={step.state} className="size-3.5" /> {step.summary}</span>
         </div>
         {step.review && step.state !== "running" && step.agent.messages.length === 0 && <div className="p-4"><VerdictCard review={step.review} /></div>}
-        <Conversation key={step.agent.key} run={run} agent={step.agent} />
+        <Conversation key={step.agent.key} run={run} agent={step.agent} send={note ? (text, mode) => note(run.id, step.agent!.key, text, mode) : undefined} stop={stop ? askStop : undefined} />
       </div>
     ) : <Plain run={run} step={step} />;
   const side = <>{step?.agent && <AgentPanel agent={step.agent} round={step.round} />}<RunPanel run={run} commit={commit} others={runs.filter((x) => x.task.id === run.task.id && x.id !== run.id)} /></>;
@@ -113,7 +118,7 @@ export const RunPage = ({ run, runs, step: wanted, tab = "activity", stop }: { r
     <>
       <TopBar crumbs={[<a href={href()}>Runs</a>, run.task.title]}>
         <RunBadge run={run} />
-        {run.status === "running" && <Button size="sm" variant="outline" className="hidden sm:inline-flex" disabled={!stop} onClick={askStop}><Square /> Stop run</Button>}
+        {run.status === "running" && <Button size="sm" variant="outline" disabled={!stop} onClick={askStop}><Square /> <span className="hidden sm:inline">Stop run</span></Button>}
         {!isMobile && (
           <Sheet>
             <SheetTrigger render={<Button size="icon-sm" variant="ghost" className="xl:hidden" aria-label="Details" />}><PanelRight /></SheetTrigger>
@@ -124,6 +129,19 @@ export const RunPage = ({ run, runs, step: wanted, tab = "activity", stop }: { r
       <p className="flex shrink-0 flex-wrap gap-x-3 border-b px-4 py-1.5 text-xs text-muted-foreground">
         <span>workflow <b className="font-medium text-foreground">{run.workflow}</b></span><span>round {run.round}{run.rounds ? ` of ${run.rounds}` : ""}</span><span>{duration(elapsed(run))}</span><span>{tokens(run.tokens)} tokens</span>{run.replay && <span className="text-blue-700">replay of a real run</span>}
       </p>
+      {stopping !== "no" && (
+        <div className="flex shrink-0 flex-wrap items-center gap-2 border-b border-amber-600/30 bg-amber-600/5 px-4 py-2 text-sm">
+          {stopping === "asking" ? (
+            <>
+              <span className="min-w-0 flex-1">Stop <span className="font-mono text-xs">{run.id}</span>? Its agent is aborted within a second or two. The run can be resumed later.</span>
+              <Button size="sm" variant="destructive" onClick={doStop}><Square /> Stop the run</Button>
+              <Button size="sm" variant="ghost" onClick={() => setStopping("no")}>Keep going</Button>
+            </>
+          ) : (
+            <><span className="min-w-0 flex-1">{stopSaid}</span><Button size="sm" variant="ghost" onClick={() => setStopping("no")}>Close</Button></>
+          )}
+        </div>
+      )}
       {isMobile ? (
         <Tabs value={tab} onValueChange={(v) => setTab(String(v))} className="flex min-h-0 flex-1 flex-col gap-0">
           <TabsList className="mx-3 my-2 w-auto self-stretch"><TabsTrigger value="activity">{step?.agent ? "Conversation" : step ? "Step" : "Overview"}</TabsTrigger><TabsTrigger value="steps">Steps</TabsTrigger><TabsTrigger value="details">Details</TabsTrigger></TabsList>
