@@ -898,10 +898,12 @@
       "title": "Tidy the repository so a person can find their way",
       "why": "Aaron opened the repository and could not make sense of it: run folders at the top level, twenty loose scripts and thirty-one old workflow scripts in tools, a spike still sitting there, books beside a book package, and a loop package he could not follow.",
       "milestone": "m1",
-      "state": "doing",
+      "state": "done",
       "needs": [],
       "records": [],
-      "evidence": [],
+      "evidence": [
+        "a2a546b"
+      ],
       "created": "2026-11-10",
       "updated": "2026-11-10",
       "thread": "repo-tidy"
