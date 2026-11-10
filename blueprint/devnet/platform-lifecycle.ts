@@ -4,7 +4,7 @@
 import { error_CAPACITY_REACHED, error_INVALID_INPUT, error_NOT_AUTHENTICATED, error_ROLE_PERMISSION_DENIED, error_WRONG_ENVIRONMENT, error_WRONG_STATE } from "../shared/vocabulary.ts";
 import { ok, refused } from "../shared/examples.ts";
 import { machine_world, table_command_records, table_worlds } from "./world-data.ts";
-import { table_world_grants } from "./platform-data.ts";
+import { machine_run, table_runs, table_world_grants } from "./platform-data.ts";
 import { addressOf, ADDR, B, BASE, make, ms, N, Null, S, ConnectionView, siteOf } from "./platform-kit.ts";
 import { Schema } from "effect";
 
@@ -49,7 +49,7 @@ const resume = make({
   id: "world.resume", command: "world resume", title: "Resume a paused or parked world", rpc: "devnet.worlds.resume", kind: "action", priority: "critical", cls: "background", p95Ms: 90_000,
   about: "Brings a paused world back where it stopped, or restores a parked one from storage. The clock continues from the world's now at the rate it had (a frozen clock stays frozen). A call to a parked world's address does this by itself.",
   who: ORGANISER + " A call by any member to a parked world's address also wakes it.", changes: "The world becomes running; a parked world's sites are restored on the bench.",
-  input: Schema.Struct({ world: S }), output: WorldState, reads: [table_worlds], writes: [table_worlds, table_command_records], drives: [machine_world.t.resume],
+  input: Schema.Struct({ world: S }), output: WorldState, reads: [table_worlds, table_runs], writes: [table_worlds, table_runs, table_command_records], drives: [machine_world.t.resume, machine_run.t.resume],
   claims: [{ claim: "A resumed world continues from the world's now.", observes: `cli: in \`${W.parked}\`, \`world resume town\` then \`world show town\` prints running and the worldNow it had when parked.` }, { claim: "A world is refused when the machine has no room for it.", observes: `cli: with the machine full, \`world resume town\` exits CAPACITY_REACHED and the world stays parked.` }],
   refusals: [OUT, NO_WORLD, NOT_ORG, { error: error_WRONG_STATE, given: W.running, when: "The world is already running." }, { error: error_CAPACITY_REACHED, given: W.parked, when: "The machine has no room to run it now." }],
   examples: [ok("Resume a parked world", "capxul world resume town --json", state("running")), refused("No room", "capxul world resume town --json", error_CAPACITY_REACHED, {}), refused("Already running", "capxul world resume town --json", error_WRONG_STATE, { state: "running" })],

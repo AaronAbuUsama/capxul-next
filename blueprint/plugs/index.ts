@@ -1,3 +1,4 @@
+import * as stateGaps from "./state-gaps.ts";
 // The plugs concept's modules, for blueprint/index.ts. kit.ts is not a module: it only fills what a record repeats.
 
 import * as data from "./data.ts";
@@ -13,4 +14,4 @@ import * as operations from "./operations.ts";
 import * as decisions from "./decisions.ts";
 import * as evidence from "./evidence.ts";
 
-export const modules = [data, integrations, signin, signer, sessions, roles, events, processes, flows, operations, decisions, evidence] as const;
+export const modules = [stateGaps, data, integrations, signin, signer, sessions, roles, events, processes, flows, operations, decisions, evidence] as const;

@@ -18926,6 +18926,7 @@
         "bud:world.resume/p95",
         "des:world.resume",
         "doc:world.resume",
+        "evt:world.resume/run_transitioned",
         "evt:world.resume/world_transitioned",
         "ref:world.resume/CAPACITY_REACHED",
         "ref:world.resume/INVALID_INPUT",

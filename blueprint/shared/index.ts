@@ -1,3 +1,4 @@
+import * as stateGaps from "./state-gaps.ts";
 // The shared records of the target book: the system, components, concepts, environments, errors,
 // integrations, contracts and the architecture's decisions; landings.ts maps every old area onto
 // them. blueprint/index.ts adds each concept's records to these.
@@ -35,5 +36,5 @@ export const recordsOf = (modules: readonly object[]): unknown[] => [
   ),
 ];
 
-export const sharedModules = [foundation, cloud, vocabulary, external, decisions, landings, tooling, portal, swarm, time, rulings, surface, cut, cutMoves, milestones, contractRecords] as const;
+export const sharedModules = [stateGaps, foundation, cloud, vocabulary, external, decisions, landings, tooling, portal, swarm, time, rulings, surface, cut, cutMoves, milestones, contractRecords] as const;
 export const sharedRecords = recordsOf(sharedModules);
