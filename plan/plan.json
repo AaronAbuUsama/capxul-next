@@ -1097,6 +1097,22 @@
       "evidence": [],
       "created": "2026-11-10",
       "updated": "2026-11-10"
+    },
+    {
+      "id": "m1-agents-md-review",
+      "title": "Aaron has reviewed the AGENTS.md and CLAUDE.md change",
+      "why": "His rule: a change to CLAUDE.md is shown to him as a diff first; f593f2b merged before he saw it",
+      "milestone": "m1",
+      "state": "blocked",
+      "needs": [],
+      "records": [],
+      "evidence": [],
+      "created": "2026-11-10",
+      "updated": "2026-11-10",
+      "blockedBy": {
+        "need": "Review the AGENTS.md change: keep f593f2b (CLAUDE.md becomes a link to AGENTS.md)? Make the one-line fix to point 2 that the task page shows? Mark done if you keep both, or reply with what to revert",
+        "who": "aaron"
+      }
     }
   ],
   "path": {
