@@ -24,12 +24,12 @@ export const decision_plugs_sign_in = dec({
   title: "Capxul is the sign-in; only a person a hat created can sign in",
   question: "How does a person get into their company's Frappe site?",
   options: [
-    { label: "capxul-provider", text: "Capxul is an OAuth 2 and OpenID provider. Each site has one Social Login Key pointing at it, with sign-up denied on the site. A person signs in to Capxul as they already do and is handed to the site, but only if a hat created their site user. Frappe never holds a password or a key." },
+    { label: "capxul-provider", text: "Capxul is an OAuth 2 and OpenID provider. Each site has one Social Login Key pointing at it, with sign-up denied on the site. A person's session on the site is obtained by the service calling the site (plugs.service-calls-site), and a person who only watches gets a one-time link the service asks the site to mint; only a person a hat created has a site user. The browser flow, in which the site's server exchanges a code with Capxul, needs a reachable service and is outside the current path. Frappe never holds a password or a key." },
     { label: "frappe-passwords", text: "Frappe keeps its own passwords and Capxul only mirrors users." },
     { label: "api-keys", text: "Each person gets a Frappe API key." },
   ],
   chosen: "capxul-provider",
-  why: `Frappe never holds keys or signs (START-HERE section 2) and the product is one sign-in (${RULINGS}). The spike did it with a stand-in provider: the redirect chain took 0.6 s, sign-up was Deny, and only a person a hat created could sign in (FINDINGS, Frappe half: Social Login Key). Sign-in itself stays a stand-in until the breadth is there (critical-path.md, Priorities).`,
+  why: `Frappe never holds keys or signs (START-HERE section 2) and the product is one sign-in (${RULINGS}). The spike did it with a stand-in provider: the redirect chain took 0.6 s, sign-up was Deny, and only a person a hat created could sign in (FINDINGS, Frappe half: Social Login Key). The spike's server-to-server code exchange breaks plugs.service-calls-site, so it is outside the current path and People's sign-in stays a stand-in until the breadth is there (critical-path.md, Priorities).`,
   evidence: FIND.e2e,
   affects: [f.system_capxul, f.concept_plugs, d.table_oauth_clients, d.table_oauth_codes, si.rpc_plugs_oauth_authorize, si.rpc_plugs_oauth_token, si.rpc_plugs_oauth_userinfo, integration_site_service],
 });
@@ -110,7 +110,7 @@ export const decision_plugs_held_payment = dec({
   title: "A normal Frappe payment is held until the chain confirms it",
   question: "How does a payment started in Frappe move money without Frappe marking it moved first?",
   options: [
-    { label: "held-until-chain", text: "Frappe's form calls Core, which opens the approval and answers whose signature is awaited; the Payment Entry stays a draft in `waiting`. When the chain's PaymentSent carries the document's hash, Core enqueues payment_sent and the site submits the entry and posts the ledger. A before-submit hook refuses any other submit of a Safe Payment Entry and a ledger hook refuses any other credit to the Safe's account. No fork." },
+    { label: "held-until-chain", text: "Frappe's form writes a request in the site's outbox in the same transaction as the draft's waiting state; the service collects it, opens the approval and answers the site with whose signature is awaited (plugs.service-calls-site); the Payment Entry stays a draft in `waiting`. When the chain's PaymentSent carries the document's hash, Core enqueues payment_sent and the site submits the entry and posts the ledger. A before-submit hook refuses any other submit of a Safe Payment Entry and a ledger hook refuses any other credit to the Safe's account. No fork." },
     { label: "workflow", text: "A Frappe Workflow with a role only the chain holds." },
     { label: "refuse-money", text: "The site refuses money documents (the old optional-head rule)." },
   ],
@@ -314,6 +314,20 @@ export const decision_plugs_worlds = dec({
   why: "A refusal is only provable from a state that produces it. docs/mission/worlds.md section 1 renames the eval 'worlds' to templates; the ids here stay as they are because renaming them would churn every refusal's `given`.",
   evidence: FIND.path,
   affects: [f.system_capxul, ops.operation_payment_prepare_document, ops.operation_payment_awaiting, ops.operation_org_events_status, ops.operation_org_roles_drift],
+});
+
+export const decision_plugs_service_calls_site = dec({
+  id: "plugs.service-calls-site",
+  title: "Every call goes from the service to a site; a site never reaches the service",
+  question: "In which direction do the calls between the Capxul service and a company's site go?",
+  options: [
+    { label: "service-calls-site", text: "Always the service to the site. (a) A person's request to pay becomes a row the site writes in an outbox in the same transaction as the document's waiting state; the service collects requests by asking the site for those after a cursor (a poll or a long-poll), holds each, and answers by calling the site with the approval or the refusal; the trace id and the idempotency key travel with the request. (b) The service obtains a session for a person on a site by calling the site, as the door does; a person who only watches gets a one-time link the service asks the site to mint. A browser sign-in that needs the site to call the service is marked as needing a reachable service and is outside the current path. (c) The world's clock, features, roles and events are already pushed by the service. Consequence: a developer's local devnet, whose service runs on a laptop the hosted bench cannot reach, registers itself as a world with the hosted site service: a world id, a secret and a name are issued, its companies' sites are created on the hosted bench, and idle sites are parked after a stated time (assumption: 30 minutes without a call, to be measured); a core-only world, with no sites, is the offline fallback. A hosted world's service needs no inbound route from the bench." },
+    { label: "site-calls-service", text: "The site posts payment requests to the service and the sign-in exchanges its code with the service's server, as the skeleton did." },
+  ],
+  chosen: "service-calls-site",
+  why: "The owner, 10 November: one hosted bench should be shared by everything, including developers' local devnets whose service a hosted bench cannot reach, and a hosted world's service should need no inbound route from the bench. The precedent is the old head design: 'Capxul always calls; the head only rings a doorbell' (the archived integration frappe-head). The spike breaks the rule in two places (spikes/skeleton/INTERFACE.md: the site posts /prepare to the service; the sign-in exchanges the code server to server); both are replaced here. Assumption, not yet tested: the site's outbox of requests, the poll and its latency (the skeleton's sign to posted was 533 to 728 ms and Frappe-down recovery 2.0 to 3.8 s with the site calling).",
+  evidence: FIND.e2e,
+  affects: [f.system_capxul, d.table_site_request_cursors, d.table_site_links, d.table_payment_requests, pr.workflow_plugs_payments_collect, sg.rpc_plugs_payments_prepare, si.rpc_plugs_oauth_authorize, si.rpc_plugs_oauth_token, ops.operation_org_site_link, ops.operation_payment_prepare_document, integration_frappe_site],
 });
 
 void ops; 

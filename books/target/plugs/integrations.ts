@@ -19,11 +19,11 @@ export const integration_frappe_site = defineIntegration({
     "The site Capxul hosts for an Organization (ERPNext, Frappe HR, Frappe CRM and the WhatsApp app, renamed to Capxul), reached over HTTPS at its " +
     "own hostname through whitelisted methods of the Capxul app (component:frappe-app), behind the Effect service `FrappeSite`. Every call carries " +
     "`X-Capxul-Signature`, an HMAC-SHA-256 of the raw body under the site's own secret; a call without a valid signature is refused with 401. Capxul " +
-    "always calls with data; the site calls Capxul only to ask for a payment to be prepared and to sign in. Nothing the site holds is copied into " +
+    "always calls: every call goes from the service to the site and the site never needs to reach the service (plugs.service-calls-site; precedent: the old head design, 'Capxul always calls; the head only rings a doorbell'). Nothing the site holds is copied into " +
     "Capxul's tables: Frappe owns its documents. `applyEvent` is how the chain reaches the books and the roles. `doorCall` and `doorReport` run " +
     "the person's own call: the app sets the session user to the Frappe user that person's hat created, so Frappe's permissions decide, and money " +
     "documents never post on their own (plugs.held-payment). No call reports usage outward; the site's own telemetry is off (sites.privacy). " +
-    "Assumption, not yet tested: the doorCall and doorReport methods; the spike proved applyEvent, the sign-in and the held payment, and the " +
+    "Assumption, not yet tested: the doorCall, doorReport, collectPaymentRequests, answerPaymentRequest, mintSession and mintViewLink methods; the spike proved applyEvent, the sign-in and the held payment, and the " +
     "door's design awaits the spike's door section.",
   component: component_backend,
   system: "frappe",
@@ -35,6 +35,34 @@ export const integration_frappe_site = defineIntegration({
       retries: { max: 3, backoff: "exponential" },
       p95Ms: 2_000,
       failures: [down, badSig, unusable, { when: "The handler raises: the site answers 500 and keeps the cursor where it was", error: error_PROVIDER_ERROR }],
+    },
+    collectPaymentRequests: {
+      about: "Ask the site for the payment requests written after a cursor (its outbox, in the same transaction as the document's waiting state); a poll or a long-poll. Answers the requests and the new cursor.",
+      timeoutMs: 30_000,
+      retries: { max: 3, backoff: "exponential" },
+      p95Ms: 5_000,
+      failures: [down, badSig, unusable],
+    },
+    answerPaymentRequest: {
+      about: "Tell the site what became of a request it wrote: the approval and whose signature is awaited, or the refusal with its reason. Carries the request's trace id and idempotency key; a repeat answers the same.",
+      timeoutMs: 10_000,
+      retries: { max: 3, backoff: "exponential" },
+      p95Ms: 2_000,
+      failures: [down, badSig, unusable],
+    },
+    mintSession: {
+      about: "Ask the site for a session for a person whose Frappe user a hat created, as the door does for a call. Answers a session the service holds; the person never signs in to the site by password.",
+      timeoutMs: 10_000,
+      retries: { max: 2, backoff: "exponential" },
+      p95Ms: 2_000,
+      failures: [down, badSig, unusable, { when: "The person has no Frappe user on the site (no hat created one)", error: error_ROLE_PERMISSION_DENIED }],
+    },
+    mintViewLink: {
+      about: "Ask the site to mint a one-time sign-in link for a person who only watches (a viewer grant), read-only, expiring. Answers the link; the site never calls the service.",
+      timeoutMs: 10_000,
+      retries: { max: 2, backoff: "exponential" },
+      p95Ms: 2_000,
+      failures: [down, badSig, unusable, { when: "The person has no viewer or site user for this Organization", error: error_ROLE_PERMISSION_DENIED }],
     },
     readSite: {
       about: "The site as it stands: its Capxul app version, installed apps, Company, Capxul Feature rows and hat-role map version. Reads only.",

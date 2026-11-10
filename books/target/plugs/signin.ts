@@ -1,5 +1,6 @@
 // The sign-in plug: Capxul is the OAuth 2 and OpenID provider each hosted site signs in through. The site's Social Login Key points at
-// it; sign-up is denied on the site, so the only people who can sign in are those a hat created (a row in site-users). The person
+// it; sign-up is denied on the site, so the only people who can sign in are those a hat created (a row in site-users). THIS BROWSER FLOW NEEDS A REACHABLE SERVICE (the site's server exchanges the
+// code with the service), so under plugs.service-calls-site it is outside the current path; the path's sign-in is sessions.ts (the service calls the site). The person
 // proves themselves to Capxul as they already do (access); this plug only hands a signed identity to the site. Stand-in in the spike: a
 // list of test people to pick from. Assumption, not yet tested: the real provider's session check and exact redirect matching.
 

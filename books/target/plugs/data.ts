@@ -245,8 +245,9 @@ export const table_payment_requests = defineTable({
     "and account code that travel with it on chain, the approval that carries the signature, and the transaction hash once it lands. It lives in " +
     "Core because a Frappe hook that throws rolls its own rows back: the skeleton measured a request inserted in a before-submit hook vanishing " +
     "(FINDINGS, Frappe half: Paying a document, route 1). The Payment Entry in Frappe stays a draft in `waiting` and is submitted only when " +
-    "this row says sent.",
-  was: [`${SPIKE} (Frappe half: Paying a document; INTERFACE.md: Frappe to Core /prepare)`],
+    "this row says sent. The request starts as a row the site writes in its own outbox, in the same transaction as the document's waiting state; the " +
+    "service collects it by asking the site for requests after a cursor, so the site never calls the service (plugs.service-calls-site), and this row records it with the trace id and idempotency key that travelled with it.",
+  was: [`${SPIKE} (Frappe half: Paying a document; INTERFACE.md: Frappe to Core /prepare, now collected by the service)`],
   concept: concept_plugs,
   tenancy: "organization",
   tenantField: "org_id",
@@ -266,8 +267,11 @@ export const table_payment_requests = defineTable({
     department: Null(S),
     cost_centre: Null(S),
     account_code: Null(S),
-    approval_id: S,
+    approval_id: Null(S),
     payment_id: Null(S),
+    trace_id: S,
+    idempotency_key: S,
+    site_cursor: S,
     status: PaymentRequestState,
     failure_reason: Null(S),
     tx_hash: Null(S),
@@ -281,6 +285,42 @@ export const table_payment_requests = defineTable({
     { name: "payment-requests-awaiting", fields: ["org_id", "awaiting", "status"], for: "The signer's list: what each address has been asked to sign." },
   ],
   retention: "Kept for ever: a payment is a record of money.",
+});
+
+
+export const table_site_request_cursors = defineTable({
+  id: "site-request-cursors",
+  title: "Request cursors: where the service has got to in a site's request outbox",
+  about:
+    "One row per Organization: the cursor of the last payment request the service collected from the site's outbox and the time of the last poll. The service asks the site for requests after the cursor " +
+    "(a poll or a long-poll) and answers each by calling the site with the approval or the refusal. A site that was down simply has more after the cursor when it returns: nothing is lost, and the site never needs " +
+    "a route to the service (plugs.service-calls-site).",
+  was: ["spikes/skeleton/INTERFACE.md (Frappe to Core /prepare, which this replaces)"],
+  concept: concept_plugs,
+  tenancy: "organization",
+  tenantField: "org_id",
+  scope: ORG,
+  fields: Schema.Struct({ org_id: S, cursor: S, polled_at: N, state: Schema.Literals(["polling", "unreachable"]), updated_at: N }),
+  key: ["org_id"],
+  indexes: [{ name: "site-request-cursors-by-state", fields: ["org_id", "state"], for: "The collect process and the status command read whether a site is unreachable." }],
+  retention: "Kept while the site exists.",
+});
+
+export const table_site_links = defineTable({
+  id: "site-links",
+  title: "Site links: the one-time sign-in links the service asked a site to mint",
+  about:
+    "One row per link minted for a person who only watches (a viewer grant) or for a session the service obtained: the person, the kind (view or session), when it was minted and when it expires. The site mints and checks the " +
+    "link; Core keeps only this audit row, never the link. A viewer's link is read-only and one-time.",
+  was: ["docs/mission/worlds.md (decision 7: a viewer grant)"],
+  concept: concept_plugs,
+  tenancy: "organization",
+  tenantField: "org_id",
+  scope: ORG,
+  fields: Schema.Struct({ org_id: S, link_id: S, person_id: S, kind: Schema.Literals(["view", "session"]), minted_at: N, expires_at: N }),
+  key: ["org_id", "link_id"],
+  indexes: [{ name: "site-links-by-person", fields: ["org_id", "person_id", "minted_at"], for: "A person's recent links, newest first." }],
+  retention: "Kept for ever with the world's record.",
 });
 
 // ── events ──────────────────────────────────────────────────────────────────────────────────

@@ -36,7 +36,7 @@ export const procedure_plugs_payments_hold = procedure({
   concept: concept_plugs,
   input: Schema.Struct({
     org_id: S, doctype: S, docname: S, document_hash: S, requested_by: S, to_party: S, to_address: S, amount: S, asset: S,
-    department: Null(S), cost_centre: Null(S), account_code: Null(S), signer: Null(S),
+    department: Null(S), cost_centre: Null(S), account_code: Null(S), signer: Null(S), trace_id: S, idempotency_key: S, site_cursor: S,
   }),
   output: Schema.Struct({ request_id: S, approval_id: S, awaiting: S, replayed: Schema.Boolean }),
   errors: [error_INVALID_INPUT, error_ROLE_PERMISSION_DENIED, error_AUTHORISED_EXCEEDED, error_INSUFFICIENT_BALANCE],
@@ -65,25 +65,25 @@ export const procedure_plugs_payments_abandon = procedure({
 
 export const rpc_plugs_payments_prepare = rpc({
   id: "plugs.payments.prepare",
-  title: "Prepare a payment a Frappe user asked for",
+  title: "Prepare a payment a person asked for, from a request the site wrote",
   about:
-    "The site's form posts the document, its hash, the requester and the payee; the body is signed with the site's secret (a call without a valid signature is " +
-    "refused with NOT_AUTHENTICATED). It holds the payment (plugs.payments.hold) and answers the request, the approval and whose signature is awaited. A refusal " +
-    "carries its reason to the person: no hat, no budget room, an unknown user, a hash that does not match a draft already prepared (DOCUMENT_HASH_MISMATCH). " +
-    "The Payment Entry stays a draft in Frappe until the chain's PaymentSent lands it.",
+    "The person's Submit in Frappe writes a request in the site's own outbox, in the same transaction as the document's waiting state; the service collects it (plugs.payments.collect), or a person or an agent asks for the same through the CLI. " +
+    "It holds the payment (plugs.payments.hold) and answers the request, the approval and whose signature is awaited. A refusal carries its reason back to the person: no hat, no budget room, an unknown user, a hash that does not match a draft " +
+    "already prepared (DOCUMENT_HASH_MISMATCH). The trace id and idempotency key that travelled with the request are kept, so a repeat answers the same. The Payment Entry stays a draft in Frappe until the chain's PaymentSent lands it. The site never " +
+    "calls this: every call goes from the service to the site (plugs.service-calls-site).",
   concept: concept_plugs,
   kind: "mutation",
-  who: "A hosted site's server, signing the body, for a Frappe user a hat created.",
+  who: "The Capxul service, for a request it collected from a site's outbox; or a person or an agent whose Frappe user a hat created, through the CLI.",
   input: Schema.Struct({
     org: S, doctype: S, name: S, document_hash: S, requested_by: S, to_party: S, to_address: S, amount: S, asset: S,
-    department: Null(S), cost_centre: Null(S), account_code: Null(S),
+    department: Null(S), cost_centre: Null(S), account_code: Null(S), trace_id: S, idempotency_key: S, site_cursor: S,
   }),
   output: Schema.Struct({ request_id: S, approval_id: S, awaiting: S, awaiting_name: Null(S), approval_url: S }),
   errors: [error_NOT_AUTHENTICATED, error_ROLE_PERMISSION_DENIED, error_INVALID_INPUT, error_AUTHORISED_EXCEEDED, error_INSUFFICIENT_BALANCE, error_DOCUMENT_HASH_MISMATCH],
   reads: [table_site_users],
   invokes: [procedure_plugs_payments_hold],
   budget: { class: "chain-read", p50Ms: 900, p95Ms: 2000 },
-  was: [`${SPIKE} (INTERFACE.md: Frappe to Core)`],
+  was: [`${SPIKE} (INTERFACE.md: Frappe to Core, now collected by the service)`],
 });
 
 export const rpc_plugs_payments_awaiting = rpc({
@@ -107,11 +107,10 @@ export const rpc_plugs_payments_get = rpc({
   id: "plugs.payments.get",
   title: "Read one held payment and its state",
   about:
-    "A request by id, or by document and name, with its state, the approval, whose signature is awaited and, once landed, the transaction hash. The site reads it to show the " +
-    "person where their payment stands, and refreshes it while it waits.",
+    "A request by id, or by document and name, with its state, the approval, whose signature is awaited and, once landed, the transaction hash. The service pushes each change of state to the site (plugs.service-calls-site), so the person in Frappe sees it without the site calling Core; this read is for the CLI and the SDK.",
   concept: concept_plugs,
   kind: "query",
-  who: "A member of the Organization, or the site's server, signing the call.",
+  who: "A member of the Organization, or an agent.",
   input: Schema.Struct({ orgId: S, requestId: Null(S), doctype: Null(S), docname: Null(S) }),
   output: PaymentRequestView,
   errors: [error_NOT_AUTHENTICATED, error_INVALID_INPUT],

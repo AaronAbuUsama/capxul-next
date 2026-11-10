@@ -10,6 +10,7 @@ import {
 import { rpc_plugs_payments_awaiting, rpc_plugs_payments_prepare } from "./signer.ts";
 import { rpc_plugs_roles_drift } from "./roles.ts";
 import { flow_client_org_roles_show } from "./flows.ts";
+import { rpc_plugs_sessions_link } from "./sessions.ts";
 import { rpc_plugs_events_resend, rpc_plugs_events_retry, rpc_plugs_events_status } from "./events.ts";
 import { WORLD, operation } from "./kit.ts";
 
@@ -212,3 +213,26 @@ export const operation_org_events_retry = operation({
   refusals: [out, notAdmin("release an event"), { error: error_WRONG_STATE, given: WORLD.events, when: "The event is not set aside." }],
 });
 
+
+export const operation_org_site_link = operation({
+  id: "org.site.link",
+  title: "Get a one-time, read-only link to watch a company's site",
+  about:
+    "For a person who only watches (a viewer grant): the service asks the site to mint a one-time sign-in link that expires in minutes and opens the site read-only. The site never calls the service. A member of the Organization with a site user opens it as themselves and does not need this.",
+  area: "organizations",
+  command: "org site link",
+  priority: "normal",
+  implementedBy: rpc_plugs_sessions_link,
+  who: "A signed-in person with a viewer grant for the Organization's world, or a member of the Organization.",
+  changes: "One audit row of the link's minting; the site holds the link.",
+  acceptance: [
+    {
+      claim: "A watcher gets a link that opens the site read-only once.",
+      observes: `cli: in \`${WORLD.siteReady}\`, a person with only a viewer grant runs \`org site link --json\`; the url opens the company's Frappe screens with no way to save; the same url a second time, or after it expires, is refused by the site.`,
+    },
+  ],
+  returns: rpc_plugs_sessions_link.output,
+  errors: [error_CLI_USAGE],
+  refusals: [out, { error: error_ROLE_PERMISSION_DENIED, given: WORLD.member, when: "The person has neither a viewer grant nor a site user." }, { error: error_PROVIDER_ERROR, given: WORLD.siteDown, when: "The site's bench is stopped." }],
+  budget: budget("vendor"),
+});

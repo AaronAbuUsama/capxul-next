@@ -5,10 +5,11 @@ import * as integrations from "./integrations.ts";
 import * as signin from "./signin.ts";
 import * as signer from "./signer.ts";
 import * as roles from "./roles.ts";
+import * as sessions from "./sessions.ts";
 import * as events from "./events.ts";
 import * as processes from "./processes.ts";
 import * as flows from "./flows.ts";
 import * as operations from "./operations.ts";
 import * as decisions from "./decisions.ts";
 
-export const modules = [data, integrations, signin, signer, roles, events, processes, flows, operations, decisions] as const;
+export const modules = [data, integrations, signin, signer, sessions, roles, events, processes, flows, operations, decisions] as const;

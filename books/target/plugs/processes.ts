@@ -9,9 +9,10 @@ import { table_chain_payments, table_hat_wearers } from "../indexing/data.ts";
 import { machine_approval } from "../approvals/data.ts";
 import { table_org_deployments, table_org_members } from "../organizations/data.ts";
 import { integration_frappe_site } from "./integrations.ts";
+import { procedure_plugs_payments_hold } from "./signer.ts";
 import {
   machine_payment_request, machine_role_grant, machine_site_event, table_hat_role_map, table_payment_requests, table_role_grants, table_site_cursors,
-  table_site_events, table_site_users,
+  table_site_events, table_site_request_cursors, table_site_users,
 } from "./data.ts";
 
 const SPIKE = "spikes/skeleton/FINDINGS.md";
@@ -171,4 +172,35 @@ export const workflow_plugs_payments_fail = defineWorkflow({
   retries: { max: 5, backoff: "exponential" },
   budget: budget("background"),
   was: [`${SPIKE} (Core half: A revert leaves no log; payment_failed is Core's attestation)`],
+});
+
+export const workflow_plugs_payments_collect = defineWorkflow({
+  id: "plugs.payments.collect",
+  title: "Collect the payment requests a site wrote, and answer each",
+  about:
+    "The site never calls the service (plugs.service-calls-site). A person's Submit in Frappe writes a request in the site's outbox in the same transaction as the document's waiting state. This process, one per Organization, asks the site for " +
+    "requests after its cursor (a poll every few seconds, or a long-poll), holds each (`plugs.payments.hold`, which carries the trace id and idempotency key the request travelled with) and answers the site with the approval and whose signature is awaited, or the refusal " +
+    "and its reason, then moves the cursor. A site that is down has more after the cursor when it returns; the cursor is marked unreachable meanwhile. A repeat of a request answers what the first did. Runs on the world's clock.",
+  concept: concept_plugs,
+  priority: "critical",
+  trigger: { cron: "* * * * *" },
+  instance: { per: table_site_request_cursors },
+  steps: [
+    { name: "poll", about: "Asks the site for requests after the cursor." },
+    { name: "hold", about: "Holds each request: checks the hat and the budget, opens the approval." },
+    { name: "answer", about: "Tells the site the approval and whose signature is awaited, or the refusal." },
+    { name: "advance", about: "Moves the cursor past the answered requests." },
+  ],
+  reads: [table_site_request_cursors, table_site_users],
+  writes: [table_site_request_cursors],
+  drives: [],
+  invokes: [procedure_plugs_payments_hold],
+  emits: [],
+  calls: [integration_frappe_site.c.collectPaymentRequests, integration_frappe_site.c.answerPaymentRequest],
+  chain: [],
+  idempotency: "The request's idempotency key: a request already held answers the same request.",
+  timeoutMs: 60_000,
+  retries: { max: 5, backoff: "exponential" },
+  budget: budget("background"),
+  was: ["spikes/skeleton/INTERFACE.md (Frappe to Core /prepare, which this replaces)"],
 });

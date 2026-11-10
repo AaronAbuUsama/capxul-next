@@ -8,6 +8,7 @@ import { error_INVALID_INPUT, error_NOT_AUTHENTICATED, error_ROLE_PERMISSION_DEN
 import { rpc_plugs_oauth_authorize, rpc_plugs_oauth_token, rpc_plugs_oauth_userinfo } from "./signin.ts";
 import { rpc_plugs_payments_get, PaymentRequestView } from "./signer.ts";
 import { rpc_plugs_roles_map, rpc_plugs_roles_show, MapRow } from "./roles.ts";
+import { rpc_plugs_sessions_mint } from "./sessions.ts";
 import { N, Null, S } from "./kit.ts";
 
 const SPIKE = "spikes/skeleton/FINDINGS.md";
@@ -16,7 +17,7 @@ export const flow_client_site_sign_in = defineFlow({
   id: "client.site.sign-in",
   title: "Sign a person in to their company's site through Capxul",
   about:
-    "Surface: the site's login page, over HTTP, not a command. The person clicks the login button; the site sends the browser to Capxul with the client id, an exact redirect and a state; " +
+    "Needs a reachable service, so outside the current path (plugs.service-calls-site). Surface: the site's login page, over HTTP, not a command. The person clicks the login button; the site sends the browser to Capxul with the client id, an exact redirect and a state; " +
     "a person already signed in to Capxul has a code made for them (a hat must have created their site user), the browser returns to the site, the site's server exchanges the code with its secret for " +
     "a token, and reads who the token belongs to. Sign-up is denied on the site, so a person with no hat ends at a refusal and no session.",
   was: [`${SPIKE} (Frappe half: Sign-in verified end to end against the real Core stub)`],
@@ -40,11 +41,11 @@ export const flow_client_site_payment_status = defineFlow({
   id: "client.site.payment-status",
   title: "Read where a held payment stands, for the site and the SDK",
   about:
-    "Surface: the Frappe form while a payment waits (it polls this to show 'waiting for Hannah's signature', then the result), and an agent's SDK. One read of the request by id or by document.",
+    "Surface: an agent's SDK and the CLI. One read of the request by id or by document. The Frappe form does not poll it: the service pushes each change of state to the site (plugs.service-calls-site).",
   was: [`${SPIKE} (Frappe half: Paying a document, route 2)`],
   component: component_core_sdk,
   sdk: "client.payments.documentStatus",
-  surfaces: ["sdk", "http"],
+  surfaces: ["sdk"],
   input: Schema.Struct({ orgId: S, requestId: Null(S), doctype: Null(S), docname: Null(S) }),
   output: PaymentRequestView,
   steps: [{ name: "get", rpc: rpc_plugs_payments_get, about: "Reads the request and its state." }],
@@ -71,4 +72,21 @@ export const flow_client_org_roles_show = defineFlow({
   calls: [],
   spans: [],
   budget: budget("read"),
+});
+
+export const flow_client_site_session = defineFlow({
+  id: "client.site.session",
+  title: "Obtain a session for a person on their site, by calling the site",
+  about: "Surface: the SDK, for an agent or a CLI that needs the person's own Frappe session. The service calls the site (the site never calls the service) and holds the session for the call; a person with no site user is refused.",
+  was: ["spikes/skeleton/INTERFACE.md (Sign-in)"],
+  component: component_core_sdk,
+  sdk: "client.site.session",
+  surfaces: ["sdk"],
+  input: Schema.Struct({ orgId: S }),
+  output: Schema.Struct({ expiresAt: N }),
+  steps: [{ name: "mint", rpc: rpc_plugs_sessions_mint, about: "Asks the site for the person's session." }],
+  errors: [],
+  calls: [],
+  spans: [],
+  budget: budget("write"),
 });
