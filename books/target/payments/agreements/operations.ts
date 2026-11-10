@@ -35,6 +35,19 @@ import {
   flow_client_org_payroll_agreements_resume,
   flow_client_org_payroll_agreements_withdraw,
 } from "./flows.ts";
+import {
+  examples_agreement_accept,
+  examples_agreement_collect,
+  examples_agreement_list,
+  examples_agreement_show,
+  examples_org_agreement_offer,
+  examples_org_agreement_change,
+  examples_org_agreement_end,
+  examples_org_agreement_list,
+  examples_org_agreement_pause,
+  examples_org_agreement_resume,
+  examples_org_agreement_withdraw,
+} from "./examples.ts";
 import { WHO_HR } from "./employees.ts";
 import { rpc_payroll_holders_list } from "./holders.ts";
 import { rpc_payroll_payees_list, rpc_payroll_payees_show } from "./payees.ts";
@@ -149,6 +162,7 @@ export const operation_agreement_accept = defineOperation({
     { error: error_WRONG_STATE, given: "org-with-agreements", when: when("agreement.accept", "WRONG_STATE") },
     { error: error_ROLE_PERMISSION_DENIED, given: "org-with-agreements", when: when("agreement.accept", "ROLE_PERMISSION_DENIED") },
   ],
+  examples: examples_agreement_accept,
   budget: budget("chain-submit"),
 });
 
@@ -211,6 +225,7 @@ export const operation_agreement_collect = defineOperation({
     { error: error_ROLE_PERMISSION_DENIED, given: "org-with-frozen-ceiling", when: when("agreement.collect", "ROLE_PERMISSION_DENIED") },
     { error: error_WRONG_STATE, given: "org-with-writes-awaiting", when: when("agreement.collect", "WRONG_STATE") },
   ],
+  examples: examples_agreement_collect,
   budget: budget("chain-submit"),
 });
 
@@ -255,6 +270,7 @@ export const operation_agreement_list = defineOperation({
     { error: error_NOT_AUTHENTICATED, given: "org-with-agreements", when: when("agreement.list", "NOT_AUTHENTICATED") },
     { error: error_PROVIDER_ERROR, given: "org-with-agreements", when: when("agreement.list", "PROVIDER_ERROR") },
   ],
+  examples: examples_agreement_list,
   budget: budget("chain-read"),
 });
 
@@ -303,6 +319,7 @@ export const operation_agreement_show = defineOperation({
     { error: error_INVALID_INPUT, given: "org-with-agreements", when: when("agreement.show", "INVALID_INPUT") },
     { error: error_ROLE_PERMISSION_DENIED, given: "org-with-agreements", when: when("agreement.show", "ROLE_PERMISSION_DENIED") },
   ],
+  examples: examples_agreement_show,
   budget: budget("chain-read"),
 });
 
@@ -371,6 +388,7 @@ export const operation_org_agreement_offer = defineOperation({
       when: "The budget is closed, or it already has 64 open agreements, or it has no budget on chain yet. Nothing is signed.",
     },
   ],
+  examples: examples_org_agreement_offer,
   budget: budget("chain-submit"),
 });
 
@@ -424,6 +442,7 @@ export const operation_org_agreement_change = defineOperation({
     { error: error_ROLE_PERMISSION_DENIED, given: "org-with-agreements", when: when("org.agreement.change", "ROLE_PERMISSION_DENIED") },
     { error: error_FEATURE_NOT_AVAILABLE, given: "org-with-agreements-off", when: when("org.agreement.change", "FEATURE_NOT_AVAILABLE") },
   ],
+  examples: examples_org_agreement_change,
   budget: budget("chain-submit"),
 });
 
@@ -464,6 +483,7 @@ export const operation_org_agreement_end = defineOperation({
     { error: error_ROLE_PERMISSION_DENIED, given: "org-with-agreements", when: when("org.agreement.end", "ROLE_PERMISSION_DENIED") },
     { error: error_FEATURE_NOT_AVAILABLE, given: "org-with-agreements-off", when: when("org.agreement.end", "FEATURE_NOT_AVAILABLE") },
   ],
+  examples: examples_org_agreement_end,
   budget: budget("chain-submit"),
 });
 
@@ -503,6 +523,7 @@ export const operation_org_agreement_list = defineOperation({
     { error: error_ROLE_PERMISSION_DENIED, given: "org-with-agreements", when: when("org.agreement.list", "ROLE_PERMISSION_DENIED") },
     { error: error_PROVIDER_ERROR, given: "org-with-agreements", when: when("org.agreement.list", "PROVIDER_ERROR") },
   ],
+  examples: examples_org_agreement_list,
   budget: budget("chain-read"),
 });
 
@@ -547,6 +568,7 @@ export const operation_org_agreement_pause = defineOperation({
     { error: error_ROLE_PERMISSION_DENIED, given: "org-with-agreements", when: when("org.agreement.pause", "ROLE_PERMISSION_DENIED") },
     { error: error_FEATURE_NOT_AVAILABLE, given: "org-with-agreements-off", when: when("org.agreement.pause", "FEATURE_NOT_AVAILABLE") },
   ],
+  examples: examples_org_agreement_pause,
   budget: budget("chain-submit"),
 });
 
@@ -591,6 +613,7 @@ export const operation_org_agreement_resume = defineOperation({
     { error: error_ROLE_PERMISSION_DENIED, given: "org-with-agreements", when: when("org.agreement.resume", "ROLE_PERMISSION_DENIED") },
     { error: error_FEATURE_NOT_AVAILABLE, given: "org-with-agreements-off", when: when("org.agreement.resume", "FEATURE_NOT_AVAILABLE") },
   ],
+  examples: examples_org_agreement_resume,
   budget: budget("chain-submit"),
 });
 
@@ -633,6 +656,7 @@ export const operation_org_agreement_withdraw = defineOperation({
     { error: error_ROLE_PERMISSION_DENIED, given: "org-with-agreements", when: when("org.agreement.withdraw", "ROLE_PERMISSION_DENIED") },
     { error: error_FEATURE_NOT_AVAILABLE, given: "org-with-agreements-off", when: when("org.agreement.withdraw", "FEATURE_NOT_AVAILABLE") },
   ],
+  examples: examples_org_agreement_withdraw,
   budget: budget("chain-submit"),
 });
 

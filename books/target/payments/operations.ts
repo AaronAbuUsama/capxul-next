@@ -37,6 +37,18 @@ import {
   flow_client_payments_subscribe,
 } from "./flows.ts";
 import { rpc_payments_ledger_get, rpc_payments_ledger_list } from "./ledger.ts";
+import {
+  examples_payment_send,
+  examples_payment_retry,
+  examples_payment_cancel,
+  examples_payment_reschedule,
+  examples_payment_get,
+  examples_payment_list,
+  examples_payment_wait,
+  examples_org_department_pay,
+  examples_org_seats_buy,
+  examples_payment_claim,
+} from "./examples.ts";
 import { Outcome, PaymentStatus, Route } from "./data.ts";
 
 const S = Schema.String;
@@ -177,6 +189,7 @@ export const operation_payment_send = defineOperation({
     { error: error_SUPERSEDED, given: W.funded, when: "The sponsorship expired or the claim could not be observed, so the payment must be retried." },
     { error: error_NOT_AUTHENTICATED, given: W.signedOut, when: "You are not signed in." },
   ],
+  examples: examples_payment_send,
   budget: budget("chain-submit"),
   was: [page("payment.send"), "docs/as-is/archive/payments/operations.ts"],
 });
@@ -214,6 +227,7 @@ export const operation_payment_retry = defineOperation({
     { error: error_PAYROLL_BUDGET_EXCEEDED, given: W.dated, when: "The budget has less left now than the payment needs." },
     { error: error_NOT_AUTHENTICATED, given: W.signedOut, when: "You are not signed in." },
   ],
+  examples: examples_payment_retry,
   budget: budget("chain-submit"),
   was: [page("payment.retry")],
 });
@@ -259,6 +273,7 @@ export const operation_payment_cancel = defineOperation({
     },
     { error: error_NOT_AUTHENTICATED, given: W.signedOut, when: "You are not signed in." },
   ],
+  examples: examples_payment_cancel,
   budget: budget("chain-submit"),
   was: [page("payment.cancel")],
 });
@@ -293,6 +308,7 @@ export const operation_payment_reschedule = defineOperation({
     { error: error_ROLE_PERMISSION_DENIED, given: W.dated, when: "You cannot act for that payment: you wear no hat on its budget or above it." },
     { error: error_NOT_AUTHENTICATED, given: W.signedOut, when: "You are not signed in." },
   ],
+  examples: examples_payment_reschedule,
   budget: budget("chain-submit"),
   was: [page("payment.reschedule")],
 });
@@ -321,6 +337,7 @@ export const operation_payment_get = defineOperation({
     { error: error_INVALID_INPUT, given: W.noAccount, when: "You are signed in but have no Account, or the payment is not one you can read." },
     { error: error_NOT_AUTHENTICATED, given: W.signedOut, when: "You are not signed in." },
   ],
+  examples: examples_payment_get,
   budget: budget("read"),
   was: [page("payment.get")],
 });
@@ -349,6 +366,7 @@ export const operation_payment_list = defineOperation({
     { error: error_ROLE_PERMISSION_DENIED, given: W.budgets, when: "`--org` names an Organization you are not a member of." },
     { error: error_NOT_AUTHENTICATED, given: W.signedOut, when: "You are not signed in." },
   ],
+  examples: examples_payment_list,
   budget: budget("read"),
   was: [page("payment.list")],
 });
@@ -377,6 +395,7 @@ export const operation_payment_wait = defineOperation({
     { error: error_INVALID_INPUT, given: W.history, when: "The payment is not one you can read." },
     { error: error_NOT_AUTHENTICATED, given: W.signedOut, when: "You are not signed in." },
   ],
+  examples: examples_payment_wait,
   budget: budget("live-read"),
   was: [page("payment.wait")],
 });
@@ -408,6 +427,7 @@ export const operation_org_department_pay = defineOperation({
     { error: error_WRONG_STATE, given: W.budgets, when: "The department is not active on v4, its budget id is not known yet, or it or a budget above it is closed." },
     { error: error_INVALID_INPUT, given: W.budgets, when: "The department is unknown, or the amount is not in its budget's token." },
   ],
+  examples: examples_org_department_pay,
   budget: budget("chain-submit"),
   was: [page("org.department.pay")],
 });
@@ -559,6 +579,7 @@ export const operation_org_seats_buy = defineOperation({
       when: "The approval expired or was displaced before it landed: nothing was bought, and the refusal names `payment retry` and `payment wait`.",
     },
   ],
+  examples: examples_org_seats_buy,
   budget: budget("chain-submit"),
   was: ["docs/design/new-commands.md (section 5.5)", "books/target/shared/rulings.ts (aaron.buy-seats, aaron.test-prices)"],
 });
@@ -692,6 +713,7 @@ export const operation_payment_claim = defineOperation({
         "waits.",
     },
   ],
+  examples: examples_payment_claim,
   budget: budget("chain-submit"),
   was: [
     "apps/docs/factory/operations/account.retry.yaml (designed: Escrow.collect() at setup)",
