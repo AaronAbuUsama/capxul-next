@@ -8,7 +8,7 @@ import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { ask, lastJson, openHost, type Host } from "../agents/service.ts";
-import { catchUp, commitAll, dropLane, ensureLane, git, head, slug, type Lane } from "../lanes/service.ts";
+import { catchUp, commitAll, dropLane, ensureLane, git, head, laneBlocked, slug, type Lane } from "../lanes/service.ts";
 import { alive, ledgerLines, listRuns, play, readInfo, SETTLED, stop as stopRun, table, watchRun, work as workLoop, type Info, type Run } from "../runs/service.ts";
 import { allowedModel, defaultCheckerModel, defaultModel, modelsOf, POLICY, qualify } from "./internal/config.ts";
 import { showView, statusViews, type Look, type RunView } from "../inspect/service.ts";
@@ -162,9 +162,12 @@ const playJob = (ctx: Ctx, id: string, task: Task, opts: Opts, script?: Script):
 
 export const start = async (ctx: Ctx, taskId: string, opts: Opts, script?: Script): Promise<Info> => {
   const task = plan.loadTask(ctx, taskId);
+  if (!script) await loadScript(ctx, opts.script);                 // an unknown script is found before anything is claimed or made
   const stamp = ctx.now().toISOString().slice(5, 16).replace(/[-:T]/g, "");
   let id = `${slug(taskId)}-${stamp}`;
   for (let n = 2; existsSync(join(runsDir(ctx), id)); n++) id = `${slug(taskId)}-${stamp}-${n}`;
+  const why = laneBlocked(ctx.root, join(runsDir(ctx), id, "lane"), task.id, baseOf(ctx));
+  if (why) throw new Error(`cannot start a run on ${taskId}: ${why}`);
   ctx.say(`run ${id}`);
   return playJob(ctx, id, { ...task, budgetUsd: task.budgetUsd ?? opts.budgetUsd }, opts, script);
 };
@@ -197,12 +200,13 @@ export const watch = (ctx: Ctx, id: string): Promise<void> => { const dir = runD
 
 /** The worker: ready tasks from the plan (named, or on the critical path), a run each, `concurrency` at once; dead runs are resumed first. */
 export const work = (ctx: Ctx, o: { concurrency: number; tasks: string[]; opts: Opts; wait: boolean; pause?: number }): Promise<void> => {
-  const runs = (): { dir: string; info: Info }[] => listRuns(runsDir(ctx));
+  const runs = (): { dir: string; info: Info }[] => listRuns(runsDir(ctx)), gaveUp = new Set<string>();
   return workLoop({
     concurrency: o.concurrency, wait: o.wait, say: ctx.say, ...(o.pause ? { pause: o.pause } : {}),
     dead: () => runs().filter((r) => r.info.status === "running" && !alive(r.info.pid)).map((r) => r.info.id),
-    ready: () => plan.readyTasks(ctx, o.tasks).filter((t) => !runs().some((r) => r.info.subject === t && !SETTLED.includes(r.info.status))),
-    resume: (id) => resume(ctx, id), start: (t) => start(ctx, t, o.opts),
+    ready: () => plan.readyTasks(ctx, o.tasks).filter((t) => !gaveUp.has(t) && !runs().some((r) => r.info.subject === t && !SETTLED.includes(r.info.status))),
+    resume: (id) => resume(ctx, id),
+    start: (t) => start(ctx, t, o.opts).catch((e: unknown) => { gaveUp.add(t); ctx.say(e instanceof Error ? e.message : String(e)); }),   // one task that cannot start does not end the worker
   });
 };
 

@@ -8,7 +8,7 @@ import { fauxAssistantMessage, fauxProvider, fauxToolCall } from "@earendil-work
 import pair from "../../../../../loops/pair.ts";       // the real standard script, played here against a fake provider
 import { git } from "../lanes/service.ts";
 import { refusePath } from "../agents/service.ts";
-import { clean, DEFAULTS, gatesOf, lane, logs, merge, POLICY, resume, start, status, stop, watch, type Ctx, type Opts } from "./service.ts";
+import { clean, DEFAULTS, gatesOf, lane, logs, merge, POLICY, resume, start, status, stop, watch, work, type Ctx, type Opts } from "./service.ts";
 import * as plan from "./internal/plan.ts";
 
 const AGENTS = join(import.meta.dirname, "../../../../../.claude/agents");
@@ -164,4 +164,16 @@ test("a run that is not there is an error with its name, for every command that 
   assert.throws(() => stop(ctx, "nope"), /there is no run nope in .*var\/runs/);
   for (const ask of [() => resume(ctx, "nope"), () => merge(ctx, "nope"), () => logs(ctx, "nope", false), () => watch(ctx, "nope")]) await assert.rejects(async () => ask(), /there is no run nope/);
   assert.equal(existsSync(join(r.root, "var", "runs", "nope")), false);
+});
+
+test("a start that cannot go ahead claims nothing in the plan and makes no run; the worker says so once and goes on", async () => {
+  const r = rig(), ctx = r.ctx();
+  await assert.rejects(() => start(ctx, "t1", { ...opts, script: "no-such-script" }), /no script .*no-such-script\.ts/);
+  git(r.root, "worktree", "add", "-q", "-b", "lane/t1", join(r.dir, "held"), "integration/build");   // another run holds the lane
+  await assert.rejects(() => start(ctx, "t1", opts, pair), /cannot start a run on t1: lane\/t1 is checked out in .*held/);
+  assert.deepEqual(r.calls(), []);                                           // the task was never marked started
+  assert.equal(existsSync(join(r.root, "var", "runs")), false);              // and there is no run folder to explain later
+  await work(ctx, { concurrency: 1, tasks: ["t1"], opts, wait: false, pause: 5 });
+  assert.equal(r.lines.filter((l) => /^no script /.test(l)).length, 1);       // this rig has no loops/ folder: the worker's start cannot go ahead either
+  assert.deepEqual(r.calls(), []);
 });

@@ -29,6 +29,15 @@ export const ensureLane = (repo: string, dir: string, name: string, base: string
   return { dir, branch, base };
 };
 
+/** Why the lane `lane/<name>` could not be made in `dir` right now, or undefined. Asked before a run claims anything. */
+export const laneBlocked = (repo: string, dir: string, name: string, base: string): string | undefined => {
+  if (existsSync(join(dir, ".git"))) return undefined;
+  if (!exists(repo, base)) return `the base branch ${base} does not exist here`;
+  const branch = `lane/${slug(name)}`;
+  const held = git(repo, "worktree", "list", "--porcelain").split("\n\n").find((w) => w.split("\n").includes(`branch refs/heads/${branch}`));
+  return held ? `${branch} is checked out in ${held.split("\n")[0]!.replace(/^worktree /, "")} (another run holds it; \`pnpm loop clean <run>\` removes a finished run's lane)` : undefined;
+};
+
 export const head = (dir: string): string => git(dir, "rev-parse", "HEAD");
 export const dirty = (dir: string): boolean => git(dir, "status", "--porcelain") !== "";
 
