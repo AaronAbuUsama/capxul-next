@@ -567,13 +567,17 @@
       "title": "The thin line as a journey in the book, with its tests",
       "why": "The thin line must be a record before it can be proven.",
       "milestone": "m1",
-      "state": "doing",
+      "state": "blocked",
       "needs": [],
       "records": [],
       "evidence": [],
       "created": "2026-11-10",
       "updated": "2026-11-10",
-      "thread": "m1-thin-line-journey-11101453"
+      "thread": "m1-thin-line-journey-11101453",
+      "blockedBy": {
+        "need": "loop run m1-thin-line-journey-11101507: F-1.2 m1-thin-line-journey: Seen: The book contains the existing operation journeys, but no thin-line journey or mapping from spikes/skeleton/run.sh assertions to step tests. Expected: An ordered company journey through the stack, with one test per step and the spike's end-to-end script mapped onto ",
+        "who": "coordinator"
+      }
     },
     {
       "id": "m1-aaron-accepts",
@@ -956,13 +960,17 @@
       "title": "Close the gaps on contract functions and chain events",
       "why": "Exit line g2: the blueprint builds with no problems and every open gap is closed or has a recorded reason. 162 gaps are open after the telemetry work; they are listed in the findings file the blueprint build writes (pnpm blueprint, then findings.json in the output folder, under gaps, each with record, rule and detail).",
       "milestone": "m1",
-      "state": "doing",
+      "state": "blocked",
       "needs": [],
       "records": [],
       "evidence": [],
       "created": "2026-11-10",
       "updated": "2026-11-10",
-      "thread": "m1-gaps-contracts-11101507"
+      "thread": "m1-gaps-contracts-11101507",
+      "blockedBy": {
+        "need": "loop run m1-gaps-contracts-11101507: F-3.1 done-when: contract gaps: Seen: The escrow-v4 member descriptions were replaced by the same no-caller reason, removing member-specific behaviour. For example, refund no longer records who may call it or when a refund is permitted; collect and payout likewise lose their conditions. Expected: Re",
+        "who": "coordinator"
+      }
     },
     {
       "id": "m1-gaps-states",
