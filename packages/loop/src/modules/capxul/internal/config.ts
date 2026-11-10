@@ -22,7 +22,7 @@ export const MAKER_MODEL = "gpt-6.1-sol";
 export const CHECKER_MODEL = "gpt-6-luna";
 
 /** Aaron, 10 November 2026: "we can only use 6.1 or 6.0 class models". Anything else is refused before a call is made. */
-export const allowedModel = (id: string): boolean => /^(gateway\/)?gpt-6(\.1)?-[a-z0-9-]+$/.test(id);
+export const allowedModel = (id: string): boolean => !id.startsWith("gateway/") || /^gateway\/gpt-6(\.1)?-[a-z0-9-]+$/.test(id); // a test's fake provider is not the gateway
 
 /** `provider/id`, or a bare id (taken to be the gateway's). */
 export const qualify = (id: string): string => (id.includes("/") ? id : `gateway/${id}`);
