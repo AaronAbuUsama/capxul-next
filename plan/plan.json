@@ -668,10 +668,12 @@
       "title": "The scoreboard: tests from the book that run, and results the portal shows",
       "why": "No test from the book has ever run, so the climb has no score. Until results come from a machine and not from a report, done means whatever an agent says.",
       "milestone": "m1",
-      "state": "doing",
+      "state": "done",
       "needs": [],
       "records": [],
-      "evidence": [],
+      "evidence": [
+        "lane/scoreboard merged; status/status.json written by run-20261110121422: 8 evals pass"
+      ],
       "created": "2026-11-10",
       "updated": "2026-11-10",
       "thread": "lane/scoreboard"
@@ -765,14 +767,26 @@
       "created": "2026-11-10",
       "updated": "2026-11-10",
       "thread": "lane/worlds-spec"
+    },
+    {
+      "id": "m1-eval-coverage",
+      "title": "Close the gap between the checks and the book's tests",
+      "why": "The first real score is 8 of 4,724. The test sites' checks are real, but 56 of them prove something the book has no test for, 39 prove only part of one, and 143 of the 146 tests of the thin-line journeys have no check at all.",
+      "milestone": "m1",
+      "state": "todo",
+      "needs": [],
+      "records": [],
+      "evidence": [],
+      "created": "2026-11-10",
+      "updated": "2026-11-10"
     }
   ],
   "path": {
     "tasks": [
       "m1-worlds-spec",
       "m1-lanes",
-      "m1-eval-harness",
       "m1-loop-runner",
+      "m1-eval-coverage",
       "m1-time-proof",
       "m1-aws-records",
       "m1-telemetry",
@@ -780,7 +794,7 @@
       "m1-entry-docs",
       "m1-aaron-accepts"
     ],
-    "why": "Worlds as a hosted platform is specified first: Aaron called it the foundational piece that must come before breadth, and it shapes the service, the machine and the data. Lanes, the scoreboard and the loop runner run beside it, because they change how every later task is done and judged. Then time is proved on the scoreboard, the AWS side is written in, and telemetry is the remaining bulk. The old decisions and the entry documents are cleaned up before Aaron is asked to accept the book.",
+    "why": "Worlds as a hosted platform is specified first: Aaron called it the foundational piece that must come before breadth. The scoreboard now exists and its first true score is 8 of 4,724, so the next step on it is closing the gap between the checks and the book's tests, for the thin line first. Lanes and the loop runner change how later tasks are run. Then time is proved on the scoreboard, the AWS side is written in, and telemetry is the remaining bulk. The old decisions and the entry documents are cleaned up before Aaron is asked to accept the book.",
     "written": "2026-11-10"
   },
   "notes": [
