@@ -19,7 +19,7 @@ import type { AnyRecord, Book } from "./build.ts";
 
 type Records = Pick<Book, "records" | "links" | "evals">;
 
-/** One record that depends on the subject. `field` is the field of `via` that links it; `via` is the record one step
+/** One record that depends on the subject. `field` is the field of this record that names `via`, the record one step
  * nearer the subject (the subject itself at distance 1). */
 export interface Dependent {
   readonly key: string;

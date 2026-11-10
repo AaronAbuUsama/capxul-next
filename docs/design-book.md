@@ -114,8 +114,13 @@ packages/book/                 the record system; product-neutral except the tar
   src/build.ts                 buildBook: register, link, check the rules, reverse links, gaps
   src/evals.ts                 deriveEvals: the evals each kind of record implies
   src/budgets.ts               the default budget of each class (policy P5)
+  src/impact.ts                impactOf: what depends on a record (below)
+  src/stand.ts                 underOf and standOf: where an operation stands (below)
+  src/status.ts                the status document: its type, its parser, and the merge of a run into it
+  src/telemetry.ts             the events an operation sends and the spans it names, and their gap rules
+  src/examples.ts              the check of an operation's examples against its record
   src/views.ts, src/main.ts    the command that writes the views and exits 1 on problems
-  test/                        21 tests, with a small fixture book (invitations)
+  test/                        the tests, with a small fixture book (invitations)
 books/frozen/                  the old operations and their CLI flags, as reference (generated)
 books/target/
   shared/                      the system, the components, the 23 concepts and what each may depend on,
@@ -130,7 +135,9 @@ books/target/
                                decisions.ts   every judgment behind the design
                                index.ts       the concept's module list
   index.ts                     every record of the target, with stage "target"
-tools/                         the workflow scripts that wrote the book; report generators
+tools/                         the workflow scripts that wrote the book; report generators;
+                               impact.ts and record-status.ts (below)
+status/status.json             what has run, per eval (below); absent until a run is recorded
 docs/decisions/                the accepted decisions, and the generated judgments report
 docs/mission/initializer.md    the goal prompt that starts the build
 ```
@@ -251,7 +258,11 @@ What the build makes of these four records:
     process, `wfl:payments.lifecycle.payment/resume` and one `/wake/<wait>` per keyed wait.
 - **Gaps.** For example, a refusal whose world no devnet can build yet (`refusal-without-world`),
   or a transition nothing drives. In a target book an rpc nothing reaches is not a gap but a
-  problem (`unreached-rpc`).
+  problem (`unreached-rpc`). A target operation also has a gap for each of its examples, spans and
+  events that the book does not yet hold (`no-example`, `no-span`, `state-change-without-event`:
+  see "What an operation shows beyond its design").
+- **Examples.** The operation's `examples`, each a real run: what was typed, what it printed and
+  how it exited.
 
 ## What a build does, step by step
 
@@ -279,7 +290,9 @@ node --experimental-strip-types packages/book/src/main.ts books/target/index.ts 
    - a table's `admits` clauses (who besides its tenant may read or write a row) must name real
      columns (`admission`), and a chain table must declare read-only clauses (`chain-admits`).
 6. **Reverse links.** The build records who points at each record.
-7. **Gaps.** The derived list of incomplete design (`docs/spec/50-design-book.md` has the table).
+   Every example of an operation is checked here too (`example-mismatch`, a problem).
+7. **Gaps.** The derived list of incomplete design (`docs/spec/50-design-book.md` has the table),
+   and for a target book the three telemetry and example rules below.
 8. **Evals.** Every eval the records imply. Each has an id, a level, the record it is about, its
    claim, and who decides it: a machine, an agent or a person. The levels are:
    - L1: an operation and the records under it;
@@ -387,18 +400,11 @@ The old factory (`apps/factory`, about 12,000 lines) ran one agent per operation
 operation's stand (specify, decide, build, observe, done) from the YAML records and CI's eval
 evidence.
 
-The target book keeps that idea and gives it better inputs. Each stand is computed from the typed
-records, their derived evals and the eval results. So it sees the whole design under an
-operation, not just the operation's own page, and the factory still keeps no state of its own
-about what is done:
-
-| Stand | Computed as |
-|---|---|
-| specify | the operation, or a record under it, has a problem or a gap |
-| decide | a decision it depends on is waiting for Aaron |
-| build | its design is complete and its evals are derived, but not all of them pass |
-| observe | its evals pass on the devnet, but its live events are not yet seen on staging |
-| done | its live evals hold |
+The target book keeps that idea and gives it better inputs. Each stand is computed by `standOf`
+in `packages/book/src/stand.ts` from the typed records, their derived evals and the status
+document, so it sees the whole design under an operation, not just the operation's own page, and
+the factory still keeps no state of its own about what is done. The rules are under "Where each
+operation stands", below.
 
 The link graph is the work plan. An operation's work depends on the records under it: its flow,
 the flow's rpcs, the procedures they invoke and the tables those write. So a swarmD manager can
@@ -436,6 +442,149 @@ These parts are specific to Capxul:
 To use the book for another product (swarmD itself, for example), pass the rule set and the budget
 classes in as parameters instead of hard-coding them. That change has not been made yet.
 
+## What an operation shows beyond its design
+
+The book is meant to say what is being built, and to leave nothing that can be known up front to
+be remembered at build time. Three things about an operation belong to that, and each is derived
+or checked, never written twice.
+
+**Examples.** An operation's optional `examples` is a list of
+`{ title, input, output, exit }`:
+
+| Field | Holds |
+|---|---|
+| `title` | what the example shows, in a line |
+| `input` | the command line as typed; it names the operation's `command` |
+| `output` | the JSON `--json` prints |
+| `exit` | the process exit code, 0 to 255 |
+
+The build checks each example against the operation (`example-mismatch`, a problem, because a
+wrong example is worse than none):
+- with `exit` 0, `output` conforms to the operation's `returns` schema;
+- with any other `exit`, `output` is `{ "error": { "code": "...", "message": "..." } }`, its
+  `code` is an error the operation declares (in `refusals`, or in `errors`), and `exit` is that
+  error's exit code. This is the refusal shape the devnet API uses today (`docs/design/time.md`);
+  when the CLI surface designs its own, this check follows it.
+
+An operation with no example is the gap `no-example`. The portal shows the examples as terminal
+sessions above the generated skeleton of `returns`, which stays labelled as generated.
+
+**Events and spans, derived.** `eventsSent(book, operation)` answers "which events does this
+operation send, and through which transition": for each event, the transition that sends it
+(null for an event a record sends itself) and the rpc or procedure that drives it. Events come
+from the transitions its implementation drives, through the flow's step rpcs and the procedures
+they invoke. `spansNamed(book, operation)` answers "which spans does it name": the implementing
+flow's and every rpc's under it. The portal shows both on the operation page's trace.
+
+**Two gap rules for what is silent.** They are gaps, so the build still succeeds, and each has an
+id so a view can count it apart from the others (`TELEMETRY_RULES`; the portal's Build page does):
+
+| Rule | The operation |
+|---|---|
+| `no-span` | has an implementing flow and rpcs that name no span |
+| `state-change-without-event` | drives a transition, and sends no event |
+
+These three rules, with `no-example`, run only on a target book. The stand does not read them
+(`STAND_IGNORES` in `stand.ts`): a missing example must not move an operation back from build.
+
+## What depends on a record
+
+`impactOf(book, "kind:id", { depth? })` in `packages/book/src/impact.ts`, and
+`tools/impact.ts <kind:id> [--json] [--depth n]`, answer "if this record changes, what is
+affected". The answer is every record that depends on it, directly and transitively, each with
+the field of its own that names the record one step nearer and its distance, grouped by kind,
+nearest first; the decisions that name any of them, apart; and the evals whose subject is any of
+them.
+
+**What counts as "depends on".** A depends on B when A names B in a link, read backwards:
+
+| A | depends on | by |
+|---|---|---|
+| an operation | the flow or rpc that implements it | `implementedBy` |
+| a flow | its rpcs | `steps` |
+| an rpc, a procedure, a workflow | the tables, procedures, calls, contract functions and errors it names | `reads`, `writes`, `invokes`, `calls`, `chain`, `errors` |
+| an rpc, a procedure, a workflow | the transitions it drives | `drives` |
+| a transition | the events it emits, and its machine | `emits`, `of` |
+| a machine | its table | `table` |
+| a call | the errors it fails with, and its integration | `failures`, `of` |
+| a journey | its operations and the events that prove them | `steps` |
+| a workflow | what triggers or wakes it | `trigger`, `signals`, `waits` |
+| any record | its concept or component | `concept`, `component` |
+
+A parent that only *lists* its children's references (a machine's `transitions`, an integration's
+`calls`) is reported as a dependent but does not pass the change on to its other children, so
+changing the event `payment_transitioned` reaches the transitions that emit it, and not every
+transition of the machine.
+
+**Decisions are separate.** A decision affects what it names, so it is never among the dependents:
+the answer lists the decisions that name the record itself, and counts those that name a record
+that depends on it. A decision as the subject is read the other way: its dependents are what it
+names, and what depends on that.
+
+**In the portal,** every record, operation and concept page has an "If this changes" block: the
+count by kind and the nearest few. The page's JSON and Markdown twins carry the list (the nearest
+500 for a record that more depend on; a decision's twins list what it names). The tool has all of
+it.
+
+## Where each operation stands
+
+`standOf(book, operation, { waits, status })` in `packages/book/src/stand.ts` places an operation
+on the climb. It says what is missing, not whether code exists. `underOf(book, operation)` finds
+the records under it (`docs/design/portal.md`, "The stand", has the rules): what implements it,
+its errors and its refusals' errors, a flow's steps, errors and calls, each rpc's and
+procedure's `reads`, `writes`, `drives`, `invokes`, `calls`, `chain` and `errors`, a transition's
+machine and that machine's table, a call's integration, a function's contract, and one hop
+further the durable processes its records start (`trigger`) or resume (`signals`). Concepts,
+components, the system, environments, decisions, admissions and waits are not followed.
+
+The first row that matches is the stand:
+
+| Stand | When |
+|---|---|
+| specify | the operation, or a record under it, has a problem or a gap (not `no-example`, `no-span` or `state-change-without-event`) |
+| decide | a decision that waits for an answer (`waits(decision)`) names one of its own records: the operation, what implements it, a flow's step rpcs |
+| build | an L1 eval of the operation, or of a record under it, has no passing verdict in the status document |
+| observe | every such L1 eval passes; the operation's live evals (`live:<kind>:<operation id>`, from B5) do not all hold, or none is defined yet |
+| done | it has live evals, and they all hold |
+
+A waiting decision on a record further under the operation is shown on the operation's page, not
+as its stand. With no status document no eval has a verdict, so an operation is at specify,
+decide or build.
+
+**The status document** is one file, `status/status.json` at the repository root. Absent means
+nothing has run. Its type is `StatusDocument` in `packages/book/src/status.ts`:
+
+```json
+{
+  "version": 1,
+  "evals": {
+    "ret:payment.send": {
+      "verdict": "pass",
+      "commit": "8d1f230",
+      "at": "2026-11-10T10:00:00Z",
+      "run": "run-41",
+      "evidence": "evidence/run-41/ret-payment.send.txt"
+    }
+  }
+}
+```
+
+| Field | Holds |
+|---|---|
+| `version` | always 1 |
+| `evals` | one entry per eval id the book derives; an eval with no entry is `not_run` |
+| `verdict` | `pass`, `fail` or `not_run` |
+| `commit` | the commit the eval ran at |
+| `at` | when, as an ISO 8601 time with a zone |
+| `run`, `evidence` | optional: the run's id, and the path of its evidence |
+
+`tools/record-status.ts <results.json> [--status <file>]` merges one run into it. A results file is
+`{ "commit", "at", "run"?, "results": [{ "id", "verdict", "evidence"? }] }`. The tool refuses the
+whole run, and writes nothing, when it names an eval id the book does not derive. The file's keys
+are written sorted, so two runs of the same results give the same file. The portal reads the file,
+shows the evals passing per operation, per concept and in total, and `pnpm portal:check` fails
+when an entry names an eval the book does not derive.
+
 ## What the schema does not cover yet
 
 [`docs/spec/50-design-book.md`](spec/50-design-book.md#deliberately-not-in-the-schema-yet-the-step-2-slice-decides)
@@ -450,6 +599,8 @@ pnpm exec tsc -p books                                           # the target an
 node --experimental-strip-types packages/book/src/main.ts books/target/index.ts /tmp/target   # 0 problems
 node --experimental-strip-types tools/check-frozen.ts       # the 215 booked, every behaviour kept, new operations by a ruling: 0 breaches
 node --experimental-strip-types tools/report-judgments.ts > docs/decisions/judgments.md
+node --experimental-strip-types --no-warnings tools/impact.ts event:payment_transitioned   # what depends on a record
+node --experimental-strip-types --no-warnings tools/record-status.ts results.json          # merge a run into status/status.json
 ```
 
 The book build does not see the frozen text beside the target's records, so
