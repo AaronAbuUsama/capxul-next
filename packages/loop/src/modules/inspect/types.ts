@@ -74,6 +74,8 @@ export interface AgentSession {
   readonly role: string;
   readonly model: string | null;
   readonly tools: readonly string[];
+  /** The skills attached to this agent, by name. None today: they come with agent definitions (docs/design/workflow-dx.md). */
+  readonly skills?: readonly string[];
   readonly instructions: string;
   readonly state: "working" | "failed" | "done";
   readonly failure: { readonly reason: string; readonly detail: string } | null;

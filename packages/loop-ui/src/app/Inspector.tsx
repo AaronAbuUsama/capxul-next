@@ -48,6 +48,11 @@ export const AgentPanel = ({ agent, round }: { agent: Agent; round: number | nul
         <div className="mb-2 flex flex-wrap gap-1">{agent.tools.map((t) => <Badge key={t} variant="outline" className="font-mono">{t}</Badge>)}</div>
         <p className="text-sm leading-relaxed text-muted-foreground">{MAY[agent.role] ?? ""}</p>
       </Block>
+      <Block title="Skills">
+        {agent.skills && agent.skills.length > 0
+          ? <div className="flex flex-wrap gap-1">{agent.skills.map((s) => <Badge key={s} variant="secondary">{s}</Badge>)}</div>
+          : <p className="text-sm text-muted-foreground">None attached. Skills come with agent definitions, which the loop does not have yet.</p>}
+      </Block>
       <Block title="Instructions">
         <Collapsible>
           <CollapsibleTrigger className="group flex w-full items-center gap-1 text-left text-sm"><ChevronRight className="size-4 transition-transform group-data-[panel-open]:rotate-90" /> The role's standing instructions</CollapsibleTrigger>

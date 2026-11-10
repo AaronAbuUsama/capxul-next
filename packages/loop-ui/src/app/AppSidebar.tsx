@@ -1,6 +1,7 @@
 /** The left side: where you are, and every run one click away, grouped by what it needs from you. */
-import { Bot, ExternalLink, LayoutDashboard } from "lucide-react";
-import { useEffect } from "react";
+import { Bot, ChevronDown, ExternalLink, LayoutDashboard } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Sidebar, SidebarContent, SidebarFooter, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarMenuSub, SidebarMenuSubButton, SidebarMenuSubItem, useSidebar } from "@/components/ui/sidebar";
 import { Dot, toneOf } from "./bits.tsx";
 import { elapsed, group, roleLabel, statusText, workingAgent } from "./data.ts";
@@ -33,6 +34,34 @@ const RunItem = ({ run, active, step }: { run: Run; active: boolean; step?: stri
   );
 };
 
+/** Which groups a person folded, kept in this browser. A convenience: the page works the same without it. */
+const FOLDED = "runs.folded";
+const readFolded = (): string[] => { try { return JSON.parse(window.localStorage.getItem(FOLDED) ?? "[]") as string[]; } catch { return []; } };
+
+/** One group of runs that folds: its label is the switch, with how many it holds. */
+const RunGroup = ({ label, list, route }: { label: string; list: Run[]; route: string[] }) => {
+  const [open, setOpen] = useState(() => !readFolded().includes(label));
+  const fold = (next: boolean): void => {
+    setOpen(next);
+    try { window.localStorage.setItem(FOLDED, JSON.stringify(next ? readFolded().filter((x) => x !== label) : [...new Set([...readFolded(), label])])); } catch { /* not kept: fine */ }
+  };
+  return (
+    <Collapsible open={open} onOpenChange={fold}>
+      <SidebarGroup>
+        <SidebarGroupLabel render={<CollapsibleTrigger />} className="cursor-pointer hover:text-sidebar-foreground">
+          {label} · {list.length}
+          <ChevronDown className={open ? "ml-auto transition-transform" : "ml-auto -rotate-90 transition-transform"} />
+        </SidebarGroupLabel>
+        <CollapsibleContent>
+          <SidebarGroupContent>
+            <SidebarMenu>{list.map((run) => <RunItem key={run.id} run={run} active={route[0] === "runs" && route[1] === run.id} step={route[2]} />)}</SidebarMenu>
+          </SidebarGroupContent>
+        </CollapsibleContent>
+      </SidebarGroup>
+    </Collapsible>
+  );
+};
+
 export const AppSidebar = ({ runs, route, replay, setReplay, link, updates }: { runs: Run[]; route: string[]; replay: boolean; setReplay: (on: boolean) => void; link: Link; updates: number }) => {
   const { setOpenMobile } = useSidebar();
   useEffect(() => setOpenMobile(false), [route.join("/"), setOpenMobile]);
@@ -56,14 +85,7 @@ export const AppSidebar = ({ runs, route, replay, setReplay, link, updates }: { 
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
-        {groups.filter(([, list]) => list.length > 0).map(([label, list]) => (
-          <SidebarGroup key={label}>
-            <SidebarGroupLabel>{label} · {list.length}</SidebarGroupLabel>
-            <SidebarGroupContent>
-              <SidebarMenu>{list.map((run) => <RunItem key={run.id} run={run} active={route[0] === "runs" && route[1] === run.id} step={route[2]} />)}</SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
-        ))}
+        {groups.filter(([, list]) => list.length > 0).map(([label, list]) => <RunGroup key={label} label={label} list={list} route={route} />)}
       </SidebarContent>
       <SidebarFooter>
         {link === "live" ? (

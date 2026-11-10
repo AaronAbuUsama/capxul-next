@@ -66,6 +66,7 @@ const Detail = ({ runs, role }: { runs: Run[]; role: string }) => {
           <h3 className="text-sm font-semibold">Definition</h3>
           <div className="rounded-lg border p-3 text-sm">
             <p className="flex flex-wrap items-center gap-1.5"><span className="text-muted-foreground">Model</span> <Badge variant="secondary">{sample.model}</Badge> <span className="ml-2 text-muted-foreground">Tools</span> {sample.tools.map((t) => <Badge key={t} variant="outline" className="font-mono">{t}</Badge>)}</p>
+            <p className="mt-2 flex flex-wrap items-center gap-1.5"><span className="text-muted-foreground">Skills</span> {sample.skills && sample.skills.length > 0 ? sample.skills.map((s) => <Badge key={s} variant="secondary">{s}</Badge>) : <span className="text-muted-foreground">none attached yet</span>}</p>
             <pre className="mt-3 max-h-96 overflow-auto rounded-md bg-muted p-2 text-xs leading-relaxed whitespace-pre-wrap">{sample.instructions}</pre>
           </div>
         </section>
