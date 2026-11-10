@@ -19,8 +19,8 @@ const handover = (h?: Handover): string => {
 /** What the runner tells every agent about the ground rules, whoever it is. */
 const GROUND = (sandbox: string, checks: readonly string[], findings: string | null): string => [
   "## Where you are",
-  "You are inside a git worktree (a lane) on its own branch. Change files only inside it. Never push, never touch another branch, never change the frozen baseline (`books/frozen/`, or `blueprint/baseline/` once the design folder is renamed) or any `src/generated/` folder.",
-  "Read `CLAUDE.md` first. The book changes first: change the record and add a decision record, rebuild the book to 0 problems, then the code.",
+  "You are inside a git worktree (a lane) on its own branch. Every path you use is inside it. Never push, never touch another branch, never change `blueprint/baseline/` or any `src/generated/` folder.",
+  "Read `AGENTS.md` once. The blueprint changes first: change the record and add a decision record, rebuild the blueprint to 0 problems, then the code.",
   "The runner runs these checks after you, and you may run them yourself first (your shell is limited to `pnpm`'s scripts, `node`, `git` and a few file commands). The design must build with 0 problems and the frozen check must find 0 breaches:",
   ...checks.map((c) => `- \`${c}\``),
   findings ? `The design's build writes what it found to \`${findings}\` inside your lane. Read that file and no other copy: every lane has its own.` : "",
@@ -57,14 +57,14 @@ export const checkerPrompt = (i: CheckInput): string => [
   "\n## The maker's note", i.note || "_none_",
   "\n## The maker's evidence", i.shown || "_the maker showed nothing: it only says_",
   i.evidence ? `\n${i.evidence}` : "",
-  "\nThe repository's rules are in `CLAUDE.md`. There is no pull request: the version is the commit above.",
+  "\nThe repository's rules are in `AGENTS.md`. There is no pull request: the version is the commit above.",
   "Your last message is the check as one fenced json block and nothing after it.",
   "\n## The input, exactly", "```json", JSON.stringify({ version: { kind: "commit", commit: i.version }, from: i.from, round: i.round, open: i.open }, null, 2), "```",
 ].join("\n");
 
 export const researchPrompt = (task: Task, sandbox: string): string => [
   `# Question \`${task.id}\`: ${task.title}`, "\n## The question", task.goal, sandbox ? `\n## Sandbox\n${sandbox}` : "",
-  "Read `CLAUDE.md` first, then the design guide it names.",
-  "You are read-only: you cannot change anything and must not try. There is no web access here: answer from this repository and the old system if it is on disk.",
+  "Read `AGENTS.md` once, then `docs/blueprint.md` if the question is about the blueprint.",
+  "You are read-only: you cannot change anything and must not try. There is no web access here: answer from this repository.",
   "Your last message is the research answer as one fenced json block and nothing after it.",
 ].join("\n");
