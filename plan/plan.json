@@ -911,6 +911,19 @@
       "evidence": [],
       "created": "2026-11-10",
       "updated": "2026-11-10"
+    },
+    {
+      "id": "m1-live-page",
+      "title": "A Live page: what is running, on what, and whether it is moving",
+      "why": "Aaron asked to see the agents that are running: what each is working on, when it last did anything, how many tool calls. He had also said he felt lost about what is in flight.",
+      "milestone": "m1",
+      "state": "doing",
+      "needs": [],
+      "records": [],
+      "evidence": [],
+      "created": "2026-11-10",
+      "updated": "2026-11-10",
+      "thread": "lane/live-page"
     }
   ],
   "path": {
@@ -977,6 +990,11 @@
       "date": "2026-11-10",
       "by": "coordinator",
       "text": "Worlds as a hosted platform is specified: one design in the book and on the portal's Worlds page, with 38 commands for scenarios, runs, cohorts, joining, datasets and the learning interface. Building it is five tasks in the cloud milestone, starting with the lean service. The loop runner is merged; its real run was blocked by model errors from the gateway, which is being looked at."
+    },
+    {
+      "date": "2026-11-10",
+      "by": "coordinator",
+      "text": "Handoff note, 10 November, afternoon. Merged today: the cut and reshaped blueprint (still called the book in the code; a rename to blueprint is a task), Aaron's answers, an example on every operation, the contract check, the scoreboard (first score 8 of 4,724), the loop runner on pi-durable in packages/loop, and worlds as a hosted platform with its Worlds page. The worlds machine, its DNS and its certificate exist in AWS. In flight: lining the checks up with the blueprint's tests (lane/eval-coverage), a Live page for running agents (lane/live-page), and the repository tidy-up as its own session (repo-tidy), with the rename to blueprint in its second stage. Next on the path: make the loop trustworthy (its real run was blocked by model errors from the gateway), prove time on the scoreboard, the AWS side as records, telemetry. Aaron's standing decisions: keep LiteLLM; people's sign-in is a later Core design; agents first; the first jurisdiction is open; he no longer wants cost reports relayed. The portal is at localhost:4391 and, over Tailscale, at macbook.tail4b9a40.ts.net:8443."
     }
   ]
 }
