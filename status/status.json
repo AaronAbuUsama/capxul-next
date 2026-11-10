@@ -1,0 +1,61 @@
+{
+  "version": 1,
+  "evals": {
+    "acc:doc.get/1": {
+      "verdict": "pass",
+      "commit": "a35e9ab",
+      "at": "2026-11-10T12:14:22Z",
+      "run": "run-20261110121422",
+      "evidence": "status/runs/run-20261110121422/evidence/acc-doc.get-1.txt"
+    },
+    "acc:doc.submit/1": {
+      "verdict": "pass",
+      "commit": "a35e9ab",
+      "at": "2026-11-10T12:14:22Z",
+      "run": "run-20261110121422",
+      "evidence": "status/runs/run-20261110121422/evidence/acc-doc.submit-1.txt"
+    },
+    "acc:org.feature.off/1": {
+      "verdict": "pass",
+      "commit": "a35e9ab",
+      "at": "2026-11-10T12:14:22Z",
+      "run": "run-20261110121422",
+      "evidence": "status/runs/run-20261110121422/evidence/acc-org.feature.off-1.txt"
+    },
+    "acc:org.feature.on/1": {
+      "verdict": "pass",
+      "commit": "a35e9ab",
+      "at": "2026-11-10T12:14:22Z",
+      "run": "run-20261110121422",
+      "evidence": "status/runs/run-20261110121422/evidence/acc-org.feature.on-1.txt"
+    },
+    "acc:org.feature.on/2": {
+      "verdict": "pass",
+      "commit": "a35e9ab",
+      "at": "2026-11-10T12:14:22Z",
+      "run": "run-20261110121422",
+      "evidence": "status/runs/run-20261110121422/evidence/acc-org.feature.on-2.txt"
+    },
+    "acc:world.snapshot.restore/1": {
+      "verdict": "pass",
+      "commit": "a35e9ab",
+      "at": "2026-11-10T12:14:22Z",
+      "run": "run-20261110121422",
+      "evidence": "status/runs/run-20261110121422/evidence/acc-world.snapshot.restore-1.txt"
+    },
+    "acc:world.snapshot.restore/2": {
+      "verdict": "pass",
+      "commit": "a35e9ab",
+      "at": "2026-11-10T12:14:22Z",
+      "run": "run-20261110121422",
+      "evidence": "status/runs/run-20261110121422/evidence/acc-world.snapshot.restore-2.txt"
+    },
+    "wfl:plugs.events.deliver/idempotent": {
+      "verdict": "pass",
+      "commit": "a35e9ab",
+      "at": "2026-11-10T12:14:22Z",
+      "run": "run-20261110121422",
+      "evidence": "status/runs/run-20261110121422/evidence/wfl-plugs.events.deliver-idempotent.txt"
+    }
+  }
+}
