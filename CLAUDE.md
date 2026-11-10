@@ -1,9 +1,10 @@
 # CLAUDE.md
 
 > **The map of this repository is [README.md](README.md).** What is current is the plan (`pnpm plan show`) and the
-> rulings in the blueprint. [START-HERE.md](START-HERE.md) is the owner's direction of 9 November 2026, kept as a record:
-> capxul-next is the rebuild of Capxul Core, Frappe-native, coordinated through the plan, the portal and the loop (no
-> swarmD). Where an older document disagrees with the plan or a ruling, the plan and the ruling win.
+> rulings in the blueprint. [START-HERE.md](START-HERE.md) is the one-page entry to the current goal, milestone,
+> next task and portal. Capxul is Frappe-native, coordinated through the plan, portal and loop, not swarmD.
+> The first jurisdiction is open (`aaron.jurisdiction-open`), not UK or US by default. Historical direction and
+> handoffs live under `archive/`; where they disagree with the plan or a current ruling, the plan and ruling win.
 
 This repository holds the Capxul rebuild: a typed blueprint (`blueprint/`, built by `packages/blueprint-engine`) and,
 from the build session on, the product code it describes.

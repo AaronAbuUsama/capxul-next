@@ -21,6 +21,8 @@ commit (`docs/repository-map.md` says what counts as live).
 | `tools/freeze-flags.ts`, `tools/freeze-operations.py` | The generators of the baseline (`books/frozen/`), run once against the old repository. | They cannot run without the old repository and the baseline is never regenerated. Kept as its provenance: the header of `flags.ts` names `tools/freeze-flags.ts`. | 10 November 2026 |
 | `tools/portal-prototype.ts`, `docs/design/portal-prototype.html` | The first portal generator and its output. | Replaced by `packages/portal`. | 10 November 2026 |
 | `tools/explorer/`, `tools/export-explorer.ts` | A read-only explorer page over the book, published as an artifact. | Replaced by the portal. | 10 November 2026 |
+| `START-HERE.md` | Original 9 November direction, including historical first steps and precedence claim. | Replaced by the current one-page entry; kept verbatim as evidence. | 10 November 2026 |
+| `GROUNDING.md` | Original 9 November strategy with country-specific examples. | Strategy restated in the live document without assuming a first jurisdiction; original preserved. | 10 November 2026 |
 | `HANDOFF.md` | The hand-over into the build session of 8 November. | Superseded by the plan (`pnpm plan show`). Decisions still cite its "lessons that save usage". | 10 November 2026 |
 | `docs/mission/initializer.md` | The goal prompt of the build session of 8 November (B0 to B5). | Superseded by the plan. Decisions cite its order of work. | 10 November 2026 |
 | `docs/decisions/judgments.md` | A committed copy of the judgments report. | It went stale within a day; `pnpm judgments` prints the current one and the portal shows the same list. A decision cites this copy's "17 waiting". | 10 November 2026 |
