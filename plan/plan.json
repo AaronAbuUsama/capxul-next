@@ -960,7 +960,7 @@
       "evidence": [],
       "created": "2026-11-10",
       "updated": "2026-11-10",
-      "thread": "m1-gaps-contracts-11101453"
+      "thread": "m1-gaps-contracts-11101507"
     },
     {
       "id": "m1-gaps-states",
@@ -987,6 +987,22 @@
       "created": "2026-11-10",
       "updated": "2026-11-10",
       "thread": "m1-gaps-surface-11101453"
+    },
+    {
+      "id": "m1-model-gateway",
+      "title": "The model gateway: the loop on CLI proxy, sticky per agent, with a measured ceiling",
+      "why": "Seven agents at once made the LiteLLM container unreachable (57 of 57 errors were the edge's 504, none a rate limit), and three at once still hit it. Parallel agents are how the plan gets done, and swarms are the direction, so the gateway is a blocker we must own. Aaron ruled on 10 November: LiteLLM is out of the path; the gateway is CLI proxy, as it is, forked, or taken apart.",
+      "milestone": "m1",
+      "state": "blocked",
+      "needs": [],
+      "records": [],
+      "evidence": [],
+      "created": "2026-11-10",
+      "updated": "2026-11-10",
+      "blockedBy": {
+        "need": "A CLI proxy the loop can reach: either a key for the existing one in ~/.zshenv as its own variable with session-affinity switched on in its configuration, or accounts signed in to a fresh instance the coordinator runs on this Mac. And how many accounts sit behind it.",
+        "who": "aaron"
+      }
     }
   ],
   "path": {
