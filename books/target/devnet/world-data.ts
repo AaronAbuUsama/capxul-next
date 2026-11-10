@@ -3,7 +3,7 @@
 // the world. Kinds: a local devnet (one developer, one machine), and simulated worlds, each with its own companies and clock speed (real time or faster, a
 // rate of 1 to 60), or stepped (frozen, moving only by warp or step). Making a whole world is as easy as making a company: `world create`. These records
 // reshape the devnet's existing supervisor, clock and snapshot design (devnet.supervisor-owns-time-and-worlds, devnet.clock-rate, devnet.stateful-followers)
-// to the hosted-site model; they do not run beside it. What the research note leaves open is marked as an assumption in each record.
+// to the hosted-site model; they do not run beside it. What the research note left open is marked as an assumption in each record, unless the spike has since answered it (spikes/skeleton/FINDINGS.md, Worlds and snapshots).
 
 import { Schema } from "effect";
 import { defineEvent, defineMachine, defineTable } from "../../../packages/book/src/index.ts";
@@ -64,23 +64,27 @@ export const table_command_records = defineTable({
   id: "command-records",
   title: "The world's record: one wide entry for everything that happens",
   about:
-    "One row per entry, gap-free per world and epoch: the world id, epoch and sequence; the world time and the real time, with the clock's mode and rate; who (a person or an agent, the hats worn, a run id, " +
-    "the model and policy version); the surface; the command with its arguments (redacted); the result or refusal code; what it returned; what it changed; pointers (a document name and hash, a transaction hash, a block); and " +
-    "the cause (the entry or message that triggered it). `born` names the parent world, snapshot and sequence; an in-place restore appends `restore` and bumps the epoch, and the abandoned branch stays, flagged. Agent tool calls and " +
-    "replies are always recorded; hidden reasoning only when the run is flagged for it. Never recorded: keys, seeds, grants, bearer or session tokens, sign-in codes, Frappe passwords, HMAC secrets, encryption keys, or a " +
-    "real customer's personal data without consent. It is training data and a product of the system, not a debugging aid (critical-path.md, Priorities).",
-  was: [`${NOTE} (section 6, 5)`, "docs/mission/critical-path.md (Priorities: everything is recorded)"],
+    "One row per entry, as the spike writes it (schema 1, spikes/skeleton/FINDINGS.md, The recorder; one append-only JSON Lines file per world, one entry per command, written by the one entry point so none can be skipped): " +
+    "`seq` and `prev` (the sha-256 of the previous line, so tampering shows and an export checks the chain); `v`, `id` and `trace`; the `command` with its `args` (positional and flags); the `actor` (email, address and the hats read from the chain at the start of the command); " +
+    "`world`, `org` and `site`; `world_time`, `world_time_end` and `real_time`, so a moved clock shows; `duration_ms`; `outcome` (ok, refused or failed) with `error` (code, reason, detail); `result` (replaced by its size and head above 30 KB); and `changes` (the transactions sent, each with its hash, and the documents changed). " +
+    "The join to the chain's own logs is the transaction hash, not the trace id; the trace id is stamped on every document written (a Comment) and on every ledger row (`GL Entry.capxul_trace`). An in-place or separate restore appends a `world snapshot restore` entry with `lineage` (snapshot, from-world, from-record count and head, saved-at world time); the record is never rewound. " +
+    "Designed beyond schema 1, null until built: the run id, model and policy version of an agent, the surface, the cause (the entry that triggered it), the epoch and an abandoned branch's flag. Never recorded: any value under a key that looks like a secret, and every secret the process holds by value (the shared secret, every key, with and without 0x); a last check refuses to write a line that still holds one. " +
+    "Not redacted yet: personal data in a result (it holds documents). Training data and a product of the system, not a debugging aid (critical-path.md, Priorities).",
+  was: [`${NOTE} (section 6, 5)`, "docs/mission/critical-path.md (Priorities: everything is recorded)", "spikes/skeleton/FINDINGS.md (The recorder: the shape of one record)"],
   concept: concept_devnet,
   tenancy: "global",
   scope: "The world's own; a person reads the entries of a world they have a grant in.",
   fields: Schema.Struct({
-    world_id: S, epoch: N, seq: N, kind: Schema.Literals(["command", "tool-call", "reply", "born", "restore", "clock", "event"]), world_time: N, real_time: N, clock_mode: ClockMode, rate: N,
-    who_kind: Schema.Literals(["person", "agent", "system"]), who_id: S, hats: Schema.Array(S), run_id: Null(S), model: Null(S), policy_version: Null(S), surface: Schema.Literals(["cli", "sdk", "mcp", "http", "workflow"]),
-    trace_id: S, command: Null(S), args: Null(S), outcome: Schema.Literals(["ok", "refused", "failed"]), code: Null(S), returned: Null(S), changed: Null(S), pointers: Null(S), cause_seq: Null(N), branch_abandoned: B,
+    world_id: S, epoch: N, seq: N, prev: S, v: N, id: S, trace_id: S,
+    kind: Schema.Literals(["command", "tool-call", "reply", "born", "restore", "clock", "event"]),
+    command: Null(S), args: S, actor_email: Null(S), actor_address: Null(S), actor_hats: Schema.Array(S), who_kind: Schema.Literals(["person", "agent", "system"]),
+    org_id: Null(S), site: Null(S), world_time: S, world_time_end: S, real_time: S, duration_ms: N,
+    outcome: Schema.Literals(["ok", "refused", "failed"]), error_code: Null(S), error_reason: Null(S), error_detail: Null(S), result: Null(S), changes: Null(S),
+    run_id: Null(S), model: Null(S), policy_version: Null(S), surface: Null(Schema.Literals(["cli", "sdk", "mcp", "http", "workflow"])), cause_seq: Null(N), branch_abandoned: B,
   }),
   key: ["world_id", "epoch", "seq"],
   indexes: [
-    { name: "command-records-by-who", fields: ["world_id", "who_id", "world_time"], for: "`record list --who`: one person's or agent's entries in world time order." },
+    { name: "command-records-by-who", fields: ["world_id", "actor_email", "world_time"], for: "`record list --who`: one person's or agent's entries in world time order." },
     { name: "command-records-by-trace", fields: ["world_id", "trace_id"], for: "`record show` and an eval read every entry of one trace." },
   ],
   retention: "Kept for ever, with the world; an upload from a local devnet is optional and consented.",
@@ -91,7 +95,7 @@ export const table_world_registrations = defineTable({
   title: "World registrations: a local devnet registered with the hosted service",
   about:
     "One row per world registered with the hosted site service: the id and name issued, the hash of its secret (shown once), when it registered, when it was last seen and when its idle sites were parked. Because every call goes from the " +
-    "service to a site (plugs.service-calls-site), a local devnet whose service a hosted bench cannot reach registers instead of being reached: its companies' sites are created on the hosted bench and parked when idle (30 minutes, assumption). " +
+    "service to a site (plugs.service-calls-site), a local devnet whose service a hosted bench cannot reach registers instead of being reached: its companies' sites are created on the hosted bench and parked when idle (30 minutes, an assumption the first hosted-world eval measures). " +
     "A core-only world, with no sites, is the offline fallback.",
   was: ["books/target/plugs/decisions.ts (plugs.service-calls-site)"],
   concept: concept_devnet,

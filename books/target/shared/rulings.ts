@@ -33,7 +33,7 @@ export const SUPERSEDED: Readonly<Record<string, string>> = {
 
 /** Judgments Aaron reopened on 8 November 2026: they are redesigned, or asked again with context. */
 export const REOPENED: readonly string[] = [
-  "devnet.site-follows-world", // 10 November 2026: Aaron did not accept it; a time study is written and the question is put to him again
+  // devnet.site-follows-world left this list on 10 November 2026: Aaron settled it for option A of the time study
 ];
 
 export const decision_aaron_erp_on_capxul = defineDecision({
@@ -844,7 +844,7 @@ export const decision_aaron_us_first = defineDecision({
     "82, shared/foundation.ts 214); payroll held off 'until the UK filing route is chosen' (sites/data.ts 63, " +
     "sites/operations.ts 54); and the HMRC decision itself (cut.uk-payroll-filing). 'Companies House' in the book is a " +
     "contract role's name, not a UK registry, and is not on this list. START-HERE.md and GROUNDING.md also assume a UK " +
-    "company; the coordinator reads them next.",
+    "company; the coordinator reads them next. SET ASIDE by aaron.jurisdiction-open.",
   source: AARON_12,
   affects: [f.system_capxul],
 });
@@ -872,3 +872,45 @@ export const decision_aaron_seasons_dropped = defineDecision({
 
 // His answer to cut.uk-payroll-filing replaces that decision's open choice (the cut's record is rewritten to it).
 Object.assign(SUPERSEDED as Record<string, string>, { "cut.uk-payroll-filing": "aaron.us-first" });
+
+// ── The same day, later: the jurisdiction is left open (his words in the coordinator's report, dictated) ────────────
+const AARON_13 = "Aaron, 10 November 2026, in conversation with the coordinator, later the same day (dictated)";
+
+export const decision_aaron_jurisdiction_open = defineDecision({
+  id: "aaron.jurisdiction-open",
+  title: "The first jurisdiction is open; a crypto-friendly place is preferred",
+  question:
+    "aaron.us-first made the United States the first jurisdiction. Which jurisdiction do the build's examples, test companies, currency and payroll target first?",
+  options: [
+    {
+      label: "open-crypto-friendly",
+      text:
+        "Open. The book assumes no country: not the United Kingdom (as START-HERE and GROUNDING assumed) and not the United States " +
+        "(aaron.us-first, set aside by this ruling). A crypto-friendly or blockchain-friendly place is preferred, and the United " +
+        "Arab Emirates is named as a candidate. Which place is chosen waits on a short comparison (payroll.jurisdiction-first, " +
+        "which the coordinator owns and which is not on his list). Until then nothing is rewritten: the places that assume a UK " +
+        "company, gathered by aaron.us-first (in the why), are things to make neutral or revisit once a place is chosen. THE US ASSUMPTIONS FOUND (new): " +
+        "the skeleton's company currency is USD and the Safe's USDC is booked 1:1 as USD (plugs.books-currency); the account template's salaries account is described as " +
+        "'US salaries and wages' (books/decisions.ts 1041); the payroll research note is written for the United States (docs/design/payroll-jurisdiction.md). " +
+        "Whether USD books stay is a currency fact about the Safe, not a country: part of payroll.jurisdiction-first. 'Companies House' is a contract role's name, not a registry.",
+    },
+    { label: "us-first", text: "The United States first (aaron.us-first, 10 November 2026). Set aside by this ruling." },
+    { label: "uk-first", text: "The United Kingdom first, as START-HERE and GROUNDING assume." },
+  ],
+  chosen: "open-crypto-friendly",
+  why:
+    "Aaron, 10 November 2026, dictated, after the payroll research was put to him: " +
+    "\"All right, maybe we leave the jurisdiction an open thing then. Let's not focus on the UK or the US. Maybe the UAE might be a good place, or anywhere else that's like crypto friendly. Do you know what I mean? Or blockchain friendly.\"" +
+    " This sets aside aaron.us-first, which stays in this file with its list. THE UK ASSUMPTIONS TO MAKE NEUTRAL OR REVISIT (carried from aaron.us-first, none changed now): " +
+    "the eval worlds' companies are `Acme Ltd`, created `--country GB`, and Dana's profile is country GB (devnet/worlds.ts lines 77, 96-97, 201, 334-391, 696, 1045; " +
+    "contacts' `Globex Ltd` and `Northwind Ltd`); the GBP bank accounts, deals and notes in those worlds (devnet/worlds.ts 1007-1132, 1762; devnet/decisions.ts 1021; " +
+    "banking/decisions.ts 574-578); banking's GBP details, sort codes and EUR IBAN fields (banking/accounts.ts 48-50, banking/data.ts 57, banking/payouts.ts 73, " +
+    "banking/operations.ts 153, 176, 203, 301-330); books' currency rates and euro books (books/decisions.ts 370, 891-903; requests/decisions.ts 631); the currency " +
+    "decision for a GBP company (plugs/decisions.ts 252-259); the site's `en-GB` locale (sites/decisions.ts, shared/foundation.ts 214; it is the names-only " +
+    "mechanism, FINDINGS Names only, so a language choice); payroll held off " +
+    "'until the UK filing route is chosen' (sites/data.ts 63, sites/operations.ts 54, sites/decisions.ts sites.features-reachability); and cut.uk-payroll-filing.",
+  source: AARON_13,
+  affects: [f.system_capxul, decision_aaron_us_first],
+});
+
+Object.assign(SUPERSEDED as Record<string, string>, { "aaron.us-first": "aaron.jurisdiction-open" });

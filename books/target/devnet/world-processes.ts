@@ -43,7 +43,7 @@ export const workflow_devnet_worlds_park_idle = defineWorkflow({
   id: "devnet.worlds.park-idle",
   title: "Park a hosted world's idle sites",
   about:
-    "A hosted world that has made no call for the stated time (30 minutes, an assumption to be measured) has its sites parked: the bench stops serving them and keeps their data, and the next call wakes them. This is what lets a developer's local devnet " +
+    "A hosted world that has made no call for the stated time (30 minutes, an assumption; the first hosted-world eval, m3b-first-shared-world, measures it) has its sites parked: the bench stops serving them and keeps their data, and the next call wakes them. This is what lets a developer's local devnet " +
     "keep companies on the hosted bench without paying for idle ones. It never touches a world that is not registered, and never parks a world with a running clock that a viewer is watching.",
   concept: concept_devnet,
   priority: "normal",

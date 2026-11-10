@@ -3,8 +3,8 @@
 // hat created, so Frappe's permissions, workflows and validations decide). A part that is switched off refuses with FEATURE_NOT_AVAILABLE.
 // A Payment Entry from the Safe's account is money: its submit goes through the signer (plugs.held-payment) and is answered `held`, and its
 // cancel is a reversal or an abandon (plugs.reversal-not-deletion). The money guard of the old document family is gone: normal Frappe
-// transactions work normally (aaron.one-door). These records are written from the coordinator's list; the spike's door section did not
-// exist when they were written, so every verb below is an assumption awaiting that spike (sites.door-awaits-spike).
+// transactions work normally (aaron.one-door). These records were written from the coordinator's list and then checked against the spike's
+// door section (FINDINGS, The door, the recorder and the clock); sites.door-awaits-spike says what it showed and what it did not.
 
 import { Schema } from "effect";
 import { concept_sites } from "../shared/foundation.ts";
@@ -18,7 +18,7 @@ import { table_site_users } from "../plugs/data.ts";
 import { N, Null, S, B, rpc } from "../plugs/kit.ts";
 import { table_door_calls, table_site_features, table_sites } from "./data.ts";
 
-const AWAITS = "Assumption, awaiting the spike's door section: the verb's method on the Capxul app is not yet proven.";
+const AWAITS = "Shown by the spike's door (FINDINGS, The door: how a person is reached; What the door reaches), which reached it as the person through a signed assertion with nothing stored. Idempotency by call id was not tried: the first door eval proves it.";
 const WHO = "A person or an agent signed in to Capxul who has a site user in the Organization (a hat created it). Frappe then decides what that user may do.";
 const ERRS = [error_NOT_AUTHENTICATED, error_ROLE_PERMISSION_DENIED, error_FEATURE_NOT_AVAILABLE, error_INVALID_INPUT, error_PROVIDER_ERROR, error_PROVIDER_RESPONSE_INVALID] as const;
 const TOUCH = { reads: [table_sites, table_site_users, table_site_features], writes: [table_door_calls], calls: [integration_frappe_site.c.doorCall] } as const;
@@ -110,5 +110,5 @@ export const rpc_sites_door_reports_run = rpc({
   id: "sites.door.reports-run", title: "Run a report with filters, as the caller",
   about: `Runs a report (General Ledger, Accounts Receivable, Salary Register, Stock Balance) with the filters given and answers its columns and rows; reads only. A report of a part that is off is FEATURE_NOT_AVAILABLE. ${AWAITS}`,
   concept: concept_sites, kind: "action", who: WHO, input: Schema.Struct({ orgId: S, report: S, filters: Null(Row) }),
-  output: Schema.Struct({ columns: Schema.Array(Row), rows: Schema.Array(Row) }), errors: [...ERRS], ...TOUCH_R, budget: { class: "vendor", p50Ms: 1500, p95Ms: 8000, why: "A report reads many rows on the site; docs/mission/worlds.md measured nothing yet, so this is an assumption." },
+  output: Schema.Struct({ columns: Schema.Array(Row), rows: Schema.Array(Row) }), errors: [...ERRS], ...TOUCH_R, budget: { class: "vendor", p50Ms: 1500, p95Ms: 8000, why: "A report reads many rows on the site; the spike timed no report run, so this is an assumption the first report eval replaces with a measurement." },
 });

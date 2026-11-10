@@ -1433,66 +1433,70 @@ export const decision_devnet_follow_at_a_rate = defineDecision({
 
 export const decision_devnet_site_follows_world = defineDecision({
   id: "devnet.site-follows-world",
-  title: "A site follows its world's clock through the Capxul app's hooks, no fork",
+  title: "A site follows its world's clock: the app replaces the framework's now",
   question:
-    "OPEN, NOT ACCEPTED. On 10 November 2026 Aaron did not accept the choice below (code-hook) as recommended, and asked for a deeper look, dictated: '" +
-    "'Now we need to go for a deeper dive than this. Like I need to understand the implications here. This sounds like actually, this sounds like something that probably needs a bit more thought and attention than this. I need to really understand the implications though. It sounds like a non-trivial thing. What could really go wrong with this change? Maybe we need to fork here. Maybe this is something we should fork while keeping upstream. While staying in line with upstream. You know what I mean? The time thing has to be right.'" +
-    "' The study being written is docs/design/time-deep-dive.md: what following a world's clock really takes, what can go wrong, and whether to fork Frappe while staying in line with upstream. The question will be put to him again with the study's options. Until he answers, the choice stands as the working design and nothing about how a site follows the clock changes. " +
-    "aaron.world-clock: every company's hosted Frappe site follows its world's clock (a world is one chain with every company on it and one clock). Frappe, ERPNext, Frappe HR and Frappe CRM " +
-    "read time through Frappe's now_datetime (about 700 calls outside tests, with Frappe's now, nowdate, today, " +
-    "getdate() and get_datetime(), which call it); 88 modules of those apps and the WhatsApp app import that function " +
-    "by name (develop, 8 November 2026); Frappe's scheduler enqueues a Scheduled Job Type once its next execution is " +
-    "not after now_datetime(); its Email Queue sends every site email over the site's own SMTP account; and a few " +
-    "modules read the host's clock directly. How does the Capxul app make a site's now, its jobs and its mail the " +
-    "world's, on a devnet and across a network, without forking Frappe?",
+    "aaron.world-clock: every company's hosted Frappe site follows its world's clock (a world is one chain with every company on it and one clock). " +
+    "How does the Capxul app make a site's now, its jobs and its mail the world's, without forking Frappe by default? On 10 November 2026 the coordinator put the " +
+    "options of docs/design/time-deep-dive.md to Aaron: A, the product's own app replaces Frappe's now at runtime, with guard rails; B, a patch to Frappe carried as " +
+    "a fork; C, a clock beneath everything, one bench per world; D, no faked time. The coordinator recommended A. Measured there: 629 reads of time through the framework, " +
+    "53 direct reads of the machine's clock and 32 reads of the database's clock, in non-test code of Frappe, ERPNext, Frappe HR and Frappe CRM.",
   options: [
     {
-      label: "code-hook",
+      label: "app-replaces-now",
       text:
-        "When its site config names a world (`capxul_world`: the protocol's address and a follower grant, or a devnet's " +
-        "handoff file), the Capxul app does five things (docs/design/time.md 7.5). (1) It replaces the code of " +
-        "frappe.utils.data.now_datetime, so every module that imported it reads the world's now in the site's zone, by " +
-        "the protocol's formula from the clock event cached in Redis (read once per request or job, else at a " +
-        "context's first read; with none cached a request answers 503). The module making the replacement is imported " +
-        "in every process through the app's before_request, before_job and override_doctype_class (Scheduled Job Type) " +
-        "hooks, since Frappe outside developer mode reads hooks from its cache and never imports hooks.py itself. (2) " +
-        "The modules whose own host-clock reads decide something (the CRM's deal status log, ERPNext's stock freeze by " +
-        "days, its service-level agreement's user time and bulk-transaction log, Frappe HR's interview reminder, " +
-        "Frappe's unreplied-email notice and session end) get their datetime and date names rebound to world-clock " +
-        "stand-ins; reads that protect or measure stay real; B3 scans the pinned apps so each direct read is rebound " +
-        "or named real. (3) `bench --site <site> capxul follow` joins as `site:<site>`, writes each event to the cache, " +
-        "enqueues the Scheduled Job Types due at each stop and waits for them, acknowledging with its next " +
-        "daily-or-slower job as its next due (devnet.site-warp-stops), and between stops enqueues the due ones every " +
-        "world minute, since Frappe's scheduler wakes every 240 real seconds; is_event_due and the job's id keep each " +
-        "run to one. (4) Its override_email_send hook hands every email the Email Queue sends to the supervisor " +
-        "(`POST /v1/mail`, on the follower grant), which keeps it in the mail sink at the world's now; nothing reaches " +
-        "SMTP. (5) Off a world the clock part is not installed; on staging the mail hook sends only to " +
-        "MAIL_ALLOWED_RECIPIENTS and raises for any other address.",
+        "A (study section 7). The Capxul app replaces the framework's now function for every site of a world, keyed by the site's world (`capxul_world` in its config; " +
+        "the world's offset is one entry on the bench, so two worlds run at different times on one bench). (1) A scan fails the build when an upgrade of a pinned app adds a " +
+        "direct read of the machine's clock; every direct read carries a label: rebound, real on purpose, or world. (2) The direct reads that decide something a person or the " +
+        "books would see are pointed at the world's clock: ERPNext's stock freeze by days (stock_ledger_entry.py:475), the service-level agreement's time, the bulk-transaction " +
+        "log dates; Frappe HR's interview reminder; the CRM's deal status log; Frappe's unreplied-email window (email_account.py:972, 978). (3) Database reads of the current " +
+        "time that compare with stored world dates (held invoices released by `release_date <= CURRENT_DATE`, issue and opportunity auto-close) are replaced by the world's " +
+        "time. (4) Log clean-up jobs are off inside worlds (a world is recorded elsewhere). (5) Sessions, caches, locks, tokens and the job queue's own timestamps stay on real " +
+        "time on purpose. (6) An advance stops at every midnight, because some jobs fire only on an exact date (Auto Repeat tests equality). (7) A world cannot pass a year end until " +
+        "the next fiscal year exists, so creating it is part of advancing. (8) The seam is proposed to Frappe upstream; a fork is carried only if they take it or the scan fails on " +
+        "most releases. (9) A bench per world with a clock beneath it (libfaketime or a time namespace) stays available for a world that must be exact. The follower, the mail " +
+        "sink and the rate are as the earlier design had them (docs/cut-archive/organizations/rewritten).",
     },
-    { label: "freezegun", text: "Start freezegun's freeze_time at the world's now around every request and job." },
-    { label: "fork", text: "Patch frappe/utils/data.py in a Capxul fork of Frappe." },
+    { label: "fork", text: "B. Patch frappe/utils/data.py in a Capxul fork of Frappe that tracks upstream. Alone it cannot fix ERPNext, Frappe HR or the CRM (separate GPL and AGPL code bases), so it means four forks." },
+    { label: "bench-per-world-clock", text: "C. A clock beneath every process (libfaketime or a time namespace), one bench with its own database and Redis per world. The only option that makes everything agree; the heaviest. Kept as the fallback in A (9)." },
+    { label: "no-fake-time", text: "D. No faked time: dates are set by the caller. Rejected by the study: it fails aaron.world-clock (everything follows the clock)." },
   ],
-  chosen: "code-hook",
+  chosen: "app-replaces-now",
   why:
-    "Replacing one function's code reaches every binding of it, the imports by name included, so one seam moves most " +
-    "of the site's dates, and aaron.erp-on-capxul asks for no fork. Rebinding the module attribute alone would miss " +
-    "every module that imported the name first. Frappe's own tests move time with freezegun " +
-    "(frappe/tests/classes/context_managers.py), but freezegun scans every loaded module on each start and freezes " +
-    "time.time and the monotonic clock, which Frappe's Redis locks, RQ and its scheduler heartbeat need real, and it " +
-    "has no rate; the rebinding in (2) is freezegun's technique kept to the few modules that decide on the host's " +
-    "clock. A patch applied only in hooks.py would leave a worker or the scheduler on the host's clock, because Frappe " +
-    "reads app hooks from its cache (frappe/__init__.py get_hooks) and imports a hook's own module only when it calls " +
-    "it. One cache read per request or job is the site's RequestTime: no network call per date. Waiting for the due " +
-    "jobs at a stop lets a warp see a site's daily work on its day, and the follower's world-minute enqueue keeps a " +
-    "site's faster jobs on their cadence at any rate. A site's own email (ERPNext's and Frappe HR's notifications, " +
-    "its auto email reports) would otherwise leave the world over SMTP, dated at the world's now; the CRM's own " +
-    "conversations never go through the site (contacts.conversations-site-sync). A real bench in a shared world " +
-    "follows over HTTPS with a follower grant, its offset measured as any remote follower's. The stand-in site " +
-    "already follows (devnet.site-stand-in). Assumption, not yet tested: the spike has no clock evidence at all (FINDINGS has nothing on time); the clock-follow spike is the first thing to build (docs/mission/worlds.md, section 6, 1), with a bench per world under libfaketime as the fallback (sites.one-bench). Reshaped in stage 3 from the optional head to every hosted site; the original text is in docs/cut-archive/organizations/rewritten.",
-  source: WORLD_CLOCK(
-    "frappe@1a7ea577 utils/data.py:373, scheduler.py:44, __init__.py:1050, model/document.py:170, email_queue.py:248; direct reads listed in docs/design/time.md 7.5",
-  ),
+    "Aaron, 10 November 2026, asked to choose between the options, dictated: 'I'm inclined to just go with your recommendation ... I still don't understand what the issue is or I don't really understand the options to be honest. But yeah, I agree with the rest of your recommendations though. I agree with them. Let's just rock with it.' " +
+    "He accepted the coordinator's recommendation without claiming to follow the options; the call stays the coordinator's design to defend, and it is open to him to change. " +
+    "The study (docs/design/time-deep-dive.md; commit 691a0c6) found the mechanism sound for what people and the books see (dates, postings, periods, accruals, what is due) and not complete: about 20 of the 85 direct reads decide something. " +
+    "Frappe ships about weekly, and new direct reads are the main risk, hence the scan. What the clock still cannot do right without a fork or a fake clock beneath Python is time in the database and in libraries (SQL NOW(), Redis expiry, the queue's timestamps, token libraries). " +
+    "Tests that make it right: devnet.time-is-right. Evidence in the spike: spikes/skeleton/FINDINGS.md, The door, the recorder and the clock, The clock.",
+  source: "Aaron, 10 November 2026, in conversation with the coordinator: accepted the coordinator's recommendation (option A of docs/design/time-deep-dive.md, section 7); evidence: spikes/skeleton/FINDINGS.md, The clock; docs/design/time-deep-dive.md",
   affects: [component_frappe_app, integration_mail, table_mail_messages, component_devnet, environment_devnet, environment_shared_world],
+});
+
+export const decision_devnet_time_is_right = defineDecision({
+  id: "devnet.time-is-right",
+  title: "'Time is right' means six tests, each an eval or a named gap",
+  question: "devnet.site-follows-world is settled for option A. What proves that time is right, and which of those proofs exist?",
+  options: [
+    {
+      label: "six-tests",
+      text:
+        "(1) THE SCAN: no pinned app reads the machine's clock unlabelled; a committed list of every direct read, each labelled rebound, real on purpose or world, equals the scan's " +
+        "output per pinned app. GAP: does not exist (the study's T1; its first step, about a day). " +
+        "(2) MONTH END: a world from 1 to 31 March with documents posted each day and the month closed; every ledger date equals the world's date and no creation is off by more than a day. " +
+        "EXISTS in the spike (Behaviour 7: ledger dates and the chain's block time); passed in its script's 119 of 119 on two new companies on 10 November after a harness fix; the coordinator is re-running it. " +
+        "(3) A JUMP ACROSS A FISCAL YEAR with the next year made first; Auto Repeat, accrual and period close happen once per due period. GAP: does not exist (the spike cannot pass 31 December). " +
+        "(4) A RESTORE TO AN EARLIER SNAPSHOT: jobs neither lost nor doubled; naming series continue. PARTLY in the spike (Behaviour 9 restores in place: documents, ledger, balance and clock equal; no job counts); the counts are a GAP. " +
+        "(5) TWO WORLDS AT DIFFERENT TIMES ON ONE BENCH: the same request to each answers its own date. EXISTS in the spike (Behaviour 9: w2 at 1 June and main at host time); under load from one worker is a GAP. " +
+        "(6) A PERSON'S SESSION ACROSS AN ADVANCE: the rule is that a one-day step must not end a signed-in session and a step beyond the session's lifetime (10 days) ends it cleanly with a message; " +
+        "agents hold no session (a fresh assertion per call). GAP: the spike saw a session not survive a move and tested nothing else. " +
+        "Also gaps: past-world log retention (rows remain), every scheduled job once per period across a 60-day jump, an upgrade rehearsal of tests 1 to 3 before a pin moves. Planned as m1-time-proof.",
+    },
+  ],
+  chosen: "six-tests",
+  why:
+    "docs/design/time-deep-dive.md, section 6 (T1 to T10). A mistake in a clock shows up as a document dated by the machine while its neighbours are dated by the world, often unnoticed " +
+    "until a month end, so each proof is a run, not a review. Tests 2 and 5 are the only ones the spike already answers; the rest are written as gaps so none is mistaken for done.",
+  source: "The coordinator, 10 November 2026, on Aaron's delegation of the book; evidence: docs/design/time-deep-dive.md section 6; spikes/skeleton/FINDINGS.md, The clock",
+  affects: [component_frappe_app, component_devnet, environment_devnet, environment_shared_world, decision_devnet_site_follows_world],
 });
 
 export const decision_devnet_shared_world = defineDecision({

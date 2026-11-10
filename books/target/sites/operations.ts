@@ -1,6 +1,6 @@
 // The sites' operations: the site and its feature switches (six), and the document door (fourteen). Booked under rules.new-operations; the
 // decisions in ./decisions.ts name aaron.one-door and aaron.frappe-native. The door's operations replace the old `org head doc` family and
-// `org head app` group (cut.organizations); they are written from the coordinator's list and each awaits the spike's door section (sites.door-awaits-spike).
+// `org head app` group (cut.organizations); they were written from the coordinator's list and checked against the spike's door section (sites.door-awaits-spike).
 
 import { budget } from "../../../packages/book/src/index.ts";
 import {
@@ -91,7 +91,7 @@ const doorOp = (
   extra: { error: never; given: string; when: string }[] = [], priority: "critical" | "normal" = "normal",
 ) =>
   operation({
-    id, title, area: "sites", command, priority, implementedBy: impl, about: `${about} Runs as the calling person; Frappe's permissions decide. Awaiting the spike's door section (sites.door-awaits-spike).`,
+    id, title, area: "sites", command, priority, implementedBy: impl, about: `${about} Runs as the calling person; Frappe's permissions decide. Checked against the spike's door (sites.door-awaits-spike).`,
     who: "A person or an agent whose Frappe user a hat created.", changes, acceptance: claims, returns: rpcRec.output as never, errors: [error_CLI_USAGE],
     refusals: [out, noUser, off("The call reaches"), down, ...extra],
   } as never);

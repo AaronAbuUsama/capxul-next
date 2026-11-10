@@ -22,9 +22,9 @@ export const integration_frappe_site = defineIntegration({
     "always calls: every call goes from the service to the site and the site never needs to reach the service (plugs.service-calls-site; precedent: the old head design, 'Capxul always calls; the head only rings a doorbell'). Nothing the site holds is copied into " +
     "Capxul's tables: Frappe owns its documents. `applyEvent` is how the chain reaches the books and the roles. `doorCall` and `doorReport` run " +
     "the person's own call: the app sets the session user to the Frappe user that person's hat created, so Frappe's permissions decide, and money " +
-    "documents never post on their own (plugs.held-payment). No call reports usage outward; the site's own telemetry is off (sites.privacy). " +
-    "Assumption, not yet tested: the doorCall, doorReport, collectPaymentRequests, answerPaymentRequest, mintSession and mintViewLink methods; the spike proved applyEvent, the sign-in and the held payment, and the " +
-    "door's design awaits the spike's door section.",
+    "documents never post on their own (plugs.held-payment). A person's call also carries `X-Capxul-Assertion`: the service signs {user, site, expiry 60 s, nonce}; the site checks the signature, the site name, the expiry (host time, on purpose) " +
+    "and that the User is enabled and wears at least one hat, then runs as that User; nothing is stored for the person (plugs.door-assertion). No call reports usage outward; the site's own telemetry is off (sites.privacy). " +
+    "Proved by the spike: applyEvent, the sign-in, the held payment and the door (doorCall, doorReport). Not tried, assumptions with a named test: collectPaymentRequests and answerPaymentRequest (the site's outbox, proved by m3-site-stops-calling) and mintViewLink (the viewer eval).",
   component: component_backend,
   system: "frappe",
   service: "FrappeSite",
@@ -50,13 +50,6 @@ export const integration_frappe_site = defineIntegration({
       p95Ms: 2_000,
       failures: [down, badSig, unusable],
     },
-    mintSession: {
-      about: "Ask the site for a session for a person whose Frappe user a hat created, as the door does for a call. Answers a session the service holds; the person never signs in to the site by password.",
-      timeoutMs: 10_000,
-      retries: { max: 2, backoff: "exponential" },
-      p95Ms: 2_000,
-      failures: [down, badSig, unusable, { when: "The person has no Frappe user on the site (no hat created one)", error: error_ROLE_PERMISSION_DENIED }],
-    },
     mintViewLink: {
       about: "Ask the site to mint a one-time sign-in link for a person who only watches (a viewer grant), read-only, expiring. Answers the link; the site never calls the service.",
       timeoutMs: 10_000,
@@ -72,7 +65,7 @@ export const integration_frappe_site = defineIntegration({
       failures: [down, badSig, unusable, { when: "The site has no Capxul app, or one older than the contract (its method is missing)", error: error_WRONG_STATE }],
     },
     doorCall: {
-      about: "One document verb as the calling person, to `capxul.door.run`, idempotent by call_id. Frappe's permissions decide; a part that is off answers 403; a submit of a Safe Payment Entry is answered held.",
+      about: "One document verb as the calling person (the signed assertion rides with it), to `capxul.door.run`, idempotent by call_id (to prove). Frappe's permissions decide; an off part answers 403; a Safe Payment Entry submit is answered held.",
       timeoutMs: 15_000,
       retries: { max: 2, backoff: "exponential" },
       p95Ms: 3_000,
@@ -110,8 +103,8 @@ export const integration_site_service = defineIntegration({
     "The service on the bench's machine (component:site-service), behind the Effect service `SiteService`, reached over HTTP with its own token. It does " +
     "what the spike's scripts do: `new-site.sh` (site, apps, Company, the Safe's bank account, the sign-in key, the names), `feature.sh` (switch a part on " +
     "or off), and, for a world, set and advance the clock the site reads and save and restore the site's database and files. Creating a site for an slug " +
-    "that already has one is safe to repeat (7 s in the spike). Every call is idempotent by a request key. Assumptions not yet tested: dropping a site, the " +
-    "clock and the snapshot calls (the spike's clock and snapshot sections were being written when this record was); creation measured 143 s cold on a laptop.",
+    "that already has one is safe to repeat (7 s in the spike). Every call is idempotent by a request key. Proved by the spike: creation (143 s cold, 47 s from a company template, 7 s to repeat), the feature switch, the clock, snapshots and dropping a site. " +
+    "Not tried, assumptions with a named test: registering a world and parking idle sites (m3b-first-shared-world).",
   component: component_backend,
   system: "site-service",
   service: "SiteService",
@@ -128,14 +121,14 @@ export const integration_site_service = defineIntegration({
       ],
     },
     registerWorld: {
-      about: "A local devnet registers itself as a world with the hosted service: a world id, a secret and a name are issued, and its companies' sites are created on the hosted bench. Assumption, not yet tested.",
+      about: "A local devnet registers itself as a world with the hosted service: a world id, a secret and a name are issued, and its sites are created on the hosted bench. Assumption, not yet tested: m3b-first-shared-world.",
       timeoutMs: 30_000,
       retries: { max: 2, backoff: "exponential" },
       p95Ms: 5_000,
       failures: [{ when: "The service is down", error: error_PROVIDER_ERROR }, { when: "The name or id is taken, or has a hyphen", error: error_INVALID_INPUT }],
     },
     parkSites: {
-      about: "Park a world's idle sites (no call for the stated time, 30 minutes assumed): the bench stops serving them and keeps their data; a later call wakes them. Assumption, not yet tested.",
+      about: "Park a world's idle sites (no call for the stated time, 30 minutes assumed): the bench stops serving them and keeps their data; a later call wakes them. Assumption, not yet tested: m3b-first-shared-world.",
       timeoutMs: 60_000,
       retries: { max: 1, backoff: "fixed" },
       p95Ms: 20_000,
@@ -159,28 +152,28 @@ export const integration_site_service = defineIntegration({
       ],
     },
     setClock: {
-      about: "Set the clock the site reads to the world's now and rate; the world owns the clock and the site follows it. Assumption, not yet tested.",
+      about: "The world owns the clock and every site follows it: one write moves every site of the world. Proved by the spike: a set takes 4 to 6 s for four companies; an advance of 10 days 33 to 41 s. The rate is not built.",
       timeoutMs: 20_000,
       retries: { max: 2, backoff: "fixed" },
       p95Ms: 5_000,
       failures: [{ when: "The service or the site is down", error: error_PROVIDER_ERROR }],
     },
     saveSnapshot: {
-      about: "Save the site's database and files under a snapshot name, as one part of a world's snapshot. Assumption, not yet tested.",
+      about: "Save the site's database, files and site config under a snapshot name, one part of a world's snapshot. Proved by the spike; the copy holds the site's encryption key, so it is sensitive.",
       timeoutMs: 300_000,
       retries: { max: 0, backoff: "none" },
       p95Ms: 60_000,
       failures: [{ when: "The service is down, or the disk is full", error: error_PROVIDER_ERROR }],
     },
     restoreSnapshot: {
-      about: "Restore a site from a snapshot, in place or into a separate world under a new slug. Assumption, not yet tested.",
+      about: "Restore a site from a snapshot, in place or into a separate world under a new slug, rewriting its name, config, sign-in URLs and clock. Proved by the spike: 33 s a site.",
       timeoutMs: 300_000,
       retries: { max: 0, backoff: "none" },
       p95Ms: 90_000,
       failures: [{ when: "The service is down", error: error_PROVIDER_ERROR }, { when: "The snapshot names no site of this Organization", error: error_INVALID_INPUT }],
     },
     dropSite: {
-      about: "Remove a site from the bench. Used by tests and by a world's teardown; never by a customer's command. Assumption, not yet tested.",
+      about: "Remove a site from the bench. Used by tests and a world's teardown, never a customer's command. Proved by the spike: dropping a site takes about a minute.",
       timeoutMs: 120_000,
       retries: { max: 0, backoff: "none" },
       p95Ms: 30_000,

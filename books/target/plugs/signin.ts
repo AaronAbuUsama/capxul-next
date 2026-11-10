@@ -2,7 +2,7 @@
 // it; sign-up is denied on the site, so the only people who can sign in are those a hat created (a row in site-users). THIS BROWSER FLOW NEEDS A REACHABLE SERVICE (the site's server exchanges the
 // code with the service), so under plugs.service-calls-site it is outside the current path; the path's sign-in is sessions.ts (the service calls the site). The person
 // proves themselves to Capxul as they already do (access); this plug only hands a signed identity to the site. Stand-in in the spike: a
-// list of test people to pick from. Assumption, not yet tested: the real provider's session check and exact redirect matching.
+// list of test people to pick from. Assumption, not yet tested: the real provider's session check and exact redirect matching (the stand-in accepts any redirect_uri, FINDINGS, Core half); the first sign-in eval against the real provider proves them.
 
 import { Schema } from "effect";
 import { concept_plugs } from "../shared/foundation.ts";

@@ -11,5 +11,6 @@ import * as processes from "./processes.ts";
 import * as flows from "./flows.ts";
 import * as operations from "./operations.ts";
 import * as decisions from "./decisions.ts";
+import * as evidence from "./evidence.ts";
 
-export const modules = [data, integrations, signin, signer, sessions, roles, events, processes, flows, operations, decisions] as const;
+export const modules = [data, integrations, signin, signer, sessions, roles, events, processes, flows, operations, decisions, evidence] as const;

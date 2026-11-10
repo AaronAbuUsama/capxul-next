@@ -37,7 +37,7 @@ export const decision_sites_features_reachability = dec({
   title: "Every app is installed on every site; a switch controls only reachability",
   question: "What does turning a feature on or off do on a site?",
   options: [
-    { label: "reachability", text: "Every app Capxul supports is installed on every site. `org feature off` closes the part's screens and API (every request answers FEATURE_NOT_AVAILABLE) and keeps the data; `on` makes it reachable with everything that was there. A switch never installs or uninstalls. On by default: accounts with banking, people (staff records, leave and expenses), projects and CRM. Payroll is installed but not in the base set until the UK filing route is chosen (cut.uk-payroll-filing). Off by default: WhatsApp sending, attendance, recruitment, reviews, stock, manufacturing. The Director hat switches, checked on the chain now; the switch is a Core setting, not a chain event (assumption, not yet tested)." },
+    { label: "reachability", text: "Every app Capxul supports is installed on every site. `org feature off` closes the part's screens and API (every request answers FEATURE_NOT_AVAILABLE) and keeps the data; `on` makes it reachable with everything that was there. A switch never installs or uninstalls. On by default: accounts with banking, people (staff records, leave and expenses), projects and CRM. Payroll is installed but not in the base set until the UK filing route is chosen (cut.uk-payroll-filing). Off by default: WhatsApp sending, attendance, recruitment, reviews, stock, manufacturing. The Director hat switches, checked on the chain now; the switch is a Core setting, not a chain event (sites.feature-switch-authority; what off closes is sites.what-off-closes)." },
     { label: "install-on-demand", text: "Install an app when a feature is turned on, as the spike's first version did." },
   ],
   chosen: "reachability",
@@ -56,20 +56,20 @@ export const decision_sites_door = dec({
     { label: "refuse-money", text: "The door refuses money documents (the old document family)." },
   ],
   chosen: "one-door",
-  why: `${R}: 'the whole purpose of the SDK and CLI is to have one unified API source' and the money refusal is replaced by the signer. These verbs replace the twelve of the old 'org head doc' family; the reports, the next-document mapper and printing were the three additions the old surface.head-methods proposed and are now required. The method names on the app are assumptions: the spike's door section did not exist when this was written (sites.door-awaits-spike).`,
+  why: `${R}: 'the whole purpose of the SDK and CLI is to have one unified API source' and the money refusal is replaced by the signer. These verbs replace the twelve of the old 'org head doc' family; the reports, the next-document mapper and printing were the three additions the old surface.head-methods proposed and are now required. The spike has since built the door and the book is checked against it (sites.door-awaits-spike).`,
   evidence: FIND.path,
   affects: [f.system_capxul, f.concept_sites, integration_frappe_site, ...DOOR_OPS, door.rpc_sites_door_submit, door.rpc_sites_door_cancel, door.rpc_sites_door_call],
 });
 
 export const decision_sites_door_awaits_spike = dec({
   id: "sites.door-awaits-spike",
-  title: "The door's verbs are written from the coordinator's list and await the spike",
+  title: "The door's verbs were checked against the spike; what it did not show",
   question: "What does the book claim about how the door behaves on a real site?",
   options: [
-    { label: "assumption", text: "Every door verb, its input and output shapes, the idempotency by call id, the 403 for an off part on each route and the `held` answer are written from the coordinator's list of 10 November. None has been run against a site. The spike's FINDINGS had no door section when this was written; when it has, each rpc's `about` and each operation's observes are corrected to what it measured, and the assumption is struck here." },
+    { label: "checked-against-the-spike", text: "The spike's door section (FINDINGS, The door, the recorder and the clock) showed: a person is reached without a browser by a short-lived assertion the service signs and the site checks (signature, site name, 60-second expiry in host time, an enabled User that wears at least one hat), with nothing stored for the person, then Frappe's own roles, user permissions and feature switches decide; the door reaches documents, actions and reports as the calling person (527 document types for an admin-hat person, 225 for a salesperson; errors as values); `doc submit` of a Safe Payment Entry comes back `Waiting for signature` with an approval id and the entry posts when the chain's event lands; a closed accounting period and a switched-off part are refused. Names of the spike's own error codes and of its methods are the spike's, not the book's. NOT shown, so still to prove by the first door evals: idempotency by call id, the exact `held` answer, and the timing of a report run. `doc next` is a guide, not a complete one: the form's Create buttons are client script, so the next-document list is Frappe's connections and its `make_*` mappers by name (FINDINGS, What the door reaches)." },
   ],
-  chosen: "assumption",
-  why: "Where a record states how Frappe behaves and only the spike has shown it, the record cites the section; where nobody has tried it, it says so. Nobody had tried the door.",
+  chosen: "checked-against-the-spike",
+  why: "Where a record states how Frappe behaves and only the spike has shown it, the record cites the section; where nobody has tried it, it says so. The door is now tried, so the marks are struck except the three named.",
   evidence: FIND.path,
   affects: [f.system_capxul, ...DOOR_OPS, integration_frappe_site],
 });
@@ -107,7 +107,7 @@ export const decision_sites_crm = dec({
   title: "Frappe CRM is the CRM; the official WhatsApp app is the one to plan on",
   question: "Which CRM and which WhatsApp integration does the product build on?",
   options: [
-    { label: "frappe-crm-official-whatsapp", text: "Frappe CRM (version-16) is the CRM and ships on every site. For WhatsApp, plan on the official Frappe app (`frappe/whatsapp`, MIT, Frappe Technologies), which CRM's next major already uses. Today CRM v16 reads the third-party app `frappe_whatsapp` (one maintainer), which is what the spike installed; Capxul pins that for now and migrates when CRM v2 lands. A Won deal becomes an ERPNext Customer by configuration; what else it must become is not decided (assumption, not yet tested: Quotation, Sales Order, a budget)." },
+    { label: "frappe-crm-official-whatsapp", text: "Frappe CRM (version-16) is the CRM and ships on every site. For WhatsApp, plan on the official Frappe app (`frappe/whatsapp`, MIT, Frappe Technologies), which CRM's next major already uses. Today CRM v16 reads the third-party app `frappe_whatsapp` (one maintainer), which is what the spike installed; Capxul pins that for now and migrates when CRM v2 lands. A Won deal becomes an ERPNext Customer by configuration; what else it must become is not decided (open, sites.deal-to-customer; the CRM's own licence question is sites.agpl)." },
     { label: "twenty", text: "Keep Twenty or another CRM beside Frappe." },
   ],
   chosen: "frappe-crm-official-whatsapp",
@@ -125,7 +125,7 @@ export const decision_sites_machine = dec({
     { label: "route-per-site", text: "A route and a certificate per hostname, as the existing proxy does." },
   ],
   chosen: "one-machine-wildcard",
-  why: "Aaron approved the machine on 10 November (docs/mission/cloud.md, Needs Aaron). The existing front door holds one route and one certificate per exact hostname, which would put a proxy change and a certificate on every new company; nothing covers simulated time or an append-only record. Assumption, not yet tested: that OpenShip can register a wildcard route, memory on the machine, Let's Encrypt limits (cloud.md: Not determined from the repository). docs/mission/sites-host/ingress.md carries the address.",
+  why: "Aaron approved the machine on 10 November (docs/mission/cloud.md, Needs Aaron). The existing front door holds one route and one certificate per exact hostname, which would put a proxy change and a certificate on every new company; nothing covers simulated time or an append-only record. Assumption, not yet tested: that OpenShip can register a wildcard route, memory on the machine, Let's Encrypt limits (cloud.md: Not determined from the repository); the first request through the route and the first loaded world settle them (m3b-create-machine, m3b-first-shared-world). The spike's naming alternative, `<company>.<world>`, needs one wildcard certificate per world, which is why the address is a single label. docs/mission/sites-host/ingress.md carries the address.",
   evidence: FIND.cloud,
   affects: [f.system_capxul, f.component_site_service, d.table_sites, integration_site_service],
 });
@@ -135,11 +135,11 @@ export const decision_sites_one_bench = dec({
   title: "One bench serves the sites of every world; a bench per world is the fallback",
   question: "Do worlds at different speeds share a bench?",
   options: [
-    { label: "shared-bench", text: "One bench serves every company of every world; the clock a site reads is set per site from its world (the book's design puts the world in each site's config, so one bench can serve sites of different worlds if the patch keys on the site). All sites of a bench share the app versions, so an app upgrade is every company's upgrade; the policy is a staging bench first, then roll. If the clock spike shows a site cannot follow its own world's clock, a bench per world under libfaketime is the fallback (assumption, not yet tried)." },
+    { label: "shared-bench", text: "One bench serves every company of every world; the clock a site reads is set per site from its world (the book's design puts the world in each site's config, so one bench can serve sites of different worlds if the patch keys on the site). All sites of a bench share the app versions, so an app upgrade is every company's upgrade; the policy is a staging bench first, then roll. The clock spike showed it can: two worlds ran at different times on one bench, the offset keyed by the site's world (devnet.clock-follows-what). A bench per world with a clock beneath it stays the option for a world that must be exact (devnet.site-follows-world 9)." },
     { label: "bench-per-world", text: "A bench per world from the start; about twice the memory." },
   ],
   chosen: "shared-bench",
-  why: "docs/mission/worlds.md section 7, decision 4, accepted by the coordinator on Aaron's delegation. The spike has no clock evidence at all (FINDINGS has nothing on time when this was written), so this is an assumption to be tested by the clock spike first.",
+  why: "docs/mission/worlds.md section 7, decision 4, accepted by the coordinator on Aaron's delegation. The clock spike now shows it (FINDINGS, The clock; Behaviour 9). One worker serving two sites of different worlds is not yet tested under load: devnet.time-is-right, test 5.",
   evidence: FIND.cloud,
   affects: [f.system_capxul, f.component_site_service, f.component_frappe_app, integration_site_service],
 });

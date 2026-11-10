@@ -9,7 +9,7 @@
 
 import { defineDecision } from "../../../packages/book/src/index.ts";
 import * as f from "./foundation.ts";
-import { decision_aaron_frappe_native, decision_aaron_one_door, decision_aaron_us_first } from "./rulings.ts";
+import { decision_aaron_frappe_native, decision_aaron_jurisdiction_open, decision_aaron_one_door, decision_aaron_us_first } from "./rulings.ts";
 
 /** What became of a frozen operation: Frappe owns it (reached), the cut removes it (dropped) or it waits outside the built book (parked). */
 export type CutFate = "reached" | "dropped" | "parked";
@@ -213,7 +213,7 @@ export const decision_cut_department_budgets = defineDecision({
 
 export const decision_cut_uk_payroll_filing = defineDecision({
   id: "cut.uk-payroll-filing",
-  title: "HMRC payroll filing is set aside for now: the United States first",
+  title: "HMRC payroll filing is set aside for now; the jurisdiction is open",
   question: "Frappe has no RTI and its PAYE is not HMRC's cumulative method. Provider API, bureau, or build?",
   options: [
     { label: "open", text: "Open. Nothing in the book changes; the coordinator's recommendation was a provider API, one integration record. This was the choice until 10 November 2026." },
@@ -224,34 +224,95 @@ export const decision_cut_uk_payroll_filing = defineDecision({
   chosen: "set-aside-for-now",
   why:
     "START-HERE section 11 had listed it under 'Only Aaron'. Aaron, 10 November 2026, dictated: 'I think this is a decision we should revisit actually. I think we should probably avoid HMRC for now. Let's just do this US, not that this is only going to be US, but let's just like pick US for now, US examples for now, especially because the legal path is a bit more straightforward as well, especially for stable coins and stable coin companies.' " +
-    "His ruling is aaron.us-first, which lists the places in the book that assume a UK company; nothing is rewritten yet. Payroll is Frappe's whichever jurisdiction comes first.",
+    "His ruling was aaron.us-first; later the same day he left the jurisdiction open (aaron.jurisdiction-open), which carries its list. It lists the places in the book that assume a UK company; nothing is rewritten yet. Payroll is Frappe's whichever jurisdiction comes first.",
   source: BY,
   affects: [f.system_capxul, ...rulings, decision_aaron_us_first],
 });
 
 export const decision_payroll_open_source_support = defineDecision({
   id: "payroll.open-source-support",
-  title: "Which existing open-source payroll and tax support gives the best start?",
+  title: "No open-source payroll gives a real head start for the US or the UK",
   question:
-    "aaron.us-first makes the United States the first jurisdiction. Frappe HR's payroll calculates from salary structures and formulas; " +
-    "what existing open-source payroll and tax support (a Frappe app, a plugin, a tax engine or a filing library) already exists " +
-    "for the United States, and for any other jurisdiction, that gives the build a start?",
+    "Frappe HR's payroll calculates from salary structures and formulas; what existing open-source payroll and tax support (a Frappe app, a " +
+    "plugin, a tax engine or a filing library) already exists, for the United States, the United Kingdom or any other jurisdiction, that gives the build a start?",
   options: [
     {
-      label: "research-first",
+      label: "no-head-start-us-uk",
       text:
-        "Open, and not waiting on Aaron yet: it waits on research. The research note docs/design/payroll-jurisdiction.md (being " +
-        "written by another agent) is where the answer comes from: what exists, how well it is kept, its licence, what it covers for " +
-        "the United States and what it would take to use it beside Frappe HR. When the note is in, this record is rewritten to its " +
-        "recommendation, and only then does it go to Aaron if the call is his.",
+        "Answered by the research note docs/design/payroll-jurisdiction.md, as far as it goes. For the United States: Frappe HR has no US payroll " +
+        "(only ERPNext's 1099 report and a US chart of accounts); no open-source withholding engine exists (the IRS publishes its tables as PDF); the one " +
+        "Frappe app, US Payroll by Bizmap (MIT, version-16, created May 2026, one vendor, 5 stars), does federal tax and the W-2, W-3 and 941 forms, has no state " +
+        "withholding and no e-filing found, and was not run. For the United Kingdom: nothing in Frappe HR or ERPNext, no Frappe app for HMRC payroll filing. " +
+        "Frappe HR's own localisations are India (HRA, tax with marginal relief, provident fund, gratuity) and the United Arab Emirates (three gratuity rules), " +
+        "ERPNext's include a UAE VAT report; India's real payroll lives in other apps (India Payroll, version 17 only; India Compliance, GST). So the " +
+        "United Arab Emirates starts ahead of the US and the UK on software; everything else about it (payroll rules, filing, what its law says about " +
+        "wages in a stablecoin) is unresearched. Which place goes first is payroll.jurisdiction-first.",
     },
   ],
-  chosen: "research-first",
+  chosen: "no-head-start-us-uk",
   why:
-    "Aaron asked the question himself on 10 November 2026 (aaron.us-first): what open-source tax support exists, and whether a " +
-    "plugin gives a head start for a jurisdiction. It is open as a question, not as a choice, so no option is recommended yet.",
+    "Aaron asked the question himself on 10 November 2026 (aaron.us-first): what open-source tax support exists, and whether a plugin gives a head start for a " +
+    "jurisdiction. The research answers it for the two places it covered, from the installed code (frappe 16.55.2, erpnext 16.54.0, hrms 16.53.1) and the marketplace; " +
+    "what it could not verify is listed in its section 9 (provider liability terms and prices, SSA onboarding, whether Bizmap caps Social Security or e-files). " +
+    "He then left the jurisdiction open (aaron.jurisdiction-open), so this record answers the research question and no longer names a country.",
   source: BY,
-  affects: [f.system_capxul, ...rulings, decision_aaron_us_first],
+  affects: [f.system_capxul, ...rulings, decision_aaron_us_first, decision_aaron_jurisdiction_open],
+});
+
+export const decision_payroll_route = defineDecision({
+  id: "payroll.route",
+  title: "Payroll: buy calculation and filing, Frappe is the record",
+  question:
+    "Whatever place goes first, how is payroll built? Calculate and file ourselves, adopt an open-source engine, or buy it from a provider's API?",
+  options: [
+    {
+      label: "buy-record-in-frappe",
+      text:
+        "The coordinator's recommendation, not the owner's ruling (he said of the research's recommendations on 10 November 2026 that he agreed, then " +
+        "left the jurisdiction open, so only what does not depend on a country is kept). (1) Calculation and filing are bought from a payroll provider with an API " +
+        "where one exists for the place, not built: the filing doors are many, the calculation is the part most easily bought, and wrong withholding is the " +
+        "product's fault if it is built. (2) Frappe HR is the record of staff and pay: a Salary Slip is approved there and the provider's net pay, taxes and filing status " +
+        "are written back to it. (3) The first company's payroll is run by an accountant while a provider's test environment is tried. (4) Wages are paid in the local " +
+        "fiat at first. (5) Paying contractors in a stablecoin is the first stablecoin pay flow. (6) Whether wages may be paid in a stablecoin, and whether running payroll " +
+        "makes Capxul a payroll provider, a reporting agent or a money transmitter, wait on a lawyer in the chosen place (docs/design/payroll-jurisdiction.md, what a lawyer must confirm). " +
+        "Which provider is open: terms, liability and prices are not public; the first question to any provider is who pays a penalty for a wrong filing. " +
+        "Not on the owner's list.",
+    },
+    { label: "build-calculation", text: "Build the calculation on Frappe HR, federal or national only, and file by hand: high exposure, rejected by the research." },
+    { label: "adopt-open-source", text: "Adopt an open-source engine: none gives a real head start for the US or the UK (payroll.open-source-support)." },
+  ],
+  chosen: "buy-record-in-frappe",
+  why:
+    "docs/design/payroll-jurisdiction.md sections 5 to 8: the United States has dozens of authorities and the UK one, and in neither does an open-source engine exist; a " +
+    "provider API (Check, Gusto Embedded and similar) takes on calculation, deposit and filing; none was shown to accept a stablecoin, so funds arrive as fiat first. " +
+    "The coordinator's recommendation as Aaron said he agreed with it; it stays open to him to change. The route's two open things are NOT on his list yet: which provider, " +
+    "and the lawyer's questions.",
+  source: BY,
+  affects: [f.system_capxul, f.component_frappe_app, decision_payroll_open_source_support, decision_aaron_jurisdiction_open],
+});
+
+export const decision_payroll_jurisdiction_first = defineDecision({
+  id: "payroll.jurisdiction-first",
+  title: "Which jurisdiction goes first: open, waiting on a comparison",
+  question:
+    "aaron.jurisdiction-open leaves the first jurisdiction open, prefers a crypto-friendly or blockchain-friendly place and names the United Arab Emirates as a candidate. Which place?",
+  options: [
+    {
+      label: "open-comparison-first",
+      text:
+        "Open, and not waiting on Aaron: it waits on a short comparison the coordinator owns, of the UAE and the other crypto-friendly places worth naming: what Frappe " +
+        "HR and ERPNext already have for each, what payroll and tax filing each needs, and what each says about paying wages in a stablecoin. The one fact in hand: Frappe HR " +
+        "ships UAE support (three gratuity rules, a VAT 201 report in ERPNext), so the UAE starts ahead of the US and the UK on software. Everything else about it is " +
+        "unresearched. When the comparison is in, this record is rewritten to its recommendation and the places that assume a country (the lists in aaron.jurisdiction-open) are made neutral or revisited. " +
+        "Until then the book assumes no country and nothing is rewritten.",
+    },
+  ],
+  chosen: "open-comparison-first",
+  why:
+    "Aaron, 10 November 2026: 'Maybe the UAE might be a good place, or anywhere else that's like crypto friendly.' He asked for no particular place, so the choice is " +
+    "the coordinator's to recommend from evidence; it goes to him only if the comparison leaves a call that is his. Not on his list.",
+  source: BY,
+  affects: [f.system_capxul, ...rulings, decision_aaron_jurisdiction_open, decision_payroll_route, decision_payroll_open_source_support],
 });
 
 export const decision_cut_individuals_parked = defineDecision({

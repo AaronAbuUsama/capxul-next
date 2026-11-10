@@ -84,7 +84,7 @@ export const flow_client_site_session = defineFlow({
   surfaces: ["sdk"],
   input: Schema.Struct({ orgId: S }),
   output: Schema.Struct({ expiresAt: N }),
-  steps: [{ name: "mint", rpc: rpc_plugs_sessions_mint, about: "Asks the site for the person's session." }],
+  steps: [{ name: "mint", rpc: rpc_plugs_sessions_mint, about: "Signs the person's short-lived assertion for the site." }],
   errors: [],
   calls: [],
   spans: [],

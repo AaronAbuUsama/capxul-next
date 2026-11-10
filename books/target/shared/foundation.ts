@@ -229,7 +229,7 @@ export const component_site_service = defineComponent({
     "reads a site, drops one, sets and advances a world's clock on a site, and saves and restores a site's database and files for " +
     "a snapshot. The backend asks it over HTTP and never touches the bench. It is not Frappe's Press: the spike's script is what " +
     "it runs, wrapped. One bench serves many sites; Frappe picks the site from the hostname, so one catch-all route reaches every " +
-    "company (an assumption, docs/mission/cloud.md: Not determined). Every app Capxul supports is installed on every site, and a " +
+    "company (the spike shows Frappe picking the site from the hostname with `<slug>.localhost`; that OpenShip can register a wildcard route is an assumption, docs/mission/cloud.md: Not determined, settled by the first request through the route in m3b-create-machine). Every app Capxul supports is installed on every site, and a " +
     "feature switch only controls what is reachable (sites.features-reachability).",
   runtime: "node (and the Frappe bench's bench CLI)",
   exposes: ["http"],

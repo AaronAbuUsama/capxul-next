@@ -37,13 +37,13 @@ export const decision_milestones_m2 = m({
 export const decision_milestones_m3 = m({
   id: "milestones.m3-door-recorder-clock", title: "Milestone 3, the door, the recorder and the clock, in parallel with 2",
   done: "an agent takes a lead to a paid invoice, onboards a staff member and runs a month end through the CLI only, on a clock it moved, and the whole run can be read back from the record.",
-  needs: "the door (sites.door and its fourteen operations), the world's record (devnet.record-entry), the world's clock and snapshots (devnet.world-first-class), a site that follows the world's clock (devnet.site-follows-world, the clock-follow spike first), and a person able to open the screens (devnet.viewer-grant). Assumption: the door's verbs await the spike's door section.",
+  needs: "the door (sites.door and its fourteen operations), the world's record (devnet.record-entry), the world's clock and snapshots (devnet.world-first-class), a site that follows the world's clock (devnet.site-follows-world, settled for option A; proved by devnet.time-is-right), and a person able to open the screens (devnet.viewer-grant). The door's verbs are checked against the spike (sites.door-awaits-spike); three things remain to prove in its first evals.",
   affects: [f.system_capxul, f.concept_sites, f.concept_devnet, journey_create_company_site, journey_pay_invoice_from_frappe, journey_run_a_world, si.operation_doc_submit, wo.operation_record_export, wo.operation_world_clock_warp],
 });
 export const decision_milestones_m3b = m({
   id: "milestones.m3b-cloud", title: "Milestone 3b, the cloud: a world in the cloud that a person can open",
   done: "a world running in the cloud that a person can open in a browser while agents drive it.",
-  needs: "docs/mission/cloud.md (sites.machine-and-route: one machine, one wildcard route, backups of MariaDB and the sites folder), the hosted site service (component site-service), world registration for local devnets (devnet.world-registers-hosted), and the address `<company>-<world>.<base>` (docs/mission/sites-host/ingress.md). Assumption: OpenShip registering a wildcard route is not determined.",
+  needs: "docs/mission/cloud.md (sites.machine-and-route: one machine, one wildcard route, backups of MariaDB and the sites folder), the hosted site service (component site-service), world registration for local devnets (devnet.world-registers-hosted), and the address `<company>-<world>.<base>` (docs/mission/sites-host/ingress.md). Assumption: OpenShip registering a wildcard route is not determined; the first request through the route settles it (m3b-create-machine).",
   affects: [f.system_capxul, f.component_site_service, f.concept_sites, integration_site_service, integration_frappe_site, wo.operation_world_register],
 });
 export const decision_milestones_m4 = m({

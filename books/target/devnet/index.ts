@@ -17,5 +17,6 @@ import * as worldOps from "./world-ops.ts";
 import * as worldProcesses from "./world-processes.ts";
 import * as worldDecisions from "./world-decisions.ts";
 import * as decisions from "./decisions.ts";
+import * as worldEvidence from "./world-evidence.ts";
 
-export const modules = [data, procedures, mail, gates, prices, jobs, processes, flows, worlds, worldData, worldRpcs, worldOps, worldProcesses, worldDecisions, operations, decisions] as const;
+export const modules = [data, procedures, mail, gates, prices, jobs, processes, flows, worlds, worldData, worldRpcs, worldOps, worldProcesses, worldDecisions, operations, decisions, worldEvidence] as const;

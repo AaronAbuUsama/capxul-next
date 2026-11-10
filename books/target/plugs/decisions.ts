@@ -86,7 +86,7 @@ export const decision_plugs_hat_roles_by_job = dec({
     { label: "role-names", text: "Give a hat the roles whose names sound right." },
   ],
   chosen: "jobs",
-  why: "The default map could not do the work: admin could not create a Supplier (it needed Purchase Master Manager) and budget-holder cannot either (FINDINGS, End to end: What broke, 1; CRM: Roles). A role existing is not a job done. Assumption, not yet tested: the roles for the Books, Invoicing and People officer hats and the department scoping; the spike proved the skeleton's four stand-in hats only (admin, budget-holder, payroll-approver, member), which map to the book's Director, a budget's office holder, the People officer and a Seat.",
+  why: "The default map could not do the work: admin could not create a Supplier (it needed Purchase Master Manager) and budget-holder cannot either (FINDINGS, End to end: What broke, 1; CRM: Roles). A role existing is not a job done. Seven hats were needed, not four: the door's people needed `sales`, `hr-manager` and `project-manager` beside admin, budget-holder, payroll-approver and member, because each needs roles the others must not give (FINDINGS, The door: Seven hats); a new hat name must not need a contract redeploy (plugs.seven-hats). Assumption, not yet tested: the roles for the Books and Invoicing officer hats and the department scoping (a Department User Permission limits nothing on a Payment Entry); the job evals of m3 prove them.",
   evidence: FIND.e2e,
   affects: [f.system_capxul, d.table_hat_role_map, d.table_role_grants, pr.workflow_plugs_roles_project],
 });
@@ -143,7 +143,7 @@ export const decision_plugs_payment_fields = dec({
     { label: "hash-only", text: "Only the hash travels; Frappe infers the account." },
   ],
   chosen: "hash-centre-code",
-  why: "Every on-chain spend carries the document hash, the cost centre and the account code so that posting to Frappe is mechanical (START-HERE section 4). Assumption, not yet tested: the real Payments contract and prepare-command carry the two labels; the skeleton's stand-in carried the hash and the department only. The contract change is designed by stage 3's decision plugs.contract-changes and built at the contracts milestone.",
+  why: "Every on-chain spend carries the document hash, the cost centre and the account code so that posting to Frappe is mechanical (START-HERE section 4). Assumption, not yet tested, settled by m1-contracts-reconcile and the real-contracts test (m2-contracts-under-sites): the real Payments contract and prepare-command carry the two labels; the skeleton's stand-in carried the hash and the department only. The contract change is designed by stage 3's decision plugs.contract-changes and built at the contracts milestone.",
   evidence: FIND.core,
   affects: [f.system_capxul, f.concept_payments, d.table_payment_requests, sg.procedure_plugs_payments_hold, ops.operation_payment_prepare_document],
 });
@@ -238,7 +238,7 @@ export const decision_plugs_contract_changes = dec({
   title: "Contract changes the skeleton forced, to be built with the real contracts",
   question: "What must the v4 contracts and the indexer say that the stand-in's did not?",
   options: [
-    { label: "changes", text: "PaymentSent names the signer, not only the Safe. An organisation's slug is recoverable from logs alone (the skeleton's admin HatGranted preceded OrgCreated in one transaction). A cheap `canPay(org, person)` view lets Frappe grey out Submit before Sign. A department is budget authority: budgets are enforced per department (cut.department-budgets). Core attests a refusal that leaves no log and says so. Assumption, not yet tested: each of these on the real v4 contracts; the skeleton's contracts were stand-ins." },
+    { label: "changes", text: "PaymentSent names the signer, not only the Safe. An organisation's slug is recoverable from logs alone (the skeleton's admin HatGranted preceded OrgCreated in one transaction). A cheap `canPay(org, person)` view lets Frappe grey out Submit before Sign. A department is budget authority: budgets are enforced per department (cut.department-budgets). Core attests a refusal that leaves no log and says so. Assumption, not yet tested, settled by m1-contracts-reconcile and m2-contracts-under-sites: each of these on the real v4 contracts; the skeleton's contracts were stand-ins." },
     { label: "none", text: "Use the contracts as they are." },
   ],
   chosen: "changes",
@@ -252,11 +252,11 @@ export const decision_plugs_books_currency = dec({
   title: "Books currency when the Safe holds USDC: untested for a GBP company",
   question: "In which currency does a company's books record a USDC payment?",
   options: [
-    { label: "usd-one-to-one-for-now", text: "The skeleton booked USDC 1:1 as USD in a USD company with a USD bank account. A UK company in GBP needs a rate in the Payment Entry and in the hash (CANON v1 has no rate field). That is not decided and not tried; a spike on a GBP company must come before a UK customer." },
+    { label: "usd-one-to-one-for-now", text: "The skeleton booked USDC 1:1 as USD in a USD company with a USD bank account. A UK company in GBP needs a rate in the Payment Entry and in the hash (CANON v1 has no rate field). That is not decided and not tried; a spike on a company in the chosen jurisdiction's currency must come first (aaron.jurisdiction-open leaves the place open)." },
     { label: "gbp", text: "Book in GBP with a revaluation of the USDC account." },
   ],
   chosen: "usd-one-to-one-for-now",
-  why: "FINDINGS, Frappe half: Currency: GBP books with a USD-denominated account were not tried; a Payment Entry from a USD account to a GBP invoice needs a rate. critical-path.md, Known risks, 4. Marked as an assumption to be tested.",
+  why: "FINDINGS, Frappe half: Currency: GBP books with a USD-denominated account were not tried; a Payment Entry from a USD account to a GBP invoice needs a rate. critical-path.md, Known risks, 4. Marked as an assumption to be tested by that spike.",
   evidence: FIND.paying,
   affects: [f.system_capxul, d.table_payment_requests, pr.workflow_plugs_payments_settle],
 });
@@ -270,7 +270,7 @@ export const decision_plugs_late_and_closed = dec({
     { label: "reopen", text: "Reopen the period." },
   ],
   chosen: "open-period",
-  why: "START-HERE section 3: Frappe's habits need chain equivalents. Assumption, not yet tested: the spike did not close a period.",
+  why: "START-HERE section 3: Frappe's habits need chain equivalents. The spike showed the door refuses a document in a closed accounting period with Frappe's own message (FINDINGS, What the door reaches); an event posting into the open period with the original date in remarks was not tried: the eval is a late payment_sent after a period close.",
   evidence: FIND.core,
   affects: [f.system_capxul, pr.workflow_plugs_events_deliver],
 });
@@ -284,7 +284,7 @@ export const decision_plugs_employee_for_member = dec({
     { label: "ask-chain", text: "Put HR facts on chain." },
   ],
   chosen: "placeholders-then-hr",
-  why: "FINDINGS, Frappe half: Roles follow hats (ERPNext strips the Employee role). Frappe HR is the HR (${RULINGS}). Placeholders were proven; the People officer's entry is an assumption, not yet tested.".replace("${RULINGS}", RULINGS),
+  why: "FINDINGS, Frappe half: Roles follow hats (ERPNext strips the Employee role). Frappe HR is the HR (${RULINGS}). Placeholders were proven, and the `hr-manager` hat then created employees for others through the door, with ERPNext's per-Employee user permission switched off at creation so it does not confine the HR person to their own record (FINDINGS, The door).".replace("${RULINGS}", RULINGS),
   evidence: FIND.roles,
   affects: [f.system_capxul, d.table_site_users, pr.workflow_plugs_roles_project],
 });
@@ -321,11 +321,11 @@ export const decision_plugs_service_calls_site = dec({
   title: "Every call goes from the service to a site; a site never reaches the service",
   question: "In which direction do the calls between the Capxul service and a company's site go?",
   options: [
-    { label: "service-calls-site", text: "Always the service to the site. (a) A person's request to pay becomes a row the site writes in an outbox in the same transaction as the document's waiting state; the service collects requests by asking the site for those after a cursor (a poll or a long-poll), holds each, and answers by calling the site with the approval or the refusal; the trace id and the idempotency key travel with the request. (b) The service obtains a session for a person on a site by calling the site, as the door does; a person who only watches gets a one-time link the service asks the site to mint. A browser sign-in that needs the site to call the service is marked as needing a reachable service and is outside the current path. (c) The world's clock, features, roles and events are already pushed by the service. Consequence: a developer's local devnet, whose service runs on a laptop the hosted bench cannot reach, registers itself as a world with the hosted site service: a world id, a secret and a name are issued, its companies' sites are created on the hosted bench, and idle sites are parked after a stated time (assumption: 30 minutes without a call, to be measured); a core-only world, with no sites, is the offline fallback. A hosted world's service needs no inbound route from the bench." },
+    { label: "service-calls-site", text: "Always the service to the site. (a) A person's request to pay becomes a row the site writes in an outbox in the same transaction as the document's waiting state; the service collects requests by asking the site for those after a cursor (a poll or a long-poll), holds each, and answers by calling the site with the approval or the refusal; the trace id and the idempotency key travel with the request. (b) The service reaches a person on a site by a signed short-lived assertion on each call (plugs.door-assertion); a person who only watches gets a one-time link the service asks the site to mint. A browser sign-in that needs the site to call the service is marked as needing a reachable service and is outside the current path. (c) The world's clock, features, roles and events are already pushed by the service. Consequence: a developer's local devnet, whose service runs on a laptop the hosted bench cannot reach, registers itself as a world with the hosted site service: a world id, a secret and a name are issued, its companies' sites are created on the hosted bench, and idle sites are parked after a stated time (assumption: 30 minutes without a call, measured by m3b-first-shared-world); a core-only world, with no sites, is the offline fallback. A hosted world's service needs no inbound route from the bench." },
     { label: "site-calls-service", text: "The site posts payment requests to the service and the sign-in exchanges its code with the service's server, as the skeleton did." },
   ],
   chosen: "service-calls-site",
-  why: "The owner, 10 November: one hosted bench should be shared by everything, including developers' local devnets whose service a hosted bench cannot reach, and a hosted world's service should need no inbound route from the bench. The precedent is the old head design: 'Capxul always calls; the head only rings a doorbell' (the archived integration frappe-head). The spike breaks the rule in two places (spikes/skeleton/INTERFACE.md: the site posts /prepare to the service; the sign-in exchanges the code server to server); both are replaced here. Assumption, not yet tested: the site's outbox of requests, the poll and its latency (the skeleton's sign to posted was 533 to 728 ms and Frappe-down recovery 2.0 to 3.8 s with the site calling).",
+  why: "The owner, 10 November: one hosted bench should be shared by everything, including developers' local devnets whose service a hosted bench cannot reach, and a hosted world's service should need no inbound route from the bench. The precedent is the old head design: 'Capxul always calls; the head only rings a doorbell' (the archived integration frappe-head). The spike breaks the rule in two places (spikes/skeleton/INTERFACE.md: the site posts /prepare to the service; the sign-in exchanges the code server to server); both are replaced here. Assumption, not yet tested: the site's outbox of requests, the poll and its latency (the skeleton's sign to posted was 533 to 728 ms and Frappe-down recovery 2.0 to 3.8 s with the site calling); m3-site-stops-calling proves them.",
   evidence: FIND.e2e,
   affects: [f.system_capxul, d.table_site_request_cursors, d.table_site_links, d.table_payment_requests, pr.workflow_plugs_payments_collect, sg.rpc_plugs_payments_prepare, si.rpc_plugs_oauth_authorize, si.rpc_plugs_oauth_token, ops.operation_org_site_link, ops.operation_payment_prepare_document, integration_frappe_site],
 });

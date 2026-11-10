@@ -738,7 +738,7 @@ export const integration_devnet_control = defineIntegration({
     },
     worldList: { about: "The worlds on this machine and the hosted service this one is registered with.", timeoutMs: 2_000, ...CONTROL, p95Ms: 500, failures: [...controlFailures] },
     restoreAs: {
-      about: "Restores a snapshot into a separate world under a new id: same chain id, new chain instance, every site address, secret, port and name renamed; the new born entry names the parent. The old world is untouched. Assumption, not yet tested.",
+      about: "Restores a snapshot into a separate world under a new id: same chain id, new chain instance, every site address, secret, port and name renamed; the born entry names the parent. Proved by the spike: 36 s for one company.",
       timeoutMs: 180_000,
       ...CONTROL,
       p95Ms: 90_000,
@@ -919,12 +919,13 @@ const PAYMENT_ITEM =
 
 export const contract_companies_house_claimer = defineContract({
   id: "companies-house-claimer",
+  code: "built",
+  artifact: "CompaniesHouseClaimer",
   title: "CompaniesHouseClaimer: a person's Safe claimed",
   about:
     "One shared, stateless contract. Companies House's claim role calls `claim` through Roles to deploy (if needed) a " +
     "person's email-derived Safe and swap its signer in; `safeAddressFor` is the pure address function the whole system " +
     "uses for a person's Safe.",
-  addresses: { [DEV]: "0xd8e60BeB4C15a31E804D76878941ce569D0bCcA8" },
   functions: {
     claim: { signature: "claim(string namespace, string email, address signer) returns (address safe)", about: "Deploys and claims a person's Safe for their signer." },
     safeAddressFor: { signature: "safeAddressFor(address owner, string namespace, string email) pure returns (address)", about: "A person's Safe address from their email." },
@@ -932,14 +933,23 @@ export const contract_companies_house_claimer = defineContract({
   events: {
     CapxulSafeClaimed: { signature: "CapxulSafeClaimed(address indexed safe, address indexed signer, bool deployed)", about: "A person's Safe is live with their signer: setup done, referral credit earned." },
   },
+  errors: {
+    DerivedAddressMismatch: { signature: "DerivedAddressMismatch(address expected, address deployed)", about: "The Safe factory deployed somewhere other than the derived address." },
+    EmailNotNormalized: { signature: "EmailNotNormalized()", about: "The email is empty, has a leading or trailing space or control byte, an upper-case letter or a non-ASCII byte." },
+    EmptyNamespace: { signature: "EmptyNamespace()", about: "The namespace is empty." },
+    InvalidSigner: { signature: "InvalidSigner()", about: "The signer is zero, the owners sentinel or Companies House itself." },
+    NotDelegateCall: { signature: "NotDelegateCall()", about: "claim was called plainly: it runs only as Companies House's delegatecall." },
+    SwapRefused: { signature: "SwapRefused()", about: "The Safe refused the owner swap." },
+  },
   was: [`${V4}/interfaces/ICompaniesHouseClaimer.sol:17`, `${ADDR}:44`],
 });
 
 export const contract_company_safe_minter = defineContract({
   id: "company-safe-minter",
+  code: "built",
+  artifact: "CompanySafeMinter",
   title: "CompanySafeMinter: a company Safe minted",
   about: "Companies House's company-Safe role mints an Organization's Safe, owned by the founder's personal Safe, at a predictable address.",
-  addresses: { [DEV]: "0xCB2658277FD101424aa82344B7B4a473F6D01831" },
   functions: {
     mint: { signature: "mint(string namespace, string company, address founderSafe) returns (address safe)", about: "Mints the company Safe." },
     companySafeAddressFor: {
@@ -950,17 +960,26 @@ export const contract_company_safe_minter = defineContract({
   events: {
     CompanySafeMinted: { signature: "CompanySafeMinted(address indexed safe, address indexed founderSafe, string company, bool deployed)", about: "The company Safe exists." },
   },
+  errors: {
+    DerivedAddressMismatch: { signature: "DerivedAddressMismatch(address expected, address deployed)", about: "The Safe factory deployed somewhere other than the derived address." },
+    EmptyCompany: { signature: "EmptyCompany()", about: "The company id is empty." },
+    EmptyNamespace: { signature: "EmptyNamespace()", about: "The namespace is empty." },
+    InvalidFounderSafe: { signature: "InvalidFounderSafe()", about: "The founder's Safe is zero, the owners sentinel, Companies House, or has no code." },
+    NotDelegateCall: { signature: "NotDelegateCall()", about: "mint was called plainly: it runs only as Companies House's delegatecall." },
+    SwapRefused: { signature: "SwapRefused()", about: "The Safe refused the owner swap." },
+  },
   was: [`${V4}/companies-house/CompanySafeMinter.sol:59`, `${ADDR}:45`],
 });
 
 export const contract_installer = defineContract({
   id: "installer",
+  code: "built",
+  artifact: "Installer",
   title: "Installer: an Organization's hats, Roles and Gate",
   about:
     "One shared contract. `deployMoney` (anyone, sent by the tier key) deploys a company's hat trees, Roles and Signer Gate; " +
     "`buildMoney`, `buildAddToken`, `buildSetCeiling` and `buildEquity` return the batches the company Safe signs. It never " +
     "holds funds or authority after.",
-  addresses: { [DEV]: "0xec0cB53F65B0F0BE3fD11ACB9B6005F6c9203E2F" },
   functions: {
     deployMoney: { signature: "deployMoney(MoneyDeploy p) returns (MoneyDeployment d)", about: "Deploys hats (Board, Director, officers), Roles and the Gate." },
     buildMoney: { signature: "buildMoney(MoneyInstall p) view returns (Call[] calls)", about: "The install batch the founder approves." },
@@ -976,6 +995,28 @@ export const contract_installer = defineContract({
       signature: "buildElections(ElectionsInstall p) view returns (Call[] governorCalls)",
       about: "The Governor's batch that attaches Elections to the Director hat: elect, eligibility, unseat the unelected, seats, mint, threshold.",
     },
+    PAYOUT_ROLE_KEY: { signature: "PAYOUT_ROLE_KEY() view returns (bytes32)", about: "The Roles role key of the payout role Budgets is the only member of." },
+    agreements: { signature: "agreements() view returns (address)", about: "The Agreements address, set at deploy." },
+    budgets: { signature: "budgets() view returns (address)", about: "The Budgets address, set at deploy." },
+    captableImplementation: { signature: "captableImplementation() view returns (address)", about: "The Captable implementation (equity, parked), set at deploy." },
+    electionsImplementation: { signature: "electionsImplementation() view returns (address)", about: "The Hats Elections implementation address, set at deploy." },
+    escrowFactory: { signature: "escrowFactory() view returns (address)", about: "The EscrowFactory address, set at deploy." },
+    exitsImplementation: { signature: "exitsImplementation() view returns (address)", about: "The Exits implementation (equity, parked), set at deploy." },
+    fallbackHandler: { signature: "fallbackHandler() view returns (address)", about: "The Safe fallback handler address, set at deploy." },
+    gateImplementation: { signature: "gateImplementation() view returns (address)", about: "The Hats Signer Gate implementation address, set at deploy." },
+    governorImplementation: { signature: "governorImplementation() view returns (address)", about: "The Governor implementation (equity, parked), set at deploy." },
+    hats: { signature: "hats() view returns (address)", about: "The Hats address, set at deploy." },
+    hatsModuleFactory: { signature: "hatsModuleFactory() view returns (address)", about: "The Hats module factory address, set at deploy." },
+    moduleProxyFactory: { signature: "moduleProxyFactory() view returns (address)", about: "The module proxy factory address, set at deploy." },
+    multisendUnwrapper: { signature: "multisendUnwrapper() view returns (address)", about: "The MultiSend unwrapper address, set at deploy." },
+    optionsImplementation: { signature: "optionsImplementation() view returns (address)", about: "The Options implementation (equity, parked), set at deploy." },
+    payments: { signature: "payments() view returns (address)", about: "The Payments address, set at deploy." },
+    payoutAllowanceKey: { signature: "payoutAllowanceKey(address token) pure returns (bytes32)", about: "The Roles allowance key of a token's payout ceiling." },
+    rolesMastercopy: { signature: "rolesMastercopy() view returns (address)", about: "The Roles mastercopy address, set at deploy." },
+    roundsImplementation: { signature: "roundsImplementation() view returns (address)", about: "The Rounds implementation (equity, parked), set at deploy." },
+    safe4337Module: { signature: "safe4337Module() view returns (address)", about: "The Safe 4337 module address, set at deploy." },
+    shareClassImplementation: { signature: "shareClassImplementation() view returns (address)", about: "The ShareClass implementation (equity, parked), set at deploy." },
+    vesting: { signature: "vesting() view returns (address)", about: "The Vesting address, set at deploy." },
   },
   events: {
     MoneyDeployed: { signature: "MoneyDeployed(address indexed safe, address indexed founderSafe, MoneyDeployment deployment)", about: "An Organization's deployment: its hat ids, Roles and Gate." },
@@ -985,17 +1026,22 @@ export const contract_installer = defineContract({
       about: "A seat group's Elections clone exists, with its first term.",
     },
   },
+  errors: {
+    InvalidInstall: { signature: "InvalidInstall(InstallRefusal reason)", about: "The install was refused, with a reason: Safe, founder Safe, Roles, Gate, Director or co-Director invalid, no token, duplicate token, zero top hat, bad period or threshold, unknown token, equity exists, not the company's clones." },
+    SafeCastOverflowedUintDowncast: { signature: "SafeCastOverflowedUintDowncast(uint8 bits, uint256 value)", about: "A figure too large for the width the Installer packs it into (OpenZeppelin SafeCast)." },
+  },
   was: [`${V4}/interfaces/IInstaller.sol:222`, `${V4}/interfaces/IInstaller.sol:288`, `${ADDR}:57`],
 });
 
 export const contract_payments = defineContract({
   id: "payments",
+  code: "built",
+  artifact: "Payments",
   title: "Payments: the one way money leaves",
   about:
     "One shared contract: an exact transfer of one token amount from the caller to a fixed recipient, identified by a hash " +
     "of every term, consumed once, stamped with a kind and a document hash. Every movement of money in v4 ends in a " +
     "`PaymentSent`, which is what settles a Payment.",
-  addresses: { [DEV]: "0xe9cCC7E3b3cbf670ca0a23f338f10b266A2d9301" },
   functions: {
     send: { signature: `send(${PAYMENT_ITEM} item)`, about: "One exact payment from the calling Safe." },
     sendBatch: { signature: `sendBatch(${PAYMENT_ITEM}[] items)`, about: "Several payments, atomically." },
@@ -1009,17 +1055,33 @@ export const contract_payments = defineContract({
       about: "A payment was made: the fact a Payment settles from, or is born from when Capxul did not prepare it.",
     },
   },
+  errors: {
+    InexactTransfer: { signature: "InexactTransfer(address token, uint256 expected, uint256 received)", about: "The token moved a different amount than the item says (a fee-on-transfer token is refused)." },
+    InvalidExecutor: { signature: "InvalidExecutor(address expected, address supplied)", about: "The item names an executor and the caller is someone else." },
+    InvalidRecipient: { signature: "InvalidRecipient()", about: "The recipient is Payments itself." },
+    PaymentIdConsumed: { signature: "PaymentIdConsumed(bytes32 paymentId)", about: "The payment id was already used: one payment is never sent twice." },
+    PaymentIdMismatch: { signature: "PaymentIdMismatch(bytes32 expected, bytes32 supplied)", about: "The item's paymentId is not the hash of its terms." },
+    ReentrantCall: { signature: "ReentrantCall()", about: "A call back into Payments while it runs." },
+    TokenCallReturnedFalse: { signature: "TokenCallReturnedFalse(address token)", about: "The token's transferFrom answered false." },
+    TokenHasNoCode: { signature: "TokenHasNoCode(address token)", about: "The token address holds no code." },
+    ZeroAddress: { signature: "ZeroAddress()", about: "The recipient or the token is the zero address." },
+    ZeroAmount: { signature: "ZeroAmount()", about: "An item of zero." },
+    ZeroDocumentHash: { signature: "ZeroDocumentHash()", about: "An item with no document hash." },
+    ZeroJobNonce: { signature: "ZeroJobNonce()", about: "An item with no job nonce." },
+    ZeroPaymentId: { signature: "ZeroPaymentId()", about: "An item with no payment id." },
+  },
   was: [`${V4}/interfaces/IPayments.sol:23`, `${ADDR}:46`],
 });
 
 export const contract_budgets = defineContract({
   id: "budgets",
+  code: "built",
+  artifact: "Budgets",
   title: "Budgets: money authority under hats",
   about:
     "One shared contract keyed by company Safe: a tree of budgets per token and period, each naming a hat; a wearer of the " +
     "hat or of any hat above may spend, schedule or open a child; Budgets pays from the company Safe through its Roles " +
     "payout role and Payments. Anyone may `execute` a scheduled payment at or after its date.",
-  addresses: { [DEV]: "0xC8670A227f9b8621aDA65E1746fA135271e62d9f" },
   functions: {
     createTopBudget: { signature: "createTopBudget(address token, uint8 period, uint128 amount, uint256 hat) returns (uint256 id)", about: "A top budget, by the Board." },
     createChildBudget: { signature: "createChildBudget(uint256 parent, uint128 amount, uint256 hat) returns (uint256 id)", about: "A department, team or allowance." },
@@ -1029,7 +1091,7 @@ export const contract_budgets = defineContract({
     reopen: { signature: "reopen(uint256 id)", about: "Reopens a closed budget." },
     spend: {
       signature: "spend(uint256 id, address recipient, uint128 amount, uint16 kind, bytes32 documentHash, bytes32 jobNonce) returns (bytes32 paymentId)",
-      about: "Pays now from a budget.",
+      about: "Pays now from a budget: the caller must be authorised, the path open, kind 0 to 3, the amount, document hash and job nonce non-zero and the amount within leftOf, else OverBudget.",
     },
     schedule: {
       signature: "schedule(uint256 id, address to, uint128 amount, uint16 kind, uint64 payAt, bytes32 documentHash, bytes32 jobNonce) returns (uint256 scheduledId)",
@@ -1040,8 +1102,21 @@ export const contract_budgets = defineContract({
     leftOf: { signature: "leftOf(uint256 id) view returns (uint128)", about: "What a budget has left this period, read before a spend is built." },
     budgetOf: { signature: "budgetOf(uint256 id) view returns (Budget)", about: "A budget's token, period, amount, hat and parent." },
     childrenOf: { signature: "childrenOf(uint256 id) view returns (uint256[])", about: "A budget's children, for `org department show`." },
-    authorised: { signature: "authorised(uint256 id, address who) view returns (bool)", about: "Whether a Safe may act on a budget." },
+    authorised: { signature: "authorised(uint256 id, address who) view returns (bool)", about: "Whether `who` may act on a budget: it is the company Safe, or it wears (in good standing) the budget's hat or an ancestor budget's hat. The only place an agent's authority is decided." },
     scheduledOf: { signature: "scheduledOf(uint256 id) view returns (Scheduled)", about: "A dated payment's state and date." },
+    MAX_DEPTH: { signature: "MAX_DEPTH() pure returns (uint8)", about: "How deep a budget tree may go: 8. A child under a budget of depth 8 reverts TooDeep." },
+    agreements: { signature: "agreements() view returns (address)", about: "The Agreements contract, the only caller of commit, release and payReserved; zero before setAgreements." },
+    budgetCount: { signature: "budgetCount() view returns (uint256)", about: "How many budgets have been created." },
+    commit: { signature: "commit(uint256 id, uint128 amount)", about: "Agreements only: reserves an amount in a budget for an agreement (open path, within what is left, else OverBudget)." },
+    configs: { signature: "configs(address safe) view returns (address, bytes32)", about: "A company Safe's payout wiring: its Roles and its payout role key (zero before `configure`)." },
+    configure: { signature: "configure(address roles, bytes32 payoutRoleKey)", about: "The company Safe wires its payout: Roles must name it as avatar and target a Gate of its own, else InvalidConfiguration. The install batch runs it; createTopBudget refuses a Safe that has not." },
+    hats: { signature: "hats() view returns (address)", about: "The Hats contract Budgets asks who wears a hat (set at deploy)." },
+    pathOf: { signature: "pathOf(uint256 id) view returns (uint256[] path)", about: "The budget ids from its top budget down to this one." },
+    payReserved: { signature: "payReserved(uint256 id, address recipient, uint128 amount, bytes32 documentHash, bytes32 jobNonce) returns (bytes32 paymentId)", about: "Agreements only: pays a collection (kind 4) against the agreement's reservation through the payout role, even while the budget is closed." },
+    payments: { signature: "payments() view returns (address)", about: "The Payments contract every payout goes through (set at deploy)." },
+    release: { signature: "release(uint256 id, uint128 amount)", about: "Agreements only: frees part of an agreement's reservation in a budget." },
+    scheduledCount: { signature: "scheduledCount() view returns (uint256)", about: "How many dated payments have been scheduled." },
+    setAgreements: { signature: "setAgreements(address agreements_)", about: "The deployer sets the Agreements address once (AlreadySet after, NotDeployer from anyone else); only that contract may commit, release and payReserved." },
   },
   events: {
     BudgetCreated: {
@@ -1065,18 +1140,53 @@ export const contract_budgets = defineContract({
     ScheduledPaid: { signature: "ScheduledPaid(address indexed safe, uint256 indexed budgetId, uint256 indexed scheduledId, bytes32 paymentId)", about: "A dated payment paid." },
     Committed: { signature: "Committed(address indexed safe, uint256 indexed id, uint128 amount)", about: "Budget reserved for an agreement." },
     Released: { signature: "Released(address indexed safe, uint256 indexed id, uint128 amount)", about: "A reservation released." },
+    AgreementsSet: { signature: "AgreementsSet(address indexed agreements)", about: "The Agreements contract was set, once." },
+    Configured: { signature: "Configured(address indexed safe, address roles, bytes32 payoutRoleKey)", about: "A company Safe wired its Roles and payout role key." },
+    ReservedPaid: { signature: "ReservedPaid(address indexed safe, uint256 indexed id, address indexed recipient, uint128 amount, bytes32 paymentId)", about: "An agreement's collection was paid from its reservation, beside its PaymentSent." },
+  },
+  errors: {
+    AlreadyClosed: { signature: "AlreadyClosed()", about: "close on a budget that is already closed." },
+    AlreadySet: { signature: "AlreadySet()", about: "setAgreements after the Agreements address was set." },
+    AmountBelowUse: { signature: "AmountBelowUse(uint256 id, uint128 used, uint128 requested)", about: "setAmount below what the budget has spent, reserved and given its children this period." },
+    BudgetIsClosed: { signature: "BudgetIsClosed(uint256 closedId)", about: "A spend, reservation, schedule or child under a path with a closed budget; names the nearest closed one." },
+    ChildrenExceedParent: { signature: "ChildrenExceedParent(uint256 parent, uint128 left, uint128 requested)", about: "A child's amount does not fit in what its parent has left." },
+    InvalidBudgetPeriod: { signature: "InvalidBudgetPeriod(uint8 period)", about: "A top budget's period above the year (from the calendar)." },
+    InvalidConfiguration: { signature: "InvalidConfiguration()", about: "configure: Roles does not name the caller as avatar, does not target a Gate of the caller, or answers badly." },
+    InvalidHat: { signature: "InvalidHat()", about: "A budget's hat is zero." },
+    InvalidKind: { signature: "InvalidKind(uint16 kind)", about: "spend or schedule with a payment kind above 3: kind 4 (collection) and 9 (sweep) are the contracts' own." },
+    InvalidPayAt: { signature: "InvalidPayAt()", about: "schedule with a date that is not in the future." },
+    InvalidToken: { signature: "InvalidToken()", about: "createTopBudget with the zero address or a token that has no code." },
+    NotAuthorised: { signature: "NotAuthorised(uint256 id, address who)", about: "The caller may not act on the budget: not the company Safe, nor a wearer in good standing of its hat or of an ancestor budget's hat (a top budget's amount, hat, close and reopen are the Safe's alone)." },
+    NotClosed: { signature: "NotClosed()", about: "reopen on a budget that is open." },
+    NotConfigured: { signature: "NotConfigured()", about: "createTopBudget by a Safe that has not run configure." },
+    NotDeployer: { signature: "NotDeployer()", about: "setAgreements by anyone but the deployer." },
+    NotDue: { signature: "NotDue(uint256 id, uint64 payAt)", about: "execute before the dated payment's date." },
+    NotPending: { signature: "NotPending(uint256 id)", about: "cancel or execute a dated payment that is already paid or cancelled." },
+    NotTheSafe: { signature: "NotTheSafe()", about: "Declared in the interface and never thrown by the code." },
+    OnlyAgreements: { signature: "OnlyAgreements()", about: "commit, release or payReserved from anyone but the Agreements contract." },
+    OverBudget: { signature: "OverBudget(uint256 id, uint128 left, uint128 requested)", about: "A spend, schedule or reservation larger than what the budget has left this period: names the budget, the amount left and the amount asked." },
+    ReentrantCall: { signature: "ReentrantCall()", about: "A call back into Budgets while it runs." },
+    SafeCastOverflowedUintDowncast: { signature: "SafeCastOverflowedUintDowncast(uint8 bits, uint256 value)", about: "A figure too large for the 128 bits a budget keeps (OpenZeppelin SafeCast)." },
+    TooDeep: { signature: "TooDeep()", about: "createChildBudget under a budget already 8 deep." },
+    UnknownBudget: { signature: "UnknownBudget(uint256 id)", about: "A budget id no one has created." },
+    UnknownScheduled: { signature: "UnknownScheduled(uint256 id)", about: "A scheduled payment id no one has created." },
+    ZeroAddress: { signature: "ZeroAddress()", about: "A zero Payments, Hats or Agreements address, or a scheduled payment to the zero address." },
+    ZeroAmount: { signature: "ZeroAmount()", about: "spend or schedule of zero." },
+    ZeroDocumentHash: { signature: "ZeroDocumentHash()", about: "spend or schedule with no document hash." },
+    ZeroJobNonce: { signature: "ZeroJobNonce()", about: "spend or schedule with no job nonce." },
   },
   was: [`${V4}/interfaces/IBudgets.sol:56`, `${ADDR}:47`],
 });
 
 export const contract_agreements = defineContract({
   id: "agreements",
+  code: "built",
+  artifact: "Agreements",
   title: "Agreements: pay agreements from a budget",
   about:
     "One shared contract keyed by company Safe: an office holder offers a salary, stream or retainer from a budget (which " +
     "reserves it in Budgets), the payee accepts at the exact terms, and collects what is released (paid through " +
     "`Budgets.payReserved`, kind 4).",
-  addresses: { [DEV]: "0x9122a17335e8aa9f1d3661a04458b963bb39302C" },
   functions: {
     offer: {
       signature:
@@ -1093,6 +1203,14 @@ export const contract_agreements = defineContract({
     collect: { signature: "collect(uint256 id, uint128 amount)", about: "The payee collects what is released." },
     agreementOf: { signature: "agreementOf(uint256 id) view returns (Agreement)", about: "An agreement's terms and state." },
     availableOf: { signature: "availableOf(uint256 id) view returns (uint128)", about: "What the payee can collect now." },
+    MAX_OPEN_AGREEMENTS: { signature: "MAX_OPEN_AGREEMENTS() view returns (uint256)", about: "The most open agreements one budget may hold: 64." },
+    MONTHLY: { signature: "MONTHLY() view returns (uint64)", about: "The step value (max uint64) that means calendar months, not a fixed number of seconds." },
+    agreementCount: { signature: "agreementCount() view returns (uint256)", about: "How many agreements have been offered." },
+    budgets: { signature: "budgets() view returns (address)", about: "The Budgets contract agreements reserve in and are paid through (set at deploy)." },
+    earnedOf: { signature: "earnedOf(uint256 id) view returns (uint128)", about: "What the payee has earned and not yet collected, released or not." },
+    openOf: { signature: "openOf(uint256 budgetId) view returns (uint256[])", about: "A budget's open agreement ids (offered, accepted or paused), at most 64." },
+    reservation: { signature: "reservation(uint128 rate, uint8 period, uint8 budgetPeriod, uint64 startsAt, uint64 endsAt) pure returns (uint128)", about: "What an agreement reserves in its budget: its per-budget-period figure, capped by the whole term when it has an end." },
+    settle: { signature: "settle(uint256 budgetId)", about: "Anyone: brings a budget's open agreements up to date, freeing the reservation of those ended, lowered or whose offer expired, and dropping the closed from its open list." },
   },
   events: {
     AgreementOffered: {
@@ -1111,6 +1229,31 @@ export const contract_agreements = defineContract({
       signature: "Collected(address indexed safe, uint256 indexed id, address indexed payee, address token, uint128 amount, bytes32 paymentId)",
       about: "A collection, beside its PaymentSent.",
     },
+    ReservationReleased: { signature: "ReservationReleased(address indexed safe, uint256 indexed budgetId, uint256 indexed id, uint128 amount)", about: "An agreement's reservation was freed (offer withdrawn or expired, agreement ended or lowered), with the amount." },
+  },
+  errors: {
+    AlreadyAccepted: { signature: "AlreadyAccepted()", about: "withdrawOffer or accept on an agreement already accepted." },
+    AlreadyEnded: { signature: "AlreadyEnded()", about: "changeRate on an agreement that has an end; cancelChange, pause or resume on a closed one." },
+    AlreadyPaused: { signature: "AlreadyPaused()", about: "pause on an agreement already paused." },
+    InsufficientReleased: { signature: "InsufficientReleased(uint128 available, uint128 requested)", about: "collect of more than has been released: names what is available and what was asked." },
+    InvalidAgreement: { signature: "InvalidAgreement()", about: "An unknown agreement; or an offer to the zero address, to the offering Safe itself, at a zero rate or with no document hash." },
+    InvalidAmount: { signature: "InvalidAmount()", about: "collect of zero." },
+    InvalidBudgetPeriod: { signature: "InvalidBudgetPeriod(uint8 period)", about: "A budget period above the year (from the calendar)." },
+    InvalidDate: { signature: "InvalidDate()", about: "A start in the past, an offer expiry not in the future or after the end, an end not after the start, or a rate change or end dated in the past." },
+    InvalidPeriod: { signature: "InvalidPeriod(uint8 period)", about: "A pay period the calendar does not know (from the calendar)." },
+    InvalidRate: { signature: "InvalidRate()", about: "A zero rate, a change to the same rate, or a figure too large for 128 bits." },
+    InvalidStep: { signature: "InvalidStep()", about: "An offer with a zero step." },
+    NoPendingChange: { signature: "NoPendingChange()", about: "cancelChange with no rate change pending." },
+    NotAccepted: { signature: "NotAccepted()", about: "collect or a change on an agreement the payee has not accepted." },
+    NotAuthorised: { signature: "NotAuthorised(uint256 budgetId, address who)", about: "The caller is not authorised on the agreement's budget (Budgets.authorised: its hat's wearers, an ancestor's, or the company Safe)." },
+    NotPaused: { signature: "NotPaused()", about: "resume on an agreement that is not paused." },
+    NotThePayee: { signature: "NotThePayee()", about: "accept or collect by anyone but the payee." },
+    OfferExpired: { signature: "OfferExpired()", about: "accept after the offer's expiry, or on a closed offer; withdrawOffer on a closed one." },
+    PendingChange: { signature: "PendingChange()", about: "changeRate while another change is pending." },
+    ReentrantCall: { signature: "ReentrantCall()", about: "A call back into Agreements while it runs." },
+    TermsMismatch: { signature: "TermsMismatch()", about: "accept with a terms hash that is not the offer's document hash." },
+    TooManyAgreements: { signature: "TooManyAgreements()", about: "An offer into a budget that already holds 64 open agreements." },
+    UnknownBudget: { signature: "UnknownBudget(uint256 id)", about: "An offer into a budget id Budgets does not know." },
   },
   was: [`${V4}/interfaces/IAgreements.sol:37`, `${ADDR}:48`],
 });
@@ -1130,7 +1273,8 @@ const ESCROW_TERMS =
 
 export const contract_escrow_factory = defineContract({
   id: "escrow-factory",
-  title: "EscrowFactory: the general escrow at its counterfactual address",
+  code: "designed",
+  title: "EscrowFactory, general (designed, not built): counterfactual address",
   about:
     "Deploys each escrow at the CREATE2 address of its terms and salt, known before it exists, so the money is sent " +
     "there first and the escrow deployed after, by anyone, in the same batch or later (`deploy` is idempotent and moves " +
@@ -1162,7 +1306,8 @@ export const contract_escrow_factory = defineContract({
 
 export const contract_escrow = defineContract({
   id: "escrow",
-  title: "Escrow: the general escrow, owner collects and sender takes back",
+  code: "designed",
+  title: "Escrow, general (designed, not built): owner collects, sender takes back",
   about:
     "One contract per escrow at its counterfactual address (EscrowFactory), its terms immutable and public. It holds " +
     "one payment of `amount` of `token` for its `owner`, the recipient's account, which may not exist yet: for a " +
@@ -1223,15 +1368,101 @@ export const contract_escrow = defineContract({
   was: [`${V4}/interfaces/IEscrow.sol:30`, `${V4}/money/Escrow.sol:107-197`, "docs/planning/protocol-v4/spec/escrow.md"],
 });
 
+export const contract_escrow_factory_v4 = defineContract({
+  id: "escrow-factory-v4",
+  code: "built",
+  artifact: "EscrowFactory",
+  title: "EscrowFactory (built, v4): fixed-term escrows at their addresses",
+  about:
+    "What the code has (packages/contracts, v4): deploys each escrow at the CREATE2 address of its terms and salt, known before it exists, so money is sent there first and the escrow deployed after, by anyone (`deploy` is idempotent and moves no money). " +
+    "The terms are `ownerSafe` (the payer, and where a refund goes), `payeeSafe`, token, amount, job nonce, kind, document hash and a condition (0 the invoice amount is held, 1 the payee's Safe is claimed). " +
+    "The general escrow of `escrow-factory` is the design meant to replace it and is not built (decision contracts.general-escrow-not-built).",
+  functions: {
+    bootstrapOwner: { signature: "bootstrapOwner() view returns (address)", about: "The chain's Companies House Safe, the address a claim escrow's payee must no longer list among its owners." },
+    deploy: { signature: "deploy(Terms terms, bytes32 salt) returns (address escrow)", about: "Deploys the escrow for its terms at its predicted address, or returns the one there. Anyone may send it, before or after the money arrives." },
+    payments: { signature: "payments() view returns (address)", about: "The Payments contract every escrow pays through (set at deploy)." },
+    predictAddress: { signature: "predictAddress(Terms terms, bytes32 salt) view returns (address)", about: "The escrow's address before it exists: where the money is sent. Refuses terms with a zero address, amount, job nonce or document hash, or a condition above 1." },
+    predictPaymentId: { signature: "predictPaymentId(Terms terms, bytes32 salt) view returns (bytes32)", about: "The Payments id the escrow's one payment will carry, known before anyone signs (executor the escrow for a claim escrow)." },
+  },
+  events: {
+    EscrowDeployed: { signature: "EscrowDeployed(address indexed escrow, address indexed ownerSafe, address indexed payeeSafe, bytes32 paymentId, bytes32 salt)", about: "An escrow exists at its predicted address: what makes it, and the money already in it, known to indexing." },
+  },
+  errors: {
+    InvalidCondition: { signature: "InvalidCondition(uint8 condition)", about: "Terms with a condition above 1 (0 invoice amount reached, 1 payee claimed)." },
+    ZeroAddress: { signature: "ZeroAddress()", about: "Terms with a zero owner, payee or token, or a zero Payments or bootstrap owner at construction." },
+    ZeroAmount: { signature: "ZeroAmount()", about: "Terms with a zero amount." },
+    ZeroDocumentHash: { signature: "ZeroDocumentHash()", about: "Terms with no document hash." },
+    ZeroJobNonce: { signature: "ZeroJobNonce()", about: "Terms with no job nonce." },
+  },
+  was: ["packages/contracts/src/money/EscrowFactory.sol", "packages/contracts/src/interfaces/IEscrowFactory.sol", "decision contracts.general-escrow-not-built"],
+});
+
+export const contract_escrow_v4 = defineContract({
+  id: "escrow-v4",
+  code: "built",
+  artifact: "Escrow",
+  title: "Escrow (built, v4): one fixed payment, owner refunds, payee collects",
+  about:
+    "What the code has (packages/contracts, v4): one contract per escrow, its terms immutable and public. It holds one payment of `amount` of `token` for `payeeSafe`, released one of two ways. Condition 0 (an invoice): anyone calls `payout` once it holds the amount, and from then it cannot be refunded. Condition 1 (the payee claimed): `payeeSafe` calls `collect` once Companies House is no longer among its owners (read as isOwner(bootstrapOwner) answering exactly false; any other answer fails closed), and Payments records the escrow as the executor. " +
+    "Only `ownerSafe`, the payer, may `refund`: an invoice escrow while open and short of the amount, a claim escrow while open even after the claim (D12), and any later deposit after Paid or Refunded. There is no authority term: a department's hat wearers cannot take an escrow back, only the Safe that funded it. A registered exit claim (the owner answers isExitClaimEscrow) sends its surplus to the payee, any other surplus returns to the owner. " +
+    "The general escrow of `escrow` (sender, owner, authority, canRefund, ten-argument EscrowCreated) is the design meant to replace it and is not built (decision contracts.general-escrow-not-built).",
+  functions: {
+    CONDITION_INVOICE_AMOUNT_REACHED: { signature: "CONDITION_INVOICE_AMOUNT_REACHED() view returns (uint8)", about: "Condition 0: anyone may payout once the escrow holds the amount." },
+    CONDITION_PAYEE_CLAIMED: { signature: "CONDITION_PAYEE_CLAIMED() view returns (uint8)", about: "Condition 1: the payee may collect once Companies House is not one of its owners." },
+    amount: { signature: "amount() view returns (uint256)", about: "The amount paid to the payee." },
+    bootstrapOwner: { signature: "bootstrapOwner() view returns (address)", about: "The chain's Companies House Safe, whose absence from the payee's owners is the claim." },
+    collect: { signature: "collect()", about: "Claim escrow only: the payee Safe, once Companies House is no longer among its owners, collects: exactly `amount` to the payee through Payments (the escrow its executor), any surplus to the owner (to the payee for a registered exit claim)." },
+    condition: { signature: "condition() view returns (uint8)", about: "The release condition: 0 invoice amount reached, 1 payee claimed." },
+    conditionMet: { signature: "conditionMet() view returns (bool)", about: "Whether the release condition holds: for an invoice, the balance is at least the amount; for a claim, the payee has code and answers isOwner(bootstrapOwner) with exactly false (anything else fails closed)." },
+    documentHash: { signature: "documentHash() view returns (bytes32)", about: "The document the payment settles." },
+    jobNonce: { signature: "jobNonce() view returns (bytes32)", about: "The payment's job nonce." },
+    kind: { signature: "kind() view returns (uint16)", about: "The payment kind." },
+    ownerSafe: { signature: "ownerSafe() view returns (address)", about: "The payer Safe: the only address that may refund, and where a refund and any surplus go." },
+    payeeSafe: { signature: "payeeSafe() view returns (address)", about: "The payee Safe, which may not exist yet: who is paid, and who collects a claim escrow." },
+    paymentId: { signature: "paymentId() view returns (bytes32)", about: "The Payments id of the escrow's one payment." },
+    payments: { signature: "payments() view returns (address)", about: "The Payments contract the escrow pays through." },
+    payout: { signature: "payout()", about: "Invoice escrow only: anyone pays the payee once the escrow holds `amount`, the surplus back to the owner. A claim escrow refuses it." },
+    refund: { signature: "refund()", about: "Only `ownerSafe`: takes the balance back while open (an invoice escrow only while short of the amount; a claim escrow even after the claim, until collected), or returns a later deposit after Paid or Refunded." },
+    state: { signature: "state() view returns (State)", about: "Open, Paid or Refunded." },
+    token: { signature: "token() view returns (address)", about: "The token held and paid." },
+  },
+  events: {
+    EscrowCreated: { signature: "EscrowCreated(address indexed ownerSafe, address indexed payeeSafe, bytes32 indexed paymentId, address token, uint256 amount, uint16 kind, bytes32 documentHash, uint8 condition)", about: "An escrow's terms, emitted when it is deployed: payer, payee, token, amount, kind, document and condition." },
+    EscrowPaid: { signature: "EscrowPaid(address indexed ownerSafe, address indexed payeeSafe, bytes32 indexed paymentId, uint256 amount)", about: "Collected by the payee or paid out to it: beside the PaymentSent with the same payment id." },
+    EscrowRefunded: { signature: "EscrowRefunded(address indexed ownerSafe, bytes32 indexed paymentId, uint256 amount, State state)", about: "Taken back by the owner (state Refunded), or a later deposit returned (state unchanged). It does not name the payee." },
+    InvoicePaymentCompleted: { signature: "InvoicePaymentCompleted(address indexed ownerSafe, address indexed payeeSafe, bytes32 indexed paymentId, uint256 surplus)", about: "An invoice escrow's payment id was already paid elsewhere: the escrow closes and returns its balance, the surplus, to the owner." },
+  },
+  errors: {
+    ConditionMet: { signature: "ConditionMet()", about: "refund on an invoice escrow that already holds the amount: it can no longer be taken back." },
+    ConditionNotMet: { signature: "ConditionNotMet()", about: "payout or collect before the release condition holds." },
+    InexactTransfer: { signature: "InexactTransfer(address token, uint256 expected, uint256 received)", about: "An exit claim's payout moved a different amount than expected." },
+    InsufficientFunding: { signature: "InsufficientFunding()", about: "payout or collect while the escrow holds less than the amount." },
+    InsufficientGasForExitIdentity: { signature: "InsufficientGasForExitIdentity()", about: "Too little gas left to ask the owner whether this is an exit claim." },
+    InvalidCondition: { signature: "InvalidCondition(uint8 condition)", about: "payout on a claim escrow, collect on an invoice escrow, or a condition above 1 at construction." },
+    JobNotOpen: { signature: "JobNotOpen()", about: "payout or collect on an escrow already paid or refunded." },
+    NotOwner: { signature: "NotOwner()", about: "refund from anyone but `ownerSafe`." },
+    NotPayee: { signature: "NotPayee()", about: "collect from anyone but `payeeSafe`." },
+    ReentrantCall: { signature: "ReentrantCall()", about: "A call back into the escrow while it runs." },
+    TokenCallReturnedFalse: { signature: "TokenCallReturnedFalse(address token)", about: "The token answered false to a transfer or approval." },
+    TokenHasNoCode: { signature: "TokenHasNoCode(address token)", about: "The token address holds no code." },
+    ZeroAddress: { signature: "ZeroAddress()", about: "A zero owner, payee, token, Payments or bootstrap owner at construction." },
+    ZeroAmount: { signature: "ZeroAmount()", about: "A zero amount at construction." },
+    ZeroDocumentHash: { signature: "ZeroDocumentHash()", about: "No document hash at construction." },
+    ZeroJobNonce: { signature: "ZeroJobNonce()", about: "No job nonce at construction." },
+  },
+  was: ["packages/contracts/src/money/Escrow.sol", "packages/contracts/src/interfaces/IEscrow.sol", "decision contracts.general-escrow-not-built"],
+});
+
 export const contract_agent_owner = defineContract({
   id: "agent-owner",
+  code: "built",
+  artifact: "AgentOwner",
   title: "AgentOwner: an agent's Safe under its owner",
   about:
     "One shared module and guard: deploys an agent's Safe with the agent's key as its one signer and the owner's Safe in " +
     "control, so the owner can freeze it, swap its key, sweep it and remove it, and the agent's key can never switch that off.",
-  addresses: { [DEV]: "0x6C4d321fB1Bc33BcE283a255a8fA20d0fFEfd8bE" },
   functions: {
-    create: { signature: "create(address signer, address owner) returns (address safe)", about: "Deploys the agent's Safe." },
+    create: { signature: "create(address signer, address owner) returns (address safe)", about: "Deploys the agent's Safe, sent by the owner's Safe (the owner must be the caller); the agent has no authority until a hat is minted to its Safe." },
     freeze: { signature: "freeze(address safe)", about: "Freezes the agent." },
     unfreeze: { signature: "unfreeze(address safe)", about: "Unfreezes it." },
     swapSigner: { signature: "swapSigner(address safe, address oldSigner, address newSigner)", about: "Rotates the agent's key." },
@@ -1239,6 +1470,14 @@ export const contract_agent_owner = defineContract({
     remove: { signature: "remove(address safe, address[] tokens)", about: "Sweeps and removes the agent." },
     agentOf: { signature: "agentOf(address safe) view returns (Agent)", about: "An agent's owner, signer and frozen flag: the proof an agent's sign-in checks." },
     safeAddressFor: { signature: "safeAddressFor(address signer, address owner) view returns (address)", about: "The agent's Safe before it exists." },
+    PAYMENTS: { signature: "PAYMENTS() view returns (address)", about: "The Payments contract a sweep moves money through (set at deploy)." },
+    SWEEP_KIND: { signature: "SWEEP_KIND() view returns (uint16)", about: "The payment kind a sweep stamps: 9." },
+    checkAfterExecution: { signature: "checkAfterExecution(bytes32, bool) pure", about: "The transaction guard's after-hook: does nothing." },
+    checkAfterModuleExecution: { signature: "checkAfterModuleExecution(bytes32, bool) pure", about: "The module guard's after-hook: does nothing." },
+    checkModuleTransaction: { signature: "checkModuleTransaction(address to, uint256, bytes, uint8 operation, address module) view returns (bytes32)", about: "The Safe's module guard: refuses a module call to the Safe itself or a delegatecall, and any module call while the agent is frozen or removed, unless AgentOwner makes it." },
+    checkTransaction: { signature: "checkTransaction(address to, uint256, bytes, uint8 operation, uint256, uint256, uint256, address, address, bytes, address) view", about: "The Safe's transaction guard: refuses a transaction the agent's key signs that calls the agent's own Safe or delegatecalls (AgentSelfCall)." },
+    supportsInterface: { signature: "supportsInterface(bytes4 interfaceId) pure returns (bool)", about: "ERC-165, so a Safe accepts this contract as a transaction and module guard." },
+    sweeps: { signature: "sweeps(address safe) view returns (uint256)", about: "How many sweeps an agent's Safe has paid: the counter in each sweep's job nonce." },
   },
   events: {
     AgentCreated: { signature: "AgentCreated(address indexed safe, address indexed owner, address indexed signer)", about: "An agent exists." },
@@ -1247,6 +1486,22 @@ export const contract_agent_owner = defineContract({
     AgentSignerSwapped: { signature: "AgentSignerSwapped(address indexed safe, address oldSigner, address newSigner)", about: "Key rotated." },
     AgentSwept: { signature: "AgentSwept(address indexed safe, address indexed to, address indexed token, uint256 amount)", about: "Swept." },
     AgentRemoved: { signature: "AgentRemoved(address indexed safe)", about: "Removed." },
+  },
+  errors: {
+    AgentExists: { signature: "AgentExists(address safe)", about: "create for a Safe that already belongs to an agent." },
+    AgentInactive: { signature: "AgentInactive(address safe)", about: "A module call, such as a 4337 user operation, while the agent is frozen or removed." },
+    AgentIsRemoved: { signature: "AgentIsRemoved(address safe)", about: "An owner power used on an agent that was removed." },
+    AgentSelfCall: { signature: "AgentSelfCall(address safe, address to, uint8 operation)", about: "The agent's key tried to call its own Safe or to delegatecall: only its owner changes the Safe." },
+    AlreadyFrozen: { signature: "AlreadyFrozen(address safe)", about: "freeze on an agent already frozen." },
+    DerivedAddressMismatch: { signature: "DerivedAddressMismatch(address expected, address deployed)", about: "The Safe factory deployed somewhere other than the derived address." },
+    InvalidRecipient: { signature: "InvalidRecipient()", about: "A sweep to the zero address or to the agent's own Safe." },
+    InvalidSigner: { signature: "InvalidSigner()", about: "A signer that is zero, the owners sentinel, AgentOwner itself or the owner." },
+    ModuleCallFailed: { signature: "ModuleCallFailed(address safe)", about: "The agent's Safe refused or failed a module call (a sweep's approve, a swap)." },
+    NotFrozen: { signature: "NotFrozen(address safe)", about: "unfreeze on an agent that is not frozen." },
+    NotOwner: { signature: "NotOwner(address caller)", about: "The caller is not the owner: create must be sent by the owner's Safe, every other power by the agent's owner." },
+    SignerMismatch: { signature: "SignerMismatch(address expected, address supplied)", about: "swapSigner with an old signer that is not the agent's key." },
+    UnknownAgent: { signature: "UnknownAgent(address safe)", about: "No agent has this Safe." },
+    ZeroPayments: { signature: "ZeroPayments()", about: "A zero Payments address at construction." },
   },
   was: [`${V4}/agents/AgentOwner.sol:123`, `${ADDR}:58`],
 });
@@ -1257,11 +1512,12 @@ export const contract_agent_owner = defineContract({
 
 export const contract_safe = defineContract({
   id: "safe",
-  title: "Safe 1.4.1: personal, agent and company Safes",
+  code: "third-party",
+  title: "Safe 1.5.0: personal, agent and company Safes",
   about:
     "Every Safe: a person's (owned by their signer), an agent's (under AgentOwner) and a company's (behind the Signer Gate). " +
     "A Board proposal is one company Safe transaction: each Director approves its hash from their own Safe, and the last " +
-    "approval executes it with v=1 signatures. One proxy per Safe, so no address is listed.",
+    "approval executes it with v=1 signatures. Version 1.5.0 (SafeL2 and its proxy factory): every person's, agent's and company Safe the code creates is on it; only MultiSendCallOnly and CreateCall are 1.4.1 (packages/contracts/README.md). One proxy per Safe, so no address is listed.",
   functions: {
     approveHash: { signature: "approveHash(bytes32 hashToApprove)", about: "A Director's approval of a Board proposal, from their own Safe." },
     execTransaction: {
@@ -1285,6 +1541,7 @@ export const contract_safe = defineContract({
 
 export const contract_safe_4337_module = defineContract({
   id: "safe-4337-module",
+  code: "third-party",
   title: "Safe4337Module: a Safe's UserOperation entry",
   about: "The personal and agent Safes' ERC-4337 module: every approval's callData is `executeUserOpWithErrorString` on the sender Safe.",
   addresses: { [DEV]: "0x75cf11467937ce3F2f357CE24ffc3DBF8fD5c226" },
@@ -1300,6 +1557,7 @@ export const contract_safe_4337_module = defineContract({
 
 export const contract_multi_send_call_only = defineContract({
   id: "multi-send-call-only",
+  code: "third-party",
   title: "MultiSendCallOnly: ordered call batches",
   about: "Delegatecalled to run an approval's calls in order (a token approve then a Payments.send) and to pack a Board batch.",
   addresses: { [DEV]: "0x9641d764fc13c8b624c04430c7356c1c7c8102e2" },
@@ -1310,6 +1568,7 @@ export const contract_multi_send_call_only = defineContract({
 
 export const contract_entry_point = defineContract({
   id: "entry-point",
+  code: "third-party",
   title: "EntryPoint v0.7",
   about: "The canonical ERC-4337 EntryPoint: an approval's nonce key and the event that says what became of it.",
   addresses: { [DEV]: "0x0000000071727De22E5E9d8BAf0edAc6f37da032" },
@@ -1328,6 +1587,7 @@ export const contract_entry_point = defineContract({
 
 export const contract_roles = defineContract({
   id: "roles",
+  code: "third-party",
   title: "Zodiac Roles 2.1: the payout role and the claim role",
   about:
     "One proxy per company, owned by the company Safe and wired by the install: Budgets is the only member of its payout " +
@@ -1353,6 +1613,7 @@ export const contract_roles = defineContract({
 
 export const contract_hats = defineContract({
   id: "hats",
+  code: "third-party",
   title: "Hats Protocol v1: who holds which role",
   about:
     "Every role in an Organization is a hat: the Board's top hat, the Director hat, the officer hats (Books, Invoicing, " +
@@ -1395,6 +1656,7 @@ export const contract_hats = defineContract({
 
 export const contract_hats_signer_gate = defineContract({
   id: "hats-signer-gate",
+  code: "third-party",
   title: "Hats Signer Gate v2: the Board's signers",
   about:
     "One proxy per company, the company Safe's only module and guard: the Safe's signers are exactly the Director hat's " +
@@ -1412,6 +1674,7 @@ export const contract_hats_signer_gate = defineContract({
 
 export const contract_erc20 = defineContract({
   id: "erc20",
+  code: "third-party",
   title: "ERC-20 money tokens",
   about:
     "The tokens Capxul moves: the admitted assets of the deployment (USDC, EURC and the other test tokens on Base Sepolia) " +
