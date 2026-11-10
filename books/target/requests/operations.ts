@@ -18,6 +18,7 @@ import {
   error_TOKEN_NOT_SUPPORTED,
   error_WRONG_STATE,
 } from "../shared/vocabulary.ts";
+import { ADDRESS, hash, ID, ok, refused, uuid } from "../shared/examples.ts";
 import {
   flow_client_account_inbox_decline,
   flow_client_account_inbox_get,
@@ -30,6 +31,36 @@ import {
 import { rpc_requests_inbox_list } from "./inbox.ts";
 import { rpc_requests_issuing_list } from "./issuing.ts";
 import { RequestPage, RequestView, ServicePage, ServiceView } from "./shapes.ts";
+
+// ── examples: the requests story (ids 900-949) ───────────────────────────────────────────────
+// Brightside's invoice 901 sits in Northwind's inbox; 903 is Northwind's request to Brightside, paid by a bank deposit;
+// 904 is Priya asking Marcus for the team lunch.
+
+const at = (iso: string) => Date.parse(iso);
+const usdc = (value: string) => ({ asset: "USDC", value, raw: value.replace(".", "") + "0000", decimals: 6 });
+const noPayment = { escrow: null, checkout: null, paymentId: null, payment: null, depositId: null };
+const brightsideInvoice = {
+  id: uuid(901), kind: "invoice", status: "open",
+  issuer: { kind: "organization", label: "Brightside Cleaning", safe: ADDRESS.brightside },
+  payer: { kind: "capxul", label: "Northwind Trading", safe: ADDRESS.northwind },
+  amount: usdc("1200.00"), reference: "INV-0042", note: "Office cleaning, January", documents: [{ hash: hash("a1"), render: `capxul document render --document-hash ${hash("a1")} --content-hash ${hash("b2")}` }],
+  expiresAt: null, dueAt: at("2026-02-28T00:00:00Z"), ...noPayment, createdAt: at("2026-02-03T10:00:00Z"), updatedAt: at("2026-02-03T10:00:00Z"),
+};
+const refundRequest = {
+  id: uuid(903), kind: "request", status: "paid",
+  issuer: { kind: "organization", label: "Northwind Trading", safe: ADDRESS.northwind },
+  payer: { kind: "outside", label: "Brightside Cleaning", safe: null },
+  amount: { asset: "EURC", value: "1200.00", raw: "1200000000", decimals: 6 }, reference: "REFUND-2026-001", note: null, documents: [],
+  expiresAt: null, dueAt: null, escrow: null, checkout: null, paymentId: null, payment: null, depositId: uuid(860),
+  createdAt: at("2026-02-02T09:00:00Z"), updatedAt: at("2026-02-04T08:05:00Z"),
+};
+const lunchRequest = {
+  id: uuid(904), kind: "request", status: "open",
+  issuer: { kind: "person", label: "Priya Raman", safe: ADDRESS.priya },
+  payer: { kind: "capxul", label: "Marcus Lindqvist", safe: ADDRESS.marcus },
+  amount: usdc("40.00"), reference: "Team lunch", note: null, documents: [],
+  expiresAt: at("2026-03-10T09:30:00Z"), dueAt: null, ...noPayment, createdAt: at("2026-02-10T09:30:00Z"), updatedAt: at("2026-02-10T09:30:00Z"),
+};
 
 const S = Schema.String;
 
@@ -115,6 +146,16 @@ export const operation_request_issue = defineOperation({
     },
     NOT_SIGNED_IN,
   ],
+  examples: [
+    ok(
+      "Priya asks Marcus for 40 USDC for the team lunch",
+      "capxul request issue marcus.lindqvist@northwind.test 40 --reference \"Team lunch\" --confirm --json",
+      { scope: "person", direction: "issued", item: lunchRequest },
+    ),
+    refused("An Invoice to a bare wallet address", `capxul request issue ${ADDRESS.brightside} 40 --reference "Team lunch" --org northwind --confirm --json`, error_INVALID_INPUT),
+    refused("From a script without --confirm", `capxul request issue marcus.lindqvist@northwind.test 40 --reference "Team lunch" --json`, error_CLI_USAGE),
+    refused("Priya's Safe does not wear Northwind's Invoicing hat", `capxul request issue accounts@brightside.test 1200 --asset EURC --reference "REFUND-2026-001" --org northwind --confirm --json`, error_ROLE_PERMISSION_DENIED),
+  ],
   budget: budget("write"),
 });
 
@@ -146,6 +187,11 @@ export const operation_request_get = defineOperation({
     INDEXER_BEHIND,
     NOT_A_MEMBER,
     NOT_SIGNED_IN,
+  ],
+  examples: [
+    ok("The refund request Northwind issued, paid by a bank deposit", `capxul request get ${uuid(903)} --org northwind --json`, refundRequest),
+    refused("A request that is not found or not yours", `capxul request get ${uuid(949)} --json`, error_CLI_USAGE),
+    refused("Someone outside Northwind", `capxul request get ${uuid(903)} --org northwind --json`, error_ROLE_PERMISSION_DENIED),
   ],
   budget: budget("read"),
 });
@@ -183,6 +229,11 @@ export const operation_request_list = defineOperation({
     { error: error_INVALID_INPUT, given: "person-with-requests", when: "`--after` is a cursor this list did not give." },
     NOT_SIGNED_IN,
   ],
+  examples: [
+    ok("The requests Northwind issued", "capxul request list --org northwind --json", { items: [refundRequest], nextCursor: null }),
+    ok("Priya's own requests, one at a time", "capxul request list --limit 1 --json", { items: [lunchRequest], nextCursor: "cursor-2026-02-10-904" }),
+    refused("A cursor this list did not give", "capxul request list --after nonsense --json", error_INVALID_INPUT),
+  ],
   budget: budget("read"),
 });
 
@@ -207,6 +258,11 @@ export const operation_request_cancel = defineOperation({
     { error: error_WRONG_STATE, given: "person-with-requests", when: "The request is already being paid, paid, declined or cancelled." },
     NO_INVOICING_HAT,
     NOT_SIGNED_IN,
+  ],
+  examples: [
+    ok("Priya cancels the team lunch request", `capxul request cancel ${uuid(904)} --confirm --json`, { ...lunchRequest, status: "cancelled", updatedAt: at("2026-02-10T09:40:00Z") }),
+    refused("A request already paid", `capxul request cancel ${uuid(903)} --org northwind --confirm --json`, error_WRONG_STATE),
+    refused("From a script without --confirm", `capxul request cancel ${uuid(904)} --json`, error_CLI_USAGE),
   ],
   budget: PREVIEW_WRITE,
 });
@@ -242,6 +298,11 @@ export const operation_inbox_list = defineOperation({
     NOT_A_MEMBER,
     NOT_SIGNED_IN,
   ],
+  examples: [
+    ok("Northwind's inbox: Brightside's invoice", "capxul inbox list --org northwind --json", { items: [brightsideInvoice], nextCursor: null }),
+    refused("--limit outside 1 to 100", "capxul inbox list --limit 500 --json", error_CLI_USAGE),
+    refused("Someone who is not part of Northwind", "capxul inbox list --org northwind --json", error_ROLE_PERMISSION_DENIED),
+  ],
   budget: budget("read"),
 });
 
@@ -276,6 +337,11 @@ export const operation_inbox_get = defineOperation({
     INDEXER_BEHIND,
     NOT_A_MEMBER,
     NOT_SIGNED_IN,
+  ],
+  examples: [
+    ok("Brightside's invoice, before Northwind pays it", `capxul inbox get ${uuid(901)} --org northwind --json`, brightsideInvoice),
+    refused("A request that is in another inbox", `capxul inbox get ${uuid(904)} --org northwind --json`, error_CLI_USAGE),
+    refused("Signed out", `capxul inbox get ${uuid(901)} --json`, error_NOT_AUTHENTICATED),
   ],
   budget: budget("read"),
 });
@@ -336,6 +402,20 @@ export const operation_inbox_pay = defineOperation({
     { error: error_PAYROLL_BUDGET_EXCEEDED, given: "org-with-requests", when: "The budget has less left this period than the request." },
     NOT_SIGNED_IN,
   ],
+  examples: [
+    ok(
+      "Marcus pays Brightside's invoice from the Finance budget; the approval waits for him",
+      `capxul inbox pay ${uuid(901)} --org northwind --from finance --json`,
+      {
+        status: "awaiting_approval", approvalId: ID.approval, approvalUrl: "https://app.capxul.test/approvals/" + ID.approval, paymentIds: [ID.paymentToBrightside],
+        expiresAt: at("2026-02-10T10:30:00Z"), next: { argv: ["capxul", "payment", "wait", ID.approval, "--json"] }, request: brightsideInvoice,
+      },
+    ),
+    refused("An Organization payment without --from", `capxul inbox pay ${uuid(901)} --org northwind --json`, error_CLI_USAGE),
+    refused("The request is already decided", `capxul inbox pay ${uuid(903)} --org northwind --from finance --json`, error_WRONG_STATE),
+    refused("The Finance budget has less left than the invoice", `capxul inbox pay ${uuid(901)} --org northwind --from finance --json`, error_PAYROLL_BUDGET_EXCEEDED),
+    refused("Priya wears no hat on that budget", `capxul inbox pay ${uuid(901)} --org northwind --from finance --json`, error_ROLE_PERMISSION_DENIED),
+  ],
   budget: budget("chain-settle"),
 });
 
@@ -357,6 +437,11 @@ export const operation_inbox_decline = defineOperation({
     { ...NO_INVOICING_HAT, when: "For an Organization, your Safe does not wear its Invoicing hat." },
     { error: error_WRONG_STATE, given: "person-with-requests", when: "The request has already been decided." },
     NOT_SIGNED_IN,
+  ],
+  examples: [
+    ok("Marcus declines Brightside's invoice", `capxul inbox decline ${uuid(901)} --org northwind --confirm --json`, { ...brightsideInvoice, status: "declined", updatedAt: at("2026-02-10T09:45:00Z") }),
+    refused("The request is already decided", `capxul inbox decline ${uuid(901)} --org northwind --confirm --json`, error_WRONG_STATE),
+    refused("From a script without --confirm", `capxul inbox decline ${uuid(901)} --json`, error_CLI_USAGE),
   ],
   budget: PREVIEW_WRITE,
 });
@@ -405,6 +490,21 @@ export const operation_bank_match = defineOperation({
       given: "org-with-credited-deposit",
       when: "For an Organization, a member whose Safe does not wear its Invoicing hat.",
     },
+  ],
+  examples: [
+    ok(
+      "Hannah marks the unmatched 500 USD deposit as not a request",
+      `capxul bank match ${uuid(861)} none --org northwind --json`,
+      { bankDepositId: uuid(861), match: { kind: "not_request" }, status: "credited" },
+    ),
+    ok(
+      "Hannah matches a deposit to the refund request it paid",
+      `capxul bank match ${uuid(860)} ${uuid(903)} --org northwind --json`,
+      { bankDepositId: uuid(860), match: { kind: "request", requestId: uuid(903), reference: "REFUND-2026-001" }, status: "credited" },
+    ),
+    refused("The deposit is already matched to something else", `capxul bank match ${uuid(860)} ${uuid(904)} --org northwind --json`, error_WRONG_STATE),
+    refused("A script without a request", `capxul bank match ${uuid(861)} --org northwind --json`, error_CLI_USAGE),
+    refused("The request does not exist", `capxul bank match ${uuid(861)} ${uuid(949)} --org northwind --json`, error_INVALID_INPUT),
   ],
   budget: PREVIEW_WRITE,
 });

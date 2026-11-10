@@ -41,6 +41,22 @@ import {
 import { rpc_devnet_jobs_run } from "./jobs.ts";
 import { rpc_devnet_mail_fail, rpc_devnet_mail_list, rpc_devnet_mail_list_notices } from "./mail.ts";
 import { W } from "./worlds.ts";
+import {
+  examples_dev_time,
+  examples_dev_time_warp,
+  examples_dev_time_start_at,
+  examples_dev_time_set,
+  examples_dev_snapshot_save,
+  examples_dev_snapshot_list,
+  examples_dev_snapshot_restore,
+  examples_dev_prices_set,
+  examples_dev_gates_set,
+  examples_dev_approve,
+  examples_dev_jobs_run,
+  examples_dev_mail_list,
+  examples_dev_mail_fail,
+  examples_dev_mail_notices,
+} from "./examples.ts";
 
 const page = (id: FrozenId) => `apps/docs/factory/operations/${id}.yaml:1`;
 const CLI = "apps/cli/src/commands/dev";
@@ -69,6 +85,7 @@ export const operation_dev_time = defineOperation({
   ...frozenText("dev.time"),
   priority: "normal",
   implementedBy: flow_devnet_time_show,
+  examples: examples_dev_time,
   acceptance: [],
   returns: flow_devnet_time_show.output,
   errors: [error_WRONG_ENVIRONMENT],
@@ -81,6 +98,7 @@ export const operation_dev_time_warp = defineOperation({
   ...frozenText("dev.time.warp"),
   priority: "normal",
   implementedBy: flow_devnet_time_warp,
+  examples: examples_dev_time_warp,
   acceptance: [],
   returns: flow_devnet_time_warp.output,
   errors: [error_WRONG_ENVIRONMENT],
@@ -93,6 +111,7 @@ export const operation_dev_time_start_at = defineOperation({
   ...frozenText("dev.time.start-at"),
   priority: "normal",
   implementedBy: flow_devnet_time_start_at,
+  examples: examples_dev_time_start_at,
   acceptance: [],
   returns: flow_devnet_time_start_at.output,
   errors: [error_WRONG_ENVIRONMENT],
@@ -120,6 +139,7 @@ export const operation_dev_time_set = defineOperation({
   command: "dev time set",
   priority: "normal",
   implementedBy: flow_devnet_time_set,
+  examples: examples_dev_time_set,
   who: "Devnet only: anyone on the machine that runs the local devnet, with no sign-in; in a shared world, its owner.",
   changes: "The clock's rate, from now on. Nothing moves back, nothing is mined and no row changes.",
   acceptance: [
@@ -179,6 +199,7 @@ export const operation_dev_snapshot_save = defineOperation({
   ...frozenText("dev.snapshot.save"),
   priority: "normal",
   implementedBy: flow_devnet_snapshots_save,
+  examples: examples_dev_snapshot_save,
   acceptance: [],
   returns: flow_devnet_snapshots_save.output,
   errors: [error_WRONG_ENVIRONMENT],
@@ -195,6 +216,7 @@ export const operation_dev_snapshot_list = defineOperation({
   ...frozenText("dev.snapshot.list"),
   priority: "normal",
   implementedBy: flow_devnet_snapshots_list,
+  examples: examples_dev_snapshot_list,
   acceptance: [],
   returns: flow_devnet_snapshots_list.output,
   errors: [error_WRONG_ENVIRONMENT],
@@ -207,6 +229,7 @@ export const operation_dev_snapshot_restore = defineOperation({
   ...frozenText("dev.snapshot.restore"),
   priority: "normal",
   implementedBy: flow_devnet_snapshots_restore,
+  examples: examples_dev_snapshot_restore,
   acceptance: [
     keep(
       "dev.snapshot.restore",
@@ -234,6 +257,7 @@ export const operation_dev_prices_set = defineOperation({
   ...frozenText("dev.prices.set"),
   priority: "normal",
   implementedBy: flow_devnet_prices_set,
+  examples: examples_dev_prices_set,
   acceptance: [],
   returns: flow_devnet_prices_set.output,
   errors: [error_CLI_USAGE, error_WRONG_ENVIRONMENT],
@@ -251,6 +275,7 @@ export const operation_dev_gates_set = defineOperation({
   ...frozenText("dev.gates.set"),
   priority: "normal",
   implementedBy: flow_devnet_gates_set,
+  examples: examples_dev_gates_set,
   acceptance: [],
   returns: flow_devnet_gates_set.output,
   errors: [error_CLI_USAGE, error_WRONG_ENVIRONMENT],
@@ -270,6 +295,7 @@ export const operation_dev_approve = defineOperation({
   ...frozenText("dev.approve"),
   priority: "normal",
   implementedBy: flow_devnet_approve,
+  examples: examples_dev_approve,
   acceptance: [],
   returns: flow_devnet_approve.output,
   errors: [error_CLI_USAGE, error_WRONG_ENVIRONMENT],
@@ -284,6 +310,7 @@ export const operation_dev_jobs_run = defineOperation({
   ...frozenText("dev.jobs.run"),
   priority: "normal",
   implementedBy: rpc_devnet_jobs_run,
+  examples: examples_dev_jobs_run,
   acceptance: [],
   returns: rpc_devnet_jobs_run.output,
   errors: [error_WRONG_ENVIRONMENT],
@@ -305,6 +332,7 @@ export const operation_dev_mail_list = defineOperation({
   ...frozenText("dev.mail.list"),
   priority: "normal",
   implementedBy: rpc_devnet_mail_list,
+  examples: examples_dev_mail_list,
   acceptance: [],
   returns: rpc_devnet_mail_list.output,
   errors: [error_WRONG_ENVIRONMENT],
@@ -317,6 +345,7 @@ export const operation_dev_mail_fail = defineOperation({
   ...frozenText("dev.mail.fail"),
   priority: "normal",
   implementedBy: rpc_devnet_mail_fail,
+  examples: examples_dev_mail_fail,
   acceptance: [
     keep(
       "dev.mail.fail",
@@ -353,6 +382,7 @@ export const operation_dev_mail_notices = defineOperation({
   ...frozenText("dev.mail.notices"),
   priority: "normal",
   implementedBy: rpc_devnet_mail_list_notices,
+  examples: examples_dev_mail_notices,
   acceptance: [
     keep(
       "dev.mail.notices",

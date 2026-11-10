@@ -23,6 +23,13 @@ import {
   error_WRONG_ENVIRONMENT,
   error_WRONG_STATE,
 } from "../shared/vocabulary.ts";
+import {
+  examples_account_retry,
+  examples_account_show,
+  examples_auth_login,
+  examples_auth_verify,
+  examples_dev_fund,
+} from "./examples.ts";
 import { WaitlistStatus } from "./admission.ts";
 import { flow_client_auth_sign_in, flow_client_auth_verify_otp } from "./flows.ts";
 import { rpc_accounts_grants_fund } from "./grants.ts";
@@ -93,6 +100,7 @@ export const operation_account_retry = defineOperation({
     { error: error_WRONG_STATE, given: REFUSED_OTHER_SIGNER, when: when("account.retry", "WRONG_STATE") },
     { error: error_INVALID_INPUT, given: REFUSED_EMAIL, when: when("account.retry", "INVALID_INPUT") },
   ],
+  examples: examples_account_retry,
   budget: budget("read"),
   was: ["apps/docs/factory/operations/account.retry.yaml", "apps/cli/src/commands/account", "apps/cli/src/auth/profile-report.ts:18"],
 });
@@ -129,6 +137,7 @@ export const operation_account_show = defineOperation({
       when: "Ran it before your account was set up (the frozen mistake): your profile is done but your Safe's setup has not started.",
     },
   ],
+  examples: examples_account_show,
   budget: budget("read"),
   was: ["apps/docs/factory/operations/account.show.yaml", "apps/cli/src/commands/account"],
 });
@@ -154,6 +163,7 @@ export const operation_auth_login = defineOperation({
     { error: error_INVALID_INPUT, given: NO_SESSION, when: when("auth.login", "INVALID_INPUT") },
     { error: error_NOT_AUTHENTICATED, given: NO_SESSION, when: when("auth.login", "NOT_AUTHENTICATED") },
   ],
+  examples: examples_auth_login,
   budget: { ...budget("vendor"), excludes: ["sdk.step.code"] },
   was: ["apps/docs/factory/operations/auth.login.yaml", "apps/cli/src/commands/auth"],
 });
@@ -173,6 +183,7 @@ export const operation_auth_verify = defineOperation({
   returns: flow_client_auth_verify_otp.output,
   errors: [error_CLI_USAGE],
   refusals: [{ error: error_CLI_USAGE, given: NO_SESSION, when: when("auth.verify", "CLI_USAGE") }],
+  examples: examples_auth_verify,
   budget: budget("write"),
   was: ["apps/docs/factory/operations/auth.verify.yaml", "apps/cli/src/commands/auth"],
 });
@@ -200,6 +211,7 @@ export const operation_dev_fund = defineOperation({
     },
     { error: error_SMART_ACCOUNT_MISSING, given: PERSON_ADMITTED, when: "Your Safe's setup has not started, so there is no Safe of yours to fund yet." },
   ],
+  examples: examples_dev_fund,
   budget: budget("chain-submit"),
   was: ["apps/docs/factory/operations/dev.fund.yaml", "apps/cli/src/commands/dev"],
 });

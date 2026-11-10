@@ -44,6 +44,7 @@ import {
   flow_client_org_departments_set_amount,
   flow_client_org_invitations_invite,
 } from "./flows.ts";
+import * as examples from "./examples.ts";
 import { InviteResult } from "./invitations.ts";
 import { rpc_budgets_allowances_get, rpc_budgets_allowances_list } from "./allowances.ts";
 import { rpc_budgets_departments_list } from "./departments.ts";
@@ -160,6 +161,7 @@ export const operation_org_department_create = defineOperation({
     v4(D_CREATE, 6, "chain: the proposal's calldata holds the office hat, the mints, the ceiling call and `Budgets.createTopBudget`; cli: `--budget 100/week` exits INVALID_INPUT"),
   ],
   returns: DepartmentCreated,
+  examples: examples.departmentCreate,
   errors: [error_CLI_USAGE],
   refusals: [
     {
@@ -210,6 +212,7 @@ export const operation_org_department_budget_set = defineOperation({
     v4(D_SET, 6, "chain: the executed proposal moves the token's ceiling by the difference, then `Budgets.setAmount`; cli: a cut below use exits AMOUNT_BELOW_USE"),
   ],
   returns: AmountPrepared,
+  examples: examples.departmentBudgetSet,
   errors: [error_CLI_USAGE],
   refusals: [
     {
@@ -256,6 +259,7 @@ export const operation_org_department_close = defineOperation({
     ),
   ],
   returns: OpenStatePrepared,
+  examples: examples.departmentClose,
   errors: [error_CLI_USAGE],
   refusals: [
     { error: error_WRONG_STATE, given: W_TREE, when: "It is already closed (`closed`)." },
@@ -292,6 +296,7 @@ export const operation_org_department_reopen = defineOperation({
     ),
   ],
   returns: OpenStatePrepared,
+  examples: examples.departmentReopen,
   errors: [error_CLI_USAGE],
   refusals: [
     { error: error_WRONG_STATE, given: W_TREE, when: "It is not closed (`open`)." },
@@ -319,6 +324,7 @@ export const operation_org_department_holder_add = defineOperation({
     keep(D_ADD, 3, "cli: INVALID_INPUT, ROLE_CONFLICT, WRONG_STATE, INVALID_INPUT and WRONG_STATE in turn; " + NOTHING_PROPOSED),
   ],
   returns: HolderPrepared,
+  examples: examples.departmentHolderAdd,
   errors: [error_CLI_USAGE],
   refusals: [
     { error: error_INVALID_INPUT, given: W_TREE, when: "The person is not an active member with a personal Safe, or the department is unknown." },
@@ -353,6 +359,7 @@ export const operation_org_department_holder_remove = defineOperation({
     keep(D_REMOVE, 5, "cli: WRONG_STATE; " + NOTHING_PROPOSED),
   ],
   returns: HolderPrepared,
+  examples: examples.departmentHolderRemove,
   errors: [error_CLI_USAGE],
   refusals: [
     { error: error_WRONG_STATE, given: W_TREE, when: "The person is not a holder of the department." },
@@ -381,6 +388,7 @@ export const operation_org_department_list = defineOperation({
     rewrite(D_LIST, 6, "A list sends no product event.", "trace: the local collector receives no product event for the list"),
   ],
   returns: DepartmentList,
+  examples: examples.departmentList,
   errors: [error_CLI_USAGE],
   refusals: [
     { error: error_ROLE_PERMISSION_DENIED, given: W_TREE, when: "You are outside the Organization. You learn nothing of its departments." },
@@ -402,6 +410,7 @@ export const operation_org_department_show = defineOperation({
     keep(D_SHOW, 5, "cli: an outsider is refused ROLE_PERMISSION_DENIED and the output names no budget"),
   ],
   returns: DepartmentTree,
+  examples: examples.departmentShow,
   errors: [error_CLI_USAGE],
   refusals: [
     { error: error_INVALID_INPUT, given: W_TREE, when: "No budget has that key or ID. The refusal names it." },
@@ -427,6 +436,7 @@ export const operation_org_department_ceiling_set = defineOperation({
     keep(C_SET, 6, "cli: `/336d` is CLI_USAGE whose message names the `<amount>/year` form"),
   ],
   returns: CeilingPrepared,
+  examples: examples.ceilingSet,
   errors: [error_CLI_USAGE],
   refusals: [
     { error: error_CLI_USAGE, given: W_TREE, when: "The amount has no period, uses `/336d`, or is 0." },
@@ -453,6 +463,7 @@ export const operation_org_department_ceiling_freeze = defineOperation({
     rewrite(C_FREEZE, 5, "A refused freeze proposes nothing.", NOTHING_PROPOSED),
   ],
   returns: CeilingPrepared,
+  examples: examples.ceilingFreeze,
   errors: [error_CLI_USAGE],
   refusals: [
     { error: error_WRONG_STATE, given: W_FROZEN, when: "The token is already frozen." },
@@ -479,6 +490,7 @@ export const operation_org_department_ceiling_unfreeze = defineOperation({
     rewrite(C_UNFREEZE, 5, "A refused unfreeze proposes nothing.", NOTHING_PROPOSED),
   ],
   returns: CeilingPrepared,
+  examples: examples.ceilingUnfreeze,
   errors: [error_CLI_USAGE],
   refusals: [
     { error: error_WRONG_STATE, given: W_TREE, when: "The token is not frozen." },
@@ -515,6 +527,7 @@ export const operation_org_allowance_create = defineOperation({
     keep(A_CREATE, 6, "cli: `--confirm` exits CLI_USAGE and nothing is prepared"),
   ],
   returns: AllowanceCreated,
+  examples: examples.allowanceCreate,
   errors: [error_CLI_USAGE, error_CAPABILITY_UNAVAILABLE],
   refusals: [
     beta,
@@ -557,6 +570,7 @@ export const operation_org_allowance_change = defineOperation({
     keep(A_CHANGE, 6, "cli: `--confirm` exits CLI_USAGE and nothing is prepared"),
   ],
   returns: AmountPrepared,
+  examples: examples.allowanceChange,
   errors: [error_CLI_USAGE, error_CAPABILITY_UNAVAILABLE],
   refusals: [
     beta,
@@ -592,6 +606,7 @@ export const operation_org_allowance_assign = defineOperation({
     keep(A_ASSIGN, 5, "read: after the proposal executes, `dev mail list` holds one email to the member with the allowance's amount as the chain had it then"),
   ],
   returns: HolderPrepared,
+  examples: examples.allowanceAssign,
   errors: [error_CLI_USAGE, error_CAPABILITY_UNAVAILABLE],
   refusals: [
     beta,
@@ -630,6 +645,7 @@ export const operation_org_allowance_revoke = defineOperation({
     rewrite(A_REVOKE, 4, "A refused revoke proposes nothing.", NOTHING_PROPOSED),
   ],
   returns: HolderPrepared,
+  examples: examples.allowanceRevoke,
   errors: [error_CLI_USAGE, error_CAPABILITY_UNAVAILABLE],
   refusals: [
     beta,
@@ -679,6 +695,7 @@ export const operation_org_allowance_list = defineOperation({
     ),
   ],
   returns: AllowancePage,
+  examples: examples.allowanceList,
   errors: [error_CLI_USAGE, error_CAPABILITY_UNAVAILABLE],
   refusals: [
     beta,
@@ -706,6 +723,7 @@ export const operation_org_allowance_get = defineOperation({
     keep(A_GET, 4, "cli: the exact allowance for its id; the SDK answers null for an id no allowance has, and the CLI refuses it INVALID_INPUT"),
   ],
   returns: AllowanceLine,
+  examples: examples.allowanceGet,
   errors: [error_CLI_USAGE, error_CAPABILITY_UNAVAILABLE, error_INVALID_INPUT],
   refusals: [
     beta,
@@ -738,6 +756,7 @@ export const operation_org_allowance_replace = defineOperation({
     null,
   ],
   returns: Nothing,
+  examples: examples.allowanceReplace,
   errors: [error_CLI_USAGE],
   refusals: [
     {
@@ -778,6 +797,7 @@ export const operation_org_member_invite = defineOperation({
     keep(M_INVITE, 5, "cli: `--confirm` exits with CLI_USAGE; trace: no rpc span under the command"),
   ],
   returns: InviteResult,
+  examples: examples.memberInvite,
   errors: [error_CLI_USAGE],
   refusals: [
     { error: error_ROLE_PERMISSION_DENIED, given: W_MEMBER, when: "You cannot manage people in the Organization." },

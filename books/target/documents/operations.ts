@@ -19,6 +19,7 @@ import {
   error_INVALID_INPUT,
   error_NOT_AUTHENTICATED,
 } from "../shared/vocabulary.ts";
+import { hash, ok, refused } from "../shared/examples.ts";
 import { MediaType } from "./data.ts";
 import { DocumentRef, SignatureStatus, rpc_documents_reading_get, rpc_documents_reading_verify } from "./reading.ts";
 
@@ -110,6 +111,23 @@ export const operation_document_get = defineOperation({
   }),
   errors: [error_CLI_USAGE],
   refusals: refusals("document.get"),
+  examples: [
+    ok(
+      "Read an invoice Brightside sent, by its two hashes",
+      `capxul document get --document-hash ${hash("a1")} --content-hash ${hash("b2")} --json`,
+      { ref: { documentHash: hash("a1"), contentHash: hash("b2"), kind: "invoice", format: "envelope", issuedAt: Date.parse("2026-02-03T10:00:00Z") }, mediaType: "application/json", signatureStatus: "verified" },
+    ),
+    refused(
+      "A hash that is not 32-byte hex",
+      "capxul document get --document-hash 0x1234 --content-hash 0x5678 --json",
+      error_CLI_USAGE,
+    ),
+    refused(
+      "A document that does not exist or cannot be read",
+      `capxul document get --document-hash ${hash("c3")} --content-hash ${hash("d4")} --json`,
+      error_INVALID_INPUT,
+    ),
+  ],
   budget: budget("read"),
 });
 
@@ -152,6 +170,18 @@ export const operation_document_verify = defineOperation({
   }),
   errors: [error_CLI_USAGE],
   refusals: refusals("document.verify"),
+  examples: [
+    ok(
+      "Verify the invoice against its hashes",
+      `capxul document verify --document-hash ${hash("a1")} --content-hash ${hash("b2")} --json`,
+      { ok: true, signatureStatus: "verified", documentHash: hash("a1"), contentHash: hash("b2") },
+    ),
+    refused(
+      "Signed out",
+      `capxul document verify --document-hash ${hash("a1")} --content-hash ${hash("b2")} --json`,
+      error_NOT_AUTHENTICATED,
+    ),
+  ],
   budget: budget("read"),
 });
 

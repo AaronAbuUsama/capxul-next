@@ -13,6 +13,7 @@ import { flow_client_org_roles_show } from "./flows.ts";
 import { rpc_plugs_sessions_link } from "./sessions.ts";
 import { rpc_plugs_events_resend, rpc_plugs_events_retry, rpc_plugs_events_status } from "./events.ts";
 import { WORLD, operation } from "./kit.ts";
+import * as ex from "./examples.ts";
 
 const out = { error: error_NOT_AUTHENTICATED, given: WORLD.signedOut, when: "No one is signed in on this machine." } as const;
 const notAdmin = (what: string) => ({ error: error_ROLE_PERMISSION_DENIED, given: WORLD.member, when: `A member who does not wear the Director hat tries to ${what}; nothing changes.` }) as const;
@@ -44,6 +45,7 @@ export const operation_payment_prepare_document = operation({
       observes: `cli: Sam (member) running it exits ROLE_PERMISSION_DENIED naming the hat; a prepare for a draft already prepared under another hash exits DOCUMENT_HASH_MISMATCH; world: no new request either time.`,
     },
   ],
+  examples: ex.paymentPrepareDocument,
   returns: rpc_plugs_payments_prepare.output,
   errors: [error_CLI_USAGE],
   refusals: [
@@ -78,6 +80,7 @@ export const operation_payment_awaiting = operation({
       observes: "cli: after the signature is made and the chain confirms, the same command no longer lists it; a request failed or abandoned is not listed either.",
     },
   ],
+  examples: ex.paymentAwaiting,
   returns: rpc_plugs_payments_awaiting.output,
   errors: [error_CLI_USAGE],
   refusals: [out, { error: error_ROLE_PERMISSION_DENIED, given: WORLD.member, when: "A member asks for another signer's list with `--for` without wearing the Director hat." }],
@@ -106,6 +109,7 @@ export const operation_org_roles_show = operation({
       observes: "cli: `org roles show --map --json` lists every hat, job and role under one map version.",
     },
   ],
+  examples: ex.orgRolesShow,
   returns: flow_client_org_roles_show.output,
   errors: [error_CLI_USAGE],
   refusals: [out, notAdmin("read another member's roles")],
@@ -130,6 +134,7 @@ export const operation_org_roles_drift = operation({
       observes: `cli: in \`${WORLD.hatsOnSite}\`, after the harness adds a role to Hannah's user with raw SQL, \`org roles drift --json\` lists one extra-role difference for her; with no difference it lists none.`,
     },
   ],
+  examples: ex.orgRolesDrift,
   returns: rpc_plugs_roles_drift.output,
   errors: [error_CLI_USAGE],
   refusals: [out, notAdmin("check drift"), { error: error_PROVIDER_ERROR, given: WORLD.siteDown, when: "The site's bench is stopped." }],
@@ -158,6 +163,7 @@ export const operation_org_events_status = operation({
       observes: `cli: in \`${WORLD.poison}\`, the status lists the event set aside with its last error and state flowing; a money event in the same state is listed unmatched.`,
     },
   ],
+  examples: ex.orgEventsStatus,
   returns: rpc_plugs_events_status.output,
   errors: [error_CLI_USAGE],
   refusals: [out],
@@ -182,6 +188,7 @@ export const operation_org_events_resend = operation({
       observes: `cli: in \`${WORLD.events}\`, after the site is restored to an older backup, \`org events resend --from 1 --json\` prints from 1; the site then holds every event once and the status shows no gap; no payment is posted twice.`,
     },
   ],
+  examples: ex.orgEventsResend,
   returns: rpc_plugs_events_resend.output,
   errors: [error_CLI_USAGE],
   refusals: [out, notAdmin("resend events"), { error: error_INVALID_INPUT, given: WORLD.events, when: "`--from` is beyond the next number." }],
@@ -208,6 +215,7 @@ export const operation_org_events_retry = operation({
       observes: "cli: retrying an applied event exits WRONG_STATE; world: no diff.",
     },
   ],
+  examples: ex.orgEventsRetry,
   returns: rpc_plugs_events_retry.output,
   errors: [error_CLI_USAGE],
   refusals: [out, notAdmin("release an event"), { error: error_WRONG_STATE, given: WORLD.events, when: "The event is not set aside." }],
@@ -231,6 +239,7 @@ export const operation_org_site_link = operation({
       observes: `cli: in \`${WORLD.siteReady}\`, a person with only a viewer grant runs \`org site link --json\`; the url opens the company's Frappe screens with no way to save; the same url a second time, or after it expires, is refused by the site.`,
     },
   ],
+  examples: ex.orgSiteLink,
   returns: rpc_plugs_sessions_link.output,
   errors: [error_CLI_USAGE],
   refusals: [out, { error: error_ROLE_PERMISSION_DENIED, given: WORLD.member, when: "The person has neither a viewer grant nor a site user." }, { error: error_PROVIDER_ERROR, given: WORLD.siteDown, when: "The site's bench is stopped." }],

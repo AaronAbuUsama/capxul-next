@@ -32,6 +32,14 @@ import {
   flow_client_dev_key,
   flow_client_system_health,
 } from "./flows.ts";
+import {
+  examples_doctor,
+  examples_key_create,
+  examples_key_list,
+  examples_key_revoke,
+  examples_key_rotate,
+  examples_dev_key,
+} from "./examples.ts";
 
 const CLI = "apps/cli/src/commands";
 const AS_IS = "docs/as-is/archive/operations";
@@ -106,6 +114,7 @@ export const operation_doctor = defineOperation({
   was: [page("doctor"), `${AS_IS}/accounts.ts:1439`, `${CLI}/doctor/execute.ts:11`, `${CLI}/doctor/internal/probe.ts:13`],
   priority: "normal",
   implementedBy: flow_client_system_health,
+  examples: examples_doctor,
   acceptance: [
     kept(
       "doctor",
@@ -147,6 +156,7 @@ export const operation_key_create = defineOperation({
   was: [page("key.create"), `${AS_IS}/accounts.ts:1351`, `${CLI}/key/subcommands/create/execute.ts:13`],
   priority: "normal",
   implementedBy: rpc_applications_keys_create,
+  examples: examples_key_create,
   acceptance: [
     kept(
       "key.create",
@@ -198,6 +208,7 @@ export const operation_key_list = defineOperation({
   was: [page("key.list"), `${AS_IS}/accounts.ts:1322`, `${CLI}/key/subcommands/list/execute.ts:10`],
   priority: "normal",
   implementedBy: rpc_applications_keys_list,
+  examples: examples_key_list,
   acceptance: [
     kept("key.list", 1, `cli: in \`${WORLDS.person}\`, \`key list --json\` prints \`items: []\` and \`next: null\`.`),
     kept(
@@ -240,6 +251,7 @@ export const operation_key_revoke = defineOperation({
   was: [page("key.revoke"), `${AS_IS}/accounts.ts:1409`, `${CLI}/key/subcommands/revoke/execute.ts:12`],
   priority: "normal",
   implementedBy: flow_client_account_keys_revoke,
+  examples: examples_key_revoke,
   acceptance: [
     kept(
       "key.revoke",
@@ -272,6 +284,7 @@ export const operation_key_rotate = defineOperation({
   was: [page("key.rotate"), `${AS_IS}/accounts.ts:1381`, `${CLI}/key/subcommands/rotate/execute.ts:25`],
   priority: "normal",
   implementedBy: flow_client_account_keys_rotate,
+  examples: examples_key_rotate,
   acceptance: [
     kept(
       "key.rotate",
@@ -321,6 +334,7 @@ export const operation_dev_key = defineOperation({
   was: [page("dev.key"), `${AS_IS}/devnet.ts:778`, `${CLI}/dev/key.ts:50`, `${CLI}/dev/key.ts:189`],
   priority: "normal",
   implementedBy: flow_client_dev_key,
+  examples: examples_dev_key,
   acceptance: [
     kept(
       "dev.key",

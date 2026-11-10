@@ -7,6 +7,7 @@
 // access.worlds): empty-devnet, person-signed-in, two-people-signed-in.
 
 import { Schema } from "effect";
+import { ADDRESS, ID, NORTHWIND, PEOPLE, ok, refused } from "../shared/examples.ts";
 import { budget, defineOperation } from "../../../packages/book/src/index.ts";
 import { frozen, frozenText, type FrozenId } from "../../frozen/index.ts";
 import {
@@ -74,6 +75,17 @@ export const operation_auth_list = defineOperation({
     storage("two-people-signed-in", "The saved sessions on this machine are unreadable, unsafe or locked: the eval makes the state file unreadable after the world is restored."),
     noArgument("empty-devnet"),
   ],
+  examples: [
+    ok("Two people are signed in on this machine", "capxul auth list --json", {
+      current: PEOPLE.hannah.email,
+      people: [
+        { email: PEOPLE.hannah.email, safe: ADDRESS.hannah, kind: "person", current: true },
+        { email: PEOPLE.marcus.email, safe: ADDRESS.marcus, kind: "person", current: false },
+      ],
+    }),
+    refused("The saved sessions cannot be read", "capxul auth list --json", error_CLI_STORAGE),
+    refused("An argument is given; it takes none", "capxul auth list hannah --json", error_CLI_USAGE),
+  ],
   budget: LOCAL,
 });
 
@@ -98,6 +110,11 @@ export const operation_auth_logout = defineOperation({
   refusals: [
     storage("person-signed-in", "The saved session on this machine cannot be read or removed: the eval makes the state file unreadable after the world is restored."),
     noArgument("person-signed-in"),
+  ],
+  examples: [
+    ok("Sign out the current person", "capxul auth logout --json", { authenticated: false, email: PEOPLE.hannah.email, remote: "confirmed" }),
+    ok("Sign out a named person; the backend could not confirm the revoke", `capxul auth logout --email ${PEOPLE.marcus.email} --json`, { authenticated: false, email: PEOPLE.marcus.email, remote: "unconfirmed" }),
+    refused("The saved session cannot be removed", "capxul auth logout --json", error_CLI_STORAGE),
   ],
   budget: budget("write"),
 });
@@ -128,6 +145,11 @@ export const operation_auth_switch = defineOperation({
       when: "The person named is not signed in on this machine, or the backend no longer accepts their session.",
     },
   ],
+  examples: [
+    ok("Switch to Marcus, who is signed in here", `capxul auth switch ${PEOPLE.marcus.email} --json`, { authenticated: true, email: PEOPLE.marcus.email, authUserId: ID.marcus, setupState: "ready" }),
+    refused("No email named in a --json run", "capxul auth switch --json", error_CLI_USAGE),
+    refused("Priya is not signed in on this machine", `capxul auth switch ${PEOPLE.priya.email} --json`, error_NOT_AUTHENTICATED),
+  ],
   budget: budget("chain-read"),
 });
 
@@ -154,6 +176,10 @@ export const operation_config_telemetry_off = defineOperation({
     storage("empty-devnet", "The settings file on this machine cannot be written: the eval makes it read-only."),
     noArgument("empty-devnet"),
   ],
+  examples: [
+    ok("Turn collection off", "capxul config telemetry off --json", { enabled: false, reason: "disabled" }),
+    refused("The settings file is read-only", "capxul config telemetry off --json", error_CLI_STORAGE),
+  ],
   budget: LOCAL,
 });
 
@@ -172,6 +198,10 @@ export const operation_config_telemetry_on = defineOperation({
   refusals: [
     storage("empty-devnet", "The settings file on this machine cannot be written: the eval makes it read-only."),
     noArgument("empty-devnet"),
+  ],
+  examples: [
+    ok("Turn collection on", "capxul config telemetry on --json", { enabled: true, reason: "enabled" }),
+    refused("An argument is given; it takes none", "capxul config telemetry on now --json", error_CLI_USAGE),
   ],
   budget: LOCAL,
 });
@@ -197,6 +227,11 @@ export const operation_config_telemetry_status = defineOperation({
     storage("empty-devnet", "The settings file on this machine is unreadable, unsafe or locked: the eval makes it unreadable."),
     noArgument("empty-devnet"),
   ],
+  examples: [
+    ok("Collection is on and this build can send it", "capxul config telemetry status --json", { stored: true, enabled: true, configured: true, effective: true, reason: "enabled" }),
+    ok("The environment forces collection off", "capxul config telemetry status --json", { stored: true, enabled: false, configured: true, effective: false, reason: "environment" }),
+    refused("The settings file is unreadable", "capxul config telemetry status --json", error_CLI_STORAGE),
+  ],
   budget: LOCAL,
 });
 
@@ -218,6 +253,19 @@ export const operation_schema = defineOperation({
   }),
   errors: [error_CLI_USAGE],
   refusals: [{ error: error_CLI_USAGE, given: "empty-devnet", when: "The command named does not exist." }],
+  examples: [
+    ok("Describe one command", "capxul schema payment send --json", {
+      command: { name: "payment send", movesMoney: true, arguments: ["to", "amount"], flags: ["--asset", "--from", "--note", "--on", "--at"], errors: ["INSUFFICIENT_BALANCE", "INVALID_RECIPIENT", "NOT_AUTHENTICATED"] },
+    }),
+    ok("List every command", "capxul schema --json", {
+      commands: [
+        { name: "payment send", movesMoney: true },
+        { name: "payment list", movesMoney: false },
+        { name: "whoami", movesMoney: false },
+      ],
+    }),
+    refused("A command that does not exist", "capxul schema payment teleport --json", error_CLI_USAGE),
+  ],
   budget: LOCAL,
 });
 
@@ -236,6 +284,11 @@ export const operation_use_env = defineOperation({
     { error: error_EXPERIMENTAL_NOT_ACCEPTED, given: "empty-devnet", when: "Production without `--accept-experimental`." },
     { error: error_CAPABILITY_UNAVAILABLE, given: "empty-devnet", when: "This CLI has no deployment for that environment (beta, or production with the flag)." },
   ],
+  examples: [
+    ok("Choose the devnet", "capxul use env devnet --json", { env: { name: "devnet", origin: "http://localhost:3000" } }),
+    refused("Production without accepting that it is experimental", "capxul use env production --json", error_EXPERIMENTAL_NOT_ACCEPTED),
+    refused("An environment this CLI has no deployment for", "capxul use env beta --json", error_CAPABILITY_UNAVAILABLE),
+  ],
   budget: LOCAL,
 });
 
@@ -251,6 +304,10 @@ export const operation_use_personal = defineOperation({
   refusals: [
     storage("person-signed-in", "The saved choice on this machine cannot be read or written: the eval makes the state file read-only."),
     { error: error_CLI_USAGE, given: "person-signed-in", when: "It is given an argument; an Organization is chosen with `capxul use org`." },
+  ],
+  examples: [
+    ok("Go back to acting for yourself", "capxul use personal --json", { actingAs: { kind: "personal" } }),
+    refused("An argument is given; an organization is chosen with use org", "capxul use personal northwind --json", error_CLI_USAGE),
   ],
   budget: LOCAL,
 });
@@ -274,6 +331,23 @@ export const operation_whoami = defineOperation({
   }),
   refusals: [
     storage("two-people-signed-in", "The saved state on this machine is unreadable, unsafe or locked: the eval makes the state file unreadable after the world is restored."),
+  ],
+  examples: [
+    ok("Hannah, signed in with the browser, acting for Northwind", "capxul whoami --json", {
+      user: { email: PEOPLE.hannah.email, handle: "hannah", kind: "person" },
+      actingAs: { kind: "org", handle: NORTHWIND.slug, source: "saved" },
+      safe: ADDRESS.hannah,
+      env: { name: "devnet", network: "town", source: "saved" },
+      signer: { kind: "browser" },
+    }),
+    ok("Nobody is signed in", "capxul whoami --json", {
+      user: null,
+      actingAs: { kind: "personal", source: "default" },
+      safe: null,
+      env: null,
+      signer: null,
+    }),
+    refused("The saved state is unreadable", "capxul whoami --json", error_CLI_STORAGE),
   ],
   budget: LOCAL,
 });
