@@ -272,7 +272,7 @@ What the build makes of these four records:
 
 ```bash
 pnpm exec tsc -p blueprint                                                                       # 2
-node --experimental-strip-types packages/blueprint-engine/src/main.ts blueprint/index.ts /tmp/target   # 1, 3–9
+node --experimental-strip-types packages/blueprint-engine/src/main.ts blueprint/index.ts var/blueprint   # 1, 3–9
 ```
 
 1. **Load.** Node imports `blueprint/index.ts`, and every `define*` call checks its record
@@ -691,7 +691,7 @@ The `chain` tenancy for Ponder's indexed tables has since been added.
 ```bash
 pnpm exec tsc -p packages/blueprint-engine && pnpm test     # the record system and its tests
 pnpm exec tsc -p blueprint                                           # the target and frozen books typecheck
-node --experimental-strip-types packages/blueprint-engine/src/main.ts blueprint/index.ts /tmp/target   # 0 problems
+node --experimental-strip-types packages/blueprint-engine/src/main.ts blueprint/index.ts var/blueprint   # 0 problems
 node --experimental-strip-types packages/blueprint-engine/scripts/check-frozen.ts       # the 215 booked, every behaviour kept, new operations by a ruling: 0 breaches
 pnpm contracts:check-blueprint                                        # the contract records against the contract code: 0 undeclared differences
 pnpm contracts:export-abi                                        # after a contract's source changes: forge build, then the ABI the check reads

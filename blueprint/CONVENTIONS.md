@@ -303,7 +303,7 @@ the 215. `OPERATION_OWNERS` lists only the 215: a new operation's owner is the c
 
 - Typecheck: `cd /home/user/capxul-next && pnpm exec tsc -p blueprint 2>&1 | grep "blueprint/<concept>"`.
   Fix every error in your files except unresolved imports of sibling files being written now.
-- Build: `node --experimental-strip-types packages/blueprint-engine/src/main.ts blueprint/index.ts /tmp/target`.
+- Build: `node --experimental-strip-types packages/blueprint-engine/src/main.ts blueprint/index.ts var/blueprint`.
   It must report 0 problems. Gaps are expected until every concept lands, and are never written by
   hand.
 - Frozen check: `node --experimental-strip-types packages/blueprint-engine/scripts/check-frozen.ts`. It must report 0 breaches:

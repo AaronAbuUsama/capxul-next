@@ -5,7 +5,7 @@ is, builds the blueprint from them and reports every problem. (It was `packages/
 content and the engine no longer share a name.)
 
 ```bash
-pnpm blueprint        # node packages/blueprint-engine/src/main.ts blueprint/index.ts /tmp/target  → must print 0 problems
+pnpm blueprint        # node packages/blueprint-engine/src/main.ts blueprint/index.ts var/blueprint  → must print 0 problems
 pnpm --filter @capxul/blueprint-engine test
 ```
 

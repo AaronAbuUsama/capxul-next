@@ -28,7 +28,7 @@ from the build session on, the product code it describes.
   ```bash
   pnpm exec tsc -p packages/blueprint-engine && pnpm test
   pnpm exec tsc -p blueprint
-  node --experimental-strip-types packages/blueprint-engine/src/main.ts blueprint/index.ts /tmp/target   # 0 problems
+  node --experimental-strip-types packages/blueprint-engine/src/main.ts blueprint/index.ts var/blueprint   # 0 problems
   node --experimental-strip-types packages/blueprint-engine/scripts/check-frozen.ts                                           # 0 breaches: every behaviour kept
   pnpm contracts:check-blueprint                                                                       # 0 undeclared differences: the contract records match the code
   pnpm layout                                                                                     # the top level, file sizes and package READMEs (also in pnpm test)

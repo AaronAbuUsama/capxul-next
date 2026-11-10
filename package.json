@@ -6,7 +6,7 @@
     "check": "tsc -b packages/blueprint-engine",
     "test": "pnpm --filter @capxul/blueprint-engine test && pnpm --filter @capxul/portal test && pnpm record:test && pnpm contracts:check-blueprint:test && pnpm evals:test && pnpm loop:test && pnpm plan:test && pnpm plan:check && pnpm tasks:check && pnpm evals:check && pnpm layout:test && pnpm layout",
     "record:test": "node --experimental-strip-types --test spikes/skeleton/core/test/record-schema.test.ts spikes/skeleton/core/test/record-runtime.test.ts",
-    "blueprint": "node --experimental-strip-types packages/blueprint-engine/src/main.ts blueprint/index.ts /tmp/target",
+    "blueprint": "node --experimental-strip-types packages/blueprint-engine/src/main.ts blueprint/index.ts var/blueprint",
     "frozen": "node --experimental-strip-types packages/blueprint-engine/scripts/check-frozen.ts",
     "judgments": "node --experimental-strip-types packages/blueprint-engine/scripts/report-judgments.ts",
     "portal": "node --experimental-strip-types --no-warnings packages/portal/src/main.ts generate packages/portal/dist",
