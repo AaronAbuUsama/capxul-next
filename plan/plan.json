@@ -724,6 +724,19 @@
       "evidence": [],
       "created": "2026-11-10",
       "updated": "2026-11-10"
+    },
+    {
+      "id": "m1-loop-runner",
+      "title": "The loop: a minimal runner so agents can be started, watched and coordinated from scripts",
+      "why": "Aaron asked for it: just enough machinery in the repository that the coordinator, a person, Claude or Codex can start a task, watch it and steer it, without swarmD and without the coordinator starting every thread by hand.",
+      "milestone": "m1",
+      "state": "doing",
+      "needs": [],
+      "records": [],
+      "evidence": [],
+      "created": "2026-11-10",
+      "updated": "2026-11-10",
+      "thread": "lane/loop"
     }
   ],
   "path": {
