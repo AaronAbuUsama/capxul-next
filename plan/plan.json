@@ -488,16 +488,14 @@
       "title": "Create the sites machine",
       "why": "Worlds run on a machine, not a laptop.",
       "milestone": "m3b",
-      "state": "blocked",
+      "state": "done",
       "needs": [],
       "records": [],
-      "evidence": [],
+      "evidence": [
+        "stack capxul-worlds-host, eu-west-1; docs/mission/sites-host/STATE.md; commit d5e7164"
+      ],
       "created": "2026-11-10",
-      "updated": "2026-11-10",
-      "blockedBy": {
-        "need": "At Namecheap, for the domain capxul.com, add four NS records for the host `worlds` pointing to: ns-1035.awsdns-01.org, ns-1870.awsdns-41.co.uk, ns-221.awsdns-27.com, ns-659.awsdns-18.net",
-        "who": "Aaron"
-      }
+      "updated": "2026-11-10"
     },
     {
       "id": "m3b-cost-audit",
@@ -737,22 +735,39 @@
       "created": "2026-11-10",
       "updated": "2026-11-10",
       "thread": "lane/loop"
+    },
+    {
+      "id": "m3b-certificate",
+      "title": "The catch-all certificate for worlds.capxul.com",
+      "why": "A world's sites need HTTPS. The certificate can only be issued once the worlds subdomain is handed to AWS's DNS, and issuing it needs the AWS sign-in.",
+      "milestone": "m3b",
+      "state": "blocked",
+      "needs": [],
+      "records": [],
+      "evidence": [],
+      "created": "2026-11-10",
+      "updated": "2026-11-10",
+      "blockedBy": {
+        "need": "At Namecheap, for capxul.com, add four NS records for the host worlds: ns-1035.awsdns-01.org, ns-1870.awsdns-41.co.uk, ns-221.awsdns-27.com, ns-659.awsdns-18.net. Then the AWS sign-in on this Mac must still be valid, or be renewed with aws login.",
+        "who": "Aaron"
+      }
     }
   ],
   "path": {
     "tasks": [
       "m1-lanes",
       "m1-eval-harness",
+      "m1-loop-runner",
       "m1-time-proof",
       "m1-aws-records",
-      "m3b-create-machine",
+      "m3b-certificate",
       "m1-telemetry",
       "m1-examples",
       "m1-old-decisions",
       "m1-entry-docs",
       "m1-aaron-accepts"
     ],
-    "why": "Lanes and the scoreboard come first, because they change how every later task is done and judged: each thread in its own working copy, and done meaning the scoreboard says so. Then time is proved on the scoreboard, since Aaron said it has to be right. The AWS side and the machine follow, the machine being the one step that needs Aaron's DNS records. Telemetry and examples are the bulk and go to cheaper threads. The old decisions and the entry documents are cleaned up before Aaron is asked to accept the book.",
+    "why": "Lanes, the scoreboard and the loop runner come first, because they change how every later task is done and judged. Then time is proved on the scoreboard. The machine exists; its certificate waits on Aaron's DNS records, so it is asked for early. Telemetry and examples are the bulk. The old decisions and the entry documents are cleaned up before Aaron is asked to accept the book.",
     "written": "2026-11-10"
   },
   "notes": [
