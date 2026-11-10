@@ -966,17 +966,14 @@
       "title": "Close the gaps on contract functions and chain events",
       "why": "Exit line g2: the blueprint builds with no problems and every open gap is closed or has a recorded reason. 162 gaps are open after the telemetry work; they are listed in the findings file the blueprint build writes (pnpm blueprint, then findings.json in the output folder, under gaps, each with record, rule and detail).",
       "milestone": "m1",
-      "state": "blocked",
+      "state": "dropped",
       "needs": [],
       "records": [],
       "evidence": [],
       "created": "2026-11-10",
       "updated": "2026-11-10",
       "thread": "m1-gaps-contracts-11101507",
-      "blockedBy": {
-        "need": "loop run m1-gaps-contracts-11101507: F-3.1 done-when: contract gaps: Seen: The escrow-v4 member descriptions were replaced by the same no-caller reason, removing member-specific behaviour. For example, refund no longer records who may call it or when a refund is permitted; collect and payout likewise lose their conditions. Expected: Re",
-        "who": "coordinator"
-      }
+      "droppedWhy": "Its run was refused by the reviewer for boilerplate reasons; replaced by m1-gaps-contracts-stand, which uses the engine's new stands field"
     },
     {
       "id": "m1-gaps-states",
@@ -1025,18 +1022,31 @@
       "title": "The engine: unique eval ids, and gaps that stand for a recorded reason",
       "why": "Two loop runs on 10 November stopped at the engine. m1-old-decisions blocked because giving every eval a unique id means implementing the recorded rule system.eval-identity in the engine, which a blueprint task may not touch. And the three gap tasks could only write reasons as decisions: the build still counts those gaps as open, so exit line g2 (every gap closed or with a recorded reason) cannot be read off the build.",
       "milestone": "m1",
-      "state": "doing",
+      "state": "done",
+      "needs": [],
+      "records": [],
+      "evidence": [
+        "907b787"
+      ],
+      "created": "2026-11-10",
+      "updated": "2026-11-10",
+      "thread": "m1-engine-rules-11101629"
+    },
+    {
+      "id": "m1-gaps-contracts-stand",
+      "title": "Contract functions and chain events: wire each one or let it stand with its own reason",
+      "why": "Exit line g2. 99 of the open gaps are contract functions nothing calls and chain events nothing consumes. A first run on 10 November was refused by its reviewer: it replaced each member's own description with one boilerplate reason and lost what each function does.",
+      "milestone": "m1",
+      "state": "todo",
       "needs": [],
       "records": [],
       "evidence": [],
       "created": "2026-11-10",
-      "updated": "2026-11-10",
-      "thread": "m1-engine-rules-11101629"
+      "updated": "2026-11-10"
     }
   ],
   "path": {
     "tasks": [
-      "m1-engine-rules",
       "m1-loop-hardening",
       "m1-eval-coverage",
       "m1-time-proof",
@@ -1044,7 +1054,7 @@
       "m1-entry-docs",
       "m1-aaron-accepts"
     ],
-    "why": "Two runs stopped at the engine on 10 November, so its two missing rules come first: unique eval ids and gaps that stand for a recorded reason. Then the loop is made trustworthy for tasks that need the test sites, the checks are lined up with the blueprint's tests, time is proved, the old decisions and entry documents are finished, and Aaron reads the portal.",
+    "why": "The engine's two rules are in. Next the loop is made trustworthy for tasks that need the test sites, the checks are lined up with the blueprint's tests so the score is real, time is proved, the old decisions and entry documents are finished, and Aaron reads the portal.",
     "written": "2026-11-10"
   },
   "notes": [
