@@ -14,7 +14,7 @@ export const overview = (p: OverviewPage): readonly string[] => [
   `**${plain(p.hero.eyebrow)}.** ${plain(p.hero.title)}`, "", plain(p.hero.lead), "", plain(p.hero.sub), "",
   `Built from commit \`${p.commit}\`: ${p.problems.length} problems, ${p.gaps.length} gaps, ${p.evals} evals.`, "",
   ...section(plain(p.banner.title), [plain(p.banner.text)]),
-  ...(p.planNote === null ? [] : section("Where the plan is", [`${plain(p.planNote.text)} (the coordinator, ${p.planNote.date})`, "", `The whole plan: [Plan](plan.md).`])),
+  ...(p.planNote === null ? [] : section("Where the plan is", [`${plain(p.planNote.text)} (the coordinator, ${p.planNote.date})`, "", `${p.planWaits} tasks wait for you.`, "", `The whole plan: [Plan](plan.md).`])),
   ...section("The climb", p.climb.map((c) => `- **${c.step}** (${plain(c.status)}): ${c.big}, ${c.sub}`)),
   ...section(`Waiting for you (${p.waiting.length})`, [
     plain(p.needsYou), "", ...p.waiting.map((q) => `- ${link(p.id, q.ref)}: ${plain(q.title)}`),
@@ -96,20 +96,21 @@ export const plan = (p: PlanPage): readonly string[] => {
   ]);
   return [
     ...(p.note ? [`**Latest note, ${p.note.date} (${p.note.by}).** ${plain(p.note.text)}`, ""] : []),
-    ...(p.waitsOnOwner > 0 ? [`${p.waitsOnOwner} tasks wait on ${p.owner}.`, ""] : []),
-    ...(p.goal ? section(`Goal: ${plain(p.goal.title)}`, [plain(p.goal.why), "", ...exitLines(p.goal.exit)]) : []),
-    ...section("Milestones, in order", p.milestones.flatMap((m) => [
-      `### ${m.id}: ${plain(m.title)} (${m.state})`, "", plain(m.goal), "",
-      `${m.tasks.done} done, ${m.tasks.doing} doing, ${m.tasks.blocked} blocked, ${m.tasks.todo} to do.${m.evals === null ? "" : ` ${m.evals.passing} of ${m.evals.total} evals pass in ${m.concepts.map((c) => c.label).join(", ")}.`}`, "",
-      ...exitLines(m.exit), "",
-    ])),
+    ...section(`Blocked (${p.blocked.length}; ${p.waitsOnOwner} wait on ${p.owner})`, blocked.length === 0 ? ["Nothing is blocked."] : blocked),
     ...(p.path ? section(`Critical path through ${p.path.milestone}`, [
       ...p.path.steps.map((t, i) => `${i + 1}. \`${t.id}\` ${plain(t.title)} (${t.state}${t.thread === "" ? "" : `, thread ${t.thread}`})`), "",
       `Why, written ${p.path.written} by the coordinator: ${plain(p.path.why)}`,
     ]) : []),
-    ...section(`Blocked (${p.blocked.length})`, blocked.length === 0 ? ["Nothing is blocked."] : blocked),
     ...(p.problems.length === 0 ? [] : section("What the plan check says", p.problems.map((x) => `- ${x.at}: ${plain(x.why)}`))),
-    ...p.groups.filter((g) => g.tasks.length > 0).flatMap((g) => section(`${g.title} (${g.tasks.length})`,
+    ...p.groups.filter((g) => g.state === "doing" && g.tasks.length > 0).flatMap((g) => section(`In progress (${g.tasks.length})`,
+      table(["Task", "Id", "Milestone", "Thread"], g.tasks.map((t) => [plain(t.title), `\`${t.id}\``, t.milestone, t.thread])))),
+    ...(p.goal ? section(`Goal: ${plain(p.goal.title)}`, [plain(p.goal.why), "", ...exitLines(p.goal.exit)]) : []),
+    ...section("Milestones, in order", p.milestones.flatMap((m) => [
+      `### ${m.id}: ${plain(m.title)} (${m.state})`, "", plain(m.goal), "",
+      `${m.tasks.done} done, ${m.tasks.doing} doing, ${m.tasks.blocked} blocked, ${m.tasks.todo} to do.${m.evals === null ? "" : ` ${m.evals.passing} of ${m.evals.total} evals pass in ${m.concepts.map((c) => c.label).join(", ")}.`}`, "",
+      ...(m.repeatsGoal ? [`The goal's exit lines: ${m.exit.filter((e) => e.met).length} of ${p.goal?.exit.length ?? 0} met.`, ""] : [...exitLines(m.exit), ""]),
+    ])),
+    ...p.groups.filter((g) => g.state !== "doing" && g.state !== "blocked" && g.tasks.length > 0).flatMap((g) => section(`${g.title} (${g.tasks.length})`,
       table(["Task", "Id", "Milestone", "Thread"], g.tasks.map((t) => [plain(t.title), `\`${t.id}\``, t.milestone, t.thread])))),
     ...section("The last changes", table(["When", "By", "Change", "About", "Commit"], p.log.map((l) => [l.at, l.by, l.action, plain(l.summary), l.commit]))),
   ];

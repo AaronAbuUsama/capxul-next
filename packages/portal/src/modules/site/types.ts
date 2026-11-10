@@ -122,6 +122,8 @@ export interface ConceptCard {
 export interface OverviewPage extends PageHead {
   /** The coordinator's latest note, and the link to the plan: null when there is no plan file. */
   readonly planNote: { readonly date: string; readonly by: string; readonly text: string } | null;
+  /** How many tasks of the plan wait on the owner. */
+  readonly planWaits: number;
   readonly type: "overview"; readonly commit: string;
   readonly hero: Direction["hero"]; readonly needsYou: string; readonly banner: Direction["banner"];
   readonly climb: readonly ClimbCard[]; readonly verdicts: { readonly given: number; readonly of: number };
@@ -235,6 +237,8 @@ export interface PlanTask {
 export interface PlanMilestone {
   readonly id: string; readonly title: string; readonly goal: string; readonly state: string; readonly order: number;
   readonly exit: readonly PlanExit[]; readonly concepts: readonly Ref[];
+  /** True when its exit lines are the goal's, word for word: the page then says so and counts, instead of repeating them. */
+  readonly repeatsGoal: boolean;
   /** How many of the named concepts' evals pass in the status document; null when it names no concept. */
   readonly evals: Count | null;
   readonly tasks: Readonly<Record<TaskState, number>>;

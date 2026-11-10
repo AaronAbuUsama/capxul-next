@@ -16,37 +16,35 @@ const exitRow = (e: PlanExit): string =>
   `<span class="mono">${esc(e.id)}</span></span><span class="plan-claim">${prose(e.claim)}</span>` +
   (e.evidence === "" ? "" : `<span class="row-text">Evidence: ${prose(e.evidence)}</span>`) + `</div>`;
 
-const hero = (p: PlanPage): string => {
-  const note = p.note;
-  const needs = p.waitsOnOwner === 0
-    ? `<p class="needs-title">Nothing in the plan waits for you</p>`
-    : `<p class="needs-title">${plural(p.waitsOnOwner, "thing waits", "things wait")} for you</p>` +
-      `<p class="needs-text">Each is a blocked task below, with what it needs and the context.</p>` +
-      `<a class="btn btn-orange" href="#blocked">See what is blocked</a>`;
-  return `<section class="hero"><div class="hero-main"><p class="eyebrow">Plan${note ? `, latest note ${esc(note.date)}` : ""}</p>` +
-    `<h1 class="display">${esc(p.goal?.title ?? "")}</h1>` +
-    (note ? `<p class="lead">${prose(note.text)}</p><p class="sub">${esc(note.by)}, ${esc(note.date)}</p>` : "") +
-    `</div><aside class="needs"><p class="eyebrow eyebrow-orange">Needs you</p>${needs}</aside></section>`;
-};
+/** The page title, the goal's title as one line under it, and the coordinator's latest note. */
+const hero = (p: PlanPage): string =>
+  `<p class="eyebrow">Plan</p><h1 class="title">Plan</h1><p class="lead">${esc(p.goal?.title ?? "")}</p>` +
+  (p.note ? `<div class="banner plan-note"><div class="banner-words"><p class="banner-title">${prose(p.note.text)}</p>` +
+    `<p class="banner-text">${esc(p.note.by)}, ${esc(p.note.date)}</p></div></div>` : "");
 
 const goal = (p: PlanPage): string =>
   p.goal === null ? "" :
     section("goal", "The goal", `<div class="rows">${p.goal.exit.map(exitRow).join("")}</div>`, p.goal.why);
 
-const milestone = (m: PlanMilestone): string => {
-  const open = m.exit.filter((e) => !e.met).length;
+const milestone = (m: PlanMilestone, goalExits: number): string => {
+  const met = m.exit.filter((e) => e.met).length;
   const t = m.tasks;
+  const exits = m.repeatsGoal
+    ? `<p class="plan-claim">The goal's exit lines: ${met} of ${goalExits} met.</p>`
+    : m.state === "current"
+      ? `<div class="rows">${m.exit.map(exitRow).join("")}</div>`
+      : fold(`${plural(m.exit.length, "exit line")}, ${met} met`, `<div class="rows">${m.exit.map(exitRow).join("")}</div>`);
   return `<div class="plan-ms plan-ms-${esc(m.state)}" id="ms-${esc(m.id)}"><div class="climb-top"><span class="climb-step mono">${esc(m.id)}</span>` +
     `<span class="climb-status ${m.state === "current" ? "tone-blue" : "tone-grey"}">${m.state === "current" ? "current" : m.state === "done" ? "done" : "to do"}</span></div>` +
     `<h3>${esc(m.title)}</h3><p class="plan-ms-goal">${prose(m.goal)}</p>` +
-    `<p class="climb-sub">${m.exit.length - open} of ${m.exit.length} exit lines met · ${plural(t.todo + t.doing + t.blocked + t.done, "task")}: ` +
+    `<p class="climb-sub">${plural(t.todo + t.doing + t.blocked + t.done, "task")}: ` +
     `${t.done} done, ${t.doing} doing, ${t.blocked} blocked, ${t.todo} to do</p>` +
     (m.evals === null ? "" : `<p class="climb-sub">${count(m.evals.passing)} of ${count(m.evals.total)} evals pass in ${m.concepts.length} concepts</p>`) +
-    `<div class="rows">${m.exit.map(exitRow).join("")}</div></div>`;
+    exits + `</div>`;
 };
 
 const milestones = (p: PlanPage): string =>
-  section("milestones", "The milestones, in order", `<div class="plan-list">${p.milestones.map(milestone).join("")}</div>`);
+  section("milestones", "The milestones, in order", `<div class="plan-list">${p.milestones.map((m) => milestone(m, p.goal?.exit.length ?? 0)).join("")}</div>`);
 
 const taskName = (t: PlanTask): string => `<span class="row-id plain">${esc(t.title)}</span><span class="row-text"><span class="mono">${esc(t.id)}</span> · ${esc(t.milestone)}</span>`;
 
@@ -82,21 +80,32 @@ const blockedCard = (p: PlanPage, b: PlanBlocked, cites: Cites): string => {
     `<p class="plan-claim">${b.who === "" ? "" : `<strong>${esc(b.who)}:</strong> `}${prose(b.need)}</p></article>`;
 };
 
-const blocked = (p: PlanPage, cites: Cites): string =>
-  p.blocked.length === 0
+/** Every blocked task in full, those that wait on the owner first. */
+const blocked = (p: PlanPage, cites: Cites): string => {
+  const ordered = [...p.blocked.filter((b) => b.waitsOnOwner), ...p.blocked.filter((b) => !b.waitsOnOwner)];
+  const title = p.waitsOnOwner > 0 ? `Waiting for ${p.owner === "aaron" ? "Aaron" : p.owner}: ${p.waitsOnOwner}` : "What is blocked";
+  return ordered.length === 0
     ? section("blocked", "What is blocked", `<p class="q-none">Nothing is blocked.</p>`)
-    : section("blocked", "What is blocked", `<div class="plan-blocks">${p.blocked.map((b) => blockedCard(p, b, cites)).join("")}</div>`,
-      "Each with what it waits for. A decision is shown with its question, its options and the book's recommendation.");
+    : section("blocked", title, `<div class="plan-blocks">${ordered.map((b) => blockedCard(p, b, cites)).join("")}</div>`,
+      `${plural(p.blocked.length, "task is", "tasks are")} blocked, each with what it waits for. A decision is shown with its question, its options and the book's recommendation.`);
+};
 
+const taskTable = (held: readonly PlanTask[]): string =>
+  table(["Task", "Milestone", "Thread", "Updated"], held.map((t) =>
+    `<tr id="task-${esc(t.id)}"><td>${esc(t.title)}<span class="cell-sub mono">${esc(t.id)}${t.needs.length ? ` · needs ${esc(t.needs.join(", "))}` : ""}</span></td>` +
+    `<td class="mono">${esc(t.milestone)}</td><td class="mono">${esc(t.thread)}</td><td class="muted">${esc(t.updated)}</td></tr>`));
+
+const inProgress = (p: PlanPage): string => {
+  const doing = p.groups.find((g) => g.state === "doing")?.tasks ?? [];
+  return doing.length === 0 ? "" : section("doing", "In progress", taskTable(doing), "Each with the thread working on it.");
+};
+
+/** The rest, by state; what is blocked and what is in progress are above. */
 const tasks = (p: PlanPage): string =>
-  section("tasks", "The tasks", p.groups.filter((g) => g.tasks.length > 0).map((g) => {
-    const rows = table(["Task", "Milestone", "Thread", "Updated"], g.tasks.map((t) =>
-      `<tr id="task-${esc(t.id)}"><td>${esc(t.title)}<span class="cell-sub mono">${esc(t.id)}${t.needs.length ? ` · needs ${esc(t.needs.join(", "))}` : ""}</span></td>` +
-      `<td class="mono">${esc(t.milestone)}</td><td class="mono">${esc(t.thread)}</td><td class="muted">${esc(t.updated)}</td></tr>`));
-    const open = g.state === "doing" || g.state === "blocked" || g.state === "todo";
-    return open ? `<div class="sub-block"><div class="col-head"><h3>${esc(g.title)}</h3><span class="caption">${plural(g.tasks.length, "task")}</span></div>${rows}</div>`
-      : fold(`${g.title}, ${plural(g.tasks.length, "task")}`, rows);
-  }).join(""));
+  section("tasks", "The other tasks", p.groups.filter((g) => g.state !== "doing" && g.state !== "blocked" && g.tasks.length > 0).map((g) =>
+    g.state === "todo"
+      ? `<div class="sub-block"><div class="col-head"><h3>${esc(g.title)}</h3><span class="caption">${plural(g.tasks.length, "task")}</span></div>${taskTable(g.tasks)}</div>`
+      : fold(`${g.title}, ${plural(g.tasks.length, "task")}`, taskTable(g.tasks))).join(""));
 
 const log = (p: PlanPage): string =>
   p.log.length === 0 ? "" :
@@ -112,8 +121,8 @@ const problems = (p: PlanPage): string =>
 
 export const plan = (p: PlanPage, cites: Cites): string =>
   !p.present
-    ? `<main class="page"><p class="eyebrow eyebrow-muted">Plan</p><h1 class="title">The plan</h1><p class="q-none">There is no plan yet: <code>plan/plan.json</code> is absent. ` +
+    ? `<main class="page"><p class="eyebrow eyebrow-muted">Plan</p><h1 class="title">Plan</h1><p class="q-none">There is no plan yet: <code>plan/plan.json</code> is absent. ` +
       `The coordinator writes it with <code>pnpm plan</code>.</p></main>`
-    : `<main class="page">${hero(p)}${goal(p)}${milestones(p)}${path(p)}${blocked(p, cites)}${problems(p)}${tasks(p)}${log(p)}` +
+    : `<main class="page">${hero(p)}${blocked(p, cites)}${path(p)}${problems(p)}${inProgress(p)}${goal(p)}${milestones(p)}${tasks(p)}${log(p)}` +
       `<p class="all-kinds">This page is read from <code>plan/plan.json</code>; the coordinator changes it with <code>pnpm plan</code>. Questions for you are on ` +
       `<a href="${esc(hrefTo(p.id, REVIEW))}">the Questions page</a>.</p></main>`;

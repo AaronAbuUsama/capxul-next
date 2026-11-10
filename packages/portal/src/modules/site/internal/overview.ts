@@ -6,6 +6,7 @@ import { catalogueOf } from "./catalogue.ts";
 import { findingRows, head, membersOf, ofKind, titleOf, type Ctx } from "./context.ts";
 import { EVALS } from "./evalCatalogue.ts";
 import { hasPage, refOf } from "./locate.ts";
+import { ownerWaits } from "./plan.ts";
 import { HAND_WRITTEN, questionOf } from "./questions.ts";
 import { count, plural } from "./values.ts";
 
@@ -56,7 +57,7 @@ export const overview = (ctx: Ctx): OverviewPage => {
   const paged = [...ctx.byKind].filter(([kind]) => hasPage(kind));
   return {
     ...head("index", "Overview", HAND_WRITTEN, null), type: "overview", commit,
-    planNote: ctx.input.plan?.plan.notes[ctx.input.plan.plan.notes.length - 1] ?? null,
+    planNote: ctx.input.plan?.plan.notes[ctx.input.plan.plan.notes.length - 1] ?? null, planWaits: ownerWaits(ctx),
     hero: direction.hero, needsYou: direction.needsYou, banner: direction.banner, climb: climb(ctx),
     verdicts: { given: concepts.filter((c) => c.verdict !== "none").length, of: concepts.length },
     waiting: ctx.waiting.map((d) => questionOf(ctx, d)),

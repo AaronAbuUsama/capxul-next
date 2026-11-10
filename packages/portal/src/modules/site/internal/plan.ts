@@ -49,8 +49,10 @@ const milestones = (ctx: Ctx, tasks: readonly Task[]): readonly PlanMilestone[] 
       const c = ctx.input.book.records.get(`concept:${id}`);
       return c ? [refOf(c)] : [];
     });
+    const goal = plan.goal.exit;
+    const repeatsGoal = m.exit.length > 0 && m.exit.every((e) => goal.some((g) => g.id === e.id && g.claim === e.claim));
     return {
-      id: m.id, title: m.title, goal: m.goal, state: m.state, order: m.order, exit: m.exit.map(exitOf), concepts,
+      id: m.id, title: m.title, goal: m.goal, state: m.state, order: m.order, exit: m.exit.map(exitOf), concepts, repeatsGoal,
       evals: named.size === 0 ? null : { passing: passing(ctx.input.status, ids), total: ids.length },
       tasks: counts(tasks.filter((t) => t.milestone === m.id)),
     };

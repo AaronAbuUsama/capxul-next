@@ -82,7 +82,8 @@ const planBlock = (p: OverviewPage): string =>
     `<section class="block"><div class="col-head"><h2 id="plan">Where the plan is</h2>` +
     `<a href="${esc(hrefTo(p.id, { label: "", page: "plan", anchor: "" }))}">The whole plan ${ARROW}</a></div>` +
     `<div class="banner"><div class="banner-words"><p class="banner-title">${prose(p.planNote.text)}</p>` +
-    `<p class="banner-text">The coordinator, ${esc(p.planNote.date)}</p></div></div></section>`;
+    `<p class="banner-text">The coordinator, ${esc(p.planNote.date)}</p></div>` +
+    `<div class="banner-count"><span class="banner-big">${count(p.planWaits)}</span><span class="banner-sub">${p.planWaits === 1 ? "thing waits" : "things wait"} for you</span></div></div></section>`;
 
 export const overview = (p: OverviewPage): string =>
   `<main class="page">${hero(p)}${planBlock(p)}${climb(p)}<div class="cols">${waiting(p)}${holds(p)}</div>${concepts(p)}${unfinished(p)}` +
