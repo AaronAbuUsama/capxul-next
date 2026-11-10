@@ -612,6 +612,11 @@
       "date": "2026-11-10",
       "by": "coordinator",
       "text": "The plan page is live and is now where the work is tracked. Four things wait on Aaron: the AWS sign-in with the subdomain and DNS records, the cost audit's switch-offs, equity, and the payroll filing route. The door and clock spike and the contracts' deeper tests are still running."
+    },
+    {
+      "date": "2026-11-10",
+      "by": "coordinator",
+      "text": "The plan now explains itself: an outline, and a page for every milestone and task. Everything that waits on Aaron is in one list on the Questions page, and his answers are saved to plan/answers.jsonl on this Mac. The door, the recorder, the clock and snapshots are built on the test sites; the coordinator is re-running their checks before closing that task."
     }
   ]
 }
