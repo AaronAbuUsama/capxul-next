@@ -1037,12 +1037,13 @@
       "title": "Contract functions and chain events: wire each one or let it stand with its own reason",
       "why": "Exit line g2. 99 of the open gaps are contract functions nothing calls and chain events nothing consumes. A first run on 10 November was refused by its reviewer: it replaced each member's own description with one boilerplate reason and lost what each function does.",
       "milestone": "m1",
-      "state": "todo",
+      "state": "doing",
       "needs": [],
       "records": [],
       "evidence": [],
       "created": "2026-11-10",
-      "updated": "2026-11-10"
+      "updated": "2026-11-10",
+      "thread": "m1-gaps-contracts-stand-11101649"
     }
   ],
   "path": {
