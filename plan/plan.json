@@ -743,16 +743,13 @@
       "title": "The catch-all certificate for worlds.capxul.com",
       "why": "A world's sites need HTTPS. The certificate can only be issued once the worlds subdomain is handed to AWS's DNS, and issuing it needs the AWS sign-in.",
       "milestone": "m3b",
-      "state": "blocked",
+      "state": "doing",
       "needs": [],
       "records": [],
       "evidence": [],
       "created": "2026-11-10",
       "updated": "2026-11-10",
-      "blockedBy": {
-        "need": "At Namecheap, for capxul.com, add four NS records for the host worlds: ns-1035.awsdns-01.org, ns-1870.awsdns-41.co.uk, ns-221.awsdns-27.com, ns-659.awsdns-18.net. Then the AWS sign-in on this Mac must still be valid, or be renewed with aws login.",
-        "who": "Aaron"
-      }
+      "thread": "machine"
     }
   ],
   "path": {
@@ -764,12 +761,11 @@
       "m1-aws-records",
       "m3b-certificate",
       "m1-telemetry",
-      "m1-examples",
       "m1-old-decisions",
       "m1-entry-docs",
       "m1-aaron-accepts"
     ],
-    "why": "Lanes, the scoreboard and the loop runner come first, because they change how every later task is done and judged. Then time is proved on the scoreboard. The machine exists; its certificate waits on Aaron's DNS records, so it is asked for early. Telemetry and examples are the bulk. The old decisions and the entry documents are cleaned up before Aaron is asked to accept the book.",
+    "why": "Lanes, the scoreboard and the loop runner come first, because they change how every later task is done and judged. Then time is proved on the scoreboard. The machine exists and its DNS is live, so its certificate is being issued while the AWS sign-in lasts. Examples are done; telemetry is the remaining bulk. The old decisions and the entry documents are cleaned up before Aaron is asked to accept the book.",
     "written": "2026-11-10"
   },
   "notes": [
@@ -807,6 +803,11 @@
       "date": "2026-11-10",
       "by": "coordinator",
       "text": "Aaron has handed over: the coordinator runs the climb. His answers are applied, the clock is settled for option A and proved on the test sites, the jurisdiction is open, and the contract records match the code with a check. Before the bulk work starts, two things change: every thread gets its own working copy, and a scoreboard runs the book's tests so that done is a result, not a report. One thing waits on Aaron: the four DNS records for worlds.capxul.com."
+    },
+    {
+      "date": "2026-11-10",
+      "by": "coordinator",
+      "text": "Handoff note, 10 November, midday. Aaron is away and has handed over. Done and merged: the book cut and reshaped (201 operations, 0 problems), his answers applied, the clock settled for option A and proved on the test sites (119 of 119, the coordinator's own run), the contract records matching the code with a check, an example on every operation, the plan page and the one inbox with saved answers, the worlds machine in AWS with its DNS zone and the four NS records at Namecheap. Running in their own lanes: the scoreboard (lane/scoreboard), the loop runner on pi-durable in its own package (lane/loop), the certificate (machine thread). Next: merge those when their checks pass, prove time on the scoreboard, the AWS side as records, telemetry on every operation, the lean service, the hosted bench image, the first shared world. Nothing waits on Aaron right now. The jurisdiction is open; equity, the hosted FDE and individuals are parked."
     }
   ]
 }
