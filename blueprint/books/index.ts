@@ -1,3 +1,4 @@
+import * as stateGaps from "./state-gaps.ts";
 // Books' records for the target book: its tables, machines and events, its door, one file per
 // area (the chart, annotations, assets, facts, the feed, reports, the export), its durable work
 // (the price sync, the added-token scan and the head sync), its Core SDK flows, its 17 operations
@@ -13,7 +14,7 @@ import * as processes from "./processes.ts";
 import * as operations from "./operations.ts";
 import * as decisions from "./decisions.ts";
 
-export const modules = [
+export const modules = [stateGaps,
   data,
   procedures,
   annotations,

@@ -1,3 +1,4 @@
+import * as stateGaps from "./state-gaps.ts";
 // The sites concept's modules, for blueprint/index.ts.
 
 import * as data from "./data.ts";
@@ -9,4 +10,4 @@ import * as decisions from "./decisions.ts";
 import * as evidence from "./evidence.ts";
 import * as journeys from "./journeys.ts";
 
-export const modules = [data, sites, door, processes, operations, decisions, evidence, journeys] as const;
+export const modules = [stateGaps, data, sites, door, processes, operations, decisions, evidence, journeys] as const;

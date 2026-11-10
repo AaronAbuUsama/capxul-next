@@ -128,7 +128,7 @@ export const rpc_devnet_worlds_snapshot_restore = rpc({
     "every site's address, world name and secret, the sign-in addresses, ports, token, mail addresses and database names renamed, and the new record's `born` entry names the parent world, snapshot and sequence. The old world is untouched. Grants stay outside the snapshot.",
   concept: concept_devnet, kind: "action", who: WHO_OWNER, input: Schema.Struct({ world: S, name: S, as: Null(S) }), output: WorldView,
   errors: errorsOf("restoreAs", [error_INVALID_INPUT]).concat(errorsOf("snapshotRestore")).filter((e, i, a) => a.findIndex((x) => x.id === e.id) === i),
-  reads: [table_world_snapshots, table_worlds], writes: [table_worlds, table_command_records], drives: [machine_world.t.restore],
+  reads: [table_world_snapshots, table_worlds], writes: [table_worlds, table_command_records], drives: [machine_world.t.restore, machine_world.t.restored],
   calls: [integration_devnet_control.c.snapshotRestore, integration_devnet_control.c.restoreAs, integration_site_service.c.restoreSnapshot],
   budget: { class: "background", p50Ms: 30_000, p95Ms: 90_000, why: "A restore replaces a chain and every company's site: measured in the spike, 36 s into a new world with one company and 80 s in place for four; 90 s p95 is the headroom." }, was: [`${NOTE} (section 6, 4)`],
 
