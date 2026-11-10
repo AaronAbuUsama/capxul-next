@@ -15,14 +15,15 @@ export const POLICY: Policy = {
 };
 
 /**
- * The maker's and the checker's default models. The maker is gpt-6.1-sol by Aaron's ruling (10 November 2026: "we need
- * to be using sol 6.1 for coding"). Both are flags.
+ * The maker's and the checker's default models. The maker is gpt-6.1-sol and the checker gpt-6.1-terra, by Aaron's ruling (10 November
+ * 2026: Sol 6.1 for coding; only Sol 6.1 and Terra 6.1 allowed). Both are flags.
  */
 export const MAKER_MODEL = "gpt-6.1-sol";
-export const CHECKER_MODEL = "gpt-6-luna";
+export const CHECKER_MODEL = "gpt-6.1-terra";
 
-/** Aaron, 10 November 2026: "we can only use 6.1 or 6.0 class models". Anything else is refused before a call is made. */
-export const allowedModel = (id: string): boolean => !id.startsWith("gateway/") || /^gateway\/gpt-6(\.1)?-[a-z0-9-]+$/.test(id); // a test's fake provider is not the gateway
+/** Aaron, 10 November 2026: only gpt-6.1-sol and gpt-6.1-terra are allowed. Anything else is refused before a call is made. */
+export const ALLOWED_MODELS = ["gpt-6.1-sol", "gpt-6.1-terra"] as const;
+export const allowedModel = (id: string): boolean => !id.startsWith("gateway/") || ALLOWED_MODELS.some((m) => id === `gateway/${m}`); // a test's fake provider is not the gateway
 
 /** `provider/id`, or a bare id (taken to be the gateway's). */
 export const qualify = (id: string): string => (id.includes("/") ? id : `gateway/${id}`);

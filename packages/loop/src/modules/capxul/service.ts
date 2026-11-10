@@ -62,7 +62,7 @@ export const agent = (job: Job, name: string, o: { role: string; prompt: string;
   if (left <= 0 && job.run.info.spentUsd > 0) return { ok: false, text: "", costUsd: 0, tokens: 0, head: head(wt.dir), error: `the budget of $${job.opts.budgetUsd} is spent` };
   const maker = job.opts.model ? qualify(job.opts.model) : defaultModel(job.ctx);
   const model = qualify(CHECKER_ROLES.has(o.role) ? job.opts.checkerModel ?? defaultCheckerModel(job.ctx) : maker);
-  if (!allowedModel(model)) return { ok: false, text: "", costUsd: 0, tokens: 0, head: head(wt.dir), error: `the model ${model} is not allowed: only 6.0 and 6.1 class models (gpt-6-*, gpt-6.1-*)` };
+  if (!allowedModel(model)) return { ok: false, text: "", costUsd: 0, tokens: 0, head: head(wt.dir), error: `the model ${model} is not allowed: only gpt-6.1-sol and gpt-6.1-terra` };
   const said = await ask(job.run.host, {
     key: name, model, system: roleBody(job, o.role), prompt: o.prompt, cwd: wt.dir,
     profile: o.readOnly ? "read" : "write", maxTurns: 80, timeoutMs: job.opts.timeoutMin * 60_000, stopFile: job.run.stopFile,
