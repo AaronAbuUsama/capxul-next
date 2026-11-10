@@ -11,6 +11,8 @@
 // designed text's RESERVED_MATTER (P10); each is reached from a world named in decision board.worlds.
 
 import { Schema } from "effect";
+import { ADDRESS, CHAIN_ID, PEOPLE, hash, ok, refused, uuid } from "../shared/examples.ts";
+import { APPROVAL_ID, APPROVAL_URL, ORG, PROPOSAL, approvalOpened, boardChange, ownerChange, priya, marcus, proposal } from "./examples.ts";
 import { budget, defineOperation } from "../../../packages/book/src/index.ts";
 import { frozen, frozenText, type FrozenId } from "../../frozen/index.ts";
 import {
@@ -122,6 +124,8 @@ const READ = budget("read");
 
 // ── org board ───────────────────────────────────────────────────────────────────────────────
 
+const lc = (a: string) => a.toLowerCase();
+
 const CLAIM = "org.board.claim";
 export const operation_org_board_claim = defineOperation({
   ...frozenText(CLAIM),
@@ -144,6 +148,11 @@ export const operation_org_board_claim = defineOperation({
     { error: error_ROLE_PERMISSION_DENIED, given: W_FOUNDER, when: when(CLAIM, 1) },
     { error: error_WRONG_STATE, given: W_FOUNDER, when: when(CLAIM, 2) },
     signedOut,
+  ],
+  examples: [
+    ok("Priya, newly elected, claims her seat and waits for her approval", "capxul org board claim --no-wait --json", boardChange({ action: "claim", status: "awaiting_approval", person: priya, seat: "elected", directors: 3, threshold: { needed: 2, of: 3 }, before: { needed: 2, of: 2 } })),
+    refused("Priya's Director hat has not been granted", "capxul org board claim --json", error_ROLE_PERMISSION_DENIED),
+    refused("Her Safe already signs", "capxul org board claim --json", error_WRONG_STATE),
   ],
   budget: BOARD_WRITE,
 });
@@ -174,6 +183,11 @@ export const operation_org_board_director_add = defineOperation({
     { error: error_INVALID_INPUT, given: W_FOUNDER, when: when(ADD, 3) },
     signedOut,
   ],
+  examples: [
+    ok("Hannah puts Priya forward as a Director", `capxul org board director add ${PEOPLE.priya.email} --no-wait --json`, boardChange({ action: "seat", person: priya, directors: 3, threshold: { needed: 2, of: 3 }, before: { needed: 2, of: 2 } })),
+    refused("The email names nobody in the organization", `capxul org board director add stranger@northwind.test --json`, error_INVALID_INPUT),
+    refused("The caller does not wear the Shareholders' top hat", `capxul org board director add ${PEOPLE.priya.email} --json`, error_ROLE_PERMISSION_DENIED),
+  ],
   budget: BOARD_WRITE,
 });
 
@@ -196,6 +210,11 @@ export const operation_org_board_director_remove = defineOperation({
     { error: error_RESERVED_MATTER, given: W_HANDED, when: designedWhen(REMOVE, "RESERVED_MATTER") },
     { error: error_WRONG_STATE, given: W_FOUNDER, when: when(REMOVE, 2) },
     signedOut,
+  ],
+  examples: [
+    ok("Hannah removes Marcus from the Board", `capxul org board director remove ${PEOPLE.marcus.email} --no-wait --json`, boardChange({ action: "remove", status: "awaiting_approval", person: null, removed: [marcus], directors: 1, threshold: { needed: 1, of: 1 }, before: { needed: 2, of: 2 } })),
+    refused("The person is not a Director", `capxul org board director remove ${PEOPLE.priya.email} --json`, error_WRONG_STATE),
+    refused("The caller does not wear the Shareholders' top hat", `capxul org board director remove ${PEOPLE.hannah.email} --json`, error_ROLE_PERMISSION_DENIED),
   ],
   budget: BOARD_WRITE,
 });
@@ -220,6 +239,11 @@ export const operation_org_board_handover = defineOperation({
     { error: error_WRONG_STATE, given: W_FOUNDER, when: when(HANDOVER, 2) },
     signedOut,
   ],
+  examples: [
+    ok("Hand the Board over to the Governor after the equity install", "capxul org board handover --no-wait --json", boardChange({ action: "handover", status: "awaiting_approval" })),
+    refused("The Board is already handed over", "capxul org board handover --json", error_WRONG_STATE),
+    refused("The caller does not wear the Shareholders' top hat", "capxul org board handover --json", error_ROLE_PERMISSION_DENIED),
+  ],
   budget: BOARD_WRITE,
 });
 
@@ -243,6 +267,10 @@ export const operation_org_board_refresh = defineOperation({
   returns: BoardChangeView,
   errors: [error_CLI_USAGE],
   refusals: [{ error: error_WRONG_STATE, given: W_TWO, when: when(REFRESH, 1) }, signedOut],
+  examples: [
+    ok("Refresh the Board after Marcus's Director hat lapsed", "capxul org board refresh --no-wait --json", boardChange({ action: "refresh", status: "awaiting_approval", removed: [marcus], directors: 1, threshold: { needed: 1, of: 1 }, before: { needed: 2, of: 2 } })),
+    refused("Nobody's hat has lapsed", "capxul org board refresh --json", error_WRONG_STATE),
+  ],
   budget: BOARD_WRITE,
 });
 
@@ -266,6 +294,18 @@ export const operation_org_board_show = defineOperation({
     { error: error_ROLE_PERMISSION_DENIED, given: W_FOUNDER, when: when(SHOW, 2) },
     signedOut,
   ],
+  examples: [
+    ok("Northwind's Board: two Directors, both must sign", "capxul org board show --json", {
+      orgId: ORG,
+      threshold: { needed: 2, of: 2 },
+      directors: [
+        { address: ADDRESS.hannah, label: PEOPLE.hannah.name, isCaller: true, signer: true, seat: "founder", electedBy: null, termEnds: null },
+        { address: ADDRESS.marcus, label: PEOPLE.marcus.name, isCaller: false, signer: true, seat: "elected", electedBy: "2026-01-20", termEnds: "2027-01-20" },
+      ],
+    }),
+    refused("An outsider reads the Board", "capxul org board show --org northwind --json", error_ROLE_PERMISSION_DENIED),
+    refused("The company has no installation yet", "capxul org board show --json", error_WRONG_STATE),
+  ],
   budget: CHAIN_READ,
 });
 
@@ -288,6 +328,11 @@ export const operation_org_board_threshold = defineOperation({
     { error: error_WRONG_STATE, given: W_CHANGE, when: when(THRESHOLD, 3) },
     { error: error_RESERVED_MATTER, given: W_HANDED, when: designedWhen(THRESHOLD, "RESERVED_MATTER") },
     signedOut,
+  ],
+  examples: [
+    ok("Lower the threshold to one signature of two", "capxul org board threshold 1 --no-wait --json", boardChange({ action: "threshold", threshold: { needed: 1, of: 2 }, before: { needed: 2, of: 2 } })),
+    refused("The threshold is more than there are Directors", "capxul org board threshold 5 --json", error_INVALID_INPUT),
+    refused("The Governor holds the hat after handover", "capxul org board threshold 1 --json", error_RESERVED_MATTER),
   ],
   budget: BOARD_WRITE,
 });
@@ -332,6 +377,11 @@ export const operation_org_director_add = defineOperation({
     { error: error_WRONG_STATE, given: W_TWO, when: REFUSE_OTHERWISE + " Use `capxul org board director add`." },
     signedOut,
   ],
+  examples: [
+    ok("Propose Priya as an owner of the company Safe", `capxul org director add ${PEOPLE.priya.email} --no-wait --json`, ownerChange({ action: "add", person: { name: PEOPLE.priya.name, email: PEOPLE.priya.email, safe: ADDRESS.priya }, replacement: null, before: { directors: 2, threshold: 2 }, after: { directors: 3, threshold: 2 } })),
+    refused("A v4 company's Signer Gate refuses an owner change", `capxul org director add ${PEOPLE.priya.email} --json`, error_WRONG_STATE),
+    refused("The person is not a member yet", `capxul org director add newhire@northwind.test --json`, error_INVALID_INPUT),
+  ],
   budget: CHAIN_READ,
 });
 
@@ -350,6 +400,21 @@ export const operation_org_director_list = defineOperation({
     { error: error_WRONG_STATE, given: W_SETUP, when: when(D_LIST, 1) },
     { error: error_ROLE_PERMISSION_DENIED, given: W_FOUNDER, when: when(D_LIST, 2) },
     signedOut,
+  ],
+  examples: [
+    ok("Northwind's company Safe: its owners, threshold, nonce and waiting proposals", "capxul org director list --json", {
+      orgId: ORG,
+      chainId: CHAIN_ID,
+      safeAddress: ADDRESS.northwind,
+      threshold: 2,
+      nonce: 7,
+      owners: [
+        { address: ADDRESS.hannah, label: PEOPLE.hannah.name, isCaller: true, signer: true },
+        { address: ADDRESS.marcus, label: PEOPLE.marcus.name, isCaller: false, signer: true },
+      ],
+      waiting: 1,
+    }),
+    refused("An outsider lists the owners", "capxul org director list --org northwind --json", error_ROLE_PERMISSION_DENIED),
   ],
   budget: CHAIN_READ,
 });
@@ -378,6 +443,11 @@ export const operation_org_director_remove = defineOperation({
     { error: error_WRONG_STATE, given: W_TWO, when: REFUSE_OTHERWISE + " Use `capxul org board director remove`." },
     signedOut,
   ],
+  examples: [
+    ok("Propose removing Marcus as an owner", `capxul org director remove ${PEOPLE.marcus.email} --no-wait --json`, ownerChange({ action: "remove", person: { name: PEOPLE.marcus.name, email: PEOPLE.marcus.email, safe: ADDRESS.marcus }, replacement: null, before: { directors: 2, threshold: 2 }, after: { directors: 1, threshold: 1 } })),
+    refused("The person is the last Director", `capxul org director remove ${PEOPLE.hannah.email} --json`, error_INVALID_INPUT),
+    refused("A v4 company's Signer Gate refuses an owner change", `capxul org director remove ${PEOPLE.marcus.email} --json`, error_WRONG_STATE),
+  ],
   budget: CHAIN_READ,
 });
 
@@ -403,6 +473,11 @@ export const operation_org_director_replace = defineOperation({
     { error: error_INVALID_INPUT, given: W_FOUNDER, when: when(D_REPLACE, 2) },
     { error: error_WRONG_STATE, given: W_TWO, when: REFUSE_OTHERWISE + " Use `capxul org board director remove` and `add`." },
     signedOut,
+  ],
+  examples: [
+    ok("Propose Priya in Marcus's place", `capxul org director replace ${PEOPLE.marcus.email} ${PEOPLE.priya.email} --no-wait --json`, ownerChange({ action: "replace", person: { name: PEOPLE.marcus.name, email: PEOPLE.marcus.email, safe: ADDRESS.marcus }, replacement: { name: PEOPLE.priya.name, email: PEOPLE.priya.email, safe: ADDRESS.priya }, before: { directors: 2, threshold: 2 }, after: { directors: 2, threshold: 2 } })),
+    refused("The new person is not a member yet", `capxul org director replace ${PEOPLE.marcus.email} newhire@northwind.test --json`, error_INVALID_INPUT),
+    refused("A v4 company's Signer Gate refuses an owner change", `capxul org director replace ${PEOPLE.marcus.email} ${PEOPLE.priya.email} --json`, error_WRONG_STATE),
   ],
   budget: CHAIN_READ,
 });
@@ -433,6 +508,11 @@ export const operation_org_director_threshold = defineOperation({
     { error: error_INVALID_INPUT, given: W_TWO, when: "The number is 0, more than there are Directors, or the threshold it already has." },
     { error: error_WRONG_STATE, given: W_TWO, when: REFUSE_OTHERWISE + " Use `capxul org board threshold`." },
     signedOut,
+  ],
+  examples: [
+    ok("Propose a threshold of one", "capxul org director threshold 1 --no-wait --json", ownerChange({ action: "threshold", person: null, replacement: null, before: { directors: 2, threshold: 2 }, after: { directors: 2, threshold: 1 } })),
+    refused("The threshold is already 2", "capxul org director threshold 2 --json", error_INVALID_INPUT),
+    refused("The caller does not wear the Shareholders' top hat", "capxul org director threshold 1 --json", error_ROLE_PERMISSION_DENIED),
   ],
   budget: CHAIN_READ,
 });
@@ -477,6 +557,15 @@ export const operation_org_member_grant = defineOperation({
     { error: error_ROLE_CONFLICT, given: W_BUDGET_TREE, when: PEOPLE_CONFLICT_WHEN },
     signedOut,
   ],
+  examples: [
+    ok("Hannah gives Marcus the Manage books permission", `capxul org member grant ${PEOPLE.marcus.email} --permission manage-books --note "Marcus keeps the Finance books" --no-wait --json`, {
+      change: { changeId: "oc_0270", change: "grant", permission: "manage-books", email: PEOPLE.marcus.email, name: PEOPLE.marcus.name, state: "proposed" },
+      proposal: { proposalId: PROPOSAL.second, nonce: 8, status: "awaiting_approvals", threshold: 2, approvals: [ADDRESS.hannah], note: "Marcus keeps the Finance books", approvalId: APPROVAL_ID, url: APPROVAL_URL },
+    }),
+    refused("The email is not a current member", `capxul org member grant stranger@northwind.test --permission manage-books --json`, error_INVALID_INPUT),
+    refused("Marcus already holds that permission", `capxul org member grant ${PEOPLE.marcus.email} --permission manage-books --json`, error_WRONG_STATE),
+    refused("The proposals gate is off for the organization", `capxul org member grant ${PEOPLE.priya.email} --permission issue-invoices --json`, error_FEATURE_NOT_AVAILABLE),
+  ],
   budget: BOARD_WRITE,
 });
 
@@ -507,6 +596,14 @@ export const operation_org_member_revoke = defineOperation({
     { error: error_FEATURE_NOT_AVAILABLE, given: W_GATE_OFF, when: GATE_WHEN },
     signedOut,
   ],
+  examples: [
+    ok("Take the Issue invoices permission away from Priya", `capxul org member revoke ${PEOPLE.priya.email} --permission issue-invoices --no-wait --json`, {
+      change: { changeId: "oc_0271", change: "revoke", permission: "issue-invoices", email: PEOPLE.priya.email, name: PEOPLE.priya.name, state: "proposed" },
+      proposal: { proposalId: PROPOSAL.second, nonce: 8, status: "awaiting_approvals", threshold: 2, approvals: [ADDRESS.hannah], note: "", approvalId: APPROVAL_ID, url: APPROVAL_URL },
+    }),
+    refused("Priya does not hold that permission", `capxul org member revoke ${PEOPLE.priya.email} --permission manage-people --json`, error_WRONG_STATE),
+    refused("The caller's Safe is not an owner", `capxul org member revoke ${PEOPLE.priya.email} --permission issue-invoices --json`, error_ROLE_PERMISSION_DENIED),
+  ],
   budget: BOARD_WRITE,
 });
 
@@ -536,6 +633,12 @@ export const operation_org_proposal_approve = defineOperation({
     { error: error_FEATURE_NOT_AVAILABLE, given: W_GATE_OFF, when: "The `owner-safe-proposals` gate is off for the Organization. Nothing was signed." },
     signedOut,
   ],
+  examples: [
+    ok("Marcus opens his approval of the waiting proposal", `capxul org proposal approve ${PROPOSAL.waiting} --no-wait --json`, approvalOpened),
+    refused("Marcus's Director hat has lapsed", `capxul org proposal approve ${PROPOSAL.waiting} --json`, error_ROLE_PERMISSION_DENIED),
+    refused("The proposal already executed", `capxul org proposal approve ${PROPOSAL.executed} --json`, error_WRONG_STATE),
+    refused("No proposal with that id", `capxul org proposal approve ${uuid(299)} --json`, error_INVALID_INPUT),
+  ],
   budget: BOARD_WRITE,
 });
 
@@ -557,6 +660,11 @@ export const operation_org_proposal_get = defineOperation({
     { error: error_INVALID_INPUT, given: W_WAITING, when: when(GET, 2) },
     signedOut,
   ],
+  examples: [
+    ok("Read the waiting proposal", `capxul org proposal get ${PROPOSAL.waiting} --json`, proposal()),
+    refused("No proposal with that id", `capxul org proposal get ${uuid(299)} --json`, error_INVALID_INPUT),
+    refused("Not a member of the organization", `capxul org proposal get ${PROPOSAL.waiting} --org northwind --json`, error_ROLE_PERMISSION_DENIED),
+  ],
   budget: READ,
 });
 
@@ -571,6 +679,13 @@ export const operation_org_proposal_list = defineOperation({
   returns: Schema.Array(ProposalView),
   errors: [error_CLI_USAGE],
   refusals: [{ error: error_ROLE_PERMISSION_DENIED, given: W_WAITING, when: when(LIST, 1) }, signedOut],
+  examples: [
+    ok("Proposals still waiting for approvals", "capxul org proposal list --status waiting --json", [
+      proposal({ proposalId: PROPOSAL.second, nonce: 8, note: "Grant Marcus Manage books", createdAt: Date.parse("2026-02-10T08:00:00Z") }),
+      proposal(),
+    ]),
+    refused("Not a member of the organization", "capxul org proposal list --org northwind --json", error_ROLE_PERMISSION_DENIED),
+  ],
   budget: READ,
 });
 
@@ -594,6 +709,11 @@ export const operation_org_proposal_reject = defineOperation({
     { error: error_WRONG_STATE, given: W_WAITING, when: when(REJECT, 3) },
     signedOut,
   ],
+  examples: [
+    ok("Hannah proposes rejecting the waiting proposal", `capxul org proposal reject ${PROPOSAL.waiting} --no-wait --json`, proposal({ proposalId: PROPOSAL.rejection, kind: "rejection", rejects: PROPOSAL.waiting, note: null, transaction: { to: lc(ADDRESS.northwind), value: "0", data: "0x", operation: "call" }, calls: [{ to: lc(ADDRESS.northwind), value: "0", data: "0x" }] })),
+    refused("The proposal already executed", `capxul org proposal reject ${PROPOSAL.executed} --json`, error_WRONG_STATE),
+    refused("The caller is not a Director", `capxul org proposal reject ${PROPOSAL.waiting} --json`, error_ROLE_PERMISSION_DENIED),
+  ],
   budget: BOARD_WRITE,
 });
 
@@ -613,6 +733,10 @@ export const operation_org_proposal_wait = defineOperation({
     { error: error_ROLE_PERMISSION_DENIED, given: W_WAITING, when: when(WAIT, 1) },
     { error: error_INVALID_INPUT, given: W_WAITING, when: when(WAIT, 2) },
     signedOut,
+  ],
+  examples: [
+    ok("Follow the proposal until it executes", `capxul org proposal wait ${PROPOSAL.waiting} --timeout-seconds 120 --json`, proposal({ status: "executed", approvals: [{ owner: ADDRESS.hannah, label: PEOPLE.hannah.name, state: "approved" }, { owner: ADDRESS.marcus, label: PEOPLE.marcus.name, state: "approved" }], executionUserOpHash: hash("7c") })),
+    refused("No proposal with that id", `capxul org proposal wait ${uuid(299)} --json`, error_INVALID_INPUT),
   ],
   budget: { ...READ, excludes: ["wait.chain"] },
 });
