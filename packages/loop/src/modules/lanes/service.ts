@@ -29,6 +29,15 @@ export const ensureLane = (repo: string, dir: string, name: string, base: string
   return { dir, branch, base };
 };
 
+/** Why the lane `lane/<name>` could not be made in `dir` right now, or undefined. Asked before a run claims anything. */
+export const laneBlocked = (repo: string, dir: string, name: string, base: string): string | undefined => {
+  if (existsSync(join(dir, ".git"))) return undefined;
+  if (!exists(repo, base)) return `the base branch ${base} does not exist here`;
+  const branch = `lane/${slug(name)}`;
+  const held = git(repo, "worktree", "list", "--porcelain").split("\n\n").find((w) => w.split("\n").includes(`branch refs/heads/${branch}`));
+  return held ? `${branch} is checked out in ${held.split("\n")[0]!.replace(/^worktree /, "")} (another run holds it; \`pnpm loop clean <run>\` removes a finished run's lane)` : undefined;
+};
+
 export const head = (dir: string): string => git(dir, "rev-parse", "HEAD");
 export const dirty = (dir: string): boolean => git(dir, "status", "--porcelain") !== "";
 
@@ -38,7 +47,20 @@ export const commitAll = (dir: string, message: string): string => {
   return head(dir);
 };
 
-export const dropLane = (repo: string, lane: Lane): void => { if (existsSync(lane.dir)) git(repo, "worktree", "remove", "--force", lane.dir); };
+/**
+ * Removes the lane's worktree and frees its branch name, so the next lane of the same name starts from the base. A
+ * branch already merged into its base is deleted. One that is not keeps its work under `keepAs` when a name is given,
+ * and stays where it is otherwise.
+ */
+export const dropLane = (repo: string, lane: Lane, keepAs?: string): string => {
+  if (existsSync(lane.dir)) git(repo, "worktree", "remove", "--force", lane.dir);
+  try { git(repo, "worktree", "prune"); } catch { /* nothing to prune */ }
+  if (!exists(repo, lane.branch)) return "its branch was already gone";
+  try { git(repo, "branch", "-d", lane.branch); return `its branch ${lane.branch} was merged and is deleted`; } catch { /* not merged */ }
+  if (keepAs === undefined) return `its branch ${lane.branch} is not merged and stays`;
+  git(repo, "branch", "-M", lane.branch, keepAs);
+  return `its unmerged work is kept as the branch ${keepAs}`;
+};
 
 /** Brings the base into the lane. Returns false, and leaves the lane as it was, when they conflict. */
 export const catchUp = (lane: Lane): boolean => {

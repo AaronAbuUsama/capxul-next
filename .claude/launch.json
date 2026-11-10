@@ -12,6 +12,16 @@
         "4391"
       ],
       "port": 4391
+    },
+    {
+      "name": "runs",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": [
+        "--filter",
+        "@capxul/loop-ui",
+        "dev"
+      ],
+      "port": 4393
     }
   ]
 }

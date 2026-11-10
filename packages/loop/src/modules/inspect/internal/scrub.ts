@@ -6,7 +6,7 @@ const SHAPES: readonly RegExp[] = [
   /\beyJ[A-Za-z0-9_-]{10,}(?:\.[A-Za-z0-9_-]+){0,2}/g,
   /\b(?:Bearer|Basic)\s+[A-Za-z0-9._~+/=-]{8,}/gi,
   /\b[A-Za-z0-9_]*(?:KEY|TOKEN|SECRET|PASSW(?:OR)?D|CREDENTIAL|AUTH)[A-Za-z0-9_]*\s*[=:]\s*\S+/gi,
-  /\b(?:[0-9a-f]{32,}|[A-Za-z0-9+/_-]{40,}={0,2})\b/g,
+  /\b(?:[0-9a-f]{32,}|[A-Za-z0-9+]{40,}={0,2})\b/g,   // not `/`, `_` or `-`: a long path is not a key
 ];
 /** Names of environment variables whose values are never shown. */
 const SECRET_NAME = /KEY|TOKEN|SECRET|PASS|CRED|AUTH|PRIVATE|COOKIE|SESSION/i;
@@ -20,4 +20,12 @@ export const scrub = (text: string, secrets: readonly string[], cap: number): st
   for (const s of secrets) out = out.split(s).join("[hidden]");
   for (const shape of SHAPES) out = out.replace(shape, "[hidden]");
   return out.length <= cap ? out : `${out.slice(0, cap - 1)}…`;
+};
+
+/** `scrub` for a text of several lines: each line keeps its place, nothing secret-looking is left, and the whole is cut at `cap` with a note of how much was cut. */
+export const scrubText = (text: string, secrets: readonly string[], cap: number): string => {
+  let out = text;
+  for (const s of secrets) out = out.split(s).join("[hidden]");
+  for (const shape of SHAPES) out = out.replace(shape, "[hidden]");
+  return out.length <= cap ? out : `${out.slice(0, cap)}\n… ${out.length - cap} more characters`;
 };

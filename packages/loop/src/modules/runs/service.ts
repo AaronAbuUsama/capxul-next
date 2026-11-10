@@ -9,6 +9,7 @@ import { entriesOf, record, remember, tail, type Host } from "../agents/service.
 import { SETTLED, type Info, type Run, type Script } from "./types.ts";
 
 export type * from "./types.ts";
+export { acquire, tryAcquire } from "./internal/slots.ts";
 export { SETTLED };
 
 export const alive = (pid: number): boolean => { try { process.kill(pid, 0); return pid > 0; } catch { return false; } };
@@ -78,12 +79,19 @@ export const stop = (dir: string): string => {
   return `run ${info.id} was not running; marked stopped`;
 };
 
+/** What a run or a step used, for a person: dollars when the provider reports prices, otherwise tokens (never "$0.00" for work that was done). */
+export const spendText = (usd: number, tokens: number): string => {
+  if (usd > 0) return `$${usd.toFixed(2)}`;
+  if (tokens <= 0) return "-";
+  return `${tokens >= 1_000_000 ? `${(tokens / 1_000_000).toFixed(2)}M` : tokens >= 10_000 ? `${Math.round(tokens / 1000)}k` : String(tokens)} tokens`;
+};
+
 const dur = (ms: number): string => { const s = Math.round(ms / 1000); return s < 60 ? `${s}s` : s < 3600 ? `${Math.floor(s / 60)}m${String(s % 60).padStart(2, "0")}s` : `${Math.floor(s / 3600)}h${String(Math.floor((s % 3600) / 60)).padStart(2, "0")}m`; };
 
 export const table = (runs: readonly Info[], now: Date): string => {
   const rows = [...runs].sort((a, b) => a.startedAt.localeCompare(b.startedAt)).map((s) => [
     s.id, s.subject, s.status === "running" && !alive(s.pid) ? "dead (resume)" : s.status, s.step ?? "-", s.round ? String(s.round) : "-",
-    dur((s.endedAt ? new Date(s.endedAt) : now).getTime() - new Date(s.startedAt).getTime()), s.spentUsd ? `$${s.spentUsd.toFixed(2)}` : s.tokens ? `${s.tokens} tok` : "-",
+    dur((s.endedAt ? new Date(s.endedAt) : now).getTime() - new Date(s.startedAt).getTime()), spendText(s.spentUsd, s.tokens),
   ]);
   const all = [["run", "task", "status", "step", "round", "elapsed", "spend"], ...rows];
   const w = all[0]!.map((_, i) => Math.max(...all.map((r) => r[i]!.length)));
@@ -93,8 +101,8 @@ export const table = (runs: readonly Info[], now: Date): string => {
 /** The ledger as lines: each step's start and end, the agent conversation it used, how the run ended. */
 export const ledgerLines = async (host: Host): Promise<string[]> =>
   (await entriesOf(host)).map((e) => {
-    const d = e.data as { name?: string; id?: number; reasons?: string[]; result?: { costUsd?: number } };
-    const extra = e.kind === "loop.conversation" ? ` conversation ${d.id}` : e.kind === "loop.end" ? ` ${(d.reasons ?? []).join(" | ").slice(0, 200)}` : e.kind === "loop.done" && d.result?.costUsd !== undefined ? ` $${d.result.costUsd.toFixed(3)}` : "";
+    const d = e.data as { name?: string; id?: number; reasons?: string[]; result?: { costUsd?: number; tokens?: number } };
+    const extra = e.kind === "loop.conversation" ? ` conversation ${d.id}` : e.kind === "loop.end" ? ` ${(d.reasons ?? []).join(" | ").slice(0, 200)}` : e.kind === "loop.done" && d.result?.tokens !== undefined ? ` ${spendText(d.result.costUsd ?? 0, d.result.tokens)}` : "";
     return `${e.kind.replace("loop.", "").padEnd(12)} ${d.name}${extra}`;
   });
 
@@ -121,14 +129,25 @@ export const watchRun = async (dir: string, open: () => Promise<Host>, say: (s: 
   }
 };
 
-/** The worker's loop:keep `concurrency` runs going, resuming dead ones first, then starting what `ready()` offers; end when idle unless `wait`. */
+/**
+ * The worker's loop: keep `concurrency` runs going, resuming first, then starting what `ready()` offers; end when idle
+ * unless `wait`. A run that ends `stopped` was stopped by a person: the worker then starts nothing more and ends when
+ * the runs it has are over, `wait` or not. A start or a resume that throws is said and does not end the worker.
+ */
 export const work = async (o: { concurrency: number; wait: boolean; pause?: number; dead: () => string[]; ready: () => string[]; resume: (id: string) => Promise<unknown>; start: (subject: string) => Promise<unknown>; say: (s: string) => void }): Promise<void> => {
   const going = new Map<string, Promise<unknown>>();
-  const go = (key: string, p: Promise<unknown>): void => { going.set(key, p.finally(() => going.delete(key))); };
+  let halted = false;
+  const go = (key: string, p: Promise<unknown>): void => {
+    going.set(key, p.then((ended) => {
+      if ((ended as { status?: string } | undefined)?.status === "stopped" && !halted) { halted = true; o.say(`${key} was stopped: the worker starts nothing more and ends when its runs are over`); }
+    }, (cause: unknown) => o.say(cause instanceof Error ? cause.message : String(cause))).finally(() => going.delete(key)));
+  };
   for (;;) {
-    for (const id of o.dead()) if (going.size < o.concurrency && !going.has(id)) { o.say(`resuming ${id}`); go(id, o.resume(id)); }
-    for (const s of o.ready()) if (going.size < o.concurrency && !going.has(s)) { o.say(`starting ${s}`); go(s, o.start(s)); }
-    if (going.size === 0 && !o.wait) return;
+    if (!halted) {
+      for (const id of o.dead()) if (going.size < o.concurrency && !going.has(id)) { o.say(`resuming ${id}`); go(id, o.resume(id)); }
+      for (const s of o.ready()) if (going.size < o.concurrency && !going.has(s)) { o.say(`starting ${s}`); go(s, o.start(s)); }
+    }
+    if (going.size === 0 && (halted || !o.wait)) return;
     await Promise.race([...going.values(), new Promise((r) => setTimeout(r, o.pause ?? 30_000))]);
   }
 };

@@ -3,13 +3,26 @@ import type { Models } from "@earendil-works/pi-ai";
 import { modelsFrom, type Policy } from "../../agents/service.ts";
 import type { Ctx } from "../types.ts";
 
-const FILES = /^(ls|cat|head|tail|wc|grep|sort|diff|mkdir|echo|pwd)( |$)/;
+const FILES = /^(ls|cat|head|tail|wc|nl|grep|sort|diff|echo|pwd)( |$)/;
+/**
+ * Commands that only read, which the agents asked for and were refused on 10 November 2026 (54 of 256 calls in four runs):
+ * `rg` (never with a preprocessor, which runs a program), `sed -n` printing a range of lines, `find` without an action
+ * that runs or deletes, and the parts of git that only look.
+ */
+const READS: readonly RegExp[] = [
+  /^rg (?!.*--(pre|pre-glob|hostname-bin)\b)/,
+  /^sed -n (['"]?)[0-9,$]+p\1( [A-Za-z0-9_.\/-]+)+$/,
+  /^find (?!.*-(exec|execdir|ok|okdir|delete|fls|fprint\w*)\b)/,
+  /^git (diff|log|show|status|rev-parse|ls-files|merge-base|blame)( |$)/,   // not `git grep`: its -O opens a program
+];
 
 /** `pnpm exec` and `node` can run anything the user can: the list limits what the model asks for, it is not a sandbox (README). */
 export const POLICY: Policy = {
   bash: {
-    write: [/^pnpm (exec|test|run|check|plan|book|blueprint|frozen|tasks|judgments|evals|portal:check|contracts:[a-z-]+|devnet:test|sdk:test)( |$)/, /^node( |$)/, /^git (status|diff|log|show|add|commit|mv|rm)( |$)/, FILES, /^cd [A-Za-z0-9_./-]+$/],
-    read: [/^git (diff|log|show|status)( |$)/, FILES],
+    write: [/^pnpm (-s |--silent )?(exec|test|run|check|plan|book|blueprint|frozen|layout|tasks|judgments|evals|evals:check|portal:check|contracts:[a-z-]+|devnet:test|sdk:test)( |$)/, /^node( |$)/, /^git (add|commit|mv|rm)( |$)/,
+      /^rm( -f)?(?!.* (books\/frozen|blueprint\/baseline|var)\/)(?!.*\/(src\/generated|\.git|\.claude)\/)( [A-Za-z0-9_][A-Za-z0-9_.\/-]*)+$/,   // its own scratch files, by plain relative name: never -r, a dash, a dot or a protected folder
+      ...READS, FILES, /^mkdir( |$)/, /^cd [A-Za-z0-9_./-]+$/],
+    read: [...READS, FILES],
   },
   denyWrite: [/^books\/frozen\//, /^blueprint\/baseline\//, /(^|\/)src\/generated\//, /^\.git(\/|$)/, /^\.claude\//, /^var\//],
 };

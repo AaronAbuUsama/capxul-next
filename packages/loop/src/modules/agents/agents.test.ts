@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "node:test";
@@ -85,4 +85,11 @@ test("a second process can look at a run read-only", async () => {
   assert.match((await tail(look, said.conversation)).lines.join("\n"), /hello there/);
   await look.close();
   await host.close();
+});
+
+test("a reader never creates storage: opening a run that is not there read-only fails and leaves nothing behind", async () => {
+  const r = await rig();
+  const missing = join(r.dir, "no-such-run");
+  await assert.rejects(openHost({ file: join(missing, "run.sqlite"), models: createModels(), env: {}, policy, readOnly: true }), /a reader does not create one/);
+  assert.equal(existsSync(missing), false);
 });

@@ -5,4 +5,5 @@
 export * from "./modules/agents/service.ts";
 export * from "./modules/lanes/service.ts";
 export type { Info, Run, Status } from "./modules/runs/service.ts";
+export { spendText } from "./modules/runs/service.ts";
 export * from "./modules/capxul/service.ts";

@@ -5,17 +5,19 @@
  * run's ledger, so a script replayed after a restart skips what is done.
  */
 import { execFileSync } from "node:child_process";
-import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { ask, lastJson, openHost, type Host } from "../agents/service.ts";
-import { catchUp, commitAll, dropLane, ensureLane, git, head, slug, type Lane } from "../lanes/service.ts";
-import { alive, ledgerLines, listRuns, play, readInfo, SETTLED, stop as stopRun, table, watchRun, work as workLoop, type Info, type Run } from "../runs/service.ts";
+import { commitAll, ensureLane, git, head, laneBlocked, slug, type Lane } from "../lanes/service.ts";
+import { acquire, alive, ledgerLines, listRuns, play, readInfo, SETTLED, stop as stopRun, table, watchRun, work as workLoop, type Info, type Run } from "../runs/service.ts";
 import { allowedModel, defaultCheckerModel, defaultModel, modelsOf, POLICY, qualify } from "./internal/config.ts";
-import { showView, statusViews, type Look, type RunView } from "../inspect/service.ts";
+import { serve as serveHost, type Served } from "../host/service.ts";
+import { showDetail, showView, statusViews, type Look, type RunDetail, type RunView } from "../inspect/service.ts";
 import { gatesFor, runGates } from "./internal/gates.ts";
 import * as plan from "./internal/plan.ts";
 import { checkerPrompt, makerPrompt as renderMaker, researchPrompt, type CheckInput } from "./internal/prompts.ts";
 import { startSandbox, stopSandbox } from "./internal/sandbox.ts";
+import { baseOf, runDir, runsDir } from "./internal/where.ts";
 import { cleanEnv } from "./internal/sh.ts";
 import type { Check, Ctx, Finding, Gate, Handback, Job, Opts, SandboxInfo, Said, Task } from "./types.ts";
 
@@ -24,10 +26,13 @@ export { gatesOf } from "./internal/gates.ts";
 export { POLICY } from "./internal/config.ts";
 
 export const DEFAULTS: Opts = { script: "pair", sandbox: "none", rounds: 3, budgetUsd: 5, timeoutMin: 30 };
-/** Where run folders go: working data, git-ignored, out of the top level; or the folder `LOOP_RUNS` names (the portal can read another checkout's). */
-const runsDir = (ctx: Ctx): string => ctx.env.LOOP_RUNS ?? join(ctx.root, "var", "runs");
-const baseOf = (ctx: Ctx): string => ctx.env.LOOP_BASE ?? "integration/build";
 const CHECKER_ROLES = new Set(["reviewer", "adversary", "diagnoser"]);
+/** How many agents may work at once across every run of this checkout (`LOOP_MAX_AGENTS`, default 3: what the gateway has carried). */
+const maxAgents = (ctx: Ctx): number => Math.max(1, Number(ctx.env.LOOP_MAX_AGENTS) || 3);
+/** How long the loop waits for a failing gateway before it continues an agent, after pi's own retries of the request. */
+const MODEL_WAITS_MS: readonly number[] = [20_000, 60_000, 180_000];
+/** A gateway's error in a line: one that answers with a web page says nothing useful past its status. */
+const modelSaid = (detail = ""): string => (detail.includes("<") ? `The gateway answered ${/^\d{3}/.exec(detail)?.[0] ?? "an error"}${detail.includes("upstream-down") ? ": its upstream is down" : ""}.` : detail.split("\n")[0]!.slice(0, 240));
 
 // ── the vocabulary ──────────────────────────────────────────────────────────────────────────────
 
@@ -56,7 +61,7 @@ const roleBody = (job: Job, role: string): string => {
 
 /** The maker's brief for round `round`: the task, the open findings, the last handover, the sandbox (swarm-templates.md 2.1). */
 export const makerPrompt = (job: Job, round: number, open: Finding[], last?: Handback): string =>
-  renderMaker({ task: job.task, round, budgetUsd: job.opts.budgetUsd, spentUsd: job.run.info.spentUsd, branch: job.lane!.branch, sandbox: boxLine(job.box!), open, ...(last?.handover ? { handover: last.handover } : {}) }, gatesFor(job.ctx, job.lane!.dir, job.task).map((g) => g.sh));
+  renderMaker({ task: job.task, round, budgetUsd: job.opts.budgetUsd, spentUsd: job.run.info.spentUsd, spentTokens: job.run.info.tokens, branch: job.lane!.branch, sandbox: boxLine(job.box!), open, ...(last?.handover ? { handover: last.handover } : {}) }, gatesFor(job.ctx, job.lane!.dir, job.task).map((g) => g.sh));
 
 /** One agent (pi-durable conversation, the role's definition as its system prompt, tools confined to the lane) as one step. Its work is committed after. */
 export const agent = (job: Job, name: string, o: { role: string; prompt: string; readOnly?: boolean }): Promise<Said> => job.run.step(name, async () => {
@@ -65,10 +70,14 @@ export const agent = (job: Job, name: string, o: { role: string; prompt: string;
   const maker = job.opts.model ? qualify(job.opts.model) : defaultModel(job.ctx);
   const model = qualify(CHECKER_ROLES.has(o.role) ? job.opts.checkerModel ?? defaultCheckerModel(job.ctx) : maker);
   if (!allowedModel(model)) return { ok: false, text: "", costUsd: 0, tokens: 0, head: head(wt.dir), error: `the model ${model} is not allowed: only gpt-6.1-sol and gpt-6.1-terra` };
+  // The gateway carries only so many agents at once: an agent takes a slot shared by every run and process of this checkout, and waits for one.
+  const release = await acquire(join(runsDir(job.ctx), ".agents"), maxAgents(job.ctx), { stopped: () => existsSync(job.run.stopFile), waiting: () => job.ctx.say(`${name} waits: ${maxAgents(job.ctx)} agents are already working`), ...(job.ctx.retry ? { pollMs: 20 } : {}) });
   const said = await ask(job.run.host, {
     key: name, model, system: roleBody(job, o.role), prompt: o.prompt, cwd: wt.dir,
-    profile: o.readOnly ? "read" : "write", maxTurns: 80, timeoutMs: job.opts.timeoutMin * 60_000, stopFile: job.run.stopFile,
-  });
+    profile: o.readOnly ? "read" : "write", maxTurns: 80, timeoutMs: job.opts.timeoutMin * 60_000, stopFile: job.run.stopFile, modelWaitsMs: job.ctx.retry?.waitsMs ?? MODEL_WAITS_MS,
+  }).finally(release);
+  // A model that never answered is not a hand-back and not a review: the run fails here, with the gateway's words, and no round is spent on it.
+  if (!said.ok && /^unanswered: (model_error|no_model|interrupted)/.test(said.error ?? "")) throw new Error(`${name}: the model did not answer (${said.error!.replace("unanswered: ", "").replace("_", " ")}), after waiting for it ${(job.ctx.retry?.waitsMs ?? MODEL_WAITS_MS).length} times. ${modelSaid(said.detail)}`);
   return { ...said, head: o.readOnly ? head(wt.dir) : commitAll(wt.dir, `loop: ${name}`) } as unknown as Said;
 });
 
@@ -144,7 +153,7 @@ const loadScript = async (ctx: Ctx, name: string): Promise<Script> => {
 };
 
 const open = (ctx: Ctx, dir: string, env: Record<string, string>, readOnly = false, wanted: string[] = []): Promise<Host> =>
-  openHost({ file: join(dir, "run.sqlite"), models: modelsOf(ctx, wanted), env, policy: POLICY, readOnly });
+  openHost({ file: join(dir, "run.sqlite"), models: modelsOf(ctx, wanted), env, policy: POLICY, readOnly, ...(ctx.retry ? { retry: { maxRetries: ctx.retry.maxRetries, baseDelayMs: ctx.retry.baseDelayMs } } : {}) });
 
 const playJob = (ctx: Ctx, id: string, task: Task, opts: Opts, script?: Script): Promise<Info> => {
   const dir = join(runsDir(ctx), id), env: Record<string, string> = cleanEnv(ctx);
@@ -164,84 +173,73 @@ const playJob = (ctx: Ctx, id: string, task: Task, opts: Opts, script?: Script):
 
 export const start = async (ctx: Ctx, taskId: string, opts: Opts, script?: Script): Promise<Info> => {
   const task = plan.loadTask(ctx, taskId);
+  if (!script) await loadScript(ctx, opts.script);                 // an unknown script is found before anything is claimed or made
   const stamp = ctx.now().toISOString().slice(5, 16).replace(/[-:T]/g, "");
   let id = `${slug(taskId)}-${stamp}`;
   for (let n = 2; existsSync(join(runsDir(ctx), id)); n++) id = `${slug(taskId)}-${stamp}-${n}`;
+  const why = laneBlocked(ctx.root, join(runsDir(ctx), id, "lane"), task.id, baseOf(ctx));
+  if (why) throw new Error(`cannot start a run on ${taskId}: ${why}`);
   ctx.say(`run ${id}`);
   return playJob(ctx, id, { ...task, budgetUsd: task.budgetUsd ?? opts.budgetUsd }, opts, script);
 };
 
 /** Continues a run whose process died, was stopped or failed: the script replays, done steps answer from the ledger, an agent continues in its conversation. */
 export const resume = async (ctx: Ctx, id: string, script?: Script): Promise<Info> => {
-  const dir = join(runsDir(ctx), id), info = readInfo(dir);
+  const dir = runDir(ctx, id), info = readInfo(dir);
   if (SETTLED.includes(info.status)) throw new Error(`run ${id} is ${info.status}: nothing to resume`);
   if (alive(info.pid) && info.pid !== process.pid) throw new Error(`run ${id} is still running (pid ${info.pid}); \`loop stop ${id}\` first`);
   return playJob(ctx, id, info.extra.task as Task, info.extra.opts as Opts, script);
 };
 
-export const stop = (ctx: Ctx, id: string): string => stopRun(join(runsDir(ctx), id));
+export const stop = (ctx: Ctx, id: string): string => stopRun(runDir(ctx, id));
 export const status = (ctx: Ctx): string => table(listRuns(runsDir(ctx)).map((r) => r.info), ctx.now());
 
-const lookOf = (ctx: Ctx, events: number): Look => ({ runs: runsDir(ctx), open: (dir) => open(ctx, dir, {}, true), now: ctx.now(), env: ctx.env, events });
+const quietGit = (ctx: Ctx) => (args: readonly string[]): string => { try { return git(ctx.root, ...args); } catch { return ""; } };
+export const lookOf = (ctx: Ctx, events: number): Look => ({ runs: runsDir(ctx), open: (dir) => open(ctx, dir, {}, true), now: ctx.now(), env: ctx.env, events, git: quietGit(ctx) });
 /** `loop status --json`: every run that is running or was saved within `sinceHours`, each with its counts and its last three events. */
 export const statusJson = (ctx: Ctx, sinceHours: number): Promise<readonly RunView[]> => statusViews(lookOf(ctx, 3), sinceHours);
 /** `loop show <run> --json`: one run with its last twenty events, or null. */
 export const showJson = (ctx: Ctx, id: string): Promise<RunView | null> => showView(lookOf(ctx, 20), id);
+/** `loop show <run> --json --full`: the run with every step's result and every agent's conversation, or null. */
+export const showFull = (ctx: Ctx, id: string): Promise<RunDetail | null> => showDetail(lookOf(ctx, 0), id);
 
 /** The ledger of a run, then, with `follow`, what its agent is doing until the run ends. */
 export const logs = async (ctx: Ctx, id: string, follow: boolean): Promise<void> => {
-  const dir = join(runsDir(ctx), id), host = await open(ctx, dir, {}, true);
+  const dir = runDir(ctx, id), host = await open(ctx, dir, {}, true);
   try { (await ledgerLines(host)).forEach(ctx.say); } finally { await host.close(); }
   if (follow) await watchRun(dir, () => open(ctx, dir, {}, true), ctx.say);
 };
 /** Attach to a running agent: print what it has done so far and follow it live (read-only; it changes nothing). */
-export const watch = (ctx: Ctx, id: string): Promise<void> => { const dir = join(runsDir(ctx), id); return watchRun(dir, () => open(ctx, dir, {}, true), ctx.say); };
+export const watch = (ctx: Ctx, id: string): Promise<void> => { const dir = runDir(ctx, id); return watchRun(dir, () => open(ctx, dir, {}, true), ctx.say); };
 
 /** The worker: ready tasks from the plan (named, or on the critical path), a run each, `concurrency` at once; dead runs are resumed first. */
 export const work = (ctx: Ctx, o: { concurrency: number; tasks: string[]; opts: Opts; wait: boolean; pause?: number }): Promise<void> => {
-  const runs = (): { dir: string; info: Info }[] => listRuns(runsDir(ctx));
+  const runs = (): { dir: string; info: Info }[] => listRuns(runsDir(ctx)), gaveUp = new Set<string>(), tried = new Set<string>();
+  /** A task named on the command line whose newest run was stopped or failed: that run is resumed, once, before anything new is started for it. */
+  const left = (): string[] => o.tasks.flatMap((t) => {
+    const newest = runs().filter((r) => r.info.subject === t).sort((a, b) => b.info.startedAt.localeCompare(a.info.startedAt))[0];
+    return newest && (newest.info.status === "stopped" || newest.info.status === "failed") && !tried.has(newest.info.id) ? [newest.info.id] : [];
+  });
   return workLoop({
     concurrency: o.concurrency, wait: o.wait, say: ctx.say, ...(o.pause ? { pause: o.pause } : {}),
-    dead: () => runs().filter((r) => r.info.status === "running" && !alive(r.info.pid)).map((r) => r.info.id),
-    ready: () => plan.readyTasks(ctx, o.tasks).filter((t) => !runs().some((r) => r.info.subject === t && !SETTLED.includes(r.info.status))),
-    resume: (id) => resume(ctx, id), start: (t) => start(ctx, t, o.opts),
+    dead: () => [...runs().filter((r) => r.info.status === "running" && !alive(r.info.pid)).map((r) => r.info.id), ...left()],
+    ready: () => plan.readyTasks(ctx, o.tasks).filter((t) => !gaveUp.has(t) && !runs().some((r) => r.info.subject === t && !SETTLED.includes(r.info.status))),
+    resume: (id) => { tried.add(id); return resume(ctx, id); },
+    start: (t) => start(ctx, t, o.opts).catch((e: unknown) => { gaveUp.add(t); ctx.say(e instanceof Error ? e.message : String(e)); }),   // one task that cannot start does not end the worker
   });
 };
 
-const dirtyOutsidePlan = (cwd: string): string[] => git(cwd, "status", "--porcelain").split("\n").filter((l) => l !== "" && !/^.. (plan\/|var\/)/.test(l));
+export { clean, merge } from "./internal/merge.ts";
 
-/**
- * Merges a run that is "ready": brings the current base into the lane, runs the gates again there, and only if every one
- * passes merges into the base in this checkout and pushes it. Refuses, and says why, otherwise. Marks the plan task done.
- */
-export const merge = async (ctx: Ctx, id: string): Promise<string[]> => {
-  const dir = join(runsDir(ctx), id), info = readInfo(dir), wt = info.extra.lane as Lane | undefined, opts = info.extra.opts as Opts;
-  if (info.status !== "ready" || !wt) return [`refused: run ${id} is ${info.status}, not ready to merge`];
-  if (git(ctx.root, "rev-parse", "--abbrev-ref", "HEAD") !== wt.base) return [`refused: this checkout is not on ${wt.base}`];
-  const dirty = dirtyOutsidePlan(ctx.root);
-  if (dirty.length) return [`refused: this checkout has uncommitted changes outside plan/ and var/: ${dirty.slice(0, 3).join("; ")}`];
-  if (!catchUp(wt)) return [`refused: ${wt.branch} conflicts with the current ${wt.base}; resolve it in ${wt.dir}`];
-  const task = info.extra.task as Task;
-  const box = await startSandbox(ctx, opts.sandbox, wt, id);
-  let gates: Gate[];
-  try { gates = await runGates(ctx, wt.dir, task, { env: box.env as Record<string, string>, out: join(dir, `merge-gates.${ctx.now().getTime()}.out`) }); } finally { await stopSandbox(ctx, wt, box); }
-  const failed = gates.filter((g) => !g.ok);
-  if (failed.length) return [`refused: ${failed.length} of ${gates.length} gates fail on ${wt.branch} with ${wt.base} merged in`, ...failed.map((g) => `  ${g.name}: ${g.tail.split("\n").slice(-3).join(" ")}`)];
-  git(ctx.root, "push", "--dry-run", "origin", wt.base);
-  git(ctx.root, "merge", "--no-ff", "-m", `Merge ${wt.branch} (loop run ${id})`, wt.branch);
-  const commit = git(ctx.root, "rev-parse", "HEAD");
-  try { git(ctx.root, "push", "origin", wt.base); } catch (cause) { return [`merged locally at ${commit} but the push failed: ${String(cause).slice(0, 200)}`]; }
-  if (info.extra.source === "plan") plan.finish(ctx, info.subject, commit);
-  await writeStatus(dir, { ...info, status: "merged", endedAt: ctx.now().toISOString() });
-  dropLane(ctx.root, wt);
-  return [`merged ${wt.branch} into ${wt.base} at ${commit.slice(0, 7)} and pushed${info.extra.source === "plan" ? `; plan task ${info.subject} marked done` : ""}`];
-};
-
-const writeStatus = async (dir: string, info: Info): Promise<void> => writeFileSync(join(dir, "status.json"), `${JSON.stringify(info, null, 2)}\n`);
-
-/** Removes the worktree of one run (any run that is not running), or of every merged or answered run. The branch stays. */
-export const clean = (ctx: Ctx, id?: string): string[] => {
-  const picked = listRuns(runsDir(ctx)).filter((r) => (id ? r.info.id === id : r.info.status === "merged" || r.info.status === "answered") && existsSync((r.info.extra.lane as Lane | undefined)?.dir ?? "") && r.info.status !== "running");
-  picked.forEach((r) => dropLane(ctx.root, r.info.extra.lane as Lane));
-  return picked.length ? picked.map((r) => `removed the lane of ${r.info.id}`) : ["nothing to clean"];
+/** `loop serve`: the host a page or a terminal attaches to. It shows every run that is running or was saved in the last `sinceHours`, and takes `stop`. */
+export const serve = (ctx: Ctx, o: { port: number; sinceHours?: number }): Promise<Served> => {
+  const mtime = (file: string): number => { try { return statSync(file).mtimeMs; } catch { return 0; } };
+  const from = (): number => ctx.now().getTime() - (o.sinceHours ?? 24) * 3_600_000;
+  return serveHost({
+    ids: () => listRuns(runsDir(ctx)).filter((r) => r.info.status === "running" || (Date.parse(r.info.updatedAt) || 0) >= from())
+      .map((r) => ({ id: r.info.id, stamp: `${mtime(join(r.dir, "status.json"))}:${mtime(join(r.dir, "run.sqlite"))}:${mtime(join(r.dir, "run.sqlite-wal"))}:${r.info.status === "running" && !alive(r.info.pid)}` })),
+    load: (id) => showDetail(lookOf(ctx, 0), id),
+    stop: (id) => stop(ctx, id),
+    say: ctx.say,
+  }, { port: o.port, ...(ctx.env.LOOP_HOST_ORIGINS ? { origins: ctx.env.LOOP_HOST_ORIGINS.split(",") } : {}) });
 };

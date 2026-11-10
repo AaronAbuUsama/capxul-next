@@ -4,21 +4,22 @@
 // root: the only place that reads the process, prints, or exits. See packages/loop/README.md.
 
 import { execFileSync } from "node:child_process";
-import { clean, DEFAULTS, logs, merge, resume, showJson, start, status, statusJson, stop, watch, work, type Ctx, type Opts } from "./index.ts";
+import { clean, DEFAULTS, logs, merge, resume, serve, showFull, showJson, spendText, start, status, statusJson, stop, watch, work, type Ctx, type Opts } from "./index.ts";
 
 const USAGE = [
   "usage: loop run <task id> [--script pair] [--model provider/id] [--checker-model provider/id] [--sandbox none|light|heavy]",
   "                          [--rounds 3] [--budget-usd 5] [--timeout-min 30] [--checkers reviewer,adversary]",
   "       loop resume <run id> | stop <run id> | merge <run id> | clean [<run id>]",
   "       loop work [--concurrency 2] [--task a,b] [--wait]   (the options of run apply to every run it starts)",
-  "       loop status [--json [--since-hours 24]] | show <run id> --json | logs <run id> [-f] | watch <run id>",
+  "       loop serve [--port 4392] [--since-hours 24]   (the host: runs as they change, for a page or a terminal)",
+  "       loop status [--json [--since-hours 24]] | show <run id> --json [--full] | logs <run id> [-f] | watch <run id>",
 ].join("\n");
 
 const parse = (argv: readonly string[]): { words: string[]; f: Map<string, string> } => {
   const words: string[] = [], f = new Map<string, string>();
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i]!;
-    if (a === "-f" || a === "--wait" || a === "--json") f.set(a.replace(/^-+/, ""), "true");
+    if (a === "-f" || a === "--wait" || a === "--json" || a === "--full") f.set(a.replace(/^-+/, ""), "true");
     else if (a.startsWith("--")) f.set(a.slice(2), argv[++i] ?? "");
     else words.push(a);
   }
@@ -41,7 +42,7 @@ const main = async (argv: readonly string[]): Promise<number> => {
   const { words, f } = parse(rest);
   const ctx: Ctx = { root: execFileSync("git", ["rev-parse", "--show-toplevel"], { encoding: "utf8" }).trim(), env: process.env, now: () => new Date(), say: (l) => console.log(l) };
   const ended = (s: { id: string; status: string; round: number; spentUsd: number; tokens: number; reasons: string[]; error?: string }): number => {
-    console.log(`run ${s.id}: ${s.status}, ${s.round} round(s), spend $${s.spentUsd.toFixed(2)} (${s.tokens} tokens)${s.error ? `, error: ${s.error}` : ""}`);
+    console.log(`run ${s.id}: ${s.status}, ${s.round} round(s), used ${spendText(s.spentUsd, s.tokens)}${s.error ? `, error: ${s.error}` : ""}`);
     s.reasons.forEach((r) => console.log(`  ${r.slice(0, 300)}`));
     return ["ready", "answered", "merged"].includes(s.status) ? 0 : 1;
   };
@@ -58,9 +59,15 @@ const main = async (argv: readonly string[]): Promise<number> => {
       return 0;
     case "show": {
       if (!need || !f.has("json")) return (console.error(USAGE), 2);
-      const view = await showJson(ctx, need);
+      const view = f.has("full") ? await showFull(ctx, need) : await showJson(ctx, need);
       console.log(JSON.stringify(view));
       return view === null ? 1 : 0;
+    }
+    case "serve": {
+      const served = await serve(ctx, { port: Number(f.get("port") ?? 4392), ...(f.get("since-hours") ? { sinceHours: Number(f.get("since-hours")) } : {}) });
+      console.log(`the host is at ${served.url} (this machine only). A page or a terminal attaches there; Ctrl-C ends it.`);
+      await new Promise(() => undefined);
+      return 0;
     }
     case "logs": return need ? (await logs(ctx, need, f.has("f")), 0) : (console.error(USAGE), 2);
     case "watch": return need ? (await watch(ctx, need), 0) : (console.error(USAGE), 2);
