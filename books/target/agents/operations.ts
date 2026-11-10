@@ -34,6 +34,16 @@ import {
 } from "./flows.ts";
 import { rpc_agents_roster_list, rpc_agents_roster_show } from "./roster.ts";
 import { AgentDetail, CreateJson, ListJson, RemoveJson, RotateJson, StateJson, SweepJson } from "./shapes.ts";
+import {
+  examples_agent_create,
+  examples_agent_freeze,
+  examples_agent_unfreeze,
+  examples_agent_key_rotate,
+  examples_agent_list,
+  examples_agent_show,
+  examples_agent_sweep,
+  examples_agent_remove,
+} from "./examples.ts";
 
 const page = (id: FrozenId) => `apps/docs/factory/operations/${id}.yaml:1`;
 
@@ -105,6 +115,7 @@ export const operation_agent_create = defineOperation({
   who: designedWho("agent.create"),
   priority: "normal",
   implementedBy: flow_client_me_agents_create,
+  examples: examples_agent_create,
   acceptance: [
     kept(
       "agent.create",
@@ -172,6 +183,7 @@ export const operation_agent_freeze = defineOperation({
   who: designedWho("agent.freeze"),
   priority: "normal",
   implementedBy: flow_client_me_agents_freeze,
+  examples: examples_agent_freeze,
   acceptance: [
     kept(
       "agent.freeze",
@@ -207,6 +219,7 @@ export const operation_agent_unfreeze = defineOperation({
   ...frozenText("agent.unfreeze"),
   priority: "normal",
   implementedBy: flow_client_me_agents_unfreeze,
+  examples: examples_agent_unfreeze,
   acceptance: [
     kept(
       "agent.unfreeze",
@@ -235,6 +248,7 @@ export const operation_agent_key_rotate = defineOperation({
   who: designedWho("agent.key.rotate"),
   priority: "normal",
   implementedBy: flow_client_me_agents_rotate_key,
+  examples: examples_agent_key_rotate,
   acceptance: [
     kept(
       "agent.key.rotate",
@@ -297,6 +311,7 @@ export const operation_agent_list = defineOperation({
   ...frozenText("agent.list"),
   priority: "normal",
   implementedBy: rpc_agents_roster_list,
+  examples: examples_agent_list,
   acceptance: [
     kept(
       "agent.list",
@@ -317,6 +332,7 @@ export const operation_agent_show = defineOperation({
   who: designedWho("agent.show"),
   priority: "normal",
   implementedBy: rpc_agents_roster_show,
+  examples: examples_agent_show,
   acceptance: [
     kept(
       "agent.show",
@@ -352,6 +368,7 @@ export const operation_agent_sweep = defineOperation({
   who: designedWho("agent.sweep"),
   priority: "normal",
   implementedBy: flow_client_me_agents_sweep,
+  examples: examples_agent_sweep,
   acceptance: [
     kept(
       "agent.sweep",
@@ -415,6 +432,7 @@ export const operation_agent_remove = defineOperation({
   who: designedWho("agent.remove"),
   priority: "normal",
   implementedBy: flow_client_me_agents_remove,
+  examples: examples_agent_remove,
   acceptance: [
     kept(
       "agent.remove",
