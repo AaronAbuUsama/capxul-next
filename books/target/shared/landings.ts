@@ -7,6 +7,7 @@
 
 import type { Concept, Decision } from "../../../packages/book/src/index.ts";
 import * as f from "./foundation.ts";
+import * as cm from "./cut-moves.ts";
 import * as d from "./decisions.ts";
 // The one landing a concept's own decision settles: payroll.scope supersedes concepts.payroll.
 import { decision_payroll_scope } from "../payments/agreements/decisions.ts";
@@ -111,15 +112,15 @@ export const OLD_AREAS: { readonly [A in OldArea]: Landing } = {
   "operator/receipts": { to: [], by: d.decision_responsibilities_operator_proof_tools, note: "Dropped: the bundler fake's fault switch holds a receipt." },
   // organizations
   "organizations/directors": { to: [c.concept_board], by: d.decision_concepts_board, note: "Directors and the threshold." },
-  "organizations/equity": { to: [], note: "Cap table, options, exits." },
+  "organizations/equity": { to: [], by: cm.decision_cut_equity, note: "Parked, not dropped (cut.equity): cap table, options, exits." },
   "organizations/invitations": { to: [c.concept_organizations, c.concept_budgets], by: d.decision_operations_member_invite, note: "Invitations stay; the one proposal of their grants, and their return, is budgets'." },
   "organizations/members": { to: [c.concept_organizations], by: d.decision_concepts_organizations, note: "Seats, human or agent." },
   "organizations/proposals": { to: [c.concept_board], by: d.decision_concepts_board, note: "Board proposals, one durable process each." },
   "organizations/roles": { to: [], by: d.decision_responsibilities_roles, note: "Dropped: pre-v4 invitable roles." },
-  "organizations/rounds": { to: [], note: "Rounds and SAFEs." },
+  "organizations/rounds": { to: [], by: cm.decision_cut_equity, note: "Parked, not dropped (cut.equity): rounds and SAFEs." },
   "organizations/setups": { to: [c.concept_organizations], by: d.decision_concepts_organizations, note: "Setup and install, one durable process each." },
   "organizations/treasuries": { to: [c.concept_activity], by: d.decision_concepts_activity, note: "The treasury read is a balance of whoever you act as." },
-  "organizations/votes": { to: [], note: "Shareholder votes on the Governor." },
+  "organizations/votes": { to: [], by: cm.decision_cut_equity, note: "Parked, not dropped (cut.equity): shareholder votes on the Governor." },
   "organizations/workspaces": { to: [c.concept_organizations], by: d.decision_concepts_organizations, note: "`org list` and `org me`." },
   // parties
   "parties/(root)": { to: [c.concept_parties], by: d.decision_concepts_parties, note: "The directory: Party, handle, Safe and owner." },
