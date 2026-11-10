@@ -282,12 +282,14 @@
       "title": "Write the spikes' evidence into the book and clear each assumption mark",
       "why": "Assumption marks stay until a spike proves them; the evidence has to land as records or decisions.",
       "milestone": "m1",
-      "state": "todo",
+      "state": "done",
       "needs": [
         "m3-door-clock"
       ],
       "records": [],
-      "evidence": [],
+      "evidence": [
+        "af1b49b: every finding under a 'What the design must now decide' heading is a decision (15 new records, 11 reworked); of the 49 marked lines, 29 remain in about 16 records, each naming the test or task that settles it"
+      ],
       "created": "2026-11-10",
       "updated": "2026-11-10"
     },
@@ -344,10 +346,12 @@
       "title": "Record the lean world design: one small service per world, the real chain kept",
       "why": "A world must be cheap enough to run many of; the design belongs in the book.",
       "milestone": "m1",
-      "state": "todo",
+      "state": "done",
       "needs": [],
       "records": [],
-      "evidence": [],
+      "evidence": [
+        "af1b49b: decision devnet.lean-world (docs/mission/world-cost.md)"
+      ],
       "created": "2026-11-10",
       "updated": "2026-11-10"
     },
@@ -391,12 +395,15 @@
     },
     {
       "id": "m1-payroll-uk",
-      "title": "Payroll: the United States first, and what already exists to build on",
-      "why": "Aaron, 10 November 2026: pick the United States for now and avoid HMRC filing; and find what open-source payroll and tax support already exists. Payroll is Frappe's whichever jurisdiction comes first, so what is chosen now is where to start and what to build on.",
+      "title": "Payroll: which jurisdiction first",
+      "why": "Aaron, 10 November 2026: leave the jurisdiction open; not the UK, not the US; a crypto-friendly or blockchain-friendly place is preferred, the UAE a candidate (aaron.jurisdiction-open). Frappe HR ships UAE support, so the UAE starts ahead on software. The book must assume no country until a place is chosen.",
       "milestone": "m1",
       "state": "todo",
       "needs": [],
-      "records": [],
+      "records": [
+        "decision:payroll.jurisdiction-first",
+        "decision:aaron.jurisdiction-open"
+      ],
       "evidence": [],
       "created": "2026-11-10",
       "updated": "2026-11-10"
@@ -582,10 +589,12 @@
       "title": "Time: what following a world's clock really takes, and what can go wrong",
       "why": "Aaron, 10 November 2026, did not accept devnet.site-follows-world: he needs to understand the implications, what could go wrong, and whether to fork Frappe while staying in line with upstream. The time has to be right, and the clock checks failed on the coordinator's re-run.",
       "milestone": "m1",
-      "state": "doing",
+      "state": "done",
       "needs": [],
       "records": [],
-      "evidence": [],
+      "evidence": [
+        "commit 691a0c6 (the study); af1b49b (Aaron's answer recorded on devnet.site-follows-world, option A)"
+      ],
       "created": "2026-11-10",
       "updated": "2026-11-10",
       "thread": "time-study"
@@ -595,10 +604,12 @@
       "title": "Find what open-source payroll and tax support exists",
       "why": "Aaron, 10 November 2026, asked what open-source tax support exists and whether a plugin gives a head start for a jurisdiction, with the United States first (aaron.us-first).",
       "milestone": "m1",
-      "state": "doing",
+      "state": "done",
       "needs": [],
       "records": [],
-      "evidence": [],
+      "evidence": [
+        "docs/design/payroll-jurisdiction.md; payroll.open-source-support answered in af1b49b"
+      ],
       "created": "2026-11-10",
       "updated": "2026-11-10",
       "thread": "payroll-research"
@@ -630,12 +641,26 @@
       ],
       "created": "2026-11-10",
       "updated": "2026-11-10"
+    },
+    {
+      "id": "m1-time-proof",
+      "title": "Prove time is right: the clock scan and the month-end, year-end, restore and two-world tests",
+      "why": "Aaron settled devnet.site-follows-world for option A on 10 November 2026 and said the time has to be right. A mistake shows up as a document dated by the machine, often unnoticed until a month end, so each proof is a run. Only two of six tests exist in the spike.",
+      "milestone": "m1",
+      "state": "todo",
+      "needs": [],
+      "records": [
+        "decision:devnet.time-is-right",
+        "decision:devnet.site-follows-world"
+      ],
+      "evidence": [],
+      "created": "2026-11-10",
+      "updated": "2026-11-10"
     }
   ],
   "path": {
     "tasks": [
-      "m1-time-study",
-      "m1-spike-evidence",
+      "m1-time-proof",
       "m1-contracts-reconcile",
       "m1-aws-records",
       "m3b-create-machine",
@@ -643,7 +668,7 @@
       "m1-examples",
       "m1-aaron-accepts"
     ],
-    "why": "The plan page and the task tree are done. The spikes' evidence turns assumptions into records, so it comes before the bulk work of telemetry and examples. The machine is the one step only Aaron can unblock, so it is asked for early. Aaron said the time thing has to be right, and the clock checks failed on the coordinator's re-run, so time is settled before anything is built on it.",
+    "why": "Time comes first: Aaron said it has to be right, and he settled the approach for option A, so the proof of it is the first thing built on it. The spikes' evidence is in the book, so the contract reconciliation follows; the machine is the one step only Aaron can unblock, so it is asked for early.",
     "written": "2026-11-10"
   },
   "notes": [
@@ -671,6 +696,11 @@
       "date": "2026-11-10",
       "by": "coordinator",
       "text": "Aaron answered every question. Six are accepted. Seasons are dropped for now. Payroll targets the United States first. The clock question is open again: he wants to understand what can go wrong, and a study is being written."
+    },
+    {
+      "date": "2026-11-10",
+      "by": "coordinator",
+      "text": "10 November 2026 (coordinator): the clock is settled: Aaron accepted the recommendation, option A of the time study, and the book records it with six tests (m1-time-proof, first on the path). The spikes' evidence is in the book. The jurisdiction is open again: Aaron left it open, preferring a crypto-friendly place (the UAE a candidate), so payroll waits on a comparison of places (m1-payroll-uk)."
     }
   ]
 }
