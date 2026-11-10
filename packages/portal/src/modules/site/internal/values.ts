@@ -1,5 +1,5 @@
 /** Narrowing and tidying of the unknown values a record holds. */
-import type { AnyRecord } from "@capxul/book";
+import type { AnyRecord } from "@capxul/blueprint-engine";
 
 export type Fields = Readonly<Record<string, unknown>>;
 

@@ -65,11 +65,11 @@ const run = async (args: readonly string[]): Promise<{ readonly lines: readonly 
     const pages = [...files.keys()].filter((f) => f.endsWith(".html")).length;
     return {
       lines: [`${pages} pages, ${written.value} files written to ${resolve(outDir)} at commit ${input.commit} ` +
-        `(${input.book.records.size} records, ${input.book.problems.length} problems, ${input.book.gaps.length} gaps)`],
+        `(${input.blueprint.records.size} records, ${input.blueprint.problems.length} problems, ${input.blueprint.gaps.length} gaps)`],
       code: 0,
     };
   }
-  const outcomes = check(files, generate(input, assets), expect(input.book, input.waits, input.status, {
+  const outcomes = check(files, generate(input, assets), expect(input.blueprint, input.waits, input.status, {
     problems: (input.plan?.problems ?? []).map((p) => `${p.at}: ${p.why}`), tasks: input.plan?.plan.tasks.length ?? null,
     ownerNeeds: ownerNeedsOf(input), pages: planPagesOf(input),
   }, input.worlds ? ["worlds"] : []));

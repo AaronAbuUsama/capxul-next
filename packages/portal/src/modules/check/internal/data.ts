@@ -44,13 +44,13 @@ export const stands = (files: ReadonlyMap<string, string>, operations: readonly 
     return typeof name === "string" && STANDS.has(name) ? [] : [`operation/${id}: no stand`];
   });
 
-/** The rows of every `eval/<kind>` page, counted: they must be exactly the evals the book derives. */
+/** The rows of every `eval/<kind>` page, counted: they must be exactly the evals the blueprint derives. */
 export const evals = (files: ReadonlyMap<string, string>, expected: number): readonly string[] => {
   const listed = [...files.keys()].filter((file) => /^data\/eval\/[^/]+\.json$/.test(file)).reduce((n, file) => {
     const sections = read(files, file)?.["sections"];
     return n + (Array.isArray(sections) ? sections : []).reduce((m: number, s: unknown) => m + (isFields(s) && Array.isArray(s["rows"]) ? s["rows"].length : 0), 0);
   }, 0);
-  return listed === expected ? [] : [`the eval catalogue lists ${listed} evals, the book derives ${expected}`];
+  return listed === expected ? [] : [`the eval catalogue lists ${listed} evals, the blueprint derives ${expected}`];
 };
 
 /** The Plan page's JSON twin lists every task of the plan once, by state. */

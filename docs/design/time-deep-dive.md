@@ -13,7 +13,7 @@ Tags on every claim: **[code]** read in the installed code, with `file:line` (pa
 
 ## 1. What "a site follows a world's clock" has to mean
 
-A **world** is one chain with every company on it and one clock; it can be frozen, stepped, or run faster than real time (`aaron.world-clock`, `books/target/shared/rulings.ts:502`) [code].
+A **world** is one chain with every company on it and one clock; it can be frozen, stepped, or run faster than real time (`aaron.world-clock`, `blueprint/shared/rulings.ts:502`) [code].
 
 | Who looks | What they must see | Matters for the product? |
 |---|---|---|

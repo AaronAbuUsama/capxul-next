@@ -8,7 +8,7 @@ Aaron's question: "Some of the contracts may have to change. Do they or not? How
 event and a Frappe payment event? Our Capxul events may be naive and may not fully fit the shape. If we were building
 this from scratch, how would we do it?"
 
-The rulings this design obeys, in `books/target/shared/rulings.ts`:
+The rulings this design obeys, in `blueprint/shared/rulings.ts`:
 
 - `aaron.frappe-native` (:667-694). Frappe keeps the business records. Capxul keeps Safes, budgets, payments and
   escrow. Every movement of a Safe's money goes through Capxul, and Frappe never marks money moved until the chain says
@@ -161,7 +161,7 @@ Two clarifications:
   authority on chain (`v4/money/Budgets.sol:206-232`). In Frappe a department is a Department plus a Cost Center,
   linked to its budget id (`docs/design/frappe/payroll.md:127-129`).
 - **Money waiting** is decision `bank.money-waiting`. It reverses `books.escrow-held`
-  (`books/target/books/decisions.ts:1427-1458`), which posted nothing while money waited. Under bank-first the
+  (`blueprint/books/decisions.ts:1427-1458`), which posted nothing while money waited. Under bank-first the
   Safe's statement shows the money leaving at funding, so the ledger must show it too. The money is still the
   company's, because the sender can take it back (`docs/design/escrow.md:62`, G6). That decision's own rejected
   option, a clearing account, is what bank-first needs.
@@ -204,7 +204,7 @@ payment id can never have two rows.
 |---|---|
 | `payment_id` (the name), `document_hash` | the chain identity |
 | `item` | the PaymentItem exactly as sent: recipient, token, `amount_raw`, kind, the job nonce given to Payments (for a budget spend, `keccak256(Budgets, budgetId, callerNonce)`, `v4/money/Budgets.sol:229`) and the executor. With it, anyone can recompute the id (`v4/money/Payments.sol:80-95`), which the log alone does not allow (`v4.md:119-121`). |
-| `advice` | the canonical bytes of the advice (section 2), as `documents.store` keeps them (`books/target/documents/data.ts:76-90`) |
+| `advice` | the canonical bytes of the advice (section 2), as `documents.store` keeps them (`blueprint/documents/data.ts:76-90`) |
 | `allocations` (child table) | one row per allocation in the advice: `reference_doctype`, `reference_name`, `payment_term`, `allocated_amount`, the content hash, and the lines. The invoice's Connections tab shows the payment in flight. |
 | `adjustments` (child table) | the advice's adjustments, each mapped to a Company account role |
 | `route` | `direct`, `board`, `budget`, `schedule`, `escrow`, `bridge_payout`, `collection` or `inbound`; with `budget_id`, `pay_at`, `escrow_address`, `funding_payment_id` (unique), `payout_id` |
@@ -236,7 +236,7 @@ event or Bridge's record names.
 
 1. **Lock and check the Capxul Payment.** It locks the Capxul Payment by name and checks the chain terms: the
    recompute of the id, the document hash, the recipient, the token and the raw amount, as payments' settle guard does
-   (`books/target/payments/data.ts:431-436`). If they differ, the payment is Mismatched, the line stays Unreconciled,
+   (`blueprint/payments/data.ts:431-436`). If they differ, the payment is Mismatched, the line stays Unreconciled,
    and nothing posts.
 2. **Build the voucher the advice describes** (table below), with these fields:
    - posting date = the line's date;
@@ -372,7 +372,7 @@ for these amounts, net of this tax and these deductions. The constraints that sh
 
 ### 2.2 The typed message
 
-The advice is an EIP-712 typed message, the book's existing document form (`books/target/documents/procedures.ts:150-158`).
+The advice is an EIP-712 typed message, the book's existing document form (`blueprint/documents/procedures.ts:150-158`).
 Its domain is `{name: "Capxul", version: "1", chainId, verifyingContract: Payments}`.
 `documentHash = hashTypedData(domain, Advice)`.
 
@@ -396,7 +396,7 @@ Batch(bytes32 id,uint32 index,uint32 count)
 | Field | Commits to | Why |
 |---|---|---|
 | `version` | the schema, 1 | a later schema can coexist |
-| `origin` | `keccak256(subject kind, Capxul Payment's own id)`, the book's origin binding (`books/target/documents/procedures.ts:150-154`) | one advice serves one payment. The payment id cannot be used, because it depends on this hash. |
+| `origin` | `keccak256(subject kind, Capxul Payment's own id)`, the book's origin binding (`blueprint/documents/procedures.ts:150-154`) | one advice serves one payment. The payment id cannot be used, because it depends on this hash. |
 | `salt` | 16 random bytes, fixed at prepare and kept with the advice | the hash of an invoice cannot be guessed (`prior-art.md:474`) |
 | `payer`, `payee` | `party` = `keccak256(Capxul Party id)`; `account` = the paying Safe, and the payee's Safe or bank account id | each side finds its Customer, Supplier or Employee by `capxul_party`. A Bridge payout names the real payee, not Bridge's deposit address. |
 | `token`, `amount` | exactly the chain item's | the advice can be checked against `PaymentSent` alone, with no item |
@@ -414,7 +414,7 @@ Batch(bytes32 id,uint32 index,uint32 count)
 | `onAccount` | the part paid on account, as an advance | the voucher's unallocated amount |
 | `memo` | up to 280 characters | a payment with no document |
 | `refundOf` | the payment id this one gives back, or zero | links a refund to its payment, which v4 cannot do (`v4.md:412-416`) |
-| `route` | the kind (direct, board, budget, schedule, escrow, bridge payout, collection), the budget id, `payAt`, the escrow's address, Bridge's payout id, the bank amount in fiat (`fiat`), and the fee | the hop to Bridge names its purpose. Today it hashes only the payout id (`books/target/banking/decisions.ts:917-945`). |
+| `route` | the kind (direct, board, budget, schedule, escrow, bridge payout, collection), the budget id, `payAt`, the escrow's address, Bridge's payout id, the bank amount in fiat (`fiat`), and the fee | the hop to Bridge names its purpose. Today it hashes only the payout id (`blueprint/banking/decisions.ts:917-945`). |
 | `batch` | the run's id (`keccak256` of the Payroll Entry's Capxul id and the attempt), the line's index, and the count | each line of a run proves its place in it, with no batch id on chain |
 
 **The balance rule.** The amounts must add up:
@@ -443,7 +443,7 @@ these fields:
 
 `content` is `keccak256` of those bytes, and a line's `row` is `keccak256` of its row's canonical JSON. For a salary
 slip, `content` is the payslip document's own hash (`documents.payslip-kind`). For a request's invoice, `content` is
-the request Invoice document's hash (`books/target/documents/procedures.ts:51-63`).
+the request Invoice document's hash (`blueprint/documents/procedures.ts:51-63`).
 
 Capxul stores the canonical bytes beside the advice. A verifier therefore re-hashes bytes and never needs to
 re-implement the canonicalizer.
@@ -489,7 +489,7 @@ illustrative.
 **Variants.**
 
 - **The Board pays.** It sends `approve` and `Payments.send` from the company Safe with the executor set to the
-  company Safe (`books/target/payments/commands.ts:196`). There is no `Spent`, so the cost centre comes from the
+  company Safe (`blueprint/payments/commands.ts:196`). There is no `Spent`, so the cost centre comes from the
   Capxul Payment's classification, Main by default.
 - **A member pays the company's supplier from their own Safe.** Their Safe is not the company's bank. That is an
   expense claim (P6), whose advice names the supplier's invoice.
@@ -619,10 +619,10 @@ The money path is P1. What is specific to departments:
 
 | | |
 |---|---|
-| Frappe before | SINV-0042, 1,000.00 USD. It is printed with Acme's bank details (its Bridge virtual account, `books/target/banking/data.ts:330-385`) and its **Capxul payment reference**: an ISO 11649 RF creditor reference, whose check digits catch typing errors, stored as a unique Custom Field on Sales Invoice. The customer wires 1,000 USD with the reference in the memo. |
-| Capxul does | Nothing to sign. Banking follows Bridge's deposit events, through `funds_received` to `payment_processed` with `destination_tx_hash` (`prior-art.md:518-541`), and waits for the Transfer (`books/target/banking/processes.ts:229-262`). |
+| Frappe before | SINV-0042, 1,000.00 USD. It is printed with Acme's bank details (its Bridge virtual account, `blueprint/banking/data.ts:330-385`) and its **Capxul payment reference**: an ISO 11649 RF creditor reference, whose check digits catch typing errors, stored as a unique Custom Field on Sales Invoice. The customer wires 1,000 USD with the reference in the memo. |
+| Capxul does | Nothing to sign. Banking follows Bridge's deposit events, through `funds_received` to `payment_processed` with `destination_tx_hash` (`prior-art.md:518-541`), and waits for the Transfer (`blueprint/banking/processes.ts:229-262`). |
 | Chain | Transfer (Bridge → Treasury, 994 USDC). There is no PaymentSent. |
-| Comes back | A Treasury deposit line of 994 USDC with: reference = the RF reference found in Bridge's description (else Bridge's deposit id); description = Bridge's text; `bank_party_name` = the sender's name; `included_fee` 6, made of Bridge's developer fee of 5 and exchange fee of 1. The fee is counted only where the bank currency and the token are one (`books/target/banking/decisions.ts:837-871`). |
+| Comes back | A Treasury deposit line of 994 USDC with: reference = the RF reference found in Bridge's description (else Bridge's deposit id); description = Bridge's text; `bank_party_name` = the sender's name; `included_fee` 6, made of Bridge's developer fee of 5 and exchange fee of 1. The fee is counted only where the bank currency and the token are one (`blueprint/banking/decisions.ts:837-871`). |
 | Frappe after | The reference names SINV-0042, so the matcher makes Payment Entry Receive from the Customer: paid to Treasury 994 USDC, allocated 1,000.00 to SINV-0042, with deductions of 5 and 1 on bank charges. The invoice is Paid and the request matched. With no reference, the line stays Unreconciled. ERPNext's party matching and ranked matches propose a match, and a person picks it in the reconcile screen or with `bank match`. The voucher is still made from the line. |
 | Once | The line is unique by its chain occurrence, and Bridge's deposit id is unique on the line. |
 
@@ -633,7 +633,7 @@ Notes:
   come, which normally happens before the Transfer is final. If it never comes, the line is written from the chain
   alone after a grace period.
 - **This is how Capxul is paid.** The developer fee is Capxul's revenue, set on the Bridge account
-  (`books/target/banking/data.ts:363`). Acme's books show it as a bank charge.
+  (`blueprint/banking/data.ts:363`). Acme's books show it as a bank charge.
 - **A deposit is one hop; a payout is two (P11).** A deposit's fiat leg is over before its chain leg begins, so the
   chain line is the last word. A payout's fiat leg comes after its chain leg and can fail days later.
 
@@ -642,13 +642,13 @@ Notes:
 | | |
 |---|---|
 | Frappe before | PI-0120 from a supplier paid by bank, 2,000.00 USD; the supplier's Bank Account (with party); the Bank Account **Payouts in transit · USD**. |
-| Capxul does | `bank pay` from a department budget. Bridge's quote is: the bank receives 2,000.00 USD, the Safe sends 2,004.10 USDC, and the fee is 4.10. The advice names the real payee, the supplier (not Bridge). It allocates 2,000.00 to PI-0120, adds an adjustment of +4.10 (kind fee, reason bridge), and has route `bridge_payout` with the payout id, the bank amount and the fee, at the quote's rate. Its hash replaces `keccak256(payout id)` (`books/target/banking/decisions.ts:917-945`). The recipient is Bridge's deposit address (`books/target/banking/payouts.ts:69-90`). Capxul writes Capxul Payment P. |
+| Capxul does | `bank pay` from a department budget. Bridge's quote is: the bank receives 2,000.00 USD, the Safe sends 2,004.10 USDC, and the fee is 4.10. The advice names the real payee, the supplier (not Bridge). It allocates 2,000.00 to PI-0120, adds an adjustment of +4.10 (kind fee, reason bridge), and has route `bridge_payout` with the payout id, the bank amount and the fee, at the quote's rate. Its hash replaces `keccak256(payout id)` (`blueprint/banking/decisions.ts:917-945`). The recipient is Bridge's deposit address (`blueprint/banking/payouts.ts:69-90`). Capxul writes Capxul Payment P. |
 | Chain | Transfer (Treasury → Bridge's deposit address); PaymentSent P with kind 1; Spent. |
 | Comes back (chain) | A Treasury withdrawal of 2,004.10 USDC with reference P. In the same push, a Payouts in transit deposit of 2,004.10 USD at the quote's rate, also with reference P. |
 | Frappe after the chain | Payment Entry Internal Transfer from Treasury (USDC) to Payouts in transit (USD), reconciled to both lines. PI-0120 is still unpaid and shows the payment in flight. Capxul Payment P is In transit. |
-| Comes back (Bridge) | Bridge's delivered event, carrying the quote's bank amount (`books/target/banking/processes.ts:112-200`, step `deliver`). A Payouts in transit withdrawal of 2,004.10 with an included fee of 4.10 (the fee may not exceed the withdrawal, `bank_transaction.py:332-340`), reference P. |
+| Comes back (Bridge) | Bridge's delivered event, carrying the quote's bank amount (`blueprint/banking/processes.ts:112-200`, step `deliver`). A Payouts in transit withdrawal of 2,004.10 with an included fee of 4.10 (the fee may not exceed the withdrawal, `bank_transaction.py:332-340`), reference P. |
 | Frappe after delivery | Payment Entry Pay from Payouts in transit, party Supplier, allocated 2,000.00 to PI-0120, with a deduction of 4.10 on bank charges. PI-0120 is Paid. Capxul Payment P is Settled. |
-| Return | Bridge sends the USDC back to Treasury in the refund transaction it names (`books/target/banking/processes.ts:112-200`), with no PaymentSent. **Before delivery:** a Treasury deposit and a Payouts in transit withdrawal, as an Internal Transfer back. **After delivery** (a bank can return a payment for 60 days): first a Payouts in transit deposit for the returned fiat, with the supplier as party. Unreconcile Payment then takes the delivery entry's allocation off PI-0120 (`frappe.md:252-253`). A Receive from the Supplier referencing the delivery's Payment Entry nets it (`payment_entry.py:869-875`). Then comes the Internal Transfer back to Treasury. PI-0120 is owed again. |
+| Return | Bridge sends the USDC back to Treasury in the refund transaction it names (`blueprint/banking/processes.ts:112-200`), with no PaymentSent. **Before delivery:** a Treasury deposit and a Payouts in transit withdrawal, as an Internal Transfer back. **After delivery** (a bank can return a payment for 60 days): first a Payouts in transit deposit for the returned fiat, with the supplier as party. Unreconcile Payment then takes the delivery entry's allocation off PI-0120 (`frappe.md:252-253`). A Receive from the Supplier referencing the delivery's Payment Entry nets it (`payment_entry.py:869-875`). Then comes the Internal Transfer back to Treasury. PI-0120 is owed again. |
 
 Decision `bank.payout-two-hops`. The chain proves only that the money left the Safe, and only Bridge's statement
 proves the supplier's bank received it. An invoice is paid when its payee has the money. A return then rarely has to
@@ -697,7 +697,7 @@ from Payouts in transit to the bank.
 | | |
 |---|---|
 | Frappe before | Capxul Payment P, Prepared or Scheduled. Nothing posted. |
-| Capxul does | `payment cancel`, or one of: an approval declined, withdrawn or expired; a Board proposal rejected; `Budgets.cancel` (`v4/money/Budgets.sol:268-278`); a Bridge quote expired (`books/target/banking/processes.ts:112-200`). A **lapse** whose approval may still be retried under the same id is not a cancel: the Capxul Payment becomes Needs retry. |
+| Capxul does | `payment cancel`, or one of: an approval declined, withdrawn or expired; a Board proposal rejected; `Budgets.cancel` (`v4/money/Budgets.sol:268-278`); a Bridge quote expired (`blueprint/banking/processes.ts:112-200`). A **lapse** whose approval may still be retried under the same id is not a cancel: the Capxul Payment becomes Needs retry. |
 | Chain | Nothing, or `ScheduleCancelled`, which carries no amount (the amount is on the Capxul Payment). |
 | Frappe after | Capxul Payment P is Cancelled. Its allocations are no longer in flight, and G5 releases the invoice. No voucher or line ever existed, so there is nothing to reverse. |
 | Race | A signed operation can still land after a cancel is asked for. So the Capxul Payment becomes Cancelled only once the chain makes landing impossible: the approval's window has closed (`not_after`), or `ScheduleCancelled` has landed. If the payment lands first, its line arrives and is booked: money that moved wins. An escrow refund is a cancel after funding (P8). |
@@ -707,7 +707,7 @@ from Payouts in transit to the bank.
 | | |
 |---|---|
 | Frappe before | Line L (block b, hash h) reconciled to Payment Entry V; PI-0101 Paid; Capxul Payment P Settled. |
-| Chain | Ponder rolls back the block (`books/target/indexing/decisions.ts:255-274`). Payments `unsettle`s P (`books/target/payments/data.ts:445-450`). |
+| Chain | Ponder rolls back the block (`blueprint/indexing/decisions.ts:255-274`). Payments `unsettle`s P (`blueprint/payments/data.ts:445-450`). |
 | Capxul does | `statement.retract(L)`, under the next seq. |
 | Frappe after | The app runs ERPNext's unreconcile on L. It cancels every `Voucher Created` voucher (`bank_transaction.py:373-401`), so V is cancelled, and L is then cancelled too (its cancel removes the clearance, `:148-154`). With the immutable ledger on, the reversal is dated on the cancel's posting date (`frappe.md:567-570`), which is the world's today. PI-0101 is outstanding again. Capxul Payment P goes back to Prepared and its generation goes up by one. |
 | Re-landing | If the same operation lands again, it is the same id, so a new line L′ comes with a new key (a new block hash) and a new voucher V′ with `amended_from` V (`frappe.md:548-550`). PI-0101 is Paid again. If it never lands, the Capxul Payment ends Needs retry. |
@@ -719,7 +719,7 @@ from Payouts in transit to the bank.
 |---|---|---|
 | Bridge's deposit fees, including Capxul's developer fee | Bridge's deposit record (`prior-art.md:518-528`) | `included_fee` on the line; deductions on bank charges (P10) |
 | Bridge's payout fee | the quote, and the advice's adjustment (P11) | a deduction on the delivery Payment Entry |
-| Capxul's own charges: seats and the hosted FDE (`books/target/shared/rulings.ts:450-467`) | Capxul issues a Purchase Invoice into the Organization's site from the Supplier "Capxul" | paying it is P1, with that invoice in the advice |
+| Capxul's own charges: seats and the hosted FDE (`blueprint/shared/rulings.ts:450-467`) | Capxul issues a Purchase Invoice into the Organization's site from the Supplier "Capxul" | paying it is P1, with that invoice in the advice |
 | Gas | paid by Capxul's paymaster | none, unless Capxul bills it as a line on its own invoice |
 | Early-payment discount, withholding, dunning charge | the advice's per-document adjustments, with reason codes | deductions and taxes on the Payment Entry (`frappe.md:199-207`; dunning at `frappe.md:440-445`) |
 | Exchange difference | the advice's rate against the block's rate | the automatic deduction to exchange gain or loss (`payment_entry.py:1333-1367`) |
@@ -817,8 +817,8 @@ commit the payee's claim, not the payer's advice, and it would change Budgets' `
 **Kinds.** Frappe never classifies by kind; the advice does that. Capxul still sets the kind by v4's table so that
 chain readers see sense: 1 for an invoice, 2 for payroll, 3 for a reimbursement or an advance, 0 otherwise
 (`pv4/architecture.md:151-165`). Budgets allows kinds 0 to 3 (`v4/money/Budgets.sol:27`, `:448-450`). This corrects
-the book, which pays salary slips with kind one-off (`books/target/payroll/staged.ts:75`) and every `payment send` with
-kind 0 (`books/target/payments/commands.ts:117`). It is a book change, not a contract change.
+the book, which pays salary slips with kind one-off (`blueprint/payroll/staged.ts:75`) and every `payment send` with
+kind 0 (`blueprint/payments/commands.ts:117`). It is a book change, not a contract change.
 
 ---
 
@@ -835,7 +835,7 @@ Decision `bank.dates-from-blocks`:
   (`docs/design/time.md:54`, `:165`), and the site's `now_datetime` is the world's now (`docs/design/time.md:61`). So
   a voucher booked at the end of a stop has posting date = block day = Frappe's today. A cancel's reversal (P15) is
   dated the world's today, by the immutable ledger. In a shared world that runs four hours per real hour, or jumps time
-  between seasons (`aaron.seasons`, `books/target/shared/rulings.ts:616-633`), the same holds, because Frappe's
+  between seasons (`aaron.seasons`, `blueprint/shared/rulings.ts:616-633`), the same holds, because Frappe's
   scheduler and the chain move together.
 - **Bridge's lines** (P11's delivery and returns) are dated at the event's time on the world clock. A devnet's Bridge
   stand-in follows the world (`time.world-channels`).

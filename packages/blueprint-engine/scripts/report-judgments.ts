@@ -1,0 +1,70 @@
+// node --experimental-strip-types packages/blueprint-engine/scripts/report-judgments.ts   (pnpm judgments)
+// Prints the report. It is not committed: a committed copy went stale within a day (archive/docs/decisions/judgments.md);
+// the portal shows the same list from the same predicate.
+// Every decision record in the blueprint, by concept, plus the ones that name Aaron for review.
+// Generated from the records, so it never disagrees with the blueprint.
+
+import { records } from "../../../blueprint/index.ts";
+import { ACCEPTED, SUPERSEDED } from "../../../blueprint/shared/rulings.ts";
+import { FLAGGED, byAaron, forAaron } from "../../../blueprint/shared/waiting.ts";
+
+type Decision = {
+  _kind: "decision"; id: string; title: string; question: string; chosen: string; why: string; source: string;
+  options: { label: string; text: string }[]; affects: { _kind: string; id: string }[];
+};
+type Concept = { _kind: "concept"; id: string };
+type Rec = { _kind: string; id: string; concept?: { id: string } };
+
+const all = records as unknown as Rec[];
+const decisions = all.filter((r) => r._kind === "decision") as unknown as Decision[];
+const concepts = (all.filter((r) => r._kind === "concept") as unknown as Concept[]).map((c) => c.id);
+const count = (kind: string) => all.filter((r) => r._kind === kind).length;
+
+// A decision's concept: its id's first segment when that is a concept, else "shared".
+const home = (d: Decision) => {
+  const first = d.id.split(".")[0] ?? "";
+  return concepts.includes(first) ? first : "shared";
+};
+// Which decisions are Aaron's own, and which wait for him, is decided in blueprint/shared/waiting.ts:
+// the portal's Questions page reads the same predicate. The report fails if a flagged id is not a decision in the blueprint.
+const chosenText = (d: Decision) => d.options.find((o) => o.label === d.chosen)?.text ?? d.chosen;
+const one = (s: string) => s.replace(/\s+/g, " ").trim();
+
+const out: string[] = [];
+out.push("# Judgments in the blueprint", "");
+out.push("Printed by `pnpm judgments` from the decision records in `blueprint`. Not committed: run it again for the current list.", "");
+out.push("Read every record with Aaron's `system.frozen-behaviour` (8 November 2026): where a record argues that a command, flag, `--json` shape, refusal code or wording is frozen surface (P10 rung 1), that reasoning no longer binds the spelling. The behaviour it protects is kept, and the target designs the spelling.", "");
+out.push(`${decisions.length} decisions. The blueprint holds ${count("concept")} concepts, ${count("table")} tables, ${count("machine")} state machines, ${count("rpc")} rpcs, ${count("flow")} Core SDK flows, ${count("workflow")} workflows, ${count("procedure")} procedures and ${count("operation")} operations.`, "");
+
+const missing = FLAGGED.filter((id) => !decisions.some((d) => d.id === id));
+if (missing.length) throw new Error(`flagged for Aaron but not a decision in the blueprint: ${missing.join(", ")}`);
+const review = decisions.filter(forAaron);
+const his = decisions.filter(byAaron);
+const accepted = decisions.filter((d) => ACCEPTED.includes(d.id));
+out.push(`## Decided by Aaron (${his.length})`, "");
+for (const d of his) out.push(`- **${d.id}**: ${one(d.title)}. ${one(chosenText(d))}`);
+out.push("");
+const superseded = decisions.filter((d) => d.id in SUPERSEDED);
+out.push(`## Superseded by Aaron's rulings (${superseded.length})`, "", "Each record is rewritten to its ruling in the next design pass, blueprint first.", "");
+for (const d of superseded) out.push(`- **${d.id}** is replaced by **${SUPERSEDED[d.id]}**: ${one(d.title)}.`);
+out.push("");
+out.push(`## Accepted by Aaron as recommended (${accepted.length})`, "");
+for (const d of accepted) out.push(`- **${d.id}**: ${one(d.title)}.`);
+out.push("");
+out.push(`## For Aaron (${review.length})`, "", "Decisions flagged for Aaron's review, or whose text names a call that is his. Each recorded choice stands, and the build follows it, until he changes it; a change goes into the record first.", "");
+for (const d of review) out.push(`- **${d.id}**: ${one(d.title)}. Chosen: ${one(chosenText(d))}`);
+out.push("");
+
+const groups = ["shared", ...concepts];
+for (const g of groups) {
+  const ds = decisions.filter((d) => home(d) === g);
+  if (!ds.length) continue;
+  out.push(`## ${g} (${ds.length})`, "");
+  for (const d of ds) {
+    out.push(`### ${d.id}: ${one(d.title)}`, "");
+    out.push(`- **Question:** ${one(d.question)}`);
+    out.push(`- **Chosen:** ${one(chosenText(d))}`);
+    out.push(`- **Why:** ${one(d.why)}`, "");
+  }
+}
+console.log(out.join("\n"));

@@ -2,7 +2,7 @@
  * Where a record lives on the site. Most kinds have a page at `<kind>/<id>`; a child kind is an anchor on its
  * parent's page; the system is the Overview. Eval anchors follow docs/design/portal.md ("Anchors").
  */
-import { verdictOf, type AnyRecord, type EvalDef, type StatusDocument } from "@capxul/book";
+import { verdictOf, type AnyRecord, type EvalDef, type StatusDocument } from "@capxul/blueprint-engine";
 
 import type { EvalRow, Ref } from "../types.ts";
 import { kindOf } from "./evalKinds.ts";

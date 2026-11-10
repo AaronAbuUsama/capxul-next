@@ -23,8 +23,8 @@ const args = (rows: readonly ArgRow[]): readonly (readonly string[])[] => rows.m
 
 const oldCli = (p: OperationPage): readonly string[] =>
   p.oldCli === null
-    ? [`${p.isNew ? "This operation is new: the old CLI never had it." : "The old system designed this command and never shipped it."} Its arguments and flags are the target book's to design.`]
-    : ["Reference, old CLI. The behaviour is kept; the spelling is the target book's to design.", "",
+    ? [`${p.isNew ? "This operation is new: the old CLI never had it." : "The old system designed this command and never shipped it."} Its arguments and flags are the blueprint's to design.`]
+    : ["Reference, old CLI. The behaviour is kept; the spelling is the blueprint's to design.", "",
       ...(p.oldCli.arguments.length + p.oldCli.flags.length === 0 ? ["The old CLI took no arguments and no flags here."] : []),
       ...table(["Name", "Kind", "What it does"], [...args(p.oldCli.arguments), ...args(p.oldCli.flags)])];
 
@@ -41,7 +41,7 @@ export const operation = (p: OperationPage): readonly string[] => [
     `**${plain(e.title)}**${e.refusal ? ` (a refusal: ${link(p.id, e.refusal)})` : ""}`, "",
     ...fence("bash", `$ ${e.input}\n${e.output}\n# exit ${e.exit}`),
   ])),
-  ...section("What it returns", p.returns.length > 0 ? variants(p.returns, true) : ["Not designed yet: the book does not hold what the command prints or its `--json` shape."]),
+  ...section("What it returns", p.returns.length > 0 ? variants(p.returns, true) : ["Not designed yet: the blueprint does not hold what the command prints or its `--json` shape."]),
   ...section("Who can do it", p.who === "" ? [] : [plain(p.who)]),
   ...section("What it changes", p.changes === "" ? [] : [plain(p.changes)]),
   ...section("Arguments and flags", oldCli(p)),
@@ -56,7 +56,7 @@ export const operation = (p: OperationPage): readonly string[] => [
   ...section("Notes", bullets(p.notes.map(plain))),
   ...section("Common mistakes", p.mistakes.map((m) => `- ${plain(m.what)}: ${plain(m.fix)}`)),
   ...section("Waiting for an answer", briefs(p.id, p.waiting)),
-  ...section("What the book still lacks here", findings(p.gaps)),
+  ...section("What the blueprint still lacks here", findings(p.gaps)),
   ...section("Used by", groups(p.id, p.usedBy)),
   ...section("Decisions that name it", briefs(p.id, p.decisions)),
   ...section("If this changes", impact(p.id, p.impact)),
@@ -74,7 +74,7 @@ export const record = (p: RecordPage): readonly string[] => [
   ...section("Links out", groups(p.id, p.linksOut)),
   ...section("Linked by", groups(p.id, p.linkedBy)),
   ...section("Evals", evals(p.evals)),
-  ...section("What the book still lacks here", findings(p.gaps)),
+  ...section("What the blueprint still lacks here", findings(p.gaps)),
   ...section("Decisions that name it", briefs(p.id, p.decisions)),
   ...section("If this changes", impact(p.id, p.impact)),
 ];

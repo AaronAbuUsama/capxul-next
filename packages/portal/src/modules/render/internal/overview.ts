@@ -1,4 +1,4 @@
-/** The Overview: where the book stands, what waits for an answer, what the book holds, and the concepts. */
+/** The Overview: where the blueprint stands, what waits for an answer, what the blueprint holds, and the concepts. */
 import type { ClimbCard, ConceptCard, OverviewPage, Question, Ref, Verdict } from "#src/modules/site/types.ts";
 
 import { ARROW, chip, count, esc, hrefTo, link, plural, prose } from "./html.ts";
@@ -52,7 +52,7 @@ const waiting = (p: OverviewPage): string => {
 };
 
 const holds = (p: OverviewPage): string =>
-  `<section class="col"><div class="col-head"><h2 id="holds">What the book holds</h2>` +
+  `<section class="col"><div class="col-head"><h2 id="holds">What the blueprint holds</h2>` +
   `<span class="caption">Each count opens its list</span></div>${tiles(p.id, p.holds)}</section>`;
 
 const conceptCard = (at: string, c: ConceptCard): string =>
@@ -65,15 +65,15 @@ const concepts = (p: OverviewPage): string =>
   `<span class="caption">Operations, decisions, and the re-cut verdict</span></div>` +
   `<div class="cards">${p.concepts.map((c) => conceptCard(p.id, c)).join("")}</div></section>`;
 
-/** What the book itself says is unfinished: problems stop the build, gaps are named and waiting. */
+/** What the blueprint itself says is unfinished: problems stop the build, gaps are named and waiting. */
 const unfinished = (p: OverviewPage): string => {
   const rows = (held: OverviewPage["gaps"]): string =>
     findings(held.map((f) => ({ ...f, detail: `\`${f.record}\`: ${f.detail}` })));
   const parts = [
     p.problems.length > 0 ? fold(plural(p.problems.length, "problem"), rows(p.problems)) : "",
-    p.gaps.length > 0 ? fold(`${plural(p.gaps.length, "gap")} the book names in itself`, rows(p.gaps)) : "",
+    p.gaps.length > 0 ? fold(`${plural(p.gaps.length, "gap")} the blueprint names in itself`, rows(p.gaps)) : "",
   ].join("");
-  return parts === "" ? "" : `<section class="block"><h2 id="unfinished">What the book still lacks</h2>${parts}</section>`;
+  return parts === "" ? "" : `<section class="block"><h2 id="unfinished">What the blueprint still lacks</h2>${parts}</section>`;
 };
 
 /** What the goal is in two sentences, the coordinator's latest note, and the way to the plan and to what waits. */

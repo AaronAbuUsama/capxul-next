@@ -1,8 +1,8 @@
 /**
  * The Plan page and what it is made of: the coordinator's plan (plan/plan.json) and its explanation (plan/outline.md,
- * plan/milestones, plan/tasks) laid beside the book. It adds nothing of its own to the plan.
+ * plan/milestones, plan/tasks) laid beside the blueprint. It adds nothing of its own to the plan.
  */
-import { passing } from "@capxul/book";
+import { passing } from "@capxul/blueprint-engine";
 
 import { blockerLine, bulletsOf, sectionBody, sectionsOf, sentences, waitsOnOwner } from "@capxul/plan";
 import type { ExitLine, LogEntry, Milestone, Task, TaskState } from "@capxul/plan";
@@ -39,14 +39,14 @@ const delivers = (ctx: Ctx, m: Milestone): string => sentences(sectionBody(ctx.i
 export const milestoneOf = (ctx: Ctx, m: Milestone): PlanMilestone => {
   const p = ctx.input.plan?.plan;
   const named = new Set(m.concepts ?? []);
-  const ids = ctx.input.book.evals.filter((e) => named.has(ctx.input.conceptOf.get(e.subject) ?? "")).map((e) => e.id);
+  const ids = ctx.input.blueprint.evals.filter((e) => named.has(ctx.input.conceptOf.get(e.subject) ?? "")).map((e) => e.id);
   const mine = (p?.tasks ?? []).filter((t) => t.milestone === m.id);
   const goal = p?.goal.exit ?? [];
   return {
     id: m.id, title: m.title, goal: m.goal, state: m.state, order: m.order, ref: milestoneRef(m.id, m.title), delivers: delivers(ctx, m),
     tasksTotal: mine.filter((t) => t.state !== "dropped").length, tasksDone: mine.filter((t) => t.state === "done").length,
     exit: m.exit.map(exitOf), repeatsGoal: m.exit.length > 0 && m.exit.every((e) => goal.some((g) => g.id === e.id && g.claim === e.claim)),
-    concepts: (m.concepts ?? []).flatMap((id) => { const c = ctx.input.book.records.get(`concept:${id}`); return c ? [refOf(c)] : []; }),
+    concepts: (m.concepts ?? []).flatMap((id) => { const c = ctx.input.blueprint.records.get(`concept:${id}`); return c ? [refOf(c)] : []; }),
     evals: named.size === 0 ? null : { passing: passing(ctx.input.status, ids), total: ids.length },
     sections: sections(ctx.input.plan?.files.milestones[m.id] ?? ""), tasks: mine.map((t) => taskOf(ctx, t)),
   };
@@ -64,12 +64,12 @@ export const rowOf = (l: LogEntry): PlanLogRow => ({ at: l.at, by: l.by, action:
 
 const blockedOf = (ctx: Ctx, t: Task): PlanBlocked => {
   const b = t.blockedBy;
-  const book = b && "decision" in b ? ctx.input.book.records.get(`decision:${b.decision}`) : undefined;
+  const blueprint = b && "decision" in b ? ctx.input.blueprint.records.get(`decision:${b.decision}`) : undefined;
   const waits = waitsOnOwner(t, ctx.input.direction.settings.reviewer, (id) => ctx.waiting.some((d) => d.id === id));
   const decision = b && "decision" in b ? b.decision : "";
   return {
     task: taskOf(ctx, t), on: b && "decision" in b ? "decision" : "need", who: b && "need" in b ? b.who : "", need: b && "need" in b ? b.need : blockerLine(t),
-    waitsOnOwner: waits, decisionRef: book ? refOf(book) : null,
+    waitsOnOwner: waits, decisionRef: blueprint ? refOf(blueprint) : null,
     // a need is its own entry on the Questions page; a task blocked on a waiting decision points at the decision's entry
     inbox: !waits ? null : b && "need" in b ? { label: t.id, page: "review", anchor: `q-task-${t.id}` } : { label: t.id, page: "review", anchor: `q-${decision}` },
   };

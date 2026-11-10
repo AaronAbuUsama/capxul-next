@@ -17,8 +17,8 @@ A design, a book record or a plan never counts as done. That includes the Frappe
   `claude/infrastructure-refactor-plan-v41iue`, which is based on `integration/factory`. I read
   `apps/cli`, `packages/backend`, `packages/sdk`, `packages/protocol` and `packages/contracts`.
   Paths below start with `infra:`.
-- The frozen list of its 215 operations, `books/frozen/operations.ts`, with their acceptance
-  claims, and `books/frozen/flags.ts`. Operations are named by id, for example
+- The frozen list of its 215 operations, `blueprint/baseline/operations.ts`, with their acceptance
+  claims, and `blueprint/baseline/flags.ts`. Operations are named by id, for example
   `org.agreement.offer`.
 - `docs/mission/findings.md`, the audit of the old system. There is no
   `docs/original/findings.md`.

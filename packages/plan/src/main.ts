@@ -8,10 +8,10 @@ import { execFileSync } from "node:child_process";
 import { appendFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { planFilesOf } from "./files.ts";
 import { dirname } from "node:path";
-import { buildBook, parseStatus, type StatusDocument } from "@capxul/book";
-import { name, records, stage } from "../../../books/target/index.ts";
-import { CONCEPTS } from "../../../books/target/shared/foundation.ts";
-import { forAaron } from "../../../books/target/shared/waiting.ts";
+import { buildBlueprint, parseStatus, type StatusDocument } from "@capxul/blueprint-engine";
+import { name, records, stage } from "../../../blueprint/index.ts";
+import { CONCEPTS } from "../../../blueprint/shared/foundation.ts";
+import { forAaron } from "../../../blueprint/shared/waiting.ts";
 import { apply, applyAnswer, appliedTargets, check, describe, logLine, parseAnswerLines, parseArgs, parsePlan, show, showTask, unapplied } from "./modules/plan/service.ts";
 import { EMPTY_PLAN, type Facts, type LogEntry, type Plan } from "./modules/plan/types.ts";
 
@@ -19,15 +19,15 @@ export const PLAN_FILE = "plan/plan.json";
 export const LOG_FILE = "plan/log.jsonl";
 export const ANSWERS_FILE = "plan/answers.jsonl";
 
-/** The book as the sets of names the plan is checked against. */
+/** The blueprint as the sets of names the plan is checked against. */
 export const factsOf = (log: readonly LogEntry[] = []): Facts => {
-  const book = buildBook({ name, stage, records });
+  const blueprint = buildBlueprint({ name, stage, records });
   return {
-    waiting: new Set([...book.records.values()].filter((r) => r._kind === "decision" && forAaron(r)).map((r) => r.id)),
+    waiting: new Set([...blueprint.records.values()].filter((r) => r._kind === "decision" && forAaron(r)).map((r) => r.id)),
     applied: appliedTargets(log, parseAnswerLines(lines(ANSWERS_FILE))),
-    decisions: new Set([...book.records.values()].filter((r) => r._kind === "decision").map((r) => r.id)),
-    records: new Set(book.records.keys()),
-    evals: new Set(book.evals.map((e) => e.id)),
+    decisions: new Set([...blueprint.records.values()].filter((r) => r._kind === "decision").map((r) => r.id)),
+    records: new Set(blueprint.records.keys()),
+    evals: new Set(blueprint.evals.map((e) => e.id)),
     concepts: new Set(CONCEPTS.map((c) => c.id)),
   };
 };
@@ -39,7 +39,7 @@ const commit = (): string => {
 const lines = (file: string): string => (existsSync(file) ? readFileSync(file, "utf8") : "");
 const logOf = (): readonly LogEntry[] => lines(LOG_FILE).split("\n").filter((l) => l.trim() !== "").map((l) => JSON.parse(l) as LogEntry);
 
-/** status/status.json as the book reads it; none when it is absent or is not one. */
+/** status/status.json as the blueprint reads it; none when it is absent or is not one. */
 const statusOf = (): StatusDocument | null => {
   if (!existsSync("status/status.json")) return null;
   const parsed = parseStatus(JSON.parse(readFileSync("status/status.json", "utf8")) as unknown);

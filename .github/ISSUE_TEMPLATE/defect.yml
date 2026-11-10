@@ -6,7 +6,7 @@ body:
   - type: markdown
     attributes:
       value: |
-        **A defect task** (`TaskDef`, kind defect: docs/design/swarm-templates.md section 8.1). capxul/master opens one for a finding outside its task's paths, for a red integration head, or for a book change after a plan diagnosis; a person may open one too. It lives in the lane that owns the path, on that lane's branch, and never grows another task.
+        **A defect task** (`TaskDef`, kind defect: docs/design/swarm-templates.md section 8.1). capxul/master opens one for a finding outside its task's paths, for a red integration head, or for a blueprint change after a plan diagnosis; a person may open one too. It lives in the lane that owns the path, on that lane's branch, and never grows another task.
 
         - Its evals are existing eval ids that fail, error or are unknown at the head of integration/build, or that the finding names. A problem no eval catches is not a defect: name the `des:` of the operation it concerns, or raise a decision pack.
         - State what was observed, with ids and times, and why it matters.

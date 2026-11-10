@@ -1,5 +1,5 @@
 /** An operation's examples as a terminal shows them: the command line, the JSON it printed, the exit code. */
-import { examplesOf, type AnyRecord } from "@capxul/book";
+import { examplesOf, type AnyRecord } from "@capxul/blueprint-engine";
 
 import type { ExampleView } from "../types.ts";
 import { refOf } from "./locate.ts";

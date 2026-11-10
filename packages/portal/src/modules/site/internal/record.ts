@@ -1,5 +1,5 @@
 /** The page of any other record: its fields, its children as anchored sections, and everything that names it. */
-import { keyOf, type AnyRecord, type Link } from "@capxul/book";
+import { keyOf, type AnyRecord, type Link } from "@capxul/blueprint-engine";
 
 import type { ChildSection, RecordPage } from "../types.ts";
 import { impactBlock } from "./impact.ts";
@@ -19,7 +19,7 @@ const CHILDREN: Readonly<Record<string, readonly (readonly [string, string, stri
 const HEAD_FIELDS = new Set(["_kind", "id", "title", "about", "t", "c", "f", "e"]);
 
 const named = (ctx: Ctx, key: string): readonly Link[] =>
-  (ctx.input.book.linkedBy.get(key) ?? []).filter((l) => l.field !== "affects");
+  (ctx.input.blueprint.linkedBy.get(key) ?? []).filter((l) => l.field !== "affects");
 
 const childrenOf = (ctx: Ctx, r: AnyRecord, used: Set<string>): readonly ChildSection[] =>
   (CHILDREN[r._kind] ?? []).flatMap(([details, held, kind]) =>

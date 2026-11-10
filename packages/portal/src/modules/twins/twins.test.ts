@@ -51,7 +51,7 @@ test("an operation with no old command says so instead of showing flags", () => 
   assert.equal(md.includes("--role"), false);
 });
 
-test("text from the book cannot become a link", () => {
+test("text from the blueprint cannot become a link", () => {
   const twins = twinsOf(buildSite({ ...fixtureInput(), direction: { ...fixtureInput().direction, needsYou: "see [here](http://x.test)" } }));
   assert.ok((twins.get("index.md") ?? "").includes("[here]\\(http://x.test)"));
 });
@@ -67,13 +67,13 @@ test("llms.txt names every fixed page, every concept and the grammar of the reco
 
 test("the twins carry the skeleton, the SDK call, the trace, the evals by kind and the catalogues", () => {
   const md = file(mdFile("operation/invite.accept"));
-  for (const part of ["```json", "```ts", "## What happens when you run it", "### Acceptance (`acc`)", "the book names none"]) {
+  for (const part of ["```json", "```ts", "## What happens when you run it", "### Acceptance (`acc`)", "the blueprint names none"]) {
     assert.ok(md.includes(part), `no ${part}`);
   }
   const operation = data("operation/invite.accept");
   for (const key of ["sdkCall", "trace", "evalKinds"]) assert.ok(key in operation, `no ${key}`);
   assert.ok(file(mdFile("docs/events")).includes("| Event | Concept | What it means |"));
-  assert.ok(file(mdFile("eval")).includes("## Level 4: live traffic") && file(mdFile("eval")).includes("The book derives none yet."));
-  assert.ok(file(mdFile("design")).includes("## What runs where") && file(mdFile("design")).includes("## What the book is silent on"));
+  assert.ok(file(mdFile("eval")).includes("## Level 4: live traffic") && file(mdFile("eval")).includes("The blueprint derives none yet."));
+  assert.ok(file(mdFile("design")).includes("## What runs where") && file(mdFile("design")).includes("## What the blueprint is silent on"));
   assert.ok(file(LLMS_FILE).includes("(docs/events.md)") && file(LLMS_FILE).includes("(eval.md)"));
 });

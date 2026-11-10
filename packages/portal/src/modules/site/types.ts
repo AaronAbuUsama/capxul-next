@@ -1,8 +1,8 @@
 /**
- * The site module: a built Book in, typed page models out. A page model is plain data: the renderer draws it,
+ * The site module: a built Blueprint in, typed page models out. A page model is plain data: the renderer draws it,
  * the twins print it as Markdown and JSON, and the check reads it back. Nothing here knows about HTML.
  */
-import type { AnyRecord, Book, Stand, StandOf, StatusDocument, Verdict as EvalVerdict } from "@capxul/book";
+import type { AnyRecord, Blueprint, Stand, StandOf, StatusDocument, Verdict as EvalVerdict } from "@capxul/blueprint-engine";
 
 import type { Diagram, Direction, Step, Verdict } from "#content/shape.ts";
 import type { PlanInput, TaskState } from "@capxul/plan";
@@ -15,7 +15,7 @@ export type { Diagram, DiagramEdge, DiagramNode, Direction, Step, Verdict } from
 
 // ── shared pieces ───────────────────────────────────────────────────────────────────────────────
 
-/** Where an operation stands on the climb, and the rule that placed it: `standOf` in `@capxul/book`. */
+/** Where an operation stands on the climb, and the rule that placed it: `standOf` in `@capxul/blueprint-engine`. */
 export type { EvalVerdict, Stand, StandOf };
 /** How many of some evals pass, of how many there are. */
 export interface Count { readonly passing: number; readonly total: number }
@@ -61,13 +61,13 @@ export type Cell =
   | { readonly t: "stand"; readonly stand: StandOf };
 /** A row, and the group it sits under ("" for none): a table draws a group's name once, above its first row. */
 export interface TableRow { readonly group: string; readonly cells: readonly Cell[] }
-/** A titled table. With no rows it shows `empty`: what the book is silent on, said out loud. */
+/** A titled table. With no rows it shows `empty`: what the blueprint is silent on, said out loud. */
 export interface TableSection {
   readonly anchor: string; readonly title: string; readonly caption: string;
   readonly heads: readonly string[]; readonly rows: readonly TableRow[]; readonly empty: string;
 }
 
-/** One step of a run: what it is, and everything the book says happens under it. */
+/** One step of a run: what it is, and everything the blueprint says happens under it. */
 export interface TraceStep {
   readonly name: string; readonly about: string;
   /** `rpc`, or the work the SDK does itself: `sign`, `build`, `wait`. */
@@ -92,7 +92,7 @@ export interface ImpactRow { readonly ref: Ref; readonly kind: string; readonly 
 export interface ImpactBlock {
   readonly total: number; readonly byKind: readonly { readonly kind: string; readonly count: number }[];
   readonly all: readonly ImpactRow[];
-  /** False when `all` is cut: to the nearest 500, or for a decision to what it names directly. `packages/book/scripts/impact.ts` has the rest. */
+  /** False when `all` is cut: to the nearest 500, or for a decision to what it names directly. `packages/blueprint-engine/scripts/impact.ts` has the rest. */
   readonly complete: boolean;
   /** Decisions that name the record itself (listed on the page), and how many name something that depends on it. */
   readonly decisions: number; readonly decisionsOnDependents: number; readonly evals: number;
@@ -113,7 +113,7 @@ export interface ClimbCard {
 /** A task of the plan that an inbox entry holds up. */
 export interface HeldUp { readonly id: string; readonly title: string; readonly milestone: string }
 /**
- * One thing that waits on the owner: a decision the book holds for him, or a task of the plan blocked on a need of his.
+ * One thing that waits on the owner: a decision the blueprint holds for him, or a task of the plan blocked on a need of his.
  * A need has no options and no recommendation; its `question` is what is needed and `concept` is its milestone.
  */
 export interface Question {
@@ -156,11 +156,11 @@ export interface ArchitecturePage extends PageHead {
   /** What must be up before what: each layer depends only on layers before it. */
   readonly layers: readonly (readonly Ref[])[];
   readonly depends: TableSection;
-  /** One request, end to end; null when the book does not hold the operation the direction names. */
+  /** One request, end to end; null when the blueprint does not hold the operation the direction names. */
   readonly traced: { readonly operation: Ref; readonly title: string; readonly trace: Trace } | null;
   /** What crosses the Frappe boundary: the records that link to it, then the records that name it in words. */
   readonly boundary: readonly TableSection[];
-  /** What the book does not say, found by counting. */
+  /** What the blueprint does not say, found by counting. */
   readonly silent: readonly string[];
   readonly portal: readonly Brief[]; readonly steps: readonly Step[];
 }
@@ -197,7 +197,7 @@ export interface OperationPage extends PageHead {
   readonly oldCli: { readonly arguments: readonly ArgRow[]; readonly flags: readonly ArgRow[] } | null;
   readonly returns: readonly Variant[]; readonly who: string; readonly changes: string; readonly notes: readonly string[];
   readonly mistakes: readonly { readonly what: string; readonly fix: string }[];
-  /** `n` is the claim's number in the book; a retired line keeps its number and is not listed. */
+  /** `n` is the claim's number in the blueprint; a retired line keeps its number and is not listed. */
   readonly acceptance: readonly { readonly n: number; readonly claim: string; readonly observes: string }[];
   readonly evals: readonly EvalRow[]; readonly evalKinds: readonly EvalKind[];
   readonly refusals: readonly Refusal[]; readonly stand: StandOf;
@@ -290,7 +290,7 @@ export interface PlanPage extends PageHead {
 export interface PlanTaskPage extends PageHead {
   readonly type: "plan-task"; readonly commit: string; readonly task: PlanTask; readonly milestone: PlanMilestone;
   readonly sections: readonly PlanSection[]; readonly needs: readonly PlanTask[]; readonly neededBy: readonly PlanTask[];
-  /** The records it names, each with how many evals the book derives on it. */
+  /** The records it names, each with how many evals the blueprint derives on it. */
   readonly records: readonly { readonly ref: Ref; readonly evals: number }[];
   readonly blocker: PlanBlocked | null; readonly pathPosition: number | null; readonly pathLength: number;
   readonly history: readonly PlanLogRow[];
@@ -343,14 +343,14 @@ export interface FrozenCommand {
 
 /** Everything the site is built from. The composition root loads it; this module reads nothing else. */
 export interface SiteInput {
-  readonly book: Book;
-  /** The commit the book was read at. */
+  readonly blueprint: Blueprint;
+  /** The commit the blueprint was read at. */
   readonly commit: string;
-  /** Concept ids in the book's own order. */
+  /** Concept ids in the blueprint's own order. */
   readonly concepts: readonly string[];
   /** Record key to the concept whose folder exports it. A record with no entry is shared. */
   readonly conceptOf: ReadonlyMap<string, string>;
-  /** True when a decision waits for Aaron: the one predicate in books/target/shared/waiting.ts. */
+  /** True when a decision waits for Aaron: the one predicate in blueprint/shared/waiting.ts. */
   readonly waits: (decision: AnyRecord) => boolean;
   /** Old CLI arguments and flags, by operation id. */
   readonly frozen: ReadonlyMap<string, FrozenCommand>;

@@ -24,7 +24,7 @@ Collected from the four lanes' reports (accounting, payroll, CRM, projects and s
   **Status: done, one part deferred.** `dependencies.of-payroll` and `dependencies.payments-payroll` are rewritten, and `dependencies.books-payroll` is new. `concepts.payroll` says it is superseded by `payroll.scope`. **Deferred:** adding `concepts.payroll` to `SUPERSEDED` in `shared/rulings.ts`, which this pass may not edit (rulings owner).
 - **From payroll:** Shared landings (shared/landings.ts OLD_AREAS): payroll/runs now lands in concept_payroll by payroll.scope, note "Frappe HR's Payroll Entry and Salary Slip". payroll/groups and payroll/terms stay dropped.
   **Status: done.** `payroll/runs` lands in payroll by `payroll.scope`, and groups and terms stay dropped (`shared/landings.ts`).
-- **From payroll:** Builder, once the payroll→payments edge exists: add `import * as staged from "./staged.ts"` and `staged` to books/target/payroll/index.ts modules. A scratch build with the edge and staged registered shows 0 problems and closes the 10 payroll undriven-transition gaps.
+- **From payroll:** Builder, once the payroll→payments edge exists: add `import * as staged from "./staged.ts"` and `staged` to blueprint/payroll/index.ts modules. A scratch build with the edge and staged registered shows 0 problems and closes the 10 payroll undriven-transition gaps.
   **Status: done.** `payroll/staged.ts` is registered in `payroll/index.ts`, which closed the 10 undriven-transition gaps.
 - **From payroll:** Payments: payments.prepare-command takes purpose "payroll". PreparedItem takes an optional source { kind: "salary-slip" | "payroll-remittance", id, payroll_entry_id, employee_id }, kept on the Payment and its book fact, and an optional payee_mailbox for a payee with no account.
   **Status: done.** Purpose `payroll`, and per-item `source` and `payee_mailbox` (`payments.payroll-door`, `payments.money-sides`).
@@ -46,8 +46,8 @@ Collected from the four lanes' reports (accounting, payroll, CRM, projects and s
   **Status: done.** A payslip email goes out when a salary slip settles (`notices.payroll.payslip`, `notices.payslip`). A new hire's money-waiting email and reminders follow payments' escrow (`notices.claim-escrow`, `notices.money-waiting-reminders`).
 - **From payroll:** Devnet: the world org-with-documents (documents.worlds) now holds a submitted payroll run's payslip for an Employee. Its builder needs an Employee, a component, a structure, an assignment and a submitted run.
   **Status: done.** `org-with-documents` holds a submitted run's payslip for Kai (`devnet.payslip-world`).
-- **From payroll:** Tooling (packages/book/scripts/report-judgments.ts): FLAGGED can drop documents.acceptance-rewrites. The line is now kept word for word and W1 is settled.
-  **Status: done.** `packages/book/scripts/report-judgments.ts` dropped it, and `archive/tools/portal-prototype.ts` dropped it in this pass.
+- **From payroll:** Tooling (packages/blueprint-engine/scripts/report-judgments.ts): FLAGGED can drop documents.acceptance-rewrites. The line is now kept word for word and W1 is settled.
+  **Status: done.** `packages/blueprint-engine/scripts/report-judgments.ts` dropped it, and `archive/tools/portal-prototype.ts` dropped it in this pass.
 - **From payroll:** CLI operations pass: design payroll's new operations from payroll.hr-surface and docs/design/frappe/payroll.md (org employee add|change|list; org payroll component|structure|assign|run|submit|withhold|pay|cancel|show|list; payslip list|show), with acceptance claims and worlds.
   **Status: deferred.** The commands pass (`archive/tools/workflows/commands-and-escrow.js`: one grammar, then the payroll pack) books these under `rules.new-operations`. Which commands to use is the pack's question for Aaron (`payroll.hr-surface`).
 - **From crm:** shared/foundation.ts: widen concept_contacts.about to 'and each Organization's CRM in Frappe CRM's shapes: contacts and organizations (with or without a Party), leads and deals, synced with a connected head'.
@@ -69,9 +69,9 @@ Collected from the four lanes' reports (accounting, payroll, CRM, projects and s
 - **From crm:** books: core check C6. book-facts.counterparty is a string; pin it to a Party id so a head can post a fact against the Contact, Supplier or Customer carrying that Party.
   **Status: done** (`books.fact-read`: `book-facts.party_id`).
 - **From crm:** rulings owner: contacts.members-write is already rewritten to aaron.contacts-permissions and can leave SUPERSEDED.
-  **Status: deferred.** `shared/rulings.ts` may not be edited in this pass (rulings owner). When `contacts.members-write` leaves `SUPERSEDED`, move it from `FLAGGED` to `CARRIES_OUT` in `packages/book/scripts/report-judgments.ts` at the same time.
+  **Status: deferred.** `shared/rulings.ts` may not be edited in this pass (rulings owner). When `contacts.members-write` leaves `SUPERSEDED`, move it from `FLAGGED` to `CARRIES_OUT` in `packages/blueprint-engine/scripts/report-judgments.ts` at the same time.
 - **From crm:** check-frozen / CONVENTIONS owner: a target operation outside the 215 is a breach, so new capabilities (CRM, projects) cannot have CLI commands yet. One rule is needed for booking new operations with a decision pack.
-  **Status: done.** `rules.new-operations` is enforced by `packages/book/scripts/check-frozen.ts` and described in CONVENTIONS rule 4a.
+  **Status: done.** `rules.new-operations` is enforced by `packages/blueprint-engine/scripts/check-frozen.ts` and described in CONVENTIONS rule 4a.
 - **From crm:** docs/vision/erp.md owner: rows C13, C14, C15 and C27 and questions 1 and 5 are now settled as parties.outside-companies, parties.frappe-identity, contacts.frappe-shape and parties.mailbox-for-life (two of them for Aaron).
   **Status: done** (`docs/vision/erp.md` C13, C14, C15, C27, questions 1 and 5).
 - **From projects-startup:** books (accounting lane): add a start-up workflow triggered by organizations' machine_org_setup.t.begin that creates the account tree from a template, the first Fiscal Year from organizations.fiscal_year_start and the main Cost Center. Read abbr, default_currency, time_zone and fiscal_year_start from table_organizations; do not duplicate them. Add concept_projects to books' dependsOn if GL entries or facts carry a project dimension (projects is defined before books). Sync with a head by organizations.head-ownership via integration_frappe_head, keeping cursors in books' own table and starting from machine_org_head.t.confirm. Cut report days in organizations.time_zone.
@@ -126,7 +126,7 @@ Collected from the four lanes' reports (accounting, payroll, CRM, projects and s
   (`projects.bill-time`).
 - **The portal prototype's FLAGGED list** (rules). **Done** (`archive/tools/portal-prototype.ts`).
 - **The schema comments and the spec page say only "one of the 215"** (rules). **Done**
-  (`packages/book/src/records/behaviour.ts`, `docs/spec/50-design-book.md`).
+  (`packages/blueprint-engine/src/records/behaviour.ts`, `docs/spec/50-design-book.md`).
 - **The concept count, the check-frozen text and the stale architecture pages** (edges, rules).
   **Done:** HANDOFF, the initializer, `docs/design/portal.md` and `target-architecture.md`. In
   `target-architecture.md` that covers the concept table, the reduced graph, the components, the
@@ -160,4 +160,4 @@ Collected from the four lanes' reports (accounting, payroll, CRM, projects and s
     `aaron.test-prices`).
 
   When a decision leaves SUPERSEDED, move it from FLAGGED to CARRIES_OUT in
-  `packages/book/scripts/report-judgments.ts` in the same change.
+  `packages/blueprint-engine/scripts/report-judgments.ts` in the same change.

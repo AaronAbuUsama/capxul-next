@@ -14,7 +14,7 @@ This page sets out the authority model the v4 contracts enforce, read from the c
 
 A table then gives who may take each money action and which check on the chain allows it. The last section lists
 every place the target book contradicts the model, with the record id, the fix and the folder that owns it. The
-shared decision `rules.department-authority` (in `books/target/shared/decisions.ts`) records the rule in one place.
+shared decision `rules.department-authority` (in `blueprint/shared/decisions.ts`) records the rule in one place.
 This page is the reasoning behind it.
 
 The sources, all read only:

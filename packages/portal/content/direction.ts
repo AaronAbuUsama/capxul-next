@@ -1,9 +1,9 @@
 /**
- * HAND-WRITTEN. Everything else on the portal is generated from the book; this one file is not.
+ * HAND-WRITTEN. Everything else on the portal is generated from the blueprint; this one file is not.
  *
- * It holds the words and the picture the book does not hold yet: the direction of 9 November 2026 (START-HERE.md),
+ * It holds the words and the picture the blueprint does not hold yet: the direction of 9 November 2026 (START-HERE.md),
  * the re-cut verdict per concept, the architecture diagram, and the settings of the review flow. Each of these
- * leaves this file when the book gains a record for it. Change the words here, never in the renderer.
+ * leaves this file when the blueprint gains a record for it. Change the words here, never in the renderer.
  */
 import type { Direction } from "./shape.ts";
 
@@ -17,13 +17,13 @@ export const direction: Direction = {
     eyebrow: "Where we are, 10 November 2026",
     title: "Capxul is the on-chain company.",
     lead: "A complete business system on Frappe, with Capxul Core built in: identity, the organisation and its authority, budgets, payments, governance and banking.",
-    sub: "This portal is the whole design before any code. Every page is generated from a record in the book, so no page can go stale. The questions that need you are in one place.",
+    sub: "This portal is the whole design before any code. Every page is generated from a record in the blueprint, so no page can go stale. The questions that need you are in one place.",
   },
   needsYou: "Each has a recommendation. Accept it, choose another option, or change it in your own words.",
   climb: { specify: "Done for the old plan", build: "Not started", prove: "Not started" },
   banner: {
-    title: "The book is cut to the Frappe-native direction: stages 1 and 2 are done.",
-    text: "Core and the plugs stay in full. What Frappe owns (projects, payroll and HR, the CRM, the chart and reports of the books, printing, sellable services) has left the built book and is reached through the door. Equity, the hosted FDE and the referral and waitlist operations are parked, not decided. Nothing was deleted: docs/cut-archive/INDEX.md lists every record that moved, why, and what carries it. The plugs, the site and the door are not written yet (stage 3).",
+    title: "The blueprint is cut to the Frappe-native direction: stages 1 and 2 are done.",
+    text: "Core and the plugs stay in full. What Frappe owns (projects, payroll and HR, the CRM, the chart and reports of the books, printing, sellable services) has left the built blueprint and is reached through the door. Equity, the hosted FDE and the referral and waitlist operations are parked, not decided. Nothing was deleted: docs/cut-archive/INDEX.md lists every record that moved, why, and what carries it. The plugs, the site and the door are not written yet (stage 3).",
   },
 
   // One line per concept once the re-cut decides it: `payments: "core"`. A concept not named here has no verdict.
@@ -34,14 +34,14 @@ export const direction: Direction = {
     books: "frappe", contacts: "frappe",
   },
   verdictNote:
-    "Core stays in full. Frappe-owned means Frappe holds it and the door reaches it; books keeps only the chain reader and contacts only the payee address book until stage 3. Payroll's pay agreements moved into payments. Projects and payroll left the built book; equity is parked, not decided (cut.equity-parked).",
+    "Core stays in full. Frappe-owned means Frappe holds it and the door reaches it; books keeps only the chain reader and contacts only the payee address book until stage 3. Payroll's pay agreements moved into payments. Projects and payroll left the built blueprint; equity is parked, not decided (cut.equity-parked).",
 
   questions: {
     lead: "Everything that waits on you, in one list: the decisions only you can make, and the tasks of the plan that need something only you can do or say. Your answer is saved here; the coordinator applies it, to the record first, then the code.",
     answerSteps: [
       { title: "Saved", text: "Your answer is saved as a line in plan/answers.jsonl on this machine, and you can undo it until it is applied." },
-      { title: "Applied", text: "The coordinator writes the ruling into the book, or unblocks the task, and marks your answer applied. Nothing is automatic." },
-      { title: "Rebuilt", text: "The book rebuilds to 0 problems, with a preview of this portal." },
+      { title: "Applied", text: "The coordinator writes the ruling into the blueprint, or unblocks the task, and marks your answer applied. Nothing is automatic." },
+      { title: "Rebuilt", text: "The blueprint rebuilds to 0 problems, with a preview of this portal." },
       { title: "Settled", text: "Checked and merged. The question leaves this page." },
     ],
   },
@@ -57,7 +57,7 @@ export const direction: Direction = {
         { ...box, x: 720, y: 0, w: 456, h: 96, title: "Company staff", text: "The desk: Frappe's own screens, re-skinned" },
         {
           x: 0, y: 176, w: 600, h: 200, tone: "core", title: "Capxul Core", note: "what this repository rebuilds",
-          text: "Holds authority and money. Everything it does is one of the book's operations.",
+          text: "Holds authority and money. Everything it does is one of the blueprint's operations.",
           chips: ["identity and sign-in", "organisation tree", "authority (hats)", "budgets", "payments", "governance", "banking"],
         },
         {
@@ -86,11 +86,11 @@ export const direction: Direction = {
     },
     portalDecisions: ["portal.hosting", "portal.stack", "portal.read-only", "portal.review-flow"],
     traceOperation: "payment.send",
-    // Where the Frappe boundary is found in the book: the component, the outside system, and the word in a record's text.
+    // Where the Frappe boundary is found in the blueprint: the component, the outside system, and the word in a record's text.
     boundary: { component: "frappe-app", system: "frappe", word: "DocType" },
     changeSteps: [
       { title: "The record changes", text: "With a decision record beside it. Never the page." },
-      { title: "The book rebuilds", text: "To 0 problems, or the change stops here." },
+      { title: "The blueprint rebuilds", text: "To 0 problems, or the change stops here." },
       { title: "A pull request opens", text: "With its own preview of the portal." },
       { title: "A checker reviews it", text: "Then it merges to integration/build." },
       { title: "The portal redeploys", text: "Every page is generated, so none can go stale." },

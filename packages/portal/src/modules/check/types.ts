@@ -4,20 +4,20 @@
  * it. It imports nothing from the modules that write the site, so a mistake there cannot hide here.
  */
 
-/** What the book says the site must hold. Worked out from the book alone, never from the site. */
+/** What the blueprint says the site must hold. Worked out from the blueprint alone, never from the site. */
 export interface Expect {
   /**
    * Every page id: the five fixed pages, `<kind>/<id>` for every record that has a page of its own, `docs/<name>`
-   * for every catalogue, `eval`, and `eval/<kind>` for every kind of eval the book derives.
+   * for every catalogue, `eval`, and `eval/<kind>` for every kind of eval the blueprint derives.
    */
   readonly pages: readonly string[];
   /** The ids of everything that waits on the owner, in the page's order: the decisions the judgments report lists, then the plan's owner needs. */
   readonly waiting: readonly string[];
   /** Every operation id. */
   readonly operations: readonly string[];
-  /** How many evals the book derives. */
+  /** How many evals the blueprint derives. */
   readonly evals: number;
-  /** The ids in the status document that the book does not derive. Empty when there is no document. */
+  /** The ids in the status document that the blueprint does not derive. Empty when there is no document. */
   readonly unknownStatus: readonly string[];
   readonly plan: PlanExpect;
 }

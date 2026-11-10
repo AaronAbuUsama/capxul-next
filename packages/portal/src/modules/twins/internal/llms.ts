@@ -5,7 +5,7 @@ import type { Page, Site } from "#src/modules/site/types.ts";
 import { plain } from "./md.ts";
 
 const FIXED: Readonly<Record<string, string>> = {
-  overview: "where the book stands, what waits for an answer, what the book holds",
+  overview: "where the blueprint stands, what waits for an answer, what the blueprint holds",
   plan: "the coordinator's plan: the goal, the milestones, the critical path, what is blocked and why, the tasks and the threads working on them",
   questions: "every decision that waits for an answer, with its options and the recommendation",
   architecture: "the system's parts, how it is deployed, and how the architecture changes",
@@ -23,9 +23,9 @@ export const llms = (site: Site): string => {
     .sort();
   return [
     "# Capxul portal", "",
-    `> The design book of the rebuilt Capxul as a site, generated at commit ${site.commit}. Nothing here is typed by hand: every page is read from the book.`, "",
+    `> The blueprint of the rebuilt Capxul as a site, generated at commit ${site.commit}. Nothing here is typed by hand: every page is read from the blueprint.`, "",
     "Every page has three files: `<page>/index.html` for a person, `<page>.md` with the same content as Markdown, and `data/<page>.json` with the page as data.",
-    `${site.waiting} decisions wait for an answer; the book has ${site.problems} problems.`, "",
+    `${site.waiting} decisions wait for an answer; the blueprint has ${site.problems} problems.`, "",
     "## Pages", "", ...fixed, "", "## Catalogues", "", ...catalogues, "", "## Concepts", "", ...concepts, "", "## Records", "", ...kinds, "",
     "## Data", "", "- [The whole site's counts, findings and sitemap](data/index.json)", "- [The waiting decisions](data/review.json)", "- [The plan: goal, milestones, critical path, tasks](data/plan.json)", "",
   ].join("\n");

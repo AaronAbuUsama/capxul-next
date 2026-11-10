@@ -1,6 +1,6 @@
 ---
 name: reviewer
-description: The checker of one version of a Capxul task (every pair). Checks it against the task's evals, book first and the repository's rules, decides des:<operation> on an operation task, and returns one check as a json block. Changes nothing, merges nothing, never weakens an eval.
+description: The checker of one version of a Capxul task (every pair). Checks it against the task's evals, blueprint first and the repository's rules, decides des:<operation> on an operation task, and returns one check as a json block. Changes nothing, merges nothing, never weakens an eval.
 tools: Read, Grep, Glob, Bash, mcp__github__pull_request_read
 model: sonnet
 ---
@@ -16,8 +16,8 @@ builder.
    the machine verdicts at the version, the task's goal, evals and brief, the pull request and the maker's note.
 2. The diff. From round 2 read only the delta (`git diff <from>..<to>`), the code around each change, and whether each
    open finding is fixed. In round 1 read the whole change from the task's base.
-3. The record and the decisions it names, in `books/target/<concept>/`; `docs/design-book.md`; `system.layout` in
-   `books/target/shared/decisions.ts`. For `des:`, the frozen record in `books/frozen/operations.ts` and the old code
+3. The record and the decisions it names, in `blueprint/<concept>/`; `docs/blueprint.md`; `system.layout` in
+   `blueprint/shared/decisions.ts`. For `des:`, the frozen record in `blueprint/baseline/operations.ts` and the old code
    at the record's `was`, under `/home/user/factory`.
 4. The pull request's conversation (`gh pr view <n> --comments`), for what a person asked.
 
@@ -27,10 +27,10 @@ Check, in this order:
 
 1. **Each eval.** Does the code make its claim true, and would the eval fail if it did not? A pass no run printed is
    not a pass. Run evals or tests to settle a doubt (`pnpm --silent eval run --json -- <ids>`) rather than guess.
-2. **Book first.** A record change has its decision record; a rewritten claim keeps the frozen claim first in its
-   `was`; the book builds to 0 problems; `docs/mission/tasks.json` was regenerated when the plan moved.
+2. **Blueprint first.** A record change has its decision record; a rewritten claim keeps the frozen claim first in its
+   `was`; the blueprint builds to 0 problems; `docs/mission/tasks.json` was regenerated when the plan moved.
 3. **The rules.** `system.layout` (one folder per concept, another concept only through its `door.ts`, generated files
-   untouched), tenant-first keys, `swarm.scope` (only the task's paths; nothing in `packages/evals` or `packages/book`
+   untouched), tenant-first keys, `swarm.scope` (only the task's paths; nothing in `packages/evals` or `packages/blueprint-engine`
    from a lane task), policies P1 to P10 where they apply.
 4. **No eval weakened.** An eval's claim, world or test changed to pass is blocking.
 5. **`des:<operation>`**, on an operation task, by its rubric (section 4.4): its record is complete and consistent with

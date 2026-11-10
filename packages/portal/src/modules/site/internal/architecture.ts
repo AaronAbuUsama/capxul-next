@@ -1,9 +1,9 @@
 /**
  * The Architecture page. The hand-drawn picture comes first and says it is hand-written; everything after it is
- * read from the book: what runs where, what depends on what, one request traced end to end, what crosses the Frappe
- * boundary (boundary.ts), and what the book does not say.
+ * read from the blueprint: what runs where, what depends on what, one request traced end to end, what crosses the Frappe
+ * boundary (boundary.ts), and what the blueprint does not say.
  */
-import { keyOf, type AnyRecord } from "@capxul/book";
+import { keyOf, type AnyRecord } from "@capxul/blueprint-engine";
 
 import type { ArchitecturePage, Ref, TableSection } from "../types.ts";
 import { boundary } from "./boundary.ts";
@@ -25,7 +25,7 @@ const runs = (ctx: Ctx): TableSection => {
   return tableOf("runs", "What runs where", ["Component", "Runs on", ...environments.map((e) => e.id)],
     ofKind(ctx, "component").map((c) => row([to(refOf(c), titleOf(c)), words(text(c["runtime"])), ...environments.map((e) => words(on(e, c)))])), {
       caption: `${plural(ofKind(ctx, "component").length, "component")} across ${plural(environments.length, "environment")}. A cell holds what the environment's record says about running the component; an empty cell means the record does not run it.`,
-      empty: "The book holds no component.",
+      empty: "The blueprint holds no component.",
     });
 };
 
@@ -46,11 +46,11 @@ const layers = (ctx: Ctx): readonly (readonly Ref[])[] => {
 /** What each component leans on and what it hosts, counted from the records that name it. */
 const depends = (ctx: Ctx): TableSection => {
   const componentOf = (r: AnyRecord): string =>
-    idOf(r["component"]) || idOf(ctx.input.book.records.get(`concept:${idOf(r["concept"])}`)?.["component"]);
+    idOf(r["component"]) || idOf(ctx.input.blueprint.records.get(`concept:${idOf(r["concept"])}`)?.["component"]);
   const hosted = (c: AnyRecord, kind: string): readonly AnyRecord[] => ofKind(ctx, kind).filter((r) => componentOf(r) === c.id);
   const contracts = (c: AnyRecord): readonly Ref[] =>
     once([...hosted(c, "rpc"), ...hosted(c, "workflow")].flatMap((r) => records(r["chain"]))
-      .flatMap((f) => { const contract = ctx.input.book.records.get(`contract:${text(f["contract"])}`); return contract ? [contract] : []; })).map(refOf);
+      .flatMap((f) => { const contract = ctx.input.blueprint.records.get(`contract:${text(f["contract"])}`); return contract ? [contract] : []; })).map(refOf);
   const hosts = (c: AnyRecord): string =>
     ([["concept", "concept"], ["rpc", "rpc"], ["flow", "flow"], ["workflow", "workflow"]] as const)
       .flatMap(([kind, one]) => { const n = hosted(c, kind).length; return n > 0 ? [plural(n, one)] : []; }).join(", ");
@@ -59,12 +59,12 @@ const depends = (ctx: Ctx): TableSection => {
       to(refOf(c), titleOf(c)), many(records(c["dependsOn"]).map(refOf)), words(hosts(c)),
       many(hosted(c, "integration").map(refOf)), many(contracts(c)),
     ])), {
-      caption: "From each component's `dependsOn`, each concept's, flow's and integration's `component`, and the contract functions that the rpcs and workflows of its concepts call. The book links components to each other in no other way.",
-      empty: "The book holds no component.",
+      caption: "From each component's `dependsOn`, each concept's, flow's and integration's `component`, and the contract functions that the rpcs and workflows of its concepts call. The blueprint links components to each other in no other way.",
+      empty: "The blueprint holds no component.",
     });
 };
 
-/** What the book does not say, found by counting. Each line names what is missing and how many times. */
+/** What the blueprint does not say, found by counting. Each line names what is missing and how many times. */
 const silent = (ctx: Ctx, traced: ArchitecturePage["traced"], crossing: ReturnType<typeof boundary>): readonly string[] => {
   const { architecture: words } = ctx.input.direction;
   const components = ofKind(ctx, "component");
@@ -79,20 +79,20 @@ const silent = (ctx: Ctx, traced: ArchitecturePage["traced"], crossing: ReturnTy
   const { mentions } = crossing;
   return [
     ...(nowhere.length > 0 ? [`${nowhere.join(", ")}: no environment record runs ${nowhere.length === 1 ? "it" : "them"}.`] : []),
-    ...(alone.length > 0 ? [`${alone.join(", ")}: no component depends on ${alone.length === 1 ? "it, and it depends on none" : "them, and they depend on none"}. The book does not say, as a link between components, how ${alone.length === 1 ? "it reaches" : "they reach"} the rest.`] : []),
-    ...(traced ? [] : [`The book holds no operation \`${words.traceOperation}\` to trace end to end.`]),
+    ...(alone.length > 0 ? [`${alone.join(", ")}: no component depends on ${alone.length === 1 ? "it, and it depends on none" : "them, and they depend on none"}. The blueprint does not say, as a link between components, how ${alone.length === 1 ? "it reaches" : "they reach"} the rest.`] : []),
+    ...(traced ? [] : [`The blueprint holds no operation \`${words.traceOperation}\` to trace end to end.`]),
     `Spans: ${count(spanned.filter((r) => list(r["spans"]).length > 0).length)} of ${plural(spanned.length, "rpc and flow", "rpcs and flows")} name a span` +
       (steps.length > 0 ? `; ${count(steps.filter((s) => s.spans.length > 0).length)} of the ${plural(steps.length, "step")} traced above do` : "") +
-      ". The book holds no span attributes and no wide-event record at all.",
+      ". The blueprint holds no span attributes and no wide-event record at all.",
     ...(contracts.length > 0 ? [`Addresses: ${count(unplaced)} of ${plural(contracts.length, "contract")} name no deployed address.`] : []),
     ...(crossing.sections[0]?.rows.length === 0 ? [`No record links to a component \`${words.boundary.component}\` or to an integration with the outside system \`${words.boundary.system}\`.`] : []),
-    ...(mentions > 0 ? [`Direction: ${plural(mentions, "record")} name a ${words.boundary.word} in words only. For those the book states no direction, so a two-way sync cannot be read off them.`] : []),
+    ...(mentions > 0 ? [`Direction: ${plural(mentions, "record")} name a ${words.boundary.word} in words only. For those the blueprint states no direction, so a two-way sync cannot be read off them.`] : []),
   ];
 };
 
 export const architecture = (ctx: Ctx): ArchitecturePage => {
   const words = ctx.input.direction.architecture;
-  const op = ctx.input.book.records.get(`operation:${words.traceOperation}`);
+  const op = ctx.input.blueprint.records.get(`operation:${words.traceOperation}`);
   const impl = op?.["implementedBy"];
   const traced = op ? { operation: refOf(op), title: titleOf(op), trace: traceOf(ctx, isRecord(impl) ? impl : null, op) } : null;
   const crossing = boundary(ctx);
@@ -101,7 +101,7 @@ export const architecture = (ctx: Ctx): ArchitecturePage => {
     runs: runs(ctx), layers: layers(ctx), depends: depends(ctx), traced, boundary: crossing.sections,
     silent: silent(ctx, traced, crossing),
     portal: words.portalDecisions.flatMap((id) => {
-      const d = ctx.input.book.records.get(`decision:${id}`);
+      const d = ctx.input.blueprint.records.get(`decision:${id}`);
       return d ? [brief(d)] : [];
     }),
     steps: words.changeSteps,

@@ -10,9 +10,9 @@ report's lead in real time, a remote follower's error at high rates, follower gr
 number read and window. Extended on 9 November 2026 for `aaron.seasons` (section 8): a shared world's time runs in
 seasons that start from a known world, run at a rate, jump on a real-time schedule and end in a reset, with the
 `dev season` commands, players, the reset a player sees, and followers that save and restore their own state. Records:
-`books/target/shared/time.ts` (the rules and the invariants), `books/target/devnet/` (the time
+`blueprint/shared/time.ts` (the rules and the invariants), `blueprint/devnet/` (the time
 authority, its protocol and its flows) and the `devnet-control` integration in
-`books/target/shared/external.ts`. Every judgment below is a decision record; its id is given in
+`blueprint/shared/external.ts`. Every judgment below is a decision record; its id is given in
 brackets.
 
 > "The concept of time and the clock should be cohesive throughout the code base. When you set a
@@ -632,7 +632,7 @@ These are at zero from the first commit [`time.no-direct-reads`, `inv:time.no-di
 
 ## 5. The records
 
-### Shared rules: `books/target/shared/time.ts`
+### Shared rules: `blueprint/shared/time.ts`
 
 Decisions:
 
@@ -664,7 +664,7 @@ Invariants, each giving an L3 eval `inv:<id>`:
 | `time.season-schedule` | property | A planned season with a start, unless cancelled first, starts once at or after that instant; each warp of a running season runs once at or after its instant, as a barrier, or is recorded skipped, failed, cut or removed; the season ends once at or after its real end, no warp of it run after. |
 | `time.season-reset` | property | When a season ends, `<name>-end` holds the world as it stood when the end began, and the world equals its reset world (chain, Postgres, Ponder, every stateful follower) frozen at its now under a new epoch, with no session, message or balance of the season left in it. |
 
-### The devnet concept: `books/target/devnet/`
+### The devnet concept: `blueprint/devnet/`
 
 **`flows.ts`**
 
@@ -714,7 +714,7 @@ Invariants, each giving an L3 eval `inv:<id>`:
 
 - Comments only.
 
-### The `devnet-control` integration: `books/target/shared/external.ts`
+### The `devnet-control` integration: `blueprint/shared/external.ts`
 
 - It is now the supervisor's public protocol.
 - Calls: `snapshotSave`, `snapshotRestore`, `snapshotList`, `timeRead`, `timeWarp`,
@@ -1100,22 +1100,22 @@ protocol is the same `capxul.devnet/1`, over HTTPS with the grant as the bearer 
 its own machine, outside the world's snapshots, so after a restore a joiner the world holds no session for signs in
 again.
 
-**Its eval world.** `shared-world-joiner` (in `books/target/devnet/worlds.ts`) is `empty-devnet` served as a shared
+**Its eval world.** `shared-world-joiner` (in `blueprint/devnet/worlds.ts`) is `empty-devnet` served as a shared
 world on the eval machine, its gateway on loopback, with every command run as a joiner, Ana. `dev time set`'s
 `ROLE_PERMISSION_DENIED` starts from it.
 
 ### 7.7 Records changed
 
-- **`books/target/shared/time.ts`:** `time.worlds` (for Aaron) and `time.world-channels`; invariants
+- **`blueprint/shared/time.ts`:** `time.worlds` (for Aaron) and `time.world-channels`; invariants
   `time.rate-ceiling`, `time.running-stops` and `time.world-channels`; `time.one-now` and `time.monotonic` read
   the rate and the stops.
-- **`books/target/shared/foundation.ts`:** `environment_devnet` (the rate, the stand-ins, Ponder at 100 ms, the
+- **`blueprint/shared/foundation.ts`:** `environment_devnet` (the rate, the stand-ins, Ponder at 100 ms, the
   handoff file, `WHATSAPP_API_URL`); `environment_staging` (a world on the real clock, `MAIL_ALLOWED_RECIPIENTS`,
   `WHATSAPP_API_URL`); the new `environment_shared_world`.
-- **`books/target/shared/external.ts`, `devnet-control`:** the call `timeRate`; `rate`, `stopAt` and `realNow` in
+- **`blueprint/shared/external.ts`, `devnet-control`:** the call `timeRate`; `rate`, `stopAt` and `realNow` in
   the clock read; due reports on `timeFollow`; a shared world's HTTPS and grants; `ROLE_PERMISSION_DENIED` for a
   joiner's move, follow, save or restore.
-- **`books/target/devnet/`:** the flow `devnet.time.set` and the operation `dev.time.set`; `rate` and `stopAt` in
+- **`blueprint/devnet/`:** the flow `devnet.time.set` and the operation `dev.time.set`; `rate` and `stopAt` in
   `Clock` and `ClockEvent` (with the reasons `rate`, `run` and `due`), `realNow` in `Clock`, `rate` in `Snapshot`;
   the tables `whatsapp-numbers` and `whatsapp-messages`; the mail reads scoped by grant; the decisions
   `devnet.clock-rate`, `devnet.running-stops`, `devnet.follow-at-a-rate`, `devnet.whatsapp-stand-in`,
@@ -1123,7 +1123,7 @@ world on the eval machine, its gateway on loopback, with every command run as a 
   `devnet.supervisor-owns-time-and-worlds`, `devnet.only-miner`, `devnet.clock-modes`, `devnet.warp-barrier`,
   `devnet.time-protocol`, `devnet.followers`, `devnet.stand-ins-follow`, `devnet.devnet-only-rpcs`,
   `devnet.fault-switches` and `devnet.budgets`.
-- **`books/target/devnet/` (review):** the mail sink both ways (`devnet.mail-sink` revised: direction, From name,
+- **`blueprint/devnet/` (review):** the mail sink both ways (`devnet.mail-sink` revised: direction, From name,
   Reply-To and threading headers, `capxul-devnet mail receive`); the WhatsApp stand-in's routes, numbers, key file,
   templates, webhook control, `--name` and redelivery; the shared world's grant file, revoke, grant storage and gateway
   refusals; the world `shared-world-joiner` and `dev time set`'s joiner refusal.
@@ -1183,7 +1183,7 @@ stateDiagram-v2
 
 Eleven commands under `dev season`, in the grammar of `new-commands.md` section 2: a season's own verbs on the group, and
 G2's second noun for what a season keeps (`warp`, `player`). Each is an operation beyond the 215, booked under
-`rules.new-operations` for `aaron.seasons` (`books/target/devnet/operations.ts`). Its SDK method is its words
+`rules.new-operations` for `aaron.seasons` (`blueprint/devnet/operations.ts`). Its SDK method is its words
 (`dev season warp add` is `devnet.seasons.warps.add`).
 
 | Command | What it does | Who |
@@ -1353,7 +1353,7 @@ Nothing a season sends leaves the world, and nothing it sent survives its reset 
 
 ### 8.8 Worlds [`devnet.season-worlds`]
 
-Four worlds join the catalogue (`books/target/devnet/worlds.ts`):
+Four worlds join the catalogue (`blueprint/devnet/worlds.ts`):
 
 | World | Holds |
 |---|---|
@@ -1397,16 +1397,16 @@ Eleven requests of `capxul.devnet/1`, each a call of `devnet-control`:
 - Start and end are barriers the size of a restore (p95 10 s); the rest are clock calls.
 - The clock read and every clock event carry `season`. The events gain `save`, and `snapshot` names the world on a
   `save` or a `restore`. `Follower` gains `stateful`; `Snapshot` gains `followers` and `season`.
-- **The calls.** `devnet-control` (`books/target/shared/external.ts`) lists the eleven calls. Until it did, each season
+- **The calls.** `devnet-control` (`blueprint/shared/external.ts`) lists the eleven calls. Until it did, each season
   flow kept `calls` empty and listed the supervisor's answers in its own `errors`. The surface pass's build added the
   calls on 9 November 2026, and each flow now names its call. A flow's own errors are only what the SDK refuses before
   any call (`devnet.season-protocol`).
 
 ### 8.10 Records changed
 
-- **`books/target/shared/time.ts`:** `time.seasons`; invariants `time.season-schedule` and `time.season-reset`;
+- **`blueprint/shared/time.ts`:** `time.seasons`; invariants `time.season-schedule` and `time.season-reset`;
   `time.worlds`, `time.world-channels` and `time.monotonic` name the seasons.
-- **`books/target/devnet/`:**
+- **`blueprint/devnet/`:**
   - `flows.ts`: the shapes `Season`, `SeasonState`, `SeasonWarp` and `SeasonWarpState`; eleven flows
     `devnet.seasons.*`; `season` in `Clock` and `ClockEvent`, `save` and `snapshot` in `ClockEvent`, `stateful` in
     `Follower`, `followers` and `season` in `Snapshot`; `devnet.time.follow` takes `stateful`; the snapshot flows

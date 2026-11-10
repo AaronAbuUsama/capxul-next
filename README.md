@@ -2,7 +2,7 @@
 
 The rebuild of Capxul Core: the on-chain authority and money layer that plugs into a hosted Frappe as its sign-in,
 its signer and its bank feed. Why: [GROUNDING.md](GROUNDING.md). The product is designed as a typed **blueprint** before
-it is coded (today in `books/`, often called "the book"); a **portal** is generated from it; a **plan** says what is being done; a **scoreboard** says what
+it is coded (`blueprint/`; older documents call it "the book"); a **portal** is generated from it; a **plan** says what is being done; a **scoreboard** says what
 is proven. An agent **loop** does bounded tasks from the plan, and a coordinator merges them into `integration/build`.
 
 ## See where things stand
@@ -18,8 +18,8 @@ pnpm loop status               # the agent runs on this machine
 
 | Directory | What it is |
 |---|---|
-| `books/` | The blueprint: the design. `target/` is what is being built; `frozen/` is the baseline, the old system's behaviour, never edited. (Plan task `m1-rename-blueprint` renames this directory to `blueprint/`.) |
-| `packages/` | The code, one package per component: `book` (the engine that builds the blueprint), `portal`, `plan`, `evals`, `loop` (the agent runner, on pi-durable), `contracts`, `sdk`, `devnet`, `layout`. |
+| `blueprint/` | The design, as typed records: one folder per concept, plus `shared/`. `baseline/` is the old system's behaviour and is never edited. |
+| `packages/` | The code, one package per component: `blueprint` (the engine that builds the blueprint), `portal`, `plan`, `evals`, `loop` (the agent runner, on pi-durable), `contracts`, `sdk`, `devnet`, `layout`. |
 | `plan/` | The coordinator's plan, its log and the owner's answers. Changed only through `pnpm plan`. |
 | `evals/` | Which check proves which eval of the blueprint. |
 | `status/` | The scoreboard. Written only by `pnpm evals`. |
@@ -35,7 +35,7 @@ Every entry, what uses it and whether it stays: [docs/repository-map.md](docs/re
 ## Read next
 
 - [CLAUDE.md](CLAUDE.md): the rules for changing anything here, and the checks.
-- [docs/design-book.md](docs/design-book.md): how the blueprint works, end to end.
+- [docs/blueprint.md](docs/blueprint.md): how the blueprint works, end to end.
 - [START-HERE.md](START-HERE.md): the owner's direction of 9 November, kept as a record.
 
 ## The checks
@@ -43,10 +43,10 @@ Every entry, what uses it and whether it stays: [docs/repository-map.md](docs/re
 Every change passes these before it merges:
 
 ```bash
-pnpm exec tsc -p packages/book && pnpm test
-pnpm exec tsc -p books
-pnpm book                                                # 0 problems
+pnpm exec tsc -p packages/blueprint-engine && pnpm test
+pnpm exec tsc -p blueprint
+pnpm blueprint                                                # 0 problems
 pnpm frozen                                              # 0 breaches: every old behaviour kept or classified
-pnpm contracts:check-book                                # the contract records match the code
+pnpm contracts:check-blueprint                                # the contract records match the code
 pnpm portal:check
 ```

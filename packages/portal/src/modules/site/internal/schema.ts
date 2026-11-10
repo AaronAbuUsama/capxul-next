@@ -5,7 +5,7 @@
 import { createHash } from "node:crypto";
 
 import { Schema } from "effect";
-import { keyOf } from "@capxul/book";
+import { keyOf } from "@capxul/blueprint-engine";
 
 import type { FieldRow, Variant } from "../types.ts";
 import { skeletonOf } from "./skeleton.ts";

@@ -20,7 +20,7 @@ import { SCRIPT_FILE, STYLE_FILE, type Assets } from "./types.ts";
 /** Which kind's record a bare id means when several kinds share it: a decision first, then what a reader meets most. */
 const CITED = ["decision", "operation", "error", "event", "table", "machine", "rpc", "flow", "workflow", "procedure", "invariant", "journey"];
 
-/** A record's id to its page: what a bracketed citation in the book's text is looked up in. */
+/** A record's id to its page: what a bracketed citation in the blueprint's text is looked up in. */
 const citesOf = (site: Site): Cites => {
   const out = new Map<string, string>();
   for (const kind of CITED) {

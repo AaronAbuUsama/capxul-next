@@ -2,7 +2,7 @@
 
 Written 10 November 2026. Research and a proposal; nothing here was built or run against a service.
 
-How to read the tags. **[B]** the book or code, with `file:line` (book paths are under `books/target/`; `old:` is the old product's extracted copy). **[O]** the owner's words, 10 November. **[P]** my proposal. **[M]** something I measured today, read-only.
+How to read the tags. **[B]** the book or code, with `file:line` (book paths are under `blueprint/`; `old:` is the old product's extracted copy). **[O]** the owner's words, 10 November. **[P]** my proposal. **[M]** something I measured today, read-only.
 
 ## 1. The words
 

@@ -1,4 +1,4 @@
-/** The checks that keep the plan honest against the book. They report; they never reorder or rewrite the plan. */
+/** The checks that keep the plan honest against the blueprint. They report; they never reorder or rewrite the plan. */
 import type { ExitLine, Facts, Plan, PlanFiles, Problem } from "../types.ts";
 import { sectionBody } from "./markdown.ts";
 
@@ -76,11 +76,11 @@ export const check = (plan: Plan, facts: Facts, files?: PlanFiles): readonly Pro
       const b = t.blockedBy;
       if (!b) bad(t.id, "it is blocked, and says what blocks it");
       else if ("decision" in b) {
-        if (!facts.decisions.has(b.decision)) bad(t.id, `it is blocked on decision ${b.decision}, which the book does not hold`);
+        if (!facts.decisions.has(b.decision)) bad(t.id, `it is blocked on decision ${b.decision}, which the blueprint does not hold`);
       } else if (b.need.trim() === "" || b.who.trim() === "") bad(t.id, "its blocker names no need or no one");
     }
-    for (const key of t.records) if (!facts.records.has(key)) bad(t.id, `it names record ${key}, which the book does not hold`);
-    for (const id of t.evals ?? []) if (!facts.evals.has(id)) bad(t.id, `it names eval ${id}, which the book does not derive`);
+    for (const key of t.records) if (!facts.records.has(key)) bad(t.id, `it names record ${key}, which the blueprint does not hold`);
+    for (const id of t.evals ?? []) if (!facts.evals.has(id)) bad(t.id, `it names eval ${id}, which the blueprint does not derive`);
     if (t.state === "dropped" && (t.droppedWhy ?? "").trim() === "") bad(t.id, "it is dropped, and says no why");
   }
   const cycle = cycleOf(plan);
@@ -89,9 +89,9 @@ export const check = (plan: Plan, facts: Facts, files?: PlanFiles): readonly Pro
   for (const { owner, line } of exits(plan)) {
     const at = `${owner}/${line.id}`;
     if (line.state === "met" && (line.evidence ?? "").trim() === "") bad(at, "it is met, and gives no evidence");
-    for (const id of line.evals ?? []) if (!facts.evals.has(id)) bad(at, `it names eval ${id}, which the book does not derive`);
+    for (const id of line.evals ?? []) if (!facts.evals.has(id)) bad(at, `it names eval ${id}, which the blueprint does not derive`);
   }
-  for (const m of plan.milestones) for (const c of m.concepts ?? []) if (!facts.concepts.has(c)) bad(m.id, `it names concept ${c}, which the book does not hold`);
+  for (const m of plan.milestones) for (const c of m.concepts ?? []) if (!facts.concepts.has(c)) bad(m.id, `it names concept ${c}, which the blueprint does not hold`);
 
   const current = plan.milestones.filter((m) => m.state === "current");
   if (current.length !== 1) bad("milestones", `exactly one milestone is current; ${current.length} are`);
@@ -108,7 +108,7 @@ export const check = (plan: Plan, facts: Facts, files?: PlanFiles): readonly Pro
     }
   }
   for (const t of facts.applied ?? []) {
-    if (t.kind === "decision" && (facts.waiting ?? new Set<string>()).has(t.id)) bad(`answer/${t.id}`, `an answer was applied, and decision ${t.id} still waits in the book with no ruling`);
+    if (t.kind === "decision" && (facts.waiting ?? new Set<string>()).has(t.id)) bad(`answer/${t.id}`, `an answer was applied, and decision ${t.id} still waits in the blueprint with no ruling`);
     if (t.kind === "task" && byId.get(t.id)?.state === "blocked") bad(`answer/${t.id}`, `an answer was applied, and task ${t.id} is still blocked`);
   }
   if (plan.path.tasks.length > 0 && plan.path.why.trim() === "") bad("path", "the path has no why");

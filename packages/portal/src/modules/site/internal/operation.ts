@@ -1,5 +1,5 @@
 /** An operation's page: the command, what it returns, its evals, its refusals, and where it stands. */
-import { keyOf, type AnyRecord } from "@capxul/book";
+import { keyOf, type AnyRecord } from "@capxul/blueprint-engine";
 
 import type { ArgRow, FrozenCommand, OperationPage, Refusal } from "../types.ts";
 import { exampleViews } from "./examples.ts";
@@ -52,7 +52,7 @@ const budgetOf = (op: AnyRecord): string => {
   return cls === "" ? "" : `${cls}, p50 ${text(field(b, "p50Ms"))} ms, p95 ${text(field(b, "p95Ms"))} ms`;
 };
 
-/** The claims by their numbers in the book. A retired line (null) keeps its number and is not listed. */
+/** The claims by their numbers in the blueprint. A retired line (null) keeps its number and is not listed. */
 const acceptanceOf = (op: AnyRecord): OperationPage["acceptance"] =>
   list(op["acceptance"]).flatMap((line, i) =>
     isObject(line) ? [{ n: i + 1, claim: text(line["claim"]), observes: text(line["observes"]) }]
@@ -67,8 +67,8 @@ const sdkCallOf = (impl: AnyRecord | null): string => {
   const sdk = text(impl["sdk"]);
   return [
     sdk === ""
-      ? `// The book names no SDK method for this operation: ${impl._kind} ${impl.id} implements it directly.`
-      : `// Generated from ${impl._kind} ${impl.id}. The types are the book's schemas; no value here is recorded.`,
+      ? `// The blueprint names no SDK method for this operation: ${impl._kind} ${impl.id} implements it directly.`
+      : `// Generated from ${impl._kind} ${impl.id}. The types are the blueprint's schemas; no value here is recorded.`,
     `type Input = ${typeScriptOf(jsonSchemaOf(impl["input"]))};`, "",
     `type Output = ${typeScriptOf(jsonSchemaOf(impl["output"]))};`, "",
     ...(sdk === "" ? [`// ${impl.id} takes Input and answers Output.`] : ["declare const input: Input;", `const output: Output = await ${sdk}(input);`]),
@@ -104,6 +104,6 @@ export const operation = (ctx: Ctx, op: AnyRecord): OperationPage => {
     decisions: affecting.filter((d) => !isWaiting(ctx, d)).map(brief),
     settledInConcept: inConcept.filter((d) => !isWaiting(ctx, d)).length,
     gaps: findingRows(ctx.gaps.get(key)),
-    usedBy: linkGroups(ctx, (ctx.input.book.linkedBy.get(key) ?? []).filter((l) => l.field !== "affects"), "from"),
+    usedBy: linkGroups(ctx, (ctx.input.blueprint.linkedBy.get(key) ?? []).filter((l) => l.field !== "affects"), "from"),
   };
 };

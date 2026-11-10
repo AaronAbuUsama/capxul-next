@@ -1,10 +1,10 @@
 /**
  * What each kind of eval claims, and what each level is, in the words of docs/spec/30-capxul-evals.md. Where the
- * spec has no line for a kind (the records below an operation), the words are the claims `@capxul/book` derives.
+ * spec has no line for a kind (the records below an operation), the words are the claims `@capxul/blueprint-engine` derives.
  */
 import type { EvalKind } from "../types.ts";
 
-/** Kinds in the spec's order. A kind the book derives and this list does not name is shown by its id alone. */
+/** Kinds in the spec's order. A kind the blueprint derives and this list does not name is shown by its id alone. */
 const KINDS: readonly EvalKind[] = [
   { kind: "acc", name: "Acceptance", claims: "The operation's acceptance line holds: the claim, checked by what a black-box run observes." },
   { kind: "ret", name: "Return shape", claims: "A success returns exactly the record's `returns` schema, and `--json` prints it." },
@@ -13,7 +13,7 @@ const KINDS: readonly EvalKind[] = [
   { kind: "spn", name: "Span tree", claims: "The trace has the declared span tree: an operation span, the declared child spans, the required attributes, and `outcome` and failure fields on a refusal." },
   { kind: "bud", name: "Time budget", claims: "Over N runs from a warm world, the system-time p95 stays within budget (p50 likewise); chain confirmation and a person's wait are excluded through span names." },
   { kind: "doc", name: "Docs agree", claims: "The CLI help, the reference page and the record agree: generated surfaces are unedited." },
-  { kind: "des", name: "Design review", claims: "The record is complete and consistent with the book and the old behaviour. An agent decides it, not a machine." },
+  { kind: "des", name: "Design review", claims: "The record is complete and consistent with the blueprint and the old behaviour. An agent decides it, not a machine." },
   { kind: "rpc", name: "RPC", claims: "Its server span has the declared child spans and attributes, it fails only with its declared errors, and its server time stays within budget." },
   { kind: "flw", name: "Flow", claims: "Each step is a span, wait steps are marked as waits, and client time stays within budget." },
   { kind: "prc", name: "Procedure", claims: "Its writes commit with its invoker's transaction or not at all." },

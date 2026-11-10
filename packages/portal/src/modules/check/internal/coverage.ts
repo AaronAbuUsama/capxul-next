@@ -1,4 +1,4 @@
-/** Coverage: the pages, the Markdown twins and the JSON twins are each exactly the set the book expects. */
+/** Coverage: the pages, the Markdown twins and the JSON twins are each exactly the set the blueprint expects. */
 
 const HTML = /^(?:(.+)\/)?index\.html$/;
 const MD = /^(.+)\.md$/;

@@ -9,7 +9,7 @@ entry (`packages/layout/src/main.ts`) reads from git. Run it with `pnpm layout`;
 | size | a source file is over 300 lines, or a file in `packages/layout/oversize.json` grew | split the file; `oversize.json` records the offenders of 10 November 2026 and only ever shrinks |
 | readme | a top-level directory or a package has no `README.md` | write five lines: what it is, who writes it, what reads it |
 
-Not measured for size: `books/`, `docs/`, `archive/`, any `generated/` folder, `packages/contracts/lib/` (vendored).
+Not measured for size: `blueprint/`, `docs/`, `archive/`, any `generated/` folder, `packages/contracts/lib/` (vendored).
 
 ```ts
 const problems = checkLayout(tree, policy);   // [] when the layout holds

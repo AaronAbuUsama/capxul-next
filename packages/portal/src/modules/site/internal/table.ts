@@ -16,5 +16,5 @@ export const tableOf = (
   anchor: string, title: string, heads: readonly string[], rows: readonly TableRow[],
   words: { readonly caption?: string; readonly empty?: string } = {},
 ): TableSection => ({
-  anchor, title, heads, rows, caption: words.caption ?? "", empty: words.empty ?? "The book holds none.",
+  anchor, title, heads, rows, caption: words.caption ?? "", empty: words.empty ?? "The blueprint holds none.",
 });

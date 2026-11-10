@@ -1,17 +1,17 @@
-// node --experimental-strip-types packages/contracts/abi-check/main.ts           → compares the book's contract records with the code
+// node --experimental-strip-types packages/contracts/abi-check/main.ts           → compares the blueprint's contract records with the code
 // node --experimental-strip-types packages/contracts/abi-check/main.ts --json    → the same as one JSON document (exits 1 on a failure too)
 //
 // The code is the truth for what exists. This reads the ABI of every contract in `packages/contracts` from the committed
 // export (`packages/contracts/abi/abi.json`, made from a build by `pnpm contracts:export-abi`, so the check needs no 100 s
-// build) and the book's records of kind `contract`, and fails with a list when, for a contract the book records as built:
+// build) and the blueprint's records of kind `contract`, and fails with a list when, for a contract the blueprint records as built:
 //
-// - a function, event or error in the code is not in the book, or one in the book is not in the code;
+// - a function, event or error in the code is not in the blueprint, or one in the blueprint is not in the code;
 // - a signature differs: the name, the argument types and their order, the return types, the mutability, an event's
 //   indexed arguments;
-// - the book records a contract as built that the code does not have, or the code deploys one the book does not record.
+// - the blueprint records a contract as built that the code does not have, or the code deploys one the blueprint does not record.
 //
-// A difference may stand only where the book carries a decision that names it (`CONTRACT_ALLOWANCES`,
-// books/target/shared/contracts.ts); those are printed too, so they stay visible. The export carries the hash of the contract
+// A difference may stand only where the blueprint carries a decision that names it (`CONTRACT_ALLOWANCES`,
+// blueprint/shared/contracts.ts); those are printed too, so they stay visible. The export carries the hash of the contract
 // source it was built from: when the source has moved on, the check fails and says to export again. Third-party contracts
 // (Safe, Roles, Hats, ...) are not in this repository's code and are listed, not compared.
 
@@ -19,9 +19,9 @@ import { existsSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { records } from "../../../books/target/index.ts";
-import { CONTRACT_ALLOWANCES } from "../../../books/target/shared/contracts.ts";
-import { compareContracts, type BookContract, type CodeContract, type Report } from "./compare.ts";
+import { records } from "../../../blueprint/index.ts";
+import { CONTRACT_ALLOWANCES } from "../../../blueprint/shared/contracts.ts";
+import { compareContracts, type BlueprintContract, type CodeContract, type Report } from "./compare.ts";
 import { sourceHash } from "./source-hash.ts";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "../../..");
@@ -58,9 +58,9 @@ for (const [made, maker] of Object.entries(CREATED_BY)) if (!manifest.includes(m
 const deployed = [...manifest, ...Object.keys(CREATED_BY)];
 
 const code: CodeContract[] = Object.entries(exported.contracts).map(([name, c]) => ({ name, kind: c.kind, abi: c.abi }));
-const book = all
+const blueprint = all
   .filter((r) => r._kind === "contract")
-  .map((r) => r as unknown as BookContract);
+  .map((r) => r as unknown as BlueprintContract);
 
 const text = (d: Rec): string =>
   [
@@ -70,7 +70,7 @@ const text = (d: Rec): string =>
   ].join("\n");
 const decisions = Object.fromEntries(all.filter((r) => r._kind === "decision").map((d) => [d.id, text(d)]));
 
-const report: Report = compareContracts({ book, code, deployed, allowances: CONTRACT_ALLOWANCES, decisions });
+const report: Report = compareContracts({ blueprint, code, deployed, allowances: CONTRACT_ALLOWANCES, decisions });
 const ok = report.failures.length === 0;
 
 if (json) {
@@ -78,7 +78,7 @@ if (json) {
 } else {
   const c = report.compared;
   console.log(
-    `check-contracts: compared ${c.contracts} contracts (${c.functions} functions, ${c.events} events, ${c.errors} errors) of the code with the book's records` +
+    `check-contracts: compared ${c.contracts} contracts (${c.functions} functions, ${c.events} events, ${c.errors} errors) of the code with the blueprint's records` +
       `; ${report.thirdParty.length} third-party records not compared (${report.thirdParty.join(", ")})`,
   );
   if (report.allowed.length > 0) {
@@ -88,7 +88,7 @@ if (json) {
   if (!ok) {
     console.log(`\n${report.failures.length} undeclared difference${report.failures.length === 1 ? "" : "s"}:`);
     for (const f of report.failures) console.log(`  - ${f.message}`);
-    console.log("\nThe code is the truth: change the book's record (and add a decision), or run `pnpm contracts:export-abi` if the source moved on.");
+    console.log("\nThe code is the truth: change the blueprint's record (and add a decision), or run `pnpm contracts:export-abi` if the source moved on.");
   } else console.log("\n0 undeclared differences.");
 }
 process.exit(ok ? 0 : 1);

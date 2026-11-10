@@ -3,11 +3,11 @@
 > **Speculative. Thinking only, not the build.** This note is the long-term vision, written down on
 > the main line so that what we build now does not block it. Nothing in it is a record, nothing in it
 > changes the baseline, and nothing in it is scheduled. The main line now is the baseline of the new
-> product (the rebuilt Capxul, `books/target`) and the starter kit. Where the vision would need the
+> product (the rebuilt Capxul, `blueprint`) and the starter kit. Where the vision would need the
 > baseline to change, this note asks Aaron a question instead of changing anything.
 
 **How this note reads the rulings.** The authority for "speculative" is Aaron's message of 8 November
-2026, quoted below, which came after the rulings recorded in `books/target/shared/rulings.ts`. Those
+2026, quoted below, which came after the rulings recorded in `blueprint/shared/rulings.ts`. Those
 records still read as a redesign on the main line: `aaron.erp-on-capxul` chose `around-frappe`
 ("the protocol is designed around Frappe now"), `aaron.frappe-shape` chose `core-four` ("The
 redesign is on the main line, book first, before the build"), and `aaron.books-first-principles`,
@@ -46,7 +46,7 @@ are for Aaron.
   `frappe/erpnext` at `6b946b0f`, `frappe/hrms` at `88161025`, `frappe/crm` at `2cecd300`, and the
   `frappe/frappe` framework (sparse: `frappe/utils`, `scheduled_job_type`, `tests/classes`) at
   `1a7ea577`. Field lists below are from their DocType JSON; behaviour is from their Python.
-- **The baseline:** the records named in each check, in `books/target`.
+- **The baseline:** the records named in each check, in `blueprint`.
 - **The old system**, read only: the v4 contracts in `/home/user/factory/packages/contracts/v4`
   (`IPayments.sol`, `Budgets.sol`).
 

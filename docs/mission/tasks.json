@@ -1,5 +1,5 @@
 {
-  "about": "The build's task tree, derived from books/target by packages/plan/src/tasks.ts (docs/design/swarm.md, section 5). Do not edit: change the book or the script, then regenerate. It holds no counts over the book, so lanes that change different tasks never conflict here.",
+  "about": "The build's task tree, derived from blueprint by packages/plan/src/tasks.ts (docs/design/swarm.md, section 5). Do not edit: change the blueprint or the script, then regenerate. It holds no counts over the blueprint, so lanes that change different tasks never conflict here.",
   "regenerated": [
     "docs/mission/tasks.json",
     "packages/*/src/generated/"
@@ -73,7 +73,7 @@
       ],
       "checkers": [],
       "paths": [],
-      "goal": "Capxul runs on the new stack and does everything the built book's operations promise (the old 215 less what the cut classified, plus the plugs and the door): every eval passes at the head of integration/build on a devnet, the system evals and the size budget hold, and staging's live evals hold for a week.",
+      "goal": "Capxul runs on the new stack and does everything the built blueprint's operations promise (the old 215 less what the cut classified, plus the plugs and the door): every eval passes at the head of integration/build on a devnet, the system evals and the size budget hold, and staging's live evals hold for a week.",
       "exit": [
         {
           "id": "ok:capxul",
@@ -1050,7 +1050,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/access/",
+        "blueprint/access/",
         "packages/backend/src/access/",
         "packages/sdk/src/access/"
       ]
@@ -1086,7 +1086,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/access/",
+        "blueprint/access/",
         "packages/backend/src/access/",
         "packages/sdk/src/access/"
       ]
@@ -1122,7 +1122,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/access/",
+        "blueprint/access/",
         "packages/backend/src/access/",
         "packages/sdk/src/access/"
       ]
@@ -1157,7 +1157,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/access/",
+        "blueprint/access/",
         "packages/backend/src/access/",
         "packages/sdk/src/access/"
       ]
@@ -1193,7 +1193,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/access/",
+        "blueprint/access/",
         "packages/backend/src/access/",
         "packages/sdk/src/access/"
       ]
@@ -1230,7 +1230,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/access/",
+        "blueprint/access/",
         "packages/backend/src/access/",
         "packages/sdk/src/access/"
       ]
@@ -1266,7 +1266,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/access/",
+        "blueprint/access/",
         "packages/backend/src/access/",
         "packages/sdk/src/access/"
       ]
@@ -1303,7 +1303,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/access/",
+        "blueprint/access/",
         "packages/backend/src/access/",
         "packages/sdk/src/access/"
       ]
@@ -1339,7 +1339,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/access/",
+        "blueprint/access/",
         "packages/backend/src/access/",
         "packages/sdk/src/access/"
       ]
@@ -1375,7 +1375,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/access/",
+        "blueprint/access/",
         "packages/backend/src/access/",
         "packages/sdk/src/access/"
       ]
@@ -1416,7 +1416,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/access/",
+        "blueprint/access/",
         "packages/backend/src/access/",
         "packages/sdk/src/access/"
       ]
@@ -1457,7 +1457,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/access/",
+        "blueprint/access/",
         "packages/backend/src/access/",
         "packages/sdk/src/access/"
       ]
@@ -1492,7 +1492,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/access/",
+        "blueprint/access/",
         "packages/backend/src/access/",
         "packages/sdk/src/access/"
       ]
@@ -1534,7 +1534,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/access/",
+        "blueprint/access/",
         "packages/backend/src/access/",
         "packages/sdk/src/access/"
       ]
@@ -1581,7 +1581,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/access/",
+        "blueprint/access/",
         "packages/backend/src/access/",
         "packages/sdk/src/access/"
       ]
@@ -1628,7 +1628,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/access/",
+        "blueprint/access/",
         "packages/backend/src/access/",
         "packages/sdk/src/access/"
       ]
@@ -1672,7 +1672,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/access/",
+        "blueprint/access/",
         "packages/backend/src/access/",
         "packages/sdk/src/access/"
       ]
@@ -1717,7 +1717,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/access/",
+        "blueprint/access/",
         "packages/backend/src/access/",
         "packages/sdk/src/access/"
       ]
@@ -1761,7 +1761,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/access/",
+        "blueprint/access/",
         "packages/backend/src/access/",
         "packages/sdk/src/access/"
       ]
@@ -1805,7 +1805,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/access/",
+        "blueprint/access/",
         "packages/backend/src/access/",
         "packages/sdk/src/access/"
       ]
@@ -1847,7 +1847,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/access/",
+        "blueprint/access/",
         "packages/backend/src/access/",
         "packages/sdk/src/access/"
       ]
@@ -1889,7 +1889,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/access/",
+        "blueprint/access/",
         "packages/backend/src/access/",
         "packages/sdk/src/access/"
       ]
@@ -1930,7 +1930,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/access/",
+        "blueprint/access/",
         "packages/backend/src/access/",
         "packages/sdk/src/access/"
       ]
@@ -1989,7 +1989,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/media/",
+        "blueprint/media/",
         "packages/backend/src/media/",
         "packages/sdk/src/media/"
       ]
@@ -2024,7 +2024,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/media/",
+        "blueprint/media/",
         "packages/backend/src/media/",
         "packages/sdk/src/media/"
       ]
@@ -2060,7 +2060,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/media/",
+        "blueprint/media/",
         "packages/backend/src/media/",
         "packages/sdk/src/media/"
       ]
@@ -2097,7 +2097,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/media/",
+        "blueprint/media/",
         "packages/backend/src/media/",
         "packages/sdk/src/media/"
       ]
@@ -2131,7 +2131,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/media/",
+        "blueprint/media/",
         "packages/backend/src/media/",
         "packages/sdk/src/media/"
       ]
@@ -2200,7 +2200,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/parties/",
+        "blueprint/parties/",
         "packages/backend/src/parties/",
         "packages/sdk/src/parties/"
       ]
@@ -2237,7 +2237,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/parties/",
+        "blueprint/parties/",
         "packages/backend/src/parties/",
         "packages/sdk/src/parties/"
       ]
@@ -2275,7 +2275,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/parties/",
+        "blueprint/parties/",
         "packages/backend/src/parties/",
         "packages/sdk/src/parties/"
       ]
@@ -2388,7 +2388,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/indexing/",
+        "blueprint/indexing/",
         "packages/backend/src/indexing/",
         "packages/sdk/src/indexing/",
         "packages/indexer/"
@@ -2462,7 +2462,7 @@
         "adversary"
       ],
       "paths": [
-        "books/target/approvals/",
+        "blueprint/approvals/",
         "packages/backend/src/approvals/",
         "packages/sdk/src/approvals/"
       ]
@@ -2505,7 +2505,7 @@
         "adversary"
       ],
       "paths": [
-        "books/target/approvals/",
+        "blueprint/approvals/",
         "packages/backend/src/approvals/",
         "packages/sdk/src/approvals/"
       ]
@@ -2543,7 +2543,7 @@
         "adversary"
       ],
       "paths": [
-        "books/target/approvals/",
+        "blueprint/approvals/",
         "packages/backend/src/approvals/",
         "packages/sdk/src/approvals/"
       ]
@@ -2583,7 +2583,7 @@
         "adversary"
       ],
       "paths": [
-        "books/target/approvals/",
+        "blueprint/approvals/",
         "packages/backend/src/approvals/",
         "packages/sdk/src/approvals/"
       ]
@@ -2621,7 +2621,7 @@
         "adversary"
       ],
       "paths": [
-        "books/target/approvals/",
+        "blueprint/approvals/",
         "packages/backend/src/approvals/",
         "packages/sdk/src/approvals/"
       ]
@@ -2663,7 +2663,7 @@
         "adversary"
       ],
       "paths": [
-        "books/target/approvals/",
+        "blueprint/approvals/",
         "packages/backend/src/approvals/",
         "packages/sdk/src/approvals/"
       ]
@@ -2741,7 +2741,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/accounts/",
+        "blueprint/accounts/",
         "packages/backend/src/accounts/",
         "packages/sdk/src/accounts/"
       ]
@@ -2785,7 +2785,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/accounts/",
+        "blueprint/accounts/",
         "packages/backend/src/accounts/",
         "packages/sdk/src/accounts/"
       ]
@@ -2824,7 +2824,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/accounts/",
+        "blueprint/accounts/",
         "packages/backend/src/accounts/",
         "packages/sdk/src/accounts/"
       ]
@@ -2869,7 +2869,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/accounts/",
+        "blueprint/accounts/",
         "packages/backend/src/accounts/",
         "packages/sdk/src/accounts/"
       ]
@@ -2906,7 +2906,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/accounts/",
+        "blueprint/accounts/",
         "packages/backend/src/accounts/",
         "packages/sdk/src/accounts/"
       ]
@@ -2953,7 +2953,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/accounts/",
+        "blueprint/accounts/",
         "packages/backend/src/accounts/",
         "packages/sdk/src/accounts/"
       ]
@@ -3004,7 +3004,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/accounts/",
+        "blueprint/accounts/",
         "packages/backend/src/accounts/",
         "packages/sdk/src/accounts/"
       ]
@@ -3050,7 +3050,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/accounts/",
+        "blueprint/accounts/",
         "packages/backend/src/accounts/",
         "packages/sdk/src/accounts/"
       ]
@@ -3095,7 +3095,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/accounts/",
+        "blueprint/accounts/",
         "packages/backend/src/accounts/",
         "packages/sdk/src/accounts/"
       ]
@@ -3145,7 +3145,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/accounts/",
+        "blueprint/accounts/",
         "packages/backend/src/accounts/",
         "packages/sdk/src/accounts/"
       ]
@@ -3261,7 +3261,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/organizations/",
+        "blueprint/organizations/",
         "packages/backend/src/organizations/",
         "packages/sdk/src/organizations/"
       ]
@@ -3301,7 +3301,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/organizations/",
+        "blueprint/organizations/",
         "packages/backend/src/organizations/",
         "packages/sdk/src/organizations/"
       ]
@@ -3336,7 +3336,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/organizations/",
+        "blueprint/organizations/",
         "packages/backend/src/organizations/",
         "packages/sdk/src/organizations/"
       ]
@@ -3384,7 +3384,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/organizations/",
+        "blueprint/organizations/",
         "packages/backend/src/organizations/",
         "packages/sdk/src/organizations/"
       ]
@@ -3422,7 +3422,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/organizations/",
+        "blueprint/organizations/",
         "packages/backend/src/organizations/",
         "packages/sdk/src/organizations/"
       ]
@@ -3462,7 +3462,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/organizations/",
+        "blueprint/organizations/",
         "packages/backend/src/organizations/",
         "packages/sdk/src/organizations/"
       ]
@@ -3500,7 +3500,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/organizations/",
+        "blueprint/organizations/",
         "packages/backend/src/organizations/",
         "packages/sdk/src/organizations/"
       ]
@@ -3537,7 +3537,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/organizations/",
+        "blueprint/organizations/",
         "packages/backend/src/organizations/",
         "packages/sdk/src/organizations/"
       ]
@@ -3589,7 +3589,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/organizations/",
+        "blueprint/organizations/",
         "packages/backend/src/organizations/",
         "packages/sdk/src/organizations/"
       ]
@@ -3645,7 +3645,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/organizations/",
+        "blueprint/organizations/",
         "packages/backend/src/organizations/",
         "packages/sdk/src/organizations/"
       ]
@@ -3713,7 +3713,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/organizations/",
+        "blueprint/organizations/",
         "packages/backend/src/organizations/",
         "packages/sdk/src/organizations/"
       ]
@@ -3766,7 +3766,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/organizations/",
+        "blueprint/organizations/",
         "packages/backend/src/organizations/",
         "packages/sdk/src/organizations/"
       ]
@@ -3813,7 +3813,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/organizations/",
+        "blueprint/organizations/",
         "packages/backend/src/organizations/",
         "packages/sdk/src/organizations/"
       ]
@@ -3865,7 +3865,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/organizations/",
+        "blueprint/organizations/",
         "packages/backend/src/organizations/",
         "packages/sdk/src/organizations/"
       ]
@@ -3910,7 +3910,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/organizations/",
+        "blueprint/organizations/",
         "packages/backend/src/organizations/",
         "packages/sdk/src/organizations/"
       ]
@@ -3960,7 +3960,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/organizations/",
+        "blueprint/organizations/",
         "packages/backend/src/organizations/",
         "packages/sdk/src/organizations/"
       ]
@@ -4012,7 +4012,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/organizations/",
+        "blueprint/organizations/",
         "packages/backend/src/organizations/",
         "packages/sdk/src/organizations/"
       ]
@@ -4055,7 +4055,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/organizations/",
+        "blueprint/organizations/",
         "packages/backend/src/organizations/",
         "packages/sdk/src/organizations/"
       ]
@@ -4110,7 +4110,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/organizations/",
+        "blueprint/organizations/",
         "packages/backend/src/organizations/",
         "packages/sdk/src/organizations/"
       ]
@@ -4155,7 +4155,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/organizations/",
+        "blueprint/organizations/",
         "packages/backend/src/organizations/",
         "packages/sdk/src/organizations/"
       ]
@@ -4205,7 +4205,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/organizations/",
+        "blueprint/organizations/",
         "packages/backend/src/organizations/",
         "packages/sdk/src/organizations/"
       ]
@@ -4253,7 +4253,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/organizations/",
+        "blueprint/organizations/",
         "packages/backend/src/organizations/",
         "packages/sdk/src/organizations/"
       ]
@@ -4297,7 +4297,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/organizations/",
+        "blueprint/organizations/",
         "packages/backend/src/organizations/",
         "packages/sdk/src/organizations/"
       ]
@@ -4362,7 +4362,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/applications/",
+        "blueprint/applications/",
         "packages/backend/src/applications/",
         "packages/sdk/src/applications/"
       ]
@@ -4398,7 +4398,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/applications/",
+        "blueprint/applications/",
         "packages/backend/src/applications/",
         "packages/sdk/src/applications/"
       ]
@@ -4432,7 +4432,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/applications/",
+        "blueprint/applications/",
         "packages/backend/src/applications/",
         "packages/sdk/src/applications/"
       ]
@@ -4484,7 +4484,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/applications/",
+        "blueprint/applications/",
         "packages/backend/src/applications/",
         "packages/sdk/src/applications/"
       ]
@@ -4536,7 +4536,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/applications/",
+        "blueprint/applications/",
         "packages/backend/src/applications/",
         "packages/sdk/src/applications/"
       ]
@@ -4588,7 +4588,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/applications/",
+        "blueprint/applications/",
         "packages/backend/src/applications/",
         "packages/sdk/src/applications/"
       ]
@@ -4637,7 +4637,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/applications/",
+        "blueprint/applications/",
         "packages/backend/src/applications/",
         "packages/sdk/src/applications/"
       ]
@@ -4689,7 +4689,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/applications/",
+        "blueprint/applications/",
         "packages/backend/src/applications/",
         "packages/sdk/src/applications/"
       ]
@@ -4745,7 +4745,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/applications/",
+        "blueprint/applications/",
         "packages/backend/src/applications/",
         "packages/sdk/src/applications/"
       ]
@@ -4830,7 +4830,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/board/",
+        "blueprint/board/",
         "packages/backend/src/board/",
         "packages/sdk/src/board/"
       ]
@@ -4870,7 +4870,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/board/",
+        "blueprint/board/",
         "packages/backend/src/board/",
         "packages/sdk/src/board/"
       ]
@@ -4911,7 +4911,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/board/",
+        "blueprint/board/",
         "packages/backend/src/board/",
         "packages/sdk/src/board/"
       ]
@@ -4983,7 +4983,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/board/",
+        "blueprint/board/",
         "packages/backend/src/board/",
         "packages/sdk/src/board/"
       ]
@@ -5049,7 +5049,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/board/",
+        "blueprint/board/",
         "packages/backend/src/board/",
         "packages/sdk/src/board/"
       ]
@@ -5118,7 +5118,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/board/",
+        "blueprint/board/",
         "packages/backend/src/board/",
         "packages/sdk/src/board/"
       ]
@@ -5163,7 +5163,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/board/",
+        "blueprint/board/",
         "packages/backend/src/board/",
         "packages/sdk/src/board/"
       ]
@@ -5212,7 +5212,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/board/",
+        "blueprint/board/",
         "packages/backend/src/board/",
         "packages/sdk/src/board/"
       ]
@@ -5276,7 +5276,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/board/",
+        "blueprint/board/",
         "packages/backend/src/board/",
         "packages/sdk/src/board/"
       ]
@@ -5322,7 +5322,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/board/",
+        "blueprint/board/",
         "packages/backend/src/board/",
         "packages/sdk/src/board/"
       ]
@@ -5387,7 +5387,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/board/",
+        "blueprint/board/",
         "packages/backend/src/board/",
         "packages/sdk/src/board/"
       ]
@@ -5453,7 +5453,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/board/",
+        "blueprint/board/",
         "packages/backend/src/board/",
         "packages/sdk/src/board/"
       ]
@@ -5518,7 +5518,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/board/",
+        "blueprint/board/",
         "packages/backend/src/board/",
         "packages/sdk/src/board/"
       ]
@@ -5583,7 +5583,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/board/",
+        "blueprint/board/",
         "packages/backend/src/board/",
         "packages/sdk/src/board/"
       ]
@@ -5646,7 +5646,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/board/",
+        "blueprint/board/",
         "packages/backend/src/board/",
         "packages/sdk/src/board/"
       ]
@@ -5700,7 +5700,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/board/",
+        "blueprint/board/",
         "packages/backend/src/board/",
         "packages/sdk/src/board/"
       ]
@@ -5765,7 +5765,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/board/",
+        "blueprint/board/",
         "packages/backend/src/board/",
         "packages/sdk/src/board/"
       ]
@@ -5819,7 +5819,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/board/",
+        "blueprint/board/",
         "packages/backend/src/board/",
         "packages/sdk/src/board/"
       ]
@@ -5870,7 +5870,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/board/",
+        "blueprint/board/",
         "packages/backend/src/board/",
         "packages/sdk/src/board/"
       ]
@@ -5917,7 +5917,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/board/",
+        "blueprint/board/",
         "packages/backend/src/board/",
         "packages/sdk/src/board/"
       ]
@@ -5963,7 +5963,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/board/",
+        "blueprint/board/",
         "packages/backend/src/board/",
         "packages/sdk/src/board/"
       ]
@@ -6010,7 +6010,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/board/",
+        "blueprint/board/",
         "packages/backend/src/board/",
         "packages/sdk/src/board/"
       ]
@@ -6098,7 +6098,7 @@
         "adversary"
       ],
       "paths": [
-        "books/target/books/",
+        "blueprint/books/",
         "packages/backend/src/books/",
         "packages/sdk/src/books/"
       ]
@@ -6136,7 +6136,7 @@
         "adversary"
       ],
       "paths": [
-        "books/target/books/",
+        "blueprint/books/",
         "packages/backend/src/books/",
         "packages/sdk/src/books/"
       ]
@@ -6176,7 +6176,7 @@
         "adversary"
       ],
       "paths": [
-        "books/target/books/",
+        "blueprint/books/",
         "packages/backend/src/books/",
         "packages/sdk/src/books/"
       ]
@@ -6228,7 +6228,7 @@
         "adversary"
       ],
       "paths": [
-        "books/target/books/",
+        "blueprint/books/",
         "packages/backend/src/books/",
         "packages/sdk/src/books/"
       ]
@@ -6287,7 +6287,7 @@
         "adversary"
       ],
       "paths": [
-        "books/target/books/",
+        "blueprint/books/",
         "packages/backend/src/books/",
         "packages/sdk/src/books/"
       ]
@@ -6339,7 +6339,7 @@
         "adversary"
       ],
       "paths": [
-        "books/target/books/",
+        "blueprint/books/",
         "packages/backend/src/books/",
         "packages/sdk/src/books/"
       ]
@@ -6392,7 +6392,7 @@
         "adversary"
       ],
       "paths": [
-        "books/target/books/",
+        "blueprint/books/",
         "packages/backend/src/books/",
         "packages/sdk/src/books/"
       ]
@@ -6446,7 +6446,7 @@
         "adversary"
       ],
       "paths": [
-        "books/target/books/",
+        "blueprint/books/",
         "packages/backend/src/books/",
         "packages/sdk/src/books/"
       ]
@@ -6510,7 +6510,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/contacts/",
+        "blueprint/contacts/",
         "packages/backend/src/contacts/",
         "packages/sdk/src/contacts/"
       ]
@@ -6547,7 +6547,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/contacts/",
+        "blueprint/contacts/",
         "packages/backend/src/contacts/",
         "packages/sdk/src/contacts/"
       ]
@@ -6584,7 +6584,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/contacts/",
+        "blueprint/contacts/",
         "packages/backend/src/contacts/",
         "packages/sdk/src/contacts/"
       ]
@@ -6640,7 +6640,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/contacts/",
+        "blueprint/contacts/",
         "packages/backend/src/contacts/",
         "packages/sdk/src/contacts/"
       ]
@@ -6694,7 +6694,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/contacts/",
+        "blueprint/contacts/",
         "packages/backend/src/contacts/",
         "packages/sdk/src/contacts/"
       ]
@@ -6742,7 +6742,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/contacts/",
+        "blueprint/contacts/",
         "packages/backend/src/contacts/",
         "packages/sdk/src/contacts/"
       ]
@@ -6798,7 +6798,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/contacts/",
+        "blueprint/contacts/",
         "packages/backend/src/contacts/",
         "packages/sdk/src/contacts/"
       ]
@@ -6853,7 +6853,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/contacts/",
+        "blueprint/contacts/",
         "packages/backend/src/contacts/",
         "packages/sdk/src/contacts/"
       ]
@@ -6904,7 +6904,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/contacts/",
+        "blueprint/contacts/",
         "packages/backend/src/contacts/",
         "packages/sdk/src/contacts/"
       ]
@@ -6948,7 +6948,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/contacts/",
+        "blueprint/contacts/",
         "packages/backend/src/contacts/",
         "packages/sdk/src/contacts/"
       ]
@@ -7003,7 +7003,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/contacts/",
+        "blueprint/contacts/",
         "packages/backend/src/contacts/",
         "packages/sdk/src/contacts/"
       ]
@@ -7061,7 +7061,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/documents/",
+        "blueprint/documents/",
         "packages/backend/src/documents/",
         "packages/sdk/src/documents/"
       ]
@@ -7113,7 +7113,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/documents/",
+        "blueprint/documents/",
         "packages/backend/src/documents/",
         "packages/sdk/src/documents/"
       ]
@@ -7163,7 +7163,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/documents/",
+        "blueprint/documents/",
         "packages/backend/src/documents/",
         "packages/sdk/src/documents/"
       ]
@@ -7232,7 +7232,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/agents/",
+        "blueprint/agents/",
         "packages/backend/src/agents/",
         "packages/sdk/src/agents/"
       ]
@@ -7275,7 +7275,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/agents/",
+        "blueprint/agents/",
         "packages/backend/src/agents/",
         "packages/sdk/src/agents/"
       ]
@@ -7314,7 +7314,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/agents/",
+        "blueprint/agents/",
         "packages/backend/src/agents/",
         "packages/sdk/src/agents/"
       ]
@@ -7387,7 +7387,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/agents/",
+        "blueprint/agents/",
         "packages/backend/src/agents/",
         "packages/sdk/src/agents/"
       ]
@@ -7450,7 +7450,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/agents/",
+        "blueprint/agents/",
         "packages/backend/src/agents/",
         "packages/sdk/src/agents/"
       ]
@@ -7519,7 +7519,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/agents/",
+        "blueprint/agents/",
         "packages/backend/src/agents/",
         "packages/sdk/src/agents/"
       ]
@@ -7568,7 +7568,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/agents/",
+        "blueprint/agents/",
         "packages/backend/src/agents/",
         "packages/sdk/src/agents/"
       ]
@@ -7633,7 +7633,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/agents/",
+        "blueprint/agents/",
         "packages/backend/src/agents/",
         "packages/sdk/src/agents/"
       ]
@@ -7685,7 +7685,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/agents/",
+        "blueprint/agents/",
         "packages/backend/src/agents/",
         "packages/sdk/src/agents/"
       ]
@@ -7755,7 +7755,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/agents/",
+        "blueprint/agents/",
         "packages/backend/src/agents/",
         "packages/sdk/src/agents/"
       ]
@@ -7818,7 +7818,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/agents/",
+        "blueprint/agents/",
         "packages/backend/src/agents/",
         "packages/sdk/src/agents/"
       ]
@@ -7884,7 +7884,7 @@
         "adversary"
       ],
       "paths": [
-        "books/target/budgets/",
+        "blueprint/budgets/",
         "packages/backend/src/budgets/",
         "packages/sdk/src/budgets/"
       ]
@@ -7925,7 +7925,7 @@
         "adversary"
       ],
       "paths": [
-        "books/target/budgets/",
+        "blueprint/budgets/",
         "packages/backend/src/budgets/",
         "packages/sdk/src/budgets/"
       ]
@@ -7969,7 +7969,7 @@
         "adversary"
       ],
       "paths": [
-        "books/target/budgets/",
+        "blueprint/budgets/",
         "packages/backend/src/budgets/",
         "packages/sdk/src/budgets/"
       ]
@@ -8010,7 +8010,7 @@
         "adversary"
       ],
       "paths": [
-        "books/target/budgets/",
+        "blueprint/budgets/",
         "packages/backend/src/budgets/",
         "packages/sdk/src/budgets/"
       ]
@@ -8081,7 +8081,7 @@
         "adversary"
       ],
       "paths": [
-        "books/target/budgets/",
+        "blueprint/budgets/",
         "packages/backend/src/budgets/",
         "packages/sdk/src/budgets/"
       ]
@@ -8152,7 +8152,7 @@
         "adversary"
       ],
       "paths": [
-        "books/target/budgets/",
+        "blueprint/budgets/",
         "packages/backend/src/budgets/",
         "packages/sdk/src/budgets/"
       ]
@@ -8223,7 +8223,7 @@
         "adversary"
       ],
       "paths": [
-        "books/target/budgets/",
+        "blueprint/budgets/",
         "packages/backend/src/budgets/",
         "packages/sdk/src/budgets/"
       ]
@@ -8278,7 +8278,7 @@
         "adversary"
       ],
       "paths": [
-        "books/target/budgets/",
+        "blueprint/budgets/",
         "packages/backend/src/budgets/",
         "packages/sdk/src/budgets/"
       ]
@@ -8334,7 +8334,7 @@
         "adversary"
       ],
       "paths": [
-        "books/target/budgets/",
+        "blueprint/budgets/",
         "packages/backend/src/budgets/",
         "packages/sdk/src/budgets/"
       ]
@@ -8377,7 +8377,7 @@
         "adversary"
       ],
       "paths": [
-        "books/target/budgets/",
+        "blueprint/budgets/",
         "packages/backend/src/budgets/",
         "packages/sdk/src/budgets/"
       ]
@@ -8444,7 +8444,7 @@
         "adversary"
       ],
       "paths": [
-        "books/target/budgets/",
+        "blueprint/budgets/",
         "packages/backend/src/budgets/",
         "packages/sdk/src/budgets/"
       ]
@@ -8502,7 +8502,7 @@
         "adversary"
       ],
       "paths": [
-        "books/target/budgets/",
+        "blueprint/budgets/",
         "packages/backend/src/budgets/",
         "packages/sdk/src/budgets/"
       ]
@@ -8568,7 +8568,7 @@
         "adversary"
       ],
       "paths": [
-        "books/target/budgets/",
+        "blueprint/budgets/",
         "packages/backend/src/budgets/",
         "packages/sdk/src/budgets/"
       ]
@@ -8636,7 +8636,7 @@
         "adversary"
       ],
       "paths": [
-        "books/target/budgets/",
+        "blueprint/budgets/",
         "packages/backend/src/budgets/",
         "packages/sdk/src/budgets/"
       ]
@@ -8700,7 +8700,7 @@
         "adversary"
       ],
       "paths": [
-        "books/target/budgets/",
+        "blueprint/budgets/",
         "packages/backend/src/budgets/",
         "packages/sdk/src/budgets/"
       ]
@@ -8766,7 +8766,7 @@
         "adversary"
       ],
       "paths": [
-        "books/target/budgets/",
+        "blueprint/budgets/",
         "packages/backend/src/budgets/",
         "packages/sdk/src/budgets/"
       ]
@@ -8838,7 +8838,7 @@
         "adversary"
       ],
       "paths": [
-        "books/target/budgets/",
+        "blueprint/budgets/",
         "packages/backend/src/budgets/",
         "packages/sdk/src/budgets/"
       ]
@@ -8890,7 +8890,7 @@
         "adversary"
       ],
       "paths": [
-        "books/target/budgets/",
+        "blueprint/budgets/",
         "packages/backend/src/budgets/",
         "packages/sdk/src/budgets/"
       ]
@@ -8944,7 +8944,7 @@
         "adversary"
       ],
       "paths": [
-        "books/target/budgets/",
+        "blueprint/budgets/",
         "packages/backend/src/budgets/",
         "packages/sdk/src/budgets/"
       ]
@@ -8999,7 +8999,7 @@
         "adversary"
       ],
       "paths": [
-        "books/target/budgets/",
+        "blueprint/budgets/",
         "packages/backend/src/budgets/",
         "packages/sdk/src/budgets/"
       ]
@@ -9063,7 +9063,7 @@
         "adversary"
       ],
       "paths": [
-        "books/target/budgets/",
+        "blueprint/budgets/",
         "packages/backend/src/budgets/",
         "packages/sdk/src/budgets/"
       ]
@@ -9117,7 +9117,7 @@
         "adversary"
       ],
       "paths": [
-        "books/target/budgets/",
+        "blueprint/budgets/",
         "packages/backend/src/budgets/",
         "packages/sdk/src/budgets/"
       ]
@@ -9193,7 +9193,7 @@
         "adversary"
       ],
       "paths": [
-        "books/target/budgets/",
+        "blueprint/budgets/",
         "packages/backend/src/budgets/",
         "packages/sdk/src/budgets/"
       ]
@@ -9304,7 +9304,7 @@
         "adversary"
       ],
       "paths": [
-        "books/target/payments/",
+        "blueprint/payments/",
         "packages/backend/src/payments/",
         "packages/sdk/src/payments/"
       ]
@@ -9361,7 +9361,7 @@
         "adversary"
       ],
       "paths": [
-        "books/target/payments/",
+        "blueprint/payments/",
         "packages/backend/src/payments/",
         "packages/sdk/src/payments/"
       ]
@@ -9400,7 +9400,7 @@
         "adversary"
       ],
       "paths": [
-        "books/target/payments/",
+        "blueprint/payments/",
         "packages/backend/src/payments/",
         "packages/sdk/src/payments/"
       ]
@@ -9443,7 +9443,7 @@
         "adversary"
       ],
       "paths": [
-        "books/target/payments/",
+        "blueprint/payments/",
         "packages/backend/src/payments/",
         "packages/sdk/src/payments/"
       ]
@@ -9487,7 +9487,7 @@
         "adversary"
       ],
       "paths": [
-        "books/target/payments/",
+        "blueprint/payments/",
         "packages/backend/src/payments/",
         "packages/sdk/src/payments/"
       ]
@@ -9579,7 +9579,7 @@
         "adversary"
       ],
       "paths": [
-        "books/target/payments/",
+        "blueprint/payments/",
         "packages/backend/src/payments/",
         "packages/sdk/src/payments/"
       ]
@@ -9647,7 +9647,7 @@
         "adversary"
       ],
       "paths": [
-        "books/target/payments/",
+        "blueprint/payments/",
         "packages/backend/src/payments/",
         "packages/sdk/src/payments/"
       ]
@@ -9716,7 +9716,7 @@
         "adversary"
       ],
       "paths": [
-        "books/target/payments/",
+        "blueprint/payments/",
         "packages/backend/src/payments/",
         "packages/sdk/src/payments/"
       ]
@@ -9770,7 +9770,7 @@
         "adversary"
       ],
       "paths": [
-        "books/target/payments/",
+        "blueprint/payments/",
         "packages/backend/src/payments/",
         "packages/sdk/src/payments/"
       ]
@@ -9824,7 +9824,7 @@
         "adversary"
       ],
       "paths": [
-        "books/target/payments/",
+        "blueprint/payments/",
         "packages/backend/src/payments/",
         "packages/sdk/src/payments/"
       ]
@@ -9893,7 +9893,7 @@
         "adversary"
       ],
       "paths": [
-        "books/target/payments/",
+        "blueprint/payments/",
         "packages/backend/src/payments/",
         "packages/sdk/src/payments/"
       ]
@@ -9960,7 +9960,7 @@
         "adversary"
       ],
       "paths": [
-        "books/target/payments/",
+        "blueprint/payments/",
         "packages/backend/src/payments/",
         "packages/sdk/src/payments/"
       ]
@@ -10015,7 +10015,7 @@
         "adversary"
       ],
       "paths": [
-        "books/target/payments/",
+        "blueprint/payments/",
         "packages/backend/src/payments/",
         "packages/sdk/src/payments/"
       ]
@@ -10089,7 +10089,7 @@
         "adversary"
       ],
       "paths": [
-        "books/target/payments/",
+        "blueprint/payments/",
         "packages/backend/src/payments/",
         "packages/sdk/src/payments/"
       ]
@@ -10156,7 +10156,7 @@
         "adversary"
       ],
       "paths": [
-        "books/target/payments/",
+        "blueprint/payments/",
         "packages/backend/src/payments/",
         "packages/sdk/src/payments/"
       ]
@@ -10223,7 +10223,7 @@
         "adversary"
       ],
       "paths": [
-        "books/target/payments/",
+        "blueprint/payments/",
         "packages/backend/src/payments/",
         "packages/sdk/src/payments/"
       ]
@@ -10290,7 +10290,7 @@
         "adversary"
       ],
       "paths": [
-        "books/target/payments/",
+        "blueprint/payments/",
         "packages/backend/src/payments/",
         "packages/sdk/src/payments/"
       ]
@@ -10347,7 +10347,7 @@
         "adversary"
       ],
       "paths": [
-        "books/target/payments/",
+        "blueprint/payments/",
         "packages/backend/src/payments/",
         "packages/sdk/src/payments/"
       ]
@@ -10420,7 +10420,7 @@
         "adversary"
       ],
       "paths": [
-        "books/target/payments/",
+        "blueprint/payments/",
         "packages/backend/src/payments/",
         "packages/sdk/src/payments/"
       ]
@@ -10489,7 +10489,7 @@
         "adversary"
       ],
       "paths": [
-        "books/target/payments/",
+        "blueprint/payments/",
         "packages/backend/src/payments/",
         "packages/sdk/src/payments/"
       ]
@@ -10545,7 +10545,7 @@
         "adversary"
       ],
       "paths": [
-        "books/target/payments/",
+        "blueprint/payments/",
         "packages/backend/src/payments/",
         "packages/sdk/src/payments/"
       ]
@@ -10598,7 +10598,7 @@
         "adversary"
       ],
       "paths": [
-        "books/target/payments/",
+        "blueprint/payments/",
         "packages/backend/src/payments/",
         "packages/sdk/src/payments/"
       ]
@@ -10650,7 +10650,7 @@
         "adversary"
       ],
       "paths": [
-        "books/target/payments/",
+        "blueprint/payments/",
         "packages/backend/src/payments/",
         "packages/sdk/src/payments/"
       ]
@@ -10715,7 +10715,7 @@
         "adversary"
       ],
       "paths": [
-        "books/target/payments/",
+        "blueprint/payments/",
         "packages/backend/src/payments/",
         "packages/sdk/src/payments/"
       ]
@@ -10788,7 +10788,7 @@
         "adversary"
       ],
       "paths": [
-        "books/target/payments/",
+        "blueprint/payments/",
         "packages/backend/src/payments/",
         "packages/sdk/src/payments/"
       ]
@@ -10838,7 +10838,7 @@
         "adversary"
       ],
       "paths": [
-        "books/target/payments/",
+        "blueprint/payments/",
         "packages/backend/src/payments/",
         "packages/sdk/src/payments/"
       ]
@@ -10893,7 +10893,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/activity/",
+        "blueprint/activity/",
         "packages/backend/src/activity/",
         "packages/sdk/src/activity/"
       ]
@@ -10929,7 +10929,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/activity/",
+        "blueprint/activity/",
         "packages/backend/src/activity/",
         "packages/sdk/src/activity/"
       ]
@@ -10965,7 +10965,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/activity/",
+        "blueprint/activity/",
         "packages/backend/src/activity/",
         "packages/sdk/src/activity/"
       ]
@@ -11001,7 +11001,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/activity/",
+        "blueprint/activity/",
         "packages/backend/src/activity/",
         "packages/sdk/src/activity/"
       ]
@@ -11037,7 +11037,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/activity/",
+        "blueprint/activity/",
         "packages/backend/src/activity/",
         "packages/sdk/src/activity/"
       ]
@@ -11073,7 +11073,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/activity/",
+        "blueprint/activity/",
         "packages/backend/src/activity/",
         "packages/sdk/src/activity/"
       ]
@@ -11109,7 +11109,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/activity/",
+        "blueprint/activity/",
         "packages/backend/src/activity/",
         "packages/sdk/src/activity/"
       ]
@@ -11145,7 +11145,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/activity/",
+        "blueprint/activity/",
         "packages/backend/src/activity/",
         "packages/sdk/src/activity/"
       ]
@@ -11181,7 +11181,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/activity/",
+        "blueprint/activity/",
         "packages/backend/src/activity/",
         "packages/sdk/src/activity/"
       ]
@@ -11217,7 +11217,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/activity/",
+        "blueprint/activity/",
         "packages/backend/src/activity/",
         "packages/sdk/src/activity/"
       ]
@@ -11253,7 +11253,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/activity/",
+        "blueprint/activity/",
         "packages/backend/src/activity/",
         "packages/sdk/src/activity/"
       ]
@@ -11289,7 +11289,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/activity/",
+        "blueprint/activity/",
         "packages/backend/src/activity/",
         "packages/sdk/src/activity/"
       ]
@@ -11325,7 +11325,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/activity/",
+        "blueprint/activity/",
         "packages/backend/src/activity/",
         "packages/sdk/src/activity/"
       ]
@@ -11379,7 +11379,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/activity/",
+        "blueprint/activity/",
         "packages/backend/src/activity/",
         "packages/sdk/src/activity/"
       ]
@@ -11432,7 +11432,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/activity/",
+        "blueprint/activity/",
         "packages/backend/src/activity/",
         "packages/sdk/src/activity/"
       ]
@@ -11485,7 +11485,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/activity/",
+        "blueprint/activity/",
         "packages/backend/src/activity/",
         "packages/sdk/src/activity/"
       ]
@@ -11535,7 +11535,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/activity/",
+        "blueprint/activity/",
         "packages/backend/src/activity/",
         "packages/sdk/src/activity/"
       ]
@@ -11586,7 +11586,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/activity/",
+        "blueprint/activity/",
         "packages/backend/src/activity/",
         "packages/sdk/src/activity/"
       ]
@@ -11640,7 +11640,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/activity/",
+        "blueprint/activity/",
         "packages/backend/src/activity/",
         "packages/sdk/src/activity/"
       ]
@@ -11757,7 +11757,7 @@
         "adversary"
       ],
       "paths": [
-        "books/target/banking/",
+        "blueprint/banking/",
         "packages/backend/src/banking/",
         "packages/sdk/src/banking/"
       ]
@@ -11798,7 +11798,7 @@
         "adversary"
       ],
       "paths": [
-        "books/target/banking/",
+        "blueprint/banking/",
         "packages/backend/src/banking/",
         "packages/sdk/src/banking/"
       ]
@@ -11836,7 +11836,7 @@
         "adversary"
       ],
       "paths": [
-        "books/target/banking/",
+        "blueprint/banking/",
         "packages/backend/src/banking/",
         "packages/sdk/src/banking/"
       ]
@@ -11883,7 +11883,7 @@
         "adversary"
       ],
       "paths": [
-        "books/target/banking/",
+        "blueprint/banking/",
         "packages/backend/src/banking/",
         "packages/sdk/src/banking/"
       ]
@@ -11924,7 +11924,7 @@
         "adversary"
       ],
       "paths": [
-        "books/target/banking/",
+        "blueprint/banking/",
         "packages/backend/src/banking/",
         "packages/sdk/src/banking/"
       ]
@@ -11964,7 +11964,7 @@
         "adversary"
       ],
       "paths": [
-        "books/target/banking/",
+        "blueprint/banking/",
         "packages/backend/src/banking/",
         "packages/sdk/src/banking/"
       ]
@@ -12002,7 +12002,7 @@
         "adversary"
       ],
       "paths": [
-        "books/target/banking/",
+        "blueprint/banking/",
         "packages/backend/src/banking/",
         "packages/sdk/src/banking/"
       ]
@@ -12055,7 +12055,7 @@
         "adversary"
       ],
       "paths": [
-        "books/target/banking/",
+        "blueprint/banking/",
         "packages/backend/src/banking/",
         "packages/sdk/src/banking/"
       ]
@@ -12118,7 +12118,7 @@
         "adversary"
       ],
       "paths": [
-        "books/target/banking/",
+        "blueprint/banking/",
         "packages/backend/src/banking/",
         "packages/sdk/src/banking/"
       ]
@@ -12169,7 +12169,7 @@
         "adversary"
       ],
       "paths": [
-        "books/target/banking/",
+        "blueprint/banking/",
         "packages/backend/src/banking/",
         "packages/sdk/src/banking/"
       ]
@@ -12223,7 +12223,7 @@
         "adversary"
       ],
       "paths": [
-        "books/target/banking/",
+        "blueprint/banking/",
         "packages/backend/src/banking/",
         "packages/sdk/src/banking/"
       ]
@@ -12279,7 +12279,7 @@
         "adversary"
       ],
       "paths": [
-        "books/target/banking/",
+        "blueprint/banking/",
         "packages/backend/src/banking/",
         "packages/sdk/src/banking/"
       ]
@@ -12359,7 +12359,7 @@
         "adversary"
       ],
       "paths": [
-        "books/target/banking/",
+        "blueprint/banking/",
         "packages/backend/src/banking/",
         "packages/sdk/src/banking/"
       ]
@@ -12414,7 +12414,7 @@
         "adversary"
       ],
       "paths": [
-        "books/target/banking/",
+        "blueprint/banking/",
         "packages/backend/src/banking/",
         "packages/sdk/src/banking/"
       ]
@@ -12464,7 +12464,7 @@
         "adversary"
       ],
       "paths": [
-        "books/target/banking/",
+        "blueprint/banking/",
         "packages/backend/src/banking/",
         "packages/sdk/src/banking/"
       ]
@@ -12518,7 +12518,7 @@
         "adversary"
       ],
       "paths": [
-        "books/target/banking/",
+        "blueprint/banking/",
         "packages/backend/src/banking/",
         "packages/sdk/src/banking/"
       ]
@@ -12581,7 +12581,7 @@
         "adversary"
       ],
       "paths": [
-        "books/target/banking/",
+        "blueprint/banking/",
         "packages/backend/src/banking/",
         "packages/sdk/src/banking/"
       ]
@@ -12647,7 +12647,7 @@
         "adversary"
       ],
       "paths": [
-        "books/target/banking/",
+        "blueprint/banking/",
         "packages/backend/src/banking/",
         "packages/sdk/src/banking/"
       ]
@@ -12699,7 +12699,7 @@
         "adversary"
       ],
       "paths": [
-        "books/target/banking/",
+        "blueprint/banking/",
         "packages/backend/src/banking/",
         "packages/sdk/src/banking/"
       ]
@@ -12804,7 +12804,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/plugs/",
+        "blueprint/plugs/",
         "packages/backend/src/plugs/",
         "packages/sdk/src/plugs/"
       ]
@@ -12840,7 +12840,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/plugs/",
+        "blueprint/plugs/",
         "packages/backend/src/plugs/",
         "packages/sdk/src/plugs/"
       ]
@@ -12876,7 +12876,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/plugs/",
+        "blueprint/plugs/",
         "packages/backend/src/plugs/",
         "packages/sdk/src/plugs/"
       ]
@@ -12912,7 +12912,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/plugs/",
+        "blueprint/plugs/",
         "packages/backend/src/plugs/",
         "packages/sdk/src/plugs/"
       ]
@@ -12949,7 +12949,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/plugs/",
+        "blueprint/plugs/",
         "packages/backend/src/plugs/",
         "packages/sdk/src/plugs/"
       ]
@@ -12985,7 +12985,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/plugs/",
+        "blueprint/plugs/",
         "packages/backend/src/plugs/",
         "packages/sdk/src/plugs/"
       ]
@@ -13023,7 +13023,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/plugs/",
+        "blueprint/plugs/",
         "packages/backend/src/plugs/",
         "packages/sdk/src/plugs/"
       ]
@@ -13060,7 +13060,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/plugs/",
+        "blueprint/plugs/",
         "packages/backend/src/plugs/",
         "packages/sdk/src/plugs/"
       ]
@@ -13097,7 +13097,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/plugs/",
+        "blueprint/plugs/",
         "packages/backend/src/plugs/",
         "packages/sdk/src/plugs/"
       ]
@@ -13140,7 +13140,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/plugs/",
+        "blueprint/plugs/",
         "packages/backend/src/plugs/",
         "packages/sdk/src/plugs/"
       ]
@@ -13186,7 +13186,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/plugs/",
+        "blueprint/plugs/",
         "packages/backend/src/plugs/",
         "packages/sdk/src/plugs/"
       ]
@@ -13243,7 +13243,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/plugs/",
+        "blueprint/plugs/",
         "packages/backend/src/plugs/",
         "packages/sdk/src/plugs/"
       ]
@@ -13290,7 +13290,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/plugs/",
+        "blueprint/plugs/",
         "packages/backend/src/plugs/",
         "packages/sdk/src/plugs/"
       ]
@@ -13339,7 +13339,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/plugs/",
+        "blueprint/plugs/",
         "packages/backend/src/plugs/",
         "packages/sdk/src/plugs/"
       ]
@@ -13383,7 +13383,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/plugs/",
+        "blueprint/plugs/",
         "packages/backend/src/plugs/",
         "packages/sdk/src/plugs/"
       ]
@@ -13431,7 +13431,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/plugs/",
+        "blueprint/plugs/",
         "packages/backend/src/plugs/",
         "packages/sdk/src/plugs/"
       ]
@@ -13483,7 +13483,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/plugs/",
+        "blueprint/plugs/",
         "packages/backend/src/plugs/",
         "packages/sdk/src/plugs/"
       ]
@@ -13529,7 +13529,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/plugs/",
+        "blueprint/plugs/",
         "packages/backend/src/plugs/",
         "packages/sdk/src/plugs/"
       ]
@@ -13598,7 +13598,7 @@
         "adversary"
       ],
       "paths": [
-        "books/target/requests/",
+        "blueprint/requests/",
         "packages/backend/src/requests/",
         "packages/sdk/src/requests/"
       ]
@@ -13636,7 +13636,7 @@
         "adversary"
       ],
       "paths": [
-        "books/target/requests/",
+        "blueprint/requests/",
         "packages/backend/src/requests/",
         "packages/sdk/src/requests/"
       ]
@@ -13674,7 +13674,7 @@
         "adversary"
       ],
       "paths": [
-        "books/target/requests/",
+        "blueprint/requests/",
         "packages/backend/src/requests/",
         "packages/sdk/src/requests/"
       ]
@@ -13712,7 +13712,7 @@
         "adversary"
       ],
       "paths": [
-        "books/target/requests/",
+        "blueprint/requests/",
         "packages/backend/src/requests/",
         "packages/sdk/src/requests/"
       ]
@@ -13750,7 +13750,7 @@
         "adversary"
       ],
       "paths": [
-        "books/target/requests/",
+        "blueprint/requests/",
         "packages/backend/src/requests/",
         "packages/sdk/src/requests/"
       ]
@@ -13795,7 +13795,7 @@
         "adversary"
       ],
       "paths": [
-        "books/target/requests/",
+        "blueprint/requests/",
         "packages/backend/src/requests/",
         "packages/sdk/src/requests/"
       ]
@@ -13840,7 +13840,7 @@
         "adversary"
       ],
       "paths": [
-        "books/target/requests/",
+        "blueprint/requests/",
         "packages/backend/src/requests/",
         "packages/sdk/src/requests/"
       ]
@@ -13905,7 +13905,7 @@
         "adversary"
       ],
       "paths": [
-        "books/target/requests/",
+        "blueprint/requests/",
         "packages/backend/src/requests/",
         "packages/sdk/src/requests/"
       ]
@@ -13969,7 +13969,7 @@
         "adversary"
       ],
       "paths": [
-        "books/target/requests/",
+        "blueprint/requests/",
         "packages/backend/src/requests/",
         "packages/sdk/src/requests/"
       ]
@@ -14019,7 +14019,7 @@
         "adversary"
       ],
       "paths": [
-        "books/target/requests/",
+        "blueprint/requests/",
         "packages/backend/src/requests/",
         "packages/sdk/src/requests/"
       ]
@@ -14075,7 +14075,7 @@
         "adversary"
       ],
       "paths": [
-        "books/target/requests/",
+        "blueprint/requests/",
         "packages/backend/src/requests/",
         "packages/sdk/src/requests/"
       ]
@@ -14150,7 +14150,7 @@
         "adversary"
       ],
       "paths": [
-        "books/target/requests/",
+        "blueprint/requests/",
         "packages/backend/src/requests/",
         "packages/sdk/src/requests/"
       ]
@@ -14211,7 +14211,7 @@
         "adversary"
       ],
       "paths": [
-        "books/target/requests/",
+        "blueprint/requests/",
         "packages/backend/src/requests/",
         "packages/sdk/src/requests/"
       ]
@@ -14262,7 +14262,7 @@
         "adversary"
       ],
       "paths": [
-        "books/target/requests/",
+        "blueprint/requests/",
         "packages/backend/src/requests/",
         "packages/sdk/src/requests/"
       ]
@@ -14327,7 +14327,7 @@
         "adversary"
       ],
       "paths": [
-        "books/target/requests/",
+        "blueprint/requests/",
         "packages/backend/src/requests/",
         "packages/sdk/src/requests/"
       ]
@@ -14375,7 +14375,7 @@
         "adversary"
       ],
       "paths": [
-        "books/target/requests/",
+        "blueprint/requests/",
         "packages/backend/src/requests/",
         "packages/sdk/src/requests/"
       ]
@@ -14450,7 +14450,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/sites/",
+        "blueprint/sites/",
         "packages/backend/src/sites/",
         "packages/sdk/src/sites/"
       ]
@@ -14488,7 +14488,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/sites/",
+        "blueprint/sites/",
         "packages/backend/src/sites/",
         "packages/sdk/src/sites/"
       ]
@@ -14524,7 +14524,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/sites/",
+        "blueprint/sites/",
         "packages/backend/src/sites/",
         "packages/sdk/src/sites/"
       ]
@@ -14560,7 +14560,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/sites/",
+        "blueprint/sites/",
         "packages/backend/src/sites/",
         "packages/sdk/src/sites/"
       ]
@@ -14610,7 +14610,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/sites/",
+        "blueprint/sites/",
         "packages/backend/src/sites/",
         "packages/sdk/src/sites/"
       ]
@@ -14660,7 +14660,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/sites/",
+        "blueprint/sites/",
         "packages/backend/src/sites/",
         "packages/sdk/src/sites/"
       ]
@@ -14709,7 +14709,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/sites/",
+        "blueprint/sites/",
         "packages/backend/src/sites/",
         "packages/sdk/src/sites/"
       ]
@@ -14767,7 +14767,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/sites/",
+        "blueprint/sites/",
         "packages/backend/src/sites/",
         "packages/sdk/src/sites/"
       ]
@@ -14816,7 +14816,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/sites/",
+        "blueprint/sites/",
         "packages/backend/src/sites/",
         "packages/sdk/src/sites/"
       ]
@@ -14861,7 +14861,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/sites/",
+        "blueprint/sites/",
         "packages/backend/src/sites/",
         "packages/sdk/src/sites/"
       ]
@@ -14912,7 +14912,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/sites/",
+        "blueprint/sites/",
         "packages/backend/src/sites/",
         "packages/sdk/src/sites/"
       ]
@@ -14964,7 +14964,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/sites/",
+        "blueprint/sites/",
         "packages/backend/src/sites/",
         "packages/sdk/src/sites/"
       ]
@@ -15011,7 +15011,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/sites/",
+        "blueprint/sites/",
         "packages/backend/src/sites/",
         "packages/sdk/src/sites/"
       ]
@@ -15061,7 +15061,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/sites/",
+        "blueprint/sites/",
         "packages/backend/src/sites/",
         "packages/sdk/src/sites/"
       ]
@@ -15110,7 +15110,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/sites/",
+        "blueprint/sites/",
         "packages/backend/src/sites/",
         "packages/sdk/src/sites/"
       ]
@@ -15159,7 +15159,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/sites/",
+        "blueprint/sites/",
         "packages/backend/src/sites/",
         "packages/sdk/src/sites/"
       ]
@@ -15209,7 +15209,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/sites/",
+        "blueprint/sites/",
         "packages/backend/src/sites/",
         "packages/sdk/src/sites/"
       ]
@@ -15258,7 +15258,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/sites/",
+        "blueprint/sites/",
         "packages/backend/src/sites/",
         "packages/sdk/src/sites/"
       ]
@@ -15307,7 +15307,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/sites/",
+        "blueprint/sites/",
         "packages/backend/src/sites/",
         "packages/sdk/src/sites/"
       ]
@@ -15355,7 +15355,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/sites/",
+        "blueprint/sites/",
         "packages/backend/src/sites/",
         "packages/sdk/src/sites/"
       ]
@@ -15404,7 +15404,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/sites/",
+        "blueprint/sites/",
         "packages/backend/src/sites/",
         "packages/sdk/src/sites/"
       ]
@@ -15450,7 +15450,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/sites/",
+        "blueprint/sites/",
         "packages/backend/src/sites/",
         "packages/sdk/src/sites/"
       ]
@@ -15498,7 +15498,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/sites/",
+        "blueprint/sites/",
         "packages/backend/src/sites/",
         "packages/sdk/src/sites/"
       ]
@@ -15546,7 +15546,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/sites/",
+        "blueprint/sites/",
         "packages/backend/src/sites/",
         "packages/sdk/src/sites/"
       ]
@@ -15613,7 +15613,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/notices/",
+        "blueprint/notices/",
         "packages/backend/src/notices/",
         "packages/sdk/src/notices/"
       ]
@@ -15651,7 +15651,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/notices/",
+        "blueprint/notices/",
         "packages/backend/src/notices/",
         "packages/sdk/src/notices/"
       ]
@@ -15690,7 +15690,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/notices/",
+        "blueprint/notices/",
         "packages/backend/src/notices/",
         "packages/sdk/src/notices/"
       ]
@@ -15729,7 +15729,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/notices/",
+        "blueprint/notices/",
         "packages/backend/src/notices/",
         "packages/sdk/src/notices/"
       ]
@@ -15768,7 +15768,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/notices/",
+        "blueprint/notices/",
         "packages/backend/src/notices/",
         "packages/sdk/src/notices/"
       ]
@@ -15807,7 +15807,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/notices/",
+        "blueprint/notices/",
         "packages/backend/src/notices/",
         "packages/sdk/src/notices/"
       ]
@@ -15846,7 +15846,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/notices/",
+        "blueprint/notices/",
         "packages/backend/src/notices/",
         "packages/sdk/src/notices/"
       ]
@@ -15886,7 +15886,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/notices/",
+        "blueprint/notices/",
         "packages/backend/src/notices/",
         "packages/sdk/src/notices/"
       ]
@@ -15925,7 +15925,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/notices/",
+        "blueprint/notices/",
         "packages/backend/src/notices/",
         "packages/sdk/src/notices/"
       ]
@@ -15965,7 +15965,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/notices/",
+        "blueprint/notices/",
         "packages/backend/src/notices/",
         "packages/sdk/src/notices/"
       ]
@@ -16005,7 +16005,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/notices/",
+        "blueprint/notices/",
         "packages/backend/src/notices/",
         "packages/sdk/src/notices/"
       ]
@@ -16044,7 +16044,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/notices/",
+        "blueprint/notices/",
         "packages/backend/src/notices/",
         "packages/sdk/src/notices/"
       ]
@@ -16085,7 +16085,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/notices/",
+        "blueprint/notices/",
         "packages/backend/src/notices/",
         "packages/sdk/src/notices/"
       ]
@@ -16126,7 +16126,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/notices/",
+        "blueprint/notices/",
         "packages/backend/src/notices/",
         "packages/sdk/src/notices/"
       ]
@@ -16166,7 +16166,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/notices/",
+        "blueprint/notices/",
         "packages/backend/src/notices/",
         "packages/sdk/src/notices/"
       ]
@@ -16202,7 +16202,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/notices/",
+        "blueprint/notices/",
         "packages/backend/src/notices/",
         "packages/sdk/src/notices/"
       ]
@@ -16241,7 +16241,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/notices/",
+        "blueprint/notices/",
         "packages/backend/src/notices/",
         "packages/sdk/src/notices/"
       ]
@@ -16280,7 +16280,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/notices/",
+        "blueprint/notices/",
         "packages/backend/src/notices/",
         "packages/sdk/src/notices/"
       ]
@@ -16319,7 +16319,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/notices/",
+        "blueprint/notices/",
         "packages/backend/src/notices/",
         "packages/sdk/src/notices/"
       ]
@@ -16360,7 +16360,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/notices/",
+        "blueprint/notices/",
         "packages/backend/src/notices/",
         "packages/sdk/src/notices/"
       ]
@@ -16401,7 +16401,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/notices/",
+        "blueprint/notices/",
         "packages/backend/src/notices/",
         "packages/sdk/src/notices/"
       ]
@@ -16442,7 +16442,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/notices/",
+        "blueprint/notices/",
         "packages/backend/src/notices/",
         "packages/sdk/src/notices/"
       ]
@@ -16482,7 +16482,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/notices/",
+        "blueprint/notices/",
         "packages/backend/src/notices/",
         "packages/sdk/src/notices/"
       ]
@@ -16522,7 +16522,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/notices/",
+        "blueprint/notices/",
         "packages/backend/src/notices/",
         "packages/sdk/src/notices/"
       ]
@@ -16563,7 +16563,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/notices/",
+        "blueprint/notices/",
         "packages/backend/src/notices/",
         "packages/sdk/src/notices/"
       ]
@@ -16604,7 +16604,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/notices/",
+        "blueprint/notices/",
         "packages/backend/src/notices/",
         "packages/sdk/src/notices/"
       ]
@@ -16644,7 +16644,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/notices/",
+        "blueprint/notices/",
         "packages/backend/src/notices/",
         "packages/sdk/src/notices/"
       ]
@@ -16686,7 +16686,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/notices/",
+        "blueprint/notices/",
         "packages/backend/src/notices/",
         "packages/sdk/src/notices/"
       ]
@@ -16728,7 +16728,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/notices/",
+        "blueprint/notices/",
         "packages/backend/src/notices/",
         "packages/sdk/src/notices/"
       ]
@@ -16769,7 +16769,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/notices/",
+        "blueprint/notices/",
         "packages/backend/src/notices/",
         "packages/sdk/src/notices/"
       ]
@@ -16811,7 +16811,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/notices/",
+        "blueprint/notices/",
         "packages/backend/src/notices/",
         "packages/sdk/src/notices/"
       ]
@@ -16852,7 +16852,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/notices/",
+        "blueprint/notices/",
         "packages/backend/src/notices/",
         "packages/sdk/src/notices/"
       ]
@@ -16893,7 +16893,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/notices/",
+        "blueprint/notices/",
         "packages/backend/src/notices/",
         "packages/sdk/src/notices/"
       ]
@@ -16934,7 +16934,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/notices/",
+        "blueprint/notices/",
         "packages/backend/src/notices/",
         "packages/sdk/src/notices/"
       ]
@@ -16975,7 +16975,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/notices/",
+        "blueprint/notices/",
         "packages/backend/src/notices/",
         "packages/sdk/src/notices/"
       ]
@@ -17080,7 +17080,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/devnet/",
+        "blueprint/devnet/",
         "packages/backend/src/devnet/",
         "packages/sdk/src/devnet/",
         "packages/devnet/"
@@ -17117,7 +17117,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/devnet/",
+        "blueprint/devnet/",
         "packages/backend/src/devnet/",
         "packages/sdk/src/devnet/",
         "packages/devnet/"
@@ -17153,7 +17153,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/devnet/",
+        "blueprint/devnet/",
         "packages/backend/src/devnet/",
         "packages/sdk/src/devnet/",
         "packages/devnet/"
@@ -17189,7 +17189,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/devnet/",
+        "blueprint/devnet/",
         "packages/backend/src/devnet/",
         "packages/sdk/src/devnet/",
         "packages/devnet/"
@@ -17226,7 +17226,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/devnet/",
+        "blueprint/devnet/",
         "packages/backend/src/devnet/",
         "packages/sdk/src/devnet/",
         "packages/devnet/"
@@ -17261,7 +17261,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/devnet/",
+        "blueprint/devnet/",
         "packages/backend/src/devnet/",
         "packages/sdk/src/devnet/",
         "packages/devnet/"
@@ -17296,7 +17296,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/devnet/",
+        "blueprint/devnet/",
         "packages/backend/src/devnet/",
         "packages/sdk/src/devnet/",
         "packages/devnet/"
@@ -17331,7 +17331,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/devnet/",
+        "blueprint/devnet/",
         "packages/backend/src/devnet/",
         "packages/sdk/src/devnet/",
         "packages/devnet/"
@@ -17366,7 +17366,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/devnet/",
+        "blueprint/devnet/",
         "packages/backend/src/devnet/",
         "packages/sdk/src/devnet/",
         "packages/devnet/"
@@ -17401,7 +17401,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/devnet/",
+        "blueprint/devnet/",
         "packages/backend/src/devnet/",
         "packages/sdk/src/devnet/",
         "packages/devnet/"
@@ -17436,7 +17436,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/devnet/",
+        "blueprint/devnet/",
         "packages/backend/src/devnet/",
         "packages/sdk/src/devnet/",
         "packages/devnet/"
@@ -17471,7 +17471,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/devnet/",
+        "blueprint/devnet/",
         "packages/backend/src/devnet/",
         "packages/sdk/src/devnet/",
         "packages/devnet/"
@@ -17506,7 +17506,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/devnet/",
+        "blueprint/devnet/",
         "packages/backend/src/devnet/",
         "packages/sdk/src/devnet/",
         "packages/devnet/"
@@ -17541,7 +17541,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/devnet/",
+        "blueprint/devnet/",
         "packages/backend/src/devnet/",
         "packages/sdk/src/devnet/",
         "packages/devnet/"
@@ -17576,7 +17576,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/devnet/",
+        "blueprint/devnet/",
         "packages/backend/src/devnet/",
         "packages/sdk/src/devnet/",
         "packages/devnet/"
@@ -17611,7 +17611,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/devnet/",
+        "blueprint/devnet/",
         "packages/backend/src/devnet/",
         "packages/sdk/src/devnet/",
         "packages/devnet/"
@@ -17646,7 +17646,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/devnet/",
+        "blueprint/devnet/",
         "packages/backend/src/devnet/",
         "packages/sdk/src/devnet/",
         "packages/devnet/"
@@ -17681,7 +17681,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/devnet/",
+        "blueprint/devnet/",
         "packages/backend/src/devnet/",
         "packages/sdk/src/devnet/",
         "packages/devnet/"
@@ -17731,7 +17731,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/devnet/",
+        "blueprint/devnet/",
         "packages/backend/src/devnet/",
         "packages/sdk/src/devnet/",
         "packages/devnet/"
@@ -17778,7 +17778,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/devnet/",
+        "blueprint/devnet/",
         "packages/backend/src/devnet/",
         "packages/sdk/src/devnet/",
         "packages/devnet/"
@@ -17827,7 +17827,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/devnet/",
+        "blueprint/devnet/",
         "packages/backend/src/devnet/",
         "packages/sdk/src/devnet/",
         "packages/devnet/"
@@ -17875,7 +17875,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/devnet/",
+        "blueprint/devnet/",
         "packages/backend/src/devnet/",
         "packages/sdk/src/devnet/",
         "packages/devnet/"
@@ -17922,7 +17922,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/devnet/",
+        "blueprint/devnet/",
         "packages/backend/src/devnet/",
         "packages/sdk/src/devnet/",
         "packages/devnet/"
@@ -17971,7 +17971,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/devnet/",
+        "blueprint/devnet/",
         "packages/backend/src/devnet/",
         "packages/sdk/src/devnet/",
         "packages/devnet/"
@@ -18019,7 +18019,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/devnet/",
+        "blueprint/devnet/",
         "packages/backend/src/devnet/",
         "packages/sdk/src/devnet/",
         "packages/devnet/"
@@ -18068,7 +18068,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/devnet/",
+        "blueprint/devnet/",
         "packages/backend/src/devnet/",
         "packages/sdk/src/devnet/",
         "packages/devnet/"
@@ -18120,7 +18120,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/devnet/",
+        "blueprint/devnet/",
         "packages/backend/src/devnet/",
         "packages/sdk/src/devnet/",
         "packages/devnet/"
@@ -18169,7 +18169,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/devnet/",
+        "blueprint/devnet/",
         "packages/backend/src/devnet/",
         "packages/sdk/src/devnet/",
         "packages/devnet/"
@@ -18219,7 +18219,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/devnet/",
+        "blueprint/devnet/",
         "packages/backend/src/devnet/",
         "packages/sdk/src/devnet/",
         "packages/devnet/"
@@ -18268,7 +18268,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/devnet/",
+        "blueprint/devnet/",
         "packages/backend/src/devnet/",
         "packages/sdk/src/devnet/",
         "packages/devnet/"
@@ -18315,7 +18315,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/devnet/",
+        "blueprint/devnet/",
         "packages/backend/src/devnet/",
         "packages/sdk/src/devnet/",
         "packages/devnet/"
@@ -18364,7 +18364,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/devnet/",
+        "blueprint/devnet/",
         "packages/backend/src/devnet/",
         "packages/sdk/src/devnet/",
         "packages/devnet/"
@@ -18411,7 +18411,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/devnet/",
+        "blueprint/devnet/",
         "packages/backend/src/devnet/",
         "packages/sdk/src/devnet/",
         "packages/devnet/"
@@ -18459,7 +18459,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/devnet/",
+        "blueprint/devnet/",
         "packages/backend/src/devnet/",
         "packages/sdk/src/devnet/",
         "packages/devnet/"
@@ -18507,7 +18507,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/devnet/",
+        "blueprint/devnet/",
         "packages/backend/src/devnet/",
         "packages/sdk/src/devnet/",
         "packages/devnet/"
@@ -18555,7 +18555,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/devnet/",
+        "blueprint/devnet/",
         "packages/backend/src/devnet/",
         "packages/sdk/src/devnet/",
         "packages/devnet/"
@@ -18603,7 +18603,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/devnet/",
+        "blueprint/devnet/",
         "packages/backend/src/devnet/",
         "packages/sdk/src/devnet/",
         "packages/devnet/"
@@ -18657,7 +18657,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/devnet/",
+        "blueprint/devnet/",
         "packages/backend/src/devnet/",
         "packages/sdk/src/devnet/",
         "packages/devnet/"
@@ -18705,7 +18705,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/devnet/",
+        "blueprint/devnet/",
         "packages/backend/src/devnet/",
         "packages/sdk/src/devnet/",
         "packages/devnet/"
@@ -18754,7 +18754,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/devnet/",
+        "blueprint/devnet/",
         "packages/backend/src/devnet/",
         "packages/sdk/src/devnet/",
         "packages/devnet/"
@@ -18803,7 +18803,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/devnet/",
+        "blueprint/devnet/",
         "packages/backend/src/devnet/",
         "packages/sdk/src/devnet/",
         "packages/devnet/"
@@ -18852,7 +18852,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/devnet/",
+        "blueprint/devnet/",
         "packages/backend/src/devnet/",
         "packages/sdk/src/devnet/",
         "packages/devnet/"
@@ -18901,7 +18901,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/devnet/",
+        "blueprint/devnet/",
         "packages/backend/src/devnet/",
         "packages/sdk/src/devnet/",
         "packages/devnet/"
@@ -18952,7 +18952,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/devnet/",
+        "blueprint/devnet/",
         "packages/backend/src/devnet/",
         "packages/sdk/src/devnet/",
         "packages/devnet/"
@@ -18998,7 +18998,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/devnet/",
+        "blueprint/devnet/",
         "packages/backend/src/devnet/",
         "packages/sdk/src/devnet/",
         "packages/devnet/"
@@ -19050,7 +19050,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/devnet/",
+        "blueprint/devnet/",
         "packages/backend/src/devnet/",
         "packages/sdk/src/devnet/",
         "packages/devnet/"
@@ -19100,7 +19100,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/devnet/",
+        "blueprint/devnet/",
         "packages/backend/src/devnet/",
         "packages/sdk/src/devnet/",
         "packages/devnet/"
@@ -19148,7 +19148,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/devnet/",
+        "blueprint/devnet/",
         "packages/backend/src/devnet/",
         "packages/sdk/src/devnet/",
         "packages/devnet/"
@@ -19196,7 +19196,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/devnet/",
+        "blueprint/devnet/",
         "packages/backend/src/devnet/",
         "packages/sdk/src/devnet/",
         "packages/devnet/"
@@ -19241,7 +19241,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/devnet/",
+        "blueprint/devnet/",
         "packages/backend/src/devnet/",
         "packages/sdk/src/devnet/",
         "packages/devnet/"
@@ -19294,7 +19294,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/devnet/",
+        "blueprint/devnet/",
         "packages/backend/src/devnet/",
         "packages/sdk/src/devnet/",
         "packages/devnet/"
@@ -19352,7 +19352,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/devnet/",
+        "blueprint/devnet/",
         "packages/backend/src/devnet/",
         "packages/sdk/src/devnet/",
         "packages/devnet/"
@@ -19394,7 +19394,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/devnet/",
+        "blueprint/devnet/",
         "packages/backend/src/devnet/",
         "packages/sdk/src/devnet/",
         "packages/devnet/"
@@ -19442,7 +19442,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/devnet/",
+        "blueprint/devnet/",
         "packages/backend/src/devnet/",
         "packages/sdk/src/devnet/",
         "packages/devnet/"
@@ -19483,7 +19483,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/devnet/",
+        "blueprint/devnet/",
         "packages/backend/src/devnet/",
         "packages/sdk/src/devnet/",
         "packages/devnet/"
@@ -19528,7 +19528,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/devnet/",
+        "blueprint/devnet/",
         "packages/backend/src/devnet/",
         "packages/sdk/src/devnet/",
         "packages/devnet/"
@@ -19577,7 +19577,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/devnet/",
+        "blueprint/devnet/",
         "packages/backend/src/devnet/",
         "packages/sdk/src/devnet/",
         "packages/devnet/"
@@ -19622,7 +19622,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/devnet/",
+        "blueprint/devnet/",
         "packages/backend/src/devnet/",
         "packages/sdk/src/devnet/",
         "packages/devnet/"
@@ -19667,7 +19667,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/devnet/",
+        "blueprint/devnet/",
         "packages/backend/src/devnet/",
         "packages/sdk/src/devnet/",
         "packages/devnet/"
@@ -19713,7 +19713,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/devnet/",
+        "blueprint/devnet/",
         "packages/backend/src/devnet/",
         "packages/sdk/src/devnet/",
         "packages/devnet/"
@@ -19759,7 +19759,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/devnet/",
+        "blueprint/devnet/",
         "packages/backend/src/devnet/",
         "packages/sdk/src/devnet/",
         "packages/devnet/"
@@ -19807,7 +19807,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/devnet/",
+        "blueprint/devnet/",
         "packages/backend/src/devnet/",
         "packages/sdk/src/devnet/",
         "packages/devnet/"
@@ -19851,7 +19851,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/devnet/",
+        "blueprint/devnet/",
         "packages/backend/src/devnet/",
         "packages/sdk/src/devnet/",
         "packages/devnet/"
@@ -19897,7 +19897,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/devnet/",
+        "blueprint/devnet/",
         "packages/backend/src/devnet/",
         "packages/sdk/src/devnet/",
         "packages/devnet/"
@@ -19942,7 +19942,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/devnet/",
+        "blueprint/devnet/",
         "packages/backend/src/devnet/",
         "packages/sdk/src/devnet/",
         "packages/devnet/"
@@ -19986,7 +19986,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/devnet/",
+        "blueprint/devnet/",
         "packages/backend/src/devnet/",
         "packages/sdk/src/devnet/",
         "packages/devnet/"
@@ -20031,7 +20031,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/devnet/",
+        "blueprint/devnet/",
         "packages/backend/src/devnet/",
         "packages/sdk/src/devnet/",
         "packages/devnet/"
@@ -20077,7 +20077,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/devnet/",
+        "blueprint/devnet/",
         "packages/backend/src/devnet/",
         "packages/sdk/src/devnet/",
         "packages/devnet/"
@@ -20121,7 +20121,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/devnet/",
+        "blueprint/devnet/",
         "packages/backend/src/devnet/",
         "packages/sdk/src/devnet/",
         "packages/devnet/"
@@ -20170,7 +20170,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/devnet/",
+        "blueprint/devnet/",
         "packages/backend/src/devnet/",
         "packages/sdk/src/devnet/",
         "packages/devnet/"
@@ -20215,7 +20215,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/devnet/",
+        "blueprint/devnet/",
         "packages/backend/src/devnet/",
         "packages/sdk/src/devnet/",
         "packages/devnet/"
@@ -20261,7 +20261,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/devnet/",
+        "blueprint/devnet/",
         "packages/backend/src/devnet/",
         "packages/sdk/src/devnet/",
         "packages/devnet/"
@@ -20307,7 +20307,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/devnet/",
+        "blueprint/devnet/",
         "packages/backend/src/devnet/",
         "packages/sdk/src/devnet/",
         "packages/devnet/"
@@ -20351,7 +20351,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/devnet/",
+        "blueprint/devnet/",
         "packages/backend/src/devnet/",
         "packages/sdk/src/devnet/",
         "packages/devnet/"
@@ -20398,7 +20398,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/devnet/",
+        "blueprint/devnet/",
         "packages/backend/src/devnet/",
         "packages/sdk/src/devnet/",
         "packages/devnet/"
@@ -20443,7 +20443,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/devnet/",
+        "blueprint/devnet/",
         "packages/backend/src/devnet/",
         "packages/sdk/src/devnet/",
         "packages/devnet/"
@@ -20491,7 +20491,7 @@
         "reviewer"
       ],
       "paths": [
-        "books/target/devnet/",
+        "blueprint/devnet/",
         "packages/backend/src/devnet/",
         "packages/sdk/src/devnet/",
         "packages/devnet/"

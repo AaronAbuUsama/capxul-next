@@ -95,7 +95,7 @@ const noteOf = (u: unknown, i: number): Result<Note> => {
   return date === null || by === null || text === null ? fail(`notes[${i}]`, "a note has a date, by and text") : { ok: true, value: { date, by, text } };
 };
 
-/** The plan, if `u` has the shape of one. Whether it is consistent with the book is `check`'s question, not this one's. */
+/** The plan, if `u` has the shape of one. Whether it is consistent with the blueprint is `check`'s question, not this one's. */
 export const parsePlan = (u: unknown): Result<Plan> => {
   if (!isFields(u) || !isFields(u["goal"]) || !isFields(u["path"])) return fail("plan", "a plan has a goal and a path");
   const g = u["goal"], p = u["path"];

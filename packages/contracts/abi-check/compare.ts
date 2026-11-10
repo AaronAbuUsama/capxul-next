@@ -1,15 +1,15 @@
-// The comparison of the book's contract records with the contracts in the code. Pure: the caller reads the book, the ABI
+// The comparison of the blueprint's contract records with the contracts in the code. Pure: the caller reads the blueprint, the ABI
 // export and the manifest and passes them in, so every rule here is tested with small fixtures.
 //
 // A difference is a fact that the two disagree. It fails the check unless an allowance covers it: an allowance names a
-// subject and a decision, and counts only when that decision is in the book and its text names the subject. An allowance that
+// subject and a decision, and counts only when that decision is in the blueprint and its text names the subject. An allowance that
 // covers nothing fails too, so none outlives the difference it was written for.
 
-import { parseSignature, renderBook, renderEntry, signatureMismatches, type AbiEntry } from "./signature.ts";
+import { parseSignature, renderBlueprint, renderEntry, signatureMismatches, type AbiEntry } from "./signature.ts";
 
 export type CodeStatus = "built" | "designed" | "third-party";
 
-export interface BookContract {
+export interface BlueprintContract {
   readonly id: string;
   /** `built`: in the code, compared. `designed`: designed, not built. `third-party`: someone else's code, not compared. */
   readonly code?: CodeStatus;
@@ -24,13 +24,13 @@ export interface CodeContract {
   readonly kind: "contract" | "library";
   readonly abi: readonly AbiEntry[];
 }
-/** A difference that may stand because a decision names it. `subject` is `book:<id>`, `code:<Artifact>` or `book:<id>.<function|event|error>.<name>`. */
+/** A difference that may stand because a decision names it. `subject` is `blueprint:<id>`, `code:<Artifact>` or `blueprint:<id>.<function|event|error>.<name>`. */
 export interface Allowance {
   readonly subject: string;
   readonly decision: string;
 }
 export interface Input {
-  readonly book: readonly BookContract[];
+  readonly blueprint: readonly BlueprintContract[];
   readonly code: readonly CodeContract[];
   /** The contracts the deployment puts on chain: the deploy manifest's, plus those a deployed contract creates. */
   readonly deployed: readonly string[];
@@ -51,7 +51,7 @@ export type DiffKind =
   | "bad-signature";
 export interface Difference {
   readonly kind: DiffKind;
-  /** `book:<id>`, `code:<Artifact>` or `book:<id>.<function|event|error>.<name>`: what an allowance names. */
+  /** `blueprint:<id>`, `code:<Artifact>` or `blueprint:<id>.<function|event|error>.<name>`: what an allowance names. */
   readonly subject: string;
   readonly message: string;
 }
@@ -71,7 +71,7 @@ const MEMBERS = [
   ["error", "errors"],
 ] as const;
 
-const bookSig = (s: string): { ok: true; sig: ReturnType<typeof parseSignature> } | { ok: false; why: string } => {
+const blueprintSig = (s: string): { ok: true; sig: ReturnType<typeof parseSignature> } | { ok: false; why: string } => {
   try {
     return { ok: true, sig: parseSignature(s) };
   } catch (e) {
@@ -79,19 +79,19 @@ const bookSig = (s: string): { ok: true; sig: ReturnType<typeof parseSignature> 
   }
 };
 
-const compareOne = (book: BookContract, code: CodeContract, out: Difference[], counts: Report["compared"]): void => {
+const compareOne = (blueprint: BlueprintContract, code: CodeContract, out: Difference[], counts: Report["compared"]): void => {
   for (const [type, field] of MEMBERS) {
     const codeEntries = code.abi.filter((e) => e.type === type);
-    const bookEntries = Object.entries(book[field] ?? {});
-    const subject = (name: string) => `book:${book.id}.${type}.${name}`;
+    const blueprintEntries = Object.entries(blueprint[field] ?? {});
+    const subject = (name: string) => `blueprint:${blueprint.id}.${type}.${name}`;
     counts[field] += codeEntries.length;
     const byName = new Map<string, AbiEntry[]>();
     for (const e of codeEntries) byName.set(e.name!, [...(byName.get(e.name!) ?? []), e]);
     const seen = new Set<string>();
-    for (const [key, { signature }] of bookEntries) {
-      const parsed = bookSig(signature);
+    for (const [key, { signature }] of blueprintEntries) {
+      const parsed = blueprintSig(signature);
       if (!parsed.ok) {
-        out.push({ kind: "bad-signature", subject: subject(key), message: `${book.id}: ${type} ${key}: cannot read "${signature}": ${parsed.why}` });
+        out.push({ kind: "bad-signature", subject: subject(key), message: `${blueprint.id}: ${type} ${key}: cannot read "${signature}": ${parsed.why}` });
         continue;
       }
       const candidates = byName.get(parsed.sig.name) ?? [];
@@ -99,11 +99,11 @@ const compareOne = (book: BookContract, code: CodeContract, out: Difference[], c
         out.push({
           kind: "missing-in-code",
           subject: subject(parsed.sig.name),
-          message: `${book.id}: the book has ${type} ${renderBook(parsed.sig)}; ${code.name} has none by that name`,
+          message: `${blueprint.id}: the blueprint has ${type} ${renderBlueprint(parsed.sig)}; ${code.name} has none by that name`,
         });
         continue;
       }
-      // An overload is matched to the candidate that differs least; two book entries may name two overloads.
+      // An overload is matched to the candidate that differs least; two blueprint entries may name two overloads.
       const scored = candidates.map((c) => ({ c, why: signatureMismatches(parsed.sig, c) })).sort((a, b) => a.why.length - b.why.length);
       const best = scored[0]!;
       seen.add(`${parsed.sig.name}|${candidates.indexOf(best.c)}`);
@@ -111,13 +111,13 @@ const compareOne = (book: BookContract, code: CodeContract, out: Difference[], c
         out.push({
           kind: "differs",
           subject: subject(parsed.sig.name),
-          message: `${book.id}: ${type} ${parsed.sig.name} differs: ${best.why.join("; ")}\n      book: ${renderBook(parsed.sig)}\n      code: ${renderEntry(best.c)}`,
+          message: `${blueprint.id}: ${type} ${parsed.sig.name} differs: ${best.why.join("; ")}\n      blueprint: ${renderBlueprint(parsed.sig)}\n      code: ${renderEntry(best.c)}`,
         });
     }
     for (const [name, entries] of byName)
       entries.forEach((e, i) => {
         if (!seen.has(`${name}|${i}`))
-          out.push({ kind: "missing-in-book", subject: subject(name), message: `${book.id}: the code's ${type} ${renderEntry(e)} is not in the book` });
+          out.push({ kind: "missing-in-book", subject: subject(name), message: `${blueprint.id}: the code's ${type} ${renderEntry(e)} is not in the blueprint` });
       });
   }
 };
@@ -137,9 +137,9 @@ export const compareContracts = (input: Input): Report => {
   const codeByName = new Map(input.code.map((c) => [c.name, c]));
   const claimed = new Set<string>();
 
-  for (const b of input.book) {
+  for (const b of input.blueprint) {
     if (b.code === undefined) {
-      diffs.push({ kind: "undeclared-code", subject: `book:${b.id}`, message: `${b.id}: the record does not say whether its code is built, designed or third-party (\`code\`)` });
+      diffs.push({ kind: "undeclared-code", subject: `blueprint:${b.id}`, message: `${b.id}: the record does not say whether its code is built, designed or third-party (\`code\`)` });
       continue;
     }
     if (b.code === "third-party") {
@@ -147,12 +147,12 @@ export const compareContracts = (input: Input): Report => {
       continue;
     }
     if (b.code === "designed") {
-      diffs.push({ kind: "contract-without-code", subject: `book:${b.id}`, message: `${b.id}: designed, not built: the code has no such contract` });
+      diffs.push({ kind: "contract-without-code", subject: `blueprint:${b.id}`, message: `${b.id}: designed, not built: the code has no such contract` });
       continue;
     }
     const code = b.artifact === undefined ? undefined : codeByName.get(b.artifact);
     if (!code) {
-      diffs.push({ kind: "unknown-artifact", subject: `book:${b.id}`, message: `${b.id}: says it is built as ${b.artifact ?? "(no artifact named)"}, which the code does not have` });
+      diffs.push({ kind: "unknown-artifact", subject: `blueprint:${b.id}`, message: `${b.id}: says it is built as ${b.artifact ?? "(no artifact named)"}, which the code does not have` });
       continue;
     }
     claimed.add(code.name);
@@ -163,7 +163,7 @@ export const compareContracts = (input: Input): Report => {
   for (const name of input.deployed) {
     const code = codeByName.get(name);
     if (!code) diffs.push({ kind: "unknown-artifact", subject: `code:${name}`, message: `${name}: the deployment names it, but the code export has no such contract` });
-    else if (!claimed.has(name)) diffs.push({ kind: "code-without-book", subject: `code:${name}`, message: `${name}: deployed by the code, and no contract record in the book describes it` });
+    else if (!claimed.has(name)) diffs.push({ kind: "code-without-book", subject: `code:${name}`, message: `${name}: deployed by the code, and no contract record in the blueprint describes it` });
   }
 
   for (const c of input.code)
@@ -185,7 +185,7 @@ export const compareContracts = (input: Input): Report => {
   }
   for (const a of input.allowances) {
     if (input.decisions[a.decision] === undefined)
-      failures.push({ kind: "differs", subject: a.subject, message: `allowance for ${a.subject}: decision ${a.decision} is not in the book` });
+      failures.push({ kind: "differs", subject: a.subject, message: `allowance for ${a.subject}: decision ${a.decision} is not in the blueprint` });
     else if (!names(a.subject, input.decisions[a.decision]!))
       failures.push({ kind: "differs", subject: a.subject, message: `allowance for ${a.subject}: decision ${a.decision} does not name it` });
     else if (!used.has(a))

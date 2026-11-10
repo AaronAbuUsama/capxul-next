@@ -18,8 +18,8 @@ import { fieldsTable } from "./value.ts";
 /** The call, twice: as the command line and as the SDK. A radio pair and CSS switch them; no script. */
 const call = (p: OperationPage): string => {
   const sdk = p.sdkCall === ""
-    ? '<p class="silent">The book names nothing that implements this operation, so there is no SDK call to show.</p>'
-    : codeBlock(p.sdk === "" ? "SDK · the book names no method" : `SDK · ${p.sdk} · types generated from the book's schemas`, "ts", p.sdkCall);
+    ? '<p class="silent">The blueprint names nothing that implements this operation, so there is no SDK call to show.</p>'
+    : codeBlock(p.sdk === "" ? "SDK · the blueprint names no method" : `SDK · ${p.sdk} · types generated from the blueprint's schemas`, "ts", p.sdkCall);
   return `<div class="tabs" id="call"><input type="radio" name="call" id="call-cli" checked><label for="call-cli">CLI</label>` +
     `<input type="radio" name="call" id="call-sdk"><label for="call-sdk">SDK</label>` +
     `<div class="tab tab-cli">${codeBlock("Command line · synopsis", "bash", `# ${p.title}\n${p.synopsis}`)}</div>` +
@@ -39,10 +39,10 @@ const returns = (p: OperationPage): string =>
   p.returns.length > 0
     ? section("returns", "What it returns", examples(p) + p.returns.map(shape).join(""),
       p.examples.length === 0
-        ? "The shape of `--json`, as the book holds it. A `<type>` in the skeleton is a placeholder: the book records no example response, and what the command prints for a person is not designed yet."
-        : "Recorded runs first, each checked against the shape at build time. Then the shape of `--json`, as the book holds it; a `<type>` in the skeleton is a placeholder, not a recorded response.")
+        ? "The shape of `--json`, as the blueprint holds it. A `<type>` in the skeleton is a placeholder: the blueprint records no example response, and what the command prints for a person is not designed yet."
+        : "Recorded runs first, each checked against the shape at build time. Then the shape of `--json`, as the blueprint holds it; a `<type>` in the skeleton is a placeholder, not a recorded response.")
     : `<div class="undesigned">${chip("Not designed yet", "chip chip-orange")}<span>What the command prints, and its <code>--json</code> shape, ` +
-      `appear here once the book holds them. This is where the DX gets explored.</span></div>`;
+      `appear here once the blueprint holds them. This is where the DX gets explored.</span></div>`;
 
 const argRows = (rows: readonly ArgRow[]): readonly string[] =>
   rows.map((r) => `<tr><td class="mono name">${esc(r.name)}</td><td class="muted nowrap">${esc(r.kind)}</td><td>${prose(r.text)}</td></tr>`);
@@ -50,12 +50,12 @@ const argRows = (rows: readonly ArgRow[]): readonly string[] =>
 const oldCli = (p: OperationPage): string => {
   if (!p.oldCli) {
     return section("arguments", "Arguments and flags",
-      `<p class="muted">${p.isNew ? "This operation is new: the old CLI never had it." : "The old system designed this command and never shipped it."} Its arguments and flags are the target book's to design.</p>`);
+      `<p class="muted">${p.isNew ? "This operation is new: the old CLI never had it." : "The old system designed this command and never shipped it."} Its arguments and flags are the blueprint's to design.</p>`);
   }
   const rows = [...argRows(p.oldCli.arguments), ...argRows(p.oldCli.flags)];
   return section("arguments", "Arguments and flags",
     rows.length === 0 ? '<p class="muted">The old CLI took no arguments and no flags here.</p>' : table(["Name", "Kind", "What it does"], rows, "args"),
-    "Reference, old CLI. The behaviour is kept; the spelling is the target book's to design.");
+    "Reference, old CLI. The behaviour is kept; the spelling is the blueprint's to design.");
 };
 
 const refusals = (p: OperationPage, cites: Cites): string =>
@@ -82,7 +82,7 @@ const implemented = (p: OperationPage): string => {
     p.budget === "" ? "" : `<dt>Time budget</dt><dd class="mono">${esc(p.budget)}</dd>`,
   ].join("");
   return `<div class="side-card"><p class="eyebrow eyebrow-muted">Implemented by</p>` +
-    (rows === "" ? '<p class="side-note">The book names nothing that implements it yet.</p>' : `<dl class="side-list">${rows}</dl>`) + `</div>`;
+    (rows === "" ? '<p class="side-note">The blueprint names nothing that implements it yet.</p>' : `<dl class="side-list">${rows}</dl>`) + `</div>`;
 };
 
 const open = (p: OperationPage): string => {
@@ -100,7 +100,7 @@ export const forAgents = (at: string): string =>
   `<a class="mono" href="${esc(fileHref(at, jsonFile(at)))}">${esc(jsonFile(at))}</a></p></div>`;
 
 const duo = (p: OperationPage, cites: Cites): string => {
-  const silent = '<p class="muted">The book does not say yet.</p>';
+  const silent = '<p class="muted">The blueprint does not say yet.</p>';
   return `<div class="duo"><div class="duo-card"><p class="eyebrow eyebrow-muted">Who can do it</p>${blocks(p.id, p.who, cites) || silent}</div>` +
     `<div class="duo-card"><p class="eyebrow eyebrow-muted">What it changes</p>${blocks(p.id, p.changes, cites) || silent}</div></div>`;
 };
@@ -115,11 +115,11 @@ export const operation = (p: OperationPage, cites: Cites): string => {
     `<div class="title-row"><h1 class="title">${esc(p.title)}</h1>${p.priority === "" ? "" : chip(p.priority, "chip chip-orange")}${p.isNew ? chip("new", "chip chip-quiet") : ""}</div>` +
     `${blocks(at, p.about, cites, "prose lead-prose")}${call(p)}${returns(p)}${duo(p, cites)}${oldCli(p)}` +
     section("run", "What happens when you run it", traceView(at, p.trace, cites),
-      "The steps of the record that implements it, in order, and what the book lists under each. Nothing here has run: it is the design.") +
+      "The steps of the record that implements it, in order, and what the blueprint lists under each. Nothing here has run: it is the design.") +
     section("evals", "Evals", evalGroups(p, cites),
       `${plural(p.evals.length, "eval")} in ${plural(p.evalKinds.length, "kind")}. Each is one claim a run can check; ${p.evals.some((e) => e.verdict !== "not_run") ? `${p.passing.own.passing} pass in the status document.` : "none has run, because no code exists yet."}`) +
     refusals(p, cites) + section("notes", "Notes", notes) + section("mistakes", "Common mistakes", mistakes) +
-    section("gaps", "What the book still lacks here", findings(p.gaps)) +
+    section("gaps", "What the blueprint still lacks here", findings(p.gaps)) +
     section("used-by", "Used by", linkGroups(at, p.usedBy)) + impactView(at, p.impact) +
     section("decisions", "Decisions that name it", p.decisions.length === 0 ? "" : fold(plural(p.decisions.length, "decision"), briefRows(at, p.decisions))) +
     `</div><aside class="side">${stands(p)}${implemented(p)}${open(p)}${forAgents(at)}</aside></main>`;

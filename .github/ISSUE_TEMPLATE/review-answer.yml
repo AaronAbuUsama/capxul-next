@@ -11,7 +11,7 @@ body:
         this issue's author and creation time.
 
         The build takes `review` issues before any other work: capxul/master opens the review task `review:<decision>`,
-        which changes the decision record first (book first), then every record it ripples to. Only the decision's reviewer
+        which changes the decision record first (blueprint first), then every record it ripples to. Only the decision's reviewer
         can answer it; any other author's issue waits. Template: `docs/design/swarm-templates.md`, section 7.4.
   - type: input
     id: decision

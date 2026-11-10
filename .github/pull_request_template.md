@@ -52,7 +52,7 @@ Decisions: each a decision record id or matter id. Where: path:line, at most 6. 
 
 - `<path>:<line>` <why to look there first>
 
-## Book first
+## Blueprint first
 
 <!-- Records and decision records this change adds or edits, in its own concept's folder, or "No record changed".
 A rewritten claim keeps the frozen claim first in its was and carries a decision. -->
@@ -60,7 +60,7 @@ A rewritten claim keeps the frozen claim first in its was and carries a decision
 - **Records:** <record keys, or No record changed>
 - **Decisions:** <decision ids added or edited, or none>
 - **Plan:** <docs/mission/tasks.json regenerated, or unchanged>
-- **Book checks:** `pnpm exec tsc -p books` <result> · book <n> problems · `check-frozen` <n> breaches
+- **Blueprint checks:** `pnpm exec tsc -p blueprint` <result> · blueprint <n> problems · `check-frozen` <n> breaches
 
 ## Findings
 
