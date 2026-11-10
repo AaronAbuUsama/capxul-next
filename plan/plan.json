@@ -330,13 +330,17 @@
       "title": "Telemetry on every operation, and the record entry as a record",
       "why": "Every operation names its telemetry; the world's record entry is itself a record.",
       "milestone": "m1",
-      "state": "doing",
+      "state": "blocked",
       "needs": [],
       "records": [],
       "evidence": [],
       "created": "2026-11-10",
       "updated": "2026-11-10",
-      "thread": "m1-telemetry-11101341"
+      "thread": "m1-telemetry-11101341",
+      "blockedBy": {
+        "need": "loop run m1-telemetry-11101341: F-1.1 done-when: spike entries conform: Seen: The real-recorder test failed on missing viem, so no run demonstrated that real entries conform. It also imports config without setting SKELETON_SECRET, which config requires in a clean environment. Expected: A passing, reproducible test of actual succes",
+        "who": "coordinator"
+      }
     },
     {
       "id": "m1-aws-records",
