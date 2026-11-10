@@ -897,6 +897,20 @@
       "created": "2026-11-10",
       "updated": "2026-11-10",
       "thread": "repo-tidy"
+    },
+    {
+      "id": "m1-rename-blueprint",
+      "title": "Rename the book to the blueprint",
+      "why": "Aaron: call it blueprint, because nothing else sounds like it. The word book does not say what the thing is, and books/ beside packages/book confused him.",
+      "milestone": "m1",
+      "state": "todo",
+      "needs": [
+        "m1-tidy"
+      ],
+      "records": [],
+      "evidence": [],
+      "created": "2026-11-10",
+      "updated": "2026-11-10"
     }
   ],
   "path": {
