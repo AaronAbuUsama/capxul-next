@@ -1,0 +1,16 @@
+CancelChange_Agreements_Unit_Concrete_Test
+├── when a call into Agreements is already running
+│   └── it should revert with ReentrantCall
+├── when the caller is not authorised for the agreement's budget
+│   └── it should revert with NotAuthorised
+├── when the agreement is not accepted
+│   └── it should revert with NotAccepted
+├── when the agreement is closed
+│   └── it should revert with AlreadyEnded
+├── when no lowering is pending
+│   └── it should revert with NoPendingChange
+├── when the lowering's date has already come
+│   └── it should revert with NoPendingChange because the lowering took effect
+└── when a lowering waits for its date
+    ├── it should clear it and keep the rate and the reservation
+    └── it should emit RateChangeCancelled

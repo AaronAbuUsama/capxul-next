@@ -1,0 +1,23 @@
+Cancel_Budgets_Unit_Concrete_Test
+├── when a call into Budgets is already running
+│   └── it should revert with ReentrantCall
+├── when the scheduled payment does not exist
+│   └── it should revert with UnknownScheduled
+├── when the caller is not authorised for the payment's budget
+│   └── it should revert with NotAuthorised
+├── when the payment is not Pending
+│   ├── given it was cancelled
+│   │   └── it should revert with NotPending
+│   └── given it was paid
+│       └── it should revert with NotPending
+└── when the payment is Pending
+    ├── it should subtract the amount from ownCommitted on the budget
+    ├── it should subtract the amount from committed on the budget and every budget above it
+    ├── it should mark the payment Cancelled
+    ├── given the budget is closed
+    │   └── it should still cancel
+    ├── given its pay date has passed and no one has executed it
+    │   └── it should still cancel
+    ├── given the caller wears the hat of a budget above
+    │   └── it should allow it
+    └── it should emit ScheduleCancelled

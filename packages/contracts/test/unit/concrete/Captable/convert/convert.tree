@@ -1,0 +1,17 @@
+Convert_Captable_Unit_Concrete_Test
+├── when the class does not exist
+│   └── it should revert with UnknownClass
+├── when the class converts into nothing
+│   └── it should revert with NotConvertible
+├── when the caller's unlocked shares are fewer than the amount
+│   └── it should revert with SharesLocked
+└── when the caller converts unlocked shares
+    ├── it should burn the amount of the source class
+    ├── it should lower the source class's authorised by the amount
+    ├── it should mint the amount times the issue price over the current conversion price rounded down in the target class
+    ├── it should keep issued plus convertible reserve within authorised in both classes
+    ├── given the source class is frozen
+    │   └── it should still convert and lower the frozen class's authorised
+    ├── given a proposal is pending in the target class
+    │   └── it should still convert
+    └── it should emit Converted

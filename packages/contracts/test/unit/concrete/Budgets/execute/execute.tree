@@ -1,0 +1,31 @@
+Execute_Budgets_Unit_Concrete_Test
+├── when a call into Budgets is already running
+│   └── it should revert with ReentrantCall
+├── when the scheduled payment does not exist
+│   └── it should revert with UnknownScheduled
+├── when the payment is not Pending
+│   ├── given it was cancelled
+│   │   └── it should revert with NotPending
+│   └── given it was already paid
+│       └── it should revert with NotPending and pay nothing twice
+├── when the pay date has not come
+│   └── it should revert with NotDue with the pay date
+└── when the payment is Pending and its pay date has come
+    ├── it should let anyone call it
+    ├── given the period has turned since the budget was last used
+    │   └── it should roll every stale budget up the tree before moving the amount
+    ├── it should move the amount from ownCommitted to ownSpent on the budget
+    ├── it should move the amount from committed to spent on the budget and every budget above it
+    ├── it should not grow what the budget uses
+    ├── it should mark the payment Paid before the payout call
+    ├── it should pay through the payout role with the scheduled job nonce and the Safe as executor
+    ├── given the budget or a budget above it is closed
+    │   └── it should still pay
+    ├── given the hat that scheduled it was changed or its wearer lost it
+    │   └── it should still pay
+    ├── when Roles or the token refuses the payout
+    │   └── it should revert whole and leave the payment Pending
+    ├── when the token re-enters Budgets during the payout
+    │   └── it should revert the inner call with ReentrantCall
+    ├── it should return the payment id
+    └── it should emit ScheduledPaid

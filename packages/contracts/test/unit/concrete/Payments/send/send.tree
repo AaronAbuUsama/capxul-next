@@ -1,0 +1,44 @@
+Send_Payments_Unit_Concrete_Test
+├── when a call into Payments is already running
+│   └── it should revert with ReentrantCall
+└── when no call is running
+    ├── when the recipient or the token is the zero address
+    │   └── it should revert with ZeroAddress
+    ├── when the recipient is Payments itself
+    │   └── it should revert with InvalidRecipient
+    ├── when the amount is 0
+    │   └── it should revert with ZeroAmount
+    ├── when the payment id is zero
+    │   └── it should revert with ZeroPaymentId
+    ├── when the document hash is zero
+    │   └── it should revert with ZeroDocumentHash
+    ├── when the job nonce is zero
+    │   └── it should revert with ZeroJobNonce
+    └── when every field is set
+        ├── when the supplied payment id is not paymentId of the item
+        │   └── it should revert with PaymentIdMismatch
+        ├── when the item names an executor and the caller is someone else
+        │   └── it should revert with InvalidExecutor
+        ├── when this payment id was already paid
+        │   └── it should revert with PaymentIdConsumed
+        ├── when the token has no code
+        │   └── it should revert with TokenHasNoCode
+        └── when the payment is new and the token is a contract
+            ├── when the token's transferFrom reverts
+            │   └── it should bubble up the token's revert data unchanged
+            ├── when the token's transferFrom returns false
+            │   └── it should revert with TokenCallReturnedFalse
+            ├── when the token's transferFrom returns nothing
+            │   └── it should accept it and still check the exact balance
+            ├── when the token re-enters send or sendBatch during transferFrom
+            │   └── it should revert the inner call with ReentrantCall
+            ├── when the recipient receives a different amount
+            │   └── it should revert with InexactTransfer
+            ├── given the recipient is the caller
+            │   └── it should require the balance not to change
+            ├── given the payment reverts for any reason
+            │   └── it should leave the payment id unpaid
+            └── when the recipient receives exactly the amount
+                ├── it should mark the payment id as paid
+                ├── it should leave Payments' own balance unchanged
+                └── it should emit PaymentSent

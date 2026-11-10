@@ -1,0 +1,24 @@
+Pay_Rounds_Unit_Concrete_Test
+├── when the investor has no allocation
+│   └── it should revert with NotAllocated
+├── when the investor already paid
+│   └── it should revert with AlreadyPaid
+├── when the pay by date has passed
+│   └── it should revert with PayByPassed
+├── when the round is closed
+│   └── it should revert with RoundIsClosed
+├── when the round is cancelled
+│   └── it should revert with RoundIsCancelled
+└── when the allocated investor pays in time
+    ├── it should pull exactly the allocated shares times the price from the investor
+    ├── it should pay exactly that amount to the Safe through Payments with kind 5
+    ├── it should issue exactly the allocated shares to the investor in the same call
+    ├── it should never round the amount or the shares
+    ├── given the shares and the price are both the largest uint128
+    │   └── it should compute the amount without overflow
+    ├── it should hold no balance afterwards
+    ├── when a proposal is pending in the round's class
+    │   └── it should revert with ProposalPending and move no money
+    ├── when the Captable refuses the issue for another reason
+    │   └── it should revert and move no money
+    └── it should emit Paid with the shares and the amount and the payment id

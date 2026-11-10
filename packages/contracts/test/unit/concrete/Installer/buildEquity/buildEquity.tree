@@ -1,0 +1,11 @@
+BuildEquity_Installer_Unit_Concrete_Test
+├── when the addresses are not this company's deployed clones
+│   └── it should revert with InvalidInstall
+└── when the install is valid
+    ├── it should return Safe calls that issue the founders' shares and set the option pool
+    ├── it should return Safe calls that grant founder vesting
+    ├── it should return founder calls that hand the Director hat's eligibility and toggle to the Governor
+    ├── it should return a founder call that transfers the Shareholders' top hat to the Governor last
+    └── given the Safe and the founder's Safe execute them
+        ├── it should produce the template's cap table
+        └── it should leave the Governor owning the Gate's settings and the Director hat

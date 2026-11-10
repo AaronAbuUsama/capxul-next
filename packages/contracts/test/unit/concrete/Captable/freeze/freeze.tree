@@ -1,0 +1,12 @@
+Freeze_Captable_Unit_Concrete_Test
+├── when the caller is not the company Governor
+│   └── it should revert with OnlyGovernor
+├── when the class does not exist
+│   └── it should revert with UnknownClass
+├── when the class is already frozen
+│   └── it should revert with FrozenClass
+└── when the class is not frozen
+    ├── it should freeze the class forever
+    ├── it should still allow issuance within authorised
+    ├── it should still allow holders to convert
+    └── it should emit ClassFrozen

@@ -1,0 +1,13 @@
+Resume_Agreements_Unit_Concrete_Test
+├── when a call into Agreements is already running
+│   └── it should revert with ReentrantCall
+├── when the caller is not authorised for the agreement's budget
+│   └── it should revert with NotAuthorised
+├── when the agreement is not paused
+│   └── it should revert with NotPaused
+├── when it has ended
+│   └── it should revert with AlreadyEnded
+└── when it is paused
+    ├── it should accrue again from now
+    ├── it should pay nothing for the paused time
+    └── it should emit AgreementResumed

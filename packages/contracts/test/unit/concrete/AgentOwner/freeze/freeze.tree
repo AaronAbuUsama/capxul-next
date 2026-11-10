@@ -1,0 +1,15 @@
+Freeze_AgentOwner_Unit_Concrete_Test
+├── given no agent has the Safe
+│   └── it should revert with UnknownAgent
+├── when the caller is not the agent's owner
+│   └── it should revert with NotOwner
+├── given the agent was removed
+│   └── it should revert with AgentIsRemoved
+├── given the agent is already frozen
+│   └── it should revert with AlreadyFrozen
+├── when the Safe refuses the module call
+│   └── it should revert with ModuleCallFailed
+└── when the owner freezes an active agent
+    ├── it should swap the agent's key out for AgentOwner on the Safe
+    ├── it should keep the key and mark the agent frozen
+    └── it should emit AgentFrozen

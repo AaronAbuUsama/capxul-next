@@ -1,0 +1,18 @@
+Close_Rounds_Unit_Concrete_Test
+├── when the caller is not the Safe
+│   └── it should revert with OnlyBoard
+├── when the pay by date has not passed and allocations are unpaid
+│   └── it should revert with InvalidRound
+├── when an affected class with a class Governor has not consented
+│   └── it should revert with ConsentMissing
+└── when the round can close
+    ├── given extreme arithmetic inputs
+    │   └── it should preserve the price bound and checked arithmetic without a redundant clamp
+    ├── given no earlier class's conversion price is above the round price
+    │   └── it should change no conversion price
+    ├── given an earlier class's conversion price is above the round price
+    │   ├── it should compute the broad based weighted average price from A and the money raised and the shares issued
+    │   ├── it should round it down to the price unit
+    │   └── it should set it on the Captable
+    ├── it should mark the round closed and lapse unpaid allocations
+    └── it should emit RoundClosed with every adjustment

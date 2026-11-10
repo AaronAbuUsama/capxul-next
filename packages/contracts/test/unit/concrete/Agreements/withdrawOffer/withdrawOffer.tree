@@ -1,0 +1,13 @@
+WithdrawOffer_Agreements_Unit_Concrete_Test
+├── when a call into Agreements is already running
+│   └── it should revert with ReentrantCall
+├── when the caller is not authorised for the agreement's budget
+│   └── it should revert with NotAuthorised
+├── when the offer was accepted
+│   └── it should revert with AlreadyAccepted
+├── when the offer already expired or was withdrawn
+│   └── it should revert with OfferExpired
+└── when the offer is standing
+    ├── it should close the agreement
+    ├── it should release its reservation in the budget
+    └── it should emit OfferWithdrawn and ReservationReleased

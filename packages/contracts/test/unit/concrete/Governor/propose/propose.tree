@@ -1,0 +1,18 @@
+Propose_Governor_Unit_Concrete_Test
+├── when a target is the company Safe
+│   └── it should revert with TargetNotAllowed
+├── when a target is not in the allowed list
+│   ├── given the target is the Zodiac Roles modifier
+│   │   └── it should revert with TargetNotAllowed
+│   └── given the target is any other address
+│       └── it should revert with TargetNotAllowed
+├── when a value is not zero
+│   └── it should revert with ValueNotAllowed
+├── when the proposer's votes are below the threshold
+│   └── it should revert with the Governor's threshold error
+└── when every target is allowed and the proposer has enough votes
+    ├── it should snapshot votes at the proposal start
+    ├── it should raise pendingUntil to the proposal's snapshot
+    ├── given an earlier proposal's snapshot is later
+    │   └── it should keep pendingUntil at the later snapshot
+    └── it should emit ProposalCreated

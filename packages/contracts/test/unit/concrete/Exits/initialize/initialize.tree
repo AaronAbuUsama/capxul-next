@@ -1,0 +1,5 @@
+Initialize_Exits_Unit_Concrete_Test
+├── when the implementation or clone is already initialized
+│   └── it should reject a second initialization
+└── when any dependency is zero
+    └── it should reject the initialization and leave the clone available

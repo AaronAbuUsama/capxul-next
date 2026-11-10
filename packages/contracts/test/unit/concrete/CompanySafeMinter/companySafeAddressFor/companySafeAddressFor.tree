@@ -1,0 +1,7 @@
+CompanySafeAddressFor_CompanySafeMinter_Unit_Concrete_Test
+├── when given the protocol package's conformance vector
+│   └── it should return the address companies-house.ts derives
+├── when given the owner and namespace and company and founder that mint uses
+│   └── it should return the Safe that mint deploys
+└── when the founder's Safe differs
+    └── it should return another address

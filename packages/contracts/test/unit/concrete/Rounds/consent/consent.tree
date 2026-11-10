@@ -1,0 +1,8 @@
+Consent_Rounds_Unit_Concrete_Test
+├── when the caller is not a class Governor
+│   └── it should revert with NotAffected
+├── when the class's conversion price is not above the round price
+│   └── it should revert with NotAffected
+└── when an affected class's Governor consents
+    ├── it should record the consent
+    └── it should emit ConsentGiven

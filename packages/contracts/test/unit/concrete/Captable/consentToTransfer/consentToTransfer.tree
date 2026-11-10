@@ -1,0 +1,12 @@
+ConsentToTransfer_Captable_Unit_Concrete_Test
+├── when the class does not exist
+│   └── it should revert with UnknownClass
+├── when the reason is zero
+│   └── it should revert with ZeroReason
+├── when the amount is 0
+│   └── it should revert with ZeroAmount
+└── when the shareholder consents for their own shares
+    ├── it should record the consent id of the class and the caller and the receiver and the amount and the reason
+    ├── it should move no shares
+    ├── it should let only the Safe or Exits use it in forcedTransfer
+    └── it should emit TransferConsented

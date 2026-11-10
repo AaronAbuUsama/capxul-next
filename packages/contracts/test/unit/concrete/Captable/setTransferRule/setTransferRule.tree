@@ -1,0 +1,12 @@
+SetTransferRule_Captable_Unit_Concrete_Test
+├── when the caller is not the company Governor
+│   └── it should revert with OnlyGovernor
+├── when the class does not exist
+│   └── it should revert with UnknownClass
+├── when the class is frozen
+│   └── it should revert with FrozenClass
+├── when the rule is Custom and the rule contract is the zero address
+│   └── it should revert with InvalidClass
+└── when the rule is valid
+    ├── it should store the rule
+    └── it should emit TransferRuleSet

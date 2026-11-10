@@ -1,0 +1,9 @@
+Reservation_Agreements_Unit_Concrete_Test
+├── when the agreement is open ended
+│   └── it should return the period figure for the budget's period
+├── when a fixed term pays less in total than the period figure
+│   └── it should return the term's exact calendar pay rounded down
+├── when a fixed term pays at least the period figure
+│   └── it should return the period figure
+└── when the figure does not fit in 128 bits
+    └── it should revert with InvalidRate

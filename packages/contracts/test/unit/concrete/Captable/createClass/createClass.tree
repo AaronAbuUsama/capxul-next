@@ -1,0 +1,35 @@
+CreateClass_Captable_Unit_Concrete_Test
+├── when the caller is not the company Governor
+│   ├── given the caller is the Safe
+│   │   └── it should revert with OnlyGovernor
+│   └── given the caller is anyone else
+│       └── it should revert with OnlyGovernor
+└── when the caller is the company Governor
+    ├── when the company already has 32 classes
+    │   └── it should revert with TooManyClasses
+    ├── given the company has 31 classes
+    │   └── it should create the 32nd class
+    ├── when the authorised amount is 0
+    │   └── it should revert with InvalidClass
+    ├── when convertsInto names a missing class or the class itself
+    │   └── it should revert with InvalidClass
+    ├── when a class with no issue price has a preference
+    │   └── it should revert with InvalidClass
+    ├── when a priced class has a floor of 0 or above its issue price
+    │   └── it should revert with InvalidClass
+    ├── when the rule is Custom and the rule contract is the zero address
+    │   └── it should revert with InvalidClass
+    ├── when weight times authorised times the highest ratio is above the vote bound
+    │   └── it should revert with VotesBoundExceeded
+    ├── when the authorised amount would break the target class's reserve
+    │   └── it should revert with AuthorisedExceeded
+    └── when the class is valid
+        ├── it should deploy a ShareClass clone with the name and ticker
+        ├── it should store the weight and terms and transfer rule
+        ├── it should set the first conversion price to the original issue price
+        ├── given the class converts into another
+        │   └── it should add its reserve rounded up to the target's convertible reserve
+        ├── given the convertible class has no issue price
+        │   └── it should reserve one target share per authorised share
+        ├── it should return the next class id
+        └── it should emit ClassCreated

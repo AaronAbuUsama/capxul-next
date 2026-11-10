@@ -1,0 +1,20 @@
+Accept_Agreements_Unit_Concrete_Test
+├── when a call into Agreements is already running
+│   └── it should revert with ReentrantCall
+├── when the agreement does not exist
+│   └── it should revert with InvalidAgreement
+├── when the caller is not the payee
+│   └── it should revert with NotThePayee
+├── when it was already accepted
+│   └── it should revert with AlreadyAccepted
+├── when the offer was withdrawn or has expired
+│   └── it should revert with OfferExpired
+├── when the terms hash is not the document hash
+│   └── it should revert with TermsMismatch
+└── when the payee accepts the exact terms in time
+    ├── it should mark the agreement accepted
+    ├── given the start date has passed
+    │   └── it should start accrual now
+    ├── given the start date is in the future
+    │   └── it should start accrual at the start date
+    └── it should emit AgreementAccepted

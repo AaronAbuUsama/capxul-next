@@ -1,0 +1,21 @@
+ConvertSafes_Rounds_Unit_Concrete_Test
+├── when the company capitalization is zero
+│   └── it should reject the conversion
+├── when a note does not exist
+│   └── it should reject the conversion
+├── when the conversion price rounds to zero
+│   └── it should reject the conversion without consuming the note
+├── when the caller is not the Safe
+│   └── it should revert with OnlyBoard
+├── when a note was already converted
+│   └── it should revert with InvalidRound
+├── when the priced round is past its pay by date
+│   └── it should revert with PayByPassed
+└── when every note is open
+    ├── it should take the lower of the cap price and the discounted round price rounded down to the price unit
+    ├── it should issue the amount divided by that price rounded down in the round's class
+    ├── it should leave the dust with the company
+    ├── it should mark each note converted
+    ├── when a proposal is pending in the round's class
+    │   └── it should revert whole with ProposalPending
+    └── it should emit SafesConverted

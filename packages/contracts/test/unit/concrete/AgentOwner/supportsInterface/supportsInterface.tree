@@ -1,0 +1,9 @@
+SupportsInterface_AgentOwner_Unit_Concrete_Test
+├── when asked for Safe's transaction guard interface
+│   └── it should return true
+├── when asked for Safe's module guard interface
+│   └── it should return true
+├── when asked for ERC-165
+│   └── it should return true
+└── when asked for another interface
+    └── it should return false

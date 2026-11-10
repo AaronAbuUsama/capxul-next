@@ -1,0 +1,35 @@
+Schedule_Budgets_Unit_Concrete_Test
+├── when a call into Budgets is already running
+│   └── it should revert with ReentrantCall
+├── when the budget does not exist
+│   └── it should revert with UnknownBudget
+├── when the caller is not authorised for the budget
+│   └── it should revert with NotAuthorised
+└── when the caller is authorised
+    ├── when the budget or any budget above it is closed
+    │   └── it should revert with BudgetIsClosed naming the nearest closed budget
+    ├── when the recipient is the zero address
+    │   └── it should revert with ZeroAddress
+    ├── when the amount is 0
+    │   └── it should revert with ZeroAmount
+    ├── when the kind is above 3
+    │   └── it should revert with InvalidKind
+    ├── when the document hash is zero
+    │   └── it should revert with ZeroDocumentHash
+    ├── when the job nonce is zero
+    │   └── it should revert with ZeroJobNonce
+    ├── when the pay date is now or in the past
+    │   └── it should revert with InvalidPayAt
+    └── when the inputs are valid
+        ├── given the period has turned since the budget was last used
+        │   └── it should start ownSpent and spent over at 0 on every stale budget up the tree before checking
+        ├── when the amount is more than is left in the budget
+        │   └── it should revert with OverBudget with the budget and what is left
+        └── when the amount fits what is left
+            ├── it should add the amount to ownCommitted on the budget
+            ├── it should add the amount to committed on the budget and every budget above it
+            ├── it should lower what is left in the budget by the amount now
+            ├── it should store the scheduled payment as Pending with its pay date and document hash
+            ├── it should move no money
+            ├── it should return the next scheduled id
+            └── it should emit PaymentScheduled

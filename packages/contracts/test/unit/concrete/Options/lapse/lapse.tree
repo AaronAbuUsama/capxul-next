@@ -1,0 +1,6 @@
+Lapse_Options_Unit_Concrete_Test
+├── when the offer is still open or the grant is still exercisable
+│   └── it should revert with NotLapsed
+└── when the offer expired unaccepted or the window or expiry passed
+    ├── it should return the unexercised shares to the pool
+    └── it should emit OptionsLapsed

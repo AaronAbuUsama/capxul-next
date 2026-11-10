@@ -1,0 +1,11 @@
+Delegate_ShareClass_Unit_Concrete_Test
+├── when the delegator is the Safe
+│   └── it should revert with SafeCannotVote
+├── when the delegatee is the Safe
+│   ├── given it is delegate
+│   │   └── it should revert with SafeCannotVote
+│   └── given it is delegateBySig
+│       └── it should revert with SafeCannotVote
+└── when neither is the Safe
+    ├── it should move the delegator's votes to the delegatee
+    └── it should emit DelegateChanged

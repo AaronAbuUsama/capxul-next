@@ -1,0 +1,16 @@
+ApproveSale_Exits_Unit_Concrete_Test
+├── when the sale token is zero
+│   └── it should revert with ZeroAddress
+├── when the caller is not the company Governor
+│   └── it should revert with OnlyGovernor
+├── when the sale id was already used
+│   └── it should revert with SaleExists
+├── when the sale token's decimals are not 6
+│   └── it should revert with InvalidSaleToken
+├── when a paid sale has no terms hash
+│   └── it should revert with ZeroDocumentHash
+├── when a zero proceeds sale has no terms hash
+│   └── it should approve the sale
+└── when a passed proposal approves a sale
+    ├── it should record the token and the proceeds and the terms hash
+    └── it should emit SaleApproved

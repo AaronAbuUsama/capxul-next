@@ -1,0 +1,18 @@
+SettleRevocation_Vesting_Unit_Concrete_Test
+├── when the grant does not exist
+│   └── it should revert with UnknownGrant
+├── when the grant is not revoked
+│   └── it should revert with UnknownGrant
+├── when the effective date has not come
+│   └── it should revert with NotYet
+├── when it was already settled
+│   └── it should do nothing
+└── when the effective date has come
+    ├── it should let anyone call it
+    ├── it should burn the shares locked at the effective date through the Captable
+    ├── it should return them to the authorised headroom
+    ├── it should leave the vested shares with the shareholder
+    ├── given it runs long after the effective date
+    │   ├── it should have kept the shares locked from the effective date until now
+    │   └── it should burn only what was locked at the effective date
+    └── it should emit RevocationSettled

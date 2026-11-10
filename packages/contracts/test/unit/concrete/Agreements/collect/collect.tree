@@ -1,0 +1,36 @@
+Collect_Agreements_Unit_Concrete_Test
+├── when a call into Agreements is already running
+│   └── it should revert with ReentrantCall
+├── when the agreement does not exist
+│   └── it should revert with InvalidAgreement
+├── when the caller is not the payee
+│   └── it should revert with NotThePayee
+├── when the agreement is not accepted
+│   └── it should revert with NotAccepted
+├── when the amount is 0
+│   └── it should revert with InvalidAmount
+└── when the payee collects a positive amount
+    ├── it should accrue to now first
+    ├── when the amount is more than is released and not collected
+    │   └── it should revert with InsufficientReleased with what is available
+    └── when the amount is available
+        ├── it should add it to collected
+        ├── it should pay it through Budgets payReserved with kind 4 and the agreement's document hash
+        ├── it should use a new job nonce for each collection
+        ├── given the release step is MONTHLY
+        │   └── it should release each month's pay at 00:00 UTC on the 1st
+        ├── given the release step is one second
+        │   └── it should release pay every second
+        ├── given the agreement has ended
+        │   └── it should release everything earned up to the end and nothing after
+        ├── given the budget is closed
+        │   └── it should still pay
+        ├── given a rate lowering's date has passed
+        │   └── it should release the difference of the period figures and keep the agreement open
+        ├── given the agreement's end has passed
+        │   └── it should release what is left of its reservation
+        ├── when Roles or the Safe's balance or the token refuses the payout
+        │   └── it should revert whole and leave collected and collections and what is owed unchanged
+        ├── when the token re-enters Agreements during payReserved
+        │   └── it should revert the inner call with ReentrantCall
+        └── it should emit Collected

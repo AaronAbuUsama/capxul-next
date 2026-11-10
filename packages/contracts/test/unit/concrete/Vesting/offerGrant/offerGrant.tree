@@ -1,0 +1,13 @@
+OfferGrant_Vesting_Unit_Concrete_Test
+├── when the caller is not the Captable's Safe
+│   └── it should revert with OnlyBoard
+├── when the amount is 0 or the schedule is invalid
+│   └── it should revert with InvalidSchedule
+├── when the offer expiry is not in the future
+│   └── it should revert with InvalidSchedule
+└── when the offer is valid
+    ├── it should record an offer that is not accepted
+    ├── it should lock nothing before the shareholder accepts
+    ├── it should issue no shares
+    ├── it should not set the shareholder's live grant on the class
+    └── it should emit GrantOffered

@@ -1,0 +1,34 @@
+Issue_Captable_Unit_Concrete_Test
+├── when the caller is neither the Safe nor a module with an issuer allowance
+│   └── it should revert with OnlyBoard
+├── when the class does not exist
+│   └── it should revert with UnknownClass
+├── when the amount is 0
+│   └── it should revert with ZeroAmount
+├── when the Captable is closed for an exit
+│   └── it should revert with CaptableClosed
+├── when the class votes and a company proposal is pending
+│   ├── when the time is at or before the Governor's pendingUntil
+│   │   └── it should revert with ProposalPending with the class and the time
+│   └── when the time is after pendingUntil
+│       └── it should issue and leave the shares out of that vote
+├── when the class has a class Governor with a proposal pending
+│   └── it should revert with ProposalPending
+├── given the class has weight 0 and a company proposal is pending
+│   └── it should issue
+└── when the caller may issue now
+    ├── when a module's allowance is less than the amount
+    │   └── it should revert with IssuerAllowanceExceeded
+    ├── when issued plus convertible reserve plus the amount is more than authorised
+    │   └── it should revert with AuthorisedExceeded
+    └── when it fits
+        ├── given the caller is a module
+        │   └── it should lower its allowance by the amount
+        ├── it should mint the shares to the receiver
+        ├── given the receiver never held this class
+        │   └── it should delegate the receiver's votes to themselves
+        ├── given the receiver is the Safe
+        │   └── it should mint the shares with no votes and keep them out of supply
+        ├── given the class is frozen
+        │   └── it should still issue
+        └── it should emit Issued with the reason

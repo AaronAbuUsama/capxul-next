@@ -1,0 +1,11 @@
+ForcedMove_ShareClass_Unit_Concrete_Test
+├── when the caller is not the Captable
+│   └── it should revert with OnlyCaptable
+└── when the caller is the Captable
+    ├── it should move the balance without calling checkTransfer
+    ├── it should move the delegated votes
+    ├── given the shares leave the Safe
+    │   ├── it should checkpoint the Safe's lower balance
+    │   └── it should self delegate the new holder on first receipt
+    └── given the shares go to the Safe
+        └── it should checkpoint the Safe's higher balance and give it no votes

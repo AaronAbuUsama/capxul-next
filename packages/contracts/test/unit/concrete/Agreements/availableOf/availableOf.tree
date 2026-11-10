@@ -1,0 +1,16 @@
+AvailableOf_Agreements_Unit_Concrete_Test
+├── when a pending rate change is due
+│   └── it should project earnings at both rates without changing state
+├── when a pending rate change is due during a pause
+│   └── it should not accrue pay during the pause
+├── when the rate change is due before the agreement starts
+│   └── it should project the new rate from the start date
+├── when the agreement is not accepted
+│   └── it should return 0
+├── when it is paused
+│   └── it should return what was released before the pause and not collected
+├── when it has ended
+│   └── it should return everything earned up to the end and not collected
+└── when it is running
+    ├── it should return released pay minus collected as of now
+    └── it should equal what collect would allow now

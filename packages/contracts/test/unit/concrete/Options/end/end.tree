@@ -1,0 +1,12 @@
+End_Options_Unit_Concrete_Test
+├── when the caller is not the Safe
+│   └── it should revert with OnlyBoard
+├── when the grant already ended
+│   └── it should revert with AlreadyEnded
+├── when the end date is in the past
+│   └── it should revert with InvalidSchedule
+└── when the end date is now or later
+    ├── it should stop vesting at the end date
+    ├── it should return the unvested shares to the pool
+    ├── it should keep vested options exercisable for the window
+    └── it should emit OptionsEnded

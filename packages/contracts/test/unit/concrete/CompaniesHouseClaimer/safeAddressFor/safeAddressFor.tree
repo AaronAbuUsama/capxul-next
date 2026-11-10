@@ -1,0 +1,5 @@
+SafeAddressFor_CompaniesHouseClaimer_Unit_Concrete_Test
+├── when given the protocol package's conformance vector
+│   └── it should return the address safe-address.ts derives
+└── when given the owner and namespace and email that claim uses
+    └── it should return the Safe that claim deploys

@@ -1,0 +1,21 @@
+Sweep_AgentOwner_Unit_Concrete_Test
+├── when the caller is not the agent's owner
+│   └── it should revert with NotOwner
+├── when the recipient is the zero address
+│   └── it should revert with InvalidRecipient
+├── when the recipient is the agent's own Safe
+│   └── it should revert with InvalidRecipient
+├── given the Safe holds none of the token
+│   ├── it should call nothing
+│   └── it should return zero
+├── when the token refuses the approval
+│   └── it should revert with ModuleCallFailed
+├── when the payment fails
+│   └── it should revert with ModuleCallFailed
+├── given the Safe holds the token
+│   ├── it should pay the whole balance to the recipient through Payments with the agent sweep kind
+│   ├── it should count the sweep
+│   ├── it should emit AgentSwept
+│   └── it should return the amount
+└── given the agent is frozen
+    └── it should still sweep

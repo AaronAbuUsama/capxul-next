@@ -1,0 +1,25 @@
+Revoke_Vesting_Unit_Concrete_Test
+├── when the caller is not the Captable's Safe
+│   └── it should revert with OnlyBoard
+├── when the grant does not exist
+│   └── it should revert with UnknownGrant
+├── when the grant is an offer that was not accepted
+│   └── it should revert with NotAccepted
+├── when it was already revoked
+│   └── it should revert with AlreadyRevoked
+├── when the effective date is in the past
+│   └── it should revert with RevokeInPast
+├── when nothing is locked at the effective date
+│   ├── given the grant has fully vested
+│   │   └── it should revert with FullyVested
+│   └── given the grant fully vests before the effective date
+│       └── it should revert with FullyVested
+└── when the effective date is now or later and shares are locked then
+    ├── it should record the revocation
+    ├── given the effective date is now
+    │   ├── it should burn the locked shares at once through the Captable
+    │   └── it should emit RevocationSettled
+    ├── given the effective date is in the future
+    │   ├── it should keep vesting until then
+    │   └── it should burn nothing yet
+    └── it should emit Revoked

@@ -1,0 +1,23 @@
+ConditionMet_Escrow_Unit_Concrete_Test
+├── when the condition is invoice amount reached
+│   ├── when the escrow holds at least the amount
+│   │   └── it should return true
+│   └── when it holds less
+│       └── it should return false
+└── when the condition is payee claimed
+    ├── when the payee has no code
+    │   └── it should return false
+    ├── when isOwner of Companies House reverts
+    │   └── it should return false
+    ├── when isOwner returns fewer or more than 32 bytes
+    │   └── it should return false
+    ├── when isOwner returns a word that is neither 0 nor 1
+    │   └── it should return false
+    ├── when Companies House is the payee's only owner
+    │   └── it should return false
+    ├── when Companies House is one of several owners
+    │   └── it should return false
+    ├── when the payee has one owner who is not Companies House
+    │   └── it should return true
+    └── when the payee has two owners and neither is Companies House
+        └── it should return true

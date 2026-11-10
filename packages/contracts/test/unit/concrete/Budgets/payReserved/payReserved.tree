@@ -1,0 +1,19 @@
+PayReserved_Budgets_Unit_Concrete_Test
+├── when a call into Budgets is already running
+│   └── it should revert with ReentrantCall
+├── when the caller is not the Agreements contract
+│   └── it should revert with OnlyAgreements
+└── when the caller is the Agreements contract
+    ├── when the budget does not exist
+    │   └── it should revert with UnknownBudget
+    └── when the budget exists
+        ├── it should pay through the payout role with kind 4
+        ├── it should not change ownSpent or spent
+        ├── given the budget is closed
+        │   └── it should still pay
+        ├── when Roles or the token refuses the payout
+        │   └── it should revert whole
+        ├── when the token re-enters Budgets during the payout
+        │   └── it should revert the inner call with ReentrantCall
+        ├── it should return the payment id
+        └── it should emit ReservedPaid

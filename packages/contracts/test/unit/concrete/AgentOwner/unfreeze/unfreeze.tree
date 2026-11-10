@@ -1,0 +1,11 @@
+Unfreeze_AgentOwner_Unit_Concrete_Test
+├── given no agent has the Safe
+│   └── it should revert with UnknownAgent
+├── when the caller is not the agent's owner
+│   └── it should revert with NotOwner
+├── given the agent is not frozen
+│   └── it should revert with NotFrozen
+└── when the owner unfreezes a frozen agent
+    ├── it should swap AgentOwner out for the agent's key on the Safe
+    ├── it should mark the agent not frozen
+    └── it should emit AgentUnfrozen

@@ -1,0 +1,15 @@
+Preview_Exits_Unit_Concrete_Test
+├── when a share holding names an unknown class
+│   └── it should reject the unknown class
+├── when an option holding names the wrong grantee
+│   └── it should reject the option holding
+├── when the holdings do not cover every class's supply and every live option
+│   └── it should revert with IncompleteHoldings
+├── when the holdings are complete
+│   ├── it should return one payout per holding from the waterfall
+│   └── it should match the Capxul vectors for both sales to within a dollar
+├── when an option grant has ended
+│   ├── it should count only the options vested at its end
+│   └── it should revert with IncompleteHoldings for the grant's full size
+└── when a preferred class has a preference multiple above 1x
+    └── it should owe shares times original issue price times the multiple

@@ -1,0 +1,9 @@
+Yearly_Calendar_Unit_Concrete_Test
+├── when the period is WEEK
+│   └── it should return rate times 53
+├── when the period is MONTH
+│   └── it should return rate times 12
+├── when the period is YEAR
+│   └── it should return rate
+└── when the period is anything else
+    └── it should revert with InvalidPeriod

@@ -1,0 +1,12 @@
+SignSafe_Rounds_Unit_Concrete_Test
+├── when the investor was not invited
+│   └── it should revert with NotInvited
+├── when the amount is more than the invitation
+│   └── it should revert with OverInvited
+├── when the round is closed or past its close date
+│   └── it should revert with RoundIsClosed
+└── when the invited investor signs in time
+    ├── it should pull the amount and pay it to the Safe through Payments with kind 6
+    ├── it should hold no balance afterwards
+    ├── it should record the SAFE note with the signed document hash
+    └── it should emit SafeSigned

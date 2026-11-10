@@ -1,0 +1,12 @@
+PeriodIndex_Calendar_Unit_Concrete_Test
+├── when the budget period is BUDGET_MONTH
+│   └── it should return year times 12 plus month minus 1
+├── when the budget period is BUDGET_QUARTER
+│   ├── it should return year times 4 plus the quarter of the year counted from 0
+│   └── given t is the first second of 1 April
+│       └── it should return the second quarter of that year
+├── when the budget period is BUDGET_YEAR
+│   └── it should return the year
+├── when the budget period is anything else
+│   └── it should revert with InvalidBudgetPeriod
+└── it should give periodStart at or before t and nextPeriodStart after t

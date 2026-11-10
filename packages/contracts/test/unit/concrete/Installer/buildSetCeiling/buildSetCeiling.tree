@@ -1,0 +1,16 @@
+BuildSetCeiling_Installer_Unit_Concrete_Test
+├── when the Safe is zero or has no code
+│   └── it should revert with InvalidInstall
+├── when the Roles does not name the Safe
+│   └── it should revert with InvalidInstall
+├── when the token has no payout ceiling
+│   └── it should revert with InvalidInstall
+└── when the inputs are valid
+    ├── it should set the refill and max refill to the new ceiling and keep what was spent this period
+    ├── given the new ceiling is no more than what was spent
+    │   └── it should leave a zero balance
+    ├── given the period has passed
+    │   └── it should give the new ceiling in full
+    ├── given a refill does not restore the maximum
+    │   └── it should preserve the spend left after that refill
+    └── it should leave every other token's allowance alone

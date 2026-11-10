@@ -1,0 +1,18 @@
+End_Agreements_Unit_Concrete_Test
+├── when a call into Agreements is already running
+│   └── it should revert with ReentrantCall
+├── when the caller is not authorised for the agreement's budget
+│   └── it should revert with NotAuthorised
+├── when the agreement is not accepted
+│   └── it should revert with NotAccepted
+├── when an end date is set and the new one is not earlier
+│   └── it should revert with AlreadyEnded
+├── when the end date is in the past
+│   └── it should revert with InvalidDate
+└── when the end date is now or later and earlier than any set end
+    ├── it should record the end date
+    ├── it should keep accruing until the end date exclusive
+    ├── given the end date is now
+    │   └── it should close the agreement and release all earned pay and the reservation
+    ├── it should release the reservation once the end date passes
+    └── it should emit AgreementEnded

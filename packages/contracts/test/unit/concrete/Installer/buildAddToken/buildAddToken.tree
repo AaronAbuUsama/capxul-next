@@ -1,0 +1,15 @@
+BuildAddToken_Installer_Unit_Concrete_Test
+├── when the Safe is zero or has no code
+│   └── it should revert with InvalidInstall
+├── when the Roles does not name the Safe
+│   └── it should revert with InvalidInstall
+├── when the new token is already given or its hat is 0 or its period is above BUDGET_YEAR
+│   └── it should revert with InvalidInstall
+└── when the inputs are valid
+    ├── it should scope approve on the new token and rebuild the send scope over every token
+    ├── it should set the new token's allowance at its ceiling for its budget period
+    ├── it should create the new token's top budget
+    └── given the Safe executes the calls
+        ├── it should let the new token be paid within its ceiling
+        ├── it should leave the other token's allowance and what was spent as they were
+        └── it should still let the other token be paid

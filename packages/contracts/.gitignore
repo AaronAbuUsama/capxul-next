@@ -1,0 +1,8 @@
+cache/
+out/
+lcov.info
+halmos.log
+halmos.json
+.certora_internal/
+emv-*-certora-*/
+.chain/

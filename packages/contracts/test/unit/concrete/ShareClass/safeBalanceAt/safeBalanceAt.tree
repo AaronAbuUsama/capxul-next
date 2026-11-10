@@ -1,0 +1,9 @@
+SafeBalanceAt_ShareClass_Unit_Concrete_Test
+├── when the timepoint is in the future
+│   └── it should reject the future lookup
+├── it should return the Safe's balance at that time
+├── given the Safe never held shares
+│   └── it should return 0
+├── given the Safe's balance changed after the timepoint
+│   └── it should return the balance at the timepoint
+└── it should equal balanceOf the Safe when read at the current time

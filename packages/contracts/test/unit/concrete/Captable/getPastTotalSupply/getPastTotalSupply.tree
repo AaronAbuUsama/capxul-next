@@ -1,0 +1,12 @@
+GetPastTotalSupply_Captable_Unit_Concrete_Test
+├── when the timepoint is not in the past
+│   └── it should revert with the ERC5805 future lookup error
+└── when the timepoint is in the past
+    ├── it should sum over voting classes weight times supply less the Safe's shares at that time times the ratio at that time
+    ├── given the Safe holds shares of a voting class
+    │   └── it should leave them out
+    ├── given a class has weight 0
+    │   └── it should add nothing for it
+    ├── it should round down once per class
+    └── given 32 classes at the vote bound
+        └── it should not revert

@@ -1,0 +1,15 @@
+SwapSigner_AgentOwner_Unit_Concrete_Test
+├── when the caller is not the agent's owner
+│   └── it should revert with NotOwner
+├── when the old signer is not the agent's key
+│   └── it should revert with SignerMismatch
+├── when the new signer is not valid
+│   └── it should revert with InvalidSigner
+├── given the agent is active
+│   ├── it should swap the old key for the new key on the Safe
+│   ├── it should record the new key
+│   └── it should emit AgentSignerSwapped
+└── given the agent is frozen
+    ├── it should leave AgentOwner as the Safe's owner
+    ├── it should record the new key, which unfreeze installs
+    └── it should emit AgentSignerSwapped

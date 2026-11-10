@@ -1,0 +1,14 @@
+Release_Budgets_Unit_Concrete_Test
+├── when a call into Budgets is already running
+│   └── it should revert with ReentrantCall
+├── when the caller is not the Agreements contract
+│   └── it should revert with OnlyAgreements
+└── when the caller is the Agreements contract
+    ├── when the amount is more than ownCommitted
+    │   └── it should revert with the checked arithmetic panic
+    └── when the amount is at most ownCommitted
+        ├── it should subtract the amount from ownCommitted
+        ├── it should subtract the amount from committed on the budget and every budget above it
+        ├── given the budget is closed
+        │   └── it should still release
+        └── it should emit Released

@@ -1,0 +1,16 @@
+Pause_Agreements_Unit_Concrete_Test
+├── when a call into Agreements is already running
+│   └── it should revert with ReentrantCall
+├── when the caller is not authorised for the agreement's budget
+│   └── it should revert with NotAuthorised
+├── when the agreement is not accepted
+│   └── it should revert with NotAccepted
+├── when it is already paused
+│   └── it should revert with AlreadyPaused
+├── when it has ended
+│   └── it should revert with AlreadyEnded
+└── when it is running
+    ├── it should accrue to now and then stop accrual
+    ├── it should keep earned pay collectable
+    ├── it should keep the reservation
+    └── it should emit AgreementPaused

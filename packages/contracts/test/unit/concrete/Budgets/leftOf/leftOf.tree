@@ -1,0 +1,3 @@
+LeftOf_Budgets_Unit_Concrete_Test
+└── when the budget does not exist
+    └── it should return zero

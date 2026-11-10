@@ -1,0 +1,16 @@
+Configure_Budgets_Unit_Concrete_Test
+├── when a call into Budgets is already running
+│   └── it should revert with ReentrantCall
+├── when the Roles modifier's avatar is not the caller
+│   └── it should revert with InvalidConfiguration
+├── when the Roles modifier's target is not a Signer Gate whose safe is the caller
+│   └── it should revert with InvalidConfiguration
+├── when the Roles modifier's target is the caller itself
+│   └── it should revert with InvalidConfiguration
+├── when a read of the avatar or the target or the Gate's safe reverts or returns malformed data
+│   └── it should revert with InvalidConfiguration
+└── when the avatar is the caller and the target is the caller's Signer Gate
+    ├── it should store the Roles address and the payout role key for the caller
+    ├── given the Safe was configured before
+    │   └── it should replace the old configuration
+    └── it should emit Configured

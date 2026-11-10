@@ -1,0 +1,22 @@
+GrantAndIssue_Vesting_Unit_Concrete_Test
+├── when the caller is not the Captable's Safe
+│   └── it should revert with OnlyBoard
+├── when the amount is 0
+│   └── it should revert with InvalidSchedule
+├── when the schedule is not start then cliff then end
+│   └── it should revert with InvalidSchedule
+├── when the schedule is under one month and the cliff is not the end
+│   └── it should revert with InvalidSchedule
+├── when the shareholder already has a live grant on this class
+│   └── it should revert with GrantExists
+├── when the Captable refuses the issue
+│   ├── given the class is over its authorised
+│   │   └── it should revert with AuthorisedExceeded and record no grant
+│   └── given a proposal is pending in the class
+│       └── it should revert with ProposalPending and record no grant
+└── when the grant is valid
+    ├── it should issue the amount of new shares to the shareholder under Vesting's issuer allowance
+    ├── it should record an accepted grant in the same call
+    ├── it should lock the whole amount until the cliff
+    ├── it should leave the shareholder's votes on all their shares
+    └── it should emit Granted

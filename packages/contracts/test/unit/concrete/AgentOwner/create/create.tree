@@ -1,0 +1,29 @@
+Create_AgentOwner_Unit_Concrete_Test
+├── when the caller is not the owner it names
+│   └── it should revert with NotOwner
+├── when the signer is the zero address
+│   └── it should revert with InvalidSigner
+├── when the signer is the owners sentinel
+│   └── it should revert with InvalidSigner
+├── when the signer is AgentOwner itself
+│   └── it should revert with InvalidSigner
+├── when the signer is the owner
+│   └── it should revert with InvalidSigner
+├── given the derived Safe already belongs to an agent
+│   └── it should revert with AgentExists
+├── given someone deployed the derived Safe through the factory first
+│   ├── it should not call the factory again
+│   ├── it should make AgentOwner the Safe's transaction guard and module guard
+│   ├── it should swap the signer in as the one owner
+│   └── it should record the agent and emit AgentCreated
+├── when the factory deploys at another address than the derived one
+│   └── it should revert with DerivedAddressMismatch
+└── when the owner creates an agent for a valid signer
+    ├── it should deploy the Safe through the Safe proxy factory with the Safe L2 singleton and the owner and signer salt
+    ├── it should set up the Safe with AgentOwner as its one owner, threshold one and the 4337 module as fallback handler
+    ├── it should swap the signer in as the one owner
+    ├── it should enable the 4337 module and AgentOwner as modules
+    ├── it should make AgentOwner the Safe's transaction guard and module guard
+    ├── it should record the agent with its owner and signer, not frozen and not removed
+    ├── it should emit AgentCreated
+    └── it should return the Safe

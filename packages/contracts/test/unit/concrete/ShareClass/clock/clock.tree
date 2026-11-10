@@ -1,0 +1,3 @@
+Clock_ShareClass_Unit_Concrete_Test
+├── it should return the block timestamp
+└── it should report the timestamp clock mode

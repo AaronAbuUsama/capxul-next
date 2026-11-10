@@ -1,0 +1,17 @@
+Commit_Budgets_Unit_Concrete_Test
+├── when a call into Budgets is already running
+│   └── it should revert with ReentrantCall
+├── when the caller is not the Agreements contract
+│   └── it should revert with OnlyAgreements
+└── when the caller is the Agreements contract
+    ├── when the budget does not exist
+    │   └── it should revert with UnknownBudget
+    ├── when the budget or any budget above it is closed
+    │   └── it should revert with BudgetIsClosed
+    ├── when the amount is more than is left in the budget
+    │   └── it should revert with OverBudget
+    └── when the amount fits
+        ├── it should add the amount to ownCommitted
+        ├── it should add the amount to committed on the budget and every budget above it
+        ├── it should not check the hat
+        └── it should emit Committed

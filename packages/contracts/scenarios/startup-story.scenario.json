@@ -1,0 +1,1231 @@
+{
+  "$schema": "./scenario.schema.json",
+  "name": "startup-story",
+  "start": "2027-01-04T09:00:00Z",
+  "source": "written by hand from docs/planning/protocol-v4/decisions.md M6 with F1 to F3 and F10; every checkpoint figure is worked out from spec/budgets.md, spec/agreements.md, spec/calendar.md and spec/vesting.md (see the test's NatSpec)",
+  "namespace": "capxul:scenario:email:v1",
+  "addresses": {
+    "Hats": "0x3bc1A0Ad72417f2d411118085256fC53CBdDd137",
+    "ModuleProxyFactory": "0x000000000000aDdB49795b0f9bA5BC298cDda236",
+    "RolesMastercopy": "0xF2964CE6161ce0e75964Fe7927cE114cb0B283D5",
+    "RolesMultiSendUnwrapper": "0xB4Cd4bb764C089f20DA18700CE8bc5e49F369efD",
+    "HatsSignerGate": "0x148057884AC910Bdd93693F230C5c35a8c47CA3b",
+    "HatsModuleFactory": "0x0a3f85fa597B6a967271286aA0724811acDF5CD9",
+    "HatsElectionEligibility": "0xd3b916a8F0C4f9D1d5B6Af29c3C012dbd4f3149E",
+    "CompatibilityFallbackHandler": "0x3EfCBb83A4A7AfcB4F68D501E2c2203a38be77f4",
+    "Safe4337Module": "0x75cf11467937ce3F2f357CE24ffc3DBF8fD5c226"
+  },
+  "deploy": [
+    {
+      "name": "CompaniesHouseClaimer",
+      "source": "companies-house/CompaniesHouseClaimer.sol"
+    },
+    {
+      "name": "Payments",
+      "source": "money/Payments.sol"
+    },
+    {
+      "name": "Budgets",
+      "source": "money/Budgets.sol",
+      "args": ["Payments", "Hats"]
+    },
+    {
+      "name": "Agreements",
+      "source": "money/Agreements.sol",
+      "args": ["Budgets"]
+    },
+    {
+      "name": "EscrowFactory",
+      "source": "money/EscrowFactory.sol",
+      "args": ["Payments", "companiesHouse"]
+    },
+    {
+      "name": "Vesting",
+      "source": "equity/Vesting.sol"
+    },
+    {
+      "name": "Captable",
+      "source": "equity/Captable.sol"
+    },
+    {
+      "name": "ShareClass",
+      "source": "equity/ShareClass.sol"
+    },
+    {
+      "name": "Governor",
+      "source": "equity/Governor.sol"
+    },
+    {
+      "name": "Options",
+      "source": "equity/Options.sol"
+    },
+    {
+      "name": "Rounds",
+      "source": "equity/Rounds.sol"
+    },
+    {
+      "name": "Exits",
+      "source": "equity/Exits.sol"
+    },
+    {
+      "name": "Installer",
+      "source": "authority/Installer.sol",
+      "args": [
+        "Payments",
+        "Budgets",
+        "Agreements",
+        "Vesting",
+        "Hats",
+        "ModuleProxyFactory",
+        "RolesMastercopy",
+        "HatsSignerGate",
+        "HatsModuleFactory",
+        "HatsElectionEligibility",
+        "CompatibilityFallbackHandler",
+        "Safe4337Module",
+        "Captable",
+        "ShareClass",
+        "Governor",
+        "Options",
+        "Rounds",
+        "Exits",
+        "EscrowFactory",
+        "RolesMultiSendUnwrapper"
+      ]
+    }
+  ],
+  "wire": [
+    {
+      "call": "Budgets.setAgreements",
+      "args": {
+        "agreements_": "Agreements"
+      }
+    }
+  ],
+  "tokens": {
+    "USDC": {
+      "address": "0x036CbD53842c5426634e7929541eC2318f3dCF7e",
+      "decimals": 6,
+      "fund": {
+        "company": "1000000e6"
+      }
+    }
+  },
+  "ids": {
+    "Company": "1",
+    "Operating": "2",
+    "Operations": "3",
+    "Offsite": "4",
+    "priyaPay": "1",
+    "samPay": "2",
+    "leePay": "3",
+    "supplierInvoice": "1",
+    "printerLease": "2",
+    "Common": "0"
+  },
+  "data": {
+    "equityInstall": {
+      "p": {
+        "safe": "company",
+        "founderSafe": "amira",
+        "money": "Installer.deployMoney",
+        "equity": "Installer.deployEquity",
+        "founders": [
+          {
+            "shareholder": "amira",
+            "classId": "0",
+            "amount": "5000000",
+            "start": "2027-01-04T09:00:00Z",
+            "cliff": "2028-01-04T09:00:00Z",
+            "end": "2031-01-04T09:00:00Z",
+            "accelerateOnExit": false,
+            "documentHash": "amira founder stock agreement"
+          },
+          {
+            "shareholder": "ben",
+            "classId": "0",
+            "amount": "3000000",
+            "start": "2027-01-04T09:00:00Z",
+            "cliff": "2028-01-04T09:00:00Z",
+            "end": "2031-01-04T09:00:00Z",
+            "accelerateOnExit": false,
+            "documentHash": "ben founder stock agreement"
+          }
+        ],
+        "optionPool": "1000000"
+      }
+    }
+  },
+  "actors": {
+    "companiesHouse": "companies-house",
+    "company": {
+      "role": "company",
+      "email": "company@capxul.test"
+    },
+    "amira": {
+      "role": "founder",
+      "email": "amira@capxul.test"
+    },
+    "ben": {
+      "role": "founder",
+      "email": "ben@capxul.test"
+    },
+    "jordan": {
+      "role": "ops",
+      "email": "jordan@capxul.test"
+    },
+    "priya": {
+      "role": "employee",
+      "email": "priya@capxul.test"
+    },
+    "sam": {
+      "role": "employee",
+      "email": "sam@capxul.test"
+    },
+    "lee": {
+      "role": "employee",
+      "email": "lee@capxul.test"
+    },
+    "eve": {
+      "role": "outsider",
+      "email": "eve@capxul.test"
+    },
+    "venue": "anyone",
+    "supplier": "anyone"
+  },
+  "events": [
+    {
+      "at": "2027-01-04T09:00:00Z",
+      "actor": "companiesHouse",
+      "call": "CompaniesHouseClaimer.claim",
+      "args": {
+        "namespace": "capxul:scenario:email:v1",
+        "email": "company@capxul.test",
+        "signer": "company.signer"
+      }
+    },
+    {
+      "at": "2027-01-04T09:00:00Z",
+      "actor": "companiesHouse",
+      "call": "CompaniesHouseClaimer.claim",
+      "args": {
+        "namespace": "capxul:scenario:email:v1",
+        "email": "amira@capxul.test",
+        "signer": "amira.signer"
+      }
+    },
+    {
+      "at": "2027-01-04T09:00:00Z",
+      "actor": "companiesHouse",
+      "call": "CompaniesHouseClaimer.claim",
+      "args": {
+        "namespace": "capxul:scenario:email:v1",
+        "email": "ben@capxul.test",
+        "signer": "ben.signer"
+      }
+    },
+    {
+      "at": "2027-01-04T09:00:00Z",
+      "actor": "companiesHouse",
+      "call": "CompaniesHouseClaimer.claim",
+      "args": {
+        "namespace": "capxul:scenario:email:v1",
+        "email": "jordan@capxul.test",
+        "signer": "jordan.signer"
+      }
+    },
+    {
+      "at": "2027-01-04T09:00:00Z",
+      "actor": "companiesHouse",
+      "call": "CompaniesHouseClaimer.claim",
+      "args": {
+        "namespace": "capxul:scenario:email:v1",
+        "email": "priya@capxul.test",
+        "signer": "priya.signer"
+      }
+    },
+    {
+      "at": "2027-01-04T09:00:00Z",
+      "actor": "companiesHouse",
+      "call": "CompaniesHouseClaimer.claim",
+      "args": {
+        "namespace": "capxul:scenario:email:v1",
+        "email": "sam@capxul.test",
+        "signer": "sam.signer"
+      }
+    },
+    {
+      "at": "2027-01-04T09:00:00Z",
+      "actor": "companiesHouse",
+      "call": "CompaniesHouseClaimer.claim",
+      "args": {
+        "namespace": "capxul:scenario:email:v1",
+        "email": "lee@capxul.test",
+        "signer": "lee.signer"
+      }
+    },
+    {
+      "at": "2027-01-04T09:00:00Z",
+      "actor": "companiesHouse",
+      "call": "CompaniesHouseClaimer.claim",
+      "args": {
+        "namespace": "capxul:scenario:email:v1",
+        "email": "eve@capxul.test",
+        "signer": "eve.signer"
+      }
+    },
+    {
+      "at": "2027-01-04T09:00:00Z",
+      "actor": "anyone",
+      "call": "Installer.deployMoney",
+      "args": {
+        "p": {
+          "safe": "company",
+          "founderSafe": "amira",
+          "coDirectors": ["ben"],
+          "threshold": {
+            "thresholdType": "0",
+            "min": "2",
+            "target": "2"
+          },
+          "officers": [
+            {
+              "details": "CEO",
+              "maxSupply": "1"
+            },
+            {
+              "details": "Ops",
+              "maxSupply": "1"
+            }
+          ],
+          "salt": "0x0000000000000000000000000000000000000000000000000000000000000001"
+        }
+      }
+    },
+    {
+      "at": "2027-01-04T09:00:00Z",
+      "actor": "company",
+      "call": "Safe.batch",
+      "args": {
+        "calls": [
+          {
+            "call": "Installer.buildMoney",
+            "args": {
+              "p": {
+                "safe": "company",
+                "founderSafe": "amira",
+                "coDirectors": ["ben"],
+                "deployment": "Installer.deployMoney",
+                "tokens": [
+                  {
+                    "token": "USDC",
+                    "ceiling": "600000e6",
+                    "budgetPeriod": "2",
+                    "topAmount": "600000e6",
+                    "topHat": "Board"
+                  }
+                ]
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "at": "2027-01-07T09:00:00Z",
+      "actor": "ben",
+      "call": "Board.approveHash",
+      "args": {}
+    },
+    {
+      "at": "2027-01-07T09:00:00Z",
+      "actor": "amira",
+      "call": "Board.execTransaction",
+      "args": {
+        "calls": [
+          {
+            "call": "Hats.mintHat",
+            "args": {
+              "hatId": "CEO",
+              "wearer": "amira"
+            }
+          },
+          {
+            "call": "Budgets.createChildBudget",
+            "args": {
+              "parent": "Company",
+              "amount": "500000e6",
+              "hat": "CEO"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "at": "2027-01-08T09:00:00Z",
+      "actor": "ben",
+      "call": "Board.approveHash",
+      "args": {}
+    },
+    {
+      "at": "2027-01-08T09:00:00Z",
+      "actor": "amira",
+      "call": "Board.execTransaction",
+      "args": {
+        "calls": [
+          {
+            "call": "Hats.mintHat",
+            "args": {
+              "hatId": "Ops",
+              "wearer": "jordan"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "at": "2027-01-11T09:00:00Z",
+      "actor": "amira",
+      "call": "Budgets.createChildBudget",
+      "args": {
+        "parent": "Operating",
+        "amount": "250000e6",
+        "hat": "Ops"
+      }
+    },
+    {
+      "at": "2027-01-12T09:00:00Z",
+      "actor": "jordan",
+      "call": "Agreements.offer",
+      "args": {
+        "budgetId": "Operations",
+        "payee": "priya",
+        "rate": "6000e6",
+        "period": "1",
+        "startsAt": "2027-02-01T00:00:00Z",
+        "endsAt": "0",
+        "step": "18446744073709551615",
+        "offerExpiresAt": "2027-01-31T00:00:00Z",
+        "documentHash": "priya employment contract"
+      }
+    },
+    {
+      "at": "2027-01-12T09:00:00Z",
+      "actor": "jordan",
+      "call": "Agreements.offer",
+      "args": {
+        "budgetId": "Operations",
+        "payee": "sam",
+        "rate": "5000e6",
+        "period": "1",
+        "startsAt": "2027-02-01T00:00:00Z",
+        "endsAt": "0",
+        "step": "18446744073709551615",
+        "offerExpiresAt": "2027-01-31T00:00:00Z",
+        "documentHash": "sam employment contract"
+      }
+    },
+    {
+      "at": "2027-01-12T09:00:00Z",
+      "actor": "jordan",
+      "call": "Agreements.offer",
+      "args": {
+        "budgetId": "Operations",
+        "payee": "lee",
+        "rate": "4500e6",
+        "period": "1",
+        "startsAt": "2027-02-01T00:00:00Z",
+        "endsAt": "0",
+        "step": "18446744073709551615",
+        "offerExpiresAt": "2027-01-31T00:00:00Z",
+        "documentHash": "lee employment contract"
+      }
+    },
+    {
+      "at": "2027-01-12T09:00:00Z",
+      "actor": "jordan",
+      "call": "Agreements.offer",
+      "args": {
+        "budgetId": "Operations",
+        "payee": "jordan",
+        "rate": "7000e6",
+        "period": "1",
+        "startsAt": "2027-02-01T00:00:00Z",
+        "endsAt": "0",
+        "step": "18446744073709551615",
+        "offerExpiresAt": "2027-01-31T00:00:00Z",
+        "documentHash": "jordan employment contract"
+      },
+      "expect": {
+        "revert": "InvalidAgreement"
+      }
+    },
+    {
+      "at": "2027-01-13T09:00:00Z",
+      "actor": "priya",
+      "call": "Agreements.accept",
+      "args": {
+        "id": "priyaPay",
+        "termsHash": "priya employment contract"
+      }
+    },
+    {
+      "at": "2027-01-13T09:00:00Z",
+      "actor": "sam",
+      "call": "Agreements.accept",
+      "args": {
+        "id": "samPay",
+        "termsHash": "sam employment contract"
+      }
+    },
+    {
+      "at": "2027-01-13T09:00:00Z",
+      "actor": "lee",
+      "call": "Agreements.accept",
+      "args": {
+        "id": "leePay",
+        "termsHash": "lee employment contract"
+      }
+    },
+    {
+      "at": "2027-01-14T09:00:00Z",
+      "actor": "jordan",
+      "call": "Budgets.createChildBudget",
+      "args": {
+        "parent": "Operations",
+        "amount": "20000e6",
+        "hat": "Ops"
+      }
+    },
+    {
+      "at": "2027-02-15T09:00:00Z",
+      "actor": "jordan",
+      "call": "Budgets.spend",
+      "args": {
+        "id": "Offsite",
+        "recipient": "venue",
+        "amount": "4200e6",
+        "kind": "1",
+        "documentHash": "offsite venue invoice",
+        "jobNonce": "offsite venue deposit"
+      }
+    },
+    {
+      "at": "2027-02-16T09:00:00Z",
+      "actor": "eve",
+      "call": "Budgets.spend",
+      "args": {
+        "id": "Operations",
+        "recipient": "eve",
+        "amount": "1e6",
+        "kind": "0",
+        "documentHash": "eve's invoice",
+        "jobNonce": "eve 1"
+      },
+      "expect": {
+        "revert": "NotAuthorised(uint256,address)"
+      }
+    },
+    {
+      "at": "2027-02-20T09:00:00Z",
+      "actor": "jordan",
+      "call": "Budgets.schedule",
+      "args": {
+        "id": "Operations",
+        "to": "supplier",
+        "amount": "3000e6",
+        "kind": "1",
+        "payAt": "2027-03-01T00:00:00Z",
+        "documentHash": "supplier invoice 0042",
+        "jobNonce": "supplier invoice 0042 job"
+      }
+    },
+    {
+      "at": "2027-02-20T09:00:00Z",
+      "actor": "jordan",
+      "call": "Budgets.schedule",
+      "args": {
+        "id": "Operations",
+        "to": "supplier",
+        "amount": "1500e6",
+        "kind": "1",
+        "payAt": "2027-04-01T00:00:00Z",
+        "documentHash": "printer lease april",
+        "jobNonce": "printer lease april job"
+      }
+    },
+    {
+      "at": "2027-02-28T09:00:00Z",
+      "actor": "anyone",
+      "call": "Budgets.execute",
+      "args": {
+        "scheduledId": "supplierInvoice"
+      },
+      "expect": {
+        "revert": "NotDue(uint256,uint64)"
+      }
+    },
+    {
+      "at": "2027-03-01T00:00:00Z",
+      "actor": "anyone",
+      "call": "Budgets.execute",
+      "args": {
+        "scheduledId": "supplierInvoice"
+      }
+    },
+    {
+      "at": "2027-03-01T00:00:00Z",
+      "actor": "anyone",
+      "call": "Budgets.execute",
+      "args": {
+        "scheduledId": "supplierInvoice"
+      },
+      "expect": {
+        "revert": "NotPending(uint256)"
+      }
+    },
+    {
+      "at": "2027-03-01T10:00:00Z",
+      "actor": "priya",
+      "call": "Agreements.collect",
+      "args": {
+        "id": "priyaPay",
+        "amount": "6000e6"
+      }
+    },
+    {
+      "at": "2027-03-01T10:00:00Z",
+      "actor": "sam",
+      "call": "Agreements.collect",
+      "args": {
+        "id": "samPay",
+        "amount": "5000e6"
+      }
+    },
+    {
+      "at": "2027-03-01T10:00:00Z",
+      "actor": "priya",
+      "call": "Agreements.collect",
+      "args": {
+        "id": "priyaPay",
+        "amount": "1"
+      },
+      "expect": {
+        "revert": "InsufficientReleased(uint128,uint128)"
+      }
+    },
+    {
+      "at": "2027-04-01T10:00:00Z",
+      "actor": "priya",
+      "call": "Agreements.collect",
+      "args": {
+        "id": "priyaPay",
+        "amount": "6000e6"
+      }
+    },
+    {
+      "at": "2027-04-01T10:00:00Z",
+      "actor": "sam",
+      "call": "Agreements.collect",
+      "args": {
+        "id": "samPay",
+        "amount": "5000e6"
+      }
+    },
+    {
+      "at": "2027-04-01T10:00:00Z",
+      "actor": "lee",
+      "call": "Agreements.collect",
+      "args": {
+        "id": "leePay",
+        "amount": "9000e6"
+      }
+    },
+    {
+      "at": "2027-04-02T09:00:00Z",
+      "actor": "jordan",
+      "call": "Budgets.cancel",
+      "args": {
+        "scheduledId": "printerLease"
+      }
+    },
+    {
+      "at": "2027-04-05T09:00:00Z",
+      "actor": "amira",
+      "call": "Budgets.setAmount",
+      "args": {
+        "id": "Operations",
+        "amount": "100000e6"
+      },
+      "expect": {
+        "revert": "AmountBelowUse(uint256,uint128,uint128)"
+      }
+    },
+    {
+      "at": "2027-06-01T09:00:00Z",
+      "actor": "anyone",
+      "call": "Installer.deployEquity",
+      "args": {
+        "p": {
+          "safe": "company",
+          "money": "Installer.deployMoney",
+          "name": "Amira and Ben Ltd",
+          "initialClasses": [
+            {
+              "name": "Common",
+              "ticker": "AB-C",
+              "weight": "1",
+              "convertsInto": "255",
+              "rule": "0",
+              "customRule": "0x0000000000000000000000000000000000000000",
+              "authorised": "10000000",
+              "originalIssuePrice": "0",
+              "conversionFloorPrice": "0",
+              "preferenceMultipleBps": "0",
+              "participating": false,
+              "seniority": "0",
+              "termsHash": "Amira and Ben Ltd common stock terms"
+            }
+          ],
+          "poolClassId": "0",
+          "governor": {
+            "votingDelay": "86400",
+            "votingPeriod": "604800",
+            "proposalThreshold": "1",
+            "quorumNumerator": "2000"
+          }
+        }
+      }
+    },
+    {
+      "at": "2027-06-01T09:00:00Z",
+      "actor": "ben",
+      "call": "Board.approveHash",
+      "args": {}
+    },
+    {
+      "at": "2027-06-01T09:00:00Z",
+      "actor": "amira",
+      "call": "Board.execTransaction",
+      "args": {
+        "calls": [
+          {
+            "call": "Installer.buildEquity",
+            "args": "@equityInstall"
+          }
+        ]
+      }
+    },
+    {
+      "at": "2027-06-01T09:00:00Z",
+      "actor": "amira",
+      "call": "Safe.batch",
+      "args": {
+        "calls": [
+          {
+            "call": "Installer.buildEquity",
+            "args": "@equityInstall"
+          }
+        ]
+      }
+    },
+    {
+      "at": "2028-01-04T10:00:00Z",
+      "actor": "priya",
+      "call": "Agreements.collect",
+      "args": {
+        "id": "priyaPay",
+        "amount": "54000e6"
+      }
+    },
+    {
+      "at": "2028-01-04T10:00:00Z",
+      "actor": "jordan",
+      "call": "Budgets.spend",
+      "args": {
+        "id": "Offsite",
+        "recipient": "venue",
+        "amount": "20000e6",
+        "kind": "1",
+        "documentHash": "offsite venue invoice 2028",
+        "jobNonce": "offsite venue 2028"
+      }
+    }
+  ],
+  "checkpoints": [
+    {
+      "at": "2027-01-04T09:00:00Z",
+      "name": "installed",
+      "save": true,
+      "expect": {
+        "safes": {
+          "company": {
+            "deployed": true,
+            "owners": ["ben", "amira"],
+            "threshold": "2"
+          }
+        },
+        "hats": {
+          "Board": {
+            "company": true,
+            "amira": false
+          },
+          "Director": {
+            "amira": true,
+            "ben": true,
+            "company.signer": false
+          },
+          "Shareholders": {
+            "amira": true,
+            "company": false
+          }
+        },
+        "Budgets": {
+          "Company": {
+            "amount": "600000e6",
+            "childrenAmount": "0",
+            "spent": "0",
+            "committed": "0",
+            "left": "600000e6",
+            "parent": "0",
+            "hat": "Board"
+          }
+        },
+        "balances": {
+          "company": {
+            "USDC": "1000000e6"
+          }
+        }
+      }
+    },
+    {
+      "at": "2027-01-15T09:00:00Z",
+      "name": "team",
+      "save": true,
+      "expect": {
+        "hats": {
+          "CEO": {
+            "amira": true
+          },
+          "Ops": {
+            "jordan": true,
+            "eve": false
+          }
+        },
+        "Budgets": {
+          "Company": {
+            "amount": "600000e6",
+            "childrenAmount": "500000e6",
+            "ownSpent": "0",
+            "spent": "0",
+            "ownCommitted": "0",
+            "committed": "186000e6",
+            "left": "100000e6"
+          },
+          "Operating": {
+            "amount": "500000e6",
+            "childrenAmount": "250000e6",
+            "ownSpent": "0",
+            "spent": "0",
+            "ownCommitted": "0",
+            "committed": "186000e6",
+            "left": "250000e6"
+          },
+          "Operations": {
+            "amount": "250000e6",
+            "childrenAmount": "20000e6",
+            "ownSpent": "0",
+            "spent": "0",
+            "ownCommitted": "186000e6",
+            "committed": "186000e6",
+            "left": "44000e6"
+          },
+          "Offsite": {
+            "amount": "20000e6",
+            "childrenAmount": "0",
+            "ownSpent": "0",
+            "spent": "0",
+            "ownCommitted": "0",
+            "committed": "0",
+            "left": "20000e6"
+          }
+        },
+        "Agreements": {
+          "priyaPay": {
+            "reserved": "72000e6",
+            "collected": "0",
+            "available": "0"
+          },
+          "samPay": {
+            "reserved": "60000e6",
+            "collected": "0",
+            "available": "0"
+          },
+          "leePay": {
+            "reserved": "54000e6",
+            "collected": "0",
+            "available": "0"
+          }
+        }
+      }
+    },
+    {
+      "at": "2027-02-28T12:00:00Z",
+      "name": "february",
+      "expect": {
+        "Budgets": {
+          "Company": {
+            "amount": "600000e6",
+            "childrenAmount": "500000e6",
+            "ownSpent": "0",
+            "spent": "4200e6",
+            "ownCommitted": "0",
+            "committed": "190500e6",
+            "left": "100000e6"
+          },
+          "Operating": {
+            "amount": "500000e6",
+            "childrenAmount": "250000e6",
+            "ownSpent": "0",
+            "spent": "4200e6",
+            "ownCommitted": "0",
+            "committed": "190500e6",
+            "left": "250000e6"
+          },
+          "Operations": {
+            "amount": "250000e6",
+            "childrenAmount": "20000e6",
+            "ownSpent": "0",
+            "spent": "4200e6",
+            "ownCommitted": "190500e6",
+            "committed": "190500e6",
+            "left": "39500e6"
+          },
+          "Offsite": {
+            "amount": "20000e6",
+            "childrenAmount": "0",
+            "ownSpent": "4200e6",
+            "spent": "4200e6",
+            "ownCommitted": "0",
+            "committed": "0",
+            "left": "15800e6"
+          }
+        },
+        "Scheduled": {
+          "supplierInvoice": {
+            "state": "Pending"
+          },
+          "printerLease": {
+            "state": "Pending"
+          }
+        },
+        "Agreements": {
+          "priyaPay": {
+            "available": "0",
+            "earned": "5892857142"
+          }
+        },
+        "balances": {
+          "company": {
+            "USDC": "995800e6"
+          },
+          "venue": {
+            "USDC": "4200e6"
+          },
+          "supplier": {
+            "USDC": "0"
+          },
+          "eve": {
+            "USDC": "0"
+          }
+        }
+      }
+    },
+    {
+      "at": "2027-04-01T12:00:00Z",
+      "name": "q1",
+      "save": true,
+      "expect": {
+        "Budgets": {
+          "Company": {
+            "amount": "600000e6",
+            "childrenAmount": "500000e6",
+            "ownSpent": "0",
+            "spent": "7200e6",
+            "ownCommitted": "0",
+            "committed": "187500e6",
+            "left": "100000e6"
+          },
+          "Operating": {
+            "amount": "500000e6",
+            "childrenAmount": "250000e6",
+            "ownSpent": "0",
+            "spent": "7200e6",
+            "ownCommitted": "0",
+            "committed": "187500e6",
+            "left": "250000e6"
+          },
+          "Operations": {
+            "amount": "250000e6",
+            "childrenAmount": "20000e6",
+            "ownSpent": "3000e6",
+            "spent": "7200e6",
+            "ownCommitted": "187500e6",
+            "committed": "187500e6",
+            "left": "39500e6"
+          },
+          "Offsite": {
+            "amount": "20000e6",
+            "childrenAmount": "0",
+            "ownSpent": "4200e6",
+            "spent": "4200e6",
+            "ownCommitted": "0",
+            "committed": "0",
+            "left": "15800e6"
+          }
+        },
+        "Scheduled": {
+          "supplierInvoice": {
+            "state": "Paid"
+          },
+          "printerLease": {
+            "state": "Pending"
+          }
+        },
+        "Agreements": {
+          "priyaPay": {
+            "collected": "12000e6",
+            "available": "0",
+            "reserved": "72000e6"
+          },
+          "samPay": {
+            "collected": "10000e6",
+            "available": "0"
+          },
+          "leePay": {
+            "collected": "9000e6",
+            "available": "0"
+          }
+        },
+        "balances": {
+          "company": {
+            "USDC": "961800e6"
+          },
+          "venue": {
+            "USDC": "4200e6"
+          },
+          "supplier": {
+            "USDC": "3000e6"
+          },
+          "priya": {
+            "USDC": "12000e6"
+          },
+          "sam": {
+            "USDC": "10000e6"
+          },
+          "lee": {
+            "USDC": "9000e6"
+          }
+        }
+      }
+    },
+    {
+      "at": "2027-06-02T09:00:00Z",
+      "name": "equity",
+      "save": true,
+      "expect": {
+        "Budgets": {
+          "Operations": {
+            "ownSpent": "3000e6",
+            "spent": "7200e6",
+            "ownCommitted": "186000e6",
+            "left": "41000e6"
+          }
+        },
+        "Scheduled": {
+          "printerLease": {
+            "state": "Cancelled"
+          }
+        },
+        "hats": {
+          "Shareholders": {
+            "equity.governor": true,
+            "amira": false
+          },
+          "Director": {
+            "amira": true,
+            "ben": true
+          }
+        },
+        "shares": {
+          "amira": {
+            "Common": "5000000"
+          },
+          "ben": {
+            "Common": "3000000"
+          },
+          "company": {
+            "Common": "0"
+          }
+        },
+        "locked": {
+          "amira": {
+            "Common": "5000000"
+          },
+          "ben": {
+            "Common": "3000000"
+          }
+        },
+        "classes": {
+          "Common": {
+            "totalSupply": "8000000",
+            "authorised": "10000000"
+          }
+        },
+        "options": {
+          "pool": "1000000",
+          "allocated": "0"
+        }
+      }
+    },
+    {
+      "at": "2028-01-03T09:00:00Z",
+      "name": "year-2",
+      "save": true,
+      "expect": {
+        "Budgets": {
+          "Company": {
+            "amount": "600000e6",
+            "childrenAmount": "500000e6",
+            "ownSpent": "0",
+            "spent": "0",
+            "ownCommitted": "0",
+            "committed": "186000e6",
+            "left": "100000e6"
+          },
+          "Operating": {
+            "amount": "500000e6",
+            "childrenAmount": "250000e6",
+            "ownSpent": "0",
+            "spent": "0",
+            "ownCommitted": "0",
+            "committed": "186000e6",
+            "left": "250000e6"
+          },
+          "Operations": {
+            "amount": "250000e6",
+            "childrenAmount": "20000e6",
+            "ownSpent": "0",
+            "spent": "0",
+            "ownCommitted": "186000e6",
+            "committed": "186000e6",
+            "left": "44000e6"
+          },
+          "Offsite": {
+            "amount": "20000e6",
+            "childrenAmount": "0",
+            "ownSpent": "0",
+            "spent": "0",
+            "ownCommitted": "0",
+            "committed": "0",
+            "left": "20000e6"
+          }
+        },
+        "Agreements": {
+          "priyaPay": {
+            "available": "54000e6",
+            "earned": "54459677419"
+          },
+          "samPay": {
+            "available": "45000e6"
+          },
+          "leePay": {
+            "available": "40500e6"
+          }
+        },
+        "locked": {
+          "amira": {
+            "Common": "5000000"
+          },
+          "ben": {
+            "Common": "3000000"
+          }
+        },
+        "balances": {
+          "company": {
+            "USDC": "961800e6"
+          }
+        }
+      }
+    },
+    {
+      "at": "2028-01-05T12:00:00Z",
+      "name": "cliff",
+      "expect": {
+        "Budgets": {
+          "Company": {
+            "amount": "600000e6",
+            "childrenAmount": "500000e6",
+            "ownSpent": "0",
+            "spent": "20000e6",
+            "ownCommitted": "0",
+            "committed": "186000e6",
+            "left": "100000e6"
+          },
+          "Operating": {
+            "amount": "500000e6",
+            "childrenAmount": "250000e6",
+            "ownSpent": "0",
+            "spent": "20000e6",
+            "ownCommitted": "0",
+            "committed": "186000e6",
+            "left": "250000e6"
+          },
+          "Operations": {
+            "amount": "250000e6",
+            "childrenAmount": "20000e6",
+            "ownSpent": "0",
+            "spent": "20000e6",
+            "ownCommitted": "186000e6",
+            "committed": "186000e6",
+            "left": "44000e6"
+          },
+          "Offsite": {
+            "amount": "20000e6",
+            "childrenAmount": "0",
+            "ownSpent": "20000e6",
+            "spent": "20000e6",
+            "ownCommitted": "0",
+            "committed": "0",
+            "left": "0"
+          }
+        },
+        "Agreements": {
+          "priyaPay": {
+            "collected": "66000e6",
+            "available": "0"
+          }
+        },
+        "locked": {
+          "amira": {
+            "Common": "3750000"
+          },
+          "ben": {
+            "Common": "2250000"
+          }
+        },
+        "balances": {
+          "company": {
+            "USDC": "887800e6"
+          },
+          "venue": {
+            "USDC": "24200e6"
+          },
+          "priya": {
+            "USDC": "66000e6"
+          }
+        }
+      }
+    }
+  ]
+}

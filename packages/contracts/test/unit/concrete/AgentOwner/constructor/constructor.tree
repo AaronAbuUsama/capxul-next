@@ -1,0 +1,5 @@
+Constructor_AgentOwner_Unit_Concrete_Test
+├── when the payments address is zero
+│   └── it should revert with ZeroPayments
+└── when the payments address is set
+    └── it should keep it as PAYMENTS

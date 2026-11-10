@@ -1,0 +1,17 @@
+BuildElections_Installer_Unit_Concrete_Test
+├── when the Elections clone does not match the company
+│   └── it should reject the unrelated clone
+└── when the inputs are valid
+    ├── it should return Governor calls that elect the winners for the first term first
+    ├── it should include every sitting Director who keeps the seat in the winners
+    ├── given the seat count changes
+    │   └── it should change the Director hat's max supply
+    ├── it should attach the Elections clone with changeHatEligibility
+    ├── it should burn unelected Directors' hats with checkHatWearerStatus
+    ├── it should mint the Director hat to each new winner only after elect
+    ├── it should set the Gate's threshold config for the new Board size
+    ├── given another seat group's Director hat
+    │   └── it should elect and mint for that hat only
+    └── given the Governor executes them
+        ├── it should let anyone claim each new winner as signer
+        └── it should let anyone remove each unelected former Director

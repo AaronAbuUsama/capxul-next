@@ -1,0 +1,8 @@
+# Gate 10's settings (docs/planning/protocol-v4/fv/halmos.md). Halmos reads this file from the
+# project root, so `halmos --root . --match-contract '_Symbolic$'` runs with them.
+[global]
+loop = 8
+# No solver timeout: a check that does not finish fails, never passes.
+solver-timeout-assertion = 0
+# Halmos's default model. A check that needs `generic` sets it on its own run (R4 section 2).
+storage-layout = "solidity"

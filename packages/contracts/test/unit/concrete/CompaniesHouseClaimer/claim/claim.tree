@@ -1,0 +1,37 @@
+Claim_CompaniesHouseClaimer_Unit_Concrete_Test
+├── when the claimer is called directly and not by delegatecall
+│   └── it should revert with NotDelegateCall
+├── when the namespace is empty
+│   └── it should revert with EmptyNamespace
+├── when the email is empty
+│   └── it should revert with EmailNotNormalized
+├── when the email starts with a space or a control byte
+│   └── it should revert with EmailNotNormalized
+├── when the email ends with a space or a control byte
+│   └── it should revert with EmailNotNormalized
+├── when the email has an upper case ASCII letter
+│   └── it should revert with EmailNotNormalized
+├── when the email has a byte that is not ASCII
+│   └── it should revert with EmailNotNormalized
+├── when the signer is the zero address
+│   └── it should revert with InvalidSigner
+├── when the signer is the owners sentinel
+│   └── it should revert with InvalidSigner
+├── when the signer is Companies House
+│   └── it should revert with InvalidSigner
+├── when the factory deploys at another address than the derived one
+│   └── it should revert with DerivedAddressMismatch
+├── given the derived Safe has no code
+│   ├── it should deploy it through the Safe proxy factory with the Safe L2 singleton and the 4337 module setup and the namespace and email salt
+│   ├── it should swap Companies House for the signer through a v 1 approved signature
+│   ├── it should emit CapxulSafeClaimed with deployed true
+│   ├── it should write no storage of Companies House
+│   └── it should return the Safe
+├── given the derived Safe is already deployed
+│   ├── it should deploy nothing
+│   ├── it should swap Companies House for the signer
+│   └── it should emit CapxulSafeClaimed with deployed false
+├── given the Safe was already claimed
+│   └── it should revert because Companies House is no longer an owner
+└── when the Safe refuses the swap without reverting
+    └── it should revert with SwapRefused

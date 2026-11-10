@@ -1,0 +1,14 @@
+AccelerateForExit_Vesting_Unit_Concrete_Test
+├── when the caller is not the Captable's Exits
+│   └── it should revert with OnlyExits
+├── when the grant is not accepted
+│   └── it should do nothing and not revert
+├── when the grant was revoked
+│   └── it should do nothing and not revert
+├── when the grant has already ended
+│   └── it should do nothing and not revert
+├── when the grant does not accelerate on exit
+│   └── it should do nothing and not revert
+└── when the grant accelerates on exit and is live
+    ├── it should end the schedule now so nothing is locked
+    └── it should emit Accelerated

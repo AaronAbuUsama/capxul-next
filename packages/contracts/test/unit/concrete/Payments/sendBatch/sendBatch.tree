@@ -1,0 +1,12 @@
+SendBatch_Payments_Unit_Concrete_Test
+├── when a call into Payments is already running
+│   └── it should revert with ReentrantCall
+├── when items is empty
+│   └── it should do nothing and emit nothing
+├── when any item would revert under send
+│   └── it should revert the whole batch with that item's error
+├── when two items have the same payment id
+│   └── it should revert with PaymentIdConsumed on the second
+└── when every item is valid
+    ├── it should pay each item in order
+    └── it should emit one PaymentSent per item in order

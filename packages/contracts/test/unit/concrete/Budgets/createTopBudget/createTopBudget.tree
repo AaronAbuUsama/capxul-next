@@ -1,0 +1,20 @@
+CreateTopBudget_Budgets_Unit_Concrete_Test
+├── when a call into Budgets is already running
+│   └── it should revert with ReentrantCall
+├── when the caller is not a configured Safe
+│   └── it should revert with NotConfigured
+└── when the caller is a configured Safe
+    ├── when the token is the zero address or has no code
+    │   └── it should revert with InvalidToken
+    ├── when the budget period is not a budget period
+    │   └── it should revert with the Calendar's InvalidBudgetPeriod
+    ├── when the hat is 0
+    │   └── it should revert with InvalidHat
+    └── when the inputs are valid
+        ├── it should create a budget with no parent at depth 1
+        ├── it should store the hat
+        ├── it should set its period index to the current period
+        ├── given the amount is 0
+        │   └── it should create the budget with nothing to spend
+        ├── it should return the next budget id
+        └── it should emit BudgetCreated

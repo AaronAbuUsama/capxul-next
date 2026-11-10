@@ -1,0 +1,33 @@
+Settle_Exits_Unit_Concrete_Test
+├── when a claim index is outside the payouts or repeated
+│   └── it should reject the invalid claim index
+├── when the caller is not the Safe
+│   └── it should revert with OnlyBoard
+├── when the sale was not approved
+│   └── it should revert with SaleNotApproved
+├── when the sale was already settled
+│   └── it should revert with AlreadySettled
+├── when the holdings are incomplete
+│   └── it should revert with IncompleteHoldings
+├── when a payout's payment was not made
+│   └── it should revert with PaymentMissing
+├── when the payouts do not add up to the proceeds
+│   └── it should revert with ProceedsMismatch
+└── when every payout was paid
+    ├── it should derive each payout's item with kind 8 and the sale's terms hash and the Safe as executor
+    ├── given a payee is in claimIndexes
+    │   ├── it should require that payout paid to the claim escrow predictClaimEscrow names
+    │   ├── it should deploy the claim escrow with Exits as owner and the shareholder as payee
+    │   ├── it should record the claim for the payee
+    │   ├── it should hold no token itself
+    │   └── it should emit ClaimRecorded
+    ├── given the Safe holds shares
+    │   ├── it should leave them out of the holdings and pay them nothing
+    │   └── it should burn them with every other share
+    ├── it should accelerate the grants that accelerate on exit
+    ├── given a grant cannot accelerate
+    │   └── it should still settle
+    ├── it should burn every share of every class
+    ├── it should end every option
+    ├── it should close the Captable so nothing more is issued
+    └── it should emit Settled

@@ -1,0 +1,15 @@
+Initialize_Governor_Unit_Concrete_Test
+├── when it is the implementation
+│   └── it should revert with the initializer error
+├── when it was already initialized
+│   └── it should revert with the initializer error
+└── when it is a fresh clone
+    ├── when the company Safe is the Governor itself
+    │   └── it should revert with TargetNotAllowed
+    ├── when the allowed targets include the company Safe
+    │   └── it should revert with TargetNotAllowed
+    └── when the targets are valid
+        ├── it should read votes from the given votes contract on its timestamp clock
+        ├── it should set the delay and period and threshold and quorum
+        ├── it should add itself to its allowed targets
+        └── it should start with pendingUntil at 0

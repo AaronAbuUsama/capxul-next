@@ -1,0 +1,21 @@
+Constructor_Escrow_Unit_Concrete_Test
+├── when the owner Safe or the payee Safe or the token is the zero address
+│   └── it should revert with ZeroAddress
+├── when the payments contract or the bootstrap owner is the zero address
+│   └── it should revert with ZeroAddress
+├── when the amount is 0
+│   └── it should revert with ZeroAmount
+├── when the job nonce is zero
+│   └── it should revert with ZeroJobNonce
+├── when the document hash is zero
+│   └── it should revert with ZeroDocumentHash
+├── when the condition is above 1
+│   └── it should revert with InvalidCondition
+└── when the terms are valid
+    ├── it should store every term as an immutable
+    ├── it should compute the payment id from Payments for the fixed item
+    ├── given the condition is payee claimed
+    │   └── it should make the escrow the payment's executor
+    ├── given the condition is invoice amount reached
+    │   └── it should leave the executor empty
+    └── it should emit EscrowCreated

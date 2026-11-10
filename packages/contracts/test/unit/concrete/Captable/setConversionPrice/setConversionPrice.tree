@@ -1,0 +1,18 @@
+SetConversionPrice_Captable_Unit_Concrete_Test
+├── when the caller is neither the company Governor nor Rounds
+│   ├── it should revert with OnlyGovernor
+│   └── given the caller is the Safe
+│       └── it should revert with OnlyGovernor
+├── when the class does not exist
+│   └── it should revert with UnknownClass
+├── when the class has no issue price
+│   └── it should revert with NotConvertible
+├── when the new price is not lower than the current one
+│   └── it should revert with ConversionPriceNotLower
+├── when the new price is below the class floor
+│   └── it should revert with BelowFloor
+└── when the new price is lower and at or above the floor
+    ├── it should checkpoint the new price at this timestamp
+    ├── it should raise the class's votes as converted from now on
+    ├── it should leave past votes unchanged
+    └── it should emit ConversionPriceSet

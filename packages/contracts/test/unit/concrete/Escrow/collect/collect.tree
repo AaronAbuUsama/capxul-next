@@ -1,0 +1,24 @@
+Collect_Escrow_Unit_Concrete_Test
+├── when a call is already running
+│   └── it should revert with ReentrantCall
+├── when the condition is not payee claimed
+│   └── it should revert with InvalidCondition
+├── when the caller is not the payee Safe
+│   └── it should revert with NotPayee
+├── when the escrow is not open
+│   └── it should revert with JobNotOpen
+├── when the payee Safe still lists Companies House as an owner
+│   └── it should revert with ConditionNotMet
+├── given the payee claimed and later added a second owner
+│   └── it should still let the payee collect
+├── when the escrow holds less than the amount
+│   └── it should revert with InsufficientFunding
+├── when the claimed payee collects a funded escrow
+│   ├── it should mark the escrow paid
+│   ├── it should pay the fixed item with the escrow as executor
+│   ├── it should return any surplus to the owner Safe
+│   └── it should emit EscrowPaid
+├── when an ordinary claim uses exit payment kind
+│   └── it should return the surplus to the owner
+└── when the owner returns a malformed identity response
+    └── it should treat the escrow as an ordinary claim

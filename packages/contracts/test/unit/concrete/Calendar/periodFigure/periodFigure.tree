@@ -1,0 +1,22 @@
+PeriodFigure_Calendar_Unit_Concrete_Test
+├── when the rate period is not WEEK or MONTH or YEAR
+│   └── it should revert with InvalidPeriod
+├── when the budget period is not BUDGET_MONTH or BUDGET_QUARTER or BUDGET_YEAR
+│   └── it should revert with InvalidBudgetPeriod
+├── when the budget period is BUDGET_MONTH
+│   ├── when the rate period is WEEK
+│   │   └── it should return rate times 5
+│   ├── when the rate period is MONTH
+│   │   └── it should return rate
+│   └── when the rate period is YEAR
+│       └── it should return rate divided by 12 rounded up
+├── when the budget period is BUDGET_QUARTER
+│   ├── when the rate period is WEEK
+│   │   └── it should return rate times 14
+│   ├── when the rate period is MONTH
+│   │   └── it should return rate times 3
+│   └── when the rate period is YEAR
+│       └── it should return rate divided by 4 rounded up
+├── when the budget period is BUDGET_YEAR
+│   └── it should return yearly of the rate
+└── it should never be less than what the rate earns inside any one budget period

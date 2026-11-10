@@ -1,0 +1,18 @@
+SetAuthorised_Captable_Unit_Concrete_Test
+├── when the caller is not the company Governor
+│   └── it should revert with OnlyGovernor
+├── when the class does not exist
+│   └── it should revert with UnknownClass
+├── when the class is frozen
+│   └── it should revert with FrozenClass
+├── when the new amount is below issued plus convertible reserve
+│   └── it should revert with AuthorisedExceeded
+├── when the new amount would take the class over the vote bound
+│   └── it should revert with VotesBoundExceeded
+├── when the class converts into another and the target's reserve would break its authorised
+│   └── it should revert with AuthorisedExceeded
+└── when the new amount fits
+    ├── it should set the authorised amount
+    ├── given the class converts into another
+    │   └── it should move the target's convertible reserve with it
+    └── it should emit AuthorisedSet
