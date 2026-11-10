@@ -28,6 +28,11 @@ from the build session on, the product code it describes.
   node --experimental-strip-types tools/check-frozen.ts                                           # 0 breaches: every behaviour kept
   ```
 
+- **The plan.** `plan/plan.json` is the coordinator's plan, shown at `/plan/` in the portal (decision `portal.plan-page`).
+  Every session starts with `pnpm plan show` and ends by updating the plan. Agents report through `pnpm plan task …` (`start <id>
+  --thread <name>`, `block`, `unblock`, `done <id> --evidence <ref>`, each with `--by <name>`), never by editing the JSON; every
+  change is logged in `plan/log.jsonl`. Only the coordinator writes `path set` and `note`: the critical path is written, never
+  computed. `pnpm test` runs `plan check` and `plan-tasks --check` too.
 - **Where code goes:** decision `system.layout` in `books/target/shared/decisions.ts`. In short:
   - one package per component;
   - `src/<concept>/` mirrors `books/target/<concept>/`;

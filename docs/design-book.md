@@ -585,6 +585,35 @@ are written sorted, so two runs of the same results give the same file. The port
 shows the evals passing per operation, per concept and in total, and `pnpm portal:check` fails
 when an entry names an eval the book does not derive.
 
+## The plan
+
+The book says what to build; the plan says where the build is and what comes next. It lives beside the book, not in it
+(decision `portal.plan-page`): tasks and milestones change daily and are not records.
+
+- **It is written, not computed.** The coordinating model writes `plan/plan.json`: the goal and its exit lines, the milestones in
+  order (each with exit lines that may name eval ids and concepts of the book), the tasks (state, the thread working on each,
+  what each needs, what blocks it, the book records it concerns, its evidence), the **critical path** as an ordered list of
+  task ids with a why in the coordinator's words and the date, and dated notes, the latest of which opens the page. Nothing
+  sorts, infers or repairs the path.
+- **It changes through one command.** `pnpm plan <command>` (`tools/plan.ts`, module `tools/plan/`): `show [--json]`, `note`,
+  `task add | start | block | unblock | done | drop | edit`, `path set`, `milestone current`, `exit met`, `check`, and
+  `goal set`, `exit add`, `milestone add` to shape it. Every change takes `--by <name>` (default `coordinator`), is validated,
+  written, appended to `plan/log.jsonl` (one line: time, who, action, arguments, commit; never rewritten) and printed.
+- **It is checked against the book.** `pnpm plan check` (also inside `pnpm portal:check` and `pnpm test`) fails, naming the task
+  and why, when: an id is used twice; a task's milestone or a `needs` entry does not exist, or `needs` form a cycle; a task is
+  doing with no thread, or blocked with no blocker, or blocked on a decision the book does not hold; a record key, eval id or
+  concept it names does not resolve; not exactly one milestone is current; a task on the path does not exist, is done or
+  dropped, or belongs to a later milestone than the current one and is not blocked (a blocked later task may stand on the path:
+  the coordinator asks for it early); or an exit line is met with no evidence.
+- **It is shown at `/plan/`** (top bar, after Overview, with the count of what waits on the owner): the latest note, the goal,
+  the milestones with their exit lines and, where they name concepts, how many of those concepts' evals pass, the critical path
+  in its order and words, what is blocked (for a decision: its question, options and the book's recommendation inline and a
+  link to it on the Questions page; for a need: who and what), the tasks by state with their threads, and the last twenty log
+  lines. It has Markdown and JSON twins and a line in `llms.txt`. The Overview shows the latest note and a link.
+- **The derived task tree stays beneath it.** `tools/plan-tasks.ts` still derives the lanes and tasks from the book into
+  `docs/mission/tasks.json`, and reads its milestones from `plan/plan.json`, so there is one list. `pnpm tasks:check` fails when the
+  file is stale; regenerate it with `pnpm tasks` after a milestone or exit line changes.
+
 ## What the schema does not cover yet
 
 [`docs/spec/50-design-book.md`](spec/50-design-book.md#deliberately-not-in-the-schema-yet-the-step-2-slice-decides)
@@ -601,6 +630,8 @@ node --experimental-strip-types tools/check-frozen.ts       # the 215 booked, ev
 node --experimental-strip-types tools/report-judgments.ts > docs/decisions/judgments.md
 node --experimental-strip-types --no-warnings tools/impact.ts event:payment_transitioned   # what depends on a record
 node --experimental-strip-types --no-warnings tools/record-status.ts results.json          # merge a run into status/status.json
+pnpm plan show                                                   # the plan: note, goal, milestones, path, blocked, tasks
+pnpm plan check && pnpm tasks:check                              # the plan against the book; the derived task tree is current
 ```
 
 The book build does not see the frozen text beside the target's records, so
